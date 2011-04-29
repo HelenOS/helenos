@@ -12,8 +12,7 @@ SECTIONS {
 		*(.interp);
 	} :interp
 	
-	/* On Itanium code sections must be aligned to 16 bytes. */
-	. = ALIGN(0x800000000 + SIZEOF_HEADERS, 16);
+	. = 0x800000000 + SIZEOF_HEADERS;
 	
 	.init : {
 		*(.init);
@@ -42,15 +41,12 @@ SECTIONS {
 		_tdata_start = .;
 		*(.tdata);
 		_tdata_end = .;
-	} :data
-	
-	.tbss : {
 		_tbss_start = .;
 		*(.tbss);
 		_tbss_end = .;
 	} :data
 	
-	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
+	_tls_alignment = ALIGNOF(.tdata);
 	
 	.bss : {
 		*(.sbss);

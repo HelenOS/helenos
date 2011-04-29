@@ -17,9 +17,9 @@ SECTIONS {
 		*(.interp);
 	} :interp
 	
-	. = 0x70004000;
+	. = 0x70004000 + SIZEOF_HEADERS;
 	
-	.init ALIGN(0x4000) : SUBALIGN(0x4000) {
+	.init : {
 		*(.init);
 	} :text
 	
