@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,78 +25,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup usbvirthub
+/** @addtogroup drvusbohci
  * @{
  */
-/**
- * @file
- * @brief Virtual USB hub.
+/** @file
+ * @brief OHCI driver transfer list structure
  */
+#ifndef DRV_OHCI_ENDPOINT_LIST_H
+#define DRV_OHCI_ENDPOINT_LIST_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <str_error.h>
-#include <bool.h>
+#include <fibril_synch.h>
 
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/classes/hub.h>
-#include <usbvirt/device.h>
-#include <usbvirt/hub.h>
+#include "hcd_endpoint.h"
+#include "hw_struct/endpoint_descriptor.h"
+#include "utils/malloc32.h"
 
-#include "vhc_hub/virthub.h"
-
-#define NAME "vuh"
-
-static usbvirt_device_t hub_device;
-
-#define VERBOSE_SLEEP(sec, msg, ...) \
-	do { \
-		char _status[HUB_PORT_COUNT + 2]; \
-		printf(NAME ": doing nothing for %zu seconds...\n", \
-		    (size_t) (sec)); \
-		fibril_sleep((sec)); \
-		virthub_get_status(&hub_device, _status, HUB_PORT_COUNT + 1); \
-		printf(NAME ": " msg " [%s]\n" #__VA_ARGS__, _status); \
-	} while (0)
-
-static void fibril_sleep(size_t sec)
+typedef struct endpoint_list
 {
-	while (sec-- > 0) {
-		async_usleep(1000*1000);
-	}
+	fibril_mutex_t guard;
+	ed_t *list_head;
+	uint32_t list_head_pa;
+	const char *name;
+	link_t endpoint_list;
+} endpoint_list_t;
+
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
+static inline void endpoint_list_fini(endpoint_list_t *instance)
+{
+	assert(instance);
+	free32(instance->list_head);
 }
 
-static int dev1 = 1;
+int endpoint_list_init(endpoint_list_t *instance, const char *name);
 
-int main(int argc, char * argv[])
-{
-	int rc;
+void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
 
-	printf(NAME ": virtual USB hub.\n");
+void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
 
-	rc = virthub_init(&hub_device);
-	if (rc != EOK) {
-		printf(NAME ": Unable to start communication with VHCD (%s).\n",
-		    str_error(rc));
-		return rc;
-	}
-	
-	while (true) {
-		VERBOSE_SLEEP(8, "will pretend device plug-in...");
-		virthub_connect_device(&hub_device, &dev1);
+void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
+#if 0
+void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done);
 
-		VERBOSE_SLEEP(8, "will pretend device un-plug...");
-		virthub_disconnect_device(&hub_device, &dev1);
-	}
-
-	usbvirt_disconnect(&hub_device);
-	
-	return 0;
-}
-
-
-/** @}
+void endpoint_list_abort_all(endpoint_list_t *instance);
+#endif
+#endif
+/**
+ * @}
  */

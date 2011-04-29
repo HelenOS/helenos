@@ -51,7 +51,11 @@ void td_init(
 	if (toggle == 0 || toggle == 1) {
 		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
 	}
+	if (dir == USB_DIRECTION_IN) {
+		instance->status |= TD_STATUS_ROUND_FLAG;
+	}
 	if (buffer != NULL) {
+		assert(size != 0);
 		instance->cbp = addr_to_phys(buffer);
 		instance->be = addr_to_phys(buffer + size - 1);
 	}

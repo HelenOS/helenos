@@ -38,18 +38,20 @@
 #include "stdreq.h"
 #include "kbdconfig.h"
 
-int stdreq_on_get_descriptor(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data)
+int req_get_descriptor(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
 {
-	if (request->value_high == USB_DESCTYPE_HID_REPORT) {
+	if (setup_packet->value_high == USB_DESCTYPE_HID_REPORT) {
 		/*
 		 * For simplicity, always return the same
 		 * report descriptor.
 		 */
-		int rc = dev->control_transfer_reply(dev, 0,
+		usbvirt_control_reply_helper(setup_packet,
+		    data, act_size,
 		    report_descriptor, report_descriptor_size);
-		
-		return rc;
+
+		return EOK;
 	}
 	
 	/* Let the framework handle all the rest. */

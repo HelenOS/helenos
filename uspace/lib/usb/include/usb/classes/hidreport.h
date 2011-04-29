@@ -56,7 +56,7 @@
  *         usb_pipe_end_session() or usb_request_get_descriptor().
  */
 int usb_hid_process_report_descriptor(usb_device_t *dev, 
-    usb_hid_report_parser_t *parser);
+    usb_hid_report_t *report);
 
 #endif /* LIBUSB_HIDREPORT_H_ */
 

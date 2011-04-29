@@ -54,7 +54,7 @@ static inline int setup_batch(
 	assert(*hc);
 
 	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&(*hc)->ep_manager,
+	endpoint_t *ep = hc_get_endpoint(*hc,
 	    target.address, target.endpoint, direction, &res_bw);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
@@ -117,7 +117,7 @@ static int bind_address(
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_log_debug("Address bind %d-%d.\n", address, handle);
+	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
 	usb_device_keeper_bind(&hc->manager, address, handle);
 	return EOK;
 }
@@ -163,27 +163,13 @@ static int register_endpoint(ddf_fun_t *fun,
 		speed = ep_speed;
 	}
 	const size_t size = max_packet_size;
-	int ret;
 
 	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
-		return ENOMEM;
-	ret = endpoint_init(ep, address, endpoint, direction,
-	    transfer_type, speed, max_packet_size);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	return hc_add_endpoint(hc, address, endpoint, speed, transfer_type,
+	    direction, max_packet_size, size, interval);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
@@ -194,8 +180,7 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
-	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
-	    endpoint, direction);
+	return hc_remove_endpoint(hc, address, endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
 /** Schedule interrupt out transfer.
@@ -227,7 +212,7 @@ static int interrupt_out(
 	batch_interrupt_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -261,7 +246,7 @@ static int interrupt_in(
 	batch_interrupt_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -295,7 +280,7 @@ static int bulk_out(
 	batch_bulk_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -329,7 +314,7 @@ static int bulk_in(
 	batch_bulk_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -345,10 +330,10 @@ static int bulk_in(
  * @param[in] target Target pipe (address and endpoint number) specification.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
- * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] setup_size Size of @p setup_packet buffer in bytes.
  * @param[in] data_buffer Data buffer (in USB endianess, allocated and
  *	deallocated by the caller).
- * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] size Size of @p data_buffer buffer in bytes.
  * @param[in] callback Callback to be issued once the transfer is complete.
  * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
@@ -369,7 +354,7 @@ static int control_write(
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -385,10 +370,10 @@ static int control_write(
  * @param[in] target Target pipe (address and endpoint number) specification.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
- * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] setup_size Size of @p setup_packet buffer in bytes.
  * @param[in] data_buffer Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
- * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] size Size of @p data_buffer buffer in bytes.
  * @param[in] callback Callback to be issued once the transfer is complete.
  * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
@@ -408,7 +393,7 @@ static int control_read(
 	batch_control_read(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }

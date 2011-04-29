@@ -43,7 +43,7 @@
 
 #include "pci.h"
 
-/** Get address of registers and IRQ for given device.
+/** Get I/O address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
  * @param[out] io_reg_address Base address of the I/O range.
@@ -52,20 +52,18 @@
  * @return Error code.
  */
 int pci_get_my_registers(ddf_dev_t *dev,
-    uintptr_t *io_reg_address, size_t *io_reg_size,
-    int *irq_no)
+    uintptr_t *io_reg_address, size_t *io_reg_size, int *irq_no)
 {
 	assert(dev != NULL);
 
-	int parent_phone = devman_parent_device_connect(dev->handle,
-	    IPC_FLAG_BLOCKING);
+	int parent_phone =
+	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
 	}
 
-	int rc;
 	hw_resource_list_t hw_resources;
-	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
+	int rc = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (rc != EOK) {
 		goto leave;
 	}
@@ -91,9 +89,10 @@ int pci_get_my_registers(ddf_dev_t *dev,
 		case IO_RANGE:
 			io_address = res->res.io_range.address;
 			io_size = res->res.io_range.size;
-			usb_log_debug2("Found io: %llx %zu.\n",
+			usb_log_debug2("Found io: %" PRIx64" %zu.\n",
 			    res->res.io_range.address, res->res.io_range.size);
 			io_found = true;
+			break;
 
 		default:
 			break;
@@ -112,7 +111,6 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	rc = EOK;
 leave:
 	async_hangup(parent_phone);
-
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
@@ -144,10 +142,10 @@ int pci_disable_legacy(ddf_dev_t *device)
 		return parent_phone;
 	}
 
-	/* See UHCI design guide for these values,
+	/* See UHCI design guide for these values p.45,
 	 * write all WC bits in USB legacy register */
 	sysarg_t address = 0xc0;
-	sysarg_t value = 0x8f00;
+	sysarg_t value = 0xaf00;
 
 	int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);

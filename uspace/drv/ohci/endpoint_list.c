@@ -34,11 +34,8 @@
 #include <errno.h>
 #include <usb/debug.h>
 
-#include "transfer_list.h"
+#include "endpoint_list.h"
 
-static void transfer_list_remove_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch);
-/*----------------------------------------------------------------------------*/
 /** Initialize transfer list structures.
  *
  * @param[in] instance Memory place to use.
@@ -47,7 +44,7 @@ static void transfer_list_remove_batch(
  *
  * Allocates memory for internal qh_t structure.
  */
-int transfer_list_init(transfer_list_t *instance, const char *name)
+int endpoint_list_init(endpoint_list_t *instance, const char *name)
 {
 	assert(instance);
 	instance->name = name;
@@ -57,11 +54,11 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 		return ENOMEM;
 	}
 	instance->list_head_pa = addr_to_phys(instance->list_head);
-	usb_log_debug2("Transfer list %s setup with ED: %p(%p).\n",
+	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
 	    name, instance->list_head, instance->list_head_pa);
 
 	ed_init(instance->list_head, NULL);
-	list_initialize(&instance->batch_list);
+	list_initialize(&instance->endpoint_list);
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
 }
@@ -74,83 +71,86 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
  *
  * Does not check whether this replaces an existing list .
  */
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
+void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next)
 {
 	assert(instance);
 	assert(next);
-	/* Set both queue_head.next to point to the follower */
 	ed_append_ed(instance->list_head, next->list_head);
 }
 /*----------------------------------------------------------------------------*/
-/** Submit transfer batch to the list and queue.
+/** Submit transfer endpoint to the list and queue.
  *
  * @param[in] instance List to use.
- * @param[in] batch Transfer batch to submit.
+ * @param[in] endpoint Transfer endpoint to submit.
  * @return Error code
  *
- * The batch is added to the end of the list and queue.
+ * The endpoint is added to the end of the list and queue.
  */
-void transfer_list_add_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch)
+void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 {
 	assert(instance);
-	assert(batch);
-	usb_log_debug2("Queue %s: Adding batch(%p).\n", instance->name, batch);
+	assert(hcd_ep);
+	usb_log_debug2("Queue %s: Adding endpoint(%p).\n",
+	    instance->name, hcd_ep);
 
 	fibril_mutex_lock(&instance->guard);
 
 	ed_t *last_ed = NULL;
 	/* Add to the hardware queue. */
-	if (list_empty(&instance->batch_list)) {
+	if (list_empty(&instance->endpoint_list)) {
 		/* There is nothing scheduled */
 		last_ed = instance->list_head;
 	} else {
 		/* There is something scheduled */
-		usb_transfer_batch_t *last = list_get_instance(
-		    instance->batch_list.prev, usb_transfer_batch_t, link);
-		last_ed = batch_ed(last);
+		hcd_endpoint_t *last = list_get_instance(
+		    instance->endpoint_list.prev, hcd_endpoint_t, link);
+		last_ed = last->ed;
 	}
 	/* keep link */
-	batch_ed(batch)->next = last_ed->next;
-	ed_append_ed(last_ed, batch_ed(batch));
+	hcd_ep->ed->next = last_ed->next;
+	ed_append_ed(last_ed, hcd_ep->ed);
 
 	asm volatile ("": : :"memory");
 
 	/* Add to the driver list */
-	list_append(&batch->link, &instance->batch_list);
+	list_append(&hcd_ep->link, &instance->endpoint_list);
 
-	usb_transfer_batch_t *first = list_get_instance(
-	    instance->batch_list.next, usb_transfer_batch_t, link);
-	usb_log_debug("Batch(%p) added to list %s, first is %p(%p).\n",
-		batch, instance->name, first, batch_ed(first));
+	hcd_endpoint_t *first = list_get_instance(
+	    instance->endpoint_list.next, hcd_endpoint_t, link);
+	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
+		hcd_ep, instance->name, first, first->ed);
 	if (last_ed == instance->list_head) {
-		usb_log_debug2("%s head ED: %x:%x:%x:%x.\n", instance->name,
-			last_ed->status, last_ed->td_tail, last_ed->td_head,
-			last_ed->next);
+		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x:%x:%x.\n",
+		    instance->name, last_ed, instance->list_head_pa,
+		    last_ed->status, last_ed->td_tail, last_ed->td_head,
+		    last_ed->next);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Create list for finished batches.
+#if 0
+/** Create list for finished endpoints.
  *
  * @param[in] instance List to use.
  * @param[in] done list to fill
  */
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
+void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done)
 {
 	assert(instance);
 	assert(done);
 
 	fibril_mutex_lock(&instance->guard);
-	link_t *current = instance->batch_list.next;
-	while (current != &instance->batch_list) {
+	usb_log_debug2("Checking list %s for completed endpointes(%d).\n",
+	    instance->name, list_count(&instance->endpoint_list));
+	link_t *current = instance->endpoint_list.next;
+	while (current != &instance->endpoint_list) {
 		link_t *next = current->next;
-		usb_transfer_batch_t *batch =
-		    list_get_instance(current, usb_transfer_batch_t, link);
+		hcd_endpoint_t *endpoint =
+		    list_get_instance(current, hcd_endpoint_t, link);
 
-		if (batch_is_complete(batch)) {
+		if (endpoint_is_complete(endpoint)) {
 			/* Save for post-processing */
-			transfer_list_remove_batch(instance, batch);
+			endpoint_list_remove_endpoint(instance, endpoint);
 			list_append(current, done);
 		}
 		current = next;
@@ -158,66 +158,67 @@ void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Walk the list and abort all batches.
+/** Walk the list and abort all endpointes.
  *
  * @param[in] instance List to use.
  */
-void transfer_list_abort_all(transfer_list_t *instance)
+void endpoint_list_abort_all(endpoint_list_t *instance)
 {
 	fibril_mutex_lock(&instance->guard);
-	while (!list_empty(&instance->batch_list)) {
-		link_t *current = instance->batch_list.next;
-		usb_transfer_batch_t *batch =
-		    list_get_instance(current, usb_transfer_batch_t, link);
-		transfer_list_remove_batch(instance, batch);
-		usb_transfer_batch_finish_error(batch, EIO);
+	while (!list_empty(&instance->endpoint_list)) {
+		link_t *current = instance->endpoint_list.next;
+		hcd_endpoint_t *endpoint =
+		    list_get_instance(current, hcd_endpoint_t, link);
+		endpoint_list_remove_endpoint(instance, endpoint);
+		hcd_endpoint_finish_error(endpoint, EIO);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
+#endif
 /*----------------------------------------------------------------------------*/
-/** Remove a transfer batch from the list and queue.
+/** Remove a transfer endpoint from the list and queue.
  *
  * @param[in] instance List to use.
- * @param[in] batch Transfer batch to remove.
+ * @param[in] endpoint Transfer endpoint to remove.
  * @return Error code
  *
  * Does not lock the transfer list, caller is responsible for that.
  */
-void transfer_list_remove_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch)
+void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 {
 	assert(instance);
 	assert(instance->list_head);
-	assert(batch);
-	assert(batch_ed(batch));
-	assert(fibril_mutex_is_locked(&instance->guard));
+	assert(hcd_ep);
+	assert(hcd_ep->ed);
+
+	fibril_mutex_lock(&instance->guard);
 
 	usb_log_debug2(
-	    "Queue %s: removing batch(%p).\n", instance->name, batch);
+	    "Queue %s: removing endpoint(%p).\n", instance->name, hcd_ep);
 
 	const char *qpos = NULL;
+	ed_t *prev_ed;
 	/* Remove from the hardware queue */
-	if (instance->batch_list.next == &batch->link) {
+	if (instance->endpoint_list.next == &hcd_ep->link) {
 		/* I'm the first one here */
-		assert((instance->list_head->next & ED_NEXT_PTR_MASK)
-		    == addr_to_phys(batch_ed(batch)));
-		instance->list_head->next = batch_ed(batch)->next;
+		prev_ed = instance->list_head;
 		qpos = "FIRST";
 	} else {
-		usb_transfer_batch_t *prev =
-		    list_get_instance(
-		        batch->link.prev, usb_transfer_batch_t, link);
-		assert((batch_ed(prev)->next & ED_NEXT_PTR_MASK)
-		    == addr_to_phys(batch_ed(batch)));
-		batch_ed(prev)->next = batch_ed(batch)->next;
+		hcd_endpoint_t *prev =
+		    list_get_instance(hcd_ep->link.prev, hcd_endpoint_t, link);
+		prev_ed = prev->ed;
 		qpos = "NOT FIRST";
 	}
-	asm volatile ("": : :"memory");
-	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",
-	    batch, qpos, instance->name, batch_ed(batch)->next);
+	assert((prev_ed->next & ED_NEXT_PTR_MASK) == addr_to_phys(hcd_ep->ed));
+	prev_ed->next = hcd_ep->ed->next;
 
-	/* Remove from the batch list */
-	list_remove(&batch->link);
+	asm volatile ("": : :"memory");
+	usb_log_debug("HCD EP(%p) removed (%s) from %s, next %x.\n",
+	    hcd_ep, qpos, instance->name, hcd_ep->ed->next);
+
+	/* Remove from the endpoint list */
+	list_remove(&hcd_ep->link);
+	fibril_mutex_unlock(&instance->guard);
 }
 /**
  * @}

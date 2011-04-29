@@ -364,6 +364,8 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
 	pipe->refcount = 0;
+	pipe->refcount_soft = 0;
+	pipe->auto_reset_halt = false;
 
 	return EOK;
 }
@@ -384,6 +386,8 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 	int rc = usb_pipe_initialize(pipe, connection,
 	    0, USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE,
 	    USB_DIRECTION_BOTH);
+
+	pipe->auto_reset_halt = true;
 
 	return rc;
 }
@@ -415,11 +419,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	size_t failed_attempts;
 	int rc;
 
-	rc = usb_pipe_start_long_transfer(pipe);
-	if (rc != EOK) {
-		return rc;
-	}
-
+	usb_pipe_start_long_transfer(pipe);
 
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;

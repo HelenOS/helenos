@@ -425,17 +425,29 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	}
 	case IPC_M_DATA_READ: {
 		size_t size = IPC_GET_ARG2(call->data);
-		if ((size <= 0 || (size > DATA_XFER_LIMIT)))
+		if (size <= 0)
 			return ELIMIT;
-		
+		if (size > DATA_XFER_LIMIT) {
+			int flags = IPC_GET_ARG3(call->data);
+			if (flags & IPC_XF_RESTRICT)
+				IPC_SET_ARG2(call->data, DATA_XFER_LIMIT);
+			else
+				return ELIMIT;
+		}
 		break;
 	}
 	case IPC_M_DATA_WRITE: {
 		uintptr_t src = IPC_GET_ARG1(call->data);
 		size_t size = IPC_GET_ARG2(call->data);
 		
-		if (size > DATA_XFER_LIMIT)
-			return ELIMIT;
+		if (size > DATA_XFER_LIMIT) {
+			int flags = IPC_GET_ARG3(call->data);
+			if (flags & IPC_XF_RESTRICT) {
+				size = DATA_XFER_LIMIT;
+				IPC_SET_ARG2(call->data, size);
+			} else
+				return ELIMIT;
+		}
 		
 		call->buffer = (uint8_t *) malloc(size, 0);
 		int rc = copy_from_uspace(call->buffer, (void *) src, size);

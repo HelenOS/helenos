@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,48 +30,15 @@
  * @{
  */
 /** @file
- * @brief Connection handling of calls from virtual device (implementation).
+ * Connection handling of calls from virtual device (implementation).
  */
 
 #include <assert.h>
 #include <errno.h>
-#include <usbvirt/hub.h>
-
+#include <ddf/driver.h>
 #include "conn.h"
-#include "hc.h"
-#include "hub.h"
 
-#define DEVICE_NAME_MAXLENGTH 32
-
-static int get_device_name(int phone, char *buffer, size_t len)
-{
-	ipc_call_t answer_data;
-	sysarg_t answer_rc;
-	aid_t req;
-	int rc;
-	
-	req = async_send_0(phone,
-	    IPC_M_USBVIRT_GET_NAME,
-	    &answer_data);
-	
-	rc = async_data_read_start(phone, buffer, len);
-	if (rc != EOK) {
-		async_wait_for(req, NULL);
-		return EINVAL;
-	}
-	
-	async_wait_for(req, &answer_rc);
-	rc = (int)answer_rc;
-	
-	if (IPC_GET_ARG1(answer_data) < len) {
-		len = IPC_GET_ARG1(answer_data);
-	} else {
-		len--;
-	}
-	buffer[len] = 0;
-	
-	return rc;
-}
+static fibril_local uintptr_t plugged_device_handle = 0;
 
 /** Default handler for IPC methods not handled by DDF.
  *
@@ -82,24 +49,23 @@ static int get_device_name(int phone, char *buffer, size_t len)
 void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
+	vhc_data_t *vhc = fun->dev->driver_data;
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
 
 	if (method == IPC_M_CONNECT_TO_ME) {
 		int callback = IPC_GET_ARG5(*icall);
-		virtdev_connection_t *dev
-		    = virtdev_add_device(callback, (sysarg_t)fibril_get_id());
-		if (!dev) {
-			async_answer_0(icallid, EEXISTS);
+		int rc = vhc_virtdev_plug(vhc, callback,
+		    &plugged_device_handle);
+		if (rc != EOK) {
+			async_answer_0(icallid, rc);
 			async_hangup(callback);
 			return;
 		}
+
 		async_answer_0(icallid, EOK);
 
-		char devname[DEVICE_NAME_MAXLENGTH + 1];
-		int rc = get_device_name(callback, devname, DEVICE_NAME_MAXLENGTH);
-
-		usb_log_info("New virtual device `%s' (id = %x).\n",
-		    rc == EOK ? devname : "<unknown>", dev->id);
+		usb_log_info("New virtual device `%s' (id = %" PRIxn ").\n",
+		    rc == EOK ? "XXX" : "<unknown>", plugged_device_handle);
 
 		return;
 	}
@@ -107,22 +73,21 @@ void default_connection_handler(ddf_fun_t *fun,
 	async_answer_0(icallid, EINVAL);
 }
 
-/** Callback for DDF when client disconnects.
+/** Callback when client disconnects.
  *
- * @param fun Device function the client was connected to.
+ * Used to unplug virtual USB device.
+ *
+ * @param fun
  */
 void on_client_close(ddf_fun_t *fun)
 {
-	/*
-	 * Maybe a virtual device is being unplugged.
-	 */
-	virtdev_connection_t *dev = virtdev_find((sysarg_t)fibril_get_id());
-	if (dev == NULL) {
-		return;
-	}
+	vhc_data_t *vhc = fun->dev->driver_data;
 
-	usb_log_info("Virtual device disconnected (id = %x).\n", dev->id);
-	virtdev_destroy_device(dev);
+	if (plugged_device_handle != 0) {
+		usb_log_info("Virtual device disconnected (id = %" PRIxn ").\n",
+		    plugged_device_handle);
+		vhc_virtdev_unplug(vhc, plugged_device_handle);
+	}
 }
 
 

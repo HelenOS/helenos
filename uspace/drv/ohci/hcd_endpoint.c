@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,37 +25,73 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbvhc
+/** @addtogroup drvusbohci
  * @{
- */ 
-/** @file
- * @brief Virtual device management.
  */
-#ifndef VHCD_DEVICES_H_
-#define VHCD_DEVICES_H_
+/** @file
+ * @brief OHCI driver
+ */
+#include "utils/malloc32.h"
+#include "hcd_endpoint.h"
 
-#include <adt/list.h>
-#include <usb/usb.h>
+static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
+{
+	hcd_endpoint_t *instance = hcd_ep;
+	assert(instance);
+	assert(instance->ed);
+	ed_toggle_set(instance->ed, toggle);
+}
+static int hcd_ep_toggle_get(void *hcd_ep)
+{
+	hcd_endpoint_t *instance = hcd_ep;
+	assert(instance);
+	assert(instance->ed);
+	return ed_toggle_get(instance->ed);
+}
 
-#include "hc.h"
 
-/** Connected virtual device. */
-typedef struct {
-	/** Phone used when sending data to device. */
-	int phone;
-	/** Unique identification. */
-	sysarg_t id;
-	/** Linked-list handle. */
-	link_t link;
-} virtdev_connection_t;
+hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
+	if (hcd_ep == NULL)
+		return NULL;
 
-virtdev_connection_t *virtdev_add_device(int, sysarg_t);
-virtdev_connection_t *virtdev_find(sysarg_t);
-void virtdev_destroy_device(virtdev_connection_t *);
-int virtdev_send_to_all(transaction_t *);
+	hcd_ep->ed = malloc32(sizeof(ed_t));
+	if (hcd_ep->ed == NULL) {
+		free(hcd_ep);
+		return NULL;
+	}
 
-#endif
+	hcd_ep->td = malloc32(sizeof(td_t));
+	if (hcd_ep->td == NULL) {
+		free32(hcd_ep->ed);
+		free(hcd_ep);
+		return NULL;
+	}
+
+	ed_init(hcd_ep->ed, ep);
+	ed_set_td(hcd_ep->ed, hcd_ep->td);
+	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
+
+	return hcd_ep;
+}
+/*----------------------------------------------------------------------------*/
+hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
+{
+	assert(ep);
+	return ep->hc_data.data;
+}
+/*----------------------------------------------------------------------------*/
+void hcd_endpoint_clear(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
+	assert(hcd_ep);
+	free32(hcd_ep->ed);
+	free32(hcd_ep->td);
+	free(hcd_ep);
+}
 /**
  * @}
  */

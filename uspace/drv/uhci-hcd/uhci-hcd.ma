@@ -19,3 +19,7 @@
 10 pci/ven=8086&dev=2937
 10 pci/ven=8086&dev=2938
 10 pci/ven=8086&dev=2939
+
+10 pci/ven=8086&dev=24c2
+10 pci/ven=8086&dev=24c4
+10 pci/ven=8086&dev=24c7

@@ -235,10 +235,7 @@ int usb_device_retrieve_descriptors(usb_pipe_t *ctrl_pipe,
 	int rc;
 
 	/* It is worth to start a long transfer. */
-	rc = usb_pipe_start_long_transfer(ctrl_pipe);
-	if (rc != EOK) {
-		return rc;
-	}
+	usb_pipe_start_long_transfer(ctrl_pipe);
 
 	/* Get the device descriptor. */
 	rc = usb_request_get_device_descriptor(ctrl_pipe, &descriptors->device);

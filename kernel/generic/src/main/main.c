@@ -57,7 +57,6 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/tasklet.h>
 #include <main/kinit.h>
 #include <main/version.h>
 #include <console/kconsole.h>
@@ -216,7 +215,6 @@ void main_bsp_separated_stack(void)
 	page_init();
 	tlb_init();
 	ddi_init();
-	tasklet_init();
 	arch_post_mm_init();
 	arch_pre_smp_init();
 	smp_init();

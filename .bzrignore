@@ -69,6 +69,7 @@ _link.ld
 ./uspace/app/usbinfo/usbinfo
 ./uspace/app/virtusbkbd/vuk
 ./uspace/app/virtusbhub/vuh
+./uspace/app/vuhid/vuh
 ./uspace/app/virtusbhub/vhc_hub/*
 ./uspace/app/websrv/websrv
 ./uspace/dist/app/*

@@ -49,15 +49,30 @@ typedef struct rh {
 	ohci_regs_t *registers;
 	/** usb address of the root hub */
 	usb_address_t address;
-	/** ddf device information */
-	ddf_dev_t *device;
 	/** hub port count */
 	int port_count;
 	/** hubs descriptors */
 	usb_device_descriptors_t descriptors;
+	/** interrupt transfer waiting for an actual interrupt to occur */
+	usb_transfer_batch_t * unfinished_interrupt_transfer;
+	/** pre-allocated interrupt mask
+	 *
+	 * This is allocated when initializing instance, so that memory
+	 * allocation is not needed when processing request. Buffer is used for
+	 * interrupt bitmask.
+	 */
+	uint8_t * interrupt_buffer;
+	/** size of interrupt buffer */
+	size_t interrupt_mask_size;
+	/** instance`s descriptor*/
+	uint8_t * hub_descriptor;
+	/** size of hub descriptor */
+	size_t descriptor_size;
+
+
 } rh_t;
 
-int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
+int rh_init(rh_t *instance, ohci_regs_t *regs);
 
 int rh_request(rh_t *instance, usb_transfer_batch_t *request);
 

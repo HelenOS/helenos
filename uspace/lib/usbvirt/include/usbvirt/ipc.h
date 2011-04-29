@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup libusbvirt
  * @{
  */
-/** @file tasklet.c
- *  @brief Tasklet implementation
+/** @file
+ * @brief Virtual USB device.
  */
+#ifndef LIBUSBVIRT_IPC_H_
+#define LIBUSBVIRT_IPC_H_
 
-#include <proc/tasklet.h>
-#include <synch/spinlock.h>
-#include <mm/slab.h>
-#include <config.h>
+#include <ipc/common.h>
+#include <usb/usb.h>
+#include <bool.h>
 
-/** Spinlock protecting list of tasklets */
-SPINLOCK_INITIALIZE(tasklet_lock);
+typedef enum {
+	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD + 80,
+	IPC_M_USBVIRT_CONTROL_READ,
+	IPC_M_USBVIRT_CONTROL_WRITE,
+	IPC_M_USBVIRT_INTERRUPT_IN,
+	IPC_M_USBVIRT_INTERRUPT_OUT
+} usbvirt_ipc_t;
 
-/** Array of tasklet lists for every CPU */
-tasklet_descriptor_t **tasklet_list;
+int usbvirt_ipc_send_control_read(int, usb_endpoint_t, void *, size_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_control_write(int, usb_endpoint_t, void *, size_t,
+    void *, size_t);
+int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_data_out(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t);
 
-void tasklet_init(void)
-{
-	unsigned int i;
-	
-	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
-	if (!tasklet_list)
-		panic("Error initializing tasklets.");
-	
-	for (i = 0; i < config.cpu_count; i++)
-		tasklet_list[i] = NULL;
-	
-	spinlock_initialize(&tasklet_lock, "tasklet_lock");
-}
+bool usbvirt_is_usbvirt_method(sysarg_t);
+bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t, ipc_call_t *);
 
-
-/** @}
+#endif
+/**
+ * @}
  */

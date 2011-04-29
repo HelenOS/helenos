@@ -47,8 +47,8 @@
 #include <usb/usb.h>
 #include <usb/descriptor.h>
 #include <usb/classes/hid.h>
+#include <usb/debug.h>
 #include <usbvirt/device.h>
-#include <usbvirt/hub.h>
 
 #include "kbdconfig.h"
 #include "keys.h"
@@ -66,15 +66,6 @@
 	(printf("%s: %s" fmt "\n", NAME, _QUOTEME(cmd), __VA_ARGS__), cmd(__VA_ARGS__))
 
 kb_status_t status;
-
-static int on_incoming_data(struct usbvirt_device *dev,
-    usb_endpoint_t endpoint, void *buffer, size_t size)
-{
-	printf("%s: ignoring incomming data to endpoint %d\n", NAME, endpoint);
-	
-	return EOK;
-}
-
 
 /** Compares current and last status of pressed keys.
  *
@@ -99,8 +90,9 @@ static bool keypress_check_with_last_request(uint8_t *status_now,
 	return same;
 }
 
-static int on_request_for_data(struct usbvirt_device *dev,
-    usb_endpoint_t endpoint, void *buffer, size_t size, size_t *actual_size)
+static int on_request_for_data(usbvirt_device_t *dev,
+    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
+    void *buffer, size_t size, size_t *actual_size)
 {
 	static uint8_t last_data[2 + KB_MAX_KEYS_AT_ONCE];
 
@@ -121,8 +113,7 @@ static int on_request_for_data(struct usbvirt_device *dev,
 	
 	if (keypress_check_with_last_request(data, last_data,
 	    2 + KB_MAX_KEYS_AT_ONCE)) {
-		*actual_size = 0;
-		return EOK;
+		return ENAK;
 	}
 
 	memcpy(buffer, &data, *actual_size);
@@ -130,35 +121,26 @@ static int on_request_for_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
-static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
+static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
-		.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(
-		    USB_DIRECTION_IN,
-		    USBVIRT_REQUEST_TYPE_STANDARD,
-		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
+		.req_direction = USB_DIRECTION_IN,
+		.req_type = USB_REQUEST_TYPE_STANDARD,
+		.req_recipient = USB_REQUEST_RECIPIENT_INTERFACE,
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.name = "GetDescriptor",
-		.callback = stdreq_on_get_descriptor
+		.callback = req_get_descriptor
 	},
 	{
-		.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(
-		    USB_DIRECTION_IN,
-		    USBVIRT_REQUEST_TYPE_CLASS,
-		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
-		.name = "GetDescriptor",
-		.callback = stdreq_on_get_descriptor
-	},
-	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
+		.callback = NULL
+	}
 };
 
 /** Keyboard callbacks.
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
-	.control_transfer_handlers = endpoint_zero_handlers,
-	.on_data = on_incoming_data,
-	.on_data_request = on_request_for_data
+	.control = endpoint_zero_handlers,
+	.data_in[1] = on_request_for_data
 };
 
 usbvirt_device_configuration_extras_t extra_descriptors[] = {
@@ -196,8 +178,6 @@ usbvirt_descriptors_t descriptors = {
 static usbvirt_device_t keyboard_dev = {
 	.ops = &keyboard_ops,
 	.descriptors = &descriptors,
-	.lib_debug_level = 3,
-	.lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL,
 	.name = "keyboard"
 };
 
@@ -261,7 +241,7 @@ int main(int argc, char * argv[])
 	kb_init(&status);
 	
 	
-	int rc = usbvirt_connect(&keyboard_dev);
+	int rc = usbvirt_device_plug(&keyboard_dev, "/virt/usbhc/hc");
 	if (rc != EOK) {
 		printf("%s: Unable to start communication with VHCD (%s).\n",
 		    NAME, str_error(rc));
@@ -277,7 +257,7 @@ int main(int argc, char * argv[])
 	
 	printf("%s: Terminating...\n", NAME);
 	
-	usbvirt_disconnect(&keyboard_dev);
+	//usbvirt_disconnect(&keyboard_dev);
 	
 	return 0;
 }

@@ -117,7 +117,7 @@ static int bind_address(
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_log_debug("Address bind %d-%d.\n", address, handle);
+	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
 	usb_device_keeper_bind(&hc->manager, address, handle);
 	return EOK;
 }
@@ -147,7 +147,6 @@ static int register_endpoint(
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	const size_t size = max_packet_size;
-	int ret;
 	usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, address);
 	if (speed >= USB_SPEED_MAX) {
 		speed = ep_speed;
@@ -156,22 +155,8 @@ static int register_endpoint(
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
-		return ENOMEM;
-	ret = endpoint_init(ep, address, endpoint, direction,
-	    transfer_type, speed, max_packet_size);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	return usb_endpoint_manager_add_ep(&hc->ep_manager, address, endpoint,
+	    direction, transfer_type, speed, max_packet_size, size);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
@@ -209,7 +194,7 @@ static int interrupt_out(
 	batch_interrupt_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -237,7 +222,7 @@ static int interrupt_in(
 	batch_interrupt_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -265,7 +250,7 @@ static int bulk_out(
 	batch_bulk_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -293,7 +278,7 @@ static int bulk_in(
 	batch_bulk_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -326,7 +311,7 @@ static int control_write(
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -358,7 +343,7 @@ static int control_read(
 	batch_control_read(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }

@@ -105,7 +105,7 @@ typedef struct usb_kbd_t {
 	int32_t *led_data;
 
 	/** HID Report parser. */
-	usb_hid_report_parser_t *parser;
+	usb_hid_report_t *parser;
 	
 	/** State of the structure (for checking before use). 
 	 * 

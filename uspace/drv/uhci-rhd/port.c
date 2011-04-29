@@ -67,11 +67,10 @@ static inline port_status_t uhci_port_read_status(uhci_port_t *port)
  * @param[in] value New register value.
  * @return Error code. (Always EOK)
  */
-static inline void uhci_port_write_status(
-    uhci_port_t *port, port_status_t value)
+static inline void uhci_port_write_status(uhci_port_t *port, port_status_t val)
 {
 	assert(port);
-	pio_write_16(port->address, value);
+	pio_write_16(port->address, val);
 }
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI root hub port instance.
@@ -89,7 +88,7 @@ int uhci_port_init(uhci_port_t *port,
     port_status_t *address, unsigned number, unsigned usec, ddf_dev_t *rh)
 {
 	assert(port);
-	asprintf(&port->id_string, "Port (%p - %d)", port, number);
+	asprintf(&port->id_string, "Port (%p - %u)", port, number);
 	if (port->id_string == NULL) {
 		return ENOMEM;
 	}
@@ -100,11 +99,11 @@ int uhci_port_init(uhci_port_t *port,
 	port->attached_device = 0;
 	port->rh = rh;
 
-	int rc = usb_hc_connection_initialize_from_device(
-	    &port->hc_connection, rh);
-	if (rc != EOK) {
+	int ret =
+	    usb_hc_connection_initialize_from_device(&port->hc_connection, rh);
+	if (ret != EOK) {
 		usb_log_error("Failed to initialize connection to HC.");
-		return rc;
+		return ret;
 	}
 
 	port->checker = fibril_create(uhci_port_check, port);
@@ -115,7 +114,7 @@ int uhci_port_init(uhci_port_t *port,
 	}
 
 	fibril_add_ready(port->checker);
-	usb_log_debug("%s: Started polling fibril(%x).\n",
+	usb_log_debug("%s: Started polling fibril (%" PRIun ").\n",
 	    port->id_string, port->checker);
 	return EOK;
 }
@@ -237,7 +236,6 @@ int uhci_port_reset_enable(int portno, void *arg)
 
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -268,9 +266,8 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 		return ret;
 	}
 
-	usb_log_info("New device at port %u, address %d (handle %llu).\n",
+	usb_log_info("New device at port %u, address %d (handle %" PRIun ").\n",
 	    port->number, dev_addr, port->attached_device);
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -285,7 +282,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
-	usb_log_error("%s: Don't know how to remove device %llu.\n",
+	usb_log_error("%s: Don't know how to remove device %" PRIun ".\n",
 	    port->id_string, port->attached_device);
 	return ENOTSUP;
 }
@@ -312,6 +309,13 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 
 	/* Write new value. */
 	uhci_port_write_status(port, port_status);
+
+	/* Wait for port to become enabled */
+	do {
+		async_usleep(1000);
+		port_status = uhci_port_read_status(port);
+	} while ((port_status & STATUS_CONNECTED) &&
+	    !(port_status & STATUS_ENABLED));
 
 	usb_log_debug("%s: %sabled port.\n",
 		port->id_string, enabled ? "En" : "Dis");

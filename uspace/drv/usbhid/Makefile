@@ -39,10 +39,14 @@ STOLEN_LAYOUT_SOURCES = \
 SOURCES = \
 	main.c \
 	usbhid.c \
+	subdrivers.c \
 	kbd/conv.c \
 	kbd/kbddev.c \
 	kbd/kbdrepeat.c \
 	generic/hiddev.c \
+	mouse/mousedev.c \
+	lgtch-ultrax/lgtch-ultrax.c \
+	lgtch-ultrax/keymap.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)

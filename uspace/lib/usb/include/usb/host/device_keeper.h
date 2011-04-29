@@ -53,8 +53,6 @@
 struct usb_device_info {
 	usb_speed_t speed;
 	bool occupied;
-	link_t endpoints;
-	uint16_t control_used;
 	devman_handle_t handle;
 };
 
@@ -64,19 +62,10 @@ struct usb_device_info {
 typedef struct {
 	struct usb_device_info devices[USB_ADDRESS_COUNT];
 	fibril_mutex_t guard;
-	fibril_condvar_t change;
 	usb_address_t last_address;
 } usb_device_keeper_t;
 
 void usb_device_keeper_init(usb_device_keeper_t *instance);
-
-void usb_device_keeper_reserve_default_address(
-    usb_device_keeper_t *instance, usb_speed_t speed);
-
-void usb_device_keeper_release_default_address(usb_device_keeper_t *instance);
-
-void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
-    usb_target_t target, const uint8_t *setup_data);
 
 usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
     usb_speed_t speed);

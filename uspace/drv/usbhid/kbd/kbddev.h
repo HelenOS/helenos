@@ -33,8 +33,8 @@
  * USB HID keyboard device structure and API.
  */
 
-#ifndef USB_KBDDEV_H_
-#define USB_KBDDEV_H_
+#ifndef USB_HID_KBDDEV_H_
+#define USB_HID_KBDDEV_H_
 
 #include <stdint.h>
 
@@ -48,7 +48,7 @@
 
 #include "kbdrepeat.h"
 
-struct usb_hid_dev_t;
+struct usb_hid_dev;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -64,12 +64,10 @@ struct usb_hid_dev_t;
  *       being device-specific.
  */
 typedef struct usb_kbd_t {
-	/** Structure holding generic USB device information. */
-	//usbhid_dev_t *hid_dev;
-	//usb_device_t *usb_dev;
-	
+	/** Previously pressed keys (not translated to key codes). */
+	int32_t *keys_old;
 	/** Currently pressed keys (not translated to key codes). */
-	uint8_t *keys;
+	int32_t *keys;
 	/** Count of stored keys (i.e. number of keys in the report). */
 	size_t key_count;
 	/** Currently pressed modifiers (bitmap). */
@@ -90,12 +88,6 @@ typedef struct usb_kbd_t {
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t *repeat_mtx;
 	
-	/** Report descriptor. */
-	//uint8_t *report_desc;
-
-	/** Report descriptor size. */
-	//size_t report_desc_size;
-	
 	uint8_t *output_buffer;
 	
 	size_t output_size;
@@ -105,9 +97,6 @@ typedef struct usb_kbd_t {
 	usb_hid_report_path_t *led_path;
 	
 	int32_t *led_data;
-
-	/** HID Report parser. */
-	//usb_hid_report_parser_t *parser;
 	
 	/** State of the structure (for checking before use). 
 	 * 
@@ -120,16 +109,6 @@ typedef struct usb_kbd_t {
 
 /*----------------------------------------------------------------------------*/
 
-//enum {
-//	USB_KBD_POLL_EP_NO = 0,
-//	USB_HID_POLL_EP_NO = 1,
-//	USB_KBD_POLL_EP_COUNT = 2
-//};
-
-//usb_endpoint_description_t *usb_kbd_endpoints[USB_KBD_POLL_EP_COUNT + 1];
-
-//ddf_dev_ops_t keyboard_ops;
-
 usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 
 const char *HID_KBD_FUN_NAME;
@@ -137,15 +116,10 @@ const char *HID_KBD_CLASS_NAME;
 
 /*----------------------------------------------------------------------------*/
 
-//usb_kbd_t *usb_kbd_new(void);
+int usb_kbd_init(struct usb_hid_dev *hid_dev);
 
-int usb_kbd_init(struct usb_hid_dev_t *hid_dev);
-
-bool usb_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg);
-
-//void usb_kbd_polling_ended_callback(usb_device_t *dev, bool reason, 
-//     void *arg);
+bool usb_kbd_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
 
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev);
 
@@ -153,15 +127,14 @@ int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev);
 
 void usb_kbd_free(usb_kbd_t **kbd_dev);
 
-void usb_kbd_push_ev(struct usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev,
+void usb_kbd_push_ev(struct usb_hid_dev *hid_dev, usb_kbd_t *kbd_dev,
     int type, unsigned int key);
 
+void usb_kbd_deinit(struct usb_hid_dev *hid_dev);
 
-void usb_kbd_deinit(struct usb_hid_dev_t *hid_dev);
+int usb_kbd_set_boot_protocol(struct usb_hid_dev *hid_dev);
 
-int usb_kbd_set_boot_protocol(struct usb_hid_dev_t *hid_dev);
-
-#endif /* USB_KBDDEV_H_ */
+#endif /* USB_HID_KBDDEV_H_ */
 
 /**
  * @}

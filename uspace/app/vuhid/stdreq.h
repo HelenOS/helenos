@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup usbvirthid
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
+/** @file
+ * Device request handlers.
  */
+#ifndef VUHID_STDREQ_H_
+#define VUHID_STDREQ_H_
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
+#include <usbvirt/device.h>
 
-#include <adt/list.h>
+int req_get_descriptor(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
+int req_set_protocol(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
-/** Tasklet state */
-typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
-
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
-	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
-
-
-extern void tasklet_init(void);
+int req_set_report(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
 #endif
-
-/** @}
+/**
+ * @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,8 @@ static int uhci_rh_add_device(ddf_dev_t *device)
 	if (!device)
 		return EINVAL;
 
-	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
+	usb_log_debug2("uhci_rh_add_device(handle=%" PRIun ")\n",
+	    device->handle);
 
 	uintptr_t io_regs = 0;
 	size_t io_size = 0;
@@ -100,8 +101,9 @@ if (ret != EOK) { \
 
 	ret = hc_get_my_registers(device, &io_regs, &io_size);
 	CHECK_RET_FREE_RH_RETURN(ret,
-	    "Failed(%d) to get registers from HC: %s.\n", ret, str_error(ret));
-	usb_log_debug("I/O regs at %#x (size %zu).\n", io_regs, io_size);
+	    "Failed to get registers from HC: %s.\n", str_error(ret));
+	usb_log_debug("I/O regs at %p (size %zuB).\n",
+	    (void *) io_regs, io_size);
 
 	rh = malloc(sizeof(uhci_root_hub_t));
 	ret = (rh == NULL) ? ENOMEM : EOK;
@@ -114,7 +116,7 @@ if (ret != EOK) { \
 	    ret, str_error(ret));
 
 	device->driver_data = rh;
-	usb_log_info("Controlling root hub '%s' (%llu).\n",
+	usb_log_info("Controlling root hub '%s' (%" PRIun ").\n",
 	    device->name, device->handle);
 	return EOK;
 }

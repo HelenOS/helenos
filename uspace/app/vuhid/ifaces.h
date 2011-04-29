@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup usbvirthid
  * @{
  */
 /** @file
- * @brief OHCI driver transfer list structure
- */
-#ifndef DRV_OHCI_TRANSFER_LIST_H
-#define DRV_OHCI_TRANSFER_LIST_H
-
-#include <fibril_synch.h>
-
-#include "batch.h"
-#include "hw_struct/endpoint_descriptor.h"
-#include "utils/malloc32.h"
-
-typedef struct transfer_list
-{
-	fibril_mutex_t guard;
-	ed_t *list_head;
-	uint32_t list_head_pa;
-	const char *name;
-	link_t batch_list;
-} transfer_list_t;
-
-/** Dispose transfer list structures.
  *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
  */
-static inline void transfer_list_fini(transfer_list_t *instance)
-{
-	assert(instance);
-	free32(instance->list_head);
-}
+#ifndef VUHID_IFACES_H_
+#define VUHID_IFACES_H_
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
+#include "virthid.h"
 
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
+extern vuhid_interface_t *available_hid_interfaces[];
 
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
-
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
-
-void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**
  * @}
