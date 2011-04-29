@@ -133,7 +133,7 @@ endif
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
 AFLAGS =
-LFLAGS = -N -T $(LINK) -M
+LFLAGS = -n -T $(LINK) -M
 
 #
 # Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
