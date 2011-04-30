@@ -155,7 +155,7 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum) {
 		      BLOCK_FLAGS_NONE) != EOK)
 		goto out_err;
 
-	memcpy(ino, ((uint8_t *)b->data) + ino_off * ino_size, ino_size);
+	memcpy(ino, b->data + ino_off * ino_size, ino_size);
 
 	ino_i->i_mode = conv16(sbi->native, ino->i_mode);
 	ino_i->i_nlinks = conv16(sbi->native, ino->i_nlinks);
