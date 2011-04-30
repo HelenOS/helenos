@@ -300,11 +300,13 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 	int rc;
 
 	assert(fatno < FATCNT(bs));
+	
+	*value = 0;
 
 	if (FAT_IS_FAT12(bs))
 		offset = (clst + clst/2);
 	else
-		offset = (clst * sizeof(fat_cluster_t));
+		offset = (clst * FAT_CLST_SIZE(bs));
 
 	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
@@ -312,43 +314,47 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 		return rc;
 
 	/* This cluster access spans a sector boundary. Check only for FAT12 */
-	if (FAT_IS_FAT12(bs) && (offset % BPS(bs)+1 == BPS(bs))) {
-		/* Is it last sector of FAT? */
-		if (offset / BPS(bs) < SF(bs)) {
-			/* No. Reading next sector */
-			rc = block_get(&b1, devmap_handle, 1 + RSCNT(bs) +
-			    SF(bs)*fatno + offset / BPS(bs), BLOCK_FLAGS_NONE);
-			if (rc != EOK) {
-				block_put(b);
-				return rc;
-			}
-			/*
-			 * Combining value with last byte of current sector and
-			 * first byte of next sector
-			 */
-			*value  = *(uint8_t *)(b->data + BPS(bs) - 1);
-			*value |= *(uint8_t *)(b1->data);
-
-			rc = block_put(b1);
-			if (rc != EOK) {
-				block_put(b);
-				return rc;
-			}
-		}
-		else {
-			/* Yes. It is last sector of FAT */
-			block_put(b);
-			return ERANGE;
-		}
-	}
-	else
-		*value = *(fat_cluster_t *)(b->data + offset % BPS(bs));
-
 	if (FAT_IS_FAT12(bs)) {
+		if ((offset % BPS(bs) + 1 == BPS(bs))) {
+			/* Is it last sector of FAT? */
+			if (offset / BPS(bs) < SF(bs)) {
+				/* No. Reading next sector */
+				rc = block_get(&b1, devmap_handle, 1 + RSCNT(bs) +
+					SF(bs)*fatno + offset / BPS(bs), BLOCK_FLAGS_NONE);
+				if (rc != EOK) {
+					block_put(b);
+					return rc;
+				}
+				/*
+				* Combining value with last byte of current sector and
+				* first byte of next sector
+				*/
+				*value  = *(uint8_t *)(b->data + BPS(bs) - 1);
+				*value |= *(uint8_t *)(b1->data);
+
+				rc = block_put(b1);
+				if (rc != EOK) {
+					block_put(b);
+					return rc;
+				}
+			}
+			else {
+				/* Yes. It is last sector of FAT */
+				block_put(b);
+				return ERANGE;
+			}
+		}
+
 		if (clst & 0x0001)
-		*value = (*value) >> 4;
+			*value = (*value) >> 4;
 		else
-		*value = (*value) & 0x0fff;
+			*value = (*value) & FAT12_MASK;
+	}
+	else {
+		if (FAT_IS_FAT32(bs))
+			*value = *(uint32_t *)(b->data + offset % BPS(bs)) & FAT32_MASK;
+		else
+			*value = *(uint16_t *)(b->data + offset % BPS(bs));
 	}
 
 	*value = uint16_t_le2host(*value);
@@ -382,7 +388,7 @@ fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 	if (FAT_IS_FAT12(bs))
 		offset = (clst + clst/2);
 	else
-		offset = (clst * sizeof(fat_cluster_t));
+		offset = (clst * FAT_CLST_SIZE(bs));
 
 	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
@@ -733,11 +739,11 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 	int rc;
 
 	/* Check number of FATs. */
-	if (bs->fatcnt == 0)
+	if (FATCNT(bs) == 0)
 		return ENOTSUP;
 
 	/* Check total number of sectors. */
-	if (bs->totsec16 == 0 && bs->totsec32 == 0)
+	if (TS(bs) == 0)
 		return ENOTSUP;
 
 	if (bs->totsec16 != 0 && bs->totsec32 != 0 &&
@@ -749,7 +755,7 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 		return ENOTSUP;
 
 	/* Check number of sectors per FAT. */
-	if (bs->sec_per_fat == 0)
+	if (SF(bs) == 0)
 		return ENOTSUP;
 
 	/*
@@ -759,12 +765,11 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 	 * It can be removed provided that functions such as fat_read() are
 	 * sanitized to support file systems with this property.
 	 */
-	if ((uint16_t_le2host(bs->root_ent_max) * sizeof(fat_dentry_t)) %
-	    uint16_t_le2host(bs->bps) != 0)
+	if (!FAT_IS_FAT32(bs) && (RDE(bs) * sizeof(fat_dentry_t)) % BPS(bs) != 0)
 		return ENOTSUP;
 
 	/* Check signature of each FAT. */
-	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
+	for (fat_no = 0; fat_no < FATCNT(bs); fat_no++) {
 		rc = fat_get_cluster(bs, devmap_handle, fat_no, 0, &e0);
 		if (rc != EOK)
 			return EIO;
@@ -781,7 +786,7 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 		 * Check that remaining bits of the first two entries are
 		 * set to one.
 		 */
-                if (!FAT_IS_FAT12(bs) && ((e0 >> 8) != 0xff || e1 != 0xffff))
+		if (!FAT_IS_FAT12(bs) && ((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
 			return ENOTSUP;
 	}
 

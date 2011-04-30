@@ -53,8 +53,17 @@
 #define FAT32_CLST_LAST1  0x0ffffff8
 #define FAT32_CLST_LAST8  0x0fffffff
 
+#define FAT12_MASK		  0x0fff
+#define FAT16_MASK		  0xffff
+#define FAT32_MASK		  0x0fffffff
+
 #define FAT12_CLST_MAX    4085
 #define FAT16_CLST_MAX    65525
+
+/* Size in bytes for cluster value of FAT */
+#define FAT12_CLST_SIZE   2
+#define FAT16_CLST_SIZE   2
+#define FAT32_CLST_SIZE   4
 
 /* internally used to mark root directory's parent */
 #define FAT_CLST_ROOTPAR	FAT_CLST_RES0
@@ -83,12 +92,17 @@
 #define FAT_CLST_BAD(bs) \
     (FAT_IS_FAT12(bs) ? FAT12_CLST_BAD : (FAT_IS_FAT32(bs) ? FAT32_CLST_BAD : FAT16_CLST_BAD))
 
+#define FAT_CLST_SIZE(bs)	(FAT_IS_FAT32(bs) ? FAT32_CLST_SIZE : FAT16_CLST_SIZE)
+
+#define FAT_MASK(bs) \
+    (FAT_IS_FAT12(bs) ? FAT12_MASK : (FAT_IS_FAT32(bs) ? FAT32_MASK : FAT16_MASK))
+
 /* forward declarations */
 struct block;
 struct fat_node;
 struct fat_bs;
 
-typedef uint16_t fat_cluster_t;
+typedef uint32_t fat_cluster_t;
 
 #define fat_clusters_get(numc, bs, dh, fc) \
     fat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint16_t) -1)

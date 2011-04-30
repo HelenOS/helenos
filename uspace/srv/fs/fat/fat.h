@@ -54,7 +54,9 @@
 #define SPC(bs)		(bs)->spc
 #define RSCNT(bs)	uint16_t_le2host((bs)->rscnt)
 #define FATCNT(bs)	(bs)->fatcnt
-#define SF(bs)		uint16_t_le2host((bs)->sec_per_fat)
+#define SF(bs)		(uint16_t_le2host((bs)->sec_per_fat) !=0 ? \
+    uint16_t_le2host((bs)->sec_per_fat) : \
+    uint32_t_le2host(bs->fat32.sectors_per_fat))
 #define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
 #define TS(bs)		(uint16_t_le2host((bs)->totsec16) != 0 ? \
 			uint16_t_le2host((bs)->totsec16) : \
