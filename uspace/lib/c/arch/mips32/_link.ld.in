@@ -17,7 +17,7 @@ SECTIONS {
 		*(.interp);
 	} :interp
 	
-	. = 0x70001000 + SIZEOF_HEADERS;
+	. = 0x70004000 + SIZEOF_HEADERS;
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
