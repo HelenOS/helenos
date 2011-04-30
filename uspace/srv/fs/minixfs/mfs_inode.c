@@ -301,6 +301,56 @@ out:
 }
 
 int
+inode_shrink(struct mfs_node *mnode, size_t size_shrink)
+{
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+	const size_t bs = sbi->block_size;
+	int r;
+
+	assert(size_shrink > 0);
+
+	const size_t old_size = ino_i->i_size;
+	const size_t new_size = ino_i->i_size - size_shrink;
+
+	assert(size_shrink <= old_size);
+
+	ino_i->dirty = true;
+
+	/*Compute the number of zones to free*/
+	unsigned zones_to_free = 0;
+	if (new_size == 0)
+		++zones_to_free;
+
+	zones_to_free += (old_size / bs) - (new_size / bs);
+
+	mfsdebug("zones to free = %u\n", zones_to_free);
+
+	uint32_t pos = old_size - 1;
+	unsigned i;
+	for (i = 0; i < zones_to_free; ++i, pos -= bs) {
+		uint32_t old_zone;
+
+		r = write_map(mnode, pos, 0, &old_zone);
+		on_error(r, goto exit_error);
+
+		ino_i->i_size -= bs;
+
+		if (old_zone == 0)
+			continue; /*Sparse block*/
+
+		r = mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
+		on_error(r, goto exit_error);
+	}
+
+	ino_i->i_size = new_size;
+	return EOK;
+
+exit_error:
+	return r;
+}
+
+int
 inode_grow(struct mfs_node *mnode, size_t size_grow)
 {
 	unsigned i;

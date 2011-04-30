@@ -82,10 +82,9 @@ write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
 				uint32_t *old_zone)
 {
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
-	const int block_size = sbi->block_size;
 
 	/*Compute the relative block number in file*/
-	int rblock = pos / block_size;
+	int rblock = pos / sbi->block_size;
 
 	return rw_map_ondisk(old_zone, mnode, rblock, true, new_zone);
 }

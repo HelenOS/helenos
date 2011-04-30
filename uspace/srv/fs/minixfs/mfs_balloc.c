@@ -71,8 +71,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	uint32_t block = idx / (sbi->block_size * 8) + start_block;
 
 	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
-	if (r != EOK)
-		goto out_err;
+	on_error(r, goto out_err);
 
 	/*Compute the bit index in the block*/
 	idx %= (sbi->block_size * 8);
@@ -84,8 +83,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	chunk &= ~(1 << (idx % chunk_bits));
 	ptr[idx / chunk_bits] = conv32(sbi->native, chunk);
 	b->dirty = true;
-	r = EOK;
-	block_put(b);
+	r = block_put(b);
 
 out_err:
 	return r;
@@ -127,8 +125,7 @@ retry:
 		r = block_get(&b, inst->handle, i + start_block,
 				BLOCK_FLAGS_NONE);
 
-		if (r != EOK)
-			goto out;
+		on_error(r, goto out);
 
 		freebit = find_free_bit_and_set(b->data, sbi->block_size,
 						sbi->native, *search);
@@ -144,14 +141,15 @@ retry:
 		mfsdebug("alloc index %d %d\n", (int) *idx, i);
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
-			block_put(b);
+			r = block_put(b);
+			on_error(r, goto out);
 			break;
 		}
 
 		*search = *idx;
 		b->dirty = true;
-		block_put(b);
-		goto found;
+		r = block_put(b);
+		goto out;
 	}
 
 	if (*search > 0) {
@@ -162,9 +160,6 @@ retry:
 
 	/*Free bit not found, return error*/
 	return ENOSPC;
-
-found:
-	r = EOK;
 
 out:
 	return r;

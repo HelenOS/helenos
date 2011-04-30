@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef _MFS_H_
 #define _MFS_H_
@@ -110,18 +110,18 @@ struct mfs_sb_info {
 
 /*Generic MinixFS inode*/
 struct mfs_ino_info {
-        uint16_t        i_mode;
-        uint16_t        i_nlinks;
-        int16_t         i_uid;
-        uint16_t        i_gid;
-        size_t		i_size;
-        int32_t         i_atime;
-        int32_t         i_mtime;
-        int32_t         i_ctime;
-        /*Block numbers for direct zones*/
-        uint32_t        i_dzone[V2_NR_DIRECT_ZONES];
-        /*Block numbers for indirect zones*/
-        uint32_t        i_izone[V2_NR_INDIRECT_ZONES];
+	uint16_t	i_mode;
+	uint16_t	i_nlinks;
+	int16_t		i_uid;
+	uint16_t	i_gid;
+	size_t		i_size;
+	int32_t		i_atime;
+	int32_t		i_mtime;
+	int32_t		i_ctime;
+	/*Block numbers for direct zones*/
+	uint32_t	i_dzone[V2_NR_DIRECT_ZONES];
+	/*Block numbers for indirect zones*/
+	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
 
 	/*The following fields do not exist on disk but only in memory*/
 	bool dirty;
@@ -158,7 +158,7 @@ extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 extern void mfs_mount(ipc_callid_t rid, ipc_call_t *request);
 extern void mfs_lookup(ipc_callid_t rid, ipc_call_t *request);
 extern int mfs_instance_get(devmap_handle_t handle,
-				struct mfs_instance **instance);
+			    struct mfs_instance **instance);
 
 extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
 extern void mfs_close(ipc_callid_t rid, ipc_call_t *request);
@@ -170,16 +170,22 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request);
 extern void
 mfs_write(ipc_callid_t rid, ipc_call_t *request);
 
+extern void
+mfs_truncate(ipc_callid_t rid, ipc_call_t *request);
+
 /*mfs_inode.c*/
-int
+extern int
 get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
-				fs_index_t index);
+	  fs_index_t index);
 
 extern int
 put_inode(struct mfs_node *mnode);
 
-int
+extern int
 inode_grow(struct mfs_node *mnode, size_t size_grow);
+
+extern int
+inode_shrink(struct mfs_node *mnode, size_t size_shrink);
 
 /*mfs_rw.c*/
 extern int
@@ -187,7 +193,7 @@ read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 
 extern int
 write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
-				uint32_t *old_zone);
+	  uint32_t *old_zone);
 
 extern int
 free_zone(struct mfs_node *mnode, const uint32_t zone);
@@ -195,12 +201,12 @@ free_zone(struct mfs_node *mnode, const uint32_t zone);
 /*mfs_dentry.c*/
 extern int
 read_directory_entry(struct mfs_node *mnode,
-			struct mfs_dentry_info **d_info, unsigned index);
+		     struct mfs_dentry_info **d_info, unsigned index);
 
 extern int
 write_dentry(struct mfs_dentry_info *d_info);
 
-int
+extern int
 insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
 
 /*mfs_balloc.c*/
@@ -214,5 +220,5 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
 
 /**
  * @}
- */ 
+ */
 

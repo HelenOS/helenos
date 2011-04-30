@@ -790,6 +790,41 @@ out_err:
 	async_answer_0(rid, r);
 }
 
+void
+mfs_truncate(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t size = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
+						IPC_GET_ARG4(*request));
+	fs_node_t *fn;
+	int r;
+
+	mfsdebug("mfs_truncate()\n");
+
+	r = mfs_node_get(&fn, handle, index);
+	if (r != EOK) {
+		async_answer_0(rid, r);
+		return;
+	}
+
+	if (!fn) {
+		async_answer_0(rid, r);
+		return;
+	}
+
+	struct mfs_node *mnode = fn->data;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+
+	if (ino_i->i_size == size)
+		r = EOK;
+	else
+		r = inode_shrink(mnode, ino_i->i_size - size);
+
+	async_answer_0(rid, r);
+	mfs_node_put(fn);
+}
+
 int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 {
 	link_t *link;
