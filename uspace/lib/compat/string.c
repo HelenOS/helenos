@@ -35,7 +35,9 @@
  * Defined for convenience. Returns pointer to the terminating nul character.
  */
 static char *strzero(const char *s) {
-	for (; *s != '\0'; ++ s) ;;
+	while (*s != '\0')
+		s ++;
+
 	return (char*) s;
 }
 
@@ -43,20 +45,35 @@ char *strcpy(char *dest, const char *src) {
 	assert (dest != NULL);
 	assert (src != NULL);
 
-	return (char *) memcpy(dest, src, strlen(src) + 1);
+	char *dptr = dest;
+
+	while (*src != '\0') {
+		*dptr = *src;
+		src ++;
+		dptr ++;
+	}
+	
+	*dptr = '\0';
+	return dest;
 }
 
 char *strncpy(char *dest, const char *src, size_t n) {
 	assert (dest != NULL);
 	assert (src != NULL);
 
-	size_t len = strlen(src) + 1;
-	memcpy(dest, src, (n < len ? n : len));
-	if (n > len) {
+	char *dptr = dest;
+
+	for (int i = 0; i < n; ++ i) {
 		/* the standard requires that nul characters
-		   are appended to the length of n */
-		memset(dest + len, '\0', n - len);
+		 * are appended to the length of n, in case src is shorter
+		 */
+		*dptr = *src;
+		if (*src != '\0') {
+			src ++;
+		}
+		dptr ++;
 	}
+	
 	return dest;
 }
 
@@ -140,7 +157,7 @@ void *memchr(const void *mem, int c, size_t n) {
 	
 	const unsigned char *s = mem;
 	
-	for (; n != 0; -- n) {
+	for (int i = 0; i < n; ++ i) {
 		if (*s == (unsigned char) c) {
 			return (void *) s;
 		}
@@ -215,7 +232,10 @@ size_t strspn(const char *s1, const char *s2) {
 
 /* returns true if s2 is a prefix of s1 */
 static bool begins_with(const char *s1, const char *s2) {
-	for (; *s1 == *s2 && *s2 != '\0'; ++ s1, ++ s2) ;;
+	while (*s1 == *s2 && *s2 != '\0') {
+		s1 ++;
+		s2 ++;
+	}
 	return *s2 == '\0';
 }
 
@@ -227,11 +247,6 @@ char *strstr(const char *s1, const char *s2) {
 		return (char *) s1;
 
 	while (*s1 != '\0') {
-		s1 = strchr(s1, *s2);
-		
-		if (s1 == NULL)
-			return NULL;
-		
 		if (begins_with(s1, s2))
 			return (char *) s1;
 		
