@@ -35,7 +35,7 @@
 
 int
 read_directory_entry(struct mfs_node *mnode,
-			struct mfs_dentry_info **d_info, unsigned index)
+		     struct mfs_dentry_info **d_info, unsigned index)
 {
 	const struct mfs_instance *inst = mnode->instance;
 	const struct mfs_sb_info *sbi = inst->sbi;
@@ -75,12 +75,12 @@ read_directory_entry(struct mfs_node *mnode,
 		memcpy((*d_info)->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
 	} else {
 		const int namelen = longnames ? MFS_L_MAX_NAME_LEN :
-					MFS_MAX_NAME_LEN;
+				    MFS_MAX_NAME_LEN;
 
 		struct mfs_dentry *d;
 
 		d = b->data + dentry_off * (longnames ? MFSL_DIRSIZE :
-							MFS_DIRSIZE);
+					    MFS_DIRSIZE);
 		(*d_info)->d_inum = conv16(sbi->native, d->d_inum);
 		memcpy((*d_info)->d_name, d->d_name, namelen);
 	}
@@ -201,5 +201,5 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 /**
  * @}
- */ 
+ */
 

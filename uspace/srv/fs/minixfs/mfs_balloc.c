@@ -36,7 +36,7 @@
 
 static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize,
-				const bool native, unsigned start_bit);
+		      const bool native, unsigned start_bit);
 
 int
 mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
@@ -54,7 +54,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
 			printf(NAME ": Error! Trying to free beyond the" \
-					"bitmap max size\n");
+			       "bitmap max size\n");
 			return -1;
 		}
 	} else {
@@ -62,7 +62,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		start_block = 2;
 		if (idx > sbi->ninodes) {
 			printf(NAME ": Error! Trying to free beyond the" \
-					"bitmap max size\n");
+			       "bitmap max size\n");
 			return -1;
 		}
 	}
@@ -123,7 +123,7 @@ retry:
 
 	for (i = *search / bits_per_block; i < nblocks; ++i) {
 		r = block_get(&b, inst->handle, i + start_block,
-				BLOCK_FLAGS_NONE);
+			      BLOCK_FLAGS_NONE);
 
 		on_error(r, goto out);
 
@@ -167,7 +167,7 @@ out:
 
 static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize,
-				const bool native, unsigned start_bit)
+		      const bool native, unsigned start_bit)
 {
 	int r = -1;
 	unsigned i, j;
@@ -175,7 +175,7 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
 	for (i = start_bit / sizeof(uint32_t);
-				i < bsize / sizeof(uint32_t); ++i) {
+	     i < bsize / sizeof(uint32_t); ++i) {
 		if (!(~b[i])) {
 			/*No free bit in this chunk*/
 			continue;
@@ -199,5 +199,5 @@ found:
 
 /**
  * @}
- */ 
+ */
 

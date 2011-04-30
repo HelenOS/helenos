@@ -60,5 +60,5 @@ uint64_t conv64(bool native, uint64_t n)
 
 /**
  * @}
- */ 
+ */
 

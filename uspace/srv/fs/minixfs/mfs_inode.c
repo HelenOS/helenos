@@ -49,7 +49,7 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
 
 int
 get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
-				fs_index_t index)
+	  fs_index_t index)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
 
@@ -68,8 +68,7 @@ get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 }
 
 static struct mfs_ino_info *
-mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum)
-{
+mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum) {
 	struct mfs_inode *ino = NULL;
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
@@ -94,8 +93,8 @@ mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum)
 	const int itable_off = sbi->itable_off;
 
 	if (block_get(&b, instance->handle,
-			itable_off + inum / sbi->ino_per_block,
-			BLOCK_FLAGS_NONE) != EOK)
+		      itable_off + inum / sbi->ino_per_block,
+		      BLOCK_FLAGS_NONE) != EOK)
 		goto out_err;
 
 	memcpy(ino, ((uint8_t *) b->data) + ino_off * ino_size, ino_size);
@@ -127,8 +126,7 @@ out_err:
 }
 
 static struct mfs_ino_info *
-mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum)
-{
+mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum) {
 	struct mfs2_inode *ino = NULL;
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
@@ -152,9 +150,9 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum)
 	const int itable_off = sbi->itable_off;
 	const int ino_off = inum % sbi->ino_per_block;
 
-	if (block_get(&b, instance->handle, 
-		itable_off + inum / sbi->ino_per_block,
-			BLOCK_FLAGS_NONE) != EOK)
+	if (block_get(&b, instance->handle,
+		      itable_off + inum / sbi->ino_per_block,
+		      BLOCK_FLAGS_NONE) != EOK)
 		goto out_err;
 
 	memcpy(ino, ((uint8_t *)b->data) + ino_off * ino_size, ino_size);
@@ -227,8 +225,8 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 	const bool native = sbi->native;
 
 	r = block_get(&b, mnode->instance->handle,
-				itable_off + inum / sbi->ino_per_block,
-				BLOCK_FLAGS_NONE);
+		      itable_off + inum / sbi->ino_per_block,
+		      BLOCK_FLAGS_NONE);
 
 	on_error(r, goto out);
 
@@ -267,10 +265,10 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	const int itable_off = sbi->itable_off;
 	const int ino_off = inum % sbi->ino_per_block;
 	const bool native = sbi->native;
-	
+
 	r = block_get(&b, mnode->instance->handle,
-				itable_off + inum / sbi->ino_per_block,
-				BLOCK_FLAGS_NONE);
+		      itable_off + inum / sbi->ino_per_block,
+		      BLOCK_FLAGS_NONE);
 
 	on_error(r, goto out);
 
@@ -281,7 +279,7 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	ino2->i_nlinks = conv16(native, ino_i->i_mode);
 	ino2->i_uid = conv16(native, ino_i->i_uid);
 	ino2->i_gid = conv16(native, ino_i->i_gid);
-	ino2->i_size = conv32(native, ino_i->i_size);	
+	ino2->i_size = conv32(native, ino_i->i_size);
 	ino2->i_atime = conv32(native, ino_i->i_atime);
 	ino2->i_mtime = conv32(native, ino_i->i_mtime);
 	ino2->i_ctime = conv32(native, ino_i->i_ctime);
@@ -388,7 +386,7 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 
 		block_t *b;
 		r = block_get(&b, mnode->instance->handle, new_zone,
-						BLOCK_FLAGS_NOREAD);
+			      BLOCK_FLAGS_NOREAD);
 		on_error(r, return r);
 
 		memset(b->data, 0, bs);
@@ -396,7 +394,7 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 		block_put(b);
 
 		r = write_map(mnode, (start_zone + i) * bs,
-				new_zone, &dummy);
+			      new_zone, &dummy);
 
 		on_error(r, return r);
 
@@ -412,5 +410,5 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 
 /**
  * @}
- */ 
+ */
 

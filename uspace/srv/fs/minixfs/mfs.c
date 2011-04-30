@@ -51,7 +51,7 @@
 vfs_info_t mfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
-	.write_retains_size = false,	
+	.write_retains_size = false,
 };
 
 
@@ -69,7 +69,7 @@ vfs_info_t mfs_vfs_info = {
  * available phones. In that case, VFS can close some other phones or use one
  * phone for more serialized requests. Similarily, MinixFS can refuse to duplicate
  * the connection. VFS should then just make use of already existing phones and
- * route its requests through them. To avoid paying the fibril creation price 
+ * route its requests through them. To avoid paying the fibril creation price
  * upon each request, MinixFS might want to keep the connections open after the
  * request has been completed.
  */
@@ -84,12 +84,12 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 */
 		async_answer_0(iid, EOK);
 	}
-	
+
 	printf(NAME ": connection opened\n");
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
-	
+
 		callid = async_get_call(&call);
 		int method = IPC_GET_IMETHOD(call);
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 	rc = fs_register(vfs_phone, &mfs_reg, &mfs_vfs_info, mfs_connection);
 	if (rc != EOK)
 		goto err;
-	
+
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();
@@ -163,5 +163,5 @@ err:
 
 /**
  * @}
- */ 
+ */
 

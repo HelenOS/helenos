@@ -35,7 +35,7 @@
 
 static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
-				bool write_mode, uint32_t w_block);
+	      bool write_mode, uint32_t w_block);
 
 static int
 reset_zone_content(struct mfs_instance *inst, uint32_t zone);
@@ -78,8 +78,8 @@ out:
 }
 
 int
-write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone, 
-				uint32_t *old_zone)
+write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
+	  uint32_t *old_zone)
 {
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
 
@@ -107,7 +107,7 @@ free_zone(struct mfs_node *mnode, const uint32_t zone)
 
 static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
-				bool write_mode, uint32_t w_block)
+	      bool write_mode, uint32_t w_block)
 {
 	int r, nr_direct;
 	int ptrs_per_block;
@@ -275,7 +275,7 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 	unsigned i;
 	block_t *b;
 	const int max_ind_zone_ptrs = (MFS_MAX_BLOCKSIZE / sizeof(uint16_t)) *
-				sizeof(uint32_t);
+				      sizeof(uint32_t);
 
 	*ind_zone = malloc(max_ind_zone_ptrs);
 	if (*ind_zone == NULL)
@@ -300,7 +300,7 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 	}
 
 	block_put(b);
-	
+
 	return EOK;
 }
 
@@ -336,5 +336,5 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 
 /**
  * @}
- */ 
+ */
 

@@ -37,9 +37,9 @@
 #include "mfs_utils.h"
 
 static bool check_magic_number(uint16_t magic, bool *native,
-				mfs_version_t *version, bool *longfilenames);
+			       mfs_version_t *version, bool *longfilenames);
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
-			fs_index_t index);
+			     fs_index_t index);
 
 static int mfs_node_put(fs_node_t *fsnode);
 static int mfs_node_open(fs_node_t *fsnode);
@@ -84,7 +84,7 @@ libfs_ops_t mfs_libfs_ops = {
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	enum cache_mode cmode;	
+	enum cache_mode cmode;
 	struct mfs_superblock *sb;
 	struct mfs3_superblock *sb3;
 	struct mfs_sb_info *sbi;
@@ -96,7 +96,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Accept the mount options */
 	char *opts;
 	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
-	
+
 	if (rc != EOK) {
 		mfsdebug("Can't accept async data write\n");
 		async_answer_0(rid, rc);
@@ -211,10 +211,10 @@ recognized:
 		}
 		sbi->dirsize = longnames ? MFSL_DIRSIZE : MFS_DIRSIZE;
 		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
-				MFS_MAX_NAME_LEN;
+				    MFS_MAX_NAME_LEN;
 	}
 	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
- 
+
 	free(sb);
 
 	rc = block_cache_init(devmap_handle, sbi->block_size, 0, cmode);
@@ -258,7 +258,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	struct mfs_node *mnode;
 	fs_node_t *fsnode;
 	uint32_t inum;
-	
+
 	mfsdebug("create_node()\n");
 
 	r = mfs_instance_get(handle, &inst);
@@ -286,7 +286,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 		r = ENOMEM;
 		goto out_err_1;
 	}
-	
+
 	fsnode = malloc(sizeof(fs_node_t));
 	if (!fsnode) {
 		r = ENOMEM;
@@ -364,7 +364,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 				comp_size))) {
 			/*Hit!*/
 			mfs_node_core_get(rfn, mnode->instance,
-				d_info->d_inum);
+					  d_info->d_inum);
 			free(d_info);
 			goto found;
 		}
@@ -444,7 +444,7 @@ static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 }
 
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
-			fs_index_t index)
+			     fs_index_t index)
 {
 	fs_node_t *node = NULL;
 	struct mfs_node *mnode = NULL;
@@ -545,7 +545,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 		goto out;
 
 	struct mfs_dentry_info *d_info;
-	
+
 	/* The first two dentries are always . and .. */
 	int i = 2;
 	while (1) {
@@ -585,7 +585,7 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
-				IPC_GET_ARG4(*request));
+					       IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 
 	mfsdebug("mfs_read()\n");
@@ -642,7 +642,7 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 		return;
 found:
 		async_data_read_finalize(callid, d_info->d_name,
-				str_size(d_info->d_name) + 1);
+					 str_size(d_info->d_name) + 1);
 		bytes = ((pos - spos) + 1);
 	} else {
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -672,7 +672,7 @@ found:
 			}
 			memset(buf, 0, sizeof(sbi->block_size));
 			async_data_read_finalize(callid,
-			    buf + pos % sbi->block_size, bytes);
+						 buf + pos % sbi->block_size, bytes);
 			free(buf);
 			goto out_success;
 		}
@@ -681,7 +681,7 @@ found:
 		on_error(rc, goto out_error);
 
 		async_data_read_finalize(callid, b->data +
-				pos % sbi->block_size, bytes);
+					 pos % sbi->block_size, bytes);
 
 		rc = block_put(b);
 		if (rc != EOK) {
@@ -694,7 +694,8 @@ out_success:
 	rc = mfs_node_put(fn);
 	async_answer_1(rid, rc, (sysarg_t)bytes);
 	return;
-out_error: ;
+out_error:
+	;
 	int tmp = mfs_node_put(fn);
 	async_answer_0(callid, tmp != EOK ? tmp : rc);
 	async_answer_0(rid, tmp != EOK ? tmp : rc);
@@ -708,7 +709,7 @@ mfs_write(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
-						IPC_GET_ARG4(*request));
+					       IPC_GET_ARG4(*request));
 
 	fs_node_t *fn;
 	int r;
@@ -834,8 +835,8 @@ int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 
 	for (link = inst_list.next; link != &inst_list; link = link->next) {
 		instance_ptr = list_get_instance(link, struct mfs_instance,
-				link);
-		
+						 link);
+
 		if (instance_ptr->handle == handle) {
 			*instance = instance_ptr;
 			fibril_mutex_unlock(&inst_list_mutex);
@@ -850,7 +851,7 @@ int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 }
 
 static bool check_magic_number(uint16_t magic, bool *native,
-				mfs_version_t *version, bool *longfilenames)
+			       mfs_version_t *version, bool *longfilenames)
 {
 	bool rc = true;
 	*longfilenames = false;
@@ -892,5 +893,5 @@ mfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 
 /**
  * @}
- */ 
+ */
 
