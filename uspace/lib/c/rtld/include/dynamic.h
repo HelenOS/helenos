@@ -37,7 +37,7 @@
 
 #include <bool.h>
 #include <elf_dyn.h>
-#include <arch/dynamic.h>
+#include <libarch/rtld/dynamic.h>
 
 /**
  * Holds the data extracted from an ELF Dynamic section.

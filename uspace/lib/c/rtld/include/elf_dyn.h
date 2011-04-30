@@ -39,7 +39,7 @@
 #include <sys/types.h>
 
 #include <elf.h>
-#include <arch/elf_dyn.h>
+#include <libarch/rtld/elf_dyn.h>
 
 #define ELF32_R_SYM(i) ((i)>>8)
 #define ELF32_R_TYPE(i) ((unsigned char)(i))
