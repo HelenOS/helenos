@@ -100,7 +100,7 @@ LIBNET_PREFIX = $(LIB_PREFIX)/net
 ifeq ($(DYNAMIC_LINKING),y)
 BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.a
 LFLAGS = -Bdynamic
-LINKER_SCRIPT ?= $(LIBC_PREFIX)/shared/arch/$(UARCH)/_link.ld
+LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 else
 BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
@@ -216,8 +216,8 @@ else
 	$(OBJDUMP) -d $< > $@
 endif
 
-$(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
-	$(LD) -T $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
+$(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
 endif
 
 $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld: $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld.in

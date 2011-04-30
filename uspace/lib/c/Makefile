@@ -43,7 +43,9 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
-	$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
 PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(INCLUDE_RTLDARCH) $(COMMON_HEADER_ARCH)
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
@@ -157,6 +159,12 @@ $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../$< $@
