@@ -34,7 +34,6 @@
 
 DIRS = \
 	app/bdsh \
-	app/dltest2 \
 	app/edit \
 	app/getterm \
 	app/init \
@@ -95,7 +94,8 @@ DIRS = \
 ## Shared libraries
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	DIRS += \
-		app/dltest
+		app/dltest \
+		app/dltest2
 endif
 
 ## Networking

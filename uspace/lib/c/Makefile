@@ -70,7 +70,6 @@ GENERIC_SOURCES = \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/char_dev.c \
-	generic/dlfcn.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
@@ -125,12 +124,17 @@ GENERIC_SOURCES = \
 	generic/arg_parse.c \
 	generic/sort.c \
 	generic/stats.c \
-	generic/assert.c \
-	rtld/rtld.c \
-	rtld/elf_load.c \
-	rtld/dynamic.c \
-	rtld/module.c \
-	rtld/symbol.c
+	generic/assert.c
+
+ifeq ($(CONFIG_RTLD), y)
+	GENERIC_SOURCES += \
+		generic/dlfcn.c \
+		rtld/rtld.c \
+		rtld/elf_load.c \
+		rtld/dynamic.c \
+		rtld/module.c \
+		rtld/symbol.c
+endif
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

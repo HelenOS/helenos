@@ -72,12 +72,14 @@ ifneq ($(LIBRARY),)
 	OUTPUT = $(LIBRARY).a
 endif
 
-ifneq ($(SLIBRARY),)
-	LARCHIVE = $(LIBRARY).la
-	LOUTPUT = $(SLIBRARY)
-	EXTRA_OUTPUT += $(LOUTPUT).disasm
-	EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
-	    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
+ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
+	ifneq ($(SLIBRARY),)
+		LARCHIVE = $(LIBRARY).la
+		LOUTPUT = $(SLIBRARY)
+		EXTRA_OUTPUT += $(LOUTPUT).disasm
+		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
+		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
+	endif
 endif
 
 DEPEND = Makefile.depend

@@ -64,14 +64,16 @@
 #include <elf_load.h>
 
 /* From librtld */
+#ifdef CONFIG_RTLD
 #include <rtld.h>
 #include <dynamic.h>
 #include <elf_load.h>
 #include <module.h>
 
-#define DPRINTF(...)
-
 static int ldr_load_dyn_linked(elf_info_t *p_info);
+#endif
+
+#define DPRINTF(...)
 
 /** Pathname of the file that will be loaded */
 static char *pathname = NULL;
@@ -101,9 +103,11 @@ static elf_info_t prog_info;
 /** Used to limit number of connections to one. */
 static bool connected = false;
 
+#ifdef CONFIG_RTLD
 /** State structure of the dynamic linker. */
 runtime_env_t dload_re;
 static module_t prog_mod;
+#endif
 
 static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -316,14 +320,19 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	DPRINTF("Binary is dynamically linked.\n");
+#ifdef CONFIG_RTLD
 	DPRINTF(" - pcb address: %p\n", &pcb);
 	DPRINTF( "- prog dynamic: %p\n", prog_info.dynamic);
 
 	rc = ldr_load_dyn_linked(&prog_info);
-
+#else
+	rc = ENOTSUP;
+#endif
 	async_answer_0(rid, rc);
 	return 0;
 }
+
+#ifdef CONFIG_RTLD
 
 static int ldr_load_dyn_linked(elf_info_t *p_info)
 {
@@ -371,6 +380,7 @@ static int ldr_load_dyn_linked(elf_info_t *p_info)
 
 	return 0;
 }
+#endif
 
 /** Run the previously loaded program.
  *

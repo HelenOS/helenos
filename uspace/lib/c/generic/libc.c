@@ -52,8 +52,10 @@
 #include "private/malloc.h"
 #include "private/io.h"
 
+#ifdef CONFIG_RTLD
 /* From librtld. */
 #include <rtld.h>
+#endif
 //#include <string.h>
 
 static bool env_setup = false;

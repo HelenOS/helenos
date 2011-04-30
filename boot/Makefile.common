@@ -117,8 +117,11 @@ RD_DRVS = \
 
 RD_DRV_CFG = 
 
-RD_LIBS = \
-	$(USPACE_PATH)/lib/test/libtest.so.0
+RD_LIBS =
+
+ifeq ($(CONFIG_RTLD), y)
+	RD_LIBS += $(USPACE_PATH)/lib/test/libtest.so.0
+endif
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += $(USPACE_PATH)/lib/c/libc.so.0
