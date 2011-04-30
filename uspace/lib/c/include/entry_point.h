@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libc
+ * @{
+ */
 /** @file
  */
 
-#include <bool.h>
-#include "arch.h"
+#ifndef LIBC_ENTRY_POINT_H_
+#define LIBC_ENTRY_POINT_H_
 
-void program_run(void *entry_point, void *pcb)
-{
-	while (true);
-}
+/* Defined in arch/ARCH/src/entryjmp.[c|s] */
+void entry_point_jmp(void *, void *);
 
-/**
- * @}
+#endif
+
+/** @}
  */

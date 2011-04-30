@@ -26,5 +26,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = arch/$(UARCH)/ia64.s
-AFLAGS += -xexplicit
+.text
+.section .text
+.global entry_point_jmp
+.set noreorder
+
+## void entry_point_jmp(void *entry_point, void *pcb);
+#
+# $a0 (=$4)	contains entry_point
+# $a1 (=$5)	contains pcb
+#
+# Jump to program entry point
+.ent entry_point_jmp
+entry_point_jmp:
+	# tmp := entry_point
+	move $25, $a0
+
+	# Pass pcb to the entry point in $a0
+	move $a0, $a1
+	jr $25
+	nop
+.end

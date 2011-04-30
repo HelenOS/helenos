@@ -26,15 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.globl program_run
+.globl entry_point_jmp
 
-## void program_run(void *entry_point, void *pcb);
+## void entry_point_jmp(void *entry_point, void *pcb);
 #
 # %rdi	contains entry_point
 # %rsi	contains pcb
 #
-# Jump to a program entry point
-program_run:
+# Jump to program entry point
+entry_point_jmp:
 	# pcb must be passed in %rdi, use %rdx as a scratch register
 	mov %rdi, %rdx
 	mov %rsi, %rdi
