@@ -53,9 +53,9 @@
 #define FAT32_CLST_LAST1  0x0ffffff8
 #define FAT32_CLST_LAST8  0x0fffffff
 
-#define FAT12_MASK		  0x0fff
-#define FAT16_MASK		  0xffff
-#define FAT32_MASK		  0x0fffffff
+#define FAT12_MASK        0x0fff
+#define FAT16_MASK        0xffff
+#define FAT32_MASK        0x0fffffff
 
 #define FAT12_CLST_MAX    4085
 #define FAT16_CLST_MAX    65525
@@ -86,16 +86,21 @@
 #define FAT_IS_FAT32(bs)	(CC(bs) >= FAT16_CLST_MAX)
 
 #define FAT_CLST_LAST1(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST1 : (FAT_IS_FAT32(bs) ? FAT32_CLST_LAST1 : FAT16_CLST_LAST1))
+    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST1 : \
+    (FAT_IS_FAT32(bs) ? FAT32_CLST_LAST1 : FAT16_CLST_LAST1))
 #define FAT_CLST_LAST8(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST8 : (FAT_IS_FAT32(bs) ? FAT32_CLST_LAST8 : FAT16_CLST_LAST8))
+    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST8 : \
+    (FAT_IS_FAT32(bs) ? FAT32_CLST_LAST8 : FAT16_CLST_LAST8))
 #define FAT_CLST_BAD(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_CLST_BAD : (FAT_IS_FAT32(bs) ? FAT32_CLST_BAD : FAT16_CLST_BAD))
+    (FAT_IS_FAT12(bs) ? FAT12_CLST_BAD : \
+    (FAT_IS_FAT32(bs) ? FAT32_CLST_BAD : FAT16_CLST_BAD))
 
-#define FAT_CLST_SIZE(bs)	(FAT_IS_FAT32(bs) ? FAT32_CLST_SIZE : FAT16_CLST_SIZE)
+#define FAT_CLST_SIZE(bs) \
+    (FAT_IS_FAT32(bs) ? FAT32_CLST_SIZE : FAT16_CLST_SIZE)
 
 #define FAT_MASK(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_MASK : (FAT_IS_FAT32(bs) ? FAT32_MASK : FAT16_MASK))
+    (FAT_IS_FAT12(bs) ? FAT12_MASK : \
+    (FAT_IS_FAT32(bs) ? FAT32_MASK : FAT16_MASK))
 
 /* forward declarations */
 struct block;

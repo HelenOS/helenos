@@ -786,7 +786,8 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 		 * Check that remaining bits of the first two entries are
 		 * set to one.
 		 */
-		if (!FAT_IS_FAT12(bs) && ((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
+		if (!FAT_IS_FAT12(bs) && 
+			((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
 			return ENOTSUP;
 	}
 
