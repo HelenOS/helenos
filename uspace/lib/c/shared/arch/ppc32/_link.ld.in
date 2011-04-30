@@ -10,14 +10,14 @@ PHDRS {
 
 SECTIONS {
 	. = 0x1000 + SIZEOF_HEADERS;
-
+	
 	.interp : {
 		*(.interp);
 	} :text :interp
-
+	
 	/* Align on word boundary -- instructions will follow. */
 	. = ALIGN(4);
-
+	
 	.init : {
 		*(.init);
 	} :text
@@ -26,7 +26,7 @@ SECTIONS {
 		*(.text.*);
 		*(.rodata*);
 	} :text
-
+	
 	.rel.plt : {
 		*(.rel.plt);
 	} :text
@@ -37,64 +37,64 @@ SECTIONS {
 	.rel.dyn : {
 		*(.rel.*);
 	} :text
-
+	
 	.dynsym : {
 		*(.dynsym);
 	} :text
-
+	
 	.dynstr : {
 		*(.dynstr);
 	} :text
-
+	
 	. = . + 0x1000;
-
+	
 	.dynamic : {
 		*(.dynamic);
 	} :data :dynamic
-
+	
 	.data : {
 		*(.data);
 		*(.sdata);
 	} :data
-
+	
 	.data.rel : {
                 *(.data.rel);
 	} :data
-
+	
 	.got : {
                 *(.got);
 	} :data
 	.got.plt : {
                 *(.got.plt);
 	} :data
-
+	
 /*	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
 		_tdata_end = .;
-	} :data
-	.tbss : {
 		_tbss_start = .;
 		*(.tbss);
 		_tbss_end = .;
 	} :data
-	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
+	
+	_tls_alignment = ALIGNOF(.tdata);
+	
 */
 	.bss : {
 		*(.sbss);
 		*(COMMON);
 		*(.bss);
 	} :data
-
+	
 	.plt : {
 		*(.plt);
 	} :data
-
+	
 	/DISCARD/ : {
 		*(.comment);
 		*(.gnu.attributes);
 	}
-
+	
 	. = ALIGN(0x1000);
 	_heap = .;
 }
