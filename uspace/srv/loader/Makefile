@@ -36,8 +36,7 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-LINKER_SCRIPT = arch/$(UARCH)/_link.ld
-EXTRA_CLEAN = $(LINKER_SCRIPT)
+LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld
 
 EXTRA_CFLAGS = -Iinclude
 
@@ -53,6 +52,3 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
-
-$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
