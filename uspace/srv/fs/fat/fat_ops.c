@@ -1002,13 +1002,6 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/* Return NOT SUPPORTED if try to mount FAT32  */
-	if (!FAT_IS_FAT12(bs) && !FAT_IS_FAT16(bs)) {
-		block_fini(devmap_handle);
-		async_answer_0(rid, ENOTSUP);
-		return;
-	}
-
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, devmap_handle);
 	if (rc != EOK) {
