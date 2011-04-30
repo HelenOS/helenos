@@ -58,7 +58,7 @@
 /** Print a hex integer into klog */
 static sysarg_t sys_debug_putint(sysarg_t i)
 {
-	printf("[task:0x%x]", i);
+	printf("[task:0x%x]", (unsigned) i);
 	return 0;
 }
 

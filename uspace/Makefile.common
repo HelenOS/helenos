@@ -220,12 +220,6 @@ $(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
 endif
 
-$(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld: $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
-
-$(LIBC_PREFIX)/shared/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/shared/arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
-
 ifneq ($(LIBRARY),)
 %.a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
