@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
- * @{
- */
 /** @file
- * @brief
  */
 
-#ifndef LOADER_ARCH_H_
-#define LOADER_ARCH_H_
+#include <bool.h>
+#include <entry_point.h>
 
-extern void program_run(void *entry_point, void *pcb);
-
-#endif
+/** Jump to program entry point. */
+void entry_point_jmp(void *entry_point, void *pcb)
+{
+	while (true);
+}
 
 /**
  * @}

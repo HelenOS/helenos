@@ -26,15 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.globl program_run
+.globl entry_point_jmp
 
-## void program_run(void *entry_point, void *pcb);
+## void entry_point_jmp(void *entry_point, void *pcb);
 #
 # %o0	contains entry_point
 # %o1	contains pcb
 #
-# Jump to a program entry point
-program_run:
+# Jump to program entry point
+entry_point_jmp:
 	# Pass pcb pointer to entry point in %o1. As it is already
 	# there, no action is needed.
 	call %o0

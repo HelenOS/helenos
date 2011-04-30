@@ -54,6 +54,7 @@
 #include <ipc/ns.h>
 #include <macros.h>
 #include <loader/pcb.h>
+#include <entry_point.h>
 #include <errno.h>
 #include <async.h>
 #include <str.h>
@@ -70,7 +71,6 @@
 
 #define DPRINTF(...)
 
-void program_run(void *entry, pcb_t *pcb);
 static int ldr_load_dyn_linked(elf_info_t *p_info);
 
 /** Pathname of the file that will be loaded */
@@ -393,7 +393,7 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 	DPRINTF("Reply OK\n");
 	async_answer_0(rid, EOK);
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
-	program_run(prog_info.entry, &pcb);
+	entry_point_jmp(prog_info.entry, &pcb);
 	
 	/* Not reached */
 }

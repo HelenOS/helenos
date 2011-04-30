@@ -26,4 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = arch/$(UARCH)/ppc32.s
+.globl entry_point_jmp
+
+## void entry_point_jmp(void *entry_point, void *pcb);
+#
+# %r3	contains entry_point
+# %r4	contains pcb
+#
+# Jump to program entry point
+entry_point_jmp:
+	mtctr %r3
+	mr %r6, %r4	# Pass pcb to the entry point in %r6
+	bctr

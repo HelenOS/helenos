@@ -41,9 +41,13 @@ COMMON_HEADER_ARCH = arch/$(UARCH)/include/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
+LINKER_SCRIPTS = \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld
+
 PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(INCLUDE_RTLDARCH) $(COMMON_HEADER_ARCH)
-EXTRA_OUTPUT = $(LINKER_SCRIPT)
-EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(INCLUDE_RTLDARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPT)
+EXTRA_OUTPUT = $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(INCLUDE_RTLDARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
 LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so.0
@@ -148,8 +152,11 @@ $(INCLUDE_KERNEL)/arch: ../../../kernel/generic/include/arch $(INCLUDE_KERNEL)
 $(INCLUDE_KERNEL): ../../../kernel/generic/include/
 	ln -sfn ../$< $@
 
-$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
+$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../$< $@
