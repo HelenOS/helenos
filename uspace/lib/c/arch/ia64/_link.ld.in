@@ -21,6 +21,12 @@ SECTIONS {
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
+	/*
+	 * XXX This is just a work around. Problem: .init section does not
+	 * have the proper alignment.
+	 */
+	. = ALIGN(., 16);
+
 	.init : {
 		*(.init);
 	} :text
