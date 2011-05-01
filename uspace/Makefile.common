@@ -39,11 +39,17 @@
 #
 #   BINARY         (/) binary output name (like appname)
 #   LIBRARY        (/) library output name (like libname)
+#
 #   EXTRA_OUTPUT       additional output targets
 #   EXTRA_CLEAN        additional cleanup targets
 #
+# Optionally, for a binary:
 #   STATIC_NEEDED      set to 'y' for init binaries, will build statically
 #                      linked version
+#
+# Optionally, for a libary:
+#   SLIBRARY           Name with full version, e.g. libfoo.so.0.0 
+#   LSONAME            Soname / name with short version, e.g. libfoo.so.0
 #
 # (x) required variables
 # (/) exactly one of the variables must be defined
