@@ -55,13 +55,6 @@
 #include <console/console.h>
 #include <udebug/udebug.h>
 
-/** Print a hex integer into klog */
-static sysarg_t sys_debug_putint(sysarg_t i)
-{
-	printf("[task:0x%x]", (unsigned) i);
-	return 0;
-}
-
 /** Dispatch system call */
 sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
     sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
@@ -186,7 +179,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Debug calls */
-	(syshandler_t) sys_debug_putint,
 	(syshandler_t) sys_debug_enable_console,
 	(syshandler_t) sys_debug_disable_console
 };
