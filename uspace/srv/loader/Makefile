@@ -41,7 +41,7 @@ LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld
 EXTRA_CFLAGS = -Iinclude -I../../lib/c/rtld/include
 
 BINARY = loader
-STATIC_NEEDED = y
+STATIC_ONLY = y
 
 GENERIC_SOURCES = \
 	main.c \
