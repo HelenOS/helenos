@@ -1,31 +1,22 @@
-#ifndef SHLIB
 STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
 ENTRY(__entry)
-#endif
 
 PHDRS {
-#if defined(LOADER)
+#ifdef LOADER
 	interp PT_INTERP;
 	text PT_LOAD FILEHDR PHDRS FLAGS(5);
-#elif defined(DLEXE)
-	interp PT_INTERP;
-	text PT_LOAD FLAGS(5);
 #else
 	text PT_LOAD FLAGS(5);
 #endif
 	data PT_LOAD FLAGS(6);
-#if defined(SHLIB) || defined(DLEXE)
-	dynamic PT_DYNAMIC;
-#endif
 }
 
 SECTIONS {
-#if defined(LOADER) || defined(DLEXE)
+#ifdef LOADER
 	.interp : {
 		*(.interp);
 	} :interp
-#endif
-#ifdef LOADER
+	
 	. = 0x70004000 + SIZEOF_HEADERS;
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
@@ -39,37 +30,7 @@ SECTIONS {
 		*(.rodata .rodata.*);
 	} :text
 	
-#if defined(SHLIB) || defined(DLEXE)
-	.rel.plt : {
-		*(.rel.plt);
-	}
-	/* 
-	 *.rel.dyn MUST FOLLOW IMMEDIATELY after .rel.plt 
-	 * without alignment gap or DT_REL will be broken
-	 */
-	.rel.dyn : {
-		*(.rel.*);
-	} :text
-	
-	.plt : {
-		*(.plt);
-	} :text
-	
-	.dynsym : {
-		*(.dynsym);
-	} :text
-	
-	.dynstr : {
-		*(.dynstr);
-	} :text
-#endif
 	. = . + 0x4000;
-	
-#if defined(SHLIB) || defined(DLEXE)
-	.dynamic : {
-		*(.dynamic);
-	} :data :dynamic
-#endif
 	
 	.data : {
 		*(.data);
@@ -81,7 +42,6 @@ SECTIONS {
 		*(.got);
 	} :data
 	
-#ifndef DLEXE
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -95,7 +55,7 @@ SECTIONS {
 	} :data
 	
 	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
-#endif
+	
 	.sbss : {
 		*(.scommon);
 		*(.sbss);
@@ -106,14 +66,7 @@ SECTIONS {
 		*(COMMON);
 	} :data
 	
-#if defined(SHLIB)
-#elif defined(DLEXE)
-	/DISCARD/ : {
-		*(.comment);
-	}
-#else
 	/DISCARD/ : {
 		*(*);
 	}
-#endif
 }
