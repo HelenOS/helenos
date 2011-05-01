@@ -31,10 +31,10 @@ USPACE_PREFIX = ../..
 EXTRA_CFLAGS = -Iinclude
 LIBRARY = libsoftint
 SLIBRARY = libsoftint.so.0.0
-LSONAME = libsoftint.so.0
+LSONAME = libsofti.so0
 
 SOURCES = \
-	generic/division.c\
+	generic/division.c \
 	generic/multiplication.c
 
 include $(USPACE_PREFIX)/Makefile.common
