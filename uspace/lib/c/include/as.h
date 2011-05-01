@@ -55,7 +55,7 @@ static inline size_t PAGES2SIZE(size_t pages)
 
 extern void *as_area_create(void *address, size_t size, int flags);
 extern int as_area_resize(void *address, size_t size, int flags);
-int as_area_change_flags(void *address, int flags);
+extern int as_area_change_flags(void *address, int flags);
 extern int as_area_destroy(void *address);
 extern void *set_maxheapsize(size_t mhs);
 extern void * as_get_mappable_page(size_t sz);
