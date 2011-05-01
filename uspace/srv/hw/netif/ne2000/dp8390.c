@@ -52,6 +52,7 @@
 #include <assert.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <stdio.h>
 #include <libarch/ddi.h>
 #include <net/packet.h>
 #include <packet_client.h>
@@ -390,6 +391,7 @@ void ne2k_send(ne2k_t *ne2k, packet_t *packet)
 	size_t size = packet_get_data_length(packet);
 	
 	if ((size < ETH_MIN_PACK_SIZE) || (size > ETH_MAX_PACK_SIZE_TAGGED)) {
+		fibril_mutex_unlock(&ne2k->sq_mutex);
 		fprintf(stderr, "%s: Frame dropped (invalid size %zu bytes)\n",
 		    NAME, size);
 		return;

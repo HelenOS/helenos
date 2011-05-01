@@ -51,6 +51,8 @@
 #include <adt/hash_table.h>
 #include <macros.h>
 #include <mem.h>
+#include <malloc.h>
+#include <stdio.h>
 #include <sys/typefmt.h>
 #include <stacktrace.h>
 

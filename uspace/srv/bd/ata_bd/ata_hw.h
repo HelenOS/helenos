@@ -292,6 +292,14 @@ enum ata_pdev_type {
 	PDEV_TYPE_CDROM		= 0x05
 };
 
+enum ata_pdev_signature {
+	/**
+	 * Signature put by a packet device in byte count register
+	 * in response to Identify command.
+	 */
+	PDEV_SIGNATURE_BC	= 0xEB14
+};
+
 #endif
 
 /** @}

@@ -38,6 +38,7 @@
 #include <io/console.h>
 #include <io/color.h>
 #include <io/style.h>
+#include <io/keycode.h>
 #include <errno.h>
 #include <vfs/vfs.h>
 #include <assert.h>
@@ -61,6 +62,7 @@ static size_t chars_remaining = 0;
 static size_t lines_remaining = 0;
 static sysarg_t console_cols = 0;
 static sysarg_t console_rows = 0;
+static bool should_quit = false;
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -101,7 +103,8 @@ static void waitprompt()
 {
 	console_set_pos(fphone(stdout), 0, console_rows-1);
 	console_set_color(fphone(stdout), COLOR_BLUE, COLOR_WHITE, 0);
-	printf("Press any key to continue");
+	printf("ENTER/SPACE/PAGE DOWN - next page, "
+	       "ESC/Q - quit, C - continue unpaged");
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_NORMAL);
 }
@@ -115,7 +118,18 @@ static void waitkey()
 			return;
 		}
 		if (ev.type == KEY_PRESS) {
-			return;
+			if (ev.key == KC_ESCAPE || ev.key == KC_Q) {
+				should_quit = true;
+				return;
+			}
+			if (ev.key == KC_C) {
+				paging_enabled = false;
+				return;
+			}
+			if (ev.key == KC_ENTER || ev.key == KC_SPACE ||
+			    ev.key == KC_PAGE_DOWN) {
+				return;
+			}
 		}
 	}
 	assert(false);
@@ -149,7 +163,6 @@ static void paged_char(wchar_t c)
 static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 {
 	int fd, bytes = 0, count = 0, reads = 0;
-	off64_t total = 0;
 	char *buff = NULL;
 	int i;
 	size_t offset = 0;
@@ -159,9 +172,6 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 		printf("Unable to open %s\n", fname);
 		return 1;
 	}
-
-	total = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
 
 	if (NULL == (buff = (char *) malloc(blen + 1))) {
 		close(fd);
@@ -176,7 +186,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 			count += bytes;
 			buff[bytes] = '\0';
 			offset = 0;
-			for (i = 0; i < bytes; i++) {
+			for (i = 0; i < bytes && !should_quit; i++) {
 				if (hex) {
 					paged_char(hexchars[((uint8_t)buff[i])/16]);
 					paged_char(hexchars[((uint8_t)buff[i])%16]);
@@ -184,7 +194,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 				else {
 					wchar_t c = str_decode(buff, &offset, bytes);
 					if (c == 0) {
-						// reached end of string
+						/* Reached end of string */
 						break;
 					}
 					paged_char(c);
@@ -193,7 +203,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 			}
 			reads++;
 		}
-	} while (bytes > 0);
+	} while (bytes > 0 && !should_quit);
 
 	close(fd);
 	if (bytes == -1) {
@@ -217,13 +227,16 @@ int cmd_cat(char **argv)
 	sysarg_t rows, cols;
 	int rc;
 	
-	// reset global state
-	// TODO: move to structure?
+	/*
+	 * reset global state
+	 * TODO: move to structure?
+	 */
 	paging_enabled = false;
 	chars_remaining = 0;
 	lines_remaining = 0;
 	console_cols = 0;
 	console_rows = 0;
+	should_quit = false;
 
 	argc = cli_count_args(argv);
 
@@ -277,7 +290,7 @@ int cmd_cat(char **argv)
 		newpage();
 	}
 
-	for (i = optind; argv[i] != NULL; i++)
+	for (i = optind; argv[i] != NULL && !should_quit; i++)
 		ret += cat_file(argv[i], buffer, hex);
 
 	if (ret)

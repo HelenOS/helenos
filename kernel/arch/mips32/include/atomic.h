@@ -90,6 +90,7 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 		"	li %0, %3\n"
 		"	sc %0, %1\n"
 		"	beqz %0, 1b\n"
+		"	nop\n"
 		"2:\n"
 		: "=&r" (tmp),
 		  "+m" (val->count),

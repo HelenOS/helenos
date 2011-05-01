@@ -88,7 +88,8 @@ extern char *str_ndup(const char *, size_t max_size);
 extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
 extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
 
-extern void order_suffix(const uint64_t val, uint64_t *rv, char *suffix);
+extern void order_suffix(const uint64_t, uint64_t *, char *);
+extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
 
 /*
  * TODO: Get rid of this.

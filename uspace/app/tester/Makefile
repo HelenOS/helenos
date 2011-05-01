@@ -51,6 +51,8 @@ SOURCES = \
 	ipc/ping_pong.c \
 	loop/loop1.c \
 	mm/malloc1.c \
+	mm/malloc2.c \
+	devs/devman1.c \
 	hw/misc/virtchar1.c \
 	hw/serial/serial1.c \
 	libext2/libext2_1.c

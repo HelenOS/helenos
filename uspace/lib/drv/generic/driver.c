@@ -46,6 +46,7 @@
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -272,14 +273,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	(void) parent_fun_handle;
 	
 	res = driver->driver_ops->add_device(dev);
-	if (res == EOK) {
-		printf("%s: new device with handle=%" PRIun " was added.\n",
-		    driver->name, dev_handle);
-	} else {
-		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
-		    driver->name, dev_handle);
+	if (res != EOK)
 		delete_device(dev);
-	}
 	
 	async_answer_0(iid, res);
 }
@@ -407,7 +402,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			remote_iface_func_ptr_t iface_method_ptr =
 			    get_remote_method(rem_iface, iface_method_idx);
 			if (iface_method_ptr == NULL) {
-				// the interface has not such method
+				/* The interface has not such method */
 				printf("%s: driver_connection_gen error - "
 				    "invalid interface method.", driver->name);
 				async_answer_0(callid, ENOTSUP);
@@ -660,6 +655,8 @@ int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name)
 
 int ddf_driver_main(driver_t *drv)
 {
+	int rc;
+
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic
 	 * handler for incoming connections.
@@ -673,11 +670,23 @@ int ddf_driver_main(driver_t *drv)
 	async_set_interrupt_received(driver_irq_handler);
 	
 	/*
-	 * Register driver by device manager with generic handler for incoming
-	 * connections.
+	 * Register driver with device manager using generic handler for
+	 * incoming connections.
 	 */
-	devman_driver_register(driver->name, driver_connection);
+	rc = devman_driver_register(driver->name, driver_connection);
+	if (rc != EOK) {
+		printf("Error: Failed to register driver with device manager "
+		    "(%s).\n", (rc == EEXISTS) ? "driver already started" :
+		    str_error(rc));
+		
+		return 1;
+	}
 	
+	/* Return success from the task since server has started. */
+	rc = task_retval(0);
+	if (rc != EOK)
+		return 1;
+
 	async_manager();
 	
 	/* Never reached. */

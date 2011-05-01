@@ -189,9 +189,6 @@ struct tcp_socket_data {
 	 */
 	int backlog;
 	
-//	/** Segment size. */
-//	size_t segment_size;
-
 	/**
 	 * Parent listening socket identifier.
 	 * Set if this socket is an accepted one.

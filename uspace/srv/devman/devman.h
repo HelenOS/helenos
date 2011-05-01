@@ -87,7 +87,7 @@ typedef struct driver {
 	int state;
 	
 	/** Phone asociated with this driver. */
-	sysarg_t phone;
+	int phone;
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
@@ -315,7 +315,6 @@ extern void add_device(int, driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
-extern void set_driver_phone(driver_t *, sysarg_t);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
 
 extern void init_driver(driver_t *);
@@ -337,6 +336,8 @@ extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
 extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
+extern fun_node_t *find_fun_node_in_device(dev_node_t *, const char *);
+extern fun_node_t *find_fun_node_by_class(class_list_t *, const char *, const char *);
 
 /* Device tree */
 
@@ -358,6 +359,7 @@ extern void init_class_list(class_list_t *);
 
 extern dev_class_t *get_dev_class(class_list_t *, char *);
 extern dev_class_t *find_dev_class_no_lock(class_list_t *, const char *);
+extern dev_class_info_t *find_dev_in_class(dev_class_t *, const char *);
 extern void add_dev_class_no_lock(class_list_t *, dev_class_t *);
 
 /* Devmap devices */

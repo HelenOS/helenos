@@ -43,6 +43,7 @@
 #include <bitops.h>
 #include <mem.h>
 #include <futex.h>
+#include <stdlib.h>
 #include <adt/gcdlcm.h>
 #include "private/malloc.h"
 

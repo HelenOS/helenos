@@ -100,9 +100,44 @@ static void rm_end(rm_job_t *rm)
 	return;
 }
 
+static unsigned int rm_recursive_not_empty_dirs(const char *path)
+{
+	DIR *dirp;
+	struct dirent *dp;
+	char buff[PATH_MAX];
+	unsigned int scope;
+	unsigned int ret = 0;
+
+	dirp = opendir(path);
+	if (!dirp) {
+		/* May have been deleted between scoping it and opening it */
+		cli_error(CL_EFAIL, "Could not open %s", path);
+		return ret;
+	}
+
+	memset(buff, 0, sizeof(buff));
+	while ((dp = readdir(dirp))) {
+		snprintf(buff, PATH_MAX - 1, "%s/%s", path, dp->d_name);
+		scope = rm_scope(buff);
+		switch (scope) {
+		case RM_BOGUS:
+			break;
+		case RM_FILE:
+			ret += rm_single(buff);
+			break;
+		case RM_DIR:
+			ret += rm_recursive(buff);
+			break;
+		}
+	}
+	
+	return ret;
+}
+
 static unsigned int rm_recursive(const char *path)
 {
 	int rc;
+	unsigned int ret = 0;
 
 	/* First see if it will just go away */
 	rc = rmdir(path);
@@ -110,9 +145,16 @@ static unsigned int rm_recursive(const char *path)
 		return 0;
 
 	/* Its not empty, recursively scan it */
-	cli_error(CL_ENOTSUP,
-		"Can not remove %s, directory not empty", path);
-	return 1;
+	ret = rm_recursive_not_empty_dirs(path);
+
+	/* Delete directory */
+	rc = rmdir(path);
+	if (rc == 0)
+		return ret;
+
+	cli_error(CL_ENOTSUP, "Can not remove %s", path);
+
+	return ret + 1;
 }
 
 static unsigned int rm_single(const char *path)

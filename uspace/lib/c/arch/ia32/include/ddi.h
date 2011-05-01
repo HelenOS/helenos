@@ -36,7 +36,7 @@
 #include <sys/types.h>
 #include <libarch/types.h>
 
-#define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
+#define IO_SPACE_BOUNDARY  ((void *) (64 * 1024))
 
 static inline uint8_t pio_read_8(ioport8_t *port)
 {
