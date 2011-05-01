@@ -48,7 +48,9 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	tls_free_variant_2(tcb, size);
 }
 
-//#ifdef __SHARED__
+/*
+ * Rtld TLS support
+ */
 
 typedef struct {
 	unsigned long int ti_module;
@@ -72,8 +74,6 @@ void __attribute__ ((__regparm__ (1)))
 
 	return tls + ti->ti_offset;
 }
-
-//#endif
 
 /** @}
  */
