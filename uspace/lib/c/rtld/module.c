@@ -154,7 +154,7 @@ module_t *module_load(const char *name)
 	runtime_env->next_bias += 0x100000;
 
 	DPRINTF("filename:'%s'\n", name_buf);
-	printf("load '%s' at 0x%x\n", name_buf, m->bias);
+	DPRINTF("load '%s' at 0x%x\n", name_buf, m->bias);
 
 	rc = elf_load_file(name_buf, m->bias, ELDF_RW, &info);
 	if (rc != EE_OK) {
