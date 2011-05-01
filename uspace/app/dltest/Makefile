@@ -28,7 +28,6 @@
 
 USPACE_PREFIX = ../..
 BINARY = dltest
-DYNAMIC_LINKING = y
 
 SOURCES = \
 	dltest.c
