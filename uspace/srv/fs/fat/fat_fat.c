@@ -473,7 +473,7 @@ int fat_alloc_shadow_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle,
 	fat_cluster_t clst_last1 = FAT_CLST_LAST1(bs);
 	int rc;
 
-	for (fatno = FAT1 + 1; fatno < bs->fatcnt; fatno++) {
+	for (fatno = FAT1 + 1; fatno < FATCNT(bs); fatno++) {
 		for (c = 0; c < nclsts; c++) {
 			rc = fat_set_cluster(bs, devmap_handle, fatno, lifo[c],
 			    c == 0 ? clst_last1 : lifo[c - 1]);
@@ -583,7 +583,7 @@ fat_free_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t fir
 		rc = fat_get_cluster(bs, devmap_handle, FAT1, firstc, &nextc);
 		if (rc != EOK)
 			return rc;
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+		for (fatno = FAT1; fatno < FATCNT(bs); fatno++) {
 			rc = fat_set_cluster(bs, devmap_handle, fatno, firstc,
 			    FAT_CLST_RES0);
 			if (rc != EOK)
@@ -629,7 +629,7 @@ fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
 				return rc;
 		}
 
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+		for (fatno = FAT1; fatno < FATCNT(bs); fatno++) {
 			rc = fat_set_cluster(bs, nodep->idx->devmap_handle,
 			    fatno, lastc, mcl);
 			if (rc != EOK)
@@ -682,7 +682,7 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 			return rc;
 
 		/* Terminate the cluster chain in all copies of FAT. */
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+		for (fatno = FAT1; fatno < FATCNT(bs); fatno++) {
 			rc = fat_set_cluster(bs, devmap_handle, fatno, lcl,
 			    clst_last1);
 			if (rc != EOK)

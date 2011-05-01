@@ -1054,10 +1054,11 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* ridxp->lock held */
 
 	rootp->type = FAT_DIRECTORY;
-	rootp->firstc = FAT_CLST_ROOT;
+	rootp->firstc = (FAT_IS_FAT32(bs) ? bs->fat32.root_cluster : FAT_CLST_ROOT);
 	rootp->refcnt = 1;
 	rootp->lnkcnt = 0;	/* FS root is not linked */
-	rootp->size = RDE(bs) * sizeof(fat_dentry_t);
+	rootp->size = (FAT_IS_FAT32(bs) ? SPC(bs)*BPS(bs) : 
+	    RDE(bs) * sizeof(fat_dentry_t));
 	rootp->idx = ridxp;
 	ridxp->nodep = rootp;
 	rootp->bp = rfn;
