@@ -138,7 +138,7 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
 	if (!nodep->size)
 		return ELIMIT;
 
-	if (nodep->firstc == FAT_CLST_ROOT)
+	if (!FAT_IS_FAT32(bs) && nodep->firstc == FAT_CLST_ROOT)
 		goto fall_through;
 
 	if (((((nodep->size - 1) / BPS(bs)) / SPC(bs)) == bn / SPC(bs)) &&
@@ -206,7 +206,7 @@ _fat_block_get(block_t **block, fat_bs_t *bs, devmap_handle_t devmap_handle,
 	if (fcl == FAT_CLST_RES0)
 		return ELIMIT;
 
-	if (fcl == FAT_CLST_ROOT) {
+	if (!FAT_IS_FAT32(bs) && fcl == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(bn < RDS(bs));
 		rc = block_get(block, devmap_handle,

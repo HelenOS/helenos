@@ -102,6 +102,10 @@
     (FAT_IS_FAT12(bs) ? FAT12_MASK : \
     (FAT_IS_FAT32(bs) ? FAT32_MASK : FAT16_MASK))
 
+#define FAT_ROOT_CLST(bs) \
+    (FAT_IS_FAT32(bs) ? uint32_t_le2host(bs->fat32.root_cluster) : \
+    FAT_CLST_ROOT)
+
 /* forward declarations */
 struct block;
 struct fat_node;

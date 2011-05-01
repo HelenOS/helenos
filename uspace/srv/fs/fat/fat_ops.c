@@ -656,7 +656,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	/*
 	 * We need to grow the parent in order to create a new unused dentry.
 	 */
-	if (parentp->firstc == FAT_CLST_ROOT) {
+	if (!FAT_IS_FAT32(bs) && parentp->firstc == FAT_CLST_ROOT) {
 		/* Can't grow the root directory. */
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return ENOSPC;
@@ -737,8 +737,8 @@ hit:
 			memcpy(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN);
 			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
-			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
-			    host2uint16_t_le(FAT_CLST_RES0) :
+			d->firstc = (parentp->firstc == FAT_ROOT_CLST(bs)) ?
+			    host2uint16_t_le(FAT_CLST_ROOTPAR) :
 			    host2uint16_t_le(parentp->firstc);
 			/* TODO: initialize also the date/time members. */
 		}
@@ -1054,11 +1054,27 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* ridxp->lock held */
 
 	rootp->type = FAT_DIRECTORY;
-	rootp->firstc = (FAT_IS_FAT32(bs) ? bs->fat32.root_cluster : FAT_CLST_ROOT);
+	rootp->firstc = FAT_ROOT_CLST(bs);
 	rootp->refcnt = 1;
 	rootp->lnkcnt = 0;	/* FS root is not linked */
-	rootp->size = (FAT_IS_FAT32(bs) ? SPC(bs)*BPS(bs) : 
-	    RDE(bs) * sizeof(fat_dentry_t));
+
+	if (FAT_IS_FAT32(bs)) {
+		uint16_t clusters;
+		rc = fat_clusters_get(&clusters, bs, devmap_handle, rootp->firstc);
+		if (rc != EOK) {
+			free(rfn);
+			free(rootp);
+			free(ridxp); /* TODO: Is it right way to free ridxp? */
+			(void) block_cache_fini(devmap_handle);
+			block_fini(devmap_handle);
+			fat_idx_fini_by_devmap_handle(devmap_handle);
+			async_answer_0(rid, ENOTSUP);
+			return;
+		}
+		rootp->size = BPS(bs) * SPC(bs) * clusters;
+	} else
+		rootp->size = RDE(bs) * sizeof(fat_dentry_t);
+
 	rootp->idx = ridxp;
 	ridxp->nodep = rootp;
 	rootp->bp = rfn;
