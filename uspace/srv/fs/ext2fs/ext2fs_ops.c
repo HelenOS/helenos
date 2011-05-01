@@ -56,6 +56,8 @@
 #include <align.h>
 #include <adt/hash_table.h>
 #include <sys/typefmt.h>
+#include <malloc.h>
+#include <stdio.h>
 
 #define EXT2FS_NODE(node)	((node) ? (ext2fs_node_t *) (node)->data : NULL)
 #define EXT2FS_DBG(format, ...) {if (false) printf("ext2fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
