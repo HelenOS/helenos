@@ -26,64 +26,95 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief ELF loader structures and public functions.
  */
 
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
+#ifndef LIBC_RTLD_ELF_DYN_H_
+#define LIBC_RTLD_ELF_DYN_H_
 
 #include <arch/elf.h>
 #include <sys/types.h>
-#include <loader/pcb.h>
 
-#include "elf.h"
+#include <elf.h>
+#include <libarch/rtld/elf_dyn.h>
 
-typedef enum {
-	/** Leave all segments in RW access mode. */
-	ELDF_RW = 1
-} eld_flags_t;
+#define ELF32_R_SYM(i) ((i)>>8)
+#define ELF32_R_TYPE(i) ((unsigned char)(i))
 
-/**
- * Some data extracted from the headers are stored here
+struct elf32_dyn {
+	elf_sword d_tag;
+	union {
+		elf_word d_val;
+		elf32_addr d_ptr;
+	} d_un;
+};
+
+struct elf32_rel {
+	elf32_addr r_offset;
+	elf_word r_info;
+};
+
+struct elf32_rela {
+	elf32_addr r_offset;
+	elf_word r_info;
+	elf_sword r_addend;
+};
+
+#ifdef __32_BITS__
+typedef struct elf32_dyn elf_dyn_t;
+typedef struct elf32_rel elf_rel_t;
+typedef struct elf32_rela elf_rela_t;
+#endif
+
+/*
+ * Dynamic array tags
  */
-typedef struct {
-	/** Entry point */
-	entry_point_t entry;
+#define DT_NULL		0
+#define DT_NEEDED	1
+#define DT_PLTRELSZ	2
+#define DT_PLTGOT	3
+#define DT_HASH		4
+#define DT_STRTAB	5
+#define DT_SYMTAB	6
+#define DT_RELA		7
+#define DT_RELASZ	8
+#define DT_RELAENT	9
+#define DT_STRSZ	10
+#define DT_SYMENT	11
+#define DT_INIT		12
+#define DT_FINI		13
+#define DT_SONAME	14
+#define DT_RPATH	15
+#define DT_SYMBOLIC	16
+#define DT_REL		17
+#define DT_RELSZ	18
+#define DT_RELENT	19
+#define DT_PLTREL	20
+#define DT_DEBUG	21
+#define DT_TEXTREL	22
+#define DT_JMPREL	23
+#define DT_BIND_NOW	24
+#define DT_LOPROC	0x70000000
+#define DT_HIPROC	0x7fffffff
 
-	/** ELF interpreter name or NULL if statically-linked */
-	const char *interp;
-
-	/** Pointer to the dynamic section */
-	void *dynamic;
-} elf_info_t;
-
-/**
- * Holds information about an ELF binary being loaded.
+/*
+ * Special section indexes
  */
-typedef struct {
-	/** Filedescriptor of the file from which we are loading */
-	int fd;
+#define SHN_UNDEF	0
+#define SHN_LORESERVE	0xff00
+#define SHN_LOPROC	0xff00
+#define SHN_HIPROC	0xff1f
+#define SHN_ABS		0xfff1
+#define SHN_COMMON	0xfff2
+#define SHN_HIRESERVE	0xffff
 
-	/** Difference between run-time addresses and link-time addresses */
-	uintptr_t bias;
-
-	/** Flags passed to the ELF loader. */
-	eld_flags_t flags;
-
-	/** A copy of the ELF file header */
-	elf_header_t *header;
-
-	/** Store extracted info here */
-	elf_info_t *info;
-} elf_ld_t;
-
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_info_t *info);
-void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
+/*
+ * Special symbol table index
+ */
+#define STN_UNDEF	0
 
 #endif
 

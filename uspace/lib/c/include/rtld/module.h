@@ -26,64 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief ELF loader structures and public functions.
  */
 
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
+#ifndef LIBC_RTLD_MODULE_H_
+#define LIBC_RTLD_MODULE_H_
 
-#include <arch/elf.h>
 #include <sys/types.h>
-#include <loader/pcb.h>
+#include <rtld/dynamic.h>
+#include <adt/list.h>
 
-#include "elf.h"
+typedef struct module {
+	dyn_info_t dyn;
+	size_t bias;
 
-typedef enum {
-	/** Leave all segments in RW access mode. */
-	ELDF_RW = 1
-} eld_flags_t;
+	/** Array of pointers to directly dependent modules */
+	struct module **deps;
+	/** Number of fields in deps */
+	size_t n_deps;
 
-/**
- * Some data extracted from the headers are stored here
- */
-typedef struct {
-	/** Entry point */
-	entry_point_t entry;
+	/** True iff relocations have already been processed in this module. */
+	bool relocated;
 
-	/** ELF interpreter name or NULL if statically-linked */
-	const char *interp;
+	/** Link to list of all modules in runtime environment */
+	link_t modules_link;
 
-	/** Pointer to the dynamic section */
-	void *dynamic;
-} elf_info_t;
+	/** Link to BFS queue. Only used when doing a BFS of the module graph */
+	link_t queue_link;
+	/** Tag for modules already processed during a BFS */
+	bool bfs_tag;
+} module_t;
 
-/**
- * Holds information about an ELF binary being loaded.
- */
-typedef struct {
-	/** Filedescriptor of the file from which we are loading */
-	int fd;
+void module_process_relocs(module_t *m);
+module_t *module_find(const char *name);
+module_t *module_load(const char *name);
+void module_load_deps(module_t *m);
 
-	/** Difference between run-time addresses and link-time addresses */
-	uintptr_t bias;
-
-	/** Flags passed to the ELF loader. */
-	eld_flags_t flags;
-
-	/** A copy of the ELF file header */
-	elf_header_t *header;
-
-	/** Store extracted info here */
-	elf_info_t *info;
-} elf_ld_t;
-
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_info_t *info);
-void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
+void modules_process_relocs(module_t *start);
+void modules_untag(void);
 
 #endif
 

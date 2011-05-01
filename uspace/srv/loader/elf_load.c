@@ -102,7 +102,8 @@ static int my_read(int fd, void *buf, size_t len)
  * @return EOK on success or negative error code.
  *
  */
-int elf_load_file(const char *file_name, size_t so_bias, elf_info_t *info)
+int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
+    elf_info_t *info)
 {
 	elf_ld_t elf;
 
@@ -117,27 +118,13 @@ int elf_load_file(const char *file_name, size_t so_bias, elf_info_t *info)
 
 	elf.fd = fd;
 	elf.info = info;
+	elf.flags = flags;
 
 	rc = elf_load(&elf, so_bias);
 
 	close(fd);
 
 	return rc;
-}
-
-/** Run an ELF executable.
- *
- * Transfers control to the entry point of an ELF executable loaded
- * earlier with elf_load_file(). This function does not return.
- *
- * @param info Info structure filled earlier by elf_load_file()
- *
- */
-void elf_run(elf_info_t *info, pcb_t *pcb)
-{
-	entry_point_jmp(info->entry, pcb);
-
-	/* not reached */
 }
 
 /** Create the program control block (PCB).
@@ -152,6 +139,7 @@ void elf_create_pcb(elf_info_t *info, pcb_t *pcb)
 {
 	pcb->entry = info->entry;
 	pcb->dynamic = info->dynamic;
+	pcb->rtld_runtime = NULL;
 }
 
 
@@ -305,13 +293,22 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		return load_segment(elf, entry);
 		break;
 	case PT_INTERP:
-		/* Assume silently interp == "/rtld.so" */
-		elf->info->interp = "/rtld.so";
+		/* Assume silently interp == "/app/dload" */
+		elf->info->interp = "/app/dload";
 		break;
 	case PT_DYNAMIC:
+		/* Record pointer to dynamic section into info structure */
+		elf->info->dynamic =
+		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
+		DPRINTF("dynamic section found at 0x%x\n",
+			(uintptr_t)elf->info->dynamic);
+		break;
+	case 0x70000000:
+		/* FIXME: MIPS reginfo */
+		break;
 	case PT_SHLIB:
-	case PT_LOPROC:
-	case PT_HIPROC:
+//	case PT_LOPROC:
+//	case PT_HIPROC:
 	default:
 		DPRINTF("Segment p_type %d unknown.\n", entry->p_type);
 		return EE_UNSUPPORTED;
@@ -382,7 +379,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	a = as_area_create((uint8_t *)base + bias, mem_sz,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	if (a == (void *)(-1)) {
-		DPRINTF("Memory mapping failed.\n");
+		DPRINTF("memory mapping failed (0x%x, %d)\n",
+			base+bias, mem_sz);
 		return EE_MEMORY;
 	}
 
@@ -424,6 +422,13 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		dp += now;
 	}
 
+	/*
+	 * The caller wants to modify the segments first. He will then
+	 * need to set the right access mode and ensure SMC coherence.
+	 */
+	if ((elf->flags & ELDF_RW) != 0) return EE_OK;
+
+//	printf("set area flags to %d\n", flags);
 	rc = as_area_change_flags(seg_ptr, flags);
 	if (rc != 0) {
 		DPRINTF("Failed to set memory area flags.\n");

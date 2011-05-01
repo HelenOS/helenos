@@ -26,64 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup generic	
  * @{
  */
 /** @file
- * @brief ELF loader structures and public functions.
  */
 
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
+#ifndef LIBC_ia32_RTLD_DYNAMIC_H_
+#define LIBC_ia32_RTLD_DYNAMIC_H_
 
-#include <arch/elf.h>
 #include <sys/types.h>
-#include <loader/pcb.h>
 
-#include "elf.h"
-
-typedef enum {
-	/** Leave all segments in RW access mode. */
-	ELDF_RW = 1
-} eld_flags_t;
-
-/**
- * Some data extracted from the headers are stored here
- */
 typedef struct {
-	/** Entry point */
-	entry_point_t entry;
-
-	/** ELF interpreter name or NULL if statically-linked */
-	const char *interp;
-
-	/** Pointer to the dynamic section */
-	void *dynamic;
-} elf_info_t;
-
-/**
- * Holds information about an ELF binary being loaded.
- */
-typedef struct {
-	/** Filedescriptor of the file from which we are loading */
-	int fd;
-
-	/** Difference between run-time addresses and link-time addresses */
-	uintptr_t bias;
-
-	/** Flags passed to the ELF loader. */
-	eld_flags_t flags;
-
-	/** A copy of the ELF file header */
-	elf_header_t *header;
-
-	/** Store extracted info here */
-	elf_info_t *info;
-} elf_ld_t;
-
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_info_t *info);
-void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
+	/* Empty. */
+} dyn_info_arch_t;
 
 #endif
 

@@ -26,66 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup rtld rtld
+ * @brief
  * @{
- */
-/** @file
- * @brief ELF loader structures and public functions.
- */
-
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
-
-#include <arch/elf.h>
-#include <sys/types.h>
-#include <loader/pcb.h>
-
-#include "elf.h"
-
-typedef enum {
-	/** Leave all segments in RW access mode. */
-	ELDF_RW = 1
-} eld_flags_t;
-
+ */ 
 /**
- * Some data extracted from the headers are stored here
+ * @file
  */
-typedef struct {
-	/** Entry point */
-	entry_point_t entry;
 
-	/** ELF interpreter name or NULL if statically-linked */
-	const char *interp;
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
 
-	/** Pointer to the dynamic section */
-	void *dynamic;
-} elf_info_t;
+#include <rtld/module.h>
+#include <rtld/symbol.h>
 
-/**
- * Holds information about an ELF binary being loaded.
+void *dlopen(const char *path, int flag)
+{
+	module_t *m;
+
+	if (runtime_env == NULL) {
+		printf("Dynamic linker not set up -- initializing.\n");
+		rtld_init_static();
+	}
+
+	printf("dlopen(\"%s\", %d)\n", path, flag);
+
+	printf("module_find('%s')\n", path);
+	m = module_find(path);
+	if (m == NULL) {
+		printf("NULL. module_load('%s')\n", path);
+		m = module_load(path);
+		printf("module_load_deps(m)\n");
+		module_load_deps(m);
+		/* Now relocate. */
+		printf("module_process_relocs(m)\n");
+		module_process_relocs(m);
+	} else {
+		printf("not NULL\n");
+	}
+
+	return (void *) m;
+}
+
+/*
+ * @note Symbols with NULL values are not accounted for.
  */
-typedef struct {
-	/** Filedescriptor of the file from which we are loading */
-	int fd;
+void *dlsym(void *mod, const char *sym_name)
+{
+	elf_symbol_t *sd;
+	module_t *sm;
 
-	/** Difference between run-time addresses and link-time addresses */
-	uintptr_t bias;
+	printf("dlsym(0x%lx, \"%s\")\n", (long)mod, sym_name);
+	sd = symbol_bfs_find(sym_name, (module_t *) mod, &sm);
+	if (sd != NULL) {
+		return symbol_get_addr(sd, sm);
+	}
 
-	/** Flags passed to the ELF loader. */
-	eld_flags_t flags;
-
-	/** A copy of the ELF file header */
-	elf_header_t *header;
-
-	/** Store extracted info here */
-	elf_info_t *info;
-} elf_ld_t;
-
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_info_t *info);
-void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
-
-#endif
+	return NULL;
+}
 
 /** @}
  */
