@@ -34,8 +34,6 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S \
-	arch/$(UARCH)/src/rtld/dynamic.c \
-	arch/$(UARCH)/src/rtld/reloc.c
+	arch/$(UARCH)/src/stacktrace_asm.S
 
 .PRECIOUS: arch/$(UARCH)/src/entry.o
