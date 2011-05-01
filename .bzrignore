@@ -130,6 +130,9 @@ uspace/drv/test2/test2
 uspace/lib/c/arch/amd64/_link.ld
 uspace/lib/c/arch/amd64/include/common.h
 uspace/lib/c/arch/ia32/_link.ld
+uspace/lib/c/arch/ia32/_link-dlexe.ld
+uspace/lib/c/arch/ia32/_link-loader.ld
+uspace/lib/c/arch/ia32/_link-shlib.ld
 uspace/lib/c/include/arch
 uspace/lib/c/include/kernel
 uspace/lib/c/include/libarch
