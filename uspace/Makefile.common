@@ -46,6 +46,8 @@
 # Optionally, for a binary:
 #   STATIC_NEEDED      set to 'y' for init binaries, will build statically
 #                      linked version
+#   STATIC_ONLY        set to 'y' if binary cannot be linked dynamically
+#                      (e.g. uses thread-local variables)
 #
 # Optionally, for a libary:
 #   SLIBRARY           Name with full version, e.g. libfoo.so.0.0 
@@ -112,10 +114,14 @@ LIBNET_PREFIX = $(LIB_PREFIX)/net
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
 else
-	ifeq ($(CONFIG_USE_SHARED_LIBS), y)
-		STATIC_BUILD = n
-	else
+	ifeq ($(STATIC_ONLY),y)
 		STATIC_BUILD = y
+	else
+		ifeq ($(CONFIG_USE_SHARED_LIBS), y)
+			STATIC_BUILD = n
+		else
+			STATIC_BUILD = y
+		endif
 	endif
 endif
 

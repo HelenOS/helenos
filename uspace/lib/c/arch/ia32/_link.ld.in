@@ -4,12 +4,9 @@ ENTRY(__entry)
 #endif
 
 PHDRS {
-#if defined(LOADER)
+#if defined(LOADER) || defined(DLEXE)
 	interp PT_INTERP;
 	text PT_LOAD FILEHDR PHDRS FLAGS(5);
-#elif defined(DLEXE)
-	interp PT_INTERP;
-	text PT_LOAD FLAGS(5);
 #else
 	text PT_LOAD FLAGS(5);
 #endif
@@ -63,6 +60,10 @@ SECTIONS {
 	.dynstr : {
 		*(.dynstr);
 	} :text
+	
+	.hash : {
+		*(.hash);
+	} :text
 #endif
 	. = . + 0x1000;
 	
@@ -78,7 +79,7 @@ SECTIONS {
 	
 #if defined(SHLIB) || defined(DLEXE)
 	.data.rel : {
-                *(.data.rel);
+                *(.data.rel .data.rel.*);
 	} :data
 
 	.got : {
@@ -104,6 +105,7 @@ SECTIONS {
 #endif
 	
 	.bss : {
+		*(.dynbss);
 		*(COMMON);
 		*(.bss);
 	} :data
@@ -121,14 +123,7 @@ SECTIONS {
 	.debug_str 0 : { *(.debug_str); } :debug
 #endif
 	
-#if defined(SHLIB)
-#elif defined(DLEXE)
-	/DISCARD/ : {
-		*(.comment);
-	}
-#else
 	/DISCARD/ : {
 		*(*);
 	}
-#endif
 }
