@@ -79,9 +79,10 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	ifneq ($(SLIBRARY),)
 		LARCHIVE = $(LIBRARY).la
 		LOUTPUT = $(SLIBRARY)
-		EXTRA_OUTPUT += $(LOUTPUT).disasm
+		EXTRA_OUTPUT += $(LOUTPUT).disasm $(LIBRARY).so $(LSONAME)
 		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
-		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
+		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld \
+		    $(LIBRARY).so $(LSONAME)
 	endif
 endif
 
@@ -233,6 +234,12 @@ endif
 
 $(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
+
+$(LIBRARY).so:
+	ln -s $(SLIBRARY) $@
+
+$(LSONAME):
+	ln -s $(SLIBRARY) $@
 endif
 
 ifneq ($(LIBRARY),)
