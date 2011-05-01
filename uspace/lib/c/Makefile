@@ -58,7 +58,7 @@ LSONAME = libc.so.0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-EXTRA_CFLAGS += -Irtld/include -I../../srv/loader/include
+EXTRA_CFLAGS += -I../../srv/loader/include
 
 GENERIC_SOURCES = \
 	generic/libc.c \
@@ -129,11 +129,11 @@ GENERIC_SOURCES = \
 ifeq ($(CONFIG_RTLD), y)
 	GENERIC_SOURCES += \
 		generic/dlfcn.c \
-		rtld/rtld.c \
-		rtld/elf_load.c \
-		rtld/dynamic.c \
-		rtld/module.c \
-		rtld/symbol.c
+		generic/rtld/rtld.c \
+		generic/rtld/elf_load.c \
+		generic/rtld/dynamic.c \
+		generic/rtld/module.c \
+		generic/rtld/symbol.c
 endif
 
 SOURCES = \

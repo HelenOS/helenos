@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup rtld rtld
+/** @addtogroup libcppc32
  * @brief
  * @{
- */ 
+ */
 /**
  * @file
  */

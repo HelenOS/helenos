@@ -41,12 +41,12 @@
 #include <adt/list.h>
 #include <loader/pcb.h>
 
-#include <rtld.h>
-#include <rtld_debug.h>
-#include <dynamic.h>
+#include <rtld/rtld.h>
+#include <rtld/rtld_debug.h>
+#include <rtld/dynamic.h>
+#include <rtld/rtld_arch.h>
+#include <rtld/module.h>
 #include <elf_load.h>
-#include <rtld_arch.h>
-#include <module.h>
 
 /** (Eagerly) process all relocation tables in a module.
  *

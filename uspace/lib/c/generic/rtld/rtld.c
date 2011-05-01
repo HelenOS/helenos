@@ -34,7 +34,7 @@
  * @file
  */
 
-#include <rtld.h>
+#include <rtld/rtld.h>
 
 runtime_env_t *runtime_env;
 static runtime_env_t rt_env_static;

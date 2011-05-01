@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef MODULE_H_
-#define MODULE_H_
+#ifndef LIBC_RTLD_RTLD_DEBUG_H_
+#define LIBC_RTLD_RTLD_DEBUG_H_
 
-#include <sys/types.h>
-#include <dynamic.h>
-#include <adt/list.h>
+/* Define to enable debugging mode. */
+#undef RTLD_DEBUG
 
-typedef struct module {
-	dyn_info_t dyn;
-	size_t bias;
-
-	/** Array of pointers to directly dependent modules */
-	struct module **deps;
-	/** Number of fields in deps */
-	size_t n_deps;
-
-	/** True iff relocations have already been processed in this module. */
-	bool relocated;
-
-	/** Link to list of all modules in runtime environment */
-	link_t modules_link;
-
-	/** Link to BFS queue. Only used when doing a BFS of the module graph */
-	link_t queue_link;
-	/** Tag for modules already processed during a BFS */
-	bool bfs_tag;
-} module_t;
-
-void module_process_relocs(module_t *m);
-module_t *module_find(const char *name);
-module_t *module_load(const char *name);
-void module_load_deps(module_t *m);
-
-void modules_process_relocs(module_t *start);
-void modules_untag(void);
+#ifdef RTLD_DEBUG
+	#define DPRINTF(format, ...) printf(format, ##__VA_ARGS__)
+#else
+	#define DPRINTF(format, ...) if (0) printf(format, ##__VA_ARGS__)
+#endif
 
 #endif
 

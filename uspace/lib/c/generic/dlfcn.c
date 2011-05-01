@@ -38,9 +38,8 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 
-/* From librtld. */
-#include <module.h>
-#include <symbol.h>
+#include <rtld/module.h>
+#include <rtld/symbol.h>
 
 void *dlopen(const char *path, int flag)
 {

@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup rtld rtld
+/** @addtogroup libcia32
  * @brief
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -38,11 +38,10 @@
 #include <stdlib.h>
 
 #include <libarch/rtld/elf_dyn.h>
-#include <symbol.h>
-#include <rtld.h>
-#include <rtld_debug.h>
-
-#include <rtld_arch.h>
+#include <rtld/symbol.h>
+#include <rtld/rtld.h>
+#include <rtld/rtld_debug.h>
+#include <rtld/rtld_arch.h>
 
 void module_process_pre_arch(module_t *m)
 {

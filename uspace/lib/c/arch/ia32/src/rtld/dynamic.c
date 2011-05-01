@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup rtld rtld
+/** @addtogroup libcia32
  * @brief
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -37,8 +37,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <elf_dyn.h>
-#include <dynamic.h>
+#include <rtld/elf_dyn.h>
+#include <rtld/dynamic.h>
 
 void dyn_parse_arch(elf_dyn_t *dp, size_t bias, dyn_info_t *info)
 {

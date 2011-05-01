@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ia32_DYNAMIC_H_
-#define ia32_DYNAMIC_H_
+#ifndef LIBC_ia32_RTLD_DYNAMIC_H_
+#define LIBC_ia32_RTLD_DYNAMIC_H_
 
 #include <sys/types.h>
 

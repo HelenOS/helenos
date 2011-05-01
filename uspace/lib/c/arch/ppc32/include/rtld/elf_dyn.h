@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libcppc32
  * @{
  */
 /** @file
  */
 
-#ifndef ppc32_ELF_DYN_H_
-#define ppc32_ELF_DYN_H_
+#ifndef LIBC_ppc32_RTLD_ELF_DYN_H_
+#define LIBC_ppc32_RTLD_ELF_DYN_H_
 
-/* 
+/*
  * ppc32 dynamic relocation types
  */
 

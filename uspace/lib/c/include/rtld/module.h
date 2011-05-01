@@ -26,95 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef ELF_DYN_H_
-#define ELF_DYN_H_
+#ifndef LIBC_RTLD_MODULE_H_
+#define LIBC_RTLD_MODULE_H_
 
-#include <arch/elf.h>
 #include <sys/types.h>
+#include <rtld/dynamic.h>
+#include <adt/list.h>
 
-#include <elf.h>
-#include <libarch/rtld/elf_dyn.h>
+typedef struct module {
+	dyn_info_t dyn;
+	size_t bias;
 
-#define ELF32_R_SYM(i) ((i)>>8)
-#define ELF32_R_TYPE(i) ((unsigned char)(i))
+	/** Array of pointers to directly dependent modules */
+	struct module **deps;
+	/** Number of fields in deps */
+	size_t n_deps;
 
-struct elf32_dyn {
-	elf_sword d_tag;
-	union {
-		elf_word d_val;
-		elf32_addr d_ptr;
-	} d_un;
-};
+	/** True iff relocations have already been processed in this module. */
+	bool relocated;
 
-struct elf32_rel {
-	elf32_addr r_offset;
-	elf_word r_info;
-};
+	/** Link to list of all modules in runtime environment */
+	link_t modules_link;
 
-struct elf32_rela {
-	elf32_addr r_offset;
-	elf_word r_info;
-	elf_sword r_addend;
-};
+	/** Link to BFS queue. Only used when doing a BFS of the module graph */
+	link_t queue_link;
+	/** Tag for modules already processed during a BFS */
+	bool bfs_tag;
+} module_t;
 
-#ifdef __32_BITS__
-typedef struct elf32_dyn elf_dyn_t;
-typedef struct elf32_rel elf_rel_t;
-typedef struct elf32_rela elf_rela_t;
-#endif
+void module_process_relocs(module_t *m);
+module_t *module_find(const char *name);
+module_t *module_load(const char *name);
+void module_load_deps(module_t *m);
 
-/*
- * Dynamic array tags
- */
-#define DT_NULL		0
-#define DT_NEEDED	1
-#define DT_PLTRELSZ	2
-#define DT_PLTGOT	3
-#define DT_HASH		4
-#define DT_STRTAB	5
-#define DT_SYMTAB	6
-#define DT_RELA		7
-#define DT_RELASZ	8
-#define DT_RELAENT	9
-#define DT_STRSZ	10
-#define DT_SYMENT	11
-#define DT_INIT		12
-#define DT_FINI		13
-#define DT_SONAME	14
-#define DT_RPATH	15
-#define DT_SYMBOLIC	16
-#define DT_REL		17
-#define DT_RELSZ	18
-#define DT_RELENT	19
-#define DT_PLTREL	20
-#define DT_DEBUG	21
-#define DT_TEXTREL	22
-#define DT_JMPREL	23
-#define DT_BIND_NOW	24
-#define DT_LOPROC	0x70000000
-#define DT_HIPROC	0x7fffffff
-
-/*
- * Special section indexes
- */
-#define SHN_UNDEF	0
-#define SHN_LORESERVE	0xff00
-#define SHN_LOPROC	0xff00
-#define SHN_HIPROC	0xff1f
-#define SHN_ABS		0xfff1
-#define SHN_COMMON	0xfff2
-#define SHN_HIRESERVE	0xffff
-
-/*
- * Special symbol table index
- */
-#define STN_UNDEF	0
+void modules_process_relocs(module_t *start);
+void modules_untag(void);
 
 #endif
 

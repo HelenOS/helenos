@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libcppc32
  * @{
  */
 /** @file
  */
 
-#ifndef ppc32_DYNAMIC_H_
-#define ppc32_DYNAMIC_H_
+#ifndef LIBC_ppc32_RTLD_DYNAMIC_H_
+#define LIBC_ppc32_RTLD_DYNAMIC_H_
 
 #include <sys/types.h>
 

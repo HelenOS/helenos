@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
  */
 
-#ifndef mips32_DYNAMIC_H_
-#define mips32_DYNAMIC_H_
+#ifndef LIBC_mips32_RTLD_DYNAMIC_H_
+#define LIBC_mips32_RTLD_DYNAMIC_H_
 
 #include <sys/types.h>
 

@@ -36,11 +36,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
 
-#include <rtld.h>
-#include <rtld_debug.h>
-#include <symbol.h>
+#include <rtld/rtld.h>
+#include <rtld/rtld_debug.h>
+#include <rtld/symbol.h>
 #include <elf.h>
 
 /*

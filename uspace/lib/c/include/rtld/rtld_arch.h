@@ -26,21 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef SYMBOL_H_
-#define SYMBOL_H_
+#ifndef LIBC_RTLD_RTLD_ARCH_H_
+#define LIBC_RTLD_RTLD_ARCH_H_
 
-#include <rtld.h>
-#include <elf.h>
+#include <rtld/rtld.h>
+#include <loader/pcb.h>
 
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
+void module_process_pre_arch(module_t *m);
+
+void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size);
+void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size);
+
+void program_run(void *entry, pcb_t *pcb);
 
 #endif
 

@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup rtld rtld
+/** @addtogroup libcmips32
  * @brief
  * @{
- */ 
+ */
 /**
  * @file
  */

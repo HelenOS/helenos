@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef RTLD_DEBUG_H_
-#define RTLD_DEBUG_H_
+#ifndef LIBC_RTLD_H_
+#define LIBC_RTLD_H_
 
-/* Define to enable debugging mode. */
-#undef RTLD_DEBUG
+#include <sys/types.h>
+#include <adt/list.h>
 
-#ifdef RTLD_DEBUG
-	#define DPRINTF(format, ...) printf(format, ##__VA_ARGS__)
-#else
-	#define DPRINTF(format, ...) if (0) printf(format, ##__VA_ARGS__)
-#endif
+#include <rtld/dynamic.h>
+#include <rtld/module.h>
+
+typedef struct {
+	elf_dyn_t *rtld_dynamic;
+	module_t rtld;
+
+	module_t *program;
+
+	/** List of all loaded modules including rtld and the program */
+	link_t modules_head;
+
+	/** Temporary hack to place each module at different address. */
+	uintptr_t next_bias;
+} runtime_env_t;
+
+extern runtime_env_t *runtime_env;
+
+extern void rtld_init_static(void);
 
 #endif
 

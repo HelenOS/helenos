@@ -35,12 +35,11 @@
  */
 
 #include <stdio.h>
-//#include <string.h>
 
-#include <elf_dyn.h>
-#include <dynamic.h>
-#include <rtld.h>
-#include <rtld_debug.h>
+#include <rtld/elf_dyn.h>
+#include <rtld/dynamic.h>
+#include <rtld/rtld.h>
+#include <rtld/rtld_debug.h>
 
 void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 {

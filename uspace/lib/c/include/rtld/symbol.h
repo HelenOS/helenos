@@ -26,37 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef RTLD_H_
-#define RTLD_H_
+#ifndef LIBC_RTLD_SYMBOL_H_
+#define LIBC_RTLD_SYMBOL_H_
 
-#include <sys/types.h>
-#include <adt/list.h>
+#include <rtld/rtld.h>
+#include <elf.h>
 
-#include <dynamic.h>
-#include <module.h>
-
-typedef struct {
-	elf_dyn_t *rtld_dynamic;
-	module_t rtld;
-
-	module_t *program;
-
-	/** List of all loaded modules including rtld and the program */
-	link_t modules_head;
-
-	/** Temporary hack to place each module at different address. */
-	uintptr_t next_bias;
-} runtime_env_t;
-
-extern runtime_env_t *runtime_env;
-
-extern void rtld_init_static(void);
+elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
+elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
+void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
 
 #endif
 

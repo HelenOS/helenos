@@ -26,24 +26,95 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef RTLD_ARCH_H_
-#define RTLD_ARCH_H_
+#ifndef LIBC_RTLD_ELF_DYN_H_
+#define LIBC_RTLD_ELF_DYN_H_
 
-#include <rtld.h>
-#include <loader/pcb.h>
+#include <arch/elf.h>
+#include <sys/types.h>
 
-void module_process_pre_arch(module_t *m);
+#include <elf.h>
+#include <libarch/rtld/elf_dyn.h>
 
-void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size);
-void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size);
+#define ELF32_R_SYM(i) ((i)>>8)
+#define ELF32_R_TYPE(i) ((unsigned char)(i))
 
-void program_run(void *entry, pcb_t *pcb);
+struct elf32_dyn {
+	elf_sword d_tag;
+	union {
+		elf_word d_val;
+		elf32_addr d_ptr;
+	} d_un;
+};
+
+struct elf32_rel {
+	elf32_addr r_offset;
+	elf_word r_info;
+};
+
+struct elf32_rela {
+	elf32_addr r_offset;
+	elf_word r_info;
+	elf_sword r_addend;
+};
+
+#ifdef __32_BITS__
+typedef struct elf32_dyn elf_dyn_t;
+typedef struct elf32_rel elf_rel_t;
+typedef struct elf32_rela elf_rela_t;
+#endif
+
+/*
+ * Dynamic array tags
+ */
+#define DT_NULL		0
+#define DT_NEEDED	1
+#define DT_PLTRELSZ	2
+#define DT_PLTGOT	3
+#define DT_HASH		4
+#define DT_STRTAB	5
+#define DT_SYMTAB	6
+#define DT_RELA		7
+#define DT_RELASZ	8
+#define DT_RELAENT	9
+#define DT_STRSZ	10
+#define DT_SYMENT	11
+#define DT_INIT		12
+#define DT_FINI		13
+#define DT_SONAME	14
+#define DT_RPATH	15
+#define DT_SYMBOLIC	16
+#define DT_REL		17
+#define DT_RELSZ	18
+#define DT_RELENT	19
+#define DT_PLTREL	20
+#define DT_DEBUG	21
+#define DT_TEXTREL	22
+#define DT_JMPREL	23
+#define DT_BIND_NOW	24
+#define DT_LOPROC	0x70000000
+#define DT_HIPROC	0x7fffffff
+
+/*
+ * Special section indexes
+ */
+#define SHN_UNDEF	0
+#define SHN_LORESERVE	0xff00
+#define SHN_LOPROC	0xff00
+#define SHN_HIPROC	0xff1f
+#define SHN_ABS		0xfff1
+#define SHN_COMMON	0xfff2
+#define SHN_HIRESERVE	0xffff
+
+/*
+ * Special symbol table index
+ */
+#define STN_UNDEF	0
 
 #endif
 

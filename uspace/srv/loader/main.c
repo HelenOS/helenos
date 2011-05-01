@@ -63,12 +63,10 @@
 #include <elf.h>
 #include <elf_load.h>
 
-/* From librtld */
 #ifdef CONFIG_RTLD
-#include <rtld.h>
-#include <dynamic.h>
-#include <elf_load.h>
-#include <module.h>
+#include <rtld/rtld.h>
+#include <rtld/dynamic.h>
+#include <rtld/module.h>
 
 static int ldr_load_dyn_linked(elf_info_t *p_info);
 #endif

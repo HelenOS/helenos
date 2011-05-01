@@ -26,17 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef DYNAMIC_H_
-#define DYNAMIC_H_
+#ifndef LIBC_RTLD_DYNAMIC_H_
+#define LIBC_RTLD_DYNAMIC_H_
 
 #include <bool.h>
-#include <elf_dyn.h>
+#include <rtld/elf_dyn.h>
 #include <libarch/rtld/dynamic.h>
 
 /**
