@@ -379,11 +379,9 @@ int
 fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
-	block_t *b, *b1;
+	block_t *b, *b1=NULL;
 	aoff64_t offset;
-	fat_cluster_t *cp, temp;
 	int rc;
-	int spans = 0;
 
 	assert(fatno < FATCNT(bs));
 
@@ -397,61 +395,70 @@ fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 	if (rc != EOK)
 		return rc;
 
-	/* This cluster access spans a sector boundary. Check only for FAT12 */
-	if (FAT_IS_FAT12(bs) && (offset % BPS(bs)+1 == BPS(bs))) {
-		/* Is it last sector of FAT? */
-		if (offset / BPS(bs) < SF(bs)) {
-			/* No. Reading next sector */
-			rc = block_get(&b1, devmap_handle, 1 + RSCNT(bs) +
-			    SF(bs)*fatno + offset / BPS(bs), BLOCK_FLAGS_NONE);
-			if (rc != EOK) {
-				block_put(b);
-				return rc;
-			}
-			/*
-			 * Combining value with last byte of current sector and
-			 * first byte of next sector
-			 */
-			spans=1;
-			cp = &temp;
-			*cp  = *(uint8_t *)(b->data + BPS(bs) - 1);
-			*cp |= *(uint8_t *)(b1->data);
-		}
-		else {
-			/* Yes. It is last sector of fat */
-			block_put(b);
-			return ERANGE;
-		}
-	}
-	else
-		cp = (fat_cluster_t *)(b->data + offset % BPS(bs));
+	value = host2uint32_t_le(value);
 
-	value = host2uint16_t_le(value);
 	if (FAT_IS_FAT12(bs)) {
-		if (clst & 0x0001) {
-			*cp &= 0x000f;
-			*cp |= value << 4;
-		}
-		else {
-			*cp &= 0xf000;
-			*cp |= value & 0x0fff;
-		}
-
-		if (spans)
-		{
-			*(uint8_t *)(b->data + BPS(bs) - 1) = cp[0];
-			*(uint8_t *)(b1->data) = cp[1];
-
-			b1->dirty = true;
-			rc = block_put(b1);
-			if (rc != EOK) {
+		uint16_t temp;
+		bool border = false;
+		/* This cluster access spans a sector boundary. Check only for FAT12 */
+		if (offset % BPS(bs)+1 == BPS(bs)) {
+			/* Is it last sector of FAT? */
+			if (offset / BPS(bs) < SF(bs)) {
+				/* No. Reading next sector */
+				rc = block_get(&b1, devmap_handle, 1 + RSCNT(bs) +
+					SF(bs)*fatno + offset / BPS(bs), BLOCK_FLAGS_NONE);
+				if (rc != EOK) {
+					block_put(b);
+					return rc;
+				}
+				/*
+				* Combining value with last byte of current sector and
+				* first byte of next sector
+				*/
+				temp  = *(uint8_t *)(b->data + BPS(bs) - 1);
+				temp |= *(uint8_t *)(b1->data) << 8;
+				border = true;
+			}
+			else {
+				/* Yes. It is last sector of fat */
 				block_put(b);
-				return rc;
+				return ERANGE;
 			}
 		}
+		else
+			temp = *(uint16_t *)(b->data + offset % BPS(bs));
+
+		if (IS_ODD(clst)) {
+			temp &= 0x000f;
+			temp |= value << 4;
+		}
+		else {
+			temp &= 0xf000;
+			temp |= value & FAT12_MASK;
+		}
+
+		if (border) {
+			*(uint8_t *)(b->data + BPS(bs) - 1) = temp & 0xff;
+			*(uint8_t *)(b1->data) = temp >> 8;
+			b1->dirty = true;
+		} else
+			*(uint16_t *)(b->data + offset % BPS(bs)) = temp;
 	}
-	else
-		*cp = value;
+	else {
+		if (FAT_IS_FAT32(bs)) {
+			*(uint32_t *)(b->data + offset % BPS(bs)) &= 0xf0000000;
+			*(uint32_t *)(b->data + offset % BPS(bs)) |= (value & FAT32_MASK);
+		} else
+			*(uint16_t *)(b->data + offset % BPS(bs)) = value;
+	}
+
+	if (b1 && b1->dirty) {
+		rc = block_put(b1);
+		if (rc != EOK) {
+			block_put(b);
+			return rc;
+		}
+	}
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);
