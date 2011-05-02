@@ -127,8 +127,10 @@ retry:
 
 		on_error(r, goto out);
 
+		unsigned tmp = *search % bits_per_block;
+
 		freebit = find_free_bit_and_set(b->data, sbi->block_size,
-						sbi->native, *search);
+						sbi->native, tmp);
 		if (freebit == -1) {
 			/*No free bit in this block*/
 			block_put(b);
@@ -137,7 +139,7 @@ retry:
 
 		/*Free bit found in this block, compute the real index*/
 		*idx = freebit + bits_per_block * i;
-		*idx += (bid == BMAP_INODE);
+		*idx += (bid == BMAP_INODE) ? 1 : 0;
 		mfsdebug("alloc index %d %d\n", (int) *idx, i);
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
@@ -174,8 +176,8 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 	bitchunk_t chunk;
 	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
-	for (i = start_bit / sizeof(uint32_t);
-	     i < bsize / sizeof(uint32_t); ++i) {
+	for (i = start_bit / chunk_bits;
+	     i < bsize / sizeof(bitchunk_t); ++i) {
 		if (!(~b[i])) {
 			/*No free bit in this chunk*/
 			continue;
