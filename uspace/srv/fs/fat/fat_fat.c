@@ -56,6 +56,8 @@
 #define CLBN2PBN(bs, cl, bn) \
 	(SSA((bs)) + ((cl) - FAT_CLST_FIRST) * SPC((bs)) + (bn) % SPC((bs)))
 
+#define IS_ODD(number)	(number & 0x1)
+
 /**
  * The fat_alloc_lock mutex protects all copies of the File Allocation Table
  * during allocation of clusters. The lock does not have to be held durring
@@ -301,8 +303,6 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 
 	assert(fatno < FATCNT(bs));
 	
-	*value = 0;
-
 	if (FAT_IS_FAT12(bs))
 		offset = (clst + clst/2);
 	else
@@ -313,8 +313,8 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 	if (rc != EOK)
 		return rc;
 
-	/* This cluster access spans a sector boundary. Check only for FAT12 */
 	if (FAT_IS_FAT12(bs)) {
+		/* This cluster access spans a sector boundary. Check only for FAT12 */
 		if ((offset % BPS(bs) + 1 == BPS(bs))) {
 			/* Is it last sector of FAT? */
 			if (offset / BPS(bs) < SF(bs)) {
@@ -330,7 +330,7 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 				* first byte of next sector
 				*/
 				*value  = *(uint8_t *)(b->data + BPS(bs) - 1);
-				*value |= *(uint8_t *)(b1->data);
+				*value |= *(uint8_t *)(b1->data) << 8;
 
 				rc = block_put(b1);
 				if (rc != EOK) {
@@ -344,8 +344,10 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 				return ERANGE;
 			}
 		}
+		else
+			*value = *(uint16_t *)(b->data + offset % BPS(bs));
 
-		if (clst & 0x0001)
+		if (IS_ODD(clst))
 			*value = (*value) >> 4;
 		else
 			*value = (*value) & FAT12_MASK;
@@ -357,7 +359,7 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 			*value = *(uint16_t *)(b->data + offset % BPS(bs));
 	}
 
-	*value = uint16_t_le2host(*value);
+	*value = uint32_t_le2host(*value);
 	rc = block_put(b);
 
 	return rc;
