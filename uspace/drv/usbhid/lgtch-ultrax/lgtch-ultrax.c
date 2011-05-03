@@ -57,6 +57,36 @@ typedef enum usb_lgtch_flags {
 	USB_LGTCH_STATUS_TO_DESTROY = -1
 } usb_lgtch_flags;
 
+/*----------------------------------------------------------------------------*/
+/**
+ * Logitech UltraX device type.
+ */
+typedef struct usb_lgtch_ultrax_t {
+	/** Previously pressed keys (not translated to key codes). */
+	int32_t *keys_old;
+	/** Currently pressed keys (not translated to key codes). */
+	int32_t *keys;
+	/** Count of stored keys (i.e. number of keys in the report). */
+	size_t key_count;
+	
+	/** IPC phone to the console device (for sending key events). */
+	int console_phone;
+
+	/** Information for auto-repeat of keys. */
+//	usb_kbd_repeat_t repeat;
+	
+	/** Mutex for accessing the information about auto-repeat. */
+//	fibril_mutex_t *repeat_mtx;
+
+	/** State of the structure (for checking before use). 
+	 * 
+	 * 0 - not initialized
+	 * 1 - initialized
+	 * -1 - ready for destroying
+	 */
+	int initialized;
+} usb_lgtch_ultrax_t;
+
 
 /*----------------------------------------------------------------------------*/
 /** 
@@ -207,6 +237,47 @@ static void usb_lgtch_free(usb_lgtch_ultrax_t **lgtch_dev)
 
 /*----------------------------------------------------------------------------*/
 
+static int usb_lgtch_create_function(usb_hid_dev_t *hid_dev)
+{
+	/* Create the function exposed under /dev/devices. */
+	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
+	    NAME);
+	if (fun == NULL) {
+		usb_log_error("Could not create DDF function node.\n");
+		return ENOMEM;
+	}
+	
+	/*
+	 * Store the initialized HID device and HID ops
+	 * to the DDF function.
+	 */
+	fun->ops = &lgtch_ultrax_ops;
+	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+	
+	int rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		usb_log_error("Could not bind DDF function: %s.\n",
+		    str_error(rc));
+		// TODO: Can / should I destroy the DDF function?
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+	
+	rc = ddf_fun_add_to_class(fun, "keyboard");
+	if (rc != EOK) {
+		usb_log_error(
+		    "Could not add DDF function to class 'keyboard': %s.\n",
+		    str_error(rc));
+		// TODO: Can / should I destroy the DDF function?
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int usb_lgtch_init(struct usb_hid_dev *hid_dev)
 {
 	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
@@ -260,52 +331,11 @@ int usb_lgtch_init(struct usb_hid_dev *hid_dev)
 	// save the KBD device structure into the HID device structure
 	hid_dev->data = lgtch_dev;
 	
-	/* Create the function exposed under /dev/devices. */
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
-	    NAME);
-	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
-		return ENOMEM;
-	}
-	
 	lgtch_dev->initialized = USB_LGTCH_STATUS_INITIALIZED;
 	usb_log_debug(NAME " HID/lgtch_ultrax device structure initialized.\n");
 	
-	/*
-	 * Store the initialized HID device and HID ops
-	 * to the DDF function.
-	 */
-	fun->ops = &lgtch_ultrax_ops;
-	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
-	
-	/*
-	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
-	 *    do nej.
-	 * 2) do tych ops do .interfaces[DEV_IFACE_USBHID (asi)] priradi 
-	 *    vyplnenu strukturu usbhid_iface_t.
-	 * 3) klientska aplikacia - musi si rucne vytvorit telefon
-	 *    (devman_device_connect() - cesta k zariadeniu (/hw/pci0/...) az 
-	 *    k tej fcii.
-	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
-	 */
-
-	int rc = ddf_fun_bind(fun);
+	int rc = usb_lgtch_create_function(hid_dev);
 	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
-		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(fun);
-		usb_lgtch_free(&lgtch_dev);
-		return rc;
-	}
-	
-	rc = ddf_fun_add_to_class(fun, "keyboard");
-	if (rc != EOK) {
-		usb_log_error(
-		    "Could not add DDF function to class 'keyboard': %s.\n",
-		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(fun);
 		usb_lgtch_free(&lgtch_dev);
 		return rc;
 	}

@@ -299,6 +299,48 @@ static bool usb_mouse_process_boot_report(usb_hid_dev_t *hid_dev,
 
 /*----------------------------------------------------------------------------*/
 
+static int usb_mouse_create_function(usb_hid_dev_t *hid_dev)
+{
+	/* Create the function exposed under /dev/devices. */
+	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
+	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
+	    HID_MOUSE_FUN_NAME);
+	if (fun == NULL) {
+		usb_log_error("Could not create DDF function node.\n");
+		return ENOMEM;
+	}
+	
+	/*
+	 * Store the initialized HID device and HID ops
+	 * to the DDF function.
+	 */
+	fun->ops = &hid_dev->ops;
+	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+
+	int rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		usb_log_error("Could not bind DDF function: %s.\n",
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+	
+	usb_log_debug("Adding DDF function to class %s...\n", 
+	    HID_MOUSE_CLASS_NAME);
+	rc = ddf_fun_add_to_class(fun, HID_MOUSE_CLASS_NAME);
+	if (rc != EOK) {
+		usb_log_error(
+		    "Could not add DDF function to class %s: %s.\n",
+		    HID_MOUSE_CLASS_NAME, str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int usb_mouse_init(usb_hid_dev_t *hid_dev)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
@@ -315,18 +357,6 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev)
 		    "structure.\n");
 		return ENOMEM;
 	}
-	
-//	usb_hid_report_path_t *path = usb_hid_report_path();
-//	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
-	
-//	usb_hid_report_path_set_report_id(path, 0);
-	
-//	mouse_dev->button_count = usb_hid_report_input_length(
-//	    hid_dev->report, path, 
-//	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
-//	usb_hid_report_path_free(path);
-	
-//	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
 	
 	mouse_dev->buttons = (int32_t *)calloc(USB_MOUSE_BUTTON_COUNT, 
 	    sizeof(int32_t));
@@ -346,6 +376,12 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev)
 	// TODO: how to know if the device supports the request???
 //	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
 //	    hid_dev->usb_dev->interface_no, IDLE_RATE);
+	
+	int rc = usb_mouse_create_function(hid_dev);
+	if (rc != EOK) {
+		usb_mouse_free(&mouse_dev);
+		return rc;
+	}
 	
 	return EOK;
 }

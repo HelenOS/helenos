@@ -92,6 +92,10 @@ typedef struct usb_hid_dev {
 	/** HID Report parser. */
 	usb_hid_report_t *report;
 	
+	uint8_t *input_report;
+	
+	size_t input_report_size;
+	
 	/** Arbitrary data (e.g. a special structure for handling keyboard). */
 	void *data;
 } usb_hid_dev_t;
@@ -119,9 +123,9 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, 
      void *arg);
 
-const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev);
+//const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev);
 
-const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
+//const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
 
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 
