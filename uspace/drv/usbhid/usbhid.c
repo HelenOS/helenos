@@ -135,7 +135,7 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 	}
 	
 	// set the init callback
-	hid_dev->subdrivers[0].init = NULL;
+	hid_dev->subdrivers[0].init = usb_generic_hid_init;
 	
 	// set the polling callback
 	hid_dev->subdrivers[0].poll = usb_generic_hid_polling_callback;
