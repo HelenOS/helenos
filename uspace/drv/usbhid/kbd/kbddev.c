@@ -765,6 +765,51 @@ static usb_kbd_t *usb_kbd_new(void)
 }
 
 /*----------------------------------------------------------------------------*/
+
+static int usb_kbd_create_function(usb_hid_dev_t *hid_dev)
+{
+	assert(hid_dev != NULL);
+	assert(hid_dev->usb_dev != NULL);
+	
+	/* Create the function exposed under /dev/devices. */
+	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
+	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
+	    HID_KBD_FUN_NAME);
+	if (fun == NULL) {
+		usb_log_error("Could not create DDF function node.\n");
+		return ENOMEM;
+	}
+	
+	/*
+	 * Store the initialized HID device and HID ops
+	 * to the DDF function.
+	 */
+	fun->ops = &hid_dev->ops;
+	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+
+	int rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		usb_log_error("Could not bind DDF function: %s.\n",
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+	
+	usb_log_debug("Adding DDF function to class %s...\n", 
+	    HID_KBD_CLASS_NAME);
+	rc = ddf_fun_add_to_class(fun, HID_KBD_CLASS_NAME);
+	if (rc != EOK) {
+		usb_log_error(
+		    "Could not add DDF function to class %s: %s.\n",
+		    HID_KBD_CLASS_NAME, str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
 /* API functions                                                              */
 /*----------------------------------------------------------------------------*/
 /**
@@ -928,6 +973,13 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	
 	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
 	usb_log_debug("HID/KBD device structure initialized.\n");
+	
+	usb_log_debug("Creating KBD function...\n");
+	int rc = usb_kbd_create_function(hid_dev);
+	if (rc != EOK) {
+		usb_kbd_free(&kbd_dev);
+		return rc;
+	}
 	
 	return EOK;
 }

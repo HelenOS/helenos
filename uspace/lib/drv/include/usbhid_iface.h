@@ -71,26 +71,23 @@ typedef enum {
 
 /** USB HID device communication interface. */
 typedef struct {
-	/** Get number of items in the event.
+	/** Get size of the event in bytes.
 	 *
 	 * @param[in] fun DDF function answering the request.
 	 * @return Number of events or error code.
 	 */
-	int (*get_event_length)(ddf_fun_t *fun);
+	size_t (*get_event_length)(ddf_fun_t *fun);
 
 	/** Get single event from the HID device.
 	 *
 	 * @param[in] fun DDF function answering the request.
-	 * @param[out] usage_page Array of usage pages and usages.
-	 * @param[out] usage Array of data (1:1 with @p usage).
-	 * @param[in] size Size of @p usage and @p data arrays.
+	 * @param[out] buffer Buffer with raw data from the device.
 	 * @param[out] act_size Actual number of returned events.
 	 * @param[in] flags Flags (see USBHID_IFACE_FLAG_*).
 	 * @return Error code.
 	 */
-	int (*get_event)(ddf_fun_t *fun,
-	    uint16_t *usage_page, uint16_t *usage, size_t size, size_t *act_size,
-	    unsigned int flags);
+	int (*get_event)(ddf_fun_t *fun, int32_t *buffer, size_t size,
+	    size_t *act_size, unsigned int flags);
 } usbhid_iface_t;
 
 
