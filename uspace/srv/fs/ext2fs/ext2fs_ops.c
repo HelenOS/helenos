@@ -61,16 +61,24 @@
 
 #define EXT2FS_NODE(node)	((node) ? (ext2fs_node_t *) (node)->data : NULL)
 #define EXT2FS_DBG(format, ...) {if (false) printf("ext2fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
+#define OPEN_NODES_KEYS 2
+#define OPEN_NODES_DEV_HANDLE_KEY 0
+#define OPEN_NODES_INODE_KEY 1
+#define OPEN_NODES_BUCKETS 256
 
 typedef struct ext2fs_instance {
 	link_t link;
 	devmap_handle_t devmap_handle;
 	ext2_filesystem_t *filesystem;
+	unsigned int open_nodes_count;
 } ext2fs_instance_t;
 
 typedef struct ext2fs_node {
 	ext2fs_instance_t *instance;
 	ext2_inode_ref_t *inode_ref;
+	fs_node_t *fs_node;
+	link_t link;
+	unsigned int references;
 } ext2fs_node_t;
 
 /*
@@ -83,6 +91,7 @@ static void ext2fs_read_file(ipc_callid_t, ipc_callid_t, aoff64_t,
 	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
 static bool ext2fs_is_dots(const uint8_t *, size_t);
 static int ext2fs_node_get_core(fs_node_t **, ext2fs_instance_t *, fs_index_t);
+static int ext2fs_node_put_core(ext2fs_node_t *);
 
 /*
  * Forward declarations of EXT2 libfs operations.
@@ -110,20 +119,60 @@ static devmap_handle_t ext2fs_device_get(fs_node_t *node);
  */
 static LIST_INITIALIZE(instance_list);
 static FIBRIL_MUTEX_INITIALIZE(instance_list_mutex);
+static hash_table_t open_nodes;
+static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
+
+/* Hash table interface for open nodes hash table */
+static hash_index_t open_nodes_hash(unsigned long key[])
+{
+	/* TODO: This is very simple and probably can be improved */
+	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
+}
+
+static int open_nodes_compare(unsigned long key[], hash_count_t keys, 
+    link_t *item)
+{
+	ext2fs_node_t *enode = hash_table_get_instance(item, ext2fs_node_t, link);
+	assert(keys > 0);
+	if (enode->instance->devmap_handle !=
+	    ((devmap_handle_t) key[OPEN_NODES_DEV_HANDLE_KEY])) {
+		return false;
+	}
+	if (keys == 1) {
+		return true;
+	}
+	assert(keys == 2);
+	return (enode->inode_ref->index == key[OPEN_NODES_INODE_KEY]);
+}
+
+static void open_nodes_remove_cb(link_t *link)
+{
+	/* We don't use remove callback for this hash table */
+}
+
+static hash_table_operations_t open_nodes_ops = {
+	.hash = open_nodes_hash,
+	.compare = open_nodes_compare,
+	.remove_callback = open_nodes_remove_cb,
+};
 
 /**
  * 
  */
 int ext2fs_global_init(void)
 {
+	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
+	    OPEN_NODES_KEYS, &open_nodes_ops)) {
+		return ENOMEM;
+	}
 	return EOK;
 }
 
 int ext2fs_global_fini(void)
 {
+	hash_table_destroy(&open_nodes);
 	return EOK;
 }
-
 
 
 /*
@@ -261,14 +310,34 @@ int ext2fs_node_get_core(fs_node_t **rfn, ext2fs_instance_t *inst,
 	
 	ext2_inode_ref_t *inode_ref = NULL;
 
+	fibril_mutex_lock(&open_nodes_lock);
+	
+	/* Check if the node is not already open */
+	unsigned long key[] = {
+		[OPEN_NODES_DEV_HANDLE_KEY] = inst->devmap_handle,
+		[OPEN_NODES_INODE_KEY] = index,
+	};
+	link_t *already_open = hash_table_find(&open_nodes, key);
+
+	if (already_open) {
+		enode = hash_table_get_instance(already_open, ext2fs_node_t, link);
+		*rfn = enode->fs_node;
+		enode->references++;
+
+		fibril_mutex_unlock(&open_nodes_lock);
+		return EOK;
+	}
+
 	enode = malloc(sizeof(ext2fs_node_t));
 	if (enode == NULL) {
+		fibril_mutex_unlock(&open_nodes_lock);
 		return ENOMEM;
 	}
 
 	node = malloc(sizeof(fs_node_t));
 	if (node == NULL) {
 		free(enode);
+		fibril_mutex_unlock(&open_nodes_lock);
 		return ENOMEM;
 	}	
 	fs_node_initialize(node);
@@ -277,18 +346,27 @@ int ext2fs_node_get_core(fs_node_t **rfn, ext2fs_instance_t *inst,
 	if (rc != EOK) {
 		free(enode);
 		free(node);
+		fibril_mutex_unlock(&open_nodes_lock);
 		return rc;
 	}
 	
 	enode->inode_ref = inode_ref;
 	enode->instance = inst;
+	enode->references = 1;
+	enode->fs_node = node;
+	link_initialize(&enode->link);
+	
 	node->data = enode;
 	*rfn = node;
+	
+	hash_table_insert(&open_nodes, key, &enode->link);
+	inst->open_nodes_count++;
 	
 	EXT2FS_DBG("inode: %u", inode_ref->index);
 	
 	EXT2FS_DBG("EOK");
 
+	fibril_mutex_unlock(&open_nodes_lock);
 	return EOK;
 }
 
@@ -307,11 +385,45 @@ int ext2fs_node_put(fs_node_t *fn)
 	EXT2FS_DBG("");
 	int rc;
 	ext2fs_node_t *enode = EXT2FS_NODE(fn);
+	
+	fibril_mutex_lock(&open_nodes_lock);
+
+	assert(enode->references > 0);
+	enode->references--;
+	if (enode->references == 0) {
+		rc = ext2fs_node_put_core(enode);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&open_nodes_lock);
+			return rc;
+		}
+	}
+
+	fibril_mutex_unlock(&open_nodes_lock);
+	
+	return EOK;
+}
+
+int ext2fs_node_put_core(ext2fs_node_t *enode)
+{
+	int rc;
+
+	unsigned long key[] = {
+		[OPEN_NODES_DEV_HANDLE_KEY] = enode->instance->devmap_handle,
+		[OPEN_NODES_INODE_KEY] = enode->inode_ref->index,
+	};
+	hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
+	assert(enode->instance->open_nodes_count > 0);
+	enode->instance->open_nodes_count--;
+
 	rc = ext2_filesystem_put_inode_ref(enode->inode_ref);
 	if (rc != EOK) {
 		EXT2FS_DBG("ext2_filesystem_put_inode_ref failed");
+		return rc;
 	}
-	return rc;
+
+	free(enode->fs_node);
+	free(enode);
+	return EOK;
 }
 
 int ext2fs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
@@ -543,16 +655,35 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	/* Initialize instance and add to the list */
+	/* Initialize instance */
 	link_initialize(&inst->link);
 	inst->devmap_handle = devmap_handle;
 	inst->filesystem = fs;
+	inst->open_nodes_count = 0;
 	
+	/* Read root node */
+	fs_node_t *root_node;
+	rc = ext2fs_node_get_core(&root_node, inst, EXT2_INODE_ROOT_INDEX);
+	if (rc != EOK) {
+		ext2_filesystem_fini(fs);
+		free(fs);
+		free(inst);
+		async_answer_0(rid, rc);
+		return;
+	}
+	ext2fs_node_t *enode = EXT2FS_NODE(root_node);
+		
+	/* Add instance to the list */
 	fibril_mutex_lock(&instance_list_mutex);
 	list_append(&inst->link, &instance_list);
 	fibril_mutex_unlock(&instance_list_mutex);
 	
-	async_answer_0(rid, EOK);
+	async_answer_3(rid, EOK,
+	    EXT2_INODE_ROOT_INDEX,
+	    0,
+	    ext2_inode_get_usage_count(enode->inode_ref->inode));
+	
+	ext2fs_node_put(root_node);
 }
 
 void ext2fs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -575,12 +706,21 @@ void ext2fs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	// TODO: check if the fs is busy
+	fibril_mutex_lock(&open_nodes_lock);
+
+	EXT2FS_DBG("open_nodes_count = %d", inst->open_nodes_count)
+	if (inst->open_nodes_count != 0) {
+		fibril_mutex_unlock(&open_nodes_lock);
+		async_answer_0(rid, EBUSY);
+		return;
+	}
 	
 	// Remove the instance from list
 	fibril_mutex_lock(&instance_list_mutex);
 	list_remove(&inst->link);
 	fibril_mutex_unlock(&instance_list_mutex);
+
+	fibril_mutex_unlock(&open_nodes_lock);
 	
 	ext2_filesystem_fini(inst->filesystem);
 	
