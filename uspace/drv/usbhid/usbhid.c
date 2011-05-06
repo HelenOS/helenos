@@ -62,6 +62,8 @@ usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 
 static const int USB_HID_MAX_SUBDRIVERS = 10;
 
+static fibril_local bool report_received;
+
 /*----------------------------------------------------------------------------*/
 
 static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
@@ -508,6 +510,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 			if (allocated) {
 				free(input_old);
 			}
+			usb_hid_new_report();
 		}
 	}
 	
@@ -585,6 +588,27 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 //		return HID_GENERIC_CLASS_NAME;
 //	}
 //}
+
+/*----------------------------------------------------------------------------*/
+
+void usb_hid_new_report(void)
+{
+	report_received = false;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void usb_hid_report_received(void)
+{
+	report_received = true;
+}
+
+/*----------------------------------------------------------------------------*/
+
+bool usb_hid_report_ready(void)
+{
+	return !report_received;
+}
 
 /*----------------------------------------------------------------------------*/
 
