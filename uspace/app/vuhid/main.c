@@ -131,8 +131,13 @@ static vuhid_data_t vuhid_data = {
 	.in_endpoints_mapping = { NULL },
 	.in_endpoint_first_free = 1,
 	.out_endpoints_mapping = { NULL },
-	.out_endpoint_first_free = 1
+	.out_endpoint_first_free = 1,
+
+	.iface_count = 0,
+	.iface_died_count = 0
+	// mutex and CV must be initialized elsewhere
 };
+
 
 /** Keyboard device.
  * Rest of the items will be initialized later.
@@ -150,6 +155,9 @@ int main(int argc, char * argv[])
 	int rc;
 
 	usb_log_enable(USB_LOG_LEVEL_DEBUG2, "vusbhid");
+
+	fibril_mutex_initialize(&vuhid_data.iface_count_mutex);
+	fibril_condvar_initialize(&vuhid_data.iface_count_cv);
 
 	/* Determine which interfaces to initialize. */
 	int i;
@@ -181,9 +189,7 @@ int main(int argc, char * argv[])
 	
 	printf("Connected to VHCD...\n");
 
-	while (true) {
-		async_usleep(10 * 1000 * 1000);
-	}
+	wait_for_interfaces_death(&hid_dev);
 	
 	printf("Terminating...\n");
 	
