@@ -489,7 +489,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
-	int allocated = (hid_dev->input_report == NULL);
+	int allocated = (hid_dev->input_report != NULL);
 	
 	if (!allocated
 	    || hid_dev->input_report_size < buffer_size) {
