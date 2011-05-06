@@ -267,7 +267,7 @@ static bool usb_mouse_process_boot_report(usb_hid_dev_t *hid_dev,
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
 
-	if (field != NULL) {
+	while (field != NULL) {
 		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
 		    field->usage);
 		
