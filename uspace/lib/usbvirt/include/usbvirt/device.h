@@ -85,7 +85,11 @@ typedef int (*usbvirt_on_control_t)(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_data_size);
 
-/** Callback for control request on a virtual USB device. */
+/** Callback for control request on a virtual USB device.
+ *
+ * See usbvirt_control_reply_helper() for simple way of answering
+ * control read requests.
+ */
 typedef struct {
 	/** Request direction (in or out). */
 	usb_direction_t req_direction;

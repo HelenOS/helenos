@@ -272,6 +272,12 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Connect the device to the virtual host controller.
+ *
+ * @param dev The virtual device to be (virtually) plugged in.
+ * @param vhc_path Devman path to the virtual host controller.
+ * @return Error code.
+ */
 int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 {
 	int rc;
