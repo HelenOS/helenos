@@ -254,6 +254,8 @@ static void default_connection_handler(ddf_fun_t *fun,
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
 	if (hid_dev == NULL || hid_dev->data == NULL) {
+		usb_log_debug("default_connection_handler: "
+		    "Missing parameter.\n");
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
@@ -266,15 +268,20 @@ static void default_connection_handler(ddf_fun_t *fun,
 		int callback = IPC_GET_ARG5(*icall);
 
 		if (kbd_dev->console_phone != -1) {
+			usb_log_debug("default_connection_handler: "
+			    "console phone already set\n");
 			async_answer_0(icallid, ELIMIT);
 			return;
 		}
 
 		kbd_dev->console_phone = callback;
+		
+		usb_log_debug("default_connection_handler: OK\n");
 		async_answer_0(icallid, EOK);
 		return;
 	}
 	
+	usb_log_debug("default_connection_handler: Wrong function.\n");
 	async_answer_0(icallid, EINVAL);
 }
 

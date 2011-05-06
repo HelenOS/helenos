@@ -413,7 +413,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		fallback = true;
 	}
 	
-	// TODO: remove the mouse hack
 	if (fallback) {
 		// fall back to boot protocol
 		switch (hid_dev->poll_pipe_index) {
