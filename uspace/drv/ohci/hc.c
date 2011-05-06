@@ -44,6 +44,8 @@
 #include "hc.h"
 #include "hcd_endpoint.h"
 
+#define OHCI_USED_INTERRUPTS \
+    (I_SO | I_WDH | I_UE | I_RHSC)
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
 static void hc_init_hw(hc_t *instance);
@@ -284,14 +286,14 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	if ((status & ~IS_SF) == 0) /* ignore sof status */
+	usb_log_debug("OHCI interrupt: %x.\n", status);
+	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
-	if (status & IS_RHSC)
+	if (status & I_RHSC)
 		rh_interrupt(&instance->rh);
 
-	usb_log_debug("OHCI interrupt: %x.\n", status);
 
-	if (status & IS_WDH) {
+	if (status & I_WDH) {
 		fibril_mutex_lock(&instance->guard);
 		usb_log_debug2("HCCA: %p-%#" PRIx32 " (%p).\n", instance->hcca,
 		    instance->registers->hcca,
@@ -420,13 +422,11 @@ void hc_init_hw(hc_t *instance)
 	usb_log_debug2("All queues enabled(%x).\n",
 	    instance->registers->control);
 
-	/* Disable interrupts */
-	instance->registers->interrupt_disable = I_SF | I_OC;
-	usb_log_debug2("Disabling interrupts: %x.\n",
-	    instance->registers->interrupt_disable);
-	instance->registers->interrupt_disable = I_MI;
+	/* Enable interrupts */
+	instance->registers->interrupt_enable = OHCI_USED_INTERRUPTS;
 	usb_log_debug2("Enabled interrupts: %x.\n",
 	    instance->registers->interrupt_enable);
+	instance->registers->interrupt_enable = I_MI;
 
 	/* Set periodic start to 90% */
 	uint32_t frame_length = ((fm_interval >> FMI_FI_SHIFT) & FMI_FI_MASK);
@@ -490,6 +490,39 @@ int hc_init_memory(hc_t *instance)
 	usb_log_debug2("Interrupt HEADs set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
+
+	/* Init interrupt code */
+	instance->interrupt_code.cmds = instance->interrupt_commands;
+	{
+		/* Read status register */
+		instance->interrupt_commands[0].cmd = CMD_MEM_READ_32;
+		instance->interrupt_commands[0].dstarg = 1;
+		instance->interrupt_commands[0].addr =
+		    (void*)&instance->registers->interrupt_status;
+
+		/* Test whether we are the interrupt cause */
+		instance->interrupt_commands[1].cmd = CMD_BTEST;
+		instance->interrupt_commands[1].value =
+		    OHCI_USED_INTERRUPTS;
+		instance->interrupt_commands[1].srcarg = 1;
+		instance->interrupt_commands[1].dstarg = 2;
+
+		/* Predicate cleaning and accepting */
+		instance->interrupt_commands[2].cmd = CMD_PREDICATE;
+		instance->interrupt_commands[2].value = 2;
+		instance->interrupt_commands[2].srcarg = 2;
+
+		/* Write clean status register */
+		instance->interrupt_commands[3].cmd = CMD_MEM_WRITE_A_32;
+		instance->interrupt_commands[3].srcarg = 1;
+		instance->interrupt_commands[3].addr =
+		    (void*)&instance->registers->interrupt_status;
+
+		/* Accept interrupt */
+		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
+
+		instance->interrupt_code.cmdcount = OHCI_NEEDED_IRQ_COMMANDS;
+	}
 
 	return EOK;
 }

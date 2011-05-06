@@ -76,7 +76,28 @@ typedef enum {
 	 * to the I/O space.
 	 */
 	CMD_PIO_WRITE_A_32,
-	
+
+	/** Read 1 byte from the memory space. */
+	CMD_MEM_READ_8,
+	/** Read 2 bytes from the memory space. */
+	CMD_MEM_READ_16,
+	/** Read 4 bytes from the memory space. */
+	CMD_MEM_READ_32,
+
+	/** Write 1 byte to the memory space. */
+	CMD_MEM_WRITE_8,
+	/** Write 2 bytes to the memory space. */
+	CMD_MEM_WRITE_16,
+	/** Write 4 bytes to the memory space. */
+	CMD_MEM_WRITE_32,
+
+	/** Write 1 byte from the source argument to the memory space. */
+	CMD_MEM_WRITE_A_8,
+	/** Write 2 bytes from the source argument to the memory space. */
+	CMD_MEM_WRITE_A_16,
+	/** Write 4 bytes from the source argument to the memory space. */
+	CMD_MEM_WRITE_A_32,
+
 	/**
 	 * Perform a bit masking on the source argument
 	 * and store the result into the destination argument.
@@ -202,6 +223,8 @@ typedef struct irq {
 	
 	/** Notification configuration structure. */
 	ipc_notif_cfg_t notif_cfg; 
+
+	as_t *driver_as;
 } irq_t;
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
