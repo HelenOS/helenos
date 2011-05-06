@@ -45,6 +45,10 @@ usb_endpoint_description_t usb_hid_generic_poll_endpoint_description;
 const char *HID_GENERIC_FUN_NAME;
 const char *HID_GENERIC_CLASS_NAME;
 
+/*----------------------------------------------------------------------------*/
+
+int usb_generic_hid_init(struct usb_hid_dev *hid_dev);
+
 bool usb_generic_hid_polling_callback(struct usb_hid_dev *hid_dev,
     uint8_t *buffer, size_t buffer_size);
 

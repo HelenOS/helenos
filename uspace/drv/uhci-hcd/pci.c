@@ -145,7 +145,7 @@ int pci_disable_legacy(ddf_dev_t *device)
 	/* See UHCI design guide for these values p.45,
 	 * write all WC bits in USB legacy register */
 	sysarg_t address = 0xc0;
-	sysarg_t value = 0x8f00;
+	sysarg_t value = 0xaf00;
 
 	int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);

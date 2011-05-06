@@ -54,8 +54,8 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 		-1,
 		USB_HID_PATH_COMPARE_END 
 		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
-		0,
-		0,
+		-1,
+		-1,
 		{
 			.init = usb_kbd_init,
 			.deinit = usb_kbd_deinit,
@@ -72,13 +72,13 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 		0x046d,
 		0xc30e,
 		{
-			.init = NULL,
-			.deinit = NULL,
+			.init = usb_lgtch_init,
+			.deinit = usb_lgtch_deinit,
 			.poll = usb_lgtch_polling_callback,
 			.poll_end = NULL
 		}
 	},
-	{NULL, -1, 0, 0, 0, {NULL, NULL, NULL, NULL}}
+	{NULL, -1, 0, -1, -1, {NULL, NULL, NULL, NULL}}
 };
 
 /**

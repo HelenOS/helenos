@@ -72,8 +72,6 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
 
 
-/// \TODO malloc checking
-
 //*********************************************
 //
 //  hub driver code, initialization
@@ -104,7 +102,6 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		return opResult;
 	}
 
-	//usb_pipe_start_session(hub_info->control_pipe);
 	//set hub configuration
 	opResult = usb_hub_set_configuration(hub_info);
 	if (opResult != EOK) {
@@ -121,8 +118,6 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		free(hub_info);
 		return opResult;
 	}
-	//usb_pipe_end_session(hub_info->control_pipe);
-
 
 	usb_log_debug("Creating 'hub' function in DDF.\n");
 	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
@@ -175,7 +170,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	}
 leave:
 	/* FIXME: proper interval. */
-	async_usleep(1000 * 1000 * 10);
+	async_usleep(1000 * 250);
 
 	return true;
 }
@@ -217,7 +212,6 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	// get hub descriptor
 	usb_log_debug("creating serialized descriptor\n");
-	//void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
 	usb_hub_descriptor_t * descriptor;
 	int opResult;
@@ -251,23 +245,17 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	    ((descriptor->hub_characteristics & 1) !=0);
 	hub_info->ports = malloc(
 	    sizeof (usb_hub_port_t) * (hub_info->port_count + 1));
+	if(!hub_info->ports){
+		return ENOMEM;
+	}
 	size_t port;
-	for (port = 0; port < hub_info->port_count + 1; port++) {
+	for (port = 0; port < hub_info->port_count + 1; ++port) {
 		usb_hub_port_init(&hub_info->ports[port]);
 	}
 	if(is_power_switched){
 		usb_log_debug("is_power_switched\n");
-		if(has_individual_port_powering){
-			usb_log_debug("has_individual_port_powering\n");
-			for (port = 0; port < hub_info->port_count; port++) {
-				opResult = usb_hub_set_port_feature(hub_info->control_pipe,
-				    port+1, USB_HUB_FEATURE_PORT_POWER);
-				if (opResult != EOK) {
-					usb_log_error("cannot power on port %zu: %s.\n",
-					    port+1, str_error(opResult));
-				}
-			}
-		}else{
+		
+		if(!has_individual_port_powering){
 			usb_log_debug("!has_individual_port_powering\n");
 			opResult = usb_hub_set_feature(hub_info->control_pipe,
 			    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
@@ -276,12 +264,21 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 				    str_error(opResult));
 			}
 		}
+
+		for (port = 1; port <= hub_info->port_count; ++port) {
+			usb_log_debug("Powering port %zu.\n",port);
+			opResult = usb_hub_set_port_feature(hub_info->control_pipe,
+			    port, USB_HUB_FEATURE_PORT_POWER);
+			if (opResult != EOK) {
+				usb_log_error("cannot power on port %zu: %s.\n",
+				    port, str_error(opResult));
+			}
+		}
+		
 	}else{
-		usb_log_debug("!is_power_switched\n");
+		usb_log_debug("!is_power_switched, not going to be powered\n");
 	}
 	usb_log_debug2("freeing data\n");
-	//free(serialized_descriptor);
-	//free(descriptor->devices_removable);
 	free(descriptor);
 	return EOK;
 }
@@ -413,8 +410,8 @@ static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
  */
 static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status) {
-	int opResult;
-	if (usb_hub_is_status(status,USB_HUB_FEATURE_HUB_LOCAL_POWER)) {
+	int opResult = EOK;
+	if (!usb_hub_is_status(status,USB_HUB_FEATURE_HUB_LOCAL_POWER)) {
 		//restart power on hub
 		opResult = usb_hub_set_feature(hub_info->control_pipe,
 		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
@@ -424,7 +421,7 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 		}
 	} else {//power reestablished on hub- restart ports
 		size_t port;
-		for (port = 0; port < hub_info->port_count; ++port) {
+		for (port = 1; port <= hub_info->port_count; ++port) {
 			opResult = usb_hub_set_port_feature(
 			    hub_info->control_pipe,
 			    port, USB_HUB_FEATURE_PORT_POWER);
@@ -433,6 +430,16 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 				    port, str_error(opResult));
 			}
 		}
+	}
+	if(opResult!=EOK){
+		return opResult;//no feature clearing
+	}
+	opResult = usb_hub_clear_feature(hub_info->control_pipe,
+	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+		if (opResult != EOK) {
+		usb_log_error("cannnot clear hub power change flag: "
+		    "%d\n",
+		    opResult);
 	}
 	return opResult;
 }

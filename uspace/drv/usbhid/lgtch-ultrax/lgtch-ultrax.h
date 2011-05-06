@@ -39,15 +39,12 @@
 #include <usb/devdrv.h>
 
 struct usb_hid_dev;
-//struct usb_hid_subdriver_mapping;
 
 /*----------------------------------------------------------------------------*/
 
-//extern struct usb_hid_subdriver_mapping usb_lgtch_mapping;
+int usb_lgtch_init(struct usb_hid_dev *hid_dev);
 
-/*----------------------------------------------------------------------------*/
-
-//int usb_lgtch_init(struct usb_hid_dev *hid_dev);
+void usb_lgtch_deinit(struct usb_hid_dev *hid_dev);
 
 bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
     size_t buffer_size);

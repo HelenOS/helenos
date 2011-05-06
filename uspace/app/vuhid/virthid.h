@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup usbvirthid
  * @{
- */ 
-/** @file
- * @brief Virtual device management.
  */
-#ifndef VHCD_DEVICES_H_
-#define VHCD_DEVICES_H_
+/** @file
+ *
+ */
+#ifndef VUHID_VIRTHID_H_
+#define VUHID_VIRTHID_H_
 
-#include <adt/list.h>
 #include <usb/usb.h>
+#include <usbvirt/device.h>
 
-#include "hc.h"
+#define VUHID_ENDPOINT_MAX USB11_ENDPOINT_MAX
+#define VUHID_INTERFACE_MAX 8
 
-/** Connected virtual device. */
+typedef struct vuhid_interface vuhid_interface_t;
+
+struct vuhid_interface {
+	const char *name;
+	const char *id;
+	int usb_subclass;
+	int usb_protocol;
+
+	uint8_t *report_descriptor;
+	size_t report_descriptor_size;
+
+	size_t in_data_size;
+	size_t out_data_size;
+
+	int (*on_data_in)(vuhid_interface_t *, void *, size_t, size_t *);
+	int (*on_data_out)(vuhid_interface_t *, void *, size_t);
+	void (*live)(vuhid_interface_t *);
+
+	int set_protocol;
+
+	void *interface_data;
+};
+
 typedef struct {
-	/** Phone used when sending data to device. */
-	int phone;
-	/** Unique identification. */
-	sysarg_t id;
-	/** Linked-list handle. */
-	link_t link;
-} virtdev_connection_t;
+	vuhid_interface_t *in_endpoints_mapping[VUHID_ENDPOINT_MAX];
+	size_t in_endpoint_first_free;
+	vuhid_interface_t *out_endpoints_mapping[VUHID_ENDPOINT_MAX];
+	size_t out_endpoint_first_free;
+	vuhid_interface_t *interface_mapping[VUHID_INTERFACE_MAX];
+} vuhid_data_t;
 
-virtdev_connection_t *virtdev_add_device(int, sysarg_t);
-virtdev_connection_t *virtdev_find(sysarg_t);
-void virtdev_destroy_device(virtdev_connection_t *);
-int virtdev_send_to_all(transaction_t *);
+typedef struct {
+	uint8_t length;
+	uint8_t type;
+	uint16_t hid_spec_release;
+	uint8_t country_code;
+	uint8_t descriptor_count;
+	uint8_t descriptor1_type;
+	uint16_t descriptor1_length;
+} __attribute__ ((packed)) hid_descriptor_t;
+
+int add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
 
 #endif
 /**

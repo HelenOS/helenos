@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,358 +30,393 @@
  * @{
  */
 /** @file
- * @brief Connection handling of calls from host (implementation).
+ * Host controller interface implementation.
  */
 #include <assert.h>
 #include <errno.h>
 #include <usb/usb.h>
 #include <usb/addrkeep.h>
 #include <usb/ddfiface.h>
-
+#include <usb/debug.h>
+#include <usbhc_iface.h>
 #include "vhcd.h"
-#include "conn.h"
-#include "hc.h"
 
+#define GET_VHC_DATA(fun) \
+	((vhc_data_t *)fun->dev->driver_data)
+#define VHC_DATA(vhc, fun) \
+	vhc_data_t *vhc = GET_VHC_DATA(fun); assert(vhc->magic == 0xdeadbeef)
 
-typedef struct {
-	usb_direction_t direction;
-	usbhc_iface_transfer_out_callback_t out_callback;
-	usbhc_iface_transfer_in_callback_t in_callback;
-	ddf_fun_t *fun;
-	size_t reported_size;
-	void *arg;
-} transfer_info_t;
+#define UNSUPPORTED(methodname) \
+	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
+	    methodname, __FILE__, __LINE__)
 
-typedef struct {
-	usb_direction_t direction;
-	usb_target_t target;
-	usbhc_iface_transfer_out_callback_t out_callback;
-	usbhc_iface_transfer_in_callback_t in_callback;
-	ddf_fun_t *fun;
-	void *arg;
-	void *data_buffer;
-	size_t data_buffer_size;
-} control_transfer_info_t;
-
-static void universal_callback(void *buffer, size_t size,
-    int outcome, void *arg)
-{
-	transfer_info_t *transfer = (transfer_info_t *) arg;
-
-	if (transfer->reported_size != (size_t) -1) {
-		size = transfer->reported_size;
-	}
-
-	switch (transfer->direction) {
-		case USB_DIRECTION_IN:
-			transfer->in_callback(transfer->fun,
-			    outcome, size,
-			    transfer->arg);
-			break;
-		case USB_DIRECTION_OUT:
-			transfer->out_callback(transfer->fun,
-			    outcome,
-			    transfer->arg);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-	}
-
-	free(transfer);
-}
-
-static transfer_info_t *create_transfer_info(ddf_fun_t *fun,
-    usb_direction_t direction, void *arg)
-{
-	transfer_info_t *transfer = malloc(sizeof(transfer_info_t));
-
-	transfer->direction = direction;
-	transfer->in_callback = NULL;
-	transfer->out_callback = NULL;
-	transfer->arg = arg;
-	transfer->fun = fun;
-	transfer->reported_size = (size_t) -1;
-
-	return transfer;
-}
-
-static void control_abort_prematurely(control_transfer_info_t *transfer,
-    size_t size, int outcome)
-{
-	switch (transfer->direction) {
-		case USB_DIRECTION_IN:
-			transfer->in_callback(transfer->fun,
-			    outcome, size,
-			    transfer->arg);
-			break;
-		case USB_DIRECTION_OUT:
-			transfer->out_callback(transfer->fun,
-			    outcome,
-			    transfer->arg);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-	}
-}
-
-static void control_callback_two(void *buffer, size_t size,
-    int outcome, void *arg)
-{
-	control_transfer_info_t *ctrl_transfer = (control_transfer_info_t *) arg;
-
-	if (outcome != EOK) {
-		control_abort_prematurely(ctrl_transfer, outcome, size);
-		free(ctrl_transfer);
-		return;
-	}
-
-	transfer_info_t *transfer  = create_transfer_info(ctrl_transfer->fun,
-	    ctrl_transfer->direction, ctrl_transfer->arg);
-	transfer->out_callback = ctrl_transfer->out_callback;
-	transfer->in_callback = ctrl_transfer->in_callback;
-	transfer->reported_size = size;
-
-	switch (ctrl_transfer->direction) {
-		case USB_DIRECTION_IN:
-			hc_add_transaction_to_device(false, ctrl_transfer->target,
-			    USB_TRANSFER_CONTROL,
-			    NULL, 0,
-			    universal_callback, transfer);
-			break;
-		case USB_DIRECTION_OUT:
-			hc_add_transaction_from_device(ctrl_transfer->target,
-			    USB_TRANSFER_CONTROL,
-			    NULL, 0,
-			    universal_callback, transfer);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-	}
-
-	free(ctrl_transfer);
-}
-
-static void control_callback_one(void *buffer, size_t size,
-    int outcome, void *arg)
-{
-	control_transfer_info_t *transfer = (control_transfer_info_t *) arg;
-
-	if (outcome != EOK) {
-		control_abort_prematurely(transfer, outcome, size);
-		free(transfer);
-		return;
-	}
-
-	switch (transfer->direction) {
-		case USB_DIRECTION_IN:
-			hc_add_transaction_from_device(transfer->target,
-			    USB_TRANSFER_CONTROL,
-			    transfer->data_buffer, transfer->data_buffer_size,
-			    control_callback_two, transfer);
-			break;
-		case USB_DIRECTION_OUT:
-			hc_add_transaction_to_device(false, transfer->target,
-			    USB_TRANSFER_CONTROL,
-			    transfer->data_buffer, transfer->data_buffer_size,
-			    control_callback_two, transfer);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-	}
-}
-
-static control_transfer_info_t *create_control_transfer_info(ddf_fun_t *fun,
-    usb_direction_t direction, usb_target_t target,
-    void *data_buffer, size_t data_buffer_size,
-    void *arg)
-{
-	control_transfer_info_t *transfer
-	    = malloc(sizeof(control_transfer_info_t));
-
-	transfer->direction = direction;
-	transfer->target = target;
-	transfer->in_callback = NULL;
-	transfer->out_callback = NULL;
-	transfer->arg = arg;
-	transfer->fun = fun;
-	transfer->data_buffer = data_buffer;
-	transfer->data_buffer_size = data_buffer_size;
-
-	return transfer;
-}
-
-static int enqueue_transfer_out(ddf_fun_t *fun,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void *buffer, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	usb_log_debug2("Transfer OUT [%d.%d (%s); %zu].\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	transfer_info_t *transfer
-	    = create_transfer_info(fun, USB_DIRECTION_OUT, arg);
-	transfer->out_callback = callback;
-
-	hc_add_transaction_to_device(false, target, transfer_type, buffer, size,
-	    universal_callback, transfer);
-
-	return EOK;
-}
-
-static int enqueue_transfer_in(ddf_fun_t *fun,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void *buffer, size_t size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	usb_log_debug2("Transfer IN [%d.%d (%s); %zu].\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	transfer_info_t *transfer
-	    = create_transfer_info(fun, USB_DIRECTION_IN, arg);
-	transfer->in_callback = callback;
-
-	hc_add_transaction_from_device(target, transfer_type, buffer, size,
-	    universal_callback, transfer);
-
-	return EOK;
-}
-
-
-static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	return enqueue_transfer_out(fun, target, USB_TRANSFER_INTERRUPT,
-	    data, size,
-	    callback, arg);
-}
-
-static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
-    void *data, size_t size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	return enqueue_transfer_in(fun, target, USB_TRANSFER_INTERRUPT,
-	    data, size,
-	    callback, arg);
-}
-
-static int control_write(ddf_fun_t *fun, usb_target_t target,
-    void *setup_packet, size_t setup_packet_size,
-    void *data, size_t data_size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	control_transfer_info_t *transfer
-	    = create_control_transfer_info(fun, USB_DIRECTION_OUT, target,
-	    data, data_size, arg);
-	transfer->out_callback = callback;
-
-	hc_add_transaction_to_device(true, target, USB_TRANSFER_CONTROL,
-	    setup_packet, setup_packet_size,
-	    control_callback_one, transfer);
-
-	return EOK;
-}
-
-static int control_read(ddf_fun_t *fun, usb_target_t target,
-    void *setup_packet, size_t setup_packet_size,
-    void *data, size_t data_size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	control_transfer_info_t *transfer
-	    = create_control_transfer_info(fun, USB_DIRECTION_IN, target,
-	    data, data_size, arg);
-	transfer->in_callback = callback;
-
-	hc_add_transaction_to_device(true, target, USB_TRANSFER_CONTROL,
-	    setup_packet, setup_packet_size,
-	    control_callback_one, transfer);
-
-	return EOK;
-}
-
-static usb_address_keeping_t addresses;
-
-static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
+/** Found free USB address.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] speed Speed of the device that will get this address.
+ * @param[out] address Non-null pointer where to store the free address.
+ * @return Error code.
+ */
+static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
-	usb_log_debug(
-	    "tell_address(fun=`%s' (%" PRIun"), dev_handle=%" PRIun ")\n",
-	    fun->name, fun->handle, handle);
-	usb_address_t addr = usb_address_keeping_find(&addresses, handle);
+	VHC_DATA(vhc, fun);
+
+	usb_address_t addr = device_keeper_get_free_address(&vhc->dev_keeper,
+	    USB_SPEED_HIGH);
 	if (addr < 0) {
 		return addr;
 	}
 
-	*address = addr;
-	return EOK;
-}
-
-static int request_address(ddf_fun_t *fun, usb_speed_t ignored,
-    usb_address_t *address)
-{
-	usb_address_t addr = usb_address_keeping_request(&addresses);
-	if (addr < 0) {
-		return (int)addr;
+	if (address != NULL) {
+		*address = addr;
 	}
 
-	*address = addr;
 	return EOK;
 }
 
-static int release_address(ddf_fun_t *fun, usb_address_t address)
+/** Bind USB address with device devman handle.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] handle Devman handle of the device.
+ * @return Error code.
+ */
+static int bind_address(ddf_fun_t *fun,
+    usb_address_t address, devman_handle_t handle)
 {
-	return usb_address_keeping_release(&addresses, address);
+	VHC_DATA(vhc, fun);
+	usb_log_debug("Binding handle %" PRIun " to address %d.\n",
+	    handle, address);
+	usb_device_keeper_bind(&vhc->dev_keeper, address, handle);
+
+	return EOK;
 }
 
+/** Release previously requested address.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address to be released.
+ * @return Error code.
+ */
+static int release_address(ddf_fun_t *fun, usb_address_t address)
+{
+	VHC_DATA(vhc, fun);
+	usb_log_debug("Releasing address %d...\n", address);
+	usb_device_keeper_release(&vhc->dev_keeper, address);
+
+	return ENOTSUP;
+}
+
+/** Register endpoint for bandwidth reservation.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] speed Endpoint speed (invalid means to use device one).
+ * @param[in] endpoint Endpoint number.
+ * @param[in] transfer_type USB transfer type.
+ * @param[in] direction Endpoint data direction.
+ * @param[in] max_packet_size Max packet size of the endpoint.
+ * @param[in] interval Polling interval.
+ * @return Error code.
+ */
 static int register_endpoint(ddf_fun_t *fun,
     usb_address_t address, usb_speed_t speed, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
-	if ((address == USB_ADDRESS_DEFAULT)
-	    && (endpoint == 0)) {
-		usb_address_keeping_reserve_default(&addresses);
+	VHC_DATA(vhc, fun);
+
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (ep == NULL) {
+		return ENOMEM;
+	}
+
+	int rc = endpoint_init(ep, address, endpoint, direction, transfer_type,
+	    USB_SPEED_FULL, 1);
+	if (rc != EOK) {
+		free(ep);
+		return rc;
+	}
+
+	rc = usb_endpoint_manager_register_ep(&vhc->ep_manager, ep, 1);
+	if (rc != EOK) {
+		endpoint_destroy(ep);
+		return rc;
 	}
 
 	return EOK;
 }
 
+/** Unregister endpoint (free some bandwidth reservation).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] endpoint Endpoint number.
+ * @param[in] direction Endpoint data direction.
+ * @return Error code.
+ */
 static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
-	if ((address == USB_ADDRESS_DEFAULT)
-	    && (endpoint == 0)) {
-		usb_address_keeping_release_default(&addresses);
+	VHC_DATA(vhc, fun);
+
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
+	    address, endpoint, direction, NULL);
+	if (ep == NULL) {
+		return ENOENT;
+	}
+
+	int rc = usb_endpoint_manager_unregister_ep(&vhc->ep_manager,
+	    address, endpoint, direction);
+
+	return rc;
+}
+
+/** Schedule interrupt out transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
+ *	by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
+static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	VHC_DATA(vhc, fun);
+
+	vhc_transfer_t *transfer = vhc_transfer_create(target.address,
+	    target.endpoint, USB_DIRECTION_OUT, USB_TRANSFER_INTERRUPT,
+	    fun, arg);
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+
+	transfer->data_buffer = data;
+	transfer->data_buffer_size = size;
+	transfer->callback_out = callback;
+
+	int rc = vhc_virtdev_add_transfer(vhc, transfer);
+	if (rc != EOK) {
+		free(transfer);
+		return rc;
 	}
 
 	return EOK;
 }
 
-
-static int bind_address(ddf_fun_t *fun, usb_address_t address,
-    devman_handle_t handle)
+/** Schedule interrupt in transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
+static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	usb_address_keeping_devman_bind(&addresses, address, handle);
+	VHC_DATA(vhc, fun);
+
+	vhc_transfer_t *transfer = vhc_transfer_create(target.address,
+	    target.endpoint, USB_DIRECTION_IN, USB_TRANSFER_INTERRUPT,
+	    fun, arg);
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+
+	transfer->data_buffer = data;
+	transfer->data_buffer_size = size;
+	transfer->callback_in = callback;
+
+	int rc = vhc_virtdev_add_transfer(vhc, transfer);
+	if (rc != EOK) {
+		free(transfer);
+		return rc;
+	}
+
 	return EOK;
+}
+
+/** Schedule bulk out transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
+ *	by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
+static int bulk_out(ddf_fun_t *fun, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	UNSUPPORTED("bulk_out");
+
+	return ENOTSUP;
+}
+
+/** Schedule bulk in transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
+static int bulk_in(ddf_fun_t *fun, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	UNSUPPORTED("bulk_in");
+
+	return ENOTSUP;
+}
+
+/** Schedule control write transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
+ *	and deallocated by the caller).
+ * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] data_buffer Data buffer (in USB endianess, allocated and
+ *	deallocated by the caller).
+ * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
+static int control_write(ddf_fun_t *fun, usb_target_t target,
+    void *setup_packet, size_t setup_packet_size,
+    void *data_buffer, size_t data_buffer_size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	VHC_DATA(vhc, fun);
+
+	vhc_transfer_t *transfer = vhc_transfer_create(target.address,
+	    target.endpoint, USB_DIRECTION_OUT, USB_TRANSFER_CONTROL,
+	    fun, arg);
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+
+	transfer->setup_buffer = setup_packet;
+	transfer->setup_buffer_size = setup_packet_size;
+	transfer->data_buffer = data_buffer;
+	transfer->data_buffer_size = data_buffer_size;
+	transfer->callback_out = callback;
+
+	int rc = vhc_virtdev_add_transfer(vhc, transfer);
+	if (rc != EOK) {
+		free(transfer);
+		return rc;
+	}
+
+	return EOK;
+}
+
+/** Schedule control read transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
+ *	and deallocated by the caller).
+ * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] data_buffer Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
+static int control_read(ddf_fun_t *fun, usb_target_t target,
+    void *setup_packet, size_t setup_packet_size,
+    void *data_buffer, size_t data_buffer_size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	VHC_DATA(vhc, fun);
+
+	vhc_transfer_t *transfer = vhc_transfer_create(target.address,
+	    target.endpoint, USB_DIRECTION_IN, USB_TRANSFER_CONTROL,
+	    fun, arg);
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+
+	transfer->setup_buffer = setup_packet;
+	transfer->setup_buffer_size = setup_packet_size;
+	transfer->data_buffer = data_buffer;
+	transfer->data_buffer_size = data_buffer_size;
+	transfer->callback_in = callback;
+
+	int rc = vhc_virtdev_add_transfer(vhc, transfer);
+	if (rc != EOK) {
+		free(transfer);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
+    usb_address_t *address)
+{
+	UNSUPPORTED("tell_address");
+
+	return ENOTSUP;
 }
 
 static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
     devman_handle_t *handle)
 {
-	ddf_fun_t *hc_fun = root_hub_fun->driver_data;
-	assert(hc_fun != NULL);
+	VHC_DATA(vhc, root_hub_fun);
 
-	*handle = hc_fun->handle;
-
-	usb_log_debug("usb_iface_get_hc_handle_rh_impl returns %zu\n", *handle);
+	*handle = vhc->hc_fun->handle;
 
 	return EOK;
 }
@@ -389,19 +424,20 @@ static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
 static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
     usb_address_t *address)
 {
-	ddf_fun_t *hc_fun = root_hub_fun->driver_data;
-	assert(hc_fun != NULL);
+	VHC_DATA(vhc, root_hub_fun);
 
 	if (handle == 0) {
 		handle = root_hub_fun->handle;
 	}
 
-	return tell_address(hc_fun, handle, address);
-}
-
-void address_init(void)
-{
-	usb_address_keeping_init(&addresses, 50);
+	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
+	usb_address_t addr = usb_device_keeper_find(&vhc->dev_keeper, handle);
+	if (addr < 0) {
+		return addr;
+	} else {
+		*address = addr;
+		return EOK;
+	}
 }
 
 usbhc_iface_t vhc_iface = {
@@ -414,6 +450,9 @@ usbhc_iface_t vhc_iface = {
 
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
+
+	.bulk_in = bulk_in,
+	.bulk_out = bulk_out,
 
 	.control_write = control_write,
 	.control_read = control_read

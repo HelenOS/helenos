@@ -64,8 +64,10 @@ struct usb_hid_dev;
  *       being device-specific.
  */
 typedef struct usb_kbd_t {
+	/** Previously pressed keys (not translated to key codes). */
+	int32_t *keys_old;
 	/** Currently pressed keys (not translated to key codes). */
-	uint8_t *keys;
+	int32_t *keys;
 	/** Count of stored keys (i.e. number of keys in the report). */
 	size_t key_count;
 	/** Currently pressed modifiers (bitmap). */

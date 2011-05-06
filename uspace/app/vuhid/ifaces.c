@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt
+/** @addtogroup usbvirthid
  * @{
  */
-/** @file
- * @brief Virtual USB device.
- */
-#ifndef LIBUSBVIRT_HUB_H_
-#define LIBUSBVIRT_HUB_H_
-
-#include "device.h"
-
-/** USB transaction type.
- * This types does not correspond directly to types in USB specification,
- * as actually DATA transactions are marked with these types to identify
- * their direction (and tag).
- */
-typedef enum {
-	USBVIRT_TRANSACTION_SETUP,
-	USBVIRT_TRANSACTION_IN,
-	USBVIRT_TRANSACTION_OUT
-} usbvirt_transaction_type_t;
-
-const char *usbvirt_str_transaction_type(usbvirt_transaction_type_t type);
-
-/** Telephony methods of virtual devices. */
-typedef enum {
-	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD,
-	IPC_M_USBVIRT_TRANSACTION_SETUP,
-	IPC_M_USBVIRT_TRANSACTION_OUT,
-	IPC_M_USBVIRT_TRANSACTION_IN,
-} usbvirt_device_method_t;
-
-int usbvirt_connect(usbvirt_device_t *);
-int usbvirt_connect_local(usbvirt_device_t *);
-int usbvirt_disconnect(usbvirt_device_t *dev);
-
-#endif
 /**
- * @}
+ * @file
+ * List of known interfaces.
+ */
+#include <stdlib.h>
+#include "ifaces.h"
+
+extern vuhid_interface_t vuhid_interface_bootkbd;
+
+vuhid_interface_t *available_hid_interfaces[] = {
+	&vuhid_interface_bootkbd,
+	NULL
+};
+
+
+/** @}
  */
