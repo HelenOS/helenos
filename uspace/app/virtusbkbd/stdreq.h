@@ -37,8 +37,9 @@
 
 #include <usbvirt/device.h>
 
-int stdreq_on_get_descriptor(usbvirt_device_t *,
-    usb_device_request_setup_packet_t *, uint8_t *);
+int req_get_descriptor(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
 #endif
 /**

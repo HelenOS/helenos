@@ -36,17 +36,59 @@
 #define VHCD_VHCD_H_
 
 #include <usb/debug.h>
+#include <usbvirt/device.h>
+#include <usb/host/usb_endpoint_manager.h>
+#include <usb/host/device_keeper.h>
+#include <usbhc_iface.h>
 
 #define NAME "vhc"
-#define NAME_DEV "hcd-virt-dev"
-#define NAMESPACE "usb"
 
-#define DEVMAP_PATH_HC NAMESPACE "/" NAME
-#define DEVMAP_PATH_DEV NAMESPACE "/" NAME_DEV
+typedef struct {
+	link_t link;
+	int dev_phone;
+	usbvirt_device_t *dev_local;
+	bool plugged;
+	usb_address_t address;
+	fibril_mutex_t guard;
+	link_t transfer_queue;
+} vhc_virtdev_t;
 
-//#define dprintf(level, format, ...)
-//	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
-//void dprintf_inval_call(int, ipc_call_t, sysarg_t);
+typedef struct {
+	uint32_t magic;
+	link_t devices;
+	fibril_mutex_t guard;
+	usb_endpoint_manager_t ep_manager;
+	usb_device_keeper_t dev_keeper;
+	usbvirt_device_t *hub;
+	ddf_fun_t *hc_fun;
+} vhc_data_t;
+
+typedef struct {
+	link_t link;
+	usb_address_t address;
+	usb_endpoint_t endpoint;
+	usb_direction_t direction;
+	usb_transfer_type_t transfer_type;
+	void *setup_buffer;
+	size_t setup_buffer_size;
+	void *data_buffer;
+	size_t data_buffer_size;
+	ddf_fun_t *ddf_fun;
+	void *callback_arg;
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
+} vhc_transfer_t;
+
+vhc_transfer_t *vhc_transfer_create(usb_address_t, usb_endpoint_t,
+    usb_direction_t, usb_transfer_type_t, ddf_fun_t *, void *);
+int vhc_virtdev_plug(vhc_data_t *, int, uintptr_t *);
+int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
+int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
+void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
+int vhc_virtdev_add_transfer(vhc_data_t *, vhc_transfer_t *);
+
+int vhc_transfer_queue_processor(void *arg);
+
 
 #endif
 /**

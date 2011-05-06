@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,77 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief Debugging support.
+ * USB multimedia key to keycode mapping.
  */
-#include <stdio.h>
-#include <bool.h>
 
-#include "private.h"
+#ifndef USB_HID_LGTCH_ULTRAX_KEYMAP_H_
+#define USB_HID_LGTCH_ULTRAX_KEYMAP_H_
 
+unsigned int usb_lgtch_map_usage(int usage);
 
-static void debug_print(int level, uint8_t tag,
-    int current_level, uint8_t enabled_tags,
-    const char *format, va_list args)
-{
-	if (level > current_level) {
-		return;
-	}
-	
-	if ((tag & enabled_tags) == 0) {
-		return;
-	}
-	
-	bool print_prefix = true;
-	
-	if ((format[0] == '%') && (format[1] == 'M')) {
-		format += 2;
-		print_prefix = false;
-	}
-	
-	if (print_prefix) {
-		printf("[vusb]: ");
-		while (--level > 0) {
-			printf(" ");
-		}
-	}
-	
-	vprintf(format, args);
-	
-	if (print_prefix) {
-		printf("\n");
-	}
-}
-
-
-void user_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	
-	debug_print(level, tag,
-	    device->debug_level, device->debug_enabled_tags,
-	    format, args);
-	
-	va_end(args);
-}
-
-void lib_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	
-	debug_print(level, tag,
-	    device->lib_debug_level, device->lib_debug_enabled_tags,
-	    format, args);
-	
-	va_end(args);
-}
+#endif /* USB_HID_LGTCH_ULTRAX_KEYMAP_H_ */
 
 /**
  * @}

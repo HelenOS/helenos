@@ -58,9 +58,18 @@ typedef struct rh {
 	/** pre-allocated interrupt mask
 	 *
 	 * This is allocated when initializing instance, so that memory
-	 * allocation is not needed when processing request.
+	 * allocation is not needed when processing request. Buffer is used for
+	 * interrupt bitmask.
 	 */
 	uint8_t * interrupt_buffer;
+	/** size of interrupt buffer */
+	size_t interrupt_mask_size;
+	/** instance`s descriptor*/
+	uint8_t * hub_descriptor;
+	/** size of hub descriptor */
+	size_t descriptor_size;
+
+
 } rh_t;
 
 int rh_init(rh_t *instance, ohci_regs_t *regs);

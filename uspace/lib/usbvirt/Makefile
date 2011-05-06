@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,11 +32,9 @@ LIBRARY = libusbvirt
 EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include -Iinclude
 
 SOURCES = \
-	src/callback.c \
-	src/ctrlpipe.c \
-	src/debug.c \
-	src/main.c \
+	src/ipc.c \
+	src/ctrltransfer.c \
 	src/stdreq.c \
-	src/transaction.c
+	src/transfer.c
 
 include $(USPACE_PREFIX)/Makefile.common
