@@ -38,7 +38,7 @@
 #include <usb/classes/hid.h>
 #include <usb/classes/hidut.h>
 
-#include "../../virtusbkbd/report.h"
+#include "../report.h"
 
 uint8_t report_descriptor[] = {
 	STD_USAGE_PAGE(USB_HIDUT_PAGE_GENERIC_DESKTOP),
