@@ -55,7 +55,7 @@
 /** Unknown tag was founded in report descriptor data*/
 #define USB_HID_UNKNOWN_TAG		-99
 
-void usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_path_t *cmp_path)
+usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_path_t *cmp_path)
 {
 	/* find or append current collection path to the list */
 	link_t *path_it = report->collection_paths.next;
@@ -72,6 +72,11 @@ void usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_pat
 		path = usb_hid_report_path_clone(cmp_path);			
 		list_append(&path->link, &report->collection_paths);					
 		report->collection_paths_count++;
+
+		return path;
+	}
+	else {
+		return list_get_instance(path_it, usb_hid_report_path_t, link);
 	}
 }
 
@@ -112,7 +117,6 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		list_initialize(&field->link);
 
 		/* fill the attributes */		
-		field->collection_path = path;
 		field->logical_minimum = report_item->logical_minimum;
 		field->logical_maximum = report_item->logical_maximum;
 		field->physical_minimum = report_item->physical_minimum;
@@ -171,7 +175,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		usb_hid_report_set_last_item(path, USB_HID_TAG_CLASS_GLOBAL, field->usage_page);
 		usb_hid_report_set_last_item(path, USB_HID_TAG_CLASS_LOCAL, field->usage);
 
-		usb_hid_report_path_try_insert(report, path);
+		field->collection_path = usb_hid_report_path_try_insert(report, path);
 
 		field->size = report_item->size;
 		field->offset = report_item->offset + (i * report_item->size);
@@ -646,8 +650,10 @@ void usb_hid_descriptor_print_list(link_t *head)
 		usb_log_debug("\t\tVALUE: %X\n", report_item->value);
 		usb_log_debug("\t\ttUSAGE: %X\n", report_item->usage);
 		usb_log_debug("\t\tUSAGE PAGE: %X\n", report_item->usage_page);
-						
-//		usb_log_debug("\n");		
+		
+		//usb_hid_print_usage_path(report_item->collection_path);
+
+		usb_log_debug("\n");		
 
 	}
 

@@ -77,7 +77,7 @@ void usb_hid_free_report_list(link_t *head);
 usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item);
 uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size);
 
-void usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_path_t *cmp_path);
+usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_path_t *cmp_path);
 #endif
 /**
  * @}
