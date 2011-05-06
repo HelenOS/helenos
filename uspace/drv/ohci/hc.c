@@ -333,12 +333,13 @@ int interrupt_emulator(hc_t *instance)
 void hc_gain_control(hc_t *instance)
 {
 	assert(instance);
+	usb_log_debug("Requesting OHCI control.\n");
 	/* Turn off legacy emulation */
 	volatile uint32_t *ohci_emulation_reg =
 	    (uint32_t*)((char*)instance->registers + 0x100);
 	usb_log_debug("OHCI legacy register %p: %x.\n",
 		ohci_emulation_reg, *ohci_emulation_reg);
-	*ohci_emulation_reg = 0;
+	*ohci_emulation_reg &= ~0x1;
 
 	/* Interrupt routing enabled => smm driver is active */
 	if (instance->registers->control & C_IR) {
