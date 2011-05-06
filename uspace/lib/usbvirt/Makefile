@@ -32,8 +32,10 @@ LIBRARY = libusbvirt
 EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include -Iinclude
 
 SOURCES = \
-	src/ipc.c \
 	src/ctrltransfer.c \
+	src/device.c \
+	src/ipc_dev.c \
+	src/ipc_hc.c \
 	src/stdreq.c \
 	src/transfer.c
 
