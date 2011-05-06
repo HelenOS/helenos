@@ -55,6 +55,25 @@
 /** Unknown tag was founded in report descriptor data*/
 #define USB_HID_UNKNOWN_TAG		-99
 
+void usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_path_t *cmp_path)
+{
+	/* find or append current collection path to the list */
+	link_t *path_it = report->collection_paths.next;
+	usb_hid_report_path_t *path = NULL;
+	while(path_it != &report->collection_paths) {
+		path = list_get_instance(path_it, usb_hid_report_path_t, link);
+		
+		if(usb_hid_report_compare_usage_path(path, cmp_path, USB_HID_PATH_COMPARE_STRICT) == EOK){
+			break;
+		}			
+		path_it = path_it->next;
+	}
+	if(path_it == &report->collection_paths) {
+		path = usb_hid_report_path_clone(cmp_path);			
+		list_append(&path->link, &report->collection_paths);					
+		report->collection_paths_count++;
+	}
+}
 
 /**
  * Initialize the report descriptor parser structure
@@ -81,29 +100,11 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 	usb_hid_report_field_t *field;
 	int i;
 
-
-	/* find or append current collection path to the list */
-	link_t *path_it = report->collection_paths.next;
-	usb_hid_report_path_t *path = NULL;
-	while(path_it != &report->collection_paths) {
-		path = list_get_instance(path_it, usb_hid_report_path_t, link);
-		
-		if(usb_hid_report_compare_usage_path(path, report_item->usage_path, USB_HID_PATH_COMPARE_STRICT) == EOK){
-			break;
-		}			
-		path_it = path_it->next;
-	}
-	if(path_it == &report->collection_paths) {
-		path = usb_hid_report_path_clone(report_item->usage_path);			
-		list_append(&path->link, &report->collection_paths);					
-		report->collection_paths_count++;
-	}
-
 	for(i=0; i<report_item->usages_count; i++){
 		usb_log_debug("usages (%d) - %x\n", i, report_item->usages[i]);
 	}
 
-	
+	usb_hid_report_path_t *path = report_item->usage_path;	
 	for(i=0; i<report_item->count; i++){
 
 		field = malloc(sizeof(usb_hid_report_field_t));
@@ -167,6 +168,11 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 
 		}
 		
+		usb_hid_report_set_last_item(path, USB_HID_TAG_CLASS_GLOBAL, field->usage_page);
+		usb_hid_report_set_last_item(path, USB_HID_TAG_CLASS_LOCAL, field->usage);
+
+		usb_hid_report_path_try_insert(report, path);
+
 		field->size = report_item->size;
 		field->offset = report_item->offset + (i * report_item->size);
 		if(report_item->id != 0) {
@@ -348,7 +354,8 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 					usb_hid_report_usage_path_t *tmp_usage_path;
 					tmp_usage_path = list_get_instance(report_item->usage_path->link.prev, usb_hid_report_usage_path_t, link);
 					
-					usb_hid_report_set_last_item(usage_path, tmp_usage_path->usage_page, tmp_usage_path->usage);
+					usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_GLOBAL, tmp_usage_path->usage_page);
+					usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_LOCAL, tmp_usage_path->usage);
 
 					usb_hid_report_path_free(report_item->usage_path);
 					list_initialize(&report_item->usage_path->link);
