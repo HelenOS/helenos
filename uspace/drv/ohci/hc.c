@@ -427,11 +427,6 @@ void hc_init_hw(hc_t *instance)
 	usb_log_debug2("Enabled interrupts: %x.\n",
 	    instance->registers->interrupt_enable);
 	instance->registers->interrupt_enable = I_MI;
-	/* Disable interrupts */
-//	instance->registers->interrupt_disable = I_SF | I_OC;
-//	usb_log_debug2("Disabling interrupts: %x.\n",
-//	    instance->registers->interrupt_disable);
-//	instance->registers->interrupt_disable = I_MI;
 
 	/* Set periodic start to 90% */
 	uint32_t frame_length = ((fm_interval >> FMI_FI_SHIFT) & FMI_FI_MASK);
@@ -502,8 +497,8 @@ int hc_init_memory(hc_t *instance)
 		/* Read status register */
 		instance->interrupt_commands[0].cmd = CMD_MEM_READ_32;
 		instance->interrupt_commands[0].dstarg = 1;
-		instance->interrupt_commands[0].addr = (void*)
-		    addr_to_phys((void*)&instance->registers->interrupt_status);
+		instance->interrupt_commands[0].addr =
+		    (void*)&instance->registers->interrupt_status;
 
 		/* Test whether we are the interrupt cause */
 		instance->interrupt_commands[1].cmd = CMD_BTEST;
@@ -518,10 +513,10 @@ int hc_init_memory(hc_t *instance)
 		instance->interrupt_commands[2].srcarg = 2;
 
 		/* Write clean status register */
-		instance->interrupt_commands[3].cmd = CMD_PIO_WRITE_A_32;
+		instance->interrupt_commands[3].cmd = CMD_MEM_WRITE_A_32;
 		instance->interrupt_commands[3].srcarg = 1;
-		instance->interrupt_commands[3].addr = (void*)
-		    addr_to_phys((void*)&instance->registers->interrupt_status);
+		instance->interrupt_commands[3].addr =
+		    (void*)&instance->registers->interrupt_status;
 
 		/* Accept interrupt */
 		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
