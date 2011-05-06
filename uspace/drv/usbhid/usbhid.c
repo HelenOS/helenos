@@ -135,7 +135,7 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 	}
 	
 	// set the init callback
-	hid_dev->subdrivers[0].init = NULL;
+	hid_dev->subdrivers[0].init = usb_generic_hid_init;
 	
 	// set the polling callback
 	hid_dev->subdrivers[0].poll = usb_generic_hid_polling_callback;
@@ -489,6 +489,32 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
+	int allocated = (hid_dev->input_report != NULL);
+	
+	if (!allocated
+	    || hid_dev->input_report_size < buffer_size) {
+		uint8_t *input_old = hid_dev->input_report;
+		uint8_t *input_new = (uint8_t *)malloc(buffer_size);
+		
+		if (input_new == NULL) {
+			usb_log_error("Failed to allocate space for input "
+			    "buffer. This event may not be reported\n");
+			memset(hid_dev->input_report, 0, 
+			    hid_dev->input_report_size);
+		} else {
+			memcpy(input_new, input_old, 
+			    hid_dev->input_report_size);
+			hid_dev->input_report = input_new;
+			if (allocated) {
+				free(input_old);
+			}
+		}
+	}
+	
+	/*! @todo This should probably be atomic. */
+	memcpy(hid_dev->input_report, buffer, buffer_size);
+	hid_dev->input_report_size = buffer_size;
+	
 	bool cont = false;
 	
 	// continue if at least one of the subdrivers want to continue
@@ -527,38 +553,38 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 
 /*----------------------------------------------------------------------------*/
 
-const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev)
-{
-	switch (hid_dev->poll_pipe_index) {
-	case USB_HID_KBD_POLL_EP_NO:
-		return HID_KBD_FUN_NAME;
-		break;
-	case USB_HID_MOUSE_POLL_EP_NO:
-		return HID_MOUSE_FUN_NAME;
-		break;
-	default:
-		return HID_GENERIC_FUN_NAME;
-	}
-}
+//const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev)
+//{
+//	switch (hid_dev->poll_pipe_index) {
+//	case USB_HID_KBD_POLL_EP_NO:
+//		return HID_KBD_FUN_NAME;
+//		break;
+//	case USB_HID_MOUSE_POLL_EP_NO:
+//		return HID_MOUSE_FUN_NAME;
+//		break;
+//	default:
+//		return HID_GENERIC_FUN_NAME;
+//	}
+//}
 
 /*----------------------------------------------------------------------------*/
 
-const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev)
-{
-	// this means that only boot protocol keyboards will be connected
-	// to the console; there is probably no better way to do this
+//const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev)
+//{
+//	// this means that only boot protocol keyboards will be connected
+//	// to the console; there is probably no better way to do this
 	
-	switch (hid_dev->poll_pipe_index) {
-	case USB_HID_KBD_POLL_EP_NO:
-		return HID_KBD_CLASS_NAME;
-		break;
-	case USB_HID_MOUSE_POLL_EP_NO:
-		return HID_MOUSE_CLASS_NAME;
-		break;
-	default:
-		return HID_GENERIC_CLASS_NAME;
-	}
-}
+//	switch (hid_dev->poll_pipe_index) {
+//	case USB_HID_KBD_POLL_EP_NO:
+//		return HID_KBD_CLASS_NAME;
+//		break;
+//	case USB_HID_MOUSE_POLL_EP_NO:
+//		return HID_MOUSE_CLASS_NAME;
+//		break;
+//	default:
+//		return HID_GENERIC_CLASS_NAME;
+//	}
+//}
 
 /*----------------------------------------------------------------------------*/
 

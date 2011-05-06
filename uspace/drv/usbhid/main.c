@@ -98,22 +98,6 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	
 	usb_log_debug("USB/HID device structure initialized.\n");
 	
-	/* Create the function exposed under /dev/devices. */
-	ddf_fun_t *hid_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, 
-	    usb_hid_get_function_name(hid_dev));
-	if (hid_fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
-		usb_hid_free(&hid_dev);
-		return ENOMEM;
-	}
-	
-	/*
-	 * Store the initialized HID device and HID ops
-	 * to the DDF function.
-	 */
-	hid_fun->ops = &hid_dev->ops;
-	hid_fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
-	
 	/*
 	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
 	 *    do nej.
@@ -124,27 +108,6 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	 *    k tej fcii.
 	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
 	 */
-
-	rc = ddf_fun_bind(hid_fun);
-	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
-		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(hid_fun);
-		usb_hid_free(&hid_dev);
-		return rc;
-	}
-	
-	rc = ddf_fun_add_to_class(hid_fun, usb_hid_get_class_name(hid_dev));
-	if (rc != EOK) {
-		usb_log_error(
-		    "Could not add DDF function to class 'hid': %s.\n",
-		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(hid_fun);
-		usb_hid_free(&hid_dev);
-		return rc;
-	}
 	
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
