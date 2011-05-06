@@ -1045,9 +1045,6 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 	if ((*kbd_dev)->led_data != NULL) {
 		free((*kbd_dev)->led_data);
 	}
-	if ((*kbd_dev)->output_buffer != NULL) {
-		free((*kbd_dev)->output_buffer);
-	}
 	if ((*kbd_dev)->led_path != NULL) {
 		usb_hid_report_path_free((*kbd_dev)->led_path);
 	}

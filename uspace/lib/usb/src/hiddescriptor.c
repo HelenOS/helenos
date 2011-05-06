@@ -40,6 +40,11 @@
 #include <usb/debug.h>
 #include <assert.h>
 
+
+#define OUTSIDE_DELIMITER_SET	0
+#define START_DELIMITER_SET	1
+#define INSIDE_DELIMITER_SET	2
+	
 /** The new report item flag. Used to determine when the item is completly
  * configured and should be added to the report structure
  */
@@ -266,6 +271,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 	if(!(usage_path=usb_hid_report_path())){
 		return ENOMEM;
 	}
+	usb_hid_report_path_append_item(usage_path, 0, 0);	
 	
 	while(i<size){	
 		if(!USB_HID_ITEM_IS_LONG(data[i])){
@@ -441,8 +447,19 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 			break;
 			
 		case USB_HID_REPORT_TAG_COLLECTION:
-			// TODO usage_path->flags = *data;
-			usb_hid_report_path_append_item(usage_path, report_item->usage_page, report_item->usages[report_item->usages_count-1]);						
+			//TODO: usage_path->flags = *data;
+			
+			usb_log_debug("APPENDED ITEM TO USAGE PATH (PAGE %d, USAGE %d\n", report_item->usage_page, report_item->usages[report_item->usages_count-1]);
+			usb_hid_print_usage_path(usage_path);
+
+			// set last item
+			usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_GLOBAL, report_item->usage_page);
+			usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_LOCAL, report_item->usages[report_item->usages_count-1]);
+			// append the new one which will be set by common
+			// usage/usage page
+			usb_hid_report_path_append_item(usage_path, report_item->usage_page, report_item->usages[report_item->usages_count-1]);	
+			usb_hid_print_usage_path(usage_path);
+
 			usb_hid_report_reset_local_items (report_item);
 			return USB_HID_NO_ACTION;
 			break;
@@ -578,9 +595,13 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 			report_item->string_maximum = usb_hid_report_tag_data_uint32(data,item_size);
 			break;			
 		case USB_HID_REPORT_TAG_DELIMITER:
-			//report_item->delimiter = usb_hid_report_tag_data_uint32(data,item_size);
-			//TODO: 
-			//	DELIMITER STUFF
+			if (report_item->in_delimiter == OUTSIDE_DELIMITER_SET) {
+				report_item->in_delimiter = START_DELIMITER_SET;
+			}
+			else {
+				report_item->in_delimiter = OUTSIDE_DELIMITER_SET;
+			}
+			
 			break;
 		
 		default:
