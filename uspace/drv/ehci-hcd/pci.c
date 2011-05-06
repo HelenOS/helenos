@@ -185,7 +185,8 @@ int pci_disable_legacy(ddf_dev_t *device)
 	    IPC_M_CONFIG_SPACE_READ_32, address, &value);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read PCI config space.\n",
 	    ret);
-	usb_log_info("Register space BAR at %p:%" PRIxn ".\n", (void *) address, value);
+	usb_log_info("Register space BAR at %p:%" PRIxn ".\n",
+	    (void *) address, value);
 
 	/* clear lower byte, it's not part of the BASE address */
 	uintptr_t registers = (value & 0xffffff00);

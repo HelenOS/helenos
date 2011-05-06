@@ -1,6 +1,7 @@
 10 pci/ven=1002&dev=4345
 10 pci/ven=1002&dev=4386
 10 pci/ven=1002&dev=4396
+10 pci/ven=1002&dev=4373
 10 pci/ven=1022&dev=7463
 10 pci/ven=1022&dev=7808
 10 pci/ven=102f&dev=01b5
