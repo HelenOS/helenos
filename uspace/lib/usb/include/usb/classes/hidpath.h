@@ -42,10 +42,22 @@
 /**
  * Description of path of usage pages and usages in report descriptor
  */
+/** Wanted usage path must be exactly the same as the searched one */
 #define USB_HID_PATH_COMPARE_STRICT				0
-#define USB_HID_PATH_COMPARE_END				1
+/** Wanted usage path must be the suffix in the searched one */
+#define USB_HID_PATH_COMPARE_END			1
+/** */
 #define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	4
 #define USB_HID_PATH_COMPARE_COLLECTION_ONLY	2 /* porovnava jenom cestu z Kolekci */
+/** Searched usage page must be prefix of the other one */
+#define USB_HID_PATH_COMPARE_BEGIN		8
+/** Searched couple of usage page and usage can be anywhere in usage path */
+#define USB_HID_PATH_COMPARE_WHERE		16
+/**
+ * TODO
+ *  * porovnani zacatek - neni to to samy jako COLLECTION ONLY?? -- TEST
+ *  * porovnani kdekoliv (jenom s delkou 1 at si to moc nekomplikujem)
+ */
 
 
 /** Collection usage path structure */
