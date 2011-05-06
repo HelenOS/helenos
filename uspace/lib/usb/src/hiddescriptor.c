@@ -436,7 +436,9 @@ int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const uint8_t *data, si
 
 int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item, usb_hid_report_path_t *usage_path)
-{		
+{
+	usb_hid_report_usage_path_t *path_item;
+	
 	switch(tag)
 	{
 		case USB_HID_REPORT_TAG_INPUT:
@@ -447,19 +449,17 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 			break;
 			
 		case USB_HID_REPORT_TAG_COLLECTION:
-			//TODO: usage_path->flags = *data;
+			// store collection atributes
+			path_item = list_get_instance(usage_path->head.prev, usb_hid_report_usage_path_t, link);
+			path_item->flags = *data;	
 			
-			usb_log_debug("APPENDED ITEM TO USAGE PATH (PAGE %d, USAGE %d\n", report_item->usage_page, report_item->usages[report_item->usages_count-1]);
-			usb_hid_print_usage_path(usage_path);
-
 			// set last item
 			usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_GLOBAL, report_item->usage_page);
 			usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_LOCAL, report_item->usages[report_item->usages_count-1]);
+			
 			// append the new one which will be set by common
 			// usage/usage page
 			usb_hid_report_path_append_item(usage_path, report_item->usage_page, report_item->usages[report_item->usages_count-1]);	
-			usb_hid_print_usage_path(usage_path);
-
 			usb_hid_report_reset_local_items (report_item);
 			return USB_HID_NO_ACTION;
 			break;
@@ -550,62 +550,66 @@ int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data, size_t ite
 int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item, usb_hid_report_path_t *usage_path)
 {
-	switch(tag)
-	{
-		case USB_HID_REPORT_TAG_USAGE:
-			report_item->usages[report_item->usages_count] = usb_hid_report_tag_data_uint32(data,item_size);
-			report_item->usages_count++;
+	switch(report_item->in_delimiter) {
+		case INSIDE_DELIMITER_SET:
+			// nothing to do
 			break;
-		case USB_HID_REPORT_TAG_USAGE_MINIMUM:
-			if (item_size == 3) {
-				// usage extended usages
-				report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
-				report_item->usage_minimum = usb_hid_report_tag_data_uint32(data,item_size) & 0xFF;
-			}
-			else {
-				report_item->usage_minimum = usb_hid_report_tag_data_uint32(data,item_size);
-			}
-			break;
-		case USB_HID_REPORT_TAG_USAGE_MAXIMUM:
-			if (item_size == 3) {
-				// usage extended usages
-				report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
-				report_item->usage_maximum = usb_hid_report_tag_data_uint32(data,item_size) & 0xFF;
-			}
-			else {
-				report_item->usage_maximum = usb_hid_report_tag_data_uint32(data,item_size);
-			}
-			break;
-		case USB_HID_REPORT_TAG_DESIGNATOR_INDEX:
-			report_item->designator_index = usb_hid_report_tag_data_uint32(data,item_size);
-			break;
-		case USB_HID_REPORT_TAG_DESIGNATOR_MINIMUM:
-			report_item->designator_minimum = usb_hid_report_tag_data_uint32(data,item_size);
-			break;
-		case USB_HID_REPORT_TAG_DESIGNATOR_MAXIMUM:
-			report_item->designator_maximum = usb_hid_report_tag_data_uint32(data,item_size);
-			break;
-		case USB_HID_REPORT_TAG_STRING_INDEX:
-			report_item->string_index = usb_hid_report_tag_data_uint32(data,item_size);
-			break;
-		case USB_HID_REPORT_TAG_STRING_MINIMUM:
-			report_item->string_minimum = usb_hid_report_tag_data_uint32(data,item_size);
-			break;
-		case USB_HID_REPORT_TAG_STRING_MAXIMUM:
-			report_item->string_maximum = usb_hid_report_tag_data_uint32(data,item_size);
-			break;			
-		case USB_HID_REPORT_TAG_DELIMITER:
-			if (report_item->in_delimiter == OUTSIDE_DELIMITER_SET) {
-				report_item->in_delimiter = START_DELIMITER_SET;
-			}
-			else {
-				report_item->in_delimiter = OUTSIDE_DELIMITER_SET;
-			}
-			
-			break;
+		case START_DELIMITER_SET:
+			report_item->in_delimiter = INSIDE_DELIMITER_SET;
+		case OUTSIDE_DELIMITER_SET:
+
+			switch(tag) {
+				case USB_HID_REPORT_TAG_USAGE:
+					report_item->usages[report_item->usages_count] = usb_hid_report_tag_data_uint32(data,item_size);
+					report_item->usages_count++;
+					break;
+				case USB_HID_REPORT_TAG_USAGE_MINIMUM:
+					if (item_size == 3) {
+						// usage extended usages
+						report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
+						report_item->usage_minimum = usb_hid_report_tag_data_uint32(data,item_size) & 0xFF;
+					}
+					else {
+						report_item->usage_minimum = usb_hid_report_tag_data_uint32(data,item_size);
+					}
+					break;
+				case USB_HID_REPORT_TAG_USAGE_MAXIMUM:
+					if (item_size == 3) {
+						// usage extended usages
+						report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
+						report_item->usage_maximum = usb_hid_report_tag_data_uint32(data,item_size) & 0xFF;
+					}
+					else {
+						report_item->usage_maximum = usb_hid_report_tag_data_uint32(data,item_size);
+					}
+					break;
+				case USB_HID_REPORT_TAG_DESIGNATOR_INDEX:
+					report_item->designator_index = usb_hid_report_tag_data_uint32(data,item_size);
+					break;
+				case USB_HID_REPORT_TAG_DESIGNATOR_MINIMUM:
+					report_item->designator_minimum = usb_hid_report_tag_data_uint32(data,item_size);
+					break;
+				case USB_HID_REPORT_TAG_DESIGNATOR_MAXIMUM:
+					report_item->designator_maximum = usb_hid_report_tag_data_uint32(data,item_size);
+					break;
+				case USB_HID_REPORT_TAG_STRING_INDEX:
+					report_item->string_index = usb_hid_report_tag_data_uint32(data,item_size);
+					break;
+				case USB_HID_REPORT_TAG_STRING_MINIMUM:
+					report_item->string_minimum = usb_hid_report_tag_data_uint32(data,item_size);
+					break;
+				case USB_HID_REPORT_TAG_STRING_MAXIMUM:
+					report_item->string_maximum = usb_hid_report_tag_data_uint32(data,item_size);
+					break;			
+				case USB_HID_REPORT_TAG_DELIMITER:
+					report_item->in_delimiter = usb_hid_report_tag_data_uint32(data,item_size);
+					break;
 		
-		default:
-			return USB_HID_NO_ACTION;
+				default:
+					return USB_HID_NO_ACTION;
+			}
+
+			break;
 	}
 	
 	return EOK;
