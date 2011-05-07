@@ -109,17 +109,21 @@ if (ret != EOK) { \
 	    "Failed(%d) to gain access to device registers: %s.\n",
 	    ret, str_error(ret));
 
+	list_initialize(&instance->pending_batches);
 	usb_device_keeper_init(&instance->manager);
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    str_error(ret));
 
-	hc_gain_control(instance);
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
 	    str_error(ret));
+#undef CHECK_RET_RETURN
+
+
 //	hc_init_hw(instance);
+	hc_gain_control(instance);
 	fibril_mutex_initialize(&instance->guard);
 
 	rh_init(&instance->rh, instance->registers);
@@ -130,8 +134,6 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-	list_initialize(&instance->pending_batches);
-#undef CHECK_RET_RETURN
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -337,8 +339,11 @@ void hc_gain_control(hc_t *instance)
 	volatile uint32_t *ohci_emulation_reg =
 	    (uint32_t*)((char*)instance->registers + 0x100);
 	usb_log_debug("OHCI legacy register %p: %x.\n",
-		ohci_emulation_reg, *ohci_emulation_reg);
-	*ohci_emulation_reg &= ~0x1;
+	    ohci_emulation_reg, *ohci_emulation_reg);
+	/* Do not change A20 state */
+	*ohci_emulation_reg &= 0x100;
+	usb_log_debug("OHCI legacy register %p: %x.\n",
+	    ohci_emulation_reg, *ohci_emulation_reg);
 
 	/* Interrupt routing enabled => smm driver is active */
 	if (instance->registers->control & C_IR) {
