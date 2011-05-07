@@ -42,6 +42,17 @@
 #include <usbvirt/ipc.h>
 #include <usb/debug.h>
 
+/** Send control read transfer to virtual USB device.
+ *
+ * @param phone IPC phone to the virtual device.
+ * @param ep Target endpoint number.
+ * @param setup_buffer Setup buffer.
+ * @param setup_buffer_size Setup buffer size in bytes.
+ * @param data_buffer Data buffer (DATA stage of control transfer).
+ * @param data_buffer_size Size of data buffer in bytes.
+ * @param data_transfered_size Number of actually transferred bytes.
+ * @return Error code.
+ */
 int usbvirt_ipc_send_control_read(int phone, usb_endpoint_t ep,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
@@ -91,6 +102,16 @@ int usbvirt_ipc_send_control_read(int phone, usb_endpoint_t ep,
 	return EOK;
 }
 
+/** Send control write transfer to virtual USB device.
+ *
+ * @param phone IPC phone to the virtual device.
+ * @param ep Target endpoint number.
+ * @param setup_buffer Setup buffer.
+ * @param setup_buffer_size Setup buffer size in bytes.
+ * @param data_buffer Data buffer (DATA stage of control transfer).
+ * @param data_buffer_size Size of data buffer in bytes.
+ * @return Error code.
+ */
 int usbvirt_ipc_send_control_write(int phone, usb_endpoint_t ep,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size)
@@ -124,6 +145,16 @@ int usbvirt_ipc_send_control_write(int phone, usb_endpoint_t ep,
 	return (int) opening_request_rc;
 }
 
+/** Request data transfer from virtual USB device.
+ *
+ * @param phone IPC phone to the virtual device.
+ * @param ep Target endpoint number.
+ * @param tr_type Transfer type (interrupt or bulk).
+ * @param data Data buffer.
+ * @param data_size Size of the data buffer in bytes.
+ * @param act_size Number of actually returned bytes.
+ * @return Error code.
+ */
 int usbvirt_ipc_send_data_in(int phone, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size, size_t *act_size)
 {
@@ -166,6 +197,15 @@ int usbvirt_ipc_send_data_in(int phone, usb_endpoint_t ep,
 	return EOK;
 }
 
+/** Send data to virtual USB device.
+ *
+ * @param phone IPC phone to the virtual device.
+ * @param ep Target endpoint number.
+ * @param tr_type Transfer type (interrupt or bulk).
+ * @param data Data buffer.
+ * @param data_size Size of the data buffer in bytes.
+ * @return Error code.
+ */
 int usbvirt_ipc_send_data_out(int phone, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size)
 {
