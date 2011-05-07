@@ -172,6 +172,10 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			    &status, bit_idx,false);
 		}
 	}
+	if(status>>16){
+		usb_log_info("there is still some unhandled change %X\n",
+		    status);
+	}
 }
 
 
