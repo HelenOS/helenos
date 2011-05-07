@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010-2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbvirtkbd
+/** @addtogroup lsusb
  * @{
  */
 /**
  * @file
- * @brief Keyboard configuration.
+ * Listing of USB host controllers.
  */
+
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
-#include <usb/descriptor.h>
-#include "stdreq.h"
-#include "kbdconfig.h"
+#include <str_error.h>
+#include <bool.h>
+#include <getopt.h>
+#include <devman.h>
+#include <devmap.h>
+#include <usb/host.h>
 
-int req_get_descriptor(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size)
+#define NAME "lsusb"
+
+#define MAX_FAILED_ATTEMPTS 4
+#define MAX_PATH_LENGTH 1024
+
+int main(int argc, char *argv[])
 {
-	if (setup_packet->value_high == USB_DESCTYPE_HID_REPORT) {
-		/*
-		 * For simplicity, always return the same
-		 * report descriptor.
-		 */
-		usbvirt_control_reply_helper(setup_packet,
-		    data, act_size,
-		    report_descriptor, report_descriptor_size);
+	size_t class_index = 0;
+	size_t failed_attempts = 0;
 
-		return EOK;
+	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
+		class_index++;
+		devman_handle_t hc_handle = 0;
+		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
+		if (rc != EOK) {
+			failed_attempts++;
+			continue;
+		}
+		char path[MAX_PATH_LENGTH];
+		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
+		if (rc != EOK) {
+			continue;
+		}
+		printf(NAME ": host controller %zu is `%s'.\n",
+		    class_index, path);
 	}
-	
-	/* Let the framework handle all the rest. */
-	return EFORWARD;
-}
 
+	return 0;
+}
 
 
 /** @}

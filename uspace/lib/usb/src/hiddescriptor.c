@@ -115,10 +115,18 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 	usb_hid_report_field_t *field;
 	int i;
 
-	for(i=0; i<report_item->usages_count; i++){
-		usb_log_debug("usages (%d) - %x\n", i, report_item->usages[i]);
-	}
+	usb_log_debug("usages_count  - %zu\n", report_item->usages_count);
 
+	uint32_t *usages;
+	int usages_used=0;
+	if(report_item->usages_count > 0){
+		usages = malloc(sizeof(int32_t) * report_item->usages_count);
+		memcpy(usages, report_item->usages, sizeof(int32_t) * report_item->usages_count);
+	}
+	else {
+		usages = NULL;
+	}
+	
 	usb_hid_report_path_t *path = report_item->usage_path;	
 	for(i=0; i<report_item->count; i++){
 
@@ -132,38 +140,36 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		field->physical_minimum = report_item->physical_minimum;
 		field->physical_maximum = report_item->physical_maximum;
 
-		field->usage_minimum = report_item->usage_minimum;
-		field->usage_maximum = report_item->usage_maximum;
-		if(report_item->extended_usage_page != 0){
-			field->usage_page = report_item->extended_usage_page;
+		if(USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0){
+			/* 
+			 	Store usage array. The Correct Usage Page and Usage is depending 
+			 	on data in report and will be filled later
+			*/
+			field->usage = 0;
+			field->usage_page = report_item->usage_page;
+
+			field->usages_count = report_item->usages_count;
+			field->usages = usages;
+			usages_used = 1;
 		}
 		else {
-			field->usage_page = report_item->usage_page;
-		}
-
-		if(report_item->usages_count > 0 && ((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
-			uint32_t usage;
-			if(i < report_item->usages_count){
+			/* Fill the correct Usage and Usage Page */
+			int32_t usage;
+			if(i < report_item->usages_count) {
 				usage = report_item->usages[i];
 			}
 			else {
 				usage = report_item->usages[report_item->usages_count - 1];
 			}
 
-						
-			if((usage & 0xFFFF0000) != 0){
-				field->usage_page = (usage >> 16);					
-				field->usage = (usage & 0xFFFF);
+			if(USB_HID_IS_EXTENDED_USAGE(usage)){
+				field->usage = USB_HID_EXTENDED_USAGE(usage);
+				field->usage_page = USB_HID_EXTENDED_USAGE_PAGE(usage);
 			}
 			else {
 				field->usage = usage;
+				field->usage_page = report_item->usage_page;
 			}
-
-			
-		}	
-
-		if((USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) != 0) && (!((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0)))) {
-			field->usage = report_item->usage_minimum + i;					
 		}
 		
 		usb_hid_report_set_last_item(path, USB_HID_TAG_CLASS_GLOBAL, field->usage_page);
@@ -208,6 +214,10 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 
 	}
 
+	// free only when not used!!!
+	if(usages && usages_used == 0) {
+		free(usages);
+	}
 
 	return EOK;
 }
@@ -564,11 +574,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 					break;
 			}
 			break;
-		case USB_HID_REPORT_TAG_USAGE_MINIMUM:
-
-			usb_log_debug("USAGE_MINIMUM (SIZE: %d), data[0](%x), data[1](%x), data[2](%x) data[3](%x)\n",
-			              item_size, *data, *(data+1), *(data+2), *(data+3));
-			
+		case USB_HID_REPORT_TAG_USAGE_MINIMUM:			
 			if (item_size == 3) {
 				// usage extended usages
 				report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
@@ -580,6 +586,11 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 			break;
 		case USB_HID_REPORT_TAG_USAGE_MAXIMUM:
 			if (item_size == 3) {
+
+				if(report_item->extended_usage_page != ((usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16)) {
+					return EINVAL;
+				}
+				
 				// usage extended usages
 				report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
 				report_item->usage_maximum = usb_hid_report_tag_data_uint32(data,item_size) & 0xFF;
@@ -587,6 +598,19 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 			else {
 				report_item->usage_maximum = usb_hid_report_tag_data_uint32(data,item_size);
 			}
+
+			// vlozit zaznamy do pole usages
+			int32_t i;
+			for(i=report_item->usage_minimum; i<=report_item->usage_maximum; i++) {
+				if(report_item->extended_usage_page) {
+					report_item->usages[report_item->usages_count++] = (report_item->extended_usage_page << 16) + i;
+				}
+				else {
+					report_item->usages[report_item->usages_count++] = i;
+				}
+			}
+			report_item->extended_usage_page = 0;
+			
 			break;
 		case USB_HID_REPORT_TAG_DESIGNATOR_INDEX:
 			report_item->designator_index = usb_hid_report_tag_data_uint32(data,item_size);
@@ -659,7 +683,7 @@ void usb_hid_descriptor_print_list(link_t *head)
 		report_item = list_get_instance(item, usb_hid_report_field_t, link);
 
 		usb_log_debug("\t\tOFFSET: %X\n", report_item->offset);
-		usb_log_debug("\t\tSIZE: %X\n", report_item->size);				
+		usb_log_debug("\t\tSIZE: %zu\n", report_item->size);				
 		usb_log_debug("\t\tLOGMIN: %d\n", report_item->logical_minimum);
 		usb_log_debug("\t\tLOGMAX: %d\n", report_item->logical_maximum);		
 		usb_log_debug("\t\tPHYMIN: %d\n", report_item->physical_minimum);		
@@ -698,8 +722,8 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 		report_des = list_get_instance(report_it, usb_hid_report_description_t, link);
 		usb_log_debug("Report ID: %d\n", report_des->report_id);
 		usb_log_debug("\tType: %d\n", report_des->type);
-		usb_log_debug("\tLength: %d\n", report_des->bit_length);		
-		usb_log_debug("\tItems: %d\n", report_des->item_length);		
+		usb_log_debug("\tLength: %zu\n", report_des->bit_length);		
+		usb_log_debug("\tItems: %zu\n", report_des->item_length);		
 
 		usb_hid_descriptor_print_list(&report_des->report_items);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbvirtkbd
+/** @addtogroup libusb
  * @{
  */
-/** @file
- * @brief USB keyboard descriptors.
- */
-#ifndef VUK_DESCRIPTOR_H_
-#define VUK_DESCRIPTOR_H_
-
-typedef struct {
-	uint8_t length;
-	uint8_t type;
-	uint16_t hid_spec_release;
-	uint8_t country_code;
-	uint8_t descriptor_count;
-	uint8_t descriptor1_type;
-	uint16_t descriptor1_length;
-} __attribute__ ((packed)) hid_descriptor_t;
-
-#endif
 /**
- * @}
+ * @file
+ * Host controller common functions (implementation).
+ */
+#include <stdio.h>
+#include <str_error.h>
+#include <errno.h>
+#include <assert.h>
+#include <bool.h>
+#include <usb/host.h>
+#include <usb/descriptor.h>
+#include <devman.h>
+
+/** Get host controller handle by its class index.
+ *
+ * @param class_index Class index for the host controller.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+int usb_ddf_get_hc_handle_by_class(size_t class_index,
+    devman_handle_t *hc_handle)
+{
+	char *class_index_str;
+	devman_handle_t hc_handle_tmp;
+	int rc;
+
+	rc = asprintf(&class_index_str, "%zu", class_index);
+	if (rc < 0) {
+		return ENOMEM;
+	}
+	rc = devman_device_get_handle_by_class("usbhc", class_index_str,
+	    &hc_handle_tmp, 0);
+	free(class_index_str);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (hc_handle != NULL) {
+		*hc_handle = hc_handle_tmp;
+	}
+
+	return EOK;
+}
+
+/** @}
  */

@@ -37,11 +37,25 @@
 
 #include <usb/usb.h>
 #include <usbvirt/device.h>
+#include <fibril_synch.h>
 
 #define VUHID_ENDPOINT_MAX USB11_ENDPOINT_MAX
 #define VUHID_INTERFACE_MAX 8
 
 typedef struct vuhid_interface vuhid_interface_t;
+
+typedef struct {
+	vuhid_interface_t *in_endpoints_mapping[VUHID_ENDPOINT_MAX];
+	size_t in_endpoint_first_free;
+	vuhid_interface_t *out_endpoints_mapping[VUHID_ENDPOINT_MAX];
+	size_t out_endpoint_first_free;
+	vuhid_interface_t *interface_mapping[VUHID_INTERFACE_MAX];
+
+	fibril_mutex_t iface_count_mutex;
+	fibril_condvar_t iface_count_cv;
+	size_t iface_count;
+	size_t iface_died_count;
+} vuhid_data_t;
 
 struct vuhid_interface {
 	const char *name;
@@ -62,15 +76,9 @@ struct vuhid_interface {
 	int set_protocol;
 
 	void *interface_data;
-};
 
-typedef struct {
-	vuhid_interface_t *in_endpoints_mapping[VUHID_ENDPOINT_MAX];
-	size_t in_endpoint_first_free;
-	vuhid_interface_t *out_endpoints_mapping[VUHID_ENDPOINT_MAX];
-	size_t out_endpoint_first_free;
-	vuhid_interface_t *interface_mapping[VUHID_INTERFACE_MAX];
-} vuhid_data_t;
+	vuhid_data_t *vuhid_data;
+};
 
 typedef struct {
 	uint8_t length;
@@ -83,6 +91,7 @@ typedef struct {
 } __attribute__ ((packed)) hid_descriptor_t;
 
 int add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
+void wait_for_interfaces_death(usbvirt_device_t *);
 
 #endif
 /**

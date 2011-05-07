@@ -54,6 +54,21 @@ struct add_device_phase1 {
 	usb_speed_t speed;
 };
 
+/**
+ * count of port status changes that are not explicitly handled by
+ * any function here and must be cleared by hand
+ */
+static const unsigned int non_handled_changes_count = 2;
+
+/**
+ * port status changes that are not explicitly handled by
+ * any function here and must be cleared by hand
+ */
+static const int non_handled_changes[] =  {
+	USB_HUB_FEATURE_C_PORT_ENABLE,
+	USB_HUB_FEATURE_C_PORT_SUSPEND
+};
+
 static void usb_hub_removed_device(
 	usb_hub_info_t * hub, uint16_t port);
 
@@ -130,16 +145,36 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_CONNECTION,false);
 	usb_port_status_set_bit(
-	    &status, USB_HUB_FEATURE_PORT_RESET,false);
-	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_RESET,false);
 	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_OVER_CURRENT,false);
-	/// \TODO what about port power change?
-	if (status >> 16) {
-		usb_log_info("there was unsupported change on port %d: %X\n",
-			port, status);
-
+	
+	//clearing not yet handled changes	
+	unsigned int feature_idx;
+	for(feature_idx = 0;feature_idx<non_handled_changes_count;
+	    ++feature_idx){
+		unsigned int bit_idx = non_handled_changes[feature_idx];
+		if(status & (1<<bit_idx)){
+			usb_log_info(
+			    "there was not yet handled change on port %d: %d"
+			    ";clearing it\n",
+			port, bit_idx);
+			int opResult = usb_hub_clear_port_feature(
+			    hub->control_pipe,
+			    port, bit_idx);
+			if (opResult != EOK) {
+				usb_log_warning(
+				    "could not clear port flag %d: %d\n",
+				    bit_idx, opResult
+				    );
+			}
+			usb_port_status_set_bit(
+			    &status, bit_idx,false);
+		}
+	}
+	if(status>>16){
+		usb_log_info("there is still some unhandled change %X\n",
+		    status);
 	}
 }
 
@@ -221,6 +256,13 @@ static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
 		usb_log_warning(
 		    "Port %zu reset complete but port not enabled.\n",
 		    (size_t) port);
+	}
+	/* Clear the port reset change. */
+	int rc = usb_hub_clear_port_feature(hub->control_pipe,
+	    port, USB_HUB_FEATURE_C_PORT_RESET);
+	if (rc != EOK) {
+		usb_log_error("Failed to clear port %d reset feature: %s.\n",
+		    port, str_error(rc));
 	}
 }
 
@@ -317,15 +359,6 @@ static int enable_port_callback(int port_no, void *arg)
 		fibril_condvar_wait(&my_port->reset_cv, &my_port->reset_mutex);
 	}
 	fibril_mutex_unlock(&my_port->reset_mutex);
-
-	/* Clear the port reset change. */
-	rc = usb_hub_clear_port_feature(hub->control_pipe,
-	    port_no, USB_HUB_FEATURE_C_PORT_RESET);
-	if (rc != EOK) {
-		usb_log_error("Failed to clear port %d reset feature: %s.\n",
-		    port_no, str_error(rc));
-		return rc;
-	}
 
 	if (my_port->reset_okay) {
 		return EOK;

@@ -48,6 +48,7 @@ _link.ld
 ./uspace/app/kill/kill
 ./uspace/app/killall/killall
 ./uspace/app/klog/klog
+./uspace/app/lsusb/lsusb
 ./uspace/app/mkfat/mkfat
 ./uspace/app/netstart/netstart
 ./uspace/app/netecho/netecho

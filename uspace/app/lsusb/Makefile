@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,17 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-# acronym for virtual usb keyboard
-# (it is really annoying to write long names)
-BINARY = vuk
+BINARY = lsusb
 
-LIBS = $(LIBUSBVIRT_PREFIX)/libusbvirt.a $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBUSBVIRT_PREFIX)/include -I$(LIBDRV_PREFIX)/include
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
-	kbdconfig.c \
-	keys.c \
-	stdreq.c \
-	virtusbkbd.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

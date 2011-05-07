@@ -137,7 +137,10 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
 
 				// array
 				item->value = usb_hid_translate_data(item, data);
-			    item->usage = (item->value - item->physical_minimum) + item->usage_minimum;
+		
+				item->usage = USB_HID_EXTENDED_USAGE(item->usages[item->value - item->physical_minimum]);
+				item->usage_page = USB_HID_EXTENDED_USAGE_PAGE(item->usages[item->value - item->physical_minimum]);
+
 			}
 			else {
 				// variable item

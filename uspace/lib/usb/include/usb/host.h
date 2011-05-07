@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbvirtkbd
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief Standard device request handlers.
+ * Host controller common functions.
  */
-#ifndef VUK_STDREQ_H_
-#define VUK_STDREQ_H_
+#ifndef LIBUSB_HOST_H_
+#define LIBUSB_HOST_H_
 
-#include <usbvirt/device.h>
+#include <sys/types.h>
+#include <ipc/devman.h>
 
-int req_get_descriptor(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size);
+int usb_ddf_get_hc_handle_by_class(size_t, devman_handle_t *);
 
 #endif
 /**

@@ -1,8 +1,53 @@
+/*
+ * Copyright (c) 2011 Vojtech Horky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup libusbvirt
+ * @{
+ */
+/** @file
+ * Standard control request handlers.
+ */
 #include "private.h"
 #include <usb/request.h>
 #include <assert.h>
 #include <errno.h>
 
+/** Helper for replying to control read transfer from virtual USB device.
+ *
+ * This function takes care of copying data to answer buffer taking care
+ * of buffer sizes properly.
+ *
+ * @param setup_packet The setup packet.
+ * @param data Data buffer to write to.
+ * @param act_size Where to write actual size of returned data.
+ * @param actual_data Data to be returned.
+ * @param actual_data_size Size of answer data (@p actual_data) in bytes.
+ */
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size,
     void *actual_data, size_t actual_data_size)
@@ -143,6 +188,7 @@ static int req_set_configuration(usbvirt_device_t *device,
 	return EOK;
 }
 
+/** Standard request handlers. */
 usbvirt_control_request_handler_t library_handlers[] = {
 	{
 		.req_direction = USB_DIRECTION_OUT,
@@ -172,3 +218,6 @@ usbvirt_control_request_handler_t library_handlers[] = {
 	{ .callback = NULL }
 };
 
+/**
+ * @}
+ */
