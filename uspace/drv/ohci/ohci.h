@@ -48,7 +48,7 @@ typedef struct ohci {
 	rh_t rh;
 } ohci_t;
 
-int ohci_init(ohci_t *instance, ddf_dev_t *device);
+int device_setup_ohci(ddf_dev_t *device, ohci_t *instance);
 
 #endif
 /**

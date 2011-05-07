@@ -68,7 +68,7 @@ int ohci_add_device(ddf_dev_t *device)
 		return ENOMEM;
 	}
 
-	int ret = ohci_init(ohci, device);
+	int ret = device_setup_ohci(device, ohci);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize OHCI driver: %s.\n",
 		    str_error(ret));

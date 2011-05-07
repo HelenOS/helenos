@@ -126,18 +126,36 @@ static ddf_dev_ops_t rh_ops = {
  *  - asks for interrupt
  *  - registers interrupt handler
  */
-int ohci_init(ohci_t *instance, ddf_dev_t *device)
+int device_setup_ohci(ddf_dev_t *device, ohci_t *instance)
 {
 	assert(instance);
-	instance->hc_fun = NULL;
-	instance->rh_fun = NULL;
+
+	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci-hc");
+	if (instance->hc_fun == NULL) {
+		usb_log_error("Failed to create HC function.\n");
+		return ENOMEM;
+	}
+	instance->hc_fun->ops = &hc_ops;
+	instance->hc_fun->driver_data = &instance->hc;
+
+	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci-rh");
+	if (instance->rh_fun == NULL) {
+		ddf_fun_destroy(instance->hc_fun);
+		usb_log_error("Failed to create RH function.\n");
+		return ENOMEM;
+	}
+	instance->rh_fun->ops = &rh_ops;
+	instance->rh_fun->driver_data = NULL;
+
 #define CHECK_RET_DEST_FUN_RETURN(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
-	if (instance->hc_fun) \
-		ddf_fun_destroy(instance->hc_fun); \
-	if (instance->rh_fun) \
-		ddf_fun_destroy(instance->rh_fun); \
+	instance->hc_fun->ops = NULL; \
+	instance->hc_fun->driver_data = NULL; \
+	instance->rh_fun->ops = NULL; \
+	instance->rh_fun->driver_data = NULL; \
+	ddf_fun_destroy(instance->hc_fun); \
+	ddf_fun_destroy(instance->rh_fun); \
 	return ret; \
 }
 
@@ -155,14 +173,14 @@ if (ret != EOK) { \
 
 	bool interrupts = false;
 #ifdef CONFIG_USBHC_NO_INTERRUPTS
-	usb_log_warning("Interrupts disabled in OS config, " \
+	usb_log_warning("Interrupts disabled in OS config, "
 	    "falling back to polling.\n");
 #else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s.\n",
 		    str_error(ret));
-		usb_log_info("HW interrupts not available, " \
+		usb_log_info("HW interrupts not available, "
 		    "falling back to polling.\n");
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
@@ -170,31 +188,13 @@ if (ret != EOK) { \
 	}
 #endif
 
-	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci-hc");
-	ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to create HC function.\n", ret);
-
-	ret = hc_init(&instance->hc, instance->hc_fun, device,
-	    mem_reg_base, mem_reg_size, interrupts);
+	ret = hc_init(&instance->hc, mem_reg_base, mem_reg_size, interrupts);
 	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init ohci-hcd.\n", ret);
-	instance->hc_fun->ops = &hc_ops;
-	instance->hc_fun->driver_data = &instance->hc;
-	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to bind OHCI device function: %s.\n",
-	    ret, str_error(ret));
-#undef CHECK_RET_HC_RETURN
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
-	usb_log_error(message); \
-	if (instance->hc_fun) \
-		ddf_fun_destroy(instance->hc_fun); \
-	if (instance->rh_fun) \
-		ddf_fun_destroy(instance->rh_fun); \
 	hc_fini(&instance->hc); \
-	return ret; \
+	CHECK_RET_DEST_FUN_RETURN(ret, message); \
 }
 
 	/* It does no harm if we register this on polling */
@@ -203,19 +203,17 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to register interrupt handler.\n", ret);
 
-	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci-rh");
-	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
+	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to create root hub function.\n", ret);
+	    "Failed(%d) to bind OHCI device function: %s.\n",
+	    ret, str_error(ret));
 
-
-	instance->rh_fun->ops = &rh_ops;
-	instance->rh_fun->driver_data = NULL;
-	
 	device->driver_data = instance;
 
 	hc_start_hw(&instance->hc);
 	return EOK;
+
+#undef CHECK_RET_DEST_FUN_RETURN
 #undef CHECK_RET_FINI_RETURN
 }
 /**
