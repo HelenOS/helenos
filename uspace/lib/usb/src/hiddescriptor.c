@@ -655,7 +655,7 @@ void usb_hid_descriptor_print_list(link_t *head)
 		report_item = list_get_instance(item, usb_hid_report_field_t, link);
 
 		usb_log_debug("\t\tOFFSET: %X\n", report_item->offset);
-		usb_log_debug("\t\tSIZE: %X\n", report_item->size);				
+		usb_log_debug("\t\tSIZE: %zu\n", report_item->size);				
 		usb_log_debug("\t\tLOGMIN: %d\n", report_item->logical_minimum);
 		usb_log_debug("\t\tLOGMAX: %d\n", report_item->logical_maximum);		
 		usb_log_debug("\t\tPHYMIN: %d\n", report_item->physical_minimum);		
@@ -694,8 +694,8 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 		report_des = list_get_instance(report_it, usb_hid_report_description_t, link);
 		usb_log_debug("Report ID: %d\n", report_des->report_id);
 		usb_log_debug("\tType: %d\n", report_des->type);
-		usb_log_debug("\tLength: %d\n", report_des->bit_length);		
-		usb_log_debug("\tItems: %d\n", report_des->item_length);		
+		usb_log_debug("\tLength: %zu\n", report_des->bit_length);		
+		usb_log_debug("\tItems: %zu\n", report_des->item_length);		
 
 		usb_hid_descriptor_print_list(&report_des->report_items);
 
