@@ -127,11 +127,12 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 	/* We are data in, we need data */
 	memcpy(instance->buffer, instance->data_buffer, instance->buffer_size);
 
-	usb_log_debug("Batch %p done (T%d.%d, %s %s in, %zuB): %s (%d).\n",
+	usb_log_debug("Batch(%p) done (T%d.%d, %s %s in, %zuB): %s (%d).\n",
 	    instance, instance->ep->address, instance->ep->endpoint,
 	    usb_str_speed(instance->ep->speed),
 	    usb_str_transfer_type_short(instance->ep->transfer_type),
-	    instance->transfered_size, str_error(instance->error), instance->error);
+	    instance->transfered_size, str_error(instance->error),
+	    instance->error);
 
 	instance->callback_in(instance->fun, instance->error,
 	    instance->transfered_size, instance->arg);
@@ -146,7 +147,7 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 	assert(instance);
 	assert(instance->callback_out);
 
-	usb_log_debug("Batch %p done (T%d.%d, %s %s out): %s (%d).\n",
+	usb_log_debug("Batch(%p) done (T%d.%d, %s %s out): %s (%d).\n",
 	    instance, instance->ep->address, instance->ep->endpoint,
 	    usb_str_speed(instance->ep->speed),
 	    usb_str_transfer_type_short(instance->ep->transfer_type),

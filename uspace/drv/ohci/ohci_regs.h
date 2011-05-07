@@ -71,18 +71,11 @@ typedef struct ohci_regs
 #define CS_SOC_MASK (0x3) /* Scheduling overrun count */
 #define CS_SOC_SHIFT (16)
 
+	/** Interupt enable/disable/status,
+	 * reads give the same value,
+	 * writing causes enable/disable,
+	 * status is write-clean (writing 1 clears the bit*/
 	volatile uint32_t interrupt_status;
-#define IS_SO   (1 << 0)  /* Scheduling overrun */
-#define IS_WDH  (1 << 1)  /* Write-back done head */
-#define IS_SF   (1 << 2)  /* Start of frame */
-#define IS_RD   (1 << 3)  /* Resume detected */
-#define IS_UE   (1 << 4)  /* Unrecoverable error */
-#define IS_FNO  (1 << 5)  /* Frame number overflow */
-#define IS_RHSC (1 << 6)  /* Root hub status change */
-#define IS_OC   (1 << 30) /* Ownership change */
-
-	/** Interupt enable/disable, reads give the same value, writing causes
-	 * enable/disable */
 	volatile uint32_t interrupt_enable;
 	volatile uint32_t interrupt_disable;
 #define I_SO   (1 << 0)   /* Scheduling overrun */

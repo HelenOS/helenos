@@ -46,25 +46,6 @@
 
 #include "pci.h"
 
-#define PAGE_SIZE_MASK 0xfffff000
-
-#define HCC_PARAMS_OFFSET 0x8
-#define HCC_PARAMS_EECP_MASK 0xff
-#define HCC_PARAMS_EECP_OFFSET 8
-
-#define CMD_OFFSET 0x0
-#define CONFIGFLAG_OFFSET 0x40
-
-#define USBCMD_RUN 1
-
-#define USBLEGSUP_OFFSET 0
-#define USBLEGSUP_BIOS_CONTROL (1 << 16)
-#define USBLEGSUP_OS_CONTROL (1 << 24)
-#define USBLEGCTLSTS_OFFSET 4
-
-#define DEFAULT_WAIT 10000
-#define WAIT_STEP 10
-
 /** Get address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
@@ -145,7 +126,6 @@ int pci_get_my_registers(ddf_dev_t *dev,
  */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
-	return ENOTSUP;
 	int parent_phone =
 	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
