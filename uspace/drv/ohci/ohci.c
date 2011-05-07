@@ -201,7 +201,8 @@ if (ret != EOK) { \
 }
 
 	/* It does no harm if we register this on polling */
-	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
+	ret = register_interrupt_handler(device, irq, irq_handler,
+	    &instance->hc.interrupt_code);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to register interrupt handler.\n", ret);
 
