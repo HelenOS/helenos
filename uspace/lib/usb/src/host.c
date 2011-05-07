@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libusb
  * @{
  */
-/** @file
+/**
+ * @file
+ * Host controller common functions (implementation).
  */
-
-#ifndef LIBC_DEVMAN_H_
-#define LIBC_DEVMAN_H_
-
-#include <ipc/devman.h>
-#include <async.h>
+#include <stdio.h>
+#include <str_error.h>
+#include <errno.h>
+#include <assert.h>
 #include <bool.h>
+#include <usb/host.h>
+#include <usb/descriptor.h>
+#include <devman.h>
 
-extern int devman_get_phone(devman_interface_t, unsigned int);
-extern void devman_hangup_phone(devman_interface_t);
+/** Get host controller handle by its class index.
+ *
+ * @param class_index Class index for the host controller.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+int usb_ddf_get_hc_handle_by_class(size_t class_index,
+    devman_handle_t *hc_handle)
+{
+	char *class_index_str;
+	devman_handle_t hc_handle_tmp;
+	int rc;
 
-extern int devman_driver_register(const char *, async_client_conn_t);
-extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
-    devman_handle_t, devman_handle_t *);
+	rc = asprintf(&class_index_str, "%zu", class_index);
+	if (rc < 0) {
+		return ENOMEM;
+	}
+	rc = devman_device_get_handle_by_class("usbhc", class_index_str,
+	    &hc_handle_tmp, 0);
+	free(class_index_str);
+	if (rc != EOK) {
+		return rc;
+	}
 
-extern int devman_device_connect(devman_handle_t, unsigned int);
-extern int devman_parent_device_connect(devman_handle_t, unsigned int);
+	if (hc_handle != NULL) {
+		*hc_handle = hc_handle_tmp;
+	}
 
-extern int devman_device_get_handle(const char *, devman_handle_t *,
-    unsigned int);
-extern int devman_device_get_handle_by_class(const char *, const char *,
-    devman_handle_t *, unsigned int);
-extern int devman_get_device_path(devman_handle_t, char *, size_t);
-
-extern int devman_add_device_to_class(devman_handle_t, const char *);
-
-#endif
+	return EOK;
+}
 
 /** @}
  */
