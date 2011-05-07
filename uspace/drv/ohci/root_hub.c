@@ -44,7 +44,7 @@
 #include <usb/classes/hub.h>
 
 /**
- *	standart device descriptor for ohci root hub
+ * standart device descriptor for ohci root hub
  */
 static const usb_standard_device_descriptor_t ohci_rh_device_descriptor = {
 	.configuration_count = 1,
@@ -68,7 +68,6 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor = {
  * for ohci root hubs
  */
 static const usb_standard_configuration_descriptor_t ohci_rh_conf_descriptor = {
-	/// \TODO some values are default or guessed
 	.attributes = 1 << 7,
 	.configuration_number = 1,
 	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
@@ -86,7 +85,6 @@ static const usb_standard_interface_descriptor_t ohci_rh_iface_descriptor = {
 	.descriptor_type = USB_DESCTYPE_INTERFACE,
 	.endpoint_count = 1,
 	.interface_class = USB_CLASS_HUB,
-	/// \TODO is this correct?
 	.interface_number = 1,
 	.interface_protocol = 0,
 	.interface_subclass = 0,
@@ -106,27 +104,44 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 	.poll_interval = 255,
 };
 
+/**
+ * bitmask of hub features that are valid to be cleared
+ */
 static const uint32_t hub_clear_feature_valid_mask =
     (1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER) |
 (1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
+/**
+ * bitmask of hub features that are cleared by writing 1 (and not 0)
+ */
 static const uint32_t hub_clear_feature_by_writing_one_mask =
     1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER;
 
+/**
+ * bitmask of hub features that are valid to be set
+ */
 static const uint32_t hub_set_feature_valid_mask =
     (1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT) |
 (1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 
-
+/**
+ * bitmask of hub features that are set by writing 1 and cleared by writing 0
+ */
 static const uint32_t hub_set_feature_direct_mask =
     (1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
+/**
+ * bitmask of port features that are valid to be set
+ */
 static const uint32_t port_set_feature_valid_mask =
     (1 << USB_HUB_FEATURE_PORT_ENABLE) |
 (1 << USB_HUB_FEATURE_PORT_SUSPEND) |
 (1 << USB_HUB_FEATURE_PORT_RESET) |
 (1 << USB_HUB_FEATURE_PORT_POWER);
 
+/**
+ * bitmask of port features that can be cleared
+ */
 static const uint32_t port_clear_feature_valid_mask =
     (1 << USB_HUB_FEATURE_PORT_CONNECTION) |
 (1 << USB_HUB_FEATURE_PORT_SUSPEND) |
@@ -140,6 +155,9 @@ static const uint32_t port_clear_feature_valid_mask =
 //note that USB_HUB_FEATURE_PORT_POWER bit is translated into
 //USB_HUB_FEATURE_PORT_LOW_SPEED
 
+/**
+ * bitmask with port status changes
+ */
 static const uint32_t port_status_change_mask =
     (1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
 (1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
@@ -151,8 +169,6 @@ static const uint32_t port_status_change_mask =
 static int create_serialized_hub_descriptor(rh_t *instance);
 
 static int rh_init_descriptors(rh_t *instance);
-
-static void rh_check_port_connectivity(rh_t * instance);
 
 static int process_get_port_status_request(rh_t *instance, uint16_t port,
     usb_transfer_batch_t * request);
@@ -219,10 +235,9 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	instance->interrupt_buffer = malloc(instance->interrupt_mask_size);
 	if (!instance->interrupt_buffer)
 		return ENOMEM;
-	rh_check_port_connectivity(instance);
 
-
-	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
+	usb_log_info("OHCI root hub with %d ports initialized.\n",
+	    instance->port_count);
 
 	return EOK;
 }
@@ -380,33 +395,6 @@ static int rh_init_descriptors(rh_t *instance) {
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
-
-/**
- * check whether there are connected devices on ports and if yes, indicate
- * connection change
- * 
- * @param instance
- */
-static void rh_check_port_connectivity(rh_t * instance) {
-	size_t port;
-	usb_log_debug("rh_check_port_connectivity\n");
-	for (port = 1; port < instance->port_count; ++port) {
-		bool connected =
-		    ((instance->registers->rh_port_status[port - 1]) &
-		    (1 << USB_HUB_FEATURE_PORT_CONNECTION)) != 0;
-		if (connected) {
-			usb_log_debug("port %d has connected device\n", port);
-			instance->registers->rh_port_status[port - 1] =
-			    instance->registers->rh_port_status[port - 1]
-			    | (1 << USB_HUB_FEATURE_C_PORT_CONNECTION);
-			usb_log_debug("change indicated to status "
-			    "register\n");
-		}
-	}
-}
-
-
 /*----------------------------------------------------------------------------*/
 
 /**
