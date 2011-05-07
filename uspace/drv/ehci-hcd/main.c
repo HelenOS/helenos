@@ -96,10 +96,14 @@ if (ret != EOK) { \
 		return ENOMEM;
 	}
 	hc_fun->ops = &hc_ops;
-	ret = ddf_fun_bind(hc_fun);
 
+	ret = ddf_fun_bind(hc_fun);
 	CHECK_RET_RETURN(ret,
 	    "Failed to bind EHCI function: %s.\n",
+	    str_error(ret));
+	ret = ddf_fun_add_to_class(hc_fun, USB_HC_DDF_CLASS_NAME);
+	CHECK_RET_RETURN(ret,
+	    "Failed to add EHCI to HC class: %s.\n",
 	    str_error(ret));
 
 	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",

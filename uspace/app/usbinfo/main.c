@@ -44,7 +44,39 @@
 #include <devmap.h>
 #include <usb/usbdevice.h>
 #include <usb/pipes.h>
+#include <usb/host.h>
 #include "usbinfo.h"
+
+static bool try_parse_class_and_address(const char *path,
+    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
+{
+	size_t class_index;
+	size_t address;
+	int rc;
+	char *ptr;
+
+	rc = str_size_t(path, &ptr, 10, false, &class_index);
+	if (rc != EOK) {
+		return false;
+	}
+	if ((*ptr == ':') || (*ptr == '.')) {
+		ptr++;
+	} else {
+		return false;
+	}
+	rc = str_size_t(ptr, NULL, 10, true, &address);
+	if (rc != EOK) {
+		return false;
+	}
+	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
+	if (rc != EOK) {
+		return false;
+	}
+	if (out_device_address != NULL) {
+		*out_device_address = (usb_address_t) address;
+	}
+	return true;
+}
 
 static bool resolve_hc_handle_and_dev_addr(const char *devpath,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
@@ -59,6 +91,11 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 	/* Hack for virtual keyboard. */
 	if (str_cmp(devpath, "virt") == 0) {
 		devpath = "/virt/usbhc/usb00_a1/usb00_a2";
+	}
+
+	if (try_parse_class_and_address(devpath,
+	    out_hc_handle, out_device_address)) {
+		return true;
 	}
 
 	char *path = str_dup(devpath);
@@ -270,7 +307,8 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		usbinfo_device_t *dev = prepare_device(hc_handle, dev_addr);
+		usbinfo_device_t *dev = prepare_device(devpath,
+		    hc_handle, dev_addr);
 		if (dev == NULL) {
 			continue;
 		}

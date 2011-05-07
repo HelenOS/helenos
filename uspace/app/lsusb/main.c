@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2010-2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbohci
+/** @addtogroup lsusb
  * @{
  */
-/** @file
- * @brief OHCI driver
- */
-#ifndef DRV_OHCI_ROOT_HUB_H
-#define DRV_OHCI_ROOT_HUB_H
-
-#include <usb/usb.h>
-#include <usb/devdrv.h>
-
-#include "ohci_regs.h"
-#include "batch.h"
-
 /**
- * ohci root hub representation
+ * @file
+ * Listing of USB host controllers.
  */
-typedef struct rh {
-	/** pointer to ohci driver registers */
-	ohci_regs_t *registers;
-	/** usb address of the root hub */
-	usb_address_t address;
-	/** hub port count */
-	size_t port_count;
-	/** hubs descriptors */
-	usb_device_descriptors_t descriptors;
-	/** interrupt transfer waiting for an actual interrupt to occur */
-	usb_transfer_batch_t * unfinished_interrupt_transfer;
-	/** pre-allocated interrupt mask
-	 *
-	 * This is allocated when initializing instance, so that memory
-	 * allocation is not needed when processing request. Buffer is used for
-	 * interrupt bitmask.
-	 */
-	uint8_t * interrupt_buffer;
-	/** size of interrupt buffer */
-	size_t interrupt_mask_size;
-	/** instance`s descriptor*/
-	uint8_t * hub_descriptor;
-	/** size of hub descriptor */
-	size_t descriptor_size;
+
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <str_error.h>
+#include <bool.h>
+#include <getopt.h>
+#include <devman.h>
+#include <devmap.h>
+#include <usb/host.h>
+
+#define NAME "lsusb"
+
+#define MAX_FAILED_ATTEMPTS 4
+#define MAX_PATH_LENGTH 1024
+
+int main(int argc, char *argv[])
+{
+	size_t class_index = 0;
+	size_t failed_attempts = 0;
+
+	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
+		class_index++;
+		devman_handle_t hc_handle = 0;
+		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
+		if (rc != EOK) {
+			failed_attempts++;
+			continue;
+		}
+		char path[MAX_PATH_LENGTH];
+		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
+		if (rc != EOK) {
+			continue;
+		}
+		printf(NAME ": host controller %zu is `%s'.\n",
+		    class_index, path);
+	}
+
+	return 0;
+}
 
 
-} rh_t;
-
-int rh_init(rh_t *instance, ohci_regs_t *regs);
-
-int rh_request(rh_t *instance, usb_transfer_batch_t *request);
-
-void rh_interrupt(rh_t *instance);
-#endif
-/**
- * @}
+/** @}
  */

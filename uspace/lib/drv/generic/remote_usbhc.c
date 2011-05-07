@@ -301,6 +301,7 @@ static void remote_usbhc_in_transfer(ddf_fun_t *fun,
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
+		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
@@ -313,6 +314,7 @@ static void remote_usbhc_in_transfer(ddf_fun_t *fun,
 	    callback_in, trans);
 
 	if (rc != EOK) {
+		async_answer_0(data_callid, rc);
 		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
@@ -459,6 +461,7 @@ ipc_callid_t callid, ipc_call_t *call)
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
+		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
 		free(setup_packet);
 		return;
@@ -468,6 +471,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->size = data_len;
 	trans->buffer = malloc(data_len);
 	if (trans->buffer == NULL) {
+		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
 		async_transaction_destroy(trans);
 		return;
@@ -479,6 +483,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	    callback_in, trans);
 
 	if (rc != EOK) {
+		async_answer_0(data_callid, rc);
 		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}

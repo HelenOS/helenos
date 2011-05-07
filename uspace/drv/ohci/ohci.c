@@ -229,6 +229,10 @@ if (ret != EOK) { \
 	    "Failed(%d) to bind OHCI device function: %s.\n",
 	    ret, str_error(ret));
 
+	ret = ddf_fun_add_to_class(instance->hc_fun, USB_HC_DDF_CLASS_NAME);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
+
 	device->driver_data = instance;
 
 	hc_start_hw(&instance->hc);
