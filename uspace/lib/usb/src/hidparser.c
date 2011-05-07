@@ -404,7 +404,7 @@ int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id,
 					break; // TODO ErrorCode
 				}
 
-				size_t shift = offset%8;
+				size_t shift = 8 - offset%8 - length;
 
 				value = value << shift;							
 				value = value & (((1 << length)-1) << shift);

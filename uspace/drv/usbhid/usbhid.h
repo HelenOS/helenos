@@ -43,6 +43,7 @@
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
 #include <usb/classes/hid.h>
+#include <bool.h>
 
 struct usb_hid_dev;
 
@@ -126,6 +127,12 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 //const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev);
 
 //const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
+
+void usb_hid_new_report(void);
+
+void usb_hid_report_received(void);
+
+bool usb_hid_report_ready(void);
 
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 

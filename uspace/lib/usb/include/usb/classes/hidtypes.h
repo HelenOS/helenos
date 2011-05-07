@@ -164,6 +164,8 @@ typedef struct {
 	usb_hid_report_path_t *usage_path;
 	/** */	
 	link_t link;
+
+	int in_delimiter;
 } usb_hid_report_item_t;
 
 /** HID parser callbacks for IN items. */

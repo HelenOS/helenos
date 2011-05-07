@@ -42,10 +42,16 @@
 /**
  * Description of path of usage pages and usages in report descriptor
  */
-#define USB_HID_PATH_COMPARE_STRICT				0
-#define USB_HID_PATH_COMPARE_END				1
-#define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	4
-#define USB_HID_PATH_COMPARE_COLLECTION_ONLY	2 /* porovnava jenom cestu z Kolekci */
+/** Wanted usage path must be exactly the same as the searched one */
+#define USB_HID_PATH_COMPARE_STRICT		0
+/** Wanted usage path must be the suffix in the searched one */
+#define USB_HID_PATH_COMPARE_END		1
+/** */
+#define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	2
+/** Searched usage page must be prefix of the other one */
+#define USB_HID_PATH_COMPARE_BEGIN		4
+/** Searched couple of usage page and usage can be anywhere in usage path */
+#define USB_HID_PATH_COMPARE_ANYWHERE		8
 
 
 /** Collection usage path structure */

@@ -148,16 +148,15 @@ void usb_hid_print_usage_path(usb_hid_report_path_t *path)
 		usb_log_debug("\tUSAGE: %X\n", path_item->usage);
 		usb_log_debug("\tFLAGS: %d\n", path_item->flags);		
 		
-		item = item->next;
+       		item = item->next;
 	}
 }
 
 /**
  * Compares two usage paths structures
  *
- * If USB_HID_PATH_COMPARE_COLLECTION_ONLY flag is given, the last item in report_path structure is forgotten
  *
- * @param report_path usage path structure to compare
+ * @param report_path usage path structure to compare with @path 
  * @param path usage patrh structure to compare
  * @param flags Flags determining the mode of comparison
  * @return EOK if both paths are identical, non zero number otherwise
@@ -178,6 +177,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		return 1;
 	}
 
+	// Empty path match all others
 	if(path->depth == 0){
 		return EOK;
 	}
@@ -188,12 +188,45 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 	}
 	
 	switch(flags){
-		/* path must be completly identical */
+		/* path is somewhere in report_path */
+		case USB_HID_PATH_COMPARE_ANYWHERE:
+			if(path->depth != 1){
+				return 1;
+			}
+
+			// projit skrz cestu a kdyz nekde sedi tak vratim EOK
+			// dojduli az za konec tak nnesedi
+			report_link = report_path->head.next;
+			path_link = path->head.next;
+			path_item = list_get_instance(path_link, usb_hid_report_usage_path_t, link);
+
+			while(report_link != &report_path->head) {
+				report_item = list_get_instance(report_link, usb_hid_report_usage_path_t, link);
+				if(report_item->usage_page == path_item->usage_page){
+					if(only_page == 0){
+						if(report_item->usage == path_item->usage) {
+							return EOK;
+						}
+					}
+					else {
+						return EOK;
+					}
+				}
+
+				report_link = report_link->next;
+			}
+
+			return 1;
+			break;
+		/* the paths must be identical */
 		case USB_HID_PATH_COMPARE_STRICT:
 				if(report_path->depth != path->depth){
 					return 1;
 				}
-
+		
+		/* path is prefix of the report_path */
+		case USB_HID_PATH_COMPARE_BEGIN:
+	
 				report_link = report_path->head.next;
 				path_link = path->head.next;
 			
@@ -220,10 +253,8 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 			
 				}
 
-				if(((report_link == &report_path->head) && (path_link == &path->head)) || 
-				   (((flags & USB_HID_PATH_COMPARE_COLLECTION_ONLY) != 0) && 
-				    (path_link = &path->head) && 
-				    (report_link == report_path->head.prev))) {
+				if((((flags & USB_HID_PATH_COMPARE_BEGIN) != 0) && (path_link == &path->head)) || 
+				   ((report_link == &report_path->head) && (path_link == &path->head))) {
 					return EOK;
 				}
 				else {
@@ -231,15 +262,10 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 				}						
 			break;
 
-		/* compare with only the end of path*/
+		/* path is suffix of report_path */
 		case USB_HID_PATH_COMPARE_END:
 
-				if((flags & USB_HID_PATH_COMPARE_COLLECTION_ONLY) != 0) {
-					report_link = report_path->head.prev->prev;
-				}
-				else {
-					report_link = report_path->head.prev;
-				}
+				report_link = report_path->head.prev;
 				path_link = path->head.prev;
 
 				if(list_empty(&path->head)){
