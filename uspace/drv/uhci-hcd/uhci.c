@@ -264,7 +264,7 @@ if (ret != EOK) { \
 	    ret, str_error(ret));
 
 	ret = ddf_fun_add_to_class(instance->hc_fun, USB_HC_DDF_CLASS_NAME);
-	CHECK_RET_DEST_FUN_RETURN(ret,
+	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add UHCI to HC class: %s.\n", str_error(ret));
 
 	ret = rh_init(&instance->rh, instance->rh_fun,
