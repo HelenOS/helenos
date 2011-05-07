@@ -108,12 +108,12 @@ static int usb_iface_get_address(
 static int usb_iface_get_hc_handle(
     ddf_fun_t *fun, devman_handle_t *handle)
 {
-	assert(handle);
 	assert(fun);
 	ddf_fun_t *hc_fun = dev_to_ohci(fun->dev)->hc_fun;
 	assert(hc_fun);
 
-	*handle = hc_fun->handle;
+	if (handle != NULL)
+		*handle = hc_fun->handle;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -169,6 +169,7 @@ if (ret != EOK) { \
 	return ret; \
 } else (void)0
 
+	instance->rh_fun = NULL;
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci-hc");
 	int ret = instance->hc_fun ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create OHCI HC function.\n");

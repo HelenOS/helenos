@@ -135,8 +135,7 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_init(hc_t *instance, ddf_fun_t *fun,
-    void *regs, size_t reg_size, bool interupts);
+int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
 
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 
