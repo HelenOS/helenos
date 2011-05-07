@@ -90,6 +90,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	if (ret != EOK) {
 		usb_log_error("Failed add root hub match-id.\n");
 	}
+	ret = ddf_fun_bind(hub_fun);
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
@@ -287,7 +288,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	usb_log_debug("OHCI interrupt: %x.\n", status);
+	usb_log_debug("OHCI(%p) interrupt: %x.\n", instance, status);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
 	if (status & I_RHSC)
@@ -353,6 +354,8 @@ void hc_gain_control(hc_t *instance)
 			async_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.\n");
+		instance->registers->control &= (C_HCFS_RESET << C_HCFS_SHIFT);
+		async_usleep(50000);
 		return;
 	}
 
@@ -477,6 +480,8 @@ do { \
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
+
+	bzero(&instance->rh, sizeof(instance->rh));
 	/* Init queues */
 	hc_init_transfer_lists(instance);
 

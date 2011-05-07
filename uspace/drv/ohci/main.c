@@ -74,7 +74,8 @@ int ohci_add_device(ddf_dev_t *device)
 		    str_error(ret));
 		return ret;
 	}
-	device->driver_data = ohci;
+//	device->driver_data = ohci;
+	hc_register_hub(&ohci->hc, ohci->rh_fun);
 
 	usb_log_info("Controlling new OHCI device `%s'.\n", device->name);
 
