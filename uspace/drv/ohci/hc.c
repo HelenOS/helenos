@@ -48,7 +48,6 @@
     (I_SO | I_WDH | I_UE | I_RHSC)
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
-static void hc_init_hw(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 /*----------------------------------------------------------------------------*/
@@ -120,7 +119,7 @@ if (ret != EOK) { \
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
 	    str_error(ret));
-	hc_init_hw(instance);
+//	hc_init_hw(instance);
 	fibril_mutex_initialize(&instance->guard);
 
 	rh_init(&instance->rh, instance->registers);
@@ -374,7 +373,7 @@ void hc_gain_control(hc_t *instance)
 	async_usleep(50000);
 }
 /*----------------------------------------------------------------------------*/
-void hc_init_hw(hc_t *instance)
+void hc_start_hw(hc_t *instance)
 {
 	/* OHCI guide page 42 */
 	assert(instance);

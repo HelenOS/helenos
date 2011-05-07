@@ -152,10 +152,6 @@ if (ret != EOK) { \
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) mem_reg_base, mem_reg_size, irq);
 
-	ret = pci_disable_legacy(device);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
-
 	bool interrupts = false;
 #ifdef CONFIG_USBHC_NO_INTERRUPTS
 	usb_log_warning("Interrupts disabled in OS config, " \
@@ -219,6 +215,7 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to register OHCI root hub.\n", ret);
 
+	hc_start_hw(&instance->hc);
 	return EOK;
 #undef CHECK_RET_FINI_RETURN
 }
