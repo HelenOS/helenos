@@ -561,10 +561,10 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 			key = usbhid_parse_scancode(kbd_dev->keys[i]);
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 			    kbd_dev->keys[i]);
-			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_PRESS, key);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_start(kbd_dev, key);
 			}
+			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_PRESS, key);
 		} else {
 			// found, nothing happens
 		}
