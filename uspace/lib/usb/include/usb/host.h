@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,55 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lsusb
+/** @addtogroup libusb
  * @{
  */
-/**
- * @file
- * Listing of USB host controllers.
+/** @file
+ * Host controller common functions.
  */
+#ifndef LIBUSB_HOST_H_
+#define LIBUSB_HOST_H_
 
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <str_error.h>
-#include <bool.h>
-#include <getopt.h>
-#include <devman.h>
-#include <devmap.h>
-#include <usb/host.h>
+#include <sys/types.h>
+#include <ipc/devman.h>
 
-#define NAME "lsusb"
+int usb_ddf_get_hc_handle_by_class(size_t, devman_handle_t *);
 
-#define MAX_FAILED_ATTEMPTS 4
-#define MAX_PATH_LENGTH 1024
-
-int main(int argc, char *argv[])
-{
-	size_t class_index = 0;
-	size_t failed_attempts = 0;
-
-	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
-		class_index++;
-		devman_handle_t hc_handle = 0;
-		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
-		if (rc != EOK) {
-			failed_attempts++;
-			continue;
-		}
-		char path[MAX_PATH_LENGTH];
-		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			continue;
-		}
-		printf(NAME ": host controller %zu is `%s'.\n",
-		    class_index, path);
-	}
-
-	return 0;
-}
-
-
-/** @}
+#endif
+/**
+ * @}
  */

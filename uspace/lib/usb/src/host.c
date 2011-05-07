@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,55 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lsusb
+/** @addtogroup libusb
  * @{
  */
 /**
  * @file
- * Listing of USB host controllers.
+ * Host controller common functions (implementation).
  */
-
-#include <inttypes.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <str_error.h>
+#include <errno.h>
+#include <assert.h>
 #include <bool.h>
-#include <getopt.h>
-#include <devman.h>
-#include <devmap.h>
 #include <usb/host.h>
+#include <usb/descriptor.h>
+#include <devman.h>
 
-#define NAME "lsusb"
-
-#define MAX_FAILED_ATTEMPTS 4
-#define MAX_PATH_LENGTH 1024
-
-int main(int argc, char *argv[])
+/** Get host controller handle by its class index.
+ *
+ * @param class_index Class index for the host controller.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+int usb_ddf_get_hc_handle_by_class(size_t class_index,
+    devman_handle_t *hc_handle)
 {
-	size_t class_index = 0;
-	size_t failed_attempts = 0;
+	char *class_index_str;
+	devman_handle_t hc_handle_tmp;
+	int rc;
 
-	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
-		class_index++;
-		devman_handle_t hc_handle = 0;
-		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
-		if (rc != EOK) {
-			failed_attempts++;
-			continue;
-		}
-		char path[MAX_PATH_LENGTH];
-		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			continue;
-		}
-		printf(NAME ": host controller %zu is `%s'.\n",
-		    class_index, path);
+	rc = asprintf(&class_index_str, "%zu", class_index);
+	if (rc < 0) {
+		return ENOMEM;
+	}
+	rc = devman_device_get_handle_by_class("usbhc", class_index_str,
+	    &hc_handle_tmp, 0);
+	free(class_index_str);
+	if (rc != EOK) {
+		return rc;
 	}
 
-	return 0;
-}
+	if (hc_handle != NULL) {
+		*hc_handle = hc_handle_tmp;
+	}
 
+	return EOK;
+}
 
 /** @}
  */

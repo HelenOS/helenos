@@ -45,6 +45,7 @@ SOURCES = \
 	src/hidpath.c \
 	src/hidparser.c \
 	src/hiddescriptor.c \
+	src/host.c \
 	src/hub.c \
 	src/pipepriv.c \
 	src/pipes.c \
