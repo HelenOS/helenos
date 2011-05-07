@@ -299,9 +299,9 @@ int usb_lgtch_init(struct usb_hid_dev *hid_dev)
 	
 	usb_hid_report_path_set_report_id(path, 1);
 	
-	lgtch_dev->key_count = usb_hid_report_input_length(
-	    hid_dev->report, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	lgtch_dev->key_count = usb_hid_report_size(hid_dev->report, 1, 
+		USB_HID_REPORT_TYPE_INPUT);
+	
 	usb_hid_report_path_free(path);
 	
 	usb_log_debug(NAME " Size of the input report: %zu\n", 

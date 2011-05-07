@@ -770,8 +770,8 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	
 	usb_hid_report_path_set_report_id(path, 0);
 	
-	kbd_dev->key_count = usb_hid_report_input_length(
-	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_END);
+	kbd_dev->key_count = usb_hid_report_size(
+	    kbd_dev->parser, 0, USB_HID_REPORT_TYPE_INPUT);
 	usb_hid_report_path_free (path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
@@ -802,9 +802,8 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
 	usb_hid_report_path_set_report_id(kbd_dev->led_path, 0x00);
 	
-	kbd_dev->led_output_size = usb_hid_report_output_size(kbd_dev->parser, 
-	    kbd_dev->led_path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	kbd_dev->led_output_size = usb_hid_report_size(kbd_dev->parser, 0, 
+	    USB_HID_REPORT_TYPE_OUTPUT);
 	
 	usb_log_debug("Output report size (in items): %zu\n", 
 	    kbd_dev->led_output_size);

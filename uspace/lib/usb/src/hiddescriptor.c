@@ -565,6 +565,10 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 			}
 			break;
 		case USB_HID_REPORT_TAG_USAGE_MINIMUM:
+
+			usb_log_debug("USAGE_MINIMUM (SIZE: %d), data[0](%x), data[1](%x), data[2](%x) data[3](%x)\n",
+			              item_size, *data, *(data+1), *(data+2), *(data+3));
+			
 			if (item_size == 3) {
 				// usage extended usages
 				report_item->extended_usage_page = (usb_hid_report_tag_data_uint32(data,item_size) & 0xFF00) >> 16; 
