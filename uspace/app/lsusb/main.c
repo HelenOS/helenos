@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010-2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup lsusb
  * @{
  */
-/** @file
+/**
+ * @file
+ * Listing of USB host controllers.
  */
 
-#ifndef LIBC_DEVMAN_H_
-#define LIBC_DEVMAN_H_
-
-#include <ipc/devman.h>
-#include <async.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <str_error.h>
 #include <bool.h>
+#include <getopt.h>
+#include <devman.h>
+#include <devmap.h>
+#include <usb/host.h>
 
-extern int devman_get_phone(devman_interface_t, unsigned int);
-extern void devman_hangup_phone(devman_interface_t);
+#define NAME "lsusb"
 
-extern int devman_driver_register(const char *, async_client_conn_t);
-extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
-    devman_handle_t, devman_handle_t *);
+#define MAX_FAILED_ATTEMPTS 4
+#define MAX_PATH_LENGTH 1024
 
-extern int devman_device_connect(devman_handle_t, unsigned int);
-extern int devman_parent_device_connect(devman_handle_t, unsigned int);
+int main(int argc, char *argv[])
+{
+	size_t class_index = 0;
+	size_t failed_attempts = 0;
 
-extern int devman_device_get_handle(const char *, devman_handle_t *,
-    unsigned int);
-extern int devman_device_get_handle_by_class(const char *, const char *,
-    devman_handle_t *, unsigned int);
-extern int devman_get_device_path(devman_handle_t, char *, size_t);
+	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
+		class_index++;
+		devman_handle_t hc_handle = 0;
+		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
+		if (rc != EOK) {
+			failed_attempts++;
+			continue;
+		}
+		char path[MAX_PATH_LENGTH];
+		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
+		if (rc != EOK) {
+			continue;
+		}
+		printf(NAME ": host controller %zu is `%s'.\n",
+		    class_index, path);
+	}
 
-extern int devman_add_device_to_class(devman_handle_t, const char *);
+	return 0;
+}
 
-#endif
 
 /** @}
  */

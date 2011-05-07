@@ -373,6 +373,56 @@ int devman_device_get_handle_by_class(const char *classname,
 	return retval;
 }
 
+int devman_get_device_path(devman_handle_t handle, char *path, size_t path_size)
+{
+	int phone = devman_get_phone(DEVMAN_CLIENT, 0);
+
+	if (phone < 0)
+		return phone;
+
+	async_serialize_start();
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(phone, DEVMAN_DEVICE_GET_DEVICE_PATH,
+	    handle, &answer);
+
+	ipc_call_t data_request_call;
+	aid_t data_request = async_data_read(phone, path, path_size,
+	    &data_request_call);
+	if (data_request == 0) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return ENOMEM;
+	}
+
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(req, &opening_request_rc);
+
+	async_serialize_end();
+
+	if (data_request_rc != EOK) {
+		/* Prefer the return code of the opening request. */
+		if (opening_request_rc != EOK) {
+			return (int) opening_request_rc;
+		} else {
+			return (int) data_request_rc;
+		}
+	}
+	if (opening_request_rc != EOK) {
+		return (int) opening_request_rc;
+	}
+
+	path[path_size - 1] = 0;
+
+	if (IPC_GET_ARG2(data_request_call) >= path_size) {
+		return ELIMIT;
+	}
+
+	return EOK;
+}
+
 
 /** @}
  */

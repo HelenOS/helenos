@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,39 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libusb
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
+BINARY = lsusb
+
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
-	src/addrkeep.c \
-	src/altiface.c \
-	src/class.c \
-	src/ddfiface.c \
-	src/debug.c \
-	src/devdrv.c \
-	src/devpoll.c \
-	src/dp.c \
-	src/dump.c \
-	src/hidiface.c \
-	src/hidpath.c \
-	src/hidparser.c \
-	src/hiddescriptor.c \
-	src/host.c \
-	src/hub.c \
-	src/pipepriv.c \
-	src/pipes.c \
-	src/pipesinit.c \
-	src/pipesio.c \
-	src/recognise.c \
-	src/request.c \
-	src/usb.c \
-	src/usbdevice.c \
-	src/hidreq.c \
-	src/hidreport.c \
-	src/host/device_keeper.c \
-	src/host/batch.c \
-	src/host/endpoint.c \
-	src/host/usb_endpoint_manager.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common
