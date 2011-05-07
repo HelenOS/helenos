@@ -391,6 +391,7 @@ static int rh_init_descriptors(rh_t *instance) {
  */
 static void rh_check_port_connectivity(rh_t * instance) {
 	size_t port;
+	usb_log_debug("rh_check_port_connectivity\n");
 	for (port = 1; port < instance->port_count; ++port) {
 		bool connected =
 		    ((instance->registers->rh_port_status[port - 1]) &
