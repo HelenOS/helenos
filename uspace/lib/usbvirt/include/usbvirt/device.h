@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Virtual USB device.
+ * Virtual USB device.
  */
 #ifndef LIBUSBVIRT_DEVICE_H_
 #define LIBUSBVIRT_DEVICE_H_
@@ -38,23 +38,70 @@
 #include <usb/usb.h>
 #include <usb/request.h>
 
+/** Maximum number of endpoints supported by virtual USB. */
 #define USBVIRT_ENDPOINT_MAX 16
 
 typedef struct usbvirt_device usbvirt_device_t;
 
-typedef int (*usbvirt_on_data_to_device_t)(usbvirt_device_t *, usb_endpoint_t,
-    usb_transfer_type_t, void *, size_t);
-typedef int (*usbvirt_on_data_from_device_t)(usbvirt_device_t *, usb_endpoint_t,
-    usb_transfer_type_t, void *, size_t, size_t *);
-typedef int (*usbvirt_on_control_t)(usbvirt_device_t *,
-    const usb_device_request_setup_packet_t *, uint8_t *, size_t *);
+/** Callback for data to device (OUT transaction).
+ *
+ * @param dev Virtual device to which the transaction belongs.
+ * @param endpoint Target endpoint number.
+ * @param transfer_type Transfer type.
+ * @param buffer Data buffer.
+ * @param buffer_size Size of the buffer in bytes.
+ * @return Error code.
+ */
+typedef int (*usbvirt_on_data_to_device_t)(usbvirt_device_t *dev,
+    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
+    void *buffer, size_t buffer_size);
 
+/** Callback for data from device (IN transaction).
+ *
+ * @param dev Virtual device to which the transaction belongs.
+ * @param endpoint Target endpoint number.
+ * @param transfer_type Transfer type.
+ * @param buffer Data buffer to write answer to.
+ * @param buffer_size Size of the buffer in bytes.
+ * @param act_buffer_size Write here how many bytes were actually written.
+ * @return Error code.
+ */
+typedef int (*usbvirt_on_data_from_device_t)(usbvirt_device_t *dev,
+    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
+    void *buffer, size_t buffer_size, size_t *act_buffer_size);
+
+/** Callback for control transfer on endpoint zero.
+ *
+ * Notice that size of the data buffer is expected to be read from the
+ * setup packet.
+ *
+ * @param dev Virtual device to which the transaction belongs.
+ * @param setup_packet Standard setup packet.
+ * @param data Data (might be NULL).
+ * @param act_data_size Size of returned data in bytes.
+ * @return Error code.
+ */
+typedef int (*usbvirt_on_control_t)(usbvirt_device_t *dev,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_data_size);
+
+/** Callback for control request on a virtual USB device.
+ *
+ * See usbvirt_control_reply_helper() for simple way of answering
+ * control read requests.
+ */
 typedef struct {
+	/** Request direction (in or out). */
 	usb_direction_t req_direction;
+	/** Request recipient (device, interface or endpoint). */
 	usb_request_recipient_t req_recipient;
+	/** Request type (standard, class or vendor). */
 	usb_request_type_t req_type;
+	/** Actual request code. */
 	uint8_t request;
+	/** Request handler name for debugging purposes. */
 	const char *name;
+	/** Callback to be executed on matching request. */
 	usbvirt_on_control_t callback;
 } usbvirt_control_request_handler_t;
 
@@ -76,7 +123,7 @@ typedef struct {
 	size_t extra_count;
 } usbvirt_device_configuration_t;
 
-/** Standard USB descriptors. */
+/** Standard USB descriptors for virtual device. */
 typedef struct {
 	/** Standard device descriptor.
 	 * There is always only one such descriptor for the device.
@@ -101,24 +148,59 @@ typedef enum {
 	USBVIRT_STATE_CONFIGURED
 } usbvirt_device_state_t;
 
+/** Ops structure for virtual USB device. */
 typedef struct {
+	/** Callbacks for data to device.
+	 * Index zero is ignored.
+	 */
 	usbvirt_on_data_to_device_t data_out[USBVIRT_ENDPOINT_MAX];
+	/** Callbacks for data from device.
+	 * Index zero is ignored.
+	 */
 	usbvirt_on_data_from_device_t data_in[USBVIRT_ENDPOINT_MAX];
+	/** Array of control handlers.
+	 * Last handler is expected to have the @c callback field set to NULL
+	 */
 	usbvirt_control_request_handler_t *control;
+	/** Callback when device changes state.
+	 *
+	 * The value of @c state attribute of @p dev device is not
+	 * defined during call of this function.
+	 *
+	 * @param dev The virtual USB device.
+	 * @param old_state Old device state.
+	 * @param new_state New device state.
+	 */
 	void (*state_changed)(usbvirt_device_t *dev,
 	    usbvirt_device_state_t old_state, usbvirt_device_state_t new_state);
 } usbvirt_device_ops_t;
 
+/** Virtual USB device. */
 struct usbvirt_device {
+	/** Name for debugging purposes. */
 	const char *name;
+	/** Custom device data. */
 	void *device_data;
+	/** Device ops. */
 	usbvirt_device_ops_t *ops;
+	/** Device descriptors. */
 	usbvirt_descriptors_t *descriptors;
+	/** Current device address.
+	 * You shall treat this field as read only in your code.
+	 */
 	usb_address_t address;
+	/** Current device state.
+	 * You shall treat this field as read only in your code.
+	 */
 	usbvirt_device_state_t state;
+	/** Phone to the host controller.
+	 * You shall treat this field as read only in your code.
+	 */
+	int vhc_phone;
 };
 
 int usbvirt_device_plug(usbvirt_device_t *, const char *);
+void usbvirt_device_unplug(usbvirt_device_t *);
 
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *,
     uint8_t *, size_t *, void *, size_t);

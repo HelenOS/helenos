@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Virtual USB device.
+ * IPC wrappers for virtual USB.
  */
 #ifndef LIBUSBVIRT_IPC_H_
 #define LIBUSBVIRT_IPC_H_
@@ -39,17 +39,20 @@
 #include <usb/usb.h>
 #include <bool.h>
 
+/** IPC methods communication between host controller and virtual device. */
 typedef enum {
 	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD + 80,
 	IPC_M_USBVIRT_CONTROL_READ,
 	IPC_M_USBVIRT_CONTROL_WRITE,
 	IPC_M_USBVIRT_INTERRUPT_IN,
-	IPC_M_USBVIRT_INTERRUPT_OUT
-} usbvirt_ipc_t;
+	IPC_M_USBVIRT_INTERRUPT_OUT,
+	IPC_M_USBVIRT_BULK_IN,
+	IPC_M_USBVIRT_BULK_OUT
+} usbvirt_hc_to_device_method_t;
 
-int usbvirt_ipc_send_control_read(int, usb_endpoint_t, void *, size_t,
+int usbvirt_ipc_send_control_read(int, void *, size_t,
     void *, size_t, size_t *);
-int usbvirt_ipc_send_control_write(int, usb_endpoint_t, void *, size_t,
+int usbvirt_ipc_send_control_write(int, void *, size_t,
     void *, size_t);
 int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
     void *, size_t, size_t *);
