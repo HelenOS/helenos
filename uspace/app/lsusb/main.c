@@ -47,6 +47,7 @@
 #define NAME "lsusb"
 
 #define MAX_FAILED_ATTEMPTS 4
+#define MAX_PATH_LENGTH 1024
 
 static int get_hc_handle(size_t class_index, devman_handle_t *hc_handle)
 {
@@ -74,20 +75,24 @@ static int get_hc_handle(size_t class_index, devman_handle_t *hc_handle)
 
 int main(int argc, char *argv[])
 {
-	size_t class_index = 1;
+	size_t class_index = 0;
 	size_t failed_attempts = 0;
 
 	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
+		class_index++;
 		devman_handle_t hc_handle = 0;
 		int rc = get_hc_handle(class_index, &hc_handle);
-		class_index++;
 		if (rc != EOK) {
 			failed_attempts++;
 			continue;
 		}
-
-		printf(NAME ": HC %zu has handle %" PRIun ".\n",
-		    class_index, hc_handle);
+		char path[MAX_PATH_LENGTH];
+		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
+		if (rc != EOK) {
+			continue;
+		}
+		printf(NAME ": host controller %zu is `%s'.\n",
+		    class_index, path);
 	}
 
 	return 0;
