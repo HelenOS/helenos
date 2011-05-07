@@ -45,8 +45,8 @@ static usb_hid_subdriver_usage_t path_kbd[] = {
 	{0, 0}
 };
 
-static usb_hid_subdriver_usage_t path_mouse2[] = {
-	{USB_HIDUT_PAGE_GENERIC_DESKTOP, USB_HIDUT_USAGE_GENERIC_DESKTOP_X},
+static usb_hid_subdriver_usage_t path_mouse[] = {
+	{USB_HIDUT_PAGE_GENERIC_DESKTOP, USB_HIDUT_USAGE_GENERIC_DESKTOP_MOUSE},
 	{0, 0}
 };
 
@@ -86,10 +86,9 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 		}
 	},
 	{
-		path_mouse2,
+		path_mouse,
 		-1,
-		USB_HID_PATH_COMPARE_END 
-		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		USB_HID_PATH_COMPARE_ANYWHERE,
 		-1,
 		-1,
 		{
