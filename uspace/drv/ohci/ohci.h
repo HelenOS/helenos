@@ -37,18 +37,7 @@
 #include <ddi.h>
 #include <ddf/driver.h>
 
-#include "hc.h"
-#include "root_hub.h"
-
-typedef struct ohci {
-	ddf_fun_t *hc_fun;
-	ddf_fun_t *rh_fun;
-
-	hc_t hc;
-	rh_t rh;
-} ohci_t;
-
-int device_setup_ohci(ddf_dev_t *device, ohci_t *instance);
+int device_setup_ohci(ddf_dev_t *device);
 
 #endif
 /**
