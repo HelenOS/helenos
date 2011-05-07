@@ -50,7 +50,7 @@ typedef struct rh {
 	/** usb address of the root hub */
 	usb_address_t address;
 	/** hub port count */
-	int port_count;
+	size_t port_count;
 	/** hubs descriptors */
 	usb_device_descriptors_t descriptors;
 	/** interrupt transfer waiting for an actual interrupt to occur */

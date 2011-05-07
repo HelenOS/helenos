@@ -135,18 +135,6 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
-/*----------------------------------------------------------------------------*/
-/** Implements BIOS handoff routine as decribed in OHCI spec
- *
- * @param[in] device Device asking for interrupts
- * @return Error code.
- */
-int pci_disable_legacy(ddf_dev_t *device)
-{
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
 /**
  * @}
  */
