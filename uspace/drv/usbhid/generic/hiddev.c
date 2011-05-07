@@ -38,6 +38,7 @@
 #include <usb/classes/classes.h>
 #include <errno.h>
 #include <str_error.h>
+#include <bool.h>
 
 #include <usbhid_iface.h>
 
@@ -63,6 +64,8 @@ static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
 static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer, 
     size_t size, size_t *act_size, unsigned int flags);
 
+static int usb_generic_hid_client_connected(ddf_fun_t *fun);
+
 /*----------------------------------------------------------------------------*/
 
 static usbhid_iface_t usb_generic_iface = {
@@ -71,7 +74,8 @@ static usbhid_iface_t usb_generic_iface = {
 };
 
 static ddf_dev_ops_t usb_generic_hid_ops = {
-	.interfaces[USBHID_DEV_IFACE] = &usb_generic_iface
+	.interfaces[USBHID_DEV_IFACE] = &usb_generic_iface,
+	.open = usb_generic_hid_client_connected
 };
 
 /*----------------------------------------------------------------------------*/
@@ -103,12 +107,27 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer,
 	}
 	
 	/*! @todo This should probably be atomic. */
-	memcpy(buffer, hid_dev->input_report, hid_dev->input_report_size);
-	*act_size = hid_dev->input_report_size;
+	if (usb_hid_report_ready()) {
+		memcpy(buffer, hid_dev->input_report, 
+		    hid_dev->input_report_size);
+		*act_size = hid_dev->input_report_size;
+		usb_hid_report_received();
+	}
 	
 	// clear the buffer so that it will not be received twice
-	memset(hid_dev->input_report, 0, hid_dev->input_report_size);
+	//memset(hid_dev->input_report, 0, hid_dev->input_report_size);
 	
+	// note that we already received this report
+//	report_received = true;
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static int usb_generic_hid_client_connected(ddf_fun_t *fun)
+{
+	usb_hid_report_received();
 	return EOK;
 }
 

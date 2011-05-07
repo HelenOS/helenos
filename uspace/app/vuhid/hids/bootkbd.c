@@ -38,7 +38,7 @@
 #include <usb/classes/hid.h>
 #include <usb/classes/hidut.h>
 
-#include "../../virtusbkbd/report.h"
+#include "../report.h"
 
 uint8_t report_descriptor[] = {
 	STD_USAGE_PAGE(USB_HIDUT_PAGE_GENERIC_DESKTOP),
@@ -168,7 +168,9 @@ vuhid_interface_t vuhid_interface_bootkbd = {
 	.out_data_size = 1,
 	.on_data_out = on_data_out,
 
-	.live = live
+	.live = live,
+
+	.vuhid_data = NULL
 };
 
 /**
