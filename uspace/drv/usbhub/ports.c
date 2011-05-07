@@ -54,6 +54,21 @@ struct add_device_phase1 {
 	usb_speed_t speed;
 };
 
+/**
+ * count of port status changes that are not explicitly handled by
+ * any function here and must be cleared by hand
+ */
+static const unsigned int non_handled_changes_count = 2;
+
+/**
+ * port status changes that are not explicitly handled by
+ * any function here and must be cleared by hand
+ */
+static const int non_handled_changes[] =  {
+	USB_HUB_FEATURE_C_PORT_ENABLE,
+	USB_HUB_FEATURE_C_PORT_SUSPEND
+};
+
 static void usb_hub_removed_device(
 	usb_hub_info_t * hub, uint16_t port);
 
@@ -130,14 +145,15 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_CONNECTION,false);
 	usb_port_status_set_bit(
-	    &status, USB_HUB_FEATURE_PORT_RESET,false);
-	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_RESET,false);
 	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_OVER_CURRENT,false);
-	/// \TODO what about port power change?
-	unsigned int bit_idx;
-	for(bit_idx = 16;bit_idx<32;++bit_idx){
+	
+	//clearing not yet handled changes	
+	unsigned int feature_idx;
+	for(feature_idx = 0;feature_idx<non_handled_changes_count;
+	    ++feature_idx){
+		unsigned int bit_idx = non_handled_changes[feature_idx];
 		if(status & (1<<bit_idx)){
 			usb_log_info(
 			    "there was not yet handled change on port %d: %d"
@@ -155,11 +171,6 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			usb_port_status_set_bit(
 			    &status, bit_idx,false);
 		}
-	}
-	if (status >> 16) {
-		usb_log_info("there was a mistake on port %d "
-		    "(not cleared status change): %X\n",
-			port, status);
 	}
 }
 

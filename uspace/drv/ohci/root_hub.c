@@ -274,7 +274,6 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
  */
 void rh_interrupt(rh_t *instance) {
 	if (!instance->unfinished_interrupt_transfer) {
-
 		return;
 	}
 	usb_log_debug("finalizing interrupt transfer\n");
