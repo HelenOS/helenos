@@ -103,7 +103,7 @@ static int vhc_add_device(ddf_dev_t *dev)
 		return rc;
 	}
 
-	rc = ddf_fun_add_to_class(hc, "usbhc");
+	rc = ddf_fun_add_to_class(hc, USB_HC_DDF_CLASS_NAME);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to add function to HC class: %s.\n",
 		    str_error(rc));

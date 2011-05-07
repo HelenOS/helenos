@@ -171,6 +171,9 @@ typedef enum {
 #undef _MAKE_PID_NIBBLE
 } usb_packet_id;
 
+/** Class name for USB host controllers. */
+#define USB_HC_DDF_CLASS_NAME "usbhc"
+
 #endif
 /**
  * @}
