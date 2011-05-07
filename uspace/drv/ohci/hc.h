@@ -79,6 +79,8 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
      uintptr_t regs, size_t reg_size, bool interrupts);
 
+void hc_start_hw(hc_t *instance);
+
 /** Safely dispose host controller internal structures
  *
  * @param[in] instance Host controller structure to use.

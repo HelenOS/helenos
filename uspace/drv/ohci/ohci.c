@@ -53,6 +53,7 @@
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
+	assert(dev->driver_data);
 	hc_t *hc = &((ohci_t*)dev->driver_data)->hc;
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
@@ -152,10 +153,6 @@ if (ret != EOK) { \
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) mem_reg_base, mem_reg_size, irq);
 
-	ret = pci_disable_legacy(device);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
-
 	bool interrupts = false;
 #ifdef CONFIG_USBHC_NO_INTERRUPTS
 	usb_log_warning("Interrupts disabled in OS config, " \
@@ -211,14 +208,13 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to create root hub function.\n", ret);
 
-	hc_register_hub(&instance->hc, instance->rh_fun);
 
 	instance->rh_fun->ops = &rh_ops;
 	instance->rh_fun->driver_data = NULL;
-	ret = ddf_fun_bind(instance->rh_fun);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register OHCI root hub.\n", ret);
+	
+	device->driver_data = instance;
 
+	hc_start_hw(&instance->hc);
 	return EOK;
 #undef CHECK_RET_FINI_RETURN
 }
