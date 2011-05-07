@@ -45,12 +45,14 @@ typedef enum {
 	IPC_M_USBVIRT_CONTROL_READ,
 	IPC_M_USBVIRT_CONTROL_WRITE,
 	IPC_M_USBVIRT_INTERRUPT_IN,
-	IPC_M_USBVIRT_INTERRUPT_OUT
+	IPC_M_USBVIRT_INTERRUPT_OUT,
+	IPC_M_USBVIRT_BULK_IN,
+	IPC_M_USBVIRT_BULK_OUT
 } usbvirt_hc_to_device_method_t;
 
-int usbvirt_ipc_send_control_read(int, usb_endpoint_t, void *, size_t,
+int usbvirt_ipc_send_control_read(int, void *, size_t,
     void *, size_t, size_t *);
-int usbvirt_ipc_send_control_write(int, usb_endpoint_t, void *, size_t,
+int usbvirt_ipc_send_control_write(int, void *, size_t,
     void *, size_t);
 int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
     void *, size_t, size_t *);

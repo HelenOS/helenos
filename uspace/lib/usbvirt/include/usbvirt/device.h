@@ -193,9 +193,14 @@ struct usbvirt_device {
 	 * You shall treat this field as read only in your code.
 	 */
 	usbvirt_device_state_t state;
+	/** Phone to the host controller.
+	 * You shall treat this field as read only in your code.
+	 */
+	int vhc_phone;
 };
 
 int usbvirt_device_plug(usbvirt_device_t *, const char *);
+void usbvirt_device_unplug(usbvirt_device_t *);
 
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *,
     uint8_t *, size_t *, void *, size_t);

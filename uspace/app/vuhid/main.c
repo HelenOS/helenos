@@ -193,6 +193,8 @@ int main(int argc, char * argv[])
 	
 	printf("Terminating...\n");
 	
+	usbvirt_device_unplug(&hid_dev);
+
 	return 0;
 }
 

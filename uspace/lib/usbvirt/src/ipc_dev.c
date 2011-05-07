@@ -42,6 +42,12 @@
 #include <usbvirt/ipc.h>
 #include <usb/debug.h>
 
+/** Handle VHC request for device name.
+ *
+ * @param dev Target virtual device.
+ * @param iid Caller id.
+ * @param icall The call with the request.
+ */
 static void ipc_get_name(usbvirt_device_t *dev,
     ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -66,11 +72,15 @@ static void ipc_get_name(usbvirt_device_t *dev,
 	async_answer_1(iid, EOK, accepted_size);
 }
 
+/** Handle VHC request for control read from the device.
+ *
+ * @param dev Target virtual device.
+ * @param iid Caller id.
+ * @param icall The call with the request.
+ */
 static void ipc_control_read(usbvirt_device_t *dev,
     ipc_callid_t iid, ipc_call_t *icall)
 {
-	//usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
-
 	int rc;
 
 	void *setup_packet = NULL;
@@ -117,10 +127,16 @@ static void ipc_control_read(usbvirt_device_t *dev,
 	free(buffer);
 }
 
+/** Handle VHC request for control write to the device.
+ *
+ * @param dev Target virtual device.
+ * @param iid Caller id.
+ * @param icall The call with the request.
+ */
 static void ipc_control_write(usbvirt_device_t *dev,
     ipc_callid_t iid, ipc_call_t *icall)
 {
-	size_t data_buffer_len = IPC_GET_ARG2(*icall);
+	size_t data_buffer_len = IPC_GET_ARG1(*icall);
 	int rc;
 
 	void *setup_packet = NULL;
@@ -128,7 +144,7 @@ static void ipc_control_write(usbvirt_device_t *dev,
 	size_t setup_packet_len = 0;
 
 	rc = async_data_write_accept(&setup_packet, false,
-	    1, 1024, 0, &setup_packet_len);
+	    1, 0, 0, &setup_packet_len);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
@@ -136,7 +152,7 @@ static void ipc_control_write(usbvirt_device_t *dev,
 
 	if (data_buffer_len > 0) {
 		rc = async_data_write_accept(&data_buffer, false,
-		    1, 1024, 0, &data_buffer_len);
+		    1, 0, 0, &data_buffer_len);
 		if (rc != EOK) {
 			async_answer_0(iid, rc);
 			free(setup_packet);
@@ -148,13 +164,24 @@ static void ipc_control_write(usbvirt_device_t *dev,
 	    data_buffer, data_buffer_len);
 
 	async_answer_0(iid, rc);
+
+	free(setup_packet);
+	if (data_buffer != NULL) {
+		free(data_buffer);
+	}
 }
 
-static void ipc_interrupt_in(usbvirt_device_t *dev,
+/** Handle VHC request for data read from the device (in transfer).
+ *
+ * @param dev Target virtual device.
+ * @param iid Caller id.
+ * @param icall The call with the request.
+ */
+static void ipc_data_in(usbvirt_device_t *dev,
+    usb_transfer_type_t transfer_type,
     ipc_callid_t iid, ipc_call_t *icall)
 {
 	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
-	usb_transfer_type_t transfer_type = IPC_GET_ARG2(*icall);
 
 	int rc;
 
@@ -188,17 +215,23 @@ static void ipc_interrupt_in(usbvirt_device_t *dev,
 	free(buffer);
 }
 
-static void ipc_interrupt_out(usbvirt_device_t *dev,
+/** Handle VHC request for data write to the device (out transfer).
+ *
+ * @param dev Target virtual device.
+ * @param iid Caller id.
+ * @param icall The call with the request.
+ */
+static void ipc_data_out(usbvirt_device_t *dev,
+    usb_transfer_type_t transfer_type,
     ipc_callid_t iid, ipc_call_t *icall)
 {
 	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
-	usb_transfer_type_t transfer_type = IPC_GET_ARG2(*icall);
 
 	void *data_buffer = NULL;
 	size_t data_buffer_size = 0;
 
 	int rc = async_data_write_accept(&data_buffer, false,
-	    1, 1024, 0, &data_buffer_size);
+	    1, 0, 0, &data_buffer_size);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
@@ -212,33 +245,48 @@ static void ipc_interrupt_out(usbvirt_device_t *dev,
 	free(data_buffer);
 }
 
-
+/** Handle incoming IPC call for virtual USB device.
+ *
+ * @param dev Target USB device.
+ * @param callid Caller id.
+ * @param call Incoming call.
+ * @return Whether the call was handled.
+ */
 bool usbvirt_ipc_handle_call(usbvirt_device_t *dev,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	switch (IPC_GET_IMETHOD(*call)) {
-		case IPC_M_USBVIRT_GET_NAME:
-			ipc_get_name(dev, callid, call);
-			break;
+	case IPC_M_USBVIRT_GET_NAME:
+		ipc_get_name(dev, callid, call);
+		break;
 
-		case IPC_M_USBVIRT_CONTROL_READ:
-			ipc_control_read(dev, callid, call);
-			break;
+	case IPC_M_USBVIRT_CONTROL_READ:
+		ipc_control_read(dev, callid, call);
+		break;
 
-		case IPC_M_USBVIRT_CONTROL_WRITE:
-			ipc_control_write(dev, callid, call);
-			break;
+	case IPC_M_USBVIRT_CONTROL_WRITE:
+		ipc_control_write(dev, callid, call);
+		break;
 
-		case IPC_M_USBVIRT_INTERRUPT_IN:
-			ipc_interrupt_in(dev, callid, call);
-			break;
+	case IPC_M_USBVIRT_INTERRUPT_IN:
+		ipc_data_in(dev, USB_TRANSFER_INTERRUPT, callid, call);
+		break;
 
-		case IPC_M_USBVIRT_INTERRUPT_OUT:
-			ipc_interrupt_out(dev, callid, call);
-			break;
+	case IPC_M_USBVIRT_BULK_IN:
+		ipc_data_in(dev, USB_TRANSFER_BULK, callid, call);
+		break;
 
-		default:
-			return false;
+	case IPC_M_USBVIRT_INTERRUPT_OUT:
+		ipc_data_out(dev, USB_TRANSFER_INTERRUPT, callid, call);
+		break;
+
+	case IPC_M_USBVIRT_BULK_OUT:
+		ipc_data_out(dev, USB_TRANSFER_BULK, callid, call);
+		break;
+
+
+	default:
+		return false;
 	}
 
 	return true;

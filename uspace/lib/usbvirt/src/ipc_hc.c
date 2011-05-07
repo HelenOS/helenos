@@ -53,12 +53,22 @@
  * @param data_transfered_size Number of actually transferred bytes.
  * @return Error code.
  */
-int usbvirt_ipc_send_control_read(int phone, usb_endpoint_t ep,
+int usbvirt_ipc_send_control_read(int phone,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
-	aid_t opening_request = async_send_1(phone,
-	    IPC_M_USBVIRT_CONTROL_READ, ep, NULL);
+	if (phone < 0) {
+		return EINVAL;
+	}
+	if ((setup_buffer == NULL) || (setup_buffer_size == 0)) {
+		return EINVAL;
+	}
+	if ((data_buffer == NULL) || (data_buffer_size == 0)) {
+		return EINVAL;
+	}
+
+	aid_t opening_request = async_send_0(phone,
+	    IPC_M_USBVIRT_CONTROL_READ, NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
 	}
@@ -97,7 +107,9 @@ int usbvirt_ipc_send_control_read(int phone, usb_endpoint_t ep,
 		return (int) opening_request_rc;
 	}
 
-	*data_transfered_size = IPC_GET_ARG2(data_request_call);
+	if (data_transfered_size != NULL) {
+		*data_transfered_size = IPC_GET_ARG2(data_request_call);
+	}
 
 	return EOK;
 }
@@ -112,12 +124,22 @@ int usbvirt_ipc_send_control_read(int phone, usb_endpoint_t ep,
  * @param data_buffer_size Size of data buffer in bytes.
  * @return Error code.
  */
-int usbvirt_ipc_send_control_write(int phone, usb_endpoint_t ep,
+int usbvirt_ipc_send_control_write(int phone,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size)
 {
-	aid_t opening_request = async_send_2(phone,
-	    IPC_M_USBVIRT_CONTROL_WRITE, ep, data_buffer_size,  NULL);
+	if (phone < 0) {
+		return EINVAL;
+	}
+	if ((setup_buffer == NULL) || (setup_buffer_size == 0)) {
+		return EINVAL;
+	}
+	if ((data_buffer_size > 0) && (data_buffer == NULL)) {
+		return EINVAL;
+	}
+
+	aid_t opening_request = async_send_1(phone,
+	    IPC_M_USBVIRT_CONTROL_WRITE, data_buffer_size,  NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
 	}
@@ -158,11 +180,33 @@ int usbvirt_ipc_send_control_write(int phone, usb_endpoint_t ep,
 int usbvirt_ipc_send_data_in(int phone, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size, size_t *act_size)
 {
-	aid_t opening_request = async_send_2(phone,
-	    IPC_M_USBVIRT_INTERRUPT_IN, ep, tr_type, NULL);
+	if (phone < 0) {
+		return EINVAL;
+	}
+	usbvirt_hc_to_device_method_t method;
+	switch (tr_type) {
+	case USB_TRANSFER_INTERRUPT:
+		method = IPC_M_USBVIRT_INTERRUPT_IN;
+		break;
+	case USB_TRANSFER_BULK:
+		method = IPC_M_USBVIRT_BULK_IN;
+		break;
+	default:
+		return EINVAL;
+	}
+	if ((ep <= 0) || (ep >= USBVIRT_ENDPOINT_MAX)) {
+		return EINVAL;
+	}
+	if ((data == NULL) || (data_size == 0)) {
+		return EINVAL;
+	}
+
+
+	aid_t opening_request = async_send_2(phone, method, ep, tr_type, NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
 	}
+
 
 	ipc_call_t data_request_call;
 	aid_t data_request = async_data_read(phone,
@@ -209,8 +253,28 @@ int usbvirt_ipc_send_data_in(int phone, usb_endpoint_t ep,
 int usbvirt_ipc_send_data_out(int phone, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size)
 {
-	aid_t opening_request = async_send_2(phone,
-	    IPC_M_USBVIRT_INTERRUPT_OUT, ep, tr_type, NULL);
+	if (phone < 0) {
+		return EINVAL;
+	}
+	usbvirt_hc_to_device_method_t method;
+	switch (tr_type) {
+	case USB_TRANSFER_INTERRUPT:
+		method = IPC_M_USBVIRT_INTERRUPT_OUT;
+		break;
+	case USB_TRANSFER_BULK:
+		method = IPC_M_USBVIRT_BULK_OUT;
+		break;
+	default:
+		return EINVAL;
+	}
+	if ((ep <= 0) || (ep >= USBVIRT_ENDPOINT_MAX)) {
+		return EINVAL;
+	}
+	if ((data == NULL) || (data_size == 0)) {
+		return EINVAL;
+	}
+
+	aid_t opening_request = async_send_1(phone, method, ep, NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
 	}

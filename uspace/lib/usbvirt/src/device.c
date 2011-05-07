@@ -43,8 +43,14 @@
 
 #include <usb/debug.h>
 
+/** Current device. */
 static usbvirt_device_t *DEV = NULL;
 
+/** Main IPC call handling from virtual host controller.
+ *
+ * @param iid Caller identification.
+ * @param icall Initial incoming call.
+ */
 static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	assert(DEV != NULL);
@@ -81,6 +87,10 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 	int rc;
 	devman_handle_t handle;
 
+	if (DEV != NULL) {
+		return ELIMIT;
+	}
+
 	rc = devman_device_get_handle(vhc_path, &handle, 0);
 	if (rc != EOK) {
 		return rc;
@@ -93,18 +103,24 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 	}
 
 	DEV = dev;
+	dev->vhc_phone = hcd_phone;
 
 	rc = async_connect_to_me(hcd_phone, 0, 0, 0, callback_connection);
 	if (rc != EOK) {
 		DEV = NULL;
-		return rc;
 	}
 
-
-
-	return EOK;
+	return rc;
 }
 
+/** Disconnect the device from virtual host controller.
+ *
+ * @param dev Device to be disconnected.
+ */
+void usbvirt_device_unplug(usbvirt_device_t *dev)
+{
+	async_hangup(dev->vhc_phone);
+}
 
 /**
  * @}
