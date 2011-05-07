@@ -140,11 +140,12 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	for(bit_idx = 16;bit_idx<32;++bit_idx){
 		if(status & (1<<bit_idx)){
 			usb_log_info(
-			    "there was unsupported change on port %d: %d\n",
+			    "there was not yet handled change on port %d: %d"
+			    ";clearing it\n",
 			port, bit_idx);
 			int opResult = usb_hub_clear_port_feature(
 			    hub->control_pipe,
-			    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+			    port, bit_idx);
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "could not clear port flag %d: %d\n",
@@ -156,7 +157,8 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 		}
 	}
 	if (status >> 16) {
-		usb_log_info("there was unsupported change on port %d: %X\n",
+		usb_log_info("there was a mistake on port %d "
+		    "(not cleared status change): %X\n",
 			port, status);
 	}
 }
