@@ -51,6 +51,7 @@ static void remote_usbhc_control_write(ddf_fun_t *, void *, ipc_callid_t, ipc_ca
 static void remote_usbhc_control_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_request_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_bind_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_find_by_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_release_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -60,6 +61,7 @@ static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, 
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 	remote_usbhc_request_address,
 	remote_usbhc_bind_address,
+	remote_usbhc_find_by_address,
 	remote_usbhc_release_address,
 
 	remote_usbhc_interrupt_out,
@@ -160,6 +162,27 @@ void remote_usbhc_bind_address(ddf_fun_t *fun, void *iface,
 	int rc = usb_iface->bind_address(fun, address, handle);
 
 	async_answer_0(callid, rc);
+}
+
+void remote_usbhc_find_by_address(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->find_by_address) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
+	devman_handle_t handle;
+	int rc = usb_iface->find_by_address(fun, address, &handle);
+
+	if (rc == EOK) {
+		async_answer_1(callid, EOK, handle);
+	} else {
+		async_answer_0(callid, rc);
+	}
 }
 
 void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,

@@ -406,6 +406,7 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	 *  @todo The parsing is not OK
 	 */
 	while (field != NULL) {
+		usb_log_debug("\n");
 		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
 		    field->usage);
 		
