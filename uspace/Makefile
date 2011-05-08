@@ -178,11 +178,17 @@ LIBS = \
 
 ifeq ($(UARCH),amd64)
 	LIBS += lib/usb
+	LIBS += lib/usbhost
+	LIBS += lib/usbdev
+	LIBS += lib/usbhid
 	LIBS += lib/usbvirt
 endif
 
 ifeq ($(UARCH),ia32)
 	LIBS += lib/usb
+	LIBS += lib/usbhost
+	LIBS += lib/usbdev
+	LIBS += lib/usbhid
 	LIBS += lib/usbvirt
 endif
 

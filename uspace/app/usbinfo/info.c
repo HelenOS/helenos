@@ -40,7 +40,6 @@
 #include <usb/recognise.h>
 #include <usb/request.h>
 #include <usb/classes/classes.h>
-#include <usb/classes/hid.h>
 #include <usb/classes/hub.h>
 #include "usbinfo.h"
 

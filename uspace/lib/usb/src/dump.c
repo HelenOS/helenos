@@ -40,7 +40,6 @@
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/classes/classes.h>
-#include <usb/classes/hid.h>
 
 /** Mapping between descriptor id and dumping function. */
 typedef struct {

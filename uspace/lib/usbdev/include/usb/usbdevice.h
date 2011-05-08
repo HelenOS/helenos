@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <usb/addrkeep.h>
-#include <errno.h>
-#include "../tester.h"
+/** @addtogroup libusb
+ * @{
+ */
+/** @file
+ * General communication between device drivers and host controller driver.
+ */
+#ifndef LIBUSB_USBDEVICE_H_
+#define LIBUSB_USBDEVICE_H_
 
-#define MAX_ADDRESS 5
+#include <sys/types.h>
+#include <ipc/devman.h>
+#include <ddf/driver.h>
+#include <bool.h>
+#include <usb/usb.h>
+
+/** Connection to the host controller driver. */
+typedef struct {
+	/** Devman handle of the host controller. */
+	devman_handle_t hc_handle;
+	/** Phone to the host controller. */
+	int hc_phone;
+} usb_hc_connection_t;
+
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
+    ddf_dev_t *);
+int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
+
+int usb_hc_connection_open(usb_hc_connection_t *);
+bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+int usb_hc_connection_close(usb_hc_connection_t *);
 
 
-const char *test_usbaddrkeep(void)
-{
-	int rc;
-	usb_address_keeping_t addresses;
 
-	TPRINTF("Initializing addresses keeping structure...\n");
-	usb_address_keeping_init(&addresses, MAX_ADDRESS);
-	
-	TPRINTF("Requesting address...\n");
-	usb_address_t addr = usb_address_keeping_request(&addresses);
-	TPRINTF("Address assigned: %d\n", (int) addr);
-	if (addr != 1) {
-		return "have not received expected address 1";
-	}
-
-	TPRINTF("Releasing not assigned address...\n");
-	rc = usb_address_keeping_release(&addresses, 2);
-	if (rc != ENOENT) {
-		return "have not received expected ENOENT";
-	}
-
-	TPRINTF("Releasing acquired address...\n");
-	rc = usb_address_keeping_release(&addresses, addr);
-	if (rc != EOK) {
-		return "have not received expected EOK";
-	}
-
-	return NULL;
-}
+#endif
+/**
+ * @}
+ */
