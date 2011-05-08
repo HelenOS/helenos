@@ -276,7 +276,7 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	ino2 += ino_off;
 
 	ino2->i_mode = conv16(native, ino_i->i_mode);
-	ino2->i_nlinks = conv16(native, ino_i->i_mode);
+	ino2->i_nlinks = conv16(native, ino_i->i_nlinks);
 	ino2->i_uid = conv16(native, ino_i->i_uid);
 	ino2->i_gid = conv16(native, ino_i->i_gid);
 	ino2->i_size = conv32(native, ino_i->i_size);
