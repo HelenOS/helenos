@@ -79,6 +79,9 @@ void usb_device_keeper_release(usb_device_keeper_t *instance,
 usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
     devman_handle_t handle);
 
+bool usb_device_keeper_find_by_address(usb_device_keeper_t *instance,
+    usb_address_t address, devman_handle_t *handle);
+
 usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
     usb_address_t address);
 #endif

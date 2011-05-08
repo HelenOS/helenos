@@ -59,7 +59,6 @@ static int hc_debug_checker(void *arg);
 /** Initialize UHCI hcd driver structure
  *
  * @param[in] instance Memory place to initialize.
- * @param[in] fun DDF function.
  * @param[in] regs Address of I/O control registers.
  * @param[in] size Size of I/O control registers.
  * @return Error code.
@@ -68,8 +67,7 @@ static int hc_debug_checker(void *arg);
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, ddf_fun_t *fun,
-    void *regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 {
 	assert(reg_size >= sizeof(regs_t));
 	int ret;

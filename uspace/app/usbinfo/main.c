@@ -307,7 +307,8 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		usbinfo_device_t *dev = prepare_device(hc_handle, dev_addr);
+		usbinfo_device_t *dev = prepare_device(devpath,
+		    hc_handle, dev_addr);
 		if (dev == NULL) {
 			continue;
 		}
