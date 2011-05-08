@@ -110,7 +110,7 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
 
 	usb_hid_report_description_t *report_des;
 	usb_hid_report_type_t type = USB_HID_REPORT_TYPE_INPUT;
-
+	
 	if(report == NULL) {
 		return EINVAL;
 	}
@@ -139,8 +139,15 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
 				item->value = usb_hid_translate_data(item, data);
 		
 				item->usage = USB_HID_EXTENDED_USAGE(item->usages[item->value - item->physical_minimum]);
-				item->usage_page = USB_HID_EXTENDED_USAGE_PAGE(item->usages[item->value - item->physical_minimum]);
+				item->usage_page = USB_HID_EXTENDED_USAGE_PAGE(item->usages[item->value - item->physical_minimum]);				
 
+				usb_hid_report_set_last_item (item->collection_path, 
+				                              USB_HID_TAG_CLASS_GLOBAL,
+				                              item->usage_page);
+				usb_hid_report_set_last_item (item->collection_path, 
+				                              USB_HID_TAG_CLASS_LOCAL,
+				                              item->usage);
+				
 			}
 			else {
 				// variable item
@@ -149,7 +156,7 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
 		}
 		list_item = list_item->next;
 	}
-	   
+	
 	return EOK;
 	
 }
