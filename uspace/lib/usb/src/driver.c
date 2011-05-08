@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,40 +25,52 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief OHCI driver
+ *
  */
-#include <usb/usb.h>
-#include "transfer_descriptor.h"
+#include <devman.h>
+#include <dev_iface.h>
+#include <usb_iface.h>
+#include <usb/driver.h>
+#include <errno.h>
 
-static unsigned dp[3] =
-    { TD_STATUS_DP_IN, TD_STATUS_DP_OUT, TD_STATUS_DP_SETUP };
-static unsigned togg[2] = { TD_STATUS_T_0, TD_STATUS_T_1 };
 
-void td_init(
-    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle)
+/** Find host controller handle that is ancestor of given device.
+ *
+ * @param[in] device_handle Device devman handle.
+ * @param[out] hc_handle Where to store handle of host controller
+ *	controlling device with @p device_handle handle.
+ * @return Error code.
+ */
+int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
 {
-	assert(instance);
-	bzero(instance, sizeof(td_t));
-	instance-> status = 0
-	    | ((dp[dir] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
-	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT);
-	if (toggle == 0 || toggle == 1) {
-		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
+	int parent_phone = devman_parent_device_connect(device_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
 	}
-	if (dir == USB_DIRECTION_IN) {
-		instance->status |= TD_STATUS_ROUND_FLAG;
+
+	devman_handle_t h;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
+
+	async_hangup(parent_phone);
+
+	if (rc != EOK) {
+		return rc;
 	}
-	if (buffer != NULL) {
-		assert(size != 0);
-		instance->cbp = addr_to_phys(buffer);
-		instance->be = addr_to_phys(buffer + size - 1);
+
+	if (hc_handle != NULL) {
+		*hc_handle = h;
 	}
+
+	return EOK;
 }
+
 /**
  * @}
  */
-

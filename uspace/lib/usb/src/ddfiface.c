@@ -36,6 +36,7 @@
 #include <devman.h>
 #include <async.h>
 #include <usb/ddfiface.h>
+#include <usb/driver.h>
 #include <usb/debug.h>
 #include <errno.h>
 #include <assert.h>

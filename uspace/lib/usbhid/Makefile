@@ -27,22 +27,19 @@
 #
 
 USPACE_PREFIX = ../..
-
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+LIBRARY = libusbhid
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
-	
-BINARY = usbmid
+	-I$(LIBDRV_PREFIX)/include \
+	-Iinclude
 
 SOURCES = \
-	dump.c \
-	explore.c \
-	main.c \
-	usbmid.c
+	src/hiddescriptor.c \
+	src/hidiface.c \
+	src/hidparser.c \
+	src/hidpath.c \
+	src/hidreport.c \
+	src/hidreq.c
 
 include $(USPACE_PREFIX)/Makefile.common

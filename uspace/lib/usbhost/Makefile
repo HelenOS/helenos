@@ -27,22 +27,17 @@
 #
 
 USPACE_PREFIX = ../..
-
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+LIBRARY = libusbhost
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
-	
-BINARY = usbmid
+	-I$(LIBDRV_PREFIX)/include \
+	-Iinclude
 
 SOURCES = \
-	dump.c \
-	explore.c \
-	main.c \
-	usbmid.c
+	src/addrkeep.c \
+	src/batch.c \
+	src/device_keeper.c \
+	src/endpoint.c \
+	src/usb_endpoint_manager.c
 
 include $(USPACE_PREFIX)/Makefile.common

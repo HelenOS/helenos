@@ -27,22 +27,25 @@
 #
 
 USPACE_PREFIX = ../..
-
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+LIBRARY = libusbdev
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
-	
-BINARY = usbmid
+	-I$(LIBDRV_PREFIX)/include \
+	-Iinclude
 
 SOURCES = \
-	dump.c \
-	explore.c \
-	main.c \
-	usbmid.c
+	src/altiface.c \
+	src/devdrv.c \
+	src/devpoll.c \
+	src/dp.c \
+	src/hub.c \
+	src/pipepriv.c \
+	src/pipepriv.h \
+	src/pipes.c \
+	src/pipesinit.c \
+	src/pipesio.c \
+	src/recognise.c \
+	src/request.c \
+	src/usbdevice.c
 
 include $(USPACE_PREFIX)/Makefile.common
