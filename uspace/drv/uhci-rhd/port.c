@@ -64,7 +64,7 @@ static inline port_status_t uhci_port_read_status(uhci_port_t *port)
 /** Register writing helper function.
  *
  * @param[in] port Structure to use.
- * @param[in] value New register value.
+ * @param[in] val New register value.
  * @return Error code. (Always EOK)
  */
 static inline void uhci_port_write_status(uhci_port_t *port, port_status_t val)
@@ -76,7 +76,7 @@ static inline void uhci_port_write_status(uhci_port_t *port, port_status_t val)
 /** Initialize UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
- * @param[in] addr Address of I/O register.
+ * @param[in] address Address of I/O register.
  * @param[in] number Port number.
  * @param[in] usec Polling interval.
  * @param[in] rh Pointer to ddf instance fo the root hub driver.

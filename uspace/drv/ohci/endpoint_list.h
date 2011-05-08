@@ -40,8 +40,7 @@
 #include "hw_struct/endpoint_descriptor.h"
 #include "utils/malloc32.h"
 
-typedef struct endpoint_list
-{
+typedef struct endpoint_list {
 	fibril_mutex_t guard;
 	ed_t *list_head;
 	uint32_t list_head_pa;

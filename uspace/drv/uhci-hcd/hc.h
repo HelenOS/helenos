@@ -32,8 +32,8 @@
 /** @file
  * @brief UHCI host controller driver structure
  */
-#ifndef DRV_UHCI_UHCI_HC_H
-#define DRV_UHCI_UHCI_HC_H
+#ifndef DRV_UHCI_HC_H
+#define DRV_UHCI_HC_H
 
 #include <fibril.h>
 #include <fibril_synch.h>

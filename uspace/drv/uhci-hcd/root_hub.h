@@ -32,8 +32,8 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_UHCI_RH_H
-#define DRV_UHCI_UHCI_RH_H
+#ifndef DRV_UHCI_RH_H
+#define DRV_UHCI_RH_H
 
 #include <ddf/driver.h>
 #include <ops/hw_res.h>

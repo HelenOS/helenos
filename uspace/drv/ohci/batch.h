@@ -25,14 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * @brief OHCI driver USB transaction structure
  */
-#ifndef DRV_UHCI_BATCH_H
-#define DRV_UHCI_BATCH_H
+#ifndef DRV_OHCI_BATCH_H
+#define DRV_OHCI_BATCH_H
 
 #include <usbhc_iface.h>
 #include <usb/usb.h>
