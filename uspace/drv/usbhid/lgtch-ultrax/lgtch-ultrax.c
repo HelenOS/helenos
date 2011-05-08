@@ -405,10 +405,12 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	 *  @todo The parsing is not OK
 	 */
 	while (field != NULL) {
+		usb_log_debug("\n");
 		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
 		    field->usage);
-		
-		key = usb_lgtch_map_usage(field->usage);
+
+		key = field->usage;
+		//key = usb_lgtch_map_usage(field->usage);
 		usb_lgtch_push_ev(hid_dev, KEY_PRESS, key);
 		
 		field = usb_hid_report_get_sibling(
