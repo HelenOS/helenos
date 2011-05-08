@@ -31,13 +31,13 @@
 /** @file
  * @brief UHCI root hub port routines
  */
-#include <libarch/ddi.h> /* pio_read and pio_write */
+#include <libarch/ddi.h>  /* pio_read and pio_write */
+#include <fibril_synch.h> /* async_usleep */
 #include <errno.h>
 #include <str_error.h>
-#include <fibril_synch.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/hub.h>
+#include <usb/hub.h>    /* usb_hc_new_device_wrapper */
 #include <usb/debug.h>
 
 #include "port.h"
@@ -211,12 +211,6 @@ int uhci_port_reset_enable(int portno, void *arg)
 	usb_log_debug2("%s: new_device_enable_port.\n", port->id_string);
 
 	/*
-	 * The host then waits for at least 100 ms to allow completion of
-	 * an insertion process and for power at the device to become stable.
-	 */
-	async_usleep(100000);
-
-	/*
 	 * Resets from root ports should be nominally 50ms
 	 */
 	{
@@ -230,9 +224,6 @@ int uhci_port_reset_enable(int portno, void *arg)
 		uhci_port_write_status(port, port_status);
 		usb_log_debug("%s: Reset Signal stop.\n", port->id_string);
 	}
-
-	/* the reset recovery time 10ms */
-	async_usleep(10000);
 
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
@@ -312,7 +303,6 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 
 	/* Wait for port to become enabled */
 	do {
-		async_usleep(1000);
 		port_status = uhci_port_read_status(port);
 	} while ((port_status & STATUS_CONNECTED) &&
 	    !(port_status & STATUS_ENABLED));
