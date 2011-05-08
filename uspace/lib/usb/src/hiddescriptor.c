@@ -63,8 +63,11 @@
 usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report, usb_hid_report_path_t *cmp_path)
 {
 	/* find or append current collection path to the list */
-	link_t *path_it = report->collection_paths.next;
+	//link_t *path_it = report->collection_paths.next;
+	link_t *path_it = report->collection_paths.prev->next;
 	usb_hid_report_path_t *path = NULL;
+	
+	
 	while(path_it != &report->collection_paths) {
 		path = list_get_instance(path_it, usb_hid_report_path_t, link);
 		
@@ -115,8 +118,6 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 	usb_hid_report_field_t *field;
 	int i;
 
-	usb_log_debug("usages_count  - %zu\n", report_item->usages_count);
-
 	uint32_t *usages;
 	int usages_used=0;
 	if(report_item->usages_count > 0){
@@ -146,7 +147,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 			 	on data in report and will be filled later
 			*/
 			field->usage = 0;
-			field->usage_page = report_item->usage_page;
+			field->usage_page = 0; //report_item->usage_page;
 
 			field->usages_count = report_item->usages_count;
 			field->usages = usages;
@@ -167,6 +168,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 				field->usage_page = USB_HID_EXTENDED_USAGE_PAGE(usage);
 			}
 			else {
+				// should not occur
 				field->usage = usage;
 				field->usage_page = report_item->usage_page;
 			}
@@ -464,8 +466,12 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 			path_item->flags = *data;	
 			
 			// set last item
-			usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_GLOBAL, report_item->usage_page);
-			usb_hid_report_set_last_item(usage_path, USB_HID_TAG_CLASS_LOCAL, report_item->usages[report_item->usages_count-1]);
+			usb_hid_report_set_last_item(usage_path, 
+			                             USB_HID_TAG_CLASS_GLOBAL, 
+			                             USB_HID_EXTENDED_USAGE_PAGE(report_item->usages[report_item->usages_count-1]));
+			usb_hid_report_set_last_item(usage_path, 
+			                             USB_HID_TAG_CLASS_LOCAL, 
+			                             USB_HID_EXTENDED_USAGE(report_item->usages[report_item->usages_count-1]));
 			
 			// append the new one which will be set by common
 			// usage/usage page
@@ -560,6 +566,8 @@ int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data, size_t ite
 int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item, usb_hid_report_path_t *usage_path)
 {
+	int32_t extended_usage;
+	
 	switch(tag) {
 		case USB_HID_REPORT_TAG_USAGE:
 			switch(report_item->in_delimiter) {
@@ -569,7 +577,9 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 				case START_DELIMITER_SET:
 					report_item->in_delimiter = INSIDE_DELIMITER_SET;
 				case OUTSIDE_DELIMITER_SET:
-					report_item->usages[report_item->usages_count] = usb_hid_report_tag_data_uint32(data,item_size);
+					extended_usage = ((report_item->usage_page) << 16);
+					extended_usage += usb_hid_report_tag_data_uint32(data,item_size);
+					report_item->usages[report_item->usages_count] = extended_usage;
 					report_item->usages_count++;
 					break;
 			}
@@ -606,7 +616,8 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 					report_item->usages[report_item->usages_count++] = (report_item->extended_usage_page << 16) + i;
 				}
 				else {
-					report_item->usages[report_item->usages_count++] = i;
+					
+					report_item->usages[report_item->usages_count++] = (report_item->usage_page << 16) + i;
 				}
 			}
 			report_item->extended_usage_page = 0;
@@ -690,12 +701,13 @@ void usb_hid_descriptor_print_list(link_t *head)
 		usb_log_debug("\t\tPHYMAX: %d\n", report_item->physical_maximum);				
 		usb_log_debug("\t\ttUSAGEMIN: %X\n", report_item->usage_minimum);
 		usb_log_debug("\t\tUSAGEMAX: %X\n", report_item->usage_maximum);
+		usb_log_debug("\t\tUSAGES COUNT: %zu\n", report_item->usages_count);
 
 		usb_log_debug("\t\tVALUE: %X\n", report_item->value);
 		usb_log_debug("\t\ttUSAGE: %X\n", report_item->usage);
 		usb_log_debug("\t\tUSAGE PAGE: %X\n", report_item->usage_page);
 		
-		//usb_hid_print_usage_path(report_item->collection_path);
+		usb_hid_print_usage_path(report_item->collection_path);
 
 		usb_log_debug("\n");		
 
@@ -727,13 +739,13 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 
 		usb_hid_descriptor_print_list(&report_des->report_items);
 
-
+/*
 		link_t *path_it = report->collection_paths.next;
 		while(path_it != &report->collection_paths) {
 			usb_hid_print_usage_path (list_get_instance(path_it, usb_hid_report_path_t, link));
 			path_it = path_it->next;
 		}
-		
+*/		
 		report_it = report_it->next;
 	}
 }

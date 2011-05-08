@@ -57,7 +57,10 @@
 int pci_get_my_registers(ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
-	assert(dev != NULL);
+	assert(dev);
+	assert(mem_reg_address);
+	assert(mem_reg_size);
+	assert(irq_no);
 
 	int parent_phone = devman_parent_device_connect(dev->handle,
 	    IPC_FLAG_BLOCKING);

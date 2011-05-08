@@ -179,6 +179,7 @@ static ddf_dev_ops_t lgtch_ultrax_ops = {
  *             KEY_PRESS, KEY_RELEASE
  * @param key Key code of the key according to HID Usage Tables.
  */
+/*
 static void usb_lgtch_push_ev(usb_hid_dev_t *hid_dev, int type, 
     unsigned int key)
 {
@@ -205,7 +206,7 @@ static void usb_lgtch_push_ev(usb_hid_dev_t *hid_dev, int type,
 	async_msg_4(lgtch_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
 	    ev.mods, ev.c);
 }
-
+*/
 /*----------------------------------------------------------------------------*/
 
 static void usb_lgtch_free(usb_lgtch_ultrax_t **lgtch_dev)
@@ -395,11 +396,11 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	usb_hid_report_path_set_report_id(path, report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
+	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_BEGIN 
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	
-	unsigned int key;
+//	unsigned int key;
 	
 	/*! @todo Is this iterating OK if done multiple times? 
 	 *  @todo The parsing is not OK
@@ -408,11 +409,11 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
 		    field->usage);
 		
-		key = usb_lgtch_map_usage(field->usage);
-		usb_lgtch_push_ev(hid_dev, KEY_PRESS, key);
+//		key = usb_lgtch_map_usage(field->usage);
+//		usb_lgtch_push_ev(hid_dev, KEY_PRESS, key);
 		
 		field = usb_hid_report_get_sibling(
-		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
+		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_BEGIN
 		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 		    USB_HID_REPORT_TYPE_INPUT);
 	}	

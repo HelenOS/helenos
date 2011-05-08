@@ -198,14 +198,15 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		usb_hid_report_path_set_report_id(usage_path, 
 		    mapping->report_id);
 	}
-	
+
+	uint8_t report_id = (mapping->report_id >= 0) ? mapping->report_id : 0;
 	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
-	size_t size = usb_hid_report_size(hid_dev->report, mapping->report_id, 
+	size_t size = usb_hid_report_size(hid_dev->report, report_id, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	usb_log_debug("Size of the input report: %zuB\n", size);
-	
+
 	usb_hid_report_path_free(usage_path);
 	
 	return (size > 0);

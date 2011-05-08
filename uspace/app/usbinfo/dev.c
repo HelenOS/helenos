@@ -39,8 +39,8 @@
 #include <usb/request.h>
 #include "usbinfo.h"
 
-usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
-    usb_address_t dev_addr)
+usbinfo_device_t *prepare_device(const char *name,
+    devman_handle_t hc_handle, usb_address_t dev_addr)
 {
 	usbinfo_device_t *dev = malloc(sizeof(usbinfo_device_t));
 	if (dev == NULL) {
@@ -54,8 +54,8 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 	rc = usb_device_connection_initialize(&dev->wire, hc_handle, dev_addr);
 	if (rc != EOK) {
 		fprintf(stderr,
-		    NAME ": failed to create connection to the device: %s.\n",
-		    str_error(rc));
+		    NAME ": failed to create connection to device %s: %s.\n",
+		    name, str_error(rc));
 		goto leave;
 	}
 
@@ -63,16 +63,22 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 	    &dev->wire);
 	if (rc != EOK) {
 		fprintf(stderr,
-		    NAME ": failed to create default control pipe: %s.\n",
-		    str_error(rc));
+		    NAME ": failed to create default control pipe to %s: %s.\n",
+		    name, str_error(rc));
 		goto leave;
 	}
 
 	rc = usb_pipe_probe_default_control(&dev->ctrl_pipe);
 	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": probing default control pipe failed: %s.\n",
-		    str_error(rc));
+		if (rc == ENOENT) {
+			fprintf(stderr, NAME ": " \
+			    "device %s not present or malfunctioning.\n",
+			    name);
+		} else {
+			fprintf(stderr, NAME ": " \
+			    "probing default control pipe of %s failed: %s.\n",
+			    name, str_error(rc));
+		}
 		goto leave;
 	}
 
@@ -83,8 +89,8 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 	    &dev->device_descriptor);
 	if (rc != EOK) {
 		fprintf(stderr,
-		    NAME ": failed to retrieve device descriptor: %s.\n",
-		    str_error(rc));
+		    NAME ": failed to retrieve device descriptor of %s: %s.\n",
+		    name, str_error(rc));
 		goto leave;
 	}
 
@@ -92,9 +98,9 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 	    &dev->ctrl_pipe, 0, (void **)&dev->full_configuration_descriptor,
 	    &dev->full_configuration_descriptor_size);
 	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to retrieve configuration descriptor: %s.\n",
-		    str_error(rc));
+		fprintf(stderr, NAME ": " \
+		    "failed to retrieve configuration descriptor of %s: %s.\n",
+		    name, str_error(rc));
 		goto leave;
 	}
 

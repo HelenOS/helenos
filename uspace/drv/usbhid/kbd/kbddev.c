@@ -676,7 +676,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 //	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
 //	    callbacks, kbd_dev);
 	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 6);
 	//usb_hid_report_path_set_report_id(path, 0);
 
 	uint8_t report_id;
@@ -694,10 +694,10 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    USB_HID_PATH_COMPARE_BEGIN, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	unsigned i = 0;
-	
+
 	while (field != NULL) {
 		//usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)\n", 
 		//    field, field->value, field->usage);
@@ -715,19 +715,20 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 		 *       that. One possible solution: distinguish between those
 		 *       two parts of the Report somehow.
 		 */
+		usb_log_debug("value(%x), usage(%x)\n", field->value, field->usage);
 		if (field->value != 0) {
-			kbd_dev->keys[i] = field->usage;
+			//kbd_dev->keys[i] = field->usage;
 		}
 		else {
-			kbd_dev->keys[i] = 0;
+			//kbd_dev->keys[i] = 0;
 		}
-		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
+		//usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
 		
 		++i;
 		field = usb_hid_report_get_sibling(hid_dev->report, field, path, 
-		    USB_HID_PATH_COMPARE_END 
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    USB_HID_PATH_COMPARE_BEGIN,
 		    USB_HID_REPORT_TYPE_INPUT);
+		usb_log_debug("field -- %p\n", field);
 	}
 	
 	usb_hid_report_path_free(path);
@@ -859,17 +860,10 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	/*
 	 * TODO: make more general
 	 */
-	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
-	
-	usb_hid_report_path_set_report_id(path, 0);
-	
 	kbd_dev->key_count = usb_hid_report_size(
 	    hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT);
-	usb_hid_report_path_free(path);
 	
-	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
-	
+	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);	
 	kbd_dev->keys = (int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
 	
 	if (kbd_dev->keys == NULL) {
@@ -985,7 +979,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 		usb_kbd_free(&kbd_dev);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
