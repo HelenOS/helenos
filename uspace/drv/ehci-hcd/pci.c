@@ -299,8 +299,7 @@ int pci_disable_legacy(ddf_dev_t *device)
 	if (*usbcmd & USBCMD_RUN) {
 		*usbcmd = 0;
 		while (!(*usbsts & (1 << 12))); /*wait until hc is halted */
-		*usbcmd = 0x2; /* reset */
-		while (*usbcmd & 0x2); /* wait for reset to complete */
+		*usbconfigured = 0;
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");
