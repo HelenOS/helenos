@@ -38,7 +38,7 @@
 #include <stdint.h>
 #include <adt/list.h>
 
-#define USB_HID_MAX_USAGES	20
+#define USB_HID_MAX_USAGES	0xffff
 
 #define USB_HID_UINT32_TO_INT32(x, size)	((((x) & (1 << ((size) - 1))) != 0) ? -(~(x - 1) & ((1 << size) - 1)) : (x)) //(-(~((x) - 1)))
 #define USB_HID_INT32_TO_UINT32(x, size)	(((x) < 0 ) ? ((1 << (size)) + (x)) : (x))
@@ -91,11 +91,13 @@ typedef struct {
 	int32_t logical_maximum;
 	int32_t physical_minimum;
 	int32_t physical_maximum;
-	uint32_t usage_minimum;
-	uint32_t usage_maximum;
+	int32_t usage_minimum;
+	int32_t usage_maximum;
 	uint32_t unit;
 	uint32_t unit_exponent;
-	
+
+	uint32_t *usages;
+	size_t usages_count;
 
 	int32_t value;
 
@@ -120,9 +122,9 @@ typedef struct {
 	uint32_t usage_page;
 
 	/** */	
-	uint32_t usage_minimum;
+	int32_t usage_minimum;
 	/** */	
-	uint32_t usage_maximum;
+	int32_t usage_maximum;
 	/** */	
 	int32_t logical_minimum;
 	/** */	

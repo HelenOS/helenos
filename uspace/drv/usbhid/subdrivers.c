@@ -41,12 +41,12 @@
 #include "mouse/mousedev.h"
 
 static usb_hid_subdriver_usage_t path_kbd[] = {
-	{USB_HIDUT_PAGE_KEYBOARD, 0}, 
+	{USB_HIDUT_PAGE_GENERIC_DESKTOP, USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD}, 
 	{0, 0}
 };
 
 static usb_hid_subdriver_usage_t path_mouse2[] = {
-	{USB_HIDUT_PAGE_GENERIC_DESKTOP, USB_HIDUT_USAGE_GENERIC_DESKTOP_X},
+	{USB_HIDUT_PAGE_GENERIC_DESKTOP, USB_HIDUT_USAGE_GENERIC_DESKTOP_MOUSE}, 
 	{0, 0}
 };
 
@@ -58,9 +58,8 @@ static usb_hid_subdriver_usage_t lgtch_path[] = {
 const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		path_kbd,
-		-1,
-		USB_HID_PATH_COMPARE_END 
-		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		0,
+		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
 		{
@@ -74,8 +73,8 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		lgtch_path,
 		1,
-		USB_HID_PATH_COMPARE_END 
-		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		USB_HID_PATH_COMPARE_BEGIN
+		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,		
 		0x046d,
 		0xc30e,
 		{
@@ -87,9 +86,8 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	},
 	{
 		path_mouse2,
-		-1,
-		USB_HID_PATH_COMPARE_END 
-		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		0,
+		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
 		{

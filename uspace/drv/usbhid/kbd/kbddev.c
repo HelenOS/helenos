@@ -312,11 +312,11 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, kbd_dev->led_path, 
-	    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_OUTPUT);
 	
-	while (field != NULL) {
-
+	while (field != NULL) {		
+		
 		if ((field->usage == USB_HID_LED_NUM_LOCK) 
 		    && (kbd_dev->mods & KM_NUM_LOCK)){
 			field->value = 1;
@@ -333,8 +333,9 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		}
 		
 		field = usb_hid_report_get_sibling(hid_dev->report, field,
-		    kbd_dev->led_path, USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY 
-		    | USB_HID_PATH_COMPARE_END, USB_HID_REPORT_TYPE_OUTPUT);
+		    kbd_dev->led_path,  
+	    	USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+			USB_HID_REPORT_TYPE_OUTPUT);
 	}
 	
 	// TODO: what about the Report ID?
@@ -864,9 +865,8 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	
 	usb_hid_report_path_set_report_id(path, 0);
 	
-	kbd_dev->key_count = usb_hid_report_input_length(
-	    hid_dev->report, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	kbd_dev->key_count = usb_hid_report_size(
+	    hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT); 
 	usb_hid_report_path_free(path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
@@ -907,9 +907,8 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	usb_hid_report_path_append_item(
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
 	
-	kbd_dev->led_output_size = usb_hid_report_output_size(hid_dev->report, 
-	    kbd_dev->led_path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	kbd_dev->led_output_size = usb_hid_report_size(hid_dev->report, 
+	    0, USB_HID_REPORT_TYPE_OUTPUT);
 	
 	usb_log_debug("Output report size (in items): %zu\n", 
 	    kbd_dev->led_output_size);

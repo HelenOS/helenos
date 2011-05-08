@@ -299,9 +299,8 @@ int usb_lgtch_init(struct usb_hid_dev *hid_dev)
 	
 	usb_hid_report_path_set_report_id(path, 1);
 	
-	lgtch_dev->key_count = usb_hid_report_input_length(
-	    hid_dev->report, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	lgtch_dev->key_count = usb_hid_report_size(
+	    hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT);
 	usb_hid_report_path_free(path);
 	
 	usb_log_debug(NAME " Size of the input report: %zu\n", 
@@ -399,17 +398,19 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	
-	unsigned int key;
+//	unsigned int key;
 	
 	/*! @todo Is this iterating OK if done multiple times? 
 	 *  @todo The parsing is not OK
 	 */
 	while (field != NULL) {
-		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
-		    field->usage);
+		if(field->value != 0) {
+			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
+			    field->usage);
 		
-		key = usb_lgtch_map_usage(field->usage);
-		usb_lgtch_push_ev(hid_dev, KEY_PRESS, key);
+			//key = usb_lgtch_map_usage(field->usage);
+			usb_lgtch_push_ev(hid_dev, KEY_PRESS, field->usage);
+		}
 		
 		field = usb_hid_report_get_sibling(
 		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END

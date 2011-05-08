@@ -50,10 +50,6 @@
 int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
                          size_t size, uint8_t *report_id);
 
-/** */
-size_t usb_hid_report_input_length(const usb_hid_report_t *report,
-	usb_hid_report_path_t *path, int flags);
-
 /*
  * Output report parser functions
  */
@@ -64,9 +60,9 @@ uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size,
 /** Frees output report buffer*/
 void usb_hid_report_output_free(uint8_t *output);
 
-/** Returns size of output for given usage path */
-size_t usb_hid_report_output_size(usb_hid_report_t *report,
-                                  usb_hid_report_path_t *path, int flags);
+/** Returns size of report in items */
+size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id, 
+                           usb_hid_report_type_t type);
 
 /** Makes the output report buffer by translated given data */
 int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id, 
