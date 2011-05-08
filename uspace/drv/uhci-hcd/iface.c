@@ -121,6 +121,25 @@ static int bind_address(
 	usb_device_keeper_bind(&hc->manager, address, handle);
 	return EOK;
 }
+
+/** Find device handle by address interface function.
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] address Address in question.
+ * @param[out] handle Where to store device handle if found.
+ * @return Error code.
+ */
+static int find_by_address(ddf_fun_t *fun, usb_address_t address,
+    devman_handle_t *handle)
+{
+	assert(fun);
+	hc_t *hc = fun_to_hc(fun);
+	assert(hc);
+	bool found =
+	    usb_device_keeper_find_by_address(&hc->manager, address, handle);
+	return found ? EOK : ENOENT;
+}
+
 /*----------------------------------------------------------------------------*/
 /** Release address interface function
  *
@@ -351,6 +370,7 @@ static int control_read(
 usbhc_iface_t hc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
+	.find_by_address = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,
