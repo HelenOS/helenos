@@ -334,61 +334,60 @@ int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id,
 
 		usb_log_debug("OUTPUT ITEM usage(%x), value(%x)\n", report_item->usage, report_item->value);
 		
-			if(USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) {
+		if(USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) {
 					
-				// array
-				value = usb_hid_translate_data_reverse(report_item, report_item->value);
-				offset = report_item->offset;
-				length = report_item->size;
+			// array
+			value = usb_hid_translate_data_reverse(report_item, report_item->value);
+			offset = report_item->offset;
+			length = report_item->size;
+		}
+		else {
+			// variable item
+			value  = usb_hid_translate_data_reverse(report_item, report_item->value);
+			offset = report_item->offset;
+			length = report_item->size;
+		}
+
+		usb_log_debug("\ttranslated value: %x\n", value);
+
+		if((offset/8) == ((offset+length-1)/8)) {
+			// je to v jednom bytu
+			if(((size_t)(offset/8) >= size) || ((size_t)(offset+length-1)/8) >= size) {
+				break; // TODO ErrorCode
 			}
-			else {
-				// variable item
-				value  = usb_hid_translate_data_reverse(report_item, report_item->value);
-				offset = report_item->offset;
-				length = report_item->size;
-			}
-
-			if((offset/8) == ((offset+length-1)/8)) {
-				// je to v jednom bytu
-				if(((size_t)(offset/8) >= size) || ((size_t)(offset+length-1)/8) >= size) {
-					break; // TODO ErrorCode
-				}
-
-				size_t shift = 8 - offset%8 - length;
-
-				value = value << shift;							
-				value = value & (((1 << length)-1) << shift);
+			size_t shift = 8 - offset%8 - length;
+			value = value << shift;							
+			value = value & (((1 << length)-1) << shift);
 				
-				uint8_t mask = 0;
-				mask = 0xff - (((1 << length) - 1) << shift);
-				buffer[offset/8] = (buffer[offset/8] & mask) | value;
-			}
-			else {
-				int i = 0;
-				uint8_t mask = 0;
-				for(i = (offset/8); i <= ((offset+length-1)/8); i++) {
-					if(i == (offset/8)) {
-						tmp_value = value;
-						tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);				
-						tmp_value = tmp_value << (offset%8);
+			uint8_t mask = 0;
+			mask = 0xff - (((1 << length) - 1) << shift);
+			buffer[offset/8] = (buffer[offset/8] & mask) | value;
+		}
+		else {
+			int i = 0;
+			uint8_t mask = 0;
+			for(i = (offset/8); i <= ((offset+length-1)/8); i++) {
+				if(i == (offset/8)) {
+					tmp_value = value;
+					tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);				
+					tmp_value = tmp_value << (offset%8);
 	
-						mask = ~(((1 << (8-(offset%8)))-1) << (offset%8));
-						buffer[i] = (buffer[i] & mask) | tmp_value;			
-					}
-					else if (i == ((offset + length -1)/8)) {
-						
-						value = value >> (length - ((offset + length) % 8));
-						value = value & ((1 << (length - ((offset + length) % 8))) - 1);
+					mask = ~(((1 << (8-(offset%8)))-1) << (offset%8));
+					buffer[i] = (buffer[i] & mask) | tmp_value;			
+				}
+				else if (i == ((offset + length -1)/8)) {
+					
+					value = value >> (length - ((offset + length) % 8));
+					value = value & ((1 << (length - ((offset + length) % 8))) - 1);
 				
-						mask = (1 << (length - ((offset + length) % 8))) - 1;
-						buffer[i] = (buffer[i] & mask) | value;
-					}
-					else {
-						buffer[i] = value & (0xFF << i);
-					}
+					mask = (1 << (length - ((offset + length) % 8))) - 1;
+					buffer[i] = (buffer[i] & mask) | value;
+				}
+				else {
+					buffer[i] = value & (0xFF << i);
 				}
 			}
-
+		}
 
 		// reset value
 		report_item->value = 0;
@@ -421,36 +420,23 @@ uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item, int value)
 		item->physical_maximum = item->logical_maximum;			
 	}
 	
-
-	if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0)) {
-
-		// variable item
-		if(item->physical_maximum == item->physical_minimum){
-		    resolution = 1;
-		}
-		else {
-		    resolution = (item->logical_maximum - item->logical_minimum) /
-			((item->physical_maximum - item->physical_minimum) *
-			(usb_pow(10,(item->unit_exponent))));
-		}
-
-		ret = ((value - item->physical_minimum) * resolution) + item->logical_minimum;
+	// variable item
+	if(item->physical_maximum == item->physical_minimum){
+	    resolution = 1;
 	}
 	else {
-		// bitmapa
-		if(value == 0) {
-			ret = 0;
-		}
-		else {
-			size_t bitmap_idx = (value - item->usage_minimum);
-			ret = 1 << bitmap_idx;
-		}
+	    resolution = (item->logical_maximum - item->logical_minimum) /
+		((item->physical_maximum - item->physical_minimum) *
+		(usb_pow(10,(item->unit_exponent))));
 	}
 
+	ret = ((value - item->physical_minimum) * resolution) + item->logical_minimum;
+	usb_log_debug("\tvalue(%x), resolution(%x), phymin(%x) logmin(%x), ret(%x)\n", value, resolution, item->physical_minimum, item->logical_minimum, ret);
+	
 	if((item->logical_minimum < 0) || (item->logical_maximum < 0)){
 		return USB_HID_INT32_TO_UINT32(ret, item->size);
 	}
-	return (int32_t)ret;
+	return (int32_t)0 + ret;
 }
 
 usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item)
