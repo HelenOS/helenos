@@ -141,6 +141,8 @@ int usb_request_get_string(usb_pipe_t *, size_t, l18_win_locales_t,
     char **);
 
 int usb_request_clear_endpoint_halt(usb_pipe_t *, uint16_t);
+int usb_pipe_clear_halt(usb_pipe_t *, usb_pipe_t *);
+int usb_request_get_endpoint_status(usb_pipe_t *, usb_pipe_t *, uint16_t *);
 
 #endif
 /**
