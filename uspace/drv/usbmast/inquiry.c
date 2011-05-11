@@ -54,6 +54,8 @@
 #define INQUIRY_RESPONSE_LENGTH 36
 
 #define STR_UNKNOWN "<unknown>"
+
+/** String constants for SCSI peripheral device types. */
 static const char *str_peripheral_device_types[] = {
 	"direct-access device",
 	"sequential-access device",
@@ -91,6 +93,14 @@ static const char *str_peripheral_device_types[] = {
 #define str_peripheral_device_types_count \
 	(sizeof(str_peripheral_device_types)/sizeof(str_peripheral_device_types[0]))
 
+/** Get string representation for SCSI peripheral device type.
+ *
+ * See for example here for a list
+ * http://en.wikipedia.org/wiki/SCSI_Peripheral_Device_Type.
+ *
+ * @param type SCSI peripheral device type code.
+ * @return String representation.
+ */
 const char *usb_str_masstor_scsi_peripheral_device_type(int type)
 {
 	if ((type < 0)
@@ -100,6 +110,10 @@ const char *usb_str_masstor_scsi_peripheral_device_type(int type)
 	return str_peripheral_device_types[type];
 }
 
+/** Trim trailing spaces from a string (rewrite with string terminator).
+ *
+ * @param name String to be trimmed (in-out parameter).
+ */
 static void trim_trailing_spaces(char *name)
 {
 	size_t len = str_length(name);
@@ -109,6 +123,14 @@ static void trim_trailing_spaces(char *name)
 	}
 }
 
+/** Perform SCSI INQUIRY command on USB mass storage device.
+ *
+ * @param dev USB device.
+ * @param bulk_in_idx Index (in dev->pipes) of bulk in pipe.
+ * @param bulk_out_idx Index of bulk out pipe.
+ * @param inquiry_result Where to store parsed inquiry result.
+ * @return Error code.
+ */
 int usb_massstor_inquiry(usb_device_t *dev,
     size_t bulk_in_idx, size_t bulk_out_idx,
     usb_massstor_inquiry_result_t *inquiry_result)

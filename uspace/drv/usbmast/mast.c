@@ -138,6 +138,11 @@ int usb_massstor_data_in(usb_device_t *dev,
 	return EOK;
 }
 
+/** Perform bulk-only mass storage reset.
+ *
+ * @param dev Device to be reseted.
+ * @return Error code.
+ */
 int usb_massstor_reset(usb_device_t *dev)
 {
 	return usb_control_request_set(&dev->ctrl_pipe,
@@ -145,6 +150,15 @@ int usb_massstor_reset(usb_device_t *dev)
 	    0xFF, 0, dev->interface_no, NULL, 0);
 }
 
+/** Perform complete reset recovery of bulk-only mass storage.
+ *
+ * Notice that no error is reported because if this fails, the error
+ * would reappear on next transaction somehow.
+ *
+ * @param dev Device to be reseted.
+ * @param bulk_in_idx Index of bulk in pipe.
+ * @param bulk_out_idx Index of bulk out pipe.
+ */
 void usb_massstor_reset_recovery(usb_device_t *dev,
     size_t bulk_in_idx, size_t bulk_out_idx)
 {
@@ -156,6 +170,14 @@ void usb_massstor_reset_recovery(usb_device_t *dev,
 	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[bulk_out_idx].pipe);
 }
 
+/** Get max LUN of a mass storage device.
+ *
+ * @warning Error from this command does not necessarily indicate malfunction
+ * of the device. Device does not need to support this request.
+ *
+ * @param dev Mass storage device.
+ * @return Error code of maximum LUN (index, not count).
+ */
 int usb_massstor_get_max_lun(usb_device_t *dev)
 {
 	uint8_t max_lun;

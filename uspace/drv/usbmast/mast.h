@@ -41,10 +41,18 @@
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
 
+/** Result of SCSI INQUIRY command.
+ * This is already parsed structure, not the original buffer returned by
+ * the device.
+ */
 typedef struct {
+	/** SCSI peripheral device type. */
 	int peripheral_device_type;
+	/** Whether the device is removable. */
 	bool removable;
+	/** Vendor ID string. */
 	char vendor_id[9];
+	/** Product ID and product revision string. */
 	char product_and_revision[12];
 } usb_massstor_inquiry_result_t;
 
