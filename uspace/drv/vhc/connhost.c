@@ -93,6 +93,22 @@ static int bind_address(ddf_fun_t *fun,
 	return EOK;
 }
 
+/** Find device handle by address interface function.
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] address Address in question.
+ * @param[out] handle Where to store device handle if found.
+ * @return Error code.
+ */
+static int find_by_address(ddf_fun_t *fun, usb_address_t address,
+    devman_handle_t *handle)
+{
+	VHC_DATA(vhc, fun);
+	bool found =
+	    usb_device_keeper_find_by_address(&vhc->dev_keeper, address, handle);
+	return found ? EOK : ENOENT;
+}
+
 /** Release previously requested address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -443,6 +459,7 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
 usbhc_iface_t vhc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
+	.find_by_address = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,

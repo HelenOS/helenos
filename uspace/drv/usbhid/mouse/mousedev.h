@@ -47,7 +47,10 @@ typedef struct {
 	///** Polling interval in microseconds. */
 	//suseconds_t poll_interval_us;
 	/** IPC phone to console (consumer). */
-	int console_phone;
+	int mouse_phone;
+	int wheel_phone;
+	
+	int32_t *buttons;
 } usb_mouse_t;
 
 /*----------------------------------------------------------------------------*/

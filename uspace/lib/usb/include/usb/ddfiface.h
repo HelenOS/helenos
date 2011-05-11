@@ -36,7 +36,6 @@
 #define LIBUSB_DDFIFACE_H_
 
 #include <sys/types.h>
-#include <usb/usbdevice.h>
 #include <usb_iface.h>
 
 int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *, devman_handle_t *);

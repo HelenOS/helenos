@@ -219,6 +219,14 @@
 	 */
 
 	/**
+	 * @defgroup lsusb HelenOS version of lsusb command
+	 * @ingroup usb
+	 * @brief Application for listing USB host controllers.
+	 * @details
+	 * List all found host controllers.
+	 */
+
+	/**
 	 * @defgroup drvusbmid USB multi interface device driver
 	 * @ingroup usb
 	 * @brief USB multi interface device driver

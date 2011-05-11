@@ -32,8 +32,6 @@
  * @brief OHCI driver
  */
 #include <usb/usb.h>
-#include "utils/malloc32.h"
-
 #include "transfer_descriptor.h"
 
 static unsigned dp[3] =

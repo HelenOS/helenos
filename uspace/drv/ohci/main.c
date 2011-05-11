@@ -42,7 +42,26 @@
 
 #define NAME "ohci"
 
-static int ohci_add_device(ddf_dev_t *device);
+/** Initializes a new ddf driver instance of OHCI hcd.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ */
+static int ohci_add_device(ddf_dev_t *device)
+{
+	usb_log_debug("ohci_add_device() called\n");
+	assert(device);
+
+	int ret = device_setup_ohci(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to initialize OHCI driver: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
+	usb_log_info("Controlling new OHCI device '%s'.\n", device->name);
+
+	return EOK;
+}
 /*----------------------------------------------------------------------------*/
 static driver_ops_t ohci_driver_ops = {
 	.add_device = ohci_add_device,
@@ -52,34 +71,6 @@ static driver_t ohci_driver = {
 	.name = NAME,
 	.driver_ops = &ohci_driver_ops
 };
-/*----------------------------------------------------------------------------*/
-/** Initializes a new ddf driver instance of OHCI hcd.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-int ohci_add_device(ddf_dev_t *device)
-{
-	usb_log_debug("ohci_add_device() called\n");
-	assert(device);
-	ohci_t *ohci = malloc(sizeof(ohci_t));
-	if (ohci == NULL) {
-		usb_log_error("Failed to allocate OHCI driver.\n");
-		return ENOMEM;
-	}
-
-	int ret = ohci_init(ohci, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize OHCI driver: %s.\n",
-		    str_error(ret));
-		return ret;
-	}
-	device->driver_data = ohci;
-
-	usb_log_info("Controlling new OHCI device `%s'.\n", device->name);
-
-	return EOK;
-}
 /*----------------------------------------------------------------------------*/
 /** Initializes global driver structures (NONE).
  *
@@ -92,7 +83,6 @@ int ohci_add_device(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-	sleep(5);
 	return ddf_driver_main(&ohci_driver);
 }
 /**

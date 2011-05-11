@@ -39,14 +39,14 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/ddfiface.h>
-#include <usb/usbdevice.h>
 
 #include "hc.h"
 #include "hcd_endpoint.h"
 
+#define OHCI_USED_INTERRUPTS \
+    (I_SO | I_WDH | I_UE | I_RHSC)
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
-static void hc_init_hw(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 /*----------------------------------------------------------------------------*/
@@ -89,11 +89,11 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	if (ret != EOK) {
 		usb_log_error("Failed add root hub match-id.\n");
 	}
+	ret = ddf_fun_bind(hub_fun);
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-    uintptr_t regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
 	int ret = EOK;
@@ -108,17 +108,21 @@ if (ret != EOK) { \
 	    "Failed(%d) to gain access to device registers: %s.\n",
 	    ret, str_error(ret));
 
+	list_initialize(&instance->pending_batches);
 	usb_device_keeper_init(&instance->manager);
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    str_error(ret));
 
-	hc_gain_control(instance);
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
 	    str_error(ret));
-	hc_init_hw(instance);
+#undef CHECK_RET_RETURN
+
+
+//	hc_init_hw(instance);
+	hc_gain_control(instance);
 	fibril_mutex_initialize(&instance->guard);
 
 	rh_init(&instance->rh, instance->registers);
@@ -129,8 +133,6 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-	list_initialize(&instance->pending_batches);
-#undef CHECK_RET_RETURN
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -284,14 +286,14 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	if ((status & ~IS_SF) == 0) /* ignore sof status */
+	usb_log_debug("OHCI(%p) interrupt: %x.\n", instance, status);
+	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
-	if (status & IS_RHSC)
+	if (status & I_RHSC)
 		rh_interrupt(&instance->rh);
 
-	usb_log_debug("OHCI interrupt: %x.\n", status);
 
-	if (status & IS_WDH) {
+	if (status & I_WDH) {
 		fibril_mutex_lock(&instance->guard);
 		usb_log_debug2("HCCA: %p-%#" PRIx32 " (%p).\n", instance->hcca,
 		    instance->registers->hcca,
@@ -331,12 +333,16 @@ int interrupt_emulator(hc_t *instance)
 void hc_gain_control(hc_t *instance)
 {
 	assert(instance);
+	usb_log_debug("Requesting OHCI control.\n");
 	/* Turn off legacy emulation */
 	volatile uint32_t *ohci_emulation_reg =
 	    (uint32_t*)((char*)instance->registers + 0x100);
 	usb_log_debug("OHCI legacy register %p: %x.\n",
-		ohci_emulation_reg, *ohci_emulation_reg);
-	*ohci_emulation_reg = 0;
+	    ohci_emulation_reg, *ohci_emulation_reg);
+	/* Do not change A20 state */
+	*ohci_emulation_reg &= 0x100;
+	usb_log_debug("OHCI legacy register %p: %x.\n",
+	    ohci_emulation_reg, *ohci_emulation_reg);
 
 	/* Interrupt routing enabled => smm driver is active */
 	if (instance->registers->control & C_IR) {
@@ -346,6 +352,8 @@ void hc_gain_control(hc_t *instance)
 			async_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.\n");
+		instance->registers->control &= (C_HCFS_RESET << C_HCFS_SHIFT);
+		async_usleep(50000);
 		return;
 	}
 
@@ -371,7 +379,7 @@ void hc_gain_control(hc_t *instance)
 	async_usleep(50000);
 }
 /*----------------------------------------------------------------------------*/
-void hc_init_hw(hc_t *instance)
+void hc_start_hw(hc_t *instance)
 {
 	/* OHCI guide page 42 */
 	assert(instance);
@@ -420,13 +428,11 @@ void hc_init_hw(hc_t *instance)
 	usb_log_debug2("All queues enabled(%x).\n",
 	    instance->registers->control);
 
-	/* Disable interrupts */
-	instance->registers->interrupt_disable = I_SF | I_OC;
-	usb_log_debug2("Disabling interrupts: %x.\n",
-	    instance->registers->interrupt_disable);
-	instance->registers->interrupt_disable = I_MI;
+	/* Enable interrupts */
+	instance->registers->interrupt_enable = OHCI_USED_INTERRUPTS;
 	usb_log_debug2("Enabled interrupts: %x.\n",
 	    instance->registers->interrupt_enable);
+	instance->registers->interrupt_enable = I_MI;
 
 	/* Set periodic start to 90% */
 	uint32_t frame_length = ((fm_interval >> FMI_FI_SHIFT) & FMI_FI_MASK);
@@ -472,6 +478,8 @@ do { \
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
+
+	bzero(&instance->rh, sizeof(instance->rh));
 	/* Init queues */
 	hc_init_transfer_lists(instance);
 
@@ -490,6 +498,39 @@ int hc_init_memory(hc_t *instance)
 	usb_log_debug2("Interrupt HEADs set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
+
+	/* Init interrupt code */
+	instance->interrupt_code.cmds = instance->interrupt_commands;
+	{
+		/* Read status register */
+		instance->interrupt_commands[0].cmd = CMD_MEM_READ_32;
+		instance->interrupt_commands[0].dstarg = 1;
+		instance->interrupt_commands[0].addr =
+		    (void*)&instance->registers->interrupt_status;
+
+		/* Test whether we are the interrupt cause */
+		instance->interrupt_commands[1].cmd = CMD_BTEST;
+		instance->interrupt_commands[1].value =
+		    OHCI_USED_INTERRUPTS;
+		instance->interrupt_commands[1].srcarg = 1;
+		instance->interrupt_commands[1].dstarg = 2;
+
+		/* Predicate cleaning and accepting */
+		instance->interrupt_commands[2].cmd = CMD_PREDICATE;
+		instance->interrupt_commands[2].value = 2;
+		instance->interrupt_commands[2].srcarg = 2;
+
+		/* Write clean status register */
+		instance->interrupt_commands[3].cmd = CMD_MEM_WRITE_A_32;
+		instance->interrupt_commands[3].srcarg = 1;
+		instance->interrupt_commands[3].addr =
+		    (void*)&instance->registers->interrupt_status;
+
+		/* Accept interrupt */
+		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
+
+		instance->interrupt_code.cmdcount = OHCI_NEEDED_IRQ_COMMANDS;
+	}
 
 	return EOK;
 }

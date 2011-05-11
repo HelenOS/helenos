@@ -54,24 +54,24 @@ static int usb_hid_keymap_consumer[0x29c] = {
 	[0x7] = KC_F5, /* Just for testing purposes */
 	[0xc] = KC_F6, /* Just for testing purposes */
 	
-	[0xb5] = 0,  /* Scan Next Track */
-	[0xb6] = 0,  /* Scan Previous Track */
-	[0xb7] = 0,  /* Stop */
-	[0xb8] = 0,  /* Eject */
-	[0xcd] = KC_F2,  /* Play/Pause */
-	[0xe2] = KC_F3,  /* Mute */
-	[0xe9] = KC_F5,  /* Volume Increment */
-	[0xea] = KC_F4,  /* Volume Decrement */
-	[0x183] = 0, /* AL Consumer Control Configuration */
-	[0x18a] = 0, /* AL Email Reader */
-	[0x192] = 0, /* AL Calculator */
-	[0x221] = 0, /* AC Search */
-	[0x223] = 0, /* AC Home */
-	[0x224] = 0, /* AC Back */
-	[0x225] = 0, /* AC Forward */
-	[0x226] = 0, /* AC Stop */
-	[0x227] = KC_F1, /* AC Refresh */
-	[0x22a] = KC_F6  /* AC Bookmarks */
+	[0xb5] = 0,       /* Scan Next Track */
+	[0xb6] = 0,       /* Scan Previous Track */
+	[0xb7] = 0,       /* Stop */
+	[0xb8] = 0,       /* Eject */
+	[0xcd] = KC_F2,   /* Play/Pause */
+	[0xe2] = KC_F3,   /* Mute */
+	[0xe9] = KC_F5,   /* Volume Increment */
+	[0xea] = KC_F4,   /* Volume Decrement */
+	[0x183] = 0,      /* AL Consumer Control Configuration */
+	[0x18a] = 0,      /* AL Email Reader */
+	[0x192] = 0,      /* AL Calculator */
+	[0x221] = 0,      /* AC Search */
+	[0x223] = 0,      /* AC Home */
+	[0x224] = 0,      /* AC Back */
+	[0x225] = 0,      /* AC Forward */
+	[0x226] = 0,      /* AC Stop */
+	[0x227] = KC_F1,  /* AC Refresh */
+	[0x22a] = KC_F6   /* AC Bookmarks */
 };
 
 /**

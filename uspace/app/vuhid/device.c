@@ -76,10 +76,16 @@ static int on_data_to_device(usbvirt_device_t *dev,
 static int interface_life_fibril(void *arg)
 {
 	vuhid_interface_t *iface = arg;
+	vuhid_data_t *hid_data = iface->vuhid_data;
 
 	if (iface->live != NULL) {
 		iface->live(iface);
 	}
+
+	fibril_mutex_lock(&hid_data->iface_count_mutex);
+	hid_data->iface_died_count++;
+	fibril_condvar_broadcast(&hid_data->iface_count_cv);
+	fibril_mutex_unlock(&hid_data->iface_count_mutex);
 
 	return EOK;
 }
@@ -109,6 +115,13 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 
 	if ((iface->in_data_size == 0) && (iface->out_data_size == 0)) {
 		return EEMPTY;
+	}
+
+	// FIXME - we shall set vuhid_data to NULL in the main() rather
+	// than to depend on individual interfaces
+	/* Already used interface. */
+	if (iface->vuhid_data != NULL) {
+		return EEXISTS;
 	}
 
 	vuhid_data_t *hid_data = dev->device_data;
@@ -251,6 +264,7 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	}
 
 	/* Launch the "life" fibril. */
+	iface->vuhid_data = hid_data;
 	fid_t life_fibril = fibril_create(interface_life_fibril, iface);
 	if (life_fibril == 0) {
 		rc = ENOMEM;
@@ -309,6 +323,7 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	dev->descriptors->configuration->descriptor->total_length
 	    += total_descr_size;
 
+	hid_data->iface_count++;
 	fibril_add_ready(life_fibril);
 
 	return EOK;
@@ -330,6 +345,17 @@ error_leave:
 	return rc;
 }
 
+void wait_for_interfaces_death(usbvirt_device_t *dev)
+{
+	vuhid_data_t *hid_data = dev->device_data;
+
+	fibril_mutex_lock(&hid_data->iface_count_mutex);
+	while (hid_data->iface_died_count < hid_data->iface_count) {
+		fibril_condvar_wait(&hid_data->iface_count_cv,
+		    &hid_data->iface_count_mutex);
+	}
+	fibril_mutex_unlock(&hid_data->iface_count_mutex);
+}
 
 /** @}
  */

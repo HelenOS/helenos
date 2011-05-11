@@ -410,7 +410,7 @@ static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
  */
 static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status) {
-	int opResult;
+	int opResult = EOK;
 	if (!usb_hub_is_status(status,USB_HUB_FEATURE_HUB_LOCAL_POWER)) {
 		//restart power on hub
 		opResult = usb_hub_set_feature(hub_info->control_pipe,
@@ -430,13 +430,16 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 				    port, str_error(opResult));
 			}
 		}
-		opResult = usb_hub_clear_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+	}
+	if(opResult!=EOK){
+		return opResult;//no feature clearing
+	}
+	opResult = usb_hub_clear_feature(hub_info->control_pipe,
+	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 		if (opResult != EOK) {
-			usb_log_error("cannnot clear hub power change flag: "
-			    "%d\n",
-			    opResult);
-		}
+		usb_log_error("cannnot clear hub power change flag: "
+		    "%d\n",
+		    opResult);
 	}
 	return opResult;
 }
