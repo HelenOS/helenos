@@ -39,9 +39,23 @@
 #include <sys/types.h>
 #include <usb/usb.h>
 #include <usb/pipes.h>
+#include <usb/devdrv.h>
 
-int usb_massstor_data_in(usb_pipe_t *, usb_pipe_t *, uint32_t, uint8_t,
-    void *, size_t, void *, size_t, size_t *);
+typedef struct {
+	int peripheral_device_type;
+	bool removable;
+	char vendor_id[9];
+	char product_and_revision[12];
+} usb_massstor_inquiry_result_t;
+
+int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,
+    uint32_t, uint8_t, void *, size_t, void *, size_t, size_t *);
+int usb_massstor_reset(usb_device_t *);
+void usb_massstor_reset_recovery(usb_device_t *, size_t, size_t);
+int usb_massstor_get_max_lun(usb_device_t *);
+int usb_massstor_inquiry(usb_device_t *, size_t, size_t,
+    usb_massstor_inquiry_result_t *);
+const char *usb_str_masstor_scsi_peripheral_device_type(int);
 
 #endif
 

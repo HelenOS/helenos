@@ -74,67 +74,6 @@ usb_endpoint_description_t *mast_endpoints[] = {
 	NULL
 };
 
-#define BITS_GET_MASK(type, bitcount) (((type)(1 << (bitcount)))-1)
-#define BITS_GET_MID_MASK(type, bitcount, offset) \
-	((type)( BITS_GET_MASK(type, (bitcount) + (offset)) - BITS_GET_MASK(type, bitcount) ))
-#define BITS_GET(type, number, bitcount, offset) \
-	((type)( (number) & (BITS_GET_MID_MASK(type, bitcount, offset)) ) >> (offset))
-
-#define INQUIRY_RESPONSE_LENGTH 35
-
-static void try_inquiry(usb_device_t *dev)
-{
-	scsi_cmd_inquiry_t inquiry = {
-		.op_code = 0x12,
-		.lun_evpd = 0,
-		.page_code = 0,
-		.alloc_length = INQUIRY_RESPONSE_LENGTH,
-		.ctrl = 0
-	};
-	size_t response_len;
-	uint8_t response[INQUIRY_RESPONSE_LENGTH];
-
-	int rc;
-
-	rc = usb_massstor_data_in(GET_BULK_IN(dev), GET_BULK_OUT(dev),
-	    0xDEADBEEF, 0, (uint8_t *) &inquiry, sizeof(inquiry),
-	    response, INQUIRY_RESPONSE_LENGTH, &response_len);
-
-	if (rc != EOK) {
-		usb_log_error("Failed to probe device %s using %s: %s.\n",
-		   dev->ddf_dev->name, "SCSI:INQUIRY", str_error(rc));
-		return;
-	}
-
-	if (response_len < 8) {
-		usb_log_error("The SCSI response is too short.\n");
-		return;
-	}
-
-	/*
-	 * This is an ugly part of the code. We will parse the returned
-	 * data by hand and try to get as many useful data as possible.
-	 */
-	int device_type = BITS_GET(uint8_t, response[0], 5, 0);
-	int removable = BITS_GET(uint8_t, response[1], 1, 7);
-
-	usb_log_info("SCSI information for device `%s':\n", dev->ddf_dev->name);
-	usb_log_info("  - peripheral device type: %d\n", device_type);
-	usb_log_info("  - removable: %s\n", removable ? "yes" : "no");
-
-	if (response_len < 32) {
-		return;
-	}
-
-	char dev_vendor[9];
-	str_ncpy(dev_vendor, 9, (const char *) &response[8], 8);
-	usb_log_info("  - vendor: '%s'\n", dev_vendor);
-
-	char dev_product[9];
-	str_ncpy(dev_product, 9, (const char *) &response[16], 8);
-	usb_log_info("  - product: '%s'\n", dev_vendor);
-}
-
 /** Callback when new device is attached and recognized as a mass storage.
  *
  * @param dev Representation of a the USB device.
@@ -167,7 +106,32 @@ static int usbmast_add_device(usb_device_t *dev)
 	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
-	try_inquiry(dev);
+	int lun_count = usb_massstor_get_max_lun(dev);
+	/* Return value:
+	 * rc < 0 => device does not know this request, only single LUN
+	 *     could be present
+	 * rc >= 0 - the rc is the maximum LUN, thus count is +1
+	 */
+	if (lun_count < 0) {
+		lun_count = 1;
+	} else {
+		lun_count++;
+	}
+
+	usb_massstor_inquiry_result_t inquiry;
+	rc = usb_massstor_inquiry(dev, BULK_IN_EP, BULK_OUT_EP, &inquiry);
+	if (rc != EOK) {
+		usb_log_warning("Failed to inquiry device `%s': %s.\n",
+		    dev->ddf_dev->name, str_error(rc));
+		return EOK;
+	}
+
+	usb_log_info("Mass storage `%s': `%s' by `%s' is %s (%s), %d LUN(s).\n",
+	    dev->ddf_dev->name,
+	    inquiry.product_and_revision, inquiry.vendor_id,
+	    usb_str_masstor_scsi_peripheral_device_type(inquiry.peripheral_device_type),
+	    inquiry.removable ? "removable" : "non-removable",
+	    lun_count);
 
 	return EOK;
 }

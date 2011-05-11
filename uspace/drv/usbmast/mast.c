@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include <usb/request.h>
 
 bool usb_mast_verbose = true;
 
@@ -62,12 +63,15 @@ bool usb_mast_verbose = true;
  * @param received_size Number of actually received bytes.
  * @return Error code.
  */
-int usb_massstor_data_in(usb_pipe_t *bulk_in_pipe, usb_pipe_t *bulk_out_pipe,
+int usb_massstor_data_in(usb_device_t *dev,
+    size_t bulk_in_pipe_index, size_t bulk_out_pipe_index,
     uint32_t tag, uint8_t lun, void *cmd, size_t cmd_size,
     void *in_buffer, size_t in_buffer_size, size_t *received_size)
 {
 	int rc;
 	size_t act_size;
+	usb_pipe_t *bulk_in_pipe = dev->pipes[bulk_in_pipe_index].pipe;
+	usb_pipe_t *bulk_out_pipe = dev->pipes[bulk_out_pipe_index].pipe;
 
 	/* Prepare CBW - command block wrapper */
 	usb_massstor_cbw_t cbw;
@@ -132,6 +136,40 @@ int usb_massstor_data_in(usb_pipe_t *bulk_in_pipe, usb_pipe_t *bulk_out_pipe,
 	}
 
 	return EOK;
+}
+
+int usb_massstor_reset(usb_device_t *dev)
+{
+	return usb_control_request_set(&dev->ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
+	    0xFF, 0, dev->interface_no, NULL, 0);
+}
+
+void usb_massstor_reset_recovery(usb_device_t *dev,
+    size_t bulk_in_idx, size_t bulk_out_idx)
+{
+	/* We would ignore errors here because if this fails
+	 * we are doomed anyway and any following transaction would fail.
+	 */
+	usb_massstor_reset(dev);
+	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[bulk_in_idx].pipe);
+	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[bulk_out_idx].pipe);
+}
+
+int usb_massstor_get_max_lun(usb_device_t *dev)
+{
+	uint8_t max_lun;
+	size_t data_recv_len;
+	int rc = usb_control_request_get(&dev->ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
+	    0xFE, 0, dev->interface_no, &max_lun, 1, &data_recv_len);
+	if (rc != EOK) {
+		return rc;
+	}
+	if (data_recv_len != 1) {
+		return EEMPTY;
+	}
+	return (int) max_lun;
 }
 
 /**
