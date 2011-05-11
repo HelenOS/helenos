@@ -172,8 +172,11 @@ void usb_massstor_reset_recovery(usb_device_t *dev,
 
 /** Get max LUN of a mass storage device.
  *
+ * @see usb_masstor_get_lun_count
+ *
  * @warning Error from this command does not necessarily indicate malfunction
  * of the device. Device does not need to support this request.
+ * You shall rather use usb_masstor_get_lun_count.
  *
  * @param dev Mass storage device.
  * @return Error code of maximum LUN (index, not count).
@@ -192,6 +195,26 @@ int usb_massstor_get_max_lun(usb_device_t *dev)
 		return EEMPTY;
 	}
 	return (int) max_lun;
+}
+
+/** Get number of LUNs supported by mass storage device.
+ *
+ * @warning This function hides any error during the request
+ * (typically that shall not be a problem).
+ *
+ * @param dev Mass storage device.
+ * @return Number of LUNs.
+ */
+size_t usb_masstor_get_lun_count(usb_device_t *dev)
+{
+	int max_lun = usb_massstor_get_max_lun(dev);
+	if (max_lun < 0) {
+		max_lun = 1;
+	} else {
+		max_lun++;
+	}
+
+	return (size_t) max_lun;
 }
 
 /**

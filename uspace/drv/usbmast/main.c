@@ -106,17 +106,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
-	int lun_count = usb_massstor_get_max_lun(dev);
-	/* Return value:
-	 * rc < 0 => device does not know this request, only single LUN
-	 *     could be present
-	 * rc >= 0 - the rc is the maximum LUN, thus count is +1
-	 */
-	if (lun_count < 0) {
-		lun_count = 1;
-	} else {
-		lun_count++;
-	}
+	size_t lun_count = usb_masstor_get_lun_count(dev);
 
 	usb_massstor_inquiry_result_t inquiry;
 	rc = usb_massstor_inquiry(dev, BULK_IN_EP, BULK_OUT_EP, &inquiry);
@@ -126,7 +116,8 @@ static int usbmast_add_device(usb_device_t *dev)
 		return EOK;
 	}
 
-	usb_log_info("Mass storage `%s': `%s' by `%s' is %s (%s), %d LUN(s).\n",
+	usb_log_info("Mass storage `%s': " \
+	    "`%s' by `%s' is %s (%s), %zu LUN(s).\n",
 	    dev->ddf_dev->name,
 	    inquiry.product_and_revision, inquiry.vendor_id,
 	    usb_str_masstor_scsi_peripheral_device_type(inquiry.peripheral_device_type),

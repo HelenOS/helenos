@@ -61,6 +61,7 @@ int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,
 int usb_massstor_reset(usb_device_t *);
 void usb_massstor_reset_recovery(usb_device_t *, size_t, size_t);
 int usb_massstor_get_max_lun(usb_device_t *);
+size_t usb_masstor_get_lun_count(usb_device_t *);
 int usb_massstor_inquiry(usb_device_t *, size_t, size_t,
     usb_massstor_inquiry_result_t *);
 const char *usb_str_masstor_scsi_peripheral_device_type(int);
