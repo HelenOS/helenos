@@ -308,7 +308,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, uint8_t *buffer,
 	/*
 	 * Wheel
 	 */
-	int wheel;
+	int wheel = 0;
 	
 	path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 

@@ -134,14 +134,12 @@ static int process_transfer_remote(vhc_transfer_t *transfer,
 	if (transfer->transfer_type == USB_TRANSFER_CONTROL) {
 		if (transfer->direction == USB_DIRECTION_IN) {
 			rc = usbvirt_ipc_send_control_read(phone,
-			    transfer->endpoint,
 			    transfer->setup_buffer, transfer->setup_buffer_size,
 			    transfer->data_buffer, transfer->data_buffer_size,
 			    actual_data_size);
 		} else {
 			assert(transfer->direction == USB_DIRECTION_OUT);
 			rc = usbvirt_ipc_send_control_write(phone,
-			    transfer->endpoint,
 			    transfer->setup_buffer, transfer->setup_buffer_size,
 			    transfer->data_buffer, transfer->data_buffer_size);
 		}

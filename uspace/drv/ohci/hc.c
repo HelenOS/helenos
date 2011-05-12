@@ -39,7 +39,6 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/ddfiface.h>
-#include <usb/usbdevice.h>
 
 #include "hc.h"
 #include "hcd_endpoint.h"
@@ -48,7 +47,6 @@
     (I_SO | I_WDH | I_UE | I_RHSC)
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
-static void hc_init_hw(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 /*----------------------------------------------------------------------------*/
@@ -91,11 +89,11 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	if (ret != EOK) {
 		usb_log_error("Failed add root hub match-id.\n");
 	}
+	ret = ddf_fun_bind(hub_fun);
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-    uintptr_t regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
 	int ret = EOK;
@@ -110,17 +108,21 @@ if (ret != EOK) { \
 	    "Failed(%d) to gain access to device registers: %s.\n",
 	    ret, str_error(ret));
 
+	list_initialize(&instance->pending_batches);
 	usb_device_keeper_init(&instance->manager);
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    str_error(ret));
 
-	hc_gain_control(instance);
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
 	    str_error(ret));
-	hc_init_hw(instance);
+#undef CHECK_RET_RETURN
+
+
+//	hc_init_hw(instance);
+	hc_gain_control(instance);
 	fibril_mutex_initialize(&instance->guard);
 
 	rh_init(&instance->rh, instance->registers);
@@ -131,8 +133,6 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-	list_initialize(&instance->pending_batches);
-#undef CHECK_RET_RETURN
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -286,7 +286,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	usb_log_debug("OHCI interrupt: %x.\n", status);
+	usb_log_debug("OHCI(%p) interrupt: %x.\n", instance, status);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
 	if (status & I_RHSC)
@@ -338,8 +338,11 @@ void hc_gain_control(hc_t *instance)
 	volatile uint32_t *ohci_emulation_reg =
 	    (uint32_t*)((char*)instance->registers + 0x100);
 	usb_log_debug("OHCI legacy register %p: %x.\n",
-		ohci_emulation_reg, *ohci_emulation_reg);
-	*ohci_emulation_reg &= ~0x1;
+	    ohci_emulation_reg, *ohci_emulation_reg);
+	/* Do not change A20 state */
+	*ohci_emulation_reg &= 0x100;
+	usb_log_debug("OHCI legacy register %p: %x.\n",
+	    ohci_emulation_reg, *ohci_emulation_reg);
 
 	/* Interrupt routing enabled => smm driver is active */
 	if (instance->registers->control & C_IR) {
@@ -349,6 +352,8 @@ void hc_gain_control(hc_t *instance)
 			async_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.\n");
+		instance->registers->control &= (C_HCFS_RESET << C_HCFS_SHIFT);
+		async_usleep(50000);
 		return;
 	}
 
@@ -374,7 +379,7 @@ void hc_gain_control(hc_t *instance)
 	async_usleep(50000);
 }
 /*----------------------------------------------------------------------------*/
-void hc_init_hw(hc_t *instance)
+void hc_start_hw(hc_t *instance)
 {
 	/* OHCI guide page 42 */
 	assert(instance);
@@ -473,6 +478,8 @@ do { \
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
+
+	bzero(&instance->rh, sizeof(instance->rh));
 	/* Init queues */
 	hc_init_transfer_lists(instance);
 

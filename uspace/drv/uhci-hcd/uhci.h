@@ -37,24 +37,7 @@
 #include <ddi.h>
 #include <ddf/driver.h>
 
-#include "hc.h"
-#include "root_hub.h"
-
-/** Structure representing both functions of UHCI hc, USB host controller
- * and USB root hub */
-typedef struct uhci {
-	/** Pointer to DDF represenation of UHCI host controller */
-	ddf_fun_t *hc_fun;
-	/** Pointer to DDF represenation of UHCI root hub */
-	ddf_fun_t *rh_fun;
-
-	/** Internal driver's represenation of UHCI host controller */
-	hc_t hc;
-	/** Internal driver's represenation of UHCI root hub */
-	rh_t rh;
-} uhci_t;
-
-int uhci_init(uhci_t *instance, ddf_dev_t *device);
+int device_setup_uhci(ddf_dev_t *device);
 #endif
 /**
  * @}

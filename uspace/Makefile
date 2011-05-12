@@ -40,6 +40,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/lsusb \
 	app/mkfat \
 	app/redir \
 	app/sbi \
@@ -50,7 +51,6 @@ DIRS = \
 	app/trace \
 	app/top \
 	app/usbinfo \
-	app/virtusbkbd \
 	app/vuhid \
 	app/netecho \
 	app/nettest1 \
@@ -176,11 +176,17 @@ LIBS = \
 
 ifeq ($(UARCH),amd64)
 	LIBS += lib/usb
+	LIBS += lib/usbhost
+	LIBS += lib/usbdev
+	LIBS += lib/usbhid
 	LIBS += lib/usbvirt
 endif
 
 ifeq ($(UARCH),ia32)
 	LIBS += lib/usb
+	LIBS += lib/usbhost
+	LIBS += lib/usbdev
+	LIBS += lib/usbhid
 	LIBS += lib/usbvirt
 endif
 

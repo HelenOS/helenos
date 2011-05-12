@@ -35,7 +35,7 @@
 #include <usb/debug.h>
 
 #include "transfer_descriptor.h"
-#include "utils/malloc32.h"
+#include "../utils/malloc32.h"
 
 /** Initialize Transfer Descriptor
  *

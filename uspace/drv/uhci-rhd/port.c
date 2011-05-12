@@ -31,13 +31,13 @@
 /** @file
  * @brief UHCI root hub port routines
  */
-#include <libarch/ddi.h> /* pio_read and pio_write */
+#include <libarch/ddi.h>  /* pio_read and pio_write */
+#include <fibril_synch.h> /* async_usleep */
 #include <errno.h>
 #include <str_error.h>
-#include <fibril_synch.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/hub.h>
+#include <usb/hub.h>    /* usb_hc_new_device_wrapper */
 #include <usb/debug.h>
 
 #include "port.h"
@@ -211,13 +211,7 @@ int uhci_port_reset_enable(int portno, void *arg)
 	usb_log_debug2("%s: new_device_enable_port.\n", port->id_string);
 
 	/*
-	 * The host then waits for at least 100 ms to allow completion of
-	 * an insertion process and for power at the device to become stable.
-	 */
-	async_usleep(100000);
-
-	/*
-	 * Resets from root ports should be nominally 50ms
+	 * Resets from root ports should be nominally 50ms (USB spec 7.1.7.3)
 	 */
 	{
 		usb_log_debug("%s: Reset Signal start.\n", port->id_string);
@@ -228,14 +222,19 @@ int uhci_port_reset_enable(int portno, void *arg)
 		port_status = uhci_port_read_status(port);
 		port_status &= ~STATUS_IN_RESET;
 		uhci_port_write_status(port, port_status);
-		usb_log_debug("%s: Reset Signal stop.\n", port->id_string);
+		while (uhci_port_read_status(port) & STATUS_IN_RESET);
+		// TODO: find a better way to waste time (it should be less than
+		// 10ms, if we reschedule it takes too much time (random
+		// interrupts can be solved by multiple attempts).
+		usb_log_debug2("%s: Reset Signal stop.\n", port->id_string);
 	}
-
-	/* the reset recovery time 10ms */
-	async_usleep(10000);
-
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
+
+	/* Reset recovery period,
+	 * devices do not have to respond during this period
+	 */
+	async_usleep(10000);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -254,10 +253,13 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
+	int ret, count = 0;
 	usb_address_t dev_addr;
-	int ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
-	    speed, uhci_port_reset_enable, port->number, port,
-	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
+	do {
+		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
+		    speed, uhci_port_reset_enable, port->number, port,
+		    &dev_addr, &port->attached_device, NULL, NULL, NULL);
+	} while (ret != EOK && ++count < 4);
 
 	if (ret != EOK) {
 		usb_log_error("%s: Failed(%d) to add device: %s.\n",
@@ -312,7 +314,6 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 
 	/* Wait for port to become enabled */
 	do {
-		async_usleep(1000);
 		port_status = uhci_port_read_status(port);
 	} while ((port_status & STATUS_CONNECTED) &&
 	    !(port_status & STATUS_ENABLED));

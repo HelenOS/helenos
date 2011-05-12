@@ -70,7 +70,7 @@ static inline void internal_error(int err)
 	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
 }
 
-usbinfo_device_t *prepare_device(devman_handle_t, usb_address_t);
+usbinfo_device_t *prepare_device(const char *, devman_handle_t, usb_address_t);
 void destroy_device(usbinfo_device_t *);
 
 typedef void (*dump_descriptor_in_tree_t)(uint8_t *, size_t, void *);

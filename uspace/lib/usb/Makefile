@@ -28,37 +28,17 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libusb
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
+EXTRA_CFLAGS += \
+	-I$(LIBDRV_PREFIX)/include \
+	-Iinclude
 
 SOURCES = \
-	src/addrkeep.c \
-	src/altiface.c \
 	src/class.c \
 	src/ddfiface.c \
 	src/debug.c \
-	src/devdrv.c \
-	src/devpoll.c \
-	src/dp.c \
+	src/driver.c \
 	src/dump.c \
-	src/hidiface.c \
-	src/hidpath.c \
-	src/hidparser.c \
-	src/hiddescriptor.c \
-	src/hub.c \
-	src/pipepriv.c \
-	src/pipes.c \
-	src/pipesinit.c \
-	src/pipesio.c \
-	src/recognise.c \
-	src/request.c \
-	src/usb.c \
-	src/usbdevice.c \
-	src/hidreq.c \
-	src/hidreport.c \
-	src/host/device_keeper.c \
-	src/host/batch.c \
-	src/host/endpoint.c \
-	src/host/usb_endpoint_manager.c
+	src/host.c \
+	src/usb.c
 
 include $(USPACE_PREFIX)/Makefile.common

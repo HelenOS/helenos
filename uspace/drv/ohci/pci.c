@@ -57,7 +57,10 @@
 int pci_get_my_registers(ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
-	assert(dev != NULL);
+	assert(dev);
+	assert(mem_reg_address);
+	assert(mem_reg_size);
+	assert(irq_no);
 
 	int parent_phone = devman_parent_device_connect(dev->handle,
 	    IPC_FLAG_BLOCKING);
@@ -135,18 +138,6 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
-/*----------------------------------------------------------------------------*/
-/** Implements BIOS handoff routine as decribed in OHCI spec
- *
- * @param[in] device Device asking for interrupts
- * @return Error code.
- */
-int pci_disable_legacy(ddf_dev_t *device)
-{
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
 /**
  * @}
  */
