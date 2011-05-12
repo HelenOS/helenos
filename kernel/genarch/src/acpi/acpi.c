@@ -115,7 +115,7 @@ static void configure_via_rsdt(void)
 		for (j = 0; j < sizeof(signature_map)
 		    / sizeof(struct acpi_signature_map); j++) {
 			struct acpi_sdt_header *hdr =
-			    (struct acpi_sdt_header *) (unative_t) acpi_rsdt->entry[i];
+			    (struct acpi_sdt_header *) (sysarg_t) acpi_rsdt->entry[i];
 			
 			map_sdt(hdr);
 			if (CMP_SIGNATURE(hdr->signature, signature_map[j].signature)) {

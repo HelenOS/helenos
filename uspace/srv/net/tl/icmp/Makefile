@@ -31,9 +31,9 @@ USPACE_PREFIX = ../../../..
 LIBS = $(LIBNET_PREFIX)/libnet.a
 EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = icmp
+STATIC_ONLY = y
 
 SOURCES = \
-	icmp.c \
-	icmp_module.c
+	icmp.c
 
 include $(USPACE_PREFIX)/Makefile.common

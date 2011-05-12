@@ -35,14 +35,14 @@
 #ifndef LIBC_FIBRIL_SYNCH_H_
 #define LIBC_FIBRIL_SYNCH_H_
 
-#include <async.h>
 #include <fibril.h>
 #include <adt/list.h>
 #include <libarch/tls.h>
 #include <sys/time.h>
+#include <bool.h>
 
 typedef struct {
-	fibril_owner_info_t oi;		/* Keep this the first thing. */
+	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	int counter;
 	link_t waiters;
 } fibril_mutex_t;
@@ -63,7 +63,7 @@ typedef struct {
 	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name) 
 
 typedef struct {
-	fibril_owner_info_t oi;	/* Keep this the first thing. */
+	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	unsigned writers;
 	unsigned readers;
 	link_t waiters;
@@ -104,12 +104,16 @@ extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
 extern void fibril_mutex_unlock(fibril_mutex_t *);
+extern bool fibril_mutex_is_locked(fibril_mutex_t *);
 
 extern void fibril_rwlock_initialize(fibril_rwlock_t *);
 extern void fibril_rwlock_read_lock(fibril_rwlock_t *);
 extern void fibril_rwlock_write_lock(fibril_rwlock_t *);
 extern void fibril_rwlock_read_unlock(fibril_rwlock_t *);
 extern void fibril_rwlock_write_unlock(fibril_rwlock_t *);
+extern bool fibril_rwlock_is_read_locked(fibril_rwlock_t *);
+extern bool fibril_rwlock_is_write_locked(fibril_rwlock_t *);
+extern bool fibril_rwlock_is_locked(fibril_rwlock_t *);
 
 extern void fibril_condvar_initialize(fibril_condvar_t *);
 extern int fibril_condvar_wait_timeout(fibril_condvar_t *, fibril_mutex_t *,

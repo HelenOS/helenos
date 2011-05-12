@@ -92,11 +92,6 @@ typedef struct task {
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
 	stats_ipc_t ipc_info;   /**< IPC statistics */
-	/**
-	 * Active asynchronous messages. It is used for limiting uspace to
-	 * certain extent.
-	 */
-	atomic_t active_calls;
 	/** List of synchronous answerboxes. */
 	link_t sync_box_head;
 	
@@ -135,6 +130,7 @@ extern void task_hold(task_t *);
 extern void task_release(task_t *);
 extern task_t *task_find_by_id(task_id_t);
 extern int task_kill(task_id_t);
+extern void task_kill_self(bool) __attribute__((noreturn));
 extern void task_get_accounting(task_t *, uint64_t *, uint64_t *);
 extern void task_print_list(bool);
 
@@ -149,8 +145,17 @@ extern void task_create_arch(task_t *);
 extern void task_destroy_arch(task_t *);
 #endif
 
-extern unative_t sys_task_get_id(task_id_t *);
-extern unative_t sys_task_set_name(const char *, size_t);
+#ifdef __32_BITS__
+extern sysarg_t sys_task_get_id(sysarg64_t *);
+#endif
+
+#ifdef __64_BITS__
+extern sysarg_t sys_task_get_id(void);
+#endif
+
+extern sysarg_t sys_task_set_name(const char *, size_t);
+extern sysarg_t sys_task_kill(task_id_t *);
+extern sysarg_t sys_task_exit(sysarg_t);
 
 #endif
 

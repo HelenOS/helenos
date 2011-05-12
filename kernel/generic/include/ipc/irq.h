@@ -43,7 +43,7 @@
 #include <typedefs.h>
 #include <adt/list.h>
 
-extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, unative_t,
+extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, sysarg_t,
     irq_code_t *);
 
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
@@ -74,8 +74,8 @@ extern void ipc_irq_cleanup(answerbox_t *);
 #define ipc_irq_send_msg_5(irq, a1, a2, a3, a4, a5) \
 	ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), (a5))
 
-extern void ipc_irq_send_msg(irq_t *, unative_t, unative_t, unative_t, unative_t,
-    unative_t);
+extern void ipc_irq_send_msg(irq_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
 
 #endif
 

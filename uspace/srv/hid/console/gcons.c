@@ -33,7 +33,6 @@
  */
 
 #include <ipc/fb.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <stdio.h>
 #include <sys/mman.h>
@@ -81,8 +80,8 @@ extern char _binary_gfx_cons_kernel_ppm_start[0];
 extern int _binary_gfx_cons_kernel_ppm_size;
 
 static bool use_gcons = false;
-static ipcarg_t xres;
-static ipcarg_t yres;
+static sysarg_t xres;
+static sysarg_t yres;
 
 enum butstate {
 	CONS_DISCONNECTED = 0,
@@ -106,12 +105,12 @@ static int animation = -1;
 
 static size_t active_console = 0;
 
-static ipcarg_t mouse_x = 0;
-static ipcarg_t mouse_y= 0;
+static sysarg_t mouse_x = 0;
+static sysarg_t mouse_y= 0;
 
 static bool btn_pressed = false;
-static ipcarg_t btn_x = 0;
-static ipcarg_t btn_y = 0;
+static sysarg_t btn_x = 0;
+static sysarg_t btn_y = 0;
 
 static void vp_switch(int vp)
 {
@@ -119,7 +118,7 @@ static void vp_switch(int vp)
 }
 
 /** Create view port */
-static int vp_create(ipcarg_t x, ipcarg_t y, ipcarg_t width, ipcarg_t height)
+static int vp_create(sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height)
 {
 	return async_req_2_0(fbphone, FB_VIEWPORT_CREATE, (x << 16) | y,
 	    (width << 16) | height);
@@ -136,7 +135,7 @@ static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
 }
 
 /** Transparent putchar */
-static void tran_putch(wchar_t ch, ipcarg_t col, ipcarg_t row)
+static void tran_putch(wchar_t ch, sysarg_t col, sysarg_t row)
 {
 	async_msg_3(fbphone, FB_PUTCHAR, ch, col, row);
 }
@@ -156,7 +155,7 @@ static void redraw_state(size_t index)
 	    && (state != CONS_DISCONNECTED_SEL)) {
 		
 		char data[5];
-		snprintf(data, 5, "%u", index + 1);
+		snprintf(data, 5, "%zu", index + 1);
 		
 		size_t i;
 		for (i = 0; data[i] != 0; i++)
@@ -285,8 +284,9 @@ void gcons_mouse_move(ssize_t dx, ssize_t dy)
 {
 	ssize_t nx = (ssize_t) mouse_x + dx;
 	ssize_t ny = (ssize_t) mouse_y + dy;
-
-	if (!use_gcons)
+	
+	/* Until gcons is initalized we don't have the screen resolution */
+	if (xres == 0 || yres == 0)
 		return;
 	
 	mouse_x = (size_t) limit(nx, 0, xres);
@@ -296,9 +296,9 @@ void gcons_mouse_move(ssize_t dx, ssize_t dy)
 		async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
 }
 
-static int gcons_find_conbut(ipcarg_t x, ipcarg_t y)
+static int gcons_find_conbut(sysarg_t x, sysarg_t y)
 {
-	ipcarg_t status_start = STATUS_START + (xres - 800) / 2;
+	sysarg_t status_start = STATUS_START + (xres - 800) / 2;
 	
 	if ((y < STATUS_TOP) || (y >= STATUS_TOP + STATUS_HEIGHT))
 		return -1;
@@ -312,7 +312,7 @@ static int gcons_find_conbut(ipcarg_t x, ipcarg_t y)
 	if (((x - status_start) % (STATUS_WIDTH + STATUS_SPACE)) < STATUS_SPACE)
 		return -1;
 	
-	ipcarg_t btn = (x - status_start) / (STATUS_WIDTH + STATUS_SPACE);
+	sysarg_t btn = (x - status_start) / (STATUS_WIDTH + STATUS_SPACE);
 	
 	if (btn < CONSOLE_COUNT)
 		return btn;
@@ -362,7 +362,7 @@ int gcons_mouse_btn(bool state)
  * @param y Coordinate of upper left corner
  *
  */
-static void draw_pixmap(char *logo, size_t size, ipcarg_t x, ipcarg_t y)
+static void draw_pixmap(char *logo, size_t size, sysarg_t x, sysarg_t y)
 {
 	/* Create area */
 	char *shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
@@ -373,7 +373,7 @@ static void draw_pixmap(char *logo, size_t size, ipcarg_t x, ipcarg_t y)
 	memcpy(shm, logo, size);
 	
 	/* Send area */
-	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
+	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
 	if (rc)
 		goto exit;
 	
@@ -435,7 +435,7 @@ static int make_pixmap(char *data, size_t size)
 	int pxid = -1;
 	
 	/* Send area */
-	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
+	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
 	if (rc)
 		goto exit;
 	
@@ -512,7 +512,7 @@ void gcons_init(int phone)
 		return;
 	
 	/* Create status buttons */
-	ipcarg_t status_start = STATUS_START + (xres - 800) / 2;
+	sysarg_t status_start = STATUS_START + (xres - 800) / 2;
 	size_t i;
 	for (i = 0; i < CONSOLE_COUNT; i++) {
 		cstatus_vp[i] = vp_create(status_start + CONSOLE_MARGIN +

@@ -86,7 +86,7 @@ void sun4v_ipi_init(void)
 		CPU_MONDO_QUEUE_ID,
 		KA2PA(cpu_mondo_queues[CPU->id]),
 		CPU_MONDO_NENTRIES) != HV_EOK)
-			panic("Initializing mondo queue failed on CPU %d.\n",
+			panic("Initializing mondo queue failed on CPU %" PRIu64 ".\n",
 			    CPU->arch.id);
 }
 
@@ -110,7 +110,7 @@ void cpu_mondo(void)
 		if (data1 == (uintptr_t) tlb_shootdown_ipi_recv) {
 			((void (*)(void)) data1)();
 		} else {
-			printf("Spurious interrupt on %d, data = %" PRIx64 ".\n",
+			printf("Spurious interrupt on %" PRIu64 ", data = %" PRIx64 ".\n",
 			    CPU->arch.id, data1);
 		}
 	}

@@ -87,7 +87,7 @@ typedef struct {
 	int client_phone;
 
 	/** Device handle */
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 } s3c24xx_uart_t;
 
 #endif

@@ -29,7 +29,6 @@
 #include <arch/register.h>
 
 .text
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
@@ -38,14 +37,14 @@
 /** Copy memory from/to userspace.
  *
  * This memcpy() has been taken from the assembler output of
- * the generic _memcpy() and modified to have the failover part.
+ * a plain C implementation of memcpy() modified to have the
+ * failover part.
  *
  * @param in0 Destination address.
  * @param in1 Source address.
  * @param in2 Number of byte to copy.
  *
  */
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	alloc loc0 = ar.pfs, 3, 1, 0, 0
@@ -139,14 +138,6 @@ memcpy_to_uspace_failover_address:
 	mov r8 = r0
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
-
-.global memsetb
-memsetb:
-	br _memsetb
-
-.global memsetw
-memsetw:
-	br _memsetw
 
 .global cpu_halt
 cpu_halt:

@@ -38,18 +38,19 @@
 #ifndef FB_SERIAL_CONSOLE_H_
 #define FB_SERIAL_CONSOLE_H_
 
-#include <ipc/ipc.h>
+#include <sys/types.h>
+#include <ipc/common.h>
 
 typedef void (*putc_function_t)(char);
 
 extern void serial_puts(const char *);
-extern void serial_goto(const ipcarg_t, const ipcarg_t);
+extern void serial_goto(const sysarg_t, const sysarg_t);
 extern void serial_clrscr(void);
 extern void serial_scroll(ssize_t);
 extern void serial_cursor_disable(void);
 extern void serial_cursor_enable(void);
-extern void serial_set_scroll_region(ipcarg_t);
-extern void serial_console_init(putc_function_t, ipcarg_t, ipcarg_t);
+extern void serial_set_scroll_region(sysarg_t);
+extern void serial_console_init(putc_function_t, sysarg_t, sysarg_t);
 extern void serial_client_connection(ipc_callid_t, ipc_call_t *);
 
 #endif

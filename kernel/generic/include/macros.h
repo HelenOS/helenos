@@ -94,21 +94,18 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 #define PA_OVERLAPS(x, szx, y, szy) \
 	overlaps(KA2PA((x)), (szx), KA2PA((y)), (szy))
 
-#define SIZE2KB(size)  ((size) >> 10)
-#define SIZE2MB(size)  ((size) >> 20)
-
-#define KB2SIZE(kb)  ((kb) << 10)
-#define MB2SIZE(mb)  ((mb) << 20)
+#define KiB2SIZE(kb)  ((kb) << 10)
+#define MiB2SIZE(mb)  ((mb) << 20)
 
 #define STRING(arg)      STRING_ARG(arg)
 #define STRING_ARG(arg)  #arg
 
-#define LOWER32(arg)  (((uint64_t) (arg)) & 0xffffffff)
-#define UPPER32(arg)  (((((uint64_t) arg)) >> 32) & 0xffffffff)
+#define LOWER32(arg)  (((uint64_t) (arg)) & UINT32_C(0xffffffff))
+#define UPPER32(arg)  (((((uint64_t) arg)) >> 32) & UINT32_C(0xffffffff))
 
 #define MERGE_LOUP32(lo, up) \
-	((((uint64_t) (lo)) & 0xffffffff) \
-	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
+	((((uint64_t) (lo)) & UINT32_C(0xffffffff)) \
+	    | ((((uint64_t) (up)) & UINT32_C(0xffffffff)) << 32))
 
 /** Pseudorandom generator
  *

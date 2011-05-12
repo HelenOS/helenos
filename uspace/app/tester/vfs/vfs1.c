@@ -39,12 +39,7 @@
 #include <sys/stat.h>
 #include "../tester.h"
 
-#define FS_TYPE      "tmpfs"
-#define MOUNT_POINT  "/tmp"
-#define OPTIONS      ""
-#define FLAGS        0
-
-#define TEST_DIRECTORY  MOUNT_POINT "/testdir"
+#define TEST_DIRECTORY  "/tmp/testdir"
 #define TEST_FILE       TEST_DIRECTORY "/testfile"
 #define TEST_FILE2      TEST_DIRECTORY "/nextfile"
 
@@ -74,25 +69,11 @@ static const char *read_root(void)
 
 const char *test_vfs1(void)
 {
-	if (mkdir(MOUNT_POINT, 0) != 0)
+	int rc;
+	if ((rc = mkdir(TEST_DIRECTORY, 0)) != 0) {
+		TPRINTF("rc=%d\n", rc);
 		return "mkdir() failed";
-	TPRINTF("Created directory %s\n", MOUNT_POINT);
-	
-	int rc = mount(FS_TYPE, MOUNT_POINT, "", OPTIONS, FLAGS);
-	switch (rc) {
-	case EOK:
-		TPRINTF("Mounted %s on %s\n", FS_TYPE, MOUNT_POINT);
-		break;
-	case EBUSY:
-		TPRINTF("(INFO) Filesystem already mounted on %s\n", MOUNT_POINT);
-		break;
-	default:
-		TPRINTF("(ERR) IPC returned errno %d (is tmpfs loaded?)\n", rc);
-		return "mount() failed";
 	}
-	
-	if (mkdir(TEST_DIRECTORY, 0) != 0)
-		return "mkdir() failed";
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
 	int fd0 = open(TEST_FILE, O_CREAT);
@@ -104,7 +85,7 @@ const char *test_vfs1(void)
 	ssize_t cnt = write(fd0, text, size);
 	if (cnt < 0)
 		return "write() failed";
-	TPRINTF("Written %d bytes\n", cnt);
+	TPRINTF("Written %zd bytes\n", cnt);
 	
 	if (lseek(fd0, 0, SEEK_SET) != 0)
 		return "lseek() failed";
@@ -115,7 +96,13 @@ const char *test_vfs1(void)
 		if (cnt < 0)
 			return "read() failed";
 		
-		TPRINTF("Read %d bytes: \".*s\"\n", cnt, cnt, buf);
+		int _cnt = (int) cnt;
+		if (_cnt != cnt) {
+			/* Count overflow, just to be sure. */
+			TPRINTF("Read %zd bytes\n", cnt);
+		} else {
+			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, _cnt, buf);
+		}
 	}
 	
 	close(fd0);

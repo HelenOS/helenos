@@ -82,7 +82,7 @@ typedef struct cpu {
 	/**
 	 * Processor ID assigned by kernel.
 	 */
-	size_t id;
+	unsigned int id;
 	
 	bool active;
 	bool tlb_active;

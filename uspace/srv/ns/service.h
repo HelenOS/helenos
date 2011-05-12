@@ -33,14 +33,14 @@
 #ifndef NS_SERVICE_H__
 #define NS_SERVICE_H__
 
-#include <ipc/ipc.h>
+#include <sys/types.h>
+#include <ipc/common.h>
 
 extern int service_init(void);
 extern void process_pending_conn(void);
 
-extern int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call);
-extern void connect_to_service(ipcarg_t service, ipc_call_t *call,
-     ipc_callid_t callid);
+extern int register_service(sysarg_t, sysarg_t, ipc_call_t *);
+extern void connect_to_service(sysarg_t, ipc_call_t *, ipc_callid_t);
 
 #endif
 

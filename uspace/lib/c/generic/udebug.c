@@ -30,11 +30,10 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <udebug.h>
 #include <sys/types.h>
-#include <ipc/ipc.h>
 #include <async.h>
 
 int udebug_begin(int phoneid)
@@ -56,7 +55,7 @@ int udebug_set_evmask(int phoneid, udebug_evmask_t mask)
 int udebug_thread_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed)
 {
-	ipcarg_t a_copied, a_needed;
+	sysarg_t a_copied, a_needed;
 	int rc;
 
 	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_THREAD_READ,
@@ -71,7 +70,7 @@ int udebug_thread_read(int phoneid, void *buffer, size_t n,
 int udebug_name_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed)
 {
-	ipcarg_t a_copied, a_needed;
+	sysarg_t a_copied, a_needed;
 	int rc;
 
 	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_NAME_READ,
@@ -86,7 +85,7 @@ int udebug_name_read(int phoneid, void *buffer, size_t n,
 int udebug_areas_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed)
 {
-	ipcarg_t a_copied, a_needed;
+	sysarg_t a_copied, a_needed;
 	int rc;
 
 	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_AREAS_READ,
@@ -119,7 +118,7 @@ int udebug_regs_read(int phoneid, thash_t tid, void *buffer)
 int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
     sysarg_t *val0, sysarg_t *val1)
 {
-	ipcarg_t a_ev_type;
+	sysarg_t a_ev_type;
 	int rc;
 
 	rc =  async_req_2_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_GO,

@@ -125,13 +125,18 @@ void io_perm_bitmap_install(void)
 		bitmap_t iomap;
 		bitmap_initialize(&iomap, CPU->arch.tss->iomap,
 		    TSS_IOMAP_SIZE * 8);
-		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
+		bitmap_copy(&iomap, &TASK->arch.iomap, bits);
 		
+		/*
+		 * Set the trailing bits in the last byte of the map to disable
+		 * I/O access.
+		 */
+		bitmap_set_range(&iomap, bits, ALIGN_UP(bits, 8) - bits);
 		/*
 		 * It is safe to set the trailing eight bits because of the
 		 * extra convenience byte in TSS_IOMAP_SIZE.
 		 */
-		bitmap_set_range(&iomap, ALIGN_UP(TASK->arch.iomap.bits, 8), 8);
+		bitmap_set_range(&iomap, ALIGN_UP(bits, 8), 8);
 	}
 	irq_spinlock_unlock(&TASK->lock, false);
 	

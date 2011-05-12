@@ -69,7 +69,7 @@ typedef struct {
 } __attribute__ ((packed)) e820memmap_t;
 
 extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
-extern uint8_t e820counter; 
+extern uint8_t e820counter;
 
 #endif
 

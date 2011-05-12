@@ -44,7 +44,7 @@ typedef struct cyclic_buffer {
 }  cyclic_buffer_t;
 
 /*
- * @returns		False if the buffer is full.
+ * @return		False if the buffer is full.
  */
 static inline bool buf_push_back(cyclic_buffer_t *buf, uint8_t item)
 {

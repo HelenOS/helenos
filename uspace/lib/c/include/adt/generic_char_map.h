@@ -39,13 +39,16 @@
 
 #include <unistd.h>
 #include <errno.h>
-#include <err.h>
 
 #include <adt/char_map.h>
 #include <adt/generic_field.h>
 
 /** Internal magic value for a&nbsp;map consistency check. */
 #define GENERIC_CHAR_MAP_MAGIC_VALUE	0x12345622
+
+/** Generic destructor function pointer. */
+#define DTOR_T(identifier) \
+	void (*identifier)(const void *)
 
 /** Character string to generic type map declaration.
  *  @param[in] name	Name of the map.
@@ -55,7 +58,6 @@
 	GENERIC_FIELD_DECLARE(name##_items, type) \
 	\
 	typedef	struct name name##_t; \
-	typedef	name##_t *name##_ref; \
 	\
 	struct	name { \
 		char_map_t names; \
@@ -63,69 +65,64 @@
 		int magic; \
 	}; \
 	\
-	int name##_add(name##_ref, const char *, const size_t, type *); \
-	int name##_count(name##_ref); \
-	void name##_destroy(name##_ref); \
-	void name##_exclude(name##_ref, const char *, const size_t); \
-	type *name##_find(name##_ref, const char *, const size_t); \
-	int name##_initialize(name##_ref); \
-	int name##_is_valid(name##_ref);
+	int name##_add(name##_t *, const uint8_t *, const size_t, type *); \
+	int name##_count(name##_t *); \
+	void name##_destroy(name##_t *, DTOR_T()); \
+	void name##_exclude(name##_t *, const uint8_t *, const size_t, DTOR_T()); \
+	type *name##_find(name##_t *, const uint8_t *, const size_t); \
+	int name##_initialize(name##_t *); \
+	int name##_is_valid(name##_t *);
 
 /** Character string to generic type map implementation.
  *
  * Should follow declaration with the same parameters.
  *
- * @param[in] name	Name of the map.
- * @param[in] type	Inner object type.
+ * @param[in] name Name of the map.
+ * @param[in] type Inner object type.
+ *
  */
 #define GENERIC_CHAR_MAP_IMPLEMENT(name, type) \
 	GENERIC_FIELD_IMPLEMENT(name##_items, type) \
 	\
-	int name##_add(name##_ref map, const char *name, const size_t length, \
+	int name##_add(name##_t *map, const uint8_t *name, const size_t length, \
 	     type *value) \
 	{ \
-		ERROR_DECLARE; \
 		int index; \
 		if (!name##_is_valid(map)) \
 			return EINVAL; \
 		index = name##_items_add(&map->values, value); \
 		if (index < 0) \
 			return index; \
-		if (ERROR_OCCURRED(char_map_add(&map->names, name, length, \
-		    index))) { \
-			name##_items_exclude_index(&map->values, index); \
-			return ERROR_CODE; \
-		} \
-		return EOK; \
+		return char_map_add(&map->names, name, length, index); \
 	} \
 	\
-	int name##_count(name##_ref map) \
+	int name##_count(name##_t *map) \
 	{ \
 		return name##_is_valid(map) ? \
 		    name##_items_count(&map->values) : -1; \
 	} \
 	\
-	void name##_destroy(name##_ref map) \
+	void name##_destroy(name##_t *map, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			char_map_destroy(&map->names); \
-			name##_items_destroy(&map->values); \
+			name##_items_destroy(&map->values, dtor); \
 		} \
 	} \
 	\
-	void name##_exclude(name##_ref map, const char *name, \
-	    const size_t length) \
+	void name##_exclude(name##_t *map, const uint8_t *name, \
+	    const size_t length, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
 			index = char_map_exclude(&map->names, name, length); \
 			if (index != CHAR_MAP_NULL) \
 				name##_items_exclude_index(&map->values, \
-				     index); \
+				     index, dtor); \
 		} \
 	} \
 	\
-	type *name##_find(name##_ref map, const char *name, \
+	type *name##_find(name##_t *map, const uint8_t *name, \
 	    const size_t length) \
 	{ \
 		if (name##_is_valid(map)) { \
@@ -138,21 +135,24 @@
 		return NULL; \
 	} \
 	\
-	int name##_initialize(name##_ref map) \
+	int name##_initialize(name##_t *map) \
 	{ \
-		ERROR_DECLARE; \
+		int rc; \
 		if (!map) \
 			return EINVAL; \
-		ERROR_PROPAGATE(char_map_initialize(&map->names)); \
-		if (ERROR_OCCURRED(name##_items_initialize(&map->values))) { \
+		rc = char_map_initialize(&map->names); \
+		if (rc != EOK) \
+			return rc; \
+		rc = name##_items_initialize(&map->values); \
+		if (rc != EOK) { \
 			char_map_destroy(&map->names); \
-			return ERROR_CODE; \
+			return rc; \
 		} \
 		map->magic = GENERIC_CHAR_MAP_MAGIC_VALUE; \
 		return EOK; \
 	} \
 	\
-	int name##_is_valid(name##_ref map) \
+	int name##_is_valid(name##_t *map) \
 	{ \
 		return map && (map->magic == GENERIC_CHAR_MAP_MAGIC_VALUE); \
 	}

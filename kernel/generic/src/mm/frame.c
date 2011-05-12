@@ -44,6 +44,7 @@
 
 #include <typedefs.h>
 #include <mm/frame.h>
+#include <mm/reserve.h>
 #include <mm/as.h>
 #include <panic.h>
 #include <debug.h>
@@ -58,6 +59,7 @@
 #include <bitops.h>
 #include <macros.h>
 #include <config.h>
+#include <str.h>
 
 zones_t zones;
 
@@ -144,10 +146,11 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
 			if ((zones.info[i].flags != flags) ||
 			    (!iswithin(zones.info[i].base, zones.info[i].count,
 			    base, count))) {
-				printf("Zone (%p, %p) overlaps with previous zone (%p, %p)!\n",
-				    PFN2ADDR(base), PFN2ADDR(count),
-				    PFN2ADDR(zones.info[i].base),
-				    PFN2ADDR(zones.info[i].count));
+				printf("Zone (%p, %p) overlaps "
+				    "with previous zone (%p %p)!\n",
+				    (void *) PFN2ADDR(base), (void *) PFN2ADDR(count),
+				    (void *) PFN2ADDR(zones.info[i].base),
+				    (void *) PFN2ADDR(zones.info[i].count));
 			}
 			
 			return (size_t) -1;
@@ -470,25 +473,27 @@ NO_TRACE static pfn_t zone_frame_alloc(zone_t *zone, uint8_t order)
  * @param zone      Pointer to zone from which the frame is to be freed.
  * @param frame_idx Frame index relative to zone.
  *
+ * @return          Number of freed frames.
+ *
  */
-NO_TRACE static void zone_frame_free(zone_t *zone, size_t frame_idx)
+NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t frame_idx)
 {
 	ASSERT(zone_flags_available(zone->flags));
 	
 	frame_t *frame = &zone->frames[frame_idx];
-	
-	/* Remember frame order */
-	uint8_t order = frame->buddy_order;
+	size_t size = 0;
 	
 	ASSERT(frame->refcount);
 	
 	if (!--frame->refcount) {
-		buddy_system_free(zone->buddy_system, &frame->buddy_link);
-		
+		size = 1 << frame->buddy_order;
+		buddy_system_free(zone->buddy_system, &frame->buddy_link);		
 		/* Update zone information. */
-		zone->free_count += (1 << order);
-		zone->busy_count -= (1 << order);
+		zone->free_count += size;
+		zone->busy_count -= size;
 	}
+	
+	return size;
 }
 
 /** Return frame from zone. */
@@ -514,6 +519,7 @@ NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t frame_idx)
 	
 	ASSERT(link);
 	zone->free_count--;
+	reserve_force_alloc(1);
 }
 
 /** Merge two zones.
@@ -643,7 +649,7 @@ NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 	size_t i;
 	for (i = 0; i < cframes; i++) {
 		zones.info[znum].busy_count++;
-		zone_frame_free(&zones.info[znum],
+		(void) zone_frame_free(&zones.info[znum],
 		    pfn - zones.info[znum].base + i);
 	}
 }
@@ -681,7 +687,7 @@ NO_TRACE static void zone_reduce_region(size_t znum, pfn_t frame_idx,
 	
 	/* Free unneeded frames */
 	for (i = count; i < (size_t) (1 << order); i++)
-		zone_frame_free(&zones.info[znum], i + frame_idx);
+		(void) zone_frame_free(&zones.info[znum], i + frame_idx);
 }
 
 /** Merge zones z1 and z2.
@@ -693,8 +699,6 @@ NO_TRACE static void zone_reduce_region(size_t znum, pfn_t frame_idx,
  * When you create a new zone, the frame allocator configuration does
  * not to be 2^order size. Once the allocator is running it is no longer
  * possible, merged configuration data occupies more space :-/
- *
- * The function uses
  *
  */
 bool zone_merge(size_t z1, size_t z2)
@@ -835,6 +839,9 @@ NO_TRACE static void zone_construct(zone_t *zone, buddy_system_t *buddy,
 			zone->frames[i].refcount = 0;
 			buddy_system_free(zone->buddy_system, &zone->frames[i].buddy_link);
 		}
+
+		/* "Unreserve" new frames. */
+		reserve_free(count);
 	} else
 		zone->frames = NULL;
 }
@@ -877,7 +884,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * nobody tries to do that. If some platform requires, remove
 		 * the assert
 		 */
-		ASSERT(confframe != NULL);
+		ASSERT(confframe != ADDR2PFN((uintptr_t ) NULL));
 		
 		/* If confframe is supposed to be inside our zone, then make sure
 		 * it does not span kernel & init
@@ -997,6 +1004,12 @@ void *frame_alloc_generic(uint8_t order, frame_flags_t flags, size_t *pzone)
 	size_t size = ((size_t) 1) << order;
 	size_t hint = pzone ? (*pzone) : 0;
 	
+	/*
+	 * If not told otherwise, we must first reserve the memory.
+	 */
+	if (!(flags & FRAME_NO_RESERVE)) 
+		reserve_force_alloc(size);
+
 loop:
 	irq_spinlock_lock(&zones.lock, true);
 	
@@ -1031,6 +1044,8 @@ loop:
 	if (znum == (size_t) -1) {
 		if (flags & FRAME_ATOMIC) {
 			irq_spinlock_unlock(&zones.lock, true);
+			if (!(flags & FRAME_NO_RESERVE))
+				reserve_free(size);
 			return NULL;
 		}
 		
@@ -1048,8 +1063,8 @@ loop:
 		 */
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " waiting for %" PRIs " frames, "
-		    "%" PRIs " available.\n", THREAD->tid, size, avail);
+		printf("Thread %" PRIu64 " waiting for %zu frames, "
+		    "%zu available.\n", THREAD->tid, size, avail);
 #endif
 		
 		mutex_lock(&mem_avail_mtx);
@@ -1086,6 +1101,16 @@ loop:
 	return (void *) PFN2ADDR(pfn);
 }
 
+void *frame_alloc(uint8_t order, frame_flags_t flags)
+{
+	return frame_alloc_generic(order, flags, NULL);
+}
+
+void *frame_alloc_noreserve(uint8_t order, frame_flags_t flags)
+{
+	return frame_alloc_generic(order, flags | FRAME_NO_RESERVE, NULL);
+}
+
 /** Free a frame.
  *
  * Find respective frame structure for supplied physical frame address.
@@ -1093,21 +1118,25 @@ loop:
  * structure to free list.
  *
  * @param frame Physical Address of of the frame to be freed.
+ * @param flags Flags to control memory reservation.
  *
  */
-void frame_free(uintptr_t frame)
+void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 {
+	size_t size;
+	
 	irq_spinlock_lock(&zones.lock, true);
 	
 	/*
 	 * First, find host frame zone for addr.
 	 */
 	pfn_t pfn = ADDR2PFN(frame);
-	size_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, 0);
+
 	
 	ASSERT(znum != (size_t) -1);
 	
-	zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);
+	size = zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);
 	
 	irq_spinlock_unlock(&zones.lock, true);
 	
@@ -1116,13 +1145,26 @@ void frame_free(uintptr_t frame)
 	 */
 	mutex_lock(&mem_avail_mtx);
 	if (mem_avail_req > 0)
-		mem_avail_req--;
+		mem_avail_req -= min(mem_avail_req, size);
 	
 	if (mem_avail_req == 0) {
 		mem_avail_gen++;
 		condvar_broadcast(&mem_avail_cv);
 	}
 	mutex_unlock(&mem_avail_mtx);
+	
+	if (!(flags & FRAME_NO_RESERVE))
+		reserve_free(size);
+}
+
+void frame_free(uintptr_t frame)
+{
+	frame_free_generic(frame, 0);
+}
+
+void frame_free_noreserve(uintptr_t frame)
+{
+	frame_free_generic(frame, FRAME_NO_RESERVE);
 }
 
 /** Add reference to frame.
@@ -1140,7 +1182,7 @@ NO_TRACE void frame_reference_add(pfn_t pfn)
 	/*
 	 * First, find host frame zone for addr.
 	 */
-	size_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, 0);
 	
 	ASSERT(znum != (size_t) -1);
 	
@@ -1296,23 +1338,23 @@ void zones_print_list(void)
 		
 		bool available = zone_flags_available(flags);
 		
-		printf("%-4" PRIs, i);
+		printf("%-4zu", i);
 		
 #ifdef __32_BITS__
-		printf("  %10p", base);
+		printf("  %p", (void *) base);
 #endif
 		
 #ifdef __64_BITS__
-		printf(" %18p", base);
+		printf(" %p", (void *) base);
 #endif
 		
-		printf(" %12" PRIs " %c%c%c      ", count,
+		printf(" %12zu %c%c%c      ", count,
 		    available ? 'A' : ' ',
 		    (flags & ZONE_RESERVED) ? 'R' : ' ',
 		    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 		
 		if (available)
-			printf("%14" PRIs " %14" PRIs,
+			printf("%14zu %14zu",
 			    free_count, busy_count);
 		
 		printf("\n");
@@ -1353,20 +1395,28 @@ void zone_print_one(size_t num)
 	
 	bool available = zone_flags_available(flags);
 	
-	printf("Zone number:       %" PRIs "\n", znum);
-	printf("Zone base address: %p\n", base);
-	printf("Zone size:         %" PRIs " frames (%" PRIs " KiB)\n", count,
-	    SIZE2KB(FRAMES2SIZE(count)));
+	uint64_t size;
+	const char *size_suffix;
+	bin_order_suffix(FRAMES2SIZE(count), &size, &size_suffix, false);
+	
+	printf("Zone number:       %zu\n", znum);
+	printf("Zone base address: %p\n", (void *) base);
+	printf("Zone size:         %zu frames (%" PRIu64 " %s)\n", count,
+	    size, size_suffix);
 	printf("Zone flags:        %c%c%c\n",
 	    available ? 'A' : ' ',
 	    (flags & ZONE_RESERVED) ? 'R' : ' ',
 	    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 	
 	if (available) {
-		printf("Allocated space:   %" PRIs " frames (%" PRIs " KiB)\n",
-		    busy_count, SIZE2KB(FRAMES2SIZE(busy_count)));
-		printf("Available space:   %" PRIs " frames (%" PRIs " KiB)\n",
-		    free_count, SIZE2KB(FRAMES2SIZE(free_count)));
+		bin_order_suffix(FRAMES2SIZE(busy_count), &size, &size_suffix,
+		    false);
+		printf("Allocated space:   %zu frames (%" PRIu64 " %s)\n",
+		    busy_count, size, size_suffix);
+		bin_order_suffix(FRAMES2SIZE(free_count), &size, &size_suffix,
+		    false);
+		printf("Available space:   %zu frames (%" PRIu64 " %s)\n",
+		    free_count, size, size_suffix);
 	}
 }
 

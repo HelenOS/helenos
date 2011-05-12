@@ -47,7 +47,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <err.h>
 
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
@@ -68,7 +67,7 @@ struct socket_port {
 
 INT_MAP_IMPLEMENT(socket_cores, socket_core_t);
 
-GENERIC_CHAR_MAP_IMPLEMENT(socket_port_map, socket_core_ref);
+GENERIC_CHAR_MAP_IMPLEMENT(socket_port_map, socket_core_t *);
 
 INT_MAP_IMPLEMENT(socket_ports, socket_port_t);
 
@@ -85,19 +84,19 @@ INT_MAP_IMPLEMENT(socket_ports, socket_port_t);
  * @param[in] socket_release The client release callback function.
  */
 static void
-socket_destroy_core(int packet_phone, socket_core_ref socket,
-    socket_cores_ref local_sockets, socket_ports_ref global_sockets,
-    void (* socket_release)(socket_core_ref socket))
+socket_destroy_core(int packet_phone, socket_core_t *socket,
+    socket_cores_t *local_sockets, socket_ports_t *global_sockets,
+    void (* socket_release)(socket_core_t *socket))
 {
 	int packet_id;
 
-	// if bound
+	/* If bound */
 	if (socket->port) {
-		// release the port
+		/* Release the port */
 		socket_port_release(global_sockets, socket);
 	}
 	
-	// release all received packets
+	/* Release all received packets */
 	while ((packet_id = dyn_fifo_pop(&socket->received)) >= 0)
 		pq_release_remote(packet_phone, packet_id);
 
@@ -107,7 +106,7 @@ socket_destroy_core(int packet_phone, socket_core_ref socket,
 	if (socket_release)
 		socket_release(socket);
 
-	socket_cores_exclude(local_sockets, socket->socket_id);
+	socket_cores_exclude(local_sockets, socket->socket_id, free);
 }
 
 /** Destroys local sockets.
@@ -121,9 +120,9 @@ socket_destroy_core(int packet_phone, socket_core_ref socket,
  * @param[in] socket_release The client release callback function.
  */
 void
-socket_cores_release(int packet_phone, socket_cores_ref local_sockets,
-    socket_ports_ref global_sockets,
-    void (* socket_release)(socket_core_ref socket))
+socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
+    socket_ports_t *global_sockets,
+    void (* socket_release)(socket_core_t *socket))
 {
 	int index;
 
@@ -156,28 +155,28 @@ socket_cores_release(int packet_phone, socket_cores_ref local_sockets,
  * @param[in] socket	The socket to be added.
  * @param[in] key	The socket key identifier.
  * @param[in] key_length The socket key length.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int
-socket_port_add_core(socket_port_ref socket_port, socket_core_ref socket,
-    const char *key, size_t key_length)
+socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
+    const uint8_t *key, size_t key_length)
 {
-	ERROR_DECLARE;
+	socket_core_t **socket_ref;
+	int rc;
 
-	socket_core_ref *socket_ref;
-
-	// create a wrapper
+	/* Create a wrapper */
 	socket_ref = malloc(sizeof(*socket_ref));
 	if (!socket_ref)
 		return ENOMEM;
 
 	*socket_ref = socket;
-	// add the wrapper
-	if (ERROR_OCCURRED(socket_port_map_add(&socket_port->map, key,
-	    key_length, socket_ref))) {
+	/* Add the wrapper */
+	rc = socket_port_map_add(&socket_port->map, key, key_length,
+	    socket_ref);
+	if (rc != EOK) {
 		free(socket_ref);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	++socket_port->count;
@@ -194,43 +193,46 @@ socket_port_add_core(socket_port_ref socket_port, socket_core_ref socket,
  * @param[in] global_sockets The global sockets to be updated.
  * @param[in] socket	The socket to be added.
  * @param[in] port	The port number to be bound to.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			 socket_ports_add() function.
  */
 static int
-socket_bind_insert(socket_ports_ref global_sockets, socket_core_ref socket,
+socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
     int port)
 {
-	ERROR_DECLARE;
+	socket_port_t *socket_port;
+	int rc;
 
-	socket_port_ref socket_port;
-
-	// create a wrapper
+	/* Create a wrapper */
 	socket_port = malloc(sizeof(*socket_port));
 	if (!socket_port)
 		return ENOMEM;
 
 	socket_port->count = 0;
-	if (ERROR_OCCURRED(socket_port_map_initialize(&socket_port->map)) ||
-	    ERROR_OCCURRED(socket_port_add_core(socket_port, socket,
-	    SOCKET_MAP_KEY_LISTENING, 0))) {
-		socket_port_map_destroy(&socket_port->map);
-		free(socket_port);
-		return ERROR_CODE;
-	}
+	rc = socket_port_map_initialize(&socket_port->map);
+	if (rc != EOK)
+		goto fail;
 	
-	// register the incomming port
-	ERROR_CODE = socket_ports_add(global_sockets, port, socket_port);
-	if (ERROR_CODE < 0) {
-		socket_port_map_destroy(&socket_port->map);
-		free(socket_port);
-		return ERROR_CODE;
-	}
+	rc = socket_port_add_core(socket_port, socket,
+	    (const uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
+	if (rc != EOK)
+		goto fail;
+	
+	/* Register the incoming port */
+	rc = socket_ports_add(global_sockets, port, socket_port);
+	if (rc < 0)
+		goto fail;
 	
 	socket->port = port;
 	return EOK;
+
+fail:
+	socket_port_map_destroy(&socket_port->map, free);
+	free(socket_port);
+	return rc;
+	
 }
 
 /** Binds the socket to the port.
@@ -245,22 +247,22 @@ socket_bind_insert(socket_ports_ref global_sockets, socket_core_ref socket,
  * @param[in] free_ports_start The minimum free port.
  * @param[in] free_ports_end The maximum free port.
  * @param[in] last_used_port The last used free port.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket was not found.
- * @returns		EAFNOSUPPORT if the address family is not supported.
- * @returns		EADDRINUSE if the port is already in use.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket was not found.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ * @return		EADDRINUSE if the port is already in use.
+ * @return		Other error codes as defined for the
  *			socket_bind_free_port() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			socket_bind_insert() function.
  */
 int
-socket_bind(socket_cores_ref local_sockets, socket_ports_ref global_sockets,
+socket_bind(socket_cores_t *local_sockets, socket_ports_t *global_sockets,
     int socket_id, void *addr, size_t addrlen, int free_ports_start,
     int free_ports_end, int last_used_port)
 {
-	socket_core_ref socket;
-	socket_port_ref socket_port;
+	socket_core_t *socket;
+	socket_port_t *socket_port;
 	struct sockaddr *address;
 	struct sockaddr_in *address_in;
 
@@ -274,27 +276,27 @@ socket_bind(socket_cores_ref local_sockets, socket_ports_ref global_sockets,
 			return EINVAL;
 		
 		address_in = (struct sockaddr_in *) addr;
-		// find the socket
+		/* Find the socket */
 		socket = socket_cores_find(local_sockets, socket_id);
 		if (!socket)
 			return ENOTSOCK;
 		
-		// bind a free port?
+		/* Bind a free port? */
 		if (address_in->sin_port <= 0)
 			return socket_bind_free_port(global_sockets, socket,
 			     free_ports_start, free_ports_end, last_used_port);
 		
-		// try to find the port
+		/* Try to find the port */
 		socket_port = socket_ports_find(global_sockets,
 		    ntohs(address_in->sin_port));
 		if (socket_port) {
-			// already used
+			/* Already used */
 			return EADDRINUSE;
 		}
 		
-		// if bound
+		/* If bound */
 		if (socket->port) {
-			// release the port
+			/* Release the port */
 			socket_port_release(global_sockets, socket);
 		}
 		socket->port = -1;
@@ -319,37 +321,37 @@ socket_bind(socket_cores_ref local_sockets, socket_ports_ref global_sockets,
  * @param[in] free_ports_start The minimum free port.
  * @param[in] free_ports_end The maximum free port.
  * @param[in] last_used_port The last used free port.
- * @returns		EOK on success.
- * @returns		ENOTCONN if no free port was found.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTCONN if no free port was found.
+ * @return		Other error codes as defined for the
  *			socket_bind_insert() function.
  */
 int
-socket_bind_free_port(socket_ports_ref global_sockets, socket_core_ref socket,
+socket_bind_free_port(socket_ports_t *global_sockets, socket_core_t *socket,
     int free_ports_start, int free_ports_end, int last_used_port)
 {
 	int index;
 
-	// from the last used one
+	/* From the last used one */
 	index = last_used_port;
 	
 	do {
 		++index;
 		
-		// til the range end
+		/* Till the range end */
 		if (index >= free_ports_end) {
-			// start from the range beginning
+			/* Start from the range beginning */
 			index = free_ports_start - 1;
 			do {
 				++index;
-				// til the last used one
+				/* Till the last used one */
 				if (index >= last_used_port) {
-					// none found
+					/* None found */
 					return ENOTCONN;
 				}
 			} while (socket_ports_find(global_sockets, index));
 			
-			// found, break immediately
+			/* Found, break immediately */
 			break;
 		}
 		
@@ -364,16 +366,18 @@ socket_bind_free_port(socket_ports_ref global_sockets, socket_core_ref socket,
  * @param[in] positive	A value indicating whether a positive identifier is
  *			requested. A negative identifier is requested if set to
  *			false.
- * @returns		The new socket identifier.
- * @returns		ELIMIT if there is no socket identifier available.
+ * @return		The new socket identifier.
+ * @return		ELIMIT if there is no socket identifier available.
  */
-static int socket_generate_new_id(socket_cores_ref local_sockets, int positive)
+static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 {
 	int socket_id;
 	int count;
 
 	count = 0;
-//	socket_id = socket_globals.last_id;
+#if 0
+	socket_id = socket_globals.last_id;
+#endif
 	do {
 		if (count < SOCKET_ID_TRIES) {
 			socket_id = rand() % INT_MAX;
@@ -381,14 +385,16 @@ static int socket_generate_new_id(socket_cores_ref local_sockets, int positive)
 		} else if (count == SOCKET_ID_TRIES) {
 			socket_id = 1;
 			++count;
-		// only this branch for last_id
+		/* Only this branch for last_id */
 		} else {
 			if (socket_id < INT_MAX) {
 				++ socket_id;
-/*			} else if(socket_globals.last_id) {
-*				socket_globals.last_id = 0;
-*				socket_id = 1;
-*/			} else {
+#if 0
+			} else if(socket_globals.last_id) {
+				socket_globals.last_id = 0;
+				socket_id = 1;
+#endif
+			} else {
 				return ELIMIT;
 			}
 		}
@@ -407,24 +413,22 @@ static int socket_generate_new_id(socket_cores_ref local_sockets, int positive)
  * @param[in,out] socket_id The new socket identifier. A new identifier is
  *			chosen if set to zero or negative. A negative identifier
  *			is chosen if set to negative.
- * @returns		EOK on success.
- * @returns		EINVAL if the socket_id parameter is NULL.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the socket_id parameter is NULL.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
-socket_create(socket_cores_ref local_sockets, int app_phone,
+socket_create(socket_cores_t *local_sockets, int app_phone,
     void *specific_data, int *socket_id)
 {
-	ERROR_DECLARE;
-
-	socket_core_ref socket;
-	int res;
+	socket_core_t *socket;
 	int positive;
+	int rc;
 
 	if (!socket_id)
 		return EINVAL;
 	
-	// store the socket
+	/* Store the socket */
 	if (*socket_id <= 0) {
 		positive = (*socket_id == 0);
 		*socket_id = socket_generate_new_id(local_sockets, positive);
@@ -436,34 +440,35 @@ socket_create(socket_cores_ref local_sockets, int app_phone,
 		return EEXIST;
 	}
 	
-	socket = (socket_core_ref) malloc(sizeof(*socket));
+	socket = (socket_core_t *) malloc(sizeof(*socket));
 	if (!socket)
 		return ENOMEM;
 	
-	// initialize
+	/* Initialize */
 	socket->phone = app_phone;
 	socket->port = -1;
 	socket->key = NULL;
 	socket->key_length = 0;
 	socket->specific_data = specific_data;
-	if (ERROR_OCCURRED(dyn_fifo_initialize(&socket->received,
-	    SOCKET_INITIAL_RECEIVED_SIZE))) {
+	rc = dyn_fifo_initialize(&socket->received, SOCKET_INITIAL_RECEIVED_SIZE);
+	if (rc != EOK) {
 		free(socket);
-		return ERROR_CODE;
+		return rc;
 	}
-	if (ERROR_OCCURRED(dyn_fifo_initialize(&socket->accepted,
-	    SOCKET_INITIAL_ACCEPTED_SIZE))) {
+	
+	rc = dyn_fifo_initialize(&socket->accepted, SOCKET_INITIAL_ACCEPTED_SIZE);
+	if (rc != EOK) {
 		dyn_fifo_destroy(&socket->received);
 		free(socket);
-		return ERROR_CODE;
+		return rc;
 	}
 	socket->socket_id = *socket_id;
-	res = socket_cores_add(local_sockets, socket->socket_id, socket);
-	if (res < 0) {
+	rc = socket_cores_add(local_sockets, socket->socket_id, socket);
+	if (rc < 0) {
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
-		return res;
+		return rc;
 	}
 	
 	return EOK;
@@ -480,23 +485,23 @@ socket_create(socket_cores_ref local_sockets, int app_phone,
  * @param[in,out] local_sockets The local sockets to be updated.
  * @param[in,out] global_sockets The global sockets to be updated.
  * @param[in] socket_release The client release callback function.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
  */
 int
-socket_destroy(int packet_phone, int socket_id, socket_cores_ref local_sockets,
-    socket_ports_ref global_sockets,
-    void (*socket_release)(socket_core_ref socket))
+socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
+    socket_ports_t *global_sockets,
+    void (*socket_release)(socket_core_t *socket))
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int accepted_id;
 
-	// find the socket
+	/* Find the socket */
 	socket = socket_cores_find(local_sockets, socket_id);
 	if (!socket)
 		return ENOTSOCK;
 	
-	// destroy all accepted sockets
+	/* Destroy all accepted sockets */
 	while ((accepted_id = dyn_fifo_pop(&socket->accepted)) >= 0)
 		socket_destroy(packet_phone, accepted_id, local_sockets,
 		    global_sockets, socket_release);
@@ -514,39 +519,40 @@ socket_destroy(int packet_phone, int socket_id, socket_cores_ref local_sockets,
  *
  * @param[in] packet	The packet to be transfered.
  * @param[out] length	The total data length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the length parameter is NULL.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the data_reply()
+ * @return		EOK on success.
+ * @return		EBADMEM if the length parameter is NULL.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the data_reply()
  *			function.
  */
-int socket_reply_packets(packet_t packet, size_t *length)
+int socket_reply_packets(packet_t *packet, size_t *length)
 {
-	ERROR_DECLARE;
-
-	packet_t next_packet;
+	packet_t *next_packet;
 	size_t fragments;
 	size_t *lengths;
 	size_t index;
+	int rc;
 
 	if (!length)
 		return EBADMEM;
 
 	next_packet = pq_next(packet);
 	if (!next_packet) {
-		// write all if only one fragment
-		ERROR_PROPAGATE(data_reply(packet_get_data(packet),
-		    packet_get_data_length(packet)));
-		// store the total length
+		/* Write all if only one fragment */
+		rc = data_reply(packet_get_data(packet),
+		    packet_get_data_length(packet));
+		if (rc != EOK)
+			return rc;
+		/* Store the total length */
 		*length = packet_get_data_length(packet);
 	} else {
-		// count the packet fragments
+		/* Count the packet fragments */
 		fragments = 1;
 		next_packet = pq_next(packet);
 		while ((next_packet = pq_next(next_packet)))
 			++fragments;
 		
-		// compute and store the fragment lengths
+		/* Compute and store the fragment lengths */
 		lengths = (size_t *) malloc(sizeof(size_t) * fragments +
 		    sizeof(size_t));
 		if (!lengths)
@@ -562,26 +568,26 @@ int socket_reply_packets(packet_t packet, size_t *length)
 			next_packet = pq_next(packet);
 		}
 		
-		// write the fragment lengths
-		if (ERROR_OCCURRED(data_reply(lengths,
-		    sizeof(int) * (fragments + 1)))) {
+		/* Write the fragment lengths */
+		rc = data_reply(lengths, sizeof(int) * (fragments + 1));
+		if (rc != EOK) {
 			free(lengths);
-			return ERROR_CODE;
+			return rc;
 		}
 		next_packet = packet;
 		
-		// write the fragments
+		/* Write the fragments */
 		for (index = 0; index < fragments; ++index) {
-			ERROR_CODE = data_reply(packet_get_data(next_packet),
+			rc = data_reply(packet_get_data(next_packet),
 			    lengths[index]);
-			if (ERROR_OCCURRED(ERROR_CODE)) {
+			if (rc != EOK) {
 				free(lengths);
-				return ERROR_CODE;
+				return rc;
 			}
 			next_packet = pq_next(next_packet);
 		}
 		
-		// store the total length
+		/* Store the total length */
 		*length = lengths[fragments];
 		free(lengths);
 	}
@@ -595,15 +601,15 @@ int socket_reply_packets(packet_t packet, size_t *length)
  * @param[in] port	The port number.
  * @param[in] key	The socket key identifier.
  * @param[in] key_length The socket key length.
- * @returns		The found socket.
- * @returns		NULL if no socket was found.
+ * @return		The found socket.
+ * @return		NULL if no socket was found.
  */
-socket_core_ref
-socket_port_find(socket_ports_ref global_sockets, int port, const char *key,
+socket_core_t *
+socket_port_find(socket_ports_t *global_sockets, int port, const uint8_t *key,
     size_t key_length)
 {
-	socket_port_ref socket_port;
-	socket_core_ref *socket_ref;
+	socket_port_t *socket_port;
+	socket_core_t **socket_ref;
 
 	socket_port = socket_ports_find(global_sockets, port);
 	if (socket_port && (socket_port->count > 0)) {
@@ -625,35 +631,35 @@ socket_port_find(socket_ports_ref global_sockets, int port, const char *key,
  * @param[in] socket	The socket to be unbound.
  */
 void
-socket_port_release(socket_ports_ref global_sockets, socket_core_ref socket)
+socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
 {
-	socket_port_ref socket_port;
-	socket_core_ref *socket_ref;
+	socket_port_t *socket_port;
+	socket_core_t **socket_ref;
 
 	if (!socket->port)
 		return;
 	
-	// find ports
+	/* Find ports */
 	socket_port = socket_ports_find(global_sockets, socket->port);
 	if (socket_port) {
-		// find the socket
+		/* Find the socket */
 		socket_ref = socket_port_map_find(&socket_port->map,
 		    socket->key, socket->key_length);
 		
 		if (socket_ref) {
 			--socket_port->count;
 			
-			// release if empty
+			/* Release if empty */
 			if (socket_port->count <= 0) {
-				// destroy the map
-				socket_port_map_destroy(&socket_port->map);
-				// release the port
+				/* Destroy the map */
+				socket_port_map_destroy(&socket_port->map, free);
+				/* Release the port */
 				socket_ports_exclude(global_sockets,
-				    socket->port);
+				    socket->port, free);
 			} else {
-				// remove
+				/* Remove */
 				socket_port_map_exclude(&socket_port->map,
-				    socket->key, socket->key_length);
+				    socket->key, socket->key_length, free);
 			}
 		}
 	}
@@ -670,27 +676,27 @@ socket_port_release(socket_ports_ref global_sockets, socket_core_ref socket)
  * @param[in] socket	The socket to be added.
  * @param[in] key	The socket key identifier.
  * @param[in] key_length The socket key length.
- * @returns		EOK on success.
- * @returns		ENOENT if the port is not already used.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOENT if the port is not already used.
+ * @return		Other error codes as defined for the
  *			socket_port_add_core() function.
  */
 int
-socket_port_add(socket_ports_ref global_sockets, int port,
-    socket_core_ref socket, const char *key, size_t key_length)
+socket_port_add(socket_ports_t *global_sockets, int port,
+    socket_core_t *socket, const uint8_t *key, size_t key_length)
 {
-	ERROR_DECLARE;
+	socket_port_t *socket_port;
+	int rc;
 
-	socket_port_ref socket_port;
-
-	// find ports
+	/* Find ports */
 	socket_port = socket_ports_find(global_sockets, port);
 	if (!socket_port)
 		return ENOENT;
 	
-	// add the socket
-	ERROR_PROPAGATE(socket_port_add_core(socket_port, socket, key,
-	    key_length));
+	/* Add the socket */
+	rc = socket_port_add_core(socket_port, socket, key, key_length);
+	if (rc != EOK)
+		return rc;
 	
 	socket->port = port;
 	return EOK;

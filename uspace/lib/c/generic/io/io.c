@@ -40,10 +40,12 @@
 #include <errno.h>
 #include <bool.h>
 #include <malloc.h>
+#include <async.h>
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <ipc/devmap.h>
 #include <adt/list.h>
+#include "../private/io.h"
 
 static void _ffillbuf(FILE *stream);
 static void _fflushbuf(FILE *stream);
@@ -170,6 +172,7 @@ static bool parse_mode(const char *mode, int *flags)
 			return false;
 		}
 		*flags = (O_APPEND | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+		break;
 	default:
 		errno = EINVAL;
 		return false;
@@ -321,7 +324,7 @@ int fclose(FILE *stream)
 	fflush(stream);
 	
 	if (stream->phone >= 0)
-		ipc_hangup(stream->phone);
+		async_hangup(stream->phone);
 	
 	if (stream->fd >= 0)
 		rc = close(stream->fd);

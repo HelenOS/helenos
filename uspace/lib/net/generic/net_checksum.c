@@ -47,11 +47,11 @@
 /** Compacts the computed checksum to the 16 bit number adding the carries.
  *
  * @param[in] sum	Computed checksum.
- * @returns		Compacted computed checksum to the 16 bits.
+ * @return		Compacted computed checksum to the 16 bits.
  */
 uint16_t compact_checksum(uint32_t sum)
 {
-	// shorten to the 16 bits
+	/* Shorten to the 16 bits */
 	while (sum >> 16)
 		sum = (sum & 0xffff) + (sum >> 16);
 
@@ -65,17 +65,17 @@ uint16_t compact_checksum(uint32_t sum)
  * @param[in] seed	Initial value. Often used as 0 or ~0.
  * @param[in] data	Pointer to the beginning of data to process.
  * @param[in] length	Length of the data in bytes.
- * @returns		The computed checksum of the length bytes of the data.
+ * @return		The computed checksum of the length bytes of the data.
  */
 uint32_t compute_checksum(uint32_t seed, uint8_t *data, size_t length)
 {
 	size_t index;
 
-	// sum all the 16 bit fields
+	/* Sum all the 16 bit fields */
 	for (index = 0; index + 1 < length; index += 2)
 		seed += (data[index] << 8) + data[index + 1];
 
-	// last odd byte with zero padding
+	/* Last odd byte with zero padding */
 	if (index + 1 == length)
 		seed += data[index] << 8;
 
@@ -87,47 +87,47 @@ uint32_t compute_checksum(uint32_t seed, uint8_t *data, size_t length)
  * @param[in] seed	Initial value. Often used as 0 or ~0.
  * @param[in] data	Pointer to the beginning of data to process.
  * @param[in] length	Length of the data in bits.
- * @returns		The computed CRC32 of the length bits of the data.
+ * @return		The computed CRC32 of the length bits of the data.
  */
 uint32_t compute_crc32_be(uint32_t seed, uint8_t * data, size_t length)
 {
 	size_t index;
 
-	// process full bytes
+	/* Process full bytes */
 	while (length >= 8) {
-		// add the data
+		/* Add the data */
 		seed ^= (*data) << 24;
 		
-		// for each added bit
+		/* For each added bit */
 		for (index = 0; index < 8; ++index) {
-			// if the first bit is set
+			/* If the first bit is set */
 			if (seed & 0x80000000) {
-				// shift and divide the checksum
+				/* Shift and divide the checksum */
 				seed = (seed << 1) ^ ((uint32_t) CRC_DIVIDER_BE);
 			} else {
-				// shift otherwise
+				/* Shift otherwise */
 				seed <<= 1;
 			}
 		}
 		
-		// move to the next byte
+		/* Move to the next byte */
 		++data;
 		length -= 8;
 	}
 
-	// process the odd bits
+	/* Process the odd bits */
 	if (length > 0) {
-		// add the data with zero padding
+		/* Add the data with zero padding */
 		seed ^= ((*data) & (0xff << (8 - length))) << 24;
 		
-		// for each added bit
+		/* For each added bit */
 		for (index = 0; index < length; ++index) {
-			// if the first bit is set
+			/* If the first bit is set */
 			if (seed & 0x80000000) {
-				// shift and divide the checksum
+				/* Shift and divide the checksum */
 				seed = (seed << 1) ^ ((uint32_t) CRC_DIVIDER_BE);
 			} else {
-				// shift otherwise
+				/* Shift otherwise */
 				seed <<= 1;
 			}
 		}
@@ -141,46 +141,46 @@ uint32_t compute_crc32_be(uint32_t seed, uint8_t * data, size_t length)
  * @param[in] seed	Initial value. Often used as 0 or ~0.
  * @param[in] data	Pointer to the beginning of data to process.
  * @param[in] length	Length of the data in bits.
- * @returns		The computed CRC32 of the length bits of the data.
+ * @return		The computed CRC32 of the length bits of the data.
  */
 uint32_t compute_crc32_le(uint32_t seed, uint8_t * data, size_t length)
 {
 	size_t index;
 
-	// process full bytes
+	/* Process full bytes */
 	while (length >= 8) {
-		// add the data
+		/* Add the data */
 		seed ^= (*data);
 		
-		// for each added bit
+		/* For each added bit */
 		for (index = 0; index < 8; ++index) {
-			// if the last bit is set
+			/* If the last bit is set */
 			if (seed & 1) {
-				// shift and divide the checksum
+				/* Shift and divide the checksum */
 				seed = (seed >> 1) ^ ((uint32_t) CRC_DIVIDER_LE);
 			} else {
-				// shift otherwise
+				/* Shift otherwise */
 				seed >>= 1;
 			}
 		}
 		
-		// move to the next byte
+		/* Move to the next byte */
 		++data;
 		length -= 8;
 	}
 
-	// process the odd bits
+	/* Process the odd bits */
 	if (length > 0) {
-		// add the data with zero padding
+		/* Add the data with zero padding */
 		seed ^= (*data) >> (8 - length);
 		
 		for (index = 0; index < length; ++index) {
-			// if the last bit is set
+			/* If the last bit is set */
 			if (seed & 1) {
-				// shift and divide the checksum
+				/* Shift and divide the checksum */
 				seed = (seed >> 1) ^ ((uint32_t) CRC_DIVIDER_LE);
 			} else {
-				// shift otherwise
+				/* Shift otherwise */
 				seed >>= 1;
 			}
 		}
@@ -192,12 +192,12 @@ uint32_t compute_crc32_le(uint32_t seed, uint8_t * data, size_t length)
 /** Returns or flips the checksum if zero.
  *
  * @param[in] checksum	The computed checksum.
- * @returns		The internet protocol header checksum.
- * @returns		0xFFFF if the computed checksum is zero.
+ * @return		The internet protocol header checksum.
+ * @return		0xFFFF if the computed checksum is zero.
  */
 uint16_t flip_checksum(uint16_t checksum)
 {
-	// flip, zero is returned as 0xFFFF (not flipped)
+	/* Flip, zero is returned as 0xFFFF (not flipped) */
 	checksum = ~checksum;
 	return checksum ? checksum : IP_CHECKSUM_ZERO;
 }
@@ -210,12 +210,12 @@ uint16_t flip_checksum(uint16_t checksum)
  *
  * @param[in] data	The header data.
  * @param[in] length	The header length in bytes.
- * @returns		The internet protocol header checksum.
- * @returns		0xFFFF if the computed checksum is zero.
+ * @return		The internet protocol header checksum.
+ * @return		0xFFFF if the computed checksum is zero.
  */
 uint16_t ip_checksum(uint8_t *data, size_t length)
 {
-	// compute, compact and flip the data checksum
+	/* Compute, compact and flip the data checksum */
 	return flip_checksum(compact_checksum(compute_checksum(0, data,
 	    length)));
 }

@@ -50,16 +50,21 @@ void bootstrap(void)
 	version_print();
 	
 	printf("\nMemory statistics\n");
-	printf(" %p|%p: CPU map\n", PA2KA(CPUMAP_OFFSET), CPUMAP_OFFSET);
-	printf(" %p|%p: bootstrap stack\n", PA2KA(STACK_OFFSET), STACK_OFFSET);
-	printf(" %p|%p: boot info structure\n", PA2KA(BOOTINFO_OFFSET), BOOTINFO_OFFSET);
-	printf(" %p|%p: kernel entry point\n", PA2KA(BOOT_OFFSET), BOOT_OFFSET);
-	printf(" %p|%p: bootloader entry point\n", PA2KA(LOADER_OFFSET), LOADER_OFFSET);
+	printf(" %p|%p: CPU map\n", (void *) PA2KA(CPUMAP_OFFSET),
+	    (void *) CPUMAP_OFFSET);
+	printf(" %p|%p: bootstrap stack\n", (void *) PA2KA(STACK_OFFSET),
+	    (void *) STACK_OFFSET);
+	printf(" %p|%p: boot info structure\n",
+	    (void *) PA2KA(BOOTINFO_OFFSET), (void *) BOOTINFO_OFFSET);
+	printf(" %p|%p: kernel entry point\n", (void *) PA2KA(BOOT_OFFSET),
+	    (void *) BOOT_OFFSET);
+	printf(" %p|%p: bootloader entry point\n",
+	    (void *) PA2KA(LOADER_OFFSET), (void *) LOADER_OFFSET);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
-		    KSEG2PA(components[i].start), components[i].name,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
+		    (void *) KSEG2PA(components[i].start), components[i].name,
 		    components[i].inflated, components[i].size);
 	
 	void *dest[COMPONENTS];
@@ -90,7 +95,7 @@ void bootstrap(void)
 		void *tail = dest[i - 1] + components[i].inflated;
 		if (tail >= ((void *) PA2KA(LOADER_OFFSET))) {
 			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
-			    components[i].name, tail, PA2KA(LOADER_OFFSET));
+			    components[i].name, tail, (void *) PA2KA(LOADER_OFFSET));
 			halt();
 		}
 		

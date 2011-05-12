@@ -199,7 +199,7 @@ void itlb_pte_copy(pte_t *t, size_t index)
 }
 
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
+void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 {
 	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
@@ -359,9 +359,9 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
  */
 static void print_tlb_entry(int i, tlb_tag_read_reg_t t, tlb_data_t d)
 {
-	printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
-	    "ie=%d, soft2=%#x, pfn=%#x, soft=%#x, l=%d, "
-	    "cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
+	printf("%u: vpn=%#" PRIx64 ", context=%u, v=%u, size=%u, nfo=%u, "
+	    "ie=%u, soft2=%#x, pfn=%#x, soft=%#x, l=%u, "
+	    "cp=%u, cv=%u, e=%u, p=%u, w=%u, g=%u\n", i, (uint64_t) t.vpn,
 	    t.context, d.v, d.size, d.nfo, d.ie, d.soft2,
 	    d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
 }
@@ -440,7 +440,7 @@ void tlb_print(void)
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
     uintptr_t va, const char *str)
 {
-	fault_if_from_uspace(istate, "%s, Address=%p.", str, va);
+	fault_if_from_uspace(istate, "%s, address=%p.", str, (void *) va);
 	panic_memtrap(istate, PF_ACCESS_EXEC, va, str);
 }
 
@@ -450,8 +450,8 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 	uintptr_t va;
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
-	    tag.context);
+	fault_if_from_uspace(istate, "%s, page=%p (asid=%u).", str,
+	    (void *) va, tag.context);
 	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, str);
 }
 
@@ -461,8 +461,8 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	uintptr_t va;
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
-	    tag.context);
+	fault_if_from_uspace(istate, "%s, page=%p (asid=%u).", str,
+	    (void *) va, tag.context);
 	panic_memtrap(istate, PF_ACCESS_WRITE, va, str);
 }
 
@@ -483,8 +483,8 @@ void describe_dmmu_fault(void)
 	    "w=%d, ow=%d, fv=%d\n", sfsr.nf, sfsr.asi, sfsr.tm, sfsr.ft,
 	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
 #endif
-	    
-	printf("DTLB SFAR: address=%p\n", sfar);
+	
+	printf("DTLB SFAR: address=%p\n", (void *) sfar);
 	
 	dtlb_sfsr_write(0);
 }
@@ -507,7 +507,7 @@ void dump_sfsr_and_sfar(void)
 	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
 #endif
 	    
-	printf("DTLB SFAR: address=%p\n", sfar);
+	printf("DTLB SFAR: address=%p\n", (void *) sfar);
 	
 	dtlb_sfsr_write(0);
 }

@@ -37,6 +37,7 @@ SOURCES = \
 	print/print2.c \
 	print/print3.c \
 	print/print4.c \
+	print/print5.c \
 	console/console1.c \
 	stdio/stdio1.c \
 	stdio/stdio2.c \
@@ -45,9 +46,11 @@ SOURCES = \
 	fault/fault3.c \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \
-	ipc/register.c \
-	ipc/connect.c \
 	loop/loop1.c \
-	mm/malloc1.c
+	mm/malloc1.c \
+	mm/malloc2.c \
+	devs/devman1.c \
+	hw/misc/virtchar1.c \
+	hw/serial/serial1.c
 
 include $(USPACE_PREFIX)/Makefile.common

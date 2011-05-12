@@ -37,8 +37,8 @@
  */
 
 #include "fat.h"
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
@@ -51,6 +51,8 @@
 
 vfs_info_t fat_vfs_info = {
 	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,	
 };
 
 fs_reg_t fat_reg;
@@ -81,7 +83,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	}
 	
 	dprintf(NAME ": connection opened\n");
@@ -90,7 +92,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 	
 		callid = async_get_call(&call);
-		switch  (IPC_GET_METHOD(call)) {
+		switch  (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
@@ -133,7 +135,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fat_sync(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -150,7 +152,7 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		goto err;
 
-	vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;

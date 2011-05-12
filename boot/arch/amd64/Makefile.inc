@@ -29,18 +29,20 @@
 PAGE_SIZE = 4096
 
 RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042
+	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
+	$(USPACE_PATH)/srv/hw/irc/apic/apic \
+	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
 RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
 	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 
 RD_DRVS += \
-	rootia32 \
+	rootpc \
 	pciintel \
 	isa \
 	ns8250
-	
+
 RD_DRV_CFG += \
 	isa/isa.dev
 

@@ -32,10 +32,11 @@
 /** @file
  */
 
-#ifndef LIBIPC_NS_H_
-#define LIBIPC_NS_H_
+#ifndef LIBC_NS_H_
+#define LIBC_NS_H_
 
-#include <ipc/ipc.h>
+#include <sys/types.h>
+#include <ipc/common.h>
 
 typedef enum {
 	NS_PING = IPC_FIRST_USER_METHOD,
@@ -43,6 +44,10 @@ typedef enum {
 	NS_ID_INTRO,
 	NS_RETVAL
 } ns_request_t;
+
+extern int service_register(sysarg_t);
+extern int service_connect(sysarg_t, sysarg_t, sysarg_t);
+extern int service_connect_blocking(sysarg_t, sysarg_t, sysarg_t);
 
 #endif
 

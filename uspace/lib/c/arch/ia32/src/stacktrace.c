@@ -34,18 +34,18 @@
 /** @file
  */
 
+#include <libarch/config.h>
 #include <sys/types.h>
 #include <bool.h>
-
 #include <stacktrace.h>
 
-#define FRAME_OFFSET_FP_PREV	0
-#define FRAME_OFFSET_RA		4
+#define FRAME_OFFSET_FP_PREV  0
+#define FRAME_OFFSET_RA       4
 
 bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 {
 	(void) st;
-	return fp != 0;
+	return (fp != 0) && (fp <= USER_ADDRESS_SPACE_END_ARCH);
 }
 
 int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)

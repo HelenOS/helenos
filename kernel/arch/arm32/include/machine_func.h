@@ -55,6 +55,7 @@ struct arm_machine_ops {
 	void (*machine_output_init)(void);
 	void (*machine_input_init)(void);
 	size_t (*machine_get_irq_count)(void);
+	const char *(*machine_get_platform_name)(void);
 };
 
 /** Pointer to arm_machine_ops structure being used. */

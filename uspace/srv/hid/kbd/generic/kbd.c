@@ -35,7 +35,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/kbd.h>
 #include <sysinfo.h>
@@ -67,8 +66,8 @@ static unsigned mods = KM_NUM_LOCK;
 /** Currently pressed lock keys. We track these to tackle autorepeat. */
 static unsigned lock_keys;
 
-int cir_service = 0;
-int cir_phone = -1;
+bool irc_service = false;
+int irc_phone = -1;
 
 #define NUM_LAYOUTS 3
 
@@ -172,18 +171,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (client_phone != -1) {
-				ipc_hangup(client_phone);
+				async_hangup(client_phone);
 				client_phone = -1;
 			}
 			
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			if (client_phone != -1) {
@@ -204,7 +203,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = EINVAL;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}	
 }
 
@@ -216,16 +215,13 @@ int main(int argc, char **argv)
 	sysarg_t fhc;
 	sysarg_t obio;
 	
-	if ((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
-		cir_service = SERVICE_FHC;
-	else if ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio))
-		cir_service = SERVICE_OBIO;
+	if (((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
+	    || ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio)))
+		irc_service = true;
 	
-	if (cir_service) {
-		while (cir_phone < 0) {
-			cir_phone = ipc_connect_me_to_blocking(PHONE_NS, cir_service,
-			    0, 0);
-		}
+	if (irc_service) {
+		while (irc_phone < 0)
+			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
 	/* Initialize port driver. */
@@ -249,8 +245,8 @@ int main(int argc, char **argv)
 	char kbd[DEVMAP_NAME_MAXLEN + 1];
 	snprintf(kbd, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	
-	dev_handle_t dev_handle;
-	if (devmap_device_register(kbd, &dev_handle) != EOK) {
+	devmap_handle_t devmap_handle;
+	if (devmap_device_register(kbd, &devmap_handle) != EOK) {
 		printf("%s: Unable to register device %s\n", NAME, kbd);
 		return -1;
 	}

@@ -59,7 +59,7 @@ const char *test_stdio1(void)
 		TPRINTF("OK\n");
 	
 	buf[cnt] = '\0';
-	TPRINTF("Read %u bytes, string \"%s\"\n", cnt, buf);
+	TPRINTF("Read %zu bytes, string \"%s\"\n", cnt, buf);
 	
 	TPRINTF("Seek to beginning...");
 	if (fseek(file, 0, SEEK_SET) != 0) {

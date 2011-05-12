@@ -48,24 +48,40 @@ PROBE_SOURCE = 'probe.c'
 PROBE_OUTPUT = 'probe.s'
 
 PACKAGE_BINUTILS = "usually part of binutils"
-PACKAGE_GCC = "preferably version 4.4.3 or newer"
+PACKAGE_GCC = "preferably version 4.5.1 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
+COMPILER_WARNING = "The compilation of HelenOS might fail."
 
-PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, value) \\
+PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc, conc, value) \\
 	asm volatile ( \\
-		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t%[val]\\n" \\
+		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t" strc "\\t" conc "\\t%[val]\\n" \\
 		: \\
 		: [val] "n" (value) \\
 	)
 
-#define DECLARE_INTSIZE(tag, type) \\
-	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, sizeof(unsigned type)); \\
-	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, sizeof(signed type))
+#define STRING(arg)      STRING_ARG(arg)
+#define STRING_ARG(arg)  #arg
+
+#define DECLARE_BUILTIN_TYPE(tag, type) \\
+	AUTOTOOL_DECLARE("builtin", "", tag, STRING(type), "", "", sizeof(type));
+
+#define DECLARE_INTSIZE(tag, type, strc, conc) \\
+	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, strc, conc, sizeof(unsigned type)); \\
+	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, strc, conc, sizeof(signed type));
 
 int main(int argc, char *argv[])
 {
+#ifdef __SIZE_TYPE__
+	DECLARE_BUILTIN_TYPE("size", __SIZE_TYPE__);
+#endif
+#ifdef __WCHAR_TYPE__
+	DECLARE_BUILTIN_TYPE("wchar", __WCHAR_TYPE__);
+#endif
+#ifdef __WINT_TYPE__
+	DECLARE_BUILTIN_TYPE("wint", __WINT_TYPE__);
+#endif
 """
 
 PROBE_TAIL = """}
@@ -95,6 +111,19 @@ def print_error(msg):
 	sys.stderr.write("\n")
 	
 	sys.exit(1)
+
+def print_warning(msg):
+	"Print a bold error message"
+	
+	sys.stderr.write("\n")
+	sys.stderr.write("######################################################################\n")
+	sys.stderr.write("HelenOS build sanity check warning:\n")
+	sys.stderr.write("\n")
+	sys.stderr.write("%s\n" % "\n".join(msg))
+	sys.stderr.write("######################################################################\n")
+	sys.stderr.write("\n")
+	
+	time.sleep(5)
 
 def sandbox_enter():
 	"Create a temporal sandbox directory for running tests"
@@ -185,6 +214,20 @@ def check_binutils(path, prefix, common, details):
 	check_app([common['OBJDUMP'], "--version"], "GNU Objdump utility", details)
 	check_app([common['STRIP'], "--version"], "GNU strip", details)
 
+def decode_value(value):
+	"Decode integer value"
+	
+	base = 10
+	
+	if ((value.startswith('$')) or (value.startswith('#'))):
+		value = value[1:]
+	
+	if (value.startswith('0x')):
+		value = value[2:]
+		base = 16
+	
+	return int(value, base)
+
 def probe_compiler(common, sizes):
 	"Generate, compile and parse probing source"
 	
@@ -194,7 +237,7 @@ def probe_compiler(common, sizes):
 	outf.write(PROBE_HEAD)
 	
 	for typedef in sizes:
-		outf.write("\tDECLARE_INTSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
+		outf.write("\tDECLARE_INTSIZE(\"%s\", %s, %s, %s);\n" % (typedef['tag'], typedef['type'], typedef['strc'], typedef['conc']))
 	
 	outf.write(PROBE_TAIL)
 	outf.close()
@@ -230,112 +273,173 @@ def probe_compiler(common, sizes):
 	unsigned_tags = {}
 	signed_tags = {}
 	
+	unsigned_strcs = {}
+	signed_strcs = {}
+	
+	unsigned_concs = {}
+	signed_concs = {}
+	
+	builtins = {}
+	
 	for j in range(len(lines)):
 		tokens = lines[j].strip().split("\t")
 		
 		if (len(tokens) > 0):
 			if (tokens[0] == "AUTOTOOL_DECLARE"):
-				if (len(tokens) < 5):
+				if (len(tokens) < 7):
 					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
 				
 				category = tokens[1]
 				subcategory = tokens[2]
 				tag = tokens[3]
 				name = tokens[4]
-				value = tokens[5]
+				strc = tokens[5]
+				conc = tokens[6]
+				value = tokens[7]
 				
 				if (category == "intsize"):
-					base = 10
-					
-					if ((value.startswith('$')) or (value.startswith('#'))):
-						value = value[1:]
-					
-					if (value.startswith('0x')):
-						value = value[2:]
-						base = 16
-					
 					try:
-						value_int = int(value, base)
+						value_int = decode_value(value)
 					except:
 						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
 					
 					if (subcategory == "unsigned"):
-						unsigned_sizes[name] = value_int
+						unsigned_sizes[value_int] = name
 						unsigned_tags[tag] = value_int
+						unsigned_strcs[value_int] = strc
+						unsigned_concs[value_int] = conc
 					elif (subcategory == "signed"):
-						signed_sizes[name] = value_int
+						signed_sizes[value_int] = name
 						signed_tags[tag] = value_int
+						signed_strcs[value_int] = strc
+						signed_concs[value_int] = conc
 					else:
 						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
+				
+				if (category == "builtin"):
+					try:
+						value_int = decode_value(value)
+					except:
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+					
+					builtins[tag] = {'name': name, 'value': value_int}
 	
-	return {'unsigned_sizes' : unsigned_sizes, 'signed_sizes' : signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags}
+	return {'unsigned_sizes': unsigned_sizes, 'signed_sizes': signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags, 'unsigned_strcs': unsigned_strcs, 'signed_strcs': signed_strcs, 'unsigned_concs': unsigned_concs, 'signed_concs': signed_concs, 'builtins': builtins}
 
-def detect_uints(probe, bytes):
+def detect_uints(probe, bytes, tags):
 	"Detect correct types for fixed-size integer types"
 	
 	macros = []
 	typedefs = []
 	
 	for b in bytes:
-		fnd = False
-		newtype = "uint%s_t" % (b * 8)
-		
-		for name, value in probe['unsigned_sizes'].items():
-			if (value == b):
-				oldtype = "unsigned %s" % name
-				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
-				fnd = True
-				break
-		
-		if (not fnd):
-			print_error(['Unable to find appropriate integer type for %s' % newtype,
+		if (not b in probe['unsigned_sizes']):
+			print_error(['Unable to find appropriate unsigned integer type for %u bytes' % b,
 			             COMPILER_FAIL])
 		
-		
-		fnd = False
-		newtype = "int%s_t" % (b * 8)
-		
-		for name, value in probe['signed_sizes'].items():
-			if (value == b):
-				oldtype = "signed %s" % name
-				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
-				fnd = True
-				break
-		
-		if (not fnd):
-			print_error(['Unable to find appropriate integer type for %s' % newtype,
+		if (not b in probe['signed_sizes']):
+			print_error(['Unable to find appropriate signed integer type for %u bytes' % b,
 			             COMPILER_FAIL])
+		
+		if (not b in probe['unsigned_strcs']):
+			print_error(['Unable to find appropriate unsigned printf formatter for %u bytes' % b,
+			             COMPILER_FAIL])
+		
+		if (not b in probe['signed_strcs']):
+			print_error(['Unable to find appropriate signed printf formatter for %u bytes' % b,
+			             COMPILER_FAIL])
+		
+		if (not b in probe['unsigned_concs']):
+			print_error(['Unable to find appropriate unsigned literal macro for %u bytes' % b,
+			             COMPILER_FAIL])
+		
+		if (not b in probe['signed_concs']):
+			print_error(['Unable to find appropriate signed literal macro for %u bytes' % b,
+			             COMPILER_FAIL])
+		
+		typedefs.append({'oldtype': "unsigned %s" % probe['unsigned_sizes'][b], 'newtype': "uint%u_t" % (b * 8)})
+		typedefs.append({'oldtype': "signed %s" % probe['signed_sizes'][b], 'newtype': "int%u_t" % (b * 8)})
+		
+		macros.append({'oldmacro': "\"%so\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIo%u" % (b * 8)})
+		macros.append({'oldmacro': "\"%su\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIu%u" % (b * 8)})
+		macros.append({'oldmacro': "\"%sx\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIx%u" % (b * 8)})
+		macros.append({'oldmacro': "\"%sX\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIX%u" % (b * 8)})
+		macros.append({'oldmacro': "\"%sd\"" % probe['signed_strcs'][b], 'newmacro': "PRId%u" % (b * 8)})
+		
+		name = probe['unsigned_concs'][b]
+		if ((name.startswith('@')) or (name == "")):
+			macros.append({'oldmacro': "c ## U", 'newmacro': "UINT%u_C(c)" % (b * 8)})
+		else:
+			macros.append({'oldmacro': "c ## U%s" % name, 'newmacro': "UINT%u_C(c)" % (b * 8)})
+		
+		name = probe['unsigned_concs'][b]
+		if ((name.startswith('@')) or (name == "")):
+			macros.append({'oldmacro': "c", 'newmacro': "INT%u_C(c)" % (b * 8)})
+		else:
+			macros.append({'oldmacro': "c ## %s" % name, 'newmacro': "INT%u_C(c)" % (b * 8)})
 	
-	for tag in ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG']:
-		fnd = False;
+	for tag in tags:
 		newmacro = "U%s" % tag
-		
-		for name, value in probe['unsigned_tags'].items():
-			if (name == tag):
-				oldmacro = "UINT%s" % (value * 8)
-				macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
-				macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
-				fnd = True
-				break
-		
-		if (not fnd):
+		if (not tag in probe['unsigned_tags']):
 			print_error(['Unable to find appropriate size macro for %s' % newmacro,
 			             COMPILER_FAIL])
 		
-		fnd = False;
+		oldmacro = "UINT%s" % (probe['unsigned_tags'][tag] * 8)
+		macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
+		macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
+		
 		newmacro = tag
-		
-		for name, value in probe['signed_tags'].items():
-			if (name == tag):
-				oldmacro = "INT%s" % (value * 8)
-				macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
-				macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
-				fnd = True
-				break
-		
-		if (not fnd):
+		if (not tag in probe['unsigned_tags']):
 			print_error(['Unable to find appropriate size macro for %s' % newmacro,
 			             COMPILER_FAIL])
+		
+		oldmacro = "INT%s" % (probe['signed_tags'][tag] * 8)
+		macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
+		macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
+	
+	fnd = True
+	
+	if (not 'wchar' in probe['builtins']):
+		print_warning(['The compiler does not provide the macro __WCHAR_TYPE__',
+		               'for defining the compiler-native type wchar_t. We are',
+		               'forced to define wchar_t as a hardwired type int32_t.',
+		               COMPILER_WARNING])
+		fnd = False
+	
+	if (probe['builtins']['wchar']['value'] != 4):
+		print_warning(['The compiler provided macro __WCHAR_TYPE__ for defining',
+		               'the compiler-native type wchar_t is not compliant with',
+		               'HelenOS. We are forced to define wchar_t as a hardwired',
+		               'type int32_t.',
+		               COMPILER_WARNING])
+		fnd = False
+	
+	if (not fnd):
+		macros.append({'oldmacro': "int32_t", 'newmacro': "wchar_t"})
+	else:
+		macros.append({'oldmacro': "__WCHAR_TYPE__", 'newmacro': "wchar_t"})
+	
+	fnd = True
+	
+	if (not 'wint' in probe['builtins']):
+		print_warning(['The compiler does not provide the macro __WINT_TYPE__',
+		               'for defining the compiler-native type wint_t. We are',
+		               'forced to define wint_t as a hardwired type int32_t.',
+		               COMPILER_WARNING])
+		fnd = False
+	
+	if (probe['builtins']['wint']['value'] != 4):
+		print_warning(['The compiler provided macro __WINT_TYPE__ for defining',
+		               'the compiler-native type wint_t is not compliant with',
+		               'HelenOS. We are forced to define wint_t as a hardwired',
+		               'type int32_t.',
+		               COMPILER_WARNING])
+		fnd = False
+	
+	if (not fnd):
+		macros.append({'oldmacro': "int32_t", 'newmacro': "wint_t"})
+	else:
+		macros.append({'oldmacro': "__WINT_TYPE__", 'newmacro': "wint_t"})
 	
 	return {'macros': macros, 'typedefs': typedefs}
 
@@ -396,7 +500,7 @@ def main():
 	if ('CROSS_PREFIX' in os.environ):
 		cross_prefix = os.environ['CROSS_PREFIX']
 	else:
-		cross_prefix = "/usr/local"
+		cross_prefix = "/usr/local/cross"
 	
 	# Prefix binutils tools on Solaris
 	if (os.uname()[0] == "SunOS"):
@@ -507,15 +611,15 @@ def main():
 		
 		probe = probe_compiler(common,
 			[
-				{'type': 'char', 'tag': 'CHAR'},
-				{'type': 'short int', 'tag': 'SHORT'},
-				{'type': 'int', 'tag': 'INT'},
-				{'type': 'long int', 'tag': 'LONG'},
-				{'type': 'long long int', 'tag': 'LLONG'}
+				{'type': 'long long int', 'tag': 'LLONG', 'strc': '"ll"', 'conc': '"LL"'},
+				{'type': 'long int', 'tag': 'LONG', 'strc': '"l"', 'conc': '"L"'},
+				{'type': 'int', 'tag': 'INT', 'strc': '""', 'conc': '""'},
+				{'type': 'short int', 'tag': 'SHORT', 'strc': '"h"', 'conc': '"@"'},
+				{'type': 'char', 'tag': 'CHAR', 'strc': '"hh"', 'conc': '"@@"'}
 			]
 		)
 		
-		maps = detect_uints(probe, [1, 2, 4, 8])
+		maps = detect_uints(probe, [1, 2, 4, 8], ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG'])
 		
 	finally:
 		sandbox_leave(owd)

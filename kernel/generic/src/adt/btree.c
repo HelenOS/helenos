@@ -887,6 +887,9 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 		 */
 		*leaf_node = cur;
 		
+		if (cur->keys == 0)
+			return NULL;
+
 		/*
 		 * The key can be in the leftmost subtree.
 		 * Test it separately.
@@ -925,7 +928,7 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 			if (LEAF_NODE(cur))
 				return key == cur->key[i - 1] ? val : NULL;
 		}
-		descend:
+descend:
 		;
 	}
 	

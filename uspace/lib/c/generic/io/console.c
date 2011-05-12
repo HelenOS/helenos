@@ -44,7 +44,7 @@ void console_clear(int phone)
 	async_msg_0(phone, CONSOLE_CLEAR);
 }
 
-int console_get_size(int phone, ipcarg_t *cols, ipcarg_t *rows)
+int console_get_size(int phone, sysarg_t *cols, sysarg_t *rows)
 {
 	return async_req_0_2(phone, CONSOLE_GET_SIZE, cols, rows);
 }
@@ -70,7 +70,7 @@ void console_cursor_visibility(int phone, bool show)
 	async_msg_1(phone, CONSOLE_CURSOR_VISIBILITY, (show != false));
 }
 
-int console_get_color_cap(int phone, ipcarg_t *ccap)
+int console_get_color_cap(int phone, sysarg_t *ccap)
 {
 	return async_req_0_1(phone, CONSOLE_GET_COLOR_CAP, ccap);
 }
@@ -80,22 +80,22 @@ void console_kcon_enable(int phone)
 	async_msg_0(phone, CONSOLE_KCON_ENABLE);
 }
 
-int console_get_pos(int phone, ipcarg_t *col, ipcarg_t *row)
+int console_get_pos(int phone, sysarg_t *col, sysarg_t *row)
 {
 	return async_req_0_2(phone, CONSOLE_GET_POS, col, row);
 }
 
-void console_set_pos(int phone, ipcarg_t col, ipcarg_t row)
+void console_set_pos(int phone, sysarg_t col, sysarg_t row)
 {
 	async_msg_2(phone, CONSOLE_GOTO, col, row);
 }
 
 bool console_get_event(int phone, console_event_t *event)
 {
-	ipcarg_t type;
-	ipcarg_t key;
-	ipcarg_t mods;
-	ipcarg_t c;
+	sysarg_t type;
+	sysarg_t key;
+	sysarg_t mods;
+	sysarg_t c;
 	
 	int rc = async_req_0_4(phone, CONSOLE_GET_EVENT, &type, &key, &mods, &c);
 	if (rc < 0)

@@ -34,8 +34,7 @@
  * @brief NS16550 port driver.
  */
 
-#include <ipc/ipc.h>
-#include <ipc/bus.h>
+#include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>
 #include <kbd.h>
@@ -110,7 +109,7 @@ int ns16550_port_init(void)
 	ns16550_kbd.cmds[3].addr = (void *) (ns16550_kernel + RBR_REG);
 	
 	async_set_interrupt_received(ns16550_irq_handler);
-	ipc_register_irq(inr, device_assign_devno(), inr, &ns16550_kbd);
+	register_irq(inr, device_assign_devno(), inr, &ns16550_kbd);
 	
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
 }
@@ -120,9 +119,9 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	int scan_code = IPC_GET_ARG2(*call);
 	kbd_push_scancode(scan_code);
 	
-	if (cir_service)
-		async_msg_1(cir_phone, BUS_CLEAR_INTERRUPT,
-		    IPC_GET_METHOD(*call));
+	if (irc_service)
+		async_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,
+		    IPC_GET_IMETHOD(*call));
 }
 
 /**

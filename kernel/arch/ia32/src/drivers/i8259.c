@@ -85,6 +85,7 @@ void i8259_init(void)
 	enable_irqs_function = pic_enable_irqs;
 	disable_irqs_function = pic_disable_irqs;
 	eoi_function = pic_eoi;
+	irqs_info = "i8259";
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
 	pic_enable_irqs(1 << IRQ_PIC1);		/* but enable pic1 */
@@ -120,8 +121,8 @@ void pic_disable_irqs(uint16_t irqmask)
 
 void pic_eoi(void)
 {
-	pio_write_8((ioport8_t *)0x20, 0x20);
-	pio_write_8((ioport8_t *)0xa0, 0x20);
+	pio_write_8((ioport8_t *) 0x20, 0x20);
+	pio_write_8((ioport8_t *) 0xa0, 0x20);
 }
 
 void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))

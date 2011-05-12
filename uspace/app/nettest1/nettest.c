@@ -27,173 +27,259 @@
  */
 
 /** @addtogroup nettest
- *  @{
+ * @{
  */
 
 /** @file
- *  Networking test support functions implementation.
+ * Networking test support functions implementation.
  */
 
 #include <stdio.h>
-#include <err.h>
-
 #include <net/socket.h>
 
 #include "nettest.h"
 #include "print_error.h"
 
-int sockets_create(int verbose, int * socket_ids, int sockets, int family, sock_type_t type){
+
+/** Creates new sockets.
+ *
+ * @param[in] verbose A value indicating whether to print out verbose information.
+ * @param[out] socket_ids A field to store the socket identifiers.
+ * @param[in] sockets The number of sockets to create. Should be at most the size of the field.
+ * @param[in] family The socket address family.
+ * @param[in] type The socket type.
+ * @return EOK on success.
+ * @return Other error codes as defined for the socket() function.
+ */
+int sockets_create(int verbose, int *socket_ids, int sockets, int family, sock_type_t type)
+{
 	int index;
 
-	if(verbose){
+	if (verbose)
 		printf("Create\t");
-	}
+		
 	fflush(stdout);
-	for(index = 0; index < sockets; ++ index){
+	
+	for (index = 0; index < sockets; index++) {
 		socket_ids[index] = socket(family, type, 0);
-		if(socket_ids[index] < 0){
+		if (socket_ids[index] < 0) {
 			printf("Socket %d (%d) error:\n", index, socket_ids[index]);
 			socket_print_error(stderr, socket_ids[index], "Socket create: ", "\n");
 			return socket_ids[index];
 		}
-		if(verbose){
+		if (verbose)
 			print_mark(index);
-		}
 	}
+	
 	return EOK;
 }
 
-int sockets_close(int verbose, int * socket_ids, int sockets){
-	ERROR_DECLARE;
-
+/** Closes sockets.
+ *
+ * @param[in] verbose A value indicating whether to print out verbose information.
+ * @param[in] socket_ids A field of stored socket identifiers.
+ * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
+ * @return EOK on success.
+ * @return Other error codes as defined for the closesocket() function.
+ */
+int sockets_close(int verbose, int *socket_ids, int sockets)
+{
 	int index;
+	int rc;
 
-	if(verbose){
+	if (verbose)
 		printf("\tClose\t");
-	}
+
 	fflush(stdout);
-	for(index = 0; index < sockets; ++ index){
-		if(ERROR_OCCURRED(closesocket(socket_ids[index]))){
+	
+	for (index = 0; index < sockets; index++) {
+		rc = closesocket(socket_ids[index]);
+		if (rc != EOK) {
 			printf("Socket %d (%d) error:\n", index, socket_ids[index]);
-			socket_print_error(stderr, ERROR_CODE, "Socket close: ", "\n");
-			return ERROR_CODE;
+			socket_print_error(stderr, rc, "Socket close: ", "\n");
+			return rc;
 		}
-		if(verbose){
+		if (verbose)
 			print_mark(index);
-		}
 	}
+	
 	return EOK;
 }
 
-int sockets_connect(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen){
-	ERROR_DECLARE;
-
+/** Connects sockets.
+ *
+ * @param[in] verbose A value indicating whether to print out verbose information.
+ * @param[in] socket_ids A field of stored socket identifiers.
+ * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
+ * @param[in] address The destination host address to connect to.
+ * @param[in] addrlen The length of the destination address in bytes.
+ * @return EOK on success.
+ * @return Other error codes as defined for the connect() function.
+ */
+int sockets_connect(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t addrlen)
+{
 	int index;
+	int rc;
 
-	if(verbose){
+	if (verbose)
 		printf("\tConnect\t");
-	}
+	
 	fflush(stdout);
-	for(index = 0; index < sockets; ++ index){
-		if(ERROR_OCCURRED(connect(socket_ids[index], address, addrlen))){
-			socket_print_error(stderr, ERROR_CODE, "Socket connect: ", "\n");
-			return ERROR_CODE;
+	
+	for (index = 0; index < sockets; index++) {
+		rc = connect(socket_ids[index], address, addrlen);
+		if (rc != EOK) {
+			socket_print_error(stderr, rc, "Socket connect: ", "\n");
+			return rc;
 		}
-		if(verbose){
+		if (verbose)
 			print_mark(index);
-		}
 	}
+	
 	return EOK;
 }
 
-int sockets_sendto(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen, char * data, int size, int messages){
-	ERROR_DECLARE;
-
+/** Sends data via sockets.
+ *
+ * @param[in] verbose A value indicating whether to print out verbose information.
+ * @param[in] socket_ids A field of stored socket identifiers.
+ * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
+ * @param[in] address The destination host address to send data to.
+ * @param[in] addrlen The length of the destination address in bytes.
+ * @param[in] data The data to be sent.
+ * @param[in] size The data size in bytes.
+ * @param[in] messages The number of datagrams per socket to be sent.
+ * @return EOK on success.
+ * @return Other error codes as defined for the sendto() function.
+ */
+int sockets_sendto(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t addrlen, char *data, int size, int messages)
+{
 	int index;
 	int message;
+	int rc;
 
-	if(verbose){
+	if (verbose)
 		printf("\tSendto\t");
-	}
+
 	fflush(stdout);
-	for(index = 0; index < sockets; ++ index){
-		for(message = 0; message < messages; ++ message){
-			if(ERROR_OCCURRED(sendto(socket_ids[index], data, size, 0, address, addrlen))){
+	
+	for (index = 0; index < sockets; index++) {
+		for (message = 0; message < messages; message++) {
+			rc = sendto(socket_ids[index], data, size, 0, address, addrlen);
+			if (rc != EOK) {
 				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
-				socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
-				return ERROR_CODE;
+				socket_print_error(stderr, rc, "Socket send: ", "\n");
+				return rc;
 			}
 		}
-		if(verbose){
+		if (verbose)
 			print_mark(index);
-		}
 	}
+	
 	return EOK;
 }
 
-int sockets_recvfrom(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages){
+/** Receives data via sockets.
+ *
+ * @param[in] verbose A value indicating whether to print out verbose information.
+ * @param[in] socket_ids A field of stored socket identifiers.
+ * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
+ * @param[in] address The source host address of received datagrams.
+ * @param[in,out] addrlen The maximum length of the source address in bytes. The actual size of the source address is set instead.
+ * @param[out] data The received data.
+ * @param[in] size The maximum data size in bytes.
+ * @param[in] messages The number of datagrams per socket to be received.
+ * @return EOK on success.
+ * @return Other error codes as defined for the recvfrom() function.
+ */
+int sockets_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t *addrlen, char *data, int size, int messages)
+{
 	int value;
 	int index;
 	int message;
 
-	if(verbose){
+	if (verbose)
 		printf("\tRecvfrom\t");
-	}
+	
 	fflush(stdout);
-	for(index = 0; index < sockets; ++ index){
-		for(message = 0; message < messages; ++ message){
+	
+	for (index = 0; index < sockets; index++) {
+		for (message = 0; message < messages; message++) {
 			value = recvfrom(socket_ids[index], data, size, 0, address, addrlen);
-			if(value < 0){
+			if (value < 0) {
 				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
 				socket_print_error(stderr, value, "Socket receive: ", "\n");
 				return value;
 			}
 		}
-		if(verbose){
+		if (verbose)
 			print_mark(index);
-		}
 	}
 	return EOK;
 }
 
-int sockets_sendto_recvfrom(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages){
-	ERROR_DECLARE;
-
+/** Sends and receives data via sockets.
+ *
+ * Each datagram is sent and a reply read consequently.
+ * The next datagram is sent after the reply is received.
+ *
+ * @param[in] verbose A value indicating whether to print out verbose information.
+ * @param[in] socket_ids A field of stored socket identifiers.
+ * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
+ * @param[in,out] address The destination host address to send data to. The source host address of received datagrams is set instead.
+ * @param[in] addrlen The length of the destination address in bytes.
+ * @param[in,out] data The data to be sent. The received data are set instead.
+ * @param[in] size The data size in bytes.
+ * @param[in] messages The number of datagrams per socket to be received.
+ * @return EOK on success.
+ * @return Other error codes as defined for the recvfrom() function.
+ */
+int sockets_sendto_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t *addrlen, char *data, int size, int messages)
+{
 	int value;
 	int index;
 	int message;
+	int rc;
 
-	if(verbose){
+	if (verbose)
 		printf("\tSendto and recvfrom\t");
-	}
+
 	fflush(stdout);
-	for(index = 0; index < sockets; ++ index){
-		for(message = 0; message < messages; ++ message){
-			if(ERROR_OCCURRED(sendto(socket_ids[index], data, size, 0, address, * addrlen))){
+	
+	for (index = 0; index < sockets; index++) {
+		for (message = 0; message < messages; message++) {
+			rc = sendto(socket_ids[index], data, size, 0, address, *addrlen);
+			if (rc != EOK) {
 				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
-				socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
-				return ERROR_CODE;
+				socket_print_error(stderr, rc, "Socket send: ", "\n");
+				return rc;
 			}
 			value = recvfrom(socket_ids[index], data, size, 0, address, addrlen);
-			if(value < 0){
+			if (value < 0) {
 				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
 				socket_print_error(stderr, value, "Socket receive: ", "\n");
 				return value;
 			}
 		}
-		if(verbose){
+		if (verbose)
 			print_mark(index);
-		}
 	}
+	
 	return EOK;
 }
 
-void print_mark(int index){
-	if((index + 1) % 10){
+/** Prints a mark.
+ *
+ * If the index is a multiple of ten, a different mark is printed.
+ *
+ * @param[in] index The index of the mark to be printed.
+ */
+void print_mark(int index)
+{
+	if ((index + 1) % 10)
 		printf("*");
-	}else{
+	else
 		printf("|");
-	}
 	fflush(stdout);
 }
 

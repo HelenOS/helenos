@@ -34,7 +34,6 @@
  */
 
 #include <arch/exception.h>
-#include <arch/memstr.h>
 #include <arch/regutils.h>
 #include <arch/machine_func.h>
 #include <interrupt.h>
@@ -174,14 +173,19 @@ void exception_init(void)
  */
 void istate_decode(istate_t *istate)
 {
-	printf("r0 =%#0.8lx\tr1 =%#0.8lx\tr2 =%#0.8lx\tr3 =%#0.8lx\n",
+	printf("r0 =%#0" PRIx32 "\tr1 =%#0" PRIx32 "\t"
+	    "r2 =%#0" PRIx32 "\tr3 =%#0" PRIx32 "\n",
 	    istate->r0, istate->r1, istate->r2, istate->r3);
-	printf("r4 =%#0.8lx\tr5 =%#0.8lx\tr6 =%#0.8lx\tr7 =%#0.8lx\n",
+	printf("r4 =%#" PRIx32 "\tr5 =%#0" PRIx32 "\t"
+	    "r6 =%#0" PRIx32 "\tr7 =%#0" PRIx32 "\n",
 	    istate->r4, istate->r5, istate->r6, istate->r7);
-	printf("r8 =%#0.8lx\tr9 =%#0.8lx\tr10=%#0.8lx\tfp =%#0.8lx\n",
-	    istate->r8, istate->r9, istate->r10, istate->fp);
-	printf("r12=%#0.8lx\tsp =%#0.8lx\tlr =%#0.8lx\tspsr=%#0.8lx\n",
-	    istate->r12, istate->sp, istate->lr, istate->spsr);
+	printf("r8 =%#0" PRIx32 "\tr9 =%#0" PRIx32 "\t"
+	    "r10=%#0" PRIx32 "\tfp =%p\n",
+	    istate->r8, istate->r9, istate->r10,
+	    (void *) istate->fp);
+	printf("r12=%#0" PRIx32 "\tsp =%p\tlr =%p\tspsr=%p\n",
+	    istate->r12, (void *) istate->sp,
+	    (void *) istate->lr, (void *) istate->spsr);
 }
 
 /** @}

@@ -42,6 +42,7 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <mm/page.h>
+#include <mm/reserve.h>
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <align.h>
@@ -50,217 +51,69 @@
 #include <arch.h>
 #include <arch/barrier.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif
+static bool elf_create(as_area_t *);
+static bool elf_resize(as_area_t *, size_t);
+static void elf_share(as_area_t *);
+static void elf_destroy(as_area_t *);
 
-static int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
-static void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
-static void elf_share(as_area_t *area);
+static int elf_page_fault(as_area_t *, uintptr_t, pf_access_t);
+static void elf_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
 mem_backend_t elf_backend = {
+	.create = elf_create,
+	.resize = elf_resize,
+	.share = elf_share,
+	.destroy = elf_destroy,
+
 	.page_fault = elf_page_fault,
 	.frame_free = elf_frame_free,
-	.share = elf_share
 };
 
-/** Service a page fault in the ELF backend address space area.
- *
- * The address space area and page tables must be already locked.
- *
- * @param area		Pointer to the address space area.
- * @param addr		Faulting virtual address.
- * @param access	Access mode that caused the fault (i.e.
- * 			read/write/exec).
- *
- * @return		AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK
- * 			on success (i.e. serviced).
- */
-int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+static size_t elf_nonanon_pages_get(as_area_t *area)
 {
-	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
-	btree_node_t *leaf;
-	uintptr_t base, frame, page, start_anon;
-	size_t i;
-	bool dirty = false;
+	uintptr_t first = ALIGN_UP(entry->p_vaddr, PAGE_SIZE);
+	uintptr_t last = ALIGN_DOWN(entry->p_vaddr + entry->p_filesz,
+	    PAGE_SIZE);
 
-	ASSERT(page_table_locked(AS));
-	ASSERT(mutex_locked(&area->lock));
+	if (entry->p_flags & PF_W)
+		return 0;
 
-	if (!as_area_check_access(area, access))
-		return AS_PF_FAULT;
+	if (last < first)
+		return 0;
 
-	ASSERT((addr >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) &&
-	    (addr < entry->p_vaddr + entry->p_memsz));
-	i = (addr - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
-	base = (uintptr_t)
-	    (((void *) elf) + ALIGN_DOWN(entry->p_offset, PAGE_SIZE));
-
-	/* Virtual address of faulting page*/
-	page = ALIGN_DOWN(addr, PAGE_SIZE);
-
-	/* Virtual address of the end of initialized part of segment */
-	start_anon = entry->p_vaddr + entry->p_filesz;
-
-	if (area->sh_info) {
-		bool found = false;
-
-		/*
-		 * The address space area is shared.
-		 */
-		
-		mutex_lock(&area->sh_info->lock);
-		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-		    page - area->base, &leaf);
-		if (!frame) {
-			unsigned int i;
-
-			/*
-			 * Workaround for valid NULL address.
-			 */
-
-			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == page - area->base) {
-					found = true;
-					break;
-				}
-			}
-		}
-		if (frame || found) {
-			frame_reference_add(ADDR2PFN(frame));
-			page_mapping_insert(AS, addr, frame,
-			    as_area_get_flags(area));
-			if (!used_space_insert(area, page, 1))
-				panic("Cannot insert used space.");
-			mutex_unlock(&area->sh_info->lock);
-			return AS_PF_OK;
-		}
-	}
-
-	/*
-	 * The area is either not shared or the pagemap does not contain the
-	 * mapping.
-	 */
-	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
-		/*
-		 * Initialized portion of the segment. The memory is backed
-		 * directly by the content of the ELF image. Pages are
-		 * only copied if the segment is writable so that there
-		 * can be more instantions of the same memory ELF image
-		 * used at a time. Note that this could be later done
-		 * as COW.
-		 */
-		if (entry->p_flags & PF_W) {
-			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
-			memcpy((void *) PA2KA(frame),
-			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
-			if (entry->p_flags & PF_X) {
-				smc_coherence_block((void *) PA2KA(frame),
-				    FRAME_SIZE);
-			}
-			dirty = true;
-		} else {
-			frame = KA2PA(base + i * FRAME_SIZE);
-		}	
-	} else if (page >= start_anon) {
-		/*
-		 * This is the uninitialized portion of the segment.
-		 * It is not physically present in the ELF image.
-		 * To resolve the situation, a frame must be allocated
-		 * and cleared.
-		 */
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
-		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
-		dirty = true;
-	} else {
-		size_t pad_lo, pad_hi;
-		/*
-		 * The mixed case.
-		 *
-		 * The middle part is backed by the ELF image and
-		 * the lower and upper parts are anonymous memory.
-		 * (The segment can be and often is shorter than 1 page).
-		 */
-		if (page < entry->p_vaddr)
-			pad_lo = entry->p_vaddr - page;
-		else
-			pad_lo = 0;
-
-		if (start_anon < page + PAGE_SIZE)
-			pad_hi = page + PAGE_SIZE - start_anon;
-		else
-			pad_hi = 0;
-
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
-		memcpy((void *) (PA2KA(frame) + pad_lo),
-		    (void *) (base + i * FRAME_SIZE + pad_lo),
-		    FRAME_SIZE - pad_lo - pad_hi);
-		if (entry->p_flags & PF_X) {
-			smc_coherence_block((void *) (PA2KA(frame) + pad_lo), 
-			    FRAME_SIZE - pad_lo - pad_hi);
-		}
-		memsetb((void *) PA2KA(frame), pad_lo, 0);
-		memsetb((void *) (PA2KA(frame) + FRAME_SIZE - pad_hi), pad_hi,
-		    0);
-		dirty = true;
-	}
-
-	if (dirty && area->sh_info) {
-		frame_reference_add(ADDR2PFN(frame));
-		btree_insert(&area->sh_info->pagemap, page - area->base,
-		    (void *) frame, leaf);
-	}
-
-	if (area->sh_info)
-		mutex_unlock(&area->sh_info->lock);
-
-	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, page, 1))
-		panic("Cannot insert used space.");
-
-	return AS_PF_OK;
+	return last - first;
 }
 
-/** Free a frame that is backed by the ELF backend.
- *
- * The address space area and page tables must be already locked.
- *
- * @param area		Pointer to the address space area.
- * @param page		Page that is mapped to frame. Must be aligned to
- * 			PAGE_SIZE.
- * @param frame		Frame to be released.
- *
- */
-void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
+bool elf_create(as_area_t *area)
 {
-	elf_segment_header_t *entry = area->backend_data.segment;
-	uintptr_t start_anon;
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
-	ASSERT(page_table_locked(area->as));
-	ASSERT(mutex_locked(&area->lock));
+	if (area->pages <= nonanon_pages)
+		return true;
+	
+	return reserve_try_alloc(area->pages - nonanon_pages);
+}
 
-	ASSERT(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
-	ASSERT(page < entry->p_vaddr + entry->p_memsz);
+bool elf_resize(as_area_t *area, size_t new_pages)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
-	start_anon = entry->p_vaddr + entry->p_filesz;
-
-	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
-		if (entry->p_flags & PF_W) {
-			/*
-			 * Free the frame with the copy of writable segment
-			 * data.
-			 */
-			frame_free(frame);
-		}
-	} else {
-		/*
-		 * The frame is either anonymous memory or the mixed case (i.e.
-		 * lower part is backed by the ELF image and the upper is
-		 * anonymous). In any case, a frame needs to be freed.
-		 */
-		frame_free(frame);
+	if (new_pages > area->pages) {
+		/* The area is growing. */
+		if (area->pages >= nonanon_pages)
+			return reserve_try_alloc(new_pages - area->pages);
+		else if (new_pages > nonanon_pages)
+			return reserve_try_alloc(new_pages - nonanon_pages);
+	} else if (new_pages < area->pages) {
+		/* The area is shrinking. */
+		if (new_pages >= nonanon_pages)
+			reserve_free(area->pages - new_pages);
+		else if (area->pages > nonanon_pages)
+			reserve_free(nonanon_pages - new_pages);
 	}
+	
+	return true;
 }
 
 /** Share ELF image backed address space area.
@@ -349,6 +202,217 @@ void elf_share(as_area_t *area)
 		}
 	}
 	mutex_unlock(&area->sh_info->lock);
+}
+
+void elf_destroy(as_area_t *area)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
+
+	if (area->pages > nonanon_pages)
+		reserve_free(area->pages - nonanon_pages);
+}
+
+/** Service a page fault in the ELF backend address space area.
+ *
+ * The address space area and page tables must be already locked.
+ *
+ * @param area		Pointer to the address space area.
+ * @param addr		Faulting virtual address.
+ * @param access	Access mode that caused the fault (i.e.
+ * 			read/write/exec).
+ *
+ * @return		AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK
+ * 			on success (i.e. serviced).
+ */
+int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+{
+	elf_header_t *elf = area->backend_data.elf;
+	elf_segment_header_t *entry = area->backend_data.segment;
+	btree_node_t *leaf;
+	uintptr_t base, frame, page, start_anon;
+	size_t i;
+	bool dirty = false;
+
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
+
+	if (!as_area_check_access(area, access))
+		return AS_PF_FAULT;
+	
+	if (addr < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
+		return AS_PF_FAULT;
+	
+	if (addr >= entry->p_vaddr + entry->p_memsz)
+		return AS_PF_FAULT;
+	
+	i = (addr - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
+	base = (uintptr_t)
+	    (((void *) elf) + ALIGN_DOWN(entry->p_offset, PAGE_SIZE));
+
+	/* Virtual address of faulting page*/
+	page = ALIGN_DOWN(addr, PAGE_SIZE);
+
+	/* Virtual address of the end of initialized part of segment */
+	start_anon = entry->p_vaddr + entry->p_filesz;
+
+	if (area->sh_info) {
+		bool found = false;
+
+		/*
+		 * The address space area is shared.
+		 */
+		
+		mutex_lock(&area->sh_info->lock);
+		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
+		    page - area->base, &leaf);
+		if (!frame) {
+			unsigned int i;
+
+			/*
+			 * Workaround for valid NULL address.
+			 */
+
+			for (i = 0; i < leaf->keys; i++) {
+				if (leaf->key[i] == page - area->base) {
+					found = true;
+					break;
+				}
+			}
+		}
+		if (frame || found) {
+			frame_reference_add(ADDR2PFN(frame));
+			page_mapping_insert(AS, addr, frame,
+			    as_area_get_flags(area));
+			if (!used_space_insert(area, page, 1))
+				panic("Cannot insert used space.");
+			mutex_unlock(&area->sh_info->lock);
+			return AS_PF_OK;
+		}
+	}
+
+	/*
+	 * The area is either not shared or the pagemap does not contain the
+	 * mapping.
+	 */
+	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
+		/*
+		 * Initialized portion of the segment. The memory is backed
+		 * directly by the content of the ELF image. Pages are
+		 * only copied if the segment is writable so that there
+		 * can be more instantions of the same memory ELF image
+		 * used at a time. Note that this could be later done
+		 * as COW.
+		 */
+		if (entry->p_flags & PF_W) {
+			frame = (uintptr_t)frame_alloc_noreserve(ONE_FRAME, 0);
+			memcpy((void *) PA2KA(frame),
+			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
+			if (entry->p_flags & PF_X) {
+				smc_coherence_block((void *) PA2KA(frame),
+				    FRAME_SIZE);
+			}
+			dirty = true;
+		} else {
+			frame = KA2PA(base + i * FRAME_SIZE);
+		}	
+	} else if (page >= start_anon) {
+		/*
+		 * This is the uninitialized portion of the segment.
+		 * It is not physically present in the ELF image.
+		 * To resolve the situation, a frame must be allocated
+		 * and cleared.
+		 */
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
+		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
+		dirty = true;
+	} else {
+		size_t pad_lo, pad_hi;
+		/*
+		 * The mixed case.
+		 *
+		 * The middle part is backed by the ELF image and
+		 * the lower and upper parts are anonymous memory.
+		 * (The segment can be and often is shorter than 1 page).
+		 */
+		if (page < entry->p_vaddr)
+			pad_lo = entry->p_vaddr - page;
+		else
+			pad_lo = 0;
+
+		if (start_anon < page + PAGE_SIZE)
+			pad_hi = page + PAGE_SIZE - start_anon;
+		else
+			pad_hi = 0;
+
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
+		memcpy((void *) (PA2KA(frame) + pad_lo),
+		    (void *) (base + i * FRAME_SIZE + pad_lo),
+		    FRAME_SIZE - pad_lo - pad_hi);
+		if (entry->p_flags & PF_X) {
+			smc_coherence_block((void *) (PA2KA(frame) + pad_lo), 
+			    FRAME_SIZE - pad_lo - pad_hi);
+		}
+		memsetb((void *) PA2KA(frame), pad_lo, 0);
+		memsetb((void *) (PA2KA(frame) + FRAME_SIZE - pad_hi), pad_hi,
+		    0);
+		dirty = true;
+	}
+
+	if (dirty && area->sh_info) {
+		frame_reference_add(ADDR2PFN(frame));
+		btree_insert(&area->sh_info->pagemap, page - area->base,
+		    (void *) frame, leaf);
+	}
+
+	if (area->sh_info)
+		mutex_unlock(&area->sh_info->lock);
+
+	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
+	if (!used_space_insert(area, page, 1))
+		panic("Cannot insert used space.");
+
+	return AS_PF_OK;
+}
+
+/** Free a frame that is backed by the ELF backend.
+ *
+ * The address space area and page tables must be already locked.
+ *
+ * @param area		Pointer to the address space area.
+ * @param page		Page that is mapped to frame. Must be aligned to
+ * 			PAGE_SIZE.
+ * @param frame		Frame to be released.
+ *
+ */
+void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
+{
+	elf_segment_header_t *entry = area->backend_data.segment;
+	uintptr_t start_anon;
+
+	ASSERT(page_table_locked(area->as));
+	ASSERT(mutex_locked(&area->lock));
+
+	ASSERT(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
+	ASSERT(page < entry->p_vaddr + entry->p_memsz);
+
+	start_anon = entry->p_vaddr + entry->p_filesz;
+
+	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
+		if (entry->p_flags & PF_W) {
+			/*
+			 * Free the frame with the copy of writable segment
+			 * data.
+			 */
+			frame_free_noreserve(frame);
+		}
+	} else {
+		/*
+		 * The frame is either anonymous memory or the mixed case (i.e.
+		 * lower part is backed by the ELF image and the upper is
+		 * anonymous). In any case, a frame needs to be freed.
+		 */
+		frame_free_noreserve(frame);
+	}
 }
 
 /** @}

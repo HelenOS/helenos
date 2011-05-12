@@ -40,19 +40,22 @@
 #include <async.h>
 #include <bool.h>
 
+extern int devman_get_phone(devman_interface_t, unsigned int);
+extern void devman_hangup_phone(devman_interface_t);
 
-int devman_get_phone(devman_interface_t, unsigned int);
-void devman_hangup_phone(devman_interface_t iface);
+extern int devman_driver_register(const char *, async_client_conn_t);
+extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
+    devman_handle_t, devman_handle_t *);
 
-int devman_driver_register(const char *, async_client_conn_t);
-int devman_child_device_register(const char *, match_id_list_t *, device_handle_t, device_handle_t *);
+extern int devman_device_connect(devman_handle_t, unsigned int);
+extern int devman_parent_device_connect(devman_handle_t, unsigned int);
 
-int devman_device_connect(device_handle_t handle, unsigned int flags);
-int devman_parent_device_connect(device_handle_t handle, unsigned int flags);
+extern int devman_device_get_handle(const char *, devman_handle_t *,
+    unsigned int);
+extern int devman_device_get_handle_by_class(const char *, const char *,
+    devman_handle_t *, unsigned int);
 
-int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsigned int flags);
-
-int devman_add_device_to_class(device_handle_t dev_handle, const char *class_name);
+extern int devman_add_device_to_class(devman_handle_t, const char *);
 
 #endif
 

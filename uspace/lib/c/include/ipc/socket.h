@@ -37,7 +37,6 @@
 #ifndef LIBC_SOCKET_MESSAGES_H_
 #define LIBC_SOCKET_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Socket client messages. */
@@ -83,7 +82,7 @@ typedef enum {
  */
 #define SOCKET_SET_SOCKET_ID(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG1(answer, argument); \
 	} while (0)
 
@@ -101,7 +100,7 @@ typedef enum {
  */
 #define SOCKET_SET_READ_DATA_LENGTH(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG1(answer, argument); \
 	} while (0)
 
@@ -146,7 +145,7 @@ typedef enum {
  */
 #define SOCKET_SET_DATA_FRAGMENT_SIZE(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG2(answer, argument); \
 	} while (0)
 
@@ -155,7 +154,7 @@ typedef enum {
  */
 #define SOCKET_SET_ADDRESS_LENGTH(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG3(answer, argument);\
 	} while (0)
 
@@ -173,7 +172,7 @@ typedef enum {
  */
 #define SOCKET_SET_HEADER_SIZE(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG3(answer, argument); \
 	} while (0)
 

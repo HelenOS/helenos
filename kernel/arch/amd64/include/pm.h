@@ -74,15 +74,15 @@
 #define AR_CODE       (3 << 3)
 #define AR_WRITABLE   (1 << 1)
 #define AR_READABLE   (1 << 1)
-#define AR_TSS        (0x09)
-#define AR_INTERRUPT  (0x0e)
-#define AR_TRAP       (0x0f)
+#define AR_TSS        (0x09U)
+#define AR_INTERRUPT  (0x0eU)
+#define AR_TRAP       (0x0fU)
 
 #define DPL_KERNEL  (PL_KERNEL << 5)
 #define DPL_USER    (PL_USER << 5)
 
 #define TSS_BASIC_SIZE  104
-#define TSS_IOMAP_SIZE  (16 * 1024 + 1)  /* 16K for bitmap + 1 terminating byte for convenience */
+#define TSS_IOMAP_SIZE  (8 * 1024 + 1)  /* 8K for bitmap + 1 terminating byte for convenience */
 
 #define IO_PORTS  (64 * 1024)
 

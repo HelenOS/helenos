@@ -189,6 +189,7 @@ static void sun4v_fixups(void)
 	bootinfo.physmem_start += OBP_BIAS;
 	bootinfo.memmap.zones[0].start += OBP_BIAS;
 	bootinfo.memmap.zones[0].size -= OBP_BIAS;
+	bootinfo.memmap.total -= OBP_BIAS;
 }
 
 void bootstrap(void)
@@ -203,20 +204,25 @@ void bootstrap(void)
 	
 	bootinfo.physmem_start = ofw_get_physmem_start();
 	ofw_memmap(&bootinfo.memmap);
+
+	if (arch == ARCH_SUN4V)
+		sun4v_fixups();
 	
 	void *bootinfo_pa = ofw_translate(&bootinfo);
 	void *kernel_address_pa = ofw_translate((void *) KERNEL_ADDRESS);
 	void *loader_address_pa = ofw_translate((void *) LOADER_ADDRESS);
 	
-	printf("\nMemory statistics (total %llu MB, starting at %p)\n",
-	    bootinfo.memmap.total >> 20, bootinfo.physmem_start);
-	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
-	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, kernel_address_pa);
-	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, loader_address_pa);
+	printf("\nMemory statistics (total %" PRIu64 " MB, starting at %p)\n",
+	    bootinfo.memmap.total >> 20, (void *) bootinfo.physmem_start);
+	printf(" %p|%p: boot info structure\n", &bootinfo, (void *) bootinfo_pa);
+	printf(" %p|%p: kernel entry point\n",
+	    (void *) KERNEL_ADDRESS, (void *) kernel_address_pa);
+	printf(" %p|%p: loader entry point\n",
+	    (void *) LOADER_ADDRESS, (void *) loader_address_pa);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
 		    ofw_translate(components[i].start), components[i].name,
 		    components[i].inflated, components[i].size);
 	
@@ -250,23 +256,18 @@ void bootstrap(void)
 		printf("%s ", components[i - 1].name);
 		
 		/*
-		 * At this point, we claim the physical memory that we are
-		 * going to use. We should be safe in case of the virtual
+		 * At this point, we claim and map the physical memory that we
+		 * are going to use. We should be safe in case of the virtual
 		 * address space because the OpenFirmware, according to its
-		 * SPARC binding, should restrict its use of virtual memory
-		 * to addresses from [0xffd00000; 0xffefffff] and
-		 * [0xfe000000; 0xfeffffff].
-		 *
-		 * We don't map this piece of memory. We simply rely on
-		 * SILO to have it done for us already in this case.
-		 *
-		 * XXX SILO only maps 8 MB for us here. We should improve
-		 *     this code to be totally independent on the behavior
-		 *     of SILO.
-		 *
+		 * SPARC binding, should restrict its use of virtual memory to
+		 * addresses from [0xffd00000; 0xffefffff] and [0xfe000000;
+		 * 0xfeffffff].
 		 */
 		ofw_claim_phys(bootinfo.physmem_start + dest[i - 1],
 		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE));
+		
+		ofw_map(bootinfo.physmem_start + dest[i - 1], dest[i - 1],
+		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE), -1);
 		
 		int err = inflate(components[i - 1].start, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
@@ -300,9 +301,6 @@ void bootstrap(void)
 	
 	if (arch == ARCH_SUN4U)
 		sun4u_smp();
-	
-	if (arch == ARCH_SUN4V)
-		sun4v_fixups();
 	
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo, subarch,

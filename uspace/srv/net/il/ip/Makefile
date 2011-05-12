@@ -33,7 +33,6 @@ EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = ip
 
 SOURCES = \
-	ip.c \
-	ip_module.c
+	ip.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -41,7 +41,6 @@
 #include <devmap.h>
 #include <io/console.h>
 #include <vfs/vfs.h>
-#include <ipc/ipc.h>
 #include <ipc/mouse.h>
 #include <async.h>
 #include <unistd.h>
@@ -49,6 +48,7 @@
 #include <stdlib.h>
 #include <sysinfo.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "s3c24xx_ts.h"
 
@@ -98,9 +98,8 @@ int main(int argc, char *argv[])
 	if (s3c24xx_ts_init(ts) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/mouse", &ts->dev_handle);
+	rc = devmap_device_register(NAMESPACE "/mouse", &ts->devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/mouse");
 		return -1;
@@ -135,11 +134,11 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	ts->last_x = 0;
 	ts->last_y = 0;
 
-	printf(NAME ": device at physical address 0x%x, inr %d.\n",
-	    ts->paddr, inr);
+	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
+	    (void *) ts->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_ts_irq_handler);
-	ipc_register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
+	register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 
@@ -376,18 +375,18 @@ static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (ts->client_phone != -1) {
-				ipc_hangup(ts->client_phone);
+				async_hangup(ts->client_phone);
 				ts->client_phone = -1;
 			}
 
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			if (ts->client_phone != -1) {
@@ -400,7 +399,7 @@ static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = EINVAL;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

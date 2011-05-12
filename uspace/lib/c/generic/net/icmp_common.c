@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  *  @{
  */
 
@@ -37,30 +37,23 @@
 
 #include <net/modules.h>
 #include <net/icmp_common.h>
-
 #include <ipc/services.h>
 #include <ipc/icmp.h>
-
 #include <sys/time.h>
 #include <async.h>
 
-/** Connects to the ICMP module.
+/** Connect to the ICMP module.
  *
- * @param service	The ICMP module service. Ignored parameter.
- * @param[in] timeout	The connection timeout in microseconds. No timeout if
- *			set to zero.
- * @returns		The ICMP module phone on success.
- * @returns		ETIMEOUT if the connection timeouted.
+ * @param[in] timeout Connection timeout in microseconds, zero
+ *                    for no timeout.
+ *
+ * @return ICMP module phone on success.
+ * @return ETIMEOUT if the connection timeouted.
+ *
  */
-int icmp_connect_module(services_t service, suseconds_t timeout)
+int icmp_connect_module(suseconds_t timeout)
 {
-	int phone;
-
-	phone = connect_to_service_timeout(SERVICE_ICMP, timeout);
-	if (phone >= 0)
-		async_req_0_0(phone, NET_ICMP_INIT);
-
-	return phone;
+	return connect_to_service_timeout(SERVICE_ICMP, timeout);
 }
 
 /** @}

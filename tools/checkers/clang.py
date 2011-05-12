@@ -63,7 +63,7 @@ def clang(root, job):
 			return False
 		
 		if (len(arg) < 6):
-			print("Not enought jobfile record arguments")
+			print("Not enough jobfile record arguments")
 			return False
 		
 		srcfname = arg[0]

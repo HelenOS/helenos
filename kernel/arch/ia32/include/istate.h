@@ -36,12 +36,17 @@
 #define KERN_ia32_ISTATE_H_
 
 #ifdef KERNEL
+
 #include <typedefs.h>
 #include <trace.h>
-#else
+
+#else /* KERNEL */
+
 #include <sys/types.h>
+
 #define NO_TRACE
-#endif
+
+#endif /* KERNEL */
 
 typedef struct istate {
 	/*
@@ -76,7 +81,7 @@ typedef struct istate {
 /** Return true if exception happened while in userspace */
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
-	return !(istate->eip & 0x80000000);
+	return !(istate->eip & UINT32_C(0x80000000));
 }
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,

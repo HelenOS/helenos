@@ -40,12 +40,23 @@
 #include <str.h>
 #include <adt/list.h>
 
+#ifndef NVERIFY_PRINTF
+
+#define PRINTF_ATTRIBUTE(start, end) \
+	__attribute__((format(gnu_printf, start, end)))
+
+#else /* NVERIFY_PRINTF */
+
+#define PRINTF_ATTRIBUTE(start, end)
+
+#endif /* NVERIFY_PRINTF */
+
 #define EOF  (-1)
 
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
-#define DEBUG(fmt, ...)se\
+#define DEBUG(fmt, ...) \
 	{ \
 		char _buf[256]; \
 		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
@@ -148,14 +159,18 @@ extern int putchar(wchar_t);
 extern int puts(const char *);
 
 /* Formatted string output functions */
-extern int fprintf(FILE *, const char*, ...);
+extern int fprintf(FILE *, const char*, ...)
+    PRINTF_ATTRIBUTE(2, 3);
 extern int vfprintf(FILE *, const char *, va_list);
 
-extern int printf(const char *, ...);
+extern int printf(const char *, ...)
+    PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
-extern int snprintf(char *, size_t , const char *, ...);
-extern int asprintf(char **, const char *, ...);
+extern int snprintf(char *, size_t , const char *, ...)
+    PRINTF_ATTRIBUTE(3, 4);
+extern int asprintf(char **, const char *, ...)
+    PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
 /* File stream functions */
