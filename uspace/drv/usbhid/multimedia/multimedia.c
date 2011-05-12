@@ -353,9 +353,10 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev,
 	 */
 	while (field != NULL) {
 		if(field->value != 0) {
-			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
-			    field->usage);
-			key = usb_multimedia_map_usage(field->usage);
+			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", 
+			    field->value, field->usage);
+			unsigned int key = 
+			    usb_multimedia_map_usage(field->usage);
 			const char *key_str = 
 			    usb_multimedia_usage_to_str(field->usage);
 			usb_log_info("Pressed key: %s\n", key_str);
