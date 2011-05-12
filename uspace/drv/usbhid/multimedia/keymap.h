@@ -30,28 +30,17 @@
  * @{
  */
 /** @file
- * USB Logitech UltraX Keyboard sample driver.
+ * USB multimedia key to keycode mapping.
  */
 
-#ifndef USB_HID_LGTCH_ULTRAX_H_
-#define USB_HID_LGTCH_ULTRAX_H_
+#ifndef USB_HID_MULTIMEDIA_KEYMAP_H_
+#define USB_HID_MULTIMEDIA_KEYMAP_H_
 
-#include <usb/devdrv.h>
+unsigned int usb_multimedia_map_usage(int usage);
 
-struct usb_hid_dev;
+const char *usb_multimedia_usage_to_str(int usage);
 
-/*----------------------------------------------------------------------------*/
-
-int usb_lgtch_init(struct usb_hid_dev *hid_dev);
-
-void usb_lgtch_deinit(struct usb_hid_dev *hid_dev);
-
-bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
-    size_t buffer_size);
-
-/*----------------------------------------------------------------------------*/
-
-#endif // USB_HID_LGTCH_ULTRAX_H_
+#endif /* USB_HID_MULTIMEDIA_KEYMAP_H_ */
 
 /**
  * @}

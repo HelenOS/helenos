@@ -37,7 +37,8 @@
 #include "usb/classes/hidut.h"
 #include "usb/classes/hidpath.h"
 
-#include "lgtch-ultrax/lgtch-ultrax.h"
+//#include "lgtch-ultrax/lgtch-ultrax.h"
+#include "multimedia/multimedia.h"
 #include "mouse/mousedev.h"
 
 static usb_hid_subdriver_usage_t path_kbd[] = {
@@ -78,9 +79,9 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 		-1,
 		-1,
 		{
-			.init = usb_lgtch_init,
-			.deinit = usb_lgtch_deinit,
-			.poll = usb_lgtch_polling_callback,
+			.init = usb_multimedia_init,
+			.deinit = usb_multimedia_deinit,
+			.poll = usb_multimedia_polling_callback,
 			.poll_end = NULL
 		}
 	},
