@@ -156,6 +156,36 @@ usb_address_t usb_device_keeper_find(
 	fibril_mutex_unlock(&instance->guard);
 	return ENOENT;
 }
+
+/** Find devman handled assigned to USB address.
+ *
+ * @param[in] instance Device keeper structure to use.
+ * @param[in] address Address the caller wants to find.
+ * @param[out] handle Where to store found handle.
+ * @return Whether such address is currently occupied.
+ */
+bool usb_device_keeper_find_by_address(usb_device_keeper_t *instance,
+    usb_address_t address, devman_handle_t *handle)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	if ((address < 0) || (address >= USB_ADDRESS_COUNT)) {
+		fibril_mutex_unlock(&instance->guard);
+		return false;
+	}
+	if (!instance->devices[address].occupied) {
+		fibril_mutex_unlock(&instance->guard);
+		return false;
+	}
+
+	if (handle != NULL) {
+		*handle = instance->devices[address].handle;
+	}
+
+	fibril_mutex_unlock(&instance->guard);
+	return true;
+}
+
 /*----------------------------------------------------------------------------*/
 /** Get speed associated with the address
  *

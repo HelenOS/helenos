@@ -27,11 +27,20 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
+
+LIBS = \
+	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include
+
 BINARY = usbmast
 
 SOURCES = \
+	inquiry.c \
 	main.c \
 	mast.c
 

@@ -43,12 +43,53 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
+#include <usb/hub.h>
 #include <usb/host.h>
 
 #define NAME "lsusb"
 
-#define MAX_FAILED_ATTEMPTS 4
+#define MAX_FAILED_ATTEMPTS 10
 #define MAX_PATH_LENGTH 1024
+
+static void print_found_hc(size_t class_index, const char *path)
+{
+	// printf(NAME ": host controller %zu is `%s'.\n", class_index, path);
+	printf("Bus %02zu: %s\n", class_index, path);
+}
+static void print_found_dev(usb_address_t addr, const char *path)
+{
+	// printf(NAME ":     device with address %d is `%s'.\n", addr, path);
+	printf("  Device %02d: %s\n", addr, path);
+}
+
+static void print_hc_devices(devman_handle_t hc_handle)
+{
+	int rc;
+	usb_hc_connection_t conn;
+
+	usb_hc_connection_initialize(&conn, hc_handle);
+	rc = usb_hc_connection_open(&conn);
+	if (rc != EOK) {
+		printf(NAME ": failed to connect to HC: %s.\n",
+		    str_error(rc));
+		return;
+	}
+	usb_address_t addr;
+	for (addr = 1; addr < 5; addr++) {
+		devman_handle_t dev_handle;
+		rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
+		if (rc != EOK) {
+			continue;
+		}
+		char path[MAX_PATH_LENGTH];
+		rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
+		if (rc != EOK) {
+			continue;
+		}
+		print_found_dev(addr, path);
+	}
+	usb_hc_connection_close(&conn);
+}
 
 int main(int argc, char *argv[])
 {
@@ -68,8 +109,8 @@ int main(int argc, char *argv[])
 		if (rc != EOK) {
 			continue;
 		}
-		printf(NAME ": host controller %zu is `%s'.\n",
-		    class_index, path);
+		print_found_hc(class_index, path);
+		print_hc_devices(hc_handle);
 	}
 
 	return 0;

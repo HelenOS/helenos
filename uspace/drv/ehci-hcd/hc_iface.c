@@ -105,6 +105,21 @@ static int bind_address(ddf_fun_t *fun,
 	return ENOTSUP;
 }
 
+/** Find device handle by USB address.
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] address Address in question.
+ * @param[out] handle Where to store device handle if found.
+ * @return Error code.
+ */
+static int find_by_address(ddf_fun_t *fun, usb_address_t address,
+    devman_handle_t *handle)
+{
+	UNSUPPORTED("find_by_address");
+
+	return ENOTSUP;
+}
+
 /** Release previously requested address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -320,6 +335,7 @@ usbhc_iface_t ehci_hc_iface = {
 	.release_default_address = release_default_address,
 	.request_address = request_address,
 	.bind_address = bind_address,
+	.find_by_address = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,

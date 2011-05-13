@@ -63,20 +63,12 @@ int uhci_add_device(ddf_dev_t *device)
 	usb_log_debug2("uhci_add_device() called\n");
 	assert(device);
 
-	uhci_t *uhci = malloc(sizeof(uhci_t));
-	if (uhci == NULL) {
-		usb_log_error("Failed to allocate UHCI driver.\n");
-		return ENOMEM;
-	}
-
-	int ret = uhci_init(uhci, device);
+	int ret = device_setup_uhci(device);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize UHCI driver: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
-	device->driver_data = uhci;
-
 	usb_log_info("Controlling new UHCI device '%s'.\n", device->name);
 
 	return EOK;

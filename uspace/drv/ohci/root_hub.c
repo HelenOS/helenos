@@ -236,7 +236,7 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	if (!instance->interrupt_buffer)
 		return ENOMEM;
 
-	usb_log_info("OHCI root hub with %d ports initialized.\n",
+	usb_log_info("OHCI root hub with %zu ports initialized.\n",
 	    instance->port_count);
 
 	return EOK;

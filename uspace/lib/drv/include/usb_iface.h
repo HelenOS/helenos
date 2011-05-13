@@ -48,6 +48,21 @@ typedef enum {
 	 * - ENOTSUP - operation not supported (shall not happen)
 	 * - arbitrary error code if returned by remote implementation
 	 * - EOK - handle found, first parameter contains the USB address
+	 *
+	 * The handle must be the one used for binding USB address with
+	 * it (IPC_M_USBHC_BIND_ADDRESS), otherwise the host controller
+	 * (that this request would eventually reach) would not be able
+	 * to find it.
+	 * The problem is that this handle is actually assigned to the
+	 * function inside driver of the parent device (usually hub driver).
+	 * To bypass this problem, the initial caller specify handle as
+	 * zero and the first parent assigns the actual value.
+	 * See usb_iface_get_address_hub_child_impl() implementation
+	 * that could be assigned to device ops of a child device of in a
+	 * hub driver.
+	 * For example, the USB multi interface device driver (MID)
+	 * passes this initial zero without any modification because the
+	 * handle must be resolved by its parent.
 	 */
 	IPC_M_USB_GET_ADDRESS,
 

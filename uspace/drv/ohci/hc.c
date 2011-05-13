@@ -39,7 +39,6 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/ddfiface.h>
-#include <usb/usbdevice.h>
 
 #include "hc.h"
 #include "hcd_endpoint.h"
@@ -94,8 +93,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-    uintptr_t regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
 	int ret = EOK;

@@ -45,6 +45,7 @@
 #include <usb/usbdevice.h>
 #include <usb/pipes.h>
 #include <usb/host.h>
+#include <usb/driver.h>
 #include "usbinfo.h"
 
 static bool try_parse_class_and_address(const char *path,
@@ -307,7 +308,8 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		usbinfo_device_t *dev = prepare_device(hc_handle, dev_addr);
+		usbinfo_device_t *dev = prepare_device(devpath,
+		    hc_handle, dev_addr);
 		if (dev == NULL) {
 			continue;
 		}

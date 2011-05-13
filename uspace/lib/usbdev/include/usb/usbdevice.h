@@ -30,38 +30,34 @@
  * @{
  */
 /** @file
- * Functions needed by hub drivers.
- *
- * For class specific requests, see usb/classes/hub.h.
+ * General communication between device drivers and host controller driver.
  */
-#ifndef LIBUSB_HUB_H_
-#define LIBUSB_HUB_H_
+#ifndef LIBUSB_USBDEVICE_H_
+#define LIBUSB_USBDEVICE_H_
 
 #include <sys/types.h>
-#include <usb/usbdevice.h>
+#include <ipc/devman.h>
+#include <ddf/driver.h>
+#include <bool.h>
+#include <usb/usb.h>
 
-int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
-    int (*)(int, void *), int, void *,
-    usb_address_t *, devman_handle_t *,
-    ddf_dev_ops_t *, void *, ddf_fun_t **);
-
-/** Info about device attached to host controller.
- *
- * This structure exists only to keep the same signature of
- * usb_hc_register_device() when more properties of the device
- * would have to be passed to the host controller.
- */
+/** Connection to the host controller driver. */
 typedef struct {
-	/** Device address. */
-	usb_address_t address;
-	/** Devman handle of the device. */
-	devman_handle_t handle;
-} usb_hc_attached_device_t;
+	/** Devman handle of the host controller. */
+	devman_handle_t hc_handle;
+	/** Phone to the host controller. */
+	int hc_phone;
+} usb_hc_connection_t;
 
-usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
-int usb_hc_register_device(usb_hc_connection_t *,
-    const usb_hc_attached_device_t *);
-int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
+    ddf_dev_t *);
+int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
+
+int usb_hc_connection_open(usb_hc_connection_t *);
+bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+int usb_hc_connection_close(usb_hc_connection_t *);
+
+
 
 #endif
 /**

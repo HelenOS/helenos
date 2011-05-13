@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <usb/addrkeep.h>
+/** @addtogroup libusb
+ * @{
+ */
+/** @file
+ *
+ */
+#include <devman.h>
+#include <dev_iface.h>
+#include <usb_iface.h>
+#include <usb/driver.h>
 #include <errno.h>
-#include "../tester.h"
-
-#define MAX_ADDRESS 5
 
 
-const char *test_usbaddrkeep(void)
+/** Find host controller handle that is ancestor of given device.
+ *
+ * @param[in] device_handle Device devman handle.
+ * @param[out] hc_handle Where to store handle of host controller
+ *	controlling device with @p device_handle handle.
+ * @return Error code.
+ */
+int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
 {
-	int rc;
-	usb_address_keeping_t addresses;
-
-	TPRINTF("Initializing addresses keeping structure...\n");
-	usb_address_keeping_init(&addresses, MAX_ADDRESS);
-	
-	TPRINTF("Requesting address...\n");
-	usb_address_t addr = usb_address_keeping_request(&addresses);
-	TPRINTF("Address assigned: %d\n", (int) addr);
-	if (addr != 1) {
-		return "have not received expected address 1";
+	int parent_phone = devman_parent_device_connect(device_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
 	}
 
-	TPRINTF("Releasing not assigned address...\n");
-	rc = usb_address_keeping_release(&addresses, 2);
-	if (rc != ENOENT) {
-		return "have not received expected ENOENT";
-	}
+	devman_handle_t h;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
 
-	TPRINTF("Releasing acquired address...\n");
-	rc = usb_address_keeping_release(&addresses, addr);
+	async_hangup(parent_phone);
+
 	if (rc != EOK) {
-		return "have not received expected EOK";
+		return rc;
 	}
 
-	return NULL;
+	if (hc_handle != NULL) {
+		*hc_handle = h;
+	}
+
+	return EOK;
 }
+
+/**
+ * @}
+ */

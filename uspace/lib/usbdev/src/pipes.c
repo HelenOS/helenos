@@ -35,6 +35,7 @@
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <usb/debug.h>
+#include <usb/driver.h>
 #include <usbhc_iface.h>
 #include <usb_iface.h>
 #include <devman.h>
