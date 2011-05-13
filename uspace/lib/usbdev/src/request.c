@@ -884,6 +884,47 @@ int usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
 	    uint16_host2usb(ep_index));
 }
 
+/** Clear halt bit of an endpoint pipe (after pipe stall).
+ *
+ * @param ctrl_pipe Control pipe.
+ * @param target_pipe Which pipe is halted and shall be cleared.
+ * @return Error code.
+ */
+int usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
+{
+	if ((ctrl_pipe == NULL) || (target_pipe == NULL)) {
+		return EINVAL;
+	}
+	return usb_request_clear_endpoint_halt(ctrl_pipe,
+	    target_pipe->endpoint_no);
+}
+
+/** Get endpoint status.
+ *
+ * @param[in] ctrl_pipe Control pipe.
+ * @param[in] pipe Of which pipe the status shall be received.
+ * @param[out] status Where to store pipe status (in native endianness).
+ * @return Error code.
+ */
+int usb_request_get_endpoint_status(usb_pipe_t *ctrl_pipe, usb_pipe_t *pipe,
+    uint16_t *status)
+{
+	uint16_t status_tmp;
+	uint16_t pipe_index = (uint16_t) pipe->endpoint_no;
+	int rc = usb_request_get_status(ctrl_pipe,
+	    USB_REQUEST_RECIPIENT_ENDPOINT, uint16_host2usb(pipe_index),
+	    &status_tmp);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (status != NULL) {
+		*status = uint16_usb2host(status_tmp);
+	}
+
+	return EOK;
+}
+
 /**
  * @}
  */

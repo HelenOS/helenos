@@ -53,7 +53,8 @@
 #define HCC_PARAMS_EECP_OFFSET 8
 
 #define CMD_OFFSET 0x0
-#define CONFIGFLAG_OFFSET 0x40
+#define STS_OFFSET 0x4
+#define CFG_OFFSET 0x40
 
 #define USBCMD_RUN 1
 
@@ -263,9 +264,9 @@ int pci_disable_legacy(ddf_dev_t *device)
 	/* Zero SMI enables in legacy control register.
 	 * It would prevent pre-OS code from interfering. */
 	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	   IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGCTLSTS_OFFSET, 0);
+	   IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGCTLSTS_OFFSET,
+	   0xe0000000);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) zero USBLEGCTLSTS.\n", ret);
-	usb_log_debug("Zeroed USBLEGCTLSTS register.\n");
 
 	/* Read again Legacy Support and Control register */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
@@ -290,17 +291,21 @@ int pci_disable_legacy(ddf_dev_t *device)
 	/* Zero USBCMD register. */
 	volatile uint32_t *usbcmd =
 	    (uint32_t*)((uint8_t*)registers + operation_offset + CMD_OFFSET);
+	volatile uint32_t *usbsts =
+	    (uint32_t*)((uint8_t*)registers + operation_offset + STS_OFFSET);
 	volatile uint32_t *usbconfigured =
-	    (uint32_t*)((uint8_t*)registers + operation_offset
-	    + CONFIGFLAG_OFFSET);
+	    (uint32_t*)((uint8_t*)registers + operation_offset + CFG_OFFSET);
 	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
 	if (*usbcmd & USBCMD_RUN) {
 		*usbcmd = 0;
+		while (!(*usbsts & (1 << 12))); /*wait until hc is halted */
 		*usbconfigured = 0;
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");
 	}
+	usb_log_debug("Registers: %x(0x00080000):%x(0x00001000):%x(0x0).\n",
+	    *usbcmd, *usbsts, *usbconfigured);
 
 	async_hangup(parent_phone);
 	return ret;

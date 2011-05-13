@@ -40,6 +40,7 @@ EXTRA_CFLAGS += \
 BINARY = usbmast
 
 SOURCES = \
+	inquiry.c \
 	main.c \
 	mast.c
 
