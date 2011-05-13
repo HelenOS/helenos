@@ -86,16 +86,13 @@ static void default_connection_handler(ddf_fun_t *fun,
 	
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
 	
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	usb_multimedia_t *multim_dev = (usb_multimedia_t *)fun->driver_data;
+	//usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
-	if (hid_dev == NULL || hid_dev->data == NULL) {
+	if (multim_dev == NULL) {
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-	
-	assert(hid_dev != NULL);
-	assert(hid_dev->data != NULL);
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)hid_dev->data;
 
 	if (method == IPC_M_CONNECT_TO_ME) {
 		int callback = IPC_GET_ARG5(*icall);
@@ -138,13 +135,13 @@ static ddf_dev_ops_t multimedia_ops = {
  *             KEY_PRESS, KEY_RELEASE
  * @param key Key code of the key according to HID Usage Tables.
  */
-static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev, int type, 
-    unsigned int key)
+static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev, 
+    usb_multimedia_t *multim_dev, int type, unsigned int key)
 {
 	assert(hid_dev != NULL);
-	assert(hid_dev->data != NULL);
+	assert(multim_dev != NULL);
 	
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)hid_dev->data;
+//	usb_multimedia_t *multim_dev = (usb_multimedia_t *)hid_dev->data;
 	
 	console_event_t ev;
 	
@@ -189,7 +186,8 @@ static void usb_multimedia_free(usb_multimedia_t **multim_dev)
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev)
+static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev, 
+    usb_multimedia_t *multim_dev)
 {
 	/* Create the function exposed under /dev/devices. */
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
@@ -199,12 +197,8 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 	
-	/*
-	 * Store the initialized HID device and HID ops
-	 * to the DDF function.
-	 */
 	fun->ops = &multimedia_ops;
-	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+	fun->driver_data = multim_dev;   // TODO: maybe change to hid_dev->data
 	
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -230,7 +224,7 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-int usb_multimedia_init(struct usb_hid_dev *hid_dev)
+int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 {
 	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
 		return EINVAL; /*! @todo Other return code? */
@@ -281,11 +275,11 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev)
 	/*! @todo Autorepeat */
 	
 	// save the KBD device structure into the HID device structure
-	hid_dev->data = multim_dev;
+	*data = multim_dev;
 	
 	usb_log_debug(NAME " HID/multimedia device structure initialized.\n");
 	
-	int rc = usb_multimedia_create_function(hid_dev);
+	int rc = usb_multimedia_create_function(hid_dev, multim_dev);
 	if (rc != EOK) {
 		usb_multimedia_free(&multim_dev);
 		return rc;
@@ -298,29 +292,33 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-void usb_multimedia_deinit(struct usb_hid_dev *hid_dev)
+void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 {
 	if (hid_dev == NULL) {
 		return;
 	}
 	
-	if (hid_dev->data != NULL) {
-		usb_multimedia_t *multim_dev = 
-		    (usb_multimedia_t *)hid_dev->data;
+	if (data != NULL) {
+		usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
 		usb_multimedia_free(&multim_dev);
-		hid_dev->data = NULL;
 	}
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, 
+bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data, 
     uint8_t *buffer, size_t buffer_size)
 {
 	// TODO: checks
 	
 	usb_log_debug(NAME " usb_lgtch_polling_callback(%p, %p, %zu)\n",
 	    hid_dev, buffer, buffer_size);
+	
+	if (data == NULL) {
+		return EINVAL;	// TODO: other error code?
+	}
+	
+	usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
 
 	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
 	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
@@ -360,7 +358,8 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev,
 			const char *key_str = 
 			    usb_multimedia_usage_to_str(field->usage);
 			usb_log_info("Pressed key: %s\n", key_str);
-			usb_multimedia_push_ev(hid_dev, KEY_PRESS, key);
+			usb_multimedia_push_ev(hid_dev, multim_dev, KEY_PRESS, 
+			                       key);
 		}
 		
 		field = usb_hid_report_get_sibling(

@@ -121,18 +121,14 @@ static void default_connection_handler(ddf_fun_t *fun,
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
 	
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	usb_mouse_t *mouse_dev = (usb_mouse_t *)fun->driver_data;
 	
-	if (hid_dev == NULL || hid_dev->data == NULL) {
+	if (mouse_dev == NULL) {
 		usb_log_debug("default_connection_handler: Missing "
 		    "parameters.\n");
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-	
-	assert(hid_dev != NULL);
-	assert(hid_dev->data != NULL);
-	usb_mouse_t *mouse_dev = (usb_mouse_t *)hid_dev->data;
 	
 	int *phone = (str_cmp(fun->name, HID_MOUSE_FUN_NAME) == 0) 
 		     ? &mouse_dev->mouse_phone : &mouse_dev->wheel_phone;
@@ -144,7 +140,6 @@ static void default_connection_handler(ddf_fun_t *fun,
 			usb_log_debug("default_connection_handler: Console "
 			    "phone to mouse already set.\n");
 			async_answer_0(icallid, ELIMIT);
-			//async_answer_0(icallid, EOK);
 			return;
 		}
 
@@ -223,10 +218,11 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 
 /*----------------------------------------------------------------------------*/
 
-static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, uint8_t *buffer,
-    size_t buffer_size)
+static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, 
+                                     usb_mouse_t *mouse_dev, uint8_t *buffer,
+                                     size_t buffer_size)
 {
-	usb_mouse_t *mouse_dev = (usb_mouse_t *)hid_dev->data;
+	assert(mouse_dev != NULL);
 	
 	usb_log_debug2("got buffer: %s.\n",
 	    usb_debug_str_buffer(buffer, buffer_size, 0));
@@ -377,8 +373,11 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, uint8_t *buffer,
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_mouse_create_function(usb_hid_dev_t *hid_dev)
+static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 {
+	assert(hid_dev != NULL);
+	assert(mouse != NULL);
+	
 	/* Create the function exposed under /dev/devices. */
 	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
@@ -388,12 +387,8 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 	
-	/*
-	 * Store the initialized HID device and HID ops
-	 * to the DDF function.
-	 */
-	fun->ops = &hid_dev->ops;
-	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+	fun->ops = &mouse->ops;
+	fun->driver_data = mouse;   // TODO: maybe change to hid_dev->data
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -430,7 +425,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev)
 	 * Store the initialized HID device and HID ops
 	 * to the DDF function.
 	 */
-	fun->ops = &hid_dev->ops;
+	fun->ops = &mouse->ops;
 	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
 
 	rc = ddf_fun_bind(fun);
@@ -457,7 +452,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-int usb_mouse_init(usb_hid_dev_t *hid_dev)
+int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
 	
@@ -484,16 +479,17 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev)
 	}
 	
 	// save the Mouse device structure into the HID device structure
-	hid_dev->data = mouse_dev;
+	*data = mouse_dev;
 	
 	// set handler for incoming calls
-	hid_dev->ops.default_handler = default_connection_handler;
+	// TODO: must be one for each subdriver!!
+	mouse_dev->ops.default_handler = default_connection_handler;
 	
 	// TODO: how to know if the device supports the request???
 //	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
 //	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 	
-	int rc = usb_mouse_create_function(hid_dev);
+	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
 	if (rc != EOK) {
 		usb_mouse_free(&mouse_dev);
 		return rc;
@@ -504,32 +500,31 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, uint8_t *buffer,
-     size_t buffer_size)
+bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
+     uint8_t *buffer, size_t buffer_size)
 {
 	usb_log_debug("usb_mouse_polling_callback()\n");
 	usb_debug_str_buffer(buffer, buffer_size, 0);
 	
-	if (hid_dev == NULL) {
+	if (hid_dev == NULL || data == NULL) {
 		usb_log_error("Missing argument to the mouse polling callback."
 		    "\n");
 		return false;
 	}
 	
-	if (hid_dev->data == NULL) {
-		usb_log_error("Wrong argument to the mouse polling callback."
-		    "\n");
-		return false;
-	}
-	
-	return usb_mouse_process_report(hid_dev, buffer, buffer_size);
+	usb_mouse_t *mouse_dev = (usb_mouse_t *)data;
+		
+	return usb_mouse_process_report(hid_dev, mouse_dev, buffer, 
+	                                buffer_size);
 }
 
 /*----------------------------------------------------------------------------*/
 
-void usb_mouse_deinit(usb_hid_dev_t *hid_dev)
+void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
-	usb_mouse_free((usb_mouse_t **)&hid_dev->data);
+	if (data != NULL) {
+		usb_mouse_free((usb_mouse_t **)&data);
+	}
 }
 
 /*----------------------------------------------------------------------------*/
