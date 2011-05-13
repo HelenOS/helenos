@@ -130,6 +130,11 @@ static void default_connection_handler(ddf_fun_t *fun,
 		return;
 	}
 	
+	usb_log_debug("default_connection_handler: fun->name: %s\n",
+	              fun->name);
+	usb_log_debug("default_connection_handler: mouse_phone: %d, wheel "
+	    "phone: %d\n", mouse_dev->mouse_phone, mouse_dev->wheel_phone);
+	
 	int *phone = (str_cmp(fun->name, HID_MOUSE_FUN_NAME) == 0) 
 		     ? &mouse_dev->mouse_phone : &mouse_dev->wheel_phone;
 	
@@ -144,7 +149,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 		}
 
 		*phone = callback;
-		usb_log_debug("Console phone to mouse set ok (%d).\n", callback);
+		usb_log_debug("Console phone to mouse set ok (%d).\n", *phone);
 		async_answer_0(icallid, EOK);
 		return;
 	}
@@ -426,7 +431,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	 * to the DDF function.
 	 */
 	fun->ops = &mouse->ops;
-	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+	fun->driver_data = mouse;   // TODO: maybe change to hid_dev->data
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {

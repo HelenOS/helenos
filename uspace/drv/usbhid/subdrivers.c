@@ -61,7 +61,7 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		path_kbd,
 		-1,
-		USB_HID_PATH_COMPARE_ANYWHERE,
+		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
 		{
@@ -75,7 +75,7 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		multim_key_path,
 		1,
-		USB_HID_PATH_COMPARE_ANYWHERE,
+		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
 		{
@@ -88,7 +88,7 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		path_mouse,
 		-1,
-		USB_HID_PATH_COMPARE_ANYWHERE,
+		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
 		{
