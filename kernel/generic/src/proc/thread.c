@@ -917,5 +917,11 @@ sysarg_t sys_thread_usleep(uint32_t usec)
 	return 0;
 }
 
+sysarg_t sys_thread_udelay(uint32_t usec)
+{
+	asm_delay_loop(usec * CPU->delay_loop_const);
+	return 0;
+}
+
 /** @}
  */
