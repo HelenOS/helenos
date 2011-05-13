@@ -207,9 +207,13 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
 #define list_get_instance(link, type, member) \
 	((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
 
-extern int list_member(const link_t *link, const link_t *head);
-extern void list_concat(link_t *head1, link_t *head2);
-extern unsigned int list_count(const link_t *link);
+#define list_foreach(list, iterator) \
+	for (link_t *iterator = (list).next; \
+	    iterator != &(list); iterator = iterator->next)
+
+extern int list_member(const link_t *, const link_t *);
+extern void list_concat(link_t *, link_t *);
+extern unsigned int list_count(const link_t *);
 
 #endif
 
