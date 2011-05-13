@@ -43,12 +43,6 @@
 #define FAT_CLST_RES1	  0x0001
 #define FAT_CLST_FIRST	  0x0002
 
-#define FAT12_CLST_BAD	  0x0ff7
-#define FAT12_CLST_LAST1  0x0ff8
-#define FAT12_CLST_LAST8  0x0fff
-#define FAT16_CLST_BAD    0xfff7
-#define FAT16_CLST_LAST1  0xfff8
-#define FAT16_CLST_LAST8  0xffff
 #define FAT32_CLST_BAD    0x0ffffff7
 #define FAT32_CLST_LAST1  0x0ffffff8
 #define FAT32_CLST_LAST8  0x0fffffff
@@ -85,22 +79,16 @@
     ((CC(bs) >= FAT12_CLST_MAX) && (CC(bs) < FAT16_CLST_MAX))
 #define FAT_IS_FAT32(bs)	(CC(bs) >= FAT16_CLST_MAX)
 
-#define FAT_CLST_LAST1(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST1 : \
-    (FAT_IS_FAT32(bs) ? FAT32_CLST_LAST1 : FAT16_CLST_LAST1))
-#define FAT_CLST_LAST8(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST8 : \
-    (FAT_IS_FAT32(bs) ? FAT32_CLST_LAST8 : FAT16_CLST_LAST8))
-#define FAT_CLST_BAD(bs) \
-    (FAT_IS_FAT12(bs) ? FAT12_CLST_BAD : \
-    (FAT_IS_FAT32(bs) ? FAT32_CLST_BAD : FAT16_CLST_BAD))
-
 #define FAT_CLST_SIZE(bs) \
     (FAT_IS_FAT32(bs) ? FAT32_CLST_SIZE : FAT16_CLST_SIZE)
 
 #define FAT_MASK(bs) \
     (FAT_IS_FAT12(bs) ? FAT12_MASK : \
     (FAT_IS_FAT32(bs) ? FAT32_MASK : FAT16_MASK))
+
+#define FAT_CLST_LAST1(bs)      (FAT32_CLST_LAST1 & FAT_MASK((bs)))
+#define FAT_CLST_LAST8(bs)      (FAT32_CLST_LAST8 & FAT_MASK((bs)))
+#define FAT_CLST_BAD(bs)        (FAT32_CLST_BAD & FAT_MASK((bs)))
 
 #define FAT_ROOT_CLST(bs) \
     (FAT_IS_FAT32(bs) ? uint32_t_le2host(bs->fat32.root_cluster) : \
@@ -132,8 +120,20 @@ extern int fat_alloc_clusters(struct fat_bs *, devmap_handle_t, unsigned,
 extern int fat_free_clusters(struct fat_bs *, devmap_handle_t, fat_cluster_t);
 extern int fat_alloc_shadow_clusters(struct fat_bs *, devmap_handle_t,
     fat_cluster_t *, unsigned);
+extern int fat_get_cluster_fat12(struct fat_bs *, devmap_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t *);
+extern int fat_get_cluster_fat16(struct fat_bs *, devmap_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t *);
+extern int fat_get_cluster_fat32(struct fat_bs *, devmap_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t *);
 extern int fat_get_cluster(struct fat_bs *, devmap_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t *);
+extern int fat_set_cluster_fat12(struct fat_bs *, devmap_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t);
+extern int fat_set_cluster_fat16(struct fat_bs *, devmap_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t);
+extern int fat_set_cluster_fat32(struct fat_bs *, devmap_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t);
 extern int fat_set_cluster(struct fat_bs *, devmap_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t);
 extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
