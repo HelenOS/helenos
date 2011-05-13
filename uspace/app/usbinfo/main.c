@@ -45,6 +45,7 @@
 #include <usb/usbdevice.h>
 #include <usb/pipes.h>
 #include <usb/host.h>
+#include <usb/driver.h>
 #include "usbinfo.h"
 
 static bool try_parse_class_and_address(const char *path,

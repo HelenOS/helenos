@@ -166,6 +166,48 @@ typedef struct {
 	uint8_t poll_interval;
 } __attribute__ ((packed)) usb_standard_endpoint_descriptor_t;
 
+/** Part of standard USB HID descriptor specifying one class descriptor.
+ *
+ * (See HID Specification, p.22)
+ */
+typedef struct {
+	/** Type of class-specific descriptor (Report or Physical). */
+	uint8_t type;
+	/** Length of class-specific descriptor in bytes. */
+	uint16_t length;
+} __attribute__ ((packed)) usb_standard_hid_class_descriptor_info_t;
+
+/** Standard USB HID descriptor.
+ *
+ * (See HID Specification, p.22)
+ *
+ * It is actually only the "header" of the descriptor, it does not contain
+ * the last two mandatory fields (type and length of the first class-specific
+ * descriptor).
+ */
+typedef struct {
+	/** Total size of this descriptor in bytes.
+	 *
+	 * This includes all class-specific descriptor info - type + length
+	 * for each descriptor.
+	 */
+	uint8_t length;
+	/** Descriptor type (USB_DESCTYPE_HID). */
+	uint8_t descriptor_type;
+	/** HID Class Specification release. */
+	uint16_t spec_release;
+	/** Country code of localized hardware. */
+	uint8_t country_code;
+	/** Total number of class-specific (i.e. Report and Physical)
+	 * descriptors.
+	 *
+	 * @note There is always only one Report descriptor.
+	 */
+	uint8_t class_desc_count;
+	/** First mandatory class descriptor (Report) info. */
+	usb_standard_hid_class_descriptor_info_t report_desc_info;
+} __attribute__ ((packed)) usb_standard_hid_descriptor_t;
+
 #endif
 /**
  * @}

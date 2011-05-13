@@ -39,7 +39,6 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/ddfiface.h>
-#include <usb/usbdevice.h>
 
 #include "hc.h"
 #include "hcd_endpoint.h"

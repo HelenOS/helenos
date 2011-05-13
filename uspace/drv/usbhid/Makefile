@@ -27,8 +27,19 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
+
+LIBS = \
+	$(LIBUSBHID_PREFIX)/libusbhid.a \
+	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += \
+	-I. \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBUSBHID_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include
+
 BINARY = usbhid
 
 STOLEN_LAYOUT_SOURCES = \
