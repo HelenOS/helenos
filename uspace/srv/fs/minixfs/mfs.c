@@ -93,7 +93,7 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 		int method = IPC_GET_IMETHOD(call);
 
-		mfsdebug(NAME "method = %d\n", method);
+		/*mfsdebug(NAME "method = %d\n", method);*/
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:
 			return;

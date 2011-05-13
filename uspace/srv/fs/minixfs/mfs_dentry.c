@@ -43,8 +43,6 @@ read_directory_entry(struct mfs_node *mnode,
 	uint32_t block;
 	block_t *b;
 
-	mfsdebug("read_directory(%u)\n", index);
-
 	*d_info = malloc(sizeof(**d_info));
 	if (!*d_info)
 		return ENOMEM;
@@ -179,7 +177,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 		if (r != EOK)
 			return r;
 
-		mfsdebug("read dentry\n");
+		mfsdebug("read dentry %d\n", i);
 		r = read_directory_entry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;

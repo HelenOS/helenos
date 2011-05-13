@@ -476,8 +476,6 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	node->data = mnode;
 	*rfn = node;
 
-	mfsdebug("node_get_core(%d) OK\n", (int) index);
-
 	return EOK;
 
 out_err:
@@ -539,8 +537,6 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 
 	*has_children = false;
 
-	mfsdebug("mfs_has_children()\n");
-
 	if (!S_ISDIR(mnode->ino_i->i_mode))
 		goto out;
 
@@ -568,12 +564,6 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	}
 
 out:
-
-	if (*has_children) {
-		mfsdebug("Has children\n");
-	} else {
-		mfsdebug("Has not children\n");
-	}
 
 	return EOK;
 }
