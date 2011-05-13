@@ -46,6 +46,7 @@ typedef struct link {
 /** Declare and initialize statically allocated list.
  *
  * @param name Name of the new statically allocated list.
+ *
  */
 #define LIST_INITIALIZE(name)  link_t name = { \
 	.prev = &name, \
@@ -57,6 +58,7 @@ typedef struct link {
  * Initialize doubly-linked list link.
  *
  * @param link Pointer to link_t structure to be initialized.
+ *
  */
 static inline void link_initialize(link_t *link)
 {
@@ -69,6 +71,7 @@ static inline void link_initialize(link_t *link)
  * Initialize doubly-linked circular list.
  *
  * @param head Pointer to link_t structure representing head of the list.
+ *
  */
 static inline void list_initialize(link_t *head)
 {
@@ -82,6 +85,7 @@ static inline void list_initialize(link_t *head)
  *
  * @param link Pointer to link_t structure to be added.
  * @param head Pointer to link_t structure representing head of the list.
+ *
  */
 static inline void list_prepend(link_t *link, link_t *head)
 {
@@ -97,6 +101,7 @@ static inline void list_prepend(link_t *link, link_t *head)
  *
  * @param link Pointer to link_t structure to be added.
  * @param head Pointer to link_t structure representing head of the list.
+ *
  */
 static inline void list_append(link_t *link, link_t *head)
 {
@@ -122,7 +127,9 @@ static inline void list_insert_after(link_t *r, link_t *l)
  *
  * Remove item from doubly-linked circular list.
  *
- * @param link Pointer to link_t structure to be removed from the list it is contained in.
+ * @param link Pointer to link_t structure to be removed from the list
+ *             it is contained in.
+ *
  */
 static inline void list_remove(link_t *link)
 {
@@ -136,12 +143,12 @@ static inline void list_remove(link_t *link)
  * Query emptiness of doubly-linked circular list.
  *
  * @param head Pointer to link_t structure representing head of the list.
+ *
  */
 static inline int list_empty(link_t *head)
 {
 	return ((head->next == head) ? 1 : 0);
 }
-
 
 /** Split or concatenate headless doubly-linked circular list
  *
@@ -150,8 +157,11 @@ static inline int list_empty(link_t *head)
  * Note that the algorithm works both directions:
  * concatenates splitted lists and splits concatenated lists.
  *
- * @param part1 Pointer to link_t structure leading the first (half of the headless) list.
- * @param part2 Pointer to link_t structure leading the second (half of the headless) list. 
+ * @param part1 Pointer to link_t structure leading the first
+ *              (half of the headless) list.
+ * @param part2 Pointer to link_t structure leading the second
+ *              (half of the headless) list.
+ *
  */
 static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
@@ -164,13 +174,15 @@ static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 	part2->prev = hlp;
 }
 
-
 /** Split headless doubly-linked circular list
  *
  * Split headless doubly-linked circular list.
  *
- * @param part1 Pointer to link_t structure leading the first half of the headless list.
- * @param part2 Pointer to link_t structure leading the second half of the headless list. 
+ * @param part1 Pointer to link_t structure leading
+ *              the first half of the headless list.
+ * @param part2 Pointer to link_t structure leading
+ *              the second half of the headless list.
+ *
  */
 static inline void headless_list_split(link_t *part1, link_t *part2)
 {
@@ -181,15 +193,19 @@ static inline void headless_list_split(link_t *part1, link_t *part2)
  *
  * Concatenate two headless doubly-linked circular lists.
  *
- * @param part1 Pointer to link_t structure leading the first headless list.
- * @param part2 Pointer to link_t structure leading the second headless list. 
+ * @param part1 Pointer to link_t structure leading
+ *              the first headless list.
+ * @param part2 Pointer to link_t structure leading
+ *              the second headless list.
+ *
  */
 static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
 
-#define list_get_instance(link, type, member)  ((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
+#define list_get_instance(link, type, member) \
+	((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
 
 extern int list_member(const link_t *link, const link_t *head);
 extern void list_concat(link_t *head1, link_t *head2);
