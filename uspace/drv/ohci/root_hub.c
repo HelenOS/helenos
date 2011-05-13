@@ -109,7 +109,7 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
  */
 static const uint32_t hub_clear_feature_valid_mask =
     (1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER) |
-(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
+    (1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
 /**
  * bitmask of hub features that are cleared by writing 1 (and not 0)
@@ -122,7 +122,7 @@ static const uint32_t hub_clear_feature_by_writing_one_mask =
  */
 static const uint32_t hub_set_feature_valid_mask =
     (1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT) |
-(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+    (1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 
 /**
  * bitmask of hub features that are set by writing 1 and cleared by writing 0
@@ -135,23 +135,23 @@ static const uint32_t hub_set_feature_direct_mask =
  */
 static const uint32_t port_set_feature_valid_mask =
     (1 << USB_HUB_FEATURE_PORT_ENABLE) |
-(1 << USB_HUB_FEATURE_PORT_SUSPEND) |
-(1 << USB_HUB_FEATURE_PORT_RESET) |
-(1 << USB_HUB_FEATURE_PORT_POWER);
+    (1 << USB_HUB_FEATURE_PORT_SUSPEND) |
+    (1 << USB_HUB_FEATURE_PORT_RESET) |
+    (1 << USB_HUB_FEATURE_PORT_POWER);
 
 /**
  * bitmask of port features that can be cleared
  */
 static const uint32_t port_clear_feature_valid_mask =
     (1 << USB_HUB_FEATURE_PORT_CONNECTION) |
-(1 << USB_HUB_FEATURE_PORT_SUSPEND) |
-(1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) |
-(1 << USB_HUB_FEATURE_PORT_POWER) |
-(1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
-(1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
-(1 << USB_HUB_FEATURE_C_PORT_SUSPEND) |
-(1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
-(1 << USB_HUB_FEATURE_C_PORT_RESET);
+    (1 << USB_HUB_FEATURE_PORT_SUSPEND) |
+    (1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) |
+    (1 << USB_HUB_FEATURE_PORT_POWER) |
+    (1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
+    (1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
+    (1 << USB_HUB_FEATURE_C_PORT_SUSPEND) |
+    (1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
+    (1 << USB_HUB_FEATURE_C_PORT_RESET);
 //note that USB_HUB_FEATURE_PORT_POWER bit is translated into
 //USB_HUB_FEATURE_PORT_LOW_SPEED
 
@@ -160,10 +160,10 @@ static const uint32_t port_clear_feature_valid_mask =
  */
 static const uint32_t port_status_change_mask =
     (1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
-(1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
-(1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
-(1 << USB_HUB_FEATURE_C_PORT_RESET) |
-(1 << USB_HUB_FEATURE_C_PORT_SUSPEND);
+    (1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
+    (1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
+    (1 << USB_HUB_FEATURE_C_PORT_RESET) |
+    (1 << USB_HUB_FEATURE_C_PORT_SUSPEND);
 
 
 static int create_serialized_hub_descriptor(rh_t *instance);
