@@ -35,6 +35,7 @@
 #include <fibril_synch.h> /* async_usleep */
 #include <errno.h>
 #include <str_error.h>
+#include <time.h>
 
 #include <usb/usb.h>    /* usb_address_t */
 #include <usb/hub.h>    /* usb_hc_new_device_wrapper */
@@ -223,11 +224,8 @@ int uhci_port_reset_enable(int portno, void *arg)
 		port_status &= ~STATUS_IN_RESET;
 		uhci_port_write_status(port, port_status);
 		while (uhci_port_read_status(port) & STATUS_IN_RESET);
-		// TODO: find a better way to waste time (it should be less than
-		// 10ms, if we reschedule it takes too much time (random
-		// interrupts can be solved by multiple attempts).
-		usb_log_debug2("%s: Reset Signal stop.\n", port->id_string);
 	}
+	udelay(10);
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
 
