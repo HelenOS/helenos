@@ -25,14 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_TRANSLATOR_H
-#define DRV_UHCI_TRANSLATOR_H
+#ifndef DRV_UHCI_UTILS_MALLOC32_H
+#define DRV_UHCI_UTILS_MALLOC32_H
 
 #include <assert.h>
 #include <errno.h>

@@ -60,7 +60,8 @@ static int hc_debug_checker(void *arg);
  *
  * @param[in] instance Memory place to initialize.
  * @param[in] regs Address of I/O control registers.
- * @param[in] size Size of I/O control registers.
+ * @param[in] reg_size Size of I/O control registers.
+ * @param[in] interrupts True if hw interrupts should be used.
  * @return Error code.
  * @note Should be called only once on any structure.
  *
