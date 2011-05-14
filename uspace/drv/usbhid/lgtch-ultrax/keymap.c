@@ -48,7 +48,7 @@
  */
 static int usb_hid_keymap_consumer[0x29c] = {
 	[0xf] = KC_F1, /* Just for testing purposes */
-	[0x5] = KC_F1, /* Just for testing purposes */
+	[0x5] = KC_F2, /* Just for testing purposes */
 	[0x8] = KC_F3, /* Just for testing purposes */
 	[0x6] = KC_F4, /* Just for testing purposes */
 	[0x7] = KC_F5, /* Just for testing purposes */
