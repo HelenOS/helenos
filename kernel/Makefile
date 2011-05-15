@@ -93,7 +93,7 @@ DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(E
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
@@ -133,7 +133,7 @@ endif
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
 AFLAGS =
-LFLAGS = -N -T $(LINK) -M
+LFLAGS = -n -T $(LINK) -M
 
 #
 # Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.

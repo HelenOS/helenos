@@ -59,6 +59,7 @@
 #include <bitops.h>
 #include <macros.h>
 #include <config.h>
+#include <str.h>
 
 zones_t zones;
 
@@ -1394,20 +1395,28 @@ void zone_print_one(size_t num)
 	
 	bool available = zone_flags_available(flags);
 	
+	uint64_t size;
+	const char *size_suffix;
+	bin_order_suffix(FRAMES2SIZE(count), &size, &size_suffix, false);
+	
 	printf("Zone number:       %zu\n", znum);
 	printf("Zone base address: %p\n", (void *) base);
-	printf("Zone size:         %zu frames (%zu KiB)\n", count,
-	    SIZE2KB(FRAMES2SIZE(count)));
+	printf("Zone size:         %zu frames (%" PRIu64 " %s)\n", count,
+	    size, size_suffix);
 	printf("Zone flags:        %c%c%c\n",
 	    available ? 'A' : ' ',
 	    (flags & ZONE_RESERVED) ? 'R' : ' ',
 	    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 	
 	if (available) {
-		printf("Allocated space:   %zu frames (%zu KiB)\n",
-		    busy_count, SIZE2KB(FRAMES2SIZE(busy_count)));
-		printf("Available space:   %zu frames (%zu KiB)\n",
-		    free_count, SIZE2KB(FRAMES2SIZE(free_count)));
+		bin_order_suffix(FRAMES2SIZE(busy_count), &size, &size_suffix,
+		    false);
+		printf("Allocated space:   %zu frames (%" PRIu64 " %s)\n",
+		    busy_count, size, size_suffix);
+		bin_order_suffix(FRAMES2SIZE(free_count), &size, &size_suffix,
+		    false);
+		printf("Available space:   %zu frames (%" PRIu64 " %s)\n",
+		    free_count, size, size_suffix);
 	}
 }
 
