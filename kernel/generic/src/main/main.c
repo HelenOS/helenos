@@ -70,6 +70,7 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/slab.h>
+#include <mm/reserve.h>
 #include <synch/waitq.h>
 #include <synch/futex.h>
 #include <arch/arch.h>
@@ -216,6 +217,7 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	ddi_init();
 	arch_post_mm_init();
+	reserve_init();
 	arch_pre_smp_init();
 	smp_init();
 	
