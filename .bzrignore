@@ -25,6 +25,7 @@ kernel/generic/include/genarch
 kernel/generic/src/debug/real_map.bin
 uspace/app/bdsh/bdsh
 uspace/app/blkdump/blkdump
+uspace/app/bnchmark/bnchmark
 uspace/app/edit/edit
 uspace/app/ext2info/ext2info
 uspace/app/getterm/getterm
@@ -52,6 +53,7 @@ uspace/app/trace/trace
 uspace/app/websrv/websrv
 uspace/dist/app/bdsh
 uspace/dist/app/blkdump
+uspace/dist/app/bnchmark
 uspace/dist/app/edit
 uspace/dist/app/ext2info
 uspace/dist/app/getterm

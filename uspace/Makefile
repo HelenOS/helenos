@@ -35,6 +35,7 @@
 DIRS = \
 	app/bdsh \
 	app/blkdump \
+	app/bnchmark \
 	app/edit \
 	app/ext2info \
 	app/getterm \
