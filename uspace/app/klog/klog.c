@@ -43,38 +43,143 @@
 #include <str_error.h>
 #include <io/klog.h>
 #include <sysinfo.h>
+#include <malloc.h>
+#include <fibril_synch.h>
+#include <adt/list.h>
+#include <adt/prodcons.h>
 
 #define NAME       "klog"
 #define LOG_FNAME  "/log/klog"
+
+/* Producer/consumer buffers */
+typedef struct {
+	link_t link;
+	size_t length;
+	wchar_t *data;
+} item_t;
+
+static prodcons_t pc;
 
 /* Pointer to klog area */
 static wchar_t *klog;
 static size_t klog_length;
 
-static FILE *log;
+/* Notification mutex */
+static FIBRIL_MUTEX_INITIALIZE(mtx);
 
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+/** Klog producer
+ *
+ * Copies the contents of a character buffer to local
+ * producer/consumer queue.
+ *
+ * @param length Number of characters to copy.
+ * @param data   Pointer to the kernel klog buffer.
+ *
+ */
+static void producer(size_t length, wchar_t *data)
 {
+	item_t *item = (item_t *) malloc(sizeof(item_t));
+	if (item == NULL)
+		return;
+	
+	size_t sz = sizeof(wchar_t) * length;
+	wchar_t *buf = (wchar_t *) malloc(sz);
+	if (data == NULL) {
+		free(item);
+		return;
+	}
+	
+	memcpy(buf, data, sz);
+	
+	link_initialize(&item->link);
+	item->length = length;
+	item->data = buf;
+	prodcons_produce(&pc, &item->link);
+}
+
+/** Klog consumer
+ *
+ * Waits in an infinite loop for the character data created by
+ * the producer and outputs them to stdout and optionally into
+ * a file.
+ *
+ * @param data Unused.
+ *
+ * @return Always EOK (unreachable).
+ *
+ */
+static int consumer(void *data)
+{
+	FILE *log = fopen(LOG_FNAME, "a");
+	if (log == NULL)
+		printf("%s: Unable to create log file %s (%s)\n", NAME, LOG_FNAME,
+		    str_error(errno));
+	
+	while (true) {
+		link_t *link = prodcons_consume(&pc);
+		item_t *item = list_get_instance(link, item_t, link);
+		
+		for (size_t i = 0; i < item->length; i++)
+			putchar(item->data[i]);
+		
+		if (log != NULL) {
+			for (size_t i = 0; i < item->length; i++)
+				fputc(item->data[i], log);
+			
+			fflush(log);
+			fsync(fileno(log));
+		}
+		
+		free(item->data);
+		free(item);
+	}
+	
+	fclose(log);
+	return EOK;
+}
+
+/** Kernel notification handler
+ *
+ * Receives kernel klog notifications.
+ *
+ * @param callid IPC call ID.
+ * @param call   IPC call structure.
+ *
+ */
+static void notification_received(ipc_callid_t callid, ipc_call_t *call)
+{
+	/*
+	 * Make sure we process only a single notification
+	 * at any time to limit the chance of the consumer
+	 * starving.
+	 *
+	 * Note: Usually the automatic masking of the klog
+	 * notifications on the kernel side does the trick
+	 * of limiting the chance of accidentally copying
+	 * the same data multiple times. However, due to
+	 * the non-blocking architecture of klog notifications,
+	 * this possibility cannot be generally avoided.
+	 */
+	
+	fibril_mutex_lock(&mtx);
+	
 	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
 	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
 	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
-	size_t i;
 	
-	for (i = klog_len - klog_stored; i < klog_len; i++) {
-		wchar_t ch = klog[(klog_start + i) % klog_length];
-		
-		putchar(ch);
-		
-		if (log != NULL)
-			fputc(ch, log);
-	}
+	size_t offset = (klog_start + klog_len - klog_stored) % klog_length;
 	
-	if (log != NULL) {
-		fflush(log);
-		fsync(fileno(log));
-	}
+	/* Copy data from the ring buffer */
+	if (offset + klog_stored >= klog_length) {
+		size_t split = klog_length - offset;
+		
+		producer(split, klog + offset);
+		producer(klog_stored - split, klog);
+	} else
+		producer(klog_stored, klog + offset);
 	
 	event_unmask(EVENT_KLOG);
+	fibril_mutex_unlock(&mtx);
 }
 
 int main(int argc, char *argv[])
@@ -112,23 +217,27 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 	
-	log = fopen(LOG_FNAME, "a");
-	if (log == NULL)
-		printf("%s: Unable to create log file %s (%s)\n", NAME, LOG_FNAME,
-		    str_error(errno));
-	
-	async_set_interrupt_received(interrupt_received);
+	prodcons_initialize(&pc);
+	async_set_interrupt_received(notification_received);
 	rc = event_subscribe(EVENT_KLOG, 0);
 	if (rc != EOK) {
-		fclose(log);
 		fprintf(stderr, "%s: Unable to register klog notifications\n",
 		    NAME);
 		return rc;
 	}
 	
-	event_unmask(EVENT_KLOG);
+	fid_t fid = fibril_create(consumer, NULL);
+	if (!fid) {
+		fprintf(stderr, "%s: Unable to create consumer fibril\n",
+		    NAME);
+		return ENOMEM;
+	}
 	
+	fibril_add_ready(fid);
+	event_unmask(EVENT_KLOG);
 	klog_update();
+	
+	task_retval(0);
 	async_manager();
 	
 	return 0;
