@@ -163,6 +163,7 @@ extern void frame_free_generic(uintptr_t, frame_flags_t);
 extern void frame_free(uintptr_t);
 extern void frame_free_noreserve(uintptr_t);
 extern void frame_reference_add(pfn_t);
+extern size_t frame_total_free_get(void);
 
 extern size_t find_zone(pfn_t, size_t, size_t);
 extern size_t zone_create(pfn_t, size_t, pfn_t, zone_flags_t);
