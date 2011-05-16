@@ -52,7 +52,7 @@
 #include <errno.h>
 #include <str.h>
 
-#define KLOG_PAGES    4
+#define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
 #define KLOG_LATENCY  8
 
