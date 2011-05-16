@@ -52,10 +52,13 @@ typedef struct {
 	size_t counter;
 	/** Masked flag. */
 	bool masked;
+	/** Unmask callback. */
+	void (*unmask_cb)(void);
 } event_t;
 
 extern void event_init(void);
 extern void event_cleanup_answerbox(answerbox_t *);
+extern void event_set_unmask_callback(event_type_t, void (*)(void));
 
 #define event_notify_0(e, m) \
 	event_notify((e), (m), 0, 0, 0, 0, 0)

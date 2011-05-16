@@ -164,6 +164,8 @@ void klog_init(void)
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
+
+	event_set_unmask_callback(EVENT_KLOG, klog_update);
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
