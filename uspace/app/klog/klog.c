@@ -73,6 +73,8 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 		fflush(log);
 		fsync(fileno(log));
 	}
+	
+	event_unmask(EVENT_KLOG);
 }
 
 int main(int argc, char *argv[])
@@ -110,19 +112,22 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 	
-	rc = event_subscribe(EVENT_KLOG, 0);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to register klog notifications\n",
-		    NAME);
-		return rc;
-	}
-	
 	log = fopen(LOG_FNAME, "a");
 	if (log == NULL)
 		printf("%s: Unable to create log file %s (%s)\n", NAME, LOG_FNAME,
 		    str_error(errno));
 	
 	async_set_interrupt_received(interrupt_received);
+	rc = event_subscribe(EVENT_KLOG, 0);
+	if (rc != EOK) {
+		fclose(log);
+		fprintf(stderr, "%s: Unable to register klog notifications\n",
+		    NAME);
+		return rc;
+	}
+	
+	event_unmask(EVENT_KLOG);
+	
 	klog_update();
 	async_manager();
 	
