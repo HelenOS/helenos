@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <usb/debug.h>
+#include <arch/barrier.h>
 
 #include "endpoint_list.h"
 
@@ -106,11 +107,16 @@ void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 		    instance->endpoint_list.prev, hcd_endpoint_t, link);
 		last_ed = last->ed;
 	}
-	/* keep link */
+	/* Keep link */
 	hcd_ep->ed->next = last_ed->next;
-	ed_append_ed(last_ed, hcd_ep->ed);
+	/* Make sure ED is written to the memory */
+	write_barrier();
 
-	asm volatile ("": : :"memory");
+	/* Add ed to the hw list */
+	ed_append_ed(last_ed, hcd_ep->ed);
+	/* Make sure ED is updated */
+	write_barrier();
+
 
 	/* Add to the driver list */
 	list_append(&hcd_ep->link, &instance->endpoint_list);
@@ -211,8 +217,9 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	}
 	assert((prev_ed->next & ED_NEXT_PTR_MASK) == addr_to_phys(hcd_ep->ed));
 	prev_ed->next = hcd_ep->ed->next;
+	/* Make sure ED is updated */
+	write_barrier();
 
-	asm volatile ("": : :"memory");
 	usb_log_debug("HCD EP(%p) removed (%s) from %s, next %x.\n",
 	    hcd_ep, qpos, instance->name, hcd_ep->ed->next);
 

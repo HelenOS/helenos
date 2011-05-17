@@ -73,7 +73,8 @@ static inline uintptr_t addr_to_phys(void *addr)
 static inline void * malloc32(size_t size) {
 	if (size <= SLAB_ELEMENT_SIZE)
 		return slab_malloc_g();
-	assert(false);
+	usb_log_warning("Requested %zu bytes, current allocator can't handle "
+	    "that amount, pray that the standard malloc will suffice.");
 	return memalign(UHCI_STRCUTURES_ALIGNMENT, size);
 }
 /*----------------------------------------------------------------------------*/
