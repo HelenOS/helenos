@@ -30,39 +30,35 @@
  * @{
  */
 /** @file
- * HID class-specific requests.
+ * USB HID report parser initialization from descriptors.
  */
 
-#ifndef USB_KBD_HIDREQ_H_
-#define USB_KBD_HIDREQ_H_
+#ifndef LIBUSB_HIDREPORT_H_
+#define LIBUSB_HIDREPORT_H_
 
-#include <stdint.h>
+#include <usb/dev/driver.h>
+#include <usb/hid/hidparser.h>
 
-#include <usb/classes/hid.h>
-#include <usb/dev/pipes.h>
+/**
+ * Retrieves the Report descriptor from the USB device and initializes the
+ * report parser.
+ *
+ * \param dev USB device representing a HID device.
+ * \param parser HID Report parser.
+ *
+ * \retval EOK if successful.
+ * \retval EINVAL if one of the parameters is not given (is NULL).
+ * \retval ENOENT if there are some descriptors missing.
+ * \retval ENOMEM if an error with allocation occured.
+ * \retval EINVAL if the Report descriptor's size does not match the size 
+ *         from the interface descriptor.
+ * \return Other value inherited from function usb_pipe_start_session(),
+ *         usb_pipe_end_session() or usb_request_get_descriptor().
+ */
+int usb_hid_process_report_descriptor(usb_device_t *dev, 
+    usb_hid_report_t *report);
 
-/*----------------------------------------------------------------------------*/
-
-int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
-
-int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_protocol_t protocol);
-
-int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration);
-
-int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
-    size_t *actual_size);
-
-int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_protocol_t *protocol);
-
-int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
-
-/*----------------------------------------------------------------------------*/
-
-#endif /* USB_KBD_HIDREQ_H_ */
+#endif /* LIBUSB_HIDREPORT_H_ */
 
 /**
  * @}

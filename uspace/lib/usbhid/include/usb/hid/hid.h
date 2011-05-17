@@ -36,7 +36,7 @@
 #define LIBUSB_HID_H_
 
 #include <usb/usb.h>
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hidparser.h>
 #include <usb/descriptor.h>
 
 /** USB/HID device requests. */

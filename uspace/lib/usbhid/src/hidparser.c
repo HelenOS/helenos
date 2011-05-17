@@ -32,7 +32,7 @@
 /** @file
  * HID report descriptor and report data parser implementation.
  */
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
 #include <malloc.h>

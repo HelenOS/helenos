@@ -44,7 +44,7 @@
 #include <usb/descriptor.h>
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
-#include <usb/classes/hid.h>
+#include <usb/hid/hid.h>
 #include <usbvirt/device.h>
 
 #include "virthid.h"

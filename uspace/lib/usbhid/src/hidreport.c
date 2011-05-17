@@ -39,15 +39,15 @@
 #include <str_error.h>
 
 #include <usb/debug.h>
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hidparser.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/driver.h>
 #include <usb/dev/pipes.h>
-#include <usb/classes/hid.h>
+#include <usb/hid/hid.h>
 #include <usb/descriptor.h>
 #include <usb/dev/request.h>
 
-#include <usb/classes/hidreport.h>
+#include <usb/hid/hidreport.h>
 
 static int usb_hid_get_report_descriptor(usb_device_t *dev, 
     uint8_t **report_desc, size_t *size)

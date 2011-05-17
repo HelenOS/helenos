@@ -34,7 +34,7 @@
  */
 #include <dev_iface.h>
 #include <usbhid_iface.h>
-#include <usb/classes/hid/iface.h>
+#include <usb/hid/iface.h>
 #include <errno.h>
 #include <str_error.h>
 #include <async.h>
