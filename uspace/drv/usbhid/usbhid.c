@@ -233,7 +233,9 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 		return EOK;
 	}
 	
-	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc(count * 
+	// add one generic HID subdriver per device
+	
+	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc((count + 1) * 
 	    sizeof(usb_hid_subdriver_t));
 	if (hid_dev->subdrivers == NULL) {
 		return ENOMEM;
@@ -246,7 +248,12 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 		hid_dev->subdrivers[i].poll_end = subdrivers[i]->poll_end;
 	}
 	
-	hid_dev->subdriver_count = count;
+	hid_dev->subdrivers[count].init = usb_generic_hid_init;
+	hid_dev->subdrivers[count].poll = usb_generic_hid_polling_callback;
+	hid_dev->subdrivers[count].deinit = NULL;
+	hid_dev->subdrivers[count].poll_end = NULL;
+	
+	hid_dev->subdriver_count = count + 1;
 	
 	return EOK;
 }
