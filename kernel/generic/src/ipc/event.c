@@ -58,7 +58,7 @@ void event_init(void)
 		events[i].counter = 0;
 		events[i].imethod = 0;
 		events[i].masked = false;
-		events[i].unmask_cb = NULL;
+		events[i].unmask_callback = NULL;
 	}
 }
 
@@ -85,16 +85,17 @@ void event_cleanup_answerbox(answerbox_t *answerbox)
 
 /** Define a callback function for the event unmask event.
  *
- * @param evno Event type.
- * @param cb   Callback function to be called when the event is unmasked.
+ * @param evno     Event type.
+ * @param callback Callback function to be called when
+ *                 the event is unmasked.
  *
  */
-void event_set_unmask_callback(event_type_t evno, void (*cb)(void))
+void event_set_unmask_callback(event_type_t evno, event_callback_t callback)
 {
 	ASSERT(evno < EVENT_END);
 	
 	spinlock_lock(&events[evno].lock);
-	events[evno].unmask_cb = cb;
+	events[evno].unmask_callback = callback;
 	spinlock_unlock(&events[evno].lock);
 }
 
@@ -205,19 +206,19 @@ static int event_subscribe(event_type_t evno, sysarg_t imethod,
  */
 static void event_unmask(event_type_t evno)
 {
-	void (*cb)(void);
 	ASSERT(evno < EVENT_END);
 	
 	spinlock_lock(&events[evno].lock);
 	events[evno].masked = false;
-	cb = events[evno].unmask_cb;
+	event_callback_t callback = events[evno].unmask_callback;
 	spinlock_unlock(&events[evno].lock);
 	
 	/*
-	 * Check if there is an unmask callback function defined for this event.
+	 * Check if there is an unmask callback
+	 * function defined for this event.
 	 */
-	if (cb)
-	    cb();
+	if (callback != NULL)
+		callback();
 }
 
 /** Event notification syscall wrapper

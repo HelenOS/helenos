@@ -54,7 +54,6 @@
 
 #define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
-#define KLOG_LATENCY  8
 
 /** Kernel log cyclic buffer */
 static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
@@ -164,7 +163,7 @@ void klog_init(void)
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
-
+	
 	event_set_unmask_callback(EVENT_KLOG, klog_update);
 	
 	spinlock_lock(&klog_lock);
@@ -318,16 +317,10 @@ void putchar(const wchar_t ch)
 	if (klog_uspace < klog_len)
 		klog_uspace++;
 	
-	/* Check notify uspace to update */
-	bool update;
-	if ((klog_uspace > KLOG_LATENCY) || (ch == '\n'))
-		update = true;
-	else
-		update = false;
-	
 	spinlock_unlock(&klog_lock);
 	
-	if (update)
+	/* Force notification on newline */
+	if (ch == '\n')
 		klog_update();
 }
 
