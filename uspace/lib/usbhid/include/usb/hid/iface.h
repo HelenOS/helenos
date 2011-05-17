@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * Client functions for accessing USB HID interface.
  */
-#ifndef LIBUSB_CLASSES_HID_IFACE_H_
-#define LIBUSB_CLASSES_HID_IFACE_H_
+#ifndef LIBUSBHID_CLASSES_HID_IFACE_H_
+#define LIBUSBHID_CLASSES_HID_IFACE_H_
 
 #include <sys/types.h>
 

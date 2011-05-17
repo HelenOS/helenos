@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * USB HID report parser initialization from descriptors.
  */
 
-#ifndef LIBUSB_HIDREPORT_H_
-#define LIBUSB_HIDREPORT_H_
+#ifndef LIBUSBHID_HIDREPORT_H_
+#define LIBUSBHID_HIDREPORT_H_
 
 #include <usb/dev/driver.h>
 #include <usb/hid/hidparser.h>
