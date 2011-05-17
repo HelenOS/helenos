@@ -38,6 +38,7 @@
 #include <ipc/common.h>
 #include <usb/usb.h>
 #include <bool.h>
+#include <usbvirt/device.h>
 
 /** IPC methods communication between host controller and virtual device. */
 typedef enum {
