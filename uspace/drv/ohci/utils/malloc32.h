@@ -25,22 +25,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
-#ifndef DRV_UHCI_TRANSLATOR_H
-#define DRV_UHCI_TRANSLATOR_H
+#ifndef DRV_OHCI_UTILS_MALLOC32_H
+#define DRV_OHCI_UTILS_MALLOC32_H
 
 #include <assert.h>
 #include <malloc.h>
 #include <errno.h>
 #include <mem.h>
 #include <as.h>
-
-#define UHCI_REQUIRED_PAGE_SIZE 4096
 
 /** Get physical address translation
  *
@@ -60,7 +58,7 @@ static inline uintptr_t addr_to_phys(void *addr)
 /** Physical mallocator simulator
  *
  * @param[in] size Size of the required memory space
- * @return Address of the alligned and big enough memory place, NULL on failure.
+ * @return Address of the aligned and big enough memory place, NULL on failure.
  */
 static inline void * malloc32(size_t size)
 	{ return memalign(size, size); }
@@ -71,25 +69,6 @@ static inline void * malloc32(size_t size)
  */
 static inline void free32(void *addr)
 	{ if (addr) free(addr); }
-/*----------------------------------------------------------------------------*/
-/** Create 4KB page mapping
- *
- * @return Address of the mapped page, NULL on failure.
- */
-static inline void * get_page(void)
-{
-	void * free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
-	assert(free_address);
-	if (free_address == 0)
-		return NULL;
-	void* ret =
-	  as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
-		  AS_AREA_READ | AS_AREA_WRITE);
-	if (ret != free_address)
-		return NULL;
-	return ret;
-}
-
 #endif
 /**
  * @}

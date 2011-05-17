@@ -54,6 +54,7 @@
 #include <ipc/ns.h>
 #include <macros.h>
 #include <loader/pcb.h>
+#include <entry_point.h>
 #include <errno.h>
 #include <async.h>
 #include <str.h>
@@ -61,6 +62,14 @@
 
 #include <elf.h>
 #include <elf_load.h>
+
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#include <rtld/dynamic.h>
+#include <rtld/module.h>
+
+static int ldr_load_dyn_linked(elf_info_t *p_info);
+#endif
 
 #define DPRINTF(...)
 
@@ -88,12 +97,15 @@ static fdi_node_t **filv = NULL;
 static fdi_node_t *fil_buf = NULL;
 
 static elf_info_t prog_info;
-static elf_info_t interp_info;
-
-static bool is_dyn_linked;
 
 /** Used to limit number of connections to one. */
 static bool connected = false;
+
+#ifdef CONFIG_RTLD
+/** State structure of the dynamic linker. */
+runtime_env_t dload_re;
+static module_t prog_mod;
+#endif
 
 static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -282,7 +294,7 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
 	
-	rc = elf_load_file(pathname, 0, &prog_info);
+	rc = elf_load_file(pathname, 0, 0, &prog_info);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable '%s'.\n", pathname);
 		async_answer_0(rid, EINVAL);
@@ -301,25 +313,72 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
-		is_dyn_linked = false;
 		async_answer_0(rid, EOK);
 		return 0;
 	}
 	
-	rc = elf_load_file(prog_info.interp, 0, &interp_info);
-	if (rc != EE_OK) {
-		DPRINTF("Failed to load interpreter '%s.'\n",
-		    prog_info.interp);
-		async_answer_0(rid, EINVAL);
-		return 1;
-	}
-	
-	is_dyn_linked = true;
-	async_answer_0(rid, EOK);
-	
+	DPRINTF("Binary is dynamically linked.\n");
+#ifdef CONFIG_RTLD
+	DPRINTF(" - pcb address: %p\n", &pcb);
+	DPRINTF( "- prog dynamic: %p\n", prog_info.dynamic);
+
+	rc = ldr_load_dyn_linked(&prog_info);
+#else
+	rc = ENOTSUP;
+#endif
+	async_answer_0(rid, rc);
 	return 0;
 }
 
+#ifdef CONFIG_RTLD
+
+static int ldr_load_dyn_linked(elf_info_t *p_info)
+{
+	runtime_env = &dload_re;
+
+	DPRINTF("Load dynamically linked program.\n");
+
+	/*
+	 * First we need to process dynamic sections of the executable
+	 * program and insert it into the module graph.
+	 */
+
+	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
+	dynamic_parse(p_info->dynamic, 0, &prog_mod.dyn);
+	prog_mod.bias = 0;
+	prog_mod.dyn.soname = "[program]";
+
+	/* Initialize list of loaded modules */
+	list_initialize(&runtime_env->modules_head);
+	list_append(&prog_mod.modules_link, &runtime_env->modules_head);
+
+	/* Pointer to program module. Used as root of the module graph. */
+	runtime_env->program = &prog_mod;
+
+	/* Work around non-existent memory space allocation. */
+	runtime_env->next_bias = 0x1000000;
+
+	/*
+	 * Now we can continue with loading all other modules.
+	 */
+
+	DPRINTF("Load all program dependencies\n");
+	module_load_deps(&prog_mod);
+
+	/*
+	 * Now relocate/link all modules together.
+	 */
+
+	/* Process relocations in all modules */
+	DPRINTF("Relocate all modules\n");
+	modules_process_relocs(&prog_mod);
+
+	/* Pass runtime evironment pointer through PCB. */
+	pcb.rtld_runtime = (void *) runtime_env;
+
+	return 0;
+}
+#endif
 
 /** Run the previously loaded program.
  *
@@ -331,23 +390,18 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 {
 	const char *cp;
 	
+	DPRINTF("Set task name\n");
+
 	/* Set the task name. */
 	cp = str_rchr(pathname, '/');
 	cp = (cp == NULL) ? pathname : (cp + 1);
 	task_set_name(cp);
 	
-	if (is_dyn_linked == true) {
-		/* Dynamically linked program */
-		DPRINTF("Run ELF interpreter.\n");
-		DPRINTF("Entry point: %p\n", interp_info.entry);
-		
-		async_answer_0(rid, EOK);
-		elf_run(&interp_info, &pcb);
-	} else {
-		/* Statically linked program */
-		async_answer_0(rid, EOK);
-		elf_run(&prog_info, &pcb);
-	}
+	/* Run program */
+	DPRINTF("Reply OK\n");
+	async_answer_0(rid, EOK);
+	DPRINTF("Jump to entry point at %p\n", pcb.entry);
+	entry_point_jmp(prog_info.entry, &pcb);
 	
 	/* Not reached */
 }

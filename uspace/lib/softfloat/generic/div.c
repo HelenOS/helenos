@@ -26,19 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
  */
 
-#include<sftypes.h>
-#include<add.h>
-#include<div.h>
-#include<comparison.h>
-#include<mul.h>
-#include<common.h>
-
+#include <sftypes.h>
+#include <add.h>
+#include <div.h>
+#include <comparison.h>
+#include <mul.h>
+#include <common.h>
 
 float32 divFloat32(float32 a, float32 b) 
 {

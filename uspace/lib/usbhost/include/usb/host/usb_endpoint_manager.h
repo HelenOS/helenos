@@ -39,6 +39,7 @@
 #ifndef LIBUSB_HOST_USB_ENDPOINT_MANAGER_H
 #define LIBUSB_HOST_YSB_ENDPOINT_MANAGER_H
 
+#include <stdlib.h>
 #include <adt/hash_table.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>

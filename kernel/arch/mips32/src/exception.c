@@ -73,10 +73,9 @@ static const char *exctable[] = {
 
 void istate_decode(istate_t *istate)
 {
-	printf("epc=%p\tsta=%#010" PRIx32 "\t"
+	printf("epc=%#010" PRIx32 "\tsta=%#010" PRIx32 "\t"
 	    "lo =%#010" PRIx32 "\thi =%#010" PRIx32 "\n",
-	    (void *) istate->epc, istate->status,
-	    istate->lo, istate->hi);
+	    istate->epc, istate->status, istate->lo, istate->hi);
 	
 	printf("a0 =%#010" PRIx32 "\ta1 =%#010" PRIx32 "\t"
 	    "a2 =%#010" PRIx32 "\ta3 =%#010" PRIx32 "\n",
@@ -106,9 +105,9 @@ void istate_decode(istate_t *istate)
 	    "kt0=%#010" PRIx32 "\tkt1=%#010" PRIx32 "\n",
 	    istate->s8, istate->at, istate->kt0, istate->kt1);
 	
-	printf("sp =%p\tra =%p\tgp =%p\n",
-	    (void *) istate->sp, (void *) istate->ra,
-	    (void *) istate->gp);
+	printf("sp =%#010" PRIx32 "\tra =%#010" PRIx32 "\t"
+	    "gp =%#010" PRIx32 "\n",
+	    istate->sp, istate->ra, istate->gp);
 }
 
 static void unhandled_exception(unsigned int n, istate_t *istate)

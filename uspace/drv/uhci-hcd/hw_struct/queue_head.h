@@ -25,14 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drv usbuhcihc
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_QH_H
-#define DRV_UHCI_QH_H
+#ifndef DRV_UHCI_HW_STRUCT_QH_H
+#define DRV_UHCI_HW_STRUCT_QH_H
 #include <assert.h>
 
 #include "link_pointer.h"
@@ -64,7 +64,7 @@ static inline void qh_init(qh_t *instance)
 /** Set queue head next pointer
  *
  * @param[in] instance qh_t structure to use.
- * @param[in] pa Physical address of the next queue head.
+ * @param[in] next Address of the next queue.
  *
  * Adds proper flag. If the pointer is NULL, sets next to terminal NULL.
  */
@@ -80,8 +80,8 @@ static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
 /*----------------------------------------------------------------------------*/
 /** Set queue head element pointer
  *
- * @param[in] instance qh_t structure to initialize.
- * @param[in] pa Physical address of the TD structure.
+ * @param[in] instance qh_t structure to use.
+ * @param[in] td Transfer descriptor to set as the first element.
  *
  * Adds proper flag. If the pointer is NULL, sets element to terminal NULL.
  */

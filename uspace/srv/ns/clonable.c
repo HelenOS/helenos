@@ -77,7 +77,7 @@ void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
 {
 	if (list_empty(&cs_req)) {
 		/* There was no pending connection request. */
-		printf(NAME ": Unexpected clonable server.\n");
+		printf("%s: Unexpected clonable server.\n", NAME);
 		ipc_answer_0(callid, EBUSY);
 		return;
 	}

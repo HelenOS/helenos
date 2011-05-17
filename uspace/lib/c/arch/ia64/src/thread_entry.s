@@ -36,7 +36,7 @@
 __thread_entry:
 	alloc loc0 = ar.pfs, 0, 1, 1, 0
 
-	movl gp = _gp
+	movl gp = __gp
 	
 	#
 	# r8 contains address of uarg structure.

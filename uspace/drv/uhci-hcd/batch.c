@@ -69,7 +69,7 @@ static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
  * @param[in] fun DDF function to pass to callback.
  * @param[in] ep Communication target
  * @param[in] buffer Data source/destination.
- * @param[in] size Size of the buffer.
+ * @param[in] buffer_size Size of the buffer.
  * @param[in] setup_buffer Setup data source (if not NULL)
  * @param[in] setup_size Size of setup_buffer (should be always 8)
  * @param[in] func_in function to call on inbound transfer completion
