@@ -71,7 +71,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
  *
  * @param[in] instance Memory place to use.
  *
- * Frees memory for internal qh_t structure.
+ * Frees memory of the internal qh_t structure.
  */
 void transfer_list_fini(transfer_list_t *instance)
 {
