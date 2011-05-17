@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +30,17 @@
  * @{
  */
 /** @file
- * Keyboard layout.
+ * USB multimedia key to keycode mapping.
  */
 
-#ifndef USB_KBD_LAYOUT_H_
-#define USB_KBD_LAYOUT_H_
+#ifndef USB_HID_MULTIMEDIA_KEYMAP_H_
+#define USB_HID_MULTIMEDIA_KEYMAP_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+unsigned int usb_multimedia_map_usage(int usage);
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
+const char *usb_multimedia_usage_to_str(int usage);
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
-
-#endif
+#endif /* USB_HID_MULTIMEDIA_KEYMAP_H_ */
 
 /**
  * @}

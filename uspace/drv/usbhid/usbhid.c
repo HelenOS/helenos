@@ -202,10 +202,19 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
-	size_t size = usb_hid_report_input_length(hid_dev->report, usage_path, 
-	    mapping->compare);
-	usb_log_debug("Size of the input report: %zuB\n", size);
+//	size_t size = usb_hid_report_size(hid_dev->report, 0, 
+//	    USB_HID_REPORT_TYPE_INPUT);
+	size_t size = 0;
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling (hid_dev->report,
+		NULL, usage_path, mapping->compare, USB_HID_REPORT_TYPE_INPUT);
+	while(field != NULL) {
+		size++;
+		field = usb_hid_report_get_sibling (hid_dev->report,
+					field, usage_path, mapping->compare, 
+		            USB_HID_REPORT_TYPE_INPUT);
+	}
 	
+	usb_log_debug("Size of the input report: %zuB\n", size);
 	usb_hid_report_path_free(usage_path);
 	
 	return (size > 0);
@@ -456,7 +465,8 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		for (i = 0; i < hid_dev->subdriver_count; ++i) {
 			if (hid_dev->subdrivers[i].init != NULL) {
 				usb_log_debug("Initializing subdriver %d.\n",i);
-				rc = hid_dev->subdrivers[i].init(hid_dev);
+				rc = hid_dev->subdrivers[i].init(hid_dev,
+				    &hid_dev->subdrivers[i].data);
 				if (rc != EOK) {
 					usb_log_warning("Failed to initialize"
 					    " HID subdriver structure.\n");
@@ -521,8 +531,8 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	// continue if at least one of the subdrivers want to continue
 	for (i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].poll != NULL
-		    && hid_dev->subdrivers[i].poll(hid_dev, buffer, 
-		    buffer_size)) {
+		    && hid_dev->subdrivers[i].poll(hid_dev, 
+		        hid_dev->subdrivers[i].data, buffer, buffer_size)) {
 			cont = true;
 		}
 	}
@@ -545,7 +555,8 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 	
 	for (i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].poll_end != NULL) {
-			hid_dev->subdrivers[i].poll_end(hid_dev, reason);
+			hid_dev->subdrivers[i].poll_end(hid_dev,
+			    hid_dev->subdrivers[i].data, reason);
 		}
 	}
 	
@@ -626,7 +637,8 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 	
 	for (i = 0; i < (*hid_dev)->subdriver_count; ++i) {
 		if ((*hid_dev)->subdrivers[i].deinit != NULL) {
-			(*hid_dev)->subdrivers[i].deinit(*hid_dev);
+			(*hid_dev)->subdrivers[i].deinit(*hid_dev,
+			    (*hid_dev)->subdrivers[i].data);
 		}
 	}
 	
