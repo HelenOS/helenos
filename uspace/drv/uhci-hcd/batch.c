@@ -44,13 +44,29 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
+/** UHCI specific data required for USB transfer */
 typedef struct uhci_transfer_batch {
+	/** Queue head
+	 * This QH is used to maintain UHCI schedule structure and the element
+	 * pointer points to the first TD of this batch.
+	 */
 	qh_t *qh;
+	/** List of TDs needed for the transfer */
 	td_t *tds;
-	void *device_buffer;
+	/** Number of TDs used by the transfer */
 	size_t td_count;
+	/** Data buffer, must be accessible by the UHCI hw */
+	void *device_buffer;
 } uhci_transfer_batch_t;
 /*----------------------------------------------------------------------------*/
+static void batch_control(usb_transfer_batch_t *instance,
+    usb_packet_id data_stage, usb_packet_id status_stage);
+static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
+/*----------------------------------------------------------------------------*/
+/** Safely destructs uhci_transfer_batch_t structure
+ *
+ * @param[in] uhci_batch Instance to destroy.
+ */
 static void uhci_transfer_batch_dispose(void *uhci_batch)
 {
 	uhci_transfer_batch_t *instance = uhci_batch;
@@ -59,11 +75,6 @@ static void uhci_transfer_batch_dispose(void *uhci_batch)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
-
-static void batch_control(usb_transfer_batch_t *instance,
-    usb_packet_id data_stage, usb_packet_id status_stage);
-static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
-
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] fun DDF function to pass to callback.
@@ -172,8 +183,8 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 
 		instance->error = td_status(&data->tds[i]);
 		if (instance->error != EOK) {
-			usb_log_debug("Batch(%p) found error TD(%zu):%" PRIx32 ".\n",
-			    instance, i, data->tds[i].status);
+			usb_log_debug("Batch(%p) found error TD(%zu):%"
+			    PRIx32 ".\n", instance, i, data->tds[i].status);
 			td_print_status(&data->tds[i]);
 
 			assert(instance->ep != NULL);
@@ -396,6 +407,7 @@ void batch_control(usb_transfer_batch_t *instance,
 }
 /*----------------------------------------------------------------------------*/
 /** Provides access to QH data structure.
+ *
  * @param[in] instance Batch pointer to use.
  * @return Pointer to the QH used by the batch.
  */

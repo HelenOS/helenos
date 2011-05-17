@@ -40,8 +40,6 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/batch.h>
 
-#include "hw_struct/endpoint_descriptor.h"
-
 usb_transfer_batch_t * batch_get(
     ddf_fun_t *fun, endpoint_t *ep, char *buffer, size_t size,
     char *setup_buffer, size_t setup_size,
@@ -64,8 +62,6 @@ void batch_interrupt_out(usb_transfer_batch_t *instance);
 void batch_bulk_in(usb_transfer_batch_t *instance);
 
 void batch_bulk_out(usb_transfer_batch_t *instance);
-
-ed_t * batch_ed(usb_transfer_batch_t *instance);
 #endif
 /**
  * @}
