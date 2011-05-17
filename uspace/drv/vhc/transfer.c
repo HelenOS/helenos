@@ -4,10 +4,6 @@
 #include <usbvirt/ipc.h>
 #include "vhcd.h"
 
-#define list_foreach(pos, head) \
-	for (pos = (head)->next; pos != (head); \
-        	pos = pos->next)
-
 vhc_transfer_t *vhc_transfer_create(usb_address_t address, usb_endpoint_t ep,
     usb_direction_t dir, usb_transfer_type_t tr_type,
     ddf_fun_t *fun, void *callback_arg)
@@ -66,9 +62,8 @@ int vhc_virtdev_add_transfer(vhc_data_t *vhc, vhc_transfer_t *transfer)
 {
 	fibril_mutex_lock(&vhc->guard);
 
-	link_t *pos;
 	bool target_found = false;
-	list_foreach(pos, &vhc->devices) {
+	list_foreach(vhc->devices, pos) {
 		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
 		fibril_mutex_lock(&dev->guard);
 		if (dev->address == transfer->address) {

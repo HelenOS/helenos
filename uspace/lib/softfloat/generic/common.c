@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
  */
 
-#include<sftypes.h>
-#include<common.h>
+#include <sftypes.h>
+#include <common.h>
 
 /* Table for fast leading zeroes counting */
 char zeroTable[256] = {
@@ -212,4 +212,3 @@ void roundFloat64(int32_t *exp, uint64_t *fraction)
 
 /** @}
  */
-

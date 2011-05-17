@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
  */
 
-#include<sftypes.h>
-#include<add.h>
-#include<comparison.h>
+#include <sftypes.h>
+#include <add.h>
+#include <comparison.h>
 
 /** Add two Float32 numbers with same signs
  */
@@ -138,11 +138,10 @@ float32 addFloat32(float32 a, float32 b)
 	
 	a.parts.exp = exp1;
 	
-	/*Clear hidden bit and shift */
+	/* Clear hidden bit and shift */
 	a.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)) ; 
 	return a;
 }
-
 
 /** Add two Float64 numbers with same signs
  */
@@ -249,7 +248,7 @@ float64 addFloat64(float64 a, float64 b)
 			}
 	
 	a.parts.exp = exp1;
-	/*Clear hidden bit and shift */
+	/* Clear hidden bit and shift */
 	a.parts.fraction = ( (frac1 >> 6 ) & (~FLOAT64_HIDDEN_BIT_MASK));
 	
 	return a;

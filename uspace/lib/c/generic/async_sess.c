@@ -104,6 +104,7 @@
 #include <malloc.h>
 #include <errno.h>
 #include <assert.h>
+#include <async.h>
 #include "private/async_sess.h"
 
 /** An inactive open connection. */

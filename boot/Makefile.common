@@ -117,12 +117,25 @@ RD_DRVS = \
 
 RD_DRV_CFG = 
 
+RD_LIBS =
+
+ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
+	RD_LIBS += \
+		$(USPACE_PATH)/lib/c/libc.so0 \
+		$(USPACE_PATH)/lib/softint/libsofti.so0
+	RD_APPS += \
+		$(USPACE_PATH)/app/dltest/dltest
+endif
+
 RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
 	$(USPACE_PATH)/app/getterm/getterm \
 	$(USPACE_PATH)/app/klog/klog
 
 RD_APPS_NON_ESSENTIAL = \
+	$(USPACE_PATH)/app/dltest/dltest \
+	$(USPACE_PATH)/app/dltest2/dltest2 \
+	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \

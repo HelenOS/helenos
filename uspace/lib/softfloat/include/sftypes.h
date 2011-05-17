@@ -54,7 +54,7 @@ typedef union {
 #else
 	#error Unknown endianess
 #endif
-		} parts __attribute__ ((packed));
+	} parts __attribute__ ((packed));
 } float32;
 
 typedef union {
@@ -76,8 +76,8 @@ typedef union {
 	} parts __attribute__ ((packed));
 } float64;
 
-#define FLOAT32_MAX 0x7f800000
-#define FLOAT32_MIN 0xff800000
+#define FLOAT32_MAX  0x7f800000
+#define FLOAT32_MIN  0xff800000
 #define FLOAT64_MAX
 #define FLOAT64_MIN
 
@@ -85,27 +85,27 @@ typedef union {
  * For recognizing NaNs or infinity use isFloat32NaN and is Float32Inf,
  * comparing with these constants is not sufficient.
  */
-#define FLOAT32_NAN 0x7FC00001
-#define FLOAT32_SIGNAN 0x7F800001
-#define FLOAT32_INF 0x7F800000
 
-#define FLOAT64_NAN 0x7FF8000000000001ll
-#define FLOAT64_SIGNAN 0x7FF0000000000001ll
-#define FLOAT64_INF 0x7FF0000000000000ll
+#define FLOAT32_NAN     0x7FC00001
+#define FLOAT32_SIGNAN  0x7F800001
+#define FLOAT32_INF     0x7F800000
 
-#define FLOAT32_FRACTION_SIZE 23
-#define FLOAT64_FRACTION_SIZE 52
+#define FLOAT64_NAN     0x7FF8000000000001ll
+#define FLOAT64_SIGNAN  0x7FF0000000000001ll
+#define FLOAT64_INF     0x7FF0000000000000ll
 
-#define FLOAT32_HIDDEN_BIT_MASK 0x800000
-#define FLOAT64_HIDDEN_BIT_MASK 0x10000000000000ll
+#define FLOAT32_FRACTION_SIZE  23
+#define FLOAT64_FRACTION_SIZE  52
 
-#define FLOAT32_MAX_EXPONENT 0xFF
-#define FLOAT64_MAX_EXPONENT 0x7FF
+#define FLOAT32_HIDDEN_BIT_MASK  0x800000
+#define FLOAT64_HIDDEN_BIT_MASK  0x10000000000000ll
 
-#define FLOAT32_BIAS 0x7F
-#define FLOAT64_BIAS 0x3FF
-#define FLOAT80_BIAS 0x3FFF
+#define FLOAT32_MAX_EXPONENT  0xFF
+#define FLOAT64_MAX_EXPONENT  0x7FF
 
+#define FLOAT32_BIAS  0x7F
+#define FLOAT64_BIAS  0x3FF
+#define FLOAT80_BIAS  0x3FFF
 
 #endif
 
