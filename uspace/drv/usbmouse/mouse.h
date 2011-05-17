@@ -36,8 +36,8 @@
 #ifndef USBMOUSE_MOUSE_H_
 #define USBMOUSE_MOUSE_H_
 
-#include <usb/devdrv.h>
-#include <usb/pipes.h>
+#include <usb/dev/driver.h>
+#include <usb/dev/pipes.h>
 #include <time.h>
 
 #define NAME "usbmouse"

@@ -46,7 +46,7 @@
 #include <usb/classes/classes.h>
 
 #include "usbinfo.h"
-#include <usb/dp.h>
+#include <usb/dev/dp.h>
 
 #define INDENT "  "
 #define BYTES_PER_LINE 12

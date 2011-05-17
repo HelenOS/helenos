@@ -35,7 +35,7 @@
 #ifndef LIBUSB_PIPEPRIV_H_
 #define LIBUSB_PIPEPRIV_H_
 
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <bool.h>
 
 void pipe_acquire(usb_pipe_t *);

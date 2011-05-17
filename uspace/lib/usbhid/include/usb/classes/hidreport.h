@@ -36,7 +36,7 @@
 #ifndef LIBUSB_HIDREPORT_H_
 #define LIBUSB_HIDREPORT_H_
 
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 #include <usb/classes/hidparser.h>
 
 /**

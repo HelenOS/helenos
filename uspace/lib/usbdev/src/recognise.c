@@ -34,10 +34,10 @@
  */
 #include <sys/types.h>
 #include <fibril_synch.h>
-#include <usb/pipes.h>
-#include <usb/recognise.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/recognise.h>
 #include <usb/ddfiface.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>
 #include <errno.h>

@@ -39,7 +39,7 @@
 #include <stdint.h>
 
 #include <usb/classes/hid.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 
 /*----------------------------------------------------------------------------*/
 

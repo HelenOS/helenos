@@ -39,8 +39,8 @@
 #include <stdlib.h>
 #include <ddf/driver.h>
 #include <devman.h>
-#include <usb/hub.h>
-#include <usb/recognise.h>
+#include <usb/dev/hub.h>
+#include <usb/dev/recognise.h>
 
 #include "hub.h"
 //#include "hub/virthub.h"

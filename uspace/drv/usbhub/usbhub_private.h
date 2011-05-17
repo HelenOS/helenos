@@ -46,7 +46,7 @@
 #include <usb/classes/hub.h>
 #include <usb/usb.h>
 #include <usb/debug.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 
 //************
 //

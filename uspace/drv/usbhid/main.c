@@ -40,8 +40,8 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/devdrv.h>
-#include <usb/devpoll.h>
+#include <usb/dev/driver.h>
+#include <usb/dev/poll.h>
 
 #include "usbhid.h"
 

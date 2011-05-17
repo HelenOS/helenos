@@ -33,7 +33,7 @@
  * USB endpoint pipes miscellaneous functions.
  */
 #include <usb/usb.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <usb/debug.h>
 #include <usb/driver.h>
 #include <usbhc_iface.h>

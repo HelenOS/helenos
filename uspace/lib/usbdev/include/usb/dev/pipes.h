@@ -32,12 +32,12 @@
 /** @file
  * USB pipes representation.
  */
-#ifndef LIBUSB_PIPES_H_
-#define LIBUSB_PIPES_H_
+#ifndef LIBUSBDEV_PIPES_H_
+#define LIBUSBDEV_PIPES_H_
 
 #include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/usbdevice.h>
+#include <usb/dev/hc.h>
 #include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <ddf/driver.h>

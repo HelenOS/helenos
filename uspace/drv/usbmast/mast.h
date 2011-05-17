@@ -38,8 +38,8 @@
 
 #include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/pipes.h>
-#include <usb/devdrv.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
 
 /** Result of SCSI INQUIRY command.
  * This is already parsed structure, not the original buffer returned by

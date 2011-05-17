@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 
 bool usb_mast_verbose = true;
 

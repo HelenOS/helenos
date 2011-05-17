@@ -32,7 +32,7 @@
 /** @file
  * Standard USB requests (implementation).
  */
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <errno.h>
 #include <assert.h>
 #include <usb/debug.h>

@@ -45,10 +45,10 @@
 #include <fibril_synch.h>
 
 #include <usb/usb.h>
-#include <usb/dp.h>
-#include <usb/request.h>
+#include <usb/dev/dp.h>
+#include <usb/dev/request.h>
 #include <usb/classes/hid.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <usb/debug.h>
 #include <usb/classes/hidparser.h>
 #include <usb/classes/classes.h>
@@ -57,7 +57,7 @@
 #include <usb/classes/hidreport.h>
 #include <usb/classes/hid/utled.h>
 
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 
 #include "kbddev.h"
 

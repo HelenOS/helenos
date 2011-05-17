@@ -37,7 +37,7 @@
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/hid.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <errno.h>
 
 /** Mouse polling endpoint description for boot protocol subclass. */

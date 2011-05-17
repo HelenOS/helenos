@@ -40,12 +40,12 @@
 
 #include <usb/debug.h>
 #include <usb/classes/hidparser.h>
-#include <usb/dp.h>
-#include <usb/devdrv.h>
-#include <usb/pipes.h>
+#include <usb/dev/dp.h>
+#include <usb/dev/driver.h>
+#include <usb/dev/pipes.h>
 #include <usb/classes/hid.h>
 #include <usb/descriptor.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 
 #include <usb/classes/hidreport.h>
 

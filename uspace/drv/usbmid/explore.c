@@ -37,8 +37,8 @@
 #include <str_error.h>
 #include <stdlib.h>
 #include <usb/classes/classes.h>
-#include <usb/request.h>
-#include <usb/dp.h>
+#include <usb/dev/request.h>
+#include <usb/dev/dp.h>
 #include <usb/ddfiface.h>
 #include "usbmid.h"
 

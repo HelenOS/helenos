@@ -33,7 +33,7 @@
  * Standard control request handlers.
  */
 #include "private.h"
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <assert.h>
 #include <errno.h>
 

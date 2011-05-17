@@ -30,54 +30,34 @@
  * @{
  */
 /** @file
- * USB descriptor parser.
+ * General communication between device drivers and host controller driver.
  */
-#ifndef LIBUSB_DP_H_
-#define LIBUSB_DP_H_
+#ifndef LIBUSBDEV_HC_H_
+#define LIBUSBDEV_HC_H_
 
 #include <sys/types.h>
+#include <ipc/devman.h>
+#include <ddf/driver.h>
+#include <bool.h>
 #include <usb/usb.h>
-#include <usb/descriptor.h>
 
-/** USB descriptors nesting.
- * The nesting describes the logical tree USB descriptors form
- * (e.g. that endpoint descriptor belongs to interface or that
- * interface belongs to configuration).
- *
- * See usb_descriptor_type_t for descriptor constants.
- */
+/** Connection to the host controller driver. */
 typedef struct {
-	/** Child descriptor id. */
-	int child;
-	/** Parent descriptor id. */
-	int parent;
-} usb_dp_descriptor_nesting_t;
+	/** Devman handle of the host controller. */
+	devman_handle_t hc_handle;
+	/** Phone to the host controller. */
+	int hc_phone;
+} usb_hc_connection_t;
 
-extern usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[];
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
+    ddf_dev_t *);
+int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
 
-/** Descriptor parser structure. */
-typedef struct {
-	/** Used descriptor nesting. */
-	usb_dp_descriptor_nesting_t *nesting;
-} usb_dp_parser_t;
+int usb_hc_connection_open(usb_hc_connection_t *);
+bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+int usb_hc_connection_close(usb_hc_connection_t *);
 
-/** Descriptor parser data. */
-typedef struct {
-	/** Data to be parsed. */
-	uint8_t *data;
-	/** Size of input data in bytes. */
-	size_t size;
-	/** Custom argument. */
-	void *arg;
-} usb_dp_parser_data_t;
 
-uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *,
-    usb_dp_parser_data_t *, uint8_t *);
-uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *,
-    usb_dp_parser_data_t *, uint8_t *, uint8_t *);
-
-void usb_dp_walk_simple(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
-    void (*)(uint8_t *, size_t, void *), void *);
 
 #endif
 /**

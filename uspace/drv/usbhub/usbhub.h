@@ -38,11 +38,11 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 
-#include <usb/hub.h>
+#include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
 
-#include <usb/pipes.h>
-#include <usb/devdrv.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
 
 #include <fibril_synch.h>
 
