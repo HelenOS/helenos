@@ -34,20 +34,11 @@
 #include "../tester.h"
 
 /*
- * The test consists of several phases which differ in the size of blocks
- * they allocate. The size of blocks is given as a range of minimum and
- * maximum allowed size. Each of the phases is divided into 3 subphases which
- * differ in the probability of free and alloc actions. Second subphase is
- * started when malloc returns 'out of memory' or when MAX_ALLOC is reached.
- * Third subphase is started after a given number of cycles. The third subphase
- * as well as the whole phase ends when all memory blocks are released.
+ * The test is a slight adaptation of malloc1 test. The major difference
+ * is that the test forces the heap allocator to create multiple
+ * heap areas by creating disturbing address space areas.
  */
 
-/*
- * Subphases are defined separately here. This is for two reasons:
- * 1) data are not duplicated, 2) we don't have to state beforehand
- * how many subphases a phase contains.
- */
 static subphase_t subphases_32B[] = {
 	{
 		.name = "Allocation",
@@ -240,6 +231,14 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 			} else {
 				TPRINTF("A");
 				fill_block(blk);
+				
+				if ((mem_blocks_count % AREA_GRANULARITY) == 0) {
+					mem_area_t *area = map_area(AREA_SIZE);
+					RETURN_IF_ERROR;
+					
+					TPRINTF("*");
+					fill_area(area);
+				}
 			}
 			
 		} else if (rnd < subphase->prob.free) {
@@ -275,7 +274,7 @@ static void do_phase(phase_t *phase)
 	}
 }
 
-const char *test_malloc1(void)
+const char *test_malloc3(void)
 {
 	init_mem();
 	

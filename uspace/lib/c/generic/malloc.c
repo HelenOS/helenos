@@ -64,6 +64,16 @@
  */
 #define BASE_ALIGN  16
 
+/** Heap shrink granularity
+ *
+ * Try not to pump and stress the heap to much
+ * by shrinking and enlarging it too often.
+ * A heap area won't shrunk if it the released
+ * free block is smaller than this constant.
+ *
+ */
+#define SHRINK_GRANULARITY  (64 * PAGE_SIZE)
+
 /** Overhead of each heap block. */
 #define STRUCT_OVERHEAD \
 	(sizeof(heap_block_head_t) + sizeof(heap_block_foot_t))
@@ -85,15 +95,28 @@
 /** Get first block in heap area.
  *
  */
-#define AREA_FIRST_BLOCK(area) \
+#define AREA_FIRST_BLOCK_HEAD(area) \
 	(ALIGN_UP(((uintptr_t) (area)) + sizeof(heap_area_t), BASE_ALIGN))
+
+/** Get last block in heap area.
+ *
+ */
+#define AREA_LAST_BLOCK_FOOT(area) \
+	(((uintptr_t) (area)->end) - sizeof(heap_block_foot_t))
+
+/** Get header in heap block.
+ *
+ */
+#define BLOCK_HEAD(foot) \
+	((heap_block_head_t *) \
+	    (((uintptr_t) (foot)) + sizeof(heap_block_foot_t) - (foot)->size))
 
 /** Get footer in heap block.
  *
  */
 #define BLOCK_FOOT(head) \
 	((heap_block_foot_t *) \
-	    (((uintptr_t) head) + head->size - sizeof(heap_block_foot_t)))
+	    (((uintptr_t) (head)) + (head)->size - sizeof(heap_block_foot_t)))
 
 /** Heap area.
  *
@@ -113,6 +136,9 @@ typedef struct heap_area {
 	
 	/** End of the heap area (aligned on page boundary) */
 	void *end;
+	
+	/** Previous heap area */
+	struct heap_area *prev;
 	
 	/** Next heap area */
 	struct heap_area *next;
@@ -211,6 +237,8 @@ static void block_check(void *addr)
 
 /** Check a heap area structure
  *
+ * Should be called only inside the critical section.
+ *
  * @param addr Address of the heap area.
  *
  */
@@ -219,6 +247,7 @@ static void area_check(void *addr)
 	heap_area_t *area = (heap_area_t *) addr;
 	
 	assert(area->magic == HEAP_AREA_MAGIC);
+	assert(addr == area->start);
 	assert(area->start < area->end);
 	assert(((uintptr_t) area->start % PAGE_SIZE) == 0);
 	assert(((uintptr_t) area->end % PAGE_SIZE) == 0);
@@ -226,8 +255,9 @@ static void area_check(void *addr)
 
 /** Create new heap area
  *
- * @param start Preffered starting address of the new area.
- * @param size  Size of the area.
+ * Should be called only inside the critical section.
+ *
+ * @param size Size of the area.
  *
  */
 static bool area_create(size_t size)
@@ -247,12 +277,12 @@ static bool area_create(size_t size)
 	heap_area_t *area = (heap_area_t *) astart;
 	
 	area->start = astart;
-	area->end = (void *)
-	    ALIGN_DOWN((uintptr_t) astart + asize, BASE_ALIGN);
+	area->end = (void *) ((uintptr_t) astart + asize);
+	area->prev = NULL;
 	area->next = NULL;
 	area->magic = HEAP_AREA_MAGIC;
 	
-	void *block = (void *) AREA_FIRST_BLOCK(area);
+	void *block = (void *) AREA_FIRST_BLOCK_HEAD(area);
 	size_t bsize = (size_t) (area->end - block);
 	
 	block_init(block, bsize, true, area);
@@ -261,6 +291,7 @@ static bool area_create(size_t size)
 		first_heap_area = area;
 		last_heap_area = area;
 	} else {
+		area->prev = last_heap_area;
 		last_heap_area->next = area;
 		last_heap_area = area;
 	}
@@ -270,8 +301,12 @@ static bool area_create(size_t size)
 
 /** Try to enlarge a heap area
  *
+ * Should be called only inside the critical section.
+ *
  * @param area Heap area to grow.
- * @param size Gross size of item to allocate (bytes).
+ * @param size Gross size to grow (bytes).
+ *
+ * @return True if successful.
  *
  */
 static bool area_grow(heap_area_t *area, size_t size)
@@ -281,12 +316,10 @@ static bool area_grow(heap_area_t *area, size_t size)
 	
 	area_check(area);
 	
-	size_t asize = ALIGN_UP((size_t) (area->end - area->start) + size,
-	    PAGE_SIZE);
-	
 	/* New heap area size */
-	void *end = (void *)
-	    ALIGN_DOWN((uintptr_t) area->start + asize, BASE_ALIGN);
+	size_t gross_size = (size_t) (area->end - area->start) + size;
+	size_t asize = ALIGN_UP(gross_size, PAGE_SIZE);
+	void *end = (void *) ((uintptr_t) area->start + asize);
 	
 	/* Check for overflow */
 	if (end < area->start)
@@ -298,7 +331,9 @@ static bool area_grow(heap_area_t *area, size_t size)
 		return false;
 	
 	/* Add new free block */
-	block_init(area->end, (size_t) (end - area->end), true, area);
+	size_t net_size = (size_t) (end - area->end);
+	if (net_size > 0)
+		block_init(area->end, net_size, true, area);
 	
 	/* Update heap area parameters */
 	area->end = end;
@@ -307,6 +342,8 @@ static bool area_grow(heap_area_t *area, size_t size)
 }
 
 /** Try to enlarge any of the heap areas
+ *
+ * Should be called only inside the critical section.
  *
  * @param size Gross size of item to allocate (bytes).
  *
@@ -317,23 +354,122 @@ static bool heap_grow(size_t size)
 		return true;
 	
 	/* First try to enlarge some existing area */
-	heap_area_t *area;
-	for (area = first_heap_area; area != NULL; area = area->next) {
+	for (heap_area_t *area = first_heap_area; area != NULL;
+	    area = area->next) {
 		if (area_grow(area, size))
 			return true;
 	}
 	
 	/* Eventually try to create a new area */
-	return area_create(AREA_FIRST_BLOCK(size));
+	return area_create(AREA_FIRST_BLOCK_HEAD(size));
 }
 
-/** Try to shrink heap space
+/** Try to shrink heap
  *
+ * Should be called only inside the critical section.
  * In all cases the next pointer is reset.
  *
+ * @param area Last modified heap area.
+ *
  */
-static void heap_shrink(void)
+static void heap_shrink(heap_area_t *area)
 {
+	area_check(area);
+	
+	heap_block_foot_t *last_foot =
+	    (heap_block_foot_t *) AREA_LAST_BLOCK_FOOT(area);
+	heap_block_head_t *last_head = BLOCK_HEAD(last_foot);
+	
+	block_check((void *) last_head);
+	assert(last_head->area == area);
+	
+	if (last_head->free) {
+		/*
+		 * The last block of the heap area is
+		 * unused. The area might be potentially
+		 * shrunk.
+		 */
+		
+		heap_block_head_t *first_head =
+		    (heap_block_head_t *) AREA_FIRST_BLOCK_HEAD(area);
+		
+		block_check((void *) first_head);
+		assert(first_head->area == area);
+		
+		if (first_head == last_head) {
+			/*
+			 * The entire heap area consists of a single
+			 * free heap block. This means we can get rid
+			 * of it entirely.
+			 */
+			
+			heap_area_t *prev = area->prev;
+			heap_area_t *next = area->next;
+			
+			if (prev != NULL) {
+				area_check(prev);
+				prev->next = next;
+			} else
+				first_heap_area = next;
+			
+			if (next != NULL) {
+				area_check(next);
+				next->prev = prev;
+			} else
+				last_heap_area = prev;
+			
+			as_area_destroy(area->start);
+		} else if (last_head->size >= SHRINK_GRANULARITY) {
+			/*
+			 * Make sure that we always shrink the area
+			 * by a multiple of page size and update
+			 * the block layout accordingly.
+			 */
+			
+			size_t shrink_size = ALIGN_DOWN(last_head->size, PAGE_SIZE);
+			size_t asize = (size_t) (area->end - area->start) - shrink_size;
+			void *end = (void *) ((uintptr_t) area->start + asize);
+			
+			/* Resize the address space area */
+			int ret = as_area_resize(area->start, asize, 0);
+			if (ret != EOK)
+				abort();
+			
+			/* Update heap area parameters */
+			area->end = end;
+			
+			/* Update block layout */
+			void *last = (void *) last_head;
+			size_t excess = (size_t) (area->end - last);
+			
+			if (excess > 0) {
+				if (excess >= STRUCT_OVERHEAD) {
+					/*
+					 * The previous block cannot be free and there
+					 * is enough free space left in the area to
+					 * create a new free block.
+					 */
+					block_init(last, excess, true, area);
+				} else {
+					/*
+					 * The excess is small. Therefore just enlarge
+					 * the previous block.
+					 */
+					heap_block_foot_t *prev_foot = (heap_block_foot_t *)
+					    (((uintptr_t) last_head) - sizeof(heap_block_foot_t));
+					heap_block_head_t *prev_head = BLOCK_HEAD(prev_foot);
+					
+					block_check((void *) prev_head);
+					
+					block_init(prev_head, prev_head->size + excess,
+					    prev_head->free, area);
+				}
+			}
+			
+			
+		}
+	}
+	
 	next = NULL;
 }
 
@@ -397,11 +533,10 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
     heap_block_head_t *final_block, size_t real_size, size_t falign)
 {
 	area_check((void *) area);
-	assert((void *) first_block >= (void *) AREA_FIRST_BLOCK(area));
+	assert((void *) first_block >= (void *) AREA_FIRST_BLOCK_HEAD(area));
 	assert((void *) first_block < area->end);
 	
-	heap_block_head_t *cur;
-	for (cur = first_block; (void *) cur < area->end;
+	for (heap_block_head_t *cur = first_block; (void *) cur < area->end;
 	    cur = (heap_block_head_t *) (((void *) cur) + cur->size)) {
 		block_check(cur);
 		
@@ -435,7 +570,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 					 * The current block is large enough to fit
 					 * data in (including alignment).
 					 */
-					if ((void *) cur > (void *) AREA_FIRST_BLOCK(area)) {
+					if ((void *) cur > (void *) AREA_FIRST_BLOCK_HEAD(area)) {
 						/*
 						 * There is a block before the current block.
 						 * This previous block can be enlarged to
@@ -495,10 +630,10 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 						if (cur->size >= real_size + excess) {
 							size_t reduced_size = cur->size - excess;
 							cur = (heap_block_head_t *)
-							    (AREA_FIRST_BLOCK(area) + excess);
+							    (AREA_FIRST_BLOCK_HEAD(area) + excess);
 							
-							block_init((void *) AREA_FIRST_BLOCK(area), excess,
-							    true, area);
+							block_init((void *) AREA_FIRST_BLOCK_HEAD(area),
+							    excess, true, area);
 							block_init(cur, reduced_size, true, area);
 							split_mark(cur, real_size);
 							
@@ -551,10 +686,10 @@ loop:
 	}
 	
 	/* Search the entire heap */
-	heap_area_t *area;
-	for (area = first_heap_area; area != NULL; area = area->next) {
+	for (heap_area_t *area = first_heap_area; area != NULL;
+	    area = area->next) {
 		heap_block_head_t *first = (heap_block_head_t *)
-		    AREA_FIRST_BLOCK(area);
+		    AREA_FIRST_BLOCK_HEAD(area);
 		
 		void *addr = malloc_area(area, first, split, real_size,
 		    falign);
@@ -656,7 +791,7 @@ void *realloc(const void *addr, const size_t size)
 	heap_area_t *area = head->area;
 	
 	area_check(area);
-	assert((void *) head >= (void *) AREA_FIRST_BLOCK(area));
+	assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
 	assert((void *) head < area->end);
 	
 	void *ptr = NULL;
@@ -674,7 +809,7 @@ void *realloc(const void *addr, const size_t size)
 			block_init((void *) head, real_size, false, area);
 			block_init((void *) head + real_size,
 			    orig_size - real_size, true, area);
-			heap_shrink();
+			heap_shrink(area);
 		}
 		
 		ptr = ((void *) head) + sizeof(heap_block_head_t);
@@ -733,7 +868,7 @@ void free(const void *addr)
 	heap_area_t *area = head->area;
 	
 	area_check(area);
-	assert((void *) head >= (void *) AREA_FIRST_BLOCK(area));
+	assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
 	assert((void *) head < area->end);
 	
 	/* Mark the block itself as free. */
@@ -750,7 +885,7 @@ void free(const void *addr)
 	}
 	
 	/* Look at the previous block. If it is free, merge the two. */
-	if ((void *) head > (void *) AREA_FIRST_BLOCK(area)) {
+	if ((void *) head > (void *) AREA_FIRST_BLOCK_HEAD(area)) {
 		heap_block_foot_t *prev_foot =
 		    (heap_block_foot_t *) (((void *) head) - sizeof(heap_block_foot_t));
 		
@@ -764,7 +899,7 @@ void free(const void *addr)
 			    area);
 	}
 	
-	heap_shrink();
+	heap_shrink(area);
 	
 	futex_up(&malloc_futex);
 }
