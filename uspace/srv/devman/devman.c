@@ -38,6 +38,7 @@
 #include <ipc/devman.h>
 #include <devmap.h>
 #include <str_error.h>
+#include <stdio.h>
 
 #include "devman.h"
 

@@ -36,9 +36,10 @@
 #include <errno.h>
 #include <str_error.h>
 #include <time.h>
+#include <async.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/hub.h>    /* usb_hc_new_device_wrapper */
+#include <usb/dev/hub.h>    /* usb_hc_new_device_wrapper */
 #include <usb/debug.h>
 
 #include "port.h"

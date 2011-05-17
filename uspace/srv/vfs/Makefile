@@ -29,6 +29,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = vfs
+STATIC_NEEDED = y
 
 SOURCES = \
 	vfs.c \

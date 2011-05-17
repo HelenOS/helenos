@@ -51,7 +51,7 @@
  * @return address on success, (void *) -1 otherwise.
  *
  */
-void *as_area_create(void *address, size_t size, int flags)
+void *as_area_create(void *address, size_t size, unsigned int flags)
 {
 	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
@@ -67,7 +67,7 @@ void *as_area_create(void *address, size_t size, int flags)
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_resize(void *address, size_t size, int flags)
+int as_area_resize(void *address, size_t size, unsigned int flags)
 {
 	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
@@ -95,7 +95,7 @@ int as_area_destroy(void *address)
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_change_flags(void *address, int flags)
+int as_area_change_flags(void *address, unsigned int flags)
 {
 	return __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
 	    (sysarg_t) flags);

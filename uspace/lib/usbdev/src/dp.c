@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /**
@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <bool.h>
-#include <usb/dp.h>
+#include <usb/dev/dp.h>
 #include <usb/descriptor.h>
 
 #define NESTING(parentname, childname) \

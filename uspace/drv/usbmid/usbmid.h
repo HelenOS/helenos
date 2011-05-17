@@ -39,9 +39,9 @@
 #include <adt/list.h>
 #include <ddf/driver.h>
 #include <usb/usb.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <usb/debug.h>
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 
 #define NAME "usbmid"
 

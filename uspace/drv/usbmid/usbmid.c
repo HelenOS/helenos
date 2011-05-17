@@ -38,9 +38,9 @@
 #include <stdlib.h>
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <usb/classes/classes.h>
-#include <usb/recognise.h>
+#include <usb/dev/recognise.h>
 #include "usbmid.h"
 
 /** Callback for DDF USB interface. */

@@ -115,14 +115,15 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 
 	/*
 	 * Serialize access to log files.
-	 * Always print to log file, to screen print only when the enabled
-	 * log level is high enough.
+	 * Print to screen only messages with higher level than the one
+	 * specified during logging initialization.
+	 * Print also to file, to it print one more (lower) level as well.
 	 */
 	fibril_mutex_lock(&log_serializer);
 
 	const char *level_name = log_level_name(level);
 
-	if (log_stream != NULL) {
+	if ((log_stream != NULL) && (level <= log_level + 1)) {
 		va_start(args, format);
 
 		fprintf(log_stream, "[%s]%s: ", log_prefix, level_name);

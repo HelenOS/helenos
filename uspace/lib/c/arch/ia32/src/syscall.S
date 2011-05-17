@@ -31,6 +31,7 @@
 .global __syscall_fast_func
 __syscall_fast_func:
 	.long __syscall_slow
+	.size __syscall_fast_func, . - __syscall_fast_func
 
 .text
 
@@ -70,6 +71,8 @@ __syscall_slow:
  * segment, otherwise the SYSENTER wouldn't work in the first place).
  */
 .global __syscall_fast
+	.type __syscall_fast, @function
+
 __syscall_fast:
 	pushl %ebx
 	pushl %esi
@@ -94,3 +97,5 @@ ra:
 	popl %esi
 	popl %ebx
 	ret
+
+	.size __syscall_fast, . - __syscall_fast

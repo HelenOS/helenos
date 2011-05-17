@@ -41,7 +41,7 @@
  * 16-byte boundary. If it is not, the va_arg calling will
  * panic sooner or later
  */
-#define SP_DELTA     (12)
+#define SP_DELTA  12
 
 #define context_set(c, _pc, stack, size, ptls) \
 	do { \
@@ -50,8 +50,9 @@
 		(c)->tls = (sysarg_t) (ptls); \
 		(c)->ebp = 0; \
 	} while (0)
-	
-/* We include only registers that must be preserved
+
+/*
+ * We include only registers that must be preserved
  * during function call
  */
 typedef struct {

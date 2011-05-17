@@ -36,7 +36,7 @@
 #define LIBUSBVIRT_DEVICE_H_
 
 #include <usb/usb.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 
 /** Maximum number of endpoints supported by virtual USB. */
 #define USBVIRT_ENDPOINT_MAX 16

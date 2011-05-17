@@ -39,9 +39,9 @@
 #include "../usbhid.h"
 #include "keymap.h"
 
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hidparser.h>
 #include <usb/debug.h>
-#include <usb/classes/hidut.h>
+#include <usb/hid/usages/core.h>
 
 #include <errno.h>
 #include <str_error.h>

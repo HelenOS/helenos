@@ -59,10 +59,6 @@
 #include <arch/asm.h>
 #include <trace.h>
 
-#ifdef CONFIG_SMP
-#include <arch/mm/cache.h>
-#endif
-
 typedef struct {
 	uint32_t mid;              /**< Processor ID as read from
 	                                UPA_CONFIG/FIREPLANE_CONFIG. */

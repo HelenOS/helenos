@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #include <devman.h>
 #include <async.h>
 #include <usb_iface.h>
-#include <usb/usbdevice.h>
+#include <usb/dev/hc.h>
 #include <usb/driver.h>
 #include <usb/debug.h>
 #include <errno.h>

@@ -52,6 +52,10 @@
 #include "private/malloc.h"
 #include "private/io.h"
 
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
+
 static bool env_setup = false;
 
 void __main(void *pcb_ptr)
@@ -76,6 +80,11 @@ void __main(void *pcb_ptr)
 	int argc;
 	char **argv;
 	
+#ifdef __IN_SHARED_LIBC__
+	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
+		runtime_env = (runtime_env_t *) __pcb->rtld_runtime;
+	}
+#endif
 	/*
 	 * Get command line arguments and initialize
 	 * standard input and output

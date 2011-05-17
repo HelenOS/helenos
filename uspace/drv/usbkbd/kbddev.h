@@ -40,11 +40,11 @@
 
 #include <fibril_synch.h>
 
-#include <usb/classes/hid.h>
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hid.h>
+#include <usb/hid/hidparser.h>
 #include <ddf/driver.h>
-#include <usb/pipes.h>
-#include <usb/devdrv.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
 
 #include "kbdrepeat.h"
 

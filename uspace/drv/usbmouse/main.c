@@ -35,7 +35,7 @@
  */
 #include "mouse.h"
 #include <usb/debug.h>
-#include <usb/devpoll.h>
+#include <usb/dev/poll.h>
 #include <errno.h>
 #include <str_error.h>
 
