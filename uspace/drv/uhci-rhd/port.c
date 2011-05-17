@@ -226,14 +226,11 @@ int uhci_port_reset_enable(int portno, void *arg)
 		uhci_port_write_status(port, port_status);
 		while (uhci_port_read_status(port) & STATUS_IN_RESET);
 	}
+	/* PIO delay, should not be longer than 3ms as the device might
+	 * enter suspend state. */
 	udelay(10);
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
-
-	/* Reset recovery period,
-	 * devices do not have to respond during this period
-	 */
-	async_usleep(10000);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
