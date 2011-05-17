@@ -396,6 +396,8 @@ static void heap_shrink(heap_area_t *area)
 		block_check((void *) first_head);
 		assert(first_head->area == area);
 		
+		size_t shrink_size = ALIGN_DOWN(last_head->size, PAGE_SIZE);
+		
 		if (first_head == last_head) {
 			/*
 			 * The entire heap area consists of a single
@@ -419,14 +421,13 @@ static void heap_shrink(heap_area_t *area)
 				last_heap_area = prev;
 			
 			as_area_destroy(area->start);
-		} else if (last_head->size >= SHRINK_GRANULARITY) {
+		} else if (shrink_size >= SHRINK_GRANULARITY) {
 			/*
 			 * Make sure that we always shrink the area
 			 * by a multiple of page size and update
 			 * the block layout accordingly.
 			 */
 			
-			size_t shrink_size = ALIGN_DOWN(last_head->size, PAGE_SIZE);
 			size_t asize = (size_t) (area->end - area->start) - shrink_size;
 			void *end = (void *) ((uintptr_t) area->start + asize);
 			
@@ -465,8 +466,6 @@ static void heap_shrink(heap_area_t *area)
 					    prev_head->free, area);
 				}
 			}
-			
-			
 		}
 	}
 	
