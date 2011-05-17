@@ -58,6 +58,7 @@ DIRS = \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
+	app/mkbd \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
