@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * USB device driver framework.
  */
-#ifndef LIBUSB_DEVDRV_H_
-#define LIBUSB_DEVDRV_H_
+#ifndef LIBUSBDEV_DRIVER_H_
+#define LIBUSBDEV_DRIVER_H_
 
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 
 /** Descriptors for USB device. */
 typedef struct {

@@ -26,21 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * USB HID report descriptor and report data parser
  */
-#ifndef LIBUSB_HIDPARSER_H_
-#define LIBUSB_HIDPARSER_H_
+#ifndef LIBUSBHID_HIDPARSER_H_
+#define LIBUSBHID_HIDPARSER_H_
 
 #include <stdint.h>
 #include <adt/list.h>
-#include <usb/classes/hid_report_items.h>
-#include <usb/classes/hidpath.h>
-#include <usb/classes/hidtypes.h>
-#include <usb/classes/hiddescriptor.h>
+#include <usb/hid/hid_report_items.h>
+#include <usb/hid/hidpath.h>
+#include <usb/hid/hidtypes.h>
+#include <usb/hid/hiddescriptor.h>
 
 
 /*

@@ -36,8 +36,8 @@
 #include <errno.h>
 #include <str_error.h>
 #include <stdlib.h>
-#include <usb/pipes.h>
-#include <usb/dp.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/dp.h>
 #include <usb/classes/classes.h>
 #include "usbmid.h"
 

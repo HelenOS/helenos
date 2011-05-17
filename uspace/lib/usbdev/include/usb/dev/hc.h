@@ -26,20 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
- * Client functions for accessing USB HID interface.
+ * General communication between device drivers and host controller driver.
  */
-#ifndef LIBUSB_CLASSES_HID_IFACE_H_
-#define LIBUSB_CLASSES_HID_IFACE_H_
+#ifndef LIBUSBDEV_HC_H_
+#define LIBUSBDEV_HC_H_
 
 #include <sys/types.h>
+#include <ipc/devman.h>
+#include <ddf/driver.h>
+#include <bool.h>
+#include <usb/usb.h>
 
-int usbhid_dev_get_event_length(int);
-int usbhid_dev_get_event(int, uint16_t *, uint16_t *, size_t, size_t *,
-    unsigned int);
+/** Connection to the host controller driver. */
+typedef struct {
+	/** Devman handle of the host controller. */
+	devman_handle_t hc_handle;
+	/** Phone to the host controller. */
+	int hc_phone;
+} usb_hc_connection_t;
+
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
+    ddf_dev_t *);
+int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
+
+int usb_hc_connection_open(usb_hc_connection_t *);
+bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+int usb_hc_connection_close(usb_hc_connection_t *);
+
+
 
 #endif
 /**

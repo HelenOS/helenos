@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * Standard USB requests.
  */
-#ifndef LIBUSB_REQUEST_H_
-#define LIBUSB_REQUEST_H_
+#ifndef LIBUSBDEV_REQUEST_H_
+#define LIBUSBDEV_REQUEST_H_
 
 #include <sys/types.h>
 #include <l18n/langs.h>
 #include <usb/usb.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <usb/descriptor.h>
 
 /** USB device status - device is self powered (opposed to bus powered). */

@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <fibril.h>
 #include <ddf/driver.h>
-#include <usb/usbdevice.h> /* usb_hc_connection_t */
+#include <usb/dev/hc.h> /* usb_hc_connection_t */
 
 typedef uint16_t port_status_t;
 #define STATUS_CONNECTED         (1 << 0)

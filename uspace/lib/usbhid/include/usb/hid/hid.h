@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
- * USB device recognition.
+ * @brief USB HID device related types.
  */
-#ifndef LIBUSB_RECOGNISE_H_
-#define LIBUSB_RECOGNISE_H_
+#ifndef LIBUSBHID_HID_H_
+#define LIBUSBHID_HID_H_
 
-#include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/pipes.h>
-#include <ipc/devman.h>
+#include <usb/hid/hidparser.h>
+#include <usb/descriptor.h>
 
-int usb_device_create_match_ids_from_device_descriptor(
-    const usb_standard_device_descriptor_t *, match_id_list_t *);
+/** USB/HID device requests. */
+typedef enum {
+	USB_HIDREQ_GET_REPORT = 1,
+	USB_HIDREQ_GET_IDLE = 2,
+	USB_HIDREQ_GET_PROTOCOL = 3,
+	/* Values 4 to 8 are reserved. */
+	USB_HIDREQ_SET_REPORT = 9,
+	USB_HIDREQ_SET_IDLE = 10,
+	USB_HIDREQ_SET_PROTOCOL = 11
+} usb_hid_request_t;
 
-int usb_device_create_match_ids_from_interface(
-    const usb_standard_device_descriptor_t *,
-    const usb_standard_interface_descriptor_t *, match_id_list_t *);
+typedef enum {
+	USB_HID_PROTOCOL_BOOT = 0,
+	USB_HID_PROTOCOL_REPORT = 1
+} usb_hid_protocol_t;
 
-int usb_device_create_match_ids(usb_pipe_t *, match_id_list_t *);
+/** USB/HID subclass constants. */
+typedef enum {
+	USB_HID_SUBCLASS_NONE = 0,
+	USB_HID_SUBCLASS_BOOT = 1
+} usb_hid_subclass_t;
 
-int usb_device_register_child_in_devman(usb_address_t, devman_handle_t,
-    ddf_dev_t *, devman_handle_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);
+/** USB/HID interface protocols. */
+typedef enum {
+	USB_HID_PROTOCOL_NONE = 0,
+	USB_HID_PROTOCOL_KEYBOARD = 1,
+	USB_HID_PROTOCOL_MOUSE = 2
+} usb_hid_iface_protocol_t;
+
 
 #endif
 /**

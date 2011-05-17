@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * USB device polling functions.
  */
-#ifndef LIBUSB_DEVPOLL_H_
-#define LIBUSB_DEVPOLL_H_
+#ifndef LIBUSBDEV_POLL_H_
+#define LIBUSBDEV_POLL_H_
 
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 #include <time.h>
 
 typedef struct {

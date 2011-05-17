@@ -34,7 +34,7 @@
 
 #include <bool.h>
 #include <sys/types.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include "usbhub_private.h"
 
 /**

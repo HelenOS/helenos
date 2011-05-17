@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
@@ -37,8 +37,8 @@
  * State of toggle bit, device speed etc. etc.
  * This structure shall simplify the management.
  */
-#ifndef LIBUSB_HOST_DEVICE_KEEPER_H
-#define LIBUSB_HOST_DEVICE_KEEPER_H
+#ifndef LIBUSBHOST_HOST_DEVICE_KEEPER_H
+#define LIBUSBHOST_HOST_DEVICE_KEEPER_H
 
 #include <adt/list.h>
 #include <devman.h>

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * @brief USB HID Usage Tables.
  */
-#ifndef LIBUSB_HIDUT_H_
-#define LIBUSB_HIDUT_H_
+#ifndef LIBUSBHID_HIDUT_H_
+#define LIBUSBHID_HIDUT_H_
 
 /** USB/HID Usage Pages. */
 typedef enum {

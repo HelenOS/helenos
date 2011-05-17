@@ -34,8 +34,8 @@
  */
 
 #include "subdrivers.h"
-#include "usb/classes/hidut.h"
-#include "usb/classes/hidpath.h"
+#include <usb/hid/usages/core.h>
+#include <usb/hid/hidpath.h>
 
 #include "lgtch-ultrax/lgtch-ultrax.h"
 #include "mouse/mousedev.h"

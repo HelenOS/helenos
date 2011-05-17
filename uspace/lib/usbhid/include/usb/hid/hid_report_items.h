@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * @brief USB HID parser.
  */
-#ifndef LIBUSB_HID_REPORT_ITEMS_H_
-#define LIBUSB_HID_REPORT_ITEMS_H_
+#ifndef LIBUSBHID_HID_REPORT_ITEMS_H_
+#define LIBUSBHID_HID_REPORT_ITEMS_H_
 
 #include <stdint.h>
 

@@ -43,7 +43,7 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
-#include <usb/hub.h>
+#include <usb/dev/hub.h>
 #include <usb/host.h>
 
 #define NAME "lsusb"

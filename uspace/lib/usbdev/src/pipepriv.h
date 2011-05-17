@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * Library internal functions on USB pipes.
  */
-#ifndef LIBUSB_PIPEPRIV_H_
-#define LIBUSB_PIPEPRIV_H_
+#ifndef LIBUSBDEV_PIPEPRIV_H_
+#define LIBUSBDEV_PIPEPRIV_H_
 
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <bool.h>
 
 void pipe_acquire(usb_pipe_t *);

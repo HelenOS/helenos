@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * USB descriptor parser.
  */
-#ifndef LIBUSB_DP_H_
-#define LIBUSB_DP_H_
+#ifndef LIBUSBDEV_DP_H_
+#define LIBUSBDEV_DP_H_
 
 #include <sys/types.h>
 #include <usb/usb.h>

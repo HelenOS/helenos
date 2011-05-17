@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
- * HID class-specific requests.
+ * Client functions for accessing USB HID interface.
  */
+#ifndef LIBUSBHID_CLASSES_HID_IFACE_H_
+#define LIBUSBHID_CLASSES_HID_IFACE_H_
 
-#ifndef USB_KBD_HIDREQ_H_
-#define USB_KBD_HIDREQ_H_
+#include <sys/types.h>
 
-#include <stdint.h>
+int usbhid_dev_get_event_length(int);
+int usbhid_dev_get_event(int, uint16_t *, uint16_t *, size_t, size_t *,
+    unsigned int);
 
-#include <usb/classes/hid.h>
-#include <usb/pipes.h>
-
-/*----------------------------------------------------------------------------*/
-
-int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
-
-int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_protocol_t protocol);
-
-int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration);
-
-int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
-    size_t *actual_size);
-
-int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_protocol_t *protocol);
-
-int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
-
-/*----------------------------------------------------------------------------*/
-
-#endif /* USB_KBD_HIDREQ_H_ */
-
+#endif
 /**
  * @}
  */

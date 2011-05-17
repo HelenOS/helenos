@@ -36,10 +36,10 @@
 
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
-#include <usb/classes/hid.h>
-#include <usb/classes/hidparser.h>
-#include <usb/classes/hidreport.h>
-#include <usb/classes/hidreq.h>
+#include <usb/hid/hid.h>
+#include <usb/hid/hidparser.h>
+#include <usb/hid/hidreport.h>
+#include <usb/hid/request.h>
 #include <errno.h>
 #include <str_error.h>
 

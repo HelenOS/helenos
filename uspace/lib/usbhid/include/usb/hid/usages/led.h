@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * @brief USB HID Usage Tables - LED page.
  */
-#ifndef LIBUSB_UTLED_H_
-#define LIBUSB_UTLED_H_
+#ifndef LIBUSBHID_UTLED_H_
+#define LIBUSBHID_UTLED_H_
 
 typedef enum {
 	USB_HID_LED_UNDEFINED = 0,

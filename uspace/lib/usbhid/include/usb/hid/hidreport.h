@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
- * Functions needed by hub drivers.
- *
- * For class specific requests, see usb/classes/hub.h.
+ * USB HID report parser initialization from descriptors.
  */
-#ifndef LIBUSB_HUB_H_
-#define LIBUSB_HUB_H_
 
-#include <sys/types.h>
-#include <usb/usbdevice.h>
+#ifndef LIBUSBHID_HIDREPORT_H_
+#define LIBUSBHID_HIDREPORT_H_
 
-int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
-    int (*)(int, void *), int, void *,
-    usb_address_t *, devman_handle_t *,
-    ddf_dev_ops_t *, void *, ddf_fun_t **);
+#include <usb/dev/driver.h>
+#include <usb/hid/hidparser.h>
 
-/** Info about device attached to host controller.
+/**
+ * Retrieves the Report descriptor from the USB device and initializes the
+ * report parser.
  *
- * This structure exists only to keep the same signature of
- * usb_hc_register_device() when more properties of the device
- * would have to be passed to the host controller.
+ * \param dev USB device representing a HID device.
+ * \param parser HID Report parser.
+ *
+ * \retval EOK if successful.
+ * \retval EINVAL if one of the parameters is not given (is NULL).
+ * \retval ENOENT if there are some descriptors missing.
+ * \retval ENOMEM if an error with allocation occured.
+ * \retval EINVAL if the Report descriptor's size does not match the size 
+ *         from the interface descriptor.
+ * \return Other value inherited from function usb_pipe_start_session(),
+ *         usb_pipe_end_session() or usb_request_get_descriptor().
  */
-typedef struct {
-	/** Device address. */
-	usb_address_t address;
-	/** Devman handle of the device. */
-	devman_handle_t handle;
-} usb_hc_attached_device_t;
+int usb_hid_process_report_descriptor(usb_device_t *dev, 
+    usb_hid_report_t *report);
 
-usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
-int usb_hc_register_device(usb_hc_connection_t *,
-    const usb_hc_attached_device_t *);
-int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
-int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
-    devman_handle_t *);
+#endif /* LIBUSB_HIDREPORT_H_ */
 
-#endif
 /**
  * @}
  */
