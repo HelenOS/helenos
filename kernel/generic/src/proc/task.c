@@ -533,11 +533,9 @@ void task_kill_self(bool notify)
 	 * that's all you get.
 	*/
 	if (notify) {
-		if (event_is_subscribed(EVENT_FAULT)) {
-			/* Notify the subscriber that a fault occurred. */
-			event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
-			    UPPER32(TASK->taskid), (sysarg_t) THREAD);
-		
+		/* Notify the subscriber that a fault occurred. */
+		if (event_notify_3(EVENT_FAULT, false, LOWER32(TASK->taskid),
+		    UPPER32(TASK->taskid), (sysarg_t) THREAD) == EOK) {
 #ifdef CONFIG_UDEBUG
 			/* Wait for a debugging session. */
 			udebug_thread_fault();

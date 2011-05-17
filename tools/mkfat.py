@@ -189,21 +189,36 @@ def mangle_fname(name):
 	# FIXME: filter illegal characters
 	parts = name.split('.')
 	
-	if (len(parts) > 0):
+	if len(parts) > 0:
 		fname = parts[0]
 	else:
 		fname = ''
-		
+	
+	if len(fname) > 8:
+		sys.stdout.write("mkfat.py: error: Directory entry " + name +
+		    " base name is longer than 8 characters\n")
+		sys.exit(1);
+	
 	return (fname + '          ').upper()[0:8]
 
 def mangle_ext(name):
 	# FIXME: filter illegal characters
 	parts = name.split('.')
 	
-	if (len(parts) > 1):
+	if len(parts) > 1:
 		ext = parts[1]
 	else:
 		ext = ''
+	
+	if len(parts) > 2:
+		sys.stdout.write("mkfat.py: error: Directory entry " + name +
+		    " has more than one extension\n")
+		sys.exit(1);
+	
+	if len(ext) > 3:
+		sys.stdout.write("mkfat.py: error: Directory entry " + name +
+		    " extension is longer than 3 characters\n")
+		sys.exit(1);
 	
 	return (ext + '   ').upper()[0:3]
 

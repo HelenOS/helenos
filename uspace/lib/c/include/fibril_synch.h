@@ -35,14 +35,14 @@
 #ifndef LIBC_FIBRIL_SYNCH_H_
 #define LIBC_FIBRIL_SYNCH_H_
 
-#include <async.h>
 #include <fibril.h>
 #include <adt/list.h>
 #include <libarch/tls.h>
 #include <sys/time.h>
+#include <bool.h>
 
 typedef struct {
-	fibril_owner_info_t oi;		/* Keep this the first thing. */
+	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	int counter;
 	link_t waiters;
 } fibril_mutex_t;
@@ -63,7 +63,7 @@ typedef struct {
 	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name) 
 
 typedef struct {
-	fibril_owner_info_t oi;	/* Keep this the first thing. */
+	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	unsigned writers;
 	unsigned readers;
 	link_t waiters;

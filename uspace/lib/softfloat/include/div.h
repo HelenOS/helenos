@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -35,14 +35,12 @@
 #ifndef __DIV_H__
 #define __DIV_H__
 
-float32 divFloat32(float32 a, float32 b);
-float64 divFloat64(float64 a, float64 b);
+extern float32 divFloat32(float32, float32);
+extern float64 divFloat64(float64, float64);
 
-uint64_t divFloat64estim(uint64_t a, uint64_t b);
+extern uint64_t divFloat64estim(uint64_t, uint64_t);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

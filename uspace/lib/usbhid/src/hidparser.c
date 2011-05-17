@@ -45,7 +45,7 @@
  * Data translation private functions
  */
 uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size);
-inline size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset);
+//inline size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset);
 int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data);
 uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item, int32_t value);
 int usb_pow(int a, int b);

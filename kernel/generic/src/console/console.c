@@ -52,16 +52,7 @@
 #include <errno.h>
 #include <str.h>
 
-/*
- * devman produces a lot of output and by giving so many pages
- * we to allow /app/klog to catch-up.
- */
-#ifdef CONFIG_DEVMAN_EARLY_LAUNCH
-#define KLOG_PAGES    64
-#else
-#define KLOG_PAGES    4
-#endif
-
+#define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
 #define KLOG_LATENCY  8
 
@@ -173,6 +164,8 @@ void klog_init(void)
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
+
+	event_set_unmask_callback(EVENT_KLOG, klog_update);
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
@@ -273,9 +266,10 @@ void klog_update(void)
 {
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_inited) && (event_is_subscribed(EVENT_KLOG)) && (klog_uspace > 0)) {
-		event_notify_3(EVENT_KLOG, klog_start, klog_len, klog_uspace);
-		klog_uspace = 0;
+	if ((klog_inited) && (klog_uspace > 0)) {
+		if (event_notify_3(EVENT_KLOG, true, klog_start, klog_len,
+		    klog_uspace) == EOK)
+			klog_uspace = 0;
 	}
 	
 	spinlock_unlock(&klog_lock);

@@ -48,6 +48,7 @@
 
 #define NAME "lsusb"
 
+#define MAX_USB_ADDRESS USB11_ADDRESS_MAX
 #define MAX_FAILED_ATTEMPTS 10
 #define MAX_PATH_LENGTH 1024
 
@@ -75,7 +76,7 @@ static void print_hc_devices(devman_handle_t hc_handle)
 		return;
 	}
 	usb_address_t addr;
-	for (addr = 1; addr < 5; addr++) {
+	for (addr = 1; addr < MAX_USB_ADDRESS; addr++) {
 		devman_handle_t dev_handle;
 		rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
 		if (rc != EOK) {

@@ -47,24 +47,138 @@
 /** The events array. */
 static event_t events[EVENT_END];
 
-/** Initialize kernel events. */
+/** Initialize kernel events.
+ *
+ */
 void event_init(void)
 {
-	unsigned int i;
-	
-	for (i = 0; i < EVENT_END; i++) {
+	for (unsigned int i = 0; i < EVENT_END; i++) {
 		spinlock_initialize(&events[i].lock, "event.lock");
 		events[i].answerbox = NULL;
 		events[i].counter = 0;
 		events[i].imethod = 0;
+		events[i].masked = false;
+		events[i].unmask_cb = NULL;
 	}
 }
 
+/** Unsubscribe kernel events associated with an answerbox
+ *
+ * @param answerbox Answerbox to be unsubscribed.
+ *
+ */
+void event_cleanup_answerbox(answerbox_t *answerbox)
+{
+	for (unsigned int i = 0; i < EVENT_END; i++) {
+		spinlock_lock(&events[i].lock);
+		
+		if (events[i].answerbox == answerbox) {
+			events[i].answerbox = NULL;
+			events[i].counter = 0;
+			events[i].imethod = 0;
+			events[i].masked = false;
+		}
+		
+		spinlock_unlock(&events[i].lock);
+	}
+}
+
+/** Define a callback function for the event unmask event.
+ *
+ * @param evno Event type.
+ * @param cb   Callback function to be called when the event is unmasked.
+ *
+ */
+void event_set_unmask_callback(event_type_t evno, void (*cb)(void))
+{
+	ASSERT(evno < EVENT_END);
+	
+	spinlock_lock(&events[evno].lock);
+	events[evno].unmask_cb = cb;
+	spinlock_unlock(&events[evno].lock);
+}
+
+/** Send kernel notification event
+ *
+ * @param evno Event type.
+ * @param mask Mask further notifications after a successful
+ *             sending.
+ * @param a1   First argument.
+ * @param a2   Second argument.
+ * @param a3   Third argument.
+ * @param a4   Fourth argument.
+ * @param a5   Fifth argument.
+ *
+ * @return EOK if notification was successfully sent.
+ * @return ENOMEM if the notification IPC message failed to allocate.
+ * @return EBUSY if the notifications of the given type are
+ *         currently masked.
+ * @return ENOENT if the notifications of the given type are
+ *         currently not subscribed.
+ *
+ */
+int event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
+    sysarg_t a3, sysarg_t a4, sysarg_t a5)
+{
+	ASSERT(evno < EVENT_END);
+	
+	spinlock_lock(&events[evno].lock);
+	
+	int ret;
+	
+	if (events[evno].answerbox != NULL) {
+		if (!events[evno].masked) {
+			call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+			
+			if (call) {
+				call->flags |= IPC_CALL_NOTIF;
+				call->priv = ++events[evno].counter;
+				
+				IPC_SET_IMETHOD(call->data, events[evno].imethod);
+				IPC_SET_ARG1(call->data, a1);
+				IPC_SET_ARG2(call->data, a2);
+				IPC_SET_ARG3(call->data, a3);
+				IPC_SET_ARG4(call->data, a4);
+				IPC_SET_ARG5(call->data, a5);
+				
+				irq_spinlock_lock(&events[evno].answerbox->irq_lock, true);
+				list_append(&call->link, &events[evno].answerbox->irq_notifs);
+				irq_spinlock_unlock(&events[evno].answerbox->irq_lock, true);
+				
+				waitq_wakeup(&events[evno].answerbox->wq, WAKEUP_FIRST);
+				
+				if (mask)
+					events[evno].masked = true;
+				
+				ret = EOK;
+			} else
+				ret = ENOMEM;
+		} else
+			ret = EBUSY;
+	} else
+		ret = ENOENT;
+	
+	spinlock_unlock(&events[evno].lock);
+	
+	return ret;
+}
+
+/** Subscribe event notifications
+ *
+ * @param evno      Event type.
+ * @param imethod   IPC interface and method to be used for
+ *                  the notifications.
+ * @param answerbox Answerbox to send the notifications to.
+ *
+ * @return EOK if the subscription was successful.
+ * @return EEXISTS if the notifications of the given type are
+ *         already subscribed.
+ *
+ */
 static int event_subscribe(event_type_t evno, sysarg_t imethod,
     answerbox_t *answerbox)
 {
-	if (evno >= EVENT_END)
-		return ELIMIT;
+	ASSERT(evno < EVENT_END);
 	
 	spinlock_lock(&events[evno].lock);
 	
@@ -74,6 +188,7 @@ static int event_subscribe(event_type_t evno, sysarg_t imethod,
 		events[evno].answerbox = answerbox;
 		events[evno].imethod = imethod;
 		events[evno].counter = 0;
+		events[evno].masked = false;
 		res = EOK;
 	} else
 		res = EEXISTS;
@@ -83,67 +198,69 @@ static int event_subscribe(event_type_t evno, sysarg_t imethod,
 	return res;
 }
 
+/** Unmask event notifications
+ *
+ * @param evno Event type to unmask.
+ *
+ */
+static void event_unmask(event_type_t evno)
+{
+	void (*cb)(void);
+	ASSERT(evno < EVENT_END);
+	
+	spinlock_lock(&events[evno].lock);
+	events[evno].masked = false;
+	cb = events[evno].unmask_cb;
+	spinlock_unlock(&events[evno].lock);
+	
+	/*
+	 * Check if there is an unmask callback function defined for this event.
+	 */
+	if (cb)
+	    cb();
+}
+
+/** Event notification syscall wrapper
+ *
+ * @param evno    Event type to subscribe.
+ * @param imethod IPC interface and method to be used for
+ *                the notifications.
+ *
+ * @return EOK on success.
+ * @return ELIMIT on unknown event type.
+ * @return EEXISTS if the notifications of the given type are
+ *         already subscribed.
+ *
+ */
 sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t imethod)
 {
+	if (evno >= EVENT_END)
+		return ELIMIT;
+	
 	return (sysarg_t) event_subscribe((event_type_t) evno, (sysarg_t)
 	    imethod, &TASK->answerbox);
 }
 
-bool event_is_subscribed(event_type_t evno)
+/** Event notification unmask syscall wrapper
+ *
+ * Note that currently no tests are performed whether the calling
+ * task is entitled to unmask the notifications. However, thanks
+ * to the fact that notification masking is only a performance
+ * optimization, this has probably no security implications.
+ *
+ * @param evno Event type to unmask.
+ *
+ * @return EOK on success.
+ * @return ELIMIT on unknown event type.
+ *
+ */
+sysarg_t sys_event_unmask(sysarg_t evno)
 {
-	bool res;
+	if (evno >= EVENT_END)
+		return ELIMIT;
 	
-	ASSERT(evno < EVENT_END);
-	
-	spinlock_lock(&events[evno].lock);
-	res = events[evno].answerbox != NULL;
-	spinlock_unlock(&events[evno].lock);
-	
-	return res;
-}
-
-
-void event_cleanup_answerbox(answerbox_t *answerbox)
-{
-	unsigned int i;
-	
-	for (i = 0; i < EVENT_END; i++) {
-		spinlock_lock(&events[i].lock);
-		if (events[i].answerbox == answerbox) {
-			events[i].answerbox = NULL;
-			events[i].counter = 0;
-			events[i].imethod = 0;
-		}
-		spinlock_unlock(&events[i].lock);
-	}
-}
-
-void event_notify(event_type_t evno, sysarg_t a1, sysarg_t a2, sysarg_t a3,
-    sysarg_t a4, sysarg_t a5)
-{
-	ASSERT(evno < EVENT_END);
-	
-	spinlock_lock(&events[evno].lock);
-	if (events[evno].answerbox != NULL) {
-		call_t *call = ipc_call_alloc(FRAME_ATOMIC);
-		if (call) {
-			call->flags |= IPC_CALL_NOTIF;
-			call->priv = ++events[evno].counter;
-			IPC_SET_IMETHOD(call->data, events[evno].imethod);
-			IPC_SET_ARG1(call->data, a1);
-			IPC_SET_ARG2(call->data, a2);
-			IPC_SET_ARG3(call->data, a3);
-			IPC_SET_ARG4(call->data, a4);
-			IPC_SET_ARG5(call->data, a5);
-			
-			irq_spinlock_lock(&events[evno].answerbox->irq_lock, true);
-			list_append(&call->link, &events[evno].answerbox->irq_notifs);
-			irq_spinlock_unlock(&events[evno].answerbox->irq_lock, true);
-			
-			waitq_wakeup(&events[evno].answerbox->wq, WAKEUP_FIRST);
-		}
-	}
-	spinlock_unlock(&events[evno].lock);
+	event_unmask((event_type_t) evno);
+	return EOK;
 }
 
 /** @}

@@ -61,6 +61,7 @@ test_t tests[] = {
 #include "ipc/ping_pong.def"
 #include "loop/loop1.def"
 #include "mm/malloc1.def"
+#include "mm/malloc2.def"
 #include "mm/mapping1.def"
 #include "hw/serial/serial1.def"
 #include "hw/misc/virtchar1.def"

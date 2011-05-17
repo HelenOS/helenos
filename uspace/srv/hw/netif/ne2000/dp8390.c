@@ -52,6 +52,7 @@
 #include <assert.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <stdio.h>
 #include <libarch/ddi.h>
 #include <net/packet.h>
 #include <packet_client.h>
