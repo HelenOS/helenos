@@ -369,7 +369,6 @@ do { \
 	void *va = code->cmds[i].addr; \
 	if (AS != irq->driver_as) \
 		as_switch(AS, irq->driver_as); \
-	printf("Copying data from address: %p.\n", va); \
 	memcpy_from_uspace(&target, va, (sizeof(target))); \
 	if (dstarg) \
 		scratch[dstarg] = target; \
@@ -380,7 +379,6 @@ do { \
 	void *va = code->cmds[i].addr; \
 	if (AS != irq->driver_as) \
 		as_switch(AS, irq->driver_as); \
-	printf("Writing data to address: %p.\n", va); \
 	memcpy_to_uspace(va, &val, sizeof(val)); \
 } while (0)
 
@@ -456,7 +454,6 @@ do { \
 		case CMD_MEM_READ_32: {
 			uint32_t val;
 			CMD_MEM_READ(val);
-			printf("mem READ value: %x.\n", val);
 			break;
 			}
 		case CMD_MEM_WRITE_8: {

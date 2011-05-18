@@ -41,8 +41,7 @@
 #include "utils/malloc32.h"
 
 /** Structure maintains both OHCI queue and software list of active endpoints.*/
-typedef struct endpoint_list
-{
+typedef struct endpoint_list {
 	/** Guard against add/remove races */
 	fibril_mutex_t guard;
 	/** OHCI hw structure at the beginning of the queue */
@@ -68,11 +67,8 @@ static inline void endpoint_list_fini(endpoint_list_t *instance)
 }
 
 int endpoint_list_init(endpoint_list_t *instance, const char *name);
-
 void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
-
 void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
-
 void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
 #endif
 /**
