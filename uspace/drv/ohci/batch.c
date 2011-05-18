@@ -150,9 +150,9 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	data->ed = hcd_ep->ed;
 
 	/* NOTE: OHCI is capable of handling buffer that crosses page boundaries
-	 * it is, however, not capable of handling buffer that accupies more
-	 * than two pages (the first page is computete using start pointer, the
-	 * other using end pointer)*/
+	 * it is, however, not capable of handling buffer that occupies more
+	 * than two pages (the first page is computed using start pointer, the
+	 * other using the end pointer) */
         if (setup_size + buffer_size > 0) {
 		data->device_buffer = malloc32(setup_size + buffer_size);
                 CHECK_NULL_DISPOSE_RETURN(data->device_buffer,
@@ -179,15 +179,14 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	assert(instance);
 	ohci_transfer_batch_t *data = instance->private_data;
 	assert(data);
-	size_t tds = data->td_count;
 	usb_log_debug("Batch(%p) checking %zu td(s) for completion.\n",
-	    instance, tds);
+	    instance, data->td_count);
 	usb_log_debug("ED: %x:%x:%x:%x.\n",
 	    data->ed->status, data->ed->td_head, data->ed->td_tail,
 	    data->ed->next);
 	size_t i = 0;
 	instance->transfered_size = instance->buffer_size;
-	for (; i < tds; ++i) {
+	for (; i < data->td_count; ++i) {
 		assert(data->tds[i] != NULL);
 		usb_log_debug("TD %zu: %x:%x:%x:%x.\n", i,
 		    data->tds[i]->status, data->tds[i]->cbp, data->tds[i]->next,
@@ -212,8 +211,9 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(instance->ep);
 	assert(hcd_ep);
 	hcd_ep->td = data->tds[i];
-	if (i > 0)
-		instance->transfered_size -= td_remain_size(data->tds[i - 1]);
+	assert(i > 0);
+	for (--i;i < data->td_count; ++i)
+		instance->transfered_size -= td_remain_size(data->tds[i]);
 
 	/* Clear possible ED HALT */
 	data->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
