@@ -74,7 +74,7 @@ static inline void * malloc32(size_t size) {
 	if (size <= SLAB_ELEMENT_SIZE)
 		return slab_malloc_g();
 	usb_log_warning("Requested %zu bytes, current allocator can't handle "
-	    "that amount, pray that the standard malloc will suffice.");
+	    "that amount, pray that the standard malloc will suffice.", size);
 	return memalign(UHCI_STRCUTURES_ALIGNMENT, size);
 }
 /*----------------------------------------------------------------------------*/

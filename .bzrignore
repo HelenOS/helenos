@@ -52,6 +52,7 @@ _link-shlib.ld
 ./uspace/app/killall/killall
 ./uspace/app/klog/klog
 ./uspace/app/lsusb/lsusb
+./uspace/app/mkbd/mkbd
 ./uspace/app/mkfat/mkfat
 ./uspace/app/netstart/netstart
 ./uspace/app/netecho/netecho
