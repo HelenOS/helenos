@@ -55,42 +55,43 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	assert(instance);
 	assert(hub_fun);
 
-	int ret;
-
-	usb_address_t hub_address =
+	const usb_address_t hub_address =
 	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
 	if (hub_address <= 0) {
-		usb_log_error("Failed to get OHCI root hub address.\n");
+		usb_log_error("Failed(%d) to get OHCI root hub address.\n",
+		    hub_address);
 		return hub_address;
 	}
 	instance->rh.address = hub_address;
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
-	ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
+#define CHECK_RET_RELEASE(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	hc_remove_endpoint(instance, hub_address, 0, USB_DIRECTION_BOTH); \
+	usb_device_keeper_release(&instance->manager, hub_address); \
+	return ret; \
+} else (void)0
+
+	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
 	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
-	if (ret != EOK) {
-		usb_log_error("Failed to add OHCI rh endpoint 0.\n");
-		usb_device_keeper_release(&instance->manager, hub_address);
-		return ret;
-	}
+	CHECK_RET_RELEASE(ret, "Failed(%d) to add OHCI rh endpoint 0.\n", ret);
 
 	char *match_str = NULL;
 	/* DDF needs heap allocated string */
 	ret = asprintf(&match_str, "usb&class=hub");
-	if (ret < 0) {
-		usb_log_error(
-		    "Failed(%d) to create root hub match-id string.\n", ret);
-		usb_device_keeper_release(&instance->manager, hub_address);
-		return ret;
-	}
+	ret = ret > 0 ? 0 : ret;
+	CHECK_RET_RELEASE(ret, "Failed(%d) to create match-id string.\n", ret);
 
 	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
-	if (ret != EOK) {
-		usb_log_error("Failed add root hub match-id.\n");
-	}
+	CHECK_RET_RELEASE(ret, "Failed(%d) add root hub match-id.\n", ret);
+
 	ret = ddf_fun_bind(hub_fun);
-	return ret;
+	CHECK_RET_RELEASE(ret, "Failed(%d) to bind root hub function.\n", ret);
+
+	return EOK;
+#undef CHECK_RET_RELEASE
 }
 /*----------------------------------------------------------------------------*/
 int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
@@ -120,10 +121,8 @@ if (ret != EOK) { \
 	    str_error(ret));
 #undef CHECK_RET_RETURN
 
-
-//	hc_init_hw(instance);
-	hc_gain_control(instance);
 	fibril_mutex_initialize(&instance->guard);
+	hc_gain_control(instance);
 
 	rh_init(&instance->rh, instance->registers);
 
