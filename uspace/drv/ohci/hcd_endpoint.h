@@ -36,13 +36,13 @@
 
 #include <assert.h>
 #include <adt/list.h>
-
 #include <usb/host/endpoint.h>
 
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
 
-typedef struct hcd_endpoint {
+typedef struct hcd_endpoint
+{
 	ed_t *ed;
 	td_t *td;
 	link_t link;

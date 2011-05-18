@@ -292,7 +292,6 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	if (status & I_RHSC)
 		rh_interrupt(&instance->rh);
 
-
 	if (status & I_WDH) {
 		fibril_mutex_lock(&instance->guard);
 		usb_log_debug2("HCCA: %p-%#" PRIx32 " (%p).\n", instance->hcca,
@@ -315,6 +314,11 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		}
 		fibril_mutex_unlock(&instance->guard);
 	}
+
+	if (status & I_UE) {
+		hc_start_hw(instance);
+	}
+
 }
 /*----------------------------------------------------------------------------*/
 int interrupt_emulator(hc_t *instance)
@@ -449,7 +453,6 @@ void hc_start_hw(hc_t *instance)
 int hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
-
 #define SETUP_ENDPOINT_LIST(type) \
 do { \
 	const char *name = usb_str_transfer_type(type); \
@@ -457,7 +460,7 @@ do { \
 	if (ret != EOK) { \
 		usb_log_error("Failed(%d) to setup %s endpoint list.\n", \
 		    ret, name); \
-		endpoint_list_fini(&instance->lists[USB_TRANSFER_ISOCHRONOUS]); \
+		endpoint_list_fini(&instance->lists[USB_TRANSFER_ISOCHRONOUS]);\
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_INTERRUPT]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_CONTROL]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_BULK]); \
