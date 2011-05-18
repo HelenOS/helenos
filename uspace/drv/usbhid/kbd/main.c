@@ -40,7 +40,7 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 
 #include "kbddev.h"
 #include "kbdrepeat.h"

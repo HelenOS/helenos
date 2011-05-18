@@ -33,7 +33,7 @@
  * Control transfer handling.
  */
 #include "private.h"
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <usb/debug.h>
 #include <assert.h>
 #include <errno.h>

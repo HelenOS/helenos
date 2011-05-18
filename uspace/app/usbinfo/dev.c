@@ -33,10 +33,10 @@
  * @file
  * Representation of queried device.
  */
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <errno.h>
 #include <str_error.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include "usbinfo.h"
 
 usbinfo_device_t *prepare_device(const char *name,

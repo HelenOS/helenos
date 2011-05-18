@@ -40,11 +40,11 @@
 
 #include <fibril_synch.h>
 
-#include <usb/classes/hid.h>
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hid.h>
+#include <usb/hid/hidparser.h>
 #include <ddf/driver.h>
-#include <usb/pipes.h>
-#include <usb/devdrv.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
 
 #include "kbdrepeat.h"
 
@@ -82,6 +82,9 @@ typedef struct usb_kbd_t {
 	/** IPC phone to the console device (for sending key events). */
 	int console_phone;
 	
+	/** @todo What is this actually? */
+	ddf_dev_ops_t ops;
+	
 	/** Information for auto-repeat of keys. */
 	usb_kbd_repeat_t repeat;
 	
@@ -116,10 +119,10 @@ const char *HID_KBD_CLASS_NAME;
 
 /*----------------------------------------------------------------------------*/
 
-int usb_kbd_init(struct usb_hid_dev *hid_dev);
+int usb_kbd_init(struct usb_hid_dev *hid_dev, void **data);
 
-bool usb_kbd_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
-    size_t buffer_size);
+bool usb_kbd_polling_callback(struct usb_hid_dev *hid_dev, void *data, 
+                              uint8_t *buffer, size_t buffer_size);
 
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev);
 
@@ -130,7 +133,7 @@ void usb_kbd_free(usb_kbd_t **kbd_dev);
 void usb_kbd_push_ev(struct usb_hid_dev *hid_dev, usb_kbd_t *kbd_dev,
     int type, unsigned int key);
 
-void usb_kbd_deinit(struct usb_hid_dev *hid_dev);
+void usb_kbd_deinit(struct usb_hid_dev *hid_dev, void *data);
 
 int usb_kbd_set_boot_protocol(struct usb_hid_dev *hid_dev);
 

@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * Functions needed by hub drivers.
  */
-#include <usb/hub.h>
-#include <usb/pipes.h>
-#include <usb/request.h>
-#include <usb/recognise.h>
+#include <usb/dev/hub.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/request.h>
+#include <usb/dev/recognise.h>
 #include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>

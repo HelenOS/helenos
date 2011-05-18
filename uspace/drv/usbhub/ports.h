@@ -35,8 +35,8 @@
 #ifndef DRV_USBHUB_PORTS_H
 #define DRV_USBHUB_PORTS_H
 
-#include <usb/devdrv.h>
-#include <usb/hub.h>
+#include <usb/dev/driver.h>
+#include <usb/dev/hub.h>
 
 typedef struct usb_hub_info_t usb_hub_info_t;
 

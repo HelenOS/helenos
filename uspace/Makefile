@@ -58,6 +58,7 @@ DIRS = \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
+	app/mkbd \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -121,7 +122,6 @@ ifeq ($(UARCH),amd64)
 		drv/uhci-hcd \
 		drv/uhci-rhd \
 		drv/usbflbk \
-		drv/usbkbd \
 		drv/usbhid \
 		drv/usbhub \
 		drv/usbmast \
@@ -143,7 +143,6 @@ ifeq ($(UARCH),ia32)
 		drv/uhci-hcd \
 		drv/uhci-rhd \
 		drv/usbflbk \
-		drv/usbkbd \
 		drv/usbhid \
 		drv/usbhub \
 		drv/usbmast \

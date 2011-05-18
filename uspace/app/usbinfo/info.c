@@ -36,9 +36,9 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <errno.h>
-#include <usb/pipes.h>
-#include <usb/recognise.h>
-#include <usb/request.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/recognise.h>
+#include <usb/dev/request.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/hub.h>
 #include "usbinfo.h"

@@ -34,7 +34,6 @@ EXTRA_CFLAGS += \
 	-Iinclude
 
 SOURCES = \
-	src/addrkeep.c \
 	src/batch.c \
 	src/device_keeper.c \
 	src/endpoint.c \

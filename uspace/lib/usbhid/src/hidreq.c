@@ -37,12 +37,12 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/classes/hid.h>
+#include <usb/hid/hid.h>
 #include <usb/debug.h>
-#include <usb/request.h>
-#include <usb/pipes.h>
+#include <usb/dev/request.h>
+#include <usb/dev/pipes.h>
 
-#include <usb/classes/hidreq.h>
+#include <usb/hid/request.h>
 
 /*----------------------------------------------------------------------------*/
 /**

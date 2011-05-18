@@ -38,19 +38,21 @@
 
 #include <stdint.h>
 
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hidparser.h>
 #include <ddf/driver.h>
-#include <usb/pipes.h>
-#include <usb/devdrv.h>
-#include <usb/classes/hid.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
+#include <usb/hid/hid.h>
 #include <bool.h>
 
 struct usb_hid_dev;
 
-typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *);
-typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *);
-typedef bool (*usb_hid_driver_poll)(struct usb_hid_dev *, uint8_t *, size_t);
-typedef int (*usb_hid_driver_poll_ended)(struct usb_hid_dev *, bool reason);
+typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *, void **data);
+typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *, void *data);
+typedef bool (*usb_hid_driver_poll)(struct usb_hid_dev *, void *data, uint8_t *,
+                                    size_t);
+typedef int (*usb_hid_driver_poll_ended)(struct usb_hid_dev *, void *data, 
+                                         bool reason);
 
 // TODO: add function and class name??
 typedef struct usb_hid_subdriver {	
@@ -62,6 +64,8 @@ typedef struct usb_hid_subdriver {
 	usb_hid_driver_poll poll;
 	/** Function to be called when polling ends. */
 	usb_hid_driver_poll_ended poll_end;
+	/** Arbitrary data needed by the subdriver. */
+	void *data;
 } usb_hid_subdriver_t;
 
 /*----------------------------------------------------------------------------*/
@@ -71,9 +75,6 @@ typedef struct usb_hid_subdriver {
 typedef struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
-	
-	/** @todo What is this actually? */
-	ddf_dev_ops_t ops;
 	
 	/** Index of the polling pipe in usb_hid_endpoints array. */
 	int poll_pipe_index;
@@ -96,9 +97,6 @@ typedef struct usb_hid_dev {
 	uint8_t *input_report;
 	
 	size_t input_report_size;
-	
-	/** Arbitrary data (e.g. a special structure for handling keyboard). */
-	void *data;
 } usb_hid_dev_t;
 
 /*----------------------------------------------------------------------------*/

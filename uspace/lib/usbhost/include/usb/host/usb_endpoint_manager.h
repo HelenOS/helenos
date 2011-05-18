@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup libusb
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
@@ -36,8 +36,8 @@
  * State of toggle bit, device speed etc. etc.
  * This structure shall simplify the management.
  */
-#ifndef LIBUSB_HOST_USB_ENDPOINT_MANAGER_H
-#define LIBUSB_HOST_YSB_ENDPOINT_MANAGER_H
+#ifndef LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
+#define LIBUSBHOST_HOST_YSB_ENDPOINT_MANAGER_H
 
 #include <stdlib.h>
 #include <adt/hash_table.h>
