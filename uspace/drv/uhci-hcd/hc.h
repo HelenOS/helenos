@@ -94,7 +94,7 @@ typedef struct uhci_regs {
 #define UHCI_ALLOWED_HW_FAIL 5
 #define UHCI_NEEDED_IRQ_COMMANDS 5
 
-/* Main HC driver structure */
+/** Main UHCI driver structure */
 typedef struct hc {
 	/** USB bus driver, devices and addresses */
 	usb_device_keeper_t manager;

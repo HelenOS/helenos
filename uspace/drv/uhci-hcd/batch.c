@@ -94,7 +94,8 @@ static void uhci_transfer_batch_dispose(void *uhci_batch)
  * Initializes parameters needed for the transfer and callback.
  */
 usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
-    char *buffer, size_t buffer_size, char* setup_buffer, size_t setup_size,
+    char *buffer, size_t buffer_size,
+    const char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg)
 {

@@ -56,7 +56,7 @@ static void hc_init_hw(hc_t *instance);
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 /*----------------------------------------------------------------------------*/
-/** Initialize UHCI hcd driver structure
+/** Initialize UHCI hc driver structure
  *
  * @param[in] instance Memory place to initialize.
  * @param[in] regs Address of I/O control registers.

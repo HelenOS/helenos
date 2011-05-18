@@ -99,7 +99,8 @@ static void ohci_transfer_batch_dispose(void *ohci_batch)
  * Allocates and initializes structures needed by the OHCI hw for the transfer.
  */
 usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
-    char *buffer, size_t buffer_size, char* setup_buffer, size_t setup_size,
+    char *buffer, size_t buffer_size,
+    const char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg)
 {
@@ -119,7 +120,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    NULL, setup_size, func_in, func_out, arg, fun, NULL,
 	    ohci_transfer_batch_dispose);
 
-	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
+	const hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
 	assert(hcd_ep);
 
 	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
@@ -128,6 +129,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 
 	data->td_count =
 	    ((buffer_size + OHCI_TD_MAX_TRANSFER - 1) / OHCI_TD_MAX_TRANSFER);
+	/* Control transfer need Setup and Status stage */
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
 		data->td_count += 2;
 	}
@@ -406,8 +408,8 @@ void batch_data(usb_transfer_batch_t *instance)
 	size_t remain_size = instance->buffer_size;
 	char *buffer = instance->data_buffer;
 	while (remain_size > 0) {
-		size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER ?
-		    OHCI_TD_MAX_TRANSFER : remain_size;
+		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
+		    ? OHCI_TD_MAX_TRANSFER : remain_size;
 
 		td_init(data->tds[td_current], instance->ep->direction,
 		    buffer, transfer_size, -1);
