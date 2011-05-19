@@ -94,13 +94,13 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 	
 	printf("\n");
 	
-	printf("THE=%p", THE);
+	printf("THE=%p: ", THE);
 	if (THE != NULL) {
-		printf(": pe=%" PRIun " thr=%p task=%p cpu=%p as=%p",
+		printf("pe=%" PRIun " thr=%p task=%p cpu=%p as=%p magic=%#x\n",
 		    THE->preemption_disabled, THE->thread, THE->task,
-		    THE->cpu, THE->as);
-	}
-	printf("\n");
+		    THE->cpu, THE->as, THE->magic);
+	} else
+		printf("invalid\n");
 	
 	if (istate) {
 		istate_decode(istate);
