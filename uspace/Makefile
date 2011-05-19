@@ -91,6 +91,11 @@ DIRS = \
 	drv/test1 \
 	drv/test2
 
+ifeq ($(CONFIG_BINUTILS),y)
+DIRS += \
+	app/binutils
+endif
+
 ## Networking
 #
 

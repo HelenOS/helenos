@@ -155,6 +155,12 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
 	$(USPACE_PATH)/app/websrv/websrv
 
+ifeq ($(CONFIG_BINUTILS),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/binutils/as \
+	$(USPACE_PATH)/app/binutils/ld
+endif
+
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
