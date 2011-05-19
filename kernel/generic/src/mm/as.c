@@ -481,7 +481,7 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 	}
 	
 	/*
-	 * Search the leaf node and the righmost record of its left neighbour
+	 * Search the leaf node and the rightmost record of its left neighbour
 	 * to find out whether this is a miss or va belongs to an address
 	 * space area found there.
 	 */
@@ -493,9 +493,9 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 		area = (as_area_t *) leaf->value[i];
 		
 		mutex_lock(&area->lock);
-		
-		if ((area->base <= va) &&
-		    (va < area->base + (area->pages << PAGE_WIDTH)))
+
+		size_t size = area->pages << PAGE_WIDTH;
+		if ((area->base <= va) && (va <= area->base + (size - 1)))
 			return area;
 		
 		mutex_unlock(&area->lock);
