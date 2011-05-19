@@ -30,14 +30,14 @@
 
 #
 # This shell script is reserved for intrusive patches (hacks) to binutils
-# that are not possible to be done in a clean and isolated way or for
-# which doing so would require too much complexity.
+# that cannot be done in a clean and isolated way or for which doing so 
+# would require too much complexity.
 #
 
 case "$1" in
 	"do")
 		# Binutils plugin support is dependent on libdl.so library.
-		# By default, the plugin support is switched of for all
+		# By default, the plugin support is switched off for all
 		# configure scripts of binutils. The only exception is configure
 		# script of ld 2.21 (and possibly above), where plugin support
 		# became mandatory (although not really needed). 

@@ -31,7 +31,7 @@
 #
 # This script is reserved for transformation of native
 # uspace/Makefile.common so it would be compatible with ported
-# application and its operation could be intercepted.
+# application and its operations could be intercepted.
 #
 
 # Rename 'all' target so it can be hijacked.

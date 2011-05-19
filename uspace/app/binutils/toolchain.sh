@@ -56,62 +56,78 @@
 
 case "$1" in
 	"gcc")
-		echo '#! /bin/bash' > 'gcc'
-		echo 'AS_LINK="`echo $* | grep '\'as-new\''`"' >> 'gcc'
-		echo 'LD_LINK="`echo $* | grep '\'ld-new\''`"' >> 'gcc'
-		echo 'LINK="`echo -n "$AS_LINK""$LD_LINK"`"' >> 'gcc'
-		echo 'if [ -n "$LINK" ]; then' >> 'gcc'
-		echo '	LD_ARGS="`echo $* | \' >> 'gcc'
-		echo '		sed '\'s/-O[^ ]*//g\'' | \' >> 'gcc'
-		echo '		sed '\'s/-W[^ ]*//g\'' | \' >> 'gcc'
-		echo '		sed '\'s/-g//g\'' | \' >> 'gcc'
-		echo '		sed '\'s/-l[^ ]*//g\'' | \' >> 'gcc'
-		echo '		sed '\'s/ [ ]*/ /g\''`"' >> 'gcc'
-		echo '	ld "$LD_ARGS"' >> 'gcc'
-		echo 'else' >> 'gcc'
+		(
+		echo '#! /bin/bash'
+		echo 'AS_LINK="`echo $* | grep '\'as-new\''`"'
+		echo 'LD_LINK="`echo $* | grep '\'ld-new\''`"'
+		echo 'LINK="`echo -n "$AS_LINK""$LD_LINK"`"'
+		echo 'if [ -n "$LINK" ]; then'
+		echo '	LD_ARGS="`echo $* | \'
+		echo '		sed '\'s/-O[^ ]*//g\'' | \'
+		echo '		sed '\'s/-W[^ ]*//g\'' | \'
+		echo '		sed '\'s/-g//g\'' | \'
+		echo '		sed '\'s/-l[^ ]*//g\'' | \'
+		echo '		sed '\'s/ [ ]*/ /g\''`"'
+		echo '	ld "$LD_ARGS"'
+		echo 'else'
 		CFLAGS="`echo "$3" | \
 			sed 's/-O[^ ]*//g' | \
 			sed 's/-W[^ ]*//g' | \
 			sed 's/-pipe//g' | \
 			sed 's/-g//g' | \
 			sed 's/ [ ]*/ /g'`"
-		echo "	$2" "$CFLAGS" '$@' >> 'gcc'
-		echo 'fi' >> 'gcc'
+		echo "	$2" "$CFLAGS" '$@'
+		echo 'fi'
+		) > 'gcc'
 		chmod a+x 'gcc'
 		;;
 	"as")
-		echo '#! /bin/bash' > 'as'
-		echo "$2" '$@' >> 'as'
+		(
+		echo '#! /bin/bash'
+		echo "$2" '$@'
+		) > 'as'
 		chmod a+x 'as'
 		;;
 	"ar")
-		echo '#! /bin/bash' > 'ar'
-		echo "$2" '$@' >> 'ar'
+		(
+		echo '#! /bin/bash'
+		echo "$2" '$@'
+		) > 'ar'
 		chmod a+x 'ar'
 		;;
 	"ranlib")
-		echo '#! /bin/bash' > 'ranlib'
-		echo "ar -s" '$@' >> 'ranlib'
+		(
+		echo '#! /bin/bash'
+		echo "ar -s" '$@'
+		) > 'ranlib'
 		chmod a+x 'ranlib'
 		;;
 	"ld")
-		echo '#! /bin/bash' > 'ld'
-		echo "$2 -n $3 -T $4" '$@' "$5" >> 'ld'
+		(
+		echo '#! /bin/bash'
+		echo "$2 -n $3 -T $4" '$@' "$5"
+		) > 'ld'
 		chmod a+x 'ld'
 		;;
 	"objdump")
-		echo '#! /bin/bash' > 'objdump'
-		echo "$2" '$@' >> 'objdump'
+		(
+		echo '#! /bin/bash'
+		echo "$2" '$@'
+		) > 'objdump'
 		chmod a+x 'objdump'
 		;;
 	"objcopy")
-		echo '#! /bin/bash' > 'objcopy'
-		echo "$2" '$@' >> 'objcopy'
+		(
+		echo '#! /bin/bash'
+		echo "$2" '$@'
+		) > 'objcopy'
 		chmod a+x 'objcopy'
 		;;
 	"strip")
-		echo '#! /bin/bash' > 'strip'
-		echo "$2" '$@' >> 'strip'
+		(
+		echo '#! /bin/bash'
+		echo "$2" '$@'
+		) > 'strip'
 		chmod a+x 'strip'
 		;;
 	*)
