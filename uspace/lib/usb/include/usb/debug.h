@@ -80,8 +80,11 @@ typedef enum {
 } usb_log_level_t;
 
 /** Default log level. */
-#define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_DEBUG
-
+#ifdef CONFIG_USB_RELEASE_BUILD
+#  define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_INFO
+#else
+#  define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_DEBUG
+#endif
 
 void usb_log_enable(usb_log_level_t, const char *);
 

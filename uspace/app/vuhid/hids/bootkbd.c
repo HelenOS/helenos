@@ -35,8 +35,8 @@
 #include "../virthid.h"
 #include <errno.h>
 #include <usb/debug.h>
-#include <usb/classes/hid.h>
-#include <usb/classes/hidut.h>
+#include <usb/hid/hid.h>
+#include <usb/hid/usages/core.h>
 
 #include "../report.h"
 

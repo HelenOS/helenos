@@ -4,10 +4,6 @@
 #include <usbvirt/ipc.h>
 #include "vhcd.h"
 
-#define list_foreach(pos, head) \
-	for (pos = (head)->next; pos != (head); \
-        	pos = pos->next)
-
 vhc_transfer_t *vhc_transfer_create(usb_address_t address, usb_endpoint_t ep,
     usb_direction_t dir, usb_transfer_type_t tr_type,
     ddf_fun_t *fun, void *callback_arg)
@@ -66,9 +62,8 @@ int vhc_virtdev_add_transfer(vhc_data_t *vhc, vhc_transfer_t *transfer)
 {
 	fibril_mutex_lock(&vhc->guard);
 
-	link_t *pos;
 	bool target_found = false;
-	list_foreach(pos, &vhc->devices) {
+	list_foreach(vhc->devices, pos) {
 		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
 		fibril_mutex_lock(&dev->guard);
 		if (dev->address == transfer->address) {
@@ -160,6 +155,38 @@ static int process_transfer_remote(vhc_transfer_t *transfer,
 	return rc;
 }
 
+static vhc_transfer_t *dequeue_first_transfer(vhc_virtdev_t *dev)
+{
+	assert(fibril_mutex_is_locked(&dev->guard));
+	assert(!list_empty(&dev->transfer_queue));
+
+	vhc_transfer_t *transfer = list_get_instance(dev->transfer_queue.next,
+	    vhc_transfer_t, link);
+	list_remove(&transfer->link);
+
+	return transfer;
+}
+
+
+static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
+    size_t data_transfer_size, int outcome)
+{
+	assert(outcome != ENAK);
+
+	usb_log_debug2("Transfer %p ended: %s.\n",
+	    transfer, str_error(outcome));
+
+	if (transfer->direction == USB_DIRECTION_IN) {
+		transfer->callback_in(transfer->ddf_fun, outcome,
+		    data_transfer_size, transfer->callback_arg);
+	} else {
+		assert(transfer->direction == USB_DIRECTION_OUT);
+		transfer->callback_out(transfer->ddf_fun, outcome,
+		    transfer->callback_arg);
+	}
+
+	free(transfer);
+}
 
 int vhc_transfer_queue_processor(void *arg)
 {
@@ -173,9 +200,7 @@ int vhc_transfer_queue_processor(void *arg)
 			continue;
 		}
 
-		vhc_transfer_t *transfer = list_get_instance(dev->transfer_queue.next,
-		    vhc_transfer_t, link);
-		list_remove(&transfer->link);
+		vhc_transfer_t *transfer = dequeue_first_transfer(dev);
 		fibril_mutex_unlock(&dev->guard);
 
 		int rc = EOK;
@@ -213,26 +238,21 @@ int vhc_transfer_queue_processor(void *arg)
 		fibril_mutex_unlock(&dev->guard);
 
 		if (rc != ENAK) {
-			usb_log_debug2("Transfer %p ended: %s.\n",
-			    transfer, str_error(rc));
-			if (transfer->direction == USB_DIRECTION_IN) {
-				transfer->callback_in(transfer->ddf_fun, rc,
-				    data_transfer_size, transfer->callback_arg);
-			} else {
-				assert(transfer->direction == USB_DIRECTION_OUT);
-				transfer->callback_out(transfer->ddf_fun, rc,
-				    transfer->callback_arg);
-			}
-			free(transfer);
+			execute_transfer_callback_and_free(transfer,
+			    data_transfer_size, rc);
 		}
 
 		async_usleep(1000 * 100);
 		fibril_mutex_lock(&dev->guard);
 	}
 
-	fibril_mutex_unlock(&dev->guard);
+	/* Immediately fail all remaining transfers. */
+	while (!list_empty(&dev->transfer_queue)) {
+		vhc_transfer_t *transfer = dequeue_first_transfer(dev);
+		execute_transfer_callback_and_free(transfer, 0, EBADCHECKSUM);
+	}
 
-	// TODO - destroy pending transfers
+	fibril_mutex_unlock(&dev->guard);
 
 	return EOK;
 }

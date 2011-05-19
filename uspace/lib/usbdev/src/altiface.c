@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * Handling alternate interface settings.
  */
-#include <usb/devdrv.h>
-#include <usb/request.h>
+#include <usb/dev/driver.h>
+#include <usb/dev/request.h>
 #include <usb/debug.h>
-#include <usb/dp.h>
+#include <usb/dev/dp.h>
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>

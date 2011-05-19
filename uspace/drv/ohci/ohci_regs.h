@@ -25,7 +25,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvusbohcihc
  * @{
  */
@@ -36,8 +35,8 @@
 #define DRV_OHCI_OHCI_REGS_H
 #include <stdint.h>
 
-typedef struct ohci_regs
-{
+/** OHCI memory mapped registers structure */
+typedef struct ohci_regs {
 	const volatile uint32_t revision;
 	volatile uint32_t control;
 #define C_CSBR_MASK (0x3) /* Control-bulk service ratio */

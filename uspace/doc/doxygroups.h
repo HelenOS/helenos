@@ -171,9 +171,28 @@
  * @brief USB support for HelenOS.
  */
 	/**
-	 * @defgroup libusb USB library
+	 * @defgroup libusb Base USB library
 	 * @ingroup usb
-	 * @brief Library for creating USB devices drivers.
+	 * @brief Common definitions for any driver or application
+	 * dealing with USB.
+	 */
+
+	/**
+	 * @defgroup libusbdev USB library for device drivers
+	 * @ingroup usb
+	 * @brief Library for writing drivers of endpoint devices (functions).
+	 */
+
+	/**
+	 * @defgroup libusbhost USB library for host controller drivers
+	 * @ingroup usb
+	 * @brief Library for writing host controller drivers.
+	 */
+
+	/**
+	 * @defgroup libusbhid USB library for HID devices
+	 * @ingroup usb
+	 * @brief Library for writing USB HID drivers.
 	 */
 
 	/**

@@ -36,7 +36,7 @@
 #ifndef USB_HID_MULTIMEDIA_H_
 #define USB_HID_MULTIMEDIA_H_
 
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 
 struct usb_hid_dev;
 

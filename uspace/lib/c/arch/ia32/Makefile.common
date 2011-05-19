@@ -27,7 +27,7 @@
 #
 
 CLANG_ARCH = i386
-GCC_CFLAGS += -march=pentium
+GCC_CFLAGS += -march=pentium -fno-omit-frame-pointer
 
 ENDIANESS = LE
 

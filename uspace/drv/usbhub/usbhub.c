@@ -41,18 +41,18 @@
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/descriptor.h>
-#include <usb/recognise.h>
-#include <usb/request.h>
+#include <usb/dev/recognise.h>
+#include <usb/dev/request.h>
 #include <usb/classes/hub.h>
-#include <usb/devpoll.h>
+#include <usb/dev/poll.h>
 #include <stdio.h>
 
 #include "usbhub.h"
 #include "usbhub_private.h"
 #include "port_status.h"
-#include "usb/usb.h"
-#include "usb/pipes.h"
-#include "usb/classes/classes.h"
+#include <usb/usb.h>
+#include <usb/dev/pipes.h>
+#include <usb/classes/classes.h>
 
 
 static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev);
@@ -70,6 +70,9 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status);
 
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
+
+static void usb_hub_polling_terminted_callback(usb_device_t * device,
+    bool was_error, void * data);
 
 
 //*********************************************
@@ -350,7 +353,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 
 	rc = usb_device_auto_poll(hub_info->usb_device, 0,
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
-	    NULL, hub_info);
+	    usb_hub_polling_terminted_callback, hub_info);
 	if (rc != EOK) {
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(rc));
@@ -486,6 +489,25 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
 		usb_process_hub_power_change(hub_info, status);
 	}
 }
+
+/**
+ * callback called from hub polling fibril when the fibril terminates
+ *
+ * Should perform a cleanup - deletes hub_info.
+ * @param device usb device afected
+ * @param was_error indicates that the fibril is stoped due to an error
+ * @param data pointer to usb_hub_info_t structure
+ */
+static void usb_hub_polling_terminted_callback(usb_device_t * device,
+    bool was_error, void * data){
+	usb_hub_info_t * hub_info = data;
+	if(!hub_info) return;
+	free(hub_info->ports);
+	free(hub_info);
+}
+
+
+
 
 /**
  * @}

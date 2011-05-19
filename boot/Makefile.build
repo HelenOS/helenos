@@ -39,7 +39,7 @@ GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
+	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
@@ -110,7 +110,7 @@ $(BOOT_OUTPUT): $(RAW)
 	$(OBJCOPY) -O $(BFD_OUTPUT) $< $@
 
 $(RAW): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
-	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(COMPONENT_OBJECTS) $(OBJECTS)
+	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(COMPONENT_OBJECTS) $(OBJECTS)
 
 $(LINK): $(LINK).comp $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).comp | grep -v "^\#" > $(LINK)

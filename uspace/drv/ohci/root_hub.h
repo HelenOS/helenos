@@ -25,7 +25,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvusbohci
  * @{
  */
@@ -36,7 +35,7 @@
 #define DRV_OHCI_ROOT_HUB_H
 
 #include <usb/usb.h>
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 
 #include "ohci_regs.h"
 #include "batch.h"

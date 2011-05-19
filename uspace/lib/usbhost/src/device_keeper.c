@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
@@ -157,7 +157,8 @@ usb_address_t usb_device_keeper_find(
 	return ENOENT;
 }
 
-/** Find devman handled assigned to USB address.
+/** Find devman handle assigned to USB address.
+ * Intentionally refuse to find handle of default address.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] address Address the caller wants to find.
@@ -169,7 +170,7 @@ bool usb_device_keeper_find_by_address(usb_device_keeper_t *instance,
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
-	if ((address < 0) || (address >= USB_ADDRESS_COUNT)) {
+	if ((address <= 0) || (address >= USB_ADDRESS_COUNT)) {
 		fibril_mutex_unlock(&instance->guard);
 		return false;
 	}

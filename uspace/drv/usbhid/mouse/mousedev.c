@@ -36,9 +36,9 @@
 
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
-#include <usb/classes/hid.h>
-#include <usb/classes/hidreq.h>
-#include <usb/classes/hidut.h>
+#include <usb/hid/hid.h>
+#include <usb/hid/request.h>
+#include <usb/hid/usages/core.h>
 #include <errno.h>
 #include <str_error.h>
 #include <ipc/mouse.h>

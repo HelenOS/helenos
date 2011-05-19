@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
  *
  */
-#ifndef LIBUSB_HOST_ENDPOINT_H
-#define LIBUSB_HOST_ENDPOINT_H
+#ifndef LIBUSBHOST_HOST_ENDPOINT_H
+#define LIBUSBHOST_HOST_ENDPOINT_H
 
 #include <assert.h>
 #include <bool.h>

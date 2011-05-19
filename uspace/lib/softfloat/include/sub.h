@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -35,13 +35,10 @@
 #ifndef __SUB_H__
 #define __SUB_H__
 
-float32 subFloat32(float32 a, float32 b);
-
-float64 subFloat64(float64 a, float64 b);
+extern float32 subFloat32(float32, float32);
+extern float64 subFloat64(float64, float64);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

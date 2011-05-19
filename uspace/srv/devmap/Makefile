@@ -29,6 +29,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = devmap
+STATIC_NEEDED = y
 
 SOURCES = \
 	devmap.c

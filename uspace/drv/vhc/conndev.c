@@ -36,9 +36,49 @@
 #include <assert.h>
 #include <errno.h>
 #include <ddf/driver.h>
+#include <usbvirt/ipc.h>
 #include "conn.h"
 
 static fibril_local uintptr_t plugged_device_handle = 0;
+#define PLUGGED_DEVICE_NAME_MAXLEN 256
+static fibril_local char plugged_device_name[PLUGGED_DEVICE_NAME_MAXLEN + 1] = "<unknown>";
+
+/** Receive device name.
+ *
+ * @warning Errors are silently ignored.
+ *
+ * @param phone Phone to the virtual device.
+ */
+static void receive_device_name(int phone)
+{
+	aid_t opening_request = async_send_0(phone, IPC_M_USBVIRT_GET_NAME, NULL);
+	if (opening_request == 0) {
+		return;
+	}
+
+
+	ipc_call_t data_request_call;
+	aid_t data_request = async_data_read(phone,
+	     plugged_device_name, PLUGGED_DEVICE_NAME_MAXLEN,
+	     &data_request_call);
+
+	if (data_request == 0) {
+		async_wait_for(opening_request, NULL);
+		return;
+	}
+
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(opening_request, &opening_request_rc);
+
+	if ((data_request_rc != EOK) || (opening_request_rc != EOK)) {
+		return;
+	}
+
+	size_t len = IPC_GET_ARG2(data_request_call);
+	plugged_device_name[len] = 0;
+}
 
 /** Default handler for IPC methods not handled by DDF.
  *
@@ -64,8 +104,10 @@ void default_connection_handler(ddf_fun_t *fun,
 
 		async_answer_0(icallid, EOK);
 
-		usb_log_info("New virtual device `%s' (id = %" PRIxn ").\n",
-		    rc == EOK ? "XXX" : "<unknown>", plugged_device_handle);
+		receive_device_name(callback);
+
+		usb_log_info("New virtual device `%s' (id: %" PRIxn ").\n",
+		    plugged_device_name, plugged_device_handle);
 
 		return;
 	}
@@ -84,8 +126,8 @@ void on_client_close(ddf_fun_t *fun)
 	vhc_data_t *vhc = fun->dev->driver_data;
 
 	if (plugged_device_handle != 0) {
-		usb_log_info("Virtual device disconnected (id = %" PRIxn ").\n",
-		    plugged_device_handle);
+		usb_log_info("Virtual device `%s' disconnected (id: %" PRIxn ").\n",
+		    plugged_device_name, plugged_device_handle);
 		vhc_virtdev_unplug(vhc, plugged_device_handle);
 	}
 }

@@ -42,8 +42,7 @@
 /** Structure maintaining both hw queue and software list
  * of currently executed transfers
  */
-typedef struct transfer_list
-{
+typedef struct transfer_list {
 	/** Guard against multiple add/remove races */
 	fibril_mutex_t guard;
 	/** UHCI hw structure represeting this queue */

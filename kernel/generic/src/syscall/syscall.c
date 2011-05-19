@@ -126,6 +126,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_exit,
 	(syshandler_t) sys_thread_get_id,
 	(syshandler_t) sys_thread_usleep,
+	(syshandler_t) sys_thread_udelay,
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
@@ -164,6 +165,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
+	(syshandler_t) sys_event_unmask,
 	
 	/* Capabilities related syscalls. */
 	(syshandler_t) sys_cap_grant,

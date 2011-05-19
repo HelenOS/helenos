@@ -43,7 +43,7 @@ void td_init(
 {
 	assert(instance);
 	bzero(instance, sizeof(td_t));
-	instance-> status = 0
+	instance->status = 0
 	    | ((dp[dir] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
 	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT);
 	if (toggle == 0 || toggle == 1) {

@@ -353,7 +353,7 @@ void scheduler(void)
 	}
 	
 	/*
-	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU, VM
+	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU, AS
 	 * and preemption counter. At this point THE could be coming either
 	 * from THREAD's or CPU's stack.
 	 *

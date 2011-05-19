@@ -35,7 +35,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <usb/usb.h>
-#include <usb/addrkeep.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
 #include <usbhc_iface.h>
