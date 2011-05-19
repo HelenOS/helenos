@@ -538,8 +538,8 @@ do { \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_INTERRUPT]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_CONTROL]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_BULK]); \
+		return ret; \
 	} \
-	return ret; \
 } while (0)
 
 	SETUP_ENDPOINT_LIST(USB_TRANSFER_ISOCHRONOUS);
