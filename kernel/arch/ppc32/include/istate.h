@@ -72,7 +72,7 @@ typedef struct istate {
 	uint32_t r31;
 	uint32_t cr;
 	uint32_t pc;
-	uint32_t srr1;
+	uint32_t msr;
 	uint32_t lr;
 	uint32_t ctr;
 	uint32_t xer;
@@ -89,12 +89,10 @@ NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
 
 /** Return true if exception happened while in userspace
  *
- * The contexts of MSR register was stored in SRR1.
- *
  */
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
-	return (istate->srr1 & MSR_PR) != 0;
+	return (istate->msr & MSR_PR) != 0;
 }
 
 NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)

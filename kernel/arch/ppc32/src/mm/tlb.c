@@ -222,8 +222,9 @@ void pht_refill(unsigned int n, istate_t *istate)
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
-			goto fail;
-			break;
+			page_table_unlock(as, true);
+			pht_refill_fail(badvaddr, istate);
+			return;
 		case AS_PF_DEFER:
 			/*
 			 * The page fault came during copy_from_uspace()
@@ -241,11 +242,6 @@ void pht_refill(unsigned int n, istate_t *istate)
 	pht_insert(badvaddr, pte);
 	
 	page_table_unlock(as, true);
-	return;
-	
-fail:
-	page_table_unlock(as, true);
-	pht_refill_fail(badvaddr, istate);
 }
 
 void tlb_refill(unsigned int n, istate_t *istate)

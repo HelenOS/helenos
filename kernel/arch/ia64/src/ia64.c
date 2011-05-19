@@ -249,9 +249,9 @@ void userspace(uspace_arg_t *kernel_uarg)
 	rsc.mode = 3;			/* eager mode */
 
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) + PAGE_SIZE -
+	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE -
 	    ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-	    ((uintptr_t) kernel_uarg->uspace_stack) + PAGE_SIZE,
+	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE,
 	    (uintptr_t) kernel_uarg->uspace_uarg, psr.value, rsc.value);
 
 	while (1)

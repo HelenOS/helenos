@@ -130,7 +130,7 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
  */
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
-	uint64_t v;
+	uint64_t value;
 	
 	/*
 	 * I'm not sure why but this code inlines badly
@@ -151,10 +151,10 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	
 	asm volatile (
 		"mov %[value] = r12"
-		: [value] "=r" (v)
+		: [value] "=r" (value)
 	);
 	
-	return (v & (~(STACK_SIZE - 1)));
+	return (value & (~(STACK_SIZE - 1)));
 }
 
 /** Return Processor State Register.

@@ -55,7 +55,7 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	CPU->arch.tss->rsp0 =
-	    (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE];
+	    (uintptr_t) &THREAD->kstack[STACK_SIZE];
 	
 	/*
 	 * Syscall support.

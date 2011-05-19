@@ -85,8 +85,8 @@ void before_thread_runs_arch(void)
 		"mov r23 = %1\n"
 		"bsw.1\n"
 		:
-		: "r" (&THREAD->kstack[THREAD_STACK_SIZE]),
-		  "r" (&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA])
+		: "r" (&THREAD->kstack[STACK_SIZE]),
+		  "r" (&THREAD->kstack[STACK_SIZE - SP_DELTA])
 		);
 }
 

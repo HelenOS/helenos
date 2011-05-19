@@ -48,7 +48,6 @@
 #include <udebug/udebug.h>
 #include <sysinfo/abi.h>
 
-#define THREAD_STACK_SIZE   STACK_SIZE
 #define THREAD_NAME_BUFLEN  20
 
 extern const char *thread_states[];

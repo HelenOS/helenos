@@ -48,8 +48,6 @@ extern uintptr_t last_frame;
 extern void frame_arch_init(void);
 #define physmem_print()
 
-#define ARCH_STACK_FRAMES TWO_FRAMES
-
 #endif /* __ASM__ */
 #endif /* KERNEL */
 
