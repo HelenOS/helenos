@@ -39,7 +39,6 @@
 #include <mm/page.h>
 #include <mm/as.h>
 #include <mm/slab.h>
-#include <synch/mutex.h>
 #include <arch/mm/page.h>
 #include <typedefs.h>
 #include <arch/asm.h>
@@ -62,7 +61,7 @@
 #define EMPTY_CHAR  ((STYLE << 8) | SPACE)
 
 typedef struct {
-	mutex_t mtx;
+	IRQ_SPINLOCK_DECLARE(lock);
 	
 	uint32_t cursor;
 	uint8_t *addr;
@@ -539,7 +538,7 @@ static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
-	mutex_lock(&instance->mtx);
+	irq_spinlock_lock(&instance->lock, true);
 	
 	switch (ch) {
 	case '\n':
@@ -562,20 +561,20 @@ static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
 	ega_check_cursor(instance, silent);
 	ega_move_cursor(instance, silent);
 	
-	mutex_unlock(&instance->mtx);
+	irq_spinlock_unlock(&instance->lock, true);
 }
 
 static void ega_redraw(outdev_t *dev)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
-	mutex_lock(&instance->mtx);
+	irq_spinlock_lock(&instance->lock, true);
 	
 	memcpy(instance->addr, instance->backbuf, EGA_VRAM_SIZE);
 	ega_move_cursor(instance, silent);
 	ega_show_cursor(instance, silent);
 	
-	mutex_unlock(&instance->mtx);
+	irq_spinlock_unlock(&instance->lock, true);
 }
 
 outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
@@ -593,7 +592,7 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 	outdev_initialize("egadev", egadev, &egadev_ops);
 	egadev->data = instance;
 	
-	mutex_initialize(&instance->mtx, MUTEX_PASSIVE);
+	irq_spinlock_initialize(&instance->lock, "*ega.instance.lock");
 	
 	instance->base = base;
 	instance->addr = (uint8_t *) hw_map(addr, EGA_VRAM_SIZE);
