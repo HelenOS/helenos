@@ -70,7 +70,7 @@ void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	int len = hid_iface->get_event_length(fun);
+	size_t len = hid_iface->get_event_length(fun);
 	if (len == 0) {
 		len = EEMPTY;
 	}
@@ -99,10 +99,10 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, EPARTY);
 		return;
 	}
-	/* Check that length is even number. Truncate otherwise. */
-	if ((len % 2) == 1) {
-		len--;
-	}
+//	/* Check that length is even number. Truncate otherwise. */
+//	if ((len % 2) == 1) {
+//		len--;
+//	}
 	if (len == 0) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
@@ -110,31 +110,28 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 
 	int rc;
 
-	size_t items = len / 2;
-	uint16_t *usage_pages_and_usages = malloc(sizeof(uint16_t) * len);
-	if (usage_pages_and_usages == NULL) {
+	int32_t *data = malloc(len);
+	if (data == NULL) {
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
 	}
 
-	size_t act_items;
-	int rc = hid_iface->get_event(fun, usage_pages_and_usages,
-	    usage_pages_and_usages + items, items, &act_items, flags);
+	size_t act_length;
+	rc = hid_iface->get_event(fun, data, len, &act_length, flags);
 	if (rc != EOK) {
-		free(usage_pages_and_usages);
+		free(data);
 		async_answer_0(data_callid, rc);
 		async_answer_0(callid, rc);
 	}
-	if (act_items >= items) {
+	if (act_length >= len) {
 		/* This shall not happen. */
 		// FIXME: how about an assert here?
-		act_items = items;
+		act_length = len;
 	}
 
-	async_data_read_finalize(data_callid, usage_pages_and_usages,
-	    act_items * 2 * sizeof(uint16_t));
+	async_data_read_finalize(data_callid, data, act_length);
 
-	free(usage_pages_and_usages);
+	free(data);
 
 	async_answer_0(callid, EOK);
 }

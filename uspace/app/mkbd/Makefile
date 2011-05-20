@@ -32,11 +32,13 @@ BINARY = mkbd
 LIBS = \
 	$(LIBUSBDEV_PREFIX)/libusbdev.a \
 	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBUSBHID_PREFIX)/libusbhid.a
 EXTRA_CFLAGS = \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBUSBHID_PREFIX)/include 
 
 SOURCES = \
 	main.c

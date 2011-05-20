@@ -46,6 +46,7 @@
 #include <usb/dev/hub.h>
 #include <usb/host.h>
 #include <usb/driver.h>
+#include <usb/hid/iface.h>
 #include <usb/dev/pipes.h>
 
 #define NAME "mkbd"
@@ -92,118 +93,118 @@ static int dev_phone = -1;
 //	usb_hc_connection_close(&conn);
 //}
 
-static bool try_parse_class_and_address(const char *path,
-    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
-{
-	size_t class_index;
-	size_t address;
-	int rc;
-	char *ptr;
+//static bool try_parse_class_and_address(const char *path,
+//    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
+//{
+//	size_t class_index;
+//	size_t address;
+//	int rc;
+//	char *ptr;
 
-	rc = str_size_t(path, &ptr, 10, false, &class_index);
-	if (rc != EOK) {
-		return false;
-	}
-	if ((*ptr == ':') || (*ptr == '.')) {
-		ptr++;
-	} else {
-		return false;
-	}
-	rc = str_size_t(ptr, NULL, 10, true, &address);
-	if (rc != EOK) {
-		return false;
-	}
-	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
-	if (rc != EOK) {
-		return false;
-	}
-	if (out_device_address != NULL) {
-		*out_device_address = (usb_address_t) address;
-	}
-	return true;
-}
+//	rc = str_size_t(path, &ptr, 10, false, &class_index);
+//	if (rc != EOK) {
+//		return false;
+//	}
+//	if ((*ptr == ':') || (*ptr == '.')) {
+//		ptr++;
+//	} else {
+//		return false;
+//	}
+//	rc = str_size_t(ptr, NULL, 10, true, &address);
+//	if (rc != EOK) {
+//		return false;
+//	}
+//	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
+//	if (rc != EOK) {
+//		return false;
+//	}
+//	if (out_device_address != NULL) {
+//		*out_device_address = (usb_address_t) address;
+//	}
+//	return true;
+//}
 
-static bool resolve_hc_handle_and_dev_addr(const char *devpath,
-    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
-{
-	int rc;
+//static bool resolve_hc_handle_and_dev_addr(const char *devpath,
+//    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
+//{
+//	int rc;
 
-	/* Hack for QEMU to save-up on typing ;-). */
-	if (str_cmp(devpath, "qemu") == 0) {
-		devpath = "/hw/pci0/00:01.2/uhci-rh/usb00_a1";
-	}
+//	/* Hack for QEMU to save-up on typing ;-). */
+//	if (str_cmp(devpath, "qemu") == 0) {
+//		devpath = "/hw/pci0/00:01.2/uhci-rh/usb00_a1";
+//	}
 
-	/* Hack for virtual keyboard. */
-	if (str_cmp(devpath, "virt") == 0) {
-		devpath = "/virt/usbhc/usb00_a1/usb00_a2";
-	}
+//	/* Hack for virtual keyboard. */
+//	if (str_cmp(devpath, "virt") == 0) {
+//		devpath = "/virt/usbhc/usb00_a1/usb00_a2";
+//	}
 
-	if (try_parse_class_and_address(devpath,
-	    out_hc_handle, out_device_address)) {
-		return true;
-	}
+//	if (try_parse_class_and_address(devpath,
+//	    out_hc_handle, out_device_address)) {
+//		return true;
+//	}
 
-	char *path = str_dup(devpath);
-	if (path == NULL) {
-		return ENOMEM;
-	}
+//	char *path = str_dup(devpath);
+//	if (path == NULL) {
+//		return ENOMEM;
+//	}
 
-	devman_handle_t hc = 0;
-	bool hc_found = false;
-	usb_address_t addr = 0;
-	bool addr_found = false;
+//	devman_handle_t hc = 0;
+//	bool hc_found = false;
+//	usb_address_t addr = 0;
+//	bool addr_found = false;
 
-	/* Remove suffixes and hope that we will encounter device node. */
-	while (str_length(path) > 0) {
-		/* Get device handle first. */
-		devman_handle_t dev_handle;
-		rc = devman_device_get_handle(path, &dev_handle, 0);
-		if (rc != EOK) {
-			free(path);
-			return false;
-		}
+//	/* Remove suffixes and hope that we will encounter device node. */
+//	while (str_length(path) > 0) {
+//		/* Get device handle first. */
+//		devman_handle_t dev_handle;
+//		rc = devman_device_get_handle(path, &dev_handle, 0);
+//		if (rc != EOK) {
+//			free(path);
+//			return false;
+//		}
 
-		/* Try to find its host controller. */
-		if (!hc_found) {
-			rc = usb_hc_find(dev_handle, &hc);
-			if (rc == EOK) {
-				hc_found = true;
-			}
-		}
-		/* Try to get its address. */
-		if (!addr_found) {
-			addr = usb_device_get_assigned_address(dev_handle);
-			if (addr >= 0) {
-				addr_found = true;
-			}
-		}
+//		/* Try to find its host controller. */
+//		if (!hc_found) {
+//			rc = usb_hc_find(dev_handle, &hc);
+//			if (rc == EOK) {
+//				hc_found = true;
+//			}
+//		}
+//		/* Try to get its address. */
+//		if (!addr_found) {
+//			addr = usb_device_get_assigned_address(dev_handle);
+//			if (addr >= 0) {
+//				addr_found = true;
+//			}
+//		}
 
-		/* Speed-up. */
-		if (hc_found && addr_found) {
-			break;
-		}
+//		/* Speed-up. */
+//		if (hc_found && addr_found) {
+//			break;
+//		}
 
-		/* Remove the last suffix. */
-		char *slash_pos = str_rchr(path, '/');
-		if (slash_pos != NULL) {
-			*slash_pos = 0;
-		}
-	}
+//		/* Remove the last suffix. */
+//		char *slash_pos = str_rchr(path, '/');
+//		if (slash_pos != NULL) {
+//			*slash_pos = 0;
+//		}
+//	}
 
-	free(path);
+//	free(path);
 
-	if (hc_found && addr_found) {
-		if (out_hc_handle != NULL) {
-			*out_hc_handle = hc;
-		}
-		if (out_device_address != NULL) {
-			*out_device_address = addr;
-		}
-		return true;
-	} else {
-		return false;
-	}
-}
+//	if (hc_found && addr_found) {
+//		if (out_hc_handle != NULL) {
+//			*out_hc_handle = hc;
+//		}
+//		if (out_device_address != NULL) {
+//			*out_device_address = addr;
+//		}
+//		return true;
+//	} else {
+//		return false;
+//	}
+//}
 
 static void print_usage(char *app_name)
 {
@@ -217,6 +218,8 @@ static void print_usage(char *app_name)
 #undef _INDENT
 }
 
+#define MAX_PATH_LENGTH 1024
+
 int main(int argc, char *argv[])
 {
 	
@@ -227,69 +230,99 @@ int main(int argc, char *argv[])
 	
 	char *devpath = argv[1];
 
-	/* The initialization is here only to make compiler happy. */
-	devman_handle_t hc_handle = 0;
-	usb_address_t dev_addr = 0;
-	bool found = resolve_hc_handle_and_dev_addr(devpath,
-	    &hc_handle, &dev_addr);
-	if (!found) {
-		fprintf(stderr, NAME ": device `%s' not found "
-		    "or not of USB kind. Exiting.\n", devpath);
-		return -1;
-	}
+//	/* The initialization is here only to make compiler happy. */
+//	devman_handle_t hc_handle = 0;
+//	usb_address_t dev_addr = 0;
+//	bool found = resolve_hc_handle_and_dev_addr(devpath,
+//	    &hc_handle, &dev_addr);
+//	if (!found) {
+//		fprintf(stderr, NAME ": device `%s' not found "
+//		    "or not of USB kind. Exiting.\n", devpath);
+//		return -1;
+//	}
+	
+//	int rc;
+//	usb_hc_connection_t conn;
+
+//	usb_hc_connection_initialize(&conn, hc_handle);
+//	rc = usb_hc_connection_open(&conn);
+//	if (rc != EOK) {
+//		printf(NAME ": failed to connect to HC: %s.\n",
+//		    str_error(rc));
+//		return -1;
+//	}
+
+//	devman_handle_t dev_handle;
+//	rc = usb_hc_get_handle_by_address(&conn, dev_addr, &dev_handle);
+//	if (rc != EOK) {
+//		printf(NAME ": failed getting handle to the device: %s.\n",
+//		       str_error(rc));
+//		return -1;
+//	}
+
+//	usb_hc_connection_close(&conn);
 	
 	int rc;
-	usb_hc_connection_t conn;
-
-	usb_hc_connection_initialize(&conn, hc_handle);
-	rc = usb_hc_connection_open(&conn);
+	
+	devman_handle_t dev_handle = 0;
+	rc = devman_device_get_handle(devpath, &dev_handle, 0);
 	if (rc != EOK) {
-		printf(NAME ": failed to connect to HC: %s.\n",
+		printf("Failed to get handle from devman: %s.\n",
 		    str_error(rc));
-		return -1;
+		return rc;
 	}
-	usb_address_t addr = 0;
-
-	devman_handle_t dev_handle;
-	rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
-	if (rc != EOK) {
-		printf(NAME ": failed getting handle to the device: %s.\n",
-		       str_error(rc));
-		return -1;
-	}
-
-	usb_hc_connection_close(&conn);
 	
 	rc = devman_device_connect(dev_handle, 0);
 	if (rc < 0) {
-		printf(NAME ": failed to connect to the device: %s.\n",
-		       str_error(rc));
-		return -1;
+		printf(NAME ": failed to connect to the device (handle %"
+		       PRIun "): %s.\n", dev_handle, str_error(rc));
+		return rc;
 	}
 	
 	dev_phone = rc;
 	printf("Got phone to the device: %d\n", dev_phone);
 	
+	char path[MAX_PATH_LENGTH];
+	rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
+	if (rc != EOK) {
+		return ENOMEM;
+	}
 	
-//	size_t class_index = 0;
-//	size_t failed_attempts = 0;
-
-//	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
-//		class_index++;
-//		devman_handle_t hc_handle = 0;
-//		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
-//		if (rc != EOK) {
-//			failed_attempts++;
-//			continue;
-//		}
-//		char path[MAX_PATH_LENGTH];
-//		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
-//		if (rc != EOK) {
-//			continue;
-//		}
-//		print_found_hc(class_index, path);
-//		print_hc_devices(hc_handle);
-//	}
+	printf("Device path: %s\n", path);
+	
+	size_t size;
+	rc = usbhid_dev_get_event_length(dev_phone, &size);
+	if (rc != EOK) {
+		printf("Failed to get event length: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	
+	printf("Event length: %zu\n", size);
+	int32_t *event = (int32_t *)malloc(size);
+	if (event == NULL) {
+		// hangup phone?
+		return ENOMEM;
+	}
+	
+	printf("Event length: %zu\n", size);
+	
+	size_t actual_size;
+	
+	while (1) {
+		// get event from the driver
+		printf("Getting event from the driver.\n");
+		rc = usbhid_dev_get_event(dev_phone, event, size, &actual_size, 
+		    0);
+		if (rc != EOK) {
+			// hangup phone?
+			printf("Error in getting event from the HID driver:"
+			    "%s.\n", str_error(rc));
+			break;
+		}
+		
+		printf("Got buffer: %p, size: %zu\n", event, actual_size);
+	}
 	
 	return 0;
 }

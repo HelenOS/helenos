@@ -45,7 +45,7 @@
  * @param dev_phone Opened phone to DDF device providing USB HID interface.
  * @return Number of usages returned or negative error code.
  */
-int usbhid_dev_get_event_length(int dev_phone)
+int usbhid_dev_get_event_length(int dev_phone, size_t *size)
 {
 	if (dev_phone < 0) {
 		return EINVAL;
@@ -55,10 +55,10 @@ int usbhid_dev_get_event_length(int dev_phone)
 	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(USBHID_DEV_IFACE),
 	    IPC_M_USBHID_GET_EVENT_LENGTH, &len);
 	if (rc == EOK) {
-		return (int) len;
-	} else {
-		return rc;
+		*size = (size_t) len;
 	}
+	
+	return rc;
 }
 
 /** Request for next event from HID device.
@@ -73,20 +73,20 @@ int usbhid_dev_get_event_length(int dev_phone)
  * @param[in] flags Flags (see USBHID_IFACE_FLAG_*).
  * @return Error code.
  */
-int usbhid_dev_get_event(int dev_phone, uint16_t *usage_pages, uint16_t *usages,
-    size_t usage_count, size_t *actual_usage_count, unsigned int flags)
+int usbhid_dev_get_event(int dev_phone, int32_t *buf, 
+    size_t size, size_t *actual_size, unsigned int flags)
 {
 	if (dev_phone < 0) {
 		return EINVAL;
 	}
-	if ((usage_pages == NULL) || (usages == NULL)) {
+	if ((buf == NULL)) {
 		return ENOMEM;
 	}
-	if (usage_count == 0) {
+	if (size == 0) {
 		return EINVAL;
 	}
 
-	size_t buffer_size = sizeof(uint16_t) * usage_count * 2;
+	size_t buffer_size =  size;
 	uint16_t *buffer = malloc(buffer_size);
 	if (buffer == NULL) {
 		return ENOMEM;
@@ -127,15 +127,14 @@ int usbhid_dev_get_event(int dev_phone, uint16_t *usage_pages, uint16_t *usages,
 		return (int) opening_request_rc;
 	}
 
-	size_t actual_size = IPC_GET_ARG2(data_request_call);
-	size_t items = actual_size / 2;
+	size_t act_size = IPC_GET_ARG2(data_request_call);
 
 	/* Copy the individual items. */
-	memcpy(usage_pages, buffer, items * sizeof(uint16_t));
-	memcpy(usages, buffer + items, items * sizeof(uint16_t));
+	memcpy(buf, buffer, act_size);
+//	memcpy(usages, buffer + items, items * sizeof(int32_t));
 
-	if (actual_usage_count != NULL) {
-		*actual_usage_count = items;
+	if (actual_size != NULL) {
+		*actual_size = act_size;
 	}
 
 	return EOK;
