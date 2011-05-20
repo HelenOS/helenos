@@ -346,6 +346,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		sysarg_t method = IPC_GET_IMETHOD(call);
 		int iface_idx;
 		
+		printf("driver_connection_gen(): method: %d\n", method);
+		
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* Close device function */
@@ -404,7 +406,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			if (iface_method_ptr == NULL) {
 				/* The interface has not such method */
 				printf("%s: driver_connection_gen error - "
-				    "invalid interface method.", driver->name);
+				    "invalid interface method (%d).\n",
+				    driver->name, iface_method_idx);
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}

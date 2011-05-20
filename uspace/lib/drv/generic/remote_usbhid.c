@@ -63,9 +63,12 @@ usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
+	printf("remote_usbhid_get_event_length()\n");
+	
 	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
 
 	if (!hid_iface->get_event_length) {
+		printf("Get event length not set!\n");
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
