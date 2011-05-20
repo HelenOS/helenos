@@ -47,6 +47,13 @@
 
 
 /**
+ * Extended usage macros
+ */
+#define USB_HID_IS_EXTENDED_USAGE(usage)	((usage & 0xFFFF0000) != 0)
+#define USB_HID_EXTENDED_USAGE_PAGE(usage)	((usage & 0xFFFF0000) >> 16)
+#define USB_HID_EXTENDED_USAGE(usage)		(usage & 0xFFFF)
+
+/**
  * Input/Output/Feature Item flags
  */
 /** Constant (1) / Variable (0) */

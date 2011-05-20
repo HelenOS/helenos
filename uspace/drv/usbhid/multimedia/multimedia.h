@@ -30,15 +30,28 @@
  * @{
  */
 /** @file
- * USB multimedia key to keycode mapping.
+ * USB Keyboard multimedia keys subdriver.
  */
 
-#ifndef USB_HID_LGTCH_ULTRAX_KEYMAP_H_
-#define USB_HID_LGTCH_ULTRAX_KEYMAP_H_
+#ifndef USB_HID_MULTIMEDIA_H_
+#define USB_HID_MULTIMEDIA_H_
 
-unsigned int usb_lgtch_map_usage(int usage);
+#include <usb/dev/driver.h>
 
-#endif /* USB_HID_LGTCH_ULTRAX_KEYMAP_H_ */
+struct usb_hid_dev;
+
+/*----------------------------------------------------------------------------*/
+
+int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data);
+
+void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data);
+
+bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data,
+    uint8_t *buffer, size_t buffer_size);
+
+/*----------------------------------------------------------------------------*/
+
+#endif // USB_HID_MULTIMEDIA_H_
 
 /**
  * @}

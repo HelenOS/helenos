@@ -51,6 +51,8 @@ typedef struct {
 	int wheel_phone;
 	
 	int32_t *buttons;
+	
+	ddf_dev_ops_t ops;
 } usb_mouse_t;
 
 /*----------------------------------------------------------------------------*/
@@ -62,12 +64,12 @@ const char *HID_MOUSE_CLASS_NAME;
 
 /*----------------------------------------------------------------------------*/
 
-int usb_mouse_init(struct usb_hid_dev *hid_dev);
+int usb_mouse_init(struct usb_hid_dev *hid_dev, void **data);
 
-bool usb_mouse_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
-    size_t buffer_size);
+bool usb_mouse_polling_callback(struct usb_hid_dev *hid_dev, void *data, 
+    uint8_t *buffer, size_t buffer_size);
 
-void usb_mouse_deinit(struct usb_hid_dev *hid_dev);
+void usb_mouse_deinit(struct usb_hid_dev *hid_dev, void *data);
 
 int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
 

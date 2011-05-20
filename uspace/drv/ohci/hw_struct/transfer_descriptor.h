@@ -40,8 +40,10 @@
 
 #include "completion_codes.h"
 
-/* OHCI TDs can handle up to 8KB buffers */
-#define OHCI_TD_MAX_TRANSFER (8 * 1024)
+/* OHCI TDs can handle up to 8KB buffers, however, it can use max 2 pages.
+ * Using 4KB buffers guarantees the page count condition.
+ * (OHCI assumes 4KB pages) */
+#define OHCI_TD_MAX_TRANSFER (4 * 1024)
 
 typedef struct td {
 	volatile uint32_t status;

@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <usb/debug.h>
+#include <arch/barrier.h>
 
 #include "endpoint_list.h"
 
@@ -42,7 +43,7 @@
  * @param[in] name Name of the new list.
  * @return Error code
  *
- * Allocates memory for internal qh_t structure.
+ * Allocates memory for internal ed_t structure.
  */
 int endpoint_list_init(endpoint_list_t *instance, const char *name)
 {
@@ -67,9 +68,8 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
  *
  * @param[in] instance List to lead.
  * @param[in] next List to append.
- * @return Error code
  *
- * Does not check whether this replaces an existing list .
+ * Does not check whether this replaces an existing list.
  */
 void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next)
 {
@@ -78,11 +78,10 @@ void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next)
 	ed_append_ed(instance->list_head, next->list_head);
 }
 /*----------------------------------------------------------------------------*/
-/** Submit transfer endpoint to the list and queue.
+/** Add endpoint to the list and queue.
  *
  * @param[in] instance List to use.
- * @param[in] endpoint Transfer endpoint to submit.
- * @return Error code
+ * @param[in] endpoint Endpoint to add.
  *
  * The endpoint is added to the end of the list and queue.
  */
@@ -98,21 +97,26 @@ void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	ed_t *last_ed = NULL;
 	/* Add to the hardware queue. */
 	if (list_empty(&instance->endpoint_list)) {
-		/* There is nothing scheduled */
+		/* There are no active EDs */
 		last_ed = instance->list_head;
 	} else {
-		/* There is something scheduled */
+		/* There are active EDs, get the last one */
 		hcd_endpoint_t *last = list_get_instance(
 		    instance->endpoint_list.prev, hcd_endpoint_t, link);
+		assert(last);
 		last_ed = last->ed;
 	}
-	/* keep link */
+	/* Keep link */
 	hcd_ep->ed->next = last_ed->next;
+	/* Make sure ED is written to the memory */
+	write_barrier();
+
+	/* Add ed to the hw queue */
 	ed_append_ed(last_ed, hcd_ep->ed);
+	/* Make sure ED is updated */
+	write_barrier();
 
-	asm volatile ("": : :"memory");
-
-	/* Add to the driver list */
+	/* Add to the sw list */
 	list_append(&hcd_ep->link, &instance->endpoint_list);
 
 	hcd_endpoint_t *first = list_get_instance(
@@ -128,61 +132,10 @@ void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-#if 0
-/** Create list for finished endpoints.
+/** Remove endpoint from the list and queue.
  *
  * @param[in] instance List to use.
- * @param[in] done list to fill
- */
-void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done)
-{
-	assert(instance);
-	assert(done);
-
-	fibril_mutex_lock(&instance->guard);
-	usb_log_debug2("Checking list %s for completed endpointes(%d).\n",
-	    instance->name, list_count(&instance->endpoint_list));
-	link_t *current = instance->endpoint_list.next;
-	while (current != &instance->endpoint_list) {
-		link_t *next = current->next;
-		hcd_endpoint_t *endpoint =
-		    list_get_instance(current, hcd_endpoint_t, link);
-
-		if (endpoint_is_complete(endpoint)) {
-			/* Save for post-processing */
-			endpoint_list_remove_endpoint(instance, endpoint);
-			list_append(current, done);
-		}
-		current = next;
-	}
-	fibril_mutex_unlock(&instance->guard);
-}
-/*----------------------------------------------------------------------------*/
-/** Walk the list and abort all endpointes.
- *
- * @param[in] instance List to use.
- */
-void endpoint_list_abort_all(endpoint_list_t *instance)
-{
-	fibril_mutex_lock(&instance->guard);
-	while (!list_empty(&instance->endpoint_list)) {
-		link_t *current = instance->endpoint_list.next;
-		hcd_endpoint_t *endpoint =
-		    list_get_instance(current, hcd_endpoint_t, link);
-		endpoint_list_remove_endpoint(instance, endpoint);
-		hcd_endpoint_finish_error(endpoint, EIO);
-	}
-	fibril_mutex_unlock(&instance->guard);
-}
-#endif
-/*----------------------------------------------------------------------------*/
-/** Remove a transfer endpoint from the list and queue.
- *
- * @param[in] instance List to use.
- * @param[in] endpoint Transfer endpoint to remove.
- * @return Error code
- *
- * Does not lock the transfer list, caller is responsible for that.
+ * @param[in] endpoint Endpoint to remove.
  */
 void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 {
@@ -211,8 +164,9 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	}
 	assert((prev_ed->next & ED_NEXT_PTR_MASK) == addr_to_phys(hcd_ep->ed));
 	prev_ed->next = hcd_ep->ed->next;
+	/* Make sure ED is updated */
+	write_barrier();
 
-	asm volatile ("": : :"memory");
 	usb_log_debug("HCD EP(%p) removed (%s) from %s, next %x.\n",
 	    hcd_ep, qpos, instance->name, hcd_ep->ed->next);
 

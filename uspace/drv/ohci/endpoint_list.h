@@ -40,11 +40,17 @@
 #include "hw_struct/endpoint_descriptor.h"
 #include "utils/malloc32.h"
 
+/** Structure maintains both OHCI queue and software list of active endpoints.*/
 typedef struct endpoint_list {
+	/** Guard against add/remove races */
 	fibril_mutex_t guard;
+	/** OHCI hw structure at the beginning of the queue */
 	ed_t *list_head;
+	/** Physical address of the first(dummy) ED */
 	uint32_t list_head_pa;
+	/** Assigned name, provides nicer debug output */
 	const char *name;
+	/** Sw list of all active EDs */
 	link_t endpoint_list;
 } endpoint_list_t;
 
@@ -52,7 +58,7 @@ typedef struct endpoint_list {
  *
  * @param[in] instance Memory place to use.
  *
- * Frees memory for internal qh_t structure.
+ * Frees memory of the internal ed_t structure.
  */
 static inline void endpoint_list_fini(endpoint_list_t *instance)
 {
@@ -61,17 +67,9 @@ static inline void endpoint_list_fini(endpoint_list_t *instance)
 }
 
 int endpoint_list_init(endpoint_list_t *instance, const char *name);
-
 void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
-
 void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
-
 void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
-#if 0
-void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done);
-
-void endpoint_list_abort_all(endpoint_list_t *instance);
-#endif
 #endif
 /**
  * @}

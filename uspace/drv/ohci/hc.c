@@ -50,49 +50,64 @@ static void hc_gain_control(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 /*----------------------------------------------------------------------------*/
+/** Announce OHCI root hub to the DDF
+ *
+ * @param[in] instance OHCI driver intance
+ * @param[in] hub_fun DDF fuction representing OHCI root hub
+ * @return Error code
+ */
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 {
 	assert(instance);
 	assert(hub_fun);
 
-	int ret;
-
-	usb_address_t hub_address =
+	const usb_address_t hub_address =
 	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
 	if (hub_address <= 0) {
-		usb_log_error("Failed to get OHCI root hub address.\n");
+		usb_log_error("Failed(%d) to get OHCI root hub address.\n",
+		    hub_address);
 		return hub_address;
 	}
 	instance->rh.address = hub_address;
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
-	ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
+#define CHECK_RET_RELEASE(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	hc_remove_endpoint(instance, hub_address, 0, USB_DIRECTION_BOTH); \
+	usb_device_keeper_release(&instance->manager, hub_address); \
+	return ret; \
+} else (void)0
+
+	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
 	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
-	if (ret != EOK) {
-		usb_log_error("Failed to add OHCI rh endpoint 0.\n");
-		usb_device_keeper_release(&instance->manager, hub_address);
-		return ret;
-	}
+	CHECK_RET_RELEASE(ret, "Failed(%d) to add OHCI rh endpoint 0.\n", ret);
 
 	char *match_str = NULL;
 	/* DDF needs heap allocated string */
 	ret = asprintf(&match_str, "usb&class=hub");
-	if (ret < 0) {
-		usb_log_error(
-		    "Failed(%d) to create root hub match-id string.\n", ret);
-		usb_device_keeper_release(&instance->manager, hub_address);
-		return ret;
-	}
+	ret = ret > 0 ? 0 : ret;
+	CHECK_RET_RELEASE(ret, "Failed(%d) to create match-id string.\n", ret);
 
 	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
-	if (ret != EOK) {
-		usb_log_error("Failed add root hub match-id.\n");
-	}
+	CHECK_RET_RELEASE(ret, "Failed(%d) add root hub match-id.\n", ret);
+
 	ret = ddf_fun_bind(hub_fun);
-	return ret;
+	CHECK_RET_RELEASE(ret, "Failed(%d) to bind root hub function.\n", ret);
+
+	return EOK;
+#undef CHECK_RET_RELEASE
 }
 /*----------------------------------------------------------------------------*/
+/** Initialize OHCI hc driver structure
+ *
+ * @param[in] instance Memory place for the structure.
+ * @param[in] regs Address of the memory mapped I/O registers.
+ * @param[in] reg_size Size of the memory mapped area.
+ * @param[in] interrupts True if w interrupts should be used
+ * @return Error code
+ */
 int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
@@ -120,10 +135,8 @@ if (ret != EOK) { \
 	    str_error(ret));
 #undef CHECK_RET_RETURN
 
-
-//	hc_init_hw(instance);
-	hc_gain_control(instance);
 	fibril_mutex_initialize(&instance->guard);
+	hc_gain_control(instance);
 
 	rh_init(&instance->rh, instance->registers);
 
@@ -136,6 +149,19 @@ if (ret != EOK) { \
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Create end register endpoint structures
+ *
+ * @param[in] instance OHCI driver structure.
+ * @param[in] address USB address of the device.
+ * @param[in] endpoint USB endpoint number.
+ * @param[in] speed Communication speeed of the device.
+ * @param[in] type Endpoint's transfer type.
+ * @param[in] direction Endpoint's direction.
+ * @param[in] mps Maximum packet size the endpoint accepts.
+ * @param[in] size Maximum allowed buffer size.
+ * @param[in] interval Time between transfers(interrupt transfers only).
+ * @return Error code
+ */
 int hc_add_endpoint(
     hc_t *instance, usb_address_t address, usb_endpoint_t endpoint,
     usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
@@ -193,6 +219,14 @@ int hc_add_endpoint(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Dequeue and delete endpoint structures
+ *
+ * @param[in] instance OHCI hc driver structure.
+ * @param[in] address USB address of the device.
+ * @param[in] endpoint USB endpoint number.
+ * @param[in] direction Direction of the endpoint.
+ * @return Error code
+ */
 int hc_remove_endpoint(hc_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
@@ -243,6 +277,15 @@ int hc_remove_endpoint(hc_t *instance, usb_address_t address,
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
+/** Get access to endpoint structures
+ *
+ * @param[in] instance OHCI hc driver structure.
+ * @param[in] address USB address of the device.
+ * @param[in] endpoint USB endpoint number.
+ * @param[in] direction Direction of the endpoint.
+ * @param[out] bw Reserved bandwidth.
+ * @return Error code
+ */
 endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw)
 {
@@ -254,13 +297,19 @@ endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
 	return ep;
 }
 /*----------------------------------------------------------------------------*/
+/** Add USB transfer to the schedule.
+ *
+ * @param[in] instance OHCI hc driver structure.
+ * @param[in] batch Batch representing the transfer.
+ * @return Error code.
+ */
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
 	assert(batch->ep);
 
-	/* check for root hub communication */
+	/* Check for root hub communication */
 	if (batch->ep->address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
@@ -268,7 +317,10 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	fibril_mutex_lock(&instance->guard);
 	list_append(&batch->link, &instance->pending_batches);
 	batch_commit(batch);
-	switch (batch->ep->transfer_type) {
+
+	/* Control and bulk schedules need a kick to start working */
+	switch (batch->ep->transfer_type)
+	{
 	case USB_TRANSFER_CONTROL:
 		instance->registers->command_status |= CS_CLF;
 		break;
@@ -278,11 +330,15 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	default:
 		break;
 	}
-
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Interrupt handling routine
+ *
+ * @param[in] instance OHCI hc driver structure.
+ * @param[in] status Value of the status register at the time of interrupt.
+ */
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
@@ -291,7 +347,6 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		return;
 	if (status & I_RHSC)
 		rh_interrupt(&instance->rh);
-
 
 	if (status & I_WDH) {
 		fibril_mutex_lock(&instance->guard);
@@ -315,8 +370,18 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		}
 		fibril_mutex_unlock(&instance->guard);
 	}
+
+	if (status & I_UE) {
+		hc_start_hw(instance);
+	}
+
 }
 /*----------------------------------------------------------------------------*/
+/** Check status register regularly
+ *
+ * @param[in] instance OHCI hc driver structure.
+ * @return Error code
+ */
 int interrupt_emulator(hc_t *instance)
 {
 	assert(instance);
@@ -325,11 +390,15 @@ int interrupt_emulator(hc_t *instance)
 		const uint32_t status = instance->registers->interrupt_status;
 		instance->registers->interrupt_status = status;
 		hc_interrupt(instance, status);
-		async_usleep(50000);
+		async_usleep(10000);
 	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Turn off any (BIOS)driver that might be in control of the device.
+ *
+ * @param[in] instance OHCI hc driver structure.
+ */
 void hc_gain_control(hc_t *instance)
 {
 	assert(instance);
@@ -379,6 +448,10 @@ void hc_gain_control(hc_t *instance)
 	async_usleep(50000);
 }
 /*----------------------------------------------------------------------------*/
+/** OHCI hw initialization routine.
+ *
+ * @param[in] instance OHCI hc driver structure.
+ */
 void hc_start_hw(hc_t *instance)
 {
 	/* OHCI guide page 42 */
@@ -446,10 +519,14 @@ void hc_start_hw(hc_t *instance)
 	    instance->registers->control);
 }
 /*----------------------------------------------------------------------------*/
+/** Initialize schedule queues
+ *
+ * @param[in] instance OHCI hc driver structure
+ * @return Error code
+ */
 int hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
-
 #define SETUP_ENDPOINT_LIST(type) \
 do { \
 	const char *name = usb_str_transfer_type(type); \
@@ -457,10 +534,11 @@ do { \
 	if (ret != EOK) { \
 		usb_log_error("Failed(%d) to setup %s endpoint list.\n", \
 		    ret, name); \
-		endpoint_list_fini(&instance->lists[USB_TRANSFER_ISOCHRONOUS]); \
+		endpoint_list_fini(&instance->lists[USB_TRANSFER_ISOCHRONOUS]);\
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_INTERRUPT]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_CONTROL]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_BULK]); \
+		return ret; \
 	} \
 } while (0)
 
@@ -475,6 +553,11 @@ do { \
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Initialize memory structures used by the OHCI hcd.
+ *
+ * @param[in] instance OHCI hc driver structure.
+ * @return Error code.
+ */
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
@@ -501,6 +584,7 @@ int hc_init_memory(hc_t *instance)
 
 	/* Init interrupt code */
 	instance->interrupt_code.cmds = instance->interrupt_commands;
+	instance->interrupt_code.cmdcount = OHCI_NEEDED_IRQ_COMMANDS;
 	{
 		/* Read status register */
 		instance->interrupt_commands[0].cmd = CMD_MEM_READ_32;
@@ -520,7 +604,7 @@ int hc_init_memory(hc_t *instance)
 		instance->interrupt_commands[2].value = 2;
 		instance->interrupt_commands[2].srcarg = 2;
 
-		/* Write clean status register */
+		/* Write-clean status register */
 		instance->interrupt_commands[3].cmd = CMD_MEM_WRITE_A_32;
 		instance->interrupt_commands[3].srcarg = 1;
 		instance->interrupt_commands[3].addr =
@@ -528,8 +612,6 @@ int hc_init_memory(hc_t *instance)
 
 		/* Accept interrupt */
 		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
-
-		instance->interrupt_code.cmdcount = OHCI_NEEDED_IRQ_COMMANDS;
 	}
 
 	return EOK;

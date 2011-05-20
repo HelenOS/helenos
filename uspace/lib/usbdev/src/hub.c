@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <usb/debug.h>
+#include <time.h>
 
 /** How much time to wait between attempts to register endpoint 0:0.
  * The value is based on typical value for port reset + some overhead.
@@ -217,6 +218,12 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	};
 
 	int rc;
+	struct timeval start_time;
+
+	rc = gettimeofday(&start_time, NULL);
+	if (rc != EOK) {
+		return rc;
+	}
 
 	rc = usb_hc_connection_open(&hc_conn);
 	if (rc != EOK) {
@@ -263,6 +270,22 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 			async_usleep(ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC);
 		}
 	} while (rc != EOK);
+	struct timeval end_time;
+
+	rc = gettimeofday(&end_time, NULL);
+	if (rc != EOK) {
+		goto leave_release_default_address;
+	}
+
+	/* According to the USB spec part 9.1.2 host allows 100ms time for
+	 * the insertion process to complete. According to 7.1.7.1 this is the
+	 * time between attach detected and port reset. However, the setup done
+	 * above might use much of this time so we should only wait to fill
+	 * up the 100ms quota*/
+	suseconds_t elapsed = tv_sub(&end_time, &start_time);
+	if (elapsed < 100000) {
+		async_usleep(100000 - elapsed);
+	}
 
 	/*
 	 * Endpoint is registered. We can enable the port and change
@@ -272,6 +295,12 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	if (rc != EOK) {
 		goto leave_release_default_address;
 	}
+	/* USB spec 7.1.7.1: The USB System Software guarantees a minimum of
+	 * 10ms for reset recovery. Device response to any bus transactions
+	 * addressed to the default device address during the reset recovery
+	 * time is undefined.
+	 */
+	async_usleep(10000);
 
 	rc = usb_pipe_probe_default_control(&ctrl_pipe);
 	if (rc != EOK) {
