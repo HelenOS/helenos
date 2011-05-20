@@ -39,6 +39,7 @@ SOURCES = \
 	src/driver.c \
 	src/dump.c \
 	src/hc.c \
+	src/resolve.c \
 	src/usb.c
 
 include $(USPACE_PREFIX)/Makefile.common
