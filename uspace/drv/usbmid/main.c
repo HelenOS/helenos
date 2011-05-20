@@ -37,9 +37,9 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <usb/descriptor.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 
 #include "usbmid.h"
 

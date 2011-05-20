@@ -25,14 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup libusb
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
  * USB transfer transaction structures.
  */
-#ifndef LIBUSB_HOST_BATCH_H
-#define LIBUSB_HOST_BATCH_H
+#ifndef LIBUSBHOST_HOST_BATCH_H
+#define LIBUSBHOST_HOST_BATCH_H
 
 #include <adt/list.h>
 

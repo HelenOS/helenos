@@ -33,7 +33,7 @@
  * @file
  * Main routines of USB mass storage driver.
  */
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/massstor.h>

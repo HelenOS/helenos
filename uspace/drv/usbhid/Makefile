@@ -56,8 +56,8 @@ SOURCES = \
 	kbd/kbdrepeat.c \
 	generic/hiddev.c \
 	mouse/mousedev.c \
-	lgtch-ultrax/lgtch-ultrax.c \
-	lgtch-ultrax/keymap.c \
+	multimedia/multimedia.c \
+	multimedia/keymap.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)

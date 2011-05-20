@@ -161,7 +161,7 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-int usb_generic_hid_init(usb_hid_dev_t *hid_dev)
+int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	if (hid_dev == NULL) {
 		return EINVAL;
@@ -172,7 +172,7 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, 
+bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
     uint8_t *buffer, size_t buffer_size)
 {
 	usb_log_debug("usb_hid_polling_callback(%p, %p, %zu)\n",

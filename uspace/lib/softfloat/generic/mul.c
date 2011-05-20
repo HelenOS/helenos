@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
  */
 
-#include<sftypes.h>
-#include<mul.h>
-#include<comparison.h>
-#include<common.h>
+#include <sftypes.h>
+#include <mul.h>
+#include <comparison.h>
+#include <common.h>
 
 /** Multiply two 32 bit float numbers
  *

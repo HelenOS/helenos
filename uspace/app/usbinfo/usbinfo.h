@@ -37,9 +37,9 @@
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <usb/debug.h>
-#include <usb/dp.h>
+#include <usb/dev/dp.h>
 #include <ipc/devman.h>
 
 typedef struct {

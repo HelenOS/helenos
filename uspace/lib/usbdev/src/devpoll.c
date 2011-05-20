@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * USB device driver framework - automatic interrupt polling.
  */
-#include <usb/devpoll.h>
-#include <usb/request.h>
+#include <usb/dev/poll.h>
+#include <usb/dev/request.h>
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <errno.h>

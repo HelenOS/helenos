@@ -35,7 +35,7 @@
 #include <async.h>
 #include <stdio.h>
 
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 #include <usb/classes/classes.h>
 
 #include "usbhub.h"

@@ -33,7 +33,7 @@
  * @file
  * Main routines of USB fallback driver.
  */
-#include <usb/devdrv.h>
+#include <usb/dev/driver.h>
 #include <usb/debug.h>
 #include <errno.h>
 #include <str_error.h>

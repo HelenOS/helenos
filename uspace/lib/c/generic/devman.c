@@ -414,11 +414,17 @@ int devman_get_device_path(devman_handle_t handle, char *path, size_t path_size)
 		return (int) opening_request_rc;
 	}
 
+	/* To be on the safe-side. */
 	path[path_size - 1] = 0;
 
-	if (IPC_GET_ARG2(data_request_call) >= path_size) {
+	size_t transferred_size = IPC_GET_ARG2(data_request_call);
+
+	if (transferred_size >= path_size) {
 		return ELIMIT;
 	}
+
+	/* Terminate the string (trailing 0 not send over IPC). */
+	path[transferred_size] = 0;
 
 	return EOK;
 }

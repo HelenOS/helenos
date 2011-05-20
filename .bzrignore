@@ -8,6 +8,9 @@ Makefile.depend
 *.disasm
 _link.ld
 ./*.iso
+_link-dlexe.ld
+_link-loader.ld
+_link-shlib.ld
 
 ./tools/__pycache__/
 
@@ -49,6 +52,7 @@ _link.ld
 ./uspace/app/killall/killall
 ./uspace/app/klog/klog
 ./uspace/app/lsusb/lsusb
+./uspace/app/mkbd/mkbd
 ./uspace/app/mkfat/mkfat
 ./uspace/app/netstart/netstart
 ./uspace/app/netecho/netecho

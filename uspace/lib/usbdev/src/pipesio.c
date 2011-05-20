@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
@@ -44,11 +44,11 @@
  * obviously).
  */
 #include <usb/usb.h>
-#include <usb/pipes.h>
+#include <usb/dev/pipes.h>
 #include <errno.h>
 #include <assert.h>
 #include <usbhc_iface.h>
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include "pipepriv.h"
 
 /** Request an in transfer, no checking of input parameters.

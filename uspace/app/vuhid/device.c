@@ -35,6 +35,7 @@
  */
 #include "virthid.h"
 #include <errno.h>
+#include <stdio.h>
 #include <str.h>
 #include <assert.h>
 #include <usb/classes/classes.h>

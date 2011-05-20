@@ -54,6 +54,7 @@
 #include <fibril_synch.h>
 #include <sys/mman.h>
 #include <align.h>
+#include <malloc.h>
 
 #define FAT_NODE(node)	((node) ? (fat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)

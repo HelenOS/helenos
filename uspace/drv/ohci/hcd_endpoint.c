@@ -34,6 +34,11 @@
 #include "utils/malloc32.h"
 #include "hcd_endpoint.h"
 
+/** Callback to set toggle on ED.
+ *
+ * @param[in] hcd_ep hcd endpoint structure
+ * @param[in] toggle new value of toggle bit
+ */
 static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
 {
 	hcd_endpoint_t *instance = hcd_ep;
@@ -41,6 +46,12 @@ static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
 	assert(instance->ed);
 	ed_toggle_set(instance->ed, toggle);
 }
+/*----------------------------------------------------------------------------*/
+/** Callback to get value of toggle bit.
+ *
+ * @param[in] hcd_ep hcd endpoint structure
+ * @return Current value of toggle bit.
+ */
 static int hcd_ep_toggle_get(void *hcd_ep)
 {
 	hcd_endpoint_t *instance = hcd_ep;
@@ -48,8 +59,12 @@ static int hcd_ep_toggle_get(void *hcd_ep)
 	assert(instance->ed);
 	return ed_toggle_get(instance->ed);
 }
-
-
+/*----------------------------------------------------------------------------*/
+/** Creates new hcd endpoint representation.
+ *
+ * @param[in] ep USBD endpoint structure
+ * @return pointer to a new hcd endpoint structure, NULL on failure.
+ */
 hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
 {
 	assert(ep);
@@ -77,12 +92,10 @@ hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
 	return hcd_ep;
 }
 /*----------------------------------------------------------------------------*/
-hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
-{
-	assert(ep);
-	return ep->hc_data.data;
-}
-/*----------------------------------------------------------------------------*/
+/** Disposes assigned hcd endpoint structure
+ *
+ * @param[in] ep USBD endpoint structure
+ */
 void hcd_endpoint_clear(endpoint_t *ep)
 {
 	assert(ep);

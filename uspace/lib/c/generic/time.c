@@ -206,6 +206,12 @@ int usleep(useconds_t usec)
 	return 0;
 }
 
+void udelay(useconds_t time)
+{
+	(void) __SYSCALL1(SYS_THREAD_UDELAY, (sysarg_t) time);
+}
+
+
 /** Wait unconditionally for specified number of seconds
  *
  */

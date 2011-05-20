@@ -160,13 +160,12 @@ static ddf_dev_ops_t rh_ops = {
 /*----------------------------------------------------------------------------*/
 /** Initialize hc and rh DDF structures and their respective drivers.
  *
- * @param[in] instance UHCI structure to use.
  * @param[in] device DDF instance of the device to use.
  *
  * This function does all the preparatory work for hc and rh drivers:
  *  - gets device's hw resources
  *  - disables UHCI legacy support (PCI config space)
- *  - asks for interrupt
+ *  - attempts to enable interrupts
  *  - registers interrupt handler
  */
 int device_setup_uhci(ddf_dev_t *device)

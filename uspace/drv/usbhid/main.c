@@ -40,8 +40,8 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/devdrv.h>
-#include <usb/devpoll.h>
+#include <usb/dev/driver.h>
+#include <usb/dev/poll.h>
 
 #include "usbhid.h"
 
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB HID driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 
 	return usb_driver_main(&usb_hid_driver);
 }

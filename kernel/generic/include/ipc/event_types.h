@@ -38,7 +38,7 @@
 typedef enum event_type {
 	/** New data available in kernel log */
 	EVENT_KLOG = 0,
-	/** Returning from kernel console to userspace */
+	/** Returning from kernel console to uspace */
 	EVENT_KCONSOLE,
 	/** A task/thread has faulted and will be terminated */
 	EVENT_FAULT,

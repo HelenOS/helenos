@@ -79,10 +79,6 @@
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif /* CONFIG_VIRT_IDX_DCACHE */
-
 /**
  * Each architecture decides what functions will be used to carry out
  * address space operations such as creating or locking page tables.
@@ -447,6 +443,14 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	else
 		memsetb(&area->backend_data, sizeof(area->backend_data), 0);
 	
+	if (area->backend && area->backend->create) {
+		if (!area->backend->create(area)) {
+			free(area);
+			mutex_unlock(&as->lock);
+			return NULL;
+		}
+	}
+	
 	btree_create(&area->used_space);
 	btree_insert(&as->as_area_btree, base, (void *) area, NULL);
 	
@@ -689,6 +693,14 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		}
 	}
 	
+	if (area->backend && area->backend->resize) {
+		if (!area->backend->resize(area, pages)) {
+			mutex_unlock(&area->lock);
+			mutex_unlock(&as->lock);
+			return ENOMEM;
+		}
+	}
+	
 	area->pages = pages;
 	
 	mutex_unlock(&area->lock);
@@ -755,6 +767,9 @@ int as_area_destroy(as_t *as, uintptr_t address)
 		mutex_unlock(&as->lock);
 		return ENOENT;
 	}
+
+	if (area->backend && area->backend->destroy)
+		area->backend->destroy(area);
 	
 	uintptr_t base = area->base;
 	

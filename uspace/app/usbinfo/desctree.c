@@ -46,7 +46,7 @@
 #include <usb/classes/classes.h>
 
 #include "usbinfo.h"
-#include <usb/dp.h>
+#include <usb/dev/dp.h>
 
 static void browse_descriptor_tree_internal(usb_dp_parser_t *parser,
     usb_dp_parser_data_t *data, uint8_t *root, size_t depth,

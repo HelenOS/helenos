@@ -41,18 +41,18 @@
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/descriptor.h>
-#include <usb/recognise.h>
-#include <usb/request.h>
+#include <usb/dev/recognise.h>
+#include <usb/dev/request.h>
 #include <usb/classes/hub.h>
-#include <usb/devpoll.h>
+#include <usb/dev/poll.h>
 #include <stdio.h>
 
 #include "usbhub.h"
 #include "usbhub_private.h"
 #include "port_status.h"
-#include "usb/usb.h"
-#include "usb/pipes.h"
-#include "usb/classes/classes.h"
+#include <usb/usb.h>
+#include <usb/dev/pipes.h>
+#include <usb/classes/classes.h>
 
 
 static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev);

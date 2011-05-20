@@ -38,11 +38,11 @@
 #include <usb/debug.h>
 
 #include "root_hub.h"
-#include "usb/classes/classes.h"
-#include "usb/devdrv.h"
+#include <usb/classes/classes.h>
+#include <usb/dev/driver.h>
 #include "ohci_regs.h"
 
-#include <usb/request.h>
+#include <usb/dev/request.h>
 #include <usb/classes/hub.h>
 
 /**

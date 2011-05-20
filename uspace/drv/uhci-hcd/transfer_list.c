@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <usb/debug.h>
+#include <arch/barrier.h>
 
 #include "transfer_list.h"
 
@@ -70,7 +71,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
  *
  * @param[in] instance Memory place to use.
  *
- * Frees memory for internal qh_t structure.
+ * Frees memory of the internal qh_t structure.
  */
 void transfer_list_fini(transfer_list_t *instance)
 {
@@ -125,11 +126,15 @@ void transfer_list_add_batch(
 	const uint32_t pa = addr_to_phys(batch_qh(batch));
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
 
+	/* Make sure all data in the batch are written */
+	write_barrier();
+
 	/* keep link */
 	batch_qh(batch)->next = last_qh->next;
 	qh_set_next_qh(last_qh, batch_qh(batch));
 
-	asm volatile ("": : :"memory");
+	/* Make sure the pointer is updated */
+	write_barrier();
 
 	/* Add to the driver list */
 	list_append(&batch->link, &instance->batch_list);
@@ -221,7 +226,10 @@ void transfer_list_remove_batch(
 	assert((prev_qh->next & LINK_POINTER_ADDRESS_MASK)
 	    == addr_to_phys(batch_qh(batch)));
 	prev_qh->next = batch_qh(batch)->next;
-	asm volatile ("": : :"memory");
+
+	/* Make sure the pointer is updated */
+	write_barrier();
+
 	/* Remove from the batch list */
 	list_remove(&batch->link);
 	usb_log_debug("Batch(%p) removed (%s) from %s, next: %x.\n",

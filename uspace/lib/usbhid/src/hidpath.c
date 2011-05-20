@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
  * HID report descriptor and report data parser implementation.
  */
-#include <usb/classes/hidparser.h>
+#include <usb/hid/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
 #include <malloc.h>
@@ -40,6 +40,9 @@
 #include <usb/debug.h>
 #include <assert.h>
 
+
+#define USB_HID_SAME_USAGE(usage1, usage2)	((usage1 == usage2) || (usage1 == 0) || (usage2 == 0))
+#define USB_HID_SAME_USAGE_PAGE(page1, page2)	((page1 == page2) || (page1 == 0) || (page2 == 0))
 
 /**
  * Appends one item (couple of usage_path and usage) into the usage path
@@ -202,9 +205,9 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 
 			while(report_link != &report_path->head) {
 				report_item = list_get_instance(report_link, usb_hid_report_usage_path_t, link);
-				if(report_item->usage_page == path_item->usage_page){
+				if(USB_HID_SAME_USAGE_PAGE(report_item->usage_page, path_item->usage_page)){
 					if(only_page == 0){
-						if(report_item->usage == path_item->usage) {
+						if(USB_HID_SAME_USAGE(report_item->usage, path_item->usage)) {
 							return EOK;
 						}
 					}
@@ -241,9 +244,9 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 					                              usb_hid_report_usage_path_t, 
 					                              link);		
 
-					if((report_item->usage_page != path_item->usage_page) || 
+					if(!USB_HID_SAME_USAGE_PAGE(report_item->usage_page, path_item->usage_page) || 
 					   ((only_page == 0) && 
-					    (report_item->usage != path_item->usage))) {
+					    !USB_HID_SAME_USAGE(report_item->usage, path_item->usage))) {
 							
 						   return 1;
 					} else {
@@ -281,11 +284,11 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 					path_item = list_get_instance(path_link, 
 					                              usb_hid_report_usage_path_t, 
 					                              link);		
-
-					if((report_item->usage_page != path_item->usage_page) || 
+						  
+					if(!USB_HID_SAME_USAGE_PAGE(report_item->usage_page, path_item->usage_page) || 
 					   ((only_page == 0) && 
-					    (report_item->usage != path_item->usage))) {
-						   return 1;
+					    !USB_HID_SAME_USAGE(report_item->usage, path_item->usage))) {
+							return 1;
 					} else {
 						report_link = report_link->prev;
 						path_link = path_link->prev;			
