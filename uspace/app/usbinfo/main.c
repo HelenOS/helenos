@@ -42,9 +42,8 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
-#include <usb/dev/hc.h>
+#include <usb/hc.h>
 #include <usb/dev/pipes.h>
-#include <usb/host.h>
 #include <usb/driver.h>
 #include "usbinfo.h"
 

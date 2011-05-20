@@ -38,7 +38,7 @@ SOURCES = \
 	src/debug.c \
 	src/driver.c \
 	src/dump.c \
-	src/host.c \
+	src/hc.c \
 	src/usb.c
 
 include $(USPACE_PREFIX)/Makefile.common

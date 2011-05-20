@@ -26,16 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbdev
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * General communication between device drivers and host controller driver.
+ * General communication with host controller driver (implementation).
  */
 #include <devman.h>
 #include <async.h>
+#include <dev_iface.h>
 #include <usb_iface.h>
-#include <usb/dev/hc.h>
+#include <usbhc_iface.h>
+#include <usb/hc.h>
 #include <usb/driver.h>
 #include <usb/debug.h>
 #include <errno.h>
@@ -138,6 +140,65 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 	}
 
 	connection->hc_phone = -1;
+
+	return EOK;
+}
+
+/** Get handle of USB device with given address.
+ *
+ * @param[in] connection Opened connection to host controller.
+ * @param[in] address Address of device in question.
+ * @param[out] handle Where to write the device handle.
+ * @return Error code.
+ */
+int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
+    usb_address_t address, devman_handle_t *handle)
+{
+	if (!usb_hc_connection_is_opened(connection)) {
+		return ENOENT;
+	}
+
+	sysarg_t tmp;
+	int rc = async_req_2_1(connection->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
+	    address, &tmp);
+	if ((rc == EOK) && (handle != NULL)) {
+		*handle = tmp;
+	}
+
+	return rc;
+}
+
+
+/** Get host controller handle by its class index.
+ *
+ * @param class_index Class index for the host controller.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+int usb_ddf_get_hc_handle_by_class(size_t class_index,
+    devman_handle_t *hc_handle)
+{
+	char *class_index_str;
+	devman_handle_t hc_handle_tmp;
+	int rc;
+
+	rc = asprintf(&class_index_str, "%zu", class_index);
+	if (rc < 0) {
+		return ENOMEM;
+	}
+	rc = devman_device_get_handle_by_class("usbhc", class_index_str,
+	    &hc_handle_tmp, 0);
+	free(class_index_str);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (hc_handle != NULL) {
+		*hc_handle = hc_handle_tmp;
+	}
 
 	return EOK;
 }

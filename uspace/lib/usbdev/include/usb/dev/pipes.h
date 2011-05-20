@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/dev/hc.h>
+#include <usb/hc.h>
 #include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <ddf/driver.h>

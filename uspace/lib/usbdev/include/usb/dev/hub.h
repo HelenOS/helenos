@@ -38,7 +38,7 @@
 #define LIBUSBDEV_HUB_H_
 
 #include <sys/types.h>
-#include <usb/dev/hc.h>
+#include <usb/hc.h>
 
 int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
     int (*)(int, void *), int, void *,
@@ -62,8 +62,6 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
 int usb_hc_register_device(usb_hc_connection_t *,
     const usb_hc_attached_device_t *);
 int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
-int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
-    devman_handle_t *);
 
 #endif
 /**

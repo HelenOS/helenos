@@ -30,15 +30,37 @@
  * @{
  */
 /** @file
- * Host controller common functions.
+ * General communication with host controller driver.
  */
-#ifndef LIBUSB_HOST_H_
-#define LIBUSB_HOST_H_
+#ifndef LIBUSB_HC_H_
+#define LIBUSB_HC_H_
 
 #include <sys/types.h>
 #include <ipc/devman.h>
+#include <ddf/driver.h>
+#include <bool.h>
+#include <usb/usb.h>
+
+/** Connection to the host controller driver. */
+typedef struct {
+	/** Devman handle of the host controller. */
+	devman_handle_t hc_handle;
+	/** Phone to the host controller. */
+	int hc_phone;
+} usb_hc_connection_t;
+
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
+    ddf_dev_t *);
+int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
+
+int usb_hc_connection_open(usb_hc_connection_t *);
+bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+int usb_hc_connection_close(usb_hc_connection_t *);
+int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
+    devman_handle_t *);
 
 int usb_ddf_get_hc_handle_by_class(size_t, devman_handle_t *);
+
 
 #endif
 /**
