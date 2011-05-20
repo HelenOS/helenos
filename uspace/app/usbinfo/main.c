@@ -127,7 +127,7 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 		}
 		/* Try to get its address. */
 		if (!addr_found) {
-			addr = usb_device_get_assigned_address(dev_handle);
+			addr = usb_hc_get_address_by_handle(dev_handle);
 			if (addr >= 0) {
 				addr_found = true;
 			}

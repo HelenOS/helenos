@@ -162,7 +162,6 @@ int usb_device_connection_initialize(usb_device_connection_t *,
     devman_handle_t, usb_address_t);
 
 int usb_device_get_assigned_interface(ddf_dev_t *);
-usb_address_t usb_device_get_assigned_address(devman_handle_t);
 
 int usb_pipe_initialize(usb_pipe_t *, usb_device_connection_t *,
     usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
