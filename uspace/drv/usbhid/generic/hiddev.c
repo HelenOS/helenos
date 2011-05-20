@@ -82,6 +82,8 @@ static ddf_dev_ops_t usb_generic_hid_ops = {
 
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 {
+	usb_log_debug("Generic HID: Get event length.\n");
+	
 	if (fun == NULL || fun->driver_data) {
 		return 0;
 	}
@@ -96,6 +98,8 @@ static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer, 
     size_t size, size_t *act_size, unsigned int flags)
 {
+	usb_log_debug("Generic HID: Get event.\n");
+	
 	if (fun == NULL || fun->driver_data) {
 		return EINVAL;
 	}
@@ -127,6 +131,7 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer,
 
 static int usb_generic_hid_client_connected(ddf_fun_t *fun)
 {
+	usb_log_debug("Generic HID: Client connected.\n");
 	usb_hid_report_received();
 	return EOK;
 }
@@ -144,6 +149,9 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
+	
+	fun->ops = &usb_generic_hid_ops;
+	fun->driver_data = hid_dev;
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -153,8 +161,7 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 	
-	fun->ops = &usb_generic_hid_ops;
-	fun->driver_data = hid_dev;
+	usb_log_debug("HID function created. Handle: %d\n", fun->handle);
 	
 	return EOK;
 }

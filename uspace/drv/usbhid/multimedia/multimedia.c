@@ -209,6 +209,8 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev,
 		return rc;
 	}
 	
+	usb_log_debug("%s function created. Handle: %d\n", NAME, fun->handle);
+	
 	rc = ddf_fun_add_to_class(fun, "keyboard");
 	if (rc != EOK) {
 		usb_log_error(
