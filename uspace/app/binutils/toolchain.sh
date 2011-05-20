@@ -74,6 +74,7 @@ case "$1" in
 			sed 's/-O[^ ]*//g' | \
 			sed 's/-W[^ ]*//g' | \
 			sed 's/-pipe//g' | \
+			sed 's/-std=[^ ]*//g' | \
 			sed 's/-g//g' | \
 			sed 's/ [ ]*/ /g'`"
 		echo "	$2" "$CFLAGS" '$@'
