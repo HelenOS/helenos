@@ -44,8 +44,7 @@
 #include <devman.h>
 #include <devmap.h>
 #include <usb/dev/hub.h>
-#include <usb/host.h>
-#include <usb/driver.h>
+#include <usb/hc.h>
 #include <usb/dev/pipes.h>
 
 #define NAME "mkbd"
@@ -172,7 +171,7 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 		}
 		/* Try to get its address. */
 		if (!addr_found) {
-			addr = usb_device_get_assigned_address(dev_handle);
+			addr = usb_hc_get_address_by_handle(dev_handle);
 			if (addr >= 0) {
 				addr_found = true;
 			}

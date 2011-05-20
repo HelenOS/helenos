@@ -35,7 +35,7 @@
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/debug.h>
-#include <usb/driver.h>
+#include <usb/hc.h>
 #include <usbhc_iface.h>
 #include <usb_iface.h>
 #include <devman.h>
@@ -96,34 +96,6 @@ int usb_device_get_assigned_interface(ddf_dev_t *device)
 	}
 
 	return (int) iface_no;
-}
-
-/** Tell USB address assigned to given device.
- *
- * @param dev_handle Devman handle of the USB device in question.
- * @return USB address or negative error code.
- */
-usb_address_t usb_device_get_assigned_address(devman_handle_t dev_handle)
-{
-	int parent_phone = devman_parent_device_connect(dev_handle,
-	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
-	sysarg_t address;
-
-	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_ADDRESS,
-	    dev_handle, &address);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	async_hangup(parent_phone);
-
-	return (usb_address_t) address;
 }
 
 /** Initialize connection to USB device.
