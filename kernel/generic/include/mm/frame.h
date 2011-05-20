@@ -44,17 +44,6 @@
 #include <arch/mm/page.h>
 #include <arch/mm/frame.h>
 
-#define ONE_FRAME    0
-#define TWO_FRAMES   1
-#define FOUR_FRAMES  2
-
-
-#ifdef ARCH_STACK_FRAMES
-	#define STACK_FRAMES  ARCH_STACK_FRAMES
-#else
-	#define STACK_FRAMES  ONE_FRAME
-#endif
-
 /** Maximum number of zones in the system. */
 #define ZONES_MAX  32
 
@@ -163,6 +152,7 @@ extern void frame_free_generic(uintptr_t, frame_flags_t);
 extern void frame_free(uintptr_t);
 extern void frame_free_noreserve(uintptr_t);
 extern void frame_reference_add(pfn_t);
+extern size_t frame_total_free_get(void);
 
 extern size_t find_zone(pfn_t, size_t, size_t);
 extern size_t zone_create(pfn_t, size_t, pfn_t, zone_flags_t);

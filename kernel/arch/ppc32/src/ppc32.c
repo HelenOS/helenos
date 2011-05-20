@@ -264,8 +264,7 @@ void calibrate_delay_loop(void)
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	userspace_asm((uintptr_t) kernel_uarg->uspace_uarg,
-	    (uintptr_t) kernel_uarg->uspace_stack +
-	    THREAD_STACK_SIZE - SP_DELTA,
+	    (uintptr_t) kernel_uarg->uspace_stack + STACK_SIZE - SP_DELTA,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	
 	/* Unreachable */

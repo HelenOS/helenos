@@ -37,12 +37,10 @@
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH  ((unsigned long) 0x80000000)
-#define KERNEL_ADDRESS_SPACE_END_ARCH    ((unsigned long) 0xffffffff)
-#define USER_ADDRESS_SPACE_START_ARCH    ((unsigned long) 0x00000000)
-#define USER_ADDRESS_SPACE_END_ARCH      ((unsigned long) 0x7fffffff)
-
-#define USTACK_ADDRESS_ARCH  (0x7fffffff - (PAGE_SIZE - 1))
+#define KERNEL_ADDRESS_SPACE_START_ARCH  UINT32_C(0x80000000)
+#define KERNEL_ADDRESS_SPACE_END_ARCH    UINT32_C(0xffffffff)
+#define USER_ADDRESS_SPACE_START_ARCH    UINT32_C(0x00000000)
+#define USER_ADDRESS_SPACE_END_ARCH      UINT32_C(0x7fffffff)
 
 typedef struct {
 } as_arch_t;

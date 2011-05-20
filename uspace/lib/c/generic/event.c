@@ -40,16 +40,30 @@
 #include <event.h>
 #include <kernel/ipc/event_types.h>
 
-/** Subscribe for event notifications.
+/** Subscribe event notifications.
  *
- * @param evno   Event number.
- * @param method Use this method for notifying me.
+ * @param evno    Event type to subscribe.
+ * @param imethod Use this interface and method for notifying me.
  *
  * @return Value returned by the kernel.
+ *
  */
-int event_subscribe(event_type_t e, sysarg_t method)
+int event_subscribe(event_type_t evno, sysarg_t imethod)
 {
-	return __SYSCALL2(SYS_EVENT_SUBSCRIBE, (sysarg_t) e, (sysarg_t) method);
+	return __SYSCALL2(SYS_EVENT_SUBSCRIBE, (sysarg_t) evno,
+	    (sysarg_t) imethod);
+}
+
+/** Unmask event notifications.
+ *
+ * @param evno Event type to unmask.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int event_unmask(event_type_t evno)
+{
+	return __SYSCALL1(SYS_EVENT_UNMASK, (sysarg_t) evno);
 }
 
 /** @}

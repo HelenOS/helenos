@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -35,25 +35,23 @@
 #ifndef __COMPARISON_H__
 #define __COMPARISON_H__
 
-inline int isFloat32NaN(float32 f);
-inline int isFloat32SigNaN(float32 f);
+extern int isFloat32NaN(float32);
+extern int isFloat32SigNaN(float32);
 
-inline int isFloat32Infinity(float32 f);
-inline int isFloat32Zero(float32 f);
+extern int isFloat32Infinity(float32);
+extern int isFloat32Zero(float32);
 
-inline int isFloat64NaN(float64 d);
-inline int isFloat64SigNaN(float64 d);
+extern int isFloat64NaN(float64);
+extern int isFloat64SigNaN(float64);
 
-inline int isFloat64Infinity(float64 d);
-inline int isFloat64Zero(float64 d);
+extern int isFloat64Infinity(float64);
+extern int isFloat64Zero(float64);
 
-inline int isFloat32eq(float32 a, float32 b);
-inline int isFloat32lt(float32 a, float32 b);
-inline int isFloat32gt(float32 a, float32 b);
+extern int isFloat32eq(float32, float32);
+extern int isFloat32lt(float32, float32);
+extern int isFloat32gt(float32, float32);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

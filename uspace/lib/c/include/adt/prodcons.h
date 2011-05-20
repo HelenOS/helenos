@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,33 +32,21 @@
 /** @file
  */
 
-#ifndef LIBC_AS_H_
-#define LIBC_AS_H_
+#ifndef LIBC_PRODCONS_H_
+#define LIBC_PRODCONS_H_
 
-#include <sys/types.h>
-#include <task.h>
-#include <kernel/mm/as.h>
-#include <libarch/config.h>
+#include <adt/list.h>
+#include <fibril_synch.h>
 
-static inline size_t SIZE2PAGES(size_t size)
-{
-	if (size == 0)
-		return 0;
-	
-	return (size_t) ((size - 1) >> PAGE_WIDTH) + 1;
-}
+typedef struct {
+	fibril_mutex_t mtx;
+	fibril_condvar_t cv;
+	link_t list;
+} prodcons_t;
 
-static inline size_t PAGES2SIZE(size_t pages)
-{
-	return (size_t) (pages << PAGE_WIDTH);
-}
-
-extern void *as_area_create(void *, size_t, unsigned int);
-extern int as_area_resize(void *, size_t, unsigned int);
-extern int as_area_change_flags(void *, unsigned int);
-extern int as_area_destroy(void *);
-extern void *set_maxheapsize(size_t);
-extern void *as_get_mappable_page(size_t);
+extern void prodcons_initialize(prodcons_t *);
+extern void prodcons_produce(prodcons_t *, link_t *);
+extern link_t *prodcons_consume(prodcons_t *);
 
 #endif
 

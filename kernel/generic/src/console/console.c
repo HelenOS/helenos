@@ -52,9 +52,8 @@
 #include <errno.h>
 #include <str.h>
 
-#define KLOG_PAGES    4
+#define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
-#define KLOG_LATENCY  8
 
 /** Kernel log cyclic buffer */
 static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
@@ -165,6 +164,8 @@ void klog_init(void)
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
 	
+	event_set_unmask_callback(EVENT_KLOG, klog_update);
+	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
 	spinlock_unlock(&klog_lock);
@@ -264,9 +265,10 @@ void klog_update(void)
 {
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_inited) && (event_is_subscribed(EVENT_KLOG)) && (klog_uspace > 0)) {
-		event_notify_3(EVENT_KLOG, klog_start, klog_len, klog_uspace);
-		klog_uspace = 0;
+	if ((klog_inited) && (klog_uspace > 0)) {
+		if (event_notify_3(EVENT_KLOG, true, klog_start, klog_len,
+		    klog_uspace) == EOK)
+			klog_uspace = 0;
 	}
 	
 	spinlock_unlock(&klog_lock);
@@ -315,16 +317,10 @@ void putchar(const wchar_t ch)
 	if (klog_uspace < klog_len)
 		klog_uspace++;
 	
-	/* Check notify uspace to update */
-	bool update;
-	if ((klog_uspace > KLOG_LATENCY) || (ch == '\n'))
-		update = true;
-	else
-		update = false;
-	
 	spinlock_unlock(&klog_lock);
 	
-	if (update)
+	/* Force notification on newline */
+	if (ch == '\n')
 		klog_update();
 }
 
