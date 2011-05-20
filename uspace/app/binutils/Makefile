@@ -29,15 +29,18 @@
 nullstring =
 space = $(nullstring) # space
 
-# Symlink to the sources of the ported application.
-APP_DIR = ./src
+# Information for obtaining specific binutils redistributable package.
+# Might be subject to change in the future.
+REDIST_VERSION = 2.21
+REDIST_NAME = binutils-$(REDIST_VERSION)
+REDIST_FILENAME = $(REDIST_NAME).tar.bz2
+REDIST_SOURCE = ftp://ftp.gnu.org/gnu/binutils/
 
-# Default directory for the binutils source tree.
+# Directory for the binutils source tree.
 REDIST_DIR = ./redist
 
-# Absolute path to the binutils source tree.
-# Can be set externally, defaults to $REDIST_DIR.
-BINUTILS_ABS_PATH ?= $(subst $(space),\ ,$(PWD))/$(REDIST_DIR)
+# File to detect the presence of binutils source tree.
+REDIST_DETECT = $(REDIST_DIR)/configure
 
 # $USPACE_PREFIX have to be based on the absolute path,
 # because targets derived from it will be referenced from
@@ -93,15 +96,15 @@ CONF_FLAGS = --disable-nls --disable-shared --enable-static \
 MAKE_TARGETS = all-gas all-ld
 
 # Patch native Makefile.common.
+# Download and extract binutils.
 # Check presence of gcc compiler.
 # Patch $PATH to intercept toolchain calls.
 # Generate false toolchain.
-# Create symlink to the binutils directory.
 # Patch binutils.
 # Configure binutils for target architecture.
 # Make binutils.
 # Copy binaries.
-all: $(COMMON_MAKEFILE_PATCHED) all_
+all: $(COMMON_MAKEFILE_PATCHED) all_ $(REDIST_FILENAME) $(REDIST_DETECT)
 ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
 	OLDPATH = $(PATH)
 	PATH = $(PWD):$(PATH)
@@ -114,15 +117,14 @@ ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
 	./toolchain.sh objdump $(OBJDUMP)
 	./toolchain.sh objcopy $(OBJCOPY)
 	./toolchain.sh strip $(STRIP)
-	ln -s -T $(BINUTILS_ABS_PATH) $(APP_DIR)
-	./intrusive.sh do $(APP_DIR)
+	./intrusive.sh do $(REDIST_DIR)
 	ORIG_DIR = $(subst $(space),\ ,$(PWD))
-	cd $(APP_DIR)
+	cd $(REDIST_DIR)
 	./configure --target=$(TARGET) $(CONF_FLAGS)
 	make $(MAKE_TARGETS)
 	cd $(ORIG_DIR)
-	cp $(APP_DIR)/gas/as-new ./as
-	cp $(APP_DIR)/ld/ld-new ./ld
+	cp $(REDIST_DIR)/gas/as-new ./as
+	cp $(REDIST_DIR)/ld/ld-new ./ld
 	PATH = $(OLDPATH)
 	export PATH
 else
@@ -133,19 +135,26 @@ endif
 $(COMMON_MAKEFILE_PATCHED): $(PATCH_SCRIPT) $(COMMON_MAKEFILE_NATIVE)
 	awk -f $^ > $@
 
+# Download binutils redistributable package.
+$(REDIST_FILENAME):
+	wget -c $(REDIST_SOURCE)$(REDIST_FILENAME)
+
+# Extract binutils source tree.
+$(REDIST_DETECT): $(REDIST_FILENAME)
+	tar -x -j -f $<
+	mv -f $(REDIST_NAME) $(REDIST_DIR)
+
 # Delete binaries.
 # Clean binutils.
 # Unpatch binutils.
-# Delete symlink
 # Delete generated scripts.
 clean:
 	rm -f as ld
 	ORIG_DIR = $(subst $(space),\ ,$(PWD))
-	cd $(APP_DIR)
+	cd $(REDIST_DIR)
 	make distclean
 	cd $(ORIG_DIR)
-	./intrusive.sh undo $(APP_DIR)
-	rm -f $(APP_DIR)
+	./intrusive.sh undo $(REDIST_DIR)
 	rm -f gcc as ar ranlib ld objdump objcopy strip
 	rm -f $(COMMON_MAKEFILE_PATCHED)
 
