@@ -37,7 +37,10 @@
 
 #include <typedefs.h>
 #include <mm/as.h>
-#include <memstr.h>
+#include <arch/mm/page.h>
+
+#define P2SZ(pages) \
+	((pages) << PAGE_WIDTH)	
 
 /** Operations to manipulate page mappings. */
 typedef struct {

@@ -301,7 +301,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	/*
 	 * We don't want any area to have conflicts with NULL page.
 	 */
-	if (overlaps(addr, count << PAGE_WIDTH, (uintptr_t) NULL, PAGE_SIZE))
+	if (overlaps(addr, P2SZ(count), (uintptr_t) NULL, PAGE_SIZE))
 		return false;
 	
 	/*
@@ -328,8 +328,8 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		if (area != avoid) {
 			mutex_lock(&area->lock);
 			
-			if (overlaps(addr, count << PAGE_WIDTH,
-			    area->base, area->pages << PAGE_WIDTH)) {
+			if (overlaps(addr, P2SZ(count), area->base,
+			    P2SZ(area->pages))) {
 				mutex_unlock(&area->lock);
 				return false;
 			}
@@ -345,8 +345,8 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		if (area != avoid) {
 			mutex_lock(&area->lock);
 			
-			if (overlaps(addr, count << PAGE_WIDTH,
-			    area->base, area->pages << PAGE_WIDTH)) {
+			if (overlaps(addr, P2SZ(count), area->base,
+			    P2SZ(area->pages))) {
 				mutex_unlock(&area->lock);
 				return false;
 			}
@@ -365,8 +365,8 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		
 		mutex_lock(&area->lock);
 		
-		if (overlaps(addr, count << PAGE_WIDTH,
-		    area->base, area->pages << PAGE_WIDTH)) {
+		if (overlaps(addr, P2SZ(count), area->base,
+		    P2SZ(area->pages))) {
 			mutex_unlock(&area->lock);
 			return false;
 		}
@@ -379,8 +379,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	 * Check if it doesn't conflict with kernel address space.
 	 */
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
-		return !overlaps(addr, count << PAGE_WIDTH,
-		    KERNEL_ADDRESS_SPACE_START,
+		return !overlaps(addr, P2SZ(count), KERNEL_ADDRESS_SPACE_START,
 		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START);
 	}
 	
@@ -473,7 +472,8 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 	ASSERT(mutex_locked(&as->lock));
 	
 	btree_node_t *leaf;
-	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
+	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va,
+	    &leaf);
 	if (area) {
 		/* va is the base address of an address space area */
 		mutex_lock(&area->lock);
@@ -494,8 +494,8 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 		
 		mutex_lock(&area->lock);
 
-		size_t size = area->pages << PAGE_WIDTH;
-		if ((area->base <= va) && (va <= area->base + (size - 1)))
+		if ((area->base <= va) &&
+		    (va <= area->base + (P2SZ(area->pages) - 1)))
 			return area;
 		
 		mutex_unlock(&area->lock);
@@ -505,13 +505,14 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 	 * Second, locate the left neighbour and test its last record.
 	 * Because of its position in the B+tree, it must have base < va.
 	 */
-	btree_node_t *lnode = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf);
+	btree_node_t *lnode = btree_leaf_node_left_neighbour(&as->as_area_btree,
+	    leaf);
 	if (lnode) {
 		area = (as_area_t *) lnode->value[lnode->keys - 1];
 		
 		mutex_lock(&area->lock);
 		
-		if (va < area->base + (area->pages << PAGE_WIDTH))
+		if (va <= area->base + (P2SZ(area->pages) - 1))
 			return area;
 		
 		mutex_unlock(&area->lock);
@@ -576,7 +577,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	}
 	
 	if (pages < area->pages) {
-		uintptr_t start_free = area->base + (pages << PAGE_WIDTH);
+		uintptr_t start_free = area->base + P2SZ(pages);
 		
 		/*
 		 * Shrinking the area.
@@ -589,7 +590,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 * Start TLB shootdown sequence.
 		 */
 		ipl_t ipl = tlb_shootdown_start(TLB_INVL_PAGES, as->asid,
-		    area->base + (pages << PAGE_WIDTH), area->pages - pages);
+		    area->base + P2SZ(pages), area->pages - pages);
 		
 		/*
 		 * Remove frames belonging to used space starting from
@@ -612,10 +613,10 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 				    (size_t) node->value[node->keys - 1];
 				size_t i = 0;
 				
-				if (overlaps(ptr, size << PAGE_WIDTH, area->base,
-				    pages << PAGE_WIDTH)) {
+				if (overlaps(ptr, P2SZ(size), area->base,
+				    P2SZ(pages))) {
 					
-					if (ptr + (size << PAGE_WIDTH) <= start_free) {
+					if (ptr + P2SZ(size) <= start_free) {
 						/*
 						 * The whole interval fits
 						 * completely in the resized
@@ -646,8 +647,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 				}
 				
 				for (; i < size; i++) {
-					pte_t *pte = page_mapping_find(as, ptr +
-					    (i << PAGE_WIDTH));
+					pte_t *pte = page_mapping_find(as,
+					    ptr + P2SZ(i));
 					
 					ASSERT(pte);
 					ASSERT(PTE_VALID(pte));
@@ -656,12 +657,11 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 					if ((area->backend) &&
 					    (area->backend->frame_free)) {
 						area->backend->frame_free(area,
-						    ptr + (i << PAGE_WIDTH),
+						    ptr + P2SZ(i),
 						    PTE_GET_FRAME(pte));
 					}
 					
-					page_mapping_remove(as, ptr +
-					    (i << PAGE_WIDTH));
+					page_mapping_remove(as, ptr + P2SZ(i));
 				}
 			}
 		}
@@ -670,14 +670,14 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 * Finish TLB shootdown sequence.
 		 */
 		
-		tlb_invalidate_pages(as->asid, area->base + (pages << PAGE_WIDTH),
+		tlb_invalidate_pages(as->asid, area->base + P2SZ(pages),
 		    area->pages - pages);
 		
 		/*
 		 * Invalidate software translation caches (e.g. TSB on sparc64).
 		 */
-		as_invalidate_translation_cache(as, area->base +
-		    (pages << PAGE_WIDTH), area->pages - pages);
+		as_invalidate_translation_cache(as, area->base + P2SZ(pages),
+		    area->pages - pages);
 		tlb_shootdown_finalize(ipl);
 		
 		page_table_unlock(as, false);
@@ -796,8 +796,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
 			size_t size;
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
-				pte_t *pte =
-				    page_mapping_find(as, ptr + (size << PAGE_WIDTH));
+				pte_t *pte = page_mapping_find(as,
+				     ptr + P2SZ(size));
 				
 				ASSERT(pte);
 				ASSERT(PTE_VALID(pte));
@@ -806,10 +806,11 @@ int as_area_destroy(as_t *as, uintptr_t address)
 				if ((area->backend) &&
 				    (area->backend->frame_free)) {
 					area->backend->frame_free(area,
-					    ptr + (size << PAGE_WIDTH), PTE_GET_FRAME(pte));
+					    ptr + P2SZ(size),
+					    PTE_GET_FRAME(pte));
 				}
 				
-				page_mapping_remove(as, ptr + (size << PAGE_WIDTH));
+				page_mapping_remove(as, ptr + P2SZ(size));
 			}
 		}
 	}
@@ -896,7 +897,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		return ENOTSUP;
 	}
 	
-	size_t src_size = src_area->pages << PAGE_WIDTH;
+	size_t src_size = P2SZ(src_area->pages);
 	unsigned int src_flags = src_area->flags;
 	mem_backend_t *src_backend = src_area->backend;
 	mem_backend_data_t src_backend_data = src_area->backend_data;
@@ -1093,8 +1094,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	
 	for (cur = area->used_space.leaf_head.next;
 	    cur != &area->used_space.leaf_head; cur = cur->next) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+		btree_node_t *node = list_get_instance(cur, btree_node_t,
+		    leaf_link);
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -1102,8 +1103,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 			size_t size;
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
-				pte_t *pte =
-				    page_mapping_find(as, ptr + (size << PAGE_WIDTH));
+				pte_t *pte = page_mapping_find(as,
+				    ptr + P2SZ(size));
 				
 				ASSERT(pte);
 				ASSERT(PTE_VALID(pte));
@@ -1112,7 +1113,7 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 				old_frame[frame_idx++] = PTE_GET_FRAME(pte);
 				
 				/* Remove old mapping */
-				page_mapping_remove(as, ptr + (size << PAGE_WIDTH));
+				page_mapping_remove(as, ptr + P2SZ(size));
 			}
 		}
 	}
@@ -1158,7 +1159,7 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 				page_table_lock(as, false);
 				
 				/* Insert the new mapping */
-				page_mapping_insert(as, ptr + (size << PAGE_WIDTH),
+				page_mapping_insert(as, ptr + P2SZ(size),
 				    old_frame[frame_idx++], page_flags);
 				
 				page_table_unlock(as, false);
@@ -1480,7 +1481,7 @@ size_t as_area_get_size(uintptr_t base)
 	as_area_t *src_area = find_area_and_lock(AS, base);
 	
 	if (src_area) {
-		size = src_area->pages << PAGE_WIDTH;
+		size = P2SZ(src_area->pages);
 		mutex_unlock(&src_area->lock);
 	} else
 		size = 0;
@@ -1535,16 +1536,16 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		
 		if (page >= right_pg) {
 			/* Do nothing. */
-		} else if (overlaps(page, count << PAGE_WIDTH, left_pg,
-		    left_cnt << PAGE_WIDTH)) {
+		} else if (overlaps(page, P2SZ(count), left_pg,
+		    P2SZ(left_cnt))) {
 			/* The interval intersects with the left interval. */
 			return false;
-		} else if (overlaps(page, count << PAGE_WIDTH, right_pg,
-		    right_cnt << PAGE_WIDTH)) {
+		} else if (overlaps(page, P2SZ(count), right_pg,
+		    P2SZ(right_cnt))) {
 			/* The interval intersects with the right interval. */
 			return false;
-		} else if ((page == left_pg + (left_cnt << PAGE_WIDTH)) &&
-		    (page + (count << PAGE_WIDTH) == right_pg)) {
+		} else if ((page == left_pg + P2SZ(left_cnt)) &&
+		    (page + P2SZ(count) == right_pg)) {
 			/*
 			 * The interval can be added by merging the two already
 			 * present intervals.
@@ -1552,14 +1553,14 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 			node->value[node->keys - 1] += count + right_cnt;
 			btree_remove(&area->used_space, right_pg, leaf);
 			goto success;
-		} else if (page == left_pg + (left_cnt << PAGE_WIDTH)) {
+		} else if (page == left_pg + P2SZ(left_cnt)) {
 			/*
 			 * The interval can be added by simply growing the left
 			 * interval.
 			 */
 			node->value[node->keys - 1] += count;
 			goto success;
-		} else if (page + (count << PAGE_WIDTH) == right_pg) {
+		} else if (page + P2SZ(count) == right_pg) {
 			/*
 			 * The interval can be addded by simply moving base of
 			 * the right interval down and increasing its size
@@ -1586,11 +1587,10 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		 * not exist but the interval fits from the left.
 		 */
 		
-		if (overlaps(page, count << PAGE_WIDTH, right_pg,
-		    right_cnt << PAGE_WIDTH)) {
+		if (overlaps(page, P2SZ(count), right_pg, P2SZ(right_cnt))) {
 			/* The interval intersects with the right interval. */
 			return false;
-		} else if (page + (count << PAGE_WIDTH) == right_pg) {
+		} else if (page + P2SZ(count) == right_pg) {
 			/*
 			 * The interval can be added by moving the base of the
 			 * right interval down and increasing its size
@@ -1625,16 +1625,16 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		
 		if (page < left_pg) {
 			/* Do nothing. */
-		} else if (overlaps(page, count << PAGE_WIDTH, left_pg,
-		    left_cnt << PAGE_WIDTH)) {
+		} else if (overlaps(page, P2SZ(count), left_pg,
+		    P2SZ(left_cnt))) {
 			/* The interval intersects with the left interval. */
 			return false;
-		} else if (overlaps(page, count << PAGE_WIDTH, right_pg,
-		    right_cnt << PAGE_WIDTH)) {
+		} else if (overlaps(page, P2SZ(count), right_pg,
+		    P2SZ(right_cnt))) {
 			/* The interval intersects with the right interval. */
 			return false;
-		} else if ((page == left_pg + (left_cnt << PAGE_WIDTH)) &&
-		    (page + (count << PAGE_WIDTH) == right_pg)) {
+		} else if ((page == left_pg + P2SZ(left_cnt)) &&
+		    (page + P2SZ(count) == right_pg)) {
 			/*
 			 * The interval can be added by merging the two already
 			 * present intervals.
@@ -1642,14 +1642,14 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 			leaf->value[leaf->keys - 1] += count + right_cnt;
 			btree_remove(&area->used_space, right_pg, node);
 			goto success;
-		} else if (page == left_pg + (left_cnt << PAGE_WIDTH)) {
+		} else if (page == left_pg + P2SZ(left_cnt)) {
 			/*
 			 * The interval can be added by simply growing the left
 			 * interval.
 			 */
 			leaf->value[leaf->keys - 1] += count;
 			goto success;
-		} else if (page + (count << PAGE_WIDTH) == right_pg) {
+		} else if (page + P2SZ(count) == right_pg) {
 			/*
 			 * The interval can be addded by simply moving base of
 			 * the right interval down and increasing its size
@@ -1676,11 +1676,10 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		 * does not exist but the interval fits from the right.
 		 */
 		
-		if (overlaps(page, count << PAGE_WIDTH, left_pg,
-		    left_cnt << PAGE_WIDTH)) {
+		if (overlaps(page, P2SZ(count), left_pg, P2SZ(left_cnt))) {
 			/* The interval intersects with the left interval. */
 			return false;
-		} else if (left_pg + (left_cnt << PAGE_WIDTH) == page) {
+		} else if (left_pg + P2SZ(left_cnt) == page) {
 			/*
 			 * The interval can be added by growing the left
 			 * interval.
@@ -1715,22 +1714,22 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 			 * The interval fits between left_pg and right_pg.
 			 */
 			
-			if (overlaps(page, count << PAGE_WIDTH, left_pg,
-			    left_cnt << PAGE_WIDTH)) {
+			if (overlaps(page, P2SZ(count), left_pg,
+			    P2SZ(left_cnt))) {
 				/*
 				 * The interval intersects with the left
 				 * interval.
 				 */
 				return false;
-			} else if (overlaps(page, count << PAGE_WIDTH, right_pg,
-			    right_cnt << PAGE_WIDTH)) {
+			} else if (overlaps(page, P2SZ(count), right_pg,
+			    P2SZ(right_cnt))) {
 				/*
 				 * The interval intersects with the right
 				 * interval.
 				 */
 				return false;
-			} else if ((page == left_pg + (left_cnt << PAGE_WIDTH)) &&
-			    (page + (count << PAGE_WIDTH) == right_pg)) {
+			} else if ((page == left_pg + P2SZ(left_cnt)) &&
+			    (page + P2SZ(count) == right_pg)) {
 				/*
 				 * The interval can be added by merging the two
 				 * already present intervals.
@@ -1738,14 +1737,14 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 				leaf->value[i - 1] += count + right_cnt;
 				btree_remove(&area->used_space, right_pg, leaf);
 				goto success;
-			} else if (page == left_pg + (left_cnt << PAGE_WIDTH)) {
+			} else if (page == left_pg + P2SZ(left_cnt)) {
 				/*
 				 * The interval can be added by simply growing
 				 * the left interval.
 				 */
 				leaf->value[i - 1] += count;
 				goto success;
-			} else if (page + (count << PAGE_WIDTH) == right_pg) {
+			} else if (page + P2SZ(count) == right_pg) {
 				/*
 				 * The interval can be addded by simply moving
 				 * base of the right interval down and
@@ -1811,7 +1810,7 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 			btree_key_t i;
 			for (i = 0; i < leaf->keys; i++) {
 				if (leaf->key[i] == page) {
-					leaf->key[i] += count << PAGE_WIDTH;
+					leaf->key[i] += P2SZ(count);
 					leaf->value[i] -= count;
 					goto success;
 				}
@@ -1821,15 +1820,14 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 		}
 	}
 	
-	btree_node_t *node = btree_leaf_node_left_neighbour(&area->used_space, leaf);
+	btree_node_t *node = btree_leaf_node_left_neighbour(&area->used_space,
+	    leaf);
 	if ((node) && (page < leaf->key[0])) {
 		uintptr_t left_pg = node->key[node->keys - 1];
 		size_t left_cnt = (size_t) node->value[node->keys - 1];
 		
-		if (overlaps(left_pg, left_cnt << PAGE_WIDTH, page,
-		    count << PAGE_WIDTH)) {
-			if (page + (count << PAGE_WIDTH) ==
-			    left_pg + (left_cnt << PAGE_WIDTH)) {
+		if (overlaps(left_pg, P2SZ(left_cnt), page, P2SZ(count))) {
+			if (page + P2SZ(count) == left_pg + P2SZ(left_cnt)) {
 				/*
 				 * The interval is contained in the rightmost
 				 * interval of the left neighbour and can be
@@ -1838,8 +1836,10 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 				 */
 				node->value[node->keys - 1] -= count;
 				goto success;
-			} else if (page + (count << PAGE_WIDTH) <
-			    left_pg + (left_cnt << PAGE_WIDTH)) {
+			} else if (page + P2SZ(count) <
+			    left_pg + P2SZ(left_cnt)) {
+				size_t new_cnt;
+
 				/*
 				 * The interval is contained in the rightmost
 				 * interval of the left neighbour but its
@@ -1847,11 +1847,11 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 				 * the original interval and also inserting a
 				 * new interval.
 				 */
-				size_t new_cnt = ((left_pg + (left_cnt << PAGE_WIDTH)) -
-				    (page + (count << PAGE_WIDTH))) >> PAGE_WIDTH;
+				new_cnt = ((left_pg + P2SZ(left_cnt)) -
+				    (page + P2SZ(count))) >> PAGE_WIDTH;
 				node->value[node->keys - 1] -= count + new_cnt;
 				btree_insert(&area->used_space, page +
-				    (count << PAGE_WIDTH), (void *) new_cnt, leaf);
+				    P2SZ(count), (void *) new_cnt, leaf);
 				goto success;
 			}
 		}
@@ -1864,10 +1864,8 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 		uintptr_t left_pg = leaf->key[leaf->keys - 1];
 		size_t left_cnt = (size_t) leaf->value[leaf->keys - 1];
 		
-		if (overlaps(left_pg, left_cnt << PAGE_WIDTH, page,
-		    count << PAGE_WIDTH)) {
-			if (page + (count << PAGE_WIDTH) ==
-			    left_pg + (left_cnt << PAGE_WIDTH)) {
+		if (overlaps(left_pg, P2SZ(left_cnt), page, P2SZ(count))) {
+			if (page + P2SZ(count) == left_pg + P2SZ(left_cnt)) {
 				/*
 				 * The interval is contained in the rightmost
 				 * interval of the leaf and can be removed by
@@ -1875,8 +1873,10 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 				 */
 				leaf->value[leaf->keys - 1] -= count;
 				goto success;
-			} else if (page + (count << PAGE_WIDTH) < left_pg +
-			    (left_cnt << PAGE_WIDTH)) {
+			} else if (page + P2SZ(count) < left_pg +
+			    P2SZ(left_cnt)) {
+				size_t new_cnt;
+
 				/*
 				 * The interval is contained in the rightmost
 				 * interval of the leaf but its removal
@@ -1884,11 +1884,11 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 				 * original interval and also inserting a new
 				 * interval.
 				 */
-				size_t new_cnt = ((left_pg + (left_cnt << PAGE_WIDTH)) -
-				    (page + (count << PAGE_WIDTH))) >> PAGE_WIDTH;
+				new_cnt = ((left_pg + P2SZ(left_cnt)) -
+				    (page + P2SZ(count))) >> PAGE_WIDTH;
 				leaf->value[leaf->keys - 1] -= count + new_cnt;
 				btree_insert(&area->used_space, page +
-				    (count << PAGE_WIDTH), (void *) new_cnt, leaf);
+				    P2SZ(count), (void *) new_cnt, leaf);
 				goto success;
 			}
 		}
@@ -1910,10 +1910,10 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 			 * Now the interval is between intervals corresponding
 			 * to (i - 1) and i.
 			 */
-			if (overlaps(left_pg, left_cnt << PAGE_WIDTH, page,
-			    count << PAGE_WIDTH)) {
-				if (page + (count << PAGE_WIDTH) ==
-				    left_pg + (left_cnt << PAGE_WIDTH)) {
+			if (overlaps(left_pg, P2SZ(left_cnt), page,
+			    P2SZ(count))) {
+				if (page + P2SZ(count) ==
+				    left_pg + P2SZ(left_cnt)) {
 					/*
 					 * The interval is contained in the
 					 * interval (i - 1) of the leaf and can
@@ -1922,8 +1922,10 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 					 */
 					leaf->value[i - 1] -= count;
 					goto success;
-				} else if (page + (count << PAGE_WIDTH) <
-				    left_pg + (left_cnt << PAGE_WIDTH)) {
+				} else if (page + P2SZ(count) <
+				    left_pg + P2SZ(left_cnt)) {
+					size_t new_cnt;
+
 					/*
 					 * The interval is contained in the
 					 * interval (i - 1) of the leaf but its
@@ -1931,13 +1933,12 @@ bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 					 * size of the original interval and
 					 * also inserting a new interval.
 					 */
-					size_t new_cnt = ((left_pg +
-					    (left_cnt << PAGE_WIDTH)) -
-					    (page + (count << PAGE_WIDTH))) >>
+					new_cnt = ((left_pg + P2SZ(left_cnt)) -
+					    (page + P2SZ(count))) >>
 					    PAGE_WIDTH;
 					leaf->value[i - 1] -= count + new_cnt;
 					btree_insert(&area->used_space, page +
-					    (count << PAGE_WIDTH), (void *) new_cnt,
+					    P2SZ(count), (void *) new_cnt,
 					    leaf);
 					goto success;
 				}
@@ -2033,12 +2034,13 @@ sysarg_t sys_as_get_unmapped_area(uintptr_t base, size_t size)
 		
 		btree_key_t i;
 		for (i = 0; (ret == 0) && (i < node->keys); i++) {
+			uintptr_t addr;
+
 			as_area_t *area = (as_area_t *) node->value[i];
 			
 			mutex_lock(&area->lock);
 			
-			uintptr_t addr =
-			    ALIGN_UP(area->base + (area->pages << PAGE_WIDTH),
+			addr = ALIGN_UP(area->base + P2SZ(area->pages),
 			    PAGE_SIZE);
 			
 			if ((addr >= base) && (addr >= area->base) &&
@@ -2097,7 +2099,7 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 			mutex_lock(&area->lock);
 			
 			info[area_idx].start_addr = area->base;
-			info[area_idx].size = FRAMES2SIZE(area->pages);
+			info[area_idx].size = P2SZ(area->pages);
 			info[area_idx].flags = area->flags;
 			++area_idx;
 			
@@ -2135,7 +2137,7 @@ void as_print(as_t *as)
 			printf("as_area: %p, base=%p, pages=%zu"
 			    " (%p - %p)\n", area, (void *) area->base,
 			    area->pages, (void *) area->base,
-			    (void *) (area->base + FRAMES2SIZE(area->pages)));
+			    (void *) (area->base + P2SZ(area->pages)));
 			mutex_unlock(&area->lock);
 		}
 	}
