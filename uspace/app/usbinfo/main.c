@@ -43,9 +43,7 @@
 #include <devman.h>
 #include <devmap.h>
 #include <usb/hc.h>
-#include <usb/driver.h>
 #include <usb/dev/pipes.h>
-#include <usb/driver.h>
 #include "usbinfo.h"
 
 static void print_usage(char *app_name)

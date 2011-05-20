@@ -33,7 +33,6 @@
  *
  */
 #include <inttypes.h>
-#include <usb/driver.h>
 #include <usb/hc.h>
 #include <devman.h>
 #include <errno.h>

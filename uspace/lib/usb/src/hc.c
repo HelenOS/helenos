@@ -38,7 +38,6 @@
 #include <usb_iface.h>
 #include <usbhc_iface.h>
 #include <usb/hc.h>
-#include <usb/driver.h>
 #include <usb/debug.h>
 #include <errno.h>
 #include <assert.h>
@@ -226,6 +225,38 @@ int usb_ddf_get_hc_handle_by_class(size_t class_index,
 
 	if (hc_handle != NULL) {
 		*hc_handle = hc_handle_tmp;
+	}
+
+	return EOK;
+}
+
+/** Find host controller handle that is ancestor of given device.
+ *
+ * @param[in] device_handle Device devman handle.
+ * @param[out] hc_handle Where to store handle of host controller
+ *	controlling device with @p device_handle handle.
+ * @return Error code.
+ */
+int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
+{
+	int parent_phone = devman_parent_device_connect(device_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	devman_handle_t h;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
+
+	async_hangup(parent_phone);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (hc_handle != NULL) {
+		*hc_handle = h;
 	}
 
 	return EOK;
