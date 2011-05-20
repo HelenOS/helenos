@@ -43,122 +43,10 @@
 #include <devman.h>
 #include <devmap.h>
 #include <usb/hc.h>
+#include <usb/driver.h>
 #include <usb/dev/pipes.h>
 #include <usb/driver.h>
 #include "usbinfo.h"
-
-static bool try_parse_class_and_address(const char *path,
-    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
-{
-	size_t class_index;
-	size_t address;
-	int rc;
-	char *ptr;
-
-	rc = str_size_t(path, &ptr, 10, false, &class_index);
-	if (rc != EOK) {
-		return false;
-	}
-	if ((*ptr == ':') || (*ptr == '.')) {
-		ptr++;
-	} else {
-		return false;
-	}
-	rc = str_size_t(ptr, NULL, 10, true, &address);
-	if (rc != EOK) {
-		return false;
-	}
-	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
-	if (rc != EOK) {
-		return false;
-	}
-	if (out_device_address != NULL) {
-		*out_device_address = (usb_address_t) address;
-	}
-	return true;
-}
-
-static bool resolve_hc_handle_and_dev_addr(const char *devpath,
-    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
-{
-	int rc;
-
-	/* Hack for QEMU to save-up on typing ;-). */
-	if (str_cmp(devpath, "qemu") == 0) {
-		devpath = "/hw/pci0/00:01.2/uhci-rh/usb00_a1";
-	}
-
-	/* Hack for virtual keyboard. */
-	if (str_cmp(devpath, "virt") == 0) {
-		devpath = "/virt/usbhc/usb00_a1/usb00_a2";
-	}
-
-	if (try_parse_class_and_address(devpath,
-	    out_hc_handle, out_device_address)) {
-		return true;
-	}
-
-	char *path = str_dup(devpath);
-	if (path == NULL) {
-		return ENOMEM;
-	}
-
-	devman_handle_t hc = 0;
-	bool hc_found = false;
-	usb_address_t addr = 0;
-	bool addr_found = false;
-
-	/* Remove suffixes and hope that we will encounter device node. */
-	while (str_length(path) > 0) {
-		/* Get device handle first. */
-		devman_handle_t dev_handle;
-		rc = devman_device_get_handle(path, &dev_handle, 0);
-		if (rc != EOK) {
-			free(path);
-			return false;
-		}
-
-		/* Try to find its host controller. */
-		if (!hc_found) {
-			rc = usb_hc_find(dev_handle, &hc);
-			if (rc == EOK) {
-				hc_found = true;
-			}
-		}
-		/* Try to get its address. */
-		if (!addr_found) {
-			addr = usb_hc_get_address_by_handle(dev_handle);
-			if (addr >= 0) {
-				addr_found = true;
-			}
-		}
-
-		/* Speed-up. */
-		if (hc_found && addr_found) {
-			break;
-		}
-
-		/* Remove the last suffix. */
-		char *slash_pos = str_rchr(path, '/');
-		if (slash_pos != NULL) {
-			*slash_pos = 0;
-		}
-	}
-
-	free(path);
-
-	if (hc_found && addr_found) {
-		if (out_hc_handle != NULL) {
-			*out_hc_handle = hc;
-		}
-		if (out_device_address != NULL) {
-			*out_device_address = addr;
-		}
-		return true;
-	} else {
-		return false;
-	}
-}
 
 static void print_usage(char *app_name)
 {
@@ -298,9 +186,9 @@ int main(int argc, char *argv[])
 		/* The initialization is here only to make compiler happy. */
 		devman_handle_t hc_handle = 0;
 		usb_address_t dev_addr = 0;
-		bool found = resolve_hc_handle_and_dev_addr(devpath,
-		    &hc_handle, &dev_addr);
-		if (!found) {
+		int rc = usb_resolve_device_handle(devpath,
+		    &hc_handle, &dev_addr, NULL);
+		if (rc != EOK) {
 			fprintf(stderr, NAME ": device `%s' not found "
 			    "or not of USB kind, skipping.\n",
 			    devpath);
