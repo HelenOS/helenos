@@ -313,6 +313,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		}
 		
 		if (matched) {
+			usb_log_debug("Subdriver matched.\n");
 			subdrivers[count++] = &mapping->subdriver;
 		}
 		
@@ -350,6 +351,39 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	}
 	
 	return rc;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
+{
+	assert(hid_dev != NULL && hid_dev->report != NULL);
+	
+	uint8_t report_id = 0;
+	size_t size = usb_hid_report_size(hid_dev->report, report_id, 
+	    USB_HID_REPORT_TYPE_INPUT);
+	
+	size_t max_size = 0;
+	
+	while (size > 0) {
+		max_size = (size > max_size) ? size : max_size;
+		size = usb_hid_report_size(hid_dev->report, report_id, 
+		    USB_HID_REPORT_TYPE_INPUT);
+		++report_id;
+	}
+	
+	usb_log_debug("Max size of input report: %zu\n", max_size);
+	
+	hid_dev->max_input_report_size = max_size;
+	assert(hid_dev->input_report == NULL);
+	
+	hid_dev->input_report = malloc(max_size);
+	if (hid_dev->input_report == NULL) {
+		return ENOMEM;
+	}
+	memset(hid_dev->input_report, 0, max_size);
+	
+	return EOK;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -489,6 +523,12 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		rc = (ok) ? EOK : -1;	// what error to report
 	}
 	
+	// save max input report size and allocate space for the report
+	rc = usb_hid_init_report(hid_dev);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize input report buffer.\n");
+	}
+	
 	return rc;
 }
 
@@ -506,32 +546,35 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
-	int allocated = (hid_dev->input_report != NULL);
+//	int allocated = (hid_dev->input_report != NULL);
+	assert(hid_dev->input_report != NULL);
+	assert(hid_dev->max_input_report_size >= buffer_size);
 	
-	if (!allocated
-	    || hid_dev->input_report_size < buffer_size) {
-		uint8_t *input_old = hid_dev->input_report;
-		uint8_t *input_new = (uint8_t *)malloc(buffer_size);
+//	if (/*!allocated*/
+//	    /*|| *//*hid_dev->input_report_size < buffer_size*/) {
+//		uint8_t *input_old = hid_dev->input_report;
+//		uint8_t *input_new = (uint8_t *)malloc(buffer_size);
 		
-		if (input_new == NULL) {
-			usb_log_error("Failed to allocate space for input "
-			    "buffer. This event may not be reported\n");
-			memset(hid_dev->input_report, 0, 
-			    hid_dev->input_report_size);
-		} else {
-			memcpy(input_new, input_old, 
-			    hid_dev->input_report_size);
-			hid_dev->input_report = input_new;
-			if (allocated) {
-				free(input_old);
-			}
-			usb_hid_new_report();
-		}
-	}
+//		if (input_new == NULL) {
+//			usb_log_error("Failed to allocate space for input "
+//			    "buffer. This event may not be reported\n");
+//			memset(hid_dev->input_report, 0, 
+//			    hid_dev->input_report_size);
+//		} else {
+//			memcpy(input_new, input_old, 
+//			    hid_dev->input_report_size);
+//			hid_dev->input_report = input_new;
+//			if (allocated) {
+//				free(input_old);
+//			}
+//			usb_hid_new_report();
+//		}
+//	}
 	
 	/*! @todo This should probably be atomic. */
 	memcpy(hid_dev->input_report, buffer, buffer_size);
 	hid_dev->input_report_size = buffer_size;
+	usb_hid_new_report();
 	
 	bool cont = false;
 	

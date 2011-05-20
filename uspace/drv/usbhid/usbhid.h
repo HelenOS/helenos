@@ -97,6 +97,7 @@ typedef struct usb_hid_dev {
 	uint8_t *input_report;
 	
 	size_t input_report_size;
+	size_t max_input_report_size;
 } usb_hid_dev_t;
 
 /*----------------------------------------------------------------------------*/
