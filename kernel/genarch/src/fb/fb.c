@@ -79,7 +79,7 @@
 typedef void (* rgb_conv_t)(void *, uint32_t);
 
 typedef struct {
-	SPINLOCK_DECLARE(lock);
+	mutex_t mtx;
 	
 	uint8_t *addr;
 	uint16_t *backbuf;
@@ -364,7 +364,7 @@ static void glyphs_render(fb_instance_t *instance)
 static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
-	spinlock_lock(&instance->lock);
+	mutex_lock(&instance->mtx);
 	
 	switch (ch) {
 	case '\n':
@@ -405,7 +405,7 @@ static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
 	
 	cursor_put(instance, silent);
 	
-	spinlock_unlock(&instance->lock);
+	mutex_unlock(&instance->mtx);
 }
 
 static void fb_redraw_internal(fb_instance_t *instance)
@@ -472,9 +472,9 @@ static void fb_redraw(outdev_t *dev)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	
-	spinlock_lock(&instance->lock);
+	mutex_lock(&instance->mtx);
 	fb_redraw_internal(instance);
-	spinlock_unlock(&instance->lock);
+	mutex_unlock(&instance->mtx);
 }
 
 /** Initialize framebuffer as a output character device
@@ -553,7 +553,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	outdev_initialize("fbdev", fbdev, &fbdev_ops);
 	fbdev->data = instance;
 	
-	spinlock_initialize(&instance->lock, "*fb.instance.lock");
+	mutex_initialize(&instance->mtx, MUTEX_PASSIVE);
 	instance->rgb_conv = rgb_conv;
 	instance->pixelbytes = pixelbytes;
 	instance->xres = props->x;

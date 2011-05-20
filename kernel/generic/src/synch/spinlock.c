@@ -83,23 +83,7 @@ void spinlock_lock_debug(spinlock_t *lock)
 		 * via printf() (and recursively other functions).
 		 * This conserns especially printf_lock and the
 		 * framebuffer lock.
-		 *
-		 * Any lock whose name is prefixed by "*" will be
-		 * ignored by this deadlock detection routine
-		 * as this might cause an infinite recursion.
-		 * We trust our code that there is no possible deadlock
-		 * caused by these locks (except when an exception
-		 * is triggered for instance by printf()).
-		 *
-		 * We encountered false positives caused by very
-		 * slow framebuffer interaction (especially when
-		 * run in a simulator) that caused problems with both
-		 * printf_lock and the framebuffer lock.
-		 *
 		 */
-		if (lock->name[0] == '*')
-			continue;
-		
 		if (i++ > DEADLOCK_THRESHOLD) {
 			printf("cpu%u: looping on spinlock %p:%s, "
 			    "caller=%p (%s)\n", CPU->id, lock, lock->name,
