@@ -32,6 +32,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <io/klog.h>
 #include <stdlib.h>
 #include <stacktrace.h>
 
@@ -40,6 +41,12 @@ void assert_abort(const char *cond, const char *file, unsigned int line)
 	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
 	stacktrace_print();
+	abort();
+}
+
+void assert_static_abort(const char *msg)
+{
+	klog_write(msg, str_size(msg));
 	abort();
 }
 

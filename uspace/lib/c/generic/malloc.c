@@ -118,15 +118,6 @@
 	((heap_block_foot_t *) \
 	    (((uintptr_t) (head)) + (head)->size - sizeof(heap_block_foot_t)))
 
-#define malloc_assert(expr) \
-	do { \
-		if (!(expr)) {\
-			futex_up(&malloc_futex); \
-			assert((expr)); \
-		} \
-	} while (0)
-
-
 /** Heap area.
  *
  * The memory managed by the heap allocator is divided into
@@ -236,12 +227,12 @@ static void block_check(void *addr)
 {
 	heap_block_head_t *head = (heap_block_head_t *) addr;
 	
-	malloc_assert(head->magic == HEAP_BLOCK_HEAD_MAGIC);
+	assert_static(head->magic == HEAP_BLOCK_HEAD_MAGIC);
 	
 	heap_block_foot_t *foot = BLOCK_FOOT(head);
 	
-	malloc_assert(foot->magic == HEAP_BLOCK_FOOT_MAGIC);
-	malloc_assert(head->size == foot->size);
+	assert_static(foot->magic == HEAP_BLOCK_FOOT_MAGIC);
+	assert_static(head->size == foot->size);
 }
 
 /** Check a heap area structure
@@ -255,11 +246,11 @@ static void area_check(void *addr)
 {
 	heap_area_t *area = (heap_area_t *) addr;
 	
-	malloc_assert(area->magic == HEAP_AREA_MAGIC);
-	malloc_assert(addr == area->start);
-	malloc_assert(area->start < area->end);
-	malloc_assert(((uintptr_t) area->start % PAGE_SIZE) == 0);
-	malloc_assert(((uintptr_t) area->end % PAGE_SIZE) == 0);
+	assert_static(area->magic == HEAP_AREA_MAGIC);
+	assert_static(addr == area->start);
+	assert_static(area->start < area->end);
+	assert_static(((uintptr_t) area->start % PAGE_SIZE) == 0);
+	assert_static(((uintptr_t) area->end % PAGE_SIZE) == 0);
 }
 
 /** Create new heap area
@@ -390,7 +381,7 @@ static void heap_shrink(heap_area_t *area)
 	heap_block_head_t *last_head = BLOCK_HEAD(last_foot);
 	
 	block_check((void *) last_head);
-	malloc_assert(last_head->area == area);
+	assert_static(last_head->area == area);
 	
 	if (last_head->free) {
 		/*
@@ -403,7 +394,7 @@ static void heap_shrink(heap_area_t *area)
 		    (heap_block_head_t *) AREA_FIRST_BLOCK_HEAD(area);
 		
 		block_check((void *) first_head);
-		malloc_assert(first_head->area == area);
+		assert_static(first_head->area == area);
 		
 		size_t shrink_size = ALIGN_DOWN(last_head->size, PAGE_SIZE);
 		
@@ -505,7 +496,7 @@ void __malloc_init(void)
  */
 static void split_mark(heap_block_head_t *cur, const size_t size)
 {
-	malloc_assert(cur->size >= size);
+	assert_static(cur->size >= size);
 	
 	/* See if we should split the block. */
 	size_t split_limit = GROSS_SIZE(size);
@@ -541,8 +532,8 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
     heap_block_head_t *final_block, size_t real_size, size_t falign)
 {
 	area_check((void *) area);
-	malloc_assert((void *) first_block >= (void *) AREA_FIRST_BLOCK_HEAD(area));
-	malloc_assert((void *) first_block < area->end);
+	assert_static((void *) first_block >= (void *) AREA_FIRST_BLOCK_HEAD(area));
+	assert_static((void *) first_block < area->end);
 	
 	for (heap_block_head_t *cur = first_block; (void *) cur < area->end;
 	    cur = (heap_block_head_t *) (((void *) cur) + cur->size)) {
@@ -669,7 +660,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
  */
 static void *malloc_internal(const size_t size, const size_t align)
 {
-	malloc_assert(first_heap_area != NULL);
+	assert_static(first_heap_area != NULL);
 	
 	if (align == 0)
 		return NULL;
@@ -794,13 +785,13 @@ void *realloc(const void *addr, const size_t size)
 	    (heap_block_head_t *) (addr - sizeof(heap_block_head_t));
 	
 	block_check(head);
-	malloc_assert(!head->free);
+	assert_static(!head->free);
 	
 	heap_area_t *area = head->area;
 	
 	area_check(area);
-	malloc_assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
-	malloc_assert((void *) head < area->end);
+	assert_static((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
+	assert_static((void *) head < area->end);
 	
 	void *ptr = NULL;
 	bool reloc = false;
@@ -871,13 +862,13 @@ void free(const void *addr)
 	    = (heap_block_head_t *) (addr - sizeof(heap_block_head_t));
 	
 	block_check(head);
-	malloc_assert(!head->free);
+	assert_static(!head->free);
 	
 	heap_area_t *area = head->area;
 	
 	area_check(area);
-	malloc_assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
-	malloc_assert((void *) head < area->end);
+	assert_static((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
+	assert_static((void *) head < area->end);
 	
 	/* Mark the block itself as free. */
 	head->free = true;
