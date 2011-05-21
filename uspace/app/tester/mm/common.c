@@ -134,6 +134,18 @@ static int test_overlap(void *addr, size_t size)
 	return fnd;
 }
 
+static void check_consistency(const char *loc)
+{
+	/* Check heap consistency */
+	void *prob = heap_check();
+	if (prob != NULL) {
+		TPRINTF("\nError: Heap inconsistency at %p in %s.\n",
+		    prob, loc);
+		TSTACKTRACE();
+		error_flag = true;
+	}
+}
+
 /** Checked malloc
  *
  * Allocate @size bytes of memory and check whether the chunk comes
@@ -152,6 +164,7 @@ static void *checked_malloc(size_t size)
 	
 	/* Allocate the chunk of memory */
 	data = malloc(size);
+	check_consistency("checked_malloc");
 	if (data == NULL)
 		return NULL;
 	
@@ -159,6 +172,7 @@ static void *checked_malloc(size_t size)
 	if (test_overlap(data, size)) {
 		TPRINTF("\nError: Allocated block overlaps with another "
 		    "previously allocated block.\n");
+		TSTACKTRACE();
 		error_flag = true;
 	}
 	
@@ -197,6 +211,7 @@ mem_block_t *alloc_block(size_t size)
 	block->addr = checked_malloc(size);
 	if (block->addr == NULL) {
 		free(block);
+		check_consistency("alloc_block");
 		return NULL;
 	}
 	
@@ -227,7 +242,9 @@ void free_block(mem_block_t *block)
 	
 	/* Free the memory */
 	free(block->addr);
+	check_consistency("free_block (a)");
 	free(block);
+	check_consistency("free_block (b)");
 }
 
 /** Calculate expected value
@@ -256,6 +273,8 @@ void fill_block(mem_block_t *block)
 	for (uint8_t *pos = block->addr, *end = pos + block->size;
 	    pos < end; pos++)
 		*pos = block_expected_value(block, pos);
+	
+	check_consistency("fill_block");
 }
 
 /** Check block
@@ -272,6 +291,7 @@ void check_block(mem_block_t *block)
 	    pos < end; pos++) {
 		if (*pos != block_expected_value(block, pos)) {
 			TPRINTF("\nError: Corrupted content of a data block.\n");
+			TSTACKTRACE();
 			error_flag = true;
 			return;
 		}
@@ -295,6 +315,7 @@ mem_block_t *get_random_block(void)
 	
 	if (entry == NULL) {
 		TPRINTF("\nError: Corrupted list of allocated memory blocks.\n");
+		TSTACKTRACE();
 		error_flag = true;
 	}
 	
@@ -324,12 +345,14 @@ mem_area_t *map_area(size_t size)
 	void *addr = as_get_mappable_page(size);
 	if (addr == NULL) {
 		free(area);
+		check_consistency("map_area (a)");
 		return NULL;
 	}
 	
 	area->addr = as_area_create(addr, size, AS_AREA_WRITE | AS_AREA_READ);
 	if (area->addr == (void *) -1) {
 		free(area);
+		check_consistency("map_area (b)");
 		return NULL;
 	}
 	
@@ -360,6 +383,7 @@ void unmap_area(mem_area_t *area)
 		error_flag = true;
 	
 	free(area);
+	check_consistency("unmap_area");
 }
 
 /** Calculate expected value
@@ -388,4 +412,6 @@ void fill_area(mem_area_t *area)
 	for (uint8_t *pos = area->addr, *end = pos + area->size;
 	    pos < end; pos++)
 		*pos = area_expected_value(area, pos);
+	
+	check_consistency("fill_area");
 }

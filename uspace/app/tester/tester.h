@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <bool.h>
+#include <stacktrace.h>
 
 #define IPC_TEST_SERVICE  10240
 #define IPC_TEST_METHOD   2000
@@ -58,6 +59,13 @@ extern char **test_argv;
 	do { \
 		if (!test_quiet) { \
 			fprintf(stderr, (format), ##__VA_ARGS__); \
+		} \
+	} while (0)
+
+#define TSTACKTRACE() \
+	do { \
+		if (!test_quiet) { \
+			stacktrace_print(); \
 		} \
 	} while (0)
 

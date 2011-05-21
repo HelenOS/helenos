@@ -903,5 +903,54 @@ void free(const void *addr)
 	futex_up(&malloc_futex);
 }
 
+void *heap_check(void)
+{
+	futex_down(&malloc_futex);
+	
+	if (first_heap_area == NULL) {
+		futex_up(&malloc_futex);
+		return (void *) -1;
+	}
+	
+	/* Walk all heap areas */
+	for (heap_area_t *area = first_heap_area; area != NULL;
+	    area = area->next) {
+		
+		/* Check heap area consistency */
+		if ((area->magic != HEAP_AREA_MAGIC) ||
+		    ((void *) area != area->start) ||
+		    (area->start >= area->end) ||
+		    (((uintptr_t) area->start % PAGE_SIZE) != 0) ||
+		    (((uintptr_t) area->end % PAGE_SIZE) != 0)) {
+			futex_up(&malloc_futex);
+			return (void *) area;
+		}
+		
+		/* Walk all heap blocks */
+		for (heap_block_head_t *head = (heap_block_head_t *)
+		    AREA_FIRST_BLOCK_HEAD(area); (void *) head < area->end;
+		    head = (heap_block_head_t *) (((void *) head) + head->size)) {
+			
+			/* Check heap block consistency */
+			if (head->magic != HEAP_BLOCK_HEAD_MAGIC) {
+				futex_up(&malloc_futex);
+				return (void *) head;
+			}
+			
+			heap_block_foot_t *foot = BLOCK_FOOT(head);
+			
+			if ((foot->magic != HEAP_BLOCK_FOOT_MAGIC) ||
+			    (head->size != foot->size)) {
+				futex_up(&malloc_futex);
+				return (void *) foot;
+			}
+		}
+	}
+	
+	futex_up(&malloc_futex);
+	
+	return NULL;
+}
+
 /** @}
  */
