@@ -231,6 +231,7 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 			} else {
 				TPRINTF("A");
 				fill_block(blk);
+				RETURN_IF_ERROR;
 				
 				if ((mem_blocks_count % AREA_GRANULARITY) == 0) {
 					mem_area_t *area = map_area(AREA_SIZE);
@@ -239,6 +240,7 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 					if (area != NULL) {
 						TPRINTF("*");
 						fill_area(area);
+						RETURN_IF_ERROR;
 					} else
 						TPRINTF("F(*)");
 				}

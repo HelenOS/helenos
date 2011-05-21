@@ -240,6 +240,7 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 			} else {
 				TPRINTF("A");
 				fill_block(blk);
+				RETURN_IF_ERROR;
 			}
 			
 		} else if (rnd < subphase->prob.free) {
