@@ -57,7 +57,7 @@ extern void page_table_unlock(as_t *, bool);
 extern bool page_table_locked(as_t *);
 extern void page_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 extern void page_mapping_remove(as_t *, uintptr_t);
-extern pte_t *page_mapping_find(as_t *, uintptr_t);
+extern pte_t *page_mapping_find(as_t *, uintptr_t, bool);
 extern pte_t *page_table_create(unsigned int);
 extern void page_table_destroy(pte_t *);
 extern void map_structure(uintptr_t, size_t);

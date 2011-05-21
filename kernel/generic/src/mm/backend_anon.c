@@ -121,7 +121,7 @@ void anon_share(as_area_t *area)
 			
 				page_table_lock(area->as, false);
 				pte = page_mapping_find(area->as,
-				    base + j * PAGE_SIZE);
+				    base + j * PAGE_SIZE, false);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
 				btree_insert(&area->sh_info->pagemap,

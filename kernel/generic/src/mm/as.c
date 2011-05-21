@@ -648,7 +648,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 				
 				for (; i < size; i++) {
 					pte_t *pte = page_mapping_find(as,
-					    ptr + P2SZ(i));
+					    ptr + P2SZ(i), false);
 					
 					ASSERT(pte);
 					ASSERT(PTE_VALID(pte));
@@ -797,7 +797,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
 				pte_t *pte = page_mapping_find(as,
-				     ptr + P2SZ(size));
+				     ptr + P2SZ(size), false);
 				
 				ASSERT(pte);
 				ASSERT(PTE_VALID(pte));
@@ -1104,7 +1104,7 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
 				pte_t *pte = page_mapping_find(as,
-				    ptr + P2SZ(size));
+				    ptr + P2SZ(size), false);
 				
 				ASSERT(pte);
 				ASSERT(PTE_VALID(pte));
@@ -1240,7 +1240,7 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	 * we need to make sure the mapping has not been already inserted.
 	 */
 	pte_t *pte;
-	if ((pte = page_mapping_find(AS, page))) {
+	if ((pte = page_mapping_find(AS, page, false))) {
 		if (PTE_PRESENT(pte)) {
 			if (((access == PF_ACCESS_READ) && PTE_READABLE(pte)) ||
 			    (access == PF_ACCESS_WRITE && PTE_WRITABLE(pte)) ||

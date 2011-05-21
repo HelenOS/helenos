@@ -378,7 +378,7 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 	/*
 	 * Check if the mapping exists in page tables.
 	 */	
-	pte = page_mapping_find(AS, badvaddr);
+	pte = page_mapping_find(AS, badvaddr, true);
 	if (pte && pte->p && (pte->w || access != PF_ACCESS_WRITE)) {
 		/*
 		 * Mapping found in page tables.
@@ -400,7 +400,7 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 			 * The mapping ought to be in place.
 			 */
 			page_table_lock(AS, true);
-			pte = page_mapping_find(AS, badvaddr);
+			pte = page_mapping_find(AS, badvaddr, true);
 			ASSERT(pte && pte->p);
 			ASSERT(pte->w || access != PF_ACCESS_WRITE);
 			return pte;
