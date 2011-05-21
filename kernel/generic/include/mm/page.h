@@ -46,7 +46,7 @@
 typedef struct {
 	void (* mapping_insert)(as_t *, uintptr_t, uintptr_t, unsigned int);
 	void (* mapping_remove)(as_t *, uintptr_t);
-	pte_t *(* mapping_find)(as_t *, uintptr_t);
+	pte_t *(* mapping_find)(as_t *, uintptr_t, bool);
 } page_mapping_operations_t;
 
 extern page_mapping_operations_t *page_mapping_operations;

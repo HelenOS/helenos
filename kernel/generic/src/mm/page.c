@@ -168,7 +168,7 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_find);
 	
-	return page_mapping_operations->mapping_find(as, page);
+	return page_mapping_operations->mapping_find(as, page, nolock);
 }
 
 /** @}
