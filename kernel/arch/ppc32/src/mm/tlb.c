@@ -43,9 +43,7 @@
 #include <macros.h>
 #include <symtab.h>
 
-static unsigned int seed = 10;
-static unsigned int seed_real
-    __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
+static unsigned int seed = 42;
 
 /** Try to find PTE for faulting address
  *
@@ -224,8 +222,9 @@ void pht_refill(unsigned int n, istate_t *istate)
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
-			goto fail;
-			break;
+			page_table_unlock(as, true);
+			pht_refill_fail(badvaddr, istate);
+			return;
 		case AS_PF_DEFER:
 			/*
 			 * The page fault came during copy_from_uspace()
@@ -243,128 +242,23 @@ void pht_refill(unsigned int n, istate_t *istate)
 	pht_insert(badvaddr, pte);
 	
 	page_table_unlock(as, true);
-	return;
-	
-fail:
-	page_table_unlock(as, true);
-	pht_refill_fail(badvaddr, istate);
 }
 
-/** Process Instruction/Data Storage Exception in Real Mode
- *
- * @param n      Exception vector number.
- * @param istate Interrupted register context.
- *
- */
-bool pht_refill_real(unsigned int n, istate_t *istate)
+void tlb_refill(unsigned int n, istate_t *istate)
 {
-	uintptr_t badvaddr;
+	uint32_t tlbmiss;
+	ptehi_t ptehi;
+	ptelo_t ptelo;
 	
-	if (n == VECTOR_DATA_STORAGE)
-		badvaddr = istate->dar;
-	else
-		badvaddr = istate->pc;
+	asm volatile (
+		"mfspr %[tlbmiss], 980\n"
+		"mfspr %[ptehi], 981\n"
+		"mfspr %[ptelo], 982\n"
+		: [tlbmiss] "=r" (tlbmiss),
+		  [ptehi] "=r" (ptehi),
+		  [ptelo] "=r" (ptelo)
+	);
 	
-	uint32_t physmem = physmem_top();
-	
-	if ((badvaddr < PA2KA(0)) || (badvaddr >= PA2KA(physmem)))
-		return false;
-	
-	uint32_t page = (badvaddr >> 12) & 0xffff;
-	uint32_t api = (badvaddr >> 22) & 0x3f;
-	
-	uint32_t vsid = sr_get(badvaddr);
-	uint32_t sdr1 = sdr1_get();
-	
-	// FIXME: compute size of PHT exactly
-	phte_t *phte_real = (phte_t *) (sdr1 & 0xffff0000);
-	
-	/* Primary hash (xor) */
-	uint32_t h = 0;
-	uint32_t hash = vsid ^ page;
-	uint32_t base = (hash & 0x3ff) << 3;
-	uint32_t i;
-	bool found = false;
-	
-	/* Find colliding PTE in PTEG */
-	for (i = 0; i < 8; i++) {
-		if ((phte_real[base + i].v)
-		    && (phte_real[base + i].vsid == vsid)
-		    && (phte_real[base + i].api == api)
-		    && (phte_real[base + i].h == 0)) {
-			found = true;
-			break;
-		}
-	}
-	
-	if (!found) {
-		/* Find unused PTE in PTEG */
-		for (i = 0; i < 8; i++) {
-			if (!phte_real[base + i].v) {
-				found = true;
-				break;
-			}
-		}
-	}
-	
-	if (!found) {
-		/* Secondary hash (not) */
-		uint32_t base2 = (~hash & 0x3ff) << 3;
-		
-		/* Find colliding PTE in PTEG */
-		for (i = 0; i < 8; i++) {
-			if ((phte_real[base2 + i].v)
-			    && (phte_real[base2 + i].vsid == vsid)
-			    && (phte_real[base2 + i].api == api)
-			    && (phte_real[base2 + i].h == 1)) {
-				found = true;
-				base = base2;
-				h = 1;
-				break;
-			}
-		}
-		
-		if (!found) {
-			/* Find unused PTE in PTEG */
-			for (i = 0; i < 8; i++) {
-				if (!phte_real[base2 + i].v) {
-					found = true;
-					base = base2;
-					h = 1;
-					break;
-				}
-			}
-		}
-		
-		if (!found) {
-			/* Use secondary hash to avoid collisions
-			   with usual PHT refill handler. */
-			i = RANDI(seed_real) % 8;
-			base = base2;
-			h = 1;
-		}
-	}
-	
-	phte_real[base + i].v = 1;
-	phte_real[base + i].vsid = vsid;
-	phte_real[base + i].h = h;
-	phte_real[base + i].api = api;
-	phte_real[base + i].rpn = KA2PA(badvaddr) >> 12;
-	phte_real[base + i].r = 0;
-	phte_real[base + i].c = 0;
-	phte_real[base + i].wimg = 0;
-	phte_real[base + i].pp = 2; // FIXME
-	
-	return true;
-}
-
-/** Process ITLB/DTLB Miss Exception in Real Mode
- *
- *
- */
-void tlb_refill_real(unsigned int n, uint32_t tlbmiss, ptehi_t ptehi,
-    ptelo_t ptelo, istate_t *istate)
-{
 	uint32_t badvaddr = tlbmiss & 0xfffffffc;
 	uint32_t physmem = physmem_top();
 	

@@ -242,8 +242,6 @@ real_mode:
 		
 	clear_end:
 	
-#ifdef CONFIG_BAT
-	
 	# create BAT identity mapping
 	
 	lwz r31, 4(r3)                # r31 = memory size
@@ -287,8 +285,6 @@ real_mode:
 	mtspr dbat0l, r30
 	
 	no_bat:
-	
-#endif
 	
 	# flush TLB
 	

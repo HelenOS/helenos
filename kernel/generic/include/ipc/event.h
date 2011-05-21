@@ -40,6 +40,8 @@
 #include <synch/spinlock.h>
 #include <ipc/ipc.h>
 
+typedef void (*event_callback_t)(void);
+
 /** Event notification structure. */
 typedef struct {
 	SPINLOCK_DECLARE(lock);
@@ -50,28 +52,35 @@ typedef struct {
 	sysarg_t imethod;
 	/** Counter. */
 	size_t counter;
+	
+	/** Masked flag. */
+	bool masked;
+	/** Unmask callback. */
+	event_callback_t unmask_callback;
 } event_t;
 
 extern void event_init(void);
-extern sysarg_t sys_event_subscribe(sysarg_t, sysarg_t);
-extern bool event_is_subscribed(event_type_t);
 extern void event_cleanup_answerbox(answerbox_t *);
+extern void event_set_unmask_callback(event_type_t, event_callback_t);
 
-#define event_notify_0(e) \
-	event_notify((e), 0, 0, 0, 0, 0)
-#define event_notify_1(e, a1) \
-	event_notify((e), (a1), 0, 0, 0, 0)
-#define event_notify_2(e, a1, a2) \
-	event_notify((e), (a1), (a2), 0, 0, 0)
-#define event_notify_3(e, a1, a2, a3) \
-	event_notify((e), (a1), (a2), (a3), 0, 0)
-#define event_notify_4(e, a1, a2, a3, a4) \
-	event_notify((e), (a1), (a2), (a3), (a4), 0)
-#define event_notify_5(e, a1, a2, a3, a4, a5) \
-	event_notify((e), (a1), (a2), (a3), (a4), (a5))
+#define event_notify_0(e, m) \
+	event_notify((e), (m), 0, 0, 0, 0, 0)
+#define event_notify_1(e, m, a1) \
+	event_notify((e), (m), (a1), 0, 0, 0, 0)
+#define event_notify_2(e, m, a1, a2) \
+	event_notify((e), (m), (a1), (a2), 0, 0, 0)
+#define event_notify_3(e, m, a1, a2, a3) \
+	event_notify((e), (m), (a1), (a2), (a3), 0, 0)
+#define event_notify_4(e, m, a1, a2, a3, a4) \
+	event_notify((e), (m), (a1), (a2), (a3), (a4), 0)
+#define event_notify_5(e, m, a1, a2, a3, a4, a5) \
+	event_notify((e), (m), (a1), (a2), (a3), (a4), (a5))
 
-extern void event_notify(event_type_t, sysarg_t, sysarg_t, sysarg_t,
+extern int event_notify(event_type_t, bool, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
+
+extern sysarg_t sys_event_subscribe(sysarg_t, sysarg_t);
+extern sysarg_t sys_event_unmask(sysarg_t);
 
 #endif
 
