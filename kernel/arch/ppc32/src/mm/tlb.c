@@ -48,7 +48,6 @@ static unsigned int seed = 42;
 /** Try to find PTE for faulting address
  *
  * @param as       Address space.
- * @param lock     Lock/unlock the address space.
  * @param badvaddr Faulting virtual address.
  * @param access   Access mode that caused the fault.
  * @param istate   Pointer to interrupted state.
@@ -61,8 +60,6 @@ static unsigned int seed = 42;
 static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
     istate_t *istate, int *pfrc)
 {
-	ASSERT(mutex_locked(&as->lock));
-
 	/*
 	 * Check if the mapping exists in page tables.
 	 */
@@ -78,8 +75,6 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
-		page_table_unlock(as, true);
-		
 		int rc = as_page_fault(badvaddr, access, istate);
 		switch (rc) {
 		case AS_PF_OK:
@@ -87,17 +82,14 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
 			 */
-			page_table_lock(as, true);
 			pte = page_mapping_find(as, badvaddr, true);
 			ASSERT((pte) && (pte->present));
 			*pfrc = 0;
 			return pte;
 		case AS_PF_DEFER:
-			page_table_lock(as, true);
 			*pfrc = rc;
 			return NULL;
 		case AS_PF_FAULT:
-			page_table_lock(as, true);
 			*pfrc = rc;
 			return NULL;
 		default:
@@ -213,8 +205,6 @@ void pht_refill(unsigned int n, istate_t *istate)
 	else
 		badvaddr = istate->pc;
 	
-	page_table_lock(as, true);
-	
 	int pfrc;
 	pte_t *pte = find_mapping_and_check(as, badvaddr,
 	    PF_ACCESS_READ /* FIXME */, istate, &pfrc);
@@ -222,7 +212,6 @@ void pht_refill(unsigned int n, istate_t *istate)
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
-			page_table_unlock(as, true);
 			pht_refill_fail(badvaddr, istate);
 			return;
 		case AS_PF_DEFER:
@@ -230,7 +219,6 @@ void pht_refill(unsigned int n, istate_t *istate)
 			 * The page fault came during copy_from_uspace()
 			 * or copy_to_uspace().
 			 */
-			page_table_unlock(as, true);
 			return;
 		default:
 			panic("Unexpected pfrc (%d).", pfrc);
@@ -240,8 +228,6 @@ void pht_refill(unsigned int n, istate_t *istate)
 	/* Record access to PTE */
 	pte->accessed = 1;
 	pht_insert(badvaddr, pte);
-	
-	page_table_unlock(as, true);
 }
 
 void tlb_refill(unsigned int n, istate_t *istate)
