@@ -46,31 +46,25 @@
  *
  */
 
+#define STR(l)	#l
+#define STR2(l)	STR(l)
+
 #ifndef NDEBUG
 
 #define assert(expr) \
 	do { \
 		if (!(expr)) \
-			assert_abort(#expr, __FILE__, __LINE__); \
-	} while (0)
-
-#define assert_static(expr) \
-	do { \
-		if (!(expr)) \
-			assert_static_abort("Assertion failed (" #expr \
-			    ") in file \"" __FILE__ "\".\n"); \
+			assert_abort(#expr, __FILE__, STR2(__LINE__)); \
 	} while (0)
 
 #else /* NDEBUG */
 
 #define assert(expr)
-#define assert_static(expr)
 
 #endif /* NDEBUG */
 
-extern void assert_abort(const char *, const char *, unsigned int)
+extern void assert_abort(const char *, const char *, const char *)
     __attribute__((noreturn));
-extern void assert_static_abort(const char *);
 
 
 #endif
