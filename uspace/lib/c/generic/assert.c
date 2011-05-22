@@ -81,7 +81,7 @@ void assert_abort(const char *cond, const char *file, unsigned int line)
 	 * the stack trace. These operations can theoretically trigger nested
 	 * assertions.
 	 */
-	printf(MSG_START "%s" MSG_FILE "%s" MSG_LINE "%" PRIu32 MSG_END,
+	printf(MSG_START "%s" MSG_FILE "%s" MSG_LINE "%u" MSG_END,
 	    cond, file, line);
 	stacktrace_print();
 
