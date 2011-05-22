@@ -57,7 +57,7 @@ static void remove_callback(link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
-static pte_t *ht_mapping_find(as_t *, uintptr_t);
+static pte_t *ht_mapping_find(as_t *, uintptr_t, bool);
 
 /**
  * This lock protects the page hash table. It must be acquired
@@ -213,7 +213,7 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
- * @param as   Address space to wich page belongs.
+ * @param as   Address space to which page belongs.
  * @param page Virtual address of the page to be demapped.
  *
  */
@@ -236,22 +236,21 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 
 /** Find mapping for virtual page in page hash table.
  *
- * Find mapping for virtual page.
- *
- * @param as   Address space to wich page belongs.
- * @param page Virtual page.
+ * @param as     Address space to which page belongs.
+ * @param page   Virtual page.
+ * @param nolock True if the page tables need not be locked.
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
  *
  */
-pte_t *ht_mapping_find(as_t *as, uintptr_t page)
+pte_t *ht_mapping_find(as_t *as, uintptr_t page, bool nolock)
 {
 	sysarg_t key[2] = {
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(page_table_locked(as));
+	ASSERT(nolock || page_table_locked(as));
 	
 	link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
