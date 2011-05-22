@@ -99,8 +99,6 @@ void tlb_refill(istate_t *istate)
 	asid = AS->asid;
 	mutex_unlock(&AS->lock);
 	
-	page_table_lock(AS, true);
-	
 	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate, &pfrc);
 	if (!pte) {
 		switch (pfrc) {
@@ -112,7 +110,6 @@ void tlb_refill(istate_t *istate)
 			 * The page fault came during copy_from_uspace()
 			 * or copy_to_uspace().
 			 */
-			page_table_unlock(AS, true);
 			return;
 		default:
 			panic("Unexpected pfrc (%d).", pfrc);
@@ -143,11 +140,9 @@ void tlb_refill(istate_t *istate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwr();
 
-	page_table_unlock(AS, true);
 	return;
 	
 fail:
-	page_table_unlock(AS, true);
 	tlb_refill_fail(istate);
 }
 
@@ -175,8 +170,6 @@ void tlb_invalid(istate_t *istate)
 	tlbp();
 	index.value = cp0_index_read();
 
-	page_table_lock(AS, true);	
-	
 	/*
 	 * Fail if the entry is not in TLB.
 	 */
@@ -196,7 +189,6 @@ void tlb_invalid(istate_t *istate)
 			 * The page fault came during copy_from_uspace()
 			 * or copy_to_uspace().
 			 */
-			page_table_unlock(AS, true);			 
 			return;
 		default:
 			panic("Unexpected pfrc (%d).", pfrc);
@@ -226,11 +218,9 @@ void tlb_invalid(istate_t *istate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
-	page_table_unlock(AS, true);
 	return;
 	
 fail:
-	page_table_unlock(AS, true);
 	tlb_invalid_fail(istate);
 }
 
@@ -258,8 +248,6 @@ void tlb_modified(istate_t *istate)
 	tlbp();
 	index.value = cp0_index_read();
 
-	page_table_lock(AS, true);	
-	
 	/*
 	 * Fail if the entry is not in TLB.
 	 */
@@ -279,7 +267,6 @@ void tlb_modified(istate_t *istate)
 			 * The page fault came during copy_from_uspace()
 			 * or copy_to_uspace().
 			 */
-			page_table_unlock(AS, true);			 
 			return;
 		default:
 			panic("Unexpected pfrc (%d).", pfrc);
@@ -310,11 +297,9 @@ void tlb_modified(istate_t *istate)
 	cp0_pagemask_write(TLB_PAGE_MASK_16K);
 	tlbwi();
 
-	page_table_unlock(AS, true);
 	return;
 	
 fail:
-	page_table_unlock(AS, true);
 	tlb_modified_fail(istate);
 }
 
@@ -363,8 +348,6 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 	entry_hi_t hi;
 	pte_t *pte;
 
-	ASSERT(mutex_locked(&AS->lock));
-
 	hi.value = cp0_entry_hi_read();
 
 	/*
@@ -392,26 +375,22 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
-		page_table_unlock(AS, true);
 		switch (rc = as_page_fault(badvaddr, access, istate)) {
 		case AS_PF_OK:
 			/*
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
 			 */
-			page_table_lock(AS, true);
 			pte = page_mapping_find(AS, badvaddr, true);
 			ASSERT(pte && pte->p);
 			ASSERT(pte->w || access != PF_ACCESS_WRITE);
 			return pte;
 			break;
 		case AS_PF_DEFER:
-			page_table_lock(AS, true);
 			*pfrc = AS_PF_DEFER;
 			return NULL;
 			break;
 		case AS_PF_FAULT:
-			page_table_lock(AS, true);
 			*pfrc = AS_PF_FAULT;
 			return NULL;
 			break;
