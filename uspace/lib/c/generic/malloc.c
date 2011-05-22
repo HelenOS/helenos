@@ -193,7 +193,7 @@ static futex_t malloc_futex = FUTEX_INITIALIZER;
 	do { \
 		if (!(expr)) {\
 			futex_up(&malloc_futex); \
-			assert_abort(#expr, __FILE__, STR2(__LINE__)); \
+			assert_abort(#expr, __FILE__, __LINE__); \
 		} \
 	} while (0)
 

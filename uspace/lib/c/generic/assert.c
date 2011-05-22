@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <atomic.h>
 #include <stacktrace.h>
+#include <stdint.h>
 
 #define MSG_START	"Assertion failed ("
 #define MSG_FILE	") in file \""
@@ -44,8 +45,20 @@
 
 static atomic_t failed_asserts;
 
-void assert_abort(const char *cond, const char *file, const char *line)
+void assert_abort(const char *cond, const char *file, unsigned int line)
 {
+	char lstr[11];
+	char *pd = &lstr[10];
+	uint32_t ln = (uint32_t) line;
+
+	/*
+	 * Convert ln to a zero-terminated string.
+	 */
+	*pd-- = 0;
+	for (; ln; ln /= 10)
+		*pd-- = '0' + ln % 10;
+	pd++;
+
 	/*
 	 * Send the message safely to klog. Nested asserts should not occur.
 	 */
@@ -54,7 +67,7 @@ void assert_abort(const char *cond, const char *file, const char *line)
 	klog_write(MSG_FILE, str_size(MSG_FILE));
 	klog_write(file, str_size(file));
 	klog_write(MSG_LINE, str_size(MSG_LINE));
-	klog_write(line, str_size(line));
+	klog_write(pd, str_size(pd));
 	klog_write(MSG_END, str_size(MSG_END));
 
 	/*
@@ -68,7 +81,7 @@ void assert_abort(const char *cond, const char *file, const char *line)
 	 * the stack trace. These operations can theoretically trigger nested
 	 * assertions.
 	 */
-	printf(MSG_START "%s" MSG_FILE "%s" MSG_LINE "%s" MSG_END,
+	printf(MSG_START "%s" MSG_FILE "%s" MSG_LINE "%" PRIu32 MSG_END,
 	    cond, file, line);
 	stacktrace_print();
 
