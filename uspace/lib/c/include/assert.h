@@ -63,7 +63,6 @@
 extern void assert_abort(const char *, const char *, unsigned int)
     __attribute__((noreturn));
 
-
 #endif
 
 /** @}

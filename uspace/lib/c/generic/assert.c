@@ -38,38 +38,16 @@
 #include <stacktrace.h>
 #include <stdint.h>
 
-#define MSG_START	"Assertion failed ("
-#define MSG_FILE	") in file \""
-#define MSG_LINE	"\", line "
-#define MSG_END		".\n"
-
-static atomic_t failed_asserts;
+static atomic_t failed_asserts = {0};
 
 void assert_abort(const char *cond, const char *file, unsigned int line)
 {
-	char lstr[11];
-	char *pd = &lstr[10];
-	uint32_t ln = (uint32_t) line;
-
-	/*
-	 * Convert ln to a zero-terminated string.
-	 */
-	*pd-- = 0;
-	for (; ln; ln /= 10)
-		*pd-- = '0' + ln % 10;
-	pd++;
-
 	/*
 	 * Send the message safely to klog. Nested asserts should not occur.
 	 */
-	klog_write(MSG_START, str_size(MSG_START));
-	klog_write(cond, str_size(cond));
-	klog_write(MSG_FILE, str_size(MSG_FILE));
-	klog_write(file, str_size(file));
-	klog_write(MSG_LINE, str_size(MSG_LINE));
-	klog_write(pd, str_size(pd));
-	klog_write(MSG_END, str_size(MSG_END));
-
+	klog_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	    cond, file, line);
+	
 	/*
 	 * Check if this is a nested or parallel assert.
 	 */
@@ -81,10 +59,10 @@ void assert_abort(const char *cond, const char *file, unsigned int line)
 	 * the stack trace. These operations can theoretically trigger nested
 	 * assertions.
 	 */
-	printf(MSG_START "%s" MSG_FILE "%s" MSG_LINE "%u" MSG_END,
+	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
 	stacktrace_print();
-
+	
 	abort();
 }
 
