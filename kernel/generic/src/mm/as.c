@@ -674,7 +674,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		    area->pages - pages);
 		
 		/*
-		 * Invalidate software translation caches (e.g. TSB on sparc64).
+		 * Invalidate software translation caches
+		 * (e.g. TSB on sparc64, PHT on ppc32).
 		 */
 		as_invalidate_translation_cache(as, area->base + P2SZ(pages),
 		    area->pages - pages);
@@ -822,8 +823,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
 	
 	/*
-	 * Invalidate potential software translation caches (e.g. TSB on
-	 * sparc64).
+	 * Invalidate potential software translation caches
+	 * (e.g. TSB on sparc64, PHT on ppc32).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize(ipl);
@@ -1125,8 +1126,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
 	
 	/*
-	 * Invalidate potential software translation caches (e.g. TSB on
-	 * sparc64).
+	 * Invalidate potential software translation caches
+	 * (e.g. TSB on sparc64, PHT on ppc32).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize(ipl);
