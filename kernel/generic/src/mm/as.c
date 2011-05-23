@@ -1986,6 +1986,7 @@ sysarg_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 /** Wrapper for as_area_destroy(). */
 sysarg_t sys_as_area_destroy(uintptr_t address)
 {
+	return EOK;
 	return (sysarg_t) as_area_destroy(AS, address);
 }
 
