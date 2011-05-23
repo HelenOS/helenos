@@ -34,10 +34,6 @@
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
 
-#include <usbhc_iface.h>
-#include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/endpoint.h>
 #include <usb/host/batch.h>
 
 #include "hw_struct/queue_head.h"

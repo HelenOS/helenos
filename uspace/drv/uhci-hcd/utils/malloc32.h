@@ -58,8 +58,6 @@ static inline uintptr_t addr_to_phys(void *addr)
 
 	uintptr_t result;
 	const int ret = as_get_physical_mapping(addr, &result);
-	assert(ret == EOK);
-
 	if (ret != EOK)
 		return 0;
 	return (result | ((uintptr_t)addr & 0xfff));
@@ -97,7 +95,6 @@ static inline void free32(void *addr) {
 static inline void * get_page(void)
 {
 	void *free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
-	assert(free_address); /* TODO: remove this assert */
 	if (free_address == 0)
 		return NULL;
 	void *ret = as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,

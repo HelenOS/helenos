@@ -35,7 +35,9 @@
 #include <usb/debug.h>
 #include <arch/barrier.h>
 
+
 #include "transfer_list.h"
+#include "batch.h"
 
 static void transfer_list_remove_batch(
     transfer_list_t *instance, usb_transfer_batch_t *batch);

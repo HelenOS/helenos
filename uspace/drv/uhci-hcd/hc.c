@@ -38,8 +38,6 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/ddfiface.h>
-#include <usb_iface.h>
 
 #include "hc.h"
 

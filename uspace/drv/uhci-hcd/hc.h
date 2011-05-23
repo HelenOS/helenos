@@ -36,15 +36,12 @@
 #define DRV_UHCI_HC_H
 
 #include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
 #include <ddi.h>
 
-#include <usbhc_iface.h>
 #include <usb/host/device_keeper.h>
 #include <usb/host/usb_endpoint_manager.h>
+#include <usb/host/batch.h>
 
-#include "batch.h"
 #include "transfer_list.h"
 
 /** UHCI I/O registers layout */

@@ -36,6 +36,7 @@
 #include <device/hw_res.h>
 #include <errno.h>
 #include <str_error.h>
+
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
@@ -44,7 +45,7 @@
 
 #define NAME "uhci-rhd"
 
-static int hc_get_my_registers(ddf_dev_t *dev,
+static int hc_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
 /*----------------------------------------------------------------------------*/
 static int uhci_rh_add_device(ddf_dev_t *device);
@@ -129,18 +130,18 @@ if (ret != EOK) { \
  * @return Error code.
  */
 int hc_get_my_registers(
-    ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
+    const ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
 {
-	assert(dev != NULL);
+	assert(dev);
 
-	int parent_phone = devman_parent_device_connect(dev->handle,
+	const int parent_phone = devman_parent_device_connect(dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
 	}
 
 	hw_resource_list_t hw_resources;
-	int ret = hw_res_get_resource_list(parent_phone, &hw_resources);
+	const int ret = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (ret != EOK) {
 		async_hangup(parent_phone);
 		return ret;
