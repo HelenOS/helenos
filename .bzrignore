@@ -6,6 +6,10 @@ Makefile.depend
 *.prev
 *.map
 *.disasm
+*.lo
+*.la
+*.so.*
+*.so0
 _link.ld
 ./*.iso
 _link-dlexe.ld
