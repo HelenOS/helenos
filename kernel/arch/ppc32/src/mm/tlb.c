@@ -80,21 +80,21 @@ void tlb_arch_init(void)
 
 void tlb_invalidate_all(void)
 {
-	uint32_t index;
+	asm volatile (
+		"sync\n"
+	);
+	
+	for (unsigned int i = 0; i < 0x00040000; i += 0x00001000) {
+		asm volatile (
+			"tlbie %[i]\n"
+			:: [i] "r" (i)
+		);
+	}
 	
 	asm volatile (
-		"li %[index], 0\n"
-		"sync\n"
-		
-		".rept 64\n"
-		"	tlbie %[index]\n"
-		"	addi %[index], %[index], 0x1000\n"
-		".endr\n"
-		
 		"eieio\n"
 		"tlbsync\n"
 		"sync\n"
-		: [index] "=r" (index)
 	);
 }
 
