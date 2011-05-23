@@ -194,7 +194,6 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
  */
 void pht_refill(unsigned int n, istate_t *istate)
 {
-	as_t *as = (AS == NULL) ? AS_KERNEL : AS;
 	uintptr_t badvaddr;
 	
 	if (n == VECTOR_DATA_STORAGE)
@@ -203,7 +202,7 @@ void pht_refill(unsigned int n, istate_t *istate)
 		badvaddr = istate->pc;
 	
 	int pfrc;
-	pte_t *pte = find_mapping_and_check(as, badvaddr,
+	pte_t *pte = find_mapping_and_check(AS, badvaddr,
 	    PF_ACCESS_READ /* FIXME */, istate, &pfrc);
 	
 	if (!pte) {
