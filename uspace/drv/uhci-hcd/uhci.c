@@ -76,7 +76,9 @@ static inline uhci_t * dev_to_uhci(ddf_dev_t *dev)
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
+	uhci_t *uhci = dev->driver_data;
+	assert(uhci);
+	hc_t *hc = &uhci->hc;
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
 	hc_interrupt(hc, status);
@@ -143,7 +145,9 @@ static ddf_dev_ops_t hc_ops = {
 static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
 {
 	assert(fun);
-	return &((rh_t*)fun->driver_data)->resource_list;
+	rh_t *rh = fun->driver_data;
+	assert(rh);
+	return &rh->resource_list;
 }
 /*----------------------------------------------------------------------------*/
 /** Interface to provide the root hub driver with hw info */

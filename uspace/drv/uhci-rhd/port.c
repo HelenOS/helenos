@@ -208,7 +208,7 @@ int uhci_port_check(void *port)
  */
 int uhci_port_reset_enable(int portno, void *arg)
 {
-	uhci_port_t *port = (uhci_port_t *) arg;
+	uhci_port_t *port = arg;
 
 	usb_log_debug2("%s: new_device_enable_port.\n", port->id_string);
 

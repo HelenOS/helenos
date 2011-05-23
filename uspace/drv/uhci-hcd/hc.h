@@ -153,7 +153,10 @@ static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
  * @return cast pointer to driver_data
  */
 static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
+{
+	assert(fun);
+	return fun->driver_data;
+}
 #endif
 /**
  * @}

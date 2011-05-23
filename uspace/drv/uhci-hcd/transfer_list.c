@@ -57,7 +57,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 		usb_log_error("Failed to allocate queue head.\n");
 		return ENOMEM;
 	}
-	uint32_t queue_head_pa = addr_to_phys(instance->queue_head);
+	const uint32_t queue_head_pa = addr_to_phys(instance->queue_head);
 	usb_log_debug2("Transfer list %s setup with QH: %p (%#" PRIx32" ).\n",
 	    name, instance->queue_head, queue_head_pa);
 
@@ -89,9 +89,8 @@ void transfer_list_fini(transfer_list_t *instance)
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 {
 	assert(instance);
+	assert(instance->queue_head);
 	assert(next);
-	if (!instance->queue_head)
-		return;
 	/* Set queue_head.next to point to the follower */
 	qh_set_next_qh(instance->queue_head, next->queue_head);
 }
@@ -136,7 +135,7 @@ void transfer_list_add_batch(
 	/* Make sure the pointer is updated */
 	write_barrier();
 
-	/* Add to the driver list */
+	/* Add to the driver's list */
 	list_append(&batch->link, &instance->batch_list);
 
 	usb_transfer_batch_t *first = list_get_instance(
@@ -159,7 +158,7 @@ void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 	fibril_mutex_lock(&instance->guard);
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
-		link_t *next = current->next;
+		link_t * const next = current->next;
 		usb_transfer_batch_t *batch =
 		    usb_transfer_batch_from_link(current);
 
@@ -181,7 +180,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 {
 	fibril_mutex_lock(&instance->guard);
 	while (!list_empty(&instance->batch_list)) {
-		link_t *current = instance->batch_list.next;
+		link_t * const current = instance->batch_list.next;
 		usb_transfer_batch_t *batch =
 		    usb_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
