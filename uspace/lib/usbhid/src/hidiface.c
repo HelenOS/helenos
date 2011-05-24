@@ -73,7 +73,7 @@ int usbhid_dev_get_event_length(int dev_phone, size_t *size)
  * @param[in] flags Flags (see USBHID_IFACE_FLAG_*).
  * @return Error code.
  */
-int usbhid_dev_get_event(int dev_phone, int32_t *buf, 
+int usbhid_dev_get_event(int dev_phone, uint8_t *buf, 
     size_t size, size_t *actual_size, unsigned int flags)
 {
 	if (dev_phone < 0) {
@@ -91,7 +91,7 @@ int usbhid_dev_get_event(int dev_phone, int32_t *buf,
 //	}
 
 	size_t buffer_size =  size;
-	uint16_t *buffer = malloc(buffer_size);
+	uint8_t *buffer = malloc(buffer_size);
 	if (buffer == NULL) {
 		return ENOMEM;
 	}
@@ -142,6 +142,20 @@ int usbhid_dev_get_event(int dev_phone, int32_t *buf,
 	}
 
 	return EOK;
+}
+
+
+int usbhid_dev_get_report_descriptor_length(int dev_phone, size_t *size)
+{
+	/** @todo Implement! */
+	return ENOTSUP;
+}
+
+int usbhid_dev_get_report_descriptor(int dev_phone, uint8_t *buf, size_t size, 
+    size_t *actual_size)
+{
+	/** @todo Implement! */
+	return ENOTSUP;
 }
 
 /**

@@ -42,12 +42,16 @@
 
 static void remote_usbhid_get_event_length(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhid_get_event(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhid_get_report_descriptor_length(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhid_get_report_descriptor(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 // static void remote_usbhid_(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB HID interface operations. */
 static remote_iface_func_ptr_t remote_usbhid_iface_ops [] = {
 	remote_usbhid_get_event_length,
-	remote_usbhid_get_event
+	remote_usbhid_get_event,
+	remote_usbhid_get_report_descriptor_length,
+	remote_usbhid_get_report_descriptor
 };
 
 /** Remote USB HID interface structure.
@@ -116,7 +120,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 
 	int rc;
 
-	int32_t *data = malloc(len);
+	uint8_t *data = malloc(len);
 	if (data == NULL) {
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
@@ -140,6 +144,18 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 	free(data);
 
 	async_answer_0(callid, EOK);
+}
+
+void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface, 
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	/** @todo Implement! */
+}
+
+void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface, 
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	/** @todo Implement! */
 }
 
 /**

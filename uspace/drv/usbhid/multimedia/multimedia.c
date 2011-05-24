@@ -42,6 +42,7 @@
 #include <usb/hid/hidparser.h>
 #include <usb/debug.h>
 #include <usb/hid/usages/core.h>
+#include <usb/hid/usages/consumer.h>
 
 #include <errno.h>
 #include <str_error.h>
@@ -358,7 +359,7 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data,
 			unsigned int key = 
 			    usb_multimedia_map_usage(field->usage);
 			const char *key_str = 
-			    usb_multimedia_usage_to_str(field->usage);
+			    usbhid_multimedia_usage_to_str(field->usage);
 			usb_log_info("Pressed key: %s\n", key_str);
 			usb_multimedia_push_ev(hid_dev, multim_dev, KEY_PRESS, 
 			                       key);
