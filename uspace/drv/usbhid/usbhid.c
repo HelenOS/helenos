@@ -442,7 +442,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
-	    hid_dev->report);
+	    hid_dev->report, &hid_dev->report_desc, &hid_dev->report_desc_size);
 	
 	bool fallback = false;
 	

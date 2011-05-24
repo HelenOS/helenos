@@ -152,6 +152,8 @@ static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun)
 	
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
+	printf("hid_dev->report_desc_size = %zu\n", hid_dev->report_desc_size);
+	
 	return hid_dev->report_desc_size;
 }
 
