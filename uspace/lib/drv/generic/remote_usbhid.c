@@ -116,6 +116,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 	if (len == 0) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
+		return;
 	}
 
 	int rc;
@@ -124,6 +125,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 	if (data == NULL) {
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
+		return;
 	}
 
 	size_t act_length;
@@ -132,6 +134,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 		free(data);
 		async_answer_0(data_callid, rc);
 		async_answer_0(callid, rc);
+		return;
 	}
 	if (act_length >= len) {
 		/* This shall not happen. */
@@ -146,17 +149,70 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 	async_answer_0(callid, EOK);
 }
 
-void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface, 
+void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	/** @todo Implement! */
+	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
+
+	if (!hid_iface->get_report_descriptor_length) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	size_t len = hid_iface->get_report_descriptor_length(fun);
+	async_answer_1(callid, EOK, (sysarg_t) len);
 }
 
-void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface, 
+void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	/** @todo Implement! */
+	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
+
+	if (!hid_iface->get_report_descriptor) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	size_t len;
+	ipc_callid_t data_callid;
+	if (!async_data_read_receive(&data_callid, &len)) {
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+
+	if (len == 0) {
+		async_answer_0(data_callid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+
+	uint8_t *descriptor = malloc(len);
+	if (descriptor == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
+
+	size_t act_len = 0;
+	int rc = hid_iface->get_report_descriptor(fun, descriptor, len,
+	    &act_len);
+	if (act_len > len) {
+		rc = ELIMIT;
+	}
+	if (rc != EOK) {
+		free(descriptor);
+		async_answer_0(data_callid, rc);
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	async_data_read_finalize(data_callid, descriptor, act_len);
+	async_answer_0(callid, EOK);
+
+	free(descriptor);
 }
+
+
 
 /**
  * @}

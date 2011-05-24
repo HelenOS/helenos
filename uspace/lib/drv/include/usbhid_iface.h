@@ -70,10 +70,9 @@ typedef enum {
 	 * Parameters:
 	 * - none
 	 * Answer:
-	 * - Size of one report in bytes.
-	 * - 
-	 *
-	 * @todo Finish this comment
+	 * - EOK - method is implemented (expected always)
+	 * Parameters of the answer:
+	 * - Size of the report in bytes.
 	 */
 	IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH,
 	
@@ -81,11 +80,9 @@ typedef enum {
 	 *
 	 * Parameters:
 	 * - none
+	 * The call is followed by data read expecting the descriptor itself.
 	 * Answer:
 	 * - EOK - report descriptor returned.
-	 * - 
-	 *
-	 * @todo Finish this comment
 	 */
 	IPC_M_USBHID_GET_REPORT_DESCRIPTOR
 } usbhid_iface_funcs_t;
@@ -124,7 +121,8 @@ typedef struct {
 	 *
 	 * @param[in] fun DDF function answering the request.
 	 * @param[out] desc Buffer with the report descriptor.
-	 * @param[out] size Size of the report descriptors in bytes.
+	 * @param[in] size Size of the allocated @p desc buffer.
+	 * @param[out] act_size Actual size of the report descriptor returned.
 	 * @return Error code.
 	 */
 	int (*get_report_descriptor)(ddf_fun_t *fun, uint8_t *desc, 

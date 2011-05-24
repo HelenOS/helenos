@@ -55,7 +55,9 @@ int usbhid_dev_get_event_length(int dev_phone, size_t *size)
 	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(USBHID_DEV_IFACE),
 	    IPC_M_USBHID_GET_EVENT_LENGTH, &len);
 	if (rc == EOK) {
-		*size = (size_t) len;
+		if (size != NULL) {
+			*size = (size_t) len;
+		}
 	}
 	
 	return rc;
@@ -147,15 +149,74 @@ int usbhid_dev_get_event(int dev_phone, uint8_t *buf,
 
 int usbhid_dev_get_report_descriptor_length(int dev_phone, size_t *size)
 {
-	/** @todo Implement! */
-	return ENOTSUP;
+	if (dev_phone < 0) {
+		return EINVAL;
+	}
+
+	sysarg_t arg_size;
+	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(USBHID_DEV_IFACE),
+	    IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH, &arg_size);
+	if (rc == EOK) {
+		if (size != NULL) {
+			*size = (size_t) arg_size;
+		}
+	}
+	return rc;
 }
 
 int usbhid_dev_get_report_descriptor(int dev_phone, uint8_t *buf, size_t size, 
     size_t *actual_size)
 {
-	/** @todo Implement! */
-	return ENOTSUP;
+	if (dev_phone < 0) {
+		return EINVAL;
+	}
+	if ((buf == NULL)) {
+		return ENOMEM;
+	}
+	if (size == 0) {
+		return EINVAL;
+	}
+
+	aid_t opening_request = async_send_1(dev_phone,
+	    DEV_IFACE_ID(USBHID_DEV_IFACE), IPC_M_USBHID_GET_REPORT_DESCRIPTOR,
+	    NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	ipc_call_t data_request_call;
+	aid_t data_request = async_data_read(dev_phone, buf, size,
+	    &data_request_call);
+	if (data_request == 0) {
+		async_wait_for(opening_request, NULL);
+		return ENOMEM;
+	}
+
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(opening_request, &opening_request_rc);
+
+	if (data_request_rc != EOK) {
+		/* Prefer return code of the opening request. */
+		if (opening_request_rc != EOK) {
+			return (int) opening_request_rc;
+		} else {
+			return (int) data_request_rc;
+		}
+	}
+
+	if (opening_request_rc != EOK) {
+		return (int) opening_request_rc;
+	}
+
+	size_t act_size = IPC_GET_ARG2(data_request_call);
+
+	if (actual_size != NULL) {
+		*actual_size = act_size;
+	}
+
+	return EOK;
 }
 
 /**
