@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,72 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup ppc32mm
  * @{
  */
 /** @file
  */
 
-#include <print.h>
-#include <printf/printf_core.h>
-#include <putchar.h>
-#include <synch/spinlock.h>
-#include <arch/asm.h>
+#ifndef KERN_ppc32_PHT_H_
+#define KERN_ppc32_PHT_H_
+
+#include <arch/interrupt.h>
 #include <typedefs.h>
-#include <typedefs.h>
-#include <str.h>
 
-static int vprintf_str_write(const char *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	
-	while (offset < size) {
-		putchar(str_decode(str, &offset, size));
-		chars++;
-	}
-	
-	return chars;
-}
+/* Forward declaration. */
+struct as;
 
-static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	
-	while (offset < size) {
-		putchar(str[chars]);
-		chars++;
-		offset += sizeof(wchar_t);
-	}
-	
-	return chars;
-}
+extern void pht_init(void);
+extern void pht_refill(unsigned int, istate_t *);
+extern void pht_invalidate(struct as *, uintptr_t, size_t);
 
-int puts(const char *str)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	wchar_t uc;
-	
-	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
-		putchar(uc);
-		chars++;
-	}
-	
-	return chars;
-}
-
-int vprintf(const char *fmt, va_list ap)
-{
-	printf_spec_t ps = {
-		vprintf_str_write,
-		vprintf_wstr_write,
-		NULL
-	};
-	
-	return printf_core(fmt, &ps, ap);
-}
+#endif
 
 /** @}
  */

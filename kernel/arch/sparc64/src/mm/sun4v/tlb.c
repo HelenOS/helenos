@@ -218,7 +218,7 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 	pte_t *t;
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 
 	if (t && PTE_EXECUTABLE(t)) {
 		/*
@@ -274,7 +274,7 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 	}
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	if (t) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -316,7 +316,7 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	if (t && PTE_WRITABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table and is

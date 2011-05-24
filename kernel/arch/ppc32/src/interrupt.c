@@ -41,6 +41,7 @@
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>
 #include <arch/mm/tlb.h>
+#include <arch/mm/pht.h>
 #include <print.h>
 
 void start_decrementer(void)

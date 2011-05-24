@@ -78,6 +78,10 @@
 #define STRUCT_OVERHEAD \
 	(sizeof(heap_block_head_t) + sizeof(heap_block_foot_t))
 
+/** Overhead of each area. */
+#define AREA_OVERHEAD(size) \
+	(ALIGN_UP(size + sizeof(heap_area_t), BASE_ALIGN))
+
 /** Calculate real size of a heap block.
  *
  * Add header and footer size.
@@ -182,10 +186,26 @@ static heap_area_t *first_heap_area = NULL;
 static heap_area_t *last_heap_area = NULL;
 
 /** Next heap block to examine (next fit algorithm) */
-static heap_block_head_t *next = NULL;
+static heap_block_head_t *next_fit = NULL;
 
 /** Futex for thread-safe heap manipulation */
 static futex_t malloc_futex = FUTEX_INITIALIZER;
+
+#ifndef NDEBUG
+
+#define malloc_assert(expr) \
+	do { \
+		if (!(expr)) {\
+			futex_up(&malloc_futex); \
+			assert_abort(#expr, __FILE__, __LINE__); \
+		} \
+	} while (0)
+
+#else /* NDEBUG */
+
+#define malloc_assert(expr)
+
+#endif /* NDEBUG */
 
 /** Initialize a heap block
  *
@@ -227,12 +247,12 @@ static void block_check(void *addr)
 {
 	heap_block_head_t *head = (heap_block_head_t *) addr;
 	
-	assert(head->magic == HEAP_BLOCK_HEAD_MAGIC);
+	malloc_assert(head->magic == HEAP_BLOCK_HEAD_MAGIC);
 	
 	heap_block_foot_t *foot = BLOCK_FOOT(head);
 	
-	assert(foot->magic == HEAP_BLOCK_FOOT_MAGIC);
-	assert(head->size == foot->size);
+	malloc_assert(foot->magic == HEAP_BLOCK_FOOT_MAGIC);
+	malloc_assert(head->size == foot->size);
 }
 
 /** Check a heap area structure
@@ -246,11 +266,11 @@ static void area_check(void *addr)
 {
 	heap_area_t *area = (heap_area_t *) addr;
 	
-	assert(area->magic == HEAP_AREA_MAGIC);
-	assert(addr == area->start);
-	assert(area->start < area->end);
-	assert(((uintptr_t) area->start % PAGE_SIZE) == 0);
-	assert(((uintptr_t) area->end % PAGE_SIZE) == 0);
+	malloc_assert(area->magic == HEAP_AREA_MAGIC);
+	malloc_assert(addr == area->start);
+	malloc_assert(area->start < area->end);
+	malloc_assert(((uintptr_t) area->start % PAGE_SIZE) == 0);
+	malloc_assert(((uintptr_t) area->end % PAGE_SIZE) == 0);
 }
 
 /** Create new heap area
@@ -361,7 +381,7 @@ static bool heap_grow(size_t size)
 	}
 	
 	/* Eventually try to create a new area */
-	return area_create(AREA_FIRST_BLOCK_HEAD(size));
+	return area_create(AREA_OVERHEAD(size));
 }
 
 /** Try to shrink heap
@@ -381,7 +401,7 @@ static void heap_shrink(heap_area_t *area)
 	heap_block_head_t *last_head = BLOCK_HEAD(last_foot);
 	
 	block_check((void *) last_head);
-	assert(last_head->area == area);
+	malloc_assert(last_head->area == area);
 	
 	if (last_head->free) {
 		/*
@@ -394,7 +414,7 @@ static void heap_shrink(heap_area_t *area)
 		    (heap_block_head_t *) AREA_FIRST_BLOCK_HEAD(area);
 		
 		block_check((void *) first_head);
-		assert(first_head->area == area);
+		malloc_assert(first_head->area == area);
 		
 		size_t shrink_size = ALIGN_DOWN(last_head->size, PAGE_SIZE);
 		
@@ -438,10 +458,7 @@ static void heap_shrink(heap_area_t *area)
 			
 			/* Update heap area parameters */
 			area->end = end;
-			
-			/* Update block layout */
-			void *last = (void *) last_head;
-			size_t excess = (size_t) (area->end - last);
+			size_t excess = ((size_t) area->end) - ((size_t) last_head);
 			
 			if (excess > 0) {
 				if (excess >= STRUCT_OVERHEAD) {
@@ -450,7 +467,7 @@ static void heap_shrink(heap_area_t *area)
 					 * is enough free space left in the area to
 					 * create a new free block.
 					 */
-					block_init(last, excess, true, area);
+					block_init((void *) last_head, excess, true, area);
 				} else {
 					/*
 					 * The excess is small. Therefore just enlarge
@@ -469,7 +486,7 @@ static void heap_shrink(heap_area_t *area)
 		}
 	}
 	
-	next = NULL;
+	next_fit = NULL;
 }
 
 /** Initialize the heap allocator
@@ -496,7 +513,7 @@ void __malloc_init(void)
  */
 static void split_mark(heap_block_head_t *cur, const size_t size)
 {
-	assert(cur->size >= size);
+	malloc_assert(cur->size >= size);
 	
 	/* See if we should split the block. */
 	size_t split_limit = GROSS_SIZE(size);
@@ -532,8 +549,8 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
     heap_block_head_t *final_block, size_t real_size, size_t falign)
 {
 	area_check((void *) area);
-	assert((void *) first_block >= (void *) AREA_FIRST_BLOCK_HEAD(area));
-	assert((void *) first_block < area->end);
+	malloc_assert((void *) first_block >= (void *) AREA_FIRST_BLOCK_HEAD(area));
+	malloc_assert((void *) first_block < area->end);
 	
 	for (heap_block_head_t *cur = first_block; (void *) cur < area->end;
 	    cur = (heap_block_head_t *) (((void *) cur) + cur->size)) {
@@ -558,7 +575,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 				/* Exact block start including alignment. */
 				split_mark(cur, real_size);
 				
-				next = cur;
+				next_fit = cur;
 				return addr;
 			} else {
 				/* Block start has to be aligned */
@@ -610,7 +627,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 						block_init(next_head, reduced_size, true, area);
 						split_mark(next_head, real_size);
 						
-						next = next_head;
+						next_fit = next_head;
 						return aligned;
 					} else {
 						/*
@@ -636,7 +653,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 							block_init(cur, reduced_size, true, area);
 							split_mark(cur, real_size);
 							
-							next = cur;
+							next_fit = cur;
 							return aligned;
 						}
 					}
@@ -660,7 +677,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
  */
 static void *malloc_internal(const size_t size, const size_t align)
 {
-	assert(first_heap_area != NULL);
+	malloc_assert(first_heap_area != NULL);
 	
 	if (align == 0)
 		return NULL;
@@ -674,7 +691,7 @@ static void *malloc_internal(const size_t size, const size_t align)
 loop:
 	
 	/* Try the next fit approach */
-	split = next;
+	split = next_fit;
 	
 	if (split != NULL) {
 		void *addr = malloc_area(split->area, split, NULL, real_size,
@@ -785,13 +802,13 @@ void *realloc(const void *addr, const size_t size)
 	    (heap_block_head_t *) (addr - sizeof(heap_block_head_t));
 	
 	block_check(head);
-	assert(!head->free);
+	malloc_assert(!head->free);
 	
 	heap_area_t *area = head->area;
 	
 	area_check(area);
-	assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
-	assert((void *) head < area->end);
+	malloc_assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
+	malloc_assert((void *) head < area->end);
 	
 	void *ptr = NULL;
 	bool reloc = false;
@@ -830,7 +847,7 @@ void *realloc(const void *addr, const size_t size)
 			split_mark(head, real_size);
 			
 			ptr = ((void *) head) + sizeof(heap_block_head_t);
-			next = NULL;
+			next_fit = NULL;
 		} else
 			reloc = true;
 	}
@@ -862,13 +879,13 @@ void free(const void *addr)
 	    = (heap_block_head_t *) (addr - sizeof(heap_block_head_t));
 	
 	block_check(head);
-	assert(!head->free);
+	malloc_assert(!head->free);
 	
 	heap_area_t *area = head->area;
 	
 	area_check(area);
-	assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
-	assert((void *) head < area->end);
+	malloc_assert((void *) head >= (void *) AREA_FIRST_BLOCK_HEAD(area));
+	malloc_assert((void *) head < area->end);
 	
 	/* Mark the block itself as free. */
 	head->free = true;
@@ -901,6 +918,55 @@ void free(const void *addr)
 	heap_shrink(area);
 	
 	futex_up(&malloc_futex);
+}
+
+void *heap_check(void)
+{
+	futex_down(&malloc_futex);
+	
+	if (first_heap_area == NULL) {
+		futex_up(&malloc_futex);
+		return (void *) -1;
+	}
+	
+	/* Walk all heap areas */
+	for (heap_area_t *area = first_heap_area; area != NULL;
+	    area = area->next) {
+		
+		/* Check heap area consistency */
+		if ((area->magic != HEAP_AREA_MAGIC) ||
+		    ((void *) area != area->start) ||
+		    (area->start >= area->end) ||
+		    (((uintptr_t) area->start % PAGE_SIZE) != 0) ||
+		    (((uintptr_t) area->end % PAGE_SIZE) != 0)) {
+			futex_up(&malloc_futex);
+			return (void *) area;
+		}
+		
+		/* Walk all heap blocks */
+		for (heap_block_head_t *head = (heap_block_head_t *)
+		    AREA_FIRST_BLOCK_HEAD(area); (void *) head < area->end;
+		    head = (heap_block_head_t *) (((void *) head) + head->size)) {
+			
+			/* Check heap block consistency */
+			if (head->magic != HEAP_BLOCK_HEAD_MAGIC) {
+				futex_up(&malloc_futex);
+				return (void *) head;
+			}
+			
+			heap_block_foot_t *foot = BLOCK_FOOT(head);
+			
+			if ((foot->magic != HEAP_BLOCK_FOOT_MAGIC) ||
+			    (head->size != foot->size)) {
+				futex_up(&malloc_futex);
+				return (void *) foot;
+			}
+		}
+	}
+	
+	futex_up(&malloc_futex);
+	
+	return NULL;
 }
 
 /** @}

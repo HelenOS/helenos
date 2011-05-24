@@ -47,7 +47,7 @@
 
 static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void pt_mapping_remove(as_t *, uintptr_t);
-static pte_t *pt_mapping_find(as_t *, uintptr_t);
+static pte_t *pt_mapping_find(as_t *, uintptr_t, bool);
 
 page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
@@ -237,18 +237,17 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 /** Find mapping for virtual page in hierarchical page tables.
  *
- * Find mapping for virtual page.
- *
- * @param as   Address space to which page belongs.
- * @param page Virtual page.
+ * @param as     Address space to which page belongs.
+ * @param page   Virtual page.
+ * @param nolock True if the page tables need not be locked.
  *
  * @return NULL if there is no such mapping; entry from PTL3 describing
  *         the mapping otherwise.
  *
  */
-pte_t *pt_mapping_find(as_t *as, uintptr_t page)
+pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 {
-	ASSERT(page_table_locked(as));
+	ASSERT(nolock || page_table_locked(as));
 
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)

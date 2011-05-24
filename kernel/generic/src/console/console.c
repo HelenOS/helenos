@@ -59,7 +59,7 @@
 static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
-static bool klog_inited = false;
+static atomic_t klog_inited = {false};
 
 /** First kernel log characters */
 static size_t klog_start = 0;
@@ -74,7 +74,7 @@ static size_t klog_stored = 0;
 static size_t klog_uspace = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "*klog_lock");
+SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "klog_lock");
 
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
@@ -165,10 +165,7 @@ void klog_init(void)
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
 	
 	event_set_unmask_callback(EVENT_KLOG, klog_update);
-	
-	spinlock_lock(&klog_lock);
-	klog_inited = true;
-	spinlock_unlock(&klog_lock);
+	atomic_set(&klog_inited, true);
 }
 
 void grab_console(void)
@@ -263,9 +260,12 @@ wchar_t getc(indev_t *indev)
 
 void klog_update(void)
 {
+	if (!atomic_get(&klog_inited))
+		return;
+	
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_inited) && (klog_uspace > 0)) {
+	if (klog_uspace > 0) {
 		if (event_notify_3(EVENT_KLOG, true, klog_start, klog_len,
 		    klog_uspace) == EOK)
 			klog_uspace = 0;
@@ -276,14 +276,25 @@ void klog_update(void)
 
 void putchar(const wchar_t ch)
 {
+	bool ordy = ((stdout) && (stdout->op->write));
+	
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_stored > 0) && (stdout) && (stdout->op->write)) {
-		/* Print charaters stored in kernel log */
-		size_t i;
-		for (i = klog_len - klog_stored; i < klog_len; i++)
-			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_LENGTH], silent);
-		klog_stored = 0;
+	/* Print charaters stored in kernel log */
+	if (ordy) {
+		while (klog_stored > 0) {
+			wchar_t tmp = klog[(klog_start + klog_len - klog_stored) % KLOG_LENGTH];
+			klog_stored--;
+			
+			/*
+			 * We need to give up the spinlock for
+			 * the physical operation of writting out
+			 * the character.
+			 */
+			spinlock_unlock(&klog_lock);
+			stdout->op->write(stdout, tmp, silent);
+			spinlock_lock(&klog_lock);
+		}
 	}
 	
 	/* Store character in the cyclic kernel log */
@@ -293,22 +304,7 @@ void putchar(const wchar_t ch)
 	else
 		klog_start = (klog_start + 1) % KLOG_LENGTH;
 	
-	if ((stdout) && (stdout->op->write))
-		stdout->op->write(stdout, ch, silent);
-	else {
-		/*
-		 * No standard output routine defined yet.
-		 * The character is still stored in the kernel log
-		 * for possible future output.
-		 *
-		 * The early_putchar() function is used to output
-		 * the character for low-level debugging purposes.
-		 * Note that the early_putc() function might be
-		 * a no-op on certain hardware configurations.
-		 *
-		 */
-		early_putchar(ch);
-		
+	if (!ordy) {
 		if (klog_stored < klog_len)
 			klog_stored++;
 	}
@@ -318,6 +314,26 @@ void putchar(const wchar_t ch)
 		klog_uspace++;
 	
 	spinlock_unlock(&klog_lock);
+	
+	if (ordy) {
+		/*
+		 * Output the character. In this case
+		 * it should be no longer buffered.
+		 */
+		stdout->op->write(stdout, ch, silent);
+	} else {
+		/*
+		 * No standard output routine defined yet.
+		 * The character is still stored in the kernel log
+		 * for possible future output.
+		 *
+		 * The early_putchar() function is used to output
+		 * the character for low-level debugging purposes.
+		 * Note that the early_putc() function might be
+		 * a no-op on certain hardware configurations.
+		 */
+		early_putchar(ch);
+	}
 	
 	/* Force notification on newline */
 	if (ch == '\n')

@@ -42,6 +42,7 @@ void page_arch_init(void)
 {
 	if (config.cpu_active == 1)
 		page_mapping_operations = &pt_mapping_operations;
+	as_switch(NULL, AS_KERNEL);
 }
 
 uintptr_t hw_map(uintptr_t physaddr, size_t size)

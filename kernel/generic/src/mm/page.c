@@ -107,7 +107,7 @@ void map_structure(uintptr_t addr, size_t size)
  * Map virtual address page to physical address frame
  * using flags. Allocate and setup any missing page tables.
  *
- * @param as    Address space to wich page belongs.
+ * @param as    Address space to which page belongs.
  * @param page  Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is
  *              done.
@@ -134,7 +134,7 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
- * @param as   Address space to wich page belongs.
+ * @param as   Address space to which page belongs.
  * @param page Virtual address of the page to be demapped.
  *
  */
@@ -151,25 +151,24 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 	memory_barrier();
 }
 
-/** Find mapping for virtual page
+/** Find mapping for virtual page.
  *
- * Find mapping for virtual page.
- *
- * @param as   Address space to wich page belongs.
- * @param page Virtual page.
+ * @param as     Address space to which page belongs.
+ * @param page   Virtual page.
+ * @param nolock True if the page tables need not be locked.
  *
  * @return NULL if there is no such mapping; requested mapping
  *         otherwise.
  *
  */
-NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page)
+NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 {
-	ASSERT(page_table_locked(as));
+	ASSERT(nolock || page_table_locked(as));
 	
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_find);
 	
-	return page_mapping_operations->mapping_find(as, page);
+	return page_mapping_operations->mapping_find(as, page, nolock);
 }
 
 /** @}

@@ -36,7 +36,6 @@
 #define KERN_ppc32_TLB_H_
 
 #include <arch/interrupt.h>
-#include <typedefs.h>
 
 #define WIMG_GUARDED    0x01
 #define WIMG_COHERENT   0x02
@@ -74,8 +73,6 @@ typedef struct {
 	unsigned int pp : 2;
 } ptelo_t;
 
-extern void pht_init(void);
-extern void pht_refill(unsigned int, istate_t *);
 extern void tlb_refill(unsigned int, istate_t *);
 
 #endif
