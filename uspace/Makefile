@@ -147,7 +147,8 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
-	lib/net
+	lib/net \
+	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
