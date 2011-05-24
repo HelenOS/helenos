@@ -50,6 +50,9 @@ USPACE_PREFIX = $(subst $(space),\ ,$(PWD))/../..
 # Ensure static configuration of Makefile.common.
 STATIC_ONLY = y
 
+# Link with POSIX runtime library.
+POSIX_COMPAT = y
+
 # Makefile.common for native applications.
 COMMON_MAKEFILE_NATIVE = $(USPACE_PREFIX)/Makefile.common
 
