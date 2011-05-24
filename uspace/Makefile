@@ -35,6 +35,8 @@
 DIRS = \
 	app/bdsh \
 	app/edit \
+	app/filecrc \
+	app/filegen \
 	app/getterm \
 	app/init \
 	app/kill \
