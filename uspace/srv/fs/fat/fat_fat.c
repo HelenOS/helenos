@@ -298,15 +298,17 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
     fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b, *b1;
+	uint16_t byte1, byte2;
 	aoff64_t offset;
 	int rc;
 
 	offset = (clst + clst/2);
-
 	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
+
+	byte1 = ((uint8_t*) b->data)[offset];
 
 	/* This cluster access spans a sector boundary. Check only for FAT12 */
 	if ((offset % BPS(bs) + 1 == BPS(bs))) {
@@ -323,8 +325,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 			* Combining value with last byte of current sector and
 			* first byte of next sector
 			*/
-			*value  = *(uint8_t *)(b->data + BPS(bs) - 1);
-			*value |= *(uint8_t *)(b1->data) << 8;
+			byte2 = ((uint8_t*) b1->data)[0];
 
 			rc = block_put(b1);
 			if (rc != EOK) {
@@ -339,14 +340,20 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 		}
 	}
 	else
-		*value = *(uint16_t *)(b->data + offset % BPS(bs));
+		byte2 = ((uint8_t*) b->data)[offset+1];
 
-	if (IS_ODD(clst))
-		*value = (*value) >> 4;
-	else
-		*value = (*value) & FAT12_MASK;
+#ifdef __BE__	
+	*value = byte2 | (byte1 << 8);
+#else
+	*value = byte1 | (byte2 << 8);
+#endif
 
 	*value = uint16_t_le2host(*value);
+	if (IS_ODD(clst))
+		*value = *value >> 4;
+	else
+		*value = *value & FAT12_MASK;
+
 	rc = block_put(b);
 
 	return rc;
@@ -407,7 +414,7 @@ fat_get_cluster_fat32(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	if (rc != EOK)
 		return rc;
 
-	*value = uint32_t_le2host(*(uint32_t *)(b->data + offset % BPS(bs)) & FAT32_MASK);
+	*value = uint32_t_le2host(*(uint32_t *)(b->data + offset % BPS(bs))) & FAT32_MASK;
 
 	rc = block_put(b);
 
@@ -432,12 +439,15 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 
 	assert(fatno < FATCNT(bs));
 
-	if (FAT_IS_FAT12(bs))
+	if (FAT_IS_FAT12(bs)) {
 		rc = fat_get_cluster_fat12(bs, devmap_handle, fatno, clst, value);
-	else if (FAT_IS_FAT32(bs))
-		rc = fat_get_cluster_fat32(bs, devmap_handle, fatno, clst, value);
-	else
-		rc = fat_get_cluster_fat16(bs, devmap_handle, fatno, clst, value);
+	}
+	else {
+		if (FAT_IS_FAT32(bs))
+			rc = fat_get_cluster_fat32(bs, devmap_handle, fatno, clst, value);
+		else
+			rc = fat_get_cluster_fat16(bs, devmap_handle, fatno, clst, value);
+	}
 
 	return rc;
 }
@@ -458,18 +468,16 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 {
 	block_t *b, *b1=NULL;
 	aoff64_t offset;
+	uint16_t byte1, byte2;
 	int rc;
 
 	offset = (clst + clst/2);
-
 	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
 
-	value = host2uint32_t_le(value);
-
-	uint16_t temp;
+	byte1 = ((uint8_t*) b->data)[offset];
 	bool border = false;
 	/* This cluster access spans a sector boundary. Check only for FAT12 */
 	if (offset % BPS(bs)+1 == BPS(bs)) {
@@ -486,8 +494,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 			* Combining value with last byte of current sector and
 			* first byte of next sector
 			*/
-			temp  = *(uint8_t *)(b->data + BPS(bs) - 1);
-			temp |= *(uint8_t *)(b1->data) << 8;
+			byte2 = ((uint8_t*) b1->data)[0];
 			border = true;
 		}
 		else {
@@ -497,31 +504,33 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 		}
 	}
 	else
-		temp = *(uint16_t *)(b->data + offset % BPS(bs));
+		byte2 = ((uint8_t*) b->data)[offset+1];
 
 	if (IS_ODD(clst)) {
-		temp &= 0x000f;
-		temp |= value << 4;
-	}
-	else {
-		temp &= 0xf000;
-		temp |= value & FAT12_MASK;
+		byte1 &= 0x0f;
+		byte2 = 0;
+		value = (value << 4);
+	} else {
+		byte1 = 0;
+		byte2 &= 0xf0;
+		value &= FAT12_MASK;
 	}
 
+	byte1 = byte1 | (value & 0xff);
+	byte2 = byte2 | (value >> 8);
+
+	((uint8_t*) b->data)[offset] = byte1;
 	if (border) {
-		*(uint8_t *)(b->data + BPS(bs) - 1) = temp & 0xff;
-		*(uint8_t *)(b1->data) = temp >> 8;
-		b1->dirty = true;
-	} else
-		*(uint16_t *)(b->data + offset % BPS(bs)) = temp;
+		((uint8_t*) b1->data)[0] = byte2;
 
-	if (b1 && b1->dirty) {
+		b1->dirty = true;
 		rc = block_put(b1);
 		if (rc != EOK) {
 			block_put(b);
 			return rc;
 		}
-	}
+	} else 
+		((uint8_t*) b->data)[offset+1] = byte2;
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);
@@ -553,7 +562,7 @@ fat_set_cluster_fat16(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	if (rc != EOK)
 		return rc;
 
-	*(uint16_t *)(b->data + offset % BPS(bs)) = host2uint32_t_le(value);
+	*(uint16_t *)(b->data + offset % BPS(bs)) = host2uint16_t_le(value);
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);

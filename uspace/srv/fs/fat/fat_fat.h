@@ -39,9 +39,9 @@
 
 #define FAT1		0
 
-#define FAT_CLST_RES0	  0x0000
-#define FAT_CLST_RES1	  0x0001
-#define FAT_CLST_FIRST	  0x0002
+#define FAT_CLST_RES0	  0
+#define FAT_CLST_RES1	  1
+#define FAT_CLST_FIRST	  2
 
 #define FAT32_CLST_BAD    0x0ffffff7
 #define FAT32_CLST_LAST1  0x0ffffff8

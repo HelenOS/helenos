@@ -309,6 +309,13 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	}
 
 	d = ((fat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
+	if (FAT_IS_FAT32(bs)) {
+		nodep->firstc = uint16_t_le2host(d->firstc_lo) | 
+		    (uint16_t_le2host(d->firstc_hi) << 16);
+	} 
+	else
+		nodep->firstc = uint16_t_le2host(d->firstc);
+
 	if (d->attr & FAT_ATTR_SUBDIR) {
 		/*
 		 * The only directory which does not have this bit set is the
@@ -317,14 +324,14 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		 */
 		nodep->type = FAT_DIRECTORY;
 
-                /*
+		/*
 		 * Unfortunately, the 'size' field of the FAT dentry is not
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
 		 */
+		/* TODO uint16_t clusters to uint32_t */
 		uint16_t clusters;
-		rc = fat_clusters_get(&clusters, bs, idxp->devmap_handle,
-		    uint16_t_le2host(d->firstc));
+		rc = fat_clusters_get(&clusters, bs, idxp->devmap_handle, nodep->firstc);
 		if (rc != EOK) {
 			(void) block_put(b);
 			(void) fat_node_put(FS_NODE(nodep));
@@ -336,7 +343,6 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		nodep->size = uint32_t_le2host(d->size);
 	}
 
-        nodep->firstc = uint16_t_le2host(d->firstc);
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
 
@@ -1028,6 +1034,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
+
 	fs_node_initialize(rfn);
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
