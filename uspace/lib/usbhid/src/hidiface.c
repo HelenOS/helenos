@@ -85,6 +85,10 @@ int usbhid_dev_get_event(int dev_phone, int32_t *buf,
 	if (size == 0) {
 		return EINVAL;
 	}
+	
+//	if (size == 0) {
+//		return EOK;
+//	}
 
 	size_t buffer_size =  size;
 	uint16_t *buffer = malloc(buffer_size);

@@ -48,6 +48,7 @@
 #include <usb/driver.h>
 #include <usb/hid/iface.h>
 #include <usb/dev/pipes.h>
+#include <async.h>
 
 #define NAME "mkbd"
 
@@ -228,7 +229,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	char *devpath = argv[1];
+	//char *devpath = argv[1];
+	const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID0/hid";
 
 //	/* The initialization is here only to make compiler happy. */
 //	devman_handle_t hc_handle = 0;
@@ -322,6 +324,8 @@ int main(int argc, char *argv[])
 		}
 		
 		printf("Got buffer: %p, size: %zu\n", event, actual_size);
+		
+		async_usleep(10000);
 	}
 	
 	return 0;

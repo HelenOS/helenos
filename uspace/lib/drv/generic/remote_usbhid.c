@@ -35,6 +35,7 @@
 #include <async.h>
 #include <errno.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "usbhid_iface.h"
 #include "ddf/driver.h"
@@ -57,7 +58,7 @@ remote_iface_t remote_usbhid_iface = {
 	.methods = remote_usbhid_iface_ops
 };
 
-usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+//usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 
 void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
@@ -74,14 +75,16 @@ void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
 	}
 
 	size_t len = hid_iface->get_event_length(fun);
-	if (len == 0) {
-		len = EEMPTY;
-	}
-	if (len < 0) {
-		async_answer_0(callid, len);
-	} else {
-		async_answer_1(callid, EOK, len);
-	}
+//	if (len == 0) {
+//		len = EEMPTY;
+//	}
+	async_answer_1(callid, EOK, len);
+	
+//	if (len < 0) {
+//		async_answer_0(callid, len);
+//	} else {
+//		async_answer_1(callid, EOK, len);
+//	}
 }
 
 void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,

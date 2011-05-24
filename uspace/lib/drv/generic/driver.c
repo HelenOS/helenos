@@ -396,6 +396,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			 * Get the corresponding interface for remote request
 			 * handling ("remote interface").
 			 */
+			printf("iface_idx: %d\n", iface_idx);
 			remote_iface_t *rem_iface = get_remote_iface(iface_idx);
 			assert(rem_iface != NULL);
 			

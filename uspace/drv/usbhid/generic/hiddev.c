@@ -82,15 +82,19 @@ static ddf_dev_ops_t usb_generic_hid_ops = {
 
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 {
-	usb_log_debug("Generic HID: Get event length.\n");
+	usb_log_debug("Generic HID: Get event length (fun: %p, "
+	    "fun->driver_data: %p.\n", fun, fun->driver_data);
 	
-	if (fun == NULL || fun->driver_data) {
+	if (fun == NULL || fun->driver_data == NULL) {
 		return 0;
 	}
 
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
-	return hid_dev->input_report_size;
+	usb_log_debug("hid_dev: %p, Max input report size (%d).\n",
+	    hid_dev, hid_dev->max_input_report_size);
+	
+	return hid_dev->max_input_report_size;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -100,7 +104,8 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer,
 {
 	usb_log_debug("Generic HID: Get event.\n");
 	
-	if (fun == NULL || fun->driver_data) {
+	if (fun == NULL || fun->driver_data == NULL) {
+		usb_log_debug("No function");
 		return EINVAL;
 	}
 
