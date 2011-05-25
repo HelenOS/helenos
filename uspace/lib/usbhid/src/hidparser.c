@@ -569,7 +569,7 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
  * @retval 0 if report structure is null or there is no specified report
  * @retval report_id otherwise
  */
-uint8_t usb_hid_report_get_next_report_id(usb_hid_report_t *report, 
+uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, 
 	uint8_t report_id, usb_hid_report_type_t type)
 {
 	if(report == NULL){
