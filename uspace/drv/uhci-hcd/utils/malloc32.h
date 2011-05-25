@@ -40,8 +40,6 @@
 #include <mem.h>
 #include <as.h>
 
-#include "slab.h"
-
 #define UHCI_STRCUTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
 
@@ -69,11 +67,19 @@ static inline uintptr_t addr_to_phys(void *addr)
  * @return Address of the alligned and big enough memory place, NULL on failure.
  */
 static inline void * malloc32(size_t size) {
-	if (size <= SLAB_ELEMENT_SIZE)
-		return slab_malloc_g();
-	usb_log_warning("Requested %zu bytes, current allocator can't handle "
-	    "that amount, pray that the standard malloc will suffice.", size);
-	return memalign(UHCI_STRCUTURES_ALIGNMENT, size);
+	/* This works only when the host has less than 4GB of memory as
+	 * physical address needs to fit into 32 bits */
+
+	/* If we need more than one page there is no guarantee that the
+	 * memory will be continuous */
+	if (size > PAGE_SIZE)
+		return NULL;
+	/* Calculate alignment to make sure the block won't cross page
+	 * boundary */
+	size_t alignment = UHCI_STRCUTURES_ALIGNMENT;
+	while (alignment < size)
+		alignment *= 2;
+	return memalign(alignment, size);
 }
 /*----------------------------------------------------------------------------*/
 /** Physical mallocator simulator
@@ -83,8 +89,6 @@ static inline void * malloc32(size_t size) {
 static inline void free32(void *addr) {
 	if (!addr)
 		return;
-	if (slab_in_range_g(addr))
-		return slab_free_g(addr);
 	free(addr);
 }
 /*----------------------------------------------------------------------------*/
