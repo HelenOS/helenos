@@ -81,7 +81,7 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
                                                    usb_hid_report_type_t type);
 
 /** */
-uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report, 
+uint8_t usb_hid_report_get_next_report_id(usb_hid_report_t *report, 
                                      uint8_t report_id, 
                                      usb_hid_report_type_t type);
 

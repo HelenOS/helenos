@@ -559,16 +559,17 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 
 /*---------------------------------------------------------------------------*/
 /**
- * Returns nonzero (report_id) number if there is report of given type and
- * have the specified report_id in report structure
+ * Returns next report_id of report of specified type. If zero is given than
+ * first report_id of specified type is returned (0 is not legal value for
+ * repotr_id)
  *
- * @param report_id Searched report id
+ * @param report_id Current report_id, 0 if there is no current report_id
  * @param type Type of searched report
  * @param report Report structure inwhich we search
  * @retval 0 if report structure is null or there is no specified report
  * @retval report_id otherwise
  */
-uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report, 
+uint8_t usb_hid_report_get_next_report_id(usb_hid_report_t *report, 
 	uint8_t report_id, usb_hid_report_type_t type)
 {
 	if(report == NULL){
@@ -578,7 +579,7 @@ uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report,
 	usb_hid_report_description_t *report_des;
 	link_t *report_it;
 	
-	if(report_id == 0) {
+	if(report_id > 0) {
 		report_it = usb_hid_report_find_description(report, report_id, 
 			type)->link.next;		
 	}
@@ -587,8 +588,8 @@ uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report,
 	}
 
 	while(report_it != &report->reports) {
-		report_des = list_get_instance(report_it, usb_hid_report_description_t,
-			link);
+		report_des = list_get_instance(report_it, 
+			usb_hid_report_description_t, link);
 
 		if(report_des->type == type){
 			return report_des->report_id;
