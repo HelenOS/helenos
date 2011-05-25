@@ -96,6 +96,31 @@ size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id,
 		return report_des->item_length;
 	}
 }
+
+/** Returns size of report of specified report id and type in bytes
+ *
+ * @param parser Opaque report parser structure
+ * @param report_id 
+ * @param type
+ * @return Number of items in specified report
+ */
+size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id, 
+                           usb_hid_report_type_t type)
+{
+	usb_hid_report_description_t *report_des;
+
+	if(report == NULL) {
+		return 0;
+	}
+
+	report_des = usb_hid_report_find_description (report, report_id, type);
+	if(report_des == NULL){
+		return 0;
+	}
+	else {
+		return (report_des->bit_length + 7) / 8;
+	}
+}
 /*---------------------------------------------------------------------------*/
 
 /** Parse and act upon a HID report.
