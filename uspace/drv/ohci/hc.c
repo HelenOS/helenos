@@ -564,7 +564,10 @@ int hc_init_memory(hc_t *instance)
 
 	bzero(&instance->rh, sizeof(instance->rh));
 	/* Init queues */
-	hc_init_transfer_lists(instance);
+	const int ret = hc_init_transfer_lists(instance);
+	if (ret != EOK) {
+		return ret;
+	}
 
 	/*Init HCCA */
 	instance->hcca = malloc32(sizeof(hcca_t));

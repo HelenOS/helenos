@@ -42,7 +42,7 @@
 typedef struct rh {
 	/** List of resources available to the root hub. */
 	hw_resource_list_t resource_list;
-	/** The only resource in the above list */
+	/** The only resource in the RH resource list */
 	hw_resource_t io_regs;
 } rh_t;
 

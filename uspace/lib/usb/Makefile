@@ -36,9 +36,9 @@ SOURCES = \
 	src/class.c \
 	src/ddfiface.c \
 	src/debug.c \
-	src/driver.c \
 	src/dump.c \
-	src/host.c \
+	src/hc.c \
+	src/resolve.c \
 	src/usb.c
 
 include $(USPACE_PREFIX)/Makefile.common

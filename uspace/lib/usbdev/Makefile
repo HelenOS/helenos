@@ -45,7 +45,6 @@ SOURCES = \
 	src/pipesinit.c \
 	src/pipesio.c \
 	src/recognise.c \
-	src/request.c \
-	src/usbdevice.c
+	src/request.c
 
 include $(USPACE_PREFIX)/Makefile.common

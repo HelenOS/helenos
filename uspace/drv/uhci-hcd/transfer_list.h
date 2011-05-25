@@ -35,8 +35,8 @@
 #define DRV_UHCI_TRANSFER_LIST_H
 
 #include <fibril_synch.h>
+#include <usb/host/batch.h>
 
-#include "batch.h"
 #include "hw_struct/queue_head.h"
 
 /** Structure maintaining both hw queue and software list

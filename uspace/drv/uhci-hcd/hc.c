@@ -38,8 +38,6 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/ddfiface.h>
-#include <usb_iface.h>
 
 #include "hc.h"
 
@@ -84,7 +82,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 
 	/* allow access to hc control registers */
 	regs_t *io;
-	ret = pio_enable(regs, reg_size, (void**)&io);
+	ret = pio_enable(regs, reg_size, (void **)&io);
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) to gain access to registers at %p: %s.\n",
 	    ret, io, str_error(ret));
@@ -142,7 +140,7 @@ void hc_init_hw(hc_t *instance)
 		    UHCI_INTR_ALLOW_INTERRUPTS);
 	}
 
-	uint16_t status = pio_read_16(&registers->usbcmd);
+	const uint16_t status = pio_read_16(&registers->usbcmd);
 	if (status != 0)
 		usb_log_warning("Previous command value: %x.\n", status);
 
@@ -211,7 +209,7 @@ int hc_init_mem_structures(hc_t *instance)
 
 	/* Init USB frame list page*/
 	instance->frame_list = get_page();
-	ret = instance ? EOK : ENOMEM;
+	ret = instance->frame_list ? EOK : ENOMEM;
 	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
 	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
@@ -276,7 +274,8 @@ do { \
 	transfer_list_set_next(&instance->transfers_interrupt,
 		&instance->transfers_control_slow);
 
-	/*FSBR*/
+	/*FSBR, This feature is not needed (adds no benefit) and is supposedly
+	 * buggy on certain hw, enable at your own risk. */
 #ifdef FSBR
 	transfer_list_set_next(&instance->transfers_bulk_full,
 	    &instance->transfers_control_full);
@@ -427,7 +426,7 @@ int hc_debug_checker(void *arg)
 			    cmd, sts, intr);
 		}
 
-		uintptr_t frame_list =
+		const uintptr_t frame_list =
 		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
 		if (frame_list != addr_to_phys(instance->frame_list)) {
 			usb_log_debug("Framelist address: %p vs. %p.\n",
