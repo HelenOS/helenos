@@ -38,6 +38,7 @@
 #include <usb/host/endpoint.h>
 
 #include "iface.h"
+#include "batch.h"
 #include "hc.h"
 
 static inline int setup_batch(
@@ -121,7 +122,7 @@ static int bind_address(
 	usb_device_keeper_bind(&hc->manager, address, handle);
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Find device handle by address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -135,11 +136,10 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	bool found =
+	const bool found =
 	    usb_device_keeper_find_by_address(&hc->manager, address, handle);
 	return found ? EOK : ENOENT;
 }
-
 /*----------------------------------------------------------------------------*/
 /** Release address interface function
  *
@@ -163,6 +163,7 @@ static int register_endpoint(
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
+	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	const size_t size = max_packet_size;
@@ -182,6 +183,7 @@ static int unregister_endpoint(
     ddf_fun_t *fun, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
+	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
@@ -210,6 +212,8 @@ static int interrupt_out(
 	    NULL, 0, NULL, callback, arg, "Interrupt OUT", &hc, &batch);
 	if (ret != EOK)
 		return ret;
+	assert(batch);
+	assert(hc);
 	batch_interrupt_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -238,6 +242,8 @@ static int interrupt_in(
 	    NULL, 0, callback, NULL, arg, "Interrupt IN", &hc, &batch);
 	if (ret != EOK)
 		return ret;
+	assert(batch);
+	assert(hc);
 	batch_interrupt_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -266,6 +272,8 @@ static int bulk_out(
 	    NULL, 0, NULL, callback, arg, "Bulk OUT", &hc, &batch);
 	if (ret != EOK)
 		return ret;
+	assert(batch);
+	assert(hc);
 	batch_bulk_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -294,6 +302,8 @@ static int bulk_in(
 	    NULL, 0, callback, NULL, arg, "Bulk IN", &hc, &batch);
 	if (ret != EOK)
 		return ret;
+	assert(batch);
+	assert(hc);
 	batch_bulk_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -326,6 +336,8 @@ static int control_write(
 	    &hc, &batch);
 	if (ret != EOK)
 		return ret;
+	assert(batch);
+	assert(hc);
 	usb_endpoint_manager_reset_if_need(&hc->ep_manager, target, setup_data);
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
@@ -359,6 +371,8 @@ static int control_read(
 	    &hc, &batch);
 	if (ret != EOK)
 		return ret;
+	assert(batch);
+	assert(hc);
 	batch_control_read(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {

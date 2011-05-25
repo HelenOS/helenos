@@ -56,7 +56,7 @@ typedef uint16_t port_status_t;
 /** UHCI port structure */
 typedef struct uhci_port
 {
-	char *id_string;
+	const char *id_string;
 	port_status_t *address;
 	unsigned number;
 	unsigned wait_period_usec;
