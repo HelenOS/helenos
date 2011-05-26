@@ -400,21 +400,6 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
 
-#
-# The FPU tests are the only objects for which we allow the compiler to generate
-# FPU instructions.
-#
-
-test/fpu/%.o: test/fpu/%.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc test $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
-endif
-
-#
-# Ordinary objects.
-#
-
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
 ifeq ($(PRECHECK),y)
