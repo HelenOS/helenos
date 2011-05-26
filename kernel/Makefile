@@ -328,45 +328,6 @@ ifeq ($(CONFIG_TEST),y)
 		GENERIC_SOURCES += test/mm/purge1_skip.c
 	endif
 	
-	ifeq ($(CONFIG_FPU),y)
-		ifeq ($(KARCH),ia32)
-			TEST_FPU1 = y
-			TEST_SSE1 = y
-			GENERIC_SOURCES += test/fpu/fpu1_x86.c
-		endif
-		
-		ifeq ($(KARCH),amd64)
-			TEST_FPU1 = y
-			TEST_SSE1 = y
-			GENERIC_SOURCES += test/fpu/fpu1_x86.c
-		endif
-		
-		ifeq ($(KARCH),ia64)
-			TEST_FPU1 = y
-			GENERIC_SOURCES += test/fpu/fpu1_ia64.c
-		endif
-		
-		ifeq ($(KARCH),mips32)
-			TEST_MIPS2 = y
-		endif
-	endif
-	
-	ifneq ($(TEST_FPU1),y)
-		GENERIC_SOURCES += test/fpu/fpu1_skip.c
-	endif
-	
-	ifeq ($(TEST_SSE1),y)
-		GENERIC_SOURCES += test/fpu/sse1.c
-	else
-		GENERIC_SOURCES += test/fpu/sse1_skip.c
-	endif
-	
-	ifeq ($(TEST_MIPS2),y)
-		GENERIC_SOURCES += test/fpu/mips2.c
-	else
-		GENERIC_SOURCES += test/fpu/mips2_skip.c
-	endif
-	
 endif
 
 ## Sources where instrumentation is enabled
