@@ -64,9 +64,14 @@ void usb_hid_report_output_free(uint8_t *output);
 size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id, 
                            usb_hid_report_type_t type);
 
+size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id, 
+                           usb_hid_report_type_t type);
+
+
 /** Makes the output report buffer by translated given data */
 int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id, 
                                     uint8_t *buffer, size_t size);
+
 
 /** */
 usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, 
@@ -76,7 +81,7 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
                                                    usb_hid_report_type_t type);
 
 /** */
-uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report, 
+uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, 
                                      uint8_t report_id, 
                                      usb_hid_report_type_t type);
 

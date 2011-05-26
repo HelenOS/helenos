@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <fibril.h>
 #include <ddf/driver.h>
-#include <usb/dev/hc.h> /* usb_hc_connection_t */
+#include <usb/hc.h> /* usb_hc_connection_t */
 
 typedef uint16_t port_status_t;
 #define STATUS_CONNECTED         (1 << 0)
@@ -56,7 +56,7 @@ typedef uint16_t port_status_t;
 /** UHCI port structure */
 typedef struct uhci_port
 {
-	char *id_string;
+	const char *id_string;
 	port_status_t *address;
 	unsigned number;
 	unsigned wait_period_usec;

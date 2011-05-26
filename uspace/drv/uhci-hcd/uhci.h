@@ -34,7 +34,6 @@
  */
 #ifndef DRV_UHCI_UHCI_H
 #define DRV_UHCI_UHCI_H
-#include <ddi.h>
 #include <ddf/driver.h>
 
 int device_setup_uhci(ddf_dev_t *device);

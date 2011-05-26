@@ -36,15 +36,12 @@
 #define DRV_UHCI_HC_H
 
 #include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
 #include <ddi.h>
 
-#include <usbhc_iface.h>
 #include <usb/host/device_keeper.h>
 #include <usb/host/usb_endpoint_manager.h>
+#include <usb/host/batch.h>
 
-#include "batch.h"
 #include "transfer_list.h"
 
 /** UHCI I/O registers layout */
@@ -153,7 +150,10 @@ static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
  * @return cast pointer to driver_data
  */
 static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
+{
+	assert(fun);
+	return fun->driver_data;
+}
 #endif
 /**
  * @}

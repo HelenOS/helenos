@@ -59,6 +59,7 @@ int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 		    ret, str_error(ret));
 		return ret;
 	}
+	assert(match_str);
 
 	ret = ddf_fun_add_match_id(fun, match_str, 100);
 	if (ret != EOK) {

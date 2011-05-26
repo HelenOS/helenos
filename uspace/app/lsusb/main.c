@@ -44,7 +44,7 @@
 #include <devman.h>
 #include <devmap.h>
 #include <usb/dev/hub.h>
-#include <usb/host.h>
+#include <usb/hc.h>
 
 #define NAME "lsusb"
 
