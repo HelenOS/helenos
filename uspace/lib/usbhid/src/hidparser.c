@@ -166,22 +166,26 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 	list_item = report_des->report_items.next;	   
 	while(list_item != &(report_des->report_items)) {
 
-		item = list_get_instance(list_item, usb_hid_report_field_t, link);
+		item = list_get_instance(list_item, usb_hid_report_field_t, 
+				link);
 
 		if(USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) == 0) {
 			
 			if(USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) {
 
 				// array
-				item->value = usb_hid_translate_data(item, data);
+				item->value = 
+					usb_hid_translate_data(item, data);
 		
 				item->usage = USB_HID_EXTENDED_USAGE(
-					item->usages[item->value - item->physical_minimum]);
+				    item->usages[item->value - item->physical_minimum]);
+
 				item->usage_page = USB_HID_EXTENDED_USAGE_PAGE(
-					item->usages[item->value - item->physical_minimum]);				
+				    item->usages[item->value - item->physical_minimum]);
 
 				usb_hid_report_set_last_item (item->collection_path, 
-					USB_HID_TAG_CLASS_GLOBAL, item->usage_page);
+				    USB_HID_TAG_CLASS_GLOBAL, item->usage_page);
+
 				usb_hid_report_set_last_item (item->collection_path, 
 				    USB_HID_TAG_CLASS_LOCAL, item->usage);
 				
@@ -272,7 +276,8 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 		value = USB_HID_UINT32_TO_INT32(value, item->size);
 	}
 
-	return (int)(((value - item->logical_minimum) / resolution) + item->physical_minimum);
+	return (int)(((value - item->logical_minimum) / resolution) + 
+		item->physical_minimum);
 	
 }
 
@@ -414,19 +419,28 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 			for(i = (offset/8); i <= ((offset+length-1)/8); i++) {
 				if(i == (offset/8)) {
 					tmp_value = value;
-					tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);				
+					tmp_value = tmp_value & 
+						((1 << (8-(offset%8)))-1);
+
 					tmp_value = tmp_value << (offset%8);
 	
-					mask = ~(((1 << (8-(offset%8)))-1) << (offset%8));
-					buffer[i] = (buffer[i] & mask) | tmp_value;			
+					mask = ~(((1 << (8-(offset%8)))-1) << 
+							(offset%8));
+
+					buffer[i] = (buffer[i] & mask) | 
+						tmp_value;
 				}
 				else if (i == ((offset + length -1)/8)) {
 					
-					value = value >> (length - ((offset + length) % 8));
-					value = value & 
-						((1 << (length - ((offset + length) % 8))) - 1);
+					value = value >> (length - 
+						((offset + length) % 8));
+
+					value = value & ((1 << (length - 
+						((offset + length) % 8))) - 1);
 				
-					mask = (1 << (length - ((offset + length) % 8))) - 1;
+					mask = (1 << (length - 
+						((offset + length) % 8))) - 1;
+
 					buffer[i] = (buffer[i] & mask) | value;
 				}
 				else {
@@ -528,8 +542,8 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 	usb_hid_report_field_t *field, usb_hid_report_path_t *path, int flags, 
 	usb_hid_report_type_t type)
 {
-	usb_hid_report_description_t *report_des = usb_hid_report_find_description(
-		report, path->report_id, type);
+	usb_hid_report_description_t *report_des = 
+		usb_hid_report_find_description(report, path->report_id, type);
 
 	link_t *field_it;
 	
@@ -545,19 +559,24 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 	}
 
 	while(field_it != &report_des->report_items) {
-		field = list_get_instance(field_it, usb_hid_report_field_t, link);
+		field = list_get_instance(field_it, usb_hid_report_field_t, 
+			link);
 
 		if(USB_HID_ITEM_FLAG_CONSTANT(field->item_flags) == 0) {
-			usb_hid_report_path_append_item (field->collection_path, 
-				field->usage_page, field->usage);
+			usb_hid_report_path_append_item (
+				field->collection_path, field->usage_page, 
+				field->usage);
 
-			if(usb_hid_report_compare_usage_path(field->collection_path, path, 
-				flags) == EOK){
+			if(usb_hid_report_compare_usage_path(
+				field->collection_path, path, flags) == EOK){
 
-				usb_hid_report_remove_last_item(field->collection_path);
+				usb_hid_report_remove_last_item(
+					field->collection_path);
+
 				return field;
 			}
-			usb_hid_report_remove_last_item (field->collection_path);
+			usb_hid_report_remove_last_item (
+				field->collection_path);
 		}
 		field_it = field_it->next;
 	}

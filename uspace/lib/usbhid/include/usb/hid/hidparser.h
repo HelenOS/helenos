@@ -46,44 +46,37 @@
 /*
  * Input report parser functions
  */
-/** */
-int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
-                         size_t size, uint8_t *report_id);
+int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
+		size_t size, uint8_t *report_id);
 
 /*
  * Output report parser functions
  */
-/** Allocates output report buffer*/
 uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size, 
-                               uint8_t report_id);
+		uint8_t report_id);
 
-/** Frees output report buffer*/
 void usb_hid_report_output_free(uint8_t *output);
 
-/** Returns size of report in items */
-size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id, 
-                           usb_hid_report_type_t type);
+size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id,
+		usb_hid_report_type_t type);
 
-size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id, 
-                           usb_hid_report_type_t type);
-
-
-/** Makes the output report buffer by translated given data */
-int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id, 
-                                    uint8_t *buffer, size_t size);
+size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
+		usb_hid_report_type_t type);
 
 
-/** */
-usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, 
-                                                   usb_hid_report_field_t *field, 
-                                                   usb_hid_report_path_t *path, 
-                                                   int flags, 
-                                                   usb_hid_report_type_t type);
+int usb_hid_report_output_translate(usb_hid_report_t *report, 
+		uint8_t report_id, uint8_t *buffer, size_t size);
 
-/** */
+
+/*
+ * Report descriptor structure observing functions
+ */
+usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
+		usb_hid_report_field_t *field, usb_hid_report_path_t *path,
+		int flags, usb_hid_report_type_t type);
+
 uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, 
-                                     uint8_t report_id, 
-                                     usb_hid_report_type_t type);
+		uint8_t report_id, usb_hid_report_type_t type);
 
 #endif
 /**
