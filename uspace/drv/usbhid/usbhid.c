@@ -360,17 +360,18 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 	assert(hid_dev != NULL && hid_dev->report != NULL);
 	
 	uint8_t report_id = 0;
-	size_t size = usb_hid_report_size(hid_dev->report, report_id, 
+	size_t size = usb_hid_report_byte_size(hid_dev->report, report_id, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	
 	size_t max_size = 0;
 	
-	while (size > 0) {
+	do {
 		max_size = (size > max_size) ? size : max_size;
-		size = usb_hid_report_size(hid_dev->report, report_id, 
+		size = usb_hid_report_byte_size(hid_dev->report, report_id, 
 		    USB_HID_REPORT_TYPE_INPUT);
-		++report_id;
-	}
+		report_id = usb_hid_get_next_report_id(hid_dev->report, 
+		    report_id, USB_HID_REPORT_TYPE_INPUT);
+	} while (report_id != 0);
 	
 	usb_log_debug("Max size of input report: %zu\n", max_size);
 	
@@ -548,6 +549,8 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	
 //	int allocated = (hid_dev->input_report != NULL);
 	assert(hid_dev->input_report != NULL);
+	usb_log_debug("Max input report size: %zu, buffer size: %zu\n",
+	    hid_dev->max_input_report_size, buffer_size);
 	assert(hid_dev->max_input_report_size >= buffer_size);
 	
 //	if (/*!allocated*/
