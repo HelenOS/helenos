@@ -249,7 +249,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	usb_hid_report_path_set_report_id(path, 1);
 	
 	multim_dev->key_count = usb_hid_report_size(
-	    hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT);
+	    hid_dev->report, 1, USB_HID_REPORT_TYPE_INPUT);
 
 	usb_hid_report_path_free(path);
 	
