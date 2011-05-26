@@ -44,8 +44,8 @@
 #include <devman.h>
 #include <devmap.h>
 #include <usb/dev/hub.h>
-#include <usb/host.h>
-#include <usb/driver.h>
+//#include <usb/host.h>
+//#include <usb/driver.h>
 #include <usb/hid/iface.h>
 #include <usb/dev/pipes.h>
 #include <async.h>
@@ -139,8 +139,19 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	assert(buffer != NULL);
 	assert(report != NULL);
 	
+	printf("Calling usb_hid_parse_report() with size %zu and "
+	    "buffer: \n", size);
+	for (size_t i = 0; i < size; ++i) {
+		printf(" %X ", buffer[i]);
+	}
+	printf("\n");
+	
 	uint8_t report_id;
-	usb_hid_parse_report(report, buffer, size, &report_id);
+	int rc = usb_hid_parse_report(report, buffer, size, &report_id);
+	if (rc != EOK) {
+		printf("Error parsing report: %s\n", str_error(rc));
+		return;
+	}
 	
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
@@ -195,7 +206,7 @@ int main(int argc, char *argv[])
 	}
 	
 	//char *devpath = argv[1];
-	const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID0/hid";
+	const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID1/hid";
 	
 	int rc;
 	
@@ -268,7 +279,8 @@ int main(int argc, char *argv[])
 			break;
 		}
 		
-		printf("Got buffer: %p, size: %zu\n", event, actual_size);
+		printf("Got buffer: %p, size: %zu, max size: %zu\n", event, 
+		    actual_size, size);
 		
 		print_key(event, size, report);
 		
