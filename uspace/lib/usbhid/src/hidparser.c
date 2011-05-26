@@ -158,6 +158,9 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 
 
 	report_des = usb_hid_report_find_description(report, *report_id, type);
+	if(report_des == NULL) {
+		return EINVAL;
+	}
 
 	/* read data */
 	list_item = report_des->report_items.next;	   
