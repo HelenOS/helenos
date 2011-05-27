@@ -211,8 +211,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	//char *devpath = argv[1];
-	const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID1/hid";
+	char *devpath = argv[1];
+	//const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID1/hid";
 	
 	int rc;
 	
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
 			act_event = event_nr;
 		}
 		
-		async_usleep(100000);
+		async_usleep(10000);
 	}
 	
 	return 0;
