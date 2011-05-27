@@ -139,17 +139,17 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	assert(buffer != NULL);
 	assert(report != NULL);
 	
-	printf("Calling usb_hid_parse_report() with size %zu and "
-	    "buffer: \n", size);
-	for (size_t i = 0; i < size; ++i) {
-		printf(" %X ", buffer[i]);
-	}
-	printf("\n");
+//	printf("Calling usb_hid_parse_report() with size %zu and "
+//	    "buffer: \n", size);
+//	for (size_t i = 0; i < size; ++i) {
+//		printf(" %X ", buffer[i]);
+//	}
+//	printf("\n");
 	
 	uint8_t report_id;
 	int rc = usb_hid_parse_report(report, buffer, size, &report_id);
 	if (rc != EOK) {
-		printf("Error parsing report: %s\n", str_error(rc));
+//		printf("Error parsing report: %s\n", str_error(rc));
 		return;
 	}
 	
@@ -167,7 +167,11 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	
+//	printf("Field: %p\n", field);
+	
 	while (field != NULL) {
+//		printf("Field usage: %u, field value: %d\n", field->usage, 
+//		    field->value);
 		if (field->value != 0) {
 			const char *key_str = 
 			    usbhid_multimedia_usage_to_str(field->usage);
@@ -178,6 +182,7 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 		    report, field, path, USB_HID_PATH_COMPARE_END
 		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 		    USB_HID_REPORT_TYPE_INPUT);
+//		printf("Next field: %p\n", field);
 	}
 	
 	usb_hid_report_path_free(path);
@@ -199,6 +204,7 @@ static void print_usage(char *app_name)
 
 int main(int argc, char *argv[])
 {
+	int act_event = -1;
 	
 	if (argc <= 1) {
 		print_usage(argv[0]);
@@ -254,24 +260,25 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 	
-	printf("Event length: %zu\n", size);
+//	printf("Event length: %zu\n", size);
 	uint8_t *event = (uint8_t *)malloc(size);
 	if (event == NULL) {
 		// hangup phone?
 		return ENOMEM;
 	}
 	
-	printf("Event length: %zu\n", size);
+//	printf("Event length: %zu\n", size);
 	
 	size_t actual_size;
+	int event_nr;
 	
 	while (1) {
 		// get event from the driver
-		printf("Getting event from the driver.\n");
+//		printf("Getting event from the driver.\n");
 		
 		/** @todo Try blocking call. */
 		rc = usbhid_dev_get_event(dev_phone, event, size, &actual_size, 
-		    0);
+		    &event_nr, 0);
 		if (rc != EOK) {
 			// hangup phone?
 			printf("Error in getting event from the HID driver:"
@@ -279,12 +286,17 @@ int main(int argc, char *argv[])
 			break;
 		}
 		
-		printf("Got buffer: %p, size: %zu, max size: %zu\n", event, 
-		    actual_size, size);
+//		printf("Got buffer: %p, size: %zu, max size: %zu\n", event, 
+//		    actual_size, size);
 		
-		print_key(event, size, report);
+//		printf("Event number: %d, my actual event: %d\n", event_nr, 
+//		    act_event);
+		if (event_nr > act_event) {
+			print_key(event, size, report);
+			act_event = event_nr;
+		}
 		
-		async_usleep(10000);
+		async_usleep(100000);
 	}
 	
 	return 0;

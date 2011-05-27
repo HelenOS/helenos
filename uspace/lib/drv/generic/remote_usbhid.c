@@ -129,7 +129,8 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 	}
 
 	size_t act_length;
-	rc = hid_iface->get_event(fun, data, len, &act_length, flags);
+	int event_nr;
+	rc = hid_iface->get_event(fun, data, len, &act_length, &event_nr, flags);
 	if (rc != EOK) {
 		free(data);
 		async_answer_0(data_callid, rc);
@@ -146,7 +147,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 
 	free(data);
 
-	async_answer_0(callid, EOK);
+	async_answer_1(callid, EOK, event_nr);
 }
 
 void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface,

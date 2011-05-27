@@ -62,7 +62,7 @@ const char *HID_GENERIC_CLASS_NAME = "hid";
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
 
 static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer, 
-    size_t size, size_t *act_size, unsigned int flags);
+    size_t size, size_t *act_size, int *event_nr, unsigned int flags);
 
 static int usb_generic_hid_client_connected(ddf_fun_t *fun);
 
@@ -107,11 +107,12 @@ static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 /*----------------------------------------------------------------------------*/
 
 static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer, 
-    size_t size, size_t *act_size, unsigned int flags)
+    size_t size, size_t *act_size, int *event_nr, unsigned int flags)
 {
 	usb_log_debug2("Generic HID: Get event.\n");
 	
-	if (fun == NULL || fun->driver_data == NULL) {
+	if (fun == NULL || fun->driver_data == NULL || buffer == NULL
+	    || act_size == NULL || event_nr == NULL) {
 		usb_log_debug("No function");
 		return EINVAL;
 	}
@@ -136,6 +137,7 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
 	memcpy(buffer, hid_dev->input_report, 
 	    hid_dev->input_report_size);
 	*act_size = hid_dev->input_report_size;
+	*event_nr = usb_hid_report_number(hid_dev);
 	
 	// clear the buffer so that it will not be received twice
 	//memset(hid_dev->input_report, 0, hid_dev->input_report_size);

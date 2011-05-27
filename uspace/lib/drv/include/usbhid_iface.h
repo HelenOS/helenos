@@ -108,7 +108,7 @@ typedef struct {
 	 * @return Error code.
 	 */
 	int (*get_event)(ddf_fun_t *fun, uint8_t *buffer, size_t size,
-	    size_t *act_size, unsigned int flags);
+	    size_t *act_size, int *event_nr, unsigned int flags);
 	
 	/** Get size of the report descriptor in bytes.
 	 *

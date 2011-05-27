@@ -76,7 +76,7 @@ int usbhid_dev_get_event_length(int dev_phone, size_t *size)
  * @return Error code.
  */
 int usbhid_dev_get_event(int dev_phone, uint8_t *buf, 
-    size_t size, size_t *actual_size, unsigned int flags)
+    size_t size, size_t *actual_size, int *event_nr, unsigned int flags)
 {
 	if (dev_phone < 0) {
 		return EINVAL;
@@ -98,9 +98,10 @@ int usbhid_dev_get_event(int dev_phone, uint8_t *buf,
 		return ENOMEM;
 	}
 
+	ipc_call_t opening_request_call;
 	aid_t opening_request = async_send_2(dev_phone,
 	    DEV_IFACE_ID(USBHID_DEV_IFACE), IPC_M_USBHID_GET_EVENT,
-	    flags, NULL);
+	    flags, &opening_request_call);
 	if (opening_request == 0) {
 		free(buffer);
 		return ENOMEM;
@@ -141,6 +142,10 @@ int usbhid_dev_get_event(int dev_phone, uint8_t *buf,
 
 	if (actual_size != NULL) {
 		*actual_size = act_size;
+	}
+	
+	if (event_nr != NULL) {
+		*event_nr = IPC_GET_ARG1(opening_request_call);
 	}
 
 	return EOK;
