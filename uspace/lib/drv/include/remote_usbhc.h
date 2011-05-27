@@ -35,7 +35,7 @@
 #ifndef LIBDRV_REMOTE_USBHC_H_
 #define LIBDRV_REMOTE_USBHC_H_
 
-remote_iface_t remote_usbhc_iface;
+extern remote_iface_t remote_usbhc_iface;
 
 #endif
 
