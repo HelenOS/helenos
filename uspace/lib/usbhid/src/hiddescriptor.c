@@ -271,6 +271,11 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 
 			report_des->type = report_item->type;
 			report_des->report_id = report_item->id;
+			if(report_des->report_id != 0) {
+				/* set up the bit length by report_id field */
+				report_des->bit_length = 8;
+			}
+
 			list_initialize (&report_des->link);
 			list_initialize (&report_des->report_items);
 
