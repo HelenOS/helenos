@@ -66,7 +66,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info);
 static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
     usb_hub_status_t status);
 
-static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
+static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status);
 
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
@@ -385,58 +385,46 @@ static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
     usb_hub_status_t status) {
 	int opResult;
 	if (usb_hub_is_status(status,USB_HUB_FEATURE_HUB_OVER_CURRENT)){
-		opResult = usb_hub_clear_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power off hub: %d\n",
-			    opResult);
+		//poweroff all ports
+		unsigned int port;
+		for(port = 1;port <= hub_info->port_count;++port){
+			opResult = usb_hub_clear_port_feature(
+			    hub_info->control_pipe,port,
+			    USB_HUB_FEATURE_PORT_POWER);
+			if (opResult != EOK) {
+				usb_log_warning(
+				    "cannot power off port %d;  %d\n",
+				    port, opResult);
+			}
 		}
 	} else {
-		opResult = usb_hub_set_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power on hub: %d\n",
-			    opResult);
+		//power all ports
+		unsigned int port;
+		for(port = 1;port <= hub_info->port_count;++port){
+			opResult = usb_hub_set_port_feature(
+			    hub_info->control_pipe,port,
+			    USB_HUB_FEATURE_PORT_POWER);
+			if (opResult != EOK) {
+				usb_log_warning(
+				    "cannot power off port %d;  %d\n",
+				    port, opResult);
+			}
 		}
 	}
 	return opResult;
 }
 
 /**
- * process hub power change
+ * process hub local power change
  *
- * If the power has been lost, reestablish it.
- * If it was reestablished, re-power all ports.
+ * This change is ignored.
  * @param hub_info hub instance
  * @param status hub status bitmask
  * @return error code
  */
-static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
+static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status) {
 	int opResult = EOK;
-	if (!usb_hub_is_status(status,USB_HUB_FEATURE_HUB_LOCAL_POWER)) {
-		//restart power on hub
-		opResult = usb_hub_set_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power on hub: %d\n",
-			    opResult);
-		}
-	} else {//power reestablished on hub- restart ports
-		size_t port;
-		for (port = 1; port <= hub_info->port_count; ++port) {
-			opResult = usb_hub_set_port_feature(
-			    hub_info->control_pipe,
-			    port, USB_HUB_FEATURE_PORT_POWER);
-			if (opResult != EOK) {
-				usb_log_error("Cannot power on port %zu: %s.\n",
-				    port, str_error(opResult));
-			}
-		}
-	}
-	if(opResult!=EOK){
-		return opResult;//no feature clearing
-	}
 	opResult = usb_hub_clear_feature(hub_info->control_pipe,
 	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 		if (opResult != EOK) {
@@ -486,7 +474,7 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
 	}
 	if (
 	    usb_hub_is_status(status,16+USB_HUB_FEATURE_C_HUB_LOCAL_POWER)) {
-		usb_process_hub_power_change(hub_info, status);
+		usb_process_hub_local_power_change(hub_info, status);
 	}
 }
 
