@@ -504,7 +504,7 @@ static void create_interrupt_mask_in_instance(rh_t * instance) {
 	size_t port;
 	mask = port_status_change_mask;
 	for (port = 1; port <= instance->port_count; ++port) {
-		if (mask & instance->registers->rh_port_status[port - 1] != 0) {
+		if ((mask & instance->registers->rh_port_status[port - 1]) != 0) {
 
 			bitmap[(port) / 8] += 1 << (port % 8);
 		}
