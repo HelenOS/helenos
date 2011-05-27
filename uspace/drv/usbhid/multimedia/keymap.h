@@ -38,8 +38,6 @@
 
 unsigned int usb_multimedia_map_usage(int usage);
 
-const char *usb_multimedia_usage_to_str(int usage);
-
 #endif /* USB_HID_MULTIMEDIA_KEYMAP_H_ */
 
 /**

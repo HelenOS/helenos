@@ -35,18 +35,23 @@
 #include <async.h>
 #include <errno.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "usbhid_iface.h"
 #include "ddf/driver.h"
 
 static void remote_usbhid_get_event_length(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhid_get_event(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhid_get_report_descriptor_length(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhid_get_report_descriptor(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 // static void remote_usbhid_(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB HID interface operations. */
 static remote_iface_func_ptr_t remote_usbhid_iface_ops [] = {
 	remote_usbhid_get_event_length,
-	remote_usbhid_get_event
+	remote_usbhid_get_event,
+	remote_usbhid_get_report_descriptor_length,
+	remote_usbhid_get_report_descriptor
 };
 
 /** Remote USB HID interface structure.
@@ -57,28 +62,33 @@ remote_iface_t remote_usbhid_iface = {
 	.methods = remote_usbhid_iface_ops
 };
 
-usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+//usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 
 void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
+	printf("remote_usbhid_get_event_length()\n");
+	
 	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
 
 	if (!hid_iface->get_event_length) {
+		printf("Get event length not set!\n");
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	int len = hid_iface->get_event_length(fun);
-	if (len == 0) {
-		len = EEMPTY;
-	}
-	if (len < 0) {
-		async_answer_0(callid, len);
-	} else {
-		async_answer_1(callid, EOK, len);
-	}
+	size_t len = hid_iface->get_event_length(fun);
+//	if (len == 0) {
+//		len = EEMPTY;
+//	}
+	async_answer_1(callid, EOK, len);
+	
+//	if (len < 0) {
+//		async_answer_0(callid, len);
+//	} else {
+//		async_answer_1(callid, EOK, len);
+//	}
 }
 
 void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
@@ -99,45 +109,111 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, EPARTY);
 		return;
 	}
-	/* Check that length is even number. Truncate otherwise. */
-	if ((len % 2) == 1) {
-		len--;
-	}
+//	/* Check that length is even number. Truncate otherwise. */
+//	if ((len % 2) == 1) {
+//		len--;
+//	}
 	if (len == 0) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
+		return;
 	}
 
 	int rc;
 
-	size_t items = len / 2;
-	uint16_t *usage_pages_and_usages = malloc(sizeof(uint16_t) * len);
-	if (usage_pages_and_usages == NULL) {
+	uint8_t *data = malloc(len);
+	if (data == NULL) {
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
+		return;
 	}
 
-	size_t act_items;
-	int rc = hid_iface->get_event(fun, usage_pages_and_usages,
-	    usage_pages_and_usages + items, items, &act_items, flags);
+	size_t act_length;
+	int event_nr;
+	rc = hid_iface->get_event(fun, data, len, &act_length, &event_nr, flags);
 	if (rc != EOK) {
-		free(usage_pages_and_usages);
+		free(data);
 		async_answer_0(data_callid, rc);
 		async_answer_0(callid, rc);
+		return;
 	}
-	if (act_items >= items) {
+	if (act_length >= len) {
 		/* This shall not happen. */
 		// FIXME: how about an assert here?
-		act_items = items;
+		act_length = len;
 	}
 
-	async_data_read_finalize(data_callid, usage_pages_and_usages,
-	    act_items * 2 * sizeof(uint16_t));
+	async_data_read_finalize(data_callid, data, act_length);
 
-	free(usage_pages_and_usages);
+	free(data);
 
-	async_answer_0(callid, EOK);
+	async_answer_1(callid, EOK, event_nr);
 }
+
+void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
+
+	if (!hid_iface->get_report_descriptor_length) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	size_t len = hid_iface->get_report_descriptor_length(fun);
+	async_answer_1(callid, EOK, (sysarg_t) len);
+}
+
+void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
+
+	if (!hid_iface->get_report_descriptor) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	size_t len;
+	ipc_callid_t data_callid;
+	if (!async_data_read_receive(&data_callid, &len)) {
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+
+	if (len == 0) {
+		async_answer_0(data_callid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+
+	uint8_t *descriptor = malloc(len);
+	if (descriptor == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
+
+	size_t act_len = 0;
+	int rc = hid_iface->get_report_descriptor(fun, descriptor, len,
+	    &act_len);
+	if (act_len > len) {
+		rc = ELIMIT;
+	}
+	if (rc != EOK) {
+		free(descriptor);
+		async_answer_0(data_callid, rc);
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	async_data_read_finalize(data_callid, descriptor, act_len);
+	async_answer_0(callid, EOK);
+
+	free(descriptor);
+}
+
+
 
 /**
  * @}

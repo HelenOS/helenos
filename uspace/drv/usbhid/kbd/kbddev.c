@@ -797,6 +797,9 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		return rc;
 	}
 	
+	usb_log_debug("%s function created. Handle: %d\n", HID_KBD_FUN_NAME,
+	    fun->handle);
+	
 	usb_log_debug("Adding DDF function to class %s...\n", 
 	    HID_KBD_CLASS_NAME);
 	rc = ddf_fun_add_to_class(fun, HID_KBD_CLASS_NAME);

@@ -71,11 +71,17 @@
 /*---------------------------------------------------------------------------*/
 
 /**
- * Report type
+ * Enum of report types
  */
 typedef enum {
+	/** Input report. Data are sent from device to system */
 	USB_HID_REPORT_TYPE_INPUT = 1,
+
+	/** Output report. Data are sent from system to device */
 	USB_HID_REPORT_TYPE_OUTPUT = 2,
+
+	/** Feature report. Describes device configuration information that
+	 * can be sent to the device */
 	USB_HID_REPORT_TYPE_FEATURE = 3
 } usb_hid_report_type_t;
 
