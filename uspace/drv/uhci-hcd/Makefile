@@ -47,7 +47,6 @@ SOURCES = \
 	hc.c \
 	root_hub.c \
 	hw_struct/transfer_descriptor.c \
-	utils/slab.c \
 	pci.c \
 	batch.c
 

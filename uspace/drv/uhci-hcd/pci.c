@@ -51,10 +51,13 @@
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int pci_get_my_registers(ddf_dev_t *dev,
+int pci_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size, int *irq_no)
 {
-	assert(dev != NULL);
+	assert(dev);
+	assert(io_reg_address);
+	assert(io_reg_size);
+	assert(irq_no);
 
 	int parent_phone =
 	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);
@@ -65,7 +68,8 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	hw_resource_list_t hw_resources;
 	int rc = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (rc != EOK) {
-		goto leave;
+		async_hangup(parent_phone);
+		return rc;
 	}
 
 	uintptr_t io_address = 0;
@@ -77,7 +81,7 @@ int pci_get_my_registers(ddf_dev_t *dev,
 
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
-		hw_resource_t *res = &hw_resources.resources[i];
+		const hw_resource_t *res = &hw_resources.resources[i];
 		switch (res->type)
 		{
 		case INTERRUPT:
@@ -98,20 +102,16 @@ int pci_get_my_registers(ddf_dev_t *dev,
 			break;
 		}
 	}
+	async_hangup(parent_phone);
 
-	if (!io_found || !irq_found) {
-		rc = ENOENT;
-		goto leave;
-	}
+	if (!io_found || !irq_found)
+		return ENOENT;
 
 	*io_reg_address = io_address;
 	*io_reg_size = io_size;
 	*irq_no = irq;
 
-	rc = EOK;
-leave:
-	async_hangup(parent_phone);
-	return rc;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Call the PCI driver with a request to enable interrupts
@@ -119,11 +119,14 @@ leave:
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_enable_interrupts(ddf_dev_t *device)
+int pci_enable_interrupts(const ddf_dev_t *device)
 {
-	int parent_phone = devman_parent_device_connect(device->handle,
-	    IPC_FLAG_BLOCKING);
-	bool enabled = hw_res_enable_interrupt(parent_phone);
+	const int parent_phone =
+	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+	const bool enabled = hw_res_enable_interrupt(parent_phone);
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
@@ -133,10 +136,10 @@ int pci_enable_interrupts(ddf_dev_t *device)
  * @param[in] device Device asking to disable interrupts
  * @return Error code.
  */
-int pci_disable_legacy(ddf_dev_t *device)
+int pci_disable_legacy(const ddf_dev_t *device)
 {
 	assert(device);
-	int parent_phone =
+	const int parent_phone =
 	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
@@ -144,10 +147,10 @@ int pci_disable_legacy(ddf_dev_t *device)
 
 	/* See UHCI design guide for these values p.45,
 	 * write all WC bits in USB legacy register */
-	sysarg_t address = 0xc0;
-	sysarg_t value = 0xaf00;
+	const sysarg_t address = 0xc0;
+	const sysarg_t value = 0xaf00;
 
-	int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+	const int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
 	async_hangup(parent_phone);
 

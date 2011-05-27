@@ -26,162 +26,264 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbhid
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * USB HID report descriptor and report data parser
+ * Basic data structures for USB HID Report descriptor and report parser.
  */
-#ifndef LIBUSBHID_HIDTYPES_H_
-#define LIBUSBHID_HIDTYPES_H_
+#ifndef LIBUSB_HIDTYPES_H_
+#define LIBUSB_HIDTYPES_H_
 
 #include <stdint.h>
 #include <adt/list.h>
 
+/*---------------------------------------------------------------------------*/
+
+/**
+ * Maximum amount of specified usages for one report item
+ */
 #define USB_HID_MAX_USAGES	0xffff
 
-#define USB_HID_UINT32_TO_INT32(x, size)	((((x) & (1 << ((size) - 1))) != 0) ? -(~(x - 1) & ((1 << size) - 1)) : (x)) //(-(~((x) - 1)))
-#define USB_HID_INT32_TO_UINT32(x, size)	(((x) < 0 ) ? ((1 << (size)) + (x)) : (x))
+/**
+ * Converts integer from unsigned two's complement format format to signed
+ * one.
+ *
+ * @param x Number to convert
+ * @param size Length of the unsigned number in bites
+ * @return signed int
+ */
+#define USB_HID_UINT32_TO_INT32(x, size)	\
+	((((x) & (1 << ((size) - 1))) != 0) ?   \
+	 -(~((x) - 1) & ((1 << size) - 1)) : (x))
 
+/**
+ * Convert integer from signed format to unsigned. If number is negative the
+ * two's complement format is used.
+ *
+ * @param x Number to convert
+ * @param size Length of result number in bites
+ * @return unsigned int
+ */
+#define USB_HID_INT32_TO_UINT32(x, size)	\
+	(((x) < 0 ) ? ((1 << (size)) + (x)) : (x))
 
+/*---------------------------------------------------------------------------*/
+
+/**
+ * Report type
+ */
 typedef enum {
 	USB_HID_REPORT_TYPE_INPUT = 1,
 	USB_HID_REPORT_TYPE_OUTPUT = 2,
 	USB_HID_REPORT_TYPE_FEATURE = 3
 } usb_hid_report_type_t;
 
+/*---------------------------------------------------------------------------*/
 
+/**
+ * Description of all reports described in one report descriptor.
+ */
 typedef struct {
-	/** */
+	/** Count of available reports. */
 	int report_count;
-	link_t reports;		/** list of usb_hid_report_description_t */
 
+	/** Head of linked list of description of reports. */
+	link_t reports;
+
+	/** Head of linked list of all used usage/collection paths. */
 	link_t collection_paths;
+
+	/** Length of list of usage paths. */
 	int collection_paths_count;
 
+	/** Flag whether report ids are used. */
 	int use_report_ids;
+
+	/** Report id of last parsed report. */
 	uint8_t last_report_id;
 	
 } usb_hid_report_t;
+/*---------------------------------------------------------------------------*/
 
+/**
+ * Description of one concrete report
+ */
 typedef struct {
+	/** Report id. Zero when no report id is used. */
 	uint8_t report_id;
+
+	/** Type of report */
 	usb_hid_report_type_t type;
 
+	/** Bit length of the report */
 	size_t bit_length;
+
+	/** Number of items in report */
 	size_t item_length;
 	
-	link_t report_items;	/** list of report items (fields) */
+	/** Linked list of report items in report */
+	link_t report_items;
 
+	/** Linked list of descriptions. */
 	link_t link;
 } usb_hid_report_description_t;
+/*---------------------------------------------------------------------------*/
 
+/**
+ * Description of one field/item in report 
+ */
 typedef struct {
-
+	/** Bit offset of the field */
 	int offset;
+
+	/** Bit size of the field */
 	size_t size;
 
+	/** Usage page. Zero when usage page can be changed. */
 	uint16_t usage_page;
+
+	/** Usage. Zero when usage can be changed. */
 	uint16_t usage;
 
+	/** Item's attributes */
 	uint8_t item_flags;
+
+	/** Usage/Collection path of the field. */
 	usb_hid_report_path_t *collection_path;
 
+	/** 
+	 * The lowest valid logical value (value with the device operates)
+	 */
 	int32_t logical_minimum;
+
+	/**
+	 * The greatest valid logical value
+	 */
 	int32_t logical_maximum;
+
+	/**
+	 * The lowest valid physical value (value with the system operates)
+	 */
 	int32_t physical_minimum;
+
+	/** The greatest valid physical value */
 	int32_t physical_maximum;
+
+	/** The lowest valid usage index */
 	int32_t usage_minimum;
+
+	/** The greatest valid usage index */
 	int32_t usage_maximum;
+	
+	/** Unit of the value */
 	uint32_t unit;
+
+	/** Unit exponent */
 	uint32_t unit_exponent;
 
+	/** Array of possible usages */
 	uint32_t *usages;
+
+	/** Size of the array of usages */
 	size_t usages_count;
 
+	/** Parsed value */
 	int32_t value;
 
+	/** List to another report items */
 	link_t link;
 } usb_hid_report_field_t;
 
-
+/*---------------------------------------------------------------------------*/
 
 /**
- * state table
+ * State table for report descriptor parsing
  */
 typedef struct {
 	/** report id */	
 	int32_t id;
 	
-	/** */
+	/** Extended usage page */
 	uint16_t extended_usage_page;
+
+	/** Array of usages specified for this item */
 	uint32_t usages[USB_HID_MAX_USAGES];
+	
+	/** Length of usages array */
 	int usages_count;
 
-	/** */
+	/** Usage page*/
 	uint32_t usage_page;
 
-	/** */	
+	/** Minimum valid usage index */	
 	int32_t usage_minimum;
-	/** */	
+	
+	/** Maximum valid usage index */	
 	int32_t usage_maximum;
-	/** */	
+	
+	/** Minimum valid logical value */	
 	int32_t logical_minimum;
-	/** */	
+	
+	/** Maximum valid logical value */	
 	int32_t logical_maximum;
-	/** */	
+
+	/** Length of the items in bits*/	
 	int32_t size;
-	/** */	
+
+	/** COunt of items*/	
 	int32_t count;
-	/** */	
+
+	/**  Bit offset of the item in report */	
 	size_t offset;
-	/** */	
+
+	/** Unit exponent */	
 	int32_t unit_exponent;
-	/** */	
+	/** Unit of the value */	
 	int32_t unit;
 
-	/** */
+	/** String index */
 	uint32_t string_index;
-	/** */	
+
+	/** Minimum valid string index */	
 	uint32_t string_minimum;
-	/** */	
+
+	/** Maximum valid string index */	
 	uint32_t string_maximum;
-	/** */	
+
+	/** The designator index */	
 	uint32_t designator_index;
-	/** */	
+
+	/** Minimum valid designator value*/	
 	uint32_t designator_minimum;
-	/** */	
+
+	/** Maximum valid designator value*/	
 	uint32_t designator_maximum;
-	/** */	
+
+	/** Minimal valid physical value*/	
 	int32_t physical_minimum;
-	/** */	
+
+	/** Maximal valid physical value */	
 	int32_t physical_maximum;
 
-	/** */	
+	/** Items attributes*/	
 	uint8_t item_flags;
 
+	/** Report type */
 	usb_hid_report_type_t type;
 
 	/** current collection path*/	
 	usb_hid_report_path_t *usage_path;
-	/** */	
+
+	/** Unused*/	
 	link_t link;
 
 	int in_delimiter;
 } usb_hid_report_item_t;
-
-/** HID parser callbacks for IN items. */
-typedef struct {
-	/** Callback for keyboard.
-	 *
-	 * @param key_codes Array of pressed key (including modifiers).
-	 * @param count Length of @p key_codes.
-	 * @param arg Custom argument.
-	 */
-	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t report_id, void *arg);
-} usb_hid_report_in_callbacks_t;
-
-
+/*---------------------------------------------------------------------------*/
+/**
+ * Enum of the keyboard modifiers 
+ */
 typedef enum {
 	USB_HID_MOD_LCTRL = 0x01,
 	USB_HID_MOD_LSHIFT = 0x02,
@@ -205,6 +307,8 @@ static const usb_hid_modifiers_t
 	USB_HID_MOD_RALT,
 	USB_HID_MOD_RGUI
 };
+/*---------------------------------------------------------------------------*/
+
 
 #endif
 /**

@@ -26,17 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbdev
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * General communication between device drivers and host controller driver.
+ * General communication with host controller driver (implementation).
  */
 #include <devman.h>
 #include <async.h>
+#include <dev_iface.h>
 #include <usb_iface.h>
-#include <usb/dev/hc.h>
-#include <usb/driver.h>
+#include <usbhc_iface.h>
+#include <usb/hc.h>
 #include <usb/debug.h>
 #include <errno.h>
 #include <assert.h>
@@ -138,6 +139,125 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 	}
 
 	connection->hc_phone = -1;
+
+	return EOK;
+}
+
+/** Get handle of USB device with given address.
+ *
+ * @param[in] connection Opened connection to host controller.
+ * @param[in] address Address of device in question.
+ * @param[out] handle Where to write the device handle.
+ * @return Error code.
+ */
+int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
+    usb_address_t address, devman_handle_t *handle)
+{
+	if (!usb_hc_connection_is_opened(connection)) {
+		return ENOENT;
+	}
+
+	sysarg_t tmp;
+	int rc = async_req_2_1(connection->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
+	    address, &tmp);
+	if ((rc == EOK) && (handle != NULL)) {
+		*handle = tmp;
+	}
+
+	return rc;
+}
+
+/** Tell USB address assigned to device with given handle.
+ *
+ * @param dev_handle Devman handle of the USB device in question.
+ * @return USB address or negative error code.
+ */
+usb_address_t usb_hc_get_address_by_handle(devman_handle_t dev_handle)
+{
+	int parent_phone = devman_parent_device_connect(dev_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	sysarg_t address;
+
+	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_ADDRESS,
+	    dev_handle, &address);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	async_hangup(parent_phone);
+
+	return (usb_address_t) address;
+}
+
+
+/** Get host controller handle by its class index.
+ *
+ * @param class_index Class index for the host controller.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+int usb_ddf_get_hc_handle_by_class(size_t class_index,
+    devman_handle_t *hc_handle)
+{
+	char *class_index_str;
+	devman_handle_t hc_handle_tmp;
+	int rc;
+
+	rc = asprintf(&class_index_str, "%zu", class_index);
+	if (rc < 0) {
+		return ENOMEM;
+	}
+	rc = devman_device_get_handle_by_class("usbhc", class_index_str,
+	    &hc_handle_tmp, 0);
+	free(class_index_str);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (hc_handle != NULL) {
+		*hc_handle = hc_handle_tmp;
+	}
+
+	return EOK;
+}
+
+/** Find host controller handle that is ancestor of given device.
+ *
+ * @param[in] device_handle Device devman handle.
+ * @param[out] hc_handle Where to store handle of host controller
+ *	controlling device with @p device_handle handle.
+ * @return Error code.
+ */
+int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
+{
+	int parent_phone = devman_parent_device_connect(device_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	devman_handle_t h;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
+
+	async_hangup(parent_phone);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (hc_handle != NULL) {
+		*hc_handle = h;
+	}
 
 	return EOK;
 }

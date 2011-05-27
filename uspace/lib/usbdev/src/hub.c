@@ -119,29 +119,6 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
 	    IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
 
-/** Get handle of USB device with given address.
- *
- * @param[in] connection Opened connection to host controller.
- * @param[in] address Address of device in question.
- * @param[out] handle Where to write the device handle.
- * @return Error code.
- */
-int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
-    usb_address_t address, devman_handle_t *handle)
-{
-	CHECK_CONNECTION(connection);
-
-	sysarg_t tmp;
-	int rc = async_req_2_1(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
-	    address, &tmp);
-	if ((rc == EOK) && (handle != NULL)) {
-		*handle = tmp;
-	}
-
-	return rc;
-}
 
 static void unregister_control_endpoint_on_default_address(
     usb_hc_connection_t *connection)
