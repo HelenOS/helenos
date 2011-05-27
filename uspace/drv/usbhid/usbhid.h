@@ -98,6 +98,8 @@ typedef struct usb_hid_dev {
 	
 	size_t input_report_size;
 	size_t max_input_report_size;
+	
+	int report_nr;
 } usb_hid_dev_t;
 
 /*----------------------------------------------------------------------------*/
@@ -127,11 +129,13 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 
 //const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
 
-void usb_hid_new_report(void);
+void usb_hid_new_report(usb_hid_dev_t *hid_dev);
 
-void usb_hid_report_received(void);
+int usb_hid_report_number(usb_hid_dev_t *hid_dev);
 
-bool usb_hid_report_ready(void);
+//void usb_hid_report_received(void);
+
+//bool usb_hid_report_ready(void);
 
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 

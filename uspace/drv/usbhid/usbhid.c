@@ -62,7 +62,8 @@ usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 
 static const int USB_HID_MAX_SUBDRIVERS = 10;
 
-static fibril_local bool report_received;
+/** @todo What happens if this is not fibril local? */
+//static fibril_local bool report_number;
 
 /*----------------------------------------------------------------------------*/
 
@@ -360,15 +361,16 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 	assert(hid_dev != NULL && hid_dev->report != NULL);
 	
 	uint8_t report_id = 0;
-	size_t size = usb_hid_report_byte_size(hid_dev->report, report_id, 
-	    USB_HID_REPORT_TYPE_INPUT);
+	size_t size;/* = usb_hid_report_byte_size(hid_dev->report, report_id, 
+	    USB_HID_REPORT_TYPE_INPUT);*/
 	
 	size_t max_size = 0;
 	
 	do {
-		max_size = (size > max_size) ? size : max_size;
 		size = usb_hid_report_byte_size(hid_dev->report, report_id, 
 		    USB_HID_REPORT_TYPE_INPUT);
+		usb_log_debug("Report ID: %u, size: %zu\n", report_id, size);
+		max_size = (size > max_size) ? size : max_size;
 		report_id = usb_hid_get_next_report_id(hid_dev->report, 
 		    report_id, USB_HID_REPORT_TYPE_INPUT);
 	} while (report_id != 0);
@@ -577,7 +579,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	/*! @todo This should probably be atomic. */
 	memcpy(hid_dev->input_report, buffer, buffer_size);
 	hid_dev->input_report_size = buffer_size;
-	usb_hid_new_report();
+	usb_hid_new_report(hid_dev);
 	
 	bool cont = false;
 	
@@ -653,24 +655,31 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 
 /*----------------------------------------------------------------------------*/
 
-void usb_hid_new_report(void)
+void usb_hid_new_report(usb_hid_dev_t *hid_dev)
 {
-	report_received = false;
+	++hid_dev->report_nr;
 }
 
 /*----------------------------------------------------------------------------*/
 
-void usb_hid_report_received(void)
+int usb_hid_report_number(usb_hid_dev_t *hid_dev)
 {
-	report_received = true;
+	return hid_dev->report_nr;
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_hid_report_ready(void)
-{
-	return !report_received;
-}
+//void usb_hid_report_received(void)
+//{
+//	++report_number;
+//}
+
+/*----------------------------------------------------------------------------*/
+
+//bool usb_hid_report_ready(void)
+//{
+//	return !report_received;
+//}
 
 /*----------------------------------------------------------------------------*/
 
