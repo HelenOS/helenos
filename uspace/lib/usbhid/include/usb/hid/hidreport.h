@@ -43,8 +43,10 @@
  * Retrieves the Report descriptor from the USB device and initializes the
  * report parser.
  *
- * \param dev USB device representing a HID device.
- * \param parser HID Report parser.
+ * \param[in] dev USB device representing a HID device.
+ * \param[in/out] parser HID Report parser.
+ * \param[out] report_desc Place to save report descriptor into.
+ * \param[out] report_size
  *
  * \retval EOK if successful.
  * \retval EINVAL if one of the parameters is not given (is NULL).
@@ -56,7 +58,7 @@
  *         usb_pipe_end_session() or usb_request_get_descriptor().
  */
 int usb_hid_process_report_descriptor(usb_device_t *dev, 
-    usb_hid_report_t *report);
+    usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size);
 
 #endif /* LIBUSB_HIDREPORT_H_ */
 

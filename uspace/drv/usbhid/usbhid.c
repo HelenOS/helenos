@@ -62,7 +62,8 @@ usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 
 static const int USB_HID_MAX_SUBDRIVERS = 10;
 
-static fibril_local bool report_received;
+/** @todo What happens if this is not fibril local? */
+//static fibril_local bool report_number;
 
 /*----------------------------------------------------------------------------*/
 
@@ -233,7 +234,9 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 		return EOK;
 	}
 	
-	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc(count * 
+	// add one generic HID subdriver per device
+	
+	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc((count + 1) * 
 	    sizeof(usb_hid_subdriver_t));
 	if (hid_dev->subdrivers == NULL) {
 		return ENOMEM;
@@ -246,7 +249,12 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 		hid_dev->subdrivers[i].poll_end = subdrivers[i]->poll_end;
 	}
 	
-	hid_dev->subdriver_count = count;
+	hid_dev->subdrivers[count].init = usb_generic_hid_init;
+	hid_dev->subdrivers[count].poll = usb_generic_hid_polling_callback;
+	hid_dev->subdrivers[count].deinit = NULL;
+	hid_dev->subdrivers[count].poll_end = NULL;
+	
+	hid_dev->subdriver_count = count + 1;
 	
 	return EOK;
 }
@@ -306,6 +314,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		}
 		
 		if (matched) {
+			usb_log_debug("Subdriver matched.\n");
 			subdrivers[count++] = &mapping->subdriver;
 		}
 		
@@ -343,6 +352,41 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	}
 	
 	return rc;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
+{
+	assert(hid_dev != NULL && hid_dev->report != NULL);
+	
+	uint8_t report_id = 0;
+	size_t size;/* = usb_hid_report_byte_size(hid_dev->report, report_id, 
+	    USB_HID_REPORT_TYPE_INPUT);*/
+	
+	size_t max_size = 0;
+	
+	do {
+		size = usb_hid_report_byte_size(hid_dev->report, report_id, 
+		    USB_HID_REPORT_TYPE_INPUT);
+		usb_log_debug("Report ID: %u, size: %zu\n", report_id, size);
+		max_size = (size > max_size) ? size : max_size;
+		report_id = usb_hid_get_next_report_id(hid_dev->report, 
+		    report_id, USB_HID_REPORT_TYPE_INPUT);
+	} while (report_id != 0);
+	
+	usb_log_debug("Max size of input report: %zu\n", max_size);
+	
+	hid_dev->max_input_report_size = max_size;
+	assert(hid_dev->input_report == NULL);
+	
+	hid_dev->input_report = malloc(max_size);
+	if (hid_dev->input_report == NULL) {
+		return ENOMEM;
+	}
+	memset(hid_dev->input_report, 0, max_size);
+	
+	return EOK;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -401,7 +445,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
-	    hid_dev->report);
+	    hid_dev->report, &hid_dev->report_desc, &hid_dev->report_desc_size);
 	
 	bool fallback = false;
 	
@@ -482,6 +526,12 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		rc = (ok) ? EOK : -1;	// what error to report
 	}
 	
+	// save max input report size and allocate space for the report
+	rc = usb_hid_init_report(hid_dev);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize input report buffer.\n");
+	}
+	
 	return rc;
 }
 
@@ -499,32 +549,37 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
-	int allocated = (hid_dev->input_report != NULL);
+//	int allocated = (hid_dev->input_report != NULL);
+	assert(hid_dev->input_report != NULL);
+	usb_log_debug("Max input report size: %zu, buffer size: %zu\n",
+	    hid_dev->max_input_report_size, buffer_size);
+	assert(hid_dev->max_input_report_size >= buffer_size);
 	
-	if (!allocated
-	    || hid_dev->input_report_size < buffer_size) {
-		uint8_t *input_old = hid_dev->input_report;
-		uint8_t *input_new = (uint8_t *)malloc(buffer_size);
+//	if (/*!allocated*/
+//	    /*|| *//*hid_dev->input_report_size < buffer_size*/) {
+//		uint8_t *input_old = hid_dev->input_report;
+//		uint8_t *input_new = (uint8_t *)malloc(buffer_size);
 		
-		if (input_new == NULL) {
-			usb_log_error("Failed to allocate space for input "
-			    "buffer. This event may not be reported\n");
-			memset(hid_dev->input_report, 0, 
-			    hid_dev->input_report_size);
-		} else {
-			memcpy(input_new, input_old, 
-			    hid_dev->input_report_size);
-			hid_dev->input_report = input_new;
-			if (allocated) {
-				free(input_old);
-			}
-			usb_hid_new_report();
-		}
-	}
+//		if (input_new == NULL) {
+//			usb_log_error("Failed to allocate space for input "
+//			    "buffer. This event may not be reported\n");
+//			memset(hid_dev->input_report, 0, 
+//			    hid_dev->input_report_size);
+//		} else {
+//			memcpy(input_new, input_old, 
+//			    hid_dev->input_report_size);
+//			hid_dev->input_report = input_new;
+//			if (allocated) {
+//				free(input_old);
+//			}
+//			usb_hid_new_report();
+//		}
+//	}
 	
 	/*! @todo This should probably be atomic. */
 	memcpy(hid_dev->input_report, buffer, buffer_size);
 	hid_dev->input_report_size = buffer_size;
+	usb_hid_new_report(hid_dev);
 	
 	bool cont = false;
 	
@@ -600,24 +655,31 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 
 /*----------------------------------------------------------------------------*/
 
-void usb_hid_new_report(void)
+void usb_hid_new_report(usb_hid_dev_t *hid_dev)
 {
-	report_received = false;
+	++hid_dev->report_nr;
 }
 
 /*----------------------------------------------------------------------------*/
 
-void usb_hid_report_received(void)
+int usb_hid_report_number(usb_hid_dev_t *hid_dev)
 {
-	report_received = true;
+	return hid_dev->report_nr;
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_hid_report_ready(void)
-{
-	return !report_received;
-}
+//void usb_hid_report_received(void)
+//{
+//	++report_number;
+//}
+
+/*----------------------------------------------------------------------------*/
+
+//bool usb_hid_report_ready(void)
+//{
+//	return !report_received;
+//}
 
 /*----------------------------------------------------------------------------*/
 

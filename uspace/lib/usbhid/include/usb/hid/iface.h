@@ -37,9 +37,11 @@
 
 #include <sys/types.h>
 
-int usbhid_dev_get_event_length(int);
-int usbhid_dev_get_event(int, uint16_t *, uint16_t *, size_t, size_t *,
+int usbhid_dev_get_event_length(int, size_t *);
+int usbhid_dev_get_event(int, uint8_t *, size_t, size_t *, int *,
     unsigned int);
+int usbhid_dev_get_report_descriptor_length(int, size_t *);
+int usbhid_dev_get_report_descriptor(int, uint8_t *, size_t, size_t *);
 
 #endif
 /**
