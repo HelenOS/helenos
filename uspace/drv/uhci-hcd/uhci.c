@@ -60,7 +60,7 @@ typedef struct uhci {
 	rh_t rh;
 } uhci_t;
 
-static inline uhci_t * dev_to_uhci(ddf_dev_t *dev)
+static inline uhci_t * dev_to_uhci(const ddf_dev_t *dev)
 {
 	assert(dev);
 	assert(dev->driver_data);
@@ -76,13 +76,17 @@ static inline uhci_t * dev_to_uhci(ddf_dev_t *dev)
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	uhci_t *uhci = dev->driver_data;
-	assert(uhci);
+	uhci_t *uhci = dev_to_uhci(dev);
 	hc_t *hc = &uhci->hc;
-	uint16_t status = IPC_GET_ARG1(*call);
+	const uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
 	hc_interrupt(hc, status);
 }
+/*----------------------------------------------------------------------------*/
+/** Operations supported by the HC driver */
+static ddf_dev_ops_t hc_ops = {
+	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
+};
 /*----------------------------------------------------------------------------*/
 /** Get address of the device identified by handle.
  *
@@ -114,8 +118,7 @@ static int usb_iface_get_address(
  * @param[out] handle Host cotnroller handle.
  * @return Error code.
  */
-static int usb_iface_get_hc_handle(
-    ddf_fun_t *fun, devman_handle_t *handle)
+static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 	ddf_fun_t *hc_fun = dev_to_uhci(fun->dev)->hc_fun;
@@ -130,11 +133,6 @@ static int usb_iface_get_hc_handle(
 static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
 	.get_address = usb_iface_get_address
-};
-/*----------------------------------------------------------------------------*/
-/** Operations supported by the HC driver */
-static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
 /** Get root hub hw resources (I/O registers).
