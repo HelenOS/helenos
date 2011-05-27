@@ -45,7 +45,7 @@
  * @param dev_phone Opened phone to DDF device providing USB HID interface.
  * @return Number of usages returned or negative error code.
  */
-int usbhid_dev_get_event_length(int dev_phone)
+int usbhid_dev_get_event_length(int dev_phone, size_t *size)
 {
 	if (dev_phone < 0) {
 		return EINVAL;
@@ -55,10 +55,12 @@ int usbhid_dev_get_event_length(int dev_phone)
 	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(USBHID_DEV_IFACE),
 	    IPC_M_USBHID_GET_EVENT_LENGTH, &len);
 	if (rc == EOK) {
-		return (int) len;
-	} else {
-		return rc;
+		if (size != NULL) {
+			*size = (size_t) len;
+		}
 	}
+	
+	return rc;
 }
 
 /** Request for next event from HID device.
@@ -73,28 +75,33 @@ int usbhid_dev_get_event_length(int dev_phone)
  * @param[in] flags Flags (see USBHID_IFACE_FLAG_*).
  * @return Error code.
  */
-int usbhid_dev_get_event(int dev_phone, uint16_t *usage_pages, uint16_t *usages,
-    size_t usage_count, size_t *actual_usage_count, unsigned int flags)
+int usbhid_dev_get_event(int dev_phone, uint8_t *buf, 
+    size_t size, size_t *actual_size, int *event_nr, unsigned int flags)
 {
 	if (dev_phone < 0) {
 		return EINVAL;
 	}
-	if ((usage_pages == NULL) || (usages == NULL)) {
+	if ((buf == NULL)) {
 		return ENOMEM;
 	}
-	if (usage_count == 0) {
+	if (size == 0) {
 		return EINVAL;
 	}
+	
+//	if (size == 0) {
+//		return EOK;
+//	}
 
-	size_t buffer_size = sizeof(uint16_t) * usage_count * 2;
-	uint16_t *buffer = malloc(buffer_size);
+	size_t buffer_size =  size;
+	uint8_t *buffer = malloc(buffer_size);
 	if (buffer == NULL) {
 		return ENOMEM;
 	}
 
+	ipc_call_t opening_request_call;
 	aid_t opening_request = async_send_2(dev_phone,
 	    DEV_IFACE_ID(USBHID_DEV_IFACE), IPC_M_USBHID_GET_EVENT,
-	    flags, NULL);
+	    flags, &opening_request_call);
 	if (opening_request == 0) {
 		free(buffer);
 		return ENOMEM;
@@ -127,15 +134,91 @@ int usbhid_dev_get_event(int dev_phone, uint16_t *usage_pages, uint16_t *usages,
 		return (int) opening_request_rc;
 	}
 
-	size_t actual_size = IPC_GET_ARG2(data_request_call);
-	size_t items = actual_size / 2;
+	size_t act_size = IPC_GET_ARG2(data_request_call);
 
 	/* Copy the individual items. */
-	memcpy(usage_pages, buffer, items * sizeof(uint16_t));
-	memcpy(usages, buffer + items, items * sizeof(uint16_t));
+	memcpy(buf, buffer, act_size);
+//	memcpy(usages, buffer + items, items * sizeof(int32_t));
 
-	if (actual_usage_count != NULL) {
-		*actual_usage_count = items;
+	if (actual_size != NULL) {
+		*actual_size = act_size;
+	}
+	
+	if (event_nr != NULL) {
+		*event_nr = IPC_GET_ARG1(opening_request_call);
+	}
+
+	return EOK;
+}
+
+
+int usbhid_dev_get_report_descriptor_length(int dev_phone, size_t *size)
+{
+	if (dev_phone < 0) {
+		return EINVAL;
+	}
+
+	sysarg_t arg_size;
+	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(USBHID_DEV_IFACE),
+	    IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH, &arg_size);
+	if (rc == EOK) {
+		if (size != NULL) {
+			*size = (size_t) arg_size;
+		}
+	}
+	return rc;
+}
+
+int usbhid_dev_get_report_descriptor(int dev_phone, uint8_t *buf, size_t size, 
+    size_t *actual_size)
+{
+	if (dev_phone < 0) {
+		return EINVAL;
+	}
+	if ((buf == NULL)) {
+		return ENOMEM;
+	}
+	if (size == 0) {
+		return EINVAL;
+	}
+
+	aid_t opening_request = async_send_1(dev_phone,
+	    DEV_IFACE_ID(USBHID_DEV_IFACE), IPC_M_USBHID_GET_REPORT_DESCRIPTOR,
+	    NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	ipc_call_t data_request_call;
+	aid_t data_request = async_data_read(dev_phone, buf, size,
+	    &data_request_call);
+	if (data_request == 0) {
+		async_wait_for(opening_request, NULL);
+		return ENOMEM;
+	}
+
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(opening_request, &opening_request_rc);
+
+	if (data_request_rc != EOK) {
+		/* Prefer return code of the opening request. */
+		if (opening_request_rc != EOK) {
+			return (int) opening_request_rc;
+		} else {
+			return (int) data_request_rc;
+		}
+	}
+
+	if (opening_request_rc != EOK) {
+		return (int) opening_request_rc;
+	}
+
+	size_t act_size = IPC_GET_ARG2(data_request_call);
+
+	if (actual_size != NULL) {
+		*actual_size = act_size;
 	}
 
 	return EOK;

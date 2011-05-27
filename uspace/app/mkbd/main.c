@@ -44,173 +44,159 @@
 #include <devman.h>
 #include <devmap.h>
 #include <usb/dev/hub.h>
-#include <usb/hc.h>
+//#include <usb/host.h>
+//#include <usb/driver.h>
+#include <usb/hid/iface.h>
 #include <usb/dev/pipes.h>
+#include <async.h>
+#include <usb/hid/usages/core.h>
+#include <usb/hid/hidparser.h>
+#include <usb/hid/hiddescriptor.h>
+#include <usb/hid/usages/consumer.h>
+#include <assert.h>
 
 #define NAME "mkbd"
 
 static int dev_phone = -1;
 
-//static void print_found_hc(size_t class_index, const char *path)
-//{
-//	// printf(NAME ": host controller %zu is `%s'.\n", class_index, path);
-//	printf("Bus %02zu: %s\n", class_index, path);
-//}
-//static void print_found_dev(usb_address_t addr, const char *path)
-//{
-//	// printf(NAME ":     device with address %d is `%s'.\n", addr, path);
-//	printf("  Device %02d: %s\n", addr, path);
-//}
-
-//static void print_hc_devices(devman_handle_t hc_handle)
-//{
-//	int rc;
-//	usb_hc_connection_t conn;
-
-//	usb_hc_connection_initialize(&conn, hc_handle);
-//	rc = usb_hc_connection_open(&conn);
-//	if (rc != EOK) {
-//		printf(NAME ": failed to connect to HC: %s.\n",
-//		    str_error(rc));
-//		return;
-//	}
-//	usb_address_t addr;
-//	for (addr = 1; addr < 5; addr++) {
-//		devman_handle_t dev_handle;
-//		rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
-//		if (rc != EOK) {
-//			continue;
-//		}
-//		char path[MAX_PATH_LENGTH];
-//		rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
-//		if (rc != EOK) {
-//			continue;
-//		}
-//		print_found_dev(addr, path);
-//	}
-//	usb_hc_connection_close(&conn);
-//}
-
-static bool try_parse_class_and_address(const char *path,
-    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
+static int initialize_report_parser(int dev_phone, usb_hid_report_t **report)
 {
-	size_t class_index;
-	size_t address;
-	int rc;
-	char *ptr;
-
-	rc = str_size_t(path, &ptr, 10, false, &class_index);
-	if (rc != EOK) {
-		return false;
-	}
-	if ((*ptr == ':') || (*ptr == '.')) {
-		ptr++;
-	} else {
-		return false;
-	}
-	rc = str_size_t(ptr, NULL, 10, true, &address);
-	if (rc != EOK) {
-		return false;
-	}
-	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
-	if (rc != EOK) {
-		return false;
-	}
-	if (out_device_address != NULL) {
-		*out_device_address = (usb_address_t) address;
-	}
-	return true;
-}
-
-static bool resolve_hc_handle_and_dev_addr(const char *devpath,
-    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
-{
-	int rc;
-
-	/* Hack for QEMU to save-up on typing ;-). */
-	if (str_cmp(devpath, "qemu") == 0) {
-		devpath = "/hw/pci0/00:01.2/uhci-rh/usb00_a1";
-	}
-
-	/* Hack for virtual keyboard. */
-	if (str_cmp(devpath, "virt") == 0) {
-		devpath = "/virt/usbhc/usb00_a1/usb00_a2";
-	}
-
-	if (try_parse_class_and_address(devpath,
-	    out_hc_handle, out_device_address)) {
-		return true;
-	}
-
-	char *path = str_dup(devpath);
-	if (path == NULL) {
+	*report = (usb_hid_report_t *)malloc(sizeof(usb_hid_report_t));
+	if (*report == NULL) {
 		return ENOMEM;
 	}
-
-	devman_handle_t hc = 0;
-	bool hc_found = false;
-	usb_address_t addr = 0;
-	bool addr_found = false;
-
-	/* Remove suffixes and hope that we will encounter device node. */
-	while (str_length(path) > 0) {
-		/* Get device handle first. */
-		devman_handle_t dev_handle;
-		rc = devman_device_get_handle(path, &dev_handle, 0);
-		if (rc != EOK) {
-			free(path);
-			return false;
-		}
-
-		/* Try to find its host controller. */
-		if (!hc_found) {
-			rc = usb_hc_find(dev_handle, &hc);
-			if (rc == EOK) {
-				hc_found = true;
-			}
-		}
-		/* Try to get its address. */
-		if (!addr_found) {
-			addr = usb_hc_get_address_by_handle(dev_handle);
-			if (addr >= 0) {
-				addr_found = true;
-			}
-		}
-
-		/* Speed-up. */
-		if (hc_found && addr_found) {
-			break;
-		}
-
-		/* Remove the last suffix. */
-		char *slash_pos = str_rchr(path, '/');
-		if (slash_pos != NULL) {
-			*slash_pos = 0;
-		}
+	
+	int rc = usb_hid_report_init(*report);
+	if (rc != EOK) {
+		usb_hid_free_report(*report);
+		*report = NULL;
+		printf("usb_hid_report_init() failed.\n");
+		return rc;
 	}
-
-	free(path);
-
-	if (hc_found && addr_found) {
-		if (out_hc_handle != NULL) {
-			*out_hc_handle = hc;
-		}
-		if (out_device_address != NULL) {
-			*out_device_address = addr;
-		}
-		return true;
-	} else {
-		return false;
+	
+	// get the report descriptor length from the device
+	size_t report_desc_size;
+	rc = usbhid_dev_get_report_descriptor_length(
+	    dev_phone, &report_desc_size);
+	if (rc != EOK) {
+		usb_hid_free_report(*report);
+		*report = NULL;
+		printf("usbhid_dev_get_report_descriptor_length() failed.\n");
+		return rc;
 	}
+	
+	if (report_desc_size == 0) {
+		usb_hid_free_report(*report);
+		*report = NULL;
+		printf("usbhid_dev_get_report_descriptor_length() returned 0.\n");
+		return EINVAL;	// TODO: other error code?
+	}
+	
+	uint8_t *desc = (uint8_t *)malloc(report_desc_size);
+	if (desc == NULL) {
+		usb_hid_free_report(*report);
+		*report = NULL;
+		return ENOMEM;
+	}
+	
+	// get the report descriptor from the device
+	size_t actual_size;
+	rc = usbhid_dev_get_report_descriptor(dev_phone, desc, report_desc_size,
+	    &actual_size);
+	if (rc != EOK) {
+		usb_hid_free_report(*report);
+		*report = NULL;
+		free(desc);
+		printf("usbhid_dev_get_report_descriptor() failed.\n");
+		return rc;
+	}
+	
+	if (actual_size != report_desc_size) {
+		usb_hid_free_report(*report);
+		*report = NULL;
+		free(desc);
+		printf("usbhid_dev_get_report_descriptor() returned wrong size:"
+		    " %zu, expected: %zu.\n", actual_size, report_desc_size);
+		return EINVAL;	// TODO: other error code?
+	}
+	
+	// initialize the report parser
+	
+	rc = usb_hid_parse_report_descriptor(*report, desc, report_desc_size);
+	free(desc);
+	
+	if (rc != EOK) {
+		free(desc);
+		printf("usb_hid_parse_report_descriptor() failed.\n");
+		return rc;
+	}
+	
+	return EOK;
 }
+
+static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
+{
+	assert(buffer != NULL);
+	assert(report != NULL);
+	
+//	printf("Calling usb_hid_parse_report() with size %zu and "
+//	    "buffer: \n", size);
+//	for (size_t i = 0; i < size; ++i) {
+//		printf(" %X ", buffer[i]);
+//	}
+//	printf("\n");
+	
+	uint8_t report_id;
+	int rc = usb_hid_parse_report(report, buffer, size, &report_id);
+	if (rc != EOK) {
+//		printf("Error parsing report: %s\n", str_error(rc));
+		return;
+	}
+	
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	if (path == NULL) {
+		return;
+	}
+	
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+	
+	usb_hid_report_path_set_report_id(path, report_id);
+
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    report, NULL, path, USB_HID_PATH_COMPARE_END 
+	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    USB_HID_REPORT_TYPE_INPUT);
+	
+//	printf("Field: %p\n", field);
+	
+	while (field != NULL) {
+//		printf("Field usage: %u, field value: %d\n", field->usage, 
+//		    field->value);
+		if (field->value != 0) {
+			const char *key_str = 
+			    usbhid_multimedia_usage_to_str(field->usage);
+			printf("Pressed key: %s\n", key_str);
+		}
+		
+		field = usb_hid_report_get_sibling(
+		    report, field, path, USB_HID_PATH_COMPARE_END
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    USB_HID_REPORT_TYPE_INPUT);
+//		printf("Next field: %p\n", field);
+	}
+	
+	usb_hid_report_path_free(path);
+}
+
+#define MAX_PATH_LENGTH 1024
 
 static void print_usage(char *app_name)
 {
 #define _INDENT "      "
 
-	printf(NAME ": Print out what multimedia keys were pressed.\n\n");
-	printf("Usage: %s device\n", app_name);
-	printf(_INDENT "The device is a devman path to the device.\n");
+       printf(NAME ": Print out what multimedia keys were pressed.\n\n");
+       printf("Usage: %s device\n", app_name);
+       printf(_INDENT "The device is a devman path to the device.\n");
 
 #undef _OPTION
 #undef _INDENT
@@ -218,77 +204,100 @@ static void print_usage(char *app_name)
 
 int main(int argc, char *argv[])
 {
+	int act_event = -1;
 	
 	if (argc <= 1) {
 		print_usage(argv[0]);
 		return -1;
 	}
 	
-	char *devpath = argv[1];
-
-	/* The initialization is here only to make compiler happy. */
-	devman_handle_t hc_handle = 0;
-	usb_address_t dev_addr = 0;
-	bool found = resolve_hc_handle_and_dev_addr(devpath,
-	    &hc_handle, &dev_addr);
-	if (!found) {
-		fprintf(stderr, NAME ": device `%s' not found "
-		    "or not of USB kind. Exiting.\n", devpath);
-		return -1;
-	}
+	//char *devpath = argv[1];
+	const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID1/hid";
 	
 	int rc;
-	usb_hc_connection_t conn;
-
-	usb_hc_connection_initialize(&conn, hc_handle);
-	rc = usb_hc_connection_open(&conn);
+	
+	devman_handle_t dev_handle = 0;
+	rc = devman_device_get_handle(devpath, &dev_handle, 0);
 	if (rc != EOK) {
-		printf(NAME ": failed to connect to HC: %s.\n",
+		printf("Failed to get handle from devman: %s.\n",
 		    str_error(rc));
-		return -1;
+		return rc;
 	}
-	usb_address_t addr = 0;
-
-	devman_handle_t dev_handle;
-	rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
-	if (rc != EOK) {
-		printf(NAME ": failed getting handle to the device: %s.\n",
-		       str_error(rc));
-		return -1;
-	}
-
-	usb_hc_connection_close(&conn);
 	
 	rc = devman_device_connect(dev_handle, 0);
 	if (rc < 0) {
-		printf(NAME ": failed to connect to the device: %s.\n",
-		       str_error(rc));
-		return -1;
+		printf(NAME ": failed to connect to the device (handle %"
+		       PRIun "): %s.\n", dev_handle, str_error(rc));
+		return rc;
 	}
 	
 	dev_phone = rc;
-	printf("Got phone to the device: %d\n", dev_phone);
+//	printf("Got phone to the device: %d\n", dev_phone);
+	
+	char path[MAX_PATH_LENGTH];
+	rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
+	if (rc != EOK) {
+		return ENOMEM;
+	}
+	
+	printf("Device path: %s\n", path);
 	
 	
-//	size_t class_index = 0;
-//	size_t failed_attempts = 0;
-
-//	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
-//		class_index++;
-//		devman_handle_t hc_handle = 0;
-//		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
-//		if (rc != EOK) {
-//			failed_attempts++;
-//			continue;
-//		}
-//		char path[MAX_PATH_LENGTH];
-//		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
-//		if (rc != EOK) {
-//			continue;
-//		}
-//		print_found_hc(class_index, path);
-//		print_hc_devices(hc_handle);
-//	}
+	usb_hid_report_t *report = NULL;
+	rc = initialize_report_parser(dev_phone, &report);
+	if (rc != EOK) {
+		printf("Failed to initialize report parser: %s\n",
+		    str_error(rc));
+		return rc;
+	}
+	
+	assert(report != NULL);
+	
+	size_t size;
+	rc = usbhid_dev_get_event_length(dev_phone, &size);
+	if (rc != EOK) {
+		printf("Failed to get event length: %s.\n", str_error(rc));
+		return rc;
+	}
+	
+//	printf("Event length: %zu\n", size);
+	uint8_t *event = (uint8_t *)malloc(size);
+	if (event == NULL) {
+		// hangup phone?
+		return ENOMEM;
+	}
+	
+//	printf("Event length: %zu\n", size);
+	
+	size_t actual_size;
+	int event_nr;
+	
+	while (1) {
+		// get event from the driver
+//		printf("Getting event from the driver.\n");
+		
+		/** @todo Try blocking call. */
+		rc = usbhid_dev_get_event(dev_phone, event, size, &actual_size, 
+		    &event_nr, 0);
+		if (rc != EOK) {
+			// hangup phone?
+			printf("Error in getting event from the HID driver:"
+			    "%s.\n", str_error(rc));
+			break;
+		}
+		
+//		printf("Got buffer: %p, size: %zu, max size: %zu\n", event, 
+//		    actual_size, size);
+		
+//		printf("Event number: %d, my actual event: %d\n", event_nr, 
+//		    act_event);
+		if (event_nr > act_event) {
+			print_key(event, size, report);
+			act_event = event_nr;
+		}
+		
+		async_usleep(100000);
+	}
 	
 	return 0;
 }

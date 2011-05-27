@@ -419,7 +419,9 @@ static int rh_init_descriptors(rh_t *instance) {
 /**
  * create answer to port status_request
  *
- * Copy content of corresponding port status register to answer buffer.
+ * Copy content of corresponding port status register to answer buffer. The
+ * format of the port status register and port status data is the same (
+ * see OHCI root hub and USB hub documentation).
  *
  * @param instance root hub instance
  * @param port port number, counted from 1
@@ -449,7 +451,9 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
 /**
  * create answer to port status_request
  *
- * Copy content of hub status register to answer buffer.
+ * This copies flags in hub status register into the buffer. The format of the
+ * status register and status message is the same, according to USB hub
+ * specification and OHCI root hub specification.
  *
  * @param instance root hub instance
  * @param request structure containing both request and response information
