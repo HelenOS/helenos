@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
 	}
 	
 	dev_phone = rc;
-	printf("Got phone to the device: %d\n", dev_phone);
+//	printf("Got phone to the device: %d\n", dev_phone);
 	
 	char path[MAX_PATH_LENGTH];
 	rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
