@@ -35,7 +35,7 @@
 #ifndef LIBDRV_REMOTE_USB_H_
 #define LIBDRV_REMOTE_USB_H_
 
-remote_iface_t remote_usb_iface;
+extern remote_iface_t remote_usb_iface;
 
 #endif
 

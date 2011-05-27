@@ -233,8 +233,8 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    usb_debug_str_buffer(buffer, buffer_size, 0));
 	
 	if (mouse_dev->mouse_phone < 0) {
-		usb_log_error(NAME " No console phone.\n");
-		return false;	// ??
+		usb_log_warning(NAME " No console phone.\n");
+		return true;
 	}
 
 	/*

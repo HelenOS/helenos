@@ -60,7 +60,6 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor = {
 	.max_packet_size = 8,
 	.vendor_id = 0x16db,
 	.product_id = 0x0001,
-	/// \TODO these values migt be different
 	.str_serial_number = 0,
 	.usb_spec_version = 0x110,
 };
@@ -118,7 +117,6 @@ static const uint32_t hub_clear_feature_valid_mask =
  */
 static const uint32_t hub_clear_feature_by_writing_one_mask =
    RHS_CLEAR_PORT_POWER;
-   // 1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER;
 
 /**
  * bitmask of hub features that are valid to be set
@@ -126,15 +124,12 @@ static const uint32_t hub_clear_feature_by_writing_one_mask =
 static const uint32_t hub_set_feature_valid_mask =
     RHS_LPSC_FLAG |
     RHS_OCIC_FLAG;
-    //(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT) |
-    //(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 
 /**
  * bitmask of hub features that are set by writing 1 and cleared by writing 0
  */
 static const uint32_t hub_set_feature_direct_mask =
     RHS_SET_PORT_POWER;
-    //(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
 /**
  * bitmask of port features that are valid to be set
@@ -159,18 +154,6 @@ static const uint32_t port_clear_feature_valid_mask =
     RHPS_OCIC_FLAG |
     RHPS_PRSC_FLAG;
 
-/*
-
-    (1 << USB_HUB_FEATURE_PORT_CONNECTION) |
-    (1 << USB_HUB_FEATURE_PORT_SUSPEND) |
-    (1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) |
-    (1 << USB_HUB_FEATURE_PORT_POWER) |
-    (1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
-    (1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
-    (1 << USB_HUB_FEATURE_C_PORT_SUSPEND) |
-    (1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
-    (1 << USB_HUB_FEATURE_C_PORT_RESET);
- */
 //note that USB_HUB_FEATURE_PORT_POWER bit is translated into
 //USB_HUB_FEATURE_PORT_LOW_SPEED for port set feature request
 
@@ -178,12 +161,6 @@ static const uint32_t port_clear_feature_valid_mask =
  * bitmask with port status changes
  */
 static const uint32_t port_status_change_mask = RHPS_CHANGE_WC_MASK;
-/*    (1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
-    (1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
-    (1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
-    (1 << USB_HUB_FEATURE_C_PORT_RESET) |
-    (1 << USB_HUB_FEATURE_C_PORT_SUSPEND);
-*/
 
 static int create_serialized_hub_descriptor(rh_t *instance);
 
@@ -432,9 +409,9 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
     usb_transfer_batch_t * request) {
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
-	uint32_t * uint32_buffer = (uint32_t*) request->data_buffer;
 	request->transfered_size = 4;
-	uint32_buffer[0] = instance->registers->rh_port_status[port - 1];
+	uint32_t data = instance->registers->rh_port_status[port - 1];
+	memcpy(request->data_buffer,&data,4);
 #if 0
 	int i;
 	for (i = 0; i < instance->port_count; ++i) {
@@ -461,11 +438,13 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
  */
 static int process_get_hub_status_request(rh_t *instance,
     usb_transfer_batch_t * request) {
-	uint32_t * uint32_buffer = (uint32_t*) request->data_buffer;
+	//uint32_t * uint32_buffer = (uint32_t*) request->data_buffer;
 	request->transfered_size = 4;
 	//bits, 0,1,16,17
 	uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
-	uint32_buffer[0] = mask & instance->registers->rh_status;
+	uint32_t data = mask & instance->registers->rh_status;
+	//uint32_buffer[0] = mask & instance->registers->rh_status;
+	memcpy(request->data_buffer,&data,4);
 
 	return EOK;
 }
@@ -519,13 +498,13 @@ static void create_interrupt_mask_in_instance(rh_t * instance) {
 	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
 	    | (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
 	bzero(bitmap, instance->interrupt_mask_size);
-	if (instance->registers->rh_status & mask) {
+	if ((instance->registers->rh_status & mask) !=0 ) {
 		bitmap[0] = 1;
 	}
 	size_t port;
 	mask = port_status_change_mask;
 	for (port = 1; port <= instance->port_count; ++port) {
-		if (mask & instance->registers->rh_port_status[port - 1]) {
+		if ((mask & instance->registers->rh_port_status[port - 1]) != 0) {
 
 			bitmap[(port) / 8] += 1 << (port % 8);
 		}
