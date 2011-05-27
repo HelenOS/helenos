@@ -41,12 +41,12 @@
 
 
 /*---------------------------------------------------------------------------*/
-/**
+/*
  * Flags of usage paths comparison modes.
  *
  */
-/** Wanted usage path must be exactly the same as the searched one.
- * This option cannot be combined with the others. 
+/** Wanted usage path must be exactly the same as the searched one.  This
+ * option cannot be combined with the others. 
  */
 #define USB_HID_PATH_COMPARE_STRICT		0
 
@@ -56,8 +56,8 @@
 #define USB_HID_PATH_COMPARE_END		1
 
 /** 
- * Only usage page are compared along the usage path. 
- * This option can be combined with others. 
+ * Only usage page are compared along the usage path.  This option can be
+ * combined with others. 
  */
 #define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	2
 
@@ -100,7 +100,8 @@ typedef struct {
 	/** Length of usage path */	
 	int depth;	
 
-	/** Report id. Zero is reserved and means that report id is not used. */
+	/** Report id. Zero is reserved and means that report id is not used.
+	 * */
 	uint8_t report_id;
 	
 	/** Linked list structure. */	
@@ -116,23 +117,24 @@ usb_hid_report_path_t *usb_hid_report_path(void);
 
 void usb_hid_report_path_free(usb_hid_report_path_t *path);
 
-int usb_hid_report_path_set_report_id(usb_hid_report_path_t *usage_path, 
-                                      uint8_t report_id);
+int usb_hid_report_path_set_report_id(usb_hid_report_path_t *usage_path,
+		uint8_t report_id);
 
 int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
-                                    int32_t usage_page, int32_t usage);
+		int32_t usage_page, int32_t usage);
 
 void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path);
 
 void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path);
 
 void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, 
-                                  int32_t tag, int32_t data);
+		int32_t tag, int32_t data);
 
-int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, 
-                                      usb_hid_report_path_t *path, int flags);
+int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
+		usb_hid_report_path_t *path, int flags);
 
-usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path);
+usb_hid_report_path_t *usb_hid_report_path_clone(
+		usb_hid_report_path_t *usage_path);
 
 void usb_hid_print_usage_path(usb_hid_report_path_t *path);
 

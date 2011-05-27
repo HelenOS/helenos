@@ -95,8 +95,7 @@
  */
 #define USB_HID_ITEM_FLAG_RELATIVE(flags) 	((flags & 0x4) == 0x4)
 
-/**
- * Indicates whether the data “rolls over” when reaching either the extreme
+/** Indicates whether the data “rolls over” when reaching either the extreme
  * high or low value. For example, a dial that can spin freely 360 degrees
  * might output values from 0 to 10. If Wrap is indicated, the next value
  * reported after passing the 10 position in the increasing direction would be
