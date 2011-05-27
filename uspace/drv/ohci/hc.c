@@ -342,9 +342,9 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	usb_log_debug("OHCI(%p) interrupt: %x.\n", instance, status);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
+	usb_log_debug2("OHCI(%p) interrupt: %x.\n", instance, status);
 	if (status & I_RHSC)
 		rh_interrupt(&instance->rh);
 
