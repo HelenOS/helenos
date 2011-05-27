@@ -44,9 +44,7 @@ typedef enum {
 	/** Get number of events reported in single burst.
 	 * Parameters: none
 	 * Answer:
-	 * - EOK (expected always as long as device support USB HID interface)
-	 * Parameters of the answer:
-	 * - number of items
+	 * - Size of one report in bytes.
 	 */
 	IPC_M_USBHID_GET_EVENT_LENGTH,
 	/** Get single event from the HID device.
@@ -62,8 +60,31 @@ typedef enum {
 	 *
 	 * It is okay if the client requests less data. Extra data must
 	 * be truncated by the driver.
+	 *
+	 * @todo Change this comment.
 	 */
-	IPC_M_USBHID_GET_EVENT
+	IPC_M_USBHID_GET_EVENT,
+	
+	/** Get the size of the report descriptor from the HID device.
+	 *
+	 * Parameters:
+	 * - none
+	 * Answer:
+	 * - EOK - method is implemented (expected always)
+	 * Parameters of the answer:
+	 * - Size of the report in bytes.
+	 */
+	IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH,
+	
+	/** Get the report descriptor from the HID device.
+	 *
+	 * Parameters:
+	 * - none
+	 * The call is followed by data read expecting the descriptor itself.
+	 * Answer:
+	 * - EOK - report descriptor returned.
+	 */
+	IPC_M_USBHID_GET_REPORT_DESCRIPTOR
 } usbhid_iface_funcs_t;
 
 /** USB HID interface flag - return immediately if no data are available. */
@@ -74,7 +95,7 @@ typedef struct {
 	/** Get size of the event in bytes.
 	 *
 	 * @param[in] fun DDF function answering the request.
-	 * @return Number of events or error code.
+	 * @return Size of the event in bytes.
 	 */
 	size_t (*get_event_length)(ddf_fun_t *fun);
 
@@ -86,8 +107,26 @@ typedef struct {
 	 * @param[in] flags Flags (see USBHID_IFACE_FLAG_*).
 	 * @return Error code.
 	 */
-	int (*get_event)(ddf_fun_t *fun, int32_t *buffer, size_t size,
-	    size_t *act_size, unsigned int flags);
+	int (*get_event)(ddf_fun_t *fun, uint8_t *buffer, size_t size,
+	    size_t *act_size, int *event_nr, unsigned int flags);
+	
+	/** Get size of the report descriptor in bytes.
+	 *
+	 * @param[in] fun DDF function answering the request.
+	 * @return Size of the report descriptor in bytes.
+	 */
+	size_t (*get_report_descriptor_length)(ddf_fun_t *fun);
+	
+	/** Get the report descriptor from the HID device.
+	 *
+	 * @param[in] fun DDF function answering the request.
+	 * @param[out] desc Buffer with the report descriptor.
+	 * @param[in] size Size of the allocated @p desc buffer.
+	 * @param[out] act_size Actual size of the report descriptor returned.
+	 * @return Error code.
+	 */
+	int (*get_report_descriptor)(ddf_fun_t *fun, uint8_t *desc, 
+	    size_t size, size_t *act_size);
 } usbhid_iface_t;
 
 

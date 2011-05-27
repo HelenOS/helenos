@@ -40,6 +40,7 @@ SOURCES = \
 	src/hidparser.c \
 	src/hidpath.c \
 	src/hidreport.c \
+	src/consumer.c \
 	src/hidreq.c
 
 include $(USPACE_PREFIX)/Makefile.common
