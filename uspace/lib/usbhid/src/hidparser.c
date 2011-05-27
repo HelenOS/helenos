@@ -197,7 +197,7 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 				// variable item
 				item->value = usb_hid_translate_data(item, 
 				    data);				
-			}				
+			}			
 		}
 		list_item = list_item->next;
 	}
@@ -627,6 +627,8 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report,
 		if(report_des->type == type){
 			return report_des->report_id;
 		}
+
+		report_it = report_it->next;
 	}
 
 	return 0;
