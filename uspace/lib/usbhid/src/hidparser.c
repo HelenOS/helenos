@@ -257,17 +257,20 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 				part_size = 8 - (offset % 8);
 				foo = data + i;
 				mask =  ((1 << (item->size-part_size))-1);
-				value = (*foo & mask) << part_size;
+				value = (*foo & mask);
 			}
 			else if(i == ((offset+item->size-1)/8)){
 				// the lower one
 				foo = data + i;
-				mask =  ((1 << part_size)-1) << (8-part_size);
-				value += ((*foo & mask) >> (8-part_size));
+				mask = ((1 << (item->size - part_size)) - 1) 
+					<< (8 - (item->size - part_size));
+
+				value = (((*foo & mask) >> (8 - 
+				    (item->size - part_size))) << part_size ) 
+				    + value;
 			}
 			else {
-				value = value << 8;
-				value += *(data + 1);
+				value = (*(data + 1) << (part_size + 8)) + value;
 				part_size += 8;
 			}
 		}
@@ -385,24 +388,12 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 	while(item != &report_des->report_items) {
 		report_item = list_get_instance(item, usb_hid_report_field_t, link);
 
-		if(USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) {
-					
-			// array
-			value = usb_hid_translate_data_reverse(report_item, 
-				report_item->value);
+		value = usb_hid_translate_data_reverse(report_item, 
+			report_item->value);
 
-			offset = report_item->offset;
-			length = report_item->size;
-		}
-		else {
-			// variable item
-			value  = usb_hid_translate_data_reverse(report_item, 
-				report_item->value);
-
-			offset = report_item->offset;
-			length = report_item->size;
-		}
-
+		offset = report_des->bit_length - report_item->offset - 1;
+		length = report_item->size;
+		
 		usb_log_debug("\ttranslated value: %x\n", value);
 
 		if((offset/8) == ((offset+length-1)/8)) {

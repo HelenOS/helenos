@@ -186,6 +186,10 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 	for(i=0; i<report_item->count; i++){
 
 		field = malloc(sizeof(usb_hid_report_field_t));
+		if(field == NULL) {
+			return ENOMEM;
+		}
+
 		memset(field, 0, sizeof(usb_hid_report_field_t));
 		list_initialize(&field->link);
 
@@ -240,15 +244,17 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 			usb_hid_report_path_try_insert(report, path);
 
 		field->size = report_item->size;
-		
-		size_t offset_byte = (report_item->offset + (i *
-			report_item->size)) / 8; 
+	
+		if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
+			field->offset = report_item->offset + 
+			    ((report_item->count - (i + 1)) * 
+			    report_item->size);
+		}
+		else {
+			field->offset = report_item->offset + (i * report_item->size);
+		}
 
-		size_t offset_bit = 8 - ((report_item->offset + (i *
-			report_item->size)) % 8) - report_item->size;
-
-		field->offset = 8 * offset_byte + offset_bit;
-		if(report_item->id != 0) {
+		if(report->use_report_ids != 0) {
 			field->offset += 8;
 			report->use_report_ids = 1;
 		}
