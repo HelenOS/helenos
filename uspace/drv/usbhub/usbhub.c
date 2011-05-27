@@ -439,7 +439,7 @@ static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
  * process hub interrupts
  *
  * The change can be either in the over-current condition or
- * local-power lost condition.
+ * local-power change.
  * @param hub_info hub instance
  */
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
