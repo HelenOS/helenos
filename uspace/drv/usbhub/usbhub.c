@@ -335,21 +335,7 @@ static int usb_hub_set_configuration(usb_hub_info_t * hub_info) {
  * @return error code
  */
 static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
-	/*
-	 * The processing will require opened control pipe and connection
-	 * to the host controller.
-	 * It is waste of resources but let's hope there will be less
-	 * hubs than the phone limit.
-	 * FIXME: with some proper locking over pipes and session
-	 * auto destruction, this could work better.
-	 */
-	int rc = usb_hc_connection_open(&hub_info->connection);
-	if (rc != EOK) {
-		//usb_pipe_end_session(hub_info->control_pipe);
-		usb_log_error("Failed to open connection to HC: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
+	int rc;
 
 	rc = usb_device_auto_poll(hub_info->usb_device, 0,
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
