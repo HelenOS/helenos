@@ -118,12 +118,7 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
 		return 0;
 	}
 	else {
-		if(report_id == 0) {			
-			return ((report_des->bit_length + 7) / 8) ;
-		}
-		else {
-			return 1 + ((report_des->bit_length + 7) / 8);
-		}
+		return ((report_des->bit_length + 7) / 8) ;
 	}
 }
 /*---------------------------------------------------------------------------*/

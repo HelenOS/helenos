@@ -943,6 +943,10 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 		usb_log_debug("Report ID: %d\n", report_des->report_id);
 		usb_log_debug("\tType: %d\n", report_des->type);
 		usb_log_debug("\tLength: %zu\n", report_des->bit_length);		
+		usb_log_debug("\tB Size: %zu\n",
+			usb_hid_report_byte_size(report, 
+				report_des->report_id, 
+				report_des->type));
 		usb_log_debug("\tItems: %zu\n", report_des->item_length);		
 
 		usb_hid_descriptor_print_list(&report_des->report_items);
