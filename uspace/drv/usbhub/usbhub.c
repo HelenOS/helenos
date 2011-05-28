@@ -71,7 +71,7 @@ static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
 
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
 
-static void usb_hub_polling_terminted_callback(usb_device_t * device,
+static void usb_hub_polling_terminated_callback(usb_device_t * device,
     bool was_error, void * data);
 
 
@@ -199,6 +199,14 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 	result->status_change_pipe = usb_dev->pipes[0].pipe;
 	result->control_pipe = &usb_dev->ctrl_pipe;
 	result->is_default_address_used = false;
+
+	result->ports = NULL;
+	result->port_count = (size_t) -1;
+	fibril_mutex_initialize(&result->port_mutex);
+
+	fibril_mutex_initialize(&result->pending_ops_mutex);
+	fibril_condvar_initialize(&result->pending_ops_cv);
+	result->pending_ops_count = 0;
 	return result;
 }
 
@@ -339,7 +347,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 
 	rc = usb_device_auto_poll(hub_info->usb_device, 0,
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
-	    usb_hub_polling_terminted_callback, hub_info);
+	    usb_hub_polling_terminated_callback, hub_info);
 	if (rc != EOK) {
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(rc));
@@ -472,12 +480,43 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
  * @param was_error indicates that the fibril is stoped due to an error
  * @param data pointer to usb_hub_info_t structure
  */
-static void usb_hub_polling_terminted_callback(usb_device_t * device,
+static void usb_hub_polling_terminated_callback(usb_device_t * device,
     bool was_error, void * data){
-	usb_hub_info_t * hub_info = data;
-	if(!hub_info) return;
-	free(hub_info->ports);
-	free(hub_info);
+	usb_hub_info_t * hub = data;
+	assert(hub);
+
+	fibril_mutex_lock(&hub->pending_ops_mutex);
+
+	/* The device is dead. However there might be some pending operations
+	 * that we need to wait for.
+	 * One of them is device adding in progress.
+	 * The respective fibril is probably waiting for status change
+	 * in port reset (port enable) callback.
+	 * Such change would never come (otherwise we would not be here).
+	 * Thus, we would flush all pending port resets.
+	 */
+	if (hub->pending_ops_count > 0) {
+		fibril_mutex_lock(&hub->port_mutex);
+		size_t port;
+		for (port = 0; port < hub->port_count; port++) {
+			usb_hub_port_t *the_port = hub->ports + port;
+			fibril_mutex_lock(&the_port->reset_mutex);
+			the_port->reset_completed = true;
+			the_port->reset_okay = false;
+			fibril_condvar_broadcast(&the_port->reset_cv);
+			fibril_mutex_unlock(&the_port->reset_mutex);
+		}
+		fibril_mutex_unlock(&hub->port_mutex);
+	}
+	/* And now wait for them. */
+	while (hub->pending_ops_count > 0) {
+		fibril_condvar_wait(&hub->pending_ops_cv,
+		    &hub->pending_ops_mutex);
+	}
+	fibril_mutex_unlock(&hub->pending_ops_mutex);
+
+	free(hub->ports);
+	free(hub);
 }
 
 
