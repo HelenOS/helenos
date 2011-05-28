@@ -61,16 +61,23 @@ const char *HID_GENERIC_CLASS_NAME = "hid";
 
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
 
-static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer, 
-    size_t size, size_t *act_size, unsigned int flags);
+static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer, 
+    size_t size, size_t *act_size, int *event_nr, unsigned int flags);
 
 static int usb_generic_hid_client_connected(ddf_fun_t *fun);
+
+static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun);
+
+static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc, 
+    size_t size, size_t *actual_size);
 
 /*----------------------------------------------------------------------------*/
 
 static usbhid_iface_t usb_generic_iface = {
 	.get_event = usb_generic_hid_get_event,
-	.get_event_length = usb_generic_hid_get_event_length
+	.get_event_length = usb_generic_hid_get_event_length,
+	.get_report_descriptor_length = usb_generic_get_report_descriptor_length,
+	.get_report_descriptor = usb_generic_get_report_descriptor
 };
 
 static ddf_dev_ops_t usb_generic_hid_ops = {
@@ -82,43 +89,105 @@ static ddf_dev_ops_t usb_generic_hid_ops = {
 
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 {
-	if (fun == NULL || fun->driver_data) {
+	usb_log_debug2("Generic HID: Get event length (fun: %p, "
+	    "fun->driver_data: %p.\n", fun, fun->driver_data);
+	
+	if (fun == NULL || fun->driver_data == NULL) {
 		return 0;
 	}
 
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
-	return hid_dev->input_report_size;
+	usb_log_debug2("hid_dev: %p, Max input report size (%zu).\n",
+	    hid_dev, hid_dev->max_input_report_size);
+	
+	return hid_dev->max_input_report_size;
 }
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer, 
-    size_t size, size_t *act_size, unsigned int flags)
+static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer, 
+    size_t size, size_t *act_size, int *event_nr, unsigned int flags)
 {
-	if (fun == NULL || fun->driver_data) {
+	usb_log_debug2("Generic HID: Get event.\n");
+	
+	if (fun == NULL || fun->driver_data == NULL || buffer == NULL
+	    || act_size == NULL || event_nr == NULL) {
+		usb_log_debug("No function");
 		return EINVAL;
 	}
 
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
 	if (hid_dev->input_report_size > size) {
+		usb_log_debug("input_report_size > size (%zu, %zu)\n", 
+		    hid_dev->input_report_size, size);
 		return EINVAL;	// TODO: other error code
 	}
 	
 	/*! @todo This should probably be atomic. */
-	if (usb_hid_report_ready()) {
-		memcpy(buffer, hid_dev->input_report, 
-		    hid_dev->input_report_size);
-		*act_size = hid_dev->input_report_size;
-		usb_hid_report_received();
-	}
+//	if (usb_hid_report_ready()) {
+//		usb_log_debug2("Report ready, size: %zu\n", 
+//		    hid_dev->input_report_size);
+		
+//		usb_hid_report_received();
+//	} else {
+//		memset(buffer, 0, hid_dev->input_report_size);
+//	}
+	memcpy(buffer, hid_dev->input_report, 
+	    hid_dev->input_report_size);
+	*act_size = hid_dev->input_report_size;
+	*event_nr = usb_hid_report_number(hid_dev);
 	
 	// clear the buffer so that it will not be received twice
 	//memset(hid_dev->input_report, 0, hid_dev->input_report_size);
 	
 	// note that we already received this report
 //	report_received = true;
+	usb_log_debug2("OK\n");
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun)
+{
+	usb_log_debug("Generic HID: Get report descriptor length.\n");
+	
+	if (fun == NULL || fun->driver_data == NULL) {
+		usb_log_debug("No function");
+		return EINVAL;
+	}
+	
+	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	
+	usb_log_debug2("hid_dev->report_desc_size = %zu\n", 
+	    hid_dev->report_desc_size);
+	
+	return hid_dev->report_desc_size;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc, 
+    size_t size, size_t *actual_size)
+{
+	usb_log_debug2("Generic HID: Get report descriptor.\n");
+	
+	if (fun == NULL || fun->driver_data == NULL) {
+		usb_log_debug("No function");
+		return EINVAL;
+	}
+	
+	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	
+	if (hid_dev->report_desc_size > size) {
+		return EINVAL;	// TODO: other error code
+	}
+	
+	memcpy(desc, hid_dev->report_desc, hid_dev->report_desc_size);
+	*actual_size = hid_dev->report_desc_size;
 	
 	return EOK;
 }
@@ -127,7 +196,7 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, int32_t *buffer,
 
 static int usb_generic_hid_client_connected(ddf_fun_t *fun)
 {
-	usb_hid_report_received();
+	usb_log_debug("Generic HID: Client connected.\n");
 	return EOK;
 }
 
@@ -144,6 +213,9 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
+	
+	fun->ops = &usb_generic_hid_ops;
+	fun->driver_data = hid_dev;
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -153,8 +225,7 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 	
-	fun->ops = &usb_generic_hid_ops;
-	fun->driver_data = hid_dev;
+	usb_log_debug("HID function created. Handle: %" PRIun "\n", fun->handle);
 	
 	return EOK;
 }
@@ -175,7 +246,7 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
     uint8_t *buffer, size_t buffer_size)
 {
-	usb_log_debug("usb_hid_polling_callback(%p, %p, %zu)\n",
+	usb_log_debug2("usb_hid_polling_callback(%p, %p, %zu)\n",
 	    hid_dev, buffer, buffer_size);
 	usb_debug_str_buffer(buffer, buffer_size, 0);
 	return true;

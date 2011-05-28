@@ -45,6 +45,8 @@
 #include "remote_usbhid.h"
 #include "remote_pci.h"
 
+#include <stdio.h>
+
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		&remote_hw_res_iface,
@@ -59,6 +61,7 @@ static iface_dipatch_table_t remote_ifaces = {
 remote_iface_t *get_remote_iface(int idx)
 {
 	assert(is_valid_iface_idx(idx));
+	
 	return remote_ifaces.ifaces[idx];
 }
 

@@ -35,7 +35,6 @@
 #include <fibril_synch.h> /* async_usleep */
 #include <errno.h>
 #include <str_error.h>
-#include <time.h>
 #include <async.h>
 
 #include <usb/usb.h>    /* usb_address_t */
@@ -81,7 +80,7 @@ static inline void uhci_port_write_status(uhci_port_t *port, port_status_t val)
  * @param[in] address Address of I/O register.
  * @param[in] number Port number.
  * @param[in] usec Polling interval.
- * @param[in] rh Pointer to ddf instance fo the root hub driver.
+ * @param[in] rh Pointer to ddf instance of the root hub driver.
  * @return Error code.
  *
  * Creates and starts the polling fibril.
@@ -90,11 +89,13 @@ int uhci_port_init(uhci_port_t *port,
     port_status_t *address, unsigned number, unsigned usec, ddf_dev_t *rh)
 {
 	assert(port);
-	asprintf(&port->id_string, "Port (%p - %u)", port, number);
-	if (port->id_string == NULL) {
+	char *id_string;
+	asprintf(&id_string, "Port (%p - %u)", port, number);
+	if (id_string == NULL) {
 		return ENOMEM;
 	}
 
+	port->id_string = id_string;
 	port->address = address;
 	port->number = number;
 	port->wait_period_usec = usec;
@@ -104,7 +105,9 @@ int uhci_port_init(uhci_port_t *port,
 	int ret =
 	    usb_hc_connection_initialize_from_device(&port->hc_connection, rh);
 	if (ret != EOK) {
-		usb_log_error("Failed to initialize connection to HC.");
+		usb_log_error("%s: failed to initialize connection to HC.",
+		    port->id_string);
+		free(id_string);
 		return ret;
 	}
 
@@ -112,6 +115,7 @@ int uhci_port_init(uhci_port_t *port,
 	if (port->checker == 0) {
 		usb_log_error("%s: failed to create polling fibril.",
 		    port->id_string);
+		free(id_string);
 		return ENOMEM;
 	}
 
@@ -131,7 +135,7 @@ void uhci_port_fini(uhci_port_t *port)
 {
 	assert(port);
 	free(port->id_string);
-	/* TODO: Kill fibril here */
+	// TODO: Kill fibril here
 	return;
 }
 /*----------------------------------------------------------------------------*/
@@ -149,7 +153,8 @@ int uhci_port_check(void *port)
 		async_usleep(instance->wait_period_usec);
 
 		/* Read register value */
-		port_status_t port_status = uhci_port_read_status(instance);
+		const port_status_t port_status =
+		    uhci_port_read_status(instance);
 
 		/* Print the value if it's interesting */
 		if (port_status & ~STATUS_ALWAYS_ONE)
@@ -161,19 +166,19 @@ int uhci_port_check(void *port)
 		usb_log_debug("%s: Connected change detected: %x.\n",
 		    instance->id_string, port_status);
 
-		int rc =
-		    usb_hc_connection_open(&instance->hc_connection);
-		if (rc != EOK) {
-			usb_log_error("%s: Failed to connect to HC.",
-			    instance->id_string);
-			continue;
-		}
-
 		/* Remove any old device */
 		if (instance->attached_device) {
 			usb_log_debug2("%s: Removing device.\n",
 			    instance->id_string);
 			uhci_port_remove_device(instance);
+		}
+
+		int ret =
+		    usb_hc_connection_open(&instance->hc_connection);
+		if (ret != EOK) {
+			usb_log_error("%s: Failed to connect to HC.",
+			    instance->id_string);
+			continue;
 		}
 
 		if ((port_status & STATUS_CONNECTED) != 0) {
@@ -189,8 +194,8 @@ int uhci_port_check(void *port)
 			    instance->id_string);
 		}
 
-		rc = usb_hc_connection_close(&instance->hc_connection);
-		if (rc != EOK) {
+		ret = usb_hc_connection_close(&instance->hc_connection);
+		if (ret != EOK) {
 			usb_log_error("%s: Failed to disconnect.",
 			    instance->id_string);
 		}
@@ -208,7 +213,8 @@ int uhci_port_check(void *port)
  */
 int uhci_port_reset_enable(int portno, void *arg)
 {
-	uhci_port_t *port = (uhci_port_t *) arg;
+	uhci_port_t *port = arg;
+	assert(port);
 
 	usb_log_debug2("%s: new_device_enable_port.\n", port->id_string);
 
@@ -282,6 +288,7 @@ int uhci_port_remove_device(uhci_port_t *port)
 {
 	usb_log_error("%s: Don't know how to remove device %" PRIun ".\n",
 	    port->id_string, port->attached_device);
+	port->attached_device = 0;
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/

@@ -163,7 +163,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 /*----------------------------------------------------------------------------*/
 
 int usb_hid_process_report_descriptor(usb_device_t *dev, 
-    usb_hid_report_t *report)
+    usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size)
 {
 	if (dev == NULL || report == NULL) {
 		usb_log_error("Failed to process Report descriptor: wrong "
@@ -171,33 +171,33 @@ int usb_hid_process_report_descriptor(usb_device_t *dev,
 		return EINVAL;
 	}
 	
-	uint8_t *report_desc = NULL;
-	size_t report_size;
+//	uint8_t *report_desc = NULL;
+//	size_t report_size;
 	
-	int rc = usb_hid_get_report_descriptor(dev, &report_desc, 
-	    &report_size);
+	int rc = usb_hid_get_report_descriptor(dev, report_desc, report_size);
 	
 	if (rc != EOK) {
 		usb_log_error("Problem with getting Report descriptor: %s.\n",
 		    str_error(rc));
-		if (report_desc != NULL) {
-			free(report_desc);
+		if (*report_desc != NULL) {
+			free(*report_desc);
+			*report_desc = NULL;
 		}
 		return rc;
 	}
 	
-	assert(report_desc != NULL);
+	assert(*report_desc != NULL);
 	
-	rc = usb_hid_parse_report_descriptor(report, report_desc, report_size);
+	rc = usb_hid_parse_report_descriptor(report, *report_desc, *report_size);
 	if (rc != EOK) {
 		usb_log_error("Problem parsing Report descriptor: %s.\n",
 		    str_error(rc));
-		free(report_desc);
+		free(*report_desc);
+		*report_desc = NULL;
 		return rc;
 	}
 	
 	usb_hid_descriptor_print(report);
-	free(report_desc);
 	
 	return EOK;
 }

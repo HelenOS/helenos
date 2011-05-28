@@ -35,7 +35,7 @@
 #ifndef LIBDRV_REMOTE_USBHID_H_
 #define LIBDRV_REMOTE_USBHID_H_
 
-remote_iface_t remote_usbhid_iface;
+extern remote_iface_t remote_usbhid_iface;
 
 #endif
 

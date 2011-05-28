@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,26 +25,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup libusbhid
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * USB multimedia key usage to string mapping.
  */
-#ifndef DRV_UHCI_UTILS_SLAB_H
-#define DRV_UHCI_UTILS_SLAB_H
 
-#include <bool.h>
+#ifndef LIBUSBHID_CONSUMER_H_
+#define LIBUSBHID_CONSUMER_H_
 
-#define SLAB_ELEMENT_SIZE 1024
+const char *usbhid_multimedia_usage_to_str(int usage);
 
-void * slab_malloc_g(void);
+#endif /* LIBUSBHID_CONSUMER_H_ */
 
-void slab_free_g(void *addr);
-
-bool slab_in_range_g(void *addr);
-
-#endif
 /**
  * @}
  */

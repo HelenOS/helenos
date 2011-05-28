@@ -37,9 +37,9 @@
 #include <usb/hid/usages/core.h>
 #include <usb/hid/hidpath.h>
 
-//#include "lgtch-ultrax/lgtch-ultrax.h"
 #include "multimedia/multimedia.h"
 #include "mouse/mousedev.h"
+#include "generic/hiddev.h"
 
 static usb_hid_subdriver_usage_t path_kbd[] = {
 	{USB_HIDUT_PAGE_GENERIC_DESKTOP, 
@@ -57,10 +57,14 @@ static usb_hid_subdriver_usage_t multim_key_path[] = {
 	{0, 0}
 };
 
+//static usb_hid_subdriver_usage_t generic_hid_key_path[] = {
+//	{0, 0}
+//};
+
 const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		path_kbd,
-		-1,
+		0,
 		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
@@ -87,7 +91,7 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	},
 	{
 		path_mouse,
-		-1,
+		0,
 		USB_HID_PATH_COMPARE_BEGIN,
 		-1,
 		-1,
@@ -98,6 +102,19 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 			.poll_end = NULL
 		}
 	},
+//	{
+//		generic_hid_key_path,
+//		0,
+//		USB_HID_PATH_COMPARE_ANYWHERE,
+//		-1,
+//		-1,
+//		{
+//			.init = usb_generic_hid_init,
+//			.deinit = NULL,
+//			.poll = usb_generic_hid_polling_callback,
+//			.poll_end = NULL
+//		}
+//	},
 	{NULL, -1, 0, -1, -1, {NULL, NULL, NULL, NULL, NULL}}
 };
 

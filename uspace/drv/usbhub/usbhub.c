@@ -66,7 +66,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info);
 static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
     usb_hub_status_t status);
 
-static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
+static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status);
 
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
@@ -335,21 +335,7 @@ static int usb_hub_set_configuration(usb_hub_info_t * hub_info) {
  * @return error code
  */
 static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
-	/*
-	 * The processing will require opened control pipe and connection
-	 * to the host controller.
-	 * It is waste of resources but let's hope there will be less
-	 * hubs than the phone limit.
-	 * FIXME: with some proper locking over pipes and session
-	 * auto destruction, this could work better.
-	 */
-	int rc = usb_hc_connection_open(&hub_info->connection);
-	if (rc != EOK) {
-		//usb_pipe_end_session(hub_info->control_pipe);
-		usb_log_error("Failed to open connection to HC: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
+	int rc;
 
 	rc = usb_device_auto_poll(hub_info->usb_device, 0,
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
@@ -385,58 +371,46 @@ static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
     usb_hub_status_t status) {
 	int opResult;
 	if (usb_hub_is_status(status,USB_HUB_FEATURE_HUB_OVER_CURRENT)){
-		opResult = usb_hub_clear_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power off hub: %d\n",
-			    opResult);
+		//poweroff all ports
+		unsigned int port;
+		for(port = 1;port <= hub_info->port_count;++port){
+			opResult = usb_hub_clear_port_feature(
+			    hub_info->control_pipe,port,
+			    USB_HUB_FEATURE_PORT_POWER);
+			if (opResult != EOK) {
+				usb_log_warning(
+				    "cannot power off port %d;  %d\n",
+				    port, opResult);
+			}
 		}
 	} else {
-		opResult = usb_hub_set_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power on hub: %d\n",
-			    opResult);
+		//power all ports
+		unsigned int port;
+		for(port = 1;port <= hub_info->port_count;++port){
+			opResult = usb_hub_set_port_feature(
+			    hub_info->control_pipe,port,
+			    USB_HUB_FEATURE_PORT_POWER);
+			if (opResult != EOK) {
+				usb_log_warning(
+				    "cannot power off port %d;  %d\n",
+				    port, opResult);
+			}
 		}
 	}
 	return opResult;
 }
 
 /**
- * process hub power change
+ * process hub local power change
  *
- * If the power has been lost, reestablish it.
- * If it was reestablished, re-power all ports.
+ * This change is ignored.
  * @param hub_info hub instance
  * @param status hub status bitmask
  * @return error code
  */
-static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
+static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
     usb_hub_status_t status) {
 	int opResult = EOK;
-	if (!usb_hub_is_status(status,USB_HUB_FEATURE_HUB_LOCAL_POWER)) {
-		//restart power on hub
-		opResult = usb_hub_set_feature(hub_info->control_pipe,
-		    USB_HUB_FEATURE_HUB_LOCAL_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power on hub: %d\n",
-			    opResult);
-		}
-	} else {//power reestablished on hub- restart ports
-		size_t port;
-		for (port = 1; port <= hub_info->port_count; ++port) {
-			opResult = usb_hub_set_port_feature(
-			    hub_info->control_pipe,
-			    port, USB_HUB_FEATURE_PORT_POWER);
-			if (opResult != EOK) {
-				usb_log_error("Cannot power on port %zu: %s.\n",
-				    port, str_error(opResult));
-			}
-		}
-	}
-	if(opResult!=EOK){
-		return opResult;//no feature clearing
-	}
 	opResult = usb_hub_clear_feature(hub_info->control_pipe,
 	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 		if (opResult != EOK) {
@@ -451,7 +425,7 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
  * process hub interrupts
  *
  * The change can be either in the over-current condition or
- * local-power lost condition.
+ * local-power change.
  * @param hub_info hub instance
  */
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
@@ -486,7 +460,7 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
 	}
 	if (
 	    usb_hub_is_status(status,16+USB_HUB_FEATURE_C_HUB_LOCAL_POWER)) {
-		usb_process_hub_power_change(hub_info, status);
+		usb_process_hub_local_power_change(hub_info, status);
 	}
 }
 

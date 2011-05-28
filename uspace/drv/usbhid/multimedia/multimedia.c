@@ -42,6 +42,7 @@
 #include <usb/hid/hidparser.h>
 #include <usb/debug.h>
 #include <usb/hid/usages/core.h>
+#include <usb/hid/usages/consumer.h>
 
 #include <errno.h>
 #include <str_error.h>
@@ -57,11 +58,11 @@
  */
 typedef struct usb_multimedia_t {
 	/** Previously pressed keys (not translated to key codes). */
-	int32_t *keys_old;
+	//int32_t *keys_old;
 	/** Currently pressed keys (not translated to key codes). */
-	int32_t *keys;
+	//int32_t *keys;
 	/** Count of stored keys (i.e. number of keys in the report). */
-	size_t key_count;	
+	//size_t key_count;	
 	/** IPC phone to the console device (for sending key events). */
 	int console_phone;
 } usb_multimedia_t;
@@ -173,12 +174,12 @@ static void usb_multimedia_free(usb_multimedia_t **multim_dev)
 	async_hangup((*multim_dev)->console_phone);
 	
 	// free all buffers
-	if ((*multim_dev)->keys != NULL) {
-		free((*multim_dev)->keys);
-	}
-	if ((*multim_dev)->keys_old != NULL) {
-		free((*multim_dev)->keys_old);
-	}
+//	if ((*multim_dev)->keys != NULL) {
+//		free((*multim_dev)->keys);
+//	}
+//	if ((*multim_dev)->keys_old != NULL) {
+//		free((*multim_dev)->keys_old);
+//	}
 
 	free(*multim_dev);
 	*multim_dev = NULL;
@@ -208,6 +209,9 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev,
 		ddf_fun_destroy(fun);
 		return rc;
 	}
+	
+	usb_log_debug("%s function created (jandle: %" PRIun ").\n",
+	    NAME, fun->handle);
 	
 	rc = ddf_fun_add_to_class(fun, "keyboard");
 	if (rc != EOK) {
@@ -240,37 +244,37 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	
 	multim_dev->console_phone = -1;
 	
-	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+//	usb_hid_report_path_t *path = usb_hid_report_path();
+//	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
 	
-	usb_hid_report_path_set_report_id(path, 1);
+//	usb_hid_report_path_set_report_id(path, 1);
 	
-	multim_dev->key_count = usb_hid_report_size(
-	    hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT);
+//	multim_dev->key_count = usb_hid_report_size(
+//	    hid_dev->report, 1, USB_HID_REPORT_TYPE_INPUT);
 
-	usb_hid_report_path_free(path);
+//	usb_hid_report_path_free(path);
 	
-	usb_log_debug(NAME " Size of the input report: %zu\n", 
-	    multim_dev->key_count);
+//	usb_log_debug(NAME " Size of the input report: %zu\n", 
+//	    multim_dev->key_count);
 	
-	multim_dev->keys = (int32_t *)calloc(multim_dev->key_count, 
-	    sizeof(int32_t));
+//	multim_dev->keys = (int32_t *)calloc(multim_dev->key_count, 
+//	    sizeof(int32_t));
 	
-	if (multim_dev->keys == NULL) {
-		usb_log_fatal("No memory!\n");
-		free(multim_dev);
-		return ENOMEM;
-	}
+//	if (multim_dev->keys == NULL) {
+//		usb_log_fatal("No memory!\n");
+//		free(multim_dev);
+//		return ENOMEM;
+//	}
 	
-	multim_dev->keys_old = 
-		(int32_t *)calloc(multim_dev->key_count, sizeof(int32_t));
+//	multim_dev->keys_old = 
+//		(int32_t *)calloc(multim_dev->key_count, sizeof(int32_t));
 	
-	if (multim_dev->keys_old == NULL) {
-		usb_log_fatal("No memory!\n");
-		free(multim_dev->keys);
-		free(multim_dev);
-		return ENOMEM;
-	}
+//	if (multim_dev->keys_old == NULL) {
+//		usb_log_fatal("No memory!\n");
+//		free(multim_dev->keys);
+//		free(multim_dev);
+//		return ENOMEM;
+//	}
 	
 	/*! @todo Autorepeat */
 	
@@ -356,7 +360,7 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data,
 			unsigned int key = 
 			    usb_multimedia_map_usage(field->usage);
 			const char *key_str = 
-			    usb_multimedia_usage_to_str(field->usage);
+			    usbhid_multimedia_usage_to_str(field->usage);
 			usb_log_info("Pressed key: %s\n", key_str);
 			usb_multimedia_push_ev(hid_dev, multim_dev, KEY_PRESS, 
 			                       key);
