@@ -200,7 +200,7 @@ static int ip_prepare_icmp(packet_t *packet, ip_header_t *header)
 		return EPERM;
 
 	/* Set the destination address */
-	switch (GET_HEADER_VERSION(header)) {
+	switch (GET_IP_HEADER_VERSION(header)) {
 	case IPVERSION:
 		addrlen = sizeof(dest_in);
 		bzero(&dest_in, addrlen);
@@ -634,7 +634,7 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
 	next = sizeof(ip_header_t);
 
 	/* Process all IP options */
-	while (next < GET_HEADER_LENGTH(first)) {
+	while (next < GET_IP_HEADER_LENGTH(first)) {
 		option = (ip_option_t *) (((uint8_t *) first) + next);
 		/* Skip end or noop */
 		if ((option->type == IPOPT_END) ||
@@ -655,9 +655,9 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
 	/* Align 4 byte boundary */
 	if (length % 4) {
 		bzero(((uint8_t *) last) + length, 4 - (length % 4));
-		SET_HEADER_LENGTH(last, (length / 4 + 1));
+		SET_IP_HEADER_LENGTH(last, (length / 4 + 1));
 	} else {
-		SET_HEADER_LENGTH(last, (length / 4));
+		SET_IP_HEADER_LENGTH(last, (length / 4));
 	}
 
 	last->header_checksum = 0;
@@ -705,8 +705,8 @@ static int ip_prepare_packet(in_addr_t *source, in_addr_t dest,
 	if (rc != EOK)
 		return rc;
 	
-	SET_HEADER_VERSION(header, IPV4);
-	SET_HEADER_FRAGMENT_OFFSET_HIGH(header, 0);
+	SET_IP_HEADER_VERSION(header, IPV4);
+	SET_IP_HEADER_FRAGMENT_OFFSET_HIGH(header, 0);
 	header->fragment_offset_low = 0;
 	header->header_checksum = 0;
 	if (source)
@@ -734,11 +734,11 @@ static int ip_prepare_packet(in_addr_t *source, in_addr_t dest,
 
 			memcpy(middle_header, last_header,
 			    IP_HEADER_LENGTH(last_header));
-			SET_HEADER_FLAGS(header,
-			    (GET_HEADER_FLAGS(header) | IPFLAG_MORE_FRAGMENTS));
+			SET_IP_HEADER_FLAGS(header,
+			    (GET_IP_HEADER_FLAGS(header) | IPFLAG_MORE_FRAGMENTS));
 			middle_header->total_length =
 			    htons(packet_get_data_length(next));
-			SET_HEADER_FRAGMENT_OFFSET_HIGH(middle_header,
+			SET_IP_HEADER_FRAGMENT_OFFSET_HIGH(middle_header,
 			    IP_COMPUTE_FRAGMENT_OFFSET_HIGH(length));
 			middle_header->fragment_offset_low =
 			    IP_COMPUTE_FRAGMENT_OFFSET_LOW(length);
@@ -768,7 +768,7 @@ static int ip_prepare_packet(in_addr_t *source, in_addr_t dest,
 		    IP_HEADER_LENGTH(last_header));
 		middle_header->total_length =
 		    htons(packet_get_data_length(next));
-		SET_HEADER_FRAGMENT_OFFSET_HIGH(middle_header,
+		SET_IP_HEADER_FRAGMENT_OFFSET_HIGH(middle_header,
 		    IP_COMPUTE_FRAGMENT_OFFSET_HIGH(length));
 		middle_header->fragment_offset_low =
 		    IP_COMPUTE_FRAGMENT_OFFSET_LOW(length);
@@ -785,8 +785,8 @@ static int ip_prepare_packet(in_addr_t *source, in_addr_t dest,
 		}
 		length += packet_get_data_length(next);
 		free(last_header);
-		SET_HEADER_FLAGS(header,
-		    (GET_HEADER_FLAGS(header) | IPFLAG_MORE_FRAGMENTS));
+		SET_IP_HEADER_FLAGS(header,
+		    (GET_IP_HEADER_FLAGS(header) | IPFLAG_MORE_FRAGMENTS));
 	}
 
 	header->total_length = htons(length);
@@ -835,7 +835,7 @@ static int ip_fragment_packet_data(packet_t *packet, packet_t *new_packet,
 	header->total_length = htons(IP_TOTAL_LENGTH(header) - length);
 	new_header->total_length = htons(IP_HEADER_LENGTH(new_header) + length);
 	offset = IP_FRAGMENT_OFFSET(header) + IP_HEADER_DATA_LENGTH(header);
-	SET_HEADER_FRAGMENT_OFFSET_HIGH(new_header,
+	SET_IP_HEADER_FRAGMENT_OFFSET_HIGH(new_header,
 	    IP_COMPUTE_FRAGMENT_OFFSET_HIGH(offset));
 	new_header->fragment_offset_low =
 	    IP_COMPUTE_FRAGMENT_OFFSET_LOW(offset);
@@ -866,8 +866,8 @@ static ip_header_t *ip_create_middle_header(packet_t *packet,
 	if (!middle)
 		return NULL;
 	memcpy(middle, last, IP_HEADER_LENGTH(last));
-	SET_HEADER_FLAGS(middle,
-	    (GET_HEADER_FLAGS(middle) | IPFLAG_MORE_FRAGMENTS));
+	SET_IP_HEADER_FLAGS(middle,
+	    (GET_IP_HEADER_FLAGS(middle) | IPFLAG_MORE_FRAGMENTS));
 	return middle;
 }
 
@@ -924,7 +924,7 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 		return EINVAL;
 
 	/* Fragmentation forbidden? */
-	if(GET_HEADER_FLAGS(header) & IPFLAG_DONT_FRAGMENT)
+	if(GET_IP_HEADER_FLAGS(header) & IPFLAG_DONT_FRAGMENT)
 		return EPERM;
 
 	/* Create the last fragment */
@@ -960,8 +960,8 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 		return ip_release_and_return(packet, rc);
 
 	/* Mark the first as fragmented */
-	SET_HEADER_FLAGS(header,
-	    (GET_HEADER_FLAGS(header) | IPFLAG_MORE_FRAGMENTS));
+	SET_IP_HEADER_FLAGS(header,
+	    (GET_IP_HEADER_FLAGS(header) | IPFLAG_MORE_FRAGMENTS));
 
 	/* Create middle fragments */
 	while (IP_TOTAL_LENGTH(header) > length) {
@@ -1322,13 +1322,13 @@ static int ip_deliver_local(device_id_t device_id, packet_t *packet,
 	socklen_t addrlen;
 	int rc;
 
-	if ((GET_HEADER_FLAGS(header) & IPFLAG_MORE_FRAGMENTS) ||
+	if ((GET_IP_HEADER_FLAGS(header) & IPFLAG_MORE_FRAGMENTS) ||
 	    IP_FRAGMENT_OFFSET(header)) {
 		// TODO fragmented
 		return ENOTSUP;
 	}
 	
-	switch (GET_HEADER_VERSION(header)) {
+	switch (GET_IP_HEADER_VERSION(header)) {
 	case IPVERSION:
 		addrlen = sizeof(src_in);
 		bzero(&src_in, addrlen);
@@ -1450,7 +1450,7 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 	dest = ip_get_destination(header);
 
 	/* Set the destination address */
-	switch (GET_HEADER_VERSION(header)) {
+	switch (GET_IP_HEADER_VERSION(header)) {
 	case IPVERSION:
 		addrlen = sizeof(addr_in);
 		bzero(&addr_in, addrlen);
