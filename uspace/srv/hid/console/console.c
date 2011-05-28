@@ -56,6 +56,7 @@
 #include <fibril_synch.h>
 #include <io/style.h>
 #include <io/screenbuffer.h>
+#include <inttypes.h>
 
 #include "console.h"
 #include "gcons.h"
@@ -66,6 +67,11 @@
 #define NAMESPACE  "term"
 /** Interval for checking for new keyboard (1/4s). */
 #define HOTPLUG_WATCH_INTERVAL (1000 * 250)
+
+/* Kernel defines 32 but does not export it. */
+#define MAX_IPC_OUTGOING_PHONES 128
+/** To allow proper phone closing. */
+static ipc_callid_t driver_phones[MAX_IPC_OUTGOING_PHONES] = { 0 };
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
@@ -89,6 +95,8 @@ typedef struct {
 	screenbuffer_t scr;       /**< Screenbuffer for saving screen
 	                               contents and related settings. */
 } console_t;
+
+
 
 /** Array of data for virtual consoles */
 static console_t consoles[CONSOLE_COUNT];
@@ -400,6 +408,19 @@ static void change_console(console_t *cons)
 	}
 }
 
+static void close_driver_phone(ipc_callid_t hash)
+{
+	int i;
+	for (i = 0; i < MAX_IPC_OUTGOING_PHONES; i++) {
+		if (driver_phones[i] == hash) {
+			printf("Device %" PRIxn " gone.\n", hash);
+			driver_phones[i] = 0;
+			async_hangup(i);
+			return;
+		}
+	}
+}
+
 /** Handler for keyboard */
 static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -414,6 +435,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
+			close_driver_phone(iid);
 			return;
 		case KBD_EVENT:
 			/* Got event from keyboard driver. */
@@ -457,6 +479,7 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
+			close_driver_phone(iid);
 			return;
 		case MEVENT_BUTTON:
 			if (IPC_GET_ARG1(call) == 1) {
@@ -714,6 +737,27 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
+static int async_connect_to_me_hack(int phone, sysarg_t arg1, sysarg_t arg2,
+sysarg_t arg3, async_client_conn_t client_receiver, ipc_callid_t *hash)
+{
+	sysarg_t task_hash;
+	sysarg_t phone_hash;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	    NULL, NULL, NULL, &task_hash, &phone_hash);
+	if (rc != EOK)
+		return rc;
+
+	if (client_receiver != NULL)
+		async_new_connection(task_hash, phone_hash, phone_hash, NULL,
+		    client_receiver);
+
+	if (hash != NULL) {
+		*hash = phone_hash;
+	}
+
+	return EOK;
+}
+
 static int connect_keyboard_or_mouse(const char *devname,
     async_client_conn_t handler, const char *path)
 {
@@ -728,7 +772,9 @@ static int connect_keyboard_or_mouse(const char *devname,
 		return phone;
 	}
 	
-	int rc = async_connect_to_me(phone, SERVICE_CONSOLE, 0, 0, handler);
+	ipc_callid_t hash;
+	int rc = async_connect_to_me_hack(phone, SERVICE_CONSOLE, 0, phone,
+	    handler, &hash);
 	if (rc != EOK) {
 		printf(NAME ": " \
 		    "Failed to create callback from input device: %s.\n",
@@ -736,7 +782,9 @@ static int connect_keyboard_or_mouse(const char *devname,
 		return rc;
 	}
 	
-	printf(NAME ": found %s \"%s\".\n", devname, path);
+	driver_phones[phone] = hash;
+
+	printf(NAME ": found %s \"%s\" (%" PRIxn ").\n", devname, path, hash);
 
 	return phone;
 }
