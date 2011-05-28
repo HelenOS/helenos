@@ -532,6 +532,32 @@ int usb_device_create(ddf_dev_t *ddf_dev,
 	return EOK;
 }
 
+/** Destroy instance of a USB device.
+ *
+ * @param dev Device to be destroyed.
+ */
+void usb_device_destroy(usb_device_t *dev)
+{
+	if (dev == NULL) {
+		return;
+	}
+
+	/* Ignore errors and hope for the best. */
+	usb_device_destroy_pipes(dev->ddf_dev, dev->pipes, dev->pipes_count);
+	if (dev->descriptors.configuration != NULL) {
+		free(dev->descriptors.configuration);
+	}
+
+	if (dev->alternate_interfaces != NULL) {
+		if (dev->alternate_interfaces->alternatives != NULL) {
+			free(dev->alternate_interfaces->alternatives);
+		}
+		free(dev->alternate_interfaces);
+	}
+
+	free(dev);
+}
+
 /**
  * @}
  */
