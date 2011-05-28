@@ -98,7 +98,7 @@ static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
-	usb_log_debug2("hid_dev: %p, Max input report size (%d).\n",
+	usb_log_debug2("hid_dev: %p, Max input report size (%zu).\n",
 	    hid_dev, hid_dev->max_input_report_size);
 	
 	return hid_dev->max_input_report_size;
@@ -225,7 +225,7 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 	
-	usb_log_debug("HID function created. Handle: %d\n", fun->handle);
+	usb_log_debug("HID function created. Handle: %" PRIun "\n", fun->handle);
 	
 	return EOK;
 }

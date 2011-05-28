@@ -404,7 +404,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			if (iface_method_ptr == NULL) {
 				/* The interface has not such method */
 				printf("%s: driver_connection_gen error - "
-				    "invalid interface method (%d).\n",
+				    "invalid interface method "
+				    "(index %" PRIun ").\n",
 				    driver->name, iface_method_idx);
 				async_answer_0(callid, ENOTSUP);
 				break;
