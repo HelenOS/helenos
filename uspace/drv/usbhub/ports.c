@@ -201,19 +201,17 @@ static void usb_hub_removed_device(
 	 */
 
 	//close address
-	if(hub->ports[port].attached_device.address >= 0){
-		/*uncomment this code to use it when DDF allows device removal
-		opResult = usb_hc_unregister_device(
-			&hub->connection,
-			hub->attached_devs[port].address);
-		if(opResult != EOK) {
-			dprintf(USB_LOG_LEVEL_WARNING, "could not release "
-				"address of "
-			    "removed device: %d", opResult);
-		}
-		hub->attached_devs[port].address = 0;
-		hub->attached_devs[port].handle = 0;
-		 */
+
+	usb_hub_port_t *the_port = hub->ports + port;
+
+	fibril_mutex_lock(&hub->port_mutex);
+
+	if (the_port->attached_device.address >= 0) {
+		usb_log_warning("Device unplug on `%s' (port %zu): " \
+		    "not implemented.\n", hub->usb_device->ddf_dev->name,
+		    (size_t) port);
+		the_port->attached_device.address = -1;
+		the_port->attached_device.handle = 0;
 	} else {
 		usb_log_warning("Device removed before being registered.\n");
 
@@ -222,13 +220,14 @@ static void usb_hub_removed_device(
 		 * We will announce a failed port reset to unblock the
 		 * port reset callback from new device wrapper.
 		 */
-		usb_hub_port_t *the_port = hub->ports + port;
 		fibril_mutex_lock(&the_port->reset_mutex);
 		the_port->reset_completed = true;
 		the_port->reset_okay = false;
 		fibril_condvar_broadcast(&the_port->reset_cv);
 		fibril_mutex_unlock(&the_port->reset_mutex);
 	}
+
+	fibril_mutex_unlock(&hub->port_mutex);
 }
 
 
@@ -395,8 +394,10 @@ static int add_device_phase1_worker_fibril(void *arg)
 		goto leave;
 	}
 
+	fibril_mutex_lock(&data->hub->port_mutex);
 	data->hub->ports[data->port].attached_device.handle = child_handle;
 	data->hub->ports[data->port].attached_device.address = new_address;
+	fibril_mutex_unlock(&data->hub->port_mutex);
 
 	usb_log_info("Detected new device on `%s' (port %zu), "
 	    "address %d (handle %" PRIun ").\n",

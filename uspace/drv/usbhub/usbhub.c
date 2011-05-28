@@ -200,6 +200,10 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 	result->control_pipe = &usb_dev->ctrl_pipe;
 	result->is_default_address_used = false;
 
+	result->ports = NULL;
+	result->port_count = (size_t) -1;
+	fibril_mutex_initialize(&result->port_mutex);
+
 	fibril_mutex_initialize(&result->pending_ops_mutex);
 	fibril_condvar_initialize(&result->pending_ops_cv);
 	result->pending_ops_count = 0;

@@ -60,6 +60,8 @@ struct usb_hub_info_t{
 	/** attached device handles, for each port one */
 	usb_hub_port_t *ports;
 
+	fibril_mutex_t port_mutex;
+
 	/** connection to hcd */
 	usb_hc_connection_t connection;
 
