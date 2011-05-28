@@ -486,6 +486,29 @@ static void usb_hub_polling_terminated_callback(usb_device_t * device,
 	assert(hub);
 
 	fibril_mutex_lock(&hub->pending_ops_mutex);
+
+	/* The device is dead. However there might be some pending operations
+	 * that we need to wait for.
+	 * One of them is device adding in progress.
+	 * The respective fibril is probably waiting for status change
+	 * in port reset (port enable) callback.
+	 * Such change would never come (otherwise we would not be here).
+	 * Thus, we would flush all pending port resets.
+	 */
+	if (hub->pending_ops_count > 0) {
+		fibril_mutex_lock(&hub->port_mutex);
+		size_t port;
+		for (port = 0; port < hub->port_count; port++) {
+			usb_hub_port_t *the_port = hub->ports + port;
+			fibril_mutex_lock(&the_port->reset_mutex);
+			the_port->reset_completed = true;
+			the_port->reset_okay = false;
+			fibril_condvar_broadcast(&the_port->reset_cv);
+			fibril_mutex_unlock(&the_port->reset_mutex);
+		}
+		fibril_mutex_unlock(&hub->port_mutex);
+	}
+	/* And now wait for them. */
 	while (hub->pending_ops_count > 0) {
 		fibril_condvar_wait(&hub->pending_ops_cv,
 		    &hub->pending_ops_mutex);
