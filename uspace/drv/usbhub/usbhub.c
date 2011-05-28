@@ -71,7 +71,7 @@ static int usb_process_hub_local_power_change(usb_hub_info_t * hub_info,
 
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
 
-static void usb_hub_polling_terminted_callback(usb_device_t * device,
+static void usb_hub_polling_terminated_callback(usb_device_t * device,
     bool was_error, void * data);
 
 
@@ -199,6 +199,10 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 	result->status_change_pipe = usb_dev->pipes[0].pipe;
 	result->control_pipe = &usb_dev->ctrl_pipe;
 	result->is_default_address_used = false;
+
+	fibril_mutex_initialize(&result->pending_ops_mutex);
+	fibril_condvar_initialize(&result->pending_ops_cv);
+	result->pending_ops_count = 0;
 	return result;
 }
 
@@ -339,7 +343,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 
 	rc = usb_device_auto_poll(hub_info->usb_device, 0,
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
-	    usb_hub_polling_terminted_callback, hub_info);
+	    usb_hub_polling_terminated_callback, hub_info);
 	if (rc != EOK) {
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(rc));
@@ -472,12 +476,20 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info) {
  * @param was_error indicates that the fibril is stoped due to an error
  * @param data pointer to usb_hub_info_t structure
  */
-static void usb_hub_polling_terminted_callback(usb_device_t * device,
+static void usb_hub_polling_terminated_callback(usb_device_t * device,
     bool was_error, void * data){
-	usb_hub_info_t * hub_info = data;
-	if(!hub_info) return;
-	free(hub_info->ports);
-	free(hub_info);
+	usb_hub_info_t * hub = data;
+	assert(hub);
+
+	fibril_mutex_lock(&hub->pending_ops_mutex);
+	while (hub->pending_ops_count > 0) {
+		fibril_condvar_wait(&hub->pending_ops_cv,
+		    &hub->pending_ops_mutex);
+	}
+	fibril_mutex_unlock(&hub->pending_ops_mutex);
+
+	free(hub->ports);
+	free(hub);
 }
 
 

@@ -406,6 +406,13 @@ static int add_device_phase1_worker_fibril(void *arg)
 leave:
 	free(arg);
 
+	fibril_mutex_lock(&data->hub->pending_ops_mutex);
+	assert(data->hub->pending_ops_count > 0);
+	data->hub->pending_ops_count--;
+	fibril_condvar_signal(&data->hub->pending_ops_cv);
+	fibril_mutex_unlock(&data->hub->pending_ops_mutex);
+
+
 	return EOK;
 }
 
@@ -451,6 +458,9 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
 		free(data);
 		return ENOMEM;
 	}
+	fibril_mutex_lock(&hub->pending_ops_mutex);
+	hub->pending_ops_count++;
+	fibril_mutex_unlock(&hub->pending_ops_mutex);
 	fibril_add_ready(fibril);
 
 	return EOK;
