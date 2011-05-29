@@ -168,11 +168,15 @@ $(BINUTILS_CONFIGURED): $(REDIST_DIR)/configure $(REDIST_DETECT)
 # Clean binutils.
 # Unpatch binutils.
 # Delete generated scripts.
-clean:
+clean: $(BINUTILS_PATCH)
 	rm -f as ld
-	make -C $(REDIST_DIR) distclean
-	./intrusive.sh undo $(REDIST_DIR)
-	rm -f $(BINUTILS_PATCHED)
+	if [ -e $(REDIST_DIR)/Makefile ]; then
+		make -C $(REDIST_DIR) distclean
+	fi
+	if [ -e $(BINUTILS_PATCHED) ]; then
+		./intrusive.sh undo $(REDIST_DIR)
+		rm -f $(BINUTILS_PATCHED)
+	fi
 	rm -f $(TOOLCHAIN)
 	rm -f $(COMMON_MAKEFILE_PATCHED)
 
