@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2005 Jakub Vana
- * Copyright (c) 2005 Jakub Jermar
  * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
