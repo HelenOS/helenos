@@ -72,7 +72,7 @@ static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
 static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info);
 
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
-    bool was_error, void * data);
+    bool was_error, void *data);
 
 
 //*********************************************
