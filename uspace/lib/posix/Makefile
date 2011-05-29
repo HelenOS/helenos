@@ -38,6 +38,7 @@ PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
+	string.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
