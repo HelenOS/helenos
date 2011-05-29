@@ -54,8 +54,7 @@ typedef uint16_t port_status_t;
 #define STATUS_SUSPEND   (1 << 12)
 
 /** UHCI port structure */
-typedef struct uhci_port
-{
+typedef struct uhci_port {
 	const char *id_string;
 	port_status_t *address;
 	unsigned number;
@@ -67,8 +66,8 @@ typedef struct uhci_port
 } uhci_port_t;
 
 int uhci_port_init(
-  uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, ddf_dev_t *rh);
+    uhci_port_t *port, port_status_t *address, unsigned number,
+    unsigned usec, ddf_dev_t *rh);
 
 void uhci_port_fini(uhci_port_t *port);
 
