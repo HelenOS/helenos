@@ -60,13 +60,31 @@ COMMON_MAKEFILE_NATIVE = $(USPACE_PREFIX)/Makefile.common
 COMMON_MAKEFILE_PATCHED = ./Makefile.common
 
 # AWK script which generates patched Makefile.common.
-PATCH_SCRIPT = ./patch.awk
+MAKEFILE_PATCH = ./patch.awk
 
 # Compilers that can be used to build binutils.
 SUPPORTED_COMPILERS = gcc_cross gcc_native
 
 # Patched Makefile.common for ported user space applications.
 include $(COMMON_MAKEFILE_PATCHED)
+
+# Patch $PATH to intercept toolchain calls.
+PATH := $(PWD):$(PATH)
+
+# Shell script for false toolchain generation.
+TOOLCHAIN_SCRIPT = ./toolchain.sh
+
+# False toolchain.
+TOOLCHAIN = ./gcc ./as ./ar ./ranlib ./ld ./objdump ./objcopy ./strip
+
+# Stamp indicating whether the binutils source tree is patched.
+BINUTILS_PATCHED = ./done
+
+# Shell script for instrusive patches of binutils source tree.
+BINUTILS_PATCH = ./intrusive.sh
+
+# Detection whether the binutils are already configured.
+BINUTILS_CONFIGURED = $(REDIST_DIR)/Makefile
 
 # Map the HelenOS target to binutils target.
 ifeq ($(PLATFORM),amd64)
@@ -98,44 +116,23 @@ CONF_FLAGS = --disable-nls --disable-shared --enable-static \
 # Binutils make targets.
 MAKE_TARGETS = all-gas all-ld
 
-# Patch native Makefile.common.
-# Download and extract binutils.
 # Check presence of gcc compiler.
-# Patch $PATH to intercept toolchain calls.
-# Generate false toolchain.
-# Patch binutils.
-# Configure binutils for target architecture.
 # Make binutils.
 # Copy binaries.
-all: $(COMMON_MAKEFILE_PATCHED) all_ $(REDIST_FILENAME) $(REDIST_DETECT)
 ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
-	OLDPATH = $(PATH)
-	PATH = $(PWD):$(PATH)
+all: $(COMMON_MAKEFILE_PATCHED) all_ $(TOOLCHAIN) $(BINUTILS_PATCHED) \
+		$(BINUTILS_CONFIGURED) $(REDIST_DETECT)
 	export PATH
-	./toolchain.sh gcc $(CC) '$(CFLAGS)'
-	./toolchain.sh as $(AS)
-	./toolchain.sh ar $(AR)
-	./toolchain.sh ranlib
-	./toolchain.sh ld $(LD) '$(LFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS)'
-	./toolchain.sh objdump $(OBJDUMP)
-	./toolchain.sh objcopy $(OBJCOPY)
-	./toolchain.sh strip $(STRIP)
-	./intrusive.sh do $(REDIST_DIR)
-	ORIG_DIR = $(subst $(space),\ ,$(PWD))
-	cd $(REDIST_DIR)
-	./configure --target=$(TARGET) $(CONF_FLAGS)
-	make $(MAKE_TARGETS)
-	cd $(ORIG_DIR)
-	cp $(REDIST_DIR)/gas/as-new ./as
-	cp $(REDIST_DIR)/ld/ld-new ./ld
-	PATH = $(OLDPATH)
-	export PATH
+	make -C $(REDIST_DIR) $(MAKE_TARGETS)
+	cp -f $(REDIST_DIR)/gas/as-new ./as
+	cp -f $(REDIST_DIR)/ld/ld-new ./ld
 else
-	echo 'Skipped: Cannot build binutils with unsupported compiler.'
+all:
+	# Skipped: Cannot build binutils with unsupported compiler.
 endif
 
 # Create patched Makefile.common from native Makefile.common.
-$(COMMON_MAKEFILE_PATCHED): $(PATCH_SCRIPT) $(COMMON_MAKEFILE_NATIVE)
+$(COMMON_MAKEFILE_PATCHED): $(MAKEFILE_PATCH) $(COMMON_MAKEFILE_NATIVE)
 	awk -f $^ > $@
 
 # Download binutils redistributable package.
@@ -147,17 +144,35 @@ $(REDIST_DETECT): $(REDIST_FILENAME)
 	tar -x -j -f $<
 	mv -f $(REDIST_NAME) $(REDIST_DIR)
 
+# Generate false toolchain scripts.
+$(TOOLCHAIN): $(TOOLCHAIN_SCRIPT)
+	$^ gcc $(CC) '$(CFLAGS)'
+	$^ as $(AS)
+	$^ ar $(AR)
+	$^ ranlib
+	$^ ld $(LD) '$(LFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS)'
+	$^ objdump $(OBJDUMP)
+	$^ objcopy $(OBJCOPY)
+	$^ strip $(STRIP)
+
+# Patch binutils source tree.
+$(BINUTILS_PATCHED): $(BINUTILS_PATCH) $(REDIST_DETECT)
+	$^ do $(REDIST_DIR)
+	touch $@
+
+# Configure binutils.
+$(BINUTILS_CONFIGURED): $(REDIST_DIR)/configure $(REDIST_DETECT)
+	$^ --target=$(TARGET) $(CONF_FLAGS)
+
 # Delete binaries.
 # Clean binutils.
 # Unpatch binutils.
 # Delete generated scripts.
 clean:
 	rm -f as ld
-	ORIG_DIR = $(subst $(space),\ ,$(PWD))
-	cd $(REDIST_DIR)
-	make distclean
-	cd $(ORIG_DIR)
+	make -C $(REDIST_DIR) distclean
 	./intrusive.sh undo $(REDIST_DIR)
-	rm -f gcc as ar ranlib ld objdump objcopy strip
+	rm -f $(BINUTILS_PATCHED)
+	rm -f $(TOOLCHAIN)
 	rm -f $(COMMON_MAKEFILE_PATCHED)
 
