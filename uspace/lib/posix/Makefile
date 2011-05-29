@@ -29,8 +29,18 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libposix
+SLIBRARY = libposix.so.0.0
+LSONAME = libposix.so0
+
+INCLUDE_LIBC = ./libc
+
+PRE_DEPEND = $(INCLUDE_LIBC)
+EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
+
+$(INCLUDE_LIBC): ../c/include
+	ln -s -f -n $^ $@
 
