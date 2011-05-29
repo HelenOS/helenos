@@ -38,6 +38,7 @@
 #include <usb/classes/classes.h>
 #include <usb/hid/hid.h>
 #include <usb/dev/request.h>
+#include <usb/hid/request.h>
 #include <errno.h>
 
 /** Mouse polling endpoint description for boot protocol subclass. */
@@ -125,10 +126,8 @@ int usb_mouse_create(usb_device_t *dev)
 	}
 	
 	/* Set the boot protocol. */
-	rc = usb_control_request_set(&dev->ctrl_pipe,
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    USB_HIDREQ_SET_PROTOCOL, USB_HID_PROTOCOL_BOOT, dev->interface_no,
-	    NULL, 0);
+	rc = usbhid_req_set_protocol(&dev->ctrl_pipe, dev->interface_no,
+	    USB_HID_PROTOCOL_BOOT);
 	if (rc != EOK) {
 		goto leave;
 	}

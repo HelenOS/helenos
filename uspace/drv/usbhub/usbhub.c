@@ -514,6 +514,8 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 	}
 	fibril_mutex_unlock(&hub->pending_ops_mutex);
 
+	usb_device_destroy(hub->usb_device);
+
 	free(hub->ports);
 	free(hub);
 }

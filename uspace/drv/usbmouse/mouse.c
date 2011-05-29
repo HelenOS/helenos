@@ -116,6 +116,8 @@ void usb_mouse_polling_ended_callback(usb_device_t *dev,
 
 	async_hangup(mouse->console_phone);
 	mouse->console_phone = -1;
+
+	usb_device_destroy(dev);
 }
 
 /**
