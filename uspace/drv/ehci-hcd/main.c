@@ -87,7 +87,7 @@ if (ret != EOK) { \
 
 	ret = pci_disable_legacy(device, reg_base, reg_size, irq);
 	CHECK_RET_RETURN(ret,
-	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
+	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
 	ddf_fun_t *hc_fun = ddf_fun_create(device, fun_exposed, "ehci-hc");
 	if (hc_fun == NULL) {
