@@ -210,7 +210,9 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 	int only_page;
 
 	if(report_path->report_id != path->report_id) {
-		return 1;
+		if(path->report_id != 0) {
+			return 1;
+		}
 	}
 
 	// Empty path match all others

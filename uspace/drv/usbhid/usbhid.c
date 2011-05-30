@@ -77,20 +77,23 @@ static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 	
+	assert(hid_dev->subdriver_count >= 0);
+	
 	// set the init callback
-	hid_dev->subdrivers[0].init = usb_kbd_init;
+	hid_dev->subdrivers[hid_dev->subdriver_count].init = usb_kbd_init;
 	
 	// set the polling callback
-	hid_dev->subdrivers[0].poll = usb_kbd_polling_callback;
+	hid_dev->subdrivers[hid_dev->subdriver_count].poll = 
+	    usb_kbd_polling_callback;
 	
 	// set the polling ended callback
-	hid_dev->subdrivers[0].poll_end = NULL;
+	hid_dev->subdrivers[hid_dev->subdriver_count].poll_end = NULL;
 	
 	// set the deinit callback
-	hid_dev->subdrivers[0].deinit = usb_kbd_deinit;
+	hid_dev->subdrivers[hid_dev->subdriver_count].deinit = usb_kbd_deinit;
 	
 	// set subdriver count
-	hid_dev->subdriver_count = 1;
+	++hid_dev->subdriver_count;
 	
 	return EOK;
 }
@@ -107,20 +110,23 @@ static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 	
+	assert(hid_dev->subdriver_count >= 0);
+	
 	// set the init callback
-	hid_dev->subdrivers[0].init = usb_mouse_init;
+	hid_dev->subdrivers[hid_dev->subdriver_count].init = usb_mouse_init;
 	
 	// set the polling callback
-	hid_dev->subdrivers[0].poll = usb_mouse_polling_callback;
+	hid_dev->subdrivers[hid_dev->subdriver_count].poll = 
+	    usb_mouse_polling_callback;
 	
 	// set the polling ended callback
-	hid_dev->subdrivers[0].poll_end = NULL;
+	hid_dev->subdrivers[hid_dev->subdriver_count].poll_end = NULL;
 	
 	// set the deinit callback
-	hid_dev->subdrivers[0].deinit = usb_mouse_deinit;
+	hid_dev->subdrivers[hid_dev->subdriver_count].deinit = usb_mouse_deinit;
 	
 	// set subdriver count
-	hid_dev->subdriver_count = 1;
+	++hid_dev->subdriver_count;
 	
 	return EOK;
 }
@@ -137,20 +143,24 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 	
+	assert(hid_dev->subdriver_count >= 0);
+	
 	// set the init callback
-	hid_dev->subdrivers[0].init = usb_generic_hid_init;
+	hid_dev->subdrivers[hid_dev->subdriver_count].init =
+	    usb_generic_hid_init;
 	
 	// set the polling callback
-	hid_dev->subdrivers[0].poll = usb_generic_hid_polling_callback;
+	hid_dev->subdrivers[hid_dev->subdriver_count].poll = 
+	    usb_generic_hid_polling_callback;
 	
 	// set the polling ended callback
-	hid_dev->subdrivers[0].poll_end = NULL;
+	hid_dev->subdrivers[hid_dev->subdriver_count].poll_end = NULL;
 	
 	// set the deinit callback
-	hid_dev->subdrivers[0].deinit = NULL;
+	hid_dev->subdrivers[hid_dev->subdriver_count].deinit = NULL;
 	
 	// set subdriver count
-	hid_dev->subdriver_count = 1;
+	++hid_dev->subdriver_count;
 	
 	return EOK;
 }
@@ -195,30 +205,81 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		++i;
 	}
 	
-	if (mapping->report_id >= 0) {
-		usb_hid_report_path_set_report_id(usage_path, 
-		    mapping->report_id);
-	}
+//	if (mapping->report_id >= 0) {
+//		usb_hid_report_path_set_report_id(usage_path, 
+//		    mapping->report_id);
+//	}
 	
 	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
 //	size_t size = usb_hid_report_size(hid_dev->report, 0, 
 //	    USB_HID_REPORT_TYPE_INPUT);
-	size_t size = 0;
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling (hid_dev->report,
-		NULL, usage_path, mapping->compare, USB_HID_REPORT_TYPE_INPUT);
-	while(field != NULL) {
-		size++;
-		field = usb_hid_report_get_sibling (hid_dev->report,
-					field, usage_path, mapping->compare, 
-		            USB_HID_REPORT_TYPE_INPUT);
-	}
+//	size_t size = 0;
 	
-	usb_log_debug("Size of the input report: %zuB\n", size);
+	bool matches = false;
+
+//	usb_hid_report_description_t *report_des = 
+//		usb_hid_report_find_description(hid_dev->report,
+//		mapping->report_id, USB_HID_REPORT_TYPE_INPUT);
+	uint8_t report_id = mapping->report_id;
+
+	/*while(report_des != NULL)*/do {
+
+//		if((mapping->report_id) == 0 && (report_des->report_id != 0)) {
+//			usb_hid_report_path_set_report_id(usage_path,
+//				report_des->report_id);
+//		}
+					     
+		usb_log_debug("Trying report id %u\n", report_id);
+		
+		if (report_id != 0) {
+			usb_hid_report_path_set_report_id(usage_path,
+				report_id);
+		}
+
+		usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+		    hid_dev->report,
+		    NULL, usage_path, mapping->compare, 
+		    USB_HID_REPORT_TYPE_INPUT);
+		
+		usb_log_debug("Field: %p\n", field);
+
+		if (field != NULL) {
+//			size++;
+//			field = usb_hid_report_get_sibling(hid_dev->report,
+//			    field, usage_path, mapping->compare, 
+//			    USB_HID_REPORT_TYPE_INPUT);
+			matches = true;
+			break;
+		}
+		
+		report_id = usb_hid_get_next_report_id(
+		    hid_dev->report, report_id,
+		    USB_HID_REPORT_TYPE_INPUT);
+
+//		if((mapping->report_id == 0) && (report_des->report_id != 0)) {
+//			uint8_t report_id = usb_hid_get_next_report_id(
+//				hid_dev->report, report_des->report_id,
+//			        USB_HID_REPORT_TYPE_INPUT);
+
+//			if(report_id == 0) {
+//				break;
+//			}
+
+//	 		report_des = usb_hid_report_find_description(
+//				hid_dev->report, report_id, 
+//				USB_HID_REPORT_TYPE_INPUT);
+//		}
+//		else {
+//			break;
+//		}
+	} while (!matches && report_id != 0);
+	
+//	usb_log_debug("Size of the input report: %zu\n", size);
 	usb_hid_report_path_free(usage_path);
 	
-	return (size > 0);
+	return matches;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -367,10 +428,12 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 	size_t max_size = 0;
 	
 	do {
+		usb_log_debug("Getting size of the report.\n");
 		size = usb_hid_report_byte_size(hid_dev->report, report_id, 
 		    USB_HID_REPORT_TYPE_INPUT);
 		usb_log_debug("Report ID: %u, size: %zu\n", report_id, size);
 		max_size = (size > max_size) ? size : max_size;
+		usb_log_debug("Getting next report ID\n");
 		report_id = usb_hid_get_next_report_id(hid_dev->report, 
 		    report_id, USB_HID_REPORT_TYPE_INPUT);
 	} while (report_id != 0);
@@ -500,6 +563,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		usb_log_debug("Subdriver count: %d\n", 
 		    hid_dev->subdriver_count);
 		//usb_hid_free(&hid_dev);
+		
 	} else {
 		bool ok = false;
 		
@@ -526,11 +590,16 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		rc = (ok) ? EOK : -1;	// what error to report
 	}
 	
-	// save max input report size and allocate space for the report
-	rc = usb_hid_init_report(hid_dev);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize input report buffer.\n");
+	
+	if (rc == EOK) {
+		// save max input report size and allocate space for the report
+		rc = usb_hid_init_report(hid_dev);
+		if (rc != EOK) {
+			usb_log_error("Failed to initialize input report buffer"
+			    ".\n");
+		}
 	}
+	
 	
 	return rc;
 }
@@ -553,33 +622,13 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	assert(hid_dev->input_report != NULL);
 	usb_log_debug("Max input report size: %zu, buffer size: %zu\n",
 	    hid_dev->max_input_report_size, buffer_size);
-	assert(hid_dev->max_input_report_size >= buffer_size);
-	
-//	if (/*!allocated*/
-//	    /*|| *//*hid_dev->input_report_size < buffer_size*/) {
-//		uint8_t *input_old = hid_dev->input_report;
-//		uint8_t *input_new = (uint8_t *)malloc(buffer_size);
-		
-//		if (input_new == NULL) {
-//			usb_log_error("Failed to allocate space for input "
-//			    "buffer. This event may not be reported\n");
-//			memset(hid_dev->input_report, 0, 
-//			    hid_dev->input_report_size);
-//		} else {
-//			memcpy(input_new, input_old, 
-//			    hid_dev->input_report_size);
-//			hid_dev->input_report = input_new;
-//			if (allocated) {
-//				free(input_old);
-//			}
-//			usb_hid_new_report();
-//		}
-//	}
-	
-	/*! @todo This should probably be atomic. */
-	memcpy(hid_dev->input_report, buffer, buffer_size);
-	hid_dev->input_report_size = buffer_size;
-	usb_hid_new_report(hid_dev);
+	//assert(hid_dev->max_input_report_size >= buffer_size);
+	if (hid_dev->max_input_report_size >= buffer_size) {
+		/*! @todo This should probably be atomic. */
+		memcpy(hid_dev->input_report, buffer, buffer_size);
+		hid_dev->input_report_size = buffer_size;
+		usb_hid_new_report(hid_dev);
+	}
 	
 	bool cont = false;
 	
