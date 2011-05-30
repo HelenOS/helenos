@@ -264,11 +264,6 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	r = mfs_instance_get(handle, &inst);
 	on_error(r, return r);
 
-	if (flags & L_DIRECTORY) {
-		/*Not yet supported*/
-		return ENOTSUP;
-	}
-
 	/*Alloc a new inode*/
 	r = mfs_alloc_bit(inst, &inum, BMAP_INODE);
 	on_error(r, return r);
@@ -293,7 +288,11 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 		goto out_err_2;
 	}
 
-	ino_i->i_mode = S_IFREG;
+	if (flags & L_DIRECTORY)
+		ino_i->i_mode = S_IFDIR;
+	else
+		ino_i->i_mode = S_IFREG;
+
 	ino_i->i_nlinks = 1;
 	ino_i->i_uid = 0;
 	ino_i->i_gid = 0;
@@ -526,7 +525,15 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return ENAMETOOLONG;
 
 	int r = insert_dentry(parent, name, child->ino_i->index);
+	on_error(r, goto exit_error);
 
+	if (S_ISDIR(child->ino_i->i_mode)) {
+		r = insert_dentry(child, ".", child->ino_i->index);
+		on_error(r, goto exit_error);
+		r = insert_dentry(child, "..", parent->ino_i->index);
+	}
+
+exit_error:
 	return r;
 }
 

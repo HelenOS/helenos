@@ -153,7 +153,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 	/*Search for an empty dentry*/
 
-	for (i = 2; ; ++i) {
+	for (i = 0; ; ++i) {
 		r = read_directory_entry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
