@@ -46,7 +46,6 @@
 #include "usbhub_private.h"
 #include "port_status.h"
 
-
 /** Information for fibril for device discovery. */
 struct add_device_phase1 {
 	usb_hub_info_t *hub;
@@ -64,19 +63,19 @@ static const unsigned int non_handled_changes_count = 2;
  * port status changes that are not explicitly handled by
  * any function here and must be cleared by hand
  */
-static const int non_handled_changes[] =  {
+static const int non_handled_changes[] = {
 	USB_HUB_FEATURE_C_PORT_ENABLE,
 	USB_HUB_FEATURE_C_PORT_SUSPEND
 };
 
 static void usb_hub_removed_device(
-	usb_hub_info_t * hub, uint16_t port);
+    usb_hub_info_t *hub, uint16_t port);
 
-static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
-	uint16_t port, uint32_t status);
+static void usb_hub_port_reset_completed(usb_hub_info_t *hub,
+    uint16_t port, uint32_t status);
 
-static void usb_hub_port_over_current(usb_hub_info_t * hub,
-	uint16_t port, uint32_t status);
+static void usb_hub_port_over_current(usb_hub_info_t *hub,
+    uint16_t port, uint32_t status);
 
 static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
     usb_port_status_t *status);
@@ -95,9 +94,9 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-void usb_hub_process_interrupt(usb_hub_info_t * hub,
-	uint16_t port) {
-	usb_log_debug("interrupt at port %zu\n", (size_t) port);
+void usb_hub_process_interrupt(usb_hub_info_t *hub,
+    uint16_t port) {
+	usb_log_debug("Interrupt at port %zu\n", (size_t) port);
 	//determine type of change
 	//usb_pipe_t *pipe = hub->control_pipe;
 
@@ -133,51 +132,51 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	//over current
 	if (usb_port_is_status(status, USB_HUB_FEATURE_C_PORT_OVER_CURRENT)) {
 		//check if it was not auto-resolved
-		usb_log_debug("overcurrent change on port\n");
+		usb_log_debug("Overcurrent change on port\n");
 		usb_hub_port_over_current(hub, port, status);
 	}
 	//port reset
 	if (usb_port_is_status(status, USB_HUB_FEATURE_C_PORT_RESET)) {
 		usb_hub_port_reset_completed(hub, port, status);
 	}
-	usb_log_debug("status x%x : %d\n ", status, status);
+	usb_log_debug("Status x%x : %d\n ", status, status);
 
 	usb_port_status_set_bit(
-	    &status, USB_HUB_FEATURE_C_PORT_CONNECTION,false);
+	    &status, USB_HUB_FEATURE_C_PORT_CONNECTION, false);
 	usb_port_status_set_bit(
-	    &status, USB_HUB_FEATURE_C_PORT_RESET,false);
+	    &status, USB_HUB_FEATURE_C_PORT_RESET, false);
 	usb_port_status_set_bit(
-	    &status, USB_HUB_FEATURE_C_PORT_OVER_CURRENT,false);
-	
+	    &status, USB_HUB_FEATURE_C_PORT_OVER_CURRENT, false);
+
 	//clearing not yet handled changes	
 	unsigned int feature_idx;
-	for(feature_idx = 0;feature_idx<non_handled_changes_count;
-	    ++feature_idx){
+	for (feature_idx = 0;
+	    feature_idx < non_handled_changes_count;
+	    ++feature_idx) {
 		unsigned int bit_idx = non_handled_changes[feature_idx];
-		if(status & (1<<bit_idx)){
+		if (status & (1 << bit_idx)) {
 			usb_log_info(
-			    "there was not yet handled change on port %d: %d"
+			    "There was not yet handled change on port %d: %d"
 			    ";clearing it\n",
-			port, bit_idx);
+			    port, bit_idx);
 			int opResult = usb_hub_clear_port_feature(
 			    hub->control_pipe,
 			    port, bit_idx);
 			if (opResult != EOK) {
 				usb_log_warning(
-				    "could not clear port flag %d: %d\n",
-				    bit_idx, opResult
+				    "Could not clear port flag %d: %s\n",
+				    bit_idx, str_error(opResult)
 				    );
 			}
 			usb_port_status_set_bit(
-			    &status, bit_idx,false);
+			    &status, bit_idx, false);
 		}
 	}
-	if(status>>16){
-		usb_log_info("there is still some unhandled change %X\n",
+	if (status >> 16) {
+		usb_log_info("There is still some unhandled change %X\n",
 		    status);
 	}
 }
-
 
 /**
  * routine called when a device on port has been removed
@@ -189,31 +188,29 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
  * @param port port number, starting from 1
  */
 static void usb_hub_removed_device(
-	usb_hub_info_t * hub, uint16_t port) {
+    usb_hub_info_t *hub, uint16_t port) {
 
 	int opResult = usb_hub_clear_port_feature(hub->control_pipe,
-		port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+	    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
 	if (opResult != EOK) {
-		usb_log_warning("could not clear port-change-connection flag\n");
+		usb_log_warning("Could not clear port-change-connection flag\n");
 	}
 	/** \TODO remove device from device manager - not yet implemented in
 	 * devide manager
 	 */
 
 	//close address
-	if(hub->ports[port].attached_device.address >= 0){
-		/*uncomment this code to use it when DDF allows device removal
-		opResult = usb_hc_unregister_device(
-			&hub->connection,
-			hub->attached_devs[port].address);
-		if(opResult != EOK) {
-			dprintf(USB_LOG_LEVEL_WARNING, "could not release "
-				"address of "
-			    "removed device: %d", opResult);
-		}
-		hub->attached_devs[port].address = 0;
-		hub->attached_devs[port].handle = 0;
-		 */
+
+	usb_hub_port_t *the_port = hub->ports + port;
+
+	fibril_mutex_lock(&hub->port_mutex);
+
+	if (the_port->attached_device.address >= 0) {
+		usb_log_warning("Device unplug on `%s' (port %zu): " \
+		    "not implemented.\n", hub->usb_device->ddf_dev->name,
+		    (size_t) port);
+		the_port->attached_device.address = -1;
+		the_port->attached_device.handle = 0;
 	} else {
 		usb_log_warning("Device removed before being registered.\n");
 
@@ -222,15 +219,15 @@ static void usb_hub_removed_device(
 		 * We will announce a failed port reset to unblock the
 		 * port reset callback from new device wrapper.
 		 */
-		usb_hub_port_t *the_port = hub->ports + port;
 		fibril_mutex_lock(&the_port->reset_mutex);
 		the_port->reset_completed = true;
 		the_port->reset_okay = false;
 		fibril_condvar_broadcast(&the_port->reset_cv);
 		fibril_mutex_unlock(&the_port->reset_mutex);
 	}
-}
 
+	fibril_mutex_unlock(&hub->port_mutex);
+}
 
 /**
  * Process port reset change
@@ -241,8 +238,8 @@ static void usb_hub_removed_device(
  * @param port
  * @param status
  */
-static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
-	uint16_t port, uint32_t status){
+static void usb_hub_port_reset_completed(usb_hub_info_t *hub,
+    uint16_t port, uint32_t status) {
 	usb_log_debug("Port %zu reset complete.\n", (size_t) port);
 	if (usb_port_is_status(status, USB_HUB_FEATURE_PORT_ENABLE)) {
 		/* Finalize device adding. */
@@ -274,22 +271,22 @@ static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-static void usb_hub_port_over_current(usb_hub_info_t * hub,
-	uint16_t port, uint32_t status) {
+static void usb_hub_port_over_current(usb_hub_info_t *hub,
+    uint16_t port, uint32_t status) {
 	int opResult;
-	if(usb_port_is_status(status, USB_HUB_FEATURE_PORT_OVER_CURRENT)){
+	if (usb_port_is_status(status, USB_HUB_FEATURE_PORT_OVER_CURRENT)) {
 		opResult = usb_hub_clear_port_feature(hub->control_pipe,
-			port, USB_HUB_FEATURE_PORT_POWER);
+		    port, USB_HUB_FEATURE_PORT_POWER);
 		if (opResult != EOK) {
-			usb_log_error("cannot power off port %d;  %d\n",
-				port, opResult);
+			usb_log_error("Cannot power off port %d; %s\n",
+			    port, str_error(opResult));
 		}
-	}else{
+	} else {
 		opResult = usb_hub_set_port_feature(hub->control_pipe,
-			port, USB_HUB_FEATURE_PORT_POWER);
+		    port, USB_HUB_FEATURE_PORT_POWER);
 		if (opResult != EOK) {
-			usb_log_error("cannot power on port %d;  %d\n",
-				port, opResult);
+			usb_log_error("Cannot power on port %d; %s\n",
+			    port, str_error(opResult));
 		}
 	}
 }
@@ -302,16 +299,15 @@ static void usb_hub_port_over_current(usb_hub_info_t * hub,
  * @return Error code.
  */
 static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
-    usb_port_status_t *status)
-{
+    usb_port_status_t *status) {
 	size_t recv_size;
 	usb_device_request_setup_packet_t request;
 	usb_port_status_t status_tmp;
 
 	usb_hub_set_port_status_request(&request, port);
 	int rc = usb_pipe_control_read(ctrl_pipe,
-	    &request, sizeof(usb_device_request_setup_packet_t),
-	    &status_tmp, sizeof(status_tmp), &recv_size);
+	    &request, sizeof (usb_device_request_setup_packet_t),
+	    &status_tmp, sizeof (status_tmp), &recv_size);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -336,8 +332,7 @@ static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
  * @param arg Custom argument, points to @c usb_hub_info_t.
  * @return Error code.
  */
-static int enable_port_callback(int port_no, void *arg)
-{
+static int enable_port_callback(int port_no, void *arg) {
 	usb_hub_info_t *hub = arg;
 	int rc;
 	usb_device_request_setup_packet_t request;
@@ -345,7 +340,7 @@ static int enable_port_callback(int port_no, void *arg)
 
 	usb_hub_set_reset_port_request(&request, port_no);
 	rc = usb_pipe_control_write(hub->control_pipe,
-	    &request, sizeof(request), NULL, 0);
+	    &request, sizeof (request), NULL, 0);
 	if (rc != EOK) {
 		usb_log_warning("Port reset failed: %s.\n", str_error(rc));
 		return rc;
@@ -375,8 +370,7 @@ static int enable_port_callback(int port_no, void *arg)
  * @param arg Pointer to struct add_device_phase1.
  * @return 0 Always.
  */
-static int add_device_phase1_worker_fibril(void *arg)
-{
+static int add_device_phase1_worker_fibril(void *arg) {
 	struct add_device_phase1 *data
 	    = (struct add_device_phase1 *) arg;
 
@@ -395,8 +389,10 @@ static int add_device_phase1_worker_fibril(void *arg)
 		goto leave;
 	}
 
+	fibril_mutex_lock(&data->hub->port_mutex);
 	data->hub->ports[data->port].attached_device.handle = child_handle;
 	data->hub->ports[data->port].attached_device.address = new_address;
+	fibril_mutex_unlock(&data->hub->port_mutex);
 
 	usb_log_info("Detected new device on `%s' (port %zu), "
 	    "address %d (handle %" PRIun ").\n",
@@ -406,9 +402,15 @@ static int add_device_phase1_worker_fibril(void *arg)
 leave:
 	free(arg);
 
+	fibril_mutex_lock(&data->hub->pending_ops_mutex);
+	assert(data->hub->pending_ops_count > 0);
+	data->hub->pending_ops_count--;
+	fibril_condvar_signal(&data->hub->pending_ops_cv);
+	fibril_mutex_unlock(&data->hub->pending_ops_mutex);
+
+
 	return EOK;
 }
-
 
 /** Start device adding when connection change is detected.
  *
@@ -420,10 +422,9 @@ leave:
  * @return Error code.
  */
 static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
-    usb_speed_t speed)
-{
+    usb_speed_t speed) {
 	struct add_device_phase1 *data
-	    = malloc(sizeof(struct add_device_phase1));
+	    = malloc(sizeof (struct add_device_phase1));
 	if (data == NULL) {
 		return ENOMEM;
 	}
@@ -451,6 +452,9 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
 		free(data);
 		return ENOMEM;
 	}
+	fibril_mutex_lock(&hub->pending_ops_mutex);
+	hub->pending_ops_count++;
+	fibril_mutex_unlock(&hub->pending_ops_mutex);
 	fibril_add_ready(fibril);
 
 	return EOK;

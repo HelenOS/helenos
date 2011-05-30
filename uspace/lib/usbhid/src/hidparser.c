@@ -152,7 +152,9 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 	}
 
 
-	report_des = usb_hid_report_find_description(report, *report_id, type);
+	report_des = usb_hid_report_find_description(report, *report_id, 
+		type);
+
 	if(report_des == NULL) {
 		return EINVAL;
 	}
@@ -166,29 +168,36 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 
 		if(USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) == 0) {
 			
-			if(USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) {
+			if(USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0){
 
 				// array
 				item->value = 
 					usb_hid_translate_data(item, data);
 		
 				item->usage = USB_HID_EXTENDED_USAGE(
-				    item->usages[item->value - item->physical_minimum]);
+				    item->usages[
+				    item->value - item->physical_minimum]);
 
-				item->usage_page = USB_HID_EXTENDED_USAGE_PAGE(
-				    item->usages[item->value - item->physical_minimum]);
+				item->usage_page = 
+				    USB_HID_EXTENDED_USAGE_PAGE(
+				    item->usages[
+				    item->value - item->physical_minimum]);
 
-				usb_hid_report_set_last_item (item->collection_path, 
-				    USB_HID_TAG_CLASS_GLOBAL, item->usage_page);
+				usb_hid_report_set_last_item (
+				    item->collection_path, 
+				    USB_HID_TAG_CLASS_GLOBAL, 
+				    item->usage_page);
 
-				usb_hid_report_set_last_item (item->collection_path, 
+				usb_hid_report_set_last_item (
+				    item->collection_path, 
 				    USB_HID_TAG_CLASS_LOCAL, item->usage);
 				
 			}
 			else {
 				// variable item
-				item->value = usb_hid_translate_data(item, data);				
-			}				
+				item->value = usb_hid_translate_data(item, 
+				    data);				
+			}			
 		}
 		list_item = list_item->next;
 	}
@@ -212,8 +221,8 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 	int part_size;
 	
 	int32_t value=0;
-	int32_t mask;
-	const uint8_t *foo;
+	int32_t mask=0;
+	const uint8_t *foo=0;
 
 	// now only shot tags are allowed
 	if(item->size > 32) {
@@ -239,25 +248,30 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 	// FIXME
 	if((size_t)(offset/8) != (size_t)((offset+item->size-1)/8)) {
 		
-		part_size = ((offset+item->size)%8);
+		part_size = 0;
 
 		size_t i=0;
 		for(i=(size_t)(offset/8); i<=(size_t)(offset+item->size-1)/8; i++){
 			if(i == (size_t)(offset/8)) {
 				// the higher one
+				part_size = 8 - (offset % 8);
 				foo = data + i;
 				mask =  ((1 << (item->size-part_size))-1);
-				value = (*foo & mask) << part_size;
+				value = (*foo & mask);
 			}
 			else if(i == ((offset+item->size-1)/8)){
 				// the lower one
 				foo = data + i;
-				mask =  ((1 << part_size)-1) << (8-part_size);
-				value += ((*foo & mask) >> (8-part_size));
+				mask = ((1 << (item->size - part_size)) - 1) 
+					<< (8 - (item->size - part_size));
+
+				value = (((*foo & mask) >> (8 - 
+				    (item->size - part_size))) << part_size ) 
+				    + value;
 			}
 			else {
-				value = value << 8;
-				value += *(data + 1);
+				value = (*(data + 1) << (part_size + 8)) + value;
+				part_size += 8;
 			}
 		}
 	}
@@ -374,24 +388,12 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 	while(item != &report_des->report_items) {
 		report_item = list_get_instance(item, usb_hid_report_field_t, link);
 
-		if(USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) {
-					
-			// array
-			value = usb_hid_translate_data_reverse(report_item, 
-				report_item->value);
+		value = usb_hid_translate_data_reverse(report_item, 
+			report_item->value);
 
-			offset = report_item->offset;
-			length = report_item->size;
-		}
-		else {
-			// variable item
-			value  = usb_hid_translate_data_reverse(report_item, 
-				report_item->value);
-
-			offset = report_item->offset;
-			length = report_item->size;
-		}
-
+		offset = report_des->bit_length - report_item->offset - 1;
+		length = report_item->size;
+		
 		usb_log_debug("\ttranslated value: %x\n", value);
 
 		if((offset/8) == ((offset+length-1)/8)) {
@@ -616,6 +618,8 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report,
 		if(report_des->type == type){
 			return report_des->report_id;
 		}
+
+		report_it = report_it->next;
 	}
 
 	return 0;

@@ -330,6 +330,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
 	}
+	
+	usb_hc_connection_close(&hc_conn);
 
 	/*
 	 * And we are done.
