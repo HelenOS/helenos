@@ -211,8 +211,6 @@ typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t,
 
 /** USB host controller communication interface. */
 typedef struct {
-	int (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
-	int (*release_default_address)(ddf_fun_t *);
 	int (*request_address)(ddf_fun_t *, usb_speed_t, usb_address_t *);
 	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
 	int (*find_by_address)(ddf_fun_t *, usb_address_t, devman_handle_t *);

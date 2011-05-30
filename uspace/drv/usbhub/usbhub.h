@@ -50,15 +50,15 @@
 
 #include "ports.h"
 
-
-
 /** Information about attached hub. */
-struct usb_hub_info_t{
+struct usb_hub_info_t {
 	/** Number of ports. */
 	size_t port_count;
 
 	/** attached device handles, for each port one */
 	usb_hub_port_t *ports;
+
+	fibril_mutex_t port_mutex;
 
 	/** connection to hcd */
 	usb_hc_connection_t connection;
@@ -88,11 +88,22 @@ struct usb_hub_info_t{
 
 	/** generic usb device data*/
 	usb_device_t * usb_device;
+
+	/** Number of pending operations on the mutex to prevent shooting
+	 * ourselves in the foot.
+	 * When the hub is disconnected but we are in the middle of some
+	 * operation, we cannot destroy this structure right away because
+	 * the pending operation might use it.
+	 */
+	size_t pending_ops_count;
+	/** Guard for pending_ops_count. */
+	fibril_mutex_t pending_ops_mutex;
+	/** Condition variable for pending_ops_count. */
+	fibril_condvar_t pending_ops_cv;
+
 };
 
-//int usb_hub_control_loop(void * hub_info_param);
-
-int usb_hub_add_device(usb_device_t * usb_dev);
+int usb_hub_add_device(usb_device_t *usb_dev);
 
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);
