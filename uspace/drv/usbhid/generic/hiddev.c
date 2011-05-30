@@ -125,25 +125,12 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
 		return EINVAL;	// TODO: other error code
 	}
 	
-	/*! @todo This should probably be atomic. */
-//	if (usb_hid_report_ready()) {
-//		usb_log_debug2("Report ready, size: %zu\n", 
-//		    hid_dev->input_report_size);
-		
-//		usb_hid_report_received();
-//	} else {
-//		memset(buffer, 0, hid_dev->input_report_size);
-//	}
+	/*! @todo This should probably be somehow atomic. */
 	memcpy(buffer, hid_dev->input_report, 
 	    hid_dev->input_report_size);
 	*act_size = hid_dev->input_report_size;
 	*event_nr = usb_hid_report_number(hid_dev);
 	
-	// clear the buffer so that it will not be received twice
-	//memset(hid_dev->input_report, 0, hid_dev->input_report_size);
-	
-	// note that we already received this report
-//	report_received = true;
 	usb_log_debug2("OK\n");
 	
 	return EOK;
@@ -183,7 +170,7 @@ static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 	
 	if (hid_dev->report_desc_size > size) {
-		return EINVAL;	// TODO: other error code
+		return EINVAL;
 	}
 	
 	memcpy(desc, hid_dev->report_desc, hid_dev->report_desc_size);

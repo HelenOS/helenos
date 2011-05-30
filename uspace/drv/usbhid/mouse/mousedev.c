@@ -393,7 +393,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	}
 	
 	fun->ops = &mouse->ops;
-	fun->driver_data = mouse;   // TODO: maybe change to hid_dev->data
+	fun->driver_data = mouse;
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -431,7 +431,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	 * to the DDF function.
 	 */
 	fun->ops = &mouse->ops;
-	fun->driver_data = mouse;   // TODO: maybe change to hid_dev->data
+	fun->driver_data = mouse;
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -487,12 +487,11 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	*data = mouse_dev;
 	
 	// set handler for incoming calls
-	// TODO: must be one for each subdriver!!
 	mouse_dev->ops.default_handler = default_connection_handler;
 	
 	// TODO: how to know if the device supports the request???
-//	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
-//	    hid_dev->usb_dev->interface_no, IDLE_RATE);
+	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
+	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 	
 	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
 	if (rc != EOK) {
