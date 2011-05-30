@@ -86,15 +86,15 @@ do { \
 	return ret; \
 } while(0)
 
-static int pci_read32(ddf_dev_t *dev, int address, uint32_t *value)
+static int pci_read32(const ddf_dev_t *dev, int address, uint32_t *value)
 {
 	PCI_READ(32);
 }
-static int pci_read16(ddf_dev_t *dev, int address, uint16_t *value)
+static int pci_read16(const ddf_dev_t *dev, int address, uint16_t *value)
 {
 	PCI_READ(16);
 }
-static int pci_read8(ddf_dev_t *dev, int address, uint8_t *value)
+static int pci_read8(const ddf_dev_t *dev, int address, uint8_t *value)
 {
 	PCI_READ(8);
 }
@@ -114,15 +114,15 @@ do { \
 	return ret; \
 } while(0)
 
-static int pci_write32(ddf_dev_t *dev, int address, uint32_t value)
+static int pci_write32(const ddf_dev_t *dev, int address, uint32_t value)
 {
 	PCI_WRITE(32);
 }
-static int pci_write16(ddf_dev_t *dev, int address, uint16_t value)
+static int pci_write16(const ddf_dev_t *dev, int address, uint16_t value)
 {
 	PCI_WRITE(16);
 }
-static int pci_write8(ddf_dev_t *dev, int address, uint8_t value)
+static int pci_write8(const ddf_dev_t *dev, int address, uint8_t value)
 {
 	PCI_WRITE(8);
 }
@@ -135,7 +135,7 @@ static int pci_write8(ddf_dev_t *dev, int address, uint8_t value)
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int pci_get_my_registers(ddf_dev_t *dev,
+int pci_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
 	assert(dev != NULL);
@@ -205,7 +205,7 @@ int pci_get_my_registers(ddf_dev_t *dev,
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_enable_interrupts(ddf_dev_t *device)
+int pci_enable_interrupts(const ddf_dev_t *device)
 {
 	const int parent_phone =
 	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
@@ -222,7 +222,8 @@ int pci_enable_interrupts(ddf_dev_t *device)
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_disable_legacy(ddf_dev_t *device)
+int pci_disable_legacy(
+    const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size, int irq)
 {
 	assert(device);
 	(void) pci_read16;
@@ -235,20 +236,9 @@ int pci_disable_legacy(ddf_dev_t *device)
 		return ret; \
 	} else (void)0
 
-	uintptr_t reg_base = 0;
-	size_t reg_size = 0;
-	int irq = 0;
-
-	int ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_RETURN(ret, "Failed(%d) to get EHCI registers.\n", ret);
-
-	usb_log_info("EHCI: Memory registers:%p size: %zu irq:%d.\n",
-	    (void *) reg_base, reg_size, irq);
-
-
-	/* map EHCI registers */
+	/* Map EHCI registers */
 	void *regs = NULL;
-	ret = pio_enable((void*)reg_base, reg_size, &regs);
+	int ret = pio_enable((void*)reg_base, reg_size, &regs);
 	CHECK_RET_RETURN(ret, "Failed(%d) to map registers %p.\n",
 	    ret, (void *) reg_base);
 
@@ -315,6 +305,7 @@ int pci_disable_legacy(ddf_dev_t *device)
 			    0xe0000000); /* three upper bits are WC */
 			CHECK_RET_RETURN(ret,
 			    "Failed(%d) zero USBLEGCTLSTS.\n", ret);
+			udelay(10);
 			ret = pci_read32(
 			    device, eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
 			CHECK_RET_RETURN(ret,
@@ -349,12 +340,13 @@ int pci_disable_legacy(ddf_dev_t *device)
 	    (uint32_t*)((uint8_t*)regs + operation_offset + INT_OFFSET);
 	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
 	if (*usbcmd & USBCMD_RUN) {
-		*usbcmd = 0;
-		/* Wait until hc is halted */
-		while ((*usbsts & USBSTS_HALTED) != 0);
 		*usbsts = 0x3f; /* ack all interrupts */
 		*usbint = 0; /* disable all interrutps */
 		*usbconf = 0; /* relase control of RH ports */
+
+		*usbcmd = 0;
+		/* Wait until hc is halted */
+		while ((*usbsts & USBSTS_HALTED) == 0);
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");
