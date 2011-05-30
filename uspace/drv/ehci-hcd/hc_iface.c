@@ -47,34 +47,6 @@
 	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
 	    methodname, __FILE__, __LINE__)
 
-/** Reserve default address.
- *
- * This function may block the caller.
- *
- * @param[in] fun Device function the action was invoked on.
- * @param[in] speed Speed of the device for which the default address is
- *	reserved.
- * @return Error code.
- */
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
-{
-	UNSUPPORTED("reserve_default_address");
-
-	return ENOTSUP;
-}
-
-/** Release default address.
- *
- * @param[in] fun Device function the action was invoked on.
- * @return Error code.
- */
-static int release_default_address(ddf_fun_t *fun)
-{
-	UNSUPPORTED("release_default_address");
-
-	return ENOTSUP;
-}
-
 /** Found free USB address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -331,8 +303,6 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 
 /** Host controller interface implementation for EHCI. */
 usbhc_iface_t ehci_hc_iface = {
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.find_by_address = find_by_address,
