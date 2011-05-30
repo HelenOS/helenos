@@ -167,7 +167,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	for (port = 1; port < hub->port_count + 1; port++) {
 		bool change = (change_bitmap[port / 8] >> (port % 8)) % 2;
 		if (change) {
-			usb_hub_process_interrupt(hub, port);
+			usb_hub_process_port_interrupt(hub, port);
 		}
 	}
 leave:
@@ -265,13 +265,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
 		usb_log_debug("Hub power switched\n");
 
 		if (!has_individual_port_powering) {
-			usb_log_debug("Has_global powering\n");
-			opResult = usb_hub_set_feature(hub_info->control_pipe,
-			    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
-			if (opResult != EOK) {
-				usb_log_error("Cannot power hub: %s\n",
-				    str_error(opResult));
-			}
+			//this setting actually makes no difference
+			usb_log_debug("Hub has global powering\n");
 		}
 
 		for (port = 1; port <= hub_info->port_count; ++port) {
@@ -279,7 +274,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
 			opResult = usb_hub_set_port_feature(hub_info->control_pipe,
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
-				usb_log_error("cannot power on port %zu: %s.\n",
+				usb_log_error("Cannot power on port %zu: %s.\n",
 				    port, str_error(opResult));
 			}
 		}
