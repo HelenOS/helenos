@@ -219,7 +219,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 				usage = report_item->usages[i];
 			}
 			else {
-				usage =	report_item->usages[
+				usage = report_item->usages[
 					report_item->usages_count- 1]; 
 			}
 
@@ -244,20 +244,28 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 			usb_hid_report_path_try_insert(report, path);
 
 		field->size = report_item->size;
-	
+
 		if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
-			field->offset = report_item->offset + 
-			    ((report_item->count - (i + 1)) * 
-			    report_item->size);
+			int offset = report_item->offset + report_item->size * i;
+			int field_offset = (offset/8)*8 + (offset/8 + 1) * 8 - 
+				offset - report_item->size;
+			if(field_offset < 0) {
+				field->offset = 0;
+			}
+			else {
+				field->offset = field_offset;
+			}
 		}
 		else {
 			field->offset = report_item->offset + (i * report_item->size);
 		}
 
+
 		if(report->use_report_ids != 0) {
 			field->offset += 8;
 			report->use_report_ids = 1;
 		}
+
 		field->item_flags = report_item->item_flags;
 
 		/* find the right report list*/
