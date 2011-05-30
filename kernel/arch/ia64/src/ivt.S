@@ -50,6 +50,41 @@
 #define R_KSTACK_BSP	r22	/* keep in sync with before_thread_runs_arch() */
 #define R_KSTACK	r23	/* keep in sync with before_thread_runs_arch() */
 
+/* Speculation vector handler */
+.macro SPECULATION_VECTOR_HANDLER offs
+    .org ivt + \offs
+
+    /* 1. Save predicates, IIM, IIP, IPSR and ISR CR's in bank 0 registers. */
+	mov r16 = pr
+	mov r17 = cr.iim
+	mov r18 = cr.iip
+	mov r19 = cr.ipsr
+	mov r20 = cr.isr ;;
+	
+    /* 2. Move IIP to IIPA. */
+	mov cr.iipa = r18
+	
+    /* 3. Sign extend IIM[20:0], shift left by 4 and add to IIP. */
+	shl r17 = r17, 43 ;;	/* shift bit 20 to bit 63 */
+	shr r17 = r17, 39 ;;	/* signed shift right to bit 24 */
+	add r18 = r18, r17 ;;
+	mov cr.iip = r18
+	
+    /* 4. Set IPSR.ri to 0. */
+	dep r19 = 0, r19, PSR_RI_SHIFT, PSR_RI_LEN ;;
+	mov cr.ipsr = r19
+	
+    /* 5. Check whether IPSR.tb or IPSR.ss is set. */
+
+	/* TODO:
+	 * Implement this when Taken Branch and Single Step traps can occur.
+	 */
+    
+    /* 6. Restore predicates and return from interruption. */
+	mov pr = r16 ;;
+	rfi
+.endm
+
 /** Heavyweight interrupt handler
  *
  * This macro roughly follows steps from 1 to 19 described in
@@ -540,7 +575,7 @@ ivt:
 	HEAVYWEIGHT_HANDLER 0x5400 general_exception
 	HEAVYWEIGHT_HANDLER 0x5500 disabled_fp_register
 	HEAVYWEIGHT_HANDLER 0x5600
-	HEAVYWEIGHT_HANDLER 0x5700
+	SPECULATION_VECTOR_HANDLER 0x5700
 	HEAVYWEIGHT_HANDLER 0x5800
 	HEAVYWEIGHT_HANDLER 0x5900
 	HEAVYWEIGHT_HANDLER 0x5a00
