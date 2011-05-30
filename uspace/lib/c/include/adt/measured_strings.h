@@ -60,6 +60,7 @@ struct measured_string {
 
 extern measured_string_t *measured_string_create_bulk(const uint8_t *, size_t);
 extern measured_string_t *measured_string_copy(measured_string_t *);
+
 extern int measured_strings_receive(measured_string_t **, uint8_t **, size_t);
 extern int measured_strings_reply(const measured_string_t *, size_t);
 extern int measured_strings_return(int, measured_string_t **, uint8_t **, size_t);

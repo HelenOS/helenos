@@ -160,6 +160,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
+	(syshandler_t) sys_event_unmask,
 	
 	/* Capabilities related syscalls. */
 	(syshandler_t) sys_cap_grant,

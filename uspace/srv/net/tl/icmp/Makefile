@@ -31,6 +31,7 @@ USPACE_PREFIX = ../../../..
 LIBS = $(LIBNET_PREFIX)/libnet.a
 EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = icmp
+STATIC_ONLY = y
 
 SOURCES = \
 	icmp.c

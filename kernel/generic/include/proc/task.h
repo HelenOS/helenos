@@ -77,8 +77,8 @@ typedef struct task {
 	as_t *as;
 	/** Unique identity of task. */
 	task_id_t taskid;
-	/** Task security context. */
-	context_id_t context;
+	/** Task security container. */
+	container_id_t container;
 	
 	/** Number of references (i.e. threads). */
 	atomic_t refcount;

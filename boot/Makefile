@@ -54,6 +54,9 @@ build_dist: clean_dist
 	for file in $(RD_SRVS) ; do \
 		cp "$$file" "$(DIST_PATH)/srv/" ; \
 	done
+	for file in $(RD_LIBS) ; do \
+		cp "$$file" "$(DIST_PATH)/lib/" ; \
+	done
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
@@ -82,5 +85,6 @@ clean_dist:
 	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
+	rm -f $(USPACE_PATH)/dist/lib/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

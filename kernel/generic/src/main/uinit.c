@@ -32,14 +32,14 @@
 
 /**
  * @file
- * @brief	Userspace bootstrap thread.
+ * @brief Userspace bootstrap thread.
  *
  * This file contains uinit kernel thread wich is used to start every
  * userspace thread including threads created by SYS_THREAD_CREATE syscall.
  *
  * @see SYS_THREAD_CREATE
  */
- 
+
 #include <main/uinit.h>
 #include <typedefs.h>
 #include <proc/thread.h>
@@ -47,7 +47,6 @@
 #include <mm/slab.h>
 #include <arch.h>
 #include <udebug/udebug.h>
-
 
 /** Thread used to bring up userspace thread.
  *
@@ -57,7 +56,7 @@
 void uinit(void *arg)
 {
 	uspace_arg_t uarg;
-
+	
 	/*
 	 * So far, we don't have a use for joining userspace threads so we
 	 * immediately detach each uinit thread. If joining of userspace threads
@@ -67,7 +66,7 @@ void uinit(void *arg)
 	 * deployed for the event of forceful task termination.
 	 */
 	thread_detach(THREAD);
-
+	
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
@@ -77,7 +76,7 @@ void uinit(void *arg)
 	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
 	uarg.uspace_thread_function = NULL;
 	uarg.uspace_thread_arg = NULL;
-
+	
 	free((uspace_arg_t *) arg);
 	
 	userspace(&uarg);

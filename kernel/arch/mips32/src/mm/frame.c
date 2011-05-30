@@ -87,7 +87,7 @@ static bool frame_available(pfn_t frame)
 #if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
 	/* gxemul devices */
 	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
-	    0x10000000, MB2SIZE(256)))
+	    0x10000000, MiB2SIZE(256)))
 		return false;
 #endif
 	

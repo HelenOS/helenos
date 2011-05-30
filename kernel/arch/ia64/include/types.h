@@ -36,6 +36,7 @@
 #define KERN_ia64_TYPES_H_
 
 typedef uint64_t size_t;
+typedef int64_t ssize_t;
 
 typedef uint64_t uintptr_t;
 typedef uint64_t pfn_t;

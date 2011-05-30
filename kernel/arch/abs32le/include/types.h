@@ -39,6 +39,7 @@
 #define ATOMIC_COUNT_MAX  UINT32_MAX
 
 typedef uint32_t size_t;
+typedef int32_t ssize_t;
 
 typedef uint32_t uintptr_t;
 typedef uint32_t pfn_t;
