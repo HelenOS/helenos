@@ -130,16 +130,10 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
 		usb_log_error(
 		    "Could not add DDF function to class 'keyboard': %s.\n",
 		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(kbd_fun);
 		usb_kbd_free(&kbd_dev);
 		return rc;
 	}
-	
-	/*
-	 * Create new fibril for handling this keyboard
-	 */
-	//fid_t fid = fibril_create(usb_kbd_fibril, kbd_dev);
 	
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
@@ -163,7 +157,6 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
 		    dev->ddf_dev->name);
 		return rc;
 	}
-	//fibril_add_ready(fid);
 	
 	/*
 	 * Create new fibril for auto-repeat

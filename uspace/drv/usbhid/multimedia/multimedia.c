@@ -142,8 +142,6 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 	assert(hid_dev != NULL);
 	assert(multim_dev != NULL);
 	
-//	usb_multimedia_t *multim_dev = (usb_multimedia_t *)hid_dev->data;
-	
 	console_event_t ev;
 	
 	ev.type = type;
@@ -172,14 +170,6 @@ static void usb_multimedia_free(usb_multimedia_t **multim_dev)
 	
 	// hangup phone to the console
 	async_hangup((*multim_dev)->console_phone);
-	
-	// free all buffers
-//	if ((*multim_dev)->keys != NULL) {
-//		free((*multim_dev)->keys);
-//	}
-//	if ((*multim_dev)->keys_old != NULL) {
-//		free((*multim_dev)->keys_old);
-//	}
 
 	free(*multim_dev);
 	*multim_dev = NULL;
@@ -244,38 +234,6 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	
 	multim_dev->console_phone = -1;
 	
-//	usb_hid_report_path_t *path = usb_hid_report_path();
-//	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
-	
-//	usb_hid_report_path_set_report_id(path, 1);
-	
-//	multim_dev->key_count = usb_hid_report_size(
-//	    hid_dev->report, 1, USB_HID_REPORT_TYPE_INPUT);
-
-//	usb_hid_report_path_free(path);
-	
-//	usb_log_debug(NAME " Size of the input report: %zu\n", 
-//	    multim_dev->key_count);
-	
-//	multim_dev->keys = (int32_t *)calloc(multim_dev->key_count, 
-//	    sizeof(int32_t));
-	
-//	if (multim_dev->keys == NULL) {
-//		usb_log_fatal("No memory!\n");
-//		free(multim_dev);
-//		return ENOMEM;
-//	}
-	
-//	multim_dev->keys_old = 
-//		(int32_t *)calloc(multim_dev->key_count, sizeof(int32_t));
-	
-//	if (multim_dev->keys_old == NULL) {
-//		usb_log_fatal("No memory!\n");
-//		free(multim_dev->keys);
-//		free(multim_dev);
-//		return ENOMEM;
-//	}
-	
 	/*! @todo Autorepeat */
 	
 	// save the KBD device structure into the HID device structure
@@ -314,13 +272,12 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data,
     uint8_t *buffer, size_t buffer_size)
 {
 	// TODO: checks
+	if (hid_dev == NULL || data == NULL || buffer == NULL) {
+		return false;
+	}
 	
 	usb_log_debug(NAME " usb_lgtch_polling_callback(%p, %p, %zu)\n",
 	    hid_dev, buffer, buffer_size);
-	
-	if (data == NULL) {
-		return EINVAL;	// TODO: other error code?
-	}
 	
 	usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
 
@@ -347,9 +304,7 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data,
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
-	
-//	unsigned int key;
-	
+
 	/*! @todo Is this iterating OK if done multiple times? 
 	 *  @todo The parsing is not OK
 	 */

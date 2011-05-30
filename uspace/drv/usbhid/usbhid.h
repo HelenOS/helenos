@@ -54,7 +54,6 @@ typedef bool (*usb_hid_driver_poll)(struct usb_hid_dev *, void *data, uint8_t *,
 typedef int (*usb_hid_driver_poll_ended)(struct usb_hid_dev *, void *data, 
                                          bool reason);
 
-// TODO: add function and class name??
 typedef struct usb_hid_subdriver {	
 	/** Function to be called when initializing HID device. */
 	usb_hid_driver_init_t init;
@@ -125,17 +124,9 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, 
      void *arg);
 
-//const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev);
-
-//const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
-
 void usb_hid_new_report(usb_hid_dev_t *hid_dev);
 
 int usb_hid_report_number(usb_hid_dev_t *hid_dev);
-
-//void usb_hid_report_received(void);
-
-//bool usb_hid_report_ready(void);
 
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 

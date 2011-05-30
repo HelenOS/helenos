@@ -44,8 +44,6 @@ struct usb_hid_dev;
 
 /** Container for USB mouse device. */
 typedef struct {
-	///** Polling interval in microseconds. */
-	//suseconds_t poll_interval_us;
 	/** IPC phone to console (consumer). */
 	int mouse_phone;
 	int wheel_phone;
