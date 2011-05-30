@@ -257,7 +257,7 @@ int pci_disable_legacy(
 	uint32_t usblegsup;
 	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
 	CHECK_RET_RETURN(ret, "Failed to read USBLEGSUP: %s.\n", str_error(ret));
-	usb_log_debug("USBLEGSUP: %" PRIxn ".\n", usblegsup);
+	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 
 	/* Request control from firmware/BIOS, by writing 1 to highest byte.
 	 * (OS Control semaphore)*/
@@ -300,7 +300,7 @@ int pci_disable_legacy(
 			    device, eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
 			CHECK_RET_RETURN(ret,
 			    "Failed to get USBLEGCTLSTS: %s.\n", str_error(ret));
-			usb_log_debug("USBLEGCTLSTS: %" PRIxn ".\n",
+			usb_log_debug("USBLEGCTLSTS: %" PRIx32 ".\n",
 			    usblegctlsts);
 			/* Zero SMI enables in legacy control register.
 			 * It should prevent pre-OS code from interfering. */
@@ -314,7 +314,7 @@ int pci_disable_legacy(
 			CHECK_RET_RETURN(ret,
 			    "Failed to get USBLEGCTLSTS 2: %s.\n",
 			    str_error(ret));
-			usb_log_debug("Zeroed USBLEGCTLSTS: %" PRIxn ".\n",
+			usb_log_debug("Zeroed USBLEGCTLSTS: %" PRIx32 ".\n",
 			    usblegctlsts);
 		}
 	}
@@ -323,7 +323,7 @@ int pci_disable_legacy(
 	/* Read again Legacy Support register */
 	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
 	CHECK_RET_RETURN(ret, "Failed to read USBLEGSUP: %s.\n", str_error(ret));
-	usb_log_debug("USBLEGSUP: %" PRIxn ".\n", usblegsup);
+	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 
 	/*
 	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT
