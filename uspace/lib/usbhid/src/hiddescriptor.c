@@ -328,6 +328,10 @@ usb_hid_report_description_t * usb_hid_report_find_description(
 		const usb_hid_report_t *report, uint8_t report_id,
 		usb_hid_report_type_t type) {
 
+	if(report == NULL) {
+		return NULL;
+	}
+
 	link_t *report_it = report->reports.next;
 	usb_hid_report_description_t *report_des = NULL;
 	
@@ -335,7 +339,8 @@ usb_hid_report_description_t * usb_hid_report_find_description(
 		report_des = list_get_instance(report_it,
 				usb_hid_report_description_t, link);
 
-		if((report_des->report_id == report_id) && 
+		// if report id not set, return the first of the type
+		if(((report_des->report_id == report_id) || (report_id == 0)) && 
 		   (report_des->type == type)) { 
 			return report_des;
 		}
