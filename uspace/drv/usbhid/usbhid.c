@@ -62,9 +62,6 @@ usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 
 static const int USB_HID_MAX_SUBDRIVERS = 10;
 
-/** @todo What happens if this is not fibril local? */
-//static fibril_local bool report_number;
-
 /*----------------------------------------------------------------------------*/
 
 static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
@@ -205,32 +202,14 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		++i;
 	}
 	
-//	if (mapping->report_id >= 0) {
-//		usb_hid_report_path_set_report_id(usage_path, 
-//		    mapping->report_id);
-//	}
-	
 	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
-//	size_t size = usb_hid_report_size(hid_dev->report, 0, 
-//	    USB_HID_REPORT_TYPE_INPUT);
-//	size_t size = 0;
 	
 	bool matches = false;
-
-//	usb_hid_report_description_t *report_des = 
-//		usb_hid_report_find_description(hid_dev->report,
-//		mapping->report_id, USB_HID_REPORT_TYPE_INPUT);
 	uint8_t report_id = mapping->report_id;
 
-	/*while(report_des != NULL)*/do {
-
-//		if((mapping->report_id) == 0 && (report_des->report_id != 0)) {
-//			usb_hid_report_path_set_report_id(usage_path,
-//				report_des->report_id);
-//		}
-					     
+	do {
 		usb_log_debug("Trying report id %u\n", report_id);
 		
 		if (report_id != 0) {
@@ -246,10 +225,6 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		usb_log_debug("Field: %p\n", field);
 
 		if (field != NULL) {
-//			size++;
-//			field = usb_hid_report_get_sibling(hid_dev->report,
-//			    field, usage_path, mapping->compare, 
-//			    USB_HID_REPORT_TYPE_INPUT);
 			matches = true;
 			break;
 		}
@@ -257,26 +232,8 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		report_id = usb_hid_get_next_report_id(
 		    hid_dev->report, report_id,
 		    USB_HID_REPORT_TYPE_INPUT);
-
-//		if((mapping->report_id == 0) && (report_des->report_id != 0)) {
-//			uint8_t report_id = usb_hid_get_next_report_id(
-//				hid_dev->report, report_des->report_id,
-//			        USB_HID_REPORT_TYPE_INPUT);
-
-//			if(report_id == 0) {
-//				break;
-//			}
-
-//	 		report_des = usb_hid_report_find_description(
-//				hid_dev->report, report_id, 
-//				USB_HID_REPORT_TYPE_INPUT);
-//		}
-//		else {
-//			break;
-//		}
 	} while (!matches && report_id != 0);
 	
-//	usb_log_debug("Size of the input report: %zu\n", size);
 	usb_hid_report_path_free(usage_path);
 	
 	return matches;
@@ -422,8 +379,7 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 	assert(hid_dev != NULL && hid_dev->report != NULL);
 	
 	uint8_t report_id = 0;
-	size_t size;/* = usb_hid_report_byte_size(hid_dev->report, report_id, 
-	    USB_HID_REPORT_TYPE_INPUT);*/
+	size_t size;
 	
 	size_t max_size = 0;
 	
@@ -502,7 +458,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	
 	rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
-		//usb_hid_free(&hid_dev);
 		return rc;
 	}
 		
@@ -550,8 +505,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 			assert(hid_dev->poll_pipe_index 
 			    == USB_HID_GENERIC_POLL_EP_NO);
 			
-			/* TODO: this has no meaning if the report descriptor
-			         is not parsed */
 			usb_log_info("Falling back to generic HID driver.\n");
 			rc = usb_hid_set_generic_hid_subdriver(hid_dev);
 		}
@@ -562,7 +515,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		    " initialized: %s.\n", str_error(rc));
 		usb_log_debug("Subdriver count: %d\n", 
 		    hid_dev->subdriver_count);
-		//usb_hid_free(&hid_dev);
 		
 	} else {
 		bool ok = false;
@@ -618,11 +570,10 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
-//	int allocated = (hid_dev->input_report != NULL);
 	assert(hid_dev->input_report != NULL);
 	usb_log_debug("Max input report size: %zu, buffer size: %zu\n",
 	    hid_dev->max_input_report_size, buffer_size);
-	//assert(hid_dev->max_input_report_size >= buffer_size);
+
 	if (hid_dev->max_input_report_size >= buffer_size) {
 		/*! @todo This should probably be atomic. */
 		memcpy(hid_dev->input_report, buffer, buffer_size);
@@ -669,41 +620,6 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 
 /*----------------------------------------------------------------------------*/
 
-//const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev)
-//{
-//	switch (hid_dev->poll_pipe_index) {
-//	case USB_HID_KBD_POLL_EP_NO:
-//		return HID_KBD_FUN_NAME;
-//		break;
-//	case USB_HID_MOUSE_POLL_EP_NO:
-//		return HID_MOUSE_FUN_NAME;
-//		break;
-//	default:
-//		return HID_GENERIC_FUN_NAME;
-//	}
-//}
-
-/*----------------------------------------------------------------------------*/
-
-//const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev)
-//{
-//	// this means that only boot protocol keyboards will be connected
-//	// to the console; there is probably no better way to do this
-	
-//	switch (hid_dev->poll_pipe_index) {
-//	case USB_HID_KBD_POLL_EP_NO:
-//		return HID_KBD_CLASS_NAME;
-//		break;
-//	case USB_HID_MOUSE_POLL_EP_NO:
-//		return HID_MOUSE_CLASS_NAME;
-//		break;
-//	default:
-//		return HID_GENERIC_CLASS_NAME;
-//	}
-//}
-
-/*----------------------------------------------------------------------------*/
-
 void usb_hid_new_report(usb_hid_dev_t *hid_dev)
 {
 	++hid_dev->report_nr;
@@ -715,20 +631,6 @@ int usb_hid_report_number(usb_hid_dev_t *hid_dev)
 {
 	return hid_dev->report_nr;
 }
-
-/*----------------------------------------------------------------------------*/
-
-//void usb_hid_report_received(void)
-//{
-//	++report_number;
-//}
-
-/*----------------------------------------------------------------------------*/
-
-//bool usb_hid_report_ready(void)
-//{
-//	return !report_received;
-//}
 
 /*----------------------------------------------------------------------------*/
 
