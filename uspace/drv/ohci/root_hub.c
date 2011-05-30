@@ -56,7 +56,6 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor = {
 	.device_subclass = 0,
 	.device_version = 0,
 	.length = sizeof (usb_standard_device_descriptor_t),
-	/// \TODO this value is guessed
 	.max_packet_size = 8,
 	.vendor_id = 0x16db,
 	.product_id = 0x0001,
@@ -467,7 +466,7 @@ static int process_get_status_request(rh_t *instance,
 	    request->setup_buffer;
 
 	usb_hub_bm_request_type_t request_type = request_packet->request_type;
-	if (buffer_size < 4/*request_packet->length*/) {///\TODO
+	if (buffer_size < 4) {
 		usb_log_warning("requested more data than buffer size\n");
 		return EINVAL;
 	}
@@ -677,8 +676,6 @@ static int process_port_feature_set_request(rh_t *instance,
 	instance->registers->rh_port_status[port - 1] =
 	    (instance->registers->rh_port_status[port - 1] | (1 << feature))
 	    & (~port_clear_feature_valid_mask);
-	/// \TODO any error?
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -706,7 +703,6 @@ static int process_port_feature_clear_request(rh_t *instance,
 	    (instance->registers->rh_port_status[port - 1]
 	    & (~port_clear_feature_valid_mask))
 	    | (1 << feature);
-	/// \TODO any error?
 
 	return EOK;
 }

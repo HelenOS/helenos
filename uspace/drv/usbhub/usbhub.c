@@ -248,7 +248,6 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
 	}
 	usb_log_debug("setting port count to %d\n", descriptor->ports_count);
 	hub_info->port_count = descriptor->ports_count;
-	/// \TODO this is not semantically correct
 	bool is_power_switched =
 	    ((descriptor->hub_characteristics & 1) == 0);
 	bool has_individual_port_powering =
