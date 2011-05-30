@@ -94,7 +94,7 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-void usb_hub_process_interrupt(usb_hub_info_t *hub,
+void usb_hub_process_port_interrupt(usb_hub_info_t *hub,
     uint16_t port) {
 	usb_log_debug("Interrupt at port %zu\n", (size_t) port);
 	//determine type of change
