@@ -54,17 +54,78 @@
 
 #define CMD_OFFSET 0x0
 #define STS_OFFSET 0x4
+#define INT_OFFSET 0x8
 #define CFG_OFFSET 0x40
 
 #define USBCMD_RUN 1
+#define USBSTS_HALTED (1 << 12)
 
 #define USBLEGSUP_OFFSET 0
 #define USBLEGSUP_BIOS_CONTROL (1 << 16)
 #define USBLEGSUP_OS_CONTROL (1 << 24)
 #define USBLEGCTLSTS_OFFSET 4
 
-#define DEFAULT_WAIT 10000
+#define DEFAULT_WAIT 1000
 #define WAIT_STEP 10
+
+#define PCI_READ(size) \
+do { \
+	const int parent_phone = \
+	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);\
+	if (parent_phone < 0) {\
+		return parent_phone; \
+	} \
+	sysarg_t add = (sysarg_t)address; \
+	sysarg_t val; \
+	const int ret = \
+	    async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE), \
+	        IPC_M_CONFIG_SPACE_READ_##size, add, &val); \
+	assert(value); \
+	*value = val; \
+	async_hangup(parent_phone); \
+	return ret; \
+} while(0)
+
+static int pci_read32(ddf_dev_t *dev, int address, uint32_t *value)
+{
+	PCI_READ(32);
+}
+static int pci_read16(ddf_dev_t *dev, int address, uint16_t *value)
+{
+	PCI_READ(16);
+}
+static int pci_read8(ddf_dev_t *dev, int address, uint8_t *value)
+{
+	PCI_READ(8);
+}
+#define PCI_WRITE(size) \
+do { \
+	const int parent_phone = \
+	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);\
+	if (parent_phone < 0) {\
+		return parent_phone; \
+	} \
+	sysarg_t add = (sysarg_t)address; \
+	sysarg_t val = value; \
+	const int ret = \
+	    async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE), \
+	        IPC_M_CONFIG_SPACE_WRITE_##size, add, val); \
+	async_hangup(parent_phone); \
+	return ret; \
+} while(0)
+
+static int pci_write32(ddf_dev_t *dev, int address, uint32_t value)
+{
+	PCI_WRITE(32);
+}
+static int pci_write16(ddf_dev_t *dev, int address, uint16_t value)
+{
+	PCI_WRITE(16);
+}
+static int pci_write8(ddf_dev_t *dev, int address, uint8_t value)
+{
+	PCI_WRITE(8);
+}
 
 /** Get address of registers and IRQ for given device.
  *
@@ -79,8 +140,8 @@ int pci_get_my_registers(ddf_dev_t *dev,
 {
 	assert(dev != NULL);
 
-	int parent_phone = devman_parent_device_connect(dev->handle,
-	    IPC_FLAG_BLOCKING);
+	const int parent_phone =
+	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
 	}
@@ -146,12 +207,12 @@ int pci_get_my_registers(ddf_dev_t *dev,
  */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
-	int parent_phone =
+	const int parent_phone =
 	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
 	}
-	bool enabled = hw_res_enable_interrupt(parent_phone);
+	const bool enabled = hw_res_enable_interrupt(parent_phone);
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
@@ -164,152 +225,149 @@ int pci_enable_interrupts(ddf_dev_t *device)
 int pci_disable_legacy(ddf_dev_t *device)
 {
 	assert(device);
-	int parent_phone = devman_parent_device_connect(device->handle,
-		IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
+	(void) pci_read16;
+	(void) pci_read8;
+	(void) pci_write16;
 
-#define CHECK_RET_HANGUP_RETURN(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
-		async_hangup(parent_phone); \
 		return ret; \
 	} else (void)0
 
+	uintptr_t reg_base = 0;
+	size_t reg_size = 0;
+	int irq = 0;
 
-	/* read register space BASE BAR */
-	sysarg_t address = 0x10;
-	sysarg_t value;
+	int ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
+	CHECK_RET_RETURN(ret, "Failed(%d) to get EHCI registers.\n", ret);
 
-	int ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	    IPC_M_CONFIG_SPACE_READ_32, address, &value);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read PCI config space.\n",
-	    ret);
-	usb_log_info("Register space BAR at %p:%" PRIxn ".\n",
-	    (void *) address, value);
+	usb_log_info("EHCI: Memory registers:%p size: %zu irq:%d.\n",
+	    (void *) reg_base, reg_size, irq);
 
-	/* clear lower byte, it's not part of the BASE address */
-	uintptr_t registers = (value & 0xffffff00);
-	usb_log_info("Memory registers BASE address:%p.\n", (void *) registers);
-
-	/* if nothing setup the hc, we don't need to turn it off */
-	if (registers == 0)
-		return ENOTSUP;
 
 	/* map EHCI registers */
-	void *regs = as_get_mappable_page(4096);
-	ret = physmem_map((void*)(registers & PAGE_SIZE_MASK), regs, 1,
-	    AS_AREA_READ | AS_AREA_WRITE);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to map registers %p:%p.\n",
-	    ret, regs, (void *) registers);
-
-	/* calculate value of BASE */
-	registers = (registers & 0xf00) | (uintptr_t)regs;
+	void *regs = NULL;
+	ret = pio_enable((void*)reg_base, reg_size, &regs);
+	CHECK_RET_RETURN(ret, "Failed(%d) to map registers %p.\n",
+	    ret, (void *) reg_base);
 
 	const uint32_t hcc_params =
-	    *(uint32_t*)(registers + HCC_PARAMS_OFFSET);
+	    *(uint32_t*)(regs + HCC_PARAMS_OFFSET);
 	usb_log_debug("Value of hcc params register: %x.\n", hcc_params);
 
 	/* Read value of EHCI Extended Capabilities Pointer
-	 * (points to PCI config space) */
-	uint32_t eecp =
+	 * position of EEC registers (points to PCI config space) */
+	const uint32_t eecp =
 	    (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
 	usb_log_debug("Value of EECP: %x.\n", eecp);
 
-	/* Read the second EEC. i.e. Legacy Support and Control register */
-	/* TODO: Check capability type here */
-	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
-	usb_log_debug("USBLEGCTLSTS: %" PRIxn ".\n", value);
-
 	/* Read the first EEC. i.e. Legacy Support register */
-	/* TODO: Check capability type here */
-	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
-	usb_log_debug2("USBLEGSUP: %" PRIxn ".\n", value);
+	uint32_t usblegsup;
+	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	CHECK_RET_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
+	usb_log_debug("USBLEGSUP: %" PRIxn ".\n", usblegsup);
 
 	/* Request control from firmware/BIOS, by writing 1 to highest byte.
 	 * (OS Control semaphore)*/
-	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	   IPC_M_CONFIG_SPACE_WRITE_8, eecp + USBLEGSUP_OFFSET + 3, 1);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to request OS EHCI control.\n",
-	    ret);
+	usb_log_debug("Requesting OS control.\n");
+	ret = pci_write8(device, eecp + USBLEGSUP_OFFSET + 3, 1);
+	CHECK_RET_RETURN(ret, "Failed(%d) to request OS EHCI control.\n", ret);
 
 	size_t wait = 0;
 	/* Wait for BIOS to release control. */
-	while ((wait < DEFAULT_WAIT) && (value & USBLEGSUP_BIOS_CONTROL)) {
+	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	while ((wait < DEFAULT_WAIT) && (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
-		ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-		    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
+		ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
 		wait += WAIT_STEP;
 	}
 
 
-	if ((value & USBLEGSUP_BIOS_CONTROL) == 0) {
+	if ((usblegsup & USBLEGSUP_BIOS_CONTROL) == 0) {
 		usb_log_info("BIOS released control after %zu usec.\n", wait);
 	} else {
 		/* BIOS failed to hand over control, this should not happen. */
 		usb_log_warning( "BIOS failed to release control after "
 		    "%zu usecs, force it.\n", wait);
-		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-		    IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
+		ret = pci_write32(device, eecp + USBLEGSUP_OFFSET,
 		    USBLEGSUP_OS_CONTROL);
-		CHECK_RET_HANGUP_RETURN(ret,
-		    "Failed(%d) to force OS EHCI control.\n", ret);
+		CHECK_RET_RETURN(ret, "Failed(%d) to force OS control.\n", ret);
+		/* Check capability type here, A value of 01h
+		 * identifies the capability as Legacy Support.
+		 * This extended capability requires one
+		 * additional 32-bit register for control/status information,
+		 * and this register is located at offset EECP+04h
+		 * */
+		if ((usblegsup & 0xff) == 1) {
+			/* Read the second EEC
+			 * Legacy Support and Control register */
+			uint32_t usblegctlsts;
+			ret = pci_read32(
+			    device, eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
+			CHECK_RET_RETURN(ret,
+			    "Failed(%d) to get USBLEGCTLSTS.\n", ret);
+			usb_log_debug("USBLEGCTLSTS: %" PRIxn ".\n",
+			    usblegctlsts);
+			/* Zero SMI enables in legacy control register.
+			 * It should prevent pre-OS code from interfering. */
+			ret = pci_write32(device, eecp + USBLEGCTLSTS_OFFSET,
+			    0xe0000000); /* three upper bits are WC */
+			CHECK_RET_RETURN(ret,
+			    "Failed(%d) zero USBLEGCTLSTS.\n", ret);
+			ret = pci_read32(
+			    device, eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
+			CHECK_RET_RETURN(ret,
+			    "Failed(%d) to get USBLEGCTLSTS 2.\n", ret);
+			usb_log_debug("Zeroed USBLEGCTLSTS: %" PRIxn ".\n",
+			    usblegctlsts);
+		}
 	}
 
-	/* Zero SMI enables in legacy control register.
-	 * It would prevent pre-OS code from interfering. */
-	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	   IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGCTLSTS_OFFSET,
-	   0xe0000000);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) zero USBLEGCTLSTS.\n", ret);
-
-	/* Read again Legacy Support and Control register */
-	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
-	usb_log_debug2("USBLEGCTLSTS: %" PRIxn ".\n", value);
 
 	/* Read again Legacy Support register */
-	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
-	usb_log_debug2("USBLEGSUP: %" PRIxn ".\n", value);
+	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	CHECK_RET_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
+	usb_log_debug("USBLEGSUP: %" PRIxn ".\n", usblegsup);
 
 	/*
 	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT
 	 */
 
 	/* Get size of capability registers in memory space. */
-	uint8_t operation_offset = *(uint8_t*)registers;
+	const unsigned operation_offset = *(uint8_t*)regs;
 	usb_log_debug("USBCMD offset: %d.\n", operation_offset);
 
 	/* Zero USBCMD register. */
 	volatile uint32_t *usbcmd =
-	    (uint32_t*)((uint8_t*)registers + operation_offset + CMD_OFFSET);
+	    (uint32_t*)((uint8_t*)regs + operation_offset + CMD_OFFSET);
 	volatile uint32_t *usbsts =
-	    (uint32_t*)((uint8_t*)registers + operation_offset + STS_OFFSET);
-	volatile uint32_t *usbconfigured =
-	    (uint32_t*)((uint8_t*)registers + operation_offset + CFG_OFFSET);
+	    (uint32_t*)((uint8_t*)regs + operation_offset + STS_OFFSET);
+	volatile uint32_t *usbconf =
+	    (uint32_t*)((uint8_t*)regs + operation_offset + CFG_OFFSET);
+	volatile uint32_t *usbint =
+	    (uint32_t*)((uint8_t*)regs + operation_offset + INT_OFFSET);
 	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
 	if (*usbcmd & USBCMD_RUN) {
 		*usbcmd = 0;
-		while (!(*usbsts & (1 << 12))); /*wait until hc is halted */
-		*usbconfigured = 0;
+		/* Wait until hc is halted */
+		while ((*usbsts & USBSTS_HALTED) != 0);
+		*usbsts = 0x3f; /* ack all interrupts */
+		*usbint = 0; /* disable all interrutps */
+		*usbconf = 0; /* relase control of RH ports */
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");
 	}
-	usb_log_debug("Registers: %x(0x00080000):%x(0x00001000):%x(0x0).\n",
-	    *usbcmd, *usbsts, *usbconfigured);
+	usb_log_debug("Registers: \n"
+	    "\t USBCMD: %x(0x00080000 = at least 1ms between interrupts)\n"
+	    "\t USBSTS: %x(0x00001000 = HC halted)\n"
+	    "\t USBINT: %x(0x0 = no interrupts).\n"
+	    "\t CONFIG: %x(0x0 = ports controlled by companion hc).\n",
+	    *usbcmd, *usbsts, *usbint, *usbconf);
 
-	async_hangup(parent_phone);
 	return ret;
-#undef CHECK_RET_HANGUP_RETURN
+#undef CHECK_RET_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /**
