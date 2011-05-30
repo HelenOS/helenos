@@ -328,6 +328,10 @@ usb_hid_report_description_t * usb_hid_report_find_description(
 		const usb_hid_report_t *report, uint8_t report_id,
 		usb_hid_report_type_t type) {
 
+	if(report == NULL) {
+		return NULL;
+	}
+
 	link_t *report_it = report->reports.next;
 	usb_hid_report_description_t *report_des = NULL;
 	

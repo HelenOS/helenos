@@ -1,5 +1,5 @@
 /**
- @mainpage ...bringing USB support to HelenOS
+ @mainpage USB support for HelenOS
 
 This is reference manual for USB subsystem for HelenOS.
 

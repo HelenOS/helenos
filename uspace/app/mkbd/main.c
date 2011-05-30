@@ -212,14 +212,12 @@ int main(int argc, char *argv[])
 	}
 	
 	char *devpath = argv[1];
-	//const char *devpath = "/hw/pci0/00:06.0/ohci-rh/usb00_a2/HID1/hid";
-	
-	int rc;
 	
 	devman_handle_t dev_handle = 0;
-	rc = devman_device_get_handle(devpath, &dev_handle, 0);
+	
+	int rc = usb_resolve_device_handle(devpath, NULL, NULL, &dev_handle);
 	if (rc != EOK) {
-		printf("Failed to get handle from devman: %s.\n",
+		printf("Device not found or not of USB kind: %s.\n",
 		    str_error(rc));
 		return rc;
 	}

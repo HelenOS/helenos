@@ -74,19 +74,18 @@ if (ret != EOK) { \
 	return ret; \
 }
 
-	uintptr_t mem_reg_base = 0;
-	size_t mem_reg_size = 0;
+	uintptr_t reg_base = 0;
+	size_t reg_size = 0;
 	int irq = 0;
 
-	int ret =
-	    pci_get_my_registers(device, &mem_reg_base, &mem_reg_size, &irq);
+	int ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_RETURN(ret,
 	    "Failed to get memory addresses for %" PRIun ": %s.\n",
 	    device->handle, str_error(ret));
 	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
-	    mem_reg_base, mem_reg_size, irq);
+	    reg_base, reg_size, irq);
 
-	ret = pci_disable_legacy(device);
+	ret = pci_disable_legacy(device, reg_base, reg_size, irq);
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
 
