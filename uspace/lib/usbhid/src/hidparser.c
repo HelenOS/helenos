@@ -604,8 +604,14 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report,
 	link_t *report_it;
 	
 	if(report_id > 0) {
-		report_it = usb_hid_report_find_description(report, report_id, 
-			type)->link.next;		
+		report_des = usb_hid_report_find_description(report, report_id, 
+			type);
+		if(report_des == NULL) {
+			return 0;
+		}
+		else {
+			report_it = report_des->link.next;
+		}	
 	}
 	else {
 		report_it = report->reports.next;
