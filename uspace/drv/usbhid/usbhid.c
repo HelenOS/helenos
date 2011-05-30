@@ -205,63 +205,81 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		++i;
 	}
 	
-	if (mapping->report_id >= 0) {
-		usb_hid_report_path_set_report_id(usage_path, 
-		    mapping->report_id);
-	}
+//	if (mapping->report_id >= 0) {
+//		usb_hid_report_path_set_report_id(usage_path, 
+//		    mapping->report_id);
+//	}
 	
 	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
 //	size_t size = usb_hid_report_size(hid_dev->report, 0, 
 //	    USB_HID_REPORT_TYPE_INPUT);
-	size_t size = 0;
+//	size_t size = 0;
+	
+	bool matches = false;
 
-	usb_hid_report_description_t *report_des = 
-		usb_hid_report_find_description(hid_dev->report,
-		mapping->report_id, USB_HID_REPORT_TYPE_INPUT);
+//	usb_hid_report_description_t *report_des = 
+//		usb_hid_report_find_description(hid_dev->report,
+//		mapping->report_id, USB_HID_REPORT_TYPE_INPUT);
+	uint8_t report_id = mapping->report_id;
 
-	while(report_des != NULL) {
+	/*while(report_des != NULL)*/do {
 
-		if((mapping->report_id) == 0 && (report_des->report_id != 0)) {
+//		if((mapping->report_id) == 0 && (report_des->report_id != 0)) {
+//			usb_hid_report_path_set_report_id(usage_path,
+//				report_des->report_id);
+//		}
+					     
+		usb_log_debug("Trying report id %u\n", report_id);
+		
+		if (report_id != 0) {
 			usb_hid_report_path_set_report_id(usage_path,
-				report_des->report_id);
+				report_id);
 		}
 
-		usb_hid_report_field_t *field = usb_hid_report_get_sibling (
-			hid_dev->report,
-			NULL, usage_path, mapping->compare, 
-			USB_HID_REPORT_TYPE_INPUT);
+		usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+		    hid_dev->report,
+		    NULL, usage_path, mapping->compare, 
+		    USB_HID_REPORT_TYPE_INPUT);
+		
+		usb_log_debug("Field: %p\n", field);
 
-		while(field != NULL) {
-			size++;
-			field = usb_hid_report_get_sibling (hid_dev->report,
-					field, usage_path, mapping->compare, 
-		            USB_HID_REPORT_TYPE_INPUT);
-		}
-
-		if((mapping->report_id == 0) && (report_des->report_id != 0)) {
-			uint8_t report_id = usb_hid_get_next_report_id(
-				hid_dev->report, report_des->report_id,
-			        USB_HID_REPORT_TYPE_INPUT);
-
-			if(report_id == 0) {
-				break;
-			}
-
-	 		report_des = usb_hid_report_find_description(
-				hid_dev->report, report_id, 
-				USB_HID_REPORT_TYPE_INPUT);
-		}
-		else {
+		if (field != NULL) {
+//			size++;
+//			field = usb_hid_report_get_sibling(hid_dev->report,
+//			    field, usage_path, mapping->compare, 
+//			    USB_HID_REPORT_TYPE_INPUT);
+			matches = true;
 			break;
 		}
-	}
+		
+		report_id = usb_hid_get_next_report_id(
+		    hid_dev->report, report_id,
+		    USB_HID_REPORT_TYPE_INPUT);
+
+//		if((mapping->report_id == 0) && (report_des->report_id != 0)) {
+//			uint8_t report_id = usb_hid_get_next_report_id(
+//				hid_dev->report, report_des->report_id,
+//			        USB_HID_REPORT_TYPE_INPUT);
+
+//			if(report_id == 0) {
+//				break;
+//			}
+
+//	 		report_des = usb_hid_report_find_description(
+//				hid_dev->report, report_id, 
+//				USB_HID_REPORT_TYPE_INPUT);
+//		}
+//		else {
+//			break;
+//		}
+	} while (!matches && report_id != 0);
 	
-	usb_log_debug("Size of the input report: %zu\n", size);
+//	usb_log_debug("Size of the input report: %zu\n", size);
 	usb_hid_report_path_free(usage_path);
 	
-	return (size > 0);
+	return matches;
 }
 
 /*----------------------------------------------------------------------------*/
