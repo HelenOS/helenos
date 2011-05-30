@@ -70,7 +70,7 @@ static int initialize_report_parser(int dev_phone, usb_hid_report_t **report)
 	if (rc != EOK) {
 		usb_hid_free_report(*report);
 		*report = NULL;
-		printf("usb_hid_report_init() failed.\n");
+		//printf("usb_hid_report_init() failed.\n");
 		return rc;
 	}
 	
@@ -81,14 +81,14 @@ static int initialize_report_parser(int dev_phone, usb_hid_report_t **report)
 	if (rc != EOK) {
 		usb_hid_free_report(*report);
 		*report = NULL;
-		printf("usbhid_dev_get_report_descriptor_length() failed.\n");
+		//printf("usbhid_dev_get_report_descriptor_length() failed.\n");
 		return rc;
 	}
 	
 	if (report_desc_size == 0) {
 		usb_hid_free_report(*report);
 		*report = NULL;
-		printf("usbhid_dev_get_report_descriptor_length() returned 0.\n");
+		//printf("usbhid_dev_get_report_descriptor_length() returned 0.\n");
 		return EINVAL;	// TODO: other error code?
 	}
 	
@@ -107,7 +107,7 @@ static int initialize_report_parser(int dev_phone, usb_hid_report_t **report)
 		usb_hid_free_report(*report);
 		*report = NULL;
 		free(desc);
-		printf("usbhid_dev_get_report_descriptor() failed.\n");
+		//printf("usbhid_dev_get_report_descriptor() failed.\n");
 		return rc;
 	}
 	
@@ -115,8 +115,8 @@ static int initialize_report_parser(int dev_phone, usb_hid_report_t **report)
 		usb_hid_free_report(*report);
 		*report = NULL;
 		free(desc);
-		printf("usbhid_dev_get_report_descriptor() returned wrong size:"
-		    " %zu, expected: %zu.\n", actual_size, report_desc_size);
+//		printf("usbhid_dev_get_report_descriptor() returned wrong size:"
+//		    " %zu, expected: %zu.\n", actual_size, report_desc_size);
 		return EINVAL;	// TODO: other error code?
 	}
 	
@@ -127,7 +127,7 @@ static int initialize_report_parser(int dev_phone, usb_hid_report_t **report)
 	
 	if (rc != EOK) {
 		free(desc);
-		printf("usb_hid_parse_report_descriptor() failed.\n");
+//		printf("usb_hid_parse_report_descriptor() failed.\n");
 		return rc;
 	}
 	
