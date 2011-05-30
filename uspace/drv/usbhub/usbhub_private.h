@@ -64,8 +64,8 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
  * @param addr
  */
 static inline void usb_hub_set_descriptor_request(
-usb_device_request_setup_packet_t * request
-){
+    usb_device_request_setup_packet_t * request
+    ) {
 	request->index = 0;
 	request->request_type = USB_HUB_REQ_TYPE_GET_DESCRIPTOR;
 	request->request = USB_HUB_REQUEST_GET_DESCRIPTOR;
@@ -86,7 +86,7 @@ usb_device_request_setup_packet_t * request
 static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
     int port_index,
     usb_hub_class_feature_t feature) {
-	
+
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
 		.request = USB_DEVREQ_CLEAR_FEATURE,
@@ -95,7 +95,7 @@ static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
 	};
 	clear_request.value = feature;
 	return usb_pipe_control_write(pipe, &clear_request,
-	    sizeof(clear_request), NULL, 0);
+	    sizeof (clear_request), NULL, 0);
 }
 
 /**
@@ -119,9 +119,8 @@ static inline int usb_hub_set_port_feature(usb_pipe_t *pipe,
 	};
 	clear_request.value = feature;
 	return usb_pipe_control_write(pipe, &clear_request,
-	    sizeof(clear_request), NULL, 0);
+	    sizeof (clear_request), NULL, 0);
 }
-
 
 /**
  * Clear feature on hub port.
@@ -141,7 +140,7 @@ static inline int usb_hub_clear_feature(usb_pipe_t *pipe,
 	};
 	clear_request.value = feature;
 	return usb_pipe_control_write(pipe, &clear_request,
-	    sizeof(clear_request), NULL, 0);
+	    sizeof (clear_request), NULL, 0);
 }
 
 /**
@@ -162,7 +161,7 @@ static inline int usb_hub_set_feature(usb_pipe_t *pipe,
 	};
 	clear_request.value = feature;
 	return usb_pipe_control_write(pipe, &clear_request,
-	    sizeof(clear_request), NULL, 0);
+	    sizeof (clear_request), NULL, 0);
 }
 
 

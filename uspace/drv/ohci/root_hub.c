@@ -56,7 +56,6 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor = {
 	.device_subclass = 0,
 	.device_version = 0,
 	.length = sizeof (usb_standard_device_descriptor_t),
-	/// \TODO this value is guessed
 	.max_packet_size = 8,
 	.vendor_id = 0x16db,
 	.product_id = 0x0001,
@@ -116,7 +115,7 @@ static const uint32_t hub_clear_feature_valid_mask =
  * bitmask of hub features that are cleared by writing 1 (and not 0)
  */
 static const uint32_t hub_clear_feature_by_writing_one_mask =
-   RHS_CLEAR_PORT_POWER;
+    RHS_CLEAR_PORT_POWER;
 
 /**
  * bitmask of hub features that are valid to be set
@@ -411,7 +410,7 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
 		return EINVAL;
 	request->transfered_size = 4;
 	uint32_t data = instance->registers->rh_port_status[port - 1];
-	memcpy(request->data_buffer,&data,4);
+	memcpy(request->data_buffer, &data, 4);
 #if 0
 	int i;
 	for (i = 0; i < instance->port_count; ++i) {
@@ -444,7 +443,7 @@ static int process_get_hub_status_request(rh_t *instance,
 	uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
 	uint32_t data = mask & instance->registers->rh_status;
 	//uint32_buffer[0] = mask & instance->registers->rh_status;
-	memcpy(request->data_buffer,&data,4);
+	memcpy(request->data_buffer, &data, 4);
 
 	return EOK;
 }
@@ -467,7 +466,7 @@ static int process_get_status_request(rh_t *instance,
 	    request->setup_buffer;
 
 	usb_hub_bm_request_type_t request_type = request_packet->request_type;
-	if (buffer_size < 4/*request_packet->length*/) {///\TODO
+	if (buffer_size < 4) {
 		usb_log_warning("requested more data than buffer size\n");
 		return EINVAL;
 	}
@@ -498,7 +497,7 @@ static void create_interrupt_mask_in_instance(rh_t * instance) {
 	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
 	    | (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
 	bzero(bitmap, instance->interrupt_mask_size);
-	if ((instance->registers->rh_status & mask) !=0 ) {
+	if ((instance->registers->rh_status & mask) != 0) {
 		bitmap[0] = 1;
 	}
 	size_t port;
@@ -677,8 +676,6 @@ static int process_port_feature_set_request(rh_t *instance,
 	instance->registers->rh_port_status[port - 1] =
 	    (instance->registers->rh_port_status[port - 1] | (1 << feature))
 	    & (~port_clear_feature_valid_mask);
-	/// \TODO any error?
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -706,7 +703,6 @@ static int process_port_feature_clear_request(rh_t *instance,
 	    (instance->registers->rh_port_status[port - 1]
 	    & (~port_clear_feature_valid_mask))
 	    | (1 << feature);
-	/// \TODO any error?
 
 	return EOK;
 }
@@ -924,7 +920,8 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
  *
  * @return
  */
-static int process_interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch_t * request) {
+static int process_interrupt_mask_in_instance(rh_t *instance,
+    usb_transfer_batch_t * request) {
 	memcpy(request->data_buffer, instance->interrupt_buffer,
 	    instance->interrupt_mask_size);
 	request->transfered_size = instance->interrupt_mask_size;
@@ -944,7 +941,7 @@ static int process_interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch
  * @param size
  * @return
  */
-static bool is_zeros(void * buffer, size_t size) {
+static bool is_zeros(void *buffer, size_t size) {
 	if (!buffer) return true;
 	if (!size) return true;
 	size_t i;

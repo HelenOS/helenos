@@ -767,6 +767,7 @@ static int connect_keyboard_or_mouse(const char *devname,
 	}
 	
 	int phone = fd_phone(fd);
+	close(fd);
 	if (phone < 0) {
 		printf(NAME ": Failed to connect to input device\n");
 		return phone;
@@ -776,6 +777,7 @@ static int connect_keyboard_or_mouse(const char *devname,
 	int rc = async_connect_to_me_hack(phone, SERVICE_CONSOLE, 0, phone,
 	    handler, &hash);
 	if (rc != EOK) {
+		async_hangup(phone);
 		printf(NAME ": " \
 		    "Failed to create callback from input device: %s.\n",
 		    str_error(rc));
