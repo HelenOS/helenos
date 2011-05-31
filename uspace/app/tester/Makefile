@@ -52,6 +52,7 @@ SOURCES = \
 	mm/malloc2.c \
 	mm/malloc3.c \
 	devs/devman1.c \
+	devs/devman2.c \
 	hw/misc/virtchar1.c \
 	hw/serial/serial1.c
 
