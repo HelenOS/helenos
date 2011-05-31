@@ -379,7 +379,7 @@ int ext2_superblock_check_sanity(ext2_superblock_t *sb)
 		return ENOTSUP;
 	}
 	
-	// We don't support fragments smaller than block
+	/* We don't support fragments smaller than block */
 	if (ext2_superblock_get_block_size(sb) != 
 		    ext2_superblock_get_fragment_size(sb)) {
 		return ENOTSUP;
