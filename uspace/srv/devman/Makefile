@@ -29,6 +29,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = devman
+STATIC_NEEDED = y
 
 SOURCES = \
 	main.c \

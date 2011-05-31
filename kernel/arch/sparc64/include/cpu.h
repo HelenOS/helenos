@@ -58,11 +58,6 @@
 #include <arch/regdef.h>
 #include <arch/asm.h>
 
-#ifdef CONFIG_SMP
-#include <arch/mm/cache.h>
-#endif
-
-
 #if defined (SUN4U)
 #include <arch/sun4u/cpu.h>
 #elif defined (SUN4V)

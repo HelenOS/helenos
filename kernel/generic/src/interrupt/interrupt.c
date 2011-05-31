@@ -204,8 +204,8 @@ istate_t *istate_get(thread_t *thread)
 	 * The istate structure should be right at the bottom of the kernel
 	 * stack.
 	 */
-	return (istate_t *) ((uint8_t *) thread->kstack + THREAD_STACK_SIZE -
-	    sizeof(istate_t));
+	return (istate_t *) ((uint8_t *)
+	    thread->kstack + STACK_SIZE - sizeof(istate_t));
 }
 
 #ifdef CONFIG_KCONSOLE

@@ -46,7 +46,7 @@
 /** Returns the actual TCP header length in bytes.
  * @param[in] header The TCP packet header.
  */
-#define TCP_HEADER_LENGTH(header)		((header)->header_length * 4U)
+#define TCP_HEADER_LENGTH(header)		(GET_TCP_HEADER_LENGTH(header) * 4U)
 
 /** Returns the TCP header length.
  * @param[in] length The TCP header length in bytes.
@@ -72,32 +72,65 @@ struct tcp_header {
 	uint16_t destination_port;
 	uint32_t sequence_number;
 	uint32_t acknowledgement_number;
-	
-#ifdef ARCH_IS_BIG_ENDIAN
-	uint8_t header_length:4;
-	uint8_t reserved1:4;
-#else
-	uint8_t reserved1:4;
-	uint8_t header_length:4;
-#endif
 
-#ifdef ARCH_IS_BIG_ENDIAN
-	uint8_t reserved2:2;
-	uint8_t urgent:1;
-	uint8_t acknowledge:1;
-	uint8_t push:1;
-	uint8_t reset:1;
-	uint8_t synchronize:1;
-	uint8_t finalize:1;
-#else
-	uint8_t finalize:1;
-	uint8_t synchronize:1;
-	uint8_t reset:1;
-	uint8_t push:1;
-	uint8_t acknowledge:1;
-	uint8_t urgent:1;
-	uint8_t reserved2:2;
-#endif
+	uint8_t hlr; /* header length, reserved1 */
+
+#define GET_TCP_HEADER_LENGTH(header) \
+	(((header)->hlr & 0xf0) >> 4)
+#define SET_TCP_HEADER_LENGTH(header, length) \
+	((header)->hlr = \
+	 ((length & 0x0f) << 4) | ((header)->hlr & 0x0f))
+
+#define GET_TCP_HEADER_RESERVED1(header) \
+	((header)->hlr & 0x0f)
+#define SET_TCP_HEADER_RESERVED1(header, reserved1) \
+	((header)->hlr = \
+	 (reserved1 & 0x0f) | ((header)->hlr & 0xf0))
+
+	/* reserved2, urgent, acknowledge, push, reset, synchronize, finalize */
+	uint8_t ruaprsf;  
+
+#define GET_TCP_HEADER_RESERVED2(header) \
+	(((header)->ruaprsf & 0xc0) >> 6)
+#define SET_TCP_HEADER_RESERVED2(header, reserved2) \
+	((header)->ruaprsf = \
+	 ((reserved2 & 0x03) << 6) | ((header)->ruaprsf & 0x3f))
+
+#define GET_TCP_HEADER_URGENT(header) \
+	(((header)->ruaprsf & 0x20) >> 5)
+#define SET_TCP_HEADER_URGENT(header, urgent) \
+	((header)->ruaprsf = \
+	 ((urgent & 0x01) << 5) | ((header)->ruaprsf & 0xdf))
+
+#define GET_TCP_HEADER_ACKNOWLEDGE(header) \
+	(((header)->ruaprsf & 0x10) >> 4)
+#define SET_TCP_HEADER_ACKNOWLEDGE(header, acknowledge) \
+	((header)->ruaprsf = \
+	 ((acknowledge & 0x01) << 4) | ((header)->ruaprsf & 0xef))
+
+#define GET_TCP_HEADER_PUSH(header) \
+	(((header)->ruaprsf & 0x08) >> 3)
+#define SET_TCP_HEADER_PUSH(header, push) \
+	((header)->ruaprsf = \
+	 ((push & 0x01) << 3) | ((header)->ruaprsf & 0xf7))
+
+#define GET_TCP_HEADER_RESET(header) \
+	(((header)->ruaprsf & 0x04) >> 2)
+#define SET_TCP_HEADER_RESET(header, reset) \
+	((header)->ruaprsf = \
+	 ((reset & 0x01) << 2) | ((header)->ruaprsf & 0xfb))
+
+#define GET_TCP_HEADER_SYNCHRONIZE(header) \
+	(((header)->ruaprsf & 0x02) >> 1)
+#define SET_TCP_HEADER_SYNCHRONIZE(header, synchronize) \
+	((header)->ruaprsf = \
+	 ((synchronize & 0x01) << 1) | ((header)->ruaprsf & 0xfd))
+
+#define GET_TCP_HEADER_FINALIZE(header) \
+	((header)->ruaprsf & 0x01)
+#define SET_TCP_HEADER_FINALIZE(header, finalize) \
+	((header)->ruaprsf = \
+	 (finalize & 0x01) | ((header)->ruaprsf & 0xfe))
 
 	uint16_t window;
 	uint16_t checksum;

@@ -53,7 +53,7 @@ extern int ip_client_set_pseudo_header_data_length(void *, size_t, size_t);
 extern int ip_client_get_pseudo_header(ip_protocol_t, struct sockaddr *,
     socklen_t, struct sockaddr *, socklen_t, size_t, void **, size_t *);
 
-/* TODO ipopt manipulation */
+// TODO ipopt manipulation
 
 #endif
 

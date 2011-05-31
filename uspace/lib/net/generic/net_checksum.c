@@ -105,7 +105,7 @@ uint32_t compute_crc32_be(uint32_t seed, uint8_t * data, size_t length)
 				/* Shift and divide the checksum */
 				seed = (seed << 1) ^ ((uint32_t) CRC_DIVIDER_BE);
 			} else {
-				/* shift otherwise */
+				/* Shift otherwise */
 				seed <<= 1;
 			}
 		}

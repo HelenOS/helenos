@@ -475,7 +475,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 	new_sequence_number = ntohl(header->sequence_number);
 	old_incoming = socket_data->next_incoming;
 
-	if (header->finalize) {
+	if (GET_TCP_HEADER_FINALIZE(header)) {
 		socket_data->fin_incoming = new_sequence_number +
 		    total_length - TCP_HEADER_LENGTH(header);
 	}
@@ -837,7 +837,7 @@ int tcp_process_syn_sent(socket_core_t *socket, tcp_socket_data_t *
 	assert(header);
 	assert(packet);
 
-	if (!header->synchronize)
+	if (!GET_TCP_HEADER_SYNCHRONIZE(header))
 		return tcp_release_and_return(packet, EINVAL);
 	
 	/* Process acknowledgement */
@@ -902,7 +902,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 	assert(header);
 	assert(packet);
 
-	if (!header->synchronize)
+	if (!GET_TCP_HEADER_SYNCHRONIZE(header))
 		return tcp_release_and_return(packet, EINVAL);
 
 	socket_data = (tcp_socket_data_t *) malloc(sizeof(*socket_data));
@@ -1056,7 +1056,7 @@ int tcp_process_syn_received(socket_core_t *socket,
 	assert(header);
 	assert(packet);
 
-	if (!header->acknowledge)
+	if (!GET_TCP_HEADER_ACKNOWLEDGE(header))
 		return tcp_release_and_return(packet, EINVAL);
 
 	/* Process acknowledgement */
@@ -1125,7 +1125,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
 	assert(socket->specific_data == socket_data);
 	assert(header);
 
-	if (!header->acknowledge)
+	if (!GET_TCP_HEADER_ACKNOWLEDGE(header))
 		return;
 
 	number = ntohl(header->acknowledgement_number);
@@ -1832,7 +1832,7 @@ int tcp_queue_prepare_packet(socket_core_t *socket,
 		return tcp_release_and_return(packet, EINVAL);
 
 	/* Remember the outgoing FIN */
-	if (header->finalize) 
+	if (GET_TCP_HEADER_FINALIZE(header))
 		socket_data->fin_outgoing = socket_data->next_outgoing;
 	
 	return EOK;
@@ -1951,7 +1951,7 @@ packet_t *tcp_send_prepare_packet(socket_core_t *socket, tcp_socket_data_t *
 	if (socket_data->next_incoming) {
 		header->acknowledgement_number =
 		    htonl(socket_data->next_incoming);
-		header->acknowledge = 1;
+		SET_TCP_HEADER_ACKNOWLEDGE(header, 1);
 	}
 	header->window = htons(socket_data->window);
 
@@ -2023,9 +2023,10 @@ void tcp_prepare_operation_header(socket_core_t *socket,
 	bzero(header, sizeof(*header));
 	header->source_port = htons(socket->port);
 	header->source_port = htons(socket_data->dest_port);
-	header->header_length = TCP_COMPUTE_HEADER_LENGTH(sizeof(*header));
-	header->synchronize = synchronize;
-	header->finalize = finalize;
+	SET_TCP_HEADER_LENGTH(header,
+	    TCP_COMPUTE_HEADER_LENGTH(sizeof(*header)));
+	SET_TCP_HEADER_SYNCHRONIZE(header, synchronize);
+	SET_TCP_HEADER_FINALIZE(header, finalize);
 }
 
 int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),

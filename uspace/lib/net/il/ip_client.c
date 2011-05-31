@@ -122,14 +122,15 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
 		*header = header_in;
 		return EOK;
 
-	/* TODO IPv6 */
-/*	case AF_INET6:
+	// TODO IPv6
+#if 0
+	case AF_INET6:
 		if (addrlen != sizeof(struct sockaddr_in6))
 			return EINVAL;
 
 		address_in6 = (struct sockaddr_in6 *) addr;
 		return EOK;
-*/
+#endif
 
 	default:
 		return EAFNOSUPPORT;
@@ -179,14 +180,14 @@ ip_client_prepare_packet(packet_t *packet, ip_protocol_t protocol, ip_ttl_t ttl,
 
 	/* Set the header */
 	header = (ip_header_t *) data;
-	header->header_length = IP_COMPUTE_HEADER_LENGTH(sizeof(ip_header_t) +
-	    ipopt_length);
+	SET_IP_HEADER_LENGTH(header,
+	    (IP_COMPUTE_HEADER_LENGTH(sizeof(ip_header_t) + ipopt_length)));
 	header->ttl = (ttl ? ttl : IPDEFTTL);
 	header->tos = tos;
 	header->protocol = protocol;
 
 	if (dont_fragment)
-		header->flags = IPFLAG_DONT_FRAGMENT;
+		SET_IP_HEADER_FLAGS(header, IPFLAG_DONT_FRAGMENT);
 
 	return EOK;
 }
@@ -225,7 +226,7 @@ ip_client_process_packet(packet_t *packet, ip_protocol_t *protocol,
 	if (tos)
 		*tos = header->tos;
 	if (dont_fragment)
-		*dont_fragment = header->flags & IPFLAG_DONT_FRAGMENT;
+		*dont_fragment = GET_IP_HEADER_FLAGS(header) & IPFLAG_DONT_FRAGMENT;
 	if (ipopt_length) {
 		*ipopt_length = IP_HEADER_LENGTH(header) - sizeof(ip_header_t);
 		return sizeof(ip_header_t);
@@ -257,7 +258,7 @@ ip_client_set_pseudo_header_data_length(void *header, size_t headerlen,
 		header_in = (ipv4_pseudo_header_t *) header;
 		header_in->data_length = htons(data_length);
 		return EOK;
-	/* TODO IPv6 */
+	// TODO IPv6
 	} else {
 		return EINVAL;
 	}

@@ -42,6 +42,7 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <mm/page.h>
+#include <mm/reserve.h>
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <align.h>
@@ -50,19 +51,165 @@
 #include <arch.h>
 #include <arch/barrier.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif
+static bool elf_create(as_area_t *);
+static bool elf_resize(as_area_t *, size_t);
+static void elf_share(as_area_t *);
+static void elf_destroy(as_area_t *);
 
-static int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
-static void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
-static void elf_share(as_area_t *area);
+static int elf_page_fault(as_area_t *, uintptr_t, pf_access_t);
+static void elf_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
 mem_backend_t elf_backend = {
+	.create = elf_create,
+	.resize = elf_resize,
+	.share = elf_share,
+	.destroy = elf_destroy,
+
 	.page_fault = elf_page_fault,
 	.frame_free = elf_frame_free,
-	.share = elf_share
 };
+
+static size_t elf_nonanon_pages_get(as_area_t *area)
+{
+	elf_segment_header_t *entry = area->backend_data.segment;
+	uintptr_t first = ALIGN_UP(entry->p_vaddr, PAGE_SIZE);
+	uintptr_t last = ALIGN_DOWN(entry->p_vaddr + entry->p_filesz,
+	    PAGE_SIZE);
+
+	if (entry->p_flags & PF_W)
+		return 0;
+
+	if (last < first)
+		return 0;
+
+	return last - first;
+}
+
+bool elf_create(as_area_t *area)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
+
+	if (area->pages <= nonanon_pages)
+		return true;
+	
+	return reserve_try_alloc(area->pages - nonanon_pages);
+}
+
+bool elf_resize(as_area_t *area, size_t new_pages)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
+
+	if (new_pages > area->pages) {
+		/* The area is growing. */
+		if (area->pages >= nonanon_pages)
+			return reserve_try_alloc(new_pages - area->pages);
+		else if (new_pages > nonanon_pages)
+			return reserve_try_alloc(new_pages - nonanon_pages);
+	} else if (new_pages < area->pages) {
+		/* The area is shrinking. */
+		if (new_pages >= nonanon_pages)
+			reserve_free(area->pages - new_pages);
+		else if (area->pages > nonanon_pages)
+			reserve_free(nonanon_pages - new_pages);
+	}
+	
+	return true;
+}
+
+/** Share ELF image backed address space area.
+ *
+ * If the area is writable, then all mapped pages are duplicated in the pagemap.
+ * Otherwise only portions of the area that are not backed by the ELF image
+ * are put into the pagemap.
+ *
+ * @param area		Address space area.
+ */
+void elf_share(as_area_t *area)
+{
+	elf_segment_header_t *entry = area->backend_data.segment;
+	link_t *cur;
+	btree_node_t *leaf, *node;
+	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
+
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
+
+	/*
+	 * Find the node in which to start linear search.
+	 */
+	if (area->flags & AS_AREA_WRITE) {
+		node = list_get_instance(area->used_space.leaf_head.next,
+		    btree_node_t, leaf_link);
+	} else {
+		(void) btree_search(&area->sh_info->pagemap, start_anon, &leaf);
+		node = btree_leaf_node_left_neighbour(&area->sh_info->pagemap,
+		    leaf);
+		if (!node)
+			node = leaf;
+	}
+
+	/*
+	 * Copy used anonymous portions of the area to sh_info's page map.
+	 */
+	mutex_lock(&area->sh_info->lock);
+	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head;
+	    cur = cur->next) {
+		unsigned int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		
+		for (i = 0; i < node->keys; i++) {
+			uintptr_t base = node->key[i];
+			size_t count = (size_t) node->value[i];
+			unsigned int j;
+			
+			/*
+			 * Skip read-only areas of used space that are backed
+			 * by the ELF image.
+			 */
+			if (!(area->flags & AS_AREA_WRITE))
+				if (base >= entry->p_vaddr &&
+				    base + P2SZ(count) <= start_anon)
+					continue;
+			
+			for (j = 0; j < count; j++) {
+				pte_t *pte;
+			
+				/*
+				 * Skip read-only pages that are backed by the
+				 * ELF image.
+				 */
+				if (!(area->flags & AS_AREA_WRITE))
+					if (base >= entry->p_vaddr &&
+					    base + P2SZ(j + 1) <= start_anon)
+						continue;
+				
+				page_table_lock(area->as, false);
+				pte = page_mapping_find(area->as,
+				    base + P2SZ(j), false);
+				ASSERT(pte && PTE_VALID(pte) &&
+				    PTE_PRESENT(pte));
+				btree_insert(&area->sh_info->pagemap,
+				    (base + P2SZ(j)) - area->base,
+				    (void *) PTE_GET_FRAME(pte), NULL);
+				page_table_unlock(area->as, false);
+
+				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
+				frame_reference_add(pfn);
+			}
+				
+		}
+	}
+	mutex_unlock(&area->sh_info->lock);
+}
+
+void elf_destroy(as_area_t *area)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
+
+	if (area->pages > nonanon_pages)
+		reserve_free(area->pages - nonanon_pages);
+}
 
 /** Service a page fault in the ELF backend address space area.
  *
@@ -156,7 +303,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 * as COW.
 		 */
 		if (entry->p_flags & PF_W) {
-			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+			frame = (uintptr_t)frame_alloc_noreserve(ONE_FRAME, 0);
 			memcpy((void *) PA2KA(frame),
 			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
 			if (entry->p_flags & PF_X) {
@@ -174,7 +321,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 * To resolve the situation, a frame must be allocated
 		 * and cleared.
 		 */
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
 		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 		dirty = true;
 	} else {
@@ -196,7 +343,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		else
 			pad_hi = 0;
 
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
 		memcpy((void *) (PA2KA(frame) + pad_lo),
 		    (void *) (base + i * FRAME_SIZE + pad_lo),
 		    FRAME_SIZE - pad_lo - pad_hi);
@@ -255,7 +402,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 			 * Free the frame with the copy of writable segment
 			 * data.
 			 */
-			frame_free(frame);
+			frame_free_noreserve(frame);
 		}
 	} else {
 		/*
@@ -263,96 +410,8 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * lower part is backed by the ELF image and the upper is
 		 * anonymous). In any case, a frame needs to be freed.
 		 */
-		frame_free(frame);
+		frame_free_noreserve(frame);
 	}
-}
-
-/** Share ELF image backed address space area.
- *
- * If the area is writable, then all mapped pages are duplicated in the pagemap.
- * Otherwise only portions of the area that are not backed by the ELF image
- * are put into the pagemap.
- *
- * @param area		Address space area.
- */
-void elf_share(as_area_t *area)
-{
-	elf_segment_header_t *entry = area->backend_data.segment;
-	link_t *cur;
-	btree_node_t *leaf, *node;
-	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
-
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
-
-	/*
-	 * Find the node in which to start linear search.
-	 */
-	if (area->flags & AS_AREA_WRITE) {
-		node = list_get_instance(area->used_space.leaf_head.next,
-		    btree_node_t, leaf_link);
-	} else {
-		(void) btree_search(&area->sh_info->pagemap, start_anon, &leaf);
-		node = btree_leaf_node_left_neighbour(&area->sh_info->pagemap,
-		    leaf);
-		if (!node)
-			node = leaf;
-	}
-
-	/*
-	 * Copy used anonymous portions of the area to sh_info's page map.
-	 */
-	mutex_lock(&area->sh_info->lock);
-	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head;
-	    cur = cur->next) {
-		unsigned int i;
-		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		
-		for (i = 0; i < node->keys; i++) {
-			uintptr_t base = node->key[i];
-			size_t count = (size_t) node->value[i];
-			unsigned int j;
-			
-			/*
-			 * Skip read-only areas of used space that are backed
-			 * by the ELF image.
-			 */
-			if (!(area->flags & AS_AREA_WRITE))
-				if (base >= entry->p_vaddr &&
-				    base + count * PAGE_SIZE <= start_anon)
-					continue;
-			
-			for (j = 0; j < count; j++) {
-				pte_t *pte;
-			
-				/*
-				 * Skip read-only pages that are backed by the
-				 * ELF image.
-				 */
-				if (!(area->flags & AS_AREA_WRITE))
-					if (base >= entry->p_vaddr &&
-					    base + (j + 1) * PAGE_SIZE <=
-					    start_anon)
-						continue;
-				
-				page_table_lock(area->as, false);
-				pte = page_mapping_find(area->as,
-				    base + j * PAGE_SIZE);
-				ASSERT(pte && PTE_VALID(pte) &&
-				    PTE_PRESENT(pte));
-				btree_insert(&area->sh_info->pagemap,
-				    (base + j * PAGE_SIZE) - area->base,
-				    (void *) PTE_GET_FRAME(pte), NULL);
-				page_table_unlock(area->as, false);
-
-				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
-				frame_reference_add(pfn);
-			}
-				
-		}
-	}
-	mutex_unlock(&area->sh_info->lock);
 }
 
 /** @}
