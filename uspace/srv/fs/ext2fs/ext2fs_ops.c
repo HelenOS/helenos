@@ -58,6 +58,7 @@
 #include <sys/typefmt.h>
 #include <malloc.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #define EXT2FS_NODE(node)	((node) ? (ext2fs_node_t *) (node)->data : NULL)
 #define EXT2FS_DBG(format, ...) {if (false) printf("ext2fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
@@ -184,7 +185,7 @@ int ext2fs_global_fini(void)
  */
 int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 {
-	EXT2FS_DBG("(%u, -)", devmap_handle);
+	EXT2FS_DBG("(%" PRIun ", -)", devmap_handle);
 	link_t *link;
 	ext2fs_instance_t *tmp;
 	
@@ -216,7 +217,7 @@ int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 
 int ext2fs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
-	EXT2FS_DBG("(-, %u)", devmap_handle);
+	EXT2FS_DBG("(-, %" PRIun ")", devmap_handle);
 	return ext2fs_node_get(rfn, devmap_handle, EXT2_INODE_ROOT_INDEX);
 }
 
@@ -288,7 +289,7 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 /** Instantiate a EXT2 in-core node. */
 int ext2fs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
 {
-	EXT2FS_DBG("(-,%u,%u)", devmap_handle, index);
+	EXT2FS_DBG("(-,%" PRIun ",%u)", devmap_handle, index);
 	
 	ext2fs_instance_t *inst = NULL;
 	int rc;
