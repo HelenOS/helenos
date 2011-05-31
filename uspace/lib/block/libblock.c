@@ -853,14 +853,14 @@ int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
 		return rc;
 	}
 	
-	// calculate data position and required space
+	/* calculate data position and required space */
 	first_block = abs_offset / phys_block_size;
 	offset = abs_offset % phys_block_size;
 	last_block = (abs_offset + bytes - 1) / phys_block_size;
 	blocks = last_block - first_block + 1;
 	buf_size = blocks * phys_block_size;
 	
-	// read the data into memory
+	/* read the data into memory */
 	buffer = malloc(buf_size);
 	if (buffer == NULL) {
 		return ENOMEM;
@@ -872,7 +872,7 @@ int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
 		return rc;
 	}
 	
-	// copy the data from the buffer
+	/* copy the data from the buffer */
 	memcpy(data, buffer + offset, bytes);
 	free(buffer);
 	
