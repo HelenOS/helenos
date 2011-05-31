@@ -258,11 +258,11 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 		create_interrupt_mask_in_instance(instance);
 		if (is_zeros(instance->interrupt_buffer,
 		    instance->interrupt_mask_size)) {
-			usb_log_debug("no changes..\n");
+			usb_log_debug("No changes..\n");
 			instance->unfinished_interrupt_transfer = request;
 			//will be finished later
 		} else {
-			usb_log_debug("processing changes..\n");
+			usb_log_debug("Processing changes..\n");
 			process_interrupt_mask_in_instance(instance, request);
 		}
 		opResult = EOK;
@@ -286,7 +286,7 @@ void rh_interrupt(rh_t *instance) {
 	if (!instance->unfinished_interrupt_transfer) {
 		return;
 	}
-	usb_log_debug("finalizing interrupt transfer\n");
+	usb_log_debug("Finalizing interrupt transfer\n");
 	create_interrupt_mask_in_instance(instance);
 	process_interrupt_mask_in_instance(instance,
 	    instance->unfinished_interrupt_transfer);
@@ -411,15 +411,6 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
 	request->transfered_size = 4;
 	uint32_t data = instance->registers->rh_port_status[port - 1];
 	memcpy(request->data_buffer, &data, 4);
-#if 0
-	int i;
-	for (i = 0; i < instance->port_count; ++i) {
-
-		usb_log_debug("port status %d,x%x\n",
-		    instance->registers->rh_port_status[i],
-		    instance->registers->rh_port_status[i]);
-	}
-#endif
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -437,12 +428,10 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
  */
 static int process_get_hub_status_request(rh_t *instance,
     usb_transfer_batch_t * request) {
-	//uint32_t * uint32_buffer = (uint32_t*) request->data_buffer;
 	request->transfered_size = 4;
 	//bits, 0,1,16,17
 	uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
 	uint32_t data = mask & instance->registers->rh_status;
-	//uint32_buffer[0] = mask & instance->registers->rh_status;
 	memcpy(request->data_buffer, &data, 4);
 
 	return EOK;
@@ -467,7 +456,7 @@ static int process_get_status_request(rh_t *instance,
 
 	usb_hub_bm_request_type_t request_type = request_packet->request_type;
 	if (buffer_size < 4) {
-		usb_log_warning("requested more data than buffer size\n");
+		usb_log_warning("Requested more data than buffer size\n");
 		return EINVAL;
 	}
 
@@ -717,9 +706,7 @@ static int process_port_feature_clear_request(rh_t *instance,
  */
 static int process_address_set_request(rh_t *instance,
     uint16_t address) {
-	instance->address = address;
-
-	return EOK;
+	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 
@@ -863,7 +850,7 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
 	}
 	int opResult;
 	if (sizeof (usb_device_request_setup_packet_t) > request->setup_size) {
-		usb_log_error("setup packet too small\n");
+		usb_log_error("Setup packet too small\n");
 		return EINVAL;
 	}
 	usb_log_info("CTRL packet: %s.\n",
@@ -876,28 +863,28 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
 		case USB_DEVREQ_GET_STATUS:
 		case USB_DEVREQ_GET_DESCRIPTOR:
 		case USB_DEVREQ_GET_CONFIGURATION:
-			usb_log_debug("processing request with output\n");
+			usb_log_debug("Processing request with output\n");
 			opResult = process_request_with_output(
 			    instance, request);
 			break;
 		case USB_DEVREQ_CLEAR_FEATURE:
 		case USB_DEVREQ_SET_FEATURE:
 		case USB_DEVREQ_SET_ADDRESS:
-			usb_log_debug("processing request without "
+			usb_log_debug("Processing request without "
 			    "additional data\n");
 			opResult = process_request_without_data(
 			    instance, request);
 			break;
 		case USB_DEVREQ_SET_DESCRIPTOR:
 		case USB_DEVREQ_SET_CONFIGURATION:
-			usb_log_debug("processing request with "
+			usb_log_debug("Processing request with "
 			    "input\n");
 			opResult = process_request_with_input(
 			    instance, request);
 
 			break;
 		default:
-			usb_log_warning("received unsuported request: "
+			usb_log_warning("Received unsuported request: "
 			    "%d\n",
 			    setup_request->request
 			    );
