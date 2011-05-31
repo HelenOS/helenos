@@ -95,15 +95,17 @@ static int interface_life_fibril(void *arg)
 static vuhid_interface_t *find_interface_by_id(vuhid_interface_t **ifaces,
     const char *id)
 {
-	vuhid_interface_t *iface = ifaces[0];
-	while (iface != NULL) {
-		if (str_cmp(iface->id, id) == 0) {
-			return iface;
+	if ((ifaces == NULL) || (id == NULL)) {
+		return NULL;
+	}
+	while (*ifaces != NULL) {
+		if (str_cmp((*ifaces)->id, id) == 0) {
+			return *ifaces;
 		}
-		iface++;
+		ifaces++;
 	}
 
-	return iface;
+	return NULL;
 }
 
 int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
@@ -118,8 +120,6 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 		return EEMPTY;
 	}
 
-	// FIXME - we shall set vuhid_data to NULL in the main() rather
-	// than to depend on individual interfaces
 	/* Already used interface. */
 	if (iface->vuhid_data != NULL) {
 		return EEXISTS;
@@ -165,7 +165,6 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	/*
 	 * Prepare new descriptors.
 	 */
-	printf("preparing descriptors...\n");
 	size_t descr_count = 0;
 	size_t total_descr_size = 0;
 	usb_standard_interface_descriptor_t *descr_iface = NULL;
@@ -272,7 +271,6 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 		goto error_leave;
 	}
 
-	printf("adding extra descriptors...\n");
 	/* Allocation is okay, we can (actually have to now) overwrite the
 	 * original pointer.
 	 */
