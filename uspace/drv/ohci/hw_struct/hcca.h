@@ -36,6 +36,9 @@
 
 #include <stdint.h>
 
+/** Host controller communication area.
+ * Shared memory used for communication between the controller and the driver.
+ */
 typedef struct hcca {
 	uint32_t int_ep[32];
 	uint16_t frame_number;
