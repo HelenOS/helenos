@@ -78,7 +78,7 @@ static cmd_arg_t add_argv = {
 
 static cmd_info_t addbkpt_info = {
 	.name = "addbkpt",
-	.description = "Add bkpoint (break on J/Branch insts unsupported).",
+	.description = "Add bkpoint (break on j/branch insts unsupported).",
 	.func = cmd_add_breakpoint,
 	.argc = 1,
 	.argv = &add_argv

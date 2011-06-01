@@ -42,11 +42,8 @@
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH  UINT64_C(0xffff800000000000)
 #define KERNEL_ADDRESS_SPACE_END_ARCH    UINT64_C(0xffffffffffffffff)
-
-#define USER_ADDRESS_SPACE_START_ARCH  UINT64_C(0x0000000000000000)
-#define USER_ADDRESS_SPACE_END_ARCH    UINT64_C(0x00007fffffffffff)
-
-#define USTACK_ADDRESS_ARCH  (USER_ADDRESS_SPACE_END_ARCH - (PAGE_SIZE - 1))
+#define USER_ADDRESS_SPACE_START_ARCH    UINT64_C(0x0000000000000000)
+#define USER_ADDRESS_SPACE_END_ARCH      UINT64_C(0x00007fffffffffff)
 
 #define as_constructor_arch(as, flags)  (as != as)
 #define as_destructor_arch(as)          (as != as)

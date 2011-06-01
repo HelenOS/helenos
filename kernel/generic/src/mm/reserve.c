@@ -45,6 +45,16 @@
 IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(reserve_lock, "reserve_lock");
 static ssize_t reserve = 0;
 
+/** Initialize memory reservations tracking.
+ *
+ * This function must be called after frame zones are created and merged
+ * and before any address space area is created.
+ */
+void reserve_init(void)
+{
+	reserve = frame_total_free_get();
+}
+
 /** Try to reserve memory.
  *
  * This function may not be called from contexts that do not allow memory

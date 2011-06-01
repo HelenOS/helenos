@@ -32,14 +32,37 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <io/klog.h>
 #include <stdlib.h>
+#include <atomic.h>
 #include <stacktrace.h>
+#include <stdint.h>
+
+static atomic_t failed_asserts = {0};
 
 void assert_abort(const char *cond, const char *file, unsigned int line)
 {
+	/*
+	 * Send the message safely to klog. Nested asserts should not occur.
+	 */
+	klog_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	    cond, file, line);
+	
+	/*
+	 * Check if this is a nested or parallel assert.
+	 */
+	if (atomic_postinc(&failed_asserts))
+		abort();
+	
+	/*
+	 * Attempt to print the message to standard output and display
+	 * the stack trace. These operations can theoretically trigger nested
+	 * assertions.
+	 */
 	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
 	stacktrace_print();
+	
 	abort();
 }
 

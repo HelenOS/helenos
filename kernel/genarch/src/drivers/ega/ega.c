@@ -40,7 +40,6 @@
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <arch/mm/page.h>
-#include <synch/spinlock.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>

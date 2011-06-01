@@ -38,6 +38,7 @@
 #include <kernel/ipc/event_types.h>
 
 extern int event_subscribe(event_type_t, sysarg_t);
+extern int event_unmask(event_type_t);
 
 #endif
 

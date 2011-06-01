@@ -54,12 +54,14 @@ EOF
 
 BINUTILS_VERSION="2.21"
 GCC_VERSION="4.6.0"
+GDB_VERSION="7.2"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
 GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
 GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
+GDB="gdb-${GDB_VERSION}.tar.bz2"
 
 #
 # Check if the library described in the argument
@@ -268,11 +270,13 @@ prepare() {
 	
 	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
+	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "c84c5acc9d266f1a7044b51c85a823f5"
 	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "b1957f3209080b2f55bc3756d3a62b7c"
 	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "120d4675366ee82ea52f9ed65b57da04"
 	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "a30090fa655d0db4c970740d353c81f1"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "64260e6c56979ee750a01055f16091a5"
 }
 
 build_target() {
@@ -283,6 +287,7 @@ build_target() {
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 	OBJDIR="${WORKDIR}/gcc-obj"
+	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
 	
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
@@ -295,6 +300,7 @@ build_target() {
 	source_check "${BASEDIR}/${GCC_CORE}"
 	source_check "${BASEDIR}/${GCC_OBJC}"
 	source_check "${BASEDIR}/${GCC_CPP}"
+	source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${PREFIX}"
@@ -311,6 +317,7 @@ build_target() {
 	unpack_tarball "${BASEDIR}/${GCC_CORE}" "GCC Core"
 	unpack_tarball "${BASEDIR}/${GCC_OBJC}" "Objective C"
 	unpack_tarball "${BASEDIR}/${GCC_CPP}" "C++"
+	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
 	echo ">>> Processing binutils (${PLATFORM})"
 	cd "${BINUTILSDIR}"
@@ -335,6 +342,18 @@ build_target() {
 	change_title "GCC: make (${PLATFORM})"
 	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 	check_error $? "Error compiling/installing GCC."
+	
+	echo ">>> Processing GDB (${PLATFORM})"
+	cd "${GDBDIR}"
+	check_error $? "Change directory failed."
+	
+	change_title "GDB: configure (${PLATFORM})"
+	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
+	check_error $? "Error configuring GDB."
+	
+	change_title "GDB: make (${PLATFORM})"
+	make all install
+	check_error $? "Error compiling/installing GDB."
 	
 	cd "${BASEDIR}"
 	check_error $? "Change directory failed."

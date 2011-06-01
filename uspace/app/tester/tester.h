@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <bool.h>
+#include <stacktrace.h>
 
 #define IPC_TEST_SERVICE  10240
 #define IPC_TEST_METHOD   2000
@@ -45,12 +46,28 @@ extern bool test_quiet;
 extern int test_argc;
 extern char **test_argv;
 
+/**
+ * sizeof_array
+ * @array array to determine the size of
+ *
+ * Returns the size of @array in array elements.
+ */
+#define sizeof_array(array) \
+	(sizeof(array) / sizeof((array)[0]))
+
 #define TPRINTF(format, ...) \
-	{ \
+	do { \
 		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
+			fprintf(stderr, (format), ##__VA_ARGS__); \
 		} \
-	}
+	} while (0)
+
+#define TSTACKTRACE() \
+	do { \
+		if (!test_quiet) { \
+			stacktrace_print(); \
+		} \
+	} while (0)
 
 typedef const char *(*test_entry_t)(void);
 
@@ -78,9 +95,11 @@ extern const char *test_ping_pong(void);
 extern const char *test_loop1(void);
 extern const char *test_malloc1(void);
 extern const char *test_malloc2(void);
+extern const char *test_malloc3(void);
 extern const char *test_serial1(void);
 extern const char *test_virtchar1(void);
 extern const char *test_devman1(void);
+extern const char *test_devman2(void);
 
 extern test_t tests[];
 

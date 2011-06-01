@@ -44,6 +44,9 @@
 #define VECTOR_INSTRUCTION_STORAGE  3
 #define VECTOR_EXTERNAL             4
 #define VECTOR_DECREMENTER          8
+#define VECTOR_ITLB_MISS            13
+#define VECTOR_DTLB_MISS_LOAD       14
+#define VECTOR_DTLB_MISS_STORE      15
 
 extern void start_decrementer(void);
 extern void interrupt_init(void);

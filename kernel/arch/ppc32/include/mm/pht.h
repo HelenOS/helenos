@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
+/** @addtogroup ppc32mm
+ * @{
+ */
+/** @file
+ */
 
-const char *test_mips2(void)
-{
-	return NULL;
-}
+#ifndef KERN_ppc32_PHT_H_
+#define KERN_ppc32_PHT_H_
+
+#include <arch/interrupt.h>
+#include <typedefs.h>
+
+/* Forward declaration. */
+struct as;
+
+extern void pht_init(void);
+extern void pht_refill(unsigned int, istate_t *);
+extern void pht_invalidate(struct as *, uintptr_t, size_t);
+
+#endif
+
+/** @}
+ */

@@ -20,4 +20,8 @@
 	.name = "null",
 	.match_id = "virtual&test1"
 },
+{
+	.name = "test3",
+	.match_id = "virtual&test3"
+},
 #endif

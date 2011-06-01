@@ -37,7 +37,7 @@
 #include <arch/ras.h>
 
 /** Struct for holding all general purpose registers.
- *  
+ *
  *  Used to set registers when going to userspace.
  */
 typedef struct {
@@ -59,10 +59,10 @@ typedef struct {
 	uint32_t pc;
 } ustate_t;
 
-/** Changes processor mode and jumps to the address specified in the first
- * parameter.
+/** Change processor mode
  *
- *  @param kernel_uarg	 Userspace settings (entry point, stack, ...).
+ * @param kernel_uarg Userspace settings (entry point, stack, ...).
+ *
  */
 void userspace(uspace_arg_t *kernel_uarg)
 {
@@ -78,12 +78,20 @@ void userspace(uspace_arg_t *kernel_uarg)
 	ustate.r2 = (uintptr_t) ras_page;
 
 	/* clear other registers */
-	ustate.r3  = ustate.r4  = ustate.r5 = ustate.r6 = ustate.r7 =
-	    ustate.r8 = ustate.r9 = ustate.r10 = ustate.r11 = ustate.r12 =
-	    ustate.lr = 0;
+	ustate.r3 = 0;
+	ustate.r4 = 0;
+	ustate.r5 = 0;
+	ustate.r6 = 0;
+	ustate.r7 = 0;
+	ustate.r8 = 0;
+	ustate.r9 = 0;
+	ustate.r10 = 0;
+	ustate.r11 = 0;
+	ustate.r12 = 0;
+	ustate.lr = 0;
 
 	/* set user stack */
-	ustate.sp = ((uint32_t)kernel_uarg->uspace_stack) + PAGE_SIZE;
+	ustate.sp = ((uint32_t)kernel_uarg->uspace_stack) + STACK_SIZE;
 
 	/* set where uspace execution starts */
 	ustate.pc = (uintptr_t) kernel_uarg->uspace_entry;
