@@ -121,8 +121,8 @@ const char *HID_KBD_CLASS_NAME;
 
 int usb_kbd_init(struct usb_hid_dev *hid_dev, void **data);
 
-bool usb_kbd_polling_callback(struct usb_hid_dev *hid_dev, void *data, 
-                              uint8_t *buffer, size_t buffer_size);
+bool usb_kbd_polling_callback(struct usb_hid_dev *hid_dev, void *data/*, 
+                              uint8_t *buffer, size_t buffer_size*/);
 
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev);
 

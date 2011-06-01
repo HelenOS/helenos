@@ -49,9 +49,8 @@ struct usb_hid_dev;
 
 typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *, void **data);
 typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *, void *data);
-typedef bool (*usb_hid_driver_poll)(struct usb_hid_dev *, void *data, uint8_t *,
-                                    size_t);
-typedef int (*usb_hid_driver_poll_ended)(struct usb_hid_dev *, void *data, 
+typedef bool (*usb_hid_driver_poll_t)(struct usb_hid_dev *, void *data);
+typedef int (*usb_hid_driver_poll_ended_t)(struct usb_hid_dev *, void *data, 
                                          bool reason);
 
 typedef struct usb_hid_subdriver {	
@@ -60,9 +59,9 @@ typedef struct usb_hid_subdriver {
 	/** Function to be called when destroying the HID device structure. */
 	usb_hid_driver_deinit_t deinit;
 	/** Function to be called when data arrives from the device. */
-	usb_hid_driver_poll poll;
+	usb_hid_driver_poll_t poll;
 	/** Function to be called when polling ends. */
-	usb_hid_driver_poll_ended poll_end;
+	usb_hid_driver_poll_ended_t poll_end;
 	/** Arbitrary data needed by the subdriver. */
 	void *data;
 } usb_hid_subdriver_t;
@@ -92,6 +91,8 @@ typedef struct usb_hid_dev {
 	
 	/** HID Report parser. */
 	usb_hid_report_t *report;
+	
+	uint8_t report_id;
 	
 	uint8_t *input_report;
 	

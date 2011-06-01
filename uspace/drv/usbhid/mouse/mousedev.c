@@ -224,13 +224,13 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 /*----------------------------------------------------------------------------*/
 
 static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, 
-                                     usb_mouse_t *mouse_dev, uint8_t *buffer,
-                                     size_t buffer_size)
+                                     usb_mouse_t *mouse_dev/*, uint8_t *buffer,
+                                     size_t buffer_size*/)
 {
 	assert(mouse_dev != NULL);
 	
-	usb_log_debug2("got buffer: %s.\n",
-	    usb_debug_str_buffer(buffer, buffer_size, 0));
+//	usb_log_debug2("got buffer: %s.\n",
+//	    usb_debug_str_buffer(buffer, buffer_size, 0));
 	
 	if (mouse_dev->mouse_phone < 0) {
 		usb_log_warning(NAME " No console phone.\n");
@@ -241,19 +241,19 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	 * parse the input report
 	 */
 	
-	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
-	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
+//	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
+//	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
 	
-	uint8_t report_id;
+//	uint8_t report_id;
 	
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
-	    &report_id);
+//	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
+//	    &report_id);
 	
-	if (rc != EOK) {
-		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
-		    str_error(rc));
-		return true;
-	}
+//	if (rc != EOK) {
+//		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
+//		    str_error(rc));
+//		return true;
+//	}
 	
 	/*
 	 * X
@@ -264,7 +264,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 
 	    USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
 
-	usb_hid_report_path_set_report_id(path, report_id);
+	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END, 
@@ -287,7 +287,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 
 	    USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
 
-	usb_hid_report_path_set_report_id(path, report_id);
+	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END, 
@@ -315,7 +315,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 
 	    USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	usb_hid_report_path_set_report_id(path, report_id);
+	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 	
 	field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END, 
@@ -339,7 +339,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	 */
 	path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
-	usb_hid_report_path_set_report_id(path, report_id);
+	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 	
 	field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
@@ -504,11 +504,11 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
-     uint8_t *buffer, size_t buffer_size)
+bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data/*, 
+     uint8_t *buffer, size_t buffer_size*/)
 {
 	usb_log_debug("usb_mouse_polling_callback()\n");
-	usb_debug_str_buffer(buffer, buffer_size, 0);
+//	usb_debug_str_buffer(buffer, buffer_size, 0);
 	
 	if (hid_dev == NULL || data == NULL) {
 		usb_log_error("Missing argument to the mouse polling callback."
@@ -518,8 +518,8 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data,
 	
 	usb_mouse_t *mouse_dev = (usb_mouse_t *)data;
 		
-	return usb_mouse_process_report(hid_dev, mouse_dev, buffer, 
-	                                buffer_size);
+	return usb_mouse_process_report(hid_dev, mouse_dev/*, buffer, 
+	                                buffer_size*/);
 }
 
 /*----------------------------------------------------------------------------*/

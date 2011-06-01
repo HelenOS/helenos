@@ -581,13 +581,23 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 		usb_hid_new_report(hid_dev);
 	}
 	
+	// parse the input report
+	
+	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
+	    &hid_dev->report_id);
+	
+	if (rc != EOK) {
+		usb_log_warning("Error in usb_hid_parse_report():"
+		    "%s\n", str_error(rc));
+	}	
+	
 	bool cont = false;
 	
 	// continue if at least one of the subdrivers want to continue
 	for (i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].poll != NULL
 		    && hid_dev->subdrivers[i].poll(hid_dev, 
-		        hid_dev->subdrivers[i].data, buffer, buffer_size)) {
+		        hid_dev->subdrivers[i].data/*, buffer, buffer_size*/)) {
 			cont = true;
 		}
 	}
