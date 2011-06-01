@@ -49,6 +49,7 @@
 #include <errno.h>
 #include <typedefs.h>
 #include <align.h>
+#include <memstr.h>
 #include <arch.h>
 
 static bool anon_create(as_area_t *);
@@ -120,11 +121,11 @@ void anon_share(as_area_t *area)
 			
 				page_table_lock(area->as, false);
 				pte = page_mapping_find(area->as,
-				    base + j * PAGE_SIZE);
+				    base + P2SZ(j), false);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
 				btree_insert(&area->sh_info->pagemap,
-				    (base + j * PAGE_SIZE) - area->base,
+				    (base + P2SZ(j)) - area->base,
 				    (void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
 

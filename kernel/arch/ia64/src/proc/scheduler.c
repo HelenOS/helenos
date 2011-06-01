@@ -78,6 +78,9 @@ void before_thread_runs_arch(void)
 	 * Record address of kernel backing store to bank 0 r22.
 	 * Record address of kernel stack to bank 0 r23.
 	 * These values will be found there after switch from userspace.
+	 *
+	 * Mind the 1:1 split of the entire STACK_SIZE long region between the
+	 * memory stack and the RSE stack.
 	 */
 	asm volatile (
 		"bsw.0\n"
@@ -85,8 +88,8 @@ void before_thread_runs_arch(void)
 		"mov r23 = %1\n"
 		"bsw.1\n"
 		:
-		: "r" (&THREAD->kstack[THREAD_STACK_SIZE]),
-		  "r" (&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA])
+		: "r" (&THREAD->kstack[STACK_SIZE / 2]),
+		  "r" (&THREAD->kstack[STACK_SIZE / 2 - SP_DELTA])
 		);
 }
 

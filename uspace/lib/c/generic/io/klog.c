@@ -37,7 +37,9 @@
 #include <str.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 #include <io/klog.h>
+#include <io/printf_core.h>
 
 size_t klog_write(const void *buf, size_t size)
 {
@@ -52,6 +54,69 @@ size_t klog_write(const void *buf, size_t size)
 void klog_update(void)
 {
 	(void) __SYSCALL3(SYS_KLOG, 1, (uintptr_t) NULL, 0);
+}
+
+/** Print formatted text to klog.
+ *
+ * @param fmt Format string
+ *
+ * \see For more details about format string see printf_core.
+ *
+ */
+int klog_printf(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	
+	int ret = klog_vprintf(fmt, args);
+	
+	va_end(args);
+	
+	return ret;
+}
+
+static int klog_vprintf_str_write(const char *str, size_t size, void *data)
+{
+	size_t wr = klog_write(str, size);
+	return str_nlength(str, wr);
+}
+
+static int klog_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
+{
+	size_t offset = 0;
+	size_t chars = 0;
+	
+	while (offset < size) {
+		char buf[STR_BOUNDS(1)];
+		size_t sz = 0;
+		
+		if (chr_encode(str[chars], buf, &sz, STR_BOUNDS(1)) == EOK)
+			klog_write(buf, sz);
+		
+		chars++;
+		offset += sizeof(wchar_t);
+	}
+	
+	return chars;
+}
+
+/** Print formatted text to klog.
+ *
+ * @param fmt Format string
+ * @param ap  Format parameters
+ *
+ * \see For more details about format string see printf_core.
+ *
+ */
+int klog_vprintf(const char *fmt, va_list ap)
+{
+	printf_spec_t ps = {
+		klog_vprintf_str_write,
+		klog_vprintf_wstr_write,
+		NULL
+	};
+	
+	return printf_core(fmt, &ps, ap);
 }
 
 /** @}

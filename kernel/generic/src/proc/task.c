@@ -189,7 +189,7 @@ task_t *task_create(as_t *as, const char *name)
 	task->as = as;
 	str_cpy(task->name, TASK_NAME_BUFLEN, name);
 	
-	task->context = CONTEXT;
+	task->container = CONTAINER;
 	task->capabilities = 0;
 	task->ucycles = 0;
 	task->kcycles = 0;
@@ -210,7 +210,7 @@ task_t *task_create(as_t *as, const char *name)
 #endif
 	
 	if ((ipc_phone_0) &&
-	    (context_check(ipc_phone_0->task->context, task->context)))
+	    (container_check(ipc_phone_0->task->container, task->container)))
 		ipc_phone_connect(&task->phones[0], ipc_phone_0);
 	
 	btree_create(&task->futexes);
@@ -583,7 +583,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %10p %10p"
 		    " %9" PRIu64 "%c %9" PRIu64 "%c\n", task->taskid,
-		    task->name, task->context, task, task->as,
+		    task->name, task->container, task, task->as,
 		    ucycles, usuffix, kcycles, ksuffix);
 #endif
 	
@@ -594,7 +594,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 		    ksuffix, atomic_get(&task->refcount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
-		    task->taskid, task->name, task->context, task, task->as);
+		    task->taskid, task->name, task->container, task, task->as);
 #endif
 	
 	if (*additional) {
@@ -624,7 +624,7 @@ void task_print_list(bool additional)
 	if (additional)
 		printf("[id    ] [threads] [calls] [callee\n");
 	else
-		printf("[id    ] [name        ] [ctx] [address ] [as      ]"
+		printf("[id    ] [name        ] [ctn] [address ] [as      ]"
 		    " [ucycles ] [kcycles ]\n");
 #endif
 	
@@ -633,7 +633,7 @@ void task_print_list(bool additional)
 		printf("[id    ] [ucycles ] [kcycles ] [threads] [calls]"
 		    " [callee\n");
 	else
-		printf("[id    ] [name        ] [ctx] [address         ]"
+		printf("[id    ] [name        ] [ctn] [address         ]"
 		    " [as              ]\n");
 #endif
 	

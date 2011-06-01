@@ -40,16 +40,26 @@
 #include <proc/task.h>
 #include <mm/as.h>
 
-#define DEFAULT_CONTEXT  0
+/*
+ * THE is not an abbreviation, but the English definite article written in
+ * capital letters. It means the current pointer to something, e.g. thread,
+ * processor or address space. Kind reader of this comment shall appreciate
+ * the wit of constructs like THE->thread and similar.
+ */
+#define THE  ((the_t * )(get_stack_base()))
 
 #define CPU                  THE->cpu
 #define THREAD               THE->thread
 #define TASK                 THE->task
 #define AS                   THE->as
-#define CONTEXT              (THE->task ? THE->task->context : DEFAULT_CONTEXT)
 #define PREEMPTION_DISABLED  THE->preemption_disabled
+#define MAGIC                UINT32_C(0xfacefeed)
 
-#define context_check(ctx1, ctx2)  ((ctx1) == (ctx2))
+#define container_check(ctn1, ctn2)  ((ctn1) == (ctn2))
+
+#define DEFAULT_CONTAINER  0
+#define CONTAINER \
+	((THE->task) ? (THE->task->container) : (DEFAULT_CONTAINER))
 
 /**
  * For each possible kernel stack, structure
@@ -62,15 +72,8 @@ typedef struct {
 	task_t *task;                /**< Current task. */
 	cpu_t *cpu;                  /**< Executing cpu. */
 	as_t *as;                    /**< Current address space. */
+	uint32_t magic;              /**< Magic value */
 } the_t;
-
-/*
- * THE is not an abbreviation, but the English definite article written in
- * capital letters. It means the current pointer to something, e.g. thread,
- * processor or address space. Kind reader of this comment shall appreciate
- * the wit of constructs like THE->thread and similar.
- */
-#define THE  ((the_t * )(get_stack_base()))
 
 extern void the_initialize(the_t *);
 extern void the_copy(the_t *, the_t *);

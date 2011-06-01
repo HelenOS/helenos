@@ -46,6 +46,7 @@
 #include <mm/frame.h>
 #include <bitops.h>
 #include <macros.h>
+#include <memstr.h>
 
 #endif /* CONFIG_TSB */
 

@@ -39,7 +39,7 @@
 typedef struct uspace_arg {
 	void *uspace_entry;
 	void *uspace_stack;
-
+	
 	void (* uspace_thread_function)();
 	void *uspace_thread_arg;
 	
