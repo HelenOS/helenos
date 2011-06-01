@@ -49,8 +49,7 @@ struct usb_hid_dev;
 
 typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *, void **data);
 typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *, void *data);
-typedef bool (*usb_hid_driver_poll_t)(struct usb_hid_dev *, void *data, uint8_t *,
-                                    size_t);
+typedef bool (*usb_hid_driver_poll_t)(struct usb_hid_dev *, void *data);
 typedef int (*usb_hid_driver_poll_ended_t)(struct usb_hid_dev *, void *data, 
                                          bool reason);
 
@@ -92,6 +91,8 @@ typedef struct usb_hid_dev {
 	
 	/** HID Report parser. */
 	usb_hid_report_t *report;
+	
+	uint8_t report_id;
 	
 	uint8_t *input_report;
 	

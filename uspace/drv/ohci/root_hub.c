@@ -250,11 +250,11 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 	assert(request);
 	int opResult;
 	if (request->ep->transfer_type == USB_TRANSFER_CONTROL) {
-		usb_log_info("Root hub got CONTROL packet\n");
+		usb_log_debug("Root hub got CONTROL packet\n");
 		opResult = process_ctrl_request(instance, request);
 		usb_transfer_batch_finish_error(request, opResult);
 	} else if (request->ep->transfer_type == USB_TRANSFER_INTERRUPT) {
-		usb_log_info("Root hub got INTERRUPT packet\n");
+		usb_log_debug("Root hub got INTERRUPT packet\n");
 		create_interrupt_mask_in_instance(instance);
 		if (is_zeros(instance->interrupt_buffer,
 		    instance->interrupt_mask_size)) {

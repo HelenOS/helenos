@@ -268,37 +268,37 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data, 
-    uint8_t *buffer, size_t buffer_size)
+bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data/*, 
+    uint8_t *buffer, size_t buffer_size*/)
 {
 	// TODO: checks
-	if (hid_dev == NULL || data == NULL || buffer == NULL) {
+	if (hid_dev == NULL || data == NULL/* || buffer == NULL*/) {
 		return false;
 	}
 	
-	usb_log_debug(NAME " usb_lgtch_polling_callback(%p, %p, %zu)\n",
-	    hid_dev, buffer, buffer_size);
+//	usb_log_debug(NAME " usb_lgtch_polling_callback(%p, %p, %zu)\n",
+//	    hid_dev, buffer, buffer_size);
 	
 	usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
 
-	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
-	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
+//	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
+//	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
 	
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
 
-	uint8_t report_id;
+//	uint8_t report_id;
 	
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
-	    &report_id);
+//	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
+//	    &report_id);
 	
-	if (rc != EOK) {
-		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
-		    str_error(rc));
-		return true;
-	}
+//	if (rc != EOK) {
+//		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
+//		    str_error(rc));
+//		return true;
+//	}
 	
-	usb_hid_report_path_set_report_id(path, report_id);
+	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
