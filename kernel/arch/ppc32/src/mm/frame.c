@@ -48,7 +48,7 @@ void physmem_print(void)
 	
 	size_t i;
 	for (i = 0; i < memmap.cnt; i++) {
-		printf("%#10x %#10x\n", memmap.zones[i].start,
+		printf("%p %#0zx\n", memmap.zones[i].start,
 		    memmap.zones[i].size);
 	}
 }

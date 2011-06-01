@@ -38,9 +38,9 @@
 #include <kernel/errno.h>
 #include <fibril.h>
 
-extern int _errno;
+#define errno  (*(__errno()))
 
-#define errno _errno
+extern int *__errno(void) __attribute__((const));
 
 #define EMFILE        (-18)
 #define ENAMETOOLONG  (-256)
@@ -55,41 +55,50 @@ extern int _errno;
 #define EIO           (-265)
 #define EMLINK        (-266)
 
+/** Bad checksum. */
+#define EBADCHECKSUM  (-300)
+
+/** USB: stalled operation. */
+#define ESTALL (-301)
+
+/** Empty resource (no data). */
+#define EEMPTY (-302)
+
+/** Negative acknowledgment. */
+#define ENAK (-303)
+
 /** An API function is called while another blocking function is in progress. */
-#define EINPROGRESS	(-10036)
+#define EINPROGRESS  (-10036)
 
 /** The socket identifier is not valid. */
-#define ENOTSOCK	(-10038)
+#define ENOTSOCK  (-10038)
 
 /** The destination address required. */
-#define EDESTADDRREQ	(-10039)
+#define EDESTADDRREQ  (-10039)
 
 /** Protocol is not supported.  */
-#define EPROTONOSUPPORT	(-10043)
+#define EPROTONOSUPPORT  (-10043)
 
 /** Socket type is not supported. */
-#define ESOCKTNOSUPPORT	(-10044)
+#define ESOCKTNOSUPPORT  (-10044)
 
 /** Protocol family is not supported. */
-#define EPFNOSUPPORT	(-10046)
+#define EPFNOSUPPORT  (-10046)
 
 /** Address family is not supported. */
-#define EAFNOSUPPORT	(-10047)
+#define EAFNOSUPPORT  (-10047)
 
 /** Address is already in use. */
-#define EADDRINUSE	(-10048)
+#define EADDRINUSE  (-10048)
 
 /** The socket is not connected or bound. */
-#define ENOTCONN	(-10057)
+#define ENOTCONN  (-10057)
 
-/** The requested operation was not performed.
- *  Try again later.
- */
-#define TRY_AGAIN	(-11002)
+/** The requested operation was not performed. Try again later. */
+#define EAGAIN  (-11002)
 
-/** No data.
- */
-#define NO_DATA		(-11004)
+/** No data. */
+#define NO_DATA (-11004)
 
 #endif
 

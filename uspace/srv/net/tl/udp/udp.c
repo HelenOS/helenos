@@ -35,15 +35,10 @@
  * @see udp.h
  */
 
-#include "udp.h"
-#include "udp_header.h"
-#include "udp_module.h"
-
 #include <async.h>
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/tl.h>
@@ -64,15 +59,18 @@
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net_interface.h>
 #include <socket_core.h>
 #include <tl_common.h>
-#include <tl_local.h>
-#include <tl_interface.h>
+#include <tl_remote.h>
+#include <tl_skel.h>
+
+#include "udp.h"
+#include "udp_header.h"
 
 /** UDP module name. */
-#define NAME	"UDP protocol"
+#define NAME  "udp"
 
 /** Default UDP checksum computing. */
 #define NET_DEFAULT_UDP_CHECKSUM_COMPUTING	true
@@ -92,104 +90,13 @@
 /** UDP global data.  */
 udp_globals_t udp_globals;
 
-/** Initializes the UDP module.
- *
- * @param[in] client_connection The client connection processing function. The
- *			module skeleton propagates its own one.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
- */
-int udp_initialize(async_client_conn_t client_connection)
-{
-	measured_string_t names[] = {
-		{
-			(char *) "UDP_CHECKSUM_COMPUTING",
-			22
-		},
-		{
-			(char *) "UDP_AUTOBINDING",
-			15
-		}
-	};
-	measured_string_ref configuration;
-	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
-	int rc;
-
-	fibril_rwlock_initialize(&udp_globals.lock);
-	fibril_rwlock_write_lock(&udp_globals.lock);
-
-	udp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
-	    ICMP_CONNECT_TIMEOUT);
-	
-	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
-	    SERVICE_UDP, client_connection);
-	if (udp_globals.ip_phone < 0) {
-		fibril_rwlock_write_unlock(&udp_globals.lock);
-		return udp_globals.ip_phone;
-	}
-
-	/* Read default packet dimensions */
-	rc = ip_packet_size_req(udp_globals.ip_phone, -1,
-	    &udp_globals.packet_dimension);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&udp_globals.lock);
-		return rc;
-	}
-	
-	rc = socket_ports_initialize(&udp_globals.sockets);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&udp_globals.lock);
-		return rc;
-	}
-	
-	rc = packet_dimensions_initialize(&udp_globals.dimensions);
-	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
-		fibril_rwlock_write_unlock(&udp_globals.lock);
-		return rc;
-	}
-	
-	udp_globals.packet_dimension.prefix += sizeof(udp_header_t);
-	udp_globals.packet_dimension.content -= sizeof(udp_header_t);
-	udp_globals.last_used_port = UDP_FREE_PORTS_START - 1;
-
-	udp_globals.checksum_computing = NET_DEFAULT_UDP_CHECKSUM_COMPUTING;
-	udp_globals.autobinding = NET_DEFAULT_UDP_AUTOBINDING;
-
-	/* Get configuration */
-	configuration = &names[0];
-	rc = net_get_conf_req(udp_globals.net_phone, &configuration, count,
-	    &data);
-	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
-		fibril_rwlock_write_unlock(&udp_globals.lock);
-		return rc;
-	}
-	
-	if (configuration) {
-		if (configuration[0].value)
-			udp_globals.checksum_computing =
-			    (configuration[0].value[0] == 'y');
-		
-		if (configuration[1].value)
-			udp_globals.autobinding =
-			    (configuration[1].value[0] == 'y');
-
-		net_free_settings(configuration, data);
-	}
-
-	fibril_rwlock_write_unlock(&udp_globals.lock);
-	return EOK;
-}
-
 /** Releases the packet and returns the result.
  *
  * @param[in] packet	The packet queue to be released.
  * @param[in] result	The result to be returned.
  * @return		The result parameter.
  */
-static int udp_release_and_return(packet_t packet, int result)
+static int udp_release_and_return(packet_t *packet, int result)
 {
 	pq_release_remote(udp_globals.net_phone, packet_get_id(packet));
 	return result;
@@ -204,37 +111,37 @@ static int udp_release_and_return(packet_t packet, int result)
  * @param[in,out] packet The received packet queue.
  * @param[in] error	The packet error reporting service. Prefixes the
  *			received packet.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		EINVAL if the stored packet address is not the
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		EINVAL if the stored packet address is not the
  *			an_addr_t.
- * @returns		EINVAL if the packet does not contain any data.
- * @returns 		NO_DATA if the packet content is shorter than the user
+ * @return		EINVAL if the packet does not contain any data.
+ * @return 		NO_DATA if the packet content is shorter than the user
  *			datagram header.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EADDRNOTAVAIL if the destination socket does not exist.
- * @returns		Other error codes as defined for the
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EADDRNOTAVAIL if the destination socket does not exist.
+ * @return		Other error codes as defined for the
  *			ip_client_process_packet() function.
  */
-static int udp_process_packet(device_id_t device_id, packet_t packet,
+static int udp_process_packet(device_id_t device_id, packet_t *packet,
     services_t error)
 {
 	size_t length;
 	size_t offset;
 	int result;
-	udp_header_ref header;
-	socket_core_ref socket;
-	packet_t next_packet;
+	udp_header_t *header;
+	socket_core_t *socket;
+	packet_t *next_packet;
 	size_t total_length;
 	uint32_t checksum;
 	int fragments;
-	packet_t tmp_packet;
+	packet_t *tmp_packet;
 	icmp_type_t type;
 	icmp_code_t code;
 	void *ip_header;
 	struct sockaddr *src;
 	struct sockaddr *dest;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 
 	switch (error) {
@@ -276,13 +183,13 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 		return udp_release_and_return(packet, rc);
 
 	/* Get UDP header */
-	header = (udp_header_ref) packet_get_data(packet);
+	header = (udp_header_t *) packet_get_data(packet);
 	if (!header)
 		return udp_release_and_return(packet, NO_DATA);
 
 	/* Find the destination socket */
 	socket = socket_port_find(&udp_globals.sockets,
-	ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING, 0);
+	    ntohs(header->destination_port), (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!socket) {
 		if (tl_prepare_icmp_packet(udp_globals.net_phone,
 		    udp_globals.icmp_phone, packet, error) == EOK) {
@@ -392,8 +299,8 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	/* Notify the destination socket */
 	fibril_rwlock_write_unlock(&udp_globals.lock);
 	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (ipcarg_t) socket->socket_id, packet_dimension->content, 0, 0,
-	    (ipcarg_t) fragments);
+	    (sysarg_t) socket->socket_id, packet_dimension->content, 0, 0,
+	    (sysarg_t) fragments);
 
 	return EOK;
 }
@@ -408,11 +315,11 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
  * @param receiver	The target service. Ignored parameter.
  * @param[in] error	The packet error reporting service. Prefixes the
  *			received packet.
- * @returns		EOK on success.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the
  *			udp_process_packet() function.
  */
-static int udp_received_msg(device_id_t device_id, packet_t packet,
+static int udp_received_msg(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
 {
 	int result;
@@ -423,6 +330,128 @@ static int udp_received_msg(device_id_t device_id, packet_t packet,
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 
 	return result;
+}
+
+/** Process IPC messages from the IP module
+ *
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
+ *
+ */
+static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+{
+	packet_t *packet;
+	int rc;
+	
+	while (true) {
+		switch (IPC_GET_IMETHOD(*icall)) {
+		case NET_TL_RECEIVED:
+			rc = packet_translate_remote(udp_globals.net_phone, &packet,
+			    IPC_GET_PACKET(*icall));
+			if (rc == EOK)
+				rc = udp_received_msg(IPC_GET_DEVICE(*icall), packet,
+				    SERVICE_UDP, IPC_GET_ERROR(*icall));
+			
+			async_answer_0(iid, (sysarg_t) rc);
+			break;
+		default:
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
+		}
+		
+		iid = async_get_call(icall);
+	}
+}
+
+/** Initialize the UDP module.
+ *
+ * @param[in] net_phone Network module phone.
+ *
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
+ *
+ */
+int tl_initialize(int net_phone)
+{
+	measured_string_t names[] = {
+		{
+			(uint8_t *) "UDP_CHECKSUM_COMPUTING",
+			22
+		},
+		{
+			(uint8_t *) "UDP_AUTOBINDING",
+			15
+		}
+	};
+	measured_string_t *configuration;
+	size_t count = sizeof(names) / sizeof(measured_string_t);
+	uint8_t *data;
+	
+	fibril_rwlock_initialize(&udp_globals.lock);
+	fibril_rwlock_write_lock(&udp_globals.lock);
+	
+	udp_globals.net_phone = net_phone;
+	
+	udp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
+	
+	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
+	    SERVICE_UDP, udp_receiver);
+	if (udp_globals.ip_phone < 0) {
+		fibril_rwlock_write_unlock(&udp_globals.lock);
+		return udp_globals.ip_phone;
+	}
+	
+	/* Read default packet dimensions */
+	int rc = ip_packet_size_req(udp_globals.ip_phone, -1,
+	    &udp_globals.packet_dimension);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&udp_globals.lock);
+		return rc;
+	}
+	
+	rc = socket_ports_initialize(&udp_globals.sockets);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&udp_globals.lock);
+		return rc;
+	}
+	
+	rc = packet_dimensions_initialize(&udp_globals.dimensions);
+	if (rc != EOK) {
+		socket_ports_destroy(&udp_globals.sockets, free);
+		fibril_rwlock_write_unlock(&udp_globals.lock);
+		return rc;
+	}
+	
+	udp_globals.packet_dimension.prefix += sizeof(udp_header_t);
+	udp_globals.packet_dimension.content -= sizeof(udp_header_t);
+	udp_globals.last_used_port = UDP_FREE_PORTS_START - 1;
+
+	udp_globals.checksum_computing = NET_DEFAULT_UDP_CHECKSUM_COMPUTING;
+	udp_globals.autobinding = NET_DEFAULT_UDP_AUTOBINDING;
+
+	/* Get configuration */
+	configuration = &names[0];
+	rc = net_get_conf_req(udp_globals.net_phone, &configuration, count,
+	    &data);
+	if (rc != EOK) {
+		socket_ports_destroy(&udp_globals.sockets, free);
+		fibril_rwlock_write_unlock(&udp_globals.lock);
+		return rc;
+	}
+	
+	if (configuration) {
+		if (configuration[0].value)
+			udp_globals.checksum_computing =
+			    (configuration[0].value[0] == 'y');
+		
+		if (configuration[1].value)
+			udp_globals.autobinding =
+			    (configuration[1].value[0] == 'y');
+
+		net_free_settings(configuration, data);
+	}
+
+	fibril_rwlock_write_unlock(&udp_globals.lock);
+	return EOK;
 }
 
 /** Sends data from the socket to the remote address.
@@ -438,28 +467,28 @@ static int udp_received_msg(device_id_t device_id, packet_t packet,
  * @param[in] fragments	The number of data fragments.
  * @param[out] data_fragment_size The data fragment size in bytes.
  * @param[in] flags	Various send flags.
- * @returns		EOK on success.
- * @returns		EAFNOTSUPPORT if the address family is not supported.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EINVAL if the address is invalid.
- * @returns		ENOTCONN if the sending socket is not and cannot be
+ * @return		EOK on success.
+ * @return		EAFNOTSUPPORT if the address family is not supported.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EINVAL if the address is invalid.
+ * @return		ENOTCONN if the sending socket is not and cannot be
  *			bound.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			socket_read_packet_data() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			ip_client_prepare_packet() function.
- * @returns		Other error codes as defined for the ip_send_msg()
+ * @return		Other error codes as defined for the ip_send_msg()
  *			function.
  */
-static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
     const struct sockaddr *addr, socklen_t addrlen, int fragments,
     size_t *data_fragment_size, int flags)
 {
-	socket_core_ref socket;
-	packet_t packet;
-	packet_t next_packet;
-	udp_header_ref header;
+	socket_core_t *socket;
+	packet_t *packet;
+	packet_t *next_packet;
+	udp_header_t *header;
 	int index;
 	size_t total_length;
 	int result;
@@ -468,8 +497,12 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 	void *ip_header;
 	size_t headerlen;
 	device_id_t device_id;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
+	size_t size;
 	int rc;
+
+	/* In case of error, do not update the data fragment size. */
+	*data_fragment_size = 0;
 	
 	rc = tl_get_address_port(addr, addrlen, &dest_port);
 	if (rc != EOK)
@@ -509,6 +542,16 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 			return rc;
 		packet_dimension = &udp_globals.packet_dimension;
 //	}
+
+	/*
+	 * Update the data fragment size based on what the lower layers can
+	 * handle without fragmentation, but not more than the maximum allowed
+	 * for UDP.
+	 */
+	size = MAX_UDP_FRAGMENT_SIZE;
+	if (packet_dimension->content < size)
+	    size = packet_dimension->content;
+	*data_fragment_size = size;
 
 	/* Read the first packet fragment */
 	result = tl_socket_read_packet_data(udp_globals.net_phone, &packet,
@@ -598,23 +641,23 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
  * @param[in] socket_id	Socket identifier.
  * @param[in] flags	Various receive flags.
  * @param[out] addrlen	The source address length.
- * @returns		The number of bytes received.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		NO_DATA if there are no received packets or data.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EINVAL if the received address is not an IP address.
- * @returns		Other error codes as defined for the packet_translate()
+ * @return		The number of bytes received.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		NO_DATA if there are no received packets or data.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EINVAL if the received address is not an IP address.
+ * @return		Other error codes as defined for the packet_translate()
  *			function.
- * @returns		Other error codes as defined for the data_reply()
+ * @return		Other error codes as defined for the data_reply()
  *			function.
  */
-static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
     int flags, size_t *addrlen)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int packet_id;
-	packet_t packet;
-	udp_header_ref header;
+	packet_t *packet;
+	udp_header_t *header;
 	struct sockaddr *addr;
 	size_t length;
 	uint8_t *data;
@@ -643,7 +686,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
 		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, NO_DATA);
 	}
-	header = (udp_header_ref) data;
+	header = (udp_header_t *) data;
 
 	/* Set the source address port */
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);
@@ -697,7 +740,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
  *
  * @param[in] callid 	The message identifier.
  * @param[in] call	The message parameters.
- * @returns		EOK on success.
+ * @return		EOK on success.
  *
  * @see	socket.h
  */
@@ -706,14 +749,14 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	int res;
 	bool keep_on_going = true;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(&call);
+	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
 	size_t size;
 	ipc_call_t answer;
-	int answer_count;
-	packet_dimension_ref packet_dimension;
+	size_t answer_count;
+	packet_dimension_t *packet_dimension;
 
 	/*
 	 * Accept the connection
@@ -741,7 +784,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		callid = async_get_call(&call);
 
 		/* Process the call */
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			res = EHANGUP;
@@ -756,21 +799,21 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			if (res != EOK)
 				break;
 			
+			size = MAX_UDP_FRAGMENT_SIZE;
 			if (tl_get_ip_packet_dimension(udp_globals.ip_phone,
 			    &udp_globals.dimensions, DEVICE_INVALID_ID,
 			    &packet_dimension) == EOK) {
-				SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
-				    packet_dimension->content);
+				if (packet_dimension->content < size)
+					size = packet_dimension->content;
 			}
-
-//			SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
-//			    MAX_UDP_FRAGMENT_SIZE);
+			SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 			SOCKET_SET_HEADER_SIZE(answer, UDP_HEADER_SIZE);
 			answer_count = 3;
 			break;
 
 		case NET_SOCKET_BIND:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			fibril_rwlock_write_lock(&udp_globals.lock);
@@ -783,7 +826,8 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_SENDTO:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 
@@ -835,13 +879,20 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	ipc_hangup(app_phone);
+	async_hangup(app_phone);
 
 	/* Release all local sockets */
 	socket_cores_release(udp_globals.net_phone, &local_sockets,
 	    &udp_globals.sockets, NULL);
 
 	return res;
+}
+
+/** Per-connection initialization
+ *
+ */
+void tl_connection(void)
+{
 }
 
 /** Processes the UDP message.
@@ -851,89 +902,29 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @param[out] answer	The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer in the
  *			answer parameter.
- * @returns		EOK on success.
- * @returns		ENOTSUP if the message is not known.
+ * @return		EOK on success.
+ * @return		ENOTSUP if the message is not known.
  *
  * @see udp_interface.h
  * @see IS_NET_UDP_MESSAGE()
  */
-int udp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int tl_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
-	packet_t packet;
-	int rc;
-
 	*answer_count = 0;
 
-	switch (IPC_GET_METHOD(*call)) {
-	case NET_TL_RECEIVED:
-		rc = packet_translate_remote(udp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
-		if (rc != EOK)
-			return rc;
-		return udp_received_msg(IPC_GET_DEVICE(call), packet,
-		    SERVICE_UDP, IPC_GET_ERROR(call));
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_CONNECT_TO_ME:
-		return udp_process_client_messages(callid, * call);
+		return udp_process_client_messages(callid, *call);
 	}
 
 	return ENOTSUP;
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- */
-static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		int answer_count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = tl_module_message_standalone(callid, &call, &answer,
-		    &answer_count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
-	}
-}
-
-/** Starts the module.
- *
- * @returns		EOK on success.
- * @returns		Other error codes as defined for each specific module
- *			start function.
- */
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = tl_module_start_standalone(tl_client_connection);
-	return rc;
+	return tl_module_start(SERVICE_UDP);
 }
 
 /** @}

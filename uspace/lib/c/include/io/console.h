@@ -35,7 +35,6 @@
 #ifndef LIBC_IO_CONSOLE_H_
 #define LIBC_IO_CONSOLE_H_
 
-#include <ipc/ipc.h>
 #include <bool.h>
 
 typedef enum {
@@ -67,9 +66,9 @@ typedef struct {
 
 extern void console_clear(int phone);
 
-extern int console_get_size(int phone, ipcarg_t *cols, ipcarg_t *rows);
-extern int console_get_pos(int phone, ipcarg_t *col, ipcarg_t *row);
-extern void console_set_pos(int phone, ipcarg_t col, ipcarg_t row);
+extern int console_get_size(int phone, sysarg_t *cols, sysarg_t *rows);
+extern int console_get_pos(int phone, sysarg_t *col, sysarg_t *row);
+extern void console_set_pos(int phone, sysarg_t col, sysarg_t row);
 
 extern void console_set_style(int phone, uint8_t style);
 extern void console_set_color(int phone, uint8_t fg_color, uint8_t bg_color,
@@ -77,7 +76,7 @@ extern void console_set_color(int phone, uint8_t fg_color, uint8_t bg_color,
 extern void console_set_rgb_color(int phone, uint32_t fg_color, uint32_t bg_color);
 
 extern void console_cursor_visibility(int phone, bool show);
-extern int console_get_color_cap(int phone, ipcarg_t *ccap);
+extern int console_get_color_cap(int phone, sysarg_t *ccap);
 extern void console_kcon_enable(int phone);
 
 extern bool console_get_event(int phone, console_event_t *event);

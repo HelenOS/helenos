@@ -33,13 +33,14 @@
  */
 
 #include <libc.h>
-#include <ipc/ipc.h>
 #include <ipc/kbd.h>
 #include <io/keycode.h>
 #include <ipc/mouse.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
@@ -55,6 +56,7 @@
 #include <fibril_synch.h>
 #include <io/style.h>
 #include <io/screenbuffer.h>
+#include <inttypes.h>
 
 #include "console.h"
 #include "gcons.h"
@@ -63,6 +65,13 @@
 
 #define NAME       "console"
 #define NAMESPACE  "term"
+/** Interval for checking for new keyboard (1/4s). */
+#define HOTPLUG_WATCH_INTERVAL (1000 * 250)
+
+/* Kernel defines 32 but does not export it. */
+#define MAX_IPC_OUTGOING_PHONES 128
+/** To allow proper phone closing. */
+static ipc_callid_t driver_phones[MAX_IPC_OUTGOING_PHONES] = { 0 };
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
@@ -73,19 +82,21 @@ static int mouse_phone;
 /** Information about framebuffer */
 struct {
 	int phone;           /**< Framebuffer phone */
-	ipcarg_t cols;       /**< Framebuffer columns */
-	ipcarg_t rows;       /**< Framebuffer rows */
-	ipcarg_t color_cap;  /**< Color capabilities (FB_CCAP_xxx) */
+	sysarg_t cols;       /**< Framebuffer columns */
+	sysarg_t rows;       /**< Framebuffer rows */
+	sysarg_t color_cap;  /**< Color capabilities (FB_CCAP_xxx) */
 } fb_info;
 
 typedef struct {
 	size_t index;             /**< Console index */
 	size_t refcount;          /**< Connection reference count */
-	dev_handle_t dev_handle;  /**< Device handle */
+	devmap_handle_t devmap_handle;  /**< Device handle */
 	keybuffer_t keybuffer;    /**< Buffer for incoming keys. */
 	screenbuffer_t scr;       /**< Screenbuffer for saving screen
 	                               contents and related settings. */
 } console_t;
+
+
 
 /** Array of data for virtual consoles */
 static console_t consoles[CONSOLE_COUNT];
@@ -100,9 +111,9 @@ static keyfield_t *interbuffer = NULL;
 
 /** Information on row-span yet unsent to FB driver. */
 struct {
-	ipcarg_t col;  /**< Leftmost column of the span. */
-	ipcarg_t row;  /**< Row where the span lies. */
-	ipcarg_t cnt;  /**< Width of the span. */
+	sysarg_t col;  /**< Leftmost column of the span. */
+	sysarg_t row;  /**< Row where the span lies. */
+	sysarg_t cnt;  /**< Width of the span. */
 } fb_pending;
 
 static FIBRIL_MUTEX_INITIALIZE(input_mutex);
@@ -115,10 +126,10 @@ static void curs_visibility(bool visible)
 
 static void curs_hide_sync(void)
 {
-	ipc_call_sync_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
+	async_req_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
 }
 
-static void curs_goto(ipcarg_t x, ipcarg_t y)
+static void curs_goto(sysarg_t x, sysarg_t y)
 {
 	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, x, y);
 }
@@ -130,22 +141,22 @@ static void screen_clear(void)
 
 static void screen_yield(void)
 {
-	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_YIELD);
+	async_req_0_0(fb_info.phone, FB_SCREEN_YIELD);
 }
 
 static void screen_reclaim(void)
 {
-	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
+	async_req_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
 }
 
 static void kbd_yield(void)
 {
-	ipc_call_sync_0_0(kbd_phone, KBD_YIELD);
+	async_req_0_0(kbd_phone, KBD_YIELD);
 }
 
 static void kbd_reclaim(void)
 {
-	ipc_call_sync_0_0(kbd_phone, KBD_RECLAIM);
+	async_req_0_0(kbd_phone, KBD_RECLAIM);
 }
 
 static void set_style(uint8_t style)
@@ -179,7 +190,7 @@ static void set_attrs(attrs_t *attrs)
 	}
 }
 
-static int ccap_fb_to_con(ipcarg_t ccap_fb, ipcarg_t *ccap_con)
+static int ccap_fb_to_con(sysarg_t ccap_fb, sysarg_t *ccap_con)
 {
 	switch (ccap_fb) {
 	case FB_CCAP_NONE:
@@ -202,11 +213,11 @@ static int ccap_fb_to_con(ipcarg_t ccap_fb, ipcarg_t *ccap_con)
 }
 
 /** Send an area of screenbuffer to the FB driver. */
-static void fb_update_area(console_t *cons, ipcarg_t x0, ipcarg_t y0, ipcarg_t width, ipcarg_t height)
+static void fb_update_area(console_t *cons, sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height)
 {
 	if (interbuffer) {
-		ipcarg_t x;
-		ipcarg_t y;
+		sysarg_t x;
+		sysarg_t y;
 		
 		for (y = 0; y < height; y++) {
 			for (x = 0; x < width; x++) {
@@ -236,7 +247,7 @@ static void fb_pending_flush(void)
  * the old span is flushed first.
  *
  */
-static void cell_mark_changed(ipcarg_t col, ipcarg_t row)
+static void cell_mark_changed(sysarg_t col, sysarg_t row)
 {
 	if (fb_pending.cnt != 0) {
 		if ((col != fb_pending.col + fb_pending.cnt)
@@ -254,7 +265,7 @@ static void cell_mark_changed(ipcarg_t col, ipcarg_t row)
 }
 
 /** Print a character to the active VC with buffering. */
-static void fb_putchar(wchar_t c, ipcarg_t col, ipcarg_t row)
+static void fb_putchar(wchar_t c, sysarg_t col, sysarg_t row)
 {
 	async_msg_3(fb_info.phone, FB_PUTCHAR, c, col, row);
 }
@@ -316,8 +327,9 @@ static void write_char(console_t *cons, wchar_t ch)
 /** Switch to new console */
 static void change_console(console_t *cons)
 {
-	if (cons == active_console)
+	if (cons == active_console) {
 		return;
+	}
 	
 	fb_pending_flush();
 	
@@ -351,8 +363,8 @@ static void change_console(console_t *cons)
 		set_attrs(&cons->scr.attrs);
 		curs_visibility(false);
 		
-		ipcarg_t x;
-		ipcarg_t y;
+		sysarg_t x;
+		sysarg_t y;
 		int rc = 0;
 		
 		if (interbuffer) {
@@ -396,6 +408,19 @@ static void change_console(console_t *cons)
 	}
 }
 
+static void close_driver_phone(ipc_callid_t hash)
+{
+	int i;
+	for (i = 0; i < MAX_IPC_OUTGOING_PHONES; i++) {
+		if (driver_phones[i] == hash) {
+			printf("Device %" PRIxn " gone.\n", hash);
+			driver_phones[i] = 0;
+			async_hangup(i);
+			return;
+		}
+	}
+}
+
 /** Handler for keyboard */
 static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -407,9 +432,10 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		int retval;
 		console_event_t ev;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
+			close_driver_phone(iid);
 			return;
 		case KBD_EVENT:
 			/* Got event from keyboard driver. */
@@ -436,7 +462,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -450,15 +476,17 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 		
 		int retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
+			close_driver_phone(iid);
 			return;
 		case MEVENT_BUTTON:
 			if (IPC_GET_ARG1(call) == 1) {
 				int newcon = gcons_mouse_btn((bool) IPC_GET_ARG2(call));
-				if (newcon != -1)
+				if (newcon != -1) {
 					change_console(&consoles[newcon]);
+				}
 			}
 			retval = 0;
 			break;
@@ -471,7 +499,7 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 			retval = ENOENT;
 		}
 
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -482,7 +510,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	int rc = async_data_write_accept(&buf, false, 0, 0, 0, &size);
 	
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -497,7 +525,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	async_serialize_end();
 	
 	gcons_notify_char(cons->index);
-	ipc_answer_1(rid, EOK, size);
+	async_answer_1(rid, EOK, size);
 	
 	free(buf);
 }
@@ -507,15 +535,15 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
 	char *buf = (char *) malloc(size);
 	if (buf == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	
@@ -533,7 +561,7 @@ recheck:
 	
 	if (pos == size) {
 		(void) async_data_read_finalize(callid, buf, size);
-		ipc_answer_1(rid, EOK, size);
+		async_answer_1(rid, EOK, size);
 		free(buf);
 	} else {
 		fibril_condvar_wait(&input_cv, &input_mutex);
@@ -551,7 +579,7 @@ static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *reques
 	
 recheck:
 	if (keybuffer_pop(&cons->keybuffer, &ev)) {
-		ipc_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
+		async_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
 	} else {
 		fibril_condvar_wait(&input_cv, &input_mutex);
 		goto recheck;
@@ -570,22 +598,22 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (i == KERNEL_CONSOLE)
 			continue;
 		
-		if (consoles[i].dev_handle == (dev_handle_t) IPC_GET_ARG1(*icall)) {
+		if (consoles[i].devmap_handle == (devmap_handle_t) IPC_GET_ARG1(*icall)) {
 			cons = &consoles[i];
 			break;
 		}
 	}
 	
 	if (cons == NULL) {
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t arg1;
-	ipcarg_t arg2;
-	ipcarg_t arg3;
+	sysarg_t arg1;
+	sysarg_t arg2;
+	sysarg_t arg3;
 	
 	int rc;
 	
@@ -596,7 +624,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	cons->refcount++;
 	
 	/* Accept the connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		async_serialize_end();
@@ -607,7 +635,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		arg2 = 0;
 		arg3 = 0;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cons->refcount--;
 			if (cons->refcount == 0)
@@ -656,7 +684,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_GET_COLOR_CAP:
 			rc = ccap_fb_to_con(fb_info.color_cap, &arg1);
 			if (rc != EOK) {
-				ipc_answer_0(callid, rc);
+				async_answer_0(callid, rc);
 				continue;
 			}
 			break;
@@ -700,7 +728,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			change_console(kernel_console);
 			break;
 		}
-		ipc_answer_3(callid, EOK, arg1, arg2, arg3);
+		async_answer_3(callid, EOK, arg1, arg2, arg3);
 	}
 }
 
@@ -709,56 +737,155 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
+static int async_connect_to_me_hack(int phone, sysarg_t arg1, sysarg_t arg2,
+sysarg_t arg3, async_client_conn_t client_receiver, ipc_callid_t *hash)
+{
+	sysarg_t task_hash;
+	sysarg_t phone_hash;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	    NULL, NULL, NULL, &task_hash, &phone_hash);
+	if (rc != EOK)
+		return rc;
+
+	if (client_receiver != NULL)
+		async_new_connection(task_hash, phone_hash, phone_hash, NULL,
+		    client_receiver);
+
+	if (hash != NULL) {
+		*hash = phone_hash;
+	}
+
+	return EOK;
+}
+
+static int connect_keyboard_or_mouse(const char *devname,
+    async_client_conn_t handler, const char *path)
+{
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		return fd;
+	}
+	
+	int phone = fd_phone(fd);
+	close(fd);
+	if (phone < 0) {
+		printf(NAME ": Failed to connect to input device\n");
+		return phone;
+	}
+	
+	ipc_callid_t hash;
+	int rc = async_connect_to_me_hack(phone, SERVICE_CONSOLE, 0, phone,
+	    handler, &hash);
+	if (rc != EOK) {
+		async_hangup(phone);
+		printf(NAME ": " \
+		    "Failed to create callback from input device: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	
+	driver_phones[phone] = hash;
+
+	printf(NAME ": found %s \"%s\" (%" PRIxn ").\n", devname, path, hash);
+
+	return phone;
+}
+
+static int connect_keyboard(const char *path)
+{
+	return connect_keyboard_or_mouse("keyboard", keyboard_events, path);
+}
+
+static int connect_mouse(const char *path)
+{
+	return connect_keyboard_or_mouse("mouse", mouse_events, path);
+}
+
+struct hid_class_info {
+	char *classname;
+	int (*connection_func)(const char *);
+};
+
+/** Periodically check for new keyboards in /dev/class/.
+ *
+ * @param arg Class name.
+ * @return This function should never exit.
+ */
+static int check_new_device_fibril(void *arg)
+{
+	struct hid_class_info *dev_info = arg;
+
+	size_t index = 1;
+
+	while (true) {
+		async_usleep(HOTPLUG_WATCH_INTERVAL);
+		char *path;
+		int rc = asprintf(&path, "/dev/class/%s\\%zu",
+		    dev_info->classname, index);
+		if (rc < 0) {
+			continue;
+		}
+		rc = 0;
+		rc = dev_info->connection_func(path);
+		if (rc > 0) {
+			/* We do not allow unplug. */
+			index++;
+		}
+
+		free(path);
+	}
+
+	return EOK;
+}
+
+
+/** Start a fibril monitoring hot-plugged keyboards.
+ */
+static void check_new_devices_in_background(int (*connection_func)(const char *),
+    const char *classname)
+{
+	struct hid_class_info *dev_info = malloc(sizeof(struct hid_class_info));
+	if (dev_info == NULL) {
+		printf(NAME ": " \
+		    "out of memory, will not start hot-plug-watch fibril.\n");
+		return;
+	}
+	int rc;
+
+	rc = asprintf(&dev_info->classname, "%s", classname);
+	if (rc < 0) {
+		printf(NAME ": failed to format classname: %s.\n",
+		    str_error(rc));
+		return;
+	}
+	dev_info->connection_func = connection_func;
+
+	fid_t fid = fibril_create(check_new_device_fibril, (void *)dev_info);
+	if (!fid) {
+		printf(NAME
+		    ": failed to create hot-plug-watch fibril for %s.\n",
+		    classname);
+		return;
+	}
+	fibril_add_ready(fid);
+}
+
 static bool console_init(char *input)
 {
 	/* Connect to input device */
-	int input_fd = open(input, O_RDONLY);
-	if (input_fd < 0) {
-		printf(NAME ": Failed opening %s\n", input);
-		return false;
-	}
-	
-	kbd_phone = fd_phone(input_fd);
+	kbd_phone = connect_keyboard(input);
 	if (kbd_phone < 0) {
-		printf(NAME ": Failed to connect to input device\n");
 		return false;
 	}
-	
-	/* NB: The callback connection is slotted for removal */
-	ipcarg_t phonehash;
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
-		printf(NAME ": Failed to create callback from input device\n");
-		return false;
-	}
-	
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
-	
-	/* Connect to mouse device */
-	mouse_phone = -1;
-	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
-	
-	if (mouse_fd < 0) {
-		printf(NAME ": Notice - failed opening %s\n", "/dev/hid_in/mouse");
-		goto skip_mouse;
-	}
-	
-	mouse_phone = fd_phone(mouse_fd);
+
+	mouse_phone = connect_mouse("/dev/hid_in/mouse");
 	if (mouse_phone < 0) {
-		printf(NAME ": Failed to connect to mouse device\n");
-		goto skip_mouse;
+		printf(NAME ": Failed to connect to mouse device: %s.\n",
+		    str_error(mouse_phone));
 	}
-	
-	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
-		printf(NAME ": Failed to create callback from mouse device\n");
-		mouse_phone = -1;
-		goto skip_mouse;
-	}
-	
-	async_new_connection(phonehash, 0, NULL, mouse_events);
-skip_mouse:
 	
 	/* Connect to framebuffer driver */
-	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
+	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
 		printf(NAME ": Failed to connect to video service\n");
 		return -1;
@@ -803,7 +930,7 @@ skip_mouse:
 		if (i != KERNEL_CONSOLE) {
 			if (screenbuffer_init(&consoles[i].scr,
 			    fb_info.cols, fb_info.rows) == NULL) {
-				printf(NAME ": Unable to allocate screen buffer %u\n", i);
+				printf(NAME ": Unable to allocate screen buffer %zu\n", i);
 				return false;
 			}
 			screenbuffer_clear(&consoles[i].scr);
@@ -812,10 +939,9 @@ skip_mouse:
 			consoles[i].refcount = 0;
 			
 			char vc[DEVMAP_NAME_MAXLEN + 1];
-			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%u", NAMESPACE, i);
+			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
 			
-			if (devmap_device_register(vc, &consoles[i].dev_handle) != EOK) {
-				devmap_hangup_phone(DEVMAP_DRIVER);
+			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
 				printf(NAME ": Unable to register device %s\n", vc);
 				return false;
 			}
@@ -835,11 +961,14 @@ skip_mouse:
 	async_serialize_end();
 	
 	/* Receive kernel notifications */
+	async_set_interrupt_received(interrupt_received);
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
 		printf(NAME ": Error registering kconsole notifications\n");
 	
-	async_set_interrupt_received(interrupt_received);
-	
+	/* Start fibril for checking on hot-plugged keyboards. */
+	check_new_devices_in_background(connect_keyboard, "keyboard");
+	check_new_devices_in_background(connect_mouse, "mouse");
+
 	return true;
 }
 
@@ -859,7 +988,7 @@ int main(int argc, char *argv[])
 	
 	if (!console_init(argv[1]))
 		return -1;
-	
+
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 	

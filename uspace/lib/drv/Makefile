@@ -28,13 +28,18 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
+EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include
 LIBRARY = libdrv
 
 SOURCES = \
 	generic/driver.c \
 	generic/dev_iface.c \
-	generic/remote_res.c \
-	generic/remote_char.c
+	generic/remote_char_dev.c \
+	generic/log.c \
+	generic/remote_hw_res.c \
+	generic/remote_usb.c \
+	generic/remote_pci.c \
+	generic/remote_usbhc.c \
+	generic/remote_usbhid.c
 
 include $(USPACE_PREFIX)/Makefile.common

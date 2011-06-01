@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <sys/typefmt.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -67,7 +68,8 @@ int cmd_bdd(char **argv)
 {
 	unsigned int argc;
 	unsigned int i, j;
-	dev_handle_t handle;
+	devmap_handle_t handle;
+	aoff64_t offset;
 	uint8_t *blk;
 	size_t size, bytes, rows;
 	size_t block_size;
@@ -118,10 +120,12 @@ int cmd_bdd(char **argv)
 		return CMD_FAILURE;
 	}
 
+	offset = ba * block_size;
+
 	while (size > 0) {
 		rc = block_read_direct(handle, ba, 1, blk);
 		if (rc != EOK) {
-			printf("%s: Error reading block %llu\n", cmdname, ba);
+			printf("%s: Error reading block %" PRIuOFF64 "\n", cmdname, ba);
 			free(blk);
 			block_fini(handle);
 			return CMD_FAILURE;
@@ -131,6 +135,7 @@ int cmd_bdd(char **argv)
 		rows = (bytes + BPR - 1) / BPR;
 
 		for (j = 0; j < rows; j++) {
+			printf("[%06" PRIxOFF64 "] ", offset);
 			for (i = 0; i < BPR; i++) {
 				if (j * BPR + i < bytes)
 					printf("%02x ", blk[j * BPR + i]);
@@ -150,6 +155,7 @@ int cmd_bdd(char **argv)
 					putchar(' ');
 				}
 			}
+			offset += BPR;
 			putchar('\n');
 		}
 

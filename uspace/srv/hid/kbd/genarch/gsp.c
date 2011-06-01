@@ -197,8 +197,8 @@ int gsp_step(gsp_t *p, int state, int input, unsigned *mods, unsigned *key)
 
 	if (t == NULL) {
 		printf("gsp_step: not found\n");
-		*mods = NULL;
-		*key = NULL;
+		*mods = 0;
+		*key = 0;
 		return 0;
 	}
 

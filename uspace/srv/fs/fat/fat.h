@@ -34,7 +34,6 @@
 #define FAT_FAT_H_
 
 #include "fat_fat.h"
-#include <ipc/ipc.h>
 #include <fibril_synch.h>
 #include <libfs.h>
 #include <atomic.h>
@@ -175,7 +174,7 @@ typedef struct {
 	link_t		uih_link;
 
 	fibril_mutex_t	lock;
-	dev_handle_t	dev_handle;
+	devmap_handle_t	devmap_handle;
 	fs_index_t	index;
 	/**
 	 * Parent node's first cluster.
@@ -241,17 +240,17 @@ extern void fat_open_node(ipc_callid_t, ipc_call_t *);
 extern void fat_stat(ipc_callid_t, ipc_call_t *);
 extern void fat_sync(ipc_callid_t, ipc_call_t *);
 
-extern int fat_idx_get_new(fat_idx_t **, dev_handle_t);
-extern fat_idx_t *fat_idx_get_by_pos(dev_handle_t, fat_cluster_t, unsigned);
-extern fat_idx_t *fat_idx_get_by_index(dev_handle_t, fs_index_t);
+extern int fat_idx_get_new(fat_idx_t **, devmap_handle_t);
+extern fat_idx_t *fat_idx_get_by_pos(devmap_handle_t, fat_cluster_t, unsigned);
+extern fat_idx_t *fat_idx_get_by_index(devmap_handle_t, fs_index_t);
 extern void fat_idx_destroy(fat_idx_t *);
 extern void fat_idx_hashin(fat_idx_t *);
 extern void fat_idx_hashout(fat_idx_t *);
 
 extern int fat_idx_init(void);
 extern void fat_idx_fini(void);
-extern int fat_idx_init_by_dev_handle(dev_handle_t);
-extern void fat_idx_fini_by_dev_handle(dev_handle_t);
+extern int fat_idx_init_by_devmap_handle(devmap_handle_t);
+extern void fat_idx_fini_by_devmap_handle(devmap_handle_t);
 
 #endif
 

@@ -77,7 +77,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 static task_id_t spawn(int argc, char *argv[])
 {
 	const char **args;
-	task_id_t id;
+	task_id_t id = 0;
 	int rc;
 
 	args = (const char **) calloc(argc + 1, sizeof(char *));

@@ -95,28 +95,6 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
-/** Enable an interrupt.
- * 
- * @param irq the interrupt.
- * 
- * @return Zero on success, negative error code otherwise. 
- */
-int interrupt_enable(int irq) 
-{
-	return __SYSCALL2(SYS_INTERRUPT_ENABLE, (sysarg_t) irq, 1);
-}
-
-/** Disable an interrupt.
- * 
- * @param irq the interrupt.
- * 
- * @return Zero on success, negative error code otherwise. 
- */
-int interrupt_disable(int irq) 
-{
-	return __SYSCALL2(SYS_INTERRUPT_ENABLE, (sysarg_t) irq, 0);
-}
-
 /** Enable PIO for specified I/O range.
  *
  * @param pio_addr	I/O start address.
@@ -146,6 +124,35 @@ int pio_enable(void *pio_addr, size_t size, void **use_addr)
 	virt = as_get_mappable_page(pages << PAGE_WIDTH);
 	*use_addr = virt + offset;
 	return physmem_map(phys, virt, pages, AS_AREA_READ | AS_AREA_WRITE);
+}
+
+/** Register IRQ notification.
+ *
+ * @param inr    IRQ number.
+ * @param devno  Device number of the device generating inr.
+ * @param method Use this method for notifying me.
+ * @param ucode  Top-half pseudocode handler.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int register_irq(int inr, int devno, int method, irq_code_t *ucode)
+{
+	return __SYSCALL4(SYS_REGISTER_IRQ, inr, devno, method,
+	    (sysarg_t) ucode);
+}
+
+/** Unregister IRQ notification.
+ *
+ * @param inr   IRQ number.
+ * @param devno Device number of the device generating inr.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int unregister_irq(int inr, int devno)
+{
+	return __SYSCALL2(SYS_UNREGISTER_IRQ, inr, devno);
 }
 
 /** @}

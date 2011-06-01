@@ -61,22 +61,30 @@
 void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
+const char *irqs_info = NULL;
 
 void istate_decode(istate_t *istate)
 {
-	printf("cs =%p\teip=%p\tefl=%p\terr=%p\n",
+	printf("cs =%0#10" PRIx32 "\teip=%0#10" PRIx32 "\t"
+	    "efl=%0#10" PRIx32 "\terr=%0#10" PRIx32 "\n",
 	    istate->cs, istate->eip, istate->eflags, istate->error_word);
-
-	printf("ds =%p\tes =%p\tfs =%p\tgs =%p\n",
+	
+	printf("ds =%0#10" PRIx32 "\tes =%0#10" PRIx32 "\t"
+	    "fs =%0#10" PRIx32 "\tgs =%0#10" PRIx32 "\n",
 	    istate->ds, istate->es, istate->fs, istate->gs);
+	
 	if (istate_from_uspace(istate))
-		printf("ss =%p\n", istate->ss);
-
-	printf("eax=%p\tebx=%p\tecx=%p\tedx=%p\n",
+		printf("ss =%0#10" PRIx32 "\n", istate->ss);
+	
+	printf("eax=%0#10" PRIx32 "\tebx=%0#10" PRIx32 "\t"
+	    "ecx=%0#10" PRIx32 "\tedx=%0#10" PRIx32 "\n",
 	    istate->eax, istate->ebx, istate->ecx, istate->edx);
-	printf("esi=%p\tedi=%p\tebp=%p\tesp=%p\n",
+	
+	printf("esi=%0#10" PRIx32 "\tedi=%0#10" PRIx32 "\t"
+	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIx32 "\n",
 	    istate->esi, istate->edi, istate->ebp,
-	    istate_from_uspace(istate) ? istate->esp : (uintptr_t)&istate->esp);
+	    istate_from_uspace(istate) ? istate->esp :
+	    (uintptr_t) &istate->esp);
 }
 
 static void trap_virtual_eoi(void)
@@ -138,9 +146,9 @@ static void simd_fp_exception(unsigned int n __attribute__((unused)), istate_t *
 		: [mxcsr] "=m" (mxcsr)
 	);
 	
-	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR=%#0.8x.",
-	    (unative_t) mxcsr);
-	panic_badtrap(istate, n, "SIMD FP exception, MXCSR=%#0.8x");
+	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR=%#0" PRIx32 ".",
+	    mxcsr);
+	panic_badtrap(istate, n, "SIMD FP exception");
 }
 
 static void nm_fault(unsigned int n __attribute__((unused)),

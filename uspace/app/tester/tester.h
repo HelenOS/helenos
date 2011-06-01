@@ -37,7 +37,6 @@
 
 #include <sys/types.h>
 #include <bool.h>
-#include <ipc/ipc.h>
 
 #define IPC_TEST_SERVICE  10240
 #define IPC_TEST_METHOD   2000
@@ -67,6 +66,7 @@ extern const char *test_print1(void);
 extern const char *test_print2(void);
 extern const char *test_print3(void);
 extern const char *test_print4(void);
+extern const char *test_print5(void);
 extern const char *test_console1(void);
 extern const char *test_stdio1(void);
 extern const char *test_stdio2(void);
@@ -75,10 +75,13 @@ extern const char *test_fault2(void);
 extern const char *test_fault3(void);
 extern const char *test_vfs1(void);
 extern const char *test_ping_pong(void);
-extern const char *test_register(void);
-extern const char *test_connect(void);
 extern const char *test_loop1(void);
 extern const char *test_malloc1(void);
+extern const char *test_malloc2(void);
+extern const char *test_mapping1(void);
+extern const char *test_serial1(void);
+extern const char *test_virtchar1(void);
+extern const char *test_devman1(void);
 
 extern test_t tests[];
 

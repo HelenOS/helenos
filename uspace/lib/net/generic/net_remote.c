@@ -48,7 +48,7 @@
 
 /** Connects to the networking module.
  *
- * @returns		The networking module phone on success.
+ * @return		The networking module phone on success.
  */
 int net_connect_module(void)
 {
@@ -62,7 +62,7 @@ int net_connect_module(void)
  * @see	net_get_device_conf_req()
  * @see net_get_conf_req()
  */
-void net_free_settings(measured_string_ref settings, char *data)
+void net_free_settings(measured_string_t *settings, uint8_t *data)
 {
 	if (settings)
 		free(settings);
@@ -82,15 +82,15 @@ void net_free_settings(measured_string_ref settings, char *data)
  *
  * @param[in] count	The configuration entries count.
  * @param[in,out] data	The configuration and settings data.
- * @returns		EOK on success.
- * @returns		EINVAL if the configuration is NULL.
- * @returns		EINVAL if the count is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the configuration is NULL.
+ * @return		EINVAL if the count is zero.
+ * @return		Other error codes as defined for the
  *			generic_translate_req() function.
  */
 int
-net_get_conf_req(int net_phone, measured_string_ref *configuration,
-    size_t count, char **data)
+net_get_conf_req(int net_phone, measured_string_t **configuration,
+    size_t count, uint8_t **data)
 {
 	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF, 0, 0,
 	    *configuration, count, configuration, data);
@@ -109,15 +109,15 @@ net_get_conf_req(int net_phone, measured_string_ref *configuration,
  *			are read and the appropriate settings are set instead.
  * @param[in] count	The configuration entries count.
  * @param[in,out] data	The configuration and settings data.
- * @returns		EOK on success.
- * @returns		EINVAL if the configuration is NULL.
- * @returns		EINVAL if the count is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the configuration is NULL.
+ * @return		EINVAL if the count is zero.
+ * @return		Other error codes as defined for the
  *			generic_translate_req() function.
  */
 int
 net_get_device_conf_req(int net_phone, device_id_t device_id,
-    measured_string_ref *configuration, size_t count, char **data)
+    measured_string_t **configuration, size_t count, uint8_t **data)
 {
 	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF,
 	    device_id, 0, *configuration, count, configuration, data);

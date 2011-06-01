@@ -36,8 +36,6 @@
 #ifndef LIBCLUI_TINPUT_H_
 #define LIBCLUI_TINPUT_H_
 
-#include <ipc/ipc.h>
-
 #define HISTORY_LEN     10
 #define INPUT_MAX_SIZE  1024
 
@@ -50,12 +48,12 @@ typedef struct {
 	wchar_t buffer[INPUT_MAX_SIZE + 1];
 	
 	/** Screen coordinates of the top-left corner of the text field */
-	ipcarg_t col0;
-	ipcarg_t row0;
+	sysarg_t col0;
+	sysarg_t row0;
 	
 	/** Screen dimensions */
-	ipcarg_t con_cols;
-	ipcarg_t con_rows;
+	sysarg_t con_cols;
+	sysarg_t con_rows;
 	
 	/** Number of characters in @c buffer */
 	size_t nc;

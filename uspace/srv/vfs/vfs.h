@@ -33,7 +33,7 @@
 #ifndef VFS_VFS_H_
 #define VFS_VFS_H_
 
-#include <ipc/ipc.h>
+#include <async.h>
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
@@ -52,8 +52,7 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
-	fibril_mutex_t phone_lock;
-	ipcarg_t phone;
+	async_sess_t session;
 } fs_info_t;
 
 /**
@@ -61,13 +60,13 @@ typedef struct {
  */
 #define VFS_PAIR \
 	fs_handle_t fs_handle; \
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 
 /**
  * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
  * doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
- * @note	fs_handle, dev_handle and index are meant to be returned in one
+ * @note	fs_handle, devmap_handle and index are meant to be returned in one
  *		IPC reply.
  */
 #define VFS_TRIPLET \
@@ -171,6 +170,7 @@ extern int vfs_grab_phone(fs_handle_t);
 extern void vfs_release_phone(fs_handle_t, int);
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
+extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
@@ -181,20 +181,19 @@ extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
-extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, dev_handle_t);
+extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
 
 
 #define MAX_OPEN_FILES	128
 
-extern bool vfs_files_init(void);
-extern void vfs_files_done(void);
+extern void *vfs_client_data_create(void);
+extern void vfs_client_data_destroy(void *);
+
 extern vfs_file_t *vfs_file_get(int);
-extern int vfs_fd_assign(vfs_file_t *file, int fd);
+extern void vfs_file_put(vfs_file_t *);
+extern int vfs_fd_assign(vfs_file_t *, int);
 extern int vfs_fd_alloc(bool desc);
 extern int vfs_fd_free(int);
-
-extern void vfs_file_addref(vfs_file_t *);
-extern void vfs_file_delref(vfs_file_t *);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);

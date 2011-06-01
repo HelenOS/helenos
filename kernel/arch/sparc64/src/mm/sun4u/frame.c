@@ -40,7 +40,7 @@
 #include <align.h>
 #include <macros.h>
 
-uintptr_t last_frame = NULL;
+uintptr_t last_frame = (uintptr_t) NULL;
 
 /** Create memory zones according to information stored in memmap.
  *

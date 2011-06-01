@@ -54,20 +54,10 @@ typedef struct tcp_globals tcp_globals_t;
  */
 typedef struct tcp_socket_data tcp_socket_data_t;
 
-/** Type definition of the TCP socket specific data pointer.
- * @see tcp_socket_data
- */
-typedef tcp_socket_data_t *tcp_socket_data_ref;
-
 /** Type definition of the TCP operation data.
  * @see tcp_operation
  */
 typedef struct tcp_operation tcp_operation_t;
-
-/** Type definition of the TCP operation data pointer.
- * @see tcp_operation
- */
-typedef tcp_operation_t *tcp_operation_ref;
 
 /** TCP socket state type definition.
  * @see tcp_socket_state
@@ -199,9 +189,6 @@ struct tcp_socket_data {
 	 */
 	int backlog;
 	
-//	/** Segment size. */
-//	size_t segment_size;
-
 	/**
 	 * Parent listening socket identifier.
 	 * Set if this socket is an accepted one.
@@ -248,7 +235,7 @@ struct tcp_socket_data {
 	 * Packets are sorted by their starting byte.
 	 * Packets metric is set as their data length.
 	 */
-	packet_t incoming;
+	packet_t *incoming;
 	
 	/** Outgoing packet queue.
 	 *
@@ -258,7 +245,7 @@ struct tcp_socket_data {
 	 * Packets are sorted by their starting byte.
 	 * Packets metric is set as their data length.
 	 */
-	packet_t outgoing;
+	packet_t *outgoing;
 	
 	/** IP pseudo header. */
 	void *pseudo_header;
@@ -271,7 +258,7 @@ struct tcp_socket_data {
 	/** Remote host port. */
 	uint16_t dest_port;
 	/** Parent local sockets. */
-	socket_cores_ref local_sockets;
+	socket_cores_t *local_sockets;
 	
 	/** Local sockets safety lock.
 	 *

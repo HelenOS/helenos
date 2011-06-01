@@ -37,7 +37,6 @@
 
 #include <async.h>
 #include <errno.h>
-#include <ipc/ipc.h>
 #include <ipc/packet.h>
 #include <sys/mman.h>
 
@@ -63,7 +62,7 @@
  *
  */
 static int
-packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
+packet_return(int phone, packet_t **packet, packet_id_t packet_id, size_t size)
 {
 	ipc_call_t answer;
 	aid_t message;
@@ -71,7 +70,7 @@ packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
 	
 	message = async_send_1(phone, NET_PACKET_GET, packet_id, &answer);
 
-	*packet = (packet_t) as_get_mappable_page(size);
+	*packet = (packet_t *) as_get_mappable_page(size);
 	rc = async_share_in_start_0_0(phone, *packet, size);
 	if (rc != EOK) {
 		munmap(*packet, size);
@@ -85,7 +84,7 @@ packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
 		return rc;
 	}
 	
-	ipcarg_t result;
+	sysarg_t result;
 	async_wait_for(message, &result);
 	
 	return result;
@@ -99,14 +98,14 @@ packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
  * @param[in] phone	The packet server module phone.
  * @param[out] packet	The packet reference.
  * @param[in] packet_id	The packet identifier.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet parameter is NULL.
- * @returns		Other error codes as defined for the NET_PACKET_GET_SIZE
+ * @return		EOK on success.
+ * @return		EINVAL if the packet parameter is NULL.
+ * @return		Other error codes as defined for the NET_PACKET_GET_SIZE
  *			message.
- * @returns		Other error codes as defined for the packet_return()
+ * @return		Other error codes as defined for the packet_return()
  *			function.
  */
-int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
+int packet_translate_remote(int phone, packet_t **packet, packet_id_t packet_id)
 {
 	int rc;
 	
@@ -115,7 +114,7 @@ int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
 	
 	*packet = pm_find(packet_id);
 	if (!*packet) {
-		ipcarg_t size;
+		sysarg_t size;
 		
 		rc = async_req_1_1(phone, NET_PACKET_GET_SIZE, packet_id,
 		    &size);
@@ -126,7 +125,7 @@ int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
 			return rc;
 	}
 	if ((*packet)->next) {
-		packet_t next;
+		packet_t *next;
 		
 		return packet_translate_remote(phone, &next, (*packet)->next);
 	}
@@ -144,14 +143,14 @@ int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
  * @param[in] max_prefix The maximal prefix length in bytes.
  * @param[in] max_content The maximal content length in bytes.
  * @param[in] max_suffix The maximal suffix length in bytes.
- * @returns		The packet reference.
- * @returns		NULL on error.
+ * @return		The packet reference.
+ * @return		NULL on error.
  */
-packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
+packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
     size_t max_prefix, size_t max_suffix)
 {
-	ipcarg_t packet_id;
-	ipcarg_t size;
+	sysarg_t packet_id;
+	sysarg_t size;
 	int rc;
 	
 	rc = async_req_4_2(phone, NET_PACKET_CREATE_4, max_content, addr_len,
@@ -160,7 +159,7 @@ packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
 		return NULL;
 	
 	
-	packet_t packet = pm_find(packet_id);
+	packet_t *packet = pm_find(packet_id);
 	if (!packet) {
 		rc = packet_return(phone, &packet, packet_id, size);
 		if (rc != EOK)
@@ -176,13 +175,13 @@ packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
  *
  * @param[in] phone	The packet server module phone.
  * @param[in] content	The maximal content length in bytes.
- * @returns		The packet reference.
- * @returns		NULL on error.
+ * @return		The packet reference.
+ * @return		NULL on error.
  */
-packet_t packet_get_1_remote(int phone, size_t content)
+packet_t *packet_get_1_remote(int phone, size_t content)
 {
-	ipcarg_t packet_id;
-	ipcarg_t size;
+	sysarg_t packet_id;
+	sysarg_t size;
 	int rc;
 	
 	rc = async_req_1_2(phone, NET_PACKET_CREATE_1, content, &packet_id,
@@ -190,7 +189,7 @@ packet_t packet_get_1_remote(int phone, size_t content)
 	if (rc != EOK)
 		return NULL;
 	
-	packet_t packet = pm_find(packet_id);
+	packet_t *packet = pm_find(packet_id);
 	if (!packet) {
 		rc = packet_return(phone, &packet, packet_id, size);
 		if (rc != EOK)

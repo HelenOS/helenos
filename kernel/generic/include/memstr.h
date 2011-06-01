@@ -36,15 +36,13 @@
 #define KERN_MEMSTR_H_
 
 #include <typedefs.h>
-#include <arch/memstr.h>
 
-/*
- * Architecture independent variants.
- */
-extern void *_memcpy(void *dst, const void *src, size_t cnt);
-extern void _memsetb(void *dst, size_t cnt, uint8_t x);
-extern void _memsetw(void *dst, size_t cnt, uint16_t x);
-extern void *memmove(void *dst, const void *src, size_t cnt);
+#define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+
+extern void memsetb(void *, size_t, uint8_t);
+extern void memsetw(void *, size_t, uint16_t);
+extern void *memmove(void *, const void *, size_t);
 
 #endif
 

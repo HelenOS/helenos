@@ -37,13 +37,13 @@
 
 #include <stdio.h>
 
-#define errx(status, fmt, ...) { \
-	printf((fmt), ##__VA_ARGS__); \
-	_exit(status); \
-}
+#define errx(status, fmt, ...) \
+	do { \
+		printf((fmt), ##__VA_ARGS__); \
+		exit(status); \
+	} while (0)
 
 #endif
 
 /** @}
  */
-

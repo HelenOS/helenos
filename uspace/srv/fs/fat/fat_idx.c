@@ -43,6 +43,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
+#include <malloc.h>
 
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {
@@ -57,7 +58,7 @@ typedef struct {
  */
 typedef struct {
 	link_t		link;
-	dev_handle_t	dev_handle;
+	devmap_handle_t	devmap_handle;
 
 	/** Next unassigned index. */
 	fs_index_t	next;
@@ -74,16 +75,16 @@ static FIBRIL_MUTEX_INITIALIZE(unused_lock);
 /** List of unused structures. */
 static LIST_INITIALIZE(unused_head);
 
-static void unused_initialize(unused_t *u, dev_handle_t dev_handle)
+static void unused_initialize(unused_t *u, devmap_handle_t devmap_handle)
 {
 	link_initialize(&u->link);
-	u->dev_handle = dev_handle;
+	u->devmap_handle = devmap_handle;
 	u->next = 0;
 	u->remaining = ((uint64_t)((fs_index_t)-1)) + 1;
 	list_initialize(&u->freed_head);
 }
 
-static unused_t *unused_find(dev_handle_t dev_handle, bool lock)
+static unused_t *unused_find(devmap_handle_t devmap_handle, bool lock)
 {
 	unused_t *u;
 	link_t *l;
@@ -92,7 +93,7 @@ static unused_t *unused_find(dev_handle_t dev_handle, bool lock)
 		fibril_mutex_lock(&unused_lock);
 	for (l = unused_head.next; l != &unused_head; l = l->next) {
 		u = list_get_instance(l, unused_t, link);
-		if (u->dev_handle == dev_handle) 
+		if (u->devmap_handle == devmap_handle) 
 			return u;
 	}
 	if (lock)
@@ -105,7 +106,7 @@ static FIBRIL_MUTEX_INITIALIZE(used_lock);
 
 /**
  * Global hash table of all used fat_idx_t structures.
- * The index structures are hashed by the dev_handle, parent node's first
+ * The index structures are hashed by the devmap_handle, parent node's first
  * cluster and index within the parent directory.
  */ 
 static hash_table_t up_hash;
@@ -119,7 +120,7 @@ static hash_table_t up_hash;
 
 static hash_index_t pos_hash(unsigned long key[])
 {
-	dev_handle_t dev_handle = (dev_handle_t)key[UPH_DH_KEY];
+	devmap_handle_t devmap_handle = (devmap_handle_t)key[UPH_DH_KEY];
 	fat_cluster_t pfc = (fat_cluster_t)key[UPH_PFC_KEY];
 	unsigned pdi = (unsigned)key[UPH_PDI_KEY];
 
@@ -139,7 +140,7 @@ static hash_index_t pos_hash(unsigned long key[])
 	h = pfc & ((1 << (UPH_BUCKETS_LOG / 2)) - 1);
 	h |= (pdi & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
 	    (UPH_BUCKETS_LOG / 2); 
-	h |= (dev_handle & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
+	h |= (devmap_handle & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
 	    (3 * (UPH_BUCKETS_LOG / 4));
 
 	return h;
@@ -147,18 +148,18 @@ static hash_index_t pos_hash(unsigned long key[])
 
 static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	dev_handle_t dev_handle = (dev_handle_t)key[UPH_DH_KEY];
+	devmap_handle_t devmap_handle = (devmap_handle_t)key[UPH_DH_KEY];
 	fat_cluster_t pfc;
 	unsigned pdi;
 	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uph_link);
 
 	switch (keys) {
 	case 1:
-		return (dev_handle == fidx->dev_handle);
+		return (devmap_handle == fidx->devmap_handle);
 	case 3:
 		pfc = (fat_cluster_t) key[UPH_PFC_KEY];
 		pdi = (unsigned) key[UPH_PDI_KEY];
-		return (dev_handle == fidx->dev_handle) && (pfc == fidx->pfc) &&
+		return (devmap_handle == fidx->devmap_handle) && (pfc == fidx->pfc) &&
 		    (pdi == fidx->pdi);
 	default:
 		assert((keys == 1) || (keys == 3));
@@ -180,7 +181,7 @@ static hash_table_operations_t uph_ops = {
 
 /**
  * Global hash table of all used fat_idx_t structures.
- * The index structures are hashed by the dev_handle and index.
+ * The index structures are hashed by the devmap_handle and index.
  */
 static hash_table_t ui_hash;
 
@@ -192,12 +193,12 @@ static hash_table_t ui_hash;
 
 static hash_index_t idx_hash(unsigned long key[])
 {
-	dev_handle_t dev_handle = (dev_handle_t)key[UIH_DH_KEY];
+	devmap_handle_t devmap_handle = (devmap_handle_t)key[UIH_DH_KEY];
 	fs_index_t index = (fs_index_t)key[UIH_INDEX_KEY];
 
 	hash_index_t h;
 
-	h = dev_handle & ((1 << (UIH_BUCKETS_LOG / 2)) - 1);
+	h = devmap_handle & ((1 << (UIH_BUCKETS_LOG / 2)) - 1);
 	h |= (index & ((1 << (UIH_BUCKETS_LOG / 2)) - 1)) <<
 	    (UIH_BUCKETS_LOG / 2);
 
@@ -206,16 +207,16 @@ static hash_index_t idx_hash(unsigned long key[])
 
 static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	dev_handle_t dev_handle = (dev_handle_t)key[UIH_DH_KEY];
+	devmap_handle_t devmap_handle = (devmap_handle_t)key[UIH_DH_KEY];
 	fs_index_t index;
 	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
 
 	switch (keys) {
 	case 1:
-		return (dev_handle == fidx->dev_handle);
+		return (devmap_handle == fidx->devmap_handle);
 	case 2:
 		index = (fs_index_t) key[UIH_INDEX_KEY];
-		return (dev_handle == fidx->dev_handle) &&
+		return (devmap_handle == fidx->devmap_handle) &&
 		    (index == fidx->index);
 	default:
 		assert((keys == 1) || (keys == 2));
@@ -238,12 +239,12 @@ static hash_table_operations_t uih_ops = {
 };
 
 /** Allocate a VFS index which is not currently in use. */
-static bool fat_index_alloc(dev_handle_t dev_handle, fs_index_t *index)
+static bool fat_index_alloc(devmap_handle_t devmap_handle, fs_index_t *index)
 {
 	unused_t *u;
 	
 	assert(index);
-	u = unused_find(dev_handle, true);
+	u = unused_find(devmap_handle, true);
 	if (!u)
 		return false;	
 
@@ -300,11 +301,11 @@ static void try_coalesce_intervals(link_t *l, link_t *r, link_t *cur)
 }
 
 /** Free a VFS index, which is no longer in use. */
-static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
+static void fat_index_free(devmap_handle_t devmap_handle, fs_index_t index)
 {
 	unused_t *u;
 
-	u = unused_find(dev_handle, true);
+	u = unused_find(devmap_handle, true);
 	assert(u);
 
 	if (u->next == index + 1) {
@@ -362,14 +363,14 @@ static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 	fibril_mutex_unlock(&unused_lock);
 }
 
-static int fat_idx_create(fat_idx_t **fidxp, dev_handle_t dev_handle)
+static int fat_idx_create(fat_idx_t **fidxp, devmap_handle_t devmap_handle)
 {
 	fat_idx_t *fidx;
 
 	fidx = (fat_idx_t *) malloc(sizeof(fat_idx_t));
 	if (!fidx) 
 		return ENOMEM;
-	if (!fat_index_alloc(dev_handle, &fidx->index)) {
+	if (!fat_index_alloc(devmap_handle, &fidx->index)) {
 		free(fidx);
 		return ENOSPC;
 	}
@@ -377,7 +378,7 @@ static int fat_idx_create(fat_idx_t **fidxp, dev_handle_t dev_handle)
 	link_initialize(&fidx->uph_link);
 	link_initialize(&fidx->uih_link);
 	fibril_mutex_initialize(&fidx->lock);
-	fidx->dev_handle = dev_handle;
+	fidx->devmap_handle = devmap_handle;
 	fidx->pfc = FAT_CLST_RES0;	/* no parent yet */
 	fidx->pdi = 0;
 	fidx->nodep = NULL;
@@ -386,20 +387,20 @@ static int fat_idx_create(fat_idx_t **fidxp, dev_handle_t dev_handle)
 	return EOK;
 }
 
-int fat_idx_get_new(fat_idx_t **fidxp, dev_handle_t dev_handle)
+int fat_idx_get_new(fat_idx_t **fidxp, devmap_handle_t devmap_handle)
 {
 	fat_idx_t *fidx;
 	int rc;
 
 	fibril_mutex_lock(&used_lock);
-	rc = fat_idx_create(&fidx, dev_handle);
+	rc = fat_idx_create(&fidx, devmap_handle);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&used_lock);
 		return rc;
 	}
 		
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = dev_handle,
+		[UIH_DH_KEY] = devmap_handle,
 		[UIH_INDEX_KEY] = fidx->index,
 	};
 	
@@ -412,12 +413,12 @@ int fat_idx_get_new(fat_idx_t **fidxp, dev_handle_t dev_handle)
 }
 
 fat_idx_t *
-fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
+fat_idx_get_by_pos(devmap_handle_t devmap_handle, fat_cluster_t pfc, unsigned pdi)
 {
 	fat_idx_t *fidx;
 	link_t *l;
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = dev_handle,
+		[UPH_DH_KEY] = devmap_handle,
 		[UPH_PFC_KEY] = pfc,
 		[UPH_PDI_KEY] = pdi,
 	};
@@ -429,14 +430,14 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 	} else {
 		int rc;
 
-		rc = fat_idx_create(&fidx, dev_handle);
+		rc = fat_idx_create(&fidx, devmap_handle);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&used_lock);
 			return NULL;
 		}
 		
 		unsigned long ikey[] = {
-			[UIH_DH_KEY] = dev_handle,
+			[UIH_DH_KEY] = devmap_handle,
 			[UIH_INDEX_KEY] = fidx->index,
 		};
 	
@@ -455,7 +456,7 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 void fat_idx_hashin(fat_idx_t *idx)
 {
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = idx->dev_handle,
+		[UPH_DH_KEY] = idx->devmap_handle,
 		[UPH_PFC_KEY] = idx->pfc,
 		[UPH_PDI_KEY] = idx->pdi,
 	};
@@ -468,7 +469,7 @@ void fat_idx_hashin(fat_idx_t *idx)
 void fat_idx_hashout(fat_idx_t *idx)
 {
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = idx->dev_handle,
+		[UPH_DH_KEY] = idx->devmap_handle,
 		[UPH_PFC_KEY] = idx->pfc,
 		[UPH_PDI_KEY] = idx->pdi,
 	};
@@ -479,12 +480,12 @@ void fat_idx_hashout(fat_idx_t *idx)
 }
 
 fat_idx_t *
-fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
+fat_idx_get_by_index(devmap_handle_t devmap_handle, fs_index_t index)
 {
 	fat_idx_t *fidx = NULL;
 	link_t *l;
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = dev_handle,
+		[UIH_DH_KEY] = devmap_handle,
 		[UIH_INDEX_KEY] = index,
 	};
 
@@ -506,10 +507,10 @@ fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 void fat_idx_destroy(fat_idx_t *idx)
 {
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = idx->dev_handle,
+		[UIH_DH_KEY] = idx->devmap_handle,
 		[UIH_INDEX_KEY] = idx->index,
 	};
-	dev_handle_t dev_handle = idx->dev_handle;
+	devmap_handle_t devmap_handle = idx->devmap_handle;
 	fs_index_t index = idx->index;
 
 	assert(idx->pfc == FAT_CLST_RES0);
@@ -523,7 +524,7 @@ void fat_idx_destroy(fat_idx_t *idx)
 	hash_table_remove(&ui_hash, ikey, 2);
 	fibril_mutex_unlock(&used_lock);
 	/* Release the VFS index. */
-	fat_index_free(dev_handle, index);
+	fat_index_free(devmap_handle, index);
 	/* The index structure itself is freed in idx_remove_callback(). */
 }
 
@@ -545,7 +546,7 @@ void fat_idx_fini(void)
 	hash_table_destroy(&ui_hash);
 }
 
-int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
+int fat_idx_init_by_devmap_handle(devmap_handle_t devmap_handle)
 {
 	unused_t *u;
 	int rc = EOK;
@@ -553,9 +554,9 @@ int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
 	u = (unused_t *) malloc(sizeof(unused_t));
 	if (!u)
 		return ENOMEM;
-	unused_initialize(u, dev_handle);
+	unused_initialize(u, devmap_handle);
 	fibril_mutex_lock(&unused_lock);
-	if (!unused_find(dev_handle, false)) {
+	if (!unused_find(devmap_handle, false)) {
 		list_append(&u->link, &unused_head);
 	} else {
 		free(u);
@@ -565,13 +566,13 @@ int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
 	return rc;
 }
 
-void fat_idx_fini_by_dev_handle(dev_handle_t dev_handle)
+void fat_idx_fini_by_devmap_handle(devmap_handle_t devmap_handle)
 {
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = dev_handle
+		[UIH_DH_KEY] = devmap_handle
 	};
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = dev_handle
+		[UPH_DH_KEY] = devmap_handle
 	};
 
 	/*
@@ -587,7 +588,7 @@ void fat_idx_fini_by_dev_handle(dev_handle_t dev_handle)
 	/*
 	 * Free the unused and freed structures for this instance.
 	 */
-	unused_t *u = unused_find(dev_handle, true);
+	unused_t *u = unused_find(devmap_handle, true);
 	assert(u);
 	list_remove(&u->link);
 	fibril_mutex_unlock(&unused_lock);

@@ -32,16 +32,15 @@
 
 /** @file
  * ICMP interface implementation for remote modules.
- * @see icmp_interface.h
+ * @see icmp_remote.h
  */
 
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net/modules.h>
 #include <packet_client.h>
 
 #include <async.h>
 #include <errno.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/icmp.h>
 #include <sys/types.h>
@@ -56,16 +55,16 @@
  * @param[in] code	The error specific code.
  * @param[in] mtu	The error MTU value.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
 icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
-    icmp_param_t mtu, packet_t packet)
+    icmp_param_t mtu, packet_t *packet)
 {
-	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (ipcarg_t) code,
-	    (ipcarg_t) packet_get_id(packet), (ipcarg_t) mtu);
+	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (sysarg_t) code,
+	    (sysarg_t) packet_get_id(packet), (sysarg_t) mtu);
 	return EOK;
 }
 
@@ -77,14 +76,14 @@ icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
  *
  * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
-int icmp_source_quench_msg(int icmp_phone, packet_t packet)
+int icmp_source_quench_msg(int icmp_phone, packet_t *packet)
 {
 	async_msg_2(icmp_phone, NET_ICMP_SOURCE_QUENCH, 0,
-	    (ipcarg_t) packet_get_id(packet));
+	    (sysarg_t) packet_get_id(packet));
 	return EOK;
 }
 
@@ -97,14 +96,14 @@ int icmp_source_quench_msg(int icmp_phone, packet_t packet)
  * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
  * @param[in] code	The error specific code.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
-int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet)
+int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t *packet)
 {
-	async_msg_2(icmp_phone, NET_ICMP_TIME_EXCEEDED, (ipcarg_t) code,
-	    (ipcarg_t) packet_get_id(packet));
+	async_msg_2(icmp_phone, NET_ICMP_TIME_EXCEEDED, (sysarg_t) code,
+	    (sysarg_t) packet_get_id(packet));
 	return EOK;
 }
 
@@ -118,15 +117,15 @@ int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet)
  * @param[in] code	The error specific code.
  * @param[in] pointer	The problematic parameter offset.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code,
-    icmp_param_t pointer, packet_t packet)
+    icmp_param_t pointer, packet_t *packet)
 {
-	async_msg_3(icmp_phone, NET_ICMP_PARAMETERPROB, (ipcarg_t) code,
-	    (ipcarg_t) packet_get_id(packet), (ipcarg_t) pointer);
+	async_msg_3(icmp_phone, NET_ICMP_PARAMETERPROB, (sysarg_t) code,
+	    (sysarg_t) packet_get_id(packet), (sysarg_t) pointer);
 	return EOK;
 }
 

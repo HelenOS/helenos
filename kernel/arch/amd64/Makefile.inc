@@ -32,7 +32,24 @@ BFD = binary
 CLANG_ARCH = x86_64
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
+
+#
+# FIXME:
+#
+# The -fno-optimize-sibling-calls should be removed as soon as a bug
+# in GCC concerning the "large" memory model and tail call optimization
+# is fixed.
+#
+# If GCC generates a code for tail call, instead of generating ..
+#
+#   jmp *fnc
+#
+# it generates an assembly code with an illegal immediate prefix:
+#
+#   jmp *$fnc
+#
+
+CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer -fno-optimize-sibling-calls
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += -m64 -xmodel=kernel

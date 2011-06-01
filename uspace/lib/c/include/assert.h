@@ -39,28 +39,29 @@
 /** Debugging assert macro
  *
  * If NDEBUG is not set, the assert() macro
- * evaluates expr and if it is false prints 
+ * evaluates expr and if it is false prints
  * error message and terminate program.
  *
  * @param expr Expression which is expected to be true.
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #ifndef NDEBUG
-#	define assert(expr) \
-		do { \
-			if (!(expr)) { \
-				printf("Assertion failed (%s) at file '%s', " \
-				    "line %d.\n", #expr, __FILE__, __LINE__); \
-				abort(); \
-			} \
-		} while (0)
-#else
-#	define assert(expr)
-#endif
+
+#define assert(expr) \
+	do { \
+		if (!(expr)) \
+			assert_abort(#expr, __FILE__, __LINE__); \
+	} while (0)
+
+#else /* NDEBUG */
+
+#define assert(expr)
+
+#endif /* NDEBUG */
+
+extern void assert_abort(const char *, const char *, unsigned int)
+    __attribute__((noreturn));
 
 #endif
 

@@ -16,7 +16,7 @@ context default
 	keyword whole subsume yellow
 	keyword whole delegate yellow
 	
-	keyword whole ipcarg_t yellow
+	keyword whole sysarg_t yellow
 	keyword whole string yellow
 	keyword whole stream yellow
 	keyword whole void yellow

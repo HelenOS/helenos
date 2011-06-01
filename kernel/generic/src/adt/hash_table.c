@@ -81,7 +81,7 @@ void hash_table_create(hash_table_t *h, size_t m, size_t max_keys, hash_table_op
  * @param key Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  */
-void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item)
+void hash_table_insert(hash_table_t *h, sysarg_t key[], link_t *item)
 {
 	size_t chain;
 	
@@ -104,7 +104,7 @@ void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item)
  *
  * @return Matching item on success, NULL if there is no such item.
  */
-link_t *hash_table_find(hash_table_t *h, unative_t key[])
+link_t *hash_table_find(hash_table_t *h, sysarg_t key[])
 {
 	link_t *cur;
 	size_t chain;
@@ -137,7 +137,7 @@ link_t *hash_table_find(hash_table_t *h, unative_t key[])
  * @param key Array of keys that will be compared against items of the hash table.
  * @param keys Number of keys in the key array.
  */
-void hash_table_remove(hash_table_t *h, unative_t key[], size_t keys)
+void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 {
 	size_t chain;
 	link_t *cur;

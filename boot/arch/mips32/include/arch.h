@@ -39,7 +39,7 @@
 #define LOADER_OFFSET    0x1fc00000
 
 #define MSIM_VIDEORAM_ADDRESS  0xb0000000
-#define MSIM_DORDER_ADDRESS    0xb0000004
+#define MSIM_DORDER_ADDRESS    0xb0000100
 
 #ifndef __ASM__
 	#define PA2KA(addr)    (((uintptr_t) (addr)) + 0x80000000)

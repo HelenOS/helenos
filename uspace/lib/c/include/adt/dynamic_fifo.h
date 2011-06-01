@@ -43,11 +43,6 @@
  */
 typedef struct dyn_fifo	dyn_fifo_t;
 
-/** Type definition of the dynamic fifo queue pointer.
- *  @see dyn_fifo
- */
-typedef dyn_fifo_t *dyn_fifo_ref;
-
 /** Dynamic first in first out positive integer queue.
  * Possitive integer values only.
  * The queue automatically resizes if needed.
@@ -65,11 +60,11 @@ struct dyn_fifo {
 	int magic_value;
 };
 
-extern int dyn_fifo_initialize(dyn_fifo_ref, int);
-extern int dyn_fifo_destroy(dyn_fifo_ref);
-extern int dyn_fifo_push(dyn_fifo_ref, int, int);
-extern int dyn_fifo_pop(dyn_fifo_ref);
-extern int dyn_fifo_value(dyn_fifo_ref);
+extern int dyn_fifo_initialize(dyn_fifo_t *, int);
+extern int dyn_fifo_destroy(dyn_fifo_t *);
+extern int dyn_fifo_push(dyn_fifo_t *, int, int);
+extern int dyn_fifo_pop(dyn_fifo_t *);
+extern int dyn_fifo_value(dyn_fifo_t *);
 
 #endif
 

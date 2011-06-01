@@ -43,10 +43,10 @@
  */
 /*@{*/
 
-extern int net_get_device_conf_req(int, device_id_t, measured_string_ref *,
-    size_t, char **);
-extern int net_get_conf_req(int, measured_string_ref *, size_t, char **);
-extern void net_free_settings(measured_string_ref, char *);
+extern int net_get_device_conf_req(int, device_id_t, measured_string_t **,
+    size_t, uint8_t **);
+extern int net_get_conf_req(int, measured_string_t **, size_t, uint8_t **);
+extern void net_free_settings(measured_string_t *, uint8_t *);
 extern int net_connect_module(void);
 
 /*@}*/

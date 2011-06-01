@@ -37,51 +37,53 @@
 
 #include <adt/list.h>
 #include <unistd.h>
+#include <bool.h>
 
 typedef unsigned long hash_count_t;
 typedef unsigned long hash_index_t;
-typedef struct hash_table hash_table_t;
-typedef struct hash_table_operations hash_table_operations_t;
+
+/** Set of operations for hash table. */
+typedef struct {
+	/** Hash function.
+	 *
+	 * @param key Array of keys needed to compute hash index.
+	 *            All keys must be passed.
+	 *
+	 * @return Index into hash table.
+	 *
+	 */
+	hash_index_t (*hash)(unsigned long key[]);
+	
+	/** Hash table item comparison function.
+	 *
+	 * @param key Array of keys that will be compared with item. It is
+	 *            not necessary to pass all keys.
+	 *
+	 * @return True if the keys match, false otherwise.
+	 *
+	 */
+	int (*compare)(unsigned long key[], hash_count_t keys, link_t *item);
+	
+	/** Hash table item removal callback.
+	 *
+	 * @param item Item that was removed from the hash table.
+	 *
+	 */
+	void (*remove_callback)(link_t *item);
+} hash_table_operations_t;
 
 /** Hash table structure. */
-struct hash_table {
+typedef struct {
 	link_t *entry;
 	hash_count_t entries;
 	hash_count_t max_keys;
 	hash_table_operations_t *op;
-};
-
-/** Set of operations for hash table. */
-struct hash_table_operations {
-	/** Hash function.
-	 *
-	 * @param key 	Array of keys needed to compute hash index. All keys
-	 *		must be passed.
-	 *
-	 * @return	Index into hash table.
-	 */
-	hash_index_t (* hash)(unsigned long key[]);
-	
-	/** Hash table item comparison function.
-	 *
-	 * @param key 	Array of keys that will be compared with item. It is
-	 *		not necessary to pass all keys.
-	 *
-	 * @return 	true if the keys match, false otherwise.
-	 */
-	int (*compare)(unsigned long key[], hash_count_t keys, link_t *item);
-
-	/** Hash table item removal callback.
-	 *
-	 * @param item 	Item that was removed from the hash table.
-	 */
-	void (*remove_callback)(link_t *item);
-};
+} hash_table_t;
 
 #define hash_table_get_instance(item, type, member) \
     list_get_instance((item), type, member)
 
-extern int hash_table_create(hash_table_t *, hash_count_t, hash_count_t,
+extern bool hash_table_create(hash_table_t *, hash_count_t, hash_count_t,
     hash_table_operations_t *);
 extern void hash_table_insert(hash_table_t *, unsigned long [], link_t *);
 extern link_t *hash_table_find(hash_table_t *, unsigned long []);

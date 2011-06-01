@@ -58,18 +58,18 @@ GENERIC_CHAR_MAP_IMPLEMENT(modules, module_t)
  * @param[in] task_id	The module current task identifier. Zero means not
  *			running.
  * @param[in] connect_module The module connecting function.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
-add_module(module_ref *module, modules_ref modules, const char *name,
-    const char *filename, services_t service, task_id_t task_id,
+add_module(module_t **module, modules_t *modules, const uint8_t *name,
+    const uint8_t *filename, services_t service, task_id_t task_id,
     connect_module_t connect_module)
 {
-	module_ref tmp_module;
+	module_t *tmp_module;
 	int rc;
 
-	tmp_module = (module_ref) malloc(sizeof(module_t));
+	tmp_module = (module_t *) malloc(sizeof(module_t));
 	if (!tmp_module)
 		return ENOMEM;
 
@@ -99,20 +99,20 @@ add_module(module_ref *module, modules_ref modules, const char *name,
  *
  * @param[in] modules	The module map.
  * @param[in] name	The module name.
- * @returns		The running module found. It does not have to be
+ * @return		The running module found. It does not have to be
  *			connected.
- * @returns		NULL if there is no such module.
+ * @return		NULL if there is no such module.
  */
-module_ref get_running_module(modules_ref modules, char *name)
+module_t *get_running_module(modules_t *modules, uint8_t *name)
 {
-	module_ref module;
+	module_t *module;
 
 	module = modules_find(modules, name, 0);
 	if (!module)
 		return NULL;
 
 	if (!module->task_id) {
-		module->task_id = spawn(module->filename);
+		module->task_id = net_spawn(module->filename);
 		if (!module->task_id)
 			return NULL;
 	}
@@ -122,18 +122,20 @@ module_ref get_running_module(modules_ref modules, char *name)
 	return module;
 }
 
-/** Starts the given module.
+/** Start the given module.
  *
- * @param[in] fname	The module full or relative path filename.
- * @returns		The new module task identifier on success.
- * @returns		Zero if there is no such module.
+ * @param[in] fname The module full or relative path filename.
+ *
+ * @return The new module task identifier on success.
+ * @return Zero if there is no such module.
+ *
  */
-task_id_t spawn(const char *fname)
+task_id_t net_spawn(const uint8_t *fname)
 {
 	task_id_t id;
 	int rc;
 	
-	rc = task_spawnl(&id, fname, fname, NULL);
+	rc = task_spawnl(&id, (const char *) fname, (const char *) fname, NULL);
 	if (rc != EOK)
 		return 0;
 	

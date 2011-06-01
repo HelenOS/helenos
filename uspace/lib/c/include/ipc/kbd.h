@@ -37,10 +37,11 @@
 #ifndef LIBC_IPC_KBD_H_
 #define LIBC_IPC_KBD_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
+#include <ipc/dev_iface.h>
 
 typedef enum {
-	KBD_YIELD = IPC_FIRST_USER_METHOD,
+	KBD_YIELD = DEV_FIRST_CUSTOM_METHOD,
 	KBD_RECLAIM
 } kbd_request_t;
 

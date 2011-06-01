@@ -201,7 +201,7 @@ static void test_tree_insert(avltree_t *tree, size_t node_count)
 	
 	avltree_create(tree);
 	
-	TPRINTF("Inserting %" PRIs " nodes...", node_count);
+	TPRINTF("Inserting %zu nodes...", node_count);
 	
 	for (i = 0; i < node_count; i++) {
 		newnode = alloc_avltree_node();

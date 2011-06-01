@@ -52,7 +52,7 @@
 #include <errno.h>
 #include <str.h>
 
-#define KLOG_PAGES    4
+#define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
 #define KLOG_LATENCY  8
 
@@ -159,10 +159,13 @@ void klog_init(void)
 	
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
+	klog_parea.unpriv = false;
 	ddi_parea_register(&klog_parea);
 	
-	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
+	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
+
+	event_set_unmask_callback(EVENT_KLOG, klog_update);
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
@@ -192,7 +195,7 @@ void release_console(void)
 }
 
 /** Tell kernel to get keyboard/console access again */
-unative_t sys_debug_enable_console(void)
+sysarg_t sys_debug_enable_console(void)
 {
 #ifdef CONFIG_KCONSOLE
 	grab_console();
@@ -203,7 +206,7 @@ unative_t sys_debug_enable_console(void)
 }
 
 /** Tell kernel to relinquish keyboard/console access */
-unative_t sys_debug_disable_console(void)
+sysarg_t sys_debug_disable_console(void)
 {
 	release_console();
 	return true;
@@ -263,9 +266,10 @@ void klog_update(void)
 {
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_inited) && (event_is_subscribed(EVENT_KLOG)) && (klog_uspace > 0)) {
-		event_notify_3(EVENT_KLOG, klog_start, klog_len, klog_uspace);
-		klog_uspace = 0;
+	if ((klog_inited) && (klog_uspace > 0)) {
+		if (event_notify_3(EVENT_KLOG, true, klog_start, klog_len,
+		    klog_uspace) == EOK)
+			klog_uspace = 0;
 	}
 	
 	spinlock_unlock(&klog_lock);
@@ -332,23 +336,23 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-unative_t sys_klog(int fd, const void *buf, size_t size)
+sysarg_t sys_klog(int fd, const void *buf, size_t size)
 {
 	char *data;
 	int rc;
 	
 	if (size > PAGE_SIZE)
-		return (unative_t) ELIMIT;
+		return (sysarg_t) ELIMIT;
 	
 	if (size > 0) {
 		data = (char *) malloc(size + 1, 0);
 		if (!data)
-			return (unative_t) ENOMEM;
+			return (sysarg_t) ENOMEM;
 		
 		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
-			return (unative_t) rc;
+			return (sysarg_t) rc;
 		}
 		data[size] = 0;
 		

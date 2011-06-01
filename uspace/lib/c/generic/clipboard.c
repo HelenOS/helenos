@@ -38,6 +38,7 @@
  */
 
 #include <clipboard.h>
+#include <ipc/ns.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <async.h>
@@ -53,7 +54,7 @@ static int clip_phone = -1;
 static void clip_connect(void)
 {
 	while (clip_phone < 0)
-		clip_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_CLIPBOARD, 0, 0);
+		clip_phone = service_connect_blocking(SERVICE_CLIPBOARD, 0, 0);
 }
 
 /** Copy string to clipboard.
@@ -74,7 +75,7 @@ int clipboard_put_str(const char *str)
 		async_serialize_start();
 		clip_connect();
 		
-		ipcarg_t rc = async_req_1_0(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_NONE);
+		sysarg_t rc = async_req_1_0(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_NONE);
 		
 		async_serialize_end();
 		
@@ -84,9 +85,9 @@ int clipboard_put_str(const char *str)
 		clip_connect();
 		
 		aid_t req = async_send_1(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_DATA, NULL);
-		ipcarg_t rc = async_data_write_start(clip_phone, (void *) str, size);
+		sysarg_t rc = async_data_write_start(clip_phone, (void *) str, size);
 		if (rc != EOK) {
-			ipcarg_t rc_orig;
+			sysarg_t rc_orig;
 			async_wait_for(req, &rc_orig);
 			async_serialize_end();
 			if (rc_orig == EOK)
@@ -118,9 +119,9 @@ int clipboard_get_str(char **str)
 		async_serialize_start();
 		clip_connect();
 		
-		ipcarg_t size;
-		ipcarg_t tag;
-		ipcarg_t rc = async_req_0_2(clip_phone, CLIPBOARD_CONTENT, &size, &tag);
+		sysarg_t size;
+		sysarg_t tag;
+		sysarg_t rc = async_req_0_2(clip_phone, CLIPBOARD_CONTENT, &size, &tag);
 		
 		async_serialize_end();
 		
@@ -157,7 +158,7 @@ int clipboard_get_str(char **str)
 			}
 			
 			if (rc != EOK) {
-				ipcarg_t rc_orig;
+				sysarg_t rc_orig;
 				async_wait_for(req, &rc_orig);
 				async_serialize_end();
 				if (rc_orig == EOK)

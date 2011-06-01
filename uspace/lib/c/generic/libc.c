@@ -41,42 +41,54 @@
  */
 
 #include <libc.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <tls.h>
-#include <thread.h>
 #include <fibril.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <async_rel.h>
-#include <as.h>
+#include <task.h>
 #include <loader/pcb.h>
+#include "private/libc.h"
+#include "private/async.h"
+#include "private/async_sess.h"
+#include "private/malloc.h"
+#include "private/io.h"
 
-extern int main(int argc, char *argv[]);
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
 
-void _exit(int status)
-{
-	thread_exit(status);
-}
+static bool env_setup = false;
 
 void __main(void *pcb_ptr)
 {
 	/* Initialize user task run-time environment */
-	__heap_init();
+	__malloc_init();
 	__async_init();
-	(void) async_rel_init();
+	__async_sess_init();
+	
 	fibril_t *fibril = fibril_setup();
+	if (fibril == NULL)
+		abort();
+	
 	__tcb_set(fibril->tcb);
 	
 	/* Save the PCB pointer */
 	__pcb = (pcb_t *) pcb_ptr;
 	
+	/* The basic run-time environment is setup */
+	env_setup = true;
+	
 	int argc;
 	char **argv;
 	
-	/* Get command line arguments and initialize
-	   standard input and output */
+#ifdef __IN_SHARED_LIBC__
+	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
+		runtime_env = (runtime_env_t *) __pcb->rtld_runtime;
+	}
+#endif
+	/*
+	 * Get command line arguments and initialize
+	 * standard input and output
+	 */
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
@@ -88,16 +100,34 @@ void __main(void *pcb_ptr)
 		(void) chdir(__pcb->cwd);
 	}
 	
-	/* Run main() and set task return value
-	   according the result */
-	(void) task_retval(main(argc, argv));
+	/*
+	 * Run main() and set task return value
+	 * according the result
+	 */
+	int retval = main(argc, argv);
+	exit(retval);
 }
 
-void __exit(void)
+void exit(int status)
 {
-	__stdio_done();
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
+	if (env_setup) {
+		__stdio_done();
+		task_retval(status);
+		fibril_teardown(__tcb_get()->fibril_data);
+	}
+	
+	__SYSCALL1(SYS_TASK_EXIT, false);
+	
+	/* Unreachable */
+	while (1);
+}
+
+void abort(void)
+{
+	__SYSCALL1(SYS_TASK_EXIT, true);
+	
+	/* Unreachable */
+	while (1);
 }
 
 /** @}

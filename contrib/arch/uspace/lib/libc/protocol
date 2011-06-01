@@ -33,8 +33,8 @@
 	!sys_ddi.sys_physmem_map +
 	!sys_ddi.sys_device_assign_devno +
 	!sys_ddi.sys_preempt_control +
-	!sys_ddi.sys_ipc_register_irq +
-	!sys_ddi.sys_ipc_unregister_irq +
+	!sys_ddi.sys_register_irq +
+	!sys_ddi.sys_unregister_irq +
 	!sys_sysinfo.sys_sysinfo_valid +
 	!sys_sysinfo.sys_sysinfo_value +
 	!sys_debug.sys_ipc_connect_kbox

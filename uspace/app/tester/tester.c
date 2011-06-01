@@ -50,6 +50,7 @@ test_t tests[] = {
 #include "print/print2.def"
 #include "print/print3.def"
 #include "print/print4.def"
+#include "print/print5.def"
 #include "console/console1.def"
 #include "stdio/stdio1.def"
 #include "stdio/stdio2.def"
@@ -58,10 +59,13 @@ test_t tests[] = {
 #include "fault/fault3.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"
-#include "ipc/register.def"
-#include "ipc/connect.def"
 #include "loop/loop1.def"
 #include "mm/malloc1.def"
+#include "mm/malloc2.def"
+#include "mm/mapping1.def"
+#include "hw/serial/serial1.def"
+#include "hw/misc/virtchar1.def"
+#include "devs/devman1.def"
 	{NULL, NULL, NULL, false}
 };
 
@@ -109,10 +113,17 @@ static void list_tests(void)
 			len = str_length(test->name);
 	}
 	
-	for (test = tests; test->name != NULL; test++)
-		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+	unsigned int _len = (unsigned int) len;
+	if ((_len != len) || (((int) _len) < 0)) {
+		printf("Command length overflow\n");
+		return;
+	}
 	
-	printf("%-*s Run all safe tests\n", len, "*");
+	for (test = tests; test->name != NULL; test++)
+		printf("%-*s %s%s\n", _len, test->name, test->desc,
+		    (test->safe ? "" : " (unsafe)"));
+	
+	printf("%-*s Run all safe tests\n", _len, "*");
 }
 
 int main(int argc, char *argv[])

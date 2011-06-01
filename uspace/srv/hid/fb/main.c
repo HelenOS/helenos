@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <sysinfo.h>
 #include <async.h>
 #include <as.h>
@@ -50,7 +50,7 @@ void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 	void *dest;
 	
 	dest = as_get_mappable_page(IPC_GET_ARG2(*call));
-	if (ipc_answer_1(callid, EOK, (sysarg_t) dest) == 0) {
+	if (async_answer_1(callid, EOK, (sysarg_t) dest) == 0) {
 		if (*area)
 			as_area_destroy(*area);
 		*area = dest;
@@ -113,8 +113,7 @@ int main(int argc, char *argv[])
 	if (!initialized)
 		return -1;
 	
-	ipcarg_t phonead;
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
+	if (service_register(SERVICE_VIDEO) != EOK)
 		return -1;
 	
 	printf("%s: Accepting connections\n", NAME);

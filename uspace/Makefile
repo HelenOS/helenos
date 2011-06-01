@@ -37,23 +37,28 @@ DIRS = \
 	app/edit \
 	app/getterm \
 	app/init \
+	app/kill \
+	app/killall \
 	app/klog \
+	app/lsusb \
 	app/mkfat \
 	app/redir \
 	app/sbi \
 	app/stats \
 	app/taskdump \
-	app/tasks \
 	app/tester \
-	app/test_serial \
 	app/tetris \
 	app/trace \
 	app/top \
-	app/netstart \
+	app/usbinfo \
+	app/vuhid \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
+	app/websrv \
+	app/sysinfo \
+	app/mkbd \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -77,8 +82,7 @@ DIRS = \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
-	srv/hw/netif/dp8390 \
-	srv/net/cfg \
+	srv/hw/netif/ne2000 \
 	srv/net/netif/lo \
 	srv/net/il/arp \
 	srv/net/il/ip \
@@ -86,20 +90,17 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root
+	drv/root \
+	drv/rootvirt \
+	drv/test1 \
+	drv/test2
 
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBN = \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-else
-	DIRS += \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-endif
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #
@@ -109,13 +110,45 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259 \
+		drv/ehci-hcd \
+		drv/ohci \
+		drv/uhci-hcd \
+		drv/uhci-rhd \
+		drv/usbflbk \
+		drv/usbhid \
+		drv/usbhub \
+		drv/usbmast \
+		drv/usbmid \
+		drv/usbmouse \
+		drv/vhc
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += drv/rootia32
-	DIRS += drv/pciintel
-	DIRS += drv/isa
-	DIRS += drv/ns8250
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259 \
+		drv/ehci-hcd \
+		drv/ohci \
+		drv/uhci-hcd \
+		drv/uhci-rhd \
+		drv/usbflbk \
+		drv/usbhid \
+		drv/usbhub \
+		drv/usbmast \
+		drv/usbmid \
+		drv/usbmouse \
+		drv/vhc
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -124,8 +157,8 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/cir/fhc \
-		srv/hw/cir/obio
+		srv/hw/irc/fhc \
+		srv/hw/irc/obio
 endif
 
 ## System libraries
@@ -141,6 +174,22 @@ LIBS = \
 	lib/drv \
 	lib/packet \
 	lib/net
+
+ifeq ($(UARCH),amd64)
+	LIBS += lib/usb
+	LIBS += lib/usbhost
+	LIBS += lib/usbdev
+	LIBS += lib/usbhid
+	LIBS += lib/usbvirt
+endif
+
+ifeq ($(UARCH),ia32)
+	LIBS += lib/usb
+	LIBS += lib/usbhost
+	LIBS += lib/usbdev
+	LIBS += lib/usbhid
+	LIBS += lib/usbvirt
+endif
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

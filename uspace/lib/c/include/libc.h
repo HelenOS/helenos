@@ -39,6 +39,13 @@
 #include <kernel/syscall/syscall.h>
 #include <libarch/syscall.h>
 
+#ifdef __32_BITS__
+
+/** Explicit 64-bit arguments passed to syscalls. */
+typedef uint64_t sysarg64_t;
+
+#endif /* __32_BITS__ */
+
 #define __SYSCALL0(id) \
 	__syscall0(0, 0, 0, 0, 0, 0, id)
 #define __SYSCALL1(id, p1) \
@@ -52,10 +59,7 @@
 #define __SYSCALL5(id, p1, p2, p3, p4, p5) \
 	__syscall5(p1, p2, p3, p4, p5, 0, id)
 #define __SYSCALL6(id, p1, p2, p3, p4, p5, p6) \
-    __syscall6(p1, p2, p3, p4, p5, p6, id)
-
-extern void __main(void *pcb_ptr);
-extern void __exit(void);
+	__syscall6(p1, p2, p3, p4, p5, p6, id)
 
 #endif
 

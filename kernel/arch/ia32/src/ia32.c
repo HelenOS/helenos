@@ -156,6 +156,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for ia32 is 'pc'. */
+	static const char *platform = "pc";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef CONFIG_PC_KBD
 	/*
 	 * Initialize the i8042 controller. Then initialize the keyboard
@@ -186,11 +192,10 @@ void arch_post_smp_init(void)
 	    (uintptr_t) I8042_BASE);
 #endif
 	
-	/*
-	 * This nasty hack should also go away ASAP.
-	 */
-	trap_virtual_enable_irqs(1 << IRQ_DP8390);
-	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
+	if (irqs_info != NULL)
+		sysinfo_set_item_val(irqs_info, NULL, true);
+	
+	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
 }
 
 void calibrate_delay_loop(void)
@@ -210,7 +215,7 @@ void calibrate_delay_loop(void)
  * TLS pointer is set in GS register. That means, the GS contains
  * selector, and the descriptor->base is the correct address.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	THREAD->arch.tls = addr;
 	set_tls_desc(addr);

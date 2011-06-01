@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,35 +35,34 @@
 #ifndef KERN_ia32_CONTEXT_OFFSET_H_
 #define KERN_ia32_CONTEXT_OFFSET_H_
 
-#define OFFSET_SP  0x0
-#define OFFSET_PC  0x4
-#define OFFSET_EBX 0x8
-#define OFFSET_ESI 0xC
-#define OFFSET_EDI 0x10
-#define OFFSET_EBP 0x14
+#define OFFSET_SP   0x00
+#define OFFSET_PC   0x04
+#define OFFSET_EBX  0x08
+#define OFFSET_ESI  0x0C
+#define OFFSET_EDI  0x10
+#define OFFSET_EBP  0x14
 
-#ifdef KERNEL 
-# define OFFSET_IPL 0x18
+#ifdef KERNEL
+	#define OFFSET_IPL  0x18
 #else
-# define OFFSET_TLS 0x18
+	#define OFFSET_TLS  0x18
 #endif
 
+#ifdef __ASM__
 
-#ifdef __ASM__ 
-
-# ctx: address of the structure with saved context 
+# ctx: address of the structure with saved context
 # pc: return address
 
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req pc:req
-	movl %esp,OFFSET_SP(\ctx)	# %esp -> ctx->sp	
+	movl %esp,OFFSET_SP(\ctx)	# %esp -> ctx->sp
 	movl \pc,OFFSET_PC(\ctx)	# %eip -> ctx->pc
-	movl %ebx,OFFSET_EBX(\ctx)	# %ebx -> ctx->ebx	
-	movl %esi,OFFSET_ESI(\ctx)	# %esi -> ctx->esi	
-	movl %edi,OFFSET_EDI(\ctx)	# %edi -> ctx->edi	
-	movl %ebp,OFFSET_EBP(\ctx)	# %ebp -> ctx->ebp	
+	movl %ebx,OFFSET_EBX(\ctx)	# %ebx -> ctx->ebx
+	movl %esi,OFFSET_ESI(\ctx)	# %esi -> ctx->esi
+	movl %edi,OFFSET_EDI(\ctx)	# %edi -> ctx->edi
+	movl %ebp,OFFSET_EBP(\ctx)	# %ebp -> ctx->ebp
 .endm
 
-# ctx: address of the structure with saved context 
+# ctx: address of the structure with saved context
 
 .macro CONTEXT_RESTORE_ARCH_CORE ctx:req pc:req
 	movl OFFSET_SP(\ctx),%esp	# ctx->sp -> %esp
@@ -74,10 +73,9 @@
 	movl OFFSET_EBP(\ctx),%ebp	# ctx->ebp -> %ebp
 .endm
 
-#endif /* __ASM__ */ 
+#endif /* __ASM__ */
 
 #endif
 
 /** @}
  */
-

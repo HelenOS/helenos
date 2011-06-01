@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+ /** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -35,37 +35,34 @@
 #ifndef __CONVERSION_H__
 #define __CONVERSION_H__
 
-float64 convertFloat32ToFloat64(float32 a);
+extern float64 convertFloat32ToFloat64(float32);
+extern float32 convertFloat64ToFloat32(float64);
 
-float32 convertFloat64ToFloat32(float64 a);
+extern uint32_t float32_to_uint32(float32);
+extern int32_t float32_to_int32(float32);
 
-uint32_t float32_to_uint32(float32 a);
-int32_t float32_to_int32(float32 a);
+extern uint64_t float32_to_uint64(float32);
+extern int64_t float32_to_int64(float32);
 
-uint64_t float32_to_uint64(float32 a);
-int64_t float32_to_int64(float32 a);
+extern uint64_t float64_to_uint64(float64);
+extern int64_t float64_to_int64(float64);
 
-uint64_t float64_to_uint64(float64 a);
-int64_t float64_to_int64(float64 a);
+extern uint32_t float64_to_uint32(float64);
+extern int32_t float64_to_int32(float64);
 
-uint32_t float64_to_uint32(float64 a);
-int32_t float64_to_int32(float64 a);
+extern float32 uint32_to_float32(uint32_t);
+extern float32 int32_to_float32(int32_t);
 
-float32 uint32_to_float32(uint32_t i);
-float32 int32_to_float32(int32_t i);
+extern float32 uint64_to_float32(uint64_t);
+extern float32 int64_to_float32(int64_t);
 
-float32 uint64_to_float32(uint64_t i);
-float32 int64_to_float32(int64_t i);
+extern float64 uint32_to_float64(uint32_t);
+extern float64 int32_to_float64(int32_t);
 
-float64 uint32_to_float64(uint32_t i);
-float64 int32_to_float64(int32_t i);
-
-float64 uint64_to_float64(uint64_t i);
-float64 int64_to_float64(int64_t i);
+extern float64 uint64_to_float64(uint64_t);
+extern float64 int64_to_float64(int64_t);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

@@ -189,29 +189,44 @@ def mangle_fname(name):
 	# FIXME: filter illegal characters
 	parts = name.split('.')
 	
-	if (len(parts) > 0):
+	if len(parts) > 0:
 		fname = parts[0]
 	else:
 		fname = ''
-		
+	
+	if len(fname) > 8:
+		sys.stdout.write("mkfat.py: error: Directory entry " + name +
+		    " base name is longer than 8 characters\n")
+		sys.exit(1);
+	
 	return (fname + '          ').upper()[0:8]
 
 def mangle_ext(name):
 	# FIXME: filter illegal characters
 	parts = name.split('.')
 	
-	if (len(parts) > 1):
+	if len(parts) > 1:
 		ext = parts[1]
 	else:
 		ext = ''
+	
+	if len(parts) > 2:
+		sys.stdout.write("mkfat.py: error: Directory entry " + name +
+		    " has more than one extension\n")
+		sys.exit(1);
+	
+	if len(ext) > 3:
+		sys.stdout.write("mkfat.py: error: Directory entry " + name +
+		    " extension is longer than 3 characters\n")
+		sys.exit(1);
 	
 	return (ext + '   ').upper()[0:3]
 
 def create_dirent(name, directory, cluster, size):
 	dir_entry = xstruct.create(DIR_ENTRY)
 	
-	dir_entry.name = mangle_fname(name)
-	dir_entry.ext = mangle_ext(name)
+	dir_entry.name = mangle_fname(name).encode('ascii')
+	dir_entry.ext = mangle_ext(name).encode('ascii')
 	
 	if (directory):
 		dir_entry.attr = 0x30
@@ -238,8 +253,8 @@ def create_dot_dirent(empty_cluster):
 	dir_entry = xstruct.create(DOT_DIR_ENTRY)
 	
 	dir_entry.signature = 0x2e
-	dir_entry.name = '       '
-	dir_entry.ext = '   '
+	dir_entry.name = b'       '
+	dir_entry.ext = b'   '
 	dir_entry.attr = 0x10
 	
 	dir_entry.ctime_fine = 0 # FIXME
@@ -257,8 +272,8 @@ def create_dotdot_dirent(parent_cluster):
 	dir_entry = xstruct.create(DOTDOT_DIR_ENTRY)
 	
 	dir_entry.signature = [0x2e, 0x2e]
-	dir_entry.name = '      '
-	dir_entry.ext = '   '
+	dir_entry.name = b'      '
+	dir_entry.ext = b'   '
 	dir_entry.attr = 0x10
 	
 	dir_entry.ctime_fine = 0 # FIXME

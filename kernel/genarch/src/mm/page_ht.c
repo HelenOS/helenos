@@ -51,8 +51,8 @@
 #include <adt/hash_table.h>
 #include <align.h>
 
-static size_t hash(unative_t[]);
-static bool compare(unative_t[], size_t, link_t *);
+static size_t hash(sysarg_t[]);
+static bool compare(sysarg_t[], size_t, link_t *);
 static void remove_callback(link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
@@ -95,7 +95,7 @@ page_mapping_operations_t ht_mapping_operations = {
  * @return Index into page hash table.
  *
  */
-size_t hash(unative_t key[])
+size_t hash(sysarg_t key[])
 {
 	as_t *as = (as_t *) key[KEY_AS];
 	uintptr_t page = (uintptr_t) key[KEY_PAGE];
@@ -114,7 +114,7 @@ size_t hash(unative_t key[])
 	 * hash index.
 	 *
 	 */
-	index |= ((unative_t) as) & (PAGE_HT_ENTRIES - 1);
+	index |= ((sysarg_t) as) & (PAGE_HT_ENTRIES - 1);
 	
 	return index;
 }
@@ -128,7 +128,7 @@ size_t hash(unative_t key[])
  * @return true on match, false otherwise.
  *
  */
-bool compare(unative_t key[], size_t keys, link_t *item)
+bool compare(sysarg_t key[], size_t keys, link_t *item)
 {
 	ASSERT(item);
 	ASSERT(keys > 0);
@@ -179,7 +179,7 @@ void remove_callback(link_t *item)
 void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
-	unative_t key[2] = {
+	sysarg_t key[2] = {
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
@@ -219,7 +219,7 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  */
 void ht_mapping_remove(as_t *as, uintptr_t page)
 {
-	unative_t key[2] = {
+	sysarg_t key[2] = {
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
@@ -246,7 +246,7 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
  */
 pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 {
-	unative_t key[2] = {
+	sysarg_t key[2] = {
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};

@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
  */
 
-#include<sftypes.h>
-#include<sub.h>
-#include<comparison.h>
+#include <sftypes.h>
+#include <sub.h>
+#include <comparison.h>
 
 /** Subtract two float32 numbers with same signs
  */
@@ -259,7 +259,5 @@ done:
 	return result;
 }
 
-
- /** @}
+/** @}
  */
-

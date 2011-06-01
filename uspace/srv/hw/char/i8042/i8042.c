@@ -39,12 +39,12 @@
 #include <ddi.h>
 #include <libarch/ddi.h>
 #include <devmap.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <unistd.h>
 #include <sysinfo.h>
 #include <stdio.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "i8042.h"
 
@@ -144,9 +144,8 @@ int main(int argc, char *argv[])
 		i8042_port[i].client_phone = -1;
 
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
-		rc = devmap_device_register(name, &i8042_port[i].dev_handle);
+		rc = devmap_device_register(name, &i8042_port[i].devmap_handle);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
@@ -198,9 +197,10 @@ static int i8042_init(void)
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	ipc_register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
-	ipc_register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
-	printf("%s: registered for interrupts %d and %d\n", NAME, inr_a, inr_b);
+	register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
+	register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
+	printf("%s: registered for interrupts %" PRIun " and %" PRIun "\n",
+	    NAME, inr_a, inr_b);
 
 	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
@@ -216,8 +216,8 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
-	dev_handle_t dh;
+	sysarg_t method;
+	devmap_handle_t dh;
 	int retval;
 	int dev_id, i;
 
@@ -229,27 +229,27 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
 	for (i = 0; i < MAX_DEVS; i++) {
-		if (i8042_port[i].dev_handle == dh)
+		if (i8042_port[i].devmap_handle == dh)
 			dev_id = i;
 	}
 
 	if (dev_id < 0) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	printf(NAME ": accepted connection\n");
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			printf(NAME ": creating callback connection\n");
@@ -261,7 +261,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case IPC_FIRST_USER_METHOD:
-			printf(NAME ": write %d to devid %d\n",
+			printf(NAME ": write %" PRIun " to devid %d\n",
 			    IPC_GET_ARG1(call), dev_id);
 			i8042_port_write(dev_id, IPC_GET_ARG1(call));
 			retval = 0;
@@ -270,7 +270,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

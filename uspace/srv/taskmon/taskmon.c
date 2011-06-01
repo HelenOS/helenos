@@ -35,7 +35,6 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <ipc/services.h>
 #include <sys/typefmt.h>
@@ -59,28 +58,29 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 	taskid = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	thread = IPC_GET_ARG3(*call);
 
-	if (asprintf(&s_taskid, "%" PRIuTASKID, taskid) < 0) {
+	if (asprintf(&s_taskid, "%" PRIu64, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
-	printf(NAME ": Task %" PRIuTASKID " fault in thread %p.\n", taskid, thread);
+	printf(NAME ": Task %" PRIu64 " fault in thread %p.\n", taskid,
+	    (void *) thread);
 
 	fname = "/app/taskdump";
 
 #ifdef CONFIG_WRITE_CORE_FILES
 	char *dump_fname;
 
-	if (asprintf(&dump_fname, "/data/core%" PRIuTASKID, taskid) < 0) {
+	if (asprintf(&dump_fname, "/data/core%" PRIu64, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
-	printf(NAME ": Executing %s -c %s -t %s\n", dump_fname, s_taskid);
+	printf(NAME ": Executing %s -c %s -t %s\n", fname, dump_fname, s_taskid);
 	rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
 	    NULL);
 #else
-	printf(NAME ": Executing %s -t %s\n", s_taskid);
+	printf(NAME ": Executing %s -t %s\n", fname, s_taskid);
 	rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
 #endif
 	if (rc != EOK) {

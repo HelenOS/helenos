@@ -45,22 +45,12 @@ typedef int packet_id_t;
 /** Type definition of the packet.
  * @see packet
  */
-typedef struct packet * packet_t;
-
-/** Type definition of the packet pointer.
- * @see packet
- */
-typedef packet_t * packet_ref;
+typedef struct packet packet_t;
 
 /** Type definition of the packet dimension.
  * @see packet_dimension
  */
 typedef struct packet_dimension	packet_dimension_t;
-
-/** Type definition of the packet dimension pointer.
- * @see packet_dimension
- */
-typedef packet_dimension_t * packet_dimension_ref;
 
 /** Packet dimension. */
 struct packet_dimension {
@@ -78,20 +68,20 @@ struct packet_dimension {
  */
 /*@{*/
 
-extern packet_t pm_find(packet_id_t);
-extern int pm_add(packet_t);
+extern packet_t *pm_find(packet_id_t);
+extern int pm_add(packet_t *);
 extern int pm_init(void);
 extern void pm_destroy(void);
 
-extern int pq_add(packet_t *, packet_t, size_t, size_t);
-extern packet_t pq_find(packet_t, size_t);
-extern int pq_insert_after(packet_t, packet_t);
-extern packet_t pq_detach(packet_t);
-extern int pq_set_order(packet_t, size_t, size_t);
-extern int pq_get_order(packet_t, size_t *, size_t *);
-extern void pq_destroy(packet_t, void (*)(packet_t));
-extern packet_t pq_next(packet_t);
-extern packet_t pq_previous(packet_t);
+extern int pq_add(packet_t **, packet_t *, size_t, size_t);
+extern packet_t *pq_find(packet_t *, size_t);
+extern int pq_insert_after(packet_t *, packet_t *);
+extern packet_t *pq_detach(packet_t *);
+extern int pq_set_order(packet_t *, size_t, size_t);
+extern int pq_get_order(packet_t *, size_t *, size_t *);
+extern void pq_destroy(packet_t *, void (*)(packet_t *));
+extern packet_t *pq_next(packet_t *);
+extern packet_t *pq_previous(packet_t *);
 
 /*@}*/
 

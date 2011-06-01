@@ -44,11 +44,11 @@
 #include <net/ip_codes.h>
 #include <ip_interface.h>
 
-extern int ip_client_prepare_packet(packet_t, ip_protocol_t, ip_ttl_t, ip_tos_t,
-    int, size_t);
-extern int ip_client_process_packet(packet_t, ip_protocol_t *, ip_ttl_t *,
+extern int ip_client_prepare_packet(packet_t *, ip_protocol_t, ip_ttl_t,
+    ip_tos_t, int, size_t);
+extern int ip_client_process_packet(packet_t *, ip_protocol_t *, ip_ttl_t *,
     ip_tos_t *, int *, size_t *);
-extern size_t ip_client_header_length(packet_t);
+extern size_t ip_client_header_length(packet_t *);
 extern int ip_client_set_pseudo_header_data_length(void *, size_t, size_t);
 extern int ip_client_get_pseudo_header(ip_protocol_t, struct sockaddr *,
     socklen_t, struct sockaddr *, socklen_t, size_t, void **, size_t *);

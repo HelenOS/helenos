@@ -36,7 +36,7 @@
 #include <smp/ipi.h>
 #include <arch/smp/dorder.h>
 
-#define MSIM_DORDER_ADDRESS  0xB0000004
+#define MSIM_DORDER_ADDRESS  0xB0000100
 
 #ifdef CONFIG_SMP
 

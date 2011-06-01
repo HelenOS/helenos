@@ -35,7 +35,6 @@
  * @brief Implementation of VFS operations for the devfs file system server.
  */
 
-#include <ipc/ipc.h>
 #include <macros.h>
 #include <bool.h>
 #include <errno.h>
@@ -53,15 +52,16 @@
 
 typedef struct {
 	devmap_handle_type_t type;
-	dev_handle_t handle;
+	devmap_handle_t handle;
 } devfs_node_t;
 
 /** Opened devices structure */
 typedef struct {
-	dev_handle_t handle;
-	int phone;
+	devmap_handle_t handle;
+	int phone;		/**< When < 0, the structure is incomplete. */
 	size_t refcount;
 	link_t link;
+	fibril_condvar_t cv;	/**< Broadcast when completed. */
 } device_t;
 
 /** Hash table of opened devices */
@@ -83,7 +83,7 @@ static hash_index_t devices_hash(unsigned long key[])
 static int devices_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	device_t *dev = hash_table_get_instance(item, device_t, link);
-	return (dev->handle == (dev_handle_t) key[DEVICES_KEY_HANDLE]);
+	return (dev->handle == (devmap_handle_t) key[DEVICES_KEY_HANDLE]);
 }
 
 static void devices_remove_callback(link_t *item)
@@ -98,7 +98,7 @@ static hash_table_operations_t devices_ops = {
 };
 
 static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
-    dev_handle_t handle)
+    devmap_handle_t handle)
 {
 	devfs_node_t *node = (devfs_node_t *) malloc(sizeof(devfs_node_t));
 	if (node == NULL) {
@@ -121,7 +121,7 @@ static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
 	return EOK;
 }
 
-static int devfs_root_get(fs_node_t **rfn, dev_handle_t dev_handle)
+static int devfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
 	return devfs_node_get_internal(rfn, DEV_HANDLE_NONE, 0);
 }
@@ -129,6 +129,7 @@ static int devfs_root_get(fs_node_t **rfn, dev_handle_t dev_handle)
 static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	devfs_node_t *node = (devfs_node_t *) pfn->data;
+	int ret;
 	
 	if (node->handle == 0) {
 		/* Root directory */
@@ -144,8 +145,9 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 					continue;
 				
 				if (str_cmp(devs[pos].name, component) == 0) {
+					ret = devfs_node_get_internal(rfn, DEV_HANDLE_NAMESPACE, devs[pos].handle);
 					free(devs);
-					return devfs_node_get_internal(rfn, DEV_HANDLE_NAMESPACE, devs[pos].handle);
+					return ret;
 				}
 			}
 			
@@ -153,7 +155,7 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		}
 		
 		/* Search root namespace */
-		dev_handle_t namespace;
+		devmap_handle_t namespace;
 		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
 			count = devmap_get_devices(namespace, &devs);
 			
@@ -161,8 +163,9 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 				size_t pos;
 				for (pos = 0; pos < count; pos++) {
 					if (str_cmp(devs[pos].name, component) == 0) {
+						ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
 						free(devs);
-						return devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
+						return ret;
 					}
 				}
 				
@@ -183,8 +186,9 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			size_t pos;
 			for (pos = 0; pos < count; pos++) {
 				if (str_cmp(devs[pos].name, component) == 0) {
+					ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
 					free(devs);
-					return devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
+					return ret;
 				}
 			}
 			
@@ -199,7 +203,7 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-static int devfs_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
+static int devfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
 {
 	return devfs_node_get_internal(rfn, devmap_handle_probe(index), index);
 }
@@ -226,9 +230,11 @@ static int devfs_node_open(fs_node_t *fn)
 		unsigned long key[] = {
 			[DEVICES_KEY_HANDLE] = (unsigned long) node->handle
 		};
-		
+		link_t *lnk;
+
 		fibril_mutex_lock(&devices_mutex);
-		link_t *lnk = hash_table_find(&devices, key);
+restart:
+		lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			device_t *dev = (device_t *) malloc(sizeof(device_t));
 			if (dev == NULL) {
@@ -236,20 +242,61 @@ static int devfs_node_open(fs_node_t *fn)
 				return ENOMEM;
 			}
 			
+			dev->handle = node->handle;
+			dev->phone = -1;	/* mark as incomplete */
+			dev->refcount = 1;
+			fibril_condvar_initialize(&dev->cv);
+
+			/*
+			 * Insert the incomplete device structure so that other
+			 * fibrils will not race with us when we drop the mutex
+			 * below.
+			 */
+			hash_table_insert(&devices, key, &dev->link);
+
+			/*
+			 * Drop the mutex to allow recursive devfs requests.
+			 */
+			fibril_mutex_unlock(&devices_mutex);
+
 			int phone = devmap_device_connect(node->handle, 0);
+
+			fibril_mutex_lock(&devices_mutex);
+
+			/*
+			 * Notify possible waiters about this device structure
+			 * being completed (or destroyed).
+			 */
+			fibril_condvar_broadcast(&dev->cv);
+
 			if (phone < 0) {
+				/*
+				 * Connecting failed, need to remove the
+				 * entry and free the device structure.
+				 */
+				hash_table_remove(&devices, key, DEVICES_KEYS);
 				fibril_mutex_unlock(&devices_mutex);
-				free(dev);
+
 				return ENOENT;
 			}
 			
-			dev->handle = node->handle;
+			/* Set the correct phone. */
 			dev->phone = phone;
-			dev->refcount = 1;
-			
-			hash_table_insert(&devices, key, &dev->link);
 		} else {
 			device_t *dev = hash_table_get_instance(lnk, device_t, link);
+
+			if (dev->phone < 0) {
+				/*
+				 * Wait until the device structure is completed
+				 * and start from the beginning as the device
+				 * structure might have entirely disappeared
+				 * while we were not holding the mutex in
+				 * fibril_condvar_wait().
+				 */
+				fibril_condvar_wait(&dev->cv, &devices_mutex);
+				goto restart;
+			}
+
 			dev->refcount++;
 		}
 		
@@ -268,7 +315,7 @@ static int devfs_node_put(fs_node_t *fn)
 	return EOK;
 }
 
-static int devfs_create_node(fs_node_t **rfn, dev_handle_t dev_handle, int lflag)
+static int devfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 	
@@ -303,7 +350,7 @@ static int devfs_has_children(bool *has_children, fs_node_t *fn)
 		}
 		
 		/* Root namespace */
-		dev_handle_t namespace;
+		devmap_handle_t namespace;
 		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
 			count = devmap_count_devices(namespace);
 			if (count > 0) {
@@ -371,7 +418,7 @@ static bool devfs_is_file(fs_node_t *fn)
 	return (node->type == DEV_HANDLE_DEVICE);
 }
 
-static dev_handle_t devfs_device_get(fs_node_t *fn)
+static devmap_handle_t devfs_device_get(fs_node_t *fn)
 {
 	devfs_node_t *node = (devfs_node_t *) fn->data;
 	
@@ -408,9 +455,6 @@ bool devfs_init(void)
 	    DEVICES_KEYS, &devices_ops))
 		return false;
 	
-	if (devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING) < 0)
-		return false;
-	
 	return true;
 }
 
@@ -419,15 +463,15 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	char *opts;
 	
 	/* Accept the mount options */
-	ipcarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
+	sysarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
 	    0, NULL);
 	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
+		async_answer_0(rid, retval);
 		return;
 	}
 	
 	free(opts);
-	ipc_answer_3(rid, EOK, 0, 0, 0);
+	async_answer_3(rid, EOK, 0, 0, 0);
 }
 
 void devfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -437,7 +481,7 @@ void devfs_mount(ipc_callid_t rid, ipc_call_t *request)
 
 void devfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void devfs_unmount(ipc_callid_t rid, ipc_call_t *request)
@@ -470,8 +514,8 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		ipc_callid_t callid;
 		size_t size;
 		if (!async_data_read_receive(&callid, &size)) {
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			return;
 		}
 		
@@ -492,7 +536,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
-			ipc_answer_1(rid, EOK, 1);
+			async_answer_1(rid, EOK, 1);
 			return;
 		}
 		
@@ -500,22 +544,22 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		pos -= count;
 		
 		/* Search root namespace */
-		dev_handle_t namespace;
+		devmap_handle_t namespace;
 		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
 			count = devmap_get_devices(namespace, &desc);
 			
 			if (pos < count) {
 				async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 				free(desc);
-				ipc_answer_1(rid, EOK, 1);
+				async_answer_1(rid, EOK, 1);
 				return;
 			}
 			
 			free(desc);
 		}
 		
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_1(rid, ENOENT, 0);
+		async_answer_0(callid, ENOENT);
+		async_answer_1(rid, ENOENT, 0);
 		return;
 	}
 	
@@ -526,8 +570,8 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		ipc_callid_t callid;
 		size_t size;
 		if (!async_data_read_receive(&callid, &size)) {
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			return;
 		}
 		
@@ -537,13 +581,13 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
-			ipc_answer_1(rid, EOK, 1);
+			async_answer_1(rid, EOK, 1);
 			return;
 		}
 		
 		free(desc);
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_1(rid, ENOENT, 0);
+		async_answer_0(callid, ENOENT);
+		async_answer_1(rid, ENOENT, 0);
 		return;
 	}
 	
@@ -558,48 +602,49 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			return;
 		}
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
 		/* Forward the IPC_M_DATA_READ request to the driver */
-		ipc_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		size_t bytes = IPC_GET_ARG1(answer);
 		
 		/* Driver reply is the final result of the whole operation */
-		ipc_answer_1(rid, rc, bytes);
+		async_answer_1(rid, rc, bytes);
 		return;
 	}
 	
-	ipc_answer_0(rid, ENOENT);
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	if (index == 0) {
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 	
@@ -607,7 +652,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (type == DEV_HANDLE_NAMESPACE) {
 		/* Namespace directory */
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 	
@@ -621,47 +666,48 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		
 		ipc_callid_t callid;
 		if (!async_data_write_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			return;
 		}
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
-		ipc_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		size_t bytes = IPC_GET_ARG1(answer);
 		
 		/* Driver reply is the final result of the whole operation */
-		ipc_answer_1(rid, rc, bytes);
+		async_answer_1(rid, rc, bytes);
 		return;
 	}
 	
-	ipc_answer_0(rid, ENOENT);
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void devfs_close(ipc_callid_t rid, ipc_call_t *request)
@@ -669,7 +715,7 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
 	if (index == 0) {
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		return;
 	}
 	
@@ -677,7 +723,7 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (type == DEV_HANDLE_NAMESPACE) {
 		/* Namespace directory */
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		return;
 	}
 	
@@ -690,25 +736,26 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		dev->refcount--;
 		
 		if (dev->refcount == 0) {
-			ipc_hangup(dev->phone);
+			async_hangup(dev->phone);
 			hash_table_remove(&devices, key, DEVICES_KEYS);
 		}
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		return;
 	}
 	
-	ipc_answer_0(rid, ENOENT);
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
@@ -716,7 +763,7 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
 	if (index == 0) {
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		return;
 	}
 	
@@ -724,7 +771,7 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (type == DEV_HANDLE_NAMESPACE) {
 		/* Namespace directory */
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		return;
 	}
 	
@@ -737,34 +784,35 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_2(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_2(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		
 		/* Driver reply is the final result of the whole operation */
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
-	ipc_answer_0(rid, ENOENT);
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 /**

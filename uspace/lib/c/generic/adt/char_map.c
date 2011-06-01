@@ -59,19 +59,19 @@
  *			the terminating zero ('\0') character is found.
  * @param[in] value	The integral value to be stored for the key character
  *			string.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EEXIST if the key character string is already used.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EEXIST if the key character string is already used.
  */
 static int
-char_map_add_item(char_map_ref map, const char *identifier, size_t length,
+char_map_add_item(char_map_t *map, const uint8_t *identifier, size_t length,
     const int value)
 {
 	if (map->next == (map->size - 1)) {
-		char_map_ref *tmp;
+		char_map_t **tmp;
 
-		tmp = (char_map_ref *) realloc(map->items,
-		    sizeof(char_map_ref) * 2 * map->size);
+		tmp = (char_map_t **) realloc(map->items,
+		    sizeof(char_map_t *) * 2 * map->size);
 		if (!tmp)
 			return ENOMEM;
 
@@ -79,7 +79,7 @@ char_map_add_item(char_map_ref map, const char *identifier, size_t length,
 		map->items = tmp;
 	}
 
-	map->items[map->next] = (char_map_ref) malloc(sizeof(char_map_t));
+	map->items[map->next] = (char_map_t *) malloc(sizeof(char_map_t));
 	if (!map->items[map->next])
 		return ENOMEM;
 
@@ -89,10 +89,10 @@ char_map_add_item(char_map_ref map, const char *identifier, size_t length,
 		return ENOMEM;
 	}
 
-	map->items[map->next]->c = * identifier;
-	++ identifier;
-	++ map->next;
-	if ((length > 1) || ((length == 0) && (*identifier))) {
+	map->items[map->next]->c = *identifier;
+	identifier++;
+	map->next++;
+	if ((length > 1) || ((length == 0) && *identifier)) {
 		map->items[map->next - 1]->value = CHAR_MAP_NULL;
 		return char_map_add_item(map->items[map->next - 1], identifier,
 		    length ? length - 1 : 0, value);
@@ -106,10 +106,10 @@ char_map_add_item(char_map_ref map, const char *identifier, size_t length,
 /** Checks if the map is valid.
  *
  * @param[in] map	The character string to integer map.
- * @returns		TRUE if the map is valid.
- * @returns		FALSE otherwise.
+ * @return		TRUE if the map is valid.
+ * @return		FALSE otherwise.
  */
-static int char_map_is_valid(const char_map_ref map)
+static int char_map_is_valid(const char_map_t *map)
 {
 	return map && (map->magic == CHAR_MAP_MAGIC_VALUE);
 }
@@ -126,31 +126,30 @@ static int char_map_is_valid(const char_map_ref map)
  *			the terminating zero ('\\0') character is found.
  * @param[in] value	The integral value to be stored for the key character
  *			string.
- * @returns		EOK on success.
- * @returns		EINVAL if the map is not valid.
- * @returns		EINVAL if the identifier parameter is NULL.
- * @returns		EINVAL if the length parameter zero (0) and the
+ * @return		EOK on success.
+ * @return		EINVAL if the map is not valid.
+ * @return		EINVAL if the identifier parameter is NULL.
+ * @return		EINVAL if the length parameter zero (0) and the
  *			identifier parameter is an empty character string (the
  *			first character is the terminating zero ('\0')
  *			character.
- * @returns		EEXIST if the key character string is already used.
- * @returns		Other error codes as defined for the
+ * @return		EEXIST if the key character string is already used.
+ * @return		Other error codes as defined for the
  *			char_map_add_item() function.
  */
 int
-char_map_add(char_map_ref map, const char *identifier, size_t length,
+char_map_add(char_map_t *map, const uint8_t *identifier, size_t length,
     const int value)
 {
-	if (char_map_is_valid(map) && (identifier) &&
-	    ((length) || (*identifier))) {
+	if (char_map_is_valid(map) && identifier && (length || *identifier)) {
 		int index;
 
-		for (index = 0; index < map->next; ++ index) {
+		for (index = 0; index < map->next; index++) {
 			if (map->items[index]->c != *identifier)
 				continue;
 				
-			++ identifier;
-			if((length > 1) || ((length == 0) && (*identifier))) {
+			identifier++;
+			if((length > 1) || ((length == 0) && *identifier)) {
 				return char_map_add(map->items[index],
 				    identifier, length ? length - 1 : 0, value);
 			} else {
@@ -171,13 +170,13 @@ char_map_add(char_map_ref map, const char *identifier, size_t length,
  *
  * @param[in,out] map	The character string to integer map.
  */
-void char_map_destroy(char_map_ref map)
+void char_map_destroy(char_map_t *map)
 {
 	if (char_map_is_valid(map)) {
 		int index;
 
 		map->magic = 0;
-		for (index = 0; index < map->next; ++index)
+		for (index = 0; index < map->next; index++)
 			char_map_destroy(map->items[index]);
 
 		free(map->items);
@@ -195,23 +194,23 @@ void char_map_destroy(char_map_ref map)
  * @param[in] length	The key character string length. The parameter may be
  *			zero (0) which means that the string is processed until
  *			the terminating zero ('\0') character is found.
- * @returns		The node holding the integral value assigned to the key
+ * @return		The node holding the integral value assigned to the key
  *			character string.
- * @returns		NULL if the key is not assigned a node.
+ * @return		NULL if the key is not assigned a node.
  */
-static char_map_ref
-char_map_find_node(const char_map_ref map, const char *identifier,
+static char_map_t *
+char_map_find_node(const char_map_t *map, const uint8_t *identifier,
     size_t length)
 {
 	if (!char_map_is_valid(map))
 		return NULL;
 
-	if (length || (*identifier)) {
+	if (length || *identifier) {
 		int index;
 
-		for (index = 0; index < map->next; ++index) {
+		for (index = 0; index < map->next; index++) {
 			if (map->items[index]->c == *identifier) {
-				++identifier;
+				identifier++;
 				if (length == 1)
 					return map->items[index];
 
@@ -223,7 +222,7 @@ char_map_find_node(const char_map_ref map, const char *identifier,
 		return NULL;
 	}
 
-	return map;
+	return (char_map_t *) map;
 }
 
 /** Excludes the value assigned to the key from the map.
@@ -238,12 +237,12 @@ char_map_find_node(const char_map_ref map, const char *identifier,
  * @param[in] length	The key character string length. The parameter may be
  *			zero (0) which means that the string is processed until
  *			the terminating zero ('\0') character is found.
- * @returns		The integral value assigned to the key character string.
- * @returns		CHAR_MAP_NULL if the key is not assigned a value.
+ * @return		The integral value assigned to the key character string.
+ * @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_exclude(char_map_ref map, const char *identifier, size_t length)
+int char_map_exclude(char_map_t *map, const uint8_t *identifier, size_t length)
 {
-	char_map_ref node;
+	char_map_t *node;
 
 	node = char_map_find_node(map, identifier, length);
 	if (node) {
@@ -266,12 +265,12 @@ int char_map_exclude(char_map_ref map, const char *identifier, size_t length)
  *  @param[in] length	The key character string length. The parameter may be
  *			zero (0) which means that the string is processed until
  *			the terminating zero ('\0') character is found.
- *  @returns		The integral value assigned to the key character string.
- *  @returns		CHAR_MAP_NULL if the key is not assigned a value.
+ *  @return		The integral value assigned to the key character string.
+ *  @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_find(const char_map_ref map, const char *identifier, size_t length)
+int char_map_find(const char_map_t *map, const uint8_t *identifier, size_t length)
 {
-	char_map_ref node;
+	char_map_t *node;
 
 	node = char_map_find_node(map, identifier, length);
 	return node ? node->value : CHAR_MAP_NULL;
@@ -280,11 +279,11 @@ int char_map_find(const char_map_ref map, const char *identifier, size_t length)
 /** Initializes the map.
  *
  *  @param[in,out] map	The character string to integer map.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the map parameter is NULL.
- *  @returns		ENOMEM if there is not enough memory left.
+ *  @return		EOK on success.
+ *  @return		EINVAL if the map parameter is NULL.
+ *  @return		ENOMEM if there is not enough memory left.
  */
-int char_map_initialize(char_map_ref map)
+int char_map_initialize(char_map_t *map)
 {
 	if (!map)
 		return EINVAL;
@@ -294,7 +293,7 @@ int char_map_initialize(char_map_ref map)
 	map->size = 2;
 	map->next = 0;
 
-	map->items = malloc(sizeof(char_map_ref) * map->size);
+	map->items = malloc(sizeof(char_map_t *) * map->size);
 	if (!map->items) {
 		map->magic = 0;
 		return ENOMEM;
@@ -318,21 +317,21 @@ int char_map_initialize(char_map_ref map)
  *			the terminating zero ('\0') character is found.
  *  @param[in] value	The integral value to be stored for the key character
  *			string.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the map is not valid.
- *  @returns		EINVAL if the identifier parameter is NULL.
- *  @returns		EINVAL if the length parameter zero (0) and the
+ *  @return		EOK on success.
+ *  @return		EINVAL if the map is not valid.
+ *  @return		EINVAL if the identifier parameter is NULL.
+ *  @return		EINVAL if the length parameter zero (0) and the
  *			identifier parameter is an empty character string (the
  *			first character is the terminating zero ('\0) character.
- *  @returns		EEXIST if the key character string is already used.
- *  @returns		Other error codes as defined for the char_map_add_item()
+ *  @return		EEXIST if the key character string is already used.
+ *  @return		Other error codes as defined for the char_map_add_item()
  *			function.
  */
 int
-char_map_update(char_map_ref map, const char *identifier, const size_t length,
+char_map_update(char_map_t *map, const uint8_t *identifier, const size_t length,
     const int value)
 {
-	char_map_ref node;
+	char_map_t *node;
 
 	node = char_map_find_node(map, identifier, length);
 	if (node) {

@@ -38,13 +38,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <macros.h>
+#include <malloc.h>
 #include "task.h"
 #include "ns.h"
 
 #define TASK_HASH_TABLE_CHAINS  256
-#define P2I_HASH_TABLE_CHAINS  256
-
-static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id);
+#define P2I_HASH_TABLE_CHAINS   256
 
 /* TODO:
  *
@@ -56,10 +55,11 @@ static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id);
 /** Task hash table item. */
 typedef struct {
 	link_t link;
-	task_id_t id;	/**< Task ID. */
-	bool finished;	/**< Task is done. */
-	bool have_rval;	/**< Task returned a value. */
-	int retval;	/**< The return value. */
+	
+	task_id_t id;    /**< Task ID. */
+	bool finished;   /**< Task is done. */
+	bool have_rval;  /**< Task returned a value. */
+	int retval;      /**< The return value. */
 } hashed_task_t;
 
 /** Compute hash index into task hash table.
@@ -70,10 +70,10 @@ typedef struct {
  * @return Hash index corresponding to key[0].
  *
  */
-static hash_index_t task_hash(unsigned long *key)
+static hash_index_t task_hash(unsigned long key[])
 {
 	assert(key);
-	return (LOWER32(*key) % TASK_HASH_TABLE_CHAINS);
+	return (LOWER32(key[0]) % TASK_HASH_TABLE_CHAINS);
 }
 
 /** Compare a key with hashed item.
@@ -123,20 +123,21 @@ static hash_table_t task_hash_table;
 
 typedef struct {
 	link_t link;
-	ipcarg_t phash;    /**< Task ID. */
-	task_id_t id;    /**< Task ID. */
+	sysarg_t in_phone_hash;  /**< Incoming phone hash. */
+	task_id_t id;            /**< Task ID. */
 } p2i_entry_t;
 
 /** Compute hash index into task hash table.
  *
  * @param key Array of keys.
+ *
  * @return Hash index corresponding to key[0].
  *
  */
-static hash_index_t p2i_hash(unsigned long *key)
+static hash_index_t p2i_hash(unsigned long key[])
 {
 	assert(key);
-	return (*key % TASK_HASH_TABLE_CHAINS);
+	return (key[0] % TASK_HASH_TABLE_CHAINS);
 }
 
 /** Compare a key with hashed item.
@@ -153,10 +154,10 @@ static int p2i_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	assert(key);
 	assert(keys == 1);
 	assert(item);
-
-	p2i_entry_t *e = hash_table_get_instance(item, p2i_entry_t, link);
-
-	return (key[0] == e->phash);
+	
+	p2i_entry_t *entry = hash_table_get_instance(item, p2i_entry_t, link);
+	
+	return (key[0] == entry->in_phone_hash);
 }
 
 /** Perform actions after removal of item from the hash table.
@@ -196,7 +197,7 @@ int task_init(void)
 		printf(NAME ": No memory available for tasks\n");
 		return ENOMEM;
 	}
-
+	
 	if (!hash_table_create(&phone_to_id, P2I_HASH_TABLE_CHAINS,
 	    1, &p2i_ops)) {
 		printf(NAME ": No memory available for tasks\n");
@@ -204,7 +205,6 @@ int task_init(void)
 	}
 	
 	list_initialize(&pending_wait);
-	
 	return EOK;
 }
 
@@ -237,7 +237,7 @@ loop:
 			ipc_answer_2(pr->callid, EOK, texit,
 			    ht->retval);
 		}
-
+		
 		hash_table_remove(&task_hash_table, keys, 2);
 		list_remove(cur);
 		free(pr);
@@ -247,24 +247,24 @@ loop:
 
 void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
-	ipcarg_t retval;
+	sysarg_t retval;
 	task_exit_t texit;
-
+	
 	unsigned long keys[2] = {
 		LOWER32(id),
 		UPPER32(id)
 	};
-
+	
 	link_t *link = hash_table_find(&task_hash_table, keys);
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_instance(link, hashed_task_t, link) : NULL;
-
+	
 	if (ht == NULL) {
 		/* No such task exists. */
-		retval = ENOENT;
-		goto out;
+		ipc_answer_0(callid, ENOENT);
+		return;
 	}
-
+	
 	if (!ht->finished) {
 		/* Add to pending list */
 		pending_wait_t *pr =
@@ -274,6 +274,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 			goto out;
 		}
 		
+		link_initialize(&pr->link);
 		pr->id = id;
 		pr->callid = callid;
 		list_append(&pr->link, &pending_wait);
@@ -292,120 +293,114 @@ out:
 
 int ns_task_id_intro(ipc_call_t *call)
 {
-	task_id_t id;
 	unsigned long keys[2];
-	link_t *link;
-	p2i_entry_t *e;
-	hashed_task_t *ht;
-
-	id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-
+	
+	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	keys[0] = call->in_phone_hash;
-
-	link = hash_table_find(&phone_to_id, keys);
+	
+	link_t *link = hash_table_find(&phone_to_id, keys);
 	if (link != NULL)
 		return EEXISTS;
-
-	e = (p2i_entry_t *) malloc(sizeof(p2i_entry_t));
-	if (e == NULL)
+	
+	p2i_entry_t *entry = (p2i_entry_t *) malloc(sizeof(p2i_entry_t));
+	if (entry == NULL)
 		return ENOMEM;
-
-	ht = (hashed_task_t *) malloc(sizeof(hashed_task_t));
+	
+	hashed_task_t *ht = (hashed_task_t *) malloc(sizeof(hashed_task_t));
 	if (ht == NULL)
 		return ENOMEM;
-
-	/* Insert to phone-to-id map. */
-
-	link_initialize(&e->link);
-	e->phash = call->in_phone_hash;
-	e->id = id;
-	hash_table_insert(&phone_to_id, keys, &e->link);
-
-	/* Insert to main table. */
-
+	
+	/*
+	 * Insert into the phone-to-id map.
+	 */
+	
+	link_initialize(&entry->link);
+	entry->in_phone_hash = call->in_phone_hash;
+	entry->id = id;
+	hash_table_insert(&phone_to_id, keys, &entry->link);
+	
+	/*
+	 * Insert into the main table.
+	 */
+	
 	keys[0] = LOWER32(id);
 	keys[1] = UPPER32(id);
-
+	
 	link_initialize(&ht->link);
 	ht->id = id;
 	ht->finished = false;
 	ht->have_rval = false;
 	ht->retval = -1;
 	hash_table_insert(&task_hash_table, keys, &ht->link);
+	
+	return EOK;
+}
 
+static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
+{
+	unsigned long keys[1] = {phone_hash};
+	
+	link_t *link = hash_table_find(&phone_to_id, keys);
+	if (link == NULL)
+		return ENOENT;
+	
+	p2i_entry_t *entry = hash_table_get_instance(link, p2i_entry_t, link);
+	*id = entry->id;
+	
 	return EOK;
 }
 
 int ns_task_retval(ipc_call_t *call)
 {
 	task_id_t id;
-	unsigned long keys[2];
-	int rc;
-
-	rc = get_id_by_phone(call->in_phone_hash, &id);
+	int rc = get_id_by_phone(call->in_phone_hash, &id);
 	if (rc != EOK)
 		return rc;
-
-	keys[0] = LOWER32(id);
-	keys[1] = UPPER32(id);
+	
+	unsigned long keys[2] = {
+		LOWER32(id),
+		UPPER32(id)
+	};
 	
 	link_t *link = hash_table_find(&task_hash_table, keys);
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_instance(link, hashed_task_t, link) : NULL;
 	
-	if ((ht == NULL) || ht->finished)
+	if ((ht == NULL) || (ht->finished))
 		return EINVAL;
-
+	
 	ht->finished = true;
 	ht->have_rval = true;
 	ht->retval = IPC_GET_ARG1(*call);
-
+	
 	return EOK;
 }
 
 int ns_task_disconnect(ipc_call_t *call)
 {
 	unsigned long keys[2];
+	
 	task_id_t id;
-	int rc;
-
-	rc = get_id_by_phone(call->in_phone_hash, &id);
+	int rc = get_id_by_phone(call->in_phone_hash, &id);
 	if (rc != EOK)
 		return rc;
-
+	
 	/* Delete from phone-to-id map. */
 	keys[0] = call->in_phone_hash;
 	hash_table_remove(&phone_to_id, keys, 1);
-
+	
 	/* Mark task as finished. */
 	keys[0] = LOWER32(id);
 	keys[1] = UPPER32(id);
-
+	
 	link_t *link = hash_table_find(&task_hash_table, keys);
 	hashed_task_t *ht =
 	    hash_table_get_instance(link, hashed_task_t, link);
 	if (ht == NULL)
 		return EOK;
-
+	
 	ht->finished = true;
-
-	return EOK;
-}
-
-static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id)
-{
-	unsigned long keys[1];
-	link_t *link;
-	p2i_entry_t *e;
-
-	keys[0] = phone_hash;
-	link = hash_table_find(&phone_to_id, keys);
-	if (link == NULL)
-		return ENOENT;
-
-	e = hash_table_get_instance(link, p2i_entry_t, link);
-	*id = e->id;
-
+	
 	return EOK;
 }
 

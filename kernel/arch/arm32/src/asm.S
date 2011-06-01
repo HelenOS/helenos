@@ -28,22 +28,12 @@
 
 .text
 
-.global memsetb
-.global memsetw
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
 .global early_putchar
 
-memsetb:
-	b _memsetb
-
-memsetw:
-	b _memsetw
-
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	add r3, r1, #3

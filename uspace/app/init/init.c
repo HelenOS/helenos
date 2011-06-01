@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>
@@ -56,11 +55,11 @@
 #define DEVFS_FS_TYPE      "devfs"
 #define DEVFS_MOUNT_POINT  "/dev"
 
-#define SCRATCH_FS_TYPE      "tmpfs"
-#define SCRATCH_MOUNT_POINT  "/scratch"
+#define TMPFS_FS_TYPE      "tmpfs"
+#define TMPFS_MOUNT_POINT  "/tmp"
 
 #define DATA_FS_TYPE      "fat"
-#define DATA_DEVICE       "bd/disk0"
+#define DATA_DEVICE       "bd/ata1disk0"
 #define DATA_MOUNT_POINT  "/data"
 
 #define SRV_CONSOLE  "/srv/console"
@@ -184,7 +183,7 @@ static void console(const char *dev)
 	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, hid_in);
 	
 	/* Wait for the input device to be ready */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, hid_in,
@@ -199,7 +198,7 @@ static void console(const char *dev)
 	}
 }
 
-static void getterm(const char *dev, const char *app)
+static void getterm(const char *dev, const char *app, bool wmsg)
 {
 	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
@@ -209,7 +208,7 @@ static void getterm(const char *dev, const char *app)
 	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
 	
 	/* Wait for the terminal device to be ready */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, term,
@@ -217,18 +216,28 @@ static void getterm(const char *dev, const char *app)
 		return;
 	}
 	
-	rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app, NULL);
-	if (rc != EOK) {
-		printf("%s: Error spawning %s %s %s (%s)\n", NAME,
-		    APP_GETTERM, term, app, str_error(rc));
+	if (wmsg) {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term,
+		    app, NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
+	} else {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app,
+		    NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
 	}
 }
 
-static bool mount_scratch(void)
+static bool mount_tmpfs(void)
 {
-	int rc = mount(SCRATCH_FS_TYPE, SCRATCH_MOUNT_POINT, "", "", 0);
-	return mount_report("Scratch filesystem", SCRATCH_MOUNT_POINT,
-	    SCRATCH_FS_TYPE, NULL, rc);
+	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0);
+	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
+	    TMPFS_FS_TYPE, NULL, rc);
 }
 
 static bool mount_data(void)
@@ -260,8 +269,10 @@ int main(int argc, char *argv[])
 		return -2;
 	}
 	
-	mount_scratch();
+	mount_tmpfs();
 	
+	spawn("/srv/apic");
+	spawn("/srv/i8259");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
@@ -294,14 +305,24 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 	
-	getterm("term/vc0", "/app/bdsh");
-	getterm("term/vc1", "/app/bdsh");
-	getterm("term/vc2", "/app/bdsh");
-	getterm("term/vc3", "/app/bdsh");
-	getterm("term/vc4", "/app/bdsh");
-	getterm("term/vc5", "/app/bdsh");
-	getterm("term/vc6", "/app/klog");
-	
+	getterm("term/vc0", "/app/bdsh", true);
+	getterm("term/vc1", "/app/bdsh", false);
+	getterm("term/vc2", "/app/bdsh", false);
+	getterm("term/vc3", "/app/bdsh", false);
+	getterm("term/vc4", "/app/bdsh", false);
+	getterm("term/vc5", "/app/bdsh", false);
+	getterm("term/vc6", "/app/klog", false);
+
+#ifdef CONFIG_START_DEVMAN
+
+#ifdef CONFIG_DEVMAN_EARLY_LAUNCH
+	spawn("/srv/devman");
+#else
+	getterm("term/vc7", "/srv/devman", false);
+#endif
+
+#endif
+
 	return 0;
 }
 

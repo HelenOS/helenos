@@ -67,13 +67,23 @@ int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_src, size,
-			KERNEL_ADDRESS_SPACE_START, KERNEL_ADDRESS_SPACE_END-KERNEL_ADDRESS_SPACE_START)) {
+			KERNEL_ADDRESS_SPACE_START,
+			KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START)) {
 			/*
 			 * The userspace source block conflicts with kernel address space.
 			 */
 			return EPERM;
 		}
 	}
+
+#ifdef ADDRESS_SPACE_HOLE_START
+	/*
+	 * Check whether the address is outside the address space hole.
+	 */
+	if (overlaps((uintptr_t) uspace_src, size, ADDRESS_SPACE_HOLE_START,
+	    ADDRESS_SPACE_HOLE_END - ADDRESS_SPACE_HOLE_START))
+		return EPERM;
+#endif
 	
 	ipl = interrupts_disable();
 	THREAD->in_copy_from_uspace = true;
@@ -108,13 +118,23 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_dst, size,
-			KERNEL_ADDRESS_SPACE_START, KERNEL_ADDRESS_SPACE_END-KERNEL_ADDRESS_SPACE_START)) {
+			KERNEL_ADDRESS_SPACE_START,
+			KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START)) {
 			/*
 			 * The userspace destination block conflicts with kernel address space.
 			 */
 			return EPERM;
 		}
 	}
+
+#ifdef ADDRESS_SPACE_HOLE_START
+	/*
+	 * Check whether the address is outside the address space hole.
+	 */
+	if (overlaps((uintptr_t) uspace_dst, size, ADDRESS_SPACE_HOLE_START,
+	    ADDRESS_SPACE_HOLE_END - ADDRESS_SPACE_HOLE_START))
+		return EPERM;
+#endif
 	
 	ipl = interrupts_disable();
 	THREAD->in_copy_to_uspace = true;

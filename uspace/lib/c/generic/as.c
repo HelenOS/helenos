@@ -34,14 +34,13 @@
 
 #include <as.h>
 #include <libc.h>
+#include <errno.h>
 #include <unistd.h>
 #include <align.h>
 #include <sys/types.h>
 #include <bitops.h>
 #include <malloc.h>
-
-/** Last position allocated by as_get_mappable_page */
-static uintptr_t last_allocated = 0;
+#include "private/libc.h"
 
 /** Create address space area.
  *
@@ -52,7 +51,7 @@ static uintptr_t last_allocated = 0;
  * @return address on success, (void *) -1 otherwise.
  *
  */
-void *as_area_create(void *address, size_t size, int flags)
+void *as_area_create(void *address, size_t size, unsigned int flags)
 {
 	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
@@ -68,7 +67,7 @@ void *as_area_create(void *address, size_t size, int flags)
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_resize(void *address, size_t size, int flags)
+int as_area_resize(void *address, size_t size, unsigned int flags)
 {
 	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
@@ -96,35 +95,49 @@ int as_area_destroy(void *address)
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_change_flags(void *address, int flags)
+int as_area_change_flags(void *address, unsigned int flags)
 {
 	return __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
 	    (sysarg_t) flags);
 }
 
-/** Return pointer to some unmapped area, where fits new as_area
+/** Return pointer to unmapped address space area
  *
  * @param size Requested size of the allocation.
  *
- * @return pointer to the beginning
+ * @return Pointer to the beginning of unmapped address space area.
  *
  */
 void *as_get_mappable_page(size_t size)
 {
-	if (size == 0)
-		return NULL;
+	return (void *) __SYSCALL2(SYS_AS_GET_UNMAPPED_AREA,
+	    (sysarg_t) __entry, (sysarg_t) size);
+}
+
+/** Find mapping to physical address.
+ *
+ * @param address Virtual address in question (virtual).
+ * @param[out] frame Frame address (physical).
+ * @return Error code.
+ * @retval EOK No error, @p frame holds the translation.
+ * @retval ENOENT Mapping not found.
+ */
+int as_get_physical_mapping(void *address, uintptr_t *frame)
+{
+	uintptr_t tmp_frame;
+	uintptr_t virt = (uintptr_t) address;
 	
-	size_t sz = 1 << (fnzb(size - 1) + 1);
-	if (last_allocated == 0)
-		last_allocated = get_max_heap_addr();
+	int rc = (int) __SYSCALL2(SYS_PAGE_FIND_MAPPING,
+	    (sysarg_t) virt, (sysarg_t) &tmp_frame);
+	if (rc != EOK) {
+		return rc;
+	}
 	
-	/*
-	 * Make sure we allocate from naturally aligned address.
-	 */
-	uintptr_t res = ALIGN_UP(last_allocated, sz);
-	last_allocated = res + ALIGN_UP(size, PAGE_SIZE);
+	if (frame != NULL) {
+		*frame = tmp_frame;
+	}
 	
-	return ((void *) res);
+	return EOK;
 }
 
 /** @}

@@ -893,6 +893,13 @@ static void stype_unop(stype_t *stype, stree_unop_t *unop,
 	stype_expr(stype, unop->arg);
 
 	titem = unop->arg->titem;
+	if (titem == NULL) {
+		cspan_print(unop->arg->cspan);
+		printf(" Error: Argument of unary operation has no value.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
 
 	if (titem->tic == tic_ignore) {
 		*rtitem = stype_recovery_titem(stype);

@@ -49,7 +49,7 @@ void stacktrace_print_fp_pc(uintptr_t fp, uintptr_t pc)
 	st.read_uintptr = stacktrace_read_uintptr;
 
 	while (stacktrace_fp_valid(&st, fp)) {
-		printf("%p: %p()\n", fp, pc);
+		printf("%p: %p()\n", (void *) fp, (void *) pc);
 		(void) stacktrace_ra_get(&st, fp, &pc);
 		(void) stacktrace_fp_prev(&st, fp, &nfp);
 		fp = nfp;
@@ -60,11 +60,13 @@ void stacktrace_print(void)
 {
 	stacktrace_prepare();
 	stacktrace_print_fp_pc(stacktrace_fp_get(), stacktrace_pc_get());
+	
 	/*
 	 * Prevent the tail call optimization of the previous call by
 	 * making it a non-tail call.
 	 */
-	(void) stacktrace_fp_get();
+	
+	printf("-- end of stack trace --\n");
 }
 
 static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data)

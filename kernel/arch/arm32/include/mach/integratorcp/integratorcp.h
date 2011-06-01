@@ -105,6 +105,7 @@ extern void icp_irq_exception(unsigned int, istate_t *);
 extern void icp_get_memory_extents(uintptr_t *, uintptr_t *);
 extern void icp_frame_init(void);
 extern size_t icp_get_irq_count(void);
+extern const char *icp_get_platform_name(void);
 
 extern struct arm_machine_ops icp_machine_ops;
 

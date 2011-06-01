@@ -2,32 +2,54 @@ STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
 ENTRY(__entry)
 
 PHDRS {
+#ifdef LOADER
+	interp PT_INTERP;
 	text PT_LOAD FLAGS(5);
+#else
+	text PT_LOAD FLAGS(5);
+#endif
 	data PT_LOAD FLAGS(6);
 }
 
 SECTIONS {
+#ifdef LOADER
+	.interp : {
+		*(.interp);
+	} :interp
+	
+	. = 0x800000000 + SIZEOF_HEADERS;
+#else
 	. = 0x4000 + SIZEOF_HEADERS;
+#endif
+	/*
+	 * XXX This is just a work around. Problem: .init section does not
+	 * have the proper alignment.
+	 */
+	. = ALIGN(., 16);
 
 	.init : {
 		*(.init);
-	} : text
-	.text : {
-		*(.text);
-		*(.rodata*);
 	} :text
-
+	
+	.text : {
+		*(.text .text.*);
+		*(.rodata .rodata.*);
+	} :text
+	
 	. = . + 0x4000;
-
+	
 	.got : {
-		_gp = .;
-		*(.got*);
-	} :data	
+		/* Tell the linker where we expect GP to point. */
+		__gp = .;
+		*(.got .got.*);
+	} :data
+	
 	.data : {
 		*(.opd);
 		*(.data .data.*);
 		*(.sdata);
 	} :data
+	
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -36,18 +58,17 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
+	
 	_tls_alignment = ALIGNOF(.tdata);
+	
 	.bss : {
 		*(.sbss);
 		*(.scommon);
 		*(COMMON);
 		*(.bss);
 	} :data
-
-	. = ALIGN(0x4000);
-	_heap = .;
- 
+	
 	/DISCARD/ : {
 		*(*);
-        }
+	}
 }

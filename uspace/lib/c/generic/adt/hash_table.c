@@ -53,7 +53,7 @@
  * @return True on success
  *
  */
-int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys,
+bool hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys,
     hash_table_operations_t *op)
 {
 	assert(h);

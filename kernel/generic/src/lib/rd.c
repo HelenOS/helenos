@@ -89,13 +89,14 @@ int init_rd(rd_header_t *header, size_t size)
 	rd_parea.pbase = ALIGN_DOWN((uintptr_t) KA2PA((void *) header + hsize),
 	    FRAME_SIZE);
 	rd_parea.frames = SIZE2FRAMES(dsize);
+	rd_parea.unpriv = false;
 	ddi_parea_register(&rd_parea);
 
 	sysinfo_set_item_val("rd", NULL, true);
 	sysinfo_set_item_val("rd.header_size", NULL, hsize);	
 	sysinfo_set_item_val("rd.size", NULL, dsize);
 	sysinfo_set_item_val("rd.address.physical", NULL,
-	    (unative_t)	KA2PA((void *) header + hsize));
+	    (sysarg_t) KA2PA((void *) header + hsize));
 
 	return RE_OK;
 }

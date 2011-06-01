@@ -36,9 +36,9 @@
 #define LIBC_EVENT_H_
 
 #include <kernel/ipc/event_types.h>
-#include <ipc/ipc.h>
 
-extern int event_subscribe(event_type_t, ipcarg_t);
+extern int event_subscribe(event_type_t, sysarg_t);
+extern int event_unmask(event_type_t);
 
 #endif
 

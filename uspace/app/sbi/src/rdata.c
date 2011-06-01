@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "bigint.h"
+#include "list.h"
 #include "mytypes.h"
 #include "stree.h"
 #include "symbol.h"
@@ -68,7 +69,22 @@ static void rdata_resource_copy(rdata_resource_t *src,
     rdata_resource_t **dest);
 static void rdata_symbol_copy(rdata_symbol_t *src, rdata_symbol_t **dest);
 
+static void rdata_var_destroy_inner(rdata_var_t *var);
+
+static void rdata_bool_destroy(rdata_bool_t *bool_v);
+static void rdata_char_destroy(rdata_char_t *char_v);
+static void rdata_int_destroy(rdata_int_t *int_v);
+static void rdata_string_destroy(rdata_string_t *string_v);
+static void rdata_ref_destroy(rdata_ref_t *ref_v);
+static void rdata_deleg_destroy(rdata_deleg_t *deleg_v);
+static void rdata_enum_destroy(rdata_enum_t *enum_v);
+static void rdata_array_destroy(rdata_array_t *array_v);
+static void rdata_object_destroy(rdata_object_t *object_v);
+static void rdata_resource_destroy(rdata_resource_t *resource_v);
+static void rdata_symbol_destroy(rdata_symbol_t *symbol_v);
+
 static int rdata_array_get_dim(rdata_array_t *array);
+static void rdata_var_copy_to(rdata_var_t *src, rdata_var_t *dest);
 
 static void rdata_address_print(rdata_address_t *address);
 static void rdata_var_print(rdata_var_t *var);
@@ -413,13 +429,13 @@ rdata_symbol_t *rdata_symbol_new(void)
 
 /** Allocate array elements.
  *
- * Allocates var nodes for elements of @a array.
+ * Allocates element array of @a array.
  *
  * @param array		Array.
  */
 void rdata_array_alloc_element(rdata_array_t *array)
 {
-	int dim, idx;
+	int dim;
 
 	dim = rdata_array_get_dim(array);
 
@@ -427,14 +443,6 @@ void rdata_array_alloc_element(rdata_array_t *array)
 	if (array->element == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(1);
-	}
-
-	for (idx = 0; idx < dim; ++idx) {
-		array->element[idx] = calloc(1, sizeof(rdata_var_t));
-		if (array->element[idx] == NULL) {
-			printf("Memory allocation failed.\n");
-			exit(1);
-		}
 	}
 }
 
@@ -456,6 +464,209 @@ static int rdata_array_get_dim(rdata_array_t *array)
 	return dim;
 }
 
+/** Deallocate item.
+ *
+ * @param item	Item node
+ */
+void rdata_item_delete(rdata_item_t *item)
+{
+	assert(item != NULL);
+	free(item);
+}
+
+/** Deallocate variable address.
+ *
+ * @param addr_var	Variable address node
+ */
+void rdata_addr_var_delete(rdata_addr_var_t *addr_var)
+{
+	assert(addr_var != NULL);
+	free(addr_var);
+}
+
+/** Deallocate property address.
+ *
+ * @param addr_prop	Variable address node
+ */
+void rdata_addr_prop_delete(rdata_addr_prop_t *addr_prop)
+{
+	assert(addr_prop != NULL);
+	free(addr_prop);
+}
+
+/** Deallocate named property address.
+ *
+ * @param aprop_named	Variable address node
+ */
+void rdata_aprop_named_delete(rdata_aprop_named_t *aprop_named)
+{
+	assert(aprop_named != NULL);
+	free(aprop_named);
+}
+
+/** Deallocate indexed property address.
+ *
+ * @param aprop_indexed	Variable address node
+ */
+void rdata_aprop_indexed_delete(rdata_aprop_indexed_t *aprop_indexed)
+{
+	assert(aprop_indexed != NULL);
+	free(aprop_indexed);
+}
+
+/** Deallocate address.
+ *
+ * @param address	Address node
+ */
+void rdata_address_delete(rdata_address_t *address)
+{
+	assert(address != NULL);
+	free(address);
+}
+
+/** Deallocate value.
+ *
+ * @param value		Value node
+ */
+void rdata_value_delete(rdata_value_t *value)
+{
+	assert(value != NULL);
+	free(value);
+}
+
+/** Deallocate var node.
+ *
+ * @param var	Var node
+ */
+void rdata_var_delete(rdata_var_t *var)
+{
+	assert(var != NULL);
+	free(var);
+}
+
+/** Deallocate boolean.
+ *
+ * @param bool_v		Boolean
+ */
+void rdata_bool_delete(rdata_bool_t *bool_v)
+{
+	assert(bool_v != NULL);
+	free(bool_v);
+}
+
+/** Deallocate character.
+ *
+ * @param char_v	Character
+ */
+void rdata_char_delete(rdata_char_t *char_v)
+{
+	assert(char_v != NULL);
+	free(char_v);
+}
+
+/** Deallocate integer.
+ *
+ * @param int_v		Integer
+ */
+void rdata_int_delete(rdata_int_t *int_v)
+{
+	assert(int_v != NULL);
+	free(int_v);
+}
+
+/** Deallocate string.
+ *
+ * @param string_v	String
+ */
+void rdata_string_delete(rdata_string_t *string_v)
+{
+	assert(string_v != NULL);
+	free(string_v);
+}
+
+/** Deallocate reference.
+ *
+ * @param ref_v		Reference
+ */
+void rdata_ref_delete(rdata_ref_t *ref_v)
+{
+	assert(ref_v != NULL);
+	free(ref_v);
+}
+
+/** Deallocate delegate.
+ *
+ * @param deleg_v		Reference
+ */
+void rdata_deleg_delete(rdata_deleg_t *deleg_v)
+{
+	assert(deleg_v != NULL);
+	free(deleg_v);
+}
+
+/** Deallocate enum.
+ *
+ * @param enum_v		Reference
+ */
+void rdata_enum_delete(rdata_enum_t *enum_v)
+{
+	assert(enum_v != NULL);
+	free(enum_v);
+}
+
+/** Deallocate array.
+ *
+ * @param array_v		Array
+ */
+void rdata_array_delete(rdata_array_t *array_v)
+{
+	assert(array_v != NULL);
+	free(array_v);
+}
+
+/** Deallocate object.
+ *
+ * @param object_v		Object
+ */
+void rdata_object_delete(rdata_object_t *object_v)
+{
+	assert(object_v != NULL);
+	free(object_v);
+}
+
+/** Deallocate resource.
+ *
+ * @param resource_v		Resource
+ */
+void rdata_resource_delete(rdata_resource_t *resource_v)
+{
+	assert(resource_v != NULL);
+	free(resource_v);
+}
+
+/** Deallocate symbol.
+ *
+ * @param symbol_v		Symbol
+ */
+void rdata_symbol_delete(rdata_symbol_t *symbol_v)
+{
+	assert(symbol_v != NULL);
+	free(symbol_v);
+}
+
+/** Copy value.
+ *
+ * @param src		Input value
+ * @param dest		Place to store pointer to new value
+ */
+void rdata_value_copy(rdata_value_t *src, rdata_value_t **dest)
+{
+	assert(src != NULL);
+
+	*dest = rdata_value_new();
+	rdata_var_copy(src->var, &(*dest)->var);
+}
+
 /** Make copy of a variable.
  *
  * Creates a new var node that is an exact copy of an existing var node.
@@ -469,50 +680,66 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 	rdata_var_t *nvar;
 
 	nvar = rdata_var_new(src->vc);
-
-	switch (src->vc) {
-	case vc_bool:
-		rdata_bool_copy(src->u.bool_v, &nvar->u.bool_v);
-		break;
-	case vc_char:
-		rdata_char_copy(src->u.char_v, &nvar->u.char_v);
-		break;
-	case vc_int:
-		rdata_int_copy(src->u.int_v, &nvar->u.int_v);
-		break;
-	case vc_string:
-		rdata_string_copy(src->u.string_v, &nvar->u.string_v);
-		break;
-	case vc_ref:
-		rdata_ref_copy(src->u.ref_v, &nvar->u.ref_v);
-		break;
-	case vc_deleg:
-		rdata_deleg_copy(src->u.deleg_v, &nvar->u.deleg_v);
-		break;
-	case vc_enum:
-		rdata_enum_copy(src->u.enum_v, &nvar->u.enum_v);
-		break;
-	case vc_array:
-		rdata_array_copy(src->u.array_v, &nvar->u.array_v);
-		break;
-	case vc_object:
-		rdata_object_copy(src->u.object_v, &nvar->u.object_v);
-		break;
-	case vc_resource:
-		rdata_resource_copy(src->u.resource_v, &nvar->u.resource_v);
-		break;
-	case vc_symbol:
-		rdata_symbol_copy(src->u.symbol_v, &nvar->u.symbol_v);
-		break;
-	}
+	rdata_var_copy_to(src, nvar);
 
 	*dest = nvar;
 }
 
+/** Copy variable content to another variable.
+ *
+ * Writes an exact copy of an existing var node to another var node.
+ * The varclass of @a src and @a dest must match. The content of
+ * @a dest.u must be invalid.
+ *
+ * @param src		Source var node.
+ * @param dest		Destination var node.
+ */
+static void rdata_var_copy_to(rdata_var_t *src, rdata_var_t *dest)
+{
+	dest->vc = src->vc;
+
+	switch (src->vc) {
+	case vc_bool:
+		rdata_bool_copy(src->u.bool_v, &dest->u.bool_v);
+		break;
+	case vc_char:
+		rdata_char_copy(src->u.char_v, &dest->u.char_v);
+		break;
+	case vc_int:
+		rdata_int_copy(src->u.int_v, &dest->u.int_v);
+		break;
+	case vc_string:
+		rdata_string_copy(src->u.string_v, &dest->u.string_v);
+		break;
+	case vc_ref:
+		rdata_ref_copy(src->u.ref_v, &dest->u.ref_v);
+		break;
+	case vc_deleg:
+		rdata_deleg_copy(src->u.deleg_v, &dest->u.deleg_v);
+		break;
+	case vc_enum:
+		rdata_enum_copy(src->u.enum_v, &dest->u.enum_v);
+		break;
+	case vc_array:
+		rdata_array_copy(src->u.array_v, &dest->u.array_v);
+		break;
+	case vc_object:
+		rdata_object_copy(src->u.object_v, &dest->u.object_v);
+		break;
+	case vc_resource:
+		rdata_resource_copy(src->u.resource_v, &dest->u.resource_v);
+		break;
+	case vc_symbol:
+		rdata_symbol_copy(src->u.symbol_v, &dest->u.symbol_v);
+		break;
+	}
+}
+
+
 /** Copy boolean.
  *
- * @param src		Source boolean.
- * @param dest		Place to store pointer to new boolean.
+ * @param src		Source boolean
+ * @param dest		Place to store pointer to new boolean
  */
 static void rdata_bool_copy(rdata_bool_t *src, rdata_bool_t **dest)
 {
@@ -522,8 +749,8 @@ static void rdata_bool_copy(rdata_bool_t *src, rdata_bool_t **dest)
 
 /** Copy character.
  *
- * @param src		Source character.
- * @param dest		Place to store pointer to new character.
+ * @param src		Source character
+ * @param dest		Place to store pointer to new character
  */
 static void rdata_char_copy(rdata_char_t *src, rdata_char_t **dest)
 {
@@ -533,8 +760,8 @@ static void rdata_char_copy(rdata_char_t *src, rdata_char_t **dest)
 
 /** Copy integer.
  *
- * @param src		Source integer.
- * @param dest		Place to store pointer to new integer.
+ * @param src		Source integer
+ * @param dest		Place to store pointer to new integer
  */
 static void rdata_int_copy(rdata_int_t *src, rdata_int_t **dest)
 {
@@ -633,6 +860,357 @@ static void rdata_symbol_copy(rdata_symbol_t *src, rdata_symbol_t **dest)
 	(*dest)->sym = src->sym;
 }
 
+/** Destroy var node.
+ *
+ * @param var	Var node
+ */
+void rdata_var_destroy(rdata_var_t *var)
+{
+	/* First destroy class-specific part */
+	rdata_var_destroy_inner(var);
+
+	/* Deallocate var node */
+	rdata_var_delete(var);
+}
+
+/** Destroy inside of var node.
+ *
+ * Destroy content of var node, but do not deallocate the var node
+ * itself.
+ *
+ * @param var	Var node
+ */
+static void rdata_var_destroy_inner(rdata_var_t *var)
+{
+	/* First destroy class-specific part */
+
+	switch (var->vc) {
+	case vc_bool:
+		rdata_bool_destroy(var->u.bool_v);
+		break;
+	case vc_char:
+		rdata_char_destroy(var->u.char_v);
+		break;
+	case vc_int:
+		rdata_int_destroy(var->u.int_v);
+		break;
+	case vc_string:
+		rdata_string_destroy(var->u.string_v);
+		break;
+	case vc_ref:
+		rdata_ref_destroy(var->u.ref_v);
+		break;
+	case vc_deleg:
+		rdata_deleg_destroy(var->u.deleg_v);
+		break;
+	case vc_enum:
+		rdata_enum_destroy(var->u.enum_v);
+		break;
+	case vc_array:
+		rdata_array_destroy(var->u.array_v);
+		break;
+	case vc_object:
+		rdata_object_destroy(var->u.object_v);
+		break;
+	case vc_resource:
+		rdata_resource_destroy(var->u.resource_v);
+		break;
+	case vc_symbol:
+		rdata_symbol_destroy(var->u.symbol_v);
+		break;
+	}
+}
+
+/** Destroy item.
+ *
+ * Destroy an item including the value or address within.
+ *
+ * @param item	Item
+ */
+void rdata_item_destroy(rdata_item_t *item)
+{
+	/* First destroy class-specific part */
+
+	switch (item->ic) {
+	case ic_address:
+		rdata_address_destroy(item->u.address);
+		break;
+	case ic_value:
+		rdata_value_destroy(item->u.value);
+		break;
+	}
+
+	/* Deallocate item node */
+	rdata_item_delete(item);
+}
+
+/** Destroy address.
+ *
+ * Destroy an address node.
+ *
+ * @param address	Address
+ */
+void rdata_address_destroy(rdata_address_t *address)
+{
+	switch (address->ac) {
+	case ac_var:
+		rdata_addr_var_destroy(address->u.var_a);
+		break;
+	case ac_prop:
+		rdata_addr_prop_destroy(address->u.prop_a);
+		break;
+	}
+
+	/* Deallocate address node */
+	rdata_address_delete(address);
+}
+
+/** Destroy variable address.
+ *
+ * Destroy a variable address node.
+ *
+ * @param addr_var	Variable address
+ */
+void rdata_addr_var_destroy(rdata_addr_var_t *addr_var)
+{
+	addr_var->vref = NULL;
+
+	/* Deallocate variable address node */
+	rdata_addr_var_delete(addr_var);
+}
+
+/** Destroy property address.
+ *
+ * Destroy a property address node.
+ *
+ * @param addr_prop	Property address
+ */
+void rdata_addr_prop_destroy(rdata_addr_prop_t *addr_prop)
+{
+	switch (addr_prop->apc) {
+	case apc_named:
+		rdata_aprop_named_destroy(addr_prop->u.named);
+		break;
+	case apc_indexed:
+		rdata_aprop_indexed_destroy(addr_prop->u.indexed);
+		break;
+	}
+
+	if (addr_prop->tvalue != NULL) {
+		rdata_value_destroy(addr_prop->tvalue);
+		addr_prop->tvalue = NULL;
+	}
+
+	addr_prop->tpos = NULL;
+
+	/* Deallocate property address node */
+	rdata_addr_prop_delete(addr_prop);
+}
+
+/** Destroy named property address.
+ *
+ * Destroy a named property address node.
+ *
+ * @param aprop_named	Named property address
+ */
+void rdata_aprop_named_destroy(rdata_aprop_named_t *aprop_named)
+{
+	rdata_deleg_destroy(aprop_named->prop_d);
+
+	/* Deallocate named property address node */
+	rdata_aprop_named_delete(aprop_named);
+}
+
+/** Destroy indexed property address.
+ *
+ * Destroy a indexed property address node.
+ *
+ * @param aprop_indexed		Indexed property address
+ */
+void rdata_aprop_indexed_destroy(rdata_aprop_indexed_t *aprop_indexed)
+{
+	list_node_t *arg_node;
+	rdata_item_t *arg_i;
+
+	/* Destroy the object delegate. */
+	rdata_deleg_destroy(aprop_indexed->object_d);
+
+	/*
+	 * Walk through all argument items (indices) and destroy them,
+	 * removing them from the list as well.
+	 */
+	while (!list_is_empty(&aprop_indexed->args)) {
+		arg_node = list_first(&aprop_indexed->args);
+		arg_i = list_node_data(arg_node, rdata_item_t *);
+
+		rdata_item_destroy(arg_i);
+		list_remove(&aprop_indexed->args, arg_node);
+	}
+
+	/* Destroy the now empty list */
+	list_fini(&aprop_indexed->args);
+
+	/* Deallocate indexed property address node */
+	rdata_aprop_indexed_delete(aprop_indexed);
+}
+
+/** Destroy value.
+ *
+ * Destroy a value node.
+ *
+ * @param value		Value
+ */
+void rdata_value_destroy(rdata_value_t *value)
+{
+	/* Assumption: Var nodes in values are not shared. */
+	rdata_var_destroy(value->var);
+
+	/* Deallocate value node */
+	rdata_value_delete(value);
+}
+
+/** Destroy boolean.
+ *
+ * @param bool_v		Boolean
+ */
+static void rdata_bool_destroy(rdata_bool_t *bool_v)
+{
+	rdata_bool_delete(bool_v);
+}
+
+/** Destroy character.
+ *
+ * @param char_v	Character
+ */
+static void rdata_char_destroy(rdata_char_t *char_v)
+{
+	bigint_destroy(&char_v->value);
+	rdata_char_delete(char_v);
+}
+
+/** Destroy integer.
+ *
+ * @param int_v		Integer
+ */
+static void rdata_int_destroy(rdata_int_t *int_v)
+{
+	bigint_destroy(&int_v->value);
+	rdata_int_delete(int_v);
+}
+
+/** Destroy string.
+ *
+ * @param string_v	String
+ */
+static void rdata_string_destroy(rdata_string_t *string_v)
+{
+	/*
+	 * String values are shared so we cannot free them. Just deallocate
+	 * the node.
+	 */
+	rdata_string_delete(string_v);
+}
+
+/** Destroy reference.
+ *
+ * @param ref_v		Reference
+ */
+static void rdata_ref_destroy(rdata_ref_t *ref_v)
+{
+	ref_v->vref = NULL;
+	rdata_ref_delete(ref_v);
+}
+
+/** Destroy delegate.
+ *
+ * @param deleg_v		Reference
+ */
+static void rdata_deleg_destroy(rdata_deleg_t *deleg_v)
+{
+	deleg_v->obj = NULL;
+	deleg_v->sym = NULL;
+	rdata_deleg_delete(deleg_v);
+}
+
+/** Destroy enum.
+ *
+ * @param enum_v		Reference
+ */
+static void rdata_enum_destroy(rdata_enum_t *enum_v)
+{
+	enum_v->value = NULL;
+	rdata_enum_delete(enum_v);
+}
+
+/** Destroy array.
+ *
+ * @param array_v		Array
+ */
+static void rdata_array_destroy(rdata_array_t *array_v)
+{
+	int d;
+	size_t n_elems, p;
+
+	/*
+	 * Compute total number of elements in array.
+	 * At the same time zero out the extent array.
+	 */
+	n_elems = 1;
+	for (d = 0; d < array_v->rank; d++) {
+		n_elems = n_elems * array_v->extent[d];
+		array_v->extent[d] = 0;
+	}
+
+	/* Destroy all elements and zero out the array */
+	for (p = 0; p < n_elems; p++) {
+		rdata_var_delete(array_v->element[p]);
+		array_v->element[p] = NULL;
+	}
+
+	/* Free the arrays */
+	free(array_v->element);
+	free(array_v->extent);
+
+	array_v->rank = 0;
+
+	/* Deallocate the node */
+	rdata_array_delete(array_v);
+}
+
+/** Destroy object.
+ *
+ * @param object_v		Object
+ */
+static void rdata_object_destroy(rdata_object_t *object_v)
+{
+	/* XXX TODO */
+	rdata_object_delete(object_v);
+}
+
+/** Destroy resource.
+ *
+ * @param resource_v		Resource
+ */
+static void rdata_resource_destroy(rdata_resource_t *resource_v)
+{
+	/*
+	 * XXX Presumably this should be handled by the appropriate
+	 * built-in module, so, some call-back function would be required.
+	 */
+	resource_v->data = NULL;
+	rdata_resource_delete(resource_v);
+}
+
+/** Destroy symbol.
+ *
+ * @param symbol_v		Symbol
+ */
+static void rdata_symbol_destroy(rdata_symbol_t *symbol_v)
+{
+	symbol_v->sym = NULL;
+	rdata_symbol_delete(symbol_v);
+}
+
 /** Read data from a variable.
  *
  * This copies data from the variable to a value item. Ideally any read access
@@ -670,29 +1248,11 @@ void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem)
  */
 void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 {
-	rdata_var_t *nvar;
+	/* Free old content of var->u */
+	rdata_var_destroy_inner(var);
 
 	/* Perform a shallow copy of @c value->var. */
-	rdata_var_copy(value->var, &nvar);
-
-	/* XXX do this in a prettier way. */
-
-	var->vc = nvar->vc;
-	switch (nvar->vc) {
-	case vc_bool: var->u.bool_v = nvar->u.bool_v; break;
-	case vc_char: var->u.char_v = nvar->u.char_v; break;
-	case vc_int: var->u.int_v = nvar->u.int_v; break;
-	case vc_string: var->u.string_v = nvar->u.string_v; break;
-	case vc_ref: var->u.ref_v = nvar->u.ref_v; break;
-	case vc_deleg: var->u.deleg_v = nvar->u.deleg_v; break;
-	case vc_enum: var->u.enum_v = nvar->u.enum_v; break;
-	case vc_array: var->u.array_v = nvar->u.array_v; break;
-	case vc_object: var->u.object_v = nvar->u.object_v; break;
-	case vc_resource: var->u.resource_v = nvar->u.resource_v; break;
-	case vc_symbol: var->u.symbol_v = nvar->u.symbol_v; break;
-	}
-
-	/* XXX We should free some stuff around here. */
+	rdata_var_copy_to(value->var, var);
 }
 
 /** Print data item in human-readable form.

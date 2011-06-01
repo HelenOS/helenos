@@ -46,5 +46,3 @@ __entry:
 	# %rdi was deliberately chosen as the first argument is also in %rdi
 	# Pass PCB pointer to __main (no operation)
 	call __main
-
-	call __exit

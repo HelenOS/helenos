@@ -38,11 +38,8 @@
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 #define max(a, b)  ((a) > (b) ? (a) : (b))
 
-#define SIZE2KB(size)  ((size) >> 10)
-#define SIZE2MB(size)  ((size) >> 20)
-
-#define KB2SIZE(kb)  ((kb) << 10)
-#define MB2SIZE(mb)  ((mb) << 20)
+#define KiB2SIZE(kb)  ((kb) << 10)
+#define MiB2SIZE(mb)  ((mb) << 20)
 
 #define STRING(arg)      STRING_ARG(arg)
 #define STRING_ARG(arg)  #arg

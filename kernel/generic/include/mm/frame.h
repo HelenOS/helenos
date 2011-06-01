@@ -61,18 +61,20 @@
 typedef uint8_t frame_flags_t;
 
 /** Convert the frame address to kernel VA. */
-#define FRAME_KA          0x01
+#define FRAME_KA          0x1
 /** Do not panic and do not sleep on failure. */
-#define FRAME_ATOMIC      0x02
+#define FRAME_ATOMIC      0x2
 /** Do not start reclaiming when no free memory. */
-#define FRAME_NO_RECLAIM  0x04
+#define FRAME_NO_RECLAIM  0x4
+/** Do not reserve / unreserve memory. */
+#define FRAME_NO_RESERVE  0x8
 
 typedef uint8_t zone_flags_t;
 
 /** Available zone (free for allocation) */
-#define ZONE_AVAILABLE  0x00
+#define ZONE_AVAILABLE  0x0
 /** Zone is reserved (not available for allocation) */
-#define ZONE_RESERVED   0x08
+#define ZONE_RESERVED   0x8
 /** Zone is used by firmware (not available for allocation) */
 #define ZONE_FIRMWARE   0x10
 
@@ -84,22 +86,22 @@ typedef struct {
 	size_t refcount;      /**< Tracking of shared frames */
 	uint8_t buddy_order;  /**< Buddy system block order */
 	link_t buddy_link;    /**< Link to the next free block inside
-                               one order */
+                                   one order */
 	void *parent;         /**< If allocated by slab, this points there */
 } frame_t;
 
 typedef struct {
 	pfn_t base;                    /**< Frame_no of the first frame
-                                        in the frames array */
+                                            in the frames array */
 	size_t count;                  /**< Size of zone */
 	size_t free_count;             /**< Number of free frame_t
-                                        structures */
+                                            structures */
 	size_t busy_count;             /**< Number of busy frame_t
-                                        structures */
+                                            structures */
 	zone_flags_t flags;            /**< Type of the zone */
 	
 	frame_t *frames;               /**< Array of frame_t structures
-                                        in this zone */
+                                            in this zone */
 	buddy_system_t *buddy_system;  /**< Buddy system for the zone */
 } zone_t;
 
@@ -143,25 +145,27 @@ NO_TRACE static inline bool zone_flags_available(zone_flags_t flags)
 }
 
 #define IS_BUDDY_ORDER_OK(index, order) \
-    ((~(((unative_t) -1) << (order)) & (index)) == 0)
+    ((~(((sysarg_t) -1) << (order)) & (index)) == 0)
 #define IS_BUDDY_LEFT_BLOCK(zone, frame) \
-    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 0)
+    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK(zone, frame) \
-    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 1)
+    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 #define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame) \
-    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 0)
+    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
 #define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame) \
-    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 1)
-
-#define frame_alloc(order, flags) \
-    frame_alloc_generic(order, flags, NULL)
+    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
 extern void frame_init(void);
 extern void *frame_alloc_generic(uint8_t, frame_flags_t, size_t *);
+extern void *frame_alloc(uint8_t, frame_flags_t);
+extern void *frame_alloc_noreserve(uint8_t, frame_flags_t);
+extern void frame_free_generic(uintptr_t, frame_flags_t);
 extern void frame_free(uintptr_t);
+extern void frame_free_noreserve(uintptr_t);
 extern void frame_reference_add(pfn_t);
+extern size_t frame_total_free_get(void);
 
-extern size_t find_zone(pfn_t frame, size_t count, size_t hint);
+extern size_t find_zone(pfn_t, size_t, size_t);
 extern size_t zone_create(pfn_t, size_t, pfn_t, zone_flags_t);
 extern void *frame_get_parent(pfn_t, size_t);
 extern void frame_set_parent(pfn_t, void *, size_t);

@@ -1,0 +1,199 @@
+--
+-- Copyright (c) 2011 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+--- Switch statement demo.
+--
+-- This demonstrates the switch statement. The switch statement looks like:
+--
+-- switch <s_expr> is
+-- when <e1> [, <e2> ...] do
+--	<statements1>
+-- when <f1> [, <f2> ...] do
+--	<statements2>
+-- [...]
+-- [else do
+--	<statements3>]
+-- end
+--
+-- It is mostly equivalent to the pseudocode:
+--
+-- var v : <type of s_expr>;
+-- if v == <e1> [or v == <e2> ...] then
+--	<statements1>
+-- elif v == <f1> [ or v == <f2> ...] then
+--	<statements2>
+-- [...]
+-- [else
+--	<statements3>]
+-- end
+--
+-- This means there is no artificial limitation as to what you can switch
+-- on. The expressions don't have to be constant and they can be of any type
+-- as long as the switch expression (<s_expr>) can be compared with each
+-- of the when expressions (<e1>, <e2>, <f1>, <f2>, ...).
+--
+-- Note however, the 'or' here denotes short-circuit evaluation. (Currently
+-- the 'or' operation does not use short-circuit evaluation, but that's
+-- more of a bug than a feature.
+--
+class SwitchDemo is
+	class A is
+	end
+
+	var a1 : A, static;
+	var a2 : A, static;
+	var a3 : A, static;
+	var a4 : A, static;
+
+	enum MyEnum is
+		red;
+		green;
+		blue;
+		black;
+		cyan;
+	end
+
+	-- Switch on boolean value
+	fun SwitchBool(v : bool) : string, static is
+		switch v is
+		when false do
+			return "false";
+		when true do
+			return "true";
+		end
+	end
+
+	-- Switch on char value
+	fun SwitchChar(v : char) : string, static is
+		switch v is
+		when 'a', 'b' do
+			return "a/b";
+		when 'c', 'd' do
+			return "c/d";
+		else do
+			return "<other>";
+		end
+	end
+
+	-- Switch on integer value
+	fun SwitchInt(v : int) : string, static is
+		switch v is
+		when 0, 1 do
+			return "0/1";
+		when 2, 3 do
+			return "2/3";
+		else do
+			return "<other>";
+		end
+	end
+
+	-- Switch on string value
+	fun SwitchString(v : string) : string, static is
+		switch v is
+		when "foo", "bar"  do
+			return "foo/bar";
+		when "hello", "world" do
+			return "hello/world";
+		else do
+			return "<other>";
+		end
+	end
+
+	-- Switch on object reference
+	fun SwitchObj(v : A) : string, static is
+		switch v is
+		when a1, a2 do
+			return "a1/a2";
+		when a3, a4 do
+			return "a3/a4";
+		else do
+			return "<other>";
+		end
+	end
+
+	-- Switch on object reference
+	fun SwitchEnum(v : MyEnum) : string, static is
+		switch v is
+		when MyEnum.red, MyEnum.green do
+			return "red/green";
+		when MyEnum.blue, MyEnum.black do
+			return "blue/black";
+		else do
+			return "<other>";
+		end
+	end
+
+	fun Test(res : string; test_expr : string; expected : string), static is
+		Console.WriteLine(test_expr + " = '" + res + "' (expected '" +
+		    expected + "')");
+		if res != expected then
+			Console.WriteLine("Error: Got unexpected result.");
+			raise new Error.Base();
+		end
+	end
+
+	fun Main(), static is
+		a1 = new A();
+		a2 = new A();
+		a3 = new A();
+		a4 = new A();
+
+		Test(SwitchBool(false), "SwitchBool(false)", "false");
+		Test(SwitchBool(true), "SwitchBool(true)", "true");
+
+		Test(SwitchChar('a'), "SwitchChar('a')", "a/b");
+		Test(SwitchChar('b'), "SwitchChar('b')", "a/b");
+		Test(SwitchChar('c'), "SwitchChar('c')", "c/d");
+		Test(SwitchChar('d'), "SwitchChar('d')", "c/d");
+		Test(SwitchChar('e'), "SwitchChar('e')", "<other>");
+
+		Test(SwitchInt(0), "SwitchInt(0)", "0/1");
+		Test(SwitchInt(1), "SwitchInt(1)", "0/1");
+		Test(SwitchInt(2), "SwitchInt(2)", "2/3");
+		Test(SwitchInt(3), "SwitchInt(3)", "2/3");
+		Test(SwitchInt(4), "SwitchInt(4)", "<other>");
+
+		Test(SwitchString("foo"), "SwitchString('foo')", "foo/bar");
+		Test(SwitchString("bar"), "SwitchString('bar')", "foo/bar");
+		Test(SwitchString("hello"), "SwitchString('hello')", "hello/world");
+		Test(SwitchString("world"), "SwitchString('world')", "hello/world");
+		Test(SwitchString("boom"), "SwitchString('boom')", "<other>");
+
+		Test(SwitchObj(a1), "SwitchObj(a1)", "a1/a2");
+		Test(SwitchObj(a2), "SwitchObj(a2)", "a1/a2");
+		Test(SwitchObj(a3), "SwitchObj(a3)", "a3/a4");
+		Test(SwitchObj(a4), "SwitchObj(a4)", "a3/a4");
+		Test(SwitchObj(nil), "SwitchObj(nil)", "<other>");
+
+		Test(SwitchEnum(MyEnum.red), "SwitchEnum(MyEnum.red)", "red/green");
+		Test(SwitchEnum(MyEnum.green), "SwitchEnum(MyEnum.green)", "red/green");
+		Test(SwitchEnum(MyEnum.blue), "SwitchEnum(MyEnum.blue)", "blue/black");
+		Test(SwitchEnum(MyEnum.black), "SwitchEnum(MyEnum.black)", "blue/black");
+		Test(SwitchEnum(MyEnum.cyan), "SwitchEnum(MyEnum.cyan)", "<other>");
+	end
+end

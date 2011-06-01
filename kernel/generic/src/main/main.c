@@ -57,7 +57,6 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/tasklet.h>
 #include <main/kinit.h>
 #include <main/version.h>
 #include <console/kconsole.h>
@@ -71,6 +70,7 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/slab.h>
+#include <mm/reserve.h>
 #include <synch/waitq.h>
 #include <synch/futex.h>
 #include <arch/arch.h>
@@ -96,7 +96,7 @@ init_t init = {
 
 /** Boot allocations. */
 ballocs_t ballocs = {
-	.base = NULL,
+	.base = (uintptr_t) NULL,
 	.size = 0
 };
 
@@ -182,10 +182,10 @@ void main_bsp_separated_stack(void)
 	
 	version_print();
 	
-	LOG("\nconfig.base=%p config.kernel_size=%" PRIs
-	    "\nconfig.stack_base=%p config.stack_size=%" PRIs,
-	    config.base, config.kernel_size, config.stack_base,
-	    config.stack_size);
+	LOG("\nconfig.base=%p config.kernel_size=%zu"
+	    "\nconfig.stack_base=%p config.stack_size=%zu",
+	    (void *) config.base, config.kernel_size,
+	    (void *) config.stack_base, config.stack_size);
 	
 #ifdef CONFIG_KCONSOLE
 	/*
@@ -216,16 +216,19 @@ void main_bsp_separated_stack(void)
 	page_init();
 	tlb_init();
 	ddi_init();
-	tasklet_init();
 	arch_post_mm_init();
+	reserve_init();
 	arch_pre_smp_init();
 	smp_init();
 	
 	/* Slab must be initialized after we know the number of processors. */
 	slab_enable_cpucache();
 	
-	printf("Detected %" PRIs " CPU(s), %" PRIu64" MiB free memory\n",
-	    config.cpu_count, SIZE2MB(zones_total_size()));
+	uint64_t size;
+	const char *size_suffix;
+	bin_order_suffix(zones_total_size(), &size, &size_suffix, false);
+	printf("Detected %u CPU(s), %" PRIu64 " %s free memory\n",
+	    config.cpu_count, size, size_suffix);
 	
 	cpu_init();
 	
@@ -240,9 +243,8 @@ void main_bsp_separated_stack(void)
 	if (init.cnt > 0) {
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
-			LOG("init[%" PRIs "].addr=%p, init[%" PRIs
-			    "].size=%" PRIs, i, init.tasks[i].addr, i,
-			    init.tasks[i].size);
+			LOG("init[%zu].addr=%p, init[%zu].size=%zu",
+			    i, (void *) init.tasks[i].addr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
 	

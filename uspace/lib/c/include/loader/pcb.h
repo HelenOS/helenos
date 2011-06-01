@@ -51,7 +51,7 @@ typedef void (*entry_point_t)(void);
 typedef struct {
 	/** Program entry point. */
 	entry_point_t entry;
-
+	
 	/** Current working directory. */
 	char *cwd;
 	
@@ -71,6 +71,8 @@ typedef struct {
 	
 	/** Pointer to ELF dynamic section of the program. */
 	void *dynamic;
+	/** Pointer to dynamic linker state structure (runtime_env_t). */
+	void *rtld_runtime;
 } pcb_t;
 
 /**

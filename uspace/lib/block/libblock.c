@@ -43,7 +43,6 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <async.h>
-#include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
 #include <fibril_synch.h>
@@ -51,6 +50,8 @@
 #include <adt/hash_table.h>
 #include <macros.h>
 #include <mem.h>
+#include <malloc.h>
+#include <stdio.h>
 #include <sys/typefmt.h>
 #include <stacktrace.h>
 
@@ -65,6 +66,7 @@ static LIST_INITIALIZE(dcl_head);
 typedef struct {
 	fibril_mutex_t lock;
 	size_t lblock_size;		/**< Logical block size. */
+	unsigned blocks_cluster;	/**< Physical blocks per block_t */
 	unsigned block_count;		/**< Total number of blocks. */
 	unsigned blocks_cached;		/**< Number of cached blocks. */
 	hash_table_t block_hash;
@@ -74,7 +76,7 @@ typedef struct {
 
 typedef struct {
 	link_t link;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 	int dev_phone;
 	fibril_mutex_t comm_area_lock;
 	void *comm_area;
@@ -89,15 +91,16 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
 static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
 static int get_block_size(int dev_phone, size_t *bsize);
 static int get_num_blocks(int dev_phone, aoff64_t *nblocks);
+static aoff64_t ba_ltop(devcon_t *devcon, aoff64_t lba);
 
-static devcon_t *devcon_search(dev_handle_t dev_handle)
+static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 {
 	link_t *cur;
 
 	fibril_mutex_lock(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
 		devcon_t *devcon = list_get_instance(cur, devcon_t, link);
-		if (devcon->dev_handle == dev_handle) {
+		if (devcon->devmap_handle == devmap_handle) {
 			fibril_mutex_unlock(&dcl_lock);
 			return devcon;
 		}
@@ -106,7 +109,7 @@ static devcon_t *devcon_search(dev_handle_t dev_handle)
 	return NULL;
 }
 
-static int devcon_add(dev_handle_t dev_handle, int dev_phone, size_t bsize,
+static int devcon_add(devmap_handle_t devmap_handle, int dev_phone, size_t bsize,
     void *comm_area, size_t comm_size)
 {
 	link_t *cur;
@@ -120,7 +123,7 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, size_t bsize,
 		return ENOMEM;
 	
 	link_initialize(&devcon->link);
-	devcon->dev_handle = dev_handle;
+	devcon->devmap_handle = devmap_handle;
 	devcon->dev_phone = dev_phone;
 	fibril_mutex_initialize(&devcon->comm_area_lock);
 	devcon->comm_area = comm_area;
@@ -133,7 +136,7 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, size_t bsize,
 	fibril_mutex_lock(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
 		devcon_t *d = list_get_instance(cur, devcon_t, link);
-		if (d->dev_handle == dev_handle) {
+		if (d->devmap_handle == devmap_handle) {
 			fibril_mutex_unlock(&dcl_lock);
 			free(devcon);
 			return EEXIST;
@@ -151,7 +154,7 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-int block_init(dev_handle_t dev_handle, size_t comm_size)
+int block_init(devmap_handle_t devmap_handle, size_t comm_size)
 {
 	int rc;
 	int dev_phone;
@@ -164,7 +167,7 @@ int block_init(dev_handle_t dev_handle, size_t comm_size)
 		return ENOMEM;
 	}
 
-	dev_phone = devmap_device_connect(dev_handle, IPC_FLAG_BLOCKING);
+	dev_phone = devmap_device_connect(devmap_handle, IPC_FLAG_BLOCKING);
 	if (dev_phone < 0) {
 		munmap(comm_area, comm_size);
 		return dev_phone;
@@ -174,33 +177,33 @@ int block_init(dev_handle_t dev_handle, size_t comm_size)
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
 	    	munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
 	if (get_block_size(dev_phone, &bsize) != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 	
-	rc = devcon_add(dev_handle, dev_phone, bsize, comm_area, comm_size);
+	rc = devcon_add(devmap_handle, dev_phone, bsize, comm_area, comm_size);
 	if (rc != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
 	return EOK;
 }
 
-void block_fini(dev_handle_t dev_handle)
+void block_fini(devmap_handle_t devmap_handle)
 {
-	devcon_t *devcon = devcon_search(dev_handle);
+	devcon_t *devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
 	if (devcon->cache)
-		(void) block_cache_fini(dev_handle);
+		(void) block_cache_fini(devmap_handle);
 
 	devcon_remove(devcon);
 
@@ -208,17 +211,17 @@ void block_fini(dev_handle_t dev_handle)
 		free(devcon->bb_buf);
 
 	munmap(devcon->comm_area, devcon->comm_size);
-	ipc_hangup(devcon->dev_phone);
+	async_hangup(devcon->dev_phone);
 
 	free(devcon);	
 }
 
-int block_bb_read(dev_handle_t dev_handle, aoff64_t ba)
+int block_bb_read(devmap_handle_t devmap_handle, aoff64_t ba)
 {
 	void *bb_buf;
 	int rc;
 
-	devcon_t *devcon = devcon_search(dev_handle);
+	devcon_t *devcon = devcon_search(devmap_handle);
 	if (!devcon)
 		return ENOENT;
 	if (devcon->bb_buf)
@@ -243,9 +246,9 @@ int block_bb_read(dev_handle_t dev_handle, aoff64_t ba)
 	return EOK;
 }
 
-void *block_bb_get(dev_handle_t dev_handle)
+void *block_bb_get(devmap_handle_t devmap_handle)
 {
-	devcon_t *devcon = devcon_search(dev_handle);
+	devcon_t *devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	return devcon->bb_buf;
 }
@@ -258,7 +261,7 @@ static hash_index_t cache_hash(unsigned long *key)
 static int cache_compare(unsigned long *key, hash_count_t keys, link_t *item)
 {
 	block_t *b = hash_table_get_instance(item, block_t, hash_link);
-	return b->boff == *key;
+	return b->lba == *key;
 }
 
 static void cache_remove_callback(link_t *item)
@@ -271,10 +274,10 @@ static hash_table_operations_t cache_ops = {
 	.remove_callback = cache_remove_callback
 };
 
-int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
+int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks,
     enum cache_mode mode)
 {
-	devcon_t *devcon = devcon_search(dev_handle);
+	devcon_t *devcon = devcon_search(devmap_handle);
 	cache_t *cache;
 	if (!devcon)
 		return ENOENT;
@@ -291,8 +294,13 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	cache->blocks_cached = 0;
 	cache->mode = mode;
 
-	/* No block size translation a.t.m. */
-	assert(cache->lblock_size == devcon->pblock_size);
+	/* Allow 1:1 or small-to-large block size translation */
+	if (cache->lblock_size % devcon->pblock_size != 0) {
+		free(cache);
+		return ENOTSUP;
+	}
+
+	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
 	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
 	    &cache_ops)) {
@@ -304,9 +312,9 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	return EOK;
 }
 
-int block_cache_fini(dev_handle_t dev_handle)
+int block_cache_fini(devmap_handle_t devmap_handle)
 {
-	devcon_t *devcon = devcon_search(dev_handle);
+	devcon_t *devcon = devcon_search(devmap_handle);
 	cache_t *cache;
 	int rc;
 
@@ -328,12 +336,12 @@ int block_cache_fini(dev_handle_t dev_handle)
 		list_remove(&b->free_link);
 		if (b->dirty) {
 			memcpy(devcon->comm_area, b->data, b->size);
-			rc = write_blocks(devcon, b->boff, 1);
+			rc = write_blocks(devcon, b->pba, cache->blocks_cluster);
 			if (rc != EOK)
 				return rc;
 		}
 
-		unsigned long key = b->boff;
+		unsigned long key = b->lba;
 		hash_table_remove(&cache->block_hash, &key, 1);
 		
 		free(b->data);
@@ -373,24 +381,24 @@ static void block_initialize(block_t *b)
  *
  * @param block			Pointer to where the function will store the
  * 				block pointer on success.
- * @param dev_handle		Device handle of the block device.
- * @param boff			Block offset.
+ * @param devmap_handle		Device handle of the block device.
+ * @param ba			Block address (logical).
  * @param flags			If BLOCK_FLAGS_NOREAD is specified, block_get()
  * 				will not read the contents of the block from the
  *				device.
  *
  * @return			EOK on success or a negative error code.
  */
-int block_get(block_t **block, dev_handle_t dev_handle, aoff64_t boff, int flags)
+int block_get(block_t **block, devmap_handle_t devmap_handle, aoff64_t ba, int flags)
 {
 	devcon_t *devcon;
 	cache_t *cache;
 	block_t *b;
 	link_t *l;
-	unsigned long key = boff;
+	unsigned long key = ba;
 	int rc;
 	
-	devcon = devcon_search(dev_handle);
+	devcon = devcon_search(devmap_handle);
 
 	assert(devcon);
 	assert(devcon->cache);
@@ -404,6 +412,7 @@ retry:
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
+found:
 		/*
 		 * We found the block in the cache.
 		 */
@@ -431,6 +440,7 @@ retry:
 			b->data = malloc(cache->lblock_size);
 			if (!b->data) {
 				free(b);
+				b = NULL;
 				goto recycle;
 			}
 			cache->blocks_cached++;
@@ -464,7 +474,8 @@ recycle:
 				fibril_mutex_unlock(&cache->lock);
 				fibril_mutex_lock(&devcon->comm_area_lock);
 				memcpy(devcon->comm_area, b->data, b->size);
-				rc = write_blocks(devcon, b->boff, 1);
+				rc = write_blocks(devcon, b->pba,
+				    cache->blocks_cluster);
 				fibril_mutex_unlock(&devcon->comm_area_lock);
 				if (rc != EOK) {
 					/*
@@ -485,6 +496,20 @@ recycle:
 					fibril_mutex_unlock(&b->lock);
 					goto retry;
 				}
+				l = hash_table_find(&cache->block_hash, &key);
+				if (l) {
+					/*
+					 * Someone else must have already
+					 * instantiated the block while we were
+					 * not holding the cache lock.
+					 * Leave the recycled block on the
+					 * freelist and continue as if we
+					 * found the block of interest during
+					 * the first try.
+					 */
+					fibril_mutex_unlock(&b->lock);
+					goto found;
+				}
 
 			}
 			fibril_mutex_unlock(&b->lock);
@@ -494,14 +519,15 @@ recycle:
 			 * table.
 			 */
 			list_remove(&b->free_link);
-			temp_key = b->boff;
+			temp_key = b->lba;
 			hash_table_remove(&cache->block_hash, &temp_key, 1);
 		}
 
 		block_initialize(b);
-		b->dev_handle = dev_handle;
+		b->devmap_handle = devmap_handle;
 		b->size = cache->lblock_size;
-		b->boff = boff;
+		b->lba = ba;
+		b->pba = ba_ltop(devcon, b->lba);
 		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
 
 		/*
@@ -518,7 +544,7 @@ recycle:
 			 * the new contents from the device.
 			 */
 			fibril_mutex_lock(&devcon->comm_area_lock);
-			rc = read_blocks(devcon, b->boff, 1);
+			rc = read_blocks(devcon, b->pba, cache->blocks_cluster);
 			memcpy(b->data, devcon->comm_area, cache->lblock_size);
 			fibril_mutex_unlock(&devcon->comm_area_lock);
 			if (rc != EOK) 
@@ -548,7 +574,7 @@ out:
  */
 int block_put(block_t *block)
 {
-	devcon_t *devcon = devcon_search(block->dev_handle);
+	devcon_t *devcon = devcon_search(block->devmap_handle);
 	cache_t *cache;
 	unsigned blocks_cached;
 	enum cache_mode mode;
@@ -556,6 +582,7 @@ int block_put(block_t *block)
 
 	assert(devcon);
 	assert(devcon->cache);
+	assert(block->refcnt >= 1);
 
 	cache = devcon->cache;
 
@@ -579,7 +606,7 @@ retry:
 	    (blocks_cached > CACHE_HI_WATERMARK || mode != CACHE_MODE_WB)) {
 		fibril_mutex_lock(&devcon->comm_area_lock);
 		memcpy(devcon->comm_area, block->data, block->size);
-		rc = write_blocks(devcon, block->boff, 1);
+		rc = write_blocks(devcon, block->pba, cache->blocks_cluster);
 		fibril_mutex_unlock(&devcon->comm_area_lock);
 		block->dirty = false;
 	}
@@ -613,10 +640,11 @@ retry:
 			/*
 			 * Take the block out of the cache and free it.
 			 */
-			unsigned long key = block->boff;
+			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
-			free(block);
+			fibril_mutex_unlock(&block->lock);
 			free(block->data);
+			free(block);
 			cache->blocks_cached--;
 			fibril_mutex_unlock(&cache->lock);
 			return rc;
@@ -644,7 +672,7 @@ retry:
 
 /** Read sequential data from a block device.
  *
- * @param dev_handle	Device handle of the block device.
+ * @param devmap_handle	Device handle of the block device.
  * @param bufpos	Pointer to the first unread valid offset within the
  * 			communication buffer.
  * @param buflen	Pointer to the number of unread bytes that are ready in
@@ -656,7 +684,7 @@ retry:
  *
  * @return		EOK on success or a negative return code on failure.
  */
-int block_seqread(dev_handle_t dev_handle, size_t *bufpos, size_t *buflen,
+int block_seqread(devmap_handle_t devmap_handle, size_t *bufpos, size_t *buflen,
     aoff64_t *pos, void *dst, size_t size)
 {
 	size_t offset = 0;
@@ -664,7 +692,7 @@ int block_seqread(dev_handle_t dev_handle, size_t *bufpos, size_t *buflen,
 	size_t block_size;
 	devcon_t *devcon;
 
-	devcon = devcon_search(dev_handle);
+	devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	block_size = devcon->pblock_size;
 	
@@ -710,19 +738,19 @@ int block_seqread(dev_handle_t dev_handle, size_t *bufpos, size_t *buflen,
 
 /** Read blocks directly from device (bypass cache).
  *
- * @param dev_handle	Device handle of the block device.
- * @param ba		Address of first block.
+ * @param devmap_handle	Device handle of the block device.
+ * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  * @param src		Buffer for storing the data.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_read_direct(dev_handle_t dev_handle, aoff64_t ba, size_t cnt, void *buf)
+int block_read_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt, void *buf)
 {
 	devcon_t *devcon;
 	int rc;
 
-	devcon = devcon_search(dev_handle);
+	devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
 	fibril_mutex_lock(&devcon->comm_area_lock);
@@ -738,20 +766,20 @@ int block_read_direct(dev_handle_t dev_handle, aoff64_t ba, size_t cnt, void *bu
 
 /** Write blocks directly to device (bypass cache).
  *
- * @param dev_handle	Device handle of the block device.
- * @param ba		Address of first block.
+ * @param devmap_handle	Device handle of the block device.
+ * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  * @param src		The data to be written.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_write_direct(dev_handle_t dev_handle, aoff64_t ba, size_t cnt,
+int block_write_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt,
     const void *data)
 {
 	devcon_t *devcon;
 	int rc;
 
-	devcon = devcon_search(dev_handle);
+	devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
 	fibril_mutex_lock(&devcon->comm_area_lock);
@@ -766,16 +794,16 @@ int block_write_direct(dev_handle_t dev_handle, aoff64_t ba, size_t cnt,
 
 /** Get device block size.
  *
- * @param dev_handle	Device handle of the block device.
+ * @param devmap_handle	Device handle of the block device.
  * @param bsize		Output block size.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_get_bsize(dev_handle_t dev_handle, size_t *bsize)
+int block_get_bsize(devmap_handle_t devmap_handle, size_t *bsize)
 {
 	devcon_t *devcon;
 
-	devcon = devcon_search(dev_handle);
+	devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
 	return get_block_size(devcon->dev_phone, bsize);
@@ -783,16 +811,16 @@ int block_get_bsize(dev_handle_t dev_handle, size_t *bsize)
 
 /** Get number of blocks on device.
  *
- * @param dev_handle	Device handle of the block device.
+ * @param devmap_handle	Device handle of the block device.
  * @param nblocks	Output number of blocks.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_get_nblocks(dev_handle_t dev_handle, aoff64_t *nblocks)
+int block_get_nblocks(devmap_handle_t devmap_handle, aoff64_t *nblocks)
 {
 	devcon_t *devcon;
 
-	devcon = devcon_search(dev_handle);
+	devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
 	return get_num_blocks(devcon->dev_phone, nblocks);
@@ -815,9 +843,9 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 	rc = async_req_3_0(devcon->dev_phone, BD_READ_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	if (rc != EOK) {
-		printf("Error %d reading %d blocks starting at block %" PRIuOFF64
-		    " from device handle %d\n", rc, cnt, ba,
-		    devcon->dev_handle);
+		printf("Error %d reading %zu blocks starting at block %" PRIuOFF64
+		    " from device handle %" PRIun "\n", rc, cnt, ba,
+		    devcon->devmap_handle);
 #ifndef NDEBUG
 		stacktrace_print();
 #endif
@@ -842,8 +870,8 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 	rc = async_req_3_0(devcon->dev_phone, BD_WRITE_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	if (rc != EOK) {
-		printf("Error %d writing %d blocks starting at block %" PRIuOFF64
-		    " to device handle %d\n", rc, cnt, ba, devcon->dev_handle);
+		printf("Error %d writing %zu blocks starting at block %" PRIuOFF64
+		    " to device handle %" PRIun "\n", rc, cnt, ba, devcon->devmap_handle);
 #ifndef NDEBUG
 		stacktrace_print();
 #endif
@@ -854,7 +882,7 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 /** Get block size used by the device. */
 static int get_block_size(int dev_phone, size_t *bsize)
 {
-	ipcarg_t bs;
+	sysarg_t bs;
 	int rc;
 
 	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
@@ -867,7 +895,7 @@ static int get_block_size(int dev_phone, size_t *bsize)
 /** Get total number of blocks on block device. */
 static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
 {
-	ipcarg_t nb_l, nb_h;
+	sysarg_t nb_l, nb_h;
 	int rc;
 
 	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
@@ -876,6 +904,13 @@ static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
 	}
 
 	return rc;
+}
+
+/** Convert logical block address to physical block address. */
+static aoff64_t ba_ltop(devcon_t *devcon, aoff64_t lba)
+{
+	assert(devcon->cache != NULL);
+	return lba * devcon->cache->blocks_cluster;
 }
 
 /** @}

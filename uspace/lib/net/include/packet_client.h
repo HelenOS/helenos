@@ -60,9 +60,9 @@
  * @param[in] packet	The packet to be used.
  * @param[in] type	The type to be allocated at the beginning of the packet
  *			content.
- * @returns		The typed pointer to the allocated memory.
- * @returns		NULL if the packet is not valid.
- * @returns		NULL if there is not enough memory left.
+ * @return		The typed pointer to the allocated memory.
+ * @return		NULL if the packet is not valid.
+ * @return		NULL if there is not enough memory left.
  */
 #define PACKET_PREFIX(packet, type) \
 	(type *) packet_prefix((packet), sizeof(type))
@@ -75,9 +75,9 @@
  * @param[in] packet	The packet to be used.
  * @param[in] type	The type to be allocated at the end of the packet
  *			content.
- * @returns		The typed pointer to the allocated memory.
- * @returns		NULL if the packet is not valid.
- * @returns		NULL if there is not enough memory left.
+ * @return		The typed pointer to the allocated memory.
+ * @return		NULL if the packet is not valid.
+ * @return		NULL if there is not enough memory left.
  */
 #define PACKET_SUFFIX(packet, type) \
 	(type *) packet_suffix((packet), sizeof(type))
@@ -91,23 +91,23 @@
  *			of the packet content.
  * @param[in] suffix	The type of the suffix to be removed from the end of
  *			the packet content.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		ENOMEM if there is not enough memory left.
  */
 #define PACKET_TRIM(packet, prefix, suffix) \
 	packet_trim((packet), sizeof(prefix), sizeof(suffix))
 
-extern void *packet_prefix(packet_t, size_t);
-extern void *packet_suffix(packet_t, size_t);
-extern int packet_trim(packet_t, size_t, size_t);
-extern int packet_copy_data(packet_t, const void *, size_t);
-extern packet_id_t packet_get_id(const packet_t);
-extern size_t packet_get_data_length(const packet_t);
-extern void *packet_get_data(const packet_t);
-extern int packet_get_addr(const packet_t, uint8_t **, uint8_t **);
-extern int packet_set_addr(packet_t, const uint8_t *, const uint8_t *, size_t);
-extern packet_t packet_get_copy(int phone, packet_t packet);
+extern void *packet_prefix(packet_t *, size_t);
+extern void *packet_suffix(packet_t *, size_t);
+extern int packet_trim(packet_t *, size_t, size_t);
+extern int packet_copy_data(packet_t *, const void *, size_t);
+extern packet_id_t packet_get_id(const packet_t *);
+extern size_t packet_get_data_length(const packet_t *);
+extern void *packet_get_data(const packet_t *);
+extern int packet_get_addr(const packet_t *, uint8_t **, uint8_t **);
+extern int packet_set_addr(packet_t *, const uint8_t *, const uint8_t *, size_t);
+extern packet_t *packet_get_copy(int, packet_t *);
 
 /*@}*/
 

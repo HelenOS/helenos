@@ -35,8 +35,8 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 
+#include <ipc/common.h>
 #include <adt/hash_table.h>
-#include <ipc/ipc.h>
 #include "trace.h"
 
 #define OPER_MAX_ARGS (IPC_CALL_LEN - 1)

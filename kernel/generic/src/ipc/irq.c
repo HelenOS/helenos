@@ -41,14 +41,15 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - METHOD: method as registered by the SYS_IPC_REGISTER_IRQ syscall
+ * - IMETHOD: interface and method as registered by the SYS_REGISTER_IRQ
+ *            syscall
  * - ARG1: payload modified by a 'top-half' handler
  * - ARG2: payload modified by a 'top-half' handler
  * - ARG3: payload modified by a 'top-half' handler
  * - ARG4: payload modified by a 'top-half' handler
  * - ARG5: payload modified by a 'top-half' handler
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
- *         in multithreaded drivers)
+ *                  in multithreaded drivers)
  *
  * Note on synchronization for ipc_irq_register(), ipc_irq_unregister(),
  * ipc_irq_cleanup() and IRQ handlers:
@@ -129,22 +130,25 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
- * @param box    Receiving answerbox.
- * @param inr    IRQ number.
- * @param devno  Device number.
- * @param method Method to be associated with the notification.
- * @param ucode  Uspace pointer to top-half pseudocode.
- *
- * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
+ * @param box		Receiving answerbox.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ * @param imethod	Interface and method to be associated with the
+ *			notification.
+ * @param ucode		Uspace pointer to top-half pseudocode.
+ * @return		EOK on success or a negative error code.
  *
  */
 int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
-    unative_t method, irq_code_t *ucode)
+    sysarg_t imethod, irq_code_t *ucode)
 {
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) devno
+	sysarg_t key[] = {
+		(sysarg_t) inr,
+		(sysarg_t) devno
 	};
+
+	if ((inr < 0) || (inr > last_inr))
+		return ELIMIT;
 	
 	irq_code_t *code;
 	if (ucode) {
@@ -166,9 +170,10 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->handler = ipc_irq_top_half_handler;
 	irq->notif_cfg.notify = true;
 	irq->notif_cfg.answerbox = box;
-	irq->notif_cfg.method = method;
+	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
+	irq->driver_as = AS;
 	
 	/*
 	 * Enlist the IRQ structure in the uspace IRQ hash table and the
@@ -205,17 +210,20 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 
 /** Unregister task from IRQ notification.
  *
- * @param box   Answerbox associated with the notification.
- * @param inr   IRQ number.
- * @param devno Device number.
- *
+ * @param box		Answerbox associated with the notification.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ * @return		EOK on success or a negative error code.
  */
 int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 {
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) devno
+	sysarg_t key[] = {
+		(sysarg_t) inr,
+		(sysarg_t) devno
 	};
+
+	if ((inr < 0) || (inr > last_inr))
+		return ELIMIT;
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	link_t *lnk = hash_table_find(&irq_uspace_hash_table, key);
@@ -289,7 +297,7 @@ loop:
 			goto loop;
 		}
 		
-		unative_t key[2];
+		sysarg_t key[2];
 		key[0] = irq->inr;
 		key[1] = irq->devno;
 		
@@ -356,6 +364,25 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 	if (!code)
 		return IRQ_DECLINE;
 	
+#define CMD_MEM_READ(target) \
+do { \
+	void *va = code->cmds[i].addr; \
+	if (AS != irq->driver_as) \
+		as_switch(AS, irq->driver_as); \
+	memcpy_from_uspace(&target, va, (sizeof(target))); \
+	if (dstarg) \
+		scratch[dstarg] = target; \
+} while(0)
+
+#define CMD_MEM_WRITE(val) \
+do { \
+	void *va = code->cmds[i].addr; \
+	if (AS != irq->driver_as) \
+		as_switch(AS, irq->driver_as); \
+	memcpy_to_uspace(va, &val, sizeof(val)); \
+} while (0)
+
+	as_t *current_as = AS;
 	size_t i;
 	for (i = 0; i < code->cmdcount; i++) {
 		uint32_t dstval;
@@ -396,6 +423,72 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			pio_write_32((ioport32_t *) code->cmds[i].addr,
 			    (uint32_t) code->cmds[i].value);
 			break;
+		case CMD_PIO_WRITE_A_8:
+			if (srcarg) {
+				pio_write_8((ioport8_t *) code->cmds[i].addr,
+				    (uint8_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_PIO_WRITE_A_16:
+			if (srcarg) {
+				pio_write_16((ioport16_t *) code->cmds[i].addr,
+				    (uint16_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_PIO_WRITE_A_32:
+			if (srcarg) {
+				pio_write_32((ioport32_t *) code->cmds[i].addr,
+				    (uint32_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_MEM_READ_8: {
+			uint8_t val;
+			CMD_MEM_READ(val);
+			break;
+			}
+		case CMD_MEM_READ_16: {
+			uint16_t val;
+			CMD_MEM_READ(val);
+			break;
+			}
+		case CMD_MEM_READ_32: {
+			uint32_t val;
+			CMD_MEM_READ(val);
+			break;
+			}
+		case CMD_MEM_WRITE_8: {
+			uint8_t val = code->cmds[i].value;
+			CMD_MEM_WRITE(val);
+			break;
+			}
+		case CMD_MEM_WRITE_16: {
+			uint16_t val = code->cmds[i].value;
+			CMD_MEM_WRITE(val);
+			break;
+			}
+		case CMD_MEM_WRITE_32: {
+			uint32_t val = code->cmds[i].value;
+			CMD_MEM_WRITE(val);
+			break;
+			}
+		case CMD_MEM_WRITE_A_8:
+			if (srcarg) {
+				uint8_t val = scratch[srcarg];
+				CMD_MEM_WRITE(val);
+			}
+			break;
+		case CMD_MEM_WRITE_A_16:
+			if (srcarg) {
+				uint16_t val = scratch[srcarg];
+				CMD_MEM_WRITE(val);
+			}
+			break;
+		case CMD_MEM_WRITE_A_32:
+			if (srcarg) {
+				uint32_t val = scratch[srcarg];
+				CMD_MEM_WRITE(val);
+			}
+			break;
 		case CMD_BTEST:
 			if ((srcarg) && (dstarg)) {
 				dstval = scratch[srcarg] & code->cmds[i].value;
@@ -409,12 +502,18 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			}
 			break;
 		case CMD_ACCEPT:
+			if (AS != current_as)
+				as_switch(AS, current_as);
 			return IRQ_ACCEPT;
 		case CMD_DECLINE:
 		default:
+			if (AS != current_as)
+				as_switch(AS, current_as);
 			return IRQ_DECLINE;
 		}
 	}
+	if (AS != current_as)
+		as_switch(AS, current_as);
 	
 	return IRQ_DECLINE;
 }
@@ -443,7 +542,7 @@ void ipc_irq_top_half_handler(irq_t *irq)
 		call->priv = ++irq->notif_cfg.counter;
 		
 		/* Set up args */
-		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
+		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
 		IPC_SET_ARG1(call->data, irq->notif_cfg.scratch[1]);
 		IPC_SET_ARG2(call->data, irq->notif_cfg.scratch[2]);
 		IPC_SET_ARG3(call->data, irq->notif_cfg.scratch[3]);
@@ -464,8 +563,8 @@ void ipc_irq_top_half_handler(irq_t *irq)
  * @param a5  Driver-specific payload argument.
  *
  */
-void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5)
+void ipc_irq_send_msg(irq_t *irq, sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5)
 {
 	irq_spinlock_lock(&irq->lock, true);
 	
@@ -480,7 +579,7 @@ void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3,
 		/* Put a counter to the message */
 		call->priv = ++irq->notif_cfg.counter;
 		
-		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
+		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
 		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);

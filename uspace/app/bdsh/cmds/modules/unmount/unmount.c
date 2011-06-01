@@ -46,7 +46,7 @@ void help_cmd_unmount(unsigned int level)
 		printf("'%s' unmount a file system.\n", cmdname);
 	} else {
 		help_cmd_unmount(HELP_SHORT);
-		printf("Usage:  %s <mp>\n", cmdname);
+		printf("Usage: %s <mp>\n", cmdname);
 	}
 	return;
 }
@@ -67,7 +67,7 @@ int cmd_unmount(char **argv)
 
 	rc = unmount(argv[1]);
 	if (rc != EOK) {
-		printf("Unable to unmount %s (rc=%d)\n", argv[1]);
+		printf("Unable to unmount %s (rc=%d)\n", argv[1], rc);
 		return CMD_FAILURE;
 	}
 

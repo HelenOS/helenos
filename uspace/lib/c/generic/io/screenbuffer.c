@@ -66,8 +66,8 @@ void screenbuffer_putchar(screenbuffer_t *scr, wchar_t ch)
  * @return Pointer to screenbuffer (same as scr parameter) or NULL
  *
  */
-screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, ipcarg_t size_x,
-    ipcarg_t size_y)
+screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, sysarg_t size_x,
+    sysarg_t size_y)
 {
 	scr->buffer = (keyfield_t *) malloc(sizeof(keyfield_t) * size_x * size_y);
 	if (!scr->buffer)
@@ -109,9 +109,9 @@ void screenbuffer_clear(screenbuffer_t *scr)
  * @param line One buffer line (not a screen line!)
  *
  */
-void screenbuffer_clear_line(screenbuffer_t *scr, ipcarg_t line)
+void screenbuffer_clear_line(screenbuffer_t *scr, sysarg_t line)
 {
-	ipcarg_t x;
+	sysarg_t x;
 	
 	for (x = 0; x < scr->size_x; x++) {
 		scr->buffer[x + line * scr->size_x].character = ' ';
@@ -140,7 +140,7 @@ void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest)
  * @param y
  *
  */
-void screenbuffer_goto(screenbuffer_t *scr, ipcarg_t x, ipcarg_t y)
+void screenbuffer_goto(screenbuffer_t *scr, sysarg_t x, sysarg_t y)
 {
 	scr->position_x = x % scr->size_x;
 	scr->position_y = y % scr->size_y;

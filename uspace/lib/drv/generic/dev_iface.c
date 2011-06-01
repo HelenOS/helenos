@@ -35,30 +35,49 @@
 /** @file
  */
 
+#include <assert.h>
+
 #include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
+#include "remote_hw_res.h"
+#include "remote_char_dev.h"
+#include "remote_usb.h"
+#include "remote_usbhc.h"
+#include "remote_usbhid.h"
+#include "remote_pci.h"
+
+#include <stdio.h>
 
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface
+		&remote_hw_res_iface,
+		&remote_char_dev_iface,
+		&remote_pci_iface,
+		&remote_usb_iface,
+		&remote_usbhc_iface,
+		&remote_usbhid_iface
 	}
 };
 
-remote_iface_t* get_remote_iface(int idx)
-{	
+remote_iface_t *get_remote_iface(int idx)
+{
 	assert(is_valid_iface_idx(idx));
+	
 	return remote_ifaces.ifaces[idx];
 }
 
 remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
+get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
 {
 	if (iface_method_idx >= rem_iface->method_count) {
 		return NULL;
 	}
+
 	return rem_iface->methods[iface_method_idx];
+}
+
+bool is_valid_iface_idx(int idx)
+{
+	return (0 <= idx) && (idx < DEV_IFACE_MAX);
 }
 
 /**

@@ -36,12 +36,17 @@
 #define KERN_amd64_ISTATE_H_
 
 #ifdef KERNEL
+
 #include <typedefs.h>
 #include <trace.h>
-#else
+
+#else /* KERNEL */
+
 #include <sys/types.h>
+
 #define NO_TRACE
-#endif
+
+#endif /* KERNEL */
 
 /** This is passed to interrupt handlers */
 typedef struct istate {
@@ -60,21 +65,21 @@ typedef struct istate {
 	uint64_t r13;
 	uint64_t r14;
 	uint64_t r15;
-	uint64_t alignment;	/* align rbp_frame on multiple of 16 */
-	uint64_t rbp_frame;	/* imitation of frame pointer linkage */
-	uint64_t rip_frame;	/* imitation of return address linkage */
-	uint64_t error_word;	/* real or fake error word */
+	uint64_t alignment;   /* align rbp_frame on multiple of 16 */
+	uint64_t rbp_frame;   /* imitation of frame pointer linkage */
+	uint64_t rip_frame;   /* imitation of return address linkage */
+	uint64_t error_word;  /* real or fake error word */
 	uint64_t rip;
 	uint64_t cs;
 	uint64_t rflags;
-	uint64_t rsp;		/* only if istate_t is from uspace */
-	uint64_t ss;		/* only if istate_t is from uspace */
+	uint64_t rsp;         /* only if istate_t is from uspace */
+	uint64_t ss;          /* only if istate_t is from uspace */
 } istate_t;
 
 /** Return true if exception happened while in userspace */
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
-	return !(istate->rip & 0x8000000000000000);
+	return !(istate->rip & UINT64_C(0x8000000000000000));
 }
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,

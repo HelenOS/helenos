@@ -61,23 +61,33 @@
 void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
+const char *irqs_info = NULL;
 
 void istate_decode(istate_t *istate)
 {
-	printf("cs =%p\trip=%p\trfl=%p\terr=%p\n",
+	printf("cs =%0#18" PRIx64 "\trip=%0#18" PRIx64 "\t"
+	    "rfl=%0#18" PRIx64 "\terr=%0#18" PRIx64 "\n",
 	    istate->cs, istate->rip, istate->rflags, istate->error_word);
-
-	if (istate_from_uspace(istate))
-		printf("ss =%p\n", istate->ss);
 	
-	printf("rax=%p\trbx=%p\trcx=%p\trdx=%p\n",
+	if (istate_from_uspace(istate))
+		printf("ss =%0#18" PRIx64 "\n", istate->ss);
+	
+	printf("rax=%0#18" PRIx64 "\trbx=%0#18" PRIx64 "\t"
+	    "rcx=%0#18" PRIx64 "\trdx=%0#18" PRIx64 "\n",
 	    istate->rax, istate->rbx, istate->rcx, istate->rdx);
-	printf("rsi=%p\trdi=%p\trbp=%p\trsp=%p\n",
+	
+	printf("rsi=%0#18" PRIx64 "\trdi=%0#18" PRIx64 "\t"
+	    "rbp=%0#18" PRIx64 "\trsp=%0#18" PRIx64 "\n",
 	    istate->rsi, istate->rdi, istate->rbp,
-	    istate_from_uspace(istate) ? istate->rsp : (uintptr_t)&istate->rsp);
-	printf("r8 =%p\tr9 =%p\tr10=%p\tr11=%p\n",
+	    istate_from_uspace(istate) ? istate->rsp :
+	    (uintptr_t) &istate->rsp);
+	
+	printf("r8 =%0#18" PRIx64 "\tr9 =%0#18" PRIx64 "\t"
+	    "r10=%0#18" PRIx64 "\tr11=%0#18" PRIx64 "\n",
 	    istate->r8, istate->r9, istate->r10, istate->r11);
-	printf("r12=%p\tr13=%p\tr14=%p\tr15=%p\n",
+	
+	printf("r12=%0#18" PRIx64 "\tr13=%0#18" PRIx64 "\t"
+	    "r14=%0#18" PRIx64 "\tr15=%0#18" PRIx64 "\n",
 	    istate->r12, istate->r13, istate->r14, istate->r15);
 }
 
