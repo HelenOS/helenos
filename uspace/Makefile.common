@@ -156,7 +156,7 @@ GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
+	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -D__$(ENDIANESS)__
 
 ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \

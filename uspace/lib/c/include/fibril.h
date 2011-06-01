@@ -69,11 +69,11 @@ typedef struct fibril {
 	void *arg;
 	int (*func)(void *);
 	tcb_t *tcb;
-
+	
 	struct fibril *clean_after_me;
 	int retval;
 	int flags;
-
+	
 	fibril_owner_info_t *waits_for;
 } fibril_t;
 

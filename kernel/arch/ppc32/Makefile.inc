@@ -54,5 +54,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
+	arch/$(KARCH)/src/mm/pht.c \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/drivers/pic.c

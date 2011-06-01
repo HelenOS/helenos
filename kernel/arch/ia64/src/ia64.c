@@ -248,10 +248,16 @@ void userspace(uspace_arg_t *kernel_uarg)
 	rsc.pl = PL_USER;
 	rsc.mode = 3;			/* eager mode */
 
+	/*
+	 * Switch to userspace.
+	 *
+	 * When calculating stack addresses, mind the stack split between the
+	 * memory stack and the RSE stack. Each occuppies STACK_SIZE / 2 bytes.
+	 */
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) + PAGE_SIZE -
+	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE / 2 -
 	    ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-	    ((uintptr_t) kernel_uarg->uspace_stack) + PAGE_SIZE,
+	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE / 2,
 	    (uintptr_t) kernel_uarg->uspace_uarg, psr.value, rsc.value);
 
 	while (1)

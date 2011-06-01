@@ -35,8 +35,6 @@
 #ifndef KERN_ia64_ARCH_H_
 #define KERN_ia64_ARCH_H_
 
-#define LOADED_PROG_STACK_PAGES_NO 2
-
 #include <arch/drivers/ski.h>
 
 extern void arch_pre_main(void);

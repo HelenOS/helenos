@@ -133,7 +133,7 @@ void before_thread_runs_arch(void)
 {
 	uint8_t *stck;
 	
-	stck = &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
+	stck = &THREAD->kstack[STACK_SIZE - SP_DELTA];
 	supervisor_sp = (uintptr_t) stck;
 }
 

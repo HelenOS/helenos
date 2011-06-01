@@ -113,7 +113,7 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 			return rc;
 	}
 	
-	/* Inspect all section headers and proccess them. */
+	/* Inspect all section headers and process them. */
 	for (i = 0; i < header->e_shnum; i++) {
 		elf_section_header_t *sechdr =
 		    &((elf_section_header_t *)(((uint8_t *) header) +

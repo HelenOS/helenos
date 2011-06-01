@@ -121,40 +121,22 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
-/** Return base address of current stack
+/** Return base address of current memory stack.
  *
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE long.
- * The stack must start on page boundary.
- *
+ * The memory stack is assumed to be STACK_SIZE / 2 long. Note that there is
+ * also the RSE stack, which takes up the upper half of STACK_SIZE.
+ * The memory stack must start on page boundary.
  */
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
-	uint64_t v;
-	
-	/*
-	 * I'm not sure why but this code inlines badly
-	 * in scheduler, resulting in THE shifting about
-	 * 16B and causing kernel panic.
-	 *
-	 * asm volatile (
-	 *     "and %[value] = %[mask], r12"
-	 *     : [value] "=r" (v)
-	 *     : [mask] "r" (~(STACK_SIZE - 1))
-	 * );
-	 * return v;
-	 *
-	 * The following code has the same semantics but
-	 * inlines correctly.
-	 *
-	 */
+	uint64_t value;
 	
 	asm volatile (
 		"mov %[value] = r12"
-		: [value] "=r" (v)
+		: [value] "=r" (value)
 	);
 	
-	return (v & (~(STACK_SIZE - 1)));
+	return (value & (~(STACK_SIZE / 2 - 1)));
 }
 
 /** Return Processor State Register.
