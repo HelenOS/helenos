@@ -40,6 +40,8 @@
 #include <synch/spinlock.h>
 #include <ipc/ipc.h>
 
+typedef void (*event_callback_t)(void);
+
 /** Event notification structure. */
 typedef struct {
 	SPINLOCK_DECLARE(lock);
@@ -50,15 +52,16 @@ typedef struct {
 	sysarg_t imethod;
 	/** Counter. */
 	size_t counter;
+	
 	/** Masked flag. */
 	bool masked;
 	/** Unmask callback. */
-	void (*unmask_cb)(void);
+	event_callback_t unmask_callback;
 } event_t;
 
 extern void event_init(void);
 extern void event_cleanup_answerbox(answerbox_t *);
-extern void event_set_unmask_callback(event_type_t, void (*)(void));
+extern void event_set_unmask_callback(event_type_t, event_callback_t);
 
 #define event_notify_0(e, m) \
 	event_notify((e), (m), 0, 0, 0, 0, 0)

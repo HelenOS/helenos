@@ -41,8 +41,6 @@
 #include <arch/cpu.h>
 #include <arch/context.h>
 
-#define CPU_STACK_SIZE  STACK_SIZE
-
 /** CPU structure.
  *
  * There is one structure like this for every processor.

@@ -45,6 +45,7 @@ extern void *memalign(const size_t align, const size_t size)
     __attribute__((malloc));
 extern void *realloc(const void *addr, const size_t size);
 extern void free(const void *addr);
+extern void *heap_check(void);
 
 #endif
 

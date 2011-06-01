@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
+/** @addtogroup tester
+ * @brief Test devman service.
+ * @{
+ */
+/**
+ * @file
+ */
 
-const char *test_fpu1(void)
+#include <inttypes.h>
+#include <errno.h>
+#include <str_error.h>
+#include <sys/types.h>
+#include <async.h>
+#include <devman.h>
+#include <str.h>
+#include <vfs/vfs.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "../tester.h"
+
+#define DEVICE_CLASS "test3"
+
+const char *test_devman2(void)
 {
-	return NULL;
+	size_t idx = 1;
+	int rc = EOK;
+	const char *err_msg = NULL;
+	char *path = NULL;
+	while (rc == EOK) {
+		rc = asprintf(&path, "/dev/class/%s\\%zu", DEVICE_CLASS, idx);
+		if (rc < 0) {
+			continue;
+		}
+		int fd = open(path, O_RDONLY);
+		if (fd < 0) {
+			TPRINTF("Failed opening `%s': %s.\n",
+			    path, str_error(fd));
+			rc = fd;
+			err_msg = "Failed opening file";
+			continue;
+		}
+		int phone = fd_phone(fd);
+		close(fd);
+		if (phone < 0) {
+			TPRINTF("Failed opening phone: %s.\n", str_error(phone));
+			rc = phone;
+			err_msg = "Failed opening file descriptor phone";
+			continue;
+		}
+		async_hangup(phone);
+		TPRINTF("Path `%s' okay.\n", path);
+		free(path);
+		idx++;
+		rc = EOK;
+	}
+	
+	if (path != NULL) {
+		free(path);
+	}
+
+	return err_msg;
 }
+
+/** @}
+ */

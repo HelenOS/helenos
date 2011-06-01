@@ -43,7 +43,7 @@
 #include "private/thread.h"
 
 #ifndef THREAD_INITIAL_STACK_PAGES_NO
-#define THREAD_INITIAL_STACK_PAGES_NO 1
+#define THREAD_INITIAL_STACK_PAGES_NO	2 
 #endif
 
 /** Main thread function.

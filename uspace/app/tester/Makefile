@@ -47,10 +47,13 @@ SOURCES = \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \
 	loop/loop1.c \
+	mm/common.c \
 	mm/malloc1.c \
 	mm/malloc2.c \
 	mm/mapping1.c \
+	mm/malloc3.c \
 	devs/devman1.c \
+	devs/devman2.c \
 	hw/misc/virtchar1.c \
 	hw/serial/serial1.c
 

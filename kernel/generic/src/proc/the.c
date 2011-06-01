@@ -57,6 +57,7 @@ void the_initialize(the_t *the)
 	the->thread = NULL;
 	the->task = NULL;
 	the->as = NULL;
+	the->magic = MAGIC;
 }
 
 /** Copy THE structure
@@ -69,6 +70,7 @@ void the_initialize(the_t *the)
  */
 NO_TRACE void the_copy(the_t *src, the_t *dst)
 {
+	ASSERT(src->magic == MAGIC);
 	*dst = *src;
 }
 

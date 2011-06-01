@@ -223,7 +223,7 @@ NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
 	
 	task_t *task = task_find_by_id(id);
 	
-	if ((!task) || (!context_check(CONTEXT, task->context))) {
+	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		/*
 		 * There is no task with the specified ID
 		 * or the task belongs to a different security

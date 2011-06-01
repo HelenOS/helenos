@@ -41,6 +41,7 @@
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>
 #include <arch/mm/tlb.h>
+#include <arch/mm/pht.h>
 #include <print.h>
 
 void start_decrementer(void)
@@ -152,6 +153,12 @@ void interrupt_init(void)
 	    exception_external);
 	exc_register(VECTOR_DECREMENTER, "timer", true,
 	    exception_decrementer);
+	exc_register(VECTOR_ITLB_MISS, "itlb_miss", true,
+	    tlb_refill);
+	exc_register(VECTOR_DTLB_MISS_LOAD, "dtlb_miss_load", true,
+	    tlb_refill);
+	exc_register(VECTOR_DTLB_MISS_STORE, "dtlb_miss_store", true,
+	    tlb_refill);
 }
 
 /** @}

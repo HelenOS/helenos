@@ -245,6 +245,44 @@ void dump_descriptor_tree_full(usbinfo_device_t *dev)
 	    dev);
 }
 
+static void find_string_indexes_callback(uint8_t *descriptor,
+    size_t depth, void *arg)
+{
+	size_t descriptor_length = descriptor[0];
+	if (descriptor_length <= 1) {
+		return;
+	}
+
+	/*printf("Found string in %s->%s: %zu\n",
+	    #descr_struct, #descr_item, __str_index); */
+#define SET_STRING_INDEX(descr, mask, descr_type, descr_struct, descr_item) \
+	do { \
+		if ((descr)[1] == (descr_type)) { \
+			descr_struct *__type_descr = (descr_struct *) (descr); \
+			size_t __str_index = __type_descr->descr_item; \
+			if ((__str_index > 0) && (__str_index < 64)) { \
+				mask = (mask) | (1 << __str_index); \
+			} \
+		} \
+	} while (0)
+
+	uint64_t *mask = arg;
+
+#define SET_STR(descr_type, descr_struct, descr_item) \
+	SET_STRING_INDEX(descriptor, (*mask), descr_type, descr_struct, descr_item)
+
+	SET_STR(USB_DESCTYPE_DEVICE, usb_standard_device_descriptor_t,
+	    str_manufacturer);
+	SET_STR(USB_DESCTYPE_DEVICE, usb_standard_device_descriptor_t,
+	    str_product);
+	SET_STR(USB_DESCTYPE_DEVICE, usb_standard_device_descriptor_t,
+	    str_serial_number);
+	SET_STR(USB_DESCTYPE_CONFIGURATION, usb_standard_configuration_descriptor_t,
+	    str_configuration);
+	SET_STR(USB_DESCTYPE_INTERFACE, usb_standard_interface_descriptor_t,
+	    str_interface);
+}
+
 
 void dump_strings(usbinfo_device_t *dev)
 {
@@ -267,27 +305,42 @@ void dump_strings(usbinfo_device_t *dev)
 	}
 	printf(".\n");
 
+	/* Find used indexes. Device with more than 64 strings are very rare.
+	 */
+	uint64_t str_mask = 0;
+	find_string_indexes_callback((uint8_t *)&dev->device_descriptor, 0,
+	    &str_mask);
+	usb_dp_walk_simple(dev->full_configuration_descriptor,
+	    dev->full_configuration_descriptor_size,
+	    usb_dp_standard_descriptor_nesting,
+	    find_string_indexes_callback,
+	    &str_mask);
+
 	/* Get all strings and dump them. */
 	for (i = 0; i < langs_count; i++) {
 		l18_win_locales_t lang = langs[i];
 
 		printf("%sStrings in %s:\n", get_indent(0),
 		    str_l18_win_locale(lang));
-		/*
-		 * Try only the first 15 strings
-		 * (typically, device will not have much more anyway).
-		 */
+
 		size_t idx;
-		for (idx = 1; idx < 0x0F; idx++) {
-			char *string;
+		for (idx = 1; idx < 64; idx++) {
+			if ((str_mask & ((uint64_t)1 << idx)) == 0) {
+				continue;
+			}
+			char *string = NULL;
 			rc = usb_request_get_string(&dev->ctrl_pipe, idx, lang,
 			    &string);
-			if (rc != EOK) {
+			if ((rc != EOK) && (rc != EEMPTY)) {
+				printf("%sWarn: failed to retrieve string #%zu: %s.\n",
+				    get_indent(1), idx, str_error(rc));
 				continue;
 			}
 			printf("%sString #%zu: \"%s\"\n", get_indent(1),
-			    idx, string);
-			free(string);
+			    idx, rc == EOK ? string : "");
+			if (string != NULL) {
+				free(string);
+			}
 		}
 	}
 }

@@ -36,7 +36,6 @@
 #define KERN_ppc32_TLB_H_
 
 #include <arch/interrupt.h>
-#include <typedefs.h>
 
 #define WIMG_GUARDED    0x01
 #define WIMG_COHERENT   0x02
@@ -74,13 +73,7 @@ typedef struct {
 	unsigned int pp : 2;
 } ptelo_t;
 
-extern void pht_init(void);
-extern void pht_refill(unsigned int, istate_t *);
-
-extern bool pht_refill_real(unsigned int, istate_t *)
-    __attribute__ ((section("K_UNMAPPED_TEXT_START")));
-extern void tlb_refill_real(unsigned int, uint32_t, ptehi_t, ptelo_t,
-    istate_t *) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
+extern void tlb_refill(unsigned int, istate_t *);
 
 #endif
 
