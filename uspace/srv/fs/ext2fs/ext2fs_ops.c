@@ -244,15 +244,16 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return rc;
 	}
 
-	// Find length of component in bytes
-	// TODO: check for library function call that does this
+	/* Find length of component in bytes
+	 * TODO: check for library function call that does this
+	 */
 	component_size = 0;
 	while (*(component+component_size) != 0) {
 		component_size++;
 	}
 	
 	while (it.current != NULL) {
-		// ignore empty directory entries
+		/* ignore empty directory entries */
 		if (it.current->inode != 0) {
 			name_size = ext2_directory_entry_ll_get_name_length(fs->superblock,
 				it.current);
@@ -480,7 +481,7 @@ int ext2fs_has_children(bool *has_children, fs_node_t *fn)
 		return rc;
 	}
 	
-	// Find a non-empty directory entry
+	/* Find a non-empty directory entry */
 	while (it.current != NULL) {
 		if (it.current->inode != 0) {
 			name_size = ext2_directory_entry_ll_get_name_length(fs->superblock,
@@ -716,7 +717,7 @@ void ext2fs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	// Remove the instance from list
+	/* Remove the instance from the list */
 	fibril_mutex_lock(&instance_list_mutex);
 	list_remove(&inst->link);
 	fibril_mutex_unlock(&instance_list_mutex);
@@ -786,7 +787,7 @@ void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
 		ext2fs_read_directory(rid, callid, pos, size, inst, inode_ref);
 	}
 	else {
-		// Other inode types not supported
+		/* Other inode types not supported */
 		async_answer_0(callid, ENOTSUP);
 		async_answer_0(rid, ENOTSUP);
 	}
@@ -827,11 +828,12 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		return;
 	}
 	
-	// Find the index we want to read
-	// Note that we need to iterate and count as
-	// the underlying structure is a linked list
-	// Moreover, we want to skip . and .. entries
-	// as these are not used in HelenOS
+	/* Find the index we want to read
+	 * Note that we need to iterate and count as
+	 * the underlying structure is a linked list
+	 * Moreover, we want to skip . and .. entries
+	 * as these are not used in HelenOS
+	 */
 	cur = 0;
 	while (it.current != NULL) {
 		if (it.current->inode == 0) {
@@ -841,16 +843,17 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		name_size = ext2_directory_entry_ll_get_name_length(
 			inst->filesystem->superblock, it.current);
 		
-		// skip . and ..
+		/* skip . and .. */
 		if (ext2fs_is_dots(&it.current->name, name_size)) {
 			goto skip;
 		}
 		
-		// Is this the dir entry we want to read?
+		/* Is this the dir entry we want to read? */
 		if (cur == pos) {
-			// The on-disk entry does not contain \0 at the end
-			// end of entry name, so we copy it to new buffer
-			// and add the \0 at the end
+			/* The on-disk entry does not contain \0 at the end
+			 * end of entry name, so we copy it to new buffer
+			 * and add the \0 at the end
+			 */
 			buf = malloc(name_size+1);
 			if (buf == NULL) {
 				ext2_directory_iterator_fini(&it);
@@ -909,23 +912,24 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		inode_ref->inode);
 	
 	if (pos >= file_size) {
-		// Read 0 bytes successfully
+		/* Read 0 bytes successfully */
 		async_data_read_finalize(callid, NULL, 0);
 		async_answer_1(rid, EOK, 0);
 		return;
 	}
 	
-	// For now, we only read data from one block at a time
+	/* For now, we only read data from one block at a time */
 	block_size = ext2_superblock_get_block_size(inst->filesystem->superblock);
 	file_block = pos / block_size;
 	offset_in_block = pos % block_size;
 	bytes = min(block_size - offset_in_block, size);
 	
-	// Handle end of file
+	/* Handle end of file */
 	if (pos + bytes > file_size) {
 		bytes = file_size - pos;
 	}
 	
+	/* Get the real block number */
 	rc = ext2_filesystem_get_inode_data_block_index(inst->filesystem,
 		inode_ref->inode, file_block, &fs_block);
 	if (rc != EOK) {
@@ -934,10 +938,11 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		return;
 	}
 	
-	// Check for sparse file
-	// If ext2_filesystem_get_inode_data_block_index returned
-	// fs_block == 0, it means that the given block is not allocated for the 
-	// file and we need to return a buffer of zeros
+	/* Check for sparse file
+	 * If ext2_filesystem_get_inode_data_block_index returned
+	 * fs_block == 0, it means that the given block is not allocated for the 
+	 * file and we need to return a buffer of zeros
+	 */
 	if (fs_block == 0) {
 		buffer = malloc(bytes);
 		if (buffer == NULL) {
@@ -956,7 +961,7 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		return;
 	}
 	
-	// Usual case - we need to read a block from device
+	/* Usual case - we need to read a block from device */
 	rc = block_get(&block, inst->devmap_handle, fs_block, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
