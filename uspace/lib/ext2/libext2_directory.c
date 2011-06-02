@@ -92,7 +92,7 @@ int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
 	it->inode_ref = inode_ref;
 	it->fs = fs;
 	
-	// Get the first data block, so we can get first entry
+	/* Get the first data block, so we can get the first entry */
 	rc = ext2_filesystem_get_inode_data_block_index(fs, inode_ref->inode, 0, 
 	    &block_id);
 	if (rc != EOK) {
@@ -132,7 +132,7 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 	skip = ext2_directory_entry_ll_get_entry_length(it->current);
 	size = ext2_inode_get_size(it->fs->superblock, it->inode_ref->inode);
 	
-	// Are we at the end?
+	/* Are we at the end? */
 	if (it->current_offset + skip >= size) {
 		rc = block_put(it->current_block);
 		it->current_block = NULL;
@@ -149,8 +149,9 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 	current_block_idx = it->current_offset / block_size;
 	next_block_idx = (it->current_offset + skip) / block_size;
 	
-	// If we are moving accross block boundary,
-	// we need to get another block
+	/* If we are moving accross block boundary,
+	 * we need to get another block
+	 */
 	if (current_block_idx != next_block_idx) {
 		rc = block_put(it->current_block);
 		it->current_block = NULL;
@@ -175,13 +176,13 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 	
 	offset_in_block = (it->current_offset + skip) % block_size;
 	
-	// Ensure proper alignment
+	/* Ensure proper alignment */
 	if ((offset_in_block % 4) != 0) {
 		it->current = NULL;
 		return EIO;
 	}
 	
-	// Ensure that the core of the entry does not overflow the block
+	/* Ensure that the core of the entry does not overflow the block */
 	if (offset_in_block > block_size - 8) {
 		it->current = NULL;
 		return EIO;
@@ -190,14 +191,14 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 	it->current = it->current_block->data + offset_in_block;
 	it->current_offset += skip;
 	
-	// Ensure that the whole entry does not overflow the block
+	/* Ensure that the whole entry does not overflow the block */
 	skip = ext2_directory_entry_ll_get_entry_length(it->current);
 	if (offset_in_block + skip > block_size) {
 		it->current = NULL;
 		return EIO;
 	}
 	
-	// Ensure the name length is not too large
+	/* Ensure the name length is not too large */
 	if (ext2_directory_entry_ll_get_name_length(it->fs->superblock, 
 	    it->current) > skip-8) {
 		it->current = NULL;

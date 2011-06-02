@@ -116,10 +116,10 @@ int ext2_filesystem_check_sanity(ext2_filesystem_t *fs)
  */
 int ext2_filesystem_check_flags(ext2_filesystem_t *fs, bool *o_read_only)
 {
-	// feature flags are present in rev 1 and later
+	/* feature flags are present in rev 1 and later */
 	if (ext2_superblock_get_rev_major(fs->superblock) == 0) {
 		*o_read_only = false;
-		return 0;
+		return EOK;
 	}
 	
 	uint32_t incompatible;
@@ -128,7 +128,9 @@ int ext2_filesystem_check_flags(ext2_filesystem_t *fs, bool *o_read_only)
 	incompatible = ext2_superblock_get_features_incompatible(fs->superblock);
 	read_only = ext2_superblock_get_features_read_only(fs->superblock);
 	
-	// unset any supported features
+	/* check whether we support all features
+	 * first unset any supported feature flags
+	 * and see whether any unspported feature remains */
 	incompatible &= ~EXT2_SUPPORTED_INCOMPATIBLE_FEATURES;
 	read_only &= ~EXT2_SUPPORTED_READ_ONLY_FEATURES;
 	
@@ -170,10 +172,10 @@ int ext2_filesystem_get_block_group_ref(ext2_filesystem_t *fs, uint32_t bgid,
 	descriptors_per_block = ext2_superblock_get_block_size(fs->superblock)
 	    / EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE;
 	
-	// Block group descriptor table starts at the next block after superblock
+	/* Block group descriptor table starts at the next block after superblock */
 	block_id = ext2_superblock_get_first_block(fs->superblock) + 1;
 	
-	// Find the block containing the descriptor we are looking for
+	/* Find the block containing the descriptor we are looking for */
 	block_id += bgid / descriptors_per_block;
 	offset = (bgid % descriptors_per_block) * EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE;
 	
@@ -239,7 +241,9 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 	
 	inodes_per_group = ext2_superblock_get_inodes_per_group(fs->superblock);
 	
-	// inode numbers are 1-based
+	/* inode numbers are 1-based, but it is simpler to work with 0-based
+	 * when computing indices
+	 */
 	index -= 1;
 	block_group = index / inodes_per_group;
 	offset_in_group = index % inodes_per_group;
@@ -268,7 +272,10 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 	}
 	
 	newref->inode = newref->block->data + offset_in_block;
-	newref->index = index+1; // we decremented index above
+	/* we decremented index above, but need to store the original value
+	 * in the reference
+	 */
+	newref->index = index+1;
 	
 	*ref = newref;
 	
@@ -314,14 +321,16 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 	int level;
 	block_t *block;
 	
+	/* Handle simple case when we are dealing with direct reference */ 
 	if (iblock < EXT2_INODE_DIRECT_BLOCKS) {
 		current_block = ext2_inode_get_direct_block(inode, (uint32_t)iblock);
 		*fblock = current_block;
 		return EOK;
 	}
 	
-	// Compute limits for indirect block levels
-	// TODO: compute this once when loading filesystem and store in ext2_filesystem_t
+	/* Compute limits for indirect block levels
+	 * TODO: compute this once when loading filesystem and store in ext2_filesystem_t
+	 */
 	block_ids_per_block = ext2_superblock_get_block_size(fs->superblock) / sizeof(uint32_t);
 	limits[0] = EXT2_INODE_DIRECT_BLOCKS;
 	blocks_per_level[0] = 1;
@@ -331,7 +340,7 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 		limits[i] = limits[i-1] + blocks_per_level[i];
 	}
 	
-	// Determine the indirection level needed to get the desired block
+	/* Determine the indirection level needed to get the desired block */
 	level = -1;
 	for (i = 1; i < 4; i++) {
 		if (iblock < limits[i]) {
@@ -344,10 +353,14 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 		return EIO;
 	}
 	
+	/* Compute offsets for the topmost level */
 	block_offset_in_level = iblock - limits[level-1];
 	current_block = ext2_inode_get_indirect_block(inode, level-1);
 	offset_in_block = block_offset_in_level / blocks_per_level[level-1];
 	
+	/* Navigate through other levels, until we find the block number
+	 * or find null reference meaning we are dealing with sparse file
+	 */
 	while (level > 0) {
 		rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK) {
@@ -363,16 +376,21 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 		}
 		
 		if (current_block == 0) {
+			/* This is a sparse file */
 			*fblock = 0;
 			return EOK;
 		}
 		
 		level -= 1;
 		
+		/* If we are on the last level, break here as
+		 * there is no next level to visit
+		 */
 		if (level == 0) {
 			break;
 		}
 		
+		/* Visit the next level */
 		block_offset_in_level %= blocks_per_level[level];
 		offset_in_block = block_offset_in_level / blocks_per_level[level-1];
 	}
@@ -384,6 +402,9 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 
 /**
  * Allocate a given number of blocks and store their ids in blocks
+ * 
+ * @todo TODO: This function is not finished and really has never been
+ *             used (and tested) yet
  * 
  * @param fs pointer to filesystem
  * @param blocks array of count uint32_t values where store block ids
@@ -419,7 +440,7 @@ int ext2_filesystem_allocate_blocks(ext2_filesystem_t *fs, uint32_t *blocks,
 	
 	idx = 0;
 	
-	// Read the block group descriptor
+	/* Read the block group descriptor */
 	rc = ext2_filesystem_get_block_group_ref(fs, block_group, &bg);
 	if (rc != EOK) {
 		goto failed;
@@ -443,7 +464,7 @@ int ext2_filesystem_allocate_blocks(ext2_filesystem_t *fs, uint32_t *blocks,
 			continue;
 		}
 		
-		// We found a block group with free block, let's look at the block bitmap
+		/* We found a block group with free block, let's look at the block bitmap */
 		bb_block = ext2_block_group_get_block_bitmap_block(bg->block_group);
 		
 		rc = block_get(&block, fs->device, bb_block, BLOCK_FLAGS_NONE);
@@ -451,13 +472,13 @@ int ext2_filesystem_allocate_blocks(ext2_filesystem_t *fs, uint32_t *blocks,
 			goto failed;
 		}
 		
-		// Use all blocks from this block group
+		/* Use all blocks from this block group */
 		for (bb_idx = 0; bb_idx < block_size && idx < count; bb_idx++) {
 			uint8_t *data = (uint8_t *) block->data;
 			if (data[bb_idx] == 0xff) {
 				continue;
 			}
-			// find an empty bit
+			/* find an empty bit */
 			uint8_t mask;
 			for (mask = 1, bb_bit = 0;
 				 bb_bit < 8 && idx < count; 
