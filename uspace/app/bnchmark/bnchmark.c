@@ -209,13 +209,13 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	fprintf(stderr, "syntax: bnchmark <iterations> <test type> <log-str> <path>\n");
-	fprintf(stderr, "  <iterations>    number of times to run a given test");
-	fprintf(stderr, "  <test-type>     one of:");
-	fprintf(stderr, "                    sequential-file-read");
-	fprintf(stderr, "                    sequential-dir-read");
-	fprintf(stderr, "  <log-str>       a string to attach to results");
-	fprintf(stderr, "  <path>          file/directory to use for testing");
+	fprintf(stderr, "syntax: " NAME " <iterations> <test type> <log-str> <path>\n");
+	fprintf(stderr, "  <iterations>    number of times to run a given test\n");
+	fprintf(stderr, "  <test-type>     one of:\n");
+	fprintf(stderr, "                    sequential-file-read\n");
+	fprintf(stderr, "                    sequential-dir-read\n");
+	fprintf(stderr, "  <log-str>       a string to attach to results\n");
+	fprintf(stderr, "  <path>          file/directory to use for testing\n");
 }
 
 /**

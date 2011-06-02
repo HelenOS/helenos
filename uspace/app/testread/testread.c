@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	// Skip program name
+	/* Skip program name */
 	--argc; ++argv;
 	
 	if (argc > 0 && str_cmp(*argv, "--no-check") == 0) {

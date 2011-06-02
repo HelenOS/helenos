@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	// Skip program name
+	/* Skip program name */
 	--argc; ++argv;
 	
 	if (argc > 0 && str_cmp(*argv, "--no-check") == 0) {
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	}
 	assert(argc == 1);
 	
-	// Display common things by default
+	/* Display common things by default */
 	if ((arg_flags & ARG_ALL) == 0) {
 		arg_flags = ARG_COMMON;
 	}
