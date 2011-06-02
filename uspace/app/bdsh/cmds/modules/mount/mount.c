@@ -50,7 +50,7 @@ static struct option const long_options[] = {
 void help_cmd_mount(unsigned int level)
 {
 	static char helpfmt[] =
-	    "Usage:  %s <fstype> <mp> <dev> [<moptions>]\n";
+	    "Usage:  %s <fstype> <mp> [dev] [<moptions>]\n";
 	if (level == HELP_SHORT) {
 		printf("'%s' mounts a file system.\n", cmdname);
 	} else {
@@ -65,6 +65,7 @@ int cmd_mount(char **argv)
 {
 	unsigned int argc;
 	const char *mopts = "";
+	const char *dev = "";
 	int rc, c, opt_ind;
 
 	argc = cli_count_args(argv);
@@ -78,15 +79,17 @@ int cmd_mount(char **argv)
 		}
 	}
 
-	if ((argc < 4) || (argc > 5)) {
+	if ((argc < 3) || (argc > 5)) {
 		printf("%s: invalid number of arguments. Try `mount --help'\n",
 		    cmdname);
 		return CMD_FAILURE;
 	}
+	if (argc > 3)
+		dev = argv[3];
 	if (argc == 5)
 		mopts = argv[4];
 
-	rc = mount(argv[1], argv[2], argv[3], mopts, 0);
+	rc = mount(argv[1], argv[2], dev, mopts, 0);
 	if (rc != EOK) {
 		printf("Unable to mount %s filesystem to %s on %s (rc=%d)\n",
 		    argv[1], argv[2], argv[3], rc);

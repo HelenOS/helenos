@@ -28,36 +28,11 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBEXT2_PREFIX)/libext2.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBEXT2_PREFIX)
-BINARY = tester
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
+BINARY = blkdump
 
 SOURCES = \
-	tester.c \
-	util.c \
-	thread/thread1.c \
-	print/print1.c \
-	print/print2.c \
-	print/print3.c \
-	print/print4.c \
-	print/print5.c \
-	console/console1.c \
-	stdio/stdio1.c \
-	stdio/stdio2.c \
-	fault/fault1.c \
-	fault/fault2.c \
-	fault/fault3.c \
-	vfs/vfs1.c \
-	ipc/ping_pong.c \
-	loop/loop1.c \
-	mm/common.c \
-	mm/malloc1.c \
-	mm/malloc2.c \
-	mm/malloc3.c \
-	devs/devman1.c \
-	devs/devman2.c \
-	hw/misc/virtchar1.c \
-	hw/serial/serial1.c \
-	libext2/libext2_1.c
+	blkdump.c
 
 include $(USPACE_PREFIX)/Makefile.common

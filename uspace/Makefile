@@ -34,7 +34,10 @@
 
 DIRS = \
 	app/bdsh \
+	app/blkdump \
+	app/bnchmark \
 	app/edit \
+	app/ext2info \
 	app/getterm \
 	app/init \
 	app/kill \
@@ -46,6 +49,7 @@ DIRS = \
 	app/stats \
 	app/taskdump \
 	app/tester \
+	app/testread \
 	app/tetris \
 	app/trace \
 	app/top \
@@ -71,6 +75,7 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
+	srv/fs/ext2fs \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
@@ -148,7 +153,8 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
-	lib/net
+	lib/net \
+	lib/ext2
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
