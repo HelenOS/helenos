@@ -160,6 +160,10 @@ int main(int argc, char **argv)
 	}	
 		
 	rc = fs_register(vfs_phone, &ext2fs_reg, &ext2fs_vfs_info, ext2fs_connection);
+	if (rc != EOK) {
+		fprintf(stdout, NAME ": Failed to register fs (%d)\n", rc);
+		return 1;
+	}
 	
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
