@@ -45,7 +45,7 @@
  * 
  * @param sb pointer to superblock
  */
-inline uint16_t ext2_superblock_get_magic(ext2_superblock_t *sb)
+uint16_t ext2_superblock_get_magic(ext2_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->magic);
 }
@@ -56,7 +56,7 @@ inline uint16_t ext2_superblock_get_magic(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_first_block(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_first_block(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->first_block);
 }
@@ -67,7 +67,7 @@ inline uint32_t ext2_superblock_get_first_block(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_block_size_log2(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_block_size_log2(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->block_size_log2);
 }
@@ -77,7 +77,7 @@ inline uint32_t ext2_superblock_get_block_size_log2(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_block_size(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_block_size(ext2_superblock_t *sb)
 {
 	return 1024 << ext2_superblock_get_block_size_log2(sb);
 }
@@ -89,7 +89,7 @@ inline uint32_t ext2_superblock_get_block_size(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline int32_t ext2_superblock_get_fragment_size_log2(ext2_superblock_t *sb)
+int32_t ext2_superblock_get_fragment_size_log2(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->fragment_size_log2);
 }
@@ -99,7 +99,7 @@ inline int32_t ext2_superblock_get_fragment_size_log2(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_fragment_size(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_fragment_size(ext2_superblock_t *sb)
 {
 	int32_t log = ext2_superblock_get_fragment_size_log2(sb);
 	if (log >= 0) {
@@ -115,7 +115,7 @@ inline uint32_t ext2_superblock_get_fragment_size(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->blocks_per_group);
 }
@@ -125,7 +125,7 @@ inline uint32_t ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->fragments_per_group);
 }
@@ -135,7 +135,7 @@ inline uint32_t ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint16_t ext2_superblock_get_state(ext2_superblock_t *sb)
+uint16_t ext2_superblock_get_state(ext2_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->state);
 }
@@ -145,7 +145,7 @@ inline uint16_t ext2_superblock_get_state(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint16_t ext2_superblock_get_rev_minor(ext2_superblock_t *sb)
+uint16_t ext2_superblock_get_rev_minor(ext2_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->rev_minor);
 }
@@ -155,7 +155,7 @@ inline uint16_t ext2_superblock_get_rev_minor(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_rev_major(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_rev_major(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->rev_major);
 }
@@ -165,7 +165,7 @@ inline uint32_t ext2_superblock_get_rev_major(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_first_inode(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_first_inode(ext2_superblock_t *sb)
 {
 	if (ext2_superblock_get_rev_major(sb) == 0) {
 		return EXT2_REV0_FIRST_INODE;
@@ -178,7 +178,7 @@ inline uint32_t ext2_superblock_get_first_inode(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint16_t ext2_superblock_get_inode_size(ext2_superblock_t *sb)
+uint16_t ext2_superblock_get_inode_size(ext2_superblock_t *sb)
 {
 	if (ext2_superblock_get_rev_major(sb) == 0) {
 		return EXT2_REV0_INODE_SIZE;
@@ -191,7 +191,7 @@ inline uint16_t ext2_superblock_get_inode_size(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_total_inode_count(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_total_inode_count(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->total_inode_count);
 }
@@ -201,7 +201,7 @@ inline uint32_t	ext2_superblock_get_total_inode_count(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_total_block_count(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->total_block_count);
 }
@@ -211,7 +211,7 @@ inline uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_reserved_block_count(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->reserved_block_count);
 }
@@ -221,7 +221,7 @@ inline uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_free_block_count(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->free_block_count);
 }
@@ -231,7 +231,7 @@ inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_free_inode_count(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->free_inode_count);
 }
@@ -241,7 +241,7 @@ inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_os(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_os(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->os);
 }
@@ -251,7 +251,7 @@ inline uint32_t	ext2_superblock_get_os(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_inodes_per_group(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->inodes_per_group);
 }
@@ -261,7 +261,7 @@ inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_features_compatible(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_compatible);
 }
@@ -271,7 +271,7 @@ inline uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_features_incompatible(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_incompatible);
 }
@@ -281,7 +281,7 @@ inline uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_features_read_only(ext2_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_read_only);
 }
@@ -304,7 +304,7 @@ inline uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *sb)
  * 
  * @param sb pointer to superblock
  */
-inline uint32_t ext2_superblock_get_block_group_count(ext2_superblock_t *sb)
+uint32_t ext2_superblock_get_block_group_count(ext2_superblock_t *sb)
 {
 	/* We add one to the result because e.g. 2/3 = 0, while to store
 	 *  2 blocks in 3-block group we need one (1) block group

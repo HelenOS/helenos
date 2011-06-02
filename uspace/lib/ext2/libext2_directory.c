@@ -44,7 +44,7 @@
  * 
  * @param de pointer to linked list directory entry
  */
-inline uint32_t	ext2_directory_entry_ll_get_inode(ext2_directory_entry_ll_t *de)
+uint32_t ext2_directory_entry_ll_get_inode(ext2_directory_entry_ll_t *de)
 {
 	return uint32_t_le2host(de->inode);
 }
@@ -54,7 +54,7 @@ inline uint32_t	ext2_directory_entry_ll_get_inode(ext2_directory_entry_ll_t *de)
  * 
  * @param de pointer to linked list directory entry
  */
-inline uint16_t	ext2_directory_entry_ll_get_entry_length(
+uint16_t ext2_directory_entry_ll_get_entry_length(
     ext2_directory_entry_ll_t *de)
 {
 	return uint16_t_le2host(de->entry_length);
@@ -65,7 +65,7 @@ inline uint16_t	ext2_directory_entry_ll_get_entry_length(
  * 
  * @param de pointer to linked list directory entry
  */
-inline uint16_t	ext2_directory_entry_ll_get_name_length(
+uint16_t ext2_directory_entry_ll_get_name_length(
     ext2_superblock_t *sb, ext2_directory_entry_ll_t *de)
 {
 	if (ext2_superblock_get_rev_major(sb) == 0 &&

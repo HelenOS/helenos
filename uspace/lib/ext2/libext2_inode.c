@@ -44,7 +44,7 @@
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_mode(ext2_superblock_t *sb, ext2_inode_t *inode)
+uint32_t ext2_inode_get_mode(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
 	if (ext2_superblock_get_os(sb) == EXT2_SUPERBLOCK_OS_HURD) {
 		return ((uint32_t)uint16_t_le2host(inode->mode_high)) << 16 |
@@ -60,7 +60,7 @@ inline uint32_t ext2_inode_get_mode(ext2_superblock_t *sb, ext2_inode_t *inode)
  * @param inode pointer to inode
  * @param type EXT2_INODE_MODE_TYPE_* constant to check
  */
-inline bool ext2_inode_is_type(ext2_superblock_t *sb, ext2_inode_t *inode, uint32_t type)
+bool ext2_inode_is_type(ext2_superblock_t *sb, ext2_inode_t *inode, uint32_t type)
 {
 	uint32_t mode = ext2_inode_get_mode(sb, inode);
 	return (mode & EXT2_INODE_MODE_TYPE_MASK) == type;
@@ -71,7 +71,7 @@ inline bool ext2_inode_is_type(ext2_superblock_t *sb, ext2_inode_t *inode, uint3
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *sb, ext2_inode_t *inode)
+uint32_t ext2_inode_get_user_id(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
 	uint32_t os = ext2_superblock_get_os(sb);
 	if (os == EXT2_SUPERBLOCK_OS_LINUX || os == EXT2_SUPERBLOCK_OS_HURD) {
@@ -89,7 +89,7 @@ inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *sb, ext2_inode_t *inod
  * 
  * @param inode pointer to inode
  */
-inline uint64_t ext2_inode_get_size(ext2_superblock_t *sb, ext2_inode_t *inode)
+uint64_t ext2_inode_get_size(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
 	uint32_t major_rev = ext2_superblock_get_rev_major(sb);
 	
@@ -108,7 +108,7 @@ inline uint64_t ext2_inode_get_size(ext2_superblock_t *sb, ext2_inode_t *inode)
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *sb, ext2_inode_t *inode)
+uint32_t ext2_inode_get_group_id(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
 	uint32_t os = ext2_superblock_get_os(sb);
 	if (os == EXT2_SUPERBLOCK_OS_LINUX || os == EXT2_SUPERBLOCK_OS_HURD) {
@@ -124,7 +124,7 @@ inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *sb, ext2_inode_t *ino
  * 
  * @param inode pointer to inode
  */
-inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *inode)
+uint16_t ext2_inode_get_usage_count(ext2_inode_t *inode)
 {
 	return uint16_t_le2host(inode->usage_count);
 }
@@ -136,7 +136,7 @@ inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *inode)
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *inode)
+uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *inode)
 {
 	return uint32_t_le2host(inode->reserved_512_blocks);
 }
@@ -147,7 +147,7 @@ inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *inode)
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *sb,
+uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *sb,
     ext2_inode_t *inode)
 {
 	return ext2_inode_get_reserved_512_blocks(inode) /
@@ -159,7 +159,7 @@ inline uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *sb,
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_flags(ext2_inode_t *inode) {
+uint32_t ext2_inode_get_flags(ext2_inode_t *inode) {
 	return uint32_t_le2host(inode->flags);
 }
 
@@ -169,7 +169,7 @@ inline uint32_t ext2_inode_get_flags(ext2_inode_t *inode) {
  * @param inode pointer to inode
  * @param idx Index to block. Valid values are 0 <= idx < 12
  */
-inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *inode, uint8_t idx)
+uint32_t ext2_inode_get_direct_block(ext2_inode_t *inode, uint8_t idx)
 {
 	assert(idx < EXT2_INODE_DIRECT_BLOCKS);
 	return uint32_t_le2host(inode->direct_blocks[idx]);
@@ -182,7 +182,7 @@ inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *inode, uint8_t idx)
  * @param idx Indirection level. Valid values are 0 <= idx < 3, where 0 is
  *            singly-indirect block and 2 is triply-indirect-block
  */
-inline uint32_t ext2_inode_get_indirect_block(ext2_inode_t *inode, uint8_t idx)
+uint32_t ext2_inode_get_indirect_block(ext2_inode_t *inode, uint8_t idx)
 {
 	assert(idx < 3);
 	return uint32_t_le2host(inode->indirect_blocks[idx]);

@@ -42,7 +42,7 @@
  * 
  * @param bg pointer to block group descriptor
  */
-inline uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *bg)
+uint32_t ext2_block_group_get_block_bitmap_block(ext2_block_group_t *bg)
 {
 	return uint32_t_le2host(bg->block_bitmap_block);
 }
@@ -52,7 +52,7 @@ inline uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *bg)
  * 
  * @param bg pointer to block group descriptor
  */
-inline uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *bg)
+uint32_t ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *bg)
 {
 	return uint32_t_le2host(bg->inode_bitmap_block);
 }
@@ -62,7 +62,7 @@ inline uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *bg)
  * 
  * @param bg pointer to block group descriptor
  */
-inline uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t *bg)
+uint32_t ext2_block_group_get_inode_table_first_block(ext2_block_group_t *bg)
 {
 	return uint32_t_le2host(bg->inode_table_first_block);
 }
@@ -72,7 +72,7 @@ inline uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t 
  * 
  * @param bg pointer to block group descriptor
  */
-inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *bg)
+uint16_t ext2_block_group_get_free_block_count(ext2_block_group_t *bg)
 {
 	return uint16_t_le2host(bg->free_block_count);
 }
@@ -83,7 +83,7 @@ inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *bg)
  * @param bg pointer to block group descriptor
  * @param val new value
  */
-inline void ext2_block_group_set_free_block_count(ext2_block_group_t *bg,
+void ext2_block_group_set_free_block_count(ext2_block_group_t *bg,
 	uint16_t val)
 {
 	bg->free_block_count = host2uint16_t_le(val);
@@ -94,7 +94,7 @@ inline void ext2_block_group_set_free_block_count(ext2_block_group_t *bg,
  * 
  * @param bg pointer to block group descriptor
  */
-inline uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *bg)
+uint16_t ext2_block_group_get_free_inode_count(ext2_block_group_t *bg)
 {
 	return uint16_t_le2host(bg->free_inode_count);
 }
@@ -104,7 +104,7 @@ inline uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *bg)
  * 
  * @param bg pointer to block group descriptor
  */
-inline uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *bg)
+uint16_t ext2_block_group_get_directory_inode_count(ext2_block_group_t *bg)
 {
 	return uint16_t_le2host(bg->directory_inode_count);
 }

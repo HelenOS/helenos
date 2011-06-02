@@ -84,30 +84,30 @@ typedef struct ext2_superblock {
 #define EXT2_SUPERBLOCK_OS_HURD		1
 
 
-inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_block_size_log2(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_block_size(ext2_superblock_t *);
-inline int32_t	ext2_superblock_get_fragment_size_log2(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *);
-inline uint16_t	ext2_superblock_get_state(ext2_superblock_t *);
-inline uint16_t	ext2_superblock_get_rev_minor(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_rev_major(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_os(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_first_inode(ext2_superblock_t *);
-inline uint16_t	ext2_superblock_get_inode_size(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_total_inode_count(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_block_group_count(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *);
+extern uint16_t	ext2_superblock_get_magic(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_block_size_log2(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_block_size(ext2_superblock_t *);
+extern int32_t	ext2_superblock_get_fragment_size_log2(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *);
+extern uint16_t	ext2_superblock_get_state(ext2_superblock_t *);
+extern uint16_t	ext2_superblock_get_rev_minor(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_rev_major(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_os(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_first_inode(ext2_superblock_t *);
+extern uint16_t	ext2_superblock_get_inode_size(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_total_inode_count(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_block_group_count(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *);
+extern uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *);
 
 extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
 extern int ext2_superblock_check_sanity(ext2_superblock_t *);

@@ -82,18 +82,18 @@ typedef struct ext2_inode_ref {
 	uint32_t index; // Index number of this inode
 } ext2_inode_ref_t;
 
-inline uint32_t ext2_inode_get_mode(ext2_superblock_t *, ext2_inode_t *);
-inline bool ext2_inode_is_type(ext2_superblock_t *, ext2_inode_t *, uint32_t);
-inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *, ext2_inode_t *);
-inline uint64_t ext2_inode_get_size(ext2_superblock_t *, ext2_inode_t *);
-inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *, ext2_inode_t *);
-inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *);
-inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *);
-inline uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *, 
+extern uint32_t ext2_inode_get_mode(ext2_superblock_t *, ext2_inode_t *);
+extern bool ext2_inode_is_type(ext2_superblock_t *, ext2_inode_t *, uint32_t);
+extern uint32_t ext2_inode_get_user_id(ext2_superblock_t *, ext2_inode_t *);
+extern uint64_t ext2_inode_get_size(ext2_superblock_t *, ext2_inode_t *);
+extern uint32_t ext2_inode_get_group_id(ext2_superblock_t *, ext2_inode_t *);
+extern uint16_t ext2_inode_get_usage_count(ext2_inode_t *);
+extern uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *);
+extern uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *, 
     ext2_inode_t *);
-inline uint32_t ext2_inode_get_flags(ext2_inode_t *);
-inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *, uint8_t);
-inline uint32_t ext2_inode_get_indirect_block(ext2_inode_t *, uint8_t level);
+extern uint32_t ext2_inode_get_flags(ext2_inode_t *);
+extern uint32_t ext2_inode_get_direct_block(ext2_inode_t *, uint8_t);
+extern uint32_t ext2_inode_get_indirect_block(ext2_inode_t *, uint8_t level);
 
 
 

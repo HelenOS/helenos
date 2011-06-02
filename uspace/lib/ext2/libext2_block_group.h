@@ -54,14 +54,14 @@ typedef struct ext2_block_group_ref {
 
 #define EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE 32
 
-inline uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *);
-inline uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *);
-inline uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t *);
-inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *);
-inline uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *);
-inline uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *);
+extern uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *);
+extern uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *);
+extern uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t *);
+extern uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *);
+extern uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *);
+extern uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *);
 
-inline void	ext2_block_group_set_free_block_count(ext2_block_group_t *, uint16_t);
+extern void	ext2_block_group_set_free_block_count(ext2_block_group_t *, uint16_t);
 
 #endif
 
