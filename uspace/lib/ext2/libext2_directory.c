@@ -92,6 +92,8 @@ int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
 {
 	int rc;
 	uint32_t block_id;
+	uint32_t block_size;
+	
 	it->inode_ref = inode_ref;
 	it->fs = fs;
 	
@@ -107,10 +109,10 @@ int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
 		return rc;
 	}
 	
-	it->current = it->current_block->data;
-	it->current_offset = 0;
+	block_size = ext2_superblock_get_block_size(fs->superblock);
 	
-	return EOK;
+	it->current_offset = 0;	
+	return ext2_directory_iterator_set(it, block_size);
 }
 
 /**
@@ -177,7 +179,6 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 	}
 	
 	it->current_offset += skip;
-	
 	return ext2_directory_iterator_set(it, block_size);
 }
 
