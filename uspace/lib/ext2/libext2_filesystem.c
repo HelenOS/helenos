@@ -41,6 +41,7 @@
 #include <libblock.h>
 #include <malloc.h>
 #include <assert.h>
+#include <byteorder.h>
 
 /**
  * Initialize an instance of filesystem on the device.
@@ -368,7 +369,7 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 		}
 		
 		assert(offset_in_block < block_ids_per_block);
-		current_block = ((uint32_t*)block->data)[offset_in_block];
+		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 		
 		rc = block_put(block);
 		if (rc != EOK) {
