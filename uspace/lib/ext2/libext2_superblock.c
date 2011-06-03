@@ -183,7 +183,7 @@ uint16_t ext2_superblock_get_inode_size(ext2_superblock_t *sb)
 	if (ext2_superblock_get_rev_major(sb) == 0) {
 		return EXT2_REV0_INODE_SIZE;
 	}
-	return uint32_t_le2host(sb->inode_size);
+	return uint16_t_le2host(sb->inode_size);
 }
 
 /**

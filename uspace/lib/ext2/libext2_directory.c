@@ -39,6 +39,9 @@
 #include <errno.h>
 #include <assert.h>
 
+static int ext2_directory_iterator_set(ext2_directory_iterator_t *it,
+    uint32_t block_size);
+
 /**
  * Get inode number for the directory entry
  * 
@@ -89,6 +92,8 @@ int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
 {
 	int rc;
 	uint32_t block_id;
+	uint32_t block_size;
+	
 	it->inode_ref = inode_ref;
 	it->fs = fs;
 	
@@ -104,10 +109,10 @@ int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
 		return rc;
 	}
 	
-	it->current = it->current_block->data;
-	it->current_offset = 0;
+	block_size = ext2_superblock_get_block_size(fs->superblock);
 	
-	return EOK;
+	it->current_offset = 0;	
+	return ext2_directory_iterator_set(it, block_size);
 }
 
 /**
@@ -125,7 +130,6 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 	aoff64_t next_block_idx;
 	uint32_t next_block_phys_idx;
 	uint32_t block_size;
-	uint32_t offset_in_block;
 	
 	assert(it->current != NULL);
 	
@@ -174,37 +178,42 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 		}
 	}
 	
-	offset_in_block = (it->current_offset + skip) % block_size;
+	it->current_offset += skip;
+	return ext2_directory_iterator_set(it, block_size);
+}
+
+static int ext2_directory_iterator_set(ext2_directory_iterator_t *it,
+    uint32_t block_size)
+{
+	uint32_t offset_in_block = it->current_offset % block_size;
+	
+	it->current = NULL;
 	
 	/* Ensure proper alignment */
 	if ((offset_in_block % 4) != 0) {
-		it->current = NULL;
 		return EIO;
 	}
 	
 	/* Ensure that the core of the entry does not overflow the block */
 	if (offset_in_block > block_size - 8) {
-		it->current = NULL;
 		return EIO;
 	}
-		
-	it->current = it->current_block->data + offset_in_block;
-	it->current_offset += skip;
+	
+	ext2_directory_entry_ll_t *entry = it->current_block->data + offset_in_block;
 	
 	/* Ensure that the whole entry does not overflow the block */
-	skip = ext2_directory_entry_ll_get_entry_length(it->current);
-	if (offset_in_block + skip > block_size) {
-		it->current = NULL;
+	uint16_t length = ext2_directory_entry_ll_get_entry_length(entry);
+	if (offset_in_block + length > block_size) {
 		return EIO;
 	}
 	
 	/* Ensure the name length is not too large */
 	if (ext2_directory_entry_ll_get_name_length(it->fs->superblock, 
-	    it->current) > skip-8) {
-		it->current = NULL;
+	    entry) > length-8) {
 		return EIO;
 	}
 	
+	it->current = entry;
 	return EOK;
 }
 
