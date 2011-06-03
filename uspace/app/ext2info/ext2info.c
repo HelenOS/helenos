@@ -585,6 +585,7 @@ void print_directory_contents(ext2_filesystem_t *fs,
 	int rc;
 	ext2_directory_iterator_t it;
 	size_t name_size;
+	uint32_t inode;
 	
 	printf("  Directory contents:\n");
 	
@@ -599,7 +600,9 @@ void print_directory_contents(ext2_filesystem_t *fs,
 		    it.current);
 		printf("    ");
 		print_data(&it.current->name, name_size);
-		printf(" --> %u\n", it.current->inode);
+		
+		inode = ext2_directory_entry_ll_get_inode(it.current);
+		printf(" --> %u\n", inode);
 		
 		rc = ext2_directory_iterator_next(&it);
 		if (rc != EOK) {

@@ -231,6 +231,7 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	size_t name_size;
 	size_t component_size;
 	bool found = false;
+	uint32_t inode;
 	
 	fs = eparent->instance->filesystem;
 	
@@ -253,15 +254,17 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	}
 	
 	while (it.current != NULL) {
+		inode = ext2_directory_entry_ll_get_inode(it.current);
+		
 		/* ignore empty directory entries */
-		if (it.current->inode != 0) {
+		if (inode != 0) {
 			name_size = ext2_directory_entry_ll_get_name_length(fs->superblock,
 				it.current);
 
 			if (name_size == component_size && bcmp(component, &it.current->name,
 				    name_size) == 0) {
 				rc = ext2fs_node_get_core(rfn, eparent->instance,
-					it.current->inode);
+					inode);
 				if (rc != EOK) {
 					ext2_directory_iterator_fini(&it);
 					return rc;
