@@ -111,6 +111,7 @@ extern bool fat_dentry_name_verify(const char *);
 extern void fat_dentry_name_get(const fat_dentry_t *, char *);
 extern void fat_dentry_name_set(fat_dentry_t *, const char *);
 extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
+extern uint8_t fat_dentry_chksum(uint8_t *);
 
 #endif
 

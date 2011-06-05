@@ -239,6 +239,26 @@ fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
 	return FAT_DENTRY_VALID;
 }
 
+/** Compute checksum of Node name.
+ *
+ * Returns an unsigned byte checksum computed on an unsigned byte
+ * array. The array must be 11 bytes long and is assumed to contain
+ * a name stored in the format of a MS-DOS directory entry.
+ *
+ * @param name		Node name read from the dentry.
+ *
+ * @return		An 8-bit unsigned checksum of the name.
+ */
+uint8_t fat_dentry_chksum(uint8_t *name)
+{
+	uint8_t i, sum=0;
+	for (i=0; i<(FAT_NAME_LEN+FAT_EXT_LEN); i++) {
+		sum = ((sum & 1) ? 0x80 : 0) + (sum >> 1) + name[i];
+	}
+	return sum;
+}
+
+
 /**
  * @}
  */ 
