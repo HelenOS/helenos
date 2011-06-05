@@ -43,10 +43,15 @@
 #define FAT_NAME_DOT_DOT	"..      "
 #define FAT_EXT_PAD		"   "
 
-#define FAT_ATTR_RDONLY		(1 << 0)
-#define FAT_ATTR_VOLLABEL	(1 << 3)
-#define FAT_ATTR_SUBDIR		(1 << 4)
-
+#define FAT_ATTR_RDONLY   0x01
+#define FAT_ATTR_HIDDEN   0x02
+#define FAT_ATTR_SYSTEM   0x04
+#define FAT_ATTR_VOLLABEL 0x08
+#define FAT_ATTR_SUBDIR   0x10
+#define FAT_ATTR_ARCHIVE  0x20
+#define FAT_ATTR_LNAME \
+    (FAT_ATTR_RDONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLLABEL)
+    
 #define FAT_LCASE_LOWER_NAME	0x08
 #define FAT_LCASE_LOWER_EXT	0x10
 
@@ -56,6 +61,7 @@
 #define FAT_DENTRY_E5_ESC	0x05
 #define FAT_DENTRY_DOT		0x2e
 #define FAT_DENTRY_ERASED	0xe5
+#define FAT_LAST_LONG_ENTRY 0x40
 
 typedef enum {
 	FAT_DENTRY_SKIP,
@@ -65,25 +71,39 @@ typedef enum {
 } fat_dentry_clsf_t;
 
 typedef struct {
-	uint8_t		name[8];
-	uint8_t		ext[3];
-	uint8_t		attr;
-	uint8_t		lcase;
-	uint8_t		ctime_fine;
-	uint16_t	ctime;
-	uint16_t	cdate;
-	uint16_t	adate;
 	union {
-		uint16_t	eaidx;		/* FAT12/FAT16 */
-		uint16_t	firstc_hi;	/* FAT32 */
-	} __attribute__ ((packed));
-	uint16_t	mtime;
-	uint16_t	mdate;
-	union {
-		uint16_t	firstc;		/* FAT12/FAT16 */
-		uint16_t	firstc_lo;	/* FAT32 */
-	} __attribute__ ((packed));
-	uint32_t	size;
+		struct {
+			uint8_t		name[8];
+			uint8_t		ext[3];
+			uint8_t		attr;
+			uint8_t		lcase;
+			uint8_t		ctime_fine;
+			uint16_t	ctime;
+			uint16_t	cdate;
+			uint16_t	adate;
+			union {
+				uint16_t	eaidx;		/* FAT12/FAT16 */
+				uint16_t	firstc_hi;	/* FAT32 */
+			} __attribute__ ((packed));
+			uint16_t	mtime;
+			uint16_t	mdate;
+			union {
+				uint16_t	firstc;		/* FAT12/FAT16 */
+				uint16_t	firstc_lo;	/* FAT32 */
+			} __attribute__ ((packed));
+			uint32_t	size;
+		} __attribute__ ((packed));
+		struct {
+			uint8_t		order;
+			uint8_t		name1[10];
+			uint8_t		attr;
+			uint8_t		type;
+			uint8_t		check_sum;
+			uint8_t		name2[12];
+			uint16_t	firstc_lo; /* MUST be 0 */
+			uint8_t		name3[4];
+		} long_entry __attribute__ ((packed));
+	};
 } __attribute__ ((packed)) fat_dentry_t;
 
 extern int fat_dentry_namecmp(char *, const char *);
