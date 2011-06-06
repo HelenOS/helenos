@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -824,6 +825,58 @@ int block_get_nblocks(devmap_handle_t devmap_handle, aoff64_t *nblocks)
 	assert(devcon);
 	
 	return get_num_blocks(devcon->dev_phone, nblocks);
+}
+
+/** Read bytes directly from the device (bypass cache)
+ * 
+ * @param devmap_handle	Device handle of the block device.
+ * @param abs_offset	Absolute offset in bytes where to start reading
+ * @param bytes			Number of bytes to read
+ * @param data			Buffer that receives the data
+ * 
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
+    size_t bytes, void *data)
+{
+	int rc;
+	size_t phys_block_size;
+	size_t buf_size;
+	void *buffer;
+	aoff64_t first_block;
+	aoff64_t last_block;
+	size_t blocks;
+	size_t offset;
+	
+	rc = block_get_bsize(devmap_handle, &phys_block_size);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	/* calculate data position and required space */
+	first_block = abs_offset / phys_block_size;
+	offset = abs_offset % phys_block_size;
+	last_block = (abs_offset + bytes - 1) / phys_block_size;
+	blocks = last_block - first_block + 1;
+	buf_size = blocks * phys_block_size;
+	
+	/* read the data into memory */
+	buffer = malloc(buf_size);
+	if (buffer == NULL) {
+		return ENOMEM;
+	}
+	
+	rc = block_read_direct(devmap_handle, first_block, blocks, buffer);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+	
+	/* copy the data from the buffer */
+	memcpy(data, buffer + offset, bytes);
+	free(buffer);
+	
+	return EOK;
 }
 
 /** Read blocks from block device.

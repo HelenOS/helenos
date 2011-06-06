@@ -716,57 +716,11 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-int vfs_close_internal(vfs_file_t *file)
-{
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&file->lock);
-	
-	if (file->refcnt <= 1) {
-		/* Only close the file on the destination FS server
-		   if there are no more file descriptors (except the
-		   present one) pointing to this file. */
-		
-		int fs_phone = vfs_grab_phone(file->node->fs_handle);
-		
-		/* Make a VFS_OUT_CLOSE request at the destination FS server. */
-		aid_t msg;
-		ipc_call_t answer;
-		msg = async_send_2(fs_phone, VFS_OUT_CLOSE,
-		    file->node->devmap_handle, file->node->index, &answer);
-		
-		/* Wait for reply from the FS server. */
-		sysarg_t rc;
-		async_wait_for(msg, &rc);
-		
-		vfs_release_phone(file->node->fs_handle, fs_phone);
-		fibril_mutex_unlock(&file->lock);
-		
-		return IPC_GET_ARG1(answer);
-	}
-	
-	fibril_mutex_unlock(&file->lock);
-	return EOK;
-}
-
 void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
+	int ret;
 	
-	/* Lookup the file structure corresponding to the file descriptor. */
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
-	
-	int ret = vfs_close_internal(file);
-	if (ret != EOK)
-		async_answer_0(rid, ret);
-	
-	vfs_file_put(file);
 	ret = vfs_fd_free(fd);
 	async_answer_0(rid, ret);
 }
@@ -1368,29 +1322,8 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	fibril_mutex_lock(&oldfile->lock);
 	
-	/* Lookup an open file structure possibly corresponding to newfd. */
-	vfs_file_t *newfile = vfs_file_get(newfd);
-	if (newfile) {
-		/* Close the originally opened file. */
-		int ret = vfs_close_internal(newfile);
-		if (ret != EOK) {
-			fibril_mutex_unlock(&oldfile->lock);
-			vfs_file_put(oldfile);
-			vfs_file_put(newfile);
-			async_answer_0(rid, ret);
-			return;
-		}
-		
-		ret = vfs_fd_free(newfd);
-		if (ret != EOK) {
-			fibril_mutex_unlock(&oldfile->lock);
-			vfs_file_put(oldfile);
-			vfs_file_put(newfile);
-			async_answer_0(rid, ret);
-			return;
-		}
-		vfs_file_put(newfile);
-	}
+	/* Make sure newfd is closed. */
+	(void) vfs_fd_free(newfd);
 	
 	/* Assign the old file to newfd. */
 	int ret = vfs_fd_assign(oldfile, newfd);

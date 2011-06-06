@@ -176,6 +176,7 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	    "program counter %p.\n", TASK->name, TASK->taskid,
 	    (void *) istate_get_pc(istate));
 	
+	istate_decode(istate);
 	stack_trace_istate(istate);
 	
 	printf("Kill message: ");

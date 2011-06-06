@@ -175,7 +175,6 @@ extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
 extern int vfs_open_node_internal(vfs_lookup_res_t *);
-extern int vfs_close_internal(vfs_file_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);

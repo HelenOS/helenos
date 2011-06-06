@@ -78,7 +78,6 @@ static void vfs_files_done(void)
 
 	for (i = 0; i < MAX_OPEN_FILES; i++) {
 		if (FILES[i]) {
-			(void) vfs_close_internal(FILES[i]);
 			(void) vfs_fd_free(i);
 		}
 	}
@@ -107,6 +106,26 @@ void vfs_client_data_destroy(void *data)
 	free(vfs_data);
 }
 
+/** Close the file in the endpoint FS server. */
+static int vfs_file_close_remote(vfs_file_t *file)
+{
+	ipc_call_t answer;
+	aid_t msg;
+	sysarg_t rc;
+	int phone;
+
+	assert(!file->refcnt);
+
+	phone = vfs_grab_phone(file->node->fs_handle);
+	msg = async_send_2(phone, VFS_OUT_CLOSE, file->node->devmap_handle,
+	    file->node->index, &answer);
+	async_wait_for(msg, &rc);
+	vfs_release_phone(file->node->fs_handle, phone);
+
+	return IPC_GET_ARG1(answer);
+}
+
+
 /** Increment reference count of VFS file structure.
  *
  * @param file		File structure that will have reference count
@@ -124,18 +143,23 @@ static void vfs_file_addref(vfs_file_t *file)
  * @param file		File structure that will have reference count
  *			decremented.
  */
-static void vfs_file_delref(vfs_file_t *file)
+static int vfs_file_delref(vfs_file_t *file)
 {
+	int rc = EOK;
+
 	assert(fibril_mutex_is_locked(&VFS_DATA->lock));
 
 	if (file->refcnt-- == 1) {
 		/*
-		 * Lost the last reference to a file, need to drop our reference
-		 * to the underlying VFS node.
+		 * Lost the last reference to a file, need to close it in the
+		 * endpoint FS and drop our reference to the underlying VFS node.
 		 */
+		rc = vfs_file_close_remote(file);
 		vfs_node_delref(file->node);
 		free(file);
 	}
+
+	return rc;
 }
 
 
@@ -200,6 +224,8 @@ int vfs_fd_alloc(bool desc)
  */
 int vfs_fd_free(int fd)
 {
+	int rc;
+
 	if (!vfs_files_init())
 		return ENOMEM;
 
@@ -209,11 +235,11 @@ int vfs_fd_free(int fd)
 		return EBADF;
 	}
 	
-	vfs_file_delref(FILES[fd]);
+	rc = vfs_file_delref(FILES[fd]);
 	FILES[fd] = NULL;
 	fibril_mutex_unlock(&VFS_DATA->lock);
 	
-	return EOK;
+	return rc;
 }
 
 /** Assign a file to a file descriptor.

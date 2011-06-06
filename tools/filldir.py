@@ -1,6 +1,6 @@
+#!/usr/bin/env python
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Martin Sucha
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,37 +27,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBEXT2_PREFIX)/libext2.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBEXT2_PREFIX)
-BINARY = tester
+"""
+Fill a directory with N empty directories
+"""
 
-SOURCES = \
-	tester.c \
-	util.c \
-	thread/thread1.c \
-	print/print1.c \
-	print/print2.c \
-	print/print3.c \
-	print/print4.c \
-	print/print5.c \
-	console/console1.c \
-	stdio/stdio1.c \
-	stdio/stdio2.c \
-	fault/fault1.c \
-	fault/fault2.c \
-	fault/fault3.c \
-	vfs/vfs1.c \
-	ipc/ping_pong.c \
-	loop/loop1.c \
-	mm/common.c \
-	mm/malloc1.c \
-	mm/malloc2.c \
-	mm/malloc3.c \
-	devs/devman1.c \
-	devs/devman2.c \
-	hw/misc/virtchar1.c \
-	hw/serial/serial1.c \
-	libext2/libext2_1.c
+import sys
+import os
+import os.path
 
-include $(USPACE_PREFIX)/Makefile.common
+if len(sys.argv) < 3:
+	print 'Usage: filldir <parent-dir> <count>'
+	exit(2)
+
+parent = sys.argv[1]
+num = int(sys.argv[2])
+
+i = 0
+while i < num:
+	name = hex(i)[2:].zfill(5)
+	path = os.path.join(parent, name)
+	os.mkdir(path)
+	i += 1
