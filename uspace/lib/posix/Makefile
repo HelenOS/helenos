@@ -38,7 +38,9 @@ PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
-	string.c
+	stdlib.c \
+	string.c \
+	time.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
