@@ -33,40 +33,13 @@
 /** @file
  */
 
+#define LIBPOSIX_INTERNAL
+
 #include "string.h"
 
 #include <libc/assert.h>
 
 #include <str_error.h>
-
-#undef strcpy
-#undef strncpy
-#undef strcat
-#undef strncat
-#undef mempcpy
-#undef strdup
-
-#undef memcmp
-#undef strcmp
-#undef strncmp
-#undef strcasecmp
-#undef strncasecmp
-
-#undef memchr
-#undef rawmemchr
-#undef strchr
-#undef strrchr
-#undef strpbrk
-#undef strcspn
-#undef strspn
-#undef strstr
-
-#undef strcoll
-#undef strxfrm
-
-#undef strerror
-
-#undef strlen
 
 /**
  *

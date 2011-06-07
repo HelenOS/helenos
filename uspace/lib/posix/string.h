@@ -78,34 +78,36 @@ extern char *posix_strerror(int errnum);
 /* String Length */
 extern size_t posix_strlen(const char *s);
 
-#define strcpy posix_strcpy
-#define strncpy posix_strncpy
-#define strcat posix_strcat
-#define strncat posix_strncat
-#define mempcpy posix_mempcpy
-#define strdup posix_strdup
+#ifndef LIBPOSIX_INTERNAL
+	#define strcpy posix_strcpy
+	#define strncpy posix_strncpy
+	#define strcat posix_strcat
+	#define strncat posix_strncat
+	#define mempcpy posix_mempcpy
+	#define strdup posix_strdup
 
-#define memcmp posix_memcmp
-#define strcmp posix_strcmp
-#define strncmp posix_strncmp
-#define strcasecmp posix_strcasecmp
-#define strncasecmp posix_strncasecmp
+	#define memcmp posix_memcmp
+	#define strcmp posix_strcmp
+	#define strncmp posix_strncmp
+	#define strcasecmp posix_strcasecmp
+	#define strncasecmp posix_strncasecmp
 
-#define memchr posix_memchr
-#define rawmemchr posix_rawmemchr
-#define strchr posix_strchr
-#define strrchr posix_strrchr
-#define strpbrk posix_strpbrk
-#define strcspn posix_strcspn
-#define strspn posix_strspn
-#define strstr posix_strstr
+	#define memchr posix_memchr
+	#define rawmemchr posix_rawmemchr
+	#define strchr posix_strchr
+	#define strrchr posix_strrchr
+	#define strpbrk posix_strpbrk
+	#define strcspn posix_strcspn
+	#define strspn posix_strspn
+	#define strstr posix_strstr
 
-#define strcoll posix_strcoll
-#define strxfrm posix_strxfrm
+	#define strcoll posix_strcoll
+	#define strxfrm posix_strxfrm
 
-#define strerror posix_strerror
+	#define strerror posix_strerror
 
-#define strlen posix_strlen
+	#define strlen posix_strlen
+#endif
 
 #endif  // POSIX_STRING_H_
 

@@ -55,6 +55,12 @@ extern char *posix_getenv(const char *name);
 /* Symbolic Links */
 extern char *posix_realpath(const char *restrict name, char *restrict resolved);
 
+#ifndef LIBPOSIX_INTERNAL
+	#define qsort posix_qsort
+	#define getenv posix_getenv
+	#define realpath posix_realpath
+#endif
+
 #endif  // POSIX_STDLIB_H_
 
 /** @}

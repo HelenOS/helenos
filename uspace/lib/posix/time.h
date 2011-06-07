@@ -62,13 +62,15 @@ extern char *posix_asctime(const struct posix_tm *tm);
 extern char *posix_ctime(const time_t *timep);
 extern size_t posix_strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct posix_tm *restrict tm);
 
-#define tm posix_tm
+#ifndef LIBPOSIX_INTERNAL
+	#define tm posix_tm
 
-#define localtime posix_localtime
+	#define localtime posix_localtime
 
-#define asctime posix_asctime
-#define ctime posix_ctime
-#define strftime posix_strftime
+	#define asctime posix_asctime
+	#define ctime posix_ctime
+	#define strftime posix_strftime
+#endif
 
 #endif  // POSIX_TIME_H_
 

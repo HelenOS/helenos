@@ -33,15 +33,9 @@
 /** @file
  */
 
+#define LIBPOSIX_INTERNAL
+
 #include "time.h"
-
-#undef tm
-
-#undef localtime
-
-#undef asctime
-#undef ctime
-#undef strftime
 
 /**
  *

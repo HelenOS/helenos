@@ -32,11 +32,9 @@
 /** @file
  */
 
-#undef qsort
+#define LIBPOSIX_INTERNAL
 
-#undef getenv
-
-#undef realpath
+#include "stdlib.h"
 
 /**
  *
