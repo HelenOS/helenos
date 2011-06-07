@@ -99,7 +99,18 @@ DIRS = \
 	drv/rootvirt \
 	drv/test1 \
 	drv/test2 \
-	drv/test3
+	drv/test3 \
+	drv/ehci_hcd \
+	drv/ohci \
+	drv/uhci_hcd \
+	drv/uhci_rhd \
+	drv/usbflbk \
+	drv/usbhid \
+	drv/usbhub \
+	drv/usbmast \
+	drv/usbmid \
+	drv/usbmouse \
+	drv/vhc
 
 ## Networking
 #
@@ -122,18 +133,7 @@ ifeq ($(UARCH),amd64)
 		drv/isa \
 		drv/ns8250 \
 		srv/hw/irc/apic \
-		srv/hw/irc/i8259 \
-		drv/ehci_hcd \
-		drv/ohci \
-		drv/uhci_hcd \
-		drv/uhci_rhd \
-		drv/usbflbk \
-		drv/usbhid \
-		drv/usbhub \
-		drv/usbmast \
-		drv/usbmid \
-		drv/usbmouse \
-		drv/vhc
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
@@ -143,18 +143,7 @@ ifeq ($(UARCH),ia32)
 		drv/isa \
 		drv/ns8250 \
 		srv/hw/irc/apic \
-		srv/hw/irc/i8259 \
-		drv/ehci_hcd \
-		drv/ohci \
-		drv/uhci_hcd \
-		drv/uhci_rhd \
-		drv/usbflbk \
-		drv/usbhid \
-		drv/usbhub \
-		drv/usbmast \
-		drv/usbmid \
-		drv/usbmouse \
-		drv/vhc
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
