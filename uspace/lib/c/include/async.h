@@ -339,6 +339,7 @@ extern int async_share_out_finalize(ipc_callid_t, void *);
 	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (answer))
 
+extern aid_t async_data_read(int, void *, size_t, ipc_call_t *);
 #define async_data_read_start(p, buf, len) \
 	async_data_read_start_generic((p), (buf), (len), IPC_XF_NONE)
 

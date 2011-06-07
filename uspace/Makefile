@@ -43,6 +43,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/lsusb \
 	app/mkfat \
 	app/redir \
 	app/sbi \
@@ -53,12 +54,15 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/usbinfo \
+	app/vuhid \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
+	app/mkbd \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -118,7 +122,18 @@ ifeq ($(UARCH),amd64)
 		drv/isa \
 		drv/ns8250 \
 		srv/hw/irc/apic \
-		srv/hw/irc/i8259
+		srv/hw/irc/i8259 \
+		drv/ehci_hcd \
+		drv/ohci \
+		drv/uhci_hcd \
+		drv/uhci_rhd \
+		drv/usbflbk \
+		drv/usbhid \
+		drv/usbhub \
+		drv/usbmast \
+		drv/usbmid \
+		drv/usbmouse \
+		drv/vhc
 endif
 
 ifeq ($(UARCH),ia32)
@@ -128,7 +143,18 @@ ifeq ($(UARCH),ia32)
 		drv/isa \
 		drv/ns8250 \
 		srv/hw/irc/apic \
-		srv/hw/irc/i8259
+		srv/hw/irc/i8259 \
+		drv/ehci_hcd \
+		drv/ohci \
+		drv/uhci_hcd \
+		drv/uhci_rhd \
+		drv/usbflbk \
+		drv/usbhid \
+		drv/usbhub \
+		drv/usbmast \
+		drv/usbmid \
+		drv/usbmouse \
+		drv/vhc
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -154,7 +180,12 @@ LIBS = \
 	lib/drv \
 	lib/packet \
 	lib/net \
-	lib/ext2
+	lib/ext2 \
+	lib/usb \
+	lib/usbhost \
+	lib/usbdev \
+	lib/usbhid \
+	lib/usbvirt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

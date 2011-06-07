@@ -51,10 +51,15 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
+#include <ipc/irc.h>
+#include <ipc/ns.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
+#include <pci_dev_iface.h>
 
 #include "pci.h"
 
@@ -83,9 +88,94 @@ static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 
 static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 {
-	/* TODO */
-	
-	return false;
+	/* This is an old ugly way, copied from ne2000 driver */
+	assert(fnode);
+	pci_fun_t *dev_data = (pci_fun_t *) fnode->driver_data;
+
+	sysarg_t apic;
+	sysarg_t i8259;
+
+	int irc_phone = ENOTSUP;
+
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
+		irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
+	}
+
+	if (irc_phone < 0) {
+		return false;
+	}
+
+	size_t i = 0;
+	hw_resource_list_t *res = &dev_data->hw_resources;
+	for (; i < res->count; i++) {
+		if (res->resources[i].type == INTERRUPT) {
+			const int irq = res->resources[i].res.interrupt.irq;
+			const int rc =
+			    async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			if (rc != EOK) {
+				async_hangup(irc_phone);
+				return false;
+			}
+		}
+	}
+
+	async_hangup(irc_phone);
+	return true;
+}
+
+static int pci_config_space_write_32(
+    ddf_fun_t *fun, uint32_t address, uint32_t data)
+{
+	if (address > 252)
+		return EINVAL;
+	pci_conf_write_32(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+static int pci_config_space_write_16(
+    ddf_fun_t *fun, uint32_t address, uint16_t data)
+{
+	if (address > 254)
+		return EINVAL;
+	pci_conf_write_16(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+static int pci_config_space_write_8(
+    ddf_fun_t *fun, uint32_t address, uint8_t data)
+{
+	if (address > 255)
+		return EINVAL;
+	pci_conf_write_8(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+static int pci_config_space_read_32(
+    ddf_fun_t *fun, uint32_t address, uint32_t *data)
+{
+	if (address > 252)
+		return EINVAL;
+	*data = pci_conf_read_32(PCI_FUN(fun), address);
+	return EOK;
+}
+
+static int pci_config_space_read_16(
+    ddf_fun_t *fun, uint32_t address, uint16_t *data)
+{
+	if (address > 254)
+		return EINVAL;
+	*data = pci_conf_read_16(PCI_FUN(fun), address);
+	return EOK;
+}
+
+static int pci_config_space_read_8(
+    ddf_fun_t *fun, uint32_t address, uint8_t *data)
+{
+	if (address > 255)
+		return EINVAL;
+	*data = pci_conf_read_8(PCI_FUN(fun), address);
+	return EOK;
 }
 
 static hw_res_ops_t pciintel_hw_res_ops = {
@@ -93,7 +183,19 @@ static hw_res_ops_t pciintel_hw_res_ops = {
 	&pciintel_enable_interrupt
 };
 
-static ddf_dev_ops_t pci_fun_ops;
+static pci_dev_iface_t pci_dev_ops = {
+	.config_space_read_8 = &pci_config_space_read_8,
+	.config_space_read_16 = &pci_config_space_read_16,
+	.config_space_read_32 = &pci_config_space_read_32,
+	.config_space_write_8 = &pci_config_space_write_8,
+	.config_space_write_16 = &pci_config_space_write_16,
+	.config_space_write_32 = &pci_config_space_write_32
+};
+
+static ddf_dev_ops_t pci_fun_ops = {
+	.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops,
+	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
+};
 
 static int pci_add_device(ddf_dev_t *);
 
@@ -287,11 +389,16 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the value of the BAR. */
 	val = pci_conf_read_32(fun, addr);
+
+#define IO_MASK  (~0x3)
+#define MEM_MASK (~0xf)
 	
 	io = (bool) (val & 1);
 	if (io) {
 		addrw64 = false;
+		mask = IO_MASK;
 	} else {
+		mask = MEM_MASK;
 		switch ((val >> 1) & 3) {
 		case 0:
 			addrw64 = false;
@@ -307,7 +414,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the address mask. */
 	pci_conf_write_32(fun, addr, 0xffffffff);
-	mask = pci_conf_read_32(fun, addr);
+	mask &= pci_conf_read_32(fun, addr);
 	
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
@@ -557,6 +664,7 @@ static void pciintel_init(void)
 {
 	ddf_log_init(NAME, LVL_ERROR);
 	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
+	pci_fun_ops.interfaces[PCI_DEV_IFACE] = &pci_dev_ops;
 }
 
 pci_fun_t *pci_fun_new(pci_bus_t *bus)
@@ -628,7 +736,8 @@ void pci_read_bars(pci_fun_t *fun)
 
 size_t pci_bar_mask_to_size(uint32_t mask)
 {
-	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
+	size_t size = mask & ~(mask - 1);
+	return size;
 }
 
 int main(int argc, char *argv[])

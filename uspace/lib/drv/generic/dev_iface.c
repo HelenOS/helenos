@@ -40,17 +40,28 @@
 #include "dev_iface.h"
 #include "remote_hw_res.h"
 #include "remote_char_dev.h"
+#include "remote_usb.h"
+#include "remote_usbhc.h"
+#include "remote_usbhid.h"
+#include "remote_pci.h"
+
+#include <stdio.h>
 
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		&remote_hw_res_iface,
-		&remote_char_dev_iface
+		&remote_char_dev_iface,
+		&remote_pci_iface,
+		&remote_usb_iface,
+		&remote_usbhc_iface,
+		&remote_usbhid_iface
 	}
 };
 
 remote_iface_t *get_remote_iface(int idx)
 {
 	assert(is_valid_iface_idx(idx));
+	
 	return remote_ifaces.ifaces[idx];
 }
 

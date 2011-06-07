@@ -1568,6 +1568,20 @@ int async_share_out_finalize(ipc_callid_t callid, void *dst)
 	return ipc_share_out_finalize(callid, dst);
 }
 
+/** Start IPC_M_DATA_READ using the async framework.
+ *
+ * @param phoneid Phone that will be used to contact the receiving side.
+ * @param dst Address of the beginning of the destination buffer.
+ * @param size Size of the destination buffer (in bytes).
+ * @param dataptr Storage of call data (arg 2 holds actual data size).
+ * @return Hash of the sent message or 0 on error.
+ */
+aid_t async_data_read(int phoneid, void *dst, size_t size, ipc_call_t *dataptr)
+{
+	return async_send_2(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
+	    (sysarg_t) size, dataptr);
+}
+
 /** Wrapper for IPC_M_DATA_READ calls using the async framework.
  *
  * @param phoneid Phone that will be used to contact the receiving side.

@@ -514,6 +514,43 @@ static void devman_function_get_handle_by_class(ipc_callid_t iid,
 	async_answer_1(iid, EOK, fun->handle);
 }
 
+/** Find device path by its handle. */
+static void devman_get_device_path_by_handle(ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	devman_handle_t handle = IPC_GET_ARG1(*icall);
+
+	fun_node_t *fun = find_fun_node(&device_tree, handle);
+	if (fun == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	ipc_callid_t data_callid;
+	size_t data_len;
+	if (!async_data_read_receive(&data_callid, &data_len)) {
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	void *buffer = malloc(data_len);
+	if (buffer == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	size_t sent_length = str_size(fun->pathname);
+	if (sent_length > data_len) {
+		sent_length = data_len;
+	}
+
+	async_data_read_finalize(data_callid, fun->pathname, sent_length);
+	async_answer_0(iid, EOK);
+
+	free(buffer);
+}
+
 
 /** Function for handling connections from a client to the device manager. */
 static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
@@ -535,6 +572,9 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_DEVICE_GET_HANDLE_BY_CLASS:
 			devman_function_get_handle_by_class(callid, &call);
+			break;
+		case DEVMAN_DEVICE_GET_DEVICE_PATH:
+			devman_get_device_path_by_handle(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);
@@ -594,7 +634,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	
 	if (driver == NULL) {
 		log_msg(LVL_ERROR, "IPC forwarding refused - " \
-		    "the device %" PRIun " is not in usable state.", handle);
+		    "the device %" PRIun "(%s) is not in usable state.",
+		    handle, dev->pfun->pathname);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
