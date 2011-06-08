@@ -41,7 +41,9 @@
 #include <async.h>
 #include <devman.h>
 #include <str.h>
+#include <async.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_sess.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "../tester.h"
@@ -67,25 +69,24 @@ const char *test_devman2(void)
 			err_msg = "Failed opening file";
 			continue;
 		}
-		int phone = fd_phone(fd);
+		async_sess_t *sess = fd_session(EXCHANGE_SERIALIZE, fd);
 		close(fd);
-		if (phone < 0) {
-			TPRINTF("Failed opening phone: %s.\n", str_error(phone));
-			rc = phone;
+		if (sess == NULL) {
+			TPRINTF("Failed opening phone: %s.\n", str_error(errno));
+			rc = errno;
 			err_msg = "Failed opening file descriptor phone";
 			continue;
 		}
-		async_hangup(phone);
+		async_hangup(sess);
 		TPRINTF("Path `%s' okay.\n", path);
 		free(path);
 		idx++;
 		rc = EOK;
 	}
 	
-	if (path != NULL) {
+	if (path != NULL)
 		free(path);
-	}
-
+	
 	return err_msg;
 }
 

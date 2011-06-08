@@ -40,6 +40,8 @@
 #include <usb/hid/request.h>
 #include <usb/hid/usages/core.h>
 #include <errno.h>
+#include <async.h>
+#include <async_obsolete.h>
 #include <str_error.h>
 #include <ipc/mouse.h>
 #include <io/console.h>
@@ -49,6 +51,9 @@
 
 #include "mousedev.h"
 #include "../usbhid.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME "mouse"
 
@@ -180,11 +185,11 @@ static void usb_mouse_free(usb_mouse_t **mouse_dev)
 	
 	// hangup phone to the console
 	if ((*mouse_dev)->mouse_phone >= 0) {
-		async_hangup((*mouse_dev)->mouse_phone);
+		async_obsolete_hangup((*mouse_dev)->mouse_phone);
 	}
 	
 	if ((*mouse_dev)->wheel_phone >= 0) {
-		async_hangup((*mouse_dev)->wheel_phone);
+		async_obsolete_hangup((*mouse_dev)->wheel_phone);
 	}
 	
 	free(*mouse_dev);
@@ -195,7 +200,7 @@ static void usb_mouse_free(usb_mouse_t **mouse_dev)
 
 static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	
 	ev.type = KEY_PRESS;
 	ev.key = (wheel > 0) ? KC_UP : (wheel < 0) ? KC_DOWN : 0;
@@ -213,10 +218,10 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 	
 	for (i = 0; i < count * 3; ++i) {
 		usb_log_debug2("Sending key %d to the console\n", ev.key);
-		async_msg_4(mouse_dev->wheel_phone, KBD_EVENT, ev.type, 
+		async_obsolete_msg_4(mouse_dev->wheel_phone, KBD_EVENT, ev.type, 
 		    ev.key, ev.mods, ev.c);
 		// send key release right away
-		async_msg_4(mouse_dev->wheel_phone, KBD_EVENT, KEY_RELEASE, 
+		async_obsolete_msg_4(mouse_dev->wheel_phone, KBD_EVENT, KEY_RELEASE, 
 		    ev.key, ev.mods, ev.c);
 	}
 }
@@ -302,7 +307,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_free(path);
 	
 	if ((shift_x != 0) || (shift_y != 0)) {
-		async_req_2_0(mouse_dev->mouse_phone,
+		async_obsolete_req_2_0(mouse_dev->mouse_phone,
 		    MEVENT_MOVE, shift_x, shift_y);
 	}
 	
@@ -352,14 +357,14 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		
 		if (mouse_dev->buttons[field->usage - field->usage_minimum] == 0
 		    && field->value != 0) {
-			async_req_2_0(mouse_dev->mouse_phone,
+			async_obsolete_req_2_0(mouse_dev->mouse_phone,
 			    MEVENT_BUTTON, field->usage, 1);
 			mouse_dev->buttons[field->usage - field->usage_minimum]
 			    = field->value;
 		} else if (
 		    mouse_dev->buttons[field->usage - field->usage_minimum] != 0
 		    && field->value == 0) {
-		       async_req_2_0(mouse_dev->mouse_phone,
+		       async_obsolete_req_2_0(mouse_dev->mouse_phone,
 			   MEVENT_BUTTON, field->usage, 0);
 		       mouse_dev->buttons[field->usage - field->usage_minimum]
 			   = field->value;

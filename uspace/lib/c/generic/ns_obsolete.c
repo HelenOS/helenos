@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,24 +32,20 @@
 /** @file
  */
 
-#ifndef LIBC_ASYNC_SESS_H_
-#define LIBC_ASYNC_SESS_H_
+#include <async.h>
+#include <async_obsolete.h>
+#include <ns_obsolete.h>
+#include <kernel/ipc/ipc_methods.h>
 
-#include <adt/list.h>
+int service_obsolete_connect(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_obsolete_connect_me_to(PHONE_NS, service, arg2, arg3);
+}
 
-typedef struct {
-	int sess_phone;		/**< Phone for cloning off the connections. */
-	sysarg_t connect_arg1;  /**< Argument for CONNECT_ME_TO. */
-	link_t conn_head;	/**< List of open data connections. */
-	link_t sess_link;	/**< Link in global list of open sessions. */
-} async_sess_t;
-
-extern void async_session_create(async_sess_t *, int, sysarg_t);
-extern void async_session_destroy(async_sess_t *);
-extern int async_exchange_begin(async_sess_t *);
-extern void async_exchange_end(async_sess_t *, int);
-
-#endif
+int service_obsolete_connect_blocking(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_obsolete_connect_me_to_blocking(PHONE_NS, service, arg2, arg3);
+}
 
 /** @}
  */

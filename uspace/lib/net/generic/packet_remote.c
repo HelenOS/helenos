@@ -36,6 +36,7 @@
  */
 
 #include <async.h>
+#include <async_obsolete.h>
 #include <errno.h>
 #include <ipc/packet.h>
 #include <sys/mman.h>
@@ -58,7 +59,7 @@
  *
  * @return EOK on success.
  * @return Other error codes as defined for the pm_add() function.
- * @return Other error codes as defined for the async_share_in_start() function.
+ * @return Other error codes as defined for the async_obsolete_share_in_start() function.
  *
  */
 static int
@@ -68,10 +69,10 @@ packet_return(int phone, packet_t **packet, packet_id_t packet_id, size_t size)
 	aid_t message;
 	int rc;
 	
-	message = async_send_1(phone, NET_PACKET_GET, packet_id, &answer);
+	message = async_obsolete_send_1(phone, NET_PACKET_GET, packet_id, &answer);
 
 	*packet = (packet_t *) as_get_mappable_page(size);
-	rc = async_share_in_start_0_0(phone, *packet, size);
+	rc = async_obsolete_share_in_start_0_0(phone, *packet, size);
 	if (rc != EOK) {
 		munmap(*packet, size);
 		async_wait_for(message, NULL);
@@ -116,7 +117,7 @@ int packet_translate_remote(int phone, packet_t **packet, packet_id_t packet_id)
 	if (!*packet) {
 		sysarg_t size;
 		
-		rc = async_req_1_1(phone, NET_PACKET_GET_SIZE, packet_id,
+		rc = async_obsolete_req_1_1(phone, NET_PACKET_GET_SIZE, packet_id,
 		    &size);
 		if (rc != EOK)
 			return rc;
@@ -153,7 +154,7 @@ packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
 	sysarg_t size;
 	int rc;
 	
-	rc = async_req_4_2(phone, NET_PACKET_CREATE_4, max_content, addr_len,
+	rc = async_obsolete_req_4_2(phone, NET_PACKET_CREATE_4, max_content, addr_len,
 	    max_prefix, max_suffix, &packet_id, &size);
 	if (rc != EOK)
 		return NULL;
@@ -184,7 +185,7 @@ packet_t *packet_get_1_remote(int phone, size_t content)
 	sysarg_t size;
 	int rc;
 	
-	rc = async_req_1_2(phone, NET_PACKET_CREATE_1, content, &packet_id,
+	rc = async_obsolete_req_1_2(phone, NET_PACKET_CREATE_1, content, &packet_id,
 	    &size);
 	if (rc != EOK)
 		return NULL;
@@ -211,7 +212,7 @@ packet_t *packet_get_1_remote(int phone, size_t content)
  */
 void pq_release_remote(int phone, packet_id_t packet_id)
 {
-	async_msg_1(phone, NET_PACKET_RELEASE, packet_id);
+	async_obsolete_msg_1(phone, NET_PACKET_RELEASE, packet_id);
 }
 
 /** @}

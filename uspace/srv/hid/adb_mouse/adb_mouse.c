@@ -42,11 +42,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <errno.h>
 #include <devmap.h>
-
 #include "adb_mouse.h"
 #include "adb_dev.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall);
 static void mouse_ev_btn(int button, int press);
@@ -100,15 +103,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			if (client_phone != -1) {
-				async_hangup(client_phone);
+				async_obsolete_hangup(client_phone);
 				client_phone = -1;
 			}
 
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_CONNECT_TO_ME:
 			if (client_phone != -1) {
 				retval = ELIMIT;
@@ -157,14 +163,14 @@ void mouse_handle_data(uint16_t data)
 static void mouse_ev_btn(int button, int press)
 {
 	if (client_phone != -1) {
-		async_msg_2(client_phone, MEVENT_BUTTON, button, press);
+		async_obsolete_msg_2(client_phone, MEVENT_BUTTON, button, press);
 	}
 }
 
 static void mouse_ev_move(int dx, int dy)
 {
 	if (client_phone != -1)
-		async_msg_2(client_phone, MEVENT_MOVE, dx, dy);
+		async_obsolete_msg_2(client_phone, MEVENT_MOVE, dx, dy);
 }
 
 /**

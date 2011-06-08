@@ -47,27 +47,28 @@
 
 /** Tell USB address assigned to given device.
  *
- * @param phone Phone to parent device.
+ * @param sess Session to parent device.
  * @param dev Device in question.
  * @return USB address or error code.
  */
-static usb_address_t get_my_address(int phone, ddf_dev_t *dev)
+static usb_address_t get_my_address(async_sess_t *sess, ddf_dev_t *dev)
 {
-	sysarg_t address;
-
+	async_exch_t *exch = async_exchange_begin(sess);
+	
 	/*
 	 * We are sending special value as a handle - zero - to get
 	 * handle of the parent function (that handle was used
 	 * when registering our device @p dev.
 	 */
-	int rc = async_req_2_1(phone, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_ADDRESS,
-	    0, &address);
-
-	if (rc != EOK) {
+	sysarg_t address;
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_ADDRESS, 0, &address);
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK)
 		return rc;
-	}
-
+	
 	return (usb_address_t) address;
 }
 
@@ -78,23 +79,24 @@ static usb_address_t get_my_address(int phone, ddf_dev_t *dev)
  */
 int usb_device_get_assigned_interface(ddf_dev_t *device)
 {
-	int parent_phone = devman_parent_device_connect(device->handle,
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
+	if (!parent_sess)
 		return -1;
-	}
-
+	
+	async_exch_t *exch = async_exchange_begin(parent_sess);
+	
 	sysarg_t iface_no;
-	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_INTERFACE,
-	    device->handle, &iface_no);
-
-	async_hangup(parent_phone);
-
-	if (rc != EOK) {
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_INTERFACE, device->handle, &iface_no);
+	
+	async_exchange_end(exch);
+	async_hangup(parent_sess);
+	
+	if (rc != EOK)
 		return -1;
-	}
-
+	
 	return (int) iface_no;
 }
 
@@ -109,22 +111,21 @@ int usb_device_connection_initialize_from_device(
 {
 	assert(connection);
 	assert(dev);
-
+	
 	int rc;
 	devman_handle_t hc_handle;
 	usb_address_t my_address;
-
+	
 	rc = usb_hc_find(dev->handle, &hc_handle);
-	if (rc != EOK) {
+	if (rc != EOK)
 		return rc;
-	}
-
-	int parent_phone = devman_parent_device_connect(dev->handle,
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	if (!parent_sess)
+		return ENOMEM;
+	
 	/*
 	 * Asking for "my" address may require several attempts.
 	 * That is because following scenario may happen:
@@ -136,9 +137,10 @@ int usb_device_connection_initialize_from_device(
 	 *  - the HC does not know the binding yet and thus it answers ENOENT
 	 *  So, we need to wait for the HC to learn the binding.
 	 */
+	
 	do {
-		my_address = get_my_address(parent_phone, dev);
-
+		my_address = get_my_address(parent_sess, dev);
+		
 		if (my_address == ENOENT) {
 			/* Be nice, let other fibrils run and try again. */
 			async_usleep(IPC_AGAIN_DELAY);
@@ -147,14 +149,14 @@ int usb_device_connection_initialize_from_device(
 			rc = my_address;
 			goto leave;
 		}
-
+	
 	} while (my_address < 0);
-
+	
 	rc = usb_device_connection_initialize(connection,
 	    hc_handle, my_address);
-
+	
 leave:
-	async_hangup(parent_phone);
+	async_hangup(parent_sess);
 	return rc;
 }
 

@@ -149,7 +149,7 @@
 	 * @ingroup srvcs
 	 * @endcond
 	 */
-
+	
 /**
  * @defgroup emul Emulation Libraries
  * @ingroup uspace

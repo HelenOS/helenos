@@ -37,6 +37,7 @@
 
 #include <assert.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <fibril_synch.h>
 #include <malloc.h>
 /* TODO remove stdio */
@@ -71,6 +72,9 @@
 
 #include "tcp.h"
 #include "tcp_header.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 /** TCP module name. */
 #define NAME  "tcp"
@@ -798,7 +802,7 @@ int tcp_queue_received_packet(socket_core_t *socket,
 	socket_data->window -= total_length;
 
 	/* Notify the destination socket */
-	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
+	async_obsolete_msg_5(socket->phone, NET_SOCKET_RECEIVED,
 	    (sysarg_t) socket->socket_id,
 	    ((packet_dimension->content < socket_data->data_fragment_size) ?
 	    packet_dimension->content : socket_data->data_fragment_size), 0, 0,
@@ -819,7 +823,7 @@ static void tcp_queue_received_end_of_data(socket_core_t *socket)
 	assert(socket != NULL);
 
 	/* Notify the destination socket */
-	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
+	async_obsolete_msg_5(socket->phone, NET_SOCKET_RECEIVED,
 	    (sysarg_t) socket->socket_id,
 	    0, 0, 0,
 	    (sysarg_t) 0 /* 0 fragments == no more data */);
@@ -1077,7 +1081,7 @@ int tcp_process_syn_received(socket_core_t *socket,
 		    (-1 * socket->socket_id), listening_socket_data->backlog);
 		if (rc == EOK) {
 			/* Notify the destination socket */
-			async_msg_5(socket->phone, NET_SOCKET_ACCEPTED,
+			async_obsolete_msg_5(socket->phone, NET_SOCKET_ACCEPTED,
 			    (sysarg_t) listening_socket->socket_id,
 			    socket_data->data_fragment_size, TCP_HEADER_SIZE,
 			    0, (sysarg_t) socket->socket_id);
@@ -1268,7 +1272,6 @@ void tcp_initialize_socket_data(tcp_socket_data_t *socket_data)
 int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 {
 	int res;
-	bool keep_on_going = true;
 	socket_cores_t local_sockets;
 	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
@@ -1292,7 +1295,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	socket_cores_initialize(&local_sockets);
 	fibril_rwlock_initialize(&lock);
 
-	while (keep_on_going) {
+	while (true) {
 
 		/* Answer the call */
 		answer_call(callid, res, &answer, answer_count);
@@ -1300,14 +1303,14 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		refresh_answer(&answer, &answer_count);
 		/* Get the next call */
 		callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			res = EHANGUP;
+			break;
+		}
 
 		/* Process the call */
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			keep_on_going = false;
-			res = EHANGUP;
-			break;
-
 		case NET_SOCKET:
 			socket_data =
 			    (tcp_socket_data_t *) malloc(sizeof(*socket_data));
@@ -1505,7 +1508,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	async_hangup(app_phone);
+	async_obsolete_hangup(app_phone);
 
 	printf("release\n");
 	/* Release all local sockets */

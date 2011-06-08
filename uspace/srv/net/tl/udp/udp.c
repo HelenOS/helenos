@@ -36,6 +36,7 @@
  */
 
 #include <async.h>
+#include <async_obsolete.h>
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -68,6 +69,9 @@
 
 #include "udp.h"
 #include "udp_header.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 /** UDP module name. */
 #define NAME  "udp"
@@ -298,7 +302,7 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 
 	/* Notify the destination socket */
 	fibril_rwlock_write_unlock(&udp_globals.lock);
-	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
+	async_obsolete_msg_5(socket->phone, NET_SOCKET_RECEIVED,
 	    (sysarg_t) socket->socket_id, packet_dimension->content, 0, 0,
 	    (sysarg_t) fragments);
 
@@ -747,7 +751,6 @@ static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 {
 	int res;
-	bool keep_on_going = true;
 	socket_cores_t local_sockets;
 	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
@@ -772,7 +775,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 
 	socket_cores_initialize(&local_sockets);
 
-	while (keep_on_going) {
+	while (true) {
 
 		/* Answer the call */
 		answer_call(callid, res, &answer, answer_count);
@@ -782,14 +785,14 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 
 		/* Get the next call */
 		callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			res = EHANGUP;
+			break;
+		}
 
 		/* Process the call */
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			keep_on_going = false;
-			res = EHANGUP;
-			break;
-
 		case NET_SOCKET:
 			socket_id = SOCKET_GET_SOCKET_ID(call);
 			res = socket_create(&local_sockets, app_phone, NULL,
@@ -879,7 +882,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	async_hangup(app_phone);
+	async_obsolete_hangup(app_phone);
 
 	/* Release all local sockets */
 	socket_cores_release(udp_globals.net_phone, &local_sockets,

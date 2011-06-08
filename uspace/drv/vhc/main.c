@@ -28,7 +28,7 @@
 
 /** @addtogroup drvusbvhc
  * @{
- */ 
+ */
 /** @file
  * Virtual host controller.
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2007 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,23 +32,16 @@
 /** @file
  */
 
+#ifndef LIBC_VFS_SESS_H_
+#define LIBC_VFS_SESS_H_
+
 #include <async.h>
-#include <ipc/ns.h>
+#include <stdio.h>
 
-int service_register(sysarg_t service)
-{
-	return async_connect_to_me(PHONE_NS, service, 0, 0, NULL);
-}
+extern async_sess_t *fd_session(exch_mgmt_t, int);
+extern async_sess_t *fsession(exch_mgmt_t, FILE *);
 
-int service_connect(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
-{
-	return async_connect_me_to(PHONE_NS, service, arg2, arg3);
-}
-
-int service_connect_blocking(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
-{
-	return async_connect_me_to_blocking(PHONE_NS, service, arg2, arg3);
-}
+#endif
 
 /** @}
  */

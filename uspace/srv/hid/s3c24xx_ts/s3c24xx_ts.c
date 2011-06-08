@@ -43,14 +43,17 @@
 #include <vfs/vfs.h>
 #include <ipc/mouse.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysinfo.h>
 #include <errno.h>
 #include <inttypes.h>
-
 #include "s3c24xx_ts.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME "s3c24ser"
 #define NAMESPACE "hid_in"
@@ -279,7 +282,7 @@ static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts)
 
 	button = 1;
 	press = 0;
-	async_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
+	async_obsolete_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 }
@@ -320,8 +323,8 @@ static void s3c24xx_ts_eoc(s3c24xx_ts_t *ts)
 	press = 1;
 
 	/* Send notifications to client. */
-	async_msg_2(ts->client_phone, MEVENT_MOVE, dx, dy);
-	async_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
+	async_obsolete_msg_2(ts->client_phone, MEVENT_MOVE, dx, dy);
+	async_obsolete_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
 
 	ts->last_x = x_pos;
 	ts->last_y = y_pos;
@@ -379,15 +382,18 @@ static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			if (ts->client_phone != -1) {
-				async_hangup(ts->client_phone);
+				async_obsolete_hangup(ts->client_phone);
 				ts->client_phone = -1;
 			}
 
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_CONNECT_TO_ME:
 			if (ts->client_phone != -1) {
 				retval = ELIMIT;

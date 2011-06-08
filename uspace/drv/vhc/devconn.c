@@ -1,3 +1,31 @@
+/*
+ * Copyright (c) 2011 Vojtech Horky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <errno.h>
 #include "vhcd.h"
 #include "hub/virthub.h"
@@ -10,7 +38,7 @@ static vhc_virtdev_t *vhc_virtdev_create()
 		return NULL;
 	}
 	dev->address = 0;
-	dev->dev_phone = -1;
+	dev->dev_sess = NULL;
 	dev->dev_local = NULL;
 	dev->plugged = true;
 	link_initialize(&dev->link);
@@ -21,7 +49,7 @@ static vhc_virtdev_t *vhc_virtdev_create()
 }
 
 static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
-    int phone, usbvirt_device_t *virtdev,
+    async_sess_t *sess, usbvirt_device_t *virtdev,
     uintptr_t *handle, bool connect)
 {
 	vhc_virtdev_t *dev = vhc_virtdev_create();
@@ -29,7 +57,7 @@ static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
 		return ENOMEM;
 	}
 
-	dev->dev_phone = phone;
+	dev->dev_sess = sess;
 	dev->dev_local = virtdev;
 
 	fibril_mutex_lock(&vhc->guard);
@@ -55,19 +83,19 @@ static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
 	return EOK;
 }
 
-int vhc_virtdev_plug(vhc_data_t *vhc, int phone, uintptr_t *handle)
+int vhc_virtdev_plug(vhc_data_t *vhc, async_sess_t *sess, uintptr_t *handle)
 {
-	return vhc_virtdev_plug_generic(vhc, phone, NULL, handle, true);
+	return vhc_virtdev_plug_generic(vhc, sess, NULL, handle, true);
 }
 
 int vhc_virtdev_plug_local(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle)
 {
-	return vhc_virtdev_plug_generic(vhc, -1, dev, handle, true);
+	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, true);
 }
 
 int vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle)
 {
-	return vhc_virtdev_plug_generic(vhc, -1, dev, handle, false);
+	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, false);
 }
 
 void vhc_virtdev_unplug(vhc_data_t *vhc, uintptr_t handle)

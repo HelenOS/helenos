@@ -844,10 +844,11 @@ int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_ARP_DEVICE:
 		rc = measured_strings_receive(&address, &data, 1);
 		if (rc != EOK)

@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
  * @brief UHCI root hub initialization routines
  */
+
 #include <ddf/driver.h>
 #include <devman.h>
 #include <device/hw_res.h>
@@ -47,18 +49,18 @@
 
 static int hc_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
-/*----------------------------------------------------------------------------*/
+
 static int uhci_rh_add_device(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t uhci_rh_driver_ops = {
 	.add_device = uhci_rh_add_device,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t uhci_rh_driver = {
 	.name = NAME,
 	.driver_ops = &uhci_rh_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 	return ddf_driver_main(&uhci_rh_driver);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize a new ddf driver instance of UHCI root hub.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -121,7 +123,7 @@ if (ret != EOK) { \
 	    device->name, device->handle);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get address of I/O registers.
  *
  * @param[in] dev Device asking for the addresses.
@@ -133,24 +135,24 @@ int hc_get_my_registers(
     const ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
 {
 	assert(dev);
-
-	const int parent_phone = devman_parent_device_connect(dev->handle,
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	if (!parent_sess)
+		return ENOMEM;
+	
 	hw_resource_list_t hw_resources;
-	const int ret = hw_res_get_resource_list(parent_phone, &hw_resources);
+	const int ret = hw_res_get_resource_list(parent_sess, &hw_resources);
 	if (ret != EOK) {
-		async_hangup(parent_phone);
+		async_hangup(parent_sess);
 		return ret;
 	}
-
+	
 	uintptr_t io_address = 0;
 	size_t io_size = 0;
 	bool io_found = false;
-
+	
 	size_t i = 0;
 	for (; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
@@ -159,20 +161,22 @@ int hc_get_my_registers(
 			io_size = res->res.io_range.size;
 			io_found = true;
 		}
+	
 	}
-	async_hangup(parent_phone);
-
-	if (!io_found) {
+	async_hangup(parent_sess);
+	
+	if (!io_found)
 		return ENOENT;
-	}
-	if (io_reg_address != NULL) {
+	
+	if (io_reg_address != NULL)
 		*io_reg_address = io_address;
-	}
-	if (io_reg_size != NULL) {
+	
+	if (io_reg_size != NULL)
 		*io_reg_size = io_size;
-	}
+	
 	return EOK;
 }
+
 /**
  * @}
  */

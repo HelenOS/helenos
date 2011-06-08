@@ -32,6 +32,7 @@
 /** @file
  * IPC wrappers for virtual USB.
  */
+
 #ifndef LIBUSBVIRT_IPC_H_
 #define LIBUSBVIRT_IPC_H_
 
@@ -39,6 +40,7 @@
 #include <usb/usb.h>
 #include <bool.h>
 #include <usbvirt/device.h>
+#include <async.h>
 
 /** IPC methods communication between host controller and virtual device. */
 typedef enum {
@@ -51,19 +53,21 @@ typedef enum {
 	IPC_M_USBVIRT_BULK_OUT
 } usbvirt_hc_to_device_method_t;
 
-int usbvirt_ipc_send_control_read(int, void *, size_t,
+extern int usbvirt_ipc_send_control_read(async_sess_t *, void *, size_t,
     void *, size_t, size_t *);
-int usbvirt_ipc_send_control_write(int, void *, size_t,
+extern int usbvirt_ipc_send_control_write(async_sess_t *, void *, size_t,
     void *, size_t);
-int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
-    void *, size_t, size_t *);
-int usbvirt_ipc_send_data_out(int, usb_endpoint_t, usb_transfer_type_t,
-    void *, size_t);
+extern int usbvirt_ipc_send_data_in(async_sess_t *, usb_endpoint_t,
+    usb_transfer_type_t, void *, size_t, size_t *);
+extern int usbvirt_ipc_send_data_out(async_sess_t *, usb_endpoint_t,
+    usb_transfer_type_t, void *, size_t);
 
-bool usbvirt_is_usbvirt_method(sysarg_t);
-bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t, ipc_call_t *);
+extern bool usbvirt_is_usbvirt_method(sysarg_t);
+extern bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t,
+    ipc_call_t *);
 
 #endif
+
 /**
  * @}
  */

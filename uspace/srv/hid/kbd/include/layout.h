@@ -42,7 +42,7 @@
 
 typedef struct {
 	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
+	wchar_t (*parse_ev)(kbd_event_t *);
 } layout_op_t;
 
 extern layout_op_t us_qwerty_op;

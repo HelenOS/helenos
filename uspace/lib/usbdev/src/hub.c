@@ -41,6 +41,7 @@
 #include <assert.h>
 #include <usb/debug.h>
 #include <time.h>
+#include <async.h>
 
 /** How much time to wait between attempts to register endpoint 0:0.
  * The value is based on typical value for port reset + some overhead.
@@ -70,17 +71,20 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
     usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
-
+	
+	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
+	
 	sysarg_t address;
-	int rc = async_req_2_1(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_REQUEST_ADDRESS, speed,
 	    &address);
-	if (rc != EOK) {
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK)
 		return (usb_address_t) rc;
-	} else {
-		return (usb_address_t) address;
-	}
+	
+	return (usb_address_t) address;
 }
 
 /** Inform host controller about new device.
@@ -93,14 +97,17 @@ int usb_hc_register_device(usb_hc_connection_t * connection,
     const usb_hc_attached_device_t *attached_device)
 {
 	CHECK_CONNECTION(connection);
-	if (attached_device == NULL) {
+	
+	if (attached_device == NULL)
 		return EBADMEM;
-	}
-
-	return async_req_3_0(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	
+	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
+	int rc = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_BIND_ADDRESS,
 	    attached_device->address, attached_device->handle);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
 /** Inform host controller about device removal.
@@ -113,10 +120,13 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
     usb_address_t address)
 {
 	CHECK_CONNECTION(connection);
-
-	return async_req_2_0(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	
+	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
+	int rc = async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_RELEASE_ADDRESS, address);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
 
@@ -191,7 +201,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	// FIXME: this is awful, we are accessing directly the structure.
 	usb_hc_connection_t hc_conn = {
 		.hc_handle = connection->hc_handle,
-		.hc_phone = -1
+		.hc_sess = NULL
 	};
 
 	int rc;

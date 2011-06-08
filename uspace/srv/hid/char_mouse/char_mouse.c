@@ -42,12 +42,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <errno.h>
 #include <devmap.h>
-
 #include <char_mouse.h>
 #include <mouse_port.h>
 #include <mouse_proto.h>
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME       "mouse"
 #define NAMESPACE  "hid_in"
@@ -64,7 +67,7 @@ void mouse_ev_btn(int button, int press)
 {
 /*	printf("ev_btn: button %d, press %d\n", button, press);*/
 	if (client_phone != -1) {
-		async_msg_2(client_phone, MEVENT_BUTTON, button, press);
+		async_obsolete_msg_2(client_phone, MEVENT_BUTTON, button, press);
 	}
 }
 
@@ -72,7 +75,7 @@ void mouse_ev_move(int dx, int dy)
 {
 /*	printf("ev_move: dx %d, dy %d\n", dx, dy);*/
 	if (client_phone != -1)
-		async_msg_2(client_phone, MEVENT_MOVE, dx, dy);
+		async_obsolete_msg_2(client_phone, MEVENT_MOVE, dx, dy);
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -85,15 +88,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			if (client_phone != -1) {
-				async_hangup(client_phone);
+				async_obsolete_hangup(client_phone);
 				client_phone = -1;
 			}
 
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_CONNECT_TO_ME:
 			if (client_phone != -1) {
 				retval = ELIMIT;

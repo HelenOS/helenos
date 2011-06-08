@@ -64,14 +64,11 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 		bool processed = usbvirt_ipc_handle_call(DEV, callid, &call);
 		if (!processed) {
-			switch (IPC_GET_IMETHOD(call)) {
-				case IPC_M_PHONE_HUNGUP:
-					async_answer_0(callid, EOK);
-					return;
-				default:
-					async_answer_0(callid, EINVAL);
-					break;
-			}
+			if (!IPC_GET_IMETHOD(call)) {
+				async_answer_0(callid, EOK);
+				return;
+			} else
+				async_answer_0(callid, EINVAL);
 		}
 	}
 }
@@ -84,32 +81,29 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 {
-	int rc;
-	devman_handle_t handle;
-
-	if (DEV != NULL) {
+	if (DEV != NULL)
 		return ELIMIT;
-	}
-
-	rc = devman_device_get_handle(vhc_path, &handle, 0);
-	if (rc != EOK) {
+	
+	devman_handle_t handle;
+	int rc = devman_device_get_handle(vhc_path, &handle, 0);
+	if (rc != EOK)
 		return rc;
-	}
-
-	int hcd_phone = devman_device_connect(handle, 0);
-
-	if (hcd_phone < 0) {
-		return hcd_phone;
-	}
-
+	
+	async_sess_t *hcd_sess =
+	    devman_device_connect(EXCHANGE_SERIALIZE, handle, 0);
+	if (!hcd_sess)
+		return ENOMEM;
+	
 	DEV = dev;
-	dev->vhc_phone = hcd_phone;
-
-	rc = async_connect_to_me(hcd_phone, 0, 0, 0, callback_connection);
-	if (rc != EOK) {
+	dev->vhc_sess = hcd_sess;
+	
+	async_exch_t *exch = async_exchange_begin(hcd_sess);
+	rc = async_connect_to_me(exch, 0, 0, 0, callback_connection);
+	async_exchange_end(exch);
+	
+	if (rc != EOK)
 		DEV = NULL;
-	}
-
+	
 	return rc;
 }
 
@@ -119,7 +113,7 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
  */
 void usbvirt_device_unplug(usbvirt_device_t *dev)
 {
-	async_hangup(dev->vhc_phone);
+	async_hangup(dev->vhc_sess);
 }
 
 /**

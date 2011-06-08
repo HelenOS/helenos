@@ -77,25 +77,26 @@ int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
     devman_handle_t *handle)
 {
 	assert(fun != NULL);
-
-	int parent_phone = devman_parent_device_connect(fun->handle,
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, fun->handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	if (!parent_sess)
+		return ENOMEM;
+	
+	async_exch_t *exch = async_exchange_begin(parent_sess);
+	
 	sysarg_t hc_handle;
-	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &hc_handle);
-
-	async_hangup(parent_phone);
-
-	if (rc != EOK) {
+	
+	async_exchange_end(exch);
+	async_hangup(parent_sess);
+	
+	if (rc != EOK)
 		return rc;
-	}
-
+	
 	*handle = hc_handle;
-
 	return EOK;
 }
 
@@ -127,26 +128,28 @@ int usb_iface_get_address_hub_impl(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
 	assert(fun);
-	int parent_phone = devman_parent_device_connect(fun->handle,
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, fun->handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	if (!parent_sess)
+		return ENOMEM;
+	
+	async_exch_t *exch = async_exchange_begin(parent_sess);
+	
 	sysarg_t addr;
-	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_ADDRESS, handle, &addr);
-
-	async_hangup(parent_phone);
-
-	if (rc != EOK) {
+	
+	async_exchange_end(exch);
+	async_hangup(parent_sess);
+	
+	if (rc != EOK)
 		return rc;
-	}
-
-	if (address != NULL) {
+	
+	if (address != NULL)
 		*address = (usb_address_t) addr;
-	}
-
+	
 	return EOK;
 }
 

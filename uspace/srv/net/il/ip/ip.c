@@ -76,6 +76,9 @@
 #include <il_remote.h>
 #include <il_skel.h>
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
+
 /** IP module name. */
 #define NAME			"ip"
 
@@ -1912,10 +1915,11 @@ int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_CONNECT_TO_ME:
 		return ip_register(IL_GET_PROTO(*call), IL_GET_SERVICE(*call),
 		    IPC_GET_PHONE(*call), NULL);

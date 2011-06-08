@@ -32,11 +32,13 @@
 /** @file
  * Virtual USB device.
  */
+
 #ifndef LIBUSBVIRT_DEVICE_H_
 #define LIBUSBVIRT_DEVICE_H_
 
 #include <usb/usb.h>
 #include <usb/dev/request.h>
+#include <async.h>
 
 /** Maximum number of endpoints supported by virtual USB. */
 #define USBVIRT_ENDPOINT_MAX 16
@@ -193,10 +195,10 @@ struct usbvirt_device {
 	 * You shall treat this field as read only in your code.
 	 */
 	usbvirt_device_state_t state;
-	/** Phone to the host controller.
+	/** Session to the host controller.
 	 * You shall treat this field as read only in your code.
 	 */
-	int vhc_phone;
+	async_sess_t *vhc_sess;
 };
 
 int usbvirt_device_plug(usbvirt_device_t *, const char *);
@@ -212,8 +214,8 @@ int usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
 int usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
     void *, size_t, size_t *);
 
-
 #endif
+
 /**
  * @}
  */

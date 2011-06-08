@@ -103,37 +103,46 @@ void vfs_node_delref(vfs_node_t *node)
 {
 	bool free_vfs_node = false;
 	bool free_fs_node = false;
-
+	
 	fibril_mutex_lock(&nodes_mutex);
+	
 	if (node->refcnt-- == 1) {
+		
 		/*
 		 * We are dropping the last reference to this node.
 		 * Remove it from the VFS node hash table.
 		 */
+		
 		unsigned long key[] = {
 			[KEY_FS_HANDLE] = node->fs_handle,
 			[KEY_DEV_HANDLE] = node->devmap_handle,
 			[KEY_INDEX] = node->index
 		};
+		
 		hash_table_remove(&nodes, key, 3);
 		free_vfs_node = true;
+		
 		if (!node->lnkcnt)
 			free_fs_node = true;
 	}
+	
 	fibril_mutex_unlock(&nodes_mutex);
-
+	
 	if (free_fs_node) {
-		/* 
+		
+		/*
 		 * The node is not visible in the file system namespace.
 		 * Free up its resources.
 		 */
-		int phone = vfs_grab_phone(node->fs_handle);
-		sysarg_t rc;
-		rc = async_req_2_0(phone, VFS_OUT_DESTROY,
-		    (sysarg_t)node->devmap_handle, (sysarg_t)node->index);
+		
+		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
+		sysarg_t rc = async_req_2_0(exch, VFS_OUT_DESTROY,
+		    (sysarg_t) node->devmap_handle, (sysarg_t)node->index);
+		
 		assert(rc == EOK);
-		vfs_release_phone(node->fs_handle, phone);
+		vfs_exchange_release(exch);
 	}
+	
 	if (free_vfs_node)
 		free(node);
 }

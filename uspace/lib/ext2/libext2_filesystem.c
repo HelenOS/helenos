@@ -61,7 +61,7 @@ int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
 	
 	fs->device = devmap_handle;
 	
-	rc = block_init(fs->device, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 2048);
 	if (rc != EOK) {
 		return rc;
 	}

@@ -45,10 +45,15 @@
 #include <usb/hid/usages/consumer.h>
 
 #include <errno.h>
+#include <async.h>
+#include <async_obsolete.h>
 #include <str_error.h>
 
 #include <ipc/kbd.h>
 #include <io/console.h>
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME "multimedia-keys"
 
@@ -142,7 +147,7 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 	assert(hid_dev != NULL);
 	assert(multim_dev != NULL);
 	
-	console_event_t ev;
+	kbd_event_t ev;
 	
 	ev.type = type;
 	ev.key = key;
@@ -156,7 +161,7 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 		return;
 	}
 	
-	async_msg_4(multim_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
+	async_obsolete_msg_4(multim_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
 	    ev.mods, ev.c);
 }
 
@@ -169,7 +174,7 @@ static void usb_multimedia_free(usb_multimedia_t **multim_dev)
 	}
 	
 	// hangup phone to the console
-	async_hangup((*multim_dev)->console_phone);
+	async_obsolete_hangup((*multim_dev)->console_phone);
 
 	free(*multim_dev);
 	*multim_dev = NULL;

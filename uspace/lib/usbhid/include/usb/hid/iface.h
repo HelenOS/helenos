@@ -36,12 +36,14 @@
 #define LIBUSBHID_CLASSES_HID_IFACE_H_
 
 #include <sys/types.h>
+#include <async.h>
 
-int usbhid_dev_get_event_length(int, size_t *);
-int usbhid_dev_get_event(int, uint8_t *, size_t, size_t *, int *,
-    unsigned int);
-int usbhid_dev_get_report_descriptor_length(int, size_t *);
-int usbhid_dev_get_report_descriptor(int, uint8_t *, size_t, size_t *);
+extern int usbhid_dev_get_event_length(async_sess_t *, size_t *);
+extern int usbhid_dev_get_event(async_sess_t *, uint8_t *, size_t, size_t *,
+    int *, unsigned int);
+extern int usbhid_dev_get_report_descriptor_length(async_sess_t *, size_t *);
+extern int usbhid_dev_get_report_descriptor(async_sess_t *, uint8_t *, size_t,
+    size_t *);
 
 #endif
 /**

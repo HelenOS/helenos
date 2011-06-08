@@ -33,6 +33,7 @@
  * @file
  * Initialization routines for USB mouse driver.
  */
+
 #include "mouse.h"
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
@@ -40,6 +41,9 @@
 #include <usb/dev/request.h>
 #include <usb/hid/request.h>
 #include <errno.h>
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 /** Mouse polling endpoint description for boot protocol subclass. */
 usb_endpoint_description_t poll_endpoint_description = {

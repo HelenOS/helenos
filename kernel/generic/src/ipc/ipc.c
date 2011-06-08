@@ -43,6 +43,7 @@
 #include <synch/waitq.h>
 #include <synch/synch.h>
 #include <ipc/ipc.h>
+#include <ipc/ipc_methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
 #include <errno.h>

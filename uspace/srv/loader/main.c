@@ -51,15 +51,13 @@
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ipc/loader.h>
-#include <ipc/ns.h>
-#include <macros.h>
+#include <ns.h>
 #include <loader/pcb.h>
 #include <entry_point.h>
 #include <errno.h>
 #include <async.h>
 #include <str.h>
 #include <as.h>
-
 #include <elf.h>
 #include <elf_load.h>
 
@@ -413,10 +411,6 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-	
 	/* Already have a connection? */
 	if (connected) {
 		async_answer_0(iid, ELIMIT);
@@ -429,15 +423,17 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 	
 	/* Ignore parameters, the connection is already open */
-	(void) iid;
 	(void) icall;
 	
-	while (1) {
-		callid = async_get_call(&call);
+	while (true) {
+		int retval;
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			exit(0);
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			exit(0);
 		case LOADER_GET_TASKID:
 			ldr_get_taskid(callid, &call);
 			continue;
@@ -464,8 +460,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		}
 		
-		if (IPC_GET_IMETHOD(call) != IPC_M_PHONE_HUNGUP)
-			async_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -478,7 +473,7 @@ int main(int argc, char *argv[])
 	
 	/* Introduce this task to the NS (give it our task ID). */
 	task_id_t id = task_get_id();
-	int rc = async_req_2_0(PHONE_NS, NS_ID_INTRO, LOWER32(id), UPPER32(id));
+	int rc = ns_intro(id);
 	if (rc != EOK)
 		return -1;
 	

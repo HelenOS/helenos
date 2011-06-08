@@ -32,6 +32,7 @@
 /** @file
  * @brief Virtual USB hub.
  */
+
 #ifndef VHCD_HUB_H_
 #define VHCD_HUB_H_
 

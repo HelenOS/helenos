@@ -39,8 +39,9 @@
  * utilize the asynchronous nature of HelenOS IPC, yet using a normal way of
  * programming.
  *
- * You should be able to write very simple multithreaded programs, the async
- * framework will automatically take care of most synchronization problems.
+ * You should be able to write very simple multithreaded programs. The async
+ * framework will automatically take care of most of the synchronization
+ * problems.
  *
  * Example of use (pseudo C):
  *
@@ -52,9 +53,16 @@
  *
  *   int fibril1(void *arg)
  *   {
- *     conn = async_connect_me_to();
- *     c1 = async_send(conn);
- *     c2 = async_send(conn);
+ *     conn = async_connect_me_to(...);
+ *
+ *     exch = async_exchange_begin(conn);
+ *     c1 = async_send(exch);
+ *     async_exchange_end(exch);
+ *
+ *     exch = async_exchange_begin(conn);
+ *     c2 = async_send(exch);
+ *     async_exchange_end(exch);
+ *
  *     async_wait_for(c1);
  *     async_wait_for(c2);
  *     ...
@@ -93,7 +101,6 @@
 
 #include <futex.h>
 #include <fibril.h>
-#include <stdio.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
@@ -101,44 +108,41 @@
 #include <sys/time.h>
 #include <arch/barrier.h>
 #include <bool.h>
-#include <stdlib.h>
 #include <malloc.h>
+#include <mem.h>
+#include <stdlib.h>
 #include "private/async.h"
 
+#define CLIENT_HASH_TABLE_BUCKETS  32
+#define CONN_HASH_TABLE_BUCKETS    32
+
+/** Async framework global futex */
 atomic_t async_futex = FUTEX_INITIALIZER;
 
 /** Number of threads waiting for IPC in the kernel. */
 atomic_t threads_in_ipc_wait = { 0 };
 
-typedef struct {
-	awaiter_t wdata;
-	
-	/** If reply was received. */
-	bool done;
-	
-	/** Pointer to where the answer data is stored. */
-	ipc_call_t *dataptr;
-	
-	sysarg_t retval;
-} amsg_t;
+/** Naming service session */
+async_sess_t *session_ns;
 
-/**
- * Structures of this type are used to group information about
- * a call and about a message queue link.
- */
+/** Call data */
 typedef struct {
 	link_t link;
+	
 	ipc_callid_t callid;
 	ipc_call_t call;
 } msg_t;
 
+/* Client connection data */
 typedef struct {
-	sysarg_t in_task_hash;
 	link_t link;
-	int refcnt;
+	
+	sysarg_t in_task_hash;
+	atomic_t refcnt;
 	void *data;
 } client_t;
 
+/* Server connection data */
 typedef struct {
 	awaiter_t wdata;
 	
@@ -147,6 +151,7 @@ typedef struct {
 	
 	/** Incoming client task hash. */
 	sysarg_t in_task_hash;
+	
 	/** Incoming phone hash. */
 	sysarg_t in_phone_hash;
 	
@@ -169,7 +174,7 @@ typedef struct {
 } connection_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
-static fibril_local connection_t *FIBRIL_connection;
+static fibril_local connection_t *fibril_connection;
 
 static void *default_client_data_constructor(void)
 {
@@ -195,10 +200,10 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 	async_client_data_destroy = dtor;
 }
 
-void *async_client_data_get(void)
+void *async_get_client_data(void)
 {
-	assert(FIBRIL_connection);
-	return FIBRIL_connection->client->data;
+	assert(fibril_connection);
+	return fibril_connection->client->data;
 }
 
 /** Default fibril function that gets called to handle new connection.
@@ -214,11 +219,6 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_0(callid, ENOENT);
 }
 
-/**
- * Pointer to a fibril function that will be used to handle connections.
- */
-static async_client_conn_t client_connection = default_client_connection;
-
 /** Default fibril function that gets called to handle interrupt notifications.
  *
  * This function is defined as a weak symbol - to be redefined in user code.
@@ -231,27 +231,60 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 }
 
-/**
- * Pointer to a fibril function that will be used to handle interrupt
- * notifications.
- */
+static async_client_conn_t client_connection = default_client_connection;
 static async_client_conn_t interrupt_received = default_interrupt_received;
+
+/** Setter for client_connection function pointer.
+ *
+ * @param conn Function that will implement a new connection fibril.
+ *
+ */
+void async_set_client_connection(async_client_conn_t conn)
+{
+	client_connection = conn;
+}
+
+/** Setter for interrupt_received function pointer.
+ *
+ * @param intr Function that will implement a new interrupt
+ *             notification fibril.
+ */
+void async_set_interrupt_received(async_client_conn_t intr)
+{
+	interrupt_received = intr;
+}
+
+/** Mutex protecting inactive_exch_list and avail_phone_cv.
+ *
+ */
+static FIBRIL_MUTEX_INITIALIZE(async_sess_mutex);
+
+/** List of all currently inactive exchanges.
+ *
+ */
+static LIST_INITIALIZE(inactive_exch_list);
+
+/** Condition variable to wait for a phone to become available.
+ *
+ */
+static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
 static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
-#define CLIENT_HASH_TABLE_BUCKETS  32
-#define CONN_HASH_TABLE_BUCKETS    32
-
 static hash_index_t client_hash(unsigned long key[])
 {
 	assert(key);
+	
 	return (((key[0]) >> 4) % CLIENT_HASH_TABLE_BUCKETS);
 }
 
 static int client_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
+	assert(key);
+	assert(item);
+	
 	client_t *client = hash_table_get_instance(item, client_t, link);
 	return (key[0] == client->in_task_hash);
 }
@@ -277,6 +310,7 @@ static hash_table_operations_t client_hash_table_ops = {
 static hash_index_t conn_hash(unsigned long key[])
 {
 	assert(key);
+	
 	return (((key[0]) >> 4) % CONN_HASH_TABLE_BUCKETS);
 }
 
@@ -291,6 +325,9 @@ static hash_index_t conn_hash(unsigned long key[])
  */
 static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
+	assert(key);
+	assert(item);
+	
 	connection_t *conn = hash_table_get_instance(item, connection_t, link);
 	return (key[0] == conn->in_phone_hash);
 }
@@ -313,6 +350,8 @@ static hash_table_operations_t conn_hash_table_ops = {
  */
 void async_insert_timeout(awaiter_t *wd)
 {
+	assert(wd);
+	
 	wd->to_event.occurred = false;
 	wd->to_event.inlist = true;
 	
@@ -345,6 +384,8 @@ void async_insert_timeout(awaiter_t *wd)
  */
 static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 {
+	assert(call);
+	
 	futex_down(&async_futex);
 	
 	unsigned long key = call->in_phone_hash;
@@ -399,6 +440,8 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
  */
 static int notification_fibril(void *arg)
 {
+	assert(arg);
+	
 	msg_t *msg = (msg_t *) arg;
 	interrupt_received(msg->callid, &msg->call);
 	
@@ -419,6 +462,8 @@ static int notification_fibril(void *arg)
  */
 static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 {
+	assert(call);
+	
 	futex_down(&async_futex);
 	
 	msg_t *msg = malloc(sizeof(*msg));
@@ -457,15 +502,16 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
  */
 ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 {
-	assert(FIBRIL_connection);
+	assert(call);
+	assert(fibril_connection);
 	
 	/* Why doing this?
-	 * GCC 4.1.0 coughs on FIBRIL_connection-> dereference.
+	 * GCC 4.1.0 coughs on fibril_connection-> dereference.
 	 * GCC 4.1.1 happilly puts the rdhwr instruction in delay slot.
 	 *           I would never expect to find so many errors in
 	 *           a compiler.
 	 */
-	connection_t *conn = FIBRIL_connection;
+	connection_t *conn = fibril_connection;
 	
 	futex_down(&async_futex);
 	
@@ -540,10 +586,12 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
  */
 static int connection_fibril(void *arg)
 {
+	assert(arg);
+	
 	/*
 	 * Setup fibril-local connection pointer.
 	 */
-	FIBRIL_connection = (connection_t *) arg;
+	fibril_connection = (connection_t *) arg;
 	
 	futex_down(&async_futex);
 	
@@ -553,41 +601,38 @@ static int connection_fibril(void *arg)
 	 * hash in a new tracking structure.
 	 */
 	
-	unsigned long key = FIBRIL_connection->in_task_hash;
+	unsigned long key = fibril_connection->in_task_hash;
 	link_t *lnk = hash_table_find(&client_hash_table, &key);
 	
 	client_t *client;
 	
 	if (lnk) {
 		client = hash_table_get_instance(lnk, client_t, link);
-		client->refcnt++;
+		atomic_inc(&client->refcnt);
 	} else {
 		client = malloc(sizeof(client_t));
 		if (!client) {
-			ipc_answer_0(FIBRIL_connection->callid, ENOMEM);
+			ipc_answer_0(fibril_connection->callid, ENOMEM);
 			futex_up(&async_futex);
 			return 0;
 		}
 		
-		client->in_task_hash = FIBRIL_connection->in_task_hash;
-		
-		async_serialize_start();
+		client->in_task_hash = fibril_connection->in_task_hash;
 		client->data = async_client_data_create();
-		async_serialize_end();
 		
-		client->refcnt = 1;
+		atomic_set(&client->refcnt, 1);
 		hash_table_insert(&client_hash_table, &key, &client->link);
 	}
 	
 	futex_up(&async_futex);
 	
-	FIBRIL_connection->client = client;
+	fibril_connection->client = client;
 	
 	/*
 	 * Call the connection handler function.
 	 */
-	FIBRIL_connection->cfibril(FIBRIL_connection->callid,
-	    &FIBRIL_connection->call);
+	fibril_connection->cfibril(fibril_connection->callid,
+	    &fibril_connection->call);
 	
 	/*
 	 * Remove the reference for this client task connection.
@@ -596,7 +641,7 @@ static int connection_fibril(void *arg)
 	
 	futex_down(&async_futex);
 	
-	if (--client->refcnt == 0) {
+	if (atomic_predec(&client->refcnt) == 0) {
 		hash_table_remove(&client_hash_table, &key, 1);
 		destroy = true;
 	} else
@@ -615,16 +660,16 @@ static int connection_fibril(void *arg)
 	 * Remove myself from the connection hash table.
 	 */
 	futex_down(&async_futex);
-	key = FIBRIL_connection->in_phone_hash;
+	key = fibril_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
 	
 	/*
 	 * Answer all remaining messages with EHANGUP.
 	 */
-	while (!list_empty(&FIBRIL_connection->msg_queue)) {
+	while (!list_empty(&fibril_connection->msg_queue)) {
 		msg_t *msg =
-		    list_get_instance(FIBRIL_connection->msg_queue.next, msg_t,
+		    list_get_instance(fibril_connection->msg_queue.next, msg_t,
 		    link);
 		
 		list_remove(&msg->link);
@@ -636,16 +681,16 @@ static int connection_fibril(void *arg)
 	 * If the connection was hung-up, answer the last call,
 	 * i.e. IPC_M_PHONE_HUNGUP.
 	 */
-	if (FIBRIL_connection->close_callid)
-		ipc_answer_0(FIBRIL_connection->close_callid, EOK);
+	if (fibril_connection->close_callid)
+		ipc_answer_0(fibril_connection->close_callid, EOK);
 	
-	free(FIBRIL_connection);
+	free(fibril_connection);
 	return 0;
 }
 
 /** Create a new fibril for a new connection.
  *
- * Create new fibril for connection, fill in connection structures and inserts
+ * Create new fibril for connection, fill in connection structures and insert
  * it into the hash table, so that later we can easily do routing of messages to
  * particular fibrils.
  *
@@ -664,7 +709,7 @@ static int connection_fibril(void *arg)
  */
 fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
     ipc_callid_t callid, ipc_call_t *call,
-    void (*cfibril)(ipc_callid_t, ipc_call_t *))
+    async_client_conn_t cfibril)
 {
 	connection_t *conn = malloc(sizeof(*conn));
 	if (!conn) {
@@ -720,6 +765,8 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
  */
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
+	assert(call);
+	
 	/* Unrouted call - take some default action */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		process_notification(callid, call);
@@ -877,13 +924,27 @@ void async_destroy_manager(void)
  */
 void __async_init(void)
 {
-	if (!hash_table_create(&client_hash_table, CLIENT_HASH_TABLE_BUCKETS, 1,
-	    &client_hash_table_ops))
+	if (!hash_table_create(&client_hash_table, CLIENT_HASH_TABLE_BUCKETS,
+	    1, &client_hash_table_ops))
 		abort();
 	
-	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_BUCKETS, 1,
-	    &conn_hash_table_ops))
+	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_BUCKETS,
+	    1, &conn_hash_table_ops))
 		abort();
+	
+	session_ns = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (session_ns == NULL)
+		abort();
+	
+	session_ns->mgmt = EXCHANGE_ATOMIC;
+	session_ns->phone = PHONE_NS;
+	session_ns->arg1 = 0;
+	session_ns->arg2 = 0;
+	session_ns->arg3 = 0;
+	
+	list_initialize(&session_ns->exch_list);
+	fibril_mutex_initialize(&session_ns->mutex);
+	atomic_set(&session_ns->refcnt, 0);
 }
 
 /** Reply received callback.
@@ -898,8 +959,10 @@ void __async_init(void)
  * @param data   Call data of the answer.
  *
  */
-static void reply_received(void *arg, int retval, ipc_call_t *data)
+void reply_received(void *arg, int retval, ipc_call_t *data)
 {
+	assert(arg);
+	
 	futex_down(&async_futex);
 	
 	amsg_t *msg = (amsg_t *) arg;
@@ -929,8 +992,8 @@ static void reply_received(void *arg, int retval, ipc_call_t *data)
  * The return value can be used as input for async_wait() to wait for
  * completion.
  *
- * @param phoneid Handle of the phone that will be used for the send.
- * @param method  Service-defined method.
+ * @param exch    Exchange for sending the message.
+ * @param imethod Service-defined interface and method.
  * @param arg1    Service-defined payload argument.
  * @param arg2    Service-defined payload argument.
  * @param arg3    Service-defined payload argument.
@@ -941,12 +1004,14 @@ static void reply_received(void *arg, int retval, ipc_call_t *data)
  * @return Hash of the sent message or 0 on error.
  *
  */
-aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
 {
-	amsg_t *msg = malloc(sizeof(amsg_t));
+	if (exch == NULL)
+		return 0;
 	
-	if (!msg)
+	amsg_t *msg = malloc(sizeof(amsg_t));
+	if (msg == NULL)
 		return 0;
 	
 	msg->done = false;
@@ -960,7 +1025,7 @@ aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
 	 */
 	msg->wdata.active = true;
 	
-	ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, msg,
+	ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4, msg,
 	    reply_received, true);
 	
 	return (aid_t) msg;
@@ -971,8 +1036,8 @@ aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  * The return value can be used as input for async_wait() to wait for
  * completion.
  *
- * @param phoneid Handle of the phone that will be used for the send.
- * @param method  Service-defined method.
+ * @param exch    Exchange for sending the message.
+ * @param imethod Service-defined interface and method.
  * @param arg1    Service-defined payload argument.
  * @param arg2    Service-defined payload argument.
  * @param arg3    Service-defined payload argument.
@@ -984,13 +1049,16 @@ aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  * @return Hash of the sent message or 0 on error.
  *
  */
-aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
+aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
     ipc_call_t *dataptr)
 {
+	if (exch == NULL)
+		return 0;
+	
 	amsg_t *msg = malloc(sizeof(amsg_t));
 	
-	if (!msg)
+	if (msg == NULL)
 		return 0;
 	
 	msg->done = false;
@@ -1004,8 +1072,8 @@ aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	 */
 	msg->wdata.active = true;
 	
-	ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, msg,
-	    reply_received, true);
+	ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4, arg5,
+	    msg, reply_received, true);
 	
 	return (aid_t) msg;
 }
@@ -1019,6 +1087,8 @@ aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
  */
 void async_wait_for(aid_t amsgid, sysarg_t *retval)
 {
+	assert(amsgid);
+	
 	amsg_t *msg = (amsg_t *) amsgid;
 	
 	futex_down(&async_futex);
@@ -1055,6 +1125,8 @@ done:
  */
 int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 {
+	assert(amsgid);
+	
 	amsg_t *msg = (amsg_t *) amsgid;
 	
 	/* TODO: Let it go through the event read at least once */
@@ -1123,26 +1195,6 @@ void async_usleep(suseconds_t timeout)
 	free(msg);
 }
 
-/** Setter for client_connection function pointer.
- *
- * @param conn Function that will implement a new connection fibril.
- *
- */
-void async_set_client_connection(async_client_conn_t conn)
-{
-	client_connection = conn;
-}
-
-/** Setter for interrupt_received function pointer.
- *
- * @param intr Function that will implement a new interrupt
- *             notification fibril.
- */
-void async_set_interrupt_received(async_client_conn_t intr)
-{
-	interrupt_received = intr;
-}
-
 /** Pseudo-synchronous message sending - fast version.
  *
  * Send message asynchronously and return only after the reply arrives.
@@ -1150,8 +1202,8 @@ void async_set_interrupt_received(async_client_conn_t intr)
  * This function can only transfer 4 register payload arguments. For
  * transferring more arguments, see the slower async_req_slow().
  *
- * @param phoneid Hash of the phone through which to make the call.
- * @param method  Method of the call.
+ * @param exch    Exchange for sending the message.
+ * @param imethod Interface and method of the call.
  * @param arg1    Service-defined payload argument.
  * @param arg2    Service-defined payload argument.
  * @param arg3    Service-defined payload argument.
@@ -1165,16 +1217,19 @@ void async_set_interrupt_received(async_client_conn_t intr)
  * @return Return code of the reply or a negative error code.
  *
  */
-sysarg_t async_req_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+sysarg_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
     sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
+	if (exch == NULL)
+		return ENOENT;
+	
 	ipc_call_t result;
-	aid_t eid = async_send_4(phoneid, method, arg1, arg2, arg3, arg4,
+	aid_t aid = async_send_4(exch, imethod, arg1, arg2, arg3, arg4,
 	    &result);
 	
 	sysarg_t rc;
-	async_wait_for(eid, &rc);
+	async_wait_for(aid, &rc);
 	
 	if (r1)
 		*r1 = IPC_GET_ARG1(result);
@@ -1198,8 +1253,8 @@ sysarg_t async_req_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  *
  * Send message asynchronously and return only after the reply arrives.
  *
- * @param phoneid Hash of the phone through which to make the call.
- * @param method  Method of the call.
+ * @param exch    Exchange for sending the message.
+ * @param imethod Interface and method of the call.
  * @param arg1    Service-defined payload argument.
  * @param arg2    Service-defined payload argument.
  * @param arg3    Service-defined payload argument.
@@ -1214,16 +1269,19 @@ sysarg_t async_req_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  * @return Return code of the reply or a negative error code.
  *
  */
-sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
+sysarg_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
     sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
+	if (exch == NULL)
+		return ENOENT;
+	
 	ipc_call_t result;
-	aid_t eid = async_send_5(phoneid, method, arg1, arg2, arg3, arg4, arg5,
+	aid_t aid = async_send_5(exch, imethod, arg1, arg2, arg3, arg4, arg5,
 	    &result);
 	
 	sysarg_t rc;
-	async_wait_for(eid, &rc);
+	async_wait_for(aid, &rc);
 	
 	if (r1)
 		*r1 = IPC_GET_ARG1(result);
@@ -1243,39 +1301,48 @@ sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	return rc;
 }
 
-void async_msg_0(int phone, sysarg_t imethod)
+void async_msg_0(async_exch_t *exch, sysarg_t imethod)
 {
-	ipc_call_async_0(phone, imethod, NULL, NULL, true);
+	if (exch != NULL)
+		ipc_call_async_0(exch->phone, imethod, NULL, NULL, true);
 }
 
-void async_msg_1(int phone, sysarg_t imethod, sysarg_t arg1)
+void async_msg_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1)
 {
-	ipc_call_async_1(phone, imethod, arg1, NULL, NULL, true);
+	if (exch != NULL)
+		ipc_call_async_1(exch->phone, imethod, arg1, NULL, NULL, true);
 }
 
-void async_msg_2(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2)
+void async_msg_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2)
 {
-	ipc_call_async_2(phone, imethod, arg1, arg2, NULL, NULL, true);
+	if (exch != NULL)
+		ipc_call_async_2(exch->phone, imethod, arg1, arg2, NULL, NULL,
+		    true);
 }
 
-void async_msg_3(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3)
+void async_msg_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3)
 {
-	ipc_call_async_3(phone, imethod, arg1, arg2, arg3, NULL, NULL, true);
+	if (exch != NULL)
+		ipc_call_async_3(exch->phone, imethod, arg1, arg2, arg3, NULL,
+		    NULL, true);
 }
 
-void async_msg_4(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, sysarg_t arg4)
+void async_msg_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	ipc_call_async_4(phone, imethod, arg1, arg2, arg3, arg4, NULL, NULL,
-	    true);
+	if (exch != NULL)
+		ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4,
+		    NULL, NULL, true);
 }
 
-void async_msg_5(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
+void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
-	ipc_call_async_5(phone, imethod, arg1, arg2, arg3, arg4, arg5, NULL,
-	    NULL, true);
+	if (exch != NULL)
+		ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4,
+		    arg5, NULL, NULL, true);
 }
 
 sysarg_t async_answer_0(ipc_callid_t callid, sysarg_t retval)
@@ -1312,39 +1379,48 @@ sysarg_t async_answer_5(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
 	return ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5);
 }
 
-int async_forward_fast(ipc_callid_t callid, int phoneid, sysarg_t imethod,
-    sysarg_t arg1, sysarg_t arg2, unsigned int mode)
+int async_forward_fast(ipc_callid_t callid, async_exch_t *exch,
+    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
-	return ipc_forward_fast(callid, phoneid, imethod, arg1, arg2, mode);
+	if (exch == NULL)
+		return ENOENT;
+	
+	return ipc_forward_fast(callid, exch->phone, imethod, arg1, arg2, mode);
 }
 
-int async_forward_slow(ipc_callid_t callid, int phoneid, sysarg_t imethod,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
-    unsigned int mode)
+int async_forward_slow(ipc_callid_t callid, async_exch_t *exch,
+    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
+    sysarg_t arg4, sysarg_t arg5, unsigned int mode)
 {
-	return ipc_forward_slow(callid, phoneid, imethod, arg1, arg2, arg3, arg4,
-	    arg5, mode);
+	if (exch == NULL)
+		return ENOENT;
+	
+	return ipc_forward_slow(callid, exch->phone, imethod, arg1, arg2, arg3,
+	    arg4, arg5, mode);
 }
 
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
  *
  * Ask through phone for a new connection to some service.
  *
- * @param phone           Phone handle used for contacting the other side.
+ * @param exch            Exchange for sending the message.
  * @param arg1            User defined argument.
  * @param arg2            User defined argument.
  * @param arg3            User defined argument.
  * @param client_receiver Connection handing routine.
  *
- * @return New phone handle on success or a negative error code.
+ * @return Zero on success or a negative error code.
  *
  */
-int async_connect_to_me(int phone, sysarg_t arg1, sysarg_t arg2,
+int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3, async_client_conn_t client_receiver)
 {
+	if (exch == NULL)
+		return ENOENT;
+	
 	sysarg_t task_hash;
 	sysarg_t phone_hash;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	int rc = async_req_3_5(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
 	    NULL, NULL, NULL, &task_hash, &phone_hash);
 	if (rc != EOK)
 		return rc;
@@ -1356,29 +1432,161 @@ int async_connect_to_me(int phone, sysarg_t arg1, sysarg_t arg2,
 	return EOK;
 }
 
-/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+/** Wrapper for making IPC_M_CONNECT_ME calls using the async framework.
  *
- * Ask through phone for a new connection to some service.
+ * Ask through for a cloned connection to some service.
  *
- * @param phone Phone handle used for contacting the other side.
- * @param arg1  User defined argument.
- * @param arg2  User defined argument.
- * @param arg3  User defined argument.
+ * @param mgmt Exchange management style.
+ * @param exch Exchange for sending the message.
  *
- * @return New phone handle on success or a negative error code.
+ * @return New session on success or NULL on error.
  *
  */
-int async_connect_me_to(int phone, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3)
+async_sess_t *async_connect_me(exch_mgmt_t mgmt, async_exch_t *exch)
 {
-	sysarg_t newphid;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
-	    NULL, NULL, NULL, NULL, &newphid);
+	if (exch == NULL) {
+		errno = ENOENT;
+		return NULL;
+	}
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	ipc_call_t result;
+	
+	amsg_t *msg = malloc(sizeof(amsg_t));
+	if (msg == NULL) {
+		free(sess);
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	msg->done = false;
+	msg->dataptr = &result;
+	
+	msg->wdata.to_event.inlist = false;
+	
+	/*
+	 * We may sleep in the next method,
+	 * but it will use its own means
+	 */
+	msg->wdata.active = true;
+	
+	ipc_call_async_0(exch->phone, IPC_M_CONNECT_ME, msg,
+	    reply_received, true);
+	
+	sysarg_t rc;
+	async_wait_for((aid_t) msg, &rc);
+	
+	if (rc != EOK) {
+		errno = rc;
+		free(sess);
+		return NULL;
+	}
+	
+	int phone = (int) IPC_GET_ARG5(result);
+	
+	if (phone < 0) {
+		errno = phone;
+		free(sess);
+		return NULL;
+	}
+	
+	sess->mgmt = mgmt;
+	sess->phone = phone;
+	sess->arg1 = 0;
+	sess->arg2 = 0;
+	sess->arg3 = 0;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	return sess;
+}
+
+static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4)
+{
+	ipc_call_t result;
+	
+	amsg_t *msg = malloc(sizeof(amsg_t));
+	if (msg == NULL)
+		return ENOENT;
+	
+	msg->done = false;
+	msg->dataptr = &result;
+	
+	msg->wdata.to_event.inlist = false;
+	
+	/*
+	 * We may sleep in the next method,
+	 * but it will use its own means
+	 */
+	msg->wdata.active = true;
+	
+	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
+	    msg, reply_received, true);
+	
+	sysarg_t rc;
+	async_wait_for((aid_t) msg, &rc);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return newphid;
+	return (int) IPC_GET_ARG5(result);
+}
+
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ *
+ * Ask through for a new connection to some service.
+ *
+ * @param mgmt Exchange management style.
+ * @param exch Exchange for sending the message.
+ * @param arg1 User defined argument.
+ * @param arg2 User defined argument.
+ * @param arg3 User defined argument.
+ *
+ * @return New session on success or NULL on error.
+ *
+ */
+async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	if (exch == NULL) {
+		errno = ENOENT;
+		return NULL;
+	}
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	int phone = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
+	    0);
+	
+	if (phone < 0) {
+		errno = phone;
+		free(sess);
+		return NULL;
+	}
+	
+	sess->mgmt = mgmt;
+	sess->phone = phone;
+	sess->arg1 = arg1;
+	sess->arg2 = arg2;
+	sess->arg3 = arg3;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	return sess;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
@@ -1386,45 +1594,106 @@ int async_connect_me_to(int phone, sysarg_t arg1, sysarg_t arg2,
  * Ask through phone for a new connection to some service and block until
  * success.
  *
- * @param phoneid Phone handle used for contacting the other side.
- * @param arg1    User defined argument.
- * @param arg2    User defined argument.
- * @param arg3    User defined argument.
+ * @param mgmt Exchange management style.
+ * @param exch Exchange for sending the message.
+ * @param arg1 User defined argument.
+ * @param arg2 User defined argument.
+ * @param arg3 User defined argument.
  *
- * @return New phone handle on success or a negative error code.
+ * @return New session on success or NULL on error.
  *
  */
-int async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3)
+async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
 {
-	sysarg_t newphid;
-	int rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
-	    IPC_FLAG_BLOCKING, NULL, NULL, NULL, NULL, &newphid);
+	if (exch == NULL) {
+		errno = ENOENT;
+		return NULL;
+	}
 	
-	if (rc != EOK)
-		return rc;
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
 	
-	return newphid;
+	int phone = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
+	    IPC_FLAG_BLOCKING);
+	
+	if (phone < 0) {
+		errno = phone;
+		free(sess);
+		return NULL;
+	}
+	
+	sess->mgmt = mgmt;
+	sess->phone = phone;
+	sess->arg1 = arg1;
+	sess->arg2 = arg2;
+	sess->arg3 = arg3;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	return sess;
 }
 
 /** Connect to a task specified by id.
  *
  */
-int async_connect_kbox(task_id_t id)
+async_sess_t *async_connect_kbox(task_id_t id)
 {
-	return ipc_connect_kbox(id);
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	int phone = ipc_connect_kbox(id);
+	if (phone < 0) {
+		errno = phone;
+		free(sess);
+		return NULL;
+	}
+	
+	sess->mgmt = EXCHANGE_ATOMIC;
+	sess->phone = phone;
+	sess->arg1 = 0;
+	sess->arg2 = 0;
+	sess->arg3 = 0;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	return sess;
+}
+
+static int async_hangup_internal(int phone)
+{
+	return ipc_hangup(phone);
 }
 
 /** Wrapper for ipc_hangup.
  *
- * @param phone Phone handle to hung up.
+ * @param sess Session to hung up.
  *
  * @return Zero on success or a negative error code.
  *
  */
-int async_hangup(int phone)
+int async_hangup(async_sess_t *sess)
 {
-	return ipc_hangup(phone);
+	assert(sess);
+	
+	if (atomic_get(&sess->refcnt) > 0)
+		return EBUSY;
+	
+	int rc = async_hangup_internal(sess->phone);
+	if (rc == EOK)
+		free(sess);
+	
+	return rc;
 }
 
 /** Interrupt one thread of this task from waiting for IPC. */
@@ -1433,22 +1702,142 @@ void async_poke(void)
 	ipc_poke();
 }
 
+/** Start new exchange in a session.
+ *
+ * @param session Session.
+ *
+ * @return New exchange or NULL on error.
+ *
+ */
+async_exch_t *async_exchange_begin(async_sess_t *sess)
+{
+	if (sess == NULL)
+		return NULL;
+	
+	async_exch_t *exch;
+	
+	fibril_mutex_lock(&async_sess_mutex);
+	
+	if (!list_empty(&sess->exch_list)) {
+		/*
+		 * There are inactive exchanges in the session.
+		 */
+		exch = (async_exch_t *)
+		    list_get_instance(sess->exch_list.next, async_exch_t, sess_link);
+		list_remove(&exch->sess_link);
+		list_remove(&exch->global_link);
+	} else {
+		/*
+		 * There are no available exchanges in the session.
+		 */
+		
+		if ((sess->mgmt == EXCHANGE_ATOMIC) ||
+		    (sess->mgmt == EXCHANGE_SERIALIZE)) {
+			exch = (async_exch_t *) malloc(sizeof(async_exch_t));
+			if (exch != NULL) {
+				list_initialize(&exch->sess_link);
+				list_initialize(&exch->global_link);
+				exch->sess = sess;
+				exch->phone = sess->phone;
+			}
+		} else {  /* EXCHANGE_PARALLEL */
+			/*
+			 * Make a one-time attempt to connect a new data phone.
+			 */
+			
+			int phone;
+			
+retry:
+			phone = async_connect_me_to_internal(sess->phone, sess->arg1,
+			    sess->arg2, sess->arg3, 0);
+			if (phone >= 0) {
+				exch = (async_exch_t *) malloc(sizeof(async_exch_t));
+				if (exch != NULL) {
+					list_initialize(&exch->sess_link);
+					list_initialize(&exch->global_link);
+					exch->sess = sess;
+					exch->phone = phone;
+				} else
+					async_hangup_internal(phone);
+			} else if (!list_empty(&inactive_exch_list)) {
+				/*
+				 * We did not manage to connect a new phone. But we
+				 * can try to close some of the currently inactive
+				 * connections in other sessions and try again.
+				 */
+				exch = (async_exch_t *)
+				    list_get_instance(inactive_exch_list.next, async_exch_t,
+				    global_link);
+				list_remove(&exch->sess_link);
+				list_remove(&exch->global_link);
+				async_hangup_internal(exch->phone);
+				free(exch);
+				goto retry;
+			} else {
+				/*
+				 * Wait for a phone to become available.
+				 */
+				fibril_condvar_wait(&avail_phone_cv, &async_sess_mutex);
+				goto retry;
+			}
+		}
+	}
+	
+	fibril_mutex_unlock(&async_sess_mutex);
+	
+	if (exch != NULL) {
+		atomic_inc(&sess->refcnt);
+		
+		if (sess->mgmt == EXCHANGE_SERIALIZE)
+			fibril_mutex_lock(&sess->mutex);
+	}
+	
+	return exch;
+}
+
+/** Finish an exchange.
+ *
+ * @param exch Exchange to finish.
+ *
+ */
+void async_exchange_end(async_exch_t *exch)
+{
+	if (exch == NULL)
+		return;
+	
+	async_sess_t *sess = exch->sess;
+	
+	if (sess->mgmt == EXCHANGE_SERIALIZE)
+		fibril_mutex_unlock(&sess->mutex);
+	
+	fibril_mutex_lock(&async_sess_mutex);
+	
+	list_append(&exch->sess_link, &sess->exch_list);
+	list_append(&exch->global_link, &inactive_exch_list);
+	fibril_condvar_signal(&avail_phone_cv);
+	
+	fibril_mutex_unlock(&async_sess_mutex);
+}
+
 /** Wrapper for IPC_M_SHARE_IN calls using the async framework.
  *
- * @param phoneid Phone that will be used to contact the receiving side.
- * @param dst     Destination address space area base.
- * @param size    Size of the destination address space area.
- * @param arg     User defined argument.
- * @param flags   Storage for the received flags. Can be NULL.
+ * @param exch  Exchange for sending the message.
+ * @param dst   Destination address space area base.
+ * @param size  Size of the destination address space area.
+ * @param arg   User defined argument.
+ * @param flags Storage for the received flags. Can be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_share_in_start(int phoneid, void *dst, size_t size, sysarg_t arg,
-    unsigned int *flags)
+int async_share_in_start(async_exch_t *exch, void *dst, size_t size,
+    sysarg_t arg, unsigned int *flags)
 {
+	if (exch == NULL)
+		return ENOENT;
+	
 	sysarg_t tmp_flags;
-	int res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (sysarg_t) dst,
+	int res = async_req_3_2(exch, IPC_M_SHARE_IN, (sysarg_t) dst,
 	    (sysarg_t) size, arg, NULL, &tmp_flags);
 	
 	if (flags)
@@ -1506,16 +1895,19 @@ int async_share_in_finalize(ipc_callid_t callid, void *src, unsigned int flags)
 
 /** Wrapper for IPC_M_SHARE_OUT calls using the async framework.
  *
- * @param phoneid Phone that will be used to contact the receiving side.
- * @param src     Source address space area base address.
- * @param flags   Flags to be used for sharing. Bits can be only cleared.
+ * @param exch  Exchange for sending the message.
+ * @param src   Source address space area base address.
+ * @param flags Flags to be used for sharing. Bits can be only cleared.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_share_out_start(int phoneid, void *src, unsigned int flags)
+int async_share_out_start(async_exch_t *exch, void *src, unsigned int flags)
 {
-	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (sysarg_t) src, 0,
+	if (exch == NULL)
+		return ENOENT;
+	
+	return async_req_3_0(exch, IPC_M_SHARE_OUT, (sysarg_t) src, 0,
 	    (sysarg_t) flags);
 }
 
@@ -1570,33 +1962,37 @@ int async_share_out_finalize(ipc_callid_t callid, void *dst)
 
 /** Start IPC_M_DATA_READ using the async framework.
  *
- * @param phoneid Phone that will be used to contact the receiving side.
- * @param dst Address of the beginning of the destination buffer.
- * @param size Size of the destination buffer (in bytes).
+ * @param exch    Exchange for sending the message.
+ * @param dst     Address of the beginning of the destination buffer.
+ * @param size    Size of the destination buffer (in bytes).
  * @param dataptr Storage of call data (arg 2 holds actual data size).
+ *
  * @return Hash of the sent message or 0 on error.
+ *
  */
-aid_t async_data_read(int phoneid, void *dst, size_t size, ipc_call_t *dataptr)
+aid_t async_data_read(async_exch_t *exch, void *dst, size_t size,
+    ipc_call_t *dataptr)
 {
-	return async_send_2(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
+	return async_send_2(exch, IPC_M_DATA_READ, (sysarg_t) dst,
 	    (sysarg_t) size, dataptr);
 }
 
 /** Wrapper for IPC_M_DATA_READ calls using the async framework.
  *
- * @param phoneid Phone that will be used to contact the receiving side.
- * @param dst     Address of the beginning of the destination buffer.
- * @param size    Size of the destination buffer.
- * @param flags   Flags to control the data transfer.
+ * @param exch Exchange for sending the message.
+ * @param dst  Address of the beginning of the destination buffer.
+ * @param size Size of the destination buffer.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int
-async_data_read_start_generic(int phoneid, void *dst, size_t size, int flags)
+int async_data_read_start(async_exch_t *exch, void *dst, size_t size)
 {
-	return async_req_3_0(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
-	    (sysarg_t) size, (sysarg_t) flags);
+	if (exch == NULL)
+		return ENOENT;
+	
+	return async_req_2_0(exch, IPC_M_DATA_READ, (sysarg_t) dst,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
@@ -1651,23 +2047,27 @@ int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 /** Wrapper for forwarding any read request
  *
  */
-int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
+int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    ipc_call_t *dataptr)
 {
+	if (exch == NULL)
+		return ENOENT;
+	
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 	
-	aid_t msg = async_send_fast(phoneid, method, arg1, arg2, arg3, arg4,
+	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 	
-	int retval = ipc_forward_fast(callid, phoneid, 0, 0, 0,
+	int retval = ipc_forward_fast(callid, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
 		async_wait_for(msg, NULL);
@@ -1683,20 +2083,20 @@ int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
 
 /** Wrapper for IPC_M_DATA_WRITE calls using the async framework.
  *
- * @param phoneid Phone that will be used to contact the receiving side.
- * @param src     Address of the beginning of the source buffer.
- * @param size    Size of the source buffer.
- * @param flags   Flags to control the data transfer.
+ * @param exch Exchange for sending the message.
+ * @param src  Address of the beginning of the source buffer.
+ * @param size Size of the source buffer.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int
-async_data_write_start_generic(int phoneid, const void *src, size_t size,
-    int flags)
+int async_data_write_start(async_exch_t *exch, const void *src, size_t size)
 {
-	return async_req_3_0(phoneid, IPC_M_DATA_WRITE, (sysarg_t) src,
-	    (sysarg_t) size, (sysarg_t) flags);
+	if (exch == NULL)
+		return ENOENT;
+	
+	return async_req_2_0(exch, IPC_M_DATA_WRITE, (sysarg_t) src,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
@@ -1772,6 +2172,8 @@ int async_data_write_accept(void **data, const bool nullterm,
     const size_t min_size, const size_t max_size, const size_t granularity,
     size_t *received)
 {
+	assert(data);
+	
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
@@ -1839,23 +2241,27 @@ void async_data_write_void(sysarg_t retval)
 /** Wrapper for forwarding any data that is about to be received
  *
  */
-int async_data_write_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
+int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    ipc_call_t *dataptr)
 {
+	if (exch == NULL)
+		return ENOENT;
+	
 	ipc_callid_t callid;
 	if (!async_data_write_receive(&callid, NULL)) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 	
-	aid_t msg = async_send_fast(phoneid, method, arg1, arg2, arg3, arg4,
+	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 	
-	int retval = ipc_forward_fast(callid, phoneid, 0, 0, 0,
+	int retval = ipc_forward_fast(callid, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
 		async_wait_for(msg, NULL);
@@ -1867,6 +2273,107 @@ int async_data_write_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
 	async_wait_for(msg, &rc);
 	
 	return (int) rc;
+}
+
+/** Wrapper for sending an exchange over different exchange for cloning
+ *
+ * @param exch       Exchange to be used for sending.
+ * @param clone_exch Exchange to be cloned.
+ *
+ */
+int async_exchange_clone(async_exch_t *exch, async_exch_t *clone_exch)
+{
+	return async_req_1_0(exch, IPC_M_CONNECTION_CLONE, clone_exch->phone);
+}
+
+/** Wrapper for receiving the IPC_M_CONNECTION_CLONE calls.
+ *
+ * If the current call is IPC_M_CONNECTION_CLONE then a new
+ * async session is created for the accepted phone.
+ *
+ * @param mgmt Exchange management style.
+ *
+ * @return New async session or NULL on failure.
+ *
+ */
+async_sess_t *async_clone_receive(exch_mgmt_t mgmt)
+{
+	/* Accept the phone */
+	ipc_call_t call;
+	ipc_callid_t callid = async_get_call(&call);
+	int phone = (int) IPC_GET_ARG1(call);
+	
+	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECTION_CLONE) ||
+	    (phone < 0)) {
+		async_answer_0(callid, EINVAL);
+		return NULL;
+	}
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return NULL;
+	}
+	
+	sess->mgmt = mgmt;
+	sess->phone = phone;
+	sess->arg1 = 0;
+	sess->arg2 = 0;
+	sess->arg3 = 0;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	/* Acknowledge the cloned phone */
+	async_answer_0(callid, EOK);
+	
+	return sess;
+}
+
+/** Wrapper for receiving the IPC_M_CONNECT_TO_ME calls.
+ *
+ * If the current call is IPC_M_CONNECT_TO_ME then a new
+ * async session is created for the accepted phone.
+ *
+ * @param mgmt Exchange management style.
+ *
+ * @return New async session or NULL on failure.
+ *
+ */
+async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
+{
+	/* Accept the phone */
+	ipc_call_t call;
+	ipc_callid_t callid = async_get_call(&call);
+	int phone = (int) IPC_GET_ARG5(call);
+	
+	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) ||
+	    (phone < 0)) {
+		async_answer_0(callid, EINVAL);
+		return NULL;
+	}
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return NULL;
+	}
+	
+	sess->mgmt = mgmt;
+	sess->phone = phone;
+	sess->arg1 = 0;
+	sess->arg2 = 0;
+	sess->arg3 = 0;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	/* Acknowledge the connected phone */
+	async_answer_0(callid, EOK);
+	
+	return sess;
 }
 
 /** @}

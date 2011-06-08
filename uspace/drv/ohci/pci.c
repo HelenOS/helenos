@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /**
  * @addtogroup drvusbohci
  * @{
@@ -33,6 +34,7 @@
  * @file
  * PCI related functions needed by the OHCI driver.
  */
+
 #include <errno.h>
 #include <assert.h>
 #include <as.h>
@@ -62,39 +64,35 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	assert(mem_reg_size);
 	assert(irq_no);
 
-	int parent_phone = devman_parent_device_connect(dev->handle,
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
-	int rc;
-
+	if (!parent_sess)
+		return ENOMEM;
+	
 	hw_resource_list_t hw_resources;
-	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
+	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
 	if (rc != EOK) {
-		async_hangup(parent_phone);
+		async_hangup(parent_sess);
 		return rc;
 	}
-
+	
 	uintptr_t mem_address = 0;
 	size_t mem_size = 0;
 	bool mem_found = false;
-
+	
 	int irq = 0;
 	bool irq_found = false;
-
+	
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type)
-		{
+		switch (res->type) {
 		case INTERRUPT:
 			irq = res->res.interrupt.irq;
 			irq_found = true;
 			usb_log_debug2("Found interrupt: %d.\n", irq);
 			break;
-
 		case MEM_RANGE:
 			if (res->res.mem_range.address != 0
 			    && res->res.mem_range.size != 0 ) {
@@ -103,44 +101,42 @@ int pci_get_my_registers(ddf_dev_t *dev,
 				usb_log_debug2("Found mem: %p %zu.\n",
 				    (void *) mem_address, mem_size);
 				mem_found = true;
-				}
+			}
 		default:
 			break;
 		}
 	}
-
+	
 	if (mem_found && irq_found) {
 		*mem_reg_address = mem_address;
 		*mem_reg_size = mem_size;
 		*irq_no = irq;
 		rc = EOK;
-	} else {
+	} else
 		rc = ENOENT;
-	}
-
-	async_hangup(parent_phone);
+	
+	async_hangup(parent_sess);
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
-/** Calls the PCI driver with a request to enable interrupts
+
+/** Call the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
-	int parent_phone =
-	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-	bool enabled = hw_res_enable_interrupt(parent_phone);
-	async_hangup(parent_phone);
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+	
+	bool enabled = hw_res_enable_interrupt(parent_sess);
+	async_hangup(parent_sess);
+	
 	return enabled ? EOK : EIO;
 }
-/**
- * @}
- */
 
 /**
  * @}

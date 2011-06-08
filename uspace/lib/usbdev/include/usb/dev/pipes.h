@@ -42,6 +42,7 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 #include <fibril_synch.h>
+#include <async.h>
 
 /** Abstraction of a physical connection to the device.
  * This type is an abstraction of the USB wire that connects the host and
@@ -61,8 +62,8 @@ typedef struct {
  * (i.e. the wire to send data over).
  *
  * Locking order: if you want to lock both mutexes
- * (@c guard and @c hc_phone_mutex), lock @c guard first.
- * It is not necessary to lock @c guard if you want to lock @c hc_phone_mutex
+ * (@c guard and @c hc_sess_mutex), lock @c guard first.
+ * It is not necessary to lock @c guard if you want to lock @c hc_sess_mutex
  * only.
  */
 typedef struct {
@@ -84,17 +85,17 @@ typedef struct {
 	/** Maximum packet size for the endpoint. */
 	size_t max_packet_size;
 
-	/** Phone to the host controller.
-	 * Negative when no session is active.
-	 * It is an error to access this member without @c hc_phone_mutex
+	/** Session to the host controller.
+	 * NULL when no session is active.
+	 * It is an error to access this member without @c hc_sess_mutex
 	 * being locked.
 	 * If call over the phone is to be made, it must be preceeded by
 	 * call to pipe_add_ref() [internal libusb function].
 	 */
-	int hc_phone;
+	async_sess_t *hc_sess;
 
-	/** Guard for serialization of requests over the phone. */
-	fibril_mutex_t hc_phone_mutex;
+	/** Guard for serialization of requests over the session. */
+	fibril_mutex_t hc_sess_mutex;
 
 	/** Number of active transfers over the pipe. */
 	int refcount;

@@ -37,7 +37,7 @@
 
 #include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
@@ -52,7 +52,7 @@
 
 #define NAME "fhc"
 
-#define FHC_UART_INR	0x39	
+#define FHC_UART_INR	0x39
 
 #define FHC_UART_IMAP	0x0
 #define FHC_UART_ICLR	0x4
@@ -127,12 +127,12 @@ static bool fhc_init(void)
 	    ALIGN_UP(fhc_uart_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
 	
 	if (retval < 0) {
-		printf(NAME ": Error mapping FHC UART registers\n");
+		printf("%s: Error mapping FHC UART registers\n", NAME);
 		return false;
 	}
 	
-	printf(NAME ": FHC UART registers at %p, %zu bytes\n", fhc_uart_phys,
-	    fhc_uart_size);
+	printf("%s: FHC UART registers at %p, %zu bytes\n", NAME,
+	    fhc_uart_phys, fhc_uart_size);
 	
 	async_set_client_connection(fhc_connection);
 	service_register(SERVICE_IRC);
@@ -142,18 +142,19 @@ static bool fhc_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS FHC bus controller driver\n");
+	printf("%s: HelenOS FHC bus controller driver\n", NAME);
 	
 	if (!fhc_init())
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
-
+	
 	/* Never reached */
 	return 0;
 }
 
 /**
  * @}
- */ 
+ */

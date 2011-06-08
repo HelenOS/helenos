@@ -45,7 +45,6 @@
 #include <errno.h>
 #include <sort.h>
 #include "screen.h"
-#include "input.h"
 #include "top.h"
 
 #define NAME  "top"

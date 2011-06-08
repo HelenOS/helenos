@@ -89,7 +89,7 @@ bool keybuffer_empty(keybuffer_t *keybuffer)
  * @param ev        The event to push.
  *
  */
-void keybuffer_push(keybuffer_t *keybuffer, const console_event_t *ev)
+void keybuffer_push(keybuffer_t *keybuffer, const kbd_event_t *ev)
 {
 	futex_down(&keybuffer_futex);
 	
@@ -109,7 +109,7 @@ void keybuffer_push(keybuffer_t *keybuffer, const console_event_t *ev)
  * @return True if an event was popped.
  *
  */
-bool keybuffer_pop(keybuffer_t *keybuffer, console_event_t *edst)
+bool keybuffer_pop(keybuffer_t *keybuffer, kbd_event_t *edst)
 {
 	futex_down(&keybuffer_futex);
 	

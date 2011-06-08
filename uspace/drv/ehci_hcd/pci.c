@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /**
  * @addtogroup drvusbehci
  * @{
@@ -33,6 +34,7 @@
  * @file
  * PCI related functions needed by the EHCI driver.
  */
+
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>
@@ -71,47 +73,65 @@
 
 #define PCI_READ(size) \
 do { \
-	const int parent_phone = \
-	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);\
-	if (parent_phone < 0) {\
-		return parent_phone; \
-	} \
-	sysarg_t add = (sysarg_t)address; \
+	async_sess_t *parent_sess = \
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle, \
+	    IPC_FLAG_BLOCKING); \
+	if (!parent_sess) \
+		return ENOMEM; \
+	\
+	sysarg_t add = (sysarg_t) address; \
 	sysarg_t val; \
+	\
+	async_exch_t *exch = async_exchange_begin(parent_sess); \
+	\
 	const int ret = \
-	    async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE), \
+	    async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE), \
 	        IPC_M_CONFIG_SPACE_READ_##size, add, &val); \
+	\
+	async_exchange_end(exch); \
+	async_hangup(parent_sess); \
+	\
 	assert(value); \
+	\
 	*value = val; \
-	async_hangup(parent_phone); \
 	return ret; \
-} while(0)
+} while (0)
 
 static int pci_read32(const ddf_dev_t *dev, int address, uint32_t *value)
 {
 	PCI_READ(32);
 }
+
 static int pci_read16(const ddf_dev_t *dev, int address, uint16_t *value)
 {
 	PCI_READ(16);
 }
+
 static int pci_read8(const ddf_dev_t *dev, int address, uint8_t *value)
 {
 	PCI_READ(8);
 }
+
 #define PCI_WRITE(size) \
 do { \
-	const int parent_phone = \
-	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);\
-	if (parent_phone < 0) {\
-		return parent_phone; \
-	} \
-	sysarg_t add = (sysarg_t)address; \
+	async_sess_t *parent_sess = \
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle, \
+	    IPC_FLAG_BLOCKING); \
+	if (!parent_sess) \
+		return ENOMEM; \
+	\
+	sysarg_t add = (sysarg_t) address; \
 	sysarg_t val = value; \
+	\
+	async_exch_t *exch = async_exchange_begin(parent_sess); \
+	\
 	const int ret = \
-	    async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE), \
+	    async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE), \
 	        IPC_M_CONFIG_SPACE_WRITE_##size, add, val); \
-	async_hangup(parent_phone); \
+	\
+	async_exchange_end(exch); \
+	async_hangup(parent_sess); \
+	\
 	return ret; \
 } while(0)
 
@@ -119,10 +139,12 @@ static int pci_write32(const ddf_dev_t *dev, int address, uint32_t value)
 {
 	PCI_WRITE(32);
 }
+
 static int pci_write16(const ddf_dev_t *dev, int address, uint16_t value)
 {
 	PCI_WRITE(16);
 }
+
 static int pci_write8(const ddf_dev_t *dev, int address, uint8_t value)
 {
 	PCI_WRITE(8);
@@ -140,40 +162,36 @@ int pci_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
 	assert(dev != NULL);
-
-	const int parent_phone =
-	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
-	int rc;
-
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+	
 	hw_resource_list_t hw_resources;
-	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
+	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
 	if (rc != EOK) {
-		async_hangup(parent_phone);
+		async_hangup(parent_sess);
 		return rc;
 	}
-
+	
 	uintptr_t mem_address = 0;
 	size_t mem_size = 0;
 	bool mem_found = false;
-
+	
 	int irq = 0;
 	bool irq_found = false;
-
+	
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type)
-		{
+		switch (res->type) {
 		case INTERRUPT:
 			irq = res->res.interrupt.irq;
 			irq_found = true;
 			usb_log_debug2("Found interrupt: %d.\n", irq);
 			break;
-
 		case MEM_RANGE:
 			if (res->res.mem_range.address != 0
 			    && res->res.mem_range.size != 0 ) {
@@ -182,12 +200,12 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 				usb_log_debug2("Found mem: %" PRIxn" %zu.\n",
 				    mem_address, mem_size);
 				mem_found = true;
-				}
+			}
 		default:
 			break;
 		}
 	}
-
+	
 	if (mem_found && irq_found) {
 		*mem_reg_address = mem_address;
 		*mem_reg_size = mem_size;
@@ -196,8 +214,8 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	} else {
 		rc = ENOENT;
 	}
-
-	async_hangup(parent_phone);
+	
+	async_hangup(parent_sess);
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
@@ -208,13 +226,15 @@ int pci_get_my_registers(const ddf_dev_t *dev,
  */
 int pci_enable_interrupts(const ddf_dev_t *device)
 {
-	const int parent_phone =
-	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-	const bool enabled = hw_res_enable_interrupt(parent_phone);
-	async_hangup(parent_phone);
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+	
+	const bool enabled = hw_res_enable_interrupt(parent_sess);
+	async_hangup(parent_sess);
+	
 	return enabled ? EOK : EIO;
 }
 /*----------------------------------------------------------------------------*/
@@ -365,10 +385,6 @@ int pci_disable_legacy(
 	return ret;
 #undef CHECK_RET_RETURN
 }
-/*----------------------------------------------------------------------------*/
-/**
- * @}
- */
 
 /**
  * @}

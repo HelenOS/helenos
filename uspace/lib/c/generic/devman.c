@@ -35,124 +35,169 @@
  */
 
 #include <str.h>
-#include <stdio.h>
 #include <ipc/services.h>
+#include <ns.h>
 #include <ipc/devman.h>
 #include <devman.h>
-#include <async.h>
 #include <fibril_synch.h>
+#include <async.h>
 #include <errno.h>
 #include <malloc.h>
 #include <bool.h>
-#include <adt/list.h>
 
-static int devman_phone_driver = -1;
-static int devman_phone_client = -1;
+static FIBRIL_MUTEX_INITIALIZE(devman_driver_block_mutex);
+static FIBRIL_MUTEX_INITIALIZE(devman_client_block_mutex);
 
-static FIBRIL_MUTEX_INITIALIZE(devman_phone_mutex);
+static FIBRIL_MUTEX_INITIALIZE(devman_driver_mutex);
+static FIBRIL_MUTEX_INITIALIZE(devman_client_mutex);
 
-int devman_get_phone(devman_interface_t iface, unsigned int flags)
+static async_sess_t *devman_driver_block_sess = NULL;
+static async_sess_t *devman_client_block_sess = NULL;
+
+static async_sess_t *devman_driver_sess = NULL;
+static async_sess_t *devman_client_sess = NULL;
+
+static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
+    async_sess_t **dst)
+{
+	fibril_mutex_lock(mtx);
+	
+	if ((*dst == NULL) && (src != NULL))
+		*dst = src;
+	
+	fibril_mutex_unlock(mtx);
+}
+
+/** Start an async exchange on the devman session (blocking).
+ *
+ * @param iface Device manager interface to choose
+ *
+ * @return New exchange.
+ *
+ */
+async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 {
 	switch (iface) {
 	case DEVMAN_DRIVER:
-		fibril_mutex_lock(&devman_phone_mutex);
-		if (devman_phone_driver >= 0) {
-			fibril_mutex_unlock(&devman_phone_mutex);
-			return devman_phone_driver;
+		fibril_mutex_lock(&devman_driver_block_mutex);
+		
+		while (devman_driver_block_sess == NULL) {
+			clone_session(&devman_driver_mutex, devman_driver_sess,
+			    &devman_driver_block_sess);
+			
+			if (devman_driver_block_sess == NULL)
+				devman_driver_block_sess =
+				    service_connect_blocking(EXCHANGE_SERIALIZE,
+				    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		}
 		
-		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_driver = async_connect_me_to_blocking(
-			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
-		else
-			devman_phone_driver = async_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
+		fibril_mutex_unlock(&devman_driver_block_mutex);
 		
-		fibril_mutex_unlock(&devman_phone_mutex);
-		return devman_phone_driver;
+		clone_session(&devman_driver_mutex, devman_driver_block_sess,
+		    &devman_driver_sess);
+		
+		return async_exchange_begin(devman_driver_block_sess);
 	case DEVMAN_CLIENT:
-		fibril_mutex_lock(&devman_phone_mutex);
-		if (devman_phone_client >= 0) {
-			fibril_mutex_unlock(&devman_phone_mutex);
-			return devman_phone_client;
+		fibril_mutex_lock(&devman_client_block_mutex);
+		
+		while (devman_client_block_sess == NULL) {
+			clone_session(&devman_client_mutex, devman_client_sess,
+			    &devman_client_block_sess);
+			
+			if (devman_client_block_sess == NULL)
+				devman_client_block_sess =
+				    service_connect_blocking(EXCHANGE_SERIALIZE,
+				    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
 		}
 		
-		if (flags & IPC_FLAG_BLOCKING) {
-			devman_phone_client = async_connect_me_to_blocking(
-			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		} else {
-			devman_phone_client = async_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		}
+		fibril_mutex_unlock(&devman_client_block_mutex);
 		
-		fibril_mutex_unlock(&devman_phone_mutex);
-		return devman_phone_client;
+		clone_session(&devman_client_mutex, devman_client_block_sess,
+		    &devman_client_sess);
+		
+		return async_exchange_begin(devman_client_block_sess);
 	default:
-		return -1;
+		return NULL;
 	}
+}
+
+/** Start an async exchange on the devman session.
+ *
+ * @param iface Device manager interface to choose
+ *
+ * @return New exchange.
+ *
+ */
+async_exch_t *devman_exchange_begin(devman_interface_t iface)
+{
+	switch (iface) {
+	case DEVMAN_DRIVER:
+		fibril_mutex_lock(&devman_driver_mutex);
+		
+		if (devman_driver_sess == NULL)
+			devman_driver_sess =
+			    service_connect(EXCHANGE_SERIALIZE, SERVICE_DEVMAN,
+			    DEVMAN_DRIVER, 0);
+		
+		fibril_mutex_unlock(&devman_driver_mutex);
+		
+		if (devman_driver_sess == NULL)
+			return NULL;
+		
+		return async_exchange_begin(devman_driver_sess);
+	case DEVMAN_CLIENT:
+		fibril_mutex_lock(&devman_client_mutex);
+		
+		if (devman_client_sess == NULL)
+			devman_client_sess =
+			    service_connect(EXCHANGE_SERIALIZE, SERVICE_DEVMAN,
+			    DEVMAN_CLIENT, 0);
+		
+		fibril_mutex_unlock(&devman_client_mutex);
+		
+		if (devman_client_sess == NULL)
+			return NULL;
+		
+		return async_exchange_begin(devman_client_sess);
+	default:
+		return NULL;
+	}
+}
+
+/** Finish an async exchange on the devman session.
+ *
+ * @param exch Exchange to be finished.
+ *
+ */
+void devman_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
 }
 
 /** Register running driver with device manager. */
 int devman_driver_register(const char *name, async_client_conn_t conn)
 {
-	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
-	
-	if (phone < 0)
-		return phone;
-	
-	async_serialize_start();
+	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
+	aid_t req = async_send_2(exch, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
 	
-	sysarg_t retval = async_data_write_start(phone, name, str_size(name));
+	devman_exchange_end(exch);
+	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
-		async_serialize_end();
-		return -1;
+		return retval;
 	}
 	
 	async_set_client_connection(conn);
 	
-	async_connect_to_me(phone, 0, 0, 0, NULL);
+	exch = devman_exchange_begin(DEVMAN_DRIVER);
+	async_connect_to_me(exch, 0, 0, 0, NULL);
+	devman_exchange_end(exch);
+	
 	async_wait_for(req, &retval);
-	
-	async_serialize_end();
-	
 	return retval;
-}
-
-static int devman_send_match_id(int phone, match_id_t *match_id)
-{
-	ipc_call_t answer;
-
-	aid_t req = async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score,
-	    &answer);
-	int retval = async_data_write_start(phone, match_id->id,
-	    str_size(match_id->id));
-
-	async_wait_for(req, NULL);
-	return retval;
-}
-
-
-static int devman_send_match_ids(int phone, match_id_list_t *match_ids)
-{
-	link_t *link = match_ids->ids.next;
-	match_id_t *match_id = NULL;
-	int ret = EOK;
-
-	while (link != &match_ids->ids) {
-		match_id = list_get_instance(link, match_id_t, link); 
-		ret = devman_send_match_id(phone, match_id);
-		if (ret != EOK) {
-			return ret;
-		}
-
-		link = link->next;
-	}
-
-	return ret;
 }
 
 /** Add function to a device.
@@ -160,165 +205,158 @@ static int devman_send_match_ids(int phone, match_id_list_t *match_ids)
  * Request devman to add a new function to the specified device owned by
  * this driver task.
  *
- * @param name		Name of the new function
- * @param ftype		Function type, fun_inner or fun_exposed
- * @param match_ids	Match IDs (should be empty for fun_exposed)
- * @param devh		Devman handle of the device
- * @param funh		Place to store handle of the new function
+ * @param name      Name of the new function
+ * @param ftype     Function type, fun_inner or fun_exposed
+ * @param match_ids Match IDs (should be empty for fun_exposed)
+ * @param devh      Devman handle of the device
+ * @param funh      Place to store handle of the new function
  *
- * @return		EOK on success or negative error code.
+ * @return EOK on success or negative error code.
+ *
  */
 int devman_add_function(const char *name, fun_type_t ftype,
     match_id_list_t *match_ids, devman_handle_t devh, devman_handle_t *funh)
 {
-	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
-	int fun_handle;
-	
-	if (phone < 0)
-		return phone;
-	
-	async_serialize_start();
-	
 	int match_count = list_count(&match_ids->ids);
+	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	
 	ipc_call_t answer;
-
-	aid_t req = async_send_3(phone, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
+	aid_t req = async_send_3(exch, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
 	    devh, match_count, &answer);
-
-	sysarg_t retval = async_data_write_start(phone, name, str_size(name));
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
 	if (retval != EOK) {
+		devman_exchange_end(exch);
 		async_wait_for(req, NULL);
-		async_serialize_end();
 		return retval;
 	}
 	
-	int match_ids_rc = devman_send_match_ids(phone, match_ids);
-	
 	async_wait_for(req, &retval);
-	
-	async_serialize_end();
-	
-	/* Prefer the answer to DEVMAN_ADD_FUNCTION in case of errors. */
-	if ((match_ids_rc != EOK) && (retval == EOK)) {
-		retval = match_ids_rc;
+	if (retval != EOK) {
+		devman_exchange_end(exch);
+		
+		if (funh != NULL)
+			*funh = -1;
+		
+		return retval;
 	}
-
-	if (retval == EOK)
-		fun_handle = (int) IPC_GET_ARG1(answer);
-	else
-		fun_handle = -1;
 	
-	*funh = fun_handle;
-
-	return retval;
+	if (funh != NULL)
+		*funh = (int) IPC_GET_ARG1(answer);
+	
+	link_t *link = match_ids->ids.next;
+	match_id_t *match_id = NULL;
+	
+	while (link != &match_ids->ids) {
+		match_id = list_get_instance(link, match_id_t, link);
+		
+		ipc_call_t answer;
+		aid_t req = async_send_1(exch, DEVMAN_ADD_MATCH_ID,
+		    match_id->score, &answer);
+		retval = async_data_write_start(exch, match_id->id,
+		    str_size(match_id->id));
+		if (retval != EOK) {
+			devman_exchange_end(exch);
+			async_wait_for(req, NULL);
+			return retval;
+		}
+		
+		async_wait_for(req, &retval);
+		if (retval != EOK) {
+			devman_exchange_end(exch);
+			return retval;
+		}
+		
+		link = link->next;
+	}
+	
+	devman_exchange_end(exch);
+	return EOK;
 }
 
 int devman_add_device_to_class(devman_handle_t devman_handle,
     const char *class_name)
 {
-	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
+	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
 	
-	if (phone < 0)
-		return phone;
-	
-	async_serialize_start();
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS,
+	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CLASS,
 	    devman_handle, &answer);
-	
-	sysarg_t retval = async_data_write_start(phone, class_name,
+	sysarg_t retval = async_data_write_start(exch, class_name,
 	    str_size(class_name));
+	
+	devman_exchange_end(exch);
+	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
-		async_serialize_end();
 		return retval;
 	}
 	
 	async_wait_for(req, &retval);
-	async_serialize_end();
-	
 	return retval;
 }
 
-void devman_hangup_phone(devman_interface_t iface)
+async_sess_t *devman_device_connect(exch_mgmt_t mgmt, devman_handle_t handle,
+    unsigned int flags)
 {
-	switch (iface) {
-	case DEVMAN_DRIVER:
-		if (devman_phone_driver >= 0) {
-			async_hangup(devman_phone_driver);
-			devman_phone_driver = -1;
-		}
-		break;
-	case DEVMAN_CLIENT:
-		if (devman_phone_client >= 0) {
-			async_hangup(devman_phone_client);
-			devman_phone_client = -1;
-		}
-		break;
-	default:
-		break;
-	}
+	async_sess_t *sess;
+	
+	if (flags & IPC_FLAG_BLOCKING)
+		sess = service_connect_blocking(mgmt, SERVICE_DEVMAN,
+			    DEVMAN_CONNECT_TO_DEVICE, handle);
+	else
+		sess = service_connect(mgmt, SERVICE_DEVMAN,
+			    DEVMAN_CONNECT_TO_DEVICE, handle);
+	
+	return sess;
 }
 
-int devman_device_connect(devman_handle_t handle, unsigned int flags)
+async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
+    devman_handle_t handle, unsigned int flags)
 {
-	int phone;
+	async_sess_t *sess;
 	
-	if (flags & IPC_FLAG_BLOCKING) {
-		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
-		    DEVMAN_CONNECT_TO_DEVICE, handle);
-	} else {
-		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
-		    DEVMAN_CONNECT_TO_DEVICE, handle);
-	}
+	if (flags & IPC_FLAG_BLOCKING)
+		sess = service_connect_blocking(mgmt, SERVICE_DEVMAN,
+			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+	else
+		sess = service_connect(mgmt, SERVICE_DEVMAN,
+			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
 	
-	return phone;
-}
-
-int devman_parent_device_connect(devman_handle_t handle, unsigned int flags)
-{
-	int phone;
-	
-	if (flags & IPC_FLAG_BLOCKING) {
-		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
-		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
-	} else {
-		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
-		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
-	}
-	
-	return phone;
+	return sess;
 }
 
 int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
     unsigned int flags)
 {
-	int phone = devman_get_phone(DEVMAN_CLIENT, flags);
+	async_exch_t *exch;
 	
-	if (phone < 0)
-		return phone;
-	
-	async_serialize_start();
+	if (flags & IPC_FLAG_BLOCKING)
+		exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
+	else {
+		exch = devman_exchange_begin(DEVMAN_CLIENT);
+		if (exch == NULL)
+			return errno;
+	}
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
+	aid_t req = async_send_2(exch, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
-	
-	sysarg_t retval = async_data_write_start(phone, pathname,
+	sysarg_t retval = async_data_write_start(exch, pathname,
 	    str_size(pathname));
+	
+	devman_exchange_end(exch);
+	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
-		async_serialize_end();
 		return retval;
 	}
 	
 	async_wait_for(req, &retval);
 	
-	async_serialize_end();
-	
 	if (retval != EOK) {
 		if (handle != NULL)
 			*handle = (devman_handle_t) -1;
+		
 		return retval;
 	}
 	
@@ -331,104 +369,101 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
 int devman_device_get_handle_by_class(const char *classname,
     const char *devname, devman_handle_t *handle, unsigned int flags)
 {
-	int phone = devman_get_phone(DEVMAN_CLIENT, flags);
-
-	if (phone < 0)
-		return phone;
-
-	async_serialize_start();
-
+	async_exch_t *exch;
+	
+	if (flags & IPC_FLAG_BLOCKING)
+		exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
+	else {
+		exch = devman_exchange_begin(DEVMAN_CLIENT);
+		if (exch == NULL)
+			return errno;
+	}
+	
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_DEVICE_GET_HANDLE_BY_CLASS,
+	aid_t req = async_send_1(exch, DEVMAN_DEVICE_GET_HANDLE_BY_CLASS,
 	    flags, &answer);
-
-	sysarg_t retval = async_data_write_start(phone, classname,
+	sysarg_t retval = async_data_write_start(exch, classname,
 	    str_size(classname));
+	
 	if (retval != EOK) {
+		devman_exchange_end(exch);
 		async_wait_for(req, NULL);
-		async_serialize_end();
 		return retval;
 	}
-	retval = async_data_write_start(phone, devname,
+	
+	retval = async_data_write_start(exch, devname,
 	    str_size(devname));
+	
+	devman_exchange_end(exch);
+	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
-		async_serialize_end();
 		return retval;
 	}
-
+	
 	async_wait_for(req, &retval);
-
-	async_serialize_end();
-
+	
 	if (retval != EOK) {
 		if (handle != NULL)
 			*handle = (devman_handle_t) -1;
+		
 		return retval;
 	}
-
+	
 	if (handle != NULL)
 		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
-
+	
 	return retval;
 }
 
 int devman_get_device_path(devman_handle_t handle, char *path, size_t path_size)
 {
-	int phone = devman_get_phone(DEVMAN_CLIENT, 0);
-
-	if (phone < 0)
-		return phone;
-
-	async_serialize_start();
-
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return errno;
+	
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_DEVICE_GET_DEVICE_PATH,
+	aid_t req = async_send_1(exch, DEVMAN_DEVICE_GET_DEVICE_PATH,
 	    handle, &answer);
-
+	
 	ipc_call_t data_request_call;
-	aid_t data_request = async_data_read(phone, path, path_size,
+	aid_t data_request = async_data_read(exch, path, path_size,
 	    &data_request_call);
+	
+	devman_exchange_end(exch);
+	
 	if (data_request == 0) {
 		async_wait_for(req, NULL);
-		async_serialize_end();
 		return ENOMEM;
 	}
-
+	
 	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
+	
+	sysarg_t opening_request_rc;
 	async_wait_for(req, &opening_request_rc);
-
-	async_serialize_end();
-
+	
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
-		if (opening_request_rc != EOK) {
+		if (opening_request_rc != EOK)
 			return (int) opening_request_rc;
-		} else {
+		else
 			return (int) data_request_rc;
-		}
 	}
-	if (opening_request_rc != EOK) {
+	
+	if (opening_request_rc != EOK)
 		return (int) opening_request_rc;
-	}
-
+	
 	/* To be on the safe-side. */
 	path[path_size - 1] = 0;
-
 	size_t transferred_size = IPC_GET_ARG2(data_request_call);
-
-	if (transferred_size >= path_size) {
+	if (transferred_size >= path_size)
 		return ELIMIT;
-	}
-
+	
 	/* Terminate the string (trailing 0 not send over IPC). */
 	path[transferred_size] = 0;
-
 	return EOK;
 }
-
 
 /** @}
  */

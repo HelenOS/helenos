@@ -38,12 +38,14 @@
 #include <ipc/mouse.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
+#include <ns_obsolete.h>
 #include <errno.h>
 #include <str_error.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <adt/fifo.h>
 #include <sys/mman.h>
 #include <stdio.h>
@@ -51,6 +53,7 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
+#include <devmap_obsolete.h>
 #include <fcntl.h>
 #include <vfs/vfs.h>
 #include <fibril_synch.h>
@@ -62,14 +65,18 @@
 #include "gcons.h"
 #include "keybuffer.h"
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME       "console"
 #define NAMESPACE  "term"
+
 /** Interval for checking for new keyboard (1/4s). */
 #define HOTPLUG_WATCH_INTERVAL (1000 * 250)
 
 /* Kernel defines 32 but does not export it. */
 #define MAX_IPC_OUTGOING_PHONES 128
+
 /** To allow proper phone closing. */
 static ipc_callid_t driver_phones[MAX_IPC_OUTGOING_PHONES] = { 0 };
 
@@ -96,8 +103,6 @@ typedef struct {
 	                               contents and related settings. */
 } console_t;
 
-
-
 /** Array of data for virtual consoles */
 static console_t consoles[CONSOLE_COUNT];
 
@@ -121,57 +126,57 @@ static FIBRIL_CONDVAR_INITIALIZE(input_cv);
 
 static void curs_visibility(bool visible)
 {
-	async_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, visible); 
+	async_obsolete_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, visible); 
 }
 
 static void curs_hide_sync(void)
 {
-	async_req_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
+	async_obsolete_req_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
 }
 
 static void curs_goto(sysarg_t x, sysarg_t y)
 {
-	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, x, y);
+	async_obsolete_msg_2(fb_info.phone, FB_CURSOR_GOTO, x, y);
 }
 
 static void screen_clear(void)
 {
-	async_msg_0(fb_info.phone, FB_CLEAR);
+	async_obsolete_msg_0(fb_info.phone, FB_CLEAR);
 }
 
 static void screen_yield(void)
 {
-	async_req_0_0(fb_info.phone, FB_SCREEN_YIELD);
+	async_obsolete_req_0_0(fb_info.phone, FB_SCREEN_YIELD);
 }
 
 static void screen_reclaim(void)
 {
-	async_req_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
+	async_obsolete_req_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
 }
 
 static void kbd_yield(void)
 {
-	async_req_0_0(kbd_phone, KBD_YIELD);
+	async_obsolete_req_0_0(kbd_phone, KBD_YIELD);
 }
 
 static void kbd_reclaim(void)
 {
-	async_req_0_0(kbd_phone, KBD_RECLAIM);
+	async_obsolete_req_0_0(kbd_phone, KBD_RECLAIM);
 }
 
 static void set_style(uint8_t style)
 {
-	async_msg_1(fb_info.phone, FB_SET_STYLE, style);
+	async_obsolete_msg_1(fb_info.phone, FB_SET_STYLE, style);
 }
 
 static void set_color(uint8_t fgcolor, uint8_t bgcolor, uint8_t flags)
 {
-	async_msg_3(fb_info.phone, FB_SET_COLOR, fgcolor, bgcolor, flags);
+	async_obsolete_msg_3(fb_info.phone, FB_SET_COLOR, fgcolor, bgcolor, flags);
 }
 
 static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
 {
-	async_msg_2(fb_info.phone, FB_SET_RGB_COLOR, fgcolor, bgcolor); 
+	async_obsolete_msg_2(fb_info.phone, FB_SET_RGB_COLOR, fgcolor, bgcolor); 
 }
 
 static void set_attrs(attrs_t *attrs)
@@ -226,7 +231,7 @@ static void fb_update_area(console_t *cons, sysarg_t x0, sysarg_t y0, sysarg_t w
 			}
 		}
 		
-		async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
+		async_obsolete_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
 		    x0, y0, width, height);
 	}
 }
@@ -267,7 +272,7 @@ static void cell_mark_changed(sysarg_t col, sysarg_t row)
 /** Print a character to the active VC with buffering. */
 static void fb_putchar(wchar_t c, sysarg_t col, sysarg_t row)
 {
-	async_msg_3(fb_info.phone, FB_PUTCHAR, c, col, row);
+	async_obsolete_msg_3(fb_info.phone, FB_PUTCHAR, c, col, row);
 }
 
 /** Process a character from the client (TTY emulation). */
@@ -316,7 +321,7 @@ static void write_char(console_t *cons, wchar_t ch)
 		cons->scr.top_line = (cons->scr.top_line + 1) % cons->scr.size_y;
 		
 		if (cons == active_console)
-			async_msg_1(fb_info.phone, FB_SCROLL, 1);
+			async_obsolete_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
 	
 	if (cons == active_console && flush_cursor)
@@ -327,19 +332,18 @@ static void write_char(console_t *cons, wchar_t ch)
 /** Switch to new console */
 static void change_console(console_t *cons)
 {
-	if (cons == active_console) {
+	if (cons == active_console)
 		return;
-	}
 	
 	fb_pending_flush();
 	
 	if (cons == kernel_console) {
-		async_serialize_start();
+		async_obsolete_serialize_start();
 		curs_hide_sync();
 		gcons_in_kernel();
 		screen_yield();
 		kbd_yield();
-		async_serialize_end();
+		async_obsolete_serialize_end();
 		
 		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
 			prev_console = active_console;
@@ -349,7 +353,7 @@ static void change_console(console_t *cons)
 	}
 	
 	if (cons != kernel_console) {
-		async_serialize_start();
+		async_obsolete_serialize_start();
 		
 		if (active_console == kernel_console) {
 			screen_reclaim();
@@ -376,7 +380,7 @@ static void change_console(console_t *cons)
 			}
 			
 			/* This call can preempt, but we are already at the end */
-			rc = async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
+			rc = async_obsolete_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
 			    0, 0, cons->scr.size_x,
 			    cons->scr.size_y);
 		}
@@ -404,7 +408,7 @@ static void change_console(console_t *cons)
 		curs_goto(cons->scr.position_x, cons->scr.position_y);
 		curs_visibility(cons->scr.is_cursor_visible);
 		
-		async_serialize_end();
+		async_obsolete_serialize_end();
 	}
 }
 
@@ -415,7 +419,7 @@ static void close_driver_phone(ipc_callid_t hash)
 		if (driver_phones[i] == hash) {
 			printf("Device %" PRIxn " gone.\n", hash);
 			driver_phones[i] = 0;
-			async_hangup(i);
+			async_obsolete_hangup(i);
 			return;
 		}
 	}
@@ -430,13 +434,15 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		int retval;
-		console_event_t ev;
+		kbd_event_t ev;
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			close_driver_phone(iid);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case KBD_EVENT:
 			/* Got event from keyboard driver. */
 			retval = 0;
@@ -476,17 +482,18 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 		
 		int retval;
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			close_driver_phone(iid);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case MEVENT_BUTTON:
 			if (IPC_GET_ARG1(call) == 1) {
 				int newcon = gcons_mouse_btn((bool) IPC_GET_ARG2(call));
-				if (newcon != -1) {
+				if (newcon != -1)
 					change_console(&consoles[newcon]);
-				}
 			}
 			retval = 0;
 			break;
@@ -514,7 +521,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	async_serialize_start();
+	async_obsolete_serialize_start();
 	
 	size_t off = 0;
 	while (off < size) {
@@ -522,7 +529,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		write_char(cons, ch);
 	}
 	
-	async_serialize_end();
+	async_obsolete_serialize_end();
 	
 	gcons_notify_char(cons->index);
 	async_answer_1(rid, EOK, size);
@@ -548,7 +555,7 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	size_t pos = 0;
-	console_event_t ev;
+	kbd_event_t ev;
 	fibril_mutex_lock(&input_mutex);
 	
 recheck:
@@ -573,7 +580,7 @@ recheck:
 
 static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	
 	fibril_mutex_lock(&input_mutex);
 	
@@ -617,7 +624,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	int rc;
 	
-	async_serialize_start();
+	async_obsolete_serialize_start();
 	if (cons->refcount == 0)
 		gcons_notify_connect(cons->index);
 	
@@ -627,41 +634,43 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 	
 	while (true) {
-		async_serialize_end();
+		async_obsolete_serialize_end();
 		callid = async_get_call(&call);
-		async_serialize_start();
+		async_obsolete_serialize_start();
 		
 		arg1 = 0;
 		arg2 = 0;
 		arg3 = 0;
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		if (!IPC_GET_IMETHOD(call)) {
 			cons->refcount--;
 			if (cons->refcount == 0)
 				gcons_notify_disconnect(cons->index);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_READ:
-			async_serialize_end();
+			async_obsolete_serialize_end();
 			cons_read(cons, callid, &call);
-			async_serialize_start();
+			async_obsolete_serialize_start();
 			continue;
 		case VFS_OUT_WRITE:
-			async_serialize_end();
+			async_obsolete_serialize_end();
 			cons_write(cons, callid, &call);
-			async_serialize_start();
+			async_obsolete_serialize_start();
 			continue;
 		case VFS_OUT_SYNC:
 			fb_pending_flush();
 			if (cons == active_console) {
-				async_req_0_0(fb_info.phone, FB_FLUSH);
+				async_obsolete_req_0_0(fb_info.phone, FB_FLUSH);
 				curs_goto(cons->scr.position_x, cons->scr.position_y);
 			}
 			break;
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
 			if (cons == active_console)
-				async_msg_0(fb_info.phone, FB_CLEAR);
+				async_obsolete_msg_0(fb_info.phone, FB_CLEAR);
 			
 			screenbuffer_clear(&cons->scr);
 			
@@ -720,9 +729,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				curs_visibility(arg1);
 			break;
 		case CONSOLE_GET_EVENT:
-			async_serialize_end();
+			async_obsolete_serialize_end();
 			cons_get_event(cons, callid, &call);
-			async_serialize_start();
+			async_obsolete_serialize_start();
 			continue;
 		case CONSOLE_KCON_ENABLE:
 			change_console(kernel_console);
@@ -738,67 +747,65 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 }
 
 static int async_connect_to_me_hack(int phone, sysarg_t arg1, sysarg_t arg2,
-sysarg_t arg3, async_client_conn_t client_receiver, ipc_callid_t *hash)
+    sysarg_t arg3, async_client_conn_t client_receiver, ipc_callid_t *hash)
 {
 	sysarg_t task_hash;
 	sysarg_t phone_hash;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	int rc = async_obsolete_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
 	    NULL, NULL, NULL, &task_hash, &phone_hash);
 	if (rc != EOK)
 		return rc;
-
+	
 	if (client_receiver != NULL)
 		async_new_connection(task_hash, phone_hash, phone_hash, NULL,
 		    client_receiver);
-
-	if (hash != NULL) {
+	
+	if (hash != NULL)
 		*hash = phone_hash;
-	}
-
+	
 	return EOK;
 }
 
 static int connect_keyboard_or_mouse(const char *devname,
-    async_client_conn_t handler, const char *path)
+    async_client_conn_t handler, const char *dev)
 {
-	int fd = open(path, O_RDONLY);
-	if (fd < 0) {
-		return fd;
-	}
+	int phone;
+	devmap_handle_t handle;
 	
-	int phone = fd_phone(fd);
-	close(fd);
-	if (phone < 0) {
-		printf(NAME ": Failed to connect to input device\n");
-		return phone;
-	}
+	int rc = devmap_device_get_handle(dev, &handle, 0);
+	if (rc == EOK) {
+		phone = devmap_obsolete_device_connect(handle, 0);
+		if (phone < 0) {
+			printf("%s: Failed to connect to input device\n", NAME);
+			return phone;
+		}
+	} else
+		return rc;
 	
+	/* NB: The callback connection is slotted for removal */
 	ipc_callid_t hash;
-	int rc = async_connect_to_me_hack(phone, SERVICE_CONSOLE, 0, phone,
+	rc = async_connect_to_me_hack(phone, SERVICE_CONSOLE, 0, phone,
 	    handler, &hash);
 	if (rc != EOK) {
-		async_hangup(phone);
-		printf(NAME ": " \
-		    "Failed to create callback from input device: %s.\n",
-		    str_error(rc));
+		async_obsolete_hangup(phone);
+		printf("%s: Failed to create callback from input device (%s).\n",
+		    NAME, str_error(rc));
 		return rc;
 	}
 	
 	driver_phones[phone] = hash;
-
-	printf(NAME ": found %s \"%s\" (%" PRIxn ").\n", devname, path, hash);
-
+	printf("%s: found %s \"%s\" (%" PRIxn ").\n", NAME, devname, dev, hash);
 	return phone;
 }
 
-static int connect_keyboard(const char *path)
+static int connect_keyboard(const char *dev)
 {
-	return connect_keyboard_or_mouse("keyboard", keyboard_events, path);
+	return connect_keyboard_or_mouse("keyboard", keyboard_events, dev);
 }
 
-static int connect_mouse(const char *path)
+static int connect_mouse(const char *dev)
 {
-	return connect_keyboard_or_mouse("mouse", mouse_events, path);
+	return connect_keyboard_or_mouse("mouse", mouse_events, dev);
 }
 
 struct hid_class_info {
@@ -809,35 +816,36 @@ struct hid_class_info {
 /** Periodically check for new keyboards in /dev/class/.
  *
  * @param arg Class name.
+ *
  * @return This function should never exit.
+ *
  */
 static int check_new_device_fibril(void *arg)
 {
-	struct hid_class_info *dev_info = arg;
-
+	struct hid_class_info *dev_info = (struct hid_class_info *) arg;
+	
 	size_t index = 1;
-
+	
 	while (true) {
 		async_usleep(HOTPLUG_WATCH_INTERVAL);
-		char *path;
-		int rc = asprintf(&path, "/dev/class/%s\\%zu",
+		
+		char *dev;
+		int rc = asprintf(&dev, "class/%s\\%zu",
 		    dev_info->classname, index);
-		if (rc < 0) {
+		if (rc < 0)
 			continue;
-		}
-		rc = 0;
-		rc = dev_info->connection_func(path);
+		
+		rc = dev_info->connection_func(dev);
 		if (rc > 0) {
 			/* We do not allow unplug. */
 			index++;
 		}
-
-		free(path);
+		
+		free(dev);
 	}
-
+	
 	return EOK;
 }
-
 
 /** Start a fibril monitoring hot-plugged keyboards.
  */
@@ -846,55 +854,53 @@ static void check_new_devices_in_background(int (*connection_func)(const char *)
 {
 	struct hid_class_info *dev_info = malloc(sizeof(struct hid_class_info));
 	if (dev_info == NULL) {
-		printf(NAME ": " \
-		    "out of memory, will not start hot-plug-watch fibril.\n");
+		printf("%s: Out of memory, no hot-plug support.\n", NAME);
 		return;
 	}
-	int rc;
-
-	rc = asprintf(&dev_info->classname, "%s", classname);
+	
+	int rc = asprintf(&dev_info->classname, "%s", classname);
 	if (rc < 0) {
-		printf(NAME ": failed to format classname: %s.\n",
+		printf("%s: Failed to format classname: %s.\n", NAME,
 		    str_error(rc));
 		return;
 	}
+	
 	dev_info->connection_func = connection_func;
-
-	fid_t fid = fibril_create(check_new_device_fibril, (void *)dev_info);
+	
+	fid_t fid = fibril_create(check_new_device_fibril, (void *) dev_info);
 	if (!fid) {
-		printf(NAME
-		    ": failed to create hot-plug-watch fibril for %s.\n",
+		printf("%s: Failed to create hot-plug fibril for %s.\n", NAME,
 		    classname);
 		return;
 	}
+	
 	fibril_add_ready(fid);
 }
 
-static bool console_init(char *input)
+static bool console_srv_init(char *kdev)
 {
 	/* Connect to input device */
-	kbd_phone = connect_keyboard(input);
-	if (kbd_phone < 0) {
+	kbd_phone = connect_keyboard(kdev);
+	if (kbd_phone < 0)
 		return false;
-	}
-
-	mouse_phone = connect_mouse("/dev/hid_in/mouse");
+	
+	mouse_phone = connect_mouse("hid_in/mouse");
 	if (mouse_phone < 0) {
-		printf(NAME ": Failed to connect to mouse device: %s.\n",
+		printf("%s: Failed to connect to mouse device %s\n", NAME,
 		    str_error(mouse_phone));
 	}
 	
 	/* Connect to framebuffer driver */
-	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
+	fb_info.phone = service_obsolete_connect_blocking(SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
-		printf(NAME ": Failed to connect to video service\n");
-		return -1;
+		printf("%s: Failed to connect to video service\n", NAME);
+		return false;
 	}
 	
 	/* Register driver */
 	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver (%d)\n", rc);
+		printf("%s: Unable to register driver (%d)\n", NAME, rc);
 		return false;
 	}
 	
@@ -902,9 +908,9 @@ static bool console_init(char *input)
 	gcons_init(fb_info.phone);
 	
 	/* Synchronize, the gcons could put something in queue */
-	async_req_0_0(fb_info.phone, FB_FLUSH);
-	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
-	async_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &fb_info.color_cap);
+	async_obsolete_req_0_0(fb_info.phone, FB_FLUSH);
+	async_obsolete_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
+	async_obsolete_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &fb_info.color_cap);
 	
 	/* Set up shared memory buffer. */
 	size_t ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;
@@ -915,7 +921,7 @@ static bool console_init(char *input)
 		interbuffer = NULL;
 	
 	if (interbuffer) {
-		if (async_share_out_start(fb_info.phone, interbuffer,
+		if (async_obsolete_share_out_start(fb_info.phone, interbuffer,
 		    AS_AREA_READ) != EOK) {
 			as_area_destroy(interbuffer);
 			interbuffer = NULL;
@@ -930,7 +936,7 @@ static bool console_init(char *input)
 		if (i != KERNEL_CONSOLE) {
 			if (screenbuffer_init(&consoles[i].scr,
 			    fb_info.cols, fb_info.rows) == NULL) {
-				printf(NAME ": Unable to allocate screen buffer %zu\n", i);
+				printf("%s: Unable to allocate screen buffer %zu\n", NAME, i);
 				return false;
 			}
 			screenbuffer_clear(&consoles[i].scr);
@@ -942,7 +948,7 @@ static bool console_init(char *input)
 			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
 			
 			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
-				printf(NAME ": Unable to register device %s\n", vc);
+				printf("%s: Unable to register device %s\n", NAME, vc);
 				return false;
 			}
 		}
@@ -952,23 +958,23 @@ static bool console_init(char *input)
 	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
 	
 	/* Initialize the screen */
-	async_serialize_start();
+	async_obsolete_serialize_start();
 	gcons_redraw_console();
 	set_style(STYLE_NORMAL);
 	screen_clear();
 	curs_goto(0, 0);
 	curs_visibility(active_console->scr.is_cursor_visible);
-	async_serialize_end();
+	async_obsolete_serialize_end();
 	
 	/* Receive kernel notifications */
 	async_set_interrupt_received(interrupt_received);
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
-		printf(NAME ": Error registering kconsole notifications\n");
+		printf("%s: Error registering kconsole notifications\n", NAME);
 	
 	/* Start fibril for checking on hot-plugged keyboards. */
 	check_new_devices_in_background(connect_keyboard, "keyboard");
 	check_new_devices_in_background(connect_mouse, "mouse");
-
+	
 	return true;
 }
 
@@ -986,9 +992,9 @@ int main(int argc, char *argv[])
 	
 	printf(NAME ": HelenOS Console service\n");
 	
-	if (!console_init(argv[1]))
+	if (!console_srv_init(argv[1]))
 		return -1;
-
+	
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 	

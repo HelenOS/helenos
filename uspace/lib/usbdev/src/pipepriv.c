@@ -43,7 +43,7 @@
  */
 void pipe_start_transaction(usb_pipe_t *pipe)
 {
-	fibril_mutex_lock(&pipe->hc_phone_mutex);
+	fibril_mutex_lock(&pipe->hc_sess_mutex);
 }
 
 /** Terminate exclusive access to the IPC phone of given pipe.
@@ -52,7 +52,7 @@ void pipe_start_transaction(usb_pipe_t *pipe)
  */
 void pipe_end_transaction(usb_pipe_t *pipe)
 {
-	fibril_mutex_unlock(&pipe->hc_phone_mutex);
+	fibril_mutex_unlock(&pipe->hc_sess_mutex);
 }
 
 /** Ensure exclusive access to the pipe as a whole.
@@ -84,28 +84,33 @@ void pipe_release(usb_pipe_t *pipe)
 int pipe_add_ref(usb_pipe_t *pipe, bool hide_failure)
 {
 	pipe_acquire(pipe);
-
+	
 	if (pipe->refcount == 0) {
 		/* Need to open the phone by ourselves. */
-		int phone = devman_device_connect(pipe->wire->hc_handle, 0);
-		if (phone < 0) {
+		async_sess_t *sess =
+		    devman_device_connect(EXCHANGE_SERIALIZE, pipe->wire->hc_handle, 0);
+		if (!sess) {
 			if (hide_failure) {
 				pipe->refcount_soft++;
-				phone = EOK;
+				pipe_release(pipe);
+				return EOK;
 			}
+			
 			pipe_release(pipe);
-			return phone;
+			return ENOMEM;
 		}
+		
 		/*
 		 * No locking is needed, refcount is zero and whole pipe
 		 * mutex is locked.
 		 */
-		pipe->hc_phone = phone;
+		
+		pipe->hc_sess = sess;
 	}
+	
 	pipe->refcount++;
-
 	pipe_release(pipe);
-
+	
 	return EOK;
 }
 
@@ -116,18 +121,23 @@ int pipe_add_ref(usb_pipe_t *pipe, bool hide_failure)
 void pipe_drop_ref(usb_pipe_t *pipe)
 {
 	pipe_acquire(pipe);
+	
 	if (pipe->refcount_soft > 0) {
 		pipe->refcount_soft--;
 		pipe_release(pipe);
 		return;
 	}
+	
 	assert(pipe->refcount > 0);
+	
 	pipe->refcount--;
+	
 	if (pipe->refcount == 0) {
 		/* We were the last users, let's hang-up. */
-		async_hangup(pipe->hc_phone);
-		pipe->hc_phone = -1;
+		async_hangup(pipe->hc_sess);
+		pipe->hc_sess = NULL;
 	}
+	
 	pipe_release(pipe);
 }
 

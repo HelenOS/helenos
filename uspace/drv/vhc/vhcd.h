@@ -40,12 +40,13 @@
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/device_keeper.h>
 #include <usbhc_iface.h>
+#include <async.h>
 
 #define NAME "vhc"
 
 typedef struct {
 	link_t link;
-	int dev_phone;
+	async_sess_t *dev_sess;
 	usbvirt_device_t *dev_local;
 	bool plugged;
 	usb_address_t address;
@@ -81,7 +82,7 @@ typedef struct {
 
 vhc_transfer_t *vhc_transfer_create(usb_address_t, usb_endpoint_t,
     usb_direction_t, usb_transfer_type_t, ddf_fun_t *, void *);
-int vhc_virtdev_plug(vhc_data_t *, int, uintptr_t *);
+int vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
 int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
 int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);

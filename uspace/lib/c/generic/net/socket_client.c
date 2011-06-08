@@ -38,6 +38,7 @@
 
 #include <assert.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <fibril_synch.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -471,7 +472,7 @@ int socket(int domain, int type, int protocol)
 		return socket_id;
 	}
 
-	rc = (int) async_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL,
+	rc = (int) async_obsolete_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL,
 	    &fragment_size, &header_size);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -492,7 +493,7 @@ int socket(int domain, int type, int protocol)
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
-		async_msg_3(phone, NET_SOCKET_CLOSE, (sysarg_t) socket_id, 0,
+		async_obsolete_msg_3(phone, NET_SOCKET_CLOSE, (sysarg_t) socket_id, 0,
 		    service);
 		return rc;
 	}
@@ -537,10 +538,10 @@ socket_send_data(int socket_id, sysarg_t message, sysarg_t arg2,
 	}
 
 	/* Request the message */
-	message_id = async_send_3(socket->phone, message,
+	message_id = async_obsolete_send_3(socket->phone, message,
 	    (sysarg_t) socket->socket_id, arg2, socket->service, NULL);
 	/* Send the address */
-	async_data_write_start(socket->phone, data, datalength);
+	async_obsolete_data_write_start(socket->phone, data, datalength);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &result);
@@ -597,7 +598,7 @@ int listen(int socket_id, int backlog)
 	}
 
 	/* Request listen backlog change */
-	result = (int) async_req_3_0(socket->phone, NET_SOCKET_LISTEN,
+	result = (int) async_obsolete_req_3_0(socket->phone, NET_SOCKET_LISTEN,
 	    (sysarg_t) socket->socket_id, (sysarg_t) backlog, socket->service);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
@@ -680,12 +681,12 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 	}
 
 	/* Request accept */
-	message_id = async_send_5(socket->phone, NET_SOCKET_ACCEPT,
+	message_id = async_obsolete_send_5(socket->phone, NET_SOCKET_ACCEPT,
 	    (sysarg_t) socket->socket_id, 0, socket->service, 0,
 	    new_socket->socket_id, &answer);
 
 	/* Read address */
-	async_data_read_start(socket->phone, cliaddr, *addrlen);
+	async_obsolete_data_read_start(socket->phone, cliaddr, *addrlen);
 	fibril_rwlock_write_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &ipc_result);
 	result = (int) ipc_result;
@@ -779,7 +780,7 @@ int closesocket(int socket_id)
 	}
 
 	/* Request close */
-	rc = (int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
+	rc = (int) async_obsolete_req_3_0(socket->phone, NET_SOCKET_CLOSE,
 	    (sysarg_t) socket->socket_id, 0, socket->service);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -852,34 +853,34 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 	}
 
 	/* Request send */
-	message_id = async_send_5(socket->phone, message,
+	message_id = async_obsolete_send_5(socket->phone, message,
 	    (sysarg_t) socket->socket_id,
 	    (fragments == 1 ? datalength : socket->data_fragment_size),
 	    socket->service, (sysarg_t) flags, fragments, &answer);
 
 	/* Send the address if given */
 	if (!toaddr ||
-	    (async_data_write_start(socket->phone, toaddr, addrlen) == EOK)) {
+	    (async_obsolete_data_write_start(socket->phone, toaddr, addrlen) == EOK)) {
 		if (fragments == 1) {
 			/* Send all if only one fragment */
-			async_data_write_start(socket->phone, data, datalength);
+			async_obsolete_data_write_start(socket->phone, data, datalength);
 		} else {
 			/* Send the first fragment */
-			async_data_write_start(socket->phone, data,
+			async_obsolete_data_write_start(socket->phone, data,
 			    socket->data_fragment_size - socket->header_size);
 			data = ((const uint8_t *) data) +
 			    socket->data_fragment_size - socket->header_size;
 	
 			/* Send the middle fragments */
 			while (--fragments > 1) {
-				async_data_write_start(socket->phone, data,
+				async_obsolete_data_write_start(socket->phone, data,
 				    socket->data_fragment_size);
 				data = ((const uint8_t *) data) +
 				    socket->data_fragment_size;
 			}
 
 			/* Send the last fragment */
-			async_data_write_start(socket->phone, data,
+			async_obsolete_data_write_start(socket->phone, data,
 			    (datalength + socket->header_size) %
 			    socket->data_fragment_size);
 		}
@@ -1037,23 +1038,23 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		}
 
 		/* Request packet data */
-		message_id = async_send_4(socket->phone, message,
+		message_id = async_obsolete_send_4(socket->phone, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
 		    (sysarg_t) flags, &answer);
 
 		/* Read the address if desired */
 		if(!fromaddr ||
-		    (async_data_read_start(socket->phone, fromaddr,
+		    (async_obsolete_data_read_start(socket->phone, fromaddr,
 		    *addrlen) == EOK)) {
 			/* Read the fragment lengths */
-			if (async_data_read_start(socket->phone, lengths,
+			if (async_obsolete_data_read_start(socket->phone, lengths,
 			    sizeof(int) * (fragments + 1)) == EOK) {
 				if (lengths[fragments] <= datalength) {
 
 					/* Read all fragments if long enough */
 					for (index = 0; index < fragments;
 					    ++index) {
-						async_data_read_start(
+						async_obsolete_data_read_start(
 						    socket->phone, data,
 						    lengths[index]);
 						data = ((uint8_t *) data) +
@@ -1066,16 +1067,16 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		free(lengths);
 	} else { /* fragments == 1 */
 		/* Request packet data */
-		message_id = async_send_4(socket->phone, message,
+		message_id = async_obsolete_send_4(socket->phone, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
 		    (sysarg_t) flags, &answer);
 
 		/* Read the address if desired */
 		if (!fromaddr ||
-		    (async_data_read_start(socket->phone, fromaddr,
+		    (async_obsolete_data_read_start(socket->phone, fromaddr,
 		        *addrlen) == EOK)) {
 			/* Read all if only one fragment */
-			async_data_read_start(socket->phone, data, datalength);
+			async_obsolete_data_read_start(socket->phone, data, datalength);
 		}
 	}
 
@@ -1189,15 +1190,15 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 	}
 
 	/* Request option value */
-	message_id = async_send_3(socket->phone, NET_SOCKET_GETSOCKOPT,
+	message_id = async_obsolete_send_3(socket->phone, NET_SOCKET_GETSOCKOPT,
 	    (sysarg_t) socket->socket_id, (sysarg_t) optname, socket->service,
 	    NULL);
 
 	/* Read the length */
-	if (async_data_read_start(socket->phone, optlen,
+	if (async_obsolete_data_read_start(socket->phone, optlen,
 	    sizeof(*optlen)) == EOK) {
 		/* Read the value */
-		async_data_read_start(socket->phone, value, *optlen);
+		async_obsolete_data_read_start(socket->phone, value, *optlen);
 	}
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);

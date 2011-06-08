@@ -39,7 +39,7 @@
 
 #include "ext2fs.h"
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
@@ -86,14 +86,14 @@ static void ext2fs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	dprintf(NAME ": connection opened\n");
-	while (1) {
-		ipc_callid_t callid;
+	while (true) {
 		ipc_call_t call;
-	
-		callid = async_get_call(&call);
-		switch  (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
 			return;
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_MOUNTED:
 			ext2fs_mounted(callid, &call);
 			break;
@@ -142,24 +142,22 @@ static void ext2fs_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
-	int vfs_phone;
-	int rc;
-
 	printf(NAME ": HelenOS EXT2 file system server\n");
-
-	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
-	if (vfs_phone < EOK) {
+	
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
 
-	rc = ext2fs_global_init();
+	int rc = ext2fs_global_init();
 	if (rc != EOK) {
 		printf(NAME ": Failed global initialization\n");
 		return 1;
 	}	
 		
-	rc = fs_register(vfs_phone, &ext2fs_reg, &ext2fs_vfs_info, ext2fs_connection);
+	rc = fs_register(vfs_sess, &ext2fs_reg, &ext2fs_vfs_info, ext2fs_connection);
 	if (rc != EOK) {
 		fprintf(stdout, NAME ": Failed to register fs (%d)\n", rc);
 		return 1;

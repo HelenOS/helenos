@@ -118,6 +118,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
+	/* System management syscalls. */
 	(syshandler_t) sys_klog,
 	(syshandler_t) sys_tls_set,
 	
@@ -178,7 +179,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_register_irq,
 	(syshandler_t) sys_unregister_irq,
 	
-	/* Sysinfo syscalls */
+	/* Sysinfo syscalls. */
 	(syshandler_t) sys_sysinfo_get_tag,
 	(syshandler_t) sys_sysinfo_get_value,
 	(syshandler_t) sys_sysinfo_get_data_size,

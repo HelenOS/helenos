@@ -39,14 +39,15 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 #include <bool.h>
+#include <async.h>
 #include <usb/usb.h>
 
 /** Connection to the host controller driver. */
 typedef struct {
 	/** Devman handle of the host controller. */
 	devman_handle_t hc_handle;
-	/** Phone to the host controller. */
-	int hc_phone;
+	/** Session to the host controller. */
+	async_sess_t *hc_sess;
 } usb_hc_connection_t;
 
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,

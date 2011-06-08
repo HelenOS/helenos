@@ -35,10 +35,12 @@
 
 #include <ipc/char.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <vfs/vfs.h>
 #include <fcntl.h>
 #include <errno.h>
-
+#include <devmap.h>
+#include <devmap_obsolete.h>
 #include <char_mouse.h>
 #include <mouse_port.h>
 
@@ -50,29 +52,27 @@ static int dev_phone;
 
 int mouse_port_init(void)
 {
-	const char *input = "/dev/char/ps2b";
-	int input_fd;
-
-	printf(NAME ": open %s\n", input);
-
-	input_fd = open(input, O_RDONLY);
-	if (input_fd < 0) {
-		printf(NAME ": Failed opening %s (%d)\n", input, input_fd);
-		return false;
+	devmap_handle_t handle;
+	int rc = devmap_device_get_handle("char/ps2b", &handle,
+	    IPC_FLAG_BLOCKING);
+	
+	if (rc != EOK) {
+		printf("%s: Failed resolving PS/2\n", NAME);
+		return rc;
 	}
-
-	dev_phone = fd_phone(input_fd);
+	
+	dev_phone = devmap_obsolete_device_connect(handle, IPC_FLAG_BLOCKING);
 	if (dev_phone < 0) {
-		printf(NAME ": Failed to connect to device\n");
-		return false;
+		printf("%s: Failed connecting to PS/2\n", NAME);
+		return ENOENT;
 	}
-
+	
 	/* NB: The callback connection is slotted for removal */
-	if (async_connect_to_me(dev_phone, 0, 0, 0, chardev_events) != 0) {
+	if (async_obsolete_connect_to_me(dev_phone, 0, 0, 0, chardev_events) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return false;
 	}
-
+	
 	return 0;
 }
 
@@ -86,7 +86,7 @@ void mouse_port_reclaim(void)
 
 void mouse_port_write(uint8_t data)
 {
-	async_msg_1(dev_phone, CHAR_WRITE_BYTE, data);
+	async_obsolete_msg_1(dev_phone, CHAR_WRITE_BYTE, data);
 }
 
 static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
@@ -98,11 +98,13 @@ static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 
 		int retval;
-
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;
+		}
+
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_FIRST_USER_METHOD:
 			mouse_handle_byte(IPC_GET_ARG1(call));
 			break;

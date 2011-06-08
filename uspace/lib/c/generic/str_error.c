@@ -69,6 +69,7 @@ const char *str_error(const int e)
 		return err_desc[-e];
 	
 	/* Ad hoc descriptions of error codes interesting for USB. */
+	// FIXME: integrate these as first-class error values
 	switch (e) {
 		case EBADCHECKSUM:
 			return "Bad checksum";

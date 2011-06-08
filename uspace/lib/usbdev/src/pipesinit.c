@@ -357,8 +357,8 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 
 	fibril_mutex_initialize(&pipe->guard);
 	pipe->wire = connection;
-	pipe->hc_phone = -1;
-	fibril_mutex_initialize(&pipe->hc_phone_mutex);
+	pipe->hc_sess = NULL;
+	fibril_mutex_initialize(&pipe->hc_sess_mutex);
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;
@@ -481,22 +481,25 @@ int usb_pipe_register_with_speed(usb_pipe_t *pipe, usb_speed_t speed,
 {
 	assert(pipe);
 	assert(hc_connection);
-
-	if (!usb_hc_connection_is_opened(hc_connection)) {
+	
+	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
-	}
-
+	
 #define _PACK2(high, low) (((high) << 16) + (low))
 #define _PACK3(high, middle, low) (((((high) << 8) + (middle)) << 8) + (low))
-
-	return async_req_4_0(hc_connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_REGISTER_ENDPOINT,
+	
+	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
+	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_REGISTER_ENDPOINT,
 	    _PACK2(pipe->wire->address, pipe->endpoint_no),
 	    _PACK3(speed, pipe->transfer_type, pipe->direction),
 	    _PACK2(pipe->max_packet_size, interval));
-
+	async_exchange_end(exch);
+	
 #undef _PACK2
 #undef _PACK3
+	
+	return rc;
 }
 
 /** Revert endpoint registration with the host controller.
@@ -510,14 +513,17 @@ int usb_pipe_unregister(usb_pipe_t *pipe,
 {
 	assert(pipe);
 	assert(hc_connection);
-
-	if (!usb_hc_connection_is_opened(hc_connection)) {
+	
+	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
-	}
-
-	return async_req_4_0(hc_connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_UNREGISTER_ENDPOINT,
+	
+	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
+	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_UNREGISTER_ENDPOINT,
 	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
 /**

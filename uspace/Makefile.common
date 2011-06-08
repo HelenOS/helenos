@@ -132,6 +132,7 @@ else
 		endif
 	endif
 endif
+
 # Build static whenever we use libusb because that library uses 
 # thread local variables
 ifneq ($(findstring usb, $(LIBS)),)

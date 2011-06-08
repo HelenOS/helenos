@@ -38,7 +38,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
@@ -107,7 +107,7 @@ static driver_t *devman_driver_register(void)
 	
 	fibril_mutex_lock(&driver->driver_mutex);
 	
-	if (driver->phone >= 0) {
+	if (driver->sess) {
 		/* We already have a connection to the driver. */
 		log_msg(LVL_ERROR, "Driver '%s' already started.\n",
 		    driver->name);
@@ -127,32 +127,26 @@ static driver_t *devman_driver_register(void)
 		/* The expected case */
 		break;
 	case DRIVER_RUNNING:
-		/* Should not happen since we do not have a connected phone */
+		/* Should not happen since we do not have a connected session */
 		assert(false);
 	}
 	
 	/* Create connection to the driver. */
 	log_msg(LVL_DEBUG, "Creating connection to the `%s' driver.",
 	    driver->name);
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
+	driver->sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (!driver->sess) {
 		fibril_mutex_unlock(&driver->driver_mutex);
-		async_answer_0(callid, ENOTSUP);
 		async_answer_0(iid, ENOTSUP);
 		return NULL;
 	}
 	
-	/* Remember driver's phone. */
-	driver->phone = IPC_GET_ARG5(call);
-	
 	fibril_mutex_unlock(&driver->driver_mutex);
 	
-	log_msg(LVL_NOTE, 
+	log_msg(LVL_NOTE,
 	    "The `%s' driver was successfully registered as running.",
 	    driver->name);
 	
-	async_answer_0(callid, EOK);
 	async_answer_0(iid, EOK);
 	
 	return driver;
@@ -433,16 +427,14 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	fibril_add_ready(fid);
 	
-	ipc_callid_t callid;
-	ipc_call_t call;
-	bool cont = true;
-	while (cont) {
-		callid = async_get_call(&call);
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DEVMAN_ADD_FUNCTION:
 			devman_add_function(callid, &call);
 			break;
@@ -558,15 +550,14 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 	/* Accept connection. */
 	async_answer_0(iid, EOK);
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DEVMAN_DEVICE_GET_HANDLE:
 			devman_function_get_handle(callid, &call);
 			break;
@@ -634,8 +625,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	
 	if (driver == NULL) {
 		log_msg(LVL_ERROR, "IPC forwarding refused - " \
-		    "the device %" PRIun "(%s) is not in usable state.",
-		    handle, dev->pfun->pathname);
+		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
@@ -646,10 +636,9 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	else
 		method = DRIVER_CLIENT;
 	
-	if (driver->phone < 0) {
-		log_msg(LVL_ERROR, 
-		    "Could not forward to driver `%s' (phone is %d).",
-		    driver->name, (int) driver->phone);
+	if (!driver->sess) {
+		log_msg(LVL_ERROR,
+		    "Could not forward to driver `%s'.", driver->name);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
@@ -663,8 +652,10 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		    "Forwarding request for `%s' device to driver `%s'.",
 		    dev->pfun->pathname, driver->name);
 	}
-
-	async_forward_fast(iid, driver->phone, method, fwd_h, 0, IPC_FF_NONE);
+	
+	async_exch_t *exch = async_exchange_begin(driver->sess);
+	async_forward_fast(iid, exch, method, fwd_h, 0, IPC_FF_NONE);
+	async_exchange_end(exch);
 }
 
 /** Function for handling connections from a client forwarded by the device
@@ -686,14 +677,17 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 	
 	dev = fun->dev;
 	
-	if (dev->state != DEVICE_USABLE || dev->drv->phone < 0) {
+	if ((dev->state != DEVICE_USABLE) || (!dev->drv->sess)) {
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
-	async_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, fun->handle, 0,
+	async_exch_t *exch = async_exchange_begin(dev->drv->sess);
+	async_forward_fast(iid, exch, DRIVER_CLIENT, fun->handle, 0,
 	    IPC_FF_NONE);
-	log_msg(LVL_DEBUG, 
+	async_exchange_end(exch);
+	
+	log_msg(LVL_DEBUG,
 	    "Forwarding devmapper request for `%s' function to driver `%s'.",
 	    fun->pathname, dev->drv->name);
 }
@@ -785,6 +779,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf(NAME ": Accepting connections.\n");
+	task_retval(0);
 	async_manager();
 
 	/* Never reached. */

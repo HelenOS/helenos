@@ -41,6 +41,7 @@
 #include <io/keycode.h>
 #include <ipc/kbd.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 
@@ -66,6 +67,9 @@
 #include "kbdrepeat.h"
 
 #include "../usbhid.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 /*----------------------------------------------------------------------------*/
 /** Default modifiers when the keyboard is initialized. */
@@ -306,7 +310,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type, 
     unsigned int key)
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	unsigned mod_mask;
 
 	/*
@@ -398,7 +402,7 @@ void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type,
 		return;
 	}
 	
-	async_msg_4(kbd_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
+	async_obsolete_msg_4(kbd_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
 	    ev.mods, ev.c);
 }
 
@@ -891,7 +895,7 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 	}
 	
 	// hangup phone to the console
-	async_hangup((*kbd_dev)->console_phone);
+	async_obsolete_hangup((*kbd_dev)->console_phone);
 	
 	if ((*kbd_dev)->repeat_mtx != NULL) {
 		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));

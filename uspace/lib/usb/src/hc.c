@@ -80,7 +80,7 @@ int usb_hc_connection_initialize(usb_hc_connection_t *connection,
 	assert(connection);
 
 	connection->hc_handle = hc_handle;
-	connection->hc_phone = -1;
+	connection->hc_sess = NULL;
 
 	return EOK;
 }
@@ -93,18 +93,16 @@ int usb_hc_connection_initialize(usb_hc_connection_t *connection,
 int usb_hc_connection_open(usb_hc_connection_t *connection)
 {
 	assert(connection);
-
-	if (usb_hc_connection_is_opened(connection)) {
+	
+	if (usb_hc_connection_is_opened(connection))
 		return EBUSY;
-	}
-
-	int phone = devman_device_connect(connection->hc_handle, 0);
-	if (phone < 0) {
-		return phone;
-	}
-
-	connection->hc_phone = phone;
-
+	
+	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE,
+	    connection->hc_handle, 0);
+	if (!sess)
+		return ENOMEM;
+	
+	connection->hc_sess = sess;
 	return EOK;
 }
 
@@ -116,8 +114,7 @@ int usb_hc_connection_open(usb_hc_connection_t *connection)
 bool usb_hc_connection_is_opened(const usb_hc_connection_t *connection)
 {
 	assert(connection);
-
-	return (connection->hc_phone >= 0);
+	return (connection->hc_sess != NULL);
 }
 
 /** Close connection to the host controller.
@@ -133,12 +130,12 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 		return ENOENT;
 	}
 
-	int rc = async_hangup(connection->hc_phone);
+	int rc = async_hangup(connection->hc_sess);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	connection->hc_phone = -1;
+	connection->hc_sess = NULL;
 
 	return EOK;
 }
@@ -153,19 +150,21 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
     usb_address_t address, devman_handle_t *handle)
 {
-	if (!usb_hc_connection_is_opened(connection)) {
+	if (!usb_hc_connection_is_opened(connection))
 		return ENOENT;
-	}
-
+	
+	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
+	
 	sysarg_t tmp;
-	int rc = async_req_2_1(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
 	    address, &tmp);
-	if ((rc == EOK) && (handle != NULL)) {
+	
+	async_exchange_end(exch);
+	
+	if ((rc == EOK) && (handle != NULL))
 		*handle = tmp;
-	}
-
+	
 	return rc;
 }
 
@@ -176,24 +175,25 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
  */
 usb_address_t usb_hc_get_address_by_handle(devman_handle_t dev_handle)
 {
-	int parent_phone = devman_parent_device_connect(dev_handle,
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev_handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	if (!parent_sess)
+		return ENOMEM;
+	
+	async_exch_t *exch = async_exchange_begin(parent_sess);
+	
 	sysarg_t address;
-
-	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_ADDRESS,
 	    dev_handle, &address);
-
-	if (rc != EOK) {
+	
+	async_exchange_end(exch);
+	async_hangup(parent_sess);
+	
+	if (rc != EOK)
 		return rc;
-	}
-
-	async_hangup(parent_phone);
-
+	
 	return (usb_address_t) address;
 }
 
@@ -239,26 +239,27 @@ int usb_ddf_get_hc_handle_by_class(size_t class_index,
  */
 int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
 {
-	int parent_phone = devman_parent_device_connect(device_handle,
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device_handle,
 	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	if (!parent_sess)
+		return ENOMEM;
+	
+	async_exch_t *exch = async_exchange_begin(parent_sess);
+	
 	devman_handle_t h;
-	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
-
-	async_hangup(parent_phone);
-
-	if (rc != EOK) {
+	
+	async_exchange_end(exch);
+	async_hangup(parent_sess);
+	
+	if (rc != EOK)
 		return rc;
-	}
-
-	if (hc_handle != NULL) {
+	
+	if (hc_handle != NULL)
 		*hc_handle = h;
-	}
-
+	
 	return EOK;
 }
 

@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /**
  * @addtogroup drvusbuhcihc
  * @{
@@ -33,6 +34,7 @@
  * @file
  * PCI related functions needed by the UHCI driver.
  */
+
 #include <errno.h>
 #include <assert.h>
 #include <devman.h>
@@ -58,38 +60,36 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	assert(io_reg_address);
 	assert(io_reg_size);
 	assert(irq_no);
-
-	int parent_phone =
-	    devman_parent_device_connect(dev->handle, IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+	
 	hw_resource_list_t hw_resources;
-	int rc = hw_res_get_resource_list(parent_phone, &hw_resources);
+	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
 	if (rc != EOK) {
-		async_hangup(parent_phone);
+		async_hangup(parent_sess);
 		return rc;
 	}
-
+	
 	uintptr_t io_address = 0;
 	size_t io_size = 0;
 	bool io_found = false;
-
+	
 	int irq = 0;
 	bool irq_found = false;
-
+	
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		const hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type)
-		{
+		switch (res->type) {
 		case INTERRUPT:
 			irq = res->res.interrupt.irq;
 			irq_found = true;
 			usb_log_debug2("Found interrupt: %d.\n", irq);
 			break;
-
 		case IO_RANGE:
 			io_address = res->res.io_range.address;
 			io_size = res->res.io_range.size;
@@ -97,23 +97,23 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 			    res->res.io_range.address, res->res.io_range.size);
 			io_found = true;
 			break;
-
 		default:
 			break;
 		}
 	}
-	async_hangup(parent_phone);
-
+	
+	async_hangup(parent_sess);
+	
 	if (!io_found || !irq_found)
 		return ENOENT;
-
+	
 	*io_reg_address = io_address;
 	*io_reg_size = io_size;
 	*irq_no = irq;
-
+	
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Call the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
@@ -121,16 +121,18 @@ int pci_get_my_registers(const ddf_dev_t *dev,
  */
 int pci_enable_interrupts(const ddf_dev_t *device)
 {
-	const int parent_phone =
-	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-	const bool enabled = hw_res_enable_interrupt(parent_phone);
-	async_hangup(parent_phone);
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+	
+	const bool enabled = hw_res_enable_interrupt(parent_sess);
+	async_hangup(parent_sess);
+	
 	return enabled ? EOK : EIO;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Call the PCI driver with a request to clear legacy support register
  *
  * @param[in] device Device asking to disable interrupts
@@ -139,27 +141,28 @@ int pci_enable_interrupts(const ddf_dev_t *device)
 int pci_disable_legacy(const ddf_dev_t *device)
 {
 	assert(device);
-	const int parent_phone =
-	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
+	
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+	
 	/* See UHCI design guide for these values p.45,
 	 * write all WC bits in USB legacy register */
 	const sysarg_t address = 0xc0;
 	const sysarg_t value = 0xaf00;
-
-	const int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+	
+	async_exch_t *exch = async_exchange_begin(parent_sess);
+	
+	const int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
-	async_hangup(parent_phone);
-
+	
+	async_exchange_end(exch);
+	async_hangup(parent_sess);
+	
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
-/**
- * @}
- */
 
 /**
  * @}

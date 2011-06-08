@@ -32,9 +32,11 @@
 /** @file
  * @brief Virtual USB hub.
  */
+
 #include <usb/classes/classes.h>
 #include <usbvirt/device.h>
 #include <errno.h>
+#include <async.h>
 #include <str_error.h>
 #include <stdlib.h>
 #include <ddf/driver.h>
@@ -43,7 +45,6 @@
 #include <usb/dev/recognise.h>
 
 #include "hub.h"
-//#include "hub/virthub.h"
 #include "vhcd.h"
 #include "conn.h"
 
@@ -96,11 +97,11 @@ int hub_register_in_devman_fibril(void *arg)
 	/*
 	 * Wait until parent device is properly initialized.
 	 */
-	int phone;
+	async_sess_t *sess;
 	do {
-		phone = devman_device_connect(hc_dev->handle, 0);
-	} while (phone < 0);
-	async_hangup(phone);
+		sess = devman_device_connect(EXCHANGE_SERIALIZE, hc_dev->handle, 0);
+	} while (!sess);
+	async_hangup(sess);
 
 	int rc;
 
@@ -128,7 +129,6 @@ int hub_register_in_devman_fibril(void *arg)
 
 	return 0;
 }
-	
 
 /**
  * @}

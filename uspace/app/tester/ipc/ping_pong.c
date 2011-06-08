@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include "../tester.h"
@@ -60,7 +60,7 @@ const char *test_ping_pong(void)
 		
 		size_t i;
 		for (i = 0; i < COUNT_GRANULARITY; i++) {
-			int retval = async_req_0_0(PHONE_NS, NS_PING);
+			int retval = ns_ping();
 			
 			if (retval != EOK) {
 				TPRINTF("\n");

@@ -33,11 +33,14 @@
  * @file
  * Actual handling of USB mouse protocol.
  */
-#include "mouse.h"
+
 #include <usb/debug.h>
 #include <errno.h>
 #include <str_error.h>
 #include <ipc/mouse.h>
+#include <async.h>
+#include <async_obsolete.h>
+#include "mouse.h"
 
 /** Mouse polling callback.
  *
@@ -80,15 +83,15 @@ bool usb_mouse_polling_callback(usb_device_t *dev,
 	if (mouse->console_phone >= 0) {
 		if ((shift_x != 0) || (shift_y != 0)) {
 			/* FIXME: guessed for QEMU */
-			async_req_2_0(mouse->console_phone,
+			async_obsolete_req_2_0(mouse->console_phone,
 			    MEVENT_MOVE,
 			    - shift_x / 10,  - shift_y / 10);
 		}
 		if (butt) {
 			/* FIXME: proper button clicking. */
-			async_req_2_0(mouse->console_phone,
+			async_obsolete_req_2_0(mouse->console_phone,
 			    MEVENT_BUTTON, 1, 1);
-			async_req_2_0(mouse->console_phone,
+			async_obsolete_req_2_0(mouse->console_phone,
 			    MEVENT_BUTTON, 1, 0);
 		}
 	}
@@ -114,7 +117,7 @@ void usb_mouse_polling_ended_callback(usb_device_t *dev,
 {
 	usb_mouse_t *mouse = (usb_mouse_t *) arg;
 
-	async_hangup(mouse->console_phone);
+	async_obsolete_hangup(mouse->console_phone);
 	mouse->console_phone = -1;
 
 	usb_device_destroy(dev);
