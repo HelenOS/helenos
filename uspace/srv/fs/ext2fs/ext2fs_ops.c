@@ -240,7 +240,7 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 	
-	rc = ext2_directory_iterator_init(&it, fs, eparent->inode_ref);
+	rc = ext2_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -478,7 +478,7 @@ int ext2fs_has_children(bool *has_children, fs_node_t *fn)
 		return EOK;
 	}
 	
-	rc = ext2_directory_iterator_init(&it, fs, enode->inode_ref);
+	rc = ext2_directory_iterator_init(&it, fs, enode->inode_ref, 0);
 	if (rc != EOK) {
 		EXT2FS_DBG("error %u", rc);
 		return rc;
@@ -818,26 +818,23 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 	size_t size, ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref)
 {
 	ext2_directory_iterator_t it;
-	aoff64_t cur;
+	aoff64_t next;
 	uint8_t *buf;
 	size_t name_size;
 	int rc;
 	bool found = false;
 	
-	rc = ext2_directory_iterator_init(&it, inst->filesystem, inode_ref);
+	rc = ext2_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(rid, rc);
 		return;
 	}
 	
-	/* Find the index we want to read
-	 * Note that we need to iterate and count as
-	 * the underlying structure is a linked list
-	 * Moreover, we want to skip . and .. entries
+	/* Find next interesting directory entry.
+	 * We want to skip . and .. entries
 	 * as these are not used in HelenOS
 	 */
-	cur = 0;
 	while (it.current != NULL) {
 		if (it.current->inode == 0) {
 			goto skip;
@@ -851,27 +848,23 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 			goto skip;
 		}
 		
-		/* Is this the dir entry we want to read? */
-		if (cur == pos) {
-			/* The on-disk entry does not contain \0 at the end
-			 * end of entry name, so we copy it to new buffer
-			 * and add the \0 at the end
-			 */
-			buf = malloc(name_size+1);
-			if (buf == NULL) {
-				ext2_directory_iterator_fini(&it);
-				async_answer_0(callid, ENOMEM);
-				async_answer_0(rid, ENOMEM);
-				return;
-			}
-			memcpy(buf, &it.current->name, name_size);
-			*(buf+name_size) = 0;
-			found = true;
-			(void) async_data_read_finalize(callid, buf, name_size+1);
-			free(buf);
-			break;
+		/* The on-disk entry does not contain \0 at the end
+			* end of entry name, so we copy it to new buffer
+			* and add the \0 at the end
+			*/
+		buf = malloc(name_size+1);
+		if (buf == NULL) {
+			ext2_directory_iterator_fini(&it);
+			async_answer_0(callid, ENOMEM);
+			async_answer_0(rid, ENOMEM);
+			return;
 		}
-		cur++;
+		memcpy(buf, &it.current->name, name_size);
+		*(buf+name_size) = 0;
+		found = true;
+		(void) async_data_read_finalize(callid, buf, name_size+1);
+		free(buf);
+		break;
 		
 skip:
 		rc = ext2_directory_iterator_next(&it);
@@ -883,6 +876,15 @@ skip:
 		}
 	}
 	
+	if (found) {
+		rc = ext2_directory_iterator_next(&it);
+		if (rc != EOK) {
+			async_answer_0(rid, rc);
+			return;
+		}
+		next = it.current_offset;
+	}
+	
 	rc = ext2_directory_iterator_fini(&it);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
@@ -890,7 +892,7 @@ skip:
 	}
 	
 	if (found) {
-		async_answer_1(rid, EOK, 1);
+		async_answer_1(rid, EOK, next-pos);
 	}
 	else {
 		async_answer_0(callid, ENOENT);
