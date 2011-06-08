@@ -38,6 +38,7 @@ PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
+	ctype.c \
 	stdlib.c \
 	string.c \
 	time.c \
