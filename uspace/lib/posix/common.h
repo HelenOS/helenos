@@ -30,6 +30,7 @@
 #define LIBPOSIX_COMMON_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define not_implemented() (fprintf(stderr, "Function %s() in file %s at line %d is not implemented\n", __func__, __FILE__, __LINE__), abort())
 
