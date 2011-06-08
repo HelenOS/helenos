@@ -33,16 +33,21 @@
  * @file
  * Main routines of USB boot protocol mouse driver.
  */
+
 #include "mouse.h"
 #include <usb/debug.h>
 #include <usb/dev/poll.h>
 #include <errno.h>
 #include <str_error.h>
 
+#define NAME  "usbmouse"
+
 /** Callback when new mouse device is attached and recognised by DDF.
  *
  * @param dev Representation of a generic DDF device.
+ *
  * @return Error code.
+ *
  */
 static int usbmouse_add_device(usb_device_t *dev)
 {
@@ -52,23 +57,23 @@ static int usbmouse_add_device(usb_device_t *dev)
 		    str_error(rc));
 		return rc;
 	}
-
+	
 	usb_log_debug("Polling pipe at endpoint %d.\n",
 	    dev->pipes[0].pipe->endpoint_no);
-
-	rc = usb_device_auto_poll(dev, 0,
-	    usb_mouse_polling_callback, dev->pipes[0].pipe->max_packet_size,
+	
+	rc = usb_device_auto_poll(dev, 0, usb_mouse_polling_callback,
+	    dev->pipes[0].pipe->max_packet_size,
 	    usb_mouse_polling_ended_callback, dev->driver_data);
-
+	
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
-
+	
 	usb_log_info("controlling new mouse (handle %" PRIun ").\n",
 	    dev->ddf_dev->handle);
-
+	
 	return EOK;
 }
 
@@ -92,7 +97,6 @@ static usb_driver_t mouse_driver = {
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
 	return usb_driver_main(&mouse_driver);
 }
 
