@@ -166,7 +166,6 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
-	lib/compat \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \

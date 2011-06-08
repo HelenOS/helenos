@@ -34,7 +34,7 @@ EXTRA_CLEAN = y.tab.c y.tab.h
 DEFS = -DCPP_DEBUG -Dfree=free -DCPPBUF=16384
 BINARY = cpp
 
-POSIX_COMPAT = 1
+POSIX_COMPAT = y
 
 YACC = yacc
 

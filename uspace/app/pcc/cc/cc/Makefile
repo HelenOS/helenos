@@ -34,7 +34,7 @@ EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR) -I$(OSDIR) -w
 DEFS = -Dmach_$(PLATFORM) -D__helenos__
 BINARY = cc
 
-POSIX_COMPAT = 1
+POSIX_COMPAT = y
 
 
 
