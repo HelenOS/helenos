@@ -114,19 +114,19 @@
 //#undef MACHOABI
 
 /* Define to the address where bug reports for this package should be sent. */
-//#undef PACKAGE_BUGREPORT
+#define PACKAGE_BUGREPORT "<zarevucky.jiri@gmail.com>"
 
 /* Define to the full name of this package. */
-//#undef PACKAGE_NAME
+#define PACKAGE_NAME "pcc"
 
 /* Define to the full name and version of this package. */
-//#undef PACKAGE_STRING
+#define PACKAGE_STRING "pcc 1.0.0.RELEASE"
 
 /* Define to the one symbol short name of this package. */
-//#undef PACKAGE_TARNAME
+#define PACKAGE_TARNAME "pcc"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.0.0"
+#define PACKAGE_VERSION "1.0.0.RELEASE"
 
 /* Major version no */
 #define PCC_MAJOR 1
@@ -157,22 +157,22 @@
 // FIXME: check architecture
 
 /* Target OS */
-#define TARGOS HelenOS
+#define TARGOS helenos
 
 /* Target OS version */
-// #undef TARGOSVER
+#define TARGOSVER 0
 
 /* Enable thread-local storage (TLS). */
 // #undef TLS
 
 /* Version string */
-#define VERSSTR "pcc 1.0.0 for HelenOS"
+#define VERSSTR "pcc 1.0.0.RELEASE 20110221 for HelenOS"
 
 /* Size of wide character type */
-#define WCHAR_SIZE (sizeof int)
+#define WCHAR_SIZE 4
 
 /* Type to use for wide characters */
-#define WCHAR_TYPE int
+#define WCHAR_TYPE INT
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
