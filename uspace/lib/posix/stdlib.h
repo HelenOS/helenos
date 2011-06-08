@@ -46,6 +46,9 @@
 #undef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
 
+#define _exit exit
+#define _Exit exit
+
 /* Array Sort Function */
 extern void posix_qsort(void *array, size_t count, size_t size, int (*compare)(const void *, const void *));
 
