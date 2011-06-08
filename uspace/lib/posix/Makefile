@@ -41,6 +41,7 @@ SOURCES = \
 	ctype.c \
 	stdlib.c \
 	string.c \
+	strings.c \
 	sys/stat.c \
 	time.c \
 	unistd.c
