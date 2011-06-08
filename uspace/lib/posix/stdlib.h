@@ -35,7 +35,7 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
-#include <libc/stdlib.h>
+#include "libc/stdlib.h"
 
 #ifndef NULL
 	#define NULL  ((void *) 0)
