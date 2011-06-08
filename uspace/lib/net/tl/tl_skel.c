@@ -41,6 +41,9 @@
 #include <net_interface.h>
 #include <net/modules.h>
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
+
 /** Default thread for new connections.
  *
  * @param[in] iid   The initial message identifier.
@@ -76,8 +79,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
+		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */

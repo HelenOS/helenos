@@ -64,6 +64,8 @@ static sysarg_t console_cols = 0;
 static sysarg_t console_rows = 0;
 static bool should_quit = false;
 
+static console_ctrl_t *console = NULL;
+
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
@@ -101,20 +103,22 @@ void help_cmd_cat(unsigned int level)
 
 static void waitprompt()
 {
-	console_set_pos(fphone(stdout), 0, console_rows-1);
-	console_set_color(fphone(stdout), COLOR_BLUE, COLOR_WHITE, 0);
+	console_set_pos(console, 0, console_rows-1);
+	console_set_color(console, COLOR_BLUE, COLOR_WHITE, 0);
+	
 	printf("ENTER/SPACE/PAGE DOWN - next page, "
 	       "ESC/Q - quit, C - continue unpaged");
 	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	
+	console_set_style(console, STYLE_NORMAL);
 }
 
 static void waitkey()
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	
 	while (true) {
-		if (!console_get_event(fphone(stdin), &ev)) {
+		if (!console_get_kbd_event(console, &ev)) {
 			return;
 		}
 		if (ev.type == KEY_PRESS) {
@@ -137,9 +141,9 @@ static void waitkey()
 
 static void newpage()
 {
-	console_clear(fphone(stdout));
+	console_clear(console);
 	chars_remaining = console_cols;
-	lines_remaining = console_rows-1;
+	lines_remaining = console_rows - 1;
 }
 
 static void paged_char(wchar_t c)
@@ -237,6 +241,7 @@ int cmd_cat(char **argv)
 	console_cols = 0;
 	console_rows = 0;
 	should_quit = false;
+	console = console_init(stdin, stdout);
 
 	argc = cli_count_args(argv);
 
@@ -279,7 +284,7 @@ int cmd_cat(char **argv)
 		buffer = CAT_DEFAULT_BUFLEN;
 	
 	if (more) {
-		rc = console_get_size(fphone(stdout), &cols, &rows);
+		rc = console_get_size(console, &cols, &rows);
 		if (rc != EOK) {
 			printf("%s - cannot get console size\n", cmdname);
 			return CMD_FAILURE;

@@ -37,13 +37,15 @@
 
 #include <assert.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <ddi.h>
 #include <errno.h>
 #include <err.h>
 #include <malloc.h>
 #include <sysinfo.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
+#include <ns_obsolete.h>
 #include <ipc/irc.h>
 #include <net/modules.h>
 #include <packet_client.h>
@@ -329,7 +331,7 @@ int netif_start_message(netif_device_t *device)
 		change_state(device, NETIF_ACTIVE);
 		
 		if (irc_service)
-			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, ne2k->irq);
+			async_obsolete_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, ne2k->irq);
 	}
 	
 	return device->state;
@@ -388,12 +390,12 @@ int netif_initialize(void)
 	
 	if (irc_service) {
 		while (irc_phone < 0)
-			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
+			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
 	async_set_interrupt_received(irq_handler);
 	
-	return async_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, NULL);
+	return service_register(SERVICE_NE2000);
 }
 
 int main(int argc, char *argv[])

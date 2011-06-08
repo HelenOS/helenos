@@ -95,7 +95,6 @@ void spinlock_lock_debug(spinlock_t *lock)
 		 * slow framebuffer interaction (especially when
 		 * run in a simulator) that caused problems with both
 		 * printf_lock and the framebuffer lock.
-		 *
 		 */
 		if (lock->name[0] == '*')
 			continue;

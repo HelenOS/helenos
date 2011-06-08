@@ -40,6 +40,7 @@
 #include <async.h>
 #include <ctype.h>
 #include <ddi.h>
+#include <ns.h>
 #include <errno.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -338,7 +339,7 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = async_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, NULL);
+	rc = service_register(SERVICE_NETWORKING);
 	if (rc != EOK)
 		goto out;
 	
@@ -637,9 +638,11 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
+	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NET_GET_DEVICE_CONF:
 		rc = measured_strings_receive(&strings, &data,
 		    IPC_GET_COUNT(*call));
@@ -702,7 +705,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int res = net_module_message(callid, &call, &answer, &answer_count);
 		
 		/* End if told to either by the message or the processing result */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */

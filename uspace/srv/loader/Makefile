@@ -35,14 +35,13 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
--include arch/$(UARCH)/Makefile.inc
 
-LINKER_SCRIPT = arch/$(UARCH)/_link.ld
-EXTRA_CLEAN = $(LINKER_SCRIPT)
+LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld
 
 EXTRA_CFLAGS = -Iinclude
 
 BINARY = loader
+STATIC_ONLY = y
 
 GENERIC_SOURCES = \
 	main.c \
@@ -54,6 +53,3 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
-
-$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

@@ -39,6 +39,7 @@
 #include <generic.h>
 
 #include <async.h>
+#include <async_obsolete.h>
 #include <errno.h>
 #include <ipc/services.h>
 #include <ipc/arp.h>
@@ -67,7 +68,7 @@ int arp_connect_module(services_t service)
  */
 int arp_clean_cache_req(int arp_phone)
 {
-	return (int) async_req_0_0(arp_phone, NET_ARP_CLEAN_CACHE);
+	return (int) async_obsolete_req_0_0(arp_phone, NET_ARP_CLEAN_CACHE);
 }
 
 /** Clears the given protocol address from the cache.
@@ -86,7 +87,7 @@ arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol,
 	aid_t message_id;
 	sysarg_t result;
 
-	message_id = async_send_2(arp_phone, NET_ARP_CLEAR_ADDRESS,
+	message_id = async_obsolete_send_2(arp_phone, NET_ARP_CLEAR_ADDRESS,
 	    (sysarg_t) device_id, protocol, NULL);
 	measured_strings_send(arp_phone, address, 1);
 	async_wait_for(message_id, &result);
@@ -103,7 +104,7 @@ arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol,
  */
 int arp_clear_device_req(int arp_phone, device_id_t device_id)
 {
-	return (int) async_req_1_0(arp_phone, NET_ARP_CLEAR_DEVICE,
+	return (int) async_obsolete_req_1_0(arp_phone, NET_ARP_CLEAR_DEVICE,
 	    (sysarg_t) device_id);
 }
 
@@ -136,7 +137,7 @@ int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol,
 	aid_t message_id;
 	sysarg_t result;
 
-	message_id = async_send_3(arp_phone, NET_ARP_DEVICE,
+	message_id = async_obsolete_send_3(arp_phone, NET_ARP_DEVICE,
 	    (sysarg_t) device_id, protocol, netif, NULL);
 	measured_strings_send(arp_phone, address, 1);
 	async_wait_for(message_id, &result);

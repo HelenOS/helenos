@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef DEVMAP_DEVMAP_H_
-#define DEVMAP_DEVMAP_H_
+#ifndef LIBC_IPC_DEVMAP_H_
+#define LIBC_IPC_DEVMAP_H_
 
 #include <ipc/common.h>
 

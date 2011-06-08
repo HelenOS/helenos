@@ -43,7 +43,7 @@
 
 typedef struct {
 	bool mp_active;
-	int phone;
+	async_sess_t *sess;
 	fs_handle_t fs_handle;
 	devmap_handle_t devmap_handle;
 } mp_data_t;
@@ -87,7 +87,8 @@ typedef struct {
 	uint8_t *plb_ro;         /**< Read-only PLB view. */
 } fs_reg_t;
 
-extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
+extern int fs_register(async_sess_t *, fs_reg_t *, vfs_info_t *,
+    async_client_conn_t);
 
 extern void fs_node_initialize(fs_node_t *);
 

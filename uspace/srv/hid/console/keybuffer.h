@@ -45,7 +45,7 @@
 #define KEYBUFFER_SIZE  128
 
 typedef struct {
-	console_event_t fifo[KEYBUFFER_SIZE];
+	kbd_event_t fifo[KEYBUFFER_SIZE];
 	size_t head;
 	size_t tail;
 	size_t items;
@@ -55,8 +55,8 @@ extern void keybuffer_free(keybuffer_t *);
 extern void keybuffer_init(keybuffer_t *);
 extern size_t keybuffer_available(keybuffer_t *);
 extern bool keybuffer_empty(keybuffer_t *);
-extern void keybuffer_push(keybuffer_t *, const console_event_t *);
-extern bool keybuffer_pop(keybuffer_t *, console_event_t *);
+extern void keybuffer_push(keybuffer_t *, const kbd_event_t *);
+extern bool keybuffer_pop(keybuffer_t *, kbd_event_t *);
 
 #endif
 

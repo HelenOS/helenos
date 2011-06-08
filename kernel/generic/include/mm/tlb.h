@@ -85,6 +85,7 @@ extern void tlb_shootdown_ipi_send(void);
 extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_asid(asid_t);
 extern void tlb_invalidate_pages(asid_t, uintptr_t, size_t);
+
 #endif
 
 /** @}

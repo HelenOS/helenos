@@ -34,6 +34,8 @@
 #include <adt/hash_table.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdio.h>
+#include <malloc.h>
 #include "service.h"
 #include "ns.h"
 

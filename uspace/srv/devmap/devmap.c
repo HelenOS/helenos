@@ -36,7 +36,7 @@
  */
 
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
@@ -58,12 +58,16 @@
 typedef struct {
 	/** Pointers to previous and next drivers in linked list */
 	link_t drivers;
+	
 	/** Pointer to the linked list of devices controlled by this driver */
 	link_t devices;
-	/** Phone asociated with this driver */
-	sysarg_t phone;
+	
+	/** Session asociated with this driver */
+	async_sess_t *sess;
+	
 	/** Device driver name */
 	char *name;
+	
 	/** Fibril mutex for list of devices owned by this driver */
 	fibril_mutex_t devices_mutex;
 } devmap_driver_t;
@@ -74,10 +78,13 @@ typedef struct {
 typedef struct {
 	/** Pointer to the previous and next device in the list of all namespaces */
 	link_t namespaces;
+	
 	/** Unique namespace identifier */
 	devmap_handle_t handle;
+	
 	/** Namespace name */
 	char *name;
+	
 	/** Reference count */
 	size_t refcnt;
 } devmap_namespace_t;
@@ -404,19 +411,13 @@ static devmap_driver_t *devmap_driver_register(void)
 	/*
 	 * Create connection to the driver
 	 */
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-	
-	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
+	driver->sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (!driver->sess) {
 		free(driver->name);
 		free(driver);
-		async_answer_0(callid, ENOTSUP);
 		async_answer_0(iid, ENOTSUP);
 		return NULL;
 	}
-	
-	driver->phone = IPC_GET_ARG5(call);
-	async_answer_0(callid, EOK);
 	
 	/*
 	 * Initialize mutex for list of devices
@@ -461,8 +462,8 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	
 	fibril_mutex_lock(&drivers_list_mutex);
 	
-	if (driver->phone != 0)
-		async_hangup(driver->phone);
+	if (driver->sess)
+		async_hangup(driver->sess);
 	
 	/* Remove it from list of drivers */
 	list_remove(&(driver->drivers));
@@ -606,21 +607,21 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 	devmap_handle_t handle = IPC_GET_ARG2(*call);
 	devmap_device_t *dev = devmap_device_find_handle(handle);
 	
-	if ((dev == NULL) || (dev->driver == NULL) || (dev->driver->phone == 0)) {
+	if ((dev == NULL) || (dev->driver == NULL) || (!dev->driver->sess)) {
 		fibril_mutex_unlock(&devices_list_mutex);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
 	
-	if (dev->forward_interface == 0) {
-		async_forward_fast(callid, dev->driver->phone,
-		    dev->handle, 0, 0,
-		    IPC_FF_NONE);
-	} else {
-		async_forward_fast(callid, dev->driver->phone,
-		    dev->forward_interface, dev->handle, 0,
-		    IPC_FF_NONE);
-	}
+	async_exch_t *exch = async_exchange_begin(dev->driver->sess);
+	
+	if (dev->forward_interface == 0)
+		async_forward_fast(callid, exch, dev->handle, 0, 0, IPC_FF_NONE);
+	else
+		async_forward_fast(callid, exch, dev->forward_interface,
+		    dev->handle, 0, IPC_FF_NONE);
+	
+	async_exchange_end(exch);
 	
 	fibril_mutex_unlock(&devices_list_mutex);
 }
@@ -1028,15 +1029,14 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	if (driver == NULL)
 		return;
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DEVMAP_DRIVER_UNREGISTER:
 			if (NULL == driver)
 				async_answer_0(callid, ENOENT);
@@ -1079,15 +1079,14 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 	/* Accept connection */
 	async_answer_0(iid, EOK);
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DEVMAP_DEVICE_GET_HANDLE:
 			devmap_device_get_handle(callid, &call);
 			break;

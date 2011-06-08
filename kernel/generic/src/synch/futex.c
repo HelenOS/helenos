@@ -118,7 +118,7 @@ sysarg_t sys_futex_sleep(uintptr_t uaddr)
 	 * Find physical address of futex counter.
 	 */
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
+	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), false);
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
 		return (sysarg_t) ENOENT;
@@ -154,7 +154,7 @@ sysarg_t sys_futex_wakeup(uintptr_t uaddr)
 	 * Find physical address of futex counter.
 	 */
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
+	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), false);
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
 		return (sysarg_t) ENOENT;

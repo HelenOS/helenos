@@ -36,9 +36,12 @@
 #define LIBC_IO_KLOG_H_
 
 #include <sys/types.h>
+#include <stdarg.h>
 
 extern size_t klog_write(const void *, size_t);
 extern void klog_update(void);
+extern int klog_printf(const char *, ...);
+extern int klog_vprintf(const char *, va_list);
 
 #endif
 

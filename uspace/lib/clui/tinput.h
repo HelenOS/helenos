@@ -36,6 +36,11 @@
 #ifndef LIBCLUI_TINPUT_H_
 #define LIBCLUI_TINPUT_H_
 
+#include <stdio.h>
+#include <async.h>
+#include <inttypes.h>
+#include <io/console.h>
+
 #define HISTORY_LEN     10
 #define INPUT_MAX_SIZE  1024
 
@@ -44,6 +49,9 @@
  * Applications should treat this structure as opaque.
  */
 typedef struct {
+	/** Console */
+	console_ctrl_t *console;
+	
 	/** Buffer holding text currently being edited */
 	wchar_t buffer[INPUT_MAX_SIZE + 1];
 	

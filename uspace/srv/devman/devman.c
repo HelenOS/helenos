@@ -38,6 +38,7 @@
 #include <ipc/devman.h>
 #include <devmap.h>
 #include <str_error.h>
+#include <stdio.h>
 
 #include "devman.h"
 
@@ -562,16 +563,18 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 {
 	dev_node_t *dev;
 	link_t *link;
-	int phone;
 
 	log_msg(LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
 	    driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
+	
+	async_exch_t *exch = async_exchange_begin(driver->sess);
+	async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE, exch,
+	    DRIVER_DEVMAN, 0, 0);
+	async_exchange_end(exch);
 
-	phone = async_connect_me_to(driver->phone, DRIVER_DEVMAN, 0, 0);
-
-	if (phone < 0) {
+	if (!sess) {
 		fibril_mutex_unlock(&driver->driver_mutex);
 		return;
 	}
@@ -600,7 +603,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		 */
 		fibril_mutex_unlock(&driver->driver_mutex);
 
-		add_device(phone, driver, dev, tree);
+		add_device(sess, driver, dev, tree);
 
 		/*
 		 * Lock again as we will work with driver's
@@ -621,7 +624,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		link = driver->devices.next;
 	}
 
-	async_hangup(phone);
+	async_hangup(sess);
 
 	/*
 	 * Once we passed all devices to the driver, we need to mark the
@@ -671,7 +674,7 @@ void init_driver(driver_t *drv)
 	list_initialize(&drv->match_ids.ids);
 	list_initialize(&drv->devices);
 	fibril_mutex_initialize(&drv->driver_mutex);
-	drv->phone = -1;
+	drv->sess = NULL;
 }
 
 /** Device driver structure clean-up.
@@ -735,7 +738,8 @@ void devmap_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
  * @param drv		The driver's structure.
  * @param node		The device's node in the device tree.
  */
-void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
+void add_device(async_sess_t *sess, driver_t *drv, dev_node_t *dev,
+    dev_tree_t *tree)
 {
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
@@ -744,9 +748,6 @@ void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	log_msg(LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
 	    drv->name, dev->pfun->name);
 	
-	sysarg_t rc;
-	ipc_call_t answer;
-	
 	/* Send the device to the driver. */
 	devman_handle_t parent_handle;
 	if (dev->pfun) {
@@ -754,13 +755,19 @@ void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	} else {
 		parent_handle = 0;
 	}
-
-	aid_t req = async_send_2(phone, DRIVER_ADD_DEVICE, dev->handle,
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(exch, DRIVER_ADD_DEVICE, dev->handle,
 	    parent_handle, &answer);
 	
-	/* Send the device's name to the driver. */
-	rc = async_data_write_start(phone, dev->pfun->name,
+	/* Send the device name to the driver. */
+	sysarg_t rc = async_data_write_start(exch, dev->pfun->name,
 	    str_size(dev->pfun->name) + 1);
+	
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		/* TODO handle error */
 	}
@@ -821,10 +828,14 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 
 	if (is_running) {
 		/* Notify the driver about the new device. */
-		int phone = async_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
-		if (phone >= 0) {
-			add_device(phone, drv, dev, tree);
-			async_hangup(phone);
+		async_exch_t *exch = async_exchange_begin(drv->sess);
+		async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE, exch,
+		    DRIVER_DEVMAN, 0, 0);
+		async_exchange_end(exch);
+		
+		if (sess) {
+			add_device(sess, drv, dev, tree);
+			async_hangup(sess);
 		}
 	}
 	

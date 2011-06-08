@@ -61,14 +61,15 @@ atomic_t fs_handle_next = {
 
 /** Verify the VFS info structure.
  *
- * @param info		Info structure to be verified.
+ * @param info Info structure to be verified.
  *
- * @return		Non-zero if the info structure is sane, zero otherwise.
+ * @return Non-zero if the info structure is sane, zero otherwise.
+ *
  */
 static bool vfs_info_sane(vfs_info_t *info)
 {
 	int i;
-
+	
 	/*
 	 * Check if the name is non-empty and is composed solely of ASCII
 	 * characters [a-z]+[a-z0-9_-]*.
@@ -77,6 +78,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 		dprintf("The name doesn't start with a lowercase character.\n");
 		return false;
 	}
+	
 	for (i = 1; i < FS_NAME_MAXLEN; i++) {
 		if (!(islower(info->name[i]) || isdigit(info->name[i])) &&
 		    (info->name[i] != '-') && (info->name[i] != '_')) {
@@ -89,6 +91,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 			}
 		}
 	}
+	
 	/*
 	 * This check is not redundant. It ensures that the name is
 	 * NULL-terminated, even if FS_NAME_MAXLEN characters are used.
@@ -103,13 +106,12 @@ static bool vfs_info_sane(vfs_info_t *info)
 
 /** VFS_REGISTER protocol function.
  *
- * @param rid		Hash of the call with the request.
- * @param request	Call structure with the request.
+ * @param rid     Hash of the call with the request.
+ * @param request Call structure with the request.
+ *
  */
 void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 {
-	int phone;
-	
 	dprintf("Processing VFS_REGISTER request received from %p.\n",
 	    request->in_phone_hash);
 	
@@ -173,21 +175,15 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * that a callback connection is created and we have a phone through
 	 * which to forward VFS requests to it.
 	 */
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
-		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
+	fs_info->sess = async_callback_receive(EXCHANGE_PARALLEL);
+	if (!fs_info->sess) {
+		dprintf("Callback connection expected\n");
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
-		async_answer_0(callid, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
-	phone = IPC_GET_ARG5(call);
-	async_session_create(&fs_info->session, phone, 0);
-	async_answer_0(callid, EOK);
 	
 	dprintf("Callback connection to FS created.\n");
 	
@@ -196,12 +192,12 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	
 	size_t size;
+	ipc_callid_t callid;
 	if (!async_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
-		async_session_destroy(&fs_info->session);
-		async_hangup(phone);
+		async_hangup(fs_info->sess);
 		free(fs_info);
 		async_answer_0(callid, EINVAL);
 		async_answer_0(rid, EINVAL);
@@ -215,8 +211,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
-		async_session_destroy(&fs_info->session);
-		async_hangup(phone);
+		async_hangup(fs_info->sess);
 		free(fs_info);
 		async_answer_0(callid, EINVAL);
 		async_answer_0(rid, EINVAL);
@@ -246,71 +241,61 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	    FS_NAME_MAXLEN, fs_info->vfs_info.name, fs_info->fs_handle);
 }
 
-/** For a given file system handle, implement policy for allocating a phone.
+/** Begin an exchange for a given file system handle
  *
- * @param handle	File system handle.
+ * @param handle File system handle.
  *
- * @return		Phone over which a multi-call request can be safely
- *			sent. Return 0 if no phone was found.
+ * @return Exchange for a multi-call request.
+ * @return NULL if no such file exists.
+ *
  */
-int vfs_grab_phone(fs_handle_t handle)
+async_exch_t *vfs_exchange_grab(fs_handle_t handle)
 {
-	link_t *cur;
-	fs_info_t *fs;
-	int phone;
-
 	/*
-	 * For now, we don't try to be very clever and very fast.  We simply
-	 * lookup the phone in the fs_head list and duplicate it.  The duplicate
-	 * phone will be returned to the client and the client will use it for
-	 * communication.  In the future, we should cache the connections so
-	 * that they do not have to be reestablished over and over again.
+	 * For now, we don't try to be very clever and very fast.
+	 * We simply lookup the session in the fs_head list and
+	 * begin an exchange.
 	 */
 	fibril_mutex_lock(&fs_head_lock);
+	
+	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
-		fs = list_get_instance(cur, fs_info_t, fs_link);
+		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
+		
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
-			phone = async_exchange_begin(&fs->session);
-
-			assert(phone > 0);
-			return phone;
+			
+			assert(fs->sess);
+			async_exch_t *exch = async_exchange_begin(fs->sess);
+			
+			assert(exch);
+			return exch;
 		}
 	}
+	
 	fibril_mutex_unlock(&fs_head_lock);
-	return 0;
+	
+	return NULL;
 }
 
-/** Tell VFS that the phone is not needed anymore.
+/** End VFS server exchange.
  *
- * @param phone		Phone to FS task.
+ * @param exch   VFS server exchange.
+ *
  */
-void vfs_release_phone(fs_handle_t handle, int phone)
+void vfs_exchange_release(async_exch_t *exch)
 {
-	link_t *cur;
-	fs_info_t *fs;
-
-	fibril_mutex_lock(&fs_head_lock);
-	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
-		fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (fs->fs_handle == handle) {
-			fibril_mutex_unlock(&fs_head_lock);
-			async_exchange_end(&fs->session, phone);
-			return;
-		}
-	}
-	/* should not really get here */
-	abort();
-	fibril_mutex_unlock(&fs_head_lock);
+	async_exchange_end(exch);
 }
 
 /** Convert file system name to its handle.
  *
- * @param name		File system name.
- * @param lock		If true, the function will lock and unlock the
- * 			fs_head_lock.
+ * @param name File system name.
+ * @param lock If true, the function will lock and unlock the
+ *             fs_head_lock.
  *
- * @return		File system handle or zero if file system not found.
+ * @return File system handle or zero if file system not found.
+ *
  */
 fs_handle_t fs_name_to_handle(char *name, bool lock)
 {
@@ -318,6 +303,7 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	
 	if (lock)
 		fibril_mutex_lock(&fs_head_lock);
+	
 	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
@@ -326,21 +312,25 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 			break;
 		}
 	}
+	
 	if (lock)
 		fibril_mutex_unlock(&fs_head_lock);
+	
 	return handle;
 }
 
 /** Find the VFS info structure.
  *
- * @param handle	FS handle for which the VFS info structure is sought.
- * @return		VFS info structure on success or NULL otherwise.
+ * @param handle FS handle for which the VFS info structure is sought.
+ *
+ * @return VFS info structure on success or NULL otherwise.
+ *
  */
 vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 {
 	vfs_info_t *info = NULL;
 	link_t *cur;
-
+	
 	fibril_mutex_lock(&fs_head_lock);
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
@@ -350,10 +340,10 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 		}
 	}
 	fibril_mutex_unlock(&fs_head_lock);
-
+	
 	return info;
 }
 
 /**
  * @}
- */ 
+ */

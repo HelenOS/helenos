@@ -75,7 +75,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"iret\n"
 		:
 		: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-		  [stack_size] "r" ((uint8_t *) kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
+		  [stack_size] "r" ((uint8_t *) kernel_uarg->uspace_stack + STACK_SIZE),
 		  [ipl] "r" (ipl),
 		  [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		  [entry] "r" (kernel_uarg->uspace_entry),

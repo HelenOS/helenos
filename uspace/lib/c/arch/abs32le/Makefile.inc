@@ -28,6 +28,7 @@
 
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.c \
+	arch/$(UARCH)/src/entryjmp.c \
 	arch/$(UARCH)/src/thread_entry.c \
 	arch/$(UARCH)/src/fibril.c \
 	arch/$(UARCH)/src/tls.c \

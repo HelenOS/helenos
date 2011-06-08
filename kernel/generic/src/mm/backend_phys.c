@@ -47,14 +47,45 @@
 #include <arch.h>
 #include <align.h>
 
-static int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
-static void phys_share(as_area_t *area);
+static bool phys_create(as_area_t *);
+static void phys_share(as_area_t *);
+static void phys_destroy(as_area_t *);
+
+static int phys_page_fault(as_area_t *, uintptr_t, pf_access_t);
 
 mem_backend_t phys_backend = {
+	.create = phys_create,
+	.resize = NULL,
+	.share = phys_share,
+	.destroy = phys_destroy,
+
 	.page_fault = phys_page_fault,
 	.frame_free = NULL,
-	.share = phys_share
 };
+
+bool phys_create(as_area_t *area)
+{
+	return true;
+}
+
+/** Share address space area backed by physical memory.
+ *
+ * Do actually nothing as sharing of address space areas
+ * that are backed up by physical memory is very easy.
+ * Note that the function must be defined so that
+ * as_area_share() will succeed.
+ */
+void phys_share(as_area_t *area)
+{
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
+}
+
+
+void phys_destroy(as_area_t *area)
+{
+	/* Nothing to do. */
+}
 
 /** Service a page fault in the address space area backed by physical memory.
  *
@@ -85,19 +116,6 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;
-}
-
-/** Share address space area backed by physical memory.
- *
- * Do actually nothing as sharing of address space areas
- * that are backed up by physical memory is very easy.
- * Note that the function must be defined so that
- * as_area_share() will succeed.
- */
-void phys_share(as_area_t *area)
-{
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
 }
 
 /** @}

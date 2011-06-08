@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +51,8 @@
 #include <adt/hash_table.h>
 #include <macros.h>
 #include <mem.h>
+#include <malloc.h>
+#include <stdio.h>
 #include <sys/typefmt.h>
 #include <stacktrace.h>
 
@@ -58,15 +61,15 @@ static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
 /** Device connection list head. */
 static LIST_INITIALIZE(dcl_head);
 
-#define CACHE_BUCKETS_LOG2		10
-#define CACHE_BUCKETS			(1 << CACHE_BUCKETS_LOG2)
+#define CACHE_BUCKETS_LOG2  10
+#define CACHE_BUCKETS       (1 << CACHE_BUCKETS_LOG2)
 
 typedef struct {
 	fibril_mutex_t lock;
-	size_t lblock_size;		/**< Logical block size. */
-	unsigned blocks_cluster;	/**< Physical blocks per block_t */
-	unsigned block_count;		/**< Total number of blocks. */
-	unsigned blocks_cached;		/**< Number of cached blocks. */
+	size_t lblock_size;       /**< Logical block size. */
+	unsigned blocks_cluster;  /**< Physical blocks per block_t */
+	unsigned block_count;     /**< Total number of blocks. */
+	unsigned blocks_cached;   /**< Number of cached blocks. */
 	hash_table_t block_hash;
 	link_t free_head;
 	enum cache_mode mode;
@@ -75,27 +78,28 @@ typedef struct {
 typedef struct {
 	link_t link;
 	devmap_handle_t devmap_handle;
-	int dev_phone;
+	async_sess_t *sess;
 	fibril_mutex_t comm_area_lock;
 	void *comm_area;
 	size_t comm_size;
 	void *bb_buf;
 	aoff64_t bb_addr;
-	size_t pblock_size;		/**< Physical block size. */
+	size_t pblock_size;  /**< Physical block size. */
 	cache_t *cache;
 } devcon_t;
 
-static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
-static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
-static int get_block_size(int dev_phone, size_t *bsize);
-static int get_num_blocks(int dev_phone, aoff64_t *nblocks);
-static aoff64_t ba_ltop(devcon_t *devcon, aoff64_t lba);
+static int read_blocks(devcon_t *, aoff64_t, size_t);
+static int write_blocks(devcon_t *, aoff64_t, size_t);
+static int get_block_size(async_sess_t *, size_t *);
+static int get_num_blocks(async_sess_t *, aoff64_t *);
+static aoff64_t ba_ltop(devcon_t *, aoff64_t);
 
 static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 {
 	link_t *cur;
-
+	
 	fibril_mutex_lock(&dcl_lock);
+	
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
 		devcon_t *devcon = list_get_instance(cur, devcon_t, link);
 		if (devcon->devmap_handle == devmap_handle) {
@@ -103,26 +107,27 @@ static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 			return devcon;
 		}
 	}
+	
 	fibril_mutex_unlock(&dcl_lock);
 	return NULL;
 }
 
-static int devcon_add(devmap_handle_t devmap_handle, int dev_phone, size_t bsize,
-    void *comm_area, size_t comm_size)
+static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
+    size_t bsize, void *comm_area, size_t comm_size)
 {
 	link_t *cur;
 	devcon_t *devcon;
-
+	
 	if (comm_size < bsize)
 		return EINVAL;
-
+	
 	devcon = malloc(sizeof(devcon_t));
 	if (!devcon)
 		return ENOMEM;
 	
 	link_initialize(&devcon->link);
 	devcon->devmap_handle = devmap_handle;
-	devcon->dev_phone = dev_phone;
+	devcon->sess = sess;
 	fibril_mutex_initialize(&devcon->comm_area_lock);
 	devcon->comm_area = comm_area;
 	devcon->comm_size = comm_size;
@@ -130,7 +135,7 @@ static int devcon_add(devmap_handle_t devmap_handle, int dev_phone, size_t bsize
 	devcon->bb_addr = 0;
 	devcon->pblock_size = bsize;
 	devcon->cache = NULL;
-
+	
 	fibril_mutex_lock(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
 		devcon_t *d = list_get_instance(cur, devcon_t, link);
@@ -152,46 +157,48 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-int block_init(devmap_handle_t devmap_handle, size_t comm_size)
+int block_init(exch_mgmt_t mgmt, devmap_handle_t devmap_handle,
+    size_t comm_size)
 {
-	int rc;
-	int dev_phone;
-	void *comm_area;
-	size_t bsize;
-
-	comm_area = mmap(NULL, comm_size, PROTO_READ | PROTO_WRITE,
+	void *comm_area = mmap(NULL, comm_size, PROTO_READ | PROTO_WRITE,
 	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	if (!comm_area) {
+	if (!comm_area)
 		return ENOMEM;
-	}
-
-	dev_phone = devmap_device_connect(devmap_handle, IPC_FLAG_BLOCKING);
-	if (dev_phone < 0) {
+	
+	async_sess_t *sess = devmap_device_connect(mgmt, devmap_handle,
+	    IPC_FLAG_BLOCKING);
+	if (!sess) {
 		munmap(comm_area, comm_size);
-		return dev_phone;
+		return ENOENT;
 	}
-
-	rc = async_share_out_start(dev_phone, comm_area,
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_share_out_start(exch, comm_area,
 	    AS_AREA_READ | AS_AREA_WRITE);
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
-	    	munmap(comm_area, comm_size);
-		async_hangup(dev_phone);
-		return rc;
-	}
-
-	if (get_block_size(dev_phone, &bsize) != EOK) {
 		munmap(comm_area, comm_size);
-		async_hangup(dev_phone);
+		async_hangup(sess);
 		return rc;
 	}
 	
-	rc = devcon_add(devmap_handle, dev_phone, bsize, comm_area, comm_size);
+	size_t bsize;
+	rc = get_block_size(sess, &bsize);
+	
 	if (rc != EOK) {
 		munmap(comm_area, comm_size);
-		async_hangup(dev_phone);
+		async_hangup(sess);
 		return rc;
 	}
-
+	
+	rc = devcon_add(devmap_handle, sess, bsize, comm_area, comm_size);
+	if (rc != EOK) {
+		munmap(comm_area, comm_size);
+		async_hangup(sess);
+		return rc;
+	}
+	
 	return EOK;
 }
 
@@ -202,16 +209,16 @@ void block_fini(devmap_handle_t devmap_handle)
 	
 	if (devcon->cache)
 		(void) block_cache_fini(devmap_handle);
-
+	
 	devcon_remove(devcon);
-
+	
 	if (devcon->bb_buf)
 		free(devcon->bb_buf);
-
+	
 	munmap(devcon->comm_area, devcon->comm_size);
-	async_hangup(devcon->dev_phone);
-
-	free(devcon);	
+	async_hangup(devcon->sess);
+	
+	free(devcon);
 }
 
 int block_bb_read(devmap_handle_t devmap_handle, aoff64_t ba)
@@ -804,7 +811,7 @@ int block_get_bsize(devmap_handle_t devmap_handle, size_t *bsize)
 	devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
-	return get_block_size(devcon->dev_phone, bsize);
+	return get_block_size(devcon->sess, bsize);
 }
 
 /** Get number of blocks on device.
@@ -816,12 +823,62 @@ int block_get_bsize(devmap_handle_t devmap_handle, size_t *bsize)
  */
 int block_get_nblocks(devmap_handle_t devmap_handle, aoff64_t *nblocks)
 {
-	devcon_t *devcon;
-
-	devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(devmap_handle);
 	assert(devcon);
 	
-	return get_num_blocks(devcon->dev_phone, nblocks);
+	return get_num_blocks(devcon->sess, nblocks);
+}
+
+/** Read bytes directly from the device (bypass cache)
+ * 
+ * @param devmap_handle	Device handle of the block device.
+ * @param abs_offset	Absolute offset in bytes where to start reading
+ * @param bytes			Number of bytes to read
+ * @param data			Buffer that receives the data
+ * 
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
+    size_t bytes, void *data)
+{
+	int rc;
+	size_t phys_block_size;
+	size_t buf_size;
+	void *buffer;
+	aoff64_t first_block;
+	aoff64_t last_block;
+	size_t blocks;
+	size_t offset;
+	
+	rc = block_get_bsize(devmap_handle, &phys_block_size);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	/* calculate data position and required space */
+	first_block = abs_offset / phys_block_size;
+	offset = abs_offset % phys_block_size;
+	last_block = (abs_offset + bytes - 1) / phys_block_size;
+	blocks = last_block - first_block + 1;
+	buf_size = blocks * phys_block_size;
+	
+	/* read the data into memory */
+	buffer = malloc(buf_size);
+	if (buffer == NULL) {
+		return ENOMEM;
+	}
+	
+	rc = block_read_direct(devmap_handle, first_block, blocks, buffer);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+	
+	/* copy the data from the buffer */
+	memcpy(data, buffer + offset, bytes);
+	free(buffer);
+	
+	return EOK;
 }
 
 /** Read blocks from block device.
@@ -835,11 +892,13 @@ int block_get_nblocks(devmap_handle_t devmap_handle, aoff64_t *nblocks)
  */
 static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 {
-	int rc;
-
 	assert(devcon);
-	rc = async_req_3_0(devcon->dev_phone, BD_READ_BLOCKS, LOWER32(ba),
+	
+	async_exch_t *exch = async_exchange_begin(devcon->sess);
+	int rc = async_req_3_0(exch, BD_READ_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		printf("Error %d reading %zu blocks starting at block %" PRIuOFF64
 		    " from device handle %" PRIun "\n", rc, cnt, ba,
@@ -848,6 +907,7 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 		stacktrace_print();
 #endif
 	}
+	
 	return rc;
 }
 
@@ -862,11 +922,13 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
  */
 static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 {
-	int rc;
-
 	assert(devcon);
-	rc = async_req_3_0(devcon->dev_phone, BD_WRITE_BLOCKS, LOWER32(ba),
+	
+	async_exch_t *exch = async_exchange_begin(devcon->sess);
+	int rc = async_req_3_0(exch, BD_WRITE_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		printf("Error %d writing %zu blocks starting at block %" PRIuOFF64
 		    " to device handle %" PRIun "\n", rc, cnt, ba, devcon->devmap_handle);
@@ -874,33 +936,38 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 		stacktrace_print();
 #endif
 	}
+	
 	return rc;
 }
 
 /** Get block size used by the device. */
-static int get_block_size(int dev_phone, size_t *bsize)
+static int get_block_size(async_sess_t *sess, size_t *bsize)
 {
 	sysarg_t bs;
-	int rc;
-
-	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_0_1(exch, BD_GET_BLOCK_SIZE, &bs);
+	async_exchange_end(exch);
+	
 	if (rc == EOK)
 		*bsize = (size_t) bs;
-
+	
 	return rc;
 }
 
 /** Get total number of blocks on block device. */
-static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
+static int get_num_blocks(async_sess_t *sess, aoff64_t *nblocks)
 {
-	sysarg_t nb_l, nb_h;
-	int rc;
-
-	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
-	if (rc == EOK) {
+	sysarg_t nb_l;
+	sysarg_t nb_h;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_0_2(exch, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
+	async_exchange_end(exch);
+	
+	if (rc == EOK)
 		*nblocks = (aoff64_t) MERGE_LOUP32(nb_l, nb_h);
-	}
-
+	
 	return rc;
 }
 

@@ -34,19 +34,19 @@
 /** @file
  */
 
-#include<softfloat.h>
-#include<sftypes.h>
+#include <softfloat.h>
+#include <sftypes.h>
 
-#include<add.h>
-#include<sub.h>
-#include<mul.h>
-#include<div.h>
+#include <add.h>
+#include <sub.h>
+#include <mul.h>
+#include <div.h>
 
-#include<conversion.h>
-#include<comparison.h>
-#include<other.h>
+#include <conversion.h>
+#include <comparison.h>
+#include <other.h>
 
-#include<functions.h>
+#include <functions.h>
 
 /* Arithmetic functions */
 
@@ -493,7 +493,5 @@ float __powisf2(float a, int b)
 	return fa.f;
 }
 
-
 /** @}
  */
-

@@ -96,6 +96,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/clip/clip \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
+	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
 	$(USPACE_PATH)/srv/net/netif/lo/lo \
@@ -113,9 +114,20 @@ RD_DRVS = \
 	root \
 	rootvirt \
 	test1 \
-	test2
+	test2 \
+	test3
 
 RD_DRV_CFG = 
+
+RD_LIBS =
+
+ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
+	RD_LIBS += \
+		$(USPACE_PATH)/lib/c/libc.so0 \
+		$(USPACE_PATH)/lib/softint/libsofti.so0
+	RD_APPS += \
+		$(USPACE_PATH)/app/dltest/dltest
+endif
 
 RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
@@ -123,16 +135,24 @@ RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/klog/klog
 
 RD_APPS_NON_ESSENTIAL = \
+	$(USPACE_PATH)/app/blkdump/blkdump \
+	$(USPACE_PATH)/app/bnchmark/bnchmark \
 	$(USPACE_PATH)/app/cc/cc \
 	$(USPACE_PATH)/app/cpp/cpp \
+	$(USPACE_PATH)/app/dltest/dltest \
+	$(USPACE_PATH)/app/dltest2/dltest2 \
+	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/redir/redir \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
+	$(USPACE_PATH)/app/testread/testread \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
@@ -140,8 +160,11 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
-	$(USPACE_PATH)/app/top/top \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
+	$(USPACE_PATH)/app/top/top \
+	$(USPACE_PATH)/app/usbinfo/usbinfo \
+	$(USPACE_PATH)/app/vuhid/vuh \
+	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv
 
 ifneq ($(CONFIG_BAREBONE),y)

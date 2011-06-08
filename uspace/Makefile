@@ -34,29 +34,37 @@
 
 DIRS = \
 	app/bdsh \
+	app/blkdump \
+	app/bnchmark \
 	app/cc \
 	app/cpp \
 	app/edit \
+	app/ext2info \
 	app/getterm \
 	app/init \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/lsusb \
 	app/mkfat \
 	app/redir \
 	app/sbi \
 	app/stats \
 	app/taskdump \
 	app/tester \
+	app/testread \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/usbinfo \
+	app/vuhid \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
+	app/mkbd \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -73,6 +81,7 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
+	srv/fs/ext2fs \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
@@ -91,7 +100,19 @@ DIRS = \
 	drv/root \
 	drv/rootvirt \
 	drv/test1 \
-	drv/test2
+	drv/test2 \
+	drv/test3 \
+	drv/ehci_hcd \
+	drv/ohci \
+	drv/uhci_hcd \
+	drv/uhci_rhd \
+	drv/usbflbk \
+	drv/usbhid \
+	drv/usbhub \
+	drv/usbmast \
+	drv/usbmid \
+	drv/usbmouse \
+	drv/vhc
 
 ## Networking
 #
@@ -150,7 +171,13 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
-	lib/net
+	lib/net \
+	lib/ext2 \
+	lib/usb \
+	lib/usbhost \
+	lib/usbdev \
+	lib/usbhid \
+	lib/usbvirt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

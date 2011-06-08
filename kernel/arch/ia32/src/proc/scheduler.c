@@ -57,7 +57,7 @@ void before_task_runs_arch(void)
  */
 void before_thread_runs_arch(void)
 {
-	uintptr_t kstk = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE];
+	uintptr_t kstk = (uintptr_t) &THREAD->kstack[STACK_SIZE];
 	
 	if (CPU->arch.fi.bits.sep) {
 		/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */

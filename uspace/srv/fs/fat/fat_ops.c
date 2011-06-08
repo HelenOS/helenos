@@ -54,6 +54,7 @@
 #include <fibril_synch.h>
 #include <sys/mman.h>
 #include <align.h>
+#include <malloc.h>
 
 #define FAT_NODE(node)	((node) ? (fat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
@@ -968,7 +969,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	free(opts);
 
 	/* initialize libblock */
-	rc = block_init(devmap_handle, BS_SIZE);
+	rc = block_init(EXCHANGE_SERIALIZE, devmap_handle, BS_SIZE);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		return;

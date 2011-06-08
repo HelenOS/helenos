@@ -353,7 +353,7 @@ void scheduler(void)
 	}
 	
 	/*
-	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU, VM
+	 * Through the 'THE' structure, we keep track of THREAD, TASK, CPU, AS
 	 * and preemption counter. At this point THE could be coming either
 	 * from THREAD's or CPU's stack.
 	 *
@@ -375,7 +375,7 @@ void scheduler(void)
 	 */
 	context_save(&CPU->saved_context);
 	context_set(&CPU->saved_context, FADDR(scheduler_separated_stack),
-	    (uintptr_t) CPU->stack, CPU_STACK_SIZE);
+	    (uintptr_t) CPU->stack, STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	
 	/* Not reached */

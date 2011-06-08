@@ -43,7 +43,7 @@
 
 #include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
@@ -117,7 +117,7 @@ static bool obio_init(void)
 	sysarg_t paddr;
 	
 	if (sysinfo_get_value("obio.base.physical", &paddr) != EOK) {
-		printf(NAME ": no OBIO registers found\n");
+		printf("%s: No OBIO registers found\n", NAME);
 		return false;
 	}
 	
@@ -129,11 +129,11 @@ static bool obio_init(void)
 	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags);
 	
 	if (retval < 0) {
-		printf(NAME ": Error mapping OBIO registers\n");
+		printf("%s: Error mapping OBIO registers\n", NAME);
 		return false;
 	}
 	
-	printf(NAME ": OBIO registers with base at %p\n", base_phys);
+	printf("%s: OBIO registers with base at %p\n", NAME, base_phys);
 	
 	async_set_client_connection(obio_connection);
 	service_register(SERVICE_IRC);
@@ -143,18 +143,19 @@ static bool obio_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS OBIO driver\n");
+	printf("%s: HelenOS OBIO driver\n", NAME);
 	
 	if (!obio_init())
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
-
+	
 	/* Never reached */
 	return 0;
 }
 
 /**
  * @}
- */ 
+ */

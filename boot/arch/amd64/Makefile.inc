@@ -41,7 +41,18 @@ RD_DRVS += \
 	rootpc \
 	pciintel \
 	isa \
-	ns8250
+	ns8250 \
+	ehci_hcd \
+	ohci \
+	uhci_hcd \
+	uhci_rhd \
+	usbflbk \
+	usbhub \
+	usbhid \
+	usbmast \
+	usbmid \
+	usbmouse \
+	vhc
 
 RD_DRV_CFG += \
 	isa/isa.dev

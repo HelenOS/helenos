@@ -921,27 +921,54 @@ int str_uint64(const char *nptr, char **endptr, unsigned int base,
 
 void order_suffix(const uint64_t val, uint64_t *rv, char *suffix)
 {
-	if (val > 10000000000000000000ULL) {
-		*rv = val / 1000000000000000000ULL;
+	if (val > UINT64_C(10000000000000000000)) {
+		*rv = val / UINT64_C(1000000000000000000);
 		*suffix = 'Z';
-	} else if (val > 1000000000000000000ULL) {
-		*rv = val / 1000000000000000ULL;
+	} else if (val > UINT64_C(1000000000000000000)) {
+		*rv = val / UINT64_C(1000000000000000);
 		*suffix = 'E';
-	} else if (val > 1000000000000000ULL) {
-		*rv = val / 1000000000000ULL;
+	} else if (val > UINT64_C(1000000000000000)) {
+		*rv = val / UINT64_C(1000000000000);
 		*suffix = 'T';
-	} else if (val > 1000000000000ULL) {
-		*rv = val / 1000000000ULL;
+	} else if (val > UINT64_C(1000000000000)) {
+		*rv = val / UINT64_C(1000000000);
 		*suffix = 'G';
-	} else if (val > 1000000000ULL) {
-		*rv = val / 1000000ULL;
+	} else if (val > UINT64_C(1000000000)) {
+		*rv = val / UINT64_C(1000000);
 		*suffix = 'M';
-	} else if (val > 1000000ULL) {
-		*rv = val / 1000ULL;
+	} else if (val > UINT64_C(1000000)) {
+		*rv = val / UINT64_C(1000);
 		*suffix = 'k';
 	} else {
 		*rv = val;
 		*suffix = ' ';
+	}
+}
+
+void bin_order_suffix(const uint64_t val, uint64_t *rv, const char **suffix,
+    bool fixed)
+{
+	if (val > UINT64_C(1152921504606846976)) {
+		*rv = val / UINT64_C(1125899906842624);
+		*suffix = "EiB";
+	} else if (val > UINT64_C(1125899906842624)) {
+		*rv = val / UINT64_C(1099511627776);
+		*suffix = "TiB";
+	} else if (val > UINT64_C(1099511627776)) {
+		*rv = val / UINT64_C(1073741824);
+		*suffix = "GiB";
+	} else if (val > UINT64_C(1073741824)) {
+		*rv = val / UINT64_C(1048576);
+		*suffix = "MiB";
+	} else if (val > UINT64_C(1048576)) {
+		*rv = val / UINT64_C(1024);
+		*suffix = "KiB";
+	} else {
+		*rv = val;
+		if (fixed)
+			*suffix = "B  ";
+		else
+			*suffix = "B";
 	}
 }
 

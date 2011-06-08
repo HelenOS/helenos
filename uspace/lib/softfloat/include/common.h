@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -35,19 +35,18 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include<sftypes.h>
+#include <sftypes.h>
 
-float64 finishFloat64(int32_t cexp, uint64_t cfrac, char sign);
+extern float64 finishFloat64(int32_t, uint64_t, char);
 
-int countZeroes64(uint64_t i);
-int countZeroes32(uint32_t i);
-int countZeroes8(uint8_t i);
+extern int countZeroes64(uint64_t);
+extern int countZeroes32(uint32_t);
+extern int countZeroes8(uint8_t);
 
-void roundFloat32(int32_t *exp, uint32_t *fraction);
-void roundFloat64(int32_t *exp, uint64_t *fraction);
+extern void roundFloat32(int32_t *, uint32_t *);
+extern void roundFloat64(int32_t *, uint64_t *);
 
 #endif
 
- /** @}
+/** @}
  */
-

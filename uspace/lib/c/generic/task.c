@@ -34,15 +34,17 @@
  */
 
 #include <task.h>
-#include <libc.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <loader/loader.h>
 #include <stdarg.h>
 #include <str.h>
 #include <ipc/ns.h>
 #include <macros.h>
+#include <assert.h>
 #include <async.h>
+#include <errno.h>
+#include <malloc.h>
+#include <libc.h>
+#include "private/ns.h"
 
 task_id_t task_get_id(void)
 {
@@ -67,6 +69,8 @@ task_id_t task_get_id(void)
  */
 int task_set_name(const char *name)
 {
+	assert(name);
+	
 	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
 }
 
@@ -87,25 +91,23 @@ int task_kill(task_id_t task_id)
  * This is really just a convenience wrapper over the more complicated
  * loader API. Arguments are passed as a null-terminated array of strings.
  *
- * @param id 	If not NULL, the ID of the task is stored here on success.
- * @param path	Pathname of the binary to execute.
- * @param argv	Command-line arguments.
+ * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param path Pathname of the binary to execute.
+ * @param argv Command-line arguments.
  *
- * @return	Zero on success or negative error code.
+ * @return Zero on success or negative error code.
+ *
  */
 int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 {
-	loader_t *ldr;
-	task_id_t task_id;
-	int rc;
-
 	/* Connect to a program loader. */
-	ldr = loader_connect();
+	loader_t *ldr = loader_connect();
 	if (ldr == NULL)
 		return EREFUSED;
 	
 	/* Get task ID. */
-	rc = loader_get_task_id(ldr, &task_id);
+	task_id_t task_id;
+	int rc = loader_get_task_id(ldr, &task_id);
 	if (rc != EOK)
 		goto error;
 	
@@ -162,8 +164,6 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 		goto error;
 	
 	/* Success */
-	free(ldr);
-	
 	if (id != NULL)
 		*id = task_id;
 	
@@ -172,7 +172,6 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 error:
 	/* Error exit */
 	loader_abort(ldr);
-	free(ldr);
 	return rc;
 }
 
@@ -181,33 +180,34 @@ error:
  * This is really just a convenience wrapper over the more complicated
  * loader API. Arguments are passed as a null-terminated list of arguments.
  *
- * @param id 	If not NULL, the ID of the task is stored here on success.
- * @param path	Pathname of the binary to execute.
- * @param ...	Command-line arguments.
+ * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param path Pathname of the binary to execute.
+ * @param ...  Command-line arguments.
  *
- * @return	Zero on success or negative error code.
+ * @return Zero on success or negative error code.
+ *
  */
 int task_spawnl(task_id_t *task_id, const char *path, ...)
 {
+	/* Count the number of arguments. */
+	
 	va_list ap;
-	int rc, cnt;
 	const char *arg;
 	const char **arglist;
-
-	/* Count the number of arguments. */
-	cnt = 0;
+	int cnt = 0;
+	
 	va_start(ap, path);
 	do {
 		arg = va_arg(ap, const char *);
 		cnt++;
 	} while (arg != NULL);
 	va_end(ap);
-
+	
 	/* Allocate argument list. */
 	arglist = malloc(cnt * sizeof(const char *));
 	if (arglist == NULL)
 		return ENOMEM;
-
+	
 	/* Fill in arguments. */
 	cnt = 0;
 	va_start(ap, path);
@@ -216,10 +216,10 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 		arglist[cnt++] = arg;
 	} while (arg != NULL);
 	va_end(ap);
-
+	
 	/* Spawn task. */
-	rc = task_spawnv(task_id, path, arglist);
-
+	int rc = task_spawnv(task_id, path, arglist);
+	
 	/* Free argument list. */
 	free(arglist);
 	return rc;
@@ -227,20 +227,28 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 
 int task_wait(task_id_t id, task_exit_t *texit, int *retval)
 {
+	assert(texit);
+	assert(retval);
+	
+	async_exch_t *exch = async_exchange_begin(session_ns);
 	sysarg_t te, rv;
-	int rc;
-
-	rc = (int) async_req_2_2(PHONE_NS, NS_TASK_WAIT, LOWER32(id),
+	int rc = (int) async_req_2_2(exch, NS_TASK_WAIT, LOWER32(id),
 	    UPPER32(id), &te, &rv);
+	async_exchange_end(exch);
+	
 	*texit = te;
 	*retval = rv;
-
+	
 	return rc;
 }
 
 int task_retval(int val)
 {
-	return (int) async_req_1_0(PHONE_NS, NS_RETVAL, val);
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	int rc = (int) async_req_1_0(exch, NS_RETVAL, val);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
 /** @}

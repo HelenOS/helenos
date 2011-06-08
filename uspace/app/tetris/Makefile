@@ -33,7 +33,6 @@ BINARY = tetris
 SOURCES = \
 	shapes.c \
 	scores.c \
-	input.c \
 	tetris.c \
 	screen.c
 
