@@ -172,7 +172,6 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 error:
 	/* Error exit */
 	loader_abort(ldr);
-	free(ldr);
 	return rc;
 }
 
