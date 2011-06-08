@@ -39,6 +39,27 @@
 #include <mem.h>
 #include <str.h>
 
+/* available in str.h
+ *
+ * char *strtok(char *restrict, const char *restrict);
+ * char *strtok_r(char *restrict, const char *restrict, char **restrict);
+ *
+ * available in mem.h
+ *
+ * void *memset(void *, int, size_t);
+ * void *memcpy(void *, const void *, size_t);
+ * void *memmove(void *, const void *, size_t);
+ *
+ * unimplemented due to missing locales
+ *
+ * int      strcoll_l(const char *, const char *, locale_t);
+ * char    *strerror_l(int, locale_t);
+ * size_t   strxfrm_l(char *restrict, const char *restrict, size_t, locale_t);
+ *
+ */
+
+// TODO: provide *_l once there is locale.h
+
 #ifndef NULL
 	#define NULL  ((void *) 0)
 #endif
@@ -46,21 +67,21 @@
 /* Copying and Concatenation */
 extern char *posix_strcpy(char *restrict dest, const char *restrict src);
 extern char *posix_strncpy(char *restrict dest, const char *restrict src, size_t n);
+extern char *posix_stpcpy(char *restrict dest, const char *restrict src);
+extern char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n);
 extern char *posix_strcat(char *restrict dest, const char *restrict src);
 extern char *posix_strncat(char *restrict dest, const char *restrict src, size_t n);
-extern void *posix_mempcpy(void *restrict dest, const void *restrict src, size_t n);
+extern void *posix_memccpy(void *restrict dest, const void *restrict src, int c, size_t n);
 extern char *posix_strdup(const char *s);
+extern char *posix_strndup(const char *s, size_t n);
 
 /* String/Array Comparison */
 extern int posix_memcmp(const void *mem1, const void *mem2, size_t n);
 extern int posix_strcmp(const char *s1, const char *s2);
 extern int posix_strncmp(const char *s1, const char *s2, size_t n);
-extern int posix_strcasecmp(const char *s1, const char *s2);
-extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 
 /* Search Functions */
 extern void *posix_memchr(const void *mem, int c, size_t n);
-extern void *posix_rawmemchr(const void *mem, int c);
 extern char *posix_strchr(const char *s, int c);
 extern char *posix_strrchr(const char *s, int c);
 extern char *posix_strpbrk(const char *s1, const char *s2);
@@ -74,26 +95,28 @@ extern size_t posix_strxfrm(char *restrict s1, const char *restrict s2, size_t n
 
 /* Error Messages */
 extern char *posix_strerror(int errnum);
+extern int posix_strerror_r(int errnum, char *buf, size_t bufsz);
 
 /* String Length */
 extern size_t posix_strlen(const char *s);
+extern size_t posix_strnlen(const char *s, size_t n);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define strcpy posix_strcpy
 	#define strncpy posix_strncpy
+	#define stpcpy posix_stpcpy
+	#define stpncpy posix_stpncpy
 	#define strcat posix_strcat
 	#define strncat posix_strncat
-	#define mempcpy posix_mempcpy
+	#define memccpy posix_memccpy
 	#define strdup posix_strdup
+	#define strndup posix_strndup
 
 	#define memcmp posix_memcmp
 	#define strcmp posix_strcmp
 	#define strncmp posix_strncmp
-	#define strcasecmp posix_strcasecmp
-	#define strncasecmp posix_strncasecmp
 
 	#define memchr posix_memchr
-	#define rawmemchr posix_rawmemchr
 	#define strchr posix_strchr
 	#define strrchr posix_strrchr
 	#define strpbrk posix_strpbrk
@@ -105,8 +128,11 @@ extern size_t posix_strlen(const char *s);
 	#define strxfrm posix_strxfrm
 
 	#define strerror posix_strerror
+	#define strerror_r posix_strerror_r
+	#define strsignal(i) ((char*) "SIGNonSense: There are no signals in HelenOS.")
 
 	#define strlen posix_strlen
+	#define strnlen posix_strnlen
 #endif
 
 #endif  // POSIX_STRING_H_
