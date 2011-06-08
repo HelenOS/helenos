@@ -40,7 +40,8 @@ EXTRA_CLEAN = $(INCLUDE_LIBC)
 SOURCES = \
 	stdlib.c \
 	string.c \
-	time.c
+	time.c \
+	unistd.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
