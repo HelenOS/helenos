@@ -463,6 +463,7 @@ extern int async_data_write_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
 extern int async_exchange_clone(async_exch_t *, async_exch_t *);
 extern async_sess_t *async_clone_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
+extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
 
 #endif
 
