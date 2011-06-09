@@ -230,39 +230,28 @@ int devman_add_function(const char *name, fun_type_t ftype,
 		return retval;
 	}
 	
-	async_wait_for(req, &retval);
-	if (retval != EOK) {
-		devman_exchange_end(exch);
-		
-		if (funh != NULL)
-			*funh = -1;
-		
-		return retval;
-	}
-	
-	if (funh != NULL)
-		*funh = (int) IPC_GET_ARG1(answer);
-	
 	link_t *link = match_ids->ids.next;
 	match_id_t *match_id = NULL;
 	
 	while (link != &match_ids->ids) {
 		match_id = list_get_instance(link, match_id_t, link);
 		
-		ipc_call_t answer;
-		aid_t req = async_send_1(exch, DEVMAN_ADD_MATCH_ID,
-		    match_id->score, &answer);
+		ipc_call_t answer2;
+		aid_t req2 = async_send_1(exch, DEVMAN_ADD_MATCH_ID,
+		    match_id->score, &answer2);
 		retval = async_data_write_start(exch, match_id->id,
 		    str_size(match_id->id));
 		if (retval != EOK) {
 			devman_exchange_end(exch);
+			async_wait_for(req2, NULL);
 			async_wait_for(req, NULL);
 			return retval;
 		}
 		
-		async_wait_for(req, &retval);
+		async_wait_for(req2, &retval);
 		if (retval != EOK) {
 			devman_exchange_end(exch);
+			async_wait_for(req, NULL);
 			return retval;
 		}
 		
@@ -270,7 +259,17 @@ int devman_add_function(const char *name, fun_type_t ftype,
 	}
 	
 	devman_exchange_end(exch);
-	return EOK;
+	
+	async_wait_for(req, &retval);
+	if (retval != EOK) {
+		if (funh != NULL)
+			*funh = (int) IPC_GET_ARG1(answer);
+	} else {
+		if (funh != NULL)
+			*funh = -1;
+	}
+	
+	return retval;
 }
 
 int devman_add_device_to_class(devman_handle_t devman_handle,
