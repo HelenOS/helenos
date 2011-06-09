@@ -44,7 +44,6 @@ static fibril_local uintptr_t plugged_device_handle = 0;
 #define PLUGGED_DEVICE_NAME_MAXLEN 256
 static fibril_local char plugged_device_name[PLUGGED_DEVICE_NAME_MAXLEN + 1] = "<unknown>";
 
-#if 0
 /** Receive device name.
  *
  * @warning Errors are silently ignored.
@@ -84,7 +83,6 @@ static void receive_device_name(async_sess_t *sess)
 	size_t len = IPC_GET_ARG2(data_request_call);
 	plugged_device_name[len] = 0;
 }
-#endif
 
 /** Default handler for IPC methods not handled by DDF.
  *
@@ -92,40 +90,30 @@ static void receive_device_name(async_sess_t *sess)
  * @param icallid Call id.
  * @param icall Call data.
  */
-void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
+void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
+    ipc_call_t *icall)
 {
-// FIXME:
-// This code needs to be refactored since the async
-// framework does not support automatic callback connections
-// yet.
-
-#if 0
 	vhc_data_t *vhc = fun->dev->driver_data;
-	sysarg_t method = IPC_GET_IMETHOD(*icall);
-
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
-		int rc = vhc_virtdev_plug(vhc, callback,
-		    &plugged_device_handle);
+	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	
+	if (callback) {
+		int rc = vhc_virtdev_plug(vhc, callback, &plugged_device_handle);
 		if (rc != EOK) {
 			async_answer_0(icallid, rc);
 			async_hangup(callback);
 			return;
 		}
-
+		
 		async_answer_0(icallid, EOK);
-
+		
 		receive_device_name(callback);
-
+		
 		usb_log_info("New virtual device `%s' (id: %" PRIxn ").\n",
 		    plugged_device_name, plugged_device_handle);
-
-		return;
-	}
-#endif
-
-	async_answer_0(icallid, EINVAL);
+	} else
+		async_answer_0(icallid, EINVAL);
 }
 
 /** Callback when client disconnects.

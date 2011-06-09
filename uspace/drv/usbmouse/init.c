@@ -42,9 +42,6 @@
 #include <usb/hid/request.h>
 #include <errno.h>
 
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
-
 /** Mouse polling endpoint description for boot protocol subclass. */
 usb_endpoint_description_t poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
@@ -55,41 +52,36 @@ usb_endpoint_description_t poll_endpoint_description = {
 	.flags = 0
 };
 
-static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+/** Default handler for IPC methods not handled by DDF.
+ *
+ * @param fun     Device function handling the call.
+ * @param icallid Call ID.
+ * @param icall   Call data.
+ *
+ */
+static void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
+    ipc_call_t *icall)
+{
+	usb_mouse_t *mouse = (usb_mouse_t *) fun->driver_data;
+	assert(mouse != NULL);
+	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	
+	if (callback) {
+		if (mouse->console_sess == NULL) {
+			mouse->console_sess = callback;
+			async_answer_0(icallid, EOK);
+		} else
+			async_answer_0(icallid, ELIMIT);
+	} else
+		async_answer_0(icallid, EINVAL);
+}
+
 /** Device ops for USB mouse. */
 static ddf_dev_ops_t mouse_ops = {
 	.default_handler = default_connection_handler
 };
-
-/** Default handler for IPC methods not handled by DDF.
- *
- * @param fun Device function handling the call.
- * @param icallid Call id.
- * @param icall Call data.
- */
-void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
-{
-	sysarg_t method = IPC_GET_IMETHOD(*icall);
-
-	usb_mouse_t *mouse = (usb_mouse_t *) fun->driver_data;
-	assert(mouse != NULL);
-
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
-
-		if (mouse->console_phone != -1) {
-			async_answer_0(icallid, ELIMIT);
-			return;
-		}
-
-		mouse->console_phone = callback;
-		async_answer_0(icallid, EOK);
-		return;
-	}
-
-	async_answer_0(icallid, EINVAL);
-}
 
 /** Create USB mouse device.
  *
@@ -101,50 +93,46 @@ void default_connection_handler(ddf_fun_t *fun,
 int usb_mouse_create(usb_device_t *dev)
 {
 	usb_mouse_t *mouse = malloc(sizeof(usb_mouse_t));
-	if (mouse == NULL) {
+	if (mouse == NULL)
 		return ENOMEM;
-	}
+	
 	mouse->dev = dev;
-	mouse->console_phone = -1;
-
+	mouse->console_sess = NULL;
+	
 	int rc;
-
+	
 	/* Create DDF function. */
 	mouse->mouse_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "mouse");
 	if (mouse->mouse_fun == NULL) {
 		rc = ENOMEM;
 		goto leave;
 	}
-
+	
 	mouse->mouse_fun->ops = &mouse_ops;
-
+	
 	rc = ddf_fun_bind(mouse->mouse_fun);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto leave;
-	}
-
+	
 	/* Add the function to mouse class. */
 	rc = ddf_fun_add_to_class(mouse->mouse_fun, "mouse");
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto leave;
-	}
 	
 	/* Set the boot protocol. */
 	rc = usbhid_req_set_protocol(&dev->ctrl_pipe, dev->interface_no,
 	    USB_HID_PROTOCOL_BOOT);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto leave;
-	}
 	
-	/* Everything all right. */
+	/* Everything allright. */
 	dev->driver_data = mouse;
 	mouse->mouse_fun->driver_data = mouse;
-
+	
 	return EOK;
-
+	
 leave:
 	free(mouse);
-
 	return rc;
 }
 

@@ -2338,7 +2338,8 @@ async_sess_t *async_clone_receive(exch_mgmt_t mgmt)
  *
  * @param mgmt Exchange management style.
  *
- * @return New async session or NULL on failure.
+ * @return New async session.
+ * @return NULL on failure.
  *
  */
 async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
@@ -2372,6 +2373,45 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	
 	/* Acknowledge the connected phone */
 	async_answer_0(callid, EOK);
+	
+	return sess;
+}
+
+/** Wrapper for receiving the IPC_M_CONNECT_TO_ME calls.
+ *
+ * If the call is IPC_M_CONNECT_TO_ME then a new
+ * async session is created. However, the phone is
+ * not accepted automatically.
+ *
+ * @param mgmt   Exchange management style.
+ * @param call   Call data.
+ *
+ * @return New async session.
+ * @return NULL on failure.
+ * @return NULL if the call is not IPC_M_CONNECT_TO_ME.
+ *
+ */
+async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
+{
+	int phone = (int) IPC_GET_ARG5(*call);
+	
+	if ((IPC_GET_IMETHOD(*call) != IPC_M_CONNECT_TO_ME) ||
+	    (phone < 0))
+		return NULL;
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL)
+		return NULL;
+	
+	sess->mgmt = mgmt;
+	sess->phone = phone;
+	sess->arg1 = 0;
+	sess->arg2 = 0;
+	sess->arg3 = 0;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
 	
 	return sess;
 }

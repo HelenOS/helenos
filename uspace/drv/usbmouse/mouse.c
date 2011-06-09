@@ -39,25 +39,26 @@
 #include <str_error.h>
 #include <ipc/mouse.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include "mouse.h"
 
 /** Mouse polling callback.
  *
- * @param dev Device that is being polled.
+ * @param dev    Device that is being polled.
  * @param buffer Data buffer.
- * @param buffer_size Buffer size in bytes.
- * @param arg Custom argument - points to usb_mouse_t.
+ * @param size   Buffer size in bytes.
+ * @param arg    Pointer to usb_mouse_t.
+ *
  * @return Always true.
+ *
  */
-bool usb_mouse_polling_callback(usb_device_t *dev,
-    uint8_t *buffer, size_t buffer_size, void *arg)
+bool usb_mouse_polling_callback(usb_device_t *dev, uint8_t *buffer,
+    size_t size, void *arg)
 {
 	usb_mouse_t *mouse = (usb_mouse_t *) arg;
-
+	
 	usb_log_debug2("got buffer: %s.\n",
-	    usb_debug_str_buffer(buffer, buffer_size, 0));
-
+	    usb_debug_str_buffer(buffer, size, 0));
+	
 	uint8_t butt = buffer[0];
 	char str_buttons[4] = {
 		butt & 1 ? '#' : '.',
@@ -65,61 +66,63 @@ bool usb_mouse_polling_callback(usb_device_t *dev,
 		butt & 4 ? '#' : '.',
 		0
 	};
-
+	
 	int shift_x = ((int) buffer[1]) - 127;
 	int shift_y = ((int) buffer[2]) - 127;
 	int wheel = ((int) buffer[3]) - 127;
-
-	if (buffer[1] == 0) {
+	
+	if (buffer[1] == 0)
 		shift_x = 0;
-	}
-	if (buffer[2] == 0) {
+	
+	if (buffer[2] == 0)
 		shift_y = 0;
-	}
-	if (buffer[3] == 0) {
+	
+	if (buffer[3] == 0)
 		wheel = 0;
-	}
-
-	if (mouse->console_phone >= 0) {
+	
+	if (mouse->console_sess) {
 		if ((shift_x != 0) || (shift_y != 0)) {
-			/* FIXME: guessed for QEMU */
-			async_obsolete_req_2_0(mouse->console_phone,
-			    MEVENT_MOVE,
-			    - shift_x / 10,  - shift_y / 10);
+			// FIXME: guessed for QEMU
+			
+			async_exch_t *exch = async_exchange_begin(mouse->console_sess);
+			async_req_2_0(exch, MEVENT_MOVE, -shift_x / 10, -shift_y / 10);
+			async_exchange_end(exch);
 		}
 		if (butt) {
-			/* FIXME: proper button clicking. */
-			async_obsolete_req_2_0(mouse->console_phone,
-			    MEVENT_BUTTON, 1, 1);
-			async_obsolete_req_2_0(mouse->console_phone,
-			    MEVENT_BUTTON, 1, 0);
+			// FIXME: proper button clicking
+			
+			async_exch_t *exch = async_exchange_begin(mouse->console_sess);
+			async_req_2_0(exch, MEVENT_BUTTON, 1, 1);
+			async_req_2_0(exch, MEVENT_BUTTON, 1, 0);
+			async_exchange_end(exch);
 		}
 	}
-
+	
 	usb_log_debug("buttons=%s  dX=%+3d  dY=%+3d  wheel=%+3d\n",
 	    str_buttons, shift_x, shift_y, wheel);
-
+	
 	/* Guess. */
 	async_usleep(1000);
-
+	
 	return true;
 }
 
 /** Callback when polling is terminated.
  *
- * @param dev Device where the polling terminated.
+ * @param dev              Device where the polling terminated.
  * @param recurring_errors Whether the polling was terminated due to
- *	recurring errors.
- * @param arg Custom argument - points to usb_mouse_t.
+ *                         recurring errors.
+ * @param arg              Pointer to usb_mouse_t.
+ *
  */
-void usb_mouse_polling_ended_callback(usb_device_t *dev,
-    bool recurring_errors, void *arg)
+void usb_mouse_polling_ended_callback(usb_device_t *dev, bool recurring_errors,
+    void *arg)
 {
 	usb_mouse_t *mouse = (usb_mouse_t *) arg;
-
-	async_obsolete_hangup(mouse->console_phone);
-	mouse->console_phone = -1;
-
+	
+	async_hangup(mouse->console_sess);
+	mouse->console_sess = NULL;
+	
 	usb_device_destroy(dev);
 }
 

@@ -33,37 +33,42 @@
  * @file
  * Common definitions for USB mouse driver.
  */
+
 #ifndef USBMOUSE_MOUSE_H_
 #define USBMOUSE_MOUSE_H_
 
 #include <usb/dev/driver.h>
 #include <usb/dev/pipes.h>
 #include <time.h>
+#include <async.h>
 
-#define NAME "usbmouse"
+#define POLL_PIPE(dev) \
+	((dev)->pipes[0].pipe)
 
 /** Container for USB mouse device. */
 typedef struct {
 	/** Generic device container. */
 	usb_device_t *dev;
+	
 	/** Function representing the device. */
 	ddf_fun_t *mouse_fun;
+	
 	/** Polling interval in microseconds. */
 	suseconds_t poll_interval_us;
-	/** IPC phone to console (consumer). */
-	int console_phone;
+	
+	/** Callback session to console (consumer). */
+	async_sess_t *console_sess;
 } usb_mouse_t;
-
-#define POLL_PIPE(dev) ((dev)->pipes[0].pipe)
 
 extern usb_endpoint_description_t poll_endpoint_description;
 
-int usb_mouse_create(usb_device_t *);
-
-bool usb_mouse_polling_callback(usb_device_t *, uint8_t *, size_t, void *);
-void usb_mouse_polling_ended_callback(usb_device_t *, bool, void *);
+extern int usb_mouse_create(usb_device_t *);
+extern bool usb_mouse_polling_callback(usb_device_t *, uint8_t *, size_t,
+    void *);
+extern void usb_mouse_polling_ended_callback(usb_device_t *, bool, void *);
 
 #endif
+
 /**
  * @}
  */
