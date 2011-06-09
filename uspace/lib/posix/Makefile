@@ -39,6 +39,7 @@ EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
 	ctype.c \
+	stdio.c \
 	stdlib.c \
 	string.c \
 	strings.c \

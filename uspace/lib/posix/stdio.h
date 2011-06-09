@@ -32,6 +32,19 @@
 #include "libc/stdio.h"
 
 #define putc fputc
+#define getc fgetc
+
+
+extern FILE *posix_freopen(const char *restrict filename,
+                           const char *restrict mode,
+                           FILE *restrict stream);
+
+extern void posix_perror(const char *s);
+
+#ifndef POSIX_INTERNAL
+	#define freopen posix_freopen
+	#define perror posix_perror
+#endif
 
 #endif /* POSIX_STDIO_H_ */
 
