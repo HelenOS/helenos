@@ -261,7 +261,7 @@ int devman_add_function(const char *name, fun_type_t ftype,
 	devman_exchange_end(exch);
 	
 	async_wait_for(req, &retval);
-	if (retval != EOK) {
+	if (retval == EOK) {
 		if (funh != NULL)
 			*funh = (int) IPC_GET_ARG1(answer);
 	} else {
