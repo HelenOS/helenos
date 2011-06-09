@@ -72,6 +72,12 @@
 # include <stdarg.h>
 # include <string.h>
 
+/* standard macros conflict with identifiers in this file */
+#ifdef true
+	#undef true
+	#undef false
+#endif
+
 static void chkpun(NODE *p);
 static int opact(NODE *p);
 static int moditype(TWORD);

@@ -37,6 +37,7 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/cc \
+	app/ccom \
 	app/cpp \
 	app/edit \
 	app/ext2info \
