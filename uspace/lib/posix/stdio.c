@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2011 Petr Koupy
  * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
@@ -33,89 +32,20 @@
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
+#define POSIX_INTERNAL
 
-#include "stdlib.h"
 #include "common.h"
+#include "stdio.h"
 
-/**
- *
- * @param array
- * @param count
- * @param size
- * @param compare
- */
-void posix_qsort(void *array, size_t count, size_t size, int (*compare)(const void *, const void *))
+FILE *posix_freopen(const char *restrict filename,
+                    const char *restrict mode,
+                    FILE *restrict stream)
 {
 	// TODO
 	not_implemented();
 }
 
-/**
- *
- * @param name
- * @return
- */
-char *posix_getenv(const char *name)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param name
- * @param resolved
- * @return
- */
-char *posix_realpath(const char *name, char *resolved)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param nptr
- * @param endptr
- * @return
- */
-float posix_strtof(const char *restrict nptr, char **restrict endptr)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param nptr
- * @param endptr
- * @return
- */
-double posix_strtod(const char *restrict nptr, char **restrict endptr)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param nptr
- * @param endptr
- * @return
- */
-long double posix_strtold(const char *restrict nptr, char **restrict endptr)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param str
- * @return
- */
-int posix_atoi(const char *str)
+void posix_perror(const char *s)
 {
 	// TODO
 	not_implemented();
@@ -123,3 +53,4 @@ int posix_atoi(const char *str)
 
 /** @}
  */
+
