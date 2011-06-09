@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 #define LIBPOSIX_INTERNAL
 
 #include "stdlib.h"
+#include "common.h"
 
 /**
  *
@@ -46,6 +48,7 @@
 void posix_qsort(void *array, size_t count, size_t size, int (*compare)(const void *, const void *))
 {
 	// TODO
+	not_implemented();
 }
 
 /**
@@ -56,7 +59,7 @@ void posix_qsort(void *array, size_t count, size_t size, int (*compare)(const vo
 char *posix_getenv(const char *name)
 {
 	// TODO
-	return 0;
+	not_implemented();
 }
 
 /**
@@ -68,7 +71,43 @@ char *posix_getenv(const char *name)
 char *posix_realpath(const char *name, char *resolved)
 {
 	// TODO
-	return 0;
+	not_implemented();
+}
+
+/**
+ * 
+ * @param nptr
+ * @param endptr
+ * @return
+ */
+float posix_strtof(const char *restrict nptr, char **restrict endptr)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param nptr
+ * @param endptr
+ * @return
+ */
+double posix_strtod(const char *restrict nptr, char **restrict endptr)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param nptr
+ * @param endptr
+ * @return
+ */
+long double posix_strtold(const char *restrict nptr, char **restrict endptr)
+{
+	// TODO
+	not_implemented();
 }
 
 /** @}
