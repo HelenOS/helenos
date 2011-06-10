@@ -631,6 +631,24 @@ int ipc_connect_to_me(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
 	    arg3, NULL, NULL, NULL, taskhash, phonehash);
 }
 
+/** Request cloned connection.
+ *
+ * @param phoneid Phone handle used for contacting the other side.
+ *
+ * @return Cloned phone handle on success or a negative error code.
+ *
+ */
+int ipc_connect_me(int phoneid)
+{
+	sysarg_t newphid;
+	int res = ipc_call_sync_0_5(phoneid, IPC_M_CONNECT_ME, NULL, NULL,
+	    NULL, NULL, &newphid);
+	if (res)
+		return res;
+	
+	return newphid;
+}
+
 /** Request new connection.
  *
  * @param phoneid Phone handle used for contacting the other side.

@@ -111,6 +111,14 @@ LIBBLOCK_PREFIX = $(LIB_PREFIX)/block
 LIBFS_PREFIX = $(LIB_PREFIX)/fs
 LIBCLUI_PREFIX = $(LIB_PREFIX)/clui
 
+LIBEXT2_PREFIX = $(LIB_PREFIX)/ext2
+
+LIBUSB_PREFIX = $(LIB_PREFIX)/usb
+LIBUSBHOST_PREFIX = $(LIB_PREFIX)/usbhost
+LIBUSBDEV_PREFIX = $(LIB_PREFIX)/usbdev
+LIBUSBHID_PREFIX = $(LIB_PREFIX)/usbhid
+LIBUSBVIRT_PREFIX = $(LIB_PREFIX)/usbvirt
+
 LIBDRV_PREFIX = $(LIB_PREFIX)/drv
 LIBPACKET_PREFIX = $(LIB_PREFIX)/packet
 LIBNET_PREFIX = $(LIB_PREFIX)/net
@@ -127,6 +135,12 @@ else
 			STATIC_BUILD = y
 		endif
 	endif
+endif
+
+# Build static whenever we use libusb because that library uses 
+# thread local variables
+ifneq ($(findstring usb, $(LIBS)),)
+	STATIC_BUILD = y
 endif
 
 ifeq ($(STATIC_BUILD), y)

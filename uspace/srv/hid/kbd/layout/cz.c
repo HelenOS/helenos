@@ -38,7 +38,7 @@
 #include <layout.h>
 
 static void layout_reset(void);
-static wchar_t layout_parse_ev(console_event_t *ev);
+static wchar_t layout_parse_ev(kbd_event_t *ev);
 
 enum m_state {
 	ms_start,
@@ -272,7 +272,7 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	return map[key];
 }
 
-static wchar_t parse_ms_hacek(console_event_t *ev)
+static wchar_t parse_ms_hacek(kbd_event_t *ev)
 {
 	wchar_t c;
 
@@ -290,7 +290,7 @@ static wchar_t parse_ms_hacek(console_event_t *ev)
 	return c;
 }
 
-static wchar_t parse_ms_carka(console_event_t *ev)
+static wchar_t parse_ms_carka(kbd_event_t *ev)
 {
 	wchar_t c;
 
@@ -308,7 +308,7 @@ static wchar_t parse_ms_carka(console_event_t *ev)
 	return c;
 }
 
-static wchar_t parse_ms_start(console_event_t *ev)
+static wchar_t parse_ms_start(kbd_event_t *ev)
 {
 	wchar_t c;
 
@@ -383,7 +383,7 @@ static void layout_reset(void)
 	mstate = ms_start;
 }
 
-static wchar_t layout_parse_ev(console_event_t *ev)
+static wchar_t layout_parse_ev(kbd_event_t *ev)
 {
 	if (ev->type != KEY_PRESS)
 		return 0;

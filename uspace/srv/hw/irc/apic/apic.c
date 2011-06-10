@@ -37,7 +37,7 @@
 
 #include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
@@ -78,6 +78,12 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call)) {
+			/* The other side has hung up. */
+			async_answer_0(callid, EOK);
+			return;
+		}
+		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			async_answer_0(callid, apic_enable_irq(IPC_GET_ARG1(call)));
@@ -101,7 +107,7 @@ static bool apic_init(void)
 	sysarg_t apic;
 	
 	if ((sysinfo_get_value("apic", &apic) != EOK) || (!apic)) {
-		printf(NAME ": No APIC found\n");
+		printf("%s: No APIC found\n", NAME);
 		return false;
 	}
 	
@@ -113,12 +119,13 @@ static bool apic_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS APIC driver\n");
+	printf("%s: HelenOS APIC driver\n", NAME);
 	
 	if (!apic_init())
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	
 	/* Never reached */

@@ -204,7 +204,7 @@ int kbd_ctl_init(void)
 
 void kbd_ctl_parse_scancode(int scancode)
 {
-	console_ev_type_t type;
+	kbd_event_type_t type;
 	unsigned int key;
 	int *map;
 	size_t map_length;

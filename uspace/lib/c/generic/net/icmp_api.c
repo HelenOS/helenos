@@ -41,6 +41,7 @@
 #include <net/modules.h>
 #include <net/ip_codes.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -82,11 +83,11 @@ icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl,
 	if (addrlen <= 0)
 		return EINVAL;
 
-	message_id = async_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl,
+	message_id = async_obsolete_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl,
 	    tos, (sysarg_t) dont_fragment, NULL);
 
 	/* Send the address */
-	async_data_write_start(icmp_phone, addr, (size_t) addrlen);
+	async_obsolete_data_write_start(icmp_phone, addr, (size_t) addrlen);
 
 	async_wait_for(message_id, &result);
 	return (int) result;

@@ -31,13 +31,15 @@
 
 #include <ipc/dev_iface.h>
 
-/** ipc methods for getting/setting serial communication properties
- * 	1st ipc arg: baud rate
- * 	2nd ipc arg: parity
- *	3rd ipc arg: number of bits in one word
- *	4th ipc arg: number of stop bits
+/** IPC methods for getting/setting serial communication properties
+ *
+ * 1st IPC arg: baud rate
+ * 2nd IPC arg: parity
+ * 3rd IPC arg: number of bits in one word
+ * 4th IPC arg: number of stop bits
+ *
  */
-typedef enum {	
+typedef enum {
 	SERIAL_GET_COM_PROPS = DEV_FIRST_CUSTOM_METHOD,
 	SERIAL_SET_COM_PROPS
 } serial_ctl_t;
@@ -47,7 +49,7 @@ typedef enum {
 	SERIAL_ODD_PARITY = 1,
 	SERIAL_EVEN_PARITY = 3,
 	SERIAL_MARK_PARITY = 5,
-	SERIAL_SPACE_PARITY = 7	
+	SERIAL_SPACE_PARITY = 7
 } serial_parity_t;
 
 #endif

@@ -166,7 +166,7 @@ bool tmpfs_restore(devmap_handle_t dev)
 	fs_node_t *fn;
 	int rc;
 
-	rc = block_init(dev, TMPFS_COMM_SIZE);
+	rc = block_init(EXCHANGE_SERIALIZE, dev, TMPFS_COMM_SIZE);
 	if (rc != EOK)
 		return false; 
 	

@@ -63,7 +63,7 @@
  * @param[in] header The IP packet header.
  */
 #define IP_FRAGMENT_OFFSET(header) \
-	((((header)->fragment_offset_high << 8) + \
+	(((GET_IP_HEADER_FRAGMENT_OFFSET_HIGH(header) << 8) + \
 	    (header)->fragment_offset_low) * 8U)
 
 /** Returns the IP packet header checksum.
@@ -82,7 +82,7 @@
  * @param[in] header The IP packet header.
  */
 #define IP_HEADER_LENGTH(header) \
-	((header)->header_length * 4U)
+	(GET_IP_HEADER_LENGTH(header) * 4U)
 
 /** Returns the actual IP packet total length.
  * @param[in] header The IP packet header.
@@ -142,25 +142,37 @@ typedef struct ipv4_pseudo_header ipv4_pseudo_header_t;
  * indicated by the increased header length value.
  */
 struct ip_header {
-#ifdef ARCH_IS_BIG_ENDIAN
-	uint8_t version : 4;
-	uint8_t header_length : 4;
-#else
-	uint8_t header_length : 4;
-	uint8_t version : 4;
-#endif
+	uint8_t vhl; /* version, header_length */
+
+#define GET_IP_HEADER_VERSION(header) \
+	(((header)->vhl & 0xf0) >> 4)
+#define SET_IP_HEADER_VERSION(header, version) \
+	((header)->vhl = \
+	 ((version & 0x0f) << 4) | ((header)->vhl & 0x0f))
+
+#define GET_IP_HEADER_LENGTH(header) \
+	((header)->vhl & 0x0f)
+#define SET_IP_HEADER_LENGTH(header, length) \
+	((header)->vhl = \
+	 (length & 0x0f) | ((header)->vhl & 0xf0))
 
 	uint8_t tos;
 	uint16_t total_length;
 	uint16_t identification;
 
-#ifdef ARCH_IS_BIG_ENDIAN
-	uint8_t flags : 3;
-	uint8_t fragment_offset_high : 5;
-#else
-	uint8_t fragment_offset_high : 5;
-	uint8_t flags : 3;
-#endif
+	uint8_t ffoh; /* flags, fragment_offset_high */
+
+#define GET_IP_HEADER_FLAGS(header) \
+	(((header)->ffoh & 0xe0) >> 5)
+#define SET_IP_HEADER_FLAGS(header, flags) \
+	((header)->ffoh = \
+	 ((flags & 0x07) << 5) | ((header)->ffoh & 0x1f))
+
+#define GET_IP_HEADER_FRAGMENT_OFFSET_HIGH(header) \
+	((header)->ffoh & 0x1f)
+#define SET_IP_HEADER_FRAGMENT_OFFSET_HIGH(header, fragment_offset_high) \
+	((header)->ffoh = \
+	 (fragment_offset_high & 0x1f) | ((header)->ffoh & 0xe0))
 
 	uint8_t fragment_offset_low;
 	uint8_t ttl;
@@ -180,13 +192,20 @@ struct ip_option {
 	uint8_t length;
 	uint8_t pointer;
 
-#ifdef ARCH_IS_BIG_ENDIAN
-	uint8_t overflow : 4;
-	uint8_t flags : 4;
-#else
-	uint8_t flags : 4;
-	uint8_t overflow : 4;
-#endif
+	uint8_t of; /* overflow, flags */
+
+#define GET_IP_OPTION_OVERFLOW(option) \
+	(((option)->of & 0xf0) >> 4)
+#define SET_IP_OPTION_OVERFLOW(option, overflow) \
+	((option)->of = \
+	 ((overflow & 0x0f) << 4) | ((option)->of & 0x0f))
+
+#define GET_IP_OPTION_FLAGS(option) \
+	((option)->of & 0x0f)
+#define SET_IP_OPTION_FLAGS(option, flags) \
+	((option)->of = \
+	 (flags & 0x0f) | ((option)->of & 0xf0))
+
 } __attribute__ ((packed));
 
 /** Internet version 4 pseudo header. */

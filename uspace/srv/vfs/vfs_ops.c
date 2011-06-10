@@ -77,8 +77,8 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	fs_index_t rindex;
 	size_t rsize;
 	unsigned rlnkcnt;
+	async_exch_t *exch;
 	sysarg_t rc;
-	int phone;
 	aid_t msg;
 	ipc_call_t answer;
 	
@@ -122,21 +122,21 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			 */
 			
 			/* Tell the mountee that it is being mounted. */
-			phone = vfs_grab_phone(fs_handle);
-			msg = async_send_1(phone, VFS_OUT_MOUNTED,
+			exch = vfs_exchange_grab(fs_handle);
+			msg = async_send_1(exch, VFS_OUT_MOUNTED,
 			    (sysarg_t) devmap_handle, &answer);
-			/* send the mount options */
-			rc = async_data_write_start(phone, (void *)opts,
+			/* Send the mount options */
+			rc = async_data_write_start(exch, (void *)opts,
 			    str_size(opts));
+			vfs_exchange_release(exch);
+			
 			if (rc != EOK) {
 				async_wait_for(msg, NULL);
-				vfs_release_phone(fs_handle, phone);
 				fibril_rwlock_write_unlock(&namespace_rwlock);
 				async_answer_0(rid, rc);
 				return;
 			}
 			async_wait_for(msg, &rc);
-			vfs_release_phone(fs_handle, phone);
 			
 			if (rc != EOK) {
 				fibril_rwlock_write_unlock(&namespace_rwlock);
@@ -181,59 +181,63 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	 * handles, and we know the mount point VFS node.
 	 */
 	
-	int mountee_phone = vfs_grab_phone(fs_handle);
-	assert(mountee_phone >= 0);
-
-	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
-	msg = async_send_4(phone, VFS_OUT_MOUNT,
+	async_exch_t *mountee_exch = vfs_exchange_grab(fs_handle);
+	assert(mountee_exch);
+	
+	exch = vfs_exchange_grab(mp_res.triplet.fs_handle);
+	msg = async_send_4(exch, VFS_OUT_MOUNT,
 	    (sysarg_t) mp_res.triplet.devmap_handle,
 	    (sysarg_t) mp_res.triplet.index,
 	    (sysarg_t) fs_handle,
 	    (sysarg_t) devmap_handle, &answer);
 	
-	/* send connection */
-	rc = async_req_1_0(phone, IPC_M_CONNECTION_CLONE, mountee_phone);
+	/* Send connection */
+	rc = async_exchange_clone(exch, mountee_exch);
+	vfs_exchange_release(mountee_exch);
+	
 	if (rc != EOK) {
+		vfs_exchange_release(exch);
 		async_wait_for(msg, NULL);
-		vfs_release_phone(fs_handle, mountee_phone);
-		vfs_release_phone(mp_res.triplet.fs_handle, phone);
+		
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
+		
 		async_answer_0(rid, rc);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
-
-	vfs_release_phone(fs_handle, mountee_phone);
 	
 	/* send the mount options */
-	rc = async_data_write_start(phone, (void *)opts, str_size(opts));
+	rc = async_data_write_start(exch, (void *) opts, str_size(opts));
 	if (rc != EOK) {
+		vfs_exchange_release(exch);
 		async_wait_for(msg, NULL);
-		vfs_release_phone(mp_res.triplet.fs_handle, phone);
+		
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
+		
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		async_answer_0(rid, rc);
 		return;
 	}
+	
+	vfs_exchange_release(exch);
 	async_wait_for(msg, &rc);
-	vfs_release_phone(mp_res.triplet.fs_handle, phone);
 	
 	if (rc == EOK) {
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
 		rsize = (size_t) IPC_GET_ARG2(answer);
 		rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
-	
+		
 		mr_res.triplet.fs_handle = fs_handle;
 		mr_res.triplet.devmap_handle = devmap_handle;
 		mr_res.triplet.index = rindex;
 		mr_res.size = rsize;
 		mr_res.lnkcnt = rlnkcnt;
 		mr_res.type = VFS_NODE_DIRECTORY;
-	
+		
 		/* Add reference to the mounted root. */
 		mr_node = vfs_node_get(&mr_res); 
 		assert(mr_node);
@@ -242,7 +246,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 		if (mp_node)
 			vfs_node_put(mp_node);
 	}
-
+	
 	async_answer_0(rid, rc);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 }
@@ -302,12 +306,12 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	/*
-	 * Wait for IPC_M_PING so that we can return an error if we don't know
+	 * Wait for VFS_IN_PING so that we can return an error if we don't know
 	 * fs_name.
 	 */
 	ipc_call_t data;
 	ipc_callid_t callid = async_get_call(&data);
-	if (IPC_GET_IMETHOD(data) != IPC_M_PING) {
+	if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
 		async_answer_0(callid, ENOTSUP);
 		async_answer_0(rid, ENOTSUP);
 		free(mp);
@@ -357,8 +361,8 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	vfs_lookup_res_t mp_res;
 	vfs_lookup_res_t mr_res;
 	vfs_node_t *mr_node;
-	int phone;
-
+	async_exch_t *exch;
+	
 	/*
 	 * Receive the mount point path.
 	 */
@@ -366,7 +370,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	    0, NULL);
 	if (rc != EOK)
 		async_answer_0(rid, rc);
-
+	
 	/*
 	 * Taking the namespace lock will do two things for us. First, it will
 	 * prevent races with other lookup operations. Second, it will stop new
@@ -394,7 +398,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
-
+	
 	/*
 	 * Count the total number of references for the mounted file system. We
 	 * are expecting at least two. One which we got above and one which we
@@ -410,38 +414,41 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EBUSY);
 		return;
 	}
-
+	
 	if (str_cmp(mp, "/") == 0) {
-
+		
 		/*
 		 * Unmounting the root file system.
 		 *
 		 * In this case, there is no mount point node and we send
 		 * VFS_OUT_UNMOUNTED directly to the mounted file system.
 		 */
-
+		
 		free(mp);
-		phone = vfs_grab_phone(mr_node->fs_handle);
-		rc = async_req_1_0(phone, VFS_OUT_UNMOUNTED,
+		
+		exch = vfs_exchange_grab(mr_node->fs_handle);
+		rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED,
 		    mr_node->devmap_handle);
-		vfs_release_phone(mr_node->fs_handle, phone);
+		vfs_exchange_release(exch);
+		
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			vfs_node_put(mr_node);
 			async_answer_0(rid, rc);
 			return;
 		}
+		
 		rootfs.fs_handle = 0;
 		rootfs.devmap_handle = 0;
 	} else {
-
+		
 		/*
 		 * Unmounting a non-root file system.
 		 *
 		 * We have a regular mount point node representing the parent
 		 * file system, so we delegate the operation to it.
 		 */
-
+		
 		rc = vfs_lookup_internal(mp, L_MP, &mp_res, NULL);
 		free(mp);
 		if (rc != EOK) {
@@ -450,6 +457,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 			async_answer_0(rid, rc);
 			return;
 		}
+		
 		vfs_node_t *mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
@@ -457,11 +465,12 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 			async_answer_0(rid, ENOMEM);
 			return;
 		}
-
-		phone = vfs_grab_phone(mp_node->fs_handle);
-		rc = async_req_2_0(phone, VFS_OUT_UNMOUNT,
+		
+		exch = vfs_exchange_grab(mp_node->fs_handle);
+		rc = async_req_2_0(exch, VFS_OUT_UNMOUNT,
 		    mp_node->devmap_handle, mp_node->index);
-		vfs_release_phone(mp_node->fs_handle, phone);
+		vfs_exchange_release(exch);
+		
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			vfs_node_put(mp_node);
@@ -469,20 +478,19 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 			async_answer_0(rid, rc);
 			return;
 		}
-
+		
 		/* Drop the reference we got above. */
 		vfs_node_put(mp_node);
 		/* Drop the reference from when the file system was mounted. */
 		vfs_node_put(mp_node);
 	}
-
-
+	
 	/*
 	 * All went well, the mounted file system was successfully unmounted.
 	 * The only thing left is to forget the unmounted root VFS node.
 	 */
 	vfs_node_forget(mr_node);
-
+	
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	async_answer_0(rid, EOK);
 }
@@ -697,84 +705,35 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	 * the same open file at a time.
 	 */
 	fibril_mutex_lock(&file->lock);
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
 	
 	/* Make a VFS_OUT_SYMC request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_2(fs_phone, VFS_OUT_SYNC, file->node->devmap_handle,
+	msg = async_send_2(fs_exch, VFS_OUT_SYNC, file->node->devmap_handle,
 	    file->node->index, &answer);
-
+	
+	vfs_exchange_release(fs_exch);
+	
 	/* Wait for reply from the FS server. */
 	sysarg_t rc;
 	async_wait_for(msg, &rc);
 	
-	vfs_release_phone(file->node->fs_handle, fs_phone);
 	fibril_mutex_unlock(&file->lock);
-
+	
 	vfs_file_put(file);
 	async_answer_0(rid, rc);
-}
-
-int vfs_close_internal(vfs_file_t *file)
-{
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&file->lock);
-	
-	if (file->refcnt <= 1) {
-		/* Only close the file on the destination FS server
-		   if there are no more file descriptors (except the
-		   present one) pointing to this file. */
-		
-		int fs_phone = vfs_grab_phone(file->node->fs_handle);
-		
-		/* Make a VFS_OUT_CLOSE request at the destination FS server. */
-		aid_t msg;
-		ipc_call_t answer;
-		msg = async_send_2(fs_phone, VFS_OUT_CLOSE,
-		    file->node->devmap_handle, file->node->index, &answer);
-		
-		/* Wait for reply from the FS server. */
-		sysarg_t rc;
-		async_wait_for(msg, &rc);
-		
-		vfs_release_phone(file->node->fs_handle, fs_phone);
-		fibril_mutex_unlock(&file->lock);
-		
-		return IPC_GET_ARG1(answer);
-	}
-	
-	fibril_mutex_unlock(&file->lock);
-	return EOK;
 }
 
 void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	
-	/* Lookup the file structure corresponding to the file descriptor. */
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
-	
-	int ret = vfs_close_internal(file);
-	if (ret != EOK)
-		async_answer_0(rid, ret);
-	
-	vfs_file_put(file);
-	ret = vfs_fd_free(fd);
+	int ret = vfs_fd_free(fd);
 	async_answer_0(rid, ret);
 }
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 {
-	vfs_info_t *vi;
-
 	/*
 	 * The following code strongly depends on the fact that the files data
 	 * structure can be only accessed by a single fibril and all file
@@ -784,7 +743,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * Additional synchronization needs to be added once the table of
 	 * open files supports parallel access!
 	 */
-
+	
 	int fd = IPC_GET_ARG1(*request);
 	
 	/* Lookup the file structure corresponding to the file descriptor. */
@@ -799,20 +758,21 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * the same open file at a time.
 	 */
 	fibril_mutex_lock(&file->lock);
-
-	vi = fs_handle_to_info(file->node->fs_handle);
-	assert(vi);
-
+	
+	vfs_info_t *fs_info = fs_handle_to_info(file->node->fs_handle);
+	assert(fs_info);
+	
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time unless the FS supports concurrent reads/writes and its
 	 * write implementation does not modify the file size.
 	 */
-	if (read || (vi->concurrent_read_write && vi->write_retains_size))
+	if ((read) ||
+	    ((fs_info->concurrent_read_write) && (fs_info->write_retains_size)))
 		fibril_rwlock_read_lock(&file->node->contents_rwlock);
 	else
 		fibril_rwlock_write_lock(&file->node->contents_rwlock);
-
+	
 	if (file->node->type == VFS_NODE_DIRECTORY) {
 		/*
 		 * Make sure that no one is modifying the namespace
@@ -822,7 +782,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		fibril_rwlock_read_lock(&namespace_rwlock);
 	}
 	
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
 	
 	/*
 	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
@@ -834,19 +794,19 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	sysarg_t rc;
 	ipc_call_t answer;
 	if (read) {
-		rc = async_data_read_forward_3_1(fs_phone, VFS_OUT_READ,
+		rc = async_data_read_forward_3_1(fs_exch, VFS_OUT_READ,
 		    file->node->devmap_handle, file->node->index, file->pos,
 		    &answer);
 	} else {
 		if (file->append)
 			file->pos = file->node->size;
 		
-		rc = async_data_write_forward_3_1(fs_phone, VFS_OUT_WRITE,
+		rc = async_data_write_forward_3_1(fs_exch, VFS_OUT_WRITE,
 		    file->node->devmap_handle, file->node->index, file->pos,
 		    &answer);
 	}
 	
-	vfs_release_phone(file->node->fs_handle, fs_phone);
+	vfs_exchange_release(fs_exch);
 	
 	size_t bytes = IPC_GET_ARG1(answer);
 	
@@ -854,7 +814,8 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		fibril_rwlock_read_unlock(&namespace_rwlock);
 	
 	/* Unlock the VFS node. */
-	if (read || (vi->concurrent_read_write && vi->write_retains_size))
+	if ((read) ||
+	    ((fs_info->concurrent_read_write) && (fs_info->write_retains_size)))
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 	else {
 		/* Update the cached version of node's size. */
@@ -974,14 +935,13 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 int vfs_truncate_internal(fs_handle_t fs_handle, devmap_handle_t devmap_handle,
     fs_index_t index, aoff64_t size)
 {
-	sysarg_t rc;
-	int fs_phone;
+	async_exch_t *exch = vfs_exchange_grab(fs_handle);
+	sysarg_t rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
+	    (sysarg_t) devmap_handle, (sysarg_t) index, LOWER32(size),
+	    UPPER32(size));
+	vfs_exchange_release(exch);
 	
-	fs_phone = vfs_grab_phone(fs_handle);
-	rc = async_req_4_0(fs_phone, VFS_OUT_TRUNCATE, (sysarg_t) devmap_handle,
-	    (sysarg_t) index, LOWER32(size), UPPER32(size));
-	vfs_release_phone(fs_handle, fs_phone);
-	return (int)rc;
+	return (int) rc;
 }
 
 void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
@@ -1031,15 +991,17 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 
 	fibril_mutex_lock(&file->lock);
 
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
 	
 	aid_t msg;
-	msg = async_send_3(fs_phone, VFS_OUT_STAT, file->node->devmap_handle,
+	msg = async_send_3(exch, VFS_OUT_STAT, file->node->devmap_handle,
 	    file->node->index, true, NULL);
-	async_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	
+	vfs_exchange_release(exch);
+	
 	async_wait_for(msg, &rc);
-	vfs_release_phone(file->node->fs_handle, fs_phone);
-
+	
 	fibril_mutex_unlock(&file->lock);
 	vfs_file_put(file);
 	async_answer_0(rid, rc);
@@ -1082,15 +1044,17 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 
 	fibril_rwlock_read_unlock(&namespace_rwlock);
 
-	int fs_phone = vfs_grab_phone(node->fs_handle);
+	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
+	
 	aid_t msg;
-	msg = async_send_3(fs_phone, VFS_OUT_STAT, node->devmap_handle,
+	msg = async_send_3(exch, VFS_OUT_STAT, node->devmap_handle,
 	    node->index, false, NULL);
-	async_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	
+	vfs_exchange_release(exch);
 	
 	sysarg_t rv;
 	async_wait_for(msg, &rv);
-	vfs_release_phone(node->fs_handle, fs_phone);
 
 	async_answer_0(rid, rv);
 
@@ -1368,29 +1332,8 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	fibril_mutex_lock(&oldfile->lock);
 	
-	/* Lookup an open file structure possibly corresponding to newfd. */
-	vfs_file_t *newfile = vfs_file_get(newfd);
-	if (newfile) {
-		/* Close the originally opened file. */
-		int ret = vfs_close_internal(newfile);
-		if (ret != EOK) {
-			fibril_mutex_unlock(&oldfile->lock);
-			vfs_file_put(oldfile);
-			vfs_file_put(newfile);
-			async_answer_0(rid, ret);
-			return;
-		}
-		
-		ret = vfs_fd_free(newfd);
-		if (ret != EOK) {
-			fibril_mutex_unlock(&oldfile->lock);
-			vfs_file_put(oldfile);
-			vfs_file_put(newfile);
-			async_answer_0(rid, ret);
-			return;
-		}
-		vfs_file_put(newfile);
-	}
+	/* Make sure newfd is closed. */
+	(void) vfs_fd_free(newfd);
 	
 	/* Assign the old file to newfd. */
 	int ret = vfs_fd_assign(oldfile, newfd);

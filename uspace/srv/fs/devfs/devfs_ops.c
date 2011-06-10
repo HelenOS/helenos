@@ -58,10 +58,10 @@ typedef struct {
 /** Opened devices structure */
 typedef struct {
 	devmap_handle_t handle;
-	int phone;		/**< When < 0, the structure is incomplete. */
+	async_sess_t *sess;       /**< If NULL, the structure is incomplete. */
 	size_t refcount;
 	link_t link;
-	fibril_condvar_t cv;	/**< Broadcast when completed. */
+	fibril_condvar_t cv;      /**< Broadcast when completed. */
 } device_t;
 
 /** Hash table of opened devices */
@@ -231,7 +231,7 @@ static int devfs_node_open(fs_node_t *fn)
 			[DEVICES_KEY_HANDLE] = (unsigned long) node->handle
 		};
 		link_t *lnk;
-
+		
 		fibril_mutex_lock(&devices_mutex);
 restart:
 		lnk = hash_table_find(&devices, key);
@@ -243,49 +243,52 @@ restart:
 			}
 			
 			dev->handle = node->handle;
-			dev->phone = -1;	/* mark as incomplete */
+			
+			/* Mark as incomplete */
+			dev->sess = NULL;
 			dev->refcount = 1;
 			fibril_condvar_initialize(&dev->cv);
-
+			
 			/*
 			 * Insert the incomplete device structure so that other
 			 * fibrils will not race with us when we drop the mutex
 			 * below.
 			 */
 			hash_table_insert(&devices, key, &dev->link);
-
+			
 			/*
 			 * Drop the mutex to allow recursive devfs requests.
 			 */
 			fibril_mutex_unlock(&devices_mutex);
-
-			int phone = devmap_device_connect(node->handle, 0);
-
+			
+			async_sess_t *sess = devmap_device_connect(EXCHANGE_SERIALIZE,
+			    node->handle, 0);
+			
 			fibril_mutex_lock(&devices_mutex);
-
+			
 			/*
 			 * Notify possible waiters about this device structure
 			 * being completed (or destroyed).
 			 */
 			fibril_condvar_broadcast(&dev->cv);
-
-			if (phone < 0) {
+			
+			if (!sess) {
 				/*
 				 * Connecting failed, need to remove the
 				 * entry and free the device structure.
 				 */
 				hash_table_remove(&devices, key, DEVICES_KEYS);
 				fibril_mutex_unlock(&devices_mutex);
-
+				
 				return ENOENT;
 			}
 			
-			/* Set the correct phone. */
-			dev->phone = phone;
+			/* Set the correct session. */
+			dev->sess = sess;
 		} else {
 			device_t *dev = hash_table_get_instance(lnk, device_t, link);
-
-			if (dev->phone < 0) {
+			
+			if (!dev->sess) {
 				/*
 				 * Wait until the device structure is completed
 				 * and start from the beginning as the device
@@ -607,7 +610,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
-		assert(dev->phone >= 0);
+		assert(dev->sess);
 		
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, NULL)) {
@@ -618,13 +621,18 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		/* Make a request at the driver */
+		async_exch_t *exch = async_exchange_begin(dev->sess);
+		
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
+		aid_t msg = async_send_3(exch, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
 		/* Forward the IPC_M_DATA_READ request to the driver */
-		async_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		
+		async_exchange_end(exch);
+		
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
@@ -671,7 +679,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
-		assert(dev->phone >= 0);
+		assert(dev->sess);
 		
 		ipc_callid_t callid;
 		if (!async_data_write_receive(&callid, NULL)) {
@@ -682,13 +690,17 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		/* Make a request at the driver */
+		async_exch_t *exch = async_exchange_begin(dev->sess);
+		
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
+		aid_t msg = async_send_3(exch, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
-		async_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		
+		async_exchange_end(exch);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
@@ -741,11 +753,11 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
-		assert(dev->phone >= 0);
+		assert(dev->sess);
 		dev->refcount--;
 		
 		if (dev->refcount == 0) {
-			async_hangup(dev->phone);
+			async_hangup(dev->sess);
 			hash_table_remove(&devices, key, DEVICES_KEYS);
 		}
 		
@@ -789,12 +801,16 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
-		assert(dev->phone >= 0);
+		assert(dev->sess);
 		
 		/* Make a request at the driver */
+		async_exch_t *exch = async_exchange_begin(dev->sess);
+		
 		ipc_call_t answer;
-		aid_t msg = async_send_2(dev->phone, IPC_GET_IMETHOD(*request),
+		aid_t msg = async_send_2(exch, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
+		
+		async_exchange_end(exch);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		

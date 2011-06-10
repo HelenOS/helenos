@@ -39,11 +39,9 @@
 #include <task.h>
 #include <vfs/vfs.h>
 
-/** Abstraction of a loader connection */
-typedef struct {
-	/** ID of the phone connected to the loader. */
-	int phone_id;
-} loader_t;
+/** Forward declararion */
+struct loader;
+typedef struct loader loader_t;
 
 extern int loader_spawn(const char *);
 extern loader_t *loader_connect(void);

@@ -36,9 +36,9 @@
 #ifndef DDF_DRIVER_H_
 #define DDF_DRIVER_H_
 
+#include <async.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-
 #include "../dev_iface.h"
 
 typedef struct ddf_dev ddf_dev_t;
@@ -82,10 +82,10 @@ struct ddf_dev {
 	devman_handle_t handle;
 	
 	/**
-	 * Phone to the parent device driver (if it is different from this
+	 * Session to the parent device driver (if it is different from this
 	 * driver)
 	 */
-	int parent_phone;
+	async_sess_t *parent_sess;
 	
 	/** Device name */
 	const char *name;

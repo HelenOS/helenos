@@ -1,6 +1,0 @@
-{
-	"sse1",
-	"Intel SEE test",
-	&test_sse1,
-	true
-},

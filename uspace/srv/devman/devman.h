@@ -43,6 +43,7 @@
 #include <ipc/devmap.h>
 #include <fibril_synch.h>
 #include <atomic.h>
+#include <async.h>
 
 #include "util.h"
 
@@ -86,8 +87,8 @@ typedef struct driver {
 	 */
 	int state;
 	
-	/** Phone asociated with this driver. */
-	int phone;
+	/** Session asociated with this driver. */
+	async_sess_t *sess;
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
@@ -98,7 +99,7 @@ typedef struct driver {
 	link_t devices;
 	
 	/**
-	 * Fibril mutex for this driver - driver state, list of devices, phone.
+	 * Fibril mutex for this driver - driver state, list of devices, session.
 	 */
 	fibril_mutex_t driver_mutex;
 } driver_t;
@@ -311,7 +312,7 @@ extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
 extern void attach_driver(dev_node_t *, driver_t *);
-extern void add_device(int, driver_t *, dev_node_t *, dev_tree_t *);
+extern void add_device(async_sess_t *, driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);

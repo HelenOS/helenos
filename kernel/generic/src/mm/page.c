@@ -59,6 +59,8 @@
  */
 
 #include <mm/page.h>
+#include <genarch/mm/page_ht.h>
+#include <genarch/mm/page_pt.h>
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <mm/as.h>
@@ -69,6 +71,8 @@
 #include <memstr.h>
 #include <debug.h>
 #include <arch.h>
+#include <syscall/copy.h>
+#include <errno.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -169,6 +173,37 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	ASSERT(page_mapping_operations->mapping_find);
 	
 	return page_mapping_operations->mapping_find(as, page, nolock);
+}
+
+/** Syscall wrapper for getting mapping of a virtual page.
+ * 
+ * @retval EOK Everything went find, @p uspace_frame and @p uspace_node
+ *             contains correct values.
+ * @retval ENOENT Virtual address has no mapping.
+ */
+sysarg_t sys_page_find_mapping(uintptr_t virt_address,
+    uintptr_t *uspace_frame)
+{
+	mutex_lock(&AS->lock);
+	
+	pte_t *pte = page_mapping_find(AS, virt_address, false);
+	if (!PTE_VALID(pte) || !PTE_PRESENT(pte)) {
+		mutex_unlock(&AS->lock);
+		
+		return (sysarg_t) ENOENT;
+	}
+	
+	uintptr_t phys_address = PTE_GET_FRAME(pte);
+	
+	mutex_unlock(&AS->lock);
+	
+	int rc = copy_to_uspace(uspace_frame,
+	    &phys_address, sizeof(phys_address));
+	if (rc != EOK) {
+		return (sysarg_t) rc;
+	}
+	
+	return EOK;
 }
 
 /** @}
