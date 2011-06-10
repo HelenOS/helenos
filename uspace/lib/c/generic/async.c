@@ -1807,6 +1807,8 @@ void async_exchange_end(async_exch_t *exch)
 	
 	async_sess_t *sess = exch->sess;
 	
+	atomic_dec(&sess->refcnt);
+	
 	if (sess->mgmt == EXCHANGE_SERIALIZE)
 		fibril_mutex_unlock(&sess->mutex);
 	
