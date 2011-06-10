@@ -34,15 +34,56 @@
 
 #define POSIX_INTERNAL
 
+#include <assert.h>
+#include "errno.h"
 #include "common.h"
 #include "stdio.h"
+#include "string.h"
+/* not the best of solutions, but freopen will eventually
+   need to be implemented in libc anyway */
+#include "../c/generic/private/stdio.h"
 
 FILE *posix_freopen(const char *restrict filename,
                     const char *restrict mode,
                     FILE *restrict stream)
 {
-	// TODO
-	not_implemented();
+	assert(mode != NULL);
+	assert(stream != NULL);
+
+	if (filename == NULL) {
+		// TODO
+		
+		/* print error to stderr as well, to avoid hard to find problems
+		   with buggy apps that expect this to work */
+		fprintf(stderr, "ERROR: Application wants to use freopen() to change mode of opened stream.\n"
+		                "       libposix does not support that yet, the application may function improperly.\n");
+		errno = ENOTSUP;
+		return NULL;
+	}
+
+	FILE* copy = malloc(sizeof(FILE));
+	if (copy == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	memcpy(copy, stream, sizeof(FILE));
+	fclose(copy);   /* copy is now freed */
+	
+	copy = fopen(filename, mode);         /* open new stream */
+	if (copy == NULL) {
+		/* fopen() sets errno */
+		return NULL;
+	}
+	
+	/* move the new stream to the original location */
+	memcpy(stream, copy, sizeof (FILE));
+	free(copy);
+	
+	/* update references in the file list */
+	stream->link.next->prev = &stream->link;
+	stream->link.prev->next = &stream->link;
+	
+	return stream;
 }
 
 void posix_perror(const char *s)
