@@ -360,7 +360,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			    function_get_default_handler(fun);
 			if (default_handler != NULL) {
 				(*default_handler)(fun, callid, &call);
-				break;
+				continue;
 			}
 			
 			/*
@@ -371,7 +371,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			    "invalid interface id %d.",
 			    driver->name, iface_idx);
 			async_answer_0(callid, ENOTSUP);
-			break;
+			continue;
 		}
 		
 		/* Calling one of the function's interfaces */
@@ -383,7 +383,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			printf("Function with handle %" PRIun " has no interface "
 			    "with id %d.\n", handle, iface_idx);
 			async_answer_0(callid, ENOTSUP);
-			break;
+			continue;
 		}
 		
 		/*
@@ -402,7 +402,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			printf("%s: driver_connection_gen error - "
 			    "invalid interface method.", driver->name);
 			async_answer_0(callid, ENOTSUP);
-			break;
+			continue;
 		}
 		
 		/*
@@ -412,7 +412,6 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		 * associated with the function by its driver.
 		 */
 		(*iface_method_ptr)(fun, ops, callid, &call);
-		break;
 	}
 }
 
