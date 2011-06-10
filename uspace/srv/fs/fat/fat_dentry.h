@@ -49,7 +49,7 @@
 #define FAT_ATTR_VOLLABEL 0x08
 #define FAT_ATTR_SUBDIR   0x10
 #define FAT_ATTR_ARCHIVE  0x20
-#define FAT_ATTR_LNAME \
+#define FAT_ATTR_LFN \
     (FAT_ATTR_RDONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLLABEL)
     
 #define FAT_LCASE_LOWER_NAME	0x08
@@ -61,13 +61,34 @@
 #define FAT_DENTRY_E5_ESC	0x05
 #define FAT_DENTRY_DOT		0x2e
 #define FAT_DENTRY_ERASED	0xe5
-#define FAT_LAST_LONG_ENTRY 0x40
+#define FAT_LFN_LAST		0x40
+#define FAT_LFN_ERASED		0x80
+
+#define FAT_LFN_ORDER(d) (d->lfn.order)
+#define FAT_IS_LFN(d) \
+    ((FAT_LFN_ORDER(d) & FAT_LFN_LAST) == FAT_LFN_LAST)
+#define FAT_LFN_COUNT(d) \
+    (FAT_LFN_ORDER(d) ^ FAT_LFN_LAST)
+#define FAT_LFN_PART1(d) (d->lfn.part1)
+#define FAT_LFN_PART2(d) (d->lfn.part2)
+#define FAT_LFN_PART3(d) (d->lfn.part3)
+#define FAT_LFN_ATTR(d) (d->lfn.attr)
+#define FAT_LFN_CHKSUM(d) (d->lfn.check_sum)
+
+#define FAT_LFN_NAME_SIZE   255
+#define FAT_LFN_MAX_COUNT   20
+#define FAT_LFN_PART1_SIZE  10
+#define FAT_LFN_PART2_SIZE  12
+#define FAT_LFN_PART3_SIZE  4
+#define FAT_LFN_ENTRY_SIZE \
+    (FAT_LFN_PART1_SIZE + FAT_LFN_PART2_SIZE + FAT_LFN_PART3_SIZE)
 
 typedef enum {
 	FAT_DENTRY_SKIP,
 	FAT_DENTRY_LAST,
 	FAT_DENTRY_FREE,
 	FAT_DENTRY_VALID
+	/* FAT_DENTRY_LFN */
 } fat_dentry_clsf_t;
 
 typedef struct {
@@ -95,16 +116,17 @@ typedef struct {
 		} __attribute__ ((packed));
 		struct {
 			uint8_t		order;
-			uint8_t		name1[10];
+			uint8_t		part1[FAT_LFN_PART1_SIZE];
 			uint8_t		attr;
 			uint8_t		type;
 			uint8_t		check_sum;
-			uint8_t		name2[12];
+			uint8_t		part2[FAT_LFN_PART2_SIZE];
 			uint16_t	firstc_lo; /* MUST be 0 */
-			uint8_t		name3[4];
-		} long_entry __attribute__ ((packed));
+			uint8_t		part3[FAT_LFN_PART3_SIZE];
+		} lfn __attribute__ ((packed));
 	};
 } __attribute__ ((packed)) fat_dentry_t;
+
 
 extern int fat_dentry_namecmp(char *, const char *);
 extern bool fat_dentry_name_verify(const char *);
@@ -112,6 +134,13 @@ extern void fat_dentry_name_get(const fat_dentry_t *, char *);
 extern void fat_dentry_name_set(fat_dentry_t *, const char *);
 extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
 extern uint8_t fat_dentry_chksum(uint8_t *);
+
+extern size_t fat_lfn_str_nlength(const uint8_t *, size_t);
+extern size_t fat_lfn_size(const fat_dentry_t *);
+extern void fat_lfn_copy_part(const uint8_t *, size_t, uint8_t *, size_t *);
+extern void fat_lfn_copy_entry(const fat_dentry_t *, uint8_t *, size_t *);
+extern int fat_lfn_convert_name(const uint8_t *, size_t, uint8_t *, size_t);
+
 
 #endif
 

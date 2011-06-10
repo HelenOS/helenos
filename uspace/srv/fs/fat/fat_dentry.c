@@ -38,6 +38,7 @@
 #include "fat_dentry.h"
 #include <ctype.h>
 #include <str.h>
+#include <errno.h>
 
 static bool is_d_char(const char ch)
 {
@@ -217,6 +218,13 @@ void fat_dentry_name_set(fat_dentry_t *d, const char *name)
 
 fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
 {
+/*	if (d->attr == FAT_ATTR_LFN) { */
+		/* long name entry */
+/*		if (d->attr & FAT_LFN_ERASED)
+			return FAT_DENTRY_FREE;
+		else
+			return FAT_DENTRY_LFN;
+	}*/
 	if (d->attr & FAT_ATTR_VOLLABEL) {
 		/* volume label entry */
 		return FAT_DENTRY_SKIP;
@@ -256,6 +264,89 @@ uint8_t fat_dentry_chksum(uint8_t *name)
 		sum = ((sum & 1) ? 0x80 : 0) + (sum >> 1) + name[i];
 	}
 	return sum;
+}
+
+/** Get number of bytes in a string with size limit.
+ *
+ * @param str  NULL-terminated (or not) string.
+ * @param size Maximum number of bytes to consider.
+ *
+ * @return Number of bytes in string (without 0 and ff).
+ *
+ */
+size_t fat_lfn_str_nlength(const uint8_t *str, size_t size)
+{
+	size_t offset = 0;
+
+	while (offset < size) {
+		if ((str[offset] == 0x00 && str[offset+1] == 0x00) ||
+			(str[offset] == 0xff && str[offset+1] == 0xff)) 
+			break;
+		
+		offset += 2;
+	}
+	return offset;
+}
+
+/** Get number of bytes in a FAT long entry occuped by characters.
+ *
+ * @param d FAT long entry.
+ *
+ * @return Number of bytes.
+ *
+ */
+size_t fat_lfn_size(const fat_dentry_t *d)
+{
+	size_t size = 0;
+	
+	size += fat_lfn_str_nlength(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
+	size += fat_lfn_str_nlength(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
+	size += fat_lfn_str_nlength(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);	
+	
+	return size;
+}
+
+void fat_lfn_copy_part(const uint8_t *src, size_t src_size, uint8_t *dst, size_t *offset)
+{
+	int i;
+	for (i=src_size-1; i>0 && (*offset)>1; i-=2) {
+		if ((src[i] == 0x00 && src[i-1] == 0x00) ||
+			(src[i] == 0xff && src[i-1] == 0xff))
+			continue;
+		dst[(*offset)-1] = src[i];
+		dst[(*offset)-2] = src[i-1];
+		(*offset)-=2;
+	}
+}
+
+void fat_lfn_copy_entry(const fat_dentry_t *d, uint8_t *dst, size_t *offset)
+{
+	fat_lfn_copy_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
+	fat_lfn_copy_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);
+	fat_lfn_copy_part(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE, dst, offset);
+}
+
+int fat_lfn_convert_name(const uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size)
+{
+	size_t i, offset = 0;
+	uint16_t c;
+	int rc;
+	for (i=0; i<src_size; i+=2) {
+		if (src[i+1] == 0x00) {
+			if (offset+1 < dst_size)
+				dst[offset++] = src[i];
+			else
+				return EOVERFLOW;
+		} else {
+			c = (src[i] << 8) | src[i+1];
+			rc = chr_encode(c, (char*)dst, &offset, dst_size);
+			if (rc!=EOK) {
+				return rc;
+			}
+		}
+	}
+	dst[offset] = 0;	
+	return EOK;
 }
 
 
