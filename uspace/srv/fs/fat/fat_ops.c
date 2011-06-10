@@ -55,6 +55,7 @@
 #include <sys/mman.h>
 #include <align.h>
 #include <malloc.h>
+#include <str.h>
 
 #define FAT_NODE(node)	((node) ? (fat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
@@ -641,6 +642,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		for (j = 0; j < DPS(bs); j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
+			case FAT_DENTRY_LFN:
 			case FAT_DENTRY_SKIP:
 			case FAT_DENTRY_VALID:
 				/* skipping used and meta entries */
@@ -1218,8 +1220,14 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		unsigned bnum;
 		aoff64_t spos = pos;
-		char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
+		char name[FAT_LFN_NAME_SIZE];
+		uint8_t lfn_utf16[FAT_LFN_MAX_COUNT * FAT_LFN_ENTRY_SIZE];
+		size_t lfn_offset;
+		size_t lfn_size;
+		bool long_entry = false;
+		int long_entry_count = 0;
 		fat_dentry_t *d;
+		uint8_t checksum=0;
 
 		assert(nodep->type == FAT_DIRECTORY);
 		assert(nodep->size % BPS(bs) == 0);
@@ -1246,15 +1254,57 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 				switch (fat_classify_dentry(d)) {
 				case FAT_DENTRY_SKIP:
 				case FAT_DENTRY_FREE:
+					long_entry_count = 0;
+					long_entry = false;
 					continue;
 				case FAT_DENTRY_LAST:
+					long_entry_count = 0;
+					long_entry = false;
 					rc = block_put(b);
 					if (rc != EOK)
 						goto err;
 					goto miss;
+				case FAT_DENTRY_LFN:
+					if (long_entry) {
+						/* We found long entry */
+						long_entry_count--;
+						if ((FAT_LFN_ORDER(d) == long_entry_count) && 
+							(checksum == FAT_LFN_CHKSUM(d))) {
+							/* Right order! */
+							fat_lfn_copy_entry(d, lfn_utf16, &lfn_offset);
+						} else {
+							/* Something wrong with order. Skip this long entries set */
+							long_entry_count = 0;
+							long_entry = false;
+						}
+					} else {
+						if (FAT_IS_LFN(d)) {
+							/* We found Last long entry! */
+							if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
+								long_entry = true;
+								long_entry_count = FAT_LFN_COUNT(d);
+								lfn_size = (FAT_LFN_ENTRY_SIZE * 
+									(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
+								lfn_offset = lfn_size;
+								fat_lfn_copy_entry(d, lfn_utf16, &lfn_offset);
+								checksum = FAT_LFN_CHKSUM(d);
+							}
+						}
+					}
+					break;
 				default:
 				case FAT_DENTRY_VALID:
-					fat_dentry_name_get(d, name);
+					if (long_entry && 
+						(checksum == fat_dentry_chksum(d->name))) {
+						rc = fat_lfn_convert_name(lfn_utf16, lfn_size, (uint8_t*)name, FAT_LFN_NAME_SIZE);
+						if (rc!=EOK)
+							fat_dentry_name_get(d, name);
+					}
+					else
+						fat_dentry_name_get(d, name);
+
+					long_entry_count = 0;
+					long_entry = false;
 					rc = block_put(b);
 					if (rc != EOK)
 						goto err;

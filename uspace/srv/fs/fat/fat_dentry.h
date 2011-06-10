@@ -87,8 +87,8 @@ typedef enum {
 	FAT_DENTRY_SKIP,
 	FAT_DENTRY_LAST,
 	FAT_DENTRY_FREE,
-	FAT_DENTRY_VALID
-	/* FAT_DENTRY_LFN */
+	FAT_DENTRY_VALID,
+	FAT_DENTRY_LFN
 } fat_dentry_clsf_t;
 
 typedef struct {

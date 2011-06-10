@@ -218,13 +218,13 @@ void fat_dentry_name_set(fat_dentry_t *d, const char *name)
 
 fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
 {
-/*	if (d->attr == FAT_ATTR_LFN) { */
+	if (d->attr == FAT_ATTR_LFN) {
 		/* long name entry */
-/*		if (d->attr & FAT_LFN_ERASED)
+		if (d->attr & FAT_LFN_ERASED)
 			return FAT_DENTRY_FREE;
 		else
 			return FAT_DENTRY_LFN;
-	}*/
+	}
 	if (d->attr & FAT_ATTR_VOLLABEL) {
 		/* volume label entry */
 		return FAT_DENTRY_SKIP;
