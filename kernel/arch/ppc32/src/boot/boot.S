@@ -27,7 +27,7 @@
 #
 
 #include <arch/asm/regname.h>
-#include <arch/boot/boot.h>
+#include <config.h>
 
 .section K_TEXT_START, "ax"
 
@@ -55,5 +55,5 @@ kernel_image_start:
 
 .align 12
 kernel_stack_bottom:
-	.space TEMP_STACK_SIZE
+	.space STACK_SIZE
 kernel_stack:

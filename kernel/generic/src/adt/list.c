@@ -51,7 +51,7 @@
  * @return true if link is contained in head, false otherwise.
  *
  */
-bool list_member(const link_t *link, const link_t *head)
+int list_member(const link_t *link, const link_t *head)
 {
 	bool found = false;
 	link_t *hlp = head->next;

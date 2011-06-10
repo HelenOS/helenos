@@ -40,12 +40,13 @@
 #define _MAIN
 
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
 #include <task.h>
 #include <stdio.h>
+#include <libfs.h>
 #include "mfs.h"
 
 vfs_info_t mfs_vfs_info = {
@@ -95,8 +96,6 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 		/*mfsdebug(NAME "method = %d\n", method);*/
 		switch  (method) {
-		case IPC_M_PHONE_HUNGUP:
-			return;
 		case VFS_OUT_MOUNTED:
 			mfs_mounted(callid, &call);
 			break;
@@ -134,19 +133,19 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
-	int vfs_phone;
 	int rc;
 
 	printf(NAME ": HelenOS Minix file system server\n");
 
-	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+				SERVICE_VFS, 0, 0);
 
-	if (vfs_phone < EOK) {
+	if (!vfs_sess) {
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
 
-	rc = fs_register(vfs_phone, &mfs_reg, &mfs_vfs_info, mfs_connection);
+	rc = fs_register(vfs_sess, &mfs_reg, &mfs_vfs_info, mfs_connection);
 	if (rc != EOK)
 		goto err;
 

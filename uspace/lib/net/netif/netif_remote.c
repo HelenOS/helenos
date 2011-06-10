@@ -37,7 +37,7 @@
 #include <netif_remote.h>
 #include <packet_client.h>
 #include <generic.h>
-
+#include <async_obsolete.h>
 #include <ipc/services.h>
 #include <ipc/netif.h>
 
@@ -81,7 +81,7 @@ int netif_get_addr_req(int netif_phone, device_id_t device_id,
  */
 int netif_probe_req(int netif_phone, device_id_t device_id, int irq, void *io)
 {
-	return async_req_3_0(netif_phone, NET_NETIF_PROBE, device_id, irq,
+	return async_obsolete_req_3_0(netif_phone, NET_NETIF_PROBE, device_id, irq,
 	    (sysarg_t) io);
 }
 
@@ -118,7 +118,7 @@ int netif_send_msg(int netif_phone, device_id_t device_id, packet_t *packet,
  */
 int netif_start_req(int netif_phone, device_id_t device_id)
 {
-	return async_req_1_0(netif_phone, NET_NETIF_START, device_id);
+	return async_obsolete_req_1_0(netif_phone, NET_NETIF_START, device_id);
 }
 
 /** Stop the device.
@@ -135,7 +135,7 @@ int netif_start_req(int netif_phone, device_id_t device_id)
  */
 int netif_stop_req(int netif_phone, device_id_t device_id)
 {
-	return async_req_1_0(netif_phone, NET_NETIF_STOP, device_id);
+	return async_obsolete_req_1_0(netif_phone, NET_NETIF_STOP, device_id);
 }
 
 /** Return the device usage statistics.
@@ -153,9 +153,9 @@ int netif_stats_req(int netif_phone, device_id_t device_id,
 	if (!stats)
 		return EBADMEM;
 	
-	aid_t message_id = async_send_1(netif_phone, NET_NETIF_STATS,
+	aid_t message_id = async_obsolete_send_1(netif_phone, NET_NETIF_STATS,
 	    (sysarg_t) device_id, NULL);
-	async_data_read_start(netif_phone, stats, sizeof(*stats));
+	async_obsolete_data_read_start(netif_phone, stats, sizeof(*stats));
 	
 	sysarg_t result;
 	async_wait_for(message_id, &result);

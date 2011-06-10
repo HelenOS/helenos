@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
 #include <fibril.h>
@@ -62,12 +63,27 @@ static const char* err_desc[] = {
 
 static fibril_local char noerr[NOERR_LEN];
 
-const char *str_error(const int errno)
+const char *str_error(const int e)
 {
-	if ((errno <= 0) && (errno >= MIN_ERRNO))
-		return err_desc[-errno];
+	if ((e <= 0) && (e >= MIN_ERRNO))
+		return err_desc[-e];
 	
-	snprintf(noerr, NOERR_LEN, "Unkown error code %d", errno);
+	/* Ad hoc descriptions of error codes interesting for USB. */
+	// FIXME: integrate these as first-class error values
+	switch (e) {
+		case EBADCHECKSUM:
+			return "Bad checksum";
+		case ESTALL:
+			return "Operation stalled";
+		case EAGAIN:
+			return "Resource temporarily unavailable";
+		case EEMPTY:
+			return "Resource is empty";
+		default:
+			break;
+	}
+
+	snprintf(noerr, NOERR_LEN, "Unkown error code %d", e);
 	return noerr;
 }
 

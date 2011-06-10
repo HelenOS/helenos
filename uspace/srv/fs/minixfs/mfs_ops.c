@@ -112,7 +112,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	free(opts);
 
 	/* initialize libblock */
-	rc = block_init(devmap_handle, 1024);
+	rc = block_init(EXCHANGE_SERIALIZE, devmap_handle, 1024);
 	if (rc != EOK) {
 		mfsdebug("libblock initialization failed\n");
 		async_answer_0(rid, rc);

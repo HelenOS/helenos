@@ -66,18 +66,18 @@
  * file system implementations and lets them to reuse this registration glue
  * code.
  *
- * @param vfs_phone Open phone for communication with VFS.
- * @param reg       File system registration structure. It will be
- *                  initialized by this function.
- * @param info      VFS info structure supplied by the file system
- *                  implementation.
- * @param conn      Connection fibril for handling all calls originating in
- *                  VFS.
+ * @param sess Session for communication with VFS.
+ * @param reg  File system registration structure. It will be
+ *             initialized by this function.
+ * @param info VFS info structure supplied by the file system
+ *             implementation.
+ * @param conn Connection fibril for handling all calls originating in
+ *             VFS.
  *
  * @return EOK on success or a non-zero error code on errror.
  *
  */
-int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
+int fs_register(async_sess_t *sess, fs_reg_t *reg, vfs_info_t *info,
     async_client_conn_t conn)
 {
 	/*
@@ -85,14 +85,19 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	 * We use the async framework because VFS will answer the request
 	 * out-of-order, when it knows that the operation succeeded or failed.
 	 */
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
 	ipc_call_t answer;
-	aid_t req = async_send_0(vfs_phone, VFS_IN_REGISTER, &answer);
+	aid_t req = async_send_0(exch, VFS_IN_REGISTER, &answer);
 	
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
-	int rc = async_data_write_start(vfs_phone, info, sizeof(*info)); 
+	int rc = async_data_write_start(exch, info, sizeof(*info));
+	
 	if (rc != EOK) {
+		async_exchange_end(exch);
 		async_wait_for(req, NULL);
 		return rc;
 	}
@@ -100,13 +105,14 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Ask VFS for callback connection.
 	 */
-	async_connect_to_me(vfs_phone, 0, 0, 0, conn);
+	async_connect_to_me(exch, 0, 0, 0, conn);
 	
 	/*
 	 * Allocate piece of address space for PLB.
 	 */
 	reg->plb_ro = as_get_mappable_page(PLB_SIZE);
 	if (!reg->plb_ro) {
+		async_exchange_end(exch);
 		async_wait_for(req, NULL);
 		return ENOMEM;
 	}
@@ -114,7 +120,10 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = async_share_in_start_0_0(vfs_phone, reg->plb_ro, PLB_SIZE);
+	rc = async_share_in_start_0_0(exch, reg->plb_ro, PLB_SIZE);
+	
+	async_exchange_end(exch);
+	
 	if (rc) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -147,60 +156,52 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
 	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
 	devmap_handle_t mr_devmap_handle = (devmap_handle_t) IPC_GET_ARG4(*request);
-	int res;
-	sysarg_t rc;
 	
-	ipc_call_t call;
-	ipc_callid_t callid;
-	
-	/* Accept the phone */
-	callid = async_get_call(&call);
-	int mountee_phone = (int) IPC_GET_ARG1(call);
-	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECTION_CLONE) ||
-	    (mountee_phone < 0)) {
-		async_answer_0(callid, EINVAL);
+	async_sess_t *mountee_sess = async_clone_receive(EXCHANGE_PARALLEL);
+	if (mountee_sess == NULL) {
 		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
-	/* Acknowledge the mountee_phone */
-	async_answer_0(callid, EOK);
-	
 	fs_node_t *fn;
-	res = ops->node_get(&fn, mp_devmap_handle, mp_fs_index);
+	int res = ops->node_get(&fn, mp_devmap_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
-		async_hangup(mountee_phone);
+		async_hangup(mountee_sess);
 		async_data_write_void(combine_rc(res, ENOENT));
 		async_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
 	
 	if (fn->mp_data.mp_active) {
-		async_hangup(mountee_phone);
+		async_hangup(mountee_sess);
 		(void) ops->node_put(fn);
 		async_data_write_void(EBUSY);
 		async_answer_0(rid, EBUSY);
 		return;
 	}
 	
-	rc = async_req_0_0(mountee_phone, IPC_M_CONNECT_ME);
-	if (rc != EOK) {
-		async_hangup(mountee_phone);
+	async_exch_t *exch = async_exchange_begin(mountee_sess);
+	async_sess_t *sess = async_connect_me(EXCHANGE_PARALLEL, exch);
+	
+	if (!sess) {
+		async_exchange_end(exch);
+		async_hangup(mountee_sess);
 		(void) ops->node_put(fn);
-		async_data_write_void(rc);
-		async_answer_0(rid, rc);
+		async_data_write_void(errno);
+		async_answer_0(rid, errno);
 		return;
 	}
 	
 	ipc_call_t answer;
-	rc = async_data_write_forward_1_1(mountee_phone, VFS_OUT_MOUNTED,
+	int rc = async_data_write_forward_1_1(exch, VFS_OUT_MOUNTED,
 	    mr_devmap_handle, &answer);
+	async_exchange_end(exch);
 	
 	if (rc == EOK) {
 		fn->mp_data.mp_active = true;
 		fn->mp_data.fs_handle = mr_fs_handle;
 		fn->mp_data.devmap_handle = mr_devmap_handle;
-		fn->mp_data.phone = mountee_phone;
+		fn->mp_data.sess = mountee_sess;
 	}
 	
 	/*
@@ -235,18 +236,20 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Tell the mounted file system to unmount.
 	 */
-	res = async_req_1_0(fn->mp_data.phone, VFS_OUT_UNMOUNTED,
-	    fn->mp_data.devmap_handle);
+	async_exch_t *exch = async_exchange_begin(fn->mp_data.sess);
+	res = async_req_1_0(exch, VFS_OUT_UNMOUNTED, fn->mp_data.devmap_handle);
+	async_exchange_end(exch);
 
 	/*
 	 * If everything went well, perform the clean-up on our side.
 	 */
 	if (res == EOK) {
-		async_hangup(fn->mp_data.phone);
+		async_hangup(fn->mp_data.sess);
 		fn->mp_data.mp_active = false;
 		fn->mp_data.fs_handle = 0;
 		fn->mp_data.devmap_handle = 0;
-		fn->mp_data.phone = 0;
+		fn->mp_data.sess = NULL;
+		
 		/* Drop the reference created in libfs_mount(). */
 		(void) ops->node_put(fn);
 	}
@@ -292,9 +295,11 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	on_error(rc, goto out_with_answer);
 	
 	if (cur->mp_data.mp_active) {
-		async_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
-		    next, last, cur->mp_data.devmap_handle, lflag, index,
-		    IPC_FF_ROUTE_FROM_ME);
+		async_exch_t *exch = async_exchange_begin(cur->mp_data.sess);
+		async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last,
+		    cur->mp_data.devmap_handle, lflag, index, IPC_FF_ROUTE_FROM_ME);
+		async_exchange_end(exch);
+		
 		(void) ops->node_put(cur);
 		return;
 	}
@@ -350,9 +355,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			else
 				next--;
 			
-			async_forward_slow(rid, tmp->mp_data.phone,
-			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.devmap_handle,
-			    lflag, index, IPC_FF_ROUTE_FROM_ME);
+			async_exch_t *exch = async_exchange_begin(tmp->mp_data.sess);
+			async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last,
+			    tmp->mp_data.devmap_handle, lflag, index,
+			    IPC_FF_ROUTE_FROM_ME);
+			async_exchange_end(exch);
+			
 			(void) ops->node_put(cur);
 			(void) ops->node_put(tmp);
 			if (par)

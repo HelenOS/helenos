@@ -36,7 +36,7 @@
  */
 
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
@@ -50,25 +50,25 @@
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	bool keep_on_going = true;
-
+	bool cont = true;
+	
 	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
 	async_answer_0(iid, EOK);
 	
-	while (keep_on_going) {
+	while (cont) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			keep_on_going = false;
+		if (!IPC_GET_IMETHOD(call))
 			break;
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_IN_REGISTER:
 			vfs_register(callid, &call);
-			keep_on_going = false;
+			cont = false;
 			break;
 		case VFS_IN_MOUNT:
 			vfs_mount(callid, &call);
@@ -122,7 +122,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		}
 	}
-
+	
 	/*
 	 * Open files for this client will be cleaned up when its last
 	 * connection fibril terminates.

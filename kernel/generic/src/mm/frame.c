@@ -181,17 +181,28 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
  * @return Total number of available frames.
  *
  */
-#ifdef CONFIG_DEBUG
-NO_TRACE static size_t total_frames_free(void)
+NO_TRACE static size_t frame_total_free_get_internal(void)
 {
 	size_t total = 0;
 	size_t i;
+
 	for (i = 0; i < zones.count; i++)
 		total += zones.info[i].free_count;
 	
 	return total;
 }
-#endif /* CONFIG_DEBUG */
+
+NO_TRACE size_t frame_total_free_get(void)
+{
+	size_t total;
+
+	irq_spinlock_lock(&zones.lock, true);
+	total = frame_total_free_get_internal();
+	irq_spinlock_unlock(&zones.lock, true);
+
+	return total;
+}
+
 
 /** Find a zone with a given frames.
  *
@@ -839,9 +850,6 @@ NO_TRACE static void zone_construct(zone_t *zone, buddy_system_t *buddy,
 			zone->frames[i].refcount = 0;
 			buddy_system_free(zone->buddy_system, &zone->frames[i].buddy_link);
 		}
-
-		/* "Unreserve" new frames. */
-		reserve_free(count);
 	} else
 		zone->frames = NULL;
 }
@@ -1050,7 +1058,7 @@ loop:
 		}
 		
 #ifdef CONFIG_DEBUG
-		size_t avail = total_frames_free();
+		size_t avail = frame_total_free_get_internal();
 #endif
 		
 		irq_spinlock_unlock(&zones.lock, true);

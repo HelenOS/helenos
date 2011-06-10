@@ -141,14 +141,16 @@ exc_machine_check:
 exc_data_storage:
 	CONTEXT_STORE
 	
-	b data_storage
+	li r3, 2
+	b jump_to_kernel
 
 .org 0x400
 .global exc_instruction_storage
 exc_instruction_storage:
 	CONTEXT_STORE
 	
-	b instruction_storage
+	li r3, 3
+	b jump_to_kernel
 
 .org 0x500
 .global exc_external
@@ -226,58 +228,26 @@ exc_trace:
 exc_itlb_miss:
 	CONTEXT_STORE
 	
-	b tlb_miss
+	li r3, 13
+	b jump_to_kernel
 
 .org 0x1100
 .global exc_dtlb_miss_load
 exc_dtlb_miss_load:
 	CONTEXT_STORE
 	
-	b tlb_miss
+	li r3, 14
+	b jump_to_kernel
 
 .org 0x1200
 .global exc_dtlb_miss_store
 exc_dtlb_miss_store:
 	CONTEXT_STORE
 	
-	b tlb_miss
+	li r3, 15
+	b jump_to_kernel
 
 .org 0x4000
-data_storage:
-	li r3, 2
-	mr r4, sp
-	addi r4, r4, 8
-	bl pht_refill_real
-	
-	cmpwi r3, 0
-	bne iret_real
-	
-	li r3, 2
-	b jump_to_kernel
-
-instruction_storage:
-	li r3, 3
-	mr r4, sp
-	addi r4, r4, 8
-	bl pht_refill_real
-	
-	cmpwi r3, 0
-	bne iret_real
-	
-	li r3, 3
-	b jump_to_kernel
-
-tlb_miss:
-	li r3, 16
-	mfspr r4, tlbmiss
-	mfspr r5, ptehi
-	mfspr r6, ptelo
-	mr r7, sp
-	addi r7, r7, 20
-	
-	bl tlb_refill_real
-	b iret_real
-
 jump_to_kernel:
 	lis r12, iret@ha
 	addi r12, r12, iret@l
@@ -311,59 +281,4 @@ jump_to_kernel_syscall:
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000
-	rfi
-
-iret_real:
-	lwz r0, 8(sp)
-	lwz r2, 12(sp)
-	lwz r3, 16(sp)
-	lwz r4, 20(sp)
-	lwz r5, 24(sp)
-	lwz r6, 28(sp)
-	lwz r7, 32(sp)
-	lwz r8, 36(sp)
-	lwz r9, 40(sp)
-	lwz r10, 44(sp)
-	lwz r11, 48(sp)
-	lwz r13, 52(sp)
-	lwz r14, 56(sp)
-	lwz r15, 60(sp)
-	lwz r16, 64(sp)
-	lwz r17, 68(sp)
-	lwz r18, 72(sp)
-	lwz r19, 76(sp)
-	lwz r20, 80(sp)
-	lwz r21, 84(sp)
-	lwz r22, 88(sp)
-	lwz r23, 92(sp)
-	lwz r24, 96(sp)
-	lwz r25, 100(sp)
-	lwz r26, 104(sp)
-	lwz r27, 108(sp)
-	lwz r28, 112(sp)
-	lwz r29, 116(sp)
-	lwz r30, 120(sp)
-	lwz r31, 124(sp)
-	
-	lwz r12, 128(sp)
-	mtcr r12
-	
-	lwz r12, 132(sp)
-	mtsrr0 r12
-	
-	lwz r12, 136(sp)
-	mtsrr1 r12
-	
-	lwz r12, 140(sp)
-	mtlr r12
-	
-	lwz r12, 144(sp)
-	mtctr r12
-	
-	lwz r12, 148(sp)
-	mtxer r12
-	
-	lwz r12, 156(sp)
-	lwz sp, 160(sp)
-	
 	rfi

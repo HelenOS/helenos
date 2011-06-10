@@ -36,6 +36,7 @@
 
 #include <ipc/irc.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <sysinfo.h>
 #include <kbd.h>
 #include <kbd_port.h>
@@ -108,7 +109,7 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	kbd_push_scancode(scan_code);
 	
 	if (irc_service)
-		async_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,
+		async_obsolete_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,
 		    IPC_GET_IMETHOD(*call));
 }
 

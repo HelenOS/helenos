@@ -34,7 +34,7 @@ CLANG_ARCH = i386
 BITS = 32
 ENDIANESS = LE
 
-CMN1 = -m32
+CMN1 = -m32 -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += $(CMN1)

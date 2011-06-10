@@ -95,9 +95,8 @@ int vfprintf(FILE *stream, const char *fmt, va_list ap)
 
 /** Print formatted text to stdout.
  *
- * @param file Output stream
- * @param fmt  Format string
- * @param ap   Format parameters
+ * @param fmt Format string
+ * @param ap  Format parameters
  *
  * \see For more details about format string see printf_core.
  *

@@ -48,7 +48,7 @@
 
 static void usage(void)
 {
-	printf("Usage: %s [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ...]\n",
+	fprintf(stderr, "Usage: %s [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ...]\n",
 	    NAME);
 }
 
@@ -82,7 +82,7 @@ static task_id_t spawn(int argc, char *argv[])
 
 	args = (const char **) calloc(argc + 1, sizeof(char *));
 	if (!args) {
-		printf("No memory available\n");
+		fprintf(stderr, "No memory available\n");
 		return 0;
 	}
 	
@@ -97,8 +97,9 @@ static task_id_t spawn(int argc, char *argv[])
 	free(args);
 	
 	if (rc != EOK) {
-		printf("%s: Error spawning %s (%s)\n", NAME, argv[0],
+		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, argv[0],
 		    str_error(rc));
+		return 0;
 	}
 	
 	return id;

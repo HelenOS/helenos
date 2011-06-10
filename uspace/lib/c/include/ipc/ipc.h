@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <ipc/common.h>
+#include <kernel/ipc/ipc_methods.h>
 #include <kernel/synch/synch.h>
 #include <task.h>
 
@@ -254,6 +255,7 @@ extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
 
 extern int ipc_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t *,
     sysarg_t *);
+extern int ipc_connect_me(int);
 extern int ipc_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);
 extern int ipc_connect_me_to_blocking(int, sysarg_t, sysarg_t, sysarg_t);
 

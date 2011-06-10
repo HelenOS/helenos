@@ -219,7 +219,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 	    cp0_status_um_bit | cp0_status_ie_enabled_bit));
 	cp0_epc_write((uintptr_t) kernel_uarg->uspace_entry);
-	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack + PAGE_SIZE), 
+	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack + STACK_SIZE),
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	
@@ -234,8 +234,8 @@ void before_task_runs_arch(void)
 /** Perform mips32 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
-	supervisor_sp = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE -
-	    SP_DELTA];
+	supervisor_sp =
+	    (uintptr_t) &THREAD->kstack[STACK_SIZE - SP_DELTA];
 }
 
 void after_thread_ran_arch(void)

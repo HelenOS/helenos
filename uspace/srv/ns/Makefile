@@ -29,6 +29,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = ns
+STATIC_NEEDED = y
 
 SOURCES = \
 	ns.c \

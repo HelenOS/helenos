@@ -45,37 +45,42 @@
 #include "screen.h"
 #include "top.h"
 
+#define USEC_COUNT  1000000
+
 static sysarg_t warn_col = 0;
 static sysarg_t warn_row = 0;
+static suseconds_t timeleft = 0;
+
+console_ctrl_t *console;
 
 static void screen_style_normal(void)
 {
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	console_flush(console);
+	console_set_style(console, STYLE_NORMAL);
 }
 
 static void screen_style_inverted(void)
 {
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_INVERTED);
+	console_flush(console);
+	console_set_style(console, STYLE_INVERTED);
 }
 
 static void screen_moveto(sysarg_t col, sysarg_t row)
 {
-	fflush(stdout);
-	console_set_pos(fphone(stdout), col, row);
+	console_flush(console);
+	console_set_pos(console, col, row);
 }
 
 static void screen_get_pos(sysarg_t *col, sysarg_t *row)
 {
-	fflush(stdout);
-	console_get_pos(fphone(stdout), col, row);
+	console_flush(console);
+	console_get_pos(console, col, row);
 }
 
 static void screen_get_size(sysarg_t *col, sysarg_t *row)
 {
-	fflush(stdout);
-	console_get_size(fphone(stdout), col, row);
+	console_flush(console);
+	console_get_size(console, col, row);
 }
 
 static void screen_restart(bool clear)
@@ -83,8 +88,8 @@ static void screen_restart(bool clear)
 	screen_style_normal();
 	
 	if (clear) {
-		fflush(stdout);
-		console_clear(fphone(stdout));
+		console_flush(console);
+		console_clear(console);
 	}
 	
 	screen_moveto(0, 0);
@@ -110,8 +115,10 @@ static void screen_newline(void)
 
 void screen_init(void)
 {
-	fflush(stdout);
-	console_cursor_visibility(fphone(stdout), false);
+	console = console_init(stdin, stdout);
+	
+	console_flush(console);
+	console_cursor_visibility(console, false);
 	
 	screen_restart(true);
 }
@@ -120,8 +127,8 @@ void screen_done(void)
 {
 	screen_restart(true);
 	
-	fflush(stdout);
-	console_cursor_visibility(fphone(stdout), true);
+	console_flush(console);
+	console_cursor_visibility(console, true);
 }
 
 static void print_percent(fixed_float ffloat, unsigned int precision)
@@ -507,7 +514,7 @@ void print_data(data_t *data)
 		print_help();
 	}
 	
-	fflush(stdout);
+	console_flush(console);
 }
 
 void print_warning(const char *fmt, ...)
@@ -520,7 +527,43 @@ void print_warning(const char *fmt, ...)
 	va_end(args);
 	
 	screen_newline();
-	fflush(stdout);
+	console_flush(console);
+}
+
+/** Get char with timeout
+ *
+ */
+int tgetchar(unsigned int sec)
+{
+	/*
+	 * Reset timeleft whenever it is not positive.
+	 */
+	
+	if (timeleft <= 0)
+		timeleft = sec * USEC_COUNT;
+	
+	/*
+	 * Wait to see if there is any input. If so, take it and
+	 * update timeleft so that the next call to tgetchar()
+	 * will not wait as long. If there is no input,
+	 * make timeleft zero and return -1.
+	 */
+	
+	wchar_t c = 0;
+	
+	while (c == 0) {
+		kbd_event_t event;
+		
+		if (!console_get_kbd_event_timeout(console, &event, &timeleft)) {
+			timeleft = 0;
+			return -1;
+		}
+		
+		if (event.type == KEY_PRESS)
+			c = event.c;
+	}
+	
+	return (int) c;
 }
 
 /** @}

@@ -34,6 +34,7 @@
 #include <arch/mm/page.h>
 #include <typedefs.h>
 #include <debug.h>
+#include <arch.h>
 
 #define PAGE0  0x10000000
 #define PAGE1  (PAGE0 + PAGE_SIZE)
@@ -57,6 +58,8 @@ const char *test_mapping1(void)
 	    (uint32_t) VALUE1, (void *) KA2PA(frame1));
 	*((uint32_t *) frame1) = VALUE1;
 	
+	page_table_lock(AS, true);
+
 	TPRINTF("Mapping virtual address %p to physical address %p.\n",
 	    (void *) PAGE0, (void *) KA2PA(frame0));
 	page_mapping_insert(AS_KERNEL, PAGE0, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE);
@@ -64,6 +67,8 @@ const char *test_mapping1(void)
 	TPRINTF("Mapping virtual address %p to physical address %p.\n",
 	    (void *) PAGE1, (void *) KA2PA(frame1));
 	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE);
+
+	page_table_unlock(AS, true);
 	
 	v0 = *((uint32_t *) PAGE0);
 	v1 = *((uint32_t *) PAGE1);

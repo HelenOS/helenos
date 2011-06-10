@@ -35,6 +35,7 @@
  */
 
 #include <async.h>
+#include <async_obsolete.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
@@ -354,7 +355,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			async_hangup(icmp_phone);
+			async_obsolete_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -369,7 +370,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			async_hangup(icmp_phone);
+			async_obsolete_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -389,7 +390,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	async_hangup(icmp_phone);
+	async_obsolete_hangup(icmp_phone);
 	
 	return 0;
 }

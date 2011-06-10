@@ -43,7 +43,7 @@
 #include <ip_interface.h>
 #include <packet_client.h>
 #include <generic.h>
-
+#include <async_obsolete.h>
 #include <ipc/services.h>
 #include <ipc/il.h>
 #include <ipc/ip.h>
@@ -65,7 +65,7 @@
 int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
     in_addr_t address, in_addr_t netmask, in_addr_t gateway)
 {
-	return (int) async_req_4_0(ip_phone, NET_IP_ADD_ROUTE,
+	return (int) async_obsolete_req_4_0(ip_phone, NET_IP_ADD_ROUTE,
 	    (sysarg_t) device_id, (sysarg_t) gateway.s_addr,
 	    (sysarg_t) address.s_addr, (sysarg_t) netmask.s_addr);
 }
@@ -149,15 +149,15 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	*header = NULL;
 	
 	ipc_call_t answer;
-	aid_t message_id = async_send_1(ip_phone, NET_IP_GET_ROUTE,
+	aid_t message_id = async_obsolete_send_1(ip_phone, NET_IP_GET_ROUTE,
 	    (sysarg_t) protocol, &answer);
 	
-	if ((async_data_write_start(ip_phone, destination, addrlen) == EOK) &&
-	    (async_data_read_start(ip_phone, headerlen,
+	if ((async_obsolete_data_write_start(ip_phone, destination, addrlen) == EOK) &&
+	    (async_obsolete_data_read_start(ip_phone, headerlen,
 	    sizeof(*headerlen)) == EOK) && (*headerlen > 0)) {
 		*header = malloc(*headerlen);
 		if (*header) {
-			if (async_data_read_start(ip_phone, *header,
+			if (async_obsolete_data_read_start(ip_phone, *header,
 			    *headerlen) != EOK)
 				free(*header);
 		}
@@ -242,7 +242,7 @@ int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t *packet,
 int ip_set_gateway_req_remote(int ip_phone, device_id_t device_id,
     in_addr_t gateway)
 {
-	return (int) async_req_2_0(ip_phone, NET_IP_SET_GATEWAY,
+	return (int) async_obsolete_req_2_0(ip_phone, NET_IP_SET_GATEWAY,
 	    (sysarg_t) device_id, (sysarg_t) gateway.s_addr);
 }
 

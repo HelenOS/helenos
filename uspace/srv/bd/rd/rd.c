@@ -122,14 +122,17 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			/*
 			 * The other side has hung up.
-			 * Answer the message and exit the fibril.
+			 * Exit the fibril.
 			 */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
@@ -242,7 +245,7 @@ static bool rd_init(void)
 		printf("%s: Unable to register device\n", NAME);
 		return false;
 	}
-
+	
 	fibril_rwlock_initialize(&rd_lock);
 	
 	return true;
@@ -257,7 +260,7 @@ int main(int argc, char **argv)
 	
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();
-
+	
 	/* Never reached */
 	return 0;
 }

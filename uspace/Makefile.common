@@ -39,8 +39,19 @@
 #
 #   BINARY         (/) binary output name (like appname)
 #   LIBRARY        (/) library output name (like libname)
+#
 #   EXTRA_OUTPUT       additional output targets
 #   EXTRA_CLEAN        additional cleanup targets
+#
+# Optionally, for a binary:
+#   STATIC_NEEDED      set to 'y' for init binaries, will build statically
+#                      linked version
+#   STATIC_ONLY        set to 'y' if binary cannot be linked dynamically
+#                      (e.g. uses thread-local variables)
+#
+# Optionally, for a libary:
+#   SLIBRARY           Name with full version, e.g. libfoo.so.0.0 
+#   LSONAME            Soname / name with short version, e.g. libfoo.so.0
 #
 # (x) required variables
 # (/) exactly one of the variables must be defined
@@ -72,6 +83,17 @@ ifneq ($(LIBRARY),)
 	OUTPUT = $(LIBRARY).a
 endif
 
+ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
+	ifneq ($(SLIBRARY),)
+		LARCHIVE = $(LIBRARY).la
+		LOUTPUT = $(SLIBRARY)
+		EXTRA_OUTPUT += $(LOUTPUT).disasm $(LIBRARY).so $(LSONAME)
+		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
+		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld \
+		    $(LIBRARY).so $(LSONAME)
+	endif
+endif
+
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
 
@@ -85,15 +107,48 @@ LIBBLOCK_PREFIX = $(LIB_PREFIX)/block
 LIBFS_PREFIX = $(LIB_PREFIX)/fs
 LIBCLUI_PREFIX = $(LIB_PREFIX)/clui
 
+LIBEXT2_PREFIX = $(LIB_PREFIX)/ext2
+
+LIBUSB_PREFIX = $(LIB_PREFIX)/usb
+LIBUSBHOST_PREFIX = $(LIB_PREFIX)/usbhost
+LIBUSBDEV_PREFIX = $(LIB_PREFIX)/usbdev
+LIBUSBHID_PREFIX = $(LIB_PREFIX)/usbhid
+LIBUSBVIRT_PREFIX = $(LIB_PREFIX)/usbvirt
+
 LIBDRV_PREFIX = $(LIB_PREFIX)/drv
 LIBPACKET_PREFIX = $(LIB_PREFIX)/packet
 LIBNET_PREFIX = $(LIB_PREFIX)/net
 
 LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
 
-BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
+ifeq ($(STATIC_NEEDED),y)
+	STATIC_BUILD = y
+else
+	ifeq ($(STATIC_ONLY),y)
+		STATIC_BUILD = y
+	else
+		ifeq ($(CONFIG_USE_SHARED_LIBS), y)
+			STATIC_BUILD = n
+		else
+			STATIC_BUILD = y
+		endif
+	endif
+endif
 
+# Build static whenever we use libusb because that library uses 
+# thread local variables
+ifneq ($(findstring usb, $(LIBS)),)
+	STATIC_BUILD = y
+endif
+
+ifeq ($(STATIC_BUILD), y)
+BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+else
+BASE_LIBS = $(LIBC_PREFIX)/libc.so0 $(LIBSOFTINT_PREFIX)/libsofti.so0
+LFLAGS = -Bdynamic
+LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+endif
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
 	OPTIMIZATION = s
@@ -103,18 +158,19 @@ endif
 
 .PHONY: all clean
 
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(EXTRA_OUTPUT)
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
+	find . -name '*.lo' -follow -exec rm \{\} \;
 
 GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
+	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -D__$(ENDIANESS)__
 
 ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
@@ -130,6 +186,9 @@ CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEAD
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -arch $(CLANG_ARCH) -D__$(ENDIANESS)__
+
+LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
+LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror
@@ -176,6 +235,7 @@ endif
 -include $(DEPEND)
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 
 ifneq ($(BINARY),)
 %.disasm: $(BINARY)
@@ -192,9 +252,32 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 endif
 
+ifneq ($(SLIBRARY),)
+%.disasm: $(LOUTPUT)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
+	$(OBJDUMP) -d $< > $@
+endif
+
+$(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
+
+$(LIBRARY).so:
+	ln -s $(SLIBRARY) $@
+
+$(LSONAME):
+	ln -s $(SLIBRARY) $@
+endif
+
 ifneq ($(LIBRARY),)
 %.a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
+endif
+
+ifneq ($(SLIBRARY),)
+%.la: $(LOBJECTS)
+	$(AR) rc $@ $(LOBJECTS)
 endif
 
 %.o: %.S $(DEPEND)
@@ -215,6 +298,24 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
+%.lo: %.S $(DEPEND)
+	$(CC) $(DEFS) $(LIB_CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+endif
+
+%.lo: %.s $(DEPEND)
+	$(AS) $(AFLAGS) -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm
+endif
+
+%.lo: %.c $(DEPEND)
+	$(CC) $(DEFS) $(LIB_CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
+
 $(DEPEND): $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
@@ -224,3 +325,4 @@ $(DEPEND): $(PRE_DEPEND)
 # necessary to prevent parallel build failures (GNU make bug #26893 ???).
 $(OUTPUT): $(OBJECTS)
 
+$(LARCHIVE): $(LOBJECTS)

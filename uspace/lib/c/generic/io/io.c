@@ -43,9 +43,11 @@
 #include <async.h>
 #include <io/klog.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_sess.h>
 #include <ipc/devmap.h>
 #include <adt/list.h>
 #include "../private/io.h"
+#include "../private/stdio.h"
 
 static void _ffillbuf(FILE *stream);
 static void _fflushbuf(FILE *stream);
@@ -55,7 +57,7 @@ static FILE stdin_null = {
 	.error = true,
 	.eof = true,
 	.klog = false,
-	.phone = -1,
+	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
 	.buf_size = 0,
@@ -69,7 +71,7 @@ static FILE stdout_klog = {
 	.error = false,
 	.eof = false,
 	.klog = true,
-	.phone = -1,
+	.sess = NULL,
 	.btype = _IOLBF,
 	.buf = NULL,
 	.buf_size = BUFSIZ,
@@ -83,7 +85,7 @@ static FILE stderr_klog = {
 	.error = false,
 	.eof = false,
 	.klog = true,
-	.phone = -1,
+	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
 	.buf_size = 0,
@@ -254,7 +256,7 @@ FILE *fopen(const char *path, const char *mode)
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
-	stream->phone = -1;
+	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
 	
@@ -276,7 +278,7 @@ FILE *fdopen(int fd, const char *mode)
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
-	stream->phone = -1;
+	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
 	
@@ -308,7 +310,7 @@ FILE *fopen_node(fdi_node_t *node, const char *mode)
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
-	stream->phone = -1;
+	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
 	
@@ -323,8 +325,8 @@ int fclose(FILE *stream)
 	
 	fflush(stream);
 	
-	if (stream->phone >= 0)
-		async_hangup(stream->phone);
+	if (stream->sess != NULL)
+		async_hangup(stream->sess);
 	
 	if (stream->fd >= 0)
 		rc = close(stream->fd);
@@ -731,7 +733,7 @@ int fflush(FILE *stream)
 		return EOK;
 	}
 	
-	if (stream->fd >= 0 && stream->need_sync) {
+	if ((stream->fd >= 0) && (stream->need_sync)) {
 		/**
 		 * Better than syncing always, but probably still not the
 		 * right thing to do.
@@ -769,16 +771,16 @@ int fileno(FILE *stream)
 	return stream->fd;
 }
 
-int fphone(FILE *stream)
+async_sess_t *fsession(exch_mgmt_t mgmt, FILE *stream)
 {
 	if (stream->fd >= 0) {
-		if (stream->phone < 0)
-			stream->phone = fd_phone(stream->fd);
+		if (stream->sess == NULL)
+			stream->sess = fd_session(mgmt, stream->fd);
 		
-		return stream->phone;
+		return stream->sess;
 	}
 	
-	return -1;
+	return NULL;
 }
 
 int fnode(FILE *stream, fdi_node_t *node)
