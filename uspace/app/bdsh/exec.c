@@ -111,17 +111,29 @@ static char *find_command(char *cmd)
 	return (char *) cmd;
 }
 
-unsigned int try_exec(char *cmd, char **argv)
+unsigned int try_exec(char *cmd, char **argv, FILE **files)
 {
 	task_id_t tid;
 	task_exit_t texit;
 	char *tmp;
-	int rc, retval;
+	int rc, retval, i;
+	fdi_node_t file_nodes[3];
+	fdi_node_t *file_nodes_p[4];
 
 	tmp = str_dup(find_command(cmd));
 	free(found);
+	
+	for (i = 0; i < 3 && files[i] != NULL; i++) {
+		if (fnode(files[i], &file_nodes[i]) == EOK) {
+			file_nodes_p[i] = &file_nodes[i];
+		}
+		else {
+			file_nodes_p[i] = NULL;
+		}
+	}
+	file_nodes_p[i] = NULL;
 
-	rc = task_spawnv(&tid, tmp, (const char **) argv);
+	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_nodes_p);
 	free(tmp);
 
 	if (rc != 0) {

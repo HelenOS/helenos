@@ -3,6 +3,6 @@
 
 #include <task.h>
 
-extern unsigned int try_exec(char *, char **);
+extern unsigned int try_exec(char *, char **, FILE **);
 
 #endif
