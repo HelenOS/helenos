@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,9 +41,22 @@
 #include <sysinfo.h>
 #include <kbd.h>
 #include <kbd_port.h>
-#include <sun.h>
 #include <ddi.h>
 #include <errno.h>
+
+static int ns16550_port_init(kbd_dev_t *);
+static void ns16550_port_yield(void);
+static void ns16550_port_reclaim(void);
+static void ns16550_port_write(uint8_t data);
+
+kbd_port_ops_t ns16550_port = {
+	.init = ns16550_port_init,
+	.yield = ns16550_port_yield,
+	.reclaim = ns16550_port_reclaim,
+	.write = ns16550_port_write
+};
+
+static kbd_dev_t *kbd_dev;
 
 /* NS16550 registers */
 #define RBR_REG  0  /** Receiver Buffer Register. */
@@ -90,16 +104,22 @@ irq_code_t ns16550_kbd = {
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 static uintptr_t ns16550_physical;
-static uintptr_t ns16550_kernel; 
+static uintptr_t ns16550_kernel;
 
 static kbd_dev_t *kbd_dev;
 
-int ns16550_port_init(kbd_dev_t *kdev)
+static int ns16550_port_init(kbd_dev_t *kdev)
 {
 	void *vaddr;
-
+	
 	kbd_dev = kdev;
-
+	
+	sysarg_t ns16550;
+	if (sysinfo_get_value("kbd.type.ns16550", &ns16550) != EOK)
+		return -1;
+	if (!ns16550)
+		return -1;
+	
 	if (sysinfo_get_value("kbd.address.physical", &ns16550_physical) != EOK)
 		return -1;
 	
@@ -117,6 +137,19 @@ int ns16550_port_init(kbd_dev_t *kdev)
 	register_irq(inr, device_assign_devno(), inr, &ns16550_kbd);
 	
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
+}
+
+static void ns16550_port_yield(void)
+{
+}
+
+static void ns16550_port_reclaim(void)
+{
+}
+
+static void ns16550_port_write(uint8_t data)
+{
+	(void) data;
 }
 
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)

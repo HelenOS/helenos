@@ -58,7 +58,6 @@ extern kbd_port_ops_t ns16550_port;
 extern kbd_port_ops_t pl050_port;
 extern kbd_port_ops_t sgcn_port;
 extern kbd_port_ops_t ski_port;
-extern kbd_port_ops_t sun_port;
 extern kbd_port_ops_t z8530_port;
 
 #endif

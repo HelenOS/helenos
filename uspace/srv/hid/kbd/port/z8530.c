@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,10 +41,21 @@
 #include <sysinfo.h>
 #include <kbd.h>
 #include <kbd_port.h>
-#include <sun.h>
 #include <sys/types.h>
 #include <ddi.h>
 #include <errno.h>
+
+static int z8530_port_init(kbd_dev_t *);
+static void z8530_port_yield(void);
+static void z8530_port_reclaim(void);
+static void z8530_port_write(uint8_t data);
+
+kbd_port_ops_t z8530_port = {
+	.init = z8530_port_init,
+	.yield = z8530_port_yield,
+	.reclaim = z8530_port_reclaim,
+	.write = z8530_port_write
+};
 
 static kbd_dev_t *kbd_dev;
 
@@ -86,9 +98,15 @@ static irq_code_t z8530_kbd = {
 
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-int z8530_port_init(kbd_dev_t *kdev)
+static int z8530_port_init(kbd_dev_t *kdev)
 {
 	kbd_dev = kdev;
+	
+	sysarg_t z8530;
+	if (sysinfo_get_value("kbd.type.z8530", &z8530) != EOK)
+		return -1;
+	if (!z8530)
+		return -1;
 	
 	sysarg_t kaddr;
 	if (sysinfo_get_value("kbd.address.kernel", &kaddr) != EOK)
@@ -105,6 +123,19 @@ int z8530_port_init(kbd_dev_t *kdev)
 	register_irq(inr, device_assign_devno(), inr, &z8530_kbd);
 	
 	return 0;
+}
+
+static void z8530_port_yield(void)
+{
+}
+
+static void z8530_port_reclaim(void)
+{
+}
+
+static void z8530_port_write(uint8_t data)
+{
+	(void) data;
 }
 
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)

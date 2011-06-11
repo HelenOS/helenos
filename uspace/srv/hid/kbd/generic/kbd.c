@@ -303,7 +303,8 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&sgcn_port, &stty_ctl);
 #endif
 #if defined(UARCH_sparc64) && defined(MACHINE_generic)
-	kbd_add_dev(&sun_port, &sun_ctl);
+	kbd_add_dev(&z8530_port, &sun_ctl);
+	kbd_add_dev(&ns16550_port, &sun_ctl);
 #endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
 	(void) kbd_add_dev;

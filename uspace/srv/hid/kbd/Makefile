@@ -58,7 +58,6 @@ SOURCES = \
 	port/pl050.c \
 	port/sgcn.c \
 	port/ski.c \
-	port/sun.c \
 	port/z8530.c \
 	ctl/apple.c \
 	ctl/gxe_fb.c \
