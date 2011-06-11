@@ -55,13 +55,15 @@ extern volatile unsigned int cli_quit;
 /** Text input field. */
 static tinput_t *tinput;
 
+static int run_command(char **, cliuser_t *);
+
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
  * the handler */
 int tok_input(cliuser_t *usr)
 {
 	char *cmd[WORD_MAX];
-	int n = 0, i = 0;
+	int n = 0;
 	int rc = 0;
 	char *tmp;
 
@@ -75,26 +77,8 @@ int tok_input(cliuser_t *usr)
 		cmd[++n] = strtok(NULL, " ");
 	}
 
-	/* We have rubbish */
-	if (NULL == cmd[0]) {
-		rc = CL_ENOENT;
-		goto finit;
-	}
+	rc = run_command(cmd, usr);
 
-	/* Its a builtin command ? */
-	if ((i = (is_builtin(cmd[0]))) > -1) {
-		rc = run_builtin(i, cmd, usr);
-		goto finit;
-	/* Its a module ? */
-	} else if ((i = (is_module(cmd[0]))) > -1) {
-		rc = run_module(i, cmd);
-		goto finit;
-	}
-
-	/* See what try_exec thinks of it */
-	rc = try_exec(cmd[0], cmd);
-
-finit:
 	if (NULL != usr->line) {
 		free(usr->line);
 		usr->line = (char *) NULL;
@@ -103,6 +87,29 @@ finit:
 		free(tmp);
 
 	return rc;
+}
+
+int run_command(char **cmd, cliuser_t *usr)
+{
+	int id = 0;
+	
+	/* We have rubbish */
+	if (NULL == cmd[0]) {
+		return CL_ENOENT;
+	}
+	
+	/* Is it a builtin command ? */
+	if ((id = (is_builtin(cmd[0]))) > -1) {
+		return run_builtin(id, cmd, usr);
+	}
+	
+	/* Is it a module ? */
+	if ((id = (is_module(cmd[0]))) > -1) {
+		return run_module(id, cmd);
+	}
+
+	/* See what try_exec thinks of it */
+	return try_exec(cmd[0], cmd);
 }
 
 void get_input(cliuser_t *usr)
