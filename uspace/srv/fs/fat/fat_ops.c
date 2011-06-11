@@ -38,6 +38,7 @@
 #include "fat.h"
 #include "fat_dentry.h"
 #include "fat_fat.h"
+#include "fat_directory.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
@@ -1218,109 +1219,21 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			}
 		}
 	} else {
-		unsigned bnum;
 		aoff64_t spos = pos;
 		char name[FAT_LFN_NAME_SIZE];
-		uint8_t lfn_utf16[FAT_LFN_MAX_COUNT * FAT_LFN_ENTRY_SIZE];
-		size_t lfn_offset;
-		size_t lfn_size;
-		bool long_entry = false;
-		int long_entry_count = 0;
 		fat_dentry_t *d;
-		uint8_t checksum=0;
 
 		assert(nodep->type == FAT_DIRECTORY);
 		assert(nodep->size % BPS(bs) == 0);
 		assert(BPS(bs) % sizeof(fat_dentry_t) == 0);
 
-		/*
-		 * Our strategy for readdir() is to use the position pointer as
-		 * an index into the array of all dentries. On entry, it points
-		 * to the first unread dentry. If we skip any dentries, we bump
-		 * the position pointer accordingly.
-		 */
-		bnum = (pos * sizeof(fat_dentry_t)) / BPS(bs);
-		while (bnum < nodep->size / BPS(bs)) {
-			aoff64_t o;
+		fat_directory_t di;
+		fat_directory_open(nodep, &di);
+		di.pos = pos;
 
-			rc = fat_block_get(&b, bs, nodep, bnum,
-			    BLOCK_FLAGS_NONE);
-			if (rc != EOK)
-				goto err;
-			for (o = pos % (BPS(bs) / sizeof(fat_dentry_t));
-			    o < BPS(bs) / sizeof(fat_dentry_t);
-			    o++, pos++) {
-				d = ((fat_dentry_t *)b->data) + o;
-				switch (fat_classify_dentry(d)) {
-				case FAT_DENTRY_SKIP:
-				case FAT_DENTRY_FREE:
-					long_entry_count = 0;
-					long_entry = false;
-					continue;
-				case FAT_DENTRY_LAST:
-					long_entry_count = 0;
-					long_entry = false;
-					rc = block_put(b);
-					if (rc != EOK)
-						goto err;
-					goto miss;
-				case FAT_DENTRY_LFN:
-					if (long_entry) {
-						/* We found long entry */
-						long_entry_count--;
-						if ((FAT_LFN_ORDER(d) == long_entry_count) && 
-							(checksum == FAT_LFN_CHKSUM(d))) {
-							/* Right order! */
-							fat_lfn_copy_entry(d, lfn_utf16, &lfn_offset);
-						} else {
-							/* Something wrong with order. Skip this long entries set */
-							long_entry_count = 0;
-							long_entry = false;
-						}
-					} else {
-						if (FAT_IS_LFN(d)) {
-							/* We found Last long entry! */
-							if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
-								long_entry = true;
-								long_entry_count = FAT_LFN_COUNT(d);
-								lfn_size = (FAT_LFN_ENTRY_SIZE * 
-									(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
-								lfn_offset = lfn_size;
-								fat_lfn_copy_entry(d, lfn_utf16, &lfn_offset);
-								checksum = FAT_LFN_CHKSUM(d);
-							}
-						}
-					}
-					break;
-				default:
-				case FAT_DENTRY_VALID:
-					if (long_entry && 
-						(checksum == fat_dentry_chksum(d->name))) {
-						rc = fat_lfn_convert_name(lfn_utf16, lfn_size, (uint8_t*)name, FAT_LFN_NAME_SIZE);
-						if (rc!=EOK)
-							fat_dentry_name_get(d, name);
-					}
-					else
-						fat_dentry_name_get(d, name);
-
-					long_entry_count = 0;
-					long_entry = false;
-					rc = block_put(b);
-					if (rc != EOK)
-						goto err;
-					goto hit;
-				}
-			}
-			rc = block_put(b);
-			if (rc != EOK)
-				goto err;
-			bnum++;
-		}
-miss:
-		rc = fat_node_put(fn);
-		async_answer_0(callid, rc != EOK ? rc : ENOENT);
-		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
-		return;
+		rc = fat_directory_read(&di, name, &d);
+		if (rc == EOK) goto hit;
+		if (rc == ENOENT) goto miss;
 
 err:
 		(void) fat_node_put(fn);
@@ -1328,9 +1241,22 @@ err:
 		async_answer_0(rid, rc);
 		return;
 
+miss:
+		rc = fat_directory_close(&di);
+		if (rc!=EOK)
+			goto err;
+		rc = fat_node_put(fn);
+		async_answer_0(callid, rc != EOK ? rc : ENOENT);
+		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
+		return;
+
 hit:
+		pos = di.pos;
+		rc = fat_directory_close(&di);
+		if (rc!=EOK)
+			goto err;
 		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
-		bytes = (pos - spos) + 1;
+		bytes = (pos - spos);
 	}
 
 	rc = fat_node_put(fn);
