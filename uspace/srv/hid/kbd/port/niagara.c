@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Pavel Rimsky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@
 #include <bool.h>
 #include <errno.h>
 
-static int niagara_port_init(void);
+static int niagara_port_init(kbd_dev_t *);
 static void niagara_port_yield(void);
 static void niagara_port_reclaim(void);
 static void niagara_port_write(uint8_t data);
@@ -56,6 +57,8 @@ kbd_port_ops_t niagara_port = {
 	.reclaim = niagara_port_reclaim,
 	.write = niagara_port_write
 };
+
+static kbd_dev_t *kbd_dev;
 
 #define POLL_INTERVAL  10000
 
@@ -90,8 +93,10 @@ static void niagara_thread_impl(void *arg);
  * Initializes the Niagara driver.
  * Maps the shared buffer and creates the polling thread. 
  */
-static int niagara_port_init(void)
+static int niagara_port_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
+	
 	sysarg_t paddr;
 	if (sysinfo_get_value("niagara.inbuf.address", &paddr) != EOK)
 		return -1;
@@ -143,7 +148,7 @@ static void niagara_key_pressed(void)
 		c = input_buffer->data[input_buffer->read_ptr];
 		input_buffer->read_ptr =
 			((input_buffer->read_ptr) + 1) % INPUT_BUFFER_SIZE;
-		kbd_push_scancode(c);
+		kbd_push_scancode(kbd_dev, c);
 	}
 }
 

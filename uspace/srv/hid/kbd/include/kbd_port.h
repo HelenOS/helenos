@@ -39,8 +39,10 @@
 
 #include <sys/types.h>
 
-typedef struct {
-	int (*init)(void);
+struct kbd_dev;
+
+typedef struct kbd_port_ops {
+	int (*init)(struct kbd_dev *);
 	void (*yield)(void);
 	void (*reclaim)(void);
 	void (*write)(uint8_t);

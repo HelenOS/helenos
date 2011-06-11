@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +42,7 @@
 #include <ddi.h>
 #include <errno.h>
 
-static int msim_port_init(void);
+static int msim_port_init(kbd_dev_t *);
 static void msim_port_yield(void);
 static void msim_port_reclaim(void);
 static void msim_port_write(uint8_t data);
@@ -52,6 +53,8 @@ kbd_port_ops_t msim_port = {
 	.reclaim = msim_port_reclaim,
 	.write = msim_port_write
 };
+
+static kbd_dev_t *kbd_dev;
 
 static irq_cmd_t msim_cmds[] = {
 	{
@@ -71,8 +74,10 @@ static irq_code_t msim_kbd = {
 
 static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-static int msim_port_init(void)
+static int msim_port_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
+
 	sysarg_t vaddr;
 	if (sysinfo_get_value("kbd.address.virtual", &vaddr) != EOK)
 		return -1;
@@ -104,7 +109,7 @@ static void msim_port_write(uint8_t data)
 static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
-	kbd_push_scancode(scan_code);
+	kbd_push_scancode(kbd_dev, scan_code);
 }
 
 /** @}

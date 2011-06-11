@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,9 @@
 #ifndef KBD_STROKE_H_
 #define KBD_STROKE_H_
 
-extern void stroke_sim(unsigned, unsigned);
+#include <kbd.h>
+
+extern void stroke_sim(kbd_dev_t *, unsigned, unsigned);
 
 #endif
 

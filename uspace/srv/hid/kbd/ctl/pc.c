@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,9 @@
 #include <kbd_port.h>
 #include <gsp.h>
 
-static void pc_ctl_parse_scancode(int scancode);
-static int pc_ctl_init(kbd_port_ops_t *kbd_port);
-static void pc_ctl_set_ind(unsigned mods);
+static void pc_ctl_parse_scancode(int);
+static int pc_ctl_init(kbd_dev_t *);
+static void pc_ctl_set_ind(unsigned);
 
 kbd_ctl_ops_t pc_ctl = {
 	.parse_scancode = pc_ctl_parse_scancode,
@@ -73,7 +73,7 @@ enum kbd_command {
 };
 
 static enum dec_state ds;
-static kbd_port_ops_t *kbd_port;
+static kbd_dev_t *kbd_dev;
 
 static int scanmap_simple[] = {
 
@@ -207,9 +207,9 @@ static int scanmap_e0[] = {
 	[0x1c] = KC_NENTER
 };
 
-static int pc_ctl_init(kbd_port_ops_t *kbd_p)
+static int pc_ctl_init(kbd_dev_t *kdev)
 {
-	kbd_port = kbd_p;
+	kbd_dev = kdev;
 	ds = ds_s;
 	return 0;
 }
@@ -261,7 +261,7 @@ static void pc_ctl_parse_scancode(int scancode)
 
 	key = map[scancode];
 	if (key != 0)
-		kbd_push_ev(type, key);
+		kbd_push_ev(kbd_dev, type, key);
 }
 
 static void pc_ctl_set_ind(unsigned mods)
@@ -276,8 +276,8 @@ static void pc_ctl_set_ind(unsigned mods)
 	if ((mods & KM_SCROLL_LOCK) != 0)
 		b = b | LI_SCROLL;
 
-	(*kbd_port->write)(KBD_CMD_SET_LEDS);
-	(*kbd_port->write)(b);
+	(*kbd_dev->port_ops->write)(KBD_CMD_SET_LEDS);
+	(*kbd_dev->port_ops->write)(b);
 }
 
 /**

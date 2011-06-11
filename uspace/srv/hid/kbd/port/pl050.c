@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Vineeth Pillai
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-static int pl050_port_init(void);
+static int pl050_port_init(kbd_dev_t *);
 static void pl050_port_yield(void);
 static void pl050_port_reclaim(void);
 static void pl050_port_write(uint8_t data);
@@ -56,6 +57,8 @@ kbd_port_ops_t pl050_port = {
 	.reclaim = pl050_port_reclaim,
 	.write = pl050_port_write
 };
+
+static kbd_dev_t *kbd_dev;
 
 #define PL050_STAT_RXFULL  (1 << 4)
 
@@ -93,8 +96,10 @@ static irq_code_t pl050_kbd = {
 
 static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-static int pl050_port_init(void)
+static int pl050_port_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
+	
 	sysarg_t addr;
 	if (sysinfo_get_value("kbd.address.status", &addr) != EOK)
 		return -1;
@@ -133,7 +138,7 @@ static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
 
-	kbd_push_scancode(scan_code);
+	kbd_push_scancode(kbd_dev, scan_code);
 	return;
 }
 

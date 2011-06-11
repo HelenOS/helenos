@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,9 +42,9 @@
 #include <kbd_ctl.h>
 #include <kbd_port.h>
 
-static void sun_ctl_parse_scancode(int scancode);
-static int sun_ctl_init(kbd_port_ops_t *kbd_port);
-static void sun_ctl_set_ind(unsigned mods);
+static void sun_ctl_parse_scancode(int);
+static int sun_ctl_init(kbd_dev_t *);
+static void sun_ctl_set_ind(unsigned);
 
 kbd_ctl_ops_t sun_ctl = {
 	.parse_scancode = sun_ctl_parse_scancode,
@@ -51,13 +52,16 @@ kbd_ctl_ops_t sun_ctl = {
 	.set_ind = sun_ctl_set_ind
 };
 
+static kbd_dev_t *kbd_dev;
+
 #define KBD_KEY_RELEASE		0x80
 #define KBD_ALL_KEYS_UP		0x7f
 
 static int scanmap_simple[];
 
-static int sun_ctl_init(kbd_port_ops_t *kbd_port)
+static int sun_ctl_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
 	return 0;
 }
 
@@ -81,7 +85,7 @@ static void sun_ctl_parse_scancode(int scancode)
 
 	key = scanmap_simple[scancode];
 	if (key != 0)
-		kbd_push_ev(type, key);
+		kbd_push_ev(kbd_dev, type, key);
 }
 
 static void sun_ctl_set_ind(unsigned mods)

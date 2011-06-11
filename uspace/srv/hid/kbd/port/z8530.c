@@ -45,6 +45,8 @@
 #include <ddi.h>
 #include <errno.h>
 
+static kbd_dev_t *kbd_dev;
+
 #define CHAN_A_STATUS  4
 #define CHAN_A_DATA    6
 
@@ -84,8 +86,10 @@ static irq_code_t z8530_kbd = {
 
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-int z8530_port_init(void)
+int z8530_port_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
+	
 	sysarg_t kaddr;
 	if (sysinfo_get_value("kbd.address.kernel", &kaddr) != EOK)
 		return -1;
@@ -106,7 +110,7 @@ int z8530_port_init(void)
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
-	kbd_push_scancode(scan_code);
+	kbd_push_scancode(kbd_dev, scan_code);
 	
 	if (irc_service)
 		async_obsolete_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,

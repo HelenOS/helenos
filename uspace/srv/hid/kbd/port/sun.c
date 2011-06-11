@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +42,7 @@
 #include <errno.h>
 #include <bool.h>
 
-static int sun_port_init(void);
+static int sun_port_init(kbd_dev_t *);
 static void sun_port_yield(void);
 static void sun_port_reclaim(void);
 static void sun_port_write(uint8_t data);
@@ -62,7 +63,7 @@ kbd_port_ops_t sun_port = {
  * kernel. This is just a temporal hack.
  *
  */
-static int sun_port_init(void)
+static int sun_port_init(kbd_dev_t *kdev)
 {
 	sysarg_t z8530;
 	if (sysinfo_get_value("kbd.type.z8530", &z8530) != EOK)
@@ -73,12 +74,12 @@ static int sun_port_init(void)
 		ns16550 = false;
 	
 	if (z8530) {
-		if (z8530_port_init() == 0)
+		if (z8530_port_init(kdev) == 0)
 			return 0;
 	}
 	
 	if (ns16550) {
-		if (ns16550_port_init() == 0)
+		if (ns16550_port_init(kdev) == 0)
 			return 0;
 	}
 	

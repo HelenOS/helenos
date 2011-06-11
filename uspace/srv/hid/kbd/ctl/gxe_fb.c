@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,15 +43,17 @@
 #include <gsp.h>
 #include <stroke.h>
 
-static void gxe_fb_ctl_parse_scancode(int scancode);
-static int gxe_fb_ctl_init(kbd_port_ops_t *kbd_port);
-static void gxe_fb_ctl_set_ind(unsigned mods);
+static void gxe_fb_ctl_parse_scancode(int);
+static int gxe_fb_ctl_init(kbd_dev_t *);
+static void gxe_fb_ctl_set_ind(unsigned);
 
 kbd_ctl_ops_t gxe_fb_ctl = {
 	.parse_scancode = gxe_fb_ctl_parse_scancode,
 	.init = gxe_fb_ctl_init,
 	.set_ind = gxe_fb_ctl_set_ind
 };
+
+static kbd_dev_t *kbd_dev;
 
 /** Scancode parser */
 static gsp_t sp;
@@ -217,9 +219,9 @@ static int seq_defs[] = {
 	0,	0
 };
 
-static int gxe_fb_ctl_init(kbd_port_ops_t *kbd_port)
+static int gxe_fb_ctl_init(kbd_dev_t *kdev)
 {
-	(void) kbd_port;
+	kbd_dev = kdev;
 	ds = 0;
 
 	gsp_init(&sp);
@@ -232,7 +234,7 @@ static void gxe_fb_ctl_parse_scancode(int scancode)
 
 	ds = gsp_step(&sp, ds, scancode, &mods, &key);
 	if (key != 0) {
-		stroke_sim(mods, key);
+		stroke_sim(kbd_dev, mods, key);
 	}
 }
 

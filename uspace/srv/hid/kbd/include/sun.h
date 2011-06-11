@@ -37,8 +37,10 @@
 #ifndef KBD_SUN_H_
 #define KBD_SUN_H_
 
-extern int ns16550_port_init(void);
-extern int z8530_port_init(void);
+#include <kbd.h>
+
+extern int ns16550_port_init(kbd_dev_t *);
+extern int z8530_port_init(kbd_dev_t *);
 
 #endif
 

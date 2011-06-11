@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@
 
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
 
-static int chardev_port_init(void);
+static int chardev_port_init(kbd_dev_t *);
 static void chardev_port_yield(void);
 static void chardev_port_reclaim(void);
 static void chardev_port_write(uint8_t data);
@@ -60,6 +60,7 @@ kbd_port_ops_t chardev_port = {
 	.write = chardev_port_write
 };
 
+static kbd_dev_t *kbd_dev;
 static int dev_phone;
 
 /** List of devices to try connecting to. */
@@ -70,11 +71,13 @@ static const char *in_devs[] = {
 
 static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
 
-static int chardev_port_init(void)
+static int chardev_port_init(kbd_dev_t *kdev)
 {
 	devmap_handle_t handle;
 	unsigned int i;
 	int rc;
+	
+	kbd_dev = kdev;
 	
 	for (i = 0; i < num_devs; i++) {
 		rc = devmap_device_get_handle(in_devs[i], &handle, 0);
@@ -132,7 +135,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case CHAR_NOTIF_BYTE:
-			kbd_push_scancode(IPC_GET_ARG1(call));
+			kbd_push_scancode(kbd_dev, IPC_GET_ARG1(call));
 			break;
 		default:
 			retval = ENOENT;

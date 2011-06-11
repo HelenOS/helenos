@@ -39,9 +39,11 @@
 
 #include <kbd_port.h>
 
-typedef struct {
+struct kbd_dev;
+
+typedef struct kbd_ctl_ops {
 	void (*parse_scancode)(int);
-	int (*init)(kbd_port_ops_t *);
+	int (*init)(struct kbd_dev *);
 	void (*set_ind)(unsigned);
 } kbd_ctl_ops_t;
 

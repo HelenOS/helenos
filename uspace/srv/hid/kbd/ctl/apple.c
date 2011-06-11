@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,9 +41,9 @@
 #include <kbd_ctl.h>
 #include <kbd_port.h>
 
-static void apple_ctl_parse_scancode(int scancode);
-static int apple_ctl_init(kbd_port_ops_t *kbd_port);
-static void apple_ctl_set_ind(unsigned mods);
+static void apple_ctl_parse_scancode(int);
+static int apple_ctl_init(kbd_dev_t *);
+static void apple_ctl_set_ind(unsigned);
 
 kbd_ctl_ops_t apple_ctl = {
 	.parse_scancode = apple_ctl_parse_scancode,
@@ -53,11 +53,13 @@ kbd_ctl_ops_t apple_ctl = {
 
 #define KBD_KEY_RELEASE		0x80
 
+static kbd_dev_t *kbd_dev;
+
 static int scanmap[];
 
-static int apple_ctl_init(kbd_port_ops_t *kbd_port)
+static int apple_ctl_init(kbd_dev_t *kdev)
 {
-	(void) kbd_port;
+	kbd_dev = kdev;
 	return 0;
 }
 
@@ -78,7 +80,7 @@ static void apple_ctl_parse_scancode(int scancode)
 
 	key = scanmap[scancode];
 	if (key != 0)
-		kbd_push_ev(type, key);
+		kbd_push_ev(kbd_dev, type, key);
 }
 
 static void apple_ctl_set_ind(unsigned mods)

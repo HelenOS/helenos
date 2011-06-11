@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,15 +42,17 @@
 #include <gsp.h>
 #include <stroke.h>
 
-static void stty_ctl_parse_scancode(int scancode);
-static int stty_ctl_init(kbd_port_ops_t *kbd_port);
-static void stty_ctl_set_ind(unsigned mods);
+static void stty_ctl_parse_scancode(int);
+static int stty_ctl_init(kbd_dev_t *);
+static void stty_ctl_set_ind(unsigned);
 
 kbd_ctl_ops_t stty_ctl = {
 	.parse_scancode = stty_ctl_parse_scancode,
 	.init = stty_ctl_init,
 	.set_ind = stty_ctl_set_ind
 };
+
+static kbd_dev_t *kbd_dev;
 
 /** Scancode parser */
 static gsp_t sp;
@@ -216,9 +218,9 @@ static int seq_defs[] = {
 	0,	0
 };
 
-static int stty_ctl_init(kbd_port_ops_t *kbd_port)
+static int stty_ctl_init(kbd_dev_t *kdev)
 {
-	(void) kbd_port;
+	kbd_dev = kdev;
 	ds = 0;
 
 	gsp_init(&sp);
@@ -231,7 +233,7 @@ static void stty_ctl_parse_scancode(int scancode)
 
 	ds = gsp_step(&sp, ds, scancode, &mods, &key);
 	if (key != 0) {
-		stroke_sim(mods, key);
+		stroke_sim(kbd_dev, mods, key);
 	}
 }
 

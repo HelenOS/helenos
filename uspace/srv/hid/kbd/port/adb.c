@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
 static void adb_kbd_reg0_data(uint16_t data);
 
-static int adb_port_init(void);
+static int adb_port_init(kbd_dev_t *);
 static void adb_port_yield(void);
 static void adb_port_reclaim(void);
 static void adb_port_write(uint8_t data);
@@ -60,14 +60,17 @@ kbd_port_ops_t adb_port = {
 	.write = adb_port_write
 };
 
+static kbd_dev_t *kbd_dev;
 static int dev_phone;
 
 #define NAME "kbd"
 
-static int adb_port_init(void)
+static int adb_port_init(kbd_dev_t *kdev)
 {
 	const char *dev = "adb/kbd";
 	devmap_handle_t handle;
+
+	kbd_dev = kdev;
 	
 	int rc = devmap_device_get_handle(dev, &handle, 0);
 	if (rc == EOK) {
@@ -136,9 +139,9 @@ static void adb_kbd_reg0_data(uint16_t data)
 	b1 = data & 0xff;
 
 	if (b0 != 0xff)
-		kbd_push_scancode(b0);
+		kbd_push_scancode(kbd_dev, b0);
 	if (b1 != 0xff)
-		kbd_push_scancode(b1);
+		kbd_push_scancode(kbd_dev, b1);
 }
 
 /**

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 /** @file
  */
 
+#include <adt/list.h>
 #include <ipc/services.h>
 #include <ipc/kbd.h>
 #include <sysinfo.h>
@@ -62,6 +64,9 @@
 #define NAME       "kbd"
 #define NAMESPACE  "hid_in"
 
+static void kbd_devs_yield(void);
+static void kbd_devs_reclaim(void);
+
 int client_phone = -1;
 
 /** Currently active modifiers. */
@@ -70,8 +75,8 @@ static unsigned mods = KM_NUM_LOCK;
 /** Currently pressed lock keys. We track these to tackle autorepeat. */
 static unsigned lock_keys;
 
-static kbd_port_ops_t *kbd_port;
-static kbd_ctl_ops_t *kbd_ctl;
+/** List of keyboard devices */
+static link_t kbd_devs;
 
 bool irc_service = false;
 int irc_phone = -1;
@@ -86,13 +91,13 @@ static layout_op_t *layout[NUM_LAYOUTS] = {
 
 static int active_layout = 0;
 
-void kbd_push_scancode(int scancode)
+void kbd_push_scancode(kbd_dev_t *kdev, int scancode)
 {
 /*	printf("scancode: 0x%x\n", scancode);*/
-	(*kbd_ctl->parse_scancode)(scancode);
+	(*kdev->ctl_ops->parse_scancode)(scancode);
 }
 
-void kbd_push_ev(int type, unsigned int key)
+void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 {
 	kbd_event_t ev;
 	unsigned mod_mask;
@@ -132,7 +137,7 @@ void kbd_push_ev(int type, unsigned int key)
 			lock_keys = lock_keys | mod_mask;
 
 			/* Update keyboard lock indicator lights. */
-			(*kbd_ctl->set_ind)(mods);
+			(*kdev->ctl_ops->set_ind)(mods);
 		} else {
 			lock_keys = lock_keys & ~mod_mask;
 		}
@@ -203,11 +208,11 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case KBD_YIELD:
-			(*kbd_port->yield)();
+			kbd_devs_yield();
 			retval = 0;
 			break;
 		case KBD_RECLAIM:
-			(*kbd_port->reclaim)();
+			kbd_devs_reclaim();
 			retval = 0;
 			break;
 		default:
@@ -217,59 +222,115 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}	
 }
 
-static void kbd_select_drivers(kbd_port_ops_t **port, kbd_ctl_ops_t **ctl)
+/** Add new keyboard device. */
+static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 {
+	kbd_dev_t *kdev;
+
+	kdev = malloc(sizeof(kbd_dev_t));
+	if (kdev == NULL) {
+		printf(NAME ": Failed adding keyboard device. Out of memory.\n");
+		return;
+	}
+
+	link_initialize(&kdev->kbd_devs);
+	kdev->port_ops = port;
+	kdev->ctl_ops = ctl;
+
+	/* Initialize port driver. */
+	if ((*kdev->port_ops->init)(kdev) != 0)
+		goto fail;
+
+	/* Initialize controller driver. */
+	if ((*kdev->ctl_ops->init)(kdev) != 0) {
+		/* XXX Uninit port */
+		goto fail;
+	}
+
+	list_append(&kdev->kbd_devs, &kbd_devs);
+	return;
+fail:
+	free(kdev);
+}
+
+/** Add legacy drivers/devices. */
+static void kbd_add_legacy_devs(void)
+{
+	/*
+	 * Need to add these drivers based on config unless we can probe
+	 * them automatically.
+	 */
 #if defined(UARCH_amd64)
-	*port = &chardev_port;
-	*ctl = &pc_ctl;
-#elif defined(UARCH_arm32) && defined(MACHINE_gta02)
-	*port = &chardev_port;
-	*ctl = &stty_ctl;
-#elif defined(UARCH_arm32) && defined(MACHINE_testarm)
-	*port = &gxemul_port;
-	#ifdef CONFIG_FB
-		*ctl = &gxe_fb_ctl;
-	#else
-		*ctl = &stty_ctl;
-	#endif
-#elif defined(UARCH_arm32) && defined(MACHINE_integratorcp)
-	*port = &pl050_port;
-	*ctl = &pc_ctl;
-#elif defined(UARCH_ia32)
-	*port = &chardev_port;
-	*ctl = &pc_ctl;
-#elif defined(MACHINE_i460GX)
-	*port = &chardev_port;
-	*ctl = &pc_ctl;
-#elif defined(MACHINE_ski)
-	*port = &ski_port;
-	*ctl = &stty_ctl;
-#elif defined(MACHINE_msim)
-	*port = &msim_port;
-	*ctl = &stty_ctl;
-#elif defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
-	*port = &gxemul_port;
-	#ifdef CONFIG_FB
-		*ctl = &gxe_fb_ctl;
-	#else
-		*ctl = &stty_ctl;
-	#endif
-#elif defined(UARCH_ppc32)
-	*port = &adb_port;
-	*ctl = &apple_ctl;
-#elif defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
-	*port = &niagara_port;
-	*ctl = &stty_ctl;
-#elif defined(UARCH_sparc64) && defined(MACHINE_serengeti)
-	*port = &sgcn_port;
-	*ctl = &stty_ctl;
-#elif defined(UARCH_sparc64) && defined(MACHINE_generic)
-	*port = &sun_port;
-	*ctl = &sun_ctl;
-#else
-	*port = &dummy_port;
-	*ctl = &pc_ctl;
+	kbd_add_dev(&chardev_port, &pc_ctl);
 #endif
+#if defined(UARCH_arm32) && defined(MACHINE_gta02)
+	kbd_add_dev(&chardev_port, &stty_ctl);
+#endif
+#if defined(UARCH_arm32) && defined(MACHINE_testarm) && defined(CONFIG_FB)
+	kbd_add_dev(&gxemul_port, &gxe_fb_ctl);
+#endif
+#if defined(UARCH_arm32) && defined(MACHINE_testarm) && !defined(CONFIG_FB)
+	kbd_add_dev(&gxemul_port, &stty_ctl);
+#endif
+#if defined(UARCH_arm32) && defined(MACHINE_integratorcp)
+	kbd_add_dev(&pl050_port, &pc_ctl);
+#endif
+#if defined(UARCH_ia32)
+	kbd_add_dev(&chardev_port, &pc_ctl);
+#endif
+#if defined(MACHINE_i460GX)
+	kbd_add_dev(&chardev_port, &pc_ctl);
+#endif
+#if defined(MACHINE_ski)
+	kbd_add_dev(&ski_port, &stty_ctl);
+#endif
+#if defined(MACHINE_msim)
+	kbd_add_dev(&msim_port, &pc_ctl);
+#endif
+#if (defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)) && defined(CONFIG_FB)
+	kbd_add_dev(&gxemul_port, &gxe_fb_ctl);
+#endif
+#if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul) && !defined(CONFIG_FB)
+	kbd_add_dev(&gxemul_port, &stty_ctl);
+#endif
+#if defined(UARCH_ppc32)
+	kbd_add_dev(&adb_port, &apple_ctl);
+#endif
+#if defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
+	kbd_add_dev(&niagara_port, &stty_ctl);
+#endif
+#if defined(UARCH_sparc64) && defined(MACHINE_serengeti)
+	kbd_add_dev(&sgcn_port, &stty_ctl);
+#endif
+#if defined(UARCH_sparc64) && defined(MACHINE_generic)
+	kbd_add_dev(&sun_port, &sun_ctl);
+#endif
+	/* Silence warning on abs32le about kbd_add_dev() being unused */
+	(void) kbd_add_dev;
+}
+
+static void kbd_devs_yield(void)
+{
+	/* For each keyboard device */
+	list_foreach(kbd_devs, kdev_link) {
+		kbd_dev_t *kdev = list_get_instance(kdev_link, kbd_dev_t,
+		    kbd_devs);
+
+		/* Yield port */
+		(*kdev->port_ops->yield)();
+	}
+}
+
+static void kbd_devs_reclaim(void)
+{
+	/* For each keyboard device */
+	list_foreach(kbd_devs, kdev_link) {
+		kbd_dev_t *kdev = list_get_instance(kdev_link, kbd_dev_t,
+		    kbd_devs);
+
+		/* Reclaim port */
+		(*kdev->port_ops->reclaim)();
+	}
 }
 
 int main(int argc, char **argv)
@@ -278,6 +339,8 @@ int main(int argc, char **argv)
 	
 	sysarg_t fhc;
 	sysarg_t obio;
+	
+	list_initialize(&kbd_devs);
 	
 	if (((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
 	    || ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio)))
@@ -288,16 +351,8 @@ int main(int argc, char **argv)
 			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
-	/* Select port and controller drivers. */
-	kbd_select_drivers(&kbd_port, &kbd_ctl);
-
-	/* Initialize port driver. */
-	if ((*kbd_port->init)() != 0)
-		return -1;
-
-	/* Initialize controller driver. */
-	if ((*kbd_ctl->init)(kbd_port) != 0)
-		return -1;
+	/* Add legacy devices. */
+	kbd_add_legacy_devs();
 
 	/* Initialize (reset) layout. */
 	layout[active_layout]->reset();

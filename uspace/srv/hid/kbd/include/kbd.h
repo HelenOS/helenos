@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,13 +38,28 @@
 #ifndef KBD_KBD_H_
 #define KBD_KBD_H_
 
+#include <adt/list.h>
 #include <bool.h>
+
+struct kbd_port_ops;
+struct kbd_ctl_ops;
+
+typedef struct kbd_dev {
+	/** Link to kbd_devs list */
+	link_t kbd_devs;
+
+	/** Port ops */
+	struct kbd_port_ops *port_ops;
+
+	/** Ctl ops */
+	struct kbd_ctl_ops *ctl_ops;
+} kbd_dev_t;
 
 extern bool irc_service;
 extern int irc_phone;
 
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int);
+extern void kbd_push_scancode(kbd_dev_t *, int);
+extern void kbd_push_ev(kbd_dev_t *, int, unsigned int);
 
 #endif
 

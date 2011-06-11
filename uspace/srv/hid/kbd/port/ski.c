@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@
 #include <thread.h>
 #include <bool.h>
 
-static int ski_port_init(void);
+static int ski_port_init(kbd_dev_t *);
 static void ski_port_yield(void);
 static void ski_port_reclaim(void);
 static void ski_port_write(uint8_t data);
@@ -56,6 +56,8 @@ kbd_port_ops_t ski_port = {
 	.write = ski_port_write
 };
 
+static kbd_dev_t *kbd_dev;
+
 #define SKI_GETCHAR		21
 
 #define POLL_INTERVAL		10000
@@ -66,10 +68,12 @@ static int32_t ski_getchar(void);
 static volatile bool polling_disabled = false;
 
 /** Initialize Ski port driver. */
-static int ski_port_init(void)
+static int ski_port_init(kbd_dev_t *kdev)
 {
 	thread_id_t tid;
 	int rc;
+
+	kbd_dev = kdev;
 
 	rc = thread_create(ski_thread_impl, NULL, "kbd_poll", &tid);
 	if (rc != 0) {
@@ -105,7 +109,7 @@ static void ski_thread_impl(void *arg)
 			c = ski_getchar();
 			if (c == 0)
 				break;
-			kbd_push_scancode(c);
+			kbd_push_scancode(kbd_dev, c);
 		}
 
 		usleep(POLL_INTERVAL);

@@ -92,9 +92,13 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static uintptr_t ns16550_physical;
 static uintptr_t ns16550_kernel; 
 
-int ns16550_port_init(void)
+static kbd_dev_t *kbd_dev;
+
+int ns16550_port_init(kbd_dev_t *kdev)
 {
 	void *vaddr;
+
+	kbd_dev = kdev;
 
 	if (sysinfo_get_value("kbd.address.physical", &ns16550_physical) != EOK)
 		return -1;
@@ -118,7 +122,7 @@ int ns16550_port_init(void)
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
-	kbd_push_scancode(scan_code);
+	kbd_push_scancode(kbd_dev, scan_code);
 	
 	if (irc_service)
 		async_obsolete_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,

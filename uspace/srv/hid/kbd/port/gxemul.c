@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +42,7 @@
 #include <ddi.h>
 #include <errno.h>
 
-static int gxemul_port_init(void);
+static int gxemul_port_init(kbd_dev_t *);
 static void gxemul_port_yield(void);
 static void gxemul_port_reclaim(void);
 static void gxemul_port_write(uint8_t data);
@@ -52,6 +53,8 @@ kbd_port_ops_t gxemul_port = {
 	.reclaim = gxemul_port_reclaim,
 	.write = gxemul_port_write
 };
+
+static kbd_dev_t *kbd_dev;
 
 static irq_cmd_t gxemul_cmds[] = {
 	{ 
@@ -72,8 +75,10 @@ static irq_code_t gxemul_kbd = {
 static void gxemul_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 /** Initializes keyboard handler. */
-static int gxemul_port_init(void)
+static int gxemul_port_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
+	
 	sysarg_t addr;
 	if (sysinfo_get_value("kbd.address.virtual", &addr) != EOK)
 		return -1;
@@ -112,7 +117,7 @@ static void gxemul_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
 
-	kbd_push_scancode(scan_code);
+	kbd_push_scancode(kbd_dev, scan_code);
 }
 
 /** @}

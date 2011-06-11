@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Pavel Rimsky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@
 #include <bool.h>
 #include <errno.h>
 
-static int sgcn_port_init(void);
+static int sgcn_port_init(kbd_dev_t *);
 static void sgcn_port_yield(void);
 static void sgcn_port_reclaim(void);
 static void sgcn_port_write(uint8_t data);
@@ -56,6 +57,8 @@ kbd_port_ops_t sgcn_port = {
 	.reclaim = sgcn_port_reclaim,
 	.write = sgcn_port_write
 };
+
+static kbd_dev_t *kbd_dev;
 
 #define POLL_INTERVAL  10000
 
@@ -112,8 +115,10 @@ static volatile bool polling_disabled = false;
  * Initializes the SGCN driver.
  * Maps the physical memory (SRAM) and creates the polling thread. 
  */
-static int sgcn_port_init(void)
+static int sgcn_port_init(kbd_dev_t *kdev)
 {
+	kbd_dev = kdev;
+	
 	sysarg_t sram_paddr;
 	if (sysinfo_get_value("sram.address.physical", &sram_paddr) != EOK)
 		return -1;
@@ -178,7 +183,7 @@ static void sgcn_key_pressed(void)
 		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
 		buf_ptr = (volatile char *)
 			SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
-		kbd_push_scancode(c);
+		kbd_push_scancode(kbd_dev, c);
 	}
 }
 

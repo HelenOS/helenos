@@ -51,7 +51,6 @@ SOURCES = \
 	layout/us_dvorak.c \
 	port/adb.c \
 	port/chardev.c \
-	port/dummy.c \
 	port/gxemul.c \
 	port/msim.c \
 	port/niagara.c \
