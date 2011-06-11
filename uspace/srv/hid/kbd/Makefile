@@ -60,98 +60,11 @@ SOURCES = \
 	port/sgcn.c \
 	port/ski.c \
 	port/sun.c \
-	port/z8530.c
-
-
-ifeq ($(UARCH),amd64)
-	SOURCES += \
-		ctl/pc.c
-endif
-
-ifeq ($(UARCH),arm32)
-	ifeq ($(MACHINE),gta02)
-		SOURCES += \
-			ctl/stty.c
-	endif
-	ifeq ($(MACHINE),testarm)
-		ifeq ($(CONFIG_FB),y)
-			SOURCES += \
-				ctl/gxe_fb.c
-		else
-			SOURCES += \
-				ctl/stty.c
-		endif
-	endif
-	ifeq ($(MACHINE),integratorcp)
-		SOURCES += \
-			ctl/pc.c
-	endif
-endif
-
-ifeq ($(UARCH),ia32)
-	SOURCES += \
-		ctl/pc.c
-endif
-
-ifeq ($(MACHINE),i460GX)
-	SOURCES += \
-		ctl/pc.c
-endif
-
-ifeq ($(MACHINE),ski)
-	SOURCES += \
-		ctl/stty.c
-endif
-
-ifeq ($(MACHINE),msim)
-	SOURCES += \
-		ctl/stty.c
-endif
-
-ifeq ($(MACHINE),lgxemul)
-	ifeq ($(CONFIG_FB),y)
-		SOURCES += \
-			ctl/gxe_fb.c
-	else
-		SOURCES += \
-			ctl/stty.c
-	endif
-endif
-
-ifeq ($(MACHINE),bgxemul)
-	ifeq ($(CONFIG_FB),y)
-		SOURCES += \
-			ctl/gxe_fb.c
-	else
-		SOURCES += \
-			ctl/stty.c
-	endif
-endif
-
-ifeq ($(UARCH),ppc32)
-	SOURCES += \
-		ctl/apple.c
-endif
-
-ifeq ($(UARCH),sparc64)
-	ifeq ($(PROCESSOR),sun4v)
-		SOURCES += \
-			ctl/stty.c
-	else
-		ifeq ($(MACHINE),serengeti)
-			SOURCES += \
-				ctl/stty.c
-		endif
-		ifeq ($(MACHINE),generic)
-			SOURCES += \
-				ctl/sun.c
-		endif
-	endif
-endif
-
-ifeq ($(UARCH),abs32le)
-	SOURCES += \
-		ctl/pc.c
-endif
+	port/z8530.c \
+	ctl/apple.c \
+	ctl/gxe_fb.c \
+	ctl/pc.c \
+	ctl/stty.c \
+	ctl/sun.c
 
 include $(USPACE_PREFIX)/Makefile.common

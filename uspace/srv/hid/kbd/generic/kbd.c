@@ -71,6 +71,7 @@ static unsigned mods = KM_NUM_LOCK;
 static unsigned lock_keys;
 
 static kbd_port_ops_t *kbd_port;
+static kbd_ctl_ops_t *kbd_ctl;
 
 bool irc_service = false;
 int irc_phone = -1;
@@ -88,7 +89,7 @@ static int active_layout = 0;
 void kbd_push_scancode(int scancode)
 {
 /*	printf("scancode: 0x%x\n", scancode);*/
-	kbd_ctl_parse_scancode(scancode);
+	(*kbd_ctl->parse_scancode)(scancode);
 }
 
 void kbd_push_ev(int type, unsigned int key)
@@ -131,7 +132,7 @@ void kbd_push_ev(int type, unsigned int key)
 			lock_keys = lock_keys | mod_mask;
 
 			/* Update keyboard lock indicator lights. */
-			kbd_ctl_set_ind(mods);
+			(*kbd_ctl->set_ind)(mods);
 		} else {
 			lock_keys = lock_keys & ~mod_mask;
 		}
@@ -216,40 +217,59 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}	
 }
 
-static kbd_port_ops_t *kbd_select_port(void)
+static void kbd_select_drivers(kbd_port_ops_t **port, kbd_ctl_ops_t **ctl)
 {
-	kbd_port_ops_t *kbd_port;
-
 #if defined(UARCH_amd64)
-	kbd_port = &chardev_port;
+	*port = &chardev_port;
+	*ctl = &pc_ctl;
 #elif defined(UARCH_arm32) && defined(MACHINE_gta02)
-	kbd_port = &chardev_port;
+	*port = &chardev_port;
+	*ctl = &stty_ctl;
 #elif defined(UARCH_arm32) && defined(MACHINE_testarm)
-	kbd_port = &gxemul_port;
+	*port = &gxemul_port;
+	#ifdef CONFIG_FB
+		*ctl = &gxe_fb_ctl;
+	#else
+		*ctl = &stty_ctl;
+	#endif
 #elif defined(UARCH_arm32) && defined(MACHINE_integratorcp)
-	kbd_port = &pl050_port;
+	*port = &pl050_port;
+	*ctl = &pc_ctl;
 #elif defined(UARCH_ia32)
-	kbd_port = &chardev_port;
+	*port = &chardev_port;
+	*ctl = &pc_ctl;
 #elif defined(MACHINE_i460GX)
-	kbd_port = &chardev_port;
+	*port = &chardev_port;
+	*ctl = &pc_ctl;
 #elif defined(MACHINE_ski)
-	kbd_port = &ski_port;
+	*port = &ski_port;
+	*ctl = &stty_ctl;
 #elif defined(MACHINE_msim)
-	kbd_port = &msim_port;
+	*port = &msim_port;
+	*ctl = &stty_ctl;
 #elif defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
-	kbd_port = &gxemul_port;
+	*port = &gxemul_port;
+	#ifdef CONFIG_FB
+		*ctl = &gxe_fb_ctl;
+	#else
+		*ctl = &stty_ctl;
+	#endif
 #elif defined(UARCH_ppc32)
-	kbd_port = &adb_port;
+	*port = &adb_port;
+	*ctl = &apple_ctl;
 #elif defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
-	kbd_port = &niagara_port;
+	*port = &niagara_port;
+	*ctl = &stty_ctl;
 #elif defined(UARCH_sparc64) && defined(MACHINE_serengeti)
-	kbd_port = &sgcn_port;
+	*port = &sgcn_port;
+	*ctl = &stty_ctl;
 #elif defined(UARCH_sparc64) && defined(MACHINE_generic)
-	kbd_port = &sun_port;
+	*port = &sun_port;
+	*ctl = &sun_ctl;
 #else
-	kbd_port = &dummy_port;
+	*port = &dummy_port;
+	*ctl = &pc_ctl;
 #endif
-	return kbd_port;
 }
 
 int main(int argc, char **argv)
@@ -268,15 +288,15 @@ int main(int argc, char **argv)
 			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
-	/* Select port driver. */
-	kbd_port = kbd_select_port();
+	/* Select port and controller drivers. */
+	kbd_select_drivers(&kbd_port, &kbd_ctl);
 
 	/* Initialize port driver. */
 	if ((*kbd_port->init)() != 0)
 		return -1;
 
 	/* Initialize controller driver. */
-	if (kbd_ctl_init(kbd_port) != 0)
+	if ((*kbd_ctl->init)(kbd_port) != 0)
 		return -1;
 
 	/* Initialize (reset) layout. */

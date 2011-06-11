@@ -42,6 +42,16 @@
 #include <gsp.h>
 #include <stroke.h>
 
+static void stty_ctl_parse_scancode(int scancode);
+static int stty_ctl_init(kbd_port_ops_t *kbd_port);
+static void stty_ctl_set_ind(unsigned mods);
+
+kbd_ctl_ops_t stty_ctl = {
+	.parse_scancode = stty_ctl_parse_scancode,
+	.init = stty_ctl_init,
+	.set_ind = stty_ctl_set_ind
+};
+
 /** Scancode parser */
 static gsp_t sp;
 
@@ -50,7 +60,7 @@ static int ds;
 
 #include <stdio.h>
 
-int seq_defs[] = {
+static int seq_defs[] = {
 	/* Not shifted */
 
 	0,	KC_BACKTICK,	0x60, GSP_END,
@@ -206,7 +216,7 @@ int seq_defs[] = {
 	0,	0
 };
 
-int kbd_ctl_init(kbd_port_ops_t *kbd_port)
+static int stty_ctl_init(kbd_port_ops_t *kbd_port)
 {
 	(void) kbd_port;
 	ds = 0;
@@ -215,7 +225,7 @@ int kbd_ctl_init(kbd_port_ops_t *kbd_port)
 	return gsp_insert_defs(&sp, seq_defs);
 }
 
-void kbd_ctl_parse_scancode(int scancode)
+static void stty_ctl_parse_scancode(int scancode)
 {
 	unsigned mods, key;
 
@@ -225,7 +235,7 @@ void kbd_ctl_parse_scancode(int scancode)
 	}
 }
 
-void kbd_ctl_set_ind(unsigned mods)
+static void stty_ctl_set_ind(unsigned mods)
 {
 	(void) mods;
 }

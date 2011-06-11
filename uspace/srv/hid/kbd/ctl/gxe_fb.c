@@ -43,6 +43,16 @@
 #include <gsp.h>
 #include <stroke.h>
 
+static void gxe_fb_ctl_parse_scancode(int scancode);
+static int gxe_fb_ctl_init(kbd_port_ops_t *kbd_port);
+static void gxe_fb_ctl_set_ind(unsigned mods);
+
+kbd_ctl_ops_t gxe_fb_ctl = {
+	.parse_scancode = gxe_fb_ctl_parse_scancode,
+	.init = gxe_fb_ctl_init,
+	.set_ind = gxe_fb_ctl_set_ind
+};
+
 /** Scancode parser */
 static gsp_t sp;
 
@@ -51,7 +61,7 @@ static int ds;
 
 #include <stdio.h>
 
-int seq_defs[] = {
+static int seq_defs[] = {
 	/* Not shifted */
 
 	0,	KC_BACKTICK,	0x60, GSP_END,
@@ -207,7 +217,7 @@ int seq_defs[] = {
 	0,	0
 };
 
-int kbd_ctl_init(kbd_port_ops_t *kbd_port)
+static int gxe_fb_ctl_init(kbd_port_ops_t *kbd_port)
 {
 	(void) kbd_port;
 	ds = 0;
@@ -216,7 +226,7 @@ int kbd_ctl_init(kbd_port_ops_t *kbd_port)
 	return gsp_insert_defs(&sp, seq_defs);
 }
 
-void kbd_ctl_parse_scancode(int scancode)
+static void gxe_fb_ctl_parse_scancode(int scancode)
 {
 	unsigned mods, key;
 
@@ -226,7 +236,7 @@ void kbd_ctl_parse_scancode(int scancode)
 	}
 }
 
-void kbd_ctl_set_ind(unsigned mods)
+static void gxe_fb_ctl_set_ind(unsigned mods)
 {
 	(void) mods;
 }

@@ -42,6 +42,16 @@
 #include <kbd_port.h>
 #include <gsp.h>
 
+static void pc_ctl_parse_scancode(int scancode);
+static int pc_ctl_init(kbd_port_ops_t *kbd_port);
+static void pc_ctl_set_ind(unsigned mods);
+
+kbd_ctl_ops_t pc_ctl = {
+	.parse_scancode = pc_ctl_parse_scancode,
+	.init = pc_ctl_init,
+	.set_ind = pc_ctl_set_ind
+};
+
 enum dec_state {
 	ds_s,
 	ds_e
@@ -197,14 +207,14 @@ static int scanmap_e0[] = {
 	[0x1c] = KC_NENTER
 };
 
-int kbd_ctl_init(kbd_port_ops_t *kbd_p)
+static int pc_ctl_init(kbd_port_ops_t *kbd_p)
 {
 	kbd_port = kbd_p;
 	ds = ds_s;
 	return 0;
 }
 
-void kbd_ctl_parse_scancode(int scancode)
+static void pc_ctl_parse_scancode(int scancode)
 {
 	kbd_event_type_t type;
 	unsigned int key;
@@ -254,7 +264,7 @@ void kbd_ctl_parse_scancode(int scancode)
 		kbd_push_ev(type, key);
 }
 
-void kbd_ctl_set_ind(unsigned mods)
+static void pc_ctl_set_ind(unsigned mods)
 {
 	uint8_t b;
 

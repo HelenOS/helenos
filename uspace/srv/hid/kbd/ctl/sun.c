@@ -41,17 +41,27 @@
 #include <kbd_ctl.h>
 #include <kbd_port.h>
 
+static void sun_ctl_parse_scancode(int scancode);
+static int sun_ctl_init(kbd_port_ops_t *kbd_port);
+static void sun_ctl_set_ind(unsigned mods);
+
+kbd_ctl_ops_t sun_ctl = {
+	.parse_scancode = sun_ctl_parse_scancode,
+	.init = sun_ctl_init,
+	.set_ind = sun_ctl_set_ind
+};
+
 #define KBD_KEY_RELEASE		0x80
 #define KBD_ALL_KEYS_UP		0x7f
 
 static int scanmap_simple[];
 
-int kbd_ctl_init(kbd_port_ops_t *kbd_port)
+static int sun_ctl_init(kbd_port_ops_t *kbd_port)
 {
 	return 0;
 }
 
-void kbd_ctl_parse_scancode(int scancode)
+static void sun_ctl_parse_scancode(int scancode)
 {
 	kbd_event_type_t type;
 	unsigned int key;
@@ -74,7 +84,7 @@ void kbd_ctl_parse_scancode(int scancode)
 		kbd_push_ev(type, key);
 }
 
-void kbd_ctl_set_ind(unsigned mods)
+static void sun_ctl_set_ind(unsigned mods)
 {
 	(void) mods;
 }

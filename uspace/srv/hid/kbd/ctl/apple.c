@@ -41,17 +41,27 @@
 #include <kbd_ctl.h>
 #include <kbd_port.h>
 
+static void apple_ctl_parse_scancode(int scancode);
+static int apple_ctl_init(kbd_port_ops_t *kbd_port);
+static void apple_ctl_set_ind(unsigned mods);
+
+kbd_ctl_ops_t apple_ctl = {
+	.parse_scancode = apple_ctl_parse_scancode,
+	.init = apple_ctl_init,
+	.set_ind = apple_ctl_set_ind
+};
+
 #define KBD_KEY_RELEASE		0x80
 
 static int scanmap[];
 
-int kbd_ctl_init(kbd_port_ops_t *kbd_port)
+static int apple_ctl_init(kbd_port_ops_t *kbd_port)
 {
 	(void) kbd_port;
 	return 0;
 }
 
-void kbd_ctl_parse_scancode(int scancode)
+static void apple_ctl_parse_scancode(int scancode)
 {
 	kbd_event_type_t type;
 	unsigned int key;
@@ -71,7 +81,7 @@ void kbd_ctl_parse_scancode(int scancode)
 		kbd_push_ev(type, key);
 }
 
-void kbd_ctl_set_ind(unsigned mods)
+static void apple_ctl_set_ind(unsigned mods)
 {
 	(void) mods;
 }

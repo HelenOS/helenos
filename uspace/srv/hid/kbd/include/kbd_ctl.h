@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,9 +39,17 @@
 
 #include <kbd_port.h>
 
-extern void kbd_ctl_parse_scancode(int);
-extern int kbd_ctl_init(kbd_port_ops_t *);
-extern void kbd_ctl_set_ind(unsigned);
+typedef struct {
+	void (*parse_scancode)(int);
+	int (*init)(kbd_port_ops_t *);
+	void (*set_ind)(unsigned);
+} kbd_ctl_ops_t;
+
+extern kbd_ctl_ops_t apple_ctl;
+extern kbd_ctl_ops_t gxe_fb_ctl;
+extern kbd_ctl_ops_t pc_ctl;
+extern kbd_ctl_ops_t stty_ctl;
+extern kbd_ctl_ops_t sun_ctl;
 
 #endif
 
