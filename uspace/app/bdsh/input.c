@@ -57,7 +57,7 @@ extern volatile unsigned int cli_quit;
 static tinput_t *tinput;
 
 /* Private helpers */
-static int run_command(char **, cliuser_t *, FILE **);
+static int run_command(char **, cliuser_t *, iostate_t *);
 static void print_pipe_usage(void);
 
 /* Tokenizes input from console, sees if the first word is a built-in, if so
@@ -139,33 +139,45 @@ int process_input(cliuser_t *usr)
 		goto finit;
 	}
 	
-	FILE *files[4];
-	files[0] = stdin;
-	files[1] = stdout;
-	files[2] = stderr;
-	files[3] = 0;
+	iostate_t new_iostate = {
+		.stdin = stdin,
+		.stdout = stdout,
+		.stderr = stderr
+	};
+	
+	FILE *from = NULL;
+	FILE *to = NULL;
 	
 	if (redir_from) {
-		FILE *from = fopen(redir_from, "r");
+		from = fopen(redir_from, "r");
 		if (from == NULL) {
 			printf("Cannot open file %s\n", redir_from);
 			rc = errno;
-			goto finit;
+			goto finit_with_files;
 		}
-		files[0] = from;
+		new_iostate.stdin = from;
 	}
 	
+	
 	if (redir_to) {
-		FILE *to = fopen(redir_to, "w");
+		to = fopen(redir_to, "w");
 		if (to == NULL) {
 			printf("Cannot open file %s\n", redir_to);
 			rc = errno;
-			goto finit;
+			goto finit_with_files;
 		}
-		files[1] = to;
+		new_iostate.stdout = to;
 	}
 	
-	rc = run_command(cmd, usr, files);
+	rc = run_command(cmd, usr, &new_iostate);
+	
+finit_with_files:
+	if (from != NULL) {
+		fclose(from);
+	}
+	if (to != NULL) {
+		fclose(to);
+	}
 	
 finit:
 	if (NULL != usr->line) {
@@ -187,7 +199,7 @@ void print_pipe_usage()
 	
 }
 
-int run_command(char **cmd, cliuser_t *usr, FILE *files[])
+int run_command(char **cmd, cliuser_t *usr, iostate_t *new_iostate)
 {
 	int id = 0;
 	
@@ -198,16 +210,16 @@ int run_command(char **cmd, cliuser_t *usr, FILE *files[])
 	
 	/* Is it a builtin command ? */
 	if ((id = (is_builtin(cmd[0]))) > -1) {
-		return run_builtin(id, cmd, usr);
+		return run_builtin(id, cmd, usr, new_iostate);
 	}
 	
 	/* Is it a module ? */
 	if ((id = (is_module(cmd[0]))) > -1) {
-		return run_module(id, cmd);
+		return run_module(id, cmd, new_iostate);
 	}
 
 	/* See what try_exec thinks of it */
-	return try_exec(cmd[0], cmd, files);
+	return try_exec(cmd[0], cmd, new_iostate);
 }
 
 void get_input(cliuser_t *usr)

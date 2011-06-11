@@ -37,6 +37,7 @@
 #include "config.h"
 #include "errors.h"
 #include "errstr.h"
+#include "scli.h"
 
 volatile int cli_errno = CL_EOK;
 extern volatile unsigned int cli_quit;

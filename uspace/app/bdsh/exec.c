@@ -111,7 +111,7 @@ static char *find_command(char *cmd)
 	return (char *) cmd;
 }
 
-unsigned int try_exec(char *cmd, char **argv, FILE **files)
+unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 {
 	task_id_t tid;
 	task_exit_t texit;
@@ -119,9 +119,14 @@ unsigned int try_exec(char *cmd, char **argv, FILE **files)
 	int rc, retval, i;
 	fdi_node_t file_nodes[3];
 	fdi_node_t *file_nodes_p[4];
+	FILE *files[3];
 
 	tmp = str_dup(find_command(cmd));
 	free(found);
+	
+	files[0] = io->stdin;
+	files[1] = io->stdout;
+	files[2] = io->stderr;
 	
 	for (i = 0; i < 3 && files[i] != NULL; i++) {
 		if (fnode(files[i], &file_nodes[i]) == EOK) {

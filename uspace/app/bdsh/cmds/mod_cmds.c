@@ -123,14 +123,24 @@ int help_module(int module, unsigned int extended)
 
 /* Invokes the module entry point modules[module], passing argv[] as an argument
  * stack. */
-int run_module(int module, char *argv[])
+int run_module(int module, char *argv[], iostate_t *new_iostate)
 {
+	int rc;
 	module_t *mod = modules;
 
 	mod += module;
+	
+	iostate_t *old_iostate = get_iostate();
+	set_iostate(new_iostate);
 
-	if (NULL != mod->entry)
-		return ((int)mod->entry(argv));
+	if (NULL != mod->entry) {
+		rc = ((int)mod->entry(argv));
+	}
+	else {
+		rc = CL_ENOENT;
+	}
+	
+	set_iostate(old_iostate);
 
-	return CL_ENOENT;
+	return rc;
 }

@@ -37,6 +37,7 @@
 #include "errors.h"
 #include "cmds.h"
 #include "builtin_aliases.h"
+#include "scli.h"
 
 extern volatile unsigned int cli_interactive;
 
@@ -100,14 +101,24 @@ int help_builtin(int builtin, unsigned int extended)
 		return CL_ENOENT;
 }
 
-int run_builtin(int builtin, char *argv[], cliuser_t *usr)
+int run_builtin(int builtin, char *argv[], cliuser_t *usr, iostate_t *new_iostate)
 {
+	int rc;
 	builtin_t *cmd = builtins;
 
 	cmd += builtin;
+	
+	iostate_t *old_iostate = get_iostate();
+	set_iostate(new_iostate);
+	
+	if (NULL != cmd->entry) {
+		rc = ((int)cmd->entry(argv, usr));
+	}
+	else {
+		rc = CL_ENOENT;
+	}
+	
+	set_iostate(old_iostate);
 
-	if (NULL != cmd->entry)
-		return((int)cmd->entry(argv, usr));
-
-	return CL_ENOENT;
+	return rc;
 }

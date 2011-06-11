@@ -41,6 +41,8 @@
 
 /* See scli.h */
 static cliuser_t usr;
+static iostate_t *iostate;
+static iostate_t stdiostate;
 
 /* Globals that are modified during start-up that modules/builtins
  * should be aware of. */
@@ -81,9 +83,28 @@ static void cli_finit(cliuser_t *usr)
 		free(usr->cwd);
 }
 
+iostate_t *get_iostate(void)
+{
+	return iostate;
+}
+
+
+void set_iostate(iostate_t *ios)
+{
+	iostate = ios;
+	stdin = ios->stdin;
+	stdout = ios->stdout;
+	stderr = ios->stderr;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret = 0;
+	
+	stdiostate.stdin = stdin;
+	stdiostate.stdout = stdout;
+	stdiostate.stderr = stderr;
+	iostate = &stdiostate;
 
 	if (cli_init(&usr))
 		exit(EXIT_FAILURE);

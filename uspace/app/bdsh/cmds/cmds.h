@@ -58,7 +58,7 @@ extern int is_module(const char *);
 extern int is_module_alias(const char *);
 extern char *alias_for_module(const char *);
 extern int help_module(int, unsigned int);
-extern int run_module(int, char *[]);
+extern int run_module(int, char *[], iostate_t *);
 
 /* Prototypes for builtin launchers */
 extern int builtin_is_restricted(int);
@@ -66,6 +66,6 @@ extern int is_builtin(const char *);
 extern int is_builtin_alias(const char *);
 extern char *alias_for_builtin(const char *);
 extern int help_builtin(int, unsigned int);
-extern int run_builtin(int, char *[], cliuser_t *);
+extern int run_builtin(int, char *[], cliuser_t *, iostate_t *);
 
 #endif
