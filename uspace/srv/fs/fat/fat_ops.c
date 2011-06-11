@@ -373,73 +373,47 @@ int fat_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 
 int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
-	fat_bs_t *bs;
 	fat_node_t *parentp = FAT_NODE(pfn);
-	char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
-	unsigned i, j;
-	unsigned blocks;
+	char name[FAT_LFN_NAME_SIZE];
 	fat_dentry_t *d;
 	devmap_handle_t devmap_handle;
-	block_t *b;
 	int rc;
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	devmap_handle = parentp->idx->devmap_handle;
 	fibril_mutex_unlock(&parentp->idx->lock);
+	
+	fat_directory_t di;
+	fat_directory_open(parentp, &di);
 
-	bs = block_bb_get(devmap_handle);
-	blocks = parentp->size / BPS(bs);
-	for (i = 0; i < blocks; i++) {
-		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		if (rc != EOK)
+	while (fat_directory_read(&di, name, &d) == EOK) {
+		if (fat_dentry_namecmp(name, component) == 0) {
+			/* hit */
+			fat_node_t *nodep;
+			aoff64_t o = (di.pos-1) % (BPS(di.bs) / sizeof(fat_dentry_t));
+			fat_idx_t *idx = fat_idx_get_by_pos(devmap_handle,
+				parentp->firstc, di.bnum * DPS(di.bs) + o);
+			if (!idx) {
+				/*
+				 * Can happen if memory is low or if we
+				 * run out of 32-bit indices.
+				 */
+				rc = fat_directory_close(&di);
+				return (rc == EOK) ? ENOMEM : rc;
+			}
+			rc = fat_node_get_core(&nodep, idx);
+			fibril_mutex_unlock(&idx->lock);
+			if (rc != EOK) {
+				(void) fat_directory_close(&di);
+				return rc;
+			}
+			*rfn = FS_NODE(nodep);
+			rc = fat_directory_close(&di);
+			if (rc != EOK)
+				(void) fat_node_put(*rfn);
 			return rc;
-		for (j = 0; j < DPS(bs); j++) {
-			d = ((fat_dentry_t *)b->data) + j;
-			switch (fat_classify_dentry(d)) {
-			case FAT_DENTRY_SKIP:
-			case FAT_DENTRY_FREE:
-				continue;
-			case FAT_DENTRY_LAST:
-				/* miss */
-				rc = block_put(b);
-				*rfn = NULL;
-				return rc;
-			default:
-			case FAT_DENTRY_VALID:
-				fat_dentry_name_get(d, name);
-				break;
-			}
-			if (fat_dentry_namecmp(name, component) == 0) {
-				/* hit */
-				fat_node_t *nodep;
-				fat_idx_t *idx = fat_idx_get_by_pos(devmap_handle,
-				    parentp->firstc, i * DPS(bs) + j);
-				if (!idx) {
-					/*
-					 * Can happen if memory is low or if we
-					 * run out of 32-bit indices.
-					 */
-					rc = block_put(b);
-					return (rc == EOK) ? ENOMEM : rc;
-				}
-				rc = fat_node_get_core(&nodep, idx);
-				fibril_mutex_unlock(&idx->lock);
-				if (rc != EOK) {
-					(void) block_put(b);
-					return rc;
-				}
-				*rfn = FS_NODE(nodep);
-				rc = block_put(b);
-				if (rc != EOK)
-					(void) fat_node_put(*rfn);
-				return rc;
-			}
 		}
-		rc = block_put(b);
-		if (rc != EOK)
-			return rc;
 	}
-
 	*rfn = NULL;
 	return EOK;
 }
