@@ -48,11 +48,23 @@
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
 static void adb_kbd_reg0_data(uint16_t data);
 
+static int adb_port_init(void);
+static void adb_port_yield(void);
+static void adb_port_reclaim(void);
+static void adb_port_write(uint8_t data);
+
+kbd_port_ops_t adb_port = {
+	.init = adb_port_init,
+	.yield = adb_port_yield,
+	.reclaim = adb_port_reclaim,
+	.write = adb_port_write
+};
+
 static int dev_phone;
 
 #define NAME "kbd"
 
-int kbd_port_init(void)
+static int adb_port_init(void)
 {
 	const char *dev = "adb/kbd";
 	devmap_handle_t handle;
@@ -77,15 +89,15 @@ int kbd_port_init(void)
 	return EOK;
 }
 
-void kbd_port_yield(void)
+static void adb_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void adb_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void adb_port_write(uint8_t data)
 {
 	/*async_msg_1(dev_phone, CHAR_WRITE_BYTE, data);*/
 }

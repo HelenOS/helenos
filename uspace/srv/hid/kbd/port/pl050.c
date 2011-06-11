@@ -45,6 +45,18 @@
 #include <stdio.h>
 #include <errno.h>
 
+static int pl050_port_init(void);
+static void pl050_port_yield(void);
+static void pl050_port_reclaim(void);
+static void pl050_port_write(uint8_t data);
+
+kbd_port_ops_t pl050_port = {
+	.init = pl050_port_init,
+	.yield = pl050_port_yield,
+	.reclaim = pl050_port_reclaim,
+	.write = pl050_port_write
+};
+
 #define PL050_STAT_RXFULL  (1 << 4)
 
 static irq_cmd_t pl050_cmds[] = {
@@ -81,7 +93,7 @@ static irq_code_t pl050_kbd = {
 
 static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-int kbd_port_init(void)
+static int pl050_port_init(void)
 {
 	sysarg_t addr;
 	if (sysinfo_get_value("kbd.address.status", &addr) != EOK)
@@ -104,15 +116,15 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void pl050_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void pl050_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void pl050_port_write(uint8_t data)
 {
 	(void) data;
 }

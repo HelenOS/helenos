@@ -76,8 +76,8 @@ static irq_cmd_t z8530_cmds[] = {
 		.cmd = CMD_ACCEPT
 	}
 };
-	
-irq_code_t z8530_kbd = {
+
+static irq_code_t z8530_kbd = {
 	sizeof(z8530_cmds) / sizeof(irq_cmd_t),
 	z8530_cmds
 };

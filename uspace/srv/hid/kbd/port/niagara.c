@@ -45,6 +45,18 @@
 #include <bool.h>
 #include <errno.h>
 
+static int niagara_port_init(void);
+static void niagara_port_yield(void);
+static void niagara_port_reclaim(void);
+static void niagara_port_write(uint8_t data);
+
+kbd_port_ops_t niagara_port = {
+	.init = niagara_port_init,
+	.yield = niagara_port_yield,
+	.reclaim = niagara_port_reclaim,
+	.write = niagara_port_write
+};
+
 #define POLL_INTERVAL  10000
 
 /**
@@ -69,7 +81,7 @@ typedef volatile struct {
 	*input_buffer_t;
 
 /* virtual address of the shared buffer */
-input_buffer_t input_buffer;
+static input_buffer_t input_buffer;
 
 static volatile bool polling_disabled = false;
 static void niagara_thread_impl(void *arg);
@@ -78,7 +90,7 @@ static void niagara_thread_impl(void *arg);
  * Initializes the Niagara driver.
  * Maps the shared buffer and creates the polling thread. 
  */
-int kbd_port_init(void)
+static int niagara_port_init(void)
 {
 	sysarg_t paddr;
 	if (sysinfo_get_value("niagara.inbuf.address", &paddr) != EOK)
@@ -104,17 +116,17 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void niagara_port_yield(void)
 {
 	polling_disabled = true;
 }
 
-void kbd_port_reclaim(void)
+static void niagara_port_reclaim(void)
 {
 	polling_disabled = false;
 }
 
-void kbd_port_write(uint8_t data)
+static void niagara_port_write(uint8_t data)
 {
 	(void) data;
 }

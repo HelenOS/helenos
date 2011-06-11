@@ -48,24 +48,32 @@ SOURCES = \
 	genarch/stroke.c \
 	layout/cz.c \
 	layout/us_qwerty.c \
-	layout/us_dvorak.c
+	layout/us_dvorak.c \
+	port/adb.c \
+	port/chardev.c \
+	port/dummy.c \
+	port/gxemul.c \
+	port/msim.c \
+	port/niagara.c \
+	port/ns16550.c \
+	port/pl050.c \
+	port/sgcn.c \
+	port/ski.c \
+	port/sun.c \
+	port/z8530.c
+
 
 ifeq ($(UARCH),amd64)
 	SOURCES += \
-		port/chardev.c \
 		ctl/pc.c
 endif
 
 ifeq ($(UARCH),arm32)
 	ifeq ($(MACHINE),gta02)
 		SOURCES += \
-			port/chardev.c \
 			ctl/stty.c
 	endif
 	ifeq ($(MACHINE),testarm)
-		SOURCES += \
-			port/gxemul.c
-		
 		ifeq ($(CONFIG_FB),y)
 			SOURCES += \
 				ctl/gxe_fb.c
@@ -76,39 +84,31 @@ ifeq ($(UARCH),arm32)
 	endif
 	ifeq ($(MACHINE),integratorcp)
 		SOURCES += \
-			port/pl050.c \
 			ctl/pc.c
 	endif
 endif
 
 ifeq ($(UARCH),ia32)
 	SOURCES += \
-		port/chardev.c \
 		ctl/pc.c
 endif
 
 ifeq ($(MACHINE),i460GX)
 	SOURCES += \
-		port/chardev.c \
 		ctl/pc.c
 endif
 
 ifeq ($(MACHINE),ski)
 	SOURCES += \
-		port/ski.c \
 		ctl/stty.c
 endif
 
 ifeq ($(MACHINE),msim)
 	SOURCES += \
-		port/msim.c \
 		ctl/stty.c
 endif
 
 ifeq ($(MACHINE),lgxemul)
-	SOURCES += \
-		port/gxemul.c
-	
 	ifeq ($(CONFIG_FB),y)
 		SOURCES += \
 			ctl/gxe_fb.c
@@ -119,9 +119,6 @@ ifeq ($(MACHINE),lgxemul)
 endif
 
 ifeq ($(MACHINE),bgxemul)
-	SOURCES += \
-		port/gxemul.c
-	
 	ifeq ($(CONFIG_FB),y)
 		SOURCES += \
 			ctl/gxe_fb.c
@@ -133,34 +130,27 @@ endif
 
 ifeq ($(UARCH),ppc32)
 	SOURCES += \
-		port/adb.c \
 		ctl/apple.c
 endif
 
 ifeq ($(UARCH),sparc64)
 	ifeq ($(PROCESSOR),sun4v)
 		SOURCES += \
-			port/niagara.c \
 			ctl/stty.c
 	else
 		ifeq ($(MACHINE),serengeti)
 			SOURCES += \
-				port/sgcn.c \
 				ctl/stty.c
 		endif
 		ifeq ($(MACHINE),generic)
 			SOURCES += \
-			port/sun.c \
-			port/z8530.c \
-			port/ns16550.c \
-			ctl/sun.c
+				ctl/sun.c
 		endif
 	endif
 endif
 
 ifeq ($(UARCH),abs32le)
 	SOURCES += \
-		port/dummy.c \
 		ctl/pc.c
 endif
 

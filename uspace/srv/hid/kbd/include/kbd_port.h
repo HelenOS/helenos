@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,10 +39,25 @@
 
 #include <sys/types.h>
 
-extern int kbd_port_init(void);
-extern void kbd_port_yield(void);
-extern void kbd_port_reclaim(void);
-extern void kbd_port_write(uint8_t);
+typedef struct {
+	int (*init)(void);
+	void (*yield)(void);
+	void (*reclaim)(void);
+	void (*write)(uint8_t);
+} kbd_port_ops_t;
+
+extern kbd_port_ops_t adb_port;
+extern kbd_port_ops_t chardev_port;
+extern kbd_port_ops_t dummy_port;
+extern kbd_port_ops_t gxemul_port;
+extern kbd_port_ops_t msim_port;
+extern kbd_port_ops_t niagara_port;
+extern kbd_port_ops_t ns16550_port;
+extern kbd_port_ops_t pl050_port;
+extern kbd_port_ops_t sgcn_port;
+extern kbd_port_ops_t ski_port;
+extern kbd_port_ops_t sun_port;
+extern kbd_port_ops_t z8530_port;
 
 #endif
 

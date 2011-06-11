@@ -39,13 +39,15 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <kbd_ctl.h>
+#include <kbd_port.h>
 
 #define KBD_KEY_RELEASE		0x80
 
 static int scanmap[];
 
-int kbd_ctl_init(void)
+int kbd_ctl_init(kbd_port_ops_t *kbd_port)
 {
+	(void) kbd_port;
 	return 0;
 }
 

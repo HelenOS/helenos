@@ -41,7 +41,19 @@
 #include <ddi.h>
 #include <errno.h>
 
-irq_cmd_t msim_cmds[] = {
+static int msim_port_init(void);
+static void msim_port_yield(void);
+static void msim_port_reclaim(void);
+static void msim_port_write(uint8_t data);
+
+kbd_port_ops_t msim_port = {
+	.init = msim_port_init,
+	.yield = msim_port_yield,
+	.reclaim = msim_port_reclaim,
+	.write = msim_port_write
+};
+
+static irq_cmd_t msim_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
 		.addr = (void *) 0,	/* will be patched in run-time */
@@ -50,17 +62,16 @@ irq_cmd_t msim_cmds[] = {
 	{
 		.cmd = CMD_ACCEPT
 	}
-	
 };
 
-irq_code_t msim_kbd = {
+static irq_code_t msim_kbd = {
 	sizeof(msim_cmds) / sizeof(irq_cmd_t),
 	msim_cmds
 };
 
 static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-int kbd_port_init(void)
+static int msim_port_init(void)
 {
 	sysarg_t vaddr;
 	if (sysinfo_get_value("kbd.address.virtual", &vaddr) != EOK)
@@ -77,15 +88,15 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void msim_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void msim_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void msim_port_write(uint8_t data)
 {
 	(void) data;
 }

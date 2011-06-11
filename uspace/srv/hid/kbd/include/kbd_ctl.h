@@ -37,8 +37,10 @@
 #ifndef KBD_CTL_H_
 #define KBD_CTL_H_
 
+#include <kbd_port.h>
+
 extern void kbd_ctl_parse_scancode(int);
-extern int kbd_ctl_init(void);
+extern int kbd_ctl_init(kbd_port_ops_t *);
 extern void kbd_ctl_set_ind(unsigned);
 
 #endif

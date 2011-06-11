@@ -70,6 +70,8 @@ static unsigned mods = KM_NUM_LOCK;
 /** Currently pressed lock keys. We track these to tackle autorepeat. */
 static unsigned lock_keys;
 
+static kbd_port_ops_t *kbd_port;
+
 bool irc_service = false;
 int irc_phone = -1;
 
@@ -200,11 +202,11 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case KBD_YIELD:
-			kbd_port_yield();
+			(*kbd_port->yield)();
 			retval = 0;
 			break;
 		case KBD_RECLAIM:
-			kbd_port_reclaim();
+			(*kbd_port->reclaim)();
 			retval = 0;
 			break;
 		default:
@@ -214,6 +216,41 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}	
 }
 
+static kbd_port_ops_t *kbd_select_port(void)
+{
+	kbd_port_ops_t *kbd_port;
+
+#if defined(UARCH_amd64)
+	kbd_port = &chardev_port;
+#elif defined(UARCH_arm32) && defined(MACHINE_gta02)
+	kbd_port = &chardev_port;
+#elif defined(UARCH_arm32) && defined(MACHINE_testarm)
+	kbd_port = &gxemul_port;
+#elif defined(UARCH_arm32) && defined(MACHINE_integratorcp)
+	kbd_port = &pl050_port;
+#elif defined(UARCH_ia32)
+	kbd_port = &chardev_port;
+#elif defined(MACHINE_i460GX)
+	kbd_port = &chardev_port;
+#elif defined(MACHINE_ski)
+	kbd_port = &ski_port;
+#elif defined(MACHINE_msim)
+	kbd_port = &msim_port;
+#elif defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
+	kbd_port = &gxemul_port;
+#elif defined(UARCH_ppc32)
+	kbd_port = &adb_port;
+#elif defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
+	kbd_port = &niagara_port;
+#elif defined(UARCH_sparc64) && defined(MACHINE_serengeti)
+	kbd_port = &sgcn_port;
+#elif defined(UARCH_sparc64) && defined(MACHINE_generic)
+	kbd_port = &sun_port;
+#else
+	kbd_port = &dummy_port;
+#endif
+	return kbd_port;
+}
 
 int main(int argc, char **argv)
 {
@@ -231,12 +268,15 @@ int main(int argc, char **argv)
 			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
+	/* Select port driver. */
+	kbd_port = kbd_select_port();
+
 	/* Initialize port driver. */
-	if (kbd_port_init() != 0)
+	if ((*kbd_port->init)() != 0)
 		return -1;
 
 	/* Initialize controller driver. */
-	if (kbd_ctl_init() != 0)
+	if (kbd_ctl_init(kbd_port) != 0)
 		return -1;
 
 	/* Initialize (reset) layout. */

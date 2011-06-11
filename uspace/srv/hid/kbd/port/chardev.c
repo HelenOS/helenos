@@ -48,6 +48,18 @@
 
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
 
+static int chardev_port_init(void);
+static void chardev_port_yield(void);
+static void chardev_port_reclaim(void);
+static void chardev_port_write(uint8_t data);
+
+kbd_port_ops_t chardev_port = {
+	.init = chardev_port_init,
+	.yield = chardev_port_yield,
+	.reclaim = chardev_port_reclaim,
+	.write = chardev_port_write
+};
+
 static int dev_phone;
 
 /** List of devices to try connecting to. */
@@ -58,7 +70,7 @@ static const char *in_devs[] = {
 
 static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
 
-int kbd_port_init(void)
+static int chardev_port_init(void)
 {
 	devmap_handle_t handle;
 	unsigned int i;
@@ -90,15 +102,15 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void chardev_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void chardev_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void chardev_port_write(uint8_t data)
 {
 	async_obsolete_msg_1(dev_phone, CHAR_WRITE_BYTE, data);
 }

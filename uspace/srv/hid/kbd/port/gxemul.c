@@ -41,6 +41,18 @@
 #include <ddi.h>
 #include <errno.h>
 
+static int gxemul_port_init(void);
+static void gxemul_port_yield(void);
+static void gxemul_port_reclaim(void);
+static void gxemul_port_write(uint8_t data);
+
+kbd_port_ops_t gxemul_port = {
+	.init = gxemul_port_init,
+	.yield = gxemul_port_yield,
+	.reclaim = gxemul_port_reclaim,
+	.write = gxemul_port_write
+};
+
 static irq_cmd_t gxemul_cmds[] = {
 	{ 
 		.cmd = CMD_PIO_READ_8, 
@@ -60,7 +72,7 @@ static irq_code_t gxemul_kbd = {
 static void gxemul_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 /** Initializes keyboard handler. */
-int kbd_port_init(void)
+static int gxemul_port_init(void)
 {
 	sysarg_t addr;
 	if (sysinfo_get_value("kbd.address.virtual", &addr) != EOK)
@@ -76,15 +88,15 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void gxemul_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void gxemul_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void gxemul_port_write(uint8_t data)
 {
 	(void) data;
 }

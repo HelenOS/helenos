@@ -41,6 +41,19 @@
 #include <errno.h>
 #include <bool.h>
 
+static int sun_port_init(void);
+static void sun_port_yield(void);
+static void sun_port_reclaim(void);
+static void sun_port_write(uint8_t data);
+
+kbd_port_ops_t sun_port = {
+	.init = sun_port_init,
+	.yield = sun_port_yield,
+	.reclaim = sun_port_reclaim,
+	.write = sun_port_write
+};
+
+
 /** Sun keyboard virtual port driver.
  *
  * This is a virtual port driver which can use
@@ -49,7 +62,7 @@
  * kernel. This is just a temporal hack.
  *
  */
-int kbd_port_init(void)
+static int sun_port_init(void)
 {
 	sysarg_t z8530;
 	if (sysinfo_get_value("kbd.type.z8530", &z8530) != EOK)
@@ -72,15 +85,15 @@ int kbd_port_init(void)
 	return -1;
 }
 
-void kbd_port_yield(void)
+static void sun_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void sun_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void sun_port_write(uint8_t data)
 {
 	(void) data;
 }

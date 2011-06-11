@@ -44,6 +44,18 @@
 #include <thread.h>
 #include <bool.h>
 
+static int ski_port_init(void);
+static void ski_port_yield(void);
+static void ski_port_reclaim(void);
+static void ski_port_write(uint8_t data);
+
+kbd_port_ops_t ski_port = {
+	.init = ski_port_init,
+	.yield = ski_port_yield,
+	.reclaim = ski_port_reclaim,
+	.write = ski_port_write
+};
+
 #define SKI_GETCHAR		21
 
 #define POLL_INTERVAL		10000
@@ -54,7 +66,7 @@ static int32_t ski_getchar(void);
 static volatile bool polling_disabled = false;
 
 /** Initialize Ski port driver. */
-int kbd_port_init(void)
+static int ski_port_init(void)
 {
 	thread_id_t tid;
 	int rc;
@@ -67,17 +79,17 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void ski_port_yield(void)
 {
 	polling_disabled = true;
 }
 
-void kbd_port_reclaim(void)
+static void ski_port_reclaim(void)
 {
 	polling_disabled = false;
 }
 
-void kbd_port_write(uint8_t data)
+static void ski_port_write(uint8_t data)
 {
 	(void) data;
 }
@@ -111,6 +123,7 @@ static int32_t ski_getchar(void)
 {
 	uint64_t ch;
 	
+#ifdef UARCH_ia64
 	asm volatile (
 		"mov r15 = %1\n"
 		"break 0x80000;;\n"	/* modifies r8 */
@@ -120,7 +133,9 @@ static int32_t ski_getchar(void)
 		: "i" (SKI_GETCHAR)
 		: "r15", "r8"
 	);
-
+#else
+	ch = 0;
+#endif
 	return (int32_t) ch;
 }
 

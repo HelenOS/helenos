@@ -63,6 +63,7 @@ enum kbd_command {
 };
 
 static enum dec_state ds;
+static kbd_port_ops_t *kbd_port;
 
 static int scanmap_simple[] = {
 
@@ -196,8 +197,9 @@ static int scanmap_e0[] = {
 	[0x1c] = KC_NENTER
 };
 
-int kbd_ctl_init(void)
+int kbd_ctl_init(kbd_port_ops_t *kbd_p)
 {
+	kbd_port = kbd_p;
 	ds = ds_s;
 	return 0;
 }
@@ -264,8 +266,8 @@ void kbd_ctl_set_ind(unsigned mods)
 	if ((mods & KM_SCROLL_LOCK) != 0)
 		b = b | LI_SCROLL;
 
-	kbd_port_write(KBD_CMD_SET_LEDS);
-	kbd_port_write(b);
+	(*kbd_port->write)(KBD_CMD_SET_LEDS);
+	(*kbd_port->write)(b);
 }
 
 /**

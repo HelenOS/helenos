@@ -45,6 +45,18 @@
 #include <bool.h>
 #include <errno.h>
 
+static int sgcn_port_init(void);
+static void sgcn_port_yield(void);
+static void sgcn_port_reclaim(void);
+static void sgcn_port_write(uint8_t data);
+
+kbd_port_ops_t sgcn_port = {
+	.init = sgcn_port_init,
+	.yield = sgcn_port_yield,
+	.reclaim = sgcn_port_reclaim,
+	.write = sgcn_port_write
+};
+
 #define POLL_INTERVAL  10000
 
 /**
@@ -100,7 +112,7 @@ static volatile bool polling_disabled = false;
  * Initializes the SGCN driver.
  * Maps the physical memory (SRAM) and creates the polling thread. 
  */
-int kbd_port_init(void)
+static int sgcn_port_init(void)
 {
 	sysarg_t sram_paddr;
 	if (sysinfo_get_value("sram.address.physical", &sram_paddr) != EOK)
@@ -129,17 +141,17 @@ int kbd_port_init(void)
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void sgcn_port_yield(void)
 {
 	polling_disabled = true;
 }
 
-void kbd_port_reclaim(void)
+static void sgcn_port_reclaim(void)
 {
 	polling_disabled = false;
 }
 
-void kbd_port_write(uint8_t data)
+static void sgcn_port_write(uint8_t data)
 {
 	(void) data;
 }

@@ -37,20 +37,33 @@
 #include <kbd_port.h>
 #include <kbd.h>
 
-int kbd_port_init(void)
+static int dummy_port_init(void);
+static void dummy_port_yield(void);
+static void dummy_port_reclaim(void);
+static void dummy_port_write(uint8_t data);
+
+kbd_port_ops_t dummy_port = {
+	.init = dummy_port_init,
+	.yield = dummy_port_yield,
+	.reclaim = dummy_port_reclaim,
+	.write = dummy_port_write
+};
+
+
+static int dummy_port_init(void)
 {
 	return 0;
 }
 
-void kbd_port_yield(void)
+static void dummy_port_yield(void)
 {
 }
 
-void kbd_port_reclaim(void)
+static void dummy_port_reclaim(void)
 {
 }
 
-void kbd_port_write(uint8_t data)
+static void dummy_port_write(uint8_t data)
 {
 	(void) data;
 }
