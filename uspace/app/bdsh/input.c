@@ -62,7 +62,7 @@ static int run_command(char **, cliuser_t *);
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
  * the handler */
-int tok_input(cliuser_t *usr)
+int process_input(cliuser_t *usr)
 {
 	char *cmd[WORD_MAX];
 	int rc = 0;

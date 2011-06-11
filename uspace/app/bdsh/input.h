@@ -6,7 +6,7 @@
 /* prototypes */
 
 extern void get_input(cliuser_t *);
-extern int tok_input(cliuser_t *);
+extern int process_input(cliuser_t *);
 extern int input_init(void);
 
 #endif

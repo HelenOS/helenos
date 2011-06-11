@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	while (!cli_quit) {
 		get_input(&usr);
 		if (NULL != usr.line) {
-			ret = tok_input(&usr);
+			ret = process_input(&usr);
 			cli_set_prompt(&usr);
 			usr.lasterr = ret;
 		}
