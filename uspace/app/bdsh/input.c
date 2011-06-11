@@ -49,12 +49,14 @@
 #include "input.h"
 #include "errors.h"
 #include "exec.h"
+#include "tok.h"
 
 extern volatile unsigned int cli_quit;
 
 /** Text input field. */
 static tinput_t *tinput;
 
+/* Private helpers */
 static int run_command(char **, cliuser_t *);
 
 /* Tokenizes input from console, sees if the first word is a built-in, if so
@@ -63,28 +65,30 @@ static int run_command(char **, cliuser_t *);
 int tok_input(cliuser_t *usr)
 {
 	char *cmd[WORD_MAX];
-	int n = 0;
 	int rc = 0;
-	char *tmp;
+	tokenizer_t tok;
 
 	if (NULL == usr->line)
 		return CL_EFAIL;
 
-	tmp = str_dup(usr->line);
-
-	cmd[n] = strtok(tmp, " ");
-	while (cmd[n] && n < WORD_MAX) {
-		cmd[++n] = strtok(NULL, " ");
+	rc = tok_init(&tok, usr->line, cmd, WORD_MAX);
+	if (rc != EOK) {
+		goto finit;
 	}
-
+	
+	rc = tok_tokenize(&tok);
+	if (rc != EOK) {
+		goto finit;
+	}
+	
 	rc = run_command(cmd, usr);
-
+	
+finit:
 	if (NULL != usr->line) {
 		free(usr->line);
 		usr->line = (char *) NULL;
 	}
-	if (NULL != tmp)
-		free(tmp);
+	tok_fini(&tok);
 
 	return rc;
 }
