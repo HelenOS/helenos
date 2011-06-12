@@ -137,8 +137,8 @@ extern uint8_t fat_dentry_chksum(uint8_t *);
 
 extern size_t fat_lfn_str_nlength(const uint8_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
-extern void fat_lfn_copy_part(const uint8_t *, size_t, uint8_t *, size_t *);
-extern void fat_lfn_copy_entry(const fat_dentry_t *, uint8_t *, size_t *);
+extern size_t fat_lfn_copy_part(const uint8_t *, size_t, uint8_t *, size_t);
+extern size_t fat_lfn_copy_entry(const fat_dentry_t *, uint8_t *, size_t);
 extern int fat_lfn_convert_name(const uint8_t *, size_t, uint8_t *, size_t);
 
 

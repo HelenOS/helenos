@@ -117,7 +117,8 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 				if ((FAT_LFN_ORDER(d) == di->long_entry_count) && 
 					(di->checksum == FAT_LFN_CHKSUM(d))) {
 					/* Right order! */
-					fat_lfn_copy_entry(d, di->lfn_utf16, &di->lfn_offset);
+					di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
+					    di->lfn_offset);
 				} else {
 					/* Something wrong with order. Skip this long entries set */
 					di->long_entry_count = 0;
@@ -132,7 +133,8 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 						di->lfn_size = (FAT_LFN_ENTRY_SIZE * 
 							(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
 						di->lfn_offset = di->lfn_size;
-						fat_lfn_copy_entry(d, di->lfn_utf16, &di->lfn_offset);
+						di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
+						    di->lfn_offset);
 						di->checksum = FAT_LFN_CHKSUM(d);
 					}
 				}

@@ -39,6 +39,7 @@
 #include <ctype.h>
 #include <str.h>
 #include <errno.h>
+#include <byteorder.h>
 
 static bool is_d_char(const char ch)
 {
@@ -306,24 +307,30 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 	return size;
 }
 
-void fat_lfn_copy_part(const uint8_t *src, size_t src_size, uint8_t *dst, size_t *offset)
+size_t fat_lfn_copy_part(const uint8_t *src, size_t src_size, uint8_t *dst, size_t offset)
 {
 	int i;
-	for (i=src_size-1; i>0 && (*offset)>1; i-=2) {
+	for (i=src_size-1; i>0 && offset>1; i-=2) {
 		if ((src[i] == 0x00 && src[i-1] == 0x00) ||
 			(src[i] == 0xff && src[i-1] == 0xff))
 			continue;
-		dst[(*offset)-1] = src[i];
-		dst[(*offset)-2] = src[i-1];
-		(*offset)-=2;
+		dst[offset-1] = src[i];
+		dst[offset-2] = src[i-1];
+		offset-=2;
 	}
+	return offset;
 }
 
-void fat_lfn_copy_entry(const fat_dentry_t *d, uint8_t *dst, size_t *offset)
+size_t fat_lfn_copy_entry(const fat_dentry_t *d, uint8_t *dst, size_t offset)
 {
-	fat_lfn_copy_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
-	fat_lfn_copy_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);
-	fat_lfn_copy_part(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE, dst, offset);
+	offset = fat_lfn_copy_part(FAT_LFN_PART3(d), 
+	    FAT_LFN_PART3_SIZE, dst, offset);
+	offset = fat_lfn_copy_part(FAT_LFN_PART2(d), 
+	    FAT_LFN_PART2_SIZE, dst, offset);
+	offset = fat_lfn_copy_part(FAT_LFN_PART1(d), 
+	    FAT_LFN_PART1_SIZE, dst, offset);
+
+	return offset;
 }
 
 int fat_lfn_convert_name(const uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size)
@@ -338,7 +345,7 @@ int fat_lfn_convert_name(const uint8_t *src, size_t src_size, uint8_t *dst, size
 			else
 				return EOVERFLOW;
 		} else {
-			c = (src[i] << 8) | src[i+1];
+			c = uint16_t_le2host((src[i] << 8) | src[i+1]);
 			rc = chr_encode(c, (char*)dst, &offset, dst_size);
 			if (rc!=EOK) {
 				return rc;
