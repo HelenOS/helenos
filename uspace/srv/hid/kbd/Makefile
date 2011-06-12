@@ -61,6 +61,7 @@ SOURCES = \
 	port/z8530.c \
 	ctl/apple.c \
 	ctl/gxe_fb.c \
+	ctl/kbdev.c \
 	ctl/pc.c \
 	ctl/stty.c \
 	ctl/sun.c

@@ -39,6 +39,7 @@
 #include <stdio.h>
 
 #include <io/keycode.h>
+#include <io/console.h>
 #include <ipc/kbd.h>
 #include <async.h>
 #include <async_obsolete.h>
@@ -62,7 +63,6 @@
 
 #include "kbddev.h"
 
-#include "layout.h"
 #include "conv.h"
 #include "kbdrepeat.h"
 
@@ -72,7 +72,7 @@
 #include <kernel/ipc/ipc_methods.h>
 
 /*----------------------------------------------------------------------------*/
-/** Default modifiers when the keyboard is initialized. */
+
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 
 static const uint8_t ERROR_ROLLOVER = 1;
@@ -151,21 +151,6 @@ typedef enum usb_kbd_flags {
 	USB_KBD_STATUS_INITIALIZED = 1,
 	USB_KBD_STATUS_TO_DESTROY = -1
 } usb_kbd_flags;
-
-/*----------------------------------------------------------------------------*/
-/* Keyboard layouts                                                           */
-/*----------------------------------------------------------------------------*/
-
-#define NUM_LAYOUTS 3
-
-/** Keyboard layout map. */
-static layout_op_t *layout[NUM_LAYOUTS] = {
-	&us_qwerty_op,
-	&us_dvorak_op,
-	&cz_op
-};
-
-static int active_layout = 0;
 
 /*----------------------------------------------------------------------------*/
 /* IPC method handler                                                         */
@@ -310,100 +295,14 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type, 
     unsigned int key)
 {
-	kbd_event_t ev;
-	unsigned mod_mask;
-
-	/*
-	 * These parts are copy-pasted from the AT keyboard driver.
-	 *
-	 * They definitely require some refactoring, but will keep it for later
-	 * when the console and keyboard system is changed in HelenOS.
-	 */
-	switch (key) {
-	case KC_LCTRL: mod_mask = KM_LCTRL; break;
-	case KC_RCTRL: mod_mask = KM_RCTRL; break;
-	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
-	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
-	case KC_LALT: mod_mask = KM_LALT; break;
-	case KC_RALT: mod_mask = KM_RALT; break;
-	default: mod_mask = 0; break;
-	}
-
-	if (mod_mask != 0) {
-		if (type == KEY_PRESS)
-			kbd_dev->mods = kbd_dev->mods | mod_mask;
-		else
-			kbd_dev->mods = kbd_dev->mods & ~mod_mask;
-	}
-
-	switch (key) {
-	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
-	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
-	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
-	default: mod_mask = 0; break;
-	}
-
-	if (mod_mask != 0) {
-		if (type == KEY_PRESS) {
-			/*
-			 * Only change lock state on transition from released
-			 * to pressed. This prevents autorepeat from messing
-			 * up the lock state.
-			 */
-			unsigned int locks_old = kbd_dev->lock_keys;
-			
-			kbd_dev->mods = 
-			    kbd_dev->mods ^ (mod_mask & ~kbd_dev->lock_keys);
-			kbd_dev->lock_keys = kbd_dev->lock_keys | mod_mask;
-
-			/* Update keyboard lock indicator lights. */
-			if (kbd_dev->lock_keys != locks_old 
-			    && hid_dev != NULL) { // ugly hack
-				usb_kbd_set_led(hid_dev, kbd_dev);
-			}
-		} else {
-			kbd_dev->lock_keys = kbd_dev->lock_keys & ~mod_mask;
-		}
-	}
-
-	if (key == KC_CAPS_LOCK || key == KC_NUM_LOCK || key == KC_SCROLL_LOCK) {
-		// do not send anything to the console, this is our business
-		return;
-	}
-	
-	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F1) {
-		active_layout = 0;
-		layout[active_layout]->reset();
-		return;
-	}
-
-	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F2) {
-		active_layout = 1;
-		layout[active_layout]->reset();
-		return;
-	}
-
-	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F3) {
-		active_layout = 2;
-		layout[active_layout]->reset();
-		return;
-	}
-	
-	ev.type = type;
-	ev.key = key;
-	ev.mods = kbd_dev->mods;
-
-	ev.c = layout[active_layout]->parse_ev(&ev);
-
-	usb_log_debug2("Sending key %d to the console\n", ev.key);
+	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
 	if (kbd_dev->console_phone < 0) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 	
-	async_obsolete_msg_4(kbd_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
-	    ev.mods, ev.c);
+	async_obsolete_msg_2(kbd_dev->console_phone, KBD_EVENT, type, key);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -786,14 +685,14 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	/*
 	 * Modifiers and locks
-	 */	
+	 */
 	kbd_dev->modifiers = 0;
 	kbd_dev->mods = DEFAULT_ACTIVE_MODS;
 	kbd_dev->lock_keys = 0;
 	
 	/*
 	 * Autorepeat
-	 */	
+	 */
 	kbd_dev->repeat.key_new = 0;
 	kbd_dev->repeat.key_repeated = 0;
 	kbd_dev->repeat.delay_before = DEFAULT_DELAY_BEFORE_FIRST_REPEAT;

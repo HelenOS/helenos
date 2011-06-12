@@ -42,11 +42,6 @@ EXTRA_CFLAGS += \
 
 BINARY = usbhid
 
-STOLEN_LAYOUT_SOURCES = \
-        kbd/layout/us_qwerty.c \
-        kbd/layout/us_dvorak.c \
-        kbd/layout/cz.c
-
 SOURCES = \
 	main.c \
 	usbhid.c \
@@ -60,11 +55,6 @@ SOURCES = \
 	multimedia/keymap.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
-EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
-
 SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
 
 include $(USPACE_PREFIX)/Makefile.common
-
-kbd/layout/%.c: $(SRV_KBD)/layout/%.c
-	ln -sfn ../../$< $@

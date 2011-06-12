@@ -238,8 +238,10 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 	kdev->ctl_ops = ctl;
 
 	/* Initialize port driver. */
-	if ((*kdev->port_ops->init)(kdev) != 0)
-		goto fail;
+	if (kdev->port_ops != NULL) {
+		if ((*kdev->port_ops->init)(kdev) != 0)
+			goto fail;
+	}
 
 	/* Initialize controller driver. */
 	if ((*kdev->ctl_ops->init)(kdev) != 0) {
@@ -306,8 +308,6 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&z8530_port, &sun_ctl);
 	kbd_add_dev(&ns16550_port, &sun_ctl);
 #endif
-	/* Silence warning on abs32le about kbd_add_dev() being unused */
-	(void) kbd_add_dev;
 }
 
 static void kbd_devs_yield(void)
@@ -318,7 +318,8 @@ static void kbd_devs_yield(void)
 		    kbd_devs);
 
 		/* Yield port */
-		(*kdev->port_ops->yield)();
+		if (kdev->port_ops != NULL)
+			(*kdev->port_ops->yield)();
 	}
 }
 
@@ -330,7 +331,8 @@ static void kbd_devs_reclaim(void)
 		    kbd_devs);
 
 		/* Reclaim port */
-		(*kdev->port_ops->reclaim)();
+		if (kdev->port_ops != NULL)
+			(*kdev->port_ops->reclaim)();
 	}
 }
 
@@ -354,6 +356,9 @@ int main(int argc, char **argv)
 	
 	/* Add legacy devices. */
 	kbd_add_legacy_devs();
+
+	/* Add kbdev device */
+	kbd_add_dev(NULL, &kbdev_ctl);
 
 	/* Initialize (reset) layout. */
 	layout[active_layout]->reset();

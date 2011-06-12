@@ -972,7 +972,7 @@ static bool console_srv_init(char *kdev)
 		printf("%s: Error registering kconsole notifications\n", NAME);
 	
 	/* Start fibril for checking on hot-plugged keyboards. */
-	check_new_devices_in_background(connect_keyboard, "keyboard");
+//	check_new_devices_in_background(connect_keyboard, "keyboard");
 	check_new_devices_in_background(connect_mouse, "mouse");
 	
 	return true;
