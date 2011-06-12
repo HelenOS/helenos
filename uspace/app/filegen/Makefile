@@ -31,6 +31,7 @@ EXTRA_CFLAGS = -Iinclude
 BINARY = filegen
 
 SOURCES = \
-	filegen.c
+	filegen.c \
+	crc32.c
 
 include $(USPACE_PREFIX)/Makefile.common

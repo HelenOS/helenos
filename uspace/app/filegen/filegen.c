@@ -17,9 +17,13 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/time.h>
+#include "crc32.h"
 
 #define NAME	"filegen"
 #define VERSION "0.0.1"
+
+#define BUFFERSIZE 256
+
 
 static void print_help(void);
 
@@ -45,20 +49,30 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 	
-	size = size / sizeof(int);
-
 	struct timeval tv;	
 	gettimeofday(&tv, NULL);
 	srandom(tv.tv_sec + tv.tv_usec / 100000);	
 
-	uint32_t i;
-	int dword=0;
-	for (i = 0; i<size; i++) {
-		dword = rand();
-		write(fd, &dword, sizeof(int));
+	uint64_t i=0, pbuf=0;
+	uint32_t crc=~0;
+	char buf[BUFFERSIZE];
+	
+	while (i<size) {
+		pbuf=0;
+		while (i<size && pbuf<BUFFERSIZE) {
+			buf[pbuf] = rand() % 255;
+			i++;
+			pbuf++;
+		}
+		if (pbuf) {
+			crc32(buf, pbuf, &crc);
+			write(fd, buf, pbuf);
+		}
 	}
-
+	
 	close(fd);
+	crc = ~crc;
+	printf("%s: %x\n", argv[1], crc);
 
 	return 0;
 }

@@ -87,7 +87,7 @@ int fat_directory_scan(fat_directory_t *di, fat_dentry_t **d)
 		if (!di->b) {
 			rc = fat_block_get(&di->b, di->bs, di->nodep, i, BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
-				di->b = NULL:
+				di->b = NULL;
 				return rc;
 			}
 			di->bnum = i;
