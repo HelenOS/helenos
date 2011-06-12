@@ -55,6 +55,4 @@ SOURCES = \
 	multimedia/keymap.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
-SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
-
 include $(USPACE_PREFIX)/Makefile.common
