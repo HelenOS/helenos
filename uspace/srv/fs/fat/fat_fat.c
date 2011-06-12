@@ -303,15 +303,17 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	int rc;
 
 	offset = (clst + clst/2);
+	if (offset / BPS(bs) >= SF(bs))
+		return ERANGE;
+
 	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
 
-	byte1 = ((uint8_t*) b->data)[offset];
-
+	byte1 = ((uint8_t*) b->data)[offset % BPS(bs)];
 	/* This cluster access spans a sector boundary. Check only for FAT12 */
-	if ((offset % BPS(bs) + 1 == BPS(bs))) {
+	if ((offset % BPS(bs)) + 1 == BPS(bs)) {
 		/* Is it last sector of FAT? */
 		if (offset / BPS(bs) < SF(bs)) {
 			/* No. Reading next sector */
@@ -340,7 +342,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 		}
 	}
 	else
-		byte2 = ((uint8_t*) b->data)[offset+1];
+		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs))+1];
 
 #ifdef __BE__	
 	*value = byte2 | (byte1 << 8);
@@ -350,12 +352,11 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 
 	*value = uint16_t_le2host(*value);
 	if (IS_ODD(clst))
-		*value = *value >> 4;
+		*value = (*value) >> 4;
 	else
-		*value = *value & FAT12_MASK;
-
+		*value = (*value) & FAT12_MASK;
+	
 	rc = block_put(b);
-
 	return rc;
 }
 
@@ -472,15 +473,18 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	int rc;
 
 	offset = (clst + clst/2);
+	if (offset / BPS(bs) >= SF(bs))
+		return ERANGE;
+	
 	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
 
-	byte1 = ((uint8_t*) b->data)[offset];
+	byte1 = ((uint8_t*) b->data)[offset % BPS(bs)];
 	bool border = false;
 	/* This cluster access spans a sector boundary. Check only for FAT12 */
-	if (offset % BPS(bs)+1 == BPS(bs)) {
+	if ((offset % BPS(bs))+1 == BPS(bs)) {
 		/* Is it last sector of FAT? */
 		if (offset / BPS(bs) < SF(bs)) {
 			/* No. Reading next sector */
@@ -491,9 +495,9 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 				return rc;
 			}
 			/*
-			* Combining value with last byte of current sector and
-			* first byte of next sector
-			*/
+			 * Combining value with last byte of current sector and
+			 * first byte of next sector
+			 */
 			byte2 = ((uint8_t*) b1->data)[0];
 			border = true;
 		}
@@ -504,7 +508,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 		}
 	}
 	else
-		byte2 = ((uint8_t*) b->data)[offset+1];
+		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs))+1];
 
 	if (IS_ODD(clst)) {
 		byte1 &= 0x0f;
@@ -519,7 +523,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	byte1 = byte1 | (value & 0xff);
 	byte2 = byte2 | (value >> 8);
 
-	((uint8_t*) b->data)[offset] = byte1;
+	((uint8_t*) b->data)[(offset % BPS(bs))] = byte1;
 	if (border) {
 		((uint8_t*) b1->data)[0] = byte2;
 
@@ -530,7 +534,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 			return rc;
 		}
 	} else 
-		((uint8_t*) b->data)[offset+1] = byte2;
+		((uint8_t*) b->data)[(offset % BPS(bs))+1] = byte2;
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);

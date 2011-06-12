@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 	
 	close(fd);
 	crc = ~crc;
-	printf("%s: %x\n", argv[1], crc);
+	printf("%s : %x\n", argv[1], crc);
 
 	return 0;
 }
