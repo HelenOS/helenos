@@ -414,6 +414,7 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			return rc;
 		}
 	}
+	(void) fat_directory_close(&di);
 	*rfn = NULL;
 	return EOK;
 }
