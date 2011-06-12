@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd
+/** @addtogroup input
  * @brief US Dvorak Simplified Keyboard layout.
  * @{
  */

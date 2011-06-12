@@ -63,8 +63,6 @@ kbd_port_ops_t adb_port = {
 static kbd_dev_t *kbd_dev;
 static int dev_phone;
 
-#define NAME "kbd"
-
 static int adb_port_init(kbd_dev_t *kdev)
 {
 	const char *dev = "adb/kbd";

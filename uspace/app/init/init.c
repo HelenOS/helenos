@@ -279,8 +279,8 @@ int main(int argc, char *argv[])
 	srv_start("/srv/s3c24ts");
 	
 	spawn("/srv/fb");
-	spawn("/srv/kbd");
-	console("hid_in/kbd");
+	spawn("/srv/input");
+	console("hid_in/input");
 	
 	spawn("/srv/clip");
 	

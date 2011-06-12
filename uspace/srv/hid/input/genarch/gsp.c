@@ -28,7 +28,7 @@
 
 /**
  * @addtogroup kbdgen generic
- * @ingroup  kbd
+ * @ingroup  input
  * @{
  */ 
 /** @file

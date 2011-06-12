@@ -26,33 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup inputgen generic
+ * @brief	Keyboard port driver interface.
+ * @ingroup  input
  * @{
- */ 
+ */
 /** @file
  */
 
-#ifndef KBD_CTL_H_
-#define KBD_CTL_H_
+#ifndef KBD_PORT_H_
+#define KBD_PORT_H_
 
-#include <kbd_port.h>
+#include <sys/types.h>
 
 struct kbd_dev;
 
-typedef struct kbd_ctl_ops {
-	void (*parse_scancode)(int);
+typedef struct kbd_port_ops {
 	int (*init)(struct kbd_dev *);
-	void (*set_ind)(unsigned);
-} kbd_ctl_ops_t;
+	void (*yield)(void);
+	void (*reclaim)(void);
+	void (*write)(uint8_t);
+} kbd_port_ops_t;
 
-extern kbd_ctl_ops_t apple_ctl;
-extern kbd_ctl_ops_t gxe_fb_ctl;
-extern kbd_ctl_ops_t kbdev_ctl;
-extern kbd_ctl_ops_t pc_ctl;
-extern kbd_ctl_ops_t stty_ctl;
-extern kbd_ctl_ops_t sun_ctl;
+extern kbd_port_ops_t adb_port;
+extern kbd_port_ops_t chardev_port;
+extern kbd_port_ops_t dummy_port;
+extern kbd_port_ops_t gxemul_port;
+extern kbd_port_ops_t msim_port;
+extern kbd_port_ops_t niagara_port;
+extern kbd_port_ops_t ns16550_port;
+extern kbd_port_ops_t pl050_port;
+extern kbd_port_ops_t sgcn_port;
+extern kbd_port_ops_t ski_port;
+extern kbd_port_ops_t z8530_port;
 
 #endif
 

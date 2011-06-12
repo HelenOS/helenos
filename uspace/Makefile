@@ -84,7 +84,7 @@ DIRS = \
 	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
-	srv/hid/kbd \
+	srv/hid/input \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
 	srv/hw/netif/ne2000 \

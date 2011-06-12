@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,47 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief HelenOS generic uspace keyboard handler.
- * @ingroup kbd
+/** @addtogroup input
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Stroke simulator.
+ *
+ * When simulating a keyboard using a serial TTY we need to convert the
+ * recognized strokes (such as Shift-A) to sequences of key presses and
+ * releases (such as 'press Shift, press A, release A, release Shift').
+ *
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#include <stroke.h>
+#include <kbd.h>
+#include <io/console.h>
+#include <io/keycode.h>
 
-#include <adt/list.h>
-#include <bool.h>
+/** Correspondence between modifers and the modifier keycodes. */
+static unsigned int mods_keys[][2] = {
+	{ KM_LSHIFT, KC_LSHIFT },
+	{ 0, 0 }
+};
 
-#define NAME       "kbd"
-#define NAMESPACE  "hid_in"
+/** Simulate keystroke using sequences of key presses and releases. */
+void stroke_sim(kbd_dev_t *kdev, unsigned mod, unsigned key)
+{
+	int i;
 
-struct kbd_port_ops;
-struct kbd_ctl_ops;
+	/* Simulate modifier presses. */
+	i = 0;
+	while (mods_keys[i][0] != 0) {
+		if (mod & mods_keys[i][0]) {
+			kbd_push_ev(kdev, KEY_PRESS, mods_keys[i][1]);
+		}
+		++i;
+	}
 
-typedef struct kbd_dev {
-	/** Link to kbd_devs list */
-	link_t kbd_devs;
+	/* Simulate key press and release. */
+	if (key != 0) {
+		kbd_push_ev(kdev, KEY_PRESS, key);
+		kbd_push_ev(kdev, KEY_RELEASE, key);
+	}
 
-	/** Path to the device (only for kbdev devices) */
-	const char *dev_path;
-
-	/** Port ops */
-	struct kbd_port_ops *port_ops;
-
-	/** Ctl ops */
-	struct kbd_ctl_ops *ctl_ops;
-} kbd_dev_t;
-
-extern bool irc_service;
-extern int irc_phone;
-
-extern void kbd_push_scancode(kbd_dev_t *, int);
-extern void kbd_push_ev(kbd_dev_t *, int, unsigned int);
-
-#endif
+	/* Simulate modifier releases. */
+	i = 0;
+	while (mods_keys[i][0] != 0) {
+		if (mod & mods_keys[i][0]) {
+			kbd_push_ev(kdev, KEY_RELEASE, mods_keys[i][1]);
+		}
+		++i;
+	}
+}
 
 /**
  * @}

@@ -46,7 +46,7 @@
 #include <ipc/mouse.h>
 #include <io/console.h>
 
-#include <ipc/kbd.h>
+#include <ipc/kbdev.h>
 #include <io/keycode.h>
 
 #include "mousedev.h"
@@ -218,10 +218,10 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 	
 	for (i = 0; i < count * 3; ++i) {
 		usb_log_debug2("Sending key %d to the console\n", ev.key);
-		async_obsolete_msg_4(mouse_dev->wheel_phone, KBD_EVENT, ev.type, 
+		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT, ev.type, 
 		    ev.key, ev.mods, ev.c);
 		// send key release right away
-		async_obsolete_msg_4(mouse_dev->wheel_phone, KBD_EVENT, KEY_RELEASE, 
+		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT, KEY_RELEASE, 
 		    ev.key, ev.mods, ev.c);
 	}
 }

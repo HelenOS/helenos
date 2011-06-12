@@ -26,39 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup inputgen generic
+ * @brief	Generic scancode parser.
+ * @ingroup  input
  * @{
  */ 
 /** @file
  */
 
-#ifndef KBD_PORT_H_
-#define KBD_PORT_H_
+#ifndef KBD_STROKE_H_
+#define KBD_STROKE_H_
 
-#include <sys/types.h>
+#include <kbd.h>
 
-struct kbd_dev;
-
-typedef struct kbd_port_ops {
-	int (*init)(struct kbd_dev *);
-	void (*yield)(void);
-	void (*reclaim)(void);
-	void (*write)(uint8_t);
-} kbd_port_ops_t;
-
-extern kbd_port_ops_t adb_port;
-extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t dummy_port;
-extern kbd_port_ops_t gxemul_port;
-extern kbd_port_ops_t msim_port;
-extern kbd_port_ops_t niagara_port;
-extern kbd_port_ops_t ns16550_port;
-extern kbd_port_ops_t pl050_port;
-extern kbd_port_ops_t sgcn_port;
-extern kbd_port_ops_t ski_port;
-extern kbd_port_ops_t z8530_port;
+extern void stroke_sim(kbd_dev_t *, unsigned, unsigned);
 
 #endif
 

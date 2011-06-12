@@ -28,9 +28,9 @@
  */
 
 /**
- * @addtogroup kbdgen generic
- * @brief HelenOS generic uspace keyboard handler.
- * @ingroup kbd
+ * @addtogroup inputgen generic
+ * @brief HelenOS input server.
+ * @ingroup input
  * @{
  */
 /** @file
@@ -38,7 +38,7 @@
 
 #include <adt/list.h>
 #include <ipc/services.h>
-#include <ipc/kbd.h>
+#include <ipc/input.h>
 #include <sysinfo.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -174,7 +174,7 @@ void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
-	async_obsolete_msg_4(client_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
+	async_obsolete_msg_4(client_phone, INPUT_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -207,11 +207,11 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			client_phone = IPC_GET_ARG5(call);
 			retval = 0;
 			break;
-		case KBD_YIELD:
+		case INPUT_YIELD:
 			kbd_devs_yield();
 			retval = 0;
 			break;
-		case KBD_RECLAIM:
+		case INPUT_RECLAIM:
 			kbd_devs_reclaim();
 			retval = 0;
 			break;
@@ -415,7 +415,7 @@ static void kbd_start_dev_discovery(void)
 
 int main(int argc, char **argv)
 {
-	printf("%s: HelenOS Keyboard service\n", NAME);
+	printf("%s: HelenOS input service\n", NAME);
 	
 	sysarg_t fhc;
 	sysarg_t obio;
@@ -465,4 +465,4 @@ int main(int argc, char **argv)
 
 /**
  * @}
- */ 
+ */

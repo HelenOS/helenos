@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	Generic scancode parser.
- * @ingroup  kbd
+/** @addtogroup libcipc
  * @{
- */ 
+ */
 /** @file
  */
 
-#ifndef KBD_GSP_H_
-#define KBD_GSP_H_
+#ifndef LIBC_IPC_INPUT_H_
+#define LIBC_IPC_INPUT_H_
 
-#include <adt/hash_table.h>
+#include <ipc/common.h>
 
-enum {
-	GSP_END		= -1,	/**< Terminates a sequence. */
-	GSP_DEFAULT	= -2	/**< Wildcard, catches unhandled cases. */
-};
+typedef enum {
+	INPUT_YIELD = IPC_FIRST_USER_METHOD,
+	INPUT_RECLAIM
+} input_request_t;
 
-/** Scancode parser description */
-typedef struct {
-	/** Transition table, (state, input) -> (state, output) */
-	hash_table_t trans;
-
-	/** Number of states */
-	int states;
-} gsp_t;
-
-/** Scancode parser transition. */
-typedef struct {
-	link_t link;		/**< Link to hash table in @c gsp_t */ 
-
-	/* Preconditions */
-
-	int old_state;		/**< State before transition */
-	int input;		/**< Input symbol (scancode) */
-
-	/* Effects */
-
-	int new_state;		/**< State after transition */
-
-	/* Output emitted during transition */
-
-	unsigned out_mods;	/**< Modifier to emit */
-	unsigned out_key;	/**< Keycode to emit */
-} gsp_trans_t;
-
-extern void gsp_init(gsp_t *);
-extern int gsp_insert_defs(gsp_t *, const int *);
-extern int gsp_insert_seq(gsp_t *, const int *, unsigned, unsigned);
-extern int gsp_step(gsp_t *, int, int, unsigned *, unsigned *);
+typedef enum {
+	INPUT_EVENT = IPC_FIRST_USER_METHOD
+} input_notif_t;
 
 #endif
 
 /**
  * @}
- */ 
+ */

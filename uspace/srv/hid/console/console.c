@@ -33,7 +33,7 @@
  */
 
 #include <libc.h>
-#include <ipc/kbd.h>
+#include <ipc/input.h>
 #include <io/keycode.h>
 #include <ipc/mouse.h>
 #include <ipc/fb.h>
@@ -156,12 +156,12 @@ static void screen_reclaim(void)
 
 static void kbd_yield(void)
 {
-	async_obsolete_req_0_0(kbd_phone, KBD_YIELD);
+	async_obsolete_req_0_0(kbd_phone, INPUT_YIELD);
 }
 
 static void kbd_reclaim(void)
 {
-	async_obsolete_req_0_0(kbd_phone, KBD_RECLAIM);
+	async_obsolete_req_0_0(kbd_phone, INPUT_RECLAIM);
 }
 
 static void set_style(uint8_t style)
@@ -443,7 +443,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case KBD_EVENT:
+		case INPUT_EVENT:
 			/* Got event from keyboard driver. */
 			retval = 0;
 			ev.type = IPC_GET_ARG1(call);

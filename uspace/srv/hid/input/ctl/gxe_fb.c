@@ -27,29 +27,30 @@
  */
 
 /** @addtogroup kbd_ctl
- * @ingroup kbd
+ * @ingroup input
  * @{
  */
 /**
  * @file
- * @brief	Serial TTY-like keyboard controller driver.
+ * @brief	GXEmul framebuffer-mode keyboard controller driver.
  */
 
 #include <kbd.h>
+#include <io/console.h>
 #include <io/keycode.h>
 #include <kbd_ctl.h>
 #include <kbd_port.h>
 #include <gsp.h>
 #include <stroke.h>
 
-static void stty_ctl_parse_scancode(int);
-static int stty_ctl_init(kbd_dev_t *);
-static void stty_ctl_set_ind(unsigned);
+static void gxe_fb_ctl_parse_scancode(int);
+static int gxe_fb_ctl_init(kbd_dev_t *);
+static void gxe_fb_ctl_set_ind(unsigned);
 
-kbd_ctl_ops_t stty_ctl = {
-	.parse_scancode = stty_ctl_parse_scancode,
-	.init = stty_ctl_init,
-	.set_ind = stty_ctl_set_ind
+kbd_ctl_ops_t gxe_fb_ctl = {
+	.parse_scancode = gxe_fb_ctl_parse_scancode,
+	.init = gxe_fb_ctl_init,
+	.set_ind = gxe_fb_ctl_set_ind
 };
 
 static kbd_dev_t *kbd_dev;
@@ -190,18 +191,18 @@ static int seq_defs[] = {
 
 	0,	KC_ESCAPE,	0x1b, 0x1b, GSP_END,
 
-	0,	KC_F1,		0x1b, 0x4f, 0x50, GSP_END,
-	0,	KC_F2,		0x1b, 0x4f, 0x51, GSP_END,
-	0,	KC_F3,		0x1b, 0x4f, 0x52, GSP_END,
-	0,	KC_F4,		0x1b, 0x4f, 0x53, GSP_END,
-	0,	KC_F5,		0x1b, 0x5b, 0x31, 0x35, 0x7e, GSP_END,
-	0,	KC_F6,		0x1b, 0x5b, 0x31, 0x37, 0x7e, GSP_END,
-	0,	KC_F7,		0x1b, 0x5b, 0x31, 0x38, 0x7e, GSP_END,
-	0,	KC_F8,		0x1b, 0x5b, 0x31, 0x39, 0x7e, GSP_END,
-	0,	KC_F9,		0x1b, 0x5b, 0x32, 0x30, 0x7e, GSP_END,
-	0,	KC_F10,		0x1b, 0x5b, 0x32, 0x31, 0x7e, GSP_END,
-	0,	KC_F11,		0x1b, 0x5b, 0x32, 0x33, 0x7e, GSP_END,
-	0,	KC_F12,		0x1b, 0x5b, 0x32, 0x34, 0x7e, GSP_END,
+	0,	KC_F1,		0x1b, 0x5b, 0x4f, 0x50, GSP_END,
+	0,	KC_F2,		0x1b, 0x5b, 0x4f, 0x51, GSP_END,
+	0,	KC_F3,		0x1b, 0x5b, 0x4f, 0x52, GSP_END,
+	0,	KC_F4,		0x1b, 0x5b, 0x4f, 0x53, GSP_END,
+	0,	KC_F5,		0x1b, 0x5b, 0x31, 0x35, GSP_END,
+	0,	KC_F6,		0x1b, 0x5b, 0x31, 0x37, GSP_END,
+	0,	KC_F7,		0x1b, 0x5b, 0x31, 0x38, GSP_END,
+	0,	KC_F8,		0x1b, 0x5b, 0x31, 0x39, GSP_END,
+	0,	KC_F9,		0x1b, 0x5b, 0x32, 0x38, GSP_END,
+	0,	KC_F10,		0x1b, 0x5b, 0x32, 0x39, GSP_END,
+	0,	KC_F11,		0x1b, 0x5b, 0x32, 0x33, GSP_END,
+	0,	KC_F12,		0x1b, 0x5b, 0x32, 0x34, GSP_END,
 
 	0,	KC_INSERT,	0x1b, 0x5b, 0x32, 0x7e, GSP_END,
 	0,	KC_HOME,	0x1b, 0x5b, 0x48, GSP_END,
@@ -218,7 +219,7 @@ static int seq_defs[] = {
 	0,	0
 };
 
-static int stty_ctl_init(kbd_dev_t *kdev)
+static int gxe_fb_ctl_init(kbd_dev_t *kdev)
 {
 	kbd_dev = kdev;
 	ds = 0;
@@ -227,7 +228,7 @@ static int stty_ctl_init(kbd_dev_t *kdev)
 	return gsp_insert_defs(&sp, seq_defs);
 }
 
-static void stty_ctl_parse_scancode(int scancode)
+static void gxe_fb_ctl_parse_scancode(int scancode)
 {
 	unsigned mods, key;
 
@@ -237,7 +238,7 @@ static void stty_ctl_parse_scancode(int scancode)
 	}
 }
 
-static void stty_ctl_set_ind(unsigned mods)
+static void gxe_fb_ctl_set_ind(unsigned mods)
 {
 	(void) mods;
 }

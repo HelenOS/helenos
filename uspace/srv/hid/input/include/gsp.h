@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
+/** @addtogroup inputgen generic
  * @brief	Generic scancode parser.
- * @ingroup  kbd
+ * @ingroup  input
  * @{
- */ 
+ */
 /** @file
  */
 
-#ifndef KBD_STROKE_H_
-#define KBD_STROKE_H_
+#ifndef KBD_GSP_H_
+#define KBD_GSP_H_
 
-#include <kbd.h>
+#include <adt/hash_table.h>
 
-extern void stroke_sim(kbd_dev_t *, unsigned, unsigned);
+enum {
+	GSP_END		= -1,	/**< Terminates a sequence. */
+	GSP_DEFAULT	= -2	/**< Wildcard, catches unhandled cases. */
+};
+
+/** Scancode parser description */
+typedef struct {
+	/** Transition table, (state, input) -> (state, output) */
+	hash_table_t trans;
+
+	/** Number of states */
+	int states;
+} gsp_t;
+
+/** Scancode parser transition. */
+typedef struct {
+	link_t link;		/**< Link to hash table in @c gsp_t */ 
+
+	/* Preconditions */
+
+	int old_state;		/**< State before transition */
+	int input;		/**< Input symbol (scancode) */
+
+	/* Effects */
+
+	int new_state;		/**< State after transition */
+
+	/* Output emitted during transition */
+
+	unsigned out_mods;	/**< Modifier to emit */
+	unsigned out_key;	/**< Keycode to emit */
+} gsp_trans_t;
+
+extern void gsp_init(gsp_t *);
+extern int gsp_insert_defs(gsp_t *, const int *);
+extern int gsp_insert_seq(gsp_t *, const int *, unsigned, unsigned);
+extern int gsp_step(gsp_t *, int, int, unsigned *, unsigned *);
 
 #endif
 
 /**
  * @}
  */ 
-

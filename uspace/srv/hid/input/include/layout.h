@@ -26,28 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief HelenOS generic uspace keyboard handler.
- * @ingroup kbd
+/** @addtogroup inputgen generic
+ * @brief Keyboard layout interface.
+ * @ingroup input
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_IPC_KBD_H_
-#define LIBC_IPC_KBD_H_
+#ifndef KBD_LAYOUT_H_
+#define KBD_LAYOUT_H_
 
-#include <ipc/common.h>
-#include <ipc/dev_iface.h>
+#include <sys/types.h>
+#include <io/console.h>
 
-typedef enum {
-	KBD_YIELD = DEV_FIRST_CUSTOM_METHOD,
-	KBD_RECLAIM
-} kbd_request_t;
+typedef struct {
+	void (*reset)(void);
+	wchar_t (*parse_ev)(kbd_event_t *);
+} layout_op_t;
 
-typedef enum {
-	KBD_EVENT = IPC_FIRST_USER_METHOD
-} kbd_notif_t;
+extern layout_op_t us_qwerty_op;
+extern layout_op_t us_dvorak_op;
+extern layout_op_t cz_op;
 
 #endif
 

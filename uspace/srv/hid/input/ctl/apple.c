@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup kbd_ctl
- * @ingroup kbd
+ * @ingroup input
  * @{
  */
 /**

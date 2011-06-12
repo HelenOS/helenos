@@ -40,7 +40,7 @@
 
 #include <io/keycode.h>
 #include <io/console.h>
-#include <ipc/kbd.h>
+#include <ipc/kbdev.h>
 #include <async.h>
 #include <async_obsolete.h>
 #include <fibril.h>
@@ -302,7 +302,7 @@ void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type,
 		return;
 	}
 	
-	async_obsolete_msg_2(kbd_dev->console_phone, KBD_EVENT, type, key);
+	async_obsolete_msg_2(kbd_dev->console_phone, KBDEV_EVENT, type, key);
 }
 
 /*----------------------------------------------------------------------------*/

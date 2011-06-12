@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief HelenOS generic uspace keyboard handler.
- * @ingroup kbd
+/** @addtogroup inputgen generic
+ * @brief	Keyboard controller driver interface.
+ * @ingroup  input
  * @{
  */
 /** @file
  */
 
-#ifndef KBD_LAYOUT_H_
-#define KBD_LAYOUT_H_
+#ifndef KBD_CTL_H_
+#define KBD_CTL_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+#include <kbd_port.h>
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(kbd_event_t *);
-} layout_op_t;
+struct kbd_dev;
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+typedef struct kbd_ctl_ops {
+	void (*parse_scancode)(int);
+	int (*init)(struct kbd_dev *);
+	void (*set_ind)(unsigned);
+} kbd_ctl_ops_t;
+
+extern kbd_ctl_ops_t apple_ctl;
+extern kbd_ctl_ops_t gxe_fb_ctl;
+extern kbd_ctl_ops_t kbdev_ctl;
+extern kbd_ctl_ops_t pc_ctl;
+extern kbd_ctl_ops_t stty_ctl;
+extern kbd_ctl_ops_t sun_ctl;
 
 #endif
 
 /**
  * @}
- */
+ */ 
+

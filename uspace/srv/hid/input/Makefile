@@ -34,7 +34,7 @@ COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 EXTRA_CFLAGS = -Iinclude
-BINARY = kbd
+BINARY = input
 
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
@@ -43,7 +43,7 @@ BINARY = kbd
 #
 
 SOURCES = \
-	generic/kbd.c \
+	generic/input.c \
 	genarch/gsp.c \
 	genarch/stroke.c \
 	layout/cz.c \
