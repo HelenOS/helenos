@@ -590,6 +590,7 @@ fat_set_cluster_fat32(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	block_t *b;
 	aoff64_t offset;
 	int rc;
+	fat_cluster_t temp;
 
 	offset = (clst * FAT32_CLST_SIZE);
 
@@ -598,9 +599,10 @@ fat_set_cluster_fat32(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	if (rc != EOK)
 		return rc;
 
-	value = host2uint32_t_le(value);
-	*(uint32_t *)(b->data + offset % BPS(bs)) &= 0xf0000000;
-	*(uint32_t *)(b->data + offset % BPS(bs)) |= (value & FAT32_MASK);
+	temp = uint32_t_le2host(*(uint32_t *)(b->data + offset % BPS(bs)));
+	temp &= 0xf0000000;
+	temp |= (value & FAT32_MASK);
+	*(uint32_t *)(b->data + offset % BPS(bs)) = host2uint32_t_le(temp);
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);
