@@ -160,7 +160,7 @@ typedef enum usb_kbd_flags {
 
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
-/** 
+/**
  * Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
@@ -219,9 +219,10 @@ static void default_connection_handler(ddf_fun_t *fun,
 /**
  * Handles turning of LED lights on and off.
  *
- * In case of USB keyboards, the LEDs are handled in the driver, not in the 
- * device. When there should be a change (lock key was pressed), the driver
- * uses a Set_Report request sent to the device to set the state of the LEDs.
+ * As with most other keyboards, the LED indicators in USB keyboards are
+ * driven by software. When state of some modifier changes, the input server
+ * will call us and tell us to update the LED state and what the new state
+ * should be.
  *
  * This functions sets the LED lights according to current settings of modifiers
  * kept in the keyboard device structure.
@@ -243,7 +244,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_OUTPUT);
 	
-	while (field != NULL) {		
+	while (field != NULL) {
 		
 		if ((field->usage == USB_HID_LED_NUM_LOCK) 
 		    && (kbd_dev->mods & KM_NUM_LOCK)){
@@ -286,21 +287,12 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * Processes key events.
+/** Send key event.
  *
- * @note This function was copied from AT keyboard driver and modified to suit
- *       USB keyboard.
- *
- * @note Lock keys are not sent to the console, as they are completely handled
- *       in the driver. It may, however, be required later that the driver
- *       sends also these keys to application (otherwise it cannot use those
- *       keys at all).
- * 
  * @param kbd_dev Keyboard device structure.
- * @param type Type of the event (press / release). Recognized values: 
+ * @param type Type of the event (press / release). Recognized values:
  *             KEY_PRESS, KEY_RELEASE
- * @param key Key code of the key according to HID Usage Tables.
+ * @param key Key code
  */
 void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type, 
     unsigned int key)
@@ -403,6 +395,8 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 			// not found, i.e. new key pressed
 			key = usbhid_parse_scancode(kbd_dev->keys[i]);
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
+			    kbd_dev->keys[i]);
+			printf("Key pressed: %d (keycode: %d)\n", key,
 			    kbd_dev->keys[i]);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_start(kbd_dev, key);
