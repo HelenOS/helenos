@@ -45,7 +45,7 @@
 
 static void gxe_fb_ctl_parse_scancode(int);
 static int gxe_fb_ctl_init(kbd_dev_t *);
-static void gxe_fb_ctl_set_ind(unsigned);
+static void gxe_fb_ctl_set_ind(kbd_dev_t *, unsigned);
 
 kbd_ctl_ops_t gxe_fb_ctl = {
 	.parse_scancode = gxe_fb_ctl_parse_scancode,
@@ -238,7 +238,7 @@ static void gxe_fb_ctl_parse_scancode(int scancode)
 	}
 }
 
-static void gxe_fb_ctl_set_ind(unsigned mods)
+static void gxe_fb_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 {
 	(void) mods;
 }

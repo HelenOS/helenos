@@ -101,6 +101,8 @@ usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 const char *HID_KBD_FUN_NAME = "keyboard";
 const char *HID_KBD_CLASS_NAME = "keyboard";
 
+static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
+
 /*----------------------------------------------------------------------------*/
 
 enum {
@@ -173,6 +175,7 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
+	int callback;
 	
 	usb_kbd_t *kbd_dev = (usb_kbd_t *)fun->driver_data;
 	if (kbd_dev == NULL) {
@@ -182,8 +185,9 @@ static void default_connection_handler(ddf_fun_t *fun,
 		return;
 	}
 
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
+	switch (method) {
+	case IPC_M_CONNECT_TO_ME:
+		callback = IPC_GET_ARG5(*icall);
 
 		if (kbd_dev->console_phone != -1) {
 			usb_log_debug("default_connection_handler: "
@@ -196,11 +200,17 @@ static void default_connection_handler(ddf_fun_t *fun,
 		
 		usb_log_debug("default_connection_handler: OK\n");
 		async_answer_0(icallid, EOK);
-		return;
+		break;
+	case KBDEV_SET_IND:
+		kbd_dev->mods = IPC_GET_ARG1(*icall);
+		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
+		async_answer_0(icallid, EOK);
+		break;
+	default:
+		usb_log_debug("default_connection_handler: Wrong function.\n");
+		async_answer_0(icallid, EINVAL);
+		break;
 	}
-	
-	usb_log_debug("default_connection_handler: Wrong function.\n");
-	async_answer_0(icallid, EINVAL);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -614,6 +624,9 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		    "structure.\n");
 		return ENOMEM;  // TODO: some other code??
 	}
+
+	/* Store link to HID device */
+	kbd_dev->hid_dev = hid_dev;
 	
 	/*
 	 * TODO: make more general

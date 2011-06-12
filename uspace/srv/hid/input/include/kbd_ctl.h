@@ -44,7 +44,7 @@ struct kbd_dev;
 typedef struct kbd_ctl_ops {
 	void (*parse_scancode)(int);
 	int (*init)(struct kbd_dev *);
-	void (*set_ind)(unsigned);
+	void (*set_ind)(struct kbd_dev *, unsigned);
 } kbd_ctl_ops_t;
 
 extern kbd_ctl_ops_t apple_ctl;

@@ -44,7 +44,7 @@
 
 static void sun_ctl_parse_scancode(int);
 static int sun_ctl_init(kbd_dev_t *);
-static void sun_ctl_set_ind(unsigned);
+static void sun_ctl_set_ind(kbd_dev_t *, unsigned);
 
 kbd_ctl_ops_t sun_ctl = {
 	.parse_scancode = sun_ctl_parse_scancode,
@@ -88,7 +88,7 @@ static void sun_ctl_parse_scancode(int scancode)
 		kbd_push_ev(kbd_dev, type, key);
 }
 
-static void sun_ctl_set_ind(unsigned mods)
+static void sun_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 {
 	(void) mods;
 }

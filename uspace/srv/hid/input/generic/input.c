@@ -137,7 +137,7 @@ void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 			lock_keys = lock_keys | mod_mask;
 
 			/* Update keyboard lock indicator lights. */
-			(*kdev->ctl_ops->set_ind)(mods);
+			(*kdev->ctl_ops->set_ind)(kdev, mods);
 		} else {
 			lock_keys = lock_keys & ~mod_mask;
 		}

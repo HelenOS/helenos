@@ -44,7 +44,7 @@
 
 static void stty_ctl_parse_scancode(int);
 static int stty_ctl_init(kbd_dev_t *);
-static void stty_ctl_set_ind(unsigned);
+static void stty_ctl_set_ind(kbd_dev_t *, unsigned);
 
 kbd_ctl_ops_t stty_ctl = {
 	.parse_scancode = stty_ctl_parse_scancode,
@@ -237,7 +237,7 @@ static void stty_ctl_parse_scancode(int scancode)
 	}
 }
 
-static void stty_ctl_set_ind(unsigned mods)
+static void stty_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 {
 	(void) mods;
 }

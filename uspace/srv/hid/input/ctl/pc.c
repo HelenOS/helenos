@@ -44,7 +44,7 @@
 
 static void pc_ctl_parse_scancode(int);
 static int pc_ctl_init(kbd_dev_t *);
-static void pc_ctl_set_ind(unsigned);
+static void pc_ctl_set_ind(kbd_dev_t *, unsigned);
 
 kbd_ctl_ops_t pc_ctl = {
 	.parse_scancode = pc_ctl_parse_scancode,
@@ -264,7 +264,7 @@ static void pc_ctl_parse_scancode(int scancode)
 		kbd_push_ev(kbd_dev, type, key);
 }
 
-static void pc_ctl_set_ind(unsigned mods)
+static void pc_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 {
 	uint8_t b;
 

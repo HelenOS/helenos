@@ -59,6 +59,9 @@ typedef struct kbd_dev {
 
 	/** Ctl ops */
 	struct kbd_ctl_ops *ctl_ops;
+
+	/** Controller-private data */
+	void *ctl_private;
 } kbd_dev_t;
 
 extern bool irc_service;
