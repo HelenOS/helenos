@@ -41,12 +41,18 @@
 #include <adt/list.h>
 #include <bool.h>
 
+#define NAME       "kbd"
+#define NAMESPACE  "hid_in"
+
 struct kbd_port_ops;
 struct kbd_ctl_ops;
 
 typedef struct kbd_dev {
 	/** Link to kbd_devs list */
 	link_t kbd_devs;
+
+	/** Path to the device (only for kbdev devices) */
+	const char *dev_path;
 
 	/** Port ops */
 	struct kbd_port_ops *port_ops;

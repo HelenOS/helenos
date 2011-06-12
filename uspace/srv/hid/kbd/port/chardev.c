@@ -44,8 +44,6 @@
 #include <errno.h>
 #include <stdio.h>
 
-#define NAME  "kbd/chardev"
-
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
 
 static int chardev_port_init(kbd_dev_t *);

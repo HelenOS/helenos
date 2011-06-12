@@ -61,8 +61,8 @@
 // FIXME: remove this header
 #include <kernel/ipc/ipc_methods.h>
 
-#define NAME       "kbd"
-#define NAMESPACE  "hid_in"
+/* In microseconds */
+#define DISCOVERY_POLL_INTERVAL		(10*1000*1000)
 
 static void kbd_devs_yield(void);
 static void kbd_devs_reclaim(void);
@@ -222,7 +222,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}	
 }
 
-/** Add new keyboard device. */
+/** Add new legacy keyboard device. */
 static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 {
 	kbd_dev_t *kdev;
@@ -234,14 +234,13 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 	}
 
 	link_initialize(&kdev->kbd_devs);
+	kdev->dev_path = NULL;
 	kdev->port_ops = port;
 	kdev->ctl_ops = ctl;
 
 	/* Initialize port driver. */
-	if (kdev->port_ops != NULL) {
-		if ((*kdev->port_ops->init)(kdev) != 0)
-			goto fail;
-	}
+	if ((*kdev->port_ops->init)(kdev) != 0)
+		goto fail;
 
 	/* Initialize controller driver. */
 	if ((*kdev->ctl_ops->init)(kdev) != 0) {
@@ -253,6 +252,37 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 	return;
 fail:
 	free(kdev);
+}
+
+/** Add new kbdev device.
+ *
+ * @param dev_path	Filesystem path to the device (/dev/class/...)
+ */
+static int kbd_add_kbdev(const char *dev_path)
+{
+	kbd_dev_t *kdev;
+
+	kdev = malloc(sizeof(kbd_dev_t));
+	if (kdev == NULL) {
+		printf(NAME ": Failed adding keyboard device. Out of memory.\n");
+		return -1;
+	}
+
+	link_initialize(&kdev->kbd_devs);
+	kdev->dev_path = dev_path;
+	kdev->port_ops = NULL;
+	kdev->ctl_ops = &kbdev_ctl;
+
+	/* Initialize controller driver. */
+	if ((*kdev->ctl_ops->init)(kdev) != 0) {
+		goto fail;
+	}
+
+	list_append(&kdev->kbd_devs, &kbd_devs);
+	return EOK;
+fail:
+	free(kdev);
+	return -1;
 }
 
 /** Add legacy drivers/devices. */
@@ -308,6 +338,8 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&z8530_port, &sun_ctl);
 	kbd_add_dev(&ns16550_port, &sun_ctl);
 #endif
+	/* Silence warning on abs32le about kbd_add_dev() being unused */
+	(void) kbd_add_dev;
 }
 
 static void kbd_devs_yield(void)
@@ -336,6 +368,51 @@ static void kbd_devs_reclaim(void)
 	}
 }
 
+/** Periodically check for new kbdev devices in /dev/class/keyboard.
+ *
+ * @param arg	Ignored
+ */
+static int dev_discovery_fibril(void *arg)
+{
+	char *dev_path;
+	size_t id = 1;
+	int rc;
+
+	while (true) {
+		async_usleep(DISCOVERY_POLL_INTERVAL);
+
+		rc = asprintf(&dev_path, "/dev/class/keyboard\\%zu", id);
+		if (rc < 0)
+			continue;
+
+		if (kbd_add_kbdev(dev_path) == EOK) {
+			printf(NAME ": Connected kbdev device '%s'\n",
+			    dev_path);
+
+			/* XXX Handle device removal */
+			++id;
+		}
+
+		free(dev_path);
+	}
+
+	return EOK;
+}
+
+/** Start a fibril for discovering new devices. */
+static void kbd_start_dev_discovery(void)
+{
+	fid_t fid;
+
+	fid = fibril_create(dev_discovery_fibril, NULL);
+	if (!fid) {
+		printf(NAME ": Failed to create device discovery fibril.\n");
+		return;
+	}
+
+	fibril_add_ready(fid);
+}
+
 int main(int argc, char **argv)
 {
 	printf("%s: HelenOS Keyboard service\n", NAME);
@@ -357,9 +434,6 @@ int main(int argc, char **argv)
 	/* Add legacy devices. */
 	kbd_add_legacy_devs();
 
-	/* Add kbdev device */
-	kbd_add_dev(NULL, &kbdev_ctl);
-
 	/* Initialize (reset) layout. */
 	layout[active_layout]->reset();
 	
@@ -378,6 +452,9 @@ int main(int argc, char **argv)
 		printf("%s: Unable to register device %s\n", NAME, kbd);
 		return -1;
 	}
+
+	/* Start looking for new kbdev devices */
+	kbd_start_dev_discovery();
 
 	printf(NAME ": Accepting connections\n");
 	async_manager();
