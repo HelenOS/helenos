@@ -9,3 +9,6 @@
 10 pci/ven=1002&dev=4389
 10 pci/ven=1002&dev=438a
 10 pci/ven=1002&dev=438b
+10 pci/ven=1002&dev=4397
+10 pci/ven=1002&dev=4398
+10 pci/ven=1002&dev=4399
