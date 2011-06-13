@@ -45,7 +45,7 @@ REDIST_DETECT = $(REDIST_DIR)/configure
 # $USPACE_PREFIX have to be based on the absolute path,
 # because targets derived from it will be referenced from
 # other than the current directory.
-USPACE_PREFIX = $(subst $(space),\ ,$(PWD))/../..
+USPACE_PREFIX = $(subst $(space),\ ,$(shell pwd))/../..
 
 # Ensure static configuration of Makefile.common.
 STATIC_ONLY = y
@@ -69,7 +69,8 @@ SUPPORTED_COMPILERS = gcc_cross gcc_native
 include $(COMMON_MAKEFILE_PATCHED)
 
 # Patch $PATH to intercept toolchain calls.
-PATH := $(PWD):$(PATH)
+PATH := $(shell pwd):$(PATH)
+export PATH
 
 # Shell script for false toolchain generation.
 TOOLCHAIN_SCRIPT = ./toolchain.sh
@@ -88,30 +89,40 @@ BINUTILS_CONFIGURED = $(REDIST_DIR)/Makefile
 
 # Map the HelenOS target to binutils target.
 ifeq ($(PLATFORM),amd64)
-TARGET=amd64-linux-gnu
-else ($(PLATFORM),arm32)
-TARGET=arm-linux-gnu
-else ($(PLATFORM),ia32)
-TARGET=i686-pc-linux-gnu
-else ($(PLATFORM),ia64)
-TARGET=ia64-pc-linux-gnu
-else ($(PLATFORM),mips32)
-TARGET=mipsel-linux-gnu
-else ($(PLATFORM),mips32eb)
-TARGET=mips-linux-gnu
-else ($(PLATFORM),mips64)
-TARGET=mips64el-linux-gnu
-else ($(PLATFORM),ppc32)
-TARGET=ppc-linux-gnu
-else ($(PLATFORM),ppc64)
-TARGET=ppc64-linux-gnu
-else ($(PLATFORM),sparc64)
-TARGET=sparc64-linux-gnu
+TARGET = amd64-linux-gnu
+endif
+ifeq ($(PLATFORM),arm32)
+TARGET = arm-linux-gnu
+endif
+ifeq ($(PLATFORM),ia32)
+TARGET = i686-pc-linux-gnu
+endif
+ifeq ($(PLATFORM),ia64)
+TARGET = ia64-pc-linux-gnu
+endif
+ifeq ($(PLATFORM),mips32)
+TARGET = mipsel-linux-gnu
+endif
+ifeq ($(PLATFORM),mips32eb)
+TARGET = mips-linux-gnu
+endif
+ifeq ($(PLATFORM),mips64)
+TARGET = mips64el-linux-gnu
+endif
+ifeq ($(PLATFORM),ppc32)
+TARGET = ppc-linux-gnu
+endif
+ifeq ($(PLATFORM),ppc64)
+TARGET = ppc64-linux-gnu
+endif
+ifeq ($(PLATFORM),sparc64)
+TARGET = sparc64-linux-gnu
 endif
 
 # Binutils configure flags.
 CONF_FLAGS = --disable-nls --disable-shared --enable-static \
-	--with-zlib=no
+	--with-zlib=no --with-ppl=no --with-cloog=no  \
+	--with-gmp=no --with-mpfr=no --with-mpc=no
 
 # Binutils make targets.
 MAKE_TARGETS = all-gas all-ld
@@ -122,7 +133,6 @@ MAKE_TARGETS = all-gas all-ld
 ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
 all: $(COMMON_MAKEFILE_PATCHED) all_ $(TOOLCHAIN) $(BINUTILS_PATCHED) \
 		$(BINUTILS_CONFIGURED) $(REDIST_DETECT)
-	export PATH
 	make -C $(REDIST_DIR) $(MAKE_TARGETS)
 	cp -f $(REDIST_DIR)/gas/as-new ./as
 	cp -f $(REDIST_DIR)/ld/ld-new ./ld
@@ -142,40 +152,44 @@ $(REDIST_FILENAME):
 # Extract binutils source tree.
 $(REDIST_DETECT): $(REDIST_FILENAME)
 	tar -x -j -f $<
-	mv -f $(REDIST_NAME) $(REDIST_DIR)
+	mv -f -T $(REDIST_NAME) $(REDIST_DIR)
+	touch $@
 
 # Generate false toolchain scripts.
 $(TOOLCHAIN): $(TOOLCHAIN_SCRIPT)
-	$^ gcc $(CC) '$(CFLAGS)'
-	$^ as $(AS)
-	$^ ar $(AR)
-	$^ ranlib
-	$^ ld $(LD) '$(LFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS)'
-	$^ objdump $(OBJDUMP)
-	$^ objcopy $(OBJCOPY)
-	$^ strip $(STRIP)
+	./$< gcc $(CC) '$(CFLAGS)'
+	./$< as $(AS)
+	./$< ar $(AR)
+	./$< ranlib
+	./$< ld $(LD) '$(LFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS)'
+	./$< objdump $(OBJDUMP)
+	./$< objcopy $(OBJCOPY)
+	./$< strip $(STRIP)
 
 # Patch binutils source tree.
 $(BINUTILS_PATCHED): $(BINUTILS_PATCH) $(REDIST_DETECT)
-	$^ do $(REDIST_DIR)
+	./$< do $(REDIST_DIR)
 	touch $@
 
 # Configure binutils.
+# $LD variable have to exported to override configure script caching.
 $(BINUTILS_CONFIGURED): $(REDIST_DIR)/configure $(REDIST_DETECT)
-	$^ --target=$(TARGET) $(CONF_FLAGS)
+	export LD=ld; \
+	cd $(REDIST_DIR); \
+	./configure --target=$(TARGET) $(CONF_FLAGS)
 
 # Delete binaries.
 # Clean binutils.
 # Unpatch binutils.
 # Delete generated scripts.
-clean: $(BINUTILS_PATCH)
+clean: $(BINUTILS_PATCH) clean_
 	rm -f as ld
-	if [ -e $(REDIST_DIR)/Makefile ]; then
-		make -C $(REDIST_DIR) distclean
+	if [ -e $(REDIST_DIR)/Makefile ]; then \
+		make -C $(REDIST_DIR) distclean; \
 	fi
-	if [ -e $(BINUTILS_PATCHED) ]; then
-		./intrusive.sh undo $(REDIST_DIR)
-		rm -f $(BINUTILS_PATCHED)
+	if [ -e $(BINUTILS_PATCHED) ]; then \
+		./intrusive.sh undo $(REDIST_DIR); \
+		rm -f $(BINUTILS_PATCHED); \
 	fi
 	rm -f $(TOOLCHAIN)
 	rm -f $(COMMON_MAKEFILE_PATCHED)

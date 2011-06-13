@@ -74,9 +74,9 @@ case "$1" in
 			sed 's/-O[^ ]*//g' | \
 			sed 's/-W[^ ]*//g' | \
 			sed 's/-pipe//g' | \
-			sed 's/-std=[^ ]*//g' | \
 			sed 's/-g//g' | \
 			sed 's/ [ ]*/ /g'`"
+		echo '	echo' \'"$2"\' \'"$CFLAGS"\' '"$@"'
 		echo "	$2" "$CFLAGS" '$@'
 		echo 'fi'
 		) > 'gcc'
@@ -85,6 +85,7 @@ case "$1" in
 	"as")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2"\' '"$@"'
 		echo "$2" '$@'
 		) > 'as'
 		chmod a+x 'as'
@@ -92,6 +93,7 @@ case "$1" in
 	"ar")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2"\' '"$@"'
 		echo "$2" '$@'
 		) > 'ar'
 		chmod a+x 'ar'
@@ -99,6 +101,7 @@ case "$1" in
 	"ranlib")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2"\' '"$@"'
 		echo "ar -s" '$@'
 		) > 'ranlib'
 		chmod a+x 'ranlib'
@@ -106,6 +109,7 @@ case "$1" in
 	"ld")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2 -n $3 -T $4"\' '"$@"' \'"$5"\'
 		echo "$2 -n $3 -T $4" '$@' "$5"
 		) > 'ld'
 		chmod a+x 'ld'
@@ -113,6 +117,7 @@ case "$1" in
 	"objdump")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2"\' '"$@"'
 		echo "$2" '$@'
 		) > 'objdump'
 		chmod a+x 'objdump'
@@ -120,6 +125,7 @@ case "$1" in
 	"objcopy")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2"\' '"$@"'
 		echo "$2" '$@'
 		) > 'objcopy'
 		chmod a+x 'objcopy'
@@ -127,6 +133,7 @@ case "$1" in
 	"strip")
 		(
 		echo '#! /bin/bash'
+		echo 'echo' \'"$2"\' '"$@"'
 		echo "$2" '$@'
 		) > 'strip'
 		chmod a+x 'strip'
