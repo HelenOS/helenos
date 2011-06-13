@@ -45,7 +45,7 @@
 #include <devmap.h>
 #include <devmap_obsolete.h>
 
-static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
+static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void adb_kbd_reg0_data(uint16_t data);
 
 static int adb_port_init(kbd_dev_t *);
@@ -81,7 +81,8 @@ static int adb_port_init(kbd_dev_t *kdev)
 		return rc;
 	
 	/* NB: The callback connection is slotted for removal */
-	rc = async_obsolete_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events);
+	rc = async_obsolete_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events,
+	    NULL);
 	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from device\n");
 		return rc;
@@ -103,7 +104,7 @@ static void adb_port_write(uint8_t data)
 	/*async_msg_1(dev_phone, CHAR_WRITE_BYTE, data);*/
 }
 
-static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
+static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {

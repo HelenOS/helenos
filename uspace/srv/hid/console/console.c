@@ -426,7 +426,7 @@ static void close_driver_phone(ipc_callid_t hash)
 }
 
 /** Handler for keyboard */
-static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
+static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
@@ -473,7 +473,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Handler for mouse events */
-static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
+static void mouse_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
@@ -596,7 +596,7 @@ recheck:
 }
 
 /** Default thread for new connections */
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	console_t *cons = NULL;
 	
@@ -758,7 +758,7 @@ static int async_connect_to_me_hack(int phone, sysarg_t arg1, sysarg_t arg2,
 	
 	if (client_receiver != NULL)
 		async_new_connection(task_hash, phone_hash, phone_hash, NULL,
-		    client_receiver);
+		    client_receiver, NULL);
 	
 	if (hash != NULL)
 		*hash = phone_hash;

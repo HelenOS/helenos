@@ -96,7 +96,7 @@ static devmap_handle_t devmap_handle[MAX_DISKS];
 static fibril_mutex_t dev_lock[MAX_DISKS];
 
 static int gxe_bd_init(void);
-static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 static int gxe_bd_read_blocks(int disk_id, uint64_t ba, unsigned cnt,
     void *buf);
 static int gxe_bd_write_blocks(int disk_id, uint64_t ba, unsigned cnt,
@@ -152,7 +152,7 @@ static int gxe_bd_init(void)
 	return EOK;
 }
 
-static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	void *fs_va = NULL;
 	ipc_callid_t callid;

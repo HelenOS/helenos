@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
+static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 static int chardev_port_init(kbd_dev_t *);
 static void chardev_port_yield(void);
@@ -95,7 +95,8 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	}
 	
 	/* NB: The callback connection is slotted for removal */
-	if (async_obsolete_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events) != 0) {
+	if (async_obsolete_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events,
+	    NULL) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return -1;
 	}
@@ -116,7 +117,7 @@ static void chardev_port_write(uint8_t data)
 	async_obsolete_msg_1(dev_phone, CHAR_WRITE_BYTE, data);
 }
 
-static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
+static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {

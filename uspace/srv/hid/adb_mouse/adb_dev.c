@@ -47,7 +47,7 @@
 #include "adb_mouse.h"
 #include "adb_dev.h"
 
-static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall);
+static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 int adb_dev_init(void)
 {
@@ -67,7 +67,8 @@ int adb_dev_init(void)
 	}
 	
 	/* NB: The callback connection is slotted for removal */
-	if (async_obsolete_connect_to_me(dev_phone, 0, 0, 0, adb_dev_events) != 0) {
+	if (async_obsolete_connect_to_me(dev_phone, 0, 0, 0, adb_dev_events,
+	    NULL) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return false;
 	}
@@ -75,7 +76,7 @@ int adb_dev_init(void)
 	return 0;
 }
 
-static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall)
+static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {

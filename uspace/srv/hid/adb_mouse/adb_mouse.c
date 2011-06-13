@@ -51,7 +51,7 @@
 // FIXME: remove this header
 #include <kernel/ipc/ipc_methods.h>
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void mouse_ev_btn(int button, int press);
 static void mouse_ev_move(int dx, int dy);
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

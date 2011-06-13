@@ -149,7 +149,7 @@ static int mbr_init(const char *dev_name);
 static int mbr_part_read(void);
 static part_t *mbr_part_new(void);
 static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part);
-static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf);
 static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf);
 static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
@@ -384,7 +384,7 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 	part->next = NULL;
 }
 
-static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	size_t comm_size;
 	void *fs_va = NULL;

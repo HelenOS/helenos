@@ -53,7 +53,7 @@
 static int kbdev_ctl_init(kbd_dev_t *);
 static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned);
 
-static void kbdev_callback_conn(ipc_callid_t, ipc_call_t *);
+static void kbdev_callback_conn(ipc_callid_t, ipc_call_t *, void *arg);
 
 kbd_ctl_ops_t kbdev_ctl = {
 	.parse_scancode = NULL,
@@ -72,9 +72,6 @@ typedef struct {
 	/** File descriptor of open kbdev device */
 	int fd;
 } kbdev_t;
-
-/** XXX Need to pass data from async_connect_to_me() to connection handler */
-static kbdev_t *unprotected_kbdev;
 
 static kbdev_t *kbdev_new(kbd_dev_t *kdev)
 {
@@ -139,14 +136,7 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 		return -1;
 	}
 
-	/*
-	 * XXX We need to pass kbdev to the connection handler. Since the
-	 * framework does not support this, use a global variable.
-	 * This needs to be fixed ASAP.
-	 */
-	unprotected_kbdev = kbdev;
-
-	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn);
+	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
 	if (rc != EOK) {
 		printf(NAME ": Failed creating callback connection from '%s'.\n",
 		    pathname);
@@ -176,13 +166,14 @@ static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 	async_exchange_end(exch);
 }
 
-static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall)
+static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	kbdev_t *kbdev;
 	int retval;
 	int type, key;
 
-	kbdev = unprotected_kbdev;
+	/* Kbdev device structure */
+	kbdev = arg;
 
 	while (true) {
 		ipc_call_t call;

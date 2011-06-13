@@ -52,7 +52,18 @@ typedef ipc_callid_t aid_t;
 typedef void *(*async_client_data_ctor_t)(void);
 typedef void (*async_client_data_dtor_t)(void *);
 
-typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *);
+/** Client connection handler
+ *
+ * @param callid	ID of incoming call or 0 if connection initiated from
+ *			inside using async_connect_to_me()
+ * @param call		Incoming call or 0 if connection initiated from inside
+ * @param arg		Local argument passed from async_new_connection() or
+ *			async_connect_to_me()
+ */
+typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *, void *);
+
+/** Interrupt handler */
+typedef void (*async_interrupt_handler_t)(ipc_callid_t, ipc_call_t *);
 
 /** Exchange management style
  *
@@ -165,7 +176,7 @@ extern void async_wait_for(aid_t, sysarg_t *);
 extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 
 extern fid_t async_new_connection(sysarg_t, sysarg_t, ipc_callid_t,
-    ipc_call_t *, async_client_conn_t);
+    ipc_call_t *, async_client_conn_t, void *);
 
 extern void async_usleep(suseconds_t);
 extern void async_create_manager(void);
@@ -176,7 +187,7 @@ extern void async_set_client_data_destructor(async_client_data_dtor_t);
 extern void *async_get_client_data(void);
 
 extern void async_set_client_connection(async_client_conn_t);
-extern void async_set_interrupt_received(async_client_conn_t);
+extern void async_set_interrupt_received(async_interrupt_handler_t);
 
 /*
  * Wrappers for simple communication.
@@ -350,7 +361,7 @@ extern async_sess_t *async_connect_me_to_blocking(exch_mgmt_t, async_exch_t *,
 extern async_sess_t *async_connect_kbox(task_id_t);
 
 extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
-    async_client_conn_t);
+    async_client_conn_t, void *);
 
 extern int async_hangup(async_sess_t *);
 extern void async_poke(void);

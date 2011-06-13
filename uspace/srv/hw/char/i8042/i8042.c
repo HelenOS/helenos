@@ -121,7 +121,7 @@ static void wait_ready(void)
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call);
-static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int i8042_init(void);
 static void i8042_port_write(int devid, uint8_t data);
 
@@ -215,7 +215,7 @@ static int i8042_init(void)
 }
 
 /** Character device connection handler */
-static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

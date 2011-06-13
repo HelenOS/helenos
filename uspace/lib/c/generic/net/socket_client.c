@@ -202,8 +202,9 @@ static sockets_t *socket_get_sockets(void)
  *
  * @param[in] iid	The initial message identifier.
  * @param[in] icall	The initial message call structure.
+ * @param[in] arg	Local argument.
  */
-static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
+static void socket_connection(ipc_callid_t iid, ipc_call_t * icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

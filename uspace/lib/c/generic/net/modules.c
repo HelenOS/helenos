@@ -140,7 +140,8 @@ int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
-		int rc = async_obsolete_connect_to_me(phone, arg1, arg2, arg3, client_receiver);
+		int rc = async_obsolete_connect_to_me(phone, arg1, arg2, arg3,
+		    client_receiver, NULL);
 		if (rc != EOK) {
 			async_obsolete_hangup(phone);
 			return rc;

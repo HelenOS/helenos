@@ -78,7 +78,7 @@ void mouse_ev_move(int dx, int dy)
 		async_obsolete_msg_2(client_phone, MEVENT_MOVE, dx, dy);
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
