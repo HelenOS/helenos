@@ -321,6 +321,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->priority = -1;          /* Start in rq[0] */
 	thread->cpu = NULL;
 	thread->flags = flags;
+	thread->nomigrate = 0;
 	thread->state = Entering;
 	
 	timeout_initialize(&thread->sleep_timeout);
@@ -481,6 +482,23 @@ restart:
 	
 	/* Not reached */
 	while (true);
+}
+
+/** Prevent the current thread from being migrated to another processor. */
+void thread_migration_disable(void)
+{
+	ASSERT(THREAD);
+
+	THREAD->nomigrate++;
+}
+
+/** Allow the current thread to be migrated to another processor. */
+void thread_migration_enable(void)
+{
+	ASSERT(THREAD);
+	ASSERT(THREAD->nomigrate > 0);
+
+	THREAD->nomigrate--;
 }
 
 /** Thread sleep
