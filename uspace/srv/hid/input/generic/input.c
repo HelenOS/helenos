@@ -69,12 +69,6 @@ static void kbd_devs_reclaim(void);
 
 int client_phone = -1;
 
-/** Currently active modifiers. */
-static unsigned mods = KM_NUM_LOCK;
-
-/** Currently pressed lock keys. We track these to tackle autorepeat. */
-static unsigned lock_keys;
-
 /** List of keyboard devices */
 static link_t kbd_devs;
 
@@ -83,13 +77,11 @@ int irc_phone = -1;
 
 #define NUM_LAYOUTS 3
 
-static layout_op_t *layout[NUM_LAYOUTS] = {
-	&us_qwerty_op,
-	&us_dvorak_op,
-	&cz_op
+static layout_ops_t *layout[NUM_LAYOUTS] = {
+	&us_qwerty_ops,
+	&us_dvorak_ops,
+	&cz_ops
 };
-
-static int active_layout = 0;
 
 void kbd_push_scancode(kbd_dev_t *kdev, int scancode)
 {
@@ -114,9 +106,9 @@ void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 
 	if (mod_mask != 0) {
 		if (type == KEY_PRESS)
-			mods = mods | mod_mask;
+			kdev->mods = kdev->mods | mod_mask;
 		else
-			mods = mods & ~mod_mask;
+			kdev->mods = kdev->mods & ~mod_mask;
 	}
 
 	switch (key) {
@@ -133,13 +125,13 @@ void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 			 * to pressed. This prevents autorepeat from messing
 			 * up the lock state.
 			 */
-			mods = mods ^ (mod_mask & ~lock_keys);
-			lock_keys = lock_keys | mod_mask;
+			kdev->mods = kdev->mods ^ (mod_mask & ~kdev->lock_keys);
+			kdev->lock_keys = kdev->lock_keys | mod_mask;
 
 			/* Update keyboard lock indicator lights. */
-			(*kdev->ctl_ops->set_ind)(kdev, mods);
+			(*kdev->ctl_ops->set_ind)(kdev, kdev->mods);
 		} else {
-			lock_keys = lock_keys & ~mod_mask;
+			kdev->lock_keys = kdev->lock_keys & ~mod_mask;
 		}
 	}
 /*
@@ -147,32 +139,32 @@ void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 	printf("mods: 0x%x\n", mods);
 	printf("keycode: %u\n", key);
 */
-	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
 		key == KC_F1) {
-		active_layout = 0;
-		layout[active_layout]->reset();
+		layout_destroy(kdev->active_layout);
+		kdev->active_layout = layout_create(layout[0]);
 		return;
 	}
 
-	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
 		key == KC_F2) {
-		active_layout = 1;
-		layout[active_layout]->reset();
+		layout_destroy(kdev->active_layout);
+		kdev->active_layout = layout_create(layout[1]);
 		return;
 	}
 
-	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
 		key == KC_F3) {
-		active_layout = 2;
-		layout[active_layout]->reset();
+		layout_destroy(kdev->active_layout);
+		kdev->active_layout = layout_create(layout[2]);
 		return;
 	}
 
 	ev.type = type;
 	ev.key = key;
-	ev.mods = mods;
+	ev.mods = kdev->mods;
 
-	ev.c = layout[active_layout]->parse_ev(&ev);
+	ev.c = layout_parse_ev(kdev->active_layout, &ev);
 
 	async_obsolete_msg_4(client_phone, INPUT_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
@@ -222,21 +214,37 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}	
 }
 
+static kbd_dev_t *kbd_dev_new(void)
+{
+	kbd_dev_t *kdev;
+
+	kdev = calloc(1, sizeof(kbd_dev_t));
+	if (kdev == NULL) {
+		printf(NAME ": Allocating keyboard device. Out of memory.\n");
+		return NULL;
+	}
+
+	link_initialize(&kdev->kbd_devs);
+
+	kdev->mods = KM_NUM_LOCK;
+	kdev->lock_keys = 0;
+	kdev->active_layout = layout_create(layout[0]);
+
+	return kdev;
+}
+
 /** Add new legacy keyboard device. */
 static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 {
 	kbd_dev_t *kdev;
 
-	kdev = malloc(sizeof(kbd_dev_t));
-	if (kdev == NULL) {
-		printf(NAME ": Failed adding keyboard device. Out of memory.\n");
+	kdev = kbd_dev_new();
+	if (kdev == NULL)
 		return;
-	}
 
-	link_initialize(&kdev->kbd_devs);
-	kdev->dev_path = NULL;
 	kdev->port_ops = port;
 	kdev->ctl_ops = ctl;
+	kdev->dev_path = NULL;
 
 	/* Initialize port driver. */
 	if ((*kdev->port_ops->init)(kdev) != 0)
@@ -262,13 +270,10 @@ static int kbd_add_kbdev(const char *dev_path)
 {
 	kbd_dev_t *kdev;
 
-	kdev = malloc(sizeof(kbd_dev_t));
-	if (kdev == NULL) {
-		printf(NAME ": Failed adding keyboard device. Out of memory.\n");
+	kdev = kbd_dev_new();
+	if (kdev == NULL)
 		return -1;
-	}
 
-	link_initialize(&kdev->kbd_devs);
 	kdev->dev_path = dev_path;
 	kdev->port_ops = NULL;
 	kdev->ctl_ops = &kbdev_ctl;
@@ -434,8 +439,6 @@ int main(int argc, char **argv)
 	/* Add legacy devices. */
 	kbd_add_legacy_devs();
 
-	/* Initialize (reset) layout. */
-	layout[active_layout]->reset();
 	
 	/* Register driver */
 	int rc = devmap_driver_register(NAME, client_connection);

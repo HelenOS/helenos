@@ -44,6 +44,7 @@ BINARY = input
 
 SOURCES = \
 	generic/input.c \
+	generic/layout.c \
 	genarch/gsp.c \
 	genarch/stroke.c \
 	layout/cz.c \

@@ -46,6 +46,7 @@
 
 struct kbd_port_ops;
 struct kbd_ctl_ops;
+struct layout;
 
 typedef struct kbd_dev {
 	/** Link to kbd_devs list */
@@ -62,6 +63,15 @@ typedef struct kbd_dev {
 
 	/** Controller-private data */
 	void *ctl_private;
+
+	/** Currently active modifiers. */
+	unsigned mods;
+
+	/** Currently pressed lock keys. We track these to tackle autorepeat. */
+	unsigned lock_keys;
+
+	/** Active keyboard layout */
+	struct layout *active_layout;
 } kbd_dev_t;
 
 extern bool irc_service;

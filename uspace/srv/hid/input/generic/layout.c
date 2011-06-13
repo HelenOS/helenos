@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard layout interface.
+/**
+ * @addtogroup inputgen generic
+ * @brief Keyboard layouts
  * @ingroup input
  * @{
  */
 /** @file
  */
 
-#ifndef KBD_LAYOUT_H_
-#define KBD_LAYOUT_H_
+#include <errno.h>
+#include <kbd.h>
+#include <layout.h>
+#include <stdlib.h>
 
-#include <sys/types.h>
-#include <io/console.h>
+/** Create a new layout instance. */
+layout_t *layout_create(layout_ops_t *ops)
+{
+	layout_t *layout;
 
-/** Layout instance state */
-typedef struct layout {
-	/** Ops structure */
-	struct layout_ops *ops;
+	layout = calloc(1, sizeof(layout_t));
+	if (layout == NULL) {
+		printf(NAME ": Out of memory.\n");
+		return NULL;
+	}
 
-	/* Layout-private data */
-	void *layout_priv;
-} layout_t;
+	layout->ops = ops;
+	if ((*ops->create)(layout) != EOK) {
+		free(layout);
+		return NULL;
+	}
 
-/** Layout ops */
-typedef struct layout_ops {
-	int (*create)(layout_t *);
-	void (*destroy)(layout_t *);
-	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
-} layout_ops_t;
+	return layout;
+}
 
-extern layout_ops_t us_qwerty_ops;
-extern layout_ops_t us_dvorak_ops;
-extern layout_ops_t cz_ops;
+/** Destroy layout instance. */
+void layout_destroy(layout_t *layout)
+{
+	(*layout->ops->destroy)(layout);
+	free(layout);
+}
 
-extern layout_t *layout_create(layout_ops_t *);
-extern void layout_destroy(layout_t *);
-extern wchar_t layout_parse_ev(layout_t *, kbd_event_t *);
-
-#endif
+/** Parse keyboard event. */
+wchar_t layout_parse_ev(layout_t *layout, kbd_event_t *ev)
+{
+	return (*layout->ops->parse_ev)(layout, ev);
+}
 
 /**
  * @}

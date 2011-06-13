@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,17 +31,20 @@
  * @{
  */
 
+#include <errno.h>
 #include <kbd.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <layout.h>
 
-static void layout_reset(void);
-static wchar_t layout_parse_ev(kbd_event_t *ev);
+static int us_dvorak_create(layout_t *);
+static void us_dvorak_destroy(layout_t *);
+static wchar_t us_dvorak_parse_ev(layout_t *, kbd_event_t *ev);
 
-layout_op_t us_dvorak_op = {
-	layout_reset,
-	layout_parse_ev
+layout_ops_t us_dvorak_ops = {
+	.create = us_dvorak_create,
+	.destroy = us_dvorak_destroy,
+	.parse_ev = us_dvorak_parse_ev
 };
 
 static wchar_t map_lcase[] = {
@@ -205,11 +208,16 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	return map[key];
 }
 
-static void layout_reset(void)
+static int us_dvorak_create(layout_t *state)
+{
+	return EOK;
+}
+
+static void us_dvorak_destroy(layout_t *state)
 {
 }
 
-static wchar_t layout_parse_ev(kbd_event_t *ev)
+static wchar_t us_dvorak_parse_ev(layout_t *state, kbd_event_t *ev)
 {
 	wchar_t c;
 

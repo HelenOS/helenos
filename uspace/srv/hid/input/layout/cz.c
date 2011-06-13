@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,14 +31,17 @@
  * @{
  */
 
+#include <errno.h>
 #include <kbd.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <bool.h>
 #include <layout.h>
+#include <stdlib.h>
 
-static void layout_reset(void);
-static wchar_t layout_parse_ev(kbd_event_t *ev);
+static int cz_create(layout_t *);
+static void cz_destroy(layout_t *);
+static wchar_t cz_parse_ev(layout_t *, kbd_event_t *ev);
 
 enum m_state {
 	ms_start,
@@ -46,11 +49,14 @@ enum m_state {
 	ms_carka
 };
 
-static enum m_state mstate;
+typedef struct {
+	enum m_state mstate;
+} layout_cz_t;
 
-layout_op_t cz_op = {
-	layout_reset,
-	layout_parse_ev
+layout_ops_t cz_ops = {
+	.create = cz_create,
+	.destroy = cz_destroy,
+	.parse_ev = cz_parse_ev
 };
 
 static wchar_t map_lcase[] = {
@@ -272,11 +278,11 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	return map[key];
 }
 
-static wchar_t parse_ms_hacek(kbd_event_t *ev)
+static wchar_t parse_ms_hacek(layout_cz_t *cz_state, kbd_event_t *ev)
 {
 	wchar_t c;
 
-	mstate = ms_start;
+	cz_state->mstate = ms_start;
 
 	/* Produce no characters when Ctrl or Alt is pressed. */
 	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
@@ -290,11 +296,11 @@ static wchar_t parse_ms_hacek(kbd_event_t *ev)
 	return c;
 }
 
-static wchar_t parse_ms_carka(kbd_event_t *ev)
+static wchar_t parse_ms_carka(layout_cz_t *cz_state, kbd_event_t *ev)
 {
 	wchar_t c;
 
-	mstate = ms_start;
+	cz_state->mstate = ms_start;
 
 	/* Produce no characters when Ctrl or Alt is pressed. */
 	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
@@ -308,7 +314,7 @@ static wchar_t parse_ms_carka(kbd_event_t *ev)
 	return c;
 }
 
-static wchar_t parse_ms_start(kbd_event_t *ev)
+static wchar_t parse_ms_start(layout_cz_t *cz_state, kbd_event_t *ev)
 {
 	wchar_t c;
 
@@ -318,9 +324,9 @@ static wchar_t parse_ms_start(kbd_event_t *ev)
 
 	if (ev->key == KC_EQUALS) {
 		if ((ev->mods & KM_SHIFT) != 0)
-			mstate = ms_hacek;
+			cz_state->mstate = ms_hacek;
 		else
-			mstate = ms_carka;
+			cz_state->mstate = ms_carka;
 
 		return 0;
 	}
@@ -378,26 +384,44 @@ static bool key_is_mod(unsigned key)
 	}
 }
 
-static void layout_reset(void)
+static int cz_create(layout_t *state)
 {
-	mstate = ms_start;
+	layout_cz_t *cz_state;
+
+	cz_state = malloc(sizeof(layout_cz_t));
+	if (cz_state == NULL) {
+		printf(NAME ": Out of memory.\n");
+		return ENOMEM;
+	}
+
+	cz_state->mstate = ms_start;
+	state->layout_priv = (void *) cz_state;
+
+	return EOK;
 }
 
-static wchar_t layout_parse_ev(kbd_event_t *ev)
+static void cz_destroy(layout_t *state)
 {
+	free(state->layout_priv);
+}
+
+static wchar_t cz_parse_ev(layout_t *state, kbd_event_t *ev)
+{
+	layout_cz_t *cz_state = (layout_cz_t *) state->layout_priv;
+
 	if (ev->type != KEY_PRESS)
 		return 0;
 	
 	if (key_is_mod(ev->key))
 		return 0;
 	
-	switch (mstate) {
+	switch (cz_state->mstate) {
 	case ms_start:
-		return parse_ms_start(ev);
+		return parse_ms_start(cz_state, ev);
 	case ms_hacek:
-		return parse_ms_hacek(ev);
+		return parse_ms_hacek(cz_state, ev);
 	case ms_carka:
-		return parse_ms_carka(ev);
+		return parse_ms_carka(cz_state, ev);
 	}
 	
 	return 0;
