@@ -101,8 +101,8 @@ case "$1" in
 	"ranlib")
 		(
 		echo '#! /bin/bash'
-		echo 'echo' \'"$2"\' '"$@"'
-		echo "ar -s" '$@'
+		echo 'echo' 'ar -s' '"$@"'
+		echo 'ar -s' '$@'
 		) > 'ranlib'
 		chmod a+x 'ranlib'
 		;;
