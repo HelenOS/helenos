@@ -39,6 +39,7 @@
 #include <async.h>
 #include <async_obsolete.h>
 #include <sysinfo.h>
+#include <input.h>
 #include <kbd.h>
 #include <kbd_port.h>
 #include <sys/types.h>

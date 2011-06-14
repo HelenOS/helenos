@@ -35,6 +35,7 @@ SOURCES = \
 	generic/gsp.c \
 	generic/input.c \
 	generic/layout.c \
+	generic/mouse.c \
 	generic/stroke.c \
 	layout/cz.c \
 	layout/us_qwerty.c \

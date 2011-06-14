@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -26,27 +27,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup inputgen generic
+ * @brief HelenOS input server.
+ * @ingroup input
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_IPC_INPUT_H_
-#define LIBC_IPC_INPUT_H_
+#ifndef INPUT_H_
+#define INPUT_H_
 
-#include <ipc/common.h>
+#include <bool.h>
 
-typedef enum {
-	INPUT_YIELD = IPC_FIRST_USER_METHOD,
-	INPUT_RECLAIM
-} input_request_t;
+#define NAME       "input"
+#define NAMESPACE  "hid_in"
 
-typedef enum {
-	INPUT_EVENT_KEY = IPC_FIRST_USER_METHOD,
-	INPUT_EVENT_MOVE,
-	INPUT_EVENT_BUTTON
-} input_notif_t;
+extern bool irc_service;
+extern int irc_phone;
+
+extern link_t mouse_devs;
+
+void input_event_move(int, int);
+void input_event_button(int bnum, int press);
 
 #endif
 

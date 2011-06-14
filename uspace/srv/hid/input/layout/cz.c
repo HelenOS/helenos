@@ -32,7 +32,7 @@
  */
 
 #include <errno.h>
-#include <kbd.h>
+#include <input.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <bool.h>

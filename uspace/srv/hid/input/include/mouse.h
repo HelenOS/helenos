@@ -26,27 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup inputgen generic
+ * @brief Mouse device handling.
+ * @ingroup input
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_IPC_INPUT_H_
-#define LIBC_IPC_INPUT_H_
+#ifndef MOUSE_H_
+#define MOUSE_H_
 
-#include <ipc/common.h>
+#include <adt/list.h>
 
-typedef enum {
-	INPUT_YIELD = IPC_FIRST_USER_METHOD,
-	INPUT_RECLAIM
-} input_request_t;
+typedef struct mouse_dev {
+	/** Link to mouse_devs list */
+	link_t mouse_devs;
 
-typedef enum {
-	INPUT_EVENT_KEY = IPC_FIRST_USER_METHOD,
-	INPUT_EVENT_MOVE,
-	INPUT_EVENT_BUTTON
-} input_notif_t;
+	/** Path to the device */
+	const char *dev_path;
+} mouse_dev_t;
+
+int mouse_add_dev(const char *dev_path);
 
 #endif
 

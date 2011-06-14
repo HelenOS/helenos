@@ -53,10 +53,12 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <devmap.h>
+#include <input.h>
 #include <kbd.h>
 #include <kbd_port.h>
 #include <kbd_ctl.h>
 #include <layout.h>
+#include <mouse.h>
 
 // FIXME: remove this header
 #include <kernel/ipc/ipc_methods.h>
@@ -67,10 +69,15 @@
 static void kbd_devs_yield(void);
 static void kbd_devs_reclaim(void);
 
+static void input_event_key(int, unsigned int, unsigned, wchar_t);
+
 int client_phone = -1;
 
 /** List of keyboard devices */
 static link_t kbd_devs;
+
+/** List of mouse devices */
+link_t mouse_devs;
 
 bool irc_service = false;
 int irc_phone = -1;
@@ -165,8 +172,27 @@ void kbd_push_ev(kbd_dev_t *kdev, int type, unsigned int key)
 	ev.mods = kdev->mods;
 
 	ev.c = layout_parse_ev(kdev->active_layout, &ev);
+	input_event_key(ev.type, ev.key, ev.mods, ev.c);
+}
 
-	async_obsolete_msg_4(client_phone, INPUT_EVENT, ev.type, ev.key, ev.mods, ev.c);
+/** Key has been pressed or released. */
+static void input_event_key(int type, unsigned int key, unsigned mods,
+    wchar_t c)
+{
+	async_obsolete_msg_4(client_phone, INPUT_EVENT_KEY, type, key,
+	    mods, c);
+}
+
+/** Mouse pointer has moved. */
+void input_event_move(int dx, int dy)
+{
+	async_obsolete_msg_2(client_phone, INPUT_EVENT_MOVE, dx, dy);
+}
+
+/** Mouse button has been pressed. */
+void input_event_button(int bnum, int press)
+{
+	async_obsolete_msg_2(client_phone, INPUT_EVENT_BUTTON, bnum, press);
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -220,7 +246,8 @@ static kbd_dev_t *kbd_dev_new(void)
 
 	kdev = calloc(1, sizeof(kbd_dev_t));
 	if (kdev == NULL) {
-		printf(NAME ": Allocating keyboard device. Out of memory.\n");
+		printf(NAME ": Error allocating keyboard device. "
+		    "Out of memory.\n");
 		return NULL;
 	}
 
@@ -373,29 +400,52 @@ static void kbd_devs_reclaim(void)
 	}
 }
 
-/** Periodically check for new kbdev devices in /dev/class/keyboard.
+/** Periodically check for new input devices.
+ *
+ * Looks under /dev/class/keyboard and /dev/class/mouse.
  *
  * @param arg	Ignored
  */
 static int dev_discovery_fibril(void *arg)
 {
 	char *dev_path;
-	size_t id = 1;
+	size_t kbd_id = 1;
+	size_t mouse_id = 1;
 	int rc;
 
 	while (true) {
 		async_usleep(DISCOVERY_POLL_INTERVAL);
 
-		rc = asprintf(&dev_path, "/dev/class/keyboard\\%zu", id);
+		/*
+		 * Check for new keyboard device
+		 */
+		rc = asprintf(&dev_path, "/dev/class/keyboard\\%zu", kbd_id);
 		if (rc < 0)
 			continue;
 
 		if (kbd_add_kbdev(dev_path) == EOK) {
-			printf(NAME ": Connected kbdev device '%s'\n",
+			printf(NAME ": Connected keyboard device '%s'\n",
 			    dev_path);
 
 			/* XXX Handle device removal */
-			++id;
+			++kbd_id;
+		}
+
+		free(dev_path);
+
+		/*
+		 * Check for new mouse device
+		 */
+		rc = asprintf(&dev_path, "/dev/class/mouse\\%zu", mouse_id);
+		if (rc < 0)
+			continue;
+
+		if (mouse_add_dev(dev_path) == EOK) {
+			printf(NAME ": Connected mouse device '%s'\n",
+			    dev_path);
+
+			/* XXX Handle device removal */
+			++mouse_id;
 		}
 
 		free(dev_path);
@@ -405,7 +455,7 @@ static int dev_discovery_fibril(void *arg)
 }
 
 /** Start a fibril for discovering new devices. */
-static void kbd_start_dev_discovery(void)
+static void input_start_dev_discovery(void)
 {
 	fid_t fid;
 
@@ -426,6 +476,7 @@ int main(int argc, char **argv)
 	sysarg_t obio;
 	
 	list_initialize(&kbd_devs);
+	list_initialize(&mouse_devs);
 	
 	if (((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
 	    || ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio)))
@@ -436,9 +487,11 @@ int main(int argc, char **argv)
 			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
-	/* Add legacy devices. */
+	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
 
+	/* Add legacy (devmap-style) mouse device. */
+	(void) mouse_add_dev("/dev/hid_in/mouse");
 	
 	/* Register driver */
 	int rc = devmap_driver_register(NAME, client_connection);
@@ -456,8 +509,8 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	/* Start looking for new kbdev devices */
-	kbd_start_dev_discovery();
+	/* Start looking for new input devices */
+	input_start_dev_discovery();
 
 	printf(NAME ": Accepting connections\n");
 	async_manager();

@@ -36,7 +36,7 @@
  */
 
 #include <errno.h>
-#include <kbd.h>
+#include <input.h>
 #include <layout.h>
 #include <stdlib.h>
 

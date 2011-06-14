@@ -37,6 +37,7 @@
 #include <ipc/adb.h>
 #include <async.h>
 #include <async_obsolete.h>
+#include <input.h>
 #include <kbd_port.h>
 #include <kbd.h>
 #include <vfs/vfs.h>

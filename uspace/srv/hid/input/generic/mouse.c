@@ -26,155 +26,109 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd_ctl
+/**
+ * @addtogroup inputgen generic
+ * @brief Mouse device handling.
  * @ingroup input
  * @{
  */
-/**
- * @file
- * @brief Keyboard device connector controller driver.
+/** @file
  */
 
+#include <adt/list.h>
 #include <async.h>
-#include <bool.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <gsp.h>
-#include <io/console.h>
-#include <io/keycode.h>
-#include <ipc/kbdev.h>
 #include <input.h>
-#include <kbd.h>
-#include <kbd_ctl.h>
-#include <kbd_port.h>
+#include <ipc/mouse.h>
+#include <mouse.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs_sess.h>
 
+static void mouse_callback_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int kbdev_ctl_init(kbd_dev_t *);
-static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned);
-
-static void kbdev_callback_conn(ipc_callid_t, ipc_call_t *, void *arg);
-
-kbd_ctl_ops_t kbdev_ctl = {
-	.parse_scancode = NULL,
-	.init = kbdev_ctl_init,
-	.set_ind = kbdev_ctl_set_ind
-};
-
-/** Kbdev softstate */
-typedef struct {
-	/** Link to generic keyboard device */
-	kbd_dev_t *kbd_dev;
-
-	/** Session with kbdev device */
-	async_sess_t *sess;
-
-	/** File descriptor of open kbdev device */
-	int fd;
-} kbdev_t;
-
-static kbdev_t *kbdev_new(kbd_dev_t *kdev)
+static mouse_dev_t *mouse_dev_new(void)
 {
-	kbdev_t *kbdev;
+	mouse_dev_t *mdev;
 
-	kbdev = calloc(1, sizeof(kbdev_t));
-	if (kbdev == NULL)
+	mdev = calloc(1, sizeof(mouse_dev_t));
+	if (mdev == NULL) {
+		printf(NAME ": Error allocating mouse device. "
+		    "Out of memory.\n");
 		return NULL;
+	}
 
-	kbdev->kbd_dev = kdev;
-	kbdev->fd = -1;
-
-	return kbdev;
+	link_initialize(&mdev->mouse_devs);
+	return mdev;
 }
 
-static void kbdev_destroy(kbdev_t *kbdev)
+static int mouse_dev_connect(mouse_dev_t *mdev, const char *dev_path)
 {
-	if (kbdev->sess != NULL)
-		async_hangup(kbdev->sess);
-	if (kbdev->fd >= 0)
-		close(kbdev->fd);
-	free(kbdev);
-}
-
-static int kbdev_ctl_init(kbd_dev_t *kdev)
-{
-	const char *pathname;
 	async_sess_t *sess;
 	async_exch_t *exch;
-	kbdev_t *kbdev;
 	int fd;
 	int rc;
 
-	pathname = kdev->dev_path;
-
-	fd = open(pathname, O_RDWR);
+	fd = open(dev_path, O_RDWR);
 	if (fd < 0) {
 		return -1;
 	}
 
 	sess = fd_session(EXCHANGE_SERIALIZE, fd);
 	if (sess == NULL) {
-		printf(NAME ": Failed starting session with '%s'\n", pathname);
+		printf(NAME ": Failed starting session with '%s'\n", dev_path);
 		close(fd);
 		return -1;
 	}
 
-	kbdev = kbdev_new(kdev);
-	if (kbdev == NULL) {
-		printf(NAME ": Failed allocating device structure for '%s'.\n",
-		    pathname);
-		return -1;
-	}
-
-	kbdev->fd = fd;
-	kbdev->sess = sess;
-
 	exch = async_exchange_begin(sess);
 	if (exch == NULL) {
-		printf(NAME ": Failed starting exchange with '%s'.\n", pathname);
-		kbdev_destroy(kbdev);
+		printf(NAME ": Failed starting exchange with '%s'.\n", dev_path);
 		return -1;
 	}
 
-	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
+	rc = async_connect_to_me(exch, 0, 0, 0, mouse_callback_conn, mdev);
 	if (rc != EOK) {
 		printf(NAME ": Failed creating callback connection from '%s'.\n",
-		    pathname);
+		    dev_path);
 		async_exchange_end(exch);
-		kbdev_destroy(kbdev);
 		return -1;
 	}
 
 	async_exchange_end(exch);
 
-	kdev->ctl_private = (void *) kbdev;
+	mdev->dev_path = dev_path;
 	return 0;
 }
 
-static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
+/** Add new mouse device.
+ *
+ * @param dev_path	Filesystem path to the device (/dev/class/...)
+ */
+int mouse_add_dev(const char *dev_path)
 {
-	async_sess_t *sess;
-	async_exch_t *exch;
+	mouse_dev_t *mdev;
+	int rc;
 
-	sess = ((kbdev_t *) kdev->ctl_private)->sess;
+	mdev = mouse_dev_new();
+	if (mdev == NULL)
+		return -1;
 
-	exch = async_exchange_begin(sess);
-	if (!exch)
-		return;
+	rc = mouse_dev_connect(mdev, dev_path);
+	if (rc != EOK) {
+		free(mdev);
+		return -1;
+	}
 
-	async_msg_1(exch, KBDEV_SET_IND, mods);
-	async_exchange_end(exch);
+	list_append(&mdev->mouse_devs, &mouse_devs);
+	return EOK;
 }
 
-static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+/** Mouse device callback connection handler. */
+static void mouse_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	kbdev_t *kbdev;
 	int retval;
-	int type, key;
-
-	/* Kbdev device structure */
-	kbdev = arg;
 
 	while (true) {
 		ipc_call_t call;
@@ -187,12 +141,15 @@ static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
-		case KBDEV_EVENT:
-			/* Got event from keyboard device */
+		case MEVENT_BUTTON:
+			input_event_button(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
 			retval = 0;
-			type = IPC_GET_ARG1(call);
-			key = IPC_GET_ARG2(call);
-			kbd_push_ev(kbdev->kbd_dev, type, key);
+			break;
+		case MEVENT_MOVE:
+			input_event_move(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			retval = 0;
 			break;
 		default:
 			retval = ENOTSUP;

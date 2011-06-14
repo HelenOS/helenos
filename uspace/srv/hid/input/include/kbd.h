@@ -39,10 +39,6 @@
 #define KBD_KBD_H_
 
 #include <adt/list.h>
-#include <bool.h>
-
-#define NAME       "input"
-#define NAMESPACE  "hid_in"
 
 struct kbd_port_ops;
 struct kbd_ctl_ops;
@@ -73,9 +69,6 @@ typedef struct kbd_dev {
 	/** Active keyboard layout */
 	struct layout *active_layout;
 } kbd_dev_t;
-
-extern bool irc_service;
-extern int irc_phone;
 
 extern void kbd_push_scancode(kbd_dev_t *, int);
 extern void kbd_push_ev(kbd_dev_t *, int, unsigned int);
