@@ -32,10 +32,10 @@ EXTRA_CFLAGS = -Iinclude
 BINARY = input
 
 SOURCES = \
+	generic/gsp.c \
 	generic/input.c \
 	generic/layout.c \
-	genarch/gsp.c \
-	genarch/stroke.c \
+	generic/stroke.c \
 	layout/cz.c \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
