@@ -299,6 +299,9 @@ main(int argc, char *argv[])
 				perror(NULL);
 				exit(1);
 			}
+		} else {
+			fprintf(stderr, "Reading from standard input is disabled on HelenOS\n");
+			exit(1);
 		}
 		if (argc > 1 && strcmp(argv[1], "-") != 0) {
 			if (freopen(argv[1], "w", stdout) == NULL) {
