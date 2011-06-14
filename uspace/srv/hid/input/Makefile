@@ -28,19 +28,8 @@
 #
 
 USPACE_PREFIX = ../../..
-ROOT_PATH = $(USPACE_PREFIX)/..
-
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-
 EXTRA_CFLAGS = -Iinclude
 BINARY = input
-
--include $(COMMON_MAKEFILE)
--include $(CONFIG_MAKEFILE)
-
-## Sources
-#
 
 SOURCES = \
 	generic/input.c \
