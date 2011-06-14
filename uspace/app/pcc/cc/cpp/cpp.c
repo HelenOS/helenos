@@ -1707,12 +1707,27 @@ unpstr(const usch *c)
 	}
 }
 
+ssize_t
+write_all(int fd, const void* buffer, size_t count)
+{
+	size_t remaining = count;
+	while (remaining > 0) {
+		ssize_t retval = write(ofd, buffer, remaining);
+		if (retval < 0) {
+			return retval;
+		}
+		remaining -= retval;
+		buffer += retval;
+	}
+	return count;
+}
+
 void
 flbuf()
 {
 	if (obufp == 0)
 		return;
-	if (Mflag == 0 && write(ofd, outbuf, obufp) < 0)
+	if (Mflag == 0 && write_all(ofd, outbuf, obufp) < 0)
 		error("obuf write error");
 	lastoch = outbuf[obufp-1];
 	obufp = 0;
