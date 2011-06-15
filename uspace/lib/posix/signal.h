@@ -26,10 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #ifndef POSIX_SIGNAL_H_
 #define POSIX_SIGNAL_H_
 
-#include <errno.h>
+#include "libc/errno.h"
 
 /* HelenOS doesn't have signals, so calls to functions of this header
  * are just replaced with their respective failure return value.
@@ -40,14 +46,17 @@
  * in the future?
  */
 
+#undef SIG_DFL
 #define SIG_DFL ((void (*)(int)) 0)
+#undef SIG_ERR
 #define SIG_ERR ((void (*)(int)) 0)
+#undef SIG_IGN
 #define SIG_IGN ((void (*)(int)) 0)
 
 #define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
-#define raise(sig) ((int)-1)
+#define raise(sig) ((int) -1)
 
-typedef int sig_atomic_t;
+typedef int posix_sig_atomic_t;
 
 /* full POSIX set */
 enum {
@@ -81,5 +90,11 @@ enum {
 	SIGXFSZ
 };
 
+#ifndef POSIX_INTERNAL
+	#define sig_atomic_t posix_sig_atomic_t
+#endif
+
 #endif /* POSIX_SIGNAL_H_ */
 
+/** @}
+ */

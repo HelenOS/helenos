@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +27,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #ifndef POSIX_STDIO_H_
 #define POSIX_STDIO_H_
 
 #include "libc/stdio.h"
 
+/* Character Input/Output */
 #define putc fputc
 #define getc fgetc
 
+/* Opening Streams */
+extern FILE *posix_freopen(
+   const char *restrict filename,
+   const char *restrict mode,
+   FILE *restrict stream);
 
-extern FILE *posix_freopen(const char *restrict filename,
-                           const char *restrict mode,
-                           FILE *restrict stream);
-
+/* Error Messages */
 extern void posix_perror(const char *s);
 
 #ifndef POSIX_INTERNAL
 	#define freopen posix_freopen
+
 	#define perror posix_perror
 #endif
 
 #endif /* POSIX_STDIO_H_ */
 
+/** @}
+ */

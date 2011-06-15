@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +27,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
+#define POSIX_INTERNAL
+
+#include "common.h"
 #include "unistd.h"
 
-int isatty(int fd) {
+/**
+ * 
+ * @param fd
+ * @return
+ */
+int posix_isatty(int fd)
+{
 	// TODO
-	return 0;
+	not_implemented();
 }
 
+/** @}
+ */

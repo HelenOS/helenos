@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +27,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
+#define POSIX_INTERNAL
+
 #include "ctype.h"
 
-int isxdigit(int ch)
+/**
+ * 
+ * @param ch
+ * @return
+ */
+int posix_isxdigit(int ch)
 {
 	return isdigit(ch) ||
-	       (ch >= 'a' && ch <= 'f') ||
-	       (ch >= 'A' && ch <= 'F');
+	    (ch >= 'a' && ch <= 'f') ||
+	    (ch >= 'A' && ch <= 'F');
 }
 
+/** @}
+ */

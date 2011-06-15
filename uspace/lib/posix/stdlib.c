@@ -45,7 +45,8 @@
  * @param size
  * @param compare
  */
-void posix_qsort(void *array, size_t count, size_t size, int (*compare)(const void *, const void *))
+void posix_qsort(void *array, size_t count, size_t size,
+    int (*compare)(const void *, const void *))
 {
 	// TODO
 	not_implemented();

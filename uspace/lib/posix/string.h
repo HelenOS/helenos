@@ -129,7 +129,7 @@ extern size_t posix_strnlen(const char *s, size_t n);
 
 	#define strerror posix_strerror
 	#define strerror_r posix_strerror_r
-	#define strsignal(i) ((char*) "SIGNonSense: There are no signals in HelenOS.")
+	#define strsignal(i) ((char *) "SIGNonSense: There are no signals in HelenOS.")
 
 	#define strlen posix_strlen
 	#define strnlen posix_strnlen

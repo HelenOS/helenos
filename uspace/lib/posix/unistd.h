@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,25 +26,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #ifndef POSIX_UNISTD_H_
 #define POSIX_UNISTD_H_
 
 #include "libc/unistd.h"
 
-/* #include <getopt.h> */
+/* Process Termination */
+#define _exit exit
 
+/* Option Arguments */
 extern char *optarg;
 extern int optind, opterr, optopt;
 extern int getopt(int, char * const [], const char *);
 
-extern int isatty(int fd);
+/* Identifying Terminals */
+extern int posix_isatty(int fd);
 
+/* Process Identification */
 #define getpid task_get_id
 
+/* Standard Streams */
+#undef STDIN_FILENO
 #define STDIN_FILENO (fileno(stdin))
+#undef STDOUT_FILENO
 #define STDOUT_FILENO (fileno(stdout))
+#undef STDERR_FILENO
 #define STDERR_FILENO (fileno(stderr))
+
+#ifndef POSIX_INTERNAL
+	#define isatty posix_isatty
+#endif
 
 #endif /* POSIX_UNISTD_H_ */
 
+/** @}
+ */

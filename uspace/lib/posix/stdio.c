@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,17 +36,28 @@
 #define POSIX_INTERNAL
 
 #include <assert.h>
-#include "errno.h"
+#include <errno.h>
+
 #include "common.h"
 #include "stdio.h"
 #include "string.h"
+
 /* not the best of solutions, but freopen will eventually
-   need to be implemented in libc anyway */
+ * need to be implemented in libc anyway
+ */
 #include "../c/generic/private/stdio.h"
 
-FILE *posix_freopen(const char *restrict filename,
-                    const char *restrict mode,
-                    FILE *restrict stream)
+/**
+ * 
+ * @param filename
+ * @param mode
+ * @param stream
+ * @return
+ */
+FILE *posix_freopen(
+    const char *restrict filename,
+    const char *restrict mode,
+    FILE *restrict stream)
 {
 	assert(mode != NULL);
 	assert(stream != NULL);
@@ -54,9 +66,11 @@ FILE *posix_freopen(const char *restrict filename,
 		// TODO
 		
 		/* print error to stderr as well, to avoid hard to find problems
-		   with buggy apps that expect this to work */
-		fprintf(stderr, "ERROR: Application wants to use freopen() to change mode of opened stream.\n"
-		                "       libposix does not support that yet, the application may function improperly.\n");
+		 * with buggy apps that expect this to work
+		 */
+		fprintf(stderr,
+		    "ERROR: Application wants to use freopen() to change mode of opened stream.\n"
+		    "       libposix does not support that yet, the application may function improperly.\n");
 		errno = ENOTSUP;
 		return NULL;
 	}
@@ -67,9 +81,9 @@ FILE *posix_freopen(const char *restrict filename,
 		return NULL;
 	}
 	memcpy(copy, stream, sizeof(FILE));
-	fclose(copy);   /* copy is now freed */
+	fclose(copy); /* copy is now freed */
 	
-	copy = fopen(filename, mode);         /* open new stream */
+	copy = fopen(filename, mode); /* open new stream */
 	if (copy == NULL) {
 		/* fopen() sets errno */
 		return NULL;
@@ -86,6 +100,10 @@ FILE *posix_freopen(const char *restrict filename,
 	return stream;
 }
 
+/**
+ *
+ * @param s
+ */
 void posix_perror(const char *s)
 {
 	// TODO
@@ -94,4 +112,3 @@ void posix_perror(const char *s)
 
 /** @}
  */
-

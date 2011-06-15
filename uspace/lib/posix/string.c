@@ -42,36 +42,51 @@
 #include <stdlib.h>
 #include <errno.h>
 
-/* Defined for convenience. Returns pointer to the terminating nul character.
+/**
+ * Defined for convenience. Returns pointer to the terminating nul character.
+ *
+ * @param s
+ * @return
  */
 static char *strzero(const char *s)
 {
-	while (*s != '\0')
-		s ++;
+	while (*s != '\0') {
+		s++;
+	}
 
-	return (char*) s;
+	return (char *) s;
 }
 
-/* Returns true if s2 is a prefix of s1.
+/**
+ * Returns true if s2 is a prefix of s1.
+ *
+ * @param s1
+ * @param s2
+ * @return
  */
 static bool begins_with(const char *s1, const char *s2)
 {
 	while (*s1 == *s2 && *s2 != '\0') {
-		s1 ++;
-		s2 ++;
+		s1++;
+		s2++;
 	}
 	
 	/* true if the end was reached */
 	return *s2 == '\0';
 }
 
-/* The same as strpbrk, except it returns pointer to the nul terminator
+/**
+ * The same as strpbrk, except it returns pointer to the nul terminator
  * if no occurence is found.
+ *
+ * @param s1
+ * @param s2
+ * @return
  */
 static char *strpbrk_null(const char *s1, const char *s2)
 {
 	while (!posix_strchr(s2, *s1)) {
-		++ s1;
+		++s1;
 	}
 	
 	return (char *) s1;
@@ -81,7 +96,7 @@ static char *strpbrk_null(const char *s1, const char *s2)
  *
  * @param dest
  * @param src
- * @return dest
+ * @return
  */
 char *posix_strcpy(char *dest, const char *src)
 {
@@ -94,7 +109,7 @@ char *posix_strcpy(char *dest, const char *src)
  * @param dest
  * @param src
  * @param n
- * @return dest
+ * @return
  */
 char *posix_strncpy(char *dest, const char *src, size_t n)
 {
@@ -113,7 +128,7 @@ char *posix_stpcpy(char *restrict dest, const char *restrict src)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	for (size_t i = 0; ; ++ i) {
+	for (size_t i = 0; ; ++i) {
 		dest[i] = src[i];
 		
 		if (src[i] == '\0') {
@@ -138,7 +153,7 @@ char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	for (size_t i = 0; i < n; ++ i) {
+	for (size_t i = 0; i < n; ++i) {
 		dest[i] = src[i];
 	
 		/* the standard requires that nul characters
@@ -146,7 +161,7 @@ char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n)
 		 */
 		if (src[i] == '\0') {
 			char *result = &dest[i];
-			for (++ i; i < n; ++ i) {
+			for (++i; i < n; ++i) {
 				dest[i] = '\0';
 			}
 			return result;
@@ -160,7 +175,7 @@ char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n)
  *
  * @param dest
  * @param src
- * @return dest
+ * @return
  */
 char *posix_strcat(char *dest, const char *src)
 {
@@ -176,7 +191,7 @@ char *posix_strcat(char *dest, const char *src)
  * @param dest
  * @param src
  * @param n
- * @return dest
+ * @return
  */
 char *posix_strncat(char *dest, const char *src, size_t n)
 {
@@ -197,7 +212,7 @@ char *posix_strncat(char *dest, const char *src, size_t n)
  * @param n
  * @return Pointer to the first byte after c in dest if found, NULL otherwise.
  */
-void *posix_memccpy(void *restrict dest, const void *restrict src, int c, size_t n)
+void *posix_memccpy(void *dest, const void *src, int c, size_t n)
 {
 	assert(dest != NULL);
 	assert(src != NULL);
@@ -205,7 +220,7 @@ void *posix_memccpy(void *restrict dest, const void *restrict src, int c, size_t
 	unsigned char* bdest = dest;
 	const unsigned char* bsrc = src;
 	
-	for (size_t i = 0; i < n; ++ i) {
+	for (size_t i = 0; i < n; ++i) {
 		bdest[i] = bsrc[i];
 	
 		if (bsrc[i] == (unsigned char) c) {
@@ -256,7 +271,7 @@ char *posix_strndup(const char *s, size_t n)
  * @param mem2
  * @param n
  * @return Difference of the first pair of inequal bytes,
- *          or 0 if areas have the same content
+ *     or 0 if areas have the same content
  */
 int posix_memcmp(const void *mem1, const void *mem2, size_t n)
 {
@@ -266,7 +281,7 @@ int posix_memcmp(const void *mem1, const void *mem2, size_t n)
 	const unsigned char *s1 = mem1;
 	const unsigned char *s2 = mem2;
 	
-	for (size_t i = 0; i < n; ++ i) {
+	for (size_t i = 0; i < n; ++i) {
 		if (s1[i] != s2[i]) {
 			return s2[i] - s1[i];
 		}
@@ -301,7 +316,7 @@ int posix_strncmp(const char *s1, const char *s2, size_t n)
 	assert(s1 != NULL);
 	assert(s2 != NULL);
 
-	for (size_t i = 0; i < n; ++ i) {
+	for (size_t i = 0; i < n; ++i) {
 		if (s1[i] != s2[i]) {
 			return s2[i] - s1[i];
 		}
@@ -326,7 +341,7 @@ void *posix_memchr(const void *mem, int c, size_t n)
 	
 	const unsigned char *s = mem;
 	
-	for (size_t i = 0; i < n; ++ i) {
+	for (size_t i = 0; i < n; ++i) {
 		if (s[i] == (unsigned char) c) {
 			return (void *) &s[i];
 		}
@@ -345,15 +360,17 @@ char *posix_strchr(const char *s, int c)
 	assert(s != NULL);
 	
 	/* special handling for the case that zero is searched for */
-	if (c == '\0')
+	if (c == '\0') {
 		return strzero(s);
+	}
 	
 	/* otherwise just loop through the string until found */
 	while (*s != (char) c) {
-		if (*s == '\0')
+		if (*s == '\0') {
 			return NULL;
+		}
 
-		s ++;
+		s++;
 	}
 	
 	return (char *) s;
@@ -373,10 +390,11 @@ char *posix_strrchr(const char *s, int c)
 	
 	/* the same as in strchr, except it loops in reverse direction */
 	while (*ptr != (char) c) {
-		if (ptr == s)
+		if (ptr == s) {
 			return NULL;
+		}
 
-		ptr ++;
+		ptr++;
 	}
 
 	return (char *) ptr;
@@ -424,9 +442,10 @@ size_t posix_strspn(const char *s1, const char *s2)
 	assert(s2 != NULL);
 
 	const char *ptr;
-	for (ptr = s1; *ptr != '\0'; ++ ptr) {
-		if (!posix_strchr(s2, *ptr))
+	for (ptr = s1; *ptr != '\0'; ++ptr) {
+		if (!posix_strchr(s2, *ptr)) {
 			break;
+		}
 	}
 	return ptr - s1;
 }
@@ -443,16 +462,18 @@ char *posix_strstr(const char *s1, const char *s2)
 	assert(s2 != NULL);
 
 	/* special case - needle is an empty string */
-	if (*s2 == '\0')
+	if (*s2 == '\0') {
 		return (char *) s1;
+	}
 
 	// TODO: use faster algorithm
 	/* check for prefix from every position - quadratic complexity */
 	while (*s1 != '\0') {
-		if (begins_with(s1, s2))
+		if (begins_with(s1, s2)) {
 			return (char *) s1;
+		}
 		
-		s1 ++;
+		s1++;
 	}
 	
 	return NULL;
@@ -488,8 +509,9 @@ size_t posix_strxfrm(char *s1, const char *s2, size_t n)
 
 	size_t len = posix_strlen(s2);
 
-	if (n > len)
+	if (n > len) {
 		posix_strcpy(s1, s2);
+	}
 
 	return len;
 }
@@ -502,15 +524,16 @@ size_t posix_strxfrm(char *s1, const char *s2, size_t n)
 char *posix_strerror(int errnum)
 {
 	/* uses function from libc, we just have to negate errno
-	   (POSIX uses positive errorcodes, HelenOS has negative) */
-	return (char *) str_error (-errnum);
+	 * (POSIX uses positive errorcodes, HelenOS has negative)
+	 */
+	return (char *) str_error(-errnum);
 }
 
 /**
  *
  * @param errnum Error code
- * @param buf    Buffer to store a human readable string to
- * @param bufsz  Size of buffer pointed to by buf
+ * @param buf Buffer to store a human readable string to
+ * @param bufsz Size of buffer pointed to by buf
  * @return
  */
 int posix_strerror_r(int errnum, char *buf, size_t bufsz)
@@ -551,7 +574,7 @@ size_t posix_strnlen(const char *s, size_t n)
 {
 	assert(s != NULL);
 	
-	for (size_t sz = 0; sz < n; ++ sz) {
+	for (size_t sz = 0; sz < n; ++sz) {
 		
 		if (s[sz] == '\0') {
 			return sz;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +27,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #ifndef POSIX_SYS_TYPES_H_
 #define POSIX_SYS_TYPES_H_
 
 #include "../libc/sys/types.h"
 #include <task.h>
 
-typedef task_id_t pid_t;
+typedef task_id_t posix_pid_t;
+
+#ifndef POSIX_INTERNAL
+	#define pid_t posix_pid_t
+#endif
 
 #endif /* POSIX_SYS_TYPES_H_ */
 
+/** @}
+ */
