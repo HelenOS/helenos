@@ -433,29 +433,29 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
  * @sa usb_kbd_process_keycodes(), usb_hid_boot_keyboard_input_report(),
  *     usb_hid_parse_report().
  */
-static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev,
-                                 uint8_t *buffer, size_t actual_size)
+static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev/*,
+                                 uint8_t *buffer, size_t actual_size*/)
 {
 	assert(hid_dev->report != NULL);
 	assert(hid_dev != NULL);
 	assert(kbd_dev != NULL);
 
-	usb_log_debug("Calling usb_hid_parse_report() with "
-	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
+//	usb_log_debug("Calling usb_hid_parse_report() with "
+//	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
 	
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 
-	uint8_t report_id;
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size, 
-	    &report_id);
+//	uint8_t report_id;
+//	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size, 
+//	    &report_id);
 	
-	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_parse_report():"
-		    "%s\n", str_error(rc));
-	}
+//	if (rc != EOK) {
+//		usb_log_warning("Error in usb_hid_parse_report():"
+//		    "%s\n", str_error(rc));
+//	}
 	
-	usb_hid_report_path_set_report_id (path, report_id);
+	usb_hid_report_path_set_report_id (path, hid_dev->report_id);
 	
 	// fill in the currently pressed keys
 	
@@ -755,10 +755,10 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
-     uint8_t *buffer, size_t buffer_size)
+bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data/*, 
+     uint8_t *buffer, size_t buffer_size*/)
 {
-	if (hid_dev == NULL || buffer == NULL || data == NULL) {
+	if (hid_dev == NULL/* || buffer == NULL*/ || data == NULL) {
 		// do not continue polling (???)
 		return false;
 	}
@@ -767,7 +767,7 @@ bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data,
 	assert(kbd_dev != NULL);
 	
 	// TODO: add return value from this function
-	usb_kbd_process_data(hid_dev, kbd_dev, buffer, buffer_size);
+	usb_kbd_process_data(hid_dev, kbd_dev/*, buffer, buffer_size*/);
 	
 	return true;
 }
