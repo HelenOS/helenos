@@ -48,11 +48,38 @@
 typedef struct usb_hid_dev usb_hid_dev_t;
 typedef struct usb_hid_subdriver usb_hid_subdriver_t;
 
+/** Subdriver initialization callback.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data (pointer where to store them).
+ * @return Error code.
+ */
 typedef int (*usb_hid_driver_init_t)(usb_hid_dev_t *dev, void **data);
+
+/** Subdriver deinitialization callback.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data.
+ */
 typedef void (*usb_hid_driver_deinit_t)(usb_hid_dev_t *dev, void *data);
+
+/** Subdriver callback on data from device.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data.
+ * @return Whether to continue polling (typically true always).
+ */
 typedef bool (*usb_hid_driver_poll_t)(usb_hid_dev_t *dev, void *data);
-typedef int (*usb_hid_driver_poll_ended_t)(usb_hid_dev_t *dev, void *data,
-                                         bool reason);
+
+/** Subdriver callback after communication with the device ceased.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data.
+ * @param ended_due_to_errors Whether communication ended due to errors in
+ *	communication (true) or deliberately by driver (false).
+ */
+typedef void (*usb_hid_driver_poll_ended_t)(usb_hid_dev_t *dev, void *data,
+    bool ended_due_to_errors);
 
 struct usb_hid_subdriver {
 	/** Function to be called when initializing HID device. */
