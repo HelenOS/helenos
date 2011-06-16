@@ -50,12 +50,43 @@ int posix_isatty(int fd)
 }
 
 /**
+ *
+ * @return
+ */
+posix_uid_t posix_getuid(void)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @return
+ */
+posix_gid_t posix_getgid(void)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
  * 
  * @param path
  * @param amode
  * @return
  */
 int posix_access(const char *path, int amode)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param name
+ * @return
+ */
+long posix_sysconf(int name)
 {
 	// TODO
 	not_implemented();

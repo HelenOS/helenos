@@ -37,6 +37,7 @@
 #define POSIX_UNISTD_H_
 
 #include "libc/unistd.h"
+#include "sys/types.h"
 
 /* Process Termination */
 #define _exit exit
@@ -51,6 +52,8 @@ extern int posix_isatty(int fd);
 
 /* Process Identification */
 #define getpid task_get_id
+extern posix_uid_t posix_getuid(void);
+extern posix_gid_t posix_getgid(void);
 
 /* Standard Streams */
 #undef STDIN_FILENO
@@ -71,10 +74,24 @@ extern int posix_isatty(int fd);
 #define	R_OK 4 /* Test for read permission. */
 extern int posix_access(const char *path, int amode);
 
+/* System Parameters */
+enum {
+	_SC_PHYS_PAGES,
+	_SC_AVPHYS_PAGES,
+	_SC_PAGESIZE,
+	_SC_CLK_TCK
+};
+extern long posix_sysconf(int name);
+
 #ifndef LIBPOSIX_INTERNAL
 	#define isatty posix_isatty
 
+	#define getuid posix_getuid
+	#define getgid posix_getgid
+
 	#define access posix_access
+
+	#define sysconf posix_sysconf
 #endif
 
 #endif /* POSIX_UNISTD_H_ */

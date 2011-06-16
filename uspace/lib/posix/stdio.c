@@ -49,6 +49,18 @@
 
 /**
  * 
+ * @param c
+ * @param stream
+ * @return 
+ */
+int posix_ungetc(int c, FILE *stream)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
  * @param filename
  * @param mode
  * @param stream
@@ -129,6 +141,32 @@ int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
  * @return
  */
 posix_off_t posix_ftello(FILE *stream)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param s
+ * @param format
+ * @param ...
+ * @return
+ */
+int posix_sprintf(char *s, const char *format, ...)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param s
+ * @param format
+ * @param ...
+ * @return
+ */
+int posix_sscanf(const char *s, const char *format, ...)
 {
 	// TODO
 	not_implemented();
