@@ -42,17 +42,19 @@ EXTRA_CFLAGS += \
 
 BINARY = usbhid
 
+SUBDRIVER_SOURCES = \
+	kbd/conv.c \
+	kbd/kbddev.c \
+	kbd/kbdrepeat.c \
+	mouse/mousedev.c \
+	multimedia/multimedia.c \
+	multimedia/keymap.c
+
 SOURCES = \
 	main.c \
 	usbhid.c \
 	subdrivers.c \
-	kbd/conv.c \
-	kbd/kbddev.c \
-	kbd/kbdrepeat.c \
 	generic/hiddev.c \
-	mouse/mousedev.c \
-	multimedia/multimedia.c \
-	multimedia/keymap.c \
-	$(STOLEN_LAYOUT_SOURCES)
+	$(SUBDRIVER_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
