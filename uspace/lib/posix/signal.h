@@ -90,7 +90,7 @@ enum {
 	SIGXFSZ
 };
 
-#ifndef POSIX_INTERNAL
+#ifndef LIBPOSIX_INTERNAL
 	#define sig_atomic_t posix_sig_atomic_t
 #endif
 

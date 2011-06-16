@@ -56,7 +56,7 @@ extern void posix_perror(const char *s);
 extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
 extern posix_off_t posix_ftello(FILE *stream);
 
-#ifndef POSIX_INTERNAL
+#ifndef LIBPOSIX_INTERNAL
 	#define freopen posix_freopen
 
 	#define perror posix_perror

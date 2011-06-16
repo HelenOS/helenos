@@ -71,7 +71,7 @@ extern int posix_isatty(int fd);
 #define	R_OK 4 /* Test for read permission. */
 extern int posix_access(const char *path, int amode);
 
-#ifndef POSIX_INTERNAL
+#ifndef LIBPOSIX_INTERNAL
 	#define isatty posix_isatty
 
 	#define access posix_access

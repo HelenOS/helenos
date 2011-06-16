@@ -33,7 +33,7 @@
 /** @file
  */
 
-#define POSIX_INTERNAL
+#define LIBPOSIX_INTERNAL
 
 #include "common.h"
 #include "unistd.h"

@@ -41,7 +41,7 @@
 /* Classification of Characters */
 extern int posix_isxdigit(int ch);
 
-#ifndef POSIX_INTERNAL
+#ifndef LIBPOSIX_INTERNAL
 	#define isxdigit posix_isxdigit
 #endif
 

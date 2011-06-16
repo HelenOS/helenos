@@ -50,7 +50,7 @@ typedef aoff64_t posix_off_t;
 typedef unsigned int posix_blksize_t;
 typedef unsigned int posix_blkcnt_t;
 
-#ifndef POSIX_INTERNAL
+#ifndef LIBPOSIX_INTERNAL
 	#define pid_t posix_pid_t
 	#define dev_t posix_dev_t
 	#define nlink_t posix_nlink_t
