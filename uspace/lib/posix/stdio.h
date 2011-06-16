@@ -37,6 +37,7 @@
 #define POSIX_STDIO_H_
 
 #include "libc/stdio.h"
+#include "sys/types.h"
 
 /* Character Input/Output */
 #define putc fputc
@@ -51,10 +52,17 @@ extern FILE *posix_freopen(
 /* Error Messages */
 extern void posix_perror(const char *s);
 
+/* File Positioning */
+extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
+extern posix_off_t posix_ftello(FILE *stream);
+
 #ifndef POSIX_INTERNAL
 	#define freopen posix_freopen
 
 	#define perror posix_perror
+
+	#define fseeko posix_fseeko
+	#define ftello posix_ftello
 #endif
 
 #endif /* POSIX_STDIO_H_ */

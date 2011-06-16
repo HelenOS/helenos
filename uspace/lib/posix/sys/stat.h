@@ -37,7 +37,8 @@
 #define POSIX_SYS_STAT_H_
 
 #include "../libc/sys/stat.h"
-#include "time.h"
+#include "types.h"
+#include "../time.h"
 
 /* values are the same as on Linux */
 
@@ -107,15 +108,6 @@
 #define S_ISLNK(m) ((m & S_IFLNK) != 0) /* symbolic link? (Not in POSIX.1-1996.) */
 #define S_ISSOCK(m) ((m & S_IFSOCK) != 0) /* socket? (Not in POSIX.1-1996.) */
 
-typedef devmap_handle_t posix_dev_t;
-typedef unsigned int posix_ino_t;
-typedef unsigned int posix_nlink_t;
-typedef unsigned int posix_uid_t;
-typedef unsigned int posix_gid_t;
-typedef aoff64_t posix_off_t;
-typedef unsigned int posix_blksize_t;
-typedef unsigned int posix_blkcnt_t;
-
 struct posix_stat {
 	struct stat sys_stat;
 
@@ -138,14 +130,6 @@ extern int posix_fstat(int fd, struct posix_stat *st);
 extern int posix_stat(const char *path, struct posix_stat *st);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define dev_t posix_dev_t
-	#define nlink_t posix_nlink_t
-	#define uid_t posix_uid_t
-	#define gid_t posix_gid_t
-	#define off_t posix_off_t
-	#define blksize_t posix_blksize_t
-	#define blkcnt_t posix_blkcnt_t
-
 	#define fstat posix_fstat
 	#define stat posix_stat
 #endif

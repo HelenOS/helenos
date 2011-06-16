@@ -110,5 +110,29 @@ void posix_perror(const char *s)
 	not_implemented();
 }
 
+/**
+ * 
+ * @param stream
+ * @param offset
+ * @param whence
+ * @return
+ */
+int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param stream
+ * @return
+ */
+posix_off_t posix_ftello(FILE *stream)
+{
+	// TODO
+	not_implemented();
+}
+
 /** @}
  */

@@ -60,8 +60,21 @@ extern int posix_isatty(int fd);
 #undef STDERR_FILENO
 #define STDERR_FILENO (fileno(stderr))
 
+/* File Accessibility */
+#undef F_OK
+#undef X_OK
+#undef W_OK
+#undef R_OK
+#define	F_OK 0 /* Test for existence. */
+#define	X_OK 1 /* Test for execute permission. */
+#define	W_OK 2 /* Test for write permission. */
+#define	R_OK 4 /* Test for read permission. */
+extern int posix_access(const char *path, int amode);
+
 #ifndef POSIX_INTERNAL
 	#define isatty posix_isatty
+
+	#define access posix_access
 #endif
 
 #endif /* POSIX_UNISTD_H_ */

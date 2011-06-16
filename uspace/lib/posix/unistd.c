@@ -49,5 +49,17 @@ int posix_isatty(int fd)
 	not_implemented();
 }
 
+/**
+ * 
+ * @param path
+ * @param amode
+ * @return
+ */
+int posix_access(const char *path, int amode)
+{
+	// TODO
+	not_implemented();
+}
+
 /** @}
  */
