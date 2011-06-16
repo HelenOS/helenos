@@ -49,8 +49,7 @@ const char *HID_GENERIC_CLASS_NAME;
 
 int usb_generic_hid_init(struct usb_hid_dev *hid_dev, void **data);
 
-bool usb_generic_hid_polling_callback(struct usb_hid_dev *hid_dev, void *data/*,
-    uint8_t *buffer, size_t buffer_size*/);
+bool usb_generic_hid_polling_callback(struct usb_hid_dev *hid_dev, void *data);
 
 #endif // USB_HID_HIDDDEV_H_
 

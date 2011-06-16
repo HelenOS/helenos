@@ -597,7 +597,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	for (i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].poll != NULL
 		    && hid_dev->subdrivers[i].poll(hid_dev, 
-		        hid_dev->subdrivers[i].data/*, buffer, buffer_size*/)) {
+		        hid_dev->subdrivers[i].data)) {
 			cont = true;
 		}
 	}

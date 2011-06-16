@@ -228,38 +228,16 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 
 /*----------------------------------------------------------------------------*/
 
-static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, 
-                                     usb_mouse_t *mouse_dev/*, uint8_t *buffer,
-                                     size_t buffer_size*/)
+static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
+    usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
-	
-//	usb_log_debug2("got buffer: %s.\n",
-//	    usb_debug_str_buffer(buffer, buffer_size, 0));
 	
 	if (mouse_dev->mouse_phone < 0) {
 		usb_log_warning(NAME " No console phone.\n");
 		return true;
 	}
 
-	/*
-	 * parse the input report
-	 */
-	
-//	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
-//	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
-	
-//	uint8_t report_id;
-	
-//	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
-//	    &report_id);
-	
-//	if (rc != EOK) {
-//		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
-//		    str_error(rc));
-//		return true;
-//	}
-	
 	/*
 	 * X
 	 */
@@ -509,11 +487,9 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data/*, 
-     uint8_t *buffer, size_t buffer_size*/)
+bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	usb_log_debug("usb_mouse_polling_callback()\n");
-//	usb_debug_str_buffer(buffer, buffer_size, 0);
 	
 	if (hid_dev == NULL || data == NULL) {
 		usb_log_error("Missing argument to the mouse polling callback."
@@ -523,8 +499,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data/*,
 	
 	usb_mouse_t *mouse_dev = (usb_mouse_t *)data;
 		
-	return usb_mouse_process_report(hid_dev, mouse_dev/*, buffer, 
-	                                buffer_size*/);
+	return usb_mouse_process_report(hid_dev, mouse_dev);
 }
 
 /*----------------------------------------------------------------------------*/
