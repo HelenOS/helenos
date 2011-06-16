@@ -45,15 +45,16 @@
 #include <usb/hid/hid.h>
 #include <bool.h>
 
-struct usb_hid_dev;
+typedef struct usb_hid_dev usb_hid_dev_t;
+typedef struct usb_hid_subdriver usb_hid_subdriver_t;
 
-typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *, void **data);
-typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *, void *data);
-typedef bool (*usb_hid_driver_poll_t)(struct usb_hid_dev *, void *data);
-typedef int (*usb_hid_driver_poll_ended_t)(struct usb_hid_dev *, void *data, 
+typedef int (*usb_hid_driver_init_t)(usb_hid_dev_t *dev, void **data);
+typedef void (*usb_hid_driver_deinit_t)(usb_hid_dev_t *dev, void *data);
+typedef bool (*usb_hid_driver_poll_t)(usb_hid_dev_t *dev, void *data);
+typedef int (*usb_hid_driver_poll_ended_t)(usb_hid_dev_t *dev, void *data,
                                          bool reason);
 
-typedef struct usb_hid_subdriver {	
+struct usb_hid_subdriver {
 	/** Function to be called when initializing HID device. */
 	usb_hid_driver_init_t init;
 	/** Function to be called when destroying the HID device structure. */
@@ -64,13 +65,13 @@ typedef struct usb_hid_subdriver {
 	usb_hid_driver_poll_ended_t poll_end;
 	/** Arbitrary data needed by the subdriver. */
 	void *data;
-} usb_hid_subdriver_t;
+};
 
 /*----------------------------------------------------------------------------*/
 /**
  * Structure for holding general HID device data.
  */
-typedef struct usb_hid_dev {
+struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
 	
@@ -100,7 +101,7 @@ typedef struct usb_hid_dev {
 	size_t max_input_report_size;
 	
 	int report_nr;
-} usb_hid_dev_t;
+};
 
 /*----------------------------------------------------------------------------*/
 
