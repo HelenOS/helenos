@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ERRSTR_H
-#define ERRSTR_H
+#ifndef TOK_H
+#define TOK_H
 
-/* Simple array to translate error codes to meaningful strings */
+typedef struct {
+	char *in;
+	size_t in_offset;
+	
+	char *outbuf;
+	size_t outbuf_offset;
+	size_t outbuf_size;
+	size_t outbuf_last_start;
+	
+	char **outtok;
+	size_t outtok_offset;
+	size_t outtok_size;
+} tokenizer_t;
 
-static const char *cl_errors[] = {
-	"Success",
-	"Failure",
-	"Busy",
-	"No Such Entry",
-	"Not Enough Memory",
-	"Permission Denied",
-	"Method Not Supported",
-	"Bad command or file name",
-	"Entry already exists",
-	"Object too large",
-	NULL
-};
-
-static const char *err2str(int);
+extern int tok_init(tokenizer_t *, char *, char **, size_t);
+extern void tok_fini(tokenizer_t *);
+extern int tok_tokenize(tokenizer_t *);
 
 #endif
-
