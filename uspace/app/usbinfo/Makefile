@@ -42,6 +42,7 @@ SOURCES = \
 	desctree.c \
 	dev.c \
 	dump.c \
+	hid.c \
 	info.c \
 	main.c
 
