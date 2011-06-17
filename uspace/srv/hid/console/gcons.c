@@ -167,8 +167,10 @@ static void redraw_state(size_t index)
 /** Notification run on changing console (except kernel console) */
 void gcons_change_console(size_t index)
 {
-	if (!use_gcons)
+	if (!use_gcons) {
+		active_console = index;
 		return;
+	}
 	
 	if (active_console == KERNEL_CONSOLE) {
 		size_t i;

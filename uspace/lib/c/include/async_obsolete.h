@@ -197,7 +197,7 @@ extern int async_obsolete_forward_slow(ipc_callid_t, int, sysarg_t, sysarg_t, sy
     sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 extern int async_obsolete_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t,
-    async_client_conn_t);
+    async_client_conn_t, void *);
 extern int async_obsolete_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);
 extern int async_obsolete_connect_me_to_blocking(int, sysarg_t, sysarg_t, sysarg_t);
 extern int async_obsolete_hangup(int);

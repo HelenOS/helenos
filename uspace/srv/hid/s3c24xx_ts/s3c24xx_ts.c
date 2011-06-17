@@ -72,7 +72,8 @@ static irq_code_t ts_irq_code = {
 /** S3C24xx touchscreen instance structure */
 static s3c24xx_ts_t *ts;
 
-static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
 static void s3c24xx_ts_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static void s3c24xx_ts_pen_down(s3c24xx_ts_t *ts);
 static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts);
@@ -372,7 +373,8 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1)
 }
 
 /** Handle mouse client connection. */
-static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

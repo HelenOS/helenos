@@ -48,10 +48,11 @@ static usbvirt_device_t *DEV = NULL;
 
 /** Main IPC call handling from virtual host controller.
  *
- * @param iid Caller identification.
- * @param icall Initial incoming call.
+ * @param iid		Caller identification
+ * @param icall		Initial incoming call
+ * @param arg		Local argument
  */
-static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void callback_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	assert(DEV != NULL);
 
@@ -98,7 +99,7 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 	dev->vhc_sess = hcd_sess;
 	
 	async_exch_t *exch = async_exchange_begin(hcd_sess);
-	rc = async_connect_to_me(exch, 0, 0, 0, callback_connection);
+	rc = async_connect_to_me(exch, 0, 0, 0, callback_connection, NULL);
 	async_exchange_end(exch);
 	
 	if (rc != EOK)

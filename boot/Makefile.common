@@ -85,7 +85,7 @@ endif
 
 RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/fb/fb \
-	$(USPACE_PATH)/srv/hid/kbd/kbd \
+	$(USPACE_PATH)/srv/hid/input/input \
 	$(USPACE_PATH)/srv/hid/console/console \
 	$(USPACE_PATH)/srv/fs/devfs/devfs
 

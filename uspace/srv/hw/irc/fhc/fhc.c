@@ -65,8 +65,9 @@ static size_t fhc_uart_size;
  *
  * @param iid		Hash of the request that opened the connection.
  * @param icall		Call data of the request that opened the connection.
+ * @param arg		Local argument.
  */
-static void fhc_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void fhc_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

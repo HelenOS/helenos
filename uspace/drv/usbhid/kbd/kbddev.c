@@ -39,7 +39,8 @@
 #include <stdio.h>
 
 #include <io/keycode.h>
-#include <ipc/kbd.h>
+#include <io/console.h>
+#include <ipc/kbdev.h>
 #include <async.h>
 #include <async_obsolete.h>
 #include <fibril.h>
@@ -62,7 +63,6 @@
 
 #include "kbddev.h"
 
-#include "layout.h"
 #include "conv.h"
 #include "kbdrepeat.h"
 
@@ -72,7 +72,7 @@
 #include <kernel/ipc/ipc_methods.h>
 
 /*----------------------------------------------------------------------------*/
-/** Default modifiers when the keyboard is initialized. */
+
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 
 static const uint8_t ERROR_ROLLOVER = 1;
@@ -100,6 +100,8 @@ usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 
 const char *HID_KBD_FUN_NAME = "keyboard";
 const char *HID_KBD_CLASS_NAME = "keyboard";
+
+static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 
 /*----------------------------------------------------------------------------*/
 
@@ -153,27 +155,12 @@ typedef enum usb_kbd_flags {
 } usb_kbd_flags;
 
 /*----------------------------------------------------------------------------*/
-/* Keyboard layouts                                                           */
-/*----------------------------------------------------------------------------*/
-
-#define NUM_LAYOUTS 3
-
-/** Keyboard layout map. */
-static layout_op_t *layout[NUM_LAYOUTS] = {
-	&us_qwerty_op,
-	&us_dvorak_op,
-	&cz_op
-};
-
-static int active_layout = 0;
-
-/*----------------------------------------------------------------------------*/
 /* IPC method handler                                                         */
 /*----------------------------------------------------------------------------*/
 
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
-/** 
+/**
  * Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
@@ -188,6 +175,7 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
+	int callback;
 	
 	usb_kbd_t *kbd_dev = (usb_kbd_t *)fun->driver_data;
 	if (kbd_dev == NULL) {
@@ -197,8 +185,9 @@ static void default_connection_handler(ddf_fun_t *fun,
 		return;
 	}
 
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
+	switch (method) {
+	case IPC_M_CONNECT_TO_ME:
+		callback = IPC_GET_ARG5(*icall);
 
 		if (kbd_dev->console_phone != -1) {
 			usb_log_debug("default_connection_handler: "
@@ -211,11 +200,17 @@ static void default_connection_handler(ddf_fun_t *fun,
 		
 		usb_log_debug("default_connection_handler: OK\n");
 		async_answer_0(icallid, EOK);
-		return;
+		break;
+	case KBDEV_SET_IND:
+		kbd_dev->mods = IPC_GET_ARG1(*icall);
+		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
+		async_answer_0(icallid, EOK);
+		break;
+	default:
+		usb_log_debug("default_connection_handler: Wrong function.\n");
+		async_answer_0(icallid, EINVAL);
+		break;
 	}
-	
-	usb_log_debug("default_connection_handler: Wrong function.\n");
-	async_answer_0(icallid, EINVAL);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -224,9 +219,10 @@ static void default_connection_handler(ddf_fun_t *fun,
 /**
  * Handles turning of LED lights on and off.
  *
- * In case of USB keyboards, the LEDs are handled in the driver, not in the 
- * device. When there should be a change (lock key was pressed), the driver
- * uses a Set_Report request sent to the device to set the state of the LEDs.
+ * As with most other keyboards, the LED indicators in USB keyboards are
+ * driven by software. When state of some modifier changes, the input server
+ * will call us and tell us to update the LED state and what the new state
+ * should be.
  *
  * This functions sets the LED lights according to current settings of modifiers
  * kept in the keyboard device structure.
@@ -248,7 +244,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_OUTPUT);
 	
-	while (field != NULL) {		
+	while (field != NULL) {
 		
 		if ((field->usage == USB_HID_LED_NUM_LOCK) 
 		    && (kbd_dev->mods & KM_NUM_LOCK)){
@@ -291,119 +287,24 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * Processes key events.
+/** Send key event.
  *
- * @note This function was copied from AT keyboard driver and modified to suit
- *       USB keyboard.
- *
- * @note Lock keys are not sent to the console, as they are completely handled
- *       in the driver. It may, however, be required later that the driver
- *       sends also these keys to application (otherwise it cannot use those
- *       keys at all).
- * 
  * @param kbd_dev Keyboard device structure.
- * @param type Type of the event (press / release). Recognized values: 
+ * @param type Type of the event (press / release). Recognized values:
  *             KEY_PRESS, KEY_RELEASE
- * @param key Key code of the key according to HID Usage Tables.
+ * @param key Key code
  */
 void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type, 
     unsigned int key)
 {
-	kbd_event_t ev;
-	unsigned mod_mask;
-
-	/*
-	 * These parts are copy-pasted from the AT keyboard driver.
-	 *
-	 * They definitely require some refactoring, but will keep it for later
-	 * when the console and keyboard system is changed in HelenOS.
-	 */
-	switch (key) {
-	case KC_LCTRL: mod_mask = KM_LCTRL; break;
-	case KC_RCTRL: mod_mask = KM_RCTRL; break;
-	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
-	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
-	case KC_LALT: mod_mask = KM_LALT; break;
-	case KC_RALT: mod_mask = KM_RALT; break;
-	default: mod_mask = 0; break;
-	}
-
-	if (mod_mask != 0) {
-		if (type == KEY_PRESS)
-			kbd_dev->mods = kbd_dev->mods | mod_mask;
-		else
-			kbd_dev->mods = kbd_dev->mods & ~mod_mask;
-	}
-
-	switch (key) {
-	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
-	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
-	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
-	default: mod_mask = 0; break;
-	}
-
-	if (mod_mask != 0) {
-		if (type == KEY_PRESS) {
-			/*
-			 * Only change lock state on transition from released
-			 * to pressed. This prevents autorepeat from messing
-			 * up the lock state.
-			 */
-			unsigned int locks_old = kbd_dev->lock_keys;
-			
-			kbd_dev->mods = 
-			    kbd_dev->mods ^ (mod_mask & ~kbd_dev->lock_keys);
-			kbd_dev->lock_keys = kbd_dev->lock_keys | mod_mask;
-
-			/* Update keyboard lock indicator lights. */
-			if (kbd_dev->lock_keys != locks_old 
-			    && hid_dev != NULL) { // ugly hack
-				usb_kbd_set_led(hid_dev, kbd_dev);
-			}
-		} else {
-			kbd_dev->lock_keys = kbd_dev->lock_keys & ~mod_mask;
-		}
-	}
-
-	if (key == KC_CAPS_LOCK || key == KC_NUM_LOCK || key == KC_SCROLL_LOCK) {
-		// do not send anything to the console, this is our business
-		return;
-	}
-	
-	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F1) {
-		active_layout = 0;
-		layout[active_layout]->reset();
-		return;
-	}
-
-	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F2) {
-		active_layout = 1;
-		layout[active_layout]->reset();
-		return;
-	}
-
-	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F3) {
-		active_layout = 2;
-		layout[active_layout]->reset();
-		return;
-	}
-	
-	ev.type = type;
-	ev.key = key;
-	ev.mods = kbd_dev->mods;
-
-	ev.c = layout[active_layout]->parse_ev(&ev);
-
-	usb_log_debug2("Sending key %d to the console\n", ev.key);
+	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
 	if (kbd_dev->console_phone < 0) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 	
-	async_obsolete_msg_4(kbd_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
-	    ev.mods, ev.c);
+	async_obsolete_msg_2(kbd_dev->console_phone, KBDEV_EVENT, type, key);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -715,6 +616,9 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		    "structure.\n");
 		return ENOMEM;  // TODO: some other code??
 	}
+
+	/* Store link to HID device */
+	kbd_dev->hid_dev = hid_dev;
 	
 	/*
 	 * TODO: make more general
@@ -786,14 +690,14 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	/*
 	 * Modifiers and locks
-	 */	
+	 */
 	kbd_dev->modifiers = 0;
 	kbd_dev->mods = DEFAULT_ACTIVE_MODS;
 	kbd_dev->lock_keys = 0;
 	
 	/*
 	 * Autorepeat
-	 */	
+	 */
 	kbd_dev->repeat.key_new = 0;
 	kbd_dev->repeat.key_repeated = 0;
 	kbd_dev->repeat.delay_before = DEFAULT_DELAY_BEFORE_FIRST_REPEAT;

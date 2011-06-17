@@ -364,7 +364,8 @@ static int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
  * @param[in] icall Initial message call structure.
  *
  */
-static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	/*
 	 * Accept the connection by answering

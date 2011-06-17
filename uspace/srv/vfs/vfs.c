@@ -48,7 +48,7 @@
 
 #define NAME  "vfs"
 
-static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	bool cont = true;
 	

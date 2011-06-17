@@ -1123,7 +1123,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 /** Function for handling connections to devmap
  *
  */
-static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Select interface */
 	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {

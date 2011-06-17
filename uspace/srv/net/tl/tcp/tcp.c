@@ -2441,9 +2441,9 @@ int tcp_release_and_return(packet_t *packet, int result)
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
- *
+ * @param[in]     arg   Local argument.
  */
-static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;

@@ -74,7 +74,7 @@ fs_reg_t ext2fs_reg;
  * upon each request, EXT2FS might want to keep the connections open after the
  * request has been completed.
  */
-static void ext2fs_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ext2fs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
 		/*

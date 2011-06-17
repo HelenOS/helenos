@@ -585,7 +585,6 @@ not_satisfied:
 	/*
 	 * Searching least priority queues on all CPU's first and most priority
 	 * queues on all CPU's last.
-	 *
 	 */
 	size_t acpu;
 	size_t acpu_bias = 0;
@@ -619,25 +618,26 @@ not_satisfied:
 			link_t *link = cpu->rq[rq].rq_head.prev;
 			
 			while (link != &(cpu->rq[rq].rq_head)) {
-				thread = (thread_t *) list_get_instance(link, thread_t, rq_link);
+				thread = (thread_t *) list_get_instance(link,
+				    thread_t, rq_link);
 				
 				/*
-				 * We don't want to steal CPU-wired threads
-				 * neither threads already stolen. The latter
-				 * prevents threads from migrating between CPU's
-				 * without ever being run. We don't want to
-				 * steal threads whose FPU context is still in
-				 * CPU.
-				 *
+				 * Do not steal CPU-wired threads, threads
+				 * already stolen, threads for which migration
+				 * was temporarily disabled or threads whose
+				 * FPU context is still in the CPU.
 				 */
 				irq_spinlock_lock(&thread->lock, false);
 				
-				if ((!(thread->flags & (THREAD_FLAG_WIRED | THREAD_FLAG_STOLEN)))
-				    && (!(thread->fpu_context_engaged))) {
+				if (!(thread->flags & THREAD_FLAG_WIRED) &&
+				    !(thread->flags & THREAD_FLAG_STOLEN) &&
+				    !thread->nomigrate &&
+				    !thread->fpu_context_engaged) {
 					/*
 					 * Remove thread from ready queue.
 					 */
-					irq_spinlock_unlock(&thread->lock, false);
+					irq_spinlock_unlock(&thread->lock,
+					    false);
 					
 					atomic_dec(&cpu->nrdy);
 					atomic_dec(&nrdy);
@@ -659,7 +659,8 @@ not_satisfied:
 				 * Ready thread on local CPU
 				 */
 				
-				irq_spinlock_pass(&(cpu->rq[rq].lock), &thread->lock);
+				irq_spinlock_pass(&(cpu->rq[rq].lock),
+				    &thread->lock);
 				
 #ifdef KCPULB_VERBOSE
 				printf("kcpulb%u: TID %" PRIu64 " -> cpu%u, "

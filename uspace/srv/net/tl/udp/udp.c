@@ -340,9 +340,9 @@ static int udp_received_msg(device_id_t device_id, packet_t *packet,
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
- *
+ * @param[in]     arg   Local argument.
  */
-static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;

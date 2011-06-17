@@ -64,6 +64,9 @@ struct usb_hid_dev;
  *       being device-specific.
  */
 typedef struct usb_kbd_t {
+	/** Link to HID device structure */
+	struct usb_hid_dev *hid_dev;
+
 	/** Previously pressed keys (not translated to key codes). */
 	int32_t *keys_old;
 	/** Currently pressed keys (not translated to key codes). */

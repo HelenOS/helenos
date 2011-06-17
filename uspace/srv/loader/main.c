@@ -409,7 +409,7 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
  * Receive and carry out commands (of which the last one should be
  * to execute the loaded program).
  */
-static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Already have a connection? */
 	if (connected) {

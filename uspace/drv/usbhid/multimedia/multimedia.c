@@ -49,7 +49,7 @@
 #include <async_obsolete.h>
 #include <str_error.h>
 
-#include <ipc/kbd.h>
+#include <ipc/kbdev.h>
 #include <io/console.h>
 
 // FIXME: remove this header
@@ -161,7 +161,7 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 		return;
 	}
 	
-	async_obsolete_msg_4(multim_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
+	async_obsolete_msg_4(multim_dev->console_phone, KBDEV_EVENT, ev.type, ev.key, 
 	    ev.mods, ev.c);
 }
 

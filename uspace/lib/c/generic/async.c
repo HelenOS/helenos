@@ -165,12 +165,14 @@ typedef struct {
 	ipc_callid_t callid;
 	/** Call data of the opening call. */
 	ipc_call_t call;
+	/** Local argument or NULL if none. */
+	void *carg;
 	
 	/** Identification of the closing call. */
 	ipc_callid_t close_callid;
 	
 	/** Fibril function that will be used to handle the connection. */
-	void (*cfibril)(ipc_callid_t, ipc_call_t *);
+	async_client_conn_t cfibril;
 } connection_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
@@ -210,11 +212,13 @@ void *async_get_client_data(void)
  *
  * This function is defined as a weak symbol - to be redefined in user code.
  *
- * @param callid Hash of the incoming call.
- * @param call   Data of the incoming call.
+ * @param callid	Hash of the incoming call.
+ * @param call		Data of the incoming call.
+ * @param arg		Local argument
  *
  */
-static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
+static void default_client_connection(ipc_callid_t callid, ipc_call_t *call,
+    void *arg)
 {
 	ipc_answer_0(callid, ENOENT);
 }
@@ -223,8 +227,9 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
  *
  * This function is defined as a weak symbol - to be redefined in user code.
  *
- * @param callid Hash of the incoming call.
- * @param call   Data of the incoming call.
+ * @param callid	Hash of the incoming call.
+ * @param call  	Data of the incoming call.
+ * @param arg		Local argument.
  *
  */
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
@@ -232,7 +237,7 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 }
 
 static async_client_conn_t client_connection = default_client_connection;
-static async_client_conn_t interrupt_received = default_interrupt_received;
+static async_interrupt_handler_t interrupt_received = default_interrupt_received;
 
 /** Setter for client_connection function pointer.
  *
@@ -249,7 +254,7 @@ void async_set_client_connection(async_client_conn_t conn)
  * @param intr Function that will implement a new interrupt
  *             notification fibril.
  */
-void async_set_interrupt_received(async_client_conn_t intr)
+void async_set_interrupt_received(async_interrupt_handler_t intr)
 {
 	interrupt_received = intr;
 }
@@ -632,7 +637,7 @@ static int connection_fibril(void *arg)
 	 * Call the connection handler function.
 	 */
 	fibril_connection->cfibril(fibril_connection->callid,
-	    &fibril_connection->call);
+	    &fibril_connection->call, fibril_connection->carg);
 	
 	/*
 	 * Remove the reference for this client task connection.
@@ -703,13 +708,14 @@ static int connection_fibril(void *arg)
  * @param call          Call data of the opening call.
  * @param cfibril       Fibril function that should be called upon opening the
  *                      connection.
+ * @param carg		Extra argument to pass to the connection fibril
  *
  * @return New fibril id or NULL on failure.
  *
  */
 fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
     ipc_callid_t callid, ipc_call_t *call,
-    async_client_conn_t cfibril)
+    async_client_conn_t cfibril, void *carg)
 {
 	connection_t *conn = malloc(sizeof(*conn));
 	if (!conn) {
@@ -724,6 +730,7 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
 	conn->close_callid = 0;
+	conn->carg = carg;
 	
 	if (call)
 		conn->call = *call;
@@ -778,7 +785,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril, etc. */
 		async_new_connection(call->in_task_hash, IPC_GET_ARG5(*call),
-		    callid, call, client_connection);
+		    callid, call, client_connection, NULL);
 		return;
 	}
 	
@@ -1413,7 +1420,7 @@ int async_forward_slow(ipc_callid_t callid, async_exch_t *exch,
  *
  */
 int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_client_conn_t client_receiver)
+    sysarg_t arg3, async_client_conn_t client_receiver, void *carg)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -1427,7 +1434,7 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	
 	if (client_receiver != NULL)
 		async_new_connection(task_hash, phone_hash, 0, NULL,
-		    client_receiver);
+		    client_receiver, carg);
 	
 	return EOK;
 }
@@ -1806,6 +1813,8 @@ void async_exchange_end(async_exch_t *exch)
 		return;
 	
 	async_sess_t *sess = exch->sess;
+	
+	atomic_dec(&sess->refcnt);
 	
 	if (sess->mgmt == EXCHANGE_SERIALIZE)
 		fibril_mutex_unlock(&sess->mutex);
