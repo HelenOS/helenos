@@ -57,6 +57,7 @@ SOURCES = \
 	input.c \
 	util.c \
 	exec.c \
-	scli.c
+	scli.c \
+	tok.c
 
 include $(USPACE_PREFIX)/Makefile.common
