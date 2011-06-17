@@ -572,9 +572,8 @@ int cmd_help(cmd_arg_t *argv)
 {
 	spinlock_lock(&cmd_lock);
 	
-	link_t *cur;
 	size_t len = 0;
-	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+	list_foreach(cmd_list, cur) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		
@@ -590,7 +589,7 @@ int cmd_help(cmd_arg_t *argv)
 		return 1;
 	}
 	
-	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+	list_foreach(cmd_list, cur) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		
@@ -645,11 +644,9 @@ int cmd_uptime(cmd_arg_t *argv)
  */
 int cmd_desc(cmd_arg_t *argv)
 {
-	link_t *cur;
-	
 	spinlock_lock(&cmd_lock);
 	
-	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+	list_foreach(cmd_list, cur) {
 		cmd_info_t *hlp;
 		
 		hlp = list_get_instance(cur, cmd_info_t, link);

@@ -96,8 +96,6 @@ bool anon_resize(as_area_t *area, size_t new_pages)
  */
 void anon_share(as_area_t *area)
 {
-	link_t *cur;
-
 	ASSERT(mutex_locked(&area->as->lock));
 	ASSERT(mutex_locked(&area->lock));
 
@@ -105,8 +103,7 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	for (cur = area->used_space.leaf_head.next;
-	    cur != &area->used_space.leaf_head; cur = cur->next) {
+	list_foreach(area->used_space.leaf_list, cur) {
 		btree_node_t *node;
 		unsigned int i;
 		
