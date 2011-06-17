@@ -95,8 +95,9 @@ int help_builtin(int builtin, unsigned int extended)
 	if (NULL != cmd->help) {
 		cmd->help(extended);
 		return CL_EOK;
-	} else
+	} else {
 		return CL_ENOENT;
+	}
 }
 
 int run_builtin(int builtin, char *argv[], cliuser_t *usr, iostate_t *new_iostate)
@@ -111,8 +112,7 @@ int run_builtin(int builtin, char *argv[], cliuser_t *usr, iostate_t *new_iostat
 	
 	if (NULL != cmd->entry) {
 		rc = ((int)cmd->entry(argv, usr));
-	}
-	else {
+	} else {
 		rc = CL_ENOENT;
 	}
 	

@@ -115,8 +115,9 @@ int help_module(int module, unsigned int extended)
 	if (NULL != mod->help) {
 		mod->help(extended);
 		return CL_EOK;
-	} else
+	} else {
 		return CL_ENOENT;
+	}
 }
 
 /* Invokes the module entry point modules[module], passing argv[] as an argument
@@ -133,8 +134,7 @@ int run_module(int module, char *argv[], iostate_t *new_iostate)
 
 	if (NULL != mod->entry) {
 		rc = ((int)mod->entry(argv));
-	}
-	else {
+	} else {
 		rc = CL_ENOENT;
 	}
 	
