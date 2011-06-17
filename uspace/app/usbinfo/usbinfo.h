@@ -84,7 +84,8 @@ void dump_descriptor_tree_brief(usbinfo_device_t *);
 void dump_descriptor_tree_full(usbinfo_device_t *);
 void dump_strings(usbinfo_device_t *);
 void dump_status(usbinfo_device_t *);
-void dump_hidreport(usbinfo_device_t *);
+void dump_hidreport_raw(usbinfo_device_t *);
+void dump_hidreport_usages(usbinfo_device_t *);
 
 
 #endif

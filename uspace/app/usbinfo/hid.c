@@ -43,8 +43,14 @@
 
 #define BYTES_PER_LINE 20
 
+typedef enum {
+	HID_DUMP_RAW,
+	HID_DUMP_USAGES
+} hid_dump_type_t;
+
 typedef struct {
 	usbinfo_device_t *dev;
+	hid_dump_type_t dump_type;
 	usb_standard_interface_descriptor_t *last_iface;
 } descriptor_walk_context_t;
 
@@ -84,12 +90,12 @@ static void dump_hid_report_raw(int iface_no, uint8_t *report, size_t size)
 	printf("\n");
 }
 
-/** Dumps HID report in pseudo human-readable format.
+/** Dumps usages in HID report.
  *
  * @param iface_no USB interface the report belongs to.
  * @param report Parsed report descriptor.
  */
-static void dump_hid_report_brief(int iface_no, usb_hid_report_t *report)
+static void dump_hid_report_usages(int iface_no, usb_hid_report_t *report)
 {
 	printf("%sParsed HID report descriptor for interface %d\n",
 	    get_indent(0), iface_no);
@@ -109,12 +115,13 @@ static void dump_hid_report_brief(int iface_no, usb_hid_report_t *report)
 
 /** Retrieves HID report from given USB device and dumps it.
  *
+ * @param dump_type In which format to dump the report.
  * @param ctrl_pipe Default control pipe to the device.
  * @param iface_no Interface number.
  * @param report_size Size of the report descriptor.
  */
-static void retrieve_and_dump_hid_report(usb_pipe_t *ctrl_pipe,
-    uint8_t iface_no, size_t report_size)
+static void retrieve_and_dump_hid_report(hid_dump_type_t dump_type,
+    usb_pipe_t *ctrl_pipe, uint8_t iface_no, size_t report_size)
 {
 	assert(report_size > 0);
 
@@ -145,8 +152,16 @@ static void retrieve_and_dump_hid_report(usb_pipe_t *ctrl_pipe,
 		    str_error(rc));
 	}
 
-	dump_hid_report_raw(iface_no, raw_report, report_size);
-	dump_hid_report_brief(iface_no, &report);
+	switch (dump_type) {
+	case HID_DUMP_RAW:
+		dump_hid_report_raw(iface_no, raw_report, report_size);
+		break;
+	case HID_DUMP_USAGES:
+		dump_hid_report_usages(iface_no, &report);
+		break;
+	default:
+		assert(false && "unreachable code apparently reached");
+	}
 
 	free(raw_report);
 	usb_hid_free_report(&report);
@@ -194,15 +209,31 @@ static void descriptor_walk_callback(uint8_t *raw_descriptor,
 		return;
 	}
 
-	retrieve_and_dump_hid_report(&context->dev->ctrl_pipe,
-	    context->last_iface->interface_number, report_size);
+	retrieve_and_dump_hid_report(context->dump_type,
+	    &context->dev->ctrl_pipe, context->last_iface->interface_number,
+	    report_size);
 }
 
 
-void dump_hidreport(usbinfo_device_t *dev)
+void dump_hidreport_raw(usbinfo_device_t *dev)
 {
 	descriptor_walk_context_t context = {
 		.dev = dev,
+		.dump_type = HID_DUMP_RAW,
+		.last_iface = NULL
+	};
+
+	usb_dp_walk_simple(dev->full_configuration_descriptor,
+	    dev->full_configuration_descriptor_size,
+	    usb_dp_standard_descriptor_nesting,
+	    descriptor_walk_callback, &context);
+}
+
+void dump_hidreport_usages(usbinfo_device_t *dev)
+{
+	descriptor_walk_context_t context = {
+		.dev = dev,
+		.dump_type = HID_DUMP_USAGES,
 		.last_iface = NULL
 	};
 
