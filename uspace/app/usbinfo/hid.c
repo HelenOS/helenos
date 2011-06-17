@@ -60,6 +60,29 @@ static bool is_descriptor_kind(uint8_t *d, usb_descriptor_type_t t)
 	return type == t;
 }
 
+/** Dumps HID report in raw format.
+ *
+ * @param iface_no USB interface the report belongs to.
+ * @param report Report descriptor.
+ * @param size Size of the @p report in bytes.
+ */
+static void dump_hid_report_raw(int iface_no, uint8_t *report, size_t size)
+{
+	printf("%sHID report descriptor for interface %d", get_indent(0),
+	    iface_no);
+	for (size_t i = 0; i < size; i++) {
+		size_t line_idx = i % BYTES_PER_LINE;
+		if (line_idx == 0) {
+			printf("\n%s", get_indent(1));
+		}
+		printf("%02X", (int) report[i]);
+		if (line_idx + 1 < BYTES_PER_LINE) {
+			printf(" ");
+		}
+	}
+	printf("\n");
+}
+
 /** Retrieves HID report from given USB device and dumps it.
  *
  * @param ctrl_pipe Default control pipe to the device.
@@ -71,8 +94,8 @@ static void retrieve_and_dump_hid_report(usb_pipe_t *ctrl_pipe,
 {
 	assert(report_size > 0);
 
-	uint8_t *report = malloc(report_size);
-	if (report == NULL) {
+	uint8_t *raw_report = malloc(report_size);
+	if (raw_report == NULL) {
 		usb_log_warning(
 		    "Failed to allocate %zuB, skipping interface %d.\n",
 		    report_size, (int) iface_no);
@@ -83,29 +106,17 @@ static void retrieve_and_dump_hid_report(usb_pipe_t *ctrl_pipe,
 	int rc = usb_request_get_descriptor(ctrl_pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_DESCTYPE_HID_REPORT, 0, iface_no,
-	    report, report_size, &actual_report_size);
+	    raw_report, report_size, &actual_report_size);
 	if (rc != EOK) {
 		usb_log_error("Failed to retrieve HID report descriptor: %s.\n",
 		    str_error(rc));
-		free(report);
+		free(raw_report);
 		return;
 	}
 
-	printf("%sHID report descriptor for interface %d", get_indent(0),
-	    (int) iface_no);
-	for (size_t i = 0; i < report_size; i++) {
-		size_t line_idx = i % BYTES_PER_LINE;
-		if (line_idx == 0) {
-			printf("\n%s", get_indent(1));
-		}
-		printf("%02X", (int) report[i]);
-		if (line_idx + 1 < BYTES_PER_LINE) {
-			printf(" ");
-		}
-	}
-	printf("\n");
+	dump_hid_report_raw(iface_no, raw_report, report_size);
 
-	free(report);
+	free(raw_report);
 }
 
 /** Callback for walking descriptor tree.
