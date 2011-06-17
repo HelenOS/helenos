@@ -55,7 +55,9 @@ static void print_usage(char *app_name)
 	printf(NAME ": query USB devices for descriptors\n\n");
 	printf("Usage: %s [options] device [device [device [ ... ]]]\n",
 	    app_name);
-	printf(_INDENT "The device is a devman path to the device.\n");
+	printf(_INDENT "The device can be specified in two ways.\n");
+	printf(_INDENT "  o Using its devman path, e.g. /hw/pci0/.../usb00_a1.\n");
+	printf(_INDENT "  o Or using BUS.ADDR numbers as printed by lsusb.\n");
 
 	_OPTION("-h --help", "Print this help and exit.");
 	_OPTION("-i --identification", "Brief device identification.");
