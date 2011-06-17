@@ -37,6 +37,7 @@
 #include <str_error.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/request.h>
+#include <usb/hid/hidparser.h>
 #include <errno.h>
 #include "usbinfo.h"
 
@@ -83,6 +84,29 @@ static void dump_hid_report_raw(int iface_no, uint8_t *report, size_t size)
 	printf("\n");
 }
 
+/** Dumps HID report in pseudo human-readable format.
+ *
+ * @param iface_no USB interface the report belongs to.
+ * @param report Parsed report descriptor.
+ */
+static void dump_hid_report_brief(int iface_no, usb_hid_report_t *report)
+{
+	printf("%sParsed HID report descriptor for interface %d\n",
+	    get_indent(0), iface_no);
+	list_foreach(report->reports, report_it) {
+		usb_hid_report_description_t *description = list_get_instance(report_it, usb_hid_report_description_t, link);
+		printf("%sReport %d (type %d)\n", get_indent(1),
+		    (int) description->report_id,
+		    (int) description->type);
+		list_foreach(description->report_items, item_it) {
+			usb_hid_report_field_t *field = list_get_instance(item_it, usb_hid_report_field_t, link);
+			printf("%sUsage page = 0x%04x    Usage = 0x%04x\n",
+			    get_indent(2),
+			    (int) field->usage_page, (int) field->usage);
+		}
+	}
+}
+
 /** Retrieves HID report from given USB device and dumps it.
  *
  * @param ctrl_pipe Default control pipe to the device.
@@ -114,9 +138,18 @@ static void retrieve_and_dump_hid_report(usb_pipe_t *ctrl_pipe,
 		return;
 	}
 
+	usb_hid_report_t report;
+	rc = usb_hid_parse_report_descriptor(&report, raw_report, report_size);
+	if (rc != EOK) {
+		usb_log_error("Failed to part report descriptor: %s.\n",
+		    str_error(rc));
+	}
+
 	dump_hid_report_raw(iface_no, raw_report, report_size);
+	dump_hid_report_brief(iface_no, &report);
 
 	free(raw_report);
+	usb_hid_free_report(&report);
 }
 
 /** Callback for walking descriptor tree.
