@@ -36,6 +36,7 @@
 #define LIBPOSIX_INTERNAL
 
 #include "stat.h"
+#include "../common.h"
 #include <mem.h>
 
 /**
@@ -81,6 +82,18 @@ int posix_fstat(int fd, struct posix_stat *st)
 }
 
 /**
+ * 
+ * @param path
+ * @param st
+ * @return
+ */
+int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
  *
  * @param path
  * @param st
@@ -95,6 +108,29 @@ int posix_stat(const char *path, struct posix_stat *st)
 	}
 	stat_to_posix(st, &hst);
 	return 0;
+}
+
+/**
+ * 
+ * @param path
+ * @param mode
+ * @return
+ */
+int posix_chmod(const char *path, mode_t mode)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param mask
+ * @return
+ */
+mode_t posix_umask(mode_t mask)
+{
+	// TODO
+	not_implemented();
 }
 
 /** @}

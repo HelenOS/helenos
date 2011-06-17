@@ -127,11 +127,17 @@ struct posix_stat {
 };
 
 extern int posix_fstat(int fd, struct posix_stat *st);
-extern int posix_stat(const char *path, struct posix_stat *st);
+extern int posix_lstat(const char *restrict path, struct posix_stat *restrict st);
+extern int posix_stat(const char *restrict path, struct posix_stat *restrict st);
+extern int posix_chmod(const char *path, mode_t mode);
+extern mode_t posix_umask(mode_t mask);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define fstat posix_fstat
+	#define lstat posix_lstat
 	#define stat posix_stat
+	#define chmod posix_chmod
+	#define umask posix_umask
 #endif
 
 #endif /* POSIX_SYS_STAT_H */
