@@ -42,9 +42,6 @@ test_t tests[] = {
 #include <btree/btree1.def>
 #include <debug/mips1.def>
 #include <fault/fault1.def>
-#include <fpu/fpu1.def>
-#include <fpu/sse1.def>
-#include <fpu/mips2.def>
 #include <mm/falloc1.def>
 #include <mm/falloc2.def>
 #include <mm/mapping1.def>

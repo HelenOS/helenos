@@ -39,14 +39,17 @@
  */
 
 #include <async.h>
+#include <async_obsolete.h>
 #include <malloc.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <ipc/services.h>
 #include <net/modules.h>
+#include <ns.h>
+#include <ns_obsolete.h>
 
 /** The time between connect requests in microseconds. */
-#define MODULE_WAIT_TIME	(10 * 1000)
+#define MODULE_WAIT_TIME  (10 * 1000)
 
 /** Answer a call.
  *
@@ -137,9 +140,9 @@ int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
-		int rc = async_connect_to_me(phone, arg1, arg2, arg3, client_receiver);
+		int rc = async_obsolete_connect_to_me(phone, arg1, arg2, arg3, client_receiver);
 		if (rc != EOK) {
-			async_hangup(phone);
+			async_obsolete_hangup(phone);
 			return rc;
 		}
 	}
@@ -171,10 +174,10 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
 
 	/* If no timeout is set */
 	if (timeout <= 0)
-		return async_connect_me_to_blocking(PHONE_NS, need, 0, 0);
-
+		return service_obsolete_connect_blocking(need, 0, 0);
+	
 	while (true) {
-		phone = async_connect_me_to(PHONE_NS, need, 0, 0);
+		phone = service_obsolete_connect(need, 0, 0);
 		if ((phone >= 0) || (phone != ENOENT))
 			return phone;
 

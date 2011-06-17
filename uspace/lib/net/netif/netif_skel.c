@@ -53,6 +53,9 @@
 #include <netif_skel.h>
 #include <nil_remote.h>
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
+
 DEVICE_MAP_IMPLEMENT(netif_device_map, netif_device_t);
 
 /** Network interface global data. */
@@ -287,10 +290,10 @@ static int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
 	
 	*count = 0;
 	
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NETIF_PROBE:
 		return netif_probe_req_local(0, IPC_GET_DEVICE(*call),
 		    NETIF_GET_IRQ(*call), NETIF_GET_IO(*call));
@@ -384,8 +387,7 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int res = netif_module_message(callid, &call, &answer, &count);
 		
 		/* End if said to either by the message or the processing result */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
+		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */

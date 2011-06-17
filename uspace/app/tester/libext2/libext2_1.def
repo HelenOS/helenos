@@ -1,0 +1,6 @@
+{
+	"libext2_1",
+	"Superblock getters test",
+	&test_libext2_1,
+	true
+},

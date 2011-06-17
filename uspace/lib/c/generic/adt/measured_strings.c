@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <async.h>
+#include <async_obsolete.h>
 
 /** Creates a new measured string bundled with a copy of the given string
  * itself as one memory block.
@@ -325,7 +326,7 @@ measured_strings_return(int phone, measured_string_t **strings, uint8_t **data,
 	if (!lengths)
 		return ENOMEM;
 
-	rc = async_data_read_start(phone, lengths,
+	rc = async_obsolete_data_read_start(phone, lengths,
 	    sizeof(size_t) * (count + 1));
 	if (rc != EOK) {
 		free(lengths);
@@ -350,7 +351,7 @@ measured_strings_return(int phone, measured_string_t **strings, uint8_t **data,
 	for (index = 0; index < count; index++) {
 		(*strings)[index].length = lengths[index];
 		if (lengths[index] > 0) {
-			rc = async_data_read_start(phone, next, lengths[index]);
+			rc = async_obsolete_data_read_start(phone, next, lengths[index]);
 			if (rc != EOK) {
 			    	free(lengths);
 				free(data);
@@ -398,7 +399,7 @@ measured_strings_send(int phone, const measured_string_t *strings,
 	if (!lengths)
 		return ENOMEM;
 
-	rc = async_data_write_start(phone, lengths,
+	rc = async_obsolete_data_write_start(phone, lengths,
 	    sizeof(size_t) * (count + 1));
 	if (rc != EOK) {
 		free(lengths);
@@ -409,7 +410,7 @@ measured_strings_send(int phone, const measured_string_t *strings,
 
 	for (index = 0; index < count; index++) {
 		if (strings[index].length > 0) {
-			rc = async_data_write_start(phone, strings[index].value,
+			rc = async_obsolete_data_write_start(phone, strings[index].value,
 			    strings[index].length);
 			if (rc != EOK)
 				return rc;

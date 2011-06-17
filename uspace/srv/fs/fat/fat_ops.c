@@ -969,7 +969,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	free(opts);
 
 	/* initialize libblock */
-	rc = block_init(devmap_handle, BS_SIZE);
+	rc = block_init(EXCHANGE_SERIALIZE, devmap_handle, BS_SIZE);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		return;

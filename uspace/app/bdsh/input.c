@@ -109,12 +109,12 @@ void get_input(cliuser_t *usr)
 {
 	char *str;
 	int rc;
-
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_EMPHASIS);
+	
+	console_flush(tinput->console);
+	console_set_style(tinput->console, STYLE_EMPHASIS);
 	printf("%s", usr->prompt);
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	console_flush(tinput->console);
+	console_set_style(tinput->console, STYLE_NORMAL);
 
 	rc = tinput_read(tinput, &str);
 	if (rc == ENOENT) {

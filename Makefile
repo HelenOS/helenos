@@ -106,3 +106,5 @@ clean:
 	$(MAKE) -C kernel clean
 	$(MAKE) -C uspace clean
 	$(MAKE) -C boot clean
+
+-include Makefile.local

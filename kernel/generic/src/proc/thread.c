@@ -54,6 +54,7 @@
 #include <adt/list.h>
 #include <time/clock.h>
 #include <time/timeout.h>
+#include <time/delay.h>
 #include <config.h>
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
@@ -908,6 +909,12 @@ sysarg_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 sysarg_t sys_thread_usleep(uint32_t usec)
 {
 	thread_usleep(usec);
+	return 0;
+}
+
+sysarg_t sys_thread_udelay(uint32_t usec)
+{
+	delay(usec);
 	return 0;
 }
 

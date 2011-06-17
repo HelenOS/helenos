@@ -27,7 +27,7 @@
  */
 
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <async.h>
 #include <as.h>

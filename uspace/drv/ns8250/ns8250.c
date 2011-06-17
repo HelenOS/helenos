@@ -262,9 +262,9 @@ static driver_t ns8250_driver = {
  */
 static void ns8250_dev_cleanup(ns8250_t *ns)
 {
-	if (ns->dev->parent_phone > 0) {
-		async_hangup(ns->dev->parent_phone);
-		ns->dev->parent_phone = 0;
+	if (ns->dev->parent_sess) {
+		async_hangup(ns->dev->parent_sess);
+		ns->dev->parent_sess = NULL;
 	}
 }
 
@@ -336,17 +336,17 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 	
 	/* Connect to the parent's driver. */
-	ns->dev->parent_phone = devman_parent_device_connect(ns->dev->handle,
-	    IPC_FLAG_BLOCKING);
-	if (ns->dev->parent_phone < 0) {
+	ns->dev->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    ns->dev->handle, IPC_FLAG_BLOCKING);
+	if (!ns->dev->parent_sess) {
 		ddf_msg(LVL_ERROR, "Failed to connect to parent driver of "
 		    "device %s.", ns->dev->name);
-		ret = ns->dev->parent_phone;
+		ret = ENOENT;
 		goto failed;
 	}
 	
 	/* Get hw resources. */
-	ret = hw_res_get_resource_list(ns->dev->parent_phone, &hw_resources);
+	ret = hw_res_get_resource_list(ns->dev->parent_sess, &hw_resources);
 	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to get HW resources for device "
 		    "%s.", ns->dev->name);

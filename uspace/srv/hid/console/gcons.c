@@ -34,6 +34,7 @@
 
 #include <ipc/fb.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <str.h>
@@ -114,30 +115,30 @@ static sysarg_t btn_y = 0;
 
 static void vp_switch(int vp)
 {
-	async_msg_1(fbphone, FB_VIEWPORT_SWITCH, vp);
+	async_obsolete_msg_1(fbphone, FB_VIEWPORT_SWITCH, vp);
 }
 
 /** Create view port */
 static int vp_create(sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height)
 {
-	return async_req_2_0(fbphone, FB_VIEWPORT_CREATE, (x << 16) | y,
+	return async_obsolete_req_2_0(fbphone, FB_VIEWPORT_CREATE, (x << 16) | y,
 	    (width << 16) | height);
 }
 
 static void clear(void)
 {
-	async_msg_0(fbphone, FB_CLEAR);
+	async_obsolete_msg_0(fbphone, FB_CLEAR);
 }
 
 static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
 {
-	async_msg_2(fbphone, FB_SET_RGB_COLOR, fgcolor, bgcolor);
+	async_obsolete_msg_2(fbphone, FB_SET_RGB_COLOR, fgcolor, bgcolor);
 }
 
 /** Transparent putchar */
 static void tran_putch(wchar_t ch, sysarg_t col, sysarg_t row)
 {
-	async_msg_3(fbphone, FB_PUTCHAR, ch, col, row);
+	async_obsolete_msg_3(fbphone, FB_PUTCHAR, ch, col, row);
 }
 
 /** Redraw the button showing state of a given console */
@@ -148,7 +149,7 @@ static void redraw_state(size_t index)
 	enum butstate state = console_state[index];
 	
 	if (ic_pixmaps[state] != -1)
-		async_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[index],
+		async_obsolete_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[index],
 		    ic_pixmaps[state]);
 	
 	if ((state != CONS_DISCONNECTED) && (state != CONS_KERNEL)
@@ -176,7 +177,7 @@ void gcons_change_console(size_t index)
 			redraw_state(i);
 		
 		if (animation != -1)
-			async_msg_1(fbphone, FB_ANIM_START, animation);
+			async_obsolete_msg_1(fbphone, FB_ANIM_START, animation);
 	} else {
 		if (console_state[active_console] == CONS_DISCONNECTED_SEL)
 			console_state[active_console] = CONS_DISCONNECTED;
@@ -257,7 +258,7 @@ void gcons_notify_connect(size_t index)
 void gcons_in_kernel(void)
 {
 	if (animation != -1)
-		async_msg_1(fbphone, FB_ANIM_STOP, animation);
+		async_obsolete_msg_1(fbphone, FB_ANIM_STOP, animation);
 	
 	active_console = KERNEL_CONSOLE;
 	vp_switch(0);
@@ -293,7 +294,7 @@ void gcons_mouse_move(ssize_t dx, ssize_t dy)
 	mouse_y = (size_t) limit(ny, 0, yres);
 	
 	if (active_console != KERNEL_CONSOLE)
-		async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
+		async_obsolete_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
 }
 
 static int gcons_find_conbut(sysarg_t x, sysarg_t y)
@@ -373,20 +374,20 @@ static void draw_pixmap(char *logo, size_t size, sysarg_t x, sysarg_t y)
 	memcpy(shm, logo, size);
 	
 	/* Send area */
-	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
+	int rc = async_obsolete_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
 	if (rc)
 		goto exit;
 	
-	rc = async_share_out_start(fbphone, shm, PROTO_READ);
+	rc = async_obsolete_share_out_start(fbphone, shm, PROTO_READ);
 	if (rc)
 		goto drop;
 	
 	/* Draw logo */
-	async_msg_2(fbphone, FB_DRAW_PPM, x, y);
+	async_obsolete_msg_2(fbphone, FB_DRAW_PPM, x, y);
 	
 drop:
 	/* Drop area */
-	async_msg_0(fbphone, FB_DROP_SHM);
+	async_obsolete_msg_0(fbphone, FB_DROP_SHM);
 	
 exit:
 	/* Remove area */
@@ -435,16 +436,16 @@ static int make_pixmap(char *data, size_t size)
 	int pxid = -1;
 	
 	/* Send area */
-	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
+	int rc = async_obsolete_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
 	if (rc)
 		goto exit;
 	
-	rc = async_share_out_start(fbphone, shm, PROTO_READ);
+	rc = async_obsolete_share_out_start(fbphone, shm, PROTO_READ);
 	if (rc)
 		goto drop;
 	
 	/* Obtain pixmap */
-	rc = async_req_0_0(fbphone, FB_SHM2PIXMAP);
+	rc = async_obsolete_req_0_0(fbphone, FB_SHM2PIXMAP);
 	if (rc < 0)
 		goto drop;
 	
@@ -452,7 +453,7 @@ static int make_pixmap(char *data, size_t size)
 	
 drop:
 	/* Drop area */
-	async_msg_0(fbphone, FB_DROP_SHM);
+	async_obsolete_msg_0(fbphone, FB_DROP_SHM);
 	
 exit:
 	/* Remove area */
@@ -463,28 +464,28 @@ exit:
 
 static void make_anim(void)
 {
-	int an = async_req_1_0(fbphone, FB_ANIM_CREATE,
+	int an = async_obsolete_req_1_0(fbphone, FB_ANIM_CREATE,
 	    cstatus_vp[KERNEL_CONSOLE]);
 	if (an < 0)
 		return;
 	
 	int pm = make_pixmap(_binary_gfx_anim_1_ppm_start,
 	    (size_t) &_binary_gfx_anim_1_ppm_size);
-	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_2_ppm_start,
 	    (size_t) &_binary_gfx_anim_2_ppm_size);
-	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_3_ppm_start,
 	    (size_t) &_binary_gfx_anim_3_ppm_size);
-	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_4_ppm_start,
 	    (size_t) &_binary_gfx_anim_4_ppm_size);
-	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
-	async_msg_1(fbphone, FB_ANIM_START, an);
+	async_obsolete_msg_1(fbphone, FB_ANIM_START, an);
 	
 	animation = an;
 }
@@ -494,7 +495,7 @@ void gcons_init(int phone)
 {
 	fbphone = phone;
 	
-	int rc = async_req_0_2(phone, FB_GET_RESOLUTION, &xres, &yres);
+	int rc = async_obsolete_req_0_2(phone, FB_GET_RESOLUTION, &xres, &yres);
 	if (rc)
 		return;
 	

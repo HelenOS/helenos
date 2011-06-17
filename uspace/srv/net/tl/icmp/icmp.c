@@ -611,11 +611,13 @@ static int icmp_process_packet(packet_t *packet, services_t error)
  */
 static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	bool loop = true;
 	packet_t *packet;
 	int rc;
 	
-	while (loop) {
+	while (true) {
+		if (!IPC_GET_IMETHOD(*icall))
+			break;
+		
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_TL_RECEIVED:
 			rc = packet_translate_remote(phone_net, &packet,
@@ -628,9 +630,6 @@ static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 			
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
-		case IPC_M_PHONE_HUNGUP:
-			loop = false;
-			continue;
 		default:
 			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}

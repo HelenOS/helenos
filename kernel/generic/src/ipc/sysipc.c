@@ -39,6 +39,7 @@
 #include <memstr.h>
 #include <debug.h>
 #include <ipc/ipc.h>
+#include <ipc/ipc_methods.h>
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
@@ -459,7 +460,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		break;
 	}
 #ifdef CONFIG_UDEBUG
-	case IPC_M_DEBUG_ALL:
+	case IPC_M_DEBUG:
 		return udebug_request_preprocess(call, phone);
 #endif
 	default:
@@ -494,7 +495,7 @@ static void process_answer(call_t *call)
 	if (call->buffer) {
 		/*
 		 * This must be an affirmative answer to IPC_M_DATA_READ
-		 * or IPC_M_DEBUG_ALL/UDEBUG_M_MEM_READ...
+		 * or IPC_M_DEBUG/UDEBUG_M_MEM_READ...
 		 *
 		 */
 		uintptr_t dst = IPC_GET_ARG1(call->data);
@@ -530,7 +531,7 @@ static int process_request(answerbox_t *box, call_t *call)
 	}
 	
 	switch (IPC_GET_IMETHOD(call->data)) {
-	case IPC_M_DEBUG_ALL:
+	case IPC_M_DEBUG:
 		return -1;
 	default:
 		break;

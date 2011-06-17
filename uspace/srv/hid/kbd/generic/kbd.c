@@ -42,18 +42,22 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ipc/ns.h>
+#include <ns.h>
+#include <ns_obsolete.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <errno.h>
 #include <adt/fifo.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <devmap.h>
-
 #include <kbd.h>
 #include <kbd_port.h>
 #include <kbd_ctl.h>
 #include <layout.h>
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME       "kbd"
 #define NAMESPACE  "hid_in"
@@ -87,7 +91,7 @@ void kbd_push_scancode(int scancode)
 
 void kbd_push_ev(int type, unsigned int key)
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	unsigned mod_mask;
 
 	switch (key) {
@@ -162,7 +166,7 @@ void kbd_push_ev(int type, unsigned int key)
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
-	async_msg_4(client_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
+	async_obsolete_msg_4(client_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -173,17 +177,20 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	async_answer_0(iid, EOK);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			if (client_phone != -1) {
-				async_hangup(client_phone);
+				async_obsolete_hangup(client_phone);
 				client_phone = -1;
 			}
 			
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_CONNECT_TO_ME:
 			if (client_phone != -1) {
 				retval = ELIMIT;
@@ -221,7 +228,7 @@ int main(int argc, char **argv)
 	
 	if (irc_service) {
 		while (irc_phone < 0)
-			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
+			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
 	/* Initialize port driver. */

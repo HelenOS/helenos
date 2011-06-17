@@ -53,6 +53,9 @@
 #include <netif_remote.h>
 #include <nil_skel.h>
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
+
 #include "nildummy.h"
 
 /** The module name. */
@@ -392,10 +395,11 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NIL_DEVICE:
 		return nildummy_device_message(IPC_GET_DEVICE(*call),
 		    IPC_GET_SERVICE(*call), IPC_GET_MTU(*call));
