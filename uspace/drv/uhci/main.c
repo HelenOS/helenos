@@ -40,7 +40,7 @@
 
 #include "uhci.h"
 
-#define NAME "uhci_hcd"
+#define NAME "uhci"
 
 static int uhci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
