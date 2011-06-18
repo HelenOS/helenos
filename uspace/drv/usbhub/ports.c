@@ -139,7 +139,7 @@ void usb_hub_process_port_interrupt(usb_hub_info_t *hub,
 	if (usb_port_is_status(status, USB_HUB_FEATURE_C_PORT_RESET)) {
 		usb_hub_port_reset_completed(hub, port, status);
 	}
-	usb_log_debug("Status x%x : %d\n ", status, status);
+	usb_log_debug("Port %d status 0x%08" PRIx32 "\n", (int) port, status);
 
 	usb_port_status_set_bit(
 	    &status, USB_HUB_FEATURE_C_PORT_CONNECTION, false);
