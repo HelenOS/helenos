@@ -63,7 +63,7 @@ static inline int setup_batch(
 		return ENOENT;
 	}
 
-	usb_log_debug("%s %d:%d %zu(%zu).\n",
+	usb_log_debug2("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
 	const size_t bw = bandwidth_count_usb11(
@@ -171,9 +171,10 @@ static int register_endpoint(
 	if (speed >= USB_SPEED_MAX) {
 		speed = ep_speed;
 	}
-	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
+	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
-	    usb_str_speed(speed), direction, size, max_packet_size, interval);
+	    usb_str_direction(direction), usb_str_speed(speed),
+	    max_packet_size, interval);
 
 	return usb_endpoint_manager_add_ep(&hc->ep_manager, address, endpoint,
 	    direction, transfer_type, speed, max_packet_size, size);
@@ -186,8 +187,8 @@ static int unregister_endpoint(
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_log_debug("Unregister endpoint %d:%d %d.\n",
-	    address, endpoint, direction);
+	usb_log_debug("Unregister endpoint %d:%d %s.\n",
+	    address, endpoint, usb_str_direction(direction));
 	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
 	    endpoint, direction);
 }
