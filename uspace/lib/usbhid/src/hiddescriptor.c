@@ -512,7 +512,6 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 				    USB_HID_TAG_CLASS_LOCAL, tmp_usage_path->usage);
 
 				usb_hid_report_path_free(report_item->usage_path);
-				list_initialize(&report_item->usage_path->link);
 				list_remove (stack.next);
 					
 				break;
