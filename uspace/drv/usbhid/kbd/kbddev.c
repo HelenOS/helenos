@@ -46,6 +46,8 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 
+#include <ddf/log.h>
+
 #include <usb/usb.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
@@ -407,11 +409,10 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	
 	memcpy(kbd_dev->keys_old, kbd_dev->keys, kbd_dev->key_count * 4);
 	
-	usb_log_debug2("New stored keys: ");
-	for (i = 0; i < kbd_dev->key_count; ++i) {
-		usb_log_debug2("%d ", kbd_dev->keys_old[i]);
-	}
-	usb_log_debug2("\n");
+	char key_buffer[512];
+	ddf_dump_buffer(key_buffer, 512,
+	    kbd_dev->keys_old, 4, kbd_dev->key_count, 0);
+	usb_log_debug2("Stored keys %s.\n", key_buffer);
 }
 
 /*----------------------------------------------------------------------------*/
