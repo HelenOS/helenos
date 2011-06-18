@@ -318,6 +318,17 @@ static inline int usb_kbd_is_lock(unsigned int key_code)
 	    || key_code == KC_CAPS_LOCK);
 }
 
+static size_t find_in_array_int32(int32_t val, int32_t *arr, size_t arr_size)
+{
+	for (size_t i = 0; i < arr_size; i++) {
+		if (arr[i] == val) {
+			return i;
+		}
+	}
+
+	return (size_t) -1;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
  * Checks if some keys were pressed or released and generates key events.
@@ -338,7 +349,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
     usb_kbd_t *kbd_dev)
 {
 	unsigned int key;
-	unsigned int i, j;
+	size_t i;
 	
 	/*
 	 * First of all, check if the kbd have reported phantom state.
@@ -348,62 +359,50 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	 * if there is at least one such error and in such case we ignore the
 	 * whole input report.
 	 */
-	i = 0;
-	while (i < kbd_dev->key_count && kbd_dev->keys[i] != ERROR_ROLLOVER) {
-		++i;
-	}
-	if (i != kbd_dev->key_count) {
-		usb_log_debug("Phantom state occured.\n");
-		// phantom state, do nothing
+	i = find_in_array_int32(ERROR_ROLLOVER, kbd_dev->keys,
+	    kbd_dev->key_count);
+	if (i != (size_t) -1) {
+		usb_log_debug("Detected phantom state.\n");
 		return;
 	}
 	
 	/*
-	 * 1) Key releases
+	 * Key releases
 	 */
-	for (j = 0; j < kbd_dev->key_count; ++j) {
-		// try to find the old key in the new key list
-		i = 0;
-		while (i < kbd_dev->key_count
-		    && kbd_dev->keys[i] != kbd_dev->keys_old[j]) {
-			++i;
-		}
-		
-		if (i == kbd_dev->key_count) {
-			// not found, i.e. the key was released
-			key = usbhid_parse_scancode(kbd_dev->keys_old[j]);
+	for (i = 0; i < kbd_dev->key_count; i++) {
+		int32_t old_key = kbd_dev->keys_old[i];
+		/* Find the old key among currently pressed keys. */
+		size_t pos = find_in_array_int32(old_key, kbd_dev->keys,
+		    kbd_dev->key_count);
+		/* If the key was not found, we need to signal release. */
+		if (pos == (size_t) -1) {
+			key = usbhid_parse_scancode(old_key);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_stop(kbd_dev, key);
 			}
 			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_RELEASE, key);
-			usb_log_debug2("Key released: %d\n", key);
-		} else {
-			// found, nothing happens
+			usb_log_debug2("Key released: %u "
+			    "(USB code %" PRIu32 ")\n", key, old_key);
 		}
 	}
 	
 	/*
-	 * 1) Key presses
+	 * Key presses
 	 */
 	for (i = 0; i < kbd_dev->key_count; ++i) {
-		// try to find the new key in the old key list
-		j = 0;
-		while (j < kbd_dev->key_count 
-		    && kbd_dev->keys_old[j] != kbd_dev->keys[i]) { 
-			++j;
-		}
-		
-		if (j == kbd_dev->key_count) {
-			// not found, i.e. new key pressed
+		int32_t new_key = kbd_dev->keys[i];
+		/* Find the new key among already pressed keys. */
+		size_t pos = find_in_array_int32(new_key, kbd_dev->keys_old,
+		    kbd_dev->key_count);
+		/* If the key was not found, we need to signal press. */
+		if (pos == (size_t) -1) {
 			key = usbhid_parse_scancode(kbd_dev->keys[i]);
-			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
-			    kbd_dev->keys[i]);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_start(kbd_dev, key);
 			}
 			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_PRESS, key);
-		} else {
-			// found, nothing happens
+			usb_log_debug2("Key pressed: %u "
+			    "(USB code %" PRIu32 ")\n", key, new_key);
 		}
 	}
 	
