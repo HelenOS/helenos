@@ -35,7 +35,7 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "common.h"
+#include "internal/common.h"
 #include "strings.h"
 #include "string.h"
 

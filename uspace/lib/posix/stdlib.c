@@ -36,7 +36,7 @@
 #define LIBPOSIX_INTERNAL
 
 #include "stdlib.h"
-#include "common.h"
+#include "internal/common.h"
 
 /**
  *
