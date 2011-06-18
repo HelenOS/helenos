@@ -165,20 +165,20 @@ typedef struct answerbox {
 	link_t sync_box_link;
 	
 	/** Phones connected to this answerbox. */
-	link_t connected_phones;
+	list_t connected_phones;
 	/** Received calls. */
-	link_t calls;
-	link_t dispatched_calls;  /* Should be hash table in the future */
+	list_t calls;
+	list_t dispatched_calls;  /* Should be hash table in the future */
 	
 	/** Answered calls. */
-	link_t answers;
+	list_t answers;
 	
 	IRQ_SPINLOCK_DECLARE(irq_lock);
 	
 	/** Notifications from IRQ handlers. */
-	link_t irq_notifs;
+	list_t irq_notifs;
 	/** IRQs with notifications to this answerbox. */
-	link_t irq_head;
+	list_t irq_list;
 } answerbox_t;
 
 typedef struct {
@@ -242,7 +242,7 @@ extern void ipc_answerbox_init(answerbox_t *, struct task *);
 extern void ipc_cleanup(void);
 extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
-extern void ipc_cleanup_call_list(link_t *);
+extern void ipc_cleanup_call_list(list_t *);
 
 extern void ipc_print_task(task_id_t);
 

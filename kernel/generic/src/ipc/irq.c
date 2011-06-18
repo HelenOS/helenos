@@ -199,7 +199,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq_spinlock_lock(&box->irq_lock, false);
 	
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
-	list_append(&irq->notif_cfg.link, &box->irq_head);
+	list_append(&irq->notif_cfg.link, &box->irq_list);
 	
 	irq_spinlock_unlock(&box->irq_lock, false);
 	irq_spinlock_unlock(&irq->lock, false);
@@ -281,10 +281,10 @@ loop:
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&box->irq_lock, false);
 	
-	while (box->irq_head.next != &box->irq_head) {
+	while (!list_empty(&box->irq_list)) {
 		DEADLOCK_PROBE_INIT(p_irqlock);
 		
-		irq_t *irq = list_get_instance(box->irq_head.next, irq_t,
+		irq_t *irq = list_get_instance(list_first(&box->irq_list), irq_t,
 		    notif_cfg.link);
 		
 		if (!irq_spinlock_trylock(&irq->lock)) {

@@ -90,7 +90,7 @@
 usb_hid_report_path_t *usb_hid_report_path_try_insert(
 		usb_hid_report_t *report, usb_hid_report_path_t *cmp_path) {
 	
-	link_t *path_it = report->collection_paths.prev->next;
+	link_t *path_it = report->collection_paths.next;
 	usb_hid_report_path_t *path = NULL;
 	
 	if((report == NULL) || (cmp_path == NULL)) {
@@ -512,7 +512,6 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 				    USB_HID_TAG_CLASS_LOCAL, tmp_usage_path->usage);
 
 				usb_hid_report_path_free(report_item->usage_path);
-				list_initialize(&report_item->usage_path->link);
 				list_remove (stack.next);
 					
 				break;

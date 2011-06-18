@@ -259,7 +259,7 @@ void thread_ready(thread_t *thread)
 	 * on respective processor.
 	 */
 	
-	list_append(&thread->rq_link, &cpu->rq[i].rq_head);
+	list_append(&thread->rq_link, &cpu->rq[i].rq);
 	cpu->rq[i].n++;
 	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
 	
@@ -422,7 +422,7 @@ void thread_attach(thread_t *thread, task_t *task)
 	if (thread->flags & THREAD_FLAG_USPACE)
 		atomic_inc(&task->lifecount);
 	
-	list_append(&thread->th_link, &task->th_head);
+	list_append(&thread->th_link, &task->threads);
 	
 	irq_spinlock_pass(&task->lock, &threads_lock);
 	
