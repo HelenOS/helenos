@@ -90,7 +90,7 @@
 usb_hid_report_path_t *usb_hid_report_path_try_insert(
 		usb_hid_report_t *report, usb_hid_report_path_t *cmp_path) {
 	
-	link_t *path_it = report->collection_paths.prev->next;
+	link_t *path_it = report->collection_paths.next;
 	usb_hid_report_path_t *path = NULL;
 	
 	if((report == NULL) || (cmp_path == NULL)) {
