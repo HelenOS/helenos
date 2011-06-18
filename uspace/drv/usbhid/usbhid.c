@@ -571,8 +571,9 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
 	assert(hid_dev->input_report != NULL);
-	usb_log_debug("Max input report size: %zu, buffer size: %zu\n",
-	    hid_dev->max_input_report_size, buffer_size);
+	usb_log_debug("New data [%zu/%zu]: %s\n", buffer_size,
+	    hid_dev->max_input_report_size,
+	    usb_debug_str_buffer(buffer, buffer_size, 0));
 
 	if (hid_dev->max_input_report_size >= buffer_size) {
 		/*! @todo This should probably be atomic. */

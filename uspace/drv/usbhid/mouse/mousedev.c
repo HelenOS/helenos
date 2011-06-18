@@ -209,7 +209,7 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 
 	if (mouse_dev->wheel_phone < 0) {
 		usb_log_warning(
-		    "Connection to console not ready, key discarded.\n");
+		    "Connection to console not ready, wheel roll discarded.\n");
 		return;
 	}
 	
@@ -254,7 +254,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	if (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
+		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
 		    field->usage);
 		shift_x = field->value;
 	}
@@ -277,7 +277,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	if (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
+		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
 		    field->usage);
 		shift_y = field->value;
 	}
@@ -305,7 +305,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	if (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
+		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
 		    field->usage);
 		wheel = field->value;
 	}
@@ -330,7 +330,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	while (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
+		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
 		    field->usage);
 		
 		if (mouse_dev->buttons[field->usage - field->usage_minimum] == 0
@@ -489,8 +489,6 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
-	usb_log_debug("usb_mouse_polling_callback()\n");
-	
 	if (hid_dev == NULL || data == NULL) {
 		usb_log_error("Missing argument to the mouse polling callback."
 		    "\n");
