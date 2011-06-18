@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ddf/log.h>
 #include <usb/debug.h>
 
 /** Level of logging messages. */
@@ -192,68 +193,9 @@ const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
 	 */
 	bzero(buffer_dump[buffer_dump_index], BUFFER_DUMP_LEN);
 
-	if (buffer == NULL) {
-		return "(null)";
-	}
-	if (size == 0) {
-		return "(empty)";
-	}
-	if ((dumped_size == 0) || (dumped_size > size)) {
-		dumped_size = size;
-	}
-
-	/* How many bytes are available in the output buffer. */
-	size_t buffer_remaining_size = BUFFER_DUMP_LEN - 1 - REMAINDER_STR_LEN;
-	char *it = buffer_dump[buffer_dump_index];
-
-	size_t index = 0;
-
-	while (index < size) {
-		/* Determine space before the number. */
-		const char *space_before;
-		if (index == 0) {
-			space_before = "";
-		} else if ((index % BUFFER_DUMP_GROUP_SIZE) == 0) {
-			space_before = "  ";
-		} else {
-			space_before = " ";
-		}
-
-		/*
-		 * Add the byte as a hexadecimal number plus the space.
-		 * We do it into temporary buffer to ensure that always
-		 * the whole byte is printed.
-		 */
-		int val = buffer[index];
-		char current_byte[16];
-		int printed = snprintf(current_byte, 16,
-		    "%s%02x", space_before, val);
-		if (printed < 0) {
-			break;
-		}
-
-		if ((size_t) printed > buffer_remaining_size) {
-			break;
-		}
-
-		/* We can safely add 1, because space for end 0 is reserved. */
-		str_append(it, buffer_remaining_size + 1, current_byte);
-
-		buffer_remaining_size -= printed;
-		/* Point at the terminator 0. */
-		it += printed;
-		index++;
-
-		if (index >= dumped_size) {
-			break;
-		}
-	}
-
-	/* Add how many bytes were not printed. */
-	if (index < size) {
-		snprintf(it, REMAINDER_STR_LEN,
-		    REMAINDER_STR_FMT, size - index);
-	}
+	/* Do the actual dump. */
+	ddf_dump_buffer(buffer_dump[buffer_dump_index], BUFFER_DUMP_LEN,
+	    buffer, 1, size, dumped_size);
 
 	/* Next time, use the other buffer. */
 	buffer_dump_index = 1 - buffer_dump_index;

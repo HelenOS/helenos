@@ -35,7 +35,8 @@ LIBS = \
 	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
 	$(LIBUSBHID_PREFIX)/libusbhid.a \
 	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS = \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
