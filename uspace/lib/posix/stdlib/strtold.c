@@ -286,9 +286,11 @@ static long double parse_decimal(const char **sptr)
 			i++;
 		}
 		
-		while (isdigit(str[i]) && exp < 65536) {
-			exp *= DEC_BASE;
-			exp += str[i] - '0';
+		while (isdigit(str[i])) {
+			if (exp < 65536) {
+				exp *= DEC_BASE;
+				exp += str[i] - '0';
+			}
 			
 			i++;
 		}
@@ -438,9 +440,11 @@ static long double parse_hexadecimal(const char **sptr)
 			i++;
 		}
 		
-		while (isdigit(str[i]) && exp < 65536) {
-			exp *= DEC_BASE;
-			exp += str[i] - '0';
+		while (isdigit(str[i])) {
+			if (exp < 65536) {
+				exp *= DEC_BASE;
+				exp += str[i] - '0';
+			}
 			
 			i++;
 		}
