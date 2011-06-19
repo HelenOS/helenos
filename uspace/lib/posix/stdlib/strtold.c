@@ -52,7 +52,7 @@
 	#define abs(x) ((x < 0) ? -x : x)
 #endif
 
-// TODO: documentation
+// TODO: clean up, documentation
 
 // FIXME: ensure it builds and works on all platforms
 
@@ -237,7 +237,9 @@ static long double parse_decimal(const char **sptr)
 	
 	/* digits before decimal point */
 	while (isdigit(str[i])) {
-		if (parsed_digits < PARSE_DECIMAL_DIGS) {
+		if (parsed_digits == 0 && str[i] == '0') {
+			/* Nothing, just skip leading zeros. */
+		} else if (parsed_digits < PARSE_DECIMAL_DIGS) {
 			significand *= DEC_BASE;
 			significand += str[i] - '0';
 			parsed_digits++;
@@ -253,7 +255,10 @@ static long double parse_decimal(const char **sptr)
 		
 		/* digits after decimal point */
 		while (isdigit(str[i])) {
-			if (parsed_digits < PARSE_DECIMAL_DIGS) {
+			if (parsed_digits == 0 && str[i] == '0') {
+				/* Skip leading zeros and decrement exponent. */
+				exponent--;
+			} else if (parsed_digits < PARSE_DECIMAL_DIGS) {
 				significand *= DEC_BASE;
 				significand += str[i] - '0';
 				exponent--;
@@ -281,7 +286,7 @@ static long double parse_decimal(const char **sptr)
 			i++;
 		}
 		
-		while (isdigit(str[i])) {
+		while (isdigit(str[i]) && exp < 65536) {
 			exp *= DEC_BASE;
 			exp += str[i] - '0';
 			
@@ -305,12 +310,28 @@ static long double parse_decimal(const char **sptr)
 	return result;
 }
 
-static inline int hex_value(char ch) {
+static inline int hex_value(char ch)
+{
 	if (ch <= '9') {
 		return ch - '0';
 	} else {
 		return 10 + tolower(ch) - 'a';
 	}
+}
+
+/**
+ * @param val Integer value.
+ * @return How many leading zero bits there are. (Maximum is 3)
+ */
+static inline int leading_zeros(uint64_t val)
+{
+	for (int i = 3; i > 0; --i) {
+		if ((val >> (64 - i)) == 0) {
+			return i;
+		}
+	}
+	
+	return 0;
 }
 
 static long double parse_hexadecimal(const char **sptr)
@@ -344,9 +365,23 @@ static long double parse_hexadecimal(const char **sptr)
 	
 	/* digits before decimal point */
 	while (posix_isxdigit(str[i])) {
-		if (parsed_digits < PARSE_HEX_DIGS) {
+		if (parsed_digits == 0 && str[i] == '0') {
+			/* Nothing, just skip leading zeros. */
+		} else if (parsed_digits < PARSE_HEX_DIGS) {
 			significand *= HEX_BASE;
 			significand += hex_value(str[i]);
+			parsed_digits++;
+		} else if (parsed_digits == PARSE_HEX_DIGS) {
+			/* The first digit may have had leading zeros,
+			 * so we need to parse one more digit and shift
+			 * the value accordingly.
+			 */
+			
+			int zeros = leading_zeros(significand);
+			significand = (significand << zeros) |
+			    (hex_value(str[i]) >> (4 - zeros));
+			
+			exponent += (4 - zeros);
 			parsed_digits++;
 		} else {
 			exponent += 4;
@@ -360,10 +395,25 @@ static long double parse_hexadecimal(const char **sptr)
 		
 		/* digits after decimal point */
 		while (posix_isxdigit(str[i])) {
-			if (parsed_digits < PARSE_HEX_DIGS) {
+			if (parsed_digits == 0 && str[i] == '0') {
+				/* Skip leading zeros and decrement exponent. */
+				exponent -= 4;
+			} else if (parsed_digits < PARSE_HEX_DIGS) {
 				significand *= HEX_BASE;
 				significand += hex_value(str[i]);
 				exponent -= 4;
+				parsed_digits++;
+			} else if (parsed_digits == PARSE_HEX_DIGS) {
+				/* The first digit may have had leading zeros,
+				 * so we need to parse one more digit and shift
+				 * the value accordingly.
+				 */
+				
+				int zeros = leading_zeros(significand);
+				significand = (significand << zeros) |
+				    (hex_value(str[i]) >> (4 - zeros));
+				
+				exponent -= zeros;
 				parsed_digits++;
 			} else {
 				/* ignore */
@@ -388,7 +438,7 @@ static long double parse_hexadecimal(const char **sptr)
 			i++;
 		}
 		
-		while (isdigit(str[i])) {
+		while (isdigit(str[i]) && exp < 65536) {
 			exp *= DEC_BASE;
 			exp += str[i] - '0';
 			
