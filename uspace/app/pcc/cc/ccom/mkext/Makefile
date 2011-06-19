@@ -26,58 +26,22 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-MIPDIR = ../../mip
-MDIR = ../../arch/$(PLATFORM)
-OSDIR = ../../os/helenos
+USPACE_PREFIX = ../../../../..
+MIPDIR = ../../../mip
+MDIR = ../../../arch/$(PLATFORM)
+OSDIR = ../../../os/helenos
 EXTRA_CFLAGS = -I$(MIPDIR) -I$(MDIR) -I$(OSDIR) -I. -w
-DEFS = -Dmach_$(PLATFORM) -D__helenos__ -DPCC_DEBUG -DGCC_COMPAT -Dfree=free
-BINARY = ccom
-EXTRA_CLEAN = cgram.c cgram.h scan.c external.c external.h
+DEFS = -DMKEXT -Dmach_$(PLATFORM) -D__helenos__
+BINARY = cc_mkext
 
 POSIX_COMPAT = y
 
 # FIXME: external.{c,h} must be generated for each target system
 
 SOURCES = \
-	external.c \
-	$(MDIR)/local.c \
-	$(MDIR)/local2.c \
-	$(MDIR)/code.c \
-	$(MDIR)/order.c \
+	${MIPDIR}/mkext.c \
 	$(MDIR)/table.c \
-	$(MIPDIR)/match.c \
-	$(MIPDIR)/reader.c \
-	$(MIPDIR)/optim2.c \
-	$(MIPDIR)/regs.c \
-	$(MIPDIR)/common.c \
-	$(MIPDIR)/compat.c \
-	cgram.c \
-	scan.c \
-	builtins.c \
-	gcc_compat.c \
-	init.c \
-	inline.c \
-	main.c \
-	optim.c \
-	pftn.c \
-	softfloat.c \
-	stabs.c \
-	symtabs.c \
-	trees.c
-
-cgram.c: cgram.y
-	$(YACC) $(YFLAGS) -d $<
-	mv y.tab.c cgram.c
-	mv y.tab.h cgram.h
-
-scan.c: scan.l cgram.c
-	$(LEX) $(LFLAGS) $<
-	mv lex.yy.c scan.c
-
-external.c external.h:
-	ln -s arch/$(PLATFORM)/external.c external.c
-	ln -s arch/$(PLATFORM)/external.h external.h
+	${MIPDIR}/common.c
 
 include $(USPACE_PREFIX)/Makefile.common
 

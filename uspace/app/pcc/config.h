@@ -26,7 +26,7 @@
 //#define HAVE_BASENAME 1
 
 /* Define to 1 if printf supports C99 size specifiers */
-#define HAVE_C99_FORMAT 1
+//#define HAVE_C99_FORMAT 1
 
 /* Define to 1 if your compiler supports C99 variadic macros */
 #define HAVE_CPP_VARARG_MACRO_GCC 1

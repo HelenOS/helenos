@@ -1,12 +1,12 @@
 #ifndef _EXTERNAL_H_
 #define _EXTERNAL_H_
 #define MAXOPLEN 42
-#define NUMBITS 64
+#define NUMBITS 32
 #define BIT2BYTE(bits) ((((bits)+NUMBITS-1)/NUMBITS)*(NUMBITS/8))
-#define BITSET(arr, bit) (arr[bit/NUMBITS] |= ((long)1 << (bit & (NUMBITS-1))))
-#define BITCLEAR(arr, bit) (arr[bit/NUMBITS] &= ~((long)1 << (bit & (NUMBITS-1))))
-#define TESTBIT(arr, bit) (arr[bit/NUMBITS] & ((long)1 << (bit & (NUMBITS-1))))
-typedef long bittype;
+#define BITSET(arr, bit) (arr[bit/NUMBITS] |= ((int)1 << (bit & (NUMBITS-1))))
+#define BITCLEAR(arr, bit) (arr[bit/NUMBITS] &= ~((int)1 << (bit & (NUMBITS-1))))
+#define TESTBIT(arr, bit) (arr[bit/NUMBITS] & ((int)1 << (bit & (NUMBITS-1))))
+typedef int bittype;
 extern int tempregs[], permregs[];
 #define NTEMPREG 4
 #define FREGS 3
