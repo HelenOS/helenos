@@ -47,6 +47,7 @@ typedef unsigned int posix_blksize_t;
 typedef unsigned int posix_blkcnt_t;
 
 #ifndef LIBPOSIX_INTERNAL
+	#define ino_t posix_ino_t
 	#define nlink_t posix_nlink_t
 	#define uid_t posix_uid_t
 	#define gid_t posix_gid_t
