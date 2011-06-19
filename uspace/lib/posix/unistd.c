@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +27,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
+#define LIBPOSIX_INTERNAL
+
+#include "internal/common.h"
 #include "unistd.h"
 
-int isatty(int fd) {
-	// TODO
-	return 0;
+/**
+ * Dummy function. Always returns false, because there is no easy way to find
+ * out under HelenOS.
+ *
+ * @param fd
+ * @return Always false.
+ */
+int posix_isatty(int fd)
+{
+	return false;
 }
 
+/**
+ *
+ * @return
+ */
+posix_uid_t posix_getuid(void)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @return
+ */
+posix_gid_t posix_getgid(void)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param path
+ * @param amode
+ * @return
+ */
+int posix_access(const char *path, int amode)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param name
+ * @return
+ */
+long posix_sysconf(int name)
+{
+	// TODO
+	not_implemented();
+}
+
+/** @}
+ */

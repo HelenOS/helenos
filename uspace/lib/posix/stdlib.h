@@ -42,16 +42,16 @@
 	#define NULL  ((void *) 0)
 #endif
 
+/* Process Termination */
 #undef EXIT_FAILURE
 #define EXIT_FAILURE 1
 #undef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
-
-#define _exit exit
 #define _Exit exit
 
 /* Array Sort Function */
-extern void posix_qsort(void *array, size_t count, size_t size, int (*compare)(const void *, const void *));
+extern void posix_qsort(void *array, size_t count, size_t size,
+    int (*compare)(const void *, const void *));
 
 /* Environment Access */
 extern char *posix_getenv(const char *name);
@@ -59,12 +59,12 @@ extern char *posix_getenv(const char *name);
 /* Symbolic Links */
 extern char *posix_realpath(const char *restrict name, char *restrict resolved);
 
-/* decimal to native floating point conversion */
+/* Floating Point Conversion */
 extern float posix_strtof(const char *restrict nptr, char **restrict endptr);
 extern double posix_strtod(const char *restrict nptr, char **restrict endptr);
 extern long double posix_strtold(const char *restrict nptr, char **restrict endptr);
 
-/* decimal to native integer conversion */
+/* Integer Conversion */
 extern int posix_atoi(const char *str);
 
 #ifndef LIBPOSIX_INTERNAL

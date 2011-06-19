@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBPOSIX_COMMON_H_
-#define LIBPOSIX_COMMON_H_
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef POSIX_MATH_H_
+#define POSIX_MATH_H_
 
-#define not_implemented() (fprintf(stderr, "Function %s() in file %s at line %d is not implemented\n", __func__, __FILE__, __LINE__), abort())
+/* Empty. Just to satisfy preprocessor. */
 
-#endif /* LIBPOSIX_COMMON_H_ */
+#endif /* POSIX_MATH_H_ */
 
+/** @}
+ */

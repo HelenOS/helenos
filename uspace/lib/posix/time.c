@@ -35,6 +35,7 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "internal/common.h"
 #include "time.h"
 
 /**
@@ -82,7 +83,7 @@ char *posix_ctime(const time_t *timep)
 size_t posix_strftime(char *s, size_t maxsize, const char *format, const struct posix_tm *tm)
 {
 	// TODO
-	return 0;
+	not_implemented();
 }
 
 /** @}

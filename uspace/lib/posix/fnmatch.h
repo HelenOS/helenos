@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,69 +32,30 @@
 /** @file
  */
 
-#ifndef POSIX_SIGNAL_H_
-#define POSIX_SIGNAL_H_
+#ifndef POSIX_FNMATCH_H_
+#define POSIX_FNMATCH_H_
 
-#include "libc/errno.h"
+/* fnmatch flags */
+#undef FNM_PATHNAME
+#undef FNM_NOESCAPE
+#undef FNM_PERIOD
+#define	FNM_PATHNAME  (1 << 0) /* Slash cannot be matched to the wildcard. */
+#define	FNM_NOESCAPE  (1 << 1) /* Disable backslash escaping. */
+#define	FNM_PERIOD    (1 << 2) /* Leading period must be exactly matched. */
 
-/* HelenOS doesn't have signals, so calls to functions of this header
- * are just replaced with their respective failure return value.
- *
- * Other macros and constants are here just to satisfy the symbol resolver
- * and have no practical value whatsoever, until HelenOS implements some
- * equivalent of signals. Maybe something neat based on IPC will be devised
- * in the future?
- */
+/* fnmatch return values */
+#undef FNM_NOMATCH
+#undef FNM_NOSYS
+#define	FNM_NOMATCH          1 /* The string does not match the pattern. */
+#define FNM_NOSYS	      (-1) /* In case fnmatch is not supported. */
 
-#undef SIG_DFL
-#define SIG_DFL ((void (*)(int)) 0)
-#undef SIG_ERR
-#define SIG_ERR ((void (*)(int)) 0)
-#undef SIG_IGN
-#define SIG_IGN ((void (*)(int)) 0)
-
-#define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
-#define raise(sig) ((int) -1)
-
-typedef int posix_sig_atomic_t;
-
-/* full POSIX set */
-enum {
-	SIGABRT,
-	SIGALRM,
-	SIGBUS,
-	SIGCHLD,
-	SIGCONT,
-	SIGFPE,
-	SIGHUP,
-	SIGILL,
-	SIGINT,
-	SIGKILL,
-	SIGPIPE,
-	SIGQUIT,
-	SIGSEGV,
-	SIGSTOP,
-	SIGTERM,
-	SIGTSTP,
-	SIGTTIN,
-	SIGTTOU,
-	SIGUSR1,
-	SIGUSR2,
-	SIGPOLL,
-	SIGPROF,
-	SIGSYS,
-	SIGTRAP,
-	SIGURG,
-	SIGVTALRM,
-	SIGXCPU,
-	SIGXFSZ
-};
+extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define sig_atomic_t posix_sig_atomic_t
+	#define fnmatch posix_fnmatch
 #endif
 
-#endif /* POSIX_SIGNAL_H_ */
+#endif /* POSIX_FNMATCH_H_ */
 
 /** @}
  */

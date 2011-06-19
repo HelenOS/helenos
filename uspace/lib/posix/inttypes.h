@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,69 +32,13 @@
 /** @file
  */
 
-#ifndef POSIX_SIGNAL_H_
-#define POSIX_SIGNAL_H_
+#ifndef POSIX_INTTYPES_H_
+#define POSIX_INTTYPES_H_
 
-#include "libc/errno.h"
+#include "libc/stdint.h"
+#include "libc/inttypes.h"
 
-/* HelenOS doesn't have signals, so calls to functions of this header
- * are just replaced with their respective failure return value.
- *
- * Other macros and constants are here just to satisfy the symbol resolver
- * and have no practical value whatsoever, until HelenOS implements some
- * equivalent of signals. Maybe something neat based on IPC will be devised
- * in the future?
- */
-
-#undef SIG_DFL
-#define SIG_DFL ((void (*)(int)) 0)
-#undef SIG_ERR
-#define SIG_ERR ((void (*)(int)) 0)
-#undef SIG_IGN
-#define SIG_IGN ((void (*)(int)) 0)
-
-#define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
-#define raise(sig) ((int) -1)
-
-typedef int posix_sig_atomic_t;
-
-/* full POSIX set */
-enum {
-	SIGABRT,
-	SIGALRM,
-	SIGBUS,
-	SIGCHLD,
-	SIGCONT,
-	SIGFPE,
-	SIGHUP,
-	SIGILL,
-	SIGINT,
-	SIGKILL,
-	SIGPIPE,
-	SIGQUIT,
-	SIGSEGV,
-	SIGSTOP,
-	SIGTERM,
-	SIGTSTP,
-	SIGTTIN,
-	SIGTTOU,
-	SIGUSR1,
-	SIGUSR2,
-	SIGPOLL,
-	SIGPROF,
-	SIGSYS,
-	SIGTRAP,
-	SIGURG,
-	SIGVTALRM,
-	SIGXCPU,
-	SIGXFSZ
-};
-
-#ifndef LIBPOSIX_INTERNAL
-	#define sig_atomic_t posix_sig_atomic_t
-#endif
-
-#endif /* POSIX_SIGNAL_H_ */
+#endif /* POSIX_INTTYPES_H_ */
 
 /** @}
  */

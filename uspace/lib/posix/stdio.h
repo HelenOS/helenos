@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +27,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #ifndef POSIX_STDIO_H_
 #define POSIX_STDIO_H_
 
 #include "libc/stdio.h"
+#include "sys/types.h"
 
+/* Character Input/Output */
 #define putc fputc
 #define getc fgetc
+extern int posix_ungetc(int c, FILE *stream);
 
+/* Opening Streams */
+extern FILE *posix_freopen(
+   const char *restrict filename,
+   const char *restrict mode,
+   FILE *restrict stream);
 
-extern FILE *posix_freopen(const char *restrict filename,
-                           const char *restrict mode,
-                           FILE *restrict stream);
-
+/* Error Messages */
 extern void posix_perror(const char *s);
 
-#ifndef POSIX_INTERNAL
+/* File Positioning */
+extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
+extern posix_off_t posix_ftello(FILE *stream);
+
+/* Formatted Input/Output */
+extern int posix_sprintf(char *restrict s, const char *restrict format, ...);
+extern int posix_sscanf(const char *restrict s, const char *restrict format, ...);
+
+#ifndef LIBPOSIX_INTERNAL
+	#define ungetc posix_ungetc
+
 	#define freopen posix_freopen
+
 	#define perror posix_perror
+
+	#define fseeko posix_fseeko
+	#define ftello posix_ftello
+
+	#define sprintf posix_sprintf
+	#define sscanf posix_sscanf
 #endif
 
 #endif /* POSIX_STDIO_H_ */
 
+/** @}
+ */

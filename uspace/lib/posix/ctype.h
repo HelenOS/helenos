@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +27,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #ifndef POSIX_CTYPE_H_
 #define POSIX_CTYPE_H_
 
 #include "libc/ctype.h"
 
-extern int isxdigit(int ch);
+/* Classification of Characters */
+extern int posix_isxdigit(int ch);
+
+#ifndef LIBPOSIX_INTERNAL
+	#define isxdigit posix_isxdigit
+#endif
 
 #endif /* POSIX_CTYPE_H_ */
 
+/** @}
+ */

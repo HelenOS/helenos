@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,10 +36,12 @@
 #ifndef POSIX_STRINGS_H_
 #define POSIX_STRINGS_H_
 
-extern int posix_ffs(int);
+/* Search Functions */
+extern int posix_ffs(int i);
 
-extern int posix_strcasecmp(const char *, const char *);
-extern int posix_strncasecmp(const char *, const char *, size_t);
+/* String/Array Comparison */
+extern int posix_strcasecmp(const char *s1, const char *s2);
+extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 
 /* TODO: not implemented due to missing locale.h
  *
@@ -46,20 +49,19 @@ extern int posix_strncasecmp(const char *, const char *, size_t);
  * int strncasecmp_l(const char *, const char *, size_t, locale_t);
  */
 
-
 /* Legacy Functions */
-
-extern int posix_bcmp(const void *, const void *, size_t);
-extern void posix_bcopy(const void *, void *, size_t);
-extern void posix_bzero(void *, size_t);
-extern char *posix_index(const char *, int);
-extern char *posix_rindex(const char *, int);
+extern int posix_bcmp(const void *mem1, const void *mem2, size_t n);
+extern void posix_bcopy(const void *dest, void *src, size_t n);
+extern void posix_bzero(void *mem, size_t n);
+extern char *posix_index(const char *s, int c);
+extern char *posix_rindex(const char *s, int c);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define ffs posix_ffs
+
 	#define strcasecmp posix_strcasecmp
 	#define strncasecmp posix_strncasecmp
-	
+
 	#define bcmp posix_bcmp
 	#define bcopy posix_bcopy
 	#undef bzero

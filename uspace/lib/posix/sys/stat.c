@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +27,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libposix
+ * @{
+ */
+/** @file
+ */
+
 #define LIBPOSIX_INTERNAL
 
 #include "stat.h"
+#include "../internal/common.h"
 #include <mem.h>
 
-/* Convert HelenOS stat struct into POSIX stat struct (if possible)
+/**
+ * Convert HelenOS stat struct into POSIX stat struct (if possible)
+ *
+ * @param dest
+ * @param src
  */
-static void stat_to_posix (struct posix_stat *dest, struct stat *src)
+static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 {
 	memset(dest, 0, sizeof(struct posix_stat));
 	
@@ -41,15 +53,23 @@ static void stat_to_posix (struct posix_stat *dest, struct stat *src)
 	
 	/* HelenOS doesn't support permissions, so we set them all */
 	dest->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;
-	if (src->is_file)
+	if (src->is_file) {
 		dest->st_mode |= S_IFREG;
-	if (src->is_directory)
+	}
+	if (src->is_directory) {
 		dest->st_mode |= S_IFDIR;
+	}
 	
 	dest->st_nlink = src->lnkcnt;
 	dest->st_size = src->size;
 }
 
+/**
+ *
+ * @param fd
+ * @param st
+ * @return
+ */
 int posix_fstat(int fd, struct posix_stat *st)
 {
 	struct stat hst;
@@ -61,6 +81,24 @@ int posix_fstat(int fd, struct posix_stat *st)
 	return 0;
 }
 
+/**
+ * 
+ * @param path
+ * @param st
+ * @return
+ */
+int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ *
+ * @param path
+ * @param st
+ * @return
+ */
 int posix_stat(const char *path, struct posix_stat *st)
 {
 	struct stat hst;
@@ -72,3 +110,28 @@ int posix_stat(const char *path, struct posix_stat *st)
 	return 0;
 }
 
+/**
+ * 
+ * @param path
+ * @param mode
+ * @return
+ */
+int posix_chmod(const char *path, mode_t mode)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param mask
+ * @return
+ */
+mode_t posix_umask(mode_t mask)
+{
+	// TODO
+	not_implemented();
+}
+
+/** @}
+ */

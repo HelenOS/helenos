@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,69 +32,38 @@
 /** @file
  */
 
-#ifndef POSIX_SIGNAL_H_
-#define POSIX_SIGNAL_H_
+#ifndef POSIX_FCNTL_H_
+#define POSIX_FCNTL_H_
 
-#include "libc/errno.h"
+#include "libc/fcntl.h"
 
-/* HelenOS doesn't have signals, so calls to functions of this header
- * are just replaced with their respective failure return value.
- *
- * Other macros and constants are here just to satisfy the symbol resolver
- * and have no practical value whatsoever, until HelenOS implements some
- * equivalent of signals. Maybe something neat based on IPC will be devised
- * in the future?
- */
+/* fcntl commands */
+#undef F_DUPFD
+#undef F_GETFD
+#undef F_SETFD
+#undef F_GETFL
+#undef F_SETFL
+#undef F_GETOWN
+#undef F_SETOWN
+#define	F_DUPFD	  	0	/* Duplicate file descriptor. */
+#define	F_GETFD		1	/* Get file descriptor flags. */
+#define	F_SETFD		2	/* Set file descriptor flags. */
+#define	F_GETFL		3	/* Get file status flags. */
+#define	F_SETFL		4	/* Set file status flags. */
+#define F_GETOWN	5	/* Get owner. */
+#define F_SETOWN	6	/* Set owner. */
 
-#undef SIG_DFL
-#define SIG_DFL ((void (*)(int)) 0)
-#undef SIG_ERR
-#define SIG_ERR ((void (*)(int)) 0)
-#undef SIG_IGN
-#define SIG_IGN ((void (*)(int)) 0)
+/* File descriptor flags used with F_GETFD and F_SETFD. */
+#undef FD_CLOEXEC
+#define	FD_CLOEXEC	1	/* Close on exec. */
 
-#define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
-#define raise(sig) ((int) -1)
-
-typedef int posix_sig_atomic_t;
-
-/* full POSIX set */
-enum {
-	SIGABRT,
-	SIGALRM,
-	SIGBUS,
-	SIGCHLD,
-	SIGCONT,
-	SIGFPE,
-	SIGHUP,
-	SIGILL,
-	SIGINT,
-	SIGKILL,
-	SIGPIPE,
-	SIGQUIT,
-	SIGSEGV,
-	SIGSTOP,
-	SIGTERM,
-	SIGTSTP,
-	SIGTTIN,
-	SIGTTOU,
-	SIGUSR1,
-	SIGUSR2,
-	SIGPOLL,
-	SIGPROF,
-	SIGSYS,
-	SIGTRAP,
-	SIGURG,
-	SIGVTALRM,
-	SIGXCPU,
-	SIGXFSZ
-};
+extern int posix_fcntl(int fd, int cmd, ...);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define sig_atomic_t posix_sig_atomic_t
+	#define fcntl posix_fcntl
 #endif
 
-#endif /* POSIX_SIGNAL_H_ */
+#endif /* POSIX_FCNTL_H_ */
 
 /** @}
  */
