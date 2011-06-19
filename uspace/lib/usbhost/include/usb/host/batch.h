@@ -60,6 +60,20 @@ struct usb_transfer_batch {
 	void (*private_data_dtor)(void *p_data);
 };
 
+/** Printf formatting string for dumping usb_transfer_batch_t. */
+#define USB_TRANSFER_BATCH_FMT "[%d:%d %s %s-%s %zuB/%zu]"
+
+/** Printf arguments for dumping usb_transfer_batch_t.
+ * @param batch USB transfer batch to be dumped.
+ */
+#define USB_TRANSFER_BATCH_ARGS(batch) \
+	(batch).ep->address, (batch).ep->endpoint, \
+	usb_str_speed((batch).ep->speed), \
+	usb_str_transfer_type_short((batch).ep->transfer_type), \
+	usb_str_direction((batch).ep->direction), \
+	(batch).buffer_size, (batch).ep->max_packet_size
+
+
 void usb_transfer_batch_init(
     usb_transfer_batch_t *instance,
     endpoint_t *ep,

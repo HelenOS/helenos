@@ -44,7 +44,8 @@
 #include "ehci.h"
 
 #define UNSUPPORTED(methodname) \
-	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
+	usb_log_debug("Client called unsupported interface method " \
+	    "`%s()' in %s:%d.\n", \
 	    methodname, __FILE__, __LINE__)
 
 /** Found free USB address.

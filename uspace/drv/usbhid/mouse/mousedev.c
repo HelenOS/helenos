@@ -52,6 +52,9 @@
 #include "mousedev.h"
 #include "../usbhid.h"
 
+/** Number of simulated arrow-key presses for singel wheel step. */
+#define ARROWS_PER_SINGLE_WHEEL 3
+
 // FIXME: remove this header
 #include <kernel/ipc/ipc_methods.h>
 
@@ -200,159 +203,93 @@ static void usb_mouse_free(usb_mouse_t **mouse_dev)
 
 static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 {
-	kbd_event_t ev;
-	
-	ev.type = KEY_PRESS;
-	ev.key = (wheel > 0) ? KC_UP : (wheel < 0) ? KC_DOWN : 0;
-	ev.mods = 0;
-	ev.c = 0;
+	unsigned int key = (wheel > 0) ? KC_UP : KC_DOWN;
 
 	if (mouse_dev->wheel_phone < 0) {
 		usb_log_warning(
-		    "Connection to console not ready, key discarded.\n");
+		    "Connection to console not ready, wheel roll discarded.\n");
 		return;
 	}
 	
-	int count = (wheel < 0) ? -wheel : wheel;
+	int count = ((wheel < 0) ? -wheel : wheel) * ARROWS_PER_SINGLE_WHEEL;
 	int i;
 	
-	for (i = 0; i < count * 3; ++i) {
-		usb_log_debug2("Sending key %d to the console\n", ev.key);
-		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT, ev.type, 
-		    ev.key, ev.mods, ev.c);
-		// send key release right away
-		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT, KEY_RELEASE, 
-		    ev.key, ev.mods, ev.c);
+	for (i = 0; i < count; i++) {
+		/* Send arrow press and release. */
+		usb_log_debug2("Sending key %d to the console\n", key);
+		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT,
+		    KEY_PRESS, key, 0, 0);
+		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT,
+		    KEY_RELEASE, key, 0, 0);
 	}
 }
 
 /*----------------------------------------------------------------------------*/
 
-static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev, 
-                                     usb_mouse_t *mouse_dev, uint8_t *buffer,
-                                     size_t buffer_size)
+static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
+    int32_t usage)
+{
+	int result = 0;
+
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP,
+	    usage);
+
+	usb_hid_report_path_set_report_id(path, rid);
+
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    report, NULL, path, USB_HID_PATH_COMPARE_END,
+	    USB_HID_REPORT_TYPE_INPUT);
+
+	if (field != NULL) {
+		result = field->value;
+	}
+
+	usb_hid_report_path_free(path);
+
+	return result;
+}
+
+static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
+    usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
-	
-	usb_log_debug2("got buffer: %s.\n",
-	    usb_debug_str_buffer(buffer, buffer_size, 0));
 	
 	if (mouse_dev->mouse_phone < 0) {
 		usb_log_warning(NAME " No console phone.\n");
 		return true;
 	}
 
-	/*
-	 * parse the input report
-	 */
-	
-	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
-	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
-	
-	uint8_t report_id;
-	
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
-	    &report_id);
-	
-	if (rc != EOK) {
-		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
-		    str_error(rc));
-		return true;
-	}
-	
-	/*
-	 * X
-	 */
-	int shift_x = 0;
-	
-	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 
-	    USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
+	int shift_x = get_mouse_axis_move_value(hid_dev->report_id,
+	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
+	int shift_y = get_mouse_axis_move_value(hid_dev->report_id,
+	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
+	int wheel = get_mouse_axis_move_value(hid_dev->report_id,
+	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	usb_hid_report_path_set_report_id(path, report_id);
-
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END, 
-	    USB_HID_REPORT_TYPE_INPUT);
-
-	if (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
-		    field->usage);
-		shift_x = field->value;
-	}
-
-	usb_hid_report_path_free(path);
-	
-	/*
-	 * Y
-	 */
-	int shift_y = 0;
-	
-	path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 
-	    USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
-
-	usb_hid_report_path_set_report_id(path, report_id);
-
-	field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END, 
-	    USB_HID_REPORT_TYPE_INPUT);
-
-	if (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
-		    field->usage);
-		shift_y = field->value;
-	}
-
-	usb_hid_report_path_free(path);
-	
 	if ((shift_x != 0) || (shift_y != 0)) {
 		async_obsolete_req_2_0(mouse_dev->mouse_phone,
 		    MEVENT_MOVE, shift_x, shift_y);
 	}
-	
-	/*
-	 * Wheel
-	 */
-	int wheel = 0;
-	
-	path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP, 
-	    USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	usb_hid_report_path_set_report_id(path, report_id);
-	
-	field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END, 
-	    USB_HID_REPORT_TYPE_INPUT);
-
-	if (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
-		    field->usage);
-		wheel = field->value;
+	if (wheel != 0) {
+		usb_mouse_send_wheel(mouse_dev, wheel);
 	}
-
-	usb_hid_report_path_free(path);
-	
-	// send arrow up for positive direction and arrow down for negative
-	// direction; three arrows for difference of 1
-	usb_mouse_send_wheel(mouse_dev, wheel);
-	
 	
 	/*
 	 * Buttons
 	 */
-	path = usb_hid_report_path();
+	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
-	usb_hid_report_path_set_report_id(path, report_id);
+	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 	
-	field = usb_hid_report_get_sibling(
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	while (field != NULL) {
-		usb_log_debug(NAME " VALUE(%X) USAGE(%X)\n", field->value, 
+		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
 		    field->usage);
 		
 		if (mouse_dev->buttons[field->usage - field->usage_minimum] == 0
@@ -509,12 +446,8 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
-     uint8_t *buffer, size_t buffer_size)
+bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
-	usb_log_debug("usb_mouse_polling_callback()\n");
-	usb_debug_str_buffer(buffer, buffer_size, 0);
-	
 	if (hid_dev == NULL || data == NULL) {
 		usb_log_error("Missing argument to the mouse polling callback."
 		    "\n");
@@ -523,8 +456,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data,
 	
 	usb_mouse_t *mouse_dev = (usb_mouse_t *)data;
 		
-	return usb_mouse_process_report(hid_dev, mouse_dev, buffer, 
-	                                buffer_size);
+	return usb_mouse_process_report(hid_dev, mouse_dev);
 }
 
 /*----------------------------------------------------------------------------*/

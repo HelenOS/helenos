@@ -146,15 +146,14 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count)
 	    + sizeof(qh_t);
 	void *data_buffer = setup + setup_size;
-	usb_target_t target =
-	    { .address = ep->address, .endpoint = ep->endpoint };
 	usb_transfer_batch_init(instance, ep, buffer, data_buffer, buffer_size,
 	    setup, setup_size, func_in, func_out, arg, fun,
 	    uhci_data, uhci_transfer_batch_dispose);
 
 	memcpy(instance->setup_buffer, setup_buffer, setup_size);
-	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
-	    instance, target.address, target.endpoint);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
+	    " memory structures ready.\n", instance,
+	    USB_TRANSFER_BATCH_ARGS(*instance));
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
@@ -204,6 +203,11 @@ substract_ret:
 	instance->transfered_size -= instance->setup_size;
 	return true;
 }
+
+#define LOG_BATCH_INITIALIZED(batch, name) \
+	usb_log_debug2("Batch %p %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    (batch), (name), USB_TRANSFER_BATCH_ARGS(*(batch)))
+
 /*----------------------------------------------------------------------------*/
 /** Prepares control write transfer.
  *
@@ -218,7 +222,7 @@ void batch_control_write(usb_transfer_batch_t *instance)
 	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_control(instance, USB_PID_OUT, USB_PID_IN);
 	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
+	LOG_BATCH_INITIALIZED(instance, "control write");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares control read transfer.
@@ -232,7 +236,7 @@ void batch_control_read(usb_transfer_batch_t *instance)
 	assert(instance);
 	batch_control(instance, USB_PID_IN, USB_PID_OUT);
 	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
+	LOG_BATCH_INITIALIZED(instance, "control read");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare interrupt in transfer.
@@ -246,7 +250,7 @@ void batch_interrupt_in(usb_transfer_batch_t *instance)
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
+	LOG_BATCH_INITIALIZED(instance, "interrupt in");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare interrupt out transfer.
@@ -262,7 +266,7 @@ void batch_interrupt_out(usb_transfer_batch_t *instance)
 	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
+	LOG_BATCH_INITIALIZED(instance, "interrupt out");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare bulk in transfer.
@@ -276,7 +280,7 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+	LOG_BATCH_INITIALIZED(instance, "bulk in");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare bulk out transfer.
@@ -292,7 +296,7 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
 	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
+	LOG_BATCH_INITIALIZED(instance, "bulk out");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer

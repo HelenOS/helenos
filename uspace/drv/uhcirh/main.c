@@ -45,7 +45,7 @@
 
 #include "root_hub.h"
 
-#define NAME "uhci_rhd"
+#define NAME "uhcirh"
 
 static int hc_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);

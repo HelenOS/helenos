@@ -64,8 +64,8 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	const usb_address_t hub_address =
 	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
 	if (hub_address <= 0) {
-		usb_log_error("Failed(%d) to get OHCI root hub address.\n",
-		    hub_address);
+		usb_log_error("Failed to get OHCI root hub address: %s\n",
+		    str_error(hub_address));
 		return hub_address;
 	}
 	instance->rh.address = hub_address;
@@ -444,7 +444,7 @@ void hc_gain_control(hc_t *instance)
 
 	/* HC is in reset (hw startup) => no other driver
 	 * maintain reset for at least the time specified in USB spec (50 ms)*/
-	usb_log_info("HC found in reset.\n");
+	usb_log_debug("Host controller found in reset state.\n");
 	async_usleep(50000);
 }
 /*----------------------------------------------------------------------------*/
@@ -515,7 +515,7 @@ void hc_start_hw(hc_t *instance)
 	    instance->registers->periodic_start, frame_length);
 
 	instance->registers->control &= (C_HCFS_OPERATIONAL << C_HCFS_SHIFT);
-	usb_log_info("OHCI HC up and running(%x).\n",
+	usb_log_debug("OHCI HC up and running (ctl_reg=0x%x).\n",
 	    instance->registers->control);
 }
 /*----------------------------------------------------------------------------*/

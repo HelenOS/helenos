@@ -37,7 +37,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBUSBDEV_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
-BINARY = uhci_rhd
+BINARY = uhcirh
 
 SOURCES = \
 	main.c \

@@ -45,33 +45,60 @@
 #include <usb/hid/hid.h>
 #include <bool.h>
 
-struct usb_hid_dev;
+typedef struct usb_hid_dev usb_hid_dev_t;
+typedef struct usb_hid_subdriver usb_hid_subdriver_t;
 
-typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *, void **data);
-typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *, void *data);
-typedef bool (*usb_hid_driver_poll)(struct usb_hid_dev *, void *data, uint8_t *,
-                                    size_t);
-typedef int (*usb_hid_driver_poll_ended)(struct usb_hid_dev *, void *data, 
-                                         bool reason);
+/** Subdriver initialization callback.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data (pointer where to store them).
+ * @return Error code.
+ */
+typedef int (*usb_hid_driver_init_t)(usb_hid_dev_t *dev, void **data);
 
-typedef struct usb_hid_subdriver {	
+/** Subdriver deinitialization callback.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data.
+ */
+typedef void (*usb_hid_driver_deinit_t)(usb_hid_dev_t *dev, void *data);
+
+/** Subdriver callback on data from device.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data.
+ * @return Whether to continue polling (typically true always).
+ */
+typedef bool (*usb_hid_driver_poll_t)(usb_hid_dev_t *dev, void *data);
+
+/** Subdriver callback after communication with the device ceased.
+ *
+ * @param dev Backing USB HID device.
+ * @param data Custom subdriver data.
+ * @param ended_due_to_errors Whether communication ended due to errors in
+ *	communication (true) or deliberately by driver (false).
+ */
+typedef void (*usb_hid_driver_poll_ended_t)(usb_hid_dev_t *dev, void *data,
+    bool ended_due_to_errors);
+
+struct usb_hid_subdriver {
 	/** Function to be called when initializing HID device. */
 	usb_hid_driver_init_t init;
 	/** Function to be called when destroying the HID device structure. */
 	usb_hid_driver_deinit_t deinit;
 	/** Function to be called when data arrives from the device. */
-	usb_hid_driver_poll poll;
+	usb_hid_driver_poll_t poll;
 	/** Function to be called when polling ends. */
-	usb_hid_driver_poll_ended poll_end;
+	usb_hid_driver_poll_ended_t poll_end;
 	/** Arbitrary data needed by the subdriver. */
 	void *data;
-} usb_hid_subdriver_t;
+};
 
 /*----------------------------------------------------------------------------*/
 /**
  * Structure for holding general HID device data.
  */
-typedef struct usb_hid_dev {
+struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
 	
@@ -93,13 +120,15 @@ typedef struct usb_hid_dev {
 	/** HID Report parser. */
 	usb_hid_report_t *report;
 	
+	uint8_t report_id;
+	
 	uint8_t *input_report;
 	
 	size_t input_report_size;
 	size_t max_input_report_size;
 	
 	int report_nr;
-} usb_hid_dev_t;
+};
 
 /*----------------------------------------------------------------------------*/
 

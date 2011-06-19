@@ -140,10 +140,8 @@ void transfer_list_add_batch(
 	/* Add to the driver's list */
 	list_append(&batch->link, &instance->batch_list);
 
-	usb_transfer_batch_t *first = list_get_instance(
-	    instance->batch_list.next, usb_transfer_batch_t, link);
-	usb_log_debug("Batch(%p) added to queue %s, first is %p.\n",
-		batch, instance->name, first);
+	usb_log_debug("Batch %p " USB_TRANSFER_BATCH_FMT " scheduled in queue %s.\n",
+	    batch, USB_TRANSFER_BATCH_ARGS(*batch), instance->name);
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
@@ -233,8 +231,10 @@ void transfer_list_remove_batch(
 
 	/* Remove from the batch list */
 	list_remove(&batch->link);
-	usb_log_debug("Batch(%p) removed (%s) from %s, next: %x.\n",
-	    batch, qpos, instance->name, batch_qh(batch)->next);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " removed (%s) "
+	    "from %s, next: %x.\n",
+	    batch, USB_TRANSFER_BATCH_ARGS(*batch),
+	    qpos, instance->name, batch_qh(batch)->next);
 }
 /**
  * @}

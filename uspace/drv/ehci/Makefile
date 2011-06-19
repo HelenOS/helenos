@@ -37,7 +37,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBUSBHOST_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
-BINARY = ehci_hcd
+BINARY = ehci
 
 SOURCES = \
 	hc_iface.c \

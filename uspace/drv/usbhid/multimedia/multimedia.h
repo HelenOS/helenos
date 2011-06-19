@@ -46,8 +46,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data);
 
 void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data);
 
-bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data,
-    uint8_t *buffer, size_t buffer_size);
+bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data);
 
 /*----------------------------------------------------------------------------*/
 

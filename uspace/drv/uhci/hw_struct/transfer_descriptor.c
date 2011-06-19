@@ -102,7 +102,7 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	    instance->buffer_ptr, buffer);
 	td_print_status(instance);
 	if (pid == USB_PID_SETUP) {
-		usb_log_debug("SETUP BUFFER: %s\n",
+		usb_log_debug2("SETUP BUFFER: %s\n",
 		    usb_debug_str_buffer(buffer, 8, 8));
 	}
 }

@@ -539,6 +539,9 @@ void str_append(char *dest, size_t size, const char *src)
 	size_t dstr_size;
 
 	dstr_size = str_size(dest);
+	if (dstr_size >= size) {
+		return;
+	}
 	str_cpy(dest + dstr_size, size - dstr_size, src);
 }
 

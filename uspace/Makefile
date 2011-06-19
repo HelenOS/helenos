@@ -100,10 +100,10 @@ DIRS = \
 	drv/test1 \
 	drv/test2 \
 	drv/test3 \
-	drv/ehci_hcd \
+	drv/ehci \
 	drv/ohci \
-	drv/uhci_hcd \
-	drv/uhci_rhd \
+	drv/uhci \
+	drv/uhcirh \
 	drv/usbflbk \
 	drv/usbhid \
 	drv/usbhub \

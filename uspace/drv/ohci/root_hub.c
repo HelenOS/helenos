@@ -231,7 +231,7 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	if (!instance->interrupt_buffer)
 		return ENOMEM;
 
-	usb_log_info("OHCI root hub with %zu ports initialized.\n",
+	usb_log_info("Root hub (%zu ports) initialized.\n",
 	    instance->port_count);
 
 	return EOK;
@@ -250,11 +250,11 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 	assert(request);
 	int opResult;
 	if (request->ep->transfer_type == USB_TRANSFER_CONTROL) {
-		usb_log_info("Root hub got CONTROL packet\n");
+		usb_log_debug("Root hub got CONTROL packet\n");
 		opResult = process_ctrl_request(instance, request);
 		usb_transfer_batch_finish_error(request, opResult);
 	} else if (request->ep->transfer_type == USB_TRANSFER_INTERRUPT) {
-		usb_log_info("Root hub got INTERRUPT packet\n");
+		usb_log_debug("Root hub got INTERRUPT packet\n");
 		create_interrupt_mask_in_instance(instance);
 		if (is_zeros(instance->interrupt_buffer,
 		    instance->interrupt_mask_size)) {
@@ -520,44 +520,44 @@ static int process_get_descriptor_request(rh_t *instance,
 	switch (setup_request_value) {
 		case USB_DESCTYPE_HUB:
 		{
-			usb_log_debug("USB_DESCTYPE_HUB\n");
+			usb_log_debug2("USB_DESCTYPE_HUB\n");
 			result_descriptor = instance->hub_descriptor;
 			size = instance->descriptor_size;
 			break;
 		}
 		case USB_DESCTYPE_DEVICE:
 		{
-			usb_log_debug("USB_DESCTYPE_DEVICE\n");
+			usb_log_debug2("USB_DESCTYPE_DEVICE\n");
 			result_descriptor = &ohci_rh_device_descriptor;
 			size = sizeof (ohci_rh_device_descriptor);
 			break;
 		}
 		case USB_DESCTYPE_CONFIGURATION:
 		{
-			usb_log_debug("USB_DESCTYPE_CONFIGURATION\n");
+			usb_log_debug2("USB_DESCTYPE_CONFIGURATION\n");
 			result_descriptor = instance->descriptors.configuration;
 			size = instance->descriptors.configuration_size;
 			break;
 		}
 		case USB_DESCTYPE_INTERFACE:
 		{
-			usb_log_debug("USB_DESCTYPE_INTERFACE\n");
+			usb_log_debug2("USB_DESCTYPE_INTERFACE\n");
 			result_descriptor = &ohci_rh_iface_descriptor;
 			size = sizeof (ohci_rh_iface_descriptor);
 			break;
 		}
 		case USB_DESCTYPE_ENDPOINT:
 		{
-			usb_log_debug("USB_DESCTYPE_ENDPOINT\n");
+			usb_log_debug2("USB_DESCTYPE_ENDPOINT\n");
 			result_descriptor = &ohci_rh_ep_descriptor;
 			size = sizeof (ohci_rh_ep_descriptor);
 			break;
 		}
 		default:
 		{
-			usb_log_debug("USB_DESCTYPE_EINVAL %d \n",
+			usb_log_debug2("USB_DESCTYPE_EINVAL %d \n",
 			    setup_request->value);
-			usb_log_debug("\ttype %d\n\trequest %d\n\tvalue "
+			usb_log_debug2("\ttype %d\n\trequest %d\n\tvalue "
 			    "%d\n\tindex %d\n\tlen %d\n ",
 			    setup_request->request_type,
 			    setup_request->request,
@@ -788,7 +788,7 @@ static int process_request_without_data(rh_t *instance,
 			    setup_request->value);
 		}
 		if (setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
-			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
+			usb_log_debug2("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
 			return process_port_feature_clear_request(instance,
 			    setup_request->value,
 			    setup_request->index);
@@ -853,7 +853,7 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
 		usb_log_error("Setup packet too small\n");
 		return EINVAL;
 	}
-	usb_log_info("CTRL packet: %s.\n",
+	usb_log_debug("CTRL packet: %s.\n",
 	    usb_debug_str_buffer(
 	    (const uint8_t *) request->setup_buffer, 8, 8));
 	usb_device_request_setup_packet_t * setup_request =
@@ -863,31 +863,28 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
 		case USB_DEVREQ_GET_STATUS:
 		case USB_DEVREQ_GET_DESCRIPTOR:
 		case USB_DEVREQ_GET_CONFIGURATION:
-			usb_log_debug("Processing request with output\n");
+			usb_log_debug2("Processing request with output\n");
 			opResult = process_request_with_output(
 			    instance, request);
 			break;
 		case USB_DEVREQ_CLEAR_FEATURE:
 		case USB_DEVREQ_SET_FEATURE:
 		case USB_DEVREQ_SET_ADDRESS:
-			usb_log_debug("Processing request without "
+			usb_log_debug2("Processing request without "
 			    "additional data\n");
 			opResult = process_request_without_data(
 			    instance, request);
 			break;
 		case USB_DEVREQ_SET_DESCRIPTOR:
 		case USB_DEVREQ_SET_CONFIGURATION:
-			usb_log_debug("Processing request with "
-			    "input\n");
+			usb_log_debug2("Processing request with input\n");
 			opResult = process_request_with_input(
 			    instance, request);
 
 			break;
 		default:
-			usb_log_warning("Received unsuported request: "
-			    "%d\n",
-			    setup_request->request
-			    );
+			usb_log_warning("Received unsupported request: %d.\n",
+			    setup_request->request);
 			opResult = ENOTSUP;
 	}
 	return opResult;

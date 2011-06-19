@@ -96,14 +96,14 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 				    kbd->repeat.key_repeated);
 				delay = kbd->repeat.delay_between;
 			} else {
-				usb_log_debug("New key to repeat: %u.\n", 
+				usb_log_debug2("New key to repeat: %u.\n",
 				    kbd->repeat.key_new);
 				kbd->repeat.key_repeated = kbd->repeat.key_new;
 				delay = kbd->repeat.delay_before;
 			}
 		} else {
 			if (kbd->repeat.key_repeated > 0) {
-				usb_log_debug("Stopping to repeat key: %u.\n", 
+				usb_log_debug2("Stopping to repeat key: %u.\n",
 				    kbd->repeat.key_repeated);
 				kbd->repeat.key_repeated = 0;
 			}

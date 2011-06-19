@@ -46,6 +46,8 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 
+#include <ddf/log.h>
+
 #include <usb/usb.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
@@ -316,6 +318,17 @@ static inline int usb_kbd_is_lock(unsigned int key_code)
 	    || key_code == KC_CAPS_LOCK);
 }
 
+static size_t find_in_array_int32(int32_t val, int32_t *arr, size_t arr_size)
+{
+	for (size_t i = 0; i < arr_size; i++) {
+		if (arr[i] == val) {
+			return i;
+		}
+	}
+
+	return (size_t) -1;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
  * Checks if some keys were pressed or released and generates key events.
@@ -336,7 +349,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
     usb_kbd_t *kbd_dev)
 {
 	unsigned int key;
-	unsigned int i, j;
+	size_t i;
 	
 	/*
 	 * First of all, check if the kbd have reported phantom state.
@@ -346,72 +359,59 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	 * if there is at least one such error and in such case we ignore the
 	 * whole input report.
 	 */
-	i = 0;
-	while (i < kbd_dev->key_count && kbd_dev->keys[i] != ERROR_ROLLOVER) {
-		++i;
-	}
-	if (i != kbd_dev->key_count) {
-		usb_log_debug("Phantom state occured.\n");
-		// phantom state, do nothing
+	i = find_in_array_int32(ERROR_ROLLOVER, kbd_dev->keys,
+	    kbd_dev->key_count);
+	if (i != (size_t) -1) {
+		usb_log_debug("Detected phantom state.\n");
 		return;
 	}
 	
 	/*
-	 * 1) Key releases
+	 * Key releases
 	 */
-	for (j = 0; j < kbd_dev->key_count; ++j) {
-		// try to find the old key in the new key list
-		i = 0;
-		while (i < kbd_dev->key_count
-		    && kbd_dev->keys[i] != kbd_dev->keys_old[j]) {
-			++i;
-		}
-		
-		if (i == kbd_dev->key_count) {
-			// not found, i.e. the key was released
-			key = usbhid_parse_scancode(kbd_dev->keys_old[j]);
+	for (i = 0; i < kbd_dev->key_count; i++) {
+		int32_t old_key = kbd_dev->keys_old[i];
+		/* Find the old key among currently pressed keys. */
+		size_t pos = find_in_array_int32(old_key, kbd_dev->keys,
+		    kbd_dev->key_count);
+		/* If the key was not found, we need to signal release. */
+		if (pos == (size_t) -1) {
+			key = usbhid_parse_scancode(old_key);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_stop(kbd_dev, key);
 			}
 			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_RELEASE, key);
-			usb_log_debug2("Key released: %d\n", key);
-		} else {
-			// found, nothing happens
+			usb_log_debug2("Key released: %u "
+			    "(USB code %" PRIu32 ")\n", key, old_key);
 		}
 	}
 	
 	/*
-	 * 1) Key presses
+	 * Key presses
 	 */
 	for (i = 0; i < kbd_dev->key_count; ++i) {
-		// try to find the new key in the old key list
-		j = 0;
-		while (j < kbd_dev->key_count 
-		    && kbd_dev->keys_old[j] != kbd_dev->keys[i]) { 
-			++j;
-		}
-		
-		if (j == kbd_dev->key_count) {
-			// not found, i.e. new key pressed
+		int32_t new_key = kbd_dev->keys[i];
+		/* Find the new key among already pressed keys. */
+		size_t pos = find_in_array_int32(new_key, kbd_dev->keys_old,
+		    kbd_dev->key_count);
+		/* If the key was not found, we need to signal press. */
+		if (pos == (size_t) -1) {
 			key = usbhid_parse_scancode(kbd_dev->keys[i]);
-			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
-			    kbd_dev->keys[i]);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_start(kbd_dev, key);
 			}
 			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_PRESS, key);
-		} else {
-			// found, nothing happens
+			usb_log_debug2("Key pressed: %u "
+			    "(USB code %" PRIu32 ")\n", key, new_key);
 		}
 	}
 	
 	memcpy(kbd_dev->keys_old, kbd_dev->keys, kbd_dev->key_count * 4);
 	
-	usb_log_debug2("New stored keys: ");
-	for (i = 0; i < kbd_dev->key_count; ++i) {
-		usb_log_debug2("%d ", kbd_dev->keys_old[i]);
-	}
-	usb_log_debug2("\n");
+	char key_buffer[512];
+	ddf_dump_buffer(key_buffer, 512,
+	    kbd_dev->keys_old, 4, kbd_dev->key_count, 0);
+	usb_log_debug2("Stored keys %s.\n", key_buffer);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -433,29 +433,16 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
  * @sa usb_kbd_process_keycodes(), usb_hid_boot_keyboard_input_report(),
  *     usb_hid_parse_report().
  */
-static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev,
-                                 uint8_t *buffer, size_t actual_size)
+static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 {
 	assert(hid_dev->report != NULL);
 	assert(hid_dev != NULL);
 	assert(kbd_dev != NULL);
-
-	usb_log_debug("Calling usb_hid_parse_report() with "
-	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
 	
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 
-	uint8_t report_id;
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size, 
-	    &report_id);
-	
-	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_parse_report():"
-		    "%s\n", str_error(rc));
-	}
-	
-	usb_hid_report_path_set_report_id (path, report_id);
+	usb_hid_report_path_set_report_id (path, hid_dev->report_id);
 	
 	// fill in the currently pressed keys
 	
@@ -755,10 +742,9 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
-     uint8_t *buffer, size_t buffer_size)
+bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
-	if (hid_dev == NULL || buffer == NULL || data == NULL) {
+	if (hid_dev == NULL/* || buffer == NULL*/ || data == NULL) {
 		// do not continue polling (???)
 		return false;
 	}
@@ -767,7 +753,7 @@ bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data,
 	assert(kbd_dev != NULL);
 	
 	// TODO: add return value from this function
-	usb_kbd_process_data(hid_dev, kbd_dev, buffer, buffer_size);
+	usb_kbd_process_data(hid_dev, kbd_dev);
 	
 	return true;
 }
@@ -803,6 +789,8 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 	
 	if ((*kbd_dev)->repeat_mtx != NULL) {
 		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
+		// FIXME - the fibril_mutex_is_locked may not cause
+		// fibril scheduling
 		while (fibril_mutex_is_locked((*kbd_dev)->repeat_mtx)) {}
 		free((*kbd_dev)->repeat_mtx);
 	}

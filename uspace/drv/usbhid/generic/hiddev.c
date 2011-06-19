@@ -230,12 +230,8 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data, 
-    uint8_t *buffer, size_t buffer_size)
+bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
-	usb_log_debug2("usb_hid_polling_callback(%p, %p, %zu)\n",
-	    hid_dev, buffer, buffer_size);
-	usb_debug_str_buffer(buffer, buffer_size, 0);
 	return true;
 }
 
