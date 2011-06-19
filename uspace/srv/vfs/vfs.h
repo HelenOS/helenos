@@ -144,9 +144,9 @@ typedef struct {
 
 extern fibril_mutex_t nodes_mutex;
 
-extern fibril_condvar_t fs_head_cv;
-extern fibril_mutex_t fs_head_lock;
-extern link_t fs_head;		/**< List of registered file systems. */
+extern fibril_condvar_t fs_list_cv;
+extern fibril_mutex_t fs_list_lock;
+extern list_t fs_list;		/**< List of registered file systems. */
 
 extern vfs_pair_t rootfs;	/**< Root file system. */
 
@@ -157,9 +157,9 @@ typedef struct {
 	size_t len;		/**< Number of characters in this PLB entry. */
 } plb_entry_t;
 
-extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_head. */
+extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_entries. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
-extern link_t plb_head;		/**< List of active PLB entries. */
+extern list_t plb_entries;	/**< List of active PLB entries. */
 
 #define MAX_MNTOPTS_LEN		256
 

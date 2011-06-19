@@ -60,11 +60,11 @@ bool hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys,
 	assert(op && op->hash && op->compare);
 	assert(max_keys > 0);
 	
-	h->entry = malloc(m * sizeof(link_t));
+	h->entry = malloc(m * sizeof(list_t));
 	if (!h->entry)
 		return false;
 	
-	memset((void *) h->entry, 0,  m * sizeof(link_t));
+	memset((void *) h->entry, 0,  m * sizeof(list_t));
 	
 	hash_count_t i;
 	for (i = 0; i < m; i++)
@@ -122,9 +122,7 @@ link_t *hash_table_find(hash_table_t *h, unsigned long key[])
 	hash_index_t chain = h->op->hash(key);
 	assert(chain < h->entries);
 	
-	link_t *cur;
-	for (cur = h->entry[chain].next; cur != &h->entry[chain];
-	    cur = cur->next) {
+	list_foreach(h->entry[chain], cur) {
 		if (h->op->compare(key, h->max_keys, cur)) {
 			/*
 			 * The entry is there.
@@ -152,9 +150,9 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	    h->op->remove_callback);
 	assert(keys <= h->max_keys);
 	
-	link_t *cur;
-	
 	if (keys == h->max_keys) {
+		link_t *cur;
+		
 		/*
 		 * All keys are known, hash_table_find() can be used to find the
 		 * entry.
@@ -175,7 +173,9 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	 */
 	hash_index_t chain;
 	for (chain = 0; chain < h->entries; chain++) {
-		for (cur = h->entry[chain].next; cur != &h->entry[chain];
+		link_t *cur;
+		
+		for (cur = h->entry[chain].head.next; cur != &h->entry[chain].head;
 		    cur = cur->next) {
 			if (h->op->compare(key, keys, cur)) {
 				link_t *hlp;
@@ -202,11 +202,9 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 void hash_table_apply(hash_table_t *h, void (*f)(link_t *, void *), void *arg)
 {
 	hash_index_t bucket;
-	link_t *cur;
 	
 	for (bucket = 0; bucket < h->entries; bucket++) {
-		for (cur = h->entry[bucket].next; cur != &h->entry[bucket];
-		    cur = cur->next) {
+		list_foreach(h->entry[bucket], cur) {
 			f(cur, arg);
 		}
 	}

@@ -53,10 +53,9 @@ static ddf_dev_ops_t mid_device_ops = {
  * @param interface_no Interface number caller is looking for.
  * @return Interface @p interface_no is already present in the list.
  */
-static bool interface_in_list(link_t *list, int interface_no)
+static bool interface_in_list(list_t *list, int interface_no)
 {
-	link_t *l;
-	for (l = list->next; l != list; l = l->next) {
+	list_foreach(*list, l) {
 		usbmid_interface_t *iface
 		    = list_get_instance(l, usbmid_interface_t, link);
 		if (iface->interface_no == interface_no) {
@@ -74,7 +73,7 @@ static bool interface_in_list(link_t *list, int interface_no)
  * @param list List where to add the interfaces.
  */
 static void create_interfaces(uint8_t *config_descriptor,
-    size_t config_descriptor_size, link_t *list)
+    size_t config_descriptor_size, list_t *list)
 {
 	usb_dp_parser_data_t data = {
 		.data = config_descriptor,
@@ -180,14 +179,12 @@ bool usbmid_explore_device(usb_device_t *dev)
 	}
 
 	/* Create interface children. */
-	link_t interface_list;
+	list_t interface_list;
 	list_initialize(&interface_list);
 	create_interfaces(config_descriptor_raw, config_descriptor_size,
 	    &interface_list);
 
-	link_t *link;
-	for (link = interface_list.next; link != &interface_list;
-	    link = link->next) {
+	list_foreach(interface_list, link) {
 		usbmid_interface_t *iface = list_get_instance(link,
 		    usbmid_interface_t, link);
 

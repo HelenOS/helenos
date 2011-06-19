@@ -51,7 +51,7 @@ typedef struct {
 } cs_req_t;
 
 /** List of clonable-service connection requests. */
-static link_t cs_req;
+static list_t cs_req;
 
 int clonable_init(void)
 {
@@ -75,15 +75,18 @@ bool service_clonable(int service)
 void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
     ipc_callid_t callid)
 {
-	if (list_empty(&cs_req)) {
+	link_t *req_link;
+
+	req_link = list_first(&cs_req);
+	if (req_link == NULL) {
 		/* There was no pending connection request. */
 		printf("%s: Unexpected clonable server.\n", NAME);
 		ipc_answer_0(callid, EBUSY);
 		return;
 	}
 	
-	cs_req_t *csr = list_get_instance(cs_req.next, cs_req_t, link);
-	list_remove(&csr->link);
+	cs_req_t *csr = list_get_instance(req_link, cs_req_t, link);
+	list_remove(req_link);
 	
 	/* Currently we can only handle a single type of clonable service. */
 	assert(csr->service == SERVICE_LOAD);

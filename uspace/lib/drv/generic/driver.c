@@ -138,18 +138,16 @@ void remove_interrupt_context(interrupt_context_list_t *list,
 interrupt_context_t *
 find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 {
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
 	interrupt_context_t *ctx;
 	
-	while (link != &list->contexts) {
+	fibril_mutex_lock(&list->mutex);
+	
+	list_foreach(list->contexts, link) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
 		if (ctx->id == id) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&list->mutex);
@@ -159,18 +157,16 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 interrupt_context_t *
 find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
 	interrupt_context_t *ctx;
 	
-	while (link != &list->contexts) {
+	fibril_mutex_lock(&list->mutex);
+	
+	list_foreach(list->contexts, link) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
 		if (ctx->irq == irq && ctx->dev == dev) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&list->mutex);
@@ -230,21 +226,18 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 	fibril_mutex_unlock(&functions_mutex);
 }
 
-static ddf_fun_t *driver_get_function(link_t *functions, devman_handle_t handle)
+static ddf_fun_t *driver_get_function(list_t *functions, devman_handle_t handle)
 {
 	ddf_fun_t *fun = NULL;
 	
 	fibril_mutex_lock(&functions_mutex);
-	link_t *link = functions->next;
 	
-	while (link != functions) {
+	list_foreach(*functions, link) {
 		fun = list_get_instance(link, ddf_fun_t, link);
 		if (fun->handle == handle) {
 			fibril_mutex_unlock(&functions_mutex);
 			return fun;
 		}
-		
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&functions_mutex);

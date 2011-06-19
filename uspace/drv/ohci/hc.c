@@ -356,8 +356,8 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		usb_log_debug2("Periodic current: %#" PRIx32 ".\n",
 		    instance->registers->periodic_current);
 
-		link_t *current = instance->pending_batches.next;
-		while (current != &instance->pending_batches) {
+		link_t *current = instance->pending_batches.head.next;
+		while (current != &instance->pending_batches.head) {
 			link_t *next = current->next;
 			usb_transfer_batch_t *batch =
 			    usb_transfer_batch_from_link(current);
@@ -366,6 +366,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 				list_remove(current);
 				usb_transfer_batch_finish(batch);
 			}
+
 			current = next;
 		}
 		fibril_mutex_unlock(&instance->guard);

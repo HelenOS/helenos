@@ -102,10 +102,7 @@ void dump_usb_descriptor(uint8_t *descriptor, size_t size)
 
 void dump_match_ids(match_id_list_t *matches, const char *line_prefix)
 {
-	link_t *link;
-	for (link = matches->ids.next;
-	    link != &matches->ids;
-	    link = link->next) {
+	list_foreach(matches->ids, link) {
 		match_id_t *match = list_get_instance(link, match_id_t, link);
 
 		printf("%s%3d %s\n", line_prefix, match->score, match->id);

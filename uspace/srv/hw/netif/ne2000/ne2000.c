@@ -167,17 +167,17 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	fibril_rwlock_read_unlock(&netif_globals.lock);
 	
 	if (ne2k != NULL) {
-		link_t *frames =
+		list_t *frames =
 		    ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
 		
 		if (frames != NULL) {
 			while (!list_empty(frames)) {
-				frame_t *frame =
-				    list_get_instance(frames->next, frame_t, link);
+				frame_t *frame = list_get_instance(
+				    list_first(frames), frame_t, link);
 				
 				list_remove(&frame->link);
-				nil_received_msg(nil_phone, device_id, frame->packet,
-				    SERVICE_NONE);
+				nil_received_msg(nil_phone, device_id,
+				    frame->packet, SERVICE_NONE);
 				free(frame);
 			}
 			

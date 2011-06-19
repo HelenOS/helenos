@@ -465,15 +465,13 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 	
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
 	
-	link_t *link = drivers_list->drivers.next;
-	while (link != &drivers_list->drivers) {
+	list_foreach(drivers_list->drivers, link) {
 		drv = list_get_instance(link, driver_t, drivers);
 		score = get_match_score(drv, node);
 		if (score > best_score) {
 			best_score = score;
 			best_drv = drv;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
@@ -535,19 +533,15 @@ driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
 {
 	driver_t *res = NULL;
 	driver_t *drv = NULL;
-	link_t *link;
 	
 	fibril_mutex_lock(&drv_list->drivers_mutex);
 	
-	link = drv_list->drivers.next;
-	while (link != &drv_list->drivers) {
+	list_foreach(drv_list->drivers, link) {
 		drv = list_get_instance(link, driver_t, drivers);
 		if (str_cmp(drv->name, drv_name) == 0) {
 			res = drv;
 			break;
 		}
-
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&drv_list->drivers_mutex);
@@ -583,8 +577,8 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * Go through devices list as long as there is some device
 	 * that has not been passed to the driver.
 	 */
-	link = driver->devices.next;
-	while (link != &driver->devices) {
+	link = driver->devices.head.next;
+	while (link != &driver->devices.head) {
 		dev = list_get_instance(link, dev_node_t, driver_devices);
 		if (dev->passed_to_driver) {
 			link = link->next;
@@ -621,7 +615,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		/*
 		 * Restart the cycle to go through all devices again.
 		 */
-		link = driver->devices.next;
+		link = driver->devices.head.next;
 	}
 
 	async_hangup(sess);
@@ -1186,11 +1180,8 @@ fun_node_t *find_fun_node_in_device(dev_node_t *dev, const char *name)
 	assert(name != NULL);
 
 	fun_node_t *fun;
-	link_t *link;
 
-	for (link = dev->functions.next;
-	    link != &dev->functions;
-	    link = link->next) {
+	list_foreach(dev->functions, link) {
 		fun = list_get_instance(link, fun_node_t, dev_functions);
 
 		if (str_cmp(name, fun->name) == 0)
@@ -1384,14 +1375,12 @@ dev_class_t *find_dev_class_no_lock(class_list_t *class_list,
     const char *class_name)
 {
 	dev_class_t *cl;
-	link_t *link = class_list->classes.next;
 	
-	while (link != &class_list->classes) {
+	list_foreach(class_list->classes, link) {
 		cl = list_get_instance(link, dev_class_t, link);
 		if (str_cmp(cl->name, class_name) == 0) {
 			return cl;
 		}
-		link = link->next;
 	}
 	
 	return NULL;
@@ -1407,10 +1396,7 @@ dev_class_info_t *find_dev_in_class(dev_class_t *dev_class, const char *dev_name
 	assert(dev_class != NULL);
 	assert(dev_name != NULL);
 
-	link_t *link;
-	for (link = dev_class->devices.next;
-	    link != &dev_class->devices;
-	    link = link->next) {
+	list_foreach(dev_class->devices, link) {
 		dev_class_info_t *dev = list_get_instance(link,
 		    dev_class_info_t, link);
 

@@ -146,9 +146,10 @@ void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 	ASSERT(h->op->compare);
 	ASSERT(keys <= h->max_keys);
 	
+	
 	if (keys == h->max_keys) {
 		link_t *cur;
-	
+		
 		/*
 		 * All keys are known, hash_table_find() can be used to find the entry.
 		 */
@@ -167,7 +168,9 @@ void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 	 * Any partially matching entries are to be removed.
 	 */
 	for (chain = 0; chain < h->entries; chain++) {
-		list_foreach(h->entry[chain], cur) {
+		link_t *cur;
+		for (cur = h->entry[chain].head.next; cur != &h->entry[chain].head;
+		    cur = cur->next) {
 			if (h->op->compare(key, keys, cur)) {
 				link_t *hlp;
 				

@@ -102,8 +102,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	} else {
 		/* There are active EDs, get the last one */
 		hcd_endpoint_t *last = list_get_instance(
-		    instance->endpoint_list.prev, hcd_endpoint_t, link);
-		assert(last);
+		    list_last(&instance->endpoint_list), hcd_endpoint_t, link);
 		last_ed = last->ed;
 	}
 	/* Keep link */
@@ -120,7 +119,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	list_append(&hcd_ep->link, &instance->endpoint_list);
 
 	hcd_endpoint_t *first = list_get_instance(
-	    instance->endpoint_list.next, hcd_endpoint_t, link);
+	    list_first(&instance->endpoint_list), hcd_endpoint_t, link);
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
 		hcd_ep, instance->name, first, first->ed);
 	if (last_ed == instance->list_head) {
@@ -152,7 +151,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	const char *qpos = NULL;
 	ed_t *prev_ed;
 	/* Remove from the hardware queue */
-	if (instance->endpoint_list.next == &hcd_ep->link) {
+	if (list_first(&instance->endpoint_list) == &hcd_ep->link) {
 		/* I'm the first one here */
 		prev_ed = instance->list_head;
 		qpos = "FIRST";

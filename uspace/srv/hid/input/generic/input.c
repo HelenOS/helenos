@@ -74,10 +74,10 @@ static void input_event_key(int, unsigned int, unsigned, wchar_t);
 int client_phone = -1;
 
 /** List of keyboard devices */
-static link_t kbd_devs;
+static list_t kbd_devs;
 
 /** List of mouse devices */
-link_t mouse_devs;
+list_t mouse_devs;
 
 bool irc_service = false;
 int irc_phone = -1;

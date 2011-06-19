@@ -94,11 +94,11 @@ typedef struct {
 	/** Count of available reports. */
 	int report_count;
 
-	/** Head of linked list of description of reports. */
-	link_t reports;
+	/** List of description of reports. */
+	list_t reports; /* of usb_hid_report_description_t */
 
-	/** Head of linked list of all used usage/collection paths. */
-	link_t collection_paths;
+	/** List of all used usage/collection paths. */
+	list_t collection_paths;
 
 	/** Length of list of usage paths. */
 	int collection_paths_count;
@@ -128,11 +128,11 @@ typedef struct {
 	/** Number of items in report */
 	size_t item_length;
 	
-	/** Linked list of report items in report */
-	link_t report_items;
+	/** List of report items in report */
+	list_t report_items;
 
-	/** Linked list of descriptions. */
-	link_t link;
+	/** Link to usb_hid_report_t.reports list. */
+	link_t reports_link;
 } usb_hid_report_description_t;
 /*---------------------------------------------------------------------------*/
 
@@ -197,8 +197,8 @@ typedef struct {
 	/** Parsed value */
 	int32_t value;
 
-	/** List to another report items */
-	link_t link;
+	/** Link to usb_hid_report_description_t.report_items list */
+	link_t ritems_link;
 } usb_hid_report_field_t;
 
 /*---------------------------------------------------------------------------*/

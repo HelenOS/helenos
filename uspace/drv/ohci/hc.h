@@ -67,7 +67,7 @@ typedef struct hc {
 	/** Transfer schedules */
 	endpoint_list_t lists[4];
 	/** List of active transfers */
-	link_t pending_batches;
+	list_t pending_batches;
 
 	/** Fibril for periodic checks if interrupts can't be used */
 	fid_t interrupt_emulator;

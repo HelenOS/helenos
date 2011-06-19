@@ -70,6 +70,9 @@ typedef struct list {
 	for (link_t *iterator = (list).head.next; \
 	    iterator != &(list).head; iterator = iterator->next)
 
+#define assert_link_not_used(link) \
+	ASSERT((link)->prev == NULL && (link)->next == NULL)
+
 /** Initialize doubly-linked circular list link
  *
  * Initialize doubly-linked list link.

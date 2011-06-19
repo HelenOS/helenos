@@ -56,7 +56,7 @@ typedef struct {
 	size_t dbuf_size;
 	char *data;
 
-	link_t tags_head;
+	list_t tags;
 } sheet_t;
 
 /** Character cell coordinates
@@ -90,7 +90,7 @@ typedef struct {
 typedef struct {
 	/* Note: This structure is opaque for the user. */
 
-	/** Link to list of all tags in the sheet (see sheet_t.tags_head) */
+	/** Link to list of all tags in the sheet (see sheet_t.tags) */
 	link_t link;
 	sheet_t *sh;
 	size_t b_off;

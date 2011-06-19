@@ -51,7 +51,7 @@ typedef struct endpoint_list {
 	/** Assigned name, provides nicer debug output */
 	const char *name;
 	/** Sw list of all active EDs */
-	link_t endpoint_list;
+	list_t endpoint_list;
 } endpoint_list_t;
 
 /** Dispose transfer list structures.

@@ -51,12 +51,12 @@ typedef struct {
 	bool plugged;
 	usb_address_t address;
 	fibril_mutex_t guard;
-	link_t transfer_queue;
+	list_t transfer_queue;
 } vhc_virtdev_t;
 
 typedef struct {
 	uint32_t magic;
-	link_t devices;
+	list_t devices;
 	fibril_mutex_t guard;
 	usb_endpoint_manager_t ep_manager;
 	usb_device_keeper_t dev_keeper;

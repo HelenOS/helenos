@@ -188,8 +188,8 @@ static vhc_transfer_t *dequeue_first_transfer(vhc_virtdev_t *dev)
 	assert(fibril_mutex_is_locked(&dev->guard));
 	assert(!list_empty(&dev->transfer_queue));
 
-	vhc_transfer_t *transfer = list_get_instance(dev->transfer_queue.next,
-	    vhc_transfer_t, link);
+	vhc_transfer_t *transfer = list_get_instance(
+	    list_first(&dev->transfer_queue), vhc_transfer_t, link);
 	list_remove(&transfer->link);
 
 	return transfer;
