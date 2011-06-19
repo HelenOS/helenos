@@ -89,5 +89,23 @@ void list_concat(list_t *list1, list_t *list2)
 	list_initialize(list2);
 }
 
+/** Count list items
+ *
+ * Return the number of items in the list.
+ *
+ * @param list		List to count.
+ * @return		Number of items in the list.
+ */
+unsigned int list_count(const list_t *list)
+{
+	unsigned int count = 0;
+	
+	list_foreach(*list, link) {
+		count++;
+	}
+	
+	return count;
+}
+
 /** @}
  */

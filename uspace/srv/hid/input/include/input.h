@@ -46,7 +46,7 @@
 extern bool irc_service;
 extern int irc_phone;
 
-extern link_t mouse_devs;
+extern list_t mouse_devs;
 
 void input_event_move(int, int);
 void input_event_button(int bnum, int press);

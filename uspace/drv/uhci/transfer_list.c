@@ -120,8 +120,8 @@ void transfer_list_add_batch(
 		last_qh = instance->queue_head;
 	} else {
 		/* There is something scheduled */
-		usb_transfer_batch_t *last =
-		    usb_transfer_batch_from_link(instance->batch_list.prev);
+		usb_transfer_batch_t *last = usb_transfer_batch_from_link(
+		    list_last(&instance->batch_list));
 		last_qh = batch_qh(last);
 	}
 	const uint32_t pa = addr_to_phys(batch_qh(batch));
@@ -145,19 +145,19 @@ void transfer_list_add_batch(
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Add completed bantches to the provided list.
+/** Add completed batches to the provided list.
  *
  * @param[in] instance List to use.
  * @param[in] done list to fill
  */
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
+void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
 {
 	assert(instance);
 	assert(done);
 
 	fibril_mutex_lock(&instance->guard);
-	link_t *current = instance->batch_list.next;
-	while (current != &instance->batch_list) {
+	link_t *current = instance->batch_list.head.next;
+	while (current != &instance->batch_list.head) {
 		link_t * const next = current->next;
 		usb_transfer_batch_t *batch =
 		    usb_transfer_batch_from_link(current);
@@ -180,7 +180,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 {
 	fibril_mutex_lock(&instance->guard);
 	while (!list_empty(&instance->batch_list)) {
-		link_t * const current = instance->batch_list.next;
+		link_t * const current = list_first(&instance->batch_list);
 		usb_transfer_batch_t *batch =
 		    usb_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
@@ -211,7 +211,7 @@ void transfer_list_remove_batch(
 	const char *qpos = NULL;
 	qh_t *prev_qh = NULL;
 	/* Remove from the hardware queue */
-	if (instance->batch_list.next == &batch->link) {
+	if (list_first(&instance->batch_list) == &batch->link) {
 		/* I'm the first one here */
 		prev_qh = instance->queue_head;
 		qpos = "FIRST";

@@ -29,6 +29,8 @@
 #ifndef LIST_T_H_
 #define LIST_T_H_
 
+#include "compat.h"
+
 typedef struct list_node {
 	struct list_node *prev, *next;
 	void *data;

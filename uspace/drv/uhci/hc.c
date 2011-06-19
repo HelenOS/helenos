@@ -344,7 +344,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		    &instance->transfers_bulk_full, &done);
 
 		while (!list_empty(&done)) {
-			link_t *item = done.next;
+			link_t *item = list_first(&done);
 			list_remove(item);
 			usb_transfer_batch_t *batch =
 			    list_get_instance(item, usb_transfer_batch_t, link);

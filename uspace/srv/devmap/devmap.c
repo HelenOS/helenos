@@ -56,11 +56,11 @@
  *
  */
 typedef struct {
-	/** Pointers to previous and next drivers in linked list */
+	/** Link to drivers_list */
 	link_t drivers;
 	
-	/** Pointer to the linked list of devices controlled by this driver */
-	link_t devices;
+	/** List of devices controlled by this driver */
+	list_t devices;
 	
 	/** Session asociated with this driver */
 	async_sess_t *sess;
@@ -76,7 +76,7 @@ typedef struct {
  *
  */
 typedef struct {
-	/** Pointer to the previous and next device in the list of all namespaces */
+	/** Link to namespaces_list */
 	link_t namespaces;
 	
 	/** Unique namespace identifier */
@@ -93,10 +93,9 @@ typedef struct {
  *
  */
 typedef struct {
-	/** Pointer to the previous and next device in the list of all devices */
+	/** Link to global list of devices (devices_list) */
 	link_t devices;
-	/** Pointer to the previous and next device in the list of devices
-	    owned by one driver */
+	/** Link to driver list of devices (devmap_driver_t.devices) */
 	link_t driver_devices;
 	/** Unique device identifier */
 	devmap_handle_t handle;
@@ -224,11 +223,9 @@ static bool devmap_fqdn_split(const char *fqdn, char **ns_name, char **name)
 /** Find namespace with given name. */
 static devmap_namespace_t *devmap_namespace_find_name(const char *name)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
+	list_foreach(namespaces_list, item) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
 		if (str_cmp(namespace->name, name) == 0)
@@ -245,11 +242,9 @@ static devmap_namespace_t *devmap_namespace_find_name(const char *name)
  */
 static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
+	list_foreach(namespaces_list, item) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
 		if (namespace->handle == handle)
@@ -263,11 +258,9 @@ static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 static devmap_device_t *devmap_device_find_name(const char *ns_name,
     const char *name)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = devices_list.next; item != &devices_list; item = item->next) {
+	list_foreach(devices_list, item) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
 		if ((str_cmp(device->namespace->name, ns_name) == 0)
@@ -285,11 +278,9 @@ static devmap_device_t *devmap_device_find_name(const char *ns_name,
  */
 static devmap_device_t *devmap_device_find_handle(devmap_handle_t handle)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = devices_list.next; item != &devices_list; item = item->next) {
+	list_foreach(devices_list, item) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
 		if (device->handle == handle)
@@ -472,9 +463,10 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	fibril_mutex_lock(&devices_list_mutex);
 	fibril_mutex_lock(&driver->devices_mutex);
 	
-	while (!list_empty(&(driver->devices))) {
-		devmap_device_t *device = list_get_instance(driver->devices.next,
-		    devmap_device_t, driver_devices);
+	while (!list_empty(&driver->devices)) {
+		devmap_device_t *device = list_get_instance(
+		    list_first(&driver->devices), devmap_device_t,
+		    driver_devices);
 		devmap_device_unregister_core(device);
 	}
 	
@@ -814,10 +806,8 @@ static void devmap_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	link_t *item;
 	size_t pos = 0;
-	for (item = namespaces_list.next; item != &namespaces_list;
-	    item = item->next) {
+	list_foreach(namespaces_list, item) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
 		
@@ -880,9 +870,8 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	link_t *item;
 	size_t pos = 0;
-	for (item = devices_list.next; item != &devices_list; item = item->next) {
+	list_foreach(devices_list, item) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
 		

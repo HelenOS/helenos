@@ -50,7 +50,7 @@ typedef struct transfer_list {
 	/** Assigned name, for nicer debug output */
 	const char *name;
 	/** List of all batches in this list */
-	link_t batch_list;
+	list_t batch_list;
 } transfer_list_t;
 
 void transfer_list_fini(transfer_list_t *instance);
@@ -58,7 +58,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name);
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 void transfer_list_add_batch(
     transfer_list_t *instance, usb_transfer_batch_t *batch);
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
+void transfer_list_remove_finished(transfer_list_t *instance, list_t *done);
 void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**

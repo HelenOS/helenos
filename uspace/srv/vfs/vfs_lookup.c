@@ -49,7 +49,7 @@
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 
 FIBRIL_MUTEX_INITIALIZE(plb_mutex);
-LIST_INITIALIZE(plb_head);	/**< PLB entry ring buffer. */
+LIST_INITIALIZE(plb_entries);	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
 /** Perform a path lookup.
@@ -101,14 +101,14 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	size_t first;	/* the first free index */
 	size_t last;	/* the last free index */
 
-	if (list_empty(&plb_head)) {
+	if (list_empty(&plb_entries)) {
 		first = 0;
 		last = PLB_SIZE - 1;
 	} else {
-		plb_entry_t *oldest = list_get_instance(plb_head.next,
-		    plb_entry_t, plb_link);
-		plb_entry_t *newest = list_get_instance(plb_head.prev,
-		    plb_entry_t, plb_link);
+		plb_entry_t *oldest = list_get_instance(
+		    list_first(&plb_entries), plb_entry_t, plb_link);
+		plb_entry_t *newest = list_get_instance(
+		    list_last(&plb_entries), plb_entry_t, plb_link);
 
 		first = (newest->index + newest->len) % PLB_SIZE;
 		last = (oldest->index - 1) % PLB_SIZE;
@@ -144,7 +144,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	 * Claim PLB space by inserting the entry into the PLB entry ring
 	 * buffer.
 	 */
-	list_append(&entry.plb_link, &plb_head);
+	list_append(&entry.plb_link, &plb_entries);
 	
 	fibril_mutex_unlock(&plb_mutex);
 

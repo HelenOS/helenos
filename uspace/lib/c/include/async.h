@@ -98,7 +98,7 @@ typedef enum {
 /** Session data */
 typedef struct {
 	/** List of inactive exchanges */
-	link_t exch_list;
+	list_t exch_list;
 	
 	/** Exchange management style */
 	exch_mgmt_t mgmt;

@@ -58,18 +58,20 @@ static int compute_match_score(match_id_t *driver, match_id_t *device)
 
 int get_match_score(driver_t *drv, dev_node_t *dev)
 {
-	link_t *drv_head = &drv->match_ids.ids;
-	link_t *dev_head = &dev->pfun->match_ids.ids;
+	link_t *drv_head = &drv->match_ids.ids.head;
+	link_t *dev_head = &dev->pfun->match_ids.ids.head;
 	
-	if (list_empty(drv_head) || list_empty(dev_head))
+	if (list_empty(&drv->match_ids.ids) ||
+	    list_empty(&dev->pfun->match_ids.ids)) {
 		return 0;
+	}
 	
 	/*
 	 * Go through all pairs, return the highest score obtained.
 	 */
 	int highest_score = 0;
 	
-	link_t *drv_link = drv->match_ids.ids.next;
+	link_t *drv_link = drv->match_ids.ids.head.next;
 	while (drv_link != drv_head) {
 		link_t *dev_link = dev_head->next;
 		while (dev_link != dev_head) {

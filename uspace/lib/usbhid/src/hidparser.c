@@ -134,7 +134,6 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
 int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
 	size_t size, uint8_t *report_id)
 {
-	link_t *list_item;
 	usb_hid_report_field_t *item;
 
 	usb_hid_report_description_t *report_des;
@@ -160,11 +159,9 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 	}
 
 	/* read data */
-	list_item = report_des->report_items.next;	   
-	while(list_item != &(report_des->report_items)) {
-
+	list_foreach(report_des->report_items, list_item) {
 		item = list_get_instance(list_item, usb_hid_report_field_t, 
-				link);
+				ritems_link);
 
 		if(USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) == 0) {
 			
@@ -199,7 +196,6 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 				    data);				
 			}			
 		}
-		list_item = list_item->next;
 	}
 	
 	return EOK;
@@ -309,18 +305,16 @@ uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size,
 		return NULL;
 	}
 
-	link_t *report_it = report->reports.next;
 	usb_hid_report_description_t *report_des = NULL;
-	while(report_it != &report->reports) {
-		report_des = list_get_instance(report_it, 
-			usb_hid_report_description_t, link);
+
+	list_foreach(report->reports, report_it) {
+		report_des = list_get_instance(report_it,
+			usb_hid_report_description_t, reports_link);
 		
-		if((report_des->report_id == report_id) && 
+		if((report_des->report_id == report_id) &&
 			(report_des->type == USB_HID_REPORT_TYPE_OUTPUT)){
 			break;
 		}
-
-		report_it = report_it->next;
 	}
 
 	if(report_des == NULL){
@@ -361,7 +355,6 @@ void usb_hid_report_output_free(uint8_t *output)
 int usb_hid_report_output_translate(usb_hid_report_t *report, 
 	uint8_t report_id, uint8_t *buffer, size_t size)
 {
-	link_t *item;	
 	int32_t value=0;
 	int offset;
 	int length;
@@ -383,10 +376,11 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 		return EINVAL;
 	}
 
-	usb_hid_report_field_t *report_item;	
-	item = report_des->report_items.next;	
-	while(item != &report_des->report_items) {
-		report_item = list_get_instance(item, usb_hid_report_field_t, link);
+	usb_hid_report_field_t *report_item;
+
+	list_foreach(report_des->report_items, item) {
+		report_item = list_get_instance(item, usb_hid_report_field_t,
+		    ritems_link);
 
 		value = usb_hid_translate_data_reverse(report_item, 
 			report_item->value);
@@ -448,8 +442,6 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 
 		// reset value
 		report_item->value = 0;
-		
-		item = item->next;
 	}
 	
 	return EOK;
@@ -549,15 +541,15 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 	}
 
 	if(field == NULL){
-		field_it = report_des->report_items.next;
+		field_it = report_des->report_items.head.next;
 	}
 	else {
-		field_it = field->link.next;
+		field_it = field->ritems_link.next;
 	}
 
-	while(field_it != &report_des->report_items) {
+	while(field_it != &report_des->report_items.head) {
 		field = list_get_instance(field_it, usb_hid_report_field_t, 
-			link);
+			ritems_link);
 
 		if(USB_HID_ITEM_FLAG_CONSTANT(field->item_flags) == 0) {
 			usb_hid_report_path_append_item (
@@ -610,16 +602,16 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report,
 			return 0;
 		}
 		else {
-			report_it = report_des->link.next;
+			report_it = report_des->reports_link.next;
 		}	
 	}
 	else {
-		report_it = report->reports.next;
+		report_it = report->reports.head.next;
 	}
 
-	while(report_it != &report->reports) {
+	while(report_it != &report->reports.head) {
 		report_des = list_get_instance(report_it, 
-			usb_hid_report_description_t, link);
+			usb_hid_report_description_t, reports_link);
 
 		if(report_des->type == type){
 			return report_des->report_id;

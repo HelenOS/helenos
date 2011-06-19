@@ -95,8 +95,8 @@ typedef struct driver {
 	const char *binary_path;
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
-	/** Pointer to the linked list of devices controlled by this driver. */
-	link_t devices;
+	/** List of devices controlled by this driver. */
+	list_t devices;
 	
 	/**
 	 * Fibril mutex for this driver - driver state, list of devices, session.
@@ -107,7 +107,7 @@ typedef struct driver {
 /** The list of drivers. */
 typedef struct driver_list {
 	/** List of drivers */
-	link_t drivers;
+	list_t drivers;
 	/** Fibril mutex for list of drivers. */
 	fibril_mutex_t drivers_mutex;
 } driver_list_t;
@@ -129,7 +129,7 @@ struct dev_node {
 	fun_node_t *pfun;
 	
 	/** List of device functions. */
-	link_t functions;
+	list_t functions;
 	/** Driver of this device. */
 	driver_t *drv;
 	/** The state of the device. */
@@ -169,8 +169,8 @@ struct fun_node {
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
 	
-	/** The list of device classes to which this device function belongs. */
-	link_t classes;
+	/** List of device classes to which this device function belongs. */
+	list_t classes;
 	/** Devmap handle if the device function is registered by devmap. */
 	devmap_handle_t devmap_handle;
 	
@@ -227,7 +227,7 @@ typedef struct dev_class {
 	 * List of dev_class_info structures - one for each device registered by
 	 * this class.
 	 */
-	link_t devices;
+	list_t devices;
 	
 	/**
 	 * Default base name for the device within the class, might be overrided
@@ -279,7 +279,7 @@ typedef struct dev_class_info {
 /** The list of device classes. */
 typedef struct class_list {
 	/** List of classes. */
-	link_t classes;
+	list_t classes;
 	
 	/**
 	 * Hash table of devices registered by devmapper using their class name,

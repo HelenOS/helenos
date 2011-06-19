@@ -72,12 +72,12 @@ void done_mem(void)
 {
 	link_t *link;
 	
-	while ((link = list_head(&mem_blocks)) != NULL) {
+	while ((link = list_first(&mem_blocks)) != NULL) {
 		mem_block_t *block = list_get_instance(link, mem_block_t, link);
 		free_block(block);
 	}
 	
-	while ((link = list_head(&mem_areas)) != NULL) {
+	while ((link = list_first(&mem_areas)) != NULL) {
 		mem_area_t *area = list_get_instance(link, mem_area_t, link);
 		unmap_area(area);
 	}
