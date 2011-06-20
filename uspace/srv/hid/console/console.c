@@ -53,7 +53,6 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
-#include <devmap_obsolete.h>
 #include <fcntl.h>
 #include <vfs/vfs.h>
 #include <fibril_synch.h>
@@ -67,8 +66,8 @@
 #define NAME       "console"
 #define NAMESPACE  "term"
 
-/** Phone to the input server. */
-static int input_phone;
+/** Session with the input server. */
+static async_sess_t *input_sess;
 
 /** Information about framebuffer */
 struct {
@@ -108,6 +107,18 @@ struct {
 static FIBRIL_MUTEX_INITIALIZE(input_mutex);
 static FIBRIL_CONDVAR_INITIALIZE(input_cv);
 
+static FIBRIL_MUTEX_INITIALIZE(big_console_lock);
+
+static void console_serialize_start(void)
+{
+	fibril_mutex_lock(&big_console_lock);
+}
+
+static void console_serialize_end(void)
+{
+	fibril_mutex_unlock(&big_console_lock);
+}
+
 static void curs_visibility(bool visible)
 {
 	async_obsolete_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, visible); 
@@ -140,12 +151,28 @@ static void screen_reclaim(void)
 
 static void input_yield(void)
 {
-	async_obsolete_req_0_0(input_phone, INPUT_YIELD);
+	async_exch_t *exch = async_exchange_begin(input_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with input device.\n",
+		    NAME);
+		return;
+	}
+	
+	async_req_0_0(exch, INPUT_YIELD);
+	async_exchange_end(exch);
 }
 
 static void input_reclaim(void)
 {
-	async_obsolete_req_0_0(input_phone, INPUT_RECLAIM);
+	async_exch_t *exch = async_exchange_begin(input_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with input device.\n",
+		    NAME);
+		return;
+	}
+	
+	async_req_0_0(exch, INPUT_RECLAIM);
+	async_exchange_end(exch);
 }
 
 static void set_style(uint8_t style)
@@ -322,12 +349,12 @@ static void change_console(console_t *cons)
 	fb_pending_flush();
 	
 	if (cons == kernel_console) {
-		async_obsolete_serialize_start();
+		console_serialize_start();
 		curs_hide_sync();
 		gcons_in_kernel();
 		screen_yield();
 		input_yield();
-		async_obsolete_serialize_end();
+		console_serialize_end();
 		
 		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
 			prev_console = active_console;
@@ -337,7 +364,7 @@ static void change_console(console_t *cons)
 	}
 	
 	if (cons != kernel_console) {
-		async_obsolete_serialize_start();
+		console_serialize_start();
 		
 		if (active_console == kernel_console) {
 			screen_reclaim();
@@ -392,7 +419,7 @@ static void change_console(console_t *cons)
 		curs_goto(cons->scr.position_x, cons->scr.position_y);
 		curs_visibility(cons->scr.is_cursor_visible);
 		
-		async_obsolete_serialize_end();
+		console_serialize_end();
 	}
 }
 
@@ -409,7 +436,7 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
-			async_obsolete_hangup(input_phone);
+			async_hangup(input_sess);
 			return;
 		}
 		
@@ -469,7 +496,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	async_obsolete_serialize_start();
+	console_serialize_start();
 	
 	size_t off = 0;
 	while (off < size) {
@@ -477,7 +504,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		write_char(cons, ch);
 	}
 	
-	async_obsolete_serialize_end();
+	console_serialize_end();
 	
 	gcons_notify_char(cons->index);
 	async_answer_1(rid, EOK, size);
@@ -572,7 +599,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	
 	int rc;
 	
-	async_obsolete_serialize_start();
+	console_serialize_start();
 	if (cons->refcount == 0)
 		gcons_notify_connect(cons->index);
 	
@@ -582,9 +609,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	async_answer_0(iid, EOK);
 	
 	while (true) {
-		async_obsolete_serialize_end();
+		console_serialize_end();
 		callid = async_get_call(&call);
-		async_obsolete_serialize_start();
+		console_serialize_start();
 		
 		arg1 = 0;
 		arg2 = 0;
@@ -594,19 +621,20 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			cons->refcount--;
 			if (cons->refcount == 0)
 				gcons_notify_disconnect(cons->index);
+			console_serialize_end();
 			return;
 		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_READ:
-			async_obsolete_serialize_end();
+			console_serialize_end();
 			cons_read(cons, callid, &call);
-			async_obsolete_serialize_start();
+			console_serialize_start();
 			continue;
 		case VFS_OUT_WRITE:
-			async_obsolete_serialize_end();
+			console_serialize_end();
 			cons_write(cons, callid, &call);
-			async_obsolete_serialize_start();
+			console_serialize_start();
 			continue;
 		case VFS_OUT_SYNC:
 			fb_pending_flush();
@@ -677,9 +705,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				curs_visibility(arg1);
 			break;
 		case CONSOLE_GET_EVENT:
-			async_obsolete_serialize_end();
+			console_serialize_end();
 			cons_get_event(cons, callid, &call);
-			async_obsolete_serialize_start();
+			console_serialize_start();
 			continue;
 		case CONSOLE_KCON_ENABLE:
 			change_console(kernel_console);
@@ -694,41 +722,50 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-static int connect_input(const char *dev_path)
+static async_sess_t *connect_input(const char *dev_path)
 {
-	int phone;
+	async_sess_t *sess;
+	async_exch_t *exch;
 	devmap_handle_t handle;
 	
 	int rc = devmap_device_get_handle(dev_path, &handle, 0);
 	if (rc == EOK) {
-		phone = devmap_obsolete_device_connect(handle, 0);
-		if (phone < 0) {
-			printf("%s: Failed to connect to input device\n", NAME);
-			return phone;
+		sess = devmap_device_connect(EXCHANGE_ATOMIC, handle, 0);
+		if (sess == NULL) {
+			printf("%s: Failed to connect to input server\n", NAME);
+			return NULL;
 		}
 	} else {
-		return rc;
+		return NULL;
+	}
+	
+	exch = async_exchange_begin(sess);
+	if (exch == NULL) {
+		printf("%s: Failed to create callback from input server.\n", NAME);
+		return NULL;
 	}
 	
 	/* NB: The callback connection is slotted for removal */
-	rc = async_obsolete_connect_to_me(phone, SERVICE_CONSOLE, 0, 0,
-	    input_events, NULL);
+	rc = async_connect_to_me(exch, SERVICE_CONSOLE, 0, 0, input_events,
+	    NULL);
+
+	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_obsolete_hangup(phone);
-		printf("%s: Failed to create callback from input device (%s).\n",
+		async_hangup(sess);
+		printf("%s: Failed to create callback from input server (%s).\n",
 		    NAME, str_error(rc));
-		return rc;
+		return NULL;
 	}
 	
-	return phone;
+	return sess;
 }
 
 static bool console_srv_init(char *input_dev)
 {
 	/* Connect to input server */
-	input_phone = connect_input(input_dev);
-	if (input_phone < 0)
+	input_sess = connect_input(input_dev);
+	if (input_sess == NULL)
 		return false;
 	
 	/* Connect to framebuffer driver */
@@ -799,13 +836,13 @@ static bool console_srv_init(char *input_dev)
 	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
 	
 	/* Initialize the screen */
-	async_obsolete_serialize_start();
+	console_serialize_start();
 	gcons_redraw_console();
 	set_style(STYLE_NORMAL);
 	screen_clear();
 	curs_goto(0, 0);
 	curs_visibility(active_console->scr.is_cursor_visible);
-	async_obsolete_serialize_end();
+	console_serialize_end();
 	
 	/* Receive kernel notifications */
 	async_set_interrupt_received(interrupt_received);

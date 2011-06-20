@@ -36,7 +36,6 @@
 
 #include <ipc/adb.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <input.h>
 #include <kbd_port.h>
 #include <kbd.h>
@@ -44,7 +43,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <devmap.h>
-#include <devmap_obsolete.h>
 
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void adb_kbd_reg0_data(uint16_t data);
@@ -62,30 +60,40 @@ kbd_port_ops_t adb_port = {
 };
 
 static kbd_dev_t *kbd_dev;
-static int dev_phone;
+static async_sess_t *dev_sess;
 
 static int adb_port_init(kbd_dev_t *kdev)
 {
 	const char *dev = "adb/kbd";
 	devmap_handle_t handle;
-
+	async_exch_t *exch;
+	int rc;
+	
 	kbd_dev = kdev;
 	
-	int rc = devmap_device_get_handle(dev, &handle, 0);
-	if (rc == EOK) {
-		dev_phone = devmap_obsolete_device_connect(handle, 0);
-		if (dev_phone < 0) {
-			printf("%s: Failed to connect to device\n", NAME);
-			return dev_phone;
-		}
-	} else
+	rc = devmap_device_get_handle(dev, &handle, 0);
+	if (rc != EOK)
 		return rc;
 	
+	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle, 0);
+	if (dev_sess == NULL) {
+		printf("%s: Failed to connect to device\n", NAME);
+		return ENOENT;
+	}
+	
+	exch = async_exchange_begin(dev_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with device\n", NAME);
+		async_hangup(dev_sess);
+		return ENOMEM;
+	}
+	
 	/* NB: The callback connection is slotted for removal */
-	rc = async_obsolete_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events,
-	    NULL);
+	rc = async_connect_to_me(exch, 0, 0, 0, kbd_port_events, NULL);
+	async_exchange_end(exch);
 	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from device\n");
+		async_hangup(dev_sess);
 		return rc;
 	}
 	

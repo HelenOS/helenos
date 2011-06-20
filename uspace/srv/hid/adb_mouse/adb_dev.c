@@ -39,9 +39,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <devmap.h>
-#include <devmap_obsolete.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <kernel/ipc/ipc_methods.h>
 
 #include "adb_mouse.h"
@@ -52,25 +50,38 @@ static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 int adb_dev_init(void)
 {
 	devmap_handle_t handle;
-	int rc = devmap_device_get_handle("adb/mouse", &handle,
-	    IPC_FLAG_BLOCKING);
+	async_exch_t *exch;
+	int rc;
 	
+	rc = devmap_device_get_handle("adb/mouse", &handle,
+	    IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving ADB\n", NAME);
 		return rc;
 	}
 	
-	int dev_phone = devmap_obsolete_device_connect(handle, IPC_FLAG_BLOCKING);
-	if (dev_phone < 0) {
+	async_sess_t *dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle,
+	    IPC_FLAG_BLOCKING);
+	if (dev_sess == NULL) {
 		printf("%s: Failed connecting to ADB\n", NAME);
 		return ENOENT;
 	}
 	
+	exch = async_exchange_begin(dev_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with ADB\n", NAME);
+		async_hangup(dev_sess);
+		return ENOMEM;
+	}
+	
 	/* NB: The callback connection is slotted for removal */
-	if (async_obsolete_connect_to_me(dev_phone, 0, 0, 0, adb_dev_events,
-	    NULL) != 0) {
+	rc = async_connect_to_me(exch, 0, 0, 0, adb_dev_events, NULL);
+	async_exchange_end(exch);
+	
+	if (rc != 0) {
 		printf(NAME ": Failed to create callback from device\n");
-		return false;
+		async_hangup(dev_sess);
+		return ENOENT;
 	}
 	
 	return 0;
