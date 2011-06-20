@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2010 Lenka Trochtova
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BOOT_OUTPUT = image.boot
-POST_OUTPUT = $(ROOT_PATH)/image.iso
-POSTBUILD = Makefile.yaboot
-
-BFD_NAME = elf32-powerpc
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = powerpc:common
-
-BITS = 32
-ENDIANESS = BE
-PAGE_SIZE = 4096
-EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
-
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/bus/cuda_adb/cuda_adb
-
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hid/adb_mouse/adb_ms
-
-RD_DRVS += \
-	rootmac
+USPACE_PREFIX = ../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = rootmac
 
 SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/ofw.c \
-	$(COMPS_C) \
-	genarch/src/ofw.c \
-	genarch/src/ofw_tree.c \
-	genarch/src/division.c \
-	genarch/src/multiplication.c \
-	generic/src/balloc.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+	rootmac.c
+
+include $(USPACE_PREFIX)/Makefile.common

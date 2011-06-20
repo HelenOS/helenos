@@ -147,7 +147,9 @@ ifeq ($(UARCH),ia32)
 endif
 
 ifeq ($(UARCH),ppc32)
-	DIRS += srv/hw/bus/cuda_adb
+	DIRS += \
+		drv/rootmac \
+		srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)
