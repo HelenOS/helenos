@@ -1204,8 +1204,13 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		assert(BPS(bs) % sizeof(fat_dentry_t) == 0);
 
 		fat_directory_t di;
-		fat_directory_open(nodep, &di);
-		di.pos = pos;
+		rc = fat_directory_open(nodep, &di);
+		if (rc != EOK) goto err;
+		rc = fat_directory_seek(&di, pos);
+		if (rc != EOK) {
+			(void) fat_directory_close(&di);
+			goto err;
+		}
 
 		rc = fat_directory_read(&di, name, &d);
 		if (rc == EOK) goto hit;
