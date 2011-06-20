@@ -38,6 +38,9 @@
 #include "internal/common.h"
 #include "unistd.h"
 
+/* Array of environment variable strings (NAME=VALUE). */
+char **environ = NULL;
+
 /**
  * 
  * @param fd

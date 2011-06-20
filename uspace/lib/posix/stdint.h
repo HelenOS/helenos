@@ -32,24 +32,25 @@
 /** @file
  */
 
-#ifndef POSIX_STDDEF_H_
-#define POSIX_STDDEF_H_
+#ifndef POSIX_STDINT_H_
+#define POSIX_STDINT_H_
 
-#include "libc/stddef.h"
+#include "libc/stdint.h"
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+typedef int64_t posix_intmax_t;
+typedef uint64_t posix_uintmax_t;
 
-#define offsetof(type,member) ((size_t) &(((type *) 0)->member))
-
-typedef ssize_t posix_ptrdiff_t;
+// FIXME: should be integrated into build process similarly to uintptr_t
+typedef ssize_t posix_intptr_t;
 
 #ifndef LIBPOSIX_INTERNAL
-	#define ptrdiff_t posix_ptrdiff_t
+	#define intmax_t posix_intmax_t
+	#define uintmax_t posix_uintmax_t
+
+	#define intptr_t posix_intptr_t
 #endif
 
-#endif /* POSIX_STDDEF_H_ */
+#endif /* POSIX_STDINT_H_ */
 
 /** @}
  */
