@@ -390,7 +390,7 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		if (fat_dentry_namecmp(name, component) == 0) {
 			/* hit */
 			fat_node_t *nodep;
-			aoff64_t o = (di.pos-1) % (BPS(di.bs) / sizeof(fat_dentry_t));
+			aoff64_t o = di.pos % (BPS(di.bs) / sizeof(fat_dentry_t));
 			fat_idx_t *idx = fat_idx_get_by_pos(devmap_handle,
 				parentp->firstc, di.bnum * DPS(di.bs) + o);
 			if (!idx) {
@@ -412,6 +412,10 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			if (rc != EOK)
 				(void) fat_node_put(*rfn);
 			return rc;
+		} else {
+			rc = fat_directory_next(&di);
+			if (rc != EOK)
+				break;
 		}
 	}
 	(void) fat_directory_close(&di);
@@ -756,9 +760,6 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	fat_node_t *parentp = FAT_NODE(pfn);
 	fat_node_t *childp = FAT_NODE(cfn);
-	fat_bs_t *bs;
-	fat_dentry_t *d;
-	block_t *b;
 	bool has_children;
 	int rc;
 
@@ -775,19 +776,18 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_lock(&childp->lock);
 	assert(childp->lnkcnt == 1);
 	fibril_mutex_lock(&childp->idx->lock);
-	bs = block_bb_get(childp->idx->devmap_handle);
-
-	rc = _fat_block_get(&b, bs, childp->idx->devmap_handle, childp->idx->pfc,
-	    NULL, (childp->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
-	    BLOCK_FLAGS_NONE);
+	
+	fat_directory_t di;
+	rc = fat_directory_open(parentp,&di);
 	if (rc != EOK)
 		goto error;
-	d = (fat_dentry_t *)b->data +
-	    (childp->idx->pdi % (BPS(bs) / sizeof(fat_dentry_t)));
-	/* mark the dentry as not-currently-used */
-	d->name[0] = FAT_DENTRY_ERASED;
-	b->dirty = true;		/* need to sync block */
-	rc = block_put(b);
+	rc = fat_directory_seek(&di, childp->idx->pdi);
+	if (rc != EOK)
+		goto error;
+	rc = fat_directory_erase(&di);
+	if (rc != EOK)
+		goto error;
+	rc = fat_directory_close(&di);
 	if (rc != EOK)
 		goto error;
 
@@ -806,9 +806,10 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	return EOK;
 
 error:
-	fibril_mutex_unlock(&parentp->idx->lock);
-	fibril_mutex_unlock(&childp->lock);
+	(void) fat_directory_close(&di);
 	fibril_mutex_unlock(&childp->idx->lock);
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&parentp->lock);
 	return rc;
 }
 
@@ -1231,7 +1232,7 @@ hit:
 		if (rc!=EOK)
 			goto err;
 		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
-		bytes = (pos - spos);
+		bytes = (pos - spos)+1;
 	}
 
 	rc = fat_node_put(fn);
