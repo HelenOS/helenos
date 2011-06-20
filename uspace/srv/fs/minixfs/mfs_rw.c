@@ -267,8 +267,16 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 
 	int fzone_to_free = (rblock < 0 ? 0 : rblock) / ptrs_per_block;
 
+	if ((fzone_to_free % ptrs_per_block) != 0)
+		++fzone_to_free;
+
 	/*free the entire double indirect zone*/
 	uint32_t *dbl_zone;
+
+	if (ino_i->i_izone[1] == 0) {
+		/*Nothing to be done*/
+		return EOK;
+	}
 
 	r = read_ind_zone(inst, ino_i->i_izone[1], &dbl_zone);
 	on_error(r, return r);
@@ -281,7 +289,7 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 		on_error(r, return r);
 	}
 
-	if (fzone_to_free) {
+	if (fzone_to_free == 0) {
 		r = mfs_free_bit(inst, ino_i->i_izone[1], BMAP_ZONE);
 		ino_i->i_izone[1] = 0;
 		ino_i->dirty = true;
