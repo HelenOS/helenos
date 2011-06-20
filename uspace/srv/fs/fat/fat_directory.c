@@ -39,16 +39,20 @@
 #include <libblock.h>
 #include <errno.h>
 #include <byteorder.h>
+#include <mem.h>
+
+int fat_directory_block_load(fat_directory_t *);
+
 
 int fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 {
+	di->b = NULL;
 	di->nodep = nodep;	
 	if (di->nodep->type != FAT_DIRECTORY)
 		return EINVAL;
 
 	di->bs = block_bb_get(di->nodep->idx->devmap_handle);
 	di->blocks = di->nodep->size / BPS(di->bs);
-	di->b = NULL;
 	di->pos = 0;
 	di->bnum = 0;
 	di->last = false;
@@ -73,11 +77,11 @@ int fat_directory_close(fat_directory_t *di)
 	return rc;
 }
 
-int fat_directory_scan(fat_directory_t *di, fat_dentry_t **d)
+int fat_directory_block_load(fat_directory_t *di)
 {
 	uint32_t i;
 	int rc;
-	
+
 	i = (di->pos * sizeof(fat_dentry_t)) / BPS(di->bs);
 	if (i < di->blocks) {
 		if (di->b && di->bnum != i) {
@@ -92,79 +96,164 @@ int fat_directory_scan(fat_directory_t *di, fat_dentry_t **d)
 			}
 			di->bnum = i;
 		}
-		aoff64_t o = di->pos % (BPS(di->bs) / sizeof(fat_dentry_t));
-		*d = ((fat_dentry_t *)di->b->data) + o;
-		di->pos+=1;
 		return EOK;
 	}
 	return ENOENT;
+}
+
+int fat_directory_next(fat_directory_t *di)
+{
+	int rc;
+
+	di->pos += 1;
+	rc = fat_directory_block_load(di);
+	if (rc!=EOK)
+		di->pos -= 1;
+	
+	return rc;
+}
+
+int fat_directory_prev(fat_directory_t *di)
+{
+	int rc=EOK;
+	
+	if (di->pos > 0) {
+		di->pos -= 1;
+		rc=fat_directory_block_load(di);
+	}
+	else
+		return ENOENT;
+	
+	if (rc!=EOK)
+		di->pos += 1;
+	
+	return rc;
+}
+
+int fat_directory_seek(fat_directory_t *di, aoff64_t pos)
+{
+	aoff64_t _pos = di->pos;
+	int rc;
+	di->pos = pos;
+	rc = fat_directory_block_load(di);
+	if (rc!=EOK)
+		di->pos = _pos;
+	
+	return rc;
+}
+
+int fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
+{
+	int rc;
+	
+	rc = fat_directory_block_load(di);
+	if (rc == EOK) {
+		aoff64_t o = di->pos % (BPS(di->bs) / sizeof(fat_dentry_t));
+		*d = ((fat_dentry_t *)di->b->data) + o;
+	}
+	
+	return rc;
 }
 
 int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 {
 	fat_dentry_t *d = NULL;
 
-	while (fat_directory_scan(di, &d) == EOK && d) {
-		switch (fat_classify_dentry(d)) {
-		case FAT_DENTRY_LAST:
-			di->long_entry_count = 0;
-			di->long_entry = false;
-			return ENOENT;
-		case FAT_DENTRY_LFN:
-			if (di->long_entry) {
-				/* We found long entry */
-				di->long_entry_count--;
-				if ((FAT_LFN_ORDER(d) == di->long_entry_count) && 
-					(di->checksum == FAT_LFN_CHKSUM(d))) {
-					/* Right order! */
-					di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
-					    di->lfn_offset);
-				} else {
-					/* Something wrong with order. Skip this long entries set */
-					di->long_entry_count = 0;
-					di->long_entry = false;
-				}
-			} else {
-				if (FAT_IS_LFN(d)) {
-					/* We found Last long entry! */
-					if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
-						di->long_entry = true;
-						di->long_entry_count = FAT_LFN_COUNT(d);
-						di->lfn_size = (FAT_LFN_ENTRY_SIZE * 
-							(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
-						di->lfn_offset = di->lfn_size;
+	do {
+		if (fat_directory_get(di, &d) == EOK) {
+			switch (fat_classify_dentry(d)) {
+			case FAT_DENTRY_LAST:
+				di->long_entry_count = 0;
+				di->long_entry = false;
+				return ENOENT;
+			case FAT_DENTRY_LFN:
+				if (di->long_entry) {
+					/* We found long entry */
+					di->long_entry_count--;
+					if ((FAT_LFN_ORDER(d) == di->long_entry_count) && 
+						(di->checksum == FAT_LFN_CHKSUM(d))) {
+						/* Right order! */
 						di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
-						    di->lfn_offset);
-						di->checksum = FAT_LFN_CHKSUM(d);
+							di->lfn_offset);
+					} else {
+						/* Something wrong with order. Skip this long entries set */
+						di->long_entry_count = 0;
+						di->long_entry = false;
+					}
+				} else {
+					if (FAT_IS_LFN(d)) {
+						/* We found Last long entry! */
+						if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
+							di->long_entry = true;
+							di->long_entry_count = FAT_LFN_COUNT(d);
+							di->lfn_size = (FAT_LFN_ENTRY_SIZE * 
+								(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
+							di->lfn_offset = di->lfn_size;
+							di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
+								di->lfn_offset);
+							di->checksum = FAT_LFN_CHKSUM(d);
+						}
 					}
 				}
-			}
-			break;
-		case FAT_DENTRY_VALID:
-			if (di->long_entry && 
-				(di->checksum == fat_dentry_chksum(d->name))) {
-				int rc;
-				rc = fat_lfn_convert_name(di->lfn_utf16, di->lfn_size, 
-					(uint8_t*)name, FAT_LFN_NAME_SIZE);
-				if (rc!=EOK)
+				break;
+			case FAT_DENTRY_VALID:
+				if (di->long_entry && 
+					(di->checksum == fat_dentry_chksum(d->name))) {
+					int rc;
+					rc = fat_lfn_convert_name(di->lfn_utf16, di->lfn_size, 
+						(uint8_t*)name, FAT_LFN_NAME_SIZE);
+					if (rc!=EOK)
+						fat_dentry_name_get(d, name);
+				}
+				else
 					fat_dentry_name_get(d, name);
+				
+				*de = d;
+				di->long_entry_count = 0;
+				di->long_entry = false;
+				return EOK;
+			default:
+			case FAT_DENTRY_SKIP:
+			case FAT_DENTRY_FREE:
+				di->long_entry_count = 0;
+				di->long_entry = false;
+				break;
 			}
-			else
-				fat_dentry_name_get(d, name);
-			
-			*de = d;
-			di->long_entry_count = 0;
-			di->long_entry = false;
-			return EOK;
-		default:
-		case FAT_DENTRY_SKIP:
-		case FAT_DENTRY_FREE:
-			di->long_entry_count = 0;
-			di->long_entry = false;
-			break;
 		}
-	}
+	} while (fat_directory_next(di) == EOK);
+	
 	return ENOENT;
+}
+
+int fat_directory_erase(fat_directory_t *di)
+{
+	int rc;
+	fat_dentry_t *d;
+	bool flag = false;
+
+	rc = fat_directory_get(di, &d);
+	if (rc != EOK)
+		return rc;
+	di->checksum = fat_dentry_chksum(d->name);
+
+	d->name[0] = FAT_DENTRY_ERASED;
+	di->b->dirty = true;
+	
+	while (!flag && fat_directory_prev(di) == EOK) {
+		if (fat_directory_get(di, &d) == EOK &&
+			fat_classify_dentry(d) == FAT_DENTRY_LFN &&			
+			di->checksum == FAT_LFN_CHKSUM(d)) {
+				if (FAT_IS_LFN(d))
+					flag = true;
+				memset(d, 0, sizeof(fat_dentry_t));
+				d->name[0] = FAT_DENTRY_ERASED;
+				di->b->dirty = true;
+		}
+		else
+			break;
+	}
+
+	return EOK;
 }
 
 

@@ -58,8 +58,15 @@ typedef struct {
 
 extern int fat_directory_open(fat_node_t *, fat_directory_t *);
 extern int fat_directory_close(fat_directory_t *);
-extern int fat_directory_scan(fat_directory_t *, fat_dentry_t **);
+
+extern int fat_directory_next(fat_directory_t *);
+extern int fat_directory_prev(fat_directory_t *);
+extern int fat_directory_seek(fat_directory_t *, aoff64_t pos);
+extern int fat_directory_get(fat_directory_t *, fat_dentry_t **);
+extern int fat_directory_dirty(fat_directory_t *);
+
 extern int fat_directory_read(fat_directory_t *, char *, fat_dentry_t **);
+extern int fat_directory_erase(fat_directory_t *);
 
 
 #endif
