@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,32 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-PAGE_SIZE = 4096
+USPACE_PREFIX = ../../../..
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+LIBS = \
+	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSBHOST_PREFIX)/libusbhost.a \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
+	$(LIBDRV_PREFIX)/libdrv.a
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+EXTRA_CFLAGS += \
+	-I$(LIBUSBVIRT_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBUSBHOST_PREFIX)/include \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include
+BINARY = vhc
 
-RD_DRVS += \
-	infrastructure/rootpc \
-	bus/pci/pciintel \
-	bus/isa \
-	char/ns8250 \
-	bus/usb/ehci\
-	bus/usb/ohci \
-	bus/usb/uhci \
-	bus/usb/uhcirh \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid \
-	bus/usb/usbmouse \
-	bus/usb/vhc
+SOURCES = \
+	hub/virthub.c \
+	hub/hub.c \
+	hub/virthubops.c \
+	conndev.c \
+	connhost.c \
+	devconn.c \
+	hub.c \
+	main.c \
+	transfer.c
 
-RD_DRV_CFG += \
-	bus/isa
-
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub
+include $(USPACE_PREFIX)/Makefile.common

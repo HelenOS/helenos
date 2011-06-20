@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2011 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,33 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-PAGE_SIZE = 4096
+USPACE_PREFIX = ../../../..
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+LIBS = \
+	$(LIBUSBHOST_PREFIX)/libusbhost.a \
+	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+EXTRA_CFLAGS += \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBUSBHOST_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include
 
-RD_DRVS += \
-	infrastructure/rootpc \
-	bus/pci/pciintel \
-	bus/isa \
-	char/ns8250 \
-	bus/usb/ehci\
-	bus/usb/ohci \
-	bus/usb/uhci \
-	bus/usb/uhcirh \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid \
-	bus/usb/usbmouse \
-	bus/usb/vhc
+BINARY = ohci
 
-RD_DRV_CFG += \
-	bus/isa
+SOURCES = \
+	batch.c \
+	endpoint_list.c \
+	hc.c \
+	hcd_endpoint.c \
+	iface.c \
+	main.c \
+	ohci.c \
+	pci.c \
+	root_hub.c \
+	hw_struct/endpoint_descriptor.c \
+	hw_struct/transfer_descriptor.c
 
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub
+include $(USPACE_PREFIX)/Makefile.common

@@ -46,7 +46,7 @@ RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/adb_mouse/adb_ms
 
 RD_DRVS += \
-	rootmac
+	infrastructure/rootmac
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
