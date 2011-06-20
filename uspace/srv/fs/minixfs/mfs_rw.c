@@ -96,8 +96,7 @@ free_zone(struct mfs_node *mnode, const uint32_t zone)
 	uint32_t old_zone;
 
 	r = rw_map_ondisk(&old_zone, mnode, zone, true, 0);
-	if (r != EOK)
-		return r;
+	on_error(r, return r);
 
 	if (old_zone > 0)
 		r = mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
@@ -162,8 +161,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		}
 
 		r = read_ind_zone(inst, ino_i->i_izone[0], &ind_zone);
-		if (r != EOK)
-			return r;
+		on_error(r, return r);
 
 		*b = ind_zone[rblock];
 		if (write_mode) {
@@ -183,8 +181,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		if (write_mode) {
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
-			if (r != EOK)
-				return r;
+			on_error(r, return r);
 
 			ino_i->i_izone[1] = zone;
 			ino_i->dirty = true;
@@ -193,8 +190,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	}
 
 	r = read_ind_zone(inst, ino_i->i_izone[1], &ind_zone);
-	if (r != EOK)
-		return r;
+	on_error(r, return r);
 
 	/*
 	 *Compute the position of the second indirect
@@ -207,8 +203,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		if (write_mode) {
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
-			if(r != EOK)
-				goto out_free_ind1;
+			on_error(r, goto out_free_ind1);
+
 			ind_zone[ind2_off] = zone;
 			write_ind_zone(inst, ino_i->i_izone[1], ind_zone);
 		} else {
@@ -218,8 +214,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	}
 
 	r = read_ind_zone(inst, ind_zone[ind2_off], &ind2_zone);
-	if (r != EOK)
-		goto out_free_ind1;
+	on_error(r, goto out_free_ind1);
 
 	*b = ind2_zone[ind2_off % ptrs_per_block];
 	if (write_mode) {
@@ -235,6 +230,66 @@ out_free_ind1:
 	return r;
 }
 
+/*Free unused indirect zones*/
+int
+prune_ind_zones(struct mfs_node *mnode, size_t new_size)
+{
+	struct mfs_instance *inst = mnode->instance;
+	struct mfs_sb_info *sbi = inst->sbi;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+	int nr_direct, ptrs_per_block, rblock, r;
+	int i;
+
+	mfs_version_t fs_version = sbi->fs_version;
+	
+	if (fs_version == MFS_VERSION_V1) {
+		nr_direct = V1_NR_DIRECT_ZONES;
+		ptrs_per_block = MFS_BLOCKSIZE / sizeof(uint16_t);
+	} else {
+		nr_direct = V2_NR_DIRECT_ZONES;
+		ptrs_per_block = sbi->block_size / sizeof(uint32_t);
+	}
+
+	rblock = new_size / sbi->block_size;
+
+	if (rblock < nr_direct) {
+		/*free the single indirect zone*/
+		if (ino_i->i_izone[0]) {
+			r = mfs_free_bit(inst, ino_i->i_izone[0], BMAP_ZONE);
+			on_error(r, return r);
+
+			ino_i->i_izone[0] = 0;
+			ino_i->dirty = true;
+		}
+	}
+
+	rblock -= nr_direct + ptrs_per_block;
+
+	int fzone_to_free = (rblock < 0 ? 0 : rblock) / ptrs_per_block;
+
+	/*free the entire double indirect zone*/
+	uint32_t *dbl_zone;
+
+	r = read_ind_zone(inst, ino_i->i_izone[1], &dbl_zone);
+	on_error(r, return r);
+
+	for (i = fzone_to_free; i < ptrs_per_block; ++i) {
+		if (dbl_zone[i] == 0)
+			continue;
+
+		r = mfs_free_bit(inst, dbl_zone[i], BMAP_ZONE);
+		on_error(r, return r);
+	}
+
+	if (fzone_to_free) {
+		r = mfs_free_bit(inst, ino_i->i_izone[1], BMAP_ZONE);
+		ino_i->i_izone[1] = 0;
+		ino_i->dirty = true;
+	}
+	free(dbl_zone);
+
+	return r;
+}
 
 static int
 reset_zone_content(struct mfs_instance *inst, uint32_t zone)
@@ -243,8 +298,7 @@ reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 	int r;
 
 	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NOREAD);
-	if (r != EOK)
-		return r;
+	on_error(r, return r);
 
 	memset(b->data, 0, b->size);
 	b->dirty = true;
@@ -259,11 +313,9 @@ alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone)
 	int r;
 
 	r = mfs_alloc_bit(inst, zone, BMAP_ZONE);
-	if (r != EOK)
-		goto out;
+	on_error(r, return r);
 
 	r = reset_zone_content(inst, *zone);
-out:
 	return r;
 }
 
@@ -313,8 +365,7 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 	block_t *b;
 
 	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NONE);
-	if (r != EOK)
-		return r;
+	on_error(r, return r);
 
 	if (sbi->fs_version == MFS_VERSION_V1) {
 		uint16_t *dest_ptr = b->data;

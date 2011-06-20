@@ -342,7 +342,8 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 	}
 
 	ino_i->i_size = new_size;
-	return EOK;
+
+	return prune_ind_zones(mnode, new_size);
 
 exit_error:
 	return r;
