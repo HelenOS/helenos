@@ -42,6 +42,7 @@ SOURCES = \
 	getopt.c \
 	stdio.c \
 	stdlib.c \
+	stdlib/strtold.c \
 	string.c \
 	strings.c \
 	sys/stat.c \

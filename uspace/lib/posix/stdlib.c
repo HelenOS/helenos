@@ -36,7 +36,7 @@
 #define LIBPOSIX_INTERNAL
 
 #include "stdlib.h"
-#include "common.h"
+#include "internal/common.h"
 
 /**
  *
@@ -76,39 +76,29 @@ char *posix_realpath(const char *name, char *resolved)
 }
 
 /**
- * 
+ * Converts a string representation of a floating-point number to
+ * its native representation. See posix_strtold().
+ *
  * @param nptr
  * @param endptr
  * @return
  */
 float posix_strtof(const char *restrict nptr, char **restrict endptr)
 {
-	// TODO
-	not_implemented();
+	return (float) posix_strtold(nptr, endptr);
 }
 
 /**
- * 
+ * Converts a string representation of a floating-point number to
+ * its native representation. See posix_strtold().
+ *
  * @param nptr
  * @param endptr
  * @return
  */
 double posix_strtod(const char *restrict nptr, char **restrict endptr)
 {
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param nptr
- * @param endptr
- * @return
- */
-long double posix_strtold(const char *restrict nptr, char **restrict endptr)
-{
-	// TODO
-	not_implemented();
+	return (double) posix_strtold(nptr, endptr);
 }
 
 /**

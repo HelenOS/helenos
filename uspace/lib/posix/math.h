@@ -32,42 +32,12 @@
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
+#ifndef POSIX_MATH_H_
+#define POSIX_MATH_H_
 
-#include "internal/common.h"
-#include "getopt.h"
+/* Empty. Just to satisfy preprocessor. */
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long_only(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+#endif /* POSIX_MATH_H_ */
 
 /** @}
  */

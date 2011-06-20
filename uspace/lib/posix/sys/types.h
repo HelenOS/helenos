@@ -37,11 +37,7 @@
 #define POSIX_SYS_TYPES_H_
 
 #include "../libc/sys/types.h"
-#include <ipc/devmap.h>
-#include <task.h>
 
-typedef task_id_t posix_pid_t;
-typedef devmap_handle_t posix_dev_t;
 typedef unsigned int posix_ino_t;
 typedef unsigned int posix_nlink_t;
 typedef unsigned int posix_uid_t;
@@ -51,8 +47,7 @@ typedef unsigned int posix_blksize_t;
 typedef unsigned int posix_blkcnt_t;
 
 #ifndef LIBPOSIX_INTERNAL
-	#define pid_t posix_pid_t
-	#define dev_t posix_dev_t
+	#define ino_t posix_ino_t
 	#define nlink_t posix_nlink_t
 	#define uid_t posix_uid_t
 	#define gid_t posix_gid_t

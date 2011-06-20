@@ -39,6 +39,11 @@
 #include "../libc/sys/stat.h"
 #include "types.h"
 #include "../time.h"
+#include <ipc/devmap.h>
+#include <task.h>
+
+typedef devmap_handle_t posix_dev_t;
+typedef task_id_t posix_pid_t;
 
 /* values are the same as on Linux */
 
@@ -133,6 +138,8 @@ extern int posix_chmod(const char *path, mode_t mode);
 extern mode_t posix_umask(mode_t mask);
 
 #ifndef LIBPOSIX_INTERNAL
+	#define dev_t posix_dev_t
+	#define pid_t posix_pid_t
 	#define fstat posix_fstat
 	#define lstat posix_lstat
 	#define stat posix_stat

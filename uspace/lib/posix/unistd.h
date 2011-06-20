@@ -47,6 +47,9 @@ extern char *optarg;
 extern int optind, opterr, optopt;
 extern int getopt(int, char * const [], const char *);
 
+/* Environmental Variables */
+extern char **posix_environ;
+
 /* Identifying Terminals */
 extern int posix_isatty(int fd);
 
@@ -84,6 +87,8 @@ enum {
 extern long posix_sysconf(int name);
 
 #ifndef LIBPOSIX_INTERNAL
+	#define environ posix_environ
+
 	#define isatty posix_isatty
 
 	#define getuid posix_getuid

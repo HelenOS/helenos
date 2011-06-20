@@ -32,42 +32,20 @@
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
+#ifndef POSIX_LIMITS_H_
+#define POSIX_LIMITS_H_
 
-#include "internal/common.h"
-#include "getopt.h"
+#include "libc/stdint.h"
+#include "libc/sys/types.h"
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+#undef SHRT_MIN
+#undef SHRT_MAX
+#undef USHRT_MAX
+#define SHRT_MIN SHORT_MIN
+#define SHRT_MAX SHORT_MAX
+#define USHRT_MAX USHORT_MAX
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long_only(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+#endif /* POSIX_LIMITS_H_ */
 
 /** @}
  */

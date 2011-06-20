@@ -101,6 +101,9 @@ extern int posix_strerror_r(int errnum, char *buf, size_t bufsz);
 extern size_t posix_strlen(const char *s);
 extern size_t posix_strnlen(const char *s, size_t n);
 
+/* Legacy declarations */
+extern int posix_ffs(int i);
+
 #ifndef LIBPOSIX_INTERNAL
 	#define strcpy posix_strcpy
 	#define strncpy posix_strncpy
@@ -133,6 +136,8 @@ extern size_t posix_strnlen(const char *s, size_t n);
 
 	#define strlen posix_strlen
 	#define strnlen posix_strnlen
+
+	#define ffs posix_ffs
 #endif
 
 #endif  // POSIX_STRING_H_

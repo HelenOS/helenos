@@ -32,42 +32,24 @@
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
+#ifndef POSIX_STDDEF_H_
+#define POSIX_STDDEF_H_
 
-#include "internal/common.h"
-#include "getopt.h"
+#include "libc/stddef.h"
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+#ifndef NULL
+	#define NULL  ((void *) 0)
+#endif
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long_only(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+#define offsetof(type,member) ((size_t) &(((type *) 0)->member))
+
+typedef ssize_t posix_ptrdiff_t;
+
+#ifndef LIBPOSIX_INTERNAL
+	#define ptrdiff_t posix_ptrdiff_t
+#endif
+
+#endif /* POSIX_STDDEF_H_ */
 
 /** @}
  */

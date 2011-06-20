@@ -35,9 +35,10 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "common.h"
+#include "internal/common.h"
 #include "strings.h"
 #include "string.h"
+#include "ctype.h"
 
 /**
  *
@@ -58,8 +59,7 @@ int posix_ffs(int i)
  */
 int posix_strcasecmp(const char *s1, const char *s2)
 {
-	// TODO
-	not_implemented();
+	return posix_strncasecmp(s1, s2, STR_NO_LIMIT);
 }
 
 /**
@@ -71,8 +71,18 @@ int posix_strcasecmp(const char *s1, const char *s2)
  */
 int posix_strncasecmp(const char *s1, const char *s2, size_t n)
 {
-	// TODO
-	not_implemented();
+	for (size_t i = 0; i < n; ++i) {
+		int cmp = tolower(s1[i]) - tolower(s2[i]);
+		if (cmp != 0) {
+			return cmp;
+		}
+		
+		if (s1[i] == 0) {
+			return 0;
+		}
+	}
+	
+	return 0;
 }
 
 /**

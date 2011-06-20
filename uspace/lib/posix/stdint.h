@@ -32,42 +32,25 @@
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
+#ifndef POSIX_STDINT_H_
+#define POSIX_STDINT_H_
 
-#include "internal/common.h"
-#include "getopt.h"
+#include "libc/stdint.h"
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+typedef int64_t posix_intmax_t;
+typedef uint64_t posix_uintmax_t;
 
-/**
- * 
- * @param argc
- * @param argv
- * @param optstring
- * @param longopts
- * @param longindex
- * @return
- */
-int posix_getopt_long_only(int argc, char * const argv[],
-    const char *optstring, const struct posix_option *longopts, int *longindex)
-{
-	// TODO
-	not_implemented();
-}
+// FIXME: should be integrated into build process similarly to uintptr_t
+typedef ssize_t posix_intptr_t;
+
+#ifndef LIBPOSIX_INTERNAL
+	#define intmax_t posix_intmax_t
+	#define uintmax_t posix_uintmax_t
+
+	#define intptr_t posix_intptr_t
+#endif
+
+#endif /* POSIX_STDINT_H_ */
 
 /** @}
  */

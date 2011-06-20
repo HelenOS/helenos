@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "common.h"
+#include "internal/common.h"
 #include "stdio.h"
 #include "string.h"
 
