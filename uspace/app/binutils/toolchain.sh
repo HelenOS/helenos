@@ -51,7 +51,8 @@
 # Most of the false tools are straightforward. However, gcc needs a 
 # special approach because binutils use it for both compilation and
 # linkage. In case the linking usage is detected, the call is redirected
-# to the linker.
+# to the linker. There is also special case for configure script tests
+# that require compiler link step.
 #
 
 case "$1" in
@@ -76,8 +77,15 @@ case "$1" in
 			sed 's/-pipe//g' | \
 			sed 's/-g//g' | \
 			sed 's/ [ ]*/ /g'`"
-		echo '	echo' \'"$2"\' \'"$CFLAGS"\' '"$@"'
-		echo "	$2" "$CFLAGS" '$@'
+		echo '	CONFTEST="`echo $* | grep '\' conftest \''`"'
+		echo '	if [ -n "$CONFTEST" ]; then'
+		echo '		LFLAGS="-Xlinker -z -Xlinker muldefs"'
+		echo '		echo' \'"$2 $CFLAGS -T $4"\' '"$LFLAGS"' '"$@"' \'"$5"\'
+		echo "		$2 $CFLAGS -T $4" '$LFLAGS' '$@' "$5"
+		echo '	else'
+		echo '		echo' \'"$2 $CFLAGS"\' '"$@"'
+		echo "		$2 $CFLAGS" '$@'
+		echo '	fi'
 		echo 'fi'
 		) > 'gcc'
 		chmod a+x 'gcc'

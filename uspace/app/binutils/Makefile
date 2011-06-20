@@ -87,6 +87,14 @@ BINUTILS_PATCH = ./intrusive.sh
 # Detection whether the binutils are already configured.
 BINUTILS_CONFIGURED = $(REDIST_DIR)/Makefile
 
+# Generated source file for libposix function stubs without posix_ prefix.
+CONFOBJ_SOURCE = ./confobj.c
+
+# Dummy object file for libposix function stubs without posix_ prefix..
+# Required by binutils configure script tests that links against symbols
+# without including headers (which means that symbols are not prefixed).
+CONFOBJ_OBJECT = $(subst $(space),\ ,$(shell pwd))/confobj.o
+
 # Map the HelenOS target to binutils target.
 ifeq ($(PLATFORM),amd64)
 TARGET = amd64-linux-gnu
@@ -132,7 +140,7 @@ MAKE_TARGETS = all-gas all-ld
 # Copy binaries.
 ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
 all: $(COMMON_MAKEFILE_PATCHED) all_ $(TOOLCHAIN) $(BINUTILS_PATCHED) \
-		$(BINUTILS_CONFIGURED) $(REDIST_DETECT)
+		$(CONFOBJ_OBJECT) $(BINUTILS_CONFIGURED) $(REDIST_DETECT)
 	make -C $(REDIST_DIR) $(MAKE_TARGETS)
 	cp -f $(REDIST_DIR)/gas/as-new ./as
 	cp -f $(REDIST_DIR)/ld/ld-new ./ld
@@ -155,13 +163,26 @@ $(REDIST_DETECT): $(REDIST_FILENAME)
 	mv -f -T $(REDIST_NAME) $(REDIST_DIR)
 	touch $@
 
+# Generate stubs for libposix functions without posix_ prefix.
+$(CONFOBJ_SOURCE):
+	echo '/* GENERATED FILE. DO NOT MODIFY. */' > $@; \
+	grep -r -o -h -I -E 'posix_[^ \(]*\(' $(LIBPOSIX_PREFIX) | \
+	sort -u | \
+	sed 's/posix_\([^ (]*\)(/char \1() { return 0; }/g' >> $@
+
+# Compile dummy object for configure script tests.
+$(CONFOBJ_OBJECT): $(CONFOBJ_SOURCE) $(TOOLCHAIN)
+	./gcc -c -o $@ $<
+
 # Generate false toolchain scripts.
 $(TOOLCHAIN): $(TOOLCHAIN_SCRIPT)
-	./$< gcc $(CC) '$(CFLAGS)'
+	./$< gcc $(CC) \
+		'$(CFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS) $(CONFOBJ_OBJECT)'
 	./$< as $(AS)
 	./$< ar $(AR)
 	./$< ranlib
-	./$< ld $(LD) '$(LFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS)'
+	./$< ld $(LD) \
+		'$(LFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS)'
 	./$< objdump $(OBJDUMP)
 	./$< objcopy $(OBJCOPY)
 	./$< strip $(STRIP)
@@ -184,6 +205,7 @@ $(BINUTILS_CONFIGURED): $(REDIST_DIR)/configure $(REDIST_DETECT)
 # Delete generated scripts.
 clean: $(BINUTILS_PATCH) clean_
 	rm -f as ld
+	rm -f $(CONFOBJ_SOURCE) $(CONFOBJ_OBJECT)
 	if [ -e $(REDIST_DIR)/Makefile ]; then \
 		make -C $(REDIST_DIR) distclean; \
 	fi
