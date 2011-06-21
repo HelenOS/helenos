@@ -54,11 +54,11 @@ typedef void (*async_client_data_dtor_t)(void *);
 
 /** Client connection handler
  *
- * @param callid	ID of incoming call or 0 if connection initiated from
- *			inside using async_connect_to_me()
- * @param call		Incoming call or 0 if connection initiated from inside
- * @param arg		Local argument passed from async_new_connection() or
- *			async_connect_to_me()
+ * @param callid ID of incoming call or 0 if connection initiated from
+ *               inside using async_connect_to_me()
+ * @param call   Incoming call or 0 if connection initiated from inside
+ * @param arg    Local argument passed from async_new_connection() or
+ *               async_connect_to_me()
  */
 typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *, void *);
 

@@ -212,9 +212,9 @@ void *async_get_client_data(void)
  *
  * This function is defined as a weak symbol - to be redefined in user code.
  *
- * @param callid	Hash of the incoming call.
- * @param call		Data of the incoming call.
- * @param arg		Local argument
+ * @param callid Hash of the incoming call.
+ * @param call   Data of the incoming call.
+ * @param arg    Local argument
  *
  */
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call,
@@ -227,9 +227,9 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call,
  *
  * This function is defined as a weak symbol - to be redefined in user code.
  *
- * @param callid	Hash of the incoming call.
- * @param call  	Data of the incoming call.
- * @param arg		Local argument.
+ * @param callid Hash of the incoming call.
+ * @param call   Data of the incoming call.
+ * @param arg    Local argument.
  *
  */
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
@@ -708,7 +708,7 @@ static int connection_fibril(void *arg)
  * @param call          Call data of the opening call.
  * @param cfibril       Fibril function that should be called upon opening the
  *                      connection.
- * @param carg		Extra argument to pass to the connection fibril
+ * @param carg          Extra argument to pass to the connection fibril
  *
  * @return New fibril id or NULL on failure.
  *

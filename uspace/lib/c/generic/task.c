@@ -189,6 +189,7 @@ int task_spawnvf(task_id_t *id, const char *path, const char *const args[],
 		*id = task_id;
 	
 	return EOK;
+	
 error:
 	/* Error exit */
 	loader_abort(ldr);
