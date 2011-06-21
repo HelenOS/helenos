@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <byteorder.h>
 #include <mem.h>
+#include <str.h>
 
 int fat_directory_block_load(fat_directory_t *);
 
@@ -57,7 +58,7 @@ int fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 	di->bnum = 0;
 	di->last = false;
 
-	di->lfn_utf16[0] = '\0';
+	di->wname[0] = '\0';
 	di->lfn_offset = 0;
 	di->lfn_size = 0;
 	di->long_entry = false;
@@ -173,8 +174,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 					if ((FAT_LFN_ORDER(d) == di->long_entry_count) && 
 						(di->checksum == FAT_LFN_CHKSUM(d))) {
 						/* Right order! */
-						di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
-							di->lfn_offset);
+						fat_lfn_copy_entry(d, di->wname, &di->lfn_offset);
 					} else {
 						/* Something wrong with order. Skip this long entries set */
 						di->long_entry_count = 0;
@@ -189,8 +189,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 							di->lfn_size = (FAT_LFN_ENTRY_SIZE * 
 								(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
 							di->lfn_offset = di->lfn_size;
-							di->lfn_offset = fat_lfn_copy_entry(d, di->lfn_utf16, 
-								di->lfn_offset);
+							fat_lfn_copy_entry(d, di->wname, &di->lfn_offset);
 							di->checksum = FAT_LFN_CHKSUM(d);
 						}
 					}
@@ -199,10 +198,8 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 			case FAT_DENTRY_VALID:
 				if (di->long_entry && 
 					(di->checksum == fat_dentry_chksum(d->name))) {
-					int rc;
-					rc = fat_lfn_convert_name(di->lfn_utf16, di->lfn_size, 
-						(uint8_t*)name, FAT_LFN_NAME_SIZE);
-					if (rc!=EOK)
+					di->wname[di->lfn_size] = '\0';
+					if (utf16_to_str(name, FAT_LFN_NAME_SIZE, di->wname)!=EOK)
 						fat_dentry_name_get(d, name);
 				}
 				else

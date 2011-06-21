@@ -47,7 +47,7 @@ typedef struct {
 	block_t *b;
 	bool last;
 	/* Long entry data */
-	uint8_t lfn_utf16[FAT_LFN_MAX_COUNT * FAT_LFN_ENTRY_SIZE];
+	uint16_t wname[FAT_LFN_MAX_COUNT * FAT_LFN_ENTRY_SIZE];
 	size_t lfn_offset;
 	size_t lfn_size;
 	bool long_entry;

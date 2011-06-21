@@ -40,6 +40,7 @@
 #include <str.h>
 #include <errno.h>
 #include <byteorder.h>
+#include <assert.h>
 
 static bool is_d_char(const char ch)
 {
@@ -275,16 +276,14 @@ uint8_t fat_dentry_chksum(uint8_t *name)
  * @return Number of bytes in string (without 0 and ff).
  *
  */
-size_t fat_lfn_str_nlength(const uint8_t *str, size_t size)
+size_t fat_lfn_str_nlength(const uint16_t *str, size_t size)
 {
 	size_t offset = 0;
 
 	while (offset < size) {
-		if ((str[offset] == 0x00 && str[offset+1] == 0x00) ||
-			(str[offset] == 0xff && str[offset+1] == 0xff)) 
+		if (str[offset] == 0 || str[offset] == 0xffff) 
 			break;
-		
-		offset += 2;
+		offset++;
 	}
 	return offset;
 }
@@ -307,52 +306,57 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 	return size;
 }
 
-size_t fat_lfn_copy_part(const uint8_t *src, size_t src_size, uint8_t *dst, size_t offset)
+size_t fat_lfn_copy_part(const uint16_t *src, size_t src_size, uint16_t *dst, size_t *offset)
 {
-	int i;
-	for (i=src_size-1; i>0 && offset>1; i-=2) {
-		if ((src[i] == 0x00 && src[i-1] == 0x00) ||
-			(src[i] == 0xff && src[i-1] == 0xff))
+	while (src_size!=0 && (*offset)!=0) {
+		src_size--;
+		if (src[src_size] == 0 || src[src_size] == 0xffff)
 			continue;
-		dst[offset-1] = src[i];
-		dst[offset-2] = src[i-1];
-		offset-=2;
+
+		(*offset)--;
+		dst[(*offset)] = uint16_t_le2host(src[src_size]);
 	}
-	return offset;
+	return (*offset);
 }
 
-size_t fat_lfn_copy_entry(const fat_dentry_t *d, uint8_t *dst, size_t offset)
+size_t fat_lfn_copy_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
 {
-	offset = fat_lfn_copy_part(FAT_LFN_PART3(d), 
-	    FAT_LFN_PART3_SIZE, dst, offset);
-	offset = fat_lfn_copy_part(FAT_LFN_PART2(d), 
-	    FAT_LFN_PART2_SIZE, dst, offset);
-	offset = fat_lfn_copy_part(FAT_LFN_PART1(d), 
-	    FAT_LFN_PART1_SIZE, dst, offset);
+	fat_lfn_copy_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
+	fat_lfn_copy_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);
+	fat_lfn_copy_part(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE, dst, offset);
 
-	return offset;
+	return *offset;
 }
 
-int fat_lfn_convert_name(const uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size)
+/** Convert utf16 string to string.
+ *
+ * Convert wide string @a src to string. The output is written to the buffer
+ * specified by @a dest and @a size. @a size must be non-zero and the string
+ * written will always be well-formed.
+ *
+ * @param dest	Destination buffer.
+ * @param size	Size of the destination buffer.
+ * @param src	Source wide string.
+ */
+int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 {
-	size_t i, offset = 0;
-	uint16_t c;
 	int rc;
-	for (i=0; i<src_size; i+=2) {
-		if (src[i+1] == 0x00) {
-			if (offset+1 < dst_size)
-				dst[offset++] = src[i];
-			else
-				return EOVERFLOW;
-		} else {
-			c = uint16_t_le2host((src[i] << 8) | src[i+1]);
-			rc = chr_encode(c, (char*)dst, &offset, dst_size);
-			if (rc!=EOK) {
-				return rc;
-			}
-		}
+	uint16_t ch;
+	size_t src_idx, dest_off;
+
+	/* There must be space for a null terminator in the buffer. */
+	assert(size > 0);
+	
+	src_idx = 0;
+	dest_off = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		rc = chr_encode(ch, dest, &dest_off, size - 1);
+		if (rc != EOK)
+			return rc;
 	}
-	dst[offset] = 0;	
+
+	dest[dest_off] = '\0';
 	return EOK;
 }
 

@@ -77,9 +77,9 @@
 
 #define FAT_LFN_NAME_SIZE   255
 #define FAT_LFN_MAX_COUNT   20
-#define FAT_LFN_PART1_SIZE  10
-#define FAT_LFN_PART2_SIZE  12
-#define FAT_LFN_PART3_SIZE  4
+#define FAT_LFN_PART1_SIZE  5
+#define FAT_LFN_PART2_SIZE  6
+#define FAT_LFN_PART3_SIZE  2
 #define FAT_LFN_ENTRY_SIZE \
     (FAT_LFN_PART1_SIZE + FAT_LFN_PART2_SIZE + FAT_LFN_PART3_SIZE)
 
@@ -116,14 +116,14 @@ typedef struct {
 		} __attribute__ ((packed));
 		struct {
 			uint8_t		order;
-			uint8_t		part1[FAT_LFN_PART1_SIZE];
+			uint16_t	part1[FAT_LFN_PART1_SIZE];
 			uint8_t		attr;
 			uint8_t		type;
 			uint8_t		check_sum;
-			uint8_t		part2[FAT_LFN_PART2_SIZE];
+			uint16_t	part2[FAT_LFN_PART2_SIZE];
 			uint16_t	firstc_lo; /* MUST be 0 */
-			uint8_t		part3[FAT_LFN_PART3_SIZE];
-		} lfn __attribute__ ((packed));
+			uint16_t	part3[FAT_LFN_PART3_SIZE];
+		} __attribute__ ((packed)) lfn;
 	};
 } __attribute__ ((packed)) fat_dentry_t;
 
@@ -135,11 +135,11 @@ extern void fat_dentry_name_set(fat_dentry_t *, const char *);
 extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
 extern uint8_t fat_dentry_chksum(uint8_t *);
 
-extern size_t fat_lfn_str_nlength(const uint8_t *, size_t);
+extern size_t fat_lfn_str_nlength(const uint16_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
-extern size_t fat_lfn_copy_part(const uint8_t *, size_t, uint8_t *, size_t);
-extern size_t fat_lfn_copy_entry(const fat_dentry_t *, uint8_t *, size_t);
-extern int fat_lfn_convert_name(const uint8_t *, size_t, uint8_t *, size_t);
+extern size_t fat_lfn_copy_part(const uint16_t *, size_t, uint16_t *, size_t *);
+extern size_t fat_lfn_copy_entry(const fat_dentry_t *, uint16_t *, size_t *);
+extern int utf16_to_str(char *, size_t, const uint16_t *);
 
 
 #endif
