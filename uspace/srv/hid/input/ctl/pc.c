@@ -42,12 +42,12 @@
 #include <kbd_port.h>
 #include <gsp.h>
 
-static void pc_ctl_parse_scancode(int);
+static void pc_ctl_parse(sysarg_t);
 static int pc_ctl_init(kbd_dev_t *);
-static void pc_ctl_set_ind(kbd_dev_t *, unsigned);
+static void pc_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 kbd_ctl_ops_t pc_ctl = {
-	.parse_scancode = pc_ctl_parse_scancode,
+	.parse = pc_ctl_parse,
 	.init = pc_ctl_init,
 	.set_ind = pc_ctl_set_ind
 };
@@ -214,7 +214,7 @@ static int pc_ctl_init(kbd_dev_t *kdev)
 	return 0;
 }
 
-static void pc_ctl_parse_scancode(int scancode)
+static void pc_ctl_parse(sysarg_t scancode)
 {
 	kbd_event_type_t type;
 	unsigned int key;
@@ -256,12 +256,12 @@ static void pc_ctl_parse_scancode(int scancode)
 		type = KEY_PRESS;
 	}
 
-	if ((scancode < 0) || ((size_t) scancode >= map_length))
+	if ((size_t) scancode >= map_length)
 		return;
 
 	key = map[scancode];
 	if (key != 0)
-		kbd_push_ev(kbd_dev, type, key);
+		kbd_push_event(kbd_dev, type, key);
 }
 
 static void pc_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)

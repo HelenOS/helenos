@@ -56,7 +56,7 @@
 #include <kernel/ipc/ipc_methods.h>
 
 #define NAME "s3c24ser"
-#define NAMESPACE "hid_in"
+#define NAMESPACE "hid"
 
 static irq_cmd_t ts_irq_cmds[] = {
 	{

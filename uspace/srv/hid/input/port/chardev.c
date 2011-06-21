@@ -107,7 +107,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	async_exchange_end(exch);
 	
 	if (rc != 0) {
-		printf(NAME ": Failed to create callback from device\n");
+		printf("%s: Failed to create callback from device\n", NAME);
 		async_hangup(dev_sess);
 		return -1;
 	}
@@ -152,7 +152,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case CHAR_NOTIF_BYTE:
-			kbd_push_scancode(kbd_dev, IPC_GET_ARG1(call));
+			kbd_push_data(kbd_dev, IPC_GET_ARG1(call));
 			break;
 		default:
 			retval = ENOENT;

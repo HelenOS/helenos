@@ -481,6 +481,7 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		default:
 			retval = ENOENT;
 		}
+
 		async_answer_0(callid, retval);
 	}
 }

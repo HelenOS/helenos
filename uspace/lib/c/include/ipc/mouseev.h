@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,24 @@
 /** @file
  */
 
-#ifndef ADBDEV_H_
-#define ADBDEV_H_
+#ifndef LIBC_IPC_MOUSEEV_H_
+#define LIBC_IPC_MOUSEEV_H_
 
-#include <sys/types.h>
+#include <ipc/common.h>
+#include <ipc/dev_iface.h>
 
-extern int adb_dev_init(void);
+typedef enum {
+	MOUSEEV_YIELD = DEV_FIRST_CUSTOM_METHOD,
+	MOUSEEV_RECLAIM
+} mouseev_request_t;
+
+typedef enum {
+	MOUSEEV_MOVE_EVENT = IPC_FIRST_USER_METHOD,
+	MOUSEEV_BUTTON_EVENT
+} mouseev_notif_t;
 
 #endif
 
 /**
  * @}
- */ 
-
+ */

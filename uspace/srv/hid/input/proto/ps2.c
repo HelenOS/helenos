@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
+/** @addtogroup mouse_proto
+ * @ingroup input
  * @{
  */
 /**
  * @file
- * @brief PS/2 mouse protocol driver.
+ * @brief PS/2 protocol driver.
  */
 
-#include <stdio.h>
+#include <mouse.h>
 #include <mouse_port.h>
-#include <char_mouse.h>
 #include <mouse_proto.h>
-
-#define BUFSIZE 3
 
 #define PS2_MOUSE_OUT_INIT  0xf4
 #define PS2_MOUSE_ACK       0xfa
+
+#define BUFSIZE 3
 
 typedef struct {
 	union {
 		unsigned char data[BUFSIZE];
 		struct {
-			unsigned leftbtn : 1;
-			unsigned rightbtn : 1;
-			unsigned middlebtn : 1;
-			unsigned isone : 1; /* Always one */
-			unsigned xsign : 1;
-			unsigned ysign : 1;
-			unsigned xovfl : 1;
-			unsigned yovfl : 1;
+			unsigned int leftbtn : 1;
+			unsigned int rightbtn : 1;
+			unsigned int middlebtn : 1;
+			unsigned int isone : 1; /* Always one */
+			unsigned int xsign : 1;
+			unsigned int ysign : 1;
+			unsigned int xovfl : 1;
+			unsigned int yovfl : 1;
 			unsigned char x;
 			unsigned char y;
 		} val;
@@ -63,14 +63,21 @@ typedef struct {
 } ps2packet_t;
 
 static ps2packet_t buf;
-static int bufpos = 0;
-static int leftbtn = 0;
-static int rightbtn = 0;
-static int middlebtn = 0;
+static unsigned int bufpos;
+static unsigned int leftbtn;
+static unsigned int rightbtn;
+static unsigned int middlebtn;
 
-int mouse_proto_init(void)
+static mouse_dev_t *mouse_dev;
+
+static int ps2_proto_init(mouse_dev_t *mdev)
 {
-	mouse_port_write(PS2_MOUSE_OUT_INIT);
+	mouse_dev = mdev;
+	bufpos = 0;
+	leftbtn = 0;
+	rightbtn = 0;
+	
+	mouse_dev->port_ops->write(PS2_MOUSE_OUT_INIT);
 	return 0;
 }
 
@@ -78,52 +85,54 @@ int mouse_proto_init(void)
 static int bit9toint(int sign, unsigned char data)
 {
 	int tmp;
-
+	
 	if (!sign)
 		return data;
-
-	tmp = ((unsigned char)~data) + 1;
+	
+	tmp = ((unsigned char) ~data) + 1;
 	return -tmp;
 }
 
 /** Process mouse data */
-void mouse_proto_parse_byte(int data)
+static void ps2_proto_parse(sysarg_t data)
 {
 	int x, y;
-
+	
 	/* Check that we have not lost synchronization */
 	if (bufpos == 0 && !(data & 0x8))
 		return; /* Synchro lost, ignore byte */
-
+	
 	buf.u.data[bufpos++] = data;
 	if (bufpos == BUFSIZE) {
 		bufpos = 0;
-
+		
 		if (buf.u.val.leftbtn ^ leftbtn) {
 			leftbtn = buf.u.val.leftbtn;
-			mouse_ev_btn(1, leftbtn);
+			mouse_push_event_button(mouse_dev, 1, leftbtn);
 		}
-
+		
 		if (buf.u.val.rightbtn ^ rightbtn) {
 			rightbtn = buf.u.val.rightbtn;
-			mouse_ev_btn(2, rightbtn);
+			mouse_push_event_button(mouse_dev, 2, rightbtn);
 		}
-
+		
 		if (buf.u.val.middlebtn ^ middlebtn) {
 			middlebtn = buf.u.val.middlebtn;
-			mouse_ev_btn(3, middlebtn);
+			mouse_push_event_button(mouse_dev, 3, middlebtn);
 		}
-
-		x =   bit9toint(buf.u.val.xsign, buf.u.val.x);
-		y = - bit9toint(buf.u.val.ysign, buf.u.val.y);
-
-		if (x != 0 || y != 0) {
-			mouse_ev_move(x, y);
-		}
+		
+		x = bit9toint(buf.u.val.xsign, buf.u.val.x);
+		y = -bit9toint(buf.u.val.ysign, buf.u.val.y);
+		
+		if (x != 0 || y != 0)
+			mouse_push_event_move(mouse_dev, x, y);
 	}
-
-	return;
 }
+
+mouse_proto_ops_t ps2_proto = {
+	.parse = ps2_proto_parse,
+	.init = ps2_proto_init
+};
 
 /**
  * @}

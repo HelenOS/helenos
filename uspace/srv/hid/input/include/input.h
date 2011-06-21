@@ -41,15 +41,10 @@
 #include <bool.h>
 
 #define NAME       "input"
-#define NAMESPACE  "hid_in"
+#define NAMESPACE  "hid"
 
 extern bool irc_service;
 extern int irc_phone;
-
-extern list_t mouse_devs;
-
-void input_event_move(int, int);
-void input_event_button(int bnum, int press);
 
 #endif
 

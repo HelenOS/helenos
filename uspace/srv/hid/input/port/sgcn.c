@@ -182,8 +182,8 @@ static void sgcn_key_pressed(void)
 		c = *buf_ptr;
 		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
 		buf_ptr = (volatile char *)
-			SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
-		kbd_push_scancode(kbd_dev, c);
+		    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
+		kbd_push_data(kbd_dev, c);
 	}
 }
 

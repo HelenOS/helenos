@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,92 +26,105 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
+/** @addtogroup mouse_port
+ * @ingroup mouse
  * @{
- */ 
+ */
 /** @file
- * @brief
+ * @brief ADB mouse port driver.
  */
 
 #include <ipc/adb.h>
 #include <async.h>
-#include <vfs/vfs.h>
-#include <fcntl.h>
+#include <input.h>
+#include <mouse_port.h>
+#include <mouse.h>
 #include <errno.h>
 #include <devmap.h>
-#include <async.h>
-#include <kernel/ipc/ipc_methods.h>
 
-#include "adb_mouse.h"
-#include "adb_dev.h"
+static mouse_dev_t *mouse_dev;
+static async_sess_t *dev_sess;
 
-static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-
-int adb_dev_init(void)
-{
-	devmap_handle_t handle;
-	async_exch_t *exch;
-	int rc;
-	
-	rc = devmap_device_get_handle("adb/mouse", &handle,
-	    IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed resolving ADB\n", NAME);
-		return rc;
-	}
-	
-	async_sess_t *dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle,
-	    IPC_FLAG_BLOCKING);
-	if (dev_sess == NULL) {
-		printf("%s: Failed connecting to ADB\n", NAME);
-		return ENOENT;
-	}
-	
-	exch = async_exchange_begin(dev_sess);
-	if (exch == NULL) {
-		printf("%s: Failed starting exchange with ADB\n", NAME);
-		async_hangup(dev_sess);
-		return ENOMEM;
-	}
-	
-	/* NB: The callback connection is slotted for removal */
-	rc = async_connect_to_me(exch, 0, 0, 0, adb_dev_events, NULL);
-	async_exchange_end(exch);
-	
-	if (rc != 0) {
-		printf(NAME ": Failed to create callback from device\n");
-		async_hangup(dev_sess);
-		return ENOENT;
-	}
-	
-	return 0;
-}
-
-static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void mouse_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
-
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-
+		
 		int retval;
 		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;
 		}
-
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_FIRST_USER_METHOD:
-			mouse_handle_data(IPC_GET_ARG1(call));
+		case ADB_REG_NOTIF:
+			mouse_push_data(mouse_dev, IPC_GET_ARG1(call));
 			break;
 		default:
 			retval = ENOENT;
 		}
+		
 		async_answer_0(callid, retval);
 	}
 }
+
+static int adb_port_init(mouse_dev_t *mdev)
+{
+	const char *dev = "adb/mouse";
+	
+	mouse_dev = mdev;
+	
+	devmap_handle_t handle;
+	int rc = devmap_device_get_handle(dev, &handle, 0);
+	if (rc != EOK)
+		return rc;
+	
+	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle, 0);
+	if (dev_sess == NULL) {
+		printf("%s: Failed to connect to device\n", NAME);
+		return ENOENT;
+	}
+	
+	async_exch_t *exch = async_exchange_begin(dev_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with device\n", NAME);
+		async_hangup(dev_sess);
+		return ENOMEM;
+	}
+	
+	/* NB: The callback connection is slotted for removal */
+	rc = async_connect_to_me(exch, 0, 0, 0, mouse_port_events, NULL);
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		printf("%s: Failed to create callback from device\n", NAME);
+		async_hangup(dev_sess);
+		return rc;
+	}
+	
+	return EOK;
+}
+
+static void adb_port_yield(void)
+{
+}
+
+static void adb_port_reclaim(void)
+{
+}
+
+static void adb_port_write(uint8_t data)
+{
+}
+
+mouse_port_ops_t adb_mouse_port = {
+	.init = adb_port_init,
+	.yield = adb_port_yield,
+	.reclaim = adb_port_reclaim,
+	.write = adb_port_write
+};
 
 /**
  * @}

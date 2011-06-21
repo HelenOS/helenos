@@ -70,8 +70,8 @@ typedef struct kbd_dev {
 	struct layout *active_layout;
 } kbd_dev_t;
 
-extern void kbd_push_scancode(kbd_dev_t *, int);
-extern void kbd_push_ev(kbd_dev_t *, int, unsigned int);
+extern void kbd_push_data(kbd_dev_t *, sysarg_t);
+extern void kbd_push_event(kbd_dev_t *, int, unsigned int);
 
 #endif
 
