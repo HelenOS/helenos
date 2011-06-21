@@ -66,6 +66,7 @@ extern int fat_directory_get(fat_directory_t *, fat_dentry_t **);
 extern int fat_directory_dirty(fat_directory_t *);
 
 extern int fat_directory_read(fat_directory_t *, char *, fat_dentry_t **);
+extern int fat_directory_write(fat_directory_t *, char *, fat_dentry_t *);
 extern int fat_directory_erase(fat_directory_t *);
 
 

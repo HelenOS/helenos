@@ -253,6 +253,13 @@ int fat_directory_erase(fat_directory_t *di)
 	return EOK;
 }
 
+int fat_directory_write(fat_directory_t *di, char *name, fat_dentry_t *de)
+{
+	/* TODO: create LFN records if necessarry and create SFN record */
+	return EOK;
+}
+
+
 
 /**
  * @}

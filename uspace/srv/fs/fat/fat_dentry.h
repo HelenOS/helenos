@@ -139,8 +139,13 @@ extern size_t fat_lfn_str_nlength(const uint16_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
 extern size_t fat_lfn_copy_part(const uint16_t *, size_t, uint16_t *, size_t *);
 extern size_t fat_lfn_copy_entry(const fat_dentry_t *, uint16_t *, size_t *);
+
 extern int utf16_to_str(char *, size_t, const uint16_t *);
 extern int str_to_utf16(uint16_t *, size_t, const char *);
+extern bool fat_lfn_valid_char(uint16_t);
+extern bool fat_lfn_valid_str(const uint16_t *);
+extern size_t utf16_length(const uint16_t *);
+extern bool fat_dentry_is_sfn(const uint16_t *);
 
 
 #endif

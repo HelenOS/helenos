@@ -393,6 +393,66 @@ int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
 	return EOK;
 }
 
+bool fat_lfn_valid_char(uint16_t c)
+{
+	char valid[] = {"_.$%\'-@~!(){}^#&"};
+	size_t idx=0;
+
+	if (c > 0xff) return false;
+	if (isdigit(c) || (isalpha(c) && isupper(c)))
+		return true;	
+	while(valid[idx]!=0)
+		if (c == valid[idx++])
+			return true;
+
+	return false;
+}
+
+bool fat_lfn_valid_str(const uint16_t *str)
+{
+	uint16_t c;
+	size_t idx=0;
+	if (str[idx] == 0 || str[idx] == '.')
+		return false;
+	while ((c=str[idx++]) != 0) {
+		if (!fat_lfn_valid_char(c))
+			return false;
+	}
+	return true;
+}
+
+/** Get number of characters in a wide string.
+ *
+ * @param str NULL-terminated wide string.
+ *
+ * @return Number of characters in @a str.
+ *
+ */
+size_t utf16_length(const uint16_t *wstr)
+{
+	size_t len = 0;
+	
+	while (*wstr++ != 0)
+		len++;
+	return len;
+}
+
+bool fat_dentry_is_sfn(const uint16_t *str)
+{
+	/* 1. Length <= 11 characters */
+	if (utf16_length(str) > (FAT_NAME_LEN + FAT_EXT_LEN))
+		return false;
+	/* 
+	 * 2. All characters in string should be ASCII
+	 * 3. All letters must be uppercase
+	 * 4. String should not contain invalid characters
+	 */
+	if (!fat_lfn_valid_str(str))
+		return false;
+	
+	return true;
+}
+
 
 /**
  * @}
