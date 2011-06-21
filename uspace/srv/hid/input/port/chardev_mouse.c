@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,115 +26,131 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
+/** @addtogroup mouse_port
+ * @ingroup mouse
  * @{
- */ 
+ */
 /** @file
- * @brief
+ * @brief Chardev mouse port driver.
  */
 
 #include <ipc/char.h>
+#include <stdio.h>
 #include <async.h>
-#include <vfs/vfs.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <devmap.h>
-#include <char_mouse.h>
+#include <input.h>
 #include <mouse_port.h>
+#include <mouse.h>
 
-static void chardev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-
+static mouse_dev_t *mouse_dev;
 static async_sess_t *dev_sess;
 
-#define NAME "char_mouse"
+/** List of devices to try connecting to. */
+static const char *in_devs[] = {
+	"char/ps2b",
+};
 
-int mouse_port_init(void)
-{
-	devmap_handle_t handle;
-	async_exch_t *exch;
-	int rc;
-	
-	rc = devmap_device_get_handle("char/ps2b", &handle,
-	    IPC_FLAG_BLOCKING);
-	
-	if (rc != EOK) {
-		printf("%s: Failed resolving PS/2\n", NAME);
-		return rc;
-	}
-	
-	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle,
-	    IPC_FLAG_BLOCKING);
-	if (dev_sess == NULL) {
-		printf("%s: Failed connecting to PS/2\n", NAME);
-		return ENOENT;
-	}
-	
-	exch = async_exchange_begin(dev_sess);
-	if (exch == NULL) {
-		printf("%s: Failed starting exchange with PS/2\n", NAME);
-		async_hangup(dev_sess);
-		return ENOMEM;
-	}
-	
-	/* NB: The callback connection is slotted for removal */
-	rc = async_connect_to_me(exch, 0, 0, 0, chardev_events, NULL);
-	async_exchange_end(exch);
-	
-	if (rc != 0) {
-		printf(NAME ": Failed to create callback from device\n");
-		async_hangup(dev_sess);
-		return false;
-	}
-	
-	return 0;
-}
+static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
 
-void mouse_port_yield(void)
-{
-}
-
-void mouse_port_reclaim(void)
-{
-}
-
-void mouse_port_write(uint8_t data)
-{
-	async_exch_t *exch = async_exchange_begin(dev_sess);
-	if (exch == NULL) {
-		printf("%s: Failed starting exchange with PS/2\n", NAME);
-		return;
-	}
-	
-	async_msg_1(exch, CHAR_WRITE_BYTE, data);
-	
-	async_exchange_end(exch);
-}
-
-static void chardev_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void mouse_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
-
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-
-		int retval;
 		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;
 		}
-
+		
+		int retval;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_FIRST_USER_METHOD:
-			mouse_handle_byte(IPC_GET_ARG1(call));
+		case CHAR_NOTIF_BYTE:
+			mouse_push_data(mouse_dev, IPC_GET_ARG1(call));
 			break;
 		default:
 			retval = ENOENT;
 		}
+		
 		async_answer_0(callid, retval);
 	}
 }
+
+static int chardev_port_init(mouse_dev_t *mdev)
+{
+	devmap_handle_t handle;
+	unsigned int i;
+	int rc;
+	
+	mouse_dev = mdev;
+	
+	for (i = 0; i < num_devs; i++) {
+		rc = devmap_device_get_handle(in_devs[i], &handle, 0);
+		if (rc == EOK)
+			break;
+	}
+	
+	if (i >= num_devs) {
+		printf("%s: Could not find any suitable input device\n", NAME);
+		return -1;
+	}
+	
+	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle,
+	    IPC_FLAG_BLOCKING);
+	if (dev_sess == NULL) {
+		printf("%s: Failed connecting to device\n", NAME);
+		return ENOENT;
+	}
+	
+	async_exch_t *exch = async_exchange_begin(dev_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with device\n", NAME);
+		async_hangup(dev_sess);
+		return ENOMEM;
+	}
+	
+	/* NB: The callback connection is slotted for removal */
+	rc = async_connect_to_me(exch, 0, 0, 0, mouse_port_events, NULL);
+	async_exchange_end(exch);
+	
+	if (rc != 0) {
+		printf("%s: Failed to create callback from device\n", NAME);
+		async_hangup(dev_sess);
+		return -1;
+	}
+	
+	return 0;
+}
+
+static void chardev_port_yield(void)
+{
+}
+
+static void chardev_port_reclaim(void)
+{
+}
+
+static void chardev_port_write(uint8_t data)
+{
+	async_exch_t *exch = async_exchange_begin(dev_sess);
+	if (exch == NULL) {
+		printf("%s: Failed starting exchange with device\n", NAME);
+		return;
+	}
+
+	async_msg_1(exch, CHAR_WRITE_BYTE, data);
+	async_exchange_end(exch);
+}
+
+mouse_port_ops_t chardev_mouse_port = {
+	.init = chardev_port_init,
+	.yield = chardev_port_yield,
+	.reclaim = chardev_port_reclaim,
+	.write = chardev_port_write
+};
 
 /**
  * @}

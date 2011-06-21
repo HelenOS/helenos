@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
- * @brief
+/** @addtogroup inputgen generic
+ * @brief Mouse protocol driver interface.
+ * @ingroup input
  * @{
  */
 /** @file
  */
 
-#ifndef MOUSE_PORT_H_
-#define MOUSE_PORT_H_
+#ifndef MOUSE_PROTO_H_
+#define MOUSE_PROTO_H_
 
-#include <sys/types.h>
+#include <mouse_port.h>
 
-extern int mouse_port_init(void);
-extern void mouse_port_yield(void);
-extern void mouse_port_reclaim(void);
-extern void mouse_port_write(uint8_t);
+struct mouse_dev;
+
+typedef struct mouse_proto_ops {
+	void (*parse)(sysarg_t);
+	int (*init)(struct mouse_dev *);
+} mouse_proto_ops_t;
+
+extern mouse_proto_ops_t adb_proto;
+extern mouse_proto_ops_t ps2_proto;
+extern mouse_proto_ops_t mousedev_proto;
 
 #endif
 
 /**
  * @}
- */ 
-
+ */

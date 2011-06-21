@@ -34,8 +34,7 @@ RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
 RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd
 
 RD_DRVS += \
 	infrastructure/rootpc \

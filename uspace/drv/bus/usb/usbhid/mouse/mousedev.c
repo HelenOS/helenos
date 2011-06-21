@@ -43,7 +43,7 @@
 #include <async.h>
 #include <async_obsolete.h>
 #include <str_error.h>
-#include <ipc/mouse.h>
+#include <ipc/mouseev.h>
 #include <io/console.h>
 
 #include <ipc/kbdev.h>
@@ -269,7 +269,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 
 	if ((shift_x != 0) || (shift_y != 0)) {
 		async_obsolete_req_2_0(mouse_dev->mouse_phone,
-		    MEVENT_MOVE, shift_x, shift_y);
+		    MOUSEEV_MOVE_EVENT, shift_x, shift_y);
 	}
 
 	if (wheel != 0) {
@@ -295,17 +295,16 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		if (mouse_dev->buttons[field->usage - field->usage_minimum] == 0
 		    && field->value != 0) {
 			async_obsolete_req_2_0(mouse_dev->mouse_phone,
-			    MEVENT_BUTTON, field->usage, 1);
+			    MOUSEEV_BUTTON_EVENT, field->usage, 1);
 			mouse_dev->buttons[field->usage - field->usage_minimum]
 			    = field->value;
-		} else if (
-		    mouse_dev->buttons[field->usage - field->usage_minimum] != 0
+		} else if (mouse_dev->buttons[field->usage - field->usage_minimum] != 0
 		    && field->value == 0) {
-		       async_obsolete_req_2_0(mouse_dev->mouse_phone,
-			   MEVENT_BUTTON, field->usage, 0);
-		       mouse_dev->buttons[field->usage - field->usage_minimum]
-			   = field->value;
-	       }
+			async_obsolete_req_2_0(mouse_dev->mouse_phone,
+			   MOUSEEV_BUTTON_EVENT, field->usage, 0);
+			mouse_dev->buttons[field->usage - field->usage_minimum] =
+			   field->value;
+		}
 		
 		field = usb_hid_report_get_sibling(
 		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
- * @brief
+/** @addtogroup inputgen generic
+ * @brief Mouse port driver interface.
+ * @ingroup input
  * @{
  */
 /** @file
  */
 
-#ifndef ADB_MOUSE_H_
-#define ADB_MOUSE_H_
+#ifndef MOUSE_PORT_H_
+#define MOUSE_PORT_H_
 
 #include <sys/types.h>
 
-#define NAME       "adb_ms"
-#define NAMESPACE  "hid_in"
+struct mouse_dev;
 
-extern void mouse_handle_data(uint16_t);
+typedef struct mouse_port_ops {
+	int (*init)(struct mouse_dev *);
+	void (*yield)(void);
+	void (*reclaim)(void);
+	void (*write)(uint8_t);
+} mouse_port_ops_t;
+
+extern mouse_port_ops_t adb_mouse_port;
+extern mouse_port_ops_t chardev_mouse_port;
 
 #endif
 

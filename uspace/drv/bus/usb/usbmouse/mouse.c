@@ -37,7 +37,7 @@
 #include <usb/debug.h>
 #include <errno.h>
 #include <str_error.h>
-#include <ipc/mouse.h>
+#include <ipc/mouseev.h>
 #include <async.h>
 #include "mouse.h"
 
@@ -85,15 +85,15 @@ bool usb_mouse_polling_callback(usb_device_t *dev, uint8_t *buffer,
 			// FIXME: guessed for QEMU
 			
 			async_exch_t *exch = async_exchange_begin(mouse->console_sess);
-			async_req_2_0(exch, MEVENT_MOVE, -shift_x / 10, -shift_y / 10);
+			async_req_2_0(exch, MOUSEEV_MOVE_EVENT, -shift_x / 10, -shift_y / 10);
 			async_exchange_end(exch);
 		}
 		if (butt) {
 			// FIXME: proper button clicking
 			
 			async_exch_t *exch = async_exchange_begin(mouse->console_sess);
-			async_req_2_0(exch, MEVENT_BUTTON, 1, 1);
-			async_req_2_0(exch, MEVENT_BUTTON, 1, 0);
+			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, 1, 1);
+			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, 1, 0);
 			async_exchange_end(exch);
 		}
 	}

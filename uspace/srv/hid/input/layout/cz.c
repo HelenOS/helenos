@@ -390,7 +390,7 @@ static int cz_create(layout_t *state)
 
 	cz_state = malloc(sizeof(layout_cz_t));
 	if (cz_state == NULL) {
-		printf(NAME ": Out of memory.\n");
+		printf("%s: Out of memory.\n", NAME);
 		return ENOMEM;
 	}
 

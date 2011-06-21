@@ -27,8 +27,8 @@
  */
 
 /** @addtogroup inputgen generic
- * @brief	Keyboard controller driver interface.
- * @ingroup  input
+ * @brief Keyboard controller driver interface.
+ * @ingroup input
  * @{
  */
 /** @file
@@ -42,9 +42,9 @@
 struct kbd_dev;
 
 typedef struct kbd_ctl_ops {
-	void (*parse_scancode)(int);
+	void (*parse)(sysarg_t);
 	int (*init)(struct kbd_dev *);
-	void (*set_ind)(struct kbd_dev *, unsigned);
+	void (*set_ind)(struct kbd_dev *, unsigned int);
 } kbd_ctl_ops_t;
 
 extern kbd_ctl_ops_t apple_ctl;
@@ -58,5 +58,4 @@ extern kbd_ctl_ops_t sun_ctl;
 
 /**
  * @}
- */ 
-
+ */

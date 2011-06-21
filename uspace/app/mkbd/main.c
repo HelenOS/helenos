@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
 
 	size_t actual_size;
 	int event_nr;
-
+	
 	while (true) {
 		/** @todo Try blocking call. */
 		rc = usbhid_dev_get_event(dev_sess, event, size, &actual_size, 

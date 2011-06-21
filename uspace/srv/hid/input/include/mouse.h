@@ -39,15 +39,26 @@
 
 #include <adt/list.h>
 
+struct mouse_port_ops;
+struct mouse_proto_ops;
+
 typedef struct mouse_dev {
 	/** Link to mouse_devs list */
 	link_t mouse_devs;
-
-	/** Path to the device */
+	
+	/** Path to the device (only for mouseev devices) */
 	const char *dev_path;
+	
+	/** Port ops */
+	struct mouse_port_ops *port_ops;
+	
+	/** Protocol ops */
+	struct mouse_proto_ops *proto_ops;
 } mouse_dev_t;
 
-int mouse_add_dev(const char *dev_path);
+extern void mouse_push_data(mouse_dev_t *, sysarg_t);
+extern void mouse_push_event_move(mouse_dev_t *, int, int);
+extern void mouse_push_event_button(mouse_dev_t *, int, int);
 
 #endif
 

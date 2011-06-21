@@ -52,12 +52,12 @@
 
 
 static int kbdev_ctl_init(kbd_dev_t *);
-static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned);
+static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 static void kbdev_callback_conn(ipc_callid_t, ipc_call_t *, void *arg);
 
 kbd_ctl_ops_t kbdev_ctl = {
-	.parse_scancode = NULL,
+	.parse = NULL,
 	.init = kbdev_ctl_init,
 	.set_ind = kbdev_ctl_set_ind
 };
@@ -115,15 +115,15 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 
 	sess = fd_session(EXCHANGE_SERIALIZE, fd);
 	if (sess == NULL) {
-		printf(NAME ": Failed starting session with '%s'\n", pathname);
+		printf("%s: Failed starting session with '%s'\n", NAME, pathname);
 		close(fd);
 		return -1;
 	}
 
 	kbdev = kbdev_new(kdev);
 	if (kbdev == NULL) {
-		printf(NAME ": Failed allocating device structure for '%s'.\n",
-		    pathname);
+		printf("%s: Failed allocating device structure for '%s'.\n",
+		    NAME, pathname);
 		return -1;
 	}
 
@@ -132,15 +132,15 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 
 	exch = async_exchange_begin(sess);
 	if (exch == NULL) {
-		printf(NAME ": Failed starting exchange with '%s'.\n", pathname);
+		printf("%s: Failed starting exchange with '%s'.\n", NAME, pathname);
 		kbdev_destroy(kbdev);
 		return -1;
 	}
 
 	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
 	if (rc != EOK) {
-		printf(NAME ": Failed creating callback connection from '%s'.\n",
-		    pathname);
+		printf("%s: Failed creating callback connection from '%s'.\n",
+		    NAME, pathname);
 		async_exchange_end(exch);
 		kbdev_destroy(kbdev);
 		return -1;
@@ -192,7 +192,7 @@ static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			retval = 0;
 			type = IPC_GET_ARG1(call);
 			key = IPC_GET_ARG2(call);
-			kbd_push_ev(kbdev->kbd_dev, type, key);
+			kbd_push_event(kbdev->kbd_dev, type, key);
 			break;
 		default:
 			retval = ENOTSUP;

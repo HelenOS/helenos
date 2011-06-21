@@ -47,7 +47,7 @@ layout_t *layout_create(layout_ops_t *ops)
 
 	layout = calloc(1, sizeof(layout_t));
 	if (layout == NULL) {
-		printf(NAME ": Out of memory.\n");
+		printf("%s: Out of memory.\n", NAME);
 		return NULL;
 	}
 

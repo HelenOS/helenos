@@ -35,13 +35,14 @@ SOURCES = \
 	generic/gsp.c \
 	generic/input.c \
 	generic/layout.c \
-	generic/mouse.c \
 	generic/stroke.c \
 	layout/cz.c \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
 	port/adb.c \
+	port/adb_mouse.c \
 	port/chardev.c \
+	port/chardev_mouse.c \
 	port/gxemul.c \
 	port/msim.c \
 	port/niagara.c \
@@ -50,6 +51,9 @@ SOURCES = \
 	port/sgcn.c \
 	port/ski.c \
 	port/z8530.c \
+	proto/adb.c \
+	proto/mousedev.c \
+	proto/ps2.c \
 	ctl/apple.c \
 	ctl/gxe_fb.c \
 	ctl/kbdev.c \

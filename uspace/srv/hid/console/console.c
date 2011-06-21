@@ -481,6 +481,7 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		default:
 			retval = ENOENT;
 		}
+
 		async_answer_0(callid, retval);
 	}
 }
@@ -746,8 +747,7 @@ static async_sess_t *connect_input(const char *dev_path)
 	}
 	
 	/* NB: The callback connection is slotted for removal */
-	rc = async_connect_to_me(exch, SERVICE_CONSOLE, 0, 0, input_events,
-	    NULL);
+	rc = async_connect_to_me(exch, 0, 0, 0, input_events, NULL);
 
 	async_exchange_end(exch);
 

@@ -48,9 +48,9 @@ static usbvirt_device_t *DEV = NULL;
 
 /** Main IPC call handling from virtual host controller.
  *
- * @param iid		Caller identification
- * @param icall		Initial incoming call
- * @param arg		Local argument
+ * @param iid   Caller identification
+ * @param icall Initial incoming call
+ * @param arg   Local argument
  */
 static void callback_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {

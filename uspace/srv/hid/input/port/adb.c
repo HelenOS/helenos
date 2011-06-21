@@ -92,7 +92,7 @@ static int adb_port_init(kbd_dev_t *kdev)
 	rc = async_connect_to_me(exch, 0, 0, 0, kbd_port_events, NULL);
 	async_exchange_end(exch);
 	if (rc != EOK) {
-		printf(NAME ": Failed to create callback from device\n");
+		printf("%s: Failed to create callback from device\n", NAME);
 		async_hangup(dev_sess);
 		return rc;
 	}
@@ -141,15 +141,14 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 static void adb_kbd_reg0_data(uint16_t data)
 {
-	uint8_t b0, b1;
-
-	b0 = (data >> 8) & 0xff;
-	b1 = data & 0xff;
-
+	uint8_t b0 = (data >> 8) & 0xff;
+	uint8_t b1 = data & 0xff;
+	
 	if (b0 != 0xff)
-		kbd_push_scancode(kbd_dev, b0);
+		kbd_push_data(kbd_dev, b0);
+	
 	if (b1 != 0xff)
-		kbd_push_scancode(kbd_dev, b1);
+		kbd_push_data(kbd_dev, b1);
 }
 
 /**
