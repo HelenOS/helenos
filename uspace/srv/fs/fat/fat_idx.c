@@ -58,15 +58,15 @@ typedef struct {
  */
 typedef struct {
 	link_t		link;
-	devmap_handle_t	devmap_handle;
+	devmap_handle_t devmap_handle;
 
 	/** Next unassigned index. */
-	fs_index_t	next;
+	fs_index_t next;
 	/** Number of remaining unassigned indices. */
-	uint64_t	remaining;
+	uint64_t remaining;
 
 	/** Sorted list of intervals of freed indices. */
-	list_t		freed_list;
+	list_t freed_list;
 } unused_t;
 
 /** Mutex protecting the list of unused structures. */
@@ -96,7 +96,7 @@ static unused_t *unused_find(devmap_handle_t devmap_handle, bool lock)
 		if (u->devmap_handle == devmap_handle) 
 			return u;
 	}
-
+	
 	if (lock)
 		fibril_mutex_unlock(&unused_lock);
 	return NULL;
