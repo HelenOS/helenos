@@ -2482,7 +2482,7 @@ int tl_initialize(int net_phone)
 	
 	tcp_globals.net_phone = net_phone;
 	
-	tcp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
+	tcp_globals.icmp_phone = icmp_connect_module();
 	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
 	    SERVICE_TCP, tcp_receiver);
 	if (tcp_globals.ip_phone < 0) {

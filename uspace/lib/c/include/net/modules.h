@@ -57,10 +57,7 @@ typedef int connect_module_t(services_t need);
 extern void answer_call(ipc_callid_t, int, ipc_call_t *, size_t);
 extern int bind_service(services_t, sysarg_t, sysarg_t, sysarg_t,
     async_client_conn_t);
-extern int bind_service_timeout(services_t, sysarg_t, sysarg_t, sysarg_t,
-    async_client_conn_t, suseconds_t);
 extern int connect_to_service(services_t);
-extern int connect_to_service_timeout(services_t, suseconds_t);
 extern int data_reply(void *, size_t);
 extern void refresh_answer(ipc_call_t *, size_t *);
 
