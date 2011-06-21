@@ -41,7 +41,7 @@
 #include <devmap.h>
 #include <io/console.h>
 #include <vfs/vfs.h>
-#include <ipc/mouse.h>
+#include <ipc/mouseev.h>
 #include <async.h>
 #include <async_obsolete.h>
 #include <unistd.h>
@@ -283,7 +283,7 @@ static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts)
 
 	button = 1;
 	press = 0;
-	async_obsolete_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
+	async_obsolete_msg_2(ts->client_phone, MOUSEEV_BUTTON_EVENT, button, press);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 }
@@ -324,8 +324,8 @@ static void s3c24xx_ts_eoc(s3c24xx_ts_t *ts)
 	press = 1;
 
 	/* Send notifications to client. */
-	async_obsolete_msg_2(ts->client_phone, MEVENT_MOVE, dx, dy);
-	async_obsolete_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
+	async_obsolete_msg_2(ts->client_phone, MOUSEEV_MOVE_EVENT, dx, dy);
+	async_obsolete_msg_2(ts->client_phone, MOUSEEV_BUTTON_EVENT, button, press);
 
 	ts->last_x = x_pos;
 	ts->last_y = y_pos;
