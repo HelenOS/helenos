@@ -360,6 +360,39 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 	return EOK;
 }
 
+/** Convert string to utf16 string.
+ *
+ * Convert string @a src to wide string. The output is written to the
+ * buffer specified by @a dest and @a dlen. @a dlen must be non-zero
+ * and the wide string written will always be null-terminated.
+ *
+ * @param dest	Destination buffer.
+ * @param dlen	Length of destination buffer (number of wchars).
+ * @param src	Source string.
+ */
+int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
+{
+	size_t offset;
+	size_t di;
+	uint16_t c;
+
+	assert(dlen > 0);
+
+	offset = 0;
+	di = 0;
+
+	do {
+		if (di >= dlen - 1)
+			return EOVERFLOW;
+
+		c = str_decode(src, &offset, STR_NO_LIMIT);
+		dest[di++] = c;
+	} while (c != '\0');
+
+	dest[dlen - 1] = '\0';
+	return EOK;
+}
+
 
 /**
  * @}
