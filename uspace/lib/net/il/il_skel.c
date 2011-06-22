@@ -40,6 +40,7 @@
 #include <il_skel.h>
 #include <net_interface.h>
 #include <net/modules.h>
+#include <async_obsolete.h>
 
 // FIXME: remove this header
 #include <kernel/ipc/ipc_methods.h>
@@ -117,7 +118,7 @@ int il_module_start(int service)
 	if (rc != EOK)
 		goto out;
 	
-	rc = async_connect_to_me(PHONE_NS, service, 0, 0, NULL, NULL);
+	rc = async_obsolete_connect_to_me(PHONE_NS, service, 0, 0, NULL, NULL);
 	if (rc != EOK)
 		goto out;
 	
