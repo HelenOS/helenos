@@ -31,10 +31,10 @@
  */
 
 /**
- * @file devfs.c
- * @brief Devices file system.
+ * @file locfs.c
+ * @brief Location-service file system.
  *
- * Every device registered to device mapper is represented as a file in this
+ * Every service registered with location service is represented as a file in this
  * file system.
  */
 
@@ -45,20 +45,20 @@
 #include <errno.h>
 #include <task.h>
 #include <libfs.h>
-#include "devfs.h"
-#include "devfs_ops.h"
+#include "locfs.h"
+#include "locfs_ops.h"
 
-#define NAME  "devfs"
+#define NAME  "locfs"
 
-static vfs_info_t devfs_vfs_info = {
+static vfs_info_t locfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
 	.write_retains_size = false,
 };
 
-fs_reg_t devfs_reg;
+fs_reg_t locfs_reg;
 
-static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void locfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid)
 		async_answer_0(iid, EOK);
@@ -72,43 +72,43 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_MOUNTED:
-			devfs_mounted(callid, &call);
+			locfs_mounted(callid, &call);
 			break;
 		case VFS_OUT_MOUNT:
-			devfs_mount(callid, &call);
+			locfs_mount(callid, &call);
 			break;
 		case VFS_OUT_UNMOUNTED:
-			devfs_unmounted(callid, &call);
+			locfs_unmounted(callid, &call);
 			break;
 		case VFS_OUT_UNMOUNT:
-			devfs_unmount(callid, &call);
+			locfs_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
-			devfs_lookup(callid, &call);
+			locfs_lookup(callid, &call);
 			break;
 		case VFS_OUT_OPEN_NODE:
-			devfs_open_node(callid, &call);
+			locfs_open_node(callid, &call);
 			break;
 		case VFS_OUT_STAT:
-			devfs_stat(callid, &call);
+			locfs_stat(callid, &call);
 			break;
 		case VFS_OUT_READ:
-			devfs_read(callid, &call);
+			locfs_read(callid, &call);
 			break;
 		case VFS_OUT_WRITE:
-			devfs_write(callid, &call);
+			locfs_write(callid, &call);
 			break;
 		case VFS_OUT_TRUNCATE:
-			devfs_truncate(callid, &call);
+			locfs_truncate(callid, &call);
 			break;
 		case VFS_OUT_CLOSE:
-			devfs_close(callid, &call);
+			locfs_close(callid, &call);
 			break;
 		case VFS_OUT_SYNC:
-			devfs_sync(callid, &call);
+			locfs_sync(callid, &call);
 			break;
 		case VFS_OUT_DESTROY:
-			devfs_destroy(callid, &call);
+			locfs_destroy(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
@@ -121,8 +121,8 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Device Filesystem\n", NAME);
 	
-	if (!devfs_init()) {
-		printf("%s: failed to initialize devfs\n", NAME);
+	if (!locfs_init()) {
+		printf("%s: failed to initialize locfs\n", NAME);
 		return -1;
 	}
 	
@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	int rc = fs_register(vfs_sess, &devfs_reg, &devfs_vfs_info,
-	    devfs_connection);
+	int rc = fs_register(vfs_sess, &locfs_reg, &locfs_vfs_info,
+	    locfs_connection);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system (%d)\n", NAME, rc);
 		return rc;

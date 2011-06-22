@@ -42,7 +42,7 @@
 #include <bool.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sysinfo.h>
 #include <errno.h>
 #include <ipc/adb.h>
@@ -146,7 +146,7 @@ static adb_dev_t adb_dev[ADB_MAX_ADDR];
 
 int main(int argc, char *argv[])
 {
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 	int rc;
 	int i;
 
@@ -154,31 +154,31 @@ int main(int argc, char *argv[])
 
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
 		adb_dev[i].client_phone = -1;
-		adb_dev[i].devmap_handle = 0;
+		adb_dev[i].service_id = 0;
 	}
 
-	rc = devmap_driver_register(NAME, cuda_connection);
+	rc = loc_server_register(NAME, cuda_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return rc;
 	}
 
-	rc = devmap_device_register("adb/kbd", &devmap_handle);
+	rc = loc_service_register("adb/kbd", &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register device %s.\n", "adb/kdb");
+		printf(NAME ": Unable to register service %s.\n", "adb/kdb");
 		return rc;
 	}
 
-	adb_dev[2].devmap_handle = devmap_handle;
-	adb_dev[8].devmap_handle = devmap_handle;
+	adb_dev[2].service_id = service_id;
+	adb_dev[8].service_id = service_id;
 
-	rc = devmap_device_register("adb/mouse", &devmap_handle);
+	rc = loc_service_register("adb/mouse", &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register device %s.\n", "adb/mouse");
+		printf(NAME ": Unable to register servise %s.\n", "adb/mouse");
 		return rc;
 	}
 
-	adb_dev[9].devmap_handle = devmap_handle;
+	adb_dev[9].service_id = service_id;
 
 	if (cuda_init() < 0) {
 		printf("cuda_init() failed\n");
@@ -197,17 +197,17 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dsid;
 	int retval;
 	int dev_addr, i;
 
 	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	dsid = IPC_GET_ARG1(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	dev_addr = -1;
 	for (i = 0; i < ADB_MAX_ADDR; i++) {
-		if (adb_dev[i].devmap_handle == dh)
+		if (adb_dev[i].service_id == dsid)
 			dev_addr = i;
 	}
 
@@ -241,7 +241,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			 * regardless of which address the device is on.
 			 */
 			for (i = 0; i < ADB_MAX_ADDR; ++i) {
-				if (adb_dev[i].devmap_handle == dh) {
+				if (adb_dev[i].service_id == dsid) {
 					adb_dev[i].client_phone = IPC_GET_ARG5(call);
 				}
 			}

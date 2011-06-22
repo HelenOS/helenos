@@ -523,7 +523,7 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	assert(hid_dev->usb_dev != NULL);
 	assert(kbd_dev != NULL);
 	
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    HID_KBD_FUN_NAME);

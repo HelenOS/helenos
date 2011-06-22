@@ -31,8 +31,8 @@
  */
 
 /**
- * @file devfs_ops.c
- * @brief Implementation of VFS operations for the devfs file system server.
+ * @file locfs_ops.c
+ * @brief Implementation of VFS operations for the locfs file system server.
  */
 
 #include <macros.h>
@@ -43,64 +43,64 @@
 #include <libfs.h>
 #include <fibril_synch.h>
 #include <adt/hash_table.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <sys/stat.h>
 #include <libfs.h>
 #include <assert.h>
-#include "devfs.h"
-#include "devfs_ops.h"
+#include "locfs.h"
+#include "locfs_ops.h"
 
 typedef struct {
-	devmap_handle_type_t type;
-	devmap_handle_t handle;
-} devfs_node_t;
+	loc_object_type_t type;
+	service_id_t service_id;
+} locfs_node_t;
 
-/** Opened devices structure */
+/** Opened services structure */
 typedef struct {
-	devmap_handle_t handle;
+	service_id_t service_id;
 	async_sess_t *sess;       /**< If NULL, the structure is incomplete. */
 	size_t refcount;
 	link_t link;
 	fibril_condvar_t cv;      /**< Broadcast when completed. */
-} device_t;
+} service_t;
 
-/** Hash table of opened devices */
-static hash_table_t devices;
+/** Hash table of opened services */
+static hash_table_t services;
 
 /** Hash table mutex */
-static FIBRIL_MUTEX_INITIALIZE(devices_mutex);
+static FIBRIL_MUTEX_INITIALIZE(services_mutex);
 
-#define DEVICES_KEYS        1
-#define DEVICES_KEY_HANDLE  0
-#define DEVICES_BUCKETS     256
+#define SERVICES_KEYS        1
+#define SERVICES_KEY_HANDLE  0
+#define SERVICES_BUCKETS     256
 
 /* Implementation of hash table interface for the nodes hash table. */
-static hash_index_t devices_hash(unsigned long key[])
+static hash_index_t services_hash(unsigned long key[])
 {
-	return key[DEVICES_KEY_HANDLE] % DEVICES_BUCKETS;
+	return key[SERVICES_KEY_HANDLE] % SERVICES_BUCKETS;
 }
 
-static int devices_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static int services_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	device_t *dev = hash_table_get_instance(item, device_t, link);
-	return (dev->handle == (devmap_handle_t) key[DEVICES_KEY_HANDLE]);
+	service_t *dev = hash_table_get_instance(item, service_t, link);
+	return (dev->service_id == (service_id_t) key[SERVICES_KEY_HANDLE]);
 }
 
-static void devices_remove_callback(link_t *item)
+static void services_remove_callback(link_t *item)
 {
-	free(hash_table_get_instance(item, device_t, link));
+	free(hash_table_get_instance(item, service_t, link));
 }
 
-static hash_table_operations_t devices_ops = {
-	.hash = devices_hash,
-	.compare = devices_compare,
-	.remove_callback = devices_remove_callback
+static hash_table_operations_t services_ops = {
+	.hash = services_hash,
+	.compare = services_compare,
+	.remove_callback = services_remove_callback
 };
 
-static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
-    devmap_handle_t handle)
+static int locfs_node_get_internal(fs_node_t **rfn, loc_object_type_t type,
+    service_id_t service_id)
 {
-	devfs_node_t *node = (devfs_node_t *) malloc(sizeof(devfs_node_t));
+	locfs_node_t *node = (locfs_node_t *) malloc(sizeof(locfs_node_t));
 	if (node == NULL) {
 		*rfn = NULL;
 		return ENOMEM;
@@ -115,61 +115,62 @@ static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
 	
 	fs_node_initialize(*rfn);
 	node->type = type;
-	node->handle = handle;
+	node->service_id = service_id;
 	
 	(*rfn)->data = node;
 	return EOK;
 }
 
-static int devfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+static int locfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	return devfs_node_get_internal(rfn, DEV_HANDLE_NONE, 0);
+	return locfs_node_get_internal(rfn, LOC_OBJECT_NONE, 0);
 }
 
-static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+static int locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
-	devfs_node_t *node = (devfs_node_t *) pfn->data;
+	locfs_node_t *node = (locfs_node_t *) pfn->data;
 	int ret;
 	
-	if (node->handle == 0) {
+	if (node->service_id == 0) {
 		/* Root directory */
 		
-		dev_desc_t *devs;
-		size_t count = devmap_get_namespaces(&devs);
+		loc_sdesc_t *nspaces;
+		size_t count = loc_get_namespaces(&nspaces);
 		
 		if (count > 0) {
 			size_t pos;
 			for (pos = 0; pos < count; pos++) {
 				/* Ignore root namespace */
-				if (str_cmp(devs[pos].name, "") == 0)
+				if (str_cmp(nspaces[pos].name, "") == 0)
 					continue;
 				
-				if (str_cmp(devs[pos].name, component) == 0) {
-					ret = devfs_node_get_internal(rfn, DEV_HANDLE_NAMESPACE, devs[pos].handle);
-					free(devs);
+				if (str_cmp(nspaces[pos].name, component) == 0) {
+					ret = locfs_node_get_internal(rfn, LOC_OBJECT_NAMESPACE, nspaces[pos].id);
+					free(nspaces);
 					return ret;
 				}
 			}
 			
-			free(devs);
+			free(nspaces);
 		}
 		
 		/* Search root namespace */
-		devmap_handle_t namespace;
-		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
-			count = devmap_get_devices(namespace, &devs);
+		service_id_t namespace;
+		loc_sdesc_t *svcs;
+		if (loc_namespace_get_id("", &namespace, 0) == EOK) {
+			count = loc_get_services(namespace, &svcs);
 			
 			if (count > 0) {
 				size_t pos;
 				for (pos = 0; pos < count; pos++) {
-					if (str_cmp(devs[pos].name, component) == 0) {
-						ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
-						free(devs);
+					if (str_cmp(svcs[pos].name, component) == 0) {
+						ret = locfs_node_get_internal(rfn, LOC_OBJECT_SERVICE, svcs[pos].id);
+						free(svcs);
 						return ret;
 					}
 				}
 				
-				free(devs);
+				free(svcs);
 			}
 		}
 		
@@ -177,22 +178,22 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return EOK;
 	}
 	
-	if (node->type == DEV_HANDLE_NAMESPACE) {
+	if (node->type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		
-		dev_desc_t *devs;
-		size_t count = devmap_get_devices(node->handle, &devs);
+		loc_sdesc_t *svcs;
+		size_t count = loc_get_services(node->service_id, &svcs);
 		if (count > 0) {
 			size_t pos;
 			for (pos = 0; pos < count; pos++) {
-				if (str_cmp(devs[pos].name, component) == 0) {
-					ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
-					free(devs);
+				if (str_cmp(svcs[pos].name, component) == 0) {
+					ret = locfs_node_get_internal(rfn, LOC_OBJECT_SERVICE, svcs[pos].id);
+					free(svcs);
 					return ret;
 				}
 			}
 			
-			free(devs);
+			free(svcs);
 		}
 		
 		*rfn = NULL;
@@ -203,46 +204,46 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-static int devfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
+static int locfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
-	return devfs_node_get_internal(rfn, devmap_handle_probe(index), index);
+	return locfs_node_get_internal(rfn, loc_id_probe(index), index);
 }
 
-static int devfs_node_open(fs_node_t *fn)
+static int locfs_node_open(fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
-	if (node->handle == 0) {
+	if (node->service_id == 0) {
 		/* Root directory */
 		return EOK;
 	}
 	
-	devmap_handle_type_t type = devmap_handle_probe(node->handle);
+	loc_object_type_t type = loc_id_probe(node->service_id);
 	
-	if (type == DEV_HANDLE_NAMESPACE) {
+	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		return EOK;
 	}
 	
-	if (type == DEV_HANDLE_DEVICE) {
+	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
 		
 		unsigned long key[] = {
-			[DEVICES_KEY_HANDLE] = (unsigned long) node->handle
+			[SERVICES_KEY_HANDLE] = (unsigned long) node->service_id
 		};
 		link_t *lnk;
 		
-		fibril_mutex_lock(&devices_mutex);
+		fibril_mutex_lock(&services_mutex);
 restart:
-		lnk = hash_table_find(&devices, key);
+		lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
-			device_t *dev = (device_t *) malloc(sizeof(device_t));
+			service_t *dev = (service_t *) malloc(sizeof(service_t));
 			if (dev == NULL) {
-				fibril_mutex_unlock(&devices_mutex);
+				fibril_mutex_unlock(&services_mutex);
 				return ENOMEM;
 			}
 			
-			dev->handle = node->handle;
+			dev->service_id = node->service_id;
 			
 			/* Mark as incomplete */
 			dev->sess = NULL;
@@ -254,17 +255,17 @@ restart:
 			 * fibrils will not race with us when we drop the mutex
 			 * below.
 			 */
-			hash_table_insert(&devices, key, &dev->link);
+			hash_table_insert(&services, key, &dev->link);
 			
 			/*
-			 * Drop the mutex to allow recursive devfs requests.
+			 * Drop the mutex to allow recursive locfs requests.
 			 */
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			
-			async_sess_t *sess = devmap_device_connect(EXCHANGE_SERIALIZE,
-			    node->handle, 0);
+			async_sess_t *sess = loc_service_connect(
+			    EXCHANGE_SERIALIZE, node->service_id, 0);
 			
-			fibril_mutex_lock(&devices_mutex);
+			fibril_mutex_lock(&services_mutex);
 			
 			/*
 			 * Notify possible waiters about this device structure
@@ -277,8 +278,8 @@ restart:
 				 * Connecting failed, need to remove the
 				 * entry and free the device structure.
 				 */
-				hash_table_remove(&devices, key, DEVICES_KEYS);
-				fibril_mutex_unlock(&devices_mutex);
+				hash_table_remove(&services, key, SERVICES_KEYS);
+				fibril_mutex_unlock(&services_mutex);
 				
 				return ENOENT;
 			}
@@ -286,7 +287,7 @@ restart:
 			/* Set the correct session. */
 			dev->sess = sess;
 		} else {
-			device_t *dev = hash_table_get_instance(lnk, device_t, link);
+			service_t *dev = hash_table_get_instance(lnk, service_t, link);
 			
 			if (!dev->sess) {
 				/*
@@ -296,14 +297,14 @@ restart:
 				 * while we were not holding the mutex in
 				 * fibril_condvar_wait().
 				 */
-				fibril_condvar_wait(&dev->cv, &devices_mutex);
+				fibril_condvar_wait(&dev->cv, &services_mutex);
 				goto restart;
 			}
 
 			dev->refcount++;
 		}
 		
-		fibril_mutex_unlock(&devices_mutex);
+		fibril_mutex_unlock(&services_mutex);
 		
 		return EOK;
 	}
@@ -311,14 +312,14 @@ restart:
 	return ENOENT;
 }
 
-static int devfs_node_put(fs_node_t *fn)
+static int locfs_node_put(fs_node_t *fn)
 {
 	free(fn->data);
 	free(fn);
 	return EOK;
 }
 
-static int devfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
+static int locfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 	
@@ -326,36 +327,36 @@ static int devfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int
 	return ENOTSUP;
 }
 
-static int devfs_destroy_node(fs_node_t *fn)
+static int locfs_destroy_node(fs_node_t *fn)
 {
 	return ENOTSUP;
 }
 
-static int devfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+static int locfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	return ENOTSUP;
 }
 
-static int devfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+static int locfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	return ENOTSUP;
 }
 
-static int devfs_has_children(bool *has_children, fs_node_t *fn)
+static int locfs_has_children(bool *has_children, fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
-	if (node->handle == 0) {
-		size_t count = devmap_count_namespaces();
+	if (node->service_id == 0) {
+		size_t count = loc_count_namespaces();
 		if (count > 0) {
 			*has_children = true;
 			return EOK;
 		}
 		
 		/* Root namespace */
-		devmap_handle_t namespace;
-		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
-			count = devmap_count_devices(namespace);
+		service_id_t namespace;
+		if (loc_namespace_get_id("", &namespace, 0) == EOK) {
+			count = loc_count_services(namespace);
 			if (count > 0) {
 				*has_children = true;
 				return EOK;
@@ -366,8 +367,8 @@ static int devfs_has_children(bool *has_children, fs_node_t *fn)
 		return EOK;
 	}
 	
-	if (node->type == DEV_HANDLE_NAMESPACE) {
-		size_t count = devmap_count_devices(node->handle);
+	if (node->type == LOC_OBJECT_NAMESPACE) {
+		size_t count = loc_count_services(node->service_id);
 		if (count > 0) {
 			*has_children = true;
 			return EOK;
@@ -381,87 +382,87 @@ static int devfs_has_children(bool *has_children, fs_node_t *fn)
 	return EOK;
 }
 
-static fs_index_t devfs_index_get(fs_node_t *fn)
+static fs_index_t locfs_index_get(fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
-	return node->handle;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
+	return node->service_id;
 }
 
-static aoff64_t devfs_size_get(fs_node_t *fn)
+static aoff64_t locfs_size_get(fs_node_t *fn)
 {
 	return 0;
 }
 
-static unsigned int devfs_lnkcnt_get(fs_node_t *fn)
+static unsigned int locfs_lnkcnt_get(fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
-	if (node->handle == 0)
+	if (node->service_id == 0)
 		return 0;
 	
 	return 1;
 }
 
-static char devfs_plb_get_char(unsigned pos)
+static char locfs_plb_get_char(unsigned pos)
 {
-	return devfs_reg.plb_ro[pos % PLB_SIZE];
+	return locfs_reg.plb_ro[pos % PLB_SIZE];
 }
 
-static bool devfs_is_directory(fs_node_t *fn)
+static bool locfs_is_directory(fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
-	return ((node->type == DEV_HANDLE_NONE) || (node->type == DEV_HANDLE_NAMESPACE));
+	return ((node->type == LOC_OBJECT_NONE) || (node->type == LOC_OBJECT_NAMESPACE));
 }
 
-static bool devfs_is_file(fs_node_t *fn)
+static bool locfs_is_file(fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
-	return (node->type == DEV_HANDLE_DEVICE);
+	return (node->type == LOC_OBJECT_SERVICE);
 }
 
-static devmap_handle_t devfs_device_get(fs_node_t *fn)
+static service_id_t locfs_device_get(fs_node_t *fn)
 {
-	devfs_node_t *node = (devfs_node_t *) fn->data;
+	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
-	if (node->type == DEV_HANDLE_DEVICE)
-		return node->handle;
+	if (node->type == LOC_OBJECT_SERVICE)
+		return node->service_id;
 	
 	return 0;
 }
 
 /** libfs operations */
-libfs_ops_t devfs_libfs_ops = {
-	.root_get = devfs_root_get,
-	.match = devfs_match,
-	.node_get = devfs_node_get,
-	.node_open = devfs_node_open,
-	.node_put = devfs_node_put,
-	.create = devfs_create_node,
-	.destroy = devfs_destroy_node,
-	.link = devfs_link_node,
-	.unlink = devfs_unlink_node,
-	.has_children = devfs_has_children,
-	.index_get = devfs_index_get,
-	.size_get = devfs_size_get,
-	.lnkcnt_get = devfs_lnkcnt_get,
-	.plb_get_char = devfs_plb_get_char,
-	.is_directory = devfs_is_directory,
-	.is_file = devfs_is_file,
-	.device_get = devfs_device_get
+libfs_ops_t locfs_libfs_ops = {
+	.root_get = locfs_root_get,
+	.match = locfs_match,
+	.node_get = locfs_node_get,
+	.node_open = locfs_node_open,
+	.node_put = locfs_node_put,
+	.create = locfs_create_node,
+	.destroy = locfs_destroy_node,
+	.link = locfs_link_node,
+	.unlink = locfs_unlink_node,
+	.has_children = locfs_has_children,
+	.index_get = locfs_index_get,
+	.size_get = locfs_size_get,
+	.lnkcnt_get = locfs_lnkcnt_get,
+	.plb_get_char = locfs_plb_get_char,
+	.is_directory = locfs_is_directory,
+	.is_file = locfs_is_file,
+	.device_get = locfs_device_get
 };
 
-bool devfs_init(void)
+bool locfs_init(void)
 {
-	if (!hash_table_create(&devices, DEVICES_BUCKETS,
-	    DEVICES_KEYS, &devices_ops))
+	if (!hash_table_create(&services, SERVICES_BUCKETS,
+	    SERVICES_KEYS, &services_ops))
 		return false;
 	
 	return true;
 }
 
-void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
+void locfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *opts;
 	
@@ -477,37 +478,37 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_3(rid, EOK, 0, 0, 0);
 }
 
-void devfs_mount(ipc_callid_t rid, ipc_call_t *request)
+void locfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_mount(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
+	libfs_mount(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
 }
 
-void devfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+void locfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	async_answer_0(rid, ENOTSUP);
 }
 
-void devfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+void locfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_unmount(&devfs_libfs_ops, rid, request);
+	libfs_unmount(&locfs_libfs_ops, rid, request);
 }
 
-void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
+void locfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_lookup(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
+	libfs_lookup(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
 }
 
-void devfs_open_node(ipc_callid_t rid, ipc_call_t *request)
+void locfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_open_node(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
+	libfs_open_node(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
 }
 
-void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
+void locfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_stat(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
+	libfs_stat(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
 }
 
-void devfs_read(ipc_callid_t rid, ipc_call_t *request)
+void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	aoff64_t pos =
@@ -522,8 +523,8 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 			return;
 		}
 		
-		dev_desc_t *desc;
-		size_t count = devmap_get_namespaces(&desc);
+		loc_sdesc_t *desc;
+		size_t count = loc_get_namespaces(&desc);
 		
 		/* Get rid of root namespace */
 		size_t i;
@@ -547,9 +548,9 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		pos -= count;
 		
 		/* Search root namespace */
-		devmap_handle_t namespace;
-		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
-			count = devmap_get_devices(namespace, &desc);
+		service_id_t namespace;
+		if (loc_namespace_get_id("", &namespace, 0) == EOK) {
+			count = loc_get_services(namespace, &desc);
 			
 			if (pos < count) {
 				async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
@@ -566,9 +567,9 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	devmap_handle_type_t type = devmap_handle_probe(index);
+	loc_object_type_t type = loc_id_probe(index);
 	
-	if (type == DEV_HANDLE_NAMESPACE) {
+	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		ipc_callid_t callid;
 		size_t size;
@@ -578,8 +579,8 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 			return;
 		}
 		
-		dev_desc_t *desc;
-		size_t count = devmap_get_devices(index, &desc);
+		loc_sdesc_t *desc;
+		size_t count = loc_get_services(index, &desc);
 		
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
@@ -594,27 +595,27 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	if (type == DEV_HANDLE_DEVICE) {
+	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
 		
 		unsigned long key[] = {
-			[DEVICES_KEY_HANDLE] = (unsigned long) index
+			[SERVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
-		fibril_mutex_lock(&devices_mutex);
-		link_t *lnk = hash_table_find(&devices, key);
+		fibril_mutex_lock(&services_mutex);
+		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
-		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		service_t *dev = hash_table_get_instance(lnk, service_t, link);
 		assert(dev->sess);
 		
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, NULL)) {
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
 			async_answer_0(rid, EINVAL);
 			return;
@@ -633,7 +634,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		
 		async_exchange_end(exch);
 		
-		fibril_mutex_unlock(&devices_mutex);
+		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
@@ -648,7 +649,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ENOENT);
 }
 
-void devfs_write(ipc_callid_t rid, ipc_call_t *request)
+void locfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	if (index == 0) {
@@ -656,34 +657,34 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	devmap_handle_type_t type = devmap_handle_probe(index);
+	loc_object_type_t type = loc_id_probe(index);
 	
-	if (type == DEV_HANDLE_NAMESPACE) {
+	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 	
-	if (type == DEV_HANDLE_DEVICE) {
+	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
 		unsigned long key[] = {
-			[DEVICES_KEY_HANDLE] = (unsigned long) index
+			[SERVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
-		fibril_mutex_lock(&devices_mutex);
-		link_t *lnk = hash_table_find(&devices, key);
+		fibril_mutex_lock(&services_mutex);
+		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
-		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		service_t *dev = hash_table_get_instance(lnk, service_t, link);
 		assert(dev->sess);
 		
 		ipc_callid_t callid;
 		if (!async_data_write_receive(&callid, NULL)) {
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
 			async_answer_0(rid, EINVAL);
 			return;
@@ -702,7 +703,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		
 		async_exchange_end(exch);
 		
-		fibril_mutex_unlock(&devices_mutex);
+		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
@@ -717,12 +718,12 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ENOENT);
 }
 
-void devfs_truncate(ipc_callid_t rid, ipc_call_t *request)
+void locfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
 	async_answer_0(rid, ENOTSUP);
 }
 
-void devfs_close(ipc_callid_t rid, ipc_call_t *request)
+void locfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
@@ -731,37 +732,37 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	devmap_handle_type_t type = devmap_handle_probe(index);
+	loc_object_type_t type = loc_id_probe(index);
 	
-	if (type == DEV_HANDLE_NAMESPACE) {
+	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		async_answer_0(rid, EOK);
 		return;
 	}
 	
-	if (type == DEV_HANDLE_DEVICE) {
+	if (type == LOC_OBJECT_SERVICE) {
 		unsigned long key[] = {
-			[DEVICES_KEY_HANDLE] = (unsigned long) index
+			[SERVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
-		fibril_mutex_lock(&devices_mutex);
-		link_t *lnk = hash_table_find(&devices, key);
+		fibril_mutex_lock(&services_mutex);
+		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
-		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		service_t *dev = hash_table_get_instance(lnk, service_t, link);
 		assert(dev->sess);
 		dev->refcount--;
 		
 		if (dev->refcount == 0) {
 			async_hangup(dev->sess);
-			hash_table_remove(&devices, key, DEVICES_KEYS);
+			hash_table_remove(&services, key, SERVICES_KEYS);
 		}
 		
-		fibril_mutex_unlock(&devices_mutex);
+		fibril_mutex_unlock(&services_mutex);
 		
 		async_answer_0(rid, EOK);
 		return;
@@ -770,7 +771,7 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ENOENT);
 }
 
-void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
+void locfs_sync(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
@@ -779,28 +780,28 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	devmap_handle_type_t type = devmap_handle_probe(index);
+	loc_object_type_t type = loc_id_probe(index);
 	
-	if (type == DEV_HANDLE_NAMESPACE) {
+	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		async_answer_0(rid, EOK);
 		return;
 	}
 	
-	if (type == DEV_HANDLE_DEVICE) {
+	if (type == LOC_OBJECT_SERVICE) {
 		unsigned long key[] = {
-			[DEVICES_KEY_HANDLE] = (unsigned long) index
+			[SERVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
-		fibril_mutex_lock(&devices_mutex);
-		link_t *lnk = hash_table_find(&devices, key);
+		fibril_mutex_lock(&services_mutex);
+		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
-			fibril_mutex_unlock(&devices_mutex);
+			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
-		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		service_t *dev = hash_table_get_instance(lnk, service_t, link);
 		assert(dev->sess);
 		
 		/* Make a request at the driver */
@@ -812,7 +813,7 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		
 		async_exchange_end(exch);
 		
-		fibril_mutex_unlock(&devices_mutex);
+		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver */
 		sysarg_t rc;
@@ -826,7 +827,7 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ENOENT);
 }
 
-void devfs_destroy(ipc_callid_t rid, ipc_call_t *request)
+void locfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
 	async_answer_0(rid, ENOTSUP);
 }

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2007 Josef Cejka
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +27,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup loc
  * @{
  */
-/** @file
+
+#ifndef LIBC_IPC_LOC_H_
+#define LIBC_IPC_LOC_H_
+
+#include <ipc/common.h>
+
+#define LOC_NAME_MAXLEN  255
+
+typedef sysarg_t service_id_t;
+
+typedef enum {
+	LOC_OBJECT_NONE,
+	LOC_OBJECT_NAMESPACE,
+	LOC_OBJECT_SERVICE
+} loc_object_type_t;
+
+typedef enum {
+	LOC_SERVER_REGISTER = IPC_FIRST_USER_METHOD,
+	LOC_SERVER_UNREGISTER,
+	LOC_SERVICE_REGISTER,
+	LOC_SERVICE_UNREGISTER,
+	LOC_SERVICE_GET_ID,
+	LOC_NAMESPACE_GET_ID,
+	LOC_ID_PROBE,
+	LOC_NULL_CREATE,
+	LOC_NULL_DESTROY,
+	LOC_GET_NAMESPACE_COUNT,
+	LOC_GET_SERVICE_COUNT,
+	LOC_GET_NAMESPACES,
+	LOC_GET_SERVICES
+} loc_request_t;
+
+/** Ports provided by location service.
+ *
+ * Every process that connects to loc must ask one of following
+ * ports, otherwise connection will be refused.
+ *
  */
+typedef enum {
+	/** Service supplier (server) port */
+	LOC_PORT_SUPPLIER = 1,
+	/** Service consumer (client) port */
+	LOC_PORT_CONSUMER,
+	/** Create new connection to instance of device that
+	    is specified by second argument of call. */
+	LOC_CONNECT_TO_SERVICE
+} loc_interface_t;
 
-#ifndef LIBC_DEVMAP_H_
-#define LIBC_DEVMAP_H_
-
-#include <ipc/devmap.h>
-#include <async.h>
-#include <bool.h>
-
-extern async_exch_t *devmap_exchange_begin_blocking(devmap_interface_t);
-extern async_exch_t *devmap_exchange_begin(devmap_interface_t);
-extern void devmap_exchange_end(async_exch_t *);
-
-extern int devmap_driver_register(const char *, async_client_conn_t);
-extern int devmap_device_register(const char *, devmap_handle_t *);
-extern int devmap_device_register_with_iface(const char *, devmap_handle_t *,
-    sysarg_t);
-
-extern int devmap_device_get_handle(const char *, devmap_handle_t *,
-    unsigned int);
-extern int devmap_namespace_get_handle(const char *, devmap_handle_t *,
-    unsigned int);
-extern devmap_handle_type_t devmap_handle_probe(devmap_handle_t);
-
-extern async_sess_t *devmap_device_connect(exch_mgmt_t, devmap_handle_t,
-    unsigned int);
-
-extern int devmap_null_create(void);
-extern void devmap_null_destroy(int);
-
-extern size_t devmap_count_namespaces(void);
-extern size_t devmap_count_devices(devmap_handle_t);
-
-extern size_t devmap_get_namespaces(dev_desc_t **);
-extern size_t devmap_get_devices(devmap_handle_t, dev_desc_t **);
+typedef struct {
+	service_id_t id;
+	char name[LOC_NAME_MAXLEN + 1];
+} loc_sdesc_t;
 
 #endif
-
-/** @}
- */

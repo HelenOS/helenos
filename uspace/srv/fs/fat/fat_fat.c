@@ -70,7 +70,7 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
 /** Walk the cluster chain.
  *
  * @param bs		Buffer holding the boot sector for the file.
- * @param devmap_handle	Device handle of the device with the file.
+ * @param service_id	Service ID of the device with the file.
  * @param firstc	First cluster to start the walk with.
  * @param lastc		If non-NULL, output argument hodling the last cluster
  *			number visited.
@@ -81,7 +81,7 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
  * @return		EOK on success or a negative error code.
  */
 int 
-fat_cluster_walk(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t firstc,
+fat_cluster_walk(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc,
     fat_cluster_t *lastc, uint16_t *numc, uint16_t max_clusters)
 {
 	block_t *b;
@@ -108,7 +108,7 @@ fat_cluster_walk(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t firs
 		fsec = (clst * sizeof(fat_cluster_t)) / BPS(bs);
 		fidx = clst % (BPS(bs) / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		rc = block_get(&b, devmap_handle, RSCNT(bs) + fsec,
+		rc = block_get(&b, service_id, RSCNT(bs) + fsec,
 		    BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
@@ -159,7 +159,7 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
 		 * This is a request to read a block within the last cluster
 		 * when fortunately we have the last cluster number cached.
 		 */
-		return block_get(block, nodep->idx->devmap_handle,
+		return block_get(block, nodep->idx->service_id,
 		    CLBN2PBN(bs, nodep->lastc_cached_value, bn), flags);
 	}
 
@@ -173,7 +173,7 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
 	}
 
 fall_through:
-	rc = _fat_block_get(block, bs, nodep->idx->devmap_handle, firstc,
+	rc = _fat_block_get(block, bs, nodep->idx->service_id, firstc,
 	    &currc, relbn, flags);
 	if (rc != EOK)
 		return rc;
@@ -192,7 +192,7 @@ fall_through:
  *
  * @param block		Pointer to a block pointer for storing result.
  * @param bs		Buffer holding the boot sector of the file system.
- * @param devmap_handle	Device handle of the file system.
+ * @param service_id	Service ID handle of the file system.
  * @param fcl		First cluster used by the file. Can be zero if the file
  *			is empty.
  * @param clp		If not NULL, address where the cluster containing bn
@@ -204,7 +204,7 @@ fall_through:
  * @return		EOK on success or a negative error code.
  */
 int
-_fat_block_get(block_t **block, fat_bs_t *bs, devmap_handle_t devmap_handle,
+_fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
     fat_cluster_t fcl, fat_cluster_t *clp, aoff64_t bn, int flags)
 {
 	uint16_t clusters;
@@ -221,18 +221,18 @@ _fat_block_get(block_t **block, fat_bs_t *bs, devmap_handle_t devmap_handle,
 	if (fcl == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(bn < RDS(bs));
-		rc = block_get(block, devmap_handle,
+		rc = block_get(block, service_id,
 		    RSCNT(bs) + FATCNT(bs) * SF(bs) + bn, flags);
 		return rc;
 	}
 
 	max_clusters = bn / SPC(bs);
-	rc = fat_cluster_walk(bs, devmap_handle, fcl, &c, &clusters, max_clusters);
+	rc = fat_cluster_walk(bs, service_id, fcl, &c, &clusters, max_clusters);
 	if (rc != EOK)
 		return rc;
 	assert(clusters == max_clusters);
 
-	rc = block_get(block, devmap_handle, CLBN2PBN(bs, c, bn), flags);
+	rc = block_get(block, service_id, CLBN2PBN(bs, c, bn), flags);
 
 	if (clp)
 		*clp = c;
@@ -280,7 +280,7 @@ int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t po
 	
 	/* zero out the initial part of the new cluster chain */
 	for (o = boundary; o < pos; o += BPS(bs)) {
-		rc = _fat_block_get(&b, bs, nodep->idx->devmap_handle, mcl,
+		rc = _fat_block_get(&b, bs, nodep->idx->service_id, mcl,
 		    NULL, (o - boundary) / BPS(bs), BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
@@ -297,21 +297,21 @@ int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t po
 /** Get cluster from the first FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
- * @param devmap_handle	Device handle for the file system.
+ * @param service_id	Service ID for the file system.
  * @param clst		Cluster which to get.
  * @param value		Output argument holding the value of the cluster.
  *
  * @return		EOK or a negative error code.
  */
 int
-fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
+fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b;
 	fat_cluster_t *cp;
 	int rc;
 
-	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
+	rc = block_get(&b, service_id, RSCNT(bs) + SF(bs) * fatno +
 	    (clst * sizeof(fat_cluster_t)) / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
@@ -326,7 +326,7 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 /** Set cluster in one instance of FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
- * @param devmap_handle	Device handle for the file system.
+ * @param service_id	Device service ID for the file system.
  * @param fatno		Number of the FAT instance where to make the change.
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
@@ -334,7 +334,7 @@ fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
  * @return		EOK on success or a negative error code.
  */
 int
-fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
+fat_set_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
 	block_t *b;
@@ -342,7 +342,7 @@ fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 	int rc;
 
 	assert(fatno < FATCNT(bs));
-	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
+	rc = block_get(&b, service_id, RSCNT(bs) + SF(bs) * fatno +
 	    (clst * sizeof(fat_cluster_t)) / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
@@ -357,13 +357,13 @@ fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
 /** Replay the allocatoin of clusters in all shadow instances of FAT.
  *
  * @param bs		Buffer holding the boot sector of the file system.
- * @param devmap_handle	Device handle of the file system.
+ * @param service_id	Service ID of the file system.
  * @param lifo		Chain of allocated clusters.
  * @param nclsts	Number of clusters in the lifo chain.
  *
  * @return		EOK on success or a negative error code.
  */
-int fat_alloc_shadow_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle,
+int fat_alloc_shadow_clusters(fat_bs_t *bs, service_id_t service_id,
     fat_cluster_t *lifo, unsigned nclsts)
 {
 	uint8_t fatno;
@@ -372,7 +372,7 @@ int fat_alloc_shadow_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle,
 
 	for (fatno = FAT1 + 1; fatno < bs->fatcnt; fatno++) {
 		for (c = 0; c < nclsts; c++) {
-			rc = fat_set_cluster(bs, devmap_handle, fatno, lifo[c],
+			rc = fat_set_cluster(bs, service_id, fatno, lifo[c],
 			    c == 0 ? FAT_CLST_LAST1 : lifo[c - 1]);
 			if (rc != EOK)
 				return rc;
@@ -390,7 +390,7 @@ int fat_alloc_shadow_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle,
  * file yet).
  *
  * @param bs		Buffer holding the boot sector of the file system.
- * @param devmap_handle	Device handle of the file system.
+ * @param service_id	Device service ID of the file system.
  * @param nclsts	Number of clusters to allocate.
  * @param mcl		Output parameter where the first cluster in the chain
  *			will be returned.
@@ -400,7 +400,7 @@ int fat_alloc_shadow_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle,
  * @return		EOK on success, a negative error code otherwise.
  */
 int
-fat_alloc_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned nclsts,
+fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
     fat_cluster_t *mcl, fat_cluster_t *lcl)
 {
 	block_t *blk;
@@ -418,7 +418,7 @@ fat_alloc_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned nclsts,
 	 */
 	fibril_mutex_lock(&fat_alloc_lock);
 	for (b = 0, cl = 0; b < SF(bs); b++) {
-		rc = block_get(&blk, devmap_handle, RSCNT(bs) + b,
+		rc = block_get(&blk, service_id, RSCNT(bs) + b,
 		    BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			goto error;
@@ -457,7 +457,7 @@ fat_alloc_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned nclsts,
 						goto error;
 					/* update the shadow copies of FAT */
 					rc = fat_alloc_shadow_clusters(bs,
-					    devmap_handle, lifo, nclsts);
+					    service_id, lifo, nclsts);
 					if (rc != EOK)
 						goto error;
 					*mcl = lifo[found - 1];
@@ -484,7 +484,7 @@ out:
 	 * we have allocated so far.
 	 */
 	while (found--) {
-		rc = fat_set_cluster(bs, devmap_handle, FAT1, lifo[found],
+		rc = fat_set_cluster(bs, service_id, FAT1, lifo[found],
 		    FAT_CLST_RES0);
 		if (rc != EOK) {
 			free(lifo);
@@ -499,13 +499,13 @@ out:
 /** Free clusters forming a cluster chain in all copies of FAT.
  *
  * @param bs		Buffer hodling the boot sector of the file system.
- * @param devmap_handle	Device handle of the file system.
+ * @param service_id	Device service ID of the file system.
  * @param firstc	First cluster in the chain which is to be freed.
  *
  * @return		EOK on success or a negative return code.
  */
 int
-fat_free_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t firstc)
+fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
 {
 	unsigned fatno;
 	fat_cluster_t nextc;
@@ -514,11 +514,11 @@ fat_free_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t fir
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1) {
 		assert(firstc >= FAT_CLST_FIRST && firstc < FAT_CLST_BAD);
-		rc = fat_get_cluster(bs, devmap_handle, FAT1, firstc, &nextc);
+		rc = fat_get_cluster(bs, service_id, FAT1, firstc, &nextc);
 		if (rc != EOK)
 			return rc;
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
-			rc = fat_set_cluster(bs, devmap_handle, fatno, firstc,
+			rc = fat_set_cluster(bs, service_id, fatno, firstc,
 			    FAT_CLST_RES0);
 			if (rc != EOK)
 				return rc;
@@ -543,7 +543,7 @@ int
 fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
     fat_cluster_t lcl)
 {
-	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+	service_id_t service_id = nodep->idx->service_id;
 	fat_cluster_t lastc;
 	uint8_t fatno;
 	int rc;
@@ -557,14 +557,14 @@ fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
 			lastc = nodep->lastc_cached_value;
 			nodep->lastc_cached_valid = false;
 		} else {
-			rc = fat_cluster_walk(bs, devmap_handle, nodep->firstc,
+			rc = fat_cluster_walk(bs, service_id, nodep->firstc,
 			    &lastc, NULL, (uint16_t) -1);
 			if (rc != EOK)
 				return rc;
 		}
 
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
-			rc = fat_set_cluster(bs, nodep->idx->devmap_handle, fatno,
+			rc = fat_set_cluster(bs, nodep->idx->service_id, fatno,
 			    lastc, mcl);
 			if (rc != EOK)
 				return rc;
@@ -590,7 +590,7 @@ fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
 int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 {
 	int rc;
-	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+	service_id_t service_id = nodep->idx->service_id;
 
 	/*
 	 * Invalidate cached cluster numbers.
@@ -601,7 +601,7 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 
 	if (lcl == FAT_CLST_RES0) {
 		/* The node will have zero size and no clusters allocated. */
-		rc = fat_free_clusters(bs, devmap_handle, nodep->firstc);
+		rc = fat_free_clusters(bs, service_id, nodep->firstc);
 		if (rc != EOK)
 			return rc;
 		nodep->firstc = FAT_CLST_RES0;
@@ -610,20 +610,20 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 		fat_cluster_t nextc;
 		unsigned fatno;
 
-		rc = fat_get_cluster(bs, devmap_handle, FAT1, lcl, &nextc);
+		rc = fat_get_cluster(bs, service_id, FAT1, lcl, &nextc);
 		if (rc != EOK)
 			return rc;
 
 		/* Terminate the cluster chain in all copies of FAT. */
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
-			rc = fat_set_cluster(bs, devmap_handle, fatno, lcl,
+			rc = fat_set_cluster(bs, service_id, fatno, lcl,
 			    FAT_CLST_LAST1);
 			if (rc != EOK)
 				return rc;
 		}
 
 		/* Free all following clusters. */
-		rc = fat_free_clusters(bs, devmap_handle, nextc);
+		rc = fat_free_clusters(bs, service_id, nextc);
 		if (rc != EOK)
 			return rc;
 	}
@@ -638,14 +638,14 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 }
 
 int
-fat_zero_cluster(struct fat_bs *bs, devmap_handle_t devmap_handle, fat_cluster_t c)
+fat_zero_cluster(struct fat_bs *bs, service_id_t service_id, fat_cluster_t c)
 {
 	int i;
 	block_t *b;
 	int rc;
 
 	for (i = 0; i < SPC(bs); i++) {
-		rc = _fat_block_get(&b, bs, devmap_handle, c, NULL, i,
+		rc = _fat_block_get(&b, bs, service_id, c, NULL, i,
 		    BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
@@ -665,7 +665,7 @@ fat_zero_cluster(struct fat_bs *bs, devmap_handle_t devmap_handle, fat_cluster_t
  * descriptor. This is used to rule out cases when a device obviously
  * does not contain a fat file system.
  */
-int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
+int fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 {
 	fat_cluster_t e0, e1;
 	unsigned fat_no;
@@ -706,11 +706,11 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 	/* Check signature of each FAT. */
 
 	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
-		rc = fat_get_cluster(bs, devmap_handle, fat_no, 0, &e0);
+		rc = fat_get_cluster(bs, service_id, fat_no, 0, &e0);
 		if (rc != EOK)
 			return EIO;
 
-		rc = fat_get_cluster(bs, devmap_handle, fat_no, 1, &e1);
+		rc = fat_get_cluster(bs, service_id, fat_no, 1, &e1);
 		if (rc != EOK)
 			return EIO;
 

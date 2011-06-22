@@ -39,7 +39,7 @@
 #include <input.h>
 #include <kbd_port.h>
 #include <kbd.h>
-#include <devmap.h>
+#include <loc.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -70,7 +70,7 @@ static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
 
 static int chardev_port_init(kbd_dev_t *kdev)
 {
-	devmap_handle_t handle;
+	service_id_t service_id;
 	async_exch_t *exch;
 	unsigned int i;
 	int rc;
@@ -78,7 +78,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	kbd_dev = kdev;
 	
 	for (i = 0; i < num_devs; i++) {
-		rc = devmap_device_get_handle(in_devs[i], &handle, 0);
+		rc = loc_service_get_id(in_devs[i], &service_id, 0);
 		if (rc == EOK)
 			break;
 	}
@@ -88,7 +88,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 		return -1;
 	}
 	
-	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle,
+	dev_sess = loc_service_connect(EXCHANGE_ATOMIC, service_id,
 	    IPC_FLAG_BLOCKING);
 	if (dev_sess == NULL) {
 		printf("%s: Failed connecting to device\n", NAME);

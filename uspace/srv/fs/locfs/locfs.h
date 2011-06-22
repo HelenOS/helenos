@@ -30,12 +30,12 @@
  * @{
  */ 
 
-#ifndef DEVFS_DEVFS_H_
-#define DEVFS_DEVFS_H_
+#ifndef LOCFS_LOCFS_H_
+#define LOCFS_LOCFS_H_
 
 #include <libfs.h>
 
-extern fs_reg_t devfs_reg;
+extern fs_reg_t locfs_reg;
 
 #endif
 

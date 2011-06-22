@@ -305,7 +305,7 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	
 	list_foreach(fs_list, cur) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (str_cmp(fs->vfs_info.name, name) == 0) { 
+		if (str_cmp(fs->vfs_info.name, name) == 0) {
 			handle = fs->fs_handle;
 			break;
 		}

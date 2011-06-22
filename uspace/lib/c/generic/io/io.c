@@ -44,7 +44,7 @@
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <adt/list.h>
 #include "../private/io.h"
 #include "../private/stdio.h"

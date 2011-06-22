@@ -38,7 +38,7 @@
 
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <devmap.h>
+#include <loc.h>
 #include <async.h>
 #include <async_obsolete.h>
 #include <unistd.h>
@@ -134,9 +134,9 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": i8042 PS/2 port driver\n");
 
-	rc = devmap_driver_register(NAME, i8042_connection);
+	rc = loc_server_register(NAME, i8042_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return rc;
 	}
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 		i8042_port[i].client_phone = -1;
 
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
-		rc = devmap_device_register(name, &i8042_port[i].devmap_handle);
+		rc = loc_service_register(name, &i8042_port[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -220,19 +220,19 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dsid;
 	int retval;
 	int dev_id, i;
 
 	printf(NAME ": connection handler\n");
 
 	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	dsid = IPC_GET_ARG1(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
 	for (i = 0; i < MAX_DEVS; i++) {
-		if (i8042_port[i].devmap_handle == dh)
+		if (i8042_port[i].service_id == dsid)
 			dev_id = i;
 	}
 

@@ -42,7 +42,7 @@
 #include "libext2_inode.h"
 
 typedef struct ext2_filesystem {
-	devmap_handle_t		device;
+	service_id_t		device;
 	ext2_superblock_t *	superblock;
 } ext2_filesystem_t;
 
@@ -58,7 +58,7 @@ typedef struct ext2_filesystem {
 #define EXT2_SUPPORTED_INCOMPATIBLE_FEATURES EXT2_FEATURE_I_TYPE_IN_DIR
 #define EXT2_SUPPORTED_READ_ONLY_FEATURES 0
 
-extern int ext2_filesystem_init(ext2_filesystem_t *, devmap_handle_t);
+extern int ext2_filesystem_init(ext2_filesystem_t *, service_id_t);
 extern int ext2_filesystem_check_sanity(ext2_filesystem_t *);
 extern int ext2_filesystem_check_flags(ext2_filesystem_t *, bool *);
 extern int ext2_filesystem_get_block_group_ref(ext2_filesystem_t *, uint32_t, 

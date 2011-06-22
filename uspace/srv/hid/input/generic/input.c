@@ -52,7 +52,7 @@
 #include <adt/fifo.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <devmap.h>
+#include <loc.h>
 #include <input.h>
 #include <kbd.h>
 #include <kbd_port.h>
@@ -323,7 +323,7 @@ fail:
 
 /** Add new kbdev device.
  *
- * @param dev_path Filesystem path to the device (/dev/class/...)
+ * @param dev_path Filesystem path to the device (/loc/class/...)
  *
  */
 static int kbd_add_kbdev(const char *dev_path)
@@ -351,7 +351,7 @@ fail:
 
 /** Add new mousedev device.
  *
- * @param dev_path Filesystem path to the device (/dev/class/...)
+ * @param dev_path Filesystem path to the device (/loc/class/...)
  *
  */
 static int mouse_add_mousedev(const char *dev_path)
@@ -485,7 +485,7 @@ static void kbd_devs_reclaim(void)
 
 /** Periodically check for new input devices.
  *
- * Looks under /dev/class/keyboard and /dev/class/mouse.
+ * Looks under /loc/class/keyboard and /loc/class/mouse.
  *
  * @param arg Ignored
  *
@@ -503,7 +503,7 @@ static int dev_discovery_fibril(void *arg)
 		/*
 		 * Check for new keyboard device
 		 */
-		rc = asprintf(&dev_path, "/dev/class/keyboard\\%zu", kbd_id);
+		rc = asprintf(&dev_path, "/loc/class/keyboard\\%zu", kbd_id);
 		if (rc < 0)
 			continue;
 		
@@ -520,7 +520,7 @@ static int dev_discovery_fibril(void *arg)
 		/*
 		 * Check for new mouse device
 		 */
-		rc = asprintf(&dev_path, "/dev/class/mouse\\%zu", mouse_id);
+		rc = asprintf(&dev_path, "/loc/class/mouse\\%zu", mouse_id);
 		if (rc < 0)
 			continue;
 		
@@ -572,23 +572,23 @@ int main(int argc, char **argv)
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
-	
+
 	/* Add legacy mouse devices. */
 	mouse_add_legacy_devs();
 	
 	/* Register driver */
-	int rc = devmap_driver_register(NAME, client_connection);
+	int rc = loc_server_register(NAME, client_connection);
 	if (rc < 0) {
-		printf("%s: Unable to register driver (%d)\n", NAME, rc);
+		printf("%s: Unable to register server (%d)\n", NAME, rc);
 		return -1;
 	}
 	
-	char kbd[DEVMAP_NAME_MAXLEN + 1];
-	snprintf(kbd, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
+	char kbd[LOC_NAME_MAXLEN + 1];
+	snprintf(kbd, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	
-	devmap_handle_t devmap_handle;
-	if (devmap_device_register(kbd, &devmap_handle) != EOK) {
-		printf("%s: Unable to register device %s\n", NAME, kbd);
+	service_id_t service_id;
+	if (loc_service_register(kbd, &service_id) != EOK) {
+		printf("%s: Unable to register service %s\n", NAME, kbd);
 		return -1;
 	}
 	

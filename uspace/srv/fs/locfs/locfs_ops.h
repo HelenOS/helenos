@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Josef Cejka
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup devmap
+/** @addtogroup fs
  * @{
  */
 
-#ifndef LIBC_IPC_DEVMAP_H_
-#define LIBC_IPC_DEVMAP_H_
+#ifndef LOCFS_LOCFS_OPS_H_
+#define LOCFS_LOCFS_OPS_H_
 
 #include <ipc/common.h>
+#include <bool.h>
 
-#define DEVMAP_NAME_MAXLEN  255
+extern bool locfs_init(void);
 
-typedef sysarg_t devmap_handle_t;
-
-typedef enum {
-	DEV_HANDLE_NONE,
-	DEV_HANDLE_NAMESPACE,
-	DEV_HANDLE_DEVICE
-} devmap_handle_type_t;
-
-typedef enum {
-	DEVMAP_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
-	DEVMAP_DRIVER_UNREGISTER,
-	DEVMAP_DEVICE_REGISTER,
-	DEVMAP_DEVICE_UNREGISTER,
-	DEVMAP_DEVICE_GET_HANDLE,
-	DEVMAP_NAMESPACE_GET_HANDLE,
-	DEVMAP_HANDLE_PROBE,
-	DEVMAP_NULL_CREATE,
-	DEVMAP_NULL_DESTROY,
-	DEVMAP_GET_NAMESPACE_COUNT,
-	DEVMAP_GET_DEVICE_COUNT,
-	DEVMAP_GET_NAMESPACES,
-	DEVMAP_GET_DEVICES
-} devmap_request_t;
-
-/** Interface provided by devmap.
- *
- * Every process that connects to devmap must ask one of following
- * interfaces otherwise connection will be refused.
- *
- */
-typedef enum {
-	/** Connect as device driver */
-	DEVMAP_DRIVER = 1,
-	/** Connect as client */
-	DEVMAP_CLIENT,
-	/** Create new connection to instance of device that
-	    is specified by second argument of call. */
-	DEVMAP_CONNECT_TO_DEVICE
-} devmap_interface_t;
-
-typedef struct {
-	devmap_handle_t handle;
-	char name[DEVMAP_NAME_MAXLEN + 1];
-} dev_desc_t;
+extern void locfs_mounted(ipc_callid_t, ipc_call_t *);
+extern void locfs_mount(ipc_callid_t, ipc_call_t *);
+extern void locfs_unmounted(ipc_callid_t, ipc_call_t *);
+extern void locfs_unmount(ipc_callid_t, ipc_call_t *);
+extern void locfs_lookup(ipc_callid_t, ipc_call_t *);
+extern void locfs_open_node(ipc_callid_t, ipc_call_t *);
+extern void locfs_stat(ipc_callid_t, ipc_call_t *);
+extern void locfs_sync(ipc_callid_t, ipc_call_t *);
+extern void locfs_read(ipc_callid_t, ipc_call_t *);
+extern void locfs_write(ipc_callid_t, ipc_call_t *);
+extern void locfs_truncate(ipc_callid_t, ipc_call_t *);
+extern void locfs_close(ipc_callid_t, ipc_call_t *);
+extern void locfs_destroy(ipc_callid_t, ipc_call_t *);
 
 #endif
+
+/**
+ * @}
+ */

@@ -64,7 +64,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	srv/clip \
-	srv/devmap \
+	srv/loc \
 	srv/devman \
 	srv/loader \
 	srv/ns \
@@ -78,7 +78,7 @@ DIRS = \
 	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
-	srv/fs/devfs \
+	srv/fs/locfs \
 	srv/fs/ext2fs \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \

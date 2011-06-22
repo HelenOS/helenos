@@ -66,12 +66,12 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/cap.c \
 	generic/clipboard.c \
-	generic/devmap.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/char_dev.c \
 	generic/event.c \
 	generic/errno.c \
+	generic/loc.c \
 	generic/mem.c \
 	generic/str.c \
 	generic/str_error.c \

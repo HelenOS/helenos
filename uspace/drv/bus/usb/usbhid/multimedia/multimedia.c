@@ -184,7 +184,7 @@ static void usb_multimedia_free(usb_multimedia_t **multim_dev)
 static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev, 
     usb_multimedia_t *multim_dev)
 {
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    NAME);
 	if (fun == NULL) {

@@ -48,7 +48,7 @@
 #include <align.h>
 #include <async.h>
 #include <stdio.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
 #define NAME "fhc"
 

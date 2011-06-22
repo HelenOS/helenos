@@ -52,7 +52,7 @@
 #include <str.h>
 #include <sysinfo.h>
 #include <event.h>
-#include <devmap.h>
+#include <loc.h>
 #include <fcntl.h>
 #include <vfs/vfs.h>
 #include <fibril_synch.h>
@@ -80,7 +80,7 @@ struct {
 typedef struct {
 	size_t index;             /**< Console index */
 	size_t refcount;          /**< Connection reference count */
-	devmap_handle_t devmap_handle;  /**< Device handle */
+	service_id_t service_id;  /**< Service ID */
 	keybuffer_t keybuffer;    /**< Buffer for incoming keys. */
 	screenbuffer_t scr;       /**< Screenbuffer for saving screen
 	                               contents and related settings. */
@@ -581,7 +581,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		if (i == KERNEL_CONSOLE)
 			continue;
 		
-		if (consoles[i].devmap_handle == (devmap_handle_t) IPC_GET_ARG1(*icall)) {
+		if (consoles[i].service_id == (service_id_t) IPC_GET_ARG1(*icall)) {
 			cons = &consoles[i];
 			break;
 		}
@@ -723,15 +723,15 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-static async_sess_t *connect_input(const char *dev_path)
+static async_sess_t *connect_input(const char *svc_path)
 {
 	async_sess_t *sess;
 	async_exch_t *exch;
-	devmap_handle_t handle;
+	service_id_t service_id;
 	
-	int rc = devmap_device_get_handle(dev_path, &handle, 0);
+	int rc = loc_service_get_id(svc_path, &service_id, 0);
 	if (rc == EOK) {
-		sess = devmap_device_connect(EXCHANGE_ATOMIC, handle, 0);
+		sess = loc_service_connect(EXCHANGE_ATOMIC, service_id, 0);
 		if (sess == NULL) {
 			printf("%s: Failed to connect to input server\n", NAME);
 			return NULL;
@@ -775,10 +775,10 @@ static bool console_srv_init(char *input_dev)
 		return false;
 	}
 	
-	/* Register driver */
-	int rc = devmap_driver_register(NAME, client_connection);
+	/* Register server */
+	int rc = loc_server_register(NAME, client_connection);
 	if (rc < 0) {
-		printf("%s: Unable to register driver (%d)\n", NAME, rc);
+		printf("%s: Unable to register server (%d)\n", NAME, rc);
 		return false;
 	}
 	
@@ -822,11 +822,11 @@ static bool console_srv_init(char *input_dev)
 			consoles[i].index = i;
 			consoles[i].refcount = 0;
 			
-			char vc[DEVMAP_NAME_MAXLEN + 1];
-			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
+			char vc[LOC_NAME_MAXLEN + 1];
+			snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
 			
-			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
-				printf("%s: Unable to register device %s\n", NAME, vc);
+			if (loc_service_register(vc, &consoles[i].service_id) != EOK) {
+				printf("%s: Unable to register service %s\n", NAME, vc);
 				return false;
 			}
 		}

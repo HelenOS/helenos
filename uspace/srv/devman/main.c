@@ -55,7 +55,7 @@
 #include <ipc/devman.h>
 #include <ipc/driver.h>
 #include <thread.h>
-#include <devmap.h>
+#include <loc.h>
 
 #include "devman.h"
 
@@ -325,37 +325,37 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 			fibril_add_ready(assign_fibril);
 		}
 	} else {
-		devmap_register_tree_function(fun, tree);
+		loc_register_tree_function(fun, tree);
 	}
 	
 	/* Return device handle to parent's driver. */
 	async_answer_1(callid, EOK, fun->handle);
 }
 
-static void devmap_register_class_dev(dev_class_info_t *cli)
+static void loc_register_class_dev(dev_class_info_t *cli)
 {
-	/* Create devmap path and name for the device. */
-	char *devmap_pathname = NULL;
+	/* Create loc path and name for the service. */
+	char *loc_pathname = NULL;
 
-	asprintf(&devmap_pathname, "%s/%s%c%s", DEVMAP_CLASS_NAMESPACE,
-	    cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
-	if (devmap_pathname == NULL)
+	asprintf(&loc_pathname, "%s/%s%c%s", LOC_CLASS_NAMESPACE,
+	    cli->dev_class->name, LOC_SEPARATOR, cli->dev_name);
+	if (loc_pathname == NULL)
 		return;
 	
 	/*
-	 * Register the device by the device mapper and remember its devmap
-	 * handle.
+	 * Register the device with location service and remember its
+	 * service ID.
 	 */
-	devmap_device_register_with_iface(devmap_pathname,
-	    &cli->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
+	loc_service_register_with_iface(loc_pathname,
+	    &cli->service_id, DEVMAN_CONNECT_FROM_LOC);
 	
 	/*
-	 * Add device to the hash map of class devices registered by device
-	 * mapper.
+	 * Add device to the hash map of class devices registered with
+	 * location service.
 	 */
-	class_add_devmap_function(&class_list, cli);
+	class_add_loc_function(&class_list, cli);
 	
-	free(devmap_pathname);
+	free(loc_pathname);
 }
 
 static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
@@ -380,8 +380,8 @@ static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
 	dev_class_t *cl = get_dev_class(&class_list, class_name);
 	dev_class_info_t *class_info = add_function_to_class(fun, cl, NULL);
 	
-	/* Register the device's class alias by devmapper. */
-	devmap_register_class_dev(class_info);
+	/* Register the device's class alias with location service. */
+	loc_register_class_dev(class_info);
 	
 	log_msg(LVL_NOTE, "Function `%s' added to class `%s' as `%s'.",
 	    fun->pathname, class_name, class_info->dev_name);
@@ -658,17 +658,17 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	async_exchange_end(exch);
 }
 
-/** Function for handling connections from a client forwarded by the device
- * mapper to the device manager. */
-static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
+/** Function for handling connections from a client forwarded by the location
+ * service to the device manager. */
+static void devman_connection_loc(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devmap_handle_t devmap_handle = IPC_GET_ARG2(*icall);
+	service_id_t service_id = IPC_GET_ARG2(*icall);
 	fun_node_t *fun;
 	dev_node_t *dev;
 
-	fun = find_devmap_tree_function(&device_tree, devmap_handle);
+	fun = find_loc_tree_function(&device_tree, service_id);
 	if (fun == NULL)
-		fun = find_devmap_class_function(&class_list, devmap_handle);
+		fun = find_loc_class_function(&class_list, service_id);
 	
 	if (fun == NULL || fun->dev->drv == NULL) {
 		async_answer_0(iid, ENOENT);
@@ -688,7 +688,7 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 	async_exchange_end(exch);
 	
 	log_msg(LVL_DEBUG,
-	    "Forwarding devmapper request for `%s' function to driver `%s'.",
+	    "Forwarding loc service request for `%s' function to driver `%s'.",
 	    fun->pathname, dev->drv->name);
 }
 
@@ -707,9 +707,9 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		/* Connect client to selected device. */
 		devman_forward(iid, icall, false);
 		break;
-	case DEVMAN_CONNECT_FROM_DEVMAP:
-		/* Someone connected through devmap node. */
-		devman_connection_devmapper(iid, icall);
+	case DEVMAN_CONNECT_FROM_LOC:
+		/* Someone connected through loc node. */
+		devman_connection_loc(iid, icall);
 		break;
 	case DEVMAN_CONNECT_TO_PARENTS_DEVICE:
 		/* Connect client to selected device. */
@@ -745,12 +745,12 @@ static bool devman_init(void)
 	init_class_list(&class_list);
 	
 	/*
-	 * !!! devman_connection ... as the device manager is not a real devmap
+	 * !!! devman_connection ... as the device manager is not a real loc
 	 * driver (it uses a completely different ipc protocol than an ordinary
-	 * devmap driver) forwarding a connection from client to the devman by
-	 * devmapper would not work.
+	 * loc driver) forwarding a connection from client to the devman by
+	 * location service would not work.
 	 */
-	devmap_driver_register(NAME, devman_connection);
+	loc_server_register(NAME, devman_connection);
 	
 	return true;
 }

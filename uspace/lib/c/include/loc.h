@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup libc
  * @{
  */
+/** @file
+ */
 
-#ifndef DEVFS_DEVFS_OPS_H_
-#define DEVFS_DEVFS_OPS_H_
+#ifndef LIBC_LOC_H_
+#define LIBC_LOC_H_
 
-#include <ipc/common.h>
+#include <ipc/loc.h>
+#include <async.h>
 #include <bool.h>
 
-extern bool devfs_init(void);
+extern async_exch_t *loc_exchange_begin_blocking(loc_interface_t);
+extern async_exch_t *loc_exchange_begin(loc_interface_t);
+extern void loc_exchange_end(async_exch_t *);
 
-extern void devfs_mounted(ipc_callid_t, ipc_call_t *);
-extern void devfs_mount(ipc_callid_t, ipc_call_t *);
-extern void devfs_unmounted(ipc_callid_t, ipc_call_t *);
-extern void devfs_unmount(ipc_callid_t, ipc_call_t *);
-extern void devfs_lookup(ipc_callid_t, ipc_call_t *);
-extern void devfs_open_node(ipc_callid_t, ipc_call_t *);
-extern void devfs_stat(ipc_callid_t, ipc_call_t *);
-extern void devfs_sync(ipc_callid_t, ipc_call_t *);
-extern void devfs_read(ipc_callid_t, ipc_call_t *);
-extern void devfs_write(ipc_callid_t, ipc_call_t *);
-extern void devfs_truncate(ipc_callid_t, ipc_call_t *);
-extern void devfs_close(ipc_callid_t, ipc_call_t *);
-extern void devfs_destroy(ipc_callid_t, ipc_call_t *);
+extern int loc_server_register(const char *, async_client_conn_t);
+extern int loc_service_register(const char *, service_id_t *);
+extern int loc_service_register_with_iface(const char *, service_id_t *,
+    sysarg_t);
+
+extern int loc_service_get_id(const char *, service_id_t *,
+    unsigned int);
+extern int loc_namespace_get_id(const char *, service_id_t *,
+    unsigned int);
+extern loc_object_type_t loc_id_probe(service_id_t);
+
+extern async_sess_t *loc_service_connect(exch_mgmt_t, service_id_t,
+    unsigned int);
+
+extern int loc_null_create(void);
+extern void loc_null_destroy(int);
+
+extern size_t loc_count_namespaces(void);
+extern size_t loc_count_services(service_id_t);
+
+extern size_t loc_get_namespaces(loc_sdesc_t **);
+extern size_t loc_get_services(service_id_t, loc_sdesc_t **);
 
 #endif
 
-/**
- * @}
+/** @}
  */

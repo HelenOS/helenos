@@ -36,7 +36,7 @@
 #include <io/log.h>
 #include <ipc/driver.h>
 #include <ipc/devman.h>
-#include <devmap.h>
+#include <loc.h>
 #include <str_error.h>
 #include <stdio.h>
 
@@ -65,21 +65,21 @@ static int devman_functions_compare(unsigned long key[], hash_count_t keys,
 	return (fun->handle == (devman_handle_t) key[0]);
 }
 
-static int devmap_functions_compare(unsigned long key[], hash_count_t keys,
+static int loc_functions_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
-	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, devmap_fun);
-	return (fun->devmap_handle == (devmap_handle_t) key[0]);
+	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, loc_fun);
+	return (fun->service_id == (service_id_t) key[0]);
 }
 
-static int devmap_devices_class_compare(unsigned long key[], hash_count_t keys,
+static int loc_devices_class_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
 	dev_class_info_t *class_info
-	    = hash_table_get_instance(item, dev_class_info_t, devmap_link);
+	    = hash_table_get_instance(item, dev_class_info_t, loc_link);
 	assert(class_info != NULL);
 
-	return (class_info->devmap_handle == (devmap_handle_t) key[0]);
+	return (class_info->service_id == (service_id_t) key[0]);
 }
 
 static void devices_remove_callback(link_t *item)
@@ -98,15 +98,15 @@ static hash_table_operations_t devman_functions_ops = {
 	.remove_callback = devices_remove_callback
 };
 
-static hash_table_operations_t devmap_devices_ops = {
+static hash_table_operations_t loc_devices_ops = {
 	.hash = devices_hash,
-	.compare = devmap_functions_compare,
+	.compare = loc_functions_compare,
 	.remove_callback = devices_remove_callback
 };
 
-static hash_table_operations_t devmap_devices_class_ops = {
+static hash_table_operations_t loc_devices_class_ops = {
 	.hash = devices_hash,
-	.compare = devmap_devices_class_compare,
+	.compare = loc_devices_class_compare,
 	.remove_callback = devices_remove_callback
 };
 
@@ -699,32 +699,32 @@ void delete_driver(driver_t *drv)
 	free(drv);
 }
 
-/** Create devmap path and name for the function. */
-void devmap_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
+/** Create loc path and name for the function. */
+void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 {
-	char *devmap_pathname = NULL;
-	char *devmap_name = NULL;
+	char *loc_pathname = NULL;
+	char *loc_name = NULL;
 	
-	asprintf(&devmap_name, "%s", fun->pathname);
-	if (devmap_name == NULL)
+	asprintf(&loc_name, "%s", fun->pathname);
+	if (loc_name == NULL)
 		return;
 	
-	replace_char(devmap_name, '/', DEVMAP_SEPARATOR);
+	replace_char(loc_name, '/', LOC_SEPARATOR);
 	
-	asprintf(&devmap_pathname, "%s/%s", DEVMAP_DEVICE_NAMESPACE,
-	    devmap_name);
-	if (devmap_pathname == NULL) {
-		free(devmap_name);
+	asprintf(&loc_pathname, "%s/%s", LOC_DEVICE_NAMESPACE,
+	    loc_name);
+	if (loc_pathname == NULL) {
+		free(loc_name);
 		return;
 	}
 	
-	devmap_device_register_with_iface(devmap_pathname,
-	    &fun->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
+	loc_service_register_with_iface(loc_pathname,
+	    &fun->service_id, DEVMAN_CONNECT_FROM_LOC);
 	
-	tree_add_devmap_function(tree, fun);
+	tree_add_loc_function(tree, fun);
 	
-	free(devmap_name);
-	free(devmap_pathname);
+	free(loc_name);
+	free(loc_pathname);
 }
 
 /** Pass a device to running driver.
@@ -854,8 +854,8 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 	    &devman_devices_ops);
 	hash_table_create(&tree->devman_functions, DEVICE_BUCKETS, 1,
 	    &devman_functions_ops);
-	hash_table_create(&tree->devmap_functions, DEVICE_BUCKETS, 1,
-	    &devmap_devices_ops);
+	hash_table_create(&tree->loc_functions, DEVICE_BUCKETS, 1,
+	    &loc_devices_ops);
 	
 	fibril_rwlock_initialize(&tree->rwlock);
 	
@@ -950,7 +950,7 @@ fun_node_t *create_fun_node(void)
 		list_initialize(&res->match_ids.ids);
 		list_initialize(&res->classes);
 		link_initialize(&res->devman_fun);
-		link_initialize(&res->devmap_fun);
+		link_initialize(&res->loc_fun);
 	}
 	
 	return res;
@@ -1266,7 +1266,7 @@ dev_class_info_t *create_dev_class_info(void)
 	if (info != NULL) {
 		memset(info, 0, sizeof(dev_class_info_t));
 		link_initialize(&info->dev_classes);
-		link_initialize(&info->devmap_link);
+		link_initialize(&info->loc_link);
 		link_initialize(&info->link);
 	}
 	
@@ -1412,41 +1412,41 @@ void init_class_list(class_list_t *class_list)
 {
 	list_initialize(&class_list->classes);
 	fibril_rwlock_initialize(&class_list->rwlock);
-	hash_table_create(&class_list->devmap_functions, DEVICE_BUCKETS, 1,
-	    &devmap_devices_class_ops);
+	hash_table_create(&class_list->loc_functions, DEVICE_BUCKETS, 1,
+	    &loc_devices_class_ops);
 }
 
 
-/* Devmap devices */
+/* loc devices */
 
-fun_node_t *find_devmap_tree_function(dev_tree_t *tree, devmap_handle_t devmap_handle)
+fun_node_t *find_loc_tree_function(dev_tree_t *tree, service_id_t service_id)
 {
 	fun_node_t *fun = NULL;
 	link_t *link;
-	unsigned long key = (unsigned long) devmap_handle;
+	unsigned long key = (unsigned long) service_id;
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
-	link = hash_table_find(&tree->devmap_functions, &key);
+	link = hash_table_find(&tree->loc_functions, &key);
 	if (link != NULL)
-		fun = hash_table_get_instance(link, fun_node_t, devmap_fun);
+		fun = hash_table_get_instance(link, fun_node_t, loc_fun);
 	fibril_rwlock_read_unlock(&tree->rwlock);
 	
 	return fun;
 }
 
-fun_node_t *find_devmap_class_function(class_list_t *classes,
-    devmap_handle_t devmap_handle)
+fun_node_t *find_loc_class_function(class_list_t *classes,
+    service_id_t service_id)
 {
 	fun_node_t *fun = NULL;
 	dev_class_info_t *cli;
 	link_t *link;
-	unsigned long key = (unsigned long)devmap_handle;
+	unsigned long key = (unsigned long)service_id;
 	
 	fibril_rwlock_read_lock(&classes->rwlock);
-	link = hash_table_find(&classes->devmap_functions, &key);
+	link = hash_table_find(&classes->loc_functions, &key);
 	if (link != NULL) {
 		cli = hash_table_get_instance(link, dev_class_info_t,
-		    devmap_link);
+		    loc_link);
 		fun = cli->fun;
 	}
 	fibril_rwlock_read_unlock(&classes->rwlock);
@@ -1454,22 +1454,22 @@ fun_node_t *find_devmap_class_function(class_list_t *classes,
 	return fun;
 }
 
-void class_add_devmap_function(class_list_t *class_list, dev_class_info_t *cli)
+void class_add_loc_function(class_list_t *class_list, dev_class_info_t *cli)
 {
-	unsigned long key = (unsigned long) cli->devmap_handle;
+	unsigned long key = (unsigned long) cli->service_id;
 	
 	fibril_rwlock_write_lock(&class_list->rwlock);
-	hash_table_insert(&class_list->devmap_functions, &key, &cli->devmap_link);
+	hash_table_insert(&class_list->loc_functions, &key, &cli->loc_link);
 	fibril_rwlock_write_unlock(&class_list->rwlock);
 
-	assert(find_devmap_class_function(class_list, cli->devmap_handle) != NULL);
+	assert(find_loc_class_function(class_list, cli->service_id) != NULL);
 }
 
-void tree_add_devmap_function(dev_tree_t *tree, fun_node_t *fun)
+void tree_add_loc_function(dev_tree_t *tree, fun_node_t *fun)
 {
-	unsigned long key = (unsigned long) fun->devmap_handle;
+	unsigned long key = (unsigned long) fun->service_id;
 	fibril_rwlock_write_lock(&tree->rwlock);
-	hash_table_insert(&tree->devmap_functions, &key, &fun->devmap_fun);
+	hash_table_insert(&tree->loc_functions, &key, &fun->loc_fun);
 	fibril_rwlock_write_unlock(&tree->rwlock);
 }
 
