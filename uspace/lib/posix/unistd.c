@@ -42,14 +42,15 @@
 char **environ = NULL;
 
 /**
- * 
+ * Dummy function. Always returns false, because there is no easy way to find
+ * out under HelenOS.
+ *
  * @param fd
- * @return
+ * @return Always false.
  */
 int posix_isatty(int fd)
 {
-	// TODO
-	not_implemented();
+	return false;
 }
 
 /**
