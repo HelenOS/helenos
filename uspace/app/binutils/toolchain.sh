@@ -80,11 +80,11 @@ case "$1" in
 		echo '	CONFTEST="`echo $* | grep '\' conftest \''`"'
 		echo '	if [ -n "$CONFTEST" ]; then'
 		echo '		LFLAGS="-Xlinker -z -Xlinker muldefs"'
-		echo '		echo' \'"$2 $CFLAGS -T $4"\' '"$LFLAGS"' '"$@"' \'"$5"\'
-		echo "		$2 $CFLAGS -T $4" '$LFLAGS' '$@' "$5"
+		echo '		echo' \'"$2"\' '"$@"' \'"$CFLAGS -T $4"\' '"$LFLAGS"' \'"$5"\'
+		echo "		$2" '$@' "$CFLAGS -T $4" '$LFLAGS' "$5"
 		echo '	else'
-		echo '		echo' \'"$2 $CFLAGS"\' '"$@"'
-		echo "		$2 $CFLAGS" '$@'
+		echo '		echo' \'"$2"\' '"$@"' \'"$CFLAGS"\'
+		echo "		$2" '$@' "$CFLAGS"
 		echo '	fi'
 		echo 'fi'
 		) > 'gcc'
