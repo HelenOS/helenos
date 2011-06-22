@@ -102,7 +102,9 @@ extern size_t posix_strlen(const char *s);
 extern size_t posix_strnlen(const char *s, size_t n);
 
 /* Legacy declarations */
+#ifndef POSIX_STRINGS_H_
 extern int posix_ffs(int i);
+#endif
 
 #ifndef LIBPOSIX_INTERNAL
 	#define strcpy posix_strcpy
