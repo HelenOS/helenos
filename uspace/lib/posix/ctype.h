@@ -39,10 +39,20 @@
 #include "libc/ctype.h"
 
 /* Classification of Characters */
-extern int posix_isxdigit(int ch);
+extern int posix_isxdigit(int c);
+extern int posix_isblank(int c);
+extern int posix_iscntrl(int c);
+extern int posix_isgraph(int c);
+extern int posix_isprint(int c);
+extern int posix_ispunct(int c);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define isxdigit posix_isxdigit
+	#define isblank posix_isblank
+	#define iscntrl posix_iscntrl
+	#define isgraph posix_isgraph
+	#define isprint posix_isprint
+	#define ispunct posix_ispunct
 #endif
 
 #endif /* POSIX_CTYPE_H_ */
