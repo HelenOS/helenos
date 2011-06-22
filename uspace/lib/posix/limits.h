@@ -45,6 +45,9 @@
 #define SHRT_MAX SHORT_MAX
 #define USHRT_MAX USHORT_MAX
 
+#undef PATH_MAX
+#define PATH_MAX 256
+
 #endif /* POSIX_LIMITS_H_ */
 
 /** @}
