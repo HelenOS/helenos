@@ -340,9 +340,9 @@ static int udp_received_msg(device_id_t device_id, packet_t *packet,
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
- *
+ * @param[in]     arg   Local argument.
  */
-static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;
@@ -395,7 +395,7 @@ int tl_initialize(int net_phone)
 	
 	udp_globals.net_phone = net_phone;
 	
-	udp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
+	udp_globals.icmp_phone = icmp_connect_module();
 	
 	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
 	    SERVICE_UDP, udp_receiver);

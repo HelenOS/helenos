@@ -51,6 +51,6 @@ extern void serial_cursor_disable(void);
 extern void serial_cursor_enable(void);
 extern void serial_set_scroll_region(sysarg_t);
 extern void serial_console_init(putc_function_t, sysarg_t, sysarg_t);
-extern void serial_client_connection(ipc_callid_t, ipc_call_t *);
+extern void serial_client_connection(ipc_callid_t, ipc_call_t *, void *arg);
 
 #endif

@@ -122,7 +122,7 @@ DEVICE_MAP_IMPLEMENT(ip_netifs, ip_netif_t);
 INT_MAP_IMPLEMENT(ip_protos, ip_proto_t);
 GENERIC_FIELD_IMPLEMENT(ip_routes, ip_route_t);
 
-static void ip_receiver(ipc_callid_t, ipc_call_t *);
+static void ip_receiver(ipc_callid_t, ipc_call_t *, void *);
 
 /** Releases the packet and returns the result.
  *
@@ -1593,9 +1593,9 @@ static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
- *
+ * @param[in]     arg   Local argument.
  */
-static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;

@@ -97,7 +97,7 @@ int usb_hc_connection_open(usb_hc_connection_t *connection)
 	if (usb_hc_connection_is_opened(connection))
 		return EBUSY;
 	
-	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE,
+	async_sess_t *sess = devman_device_connect(EXCHANGE_ATOMIC,
 	    connection->hc_handle, 0);
 	if (!sess)
 		return ENOMEM;
@@ -176,7 +176,7 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
 usb_address_t usb_hc_get_address_by_handle(devman_handle_t dev_handle)
 {
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev_handle,
+	    devman_parent_device_connect(EXCHANGE_ATOMIC, dev_handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
@@ -240,7 +240,7 @@ int usb_ddf_get_hc_handle_by_class(size_t class_index,
 int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
 {
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device_handle,
+	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;

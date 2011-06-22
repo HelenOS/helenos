@@ -75,7 +75,7 @@ fs_reg_t fat_reg;
  * upon each request, FAT might want to keep the connections open after the
  * request has been completed.
  */
-static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void fat_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
 		/*

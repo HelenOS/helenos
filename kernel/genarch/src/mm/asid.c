@@ -96,8 +96,8 @@ asid_t asid_get(void)
 		 * It is guaranteed to belong to an
 		 * inactive address space.
 		 */
-		ASSERT(!list_empty(&inactive_as_with_asid_head));
-		tmp = inactive_as_with_asid_head.next;
+		tmp = list_first(&inactive_as_with_asid_list);
+		ASSERT(tmp != NULL);
 		list_remove(tmp);
 		
 		as = list_get_instance(tmp, as_t, inactive_as_with_asid_link);

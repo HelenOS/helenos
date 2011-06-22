@@ -255,7 +255,8 @@ static int print_screen(sysarg_t i)
 	return (int) i;
 }
 
-static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	size_t intersize = 0;
 	keyfield_t *interbuf = NULL;

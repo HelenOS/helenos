@@ -138,18 +138,16 @@ void remove_interrupt_context(interrupt_context_list_t *list,
 interrupt_context_t *
 find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 {
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
 	interrupt_context_t *ctx;
 	
-	while (link != &list->contexts) {
+	fibril_mutex_lock(&list->mutex);
+	
+	list_foreach(list->contexts, link) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
 		if (ctx->id == id) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&list->mutex);
@@ -159,18 +157,16 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 interrupt_context_t *
 find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
 	interrupt_context_t *ctx;
 	
-	while (link != &list->contexts) {
+	fibril_mutex_lock(&list->mutex);
+	
+	list_foreach(list->contexts, link) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
 		if (ctx->irq == irq && ctx->dev == dev) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&list->mutex);
@@ -230,21 +226,18 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 	fibril_mutex_unlock(&functions_mutex);
 }
 
-static ddf_fun_t *driver_get_function(link_t *functions, devman_handle_t handle)
+static ddf_fun_t *driver_get_function(list_t *functions, devman_handle_t handle)
 {
 	ddf_fun_t *fun = NULL;
 	
 	fibril_mutex_lock(&functions_mutex);
-	link_t *link = functions->next;
 	
-	while (link != functions) {
+	list_foreach(*functions, link) {
 		fun = list_get_instance(link, ddf_fun_t, link);
 		if (fun->handle == handle) {
 			fibril_mutex_unlock(&functions_mutex);
 			return fun;
 		}
-		
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&functions_mutex);
@@ -360,7 +353,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			    function_get_default_handler(fun);
 			if (default_handler != NULL) {
 				(*default_handler)(fun, callid, &call);
-				break;
+				continue;
 			}
 			
 			/*
@@ -371,7 +364,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			    "invalid interface id %d.",
 			    driver->name, iface_idx);
 			async_answer_0(callid, ENOTSUP);
-			break;
+			continue;
 		}
 		
 		/* Calling one of the function's interfaces */
@@ -383,7 +376,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			printf("Function with handle %" PRIun " has no interface "
 			    "with id %d.\n", handle, iface_idx);
 			async_answer_0(callid, ENOTSUP);
-			break;
+			continue;
 		}
 		
 		/*
@@ -402,7 +395,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			printf("%s: driver_connection_gen error - "
 			    "invalid interface method.", driver->name);
 			async_answer_0(callid, ENOTSUP);
-			break;
+			continue;
 		}
 		
 		/*
@@ -412,7 +405,6 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		 * associated with the function by its driver.
 		 */
 		(*iface_method_ptr)(fun, ops, callid, &call);
-		break;
 	}
 }
 
@@ -427,7 +419,7 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Function for handling connections to device driver. */
-static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Select interface */
 	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {

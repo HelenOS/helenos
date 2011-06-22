@@ -607,9 +607,9 @@ static int icmp_process_packet(packet_t *packet, services_t error)
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
- *
+ * @param[in]     arg   Local argument.
  */
-static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;

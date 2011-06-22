@@ -64,9 +64,6 @@
 /** Maximum waiting sockets queue size. */
 #define SOCKET_MAX_ACCEPTED_SIZE	0
 
-/** Default timeout for connections in microseconds. */
-#define SOCKET_CONNECT_TIMEOUT	(1 * 1000 * 1000)
-
 /**
  * Maximum number of random attempts to find a new socket identifier before
  * switching to the sequence.
@@ -202,8 +199,9 @@ static sockets_t *socket_get_sockets(void)
  *
  * @param[in] iid	The initial message identifier.
  * @param[in] icall	The initial message call structure.
+ * @param[in] arg	Local argument.
  */
-static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
+static void socket_connection(ipc_callid_t iid, ipc_call_t * icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -287,14 +285,13 @@ loop:
  *
  * @return		The TCP module phone.
  * @return		Other error codes as defined for the
- *			bind_service_timeout() function.
+ *			bind_service() function.
  */
 static int socket_get_tcp_phone(void)
 {
 	if (socket_globals.tcp_phone < 0) {
-		socket_globals.tcp_phone = bind_service_timeout(SERVICE_TCP,
-		    0, 0, SERVICE_TCP, socket_connection,
-		    SOCKET_CONNECT_TIMEOUT);
+		socket_globals.tcp_phone = bind_service(SERVICE_TCP,
+		    0, 0, SERVICE_TCP, socket_connection);
 	}
 
 	return socket_globals.tcp_phone;
@@ -306,14 +303,13 @@ static int socket_get_tcp_phone(void)
  *
  * @return		The UDP module phone.
  * @return		Other error codes as defined for the
- *			bind_service_timeout() function.
+ *			bind_service() function.
  */
 static int socket_get_udp_phone(void)
 {
 	if (socket_globals.udp_phone < 0) {
-		socket_globals.udp_phone = bind_service_timeout(SERVICE_UDP,
-		    0, 0, SERVICE_UDP, socket_connection,
-		    SOCKET_CONNECT_TIMEOUT);
+		socket_globals.udp_phone = bind_service(SERVICE_UDP,
+		    0, 0, SERVICE_UDP, socket_connection);
 	}
 
 	return socket_globals.udp_phone;
@@ -395,7 +391,7 @@ socket_initialize(socket_t *socket, int socket_id, int phone,
  *			this time.
  * @return		Other error codes as defined for the NET_SOCKET message.
  * @return		Other error codes as defined for the
- *			bind_service_timeout() function.
+ *			bind_service() function.
  */
 int socket(int domain, int type, int protocol)
 {

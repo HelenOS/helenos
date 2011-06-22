@@ -230,8 +230,9 @@ out:
  *
  * @param[in] iid	The message identifier.
  * @param[in,out] icall	The message parameters.
+ * @param[in] arg	Local argument.
  */
-static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;

@@ -72,7 +72,7 @@ typedef struct task {
 	
 	char name[TASK_NAME_BUFLEN];
 	/** List of threads contained in this task. */
-	link_t th_head;
+	list_t threads;
 	/** Address space. */
 	as_t *as;
 	/** Unique identity of task. */
@@ -93,7 +93,7 @@ typedef struct task {
 	phone_t phones[IPC_MAX_PHONES];
 	stats_ipc_t ipc_info;   /**< IPC statistics */
 	/** List of synchronous answerboxes. */
-	link_t sync_box_head;
+	list_t sync_boxes;
 	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */

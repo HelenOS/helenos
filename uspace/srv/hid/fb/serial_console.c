@@ -314,7 +314,7 @@ static void draw_text_data(keyfield_t *data, sysarg_t x0, sysarg_t y0,
 /**
  * Main function of the thread serving client connections.
  */
-void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	keyfield_t *interbuf = NULL;
 	size_t intersize = 0;

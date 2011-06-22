@@ -105,7 +105,7 @@ int fs_register(async_sess_t *sess, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Ask VFS for callback connection.
 	 */
-	async_connect_to_me(exch, 0, 0, 0, conn);
+	async_connect_to_me(exch, 0, 0, 0, conn, NULL);
 	
 	/*
 	 * Allocate piece of address space for PLB.

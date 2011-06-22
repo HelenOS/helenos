@@ -58,7 +58,7 @@ static vfs_info_t devfs_vfs_info = {
 
 fs_reg_t devfs_reg;
 
-static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid)
 		async_answer_0(iid, EOK);

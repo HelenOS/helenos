@@ -56,7 +56,7 @@
 
 #define NAME "cuda_adb"
 
-static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int cuda_init(void);
 static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 }
 
 /** Character device connection handler */
-static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

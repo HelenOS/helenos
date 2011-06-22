@@ -81,7 +81,7 @@ fs_reg_t tmpfs_reg;
  * upon each request, TMPFS might want to keep the connections open after the
  * request has been completed.
  */
-static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
 		/*

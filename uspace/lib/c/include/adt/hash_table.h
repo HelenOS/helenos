@@ -74,7 +74,7 @@ typedef struct {
 
 /** Hash table structure. */
 typedef struct {
-	link_t *entry;
+	list_t *entry;
 	hash_count_t entries;
 	hash_count_t max_keys;
 	hash_table_operations_t *op;

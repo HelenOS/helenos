@@ -87,8 +87,8 @@ typedef struct {
 	/** Attribute of Collection tag in report descriptor*/
 	uint8_t flags;
 
-	/** Linked list structure*/
-	link_t link;
+	/** Link to usb_hid_report_path_t.items list */
+	link_t rpath_items_link;
 } usb_hid_report_usage_path_t;
 
 
@@ -97,19 +97,18 @@ typedef struct {
  * USB HID usage path structure.
  * */
 typedef struct {
-	/** Length of usage path */	
-	int depth;	
+	/** Length of usage path */
+	int depth;
 
 	/** Report id. Zero is reserved and means that report id is not used.
 	 * */
 	uint8_t report_id;
-	
-	/** Linked list structure. */	
-	link_t link; /* list */
 
-	/** Head of the list of usage path items. */
-	link_t head;
+	/** Link to usb_hid_report_path_t.collection_paths list. */
+	link_t cpath_link;
 
+	/** List of usage path items. */
+	list_t items;	/* of usb_hid_report_usage_path_t */
 } usb_hid_report_path_t;
 
 /*---------------------------------------------------------------------------*/

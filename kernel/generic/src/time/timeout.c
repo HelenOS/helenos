@@ -53,7 +53,7 @@
 void timeout_init(void)
 {
 	irq_spinlock_initialize(&CPU->timeoutlock, "cpu.timeoutlock");
-	list_initialize(&CPU->timeout_active_head);
+	list_initialize(&CPU->timeout_active_list);
 }
 
 /** Reinitialize timeout
@@ -118,8 +118,8 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	uint64_t sum = 0;
 	timeout_t *target = NULL;
 	link_t *cur;
-	for (cur = CPU->timeout_active_head.next;
-	    cur != &CPU->timeout_active_head; cur = cur->next) {
+	for (cur = CPU->timeout_active_list.head.next;
+	    cur != &CPU->timeout_active_list.head; cur = cur->next) {
 		target = list_get_instance(cur, timeout_t, link);
 		irq_spinlock_lock(&target->lock, false);
 		
@@ -134,7 +134,7 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	
 	/* Avoid using cur->prev directly */
 	link_t *prev = cur->prev;
-	list_prepend(&timeout->link, prev);
+	list_insert_after(&timeout->link, prev);
 	
 	/*
 	 * Adjust timeout->ticks according to ticks
@@ -145,7 +145,7 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	/*
 	 * Decrease ticks of timeout's immediate succesor by timeout->ticks.
 	 */
-	if (cur != &CPU->timeout_active_head) {
+	if (cur != &CPU->timeout_active_list.head) {
 		irq_spinlock_lock(&target->lock, false);
 		target->ticks -= timeout->ticks;
 		irq_spinlock_unlock(&target->lock, false);
@@ -183,11 +183,11 @@ grab_locks:
 	
 	/*
 	 * Now we know for sure that timeout hasn't been activated yet
-	 * and is lurking in timeout->cpu->timeout_active_head queue.
+	 * and is lurking in timeout->cpu->timeout_active_list.
 	 */
 	
 	link_t *cur = timeout->link.next;
-	if (cur != &timeout->cpu->timeout_active_head) {
+	if (cur != &timeout->cpu->timeout_active_list.head) {
 		timeout_t *tmp = list_get_instance(cur, timeout_t, link);
 		irq_spinlock_lock(&tmp->lock, false);
 		tmp->ticks += timeout->ticks;

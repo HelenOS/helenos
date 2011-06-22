@@ -80,7 +80,7 @@ static usb_address_t get_my_address(async_sess_t *sess, ddf_dev_t *dev)
 int usb_device_get_assigned_interface(ddf_dev_t *device)
 {
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+	    devman_parent_device_connect(EXCHANGE_ATOMIC, device->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return -1;
@@ -121,7 +121,7 @@ int usb_device_connection_initialize_from_device(
 		return rc;
 	
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
+	    devman_parent_device_connect(EXCHANGE_ATOMIC, dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;

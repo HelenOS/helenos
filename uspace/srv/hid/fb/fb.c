@@ -1575,7 +1575,8 @@ static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
 /** Function for handling connections to FB
  *
  */
-static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	unsigned int vp = 0;
 	viewport_t *vport = &viewports[vp];

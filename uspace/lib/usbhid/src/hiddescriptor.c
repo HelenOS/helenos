@@ -87,39 +87,39 @@
  * @return Pointer to the result collection path in report structure.
  * @retval NULL If some error occurs
  */
-usb_hid_report_path_t *usb_hid_report_path_try_insert(
-		usb_hid_report_t *report, usb_hid_report_path_t *cmp_path) {
-	
-	link_t *path_it = report->collection_paths.prev->next;
+usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report,
+    usb_hid_report_path_t *cmp_path)
+{
+	link_t *path_it = report->collection_paths.head.next;
 	usb_hid_report_path_t *path = NULL;
 	
 	if((report == NULL) || (cmp_path == NULL)) {
 		return NULL;
 	}
 	
-	while(path_it != &report->collection_paths) {
+	while(path_it != &report->collection_paths.head) {
 		path = list_get_instance(path_it, usb_hid_report_path_t,
-				link);
+				cpath_link);
 		
 		if(usb_hid_report_compare_usage_path(path, cmp_path,
 					USB_HID_PATH_COMPARE_STRICT) == EOK){
 			break;
-		}			
+		}
 		path_it = path_it->next;
 	}
-	if(path_it == &report->collection_paths) {
+	if(path_it == &report->collection_paths.head) {
 		path = usb_hid_report_path_clone(cmp_path);
 		if(path == NULL) {
 			return NULL;
 		}
-		list_append(&path->link, &report->collection_paths);					
+		list_append(&path->cpath_link, &report->collection_paths);
 		report->collection_paths_count++;
 
 		return path;
 	}
 	else {
 		return list_get_instance(path_it, usb_hid_report_path_t,
-				link); 
+				cpath_link); 
 	}
 }
 
@@ -191,7 +191,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 		}
 
 		memset(field, 0, sizeof(usb_hid_report_field_t));
-		list_initialize(&field->link);
+		link_initialize(&field->ritems_link);
 
 		/* fill the attributes */		
 		field->logical_minimum = report_item->logical_minimum;
@@ -290,15 +290,15 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 				report_des->bit_length = 8;
 			}
 
-			list_initialize (&report_des->link);
+			link_initialize (&report_des->reports_link);
 			list_initialize (&report_des->report_items);
 
-			list_append(&report_des->link, &report->reports);
+			list_append(&report_des->reports_link, &report->reports);
 			report->report_count++;
 		}
 
 		/* append this field to the end of founded report list */
-		list_append (&field->link, &report_des->report_items);
+		list_append(&field->ritems_link, &report_des->report_items);
 		
 		/* update the sizes */
 		report_des->bit_length += field->size;
@@ -332,20 +332,17 @@ usb_hid_report_description_t * usb_hid_report_find_description(
 		return NULL;
 	}
 
-	link_t *report_it = report->reports.next;
 	usb_hid_report_description_t *report_des = NULL;
 	
-	while(report_it != &report->reports) {
+	list_foreach(report->reports, report_it) {
 		report_des = list_get_instance(report_it,
-				usb_hid_report_description_t, link);
+				usb_hid_report_description_t, reports_link);
 
 		// if report id not set, return the first of the type
 		if(((report_des->report_id == report_id) || (report_id == 0)) && 
 		   (report_des->type == type)) { 
 			return report_des;
 		}
-		
-		report_it = report_it->next;
 	}
 
 	return NULL;
@@ -376,9 +373,11 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 	size_t offset_input=0;
 	size_t offset_output=0;
 	size_t offset_feature=0;
+	
+	link_t *item_link;
 
-	link_t stack;
-	list_initialize(&stack);	
+	list_t stack;
+	list_initialize(&stack);
 
 	/* parser structure initialization*/
 	if(usb_hid_report_init(report) != EOK) {
@@ -390,7 +389,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 		return ENOMEM;
 	}
 	memset(report_item, 0, sizeof(usb_hid_report_item_t));
-	list_initialize(&(report_item->link));	
+	link_initialize(&(report_item->link));
 
 	/* usage path context initialization */
 	if(!(usage_path=usb_hid_report_path())){
@@ -492,19 +491,20 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 				break;
 			case USB_HID_REPORT_TAG_POP:
 				// restore current state from stack
-				if(list_empty (&stack)) {
+				item_link = list_first(&stack);
+				if (item_link == NULL) {
 					return EINVAL;
 				}
 				free(report_item);
-						
-				report_item = list_get_instance(stack.next, 
+				
+				report_item = list_get_instance(item_link,
 				    usb_hid_report_item_t, link);
-					
+				
 				usb_hid_report_usage_path_t *tmp_usage_path;
 				tmp_usage_path = list_get_instance(
-				    report_item->usage_path->link.prev, 
-				    usb_hid_report_usage_path_t, link);
-					
+				    report_item->usage_path->cpath_link.prev,
+				    usb_hid_report_usage_path_t, rpath_items_link);
+				
 				usb_hid_report_set_last_item(usage_path, 
 				    USB_HID_TAG_CLASS_GLOBAL, tmp_usage_path->usage_page);
 				
@@ -512,8 +512,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 				    USB_HID_TAG_CLASS_LOCAL, tmp_usage_path->usage);
 
 				usb_hid_report_path_free(report_item->usage_path);
-				list_initialize(&report_item->usage_path->link);
-				list_remove (stack.next);
+				list_remove (item_link);
 					
 				break;
 					
@@ -609,9 +608,9 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data,
 	case USB_HID_REPORT_TAG_COLLECTION:
 
 		/* store collection atributes */
-		path_item = list_get_instance(usage_path->head.prev, 
-			usb_hid_report_usage_path_t, link);
-		path_item->flags = *data;	
+		path_item = list_get_instance(list_first(&usage_path->items),
+			usb_hid_report_usage_path_t, rpath_items_link);
+		path_item->flags = *data;
 			
 		/* set last item */
 		usb_hid_report_set_last_item(usage_path, 
@@ -900,46 +899,43 @@ uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size)
  * @param List of report items (usb_hid_report_item_t)
  * @return void
  */
-void usb_hid_descriptor_print_list(link_t *head)
+void usb_hid_descriptor_print_list(list_t *list)
 {
 	usb_hid_report_field_t *report_item;
-	link_t *item;
 
-
-	if(head == NULL || list_empty(head)) {
+	if(list == NULL || list_empty(list)) {
 	    usb_log_debug("\tempty\n");
 	    return;
 	}
-        
-	for(item = head->next; item != head; item = item->next) {
-                
-		report_item = list_get_instance(item, usb_hid_report_field_t, 
-				link);
+
+        list_foreach(*list, item) {
+		report_item = list_get_instance(item, usb_hid_report_field_t,
+				ritems_link);
 
 		usb_log_debug("\t\tOFFSET: %X\n", report_item->offset);
 		usb_log_debug("\t\tSIZE: %zu\n", report_item->size);
-		usb_log_debug("\t\tLOGMIN: %d\n", 
+		usb_log_debug("\t\tLOGMIN: %d\n",
 			report_item->logical_minimum);
-		usb_log_debug("\t\tLOGMAX: %d\n", 
-			report_item->logical_maximum);		
-		usb_log_debug("\t\tPHYMIN: %d\n", 
-			report_item->physical_minimum);		
-		usb_log_debug("\t\tPHYMAX: %d\n", 
-			report_item->physical_maximum);				
-		usb_log_debug("\t\ttUSAGEMIN: %X\n", 
+		usb_log_debug("\t\tLOGMAX: %d\n",
+			report_item->logical_maximum);
+		usb_log_debug("\t\tPHYMIN: %d\n",
+			report_item->physical_minimum);
+		usb_log_debug("\t\tPHYMAX: %d\n",
+			report_item->physical_maximum);
+		usb_log_debug("\t\ttUSAGEMIN: %X\n",
 			report_item->usage_minimum);
 		usb_log_debug("\t\tUSAGEMAX: %X\n",
 			       report_item->usage_maximum);
-		usb_log_debug("\t\tUSAGES COUNT: %zu\n", 
+		usb_log_debug("\t\tUSAGES COUNT: %zu\n",
 			report_item->usages_count);
 
 		usb_log_debug("\t\tVALUE: %X\n", report_item->value);
 		usb_log_debug("\t\ttUSAGE: %X\n", report_item->usage);
 		usb_log_debug("\t\tUSAGE PAGE: %X\n", report_item->usage_page);
-		
+
 		usb_hid_print_usage_path(report_item->collection_path);
 
-		usb_log_debug("\n");		
+		usb_log_debug("\n");
 
 	}
 
@@ -958,24 +954,21 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 		return;
 	}
 
-	link_t *report_it = report->reports.next;
 	usb_hid_report_description_t *report_des;
 
-	while(report_it != &report->reports) {
-		report_des = list_get_instance(report_it, 
-			usb_hid_report_description_t, link);
+	list_foreach(report->reports, report_it) {
+		report_des = list_get_instance(report_it,
+			usb_hid_report_description_t, reports_link);
 		usb_log_debug("Report ID: %d\n", report_des->report_id);
 		usb_log_debug("\tType: %d\n", report_des->type);
-		usb_log_debug("\tLength: %zu\n", report_des->bit_length);		
+		usb_log_debug("\tLength: %zu\n", report_des->bit_length);
 		usb_log_debug("\tB Size: %zu\n",
-			usb_hid_report_byte_size(report, 
-				report_des->report_id, 
+			usb_hid_report_byte_size(report,
+				report_des->report_id,
 				report_des->type));
-		usb_log_debug("\tItems: %zu\n", report_des->item_length);		
+		usb_log_debug("\tItems: %zu\n", report_des->item_length);
 
 		usb_hid_descriptor_print_list(&report_des->report_items);
-
-		report_it = report_it->next;
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -983,27 +976,27 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 /**
  * Releases whole linked list of report items
  *
- * @param head Head of list of report descriptor items (usb_hid_report_item_t)
+ * @param list List of report descriptor items (usb_hid_report_item_t)
  * @return void
  */
-void usb_hid_free_report_list(link_t *head)
+void usb_hid_free_report_list(list_t *list)
 {
-	return; 
+	return; /* XXX What's this? */
 	
-	usb_hid_report_item_t *report_item;
+/*	usb_hid_report_item_t *report_item;
 	link_t *next;
 	
-	if(head == NULL || list_empty(head)) {		
+	if(list == NULL || list_empty(list)) {
 	    return;
 	}
 	
-	next = head->next;
-	while(next != head) {
-	
-	    report_item = list_get_instance(next, usb_hid_report_item_t, link);
+	next = list->head.next;
+	while (next != &list->head) {
+		report_item = list_get_instance(next, usb_hid_report_item_t,
+		    rpath_items_link);
 
 		while(!list_empty(&report_item->usage_path->link)) {
-		    usb_hid_report_remove_last_item(report_item->usage_path);
+			usb_hid_report_remove_last_item(report_item->usage_path);
 		}
 
 		
@@ -1013,7 +1006,7 @@ void usb_hid_free_report_list(link_t *head)
 	}
 	
 	return;
-	
+	*/
 }
 /*---------------------------------------------------------------------------*/
 
@@ -1029,29 +1022,32 @@ void usb_hid_free_report(usb_hid_report_t *report)
 	}
 
 	// free collection paths
+	link_t *path_link;
 	usb_hid_report_path_t *path;
 	while(!list_empty(&report->collection_paths)) {
-		path = list_get_instance(report->collection_paths.next, 
-				usb_hid_report_path_t, link);
+		path_link = list_first(&report->collection_paths);
+		path = list_get_instance(path_link,
+		    usb_hid_report_path_t, cpath_link);
 
-		usb_hid_report_path_free(path);		
+		list_remove(path_link);
+		usb_hid_report_path_free(path);
 	}
 	
 	// free report items
 	usb_hid_report_description_t *report_des;
 	usb_hid_report_field_t *field;
 	while(!list_empty(&report->reports)) {
-		report_des = list_get_instance(report->reports.next, 
-				usb_hid_report_description_t, link);
+		report_des = list_get_instance(list_first(&report->reports),
+				usb_hid_report_description_t, reports_link);
 
-		list_remove(&report_des->link);
+		list_remove(&report_des->reports_link);
 		
 		while(!list_empty(&report_des->report_items)) {
 			field = list_get_instance(
-				report_des->report_items.next, 
-				usb_hid_report_field_t, link);
+			    list_first(&report_des->report_items),
+			    usb_hid_report_field_t, ritems_link);
 
-			list_remove(&field->link);
+			list_remove(&field->ritems_link);
 
 			free(field);
 		}

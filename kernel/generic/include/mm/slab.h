@@ -110,11 +110,11 @@ typedef struct {
 	atomic_t magazine_counter;
 	
 	/* Slabs */
-	link_t full_slabs;     /**< List of full slabs */
-	link_t partial_slabs;  /**< List of partial slabs */
+	list_t full_slabs;     /**< List of full slabs */
+	list_t partial_slabs;  /**< List of partial slabs */
 	SPINLOCK_DECLARE(slablock);
 	/* Magazines */
-	link_t magazines;  /**< List o full magazines */
+	list_t magazines;  /**< List o full magazines */
 	SPINLOCK_DECLARE(maglock);
 	
 	/** CPU cache */
