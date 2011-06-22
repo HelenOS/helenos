@@ -227,6 +227,31 @@ packet_t *netif_packet_get_1(size_t content)
 	return packet_get_1_remote(netif_globals.sess, content);
 }
 
+/** Register the device notification receiver,
+ *
+ * Register a network interface layer module as the device
+ * notification receiver.
+ *
+ * @param[in] sess      Session to the network interface layer module.
+ *
+ * @return EOK on success.
+ * @return ELIMIT if there is another module registered.
+ *
+ */
+static int register_message(async_sess_t *sess)
+{
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	if (netif_globals.nil_sess != NULL) {
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		return ELIMIT;
+	}
+	
+	netif_globals.nil_sess = sess;
+	
+	fibril_rwlock_write_unlock(&netif_globals.lock);
+	return EOK;
+}
+
 /** Process the netif module messages.
  *
  * @param[in]  callid Mmessage identifier.
@@ -255,6 +280,11 @@ static int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
 	
 	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
+	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return register_message(callback);
 	
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NETIF_PROBE:
@@ -357,19 +387,17 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall,
  * registers the module service and start the async manager, processing IPC
  * messages in an infinite loop.
  *
- * @param[in] nil_service Network interface layer service.
- *
  * @return EOK on success.
  * @return Other error codes as defined for each specific module
  *         message function.
  *
  */
-int netif_module_start(sysarg_t nil_service)
+int netif_module_start(void)
 {
 	async_set_client_connection(netif_client_connection);
 	
 	netif_globals.sess = connect_to_service(SERVICE_NETWORKING);
-	netif_globals.nil_sess = connect_to_service(nil_service);
+	netif_globals.nil_sess = NULL;
 	netif_device_map_initialize(&netif_globals.device_map);
 	
 	int rc = pm_init();

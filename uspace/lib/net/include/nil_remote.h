@@ -57,8 +57,9 @@
 	generic_send_msg_remote(sess, NET_NIL_SEND, device_id, \
 	    packet_get_id(packet), sender, 0)
 
-#define nil_device_req(sess, device_id, mtu) \
-	generic_device_req_remote(sess, NET_NIL_DEVICE, device_id, mtu, 0)\
+#define nil_device_req(sess, device_id, mtu, netif_service) \
+	generic_device_req_remote(sess, NET_NIL_DEVICE, device_id, mtu, \
+	    netif_service)
 
 extern int nil_device_state_msg(async_sess_t *, device_id_t, sysarg_t);
 extern int nil_received_msg(async_sess_t *, device_id_t, packet_t *,
