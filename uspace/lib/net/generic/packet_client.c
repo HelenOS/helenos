@@ -246,35 +246,36 @@ packet_set_addr(packet_t *packet, const uint8_t *src, const uint8_t *dest,
 	return EOK;
 }
 
-/** Returns the packet copy.
+/** Return the packet copy.
  *
- * Copies the addresses, data, order and metric values.
- * Does not copy the queue placement.
+ * Copy the addresses, data, order and metric values.
+ * Queue placement is not copied.
  *
- * @param[in] phone	The packet server module phone.
- * @param[in] packet	The original packet.
- * @return		The packet copy.
- * @return		NULL on error.
+ * @param[in] sess   Packet server module session.
+ * @param[in] packet Original packet.
+ *
+ * @return Packet copy.
+ * @return NULL on error.
+ *
  */
-packet_t *packet_get_copy(int phone, packet_t *packet)
+packet_t *packet_get_copy(async_sess_t *sess, packet_t *packet)
 {
-	packet_t *copy;
-	uint8_t * src = NULL;
-	uint8_t * dest = NULL;
-	size_t addrlen;
-
 	if (!packet_is_valid(packet))
 		return NULL;
-
+	
 	/* Get a new packet */
-	copy = packet_get_4_remote(phone, PACKET_DATA_LENGTH(packet),
+	packet_t *copy = packet_get_4_remote(sess, PACKET_DATA_LENGTH(packet),
 	    PACKET_MAX_ADDRESS_LENGTH(packet), packet->max_prefix,
 	    PACKET_MIN_SUFFIX(packet));
+	
 	if (!copy)
 		return NULL;
-
+	
 	/* Get addresses */
-	addrlen = packet_get_addr(packet, &src, &dest);
+	uint8_t *src = NULL;
+	uint8_t *dest = NULL;
+	size_t addrlen = packet_get_addr(packet, &src, &dest);
+	
 	/* Copy data */
 	if ((packet_copy_data(copy, packet_get_data(packet),
 	    PACKET_DATA_LENGTH(packet)) == EOK) &&
@@ -285,7 +286,7 @@ packet_t *packet_get_copy(int phone, packet_t *packet)
 		copy->metric = packet->metric;
 		return copy;
 	} else {
-		pq_release_remote(phone, copy->packet_id);
+		pq_release_remote(sess, copy->packet_id);
 		return NULL;
 	}
 }

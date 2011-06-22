@@ -44,7 +44,7 @@
 
 /** Notify the network interface layer about the device state change.
  *
- * @param[in] nil_phone Network interface layer phone.
+ * @param[in] sess      Network interface layer session.
  * @param[in] device_id Device identifier.
  * @param[in] state     New device state.
  *
@@ -53,9 +53,10 @@
  *         device state function.
  *
  */
-int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
+int nil_device_state_msg(async_sess_t *sess, device_id_t device_id,
+    sysarg_t state)
 {
-	return generic_device_state_msg_remote(nil_phone, NET_NIL_DEVICE_STATE,
+	return generic_device_state_msg_remote(sess, NET_NIL_DEVICE_STATE,
 	    device_id, state, 0);
 }
 
@@ -64,7 +65,7 @@ int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
  * Process and redistribute the received packet queue to the registered
  * upper layers.
  *
- * @param[in] nil_phone Network interface layer phone.
+ * @param[in] sess      Network interface layer session.
  * @param[in] device_id Source device identifier.
  * @param[in] packet    Received packet or the received packet queue.
  * @param[in] target    Target service. Ignored parameter.
@@ -74,10 +75,10 @@ int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
  *         received function.
  *
  */
-int nil_received_msg(int nil_phone, device_id_t device_id,
+int nil_received_msg(async_sess_t *sess, device_id_t device_id,
     packet_t *packet, services_t target)
 {
-	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED,
+	return generic_received_msg_remote(sess, NET_NIL_RECEIVED,
 	    device_id, packet_get_id(packet), target, 0);
 }
 
