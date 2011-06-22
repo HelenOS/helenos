@@ -122,7 +122,7 @@ typedef struct {
 	sysarg_t arg3;           /**< Third argument */
 } pending_conn_t;
 
-static link_t pending_conn;
+static list_t pending_conn;
 
 int service_init(void)
 {
@@ -140,10 +140,8 @@ int service_init(void)
 /** Process pending connection requests */
 void process_pending_conn(void)
 {
-	link_t *cur;
-	
 loop:
-	for (cur = pending_conn.next; cur != &pending_conn; cur = cur->next) {
+	list_foreach(pending_conn, cur) {
 		pending_conn_t *pr = list_get_instance(cur, pending_conn_t, link);
 		
 		unsigned long keys[3] = {

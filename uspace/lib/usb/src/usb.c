@@ -57,6 +57,12 @@ static const char *str_transfer_type_short[] = {
 	"intr"
 };
 
+static const char *str_direction[] = {
+	"in",
+	"out",
+	"both"
+};
+
 /** String representation for USB transfer type.
  *
  * @param t Transfer type.
@@ -81,6 +87,19 @@ const char *usb_str_transfer_type_short(usb_transfer_type_t t)
 		return "invl";
 	}
 	return str_transfer_type_short[t];
+}
+
+/** String representation of USB direction.
+ *
+ * @param d The direction.
+ * @return Direction as a string (in English).
+ */
+const char *usb_str_direction(usb_direction_t d)
+{
+	if (d >= ARR_SIZE(str_direction)) {
+		return "invalid";
+	}
+	return str_direction[d];
 }
 
 /** String representation of USB speed.

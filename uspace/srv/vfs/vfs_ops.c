@@ -324,17 +324,17 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Check if we know a file system with the same name as is in fs_name.
 	 * This will also give us its file system handle.
 	 */
-	fibril_mutex_lock(&fs_head_lock);
+	fibril_mutex_lock(&fs_list_lock);
 	fs_handle_t fs_handle;
 recheck:
 	fs_handle = fs_name_to_handle(fs_name, false);
 	if (!fs_handle) {
 		if (flags & IPC_FLAG_BLOCKING) {
-			fibril_condvar_wait(&fs_head_cv, &fs_head_lock);
+			fibril_condvar_wait(&fs_list_cv, &fs_list_lock);
 			goto recheck;
 		}
 		
-		fibril_mutex_unlock(&fs_head_lock);
+		fibril_mutex_unlock(&fs_list_lock);
 		async_answer_0(callid, ENOENT);
 		async_answer_0(rid, ENOENT);
 		free(mp);
@@ -342,7 +342,7 @@ recheck:
 		free(opts);
 		return;
 	}
-	fibril_mutex_unlock(&fs_head_lock);
+	fibril_mutex_unlock(&fs_list_lock);
 	
 	/* Acknowledge that we know fs_name. */
 	async_answer_0(callid, EOK);

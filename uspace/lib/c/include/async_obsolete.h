@@ -39,9 +39,6 @@
 #ifndef LIBC_ASYNC_OBSOLETE_H_
 #define LIBC_ASYNC_OBSOLETE_H_
 
-extern void async_obsolete_serialize_start(void);
-extern void async_obsolete_serialize_end(void);
-
 #define async_obsolete_send_0(phoneid, method, dataptr) \
 	async_obsolete_send_fast((phoneid), (method), 0, 0, 0, 0, (dataptr))
 #define async_obsolete_send_1(phoneid, method, arg1, dataptr) \

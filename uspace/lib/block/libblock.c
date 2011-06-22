@@ -59,7 +59,7 @@
 /** Lock protecting the device connection list */
 static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
 /** Device connection list head. */
-static LIST_INITIALIZE(dcl_head);
+static LIST_INITIALIZE(dcl);
 
 #define CACHE_BUCKETS_LOG2  10
 #define CACHE_BUCKETS       (1 << CACHE_BUCKETS_LOG2)
@@ -71,7 +71,7 @@ typedef struct {
 	unsigned block_count;     /**< Total number of blocks. */
 	unsigned blocks_cached;   /**< Number of cached blocks. */
 	hash_table_t block_hash;
-	link_t free_head;
+	list_t free_list;
 	enum cache_mode mode;
 } cache_t;
 
@@ -96,11 +96,9 @@ static aoff64_t ba_ltop(devcon_t *, aoff64_t);
 
 static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 {
-	link_t *cur;
-	
 	fibril_mutex_lock(&dcl_lock);
 	
-	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
+	list_foreach(dcl, cur) {
 		devcon_t *devcon = list_get_instance(cur, devcon_t, link);
 		if (devcon->devmap_handle == devmap_handle) {
 			fibril_mutex_unlock(&dcl_lock);
@@ -115,7 +113,6 @@ static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
     size_t bsize, void *comm_area, size_t comm_size)
 {
-	link_t *cur;
 	devcon_t *devcon;
 	
 	if (comm_size < bsize)
@@ -137,7 +134,7 @@ static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
 	devcon->cache = NULL;
 	
 	fibril_mutex_lock(&dcl_lock);
-	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
+	list_foreach(dcl, cur) {
 		devcon_t *d = list_get_instance(cur, devcon_t, link);
 		if (d->devmap_handle == devmap_handle) {
 			fibril_mutex_unlock(&dcl_lock);
@@ -145,7 +142,7 @@ static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
 			return EEXIST;
 		}
 	}
-	list_append(&devcon->link, &dcl_head);
+	list_append(&devcon->link, &dcl);
 	fibril_mutex_unlock(&dcl_lock);
 	return EOK;
 }
@@ -293,7 +290,7 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 		return ENOMEM;
 	
 	fibril_mutex_initialize(&cache->lock);
-	list_initialize(&cache->free_head);
+	list_initialize(&cache->free_list);
 	cache->lblock_size = size;
 	cache->block_count = blocks;
 	cache->blocks_cached = 0;
@@ -334,8 +331,8 @@ int block_cache_fini(devmap_handle_t devmap_handle)
 	 * free list, i.e. the block reference count should be zero. Do not
 	 * bother with the cache and block locks because we are single-threaded.
 	 */
-	while (!list_empty(&cache->free_head)) {
-		block_t *b = list_get_instance(cache->free_head.next,
+	while (!list_empty(&cache->free_list)) {
+		block_t *b = list_get_instance(list_first(&cache->free_list),
 		    block_t, free_link);
 
 		list_remove(&b->free_link);
@@ -366,7 +363,7 @@ static bool cache_can_grow(cache_t *cache)
 {
 	if (cache->blocks_cached < CACHE_LO_WATERMARK)
 		return true;
-	if (!list_empty(&cache->free_head))
+	if (!list_empty(&cache->free_list))
 		return false;
 	return true;
 }
@@ -455,12 +452,12 @@ found:
 			 */
 			unsigned long temp_key;
 recycle:
-			if (list_empty(&cache->free_head)) {
+			if (list_empty(&cache->free_list)) {
 				fibril_mutex_unlock(&cache->lock);
 				rc = ENOMEM;
 				goto out;
 			}
-			l = cache->free_head.next;
+			l = list_first(&cache->free_list);
 			b = list_get_instance(l, block_t, free_link);
 
 			fibril_mutex_lock(&b->lock);
@@ -475,7 +472,7 @@ recycle:
 				 * block_get() draining the free list.
 				 */
 				list_remove(&b->free_link);
-				list_append(&b->free_link, &cache->free_head);
+				list_append(&b->free_link, &cache->free_list);
 				fibril_mutex_unlock(&cache->lock);
 				fibril_mutex_lock(&devcon->comm_area_lock);
 				memcpy(devcon->comm_area, b->data, b->size);
@@ -667,7 +664,7 @@ retry:
 			fibril_mutex_unlock(&cache->lock);
 			goto retry;
 		}
-		list_append(&block->free_link, &cache->free_head);
+		list_append(&block->free_link, &cache->free_list);
 	}
 	fibril_mutex_unlock(&block->lock);
 	fibril_mutex_unlock(&cache->lock);

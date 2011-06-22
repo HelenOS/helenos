@@ -53,6 +53,15 @@ int posix_isatty(int fd)
 }
 
 /**
+ * 
+ * @return
+ */
+int posix_getpagesize(void)
+{
+	return getpagesize();
+}
+
+/**
  *
  * @return
  */

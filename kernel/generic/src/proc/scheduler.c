@@ -236,8 +236,8 @@ loop:
 		/*
 		 * Take the first thread from the queue.
 		 */
-		thread_t *thread =
-		    list_get_instance(CPU->rq[i].rq_head.next, thread_t, rq_link);
+		thread_t *thread = list_get_instance(
+		    list_first(&CPU->rq[i].rq), thread_t, rq_link);
 		list_remove(&thread->rq_link);
 		
 		irq_spinlock_pass(&(CPU->rq[i].lock), &thread->lock);
@@ -272,9 +272,9 @@ loop:
  */
 static void relink_rq(int start)
 {
-	link_t head;
+	list_t list;
 	
-	list_initialize(&head);
+	list_initialize(&list);
 	irq_spinlock_lock(&CPU->lock, false);
 	
 	if (CPU->needs_relink > NEEDS_RELINK_MAX) {
@@ -283,7 +283,7 @@ static void relink_rq(int start)
 			/* Remember and empty rq[i + 1] */
 			
 			irq_spinlock_lock(&CPU->rq[i + 1].lock, false);
-			list_concat(&head, &CPU->rq[i + 1].rq_head);
+			list_concat(&list, &CPU->rq[i + 1].rq);
 			size_t n = CPU->rq[i + 1].n;
 			CPU->rq[i + 1].n = 0;
 			irq_spinlock_unlock(&CPU->rq[i + 1].lock, false);
@@ -291,7 +291,7 @@ static void relink_rq(int start)
 			/* Append rq[i + 1] to rq[i] */
 			
 			irq_spinlock_lock(&CPU->rq[i].lock, false);
-			list_concat(&CPU->rq[i].rq_head, &head);
+			list_concat(&CPU->rq[i].rq, &list);
 			CPU->rq[i].n += n;
 			irq_spinlock_unlock(&CPU->rq[i].lock, false);
 		}
@@ -615,9 +615,9 @@ not_satisfied:
 			thread_t *thread = NULL;
 			
 			/* Search rq from the back */
-			link_t *link = cpu->rq[rq].rq_head.prev;
+			link_t *link = cpu->rq[rq].rq.head.prev;
 			
-			while (link != &(cpu->rq[rq].rq_head)) {
+			while (link != &(cpu->rq[rq].rq.head)) {
 				thread = (thread_t *) list_get_instance(link,
 				    thread_t, rq_link);
 				
@@ -739,11 +739,9 @@ void sched_print_list(void)
 			}
 			
 			printf("\trq[%u]: ", i);
-			link_t *cur;
-			for (cur = cpus[cpu].rq[i].rq_head.next;
-			    cur != &(cpus[cpu].rq[i].rq_head);
-			    cur = cur->next) {
-				thread_t *thread = list_get_instance(cur, thread_t, rq_link);
+			list_foreach(cpus[cpu].rq[i].rq, cur) {
+				thread_t *thread = list_get_instance(cur,
+				    thread_t, rq_link);
 				printf("%" PRIu64 "(%s) ", thread->tid,
 				    thread_states[thread->state]);
 			}

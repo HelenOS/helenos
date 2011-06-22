@@ -165,16 +165,6 @@ int async_obsolete_hangup(int phone)
 	return ipc_hangup(phone);
 }
 
-void async_obsolete_serialize_start(void)
-{
-	fibril_inc_sercount();
-}
-
-void async_obsolete_serialize_end(void)
-{
-	fibril_dec_sercount();
-}
-
 /** Wrapper for IPC_M_DATA_WRITE calls using the async framework.
  *
  * @param phoneid Phone that will be used to contact the receiving side.

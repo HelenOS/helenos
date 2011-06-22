@@ -51,6 +51,8 @@
 #include <usb/hid/hidparser.h>
 #include <usb/hid/hiddescriptor.h>
 #include <usb/hid/usages/consumer.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <assert.h>
 
 #define NAME "mkbd"
@@ -167,6 +169,33 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	usb_hid_report_path_free(path);
 }
 
+static int wait_for_quit_fibril(void *arg)
+{
+	console_ctrl_t *con = console_init(stdin, stdout);
+
+	printf("Press <ESC> to quit the application.\n");
+
+	while (1) {
+		kbd_event_t ev;
+		bool ok = console_get_kbd_event(con, &ev);
+		if (!ok) {
+			printf("Connection with console broken: %s.\n",
+			    str_error(errno));
+			break;
+		}
+
+		if (ev.key == KC_ESCAPE) {
+			break;
+		}
+	}
+
+	console_done(con);
+
+	exit(0);
+
+	return EOK;
+}
+
 #define MAX_PATH_LENGTH 1024
 
 static void print_usage(char *app_name)
@@ -241,6 +270,13 @@ int main(int argc, char *argv[])
 		return ENOMEM;
 	}
 	
+	fid_t quit_fibril = fibril_create(wait_for_quit_fibril, NULL);
+	if (quit_fibril == 0) {
+		printf("Failed to start extra fibril.\n");
+		return -1;
+	}
+	fibril_add_ready(quit_fibril);
+
 	size_t actual_size;
 	int event_nr;
 	

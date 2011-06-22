@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
 	printf("PING %s (%s) %zu(%zu) bytes of data\n", config.dest_addr,
 	    config.dest_str, config.size, config.size);
 	
-	int icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
+	int icmp_phone = icmp_connect_module();
 	if (icmp_phone < 0) {
 		fprintf(stderr, "%s: Unable to connect to ICMP service (%s)\n", NAME,
 		    str_error(icmp_phone));

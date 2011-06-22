@@ -395,7 +395,7 @@ int tl_initialize(int net_phone)
 	
 	udp_globals.net_phone = net_phone;
 	
-	udp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
+	udp_globals.icmp_phone = icmp_connect_module();
 	
 	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
 	    SERVICE_UDP, udp_receiver);

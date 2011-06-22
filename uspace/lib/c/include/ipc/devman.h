@@ -71,7 +71,7 @@ typedef struct match_id {
  * according to match scores in descending order.
  */
 typedef struct match_id_list {
-	link_t ids;
+	list_t ids;
 } match_id_list_t;
 
 static inline match_id_t *create_match_id(void)
@@ -94,13 +94,13 @@ static inline void delete_match_id(match_id_t *id)
 static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 {
 	match_id_t *mid = NULL;
-	link_t *link = ids->ids.next;
+	link_t *link = ids->ids.head.next;
 	
-	while (link != &ids->ids) {
+	while (link != &ids->ids.head) {
 		mid = list_get_instance(link, match_id_t,link);
 		if (mid->score < id->score) {
 			break;
-		}	
+		}
 		link = link->next;
 	}
 	
@@ -117,12 +117,12 @@ static inline void clean_match_ids(match_id_list_t *ids)
 	link_t *link = NULL;
 	match_id_t *id;
 	
-	while(!list_empty(&ids->ids)) {
-		link = ids->ids.next;
-		list_remove(link);		
+	while (!list_empty(&ids->ids)) {
+		link = list_first(&ids->ids);
+		list_remove(link);
 		id = list_get_instance(link, match_id_t, link);
-		delete_match_id(id);		
-	}	
+		delete_match_id(id);
+	}
 }
 
 typedef enum {

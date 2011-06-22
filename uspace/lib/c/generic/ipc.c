@@ -457,7 +457,7 @@ static void dispatch_queued_calls(void)
 	
 	while (!list_empty(&queued_calls)) {
 		async_call_t *call =
-		    list_get_instance(queued_calls.next, async_call_t, list);
+		    list_get_instance(list_first(&queued_calls), async_call_t, list);
 		ipc_callid_t callid =
 		    ipc_call_async_internal(call->u.msg.phoneid, &call->u.msg.data);
 		
@@ -510,7 +510,7 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 	futex_down(&ipc_futex);
 	
 	link_t *item;
-	for (item = dispatched_calls.next; item != &dispatched_calls;
+	for (item = dispatched_calls.head.next; item != &dispatched_calls.head;
 	    item = item->next) {
 		async_call_t *call =
 		    list_get_instance(item, async_call_t, list);

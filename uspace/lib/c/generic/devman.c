@@ -34,6 +34,7 @@
 /** @file
  */
 
+#include <adt/list.h>
 #include <str.h>
 #include <ipc/services.h>
 #include <ns.h>
@@ -230,10 +231,9 @@ int devman_add_function(const char *name, fun_type_t ftype,
 		return retval;
 	}
 	
-	link_t *link = match_ids->ids.next;
 	match_id_t *match_id = NULL;
 	
-	while (link != &match_ids->ids) {
+	list_foreach(match_ids->ids, link) {
 		match_id = list_get_instance(link, match_id_t, link);
 		
 		ipc_call_t answer2;
@@ -254,8 +254,6 @@ int devman_add_function(const char *name, fun_type_t ftype,
 			async_wait_for(req, NULL);
 			return retval;
 		}
-		
-		link = link->next;
 	}
 	
 	devman_exchange_end(exch);

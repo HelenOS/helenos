@@ -80,8 +80,6 @@ DIRS = \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
 	srv/fs/ext2fs \
-	srv/hid/adb_mouse \
-	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
@@ -95,22 +93,22 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root \
-	drv/rootvirt \
-	drv/test1 \
-	drv/test2 \
-	drv/test3 \
-	drv/ehci_hcd \
-	drv/ohci \
-	drv/uhci_hcd \
-	drv/uhci_rhd \
-	drv/usbflbk \
-	drv/usbhid \
-	drv/usbhub \
-	drv/usbmast \
-	drv/usbmid \
-	drv/usbmouse \
-	drv/vhc
+	drv/infrastructure/root \
+	drv/infrastructure/rootvirt \
+	drv/test/test1 \
+	drv/test/test2 \
+	drv/test/test3 \
+	drv/bus/usb/ehci \
+	drv/bus/usb/ohci \
+	drv/bus/usb/uhci \
+	drv/bus/usb/uhcirh \
+	drv/bus/usb/usbflbk \
+	drv/bus/usb/usbhid \
+	drv/bus/usb/usbhub \
+	drv/bus/usb/usbmast \
+	drv/bus/usb/usbmid \
+	drv/bus/usb/usbmouse \
+	drv/bus/usb/vhc
 
 ifeq ($(CONFIG_BINUTILS),y)
 DIRS += \
@@ -133,26 +131,28 @@ endif
 
 ifeq ($(UARCH),amd64)
 	DIRS += \
-		drv/rootpc \
-		drv/pciintel \
-		drv/isa \
-		drv/ns8250 \
+		drv/infrastructure/rootpc \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
 	DIRS += \
-		drv/rootpc \
-		drv/pciintel \
-		drv/isa \
-		drv/ns8250 \
+		drv/infrastructure/rootpc \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
-	DIRS += srv/hw/bus/cuda_adb
+	DIRS += \
+		drv/infrastructure/rootmac \
+		srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)

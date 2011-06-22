@@ -32,7 +32,7 @@
  */
 /**
  * @file
- * @brief	Serial TTY-like keyboard controller driver.
+ * @brief Serial TTY-like keyboard controller driver.
  */
 
 #include <kbd.h>
@@ -42,12 +42,12 @@
 #include <gsp.h>
 #include <stroke.h>
 
-static void stty_ctl_parse_scancode(int);
+static void stty_ctl_parse(sysarg_t);
 static int stty_ctl_init(kbd_dev_t *);
-static void stty_ctl_set_ind(kbd_dev_t *, unsigned);
+static void stty_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 kbd_ctl_ops_t stty_ctl = {
-	.parse_scancode = stty_ctl_parse_scancode,
+	.parse = stty_ctl_parse,
 	.init = stty_ctl_init,
 	.set_ind = stty_ctl_set_ind
 };
@@ -227,7 +227,7 @@ static int stty_ctl_init(kbd_dev_t *kdev)
 	return gsp_insert_defs(&sp, seq_defs);
 }
 
-static void stty_ctl_parse_scancode(int scancode)
+static void stty_ctl_parse(sysarg_t scancode)
 {
 	unsigned mods, key;
 

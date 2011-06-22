@@ -138,7 +138,7 @@ void elf_share(as_area_t *area)
 	 * Find the node in which to start linear search.
 	 */
 	if (area->flags & AS_AREA_WRITE) {
-		node = list_get_instance(area->used_space.leaf_head.next,
+		node = list_get_instance(list_first(&area->used_space.leaf_list),
 		    btree_node_t, leaf_link);
 	} else {
 		(void) btree_search(&area->sh_info->pagemap, start_anon, &leaf);
@@ -152,7 +152,7 @@ void elf_share(as_area_t *area)
 	 * Copy used anonymous portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head;
+	for (cur = &node->leaf_link; cur != &area->used_space.leaf_list.head;
 	    cur = cur->next) {
 		unsigned int i;
 		

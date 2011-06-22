@@ -108,9 +108,8 @@ static void msim_port_write(uint8_t data)
 
 static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
-	int scan_code = IPC_GET_ARG2(*call);
-	kbd_push_scancode(kbd_dev, scan_code);
+	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
 }
 
 /** @}
-*/
+ */

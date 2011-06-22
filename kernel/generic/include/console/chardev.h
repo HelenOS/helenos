@@ -87,7 +87,7 @@ typedef struct outdev {
 	
 	/** Fields suitable for multiplexing. */
 	link_t link;
-	link_t list;
+	list_t list;
 	
 	/** Implementation of outdev operations. */
 	outdev_operations_t *op;

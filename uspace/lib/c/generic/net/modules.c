@@ -113,31 +113,8 @@ void answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
 int bind_service(services_t need, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     async_client_conn_t client_receiver)
 {
-	return bind_service_timeout(need, arg1, arg2, arg3, client_receiver, 0);
-}
-
-/** Create bidirectional connection with the needed module service and registers
- * the message receiver.
- *
- * @param[in] need	The needed module service.
- * @param[in] arg1	The first parameter.
- * @param[in] arg2	The second parameter.
- * @param[in] arg3	The third parameter.
- * @param[in] client_receiver The message receiver.
- * @param[in] timeout	The connection timeout in microseconds. No timeout if
- * 			set to zero (0).
- *
- * @return		The phone of the needed service.
- * @return		ETIMEOUT if the connection timeouted.
- * @return		Other error codes as defined for the ipc_connect_to_me()
- *			function.
- *
- */
-int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
-{
 	/* Connect to the needed service */
-	int phone = connect_to_service_timeout(need, timeout);
+	int phone = connect_to_service(need);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
 		int rc = async_obsolete_connect_to_me(phone, arg1, arg2, arg3,
@@ -158,39 +135,7 @@ int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
  */
 int connect_to_service(services_t need)
 {
-	return connect_to_service_timeout(need, 0);
-}
-
-/** Connects to the needed module.
- *
- *  @param[in] need	The needed module service.
- *  @param[in] timeout	The connection timeout in microseconds. No timeout if
- *			set to zero (0).
- *  @return		The phone of the needed service.
- *  @return		ETIMEOUT if the connection timeouted.
- */
-int connect_to_service_timeout(services_t need, suseconds_t timeout)
-{
-	int phone;
-
-	/* If no timeout is set */
-	if (timeout <= 0)
-		return service_obsolete_connect_blocking(need, 0, 0);
-	
-	while (true) {
-		phone = service_obsolete_connect(need, 0, 0);
-		if ((phone >= 0) || (phone != ENOENT))
-			return phone;
-
-		/* Abort if no time is left */
-		if (timeout <= 0)
-			return ETIMEOUT;
-
-		/* Wait the minimum of the module wait time and the timeout */
-		usleep((timeout <= MODULE_WAIT_TIME) ?
-		    timeout : MODULE_WAIT_TIME);
-		timeout -= MODULE_WAIT_TIME;
-	}
+	return service_obsolete_connect_blocking(need, 0, 0);
 }
 
 /** Replies the data to the other party.

@@ -53,6 +53,9 @@ extern char **posix_environ;
 /* Identifying Terminals */
 extern int posix_isatty(int fd);
 
+/* Query Memory Parameters */
+extern int posix_getpagesize(void);
+
 /* Process Identification */
 #define getpid task_get_id
 extern posix_uid_t posix_getuid(void);
@@ -86,10 +89,36 @@ enum {
 };
 extern long posix_sysconf(int name);
 
+/* Path Configuration Parameters */
+enum {
+	_PC_2_SYMLINKS,
+	_PC_ALLOC_SIZE_MIN,
+	_PC_ASYNC_IO,
+	_PC_CHOWN_RESTRICTED,
+	_PC_FILESIZEBITS,
+	_PC_LINK_MAX,
+	_PC_MAX_CANON,
+	_PC_MAX_INPUT,
+	_PC_NAME_MAX,
+	_PC_NO_TRUNC,
+	_PC_PATH_MAX,
+	_PC_PIPE_BUF,
+	_PC_PRIO_IO,
+	_PC_REC_INCR_XFER_SIZE,
+	_PC_REC_MIN_XFER_SIZE,
+	_PC_REC_XFER_ALIGN,
+	_PC_SYMLINK_MAX,
+	_PC_SYNC_IO,
+	_PC_VDISABLE
+};
+
 #ifndef LIBPOSIX_INTERNAL
 	#define environ posix_environ
 
 	#define isatty posix_isatty
+
+	#undef getpagesize
+	#define getpagesize posix_getpagesize
 
 	#define getuid posix_getuid
 	#define getgid posix_getgid
