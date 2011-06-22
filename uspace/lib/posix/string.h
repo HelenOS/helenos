@@ -132,7 +132,6 @@ extern int posix_ffs(int i);
 
 	#define strerror posix_strerror
 	#define strerror_r posix_strerror_r
-	#define strsignal(i) ((char *) "SIGNonSense: There are no signals in HelenOS.")
 
 	#define strlen posix_strlen
 	#define strnlen posix_strnlen

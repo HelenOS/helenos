@@ -39,7 +39,7 @@ EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
 	ctype.c \
-	getopt.c \
+	fcntl.c \
 	stdio.c \
 	stdlib.c \
 	stdlib/strtold.c \
