@@ -55,6 +55,7 @@ static aoff64_t mfs_size_get(fs_node_t *node);
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
 static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
+static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
 
 static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 			fs_index_t index);
@@ -76,6 +77,7 @@ libfs_ops_t mfs_libfs_ops = {
 	.match = mfs_match,
 	.create = mfs_create_node,
 	.link = mfs_link,
+	.unlink = mfs_unlink,
 	.plb_get_char = mfs_plb_get_char,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
@@ -432,14 +434,12 @@ static fs_index_t mfs_index_get(fs_node_t *fsnode)
 
 static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 {
-	unsigned rc;
 	struct mfs_node *mnode = fsnode->data;
 
 	assert(mnode);
 	assert(mnode->ino_i);
 
-	rc = mnode->ino_i->i_nlinks;
-	return rc;
+	return mnode->ino_i->i_nlinks;;
 }
 
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
@@ -535,6 +535,35 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 exit_error:
 	return r;
+}
+
+static int
+mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+{
+	struct mfs_node *parent = pfn->data;
+	struct mfs_node *child = cfn->data;
+	bool has_children;
+	int r;
+
+	if (!parent)
+		return EBUSY;
+
+	r = mfs_has_children(&has_children, cfn);
+	on_error(r, return r);
+	if (has_children)
+		return ENOTEMPTY;
+
+	r = remove_dentry(parent, name);
+	on_error(r, return r);
+
+	struct mfs_ino_info *chino = child->ino_i;
+
+	assert(chino->i_nlinks >= 1);
+	--chino->i_nlinks;
+
+	chino->dirty = true;
+
+	return EOK;
 }
 
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
