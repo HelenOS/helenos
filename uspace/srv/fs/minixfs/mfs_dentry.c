@@ -140,6 +140,38 @@ out:
 }
 
 int
+remove_dentry(struct mfs_node *mnode, const char *d_name)
+{
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	struct mfs_dentry_info *d_info;
+	int i, r;
+
+	const size_t name_len = str_size(d_name);
+
+	if (name_len > sbi->max_name_len)
+		return ENAMETOOLONG;
+
+	/*Search the directory entry to be removed*/
+	for (i = 0; ; ++i) {
+		r = read_directory_entry(mnode, &d_info, i);
+		on_error(r, return r);
+
+		if (!d_info) {
+			/*Reached the end of the dentries list*/
+			break;
+		}
+
+		if (!bcmp(d_info->d_name, d_name, name_len)) {
+			d_info->d_inum = 0;
+			r = write_dentry(d_info);
+			return r;
+		}
+	}
+
+	return ENOENT;
+}
+
+int
 insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 {
 	int i, r;
@@ -149,7 +181,8 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 	const size_t name_len = str_size(d_name);
 
-	assert(name_len <= sbi->max_name_len);
+	if (name_len > sbi->max_name_len)
+		return ENAMETOOLONG;
 
 	/*Search for an empty dentry*/
 

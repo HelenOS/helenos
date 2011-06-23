@@ -47,7 +47,7 @@
 
 #define NAME		"mfs"
 
-#define DEBUG_MODE
+//#define DEBUG_MODE
 
 #define min(a, b)	((a) < (b) ? (a) : (b))
 
@@ -208,6 +208,9 @@ read_directory_entry(struct mfs_node *mnode,
 
 extern int
 write_dentry(struct mfs_dentry_info *d_info);
+
+extern int
+remove_dentry(struct mfs_node *mnode, const char *d_name);
 
 extern int
 insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
