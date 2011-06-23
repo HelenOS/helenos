@@ -35,7 +35,14 @@
 #ifndef POSIX_MATH_H_
 #define POSIX_MATH_H_
 
-/* Empty. Just to satisfy preprocessor. */
+/* Normalization Functions */
+extern double posix_ldexp(double x, int exp);
+extern double posix_frexp(double num, int *exp);
+
+#ifndef LIBPOSIX_INTERNAL
+	#define ldexp posix_ldexp
+	#define frexp posix_frexp
+#endif
 
 #endif /* POSIX_MATH_H_ */
 

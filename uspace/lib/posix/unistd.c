@@ -37,6 +37,7 @@
 
 #include "internal/common.h"
 #include "unistd.h"
+#include <task.h>
 
 /* Array of environment variable strings (NAME=VALUE). */
 char **environ = NULL;
@@ -60,6 +61,15 @@ int posix_isatty(int fd)
 int posix_getpagesize(void)
 {
 	return getpagesize();
+}
+
+/**
+ * 
+ * @return
+ */
+posix_pid_t posix_getpid(void)
+{
+	return task_get_id();
 }
 
 /**
@@ -102,6 +112,63 @@ int posix_access(const char *path, int amode)
 long posix_sysconf(int name)
 {
 	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param path
+ * @param name
+ * @return
+ */
+long posix_pathconf(const char *path, int name)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @return
+ */
+posix_pid_t posix_fork(void)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param path
+ * @param argv
+ * @return
+ */
+int posix_execv(const char *path, char *const argv[])
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param file
+ * @param argv
+ * @return
+ */
+int posix_execvp(const char *file, char *const argv[])
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param fildes
+ * @return
+ */
+int posix_pipe(int fildes[2])
+{
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 

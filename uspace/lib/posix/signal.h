@@ -55,6 +55,7 @@
 
 #define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
 #define raise(sig) ((int) -1)
+#define kill(pid,sig) (errno = ENOTSUP, (int) -1)
 
 typedef int posix_sig_atomic_t;
 

@@ -38,6 +38,7 @@
 
 #include "libc/stdio.h"
 #include "sys/types.h"
+#include "libc/stdarg.h"
 
 /* Character Input/Output */
 #define putc fputc
@@ -59,7 +60,14 @@ extern posix_off_t posix_ftello(FILE *stream);
 
 /* Formatted Input/Output */
 extern int posix_sprintf(char *restrict s, const char *restrict format, ...);
+extern int posix_vsprintf(char *restrict s, const char *restrict format, va_list ap);
 extern int posix_sscanf(const char *restrict s, const char *restrict format, ...);
+
+/* Deleting Files */
+extern int posix_remove(const char *path);
+
+/* Temporary Files */
+extern char *posix_tmpnam(char *s);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define ungetc posix_ungetc
@@ -72,7 +80,12 @@ extern int posix_sscanf(const char *restrict s, const char *restrict format, ...
 	#define ftello posix_ftello
 
 	#define sprintf posix_sprintf
+	#define vsprintf posix_vsprintf
 	#define sscanf posix_sscanf
+
+	#define remove posix_remove
+
+	#define tmpnam posix_tmpnam
 #endif
 
 #endif /* POSIX_STDIO_H_ */

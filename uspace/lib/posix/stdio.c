@@ -166,9 +166,44 @@ int posix_sprintf(char *s, const char *format, ...)
  * @param ...
  * @return
  */
+int posix_vsprintf(char *s, const char *format, va_list ap)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param s
+ * @param format
+ * @param ...
+ * @return
+ */
 int posix_sscanf(const char *s, const char *format, ...)
 {
 	// TODO
+	not_implemented();
+}
+
+/**
+ *
+ * @param path
+ * @return
+ */
+int posix_remove(const char *path)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param s
+ * @return
+ */
+char *posix_tmpnam(char *s)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 
