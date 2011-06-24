@@ -65,6 +65,13 @@
 # script of ld 2.21 (and possibly above), where plugin support
 # became mandatory (although not really needed).
 #
+# Patch 4
+# Whereas most systems maps pid_t to signed type, HelenOS maps it
+# to unsigned type. This causes some type incompatibility in libiberty
+# files related to executing a subprocess. Since both as and ld are
+# not runtime dependent on this functionality, the simplest solution is
+# to patch libiberty to avoid compiler warnings.
+#
 
 case "$1" in
 	"do")
@@ -75,6 +82,7 @@ case "$1" in
 		cp -f "$2/intl/configure" "$2/intl/configure.backup"
 		cp -f "$2/ld/configure" "$2/ld/configure.backup"
 		cp -f "$2/libiberty/configure" "$2/libiberty/configure.backup"
+		cp -f "$2/libiberty/pex-common.h" "$2/libiberty/pex-common.h.backup"
 		cp -f "$2/opcodes/configure" "$2/opcodes/configure.backup"
 
 		# Patch main binutils configure script.
@@ -115,6 +123,12 @@ case "$1" in
 		sed 's/^cross_compiling=no/cross_compiling=yes/g' \
 		> "$2/libiberty/configure"
 
+		# Patch libiberty pex-common.h.
+		cat "$2/libiberty/pex-common.h.backup" | \
+		# See Patch 4.
+		sed 's/pid_t (\*wait)/int (*wait)/g' \
+		> "$2/libiberty/pex-common.h"
+
 		# Patch opcodes configure script.
 		cat "$2/opcodes/configure.backup" | \
 		# See Patch 1.
@@ -132,6 +146,7 @@ case "$1" in
 		mv -f "$2/intl/configure.backup" "$2/intl/configure"
 		mv -f "$2/ld/configure.backup" "$2/ld/configure"
 		mv -f "$2/libiberty/configure.backup" "$2/libiberty/configure"
+		mv -f "$2/libiberty/pex-common.h.backup" "$2/libiberty/pex-common.h"
 		mv -f "$2/opcodes/configure.backup" "$2/opcodes/configure"
 		;;
 	*)
