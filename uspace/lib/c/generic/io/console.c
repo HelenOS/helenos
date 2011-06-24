@@ -75,11 +75,7 @@ void console_done(console_ctrl_t *ctrl)
 
 bool console_kcon(void)
 {
-#if 0
 	return __SYSCALL0(SYS_DEBUG_ACTIVATE_CONSOLE);
-#endif
-	
-	return false;
 }
 
 void console_flush(console_ctrl_t *ctrl)

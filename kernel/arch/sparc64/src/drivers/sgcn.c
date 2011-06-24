@@ -101,7 +101,7 @@
 /** Returns a pointer to the console buffer header. */
 #define SGCN_BUFFER_HEADER  (SGCN_BUFFER(sgcn_buffer_header_t, 0))
 
-static void sgcn_putchar(outdev_t *, const wchar_t, bool);
+static void sgcn_putchar(outdev_t *, const wchar_t);
 
 static outdev_operations_t sgcndev_ops = {
 	.write = sgcn_putchar,
@@ -110,24 +110,14 @@ static outdev_operations_t sgcndev_ops = {
 
 static sgcn_instance_t *instance = NULL;
 
-/**
- * Set some sysinfo values (SRAM address and SRAM size).
- */
-static void register_sram(uintptr_t sram_begin_physical)
-{
-	sysinfo_set_item_val("sram.area.size", NULL, MAPPED_AREA_SIZE);
-	sysinfo_set_item_val("sram.address.physical", NULL,
-	    sram_begin_physical);
-}
-
-/**
- * Initializes the starting address of SRAM.
+/** Initialize the starting address of SRAM.
  *
  * The SRAM starts 0x900000 + C bytes behind the SBBC start in the
  * physical memory, where C is the value read from the "iosram-toc"
  * property of the "/chosen" OBP node. The sram_begin variable will
  * be set to the virtual address which maps to the SRAM physical
  * address.
+ *
  */
 static void init_sram_begin(void)
 {
@@ -148,13 +138,22 @@ static void init_sram_begin(void)
 	    + *((uint32_t *) iosram_toc->value);
 	instance->sram_begin = hw_map(sram_begin_physical, MAPPED_AREA_SIZE);
 	
-	register_sram(sram_begin_physical);
+	link_initialize(&instance->parea.link);
+	instance->parea.pbase = sram_begin_physical;
+	instance->parea.frames = SIZE2FRAMES(MAPPED_AREA_SIZE);
+	instance->parea.unpriv = false;
+	instance->parea.mapped = false;
+	ddi_parea_register(&instance->parea);
+	
+	sysinfo_set_item_val("sram.area.size", NULL, MAPPED_AREA_SIZE);
+	sysinfo_set_item_val("sram.address.physical", NULL,
+	    sram_begin_physical);
 }
 
-/**
- * Function regularly called by the keyboard polling thread. Finds out whether
- * there are some unread characters in the input queue. If so, it picks them up
- * and sends them to the upper layers of HelenOS.
+/** Get unread characters from the input queue.
+ *
+ * Check for unread characters in the input queue.
+ *
  */
 static void sgcn_poll(sgcn_instance_t *instance)
 {
@@ -162,12 +161,12 @@ static void sgcn_poll(sgcn_instance_t *instance)
 	uint32_t end = SGCN_BUFFER_HEADER->in_end;
 	uint32_t size = end - begin;
 	
-	if (silent)
+	if ((instance->parea.mapped) && (!console_override))
 		return;
 	
 	spinlock_lock(&instance->input_lock);
 	
-	/* we need pointers to volatile variables */
+	/* We need pointers to volatile variables */
 	volatile char *buf_ptr = (volatile char *)
 	    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
 	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
@@ -185,28 +184,26 @@ static void sgcn_poll(sgcn_instance_t *instance)
 	spinlock_unlock(&instance->input_lock);
 }
 
-/**
- * Polling thread function.
+/** Polling thread function.
+ *
  */
 static void ksgcnpoll(void *instance) {
 	while (true) {
-		if (!silent)
-			sgcn_poll(instance);
-		
+		sgcn_poll(instance);
 		thread_usleep(POLL_INTERVAL);
 	}
 }
 
-/**
- * Initializes the starting address of the SGCN buffer.
+/** Initialize the starting address of the SGCN buffer.
  *
  * The offset of the SGCN buffer within SRAM is obtained from the
  * SRAM table of contents. The table of contents contains
  * information about several buffers, among which there is an OBP
- * console buffer - this one will be used as the SGCN buffer. 
+ * console buffer -- this one will be used as the SGCN buffer.
  *
  * This function also writes the offset of the SGCN buffer within SRAM
  * under the sram.buffer.offset sysinfo key.
+ *
  */
 static void sgcn_init(void)
 {
@@ -247,10 +244,12 @@ static void sgcn_init(void)
 	}
 }
 
-/**
- * Writes a single character to the SGCN (circular) output buffer
- * and updates the output write pointer so that SGCN gets to know
+/** Write a single character to the SGCN output buffer
+ *
+ * Write a single character to the SGCN (circular) output buffer
+ * and update the output write pointer so that SGCN gets to know
  * that the character has been written.
+ *
  */
 static void sgcn_do_putchar(const char c)
 {
@@ -285,13 +284,15 @@ static void sgcn_do_putchar(const char c)
 	*out_wrptr_ptr = new_wrptr;
 }
 
-/**
- * SGCN output operation. Prints a single character to the SGCN. Newline
+/** SGCN output operation
+ *
+ * Print a single character to the SGCN. Newline
  * character is converted to CRLF.
+ *
  */
-static void sgcn_putchar(outdev_t *dev, const wchar_t ch, bool silent)
+static void sgcn_putchar(outdev_t *dev, const wchar_t ch)
 {
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		spinlock_lock(&instance->output_lock);
 		
 		if (ascii_check(ch)) {
@@ -305,8 +306,8 @@ static void sgcn_putchar(outdev_t *dev, const wchar_t ch, bool silent)
 	}
 }
 
-/**
- * A public function which initializes input from the Serengeti console.
+/** Initialize input from the Serengeti console.
+ *
  */
 sgcn_instance_t *sgcnin_init(void)
 {
@@ -325,8 +326,8 @@ void sgcnin_wire(sgcn_instance_t *instance, indev_t *srlnin)
 	sysinfo_set_item_val("kbd", NULL, true);
 }
 
-/**
- * A public function which initializes output to the Serengeti console.
+/** Initialize output to the Serengeti console.
+ *
  */
 outdev_t *sgcnout_init(void)
 {

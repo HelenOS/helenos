@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -39,6 +39,7 @@
 #include <console/chardev.h>
 #include <proc/thread.h>
 #include <synch/spinlock.h>
+#include <ddi/ddi.h>
 
 /* number of bytes in the TOC magic, including the NULL-terminator */
 #define TOC_MAGIC_BYTES  8
@@ -124,6 +125,9 @@ typedef struct {
 	
 	/** Starting address of the SGCN buffer */
 	uintptr_t buffer_begin;
+	
+	/** Physical memory area */
+	parea_t parea;
 	
 	/**
 	 * Ensure that writing to the buffer and consequent

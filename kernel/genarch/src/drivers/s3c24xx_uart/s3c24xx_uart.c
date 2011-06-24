@@ -43,6 +43,7 @@
 #include <ddi/device.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
+#include <mm/page.h>
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 
@@ -58,13 +59,16 @@ static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 	pio_write_32(&uart->io->utxh, byte);
 }
 
-static void s3c24xx_uart_putchar(outdev_t *dev, wchar_t ch, bool silent)
+static void s3c24xx_uart_putchar(outdev_t *dev, wchar_t ch)
 {
-	if (!silent) {
+	s3c24xx_uart_t *uart =
+	    (s3c24xx_uart_t *) dev->data;
+	
+	if ((!uart->parea.mapped) || (console_override)) {
 		if (!ascii_check(ch)) {
 			s3c24xx_uart_sendb(dev, U_SPECIAL);
 		} else {
-    			if (ch == '\n')
+			if (ch == '\n')
 				s3c24xx_uart_sendb(dev, (uint8_t) '\r');
 			s3c24xx_uart_sendb(dev, (uint8_t) ch);
 		}
@@ -92,7 +96,7 @@ static outdev_operations_t s3c24xx_uart_ops = {
 	.redraw = NULL
 };
 
-outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
+outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 {
 	outdev_t *uart_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!uart_dev)
@@ -108,7 +112,7 @@ outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
 	outdev_initialize("s3c24xx_uart_dev", uart_dev, &s3c24xx_uart_ops);
 	uart_dev->data = uart;
 
-	uart->io = io;
+	uart->io = (s3c24xx_uart_io_t *) hw_map(paddr, PAGE_SIZE);
 	uart->indev = NULL;
 
 	/* Initialize IRQ structure. */
@@ -126,15 +130,23 @@ outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
 	/* Set RX interrupt to pulse mode */
 	pio_write_32(&uart->io->ucon,
 	    pio_read_32(&uart->io->ucon) & ~UCON_RX_INT_LEVEL);
-
+	
+	link_initialize(&uart->parea.link);
+	uart->parea.pbase = paddr;
+	uart->parea.frames = 1;
+	uart->parea.unpriv = false;
+	uart->parea.mapped = false;
+	ddi_parea_register(&uart->parea);
+	
 	if (!fb_exported) {
 		/*
-		 * This is the necessary evil until the userspace driver is entirely
+		 * This is the necessary evil until
+		 * the userspace driver is entirely
 		 * self-sufficient.
 		 */
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 3);
-		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(io));
+		sysinfo_set_item_val("fb.address.physical", NULL, paddr);
 
 		fb_exported = true;
 	}
