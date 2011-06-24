@@ -38,9 +38,11 @@
 #include "types.h"
 
 extern posix_pid_t posix_wait(int *stat_ptr);
+extern posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define wait posix_wait
+	#define waitpid	posix_waitpid
 #endif
 
 #endif /* POSIX_SYS_WAIT_H_ */

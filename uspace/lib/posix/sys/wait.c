@@ -49,6 +49,19 @@ posix_pid_t posix_wait(int *stat_ptr)
 	not_implemented();
 }
 
+/**
+ * 
+ * @param pid
+ * @param stat_ptr
+ * @param options
+ * @return
+ */
+posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
 /** @}
  */
 
