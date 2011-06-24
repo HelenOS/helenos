@@ -35,7 +35,57 @@
 #ifndef POSIX_STDINT_H_
 #define POSIX_STDINT_H_
 
-#include "libc/stdint.h"
+#undef INT8_MAX
+#undef INT8_MIN
+#define INT8_MAX  127
+#define INT8_MIN  (-128)
+
+#undef UINT8_MAX
+#undef UINT8_MIN
+#define UINT8_MAX  255
+#define UINT8_MIN  0
+
+#undef INT16_MAX
+#undef INT16_MIN
+#define INT16_MAX  32767
+#define INT16_MIN  (-32768)
+
+#undef UINT16_MAX
+#undef UINT16_MIN
+#define UINT16_MAX  65535
+#define UINT16_MIN  0
+
+#undef INT32_MAX
+#undef INT32_MIN
+#define INT32_MAX  2147483647
+#define INT32_MIN  (-INT32_MAX - 1)
+
+#undef UINT32_MAX
+#undef UINT32_MIN
+#define UINT32_MAX  4294967295U
+#define UINT32_MIN  0U
+
+#undef INT64_MAX
+#undef INT64_MIN
+#define INT64_MAX  9223372036854775807LL
+#define INT64_MIN  (-INT64_MAX - 1LL)
+
+#undef UINT64_MAX
+#undef  UINT64_MIN
+#define UINT64_MAX  18446744073709551615ULL
+#define UINT64_MIN  0ULL
+
+#undef OFF64_MAX
+#undef OFF64_MIN
+#define OFF64_MAX  INT64_MAX
+#define OFF64_MIN  INT64_MIN
+
+#undef AOFF64_MAX
+#undef AOFF64_MIN
+#define AOFF64_MAX  UINT64_MAX
+#define AOFF64_MIN  UINT64_MIN
+
+#include "libc/sys/types.h"
 
 typedef int64_t posix_intmax_t;
 typedef uint64_t posix_uintmax_t;
