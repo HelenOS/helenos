@@ -42,8 +42,10 @@ extern int posix_ffs(int i);
 #endif
 
 /* String/Array Comparison */
+#ifndef POSIX_STRING_H_
 extern int posix_strcasecmp(const char *s1, const char *s2);
 extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
+#endif
 
 /* TODO: not implemented due to missing locale.h
  *
