@@ -40,7 +40,7 @@
 #include "../ctype.h"
 #include <errno.h> // TODO: use POSIX errno
 #include "../libc/bool.h"
-#include "../libc/stdint.h"
+#include "../stdint.h"
 #include "../stdlib.h"
 #include "../strings.h"
 

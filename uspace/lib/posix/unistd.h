@@ -57,7 +57,7 @@ extern int posix_isatty(int fd);
 extern int posix_getpagesize(void);
 
 /* Process Identification */
-#define getpid task_get_id
+extern posix_pid_t posix_getpid(void);
 extern posix_uid_t posix_getuid(void);
 extern posix_gid_t posix_getgid(void);
 
@@ -111,6 +111,17 @@ enum {
 	_PC_SYNC_IO,
 	_PC_VDISABLE
 };
+extern long posix_pathconf(const char *path, int name);
+
+/* Creating a Process */
+extern posix_pid_t posix_fork(void);
+
+/* Executing a File */
+extern int posix_execv(const char *path, char *const argv[]);
+extern int posix_execvp(const char *file, char *const argv[]);
+
+/* Creating a Pipe */
+extern int posix_pipe(int fildes[2]);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define environ posix_environ
@@ -120,12 +131,22 @@ enum {
 	#undef getpagesize
 	#define getpagesize posix_getpagesize
 
+	#define getpid posix_getpid
 	#define getuid posix_getuid
 	#define getgid posix_getgid
 
 	#define access posix_access
 
 	#define sysconf posix_sysconf
+
+	#define pathconf posix_pathconf
+
+	#define fork posix_fork
+
+	#define execv posix_execv
+	#define execvp posix_execvp
+
+	#define pipe posix_pipe
 #endif
 
 #endif /* POSIX_UNISTD_H_ */

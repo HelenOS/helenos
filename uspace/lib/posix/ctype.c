@@ -37,16 +37,74 @@
 
 #include "ctype.h"
 
+// TODO: propose for inclusion in libc
+
 /**
- * 
- * @param ch
+ * Checks whether character is a hexadecimal digit.
+ *
+ * @param c
  * @return
  */
-int posix_isxdigit(int ch)
+int posix_isxdigit(int c)
 {
-	return isdigit(ch) ||
-	    (ch >= 'a' && ch <= 'f') ||
-	    (ch >= 'A' && ch <= 'F');
+	return isdigit(c) ||
+	    (c >= 'a' && c <= 'f') ||
+	    (c >= 'A' && c <= 'F');
+}
+
+/**
+ * Checks whether character is a word separator.
+ *
+ * @param c
+ * @return
+ */
+int posix_isblank(int c)
+{
+	return c == ' ' || c == '\t';
+}
+
+/**
+ * Checks whether character is a control character.
+ *
+ * @param c
+ * @return
+ */
+int posix_iscntrl(int c)
+{
+	return c < 0x20 || c == 0x7E;
+}
+
+/**
+ * Checks whether character is any printing character except space.
+ *
+ * @param c
+ * @return
+ */
+int posix_isgraph(int c)
+{
+	return posix_isprint(c) && c != ' ';
+}
+
+/**
+ * Checks whether character is a printing character.
+ *
+ * @param c
+ * @return
+ */
+int posix_isprint(int c)
+{
+	return !posix_iscntrl(c);
+}
+
+/**
+ * Checks whether character is a punctuation.
+ *
+ * @param c
+ * @return
+ */
+int posix_ispunct(int c)
+{
+	return !isspace(c) && !isalnum(c);
 }
 
 /** @}

@@ -86,5 +86,15 @@ size_t posix_strftime(char *s, size_t maxsize, const char *format, const struct 
 	not_implemented();
 }
 
+/**
+ * 
+ * @return
+ */
+posix_clock_t posix_clock(void)
+{
+	// TODO
+	not_implemented();
+}
+
 /** @}
  */

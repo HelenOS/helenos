@@ -36,8 +36,10 @@
 #ifndef POSIX_STRINGS_H_
 #define POSIX_STRINGS_H_
 
+#ifndef POSIX_STRING_H_
 /* Search Functions */
 extern int posix_ffs(int i);
+#endif
 
 /* String/Array Comparison */
 extern int posix_strcasecmp(const char *s1, const char *s2);

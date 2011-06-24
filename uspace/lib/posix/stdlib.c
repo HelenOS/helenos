@@ -39,6 +39,32 @@
 #include "internal/common.h"
 
 /**
+ * 
+ * @param array
+ * @param count
+ * @param size
+ * @param compare
+ */
+int posix_atexit(void (*func)(void))
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param array
+ * @param count
+ * @param size
+ * @param compare
+ */
+int posix_abs(int i)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
  *
  * @param array
  * @param count
@@ -60,6 +86,18 @@ void posix_qsort(void *array, size_t count, size_t size,
 char *posix_getenv(const char *name)
 {
 	// TODO
+	not_implemented();
+}
+
+/**
+ * 
+ * @param name
+ * @param resolved
+ * @return
+ */
+int posix_putenv(char *string)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 
@@ -109,6 +147,58 @@ double posix_strtod(const char *restrict nptr, char **restrict endptr)
 int posix_atoi(const char *str)
 {
 	// TODO
+	not_implemented();
+}
+
+/**
+ *
+ * @param size
+ * @return
+ */
+void *posix_malloc(size_t size)
+{
+	return malloc(size);
+}
+
+/**
+ *
+ * @param nelem
+ * @param elsize
+ * @return
+ */
+void *posix_calloc(size_t nelem, size_t elsize)
+{
+	return calloc(nelem, elsize);
+}
+
+/**
+ *
+ * @param ptr
+ * @param size
+ * @return
+ */
+void *posix_realloc(void *ptr, size_t size)
+{
+	return realloc(ptr, size);
+}
+
+/**
+ *
+ * @param ptr
+ */
+void posix_free(void *ptr)
+{
+	free(ptr);
+}
+
+/**
+ * 
+ * @param tmpl
+ * @return
+ */
+char *posix_mktemp(char *tmpl)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 

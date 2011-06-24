@@ -33,55 +33,35 @@
 /** @file
  */
 
-#ifndef POSIX_TIME_H_
-#define POSIX_TIME_H_
+#define LIBPOSIX_INTERNAL
 
-#include "libc/time.h"
+#include "../internal/common.h"
+#include "wait.h"
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+/**
+ * 
+ * @param stat_ptr
+ * @return
+ */
+posix_pid_t posix_wait(int *stat_ptr)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
 
-struct posix_tm {
-	int tm_sec;         /* Seconds [0,60]. */
-	int tm_min;         /* Minutes [0,59]. */
-	int tm_hour;        /* Hour [0,23]. */
-	int tm_mday;        /* Day of month [1,31]. */
-	int tm_mon;         /* Month of year [0,11]. */
-	int tm_year;        /* Years since 1900. */
-	int tm_wday;        /* Day of week [0,6] (Sunday = 0). */
-	int tm_yday;        /* Day of year [0,365]. */
-	int tm_isdst;       /* Daylight Savings flag. */
-};
-
-typedef long posix_clock_t;
-
-/* Broken-down Time */
-extern struct posix_tm *posix_localtime(const time_t *timep);
-
-/* Formatting Calendar Time */
-extern char *posix_asctime(const struct posix_tm *tm);
-extern char *posix_ctime(const time_t *timep);
-extern size_t posix_strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct posix_tm *restrict tm);
-
-/* CPU Time */
-extern posix_clock_t posix_clock(void);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define tm posix_tm
-
-	#define clock_t posix_clock_t
-
-	#define localtime posix_localtime
-
-	#define asctime posix_asctime
-	#define ctime posix_ctime
-	#define strftime posix_strftime
-
-	#define clock posix_clock
-#endif
-
-#endif  // POSIX_TIME_H_
+/**
+ * 
+ * @param pid
+ * @param stat_ptr
+ * @param options
+ * @return
+ */
+posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
 
 /** @}
  */
+

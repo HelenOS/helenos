@@ -35,7 +35,7 @@
 #ifndef POSIX_LIMITS_H_
 #define POSIX_LIMITS_H_
 
-#include "libc/stdint.h"
+#include "stdint.h"
 #include "libc/sys/types.h"
 
 #undef SHRT_MIN

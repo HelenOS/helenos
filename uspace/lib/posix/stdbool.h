@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2011 Petr Koupy
  * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
@@ -33,55 +32,21 @@
 /** @file
  */
 
-#ifndef POSIX_TIME_H_
-#define POSIX_TIME_H_
+#ifndef POSIX_STDBOOL_H_
+#define POSIX_STDBOOL_H_
 
-#include "libc/time.h"
+// TODO: propose for inclusion in libc and drop bool.h,
+//       it's a very silly incompatibility with standard C
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
+#ifdef LIBC_BOOL_H_
+	#error You can't include bool.h and stdbool.h at the same time.
 #endif
+#define LIBC_BOOL_H_
 
-struct posix_tm {
-	int tm_sec;         /* Seconds [0,60]. */
-	int tm_min;         /* Minutes [0,59]. */
-	int tm_hour;        /* Hour [0,23]. */
-	int tm_mday;        /* Day of month [1,31]. */
-	int tm_mon;         /* Month of year [0,11]. */
-	int tm_year;        /* Years since 1900. */
-	int tm_wday;        /* Day of week [0,6] (Sunday = 0). */
-	int tm_yday;        /* Day of year [0,365]. */
-	int tm_isdst;       /* Daylight Savings flag. */
-};
+#define bool _Bool
+#define true 1
+#define false 0
+#define __bool_true_false_are_defined 1
 
-typedef long posix_clock_t;
+#endif /* POSIX_STDBOOL_H_ */
 
-/* Broken-down Time */
-extern struct posix_tm *posix_localtime(const time_t *timep);
-
-/* Formatting Calendar Time */
-extern char *posix_asctime(const struct posix_tm *tm);
-extern char *posix_ctime(const time_t *timep);
-extern size_t posix_strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct posix_tm *restrict tm);
-
-/* CPU Time */
-extern posix_clock_t posix_clock(void);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define tm posix_tm
-
-	#define clock_t posix_clock_t
-
-	#define localtime posix_localtime
-
-	#define asctime posix_asctime
-	#define ctime posix_ctime
-	#define strftime posix_strftime
-
-	#define clock posix_clock
-#endif
-
-#endif  // POSIX_TIME_H_
-
-/** @}
- */
