@@ -63,19 +63,19 @@ case "$1" in
 		echo 'LD_LINK="`echo \"$*\" | grep '\'ld-new\''`"'
 		echo 'LINK="`echo -n "$AS_LINK""$LD_LINK"`"'
 		echo 'if [ -n "$LINK" ]; then'
-		echo '	LD_ARGS="`echo \"$*\" | \'
-		echo '		sed '\'s/-O[^ ]*//g\'' | \'
-		echo '		sed '\'s/-W[^ ]*//g\'' | \'
-		echo '		sed '\'s/-g//g\'' | \'
-		echo '		sed '\'s/-l[^ ]*//g\'' | \'
+		echo '	LD_ARGS="`echo \" $*\" | \'
+		echo '		sed '\'s/ -O[^ ]*//g\'' | \'
+		echo '		sed '\'s/ -W[^ ]*//g\'' | \'
+		echo '		sed '\'s/ -g//g\'' | \'
+		echo '		sed '\'s/ -l[^ ]*//g\'' | \'
 		echo '		sed '\'s/ [ ]*/ /g\''`"'
 		echo '	ld $LD_ARGS'
 		echo 'else'
-		CFLAGS="`echo "$3" | \
-			sed 's/-O[^ ]*//g' | \
-			sed 's/-W[^ ]*//g' | \
-			sed 's/-pipe//g' | \
-			sed 's/-g//g' | \
+		CFLAGS="`echo " $3" | \
+			sed 's/ -O[^ ]*//g' | \
+			sed 's/ -W[^ ]*//g' | \
+			sed 's/ -pipe//g' | \
+			sed 's/ -g//g' | \
 			sed 's/ [ ]*/ /g'`"
 		echo '	CONFTEST="`echo \"$*\" | grep '\' conftest \''`"'
 		echo '	if [ -n "$CONFTEST" ]; then'
@@ -86,14 +86,17 @@ case "$1" in
 					# Remove flags:
 					# -Wc++-compat
 					#		Required just for gold linker.
-		echo '		GCC_ARGS="`echo \"$*\" | \'
-		echo '			sed '\'s/-Wc++-compat//g\'' | \'
+		echo '		GCC_ARGS="`echo \" $*\" | \'
+		echo '			sed '\'s/ -Wc++-compat//g\'' | \'
 		echo '			sed '\'s/ [ ]*/ /g\''`"'
 					# Add flags:
 					# -Wno-type-limits
 					#		HelenOS pid_t is unsigned
-					# 		while on most systems it is signed.
-		echo '		GCC_ARGS="$GCC_ARGS -Wno-type-limits"'
+					#		while on most systems it is signed.
+					# -Wno-shadow
+					#		Silents the warning caused by 
+					#		harmless bug in ld/ldlang.h and ld/ldlex.c.
+		echo '		GCC_ARGS="$GCC_ARGS -Wno-type-limits -Wno-shadow"'
 		echo '		echo' \'"$2"\' '"$GCC_ARGS"' \'"$CFLAGS"\'
 		echo "		$2" '$GCC_ARGS' "$CFLAGS"
 		echo '	fi'
