@@ -72,6 +72,18 @@
 # not runtime dependent on this functionality, the simplest solution is
 # to patch libiberty to avoid compiler warnings.
 #
+# Patch 5
+# When host and target system is equal, libbfd wants to compile a support
+# for core files, which is dependent on non-standard headers sys/param.h
+# and sys/user.h. Since we are cross compiling even when host and target
+# are equal, variables related to core file support must be cleared.
+#
+# Patch 6
+# There is a few occurences in binutils where POSIX function is declared 
+# and called without first including the corresponding header. Such
+# declarations cause a problem to the linker, because all functions
+# from libposix are prefixed with the posix_ prefix.
+#
 
 case "$1" in
 	"do")
@@ -83,6 +95,7 @@ case "$1" in
 		cp -f "$2/ld/configure" "$2/ld/configure.backup"
 		cp -f "$2/libiberty/configure" "$2/libiberty/configure.backup"
 		cp -f "$2/libiberty/pex-common.h" "$2/libiberty/pex-common.h.backup"
+		cp -f "$2/libiberty/xstrerror.c" "$2/libiberty/xstrerror.c.backup"
 		cp -f "$2/opcodes/configure" "$2/opcodes/configure.backup"
 
 		# Patch main binutils configure script.
@@ -94,7 +107,10 @@ case "$1" in
 		# Patch bfd configure script.
 		cat "$2/bfd/configure.backup" | \
 		# See Patch 1.
-		sed 's/^cross_compiling=no/cross_compiling=yes/g' \
+		sed 's/^cross_compiling=no/cross_compiling=yes/g' | \
+		# See Patch 5.
+		sed 's/COREFILE=".*"/COREFILE='\'\''/g' | \
+		sed 's/COREFILE=[^ ]*/COREFILE='\'\''/g' \
 		> "$2/bfd/configure"
 
 		# Patch gas configure script.
@@ -129,6 +145,13 @@ case "$1" in
 		sed 's/pid_t (\*wait)/int (*wait)/g' \
 		> "$2/libiberty/pex-common.h"
 
+		# Patch libiberty xstrerror.c.
+		(
+		echo '#include <string.h>'
+		echo '#define DONT_DECLARE_STRERROR'
+		cat "$2/libiberty/xstrerror.c.backup"
+		) > "$2/libiberty/xstrerror.c"
+
 		# Patch opcodes configure script.
 		cat "$2/opcodes/configure.backup" | \
 		# See Patch 1.
@@ -147,6 +170,7 @@ case "$1" in
 		mv -f "$2/ld/configure.backup" "$2/ld/configure"
 		mv -f "$2/libiberty/configure.backup" "$2/libiberty/configure"
 		mv -f "$2/libiberty/pex-common.h.backup" "$2/libiberty/pex-common.h"
+		mv -f "$2/libiberty/xstrerror.c.backup" "$2/libiberty/xstrerror.c"
 		mv -f "$2/opcodes/configure.backup" "$2/opcodes/configure"
 		;;
 	*)
