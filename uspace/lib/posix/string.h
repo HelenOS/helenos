@@ -104,6 +104,8 @@ extern size_t posix_strnlen(const char *s, size_t n);
 /* Legacy declarations */
 #ifndef POSIX_STRINGS_H_
 extern int posix_ffs(int i);
+extern int posix_strcasecmp(const char *s1, const char *s2);
+extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 #endif
 
 #ifndef LIBPOSIX_INTERNAL
@@ -139,6 +141,8 @@ extern int posix_ffs(int i);
 	#define strnlen posix_strnlen
 
 	#define ffs posix_ffs
+	#define strcasecmp posix_strcasecmp
+	#define strncasecmp posix_strncasecmp
 #endif
 
 #endif  // POSIX_STRING_H_
