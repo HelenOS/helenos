@@ -48,6 +48,9 @@ typedef unsigned int posix_blkcnt_t;
 typedef uint64_t posix_pid_t;
 typedef sysarg_t posix_dev_t;
 
+/* PThread types */
+typedef struct posix_thread_attr posix_thread_attr_t;
+
 #ifndef LIBPOSIX_INTERNAL
 	#define ino_t posix_ino_t
 	#define nlink_t posix_nlink_t
@@ -58,6 +61,8 @@ typedef sysarg_t posix_dev_t;
 	#define blkcnt_t posix_blkcnt_t
 	#define pid_t posix_pid_t
 	#define dev_t posix_dev_t
+	
+	#define pthread_attr_t posix_thread_attr_t
 #endif
 
 #endif /* POSIX_SYS_TYPES_H_ */
