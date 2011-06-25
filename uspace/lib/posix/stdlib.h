@@ -52,6 +52,8 @@ extern int posix_atexit(void (*func)(void));
 
 /* Absolute Value */
 extern int posix_abs(int i);
+extern long posix_labs(long i);
+extern long long posix_llabs(long long i);
 
 /* Array Sort Function */
 extern void posix_qsort(void *array, size_t count, size_t size,
@@ -65,12 +67,25 @@ extern int posix_putenv(char *string);
 extern char *posix_realpath(const char *restrict name, char *restrict resolved);
 
 /* Floating Point Conversion */
+extern double posix_atof(const char *nptr);
 extern float posix_strtof(const char *restrict nptr, char **restrict endptr);
 extern double posix_strtod(const char *restrict nptr, char **restrict endptr);
 extern long double posix_strtold(const char *restrict nptr, char **restrict endptr);
 
 /* Integer Conversion */
-extern int posix_atoi(const char *str);
+extern int posix_atoi(const char *nptr);
+extern long int posix_atol(const char *nptr);
+extern long long int posix_atoll(const char *nptr);
+
+extern long int posix_strtol(const char *restrict nptr,
+    char **restrict endptr, int base);
+extern long long int posix_strtoll(const char *restrict nptr,
+    char **restrict endptr, int base);
+extern unsigned long int posix_strtoul(const char *restrict nptr,
+    char **restrict endptr, int base);
+extern unsigned long long int posix_strtoull(
+    const char *restrict nptr, char **restrict endptr, int base);
+
 
 /* Memory Allocation */
 extern void *posix_malloc(size_t size);
@@ -85,18 +100,28 @@ extern char *posix_mktemp(char *tmpl);
 	#define atexit posix_atexit
 
 	#define abs posix_abs
+	#define labs posix_labs
+	#define llabs posix_llabs
 
 	#define qsort posix_qsort
 
 	#define getenv posix_getenv
+	#define putenv posix_putenv
 
 	#define realpath posix_realpath
 	
+	#define atof posix_atof
 	#define strtof posix_strtof
 	#define strtod posix_strtod
 	#define strtold posix_strtold
 	
 	#define atoi posix_atoi
+	#define atol posix_atol
+	#define atoll posix_atoll
+	#define strtol posix_strtol
+	#define strtoll posix_strtoll
+	#define strtoul posix_strtoul
+	#define strtoull posix_strtoull
 
 	#define malloc posix_malloc
 	#define calloc posix_calloc

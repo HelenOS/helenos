@@ -43,6 +43,7 @@ SOURCES = \
 	math.c \
 	stdio.c \
 	stdlib.c \
+	stdlib/strtol.c \
 	stdlib/strtold.c \
 	string.c \
 	strings.c \
