@@ -50,10 +50,10 @@
 /* GNU Extensions */
 #undef FNM_FILE_NAME
 #undef FNM_LEADING_DIR
-#undef FNM_CASE_FOLD
+#undef FNM_CASEFOLD
 #define FNM_FILE_NAME FNM_PATHNAME
 #define FNM_LEADING_DIR 8
-#define FNM_CASE_FOLD 16
+#define FNM_CASEFOLD 16
 
 extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
