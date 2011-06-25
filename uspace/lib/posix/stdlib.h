@@ -55,13 +55,37 @@ extern int posix_abs(int i);
 extern long posix_labs(long i);
 extern long long posix_llabs(long long i);
 
-/* Array Sort Function */
+/* Integer division */
+
+typedef struct {
+	int quot, rem;
+} posix_div_t;
+
+typedef struct {
+	long quot, rem;
+} posix_ldiv_t;
+
+typedef struct {
+	long long quot, rem;
+} posix_lldiv_t;
+
+extern posix_div_t posix_div(int numer, int denom);
+extern posix_ldiv_t posix_ldiv(long numer, long denom);
+extern posix_lldiv_t posix_lldiv(long long numer, long long denom);
+
+/* Array Functions */
 extern void posix_qsort(void *array, size_t count, size_t size,
     int (*compare)(const void *, const void *));
+extern void *posix_bsearch(const void *key, const void *base,
+    size_t nmemb, size_t size, int (*compar)(const void *, const void *));
+
 
 /* Environment Access */
 extern char *posix_getenv(const char *name);
 extern int posix_putenv(char *string);
+
+extern int posix_system(const char *string);
+
 
 /* Symbolic Links */
 extern char *posix_realpath(const char *restrict name, char *restrict resolved);
@@ -103,10 +127,19 @@ extern char *posix_mktemp(char *tmpl);
 	#define labs posix_labs
 	#define llabs posix_llabs
 
+	#define div_t posix_div_t
+	#define ldiv_t posix_ldiv_t
+	#define lldiv_t posix_lldiv_t
+	#define div posix_div
+	#define ldiv posix_ldiv
+	#define lldiv posix_lldiv
+
 	#define qsort posix_qsort
+	#define bsearch posix_bsearch
 
 	#define getenv posix_getenv
 	#define putenv posix_putenv
+	#define system posix_system
 
 	#define realpath posix_realpath
 	
