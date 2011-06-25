@@ -166,7 +166,7 @@ $(REDIST_DETECT): $(REDIST_FILENAME)
 # Generate stubs for libposix functions without posix_ prefix.
 $(CONFOBJ_SOURCE):
 	echo '/* GENERATED FILE. DO NOT MODIFY. */' > $@; \
-	objdump -t $(LIBPOSIX_PREFIX)/libposix.a | \
+	$(OBJDUMP) -t $(LIBPOSIX_PREFIX)/libposix.a | \
 	grep F | grep -o -h -I -E 'posix_.*$$' | sort -u | \
 	sed 's/posix_\([^ ]*\)/char \1() { return 0; }/g' >> $@
 
