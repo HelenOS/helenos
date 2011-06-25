@@ -42,6 +42,7 @@ SOURCES = \
 	fcntl.c \
 	fnmatch.c \
 	math.c \
+	pwd.c \
 	stdio.c \
 	stdlib.c \
 	stdlib/strtol.c \
