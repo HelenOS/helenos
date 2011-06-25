@@ -365,6 +365,18 @@ bool ascii_check(wchar_t ch)
 	return false;
 }
 
+/** Check whether wide string is plain ASCII.
+ *
+ * @return True if wide string is plain ASCII.
+ *
+ */
+bool wstr_is_ascii(const wchar_t *wstr)
+{
+	while (*wstr && ascii_check(*wstr))
+		wstr++;
+	return *wstr == 0;
+}
+
 /** Check whether character is valid
  *
  * @return True if character is a valid Unicode code point.
@@ -551,9 +563,12 @@ void str_append(char *dest, size_t size, const char *src)
  * @param dest	Destination buffer.
  * @param size	Size of the destination buffer.
  * @param src	Source wide string.
+ *
+ * @return EOK, if success, negative otherwise.
  */
-void wstr_to_str(char *dest, size_t size, const wchar_t *src)
+int wstr_to_str(char *dest, size_t size, const wchar_t *src)
 {
+	int rc;
 	wchar_t ch;
 	size_t src_idx;
 	size_t dest_off;
@@ -565,11 +580,13 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest_off = 0;
 
 	while ((ch = src[src_idx++]) != 0) {
-		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
+		rc = chr_encode(ch, dest, &dest_off, size - 1);
+		if (rc != EOK)
 			break;
 	}
 
 	dest[dest_off] = '\0';
+	return rc;
 }
 
 /** Convert wide string to new string.
@@ -630,9 +647,12 @@ char *wstr_to_astr(const wchar_t *src)
  * @param dest	Destination buffer.
  * @param dlen	Length of destination buffer (number of wchars).
  * @param src	Source string.
+ *
+ * @return EOK, if success, negative otherwise.
  */
-void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
+int str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 {
+	int rc=EOK;
 	size_t offset;
 	size_t di;
 	wchar_t c;
@@ -643,14 +663,17 @@ void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 	di = 0;
 
 	do {
-		if (di >= dlen - 1)
+		if (di >= dlen - 1) {
+			rc = EOVERFLOW;
 			break;
+		}
 
 		c = str_decode(src, &offset, STR_NO_LIMIT);
 		dest[di++] = c;
 	} while (c != '\0');
 
 	dest[dlen - 1] = '\0';
+	return rc;
 }
 
 /** Find first occurence of character in string.

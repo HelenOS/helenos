@@ -64,6 +64,7 @@ extern size_t wstr_nlength(const wchar_t *str, size_t size);
 
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);
+extern bool wstr_is_ascii(const wchar_t *wstr);
 
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
@@ -72,9 +73,9 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);
 
-extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
+extern int wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern char *wstr_to_astr(const wchar_t *src);
-extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
+extern int str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 
 extern char *str_chr(const char *str, wchar_t ch);
 extern char *str_rchr(const char *str, wchar_t ch);
