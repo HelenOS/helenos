@@ -173,6 +173,9 @@ mfs_write(ipc_callid_t rid, ipc_call_t *request);
 extern void
 mfs_truncate(ipc_callid_t rid, ipc_call_t *request);
 
+extern void
+mfs_destroy(ipc_callid_t rid, ipc_call_t *request);
+
 /*mfs_inode.c*/
 extern int
 get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,

@@ -56,6 +56,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
 static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
+static int mfs_destroy_node(fs_node_t *fn);
 
 static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 			fs_index_t index);
@@ -78,6 +79,7 @@ libfs_ops_t mfs_libfs_ops = {
 	.create = mfs_create_node,
 	.link = mfs_link,
 	.unlink = mfs_unlink,
+	.destroy = mfs_destroy_node,
 	.plb_get_char = mfs_plb_get_char,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
@@ -815,6 +817,52 @@ out_err:
 	mfs_node_put(fn);
 	async_answer_0(callid, r);
 	async_answer_0(rid, r);
+}
+
+void
+mfs_destroy(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t handle = (devmap_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	fs_node_t *fn;
+	int r;
+
+	r = mfs_node_get(&fn, handle, index);
+	if (r != EOK) {
+		async_answer_0(rid, r);
+		return;
+	}
+	if (!fn) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	/*Destroy the inode*/
+	r = mfs_destroy_node(fn);
+	async_answer_0(rid, r);
+}
+
+static int
+mfs_destroy_node(fs_node_t *fn)
+{
+	struct mfs_node *mnode = fn->data;
+	bool has_children;
+	int r;
+
+	r = mfs_has_children(&has_children, fn);
+	on_error(r, return r);
+
+	assert(!has_children);
+
+	/*Free the entire inode content*/
+	r = inode_shrink(mnode, mnode->ino_i->i_size);
+	on_error(r, return r);
+	r = mfs_free_bit(mnode->instance, mnode->ino_i->index, BMAP_INODE);
+	on_error(r, return r);
+
+	free(mnode->ino_i);
+	free(mnode);
+	return r;
 }
 
 void
