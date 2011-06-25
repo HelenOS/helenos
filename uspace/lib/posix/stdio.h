@@ -41,7 +41,9 @@
 #include "libc/stdarg.h"
 
 /* Character Input/Output */
+#undef putc
 #define putc fputc
+#undef getc
 #define getc fgetc
 extern int posix_ungetc(int c, FILE *stream);
 
@@ -67,6 +69,9 @@ extern int posix_sscanf(const char *restrict s, const char *restrict format, ...
 extern int posix_remove(const char *path);
 
 /* Temporary Files */
+#undef L_tmpnam
+#define L_tmpnam PATH_MAX
+
 extern char *posix_tmpnam(char *s);
 
 #ifndef LIBPOSIX_INTERNAL
