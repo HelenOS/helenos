@@ -35,23 +35,29 @@
 #ifndef POSIX_FNMATCH_H_
 #define POSIX_FNMATCH_H_
 
-#define POSIX_FNM_NOMATCH 1
-#define POSIX_FNM_PATHNAME 1
-#define POSIX_FNM_PERIOD 2
-#define POSIX_FNM_NOESCAPE 4
+/* Error Values. */
+#undef FNM_NOMATCH
+#define FNM_NOMATCH 1
+
+/* Flags */
+#undef FNM_PATHNAME
+#undef FNM_PERIOD
+#undef FNM_NOESCAPE
+#define FNM_PATHNAME 1
+#define FNM_PERIOD 2
+#define FNM_NOESCAPE 4
+
+/* GNU Extensions */
+#undef FNM_FILE_NAME
+#undef FNM_LEADING_DIR
+#undef FNM_CASE_FOLD
+#define FNM_FILE_NAME FNM_PATHNAME
+#define FNM_LEADING_DIR 8
+#define FNM_CASE_FOLD 16
 
 extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
 #ifndef LIBPOSIX_INTERNAL
-	#undef FNM_NOMATCH
-	#undef FNM_PATHNAME
-	#undef FNM_PERIOD
-	#undef FNM_NOESCAPE
-	#define FNM_NOMATCH POSIX_FNM_NOMATCH
-	#define FNM_PATHNAME POSIX_FNM_PATHNAME
-	#define FNM_PERIOD POSIX_FNM_PERIOD
-	#define FNM_NOESCAPE POSIX_FNM_NOESCAPE
-	
 	#define fnmatch posix_fnmatch
 #endif
 
