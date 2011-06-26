@@ -84,9 +84,13 @@ case "$1" in
 		echo "		$2" '$@' "$CFLAGS -T $4" '$LFLAGS' "$5"
 		echo '	else'
 					# Remove flags:
+					# -Werror
+					#		Avoid build failure due to some harmless bugs
+					#		(e.g. unused parameter) in the HelenOS.
 					# -Wc++-compat
 					#		Required just for gold linker.
 		echo '		GCC_ARGS="`echo \" $*\" | \'
+		echo '			sed '\'s/ -Werror//g\'' | \'
 		echo '			sed '\'s/ -Wc++-compat//g\'' | \'
 		echo '			sed '\'s/ [ ]*/ /g\''`"'
 					# Add flags:
