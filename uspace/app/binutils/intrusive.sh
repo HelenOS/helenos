@@ -84,6 +84,11 @@
 # declarations cause a problem to the linker, because all functions
 # from libposix are prefixed with the posix_ prefix.
 #
+# Patch 7
+# Implementation of fnmatch inside libiberty is not very friendly to the
+# non-GNU libc which implements its own native fnmatch. To resolve this 
+# incompatibility, libiberty fnmatch has to be manually hidden.
+#
 
 case "$1" in
 	"do")
@@ -94,6 +99,9 @@ case "$1" in
 		cp -f "$2/intl/configure" "$2/intl/configure.backup"
 		cp -f "$2/ld/configure" "$2/ld/configure.backup"
 		cp -f "$2/libiberty/configure" "$2/libiberty/configure.backup"
+		cp -f "$2/libiberty/Makefile.in" "$2/libiberty/Makefile.in.backup"
+		cp -f "$2/include/fnmatch.h" "$2/include/fnmatch.h.backup"
+		cp -f "$2/libiberty/fnmatch.c" "$2/libiberty/fnmatch.c.backup"
 		cp -f "$2/libiberty/pex-common.h" "$2/libiberty/pex-common.h.backup"
 		cp -f "$2/libiberty/xstrerror.c" "$2/libiberty/xstrerror.c.backup"
 		cp -f "$2/opcodes/configure" "$2/opcodes/configure.backup"
@@ -139,6 +147,21 @@ case "$1" in
 		sed 's/^cross_compiling=no/cross_compiling=yes/g' \
 		> "$2/libiberty/configure"
 
+		# Hide libiberty fnmatch implementation.
+		# See Patch 7.
+		mv -f "$2/include/fnmatch.h" "$2/include/fnmatch_hide.h"
+		(
+		# Avoid compiler warning for empty compilation unit.
+		echo 'char __fnmatch_hide(void);'
+		echo 'char __fnmatch_hide(void) { return 0; }'
+		echo '#define __GNU_LIBRARY__'
+		cat "$2/libiberty/fnmatch.c.backup"
+		) > "$2/libiberty/fnmatch.c"
+		mv -f "$2/libiberty/fnmatch.c" "$2/libiberty/fnmatch_hide.c"
+		cat "$2/libiberty/Makefile.in.backup" | \
+		sed 's/fnmatch/fnmatch_hide/g' \
+		> "$2/libiberty/Makefile.in"
+
 		# Patch libiberty pex-common.h.
 		cat "$2/libiberty/pex-common.h.backup" | \
 		# See Patch 4.
@@ -169,6 +192,10 @@ case "$1" in
 		mv -f "$2/intl/configure.backup" "$2/intl/configure"
 		mv -f "$2/ld/configure.backup" "$2/ld/configure"
 		mv -f "$2/libiberty/configure.backup" "$2/libiberty/configure"
+		mv -f "$2/libiberty/Makefile.in.backup" "$2/libiberty/Makefile.in"
+		rm -f "$2/include/fnmatch_hide.h" "$2/libiberty/fnmatch_hide.c"
+		mv -f "$2/include/fnmatch.h.backup" "$2/include/fnmatch.h"
+		mv -f "$2/libiberty/fnmatch.c.backup" "$2/libiberty/fnmatch.c"
 		mv -f "$2/libiberty/pex-common.h.backup" "$2/libiberty/pex-common.h"
 		mv -f "$2/libiberty/xstrerror.c.backup" "$2/libiberty/xstrerror.c"
 		mv -f "$2/opcodes/configure.backup" "$2/opcodes/configure"
