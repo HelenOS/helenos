@@ -337,5 +337,17 @@ char *posix_mktemp(char *tmpl)
 	not_implemented();
 }
 
+/**
+ * Should read system load statistics. Not supported. Always returns -1.
+ *
+ * @param loadavg
+ * @param nelem
+ * @return
+ */
+int bsd_getloadavg(double loadavg[], int nelem)
+{
+	return -1;
+}
+
 /** @}
  */

@@ -119,6 +119,7 @@ extern void posix_free(void *ptr);
 
 /* Legacy Declarations */
 extern char *posix_mktemp(char *tmpl);
+extern int bsd_getloadavg(double loadavg[], int nelem);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define atexit posix_atexit
@@ -162,6 +163,7 @@ extern char *posix_mktemp(char *tmpl);
 	#define free posix_free
 
 	#define mktemp posix_mktemp
+	#define getloadavg bsd_getloadavg
 #endif
 
 #endif  // POSIX_STDLIB_H_
