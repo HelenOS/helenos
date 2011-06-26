@@ -205,12 +205,10 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	}
 
 	if (!empty_dentry_found) {
-		mfsdebug("inode grow\n");
 		r = inode_grow(mnode, sbi->dirsize);
 		if (r != EOK)
 			return r;
 
-		mfsdebug("read dentry %d\n", i);
 		r = read_directory_entry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
@@ -223,7 +221,6 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	d_info->d_name[name_len] = 0;
 
 	r = write_dentry(d_info);
-	mfsdebug("write inode\n");
 	free(d_info);
 
 	return r;

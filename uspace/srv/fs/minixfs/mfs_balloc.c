@@ -84,6 +84,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	ptr[idx / chunk_bits] = conv32(sbi->native, chunk);
 	b->dirty = true;
 	r = block_put(b);
+	mfsdebug("free index %u\n", idx);
 
 out_err:
 	return r;
@@ -187,7 +188,6 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 
 		for (j = 0; j < chunk_bits; ++j) {
 			if (!(chunk & (1 << j))) {
-				mfsdebug("i = %d j = %d\n", i, j);
 				r = i * chunk_bits + j;
 				chunk |= 1 << j;
 				b[i] = conv32(native, chunk);

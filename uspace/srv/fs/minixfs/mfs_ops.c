@@ -263,8 +263,6 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	fs_node_t *fsnode;
 	uint32_t inum;
 
-	mfsdebug("create_node()\n");
-
 	r = mfs_instance_get(handle, &inst);
 	on_error(r, return r);
 
@@ -338,8 +336,6 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_dentry_info *d_info;
 	int r;
-
-	mfsdebug("mfs_match()\n");
 
 	if (!S_ISDIR(ino_i->i_mode))
 		return ENOTDIR;
@@ -521,8 +517,6 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *child = cfn->data;
 	struct mfs_sb_info *sbi = parent->instance->sbi;
 
-	mfsdebug("mfs_link() %d\n", (int) child->ino_i->index);
-
 	if (str_size(name) > sbi->max_name_len)
 		return ENAMETOOLONG;
 
@@ -616,8 +610,6 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 					       IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 
-	mfsdebug("mfs_read()\n");
-
 	rc = mfs_node_get(&fn, handle, index);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
@@ -656,7 +648,6 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 			if (d_info->d_inum) {
 				/*Dentry found!*/
-				mfsdebug("DENTRY FOUND %s!!\n", d_info->d_name);
 				goto found;
 			}
 
@@ -732,8 +723,6 @@ out_error:
 void
 mfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	mfsdebug("mfs_write()\n");
-
 	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
@@ -849,6 +838,8 @@ mfs_destroy_node(fs_node_t *fn)
 	bool has_children;
 	int r;
 
+	mfsdebug("mfs_destroy_node %d\n", mnode->ino_i->index);
+
 	r = mfs_has_children(&has_children, fn);
 	on_error(r, return r);
 
@@ -874,8 +865,6 @@ mfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 						IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	int r;
-
-	mfsdebug("mfs_truncate()\n");
 
 	r = mfs_node_get(&fn, handle, index);
 	if (r != EOK) {
