@@ -63,6 +63,8 @@
 typedef int posix_sig_atomic_t;
 typedef int posix_sigset_t;
 typedef struct posix_mcontext {
+	// FIXME: should not be empty to avoid compiler warnings (-pedantic)
+	int dummy;
 } posix_mcontext_t;
 
 union posix_sigval {
@@ -74,7 +76,7 @@ struct posix_sigevent {
 	int sigev_notify; /* Notification type. */
 	int sigev_signo; /* Signal number. */
 	union posix_sigval sigev_value; /* Signal value. */
-	void (*sigev_notify_function)(union sigval); /* Notification function. */
+	void (*sigev_notify_function)(union posix_sigval); /* Notification function. */
 	posix_thread_attr_t *sigev_notify_attributes; /* Notification attributes. */
 };
 
@@ -192,6 +194,11 @@ enum {
 	SIGXFSZ
 };
 
+/* Just declared to avoid compiler warnings. */
+extern int posix_sigemptyset(posix_sigset_t *set);
+extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
+    posix_sigset_t *restrict oset);
+
 #ifndef LIBPOSIX_INTERNAL
 	#define sig_atomic_t posix_sig_atomic_t
 	#define sigset_t posix_sigset_t
@@ -202,6 +209,8 @@ enum {
 	#define ucontext_t posix_ucontext_t
 	#define stack_t posix_stack_t
 	#define siginfo_t posix_siginfo_t
+	#define sigemptyset posix_sigemptyset
+	#define sigprocmask posix_sigprocmask
 #endif
 
 #endif /* POSIX_SIGNAL_H_ */
