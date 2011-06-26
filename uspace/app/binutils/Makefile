@@ -66,7 +66,7 @@ MAKEFILE_PATCH = ./patch.awk
 SUPPORTED_COMPILERS = gcc_cross gcc_native
 
 # Patched Makefile.common for ported user space applications.
-include $(COMMON_MAKEFILE_PATCHED)
+-include $(COMMON_MAKEFILE_PATCHED)
 
 # Patch $PATH to intercept toolchain calls.
 PATH := $(shell pwd):$(PATH)
@@ -94,6 +94,9 @@ CONFOBJ_SOURCE = ./confobj.c
 # Required by binutils configure script tests that links against symbols
 # without including headers (which means that symbols are not prefixed).
 CONFOBJ_OBJECT = $(subst $(space),\ ,$(shell pwd))/confobj.o
+
+# Required by libposix on RISC platforms.
+BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 
 # Map the HelenOS target to binutils target.
 ifeq ($(PLATFORM),amd64)
