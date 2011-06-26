@@ -47,8 +47,11 @@ extern char *optarg;
 extern int optind, opterr, optopt;
 extern int getopt(int, char * const [], const char *);
 
-/* Environmental Variables */
+/* Environment */
 extern char **posix_environ;
+
+extern char *posix_getlogin(void);
+extern int posix_getlogin_r(char *name, size_t namesize);
 
 /* Identifying Terminals */
 extern int posix_isatty(int fd);
@@ -125,6 +128,8 @@ extern int posix_pipe(int fildes[2]);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define environ posix_environ
+	#define getlogin posix_getlogin
+	#define getlogin_r posix_getlogin_r
 
 	#define isatty posix_isatty
 

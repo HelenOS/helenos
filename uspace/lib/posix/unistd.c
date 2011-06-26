@@ -43,6 +43,28 @@
 char **posix_environ = NULL;
 
 /**
+ * Get current user name.
+ */
+char *posix_getlogin(void)
+{
+	// TODO
+	return (char *) "user";
+}
+
+/**
+ * Get current user name.
+ *
+ * @param name Pointer to a user supplied buffer.
+ * @param namesize Length of the buffer.
+ * @return
+ */
+int posix_getlogin_r(char *name, size_t namesize)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
  * Dummy function. Always returns false, because there is no easy way to find
  * out under HelenOS.
  *

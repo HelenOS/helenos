@@ -55,6 +55,12 @@ int posix_kill(posix_pid_t pid, int sig)
 	not_implemented();
 }
 
+int posix_sigaddset(posix_sigset_t *set, int signo)
+{
+	// TODO
+	not_implemented();
+}
+
 int posix_sigemptyset(posix_sigset_t *set)
 {
 	// TODO

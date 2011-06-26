@@ -194,6 +194,7 @@ extern void (*posix_signal(int sig, void (*func)(int)))(int);
 extern int posix_raise(int sig);
 extern int posix_kill(posix_pid_t pid, int sig);
 
+extern int posix_sigaddset(posix_sigset_t *set, int signo);
 extern int posix_sigemptyset(posix_sigset_t *set);
 extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
     posix_sigset_t *restrict oset);
@@ -212,6 +213,7 @@ extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
 	#define signal posix_signal
 	#define raise posix_raise
 	#define kill posix_kill
+	#define sigaddset posix_sigaddset
 	#define sigemptyset posix_sigemptyset
 	#define sigprocmask posix_sigprocmask
 #endif
