@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,142 +34,40 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "signal.h"
 #include "internal/common.h"
-#include "unistd.h"
-#include <task.h>
 
-/* Array of environment variable strings (NAME=VALUE). */
-char **posix_environ = NULL;
-
-/**
- * Dummy function. Always returns false, because there is no easy way to find
- * out under HelenOS.
- *
- * @param fd
- * @return Always false.
- */
-int posix_isatty(int fd)
-{
-	return false;
-}
-
-/**
- * 
- * @return
- */
-int posix_getpagesize(void)
-{
-	return getpagesize();
-}
-
-/**
- * 
- * @return
- */
-posix_pid_t posix_getpid(void)
-{
-	return task_get_id();
-}
-
-/**
- *
- * @return
- */
-posix_uid_t posix_getuid(void)
+void (*posix_signal(int sig, void (*func)(int)))(int)
 {
 	// TODO
 	not_implemented();
 }
 
-/**
- * 
- * @return
- */
-posix_gid_t posix_getgid(void)
+int posix_raise(int sig)
 {
 	// TODO
 	not_implemented();
 }
 
-/**
- * 
- * @param path
- * @param amode
- * @return
- */
-int posix_access(const char *path, int amode)
+int posix_kill(posix_pid_t pid, int sig)
 {
 	// TODO
 	not_implemented();
 }
 
-/**
- * 
- * @param name
- * @return
- */
-long posix_sysconf(int name)
+int posix_sigemptyset(posix_sigset_t *set)
 {
 	// TODO
 	not_implemented();
 }
 
-/**
- * 
- * @param path
- * @param name
- * @return
- */
-long posix_pathconf(const char *path, int name)
+int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
+    posix_sigset_t *restrict oset)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
-}
-
-/**
- * 
- * @return
- */
-posix_pid_t posix_fork(void)
-{
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
-}
-
-/**
- * 
- * @param path
- * @param argv
- * @return
- */
-int posix_execv(const char *path, char *const argv[])
-{
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
-}
-
-/**
- * 
- * @param file
- * @param argv
- * @return
- */
-int posix_execvp(const char *file, char *const argv[])
-{
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
-}
-
-/**
- * 
- * @param fildes
- * @return
- */
-int posix_pipe(int fildes[2])
-{
-	// TODO: low priority, just a compile-time dependency of binutils
+	// TODO
 	not_implemented();
 }
 
 /** @}
  */
+

@@ -56,10 +56,6 @@
 #undef SIG_IGN
 #define SIG_IGN ((void (*)(int)) 0)
 
-#define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
-#define raise(sig) ((int) -1)
-#define kill(pid,sig) (errno = ENOTSUP, (int) -1)
-
 typedef int posix_sig_atomic_t;
 typedef int posix_sigset_t;
 typedef struct posix_mcontext {
@@ -86,8 +82,8 @@ typedef struct {
 
 	int si_errno;
 
-	pid_t si_pid;
-	uid_t si_uid;
+	posix_pid_t si_pid;
+	posix_uid_t si_uid;
 	void *si_addr;
 	int si_status;
 
@@ -194,7 +190,10 @@ enum {
 	SIGXFSZ
 };
 
-/* Just declared to avoid compiler warnings. */
+extern void (*posix_signal(int sig, void (*func)(int)))(int);
+extern int posix_raise(int sig);
+extern int posix_kill(posix_pid_t pid, int sig);
+
 extern int posix_sigemptyset(posix_sigset_t *set);
 extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
     posix_sigset_t *restrict oset);
@@ -209,6 +208,10 @@ extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
 	#define ucontext_t posix_ucontext_t
 	#define stack_t posix_stack_t
 	#define siginfo_t posix_siginfo_t
+
+	#define signal posix_signal
+	#define raise posix_raise
+	#define kill posix_kill
 	#define sigemptyset posix_sigemptyset
 	#define sigprocmask posix_sigprocmask
 #endif
