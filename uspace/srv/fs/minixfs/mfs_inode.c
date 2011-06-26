@@ -316,13 +316,13 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 	ino_i->dirty = true;
 
 	/*Compute the number of zones to free*/
-	unsigned zones_to_free = 0;
-	if (new_size == 0)
-		++zones_to_free;
+	unsigned zones_to_free;
 
-	zones_to_free += (old_size / bs) - (new_size / bs);
+	size_t diff = old_size - new_size;
+	zones_to_free = diff / bs;
 
-	mfsdebug("zones to free = %u\n", zones_to_free);
+	if (diff % bs != 0)
+		zones_to_free++;
 
 	uint32_t pos = old_size - 1;
 	unsigned i;
@@ -373,8 +373,6 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 	unsigned start_zone = old_size / bs;
 	start_zone += (old_size % bs) != 0;
 
-	mfsdebug("zones to add = %u\n", zones_to_add);
-
 	int r;
 	for (i = 0; i < zones_to_add; ++i) {
 		uint32_t new_zone;
@@ -382,8 +380,6 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 
 		r = mfs_alloc_bit(mnode->instance, &new_zone, BMAP_ZONE);
 		on_error(r, return r);
-
-		mfsdebug("write_map = %d\n", (int) ((start_zone + i) * bs));
 
 		block_t *b;
 		r = block_get(&b, mnode->instance->handle, new_zone,
