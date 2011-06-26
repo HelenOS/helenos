@@ -40,9 +40,12 @@ EXTRA_CLEAN = $(INCLUDE_LIBC)
 SOURCES = \
 	ctype.c \
 	fcntl.c \
+	fnmatch.c \
 	math.c \
+	pwd.c \
 	stdio.c \
 	stdlib.c \
+	stdlib/strtol.c \
 	stdlib/strtold.c \
 	string.c \
 	strings.c \

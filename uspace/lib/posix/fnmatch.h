@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,67 +32,29 @@
 /** @file
  */
 
-#ifndef POSIX_STDIO_H_
-#define POSIX_STDIO_H_
+#ifndef POSIX_FNMATCH_H_
+#define POSIX_FNMATCH_H_
 
-#include "libc/stdio.h"
-#include "sys/types.h"
-#include "libc/stdarg.h"
+/* Error Values. */
+#undef FNM_NOMATCH
+#define FNM_NOMATCH 1
 
-/* Character Input/Output */
-#undef putc
-#define putc fputc
-#undef getc
-#define getc fgetc
-extern int posix_ungetc(int c, FILE *stream);
+/* Flags */
+#undef FNM_PATHNAME
+#undef FNM_PERIOD
+#undef FNM_NOESCAPE
+#define FNM_PATHNAME 1
+#define FNM_PERIOD 2
+#define FNM_NOESCAPE 4
 
-/* Opening Streams */
-extern FILE *posix_freopen(
-   const char *restrict filename,
-   const char *restrict mode,
-   FILE *restrict stream);
-
-/* Error Messages */
-extern void posix_perror(const char *s);
-
-/* File Positioning */
-extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
-extern posix_off_t posix_ftello(FILE *stream);
-
-/* Formatted Input/Output */
-extern int posix_sprintf(char *restrict s, const char *restrict format, ...);
-extern int posix_vsprintf(char *restrict s, const char *restrict format, va_list ap);
-extern int posix_sscanf(const char *restrict s, const char *restrict format, ...);
-
-/* Deleting Files */
-extern int posix_remove(const char *path);
-
-/* Temporary Files */
-#undef L_tmpnam
-#define L_tmpnam PATH_MAX
-
-extern char *posix_tmpnam(char *s);
+extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define ungetc posix_ungetc
-
-	#define freopen posix_freopen
-
-	#define perror posix_perror
-
-	#define fseeko posix_fseeko
-	#define ftello posix_ftello
-
-	#define sprintf posix_sprintf
-	#define vsprintf posix_vsprintf
-	#define sscanf posix_sscanf
-
-	#define remove posix_remove
-
-	#define tmpnam posix_tmpnam
+	#define fnmatch posix_fnmatch
 #endif
 
-#endif /* POSIX_STDIO_H_ */
+#endif /* POSIX_FNMATCH_H_ */
 
 /** @}
  */
+

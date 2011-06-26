@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,67 +32,47 @@
 /** @file
  */
 
-#ifndef POSIX_STDIO_H_
-#define POSIX_STDIO_H_
+#ifndef POSIX_PWD_H_
+#define POSIX_PWD_H_
 
-#include "libc/stdio.h"
 #include "sys/types.h"
-#include "libc/stdarg.h"
 
-/* Character Input/Output */
-#undef putc
-#define putc fputc
-#undef getc
-#define getc fgetc
-extern int posix_ungetc(int c, FILE *stream);
+struct posix_passwd {
+	char *pw_name;
+	posix_uid_t pw_uid;
+	posix_gid_t pw_gid;
+	char *pw_dir;
+	char *pw_shell;
+};
 
-/* Opening Streams */
-extern FILE *posix_freopen(
-   const char *restrict filename,
-   const char *restrict mode,
-   FILE *restrict stream);
+extern struct posix_passwd *posix_getpwent(void);
+extern void posix_setpwent(void);
+extern void posix_endpwent(void);
 
-/* Error Messages */
-extern void posix_perror(const char *s);
+extern struct posix_passwd *posix_getpwnam(const char *name);
+extern int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
+    char *buffer, size_t bufsize, struct posix_passwd **result);
 
-/* File Positioning */
-extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
-extern posix_off_t posix_ftello(FILE *stream);
-
-/* Formatted Input/Output */
-extern int posix_sprintf(char *restrict s, const char *restrict format, ...);
-extern int posix_vsprintf(char *restrict s, const char *restrict format, va_list ap);
-extern int posix_sscanf(const char *restrict s, const char *restrict format, ...);
-
-/* Deleting Files */
-extern int posix_remove(const char *path);
-
-/* Temporary Files */
-#undef L_tmpnam
-#define L_tmpnam PATH_MAX
-
-extern char *posix_tmpnam(char *s);
+extern struct posix_passwd *posix_getpwuid(posix_uid_t uid);
+extern int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
+    char *buffer, size_t bufsize, struct posix_passwd **result);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define ungetc posix_ungetc
+	#define passwd posix_passwd
+	
+	#define getpwent posix_getpwent
+	#define setpwent posix_setpwent
+	#define endpwent posix_endpwent
 
-	#define freopen posix_freopen
+	#define getpwnam posix_getpwnam
+	#define getpwnam_r posix_getpwnam_r
 
-	#define perror posix_perror
-
-	#define fseeko posix_fseeko
-	#define ftello posix_ftello
-
-	#define sprintf posix_sprintf
-	#define vsprintf posix_vsprintf
-	#define sscanf posix_sscanf
-
-	#define remove posix_remove
-
-	#define tmpnam posix_tmpnam
+	#define getpwuid posix_getpwuid
+	#define getpwuid_r posix_getpwuid_r
 #endif
 
-#endif /* POSIX_STDIO_H_ */
+#endif /* POSIX_PWD_H_ */
 
 /** @}
  */
+
