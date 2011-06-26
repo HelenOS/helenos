@@ -46,7 +46,7 @@ static const struct posix_passwd dummy_pwd = {
 	.pw_uid = 1,
 	.pw_gid = 1,
 	.pw_dir = (char *) "/",
-	.pw_shell = (char *) "bdsh"
+	.pw_shell = (char *) "/app/bdsh"
 };
 
 /**
