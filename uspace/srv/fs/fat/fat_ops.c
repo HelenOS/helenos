@@ -580,9 +580,8 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fat_dentry_t *d;
 	fat_bs_t *bs;
 	block_t *b;
-	unsigned i, j;
-	unsigned blocks;
-	fat_cluster_t mcl, lcl;
+	fat_directory_t di;
+	fat_dentry_t de;
 	int rc;
 
 	fibril_mutex_lock(&childp->lock);
@@ -596,96 +595,32 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	assert(childp->lnkcnt == 0);
 	fibril_mutex_unlock(&childp->lock);
 
-	if (!fat_dentry_name_verify(name)) {
-		/*
-		 * Attempt to create unsupported name.
-		 */
-		return ENOTSUP;
-	}
+	rc = str_to_wstr(di.wname, FAT_LFN_NAME_SIZE, name);
+	if (rc != EOK)
+		return rc;
 
-	/*
-	 * Get us an unused parent node's dentry or grow the parent and allocate
-	 * a new one.
-	 */
+	if (!fat_lfn_valid(di.wname))
+		return ENOTSUP;
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->devmap_handle);
+	fat_directory_open(parentp, &di);
 
-	blocks = parentp->size / BPS(bs);
-
-	for (i = 0; i < blocks; i++) {
-		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&parentp->idx->lock);
-			return rc;
-		}
-		for (j = 0; j < DPS(bs); j++) {
-			d = ((fat_dentry_t *)b->data) + j;
-			switch (fat_classify_dentry(d)) {
-			case FAT_DENTRY_LFN:
-			case FAT_DENTRY_SKIP:
-			case FAT_DENTRY_VALID:
-				/* skipping used and meta entries */
-				continue;
-			case FAT_DENTRY_FREE:
-			case FAT_DENTRY_LAST:
-				/* found an empty slot */
-				goto hit;
-			}
-		}
-		rc = block_put(b);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&parentp->idx->lock);
-			return rc;
-		}
-	}
-	j = 0;
-
-	/*
-	 * We need to grow the parent in order to create a new unused dentry.
-	 */
-	if (!FAT_IS_FAT32(bs) && parentp->firstc == FAT_CLST_ROOT) {
-		/* Can't grow the root directory. */
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return ENOSPC;
-	}
-	rc = fat_alloc_clusters(bs, parentp->idx->devmap_handle, 1, &mcl, &lcl);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	rc = fat_zero_cluster(bs, parentp->idx->devmap_handle, mcl);
-	if (rc != EOK) {
-		(void) fat_free_clusters(bs, parentp->idx->devmap_handle, mcl);
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	rc = fat_append_clusters(bs, parentp, mcl, lcl);
-	if (rc != EOK) {
-		(void) fat_free_clusters(bs, parentp->idx->devmap_handle, mcl);
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	parentp->size += BPS(bs) * SPC(bs);
-	parentp->dirty = true;		/* need to sync node */
-	rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	d = (fat_dentry_t *)b->data;
-
-hit:
 	/*
 	 * At this point we only establish the link between the parent and the
 	 * child.  The dentry, except of the name and the extension, will remain
 	 * uninitialized until the corresponding node is synced. Thus the valid
 	 * dentry data is kept in the child node structure.
 	 */
-	memset(d, 0, sizeof(fat_dentry_t));
-	fat_dentry_name_set(d, name);
-	b->dirty = true;		/* need to sync block */
-	rc = block_put(b);
+	memset(&de, 0, sizeof(fat_dentry_t));
+
+	rc = fat_directory_write(&di, name, &de);
+	if (rc!=EOK)
+		return rc;
+	rc = fat_directory_close(&di);
+	if (rc!=EOK)
+		return rc;
+
 	fibril_mutex_unlock(&parentp->idx->lock);
 	if (rc != EOK)
 		return rc;
@@ -740,7 +675,7 @@ hit:
 skip_dots:
 
 	childp->idx->pfc = parentp->firstc;
-	childp->idx->pdi = i * DPS(bs) + j;
+	childp->idx->pdi = di.pos;	/* di.pos holds absolute position of SFN entry */
 	fibril_mutex_unlock(&childp->idx->lock);
 
 	fibril_mutex_lock(&childp->lock);
