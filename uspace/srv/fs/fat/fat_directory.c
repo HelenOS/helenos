@@ -36,6 +36,7 @@
  */
 
 #include "fat_directory.h"
+#include "fat_fat.h"
 #include <libblock.h>
 #include <errno.h>
 #include <byteorder.h>
@@ -135,6 +136,7 @@ int fat_directory_seek(fat_directory_t *di, aoff64_t pos)
 {
 	aoff64_t _pos = di->pos;
 	int rc;
+
 	di->pos = pos;
 	rc = fat_directory_block_load(di);
 	if (rc!=EOK)
@@ -174,7 +176,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 					if ((FAT_LFN_ORDER(d) == di->long_entry_count) && 
 						(di->checksum == FAT_LFN_CHKSUM(d))) {
 						/* Right order! */
-						fat_lfn_copy_entry(d, di->wname, &di->lfn_offset);
+						fat_lfn_get_entry(d, di->wname, &di->lfn_offset);
 					} else {
 						/* Something wrong with order. Skip this long entries set */
 						di->long_entry_count = 0;
@@ -189,7 +191,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 							di->lfn_size = (FAT_LFN_ENTRY_SIZE * 
 								(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
 							di->lfn_offset = di->lfn_size;
-							fat_lfn_copy_entry(d, di->wname, &di->lfn_offset);
+							fat_lfn_get_entry(d, di->wname, &di->lfn_offset);
 							di->checksum = FAT_LFN_CHKSUM(d);
 						}
 					}
@@ -199,7 +201,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 				if (di->long_entry && 
 					(di->checksum == fat_dentry_chksum(d->name))) {
 					di->wname[di->lfn_size] = '\0';
-					if (utf16_to_str(name, FAT_LFN_NAME_SIZE, di->wname)!=EOK)
+					if (wstr_to_str(name, FAT_LFN_NAME_SIZE, di->wname)!=EOK)
 						fat_dentry_name_get(d, name);
 				}
 				else
@@ -253,13 +255,241 @@ int fat_directory_erase(fat_directory_t *di)
 	return EOK;
 }
 
-int fat_directory_write(fat_directory_t *di, char *name, fat_dentry_t *de)
+int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 {
-	/* TODO: create LFN records if necessarry and create SFN record */
+	int rc;
+	rc = str_to_wstr(di->wname, FAT_LFN_NAME_SIZE, name);
+	if (rc != EOK)
+		return rc;
+	if (fat_dentry_is_sfn(di->wname)) {
+		/* NAME could be directly stored in dentry without creating LFN */
+		fat_dentry_name_set(de, name);
+
+		if (fat_directory_is_sfn_exist(di, de))
+			return EEXIST;
+		rc = fat_directory_lookup_free(di, 1);
+		if (rc != EOK)
+			return rc;
+		rc = fat_directory_write_dentry(di, de);
+		if (rc != EOK)
+			return rc;
+
+		return EOK;
+	}
+	else
+	{
+		/* We should create long entries to store name */
+		di->lfn_size = wstr_length(di->wname);
+		di->long_entry_count = di->lfn_size / FAT_LFN_ENTRY_SIZE;
+		if (di->lfn_size % FAT_LFN_ENTRY_SIZE)
+			di->long_entry_count++;
+		rc = fat_directory_lookup_free(di, di->long_entry_count+1);
+		if (rc != EOK)
+			return rc;
+		aoff64_t start_pos = di->pos;
+
+		/* Write Short entry */
+		rc = fat_directory_create_sfn(di, de);
+		if (rc != EOK)
+			return rc;
+		di->checksum = fat_dentry_chksum(de->name);
+
+		rc = fat_directory_seek(di, start_pos+di->long_entry_count);
+		if (rc != EOK)
+			return rc;
+		rc = fat_directory_write_dentry(di, de);
+		if (rc != EOK)
+			return rc;
+
+		/* Write Long entry by parts */
+		di->lfn_offset = 0;
+		fat_dentry_t *d;
+		size_t idx = 0;
+		do {
+			rc = fat_directory_prev(di);
+			if (rc != EOK)
+				return rc;
+			rc = fat_directory_get(di, &d);
+			if (rc != EOK)
+				return rc;
+			fat_lfn_set_entry(di->wname, &di->lfn_offset, di->lfn_size+1, d);
+			FAT_LFN_CHKSUM(d) = di->checksum;
+			FAT_LFN_ORDER(d) = ++idx;
+			di->b->dirty = true;
+		} while (di->lfn_offset < di->lfn_size);
+		FAT_LFN_ORDER(d) |= FAT_LFN_LAST;
+
+		rc = fat_directory_seek(di, start_pos+di->long_entry_count);
+		if (rc != EOK)
+			return rc;
+		return EOK;
+	}
+}
+
+int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de)
+{
+	char name[FAT_NAME_LEN+1];
+	char ext[FAT_EXT_LEN+1];
+	char number[FAT_NAME_LEN+1];
+	memset(name, FAT_PAD, FAT_NAME_LEN);
+	memset(ext, FAT_PAD, FAT_EXT_LEN);
+	memset(number, FAT_PAD, FAT_NAME_LEN);
+
+	size_t name_len = wstr_size(di->wname);
+	wchar_t *pdot = wstr_rchr(di->wname, '.');
+	ext[FAT_EXT_LEN] = '\0';
+	if (pdot) {
+		pdot++;
+		wstr_to_ascii(ext, pdot, FAT_EXT_LEN, FAT_SFN_CHAR);
+		name_len = (pdot - di->wname - 1);
+	}
+	if (name_len > FAT_NAME_LEN)
+		name_len = FAT_NAME_LEN;
+	wstr_to_ascii(name, di->wname, name_len, FAT_SFN_CHAR);
+
+	size_t idx;
+	for (idx=1; idx <= FAT_MAX_SFN; idx++) {
+		if (size_t_str(idx, 10, number, FAT_NAME_LEN-2)!=EOK)
+			return EOVERFLOW;
+
+		/* Fill de->name with FAT_PAD */
+		memset(de->name, FAT_PAD, FAT_NAME_LEN+FAT_EXT_LEN);
+		/* Copy ext */
+		memcpy(de->ext, ext, str_size(ext));
+		/* Copy name */
+		memcpy(de->name, name, str_size(name));
+
+		/* Copy number */
+		size_t offset;
+		if (str_size(name)+str_size(number)+1 >FAT_NAME_LEN)
+			offset = FAT_NAME_LEN - str_size(number)-1;
+		else
+			offset = str_size(name);
+		de->name[offset] = '~';
+		offset++;
+		memcpy(de->name+offset, number, str_size(number));
+
+		if (!fat_directory_is_sfn_exist(di, de))
+			return EOK;
+	}
+	return ERANGE;
+}
+
+int fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de)
+{
+	fat_dentry_t *d;
+	int rc;
+
+	rc = fat_directory_get(di, &d);
+	if (rc!=EOK)
+		return rc;
+	memcpy(d, de, sizeof(fat_dentry_t));
+	di->b->dirty = true;
 	return EOK;
 }
 
+int fat_directory_expand(fat_directory_t *di)
+{
+	int rc;
+	fat_cluster_t mcl, lcl;
 
+	if (!FAT_IS_FAT32(di->bs) && di->nodep->firstc == FAT_CLST_ROOT) {
+		/* Can't grow the root directory on FAT12/16. */
+		return ENOSPC;
+	}
+	rc = fat_alloc_clusters(di->bs, di->nodep->idx->devmap_handle, 1, &mcl, &lcl);
+	if (rc != EOK)
+		return rc;
+	rc = fat_zero_cluster(di->bs, di->nodep->idx->devmap_handle, mcl);
+	if (rc != EOK) {
+		(void) fat_free_clusters(di->bs, di->nodep->idx->devmap_handle, mcl);
+		return rc;
+	}
+	rc = fat_append_clusters(di->bs, di->nodep, mcl, lcl);
+	if (rc != EOK) {
+		(void) fat_free_clusters(di->bs, di->nodep->idx->devmap_handle, mcl);
+		return rc;
+	}
+	di->nodep->size += BPS(di->bs) * SPC(di->bs);
+	di->nodep->dirty = true;		/* need to sync node */
+	di->blocks = di->nodep->size / BPS(di->bs);
+	
+	return EOK;
+}
+
+int fat_directory_lookup_free(fat_directory_t *di, size_t count)
+{
+	fat_dentry_t *d;
+	size_t found;
+	aoff64_t pos;
+	
+	do {
+		found = 0;
+		pos=0;
+		fat_directory_seek(di, 0);
+		do {
+			if (fat_directory_get(di, &d) == EOK) {
+				switch (fat_classify_dentry(d)) {
+				case FAT_DENTRY_LAST:
+				case FAT_DENTRY_FREE:
+					if (found==0) pos = di->pos;
+					found++;
+					if (found == count) {
+						fat_directory_seek(di, pos);
+						return EOK;
+					}
+					break;
+				case FAT_DENTRY_VALID:
+				case FAT_DENTRY_LFN:
+				case FAT_DENTRY_SKIP:
+				default:
+					found = 0;
+					break;
+				}
+			}
+		} while (fat_directory_next(di) == EOK);	
+	} while (fat_directory_expand(di) == EOK);
+	return ENOSPC;
+}
+
+int fat_directory_lookup_name(fat_directory_t *di, const char *name, fat_dentry_t **de)
+{
+	char entry[FAT_LFN_NAME_SIZE];
+	fat_directory_seek(di, 0);
+	while (fat_directory_read(di, entry, de) == EOK) {
+		if (fat_dentry_namecmp(entry, name) == 0) {
+			return EOK;
+		} else {
+			if (fat_directory_next(di) != EOK)
+				break;
+		}
+	}
+	return ENOENT;
+}
+
+bool fat_directory_is_sfn_exist(fat_directory_t *di, fat_dentry_t *de)
+{
+	fat_dentry_t *d;
+	fat_directory_seek(di, 0);
+	do {
+		if (fat_directory_get(di, &d) == EOK) {
+			switch (fat_classify_dentry(d)) {
+			case FAT_DENTRY_LAST:
+				return false;
+			case FAT_DENTRY_VALID:
+					if (bcmp(de->name, d->name, FAT_NAME_LEN+FAT_EXT_LEN)==0)
+						return true;
+					break;
+			default:
+			case FAT_DENTRY_LFN:
+			case FAT_DENTRY_SKIP:
+			case FAT_DENTRY_FREE:
+				break;
+			}
+		}
+	} while (fat_directory_next(di) == EOK);	
+	return false;
+}
 
 /**
  * @}

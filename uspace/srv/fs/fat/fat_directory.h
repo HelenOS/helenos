@@ -37,6 +37,8 @@
 #include "fat.h"
 #include "fat_dentry.h"
 
+#define FAT_MAX_SFN 9999
+
 typedef struct {
 	/* Directory data */
 	fat_bs_t *bs;
@@ -47,7 +49,7 @@ typedef struct {
 	block_t *b;
 	bool last;
 	/* Long entry data */
-	uint16_t wname[FAT_LFN_MAX_COUNT * FAT_LFN_ENTRY_SIZE];
+	wchar_t wname[FAT_LFN_NAME_SIZE];
 	size_t lfn_offset;
 	size_t lfn_size;
 	bool long_entry;
@@ -61,13 +63,19 @@ extern int fat_directory_close(fat_directory_t *);
 
 extern int fat_directory_next(fat_directory_t *);
 extern int fat_directory_prev(fat_directory_t *);
-extern int fat_directory_seek(fat_directory_t *, aoff64_t pos);
+extern int fat_directory_seek(fat_directory_t *, aoff64_t);
 extern int fat_directory_get(fat_directory_t *, fat_dentry_t **);
-extern int fat_directory_dirty(fat_directory_t *);
 
 extern int fat_directory_read(fat_directory_t *, char *, fat_dentry_t **);
-extern int fat_directory_write(fat_directory_t *, char *, fat_dentry_t *);
+extern int fat_directory_write(fat_directory_t *, const char *, fat_dentry_t *);
 extern int fat_directory_erase(fat_directory_t *);
+extern int fat_directory_lookup_name(fat_directory_t *, const char *, fat_dentry_t **);
+extern bool fat_directory_is_sfn_exist(fat_directory_t *, fat_dentry_t *);
+
+extern int fat_directory_lookup_free(fat_directory_t *di, size_t count);
+extern int fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de);
+extern int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de);
+extern int fat_directory_expand(fat_directory_t *di);
 
 
 #endif
