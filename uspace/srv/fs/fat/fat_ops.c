@@ -385,7 +385,9 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	fibril_mutex_unlock(&parentp->idx->lock);
 	
 	fat_directory_t di;
-	fat_directory_open(parentp, &di);
+	rc = fat_directory_open(parentp, &di);
+	if (rc != EOK)
+		return rc;
 
 	while (fat_directory_read(&di, name, &d) == EOK) {
 		if (fat_dentry_namecmp(name, component) == 0) {
@@ -605,7 +607,9 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->devmap_handle);
-	fat_directory_open(parentp, &di);
+	rc = fat_directory_open(parentp, &di);
+	if (rc != EOK)
+		return rc;
 
 	/*
 	 * At this point we only establish the link between the parent and the
