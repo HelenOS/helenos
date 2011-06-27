@@ -42,14 +42,6 @@
 #include <byteorder.h>
 #include <assert.h>
 
-static bool is_d_char(const char ch)
-{
-	if (isalnum(ch) || ch == '_')
-		return true;
-	else
-		return false;
-}
-
 /** Compare path component with the name read from the dentry.
  *
  * This function compares the path component with the name read from the dentry.
@@ -80,40 +72,6 @@ int fat_dentry_namecmp(char *name, const char *component)
 		rc = stricmp(name, component);
 	}
 	return rc;
-}
-
-bool fat_dentry_name_verify(const char *name)
-{
-	unsigned int i;
-	unsigned int dot = 0;
-	bool dot_found = false;
-	
-
-	for (i = 0; name[i]; i++) {
-		if (name[i] == '.') {
-			if (dot_found) {
-				return false;
-			} else {
-				dot_found = true;
-				dot = i;
-			}
-		} else {
-			if (!is_d_char(name[i]))
-				return false;
-		}
-	}
-
-	if (dot_found) {
-		if (dot > FAT_NAME_LEN)
-			return false;
-		if (i - dot > FAT_EXT_LEN + 1)
-			return false;
-	} else {
-		if (i > FAT_NAME_LEN)
-			return false;
-	}
-
-	return true;
 }
 
 void fat_dentry_name_get(const fat_dentry_t *d, char *buf)
@@ -281,7 +239,7 @@ size_t fat_lfn_str_nlength(const uint16_t *str, size_t size)
 	size_t offset = 0;
 
 	while (offset < size) {
-		if (str[offset] == 0 || str[offset] == 0xffff) 
+		if (str[offset] == 0 || str[offset] == FAT_LFN_PAD) 
 			break;
 		offset++;
 	}
@@ -306,11 +264,11 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 	return size;
 }
 
-size_t fat_lfn_copy_part(const uint16_t *src, size_t src_size, uint16_t *dst, size_t *offset)
+size_t fat_lfn_get_part(const uint16_t *src, size_t src_size, wchar_t *dst, size_t *offset)
 {
 	while (src_size!=0 && (*offset)!=0) {
 		src_size--;
-		if (src[src_size] == 0 || src[src_size] == 0xffff)
+		if (src[src_size] == 0 || src[src_size] == FAT_LFN_PAD)
 			continue;
 
 		(*offset)--;
@@ -319,87 +277,51 @@ size_t fat_lfn_copy_part(const uint16_t *src, size_t src_size, uint16_t *dst, si
 	return (*offset);
 }
 
-size_t fat_lfn_copy_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
+size_t fat_lfn_get_entry(const fat_dentry_t *d, wchar_t *dst, size_t *offset)
 {
-	fat_lfn_copy_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
-	fat_lfn_copy_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);
-	fat_lfn_copy_part(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE, dst, offset);
+	fat_lfn_get_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
+	fat_lfn_get_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);
+	fat_lfn_get_part(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE, dst, offset);
 
 	return *offset;
 }
 
-/** Convert utf16 string to string.
- *
- * Convert wide string @a src to string. The output is written to the buffer
- * specified by @a dest and @a size. @a size must be non-zero and the string
- * written will always be well-formed.
- *
- * @param dest	Destination buffer.
- * @param size	Size of the destination buffer.
- * @param src	Source wide string.
- */
-int utf16_to_str(char *dest, size_t size, const uint16_t *src)
+size_t fat_lfn_set_part(const wchar_t *src, size_t *offset, size_t src_size, uint16_t *dst, size_t dst_size)
 {
-	int rc;
-	uint16_t ch;
-	size_t src_idx, dest_off;
-
-	/* There must be space for a null terminator in the buffer. */
-	assert(size > 0);
-	
-	src_idx = 0;
-	dest_off = 0;
-
-	while ((ch = src[src_idx++]) != 0) {
-		rc = chr_encode(ch, dest, &dest_off, size - 1);
-		if (rc != EOK)
-			return rc;
+	size_t idx;
+	for (idx=0; idx < dst_size; idx++) {
+		if (*offset < src_size) {
+			dst[idx] = uint16_t_le2host(src[*offset]);
+			(*offset)++;
+		}
+		else
+			dst[idx] = FAT_LFN_PAD;
 	}
-
-	dest[dest_off] = '\0';
-	return EOK;
+	return *offset;
 }
 
-/** Convert string to utf16 string.
- *
- * Convert string @a src to wide string. The output is written to the
- * buffer specified by @a dest and @a dlen. @a dlen must be non-zero
- * and the wide string written will always be null-terminated.
- *
- * @param dest	Destination buffer.
- * @param dlen	Length of destination buffer (number of wchars).
- * @param src	Source string.
- */
-int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
+size_t fat_lfn_set_entry(const wchar_t *src, size_t *offset, size_t size, fat_dentry_t *d)
 {
-	size_t offset;
-	size_t di;
-	uint16_t c;
-
-	assert(dlen > 0);
-
-	offset = 0;
-	di = 0;
-
-	do {
-		if (di >= dlen - 1)
-			return EOVERFLOW;
-
-		c = str_decode(src, &offset, STR_NO_LIMIT);
-		dest[di++] = c;
-	} while (c != '\0');
-
-	dest[dlen - 1] = '\0';
-	return EOK;
+	fat_lfn_set_part(src, offset, size, FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
+	fat_lfn_set_part(src, offset, size, FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
+	fat_lfn_set_part(src, offset, size, FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);
+	if (src[*offset] == 0)
+		offset++;
+	FAT_LFN_ATTR(d) = FAT_ATTR_LFN;
+	d->lfn.type = 0;
+	d->lfn.firstc_lo = 0;
+	
+	return *offset;
 }
 
-bool fat_lfn_valid_char(uint16_t c)
+bool fat_sfn_valid_char(wchar_t c)
 {
 	char valid[] = {"_.$%\'-@~!(){}^#&"};
 	size_t idx=0;
 
-	if (c > 0xff) return false;
-	if (isdigit(c) || (isalpha(c) && isupper(c)))
+	if (!ascii_check(c)) 
+		return false;
+	if (isdigit(c) || isupper(c))
 		return true;	
 	while(valid[idx]!=0)
 		if (c == valid[idx++])
@@ -408,46 +330,67 @@ bool fat_lfn_valid_char(uint16_t c)
 	return false;
 }
 
-bool fat_lfn_valid_str(const uint16_t *str)
+bool fat_sfn_valid(const wchar_t *wstr)
 {
-	uint16_t c;
+	wchar_t c;
 	size_t idx=0;
-	if (str[idx] == 0 || str[idx] == '.')
+	if (wstr[idx] == 0 || wstr[idx] == '.')
 		return false;
-	while ((c=str[idx++]) != 0) {
-		if (!fat_lfn_valid_char(c))
+	while ((c=wstr[idx++]) != 0) {
+		if (!fat_sfn_valid_char(c))
 			return false;
 	}
 	return true;
 }
 
-/** Get number of characters in a wide string.
- *
- * @param str NULL-terminated wide string.
- *
- * @return Number of characters in @a str.
- *
- */
-size_t utf16_length(const uint16_t *wstr)
+/* TODO: add more checks to long name */
+bool fat_lfn_valid(const wchar_t *wstr)
 {
-	size_t len = 0;
-	
-	while (*wstr++ != 0)
-		len++;
-	return len;
+	wchar_t c;
+	size_t idx=0;
+	if (wstr[idx] == 0 || wstr[idx] == '.')
+		return false;
+	while ((c=wstr[idx++]) != 0) {
+		if (ascii_check(c)) {
+			if (c == '?' || c == '*' || c == '\\' || c == '/')
+				return false;
+		}
+	}
+	return true;
 }
 
-bool fat_dentry_is_sfn(const uint16_t *str)
+void wstr_to_ascii(char *dst, const wchar_t *src, size_t count, uint8_t pad)
+{
+	size_t i = 0;
+	while (i < count) {
+		if (src && *src) {
+			if (ascii_check(*src)) {
+				*dst = toupper(*src);
+				src++;
+			}
+			else
+				*dst = pad;
+		}
+		else
+			break;
+
+		dst++;
+		i++;
+	}
+	*dst = '\0';
+}
+
+bool fat_dentry_is_sfn(const wchar_t *wstr)
 {
 	/* 1. Length <= 11 characters */
-	if (utf16_length(str) > (FAT_NAME_LEN + FAT_EXT_LEN))
+	if (wstr_length(wstr) > (FAT_NAME_LEN + FAT_EXT_LEN))
 		return false;
 	/* 
 	 * 2. All characters in string should be ASCII
 	 * 3. All letters must be uppercase
 	 * 4. String should not contain invalid characters
 	 */
-	if (!fat_lfn_valid_str(str))
+	if (!fat_sfn_valid(wstr))
 		return false;
 	
 	return true;

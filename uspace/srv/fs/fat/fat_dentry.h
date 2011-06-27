@@ -55,7 +55,9 @@
 #define FAT_LCASE_LOWER_NAME	0x08
 #define FAT_LCASE_LOWER_EXT	0x10
 
-#define FAT_PAD			' ' 
+#define FAT_PAD			' '
+#define FAT_LFN_PAD	0xffff
+#define FAT_SFN_CHAR '_'
 
 #define FAT_DENTRY_UNUSED	0x00
 #define FAT_DENTRY_E5_ESC	0x05
@@ -75,7 +77,7 @@
 #define FAT_LFN_ATTR(d) (d->lfn.attr)
 #define FAT_LFN_CHKSUM(d) (d->lfn.check_sum)
 
-#define FAT_LFN_NAME_SIZE   255
+#define FAT_LFN_NAME_SIZE   260
 #define FAT_LFN_MAX_COUNT   20
 #define FAT_LFN_PART1_SIZE  5
 #define FAT_LFN_PART2_SIZE  6
@@ -129,7 +131,6 @@ typedef struct {
 
 
 extern int fat_dentry_namecmp(char *, const char *);
-extern bool fat_dentry_name_verify(const char *);
 extern void fat_dentry_name_get(const fat_dentry_t *, char *);
 extern void fat_dentry_name_set(fat_dentry_t *, const char *);
 extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
@@ -137,15 +138,17 @@ extern uint8_t fat_dentry_chksum(uint8_t *);
 
 extern size_t fat_lfn_str_nlength(const uint16_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
-extern size_t fat_lfn_copy_part(const uint16_t *, size_t, uint16_t *, size_t *);
-extern size_t fat_lfn_copy_entry(const fat_dentry_t *, uint16_t *, size_t *);
+extern size_t fat_lfn_get_part(const uint16_t *, size_t, wchar_t *, size_t *);
+extern size_t fat_lfn_get_entry(const fat_dentry_t *, wchar_t *, size_t *);
+extern size_t fat_lfn_set_part(const wchar_t *, size_t *, size_t, uint16_t *, size_t);
+extern size_t fat_lfn_set_entry(const wchar_t *, size_t *, size_t, fat_dentry_t *);
 
-extern int utf16_to_str(char *, size_t, const uint16_t *);
-extern int str_to_utf16(uint16_t *, size_t, const char *);
-extern bool fat_lfn_valid_char(uint16_t);
-extern bool fat_lfn_valid_str(const uint16_t *);
-extern size_t utf16_length(const uint16_t *);
-extern bool fat_dentry_is_sfn(const uint16_t *);
+extern void wstr_to_ascii(char *dst, const wchar_t *src, size_t count, uint8_t pad);
+
+extern bool fat_sfn_valid_char(wchar_t);
+extern bool fat_sfn_valid(const wchar_t *);
+extern bool fat_lfn_valid(const wchar_t *wstr);
+extern bool fat_dentry_is_sfn(const wchar_t *);
 
 
 #endif
