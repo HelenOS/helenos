@@ -97,20 +97,16 @@ static void exfat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
-			/* exfat_mounted(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_mounted(callid, &call);
 			break;
 		case VFS_OUT_MOUNT:
-			/* exfat_mount(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_mount(callid, &call);
 			break;
 		case VFS_OUT_UNMOUNTED:
-			/* exfat_unmounted(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_unmounted(callid, &call);
 			break;
 		case VFS_OUT_UNMOUNT:
-			/* exfat_unmount(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
 			/* exfat_lookup(callid, &call); */
