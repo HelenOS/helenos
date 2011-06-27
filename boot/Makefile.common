@@ -96,6 +96,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/clip/clip \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
+	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
 	$(USPACE_PATH)/srv/net/netif/lo/lo \
