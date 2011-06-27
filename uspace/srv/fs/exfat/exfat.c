@@ -64,16 +64,16 @@ fs_reg_t exfat_reg;
  * In order to support simultaneous VFS requests, our design is as follows.
  * The connection fibril accepts VFS requests from VFS. If there is only one
  * instance of the fibril, VFS will need to serialize all VFS requests it sends
- * to FAT. To overcome this bottleneck, VFS can send FAT the IPC_M_CONNECT_ME_TO
+ * to FAT. To overcome this bottleneck, VFS can send exFAT the IPC_M_CONNECT_ME_TO
  * call. In that case, a new connection fibril will be created, which in turn
  * will accept the call. Thus, a new phone will be opened for VFS.
  *
  * There are few issues with this arrangement. First, VFS can run out of
  * available phones. In that case, VFS can close some other phones or use one
- * phone for more serialized requests. Similarily, FAT can refuse to duplicate
+ * phone for more serialized requests. Similarily, exFAT can refuse to duplicate
  * the connection. VFS should then just make use of already existing phones and
  * route its requests through them. To avoid paying the fibril creation price 
- * upon each request, FAT might want to keep the connections open after the
+ * upon each request, exFAT might want to keep the connections open after the
  * request has been completed.
  */
 static void exfat_connection(ipc_callid_t iid, ipc_call_t *icall)

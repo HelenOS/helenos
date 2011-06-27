@@ -345,13 +345,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatn
 	else
 		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs))+1];
 
-#ifdef __BE__	
-	*value = byte2 | (byte1 << 8);
-#else
-	*value = byte1 | (byte2 << 8);
-#endif
-
-	*value = uint16_t_le2host(*value);
+	*value = uint16_le2host(byte1 | (byte2 << 8));
 	if (IS_ODD(clst))
 		*value = (*value) >> 4;
 	else
