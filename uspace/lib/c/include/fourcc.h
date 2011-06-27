@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libc
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file
  */
 
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
+#ifndef LIBC_FOURCC_H_
+#define LIBC_FOURCC_H_
 
-#include <fourcc.h>
+#include <libarch/common.h>
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VIDEO      = FOURCC('v', 'i', 'd', ' '),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_DEVMAP     = FOURCC('d', 'e', 'v', 'p'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_NETWORKING = FOURCC('n', 'e', 't', ' '),
-	SERVICE_LO         = FOURCC('l', 'o', ' ', ' '),
-	SERVICE_NE2000     = FOURCC('n', 'e', '2', 'k'),
-	SERVICE_ETHERNET   = FOURCC('e', 't', 'h', ' '),
-	SERVICE_NILDUMMY   = FOURCC('n', 'i', 'l', 'd'),
-	SERVICE_IP         = FOURCC('i', 'p', 'v', '4'),
-	SERVICE_ARP        = FOURCC('a', 'r', 'p', ' '),
-	SERVICE_ICMP       = FOURCC('i', 'c', 'm', 'p'),
-	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
-	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
-} services_t;
+#define FOURCC(a, b, c, d) \
+	(((UINT32_T) (a)) | (((UINT32_T) (b)) << 8) | \
+	    (((UINT32_T) (c)) << 16) | (((UINT32_T) (d)) << 24))
 
 #endif
 

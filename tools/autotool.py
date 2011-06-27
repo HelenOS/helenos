@@ -360,6 +360,9 @@ def detect_uints(probe, bytes, tags):
 		typedefs.append({'oldtype': "unsigned %s" % probe['unsigned_sizes'][b], 'newtype': "uint%u_t" % (b * 8)})
 		typedefs.append({'oldtype': "signed %s" % probe['signed_sizes'][b], 'newtype': "int%u_t" % (b * 8)})
 		
+		macros.append({'oldmacro': "unsigned %s" % probe['unsigned_sizes'][b], 'newmacro': "UINT%u_T" % (b * 8)})
+		macros.append({'oldmacro': "signed %s" % probe['signed_sizes'][b], 'newmacro': "INT%u_T" % (b * 8)})
+		
 		macros.append({'oldmacro': "\"%so\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIo%u" % (b * 8)})
 		macros.append({'oldmacro': "\"%su\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIu%u" % (b * 8)})
 		macros.append({'oldmacro': "\"%sx\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIx%u" % (b * 8)})
