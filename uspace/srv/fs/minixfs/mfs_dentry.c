@@ -164,8 +164,10 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 		if (!bcmp(d_info->d_name, d_name, name_len)) {
 			d_info->d_inum = 0;
 			r = write_dentry(d_info);
+			free(d_info);
 			return r;
 		}
+		free(d_info);
 	}
 
 	return ENOENT;
@@ -206,12 +208,10 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 	if (!empty_dentry_found) {
 		r = inode_grow(mnode, sbi->dirsize);
-		if (r != EOK)
-			return r;
+		on_error(r, goto out);
 
 		r = read_directory_entry(mnode, &d_info, i);
-		if (r != EOK)
-			return r;
+		on_error(r, goto out);
 
 		assert(d_info != NULL);
 	}
@@ -222,7 +222,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 	r = write_dentry(d_info);
 	free(d_info);
-
+out:
 	return r;
 }
 
