@@ -265,7 +265,7 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 	return size;
 }
 
-size_t fat_lfn_get_part(const uint16_t *src, size_t src_size, wchar_t *dst, size_t *offset)
+size_t fat_lfn_get_part(const uint16_t *src, size_t src_size, uint16_t *dst, size_t *offset)
 {
 	while (src_size!=0 && (*offset)!=0) {
 		src_size--;
@@ -278,7 +278,7 @@ size_t fat_lfn_get_part(const uint16_t *src, size_t src_size, wchar_t *dst, size
 	return (*offset);
 }
 
-size_t fat_lfn_get_entry(const fat_dentry_t *d, wchar_t *dst, size_t *offset)
+size_t fat_lfn_get_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
 {
 	fat_lfn_get_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
 	fat_lfn_get_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);

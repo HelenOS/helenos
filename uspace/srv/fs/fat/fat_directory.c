@@ -153,7 +153,7 @@ int fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
 int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 {
 	fat_dentry_t *d = NULL;
-	wchar_t wname[FAT_LFN_NAME_SIZE];
+	uint16_t wname[FAT_LFN_NAME_SIZE];
 	size_t lfn_offset, lfn_size;
 	bool long_entry = false;
 	int long_entry_count = 0;
@@ -198,7 +198,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 				if (long_entry && 
 					(checksum == fat_dentry_chksum(d->name))) {
 					wname[lfn_size] = '\0';
-					if (wstr_to_str(name, FAT_LFN_NAME_SIZE, wname)!=EOK)
+					if (utf16_to_str(name, FAT_LFN_NAME_SIZE, wname) != EOK)
 						fat_dentry_name_get(d, name);
 				}
 				else
