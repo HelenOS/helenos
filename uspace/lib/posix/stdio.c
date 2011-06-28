@@ -40,12 +40,44 @@
 
 #include "internal/common.h"
 #include "stdio.h"
+#include "libc/io/printf_core.h"
 #include "string.h"
+#include "libc/str.h"
 
 /* not the best of solutions, but freopen will eventually
  * need to be implemented in libc anyway
  */
 #include "../c/generic/private/stdio.h"
+
+/** Clears the stream's error and end-of-file indicators.
+ *
+ * @param stream
+ */
+void posix_clearerr(FILE *stream)
+{
+	stream->error = 0;
+	stream->eof = 0;
+}
+
+/**
+ *
+ * @param s
+ * @return
+ */
+char *posix_ctermid(char *s)
+{
+	/* Currently always returns an error value (empty string). */
+	// TODO: return a real terminal path
+
+	static char dummy_path[L_ctermid] = {'\0'};
+
+	if (s == NULL) {
+		return dummy_path;
+	}
+
+	s[0] = '\0';
+	return s;
+}
 
 /**
  * 
@@ -54,6 +86,20 @@
  * @return 
  */
 int posix_ungetc(int c, FILE *stream)
+{
+	// TODO
+	not_implemented();
+}
+
+ssize_t posix_getdelim(char **restrict lineptr, size_t *restrict n,
+    int delimiter, FILE *restrict stream)
+{
+	// TODO
+	not_implemented();
+}
+
+ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
+    FILE *restrict stream)
 {
 	// TODO
 	not_implemented();
@@ -112,14 +158,73 @@ FILE *posix_freopen(
 	return stream;
 }
 
+FILE *posix_fmemopen(void *restrict buf, size_t size,
+    const char *restrict mode)
+{
+	// TODO
+	not_implemented();
+}
+
+FILE *posix_open_memstream(char **bufp, size_t *sizep)
+{
+	// TODO
+	not_implemented();
+}
+
 /**
  *
  * @param s
  */
 void posix_perror(const char *s)
 {
-	// TODO
-	not_implemented();
+	if (s == NULL || s[0] == '\0') {
+		fprintf(stderr, "%s\n", posix_strerror(errno));
+	} else {
+		fprintf(stderr, "%s: %s\n", s, posix_strerror(errno));
+	}
+}
+
+struct _posix_fpos {
+	off64_t offset;
+};
+
+/** Restores stream a to position previously saved with fgetpos().
+ *
+ * @param stream Stream to restore
+ * @param pos Position to restore
+ * @return Zero on success, non-zero (with errno set) on failure
+ */
+int posix_fsetpos(FILE *stream, const posix_fpos_t *pos)
+{
+	return fseek(stream, pos->offset, SEEK_SET);
+}
+
+/** Saves the stream's position for later use by fsetpos().
+ *
+ * @param stream Stream to save
+ * @param pos Place to store the position
+ * @return Zero on success, non-zero (with errno set) on failure
+ */
+int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos)
+{
+	off64_t ret = ftell(stream);
+	if (ret == -1) {
+		return errno;
+	}
+	pos->offset = ret;
+	return 0;
+}
+
+/**
+ * 
+ * @param stream
+ * @param offset
+ * @param whence
+ * @return
+ */
+int posix_fseek(FILE *stream, long offset, int whence)
+{
+	return fseek(stream, (off64_t) offset, whence);
 }
 
 /**
@@ -131,8 +236,17 @@ void posix_perror(const char *s)
  */
 int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
 {
-	// TODO
-	not_implemented();
+	return fseek(stream, (off64_t) offset, whence);
+}
+
+/**
+ * 
+ * @param stream
+ * @return
+ */
+long posix_ftell(FILE *stream)
+{
+	return (long) ftell(stream);
 }
 
 /**
@@ -142,8 +256,57 @@ int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
  */
 posix_off_t posix_ftello(FILE *stream)
 {
-	// TODO
-	not_implemented();
+	return (posix_off_t) ftell(stream);
+}
+
+int posix_dprintf(int fildes, const char *restrict format, ...)
+{
+	va_list list;
+	va_start(list, format);
+	int result = posix_vdprintf(fildes, format, list);
+	va_end(list);
+	return result;
+}
+
+static int _dprintf_str_write(const char *str, size_t size, void *fd)
+{
+	ssize_t wr = write(*(int *) fd, str, size);
+	return str_nlength(str, wr);
+}
+
+static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
+{
+	size_t offset = 0;
+	size_t chars = 0;
+	size_t sz;
+	char buf[4];
+	
+	while (offset < size) {
+		sz = 0;
+		if (chr_encode(str[chars], buf, &sz, sizeof(buf)) != EOK) {
+			break;
+		}
+		
+		if (write(*(int *) fd, buf, sz) != (ssize_t) sz) {
+			break;
+		}
+		
+		chars++;
+		offset += sizeof(wchar_t);
+	}
+	
+	return chars;
+}
+
+int posix_vdprintf(int fildes, const char *restrict format, va_list ap)
+{
+	printf_spec_t spec = {
+		.str_write = _dprintf_str_write,
+		.wstr_write = _dprintf_wstr_write,
+		.data = &fildes
+	};
+	
+	return printf_core(format, &spec, ap);
 }
 
 /**
@@ -155,21 +318,71 @@ posix_off_t posix_ftello(FILE *stream)
  */
 int posix_sprintf(char *s, const char *format, ...)
 {
-	// TODO
-	not_implemented();
+	va_list list;
+	va_start(list, format);
+	int result = posix_vsprintf(s, format, list);
+	va_end(list);
+	return result;
 }
 
 /**
  * 
  * @param s
  * @param format
- * @param ...
+ * @param ap
  * @return
  */
 int posix_vsprintf(char *s, const char *format, va_list ap)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
+	return vsnprintf(s, STR_NO_LIMIT, format, ap);
+}
+
+/**
+ * 
+ * @param stream
+ * @param format
+ * @param ...
+ * @return
+ */
+int posix_fscanf(FILE *restrict stream, const char *restrict format, ...)
+{
+	va_list list;
+	va_start(list, format);
+	int result = posix_vfscanf(stream, format, list);
+	va_end(list);
+	return result;
+}
+
+int posix_vfscanf(FILE *restrict stream, const char *restrict format, va_list arg)
+{
+	// TODO
 	not_implemented();
+}
+
+/**
+ * 
+ * @param format
+ * @param ...
+ * @return
+ */
+int posix_scanf(const char *restrict format, ...)
+{
+	va_list list;
+	va_start(list, format);
+	int result = posix_vscanf(format, list);
+	va_end(list);
+	return result;
+}
+
+/**
+ * 
+ * @param format
+ * @param arg
+ * @return
+ */
+int posix_vscanf(const char *restrict format, va_list arg)
+{
+	return posix_vfscanf(stdin, format, arg);
 }
 
 /**
@@ -181,8 +394,61 @@ int posix_vsprintf(char *s, const char *format, va_list ap)
  */
 int posix_sscanf(const char *s, const char *format, ...)
 {
+	va_list list;
+	va_start(list, format);
+	int result = posix_vsscanf(s, format, list);
+	va_end(list);
+	return result;
+}
+
+/**
+ * 
+ * @param s
+ * @param format
+ * @param arg
+ * @return
+ */
+int posix_vsscanf(
+    const char *restrict s, const char *restrict format, va_list arg)
+{
 	// TODO
 	not_implemented();
+}
+
+void posix_flockfile(FILE *file)
+{
+	/* dummy */
+}
+
+int posix_ftrylockfile(FILE *file)
+{
+	/* dummy */
+	return 0;
+}
+
+void posix_funlockfile(FILE *file)
+{
+	/* dummy */
+}
+
+int posix_getc_unlocked(FILE *stream)
+{
+	return getc(stream);
+}
+
+int posix_getchar_unlocked(void)
+{
+	return getchar();
+}
+
+int posix_putc_unlocked(int c, FILE *stream)
+{
+	return putc(c, stream);
+}
+
+int posix_putchar_unlocked(int c)
+{
+	return putchar(c);
 }
 
 /**
@@ -192,8 +458,9 @@ int posix_sscanf(const char *s, const char *format, ...)
  */
 int posix_remove(const char *path)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
+	// FIXME: unlink() and rmdir() seem to be equivalent at the moment,
+	//        but that does not have to be true forever
+	return unlink(path);
 }
 
 /**

@@ -35,6 +35,8 @@
 #ifndef POSIX_STDINT_H_
 #define POSIX_STDINT_H_
 
+#include "libc/stdint.h"
+
 #undef INT8_MAX
 #undef INT8_MIN
 #define INT8_MAX  127
