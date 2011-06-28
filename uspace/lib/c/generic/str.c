@@ -590,6 +590,49 @@ int wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	return rc;
 }
 
+/** Convert UTF16 string to string.
+ *
+ * Convert utf16 string @a src to string. The output is written to the buffer
+ * specified by @a dest and @a size. @a size must be non-zero and the string
+ * written will always be well-formed. Surrogate pairs also supported.
+ *
+ * @param dest	Destination buffer.
+ * @param size	Size of the destination buffer.
+ * @param src	Source utf16 string.
+ *
+ * @return EOK, if success, negative otherwise.
+ */
+int utf16_to_str(char *dest, size_t size, const uint16_t *src)
+{
+	size_t idx=0, dest_off=0;
+	wchar_t ch;
+	int rc = EOK;
+
+	/* There must be space for a null terminator in the buffer. */
+	assert(size > 0);
+
+	while (src[idx]) {
+		if ((src[idx] & 0xfc00) == 0xd800) {
+			if (src[idx+1] && (src[idx+1] & 0xfc00) == 0xdc00) {
+				ch = 0x10000;
+				ch += (src[idx] & 0x03FF) << 10;
+				ch += (src[idx+1] & 0x03FF);
+				idx += 2;
+			}
+			else
+				break;
+		} else {
+			ch = src[idx];
+			idx++;
+		}
+		rc = chr_encode(ch, dest, &dest_off, size-1);
+		if (rc != EOK)
+			break;
+	}
+	dest[dest_off] = '\0';
+	return rc;
+}
+
 /** Convert wide string to new string.
  *
  * Convert wide string @a src to string. Space for the new string is allocated
