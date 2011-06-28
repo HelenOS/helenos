@@ -48,13 +48,6 @@ typedef struct {
 	aoff64_t pos;
 	block_t *b;
 	bool last;
-	/* Long entry data */
-	wchar_t wname[FAT_LFN_NAME_SIZE];
-	size_t lfn_offset;
-	size_t lfn_size;
-	bool long_entry;
-	int long_entry_count;
-	uint8_t checksum;
 } __attribute__ ((packed)) fat_directory_t;
 
 
@@ -74,7 +67,7 @@ extern bool fat_directory_is_sfn_exist(fat_directory_t *, fat_dentry_t *);
 
 extern int fat_directory_lookup_free(fat_directory_t *di, size_t count);
 extern int fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de);
-extern int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de);
+extern int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const wchar_t *wname);
 extern int fat_directory_expand(fat_directory_t *di);
 
 

@@ -586,6 +586,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fat_directory_t di;
 	fat_dentry_t de;
 	int rc;
+	wchar_t wname[FAT_LFN_NAME_SIZE];
 
 	fibril_mutex_lock(&childp->lock);
 	if (childp->lnkcnt == 1) {
@@ -598,11 +599,11 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	assert(childp->lnkcnt == 0);
 	fibril_mutex_unlock(&childp->lock);
 
-	rc = str_to_wstr(di.wname, FAT_LFN_NAME_SIZE, name);
+	rc = str_to_wstr(wname, FAT_LFN_NAME_SIZE, name);
 	if (rc != EOK)
 		return rc;
 
-	if (!fat_lfn_valid(di.wname))
+	if (!fat_lfn_valid(wname))
 		return ENOTSUP;
 
 	fibril_mutex_lock(&parentp->idx->lock);

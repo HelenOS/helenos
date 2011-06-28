@@ -58,14 +58,6 @@ int fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 	di->pos = 0;
 	di->bnum = 0;
 	di->last = false;
-
-	di->wname[0] = '\0';
-	di->lfn_offset = 0;
-	di->lfn_size = 0;
-	di->long_entry = false;
-	di->long_entry_count = 0;
-	di->checksum=0;
-
 	return EOK;
 }
 
@@ -161,61 +153,64 @@ int fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
 int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 {
 	fat_dentry_t *d = NULL;
+	wchar_t wname[FAT_LFN_NAME_SIZE];
+	size_t lfn_offset, lfn_size;
+	bool long_entry = false;
+	int long_entry_count = 0;
+	uint8_t checksum = 0;
 
 	do {
 		if (fat_directory_get(di, &d) == EOK) {
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_LAST:
-				di->long_entry_count = 0;
-				di->long_entry = false;
+				long_entry_count = 0;
+				long_entry = false;
 				return ENOENT;
 			case FAT_DENTRY_LFN:
-				if (di->long_entry) {
+				if (long_entry) {
 					/* We found long entry */
-					di->long_entry_count--;
-					if ((FAT_LFN_ORDER(d) == di->long_entry_count) && 
-						(di->checksum == FAT_LFN_CHKSUM(d))) {
+					long_entry_count--;
+					if ((FAT_LFN_ORDER(d) == long_entry_count) && 
+						(checksum == FAT_LFN_CHKSUM(d))) {
 						/* Right order! */
-						fat_lfn_get_entry(d, di->wname, &di->lfn_offset);
+						fat_lfn_get_entry(d, wname, &lfn_offset);
 					} else {
 						/* Something wrong with order. Skip this long entries set */
-						di->long_entry_count = 0;
-						di->long_entry = false;
+						long_entry_count = 0;
+						long_entry = false;
 					}
 				} else {
 					if (FAT_IS_LFN(d)) {
 						/* We found Last long entry! */
 						if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
-							di->long_entry = true;
-							di->long_entry_count = FAT_LFN_COUNT(d);
-							di->lfn_size = (FAT_LFN_ENTRY_SIZE * 
+							long_entry = true;
+							long_entry_count = FAT_LFN_COUNT(d);
+							lfn_size = (FAT_LFN_ENTRY_SIZE * 
 								(FAT_LFN_COUNT(d) - 1)) + fat_lfn_size(d);
-							di->lfn_offset = di->lfn_size;
-							fat_lfn_get_entry(d, di->wname, &di->lfn_offset);
-							di->checksum = FAT_LFN_CHKSUM(d);
+							lfn_offset = lfn_size;
+							fat_lfn_get_entry(d, wname, &lfn_offset);
+							checksum = FAT_LFN_CHKSUM(d);
 						}
 					}
 				}
 				break;
 			case FAT_DENTRY_VALID:
-				if (di->long_entry && 
-					(di->checksum == fat_dentry_chksum(d->name))) {
-					di->wname[di->lfn_size] = '\0';
-					if (wstr_to_str(name, FAT_LFN_NAME_SIZE, di->wname)!=EOK)
+				if (long_entry && 
+					(checksum == fat_dentry_chksum(d->name))) {
+					wname[lfn_size] = '\0';
+					if (wstr_to_str(name, FAT_LFN_NAME_SIZE, wname)!=EOK)
 						fat_dentry_name_get(d, name);
 				}
 				else
 					fat_dentry_name_get(d, name);
 				
 				*de = d;
-				di->long_entry_count = 0;
-				di->long_entry = false;
 				return EOK;
 			default:
 			case FAT_DENTRY_SKIP:
 			case FAT_DENTRY_FREE:
-				di->long_entry_count = 0;
-				di->long_entry = false;
+				long_entry_count = 0;
+				long_entry = false;
 				break;
 			}
 		}
@@ -229,11 +224,12 @@ int fat_directory_erase(fat_directory_t *di)
 	int rc;
 	fat_dentry_t *d;
 	bool flag = false;
+	uint8_t checksum;
 
 	rc = fat_directory_get(di, &d);
 	if (rc != EOK)
 		return rc;
-	di->checksum = fat_dentry_chksum(d->name);
+	checksum = fat_dentry_chksum(d->name);
 
 	d->name[0] = FAT_DENTRY_ERASED;
 	di->b->dirty = true;
@@ -241,7 +237,7 @@ int fat_directory_erase(fat_directory_t *di)
 	while (!flag && fat_directory_prev(di) == EOK) {
 		if (fat_directory_get(di, &d) == EOK &&
 			fat_classify_dentry(d) == FAT_DENTRY_LFN &&			
-			di->checksum == FAT_LFN_CHKSUM(d)) {
+			checksum == FAT_LFN_CHKSUM(d)) {
 				if (FAT_IS_LFN(d))
 					flag = true;
 				memset(d, 0, sizeof(fat_dentry_t));
@@ -258,10 +254,15 @@ int fat_directory_erase(fat_directory_t *di)
 int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 {
 	int rc;
-	rc = str_to_wstr(di->wname, FAT_LFN_NAME_SIZE, name);
+	int long_entry_count;
+	uint8_t checksum;
+	wchar_t wname[FAT_LFN_NAME_SIZE];
+	size_t lfn_size, lfn_offset;
+	
+	rc = str_to_wstr(wname, FAT_LFN_NAME_SIZE, name);
 	if (rc != EOK)
 		return rc;
-	if (fat_dentry_is_sfn(di->wname)) {
+	if (fat_dentry_is_sfn(wname)) {
 		/* NAME could be directly stored in dentry without creating LFN */
 		fat_dentry_name_set(de, name);
 
@@ -279,22 +280,22 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 	else
 	{
 		/* We should create long entries to store name */
-		di->lfn_size = wstr_length(di->wname);
-		di->long_entry_count = di->lfn_size / FAT_LFN_ENTRY_SIZE;
-		if (di->lfn_size % FAT_LFN_ENTRY_SIZE)
-			di->long_entry_count++;
-		rc = fat_directory_lookup_free(di, di->long_entry_count+1);
+		lfn_size = wstr_length(wname);
+		long_entry_count = lfn_size / FAT_LFN_ENTRY_SIZE;
+		if (lfn_size % FAT_LFN_ENTRY_SIZE)
+			long_entry_count++;
+		rc = fat_directory_lookup_free(di, long_entry_count+1);
 		if (rc != EOK)
 			return rc;
 		aoff64_t start_pos = di->pos;
 
 		/* Write Short entry */
-		rc = fat_directory_create_sfn(di, de);
+		rc = fat_directory_create_sfn(di, de, wname);
 		if (rc != EOK)
 			return rc;
-		di->checksum = fat_dentry_chksum(de->name);
+		checksum = fat_dentry_chksum(de->name);
 
-		rc = fat_directory_seek(di, start_pos+di->long_entry_count);
+		rc = fat_directory_seek(di, start_pos+long_entry_count);
 		if (rc != EOK)
 			return rc;
 		rc = fat_directory_write_dentry(di, de);
@@ -302,7 +303,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 			return rc;
 
 		/* Write Long entry by parts */
-		di->lfn_offset = 0;
+		lfn_offset = 0;
 		fat_dentry_t *d;
 		size_t idx = 0;
 		do {
@@ -312,21 +313,21 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 			rc = fat_directory_get(di, &d);
 			if (rc != EOK)
 				return rc;
-			fat_lfn_set_entry(di->wname, &di->lfn_offset, di->lfn_size+1, d);
-			FAT_LFN_CHKSUM(d) = di->checksum;
+			fat_lfn_set_entry(wname, &lfn_offset, lfn_size+1, d);
+			FAT_LFN_CHKSUM(d) = checksum;
 			FAT_LFN_ORDER(d) = ++idx;
 			di->b->dirty = true;
-		} while (di->lfn_offset < di->lfn_size);
+		} while (lfn_offset < lfn_size);
 		FAT_LFN_ORDER(d) |= FAT_LFN_LAST;
 
-		rc = fat_directory_seek(di, start_pos+di->long_entry_count);
+		rc = fat_directory_seek(di, start_pos+long_entry_count);
 		if (rc != EOK)
 			return rc;
 		return EOK;
 	}
 }
 
-int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de)
+int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const wchar_t *wname)
 {
 	char name[FAT_NAME_LEN+1];
 	char ext[FAT_EXT_LEN+1];
@@ -335,17 +336,17 @@ int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de)
 	memset(ext, FAT_PAD, FAT_EXT_LEN);
 	memset(number, FAT_PAD, FAT_NAME_LEN);
 
-	size_t name_len = wstr_size(di->wname);
-	wchar_t *pdot = wstr_rchr(di->wname, '.');
+	size_t name_len = wstr_size(wname);
+	wchar_t *pdot = wstr_rchr(wname, '.');
 	ext[FAT_EXT_LEN] = '\0';
 	if (pdot) {
 		pdot++;
 		wstr_to_ascii(ext, pdot, FAT_EXT_LEN, FAT_SFN_CHAR);
-		name_len = (pdot - di->wname - 1);
+		name_len = (pdot - wname - 1);
 	}
 	if (name_len > FAT_NAME_LEN)
 		name_len = FAT_NAME_LEN;
-	wstr_to_ascii(name, di->wname, name_len, FAT_SFN_CHAR);
+	wstr_to_ascii(name, wname, name_len, FAT_SFN_CHAR);
 
 	size_t idx;
 	for (idx=1; idx <= FAT_MAX_SFN; idx++) {
