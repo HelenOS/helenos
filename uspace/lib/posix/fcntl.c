@@ -36,18 +36,86 @@
 
 #include "internal/common.h"
 #include "fcntl.h"
+#include "libc/unistd.h"
+#include "libc/vfs/vfs.h"
+#include <errno.h>
 
 /**
- * 
- * @param fd
- * @param cmd
- * @param ...
- * @return
+ * Performs set of operations on the opened files.
+ *
+ * @param fd File descriptor of the opened file.
+ * @param cmd Operation to carry out.
+ * @return Non-negative on success. Might have special meaning corresponding
+ *     to the requested operation.
  */
 int posix_fcntl(int fd, int cmd, ...)
 {
-	// TODO
-	not_implemented();
+	int rc;
+	int flags;
+
+	switch (cmd) {
+	case F_DUPFD:
+	case F_DUPFD_CLOEXEC: /* FD_CLOEXEC is not supported. */
+		/* VFS does not provide means to express constraints on the new
+		 * file descriptor so the third argument is ignored. */
+
+		/* Retrieve node triplet corresponding to the file descriptor. */
+		/* Empty statement after label. */;
+		fdi_node_t node;
+		rc = fd_node(fd, &node);
+		if (rc != EOK) {
+			// TODO: propagate a POSIX compatible errno
+			return -1;
+		}
+
+		/* Reopen the node so the fresh file descriptor is generated. */
+		int newfd = open_node(&node, 0);
+		if (newfd < 0) {
+			// TODO: propagate a POSIX compatible errno
+			return -1;
+		}
+
+		/* Associate the newly generated descriptor to the file description
+		 * of the old file descriptor. Just reopened node will be automatically
+		 * closed. */
+		rc = dup2(fd, newfd);
+		if (rc != EOK) {
+			// TODO: propagate a POSIX compatible errno
+			return -1;
+		}
+
+		return newfd;
+	case F_GETFD:
+		/* FD_CLOEXEC is not supported. There are no other flags. */
+		return 0;
+	case F_SETFD:
+		/* FD_CLOEXEC is not supported. Ignore arguments and report success. */
+		return 0;
+	case F_GETFL:
+		/* File status flags (i.e. O_APPEND) are currently private to the
+		 * VFS server so it cannot be easily retrieved. */
+		flags = 0;
+		/* File access flags are currently not supported for file descriptors.
+		 * Provide full access. */
+		flags |= O_RDWR;
+		return flags;
+	case F_SETFL:
+		/* File access flags are currently not supported for file descriptors.
+		 * Ignore arguments and report success. */
+		return 0;
+	case F_GETOWN:
+	case F_SETOWN:
+	case F_GETLK:
+	case F_SETLK:
+	case F_SETLKW:
+		/* Signals (SIGURG) and file locks are not supported. */
+		errno = ENOTSUP;
+		return -1;
+	default:
+		/* Unknown command */
+		errno = EINVAL;
+		return -1;
+	}
 }
 
 /** @}
