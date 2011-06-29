@@ -37,6 +37,7 @@
  */
 
 #include "exfat.h"
+#include "exfat_fat.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
@@ -54,11 +55,226 @@
 #include <sys/mman.h>
 #include <align.h>
 #include <malloc.h>
+#include <stdio.h>
+
+#define EXFAT_NODE(node)	((node) ? (exfat_node_t *) (node)->data : NULL)
+#define FS_NODE(node)	((node) ? (node)->bp : NULL)
+
+
+/** Mutex protecting the list of cached free FAT nodes. */
+static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
+
+/** List of cached free FAT nodes. */
+static LIST_INITIALIZE(ffn_head);
+
+/*
+ * Forward declarations of FAT libfs operations.
+ */
+static int exfat_root_get(fs_node_t **, devmap_handle_t);
+static int exfat_match(fs_node_t **, fs_node_t *, const char *);
+static int exfat_node_get(fs_node_t **, devmap_handle_t, fs_index_t);
+static int exfat_node_open(fs_node_t *);
+static int exfat_node_put(fs_node_t *);
+static int exfat_create_node(fs_node_t **, devmap_handle_t, int);
+static int exfat_destroy_node(fs_node_t *);
+static int exfat_link(fs_node_t *, fs_node_t *, const char *);
+static int exfat_unlink(fs_node_t *, fs_node_t *, const char *);
+static int exfat_has_children(bool *, fs_node_t *);
+static fs_index_t exfat_index_get(fs_node_t *);
+static aoff64_t exfat_size_get(fs_node_t *);
+static unsigned exfat_lnkcnt_get(fs_node_t *);
+static char exfat_plb_get_char(unsigned);
+static bool exfat_is_directory(fs_node_t *);
+static bool exfat_is_file(fs_node_t *node);
+static devmap_handle_t exfat_device_get(fs_node_t *node);
+
+/*
+ * Helper functions.
+ */
+static void exfat_node_initialize(exfat_node_t *node)
+{
+	fibril_mutex_initialize(&node->lock);
+	node->bp = NULL;
+	node->idx = NULL;
+	node->type = 0;
+	link_initialize(&node->ffn_link);
+	node->size = 0;
+	node->lnkcnt = 0;
+	node->refcnt = 0;
+	node->dirty = false;
+	node->lastc_cached_valid = false;
+	node->lastc_cached_value = 0;
+	node->currc_cached_valid = false;
+	node->currc_cached_bn = 0;
+	node->currc_cached_value = 0;
+}
+
+static int exfat_node_sync(exfat_node_t *node)
+{
+	return EOK;
+}
+
+static int exfat_node_fini_by_devmap_handle(devmap_handle_t devmap_handle)
+{
+	link_t *lnk;
+	exfat_node_t *nodep;
+	int rc;
+
+	/*
+	 * We are called from fat_unmounted() and assume that there are already
+	 * no nodes belonging to this instance with non-zero refcount. Therefore
+	 * it is sufficient to clean up only the FAT free node list.
+	 */
+
+restart:
+	fibril_mutex_lock(&ffn_mutex);
+	for (lnk = ffn_head.next; lnk != &ffn_head; lnk = lnk->next) {
+		nodep = list_get_instance(lnk, exfat_node_t, ffn_link);
+		if (!fibril_mutex_trylock(&nodep->lock)) {
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (!fibril_mutex_trylock(&nodep->idx->lock)) {
+			fibril_mutex_unlock(&nodep->lock);
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (nodep->idx->devmap_handle != devmap_handle) {
+			fibril_mutex_unlock(&nodep->idx->lock);
+			fibril_mutex_unlock(&nodep->lock);
+			continue;
+		}
+
+		list_remove(&nodep->ffn_link);
+		fibril_mutex_unlock(&ffn_mutex);
+
+		/*
+		 * We can unlock the node and its index structure because we are
+		 * the last player on this playground and VFS is preventing new
+		 * players from entering.
+		 */
+		fibril_mutex_unlock(&nodep->idx->lock);
+		fibril_mutex_unlock(&nodep->lock);
+
+		if (nodep->dirty) {
+			rc = exfat_node_sync(nodep);
+			if (rc != EOK)
+				return rc;
+		}
+		nodep->idx->nodep = NULL;
+		free(nodep->bp);
+		free(nodep);
+
+		/* Need to restart because we changed the ffn_head list. */
+		goto restart;
+	}
+	fibril_mutex_unlock(&ffn_mutex);
+
+	return EOK;
+}
+
+
+/*
+ * FAT libfs operations.
+ */
+
+int exfat_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+{
+	return exfat_node_get(rfn, devmap_handle, 0);
+}
+
+int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+{
+	*rfn = NULL;
+	return EOK;
+}
+
+/** Instantiate a exFAT in-core node. */
+int exfat_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
+{
+	*rfn = NULL;
+	return EOK;
+}
+
+int exfat_node_open(fs_node_t *fn)
+{
+	/*
+	 * Opening a file is stateless, nothing
+	 * to be done here.
+	 */
+	return EOK;
+}
+
+int exfat_node_put(fs_node_t *fn)
+{
+	return EOK;
+}
+
+int exfat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
+{
+	*rfn = NULL;
+	return EOK;
+}
+
+int exfat_destroy_node(fs_node_t *fn)
+{
+	return EOK;
+}
+
+int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+{
+	return EOK;
+}
+
+int exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+{
+	return EOK;
+}
+
+int exfat_has_children(bool *has_children, fs_node_t *fn)
+{
+	*has_children = false;
+	return EOK;
+}
+
+
+fs_index_t exfat_index_get(fs_node_t *fn)
+{
+	return EXFAT_NODE(fn)->idx->index;
+}
+
+aoff64_t exfat_size_get(fs_node_t *fn)
+{
+	return EXFAT_NODE(fn)->size;
+}
+
+unsigned exfat_lnkcnt_get(fs_node_t *fn)
+{
+	return EXFAT_NODE(fn)->lnkcnt;
+}
+
+char exfat_plb_get_char(unsigned pos)
+{
+	return exfat_reg.plb_ro[pos % PLB_SIZE];
+}
+
+bool exfat_is_directory(fs_node_t *fn)
+{
+	return EXFAT_NODE(fn)->type == EXFAT_DIRECTORY;
+}
+
+bool exfat_is_file(fs_node_t *fn)
+{
+	return EXFAT_NODE(fn)->type == EXFAT_FILE;
+}
+
+devmap_handle_t exfat_device_get(fs_node_t *node)
+{
+	return 0;
+}
+
 
 /** libfs operations */
-
-libfs_ops_t exfat_libfs_ops;
-/*
 libfs_ops_t exfat_libfs_ops = {
 	.root_get = exfat_root_get,
 	.match = exfat_match,
@@ -78,7 +294,7 @@ libfs_ops_t exfat_libfs_ops = {
 	.is_file = exfat_is_file,
 	.device_get = exfat_device_get
 };
-*/
+
 
 /*
  * VFS operations.
@@ -135,8 +351,73 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	async_answer_0(rid, EOK);
-/*	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt); */
+	/* Do some simple sanity checks on the file system. */
+	rc = exfat_sanity_check(bs, devmap_handle);
+	if (rc != EOK) {
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		async_answer_0(rid, rc);
+		return;
+	}
+
+	rc = exfat_idx_init_by_devmap_handle(devmap_handle);
+	if (rc != EOK) {
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		async_answer_0(rid, rc);
+		return;
+	}
+
+	/* Initialize the root node. */
+	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
+	if (!rfn) {
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	fs_node_initialize(rfn);
+	exfat_node_t *rootp = (exfat_node_t *)malloc(sizeof(exfat_node_t));
+	if (!rootp) {
+		free(rfn);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	exfat_node_initialize(rootp);
+
+	/* exfat_idx_t *ridxp = exfat_idx_get_by_pos(devmap_handle, FAT_CLST_ROOTPAR, 0); */
+	exfat_idx_t *ridxp = exfat_idx_get_by_pos(devmap_handle, 0, 0);
+	if (!ridxp) {
+		free(rfn);
+		free(rootp);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+	assert(ridxp->index == 0);
+	/* ridxp->lock held */
+
+	rootp->type = EXFAT_DIRECTORY;
+	rootp->firstc = ROOT_ST(bs);
+	rootp->refcnt = 1;
+	rootp->lnkcnt = 0;	/* FS root is not linked */
+	rootp->idx = ridxp;
+	ridxp->nodep = rootp;
+	rootp->bp = rfn;
+	rfn->data = rootp;
+
+	fibril_mutex_unlock(&ridxp->lock);
+
+	/* async_answer_0(rid, EOK); */
+	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
 }
 
 void exfat_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -147,12 +428,40 @@ void exfat_mount(ipc_callid_t rid, ipc_call_t *request)
 void exfat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_node_t *fn;
+	exfat_node_t *nodep;
+	int rc;
+
+	rc = exfat_root_get(&fn, devmap_handle);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	nodep = EXFAT_NODE(fn);
+
+	/*
+	 * We expect exactly two references on the root node. One for the
+	 * fat_root_get() above and one created in fat_mounted().
+	 */
+	if (nodep->refcnt != 2) {
+		(void) exfat_node_put(fn);
+		async_answer_0(rid, EBUSY);
+		return;
+	}
+
+	/*
+	 * Put the root node and force it to the FAT free node list.
+	 */
+	(void) exfat_node_put(fn);
+	(void) exfat_node_put(fn);
 
 	/*
 	 * Perform cleanup of the node structures, index structures and
 	 * associated data. Write back this file system's dirty blocks and
 	 * stop using libblock for this instance.
 	 */
+	(void) exfat_node_fini_by_devmap_handle(devmap_handle);
+	exfat_idx_fini_by_devmap_handle(devmap_handle);
 	(void) block_cache_fini(devmap_handle);
 	block_fini(devmap_handle);
 

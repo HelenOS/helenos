@@ -34,6 +34,8 @@ BINARY = exfat
 
 SOURCES = \
 	exfat.c \
+	exfat_fat.c \
 	exfat_ops.c \
+	exfat_idx.c
 
 include $(USPACE_PREFIX)/Makefile.common

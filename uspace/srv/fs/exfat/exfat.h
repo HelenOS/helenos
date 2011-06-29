@@ -34,6 +34,7 @@
 #ifndef EXFAT_EXFAT_H_
 #define EXFAT_FAT_H_
 
+#include "exfat_fat.h"
 #include <fibril_synch.h>
 #include <libfs.h>
 #include <atomic.h>
@@ -57,7 +58,7 @@
 #define DATA_ST(bs)		uint32_t_le2host(bs->data_start_sector)
 #define DATA_CNT(bs)	uint32_t_le2host(bs->data_clusters)
 #define ROOT_ST(bs)		uint32_t_le2host(bs->rootdir_cluster)
-#define VOL_FLAGS		uint16_t_le2host(bs->volume_flags)
+#define VOL_FLAGS(bs)	uint16_t_le2host(bs->volume_flags)
 
 
 typedef struct exfat_bs {
@@ -87,6 +88,69 @@ typedef struct exfat_bs {
 	uint16_t signature;				/* the value of 0xAA55 */
 } __attribute__((__packed__)) exfat_bs_t;
 
+typedef enum {
+	EXFAT_DIRECTORY,
+	EXFAT_FILE
+} exfat_node_type_t;
+
+struct exfat_node;
+
+typedef struct {
+	/** Used indices (position) hash table link. */
+	link_t		uph_link;
+	/** Used indices (index) hash table link. */
+	link_t		uih_link;
+
+	fibril_mutex_t	lock;
+	devmap_handle_t	devmap_handle;
+	fs_index_t	index;
+	/**
+	 * Parent node's first cluster.
+	 * Zero is used if this node is not linked, in which case nodep must
+	 * contain a pointer to the in-core node structure.
+	 * One is used when the parent is the root directory.
+	 */
+	exfat_cluster_t	pfc;
+	/** Directory entry index within the parent node. */
+	unsigned	pdi;
+	/** Pointer to in-core node instance. */
+	struct exfat_node	*nodep;
+} exfat_idx_t;
+
+/** exFAT in-core node. */
+typedef struct exfat_node {
+	/** Back pointer to the FS node. */
+	fs_node_t		*bp;
+	
+	fibril_mutex_t		lock;
+	exfat_node_type_t	type;
+	exfat_idx_t			*idx;
+	/**
+	 *  Node's first cluster.
+	 *  Zero is used for zero-length nodes.
+	 *  One is used to mark root directory.
+	 */
+	exfat_cluster_t		firstc;
+	/** exFAT in-core node free list link. */
+	link_t			ffn_link;
+	aoff64_t		size;
+	unsigned		lnkcnt;
+	unsigned		refcnt;
+	bool			dirty;
+
+	/*
+	 * Cache of the node's last and "current" cluster to avoid some
+	 * unnecessary FAT walks.
+	 */
+	/* Node's last cluster in FAT. */
+	bool		lastc_cached_valid;
+	exfat_cluster_t	lastc_cached_value;
+	/* Node's "current" cluster, i.e. where the last I/O took place. */
+	bool		currc_cached_valid;
+	aoff64_t	currc_cached_bn;
+	exfat_cluster_t	currc_cached_value;
+} exfat_node_t;
+
 
 extern fs_reg_t exfat_reg;
 
@@ -94,6 +158,28 @@ extern void exfat_mounted(ipc_callid_t, ipc_call_t *);
 extern void exfat_mount(ipc_callid_t, ipc_call_t *);
 extern void exfat_unmounted(ipc_callid_t, ipc_call_t *);
 extern void exfat_unmount(ipc_callid_t, ipc_call_t *);
+extern void exfat_lookup(ipc_callid_t, ipc_call_t *);
+extern void exfat_read(ipc_callid_t, ipc_call_t *);
+extern void exfat_write(ipc_callid_t, ipc_call_t *);
+extern void exfat_truncate(ipc_callid_t, ipc_call_t *);
+extern void exfat_stat(ipc_callid_t, ipc_call_t *);
+extern void exfat_close(ipc_callid_t, ipc_call_t *);
+extern void exfat_destroy(ipc_callid_t, ipc_call_t *);
+extern void exfat_open_node(ipc_callid_t, ipc_call_t *);
+extern void exfat_stat(ipc_callid_t, ipc_call_t *);
+extern void exfat_sync(ipc_callid_t, ipc_call_t *);
+
+extern int exfat_idx_get_new(exfat_idx_t **, devmap_handle_t);
+extern exfat_idx_t *exfat_idx_get_by_pos(devmap_handle_t, exfat_cluster_t, unsigned);
+extern exfat_idx_t *exfat_idx_get_by_index(devmap_handle_t, fs_index_t);
+extern void exfat_idx_destroy(exfat_idx_t *);
+extern void exfat_idx_hashin(exfat_idx_t *);
+extern void exfat_idx_hashout(exfat_idx_t *);
+
+extern int exfat_idx_init(void);
+extern void exfat_idx_fini(void);
+extern int exfat_idx_init_by_devmap_handle(devmap_handle_t);
+extern void exfat_idx_fini_by_devmap_handle(devmap_handle_t);
 
 #endif
 

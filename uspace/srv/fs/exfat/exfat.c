@@ -157,11 +157,11 @@ int main(int argc, char **argv)
 	int rc;
 
 	printf(NAME ": HelenOS exFAT file system server\n");
-/*
+
 	rc = exfat_idx_init();
 	if (rc != EOK)
 		goto err;
-*/
+
 	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": failed to connect to VFS\n");
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	
 	rc = fs_register(vfs_phone, &exfat_reg, &exfat_vfs_info, exfat_connection);
 	if (rc != EOK) {
-		/* exfat_idx_fini(); */
+		exfat_idx_fini();
 		goto err;
 	}
 	
