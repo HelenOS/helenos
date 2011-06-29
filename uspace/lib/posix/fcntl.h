@@ -54,12 +54,12 @@
 #undef F_GETLK
 #undef F_SETLK
 #undef F_SETLKW
-#define	F_DUPFD            0 /* Duplicate file descriptor. */
+#define F_DUPFD            0 /* Duplicate file descriptor. */
 #define F_DUPFD_CLOEXEC    1 /* Same as F_DUPFD but with FD_CLOEXEC flag set. */
-#define	F_GETFD            2 /* Get file descriptor flags. */
-#define	F_SETFD            3 /* Set file descriptor flags. */
-#define	F_GETFL            4 /* Get file status and access flags. */
-#define	F_SETFL            5 /* Set file status flags. */
+#define F_GETFD            2 /* Get file descriptor flags. */
+#define F_SETFD            3 /* Set file descriptor flags. */
+#define F_GETFL            4 /* Get file status and access flags. */
+#define F_SETFL            5 /* Set file status flags. */
 #define F_GETOWN           6 /* Get socket owner. */
 #define F_SETOWN           7 /* Set socket owner. */
 #define F_GETLK            8 /* Get locking information. */
@@ -68,7 +68,7 @@
 
 /* File descriptor flags used with F_GETFD and F_SETFD. */
 #undef FD_CLOEXEC
-#define	FD_CLOEXEC         1 /* Close on exec. */
+#define FD_CLOEXEC         1 /* Close on exec. */
 
 extern int posix_fcntl(int fd, int cmd, ...);
 
