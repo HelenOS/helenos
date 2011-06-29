@@ -83,7 +83,10 @@ char *posix_ctime(const time_t *timep)
 size_t posix_strftime(char *s, size_t maxsize, const char *format, const struct posix_tm *tm)
 {
 	// TODO
-	not_implemented();
+	if (maxsize >= 1) {
+		*s = 0;
+	}
+	return 0;
 }
 
 /**
@@ -93,7 +96,7 @@ size_t posix_strftime(char *s, size_t maxsize, const char *format, const struct 
 posix_clock_t posix_clock(void)
 {
 	// TODO
-	not_implemented();
+	return (posix_clock_t) -1;
 }
 
 /** @}
