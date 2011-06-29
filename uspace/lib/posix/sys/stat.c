@@ -40,10 +40,10 @@
 #include <mem.h>
 
 /**
- * Convert HelenOS stat struct into POSIX stat struct (if possible)
+ * Convert HelenOS stat struct into POSIX stat struct (if possible).
  *
- * @param dest
- * @param src
+ * @param dest POSIX stat struct.
+ * @param src HelenOS stat struct.
  */
 static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 {
@@ -65,10 +65,11 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 }
 
 /**
+ * Retrieve file status for file associated with file descriptor.
  *
- * @param fd
- * @param st
- * @return
+ * @param fd File descriptor of the opened file.
+ * @param st Status structure to be filled with information.
+ * @return Zero on success, -1 otherwise.
  */
 int posix_fstat(int fd, struct posix_stat *st)
 {
@@ -82,22 +83,24 @@ int posix_fstat(int fd, struct posix_stat *st)
 }
 
 /**
+ * Retrieve file status for symbolic link.
  * 
- * @param path
- * @param st
- * @return
+ * @param path Path to the symbolic link.
+ * @param st Status structure to be filled with information.
+ * @return Zero on success, -1 otherwise.
  */
-int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
+int posix_lstat(const char *path, struct posix_stat *st)
 {
-	// TODO
-	not_implemented();
+	/* There are currently no symbolic links in HelenOS. */
+	return posix_stat(path, st);
 }
 
 /**
+ * Retrieve file status for regular file (or symbolic link target).
  *
- * @param path
- * @param st
- * @return
+ * @param path Path to the file/link.
+ * @param st Status structure to be filled with information.
+ * @return Zero on success, -1 otherwise.
  */
 int posix_stat(const char *path, struct posix_stat *st)
 {
@@ -111,26 +114,29 @@ int posix_stat(const char *path, struct posix_stat *st)
 }
 
 /**
+ * Change permission bits for the file if possible.
  * 
- * @param path
- * @param mode
- * @return
+ * @param path Path to the file.
+ * @param mode Permission bits to be set.
+ * @return Zero on success, -1 otherwise.
  */
 int posix_chmod(const char *path, mode_t mode)
 {
-	// TODO
-	not_implemented();
+	/* HelenOS doesn't support permissions, return success. */
+	return 0;
 }
 
 /**
+ * Set the file mode creation mask of the process.
  * 
- * @param mask
- * @return
+ * @param mask Set permission bits are cleared in the related creation
+ *     functions. Non-permission bits are ignored.
+ * @return Previous file mode creation mask.
  */
 mode_t posix_umask(mode_t mask)
 {
-	// TODO
-	not_implemented();
+	/* HelenOS doesn't support permissions, return empty mask. */
+	return 0;
 }
 
 /** @}
