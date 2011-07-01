@@ -43,21 +43,6 @@
 #include <errno.h>
 
 /**
- * Defined for convenience. Returns pointer to the terminating nul character.
- *
- * @param s
- * @return
- */
-static char *strzero(const char *s)
-{
-	while (*s != '\0') {
-		s++;
-	}
-
-	return (char *) s;
-}
-
-/**
  * Returns true if s2 is a prefix of s1.
  *
  * @param s1
@@ -182,7 +167,7 @@ char *posix_strcat(char *dest, const char *src)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	posix_strcpy(strzero(dest), src);
+	posix_strcpy(posix_strchr(dest, '\0'), src);
 	return dest;
 }
 
@@ -198,7 +183,7 @@ char *posix_strncat(char *dest, const char *src, size_t n)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	char *zeroptr = posix_strncpy(strzero(dest), src, n);
+	char *zeroptr = posix_strncpy(posix_strchr(dest, '\0'), src, n);
 	/* strncpy doesn't append the nul terminator, so we do it here */
 	zeroptr[n] = '\0';
 	return dest;
@@ -359,21 +344,8 @@ char *posix_strchr(const char *s, int c)
 {
 	assert(s != NULL);
 	
-	/* special handling for the case that zero is searched for */
-	if (c == '\0') {
-		return strzero(s);
-	}
-	
-	/* otherwise just loop through the string until found */
-	while (*s != (char) c) {
-		if (*s == '\0') {
-			return NULL;
-		}
-
-		s++;
-	}
-	
-	return (char *) s;
+	char *res = gnu_strchrnul(s, c);
+	return (*res == c) ? res : NULL;
 }
 
 /**
@@ -386,7 +358,7 @@ char *posix_strrchr(const char *s, int c)
 {
 	assert(s != NULL);
 	
-	const char *ptr = strzero(s);
+	const char *ptr = posix_strchr(s, '\0');
 	
 	/* the same as in strchr, except it loops in reverse direction */
 	while (*ptr != (char) c) {
@@ -398,6 +370,17 @@ char *posix_strrchr(const char *s, int c)
 	}
 
 	return (char *) ptr;
+}
+
+char *gnu_strchrnul(const char *s, int c)
+{
+	assert(s != NULL);
+	
+	while (*s != c && *s != '\0') {
+		s++;
+	}
+	
+	return (char *) s;
 }
 
 /**
@@ -561,7 +544,7 @@ size_t posix_strlen(const char *s)
 {
 	assert(s != NULL);
 	
-	return (size_t) (strzero(s) - s);
+	return (size_t) (posix_strchr(s, '\0') - s);
 }
 
 /**

@@ -84,6 +84,7 @@ extern int posix_strncmp(const char *s1, const char *s2, size_t n);
 extern void *posix_memchr(const void *mem, int c, size_t n);
 extern char *posix_strchr(const char *s, int c);
 extern char *posix_strrchr(const char *s, int c);
+extern char *gnu_strchrnul(const char *s, int c);
 extern char *posix_strpbrk(const char *s1, const char *s2);
 extern size_t posix_strcspn(const char *s1, const char *s2);
 extern size_t posix_strspn(const char *s1, const char *s2);
@@ -126,6 +127,7 @@ extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 	#define memchr posix_memchr
 	#define strchr posix_strchr
 	#define strrchr posix_strrchr
+	#define strchrnul gnu_strchrnul
 	#define strpbrk posix_strpbrk
 	#define strcspn posix_strcspn
 	#define strspn posix_strspn
