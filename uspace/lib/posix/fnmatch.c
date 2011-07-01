@@ -32,14 +32,18 @@
 /** @file
  */
 
+// TODO: clean this up a bit
+
+#include "stdbool.h"
+#include "ctype.h"
+#include "string.h"
+#include "stdlib.h"
+#include "assert.h"
+
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
 #include "fnmatch.h"
-
-#include "stdlib.h"
-#include "string.h"
-#include "ctype.h"
 
 #define INVALID_PATTERN -1
 
@@ -50,6 +54,11 @@ typedef int _coll_elm_t;
 
 #define COLL_ELM_INVALID -1
 
+/** Get collating element matching a string.
+ *
+ * @param str
+ * @return
+ */
 static _coll_elm_t _coll_elm_get(const char* str)
 {
 	if (str[0] == '\0' || str[1] != '\0') {
@@ -58,15 +67,20 @@ static _coll_elm_t _coll_elm_get(const char* str)
 	return str[0];
 }
 
+/** Get collating element matching a single character.
+ *
+ * @param c
+ * @return
+ */
 static _coll_elm_t _coll_elm_char(int c)
 {
 	return c;
 }
 
-/**
+/** Match collating element with a beginning of a string.
  *
  * @param elm
- * @param pattern
+ * @param str
  * @return 0 if the element doesn't match, or the number of characters matched.
  */
 static int _coll_elm_match(_coll_elm_t elm, const char *str)
@@ -142,28 +156,28 @@ struct _char_class {
 static const struct _char_class _char_classes[] = {
 	{ "alnum", isalnum },
 	{ "alpha", isalpha },
-	{ "blank", posix_isblank },
-	{ "cntrl", posix_iscntrl },
+	{ "blank", isblank },
+	{ "cntrl", iscntrl },
 	{ "digit", isdigit },
-	{ "graph", posix_isgraph },
+	{ "graph", isgraph },
 	{ "lower", islower },
-	{ "print", posix_isprint },
-	{ "punct", posix_ispunct },
+	{ "print", isprint },
+	{ "punct", ispunct },
 	{ "space", isspace },
 	{ "upper", isupper },
-	{ "xdigit", posix_isxdigit }
+	{ "xdigit", isxdigit }
 };
 
 static int _class_compare(const void *key, const void *elem)
 {
 	const struct _char_class *class = elem;
-	return posix_strcmp((const char *) key, class->name);
+	return strcmp((const char *) key, class->name);
 }
 
 static bool _is_in_class (const char *cname, int c)
 {
 	/* Search for class in the array of supported character classes. */
-	const struct _char_class *class = posix_bsearch(cname, _char_classes,
+	const struct _char_class *class = bsearch(cname, _char_classes,
 	    sizeof(_char_classes) / sizeof(struct _char_class),
 	    sizeof(struct _char_class), _class_compare);
 
@@ -323,34 +337,45 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 	const bool pathname = (flags & FNM_PATHNAME) != 0;
 	const bool special_period = (flags & FNM_PERIOD) != 0;
 	const bool noescape = (flags & FNM_NOESCAPE) != 0;
+	const bool leading_dir = (flags & FNM_LEADING_DIR) != 0;
+
 	const char *s = *string;
 	const char *p = *pattern;
 
-	for (; *p != '*'; p++) {
+	while (*p != '*') {
+		/* Bracket expression. */
 		if (*p == '[') {
-			/* Bracket expression. */
 			int matched = _match_bracket_expr(&p, s, flags);
 			if (matched == 0) {
 				/* Doesn't match. */
 				return false;
 			}
-			if (matched == INVALID_PATTERN) {
-				/* Fall through to match [ as an ordinary
-				 * character.
-				 */
-			} else {
+			if (matched != INVALID_PATTERN) {
 				s += matched;
 				continue;
 			}
+
+			assert(matched == INVALID_PATTERN);
+			/* Fall through to match [ as an ordinary character. */
 		}
 
+		/* Wildcard match. */
 		if (*p == '?') {
-			/* Wildcard match. */
-			if (*s == '\0' || (pathname && *s == '/') ||
-			    (special_period && pathname && *s == '.' &&
-			    *(s - 1) == '/')) {
+			if (*s == '\0') {
+				/* No character to match. */
 				return false;
 			}
+			if (pathname && *s == '/') {
+				/* Slash must be matched explicitly. */
+				return false;
+			}
+			if (special_period && pathname &&
+			    *s == '.' && *(s - 1) == '/') {
+				/* Initial period must be matched explicitly. */
+				return false;
+			}
+			
+			/* None of the above, match anything else. */
 			p++;
 			s++;
 			continue;
@@ -361,11 +386,22 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 			p++;
 		}
 
-		if (*p == *s) {
-			/* Exact match. */
-			if (*s == '\0') {
+		if (*p == '\0') {
+			/* End of pattern, must match end of string or
+			 * an end of subdirectory name (optional).
+			 */
+
+			if (*s == '\0' || (leading_dir && *s == '/')) {
 				break;
 			}
+
+			return false;
+		}
+
+		if (*p == *s) {
+			/* Exact match. */
+			p++;
+			s++;
 			continue;
 		}
 
@@ -373,7 +409,12 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 		return false;
 	}
 
-	/* Entire pattern matched. */
+	/* Entire sub-pattern matched. */
+	
+	/* postconditions */
+	assert(*p == '\0' || *p == '*');
+	assert(*p != '\0' || *s == '\0' || (leading_dir && *s == '/'));
+	
 	*pattern = p;
 	*string = s;
 	return true;
@@ -381,7 +422,9 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 
 static bool _full_match(const char *pattern, const char *string, int flags)
 {
+	const bool pathname = (flags & FNM_PATHNAME) != 0;
 	const bool special_period = (flags & FNM_PERIOD) != 0;
+	const bool leading_dir = (flags & FNM_LEADING_DIR) != 0;
 
 	if (special_period && *string == '.') {
 		/* Initial dot must be matched by an explicit dot in pattern. */
@@ -401,21 +444,44 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 
 	while (*pattern != '\0') {
 		assert(*pattern == '*');
+		pattern++;
 
-		while (*pattern == '*') {
-			pattern++;
+		bool matched = false;
+
+		const char *end;
+		if (pathname && special_period &&
+		    *string == '.' && *(string - 1) == '/') {
+			end = string;
+		} else {
+			end= strchrnul(string, pathname ? '/' : '\0');
 		}
 
 		/* Try to match every possible offset. */
-		while (*string != '\0') {
+		while (string <= end) {
 			if (_partial_match(&pattern, &string, flags)) {
+				matched = true;
 				break;
 			}
 			string++;
 		}
+
+		if (matched) {
+			continue;
+		}
+
+		return false;
 	}
 
-	return *string == '\0';
+	return *string == '\0' || (leading_dir && *string == '/');
+}
+
+static char *_casefold(const char *s)
+{
+	char *result = strdup(s);
+	for (char *i = result; *i != '\0'; ++i) {
+		*i = tolower(*i);
+	}
+	return result;
 }
 
 /**
@@ -428,9 +494,112 @@ static bool _full_match(const char *pattern, const char *string, int flags)
  */
 int posix_fnmatch(const char *pattern, const char *string, int flags)
 {
+	// TODO: don't fold everything in advance, but only when needed
+
+	if ((flags & FNM_CASEFOLD) != 0) {
+		/* Just fold the entire pattern and string. */
+		pattern = _casefold(pattern);
+		string = _casefold(string);
+	}
+
 	bool result = _full_match(pattern, string, flags);
+
+	if ((flags & FNM_CASEFOLD) != 0) {
+		free((char *) pattern);
+		free((char *) string);
+	}
+
 	return result ? 0 : FNM_NOMATCH;
 }
+
+// FIXME: put the testcases somewhere else
+
+#if 0
+
+#include <stdio.h>
+
+void __posix_fnmatch_test()
+{
+	int fail = 0;
+
+	#undef assert
+	#define assert(x) { if (x) printf("SUCCESS: "#x"\n"); else { printf("FAILED: "#x"\n"); fail++; } }
+	#define match(s1, s2, flags) assert(posix_fnmatch(s1, s2, flags) == 0)
+	#define nomatch(s1, s2, flags) assert(posix_fnmatch(s1, s2, flags) == FNM_NOMATCH)
+
+	assert(FNM_PATHNAME == FNM_FILE_NAME);
+	match("", "", 0);
+	match("*", "hello", 0);
+	match("hello", "hello", 0);
+	match("hello*", "hello", 0);
+	nomatch("hello?", "hello", 0);
+	match("*hello", "prdel hello", 0);
+	match("he[sl]lo", "hello", 0);
+	match("he[sl]lo", "heslo", 0);
+	nomatch("he[sl]lo", "heblo", 0);
+	nomatch("he[^sl]lo", "hello", 0);
+	nomatch("he[^sl]lo", "heslo", 0);
+	match("he[^sl]lo", "heblo", 0);
+	nomatch("he[!sl]lo", "hello", 0);
+	nomatch("he[!sl]lo", "heslo", 0);
+	match("he[!sl]lo", "heblo", 0);
+	match("al*[c-t]a*vis*ta", "alheimer talir jehovista", 0);
+	match("al*[c-t]a*vis*ta", "alfons had jehovista", 0);
+	match("[a-ce-z]", "a", 0);
+	match("[a-ce-z]", "c", 0);
+	nomatch("[a-ce-z]", "d", 0);
+	match("[a-ce-z]", "e", 0);
+	match("[a-ce-z]", "z", 0);
+	nomatch("[^a-ce-z]", "a", 0);
+	nomatch("[^a-ce-z]", "c", 0);
+	match("[^a-ce-z]", "d", 0);
+	nomatch("[^a-ce-z]", "e", 0);
+	nomatch("[^a-ce-z]", "z", 0);
+	match("helen??", "helenos", 0);
+	match("****booo****", "booo", 0);
+	
+	match("hello[[:space:]]world", "hello world", 0);
+	nomatch("hello[[:alpha:]]world", "hello world", 0);
+	
+	match("/hoooo*", "/hooooooo/hooo", 0);
+	nomatch("/hoooo*", "/hooooooo/hooo", FNM_PATHNAME);
+	nomatch("/hoooo*/", "/hooooooo/hooo", FNM_PATHNAME);
+	match("/hoooo*/*", "/hooooooo/hooo", FNM_PATHNAME);
+	match("/hoooo*/hooo", "/hooooooo/hooo", FNM_PATHNAME);
+	match("/hoooo*", "/hooooooo/hooo", FNM_PATHNAME | FNM_LEADING_DIR);
+	nomatch("/hoooo*/", "/hooooooo/hooo", FNM_PATHNAME | FNM_LEADING_DIR);
+	nomatch("/hoooo", "/hooooooo/hooo", FNM_LEADING_DIR);
+	match("/hooooooo", "/hooooooo/hooo", FNM_LEADING_DIR);
+	
+	match("*", "hell", 0);
+	match("*?", "hell", 0);
+	match("?*?", "hell", 0);
+	match("?*??", "hell", 0);
+	match("??*??", "hell", 0);
+	nomatch("???*??", "hell", 0);
+	
+	nomatch("", "hell", 0);
+	nomatch("?", "hell", 0);
+	nomatch("??", "hell", 0);
+	nomatch("???", "hell", 0);
+	match("????", "hell", 0);
+	
+	match("*", "h.ello", FNM_PERIOD);
+	match("*", "h.ello", FNM_PATHNAME | FNM_PERIOD);
+	nomatch("*", ".hello", FNM_PERIOD);
+	match("h?ello", "h.ello", FNM_PERIOD);
+	nomatch("?hello", ".hello", FNM_PERIOD);
+	match("/home/user/.*", "/home/user/.hello", FNM_PATHNAME | FNM_PERIOD);
+	match("/home/user/*", "/home/user/.hello", FNM_PERIOD);
+	nomatch("/home/user/*", "/home/user/.hello", FNM_PATHNAME | FNM_PERIOD);
+
+	nomatch("HeLlO", "hello", 0);
+	match("HeLlO", "hello", FNM_CASEFOLD);
+
+	printf("Failed: %d\n", fail);
+}
+
+#endif
 
 /** @}
  */
