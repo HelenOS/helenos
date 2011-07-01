@@ -39,7 +39,7 @@
 //       it's a very silly incompatibility with standard C
 
 #ifdef LIBC_BOOL_H_
-	#error You can't include bool.h and stdbool.h at the same time.
+	#error "You can't include bool.h and stdbool.h at the same time."
 #endif
 #define LIBC_BOOL_H_
 
