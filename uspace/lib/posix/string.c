@@ -37,10 +37,11 @@
 
 #include "string.h"
 
-#include <assert.h>
-#include <str_error.h>
-#include <stdlib.h>
-#include <errno.h>
+#include "libc/assert.h"
+#include "libc/str_error.h"
+#include "errno.h"
+#include "limits.h"
+#include "stdlib.h"
 
 /**
  * Returns true if s2 is a prefix of s1.
@@ -224,8 +225,7 @@ void *posix_memccpy(void *dest, const void *src, int c, size_t n)
  */
 char *posix_strdup(const char *s)
 {
-	// FIXME: SIZE_MAX doesn't work
-	return posix_strndup(s, STR_NO_LIMIT);
+	return posix_strndup(s, SIZE_MAX);
 }
 
 /**
