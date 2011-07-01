@@ -37,6 +37,9 @@
 
 #include "internal/common.h"
 #include "time.h"
+#include "libc/malloc.h"
+#include <task.h>
+#include <stats.h>
 
 /**
  *
@@ -84,19 +87,27 @@ size_t posix_strftime(char *s, size_t maxsize, const char *format, const struct 
 {
 	// TODO
 	if (maxsize >= 1) {
-		*s = 0;
+		*s = '\0';
 	}
 	return 0;
 }
 
 /**
- * 
- * @return
+ * Get CPU time used since the process invocation.
+ *
+ * @return Consumed CPU cycles by this process or -1 if not available.
  */
 posix_clock_t posix_clock(void)
 {
-	// TODO
-	return (posix_clock_t) -1;
+	posix_clock_t total_cycles = -1;
+	stats_task_t *task_stats = stats_get_task(task_get_id());
+	if (task_stats) {
+		total_cycles = (posix_clock_t) (task_stats->kcycles + task_stats->ucycles);
+	}
+	free(task_stats);
+	task_stats = 0;
+
+	return total_cycles;
 }
 
 /** @}

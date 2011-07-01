@@ -42,6 +42,9 @@
 	#define NULL  ((void *) 0)
 #endif
 
+#undef CLOCKS_PER_SEC
+#define CLOCKS_PER_SEC 1000000L
+
 struct posix_tm {
 	int tm_sec;         /* Seconds [0,60]. */
 	int tm_min;         /* Minutes [0,59]. */
