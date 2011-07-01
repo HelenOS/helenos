@@ -64,6 +64,7 @@ typedef struct {
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
+#include <arch/istate.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>

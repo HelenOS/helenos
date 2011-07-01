@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
+ * @ingroup libcmips32
  */
 
 #ifndef LIBC_mips32_FIBRIL_H_
