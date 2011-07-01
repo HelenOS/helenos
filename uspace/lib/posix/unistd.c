@@ -38,16 +38,23 @@
 #include "internal/common.h"
 #include "unistd.h"
 #include <task.h>
+#include <errno.h>
+#include "string.h"
+#include "fcntl.h"
+#include <stats.h>
+#include "libc/malloc.h"
 
 /* Array of environment variable strings (NAME=VALUE). */
 char **posix_environ = NULL;
 
 /**
  * Get current user name.
+ *
+ * @return User name (static) string or NULL if not found.
  */
 char *posix_getlogin(void)
 {
-	// TODO
+	/* There is currently no support for user accounts in HelenOS. */
 	return (char *) "user";
 }
 
@@ -56,29 +63,37 @@ char *posix_getlogin(void)
  *
  * @param name Pointer to a user supplied buffer.
  * @param namesize Length of the buffer.
- * @return
+ * @return Zero on success, error code otherwise.
  */
 int posix_getlogin_r(char *name, size_t namesize)
 {
-	// TODO
-	not_implemented();
+	/* There is currently no support for user accounts in HelenOS. */
+	if (namesize >= 5) {
+		posix_strcpy(name, (char *) "user");
+		return 0;
+	} else {
+		errno = ERANGE;
+		return -1;
+	}
 }
 
 /**
- * Dummy function. Always returns false, because there is no easy way to find
- * out under HelenOS.
+ * Test whether open file descriptor is associated with a terminal.
  *
- * @param fd
- * @return Always false.
+ * @param fd Open file descriptor to test.
+ * @return Boolean result of the test.
  */
 int posix_isatty(int fd)
 {
+	/* Always returns false, because there is no easy way to find
+     * out under HelenOS. */
 	return false;
 }
 
 /**
- * 
- * @return
+ * Determine the page size of the current run of the process.
+ *
+ * @return Page size of the process.
  */
 int posix_getpagesize(void)
 {
@@ -86,8 +101,9 @@ int posix_getpagesize(void)
 }
 
 /**
- * 
- * @return
+ * Get the process ID of the calling process.
+ *
+ * @return Process ID.
  */
 posix_pid_t posix_getpid(void)
 {
@@ -95,46 +111,93 @@ posix_pid_t posix_getpid(void)
 }
 
 /**
+ * Get the real user ID of the calling process.
  *
- * @return
+ * @return User ID.
  */
 posix_uid_t posix_getuid(void)
 {
-	// TODO
-	not_implemented();
+	/* There is currently no support for user accounts in HelenOS. */
+	return 0;
 }
 
 /**
+ * Get the real group ID of the calling process.
  * 
- * @return
+ * @return Group ID.
  */
 posix_gid_t posix_getgid(void)
 {
-	// TODO
-	not_implemented();
+	/* There is currently no support for user accounts in HelenOS. */
+	return 0;
 }
 
 /**
- * 
- * @param path
- * @param amode
- * @return
+ * Determine accessibility of a file.
+ *
+ * @param path File to check accessibility for.
+ * @param amode Either check for existence or intended access mode.
+ * @return Zero on success, -1 otherwise.
  */
 int posix_access(const char *path, int amode)
 {
-	// TODO
-	not_implemented();
+	if (amode == F_OK) {
+		/* Check file existence by attempt to open it. */
+		int fd = open(path, O_RDONLY);
+		// TODO: propagate a POSIX compatible errno
+		int rc = fd < 0 ? -1 : 0;
+		close(fd);
+		return rc;
+	} else if (amode & (X_OK | W_OK | R_OK)) {
+		/* HelenOS doesn't support permissions, return success. */
+		return 0;
+	} else {
+		/* Invalid amode argument. */
+		errno = EINVAL;
+		return -1;
+	}
 }
 
 /**
+ * Get configurable system variables.
  * 
- * @param name
- * @return
+ * @param name Variable name.
+ * @return Variable value.
  */
 long posix_sysconf(int name)
 {
-	// TODO
-	not_implemented();
+	long clk_tck = 0;
+	size_t cpu_count = 0;
+	stats_cpu_t *cpu_stats = stats_get_cpus(&cpu_count);
+	if (cpu_stats && cpu_count > 0) {
+		clk_tck = ((long) cpu_stats[0].frequency_mhz) * 1000000L;
+	}
+	free(cpu_stats);
+	cpu_stats = 0;
+
+	long phys_pages = 0;
+	long avphys_pages = 0;
+	stats_physmem_t *mem_stats = stats_get_physmem();
+	if (mem_stats) {
+		phys_pages = (long) (mem_stats->total / getpagesize());
+		avphys_pages = (long) (mem_stats->free / getpagesize());
+	}
+	free(mem_stats);
+	mem_stats = 0;
+
+	switch (name) {
+	case _SC_PHYS_PAGES:
+		return phys_pages;
+	case _SC_AVPHYS_PAGES:
+		return avphys_pages;
+	case _SC_PAGESIZE:
+		return getpagesize();
+	case _SC_CLK_TCK:
+		return clk_tck;
+	default:
+		errno = EINVAL;
+		return -1;
+	}
 }
 
 /**
