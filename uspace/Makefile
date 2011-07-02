@@ -152,7 +152,6 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/irc/fhc \
 		srv/hw/irc/obio
 endif
 

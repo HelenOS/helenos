@@ -153,7 +153,7 @@ static void niagara_key_pressed(void)
 }
 
 /**
- * Thread to poll SGCN for keypresses.
+ * Thread to poll Niagara console for keypresses.
  */
 static void niagara_thread_impl(void *arg)
 {

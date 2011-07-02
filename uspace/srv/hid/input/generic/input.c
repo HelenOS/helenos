@@ -423,11 +423,7 @@ static void kbd_add_legacy_devs(void)
 #if defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
 	kbd_add_dev(&niagara_port, &stty_ctl);
 #endif
-#if defined(UARCH_sparc64) && defined(MACHINE_serengeti)
-	kbd_add_dev(&sgcn_port, &stty_ctl);
-#endif
 #if defined(UARCH_sparc64) && defined(MACHINE_generic)
-	kbd_add_dev(&z8530_port, &sun_ctl);
 	kbd_add_dev(&ns16550_port, &sun_ctl);
 #endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
@@ -555,14 +551,12 @@ int main(int argc, char **argv)
 {
 	printf("%s: HelenOS input service\n", NAME);
 	
-	sysarg_t fhc;
 	sysarg_t obio;
 	
 	list_initialize(&kbd_devs);
 	list_initialize(&mouse_devs);
 	
-	if (((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
-	    || ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio)))
+	if ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio))
 		irc_service = true;
 	
 	if (irc_service) {
