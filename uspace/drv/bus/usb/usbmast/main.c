@@ -118,10 +118,12 @@ static int usbmast_add_device(usb_device_t *dev)
 	}
 
 	usb_log_info("Mass storage `%s': " \
-	    "`%s' by `%s' is %s (%s), %zu LUN(s).\n",
+	    "%s by %s rev. %s is %s (%s), %zu LUN(s).\n",
 	    dev->ddf_dev->name,
-	    inquiry.product_and_revision, inquiry.vendor_id,
-	    usb_str_masstor_scsi_peripheral_device_type(inquiry.peripheral_device_type),
+	    inquiry.product,
+	    inquiry.vendor,
+	    inquiry.revision,
+	    usb_str_masstor_scsi_peripheral_device_type(inquiry.device_type),
 	    inquiry.removable ? "removable" : "non-removable",
 	    lun_count);
 

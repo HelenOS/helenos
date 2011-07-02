@@ -46,14 +46,16 @@
  * the device.
  */
 typedef struct {
-	/** SCSI peripheral device type. */
-	int peripheral_device_type;
-	/** Whether the device is removable. */
+	/** SCSI peripheral device type */
+	unsigned device_type;
+	/** Whether the device is removable */
 	bool removable;
-	/** Vendor ID string. */
-	char vendor_id[9];
-	/** Product ID and product revision string. */
-	char product_and_revision[12];
+	/** Vendor ID string */
+	char vendor[9];
+	/** Product ID string */
+	char product[17];
+	/** Revision string */
+	char revision[17];
 } usb_massstor_inquiry_result_t;
 
 int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,

@@ -57,6 +57,41 @@ typedef struct {
 	uint8_t control;
 } __attribute__((packed)) scsi_cdb_inquiry_t;
 
+/** Minimum size of inquiry data required since SCSI-2 */
+#define SCSI_STD_INQUIRY_DATA_MIN_SIZE 36
+
+/** Standard inquiry data.
+ *
+ * Returned for Inquiry command with evpd bit cleared.
+ */
+typedef struct {
+	/** Peripheral qualifier, Peripheral device type */
+	uint8_t pqual_devtype;
+	/** RMB, reserved */
+	uint8_t rmb;
+	/** Version */
+	uint8_t version;
+	/** Obsolete, NormACA, HiSup, Response Data Format */
+	uint8_t aca_hisup_rdf;
+	/** Additional Length */
+	uint8_t additional_len;
+	/** SCCS, ACC, TPGS, 3PC, Reserved, Protect */
+	uint8_t cap1;
+	/** Obsolete, EncServ, VS, MuliP, Obsolete, Addr16 */
+	uint8_t cap2;
+	/** Obsolete, WBus16, Sync, Obsolete, CmdQue, VS */
+	uint8_t cap3;
+
+	/** Vendor string */
+	uint8_t vendor[8];
+	/** Product string */
+	uint8_t product[16];
+	/** Revision string */
+	uint8_t revision[4];
+
+	/* End of required data */
+} scsi_std_inquiry_data_t;
+
 /** SCSI peripheral device type */
 enum scsi_device_type {
 	SCSI_DEV_BLOCK		= 0x00,

@@ -51,8 +51,6 @@
 #define BITS_GET(type, number, bitcount, offset) \
 	((type)( (number) & (BITS_GET_MID_MASK(type, bitcount, offset)) ) >> (offset))
 
-#define INQUIRY_RESPONSE_LENGTH 36
-
 /** Get string representation for SCSI peripheral device type.
  *
  * @param type SCSI peripheral device type code.
@@ -88,21 +86,21 @@ int usb_massstor_inquiry(usb_device_t *dev,
     size_t bulk_in_idx, size_t bulk_out_idx,
     usb_massstor_inquiry_result_t *inquiry_result)
 {
+	scsi_std_inquiry_data_t inq_data;
+	size_t response_len;
 	scsi_cdb_inquiry_t inquiry = {
 		.op_code = SCSI_CMD_INQUIRY,
 		.evpd = 0,
 		.page_code = 0,
-		.alloc_len = host2uint16_t_be(INQUIRY_RESPONSE_LENGTH),
+		.alloc_len = host2uint16_t_be(sizeof(inq_data)),
 		.control = 0
 	};
-	size_t response_len;
-	uint8_t response[INQUIRY_RESPONSE_LENGTH];
 
 	int rc;
 
 	rc = usb_massstor_data_in(dev, bulk_in_idx, bulk_out_idx,
 	    0xDEADBEEF, 0, (uint8_t *) &inquiry, sizeof(inquiry),
-	    response, INQUIRY_RESPONSE_LENGTH, &response_len);
+	    &inq_data, sizeof(inq_data), &response_len);
 
 	if (rc != EOK) {
 		usb_log_error("Failed to probe device %s using %s: %s.\n",
@@ -110,33 +108,33 @@ int usb_massstor_inquiry(usb_device_t *dev,
 		return rc;
 	}
 
-	if (response_len < 8) {
-		usb_log_error("The SCSI response is too short.\n");
-		return ERANGE;
+	if (response_len < SCSI_STD_INQUIRY_DATA_MIN_SIZE) {
+		usb_log_error("The SCSI inquiry response is too short.\n");
+		return EIO;
 	}
 
 	/*
-	 * This is an ugly part of the code. We will parse the returned
-	 * data by hand and try to get as many useful data as possible.
+	 * Parse inquiry data and fill in the result structure.
 	 */
+
 	bzero(inquiry_result, sizeof(*inquiry_result));
 
-	/* This shall be returned by all devices. */
-	inquiry_result->peripheral_device_type
-	    = BITS_GET(uint8_t, response[0], 5, 0);
-	inquiry_result->removable = BITS_GET(uint8_t, response[1], 1, 7);
+	inquiry_result->device_type =
+	    BITS_GET(uint8_t, inq_data.pqual_devtype, 5, 0);
+	inquiry_result->removable =
+	    BITS_GET(uint8_t, inq_data.rmb, 1, 7);
 
-	if (response_len < 32) {
-		return EOK;
-	}
+	str_ncpy(inquiry_result->vendor, 9,
+	    (const char *) &inq_data.vendor, 8);
+	trim_trailing_spaces(inquiry_result->vendor);
 
-	str_ncpy(inquiry_result->vendor_id, 9,
-	    (const char *) &response[8], 8);
-	trim_trailing_spaces(inquiry_result->vendor_id);
+	str_ncpy(inquiry_result->product, 17,
+	    (const char *) &inq_data.product, 16);
+	trim_trailing_spaces(inquiry_result->product);
 
-	str_ncpy(inquiry_result->product_and_revision, 12,
-	    (const char *) &response[16], 11);
-	trim_trailing_spaces(inquiry_result->product_and_revision);
+	str_ncpy(inquiry_result->revision, 5,
+	    (const char *) &inq_data.revision, 4);
+	trim_trailing_spaces(inquiry_result->revision);
 
 	return EOK;
 }
