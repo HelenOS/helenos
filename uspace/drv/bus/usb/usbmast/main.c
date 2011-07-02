@@ -105,9 +105,9 @@ static int usbmast_add_device(usb_device_t *dev)
 	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
-/*	usb_log_debug("Get LUN count...\n");
+	usb_log_debug("Get LUN count...\n");
 	size_t lun_count = usb_masstor_get_lun_count(dev);
-  */ size_t lun_count=1;
+
 	usb_log_debug("Inquire...\n");
 	usb_massstor_inquiry_result_t inquiry;
 	rc = usb_massstor_inquiry(dev, BULK_IN_EP, BULK_OUT_EP, &inquiry);
