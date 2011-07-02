@@ -35,16 +35,20 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include <assert.h>
-#include <errno.h>
-#include <bool.h>
+/* Has to be first. */
+#include "stdbool.h"
 
 #include "internal/common.h"
 #include "stdio.h"
-#include "libc/io/printf_core.h"
+
+#include "assert.h"
+#include "errno.h"
 #include "string.h"
-#include "libc/str.h"
 #include "sys/types.h"
+
+#include "libc/io/printf_core.h"
+#include "libc/str.h"
+
 
 /* not the best of solutions, but freopen and ungetc will eventually
  * need to be implemented in libc anyway

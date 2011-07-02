@@ -35,11 +35,12 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "internal/common.h"
 #include "stdlib.h"
+
 #include "libc/sort.h"
 #include "libc/str.h"
 #include "libc/vfs/vfs.h"
-#include "internal/common.h"
 #include <errno.h>  // FIXME: use POSIX errno
 
 /**

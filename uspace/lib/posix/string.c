@@ -35,13 +35,15 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "internal/common.h"
 #include "string.h"
 
-#include "libc/assert.h"
-#include "libc/str_error.h"
+#include "assert.h"
 #include "errno.h"
 #include "limits.h"
 #include "stdlib.h"
+
+#include "libc/str_error.h"
 
 /**
  * Returns true if s2 is a prefix of s1.

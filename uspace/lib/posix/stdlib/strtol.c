@@ -36,9 +36,10 @@
 
 #include "../internal/common.h"
 #include "../stdlib.h"
-#include <errno.h>  // FIXME: use POSIX errno
+
 #include "../limits.h"
 #include "../ctype.h"
+#include <errno.h> // FIXME: use POSIX errno
 
 // TODO: documentation
 
