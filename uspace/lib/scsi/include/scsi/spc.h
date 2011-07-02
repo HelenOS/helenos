@@ -92,6 +92,22 @@ typedef struct {
 	/* End of required data */
 } scsi_std_inquiry_data_t;
 
+/** Bits in scsi_std_inquiry_data_t.pqual_devtype */
+enum scsi_pqual_devtype_bits {
+	/* Peripheral qualifier */
+	SCSI_PQDT_PQUAL_h	= 7,
+	SCSI_PQDT_PQUAL_l	= 5,
+
+	/* Peripheral device type */
+	SCSI_PQDT_DEV_TYPE_h	= 4,
+	SCSI_PQDT_DEV_TYPE_l	= 0
+};
+
+/** Bits in scsi_std_inquiry_data_t.rmb */
+enum scsi_rmb_bits {
+	SCSI_RMB_RMB		= 7
+};
+
 /** SCSI peripheral device type */
 enum scsi_device_type {
 	SCSI_DEV_BLOCK		= 0x00,

@@ -48,8 +48,8 @@
 #define BITS_GET_MASK(type, bitcount) (((type)(1 << (bitcount)))-1)
 #define BITS_GET_MID_MASK(type, bitcount, offset) \
 	((type)( BITS_GET_MASK(type, (bitcount) + (offset)) - BITS_GET_MASK(type, bitcount) ))
-#define BITS_GET(type, number, bitcount, offset) \
-	((type)( (number) & (BITS_GET_MID_MASK(type, bitcount, offset)) ) >> (offset))
+#define BITS_GET(type, number, hi_bit, lo_bit) \
+	((type)( (number) & (BITS_GET_MID_MASK(type, (hi_bit)-(lo_bit)+1, lo_bit)) ) >> (lo_bit))
 
 /** Get string representation for SCSI peripheral device type.
  *
@@ -119,21 +119,22 @@ int usb_massstor_inquiry(usb_device_t *dev,
 
 	bzero(inquiry_result, sizeof(*inquiry_result));
 
-	inquiry_result->device_type =
-	    BITS_GET(uint8_t, inq_data.pqual_devtype, 5, 0);
-	inquiry_result->removable =
-	    BITS_GET(uint8_t, inq_data.rmb, 1, 7);
+	inquiry_result->device_type = BITS_GET(uint8_t, inq_data.pqual_devtype,
+	    SCSI_PQDT_DEV_TYPE_h, SCSI_PQDT_DEV_TYPE_l);
 
-	str_ncpy(inquiry_result->vendor, 9,
-	    (const char *) &inq_data.vendor, 8);
+	inquiry_result->removable = BITS_GET(uint8_t, inq_data.rmb,
+	    SCSI_RMB_RMB, SCSI_RMB_RMB);
+
+	str_ncpy(inquiry_result->vendor, 1 + sizeof(inq_data.vendor),
+	    (const char *) &inq_data.vendor, sizeof(inq_data.vendor));
 	trim_trailing_spaces(inquiry_result->vendor);
 
-	str_ncpy(inquiry_result->product, 17,
-	    (const char *) &inq_data.product, 16);
+	str_ncpy(inquiry_result->product, 1 + sizeof(inq_data.product),
+	    (const char *) &inq_data.product, sizeof(inq_data.product));
 	trim_trailing_spaces(inquiry_result->product);
 
-	str_ncpy(inquiry_result->revision, 5,
-	    (const char *) &inq_data.revision, 4);
+	str_ncpy(inquiry_result->revision, 1 + sizeof(inq_data.revision),
+	    (const char *) &inq_data.revision, sizeof(inq_data.revision));
 	trim_trailing_spaces(inquiry_result->revision);
 
 	return EOK;
