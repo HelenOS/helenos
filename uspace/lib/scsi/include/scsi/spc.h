@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmast
+/** @addtogroup libscsi
  * @{
  */
-/** @file
- * Generic functions for USB mass storage.
+/**
+ * @file SCSI Primary Commands.
  */
 
-#ifndef USB_USBMAST_MAST_H_
-#define USB_USBMAST_MAST_H_
+#ifndef LIBSCSI_SPC_H_
+#define LIBSCSI_SPC_H_
 
-#include <sys/types.h>
-#include <usb/usb.h>
-#include <usb/dev/pipes.h>
-#include <usb/dev/driver.h>
+#include <stdint.h>
 
-/** Result of SCSI INQUIRY command.
- * This is already parsed structure, not the original buffer returned by
- * the device.
- */
+/** SCSI command codes defined in SCSI-SPC */
+enum scsi_cmd_spc {
+	SCSI_CMD_INQUIRY	= 0x12
+};
+
+/** SCSI Inquiry command */
 typedef struct {
-	/** SCSI peripheral device type. */
-	int peripheral_device_type;
-	/** Whether the device is removable. */
-	bool removable;
-	/** Vendor ID string. */
-	char vendor_id[9];
-	/** Product ID and product revision string. */
-	char product_and_revision[12];
-} usb_massstor_inquiry_result_t;
+	/** Operation code (12h, SCSI_CMD_INQUIRY) */
+	uint8_t op_code;
+	/** Reserved:7-2, obsolete:1, evpd:0 */
+	uint8_t evpd;
+	/* Page Code */
+	uint8_t page_code;
+	/* Allocation Length */
+	uint16_t alloc_len;
+	/* Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_inquiry_t;
 
-int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,
-    uint32_t, uint8_t, void *, size_t, void *, size_t, size_t *);
-int usb_massstor_reset(usb_device_t *);
-void usb_massstor_reset_recovery(usb_device_t *, size_t, size_t);
-int usb_massstor_get_max_lun(usb_device_t *);
-size_t usb_masstor_get_lun_count(usb_device_t *);
-int usb_massstor_inquiry(usb_device_t *, size_t, size_t,
-    usb_massstor_inquiry_result_t *);
-const char *usb_str_masstor_scsi_peripheral_device_type(unsigned);
+/** SCSI peripheral device type */
+enum scsi_device_type {
+	SCSI_DEV_BLOCK		= 0x00,
+	SCSI_DEV_STREAM		= 0x01,
+	SCSI_DEV_CD_DVD		= 0x05,
+	SCSI_DEV_CHANGER	= 0x08,
+	SCSI_DEV_ENCLOSURE	= 0x0d,
+	SCSI_DEV_OSD		= 0x11,
+
+	SCSI_DEV_LIMIT		= 0x20
+};
+
+extern const char *scsi_dev_type_str[SCSI_DEV_LIMIT];
+extern const char *scsi_get_dev_type_str(unsigned);
 
 #endif
 
-/**
- * @}
+/** @}
  */

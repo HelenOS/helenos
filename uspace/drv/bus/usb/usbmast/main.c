@@ -40,7 +40,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include "cmds.h"
-#include "scsi.h"
 #include "mast.h"
 
 #define NAME "usbmast"
@@ -106,12 +105,14 @@ static int usbmast_add_device(usb_device_t *dev)
 	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
+/*	usb_log_debug("Get LUN count...\n");
 	size_t lun_count = usb_masstor_get_lun_count(dev);
-
+  */ size_t lun_count=1;
+	usb_log_debug("Inquire...\n");
 	usb_massstor_inquiry_result_t inquiry;
 	rc = usb_massstor_inquiry(dev, BULK_IN_EP, BULK_OUT_EP, &inquiry);
 	if (rc != EOK) {
-		usb_log_warning("Failed to inquiry device `%s': %s.\n",
+		usb_log_warning("Failed to inquire device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));
 		return EOK;
 	}

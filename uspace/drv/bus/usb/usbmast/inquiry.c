@@ -41,8 +41,8 @@
 #include <str_error.h>
 #include <str.h>
 #include <ctype.h>
+#include <scsi/spc.h>
 #include "cmds.h"
-#include "scsi.h"
 #include "mast.h"
 
 #define BITS_GET_MASK(type, bitcount) (((type)(1 << (bitcount)))-1)
@@ -53,61 +53,14 @@
 
 #define INQUIRY_RESPONSE_LENGTH 36
 
-#define STR_UNKNOWN "<unknown>"
-
-/** String constants for SCSI peripheral device types. */
-static const char *str_peripheral_device_types[] = {
-	"direct-access device",
-	"sequential-access device",
-	"printer device",
-	"processor device",
-	"write-once device",
-	"CDROM device",
-	"scanner device",
-	"optical memory device",
-	"medium changer",
-	"communications device",
-	"graphic arts pre-press device",
-	"graphic arts pre-press device",
-	"storage array controller device",
-	"enclosure services device",
-	"simplified direct-access device",
-	"optical card reader/writer device",
-	"bridging expander",
-	"object-based storage device",
-	"automation driver interface",
-	STR_UNKNOWN, // 0x13
-	STR_UNKNOWN, // 0x14
-	STR_UNKNOWN, // 0x15
-	STR_UNKNOWN, // 0x16
-	STR_UNKNOWN, // 0x17
-	STR_UNKNOWN, // 0x18
-	STR_UNKNOWN, // 0x19
-	STR_UNKNOWN, // 0x1A
-	STR_UNKNOWN, // 0x1B
-	STR_UNKNOWN, // 0x1C
-	STR_UNKNOWN, // 0x1D
-	"well-known logical unit",
-	"uknown or no device state"
-};
-#define str_peripheral_device_types_count \
-	(sizeof(str_peripheral_device_types)/sizeof(str_peripheral_device_types[0]))
-
 /** Get string representation for SCSI peripheral device type.
- *
- * See for example here for a list
- * http://en.wikipedia.org/wiki/SCSI_Peripheral_Device_Type.
  *
  * @param type SCSI peripheral device type code.
  * @return String representation.
  */
-const char *usb_str_masstor_scsi_peripheral_device_type(int type)
+const char *usb_str_masstor_scsi_peripheral_device_type(unsigned type)
 {
-	if ((type < 0)
-	    || ((size_t)type >= str_peripheral_device_types_count)) {
-		return STR_UNKNOWN;
-	}
-	return str_peripheral_device_types[type];
+	return scsi_get_dev_type_str(type);
 }
 
 /** Trim trailing spaces from a string (rewrite with string terminator).
@@ -135,12 +88,12 @@ int usb_massstor_inquiry(usb_device_t *dev,
     size_t bulk_in_idx, size_t bulk_out_idx,
     usb_massstor_inquiry_result_t *inquiry_result)
 {
-	scsi_cmd_inquiry_t inquiry = {
-		.op_code = 0x12,
-		.lun_evpd = 0,
+	scsi_cdb_inquiry_t inquiry = {
+		.op_code = SCSI_CMD_INQUIRY,
+		.evpd = 0,
 		.page_code = 0,
-		.alloc_length = host2uint16_t_be(INQUIRY_RESPONSE_LENGTH),
-		.ctrl = 0
+		.alloc_len = host2uint16_t_be(INQUIRY_RESPONSE_LENGTH),
+		.control = 0
 	};
 	size_t response_len;
 	uint8_t response[INQUIRY_RESPONSE_LENGTH];

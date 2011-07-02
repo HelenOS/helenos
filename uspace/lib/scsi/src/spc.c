@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmast
- * @{
+#include <stdint.h>
+#include <stdlib.h>
+#include "scsi/spc.h"
+
+/** String descriptions for SCSI peripheral device type.
+ *
+ * Only device types that we are ever likely to encounter are listed here.
  */
-/** @file
- * SCSI related structures.
+const char *scsi_dev_type_str[SCSI_DEV_LIMIT] = {
+	[SCSI_DEV_BLOCK]	= "Direct-Access Block Device (Disk)",
+	[SCSI_DEV_STREAM]	= "Sequential-Access Device (Tape)",
+	[SCSI_DEV_CD_DVD]	= "CD/DVD",
+	[SCSI_DEV_CHANGER]	= "Media Changer",
+	[SCSI_DEV_ENCLOSURE]	= "SCSI Enclosure",
+	[SCSI_DEV_OSD]		= "Object Storage Device"
+};
+
+/** Get peripheral device type string.
+ *
+ * Return string description of SCSI peripheral device type.
+ * The returned string is valid indefinitely, the caller should
+ * not attempt to free it.
  */
+const char *scsi_get_dev_type_str(unsigned dev_type)
+{
+	if (dev_type >= SCSI_DEV_LIMIT || scsi_dev_type_str[dev_type] == NULL)
+		return "<unknown>";
 
-#ifndef USB_USBMAST_SCSI_H_
-#define USB_USBMAST_SCSI_H_
-
-#include <sys/types.h>
-#include <usb/usb.h>
-
-typedef struct {
-	uint8_t op_code;
-	uint8_t lun_evpd;
-	uint8_t page_code;
-	uint16_t alloc_length;
-	uint8_t ctrl;
-} __attribute__((packed)) scsi_cmd_inquiry_t;
-
-#endif
-
-/**
- * @}
- */
+	return scsi_dev_type_str[dev_type];
+}

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Vojtech Horky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBSCSI_PREFIX)/libscsi.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBSCSI_PREFIX)/include
-
-BINARY = usbmast
+USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -Iinclude
+LIBRARY = libscsi
 
 SOURCES = \
-	inquiry.c \
-	main.c \
-	mast.c
+	src/spc.c
 
 include $(USPACE_PREFIX)/Makefile.common
