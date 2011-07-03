@@ -33,33 +33,33 @@
  * USB mass storage commands.
  */
 
-#ifndef USB_USBMAST_CMDS_H_
-#define USB_USBMAST_CMDS_H_
-
+#include <byteorder.h>
+#include <mem.h>
 #include <sys/types.h>
 #include <usb/usb.h>
+#include "cmds.h"
 
-typedef struct {
-	uint32_t dCBWSignature;
-	uint32_t dCBWTag;
-	uint32_t dCBWDataTransferLength;
-	uint8_t bmCBWFlags;
-	uint8_t bCBWLUN;
-	uint8_t bCBWBLength;
-	uint8_t CBWCB[16];
-} __attribute__((packed)) usb_massstor_cbw_t;
+void usb_massstor_cbw_prepare(usb_massstor_cbw_t *cbw,
+    uint32_t tag, uint32_t transfer_length, usb_direction_t dir,
+    uint8_t lun, uint8_t cmd_len, uint8_t *cmd)
+{
+	cbw->dCBWSignature = uint32_host2usb(0x43425355);
+	cbw->dCBWTag = tag;
+	cbw->dCBWDataTransferLength = transfer_length;
 
-typedef struct {
-	uint32_t dCSWSignature;
-	uint32_t dCSWTag;
-	uint32_t dCSWDataResidue;
-	uint8_t dCSWStatus;
-} __attribute__((packed)) usb_massstor_csw_t;
+	cbw->bmCBWFlags = 0;
+	if (dir == USB_DIRECTION_IN) {
+		cbw->bmCBWFlags |= (1 << 7);
+	}
 
-extern void usb_massstor_cbw_prepare(usb_massstor_cbw_t *, uint32_t, uint32_t,
-    usb_direction_t, uint8_t, uint8_t, uint8_t *);
+	/* Only lowest 4 bits. */
+	cbw->bCBWLUN = lun & 0x0F;
 
-#endif
+	/* Only lowest 5 bits. */
+	cbw->bCBWBLength = cmd_len & 0x1F;
+
+	memcpy(cbw->CBWCB, cmd, cbw->bCBWBLength);
+}
 
 /**
  * @}
