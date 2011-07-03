@@ -36,6 +36,7 @@
 #ifndef USB_USBMAST_MAST_H_
 #define USB_USBMAST_MAST_H_
 
+#include <scsi/spc.h>
 #include <sys/types.h>
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
@@ -51,11 +52,11 @@ typedef struct {
 	/** Whether the device is removable */
 	bool removable;
 	/** Vendor ID string */
-	char vendor[9];
+	char vendor[SCSI_INQ_VENDOR_STR_BUFSIZE];
 	/** Product ID string */
-	char product[17];
+	char product[SCSI_INQ_PRODUCT_STR_BUFSIZE];
 	/** Revision string */
-	char revision[17];
+	char revision[SCSI_INQ_REVISION_STR_BUFSIZE];
 } usb_massstor_inquiry_result_t;
 
 int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,

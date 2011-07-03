@@ -37,6 +37,7 @@
 #define LIBSCSI_SPC_H_
 
 #include <stdint.h>
+#include <str.h>
 
 /** SCSI command codes defined in SCSI-SPC */
 enum scsi_cmd_spc {
@@ -91,6 +92,22 @@ typedef struct {
 
 	/* End of required data */
 } scsi_std_inquiry_data_t;
+
+/** Size of struct or union member. */
+#define SCSI_MEMBER_SIZE(type, member) \
+    (sizeof(((type *)0) -> member))
+
+/** Size of string buffer needed to hold converted inquiry vendor string */
+#define SCSI_INQ_VENDOR_STR_BUFSIZE \
+    SPASCII_STR_BUFSIZE(SCSI_MEMBER_SIZE(scsi_std_inquiry_data_t, vendor))
+
+/** Size of string buffer needed to hold converted inquiry product string */
+#define SCSI_INQ_PRODUCT_STR_BUFSIZE \
+    SPASCII_STR_BUFSIZE(SCSI_MEMBER_SIZE(scsi_std_inquiry_data_t, product))
+
+/** Size of string buffer needed to hold converted inquiry revision string */
+#define SCSI_INQ_REVISION_STR_BUFSIZE \
+    SPASCII_STR_BUFSIZE(SCSI_MEMBER_SIZE(scsi_std_inquiry_data_t, revision))
 
 /** Bits in scsi_std_inquiry_data_t.pqual_devtype */
 enum scsi_pqual_devtype_bits {

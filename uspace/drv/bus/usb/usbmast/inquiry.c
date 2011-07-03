@@ -61,19 +61,6 @@ const char *usb_str_masstor_scsi_peripheral_device_type(unsigned type)
 	return scsi_get_dev_type_str(type);
 }
 
-/** Trim trailing spaces from a string (rewrite with string terminator).
- *
- * @param name String to be trimmed (in-out parameter).
- */
-static void trim_trailing_spaces(char *name)
-{
-	size_t len = str_length(name);
-	while ((len > 0) && isspace((int) name[len - 1])) {
-		name[len - 1] = 0;
-		len--;
-	}
-}
-
 /** Perform SCSI INQUIRY command on USB mass storage device.
  *
  * @param dev USB device.
@@ -125,17 +112,14 @@ int usb_massstor_inquiry(usb_device_t *dev,
 	inquiry_result->removable = BITS_GET(uint8_t, inq_data.rmb,
 	    SCSI_RMB_RMB, SCSI_RMB_RMB);
 
-	str_ncpy(inquiry_result->vendor, 1 + sizeof(inq_data.vendor),
-	    (const char *) &inq_data.vendor, sizeof(inq_data.vendor));
-	trim_trailing_spaces(inquiry_result->vendor);
+	spascii_to_str(inquiry_result->vendor, SCSI_INQ_VENDOR_STR_BUFSIZE,
+	    inq_data.vendor, sizeof(inq_data.vendor));
 
-	str_ncpy(inquiry_result->product, 1 + sizeof(inq_data.product),
-	    (const char *) &inq_data.product, sizeof(inq_data.product));
-	trim_trailing_spaces(inquiry_result->product);
+	spascii_to_str(inquiry_result->product, SCSI_INQ_PRODUCT_STR_BUFSIZE,
+	    inq_data.product, sizeof(inq_data.product));
 
-	str_ncpy(inquiry_result->revision, 1 + sizeof(inq_data.revision),
-	    (const char *) &inq_data.revision, sizeof(inq_data.revision));
-	trim_trailing_spaces(inquiry_result->revision);
+	spascii_to_str(inquiry_result->revision, SCSI_INQ_REVISION_STR_BUFSIZE,
+	    inq_data.revision, sizeof(inq_data.revision));
 
 	return EOK;
 }
