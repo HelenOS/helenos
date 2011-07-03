@@ -107,5 +107,27 @@ int posix_ispunct(int c)
 	return !isspace(c) && !isalnum(c);
 }
 
+/**
+ * Checks whether character is ASCII. (obsolete)
+ *
+ * @param c
+ * @return
+ */
+extern int posix_isascii(int c)
+{
+	return c >= 0 && c < 128;
+}
+
+/**
+ * Converts argument to a 7-bit ASCII character. (obsolete)
+ *
+ * @param c
+ * @return
+ */
+extern int posix_toascii(int c)
+{
+	return c & 0x7F;
+}
+
 /** @}
  */
