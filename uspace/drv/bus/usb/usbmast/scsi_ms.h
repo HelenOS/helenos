@@ -30,27 +30,36 @@
  * @{
  */
 /** @file
- * Generic functions for USB mass storage.
+ * SCSI functions for USB mass storage.
  */
 
-#ifndef USB_USBMAST_MAST_H_
-#define USB_USBMAST_MAST_H_
+#ifndef USB_USBMAST_SCSI_MS_H_
+#define USB_USBMAST_SCSI_MS_H_
 
 #include <scsi/spc.h>
 #include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
 
-#define BULK_IN_EP 0
-#define BULK_OUT_EP 1
+/** Result of SCSI Inquiry command.
+ * This is already parsed structure, not the original buffer returned by
+ * the device.
+ */
+typedef struct {
+	/** SCSI peripheral device type */
+	unsigned device_type;
+	/** Whether the device is removable */
+	bool removable;
+	/** Vendor ID string */
+	char vendor[SCSI_INQ_VENDOR_STR_BUFSIZE];
+	/** Product ID string */
+	char product[SCSI_INQ_PRODUCT_STR_BUFSIZE];
+	/** Revision string */
+	char revision[SCSI_INQ_REVISION_STR_BUFSIZE];
+} usbmast_inquiry_data_t;
 
-int usb_massstor_data_in(usb_device_t *dev, uint32_t, uint8_t, void *,
-    size_t, void *, size_t, size_t *);
-int usb_massstor_reset(usb_device_t *);
-void usb_massstor_reset_recovery(usb_device_t *);
-int usb_massstor_get_max_lun(usb_device_t *);
-size_t usb_masstor_get_lun_count(usb_device_t *);
+int usbmast_inquiry(usb_device_t *, usbmast_inquiry_data_t *);
+const char *usbmast_scsi_dev_type_str(unsigned);
 
 #endif
 

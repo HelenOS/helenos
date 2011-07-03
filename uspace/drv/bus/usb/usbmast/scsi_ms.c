@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * Main routines of USB mass storage driver.
+ * SCSI functions for USB mass storage driver.
  */
 #include <bitops.h>
 #include <usb/dev/driver.h>
@@ -45,27 +45,25 @@
 #include <scsi/spc.h>
 #include "cmds.h"
 #include "mast.h"
+#include "scsi_ms.h"
 
 /** Get string representation for SCSI peripheral device type.
  *
- * @param type SCSI peripheral device type code.
- * @return String representation.
+ * @param type		SCSI peripheral device type code.
+ * @return		String representation.
  */
-const char *usb_str_masstor_scsi_peripheral_device_type(unsigned type)
+const char *usbmast_scsi_dev_type_str(unsigned type)
 {
 	return scsi_get_dev_type_str(type);
 }
 
 /** Perform SCSI INQUIRY command on USB mass storage device.
  *
- * @param dev USB device.
- * @param bulk_in_idx Index (in dev->pipes) of bulk in pipe.
- * @param bulk_out_idx Index of bulk out pipe.
+ * @param dev		USB device.
  * @param inquiry_result Where to store parsed inquiry result.
- * @return Error code.
+ * @return		Error code.
  */
-int usb_massstor_inquiry(usb_device_t *dev,
-    usb_massstor_inquiry_result_t *inquiry_result)
+int usbmast_inquiry(usb_device_t *dev, usbmast_inquiry_data_t *inq_res)
 {
 	scsi_std_inquiry_data_t inq_data;
 	size_t response_len;
@@ -97,21 +95,21 @@ int usb_massstor_inquiry(usb_device_t *dev,
 	 * Parse inquiry data and fill in the result structure.
 	 */
 
-	bzero(inquiry_result, sizeof(*inquiry_result));
+	bzero(inq_res, sizeof(*inq_res));
 
-	inquiry_result->device_type = BIT_RANGE_EXTRACT(uint8_t,
+	inq_res->device_type = BIT_RANGE_EXTRACT(uint8_t,
 	    inq_data.pqual_devtype, SCSI_PQDT_DEV_TYPE_h, SCSI_PQDT_DEV_TYPE_l);
 
-	inquiry_result->removable = BIT_RANGE_EXTRACT(uint8_t,
+	inq_res->removable = BIT_RANGE_EXTRACT(uint8_t,
 	    inq_data.rmb, SCSI_RMB_RMB, SCSI_RMB_RMB);
 
-	spascii_to_str(inquiry_result->vendor, SCSI_INQ_VENDOR_STR_BUFSIZE,
+	spascii_to_str(inq_res->vendor, SCSI_INQ_VENDOR_STR_BUFSIZE,
 	    inq_data.vendor, sizeof(inq_data.vendor));
 
-	spascii_to_str(inquiry_result->product, SCSI_INQ_PRODUCT_STR_BUFSIZE,
+	spascii_to_str(inq_res->product, SCSI_INQ_PRODUCT_STR_BUFSIZE,
 	    inq_data.product, sizeof(inq_data.product));
 
-	spascii_to_str(inquiry_result->revision, SCSI_INQ_REVISION_STR_BUFSIZE,
+	spascii_to_str(inq_res->revision, SCSI_INQ_REVISION_STR_BUFSIZE,
 	    inq_data.revision, sizeof(inq_data.revision));
 
 	return EOK;

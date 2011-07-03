@@ -44,8 +44,8 @@ BINARY = usbmast
 
 SOURCES = \
 	cmds.c \
-	inquiry.c \
 	main.c \
-	mast.c
+	mast.c \
+	scsi_ms.c
 
 include $(USPACE_PREFIX)/Makefile.common

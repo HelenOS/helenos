@@ -41,6 +41,7 @@
 #include <str_error.h>
 #include "cmds.h"
 #include "mast.h"
+#include "scsi_ms.h"
 
 #define NAME "usbmast"
 
@@ -106,8 +107,8 @@ static int usbmast_add_device(usb_device_t *dev)
 	size_t lun_count = usb_masstor_get_lun_count(dev);
 
 	usb_log_debug("Inquire...\n");
-	usb_massstor_inquiry_result_t inquiry;
-	rc = usb_massstor_inquiry(dev, &inquiry);
+	usbmast_inquiry_data_t inquiry;
+	rc = usbmast_inquiry(dev, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));
@@ -120,7 +121,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	    inquiry.product,
 	    inquiry.vendor,
 	    inquiry.revision,
-	    usb_str_masstor_scsi_peripheral_device_type(inquiry.device_type),
+	    usbmast_scsi_dev_type_str(inquiry.device_type),
 	    inquiry.removable ? "removable" : "non-removable",
 	    lun_count);
 
