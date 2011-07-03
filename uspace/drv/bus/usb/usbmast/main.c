@@ -44,9 +44,6 @@
 
 #define NAME "usbmast"
 
-#define BULK_IN_EP 0
-#define BULK_OUT_EP 1
-
 #define GET_BULK_IN(dev) ((dev)->pipes[BULK_IN_EP].pipe)
 #define GET_BULK_OUT(dev) ((dev)->pipes[BULK_OUT_EP].pipe)
 
@@ -110,7 +107,7 @@ static int usbmast_add_device(usb_device_t *dev)
 
 	usb_log_debug("Inquire...\n");
 	usb_massstor_inquiry_result_t inquiry;
-	rc = usb_massstor_inquiry(dev, BULK_IN_EP, BULK_OUT_EP, &inquiry);
+	rc = usb_massstor_inquiry(dev, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));

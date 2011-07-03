@@ -65,7 +65,6 @@ const char *usb_str_masstor_scsi_peripheral_device_type(unsigned type)
  * @return Error code.
  */
 int usb_massstor_inquiry(usb_device_t *dev,
-    size_t bulk_in_idx, size_t bulk_out_idx,
     usb_massstor_inquiry_result_t *inquiry_result)
 {
 	scsi_std_inquiry_data_t inq_data;
@@ -80,9 +79,8 @@ int usb_massstor_inquiry(usb_device_t *dev,
 
 	int rc;
 
-	rc = usb_massstor_data_in(dev, bulk_in_idx, bulk_out_idx,
-	    0xDEADBEEF, 0, (uint8_t *) &inquiry, sizeof(inquiry),
-	    &inq_data, sizeof(inq_data), &response_len);
+	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &inquiry,
+	    sizeof(inquiry), &inq_data, sizeof(inq_data), &response_len);
 
 	if (rc != EOK) {
 		usb_log_error("Failed to probe device %s using %s: %s.\n",

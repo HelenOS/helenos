@@ -52,8 +52,6 @@ bool usb_mast_verbose = true;
 
 /** Request data from mass storage device.
  *
- * @param bulk_in_pipe Bulk in pipe to the device.
- * @param bulk_out_pipe Bulk out pipe to the device.
  * @param tag Command block wrapper tag (automatically compared with answer).
  * @param lun LUN index.
  * @param cmd SCSI command buffer (in SCSI endianness).
@@ -64,14 +62,13 @@ bool usb_mast_verbose = true;
  * @return Error code.
  */
 int usb_massstor_data_in(usb_device_t *dev,
-    size_t bulk_in_pipe_index, size_t bulk_out_pipe_index,
     uint32_t tag, uint8_t lun, void *cmd, size_t cmd_size,
     void *in_buffer, size_t in_buffer_size, size_t *received_size)
 {
 	int rc;
 	size_t act_size;
-	usb_pipe_t *bulk_in_pipe = dev->pipes[bulk_in_pipe_index].pipe;
-	usb_pipe_t *bulk_out_pipe = dev->pipes[bulk_out_pipe_index].pipe;
+	usb_pipe_t *bulk_in_pipe = dev->pipes[BULK_IN_EP].pipe;
+	usb_pipe_t *bulk_out_pipe = dev->pipes[BULK_OUT_EP].pipe;
 
 	/* Prepare CBW - command block wrapper */
 	usb_massstor_cbw_t cbw;

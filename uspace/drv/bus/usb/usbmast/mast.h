@@ -42,6 +42,9 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
 
+#define BULK_IN_EP 0
+#define BULK_OUT_EP 1
+
 /** Result of SCSI INQUIRY command.
  * This is already parsed structure, not the original buffer returned by
  * the device.
@@ -59,14 +62,13 @@ typedef struct {
 	char revision[SCSI_INQ_REVISION_STR_BUFSIZE];
 } usb_massstor_inquiry_result_t;
 
-int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,
-    uint32_t, uint8_t, void *, size_t, void *, size_t, size_t *);
+int usb_massstor_data_in(usb_device_t *dev, uint32_t, uint8_t, void *,
+    size_t, void *, size_t, size_t *);
 int usb_massstor_reset(usb_device_t *);
 void usb_massstor_reset_recovery(usb_device_t *, size_t, size_t);
 int usb_massstor_get_max_lun(usb_device_t *);
 size_t usb_masstor_get_lun_count(usb_device_t *);
-int usb_massstor_inquiry(usb_device_t *, size_t, size_t,
-    usb_massstor_inquiry_result_t *);
+int usb_massstor_inquiry(usb_device_t *, usb_massstor_inquiry_result_t *);
 const char *usb_str_masstor_scsi_peripheral_device_type(unsigned);
 
 #endif
