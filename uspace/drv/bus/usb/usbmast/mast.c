@@ -153,18 +153,15 @@ int usb_massstor_reset(usb_device_t *dev)
  * would reappear on next transaction somehow.
  *
  * @param dev Device to be reseted.
- * @param bulk_in_idx Index of bulk in pipe.
- * @param bulk_out_idx Index of bulk out pipe.
  */
-void usb_massstor_reset_recovery(usb_device_t *dev,
-    size_t bulk_in_idx, size_t bulk_out_idx)
+void usb_massstor_reset_recovery(usb_device_t *dev)
 {
 	/* We would ignore errors here because if this fails
 	 * we are doomed anyway and any following transaction would fail.
 	 */
 	usb_massstor_reset(dev);
-	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[bulk_in_idx].pipe);
-	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[bulk_out_idx].pipe);
+	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[BULK_IN_EP].pipe);
+	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[BULK_OUT_EP].pipe);
 }
 
 /** Get max LUN of a mass storage device.

@@ -65,7 +65,7 @@ typedef struct {
 int usb_massstor_data_in(usb_device_t *dev, uint32_t, uint8_t, void *,
     size_t, void *, size_t, size_t *);
 int usb_massstor_reset(usb_device_t *);
-void usb_massstor_reset_recovery(usb_device_t *, size_t, size_t);
+void usb_massstor_reset_recovery(usb_device_t *);
 int usb_massstor_get_max_lun(usb_device_t *);
 size_t usb_masstor_get_lun_count(usb_device_t *);
 int usb_massstor_inquiry(usb_device_t *, usb_massstor_inquiry_result_t *);
