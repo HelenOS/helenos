@@ -33,6 +33,7 @@
  * @file
  * Main routines of USB mass storage driver.
  */
+#include <bitops.h>
 #include <usb/dev/driver.h>
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
@@ -44,12 +45,6 @@
 #include <scsi/spc.h>
 #include "cmds.h"
 #include "mast.h"
-
-#define BITS_GET_MASK(type, bitcount) (((type)(1 << (bitcount)))-1)
-#define BITS_GET_MID_MASK(type, bitcount, offset) \
-	((type)( BITS_GET_MASK(type, (bitcount) + (offset)) - BITS_GET_MASK(type, bitcount) ))
-#define BITS_GET(type, number, hi_bit, lo_bit) \
-	((type)( (number) & (BITS_GET_MID_MASK(type, (hi_bit)-(lo_bit)+1, lo_bit)) ) >> (lo_bit))
 
 /** Get string representation for SCSI peripheral device type.
  *
@@ -106,11 +101,11 @@ int usb_massstor_inquiry(usb_device_t *dev,
 
 	bzero(inquiry_result, sizeof(*inquiry_result));
 
-	inquiry_result->device_type = BITS_GET(uint8_t, inq_data.pqual_devtype,
-	    SCSI_PQDT_DEV_TYPE_h, SCSI_PQDT_DEV_TYPE_l);
+	inquiry_result->device_type = BIT_RANGE_EXTRACT(uint8_t,
+	    inq_data.pqual_devtype, SCSI_PQDT_DEV_TYPE_h, SCSI_PQDT_DEV_TYPE_l);
 
-	inquiry_result->removable = BITS_GET(uint8_t, inq_data.rmb,
-	    SCSI_RMB_RMB, SCSI_RMB_RMB);
+	inquiry_result->removable = BIT_RANGE_EXTRACT(uint8_t,
+	    inq_data.rmb, SCSI_RMB_RMB, SCSI_RMB_RMB);
 
 	spascii_to_str(inquiry_result->vendor, SCSI_INQ_VENDOR_STR_BUFSIZE,
 	    inq_data.vendor, sizeof(inq_data.vendor));
