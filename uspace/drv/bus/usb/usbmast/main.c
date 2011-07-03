@@ -125,6 +125,18 @@ static int usbmast_add_device(usb_device_t *dev)
 	    inquiry.removable ? "removable" : "non-removable",
 	    lun_count);
 
+	uint32_t nblocks, block_size;
+
+	rc = usbmast_read_capacity(dev, &nblocks, &block_size);
+	if (rc != EOK) {
+		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
+		    dev->ddf_dev->name, str_error(rc));
+		return EOK;
+	}
+
+	usb_log_info("Read Capacity: nblocks=%" PRIu32 ", "
+	    "block_size=%" PRIu32 "\n", nblocks, block_size);
+
 	return EOK;
 }
 

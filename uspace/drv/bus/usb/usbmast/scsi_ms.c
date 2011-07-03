@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,14 +35,14 @@
  * SCSI functions for USB mass storage driver.
  */
 #include <bitops.h>
+#include <byteorder.h>
+#include <inttypes.h>
 #include <usb/dev/driver.h>
 #include <usb/debug.h>
-#include <usb/classes/classes.h>
-#include <usb/classes/massstor.h>
 #include <errno.h>
 #include <str_error.h>
 #include <str.h>
-#include <ctype.h>
+#include <scsi/sbc.h>
 #include <scsi/spc.h>
 #include "cmds.h"
 #include "mast.h"
@@ -57,7 +58,7 @@ const char *usbmast_scsi_dev_type_str(unsigned type)
 	return scsi_get_dev_type_str(type);
 }
 
-/** Perform SCSI INQUIRY command on USB mass storage device.
+/** Perform SCSI Inquiry command on USB mass storage device.
  *
  * @param dev		USB device.
  * @param inquiry_result Where to store parsed inquiry result.
@@ -67,27 +68,25 @@ int usbmast_inquiry(usb_device_t *dev, usbmast_inquiry_data_t *inq_res)
 {
 	scsi_std_inquiry_data_t inq_data;
 	size_t response_len;
-	scsi_cdb_inquiry_t inquiry = {
-		.op_code = SCSI_CMD_INQUIRY,
-		.evpd = 0,
-		.page_code = 0,
-		.alloc_len = host2uint16_t_be(sizeof(inq_data)),
-		.control = 0
-	};
-
+	scsi_cdb_inquiry_t cdb;
 	int rc;
 
-	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &inquiry,
-	    sizeof(inquiry), &inq_data, sizeof(inq_data), &response_len);
+	memset(&cdb, 0, sizeof(cdb));
+	cdb.op_code = SCSI_CMD_INQUIRY;
+	cdb.alloc_len = host2uint16_t_be(sizeof(inq_data));
+
+	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	    sizeof(cdb), &inq_data, sizeof(inq_data), &response_len);
 
 	if (rc != EOK) {
-		usb_log_error("Failed to probe device %s using %s: %s.\n",
-		   dev->ddf_dev->name, "SCSI:INQUIRY", str_error(rc));
+		usb_log_error("Inquiry failed, device %s: %s.\n",
+		   dev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
 	if (response_len < SCSI_STD_INQUIRY_DATA_MIN_SIZE) {
-		usb_log_error("The SCSI inquiry response is too short.\n");
+		usb_log_error("SCSI Inquiry response too short (%zu).\n",
+		    response_len);
 		return EIO;
 	}
 
@@ -111,6 +110,46 @@ int usbmast_inquiry(usb_device_t *dev, usbmast_inquiry_data_t *inq_res)
 
 	spascii_to_str(inq_res->revision, SCSI_INQ_REVISION_STR_BUFSIZE,
 	    inq_data.revision, sizeof(inq_data.revision));
+
+	return EOK;
+}
+
+/** Perform SCSI Read Capacity command on USB mass storage device.
+ *
+ * @param dev		USB device.
+ * @param nblocks	Output, number of blocks.
+ * @param block_size	Output, block size in bytes.
+ *
+ * @return		Error code.
+ */
+int usbmast_read_capacity(usb_device_t *dev, uint32_t *nblocks,
+    uint32_t *block_size)
+{
+	scsi_cdb_read_capacity_10_t cdb;
+	scsi_read_capacity_10_data_t data;
+	size_t data_len;
+	int rc;
+
+	memset(&cdb, 0, sizeof(cdb));
+	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
+
+	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	    sizeof(cdb), &data, sizeof(data), &data_len);
+
+        if (rc != EOK) {
+		usb_log_error("Read Capacity (10) failed, device %s: %s.\n",
+		   dev->ddf_dev->name, str_error(rc));
+		return rc;
+	}
+
+	if (data_len < sizeof(data)) {
+		usb_log_error("SCSI Read Capacity response too short (%zu).\n",
+		    data_len);
+		return EIO;
+	}
+
+	*nblocks = uint32_t_be2host(data.last_lba) + 1;
+	*block_size = uint32_t_be2host(data.block_size);
 
 	return EOK;
 }

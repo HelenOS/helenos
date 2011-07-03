@@ -58,8 +58,9 @@ typedef struct {
 	char revision[SCSI_INQ_REVISION_STR_BUFSIZE];
 } usbmast_inquiry_data_t;
 
-int usbmast_inquiry(usb_device_t *, usbmast_inquiry_data_t *);
-const char *usbmast_scsi_dev_type_str(unsigned);
+extern int usbmast_inquiry(usb_device_t *, usbmast_inquiry_data_t *);
+extern int usbmast_read_capacity(usb_device_t *dev, uint32_t *, uint32_t *);
+extern const char *usbmast_scsi_dev_type_str(unsigned);
 
 #endif
 

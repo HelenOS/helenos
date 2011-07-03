@@ -112,7 +112,7 @@ typedef struct {
 	uint32_t last_lba;
 	/** Size of block in bytes */
 	uint32_t block_size;
-} scsi_read_capacity_10_data;
+} scsi_read_capacity_10_data_t;
 
 /** SCSI Write (12) command */
 typedef struct {
