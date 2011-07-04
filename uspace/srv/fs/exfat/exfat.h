@@ -89,8 +89,11 @@ typedef struct exfat_bs {
 } __attribute__((__packed__)) exfat_bs_t;
 
 typedef enum {
+	EXFAT_UNKNOW,
 	EXFAT_DIRECTORY,
-	EXFAT_FILE
+	EXFAT_FILE,
+	EXFAT_BITMAP,
+	EXFAT_UCTABLE
 } exfat_node_type_t;
 
 struct exfat_node;
@@ -137,6 +140,8 @@ typedef struct exfat_node {
 	unsigned		lnkcnt;
 	unsigned		refcnt;
 	bool			dirty;
+	/* Should we do walk-on-FAT or not */
+	bool			fragmented;
 
 	/*
 	 * Cache of the node's last and "current" cluster to avoid some
