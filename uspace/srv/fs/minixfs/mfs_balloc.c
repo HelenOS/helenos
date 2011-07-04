@@ -51,6 +51,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	assert(sbi != NULL);
 
 	if (bid == BMAP_ZONE) {
+		idx -= sbi->firstdatazone;
 		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
 			printf(NAME ": Error! Trying to free beyond the" \
@@ -150,6 +151,10 @@ retry:
 		}
 
 		*search = *idx;
+
+		if (bid == BMAP_ZONE)
+			*idx += sbi->firstdatazone;
+
 		b->dirty = true;
 		r = block_put(b);
 		goto out;
