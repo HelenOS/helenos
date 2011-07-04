@@ -63,9 +63,9 @@ exfat_dentry_clsf_t exfat_classify_dentry(const exfat_dentry_t *d)
 		return EXFAT_DENTRY_LAST;
 	default:
 		if (d->type & EXFAT_TYPE_USED)
-			return EXFAT_DENTRY_FREE;
-		else
 			return EXFAT_DENTRY_SKIP;
+		else
+			return EXFAT_DENTRY_FREE;
 	}
 }
 

@@ -49,11 +49,11 @@
 #define EXFAT_TYPE_STREAM	0xC0
 #define EXFAT_TYPE_NAME		0xC1
 
-#define FAT_ATTR_RDONLY   0x01
-#define FAT_ATTR_HIDDEN   0x02
-#define FAT_ATTR_SYSTEM   0x04
-#define FAT_ATTR_SUBDIR   0x10
-#define FAT_ATTR_ARCHIVE  0x20
+#define EXFAT_ATTR_RDONLY	0x01
+#define EXFAT_ATTR_HIDDEN	0x02
+#define EXFAT_ATTR_SYSTEM	0x04
+#define EXFAT_ATTR_SUBDIR	0x10
+#define EXFAT_ATTR_ARCHIVE	0x20
 
 
 /* All dentry structs should have 31 byte size */
