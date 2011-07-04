@@ -38,6 +38,15 @@
 #include <stdint.h>
 #include <libblock.h>
 
+#define EXFAT_ROOT_IDX		0
+#define EXFAT_BITMAP_IDX	1
+#define EXFAT_UCTABLE_IDX	2
+
+#define EXFAT_ROOT_PAR	0
+
+#define EXFAT_CLST_LAST	0xfffffff6
+#define EXFAT_CLST_BAD	0xfffffff7
+#define EXFAT_CLST_EOF	0xffffffff
 
 /* forward declarations */
 struct block;
