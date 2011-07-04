@@ -38,6 +38,7 @@
 
 #include "exfat.h"
 #include "exfat_fat.h"
+#include "exfat_dentry.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
@@ -70,6 +71,10 @@ static LIST_INITIALIZE(ffn_head);
 /*
  * Forward declarations of FAT libfs operations.
  */
+/*
+static int exfat_bitmap_get(fs_node_t **, devmap_handle_t);
+static int exfat_uctable_get(fs_node_t **, devmap_handle_t);
+*/
 static int exfat_root_get(fs_node_t **, devmap_handle_t);
 static int exfat_match(fs_node_t **, fs_node_t *, const char *);
 static int exfat_node_get(fs_node_t **, devmap_handle_t, fs_index_t);
@@ -96,12 +101,13 @@ static void exfat_node_initialize(exfat_node_t *node)
 	fibril_mutex_initialize(&node->lock);
 	node->bp = NULL;
 	node->idx = NULL;
-	node->type = 0;
+	node->type = EXFAT_UNKNOW;
 	link_initialize(&node->ffn_link);
 	node->size = 0;
 	node->lnkcnt = 0;
 	node->refcnt = 0;
 	node->dirty = false;
+	node->fragmented = true;
 	node->lastc_cached_valid = false;
 	node->lastc_cached_value = 0;
 	node->currc_cached_valid = false;
@@ -173,15 +179,200 @@ restart:
 	return EOK;
 }
 
+static int exfat_node_get_new(exfat_node_t **nodepp)
+{
+	fs_node_t *fn;
+	exfat_node_t *nodep;
+	int rc;
+
+	fibril_mutex_lock(&ffn_mutex);
+	if (!list_empty(&ffn_head)) {
+		/* Try to use a cached free node structure. */
+		exfat_idx_t *idxp_tmp;
+		nodep = list_get_instance(ffn_head.next, exfat_node_t, ffn_link);
+		if (!fibril_mutex_trylock(&nodep->lock))
+			goto skip_cache;
+		idxp_tmp = nodep->idx;
+		if (!fibril_mutex_trylock(&idxp_tmp->lock)) {
+			fibril_mutex_unlock(&nodep->lock);
+			goto skip_cache;
+		}
+		list_remove(&nodep->ffn_link);
+		fibril_mutex_unlock(&ffn_mutex);
+		if (nodep->dirty) {
+			rc = exfat_node_sync(nodep);
+			if (rc != EOK) {
+				idxp_tmp->nodep = NULL;
+				fibril_mutex_unlock(&nodep->lock);
+				fibril_mutex_unlock(&idxp_tmp->lock);
+				free(nodep->bp);
+				free(nodep);
+				return rc;
+			}
+		}
+		idxp_tmp->nodep = NULL;
+		fibril_mutex_unlock(&nodep->lock);
+		fibril_mutex_unlock(&idxp_tmp->lock);
+		fn = FS_NODE(nodep);
+	} else {
+skip_cache:
+		/* Try to allocate a new node structure. */
+		fibril_mutex_unlock(&ffn_mutex);
+		fn = (fs_node_t *)malloc(sizeof(fs_node_t));
+		if (!fn)
+			return ENOMEM;
+		nodep = (exfat_node_t *)malloc(sizeof(exfat_node_t));
+		if (!nodep) {
+			free(fn);
+			return ENOMEM;
+		}
+	}
+	exfat_node_initialize(nodep);
+	fs_node_initialize(fn);
+	fn->data = nodep;
+	nodep->bp = fn;
+
+	*nodepp = nodep;
+	return EOK;
+}
+
+/** Internal version of exfat_node_get().
+ *
+ * @param idxp		Locked index structure.
+ */
+static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
+{
+	block_t *b=NULL;
+	//exfat_bs_t *bs;
+	//exfat_dentry_t *d;
+	exfat_node_t *nodep = NULL;
+	int rc;
+
+	if (idxp->nodep) {
+		/*
+		 * We are lucky.
+		 * The node is already instantiated in memory.
+		 */
+		fibril_mutex_lock(&idxp->nodep->lock);
+		if (!idxp->nodep->refcnt++) {
+			fibril_mutex_lock(&ffn_mutex);
+			list_remove(&idxp->nodep->ffn_link);
+			fibril_mutex_unlock(&ffn_mutex);
+		}
+		fibril_mutex_unlock(&idxp->nodep->lock);
+		*nodepp = idxp->nodep;
+		return EOK;
+	}
+
+	/*
+	 * We must instantiate the node from the file system.
+	 */
+
+	assert(idxp->pfc);
+
+	rc = exfat_node_get_new(&nodep);
+	if (rc != EOK)
+		return rc;
+
+	//bs = block_bb_get(idxp->devmap_handle);
+
+	/* Access to exFAT directory and read two entries:
+	 * file entry and stream entry 
+	 */
+	/*
+	exfat_directory_t di;
+	exfat_dentry_t *de;
+	exfat_directory_open(&di, ???);
+	exfat_directory_seek(&di, idxp->pdi);
+	exfat_directory_get(&di, &de); 
+
+	switch (exfat_classify_dentry(de)) {
+	case EXFAT_DENTRY_FILE:
+		nodep->type = (de->file.attr & EXFAT_ATTR_SUBDIR)? 
+		    EXFAT_DIRECTORY : EXFAT_FILE;
+		exfat_directory_next(&di);
+		exfat_directory_get(&di, &de);
+		nodep->firtsc = de->stream.firstc;
+		nodep->size = de->stream.data_size;
+		nodep->fragmented = (de->stream.flags & 0x02) == 0;
+		break;
+	case EXFAT_DENTRY_BITMAP:
+		nodep->type = EXFAT_BITMAP;
+		nodep->firstc = de->bitmap.firstc;
+		nodep->size = de->bitmap.size;
+		nodep->fragmented = false;
+		break;
+	case EXFAT_DENTRY_UCTABLE:
+		nodep->type = EXFAT_UCTABLE;
+		nodep->firstc = de->uctable.firstc;
+		nodep->size = de->uctable.size;
+		nodep->fragmented = false;
+		break;
+	default:
+	case EXFAT_DENTRY_SKIP:
+	case EXFAT_DENTRY_LAST:
+	case EXFAT_DENTRY_FREE:
+	case EXFAT_DENTRY_VOLLABEL:
+	case EXFAT_DENTRY_GUID:
+	case EXFAT_DENTRY_STREAM:
+	case EXFAT_DENTRY_NAME:
+		(void) block_put(b);
+		(void) fat_node_put(FS_NODE(nodep));
+		return ENOENT;
+	}
+	*/
+
+	/* Read the block that contains the dentry of interest. */
+	/*
+	rc = _fat_block_get(&b, bs, idxp->devmap_handle, idxp->pfc, NULL,
+	    (idxp->pdi * sizeof(fat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		(void) fat_node_put(FS_NODE(nodep));
+		return rc;
+	}
+
+	d = ((fat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
+	*/
+
+	nodep->lnkcnt = 1;
+	nodep->refcnt = 1;
+
+	rc = block_put(b);
+	if (rc != EOK) {
+		(void) exfat_node_put(FS_NODE(nodep));
+		return rc;
+	}
+
+	/* Link the idx structure with the node structure. */
+	nodep->idx = idxp;
+	idxp->nodep = nodep;
+
+	*nodepp = nodep;
+	return EOK;
+}
+
+
 
 /*
- * FAT libfs operations.
+ * EXFAT libfs operations.
  */
 
 int exfat_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
-	return exfat_node_get(rfn, devmap_handle, 0);
+	return exfat_node_get(rfn, devmap_handle, EXFAT_ROOT_IDX);
 }
+
+/*
+int exfat_bitmap_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+{
+	return exfat_node_get(rfn, devmap_handle, EXFAT_BITMAP_IDX);
+}
+
+int exfat_uctable_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+{
+	return exfat_node_get(rfn, devmap_handle, EXFAT_UCTABLE_IDX);
+}
+*/
 
 int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
@@ -192,8 +383,21 @@ int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 /** Instantiate a exFAT in-core node. */
 int exfat_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
 {
-	*rfn = NULL;
-	return EOK;
+	exfat_node_t *nodep;
+	exfat_idx_t *idxp;
+	int rc;
+
+	idxp = exfat_idx_get_by_index(devmap_handle, index);
+	if (!idxp) {
+		*rfn = NULL;
+		return EOK;
+	}
+	/* idxp->lock held */
+	rc = exfat_node_get_core(&nodep, idxp);
+	fibril_mutex_unlock(&idxp->lock);
+	if (rc == EOK)
+		*rfn = FS_NODE(nodep);
+	return rc;
 }
 
 int exfat_node_open(fs_node_t *fn)
@@ -391,8 +595,7 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	exfat_node_initialize(rootp);
 
-	/* exfat_idx_t *ridxp = exfat_idx_get_by_pos(devmap_handle, FAT_CLST_ROOTPAR, 0); */
-	exfat_idx_t *ridxp = exfat_idx_get_by_pos(devmap_handle, 0, 0);
+	exfat_idx_t *ridxp = exfat_idx_get_by_pos(devmap_handle, EXFAT_ROOT_PAR, 0);
 	if (!ridxp) {
 		free(rfn);
 		free(rootp);
@@ -415,6 +618,10 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rfn->data = rootp;
 
 	fibril_mutex_unlock(&ridxp->lock);
+	
+	/* TODO */
+	/* We should intitalize bitmap and uctable nodes next to the root node */
+	/* HERE!!! */
 
 	/* async_answer_0(rid, EOK); */
 	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
