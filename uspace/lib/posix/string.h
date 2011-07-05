@@ -102,6 +102,9 @@ extern int posix_strerror_r(int errnum, char *buf, size_t bufsz);
 extern size_t posix_strlen(const char *s);
 extern size_t posix_strnlen(const char *s, size_t n);
 
+/* Signal messages */
+extern char *posix_strsignal(int signum);
+
 /* Legacy declarations */
 #ifndef POSIX_STRINGS_H_
 extern int posix_ffs(int i);
@@ -141,6 +144,8 @@ extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 
 	#define strlen posix_strlen
 	#define strnlen posix_strnlen
+
+	#define strsignal posix_strsignal
 
 	#define ffs posix_ffs
 	#define strcasecmp posix_strcasecmp

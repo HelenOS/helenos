@@ -42,6 +42,7 @@
 #include "errno.h"
 #include "limits.h"
 #include "stdlib.h"
+#include "signal.h"
 
 #include "libc/str_error.h"
 
@@ -567,6 +568,51 @@ size_t posix_strnlen(const char *s, size_t n)
 	}
 	
 	return n;
+}
+
+/**
+ *
+ * @param signum
+ * @return
+ */
+char *posix_strsignal(int signum)
+{
+	static const char *const sigstrings[] = {
+		[SIGABRT] = "SIGABRT (Process abort signal)",
+		[SIGALRM] = "SIGALRM (Alarm clock)",
+		[SIGBUS] = "SIGBUS (Access to an undefined portion of a memory object)",
+		[SIGCHLD] = "SIGCHLD (Child process terminated, stopped, or continued)",
+		[SIGCONT] = "SIGCONT (Continue executing, if stopped)",
+		[SIGFPE] = "SIGFPE (Erroneous arithmetic operation)",
+		[SIGHUP] = "SIGHUP (Hangup)",
+		[SIGILL] = "SIGILL (Illegal instruction)",
+		[SIGINT] = "SIGINT (Terminal interrupt signal)",
+		[SIGKILL] = "SIGKILL (Kill process)",
+		[SIGPIPE] = "SIGPIPE (Write on a pipe with no one to read it)",
+		[SIGQUIT] = "SIGQUIT (Terminal quit signal)",
+		[SIGSEGV] = "SIGSEGV (Invalid memory reference)",
+		[SIGSTOP] = "SIGSTOP (Stop executing)",
+		[SIGTERM] = "SIGTERM (Termination signal)",
+		[SIGTSTP] = "SIGTSTP (Terminal stop signal)",
+		[SIGTTIN] = "SIGTTIN (Background process attempting read)",
+		[SIGTTOU] = "SIGTTOU (Background process attempting write)",
+		[SIGUSR1] = "SIGUSR1 (User-defined signal 1)",
+		[SIGUSR2] = "SIGUSR2 (User-defined signal 2)",
+		[SIGPOLL] = "SIGPOLL (Pollable event)",
+		[SIGPROF] = "SIGPROF (Profiling timer expired)",
+		[SIGSYS] = "SIGSYS (Bad system call)",
+		[SIGTRAP] = "SIGTRAP (Trace/breakpoint trap)",
+		[SIGURG] = "SIGURG (High bandwidth data is available at a socket)",
+		[SIGVTALRM] = "SIGVTALRM (Virtual timer expired)",
+		[SIGXCPU] = "SIGXCPU (CPU time limit exceeded)",
+		[SIGXFSZ] = "SIGXFSZ (File size limit exceeded)"
+	};
+
+	if (signum <= _TOP_SIGNAL) {
+		return (char *) sigstrings[signum];
+	}
+
+	return (char *) "ERROR, Invalid signal number";
 }
 
 /** @}
