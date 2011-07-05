@@ -41,12 +41,13 @@
 
 /** SCSI command codes defined in SCSI-SPC */
 enum scsi_cmd_spc {
-	SCSI_CMD_INQUIRY	= 0x12
+	SCSI_CMD_INQUIRY	= 0x12,
+	SCSI_CMD_REQUEST_SENSE	= 0x03
 };
 
 /** SCSI Inquiry command */
 typedef struct {
-	/** Operation code (12h, SCSI_CMD_INQUIRY) */
+	/** Operation code (SCSI_CMD_INQUIRY) */
 	uint8_t op_code;
 	/** Reserved:7-2, obsolete:1, evpd:0 */
 	uint8_t evpd;
@@ -91,7 +92,7 @@ typedef struct {
 	uint8_t revision[4];
 
 	/* End of required data */
-} scsi_std_inquiry_data_t;
+} __attribute__((packed)) scsi_std_inquiry_data_t;
 
 /** Size of struct or union member. */
 #define SCSI_MEMBER_SIZE(type, member) \
@@ -135,6 +136,75 @@ enum scsi_device_type {
 	SCSI_DEV_OSD		= 0x11,
 
 	SCSI_DEV_LIMIT		= 0x20
+};
+
+/** SCSI Request Sense command */
+typedef struct {
+	/** Operation code (SCSI_CMD_REQUEST_SENSE) */
+	uint8_t op_code;
+	/** Reserved, Desc */
+	uint8_t desc;
+	/* Reserved */
+	uint16_t res_2;
+	/* Allocation Length */
+	uint8_t alloc_len;
+	/* Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_request_sense_t;
+
+/** Minimum size of sense data.
+ *
+ * If the target returns less data, the missing bytes should be considered
+ * zero.
+ */
+#define SCSI_SENSE_DATA_MIN_SIZE 18
+
+/** Maximum size of sense data */
+#define SCSI_SENSE_DATA_MAX_SIZE 252
+
+/** Fixed-format sense data.
+ *
+ * Returned for Request Sense command with Desc bit cleared.
+ */
+typedef struct {
+	/** Valid, Response Code */
+	uint8_t valid_rcode;
+	/** Peripheral qualifier, Peripheral device type */
+	uint8_t obsolete_1;
+	/** Filemark, EOM, ILI, Reserved, Sense Key */
+	uint8_t flags_key;
+	/** Information */
+	uint32_t info;
+	/** Additional Sense Length */
+	uint8_t additional_len;
+	/** Command-specific Information */
+	uint8_t cmd_spec;
+	/** Additional Sense Code */
+	uint8_t additional_code;
+	/** Additional Sense Code Qualifier */
+	uint8_t additional_cqual;
+	/** Field-replaceable Unit Code */
+	uint8_t fru_code;
+	/** SKSV, Sense-key specific */
+	uint8_t key_spec[3];
+} __attribute__((packed)) scsi_sense_data_t;
+
+/** Sense key */
+enum scsi_sense_key {
+	SCSI_SK_NO_SENSE	= 0x0,
+	SCSI_SK_RECOVERED_ERROR	= 0x1,
+	SCSI_SK_NOT_READY	= 0x2,
+	SCSI_SK_MEDIUM_ERROR	= 0x3,
+	SCSI_SK_HARDWARE_ERROR	= 0x4,
+	SCSI_SK_ILLEGAL_REQUEST	= 0x5,
+	SCSI_SK_UNIT_ATTENTION	= 0x6,
+	SCSI_SK_DATA_PROTECT	= 0x7,
+	SCSI_SK_BLANK_CHECK	= 0x8,
+	SCSI_SK_VENDOR_SPECIFIC	= 0x9,
+	SCSI_SK_COPY_ABORTED	= 0xa,
+	SCSI_SK_ABORTED_COMMAND	= 0xb,
+	SCSI_SK_VOLUME_OVERFLOW	= 0xd,
+	SCSI_SK_MISCOMPARE	= 0xe
 };
 
 extern const char *scsi_dev_type_str[SCSI_DEV_LIMIT];

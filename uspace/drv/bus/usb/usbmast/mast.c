@@ -91,6 +91,10 @@ int usb_massstor_data_in(usb_device_t *dev,
 	    usb_debug_str_buffer((uint8_t *) in_buffer, act_size, 0),
 	    str_error(rc));
 	if (rc != EOK) {
+		/*
+		 * XXX If the pipe is stalled, we should clear it
+		 * and read CSW.
+		 */
 		return rc;
 	}
 
@@ -102,13 +106,17 @@ int usb_massstor_data_in(usb_device_t *dev,
 	    usb_debug_str_buffer((uint8_t *) &csw, csw_size, 0), csw_size,
 	    str_error(rc));
 	if (rc != EOK) {
+		MASTLOG("rc != EOK\n");
 		return rc;
 	}
+
 	if (csw_size != sizeof(csw)) {
+		MASTLOG("csw_size != sizeof(csw)\n");
 		return ERANGE;
 	}
 
 	if (csw.dCSWTag != tag) {
+		MASTLOG("csw.dCSWTag != tag\n");
 		return EBADCHECKSUM;
 	}
 
@@ -116,6 +124,7 @@ int usb_massstor_data_in(usb_device_t *dev,
 	 * Determine the actual return value from the CSW.
 	 */
 	if (csw.dCSWStatus != 0) {
+		MASTLOG("csw.dCSWStatus != 0\n");
 		// FIXME: better error code
 		// FIXME: distinguish 0x01 and 0x02
 		return EXDEV;
@@ -123,11 +132,17 @@ int usb_massstor_data_in(usb_device_t *dev,
 
 	size_t residue = (size_t) uint32_usb2host(csw.dCSWDataResidue);
 	if (residue > in_buffer_size) {
+		MASTLOG("residue > in_buffer_size\n");
 		return ERANGE;
 	}
-	if (act_size != in_buffer_size - residue) {
-		return ERANGE;
-	}
+
+	/*
+	 * When the device has less data to send than requested, it can
+	 * either stall the pipe or send garbage and indicate that via
+	 * the residue field in CSW. That means in_buffer_size - residue
+	 * is the authoritative size of data received.
+	 */
+
 	if (received_size != NULL) {
 		*received_size = in_buffer_size - residue;
 	}

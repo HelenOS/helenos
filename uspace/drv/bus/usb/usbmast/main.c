@@ -137,6 +137,26 @@ static int usbmast_add_device(usb_device_t *dev)
 	usb_log_info("Read Capacity: nblocks=%" PRIu32 ", "
 	    "block_size=%" PRIu32 "\n", nblocks, block_size);
 
+	usb_log_info("Doing test read of block 0.\n");
+	static uint8_t bdata[512];
+
+	rc = usbmast_read(dev, 0, 1, 512, &bdata);
+	if (rc != EOK) {
+		usb_log_warning("Failed to read block 0, device `%s': %s.\n",
+		    dev->ddf_dev->name, str_error(rc));
+		return EOK;
+	}
+
+	usb_log_info("Requesting sense data.\n");
+	static scsi_sense_data_t sdata;
+
+	rc = usbmast_request_sense(dev, &sdata, sizeof(sdata));
+	if (rc != EOK) {
+		usb_log_warning("Failed to get sense data, device `%s': %s.\n",
+		    dev->ddf_dev->name, str_error(rc));
+		return EOK;
+	}
+
 	return EOK;
 }
 
