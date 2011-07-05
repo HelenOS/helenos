@@ -36,6 +36,13 @@ start:
 	movl gp = __gp
 
 	#
+	# Save the boot parameter structure address passed from the
+	# ELILO-compatible EFI loader.
+	#
+	movl r8 = bootpar ;;
+	st8 [r8] = r28
+
+	#
 	# Initialize the register stack to some sane value.
 	#
 	mov ar.rsc = r0
@@ -60,6 +67,10 @@ start:
 	br.call.sptk.many rp = bootstrap
 
 .bss
+
+.global bootpar
+bootpar:
+	.quad 0
 
 .align STACK_SIZE
 initial_stack:

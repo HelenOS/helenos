@@ -150,7 +150,7 @@ void arch_post_smp_init(void)
 
 	/* Set platform name. */
 #ifdef MACHINE_ski
-	platform = "pc";
+	platform = "ski";
 #endif
 #ifdef MACHINE_i460GX
 	platform = "i460GX";
