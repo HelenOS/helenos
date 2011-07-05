@@ -44,16 +44,12 @@
 
 /** Connect to the ICMP module.
  *
- * @param[in] timeout Connection timeout in microseconds, zero
- *                    for no timeout.
- *
- * @return ICMP module phone on success.
- * @return ETIMEOUT if the connection timeouted.
+ * @return ICMP module session.
  *
  */
-int icmp_connect_module(suseconds_t timeout)
+async_sess_t *icmp_connect_module(void)
 {
-	return connect_to_service_timeout(SERVICE_ICMP, timeout);
+	return connect_to_service(SERVICE_ICMP);
 }
 
 /** @}

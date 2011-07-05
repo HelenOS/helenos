@@ -58,7 +58,6 @@
 #include <packet_client.h>
 #include <packet_remote.h>
 #include <nil_skel.h>
-
 #include "eth.h"
 
 /** The module name. */
@@ -167,7 +166,7 @@ eth_globals_t eth_globals;
 DEVICE_MAP_IMPLEMENT(eth_devices, eth_device_t);
 INT_MAP_IMPLEMENT(eth_protos, eth_proto_t);
 
-int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
+int nil_device_state_msg_local(device_id_t device_id, sysarg_t state)
 {
 	int index;
 	eth_proto_t *proto;
@@ -176,8 +175,8 @@ int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
 	for (index = eth_protos_count(&eth_globals.protos) - 1; index >= 0;
 	    index--) {
 		proto = eth_protos_get_index(&eth_globals.protos, index);
-		if (proto && proto->phone) {
-			il_device_state_msg(proto->phone, device_id, state,
+		if ((proto) && (proto->sess)) {
+			il_device_state_msg(proto->sess, device_id, state,
 			    proto->service);
 		}
 	}
@@ -186,7 +185,7 @@ int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
 	return EOK;
 }
 
-int nil_initialize(int net_phone)
+int nil_initialize(async_sess_t *sess)
 {
 	int rc;
 
@@ -195,7 +194,7 @@ int nil_initialize(int net_phone)
 	
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
 	fibril_rwlock_write_lock(&eth_globals.protos_lock);
-	eth_globals.net_phone = net_phone;
+	eth_globals.net_sess = sess;
 
 	eth_globals.broadcast_addr =
 	    measured_string_create_bulk((uint8_t *) "\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
@@ -222,13 +221,15 @@ out:
 	return rc;
 }
 
-/** Processes IPC messages from the registered device driver modules in an
+/** Process IPC messages from the registered device driver modules in an
  * infinite loop.
  *
- * @param[in] iid	The message identifier.
- * @param[in,out] icall	The message parameters.
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
+ * @param[in]     arg   Local argument.
+ *
  */
-static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;
@@ -236,16 +237,16 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
-			nil_device_state_msg_local(0, IPC_GET_DEVICE(*icall),
+			nil_device_state_msg_local(IPC_GET_DEVICE(*icall),
 			    IPC_GET_STATE(*icall));
 			async_answer_0(iid, EOK);
 			break;
 		case NET_NIL_RECEIVED:
-			rc = packet_translate_remote(eth_globals.net_phone,
+			rc = packet_translate_remote(eth_globals.net_sess,
 			    &packet, IPC_GET_PACKET(*icall));
 			if (rc == EOK)
-				rc = nil_received_msg_local(0,
-				    IPC_GET_DEVICE(*icall), packet, 0);
+				rc = nil_received_msg_local(IPC_GET_DEVICE(*icall),
+				    packet, 0);
 			
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
@@ -321,8 +322,8 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		    index++) {
 			proto = eth_protos_get_index(&eth_globals.protos,
 			    index);
-			if (proto->phone) {
-				il_mtu_changed_msg(proto->phone,
+			if (proto->sess) {
+				il_mtu_changed_msg(proto->sess,
 				    device->device_id, device->mtu,
 				    proto->service);
 			}
@@ -346,7 +347,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		device->mtu = ETH_MAX_TAGGED_CONTENT(device->flags);
 
 	configuration = &names[0];
-	rc = net_get_device_conf_req(eth_globals.net_phone, device->device_id,
+	rc = net_get_device_conf_req(eth_globals.net_sess, device->device_id,
 	    &configuration, count, &data);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
@@ -375,16 +376,16 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Bind the device driver */
-	device->phone = netif_bind_service(device->service, device->device_id,
+	device->sess = netif_bind_service(device->service, device->device_id,
 	    SERVICE_ETHERNET, eth_receiver);
-	if (device->phone < 0) {
+	if (device->sess == NULL) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		free(device);
-		return device->phone;
+		return ENOENT;
 	}
 	
 	/* Get hardware address */
-	rc = netif_get_addr_req(device->phone, device->device_id, &device->addr,
+	rc = netif_get_addr_req(device->sess, device->device_id, &device->addr,
 	    &device->addr_data);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
@@ -504,8 +505,8 @@ static eth_proto_t *eth_process_packet(int flags, packet_t *packet)
 	return eth_protos_find(&eth_globals.protos, type);
 }
 
-int nil_received_msg_local(int nil_phone, device_id_t device_id,
-    packet_t *packet, services_t target)
+int nil_received_msg_local(device_id_t device_id, packet_t *packet,
+    services_t target)
 {
 	eth_proto_t *proto;
 	packet_t *next;
@@ -527,11 +528,11 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
 		next = pq_detach(packet);
 		proto = eth_process_packet(flags, packet);
 		if (proto) {
-			il_received_msg(proto->phone, device_id, packet,
+			il_received_msg(proto->sess, device_id, packet,
 			    proto->service);
 		} else {
 			/* Drop invalid/unknown */
-			pq_release_remote(eth_globals.net_phone,
+			pq_release_remote(eth_globals.net_sess,
 			    packet_get_id(packet));
 		}
 		packet = next;
@@ -610,17 +611,19 @@ static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
 	return (*address) ? EOK : ENOENT;
 }
 
-/** Registers receiving module service.
+/** Register receiving module service.
  *
- * Passes received packets for this service.
+ * Pass received packets for this service.
  *
- * @param[in] service	The module service.
- * @param[in] phone	The service phone.
- * @return		EOK on success.
- * @return		ENOENT if the service is not known.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] service Module service.
+ * @param[in] sess    Service session.
+ *
+ * @return EOK on success.
+ * @return ENOENT if the service is not known.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-static int eth_register_message(services_t service, int phone)
+static int eth_register_message(services_t service, async_sess_t *sess)
 {
 	eth_proto_t *proto;
 	int protocol;
@@ -633,7 +636,7 @@ static int eth_register_message(services_t service, int phone)
 	fibril_rwlock_write_lock(&eth_globals.protos_lock);
 	proto = eth_protos_find(&eth_globals.protos, protocol);
 	if (proto) {
-		proto->phone = phone;
+		proto->sess = sess;
 		fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 		return EOK;
 	} else {
@@ -645,7 +648,7 @@ static int eth_register_message(services_t service, int phone)
 
 		proto->service = service;
 		proto->protocol = protocol;
-		proto->phone = phone;
+		proto->sess = sess;
 
 		index = eth_protos_add(&eth_globals.protos, protocol, proto);
 		if (index < 0) {
@@ -655,8 +658,8 @@ static int eth_register_message(services_t service, int phone)
 		}
 	}
 	
-	printf("%s: Protocol registered (protocol: %d, service: %d, phone: "
-	    "%d)\n", NAME, proto->protocol, proto->service, proto->phone);
+	printf("%s: Protocol registered (protocol: %d, service: %d)\n",
+	    NAME, proto->protocol, proto->service);
 	
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 	return EOK;
@@ -794,7 +797,7 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 
 	ethertype = htons(protocol_map(SERVICE_ETHERNET, sender));
 	if (!ethertype) {
-		pq_release_remote(eth_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(eth_globals.net_sess, packet_get_id(packet));
 		return EINVAL;
 	}
 	
@@ -815,7 +818,7 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 			tmp = pq_detach(next);
 			if (next == packet)
 				packet = tmp;
-			pq_release_remote(eth_globals.net_phone,
+			pq_release_remote(eth_globals.net_sess,
 			    packet_get_id(next));
 			next = tmp;
 		} else {
@@ -825,7 +828,7 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 	
 	/* Send packet queue */
 	if (packet) {
-		netif_send_msg(device->phone, device_id, packet,
+		netif_send_msg(device->sess, device_id, packet,
 		    SERVICE_ETHERNET);
 	}
 
@@ -845,15 +848,21 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return eth_register_message(NIL_GET_PROTO(*call), callback);
+	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NIL_DEVICE:
 		return eth_device_message(IPC_GET_DEVICE(*call),
 		    IPC_GET_SERVICE(*call), IPC_GET_MTU(*call));
 	case NET_NIL_SEND:
-		rc = packet_translate_remote(eth_globals.net_phone, &packet,
+		rc = packet_translate_remote(eth_globals.net_sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
@@ -882,9 +891,6 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return EOK;
 		return measured_strings_reply(address, 1);
-	case IPC_M_CONNECT_TO_ME:
-		return eth_register_message(NIL_GET_PROTO(*call),
-		    IPC_GET_PHONE(*call));
 	}
 	
 	return ENOTSUP;

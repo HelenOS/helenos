@@ -37,6 +37,7 @@
 
 #include <bool.h>
 #include <errno.h>
+#include <ns.h>
 #include <nil_skel.h>
 #include <net_interface.h>
 #include <net/modules.h>
@@ -47,7 +48,8 @@
  * @param[in] icall The initial message call structure.
  *
  */
-static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	/*
 	 * Accept the connection by answering
@@ -74,8 +76,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
+		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */
@@ -95,26 +96,24 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  * @return Other error codes as defined for the pm_init() function.
  * @return Other error codes as defined for the nil_initialize()
  *         function.
- * @return Other error codes as defined for the REGISTER_ME() macro
- *         function.
  *
  */
-int nil_module_start(int service)
+int nil_module_start(sysarg_t service)
 {
 	async_set_client_connection(nil_client_connection);
-	int net_phone = net_connect_module();
-	if (net_phone < 0)
-		return net_phone;
+	async_sess_t *sess = net_connect_module();
+	if (!sess)
+		return ENOENT;
 	
 	int rc = pm_init();
 	if (rc != EOK)
 		return rc;
 	
-	rc = nil_initialize(net_phone);
+	rc = nil_initialize(sess);
 	if (rc != EOK)
 		goto out;
 	
-	rc = async_connect_to_me(PHONE_NS, service, 0, 0, NULL);
+	rc = service_register(service);
 	if (rc != EOK)
 		goto out;
 	

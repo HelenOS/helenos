@@ -1,0 +1,57 @@
+/*
+ * MIPS64 linker script
+ *
+ *  kernel text
+ *  kernel data
+ *
+ */
+
+#undef mips
+#define mips mips
+
+#define KERNEL_LOAD_ADDRESS 0xffffffff80100000
+
+OUTPUT_ARCH(mips)
+OUTPUT_FORMAT(elf64-tradlittlemips)
+ENTRY(kernel_image_start)
+
+SECTIONS {
+	. = KERNEL_LOAD_ADDRESS;
+	.text : {
+		ktext_start = .;
+		*(.text);
+		ktext_end = .;
+	}
+	.data : {
+		kdata_start = .;
+		*(.data);                       /* initialized data */
+		hardcoded_ktext_size = .;
+		LONG(ktext_end - ktext_start);
+		hardcoded_kdata_size = .;
+		LONG(kdata_end - kdata_start);
+		hardcoded_load_address = .;
+		LONG(KERNEL_LOAD_ADDRESS);
+		*(.rodata*);
+		*(.sdata);
+		*(.reginfo);
+		*(.sbss);
+		*(.scommon);
+		*(.bss);                        /* uninitialized static variables */
+		*(COMMON);                      /* global variables */
+		. = ALIGN(8);
+		symbol_table = .;
+		*(symtab.*);
+	}
+	_gp = . + 0x8000;
+	.lit8 : { *(.lit8) }
+	.lit4 : { *(.lit4) }
+	
+	kdata_end = .;
+	
+	/DISCARD/ : {
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note);
+	}
+}

@@ -68,7 +68,7 @@ static void waitq_sleep_timed_out(void *);
 void waitq_initialize(waitq_t *wq)
 {
 	irq_spinlock_initialize(&wq->lock, "wq.lock");
-	list_initialize(&wq->head);
+	list_initialize(&wq->sleepers);
 	wq->missed_wakeups = 0;
 }
 
@@ -195,8 +195,9 @@ void waitq_unsleep(waitq_t *wq)
 {
 	irq_spinlock_lock(&wq->lock, true);
 	
-	if (!list_empty(&wq->head)) {
-		thread_t *thread = list_get_instance(wq->head.next, thread_t, wq_link);
+	if (!list_empty(&wq->sleepers)) {
+		thread_t *thread = list_get_instance(list_first(&wq->sleepers),
+		    thread_t, wq_link);
 		
 		irq_spinlock_lock(&thread->lock, false);
 		
@@ -406,7 +407,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 		    waitq_sleep_timed_out, THREAD);
 	}
 	
-	list_append(&THREAD->wq_link, &wq->head);
+	list_append(&THREAD->wq_link, &wq->sleepers);
 	
 	/*
 	 * Suspend execution.
@@ -463,7 +464,7 @@ void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 	ASSERT(irq_spinlock_locked(&wq->lock));
 	
 loop:
-	if (list_empty(&wq->head)) {
+	if (list_empty(&wq->sleepers)) {
 		wq->missed_wakeups++;
 		if ((count) && (mode == WAKEUP_ALL))
 			wq->missed_wakeups--;
@@ -472,7 +473,8 @@ loop:
 	}
 	
 	count++;
-	thread_t *thread = list_get_instance(wq->head.next, thread_t, wq_link);
+	thread_t *thread = list_get_instance(list_first(&wq->sleepers),
+	    thread_t, wq_link);
 	
 	/*
 	 * Lock the thread prior to removing it from the wq.

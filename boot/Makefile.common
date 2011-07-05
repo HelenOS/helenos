@@ -85,7 +85,7 @@ endif
 
 RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/fb/fb \
-	$(USPACE_PATH)/srv/hid/kbd/kbd \
+	$(USPACE_PATH)/srv/hid/input/input \
 	$(USPACE_PATH)/srv/hid/console/console \
 	$(USPACE_PATH)/srv/fs/devfs/devfs
 
@@ -109,15 +109,15 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
 	$(USPACE_PATH)/srv/net/net/net \
 	$(USPACE_PATH)/srv/devman/devman
-	
-RD_DRVS = \
-	root \
-	rootvirt \
-	test1 \
-	test2 \
-	test3
 
-RD_DRV_CFG = 
+RD_DRVS = \
+	infrastructure/root \
+	infrastructure/rootvirt \
+	test/test1 \
+	test/test2 \
+	test/test3
+
+RD_DRV_CFG =
 
 RD_LIBS =
 
@@ -145,6 +145,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/redir/redir \
 	$(USPACE_PATH)/app/taskdump/taskdump \
@@ -157,8 +158,11 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
-	$(USPACE_PATH)/app/top/top \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
+	$(USPACE_PATH)/app/top/top \
+	$(USPACE_PATH)/app/usbinfo/usbinfo \
+	$(USPACE_PATH)/app/vuhid/vuh \
+	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv
 
 ifneq ($(CONFIG_BAREBONE),y)

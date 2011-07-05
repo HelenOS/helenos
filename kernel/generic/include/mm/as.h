@@ -64,6 +64,7 @@ typedef struct {
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
+#include <arch/istate.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
@@ -253,7 +254,7 @@ typedef struct mem_backend {
 extern as_t *AS_KERNEL;
 
 extern as_operations_t *as_operations;
-extern link_t inactive_as_with_asid_head;
+extern list_t inactive_as_with_asid_list;
 
 extern void as_init(void);
 

@@ -84,7 +84,7 @@ static int tmpfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 
 static int tmpfs_has_children(bool *has_children, fs_node_t *fn)
 {
-	*has_children = !list_empty(&TMPFS_NODE(fn)->cs_head);
+	*has_children = !list_empty(&TMPFS_NODE(fn)->cs_list);
 	return EOK;
 }
 
@@ -179,9 +179,9 @@ static void nodes_remove_callback(link_t *item)
 	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
 	    nh_link);
 
-	while (!list_empty(&nodep->cs_head)) {
-		tmpfs_dentry_t *dentryp = list_get_instance(nodep->cs_head.next,
-		    tmpfs_dentry_t, link);
+	while (!list_empty(&nodep->cs_list)) {
+		tmpfs_dentry_t *dentryp = list_get_instance(
+		    list_first(&nodep->cs_list), tmpfs_dentry_t, link);
 
 		assert(nodep->type == TMPFS_DIRECTORY);
 		list_remove(&dentryp->link);
@@ -213,7 +213,7 @@ static void tmpfs_node_initialize(tmpfs_node_t *nodep)
 	nodep->size = 0;
 	nodep->data = NULL;
 	link_initialize(&nodep->nh_link);
-	list_initialize(&nodep->cs_head);
+	list_initialize(&nodep->cs_list);
 }
 
 static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentryp)
@@ -261,10 +261,8 @@ static void tmpfs_instance_done(devmap_handle_t devmap_handle)
 int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
-	link_t *lnk;
 
-	for (lnk = parentp->cs_head.next; lnk != &parentp->cs_head;
-	    lnk = lnk->next) {
+	list_foreach(parentp->cs_list, lnk) {
 		tmpfs_dentry_t *dentryp;
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 		if (!str_cmp(dentryp->name, component)) {
@@ -352,7 +350,7 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	tmpfs_node_t *nodep = TMPFS_NODE(fn);
 	
 	assert(!nodep->lnkcnt);
-	assert(list_empty(&nodep->cs_head));
+	assert(list_empty(&nodep->cs_list));
 
 	unsigned long key[] = {
 		[NODES_KEY_DEV] = nodep->devmap_handle,
@@ -372,13 +370,11 @@ int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 	tmpfs_node_t *childp = TMPFS_NODE(cfn);
 	tmpfs_dentry_t *dentryp;
-	link_t *lnk;
 
 	assert(parentp->type == TMPFS_DIRECTORY);
 
 	/* Check for duplicit entries. */
-	for (lnk = parentp->cs_head.next; lnk != &parentp->cs_head;
-	    lnk = lnk->next) {
+	list_foreach(parentp->cs_list, lnk) {
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);	
 		if (!str_cmp(dentryp->name, nm))
 			return EEXIST;
@@ -400,7 +396,7 @@ int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	str_cpy(dentryp->name, size + 1, nm);
 	dentryp->node = childp;
 	childp->lnkcnt++;
-	list_append(&dentryp->link, &parentp->cs_head);
+	list_append(&dentryp->link, &parentp->cs_list);
 
 	return EOK;
 }
@@ -410,25 +406,23 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 	tmpfs_node_t *childp = NULL;
 	tmpfs_dentry_t *dentryp;
-	link_t *lnk;
 
 	if (!parentp)
 		return EBUSY;
 	
-	for (lnk = parentp->cs_head.next; lnk != &parentp->cs_head;
-	    lnk = lnk->next) {
+	list_foreach(parentp->cs_list, lnk) {
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 		if (!str_cmp(dentryp->name, nm)) {
 			childp = dentryp->node;
 			assert(FS_NODE(childp) == cfn);
 			break;
-		}	
+		}
 	}
 
 	if (!childp)
 		return ENOENT;
 		
-	if ((childp->lnkcnt == 1) && !list_empty(&childp->cs_head))
+	if ((childp->lnkcnt == 1) && !list_empty(&childp->cs_list))
 		return ENOTEMPTY;
 
 	list_remove(&dentryp->link);
@@ -549,7 +543,6 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		tmpfs_dentry_t *dentryp;
 		link_t *lnk;
-		aoff64_t i;
 		
 		assert(nodep->type == TMPFS_DIRECTORY);
 		
@@ -558,12 +551,9 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 		 * If it bothers someone, it could be fixed by introducing a
 		 * hash table.
 		 */
-		for (i = 0, lnk = nodep->cs_head.next;
-		    (i < pos) && (lnk != &nodep->cs_head);
-		    i++, lnk = lnk->next)
-			;
-
-		if (lnk == &nodep->cs_head) {
+		lnk = list_nth(&nodep->cs_list, pos);
+		
+		if (lnk == NULL) {
 			async_answer_0(callid, ENOENT);
 			async_answer_1(rid, ENOENT, 0);
 			return;

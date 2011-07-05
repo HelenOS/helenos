@@ -274,26 +274,28 @@ static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
 irq_t *irq_dispatch_and_lock(inr_t inr)
 {
 	/*
-	 * If the kernel console is silenced,
-	 * then try first the uspace handlers,
-	 * eventually fall back to kernel handlers.
+	 * If the kernel console override is on,
+	 * then try first the kernel handlers
+	 * and eventually fall back to uspace
+	 * handlers.
 	 *
-	 * If the kernel console is active,
-	 * then do it the other way around.
+	 * In the usual case the uspace handlers
+	 * have precedence.
 	 */
-	if (silent) {
-		irq_t *irq = irq_dispatch_and_lock_uspace(inr);
+	
+	if (console_override) {
+		irq_t *irq = irq_dispatch_and_lock_kernel(inr);
 		if (irq)
 			return irq;
 		
-		return irq_dispatch_and_lock_kernel(inr);
+		return irq_dispatch_and_lock_uspace(inr);
 	}
 	
-	irq_t *irq = irq_dispatch_and_lock_kernel(inr);
+	irq_t *irq = irq_dispatch_and_lock_uspace(inr);
 	if (irq)
 		return irq;
 	
-	return irq_dispatch_and_lock_uspace(inr);
+	return irq_dispatch_and_lock_kernel(inr);
 }
 
 /** Compute hash index for the key.

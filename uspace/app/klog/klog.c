@@ -142,8 +142,9 @@ static int consumer(void *data)
  *
  * Receives kernel klog notifications.
  *
- * @param callid IPC call ID.
- * @param call   IPC call structure.
+ * @param callid IPC call ID
+ * @param call   IPC call structure
+ * @param arg    Local argument
  *
  */
 static void notification_received(ipc_callid_t callid, ipc_call_t *call)

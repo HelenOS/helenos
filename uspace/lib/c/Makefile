@@ -75,6 +75,7 @@ GENERIC_SOURCES = \
 	generic/mem.c \
 	generic/str.c \
 	generic/str_error.c \
+	generic/l18n/langs.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \
 	generic/pcb.c \
@@ -94,12 +95,13 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/console.c \
 	generic/io/screenbuffer.c \
-	generic/ipc/ns.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
+	generic/ns.c \
+	generic/ns_obsolete.c \
 	generic/async.c \
-	generic/async_sess.c \
+	generic/async_obsolete.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.c \
@@ -127,7 +129,7 @@ GENERIC_SOURCES = \
 	generic/stats.c \
 	generic/assert.c
 
-ifeq ($(CONFIG_RTLD), y)
+ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
 		generic/dlfcn.c \
 		generic/rtld/rtld.c \

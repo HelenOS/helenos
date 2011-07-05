@@ -41,8 +41,6 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <typedefs.h>
-
 extern void frame_arch_init(void);
 extern void physmem_print(void);
 

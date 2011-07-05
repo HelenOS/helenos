@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_init(handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, handle, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;

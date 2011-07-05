@@ -44,7 +44,7 @@
 #include <fibril_synch.h>
 #include "vfs.h"
 
-#define VFS_DATA	((vfs_client_data_t *) async_client_data_get())
+#define VFS_DATA	((vfs_client_data_t *) async_get_client_data())
 #define FILES		(VFS_DATA->files)
 
 typedef struct {
@@ -109,22 +109,21 @@ void vfs_client_data_destroy(void *data)
 /** Close the file in the endpoint FS server. */
 static int vfs_file_close_remote(vfs_file_t *file)
 {
-	ipc_call_t answer;
-	aid_t msg;
-	sysarg_t rc;
-	int phone;
-
 	assert(!file->refcnt);
-
-	phone = vfs_grab_phone(file->node->fs_handle);
-	msg = async_send_2(phone, VFS_OUT_CLOSE, file->node->devmap_handle,
+	
+	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
+	
+	ipc_call_t answer;
+	aid_t msg = async_send_2(exch, VFS_OUT_CLOSE, file->node->devmap_handle,
 	    file->node->index, &answer);
+	
+	vfs_exchange_release(exch);
+	
+	sysarg_t rc;
 	async_wait_for(msg, &rc);
-	vfs_release_phone(file->node->fs_handle, phone);
-
+	
 	return IPC_GET_ARG1(answer);
 }
-
 
 /** Increment reference count of VFS file structure.
  *

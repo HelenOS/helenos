@@ -72,7 +72,7 @@ void tlb_arch_init(void)
 		cp0_index_write(i);
 		tlbwi();
 	}
-		
+	
 	/*
 	 * The kernel is going to make use of some wired
 	 * entries (e.g. mapping kernel stacks in kseg3).
@@ -385,15 +385,12 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 			ASSERT(pte && pte->p);
 			ASSERT(pte->w || access != PF_ACCESS_WRITE);
 			return pte;
-			break;
 		case AS_PF_DEFER:
 			*pfrc = AS_PF_DEFER;
 			return NULL;
-			break;
 		case AS_PF_FAULT:
 			*pfrc = AS_PF_FAULT;
 			return NULL;
-			break;
 		default:
 			panic("Unexpected rc (%d).", rc);
 		}

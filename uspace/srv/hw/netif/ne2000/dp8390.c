@@ -482,14 +482,14 @@ static frame_t *ne2k_receive_frame(ne2k_t *ne2k, uint8_t page, size_t length)
 	return frame;
 }
 
-static link_t *ne2k_receive(ne2k_t *ne2k)
+static list_t *ne2k_receive(ne2k_t *ne2k)
 {
 	/*
 	 * Allocate memory for the list of received frames.
 	 * If the allocation fails here we still receive the
 	 * frames from the network, but they will be lost.
 	 */
-	link_t *frames = (link_t *) malloc(sizeof(link_t));
+	list_t *frames = (list_t *) malloc(sizeof(list_t));
 	if (frames != NULL)
 		list_initialize(frames);
 	
@@ -566,10 +566,10 @@ static link_t *ne2k_receive(ne2k_t *ne2k)
 	return frames;
 }
 
-link_t *ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, uint8_t tsr)
+list_t *ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, uint8_t tsr)
 {
 	/* List of received frames */
-	link_t *frames = NULL;
+	list_t *frames = NULL;
 	
 	if (isr & (ISR_PTX | ISR_TXE)) {
 		if (isr & ISR_TXE)

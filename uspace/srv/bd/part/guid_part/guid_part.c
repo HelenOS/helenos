@@ -98,7 +98,7 @@ static int gpt_init(const char *dev_name);
 static int gpt_read(void);
 static part_t *gpt_part_new(void);
 static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part);
-static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf);
 static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf);
 static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba);
@@ -138,7 +138,7 @@ static int gpt_init(const char *dev_name)
 		return rc;
 	}
 
-	rc = block_init(indev_handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, indev_handle, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": could not init libblock.\n");
 		return rc;
@@ -306,7 +306,7 @@ static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part)
 	part->next = NULL;
 }
 
-static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	size_t comm_size;
 	void *fs_va = NULL;
@@ -355,14 +355,17 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	(void) async_share_out_finalize(callid, fs_va);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));

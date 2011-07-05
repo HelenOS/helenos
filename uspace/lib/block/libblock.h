@@ -39,6 +39,7 @@
 #define LIBBLOCK_LIBBLOCK_H_
 
 #include <stdint.h>
+#include <async.h>
 #include "../../srv/vfs/vfs.h"
 #include <fibril_synch.h>
 #include <adt/hash_table.h>
@@ -95,7 +96,7 @@ enum cache_mode {
 	CACHE_MODE_WB
 };
 
-extern int block_init(devmap_handle_t, size_t);
+extern int block_init(exch_mgmt_t, devmap_handle_t, size_t);
 extern void block_fini(devmap_handle_t);
 
 extern int block_bb_read(devmap_handle_t, aoff64_t);

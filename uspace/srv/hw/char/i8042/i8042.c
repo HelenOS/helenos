@@ -40,13 +40,16 @@
 #include <libarch/ddi.h>
 #include <devmap.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <unistd.h>
 #include <sysinfo.h>
 #include <stdio.h>
 #include <errno.h>
 #include <inttypes.h>
-
 #include "i8042.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME "i8042"
 #define NAMESPACE "char"
@@ -118,7 +121,7 @@ static void wait_ready(void)
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call);
-static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int i8042_init(void);
 static void i8042_port_write(int devid, uint8_t data);
 
@@ -212,7 +215,7 @@ static int i8042_init(void)
 }
 
 /** Character device connection handler */
-static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -246,11 +249,14 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case IPC_M_CONNECT_TO_ME:
 			printf(NAME ": creating callback connection\n");
 			if (i8042_port[dev_id].client_phone != -1) {
@@ -299,7 +305,7 @@ static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	}
 
 	if (i8042_port[devid].client_phone != -1) {
-		async_msg_1(i8042_port[devid].client_phone,
+		async_obsolete_msg_1(i8042_port[devid].client_phone,
 		    IPC_FIRST_USER_METHOD, data);
 	}
 }

@@ -36,6 +36,7 @@
 #define KERN_PAGE_H_
 
 #include <typedefs.h>
+#include <proc/task.h>
 #include <mm/as.h>
 #include <arch/mm/page.h>
 
@@ -63,6 +64,8 @@ extern void page_table_destroy(pte_t *);
 extern void map_structure(uintptr_t, size_t);
 
 extern uintptr_t hw_map(uintptr_t, size_t);
+
+extern sysarg_t sys_page_find_mapping(uintptr_t, uintptr_t *);
 
 #endif
 

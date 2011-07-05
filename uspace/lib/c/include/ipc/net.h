@@ -334,13 +334,6 @@
  */
 #define IPC_GET_ERROR(call)  ((services_t) IPC_GET_ARG4(call))
 
-/** Return the phone message argument.
- *
- * @param[in] call Message call structure.
- *
- */
-#define IPC_GET_PHONE(call)  ((int) IPC_GET_ARG5(call))
-
 /** Set the device identifier in the message answer.
  *
  * @param[out] answer Message answer structure.

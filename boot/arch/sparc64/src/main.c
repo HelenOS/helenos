@@ -181,10 +181,7 @@ static void sun4v_fixups(void)
 	 * A proper solution would be to inspect the "available" property
 	 * of the "/memory" node to find out which parts of memory
 	 * are used by OBP and redesign the algorithm of copying
-	 * kernel/init tasks/ramdisk from the bootable image to memory
-	 * (which we must do anyway because of issues with claiming the memory
-	 * on Serengeti).
-	 *
+	 * kernel/init tasks/ramdisk from the bootable image to memory.
 	 */
 	bootinfo.physmem_start += OBP_BIAS;
 	bootinfo.memmap.zones[0].start += OBP_BIAS;

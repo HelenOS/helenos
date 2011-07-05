@@ -59,7 +59,7 @@ typedef struct interrupt_context {
 
 typedef struct interrupt_context_list {
 	int curr_id;
-	link_t contexts;
+	list_t contexts;
 	fibril_mutex_t mutex;
 } interrupt_context_list_t;
 

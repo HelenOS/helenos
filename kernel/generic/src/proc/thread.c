@@ -54,6 +54,7 @@
 #include <adt/list.h>
 #include <time/clock.h>
 #include <time/timeout.h>
+#include <time/delay.h>
 #include <config.h>
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
@@ -258,7 +259,7 @@ void thread_ready(thread_t *thread)
 	 * on respective processor.
 	 */
 	
-	list_append(&thread->rq_link, &cpu->rq[i].rq_head);
+	list_append(&thread->rq_link, &cpu->rq[i].rq);
 	cpu->rq[i].n++;
 	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
 	
@@ -320,6 +321,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->priority = -1;          /* Start in rq[0] */
 	thread->cpu = NULL;
 	thread->flags = flags;
+	thread->nomigrate = 0;
 	thread->state = Entering;
 	
 	timeout_initialize(&thread->sleep_timeout);
@@ -420,7 +422,7 @@ void thread_attach(thread_t *thread, task_t *task)
 	if (thread->flags & THREAD_FLAG_USPACE)
 		atomic_inc(&task->lifecount);
 	
-	list_append(&thread->th_link, &task->th_head);
+	list_append(&thread->th_link, &task->threads);
 	
 	irq_spinlock_pass(&task->lock, &threads_lock);
 	
@@ -480,6 +482,23 @@ restart:
 	
 	/* Not reached */
 	while (true);
+}
+
+/** Prevent the current thread from being migrated to another processor. */
+void thread_migration_disable(void)
+{
+	ASSERT(THREAD);
+
+	THREAD->nomigrate++;
+}
+
+/** Allow the current thread to be migrated to another processor. */
+void thread_migration_enable(void)
+{
+	ASSERT(THREAD);
+	ASSERT(THREAD->nomigrate > 0);
+
+	THREAD->nomigrate--;
 }
 
 /** Thread sleep
@@ -908,6 +927,12 @@ sysarg_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 sysarg_t sys_thread_usleep(uint32_t usec)
 {
 	thread_usleep(usec);
+	return 0;
+}
+
+sysarg_t sys_thread_udelay(uint32_t usec)
+{
+	delay(usec);
 	return 0;
 }
 

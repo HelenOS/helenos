@@ -35,13 +35,15 @@
 #ifndef LIBC_DEVICE_CHAR_DEV_H_
 #define LIBC_DEVICE_CHAR_DEV_H_
 
+#include <async.h>
+
 typedef enum {
 	CHAR_DEV_READ = 0,
 	CHAR_DEV_WRITE
 } char_dev_method_t;
 
-ssize_t char_dev_read(int dev_phone, void *buf, size_t len);
-ssize_t char_dev_write(int dev_phone, void *buf, size_t len);
+extern ssize_t char_dev_read(async_sess_t *, void *, size_t);
+extern ssize_t char_dev_write(async_sess_t *, void *, size_t);
 
 #endif
 

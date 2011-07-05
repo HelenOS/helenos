@@ -104,7 +104,7 @@ static disk_t disk[MAX_DISKS];
 
 static void print_syntax(void);
 static int ata_bd_init(void);
-static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
@@ -273,7 +273,7 @@ static int ata_bd_init(void)
 }
 
 /** Block device connection handler */
-static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	void *fs_va = NULL;
 	ipc_callid_t callid;
@@ -316,14 +316,17 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	(void) async_share_out_finalize(callid, fs_va);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
