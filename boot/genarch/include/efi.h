@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_ia64_BOOTINFO_H_
-#define KERN_ia64_BOOTINFO_H_
+#ifndef BOOT_EFI_H_
+#define BOOT_EFI_H_
 
-#define TASKMAP_MAX_RECORDS  32
-
-#define MEMMAP_ITEMS 128
-
-#define MEMMAP_FREE_MEM 0
-
-/** Size of buffer for storing task name in binit_task_t. */
-#define BOOTINFO_TASK_NAME_BUFLEN 32
-
-typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} binit_task_t;
-	
-typedef struct {
-	size_t cnt;
-	binit_task_t tasks[TASKMAP_MAX_RECORDS];
-} binit_t;
+typedef enum {
+	EFI_RESERVED,
+	EFI_LOADER_CODE,
+	EFI_LOADER_DATA,
+	EFI_BOOT_SERVICES_CODE,
+	EFI_BOOT_SERVICES_DATA,
+	EFI_RUNTIME_SERVICES_CODE,
+	EFI_RUNTIME_SERVICES_DATA,
+	EFI_CONVENTIONAL_MEMORY,
+	EFI_UNUSABLE_MEMORY,
+	EFI_ACPI_RECLAIM_MEMORY,
+	EFI_ACPI_MEMORY_NVS,
+	EFI_MEMORY_MAPPED_IO,
+	EFI_MEMORY_MAPPED_IO_PORT_SPACE,
+	EFI_PAL_CODE
+} efi_memory_type_t;
 
 typedef struct {
-	unsigned int type;
-	unsigned long base;
-	unsigned long size;
-} memmap_item_t;
+	uint32_t type;
+	uint64_t phys_start;
+	uint64_t virt_start;
+	uint64_t pages;
+	uint64_t attribute;
+} efi_v1_memdesc_t;
 
-typedef struct {
-	binit_t taskmap;
-	
-	memmap_item_t memmap[MEMMAP_ITEMS];
-	unsigned int memmap_items;
-	
-	sysarg_t *sapic;
-	unsigned long sys_freq;
-	unsigned long freq_scale;
-	unsigned int wakeup_intno;
-} bootinfo_t;
-
-extern bootinfo_t *bootinfo;
+#define EFI_PAGE_SIZE	4096
 
 #endif
