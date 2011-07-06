@@ -38,7 +38,43 @@ static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize,
 		      const bool native, unsigned start_bit);
 
+static int
+mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
+
+static int
+mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
+
+
 int
+mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
+{
+	return mfs_alloc_bit(inst, inum, BMAP_INODE);
+}
+
+int
+mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
+{
+	return mfs_free_bit(inst, inum, BMAP_INODE);
+}
+
+int
+mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
+{
+	int r = mfs_alloc_bit(inst, zone, BMAP_ZONE);
+
+	*zone += inst->sbi->firstdatazone;
+	return r;
+}
+
+int
+mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
+{
+	zone -= inst->sbi->firstdatazone;
+
+	return mfs_free_bit(inst, zone, BMAP_ZONE);
+}
+
+static int
 mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 {
 	struct mfs_sb_info *sbi;
@@ -51,7 +87,6 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	assert(sbi != NULL);
 
 	if (bid == BMAP_ZONE) {
-		idx -= sbi->firstdatazone;
 		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
 			printf(NAME ": Error! Trying to free beyond the" \
@@ -91,7 +126,7 @@ out_err:
 	return r;
 }
 
-int
+static int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 {
 	struct mfs_sb_info *sbi;
@@ -151,10 +186,6 @@ retry:
 		}
 
 		*search = *idx;
-
-		if (bid == BMAP_ZONE)
-			*idx += sbi->firstdatazone;
-
 		b->dirty = true;
 		r = block_put(b);
 		goto out;

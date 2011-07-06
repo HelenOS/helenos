@@ -220,10 +220,16 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
 
 /*mfs_balloc.c*/
 extern int
-mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
+mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum);
 
 extern int
-mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
+mfs_free_inode(struct mfs_instance *inst, uint32_t inum);
+
+extern int
+mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone);
+
+extern int
+mfs_free_zone(struct mfs_instance *inst, uint32_t zone);
 
 #endif
 

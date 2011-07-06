@@ -99,7 +99,7 @@ free_zone(struct mfs_node *mnode, const uint32_t zone)
 	on_error(r, return r);
 
 	if (old_zone > 0)
-		r = mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
+		r = mfs_free_zone(mnode->instance, old_zone);
 
 	return r;
 }
@@ -255,7 +255,7 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	if (rblock < nr_direct) {
 		/*free the single indirect zone*/
 		if (ino_i->i_izone[0]) {
-			r = mfs_free_bit(inst, ino_i->i_izone[0], BMAP_ZONE);
+			r = mfs_free_zone(inst, ino_i->i_izone[0]);
 			on_error(r, return r);
 
 			ino_i->i_izone[0] = 0;
@@ -285,12 +285,12 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 		if (dbl_zone[i] == 0)
 			continue;
 
-		r = mfs_free_bit(inst, dbl_zone[i], BMAP_ZONE);
+		r = mfs_free_zone(inst, dbl_zone[i]);
 		on_error(r, return r);
 	}
 
 	if (fzone_to_free == 0) {
-		r = mfs_free_bit(inst, ino_i->i_izone[1], BMAP_ZONE);
+		r = mfs_free_zone(inst, ino_i->i_izone[1]);
 		ino_i->i_izone[1] = 0;
 		ino_i->dirty = true;
 	}
@@ -320,7 +320,7 @@ alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone)
 {
 	int r;
 
-	r = mfs_alloc_bit(inst, zone, BMAP_ZONE);
+	r = mfs_alloc_zone(inst, zone);
 	on_error(r, return r);
 
 	r = reset_zone_content(inst, *zone);

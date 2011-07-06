@@ -337,7 +337,7 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 		if (old_zone == 0)
 			continue; /*Sparse block*/
 
-		r = mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
+		r = mfs_free_zone(mnode->instance, old_zone);
 		on_error(r, goto exit_error);
 	}
 
@@ -378,7 +378,7 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 		uint32_t new_zone;
 		uint32_t dummy;
 
-		r = mfs_alloc_bit(mnode->instance, &new_zone, BMAP_ZONE);
+		r = mfs_alloc_zone(mnode->instance, &new_zone);
 		on_error(r, return r);
 
 		block_t *b;

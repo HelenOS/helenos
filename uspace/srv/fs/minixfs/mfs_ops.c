@@ -267,7 +267,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	on_error(r, return r);
 
 	/*Alloc a new inode*/
-	r = mfs_alloc_bit(inst, &inum, BMAP_INODE);
+	r = mfs_alloc_inode(inst, &inum);
 	on_error(r, return r);
 
 	struct mfs_ino_info *ino_i;
@@ -768,14 +768,14 @@ mfs_write(ipc_callid_t rid, ipc_call_t *request)
 
 		if (block == 0) {
 			/*Writing in a sparse block*/
-			r = mfs_alloc_bit(mnode->instance, &block, BMAP_ZONE);
+			r = mfs_alloc_zone(mnode->instance, &block);
 			on_error(r, goto out_err);
 			flags = BLOCK_FLAGS_NOREAD;
 		}
 	} else {
 		uint32_t dummy;
 
-		r = mfs_alloc_bit(mnode->instance, &block, BMAP_ZONE);
+		r = mfs_alloc_zone(mnode->instance, &block);
 		on_error(r, goto out_err);
 
 		r = write_map(mnode, pos, block, &dummy);
@@ -848,7 +848,7 @@ mfs_destroy_node(fs_node_t *fn)
 	/*Free the entire inode content*/
 	r = inode_shrink(mnode, mnode->ino_i->i_size);
 	on_error(r, return r);
-	r = mfs_free_bit(mnode->instance, mnode->ino_i->index, BMAP_INODE);
+	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
 	on_error(r, return r);
 
 	free(mnode->ino_i);
