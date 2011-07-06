@@ -334,7 +334,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	struct mfs_node *mnode = pfn->data;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
-	struct mfs_dentry_info *d_info;
+	struct mfs_dentry_info d_info;
 	int r;
 
 	if (!S_ISDIR(ino_i->i_mode))
@@ -343,31 +343,23 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	const size_t comp_size = str_size(component);
 
-	int i = 2;
-	while (1) {
-		r = read_directory_entry(mnode, &d_info, i++);
+	unsigned i;
+	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
+		r = read_directory_entry(mnode, &d_info, i);
 		on_error(r, return r);
 
-		if (!d_info) {
-			/*Reached the end of the directory entry list*/
-			break;
-		}
-
-		if (!d_info->d_inum) {
+		if (!d_info.d_inum) {
 			/*This entry is not used*/
-			free(d_info);
 			continue;
 		}
 
-		if (!bcmp(component, d_info->d_name, min(sbi->max_name_len,
+		if (!bcmp(component, d_info.d_name, min(sbi->max_name_len,
 				comp_size))) {
 			/*Hit!*/
 			mfs_node_core_get(rfn, mnode->instance,
-					  d_info->d_inum);
-			free(d_info);
+					  d_info.d_inum);
 			goto found;
 		}
-		free(d_info);
 	}
 	*rfn = NULL;
 found:
@@ -565,6 +557,7 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	int r;
 
 	*has_children = false;
@@ -572,29 +565,20 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	if (!S_ISDIR(mnode->ino_i->i_mode))
 		goto out;
 
-	struct mfs_dentry_info *d_info;
+	struct mfs_dentry_info d_info;
 
 	/* The first two dentries are always . and .. */
-	int i = 2;
-	while (1) {
-		r = read_directory_entry(mnode, &d_info, i++);
+	unsigned i;
+	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
+		r = read_directory_entry(mnode, &d_info, i);
 		on_error(r, return r);
 
-		if (!d_info) {
-			/*Reached the end of the dentries list*/
-			break;
-		}
-
-		if (d_info->d_inum) {
+		if (d_info.d_inum) {
 			/*A valid entry has been found*/
 			*has_children = true;
-			free(d_info);
 			break;
 		}
-
-		free(d_info);
 	}
-
 out:
 
 	return EOK;
@@ -635,23 +619,18 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 	if (S_ISDIR(ino_i->i_mode)) {
 		aoff64_t spos = pos;
-		struct mfs_dentry_info *d_info;
+		struct mfs_dentry_info d_info;
+		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
-		while (1) {
+		unsigned i;
+		for (i = pos; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 			rc = read_directory_entry(mnode, &d_info, pos);
 			on_error(rc, goto out_error);
 
-			if (!d_info) {
-				/*Reached the end of the dentries list*/
-				break;
-			}
-
-			if (d_info->d_inum) {
+			if (d_info.d_inum) {
 				/*Dentry found!*/
 				goto found;
 			}
-
-			free(d_info);
 			pos++;
 		}
 
@@ -660,8 +639,8 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
 		return;
 found:
-		async_data_read_finalize(callid, d_info->d_name,
-					 str_size(d_info->d_name) + 1);
+		async_data_read_finalize(callid, d_info.d_name,
+					 str_size(d_info.d_name) + 1);
 		bytes = ((pos - spos) + 1);
 	} else {
 		struct mfs_sb_info *sbi = mnode->instance->sbi;

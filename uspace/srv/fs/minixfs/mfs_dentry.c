@@ -35,7 +35,7 @@
 
 int
 read_directory_entry(struct mfs_node *mnode,
-		     struct mfs_dentry_info **d_info, unsigned index)
+		     struct mfs_dentry_info *d_info, unsigned index)
 {
 	const struct mfs_instance *inst = mnode->instance;
 	const struct mfs_sb_info *sbi = inst->sbi;
@@ -43,13 +43,8 @@ read_directory_entry(struct mfs_node *mnode,
 	uint32_t block;
 	block_t *b;
 
-	*d_info = malloc(sizeof(**d_info));
-	if (!*d_info)
-		return ENOMEM;
-
 	int r = read_map(&block, mnode, index * sbi->dirsize);
-	if (r != EOK)
-		goto out_err;
+	on_error(r, goto out_err);
 
 	if (block == 0) {
 		/*End of the dentries list*/
@@ -58,8 +53,7 @@ read_directory_entry(struct mfs_node *mnode,
 	}
 
 	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
-	if (r != EOK)
-		goto out_err;
+	on_error(r, goto out_err);
 
 	unsigned dentries_per_zone = sbi->block_size / sbi->dirsize;
 	unsigned dentry_off = index % dentries_per_zone;
@@ -69,8 +63,8 @@ read_directory_entry(struct mfs_node *mnode,
 
 		d3 = b->data + (dentry_off * MFS3_DIRSIZE);
 
-		(*d_info)->d_inum = conv32(sbi->native, d3->d_inum);
-		memcpy((*d_info)->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
+		d_info->d_inum = conv32(sbi->native, d3->d_inum);
+		memcpy(d_info->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
 	} else {
 		const int namelen = longnames ? MFS_L_MAX_NAME_LEN :
 				    MFS_MAX_NAME_LEN;
@@ -79,20 +73,17 @@ read_directory_entry(struct mfs_node *mnode,
 
 		d = b->data + dentry_off * (longnames ? MFSL_DIRSIZE :
 					    MFS_DIRSIZE);
-		(*d_info)->d_inum = conv16(sbi->native, d->d_inum);
-		memcpy((*d_info)->d_name, d->d_name, namelen);
+		d_info->d_inum = conv16(sbi->native, d->d_inum);
+		memcpy(d_info->d_name, d->d_name, namelen);
 	}
 
 	block_put(b);
 
-	(*d_info)->index = index;
-	(*d_info)->node = mnode;
-	return EOK;
+	d_info->index = index;
+	d_info->node = mnode;
 
 out_err:
-	free(*d_info);
-	*d_info = NULL;
-	return r;
+	return EOK;
 }
 
 int
@@ -107,12 +98,10 @@ write_dentry(struct mfs_dentry_info *d_info)
 	int r;
 
 	r = read_map(&block, mnode, d_off_bytes);
-	if (r != EOK)
-		goto out;
+	on_error(r, goto out);
 
 	r = block_get(&b, mnode->instance->handle, block, BLOCK_FLAGS_NONE);
-	if (r != EOK)
-		goto out;
+	on_error(r, goto out);
 
 	const size_t name_len = sbi->max_name_len;
 	uint8_t *ptr = b->data;
@@ -143,8 +132,8 @@ int
 remove_dentry(struct mfs_node *mnode, const char *d_name)
 {
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
-	struct mfs_dentry_info *d_info;
-	int i, r;
+	struct mfs_dentry_info d_info;
+	int r;
 
 	const size_t name_len = str_size(d_name);
 
@@ -152,22 +141,16 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 		return ENAMETOOLONG;
 
 	/*Search the directory entry to be removed*/
-	for (i = 0; ; ++i) {
+	unsigned i;
+	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize ; ++i) {
 		r = read_directory_entry(mnode, &d_info, i);
 		on_error(r, return r);
 
-		if (!d_info) {
-			/*Reached the end of the dentries list*/
-			break;
-		}
-
-		if (!bcmp(d_info->d_name, d_name, name_len)) {
-			d_info->d_inum = 0;
-			r = write_dentry(d_info);
-			free(d_info);
+		if (!bcmp(d_info.d_name, d_name, name_len)) {
+			d_info.d_inum = 0;
+			r = write_dentry(&d_info);
 			return r;
 		}
-		free(d_info);
 	}
 
 	return ENOENT;
@@ -176,9 +159,9 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 int
 insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 {
-	int i, r;
+	int r;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
-	struct mfs_dentry_info *d_info;
+	struct mfs_dentry_info d_info;
 	bool empty_dentry_found = false;
 
 	const size_t name_len = str_size(d_name);
@@ -187,23 +170,16 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 		return ENAMETOOLONG;
 
 	/*Search for an empty dentry*/
-
-	for (i = 0; ; ++i) {
+	unsigned i;
+	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = read_directory_entry(mnode, &d_info, i);
-		if (r != EOK)
-			return r;
+		on_error(r, return r);
 
-		if (!d_info) {
-			/*Reached the end of the dentries list*/
-			break;
-		}
-
-		if (d_info->d_inum == 0) {
+		if (d_info.d_inum == 0) {
 			/*This entry is not used*/
 			empty_dentry_found = true;
 			break;
 		}
-		free(d_info);
 	}
 
 	if (!empty_dentry_found) {
@@ -212,16 +188,13 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 		r = read_directory_entry(mnode, &d_info, i);
 		on_error(r, goto out);
-
-		assert(d_info != NULL);
 	}
 
-	d_info->d_inum = d_inum;
-	memcpy(d_info->d_name, d_name, name_len);
-	d_info->d_name[name_len] = 0;
+	d_info.d_inum = d_inum;
+	memcpy(d_info.d_name, d_name, name_len);
+	d_info.d_name[name_len] = 0;
 
-	r = write_dentry(d_info);
-	free(d_info);
+	r = write_dentry(&d_info);
 out:
 	return r;
 }
