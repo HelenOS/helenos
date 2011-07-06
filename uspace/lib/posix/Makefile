@@ -46,6 +46,7 @@ SOURCES = \
 	pwd.c \
 	signal.c \
 	stdio.c \
+	stdio/scanf.c \
 	stdlib.c \
 	stdlib/strtol.c \
 	stdlib/strtold.c \

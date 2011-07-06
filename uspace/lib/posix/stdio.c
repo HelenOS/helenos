@@ -48,6 +48,7 @@
 
 #include "libc/io/printf_core.h"
 #include "libc/str.h"
+#include "libc/malloc.h"
 
 
 /* not the best of solutions, but freopen and ungetc will eventually
@@ -91,7 +92,7 @@ char *posix_ctermid(char *s)
  * 
  * @param c Byte to be pushed back.
  * @param stream Stream to where the byte shall be pushed.
- * @return Provided byte on succes or EOF if not possible.
+ * @return Provided byte on success or EOF if not possible.
  */
 int posix_ungetc(int c, FILE *stream)
 {
@@ -127,32 +128,94 @@ int posix_ungetc(int c, FILE *stream)
 }
 
 /**
+ * Read a stream until the delimiter (or EOF) is encountered.
  *
- * @param lineptr
- * @param n
- * @param delimiter
- * @param stream
- * @return
+ * @param lineptr Pointer to the output buffer in which there will be stored
+ *     nul-terminated string together with the delimiter (if encountered).
+ *     Will be resized if necessary.
+ * @param n Pointer to the size of the output buffer. Will be increased if
+ *     necessary.
+ * @param delimiter Delimiter on which to finish reading the stream.
+ * @param stream Input stream.
+ * @return Number of fetched characters (including delimiter if encountered)
+ *     or -1 on error (set in errno).
  */
 ssize_t posix_getdelim(char **restrict lineptr, size_t *restrict n,
     int delimiter, FILE *restrict stream)
 {
-	// TODO
-	not_implemented();
+	/* Check arguments for sanity. */
+	if (!lineptr || !n) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	size_t alloc_step = 80; /* Buffer size gain during reallocation. */
+	char *pos = *lineptr; /* Next free byte of the output buffer. */
+	size_t cnt = 0; /* Number of fetched characters. */
+	int c = fgetc(stream); /* Current input character. Might be EOF. */
+
+	do {
+		/* Mask EOF as NUL to terminate string. */
+		if (c == EOF) {
+			c = '\0';
+		}
+
+		/* Ensure there is still space left in the buffer. */
+		if (pos == *lineptr + *n) {
+			*lineptr = realloc(*lineptr, *n + alloc_step);
+			if (*lineptr) {
+				pos = *lineptr + *n;
+				*n += alloc_step;
+			} else {
+				errno = ENOMEM;
+				return -1;
+			}
+		}
+
+		/* Store the fetched character. */
+		*pos = c;
+
+		/* Fetch the next character according to the current character. */
+		if (c != '\0') {
+			++pos;
+			++cnt;
+			if (c == delimiter) {
+				/* Delimiter was just stored. Provide EOF as the next
+				 * character - it will be masked as NUL and output string
+				 * will be properly terminated. */
+				c = EOF;
+			} else {
+				/* Neither delimiter nor EOF were encountered. Just fetch
+				 * the next character from the stream. */
+				c = fgetc(stream);
+			}
+		}
+	} while (c != '\0');
+
+	if (errno == EOK && cnt > 0) {
+		return cnt;
+	} else {
+		/* Either some error occured or the stream was already at EOF. */
+		return -1;
+	}
 }
 
 /**
+ * Read a stream until the newline (or EOF) is encountered.
  * 
- * @param lineptr
- * @param n
- * @param stream
- * @return
+ * @param lineptr Pointer to the output buffer in which there will be stored
+ *     nul-terminated string together with the delimiter (if encountered).
+ *     Will be resized if necessary.
+ * @param n Pointer to the size of the output buffer. Will be increased if
+ *     necessary.
+ * @param stream Input stream.
+ * @return Number of fetched characters (including newline if encountered)
+ *     or -1 on error (set in errno).
  */
 ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
     FILE *restrict stream)
 {
-	// TODO
-	not_implemented();
+	return posix_getdelim(lineptr, n, '\n', stream);
 }
 
 /**
@@ -420,7 +483,7 @@ int posix_vdprintf(int fildes, const char *restrict format, va_list ap)
  * @return Either the number of printed characters (excluding null byte) or
  *     negative value on error.
  */
-int posix_sprintf(char *s, const char *format, ...)
+int posix_sprintf(char *s, const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
@@ -438,7 +501,7 @@ int posix_sprintf(char *s, const char *format, ...)
  * @return Either the number of printed characters (excluding null byte) or
  *     negative value on error.
  */
-int posix_vsprintf(char *s, const char *format, va_list ap)
+int posix_vsprintf(char *s, const char *restrict format, va_list ap)
 {
 	return vsnprintf(s, STR_NO_LIMIT, format, ap);
 }
@@ -457,20 +520,6 @@ int posix_fscanf(FILE *restrict stream, const char *restrict format, ...)
 	int result = posix_vfscanf(stream, format, list);
 	va_end(list);
 	return result;
-}
-
-/**
- * Convert formatted input from the stream.
- * 
- * @param stream Input stream.
- * @param format Format description.
- * @param arg Output items.
- * @return The number of converted output items or EOF on failure.
- */
-int posix_vfscanf(FILE *restrict stream, const char *restrict format, va_list arg)
-{
-	// TODO
-	not_implemented();
 }
 
 /**
@@ -507,28 +556,13 @@ int posix_vscanf(const char *restrict format, va_list arg)
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_sscanf(const char *s, const char *format, ...)
+int posix_sscanf(const char *restrict s, const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
 	int result = posix_vsscanf(s, format, list);
 	va_end(list);
 	return result;
-}
-
-/**
- * Convert formatted input from the string.
- * 
- * @param s Input string.
- * @param format Format description.
- * @param arg Output items.
- * @return The number of converted output items or EOF on failure.
- */
-int posix_vsscanf(
-    const char *restrict s, const char *restrict format, va_list arg)
-{
-	// TODO
-	not_implemented();
 }
 
 /**
