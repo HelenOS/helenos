@@ -41,6 +41,7 @@ SOURCES = \
 	ctype.c \
 	fcntl.c \
 	fnmatch.c \
+	locale.c \
 	math.c \
 	pwd.c \
 	signal.c \
