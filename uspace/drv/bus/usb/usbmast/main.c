@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,10 @@
  * @file
  * Main routines of USB mass storage driver.
  */
+#include <as.h>
+#include <async.h>
+#include <ipc/bd.h>
+#include <macros.h>
 #include <usb/dev/driver.h>
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
@@ -71,6 +76,24 @@ usb_endpoint_description_t *mast_endpoints[] = {
 	NULL
 };
 
+/** Mass storage function.
+ *
+ * Serves as soft state for function/LUN.
+ */
+typedef struct {
+	/** DDF function */
+	ddf_fun_t *ddf_fun;
+	/** Total number of blocks. */
+	uint64_t nblocks;
+	/** Block size in bytes. */
+	size_t block_size;
+	/** USB device function belongs to */
+	usb_device_t *usb_dev;
+} usbmast_fun_t;
+
+static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
+
 /** Callback when new device is attached and recognized as a mass storage.
  *
  * @param dev Representation of a the USB device.
@@ -79,22 +102,30 @@ usb_endpoint_description_t *mast_endpoints[] = {
 static int usbmast_add_device(usb_device_t *dev)
 {
 	int rc;
-	const char *fun_name = "ctl";
+	const char *fun_name = "a";
+	ddf_fun_t *fun = NULL;
+	usbmast_fun_t *msfun = NULL;
 
-	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed,
-	    fun_name);
-	if (ctl_fun == NULL) {
-		usb_log_error("Failed to create control function.\n");
-		return ENOMEM;
-	}
-	rc = ddf_fun_bind(ctl_fun);
-	if (rc != EOK) {
-		usb_log_error("Failed to bind control function: %s.\n",
-		    str_error(rc));
-		return rc;
+	/* Allocate softstate */
+	msfun = calloc(1, sizeof(usbmast_fun_t));
+	if (msfun == NULL) {
+		usb_log_error("Failed allocating softstate.\n");
+		rc = ENOMEM;
+		goto error;
 	}
 
-	usb_log_info("Pretending to control mass storage `%s'.\n",
+	fun = ddf_fun_create(dev->ddf_dev, fun_exposed, fun_name);
+	if (fun == NULL) {
+		usb_log_error("Failed to create DDF function %s.\n", fun_name);
+		rc = ENOMEM;
+		goto error;
+	}
+
+	/* Set up a connection handler. */
+	fun->conn_handler = usbmast_bd_connection;
+	fun->driver_data = msfun;
+
+	usb_log_info("Initializing mass storage `%s'.\n",
 	    dev->ddf_dev->name);
 	usb_log_debug(" Bulk in endpoint: %d [%zuB].\n",
 	    dev->pipes[BULK_IN_EP].pipe->endpoint_no,
@@ -106,13 +137,20 @@ static int usbmast_add_device(usb_device_t *dev)
 	usb_log_debug("Get LUN count...\n");
 	size_t lun_count = usb_masstor_get_lun_count(dev);
 
+	/* XXX Handle more than one LUN properly. */
+	if (lun_count > 1) {
+		usb_log_warning ("Mass storage has %zu LUNs. Ignoring all "
+		    "but first.\n", lun_count);
+	}
+
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
 	rc = usbmast_inquiry(dev, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));
-		return EOK;
+		rc = EIO;
+		goto error;
 	}
 
 	usb_log_info("Mass storage `%s': " \
@@ -131,33 +169,105 @@ static int usbmast_add_device(usb_device_t *dev)
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));
-		return EOK;
+		rc = EIO;
+		goto error;
 	}
 
 	usb_log_info("Read Capacity: nblocks=%" PRIu32 ", "
 	    "block_size=%" PRIu32 "\n", nblocks, block_size);
 
-	usb_log_info("Doing test read of block 0.\n");
-	static uint8_t bdata[512];
+	msfun->nblocks = nblocks;
+	msfun->block_size = block_size;
+	msfun->usb_dev = dev;
 
-	rc = usbmast_read(dev, 0, 1, 512, &bdata);
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		usb_log_warning("Failed to read block 0, device `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return EOK;
-	}
-
-	usb_log_info("Requesting sense data.\n");
-	static scsi_sense_data_t sdata;
-
-	rc = usbmast_request_sense(dev, &sdata, sizeof(sdata));
-	if (rc != EOK) {
-		usb_log_warning("Failed to get sense data, device `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return EOK;
+		usb_log_error("Failed to bind DDF function %s: %s.\n",
+		    fun_name, str_error(rc));
+		goto error;
 	}
 
 	return EOK;
+
+	/* Error cleanup */
+error:
+	if (fun != NULL)
+		ddf_fun_destroy(fun);
+	if (msfun != NULL)
+		free(msfun);
+	return rc;
+}
+
+/** Blockdev client connection handler. */
+static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
+{
+	usbmast_fun_t *msfun;
+	void *comm_buf = NULL;
+	size_t comm_size;
+	ipc_callid_t callid;
+	ipc_call_t call;
+	unsigned int flags;
+	sysarg_t method;
+	uint64_t ba;
+	size_t cnt;
+	int retval;
+
+	usb_log_debug("usbmast_bd_connection()\n");
+
+	async_answer_0(iid, EOK);
+
+	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
+		async_answer_0(callid, EHANGUP);
+		return;
+	}
+
+	comm_buf = as_get_mappable_page(comm_size);
+	if (comm_buf == NULL) {
+		async_answer_0(callid, EHANGUP);
+		return;
+	}
+
+	(void) async_share_out_finalize(callid, comm_buf);
+
+	msfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
+
+	while (true) {
+		callid = async_get_call(&call);
+		method = IPC_GET_IMETHOD(call);
+
+		if (!method) {
+			/* The other side hung up. */
+			async_answer_0(callid, EOK);
+			return;
+		}
+
+		switch (method) {
+		case BD_GET_BLOCK_SIZE:
+			async_answer_1(callid, EOK, msfun->block_size);
+			break;
+		case BD_GET_NUM_BLOCKS:
+			async_answer_2(callid, EOK, LOWER32(msfun->nblocks),
+			    UPPER32(msfun->nblocks));
+			break;
+		case BD_READ_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			retval = usbmast_read(msfun->usb_dev, ba, cnt,
+			    msfun->block_size, comm_buf);
+			async_answer_0(callid, retval);
+			break;
+		case BD_WRITE_BLOCKS:
+			usb_log_debug("usbmast_bd_connection() - BD_WRITE_BLOCKS\n");
+/*			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			retval = 0;
+			async_answer_0(callid, retval);
+			break;*/
+		default:
+			async_answer_0(callid, EINVAL);
+		}
+	}
 }
 
 /** USB mass storage driver ops. */
