@@ -57,7 +57,7 @@ typedef struct {
 } __attribute__((packed)) usb_massstor_csw_t;
 
 extern void usb_massstor_cbw_prepare(usb_massstor_cbw_t *, uint32_t, uint32_t,
-    usb_direction_t, uint8_t, uint8_t, uint8_t *);
+    usb_direction_t, uint8_t, uint8_t, const uint8_t *);
 
 #endif
 

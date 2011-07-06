@@ -213,8 +213,6 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 	size_t cnt;
 	int retval;
 
-	usb_log_debug("usbmast_bd_connection()\n");
-
 	async_answer_0(iid, EOK);
 
 	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
@@ -258,12 +256,12 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 			async_answer_0(callid, retval);
 			break;
 		case BD_WRITE_BLOCKS:
-			usb_log_debug("usbmast_bd_connection() - BD_WRITE_BLOCKS\n");
-/*			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			retval = 0;
+			retval = usbmast_write(msfun->usb_dev, ba, cnt,
+			    msfun->block_size, comm_buf);
 			async_answer_0(callid, retval);
-			break;*/
+			break;
 		default:
 			async_answer_0(callid, EINVAL);
 		}

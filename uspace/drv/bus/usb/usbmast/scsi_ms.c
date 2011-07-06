@@ -238,6 +238,54 @@ int usbmast_read(usb_device_t *dev, uint64_t ba, size_t nblocks, size_t bsize,
 	return EOK;
 }
 
+/** Perform SCSI Write command on USB mass storage device.
+ *
+ * @param dev		USB device
+ * @param ba		Address of first block
+ * @param nblocks	Number of blocks to read
+ * @param bsize		Block size
+ * @param data		Data to write
+ *
+ * @return		Error code
+ */
+int usbmast_write(usb_device_t *dev, uint64_t ba, size_t nblocks, size_t bsize,
+    const void *data)
+{
+	scsi_cdb_write_12_t cdb;
+	size_t sent_len;
+	int rc;
+
+	/* XXX Need softstate to store block size. */
+
+	if (ba > UINT32_MAX)
+		return ELIMIT;
+
+	if ((uint64_t)nblocks * bsize > UINT32_MAX)
+		return ELIMIT;
+
+	memset(&cdb, 0, sizeof(cdb));
+	cdb.op_code = SCSI_CMD_WRITE_12;
+	cdb.lba = host2uint32_t_be(ba);
+	cdb.xfer_len = host2uint32_t_be(nblocks);
+
+	rc = usb_massstor_data_out(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	    sizeof(cdb), data, nblocks * bsize, &sent_len);
+
+        if (rc != EOK) {
+		usb_log_error("Write (12) failed, device %s: %s.\n",
+		   dev->ddf_dev->name, str_error(rc));
+		return rc;
+	}
+
+	if (sent_len < nblocks * bsize) {
+		usb_log_error("SCSI Write not all bytes transferred (%zu).\n",
+		    sent_len);
+		return EIO;
+	}
+
+	return EOK;
+}
+
 /**
  * @}
  */

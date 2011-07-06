@@ -41,7 +41,7 @@
 
 void usb_massstor_cbw_prepare(usb_massstor_cbw_t *cbw,
     uint32_t tag, uint32_t transfer_length, usb_direction_t dir,
-    uint8_t lun, uint8_t cmd_len, uint8_t *cmd)
+    uint8_t lun, uint8_t cmd_len, const uint8_t *cmd)
 {
 	cbw->dCBWSignature = uint32_host2usb(0x43425355);
 	cbw->dCBWTag = tag;

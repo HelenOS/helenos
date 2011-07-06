@@ -50,20 +50,23 @@ bool usb_mast_verbose = true;
 		} \
 	} while (false)
 
-/** Request data from mass storage device.
+/** Send command via bulk-only transport.
  *
- * @param tag Command block wrapper tag (automatically compared with answer).
- * @param lun LUN index.
- * @param cmd SCSI command buffer (in SCSI endianness).
- * @param cmd_size Length of SCSI command @p cmd in bytes.
- * @param in_buffer Buffer where to store the answer (CSW is not returned).
- * @param in_buffer_size Size of the buffer (size of the request to the device).
- * @param received_size Number of actually received bytes.
- * @return Error code.
+ * @param tag		Command block wrapper tag (automatically compared
+ *			with answer)
+ * @param lun		LUN
+ * @param cmd		Command block
+ * @param cmd_size	Command block size in bytes
+ * @param ddir		Direction in which data will be transferred
+ * @param dbuf		Data send/receive buffer
+ * @param dbuf_size	Size of the data buffer
+ * @param xferred_size	Number of bytes actually transferred
+ *
+ * @return		Error code
  */
-int usb_massstor_data_in(usb_device_t *dev,
-    uint32_t tag, uint8_t lun, void *cmd, size_t cmd_size,
-    void *in_buffer, size_t in_buffer_size, size_t *received_size)
+static int usb_massstor_cmd(usb_device_t *dev, uint32_t tag, uint8_t lun,
+    const void *cmd, size_t cmd_size, usb_direction_t ddir, void *dbuf,
+    size_t dbuf_size, size_t *xferred_size)
 {
 	int rc;
 	size_t act_size;
@@ -72,10 +75,10 @@ int usb_massstor_data_in(usb_device_t *dev,
 
 	/* Prepare CBW - command block wrapper */
 	usb_massstor_cbw_t cbw;
-	usb_massstor_cbw_prepare(&cbw, tag, in_buffer_size,
-	    USB_DIRECTION_IN, lun, cmd_size, cmd);
+	usb_massstor_cbw_prepare(&cbw, tag, dbuf_size, ddir, lun, cmd_size,
+	    cmd);
 
-	/* First, send the CBW. */
+	/* Send the CBW. */
 	rc = usb_pipe_write(bulk_out_pipe, &cbw, sizeof(cbw));
 	MASTLOG("CBW '%s' sent: %s.\n",
 	    usb_debug_str_buffer((uint8_t *) &cbw, sizeof(cbw), 0),
@@ -84,12 +87,20 @@ int usb_massstor_data_in(usb_device_t *dev,
 		return rc;
 	}
 
-	/* Try to retrieve the data from the device. */
-	act_size = 0;
-	rc = usb_pipe_read(bulk_in_pipe, in_buffer, in_buffer_size, &act_size);
-	MASTLOG("Received %zuB (%s): %s.\n", act_size,
-	    usb_debug_str_buffer((uint8_t *) in_buffer, act_size, 0),
-	    str_error(rc));
+	if (ddir == USB_DIRECTION_IN) {
+		/* Recieve data from the device. */
+		rc = usb_pipe_read(bulk_in_pipe, dbuf, dbuf_size, &act_size);
+		MASTLOG("Received %zu bytes (%s): %s.\n", act_size,
+		    usb_debug_str_buffer((uint8_t *) dbuf, act_size, 0),
+		    str_error(rc));
+	} else {
+		/* Send data to the device. */
+		rc = usb_pipe_write(bulk_out_pipe, dbuf, dbuf_size);
+		MASTLOG("Sent %zu bytes (%s): %s.\n", act_size,
+		    usb_debug_str_buffer((uint8_t *) dbuf, act_size, 0),
+		    str_error(rc));
+	}
+
 	if (rc != EOK) {
 		/*
 		 * XXX If the pipe is stalled, we should clear it
@@ -102,7 +113,7 @@ int usb_massstor_data_in(usb_device_t *dev,
 	usb_massstor_csw_t csw;
 	size_t csw_size;
 	rc = usb_pipe_read(bulk_in_pipe, &csw, sizeof(csw), &csw_size);
-	MASTLOG("CSW '%s' received (%zuB): %s.\n",
+	MASTLOG("CSW '%s' received (%zu bytes): %s.\n",
 	    usb_debug_str_buffer((uint8_t *) &csw, csw_size, 0), csw_size,
 	    str_error(rc));
 	if (rc != EOK) {
@@ -131,23 +142,64 @@ int usb_massstor_data_in(usb_device_t *dev,
 	}
 
 	size_t residue = (size_t) uint32_usb2host(csw.dCSWDataResidue);
-	if (residue > in_buffer_size) {
-		MASTLOG("residue > in_buffer_size\n");
+	if (residue > dbuf_size) {
+		MASTLOG("residue > dbuf_size\n");
 		return ERANGE;
 	}
 
 	/*
-	 * When the device has less data to send than requested, it can
-	 * either stall the pipe or send garbage and indicate that via
-	 * the residue field in CSW. That means in_buffer_size - residue
-	 * is the authoritative size of data received.
+	 * When the device has less data to send than requested (or cannot
+	 * receive moredata), it can either stall the pipe or send garbage
+	 * (ignore data) and indicate that via the residue field in CSW.
+	 * That means dbuf_size - residue is the authoritative size of data
+	 * received (sent).
 	 */
 
-	if (received_size != NULL) {
-		*received_size = in_buffer_size - residue;
-	}
+	if (xferred_size != NULL)
+		*xferred_size = dbuf_size - residue;
 
 	return EOK;
+}
+
+/** Perform data-in command.
+ *
+ * @param tag		Command block wrapper tag (automatically compared with
+ *			answer)
+ * @param lun		LUN
+ * @param cmd		CDB (Command Descriptor)
+ * @param cmd_size	CDB length in bytes
+ * @param dbuf		Data receive buffer
+ * @param dbuf_size	Data receive buffer size in bytes
+ * @param proc_size	Number of bytes actually processed by device
+ *
+ * @return Error code
+ */
+int usb_massstor_data_in(usb_device_t *dev, uint32_t tag, uint8_t lun,
+    const void *cmd, size_t cmd_size, void *dbuf, size_t dbuf_size, size_t *proc_size)
+{
+	return usb_massstor_cmd(dev, tag, lun, cmd, cmd_size, USB_DIRECTION_IN,
+	    dbuf, dbuf_size, proc_size);
+}
+
+/** Perform data-out command.
+ *
+ * @param tag		Command block wrapper tag (automatically compared with
+ *			answer)
+ * @param lun		LUN
+ * @param cmd		CDB (Command Descriptor)
+ * @param cmd_size	CDB length in bytes
+ * @param data		Command data
+ * @param data_size	Size of @a data in bytes
+ * @param proc_size	Number of bytes actually processed by device
+ *
+ * @return Error code
+ */
+int usb_massstor_data_out(usb_device_t *dev, uint32_t tag, uint8_t lun,
+    const void *cmd, size_t cmd_size, const void *data, size_t data_size,
+    size_t *proc_size)
+{
+	return usb_massstor_cmd(dev, tag, lun, cmd, cmd_size, USB_DIRECTION_OUT,
+	    (void *) data, data_size, proc_size);
 }
 
 /** Perform bulk-only mass storage reset.

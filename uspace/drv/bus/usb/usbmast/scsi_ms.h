@@ -62,6 +62,8 @@ extern int usbmast_inquiry(usb_device_t *, usbmast_inquiry_data_t *);
 extern int usbmast_request_sense(usb_device_t *, void *, size_t);
 extern int usbmast_read_capacity(usb_device_t *, uint32_t *, uint32_t *);
 extern int usbmast_read(usb_device_t *, uint64_t, size_t, size_t, void *);
+extern int usbmast_write(usb_device_t *, uint64_t, size_t, size_t,
+    const void *);
 extern const char *usbmast_scsi_dev_type_str(unsigned);
 
 #endif
