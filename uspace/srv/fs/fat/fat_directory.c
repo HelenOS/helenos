@@ -254,33 +254,30 @@ int fat_directory_erase(fat_directory_t *di)
 int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 {
 	int rc;
-	int long_entry_count;
-	uint8_t checksum;
-	wchar_t wname[FAT_LFN_NAME_SIZE];
-	size_t lfn_size, lfn_offset;
+	bool enable_lfn = true; /* We can use this variable to switch off LFN support */
 	
-	rc = str_to_wstr(wname, FAT_LFN_NAME_SIZE, name);
-	if (rc != EOK)
-		return rc;
-	if (fat_dentry_is_sfn(wname)) {
+	if (fat_valid_short_name(name)) {
 		/* NAME could be directly stored in dentry without creating LFN */
 		fat_dentry_name_set(de, name);
-
 		if (fat_directory_is_sfn_exist(di, de))
 			return EEXIST;
 		rc = fat_directory_lookup_free(di, 1);
 		if (rc != EOK)
 			return rc;
 		rc = fat_directory_write_dentry(di, de);
+		return rc;
+	} else if (enable_lfn && fat_valid_name(name)) {
+		/* We should create long entries to store name */
+		int long_entry_count;
+		uint8_t checksum;
+		uint16_t wname[FAT_LFN_NAME_SIZE];
+		size_t lfn_size, lfn_offset;
+		
+		rc = str_to_utf16(wname, FAT_LFN_NAME_SIZE, name);
 		if (rc != EOK)
 			return rc;
-
-		return EOK;
-	}
-	else
-	{
-		/* We should create long entries to store name */
-		lfn_size = wstr_length(wname);
+		
+		lfn_size = utf16_length(wname);
 		long_entry_count = lfn_size / FAT_LFN_ENTRY_SIZE;
 		if (lfn_size % FAT_LFN_ENTRY_SIZE)
 			long_entry_count++;
@@ -290,7 +287,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		aoff64_t start_pos = di->pos;
 
 		/* Write Short entry */
-		rc = fat_directory_create_sfn(di, de, wname);
+		rc = fat_directory_create_sfn(di, de, name);
 		if (rc != EOK)
 			return rc;
 		checksum = fat_dentry_chksum(de->name);
@@ -321,13 +318,13 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		FAT_LFN_ORDER(d) |= FAT_LFN_LAST;
 
 		rc = fat_directory_seek(di, start_pos+long_entry_count);
-		if (rc != EOK)
-			return rc;
-		return EOK;
+		return rc;
 	}
+
+	return ENOTSUP;
 }
 
-int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const wchar_t *wname)
+int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const char *lname)
 {
 	char name[FAT_NAME_LEN+1];
 	char ext[FAT_EXT_LEN+1];
@@ -336,17 +333,17 @@ int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const wchar_
 	memset(ext, FAT_PAD, FAT_EXT_LEN);
 	memset(number, FAT_PAD, FAT_NAME_LEN);
 
-	size_t name_len = wstr_size(wname);
-	wchar_t *pdot = wstr_rchr(wname, '.');
+	size_t name_len = str_size(lname);
+	char *pdot = str_rchr(lname, '.');
 	ext[FAT_EXT_LEN] = '\0';
 	if (pdot) {
 		pdot++;
-		wstr_to_ascii(ext, pdot, FAT_EXT_LEN, FAT_SFN_CHAR);
-		name_len = (pdot - wname - 1);
+		str_to_ascii(ext, pdot, FAT_EXT_LEN, FAT_SFN_CHAR);
+		name_len = (pdot - lname - 1);
 	}
 	if (name_len > FAT_NAME_LEN)
 		name_len = FAT_NAME_LEN;
-	wstr_to_ascii(name, wname, name_len, FAT_SFN_CHAR);
+	str_to_ascii(name, lname, name_len, FAT_SFN_CHAR);
 
 	size_t idx;
 	for (idx=1; idx <= FAT_MAX_SFN; idx++) {
