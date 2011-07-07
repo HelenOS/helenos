@@ -83,7 +83,7 @@ read_directory_entry(struct mfs_node *mnode,
 	d_info->node = mnode;
 
 out_err:
-	return EOK;
+	return r;
 }
 
 int
