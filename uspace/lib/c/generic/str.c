@@ -633,6 +633,41 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 	return rc;
 }
 
+int str_to_utf16(uint16_t *dest, size_t size, const char *src)
+{
+	int rc=EOK;
+	size_t offset=0;
+	size_t idx=0;
+	wchar_t c;
+
+	assert(size > 0);
+	
+	while ((c = str_decode(src, &offset, STR_NO_LIMIT)) != 0) {
+		if (c > 0x10000) {
+			if (idx+2 >= size-1) {
+				rc=EOVERFLOW;
+				break;
+			}
+			c = (c - 0x10000);
+			dest[idx] = 0xD800 | (c >> 10);
+			dest[idx+1] = 0xDC00 | (c & 0x3FF);
+			idx++;
+		} else {
+			 dest[idx] = c;
+		}
+
+		idx++;
+		if (idx >= size-1) {
+			rc=EOVERFLOW;
+			break;
+		}
+	}
+
+	dest[idx] = '\0';
+	return rc;
+}
+
+
 /** Convert wide string to new string.
  *
  * Convert wide string @a src to string. Space for the new string is allocated
