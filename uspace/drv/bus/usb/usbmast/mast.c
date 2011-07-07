@@ -41,12 +41,12 @@
 #include <usb/debug.h>
 #include <usb/dev/request.h>
 
-bool usb_mast_verbose = true;
+bool usb_mast_verbose = false;
 
 #define MASTLOG(format, ...) \
 	do { \
 		if (usb_mast_verbose) { \
-			usb_log_debug("USB cl08: " format, ##__VA_ARGS__); \
+			usb_log_debug2("USB cl08: " format, ##__VA_ARGS__); \
 		} \
 	} while (false)
 
