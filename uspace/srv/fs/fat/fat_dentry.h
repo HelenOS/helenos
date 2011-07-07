@@ -37,6 +37,9 @@
 #include <stdint.h>
 #include <bool.h>
 
+#define IS_D_CHAR(ch) (isalnum(ch) || ch == '_')
+#define FAT_STOP_CHARS L"*?/\\\n\t|'"
+
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
 
@@ -141,15 +144,14 @@ extern size_t fat_lfn_str_nlength(const uint16_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
 extern size_t fat_lfn_get_part(const uint16_t *, size_t, uint16_t *, size_t *);
 extern size_t fat_lfn_get_entry(const fat_dentry_t *, uint16_t *, size_t *);
-extern size_t fat_lfn_set_part(const wchar_t *, size_t *, size_t, uint16_t *, size_t);
-extern size_t fat_lfn_set_entry(const wchar_t *, size_t *, size_t, fat_dentry_t *);
+extern size_t fat_lfn_set_part(const uint16_t *, size_t *, size_t, uint16_t *, size_t);
+extern size_t fat_lfn_set_entry(const uint16_t *, size_t *, size_t, fat_dentry_t *);
 
-extern void wstr_to_ascii(char *dst, const wchar_t *src, size_t count, uint8_t pad);
+extern void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad);
+extern size_t utf16_length(const uint16_t *wstr);
 
-extern bool fat_sfn_valid_char(wchar_t);
-extern bool fat_sfn_valid(const wchar_t *);
-extern bool fat_lfn_valid(const wchar_t *wstr);
-extern bool fat_dentry_is_sfn(const wchar_t *);
+extern bool fat_valid_name(const char *name);
+extern bool fat_valid_short_name(const char *name);
 
 
 #endif

@@ -287,7 +287,7 @@ size_t fat_lfn_get_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
 	return *offset;
 }
 
-size_t fat_lfn_set_part(const wchar_t *src, size_t *offset, size_t src_size, uint16_t *dst, size_t dst_size)
+size_t fat_lfn_set_part(const uint16_t *src, size_t *offset, size_t src_size, uint16_t *dst, size_t dst_size)
 {
 	size_t idx;
 	for (idx=0; idx < dst_size; idx++) {
@@ -301,7 +301,7 @@ size_t fat_lfn_set_part(const wchar_t *src, size_t *offset, size_t src_size, uin
 	return *offset;
 }
 
-size_t fat_lfn_set_entry(const wchar_t *src, size_t *offset, size_t size, fat_dentry_t *d)
+size_t fat_lfn_set_entry(const uint16_t *src, size_t *offset, size_t size, fat_dentry_t *d)
 {
 	fat_lfn_set_part(src, offset, size, FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
 	fat_lfn_set_part(src, offset, size, FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
@@ -315,60 +315,16 @@ size_t fat_lfn_set_entry(const wchar_t *src, size_t *offset, size_t size, fat_de
 	return *offset;
 }
 
-bool fat_sfn_valid_char(wchar_t c)
+void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad)
 {
-	char valid[] = {"_.$%\'-@~!(){}^#&"};
-	size_t idx=0;
-
-	if (!ascii_check(c)) 
-		return false;
-	if (isdigit(c) || isupper(c))
-		return true;	
-	while(valid[idx]!=0)
-		if (c == valid[idx++])
-			return true;
-
-	return false;
-}
-
-bool fat_sfn_valid(const wchar_t *wstr)
-{
-	wchar_t c;
-	size_t idx=0;
-	if (wstr[idx] == 0 || wstr[idx] == '.')
-		return false;
-	while ((c=wstr[idx++]) != 0) {
-		if (!fat_sfn_valid_char(c))
-			return false;
-	}
-	return true;
-}
-
-/* TODO: add more checks to long name */
-bool fat_lfn_valid(const wchar_t *wstr)
-{
-	wchar_t c;
-	size_t idx=0;
-	if (wstr[idx] == 0 || wstr[idx] == '.')
-		return false;
-	while ((c=wstr[idx++]) != 0) {
-		if (ascii_check(c)) {
-			if (c == '?' || c == '*' || c == '\\' || c == '/')
-				return false;
-		}
-	}
-	return true;
-}
-
-void wstr_to_ascii(char *dst, const wchar_t *src, size_t count, uint8_t pad)
-{
+	wchar_t ch;
+	size_t off = 0;
 	size_t i = 0;
+	
 	while (i < count) {
-		if (src && *src) {
-			if (ascii_check(*src)) {
-				*dst = toupper(*src);
-				src++;
-			}
+		if ((ch = str_decode(src, &off, STR_NO_LIMIT)) != 0) {
+			if (ascii_check(ch) & IS_D_CHAR(ch))
+				*dst = toupper(ch);
 			else
 				*dst = pad;
 		}
@@ -381,22 +337,63 @@ void wstr_to_ascii(char *dst, const wchar_t *src, size_t count, uint8_t pad)
 	*dst = '\0';
 }
 
-bool fat_dentry_is_sfn(const wchar_t *wstr)
+bool fat_valid_name(const char *name)
 {
-	/* 1. Length <= 11 characters */
-	if (wstr_length(wstr) > (FAT_NAME_LEN + FAT_EXT_LEN))
-		return false;
-	/* 
-	 * 2. All characters in string should be ASCII
-	 * 3. All letters must be uppercase
-	 * 4. String should not contain invalid characters
-	 */
-	if (!fat_sfn_valid(wstr))
-		return false;
+	wchar_t ch;
+	size_t offset=0;
+	bool result = true;
 	
+	while ((ch = str_decode(name, &offset, STR_NO_LIMIT)) != 0) {
+		if (wstr_chr(FAT_STOP_CHARS, ch) != NULL) {
+			result = false;
+			break;
+		}
+	}
+	return result;
+}
+
+bool fat_valid_short_name(const char *name)
+{
+	unsigned int i;
+	unsigned int dot = 0;
+	bool dot_found = false;
+
+	for (i = 0; name[i]; i++) {
+		if (name[i] == '.') {
+			if (dot_found) {
+				return false;
+			} else {
+				dot_found = true;
+				dot = i;
+			}
+		} else {
+			if (!IS_D_CHAR(name[i]))
+				return false;
+		}
+	}
+
+	if (dot_found) {
+		if (dot > FAT_NAME_LEN)
+			return false;
+		if (i - dot > FAT_EXT_LEN + 1)
+			return false;
+	} else {
+		if (i > FAT_NAME_LEN)
+			return false;
+	}
+
 	return true;
 }
 
+size_t utf16_length(const uint16_t *wstr)
+{
+	size_t len = 0;
+	
+	while (*wstr++ != 0)
+		len++;
+	
+	return len;
+}
 
 /**
  * @}
