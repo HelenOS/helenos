@@ -39,6 +39,14 @@
 	#define NULL ((void *) 0)
 #endif
 
+#ifndef __locale_t_defined
+	#define __locale_t_defined
+	typedef struct __posix_locale *posix_locale_t;
+	#ifndef LIBPOSIX_INTERNAL
+		#define locale_t posix_locale_t
+	#endif
+#endif
+
 #undef LC_ALL
 #undef LC_COLLATE
 #undef LC_CTYPE
@@ -100,10 +108,8 @@ struct posix_lconv {
 	char    *thousands_sep;
 };
 
-typedef struct _posix_locale *posix_locale_t;
-
 extern char *posix_setlocale(int category, const char *locale);
-extern struct posix_lconv *localeconv(void);
+extern struct posix_lconv *posix_localeconv(void);
 
 /* POSIX Extensions */
 extern posix_locale_t posix_duplocale(posix_locale_t locobj);
@@ -114,7 +120,6 @@ extern posix_locale_t posix_uselocale (posix_locale_t newloc);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define lconv posix_lconv
-	#define locale_t posix_locale_t
 
 	#define setlocale posix_setlocale
 	#define localeconv posix_localeconv

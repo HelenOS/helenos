@@ -37,13 +37,29 @@
 #define POSIX_TIME_H_
 
 #include "libc/time.h"
+#include "sys/types.h"
 
 #ifndef NULL
 	#define NULL  ((void *) 0)
 #endif
 
-#undef CLOCKS_PER_SEC
-#define CLOCKS_PER_SEC 1000000L
+#ifndef CLOCKS_PER_SEC
+	#define CLOCKS_PER_SEC (1000000L)
+#endif
+
+#ifndef __locale_t_defined
+	#define __locale_t_defined
+	typedef struct __posix_locale *posix_locale_t;
+	#ifndef LIBPOSIX_INTERNAL
+		#define locale_t posix_locale_t
+	#endif
+#endif
+
+#undef ASCTIME_BUF_LEN
+#define ASCTIME_BUF_LEN 26
+
+#undef CLOCK_REALTIME
+#define CLOCK_REALTIME ((posix_clockid_t) 0)
 
 struct posix_tm {
 	int tm_sec;         /* Seconds [0,60]. */
@@ -57,27 +73,67 @@ struct posix_tm {
 	int tm_isdst;       /* Daylight Savings flag. */
 };
 
+// FIXME: should be in sys/types.h
 typedef long posix_clock_t;
 
-/* Broken-down Time */
-extern struct posix_tm *posix_localtime(const time_t *timep);
+struct posix_timespec {
+	time_t tv_sec; /* Seconds. */
+	long tv_nsec; /* Nanoseconds. */
+};
 
+struct posix_itimerspec {
+	struct posix_timespec it_interval; /* Timer period. */
+	struct posix_timespec it_value; /* Timer expiration. */
+};
+
+/* Timezones */
+
+extern int posix_daylight;
+extern long posix_timezone;
+extern char *posix_tzname[2];
+
+extern void posix_tzset(void);
+
+/* time_t */
+
+extern double posix_difftime(time_t time1, time_t time0);
+
+/* Broken-down Time */
+extern time_t posix_mktime(struct posix_tm *timeptr);
+extern struct posix_tm *posix_localtime(const time_t *timep);
+extern struct posix_tm *posix_localtime_r(const time_t *restrict timer,
+    struct posix_tm *restrict result);
 /* Formatting Calendar Time */
-extern char *posix_asctime(const struct posix_tm *tm);
+extern char *posix_asctime(const struct posix_tm *timeptr);
+extern char *posix_asctime_r(const struct posix_tm *restrict timeptr,
+    char *restrict buf);
 extern char *posix_ctime(const time_t *timep);
-extern size_t posix_strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct posix_tm *restrict tm);
+extern size_t posix_strftime(char *restrict s, size_t maxsize,
+    const char *restrict format, const struct posix_tm *restrict tm);
 
 /* CPU Time */
 extern posix_clock_t posix_clock(void);
+
 
 #ifndef LIBPOSIX_INTERNAL
 	#define tm posix_tm
 
 	#define clock_t posix_clock_t
+	#define timespec posix_timespec
+	#define itimerspec posix_itimerspec
 
+	#define difftime posix_difftime
+	#define mktime posix_mktime
 	#define localtime posix_localtime
+	#define localtime_r posix_localtime_r
+
+	#define daylight posix_daylight
+	#define timezone posix_timezone
+	#define tzname posix_tzname
+	#define tzset posix_tzset
 
 	#define asctime posix_asctime
+	#define asctime_r posix_asctime_r
 	#define ctime posix_ctime
 	#define strftime posix_strftime
 

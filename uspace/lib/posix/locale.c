@@ -41,7 +41,7 @@
 #include "limits.h"
 #include "string.h"
 
-struct _posix_locale {
+struct __posix_locale {
 	int _dummy;
 };
 
@@ -82,7 +82,7 @@ char *posix_setlocale(int category, const char *locale)
 	return NULL;
 }
 
-struct posix_lconv *localeconv(void)
+struct posix_lconv *posix_localeconv(void)
 {
 	// TODO
 	return (struct posix_lconv *) &C_LOCALE;
@@ -94,12 +94,12 @@ posix_locale_t posix_duplocale(posix_locale_t locobj)
 		errno = EINVAL;
 		return NULL;
 	}
-	posix_locale_t copy = malloc(sizeof(struct _posix_locale));
+	posix_locale_t copy = malloc(sizeof(struct __posix_locale));
 	if (copy == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	memcpy(copy, locobj, sizeof(struct _posix_locale));
+	memcpy(copy, locobj, sizeof(struct __posix_locale));
 	return copy;
 }
 
@@ -117,7 +117,7 @@ posix_locale_t posix_newlocale(int category_mask, const char *locale,
 		return NULL;
 	}
 	// TODO
-	posix_locale_t new = malloc(sizeof(struct _posix_locale));
+	posix_locale_t new = malloc(sizeof(struct __posix_locale));
 	if (new == NULL) {
 		errno = ENOMEM;
 		return NULL;
