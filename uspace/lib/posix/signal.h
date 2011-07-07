@@ -283,7 +283,9 @@ extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
 	#define sig_atomic_t posix_sig_atomic_t
 	#define sigset_t posix_sigset_t
 	#define sigval posix_sigval
-	#define sigevent posix_sigevent
+	#ifndef sigevent
+		#define sigevent posix_sigevent
+	#endif
 	#define sigaction posix_sigaction
 	#define mcontext_t posix_mcontext_t
 	#define ucontext_t posix_ucontext_t

@@ -43,10 +43,12 @@
 
 #include "ctype.h"
 #include "errno.h"
+#include "signal.h"
 
 #include "libc/malloc.h"
 #include "libc/task.h"
 #include "libc/stats.h"
+#include "libc/sys/time.h"
 
 // TODO: documentation
 // TODO: test everything in this file
@@ -211,7 +213,7 @@ static void _normalize_time(struct _long_tm *tm)
 
 	/* Now the difficult part - days of month. */
 	/* Slow, but simple. */
-	// TODO: do this faster
+	// FIXME: do this faster
 
 	while (tm->tm_mday < 1) {
 		tm->tm_mon--;
@@ -252,38 +254,67 @@ static int _wbyear_offset(int year)
  */
 static int _wbyear(const struct posix_tm *tm)
 {
-	if (tm->tm_yday < _wbyear_offset(tm->tm_year)) {
+	int day = tm->tm_yday - _wbyear_offset(tm->tm_year);
+	if (day < 0) {
+		/* Last week of previous year. */
 		return tm->tm_year - 1;
 	}
-	if (tm->tm_yday > (364 + _is_leap_year(tm->tm_year) +
-	    _wbyear_offset(tm->tm_year + 1))) {
+	if (day > 364 + _is_leap_year(tm->tm_year)){
+		/* First week of next year. */
 		return tm->tm_year + 1;
 	}
+	/* All the other days are in the calendar year. */
 	return tm->tm_year;
 }
 
-/* Number of week in year, when week starts on sunday.
+/** Week number of the year, assuming weeks start on sunday.
+ *  The first Sunday of January is the first day of week 1;
+ *  days in the new year before this are in week 0.
+ *
+ * @param tm Normalized broken-down time.
+ * @return The week number (0 - 53).
  */
 static int _sun_week_number(const struct posix_tm *tm)
 {
-	// TODO
-	not_implemented();
+	int first_day = (7 - _day_of_week(tm->tm_year, 0, 1)) % 7;
+	return (tm->tm_yday - first_day + 7) / 7;
 }
 
-/* Number of week in week-based year.
+/** Week number of the year, assuming weeks start on monday.
+ *  If the week containing January 1st has four or more days in the new year,
+ *  then it is considered week 1. Otherwise, it is the last week of the previous
+ *  year, and the next week is week 1. Both January 4th and the first Thursday
+ *  of January are always in week 1.
+ *
+ * @param tm Normalized broken-down time.
+ * @return The week number (1 - 53).
  */
 static int _iso_week_number(const struct posix_tm *tm)
 {
-	// TODO
-	not_implemented();
+	int day = tm->tm_yday - _wbyear_offset(tm->tm_year);
+	if (day < 0) {
+		/* Last week of previous year. */
+		return 53;
+	}
+	if (day > 364 + _is_leap_year(tm->tm_year)){
+		/* First week of next year. */
+		return 1;
+	}
+	/* All the other days give correct answer. */
+	return (day / 7 + 1);
 }
 
-/* Number of week in year, when week starts on monday.
+/** Week number of the year, assuming weeks start on monday.
+ *  The first Monday of January is the first day of week 1;
+ *  days in the new year before this are in week 0. 
+ *
+ * @param tm Normalized broken-down time.
+ * @return The week number (0 - 53).
  */
 static int _mon_week_number(const struct posix_tm *tm)
 {
-	// TODO
-	not_implemented();
+	int first_day = (1 - _day_of_week(tm->tm_year, 0, 1)) % 7;
+	return (tm->tm_yday - first_day + 7) / 7;
 }
 
 /******************************************************************************/
@@ -326,25 +357,17 @@ time_t posix_mktime(struct posix_tm *tm)
 	return _secs_since_epoch(tm);
 }
 
-/**
- *
- * @param timep
- * @return
- */
-struct posix_tm *posix_localtime(const time_t *timep)
+struct posix_tm *posix_gmtime(const time_t *timer)
 {
 	static struct posix_tm result;
-	return posix_localtime_r(timep, &result);
+	return posix_gmtime_r(timer, &result);
 }
 
-struct posix_tm *posix_localtime_r(const time_t *restrict timer,
+struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
     struct posix_tm *restrict result)
 {
 	assert(timer != NULL);
 	assert(result != NULL);
-
-	// TODO: deal with timezone
-	// currently assumes system and all times are in GMT
 
 	/* Set epoch and seconds to _long_tm struct and normalize to get
 	 * correct values.
@@ -366,6 +389,25 @@ struct posix_tm *posix_localtime_r(const time_t *restrict timer,
 
 	_long_to_posix_tm(result, &ltm);
 	return result;
+}
+
+/**
+ *
+ * @param timep
+ * @return
+ */
+struct posix_tm *posix_localtime(const time_t *timer)
+{
+	static struct posix_tm result;
+	return posix_localtime_r(timer, &result);
+}
+
+struct posix_tm *posix_localtime_r(const time_t *restrict timer,
+    struct posix_tm *restrict result)
+{
+	// TODO: deal with timezone
+	// currently assumes system and all times are in GMT
+	return posix_gmtime_r(timer, result);
 }
 
 /**
@@ -408,9 +450,22 @@ char *posix_asctime_r(const struct posix_tm *restrict timeptr,
  * @param timep
  * @return
  */
-char *posix_ctime(const time_t *timep)
+char *posix_ctime(const time_t *timer)
 {
-	return posix_asctime(posix_localtime(timep));
+	struct posix_tm *loctime = posix_localtime(timer);
+	if (loctime == NULL) {
+		return NULL;
+	}
+	return posix_asctime(loctime);
+}
+
+char *posix_ctime_r(const time_t *timer, char *buf)
+{
+	struct posix_tm loctime;
+	if (posix_localtime_r(timer, &loctime) == NULL) {
+		return NULL;
+	}
+	return posix_asctime_r(&loctime, buf);
 }
 
 /**
@@ -598,6 +653,123 @@ size_t posix_strftime(char *s, size_t maxsize,
 	
 	return maxsize - remaining;
 }
+
+int posix_clock_getres(posix_clockid_t clock_id, struct posix_timespec *res)
+{
+	assert(res != NULL);
+
+	switch (clock_id) {
+		case CLOCK_REALTIME:
+			res->tv_sec = 0;
+			res->tv_nsec = 1000; /* Microsecond resolution. */
+			return 0;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+}
+
+int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
+{
+	assert(tp != NULL);
+
+	switch (clock_id) {
+		case CLOCK_REALTIME:
+			;
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			tp->tv_sec = tv.tv_sec;
+			tp->tv_nsec = tv.tv_usec * 1000;
+			return 0;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+}
+
+int posix_clock_settime(posix_clockid_t clock_id,
+    const struct posix_timespec *tp)
+{
+	assert(tp != NULL);
+
+	switch (clock_id) {
+		case CLOCK_REALTIME:
+			// TODO: setting clock
+			// FIXME: HelenOS doesn't actually support hardware
+			//        clock yet
+			errno = EPERM;
+			return -1;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+}
+
+int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
+    const struct posix_timespec *rqtp, struct posix_timespec *rmtp)
+{
+	assert(rqtp != NULL);
+	assert(rmtp != NULL);
+
+	switch (clock_id) {
+		case CLOCK_REALTIME:
+			// TODO: interruptible sleep
+			if (rqtp->tv_sec != 0) {
+				sleep(rqtp->tv_sec);
+			}
+			if (rqtp->tv_nsec != 0) {
+				usleep(rqtp->tv_nsec / 1000);
+			}
+			return 0;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+}
+
+#if 0
+
+struct __posix_timer {
+	posix_clockid_t clockid;
+	struct posix_sigevent evp;
+};
+
+int posix_timer_create(posix_clockid_t clockid,
+    struct posix_sigevent *restrict evp,
+    posix_timer_t *restrict timerid)
+{
+	// TODO
+	not_implemented();
+}
+
+int posix_timer_delete(posix_timer_t timerid)
+{
+	// TODO
+	not_implemented();
+}
+
+int posix_timer_getoverrun(posix_timer_t timerid)
+{
+	// TODO
+	not_implemented();
+}
+
+int posix_timer_gettime(posix_timer_t timerid,
+    struct posix_itimerspec *value)
+{
+	// TODO
+	not_implemented();
+}
+
+int posix_timer_settime(posix_timer_t timerid, int flags,
+    const struct posix_itimerspec *restrict value,
+    struct posix_itimerspec *restrict ovalue)
+{
+	// TODO
+	not_implemented();
+}
+
+#endif
 
 /**
  * Get CPU time used since the process invocation.
