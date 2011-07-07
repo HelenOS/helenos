@@ -538,6 +538,7 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	r = mfs_has_children(&has_children, cfn);
 	on_error(r, return r);
+
 	if (has_children)
 		return ENOTEMPTY;
 
@@ -569,7 +570,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 
 	/* The first two dentries are always . and .. */
 	unsigned i;
-	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
+	for (i = 2; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = read_directory_entry(mnode, &d_info, i);
 		on_error(r, return r);
 
@@ -622,8 +623,7 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 		struct mfs_dentry_info d_info;
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
-		unsigned i;
-		for (i = pos; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
+		for (; pos < mnode->ino_i->i_size / sbi->dirsize; ++pos) {
 			rc = read_directory_entry(mnode, &d_info, pos);
 			on_error(rc, goto out_error);
 
@@ -631,7 +631,6 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 				/*Dentry found!*/
 				goto found;
 			}
-			pos++;
 		}
 
 		rc = mfs_node_put(fn);
