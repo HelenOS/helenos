@@ -167,8 +167,8 @@ RD_APPS_NON_ESSENTIAL = \
 
 ifeq ($(CONFIG_BINUTILS),y)
 RD_APPS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/app/binutils/as \
-	$(USPACE_PATH)/app/binutils/ld
+	$(USPACE_PATH)/app/binutils/bin/as \
+	$(USPACE_PATH)/app/binutils/bin/ld
 endif
 
 ifneq ($(CONFIG_BAREBONE),y)

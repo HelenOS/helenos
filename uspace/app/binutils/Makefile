@@ -29,6 +29,10 @@
 nullstring =
 space = $(nullstring) # space
 
+# When redefined to 'y' on the command line, certain areas of this Makefile
+# behave slightly differently to simplify the maintenance of binutils port.
+MAINTAIN_BINUTILS=n
+
 # Information for obtaining specific binutils redistributable package.
 # Might be subject to change in the future.
 REDIST_VERSION = 2.21
@@ -41,6 +45,9 @@ REDIST_DIR = ./redist
 
 # File to detect the presence of binutils source tree.
 REDIST_DETECT = $(REDIST_DIR)/configure
+
+# Directory for resulting binutils binaries.
+BIN_DIR = ./bin
 
 # $USPACE_PREFIX have to be based on the absolute path,
 # because targets derived from it will be referenced from
@@ -145,8 +152,8 @@ ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
 all: $(COMMON_MAKEFILE_PATCHED) all_ $(TOOLCHAIN) $(BINUTILS_PATCHED) \
 		$(CONFOBJ_OBJECT) $(BINUTILS_CONFIGURED) $(REDIST_DETECT)
 	make -C $(REDIST_DIR) $(MAKE_TARGETS)
-	cp -f $(REDIST_DIR)/gas/as-new ./as
-	cp -f $(REDIST_DIR)/ld/ld-new ./ld
+	cp -f $(REDIST_DIR)/gas/as-new $(BIN_DIR)/as
+	cp -f $(REDIST_DIR)/ld/ld-new $(BIN_DIR)/ld
 else
 all:
 	# Skipped: Cannot build binutils with unsupported compiler.
@@ -205,10 +212,12 @@ $(BINUTILS_CONFIGURED): $(REDIST_DIR)/configure $(REDIST_DETECT)
 # Delete binaries.
 # Clean binutils.
 # Unpatch binutils.
+# Delete everything in redist folder.
 # Delete generated scripts.
 clean: $(BINUTILS_PATCH) clean_
-	rm -f as ld
+	rm -f $(BIN_DIR)/as $(BIN_DIR)/ld
 	rm -f $(CONFOBJ_SOURCE) $(CONFOBJ_OBJECT)
+ifeq ($(MAINTAIN_BINUTILS),y)
 	if [ -e $(REDIST_DIR)/Makefile ]; then \
 		make -C $(REDIST_DIR) distclean; \
 	fi
@@ -216,6 +225,10 @@ clean: $(BINUTILS_PATCH) clean_
 		./intrusive.sh undo $(REDIST_DIR); \
 		rm -f $(BINUTILS_PATCHED); \
 	fi
+else
+	rm -r -f redist/*
+	rm -f $(BINUTILS_PATCHED)
+endif
 	rm -f $(TOOLCHAIN)
 	rm -f $(COMMON_MAKEFILE_PATCHED)
 
