@@ -38,30 +38,21 @@
 #include "libc/errno.h"
 #include "sys/types.h"
 
-/* HelenOS doesn't have signals, so calls to functions of this header
- * are just replaced with their respective failure return value.
- *
- * Other macros and constants are here just to satisfy the symbol resolver
- * and have no practical value whatsoever, until HelenOS implements some
- * equivalent of signals. Maybe something neat based on IPC will be devised
- * in the future?
- */
+extern void __posix_default_signal_handler(int signo);
+extern void __posix_hold_signal_handler(int signo);
+extern void __posix_ignore_signal_handler(int signo);
 
 #undef SIG_DFL
-#define SIG_DFL ((void (*)(int)) 0)
+#define SIG_DFL ((void (*)(int)) __posix_default_signal_handler)
 #undef SIG_ERR
-#define SIG_ERR ((void (*)(int)) 0)
+#define SIG_ERR ((void (*)(int)) NULL)
 #undef SIG_HOLD
-#define SIG_HOLD ((void (*)(int)) 0)
+#define SIG_HOLD ((void (*)(int)) __posix_hold_signal_handler)
 #undef SIG_IGN
-#define SIG_IGN ((void (*)(int)) 0)
-
-#define signal(sig,func) (errno = ENOTSUP, SIG_ERR)
-#define raise(sig) ((int) -1)
-#define kill(pid,sig) (errno = ENOTSUP, (int) -1)
+#define SIG_IGN ((void (*)(int)) __posix_ignore_signal_handler)
 
 typedef int posix_sig_atomic_t;
-typedef int posix_sigset_t;
+typedef uint32_t posix_sigset_t;
 typedef struct posix_mcontext {
 	// FIXME: should not be empty to avoid compiler warnings (-pedantic)
 	int dummy;
@@ -86,8 +77,8 @@ typedef struct {
 
 	int si_errno;
 
-	pid_t si_pid;
-	uid_t si_uid;
+	posix_pid_t si_pid;
+	posix_uid_t si_uid;
 	void *si_addr;
 	int si_status;
 
@@ -119,83 +110,172 @@ typedef struct posix_ucontext {
 
 /* Values of posix_sigevent::sigev_notify */
 #undef SIGEV_NONE
-#define SIGEV_NONE 0
 #undef SIGEV_SIGNAL
-#define SIGEV_SIGNAL 0
 #undef SIGEV_THREAD
+#define SIGEV_NONE 0
+#define SIGEV_SIGNAL 0
 #define SIGEV_THREAD 0
 
 #undef SIGRT_MIN
-#define SIGRT_MIN 0
 #undef SIGRT_MAX
+#define SIGRT_MIN 0
 #define SIGRT_MAX 0
 
 #undef SIG_BLOCK
-#define SIG_BLOCK 0
 #undef SIG_UNBLOCK
-#define SIG_UNBLOCK 0
 #undef SIG_SETMASK
-#define SIG_SETMASK 0
+#define SIG_BLOCK 0
+#define SIG_UNBLOCK 1
+#define SIG_SETMASK 2
 
 #undef SA_NOCLDSTOP
-#define SA_NOCLDSTOP 0
 #undef SA_ONSTACK
-#define SA_ONSTACK 0
 #undef SA_RESETHAND
-#define SA_RESETHAND 0
 #undef SA_RESTART
-#define SA_RESTART 0
 #undef SA_SIGINFO
-#define SA_SIGINFO 0
 #undef SA_NOCLDWAIT
-#define SA_NOCLDWAIT 0
 #undef SA_NODEFER
-#define SA_NODEFER 0
+#define SA_NOCLDSTOP (1 << 0)
+#define SA_ONSTACK (1 << 1)
+#define SA_RESETHAND (1 << 2)
+#define SA_RESTART (1 << 3)
+#define SA_SIGINFO (1 << 4)
+#define SA_NOCLDWAIT (1 << 5)
+#define SA_NODEFER (1 << 6)
 
 #undef SS_ONSTACK
-#define SS_ONSTACK 0
 #undef SS_DISABLE
+#define SS_ONSTACK 0
 #define SS_DISABLE 0
 
 #undef MINSIGSTKSZ
-#define MINSIGSTKSZ 0
 #undef SIGSTKSZ
+#define MINSIGSTKSZ 0
 #define SIGSTKSZ 0
 
 /* full POSIX set */
 enum {
+	/* Termination Signals */
 	SIGABRT,
-	SIGALRM,
-	SIGBUS,
-	SIGCHLD,
-	SIGCONT,
-	SIGFPE,
-	SIGHUP,
-	SIGILL,
-	SIGINT,
-	SIGKILL,
-	SIGPIPE,
 	SIGQUIT,
-	SIGSEGV,
-	SIGSTOP,
+	SIGINT,
 	SIGTERM,
+	
+	/* Child Signal */
+	SIGCHLD,
+	
+	/* User signals */
+	SIGUSR1,
+	SIGUSR2,
+
+	/* Timer */
+	SIGALRM,
+	SIGVTALRM,
+	SIGPROF, /* obsolete */
+
+	_TOP_CATCHABLE_SIGNAL = SIGPROF,
+
+	/* Process Scheduler Interaction - not supported */
+	SIGSTOP,
+	SIGCONT,
+
+	/* Process Termination - can't be caught */
+	SIGKILL,
+
+	_TOP_SENDABLE_SIGNAL = SIGKILL,
+
+	/* Hardware Exceptions - can't be caught or sent */
+	SIGFPE,
+	SIGBUS,
+	SIGILL,
+	SIGSEGV,
+
+	/* Other Exceptions - not supported */
+	SIGSYS,
+	SIGXCPU,
+	SIGXFSZ,
+
+	/* Debugging - not supported */
+	SIGTRAP,
+
+	/* Communication Signals - not supported */
+	SIGHUP,
+	SIGPIPE,
+	SIGPOLL, /* obsolete */
+	SIGURG,
+
+	/* Terminal Signals - not supported */
 	SIGTSTP,
 	SIGTTIN,
 	SIGTTOU,
-	SIGUSR1,
-	SIGUSR2,
-	SIGPOLL,
-	SIGPROF,
-	SIGSYS,
-	SIGTRAP,
-	SIGURG,
-	SIGVTALRM,
-	SIGXCPU,
-	SIGXFSZ
+	
+	_TOP_SIGNAL = SIGTTOU
 };
 
-/* Just declared to avoid compiler warnings. */
+/* Values for sigaction field si_code. */
+
+enum {
+	SI_USER,
+	SI_QUEUE,
+	SI_TIMER,
+	SI_ASYNCIO,
+	SI_MESGQ,
+	ILL_ILLOPC,
+	ILL_ILLOPN,
+	ILL_ILLADR,
+	ILL_ILLTRP,
+	ILL_PRVOPC,
+	ILL_PRVREG,
+	ILL_COPROC,
+	ILL_BADSTK,
+	FPE_INTDIV,
+	FPE_INTOVF,
+	FPE_FLTDIV,
+	FPE_FLTOVF,
+	FPE_FLTUND,
+	FPE_FLTRES,
+	FPE_FLTINV,
+	FPE_FLTSUB,
+	SEGV_MAPERR,
+	SEGV_ACCERR,
+	BUS_ADRALN,
+	BUS_ADRERR,
+	BUS_OBJERR,
+	TRAP_BRKPT,
+	TRAP_TRACE,
+	CLD_EXITED,
+	CLD_KILLED,
+	CLD_DUMPED,
+	CLD_TRAPPED,
+	CLD_STOPPED,
+	CLD_CONTINUED,
+	POLL_IN,
+	POLL_OUT,
+	POLL_MSG,
+	POLL_ERR,
+	POLL_PRI,
+	POLL_HUP
+};
+
+extern int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
+    struct posix_sigaction *restrict oact);
+
+extern void (*posix_signal(int sig, void (*func)(int)))(int);
+extern int posix_raise(int sig);
+extern int posix_kill(posix_pid_t pid, int sig);
+extern int posix_killpg(posix_pid_t pid, int sig);
+
+extern void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message);
+extern void posix_psignal(int signum, const char *message);
+
 extern int posix_sigemptyset(posix_sigset_t *set);
+extern int posix_sigfillset(posix_sigset_t *set);
+extern int posix_sigaddset(posix_sigset_t *set, int signo);
+extern int posix_sigdelset(posix_sigset_t *set, int signo);
+extern int posix_sigismember(const posix_sigset_t *set, int signo);
+
+extern int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
+    posix_sigset_t *restrict oset);
 extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
     posix_sigset_t *restrict oset);
 
@@ -203,13 +283,30 @@ extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
 	#define sig_atomic_t posix_sig_atomic_t
 	#define sigset_t posix_sigset_t
 	#define sigval posix_sigval
-	#define sigevent posix_sigevent
+	#ifndef sigevent
+		#define sigevent posix_sigevent
+	#endif
 	#define sigaction posix_sigaction
 	#define mcontext_t posix_mcontext_t
 	#define ucontext_t posix_ucontext_t
 	#define stack_t posix_stack_t
 	#define siginfo_t posix_siginfo_t
+
+	#define signal posix_signal
+	#define raise posix_raise
+	#define kill posix_kill
+	#define killpg posix_killpg
+
+	#define psiginfo posix_psiginfo
+	#define psignal posix_psignal
+
 	#define sigemptyset posix_sigemptyset
+	#define sigfillset posix_sigfillset
+	#define sigaddset posix_sigaddset
+	#define sigdelset posix_sigdelset
+	#define sigismember posix_sigismember
+
+	#define pthread_sigmask posix_thread_sigmask
 	#define sigprocmask posix_sigprocmask
 #endif
 

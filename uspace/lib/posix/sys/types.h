@@ -51,6 +51,10 @@ typedef sysarg_t posix_dev_t;
 /* PThread types */
 typedef struct posix_thread_attr posix_thread_attr_t;
 
+/* Clock types */
+typedef long posix_clock_t;
+typedef int posix_clockid_t;
+
 #ifndef LIBPOSIX_INTERNAL
 	#define ino_t posix_ino_t
 	#define nlink_t posix_nlink_t
@@ -63,6 +67,9 @@ typedef struct posix_thread_attr posix_thread_attr_t;
 	#define dev_t posix_dev_t
 	
 	#define pthread_attr_t posix_thread_attr_t
+	
+	#define clock_t posix_clock_t
+	#define clockid_t posix_clockid_t
 #endif
 
 #endif /* POSIX_SYS_TYPES_H_ */

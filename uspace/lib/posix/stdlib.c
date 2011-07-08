@@ -35,12 +35,14 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "internal/common.h"
 #include "stdlib.h"
+
+#include "errno.h"
+
 #include "libc/sort.h"
 #include "libc/str.h"
 #include "libc/vfs/vfs.h"
-#include "internal/common.h"
-#include <errno.h>  // FIXME: use POSIX errno
 
 /**
  * 
@@ -335,6 +337,18 @@ char *posix_mktemp(char *tmpl)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+}
+
+/**
+ * Should read system load statistics. Not supported. Always returns -1.
+ *
+ * @param loadavg
+ * @param nelem
+ * @return
+ */
+int bsd_getloadavg(double loadavg[], int nelem)
+{
+	return -1;
 }
 
 /** @}

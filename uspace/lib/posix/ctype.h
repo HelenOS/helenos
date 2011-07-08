@@ -46,6 +46,15 @@ extern int posix_isgraph(int c);
 extern int posix_isprint(int c);
 extern int posix_ispunct(int c);
 
+/* Obsolete Functions and Macros */
+extern int posix_isascii(int c);
+extern int posix_toascii(int c);
+#undef _tolower
+#define _tolower(c) ((c) - 'A' + 'a')
+#undef _toupper
+#define _toupper(c) ((c) - 'a' + 'A')
+
+
 #ifndef LIBPOSIX_INTERNAL
 	#define isxdigit posix_isxdigit
 	#define isblank posix_isblank
@@ -53,6 +62,9 @@ extern int posix_ispunct(int c);
 	#define isgraph posix_isgraph
 	#define isprint posix_isprint
 	#define ispunct posix_ispunct
+	
+	#define isascii posix_isascii
+	#define toascii posix_toascii
 #endif
 
 #endif /* POSIX_CTYPE_H_ */

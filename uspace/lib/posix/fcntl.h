@@ -35,27 +35,40 @@
 #ifndef POSIX_FCNTL_H_
 #define POSIX_FCNTL_H_
 
+#include "sys/types.h"
 #include "libc/fcntl.h"
+
+/* Mask for file access modes. */
+#undef O_ACCMODE
+#define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR)
 
 /* fcntl commands */
 #undef F_DUPFD
+#undef F_DUPFD_CLOEXEC
 #undef F_GETFD
 #undef F_SETFD
 #undef F_GETFL
 #undef F_SETFL
 #undef F_GETOWN
 #undef F_SETOWN
-#define	F_DUPFD	  	0	/* Duplicate file descriptor. */
-#define	F_GETFD		1	/* Get file descriptor flags. */
-#define	F_SETFD		2	/* Set file descriptor flags. */
-#define	F_GETFL		3	/* Get file status flags. */
-#define	F_SETFL		4	/* Set file status flags. */
-#define F_GETOWN	5	/* Get owner. */
-#define F_SETOWN	6	/* Set owner. */
+#undef F_GETLK
+#undef F_SETLK
+#undef F_SETLKW
+#define F_DUPFD            0 /* Duplicate file descriptor. */
+#define F_DUPFD_CLOEXEC    1 /* Same as F_DUPFD but with FD_CLOEXEC flag set. */
+#define F_GETFD            2 /* Get file descriptor flags. */
+#define F_SETFD            3 /* Set file descriptor flags. */
+#define F_GETFL            4 /* Get file status and access flags. */
+#define F_SETFL            5 /* Set file status flags. */
+#define F_GETOWN           6 /* Get socket owner. */
+#define F_SETOWN           7 /* Set socket owner. */
+#define F_GETLK            8 /* Get locking information. */
+#define F_SETLK            9 /* Set locking information. */
+#define F_SETLKW          10 /* Set locking information; wait if blocked. */
 
 /* File descriptor flags used with F_GETFD and F_SETFD. */
 #undef FD_CLOEXEC
-#define	FD_CLOEXEC	1	/* Close on exec. */
+#define FD_CLOEXEC         1 /* Close on exec. */
 
 extern int posix_fcntl(int fd, int cmd, ...);
 

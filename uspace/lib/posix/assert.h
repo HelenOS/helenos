@@ -32,21 +32,23 @@
 /** @file
  */
 
-#ifndef POSIX_STDBOOL_H_
-#define POSIX_STDBOOL_H_
+/* NO include guard on purpose. */
 
-// TODO: propose for inclusion in libc and drop bool.h,
-//       it's a very silly incompatibility with standard C
+#include "libc/assert.h"
 
-#ifdef LIBC_BOOL_H_
-	#error "You can't include bool.h and stdbool.h at the same time."
+#undef assert
+
+#ifndef NDEBUG
+	#define assert(expr) \
+		do { \
+			if (!(expr)) { \
+				assert_abort(#expr, __FILE__, __LINE__); \
+			} \
+		} while (0)
+#else
+	#define assert(expr) ((void) 0)
 #endif
-#define LIBC_BOOL_H_
 
-#define bool _Bool
-#define true 1
-#define false 0
-#define __bool_true_false_are_defined 1
-
-#endif /* POSIX_STDBOOL_H_ */
+/** @}
+ */
 

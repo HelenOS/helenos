@@ -34,15 +34,17 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "../internal/common.h"
+/* Must be first. */
+#include "../stdbool.h"
 
-#include "../libc/assert.h"
-#include "../ctype.h"
-#include <errno.h> // TODO: use POSIX errno
-#include "../libc/bool.h"
-#include "../stdint.h"
+#include "../internal/common.h"
 #include "../stdlib.h"
+
+#include "../assert.h"
+#include "../ctype.h"
+#include "../stdint.h"
 #include "../strings.h"
+#include "../errno.h"
 
 #ifndef HUGE_VALL
 	#define HUGE_VALL (+1.0l / +0.0l)

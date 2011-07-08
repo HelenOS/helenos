@@ -32,21 +32,22 @@
 /** @file
  */
 
-#ifndef POSIX_STDBOOL_H_
-#define POSIX_STDBOOL_H_
+#include "errno.h"
 
-// TODO: propose for inclusion in libc and drop bool.h,
-//       it's a very silly incompatibility with standard C
+#include "stdlib.h"
+#include "libc/fibril.h"
 
-#ifdef LIBC_BOOL_H_
-	#error "You can't include bool.h and stdbool.h at the same time."
-#endif
-#define LIBC_BOOL_H_
+static fibril_local int _posix_errno;
 
-#define bool _Bool
-#define true 1
-#define false 0
-#define __bool_true_false_are_defined 1
+int *__posix_errno(void)
+{
+	if (*__errno() != 0) {
+		_posix_errno = abs(*__errno());
+		*__errno() = 0;
+	}
+	return &_posix_errno;
+}
 
-#endif /* POSIX_STDBOOL_H_ */
+/** @}
+ */
 
