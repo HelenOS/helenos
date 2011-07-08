@@ -114,12 +114,12 @@ static void _capture_stream(_input_provider *self)
 	assert(self->state == _PROV_CONSTRUCTED);
 	/* Caller could already pre-allocated the window. */
 	assert((self->window == NULL && self->window_size == 0) ||
-		(self->window && self->window_size > 0));
+	    (self->window && self->window_size > 0));
 
 	/* Initialize internal structures. */
 	self->consumed = 0;
 	ssize_t fetched = posix_getline(
-		&self->window, &self->window_size, self->source.stream);
+	    &self->window, &self->window_size, self->source.stream);
 	if (fetched != -1) {
 		self->fetched = fetched;
 		self->cursor = self->window;
@@ -158,7 +158,7 @@ static int _pop_stream(_input_provider *self)
 		/* Do we need to fetch a new line from the source? */
 		if (*self->cursor == '\0') {
 			ssize_t fetched = posix_getline(&self->window,
-				&self->window_size, self->source.stream);
+			    &self->window_size, self->source.stream);
 			if (fetched != -1) {
 				self->fetched += fetched;
 				self->cursor = self->window;
@@ -214,7 +214,7 @@ static int _undo_stream(_input_provider *self)
 			return 0;
 		}
 		ssize_t fetched = posix_getline(&self->window,
-			&self->window_size, self->source.stream);
+		    &self->window_size, self->source.stream);
 		if (fetched != -1) {
 			assert(fetched == 1);
 			self->fetched = self->consumed + 1;
@@ -266,7 +266,7 @@ static void _return_cursor_stream(_input_provider *self, const char *cursor)
 	if (*self->cursor == '\0') {
 		/* Window was completely consumed, fetch new data. */
 		ssize_t fetched = posix_getline(&self->window,
-			&self->window_size, self->source.stream);
+		    &self->window_size, self->source.stream);
 		if (fetched != -1) {
 			self->fetched += fetched;
 			self->cursor = self->window;
@@ -1079,9 +1079,9 @@ static inline int _internal_scanf(
 				/* Sanity check. */
 				bool sane =
 				    width == -1 &&
-					length_mod == LMOD_NONE &&
-					assign_alloc == false &&
-					assign_supress == false;
+				    length_mod == LMOD_NONE &&
+				    assign_alloc == false &&
+				    assign_supress == false;
 
 				if (sane) {
 					int *pi = va_arg(arg, int *);
