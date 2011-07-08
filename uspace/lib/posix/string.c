@@ -509,10 +509,11 @@ size_t posix_strxfrm(char *s1, const char *s2, size_t n)
  */
 char *posix_strerror(int errnum)
 {
-	/* uses function from libc, we just have to negate errno
-	 * (POSIX uses positive errorcodes, HelenOS has negative)
+	/* Uses function from libc, we just have to negate errno
+	 * (POSIX uses positive errorcodes, HelenOS has negative).
 	 */
-	return (char *) str_error(-errnum);
+	// FIXME: not all POSIX error codes are in libc
+	return (char *) str_error(-posix_abs(errnum));
 }
 
 /**

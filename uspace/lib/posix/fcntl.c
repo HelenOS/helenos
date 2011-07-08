@@ -36,9 +36,10 @@
 
 #include "internal/common.h"
 #include "fcntl.h"
+
 #include "libc/unistd.h"
 #include "libc/vfs/vfs.h"
-#include <errno.h>
+#include "errno.h"
 
 /**
  * Performs set of operations on the opened files.
@@ -64,14 +65,14 @@ int posix_fcntl(int fd, int cmd, ...)
 		fdi_node_t node;
 		rc = fd_node(fd, &node);
 		if (rc != EOK) {
-			// TODO: propagate a POSIX compatible errno
+			errno = -rc;
 			return -1;
 		}
 
 		/* Reopen the node so the fresh file descriptor is generated. */
 		int newfd = open_node(&node, 0);
 		if (newfd < 0) {
-			// TODO: propagate a POSIX compatible errno
+			errno = -newfd;
 			return -1;
 		}
 
@@ -80,7 +81,7 @@ int posix_fcntl(int fd, int cmd, ...)
 		 * closed. */
 		rc = dup2(fd, newfd);
 		if (rc != EOK) {
-			// TODO: propagate a POSIX compatible errno
+			errno = -rc;
 			return -1;
 		}
 

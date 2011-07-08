@@ -34,7 +34,7 @@
 
 #define LIBPOSIX_INTERNAL
 
-/* Has to be first. */
+/* Must be first. */
 #include "../stdbool.h"
 
 #include "../internal/common.h"
@@ -44,7 +44,7 @@
 #include "../ctype.h"
 #include "../stdint.h"
 #include "../strings.h"
-#include <errno.h> // FIXME: use POSIX errno
+#include "../errno.h"
 
 #ifndef HUGE_VALL
 	#define HUGE_VALL (+1.0l / +0.0l)

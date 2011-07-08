@@ -38,10 +38,11 @@
 #include "internal/common.h"
 #include "stdlib.h"
 
+#include "errno.h"
+
 #include "libc/sort.h"
 #include "libc/str.h"
 #include "libc/vfs/vfs.h"
-#include <errno.h>  // FIXME: use POSIX errno
 
 /**
  * 

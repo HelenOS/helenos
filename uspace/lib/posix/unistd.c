@@ -37,11 +37,13 @@
 
 #include "internal/common.h"
 #include "unistd.h"
-#include <task.h>
-#include <errno.h>
+
+#include "errno.h"
 #include "string.h"
 #include "fcntl.h"
-#include <stats.h>
+
+#include "libc/task.h"
+#include "libc/stats.h"
 #include "libc/malloc.h"
 
 /* Array of environment variable strings (NAME=VALUE). */
@@ -144,10 +146,14 @@ int posix_access(const char *path, int amode)
 	if (amode == F_OK) {
 		/* Check file existence by attempt to open it. */
 		int fd = open(path, O_RDONLY);
-		// TODO: propagate a POSIX compatible errno
-		int rc = fd < 0 ? -1 : 0;
-		close(fd);
-		return rc;
+		if (fd < 0) {
+			/* FIXME: open() returns error code as negative retval. */
+			errno = -fd;
+			fd = -1;
+		} else {
+			close(fd);
+		}
+		return fd;
 	} else if (amode & (X_OK | W_OK | R_OK)) {
 		/* HelenOS doesn't support permissions, return success. */
 		return 0;

@@ -39,7 +39,7 @@
 
 #include "../limits.h"
 #include "../ctype.h"
-#include <errno.h> // FIXME: use POSIX errno
+#include "../errno.h"
 
 // TODO: documentation
 

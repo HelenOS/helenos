@@ -39,6 +39,7 @@ EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
 	ctype.c \
+	errno.c \
 	fcntl.c \
 	fnmatch.c \
 	locale.c \

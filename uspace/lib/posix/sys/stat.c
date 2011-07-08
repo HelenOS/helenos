@@ -38,6 +38,7 @@
 #include "../internal/common.h"
 #include "stat.h"
 
+#include "../errno.h"
 #include "../libc/mem.h"
 
 /**
@@ -75,8 +76,11 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 int posix_fstat(int fd, struct posix_stat *st)
 {
 	struct stat hst;
-	if (fstat(fd, &hst) == -1) {
-		// TODO: propagate a POSIX compatible errno
+	int rc = fstat(fd, &hst);
+	if (rc < 0) {
+		/* fstat() returns negative error code instead of using errno.
+		 */
+		errno = -rc;
 		return -1;
 	}
 	stat_to_posix(st, &hst);
@@ -106,8 +110,11 @@ int posix_lstat(const char *path, struct posix_stat *st)
 int posix_stat(const char *path, struct posix_stat *st)
 {
 	struct stat hst;
-	if (stat(path, &hst) == -1) {
-		// TODO: propagate a POSIX compatible errno
+	int rc = stat(path, &hst);
+	if (rc < 0) {
+		/* stat() returns negative error code instead of using errno.
+		 */
+		errno = -rc;
 		return -1;
 	}
 	stat_to_posix(st, &hst);

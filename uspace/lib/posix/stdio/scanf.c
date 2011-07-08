@@ -38,7 +38,7 @@
 #include "../stdbool.h"
 
 #include "../assert.h"
-#include <errno.h>  // FIXME: use POSIX errno
+#include "../errno.h"
 
 #include "../stdio.h"
 #include "../stdlib.h"
