@@ -138,18 +138,16 @@ void remove_interrupt_context(interrupt_context_list_t *list,
 interrupt_context_t *
 find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 {
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
 	interrupt_context_t *ctx;
 	
-	while (link != &list->contexts) {
+	fibril_mutex_lock(&list->mutex);
+	
+	list_foreach(list->contexts, link) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
 		if (ctx->id == id) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&list->mutex);
@@ -159,18 +157,16 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 interrupt_context_t *
 find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
 	interrupt_context_t *ctx;
 	
-	while (link != &list->contexts) {
+	fibril_mutex_lock(&list->mutex);
+	
+	list_foreach(list->contexts, link) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
 		if (ctx->irq == irq && ctx->dev == dev) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&list->mutex);
@@ -230,21 +226,18 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 	fibril_mutex_unlock(&functions_mutex);
 }
 
-static ddf_fun_t *driver_get_function(link_t *functions, devman_handle_t handle)
+static ddf_fun_t *driver_get_function(list_t *functions, devman_handle_t handle)
 {
 	ddf_fun_t *fun = NULL;
 	
 	fibril_mutex_lock(&functions_mutex);
-	link_t *link = functions->next;
 	
-	while (link != functions) {
+	list_foreach(*functions, link) {
 		fun = list_get_instance(link, ddf_fun_t, link);
 		if (fun->handle == handle) {
 			fibril_mutex_unlock(&functions_mutex);
 			return fun;
 		}
-		
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&functions_mutex);
@@ -284,15 +277,14 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 	/* Accept connection */
 	async_answer_0(iid, EOK);
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DRIVER_ADD_DEVICE:
 			driver_add_device(callid, &call);
 			break;
@@ -302,11 +294,11 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/**
- * Generic client connection handler both for applications and drivers.
+/** Generic client connection handler both for applications and drivers.
  *
- * @param drv		True for driver client, false for other clients
- *			(applications, services etc.).
+ * @param drv True for driver client, false for other clients
+ *            (applications, services, etc.).
+ *
  */
 static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 {
@@ -316,7 +308,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 */
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	ddf_fun_t *fun = driver_get_function(&functions, handle);
-
+	
 	if (fun == NULL) {
 		printf("%s: driver_connection_gen error - no function with handle"
 		    " %" PRIun " was found.\n", driver->name, handle);
@@ -324,6 +316,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		return;
 	}
 	
+	if (fun->conn_handler != NULL) {
+		/* Driver has a custom connection handler. */
+		(*fun->conn_handler)(iid, icall, (void *)fun);
+		return;
+	}
 	
 	/*
 	 * TODO - if the client is not a driver, check whether it is allowed to
@@ -339,85 +336,81 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	if (ret != EOK)
 		return;
 	
-	while (1) {
+	while (true) {
 		ipc_callid_t callid;
 		ipc_call_t call;
 		callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
-		int iface_idx;
 		
-		switch  (method) {
-		case IPC_M_PHONE_HUNGUP:
+		if (!method) {
 			/* Close device function */
 			if (fun->ops != NULL && fun->ops->close != NULL)
 				(*fun->ops->close)(fun);
 			async_answer_0(callid, EOK);
 			return;
-		default:
-			/* convert ipc interface id to interface index */
-			
-			iface_idx = DEV_IFACE_IDX(method);
-			
-			if (!is_valid_iface_idx(iface_idx)) {
-				remote_handler_t *default_handler =
-				    function_get_default_handler(fun);
-				if (default_handler != NULL) {
-					(*default_handler)(fun, callid, &call);
-					break;
-				}
-				
-				/*
-				 * Function has no such interface and
-				 * default handler is not provided.
-				 */
-				printf("%s: driver_connection_gen error - "
-				    "invalid interface id %d.",
-				    driver->name, iface_idx);
-				async_answer_0(callid, ENOTSUP);
-				break;
-			}
-			
-			/* calling one of the function's interfaces */
-			
-			/* Get the interface ops structure. */
-			void *ops = function_get_ops(fun, iface_idx);
-			if (ops == NULL) {
-				printf("%s: driver_connection_gen error - ",
-				    driver->name);
-				printf("Function with handle %" PRIun " has no interface "
-				    "with id %d.\n", handle, iface_idx);
-				async_answer_0(callid, ENOTSUP);
-				break;
-			}
-			
-			/*
-			 * Get the corresponding interface for remote request
-			 * handling ("remote interface").
-			 */
-			remote_iface_t *rem_iface = get_remote_iface(iface_idx);
-			assert(rem_iface != NULL);
-			
-			/* get the method of the remote interface */
-			sysarg_t iface_method_idx = IPC_GET_ARG1(call);
-			remote_iface_func_ptr_t iface_method_ptr =
-			    get_remote_method(rem_iface, iface_method_idx);
-			if (iface_method_ptr == NULL) {
-				/* The interface has not such method */
-				printf("%s: driver_connection_gen error - "
-				    "invalid interface method.", driver->name);
-				async_answer_0(callid, ENOTSUP);
-				break;
-			}
-			
-			/*
-			 * Call the remote interface's method, which will
-			 * receive parameters from the remote client and it will
-			 * pass it to the corresponding local interface method
-			 * associated with the function by its driver.
-			 */
-			(*iface_method_ptr)(fun, ops, callid, &call);
-			break;
 		}
+		
+		/* Convert ipc interface id to interface index */
+		
+		int iface_idx = DEV_IFACE_IDX(method);
+		
+		if (!is_valid_iface_idx(iface_idx)) {
+			remote_handler_t *default_handler =
+			    function_get_default_handler(fun);
+			if (default_handler != NULL) {
+				(*default_handler)(fun, callid, &call);
+				continue;
+			}
+			
+			/*
+			 * Function has no such interface and
+			 * default handler is not provided.
+			 */
+			printf("%s: driver_connection_gen error - "
+			    "invalid interface id %d.",
+			    driver->name, iface_idx);
+			async_answer_0(callid, ENOTSUP);
+			continue;
+		}
+		
+		/* Calling one of the function's interfaces */
+		
+		/* Get the interface ops structure. */
+		void *ops = function_get_ops(fun, iface_idx);
+		if (ops == NULL) {
+			printf("%s: driver_connection_gen error - ", driver->name);
+			printf("Function with handle %" PRIun " has no interface "
+			    "with id %d.\n", handle, iface_idx);
+			async_answer_0(callid, ENOTSUP);
+			continue;
+		}
+		
+		/*
+		 * Get the corresponding interface for remote request
+		 * handling ("remote interface").
+		 */
+		remote_iface_t *rem_iface = get_remote_iface(iface_idx);
+		assert(rem_iface != NULL);
+		
+		/* get the method of the remote interface */
+		sysarg_t iface_method_idx = IPC_GET_ARG1(call);
+		remote_iface_func_ptr_t iface_method_ptr =
+		    get_remote_method(rem_iface, iface_method_idx);
+		if (iface_method_ptr == NULL) {
+			/* The interface has not such method */
+			printf("%s: driver_connection_gen error - "
+			    "invalid interface method.", driver->name);
+			async_answer_0(callid, ENOTSUP);
+			continue;
+		}
+		
+		/*
+		 * Call the remote interface's method, which will
+		 * receive parameters from the remote client and it will
+		 * pass it to the corresponding local interface method
+		 * associated with the function by its driver.
+		 */
+		(*iface_method_ptr)(fun, ops, callid, &call);
 	}
 }
 
@@ -432,7 +425,7 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Function for handling connections to device driver. */
-static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Select interface */
 	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {

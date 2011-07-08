@@ -186,7 +186,6 @@ int ext2fs_global_fini(void)
 int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 {
 	EXT2FS_DBG("(%" PRIun ", -)", devmap_handle);
-	link_t *link;
 	ext2fs_instance_t *tmp;
 	
 	fibril_mutex_lock(&instance_list_mutex);
@@ -197,7 +196,7 @@ int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 		return EINVAL;
 	}
 
-	for (link = instance_list.next; link != &instance_list; link = link->next) {
+	list_foreach(instance_list, link) {
 		tmp = list_get_instance(link, ext2fs_instance_t, link);
 		
 		if (tmp->devmap_handle == devmap_handle) {

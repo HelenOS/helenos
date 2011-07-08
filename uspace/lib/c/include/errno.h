@@ -55,6 +55,18 @@ extern int *__errno(void) __attribute__((const));
 #define EIO           (-265)
 #define EMLINK        (-266)
 
+/** Bad checksum. */
+#define EBADCHECKSUM  (-300)
+
+/** USB: stalled operation. */
+#define ESTALL (-301)
+
+/** Empty resource (no data). */
+#define EEMPTY (-302)
+
+/** Negative acknowledgment. */
+#define ENAK (-303)
+
 /** An API function is called while another blocking function is in progress. */
 #define EINPROGRESS  (-10036)
 

@@ -38,26 +38,24 @@
  * The skeleton has to be part of each internetwork layer module.
  */
 
-#include <async.h>
-#include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <adt/measured_strings.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
 /** Module initialization.
  *
  * This has to be implemented in user code.
  *
- * @param[in] net_phone Networking module phone.
+ * @param[in] sess Networking module session.
  *
  * @return EOK on success.
  * @return Other error codes as defined for each specific module
  *         initialize function.
  *
  */
-extern int il_initialize(int net_phone);
+extern int il_initialize(async_sess_t *sess);
 
 /** Process the internetwork layer module message.
  *
@@ -75,7 +73,7 @@ extern int il_initialize(int net_phone);
 extern int il_module_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count);
 
-extern int il_module_start(int);
+extern int il_module_start(sysarg_t);
 
 #endif
 

@@ -81,7 +81,7 @@ buddy_system_create(buddy_system_t *b, uint8_t max_order,
 	/*
 	 * Use memory after our own structure.
 	 */
-	b->order = (link_t *) (&b[1]);
+	b->order = (list_t *) (&b[1]);
 	
 	for (i = 0; i <= max_order; i++)
 		list_initialize(&b->order[i]);
@@ -175,8 +175,8 @@ link_t *buddy_system_alloc(buddy_system_t *b, uint8_t i)
 	 * If the list of order i is not empty,
 	 * the request can be immediatelly satisfied.
 	 */
-	if (!list_empty(&b->order[i])) {
-		res = b->order[i].next;
+	res = list_first(&b->order[i]);
+	if (res != NULL) {
 		list_remove(res);
 		b->op->mark_busy(b, res);
 		return res;

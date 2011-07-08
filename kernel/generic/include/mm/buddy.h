@@ -71,7 +71,7 @@ typedef struct {
 typedef struct buddy_system {
 	/** Maximal order of block which can be stored by buddy system. */
 	uint8_t max_order;
-	link_t *order;
+	list_t *order;
 	buddy_system_operations_t *op;
 	/** Pointer to be used by the implementation. */
 	void *data;

@@ -38,23 +38,44 @@
  */
 
 #include <clipboard.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
+#include <fibril_synch.h>
 #include <async.h>
 #include <str.h>
 #include <errno.h>
 #include <malloc.h>
 
-static int clip_phone = -1;
+static FIBRIL_MUTEX_INITIALIZE(clip_mutex);
+static async_sess_t *clip_sess = NULL;
 
-/** Connect to clipboard server
+/** Start an async exchange on the clipboard session.
+ *
+ * @return New exchange.
  *
  */
-static void clip_connect(void)
+static async_exch_t *clip_exchange_begin(void)
 {
-	while (clip_phone < 0)
-		clip_phone = service_connect_blocking(SERVICE_CLIPBOARD, 0, 0);
+	fibril_mutex_lock(&clip_mutex);
+	
+	while (clip_sess == NULL)
+		clip_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_CLIPBOARD, 0, 0);
+	
+	fibril_mutex_unlock(&clip_mutex);
+	
+	return async_exchange_begin(clip_sess);
+}
+
+/** Finish an async exchange on the clipboard session.
+ *
+ * @param exch Exchange to be finished.
+ *
+ */
+static void clip_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
 }
 
 /** Copy string to clipboard.
@@ -72,24 +93,22 @@ int clipboard_put_str(const char *str)
 	size_t size = str_size(str);
 	
 	if (size == 0) {
-		async_serialize_start();
-		clip_connect();
-		
-		sysarg_t rc = async_req_1_0(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_NONE);
-		
-		async_serialize_end();
+		async_exch_t *exch = clip_exchange_begin();
+		sysarg_t rc = async_req_1_0(exch, CLIPBOARD_PUT_DATA,
+		    CLIPBOARD_TAG_NONE);
+		clip_exchange_end(exch);
 		
 		return (int) rc;
 	} else {
-		async_serialize_start();
-		clip_connect();
+		async_exch_t *exch = clip_exchange_begin();
+		aid_t req = async_send_1(exch, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_DATA,
+		    NULL);
+		sysarg_t rc = async_data_write_start(exch, (void *) str, size);
+		clip_exchange_end(exch);
 		
-		aid_t req = async_send_1(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_DATA, NULL);
-		sysarg_t rc = async_data_write_start(clip_phone, (void *) str, size);
 		if (rc != EOK) {
 			sysarg_t rc_orig;
 			async_wait_for(req, &rc_orig);
-			async_serialize_end();
 			if (rc_orig == EOK)
 				return (int) rc;
 			else
@@ -97,7 +116,6 @@ int clipboard_put_str(const char *str)
 		}
 		
 		async_wait_for(req, &rc);
-		async_serialize_end();
 		
 		return (int) rc;
 	}
@@ -116,14 +134,13 @@ int clipboard_get_str(char **str)
 {
 	/* Loop until clipboard read succesful */
 	while (true) {
-		async_serialize_start();
-		clip_connect();
+		async_exch_t *exch = clip_exchange_begin();
 		
 		sysarg_t size;
 		sysarg_t tag;
-		sysarg_t rc = async_req_0_2(clip_phone, CLIPBOARD_CONTENT, &size, &tag);
+		sysarg_t rc = async_req_0_2(exch, CLIPBOARD_CONTENT, &size, &tag);
 		
-		async_serialize_end();
+		clip_exchange_end(exch);
 		
 		if (rc != EOK)
 			return (int) rc;
@@ -144,23 +161,22 @@ int clipboard_get_str(char **str)
 			if (sbuf == NULL)
 				return ENOMEM;
 			
-			async_serialize_start();
+			exch = clip_exchange_begin();
+			aid_t req = async_send_1(exch, CLIPBOARD_GET_DATA, tag, NULL);
+			rc = async_data_read_start(exch, (void *) sbuf, size);
+			clip_exchange_end(exch);
 			
-			aid_t req = async_send_1(clip_phone, CLIPBOARD_GET_DATA, tag, NULL);
-			rc = async_data_read_start(clip_phone, (void *) sbuf, size);
 			if ((int) rc == EOVERFLOW) {
 				/*
 				 * The data in the clipboard has changed since
 				 * the last call of CLIPBOARD_CONTENT
 				 */
-				async_serialize_end();
 				break;
 			}
 			
 			if (rc != EOK) {
 				sysarg_t rc_orig;
 				async_wait_for(req, &rc_orig);
-				async_serialize_end();
 				if (rc_orig == EOK)
 					return (int) rc;
 				else
@@ -168,7 +184,6 @@ int clipboard_get_str(char **str)
 			}
 			
 			async_wait_for(req, &rc);
-			async_serialize_end();
 			
 			if (rc == EOK) {
 				sbuf[size] = 0;

@@ -39,11 +39,9 @@
 
 #include <ipc/services.h>
 #include <sys/time.h>
+#include <async.h>
 
-/** Default timeout for incoming connections in microseconds (1 sec). */
-#define ICMP_CONNECT_TIMEOUT  1000000
-
-extern int icmp_connect_module(suseconds_t);
+extern async_sess_t *icmp_connect_module(void);
 
 #endif
 

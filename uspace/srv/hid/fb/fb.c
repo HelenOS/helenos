@@ -58,14 +58,15 @@
 #include <stdio.h>
 #include <byteorder.h>
 #include <io/screenbuffer.h>
-
 #include "font-8x16.h"
 #include "fb.h"
 #include "main.h"
 #include "ppm.h"
-
 #include "pointer.xbm"
 #include "pointer_mask.xbm"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define DEFAULT_BGCOLOR  0xf0f0f0
 #define DEFAULT_FGCOLOR  0x000000
@@ -1574,7 +1575,8 @@ static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
 /** Function for handling connections to FB
  *
  */
-static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	unsigned int vp = 0;
 	viewport_t *vport = &viewports[vp];
@@ -1619,8 +1621,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (anim_handle(callid, &call, vp))
 			continue;
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		if (!IPC_GET_IMETHOD(call)) {
 			client_connected = false;
 			
 			/* Cleanup other viewports */
@@ -1629,7 +1630,9 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			/* Exit thread */
 			return;
+		}
 		
+		switch (IPC_GET_IMETHOD(call)) {
 		case FB_PUTCHAR:
 			ch = IPC_GET_ARG1(call);
 			col = IPC_GET_ARG2(call);

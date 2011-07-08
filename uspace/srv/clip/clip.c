@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <bool.h>
 #include <async.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <malloc.h>
@@ -147,20 +147,19 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
-static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case CLIPBOARD_PUT_DATA:
 			clip_put_data(callid, &call);
 			break;
@@ -178,14 +177,15 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS clipboard service\n");
+	printf("%s: HelenOS clipboard service\n", NAME);
 	
 	async_set_client_connection(clip_connection);
 	
 	if (service_register(SERVICE_CLIPBOARD) != EOK)
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	
 	/* Never reached */

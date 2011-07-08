@@ -83,9 +83,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/tick.c \
 	arch/$(KARCH)/src/drivers/kbd.c \
-	arch/$(KARCH)/src/drivers/sgcn.c \
 	arch/$(KARCH)/src/drivers/pci.c \
-	arch/$(KARCH)/src/drivers/fhc.c \
 	arch/$(KARCH)/src/trap/$(USARCH)/interrupt.c
 
 ifeq ($(USARCH),sun4v)

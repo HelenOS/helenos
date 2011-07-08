@@ -35,7 +35,6 @@
  */
 
 #include <packet_server.h>
-
 #include <align.h>
 #include <assert.h>
 #include <async.h>
@@ -316,17 +315,16 @@ static int packet_reply(packet_t *packet)
  * @return		Other error codes as defined for the
  *			packet_release_wrapper() function.
  */
-int
-packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
+int packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     size_t *answer_count)
 {
 	packet_t *packet;
-
-	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	*answer_count = 0;
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_PACKET_CREATE_1:
 		packet = packet_get_local(DEFAULT_ADDR_LEN, DEFAULT_PREFIX,
 		    IPC_GET_CONTENT(*call), DEFAULT_SUFFIX);

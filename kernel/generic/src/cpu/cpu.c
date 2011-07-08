@@ -81,7 +81,7 @@ void cpu_init(void) {
 			unsigned int j;
 			for (j = 0; j < RQ_COUNT; j++) {
 				irq_spinlock_initialize(&cpus[i].rq[j].lock, "cpus[].rq[].lock");
-				list_initialize(&cpus[i].rq[j].rq_head);
+				list_initialize(&cpus[i].rq[j].rq);
 			}
 		}
 		

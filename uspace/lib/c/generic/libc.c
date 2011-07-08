@@ -48,7 +48,6 @@
 #include <loader/pcb.h>
 #include "private/libc.h"
 #include "private/async.h"
-#include "private/async_sess.h"
 #include "private/malloc.h"
 #include "private/io.h"
 
@@ -63,7 +62,6 @@ void __main(void *pcb_ptr)
 	/* Initialize user task run-time environment */
 	__malloc_init();
 	__async_init();
-	__async_sess_init();
 	
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)

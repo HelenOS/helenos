@@ -37,6 +37,7 @@
 #ifndef NET_ARP_H_
 #define NET_ARP_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <net/device.h>
@@ -103,8 +104,8 @@ struct arp_device {
 	hw_type_t hardware;
 	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Device module phone. */
-	int phone;
+	/** Device module session. */
+	async_sess_t *sess;
 	
 	/**
 	 * Protocol map.
@@ -121,8 +122,9 @@ struct arp_globals {
 	/** ARP address cache. */
 	arp_cache_t cache;
 	
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
+	
 	/** Safety lock. */
 	fibril_mutex_t lock;
 };

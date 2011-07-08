@@ -47,12 +47,16 @@
 #include <errno.h>
 #include <ipc/adb.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <assert.h>
 #include "cuda_adb.h"
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
+
 #define NAME "cuda_adb"
 
-static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int cuda_init(void);
 static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
@@ -188,7 +192,7 @@ int main(int argc, char *argv[])
 }
 
 /** Character device connection handler */
-static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -218,11 +222,14 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case IPC_M_CONNECT_TO_ME:
 			if (adb_dev[dev_addr].client_phone != -1) {
 				retval = ELIMIT;
@@ -478,7 +485,7 @@ static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
 	if (adb_dev[dev_addr].client_phone == -1)
 		return;
 
-	async_msg_1(adb_dev[dev_addr].client_phone, ADB_REG_NOTIF, reg_val);
+	async_obsolete_msg_1(adb_dev[dev_addr].client_phone, ADB_REG_NOTIF, reg_val);
 }
 
 static void cuda_autopoll_set(bool enable)

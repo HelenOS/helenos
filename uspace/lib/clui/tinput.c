@@ -53,10 +53,10 @@ static void tinput_sel_get_bounds(tinput_t *, size_t *, size_t *);
 static bool tinput_sel_active(tinput_t *);
 static void tinput_sel_all(tinput_t *);
 static void tinput_sel_delete(tinput_t *);
-static void tinput_key_ctrl(tinput_t *, console_event_t *);
-static void tinput_key_shift(tinput_t *, console_event_t *);
-static void tinput_key_ctrl_shift(tinput_t *, console_event_t *);
-static void tinput_key_unmod(tinput_t *, console_event_t *);
+static void tinput_key_ctrl(tinput_t *, kbd_event_t *);
+static void tinput_key_shift(tinput_t *, kbd_event_t *);
+static void tinput_key_ctrl_shift(tinput_t *, kbd_event_t *);
+static void tinput_key_unmod(tinput_t *, kbd_event_t *);
 static void tinput_pre_seek(tinput_t *, bool);
 static void tinput_post_seek(tinput_t *, bool);
 
@@ -87,9 +87,9 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 	size_t sb;
 	tinput_sel_get_bounds(ti, &sa, &sb);
 	
-	console_set_pos(fphone(stdout), (ti->col0 + start) % ti->con_cols,
+	console_set_pos(ti->console, (ti->col0 + start) % ti->con_cols,
 	    ti->row0 + (ti->col0 + start) / ti->con_cols);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	console_set_style(ti->console, STYLE_NORMAL);
 	
 	size_t p = start;
 	if (p < sa) {
@@ -100,8 +100,9 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 	}
 	
 	if (p < sb) {
-		fflush(stdout);
-		console_set_style(fphone(stdout), STYLE_SELECTED);
+		console_flush(ti->console);
+		console_set_style(ti->console, STYLE_SELECTED);
+		
 		memcpy(dbuf, ti->buffer + p,
 		    (sb - p) * sizeof(wchar_t));
 		dbuf[sb - p] = '\0';
@@ -109,8 +110,8 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 		p = sb;
 	}
 	
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	console_flush(ti->console);
+	console_set_style(ti->console, STYLE_NORMAL);
 	
 	if (p < ti->nc) {
 		memcpy(dbuf, ti->buffer + p,
@@ -122,7 +123,7 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 	for (p = 0; p < pad; p++)
 		putchar(' ');
 	
-	fflush(stdout);
+	console_flush(ti->console);
 }
 
 static char *tinput_get_str(tinput_t *ti)
@@ -132,7 +133,7 @@ static char *tinput_get_str(tinput_t *ti)
 
 static void tinput_position_caret(tinput_t *ti)
 {
-	console_set_pos(fphone(stdout), (ti->col0 + ti->pos) % ti->con_cols,
+	console_set_pos(ti->console, (ti->col0 + ti->pos) % ti->con_cols,
 	    ti->row0 + (ti->col0 + ti->pos) / ti->con_cols);
 }
 
@@ -515,6 +516,7 @@ static void tinput_history_seek(tinput_t *ti, int offs)
  */
 static void tinput_init(tinput_t *ti)
 {
+	ti->console = console_init(stdin, stdout);
 	ti->hnum = 0;
 	ti->hpos = 0;
 	ti->history[0] = NULL;
@@ -532,11 +534,11 @@ static void tinput_init(tinput_t *ti)
  */
 int tinput_read(tinput_t *ti, char **dstr)
 {
-	fflush(stdout);
-	if (console_get_size(fphone(stdin), &ti->con_cols, &ti->con_rows) != EOK)
+	console_flush(ti->console);
+	if (console_get_size(ti->console, &ti->con_cols, &ti->con_rows) != EOK)
 		return EIO;
 	
-	if (console_get_pos(fphone(stdin), &ti->col0, &ti->row0) != EOK)
+	if (console_get_pos(ti->console, &ti->col0, &ti->row0) != EOK)
 		return EIO;
 	
 	ti->pos = 0;
@@ -547,10 +549,10 @@ int tinput_read(tinput_t *ti, char **dstr)
 	ti->exit_clui = false;
 	
 	while (!ti->done) {
-		fflush(stdout);
+		console_flush(ti->console);
 		
-		console_event_t ev;
-		if (!console_get_event(fphone(stdin), &ev))
+		kbd_event_t ev;
+		if (!console_get_kbd_event(ti->console, &ev))
 			return EIO;
 		
 		if (ev.type != KEY_PRESS)
@@ -595,7 +597,7 @@ int tinput_read(tinput_t *ti, char **dstr)
 	return EOK;
 }
 
-static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
+static void tinput_key_ctrl(tinput_t *ti, kbd_event_t *ev)
 {
 	switch (ev->key) {
 	case KC_LEFT:
@@ -634,7 +636,7 @@ static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
 	}
 }
 
-static void tinput_key_ctrl_shift(tinput_t *ti, console_event_t *ev)
+static void tinput_key_ctrl_shift(tinput_t *ti, kbd_event_t *ev)
 {
 	switch (ev->key) {
 	case KC_LEFT:
@@ -654,7 +656,7 @@ static void tinput_key_ctrl_shift(tinput_t *ti, console_event_t *ev)
 	}
 }
 
-static void tinput_key_shift(tinput_t *ti, console_event_t *ev)
+static void tinput_key_shift(tinput_t *ti, kbd_event_t *ev)
 {
 	switch (ev->key) {
 	case KC_LEFT:
@@ -680,7 +682,7 @@ static void tinput_key_shift(tinput_t *ti, console_event_t *ev)
 	}
 }
 
-static void tinput_key_unmod(tinput_t *ti, console_event_t *ev)
+static void tinput_key_unmod(tinput_t *ti, kbd_event_t *ev)
 {
 	switch (ev->key) {
 	case KC_ENTER:

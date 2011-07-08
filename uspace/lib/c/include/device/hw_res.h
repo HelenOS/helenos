@@ -25,17 +25,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 /** @addtogroup libc
  * @{
  */
 /** @file
  */
- 
+
 #ifndef LIBC_DEVICE_HW_RES_H_
 #define LIBC_DEVICE_HW_RES_H_
 
 #include <ipc/dev_iface.h>
+#include <async.h>
 #include <bool.h>
 
 /** HW resource provider interface */
@@ -47,7 +48,7 @@ typedef enum {
 /** HW resource types */
 typedef enum {
 	INTERRUPT,
-	IO_RANGE, 
+	IO_RANGE,
 	MEM_RANGE
 } hw_res_type_t;
 
@@ -65,13 +66,13 @@ typedef struct {
 			endianness_t endianness;
 			size_t size;
 		} mem_range;
-
+		
 		struct {
 			uint64_t address;
 			endianness_t endianness;
 			size_t size;
 		} io_range;
-
+		
 		struct {
 			int irq;
 		} interrupt;
@@ -87,15 +88,14 @@ static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 {
 	if (hw_res->resources != NULL) {
 		free(hw_res->resources);
-
 		hw_res->resources = NULL;
 	}
-
+	
 	hw_res->count = 0;
 }
 
-extern int hw_res_get_resource_list(int, hw_resource_list_t *);
-extern bool hw_res_enable_interrupt(int);
+extern int hw_res_get_resource_list(async_sess_t *, hw_resource_list_t *);
+extern bool hw_res_enable_interrupt(async_sess_t *);
 
 #endif
 

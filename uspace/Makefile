@@ -43,6 +43,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/lsusb \
 	app/mkfat \
 	app/redir \
 	app/sbi \
@@ -53,12 +54,15 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/usbinfo \
+	app/vuhid \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
+	app/mkbd \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -75,13 +79,10 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
-	srv/fs/pipefs \
 	srv/fs/ext2fs \
-	srv/hid/adb_mouse \
-	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
-	srv/hid/kbd \
+	srv/hid/input \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
 	srv/hw/netif/ne2000 \
@@ -92,11 +93,22 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root \
-	drv/rootvirt \
-	drv/test1 \
-	drv/test2 \
-	drv/test3
+	drv/infrastructure/root \
+	drv/infrastructure/rootvirt \
+	drv/test/test1 \
+	drv/test/test2 \
+	drv/test/test3 \
+	drv/bus/usb/ehci \
+	drv/bus/usb/ohci \
+	drv/bus/usb/uhci \
+	drv/bus/usb/uhcirh \
+	drv/bus/usb/usbflbk \
+	drv/bus/usb/usbhid \
+	drv/bus/usb/usbhub \
+	drv/bus/usb/usbmast \
+	drv/bus/usb/usbmid \
+	drv/bus/usb/usbmouse \
+	drv/bus/usb/vhc
 
 ## Networking
 #
@@ -114,31 +126,32 @@ endif
 
 ifeq ($(UARCH),amd64)
 	DIRS += \
-		drv/rootpc \
-		drv/pciintel \
-		drv/isa \
-		drv/ns8250 \
+		drv/infrastructure/rootpc \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
 	DIRS += \
-		drv/rootpc \
-		drv/pciintel \
-		drv/isa \
-		drv/ns8250 \
+		drv/infrastructure/rootpc \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
-	DIRS += srv/hw/bus/cuda_adb
+	DIRS += \
+		drv/infrastructure/rootmac \
+		srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/irc/fhc \
 		srv/hw/irc/obio
 endif
 
@@ -150,12 +163,18 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/scsi \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
 	lib/net \
-	lib/ext2
+	lib/ext2 \
+	lib/usb \
+	lib/usbhost \
+	lib/usbdev \
+	lib/usbhid \
+	lib/usbvirt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

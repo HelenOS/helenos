@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup sgcnfb SGCN
- * @brief	userland driver of the Serengeti console output
+/** @defgroup niagarafb
+ * @brief	userland driver of the Niagara console output
  * @{
  */
  

@@ -74,7 +74,7 @@ int sheet_init(sheet_t *sh)
 	if (sh->data == NULL)
 		return ENOMEM;
 
-	list_initialize(&sh->tags_head);
+	list_initialize(&sh->tags);
 
 	return EOK;
 }
@@ -96,7 +96,6 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 {
 	char *ipp;
 	size_t sz;
-	link_t *link;
 	tag_t *tag;
 	char *newp;
 
@@ -120,16 +119,13 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 
 	/* Adjust tags. */
 
-	link = sh->tags_head.next;
-	while (link != &sh->tags_head) {
+	list_foreach(sh->tags, link) {
 		tag = list_get_instance(link, tag_t, link);
 
 		if (tag->b_off > pos->b_off)
 			tag->b_off += sz;
 		else if (tag->b_off == pos->b_off && dir == dir_before)
 			tag->b_off += sz;
-
-		link = link->next;
 	}
 
 	return EOK;
@@ -149,7 +145,6 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 {
 	char *spp;
 	size_t sz;
-	link_t *link;
 	tag_t *tag;
 	char *newp;
 	size_t shrink_size;
@@ -161,16 +156,13 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 	sh->text_size -= sz;
 
 	/* Adjust tags. */
-	link = sh->tags_head.next;
-	while (link != &sh->tags_head) {
+	list_foreach(sh->tags, link) {
 		tag = list_get_instance(link, tag_t, link);
 
 		if (tag->b_off >= epos->b_off)
 			tag->b_off -= sz;
 		else if (tag->b_off >= spos->b_off)
 			tag->b_off = spos->b_off;
-
-		link = link->next;
 	}
 
 	/* See if we should free up some memory. */
@@ -327,7 +319,7 @@ void sheet_place_tag(sheet_t *sh, spt_t const *pt, tag_t *tag)
 {
 	tag->b_off = pt->b_off;
 	tag->sh = sh;
-	list_append(&tag->link, &sh->tags_head);
+	list_append(&tag->link, &sh->tags);
 }
 
 /** Remove a tag from the sheet. */
