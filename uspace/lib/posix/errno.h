@@ -66,7 +66,7 @@
 #undef errno
 #define errno (*__posix_errno())
 
-extern int *__posix_errno(void) __attribute__((const));
+extern int *__posix_errno(void);
 
 #define __TOP_ERRNO (-NO_DATA)
 
