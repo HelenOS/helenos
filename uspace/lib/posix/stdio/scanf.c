@@ -205,7 +205,7 @@ static int _undo_stream(_input_provider *self)
 		 * place to retreat to inside the window. Seek the source backwards
 		 * and flush the window. Regarding the scanf, this could happend only
 		 * when matching unbounded string (%s) or unbounded scanset (%[) not
-		 * containing newline, and at the same time newline is the character
+		 * containing newline, while at the same time newline is the character
 		 * that breaks the matching process. */
 		int rc = posix_fseek(
 		    self->source.stream, -1, SEEK_CUR);
@@ -348,31 +348,34 @@ static inline int is_length_mod(int c, int _c, int *modifier)
 {
 	assert(modifier);
 
-	/* Check whether the modifier was not already recognized. */
-	if (*modifier != LMOD_NONE) {
-		/* Format string is invalid. Notify the caller. */
-		*modifier = LMOD_NONE;
-		return 1;
-	}
-
 	switch (c) {
 	case 'h':
-		*modifier = _c == 'h' ? LMOD_hh : LMOD_h;
+		/* Check whether the modifier was not already recognized. */
+		if (*modifier == LMOD_NONE) {
+			*modifier = _c == 'h' ? LMOD_hh : LMOD_h;
+		} else {
+			/* Format string is invalid. Notify the caller. */
+			*modifier = LMOD_NONE;
+		}
 		return 1;
 	case 'l':
-		*modifier = _c == 'l' ? LMOD_ll : LMOD_l;
+		if (*modifier == LMOD_NONE) {
+			*modifier = _c == 'l' ? LMOD_ll : LMOD_l;
+		} else {
+			*modifier = LMOD_NONE;
+		}
 		return 1;
 	case 'j':
-		*modifier = LMOD_j;
+		*modifier = *modifier == LMOD_NONE ? LMOD_j : LMOD_NONE;
 		return 1;
 	case 'z':
-		*modifier = LMOD_z;
+		*modifier = *modifier == LMOD_NONE ? LMOD_z : LMOD_NONE;
 		return 1;
 	case 't':
-		*modifier = LMOD_t;
+		*modifier = *modifier == LMOD_NONE ? LMOD_t : LMOD_NONE;
 		return 1;
 	case 'L':
-		*modifier = LMOD_L;
+		*modifier = *modifier == LMOD_NONE ? LMOD_L : LMOD_NONE;
 		return 1;
 	default:
 		return 0;
@@ -557,7 +560,7 @@ static inline int _internal_scanf(
 					break;
 				}
 				char *fmt_new = NULL;
-				width = posix_strtol(fmt - 1, &fmt_new, 10);
+				width = posix_strtol(fmt, &fmt_new, 10);
 				if (width != 0) {
 					fmt = fmt_new;
 				} else {
@@ -617,7 +620,7 @@ static inline int _internal_scanf(
 					 * can be borrowed. */
 					in->undo(in);
 				}
-				
+
 				const char *cur_borrowed = NULL;
 				const char *cur_limited = NULL;
 				char *cur_updated = NULL;
@@ -667,7 +670,7 @@ static inline int _internal_scanf(
 					break;
 				}
 
-				/* If nto supressed, assign the converted integer into
+				/* If not supressed, assign the converted integer into
 				 * the next output argument. */
 				if (!assign_supress) {
 					if (int_conv_unsigned) {
@@ -1214,6 +1217,121 @@ int posix_vsscanf(
 	provider.source.string = s;
 	return _internal_scanf(&provider, format, arg);
 }
+
+// FIXME: put the testcases somewhere else
+
+#if 0
+
+//#include <stdio.h>
+//#include <malloc.h>
+//#include <string.h>
+
+#define test_val(fmt, exp_val, act_val) \
+	if (exp_val == act_val) { \
+		printf("succ, expected "fmt", actual "fmt"\n", exp_val, act_val); \
+	} else { \
+		printf("fail, expected "fmt", actual "fmt"\n", exp_val, act_val); \
+		++fail; \
+	}
+
+#define test_str(fmt, exp_str, act_str) \
+	if (posix_strcmp(exp_str, act_str) == 0) { \
+		printf("succ, expected "fmt", actual "fmt"\n", exp_str, act_str); \
+	} else { \
+		printf("fail, expected "fmt", actual "fmt"\n", exp_str, act_str); \
+		++fail; \
+	}
+
+void __posix_scanf_test(void);
+void __posix_scanf_test(void)
+{
+	int fail = 0;
+
+	int ret;
+
+	unsigned char uhh;
+	signed char shh;
+	unsigned short uh;
+	short sh;
+	unsigned udef;
+	int sdef;
+	unsigned long ul;
+	long sl;
+	unsigned long long ull;
+	long long sll;
+	void *p;
+	
+	float f;
+	double d;
+	long double ld;
+
+	char str[20];
+	char seq[20];
+	char scanset[20];
+
+	char *pstr;
+	char *pseq;
+	char *pscanset;
+	
+	ret = posix_sscanf(
+	    "\n j tt % \t -121314 98765 aqw 0765 0x77 0xABCDEF88 -99 884",
+	    " j tt %%%3hhd%1hhu%3hd %3hu%u aqw%n %lo%llx %p %li %lld",
+	    &shh, &uhh, &sh, &uh, &udef, &sdef, &ul, &ull, &p, &sl, &sll);
+	test_val("%d", -12, shh);
+	test_val("%u", 1, uhh);
+	test_val("%d", 314, sh);
+	test_val("%u", 987, uh);
+	test_val("%u", 65, udef);
+	test_val("%d", 28, sdef);
+	test_val("%lo", (unsigned long) 0765, ul);
+	test_val("%llx", (unsigned long long) 0x77, ull);
+	test_val("%p", (void *) 0xABCDEF88, p);
+	test_val("%ld", (long) -99, sl);
+	test_val("%lld", (long long) 884, sll);
+	test_val("%d", 10, ret);
+
+	ret = posix_sscanf(
+	    "\n \t\t1.0 -0x555.AP10 1234.5678e12",
+	    "%f %lf %Lf",
+	    &f, &d, &ld);
+	test_val("%f", 1.0, f);
+	test_val("%lf", (double) -0x555.AP10, d);
+	test_val("%Lf", (long double) 1234.5678e12, ld);
+	test_val("%d", 3, ret);
+	 
+	ret = posix_sscanf(
+	    "\n\n\thello world    \n",
+	    "%5s %ms",
+	    str, &pstr);
+	test_str("%s", "hello", str);
+	test_str("%s", "world", pstr);
+	test_val("%d", 2, ret);
+	free(pstr);
+
+	ret = posix_sscanf(
+	    "\n\n\thello world    \n",
+	    " %5c %mc",
+	    seq, &pseq);
+	seq[5] = '\0';
+	pseq[1] = '\0';
+	test_str("%s", "hello", seq);
+	test_str("%s", "w", pseq);
+	test_val("%d", 2, ret);
+	free(pseq);
+
+	ret = posix_sscanf(
+	    "\n\n\th-e-l-l-o world-]    \n",
+	    " %9[-eh-o] %m[^]-]",
+	    scanset, &pscanset);
+	test_str("%s", "h-e-l-l-o", scanset);
+	test_str("%s", "world", pscanset);
+	test_val("%d", 2, ret);
+	free(pscanset);
+
+	printf("Failed: %d\n", fail);
+}
+
+#endif
 
 /** @}
  */
