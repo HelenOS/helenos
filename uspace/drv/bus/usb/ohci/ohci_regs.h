@@ -35,9 +35,15 @@
 #define DRV_OHCI_OHCI_REGS_H
 #include <stdint.h>
 
+#define LEGACY_REGS_OFFSET 0x100
+
 /** OHCI memory mapped registers structure */
 typedef struct ohci_regs {
 	const volatile uint32_t revision;
+#define R_REVISION_MASK (0x3f)
+#define R_REVISION_SHIFT (0)
+#define R_LEGACY_FLAG   (0x80)
+
 	volatile uint32_t control;
 #define C_CSBR_MASK (0x3) /* Control-bulk service ratio */
 #define C_CSBR_1_1  (0x0)
@@ -57,6 +63,15 @@ typedef struct ohci_regs {
 #define C_HCFS_OPERATIONAL (0x2)
 #define C_HCFS_SUSPEND     (0x3)
 #define C_HCFS_SHIFT       (6)
+
+#define C_HCFS_GET(reg) \
+	((reg >> C_HCFS_SHIFT) & C_HCFS_MASK)
+#define C_HCFS_SET(reg, hcfs_state) \
+do { \
+	reg = (reg & ~(C_HCFS_MASK << C_HCFS_SHIFT)) \
+	    | ((hcfs_state & C_HCFS_MASK) << C_HCFS_SHIFT); \
+} while (0)
+
 
 #define C_IR  (1 << 8)   /* Interrupt routing, make sure it's 0 */
 #define C_RWC (1 << 9)   /* Remote wakeup connected, host specific */

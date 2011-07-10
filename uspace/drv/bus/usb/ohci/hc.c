@@ -146,9 +146,8 @@ if (ret != EOK) { \
 #undef CHECK_RET_RETURN
 
 	fibril_mutex_initialize(&instance->guard);
-	hc_gain_control(instance);
 
-	rh_init(&instance->rh, instance->registers);
+	hc_gain_control(instance);
 
 	if (!interrupts) {
 		instance->interrupt_emulator =
@@ -156,14 +155,27 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
+	rh_init(&instance->rh, instance->registers);
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Get number of commands used in IRQ code.
+ * @return Number of commands.
+ */
 size_t hc_irq_cmd_count(void)
 {
 	return sizeof(ohci_irq_commands) / sizeof(irq_cmd_t);
 }
 /*----------------------------------------------------------------------------*/
+/** Generate IRQ code commands.
+ * @param[out] cmds Place to store the commands.
+ * @param[in] cmd_size Size of the place (bytes).
+ * @param[in] regs Physical address of device's registers.
+ * @param[in] reg_size Size of the register area (bytes).
+ *
+ * @return Error code.
+ */
 int hc_get_irq_commands(
     irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size)
 {
@@ -171,8 +183,8 @@ int hc_get_irq_commands(
 	    || reg_size < sizeof(ohci_regs_t))
 		return EOVERFLOW;
 
-	/* Create register mapping to use in IRQ handler
-	 * this mapping should be present in kernel only.
+	/* Create register mapping to use in IRQ handler.
+	 * This mapping should be present in kernel only.
 	 * Remove it from here when kernel knows how to create mappings
 	 * and accepts physical addresses in IRQ code.
 	 * TODO: remove */
@@ -180,7 +192,9 @@ int hc_get_irq_commands(
 	const int ret = pio_enable((void*)regs, reg_size, (void**)&registers);
 
 	/* Some bogus access to force create mapping. DO NOT remove,
-	 * unless whole virtual addresses in irq is replaced */
+	 * unless whole virtual addresses in irq is replaced
+	 * NOTE: Compiler won't remove this as ohci_regs_t members
+	 * are declared volatile. */
 	registers->revision;
 
 	if (ret != EOK)
@@ -194,7 +208,7 @@ int hc_get_irq_commands(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Create and register endpoint structures
+/** Create and register endpoint structures.
  *
  * @param[in] instance OHCI driver structure.
  * @param[in] address USB address of the device.
@@ -443,37 +457,48 @@ int interrupt_emulator(hc_t *instance)
 /*----------------------------------------------------------------------------*/
 /** Turn off any (BIOS)driver that might be in control of the device.
  *
+ * This function implements routines described in chapter 5.1.1.3 of the OHCI
+ * specification (page 40, pdf page 54).
+ *
  * @param[in] instance OHCI hc driver structure.
  */
 void hc_gain_control(hc_t *instance)
 {
 	assert(instance);
+
 	usb_log_debug("Requesting OHCI control.\n");
-	/* Turn off legacy emulation */
-	volatile uint32_t *ohci_emulation_reg =
-	    (uint32_t*)((char*)instance->registers + 0x100);
-	usb_log_debug("OHCI legacy register %p: %x.\n",
-	    ohci_emulation_reg, *ohci_emulation_reg);
-	/* Do not change A20 state */
-	*ohci_emulation_reg &= 0x100;
-	usb_log_debug("OHCI legacy register %p: %x.\n",
-	    ohci_emulation_reg, *ohci_emulation_reg);
+	if (instance->registers->revision & R_LEGACY_FLAG) {
+		/* Turn off legacy emulation, it should be enough to zero
+		 * the lowest bit, but it caused problems. Thus clear all
+		 * except GateA20 (causes restart on some hw).
+		 * See page 145 of the specs for details.
+		 */
+		volatile uint32_t *ohci_emulation_reg =
+		(uint32_t*)((char*)instance->registers + LEGACY_REGS_OFFSET);
+		usb_log_debug("OHCI legacy register %p: %x.\n",
+		    ohci_emulation_reg, *ohci_emulation_reg);
+		/* Zero everything but A20State */
+		*ohci_emulation_reg &= 0x100;
+		usb_log_debug(
+		    "OHCI legacy register (should be 0 or 0x100) %p: %x.\n",
+		    ohci_emulation_reg, *ohci_emulation_reg);
+	}
 
 	/* Interrupt routing enabled => smm driver is active */
 	if (instance->registers->control & C_IR) {
 		usb_log_debug("SMM driver: request ownership change.\n");
 		instance->registers->command_status |= CS_OCR;
+		/* Hope that SMM actually knows its stuff or we can hang here */
 		while (instance->registers->control & C_IR) {
 			async_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.\n");
-		instance->registers->control &= (C_HCFS_RESET << C_HCFS_SHIFT);
+		C_HCFS_SET(instance->registers->control, C_HCFS_RESET);
 		async_usleep(50000);
 		return;
 	}
 
-	const unsigned hc_status =
-	    (instance->registers->control >> C_HCFS_SHIFT) & C_HCFS_MASK;
+	const unsigned hc_status = C_HCFS_GET(instance->registers->control);
 	/* Interrupt routing disabled && status != USB_RESET => BIOS active */
 	if (hc_status != C_HCFS_RESET) {
 		usb_log_debug("BIOS driver found.\n");
@@ -481,8 +506,8 @@ void hc_gain_control(hc_t *instance)
 			usb_log_info("BIOS driver: HC operational.\n");
 			return;
 		}
-		/* HC is suspended assert resume for 20ms */
-		instance->registers->control &= (C_HCFS_RESUME << C_HCFS_SHIFT);
+		/* HC is suspended assert resume for 20ms, */
+		C_HCFS_SET(instance->registers->control, C_HCFS_RESUME);
 		async_usleep(20000);
 		usb_log_info("BIOS driver: HC resumed.\n");
 		return;
@@ -560,7 +585,7 @@ void hc_start_hw(hc_t *instance)
 	    instance->registers->periodic_start,
 	    instance->registers->periodic_start, frame_length);
 
-	instance->registers->control &= (C_HCFS_OPERATIONAL << C_HCFS_SHIFT);
+	C_HCFS_SET(instance->registers->control, C_HCFS_OPERATIONAL);
 	usb_log_debug("OHCI HC up and running (ctl_reg=0x%x).\n",
 	    instance->registers->control);
 }
