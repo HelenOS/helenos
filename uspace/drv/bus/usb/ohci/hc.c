@@ -176,15 +176,19 @@ int hc_get_irq_commands(
 	 * Remove it from here when kernel knows how to create mappings
 	 * and accepts physical addresses in IRQ code.
 	 * TODO: remove */
-	void *registers;
-	const int ret = pio_enable((void*)regs, reg_size, &registers);
+	ohci_regs_t *registers;
+	const int ret = pio_enable((void*)regs, reg_size, (void**)&registers);
+
+	/* Some bogus access to force create mapping. DO NOT remove,
+	 * unless whole virtual addresses in irq is replaced */
+	registers->revision;
 
 	if (ret != EOK)
 		return ret;
 
 	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
 
-	void *address = (void*)&(((ohci_regs_t*)registers)->interrupt_status);
+	void *address = (void*)&registers->interrupt_status;
 	cmds[0].addr = address;
 	cmds[3].addr = address;
 	return EOK;

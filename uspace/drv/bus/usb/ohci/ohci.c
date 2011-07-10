@@ -193,37 +193,44 @@ if (ret != EOK) { \
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
+	const size_t cmd_count = hc_irq_cmd_count();
+	irq_cmd_t irq_cmds[cmd_count];
+	ret =
+	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to generate IRQ code: %s.\n", str_error(ret));
+
+	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+
+	/* Register handler to avoid interrupt lockup */
+	ret = register_interrupt_handler(device, irq, irq_handler,
+	    &irq_code);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed(%d) to register interrupt handler.\n", ret);
+
+	/* Try to enable interrupts */
 	bool interrupts = false;
-#ifdef CONFIG_USBHC_NO_INTERRUPTS
-	usb_log_warning("Interrupts disabled in OS config, "
-	    "falling back to polling.\n");
-#else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_warning("Failed to enable interrupts: %s.\n",
-		    str_error(ret));
-		usb_log_info("HW interrupts not available, "
-		    "falling back to polling.\n");
+		usb_log_warning("Failed to enable interrupts: %s."
+		    "Falling back to pollling\n", str_error(ret));
+		/* We don't need that handler */
+		unregister_interrupt_handler(device, irq);
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
-#endif
 
 	ret = hc_init(&instance->hc, reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret, "Failed(%d) to init ohci_hcd.\n", ret);
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
+	unregister_interrupt_handler(device, irq); \
 	hc_fini(&instance->hc); \
 	CHECK_RET_DEST_FREE_RETURN(ret, message); \
 } else (void)0
 
-	/* It does no harm if we register this on polling */
-	ret = register_interrupt_handler(device, irq, irq_handler,
-	    &instance->hc.interrupt_code);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register interrupt handler.\n", ret);
 
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_FINI_RETURN(ret,
