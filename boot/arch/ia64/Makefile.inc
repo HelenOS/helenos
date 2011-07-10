@@ -44,6 +44,7 @@ SOURCES = \
 	arch/$(BARCH)/src/boot.S \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/sal.c \
 	arch/$(BARCH)/src/putchar.c \
 	$(COMPS_C) \
 	genarch/src/efi.c \
