@@ -631,38 +631,6 @@ int hc_init_memory(hc_t *instance)
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
 
-	/* Init interrupt code */
-	instance->interrupt_code.cmds = instance->interrupt_commands;
-	instance->interrupt_code.cmdcount = OHCI_NEEDED_IRQ_COMMANDS;
-	{
-		/* Read status register */
-		instance->interrupt_commands[0].cmd = CMD_MEM_READ_32;
-		instance->interrupt_commands[0].dstarg = 1;
-		instance->interrupt_commands[0].addr =
-		    (void*)&instance->registers->interrupt_status;
-
-		/* Test whether we are the interrupt cause */
-		instance->interrupt_commands[1].cmd = CMD_BTEST;
-		instance->interrupt_commands[1].value =
-		    OHCI_USED_INTERRUPTS;
-		instance->interrupt_commands[1].srcarg = 1;
-		instance->interrupt_commands[1].dstarg = 2;
-
-		/* Predicate cleaning and accepting */
-		instance->interrupt_commands[2].cmd = CMD_PREDICATE;
-		instance->interrupt_commands[2].value = 2;
-		instance->interrupt_commands[2].srcarg = 2;
-
-		/* Write-clean status register */
-		instance->interrupt_commands[3].cmd = CMD_MEM_WRITE_A_32;
-		instance->interrupt_commands[3].srcarg = 1;
-		instance->interrupt_commands[3].addr =
-		    (void*)&instance->registers->interrupt_status;
-
-		/* Accept interrupt */
-		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
-	}
-
 	return EOK;
 }
 
