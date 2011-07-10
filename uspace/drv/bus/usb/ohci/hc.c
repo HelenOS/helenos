@@ -55,6 +55,7 @@ static const irq_cmd_t ohci_irq_commands[] =
 	{ .cmd = CMD_ACCEPT },
 };
 
+static void hc_start(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
@@ -156,6 +157,7 @@ if (ret != EOK) { \
 	}
 
 	rh_init(&instance->rh, instance->registers);
+	hc_start(instance);
 
 	return EOK;
 }
@@ -432,7 +434,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	}
 
 	if (status & I_UE) {
-		hc_start_hw(instance);
+		hc_start(instance);
 	}
 
 }
@@ -523,7 +525,7 @@ void hc_gain_control(hc_t *instance)
  *
  * @param[in] instance OHCI hc driver structure.
  */
-void hc_start_hw(hc_t *instance)
+void hc_start(hc_t *instance)
 {
 	/* OHCI guide page 42 */
 	assert(instance);

@@ -246,7 +246,6 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
 
-	hc_start_hw(&instance->hc);
 	hc_register_hub(&instance->hc, instance->rh_fun);
 	return EOK;
 

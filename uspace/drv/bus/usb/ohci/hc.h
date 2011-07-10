@@ -81,7 +81,6 @@ size_t hc_irq_cmd_count(void);
 int hc_get_irq_commands(
     irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size);
 int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
-void hc_start_hw(hc_t *instance);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 
 /** Safely dispose host controller internal structures
