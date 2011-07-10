@@ -45,6 +45,16 @@
 
 #define OHCI_USED_INTERRUPTS \
     (I_SO | I_WDH | I_UE | I_RHSC)
+
+static const irq_cmd_t ohci_irq_commands[] =
+{
+	{ .cmd = CMD_MEM_READ_32, .dstarg = 1, .addr = NULL /*filled later*/ },
+	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2, .value = OHCI_USED_INTERRUPTS },
+	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
+	{ .cmd = CMD_MEM_WRITE_A_32, .srcarg = 1, .addr = NULL /*filled later*/ },
+	{ .cmd = CMD_ACCEPT },
+};
+
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
@@ -149,7 +159,38 @@ if (ret != EOK) { \
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Create end register endpoint structures
+size_t hc_irq_cmd_count(void)
+{
+	return sizeof(ohci_irq_commands) / sizeof(irq_cmd_t);
+}
+/*----------------------------------------------------------------------------*/
+int hc_get_irq_commands(
+    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size)
+{
+	if (cmd_size < sizeof(ohci_irq_commands)
+	    || reg_size < sizeof(ohci_regs_t))
+		return EOVERFLOW;
+
+	/* Create register mapping to use in IRQ handler
+	 * this mapping should be present in kernel only.
+	 * Remove it from here when kernel knows how to create mappings
+	 * and accepts physical addresses in IRQ code.
+	 * TODO: remove */
+	void *registers;
+	const int ret = pio_enable((void*)regs, reg_size, &registers);
+
+	if (ret != EOK)
+		return ret;
+
+	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
+
+	void *address = (void*)&(((ohci_regs_t*)registers)->interrupt_status);
+	cmds[0].addr = address;
+	cmds[3].addr = address;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** Create and register endpoint structures
  *
  * @param[in] instance OHCI driver structure.
  * @param[in] address USB address of the device.
@@ -620,6 +661,7 @@ int hc_init_memory(hc_t *instance)
 
 	return EOK;
 }
+
 /**
  * @}
  */
