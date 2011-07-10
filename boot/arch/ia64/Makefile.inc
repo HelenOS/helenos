@@ -46,6 +46,7 @@ SOURCES = \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/putchar.c \
 	$(COMPS_C) \
+	genarch/src/efi.c \
 	genarch/src/division.c \
 	generic/src/balloc.c \
 	generic/src/memstr.c \
