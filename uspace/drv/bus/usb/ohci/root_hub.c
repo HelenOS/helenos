@@ -658,7 +658,12 @@ int request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 
 	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
-		return ENOTSUP;
+		instance->address = setup_request->value;
+		TRANSFER_OK(0);
+	case USB_DEVREQ_SET_CONFIGURATION:
+		usb_log_debug("USB_DEVREQ_SET_CONFIGURATION\n");
+		/* We don't need to do anything */
+		TRANSFER_OK(0);
 
 	default:
 		usb_log_error("Invalid HUB request: %d\n",
@@ -712,13 +717,10 @@ int ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
 	case USB_DEVREQ_CLEAR_FEATURE:
 	case USB_DEVREQ_SET_FEATURE:
 	case USB_DEVREQ_SET_ADDRESS:
+	case USB_DEVREQ_SET_CONFIGURATION:
 		usb_log_debug2("Processing request without "
 		    "additional data\n");
 		return request_without_data(instance, request);
-	case USB_DEVREQ_SET_CONFIGURATION:
-		usb_log_debug2("Processing request with input\n");
-		/* We don't need to do anything */
-		TRANSFER_OK(0);
 	case USB_DEVREQ_SET_DESCRIPTOR: /* Not supported by OHCI RH */
 	default:
 		usb_log_error("Received unsupported request: %d.\n",
