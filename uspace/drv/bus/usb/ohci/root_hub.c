@@ -161,7 +161,7 @@ static const uint32_t port_clear_feature_valid_mask =
  */
 static const uint32_t port_status_change_mask = RHPS_CHANGE_WC_MASK;
 
-static int create_serialized_hub_descriptor(rh_t *instance);
+static void create_serialized_hub_descriptor(rh_t *instance);
 
 static int rh_init_descriptors(rh_t *instance);
 
@@ -226,6 +226,7 @@ static inline int process_address_set_request(rh_t *instance, uint16_t address)
 int rh_init(rh_t *instance, ohci_regs_t *regs)
 {
 	assert(instance);
+	assert(regs);
 
 	instance->registers = regs;
 	instance->port_count =
@@ -320,7 +321,7 @@ void rh_interrupt(rh_t *instance)
  * @param instance Root hub instance
  * @return Error code
  */
-int create_serialized_hub_descriptor(rh_t *instance)
+void create_serialized_hub_descriptor(rh_t *instance)
 {
 	assert(instance);
 
@@ -328,20 +329,20 @@ int create_serialized_hub_descriptor(rh_t *instance)
 	assert(bit_field_size == 2 || bit_field_size == 1);
 	/* 7 bytes + 2 port bit fields (port count + global bit) */
 	const size_t size = 7 + (bit_field_size * 2);
+	assert(size <= HUB_DESCRIPTOR_MAX_SIZE);
+	instance->descriptor_size = size;
 
-	uint8_t *result = malloc(size);
-	if (!result)
-	    return ENOMEM;
+	const uint32_t hub_desc = instance->registers->rh_desc_a;
+	const uint32_t port_desc = instance->registers->rh_desc_b;
 
 	/* bDescLength */
-	result[0] = size;
+	instance->hub_descriptor[0] = size;
 	/* bDescriptorType */
-	result[1] = USB_DESCTYPE_HUB;
+	instance->hub_descriptor[1] = USB_DESCTYPE_HUB;
 	/* bNmbrPorts */
-	result[2] = instance->port_count;
-	const uint32_t hub_desc = instance->registers->rh_desc_a;
+	instance->hub_descriptor[2] = instance->port_count;
 	/* wHubCharacteristics */
-	result[3] = 0 |
+	instance->hub_descriptor[3] = 0 |
 	    /* The lowest 2 bits indicate power switching mode */
 	    (((hub_desc & RHDA_PSM_FLAG)  ? 1 : 0) << 0) |
 	    (((hub_desc & RHDA_NPS_FLAG)  ? 1 : 0) << 1) |
@@ -352,25 +353,23 @@ int create_serialized_hub_descriptor(rh_t *instance)
 	    (((hub_desc & RHDA_NOCP_FLAG) ? 1 : 0) << 4);
 
 	/* Reserved */
-	result[4] = 0;
+	instance->hub_descriptor[4] = 0;
 	/* bPwrOn2PwrGood */
-	result[5] = (hub_desc >> RHDA_POTPGT_SHIFT) & RHDA_POTPGT_MASK;
+	instance->hub_descriptor[5] =
+	    (hub_desc >> RHDA_POTPGT_SHIFT) & RHDA_POTPGT_MASK;
 	/* bHubContrCurrent, root hubs don't need no power. */
-	result[6] = 0;
+	instance->hub_descriptor[6] = 0;
 
-	const uint32_t port_desc = instance->registers->rh_desc_a;
 	/* Device Removable and some legacy 1.0 stuff*/
-	result[7] = (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK & 0xff;
-	result[8] = 0xff;
+	instance->hub_descriptor[7] =
+	    (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK & 0xff;
+	instance->hub_descriptor[8] = 0xff;
 	if (bit_field_size == 2) {
-		result[8]  = (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK >> 8;
-		result[9]  = 0xff;
-		result[10] = 0xff;
+		instance->hub_descriptor[8] =
+		    (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK >> 8;
+		instance->hub_descriptor[9]  = 0xff;
+		instance->hub_descriptor[10] = 0xff;
 	}
-	instance->hub_descriptor = result;
-	instance->descriptor_size = size;
-
-	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Initialize hub descriptors.
@@ -391,9 +390,7 @@ int rh_init_descriptors(rh_t *instance)
 	memcpy(&descriptor, &ohci_rh_conf_descriptor,
 	    sizeof(ohci_rh_conf_descriptor));
 
-	int opResult = create_serialized_hub_descriptor(instance);
-	if (opResult != EOK)
-		return opResult;
+	create_serialized_hub_descriptor(instance);
 
 	descriptor.total_length =
 	    sizeof(usb_standard_configuration_descriptor_t) +

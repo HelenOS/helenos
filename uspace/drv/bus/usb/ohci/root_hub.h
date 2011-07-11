@@ -40,6 +40,9 @@
 #include "ohci_regs.h"
 #include "batch.h"
 
+#define HUB_DESCRIPTOR_MAX_SIZE 11
+#define INTERRUPT_BUFFER_MAX_SIZE 2
+
 /**
  * ohci root hub representation
  */
@@ -53,20 +56,19 @@ typedef struct rh {
 	/** hubs descriptors */
 	usb_device_descriptors_t descriptors;
 	/** interrupt transfer waiting for an actual interrupt to occur */
-	usb_transfer_batch_t * unfinished_interrupt_transfer;
+	usb_transfer_batch_t *unfinished_interrupt_transfer;
 	/** Interrupt mask of changes
 	 *
 	 * OHCI support max 15 ports (specs page 124) + one global bit, it
 	 * gives max 2 bytes.
 	 */
-	uint8_t interrupt_buffer[2];
+	uint8_t interrupt_buffer[INTERRUPT_BUFFER_MAX_SIZE];
 	/** size of interrupt buffer */
 	size_t interrupt_mask_size;
 	/** instance`s descriptor*/
-	uint8_t * hub_descriptor;
+	uint8_t hub_descriptor[HUB_DESCRIPTOR_MAX_SIZE];
 	/** size of hub descriptor */
 	size_t descriptor_size;
-
 
 } rh_t;
 
