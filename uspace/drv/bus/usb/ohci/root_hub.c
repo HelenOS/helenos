@@ -331,19 +331,19 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	/* 7 bytes + 2 port bit fields (port count + global bit) */
 	const size_t size = 7 + (bit_field_size * 2);
 	assert(size <= HUB_DESCRIPTOR_MAX_SIZE);
-	instance->descriptor_size = size;
+	instance->hub_descriptor_size = size;
 
 	const uint32_t hub_desc = instance->registers->rh_desc_a;
 	const uint32_t port_desc = instance->registers->rh_desc_b;
 
 	/* bDescLength */
-	instance->hub_descriptor[0] = size;
+	instance->descriptors.hub[0] = size;
 	/* bDescriptorType */
-	instance->hub_descriptor[1] = USB_DESCTYPE_HUB;
+	instance->descriptors.hub[1] = USB_DESCTYPE_HUB;
 	/* bNmbrPorts */
-	instance->hub_descriptor[2] = instance->port_count;
+	instance->descriptors.hub[2] = instance->port_count;
 	/* wHubCharacteristics */
-	instance->hub_descriptor[3] = 0 |
+	instance->descriptors.hub[3] = 0 |
 	    /* The lowest 2 bits indicate power switching mode */
 	    (((hub_desc & RHDA_PSM_FLAG)  ? 1 : 0) << 0) |
 	    (((hub_desc & RHDA_NPS_FLAG)  ? 1 : 0) << 1) |
@@ -354,22 +354,22 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	    (((hub_desc & RHDA_NOCP_FLAG) ? 1 : 0) << 4);
 
 	/* Reserved */
-	instance->hub_descriptor[4] = 0;
+	instance->descriptors.hub[4] = 0;
 	/* bPwrOn2PwrGood */
-	instance->hub_descriptor[5] =
+	instance->descriptors.hub[5] =
 	    (hub_desc >> RHDA_POTPGT_SHIFT) & RHDA_POTPGT_MASK;
 	/* bHubContrCurrent, root hubs don't need no power. */
-	instance->hub_descriptor[6] = 0;
+	instance->descriptors.hub[6] = 0;
 
 	/* Device Removable and some legacy 1.0 stuff*/
-	instance->hub_descriptor[7] =
+	instance->descriptors.hub[7] =
 	    (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK & 0xff;
-	instance->hub_descriptor[8] = 0xff;
+	instance->descriptors.hub[8] = 0xff;
 	if (bit_field_size == 2) {
-		instance->hub_descriptor[8] =
+		instance->descriptors.hub[8] =
 		    (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK >> 8;
-		instance->hub_descriptor[9]  = 0xff;
-		instance->hub_descriptor[10] = 0xff;
+		instance->descriptors.hub[9]  = 0xff;
+		instance->descriptors.hub[10] = 0xff;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -384,40 +384,16 @@ int rh_init_descriptors(rh_t *instance)
 {
 	assert(instance);
 
-	memcpy(&instance->descriptors.device, &ohci_rh_device_descriptor,
-	    sizeof(ohci_rh_device_descriptor));
-
-	usb_standard_configuration_descriptor_t descriptor;
-	memcpy(&descriptor, &ohci_rh_conf_descriptor,
-	    sizeof(ohci_rh_conf_descriptor));
-
+	instance->descriptors.configuration = ohci_rh_conf_descriptor;
+	instance->descriptors.interface = ohci_rh_iface_descriptor;
+	instance->descriptors.endpoint = ohci_rh_ep_descriptor;
 	create_serialized_hub_descriptor(instance);
 
-	descriptor.total_length =
+	instance->descriptors.configuration.total_length =
 	    sizeof(usb_standard_configuration_descriptor_t) +
 	    sizeof(usb_standard_endpoint_descriptor_t) +
 	    sizeof(usb_standard_interface_descriptor_t) +
-	    instance->descriptor_size;
-
-	uint8_t *full_config_descriptor = malloc(descriptor.total_length);
-	if (!full_config_descriptor)
-		return ENOMEM;
-
-	uint8_t *place = full_config_descriptor;
-	memcpy(place, &descriptor, sizeof(descriptor));
-
-	place += sizeof(descriptor);
-	memcpy(place, &ohci_rh_iface_descriptor,
-	    sizeof(ohci_rh_iface_descriptor));
-
-	place += sizeof(ohci_rh_iface_descriptor);
-	memcpy(place, &ohci_rh_ep_descriptor, sizeof(ohci_rh_ep_descriptor));
-
-	place += sizeof(ohci_rh_iface_descriptor);
-	memcpy(place, instance->hub_descriptor, instance->descriptor_size);
-
-	instance->descriptors.configuration = full_config_descriptor;
-	instance->descriptors.configuration_size = descriptor.total_length;
+	    instance->hub_descriptor_size;
 
 	return EOK;
 }
@@ -565,8 +541,8 @@ int process_get_descriptor_request(
 	{
 	case USB_DESCTYPE_HUB:
 		usb_log_debug2("USB_DESCTYPE_HUB\n");
-		result_descriptor = instance->hub_descriptor;
-		size = instance->descriptor_size;
+		result_descriptor = instance->descriptors.hub;
+		size = instance->hub_descriptor_size;
 		break;
 
 	case USB_DESCTYPE_DEVICE:
@@ -577,8 +553,8 @@ int process_get_descriptor_request(
 
 	case USB_DESCTYPE_CONFIGURATION:
 		usb_log_debug2("USB_DESCTYPE_CONFIGURATION\n");
-		result_descriptor = instance->descriptors.configuration;
-		size = instance->descriptors.configuration_size;
+		result_descriptor = &instance->descriptors;
+		size = instance->descriptors.configuration.total_length;
 		break;
 
 	case USB_DESCTYPE_INTERFACE:
