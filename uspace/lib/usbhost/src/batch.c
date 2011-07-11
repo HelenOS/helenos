@@ -104,11 +104,12 @@ void usb_transfer_batch_call_out_and_dispose(usb_transfer_batch_t *instance)
  * @param[in] instance Batch structure to use.
  *
  */
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
+void usb_transfer_batch_finish_error(usb_transfer_batch_t *instance, int error)
 {
 	assert(instance);
 	assert(instance->ep);
 	assert(instance->next_step);
+	instance->error = error;
 	endpoint_release(instance->ep);
 	instance->next_step(instance);
 }

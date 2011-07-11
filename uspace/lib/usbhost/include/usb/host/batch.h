@@ -92,15 +92,13 @@ void usb_transfer_batch_init(
 
 void usb_transfer_batch_call_in_and_dispose(usb_transfer_batch_t *instance);
 void usb_transfer_batch_call_out_and_dispose(usb_transfer_batch_t *instance);
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance);
+void usb_transfer_batch_finish_error(usb_transfer_batch_t *instance, int error);
 void usb_transfer_batch_dispose(usb_transfer_batch_t *instance);
 
-static inline void usb_transfer_batch_finish_error(
-    usb_transfer_batch_t *instance, int error)
+static inline void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->error = error;
-	usb_transfer_batch_finish(instance);
+	usb_transfer_batch_finish_error(instance, EOK);
 }
 
 static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)
