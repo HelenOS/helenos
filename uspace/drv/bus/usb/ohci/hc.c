@@ -55,112 +55,12 @@ static const irq_cmd_t ohci_irq_commands[] =
 	{ .cmd = CMD_ACCEPT },
 };
 
-static void hc_start(hc_t *instance);
-static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
+static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
-/*----------------------------------------------------------------------------*/
-/** Announce OHCI root hub to the DDF
- *
- * @param[in] instance OHCI driver intance
- * @param[in] hub_fun DDF fuction representing OHCI root hub
- * @return Error code
- */
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
-{
-	assert(instance);
-	assert(hub_fun);
+static int interrupt_emulator(hc_t *instance);
 
-	const usb_address_t hub_address =
-	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
-	if (hub_address <= 0) {
-		usb_log_error("Failed to get OHCI root hub address: %s\n",
-		    str_error(hub_address));
-		return hub_address;
-	}
-	instance->rh.address = hub_address;
-	usb_device_keeper_bind(
-	    &instance->manager, hub_address, hub_fun->handle);
-
-#define CHECK_RET_RELEASE(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	hc_remove_endpoint(instance, hub_address, 0, USB_DIRECTION_BOTH); \
-	usb_device_keeper_release(&instance->manager, hub_address); \
-	return ret; \
-} else (void)0
-
-	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
-	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
-	CHECK_RET_RELEASE(ret, "Failed(%d) to add OHCI rh endpoint 0.\n", ret);
-
-	char *match_str = NULL;
-	/* DDF needs heap allocated string */
-	ret = asprintf(&match_str, "usb&class=hub");
-	ret = ret > 0 ? 0 : ret;
-	CHECK_RET_RELEASE(ret, "Failed(%d) to create match-id string.\n", ret);
-
-	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
-	CHECK_RET_RELEASE(ret, "Failed(%d) add root hub match-id.\n", ret);
-
-	ret = ddf_fun_bind(hub_fun);
-	CHECK_RET_RELEASE(ret, "Failed(%d) to bind root hub function.\n", ret);
-
-	return EOK;
-#undef CHECK_RET_RELEASE
-}
-/*----------------------------------------------------------------------------*/
-/** Initialize OHCI hc driver structure
- *
- * @param[in] instance Memory place for the structure.
- * @param[in] regs Address of the memory mapped I/O registers.
- * @param[in] reg_size Size of the memory mapped area.
- * @param[in] interrupts True if w interrupts should be used
- * @return Error code
- */
-int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
-{
-	assert(instance);
-	int ret = EOK;
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
-	ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	CHECK_RET_RETURN(ret,
-	    "Failed(%d) to gain access to device registers: %s.\n",
-	    ret, str_error(ret));
-
-	list_initialize(&instance->pending_batches);
-	usb_device_keeper_init(&instance->manager);
-	ret = usb_endpoint_manager_init(&instance->ep_manager,
-	    BANDWIDTH_AVAILABLE_USB11);
-	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
-	    str_error(ret));
-
-	ret = hc_init_memory(instance);
-	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
-	    str_error(ret));
-#undef CHECK_RET_RETURN
-
-	fibril_mutex_initialize(&instance->guard);
-
-	hc_gain_control(instance);
-
-	if (!interrupts) {
-		instance->interrupt_emulator =
-		    fibril_create((int(*)(void*))interrupt_emulator, instance);
-		fibril_add_ready(instance->interrupt_emulator);
-	}
-
-	rh_init(&instance->rh, instance->registers);
-	hc_start(instance);
-
-	return EOK;
-}
 /*----------------------------------------------------------------------------*/
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
@@ -207,6 +107,112 @@ int hc_get_irq_commands(
 	void *address = (void*)&registers->interrupt_status;
 	cmds[0].addr = address;
 	cmds[3].addr = address;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** Announce OHCI root hub to the DDF
+ *
+ * @param[in] instance OHCI driver intance
+ * @param[in] hub_fun DDF fuction representing OHCI root hub
+ * @return Error code
+ */
+int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
+{
+	assert(instance);
+	assert(hub_fun);
+
+	const usb_address_t hub_address =
+	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
+	if (hub_address <= 0) {
+		usb_log_error("Failed to get OHCI root hub address: %s\n",
+		    str_error(hub_address));
+		return hub_address;
+	}
+	instance->rh.address = hub_address;
+	usb_device_keeper_bind(
+	    &instance->manager, hub_address, hub_fun->handle);
+
+#define CHECK_RET_RELEASE(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	hc_remove_endpoint(instance, hub_address, 0, USB_DIRECTION_BOTH); \
+	usb_device_keeper_release(&instance->manager, hub_address); \
+	return ret; \
+} else (void)0
+
+	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
+	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
+	CHECK_RET_RELEASE(ret,
+	    "Failed to add OHCI root hub endpoint 0: %s.\n", str_error(ret));
+
+	char *match_str = NULL;
+	/* DDF needs heap allocated string. */
+	ret = asprintf(&match_str, "usb&class=hub");
+	ret = ret > 0 ? 0 : ret;
+	CHECK_RET_RELEASE(ret,
+	    "Failed to create match-id string: %s.\n", str_error(ret));
+
+	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
+	CHECK_RET_RELEASE(ret,
+	    "Failed to add root hub match-id: %s.\n", str_error(ret));
+
+	ret = ddf_fun_bind(hub_fun);
+	CHECK_RET_RELEASE(ret,
+	    "Failed to bind root hub function: %s.\n", str_error(ret));
+
+	return EOK;
+#undef CHECK_RET_RELEASE
+}
+/*----------------------------------------------------------------------------*/
+/** Initialize OHCI hc driver structure
+ *
+ * @param[in] instance Memory place for the structure.
+ * @param[in] regs Address of the memory mapped I/O registers.
+ * @param[in] reg_size Size of the memory mapped area.
+ * @param[in] interrupts True if w interrupts should be used
+ * @return Error code
+ */
+int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
+{
+	assert(instance);
+
+#define CHECK_RET_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+} else (void)0
+
+	int ret =
+	    pio_enable((void*)regs, reg_size, (void**)&instance->registers);
+	CHECK_RET_RETURN(ret,
+	    "Failed to gain access to device registers: %s.\n", str_error(ret));
+
+	list_initialize(&instance->pending_batches);
+	usb_device_keeper_init(&instance->manager);
+
+	ret = usb_endpoint_manager_init(&instance->ep_manager,
+	    BANDWIDTH_AVAILABLE_USB11);
+	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
+	    str_error(ret));
+
+	ret = hc_init_memory(instance);
+	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
+	    str_error(ret));
+#undef CHECK_RET_RETURN
+
+	fibril_mutex_initialize(&instance->guard);
+
+	hc_gain_control(instance);
+
+	if (!interrupts) {
+		instance->interrupt_emulator =
+		    fibril_create((int(*)(void*))interrupt_emulator, instance);
+		fibril_add_ready(instance->interrupt_emulator);
+	}
+
+	rh_init(&instance->rh, instance->registers);
+	hc_start(instance);
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -605,8 +611,8 @@ do { \
 	const char *name = usb_str_transfer_type(type); \
 	int ret = endpoint_list_init(&instance->lists[type], name); \
 	if (ret != EOK) { \
-		usb_log_error("Failed(%d) to setup %s endpoint list.\n", \
-		    ret, name); \
+		usb_log_error("Failed to setup %s endpoint list: %s.\n", \
+		    name, str_error(ret)); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_ISOCHRONOUS]);\
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_INTERRUPT]); \
 		endpoint_list_fini(&instance->lists[USB_TRANSFER_CONTROL]); \
