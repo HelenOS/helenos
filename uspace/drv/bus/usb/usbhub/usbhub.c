@@ -248,10 +248,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
 	}
 	usb_log_debug("setting port count to %d\n", descriptor->ports_count);
 	hub_info->port_count = descriptor->ports_count;
-	bool is_power_switched =
-	    ((descriptor->hub_characteristics & 1) == 0);
-	bool has_individual_port_powering =
-	    ((descriptor->hub_characteristics & 1) != 0);
+	const bool is_power_switched =
+	    ((descriptor->hub_characteristics & 0x2) == 0);
 	hub_info->ports = malloc(
 	    sizeof (usb_hub_port_t) * (hub_info->port_count + 1));
 	if (!hub_info->ports) {
@@ -263,6 +261,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
 	}
 	if (is_power_switched) {
 		usb_log_debug("Hub power switched\n");
+		const bool has_individual_port_powering =
+		    descriptor->hub_characteristics & 0x1;
 
 		if (!has_individual_port_powering) {
 			//this setting actually makes no difference

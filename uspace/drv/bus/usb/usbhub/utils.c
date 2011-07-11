@@ -146,7 +146,7 @@ void usb_deserialize_hub_desriptor(
 	uint8_t * sdescriptor = serialized_descriptor;
 	descriptor->ports_count = sdescriptor[2];
 	/// @fixme handling of endianness??
-	descriptor->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
+	descriptor->hub_characteristics = sdescriptor[3] + 256 * sdescriptor[4];
 	descriptor->pwr_on_2_good_time = sdescriptor[5];
 	descriptor->current_requirement = sdescriptor[6];
 	size_t var_size = (descriptor->ports_count + 7) / 8;
