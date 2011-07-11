@@ -223,22 +223,30 @@ static inline int process_address_set_request(rh_t *instance, uint16_t address)
 /** Root hub initialization
  * @return Error code.
  */
-int rh_init(rh_t *instance, ohci_regs_t *regs) {
+int rh_init(rh_t *instance, ohci_regs_t *regs)
+{
 	assert(instance);
+
 	instance->registers = regs;
 	instance->port_count =
 	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
-	int opResult = rh_init_descriptors(instance);
-	if (opResult != EOK) {
-		return opResult;
+	if (port_count > 15) {
+		usb_log_error("OHCI specification does not allow more than 15"
+		    " ports. Max 15 ports will be used");
+		instance->port_count = 15;
 	}
-	// set port power mode to no-power-switching
+
+	int ret = rh_init_descriptors(instance);
+	if (ret != EOK) {
+		return ret;
+	}
+	/* Set port power mode to no-power-switching. */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
 	instance->unfinished_interrupt_transfer = NULL;
-	instance->interrupt_mask_size = (instance->port_count + 8) / 8;
-	instance->interrupt_buffer = malloc(instance->interrupt_mask_size);
-	if (!instance->interrupt_buffer)
-		return ENOMEM;
+	/* Don't forget the hub status bit and round up */
+	instance->interrupt_mask_size = (instance->port_count + 1 + 8) / 8;
+	instance->interrupt_buffer[0] = 0;
+	instance->interrupt_buffer[1] = 0;
 
 	usb_log_info("Root hub (%zu ports) initialized.\n",
 	    instance->port_count);

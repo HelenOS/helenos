@@ -56,11 +56,10 @@ typedef struct rh {
 	usb_transfer_batch_t * unfinished_interrupt_transfer;
 	/** pre-allocated interrupt mask
 	 *
-	 * This is allocated when initializing instance, so that memory
-	 * allocation is not needed when processing request. Buffer is used for
-	 * interrupt bitmask.
+	 * OHCI support max 15 ports (specs page 124) + one global bit, it
+	 * gives max 2 bytes.
 	 */
-	uint8_t * interrupt_buffer;
+	uint8_t interrupt_buffer[2];
 	/** size of interrupt buffer */
 	size_t interrupt_mask_size;
 	/** instance`s descriptor*/
