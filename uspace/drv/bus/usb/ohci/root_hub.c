@@ -155,12 +155,6 @@ static void rh_init_descriptors(rh_t *instance);
 
 static void create_interrupt_mask_in_instance(rh_t *instance);
 
-static int get_port_status_request(
-    rh_t *instance, uint16_t port, usb_transfer_batch_t *request);
-
-static int get_hub_status_request(
-    rh_t *instance, usb_transfer_batch_t *request);
-
 static int get_status_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
@@ -365,55 +359,6 @@ void rh_init_descriptors(rh_t *instance)
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Create answer to port status_request
- *
- * Copy content of corresponding port status register to answer buffer. The
- * format of the port status register and port status data is the same (
- * see OHCI root hub and USB hub documentation).
- *
- * @param instance Root hub instance
- * @param port Port number, counted from 1
- * @param request Structure containing both request and response information
- * @return Error code
- */
-int get_port_status_request(
-    rh_t *instance, uint16_t port, usb_transfer_batch_t * request)
-{
-	assert(instance);
-	assert(request);
-
-	if (port < 1 || port > instance->port_count)
-		return EINVAL;
-
-	const uint32_t data = instance->registers->rh_port_status[port - 1];
-	memcpy(request->data_buffer, &data, 4);
-	TRANSFER_OK(4);
-}
-/*----------------------------------------------------------------------------*/
-/**
- * Create answer to hub status_request.
- *
- * This copies flags in hub status register into the buffer. The format of the
- * status register and status message is the same, according to USB hub
- * specification and OHCI root hub specification.
- *
- * @param instance Root hub instance.
- * @param request Structure containing both request and response information.
- * @return Error code
- */
-int get_hub_status_request(
-    rh_t *instance, usb_transfer_batch_t *request)
-{
-	assert(instance);
-	assert(request);
-
-	const uint32_t data = instance->registers->rh_status &
-	    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
-	memcpy(request->data_buffer, &data, 4);
-	TRANSFER_OK(4);
-}
-/*----------------------------------------------------------------------------*/
-/**
  * Create answer to status request.
  *
  * This might be either hub status or port status request. If neither,
@@ -430,19 +375,28 @@ int get_status_request(rh_t *instance, usb_transfer_batch_t *request)
 	const usb_device_request_setup_packet_t *request_packet =
 	    (usb_device_request_setup_packet_t*)request->setup_buffer;
 
-	const usb_hub_bm_request_type_t request_type =
-	    request_packet->request_type;
-
 	if (request->buffer_size < 4) {
 		usb_log_error("Buffer too small for get status request.\n");
 		return EOVERFLOW;
 	}
 
-	if (request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS)
-		return get_hub_status_request(instance, request);
-	if (request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS)
-		return get_port_status_request(instance,
-		    request_packet->index, request);
+	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS) {
+		const uint32_t data = instance->registers->rh_status &
+		    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
+		memcpy(request->data_buffer, &data, 4);
+		TRANSFER_OK(4);
+	}
+
+	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS) {
+		unsigned port = request_packet->index;
+		if (port < 1 || port > instance->port_count)
+			return EINVAL;
+
+		const uint32_t data =
+		    instance->registers->rh_port_status[port - 1];
+		memcpy(request->data_buffer, &data, 4);
+		TRANSFER_OK(4);
+	}
 
 	return ENOTSUP;
 }
