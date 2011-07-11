@@ -419,7 +419,7 @@ int process_get_port_status_request(
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Create answer to port status_request.
+ * Create answer to hub status_request.
  *
  * This copies flags in hub status register into the buffer. The format of the
  * status register and status message is the same, according to USB hub
@@ -435,12 +435,10 @@ int process_get_hub_status_request(
 	assert(instance);
 	assert(request);
 
-	/* bits, 0,1,16,17 -- TODO: What do they mean?? Why not 0x0303 */
-	const uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
-	const uint32_t data = mask & instance->registers->rh_status;
+	const uint32_t data = instance->registers->rh_status &
+	    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
 	memcpy(request->data_buffer, &data, 4);
 	request->transfered_size = 4;
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
