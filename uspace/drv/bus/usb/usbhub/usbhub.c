@@ -278,7 +278,7 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 			} else {
 				if (!per_port_power) {
 					usb_log_debug(
-					    "Ganged power switching mode,"
+					    "Ganged power switching mode, "
 					    "one port is enough.\n");
 					break;
 				}

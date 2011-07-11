@@ -176,11 +176,16 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 #if OHCI_POWER == 0
 	/* Set port power mode to no power-switching. (always on) */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
+	/* Set to no overcurrent */
+	instance->registers->rh_desc_a |= RHDA_NOCP_FLAG;
 #elif OHCI_POWER == 1
 	/* Set port power mode to no ganged power-switching. */
 	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
 	instance->registers->rh_desc_a &= ~RHDA_PSM_FLAG;
 	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+	/* Set to global over-current */
+	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
+	instance->registers->rh_desc_a &= ~RHDA_OCPM_FLAG;
 #else
 	/* Set port power mode to no per port power-switching. */
 	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
@@ -192,6 +197,9 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	/* Return control to per port state */
 	instance->registers->rh_desc_b |=
 		((1 << (instance->port_count + 1)) - 1) << RHDB_PCC_SHIFT;
+	/* Set per port over-current */
+	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
+	instance->registers->rh_desc_a |= RHDA_OCPM_FLAG;
 #endif
 
 	rh_init_descriptors(instance);
