@@ -489,15 +489,30 @@ int port_feature_set_request(rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
 
-	if (!((1 << feature) & port_set_feature_valid_mask))
-		return EINVAL;
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
 
-	instance->registers->rh_port_status[port - 1] =
-	    (instance->registers->rh_port_status[port - 1] | (1 << feature))
-	    & (~port_clear_feature_valid_mask);
-	return EOK;
+	switch (feature)
+	{
+	case USB_HUB_FEATURE_PORT_POWER:   //8
+		/* No power switching */
+		if (instance->registers->rh_desc_a & RHDA_NPS_FLAG)
+			return EOK;
+		/* Ganged power switching */
+		if (!(instance->registers->rh_desc_a & RHDA_PSM_FLAG)) {
+			instance->registers->rh_status = RHS_SET_GLOBAL_POWER;
+			return EOK;
+		}
+	case USB_HUB_FEATURE_PORT_ENABLE:  //1
+	case USB_HUB_FEATURE_PORT_SUSPEND: //2
+	case USB_HUB_FEATURE_PORT_RESET:   //4
+		/* Nice thing is that these shifts correspond to the position
+		 * of control bits in register */
+		instance->registers->rh_port_status[port - 1] = (1 << feature);
+		return EOK;
+	default:
+		return ENOTSUP;
+	}
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -509,27 +524,51 @@ int port_feature_set_request(rh_t *instance, uint16_t feature, uint16_t port)
  * @param enable enable or disable the specified feature
  * @return error code
  */
-int port_feature_clear_request(
-    rh_t *instance, uint16_t feature, uint16_t port)
+int port_feature_clear_request(rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
 
-	if (!((1 << feature) & port_clear_feature_valid_mask))
-		return EINVAL;
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
 
-	/* Some weird stuff... */
-	if (feature == USB_HUB_FEATURE_PORT_POWER)
-		feature = USB_HUB_FEATURE_PORT_LOW_SPEED;
-	if (feature == USB_HUB_FEATURE_PORT_SUSPEND)
-		feature = USB_HUB_FEATURE_PORT_OVER_CURRENT;
+	/* Enabled features to clear: see page 269 of USB specs */
+	switch (feature)
+	{
+	case USB_HUB_FEATURE_PORT_POWER:          //8
+		/* No power switching */
+		if (instance->registers->rh_desc_a & RHDA_NPS_FLAG)
+			return ENOTSUP;
+		/* Ganged power switching */
+		if (!(instance->registers->rh_desc_a & RHDA_PSM_FLAG)) {
+			instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+			return EOK;
+		}
+		instance->registers->rh_port_status[port - 1] =
+			RHPS_CLEAR_PORT_POWER;
+		return EOK;
 
-	instance->registers->rh_port_status[port - 1] =
-	    (instance->registers->rh_port_status[port - 1]
-	    & (~port_clear_feature_valid_mask))
-	    | (1 << feature);
-	return EOK;
+	case USB_HUB_FEATURE_PORT_ENABLE:         //1
+		instance->registers->rh_port_status[port - 1] =
+			RHPS_CLEAR_PORT_ENABLE;
+		return EOK;
+
+	case USB_HUB_FEATURE_PORT_SUSPEND:        //2
+		instance->registers->rh_port_status[port - 1] =
+			RHPS_CLEAR_PORT_SUSPEND;
+		return EOK;
+
+	case USB_HUB_FEATURE_C_PORT_CONNECTION:   //16
+	case USB_HUB_FEATURE_C_PORT_ENABLE:       //17
+	case USB_HUB_FEATURE_C_PORT_SUSPEND:      //18
+	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: //19
+	case USB_HUB_FEATURE_C_PORT_RESET:        //20
+		/* Nice thing is that these shifts correspond to the position
+		 * of control bits in register */
+		instance->registers->rh_port_status[port - 1] = (1 << feature);
+		return EOK;
+	default:
+		return ENOTSUP;
+	}
 }
 /*----------------------------------------------------------------------------*/
 /**

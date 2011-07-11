@@ -192,7 +192,7 @@ do { \
                                 *        1-turn on port power for ports
                                 *        specified in PPCM(RHDB), or all ports,
                                 *        if power is set globally */
-#define RHS_SET_PORT_POWER RHS_LPSC_FLAG /* synonym for the above */
+#define RHS_SET_GLOBAL_POWER RHS_LPSC_FLAG /* synonym for the above */
 #define RHS_OCIC_FLAG (1 << 17)/* Over-current indicator change   */
 #define RHS_CLEAR_DRWE (1 << 31)
 
