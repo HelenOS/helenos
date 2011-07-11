@@ -234,15 +234,10 @@ int hc_add_endpoint(
     usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
     size_t mps, size_t size, unsigned interval)
 {
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	endpoint_t *ep =
+	    endpoint_get(address, endpoint, direction, type, speed, mps);
 	if (ep == NULL)
 		return ENOMEM;
-	int ret =
-	    endpoint_init(ep, address, endpoint, direction, type, speed, mps);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
 
 	hcd_endpoint_t *hcd_ep = hcd_endpoint_assign(ep);
 	if (hcd_ep == NULL) {
@@ -250,7 +245,8 @@ int hc_add_endpoint(
 		return ENOMEM;
 	}
 
-	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
+	int ret =
+	    usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
 	if (ret != EOK) {
 		hcd_endpoint_clear(ep);
 		endpoint_destroy(ep);
@@ -278,8 +274,6 @@ int hc_add_endpoint(
 		endpoint_list_add_ep(
 		    &instance->lists[ep->transfer_type], hcd_ep);
 		instance->registers->control |= C_PLE | C_IE;
-		break;
-	default:
 		break;
 	}
 
