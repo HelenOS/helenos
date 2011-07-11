@@ -57,7 +57,7 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor = {
 	.device_subclass = 0,
 	.device_version = 0,
 	.length = sizeof (usb_standard_device_descriptor_t),
-	.max_packet_size = 8,
+	.max_packet_size = 64,
 	.vendor_id = 0x16db,
 	.product_id = 0x0001,
 	.str_serial_number = 0,
@@ -100,23 +100,10 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 	.attributes = USB_TRANSFER_INTERRUPT,
 	.descriptor_type = USB_DESCTYPE_ENDPOINT,
 	.endpoint_address = 1 + (1 << 7),
-	.length = sizeof (usb_standard_endpoint_descriptor_t),
-	.max_packet_size = 8,
+	.length = sizeof(usb_standard_endpoint_descriptor_t),
+	.max_packet_size = 2,
 	.poll_interval = 255,
 };
-
-/**
- * bitmask of hub features that are valid to be set
- */
-static const uint32_t hub_set_feature_valid_mask =
-    RHS_LPSC_FLAG |
-    RHS_OCIC_FLAG;
-
-/**
- * bitmask of hub features that are set by writing 1 and cleared by writing 0
- */
-static const uint32_t hub_set_feature_direct_mask =
-    RHS_SET_PORT_POWER;
 
 /**
  * bitmask of port features that are valid to be set
@@ -144,40 +131,21 @@ static const uint32_t port_clear_feature_valid_mask =
 //note that USB_HUB_FEATURE_PORT_POWER bit is translated into
 //USB_HUB_FEATURE_PORT_LOW_SPEED for port set feature request
 
-/**
- * bitmask with port status changes
- */
-static const uint32_t port_status_change_mask = RHPS_CHANGE_WC_MASK;
-
 static void create_serialized_hub_descriptor(rh_t *instance);
-
 static void rh_init_descriptors(rh_t *instance);
-
 static void create_interrupt_mask_in_instance(rh_t *instance);
-
-static int get_status_request(
-    rh_t *instance, usb_transfer_batch_t *request);
-
+static int get_status_request(rh_t *instance, usb_transfer_batch_t *request);
 static int get_descriptor_request(
     rh_t *instance, usb_transfer_batch_t *request);
-
 static int port_feature_set_request(
     rh_t *instance, uint16_t feature, uint16_t port);
-
 static int port_feature_clear_request(
     rh_t *instance, uint16_t feature, uint16_t port);
-
-static int request_with_output(
-    rh_t *instance, usb_transfer_batch_t *request);
-
-static int request_without_data(
-    rh_t *instance, usb_transfer_batch_t *request);
-
+static int request_with_output(rh_t *instance, usb_transfer_batch_t *request);
+static int request_without_data(rh_t *instance, usb_transfer_batch_t *request);
 static int ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
-
-static int interrupt_mask_in_instance(
+static void interrupt_mask_in_instance(
     rh_t *instance, usb_transfer_batch_t *request);
-
 static bool is_zeros(const void *buffer, size_t size);
 
 
@@ -380,6 +348,7 @@ int get_status_request(rh_t *instance, usb_transfer_batch_t *request)
 		return EOVERFLOW;
 	}
 
+	/* Hub status: just filter relevant info from rh_status reg */
 	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS) {
 		const uint32_t data = instance->registers->rh_status &
 		    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
@@ -387,8 +356,10 @@ int get_status_request(rh_t *instance, usb_transfer_batch_t *request)
 		TRANSFER_OK(4);
 	}
 
+	/* Copy appropriate rh_port_status register, OHCI designers were
+	 * kind enough to make those bit values match USB specification */
 	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS) {
-		unsigned port = request_packet->index;
+		const unsigned port = request_packet->index;
 		if (port < 1 || port > instance->port_count)
 			return EINVAL;
 
@@ -416,18 +387,18 @@ void create_interrupt_mask_in_instance(rh_t *instance)
 	assert(instance);
 
 	uint8_t * bitmap = instance->interrupt_buffer;
-	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
-	    | (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
 	bzero(bitmap, instance->interrupt_mask_size);
-	if ((instance->registers->rh_status & mask) != 0) {
+	/* Only local power source change and over-current change can happen */
+	if (instance->registers->rh_status & (RHS_LPSC_FLAG | RHS_OCIC_FLAG)) {
 		bitmap[0] = 1;
 	}
-	mask = port_status_change_mask;
 	size_t port = 1;
 	for (; port <= instance->port_count; ++port) {
-		if ((mask & instance->registers->rh_port_status[port - 1]) != 0) {
+		/* Write-clean bits are those that indicate change */
+		if (RHPS_CHANGE_WC_MASK
+		    & instance->registers->rh_port_status[port - 1]) {
 
-			bitmap[(port) / 8] += 1 << (port % 8);
+			bitmap[(port) / 8] |= 1 << (port % 8);
 		}
 	}
 }
@@ -730,7 +701,7 @@ int ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
 }
 /*----------------------------------------------------------------------------*/
 /**
- * process hanging interrupt request
+ * Process waiting interrupt request
  *
  * If an interrupt transfer has been received and there was no change,
  * the driver stores the transfer information and waits for change to occur.
@@ -742,8 +713,7 @@ int ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
  *
  * @return
  */
-int interrupt_mask_in_instance(
-    rh_t *instance, usb_transfer_batch_t *request)
+void interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -753,8 +723,6 @@ int interrupt_mask_in_instance(
 	request->transfered_size = instance->interrupt_mask_size;
 	instance->unfinished_interrupt_transfer = NULL;
 	usb_transfer_batch_finish_error(request, EOK);
-
-	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /**
