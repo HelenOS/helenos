@@ -133,7 +133,7 @@ static const uint32_t port_clear_feature_valid_mask =
 
 static void create_serialized_hub_descriptor(rh_t *instance);
 static void rh_init_descriptors(rh_t *instance);
-static void create_interrupt_mask_in_instance(rh_t *instance);
+static uint16_t create_interrupt_mask_in_instance(rh_t *instance);
 static int get_status_request(rh_t *instance, usb_transfer_batch_t *request);
 static int get_descriptor_request(
     rh_t *instance, usb_transfer_batch_t *request);
@@ -144,10 +144,6 @@ static int port_feature_clear_request(
 static int request_with_output(rh_t *instance, usb_transfer_batch_t *request);
 static int request_without_data(rh_t *instance, usb_transfer_batch_t *request);
 static int ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
-static void interrupt_mask_in_instance(
-    rh_t *instance, usb_transfer_batch_t *request);
-static bool is_zeros(const void *buffer, size_t size);
-
 
 #define TRANSFER_OK(bytes) \
 do { \
@@ -174,8 +170,6 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 
 	/* Don't forget the hub status bit and round up */
 	instance->interrupt_mask_size = (instance->port_count + 1 + 8) / 8;
-	instance->interrupt_buffer[0] = 0;
-	instance->interrupt_buffer[1] = 0;
 	instance->unfinished_interrupt_transfer = NULL;
 
 	/* Set port power mode to no power-switching. (always on) */
@@ -209,15 +203,19 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 		break;
 	case USB_TRANSFER_INTERRUPT:
 		usb_log_debug("Root hub got INTERRUPT packet\n");
-		create_interrupt_mask_in_instance(instance);
-		if (is_zeros(instance->interrupt_buffer,
-		    instance->interrupt_mask_size)) {
+		const uint16_t mask =
+		    create_interrupt_mask_in_instance(instance);
+		if (mask == 0) {
 			usb_log_debug("No changes..\n");
 			instance->unfinished_interrupt_transfer = request;
 			//will be finished later
 		} else {
 			usb_log_debug("Processing changes..\n");
-			interrupt_mask_in_instance(instance, request);
+			memcpy(request->data_buffer, &mask,
+			    instance->interrupt_mask_size);
+			request->transfered_size = instance->interrupt_mask_size;
+			instance->unfinished_interrupt_transfer = NULL;
+			usb_transfer_batch_finish_error(request, EOK);
 		}
 		break;
 	default:
@@ -239,9 +237,14 @@ void rh_interrupt(rh_t *instance)
 		return;
 
 	usb_log_debug("Finalizing interrupt transfer\n");
-	create_interrupt_mask_in_instance(instance);
-	interrupt_mask_in_instance(instance,
-	    instance->unfinished_interrupt_transfer);
+	const uint16_t mask = create_interrupt_mask_in_instance(instance);
+	memcpy(instance->unfinished_interrupt_transfer->data_buffer,
+	    &mask, instance->interrupt_mask_size);
+	instance->unfinished_interrupt_transfer->transfered_size =
+	   instance->interrupt_mask_size;
+	usb_transfer_batch_finish(instance->unfinished_interrupt_transfer);
+
+	instance->unfinished_interrupt_transfer = NULL;
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -382,15 +385,14 @@ int get_status_request(rh_t *instance, usb_transfer_batch_t *request)
  * Uses instance`s interrupt buffer to store the interrupt information.
  * @param instance root hub instance
  */
-void create_interrupt_mask_in_instance(rh_t *instance)
+uint16_t create_interrupt_mask_in_instance(rh_t *instance)
 {
 	assert(instance);
+	uint16_t mask = 0;
 
-	uint8_t * bitmap = instance->interrupt_buffer;
-	bzero(bitmap, instance->interrupt_mask_size);
 	/* Only local power source change and over-current change can happen */
 	if (instance->registers->rh_status & (RHS_LPSC_FLAG | RHS_OCIC_FLAG)) {
-		bitmap[0] = 1;
+		mask |= 1;
 	}
 	size_t port = 1;
 	for (; port <= instance->port_count; ++port) {
@@ -398,9 +400,10 @@ void create_interrupt_mask_in_instance(rh_t *instance)
 		if (RHPS_CHANGE_WC_MASK
 		    & instance->registers->rh_port_status[port - 1]) {
 
-			bitmap[(port) / 8] |= 1 << (port % 8);
+			mask |= (1 << port);
 		}
 	}
+	return host2uint32_t_le(mask);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -698,51 +701,6 @@ int ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
 		    setup_request->request);
 		return ENOTSUP;
 	}
-}
-/*----------------------------------------------------------------------------*/
-/**
- * Process waiting interrupt request
- *
- * If an interrupt transfer has been received and there was no change,
- * the driver stores the transfer information and waits for change to occur.
- * This routine is called when that happens and it finalizes the interrupt
- * transfer.
- *
- * @param instance hub instance
- * @param request batch request to be processed
- *
- * @return
- */
-void interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch_t *request)
-{
-	assert(instance);
-	assert(request);
-
-	memcpy(request->data_buffer, instance->interrupt_buffer,
-	    instance->interrupt_mask_size);
-	request->transfered_size = instance->interrupt_mask_size;
-	instance->unfinished_interrupt_transfer = NULL;
-	usb_transfer_batch_finish_error(request, EOK);
-}
-/*----------------------------------------------------------------------------*/
-/**
- * return whether the buffer is full of zeros
- *
- * Convenience function.
- * @param buffer
- * @param size
- * @return
- */
-bool is_zeros(const void *buffer, size_t size)
-{
-	if (!buffer) return true;
-	const char * const end = buffer + size;
-	const char *data = buffer;
-	for (; data < end; ++data) {
-		if (*data)
-			return false;
-	}
-	return true;
 }
 
 /**
