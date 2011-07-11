@@ -181,7 +181,7 @@ do { \
                                 *        1-turn off port power for ports
                                 *        specified in PPCM(RHDB), or all ports,
                                 *        if power is set globally */
-#define RHS_CLEAR_PORT_POWER RHS_LPS_FLAG /* synonym for the above */
+#define RHS_CLEAR_GLOBAL_POWER RHS_LPS_FLAG /* synonym for the above */
 #define RHS_OCI_FLAG  (1 <<  1)/* Over-current indicator, if per-port: 0 */
 #define RHS_DRWE_FLAG (1 << 15)/* read: 0-connect status change does not wake HC
                                 *       1-connect status change wakes HC

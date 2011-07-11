@@ -39,6 +39,7 @@
 
 #include "root_hub.h"
 #include <usb/classes/classes.h>
+#include <usb/classes/hub.h>
 #include <usb/dev/driver.h>
 #include "ohci_regs.h"
 
@@ -105,19 +106,6 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 };
 
 /**
- * bitmask of hub features that are valid to be cleared
- */
-static const uint32_t hub_clear_feature_valid_mask =
-    RHS_OCIC_FLAG |
-    RHS_CLEAR_PORT_POWER;
-
-/**
- * bitmask of hub features that are cleared by writing 1 (and not 0)
- */
-static const uint32_t hub_clear_feature_by_writing_one_mask =
-    RHS_CLEAR_PORT_POWER;
-
-/**
  * bitmask of hub features that are valid to be set
  */
 static const uint32_t hub_set_feature_valid_mask =
@@ -182,11 +170,6 @@ static int get_descriptor_request(
 
 static int get_configuration_request(
     rh_t *instance, usb_transfer_batch_t *request);
-
-static int hub_feature_set_request(rh_t *instance, uint16_t feature);
-
-static int hub_feature_clear_request(
-    rh_t *instance, uint16_t feature);
 
 static int port_feature_set_request(
     rh_t *instance, uint16_t feature, uint16_t port);
@@ -608,55 +591,6 @@ int get_configuration_request(
  *
  * @param instance root hub instance
  * @param feature feature selector
- * @return error code
- */
-static int hub_feature_set_request(rh_t *instance,
-    uint16_t feature) {
-	if (!((1 << feature) & hub_set_feature_valid_mask))
-		return EINVAL;
-	if (feature == USB_HUB_FEATURE_C_HUB_LOCAL_POWER)
-		feature = USB_HUB_FEATURE_C_HUB_LOCAL_POWER << 16;
-	instance->registers->rh_status =
-	    (instance->registers->rh_status | (1 << feature))
-	    & (~hub_clear_feature_by_writing_one_mask);
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/**
- * process feature-disabling request on hub
- *
- * @param instance root hub instance
- * @param feature feature selector
- * @return error code
- */
-int hub_feature_clear_request(rh_t *instance, uint16_t feature)
-{
-	assert(instance);
-
-	if (!((1 << feature) & hub_clear_feature_valid_mask))
-		return EINVAL;
-
-	//is the feature cleared directly?
-	if ((1 << feature) & hub_set_feature_direct_mask) {
-		instance->registers->rh_status =
-		    (instance->registers->rh_status & (~(1 << feature)))
-		    & (~hub_clear_feature_by_writing_one_mask);
-	} else {//the feature is cleared by writing '1'
-
-		instance->registers->rh_status =
-		    (instance->registers->rh_status
-		    & (~hub_clear_feature_by_writing_one_mask))
-		    | (1 << feature);
-	}
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/**
- * process feature-enabling request on hub
- *
- * @param instance root hub instance
- * @param feature feature selector
  * @param port port number, counted from 1
  * @param enable enable or disable the specified feature
  * @return error code
@@ -788,39 +722,51 @@ int request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 	switch (setup_request->request)
 	{
 	case USB_DEVREQ_CLEAR_FEATURE:
-		if (request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
-			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
-			return hub_feature_clear_request(instance,
-			    setup_request->value);
-		}
-		if (request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
-			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
+		if (request_type == USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE) {
+			usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE\n");
 			return port_feature_clear_request(instance,
 			    setup_request->value, setup_request->index);
 		}
-		usb_log_error("Invalid HUB clear feature request type: %d\n",
-		    request_type);
-		return EINVAL;
+		if (request_type == USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE) {
+			usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE\n");
+/*
+ * Chapter 11.16.2 specifies that only C_HUB_LOCAL_POWER and
+ * C_HUB_OVER_CURRENT are supported. C_HUB_OVER_CURRENT is represented
+ * by OHCI RHS_OCIC_FLAG. C_HUB_LOCAL_POWER is not supported
+ * as root hubs do not support local power status feature. (OHCI pg. 127)
+ */
+	if (setup_request->value == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
+		instance->registers->rh_status = RHS_OCIC_FLAG;
+		return EOK;
+	}
+		}
+			usb_log_error("Invalid clear feature request type: %d\n",
+			    request_type);
+			return EINVAL;
 
 	case USB_DEVREQ_SET_FEATURE:
-		if (request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
-			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
-			return hub_feature_set_request(instance,
-			    setup_request->value);
-		}
-		if (request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
+		switch (request_type)
+		{
+		case USB_HUB_REQ_TYPE_SET_PORT_FEATURE:
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
 			return port_feature_set_request(instance,
 			    setup_request->value, setup_request->index);
+
+		case USB_HUB_REQ_TYPE_SET_HUB_FEATURE:
+		/* Chapter 11.16.2 specifies that hub can be recipient
+		 * only for C_HUB_LOCAL_POWER and C_HUB_OVER_CURRENT
+		 * features. It makes no sense to SET either. */
+			usb_log_error("Invalid HUB set feature request.\n");
+			return ENOTSUP;
+		default:
+			usb_log_error("Invalid set feature request type: %d\n",
+			    request_type);
+			return EINVAL;
 		}
-		usb_log_error("Invalid HUB set feature request type: %d\n",
-		    request_type);
-		return EINVAL;
 
 	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
-		return address_set_request(instance,
-		    setup_request->value);
+		return address_set_request(instance, setup_request->value);
 
 	default:
 		usb_log_error("Invalid HUB request: %d\n",
