@@ -173,9 +173,6 @@ static int port_feature_set_request(
 static int port_feature_clear_request(
     rh_t *instance, uint16_t feature, uint16_t port);
 
-static int request_with_input(
-    rh_t *instance, usb_transfer_batch_t *request);
-
 static int request_with_output(
     rh_t *instance, usb_transfer_batch_t *request);
 
@@ -194,7 +191,7 @@ static bool is_zeros(const void *buffer, size_t size);
 do { \
 	request->transfered_size = bytes; \
 	return EOK; \
-while (0);
+} while (0)
 
 /** Root hub initialization
  * @return Error code.
@@ -390,8 +387,7 @@ int get_port_status_request(
 
 	const uint32_t data = instance->registers->rh_port_status[port - 1];
 	memcpy(request->data_buffer, &data, 4);
-	request->transfered_size = 4;
-	return EOK;
+	TRANSFER_OK(4);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -414,8 +410,7 @@ int get_hub_status_request(
 	const uint32_t data = instance->registers->rh_status &
 	    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
 	memcpy(request->data_buffer, &data, 4);
-	request->transfered_size = 4;
-	return EOK;
+	TRANSFER_OK(4);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -549,10 +544,9 @@ int get_descriptor_request(
 	if (request->buffer_size < size) {
 		size = request->buffer_size;
 	}
-	memcpy(request->data_buffer, result_descriptor, size);
-	request->transfered_size = size;
 
-	return EOK;
+	memcpy(request->data_buffer, result_descriptor, size);
+	TRANSFER_OK(size);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -564,8 +558,7 @@ int get_descriptor_request(
  * @param enable enable or disable the specified feature
  * @return error code
  */
-int port_feature_set_request(
-    rh_t *instance, uint16_t feature, uint16_t port)
+int port_feature_set_request(rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
 
@@ -609,12 +602,11 @@ int port_feature_clear_request(
 	    (instance->registers->rh_port_status[port - 1]
 	    & (~port_clear_feature_valid_mask))
 	    | (1 << feature);
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /**
- * process one of requests that requere output data
+ * Process a request that requires output data.
  *
  * Request can be one of USB_DEVREQ_GET_STATUS, USB_DEVREQ_GET_DESCRIPTOR or
  * USB_DEVREQ_GET_CONFIGURATION.
@@ -642,35 +634,8 @@ int request_with_output(rh_t *instance, usb_transfer_batch_t *request)
 		if (request->buffer_size != 1)
 			return EINVAL;
 		request->data_buffer[0] = 1;
-		request->transfered_size = 1;
-		return EOK;
+		TRANSFER_OK(1);
 	}
-	return ENOTSUP;
-}
-/*----------------------------------------------------------------------------*/
-/**
- * process one of requests that carry input data
- *
- * Request can be one of USB_DEVREQ_SET_DESCRIPTOR or
- * USB_DEVREQ_SET_CONFIGURATION.
- * @param instance root hub instance
- * @param request structure containing both request and response information
- * @return error code
- */
-int request_with_input(rh_t *instance, usb_transfer_batch_t *request)
-{
-	assert(instance);
-	assert(request);
-
-	const usb_device_request_setup_packet_t *setup_request =
-	    (usb_device_request_setup_packet_t *) request->setup_buffer;
-	request->transfered_size = 0;
-	if (setup_request->request == USB_DEVREQ_SET_CONFIGURATION) {
-		//set and get configuration requests do not have any meaning,
-		//only dummy values are returned
-		return EOK;
-	}
-	/* USB_DEVREQ_SET_DESCRIPTOR is also not supported */
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
@@ -702,12 +667,12 @@ int request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 		}
 		if (request_type == USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE\n");
-/*
- * Chapter 11.16.2 specifies that only C_HUB_LOCAL_POWER and
- * C_HUB_OVER_CURRENT are supported. C_HUB_OVER_CURRENT is represented
- * by OHCI RHS_OCIC_FLAG. C_HUB_LOCAL_POWER is not supported
- * as root hubs do not support local power status feature. (OHCI pg. 127)
- */
+	/*
+	 * Chapter 11.16.2 specifies that only C_HUB_LOCAL_POWER and
+	 * C_HUB_OVER_CURRENT are supported. C_HUB_OVER_CURRENT is represented
+	 * by OHCI RHS_OCIC_FLAG. C_HUB_LOCAL_POWER is not supported
+	 * as root hubs do not support local power status feature.
+	 * (OHCI pg. 127) */
 	if (setup_request->value == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
 		instance->registers->rh_status = RHS_OCIC_FLAG;
 		return EOK;
@@ -796,10 +761,11 @@ int ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug2("Processing request without "
 		    "additional data\n");
 		return request_without_data(instance, request);
-	case USB_DEVREQ_SET_DESCRIPTOR:
 	case USB_DEVREQ_SET_CONFIGURATION:
 		usb_log_debug2("Processing request with input\n");
-		return request_with_input(instance, request);
+		/* We don't need to do anything */
+		TRANSFER_OK(0);
+	case USB_DEVREQ_SET_DESCRIPTOR: /* Not supported by OHCI RH */
 	default:
 		usb_log_error("Received unsupported request: %d.\n",
 		    setup_request->request);
