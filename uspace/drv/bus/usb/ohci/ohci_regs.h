@@ -158,7 +158,7 @@ do { \
 #define RHDA_NPS_FLAG  (1 << 9)  /* No power switch: 1-power on, 0-use PSM*/
 #define RHDA_DT_FLAG   (1 << 10) /* 1-Compound device, must be 0 */
 #define RHDA_OCPM_FLAG (1 << 11) /* Over-current mode: 0-global, 1-per port */
-#define RHDA_NOCP      (1 << 12) /* OC control: 0-use OCPM, 1-OC off */
+#define RHDA_NOCP_FLAG (1 << 12) /* OC control: 0-use OCPM, 1-OC off */
 #define RHDA_POTPGT_MASK (0xff)  /* Power on to power good time */
 #define RHDA_POTPGT_SHIFT (24)
 

@@ -54,7 +54,7 @@ typedef struct rh {
 	usb_device_descriptors_t descriptors;
 	/** interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t * unfinished_interrupt_transfer;
-	/** pre-allocated interrupt mask
+	/** Interrupt mask of changes
 	 *
 	 * OHCI support max 15 ports (specs page 124) + one global bit, it
 	 * gives max 2 bytes.

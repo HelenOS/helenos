@@ -230,7 +230,7 @@ int rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->registers = regs;
 	instance->port_count =
 	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
-	if (port_count > 15) {
+	if (instance->port_count > 15) {
 		usb_log_error("OHCI specification does not allow more than 15"
 		    " ports. Max 15 ports will be used");
 		instance->port_count = 15;
@@ -240,13 +240,14 @@ int rh_init(rh_t *instance, ohci_regs_t *regs)
 	if (ret != EOK) {
 		return ret;
 	}
-	/* Set port power mode to no-power-switching. */
-	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
-	instance->unfinished_interrupt_transfer = NULL;
 	/* Don't forget the hub status bit and round up */
 	instance->interrupt_mask_size = (instance->port_count + 1 + 8) / 8;
 	instance->interrupt_buffer[0] = 0;
 	instance->interrupt_buffer[1] = 0;
+	instance->unfinished_interrupt_transfer = NULL;
+
+	/* Set port power mode to no-power-switching. */
+	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
 
 	usb_log_info("Root hub (%zu ports) initialized.\n",
 	    instance->port_count);
@@ -312,10 +313,9 @@ void rh_interrupt(rh_t *instance)
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Create hub descriptor used in hub-driver <-> hub communication
+ * Create hub descriptor.
  *
- * This means creating bit array from data in root hub registers. For more
- * info see usb hub specification.
+ * For descriptor format see USB hub specification (chapter 11.15.2.1, pg. 263)
  *
  * @param instance Root hub instance
  * @return Error code
@@ -324,40 +324,48 @@ int create_serialized_hub_descriptor(rh_t *instance)
 {
 	assert(instance);
 
-	const size_t size = 7 +
-	    ((instance->port_count + 7) / 8) * 2;
-	uint8_t * result = malloc(size);
+	const size_t bit_field_size = (instance->port_count + 1 + 7) / 8;
+	assert(bit_field_size == 2 || bit_field_size == 1);
+	/* 7 bytes + 2 port bit fields (port count + global bit) */
+	const size_t size = 7 + (bit_field_size * 2);
+
+	uint8_t *result = malloc(size);
 	if (!result)
 	    return ENOMEM;
 
-	bzero(result, size);
-	//size
+	/* bDescLength */
 	result[0] = size;
-	//descriptor type
+	/* bDescriptorType */
 	result[1] = USB_DESCTYPE_HUB;
+	/* bNmbrPorts */
 	result[2] = instance->port_count;
-	const uint32_t hub_desc_reg = instance->registers->rh_desc_a;
-	result[3] =
-	    ((hub_desc_reg >> 8) % 2) +
-	    (((hub_desc_reg >> 9) % 2) << 1) +
-	    (((hub_desc_reg >> 10) % 2) << 2) +
-	    (((hub_desc_reg >> 11) % 2) << 3) +
-	    (((hub_desc_reg >> 12) % 2) << 4);
-	result[4] = 0;
-	result[5] = 50; /*descriptor->pwr_on_2_good_time*/
-	result[6] = 50;
+	const uint32_t hub_desc = instance->registers->rh_desc_a;
+	/* wHubCharacteristics */
+	result[3] = 0 |
+	    /* The lowest 2 bits indicate power switching mode */
+	    (((hub_desc & RHDA_PSM_FLAG)  ? 1 : 0) << 0) |
+	    (((hub_desc & RHDA_NPS_FLAG)  ? 1 : 0) << 1) |
+	    /* Bit 3 indicates device type (compound device) */
+	    (((hub_desc & RHDA_DT_FLAG)   ? 1 : 0) << 2) |
+	    /* Bits 4,5 indicate over-current protection mode */
+	    (((hub_desc & RHDA_OCPM_FLAG) ? 1 : 0) << 3) |
+	    (((hub_desc & RHDA_NOCP_FLAG) ? 1 : 0) << 4);
 
-	size_t port = 1;
-	for (; port <= instance->port_count; ++port) {
-		const uint8_t is_non_removable =
-		    instance->registers->rh_desc_b >> port % 2;
-		result[7 + port / 8] +=
-		    is_non_removable << (port % 8);
-	}
-	const size_t var_size = (instance->port_count + 7) / 8;
-	size_t i = 0;
-	for (; i < var_size; ++i) {
-		result[7 + var_size + i] = 255;
+	/* Reserved */
+	result[4] = 0;
+	/* bPwrOn2PwrGood */
+	result[5] = (hub_desc >> RHDA_POTPGT_SHIFT) & RHDA_POTPGT_MASK;
+	/* bHubContrCurrent, root hubs don't need no power. */
+	result[6] = 0;
+
+	const uint32_t port_desc = instance->registers->rh_desc_a;
+	/* Device Removable and some legacy 1.0 stuff*/
+	result[7] = (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK & 0xff;
+	result[8] = 0xff;
+	if (bit_field_size == 2) {
+		result[8]  = (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK >> 8;
+		result[9]  = 0xff;
+		result[10] = 0xff;
 	}
 	instance->hub_descriptor = result;
 	instance->descriptor_size = size;
@@ -377,36 +385,38 @@ int rh_init_descriptors(rh_t *instance)
 	assert(instance);
 
 	memcpy(&instance->descriptors.device, &ohci_rh_device_descriptor,
-	    sizeof (ohci_rh_device_descriptor)
-	    );
+	    sizeof(ohci_rh_device_descriptor));
+
 	usb_standard_configuration_descriptor_t descriptor;
 	memcpy(&descriptor, &ohci_rh_conf_descriptor,
-	    sizeof (ohci_rh_conf_descriptor));
+	    sizeof(ohci_rh_conf_descriptor));
 
 	int opResult = create_serialized_hub_descriptor(instance);
-	if (opResult != EOK) {
+	if (opResult != EOK)
 		return opResult;
-	}
+
 	descriptor.total_length =
-	    sizeof (usb_standard_configuration_descriptor_t) +
-	    sizeof (usb_standard_endpoint_descriptor_t) +
-	    sizeof (usb_standard_interface_descriptor_t) +
+	    sizeof(usb_standard_configuration_descriptor_t) +
+	    sizeof(usb_standard_endpoint_descriptor_t) +
+	    sizeof(usb_standard_interface_descriptor_t) +
 	    instance->descriptor_size;
 
-	uint8_t * full_config_descriptor = malloc(descriptor.total_length);
-	if (!full_config_descriptor) {
+	uint8_t *full_config_descriptor = malloc(descriptor.total_length);
+	if (!full_config_descriptor)
 		return ENOMEM;
-	}
-	memcpy(full_config_descriptor, &descriptor, sizeof (descriptor));
-	memcpy(full_config_descriptor + sizeof (descriptor),
-	    &ohci_rh_iface_descriptor, sizeof (ohci_rh_iface_descriptor));
-	memcpy(full_config_descriptor + sizeof (descriptor) +
-	    sizeof (ohci_rh_iface_descriptor),
-	    &ohci_rh_ep_descriptor, sizeof (ohci_rh_ep_descriptor));
-	memcpy(full_config_descriptor + sizeof (descriptor) +
-	    sizeof (ohci_rh_iface_descriptor) +
-	    sizeof (ohci_rh_ep_descriptor),
-	    instance->hub_descriptor, instance->descriptor_size);
+
+	uint8_t *place = full_config_descriptor;
+	memcpy(place, &descriptor, sizeof(descriptor));
+
+	place += sizeof(descriptor);
+	memcpy(place, &ohci_rh_iface_descriptor,
+	    sizeof(ohci_rh_iface_descriptor));
+
+	place += sizeof(ohci_rh_iface_descriptor);
+	memcpy(place, &ohci_rh_ep_descriptor, sizeof(ohci_rh_ep_descriptor));
+
+	place += sizeof(ohci_rh_iface_descriptor);
+	memcpy(place, instance->hub_descriptor, instance->descriptor_size);
 
 	instance->descriptors.configuration = full_config_descriptor;
 	instance->descriptors.configuration_size = descriptor.total_length;
