@@ -180,11 +180,18 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	/* Set port power mode to no ganged power-switching. */
 	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
 	instance->registers->rh_desc_a &= ~RHDA_PSM_FLAG;
+	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
 #else
 	/* Set port power mode to no per port power-switching. */
 	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
 	instance->registers->rh_desc_a |= RHDA_PSM_FLAG;
 
+	/* Control all ports by global switch and turn them off */
+	instance->registers->rh_desc_b &= (RHDB_PCC_MASK << RHDB_PCC_SHIFT);
+	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+	/* Return control to per port state */
+	instance->registers->rh_desc_b |=
+		((1 << (instance->port_count + 1)) - 1) << RHDB_PCC_SHIFT;
 #endif
 
 	rh_init_descriptors(instance);
