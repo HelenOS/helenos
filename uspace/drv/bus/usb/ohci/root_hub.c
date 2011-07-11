@@ -151,6 +151,8 @@ do { \
 	return EOK; \
 } while (0)
 
+#define OHCI_POWER 2
+
 /** Root hub initialization
  * @return Error code.
  */
@@ -171,9 +173,19 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	/* Don't forget the hub status bit and round up */
 	instance->interrupt_mask_size = (instance->port_count + 1 + 8) / 8;
 	instance->unfinished_interrupt_transfer = NULL;
-
+#if OHCI_POWER == 0
 	/* Set port power mode to no power-switching. (always on) */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
+#elif OHCI_POWER == 1
+	/* Set port power mode to no ganged power-switching. */
+	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
+	instance->registers->rh_desc_a &= ~RHDA_PSM_FLAG;
+#else
+	/* Set port power mode to no per port power-switching. */
+	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
+	instance->registers->rh_desc_a |= RHDA_PSM_FLAG;
+
+#endif
 
 	rh_init_descriptors(instance);
 
