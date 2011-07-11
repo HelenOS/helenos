@@ -41,11 +41,13 @@
 #include "libc/stdarg.h"
 #include "limits.h"
 
+/* Identifying the Terminal */
 #undef L_ctermid
 #define L_ctermid PATH_MAX
-
-extern void posix_clearerr(FILE *stream);
 extern char *posix_ctermid(char *s);
+
+/* Error Recovery */
+extern void posix_clearerr(FILE *stream);
 
 /* Input/Output */
 #undef putc
@@ -53,20 +55,14 @@ extern char *posix_ctermid(char *s);
 #undef getc
 #define getc fgetc
 extern int posix_ungetc(int c, FILE *stream);
-
 extern ssize_t posix_getdelim(char **restrict lineptr, size_t *restrict n,
     int delimiter, FILE *restrict stream);
 extern ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
     FILE *restrict stream);
 
 /* Opening Streams */
-extern FILE *posix_freopen(
-   const char *restrict filename,
-   const char *restrict mode,
-   FILE *restrict stream);
-
-/* Memory Streams */
-
+extern FILE *posix_freopen(const char *restrict filename,
+    const char *restrict mode, FILE *restrict stream);
 extern FILE *posix_fmemopen(void *restrict buf, size_t size,
     const char *restrict mode);
 extern FILE *posix_open_memstream(char **bufp, size_t *sizep);
@@ -75,7 +71,6 @@ extern FILE *posix_open_memstream(char **bufp, size_t *sizep);
 extern void posix_perror(const char *s);
 
 /* File Positioning */
-
 typedef struct _posix_fpos posix_fpos_t;
 extern int posix_fsetpos(FILE *stream, const posix_fpos_t *pos);
 extern int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos);
@@ -84,7 +79,7 @@ extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
 extern long posix_ftell(FILE *stream);
 extern posix_off_t posix_ftello(FILE *stream);
 
-/* Formatted Input/Output */
+/* Formatted Output */
 extern int posix_dprintf(int fildes, const char *restrict format, ...)
     PRINTF_ATTRIBUTE(2, 3);
 extern int posix_vdprintf(int fildes, const char *restrict format, va_list ap);
@@ -92,6 +87,7 @@ extern int posix_sprintf(char *restrict s, const char *restrict format, ...)
     PRINTF_ATTRIBUTE(2, 3);
 extern int posix_vsprintf(char *restrict s, const char *restrict format, va_list ap);
 
+/* Formatted Input */
 extern int posix_fscanf(
     FILE *restrict stream, const char *restrict format, ...);
 extern int posix_vfscanf(
@@ -104,11 +100,9 @@ extern int posix_vsscanf(
     const char *restrict s, const char *restrict format, va_list arg);
 
 /* File Locking */
-
 extern void posix_flockfile(FILE *file);
 extern int posix_ftrylockfile(FILE *file);
 extern void posix_funlockfile(FILE *file);
-
 extern int posix_getc_unlocked(FILE *stream);
 extern int posix_getchar_unlocked(void);
 extern int posix_putc_unlocked(int c, FILE *stream);
@@ -120,20 +114,18 @@ extern int posix_remove(const char *path);
 /* Temporary Files */
 #undef L_tmpnam
 #define L_tmpnam PATH_MAX
-
 extern char *posix_tmpnam(char *s);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define clearerr posix_clearerr
 	#define ctermid posix_ctermid
 
-	#define ungetc posix_ungetc
+	#define clearerr posix_clearerr
 
+	#define ungetc posix_ungetc
 	#define getdelim posix_getdelim
 	#define getline posix_getline
 
 	#define freopen posix_freopen
-
 	#define fmemopen posix_fmemopen
 	#define open_memstream posix_open_memstream
 
