@@ -219,11 +219,11 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev) {
  * @param hub_info hub representation
  * @return error code
  */
-static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
+int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
+{
 	// get hub descriptor
-	usb_log_debug("Creating serialized descriptor\n");
+	usb_log_debug("Retrieving descriptor\n");
 	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
-	usb_hub_descriptor_t * descriptor;
 	int opResult;
 
 	size_t received_size;
@@ -233,57 +233,61 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info) {
 	    USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
 
 	if (opResult != EOK) {
-		usb_log_error("Failed when receiving hub descriptor, "
-		    "%s\n",
+		usb_log_error("Failed to receive hub descriptor: %s.\n",
 		    str_error(opResult));
-		free(serialized_descriptor);
 		return opResult;
 	}
-	usb_log_debug2("Deserializing descriptor\n");
-	descriptor = usb_create_deserialized_hub_desriptor(
-	    serialized_descriptor);
-	if (descriptor == NULL) {
-		usb_log_warning("could not deserialize descriptor \n");
-		return ENOMEM;
+	usb_log_debug2("Parsing descriptor\n");
+	usb_hub_descriptor_t descriptor;
+	opResult = usb_deserialize_hub_desriptor(
+	        serialized_descriptor, received_size, &descriptor);
+	if (opResult != EOK) {
+		usb_log_error("Could not parse descriptor: %s\n",
+		    str_error(opResult));
+		return opResult;
 	}
-	usb_log_debug("setting port count to %d\n", descriptor->ports_count);
-	hub_info->port_count = descriptor->ports_count;
-	const bool is_power_switched =
-	    ((descriptor->hub_characteristics & 0x2) == 0);
-	hub_info->ports = malloc(
-	    sizeof (usb_hub_port_t) * (hub_info->port_count + 1));
+	usb_log_debug("Setting port count to %d.\n", descriptor.ports_count);
+	hub_info->port_count = descriptor.ports_count;
+
+	hub_info->ports =
+	    malloc(sizeof(usb_hub_port_t) * (hub_info->port_count + 1));
 	if (!hub_info->ports) {
 		return ENOMEM;
 	}
+
 	size_t port;
 	for (port = 0; port < hub_info->port_count + 1; ++port) {
 		usb_hub_port_init(&hub_info->ports[port]);
 	}
+
+	const bool is_power_switched =
+	    !(descriptor.hub_characteristics & HUB_CHAR_NO_POWER_SWITCH_FLAG);
 	if (is_power_switched) {
 		usb_log_debug("Hub power switched\n");
-		const bool has_individual_port_powering =
-		    descriptor->hub_characteristics & 0x1;
-
-		if (!has_individual_port_powering) {
-			//this setting actually makes no difference
-			usb_log_debug("Hub has global powering\n");
-		}
+		const bool per_port_power = descriptor.hub_characteristics
+		    & HUB_CHAR_POWER_PER_PORT_FLAG;
 
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
-			opResult = usb_hub_set_port_feature(hub_info->control_pipe,
+			opResult = usb_hub_set_port_feature(
+			    hub_info->control_pipe,
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_error("Cannot power on port %zu: %s.\n",
 				    port, str_error(opResult));
+			} else {
+				if (!per_port_power) {
+					usb_log_debug(
+					    "Ganged power switching mode,"
+					    "one port is enough.\n");
+					break;
+				}
 			}
 		}
 
 	} else {
 		usb_log_debug("Power not switched, not going to be powered\n");
 	}
-	usb_log_debug2("Freeing data\n");
-	free(descriptor);
 	return EOK;
 }
 
