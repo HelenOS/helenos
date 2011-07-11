@@ -164,11 +164,7 @@ static int get_hub_status_request(
 static int get_status_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
-
 static int get_descriptor_request(
-    rh_t *instance, usb_transfer_batch_t *request);
-
-static int get_configuration_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
 static int port_feature_set_request(
@@ -193,15 +189,12 @@ static int interrupt_mask_in_instance(
 
 static bool is_zeros(const void *buffer, size_t size);
 
-/**
- * Register address to this device
- *
- * @param instance Root hub instance
- * @param address New address
- * @return Error code
- */
-static inline int address_set_request(rh_t *instance, uint16_t address)
-	{ return ENOTSUP; }
+
+#define TRANSFER_OK(bytes) \
+do { \
+	request->transfered_size = bytes; \
+	return EOK; \
+while (0);
 
 /** Root hub initialization
  * @return Error code.
@@ -563,30 +556,6 @@ int get_descriptor_request(
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Answer to get configuration request.
- *
- * Root hub works independently on the configuration.
- * Set and get configuration requests do not have any meaning,
- * dummy values are returned.
- *
- * @param instance Root hub instance
- * @param request Structure containing both request and response information
- * @return Error code
- */
-int get_configuration_request(
-    rh_t *instance, usb_transfer_batch_t *request)
-{
-	assert(request);
-
-	if (request->buffer_size != 1)
-		return EINVAL;
-	request->data_buffer[0] = 1;
-	request->transfered_size = 1;
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/**
  * process feature-enabling request on hub
  *
  * @param instance root hub instance
@@ -670,7 +639,11 @@ int request_with_output(rh_t *instance, usb_transfer_batch_t *request)
 		return get_descriptor_request(instance, request);
 	case USB_DEVREQ_GET_CONFIGURATION:
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
-		return get_configuration_request(instance, request);
+		if (request->buffer_size != 1)
+			return EINVAL;
+		request->data_buffer[0] = 1;
+		request->transfered_size = 1;
+		return EOK;
 	}
 	return ENOTSUP;
 }
@@ -766,7 +739,7 @@ int request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 
 	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
-		return address_set_request(instance, setup_request->value);
+		return ENOTSUP;
 
 	default:
 		usb_log_error("Invalid HUB request: %d\n",
