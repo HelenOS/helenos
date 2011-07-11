@@ -73,7 +73,7 @@ static const usb_standard_configuration_descriptor_t ohci_rh_conf_descriptor = {
 	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
 	.interface_count = 1,
 	.length = sizeof (usb_standard_configuration_descriptor_t),
-	.max_power = 100,
+	.max_power = 0, /* root hubs don't need no power */
 	.str_configuration = 0,
 };
 
@@ -237,18 +237,19 @@ int rh_init(rh_t *instance, ohci_regs_t *regs)
 		instance->port_count = 15;
 	}
 
-	int ret = rh_init_descriptors(instance);
-	if (ret != EOK) {
-		return ret;
-	}
 	/* Don't forget the hub status bit and round up */
 	instance->interrupt_mask_size = (instance->port_count + 1 + 8) / 8;
 	instance->interrupt_buffer[0] = 0;
 	instance->interrupt_buffer[1] = 0;
 	instance->unfinished_interrupt_transfer = NULL;
 
-	/* Set port power mode to no-power-switching. */
+	/* Set port power mode to no power-switching. (always on) */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
+
+	int ret = rh_init_descriptors(instance);
+	if (ret != EOK) {
+		return ret;
+	}
 
 	usb_log_info("Root hub (%zu ports) initialized.\n",
 	    instance->port_count);

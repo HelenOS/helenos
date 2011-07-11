@@ -45,12 +45,12 @@ typedef struct ohci_regs {
 #define R_LEGACY_FLAG   (0x80)
 
 	volatile uint32_t control;
-#define C_CSBR_MASK (0x3) /* Control-bulk service ratio */
-#define C_CSBR_1_1  (0x0)
-#define C_CSBR_1_2  (0x1)
-#define C_CSBR_1_3  (0x2)
-#define C_CSBR_1_4  (0x3)
-#define C_CSBR_SHIFT (0)
+#define C_CBSR_MASK (0x3) /* Control-bulk service ratio */
+#define C_CBSR_1_1  (0x0)
+#define C_CBSR_1_2  (0x1)
+#define C_CBSR_1_3  (0x2)
+#define C_CBSR_1_4  (0x3)
+#define C_CBSR_SHIFT (0)
 
 #define C_PLE (1 << 2)   /* Periodic list enable */
 #define C_IE  (1 << 3)   /* Isochronous enable */
