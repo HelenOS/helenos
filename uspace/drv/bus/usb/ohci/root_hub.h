@@ -76,7 +76,7 @@ typedef struct rh {
 
 } rh_t;
 
-int rh_init(rh_t *instance, ohci_regs_t *regs);
+void rh_init(rh_t *instance, ohci_regs_t *regs);
 
 int rh_request(rh_t *instance, usb_transfer_batch_t *request);
 

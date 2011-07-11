@@ -163,7 +163,7 @@ static const uint32_t port_status_change_mask = RHPS_CHANGE_WC_MASK;
 
 static void create_serialized_hub_descriptor(rh_t *instance);
 
-static int rh_init_descriptors(rh_t *instance);
+static void rh_init_descriptors(rh_t *instance);
 
 static void create_interrupt_mask_in_instance(rh_t *instance);
 
@@ -223,7 +223,7 @@ static inline int process_address_set_request(rh_t *instance, uint16_t address)
 /** Root hub initialization
  * @return Error code.
  */
-int rh_init(rh_t *instance, ohci_regs_t *regs)
+void rh_init(rh_t *instance, ohci_regs_t *regs)
 {
 	assert(instance);
 	assert(regs);
@@ -246,15 +246,10 @@ int rh_init(rh_t *instance, ohci_regs_t *regs)
 	/* Set port power mode to no power-switching. (always on) */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
 
-	int ret = rh_init_descriptors(instance);
-	if (ret != EOK) {
-		return ret;
-	}
+	rh_init_descriptors(instance);
 
 	usb_log_info("Root hub (%zu ports) initialized.\n",
 	    instance->port_count);
-
-	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -380,7 +375,7 @@ void create_serialized_hub_descriptor(rh_t *instance)
  * @param instance Root hub instance
  * @return Error code
  */
-int rh_init_descriptors(rh_t *instance)
+void rh_init_descriptors(rh_t *instance)
 {
 	assert(instance);
 
@@ -394,8 +389,6 @@ int rh_init_descriptors(rh_t *instance)
 	    sizeof(usb_standard_endpoint_descriptor_t) +
 	    sizeof(usb_standard_interface_descriptor_t) +
 	    instance->hub_descriptor_size;
-
-	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /**
