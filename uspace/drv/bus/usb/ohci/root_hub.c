@@ -165,51 +165,60 @@ static int create_serialized_hub_descriptor(rh_t *instance);
 
 static int rh_init_descriptors(rh_t *instance);
 
-static int process_get_port_status_request(rh_t *instance, uint16_t port,
-    usb_transfer_batch_t * request);
-
-static int process_get_hub_status_request(rh_t *instance,
-    usb_transfer_batch_t * request);
-
-static int process_get_status_request(rh_t *instance,
-    usb_transfer_batch_t * request);
-
 static void create_interrupt_mask_in_instance(rh_t *instance);
 
-static int process_get_descriptor_request(rh_t *instance,
-    usb_transfer_batch_t *request);
+static int process_get_port_status_request(
+    rh_t *instance, uint16_t port, usb_transfer_batch_t *request);
 
-static int process_get_configuration_request(rh_t *instance,
-    usb_transfer_batch_t *request);
+static int process_get_hub_status_request(
+    rh_t *instance, usb_transfer_batch_t *request);
+
+static int process_get_status_request(
+    rh_t *instance, usb_transfer_batch_t *request);
+
+
+static int process_get_descriptor_request(
+    rh_t *instance, usb_transfer_batch_t *request);
+
+static int process_get_configuration_request(
+    rh_t *instance, usb_transfer_batch_t *request);
 
 static int process_hub_feature_set_request(rh_t *instance, uint16_t feature);
 
-static int process_hub_feature_clear_request(rh_t *instance,
-    uint16_t feature);
+static int process_hub_feature_clear_request(
+    rh_t *instance, uint16_t feature);
 
-static int process_port_feature_set_request(rh_t *instance,
-    uint16_t feature, uint16_t port);
+static int process_port_feature_set_request(
+    rh_t *instance, uint16_t feature, uint16_t port);
 
-static int process_port_feature_clear_request(rh_t *instance,
-    uint16_t feature, uint16_t port);
+static int process_port_feature_clear_request(
+    rh_t *instance, uint16_t feature, uint16_t port);
 
-static int process_address_set_request(rh_t *instance,
-    uint16_t address);
+static int process_request_with_input(
+    rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_request_with_output(rh_t *instance,
-    usb_transfer_batch_t *request);
+static int process_request_with_output(
+    rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_request_with_input(rh_t *instance,
-    usb_transfer_batch_t *request);
-
-static int process_request_without_data(rh_t *instance,
-    usb_transfer_batch_t *request);
+static int process_request_without_data(
+    rh_t *instance, usb_transfer_batch_t *request);
 
 static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch_t * request);
+static int process_interrupt_mask_in_instance(
+    rh_t *instance, usb_transfer_batch_t *request);
 
-static bool is_zeros(void * buffer, size_t size);
+static bool is_zeros(const void *buffer, size_t size);
+
+/**
+ * Register address to this device
+ *
+ * @param instance Root hub instance
+ * @param address New address
+ * @return Error code
+ */
+static inline int process_address_set_request(rh_t *instance, uint16_t address)
+	{ return ENOTSUP; }
 
 /** Root hub initialization
  * @return Error code.
@@ -237,23 +246,27 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * process root hub request
+ * Process root hub request.
  *
- * @param instance root hub instance
- * @param request structure containing both request and response information
- * @return error code
+ * @param instance Root hub instance
+ * @param request Structure containing both request and response information
+ * @return Error code
  */
-int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
+int rh_request(rh_t *instance, usb_transfer_batch_t *request)
+{
 	assert(instance);
 	assert(request);
+
 	int opResult;
-	if (request->ep->transfer_type == USB_TRANSFER_CONTROL) {
+	switch (request->ep->transfer_type)
+	{
+	case USB_TRANSFER_CONTROL:
 		usb_log_debug("Root hub got CONTROL packet\n");
 		opResult = process_ctrl_request(instance, request);
 		usb_transfer_batch_finish_error(request, opResult);
-	} else if (request->ep->transfer_type == USB_TRANSFER_INTERRUPT) {
+		break;
+	case USB_TRANSFER_INTERRUPT:
 		usb_log_debug("Root hub got INTERRUPT packet\n");
 		create_interrupt_mask_in_instance(instance);
 		if (is_zeros(instance->interrupt_buffer,
@@ -265,49 +278,49 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 			usb_log_debug("Processing changes..\n");
 			process_interrupt_mask_in_instance(instance, request);
 		}
-		opResult = EOK;
-	} else {
-
-		opResult = EINVAL;
-		usb_transfer_batch_finish_error(request, opResult);
+		break;
+	default:
+		usb_log_error("Root hub got unsupported request.\n");
+		usb_transfer_batch_finish_error(request, EINVAL);
 	}
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 /**
  * process interrupt on a hub
  *
  * If there is no pending interrupt transfer, nothing happens.
  * @param instance
  */
-void rh_interrupt(rh_t *instance) {
-	if (!instance->unfinished_interrupt_transfer) {
+void rh_interrupt(rh_t *instance)
+{
+	if (!instance->unfinished_interrupt_transfer)
 		return;
-	}
+
 	usb_log_debug("Finalizing interrupt transfer\n");
 	create_interrupt_mask_in_instance(instance);
 	process_interrupt_mask_in_instance(instance,
 	    instance->unfinished_interrupt_transfer);
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * Create hub descriptor used in hub-driver <-> hub communication
  *
- * This means creating byt array from data in root hub registers. For more
+ * This means creating bit array from data in root hub registers. For more
  * info see usb hub specification.
  *
- * @param instance root hub instance
- * @return error code
+ * @param instance Root hub instance
+ * @return Error code
  */
-static int create_serialized_hub_descriptor(rh_t *instance) {
-	size_t size = 7 +
+int create_serialized_hub_descriptor(rh_t *instance)
+{
+	assert(instance);
+
+	const size_t size = 7 +
 	    ((instance->port_count + 7) / 8) * 2;
-	size_t var_size = (instance->port_count + 7) / 8;
-	uint8_t * result = (uint8_t*) malloc(size);
-	if (!result) return ENOMEM;
+	uint8_t * result = malloc(size);
+	if (!result)
+	    return ENOMEM;
 
 	bzero(result, size);
 	//size
@@ -315,7 +328,7 @@ static int create_serialized_hub_descriptor(rh_t *instance) {
 	//descriptor type
 	result[1] = USB_DESCTYPE_HUB;
 	result[2] = instance->port_count;
-	uint32_t hub_desc_reg = instance->registers->rh_desc_a;
+	const uint32_t hub_desc_reg = instance->registers->rh_desc_a;
 	result[3] =
 	    ((hub_desc_reg >> 8) % 2) +
 	    (((hub_desc_reg >> 9) % 2) << 1) +
@@ -323,18 +336,19 @@ static int create_serialized_hub_descriptor(rh_t *instance) {
 	    (((hub_desc_reg >> 11) % 2) << 3) +
 	    (((hub_desc_reg >> 12) % 2) << 4);
 	result[4] = 0;
-	result[5] = /*descriptor->pwr_on_2_good_time*/ 50;
+	result[5] = 50; /*descriptor->pwr_on_2_good_time*/
 	result[6] = 50;
 
-	size_t port;
-	for (port = 1; port <= instance->port_count; ++port) {
-		uint8_t is_non_removable =
+	size_t port = 1;
+	for (; port <= instance->port_count; ++port) {
+		const uint8_t is_non_removable =
 		    instance->registers->rh_desc_b >> port % 2;
 		result[7 + port / 8] +=
 		    is_non_removable << (port % 8);
 	}
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
+	const size_t var_size = (instance->port_count + 7) / 8;
+	size_t i = 0;
+	for (; i < var_size; ++i) {
 		result[7 + var_size + i] = 255;
 	}
 	instance->hub_descriptor = result;
@@ -343,15 +357,17 @@ static int create_serialized_hub_descriptor(rh_t *instance) {
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
-/** initialize hub descriptors
+/** Initialize hub descriptors.
  *
- * Initialized are device and full configuration descriptor. These need to
+ * Device and full configuration descriptor are created. These need to
  * be initialized only once per hub.
- * @instance root hub instance
- * @return error code
+ * @param instance Root hub instance
+ * @return Error code
  */
-static int rh_init_descriptors(rh_t *instance) {
+int rh_init_descriptors(rh_t *instance)
+{
+	assert(instance);
+
 	memcpy(&instance->descriptors.device, &ohci_rh_device_descriptor,
 	    sizeof (ohci_rh_device_descriptor)
 	    );
@@ -369,8 +385,7 @@ static int rh_init_descriptors(rh_t *instance) {
 	    sizeof (usb_standard_interface_descriptor_t) +
 	    instance->descriptor_size;
 
-	uint8_t * full_config_descriptor =
-	    (uint8_t*) malloc(descriptor.total_length);
+	uint8_t * full_config_descriptor = malloc(descriptor.total_length);
 	if (!full_config_descriptor) {
 		return ENOMEM;
 	}
@@ -391,55 +406,61 @@ static int rh_init_descriptors(rh_t *instance) {
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * create answer to port status_request
+ * Create answer to port status_request
  *
  * Copy content of corresponding port status register to answer buffer. The
  * format of the port status register and port status data is the same (
  * see OHCI root hub and USB hub documentation).
  *
- * @param instance root hub instance
- * @param port port number, counted from 1
- * @param request structure containing both request and response information
- * @return error code
+ * @param instance Root hub instance
+ * @param port Port number, counted from 1
+ * @param request Structure containing both request and response information
+ * @return Error code
  */
-static int process_get_port_status_request(rh_t *instance, uint16_t port,
-    usb_transfer_batch_t * request) {
+int process_get_port_status_request(
+    rh_t *instance, uint16_t port, usb_transfer_batch_t * request)
+{
+	assert(instance);
+	assert(request);
+
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
-	request->transfered_size = 4;
-	uint32_t data = instance->registers->rh_port_status[port - 1];
+
+	const uint32_t data = instance->registers->rh_port_status[port - 1];
 	memcpy(request->data_buffer, &data, 4);
+	request->transfered_size = 4;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * create answer to port status_request
+ * Create answer to port status_request.
  *
  * This copies flags in hub status register into the buffer. The format of the
  * status register and status message is the same, according to USB hub
  * specification and OHCI root hub specification.
  *
- * @param instance root hub instance
- * @param request structure containing both request and response information
- * @return error code
+ * @param instance Root hub instance.
+ * @param request Structure containing both request and response information.
+ * @return Error code
  */
-static int process_get_hub_status_request(rh_t *instance,
-    usb_transfer_batch_t * request) {
-	request->transfered_size = 4;
-	//bits, 0,1,16,17
-	uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
-	uint32_t data = mask & instance->registers->rh_status;
+int process_get_hub_status_request(
+    rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+
+	/* bits, 0,1,16,17 -- TODO: What do they mean?? Why not 0x0303 */
+	const uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
+	const uint32_t data = mask & instance->registers->rh_status;
 	memcpy(request->data_buffer, &data, 4);
+	request->transfered_size = 4;
 
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * create answer to status request
+ * Create answer to status request.
  *
  * This might be either hub status or port status request. If neither,
  * ENOTSUP is returned.
@@ -447,32 +468,33 @@ static int process_get_hub_status_request(rh_t *instance,
  * @param request structure containing both request and response information
  * @return error code
  */
-static int process_get_status_request(rh_t *instance,
-    usb_transfer_batch_t * request) {
-	size_t buffer_size = request->buffer_size;
-	usb_device_request_setup_packet_t * request_packet =
-	    (usb_device_request_setup_packet_t*)
-	    request->setup_buffer;
+int process_get_status_request(rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
 
-	usb_hub_bm_request_type_t request_type = request_packet->request_type;
-	if (buffer_size < 4) {
-		usb_log_warning("Requested more data than buffer size\n");
-		return EINVAL;
+	const usb_device_request_setup_packet_t *request_packet =
+	    (usb_device_request_setup_packet_t*)request->setup_buffer;
+
+	const usb_hub_bm_request_type_t request_type =
+	    request_packet->request_type;
+
+	if (request->buffer_size < 4) {
+		usb_log_error("Buffer too small for get status request.\n");
+		return EOVERFLOW;
 	}
 
 	if (request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS)
 		return process_get_hub_status_request(instance, request);
 	if (request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS)
 		return process_get_port_status_request(instance,
-	    request_packet->index,
-	    request);
+		    request_packet->index, request);
 
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * create answer to status interrupt consisting of change bitmap
+ * Create bitmap of changes to answer status interrupt.
  *
  * Result contains bitmap where bit 0 indicates change on hub and
  * bit i indicates change on i`th port (i>0). For more info see
@@ -481,7 +503,10 @@ static int process_get_status_request(rh_t *instance,
  * Uses instance`s interrupt buffer to store the interrupt information.
  * @param instance root hub instance
  */
-static void create_interrupt_mask_in_instance(rh_t * instance) {
+void create_interrupt_mask_in_instance(rh_t *instance)
+{
+	assert(instance);
+
 	uint8_t * bitmap = (uint8_t*) (instance->interrupt_buffer);
 	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
 	    | (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
@@ -489,9 +514,9 @@ static void create_interrupt_mask_in_instance(rh_t * instance) {
 	if ((instance->registers->rh_status & mask) != 0) {
 		bitmap[0] = 1;
 	}
-	size_t port;
 	mask = port_status_change_mask;
-	for (port = 1; port <= instance->port_count; ++port) {
+	size_t port = 1;
+	for (; port <= instance->port_count; ++port) {
 		if ((mask & instance->registers->rh_port_status[port - 1]) != 0) {
 
 			bitmap[(port) / 8] += 1 << (port % 8);
@@ -499,97 +524,94 @@ static void create_interrupt_mask_in_instance(rh_t * instance) {
 	}
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * create answer to a descriptor request
+ * Create answer to a descriptor request.
  *
  * This might be a request for standard (configuration, device, endpoint or
  * interface) or device specific (hub) descriptor.
- * @param instance root hub instance
- * @param request structure containing both request and response information
- * @return error code
+ * @param instance Root hub instance
+ * @param request Structure containing both request and response information
+ * @return Error code
  */
-static int process_get_descriptor_request(rh_t *instance,
-    usb_transfer_batch_t *request) {
-	usb_device_request_setup_packet_t * setup_request =
-	    (usb_device_request_setup_packet_t*) request->setup_buffer;
+int process_get_descriptor_request(
+    rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+
+	const usb_device_request_setup_packet_t *setup_request =
+	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 	size_t size;
 	const void * result_descriptor = NULL;
 	const uint16_t setup_request_value = setup_request->value_high;
 	//(setup_request->value_low << 8);
-	switch (setup_request_value) {
-		case USB_DESCTYPE_HUB:
-		{
-			usb_log_debug2("USB_DESCTYPE_HUB\n");
-			result_descriptor = instance->hub_descriptor;
-			size = instance->descriptor_size;
-			break;
-		}
-		case USB_DESCTYPE_DEVICE:
-		{
-			usb_log_debug2("USB_DESCTYPE_DEVICE\n");
-			result_descriptor = &ohci_rh_device_descriptor;
-			size = sizeof (ohci_rh_device_descriptor);
-			break;
-		}
-		case USB_DESCTYPE_CONFIGURATION:
-		{
-			usb_log_debug2("USB_DESCTYPE_CONFIGURATION\n");
-			result_descriptor = instance->descriptors.configuration;
-			size = instance->descriptors.configuration_size;
-			break;
-		}
-		case USB_DESCTYPE_INTERFACE:
-		{
-			usb_log_debug2("USB_DESCTYPE_INTERFACE\n");
-			result_descriptor = &ohci_rh_iface_descriptor;
-			size = sizeof (ohci_rh_iface_descriptor);
-			break;
-		}
-		case USB_DESCTYPE_ENDPOINT:
-		{
-			usb_log_debug2("USB_DESCTYPE_ENDPOINT\n");
-			result_descriptor = &ohci_rh_ep_descriptor;
-			size = sizeof (ohci_rh_ep_descriptor);
-			break;
-		}
-		default:
-		{
-			usb_log_debug2("USB_DESCTYPE_EINVAL %d \n",
-			    setup_request->value);
-			usb_log_debug2("\ttype %d\n\trequest %d\n\tvalue "
-			    "%d\n\tindex %d\n\tlen %d\n ",
-			    setup_request->request_type,
-			    setup_request->request,
-			    setup_request_value,
-			    setup_request->index,
-			    setup_request->length
-			    );
-			return EINVAL;
-		}
+	switch (setup_request_value)
+	{
+	case USB_DESCTYPE_HUB:
+		usb_log_debug2("USB_DESCTYPE_HUB\n");
+		result_descriptor = instance->hub_descriptor;
+		size = instance->descriptor_size;
+		break;
+
+	case USB_DESCTYPE_DEVICE:
+		usb_log_debug2("USB_DESCTYPE_DEVICE\n");
+		result_descriptor = &ohci_rh_device_descriptor;
+		size = sizeof(ohci_rh_device_descriptor);
+		break;
+
+	case USB_DESCTYPE_CONFIGURATION:
+		usb_log_debug2("USB_DESCTYPE_CONFIGURATION\n");
+		result_descriptor = instance->descriptors.configuration;
+		size = instance->descriptors.configuration_size;
+		break;
+
+	case USB_DESCTYPE_INTERFACE:
+		usb_log_debug2("USB_DESCTYPE_INTERFACE\n");
+		result_descriptor = &ohci_rh_iface_descriptor;
+		size = sizeof(ohci_rh_iface_descriptor);
+		break;
+
+	case USB_DESCTYPE_ENDPOINT:
+		usb_log_debug2("USB_DESCTYPE_ENDPOINT\n");
+		result_descriptor = &ohci_rh_ep_descriptor;
+		size = sizeof(ohci_rh_ep_descriptor);
+		break;
+
+	default:
+		usb_log_debug2("USB_DESCTYPE_EINVAL %d \n"
+		    "\ttype %d\n\trequest %d\n\tvalue "
+		    "%d\n\tindex %d\n\tlen %d\n ",
+		    setup_request->value,
+		    setup_request->request_type, setup_request->request,
+		    setup_request_value, setup_request->index,
+		    setup_request->length);
+		return EINVAL;
 	}
 	if (request->buffer_size < size) {
 		size = request->buffer_size;
 	}
-	request->transfered_size = size;
 	memcpy(request->data_buffer, result_descriptor, size);
+	request->transfered_size = size;
 
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * answer to get configuration request
+ * Answer to get configuration request.
  *
  * Root hub works independently on the configuration.
- * @param instance root hub instance
- * @param request structure containing both request and response information
- * @return error code
+ * Set and get configuration requests do not have any meaning,
+ * dummy values are returned.
+ *
+ * @param instance Root hub instance
+ * @param request Structure containing both request and response information
+ * @return Error code
  */
-static int process_get_configuration_request(rh_t *instance,
-    usb_transfer_batch_t *request) {
-	//set and get configuration requests do not have any meaning, only dummy
-	//values are returned
+int process_get_configuration_request(
+    rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(request);
+
 	if (request->buffer_size != 1)
 		return EINVAL;
 	request->data_buffer[0] = 1;
@@ -598,7 +620,6 @@ static int process_get_configuration_request(rh_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process feature-enabling request on hub
  *
@@ -619,7 +640,6 @@ static int process_hub_feature_set_request(rh_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process feature-disabling request on hub
  *
@@ -627,10 +647,13 @@ static int process_hub_feature_set_request(rh_t *instance,
  * @param feature feature selector
  * @return error code
  */
-static int process_hub_feature_clear_request(rh_t *instance,
-    uint16_t feature) {
+int process_hub_feature_clear_request(rh_t *instance, uint16_t feature)
+{
+	assert(instance);
+
 	if (!((1 << feature) & hub_clear_feature_valid_mask))
 		return EINVAL;
+
 	//is the feature cleared directly?
 	if ((1 << feature) & hub_set_feature_direct_mask) {
 		instance->registers->rh_status =
@@ -646,7 +669,6 @@ static int process_hub_feature_clear_request(rh_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process feature-enabling request on hub
  *
@@ -656,19 +678,22 @@ static int process_hub_feature_clear_request(rh_t *instance,
  * @param enable enable or disable the specified feature
  * @return error code
  */
-static int process_port_feature_set_request(rh_t *instance,
-    uint16_t feature, uint16_t port) {
+int process_port_feature_set_request(
+    rh_t *instance, uint16_t feature, uint16_t port)
+{
+	assert(instance);
+
 	if (!((1 << feature) & port_set_feature_valid_mask))
 		return EINVAL;
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
+
 	instance->registers->rh_port_status[port - 1] =
 	    (instance->registers->rh_port_status[port - 1] | (1 << feature))
 	    & (~port_clear_feature_valid_mask);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process feature-disabling request on hub
  *
@@ -678,16 +703,22 @@ static int process_port_feature_set_request(rh_t *instance,
  * @param enable enable or disable the specified feature
  * @return error code
  */
-static int process_port_feature_clear_request(rh_t *instance,
-    uint16_t feature, uint16_t port) {
+int process_port_feature_clear_request(
+    rh_t *instance, uint16_t feature, uint16_t port)
+{
+	assert(instance);
+
 	if (!((1 << feature) & port_clear_feature_valid_mask))
 		return EINVAL;
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
+
+	/* Some weird stuff... */
 	if (feature == USB_HUB_FEATURE_PORT_POWER)
 		feature = USB_HUB_FEATURE_PORT_LOW_SPEED;
 	if (feature == USB_HUB_FEATURE_PORT_SUSPEND)
 		feature = USB_HUB_FEATURE_PORT_OVER_CURRENT;
+
 	instance->registers->rh_port_status[port - 1] =
 	    (instance->registers->rh_port_status[port - 1]
 	    & (~port_clear_feature_valid_mask))
@@ -696,20 +727,6 @@ static int process_port_feature_clear_request(rh_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-
-/**
- * register address to this device
- *
- * @param instance root hub instance
- * @param address new address
- * @return error code
- */
-static int process_address_set_request(rh_t *instance,
-    uint16_t address) {
-	return ENOTSUP;
-}
-/*----------------------------------------------------------------------------*/
-
 /**
  * process one of requests that requere output data
  *
@@ -719,27 +736,28 @@ static int process_address_set_request(rh_t *instance,
  * @param request structure containing both request and response information
  * @return error code
  */
-static int process_request_with_output(rh_t *instance,
-    usb_transfer_batch_t *request) {
-	usb_device_request_setup_packet_t * setup_request =
-	    (usb_device_request_setup_packet_t*) request->setup_buffer;
-	if (setup_request->request == USB_DEVREQ_GET_STATUS) {
+int process_request_with_output(rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+
+	const usb_device_request_setup_packet_t *setup_request =
+	    (usb_device_request_setup_packet_t *) request->setup_buffer;
+	switch (setup_request->request)
+	{
+	case USB_DEVREQ_GET_STATUS:
 		usb_log_debug("USB_DEVREQ_GET_STATUS\n");
 		return process_get_status_request(instance, request);
-	}
-	if (setup_request->request == USB_DEVREQ_GET_DESCRIPTOR) {
+	case USB_DEVREQ_GET_DESCRIPTOR:
 		usb_log_debug("USB_DEVREQ_GET_DESCRIPTOR\n");
 		return process_get_descriptor_request(instance, request);
-	}
-	if (setup_request->request == USB_DEVREQ_GET_CONFIGURATION) {
+	case USB_DEVREQ_GET_CONFIGURATION:
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
-
 		return process_get_configuration_request(instance, request);
 	}
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process one of requests that carry input data
  *
@@ -749,24 +767,23 @@ static int process_request_with_output(rh_t *instance,
  * @param request structure containing both request and response information
  * @return error code
  */
-static int process_request_with_input(rh_t *instance,
-    usb_transfer_batch_t *request) {
-	usb_device_request_setup_packet_t * setup_request =
-	    (usb_device_request_setup_packet_t*) request->setup_buffer;
+int process_request_with_input(rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+
+	const usb_device_request_setup_packet_t *setup_request =
+	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 	request->transfered_size = 0;
-	if (setup_request->request == USB_DEVREQ_SET_DESCRIPTOR) {
-		return ENOTSUP;
-	}
 	if (setup_request->request == USB_DEVREQ_SET_CONFIGURATION) {
 		//set and get configuration requests do not have any meaning,
 		//only dummy values are returned
-
 		return EOK;
 	}
+	/* USB_DEVREQ_SET_DESCRIPTOR is also not supported */
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process one of requests that do not request nor carry additional data
  *
@@ -776,57 +793,61 @@ static int process_request_with_input(rh_t *instance,
  * @param request structure containing both request and response information
  * @return error code
  */
-static int process_request_without_data(rh_t *instance,
-    usb_transfer_batch_t *request) {
-	usb_device_request_setup_packet_t * setup_request =
-	    (usb_device_request_setup_packet_t*) request->setup_buffer;
+int process_request_without_data(rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+
+	const usb_device_request_setup_packet_t *setup_request =
+	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 	request->transfered_size = 0;
-	if (setup_request->request == USB_DEVREQ_CLEAR_FEATURE) {
-		if (setup_request->request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
+	const int request_type = setup_request->request_type;
+	switch (setup_request->request)
+	{
+	case USB_DEVREQ_CLEAR_FEATURE:
+		if (request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
 			return process_hub_feature_clear_request(instance,
 			    setup_request->value);
 		}
-		if (setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
-			usb_log_debug2("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
+		if (request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
+			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
 			return process_port_feature_clear_request(instance,
-			    setup_request->value,
-			    setup_request->index);
+			    setup_request->value, setup_request->index);
 		}
-		usb_log_debug("USB_HUB_REQ_TYPE_INVALID %d\n",
-		    setup_request->request_type);
+		usb_log_error("Invalid HUB clear feature request type: %d\n",
+		    request_type);
 		return EINVAL;
-	}
-	if (setup_request->request == USB_DEVREQ_SET_FEATURE) {
-		if (setup_request->request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
+
+	case USB_DEVREQ_SET_FEATURE:
+		if (request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
 			return process_hub_feature_set_request(instance,
 			    setup_request->value);
 		}
-		if (setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
+		if (request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
 			return process_port_feature_set_request(instance,
-			    setup_request->value,
-			    setup_request->index);
+			    setup_request->value, setup_request->index);
 		}
-		usb_log_debug("USB_HUB_REQ_TYPE_INVALID %d\n",
-		    setup_request->request_type);
+		usb_log_error("Invalid HUB set feature request type: %d\n",
+		    request_type);
 		return EINVAL;
-	}
-	if (setup_request->request == USB_DEVREQ_SET_ADDRESS) {
+
+	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
 		return process_address_set_request(instance,
 		    setup_request->value);
-	}
-	usb_log_debug("USB_DEVREQ_SET_ENOTSUP %d\n",
-	    setup_request->request_type);
 
-	return ENOTSUP;
+	default:
+		usb_log_error("Invalid HUB request: %d\n",
+		    setup_request->request);
+		return ENOTSUP;
+	}
 }
 /*----------------------------------------------------------------------------*/
-
 /**
- * process hub control request
+ * Process hub control request.
  *
  * If needed, writes answer into the request structure.
  * Request can be one of
@@ -843,59 +864,52 @@ static int process_request_without_data(rh_t *instance,
  * @param request structure containing both request and response information
  * @return error code
  */
-static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
-	if (!request->setup_buffer) {
-		usb_log_error("root hub received empty transaction?");
-		return EINVAL;
-	}
-	int opResult;
-	if (sizeof (usb_device_request_setup_packet_t) > request->setup_size) {
-		usb_log_error("Setup packet too small\n");
-		return EINVAL;
-	}
-	usb_log_debug("CTRL packet: %s.\n",
-	    usb_debug_str_buffer(
-	    (const uint8_t *) request->setup_buffer, 8, 8));
-	usb_device_request_setup_packet_t * setup_request =
-	    (usb_device_request_setup_packet_t*)
-	    request->setup_buffer;
-	switch (setup_request->request) {
-		case USB_DEVREQ_GET_STATUS:
-		case USB_DEVREQ_GET_DESCRIPTOR:
-		case USB_DEVREQ_GET_CONFIGURATION:
-			usb_log_debug2("Processing request with output\n");
-			opResult = process_request_with_output(
-			    instance, request);
-			break;
-		case USB_DEVREQ_CLEAR_FEATURE:
-		case USB_DEVREQ_SET_FEATURE:
-		case USB_DEVREQ_SET_ADDRESS:
-			usb_log_debug2("Processing request without "
-			    "additional data\n");
-			opResult = process_request_without_data(
-			    instance, request);
-			break;
-		case USB_DEVREQ_SET_DESCRIPTOR:
-		case USB_DEVREQ_SET_CONFIGURATION:
-			usb_log_debug2("Processing request with input\n");
-			opResult = process_request_with_input(
-			    instance, request);
+int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
 
-			break;
-		default:
-			usb_log_warning("Received unsupported request: %d.\n",
-			    setup_request->request);
-			opResult = ENOTSUP;
+	if (!request->setup_buffer) {
+		usb_log_error("Root hub received empty transaction!");
+		return EINVAL;
 	}
-	return opResult;
+	if (sizeof(usb_device_request_setup_packet_t) > request->setup_size) {
+		usb_log_error("Setup packet too small\n");
+		return EOVERFLOW;
+	}
+	usb_log_debug2("CTRL packet: %s.\n",
+	    usb_debug_str_buffer((uint8_t *) request->setup_buffer, 8, 8));
+	const usb_device_request_setup_packet_t *setup_request =
+	    (usb_device_request_setup_packet_t *) request->setup_buffer;
+	switch (setup_request->request)
+	{
+	case USB_DEVREQ_GET_STATUS:
+	case USB_DEVREQ_GET_DESCRIPTOR:
+	case USB_DEVREQ_GET_CONFIGURATION:
+		usb_log_debug2("Processing request with output\n");
+		return process_request_with_output(instance, request);
+	case USB_DEVREQ_CLEAR_FEATURE:
+	case USB_DEVREQ_SET_FEATURE:
+	case USB_DEVREQ_SET_ADDRESS:
+		usb_log_debug2("Processing request without "
+		    "additional data\n");
+		return process_request_without_data(instance, request);
+	case USB_DEVREQ_SET_DESCRIPTOR:
+	case USB_DEVREQ_SET_CONFIGURATION:
+		usb_log_debug2("Processing request with input\n");
+		return process_request_with_input(instance, request);
+	default:
+		usb_log_error("Received unsupported request: %d.\n",
+		    setup_request->request);
+		return ENOTSUP;
+	}
 }
 /*----------------------------------------------------------------------------*/
-
 /**
  * process hanging interrupt request
  *
  * If an interrupt transfer has been received and there was no change,
- * the driver stores the transfer information and waits for change to occcur.
+ * the driver stores the transfer information and waits for change to occur.
  * This routine is called when that happens and it finalizes the interrupt
  * transfer.
  *
@@ -904,8 +918,12 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
  *
  * @return
  */
-static int process_interrupt_mask_in_instance(rh_t *instance,
-    usb_transfer_batch_t * request) {
+int process_interrupt_mask_in_instance(
+    rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+
 	memcpy(request->data_buffer, instance->interrupt_buffer,
 	    instance->interrupt_mask_size);
 	request->transfered_size = instance->interrupt_mask_size;
@@ -914,9 +932,7 @@ static int process_interrupt_mask_in_instance(rh_t *instance,
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 /**
  * return whether the buffer is full of zeros
  *
@@ -925,12 +941,13 @@ static int process_interrupt_mask_in_instance(rh_t *instance,
  * @param size
  * @return
  */
-static bool is_zeros(void *buffer, size_t size) {
+bool is_zeros(const void *buffer, size_t size)
+{
 	if (!buffer) return true;
-	if (!size) return true;
-	size_t i;
-	for (i = 0; i < size; ++i) {
-		if (((char*) buffer)[i])
+	const char * const end = buffer + size;
+	const char *data = buffer;
+	for (; data < end; ++data) {
+		if (*data)
 			return false;
 	}
 	return true;
