@@ -167,45 +167,45 @@ static void rh_init_descriptors(rh_t *instance);
 
 static void create_interrupt_mask_in_instance(rh_t *instance);
 
-static int process_get_port_status_request(
+static int get_port_status_request(
     rh_t *instance, uint16_t port, usb_transfer_batch_t *request);
 
-static int process_get_hub_status_request(
+static int get_hub_status_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_get_status_request(
+static int get_status_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
 
-static int process_get_descriptor_request(
+static int get_descriptor_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_get_configuration_request(
+static int get_configuration_request(
     rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_hub_feature_set_request(rh_t *instance, uint16_t feature);
+static int hub_feature_set_request(rh_t *instance, uint16_t feature);
 
-static int process_hub_feature_clear_request(
+static int hub_feature_clear_request(
     rh_t *instance, uint16_t feature);
 
-static int process_port_feature_set_request(
+static int port_feature_set_request(
     rh_t *instance, uint16_t feature, uint16_t port);
 
-static int process_port_feature_clear_request(
+static int port_feature_clear_request(
     rh_t *instance, uint16_t feature, uint16_t port);
 
-static int process_request_with_input(
+static int request_with_input(
     rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_request_with_output(
+static int request_with_output(
     rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_request_without_data(
+static int request_without_data(
     rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
+static int ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_interrupt_mask_in_instance(
+static int interrupt_mask_in_instance(
     rh_t *instance, usb_transfer_batch_t *request);
 
 static bool is_zeros(const void *buffer, size_t size);
@@ -217,7 +217,7 @@ static bool is_zeros(const void *buffer, size_t size);
  * @param address New address
  * @return Error code
  */
-static inline int process_address_set_request(rh_t *instance, uint16_t address)
+static inline int address_set_request(rh_t *instance, uint16_t address)
 	{ return ENOTSUP; }
 
 /** Root hub initialization
@@ -269,7 +269,7 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_TRANSFER_CONTROL:
 		usb_log_debug("Root hub got CONTROL packet\n");
-		opResult = process_ctrl_request(instance, request);
+		opResult = ctrl_request(instance, request);
 		usb_transfer_batch_finish_error(request, opResult);
 		break;
 	case USB_TRANSFER_INTERRUPT:
@@ -282,7 +282,7 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 			//will be finished later
 		} else {
 			usb_log_debug("Processing changes..\n");
-			process_interrupt_mask_in_instance(instance, request);
+			interrupt_mask_in_instance(instance, request);
 		}
 		break;
 	default:
@@ -305,7 +305,7 @@ void rh_interrupt(rh_t *instance)
 
 	usb_log_debug("Finalizing interrupt transfer\n");
 	create_interrupt_mask_in_instance(instance);
-	process_interrupt_mask_in_instance(instance,
+	interrupt_mask_in_instance(instance,
 	    instance->unfinished_interrupt_transfer);
 }
 /*----------------------------------------------------------------------------*/
@@ -403,7 +403,7 @@ void rh_init_descriptors(rh_t *instance)
  * @param request Structure containing both request and response information
  * @return Error code
  */
-int process_get_port_status_request(
+int get_port_status_request(
     rh_t *instance, uint16_t port, usb_transfer_batch_t * request)
 {
 	assert(instance);
@@ -429,7 +429,7 @@ int process_get_port_status_request(
  * @param request Structure containing both request and response information.
  * @return Error code
  */
-int process_get_hub_status_request(
+int get_hub_status_request(
     rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
@@ -451,7 +451,7 @@ int process_get_hub_status_request(
  * @param request structure containing both request and response information
  * @return error code
  */
-int process_get_status_request(rh_t *instance, usb_transfer_batch_t *request)
+int get_status_request(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -468,9 +468,9 @@ int process_get_status_request(rh_t *instance, usb_transfer_batch_t *request)
 	}
 
 	if (request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS)
-		return process_get_hub_status_request(instance, request);
+		return get_hub_status_request(instance, request);
 	if (request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS)
-		return process_get_port_status_request(instance,
+		return get_port_status_request(instance,
 		    request_packet->index, request);
 
 	return ENOTSUP;
@@ -490,7 +490,7 @@ void create_interrupt_mask_in_instance(rh_t *instance)
 {
 	assert(instance);
 
-	uint8_t * bitmap = (uint8_t*) (instance->interrupt_buffer);
+	uint8_t * bitmap = instance->interrupt_buffer;
 	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
 	    | (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
 	bzero(bitmap, instance->interrupt_mask_size);
@@ -516,7 +516,7 @@ void create_interrupt_mask_in_instance(rh_t *instance)
  * @param request Structure containing both request and response information
  * @return Error code
  */
-int process_get_descriptor_request(
+int get_descriptor_request(
     rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
@@ -590,7 +590,7 @@ int process_get_descriptor_request(
  * @param request Structure containing both request and response information
  * @return Error code
  */
-int process_get_configuration_request(
+int get_configuration_request(
     rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(request);
@@ -610,7 +610,7 @@ int process_get_configuration_request(
  * @param feature feature selector
  * @return error code
  */
-static int process_hub_feature_set_request(rh_t *instance,
+static int hub_feature_set_request(rh_t *instance,
     uint16_t feature) {
 	if (!((1 << feature) & hub_set_feature_valid_mask))
 		return EINVAL;
@@ -630,7 +630,7 @@ static int process_hub_feature_set_request(rh_t *instance,
  * @param feature feature selector
  * @return error code
  */
-int process_hub_feature_clear_request(rh_t *instance, uint16_t feature)
+int hub_feature_clear_request(rh_t *instance, uint16_t feature)
 {
 	assert(instance);
 
@@ -661,7 +661,7 @@ int process_hub_feature_clear_request(rh_t *instance, uint16_t feature)
  * @param enable enable or disable the specified feature
  * @return error code
  */
-int process_port_feature_set_request(
+int port_feature_set_request(
     rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
@@ -686,7 +686,7 @@ int process_port_feature_set_request(
  * @param enable enable or disable the specified feature
  * @return error code
  */
-int process_port_feature_clear_request(
+int port_feature_clear_request(
     rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
@@ -719,7 +719,7 @@ int process_port_feature_clear_request(
  * @param request structure containing both request and response information
  * @return error code
  */
-int process_request_with_output(rh_t *instance, usb_transfer_batch_t *request)
+int request_with_output(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -730,13 +730,13 @@ int process_request_with_output(rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_DEVREQ_GET_STATUS:
 		usb_log_debug("USB_DEVREQ_GET_STATUS\n");
-		return process_get_status_request(instance, request);
+		return get_status_request(instance, request);
 	case USB_DEVREQ_GET_DESCRIPTOR:
 		usb_log_debug("USB_DEVREQ_GET_DESCRIPTOR\n");
-		return process_get_descriptor_request(instance, request);
+		return get_descriptor_request(instance, request);
 	case USB_DEVREQ_GET_CONFIGURATION:
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
-		return process_get_configuration_request(instance, request);
+		return get_configuration_request(instance, request);
 	}
 	return ENOTSUP;
 }
@@ -750,7 +750,7 @@ int process_request_with_output(rh_t *instance, usb_transfer_batch_t *request)
  * @param request structure containing both request and response information
  * @return error code
  */
-int process_request_with_input(rh_t *instance, usb_transfer_batch_t *request)
+int request_with_input(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -776,7 +776,7 @@ int process_request_with_input(rh_t *instance, usb_transfer_batch_t *request)
  * @param request structure containing both request and response information
  * @return error code
  */
-int process_request_without_data(rh_t *instance, usb_transfer_batch_t *request)
+int request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -790,12 +790,12 @@ int process_request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 	case USB_DEVREQ_CLEAR_FEATURE:
 		if (request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
-			return process_hub_feature_clear_request(instance,
+			return hub_feature_clear_request(instance,
 			    setup_request->value);
 		}
 		if (request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-			return process_port_feature_clear_request(instance,
+			return port_feature_clear_request(instance,
 			    setup_request->value, setup_request->index);
 		}
 		usb_log_error("Invalid HUB clear feature request type: %d\n",
@@ -805,12 +805,12 @@ int process_request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 	case USB_DEVREQ_SET_FEATURE:
 		if (request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
-			return process_hub_feature_set_request(instance,
+			return hub_feature_set_request(instance,
 			    setup_request->value);
 		}
 		if (request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE) {
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-			return process_port_feature_set_request(instance,
+			return port_feature_set_request(instance,
 			    setup_request->value, setup_request->index);
 		}
 		usb_log_error("Invalid HUB set feature request type: %d\n",
@@ -819,7 +819,7 @@ int process_request_without_data(rh_t *instance, usb_transfer_batch_t *request)
 
 	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
-		return process_address_set_request(instance,
+		return address_set_request(instance,
 		    setup_request->value);
 
 	default:
@@ -847,7 +847,7 @@ int process_request_without_data(rh_t *instance, usb_transfer_batch_t *request)
  * @param request structure containing both request and response information
  * @return error code
  */
-int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
+int ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -870,17 +870,17 @@ int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
 	case USB_DEVREQ_GET_DESCRIPTOR:
 	case USB_DEVREQ_GET_CONFIGURATION:
 		usb_log_debug2("Processing request with output\n");
-		return process_request_with_output(instance, request);
+		return request_with_output(instance, request);
 	case USB_DEVREQ_CLEAR_FEATURE:
 	case USB_DEVREQ_SET_FEATURE:
 	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug2("Processing request without "
 		    "additional data\n");
-		return process_request_without_data(instance, request);
+		return request_without_data(instance, request);
 	case USB_DEVREQ_SET_DESCRIPTOR:
 	case USB_DEVREQ_SET_CONFIGURATION:
 		usb_log_debug2("Processing request with input\n");
-		return process_request_with_input(instance, request);
+		return request_with_input(instance, request);
 	default:
 		usb_log_error("Received unsupported request: %d.\n",
 		    setup_request->request);
@@ -901,7 +901,7 @@ int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request)
  *
  * @return
  */
-int process_interrupt_mask_in_instance(
+int interrupt_mask_in_instance(
     rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
