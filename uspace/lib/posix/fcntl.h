@@ -37,6 +37,7 @@
 
 #include "sys/types.h"
 #include "libc/fcntl.h"
+#include "errno.h"
 
 /* Mask for file access modes. */
 #undef O_ACCMODE
@@ -71,9 +72,9 @@
 #define FD_CLOEXEC         1 /* Close on exec. */
 
 #undef open
-#define open(path, oflag, ...) \
+#define open(path, ...) \
 	({ \
-		int rc = open(path, oflag, ##__VA_ARGS__); \
+		int rc = open(path, ##__VA_ARGS__); \
 		if (rc < 0) { \
 			errno = -rc; \
 			rc = -1; \
