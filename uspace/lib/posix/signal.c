@@ -280,7 +280,7 @@ int posix_kill(posix_pid_t pid, int signo)
 		return -1;
 	}
 
-	if (pid == task_get_id()) {
+	if (pid == (posix_pid_t) task_get_id()) {
 		return posix_raise(signo);
 	}
 
