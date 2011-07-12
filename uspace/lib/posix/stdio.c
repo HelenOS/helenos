@@ -88,6 +88,23 @@ char *posix_ctermid(char *s)
 }
 
 /**
+ * Put a string on the stream.
+ * 
+ * @param s String to be written.
+ * @param stream Output stream.
+ * @return Non-negative on success, EOF on failure.
+ */
+int posix_fputs(const char *restrict s, FILE *restrict stream)
+{
+	int rc = fputs(s, stream);
+	if (rc == 0) {
+		return EOF;
+	} else {
+		return 0;
+	}
+}
+
+/**
  * Push byte back into input stream.
  * 
  * @param c Byte to be pushed back.
@@ -390,6 +407,23 @@ long posix_ftell(FILE *stream)
 posix_off_t posix_ftello(FILE *stream)
 {
 	return (posix_off_t) ftell(stream);
+}
+
+/**
+ * Discard prefetched data or write unwritten data.
+ * 
+ * @param stream Stream that shall be flushed.
+ * @return Zero on success, EOF on failure.
+ */
+int posix_fflush(FILE *stream)
+{
+	int rc = fflush(stream);
+	if (rc < 0) {
+		errno = -rc;
+		return EOF;
+	} else {
+		return 0;
+	}
 }
 
 /**

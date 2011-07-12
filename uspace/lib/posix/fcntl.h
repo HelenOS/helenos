@@ -70,6 +70,17 @@
 #undef FD_CLOEXEC
 #define FD_CLOEXEC         1 /* Close on exec. */
 
+#undef open
+#define open(path, oflag, ...) \
+	({ \
+		int rc = open(path, oflag, ##__VA_ARGS__); \
+		if (rc < 0) { \
+			errno = -rc; \
+			rc = -1; \
+		} \
+		rc; \
+	})
+
 extern int posix_fcntl(int fd, int cmd, ...);
 
 #ifndef LIBPOSIX_INTERNAL

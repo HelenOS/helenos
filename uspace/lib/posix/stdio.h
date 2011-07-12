@@ -52,6 +52,7 @@ extern void posix_clearerr(FILE *stream);
 /* Input/Output */
 #undef putc
 #define putc fputc
+extern int posix_fputs(const char *restrict s, FILE *restrict stream);
 #undef getc
 #define getc fgetc
 extern int posix_ungetc(int c, FILE *stream);
@@ -78,6 +79,9 @@ extern int posix_fseek(FILE *stream, long offset, int whence);
 extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
 extern long posix_ftell(FILE *stream);
 extern posix_off_t posix_ftello(FILE *stream);
+
+/* Flushing Buffers */
+extern int posix_fflush(FILE *stream);
 
 /* Formatted Output */
 extern int posix_dprintf(int fildes, const char *restrict format, ...)
@@ -121,6 +125,7 @@ extern char *posix_tmpnam(char *s);
 
 	#define clearerr posix_clearerr
 
+	#define fputs posix_fputs
 	#define ungetc posix_ungetc
 	#define getdelim posix_getdelim
 	#define getline posix_getline
@@ -138,6 +143,8 @@ extern char *posix_tmpnam(char *s);
 	#define fseeko posix_fseeko
 	#define ftell posix_ftell
 	#define ftello posix_ftello
+
+	#define fflush posix_fflush
 
 	#define dprintf posix_dprintf
 	#define vdprintf posix_vdprintf
