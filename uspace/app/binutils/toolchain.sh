@@ -94,13 +94,10 @@ case "$1" in
 		echo '			sed '\'s/ -Wc++-compat//g\'' | \'
 		echo '			sed '\'s/ [ ]*/ /g\''`"'
 					# Add flags:
-					# -Wno-type-limits
-					#		HelenOS pid_t is unsigned
-					#		while on most systems it is signed.
 					# -Wno-shadow
 					#		Silents the warning caused by 
 					#		harmless bug in ld/ldlang.h and ld/ldlex.c.
-		echo '		GCC_ARGS="$GCC_ARGS -Wno-type-limits -Wno-shadow"'
+#		echo '		GCC_ARGS="$GCC_ARGS -Wno-shadow"'
 		echo '		echo' \'"$2"\' '"$GCC_ARGS"' \'"$CFLAGS"\'
 		echo "		$2" '$GCC_ARGS' "$CFLAGS"
 		echo '	fi'
