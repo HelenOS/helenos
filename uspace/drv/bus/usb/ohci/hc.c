@@ -96,7 +96,13 @@ int hc_get_irq_commands(
 	/* Some bogus access to force create mapping. DO NOT remove,
 	 * unless whole virtual addresses in irq is replaced
 	 * NOTE: Compiler won't remove this as ohci_regs_t members
-	 * are declared volatile. */
+	 * are declared volatile.
+	 *
+	 * Introducing CMD_MEM set of IRQ code commands broke
+	 * assumption that IRQ code does not cause page faults.
+	 * If this happens during idling (THREAD == NULL)
+	 * it causes kernel panic.
+	 */
 	registers->revision;
 
 	if (ret != EOK)
