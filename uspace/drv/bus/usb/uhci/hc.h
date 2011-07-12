@@ -115,16 +115,8 @@ typedef struct hc {
 
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
-
-	/** Code to be executed in kernel interrupt handler */
-	irq_code_t interrupt_code;
-
-	/** Commands that form interrupt code */
-	irq_cmd_t interrupt_commands[UHCI_NEEDED_IRQ_COMMANDS];
-
 	/** Fibril periodically checking status register*/
 	fid_t interrupt_emulator;
-
 	/** Indicator of hw interrupts availability */
 	bool hw_interrupts;
 
