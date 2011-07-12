@@ -56,7 +56,6 @@ typedef struct rh {
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
 	/** size of interrupt buffer */
 	size_t interrupt_mask_size;
-
 	/** Descriptors */
 	struct {
 		usb_standard_configuration_descriptor_t configuration;
@@ -71,7 +70,7 @@ typedef struct rh {
 
 void rh_init(rh_t *instance, ohci_regs_t *regs);
 
-int rh_request(rh_t *instance, usb_transfer_batch_t *request);
+void rh_request(rh_t *instance, usb_transfer_batch_t *request);
 
 void rh_interrupt(rh_t *instance);
 #endif

@@ -372,7 +372,8 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 
 	/* Check for root hub communication */
 	if (batch->ep->address == instance->rh.address) {
-		return rh_request(&instance->rh, batch);
+		rh_request(&instance->rh, batch);
+		return EOK;
 	}
 
 	fibril_mutex_lock(&instance->guard);
