@@ -67,13 +67,15 @@ static inline ohci_t * dev_to_ohci(ddf_dev_t *dev)
  */
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
-	hc_t *hc = &dev_to_ohci(dev)->hc;
-	if (!hc) {
-		usb_log_warning("IRQ on device that is not ready.\n");
+	assert(dev);
+
+	ohci_t *ohci = dev_to_ohci(dev);
+	if (!ohci) {
+		usb_log_warning("Interrupt on device that is not ready.\n");
 		return;
 	}
 	const uint16_t status = IPC_GET_ARG1(*call);
-	hc_interrupt(hc, status);
+	hc_interrupt(&ohci->hc, status);
 }
 /*----------------------------------------------------------------------------*/
 /** Get address of the device identified by handle.
