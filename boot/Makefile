@@ -75,7 +75,7 @@ build_dist: clean_dist
 		file_name="`basename "$$file"`" ; \
 		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/$$file_name.dev" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
 	done
-	
+
 clean: clean_dist
 	$(MAKE) -f $(BUILD) clean PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)

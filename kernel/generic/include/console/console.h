@@ -71,8 +71,7 @@ extern sysarg_t sys_klog(int fd, const void *buf, size_t size);
 extern void grab_console(void);
 extern void release_console(void);
 
-extern sysarg_t sys_debug_enable_console(void);
-extern sysarg_t sys_debug_disable_console(void);
+extern sysarg_t sys_debug_activate_console(void);
 
 #endif /* KERN_CONSOLE_H_ */
 

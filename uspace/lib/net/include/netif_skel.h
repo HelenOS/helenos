@@ -38,20 +38,18 @@
 #ifndef NET_NETIF_SKEL_H_
 #define NET_NETIF_SKEL_H_
 
-#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <adt/measured_strings.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
 /** Network interface device specific data. */
 typedef struct {
-	device_id_t device_id;  /**< Device identifier. */
-	int nil_phone;          /**< Receiving network interface layer phone. */
-	device_state_t state;   /**< Actual device state. */
-	void *specific;         /**< Driver specific data. */
+	device_id_t device_id;   /**< Device identifier. */
+	device_state_t state;    /**< Actual device state. */
+	void *specific;          /**< Driver specific data. */
 } netif_device_t;
 
 /** Device map.
@@ -64,7 +62,8 @@ DEVICE_MAP_DECLARE(netif_device_map, netif_device_t);
 
 /** Network interface module skeleton global data. */
 typedef struct {
-	int net_phone;                  /**< Networking module phone. */
+	async_sess_t *sess;             /**< Networking module session. */
+	async_sess_t *nil_sess;         /**< Network interface layer session. */
 	netif_device_map_t device_map;  /**< Device map. */
 	fibril_rwlock_t lock;           /**< Safety lock. */
 } netif_globals_t;
@@ -126,7 +125,6 @@ extern int netif_send_message(device_id_t device_id, packet_t *packet,
  *         function.
  * @return Other error codes as defined for the specific module
  *         message implementation.
- 
  *
  */
 extern int netif_start_message(netif_device_t *device);

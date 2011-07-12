@@ -589,7 +589,7 @@ void print_directory_contents(ext2_filesystem_t *fs,
 	
 	printf("  Directory contents:\n");
 	
-	rc = ext2_directory_iterator_init(&it, fs, inode_ref);
+	rc = ext2_directory_iterator_init(&it, fs, inode_ref, 0);
 	if (rc != EOK) {
 		printf("Failed initializing directory iterator\n");
 		return;

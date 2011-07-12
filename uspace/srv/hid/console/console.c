@@ -356,7 +356,7 @@ static void change_console(console_t *cons)
 		input_yield();
 		console_serialize_end();
 		
-		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
+		if (console_kcon()) {
 			prev_console = active_console;
 			active_console = kernel_console;
 		} else
@@ -710,9 +710,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			cons_get_event(cons, callid, &call);
 			console_serialize_start();
 			continue;
-		case CONSOLE_KCON_ENABLE:
-			change_console(kernel_console);
-			break;
 		}
 		async_answer_3(callid, EOK, arg1, arg2, arg3);
 	}
@@ -831,9 +828,6 @@ static bool console_srv_init(char *input_dev)
 			}
 		}
 	}
-	
-	/* Disable kernel output to the console */
-	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
 	
 	/* Initialize the screen */
 	console_serialize_start();

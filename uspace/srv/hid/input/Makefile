@@ -48,9 +48,7 @@ SOURCES = \
 	port/niagara.c \
 	port/ns16550.c \
 	port/pl050.c \
-	port/sgcn.c \
 	port/ski.c \
-	port/z8530.c \
 	proto/adb.c \
 	proto/mousedev.c \
 	proto/ps2.c \

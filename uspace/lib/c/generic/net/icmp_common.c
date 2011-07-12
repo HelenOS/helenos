@@ -44,10 +44,10 @@
 
 /** Connect to the ICMP module.
  *
- * @return ICMP module phone on success.
+ * @return ICMP module session.
  *
  */
-int icmp_connect_module(void)
+async_sess_t *icmp_connect_module(void)
 {
 	return connect_to_service(SERVICE_ICMP);
 }

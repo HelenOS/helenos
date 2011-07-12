@@ -39,17 +39,12 @@
  */
 
 #include <async.h>
-#include <async_obsolete.h>
 #include <malloc.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <ipc/services.h>
 #include <net/modules.h>
 #include <ns.h>
-#include <ns_obsolete.h>
-
-/** The time between connect requests in microseconds. */
-#define MODULE_WAIT_TIME  (10 * 1000)
 
 /** Answer a call.
  *
@@ -97,73 +92,83 @@ void answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
 	}
 }
 
-/** Create bidirectional connection with the needed module service and registers
+/** Create bidirectional connection with the needed module service and register
  * the message receiver.
  *
- * @param[in] need	The needed module service.
- * @param[in] arg1	The first parameter.
- * @param[in] arg2	The second parameter.
- * @param[in] arg3	The third parameter.
- * @param[in] client_receiver The message receiver.
+ * @param[in] need            Needed module service.
+ * @param[in] arg1            First parameter.
+ * @param[in] arg2            Second parameter.
+ * @param[in] arg3            Third parameter.
+ * @param[in] client_receiver Message receiver.
  *
- * @return		The phone of the needed service.
- * @return		Other error codes as defined for the ipc_connect_to_me()
- *			function.
+ * @return Session to the needed service.
+ * @return Other error codes as defined for the async_connect_to_me()
+ *         function.
+ *
  */
-int bind_service(services_t need, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
-    async_client_conn_t client_receiver)
+async_sess_t *bind_service(services_t need, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_client_conn_t client_receiver)
 {
 	/* Connect to the needed service */
-	int phone = connect_to_service(need);
-	if (phone >= 0) {
+	async_sess_t *sess = connect_to_service(need);
+	if (sess != NULL) {
 		/* Request the bidirectional connection */
-		int rc = async_obsolete_connect_to_me(phone, arg1, arg2, arg3,
+		async_exch_t *exch = async_exchange_begin(sess);
+		int rc = async_connect_to_me(exch, arg1, arg2, arg3,
 		    client_receiver, NULL);
+		async_exchange_end(exch);
+		
 		if (rc != EOK) {
-			async_obsolete_hangup(phone);
-			return rc;
+			async_hangup(sess);
+			errno = rc;
+			return NULL;
 		}
 	}
 	
-	return phone;
+	return sess;
 }
 
-/** Connects to the needed module.
+/** Connect to the needed module.
  *
- * @param[in] need	The needed module service.
- * @return		The phone of the needed service.
+ * @param[in] need Needed module service.
+ *
+ * @return Session to the needed service.
+ * @return NULL if the connection timeouted.
+ *
  */
-int connect_to_service(services_t need)
+async_sess_t *connect_to_service(services_t need)
 {
-	return service_obsolete_connect_blocking(need, 0, 0);
+	return service_connect_blocking(EXCHANGE_SERIALIZE, need, 0, 0);
 }
 
-/** Replies the data to the other party.
+/** Reply the data to the other party.
  *
- * @param[in] data	The data buffer to be sent.
+ * @param[in] data        The data buffer to be sent.
  * @param[in] data_length The buffer length.
- * @return		EOK on success.
- * @return		EINVAL if the client does not expect the data.
- * @return		EOVERFLOW if the client does not expect all the data.
- *			Only partial data are transfered.
- * @return		Other error codes as defined for the
- *			async_data_read_finalize() function.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the client does not expect the data.
+ * @return EOVERFLOW if the client does not expect all the data.
+ *         Only partial data are transfered.
+ * @return Other error codes as defined for the
+ *         async_data_read_finalize() function.
+ *
  */
 int data_reply(void *data, size_t data_length)
 {
 	size_t length;
 	ipc_callid_t callid;
-
+	
 	/* Fetch the request */
 	if (!async_data_read_receive(&callid, &length))
 		return EINVAL;
-
+	
 	/* Check the requested data size */
 	if (length < data_length) {
 		async_data_read_finalize(callid, data, length);
 		return EOVERFLOW;
 	}
-
+	
 	/* Send the data */
 	return async_data_read_finalize(callid, data, data_length);
 }

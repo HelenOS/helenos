@@ -269,7 +269,6 @@ int main(int argc, char *argv[])
 	spawn("/srv/devman");
 	spawn("/srv/apic");
 	spawn("/srv/i8259");
-	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");

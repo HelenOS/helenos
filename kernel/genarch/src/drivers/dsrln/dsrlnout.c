@@ -41,16 +41,18 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <str.h>
+#include <ddi/ddi.h>
 
 typedef struct {
+	parea_t parea;
 	ioport8_t *base;
 } dsrlnout_instance_t;
 
-static void dsrlnout_putchar(outdev_t *dev, const wchar_t ch, bool silent)
+static void dsrlnout_putchar(outdev_t *dev, const wchar_t ch)
 {
 	dsrlnout_instance_t *instance = (dsrlnout_instance_t *) dev->data;
 	
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		if (ascii_check(ch))
 			pio_write_8(instance->base, ch);
 		else
@@ -69,7 +71,8 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 	if (!dsrlndev)
 		return NULL;
 	
-	dsrlnout_instance_t *instance = malloc(sizeof(dsrlnout_instance_t), FRAME_ATOMIC);
+	dsrlnout_instance_t *instance = malloc(sizeof(dsrlnout_instance_t),
+	    FRAME_ATOMIC);
 	if (!instance) {
 		free(dsrlndev);
 		return NULL;
@@ -79,10 +82,17 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 	dsrlndev->data = instance;
 	
 	instance->base = base;
+	link_initialize(&instance->parea.link);
+	instance->parea.pbase = KA2PA(base);
+	instance->parea.frames = 1;
+	instance->parea.unpriv = false;
+	instance->parea.mapped = false;
+	ddi_parea_register(&instance->parea);
 	
 	if (!fb_exported) {
 		/*
-		 * This is the necessary evil until the userspace driver is entirely
+		 * This is the necessary evil until
+		 * the userspace driver is entirely
 		 * self-sufficient.
 		 */
 		sysinfo_set_item_val("fb", NULL, true);

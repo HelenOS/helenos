@@ -39,8 +39,9 @@
 
 #include <ipc/services.h>
 #include <sys/time.h>
+#include <async.h>
 
-extern int icmp_connect_module(void);
+extern async_sess_t *icmp_connect_module(void);
 
 #endif
 

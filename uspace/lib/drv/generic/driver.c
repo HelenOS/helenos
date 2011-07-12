@@ -316,6 +316,12 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		return;
 	}
 	
+	if (fun->conn_handler != NULL) {
+		/* Driver has a custom connection handler. */
+		(*fun->conn_handler)(iid, icall, (void *)fun);
+		return;
+	}
+	
 	/*
 	 * TODO - if the client is not a driver, check whether it is allowed to
 	 * use the device.

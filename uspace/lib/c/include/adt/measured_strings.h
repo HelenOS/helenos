@@ -40,6 +40,7 @@
 #define LIBC_MEASURED_STRINGS_H_
 
 #include <sys/types.h>
+#include <async.h>
 
 /** Type definition of the character string with measured length.
  * @see measured_string
@@ -63,8 +64,11 @@ extern measured_string_t *measured_string_copy(measured_string_t *);
 
 extern int measured_strings_receive(measured_string_t **, uint8_t **, size_t);
 extern int measured_strings_reply(const measured_string_t *, size_t);
-extern int measured_strings_return(int, measured_string_t **, uint8_t **, size_t);
-extern int measured_strings_send(int, const measured_string_t *, size_t);
+
+extern int measured_strings_return(async_exch_t *, measured_string_t **,
+    uint8_t **, size_t);
+extern int measured_strings_send(async_exch_t *, const measured_string_t *,
+    size_t);
 
 #endif
 

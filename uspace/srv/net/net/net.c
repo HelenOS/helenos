@@ -35,37 +35,32 @@
  *
  */
 
-#include "net.h"
-
 #include <async.h>
 #include <ctype.h>
 #include <ddi.h>
-#include <ns.h>
 #include <errno.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
 #include <str_error.h>
-
+#include <ns.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/net_net.h>
 #include <ipc/il.h>
 #include <ipc/nil.h>
-
 #include <net/modules.h>
 #include <net/packet.h>
 #include <net/device.h>
-
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-
 #include <netif_remote.h>
 #include <nil_remote.h>
 #include <net_interface.h>
 #include <ip_interface.h>
+#include "net.h"
 
 /** Networking module name. */
 #define NAME  "net"
@@ -393,7 +388,7 @@ static int net_get_conf(measured_strings_t *netif_conf,
 	return EOK;
 }
 
-int net_get_conf_req(int net_phone, measured_string_t **configuration,
+static int net_get_conf_req_local(measured_string_t **configuration,
     size_t count, uint8_t **data)
 {
 	if (!configuration || (count <= 0))
@@ -402,7 +397,7 @@ int net_get_conf_req(int net_phone, measured_string_t **configuration,
 	return net_get_conf(NULL, *configuration, count, data);
 }
 
-int net_get_device_conf_req(int net_phone, device_id_t device_id,
+static int net_get_device_conf_req_local(device_id_t device_id,
     measured_string_t **configuration, size_t count, uint8_t **data)
 {
 	if ((!configuration) || (count == 0))
@@ -478,7 +473,7 @@ static int start_device(netif_t *netif)
 	setting = measured_strings_find(&netif->configuration, (uint8_t *) CONF_IO, 0);
 	uintptr_t io = setting ? strtol((char *) setting->value, NULL, 16) : 0;
 	
-	rc = netif_probe_req(netif->driver->phone, netif->id, irq, (void *) io);
+	rc = netif_probe_req(netif->driver->sess, netif->id, irq, (void *) io);
 	if (rc != EOK)
 		return rc;
 	
@@ -491,8 +486,7 @@ static int start_device(netif_t *netif)
 			    (uint8_t *) CONF_MTU, 0);
 		
 		int mtu = setting ? strtol((char *) setting->value, NULL, 10) : 0;
-		
-		rc = nil_device_req(netif->nil->phone, netif->id, mtu,
+		rc = nil_device_req(netif->nil->sess, netif->id, mtu,
 		    netif->driver->service);
 		if (rc != EOK)
 			return rc;
@@ -502,18 +496,11 @@ static int start_device(netif_t *netif)
 		internet_service = netif->driver->service;
 	
 	/* Inter-network layer startup */
-	switch (netif->il->service) {
-	case SERVICE_IP:
-		rc = ip_device_req(netif->il->phone, netif->id,
-		    internet_service);
-		if (rc != EOK)
-			return rc;
-		break;
-	default:
-		return ENOENT;
-	}
+	rc = ip_device_req(netif->il->sess, netif->id, internet_service);
+	if (rc != EOK)
+		return rc;
 	
-	return netif_start_req(netif->driver->phone, netif->id);
+	return netif_start_req(netif->driver->sess, netif->id);
 }
 
 /** Read the configuration and start all network interfaces.
@@ -648,7 +635,7 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IPC_GET_COUNT(*call));
 		if (rc != EOK)
 			return rc;
-		net_get_device_conf_req(0, IPC_GET_DEVICE(*call), &strings,
+		net_get_device_conf_req_local(IPC_GET_DEVICE(*call), &strings,
 		    IPC_GET_COUNT(*call), NULL);
 		
 		/* Strings should not contain received data anymore */
@@ -662,7 +649,7 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IPC_GET_COUNT(*call));
 		if (rc != EOK)
 			return rc;
-		net_get_conf_req(0, &strings, IPC_GET_COUNT(*call), NULL);
+		net_get_conf_req_local(&strings, IPC_GET_COUNT(*call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
@@ -682,6 +669,7 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
  * @param[in] iid   The initial message identifier.
  * @param[in] icall The initial message call structure.
  * @param[in] arg   Local argument.
+ *
  */
 static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)

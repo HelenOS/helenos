@@ -47,15 +47,14 @@
 void panic_common(panic_category_t cat, istate_t *istate, int access,
     uintptr_t address, const char *fmt, ...)
 {
-	va_list args;
-	
-	silent = false;
+	console_override = true;
 	
 	printf("\n%s Kernel panic ", BANNER_LEFT);
 	if (CPU)
 		printf("on cpu%u ", CPU->id);
 	printf("due to ");
 	
+	va_list args;
 	va_start(args, fmt);
 	if (cat == PANIC_ASSERT) {
 		printf("a failed assertion: %s\n", BANNER_RIGHT);
