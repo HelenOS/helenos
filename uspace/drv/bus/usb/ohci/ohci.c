@@ -201,7 +201,7 @@ if (ret != EOK) { \
 	ret =
 	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ code: %s.\n", str_error(ret));
+	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
 
 	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
 
@@ -216,7 +216,7 @@ if (ret != EOK) { \
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
-		    "Falling back to polling\n", str_error(ret));
+		    " Falling back to polling\n", str_error(ret));
 		/* We don't need that handler */
 		unregister_interrupt_handler(device, irq);
 	} else {

@@ -46,6 +46,15 @@
 #define UHCI_STATUS_USED_INTERRUPTS \
     (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)
 
+static const irq_cmd_t uhci_irq_commands[] =
+{
+	{ .cmd = CMD_PIO_READ_16, .dstarg = 1, .addr = NULL/*filled later*/},
+	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2,
+	  .value = UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS },
+	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
+	{ .cmd = CMD_PIO_WRITE_A_16, .srcarg = 1, .addr = NULL/*filled later*/},
+	{ .cmd = CMD_ACCEPT },
+};
 
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
@@ -53,6 +62,39 @@ static void hc_init_hw(hc_t *instance);
 
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
+
+/*----------------------------------------------------------------------------*/
+/** Get number of commands used in IRQ code.
+ * @return Number of commands.
+ */
+size_t hc_irq_cmd_count(void)
+{
+	return sizeof(uhci_irq_commands) / sizeof(irq_cmd_t);
+}
+/*----------------------------------------------------------------------------*/
+/** Generate IRQ code commands.
+ * @param[out] cmds Place to store the commands.
+ * @param[in] cmd_size Size of the place (bytes).
+ * @param[in] regs Physical address of device's registers.
+ * @param[in] reg_size Size of the register area (bytes).
+ *
+ * @return Error code.
+ */
+int hc_get_irq_commands(
+    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size)
+{
+	if (cmd_size < sizeof(uhci_irq_commands)
+	    || reg_size < sizeof(uhci_regs_t))
+		return EOVERFLOW;
+
+	uhci_regs_t *registers = (uhci_regs_t*)regs;
+
+	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
+
+	cmds[0].addr = (void*)&registers->usbsts;
+	cmds[3].addr = (void*)&registers->usbsts;
+	return EOK;
+}
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hc driver structure
  *
@@ -68,7 +110,7 @@ static int hc_debug_checker(void *arg);
  */
 int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 {
-	assert(reg_size >= sizeof(regs_t));
+	assert(reg_size >= sizeof(uhci_regs_t));
 	int ret;
 
 #define CHECK_RET_RETURN(ret, message...) \
@@ -81,7 +123,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
-	regs_t *io;
+	uhci_regs_t *io;
 	ret = pio_enable(regs, reg_size, (void **)&io);
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) to gain access to registers at %p: %s.\n",
@@ -115,7 +157,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 void hc_init_hw(hc_t *instance)
 {
 	assert(instance);
-	regs_t *registers = instance->registers;
+	uhci_regs_t *registers = instance->registers;
 
 	/* Reset everything, who knows what touched it before us */
 	pio_write_16(&registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
