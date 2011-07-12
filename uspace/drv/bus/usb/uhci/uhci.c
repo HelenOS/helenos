@@ -252,7 +252,7 @@ if (ret != EOK) { \
 
 	ret = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed(%d) to init uhci_hcd: %s.\n", ret, str_error(ret));
+	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
 
 	device->driver_data = instance;
 
@@ -264,9 +264,8 @@ if (ret != EOK) { \
 } else (void)0
 
 	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to bind UHCI device function: %s.\n",
-	    ret, str_error(ret));
+	CHECK_RET_FINI_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
+	    str_error(ret));
 
 	ret = ddf_fun_add_to_class(instance->hc_fun, USB_HC_DDF_CLASS_NAME);
 	CHECK_RET_FINI_RETURN(ret,
@@ -275,11 +274,11 @@ if (ret != EOK) { \
 	ret = rh_init(&instance->rh, instance->rh_fun,
 	    (uintptr_t)instance->hc.registers + 0x10, 4);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to setup UHCI root hub: %s.\n", ret, str_error(ret));
+	    "Failed to setup UHCI root hub: %s.\n", str_error(ret));
 
 	ret = ddf_fun_bind(instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register UHCI root hub: %s.\n", ret, str_error(ret));
+	    "Failed to register UHCI root hub: %s.\n", str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_FINI_RETURN
