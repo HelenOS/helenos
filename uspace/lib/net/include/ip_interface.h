@@ -34,16 +34,13 @@
 #define LIBNET_IP_INTERFACE_H_
 
 #include <net/socket_codes.h>
-#include <async.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <net/packet.h>
-
 #include <net/in.h>
 #include <net/ip_codes.h>
-
 #include <ip_remote.h>
+#include <async.h>
 
 #define ip_received_error_msg  ip_received_error_msg_remote
 #define ip_set_gateway_req     ip_set_gateway_req_remote
@@ -60,20 +57,22 @@
 
 /** The transport layer notification function type definition.
  *
- * Notifies the transport layer modules about the received packet/s.
+ * Notify the transport layer modules about the received packet/s.
  *
- * @param[in] device_id	The device identifier.
- * @param[in] packet	The received packet or the received packet queue.
- * @param[in] receiver	The receiving module service.
- * @param[in] error	The packet error reporting service. Prefixes the
- *			received packet.
- * @return		EOK on success.
+ * @param[in] device_id Device identifier.
+ * @param[in] packet    Received packet or the received packet queue.
+ * @param[in] receiver  Receiving module service.
+ * @param[in] error     Packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ *
  */
 typedef int (*tl_received_msg_t)(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error);
 
-extern int ip_bind_service(services_t, int, services_t, async_client_conn_t);
-extern int ip_connect_module(services_t);
+extern async_sess_t *ip_bind_service(services_t, int, services_t, async_client_conn_t);
+extern async_sess_t *ip_connect_module(services_t);
 
 /*@}*/
 

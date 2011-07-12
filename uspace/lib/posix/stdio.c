@@ -88,6 +88,23 @@ char *posix_ctermid(char *s)
 }
 
 /**
+ * Put a string on the stream.
+ * 
+ * @param s String to be written.
+ * @param stream Output stream.
+ * @return Non-negative on success, EOF on failure.
+ */
+int posix_fputs(const char *restrict s, FILE *restrict stream)
+{
+	int rc = fputs(s, stream);
+	if (rc == 0) {
+		return EOF;
+	} else {
+		return 0;
+	}
+}
+
+/**
  * Push byte back into input stream.
  * 
  * @param c Byte to be pushed back.
@@ -99,22 +116,22 @@ int posix_ungetc(int c, FILE *stream)
 	uint8_t b = (uint8_t) c;
 
 	bool can_unget =
-		/* Provided character is legal. */
+	    /* Provided character is legal. */
 	    c != EOF &&
-		/* Stream is consistent. */
+	    /* Stream is consistent. */
 	    !stream->error &&
-		/* Stream is buffered. */
+	    /* Stream is buffered. */
 	    stream->btype != _IONBF &&
-		/* Last operation on the stream was a read operation. */
+	    /* Last operation on the stream was a read operation. */
 	    stream->buf_state == _bs_read &&
-		/* Stream buffer is already allocated (i.e. there was already carried
-		 * out either write or read operation on the stream). This is probably
-		 * redundant check but let's be safe. */
+	    /* Stream buffer is already allocated (i.e. there was already carried
+	     * out either write or read operation on the stream). This is probably
+	     * redundant check but let's be safe. */
 	    stream->buf != NULL &&
-		/* There is still space in the stream to retreat. POSIX demands the
-		 * possibility to unget at least 1 character. It should be always
-		 * possible, assuming the last operation on the stream read at least 1
-		 * character, because the buffer is refilled in the lazily manner. */
+	    /* There is still space in the stream to retreat. POSIX demands the
+	     * possibility to unget at least 1 character. It should be always
+	     * possible, assuming the last operation on the stream read at least 1
+	     * character, because the buffer is refilled in the lazily manner. */
 	    stream->buf_tail > stream->buf;
 
 	if (can_unget) {
@@ -229,10 +246,8 @@ ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
  * @return On success, either a stream of the reopened file or the provided
  *     stream with a changed mode. NULL otherwise.
  */
-FILE *posix_freopen(
-    const char *restrict filename,
-    const char *restrict mode,
-    FILE *restrict stream)
+FILE *posix_freopen(const char *restrict filename, 
+    const char *restrict mode, FILE *restrict stream)
 {
 	assert(mode != NULL);
 	assert(stream != NULL);
@@ -392,6 +407,23 @@ long posix_ftell(FILE *stream)
 posix_off_t posix_ftello(FILE *stream)
 {
 	return (posix_off_t) ftell(stream);
+}
+
+/**
+ * Discard prefetched data or write unwritten data.
+ * 
+ * @param stream Stream that shall be flushed.
+ * @return Zero on success, EOF on failure.
+ */
+int posix_fflush(FILE *stream)
+{
+	int rc = fflush(stream);
+	if (rc < 0) {
+		errno = -rc;
+		return EOF;
+	} else {
+		return 0;
+	}
 }
 
 /**

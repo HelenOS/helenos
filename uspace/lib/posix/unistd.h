@@ -50,11 +50,15 @@ extern int getopt(int, char * const [], const char *);
 /* Environment */
 extern char **posix_environ;
 
+/* Login Information */
 extern char *posix_getlogin(void);
 extern int posix_getlogin_r(char *name, size_t namesize);
 
 /* Identifying Terminals */
 extern int posix_isatty(int fd);
+
+/* Working Directory */
+extern char *posix_getcwd(char *buf, size_t size);
 
 /* Query Memory Parameters */
 extern int posix_getpagesize(void);
@@ -63,6 +67,12 @@ extern int posix_getpagesize(void);
 extern posix_pid_t posix_getpid(void);
 extern posix_uid_t posix_getuid(void);
 extern posix_gid_t posix_getgid(void);
+
+/* File Input/Output */
+extern ssize_t posix_read(int fildes, void *buf, size_t nbyte);
+
+/* Deleting Files */
+extern int posix_unlink(const char *path);
 
 /* Standard Streams */
 #undef STDIN_FILENO
@@ -128,8 +138,11 @@ extern int posix_pipe(int fildes[2]);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define environ posix_environ
+
 	#define getlogin posix_getlogin
 	#define getlogin_r posix_getlogin_r
+
+	#define getcwd posix_getcwd
 
 	#define isatty posix_isatty
 
@@ -139,6 +152,10 @@ extern int posix_pipe(int fildes[2]);
 	#define getpid posix_getpid
 	#define getuid posix_getuid
 	#define getgid posix_getgid
+
+	#define read posix_read
+
+	#define unlink posix_unlink
 
 	#define access posix_access
 

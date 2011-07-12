@@ -47,6 +47,12 @@
 /** Maximum size of a string containing @c length characters */
 #define STR_BOUNDS(length)  ((length) << 2)
 
+/**
+ * Maximum size of a buffer needed to a string converted from space-padded
+ * ASCII of size @a spa_size using spascii_to_str().
+ */
+#define SPASCII_STR_BUFSIZE(spa_size) ((spa_size) + 1)
+
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 
@@ -72,6 +78,7 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);
 
+extern int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
 extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern char *wstr_to_astr(const wchar_t *src);
 extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);

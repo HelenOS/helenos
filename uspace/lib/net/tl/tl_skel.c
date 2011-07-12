@@ -37,18 +37,16 @@
 
 #include <bool.h>
 #include <errno.h>
+#include <ns.h>
 #include <tl_skel.h>
 #include <net_interface.h>
 #include <net/modules.h>
 
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
-
 /** Default thread for new connections.
  *
- * @param[in] iid  	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- * @param[in] arg	Local argument.
+ * @param[in] iid   The initial message identifier.
+ * @param[in] icall The initial message call structure.
+ * @param[in] arg   Local argument.
  *
  */
 static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall,
@@ -105,22 +103,22 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall,
  *         function.
  *
  */
-int tl_module_start(int service)
+int tl_module_start(sysarg_t service)
 {
 	async_set_client_connection(tl_client_connection);
-	int net_phone = net_connect_module();
-	if (net_phone < 0)
-		return net_phone;
+	async_sess_t *sess = net_connect_module();
+	if (!sess)
+		return ENOENT;
 	
 	int rc = pm_init();
 	if (rc != EOK)
 		return rc;
 	
-	rc = tl_initialize(net_phone);
+	rc = tl_initialize(sess);
 	if (rc != EOK)
 		goto out;
 	
-	rc = async_connect_to_me(PHONE_NS, service, 0, 0, NULL, NULL);
+	rc = service_register(service);
 	if (rc != EOK)
 		goto out;
 	

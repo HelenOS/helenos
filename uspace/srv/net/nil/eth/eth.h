@@ -37,9 +37,9 @@
 #ifndef NET_ETH_H_
 #define NET_ETH_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <adt/measured_strings.h>
 
@@ -222,8 +222,8 @@ struct eth_device {
 	device_id_t device_id;
 	/** Device driver service. */
 	services_t service;
-	/** Driver phone. */
-	int phone;
+	/** Driver session. */
+	async_sess_t *sess;
 	/** Maximal transmission unit. */
 	size_t mtu;
 	
@@ -247,14 +247,14 @@ struct eth_proto {
 	services_t service;
 	/** Protocol identifier. */
 	int protocol;
-	/** Protocol module phone. */
-	int phone;
+	/** Protocol module session. */
+	async_sess_t *sess;
 };
 
 /** Ethernet global data. */
 struct eth_globals {
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
 	/** Safety lock for devices. */
 	fibril_rwlock_t devices_lock;
 	/** All known Ethernet devices. */
@@ -264,7 +264,7 @@ struct eth_globals {
 	
 	/**
 	 * Protocol map.
-	 * Service phone map for each protocol.
+	 * Service map for each protocol.
 	 */
 	eth_protos_t protos;
 	

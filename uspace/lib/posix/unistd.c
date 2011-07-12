@@ -93,6 +93,30 @@ int posix_isatty(int fd)
 }
 
 /**
+ * Get the pathname of the current working directory.
+ *
+ * @param buf Buffer into which the pathname shall be put.
+ * @param size Size of the buffer.
+ * @return Buffer pointer on success, NULL on failure.
+ */
+char *posix_getcwd(char *buf, size_t size)
+{
+	/* Native getcwd() does not set any errno despite the fact that general
+	 * usage pattern of this function depends on it (caller is repeatedly
+	 * guessing the required size of the buffer by checking for ERANGE on
+	 * failure). */
+	if (size == 0) {
+		errno = EINVAL;
+		return NULL;
+	}
+	char *ret = getcwd(buf, size);
+	if (ret == NULL && errno == EOK) {
+		errno = ERANGE;
+	}
+	return ret;
+}
+
+/**
  * Determine the page size of the current run of the process.
  *
  * @return Page size of the process.
@@ -132,6 +156,42 @@ posix_gid_t posix_getgid(void)
 {
 	/* There is currently no support for user accounts in HelenOS. */
 	return 0;
+}
+
+/**
+ * Read from a file.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param buf Buffer to which the read bytes shall be stored.
+ * @param nbyte Upper limit on the number of read bytes.
+ * @return Number of read bytes on success, -1 otherwise.
+ */
+ssize_t posix_read(int fildes, void *buf, size_t nbyte)
+{
+	int rc = read(fildes, buf, nbyte);
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	} else {
+		return rc;
+	}
+}
+
+/**
+ * Remove a link to a file.
+ * 
+ * @param path File pathname.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_unlink(const char *path)
+{
+	int rc = unlink(path);
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	} else {
+		return rc;
+	}
 }
 
 /**

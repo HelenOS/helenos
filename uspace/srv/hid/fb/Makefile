@@ -83,13 +83,6 @@ ifeq ($(UARCH),sparc64)
 			serial_console.c
 		EXTRA_CFLAGS += -DNIAGARA_ENABLED
 	endif
-	
-	ifeq ($(MACHINE),serengeti)
-		SOURCES += \
-			sgcn.c \
-			serial_console.c
-		EXTRA_CFLAGS += -DSGCN_ENABLED
-	endif
 endif
 
 EXTRA_CFLAGS += -D$(UARCH)

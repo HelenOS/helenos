@@ -80,9 +80,6 @@
  */
 static const size_t identify_data_size = 512;
 
-/** Size of the communication area. */
-static size_t comm_size;
-
 /** I/O base address of the command registers. */
 static uintptr_t cmd_physical;
 /** I/O base address of the control registers. */
@@ -280,6 +277,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_call_t call;
 	sysarg_t method;
 	devmap_handle_t dh;
+	size_t comm_size;	/**< Size of the communication area. */
 	unsigned int flags;
 	int retval;
 	uint64_t ba;

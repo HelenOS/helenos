@@ -1283,7 +1283,7 @@ page_fault:
  * scheduling. Sleeping here would lead to deadlock on wakeup. Another
  * thing which is forbidden in this context is locking the address space.
  *
- * When this function is enetered, no spinlocks may be held.
+ * When this function is entered, no spinlocks may be held.
  *
  * @param old Old address space or NULL.
  * @param new New address space.

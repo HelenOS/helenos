@@ -68,7 +68,6 @@ GENERIC_SOURCES = \
 	generic/clipboard.c \
 	generic/devmap.c \
 	generic/devman.c \
-	generic/devman_obsolete.c \
 	generic/device/hw_res.c \
 	generic/device/char_dev.c \
 	generic/event.c \

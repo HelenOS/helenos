@@ -38,26 +38,25 @@
  * The skeleton has to be part of each transport layer module.
  */
 
-#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <adt/measured_strings.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
 /** Module initialization.
  *
  * This has to be implemented in user code.
  *
- * @param[in] net_phone Networking module phone.
+ * @param[in] sess Networking module session.
  *
  * @return EOK on success.
  * @return Other error codes as defined for each specific module
  *         initialize function.
  *
  */
-extern int tl_initialize(int net_phone);
+extern int tl_initialize(async_sess_t *sess);
 
 /** Per-connection module initialization.
  *
@@ -82,7 +81,7 @@ extern void tl_connection(void);
 extern int tl_message(ipc_callid_t, ipc_call_t *,
     ipc_call_t *, size_t *);
 
-extern int tl_module_start(int);
+extern int tl_module_start(sysarg_t);
 
 #endif
 

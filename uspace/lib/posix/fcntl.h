@@ -37,6 +37,7 @@
 
 #include "sys/types.h"
 #include "libc/fcntl.h"
+#include "errno.h"
 
 /* Mask for file access modes. */
 #undef O_ACCMODE
@@ -69,6 +70,17 @@
 /* File descriptor flags used with F_GETFD and F_SETFD. */
 #undef FD_CLOEXEC
 #define FD_CLOEXEC         1 /* Close on exec. */
+
+#undef open
+#define open(path, ...) \
+	({ \
+		int rc = open(path, ##__VA_ARGS__); \
+		if (rc < 0) { \
+			errno = -rc; \
+			rc = -1; \
+		} \
+		rc; \
+	})
 
 extern int posix_fcntl(int fd, int cmd, ...);
 

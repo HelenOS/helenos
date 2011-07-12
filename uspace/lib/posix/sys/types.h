@@ -42,10 +42,10 @@ typedef unsigned int posix_ino_t;
 typedef unsigned int posix_nlink_t;
 typedef unsigned int posix_uid_t;
 typedef unsigned int posix_gid_t;
-typedef aoff64_t posix_off_t;
-typedef unsigned int posix_blksize_t;
-typedef unsigned int posix_blkcnt_t;
-typedef uint64_t posix_pid_t;
+typedef off64_t posix_off_t;
+typedef long posix_blksize_t;
+typedef long posix_blkcnt_t;
+typedef int64_t posix_pid_t;
 typedef sysarg_t posix_dev_t;
 
 /* PThread types */

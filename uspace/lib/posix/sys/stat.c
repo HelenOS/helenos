@@ -52,6 +52,7 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 	memset(dest, 0, sizeof(struct posix_stat));
 	
 	dest->st_dev = src->device;
+	dest->st_ino = src->index;
 	
 	/* HelenOS doesn't support permissions, so we set them all */
 	dest->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;

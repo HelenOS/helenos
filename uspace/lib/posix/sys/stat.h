@@ -109,8 +109,6 @@
 #define S_ISSOCK(m) ((m & S_IFSOCK) != 0) /* socket? (Not in POSIX.1-1996.) */
 
 struct posix_stat {
-	struct stat sys_stat;
-
 	posix_dev_t     st_dev;     /* ID of device containing file */
 	posix_ino_t     st_ino;     /* inode number */
 	mode_t          st_mode;    /* protection */

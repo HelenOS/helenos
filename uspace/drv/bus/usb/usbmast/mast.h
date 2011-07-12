@@ -36,35 +36,23 @@
 #ifndef USB_USBMAST_MAST_H_
 #define USB_USBMAST_MAST_H_
 
+#include <scsi/spc.h>
 #include <sys/types.h>
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
 
-/** Result of SCSI INQUIRY command.
- * This is already parsed structure, not the original buffer returned by
- * the device.
- */
-typedef struct {
-	/** SCSI peripheral device type. */
-	int peripheral_device_type;
-	/** Whether the device is removable. */
-	bool removable;
-	/** Vendor ID string. */
-	char vendor_id[9];
-	/** Product ID and product revision string. */
-	char product_and_revision[12];
-} usb_massstor_inquiry_result_t;
+#define BULK_IN_EP 0
+#define BULK_OUT_EP 1
 
-int usb_massstor_data_in(usb_device_t *dev, size_t, size_t,
-    uint32_t, uint8_t, void *, size_t, void *, size_t, size_t *);
-int usb_massstor_reset(usb_device_t *);
-void usb_massstor_reset_recovery(usb_device_t *, size_t, size_t);
-int usb_massstor_get_max_lun(usb_device_t *);
-size_t usb_masstor_get_lun_count(usb_device_t *);
-int usb_massstor_inquiry(usb_device_t *, size_t, size_t,
-    usb_massstor_inquiry_result_t *);
-const char *usb_str_masstor_scsi_peripheral_device_type(int);
+extern int usb_massstor_data_in(usb_device_t *, uint32_t, uint8_t, const void *,
+    size_t, void *, size_t, size_t *);
+extern int usb_massstor_data_out(usb_device_t *, uint32_t, uint8_t, const void *,
+    size_t, const void *, size_t, size_t *);
+extern int usb_massstor_reset(usb_device_t *);
+extern void usb_massstor_reset_recovery(usb_device_t *);
+extern int usb_massstor_get_max_lun(usb_device_t *);
+extern size_t usb_masstor_get_lun_count(usb_device_t *);
 
 #endif
 

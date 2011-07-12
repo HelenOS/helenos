@@ -33,21 +33,20 @@
 #ifndef LIBNET_NETIF_REMOTE_H_
 #define LIBNET_NETIF_REMOTE_H_
 
-#include <async.h>
 #include <ipc/services.h>
 #include <adt/measured_strings.h>
-
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
-extern int netif_get_addr_req(int, device_id_t, measured_string_t **,
+extern int netif_get_addr_req(async_sess_t *, device_id_t, measured_string_t **,
     uint8_t **);
-extern int netif_probe_req(int, device_id_t, int, void *);
-extern int netif_send_msg(int, device_id_t, packet_t *, services_t);
-extern int netif_start_req(int, device_id_t);
-extern int netif_stop_req(int, device_id_t);
-extern int netif_stats_req(int, device_id_t, device_stats_t *);
-extern int netif_bind_service(services_t, device_id_t, services_t,
+extern int netif_probe_req(async_sess_t *, device_id_t, int, void *);
+extern int netif_send_msg(async_sess_t *, device_id_t, packet_t *, services_t);
+extern int netif_start_req(async_sess_t *, device_id_t);
+extern int netif_stop_req(async_sess_t *, device_id_t);
+extern int netif_stats_req(async_sess_t *, device_id_t, device_stats_t *);
+extern async_sess_t *netif_bind_service(services_t, device_id_t, services_t,
     async_client_conn_t);
 
 #endif
