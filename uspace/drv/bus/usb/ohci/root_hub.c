@@ -131,8 +131,6 @@ do { \
 	return EOK; \
 } while (0)
 
-#define OHCI_POWER 2
-
 /** Root Hub driver structure initialization.
  *
  * Reads info registers and prepares descriptors. Sets power mode.
@@ -155,12 +153,12 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->interrupt_mask_size = 1 + (instance->port_count / 8);
 	instance->unfinished_interrupt_transfer = NULL;
 
-#if OHCI_POWER == 0
+#ifdef OHCI_POWER_SWITCH_no
 	/* Set port power mode to no power-switching. (always on) */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
-	/* Set to no overcurrent */
+	/* Set to no over-current reporting */
 	instance->registers->rh_desc_a |= RHDA_NOCP_FLAG;
-#elif OHCI_POWER == 1
+#elif defined OHCI_POWER_SWITCH_ganged
 	/* Set port power mode to no ganged power-switching. */
 	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
 	instance->registers->rh_desc_a &= ~RHDA_PSM_FLAG;
