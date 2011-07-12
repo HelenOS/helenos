@@ -66,8 +66,10 @@
 # became mandatory (although not really needed).
 #
 # Patch 4
-# Whereas most systems maps pid_t to signed type, HelenOS maps it
-# to unsigned type. This causes some type incompatibility in libiberty
+# Whereas most systems maps pid_t to signed int, HelenOS maps it
+# to 64-bit unsigned integer (which is further masked by libposix to
+# 64-bit signed integer). Because libiberty blindly expects pid_t to be
+# signed int, there is some type incompatibility in libiberty
 # files related to executing a subprocess. Since both as and ld are
 # not runtime dependent on this functionality, the simplest solution is
 # to patch libiberty to avoid compiler warnings.
@@ -169,6 +171,7 @@ case "$1" in
 		> "$2/libiberty/pex-common.h"
 
 		# Patch libiberty xstrerror.c.
+		# See Patch 6.
 		(
 		echo '#include <string.h>'
 		echo '#define DONT_DECLARE_STRERROR'
