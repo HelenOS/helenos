@@ -66,6 +66,8 @@ typedef struct {
 
 	/** Pointer inside list of directories */
 	const char **path;
+	/** If not @c NULL, should be freed in the end. */
+	const char **path_list;
 	/** Current open directory */
 	DIR *dir;
 
@@ -162,16 +164,17 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 			goto error;
 		}
 		*cstart += rpath_sep + 1 - prefix;
-//		printf("cstart=%zu\n", *cstart);
 		free(prefix);
 
-//		printf("\ncs->prefix='%s', dirname='%s'\n", cs->prefix, dirname);
+		cs->path_list = malloc(sizeof(char *) * 2);
+		if (cs->path_list == NULL) {
+			retval = ENOMEM;
+			goto error;
+		}
+		cs->path_list[0] = dirname;
+		cs->path_list[1] = NULL;
+		cs->path = cs->path_list;
 
-		static const char *dlist2[2];
-		dlist2[0] = dirname;
-		dlist2[1] = NULL;
-		cs->path = dlist2;
-		/* XXX dirname won't be freed */
 	} else if (cs->is_command) {
 		/* Command without path */
 		cs->module = modules;
@@ -191,6 +194,15 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 
 error:
 	/* Error cleanup */
+
+	if (cs != NULL && cs->path_list != NULL) {
+		size_t i = 0;
+		while (cs->path_list[i] != NULL) {
+			free(cs->path_list[i]);
+			++i;
+		}
+		free(cs->path_list);
+	}
 
 	if (cs != NULL && cs->prefix != NULL)
 		free(cs->prefix);
@@ -270,10 +282,8 @@ static int compl_get_next(void *state, char **compl)
 			}
 
 			/* If it was the last one, we are done */
-			if (cs->dir == NULL) {
-				cs->path = NULL;
+			if (cs->dir == NULL)
 				break;
-			}
 
 			/* Read next directory entry */
 			dent = readdir(cs->dir);
@@ -320,6 +330,15 @@ static int compl_get_next(void *state, char **compl)
 static void compl_fini(void *state)
 {
 	compl_t *cs = (compl_t *) state;
+
+	if (cs->path_list != NULL) {
+		size_t i = 0;
+		while (cs->path_list[i] != NULL) {
+			free(cs->path_list[i]);
+			++i;
+		}
+		free(cs->path_list);
+	}
 
 	if (cs->last_compl != NULL)
 		free(cs->last_compl);
