@@ -369,7 +369,7 @@ char *posix_strrchr(const char *s, int c)
 			return NULL;
 		}
 
-		ptr++;
+		ptr--;
 	}
 
 	return (char *) ptr;
