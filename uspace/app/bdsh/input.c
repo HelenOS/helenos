@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,7 @@
 #include <tinput.h>
 
 #include "config.h"
+#include "compl.h"
 #include "util.h"
 #include "scli.h"
 #include "input.h"
@@ -225,11 +227,7 @@ void get_input(cliuser_t *usr)
 	char *str;
 	int rc;
 	
-	console_flush(tinput->console);
-	console_set_style(tinput->console, STYLE_EMPHASIS);
-	printf("%s", usr->prompt);
-	console_flush(tinput->console);
-	console_set_style(tinput->console, STYLE_NORMAL);
+	tinput_set_prompt(tinput, usr->prompt);
 
 	rc = tinput_read(tinput, &str);
 	if (rc == ENOENT) {
@@ -261,6 +259,8 @@ int input_init(void)
 		printf("Failed to initialize input.\n");
 		return 1;
 	}
+
+	tinput_set_compl_ops(tinput, &compl_ops);
 
 	return 0;
 }

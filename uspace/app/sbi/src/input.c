@@ -175,6 +175,7 @@ static void input_init_string(input_t *input, const char *str)
  */
 int input_get_line(input_t *input, char **line)
 {
+	const char *prompt;
 	const char *sp;
 	char *dp;
 	char *line_p;
@@ -211,12 +212,12 @@ int input_get_line(input_t *input, char **line)
 	} else {
 		/* Interactive mode */
 		if (input->line_no == 0)
-			printf("sbi> ");
+			prompt = "sbi> ";
 		else
-			printf("...  ");
+			prompt = "...  ";
 
 		fflush(stdout);
-		if (os_input_line(&line_p) != EOK)
+		if (os_input_line(prompt, &line_p) != EOK)
 			return EIO;
 
 		*line = line_p;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sort.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -40,6 +41,9 @@
 #include <assert.h>
 #include <bool.h>
 #include <tinput.h>
+
+#define LIN_TO_COL(ti, lpos) ((lpos) % ((ti)->con_cols))
+#define LIN_TO_ROW(ti, lpos) ((lpos) / ((ti)->con_cols))
 
 /** Seek direction */
 typedef enum {
@@ -60,12 +64,18 @@ static void tinput_key_unmod(tinput_t *, kbd_event_t *);
 static void tinput_pre_seek(tinput_t *, bool);
 static void tinput_post_seek(tinput_t *, bool);
 
+static void tinput_console_set_lpos(tinput_t *ti, unsigned lpos)
+{
+	console_set_pos(ti->console, LIN_TO_COL(ti, lpos),
+	    LIN_TO_ROW(ti, lpos));
+}
+
 /** Create a new text input field. */
 tinput_t *tinput_new(void)
 {
 	tinput_t *ti;
 	
-	ti = malloc(sizeof(tinput_t));
+	ti = calloc(1, sizeof(tinput_t));
 	if (ti == NULL)
 		return NULL;
 	
@@ -76,7 +86,19 @@ tinput_t *tinput_new(void)
 /** Destroy text input field. */
 void tinput_destroy(tinput_t *ti)
 {
+	if (ti->prompt != NULL)
+		free(ti->prompt);
 	free(ti);
+}
+
+static void tinput_display_prompt(tinput_t *ti)
+{
+	tinput_console_set_lpos(ti, ti->prompt_coord);
+
+	console_set_style(ti->console, STYLE_EMPHASIS);
+	printf("%s", ti->prompt);
+	console_flush(ti->console);
+	console_set_style(ti->console, STYLE_NORMAL);
 }
 
 static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
@@ -87,8 +109,7 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 	size_t sb;
 	tinput_sel_get_bounds(ti, &sa, &sb);
 	
-	console_set_pos(ti->console, (ti->col0 + start) % ti->con_cols,
-	    ti->row0 + (ti->col0 + start) / ti->con_cols);
+	tinput_console_set_lpos(ti, ti->text_coord + start);
 	console_set_style(ti->console, STYLE_NORMAL);
 	
 	size_t p = start;
@@ -133,19 +154,47 @@ static char *tinput_get_str(tinput_t *ti)
 
 static void tinput_position_caret(tinput_t *ti)
 {
-	console_set_pos(ti->console, (ti->col0 + ti->pos) % ti->con_cols,
-	    ti->row0 + (ti->col0 + ti->pos) / ti->con_cols);
+	tinput_console_set_lpos(ti, ti->text_coord + ti->pos);
 }
 
-/** Update row0 in case the screen could have scrolled. */
+/** Update text_coord, prompt_coord in case the screen could have scrolled. */
 static void tinput_update_origin(tinput_t *ti)
 {
-	sysarg_t width = ti->col0 + ti->nc;
-	sysarg_t rows = (width / ti->con_cols) + 1;
+	unsigned end_coord = ti->text_coord + ti->nc;
+	unsigned end_row = LIN_TO_ROW(ti, end_coord);
+
+	unsigned scroll_rows;
+
+	/* Update coords if the screen scrolled. */
+	if (end_row >= ti->con_rows) {
+		scroll_rows = end_row - ti->con_rows + 1;
+		ti->text_coord -= ti->con_cols * scroll_rows;
+		ti->prompt_coord -= ti->con_cols * scroll_rows;
+	}
+}
+
+static void tinput_jump_after(tinput_t *ti)
+{
+	tinput_console_set_lpos(ti, ti->text_coord + ti->nc);
+	console_flush(ti->console);
+	putchar('\n');
+}
+
+static int tinput_display(tinput_t *ti)
+{
+	sysarg_t col0, row0;
 	
-	/* Update row0 if the screen scrolled. */
-	if (ti->row0 + rows > ti->con_rows)
-		ti->row0 = ti->con_rows - rows;
+	if (console_get_pos(ti->console, &col0, &row0) != EOK)
+		return EIO;
+	
+	ti->prompt_coord = row0 * ti->con_cols + col0;
+	ti->text_coord = ti->prompt_coord + str_length(ti->prompt);
+
+	tinput_display_prompt(ti);
+	tinput_display_tail(ti, 0, 0);
+	tinput_position_caret(ti);
+
+	return EOK;
 }
 
 static void tinput_insert_char(tinput_t *ti, wchar_t c)
@@ -153,7 +202,7 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 	if (ti->nc == INPUT_MAX_SIZE)
 		return;
 	
-	sysarg_t new_width = ti->col0 + ti->nc + 1;
+	unsigned new_width = LIN_TO_COL(ti, ti->text_coord) + ti->nc + 1;
 	if (new_width % ti->con_cols == 0) {
 		/* Advancing to new line. */
 		sysarg_t new_height = (new_width / ti->con_cols) + 1;
@@ -184,8 +233,8 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 	if (ilen == 0)
 		return;
 	
-	sysarg_t new_width = ti->col0 + ti->nc + ilen;
-	sysarg_t new_height = (new_width / ti->con_cols) + 1;
+	unsigned new_width = LIN_TO_COL(ti, ti->text_coord) + ti->nc + ilen;
+	unsigned new_height = (new_width / ti->con_cols) + 1;
 	if (new_height >= ti->con_rows) {
 		/* Disallow text longer than 1 page for now. */
 		return;
@@ -510,6 +559,143 @@ static void tinput_history_seek(tinput_t *ti, int offs)
 	tinput_position_caret(ti);
 }
 
+/** Compare two entries in array of completions. */
+static int compl_cmp(void *va, void *vb, void *arg)
+{
+	const char *a = *(const char **) va;
+	const char *b = *(const char **) vb;
+
+	return str_cmp(a, b);
+}
+
+static size_t common_pref_len(const char *a, const char *b)
+{
+	size_t i;
+	size_t a_off, b_off;
+	wchar_t ca, cb;
+
+	i = 0;
+	a_off = 0;
+	b_off = 0;
+
+	while (true) {
+		ca = str_decode(a, &a_off, STR_NO_LIMIT);
+		cb = str_decode(b, &b_off, STR_NO_LIMIT);
+
+		if (ca == '\0' || cb == '\0' || ca != cb)
+			break;
+		++i;
+	}
+
+	return i;
+}
+
+static void tinput_text_complete(tinput_t *ti)
+{
+	void *state;
+	size_t cstart;
+	char *ctmp;
+	char **compl;     	/* Array of completions */
+	size_t compl_len;	/* Current length of @c compl array */
+	size_t cnum;
+	size_t i;
+	int rc;
+
+	if (ti->compl_ops == NULL)
+		return;
+
+	/*
+	 * Obtain list of all possible completions (growing array).
+	 */
+
+	rc = (*ti->compl_ops->init)(ti->buffer, ti->pos, &cstart, &state);
+	if (rc != EOK)
+		return;
+
+	cnum = 0;
+
+	compl_len = 1;
+	compl = malloc(compl_len * sizeof(char *));
+	if (compl == NULL) {
+		printf("Error: Out of memory.\n");
+		return;
+	}
+
+	while (true) {
+		rc = (*ti->compl_ops->get_next)(state, &ctmp);
+		if (rc != EOK)
+			break;
+
+		if (cnum >= compl_len) {
+			/* Extend array */
+			compl_len = 2 * compl_len;
+			compl = realloc(compl, compl_len * sizeof(char *));
+			if (compl == NULL) {
+				printf("Error: Out of memory.\n");
+				break;
+			}
+		}
+
+		compl[cnum] = str_dup(ctmp);
+		if (compl[cnum] == NULL) {
+			printf("Error: Out of memory.\n");
+			break;
+		}
+		cnum++;
+	}
+
+	(*ti->compl_ops->fini)(state);
+
+	if (cnum > 1) {
+		/*
+		 * More than one match. Determine maximum common prefix.
+		 */
+		size_t cplen;
+
+		cplen = str_length(compl[0]);
+		for (i = 1; i < cnum; i++)
+			cplen = min(cplen, common_pref_len(compl[0], compl[i]));
+
+		/* Compute how many bytes we should skip. */
+		size_t istart = str_lsize(compl[0], ti->pos - cstart);
+
+		if (cplen > istart) {
+			/* Insert common prefix. */
+
+			/* Copy remainder of common prefix. */
+			char *cpref = str_ndup(compl[0] + istart,
+			    str_lsize(compl[0], cplen - istart));
+
+			/* Insert it. */
+			tinput_insert_string(ti, cpref);
+			free(cpref);
+		} else {
+			/* No common prefix. Sort and display all entries. */
+
+			qsort(compl, cnum, sizeof(char *), compl_cmp, NULL);
+
+			tinput_jump_after(ti);
+			for (i = 0; i < cnum; i++)
+				printf("%s\n", compl[i]);
+			tinput_display(ti);
+		}
+	} else if (cnum == 1) {
+		/*
+		 * We have exactly one match. Insert it.
+		 */
+
+		/* Compute how many bytes of completion string we should skip. */
+		size_t istart = str_lsize(compl[0], ti->pos - cstart);
+
+		/* Insert remainder of completion string at current position. */
+		tinput_insert_string(ti, compl[0] + istart);
+	}
+
+	for (i = 0; i < cnum; i++)
+		free(compl[i]);
+	free(compl);
+}
+
 /** Initialize text input field.
  *
  * Must be called before using the field. It clears the history.
@@ -520,6 +706,35 @@ static void tinput_init(tinput_t *ti)
 	ti->hnum = 0;
 	ti->hpos = 0;
 	ti->history[0] = NULL;
+}
+
+/** Set prompt string.
+ *
+ * @param ti		Text input
+ * @param prompt	Prompt string
+ *
+ * @return		EOK on success, ENOMEM if out of memory.
+ */
+int tinput_set_prompt(tinput_t *ti, const char *prompt)
+{
+	if (ti->prompt != NULL)
+		free(ti->prompt);
+	
+	ti->prompt = str_dup(prompt);
+	if (ti->prompt == NULL)
+		return ENOMEM;
+	
+	return EOK;
+}
+
+/** Set completion ops.
+ *
+ * Set pointer to completion ops structure that will be used for text
+ * completion.
+ */
+void tinput_set_compl_ops(tinput_t *ti, tinput_compl_ops_t *compl_ops)
+{
+	ti->compl_ops = compl_ops;
 }
 
 /** Read in one line of input.
@@ -538,15 +753,15 @@ int tinput_read(tinput_t *ti, char **dstr)
 	if (console_get_size(ti->console, &ti->con_cols, &ti->con_rows) != EOK)
 		return EIO;
 	
-	if (console_get_pos(ti->console, &ti->col0, &ti->row0) != EOK)
-		return EIO;
-	
 	ti->pos = 0;
 	ti->sel_start = 0;
 	ti->nc = 0;
 	ti->buffer[0] = '\0';
 	ti->done = false;
 	ti->exit_clui = false;
+	
+	if (tinput_display(ti) != EOK)
+		return EIO;
 	
 	while (!ti->done) {
 		console_flush(ti->console);
@@ -712,6 +927,9 @@ static void tinput_key_unmod(tinput_t *ti, kbd_event_t *ev)
 		break;
 	case KC_DOWN:
 		tinput_history_seek(ti, -1);
+		break;
+	case KC_TAB:
+		tinput_text_complete(ti);
 		break;
 	default:
 		break;

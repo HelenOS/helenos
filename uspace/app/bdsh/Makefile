@@ -53,6 +53,7 @@ SOURCES = \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \
 	cmds/builtin_cmds.c \
+	compl.c \
 	errors.c \
 	input.c \
 	util.c \
