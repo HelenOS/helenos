@@ -41,6 +41,8 @@
 #include "string.h"
 #include "ctype.h"
 
+#include "libc/mem.h"
+
 /**
  *
  * @param i
@@ -48,8 +50,34 @@
  */
 int posix_ffs(int i)
 {
-	// TODO
-	not_implemented();
+	if (i == 0) {
+		return 0;
+	}
+
+	int result = 0;
+
+	// XXX: assumes at most 32-bit int
+	if (!(i & 0xFFFF)) {
+		result |= 16;
+		i >>= 16;
+	}
+	if (!(i & 0xFF)) {
+		result |= 8;
+		i >>= 8;
+	}
+	if (!(i & 0xF)) {
+		result |= 4;
+		i >>= 4;
+	}
+	if (!(i & 0x3)) {
+		result |= 2;
+		i >>= 2;
+	}
+	if (!(i & 0x1)) {
+		result |= 1;
+	}
+
+	return result + 1;
 }
 
 /**
@@ -95,8 +123,7 @@ int posix_strncasecmp(const char *s1, const char *s2, size_t n)
  */
 int posix_bcmp(const void *mem1, const void *mem2, size_t n)
 {
-	// TODO
-	not_implemented();
+	return bcmp(mem1, mem2, n);
 }
 
 /**
@@ -107,8 +134,8 @@ int posix_bcmp(const void *mem1, const void *mem2, size_t n)
  */
 void posix_bcopy(const void *dest, void *src, size_t n)
 {
-	// TODO
-	not_implemented();
+	/* Note that memmove has different order of arguments. */
+	memmove(src, dest, n);
 }
 
 /**
@@ -118,8 +145,7 @@ void posix_bcopy(const void *dest, void *src, size_t n)
  */
 void posix_bzero(void *mem, size_t n)
 {
-	// TODO
-	not_implemented();
+	bzero(mem, n);
 }
 
 /**
