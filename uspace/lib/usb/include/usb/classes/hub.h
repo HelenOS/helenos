@@ -118,6 +118,8 @@ typedef struct usb_hub_descriptor_type {
             Reserved
      */
     uint16_t hub_characteristics;
+#define HUB_CHAR_POWER_PER_PORT_FLAG  (1 << 0)
+#define HUB_CHAR_NO_POWER_SWITCH_FLAG (1 << 1)
 
     /**
             Time (in 2ms intervals) from the time the power-on

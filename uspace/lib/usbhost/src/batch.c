@@ -108,6 +108,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->ep);
+	assert(instance->next_step);
 	endpoint_release(instance->ep);
 	instance->next_step(instance);
 }

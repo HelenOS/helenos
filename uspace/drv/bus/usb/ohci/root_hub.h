@@ -40,6 +40,8 @@
 #include "ohci_regs.h"
 #include "batch.h"
 
+#define HUB_DESCRIPTOR_MAX_SIZE (7 + 2 + 2)
+
 /**
  * ohci root hub representation
  */
@@ -50,30 +52,25 @@ typedef struct rh {
 	usb_address_t address;
 	/** hub port count */
 	size_t port_count;
-	/** hubs descriptors */
-	usb_device_descriptors_t descriptors;
 	/** interrupt transfer waiting for an actual interrupt to occur */
-	usb_transfer_batch_t * unfinished_interrupt_transfer;
-	/** pre-allocated interrupt mask
-	 *
-	 * This is allocated when initializing instance, so that memory
-	 * allocation is not needed when processing request. Buffer is used for
-	 * interrupt bitmask.
-	 */
-	uint8_t * interrupt_buffer;
+	usb_transfer_batch_t *unfinished_interrupt_transfer;
 	/** size of interrupt buffer */
 	size_t interrupt_mask_size;
-	/** instance`s descriptor*/
-	uint8_t * hub_descriptor;
+	/** Descriptors */
+	struct {
+		usb_standard_configuration_descriptor_t configuration;
+		usb_standard_interface_descriptor_t interface;
+		usb_standard_endpoint_descriptor_t endpoint;
+		uint8_t hub[HUB_DESCRIPTOR_MAX_SIZE];
+	} __attribute__ ((packed)) descriptors;
 	/** size of hub descriptor */
-	size_t descriptor_size;
-
+	size_t hub_descriptor_size;
 
 } rh_t;
 
-int rh_init(rh_t *instance, ohci_regs_t *regs);
+void rh_init(rh_t *instance, ohci_regs_t *regs);
 
-int rh_request(rh_t *instance, usb_transfer_batch_t *request);
+void rh_request(rh_t *instance, usb_transfer_batch_t *request);
 
 void rh_interrupt(rh_t *instance);
 #endif

@@ -109,55 +109,47 @@ void usb_serialize_hub_descriptor(usb_hub_descriptor_t *descriptor,
 	}
 }
 
+/*----------------------------------------------------------------------------*/
 /**
- * create deserialized desriptor structure out of serialized descriptor
+ * Deserialize descriptor into given pointer
  *
- * The serialized descriptor must be proper usb hub descriptor,
- * otherwise an eerror might occur.
- *
- * @param sdescriptor serialized descriptor
- * @return newly created deserialized descriptor pointer
- */
-usb_hub_descriptor_t * usb_create_deserialized_hub_desriptor(
-    void *serialized_descriptor) {
-	uint8_t * sdescriptor = serialized_descriptor;
-
-	if (sdescriptor[1] != USB_DESCTYPE_HUB) {
-		usb_log_warning("trying to deserialize wrong descriptor %x\n",
-		    sdescriptor[1]);
-		return NULL;
-	}
-
-	usb_hub_descriptor_t * result = malloc(sizeof (usb_hub_descriptor_t));
-	if (result)
-		usb_deserialize_hub_desriptor(serialized_descriptor, result);
-	return result;
-}
-
-/**
- * deserialize descriptor into given pointer
- * 
  * @param serialized_descriptor
  * @param descriptor
  * @return
  */
-void usb_deserialize_hub_desriptor(
-    void * serialized_descriptor, usb_hub_descriptor_t *descriptor) {
+int usb_deserialize_hub_desriptor(
+    void *serialized_descriptor, size_t size, usb_hub_descriptor_t *descriptor)
+{
 	uint8_t * sdescriptor = serialized_descriptor;
+
+	if (sdescriptor[1] != USB_DESCTYPE_HUB) {
+		usb_log_error("Trying to deserialize wrong descriptor %x\n",
+		    sdescriptor[1]);
+		return EINVAL;
+	}
+	if (size < 7) {
+		usb_log_error("Serialized descriptor too small.\n");
+		return EOVERFLOW;
+	}
+
 	descriptor->ports_count = sdescriptor[2];
-	/// @fixme handling of endianness??
-	descriptor->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
+	descriptor->hub_characteristics = sdescriptor[3] + 256 * sdescriptor[4];
 	descriptor->pwr_on_2_good_time = sdescriptor[5];
 	descriptor->current_requirement = sdescriptor[6];
-	size_t var_size = (descriptor->ports_count + 7) / 8;
+	const size_t var_size = (descriptor->ports_count + 7) / 8;
 	//descriptor->devices_removable = (uint8_t*) malloc(var_size);
 
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
+	if (size < (7 + var_size)) {
+		usb_log_error("Serialized descriptor too small.\n");
+		return EOVERFLOW;
+	}
+	size_t i = 0;
+	for (; i < var_size; ++i) {
 		descriptor->devices_removable[i] = sdescriptor[7 + i];
 	}
+	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /**
  * @}
  */

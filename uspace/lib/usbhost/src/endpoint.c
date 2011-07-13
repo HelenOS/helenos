@@ -38,23 +38,25 @@
 #include <errno.h>
 #include <usb/host/endpoint.h>
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size)
+endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
+    usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
+    size_t max_packet_size)
 {
-	assert(instance);
-	instance->address = address;
-	instance->endpoint = endpoint;
-	instance->direction = direction;
-	instance->transfer_type = type;
-	instance->speed = speed;
-	instance->max_packet_size = max_packet_size;
-	instance->toggle = 0;
-	instance->active = false;
-	fibril_mutex_initialize(&instance->guard);
-	fibril_condvar_initialize(&instance->avail);
-	endpoint_clear_hc_data(instance);
-	return EOK;
+	endpoint_t *instance = malloc(sizeof(endpoint_t));
+	if (instance) {
+		instance->address = address;
+		instance->endpoint = endpoint;
+		instance->direction = direction;
+		instance->transfer_type = type;
+		instance->speed = speed;
+		instance->max_packet_size = max_packet_size;
+		instance->toggle = 0;
+		instance->active = false;
+		fibril_mutex_initialize(&instance->guard);
+		fibril_condvar_initialize(&instance->avail);
+		endpoint_clear_hc_data(instance);
+	}
+	return instance;
 }
 /*----------------------------------------------------------------------------*/
 void endpoint_destroy(endpoint_t *instance)
