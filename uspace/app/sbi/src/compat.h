@@ -37,12 +37,17 @@
 
 #ifdef __HELENOS__
 
+#define list sbi_list
+#define list_t sbi_list_t
+
 /*
  * Avoid name conflicts with ADT library.
  */
 #define list_append sbi_list_append
 #define list_prepend sbi_list_prepend
 #define list_remove sbi_list_remove
+#define list_first sbi_list_first
+#define list_last sbi_list_last
 
 #endif
 

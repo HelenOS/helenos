@@ -65,7 +65,7 @@ static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
 static int file_bd_init(const char *fname);
-static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf);
 static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
 
@@ -169,7 +169,7 @@ static int file_bd_init(const char *fname)
 	return EOK;
 }
 
-static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	void *fs_va = NULL;
 	ipc_callid_t callid;

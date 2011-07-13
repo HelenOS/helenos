@@ -98,7 +98,7 @@ static int gpt_init(const char *dev_name);
 static int gpt_read(void);
 static part_t *gpt_part_new(void);
 static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part);
-static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf);
 static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf);
 static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba);
@@ -306,7 +306,7 @@ static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part)
 	part->next = NULL;
 }
 
-static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	size_t comm_size;
 	void *fs_va = NULL;

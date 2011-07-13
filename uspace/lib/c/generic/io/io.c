@@ -126,12 +126,9 @@ void __stdio_init(int filc, fdi_node_t *filv[])
 
 void __stdio_done(void)
 {
-	link_t *link = files.next;
-	
-	while (link != &files) {
-		FILE *file = list_get_instance(link, FILE, link);
+	while (!list_empty(&files)) {
+		FILE *file = list_get_instance(list_first(&files), FILE, link);
 		fclose(file);
-		link = files.next;
 	}
 }
 

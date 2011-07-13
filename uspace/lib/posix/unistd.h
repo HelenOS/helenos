@@ -47,13 +47,32 @@ extern char *optarg;
 extern int optind, opterr, optopt;
 extern int getopt(int, char * const [], const char *);
 
+/* Environment */
+extern char **posix_environ;
+
+/* Login Information */
+extern char *posix_getlogin(void);
+extern int posix_getlogin_r(char *name, size_t namesize);
+
 /* Identifying Terminals */
 extern int posix_isatty(int fd);
 
+/* Working Directory */
+extern char *posix_getcwd(char *buf, size_t size);
+
+/* Query Memory Parameters */
+extern int posix_getpagesize(void);
+
 /* Process Identification */
-#define getpid task_get_id
+extern posix_pid_t posix_getpid(void);
 extern posix_uid_t posix_getuid(void);
 extern posix_gid_t posix_getgid(void);
+
+/* File Input/Output */
+extern ssize_t posix_read(int fildes, void *buf, size_t nbyte);
+
+/* Deleting Files */
+extern int posix_unlink(const char *path);
 
 /* Standard Streams */
 #undef STDIN_FILENO
@@ -83,15 +102,73 @@ enum {
 };
 extern long posix_sysconf(int name);
 
+/* Path Configuration Parameters */
+enum {
+	_PC_2_SYMLINKS,
+	_PC_ALLOC_SIZE_MIN,
+	_PC_ASYNC_IO,
+	_PC_CHOWN_RESTRICTED,
+	_PC_FILESIZEBITS,
+	_PC_LINK_MAX,
+	_PC_MAX_CANON,
+	_PC_MAX_INPUT,
+	_PC_NAME_MAX,
+	_PC_NO_TRUNC,
+	_PC_PATH_MAX,
+	_PC_PIPE_BUF,
+	_PC_PRIO_IO,
+	_PC_REC_INCR_XFER_SIZE,
+	_PC_REC_MIN_XFER_SIZE,
+	_PC_REC_XFER_ALIGN,
+	_PC_SYMLINK_MAX,
+	_PC_SYNC_IO,
+	_PC_VDISABLE
+};
+extern long posix_pathconf(const char *path, int name);
+
+/* Creating a Process */
+extern posix_pid_t posix_fork(void);
+
+/* Executing a File */
+extern int posix_execv(const char *path, char *const argv[]);
+extern int posix_execvp(const char *file, char *const argv[]);
+
+/* Creating a Pipe */
+extern int posix_pipe(int fildes[2]);
+
 #ifndef LIBPOSIX_INTERNAL
+	#define environ posix_environ
+
+	#define getlogin posix_getlogin
+	#define getlogin_r posix_getlogin_r
+
+	#define getcwd posix_getcwd
+
 	#define isatty posix_isatty
 
+	#undef getpagesize
+	#define getpagesize posix_getpagesize
+
+	#define getpid posix_getpid
 	#define getuid posix_getuid
 	#define getgid posix_getgid
+
+	#define read posix_read
+
+	#define unlink posix_unlink
 
 	#define access posix_access
 
 	#define sysconf posix_sysconf
+
+	#define pathconf posix_pathconf
+
+	#define fork posix_fork
+
+	#define execv posix_execv
+	#define execvp posix_execvp
+
+	#define pipe posix_pipe
 #endif
 
 #endif /* POSIX_UNISTD_H_ */

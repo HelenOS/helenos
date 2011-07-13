@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,19 +35,25 @@
 #ifndef POSIX_FNMATCH_H_
 #define POSIX_FNMATCH_H_
 
-/* fnmatch flags */
-#undef FNM_PATHNAME
-#undef FNM_NOESCAPE
-#undef FNM_PERIOD
-#define	FNM_PATHNAME  (1 << 0) /* Slash cannot be matched to the wildcard. */
-#define	FNM_NOESCAPE  (1 << 1) /* Disable backslash escaping. */
-#define	FNM_PERIOD    (1 << 2) /* Leading period must be exactly matched. */
-
-/* fnmatch return values */
+/* Error Values. */
 #undef FNM_NOMATCH
-#undef FNM_NOSYS
-#define	FNM_NOMATCH          1 /* The string does not match the pattern. */
-#define FNM_NOSYS	      (-1) /* In case fnmatch is not supported. */
+#define FNM_NOMATCH 1
+
+/* Flags */
+#undef FNM_PATHNAME
+#undef FNM_PERIOD
+#undef FNM_NOESCAPE
+#define FNM_PATHNAME 1
+#define FNM_PERIOD 2
+#define FNM_NOESCAPE 4
+
+/* GNU Extensions */
+#undef FNM_FILE_NAME
+#undef FNM_LEADING_DIR
+#undef FNM_CASEFOLD
+#define FNM_FILE_NAME FNM_PATHNAME
+#define FNM_LEADING_DIR 8
+#define FNM_CASEFOLD 16
 
 extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
@@ -59,3 +65,4 @@ extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
 /** @}
  */
+

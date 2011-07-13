@@ -41,19 +41,19 @@
 #include <net/inet.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
 #include <adt/measured_strings.h>
 #include <net/ip_codes.h>
 #include <net/icmp_codes.h>
 #include <net/icmp_common.h>
+#include <async.h>
 
 /** @name ICMP module application interface
  * This interface is used by other application modules.
  */
 /*@{*/
 
-extern int icmp_echo_msg(int, size_t, mseconds_t, ip_ttl_t, ip_tos_t, int,
-    const struct sockaddr *, socklen_t);
+extern int icmp_echo_msg(async_sess_t *, size_t, mseconds_t, ip_ttl_t, ip_tos_t,
+    int, const struct sockaddr *, socklen_t);
 
 /*@}*/
 

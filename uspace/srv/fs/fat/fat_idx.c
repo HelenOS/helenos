@@ -58,22 +58,22 @@ typedef struct {
  */
 typedef struct {
 	link_t		link;
-	devmap_handle_t	devmap_handle;
+	devmap_handle_t devmap_handle;
 
 	/** Next unassigned index. */
-	fs_index_t	next;
+	fs_index_t next;
 	/** Number of remaining unassigned indices. */
-	uint64_t	remaining;
+	uint64_t remaining;
 
 	/** Sorted list of intervals of freed indices. */
-	link_t		freed_head;
+	list_t freed_list;
 } unused_t;
 
 /** Mutex protecting the list of unused structures. */
 static FIBRIL_MUTEX_INITIALIZE(unused_lock);
 
 /** List of unused structures. */
-static LIST_INITIALIZE(unused_head);
+static LIST_INITIALIZE(unused_list);
 
 static void unused_initialize(unused_t *u, devmap_handle_t devmap_handle)
 {
@@ -81,21 +81,22 @@ static void unused_initialize(unused_t *u, devmap_handle_t devmap_handle)
 	u->devmap_handle = devmap_handle;
 	u->next = 0;
 	u->remaining = ((uint64_t)((fs_index_t)-1)) + 1;
-	list_initialize(&u->freed_head);
+	list_initialize(&u->freed_list);
 }
 
 static unused_t *unused_find(devmap_handle_t devmap_handle, bool lock)
 {
 	unused_t *u;
-	link_t *l;
 
 	if (lock)
 		fibril_mutex_lock(&unused_lock);
-	for (l = unused_head.next; l != &unused_head; l = l->next) {
+
+	list_foreach(unused_list, l) {
 		u = list_get_instance(l, unused_t, link);
 		if (u->devmap_handle == devmap_handle) 
 			return u;
 	}
+	
 	if (lock)
 		fibril_mutex_unlock(&unused_lock);
 	return NULL;
@@ -248,7 +249,7 @@ static bool fat_index_alloc(devmap_handle_t devmap_handle, fs_index_t *index)
 	if (!u)
 		return false;	
 
-	if (list_empty(&u->freed_head)) {
+	if (list_empty(&u->freed_list)) {
 		if (u->remaining) { 
 			/*
 			 * There are no freed indices, allocate one directly
@@ -261,8 +262,8 @@ static bool fat_index_alloc(devmap_handle_t devmap_handle, fs_index_t *index)
 		}
 	} else {
 		/* There are some freed indices which we can reuse. */
-		freed_t *f = list_get_instance(u->freed_head.next, freed_t,
-		    link);
+		freed_t *f = list_get_instance(list_first(&u->freed_list),
+		    freed_t, link);
 		*index = f->first;
 		if (f->first++ == f->last) {
 			/* Destroy the interval. */
@@ -319,12 +320,12 @@ static void fat_index_free(devmap_handle_t devmap_handle, fs_index_t index)
 		 */
 		link_t *lnk;
 		freed_t *n;
-		for (lnk = u->freed_head.next; lnk != &u->freed_head;
+		for (lnk = u->freed_list.head.next; lnk != &u->freed_list.head;
 		    lnk = lnk->next) {
 			freed_t *f = list_get_instance(lnk, freed_t, link);
 			if (f->first == index + 1) {
 				f->first--;
-				if (lnk->prev != &u->freed_head)
+				if (lnk->prev != &u->freed_list.head)
 					try_coalesce_intervals(lnk->prev, lnk,
 					    lnk);
 				fibril_mutex_unlock(&unused_lock);
@@ -332,7 +333,7 @@ static void fat_index_free(devmap_handle_t devmap_handle, fs_index_t index)
 			}
 			if (f->last == index - 1) {
 				f->last++;
-				if (lnk->next != &u->freed_head)
+				if (lnk->next != &u->freed_list.head)
 					try_coalesce_intervals(lnk, lnk->next,
 					    lnk);
 				fibril_mutex_unlock(&unused_lock);
@@ -358,7 +359,7 @@ static void fat_index_free(devmap_handle_t devmap_handle, fs_index_t index)
 		link_initialize(&n->link);
 		n->first = index;
 		n->last = index;
-		list_append(&n->link, &u->freed_head);
+		list_append(&n->link, &u->freed_list);
 	}
 	fibril_mutex_unlock(&unused_lock);
 }
@@ -557,7 +558,7 @@ int fat_idx_init_by_devmap_handle(devmap_handle_t devmap_handle)
 	unused_initialize(u, devmap_handle);
 	fibril_mutex_lock(&unused_lock);
 	if (!unused_find(devmap_handle, false)) {
-		list_append(&u->link, &unused_head);
+		list_append(&u->link, &unused_list);
 	} else {
 		free(u);
 		rc = EEXIST;
@@ -593,9 +594,9 @@ void fat_idx_fini_by_devmap_handle(devmap_handle_t devmap_handle)
 	list_remove(&u->link);
 	fibril_mutex_unlock(&unused_lock);
 
-	while (!list_empty(&u->freed_head)) {
+	while (!list_empty(&u->freed_list)) {
 		freed_t *f;
-		f = list_get_instance(u->freed_head.next, freed_t, link);
+		f = list_get_instance(list_first(&u->freed_list), freed_t, link);
 		list_remove(&f->link);
 		free(f);
 	}

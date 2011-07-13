@@ -240,7 +240,7 @@ extern int ne2k_probe(ne2k_t *, void *, int);
 extern int ne2k_up(ne2k_t *);
 extern void ne2k_down(ne2k_t *);
 extern void ne2k_send(ne2k_t *, packet_t *);
-extern link_t *ne2k_interrupt(ne2k_t *, uint8_t, uint8_t);
+extern list_t *ne2k_interrupt(ne2k_t *, uint8_t, uint8_t);
 
 #endif
 

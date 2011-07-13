@@ -186,7 +186,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	async_set_client_connection(conn);
 	
 	exch = devmap_exchange_begin(DEVMAP_DRIVER);
-	async_connect_to_me(exch, 0, 0, 0, NULL);
+	async_connect_to_me(exch, 0, 0, 0, NULL, NULL);
 	devmap_exchange_end(exch);
 	
 	async_wait_for(req, &retval);

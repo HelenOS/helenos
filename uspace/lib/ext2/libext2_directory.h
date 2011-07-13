@@ -70,8 +70,9 @@ extern uint16_t	ext2_directory_entry_ll_get_name_length(
     ext2_superblock_t *, ext2_directory_entry_ll_t *);
 
 extern int ext2_directory_iterator_init(ext2_directory_iterator_t *,
-    ext2_filesystem_t *, ext2_inode_ref_t *);
+    ext2_filesystem_t *, ext2_inode_ref_t *, aoff64_t);
 extern int ext2_directory_iterator_next(ext2_directory_iterator_t *);
+extern int ext2_directory_iterator_seek(ext2_directory_iterator_t *, aoff64_t pos);
 extern int ext2_directory_iterator_fini(ext2_directory_iterator_t *);
 
 #endif

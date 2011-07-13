@@ -153,6 +153,16 @@ vesa_init_real2:
 	mov $VESA_GET_INFO, %ax
 	mov $e_vesa_init - vesa_init, %di
 	push %di
+	/* Write the "VBE2" signature into the info structure in order
+	 * to get proper mode information. The presence of "VBE2"
+	 * indicates two things:
+	 *
+	 *  - VBE controller information structure is expected to be
+	 *    512 bytes long instead of 256 bytes.
+	 *  - The BIOS should report VBE 3.0 information (potentially
+	 *    including non-standard modes in the mode list).
+	 */
+	movl $0x32454256, (%di)
 	int $0x10
 	
 	pop %di

@@ -41,7 +41,7 @@
 #include <devmap.h>
 #include <io/console.h>
 #include <vfs/vfs.h>
-#include <ipc/mouse.h>
+#include <ipc/mouseev.h>
 #include <async.h>
 #include <async_obsolete.h>
 #include <unistd.h>
@@ -56,7 +56,7 @@
 #include <kernel/ipc/ipc_methods.h>
 
 #define NAME "s3c24ser"
-#define NAMESPACE "hid_in"
+#define NAMESPACE "hid"
 
 static irq_cmd_t ts_irq_cmds[] = {
 	{
@@ -72,7 +72,8 @@ static irq_code_t ts_irq_code = {
 /** S3C24xx touchscreen instance structure */
 static s3c24xx_ts_t *ts;
 
-static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
 static void s3c24xx_ts_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static void s3c24xx_ts_pen_down(s3c24xx_ts_t *ts);
 static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts);
@@ -282,7 +283,7 @@ static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts)
 
 	button = 1;
 	press = 0;
-	async_obsolete_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
+	async_obsolete_msg_2(ts->client_phone, MOUSEEV_BUTTON_EVENT, button, press);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 }
@@ -323,8 +324,8 @@ static void s3c24xx_ts_eoc(s3c24xx_ts_t *ts)
 	press = 1;
 
 	/* Send notifications to client. */
-	async_obsolete_msg_2(ts->client_phone, MEVENT_MOVE, dx, dy);
-	async_obsolete_msg_2(ts->client_phone, MEVENT_BUTTON, button, press);
+	async_obsolete_msg_2(ts->client_phone, MOUSEEV_MOVE_EVENT, dx, dy);
+	async_obsolete_msg_2(ts->client_phone, MOUSEEV_BUTTON_EVENT, button, press);
 
 	ts->last_x = x_pos;
 	ts->last_y = y_pos;
@@ -372,7 +373,8 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1)
 }
 
 /** Handle mouse client connection. */
-static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

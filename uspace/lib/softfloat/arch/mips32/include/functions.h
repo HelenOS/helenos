@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloatmips32 mips32	
+/** @addtogroup softfloatmips32 mips32
  * @ingroup sfl
  * @brief softfloat architecture dependent definitions 
  * @{
@@ -71,7 +71,5 @@
 
 #endif
 
-
- /** @}
+/** @}
  */
-

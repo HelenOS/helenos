@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -39,7 +39,7 @@
 #include <proc/thread.h>
 
 void fpu_disable(void)
-{	
+{
 #ifdef CONFIG_FPU
 	cp0_status_write(cp0_status_read() & ~cp0_status_fpu_bit);
 #endif

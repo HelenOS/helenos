@@ -83,7 +83,7 @@ fibril_rwlock_t rd_lock;
  * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
  */
-static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void rd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

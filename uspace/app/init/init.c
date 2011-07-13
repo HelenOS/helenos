@@ -269,18 +269,15 @@ int main(int argc, char *argv[])
 	spawn("/srv/devman");
 	spawn("/srv/apic");
 	spawn("/srv/i8259");
-	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
 	srv_start("/srv/s3c24ser");
-	srv_start("/srv/adb_ms");
-	srv_start("/srv/char_ms");
 	srv_start("/srv/s3c24ts");
 	
 	spawn("/srv/fb");
-	spawn("/srv/kbd");
-	console("hid_in/kbd");
+	spawn("/srv/input");
+	console("hid/input");
 	
 	spawn("/srv/clip");
 	

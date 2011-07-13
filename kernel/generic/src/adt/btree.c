@@ -107,10 +107,10 @@ NO_TRACE static void node_initialize(btree_node_t *node)
  */
 void btree_create(btree_t *t)
 {
-	list_initialize(&t->leaf_head);
+	list_initialize(&t->leaf_list);
 	t->root = (btree_node_t *) slab_alloc(btree_node_slab, 0);
 	node_initialize(t->root);
-	list_append(&t->root->leaf_link, &t->leaf_head);
+	list_append(&t->root->leaf_link, &t->leaf_list);
 }
 
 /** Destroy subtree rooted in a node.
@@ -587,7 +587,7 @@ NO_TRACE static void _btree_insert(btree_t *t, btree_key_t key, void *value,
 		rnode = node_split(node, key, value, rsubtree, &median);
 		
 		if (LEAF_NODE(node)) {
-			list_prepend(&rnode->leaf_link, &node->leaf_link);
+			list_insert_after(&rnode->leaf_link, &node->leaf_link);
 		}
 		
 		if (ROOT_NODE(node)) {
@@ -952,7 +952,7 @@ btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node)
 {
 	ASSERT(LEAF_NODE(node));
 	
-	if (node->leaf_link.prev != &t->leaf_head)
+	if (node->leaf_link.prev != &t->leaf_list.head)
 		return list_get_instance(node->leaf_link.prev, btree_node_t, leaf_link);
 	else
 		return NULL;
@@ -971,7 +971,7 @@ btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *node)
 {
 	ASSERT(LEAF_NODE(node));
 	
-	if (node->leaf_link.next != &t->leaf_head)
+	if (node->leaf_link.next != &t->leaf_list.head)
 		return list_get_instance(node->leaf_link.next, btree_node_t, leaf_link);
 	else
 		return NULL;
@@ -986,22 +986,22 @@ void btree_print(btree_t *t)
 {
 	size_t i;
 	int depth = t->root->depth;
-	link_t head, *cur;
+	list_t list;
 	
 	printf("Printing B-tree:\n");
-	list_initialize(&head);
-	list_append(&t->root->bfs_link, &head);
+	list_initialize(&list);
+	list_append(&t->root->bfs_link, &list);
 	
 	/*
 	 * Use BFS search to print out the tree.
 	 * Levels are distinguished from one another by node->depth.
 	 */
-	while (!list_empty(&head)) {
+	while (!list_empty(&list)) {
 		link_t *hlp;
 		btree_node_t *node;
 		
-		hlp = head.next;
-		ASSERT(hlp != &head);
+		hlp = list_first(&list);
+		ASSERT(hlp != NULL);
 		node = list_get_instance(hlp, btree_node_t, bfs_link);
 		list_remove(hlp);
 		
@@ -1017,12 +1017,12 @@ void btree_print(btree_t *t)
 		for (i = 0; i < node->keys; i++) {
 			printf("%" PRIu64 "%s", node->key[i], i < node->keys - 1 ? "," : "");
 			if (node->depth && node->subtree[i]) {
-				list_append(&node->subtree[i]->bfs_link, &head);
+				list_append(&node->subtree[i]->bfs_link, &list);
 			}
 		}
 		
 		if (node->depth && node->subtree[i])
-			list_append(&node->subtree[i]->bfs_link, &head);
+			list_append(&node->subtree[i]->bfs_link, &list);
 		
 		printf(")");
 	}
@@ -1030,7 +1030,7 @@ void btree_print(btree_t *t)
 	printf("\n");
 	
 	printf("Printing list of leaves:\n");
-	for (cur = t->leaf_head.next; cur != &t->leaf_head; cur = cur->next) {
+	list_foreach(t->leaf_list, cur) {
 		btree_node_t *node;
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);

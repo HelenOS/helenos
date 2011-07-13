@@ -35,27 +35,16 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "internal/common.h"
 #include "string.h"
 
-#include <assert.h>
-#include <str_error.h>
-#include <stdlib.h>
-#include <errno.h>
+#include "assert.h"
+#include "errno.h"
+#include "limits.h"
+#include "stdlib.h"
+#include "signal.h"
 
-/**
- * Defined for convenience. Returns pointer to the terminating nul character.
- *
- * @param s
- * @return
- */
-static char *strzero(const char *s)
-{
-	while (*s != '\0') {
-		s++;
-	}
-
-	return (char *) s;
-}
+#include "libc/str_error.h"
 
 /**
  * Returns true if s2 is a prefix of s1.
@@ -182,7 +171,7 @@ char *posix_strcat(char *dest, const char *src)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	posix_strcpy(strzero(dest), src);
+	posix_strcpy(posix_strchr(dest, '\0'), src);
 	return dest;
 }
 
@@ -198,7 +187,7 @@ char *posix_strncat(char *dest, const char *src, size_t n)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	char *zeroptr = posix_strncpy(strzero(dest), src, n);
+	char *zeroptr = posix_strncpy(posix_strchr(dest, '\0'), src, n);
 	/* strncpy doesn't append the nul terminator, so we do it here */
 	zeroptr[n] = '\0';
 	return dest;
@@ -239,8 +228,7 @@ void *posix_memccpy(void *dest, const void *src, int c, size_t n)
  */
 char *posix_strdup(const char *s)
 {
-	// FIXME: SIZE_MAX doesn't work
-	return posix_strndup(s, STR_NO_LIMIT);
+	return posix_strndup(s, SIZE_MAX);
 }
 
 /**
@@ -359,21 +347,8 @@ char *posix_strchr(const char *s, int c)
 {
 	assert(s != NULL);
 	
-	/* special handling for the case that zero is searched for */
-	if (c == '\0') {
-		return strzero(s);
-	}
-	
-	/* otherwise just loop through the string until found */
-	while (*s != (char) c) {
-		if (*s == '\0') {
-			return NULL;
-		}
-
-		s++;
-	}
-	
-	return (char *) s;
+	char *res = gnu_strchrnul(s, c);
+	return (*res == c) ? res : NULL;
 }
 
 /**
@@ -386,7 +361,7 @@ char *posix_strrchr(const char *s, int c)
 {
 	assert(s != NULL);
 	
-	const char *ptr = strzero(s);
+	const char *ptr = posix_strchr(s, '\0');
 	
 	/* the same as in strchr, except it loops in reverse direction */
 	while (*ptr != (char) c) {
@@ -398,6 +373,17 @@ char *posix_strrchr(const char *s, int c)
 	}
 
 	return (char *) ptr;
+}
+
+char *gnu_strchrnul(const char *s, int c)
+{
+	assert(s != NULL);
+	
+	while (*s != c && *s != '\0') {
+		s++;
+	}
+	
+	return (char *) s;
 }
 
 /**
@@ -523,10 +509,11 @@ size_t posix_strxfrm(char *s1, const char *s2, size_t n)
  */
 char *posix_strerror(int errnum)
 {
-	/* uses function from libc, we just have to negate errno
-	 * (POSIX uses positive errorcodes, HelenOS has negative)
+	/* Uses function from libc, we just have to negate errno
+	 * (POSIX uses positive errorcodes, HelenOS has negative).
 	 */
-	return (char *) str_error(-errnum);
+	// FIXME: not all POSIX error codes are in libc
+	return (char *) str_error(-posix_abs(errnum));
 }
 
 /**
@@ -561,7 +548,7 @@ size_t posix_strlen(const char *s)
 {
 	assert(s != NULL);
 	
-	return (size_t) (strzero(s) - s);
+	return (size_t) (posix_strchr(s, '\0') - s);
 }
 
 /**
@@ -582,6 +569,51 @@ size_t posix_strnlen(const char *s, size_t n)
 	}
 	
 	return n;
+}
+
+/**
+ *
+ * @param signum
+ * @return
+ */
+char *posix_strsignal(int signum)
+{
+	static const char *const sigstrings[] = {
+		[SIGABRT] = "SIGABRT (Process abort signal)",
+		[SIGALRM] = "SIGALRM (Alarm clock)",
+		[SIGBUS] = "SIGBUS (Access to an undefined portion of a memory object)",
+		[SIGCHLD] = "SIGCHLD (Child process terminated, stopped, or continued)",
+		[SIGCONT] = "SIGCONT (Continue executing, if stopped)",
+		[SIGFPE] = "SIGFPE (Erroneous arithmetic operation)",
+		[SIGHUP] = "SIGHUP (Hangup)",
+		[SIGILL] = "SIGILL (Illegal instruction)",
+		[SIGINT] = "SIGINT (Terminal interrupt signal)",
+		[SIGKILL] = "SIGKILL (Kill process)",
+		[SIGPIPE] = "SIGPIPE (Write on a pipe with no one to read it)",
+		[SIGQUIT] = "SIGQUIT (Terminal quit signal)",
+		[SIGSEGV] = "SIGSEGV (Invalid memory reference)",
+		[SIGSTOP] = "SIGSTOP (Stop executing)",
+		[SIGTERM] = "SIGTERM (Termination signal)",
+		[SIGTSTP] = "SIGTSTP (Terminal stop signal)",
+		[SIGTTIN] = "SIGTTIN (Background process attempting read)",
+		[SIGTTOU] = "SIGTTOU (Background process attempting write)",
+		[SIGUSR1] = "SIGUSR1 (User-defined signal 1)",
+		[SIGUSR2] = "SIGUSR2 (User-defined signal 2)",
+		[SIGPOLL] = "SIGPOLL (Pollable event)",
+		[SIGPROF] = "SIGPROF (Profiling timer expired)",
+		[SIGSYS] = "SIGSYS (Bad system call)",
+		[SIGTRAP] = "SIGTRAP (Trace/breakpoint trap)",
+		[SIGURG] = "SIGURG (High bandwidth data is available at a socket)",
+		[SIGVTALRM] = "SIGVTALRM (Virtual timer expired)",
+		[SIGXCPU] = "SIGXCPU (CPU time limit exceeded)",
+		[SIGXFSZ] = "SIGXFSZ (File size limit exceeded)"
+	};
+
+	if (signum <= _TOP_SIGNAL) {
+		return (char *) sigstrings[signum];
+	}
+
+	return (char *) "ERROR, Invalid signal number";
 }
 
 /** @}

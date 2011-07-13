@@ -39,11 +39,6 @@
 #include "../libc/sys/stat.h"
 #include "types.h"
 #include "../time.h"
-#include <ipc/devmap.h>
-#include <task.h>
-
-typedef devmap_handle_t posix_dev_t;
-typedef task_id_t posix_pid_t;
 
 /* values are the same as on Linux */
 
@@ -114,8 +109,6 @@ typedef task_id_t posix_pid_t;
 #define S_ISSOCK(m) ((m & S_IFSOCK) != 0) /* socket? (Not in POSIX.1-1996.) */
 
 struct posix_stat {
-	struct stat sys_stat;
-
 	posix_dev_t     st_dev;     /* ID of device containing file */
 	posix_ino_t     st_ino;     /* inode number */
 	mode_t          st_mode;    /* protection */
@@ -138,8 +131,6 @@ extern int posix_chmod(const char *path, mode_t mode);
 extern mode_t posix_umask(mode_t mask);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define dev_t posix_dev_t
-	#define pid_t posix_pid_t
 	#define fstat posix_fstat
 	#define lstat posix_lstat
 	#define stat posix_stat

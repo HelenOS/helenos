@@ -37,10 +37,36 @@
 #define POSIX_TIME_H_
 
 #include "libc/time.h"
+#include "sys/types.h"
 
 #ifndef NULL
 	#define NULL  ((void *) 0)
 #endif
+
+#ifndef CLOCKS_PER_SEC
+	#define CLOCKS_PER_SEC (1000000L)
+#endif
+
+#ifndef __locale_t_defined
+	#define __locale_t_defined
+	typedef struct __posix_locale *posix_locale_t;
+	#ifndef LIBPOSIX_INTERNAL
+		#define locale_t posix_locale_t
+	#endif
+#endif
+
+#ifndef POSIX_SIGNAL_H_
+	struct posix_sigevent;
+	#ifndef LIBPOSIX_INTERNAL
+		#define sigevent posix_sigevent
+	#endif
+#endif
+
+#undef ASCTIME_BUF_LEN
+#define ASCTIME_BUF_LEN 26
+
+#undef CLOCK_REALTIME
+#define CLOCK_REALTIME ((posix_clockid_t) 0)
 
 struct posix_tm {
 	int tm_sec;         /* Seconds [0,60]. */
@@ -54,22 +80,122 @@ struct posix_tm {
 	int tm_isdst;       /* Daylight Savings flag. */
 };
 
+struct posix_timespec {
+	time_t tv_sec; /* Seconds. */
+	long tv_nsec; /* Nanoseconds. */
+};
+
+struct posix_itimerspec {
+	struct posix_timespec it_interval; /* Timer period. */
+	struct posix_timespec it_value; /* Timer expiration. */
+};
+
+typedef struct __posix_timer *posix_timer_t;
+
+/* Timezones */
+
+extern int posix_daylight;
+extern long posix_timezone;
+extern char *posix_tzname[2];
+
+extern void posix_tzset(void);
+
+/* time_t */
+
+extern double posix_difftime(time_t time1, time_t time0);
+
 /* Broken-down Time */
-extern struct posix_tm *posix_localtime(const time_t *timep);
+extern time_t posix_mktime(struct posix_tm *timeptr);
+extern struct posix_tm *posix_gmtime(const time_t *timer);
+extern struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
+    struct posix_tm *restrict result);
+extern struct posix_tm *posix_localtime(const time_t *timer);
+extern struct posix_tm *posix_localtime_r(const time_t *restrict timer,
+    struct posix_tm *restrict result);
 
 /* Formatting Calendar Time */
-extern char *posix_asctime(const struct posix_tm *tm);
-extern char *posix_ctime(const time_t *timep);
-extern size_t posix_strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct posix_tm *restrict tm);
+extern char *posix_asctime(const struct posix_tm *timeptr);
+extern char *posix_asctime_r(const struct posix_tm *restrict timeptr,
+    char *restrict buf);
+extern char *posix_ctime(const time_t *timer);
+extern char *posix_ctime_r(const time_t *timer, char *buf);
+
+extern size_t posix_strftime(char *restrict s, size_t maxsize,
+    const char *restrict format, const struct posix_tm *restrict tm);
+
+extern size_t posix_strftime_l(char *restrict s, size_t maxsize,
+    const char *restrict format, const struct posix_tm *restrict tm,
+    posix_locale_t loc);
+
+/* Clocks. */
+
+extern int posix_clock_getres(posix_clockid_t clock_id,
+    struct posix_timespec *res);
+extern int posix_clock_gettime(posix_clockid_t clock_id,
+    struct posix_timespec *tp);
+extern int posix_clock_settime(posix_clockid_t clock_id,
+    const struct posix_timespec *tp); 
+extern int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
+    const struct posix_timespec *rqtp, struct posix_timespec *rmtp);
+
+/* Timers. */
+
+#if 0
+
+extern int posix_timer_create(posix_clockid_t clockid,
+    struct posix_sigevent *restrict evp,
+    posix_timer_t *restrict timerid);
+extern int posix_timer_delete(posix_timer_t timerid);
+extern int posix_timer_getoverrun(posix_timer_t timerid);
+extern int posix_timer_gettime(posix_timer_t timerid,
+    struct posix_itimerspec *value);
+extern int posix_timer_settime(posix_timer_t timerid, int flags,
+    const struct posix_itimerspec *restrict value,
+    struct posix_itimerspec *restrict ovalue);
+
+#endif
+
+/* CPU Time */
+extern posix_clock_t posix_clock(void);
+
 
 #ifndef LIBPOSIX_INTERNAL
 	#define tm posix_tm
 
+	#define timespec posix_timespec
+	#define itimerspec posix_itimerspec
+	#define timer_t posix_timer_t
+
+	#define difftime posix_difftime
+	#define mktime posix_mktime
+	#define gmtime posix_gmtime
+	#define gmtime_r posix_gmtime_r
 	#define localtime posix_localtime
+	#define localtime_r posix_localtime_r
+
+	#define daylight posix_daylight
+	#define timezone posix_timezone
+	#define tzname posix_tzname
+	#define tzset posix_tzset
 
 	#define asctime posix_asctime
+	#define asctime_r posix_asctime_r
 	#define ctime posix_ctime
+	#define ctime_r posix_ctime_r
 	#define strftime posix_strftime
+
+	#define clock_getres posix_clock_getres
+	#define clock_gettime posix_clock_gettime
+	#define clock_settime posix_clock_settime
+	#define clock_nanosleep posix_clock_nanosleep
+	
+	#define timer_create posix_timer_create
+	#define timer_delete posix_timer_delete
+	#define timer_getoverrun posix_timer_getoverrun
+	#define timer_gettime posix_timer_gettime
+	#define timer_settime posix_timer_settime
+	
+	#define clock posix_clock
 #endif
 
 #endif  // POSIX_TIME_H_

@@ -66,7 +66,7 @@ typedef struct tmpfs_node {
 	unsigned lnkcnt;	/**< Link count. */
 	size_t size;		/**< File size if type is TMPFS_FILE. */
 	void *data;		/**< File content's if type is TMPFS_FILE. */
-	link_t cs_head;		/**< Head of child's siblings list. */
+	list_t cs_list;		/**< Child's siblings list. */
 } tmpfs_node_t;
 
 extern fs_reg_t tmpfs_reg;

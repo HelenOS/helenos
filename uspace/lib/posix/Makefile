@@ -39,13 +39,22 @@ EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
 	ctype.c \
-	getopt.c \
+	errno.c \
+	fcntl.c \
+	fnmatch.c \
+	locale.c \
+	math.c \
+	pwd.c \
+	signal.c \
 	stdio.c \
+	stdio/scanf.c \
 	stdlib.c \
+	stdlib/strtol.c \
 	stdlib/strtold.c \
 	string.c \
 	strings.c \
 	sys/stat.c \
+	sys/wait.c \
 	time.c \
 	unistd.c
 

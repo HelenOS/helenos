@@ -159,18 +159,20 @@ typedef struct {
 	client_t *client;
 	
 	/** Messages that should be delivered to this fibril. */
-	link_t msg_queue;
+	list_t msg_queue;
 	
 	/** Identification of the opening call. */
 	ipc_callid_t callid;
 	/** Call data of the opening call. */
 	ipc_call_t call;
+	/** Local argument or NULL if none. */
+	void *carg;
 	
 	/** Identification of the closing call. */
 	ipc_callid_t close_callid;
 	
 	/** Fibril function that will be used to handle the connection. */
-	void (*cfibril)(ipc_callid_t, ipc_call_t *);
+	async_client_conn_t cfibril;
 } connection_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
@@ -212,9 +214,11 @@ void *async_get_client_data(void)
  *
  * @param callid Hash of the incoming call.
  * @param call   Data of the incoming call.
+ * @param arg    Local argument
  *
  */
-static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
+static void default_client_connection(ipc_callid_t callid, ipc_call_t *call,
+    void *arg)
 {
 	ipc_answer_0(callid, ENOENT);
 }
@@ -225,6 +229,7 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
  *
  * @param callid Hash of the incoming call.
  * @param call   Data of the incoming call.
+ * @param arg    Local argument.
  *
  */
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
@@ -232,7 +237,7 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 }
 
 static async_client_conn_t client_connection = default_client_connection;
-static async_client_conn_t interrupt_received = default_interrupt_received;
+static async_interrupt_handler_t interrupt_received = default_interrupt_received;
 
 /** Setter for client_connection function pointer.
  *
@@ -249,7 +254,7 @@ void async_set_client_connection(async_client_conn_t conn)
  * @param intr Function that will implement a new interrupt
  *             notification fibril.
  */
-void async_set_interrupt_received(async_client_conn_t intr)
+void async_set_interrupt_received(async_interrupt_handler_t intr)
 {
 	interrupt_received = intr;
 }
@@ -355,8 +360,8 @@ void async_insert_timeout(awaiter_t *wd)
 	wd->to_event.occurred = false;
 	wd->to_event.inlist = true;
 	
-	link_t *tmp = timeout_list.next;
-	while (tmp != &timeout_list) {
+	link_t *tmp = timeout_list.head.next;
+	while (tmp != &timeout_list.head) {
 		awaiter_t *cur
 		    = list_get_instance(tmp, awaiter_t, to_event.link);
 		
@@ -366,7 +371,7 @@ void async_insert_timeout(awaiter_t *wd)
 		tmp = tmp->next;
 	}
 	
-	list_append(&wd->to_event.link, tmp);
+	list_insert_before(&wd->to_event.link, tmp);
 }
 
 /** Try to route a call to an appropriate connection fibril.
@@ -563,7 +568,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		}
 	}
 	
-	msg_t *msg = list_get_instance(conn->msg_queue.next, msg_t, link);
+	msg_t *msg = list_get_instance(list_first(&conn->msg_queue), msg_t, link);
 	list_remove(&msg->link);
 	
 	ipc_callid_t callid = msg->callid;
@@ -632,7 +637,7 @@ static int connection_fibril(void *arg)
 	 * Call the connection handler function.
 	 */
 	fibril_connection->cfibril(fibril_connection->callid,
-	    &fibril_connection->call);
+	    &fibril_connection->call, fibril_connection->carg);
 	
 	/*
 	 * Remove the reference for this client task connection.
@@ -669,8 +674,8 @@ static int connection_fibril(void *arg)
 	 */
 	while (!list_empty(&fibril_connection->msg_queue)) {
 		msg_t *msg =
-		    list_get_instance(fibril_connection->msg_queue.next, msg_t,
-		    link);
+		    list_get_instance(list_first(&fibril_connection->msg_queue),
+		    msg_t, link);
 		
 		list_remove(&msg->link);
 		ipc_answer_0(msg->callid, EHANGUP);
@@ -703,13 +708,14 @@ static int connection_fibril(void *arg)
  * @param call          Call data of the opening call.
  * @param cfibril       Fibril function that should be called upon opening the
  *                      connection.
+ * @param carg          Extra argument to pass to the connection fibril
  *
  * @return New fibril id or NULL on failure.
  *
  */
 fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
     ipc_callid_t callid, ipc_call_t *call,
-    async_client_conn_t cfibril)
+    async_client_conn_t cfibril, void *carg)
 {
 	connection_t *conn = malloc(sizeof(*conn));
 	if (!conn) {
@@ -724,6 +730,7 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
 	conn->close_callid = 0;
+	conn->carg = carg;
 	
 	if (call)
 		conn->call = *call;
@@ -778,7 +785,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril, etc. */
 		async_new_connection(call->in_task_hash, IPC_GET_ARG5(*call),
-		    callid, call, client_connection);
+		    callid, call, client_connection, NULL);
 		return;
 	}
 	
@@ -798,15 +805,13 @@ static void handle_expired_timeouts(void)
 	
 	futex_down(&async_futex);
 	
-	link_t *cur = timeout_list.next;
-	while (cur != &timeout_list) {
+	link_t *cur = list_first(&timeout_list);
+	while (cur != NULL) {
 		awaiter_t *waiter =
 		    list_get_instance(cur, awaiter_t, to_event.link);
 		
 		if (tv_gt(&waiter->to_event.expires, &tv))
 			break;
-		
-		cur = cur->next;
 		
 		list_remove(&waiter->to_event.link);
 		waiter->to_event.inlist = false;
@@ -820,6 +825,8 @@ static void handle_expired_timeouts(void)
 			waiter->active = true;
 			fibril_add_ready(waiter->fid);
 		}
+		
+		cur = list_first(&timeout_list);
 	}
 	
 	futex_up(&async_futex);
@@ -846,8 +853,8 @@ static int async_manager_worker(void)
 		
 		suseconds_t timeout;
 		if (!list_empty(&timeout_list)) {
-			awaiter_t *waiter = list_get_instance(timeout_list.next,
-			    awaiter_t, to_event.link);
+			awaiter_t *waiter = list_get_instance(
+			    list_first(&timeout_list), awaiter_t, to_event.link);
 			
 			struct timeval tv;
 			gettimeofday(&tv, NULL);
@@ -1413,7 +1420,7 @@ int async_forward_slow(ipc_callid_t callid, async_exch_t *exch,
  *
  */
 int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_client_conn_t client_receiver)
+    sysarg_t arg3, async_client_conn_t client_receiver, void *carg)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -1427,7 +1434,7 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	
 	if (client_receiver != NULL)
 		async_new_connection(task_hash, phone_hash, 0, NULL,
-		    client_receiver);
+		    client_receiver, carg);
 	
 	return EOK;
 }
@@ -1723,7 +1730,9 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 		 * There are inactive exchanges in the session.
 		 */
 		exch = (async_exch_t *)
-		    list_get_instance(sess->exch_list.next, async_exch_t, sess_link);
+		    list_get_instance(list_first(&sess->exch_list),
+		    async_exch_t, sess_link);
+		
 		list_remove(&exch->sess_link);
 		list_remove(&exch->global_link);
 	} else {
@@ -1735,8 +1744,8 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 		    (sess->mgmt == EXCHANGE_SERIALIZE)) {
 			exch = (async_exch_t *) malloc(sizeof(async_exch_t));
 			if (exch != NULL) {
-				list_initialize(&exch->sess_link);
-				list_initialize(&exch->global_link);
+				link_initialize(&exch->sess_link);
+				link_initialize(&exch->global_link);
 				exch->sess = sess;
 				exch->phone = sess->phone;
 			}
@@ -1753,8 +1762,8 @@ retry:
 			if (phone >= 0) {
 				exch = (async_exch_t *) malloc(sizeof(async_exch_t));
 				if (exch != NULL) {
-					list_initialize(&exch->sess_link);
-					list_initialize(&exch->global_link);
+					link_initialize(&exch->sess_link);
+					link_initialize(&exch->global_link);
 					exch->sess = sess;
 					exch->phone = phone;
 				} else
@@ -1766,8 +1775,9 @@ retry:
 				 * connections in other sessions and try again.
 				 */
 				exch = (async_exch_t *)
-				    list_get_instance(inactive_exch_list.next, async_exch_t,
-				    global_link);
+				    list_get_instance(list_first(&inactive_exch_list),
+				    async_exch_t, global_link);
+				
 				list_remove(&exch->sess_link);
 				list_remove(&exch->global_link);
 				async_hangup_internal(exch->phone);
@@ -1806,6 +1816,8 @@ void async_exchange_end(async_exch_t *exch)
 		return;
 	
 	async_sess_t *sess = exch->sess;
+	
+	atomic_dec(&sess->refcnt);
 	
 	if (sess->mgmt == EXCHANGE_SERIALIZE)
 		fibril_mutex_unlock(&sess->mutex);

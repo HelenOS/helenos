@@ -44,7 +44,7 @@
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	int counter;
-	link_t waiters;
+	list_t waiters;
 } fibril_mutex_t;
 
 #define FIBRIL_MUTEX_INITIALIZER(name) \
@@ -54,8 +54,10 @@ typedef struct {
 		}, \
 		.counter = 1, \
 		.waiters = { \
-			.prev = &name.waiters, \
-			.next = &name.waiters, \
+			.head = { \
+				.prev = &(name).waiters.head, \
+				.next = &(name).waiters.head, \
+			} \
 		} \
 	}
 	
@@ -66,7 +68,7 @@ typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	unsigned writers;
 	unsigned readers;
-	link_t waiters;
+	list_t waiters;
 } fibril_rwlock_t;
 
 #define FIBRIL_RWLOCK_INITIALIZER(name) \
@@ -77,8 +79,10 @@ typedef struct {
 		.readers = 0, \
 		.writers = 0, \
 		.waiters = { \
-			.prev = &name.waiters, \
-			.next = &name.waiters, \
+			.head = { \
+				.prev = &(name).waiters.head, \
+				.next = &(name).waiters.head, \
+			} \
 		} \
 	}
 
@@ -86,14 +90,16 @@ typedef struct {
 	fibril_rwlock_t name = FIBRIL_RWLOCK_INITIALIZER(name)
 
 typedef struct {
-	link_t waiters;
+	list_t waiters;
 } fibril_condvar_t;
 
 #define FIBRIL_CONDVAR_INITIALIZER(name) \
 	{ \
 		.waiters = { \
-			.next = &name.waiters, \
-			.prev = &name.waiters, \
+			.head = { \
+				.next = &(name).waiters.head, \
+				.prev = &(name).waiters.head, \
+			} \
 		} \
 	}
 

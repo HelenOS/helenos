@@ -72,7 +72,7 @@ struct outdev;
 /* Output character device operations interface. */
 typedef struct {
 	/** Write character to output. */
-	void (* write)(struct outdev *, wchar_t, bool);
+	void (* write)(struct outdev *, wchar_t);
 	
 	/** Redraw any previously cached characters. */
 	void (* redraw)(struct outdev *);
@@ -87,7 +87,7 @@ typedef struct outdev {
 	
 	/** Fields suitable for multiplexing. */
 	link_t link;
-	link_t list;
+	list_t list;
 	
 	/** Implementation of outdev operations. */
 	outdev_operations_t *op;

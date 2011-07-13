@@ -73,11 +73,11 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
 		size_t item_size, usb_hid_report_item_t *report_item,
 		usb_hid_report_path_t *usage_path);
 
-void usb_hid_descriptor_print_list(link_t *head);
+void usb_hid_descriptor_print_list(list_t *list);
 
 void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item);
 
-void usb_hid_free_report_list(link_t *head);
+void usb_hid_free_report_list(list_t *list);
 
 usb_hid_report_item_t *usb_hid_report_item_clone(
 		const usb_hid_report_item_t *item);

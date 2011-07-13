@@ -30,18 +30,21 @@ USPACE_PREFIX = ../..
 BINARY = usbinfo
 
 LIBS = \
+	$(LIBUSBHID_PREFIX)/libusbhid.a \
 	$(LIBUSBDEV_PREFIX)/libusbdev.a \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS = \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBUSBHID_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
 	desctree.c \
 	dev.c \
 	dump.c \
+	hid.c \
 	info.c \
 	main.c
 

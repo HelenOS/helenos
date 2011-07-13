@@ -38,25 +38,243 @@
 #include "internal/common.h"
 #include "unistd.h"
 
+#include "errno.h"
+#include "string.h"
+#include "fcntl.h"
+
+#include "libc/task.h"
+#include "libc/stats.h"
+#include "libc/malloc.h"
+
+/* Array of environment variable strings (NAME=VALUE). */
+char **posix_environ = NULL;
+
 /**
- * Dummy function. Always returns false, because there is no easy way to find
- * out under HelenOS.
+ * Get current user name.
  *
- * @param fd
- * @return Always false.
+ * @return User name (static) string or NULL if not found.
+ */
+char *posix_getlogin(void)
+{
+	/* There is currently no support for user accounts in HelenOS. */
+	return (char *) "user";
+}
+
+/**
+ * Get current user name.
+ *
+ * @param name Pointer to a user supplied buffer.
+ * @param namesize Length of the buffer.
+ * @return Zero on success, error code otherwise.
+ */
+int posix_getlogin_r(char *name, size_t namesize)
+{
+	/* There is currently no support for user accounts in HelenOS. */
+	if (namesize >= 5) {
+		posix_strcpy(name, (char *) "user");
+		return 0;
+	} else {
+		errno = ERANGE;
+		return -1;
+	}
+}
+
+/**
+ * Test whether open file descriptor is associated with a terminal.
+ *
+ * @param fd Open file descriptor to test.
+ * @return Boolean result of the test.
  */
 int posix_isatty(int fd)
 {
+	/* Always returns false, because there is no easy way to find
+	 * out under HelenOS. */
 	return false;
 }
 
 /**
+ * Get the pathname of the current working directory.
  *
- * @return
+ * @param buf Buffer into which the pathname shall be put.
+ * @param size Size of the buffer.
+ * @return Buffer pointer on success, NULL on failure.
+ */
+char *posix_getcwd(char *buf, size_t size)
+{
+	/* Native getcwd() does not set any errno despite the fact that general
+	 * usage pattern of this function depends on it (caller is repeatedly
+	 * guessing the required size of the buffer by checking for ERANGE on
+	 * failure). */
+	if (size == 0) {
+		errno = EINVAL;
+		return NULL;
+	}
+	char *ret = getcwd(buf, size);
+	if (ret == NULL && errno == EOK) {
+		errno = ERANGE;
+	}
+	return ret;
+}
+
+/**
+ * Determine the page size of the current run of the process.
+ *
+ * @return Page size of the process.
+ */
+int posix_getpagesize(void)
+{
+	return getpagesize();
+}
+
+/**
+ * Get the process ID of the calling process.
+ *
+ * @return Process ID.
+ */
+posix_pid_t posix_getpid(void)
+{
+	return task_get_id();
+}
+
+/**
+ * Get the real user ID of the calling process.
+ *
+ * @return User ID.
  */
 posix_uid_t posix_getuid(void)
 {
-	// TODO
+	/* There is currently no support for user accounts in HelenOS. */
+	return 0;
+}
+
+/**
+ * Get the real group ID of the calling process.
+ * 
+ * @return Group ID.
+ */
+posix_gid_t posix_getgid(void)
+{
+	/* There is currently no support for user accounts in HelenOS. */
+	return 0;
+}
+
+/**
+ * Read from a file.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param buf Buffer to which the read bytes shall be stored.
+ * @param nbyte Upper limit on the number of read bytes.
+ * @return Number of read bytes on success, -1 otherwise.
+ */
+ssize_t posix_read(int fildes, void *buf, size_t nbyte)
+{
+	int rc = read(fildes, buf, nbyte);
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	} else {
+		return rc;
+	}
+}
+
+/**
+ * Remove a link to a file.
+ * 
+ * @param path File pathname.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_unlink(const char *path)
+{
+	int rc = unlink(path);
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	} else {
+		return rc;
+	}
+}
+
+/**
+ * Determine accessibility of a file.
+ *
+ * @param path File to check accessibility for.
+ * @param amode Either check for existence or intended access mode.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_access(const char *path, int amode)
+{
+	if (amode == F_OK) {
+		/* Check file existence by attempt to open it. */
+		int fd = open(path, O_RDONLY);
+		if (fd < 0) {
+			/* FIXME: open() returns error code as negative retval. */
+			errno = -fd;
+			fd = -1;
+		} else {
+			close(fd);
+		}
+		return fd;
+	} else if (amode & (X_OK | W_OK | R_OK)) {
+		/* HelenOS doesn't support permissions, return success. */
+		return 0;
+	} else {
+		/* Invalid amode argument. */
+		errno = EINVAL;
+		return -1;
+	}
+}
+
+/**
+ * Get configurable system variables.
+ * 
+ * @param name Variable name.
+ * @return Variable value.
+ */
+long posix_sysconf(int name)
+{
+	long clk_tck = 0;
+	size_t cpu_count = 0;
+	stats_cpu_t *cpu_stats = stats_get_cpus(&cpu_count);
+	if (cpu_stats && cpu_count > 0) {
+		clk_tck = ((long) cpu_stats[0].frequency_mhz) * 1000000L;
+	}
+	free(cpu_stats);
+	cpu_stats = 0;
+
+	long phys_pages = 0;
+	long avphys_pages = 0;
+	stats_physmem_t *mem_stats = stats_get_physmem();
+	if (mem_stats) {
+		phys_pages = (long) (mem_stats->total / getpagesize());
+		avphys_pages = (long) (mem_stats->free / getpagesize());
+	}
+	free(mem_stats);
+	mem_stats = 0;
+
+	switch (name) {
+	case _SC_PHYS_PAGES:
+		return phys_pages;
+	case _SC_AVPHYS_PAGES:
+		return avphys_pages;
+	case _SC_PAGESIZE:
+		return getpagesize();
+	case _SC_CLK_TCK:
+		return clk_tck;
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+}
+
+/**
+ * 
+ * @param path
+ * @param name
+ * @return
+ */
+long posix_pathconf(const char *path, int name)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 
@@ -64,32 +282,44 @@ posix_uid_t posix_getuid(void)
  * 
  * @return
  */
-posix_gid_t posix_getgid(void)
+posix_pid_t posix_fork(void)
 {
-	// TODO
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 
 /**
  * 
  * @param path
- * @param amode
+ * @param argv
  * @return
  */
-int posix_access(const char *path, int amode)
+int posix_execv(const char *path, char *const argv[])
 {
-	// TODO
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 
 /**
  * 
- * @param name
+ * @param file
+ * @param argv
  * @return
  */
-long posix_sysconf(int name)
+int posix_execvp(const char *file, char *const argv[])
 {
-	// TODO
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param fildes
+ * @return
+ */
+int posix_pipe(int fildes[2])
+{
+	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 }
 

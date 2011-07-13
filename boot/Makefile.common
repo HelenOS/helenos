@@ -85,7 +85,7 @@ endif
 
 RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/fb/fb \
-	$(USPACE_PATH)/srv/hid/kbd/kbd \
+	$(USPACE_PATH)/srv/hid/input/input \
 	$(USPACE_PATH)/srv/hid/console/console \
 	$(USPACE_PATH)/srv/fs/devfs/devfs
 
@@ -109,15 +109,15 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
 	$(USPACE_PATH)/srv/net/net/net \
 	$(USPACE_PATH)/srv/devman/devman
-	
-RD_DRVS = \
-	root \
-	rootvirt \
-	test1 \
-	test2 \
-	test3
 
-RD_DRV_CFG = 
+RD_DRVS = \
+	infrastructure/root \
+	infrastructure/rootvirt \
+	test/test1 \
+	test/test2 \
+	test/test3
+
+RD_DRV_CFG =
 
 RD_LIBS =
 

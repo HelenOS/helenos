@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libcmips32
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
-  * @ingroup libcmips32eb	
+  * @ingroup libcmips32
  */
 
 #include <libc.h>
@@ -63,6 +63,5 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 	return __mips_reg_v0;
 }
 
- /** @}
+/** @}
  */
-

@@ -791,6 +791,7 @@ static void main_init(void)
 
 	proto_register(SERVICE_VFS, p);
 
+#if 0
 	p = proto_new("console");
 
 	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
@@ -826,6 +827,7 @@ static void main_init(void)
 
 	proto_console = p;
 	proto_register(SERVICE_CONSOLE, p);
+#endif
 }
 
 static void print_syntax()

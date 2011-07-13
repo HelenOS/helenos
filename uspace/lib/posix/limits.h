@@ -35,6 +35,7 @@
 #ifndef POSIX_LIMITS_H_
 #define POSIX_LIMITS_H_
 
+#include "stdint.h"
 #include "libc/sys/types.h"
 
 #undef SHRT_MIN
@@ -43,6 +44,9 @@
 #define SHRT_MIN SHORT_MIN
 #define SHRT_MAX SHORT_MAX
 #define USHRT_MAX USHORT_MAX
+
+#undef PATH_MAX
+#define PATH_MAX 256
 
 #endif /* POSIX_LIMITS_H_ */
 

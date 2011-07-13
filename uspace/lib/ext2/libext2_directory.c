@@ -85,34 +85,19 @@ uint16_t ext2_directory_entry_ll_get_name_length(
  * @param it pointer to iterator to initialize
  * @param fs pointer to filesystem structure
  * @param inode pointer to inode reference structure
+ * @param pos position within inode to start at, 0 is the first entry
  * @return EOK on success or negative error code on failure
  */
 int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
-    ext2_filesystem_t *fs, ext2_inode_ref_t *inode_ref)
-{
-	int rc;
-	uint32_t block_id;
-	uint32_t block_size;
-	
+    ext2_filesystem_t *fs, ext2_inode_ref_t *inode_ref, aoff64_t pos)
+{	
 	it->inode_ref = inode_ref;
 	it->fs = fs;
+	it->current = NULL;
+	it->current_offset = 0;
+	it->current_block = NULL;
 	
-	/* Get the first data block, so we can get the first entry */
-	rc = ext2_filesystem_get_inode_data_block_index(fs, inode_ref->inode, 0, 
-	    &block_id);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	rc = block_get(&it->current_block, fs->device, block_id, 0);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	block_size = ext2_superblock_get_block_size(fs->superblock);
-	
-	it->current_offset = 0;	
-	return ext2_directory_iterator_set(it, block_size);
+	return ext2_directory_iterator_seek(it, pos);
 }
 
 /**
@@ -123,45 +108,64 @@ int ext2_directory_iterator_init(ext2_directory_iterator_t *it,
  */
 int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 {
-	int rc;
 	uint16_t skip;
+	
+	assert(it->current != NULL);
+	
+	skip = ext2_directory_entry_ll_get_entry_length(it->current);
+	
+	return ext2_directory_iterator_seek(it, it->current_offset + skip);
+}
+
+/**
+ * Seek the directory iterator to the given byte offset within the inode.
+ * 
+ * @param it pointer to iterator to initialize
+ * @return EOK on success or negative error code on failure
+ */
+int ext2_directory_iterator_seek(ext2_directory_iterator_t *it, aoff64_t pos)
+{
+	int rc;
+	
 	uint64_t size;
 	aoff64_t current_block_idx;
 	aoff64_t next_block_idx;
 	uint32_t next_block_phys_idx;
 	uint32_t block_size;
 	
-	assert(it->current != NULL);
-	
-	skip = ext2_directory_entry_ll_get_entry_length(it->current);
 	size = ext2_inode_get_size(it->fs->superblock, it->inode_ref->inode);
 	
+	/* The iterator is not valid until we seek to the desired position */
+	it->current = NULL;
+	
 	/* Are we at the end? */
-	if (it->current_offset + skip >= size) {
-		rc = block_put(it->current_block);
-		it->current_block = NULL;
-		it->current = NULL;
-		if (rc != EOK) {
-			return rc;
+	if (pos >= size) {		
+		if (it->current_block) {
+			rc = block_put(it->current_block);
+			it->current_block = NULL;
+			if (rc != EOK) {
+				return rc;
+			}
 		}
 		
-		it->current_offset += skip;
+		it->current_offset = pos;
 		return EOK;
 	}
 	
 	block_size = ext2_superblock_get_block_size(it->fs->superblock);
 	current_block_idx = it->current_offset / block_size;
-	next_block_idx = (it->current_offset + skip) / block_size;
+	next_block_idx = pos / block_size;
 	
-	/* If we are moving accross block boundary,
+	/* If we don't have a block or are moving accross block boundary,
 	 * we need to get another block
 	 */
-	if (current_block_idx != next_block_idx) {
-		rc = block_put(it->current_block);
-		it->current_block = NULL;
-		it->current = NULL;
-		if (rc != EOK) {
-			return rc;
+	if (it->current_block == NULL || current_block_idx != next_block_idx) {		
+		if (it->current_block) {
+			rc = block_put(it->current_block);
+			it->current_block = NULL;
+			if (rc != EOK) {
+				return rc;
+			}
 		}
 		
 		rc = ext2_filesystem_get_inode_data_block_index(it->fs,
@@ -178,10 +182,17 @@ int ext2_directory_iterator_next(ext2_directory_iterator_t *it)
 		}
 	}
 	
-	it->current_offset += skip;
+	it->current_offset = pos;
 	return ext2_directory_iterator_set(it, block_size);
 }
 
+/** Setup the entry at the current iterator offset.
+ * 
+ * This function checks the validity of the directory entry,
+ * before setting the data pointer.
+ *
+ * @return EOK on success or error code on failure 
+ */
 static int ext2_directory_iterator_set(ext2_directory_iterator_t *it,
     uint32_t block_size)
 {

@@ -99,11 +99,6 @@ ifeq ($(CONFIG_S3C24XX_UART),y)
 		genarch/src/drivers/s3c24xx_uart/s3c24xx_uart.c
 endif
 
-ifeq ($(CONFIG_Z8530),y)
-	GENARCH_SOURCES += \
-		genarch/src/drivers/z8530/z8530.c
-endif
-
 ifeq ($(CONFIG_VIA_CUDA),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/via-cuda/cuda.c
@@ -140,7 +135,6 @@ endif
 ifeq ($(CONFIG_OFW_PCI),y)
 	GENARCH_SOURCES += \
 		genarch/src/ofw/ebus.c \
-		genarch/src/ofw/fhc.c \
 		genarch/src/ofw/pci.c  \
 		genarch/src/ofw/sbus.c \
 		genarch/src/ofw/upa.c

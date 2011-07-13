@@ -41,7 +41,7 @@
 int service_register(sysarg_t service)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
-	int rc = async_connect_to_me(exch, service, 0, 0, NULL);
+	int rc = async_connect_to_me(exch, service, 0, 0, NULL, NULL);
 	async_exchange_end(exch);
 	
 	return rc;

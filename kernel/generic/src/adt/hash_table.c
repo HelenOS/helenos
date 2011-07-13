@@ -61,11 +61,11 @@ void hash_table_create(hash_table_t *h, size_t m, size_t max_keys, hash_table_op
 	ASSERT(op->compare);
 	ASSERT(max_keys > 0);
 	
-	h->entry = (link_t *) malloc(m * sizeof(link_t), 0);
+	h->entry = (list_t *) malloc(m * sizeof(list_t), 0);
 	if (!h->entry)
 		panic("Cannot allocate memory for hash table.");
 	
-	memsetb(h->entry, m * sizeof(link_t), 0);
+	memsetb(h->entry, m * sizeof(list_t), 0);
 	
 	for (i = 0; i < m; i++)
 		list_initialize(&h->entry[i]);
@@ -106,7 +106,6 @@ void hash_table_insert(hash_table_t *h, sysarg_t key[], link_t *item)
  */
 link_t *hash_table_find(hash_table_t *h, sysarg_t key[])
 {
-	link_t *cur;
 	size_t chain;
 	
 	ASSERT(h);
@@ -117,7 +116,7 @@ link_t *hash_table_find(hash_table_t *h, sysarg_t key[])
 	chain = h->op->hash(key);
 	ASSERT(chain < h->entries);
 	
-	for (cur = h->entry[chain].next; cur != &h->entry[chain]; cur = cur->next) {
+	list_foreach(h->entry[chain], cur) {
 		if (h->op->compare(key, h->max_keys, cur)) {
 			/*
 			 * The entry is there.
@@ -140,7 +139,6 @@ link_t *hash_table_find(hash_table_t *h, sysarg_t key[])
 void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 {
 	size_t chain;
-	link_t *cur;
 	
 	ASSERT(h);
 	ASSERT(h->op);
@@ -148,8 +146,10 @@ void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 	ASSERT(h->op->compare);
 	ASSERT(keys <= h->max_keys);
 	
-	if (keys == h->max_keys) {
 	
+	if (keys == h->max_keys) {
+		link_t *cur;
+		
 		/*
 		 * All keys are known, hash_table_find() can be used to find the entry.
 		 */
@@ -168,7 +168,9 @@ void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 	 * Any partially matching entries are to be removed.
 	 */
 	for (chain = 0; chain < h->entries; chain++) {
-		for (cur = h->entry[chain].next; cur != &h->entry[chain]; cur = cur->next) {
+		link_t *cur;
+		for (cur = h->entry[chain].head.next; cur != &h->entry[chain].head;
+		    cur = cur->next) {
 			if (h->op->compare(key, keys, cur)) {
 				link_t *hlp;
 				

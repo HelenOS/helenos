@@ -145,12 +145,11 @@
  */
 call_t *get_call(sysarg_t callid)
 {
-	link_t *lst;
 	call_t *result = NULL;
 	
 	irq_spinlock_lock(&TASK->answerbox.lock, true);
-	for (lst = TASK->answerbox.dispatched_calls.next;
-	    lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
+	
+	list_foreach(TASK->answerbox.dispatched_calls, lst) {
 		call_t *call = list_get_instance(lst, call_t, link);
 		if ((sysarg_t) call == callid) {
 			result = call;

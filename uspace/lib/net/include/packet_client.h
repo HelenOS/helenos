@@ -48,6 +48,7 @@
 #define LIBNET_PACKET_CLIENT_H_
 
 #include <net/packet.h>
+#include <async.h>
 
 /** @name Packet client interface */
 /*@{*/
@@ -107,7 +108,7 @@ extern size_t packet_get_data_length(const packet_t *);
 extern void *packet_get_data(const packet_t *);
 extern int packet_get_addr(const packet_t *, uint8_t **, uint8_t **);
 extern int packet_set_addr(packet_t *, const uint8_t *, const uint8_t *, size_t);
-extern packet_t *packet_get_copy(int, packet_t *);
+extern packet_t *packet_get_copy(async_sess_t *, packet_t *);
 
 /*@}*/
 
