@@ -33,18 +33,18 @@
  */
 #ifndef DRV_OHCI_OHCI_REGS_H
 #define DRV_OHCI_OHCI_REGS_H
-#include <stdint.h>
+#include <sys/types.h>
 
 #define LEGACY_REGS_OFFSET 0x100
 
 /** OHCI memory mapped registers structure */
 typedef struct ohci_regs {
-	const volatile uint32_t revision;
+	const ioport32_t revision;
 #define R_REVISION_MASK (0x3f)
 #define R_REVISION_SHIFT (0)
 #define R_LEGACY_FLAG   (0x80)
 
-	volatile uint32_t control;
+	ioport32_t control;
 #define C_CBSR_MASK (0x3) /* Control-bulk service ratio */
 #define C_CBSR_1_1  (0x0)
 #define C_CBSR_1_2  (0x1)
@@ -77,7 +77,7 @@ do { \
 #define C_RWC (1 << 9)   /* Remote wakeup connected, host specific */
 #define C_RWE (1 << 10)  /* Remote wakeup enable */
 
-	volatile uint32_t command_status;
+	ioport32_t command_status;
 #define CS_HCR (1 << 0)   /* Host controller reset */
 #define CS_CLF (1 << 1)   /* Control list filled */
 #define CS_BLF (1 << 2)   /* Bulk list filled */
@@ -89,9 +89,9 @@ do { \
 	 * reads give the same value,
 	 * writing causes enable/disable,
 	 * status is write-clean (writing 1 clears the bit*/
-	volatile uint32_t interrupt_status;
-	volatile uint32_t interrupt_enable;
-	volatile uint32_t interrupt_disable;
+	ioport32_t interrupt_status;
+	ioport32_t interrupt_enable;
+	ioport32_t interrupt_disable;
 #define I_SO   (1 << 0)   /* Scheduling overrun */
 #define I_WDH  (1 << 1)   /* Done head write-back */
 #define I_SF   (1 << 2)   /* Start of frame */
@@ -103,29 +103,29 @@ do { \
 #define I_MI   (1 << 31)  /* Master interrupt (all/any interrupts) */
 
 	/** HCCA pointer (see hw_struct hcca.h) */
-	volatile uint32_t hcca;
+	ioport32_t hcca;
 #define HCCA_PTR_MASK 0xffffff00 /* HCCA is 256B aligned */
 
 	/** Currently executed periodic endpoint */
-	const volatile uint32_t periodic_current;
+	const ioport32_t periodic_current;
 
 	/** The first control endpoint */
-	volatile uint32_t control_head;
+	ioport32_t control_head;
 
 	/** Currently executed control endpoint */
-	volatile uint32_t control_current;
+	ioport32_t control_current;
 
 	/** The first bulk endpoint */
-	volatile uint32_t bulk_head;
+	ioport32_t bulk_head;
 
 	/** Currently executed bulk endpoint */
-	volatile uint32_t bulk_current;
+	ioport32_t bulk_current;
 
 	/** Done TD list, this value is periodically written to HCCA */
-	const volatile uint32_t done_head;
+	const ioport32_t done_head;
 
 	/** Frame time and max packet size for all transfers */
-	volatile uint32_t fm_interval;
+	ioport32_t fm_interval;
 #define FMI_FI_MASK (0x3fff) /* Frame interval in bit times (should be 11999)*/
 #define FMI_FI_SHIFT (0)
 #define FMI_FSMPS_MASK (0x7fff) /* Full speed max packet size */
@@ -133,25 +133,25 @@ do { \
 #define FMI_TOGGLE_FLAG (1 << 31)
 
 	/** Bit times remaining in current frame */
-	const volatile uint32_t fm_remaining;
+	const ioport32_t fm_remaining;
 #define FMR_FR_MASK FMI_FI_MASK
 #define FMR_FR_SHIFT FMI_FI_SHIFT
 #define FMR_TOGGLE_FLAG FMI_TOGGLE_FLAG
 
 	/** Frame number */
-	const volatile uint32_t fm_number;
+	const ioport32_t fm_number;
 #define FMN_NUMBER_MASK (0xffff)
 
 	/** Remaining bit time in frame to start periodic transfers */
-	volatile uint32_t periodic_start;
+	ioport32_t periodic_start;
 #define PS_PS_MASK (0x3fff) /* bit time when periodic get priority (0x3e67) */
 
 	/** Threshold for starting LS transaction */
-	volatile uint32_t ls_threshold;
+	ioport32_t ls_threshold;
 #define LST_LST_MASK (0x7fff)
 
 	/** The first root hub control register */
-	volatile uint32_t rh_desc_a;
+	ioport32_t rh_desc_a;
 #define RHDA_NDS_MASK (0xff) /* Number of downstream ports, max 15 */
 #define RHDA_NDS_SHIFT (0)
 #define RHDA_PSM_FLAG  (1 << 8)  /* Power switching mode: 0-global, 1-per port*/
@@ -163,7 +163,7 @@ do { \
 #define RHDA_POTPGT_SHIFT (24)
 
 	/** The other root hub control register */
-	volatile uint32_t rh_desc_b;
+	ioport32_t rh_desc_b;
 #define RHDB_DR_MASK (0xffff) /* Device removable mask */
 #define RHDB_DR_SHIFT (0)
 #define RHDB_PCC_MASK (0xffff) /* Power control mask */
@@ -175,7 +175,7 @@ do { \
 #define RHDB_PPC_FLAG(port) (((1 << port) & RHDB_DR_MASK) << RHDB_DR_SHIFT)
 
 	/** Root hub status register */
-	volatile uint32_t rh_status;
+	ioport32_t rh_status;
 #define RHS_LPS_FLAG  (1 <<  0)/* read: 0,
                                 * write: 0-no effect,
                                 *        1-turn off port power for ports
@@ -197,7 +197,7 @@ do { \
 #define RHS_CLEAR_DRWE (1 << 31)
 
 	/** Root hub per port status */
-	volatile uint32_t rh_port_status[];
+	ioport32_t rh_port_status[];
 #define RHPS_CCS_FLAG (1 << 0) /* r: current connect status,
                                 * w: 1-clear port enable, 0-nothing */
 #define RHPS_CLEAR_PORT_ENABLE RHPS_CCS_FLAG

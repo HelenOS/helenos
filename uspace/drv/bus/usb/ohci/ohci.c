@@ -208,8 +208,7 @@ if (ret != EOK) { \
 	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
 
 	/* Register handler to avoid interrupt lockup */
-	ret = register_interrupt_handler(device, irq, irq_handler,
-	    &irq_code);
+	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to register interrupt handler: %s.\n", str_error(ret));
 

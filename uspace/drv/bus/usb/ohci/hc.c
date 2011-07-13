@@ -92,6 +92,8 @@ int hc_get_irq_commands(
 	 * TODO: remove */
 	ohci_regs_t *registers;
 	const int ret = pio_enable((void*)regs, reg_size, (void**)&registers);
+	if (ret != EOK)
+		return ret;
 
 	/* Some bogus access to force create mapping. DO NOT remove,
 	 * unless whole virtual addresses in irq is replaced
@@ -104,9 +106,6 @@ int hc_get_irq_commands(
 	 * it causes kernel panic.
 	 */
 	registers->revision;
-
-	if (ret != EOK)
-		return ret;
 
 	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
 
