@@ -1139,6 +1139,12 @@ tsize(TWORD ty, union dimfun *d, struct attr *apl)
 		}
 
 	ap = attr_find(apl, ATTR_BASETYP);
+	
+	if (ap == NULL) {
+		cerror("unknown type");
+		return SZINT;
+	}
+	
 	sz = ap->atypsz;
 	
 #ifdef GCC_COMPAT
