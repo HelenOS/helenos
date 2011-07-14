@@ -332,8 +332,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
 		 */
-		/* TODO uint16_t clusters to uint32_t */
-		uint16_t clusters;
+		uint32_t clusters;
 		rc = fat_clusters_get(&clusters, bs, idxp->devmap_handle, nodep->firstc);
 		if (rc != EOK) {
 			(void) block_put(b);
@@ -981,7 +980,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rootp->lnkcnt = 0;	/* FS root is not linked */
 
 	if (FAT_IS_FAT32(bs)) {
-		uint16_t clusters;
+		uint32_t clusters;
 		rc = fat_clusters_get(&clusters, bs, devmap_handle, rootp->firstc);
 		if (rc != EOK) {
 			free(rfn);
