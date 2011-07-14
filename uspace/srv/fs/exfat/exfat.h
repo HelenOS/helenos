@@ -32,7 +32,7 @@
  */ 
 
 #ifndef EXFAT_EXFAT_H_
-#define EXFAT_FAT_H_
+#define EXFAT_EXFAT_H_
 
 #include "exfat_fat.h"
 #include <fibril_synch.h>
