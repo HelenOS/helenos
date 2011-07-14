@@ -57,6 +57,165 @@
  */
 static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
 
+/** Walk the cluster chain.
+ *
+ * @param bs		Buffer holding the boot sector for the file.
+ * @param devmap_handle	Device handle of the device with the file.
+ * @param firstc	First cluster to start the walk with.
+ * @param lastc		If non-NULL, output argument hodling the last cluster
+ *			number visited.
+ * @param numc		If non-NULL, output argument holding the number of
+ *			clusters seen during the walk.
+ * @param max_clusters	Maximum number of clusters to visit.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+fat_cluster_walk(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
+    uint32_t max_clusters)
+{
+	uint32_t clusters = 0;
+	exfat_cluster_t clst = firstc;
+	int rc;
+
+	if (firstc < EXFAT_CLST_FIRST) {
+		/* No space allocated to the file. */
+		if (lastc)
+			*lastc = firstc;
+		if (numc)
+			*numc = 0;
+		return EOK;
+	}
+
+	while (clst <= EXFAT_CLST_LAST && clusters < max_clusters) {
+		assert(clst >= EXFAT_CLST_FIRST);
+		if (lastc)
+			*lastc = clst;	/* remember the last cluster number */
+
+		rc = fat_get_cluster(bs, devmap_handle, clst, &clst);
+		if (rc != EOK)
+			return rc;
+
+		assert(clst != EXFAT_CLST_BAD);
+		clusters++;
+	}
+
+	if (lastc && clst <= EXFAT_CLST_LAST)
+		*lastc = clst;
+	if (numc)
+		*numc = clusters;
+
+	return EOK;
+}
+
+/** Read block from file located on a exFAT file system.
+ *
+ * @param block		Pointer to a block pointer for storing result.
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param nodep		FAT node.
+ * @param bn		Block number.
+ * @param flags		Flags passed to libblock.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
+    aoff64_t bn, int flags)
+{
+	exfat_cluster_t firstc = nodep->firstc;
+	exfat_cluster_t currc;
+	aoff64_t relbn = bn;
+	int rc;
+
+	if (!nodep->size)
+		return ELIMIT;
+
+	if (nodep->fragmented) {
+		if (((((nodep->size - 1) / BPS(bs)) / SPC(bs)) == bn / SPC(bs)) &&
+			nodep->lastc_cached_valid) {
+				/*
+			* This is a request to read a block within the last cluster
+			* when fortunately we have the last cluster number cached.
+			*/
+			return block_get(block, nodep->idx->devmap_handle, DATA_FS(bs) + 
+		        (nodep->lastc_cached_value-EXFAT_CLST_FIRST)*SPC(bs) + 
+			    (bn % SPC(bs)), flags);
+		}
+
+		if (nodep->currc_cached_valid && bn >= nodep->currc_cached_bn) {
+			/*
+			* We can start with the cluster cached by the previous call to
+			* fat_block_get().
+			*/
+			firstc = nodep->currc_cached_value;
+			relbn -= (nodep->currc_cached_bn / SPC(bs)) * SPC(bs);
+		}
+	}
+
+	rc = exfat_block_get_by_clst(block, bs, nodep->idx->devmap_handle,
+	    nodep->fragmented, firstc, &currc, relbn, flags);
+	if (rc != EOK)
+		return rc;
+
+	/*
+	 * Update the "current" cluster cache.
+	 */
+	nodep->currc_cached_valid = true;
+	nodep->currc_cached_bn = bn;
+	nodep->currc_cached_value = currc;
+
+	return rc;
+}
+
+/** Read block from file located on a FAT file system.
+ *
+ * @param block		Pointer to a block pointer for storing result.
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param devmap_handle	Device handle of the file system.
+ * @param fcl		First cluster used by the file. Can be zero if the file
+ *			is empty.
+ * @param clp		If not NULL, address where the cluster containing bn
+ *			will be stored.
+ *			stored
+ * @param bn		Block number.
+ * @param flags		Flags passed to libblock.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs, 
+    devmap_handle_t devmap_handle, bool fragmented, exfat_cluster_t fcl,
+    exfat_cluster_t *clp, aoff64_t bn, int flags)
+{
+	uint32_t clusters;
+	uint32_t max_clusters;
+	exfat_cluster_t c;
+	int rc;
+
+	if (fcl < EXFAT_CLST_FIRST)
+		return ELIMIT;
+
+	if (!fragmented) {
+		rc = block_get(block, devmap_handle, DATA_FS(bs) + 
+		    (fcl-EXFAT_CLST_FIRST)*SPC(bs) + bn, flags);
+	} else {
+		max_clusters = bn / SPC(bs);
+		rc = fat_cluster_walk(bs, devmap_handle, fcl, &c, &clusters, max_clusters);
+		if (rc != EOK)
+			return rc;
+		assert(clusters == max_clusters);
+
+		rc = block_get(block, devmap_handle, DATA_FS(bs) + 
+		    (c-EXFAT_CLST_FIRST)*SPC(bs) + (bn % SPC(bs)), flags);
+
+		if (clp)
+			*clp = c;
+	}
+
+	return rc;
+}
+
 
 /** Get cluster from the FAT.
  *

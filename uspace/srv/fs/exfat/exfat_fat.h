@@ -44,9 +44,10 @@
 
 #define EXFAT_ROOT_PAR	0
 
-#define EXFAT_CLST_LAST	0xfffffff6
-#define EXFAT_CLST_BAD	0xfffffff7
-#define EXFAT_CLST_EOF	0xffffffff
+#define EXFAT_CLST_FIRST	0x00000002
+#define EXFAT_CLST_LAST		0xfffffff6
+#define EXFAT_CLST_BAD		0xfffffff7
+#define EXFAT_CLST_EOF		0xffffffff
 
 /* forward declarations */
 struct block;
@@ -56,11 +57,25 @@ struct exfat_bs;
 typedef uint32_t exfat_cluster_t;
 
 
+#define fat_clusters_get(numc, bs, dh, fc) \
+    fat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint32_t) -1)
+extern int fat_cluster_walk(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
+    uint32_t max_clusters);
+extern int exfat_block_get(block_t **block, struct exfat_bs *bs,
+    struct exfat_node *nodep, aoff64_t bn, int flags);
+extern int exfat_block_get_by_clst(block_t **block, struct exfat_bs *bs, 
+    devmap_handle_t devmap_handle, bool fragmented, exfat_cluster_t fcl,
+    exfat_cluster_t *clp, aoff64_t bn, int flags);
+
 extern int fat_get_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t *value);
 extern int fat_set_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t value);
 extern int exfat_sanity_check(struct exfat_bs *, devmap_handle_t);
+
+
+
 #endif
 
 /**
