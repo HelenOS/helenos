@@ -37,6 +37,7 @@ SOURCES = \
 	exfat_fat.c \
 	exfat_ops.c \
 	exfat_idx.c \
-	exfat_dentry.c
+	exfat_dentry.c \
+	exfat_directory.c
 
 include $(USPACE_PREFIX)/Makefile.common
