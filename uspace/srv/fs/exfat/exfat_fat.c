@@ -58,6 +58,65 @@
 static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
 
 
+/** Get cluster from the FAT.
+ *
+ * @param bs		Buffer holding the boot sector for the file system.
+ * @param devmap_handle	Device handle for the file system.
+ * @param clst		Cluster which to get.
+ * @param value		Output argument holding the value of the cluster.
+ *
+ * @return		EOK or a negative error code.
+ */
+int
+fat_get_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
+    exfat_cluster_t clst, exfat_cluster_t *value)
+{
+	block_t *b;
+	aoff64_t offset;
+	int rc;
+
+	offset = clst * sizeof(exfat_cluster_t);
+
+	rc = block_get(&b, devmap_handle, FAT_FS(bs) + offset / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+
+	*value = uint32_t_le2host(*(uint32_t *)(b->data + offset % BPS(bs)));
+
+	rc = block_put(b);
+
+	return rc;
+}
+
+/** Set cluster in FAT.
+ *
+ * @param bs		Buffer holding the boot sector for the file system.
+ * @param devmap_handle	Device handle for the file system.
+ * @param clst		Cluster which is to be set.
+ * @param value		Value to set the cluster with.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+fat_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
+    exfat_cluster_t clst, exfat_cluster_t value)
+{
+	block_t *b;
+	aoff64_t offset;
+	int rc;
+
+	offset = clst * sizeof(exfat_cluster_t);
+
+	rc = block_get(&b, devmap_handle, FAT_FS(bs) + offset / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+
+	*(uint32_t *)(b->data + offset % BPS(bs)) = host2uint32_t_le(value);
+
+	b->dirty = true;	/* need to sync block */
+	rc = block_put(b);
+	return rc;
+}
 
 /** Perform basic sanity checks on the file system.
  *

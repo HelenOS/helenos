@@ -56,8 +56,11 @@ struct exfat_bs;
 typedef uint32_t exfat_cluster_t;
 
 
+extern int fat_get_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
+    exfat_cluster_t clst, exfat_cluster_t *value);
+extern int fat_set_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
+    exfat_cluster_t clst, exfat_cluster_t value);
 extern int exfat_sanity_check(struct exfat_bs *, devmap_handle_t);
-
 #endif
 
 /**
