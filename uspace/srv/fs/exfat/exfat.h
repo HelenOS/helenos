@@ -51,13 +51,13 @@
 
 #define BPS(bs)			(1 << (bs->bytes_per_sector))
 #define SPC(bs)			(1 << (bs->sec_per_cluster))
-#define VOL_ST(bs)		uint64_t_le2host(bs->volume_start)
+#define VOL_FS(bs)		uint64_t_le2host(bs->volume_start)
 #define VOL_CNT(bs)		uint64_t_le2host(bs->volume_count)
-#define FAT_ST(bs)		uint32_t_le2host(bs->fat_sector_start)
+#define FAT_FS(bs)		uint32_t_le2host(bs->fat_sector_start)
 #define FAT_CNT(bs)		uint32_t_le2host(bs->fat_sector_count)
-#define DATA_ST(bs)		uint32_t_le2host(bs->data_start_sector)
+#define DATA_FS(bs)		uint32_t_le2host(bs->data_start_sector)
 #define DATA_CNT(bs)	uint32_t_le2host(bs->data_clusters)
-#define ROOT_ST(bs)		uint32_t_le2host(bs->rootdir_cluster)
+#define ROOT_FC(bs)		uint32_t_le2host(bs->rootdir_cluster)
 #define VOL_FLAGS(bs)	uint16_t_le2host(bs->volume_flags)
 
 
@@ -97,6 +97,7 @@ typedef enum {
 } exfat_node_type_t;
 
 struct exfat_node;
+struct exfat_idx_t;
 
 typedef struct {
 	/** Used indices (position) hash table link. */
@@ -107,6 +108,9 @@ typedef struct {
 	fibril_mutex_t	lock;
 	devmap_handle_t	devmap_handle;
 	fs_index_t	index;
+
+	/* Does parent node fragmented or not? */
+	bool parent_fragmented;
 	/**
 	 * Parent node's first cluster.
 	 * Zero is used if this node is not linked, in which case nodep must
