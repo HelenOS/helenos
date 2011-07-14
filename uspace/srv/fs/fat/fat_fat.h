@@ -103,9 +103,9 @@ struct fat_bs;
 typedef uint32_t fat_cluster_t;
 
 #define fat_clusters_get(numc, bs, dh, fc) \
-    fat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint16_t) -1)
+    fat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint32_t) -1)
 extern int fat_cluster_walk(struct fat_bs *, devmap_handle_t, fat_cluster_t,
-    fat_cluster_t *, uint16_t *, uint16_t);
+    fat_cluster_t *, uint32_t *, uint32_t);
 
 extern int fat_block_get(block_t **, struct fat_bs *, struct fat_node *,
     aoff64_t, int);

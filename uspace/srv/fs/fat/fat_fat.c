@@ -81,9 +81,9 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
  */
 int
 fat_cluster_walk(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t firstc,
-    fat_cluster_t *lastc, uint16_t *numc, uint16_t max_clusters)
+    fat_cluster_t *lastc, uint32_t *numc, uint32_t max_clusters)
 {
-	uint16_t clusters = 0;
+	uint32_t clusters = 0;
 	fat_cluster_t clst = firstc, clst_last1 = FAT_CLST_LAST1(bs);
 	fat_cluster_t clst_bad = FAT_CLST_BAD(bs);
 	int rc;
@@ -198,8 +198,8 @@ int
 _fat_block_get(block_t **block, fat_bs_t *bs, devmap_handle_t devmap_handle,
     fat_cluster_t fcl, fat_cluster_t *clp, aoff64_t bn, int flags)
 {
-	uint16_t clusters;
-	unsigned max_clusters;
+	uint32_t clusters;
+	uint32_t max_clusters;
 	fat_cluster_t c;
 	int rc;
 
