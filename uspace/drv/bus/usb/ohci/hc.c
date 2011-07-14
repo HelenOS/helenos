@@ -150,14 +150,7 @@ if (ret != EOK) { \
 	CHECK_RET_RELEASE(ret,
 	    "Failed to add OHCI root hub endpoint 0: %s.\n", str_error(ret));
 
-	char *match_str = NULL;
-	/* DDF needs heap allocated string. */
-	ret = asprintf(&match_str, "usb&class=hub");
-	ret = ret > 0 ? 0 : ret;
-	CHECK_RET_RELEASE(ret,
-	    "Failed to create match-id string: %s.\n", str_error(ret));
-
-	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
+	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
 	CHECK_RET_RELEASE(ret,
 	    "Failed to add root hub match-id: %s.\n", str_error(ret));
 

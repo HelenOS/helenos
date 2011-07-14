@@ -341,6 +341,8 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 		    str_error(rc));
 	}
 	
+	free(match_id_str);
+	
 	/* TODO add more ids (with subsys ids, using class id etc.) */
 }
 

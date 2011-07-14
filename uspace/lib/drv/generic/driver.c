@@ -619,7 +619,7 @@ int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 	if (match_id == NULL)
 		return ENOMEM;
 	
-	match_id->id = match_id_str;
+	match_id->id = str_dup(match_id_str);
 	match_id->score = 90;
 	
 	add_match_id(&fun->match_ids, match_id);
