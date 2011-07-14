@@ -57,6 +57,10 @@ extern int exfat_directory_next(exfat_directory_t *di);
 extern int exfat_directory_prev(exfat_directory_t *di);
 extern int exfat_directory_seek(exfat_directory_t *di, aoff64_t pos);
 extern int exfat_directory_get(exfat_directory_t *di, exfat_dentry_t **de);
+extern int exfat_directory_find(exfat_directory_t *di, 
+    exfat_dentry_clsf_t type, exfat_dentry_t **d);
+extern int exfat_directory_find_continue(exfat_directory_t *di, 
+    exfat_dentry_clsf_t type, exfat_dentry_t **d);
 
 extern int exfat_directory_expand(exfat_directory_t *di);
 extern int exfat_directory_lookup_free(exfat_directory_t *di, size_t count);

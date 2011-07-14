@@ -156,6 +156,27 @@ int exfat_directory_get(exfat_directory_t *di, exfat_dentry_t **d)
 	return rc;
 }
 
+int exfat_directory_find(exfat_directory_t *di, exfat_dentry_clsf_t type, exfat_dentry_t **d)
+{
+	do {
+		if (exfat_directory_get(di, d) == EOK) {
+			if (exfat_classify_dentry(*d) == type)
+				return EOK;
+		} else
+			return ENOENT;
+	} while (exfat_directory_next(di) == EOK);
+	
+	return ENOENT;
+}
+
+int exfat_directory_find_continue(exfat_directory_t *di, exfat_dentry_clsf_t type, exfat_dentry_t **d)
+{
+	int rc;
+	rc = exfat_directory_next(di);
+	if (rc != EOK)
+		return rc;
+	return exfat_directory_find(di, type, d);
+}
 
 /**
  * @}
