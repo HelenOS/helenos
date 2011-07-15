@@ -77,6 +77,7 @@ usb_endpoint_description_t *mast_endpoints[] = {
 	NULL
 };
 
+static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
@@ -88,31 +89,19 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 static int usbmast_add_device(usb_device_t *dev)
 {
 	int rc;
-	const char *fun_name = "a";
-	ddf_fun_t *fun = NULL;
-	usbmast_fun_t *msfun = NULL;
+	usbmast_dev_t *mdev = NULL;
+	unsigned i;
 
 	/* Allocate softstate */
-	msfun = calloc(1, sizeof(usbmast_fun_t));
-	if (msfun == NULL) {
+	mdev = calloc(1, sizeof(usbmast_dev_t));
+	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	msfun->usb_dev = dev;
-	msfun->lun = 0;
-
-	fun = ddf_fun_create(dev->ddf_dev, fun_exposed, fun_name);
-	if (fun == NULL) {
-		usb_log_error("Failed to create DDF function %s.\n", fun_name);
-		rc = ENOMEM;
-		goto error;
-	}
-
-	/* Set up a connection handler. */
-	fun->conn_handler = usbmast_bd_connection;
-	fun->driver_data = msfun;
+	mdev->ddf_dev = dev->ddf_dev;
+	mdev->usb_dev = dev;
 
 	usb_log_info("Initializing mass storage `%s'.\n",
 	    dev->ddf_dev->name);
@@ -124,40 +113,94 @@ static int usbmast_add_device(usb_device_t *dev)
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
-	size_t lun_count = usb_masstor_get_lun_count(msfun);
+	mdev->luns = usb_masstor_get_lun_count(mdev);
 
-	/* XXX Handle more than one LUN properly. */
-	if (lun_count > 1) {
-		usb_log_warning ("Mass storage has %zu LUNs. Ignoring all "
-		    "but first.\n", lun_count);
+	for (i = 0; i < mdev->luns; i++) {
+		rc = usbmast_fun_create(mdev, i);
+		if (rc != EOK)
+			goto error;
 	}
+
+	return EOK;
+error:
+	/* XXX Destroy functions */
+	if (mdev != NULL)
+		free(mdev);
+	return rc;
+}
+
+/** Create mass storage function.
+ *
+ * Called once for each LUN.
+ *
+ * @param mdev		Mass storage device
+ * @param lun		LUN
+ * @return		EOK on success or negative error code.
+ */
+static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
+{
+	int rc;
+	char *fun_name = NULL;
+	ddf_fun_t *fun = NULL;
+	usbmast_fun_t *mfun = NULL;
+
+	/* Allocate softstate */
+	mfun = calloc(1, sizeof(usbmast_fun_t));
+	if (mfun == NULL) {
+		usb_log_error("Failed allocating softstate.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	mfun->mdev = mdev;
+	mfun->lun = lun;
+
+	if (asprintf(&fun_name, "l%u", lun) < 0) {
+		usb_log_error("Out of memory.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	fun = ddf_fun_create(mdev->ddf_dev, fun_exposed, fun_name);
+	if (fun == NULL) {
+		usb_log_error("Failed to create DDF function %s.\n", fun_name);
+		rc = ENOMEM;
+		goto error;
+	}
+
+	free(fun_name);
+	fun_name = NULL;
+
+	/* Set up a connection handler. */
+	fun->conn_handler = usbmast_bd_connection;
+	fun->driver_data = mfun;
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
-	rc = usbmast_inquiry(msfun, &inquiry);
+	rc = usbmast_inquiry(mfun, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
+		    mdev->ddf_dev->name, str_error(rc));
 		rc = EIO;
 		goto error;
 	}
 
-	usb_log_info("Mass storage `%s': " \
-	    "%s by %s rev. %s is %s (%s), %zu LUN(s).\n",
-	    dev->ddf_dev->name,
+	usb_log_info("Mass storage `%s' LUN %u: " \
+	    "%s by %s rev. %s is %s (%s).\n",
+	    mdev->ddf_dev->name,
+	    lun,
 	    inquiry.product,
 	    inquiry.vendor,
 	    inquiry.revision,
 	    usbmast_scsi_dev_type_str(inquiry.device_type),
-	    inquiry.removable ? "removable" : "non-removable",
-	    lun_count);
+	    inquiry.removable ? "removable" : "non-removable");
 
 	uint32_t nblocks, block_size;
 
-	rc = usbmast_read_capacity(msfun, &nblocks, &block_size);
+	rc = usbmast_read_capacity(mfun, &nblocks, &block_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
+		    mdev->ddf_dev->name, str_error(rc));
 		rc = EIO;
 		goto error;
 	}
@@ -165,8 +208,8 @@ static int usbmast_add_device(usb_device_t *dev)
 	usb_log_info("Read Capacity: nblocks=%" PRIu32 ", "
 	    "block_size=%" PRIu32 "\n", nblocks, block_size);
 
-	msfun->nblocks = nblocks;
-	msfun->block_size = block_size;
+	mfun->nblocks = nblocks;
+	mfun->block_size = block_size;
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -181,8 +224,10 @@ static int usbmast_add_device(usb_device_t *dev)
 error:
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
-	if (msfun != NULL)
-		free(msfun);
+	if (fun_name != NULL)
+		free(fun_name);
+	if (mfun != NULL)
+		free(mfun);
 	return rc;
 }
 
@@ -190,7 +235,7 @@ error:
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	usbmast_fun_t *msfun;
+	usbmast_fun_t *mfun;
 	void *comm_buf = NULL;
 	size_t comm_size;
 	ipc_callid_t callid;
@@ -216,7 +261,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 
 	(void) async_share_out_finalize(callid, comm_buf);
 
-	msfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
+	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
 
 	while (true) {
 		callid = async_get_call(&call);
@@ -230,22 +275,22 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 
 		switch (method) {
 		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, msfun->block_size);
+			async_answer_1(callid, EOK, mfun->block_size);
 			break;
 		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(msfun->nblocks),
-			    UPPER32(msfun->nblocks));
+			async_answer_2(callid, EOK, LOWER32(mfun->nblocks),
+			    UPPER32(mfun->nblocks));
 			break;
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			retval = usbmast_read(msfun, ba, cnt, comm_buf);
+			retval = usbmast_read(mfun, ba, cnt, comm_buf);
 			async_answer_0(callid, retval);
 			break;
 		case BD_WRITE_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			retval = usbmast_write(msfun, ba, cnt, comm_buf);
+			retval = usbmast_write(mfun, ba, cnt, comm_buf);
 			async_answer_0(callid, retval);
 			break;
 		default:

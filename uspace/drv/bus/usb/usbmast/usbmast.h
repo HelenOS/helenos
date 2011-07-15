@@ -39,21 +39,31 @@
 #include <sys/types.h>
 #include <usb/usb.h>
 
+/** Mass storage device. */
+typedef struct {
+	/** DDF device */
+	ddf_dev_t *ddf_dev;
+	/** USB device */
+	usb_device_t *usb_dev;
+	/** Number of LUNs */
+	unsigned luns;
+} usbmast_dev_t;
+
 /** Mass storage function.
  *
  * Serves as soft state for function/LUN.
  */
 typedef struct {
+	/** Mass storage device the function belongs to */
+	usbmast_dev_t *mdev;
 	/** DDF function */
 	ddf_fun_t *ddf_fun;
 	/** LUN */
 	unsigned lun;
-	/** Total number of blocks. */
+	/** Total number of blocks */
 	uint64_t nblocks;
-	/** Block size in bytes. */
+	/** Block size in bytes */
 	size_t block_size;
-	/** USB device function belongs to */
-	usb_device_t *usb_dev;
 } usbmast_fun_t;
 
 #endif

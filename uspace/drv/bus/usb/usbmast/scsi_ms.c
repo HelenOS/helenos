@@ -82,7 +82,7 @@ int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 
 	if (rc != EOK) {
 		usb_log_error("Inquiry failed, device %s: %s.\n",
-		   mfun->usb_dev->ddf_dev->name, str_error(rc));
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
@@ -139,7 +139,7 @@ int usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
 
         if (rc != EOK) {
 		usb_log_error("Request Sense failed, device %s: %s.\n",
-		   mfun->usb_dev->ddf_dev->name, str_error(rc));
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
@@ -176,7 +176,7 @@ int usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
 
         if (rc != EOK) {
 		usb_log_error("Read Capacity (10) failed, device %s: %s.\n",
-		   mfun->usb_dev->ddf_dev->name, str_error(rc));
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
@@ -224,7 +224,7 @@ int usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
 
         if (rc != EOK) {
 		usb_log_error("Read (12) failed, device %s: %s.\n",
-		   mfun->usb_dev->ddf_dev->name, str_error(rc));
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
@@ -269,7 +269,7 @@ int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
 
         if (rc != EOK) {
 		usb_log_error("Write (12) failed, device %s: %s.\n",
-		   mfun->usb_dev->ddf_dev->name, str_error(rc));
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
