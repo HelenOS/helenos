@@ -43,9 +43,9 @@ EXTRA_CFLAGS += \
 BINARY = usbmast
 
 SOURCES = \
-	cmds.c \
+	bo_trans.c \
+	cmdw.c \
 	main.c \
-	mast.c \
 	scsi_ms.c
 
 include $(USPACE_PREFIX)/Makefile.common

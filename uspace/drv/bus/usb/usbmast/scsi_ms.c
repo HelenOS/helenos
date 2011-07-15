@@ -45,8 +45,8 @@
 #include <str.h>
 #include <scsi/sbc.h>
 #include <scsi/spc.h>
-#include "cmds.h"
-#include "mast.h"
+#include "cmdw.h"
+#include "bo_trans.h"
 #include "scsi_ms.h"
 
 /** Get string representation for SCSI peripheral device type.

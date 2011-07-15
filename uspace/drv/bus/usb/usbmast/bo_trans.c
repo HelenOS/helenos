@@ -31,15 +31,16 @@
  */
 /**
  * @file
- * Generic functions for USB mass storage (implementation).
+ * USB mass storage bulk-only transport.
  */
-#include "mast.h"
-#include "cmds.h"
 #include <bool.h>
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/dev/request.h>
+
+#include "bo_trans.h"
+#include "cmdw.h"
 
 bool usb_mast_verbose = false;
 

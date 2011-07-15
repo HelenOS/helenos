@@ -44,8 +44,8 @@
 #include <usb/classes/massstor.h>
 #include <errno.h>
 #include <str_error.h>
-#include "cmds.h"
-#include "mast.h"
+#include "cmdw.h"
+#include "bo_trans.h"
 #include "scsi_ms.h"
 
 #define NAME "usbmast"

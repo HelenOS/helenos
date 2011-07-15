@@ -30,36 +30,31 @@
  * @{
  */
 /** @file
- * USB mass storage commands.
+ * USB mass storage bulk-only transport.
  */
 
-#include <byteorder.h>
-#include <mem.h>
+#ifndef BO_TRANS_H_
+#define BO_TRANS_H_
+
+#include <scsi/spc.h>
 #include <sys/types.h>
 #include <usb/usb.h>
-#include "cmds.h"
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
 
-void usb_massstor_cbw_prepare(usb_massstor_cbw_t *cbw,
-    uint32_t tag, uint32_t transfer_length, usb_direction_t dir,
-    uint8_t lun, uint8_t cmd_len, const uint8_t *cmd)
-{
-	cbw->dCBWSignature = uint32_host2usb(0x43425355);
-	cbw->dCBWTag = tag;
-	cbw->dCBWDataTransferLength = transfer_length;
+#define BULK_IN_EP 0
+#define BULK_OUT_EP 1
 
-	cbw->bmCBWFlags = 0;
-	if (dir == USB_DIRECTION_IN) {
-		cbw->bmCBWFlags |= (1 << 7);
-	}
+extern int usb_massstor_data_in(usb_device_t *, uint32_t, uint8_t, const void *,
+    size_t, void *, size_t, size_t *);
+extern int usb_massstor_data_out(usb_device_t *, uint32_t, uint8_t, const void *,
+    size_t, const void *, size_t, size_t *);
+extern int usb_massstor_reset(usb_device_t *);
+extern void usb_massstor_reset_recovery(usb_device_t *);
+extern int usb_massstor_get_max_lun(usb_device_t *);
+extern size_t usb_masstor_get_lun_count(usb_device_t *);
 
-	/* Only lowest 4 bits. */
-	cbw->bCBWLUN = lun & 0x0F;
-
-	/* Only lowest 5 bits. */
-	cbw->bCBWBLength = cmd_len & 0x1F;
-
-	memcpy(cbw->CBWCB, cmd, cbw->bCBWBLength);
-}
+#endif
 
 /**
  * @}

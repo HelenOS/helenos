@@ -33,8 +33,8 @@
  * USB mass storage commands.
  */
 
-#ifndef USB_USBMAST_CMDS_H_
-#define USB_USBMAST_CMDS_H_
+#ifndef CMDW_H_
+#define CMDW_H_
 
 #include <sys/types.h>
 #include <usb/usb.h>
