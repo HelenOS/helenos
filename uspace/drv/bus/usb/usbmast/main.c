@@ -47,6 +47,7 @@
 #include "cmdw.h"
 #include "bo_trans.h"
 #include "scsi_ms.h"
+#include "usbmast.h"
 
 #define NAME "usbmast"
 
@@ -76,21 +77,6 @@ usb_endpoint_description_t *mast_endpoints[] = {
 	NULL
 };
 
-/** Mass storage function.
- *
- * Serves as soft state for function/LUN.
- */
-typedef struct {
-	/** DDF function */
-	ddf_fun_t *ddf_fun;
-	/** Total number of blocks. */
-	uint64_t nblocks;
-	/** Block size in bytes. */
-	size_t block_size;
-	/** USB device function belongs to */
-	usb_device_t *usb_dev;
-} usbmast_fun_t;
-
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
@@ -114,6 +100,8 @@ static int usbmast_add_device(usb_device_t *dev)
 		goto error;
 	}
 
+	msfun->usb_dev = dev;
+
 	fun = ddf_fun_create(dev->ddf_dev, fun_exposed, fun_name);
 	if (fun == NULL) {
 		usb_log_error("Failed to create DDF function %s.\n", fun_name);
@@ -135,7 +123,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
-	size_t lun_count = usb_masstor_get_lun_count(dev);
+	size_t lun_count = usb_masstor_get_lun_count(msfun);
 
 	/* XXX Handle more than one LUN properly. */
 	if (lun_count > 1) {
@@ -145,7 +133,7 @@ static int usbmast_add_device(usb_device_t *dev)
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
-	rc = usbmast_inquiry(dev, &inquiry);
+	rc = usbmast_inquiry(msfun, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));
@@ -165,7 +153,7 @@ static int usbmast_add_device(usb_device_t *dev)
 
 	uint32_t nblocks, block_size;
 
-	rc = usbmast_read_capacity(dev, &nblocks, &block_size);
+	rc = usbmast_read_capacity(msfun, &nblocks, &block_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
 		    dev->ddf_dev->name, str_error(rc));
@@ -178,7 +166,6 @@ static int usbmast_add_device(usb_device_t *dev)
 
 	msfun->nblocks = nblocks;
 	msfun->block_size = block_size;
-	msfun->usb_dev = dev;
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -251,15 +238,13 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			retval = usbmast_read(msfun->usb_dev, ba, cnt,
-			    msfun->block_size, comm_buf);
+			retval = usbmast_read(msfun, ba, cnt, comm_buf);
 			async_answer_0(callid, retval);
 			break;
 		case BD_WRITE_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			retval = usbmast_write(msfun->usb_dev, ba, cnt,
-			    msfun->block_size, comm_buf);
+			retval = usbmast_write(msfun, ba, cnt, comm_buf);
 			async_answer_0(callid, retval);
 			break;
 		default:

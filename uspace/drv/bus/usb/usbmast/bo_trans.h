@@ -41,18 +41,19 @@
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
+#include "usbmast.h"
 
 #define BULK_IN_EP 0
 #define BULK_OUT_EP 1
 
-extern int usb_massstor_data_in(usb_device_t *, uint32_t, uint8_t, const void *,
-    size_t, void *, size_t, size_t *);
-extern int usb_massstor_data_out(usb_device_t *, uint32_t, uint8_t, const void *,
-    size_t, const void *, size_t, size_t *);
-extern int usb_massstor_reset(usb_device_t *);
-extern void usb_massstor_reset_recovery(usb_device_t *);
-extern int usb_massstor_get_max_lun(usb_device_t *);
-extern size_t usb_masstor_get_lun_count(usb_device_t *);
+extern int usb_massstor_data_in(usbmast_fun_t *, uint32_t, uint8_t,
+    const void *, size_t, void *, size_t, size_t *);
+extern int usb_massstor_data_out(usbmast_fun_t *, uint32_t, uint8_t,
+    const void *, size_t, const void *, size_t, size_t *);
+extern int usb_massstor_reset(usbmast_fun_t *);
+extern void usb_massstor_reset_recovery(usbmast_fun_t *);
+extern int usb_massstor_get_max_lun(usbmast_fun_t *);
+extern size_t usb_masstor_get_lun_count(usbmast_fun_t *);
 
 #endif
 

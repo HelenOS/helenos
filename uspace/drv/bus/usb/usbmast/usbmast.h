@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,29 @@
  * @{
  */
 /** @file
- * SCSI functions for USB mass storage.
+ * USB mass storage commands.
  */
 
-#ifndef USB_USBMAST_SCSI_MS_H_
-#define USB_USBMAST_SCSI_MS_H_
+#ifndef USBMAST_H_
+#define USBMAST_H_
 
-#include <scsi/spc.h>
 #include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/dev/driver.h>
 
-/** Result of SCSI Inquiry command.
- * This is already parsed structure, not the original buffer returned by
- * the device.
+/** Mass storage function.
+ *
+ * Serves as soft state for function/LUN.
  */
 typedef struct {
-	/** SCSI peripheral device type */
-	unsigned device_type;
-	/** Whether the device is removable */
-	bool removable;
-	/** Vendor ID string */
-	char vendor[SCSI_INQ_VENDOR_STR_BUFSIZE];
-	/** Product ID string */
-	char product[SCSI_INQ_PRODUCT_STR_BUFSIZE];
-	/** Revision string */
-	char revision[SCSI_INQ_REVISION_STR_BUFSIZE];
-} usbmast_inquiry_data_t;
-
-extern int usbmast_inquiry(usbmast_fun_t *, usbmast_inquiry_data_t *);
-extern int usbmast_request_sense(usbmast_fun_t *, void *, size_t);
-extern int usbmast_read_capacity(usbmast_fun_t *, uint32_t *, uint32_t *);
-extern int usbmast_read(usbmast_fun_t *, uint64_t, size_t, void *);
-extern int usbmast_write(usbmast_fun_t *, uint64_t, size_t, const void *);
-extern const char *usbmast_scsi_dev_type_str(unsigned);
+	/** DDF function */
+	ddf_fun_t *ddf_fun;
+	/** Total number of blocks. */
+	uint64_t nblocks;
+	/** Block size in bytes. */
+	size_t block_size;
+	/** USB device function belongs to */
+	usb_device_t *usb_dev;
+} usbmast_fun_t;
 
 #endif
 

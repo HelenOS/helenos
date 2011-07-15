@@ -41,6 +41,7 @@
 
 #include "bo_trans.h"
 #include "cmdw.h"
+#include "usbmast.h"
 
 bool usb_mast_verbose = false;
 
@@ -53,6 +54,7 @@ bool usb_mast_verbose = false;
 
 /** Send command via bulk-only transport.
  *
+ * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared
  *			with answer)
  * @param lun		LUN
@@ -65,14 +67,14 @@ bool usb_mast_verbose = false;
  *
  * @return		Error code
  */
-static int usb_massstor_cmd(usb_device_t *dev, uint32_t tag, uint8_t lun,
+static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
     const void *cmd, size_t cmd_size, usb_direction_t ddir, void *dbuf,
     size_t dbuf_size, size_t *xferred_size)
 {
 	int rc;
 	size_t act_size;
-	usb_pipe_t *bulk_in_pipe = dev->pipes[BULK_IN_EP].pipe;
-	usb_pipe_t *bulk_out_pipe = dev->pipes[BULK_OUT_EP].pipe;
+	usb_pipe_t *bulk_in_pipe = mfun->usb_dev->pipes[BULK_IN_EP].pipe;
+	usb_pipe_t *bulk_out_pipe = mfun->usb_dev->pipes[BULK_OUT_EP].pipe;
 
 	/* Prepare CBW - command block wrapper */
 	usb_massstor_cbw_t cbw;
@@ -164,6 +166,7 @@ static int usb_massstor_cmd(usb_device_t *dev, uint32_t tag, uint8_t lun,
 
 /** Perform data-in command.
  *
+ * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared with
  *			answer)
  * @param lun		LUN
@@ -175,15 +178,16 @@ static int usb_massstor_cmd(usb_device_t *dev, uint32_t tag, uint8_t lun,
  *
  * @return Error code
  */
-int usb_massstor_data_in(usb_device_t *dev, uint32_t tag, uint8_t lun,
+int usb_massstor_data_in(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
     const void *cmd, size_t cmd_size, void *dbuf, size_t dbuf_size, size_t *proc_size)
 {
-	return usb_massstor_cmd(dev, tag, lun, cmd, cmd_size, USB_DIRECTION_IN,
+	return usb_massstor_cmd(mfun, tag, lun, cmd, cmd_size, USB_DIRECTION_IN,
 	    dbuf, dbuf_size, proc_size);
 }
 
 /** Perform data-out command.
  *
+ * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared with
  *			answer)
  * @param lun		LUN
@@ -195,24 +199,24 @@ int usb_massstor_data_in(usb_device_t *dev, uint32_t tag, uint8_t lun,
  *
  * @return Error code
  */
-int usb_massstor_data_out(usb_device_t *dev, uint32_t tag, uint8_t lun,
+int usb_massstor_data_out(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
     const void *cmd, size_t cmd_size, const void *data, size_t data_size,
     size_t *proc_size)
 {
-	return usb_massstor_cmd(dev, tag, lun, cmd, cmd_size, USB_DIRECTION_OUT,
+	return usb_massstor_cmd(mfun, tag, lun, cmd, cmd_size, USB_DIRECTION_OUT,
 	    (void *) data, data_size, proc_size);
 }
 
 /** Perform bulk-only mass storage reset.
  *
- * @param dev Device to be reseted.
- * @return Error code.
+ * @param mfun		Mass storage function
+ * @return		Error code
  */
-int usb_massstor_reset(usb_device_t *dev)
+int usb_massstor_reset(usbmast_fun_t *mfun)
 {
-	return usb_control_request_set(&dev->ctrl_pipe,
+	return usb_control_request_set(&mfun->usb_dev->ctrl_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    0xFF, 0, dev->interface_no, NULL, 0);
+	    0xFF, 0, mfun->usb_dev->interface_no, NULL, 0);
 }
 
 /** Perform complete reset recovery of bulk-only mass storage.
@@ -220,16 +224,18 @@ int usb_massstor_reset(usb_device_t *dev)
  * Notice that no error is reported because if this fails, the error
  * would reappear on next transaction somehow.
  *
- * @param dev Device to be reseted.
+ * @param mfun		Mass storage function
  */
-void usb_massstor_reset_recovery(usb_device_t *dev)
+void usb_massstor_reset_recovery(usbmast_fun_t *mfun)
 {
 	/* We would ignore errors here because if this fails
 	 * we are doomed anyway and any following transaction would fail.
 	 */
-	usb_massstor_reset(dev);
-	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[BULK_IN_EP].pipe);
-	usb_pipe_clear_halt(&dev->ctrl_pipe, dev->pipes[BULK_OUT_EP].pipe);
+	usb_massstor_reset(mfun);
+	usb_pipe_clear_halt(&mfun->usb_dev->ctrl_pipe,
+	    mfun->usb_dev->pipes[BULK_IN_EP].pipe);
+	usb_pipe_clear_halt(&mfun->usb_dev->ctrl_pipe,
+	    mfun->usb_dev->pipes[BULK_OUT_EP].pipe);
 }
 
 /** Get max LUN of a mass storage device.
@@ -240,16 +246,16 @@ void usb_massstor_reset_recovery(usb_device_t *dev)
  * of the device. Device does not need to support this request.
  * You shall rather use usb_masstor_get_lun_count.
  *
- * @param dev Mass storage device.
- * @return Error code of maximum LUN (index, not count).
+ * @param mfun		Mass storage function
+ * @return		Error code of maximum LUN (index, not count)
  */
-int usb_massstor_get_max_lun(usb_device_t *dev)
+int usb_massstor_get_max_lun(usbmast_fun_t *mfun)
 {
 	uint8_t max_lun;
 	size_t data_recv_len;
-	int rc = usb_control_request_get(&dev->ctrl_pipe,
+	int rc = usb_control_request_get(&mfun->usb_dev->ctrl_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    0xFE, 0, dev->interface_no, &max_lun, 1, &data_recv_len);
+	    0xFE, 0, mfun->usb_dev->interface_no, &max_lun, 1, &data_recv_len);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -264,12 +270,12 @@ int usb_massstor_get_max_lun(usb_device_t *dev)
  * @warning This function hides any error during the request
  * (typically that shall not be a problem).
  *
- * @param dev Mass storage device.
- * @return Number of LUNs.
+ * @param mfun		Mass storage function
+ * @return		Number of LUNs
  */
-size_t usb_masstor_get_lun_count(usb_device_t *dev)
+size_t usb_masstor_get_lun_count(usbmast_fun_t *mfun)
 {
-	int max_lun = usb_massstor_get_max_lun(dev);
+	int max_lun = usb_massstor_get_max_lun(mfun);
 	if (max_lun < 0) {
 		max_lun = 1;
 	} else {
