@@ -57,7 +57,6 @@ bool usb_mast_verbose = false;
  * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared
  *			with answer)
- * @param lun		LUN
  * @param cmd		Command block
  * @param cmd_size	Command block size in bytes
  * @param ddir		Direction in which data will be transferred
@@ -67,9 +66,9 @@ bool usb_mast_verbose = false;
  *
  * @return		Error code
  */
-static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
-    const void *cmd, size_t cmd_size, usb_direction_t ddir, void *dbuf,
-    size_t dbuf_size, size_t *xferred_size)
+static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
+    size_t cmd_size, usb_direction_t ddir, void *dbuf, size_t dbuf_size,
+    size_t *xferred_size)
 {
 	int rc;
 	size_t act_size;
@@ -78,8 +77,8 @@ static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
 
 	/* Prepare CBW - command block wrapper */
 	usb_massstor_cbw_t cbw;
-	usb_massstor_cbw_prepare(&cbw, tag, dbuf_size, ddir, lun, cmd_size,
-	    cmd);
+	usb_massstor_cbw_prepare(&cbw, tag, dbuf_size, ddir, mfun->lun,
+	    cmd_size, cmd);
 
 	/* Send the CBW. */
 	rc = usb_pipe_write(bulk_out_pipe, &cbw, sizeof(cbw));
@@ -169,7 +168,6 @@ static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
  * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared with
  *			answer)
- * @param lun		LUN
  * @param cmd		CDB (Command Descriptor)
  * @param cmd_size	CDB length in bytes
  * @param dbuf		Data receive buffer
@@ -178,10 +176,10 @@ static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
  *
  * @return Error code
  */
-int usb_massstor_data_in(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
-    const void *cmd, size_t cmd_size, void *dbuf, size_t dbuf_size, size_t *proc_size)
+int usb_massstor_data_in(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
+    size_t cmd_size, void *dbuf, size_t dbuf_size, size_t *proc_size)
 {
-	return usb_massstor_cmd(mfun, tag, lun, cmd, cmd_size, USB_DIRECTION_IN,
+	return usb_massstor_cmd(mfun, tag, cmd, cmd_size, USB_DIRECTION_IN,
 	    dbuf, dbuf_size, proc_size);
 }
 
@@ -190,7 +188,6 @@ int usb_massstor_data_in(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
  * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared with
  *			answer)
- * @param lun		LUN
  * @param cmd		CDB (Command Descriptor)
  * @param cmd_size	CDB length in bytes
  * @param data		Command data
@@ -199,11 +196,10 @@ int usb_massstor_data_in(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
  *
  * @return Error code
  */
-int usb_massstor_data_out(usbmast_fun_t *mfun, uint32_t tag, uint8_t lun,
-    const void *cmd, size_t cmd_size, const void *data, size_t data_size,
-    size_t *proc_size)
+int usb_massstor_data_out(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
+    size_t cmd_size, const void *data, size_t data_size, size_t *proc_size)
 {
-	return usb_massstor_cmd(mfun, tag, lun, cmd, cmd_size, USB_DIRECTION_OUT,
+	return usb_massstor_cmd(mfun, tag, cmd, cmd_size, USB_DIRECTION_OUT,
 	    (void *) data, data_size, proc_size);
 }
 

@@ -101,6 +101,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	}
 
 	msfun->usb_dev = dev;
+	msfun->lun = 0;
 
 	fun = ddf_fun_create(dev->ddf_dev, fun_exposed, fun_name);
 	if (fun == NULL) {

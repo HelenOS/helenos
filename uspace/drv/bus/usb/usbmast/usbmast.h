@@ -46,6 +46,8 @@
 typedef struct {
 	/** DDF function */
 	ddf_fun_t *ddf_fun;
+	/** LUN */
+	unsigned lun;
 	/** Total number of blocks. */
 	uint64_t nblocks;
 	/** Block size in bytes. */

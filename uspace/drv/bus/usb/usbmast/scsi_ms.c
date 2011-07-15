@@ -77,7 +77,7 @@ int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 	cdb.op_code = SCSI_CMD_INQUIRY;
 	cdb.alloc_len = host2uint16_t_be(sizeof(inq_data));
 
-	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, (uint8_t *) &cdb,
 	    sizeof(cdb), &inq_data, sizeof(inq_data), &response_len);
 
 	if (rc != EOK) {
@@ -134,7 +134,7 @@ int usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
 	cdb.op_code = SCSI_CMD_REQUEST_SENSE;
 	cdb.alloc_len = min(size, SCSI_SENSE_DATA_MAX_SIZE);
 
-	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, (uint8_t *) &cdb,
 	    sizeof(cdb), buf, size, &data_len);
 
         if (rc != EOK) {
@@ -171,7 +171,7 @@ int usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
 
-	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, (uint8_t *) &cdb,
 	    sizeof(cdb), &data, sizeof(data), &data_len);
 
         if (rc != EOK) {
@@ -219,7 +219,7 @@ int usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
 	cdb.lba = host2uint32_t_be(ba);
 	cdb.xfer_len = host2uint32_t_be(nblocks);
 
-	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	rc = usb_massstor_data_in(mfun, 0xDEADBEEF, (uint8_t *) &cdb,
 	    sizeof(cdb), buf, nblocks * mfun->block_size, &data_len);
 
         if (rc != EOK) {
@@ -264,7 +264,7 @@ int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
 	cdb.lba = host2uint32_t_be(ba);
 	cdb.xfer_len = host2uint32_t_be(nblocks);
 
-	rc = usb_massstor_data_out(mfun, 0xDEADBEEF, 0, (uint8_t *) &cdb,
+	rc = usb_massstor_data_out(mfun, 0xDEADBEEF, (uint8_t *) &cdb,
 	    sizeof(cdb), data, nblocks * mfun->block_size, &sent_len);
 
         if (rc != EOK) {
