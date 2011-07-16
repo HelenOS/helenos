@@ -62,14 +62,14 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
 {
 	int r = mfs_alloc_bit(inst, zone, BMAP_ZONE);
 
-	*zone += inst->sbi->firstdatazone;
+	*zone += inst->sbi->firstdatazone - 1;
 	return r;
 }
 
 int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
 {
-	zone -= inst->sbi->firstdatazone;
+	zone -= inst->sbi->firstdatazone - 1;
 
 	return mfs_free_bit(inst, zone, BMAP_ZONE);
 }
