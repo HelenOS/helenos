@@ -62,6 +62,10 @@ extern int exfat_directory_find(exfat_directory_t *di,
 extern int exfat_directory_find_continue(exfat_directory_t *di, 
     exfat_dentry_clsf_t type, exfat_dentry_t **d);
 
+extern int exfat_directory_read_file(exfat_directory_t *di, char *name, exfat_file_dentry_t *df,
+    exfat_stream_dentry_t *ds);
+
+
 extern int exfat_directory_expand(exfat_directory_t *di);
 extern int exfat_directory_lookup_free(exfat_directory_t *di, size_t count);
 
