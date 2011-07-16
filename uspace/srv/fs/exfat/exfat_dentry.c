@@ -80,16 +80,26 @@ void exfat_set_checksum(const exfat_dentry_t *d, uint16_t *chksum)
 	/* TODO */
 }
 
-int exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t *count, uint16_t *dst)
+void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_t *dst, size_t *offset)
 {
-	/* TODO */
-	return EOK;
+	size_t i=0; 
+	while(i<EXFAT_NAME_PART_LEN && *offset < size) {
+		dst[*offset] = uint16_t_le2host(name->name[i]);
+		i++;
+		(*offset)++;
+	}
+	dst[*offset] = '\0';
 }
 
-int exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentry_t *name)
+void exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentry_t *name)
 {
 	/* TODO */
-	return EOK;
+	size_t idx=0;
+	while (src[*offset] && idx < EXFAT_NAME_PART_LEN) {
+		name->name[idx] = src[*offset];
+		(*offset)++;
+		idx++;
+	}
 }
 
 bool exfat_valid_char(wchar_t ch)

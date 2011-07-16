@@ -66,7 +66,7 @@ typedef struct {
 typedef struct {
 	uint8_t 	flags;
 	uint8_t 	_reserved[18];
-	uint32_t 	firtsc;
+	uint32_t 	firstc;
 	uint64_t 	size;
 } __attribute__ ((packed)) exfat_bitmap_dentry_t;
 
@@ -74,7 +74,7 @@ typedef struct {
 	uint8_t 	_reserved1[3];
 	uint32_t 	checksum;
 	uint8_t 	_reserved2[12];
-	uint32_t 	firtsc;
+	uint32_t 	firstc;
 	uint64_t 	size;
 } __attribute__ ((packed)) exfat_uctable_dentry_t;
 
@@ -153,8 +153,8 @@ extern exfat_dentry_clsf_t exfat_classify_dentry(const exfat_dentry_t *d);
 extern uint16_t exfat_name_hash(const uint16_t *name);
 extern void exfat_set_checksum(const exfat_dentry_t *d, uint16_t *chksum);
 
-extern int exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t *count, uint16_t *dst);
-extern int exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentry_t *name);
+extern void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_t *dst, size_t *offset);
+extern void exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentry_t *name);
 
 extern bool exfat_valid_char(wchar_t ch);
 extern bool exfat_valid_name(const char *name);
