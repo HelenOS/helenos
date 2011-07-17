@@ -351,6 +351,8 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 		ddf_msg(LVL_ERROR, "Failed adding match ID: %s",
 		    str_error(rc));
 	}
+
+	free(id);
 }
 
 static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,

@@ -81,23 +81,17 @@ static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
     size_t data_size)
 {
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
+	endpoint_t *ep = endpoint_get(
+	    address, endpoint, direction, type, speed, max_packet_size);
+	if (!ep)
 		return ENOMEM;
 
-	int ret = endpoint_init(ep, address, endpoint, direction, type, speed,
-	    max_packet_size);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(instance, ep, data_size);
+	const int ret =
+	    usb_endpoint_manager_register_ep(instance, ep, data_size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
-		return ret;
 	}
-	return EOK;
+	return ret;
 }
 #endif
 /**

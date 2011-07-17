@@ -713,6 +713,7 @@ int fseek(FILE *stream, off64_t offset, int whence)
 
 off64_t ftell(FILE *stream)
 {
+	_fflushbuf(stream);
 	return lseek(stream->fd, 0, SEEK_CUR);
 }
 

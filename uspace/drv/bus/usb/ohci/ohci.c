@@ -57,10 +57,8 @@ typedef struct ohci {
 static inline ohci_t * dev_to_ohci(ddf_dev_t *dev)
 {
 	assert(dev);
-	assert(dev->driver_data);
 	return dev->driver_data;
 }
-
 /** IRQ handling callback, identifies device
  *
  * @param[in] dev DDF instance of the device to use.
@@ -69,10 +67,15 @@ static inline ohci_t * dev_to_ohci(ddf_dev_t *dev)
  */
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
-	hc_t *hc = &dev_to_ohci(dev)->hc;
-	assert(hc);
+	assert(dev);
+
+	ohci_t *ohci = dev_to_ohci(dev);
+	if (!ohci) {
+		usb_log_warning("Interrupt on device that is not ready.\n");
+		return;
+	}
 	const uint16_t status = IPC_GET_ARG1(*call);
-	hc_interrupt(hc, status);
+	hc_interrupt(&ohci->hc, status);
 }
 /*----------------------------------------------------------------------------*/
 /** Get address of the device identified by handle.
@@ -165,6 +168,7 @@ if (ret != EOK) { \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
 	free(instance); \
+	device->driver_data = NULL; \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -172,13 +176,15 @@ if (ret != EOK) { \
 	instance->rh_fun = NULL;
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci_hc");
 	int ret = instance->hc_fun ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create OHCI HC function.\n");
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to create OHCI HC function: %s.\n", str_error(ret));
 	instance->hc_fun->ops = &hc_ops;
 	instance->hc_fun->driver_data = &instance->hc;
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
 	ret = instance->rh_fun ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create OHCI RH function.\n");
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to create OHCI RH function: %s.\n", str_error(ret));
 	instance->rh_fun->ops = &rh_ops;
 
 	uintptr_t reg_base = 0;
@@ -192,50 +198,55 @@ if (ret != EOK) { \
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
+	const size_t cmd_count = hc_irq_cmd_count();
+	irq_cmd_t irq_cmds[cmd_count];
+	ret =
+	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+
+	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+
+	/* Register handler to avoid interrupt lockup */
+	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to register interrupt handler: %s.\n", str_error(ret));
+
+	/* Try to enable interrupts */
 	bool interrupts = false;
-#ifdef CONFIG_USBHC_NO_INTERRUPTS
-	usb_log_warning("Interrupts disabled in OS config, "
-	    "falling back to polling.\n");
-#else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_warning("Failed to enable interrupts: %s.\n",
-		    str_error(ret));
-		usb_log_info("HW interrupts not available, "
-		    "falling back to polling.\n");
+		usb_log_warning("Failed to enable interrupts: %s."
+		    " Falling back to polling\n", str_error(ret));
+		/* We don't need that handler */
+		unregister_interrupt_handler(device, irq);
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
-#endif
 
 	ret = hc_init(&instance->hc, reg_base, reg_size, interrupts);
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed(%d) to init ohci_hcd.\n", ret);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
+
+	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
+	unregister_interrupt_handler(device, irq); \
 	hc_fini(&instance->hc); \
 	CHECK_RET_DEST_FREE_RETURN(ret, message); \
 } else (void)0
 
-	/* It does no harm if we register this on polling */
-	ret = register_interrupt_handler(device, irq, irq_handler,
-	    &instance->hc.interrupt_code);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register interrupt handler.\n", ret);
 
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to bind OHCI device function: %s.\n",
-	    ret, str_error(ret));
+	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
 
 	ret = ddf_fun_add_to_class(instance->hc_fun, USB_HC_DDF_CLASS_NAME);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
 
-	device->driver_data = instance;
-
-	hc_start_hw(&instance->hc);
 	hc_register_hub(&instance->hc, instance->rh_fun);
 	return EOK;
 

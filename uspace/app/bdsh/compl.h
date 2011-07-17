@@ -26,35 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Various things that are used in many places including a few
- * tidbits left over from autoconf prior to the HelenOS port */
+#ifndef COMPL_H
+#define COMPL_H
 
-/* Specific port work-arounds : */
-#ifndef PATH_MAX
-#define PATH_MAX 255
+#include <tinput.h>
+
+extern tinput_compl_ops_t compl_ops;
+
 #endif
-
-#ifndef EXIT_SUCCESS
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-#endif
-
-/* Used in many places */
-#define SMALL_BUFLEN 256
-#define LARGE_BUFLEN 1024
-
-/* How many words (arguments) are permitted, how big can a whole
- * sentence be? Similar to ARG_MAX */
-#define WORD_MAX 255
-#define INPUT_MAX 1024
-
-/* Leftovers from Autoconf */
-#define PACKAGE_MAINTAINER "Tim Post"
-#define PACKAGE_BUGREPORT "echo@echoreply.us"
-#define PACKAGE_NAME "bdsh"
-#define PACKAGE_STRING "The brain dead shell"
-#define PACKAGE_TARNAME "bdsh"
-#define PACKAGE_VERSION "0.0.1"
-
-
-
