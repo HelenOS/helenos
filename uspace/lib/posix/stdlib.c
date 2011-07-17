@@ -325,7 +325,9 @@ void *posix_realloc(void *ptr, size_t size)
  */
 void posix_free(void *ptr)
 {
-	free(ptr);
+	if (ptr) {
+		free(ptr);
+	}
 }
 
 /**
