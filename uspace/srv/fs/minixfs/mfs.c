@@ -126,6 +126,15 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_DESTROY:
 			mfs_destroy(callid, &call);
 			break;
+		case VFS_OUT_UNMOUNTED:
+			mfs_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			mfs_unmount(callid, &call);
+			break;
+		case VFS_OUT_SYNC:
+			mfs_sync(callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;

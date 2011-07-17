@@ -249,6 +249,21 @@ void mfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	libfs_mount(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
 }
 
+void mfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&mfs_libfs_ops, rid, request);
+}
+
+void mfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t devmap = (devmap_handle_t) IPC_GET_ARG1(*request);
+
+	(void) block_cache_fini(devmap);
+	block_fini(devmap);
+
+	async_answer_0(rid, EOK);
+}
+
 devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
@@ -825,12 +840,19 @@ mfs_destroy_node(fs_node_t *fn)
 
 	assert(!has_children);
 
+	if (mnode->ino_i->i_nlinks > 0) {
+		mfsdebug("nlinks = %d", mnode->ino_i->i_nlinks);
+		r = EOK;
+		goto out;
+	}
+
 	/*Free the entire inode content*/
 	r = inode_shrink(mnode, mnode->ino_i->i_size);
 	on_error(r, return r);
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
 	on_error(r, return r);
 
+out:
 	free(mnode->ino_i);
 	free(mnode);
 	return r;
@@ -932,6 +954,30 @@ void
 mfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_open_node(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
+}
+
+void
+mfs_sync(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t devmap = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+
+	fs_node_t *fn;
+	int rc = mfs_node_get(&fn, devmap, index);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	if (!fn) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	struct mfs_node *mnode = fn->data;
+	mnode->ino_i->dirty = true;
+
+	rc = mfs_node_put(fn);
+	async_answer_0(rid, rc);
 }
 
 /**
