@@ -475,6 +475,7 @@ static int init_superblock(struct mfs_sb_info *sb)
 	}
 
 	/*Superblock is now ready to be written on disk*/
+	printf(NAME ": %d block size\n", sb->block_size);
 	printf(NAME ": %d inodes\n", (uint32_t) sb->n_inodes);
 	printf(NAME ": %d zones\n", (uint32_t) sb->n_zones);
 	printf(NAME ": inode table blocks = %ld\n", sb->itable_size);
