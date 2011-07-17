@@ -106,7 +106,6 @@ static struct option const long_options[] = {
 	{ "inodes", required_argument, 0, 'i' },
 	{ NULL, no_argument, 0, '1' },
 	{ NULL, no_argument, 0, '2' },
-	{ NULL, no_argument, 0, '3' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -631,7 +630,6 @@ static void help_cmd_mkminix(help_level_t level)
 	printf("Usage: [options] device\n"
 		"-1         Make a Minix version 1 filesystem\n"
 		"-2         Make a Minix version 2 filesystem\n"
-		"-3         Make a Minix version 3 filesystem\n"
 		"-b ##      Specify the block size in bytes (V3 only),\n"
 		"           valid block size values are 1024, 2048 and 4096 bytes per block\n"
 		"-i ##      Specify the number of inodes for the filesystem\n"
