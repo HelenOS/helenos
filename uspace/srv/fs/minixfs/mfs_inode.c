@@ -306,7 +306,10 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 	const size_t bs = sbi->block_size;
 	int r;
 
-	assert(size_shrink > 0);
+	if (size_shrink == 0) {
+		/*File is empty*/
+		return EOK;
+	}
 
 	const size_t old_size = ino_i->i_size;
 	const size_t new_size = ino_i->i_size - size_shrink;
