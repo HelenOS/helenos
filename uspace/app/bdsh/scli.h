@@ -31,6 +31,7 @@
 
 #include "config.h"
 #include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
 	const char *name;

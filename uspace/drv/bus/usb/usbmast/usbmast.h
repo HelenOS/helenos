@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,31 +33,38 @@
  * USB mass storage commands.
  */
 
-#ifndef USB_USBMAST_CMDS_H_
-#define USB_USBMAST_CMDS_H_
+#ifndef USBMAST_H_
+#define USBMAST_H_
 
 #include <sys/types.h>
 #include <usb/usb.h>
 
+/** Mass storage device. */
 typedef struct {
-	uint32_t dCBWSignature;
-	uint32_t dCBWTag;
-	uint32_t dCBWDataTransferLength;
-	uint8_t bmCBWFlags;
-	uint8_t bCBWLUN;
-	uint8_t bCBWBLength;
-	uint8_t CBWCB[16];
-} __attribute__((packed)) usb_massstor_cbw_t;
+	/** DDF device */
+	ddf_dev_t *ddf_dev;
+	/** USB device */
+	usb_device_t *usb_dev;
+	/** Number of LUNs */
+	unsigned luns;
+} usbmast_dev_t;
 
+/** Mass storage function.
+ *
+ * Serves as soft state for function/LUN.
+ */
 typedef struct {
-	uint32_t dCSWSignature;
-	uint32_t dCSWTag;
-	uint32_t dCSWDataResidue;
-	uint8_t dCSWStatus;
-} __attribute__((packed)) usb_massstor_csw_t;
-
-extern void usb_massstor_cbw_prepare(usb_massstor_cbw_t *, uint32_t, uint32_t,
-    usb_direction_t, uint8_t, uint8_t, const uint8_t *);
+	/** Mass storage device the function belongs to */
+	usbmast_dev_t *mdev;
+	/** DDF function */
+	ddf_fun_t *ddf_fun;
+	/** LUN */
+	unsigned lun;
+	/** Total number of blocks */
+	uint64_t nblocks;
+	/** Block size in bytes */
+	size_t block_size;
+} usbmast_fun_t;
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Various things that are used in many places including a few
- * tidbits left over from autoconf prior to the HelenOS port */
+/** @addtogroup drvusbmast
+ * @{
+ */
+/** @file
+ * USB mass storage bulk-only transport.
+ */
 
-/* Specific port work-arounds : */
-#ifndef PATH_MAX
-#define PATH_MAX 255
+#ifndef BO_TRANS_H_
+#define BO_TRANS_H_
+
+#include <scsi/spc.h>
+#include <sys/types.h>
+#include <usb/usb.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
+#include "usbmast.h"
+
+#define BULK_IN_EP 0
+#define BULK_OUT_EP 1
+
+extern int usb_massstor_data_in(usbmast_fun_t *, uint32_t, const void *,
+    size_t, void *, size_t, size_t *);
+extern int usb_massstor_data_out(usbmast_fun_t *, uint32_t, const void *,
+    size_t, const void *, size_t, size_t *);
+extern int usb_massstor_reset(usbmast_dev_t *);
+extern void usb_massstor_reset_recovery(usbmast_dev_t *);
+extern int usb_massstor_get_max_lun(usbmast_dev_t *);
+extern size_t usb_masstor_get_lun_count(usbmast_dev_t *);
+
 #endif
 
-#ifndef EXIT_SUCCESS
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-#endif
-
-/* Used in many places */
-#define SMALL_BUFLEN 256
-#define LARGE_BUFLEN 1024
-
-/* How many words (arguments) are permitted, how big can a whole
- * sentence be? Similar to ARG_MAX */
-#define WORD_MAX 255
-#define INPUT_MAX 1024
-
-/* Leftovers from Autoconf */
-#define PACKAGE_MAINTAINER "Tim Post"
-#define PACKAGE_BUGREPORT "echo@echoreply.us"
-#define PACKAGE_NAME "bdsh"
-#define PACKAGE_STRING "The brain dead shell"
-#define PACKAGE_TARNAME "bdsh"
-#define PACKAGE_VERSION "0.0.1"
-
-
-
+/**
+ * @}
+ */

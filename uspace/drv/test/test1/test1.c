@@ -73,7 +73,7 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 		goto leave;
 	}
 
-	rc = ddf_fun_add_match_id(fun, str_dup(match_id), match_score);
+	rc = ddf_fun_add_match_id(fun, match_id, match_score);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    name);

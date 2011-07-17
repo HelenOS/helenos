@@ -409,7 +409,7 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&ski_port, &stty_ctl);
 #endif
 #if defined(MACHINE_msim)
-	kbd_add_dev(&msim_port, &pc_ctl);
+	kbd_add_dev(&msim_port, &stty_ctl);
 #endif
 #if (defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)) && defined(CONFIG_FB)
 	kbd_add_dev(&gxemul_port, &gxe_fb_ctl);
