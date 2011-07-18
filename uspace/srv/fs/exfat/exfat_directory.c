@@ -179,7 +179,8 @@ int exfat_directory_find_continue(exfat_directory_t *di, exfat_dentry_clsf_t typ
 }
 
 
-int exfat_directory_read_file(exfat_directory_t *di, char *name, exfat_file_dentry_t *df, exfat_stream_dentry_t *ds)
+int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size, 
+    exfat_file_dentry_t *df, exfat_stream_dentry_t *ds)
 {
 	uint16_t wname[EXFAT_FILENAME_LEN+1];
 	exfat_dentry_t *d = NULL;
@@ -200,10 +201,10 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, exfat_file_dent
 	if (exfat_classify_dentry(d) != EXFAT_DENTRY_STREAM)
 		return ENOENT;
 	*ds  = d->stream;
-/*	
-	if (ds->name_size > EXFAT_FILENAME_LEN)
+	
+	if (ds->name_size > size)
 		return EOVERFLOW;
-*/
+
 	for (i=0; i<df->count-1; i++) {
 		rc = exfat_directory_next(di);
 		if (rc != EOK)
@@ -215,7 +216,7 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, exfat_file_dent
 			return ENOENT;
 		exfat_dentry_get_name(&d->name, ds->name_size, wname, &offset);
 	}
-	rc = utf16_to_str(name, EXFAT_FILENAME_LEN, wname);
+	rc = utf16_to_str(name, size, wname);
 	if (rc != EOK)
 		return rc;
 
