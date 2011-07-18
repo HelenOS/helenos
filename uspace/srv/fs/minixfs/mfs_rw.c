@@ -310,9 +310,8 @@ reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 
 	memset(b->data, 0, b->size);
 	b->dirty = true;
-	block_put(b);
 
-	return EOK;
+	return block_put(b);
 }
 
 static int
@@ -359,9 +358,7 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 			(*ind_zone)[i] = conv32(sbi->native, src_ptr[i]);
 	}
 
-	block_put(b);
-
-	return EOK;
+	return block_put(b);
 }
 
 static int
@@ -388,8 +385,8 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 
 	}
 	b->dirty = true;
-	block_put(b);
-	return EOK;
+
+	return block_put(b);
 }
 
 
