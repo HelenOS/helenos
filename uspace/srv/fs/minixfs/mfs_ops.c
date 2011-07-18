@@ -418,6 +418,7 @@ static int mfs_node_put(fs_node_t *fsnode)
 	put_inode(mnode);
 	free(mnode->ino_i);
 	free(mnode);
+	free(fsnode);
 
 	return EOK;
 }
