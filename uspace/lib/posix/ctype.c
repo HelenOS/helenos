@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Character classification.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -42,8 +42,8 @@
 /**
  * Checks whether character is a hexadecimal digit.
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 int posix_isxdigit(int c)
 {
@@ -55,8 +55,8 @@ int posix_isxdigit(int c)
 /**
  * Checks whether character is a word separator.
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 int posix_isblank(int c)
 {
@@ -66,8 +66,8 @@ int posix_isblank(int c)
 /**
  * Checks whether character is a control character.
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 int posix_iscntrl(int c)
 {
@@ -77,8 +77,8 @@ int posix_iscntrl(int c)
 /**
  * Checks whether character is any printing character except space.
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 int posix_isgraph(int c)
 {
@@ -88,8 +88,8 @@ int posix_isgraph(int c)
 /**
  * Checks whether character is a printing character.
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 int posix_isprint(int c)
 {
@@ -99,8 +99,8 @@ int posix_isprint(int c)
 /**
  * Checks whether character is a punctuation.
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 int posix_ispunct(int c)
 {
@@ -110,8 +110,8 @@ int posix_ispunct(int c)
 /**
  * Checks whether character is ASCII. (obsolete)
  *
- * @param c
- * @return
+ * @param c Character to inspect.
+ * @return Non-zero if character match the definition, zero otherwise.
  */
 extern int posix_isascii(int c)
 {
@@ -121,8 +121,8 @@ extern int posix_isascii(int c)
 /**
  * Converts argument to a 7-bit ASCII character. (obsolete)
  *
- * @param c
- * @return
+ * @param c Character to convert.
+ * @return Coverted character.
  */
 extern int posix_toascii(int c)
 {

@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Character classification.
  */
 
 #ifndef POSIX_CTYPE_H_
