@@ -104,7 +104,7 @@ int posix_isprint(int c)
  */
 int posix_ispunct(int c)
 {
-	return !isspace(c) && !isalnum(c);
+	return !isspace(c) && !isalnum(c) && posix_isprint(c);
 }
 
 /**
