@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file String manipulation.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -47,11 +47,11 @@
 #include "libc/str_error.h"
 
 /**
- * Returns true if s2 is a prefix of s1.
+ * Decides whether s2 is a prefix of s1.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 String in which to look for a prefix.
+ * @param s2 Prefix string to look for.
+ * @return True if s2 is a prefix of s1, false otherwise.
  */
 static bool begins_with(const char *s1, const char *s2)
 {
@@ -68,9 +68,10 @@ static bool begins_with(const char *s1, const char *s2)
  * The same as strpbrk, except it returns pointer to the nul terminator
  * if no occurence is found.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 String in which to look for the bytes.
+ * @param s2 String of bytes to look for.
+ * @return Pointer to the found byte on success, pointer to the
+ *     string terminator otherwise.
  */
 static char *strpbrk_null(const char *s1, const char *s2)
 {
@@ -82,35 +83,38 @@ static char *strpbrk_null(const char *s1, const char *s2)
 }
 
 /**
+ * Copy a string.
  *
- * @param dest
- * @param src
- * @return
+ * @param dest Destination pre-allocated buffer.
+ * @param src Source string to be copied.
+ * @return Pointer to the destination buffer.
  */
-char *posix_strcpy(char *dest, const char *src)
+char *posix_strcpy(char *restrict dest, const char *restrict src)
 {
 	posix_stpcpy(dest, src);
 	return dest;
 }
 
 /**
+ * Copy fixed length string.
  *
- * @param dest
- * @param src
- * @param n
- * @return
+ * @param dest Destination pre-allocated buffer.
+ * @param src Source string to be copied.
+ * @param n Number of bytes to be stored into destination buffer.
+ * @return Pointer to the destination buffer.
  */
-char *posix_strncpy(char *dest, const char *src, size_t n)
+char *posix_strncpy(char *restrict dest, const char *restrict src, size_t n)
 {
 	posix_stpncpy(dest, src, n);
 	return dest;
 }
 
 /**
+ * Copy a string.
  *
- * @param dest
- * @param src
- * @return Pointer to the nul character in the dest string
+ * @param dest Destination pre-allocated buffer.
+ * @param src Source string to be copied.
+ * @return Pointer to the nul character in the destination string.
  */
 char *posix_stpcpy(char *restrict dest, const char *restrict src)
 {
@@ -131,11 +135,12 @@ char *posix_stpcpy(char *restrict dest, const char *restrict src)
 }
 
 /**
+ * Copy fixed length string.
  *
- * @param dest
- * @param src
- * @param n
- * @return Pointer to the first written nul character or &dest[n]
+ * @param dest Destination pre-allocated buffer.
+ * @param src Source string to be copied.
+ * @param n Number of bytes to be stored into destination buffer.
+ * @return Pointer to the first written nul character or &dest[n].
  */
 char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n)
 {
@@ -161,12 +166,13 @@ char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n)
 }
 
 /**
+ * Concatenate two strings.
  *
- * @param dest
- * @param src
- * @return
+ * @param dest String to which src shall be appended.
+ * @param src String to be appended after dest.
+ * @return Pointer to destination buffer.
  */
-char *posix_strcat(char *dest, const char *src)
+char *posix_strcat(char *restrict dest, const char *restrict src)
 {
 	assert(dest != NULL);
 	assert(src != NULL);
@@ -176,13 +182,14 @@ char *posix_strcat(char *dest, const char *src)
 }
 
 /**
+ * Concatenate a string with part of another.
  *
- * @param dest
- * @param src
- * @param n
- * @return
+ * @param dest String to which part of src shall be appended.
+ * @param src String whose part shall be appended after dest.
+ * @param n Number of bytes to append after dest.
+ * @return Pointer to destination buffer.
  */
-char *posix_strncat(char *dest, const char *src, size_t n)
+char *posix_strncat(char *restrict dest, const char *restrict src, size_t n)
 {
 	assert(dest != NULL);
 	assert(src != NULL);
@@ -194,14 +201,15 @@ char *posix_strncat(char *dest, const char *src, size_t n)
 }
 
 /**
+ * Copy limited number of bytes in memory.
  *
- * @param dest
- * @param src
- * @param c
- * @param n
+ * @param dest Destination buffer.
+ * @param src Source buffer.
+ * @param c Character after which the copying shall stop.
+ * @param n Number of bytes that shall be copied if not stopped earlier by c.
  * @return Pointer to the first byte after c in dest if found, NULL otherwise.
  */
-void *posix_memccpy(void *dest, const void *src, int c, size_t n)
+void *posix_memccpy(void *restrict dest, const void *restrict src, int c, size_t n)
 {
 	assert(dest != NULL);
 	assert(src != NULL);
@@ -222,9 +230,10 @@ void *posix_memccpy(void *dest, const void *src, int c, size_t n)
 }
 
 /**
+ * Duplicate a string.
  *
- * @param s
- * @return Newly allocated string
+ * @param s String to be duplicated.
+ * @return Newly allocated copy of the string.
  */
 char *posix_strdup(const char *s)
 {
@@ -232,10 +241,11 @@ char *posix_strdup(const char *s)
 }
 
 /**
+ * Duplicate a specific number of bytes from a string.
  *
- * @param s
- * @param n
- * @return Newly allocated string of length at most n
+ * @param s String to be duplicated.
+ * @param n Maximum length of the resulting string..
+ * @return Newly allocated string copy of length at most n.
  */
 char *posix_strndup(const char *s, size_t n)
 {
@@ -254,12 +264,13 @@ char *posix_strndup(const char *s, size_t n)
 }
 
 /**
+ * Compare bytes in memory.
  *
- * @param mem1
- * @param mem2
- * @param n
+ * @param mem1 First area of memory to be compared.
+ * @param mem2 Second area of memory to be compared.
+ * @param n Maximum number of bytes to be compared.
  * @return Difference of the first pair of inequal bytes,
- *     or 0 if areas have the same content
+ *     or 0 if areas have the same content.
  */
 int posix_memcmp(const void *mem1, const void *mem2, size_t n)
 {
@@ -279,10 +290,12 @@ int posix_memcmp(const void *mem1, const void *mem2, size_t n)
 }
 
 /**
+ * Compare two strings.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 First string to be compared.
+ * @param s2 Second string to be compared.
+ * @return Difference of the first pair of inequal characters,
+ *     or 0 if strings have the same content.
  */
 int posix_strcmp(const char *s1, const char *s2)
 {
@@ -293,11 +306,13 @@ int posix_strcmp(const char *s1, const char *s2)
 }
 
 /**
+ * Compare part of two strings.
  *
- * @param s1
- * @param s2
- * @param n
- * @return
+ * @param s1 First string to be compared.
+ * @param s2 Second string to be compared.
+ * @param n Maximum number of characters to be compared.
+ * @return Difference of the first pair of inequal characters,
+ *     or 0 if strings have the same content.
  */
 int posix_strncmp(const char *s1, const char *s2, size_t n)
 {
@@ -317,11 +332,13 @@ int posix_strncmp(const char *s1, const char *s2, size_t n)
 }
 
 /**
+ * Find byte in memory.
  *
- * @param mem
- * @param c
- * @param n
- * @return
+ * @param mem Memory area in which to look for the byte.
+ * @param c Byte to look for.
+ * @param n Maximum number of bytes to be inspected.
+ * @return Pointer to the specified byte on success,
+ *     NULL pointer otherwise.
  */
 void *posix_memchr(const void *mem, int c, size_t n)
 {
@@ -338,10 +355,12 @@ void *posix_memchr(const void *mem, int c, size_t n)
 }
 
 /**
+ * Scan string for a first occurence of a character.
  *
- * @param s
- * @param c
- * @return
+ * @param s String in which to look for the character.
+ * @param c Character to look for.
+ * @return Pointer to the specified character on success,
+ *     NULL pointer otherwise.
  */
 char *posix_strchr(const char *s, int c)
 {
@@ -352,10 +371,12 @@ char *posix_strchr(const char *s, int c)
 }
 
 /**
+ * Scan string for a last occurence of a character.
  *
- * @param s
- * @param c
- * @return
+ * @param s String in which to look for the character.
+ * @param c Character to look for.
+ * @return Pointer to the specified character on success,
+ *     NULL pointer otherwise.
  */
 char *posix_strrchr(const char *s, int c)
 {
@@ -375,6 +396,14 @@ char *posix_strrchr(const char *s, int c)
 	return (char *) ptr;
 }
 
+/**
+ * Scan string for a first occurence of a character.
+ *
+ * @param s String in which to look for the character.
+ * @param c Character to look for.
+ * @return Pointer to the specified character on success, pointer to the
+ *     string terminator otherwise.
+ */
 char *gnu_strchrnul(const char *s, int c)
 {
 	assert(s != NULL);
@@ -387,10 +416,12 @@ char *gnu_strchrnul(const char *s, int c)
 }
 
 /**
+ * Scan a string for a first occurence of one of provided bytes.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 String in which to look for the bytes.
+ * @param s2 String of bytes to look for.
+ * @return Pointer to the found byte on success,
+ *     NULL pointer otherwise.
  */
 char *posix_strpbrk(const char *s1, const char *s2)
 {
@@ -402,10 +433,11 @@ char *posix_strpbrk(const char *s1, const char *s2)
 }
 
 /**
+ * Get the length of a complementary substring.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 String that shall be searched for complementary prefix.
+ * @param s2 String of bytes that shall not occur in the prefix.
+ * @return Length of the prefix.
  */
 size_t posix_strcspn(const char *s1, const char *s2)
 {
@@ -417,10 +449,11 @@ size_t posix_strcspn(const char *s1, const char *s2)
 }
 
 /**
+ * Get length of a substring.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 String that shall be searched for prefix.
+ * @param s2 String of bytes that the prefix must consist of.
+ * @return Length of the prefix.
  */
 size_t posix_strspn(const char *s1, const char *s2)
 {
@@ -437,10 +470,12 @@ size_t posix_strspn(const char *s1, const char *s2)
 }
 
 /**
+ * Find a substring.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 String in which to look for a substring.
+ * @param s2 Substring to look for.
+ * @return Pointer to the first character of the substring in s1, or NULL if
+ *     not found.
  */
 char *posix_strstr(const char *s1, const char *s2)
 {
@@ -466,11 +501,14 @@ char *posix_strstr(const char *s1, const char *s2)
 }
 
 /**
+ * String comparison using collating information.
+ *
  * Currently ignores locale and just calls strcmp.
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 First string to be compared.
+ * @param s2 Second string to be compared.
+ * @return Difference of the first pair of inequal characters,
+ *     or 0 if strings have the same content.
  */
 int posix_strcoll(const char *s1, const char *s2)
 {
@@ -481,14 +519,18 @@ int posix_strcoll(const char *s1, const char *s2)
 }
 
 /**
- * strcoll is equal to strcmp here, so this just makes a copy.
+ * Transform a string in such a way that the resulting string yields the same
+ * results when passed to the strcmp as if the original string is passed to
+ * the strcoll.
  *
- * @param s1
- * @param s2
- * @param n
- * @return
+ * Since strcoll is equal to strcmp here, this just makes a copy.
+ *
+ * @param s1 Transformed string.
+ * @param s2 Original string.
+ * @param n Maximum length of the transformed string.
+ * @return Length of the transformed string.
  */
-size_t posix_strxfrm(char *s1, const char *s2, size_t n)
+size_t posix_strxfrm(char *restrict s1, const char *restrict s2, size_t n)
 {
 	assert(s1 != NULL || n == 0);
 	assert(s2 != NULL);
@@ -503,9 +545,10 @@ size_t posix_strxfrm(char *s1, const char *s2, size_t n)
 }
 
 /**
+ * Get error message string.
  *
- * @param errnum
- * @return
+ * @param errnum Error code for which to obtain human readable string.
+ * @return Error message.
  */
 char *posix_strerror(int errnum)
 {
@@ -517,11 +560,12 @@ char *posix_strerror(int errnum)
 }
 
 /**
+ * Get error message string.
  *
- * @param errnum Error code
- * @param buf Buffer to store a human readable string to
- * @param bufsz Size of buffer pointed to by buf
- * @return
+ * @param errnum Error code for which to obtain human readable string.
+ * @param buf Buffer to store a human readable string to.
+ * @param bufsz Size of buffer pointed to by buf.
+ * @return Zero on success, errno otherwise.
  */
 int posix_strerror_r(int errnum, char *buf, size_t bufsz)
 {
@@ -540,9 +584,10 @@ int posix_strerror_r(int errnum, char *buf, size_t bufsz)
 }
 
 /**
+ * Get length of the string.
  *
- * @param s
- * @return
+ * @param s String which length shall be determined.
+ * @return Length of the string.
  */
 size_t posix_strlen(const char *s)
 {
@@ -552,10 +597,11 @@ size_t posix_strlen(const char *s)
 }
 
 /**
+ * Get limited length of the string.
  *
- * @param s
- * @param n
- * @return
+ * @param s String which length shall be determined.
+ * @param n Maximum number of bytes that can be examined to determine length.
+ * @return The lower of either string length or n limit.
  */
 size_t posix_strnlen(const char *s, size_t n)
 {
@@ -572,9 +618,10 @@ size_t posix_strnlen(const char *s, size_t n)
 }
 
 /**
+ * Get description of a signal.
  *
- * @param signum
- * @return
+ * @param signum Signal number.
+ * @return Human readable signal description.
  */
 char *posix_strsignal(int signum)
 {
