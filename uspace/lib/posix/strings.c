@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Additional string manipulation.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -44,9 +44,10 @@
 #include "libc/mem.h"
 
 /**
+ * Find first set bit (beginning with the least significant bit).
  *
- * @param i
- * @return
+ * @param i Integer in which to look for the first set bit.
+ * @return Index of first set bit. Bits are numbered starting at one.
  */
 int posix_ffs(int i)
 {
@@ -81,10 +82,12 @@ int posix_ffs(int i)
 }
 
 /**
+ * Compare two strings (case-insensitive).
  *
- * @param s1
- * @param s2
- * @return
+ * @param s1 First string to be compared.
+ * @param s2 Second string to be compared.
+ * @return Difference of the first pair of inequal characters,
+ *     or 0 if strings have the same content.
  */
 int posix_strcasecmp(const char *s1, const char *s2)
 {
@@ -92,11 +95,13 @@ int posix_strcasecmp(const char *s1, const char *s2)
 }
 
 /**
+ * Compare part of two strings (case-insensitive).
  *
- * @param s1
- * @param s2
- * @param n
- * @return
+ * @param s1 First string to be compared.
+ * @param s2 Second string to be compared.
+ * @param n Maximum number of characters to be compared.
+ * @return Difference of the first pair of inequal characters,
+ *     or 0 if strings have the same content.
  */
 int posix_strncasecmp(const char *s1, const char *s2, size_t n)
 {
@@ -115,11 +120,13 @@ int posix_strncasecmp(const char *s1, const char *s2, size_t n)
 }
 
 /**
+ * Compare two memory areas.
  *
- * @param mem1
- * @param mem2
- * @param n
- * @return
+ * @param mem1 Pointer to the first area to compare.
+ * @param mem2 Pointer to the second area to compare.
+ * @param n Common size of both areas.
+ * @return If n is 0, return zero. If the areas match, return
+ *     zero. Otherwise return non-zero.
  */
 int posix_bcmp(const void *mem1, const void *mem2, size_t n)
 {
@@ -127,21 +134,23 @@ int posix_bcmp(const void *mem1, const void *mem2, size_t n)
 }
 
 /**
+ * Copy bytes in memory with overlapping areas.
  *
- * @param dest
- * @param src
- * @param n
+ * @param src Source area.
+ * @param dest Destination area.
+ * @param n Number of bytes to copy.
  */
-void posix_bcopy(const void *dest, void *src, size_t n)
+void posix_bcopy(const void *src, void *dest, size_t n)
 {
 	/* Note that memmove has different order of arguments. */
-	memmove(src, dest, n);
+	memmove(dest, src, n);
 }
 
 /**
+ * Reset bytes in memory area to zero.
  *
- * @param mem
- * @param n
+ * @param mem Memory area to be zeroed.
+ * @param n Number of bytes to reset.
  */
 void posix_bzero(void *mem, size_t n)
 {
@@ -149,10 +158,12 @@ void posix_bzero(void *mem, size_t n)
 }
 
 /**
+ * Scan string for a first occurence of a character.
  *
- * @param s
- * @param c
- * @return
+ * @param s String in which to look for the character.
+ * @param c Character to look for.
+ * @return Pointer to the specified character on success,
+ *     NULL pointer otherwise.
  */
 char *posix_index(const char *s, int c)
 {
@@ -160,10 +171,12 @@ char *posix_index(const char *s, int c)
 }
 
 /**
- * 
- * @param s
- * @param c
- * @return
+ * Scan string for a last occurence of a character.
+ *
+ * @param s String in which to look for the character.
+ * @param c Character to look for.
+ * @return Pointer to the specified character on success,
+ *     NULL pointer otherwise.
  */
 char *posix_rindex(const char *s, int c)
 {
