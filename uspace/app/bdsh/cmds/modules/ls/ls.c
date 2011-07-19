@@ -168,13 +168,13 @@ static void ls_scan_dir(const char *d, DIR *dirp, int sort)
 		}
 		
 		/* fill the name field */
-		tosort[nbdirs].name = (char *) malloc(str_length(dp->d_name) + 1);
+		tosort[nbdirs].name = (char *) malloc(str_size(dp->d_name) + 1);
 		if (!tosort[nbdirs].name) {
 			cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 			goto out;
 		}
-		
-		str_cpy(tosort[nbdirs].name, str_length(dp->d_name) + 1, dp->d_name);
+
+		str_cpy(tosort[nbdirs].name, str_size(dp->d_name) + 1, dp->d_name);
 		len = snprintf(buff, PATH_MAX - 1, "%s/%s", d, tosort[nbdirs].name);
 		buff[len] = '\0';
 
