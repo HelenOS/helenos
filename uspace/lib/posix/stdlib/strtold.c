@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Backend for floating point conversions.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -54,7 +54,7 @@
 	#define abs(x) ((x < 0) ? -x : x)
 #endif
 
-// TODO: clean up, documentation
+// TODO: clean up
 
 // FIXME: ensure it builds and works on all platforms
 
@@ -115,6 +115,13 @@ long double pow2[] = {
 	0x1P8192l
 };
 
+/**
+ * Decides whether the argument is still in range representable by
+ * long double or not.
+ *
+ * @param num Floating point number to be checked.
+ * @return True if the argument is out of range, false otherwise.
+ */
 static inline bool out_of_range(long double num)
 {
 	return num == 0.0l || num == HUGE_VALL;
@@ -126,7 +133,7 @@ static inline bool out_of_range(long double num)
  *
  * @param base Number to be multiplied.
  * @param exponent Base 5 exponent.
- * @return base multiplied by 5**exponent
+ * @return base multiplied by 5**exponent.
  */
 static long double mul_pow5(long double base, int exponent)
 {
@@ -172,7 +179,7 @@ static long double mul_pow5(long double base, int exponent)
  *
  * @param base Number to be multiplied.
  * @param exponent Base 2 exponent.
- * @return base multiplied by 2**exponent
+ * @return base multiplied by 2**exponent.
  */
 static long double mul_pow2(long double base, int exponent)
 {
@@ -211,7 +218,16 @@ static long double mul_pow2(long double base, int exponent)
 	return base;
 }
 
-
+/**
+ * Convert decimal string representation of the floating point number.
+ * Function expects the string pointer to be already pointed at the first
+ * digit (i.e. leading optional sign was already consumed by the caller).
+ * 
+ * @param sptr Pointer to the storage of the string pointer. Upon successful
+ *     conversion, the string pointer is updated to point to the first
+ *     unrecognized character.
+ * @return An approximate representation of the input floating-point number.
+ */
 static long double parse_decimal(const char **sptr)
 {
 	// TODO: Use strtol(), at least for exponent.
@@ -314,6 +330,12 @@ static long double parse_decimal(const char **sptr)
 	return result;
 }
 
+/**
+ * Derive a hexadecimal digit from its character representation.
+ * 
+ * @param ch Character representation of the hexadecimal digit.
+ * @return Digit value represented by an integer.
+ */
 static inline int hex_value(char ch)
 {
 	if (ch <= '9') {
@@ -324,6 +346,8 @@ static inline int hex_value(char ch)
 }
 
 /**
+ * Get the count of leading zero bits up to the maximum of 3 zero bits.
+ *
  * @param val Integer value.
  * @return How many leading zero bits there are. (Maximum is 3)
  */
@@ -338,6 +362,17 @@ static inline int leading_zeros(uint64_t val)
 	return 0;
 }
 
+/**
+ * Convert hexadecimal string representation of the floating point number.
+ * Function expects the string pointer to be already pointed at the first
+ * digit (i.e. leading optional sign and 0x prefix were already consumed
+ * by the caller).
+ *
+ * @param sptr Pointer to the storage of the string pointer. Upon successful
+ *     conversion, the string pointer is updated to point to the first
+ *     unrecognized character.
+ * @return Representation of the input floating-point number.
+ */
 static long double parse_hexadecimal(const char **sptr)
 {
 	// TODO: Use strtol(), at least for exponent.
@@ -566,4 +601,3 @@ long double posix_strtold(const char *restrict nptr, char **restrict endptr)
 
 /** @}
  */
-

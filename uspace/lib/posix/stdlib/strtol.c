@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Backend for integer conversions.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -41,8 +41,13 @@
 #include "../ctype.h"
 #include "../errno.h"
 
-// TODO: documentation
-
+/**
+ * Decides whether a digit belongs to a particular base.
+ *
+ * @param c Character representation of the digit.
+ * @param base Base against which the digit shall be tested.
+ * @return True if the digit belongs to the base, false otherwise.
+ */
 static inline bool is_digit_in_base(int c, int base)
 {
 	if (base <= 10) {
@@ -53,6 +58,13 @@ static inline bool is_digit_in_base(int c, int base)
 	}
 }
 
+/**
+ * Derive a digit from its character representation.
+ *
+ * @param c Character representation of the digit.
+ * @param base Base into which the digit belongs to.
+ * @return Digit value represented by an integer.
+ */
 static inline int get_digit_in_base(int c, int base)
 {
 	if (c <= '9') {
@@ -62,6 +74,21 @@ static inline int get_digit_in_base(int c, int base)
 	}
 }
 
+/**
+ * Backend for all integer conversion functions. Can be configured by arguments
+ * to convert both signed and unsigned integers of various sizes.
+ *
+ * @param nptr Input string.
+ * @param endptr If non-NULL, *endptr is set to the position of the first
+ *     unrecognized character.
+ * @param base Expected base of the string representation.
+ * @param min_value Lower bound for the resulting conversion.
+ * @param max_value Upper bound for the resulting conversion.
+ * @param out_negative Either NULL for unsigned conversion or a pointer to the
+ *     bool variable into which shall be placed the negativity of the resulting
+ *     converted value.
+ * @return Result of the conversion.
+ */
 static inline unsigned long long internal_strtol(
     const char *restrict nptr, char **restrict endptr, int base,
     const long long min_value, const unsigned long long max_value,
@@ -187,6 +214,12 @@ static inline unsigned long long internal_strtol(
 	return result;
 }
 
+/**
+ * Convert a string to an integer.
+ *
+ * @param nptr Input string.
+ * @return Result of the conversion.
+ */
 int posix_atoi(const char *nptr)
 {
 	bool neg = false;
@@ -196,6 +229,12 @@ int posix_atoi(const char *nptr)
 	return (int) (neg ? -result : result);
 }
 
+/**
+ * Convert a string to a long integer.
+ *
+ * @param nptr Input string.
+ * @return Result of the conversion.
+ */
 long posix_atol(const char *nptr)
 {
 	bool neg = false;
@@ -205,6 +244,12 @@ long posix_atol(const char *nptr)
 	return (long) (neg ? -result : result);
 }
 
+/**
+ * Convert a string to a long long integer.
+ *
+ * @param nptr Input string.
+ * @return Result of the conversion.
+ */
 long long posix_atoll(const char *nptr)
 {
 	bool neg = false;
@@ -214,6 +259,15 @@ long long posix_atoll(const char *nptr)
 	return (long long) (neg ? -result : result);
 }
 
+/**
+ * Convert a string to a long integer.
+ *
+ * @param nptr Input string.
+ * @param endptr Pointer to the final part of the string which
+ *     was not used for conversion.
+ * @param base Expected base of the string representation.
+ * @return Result of the conversion.
+ */
 long posix_strtol(const char *restrict nptr, char **restrict endptr, int base)
 {
 	bool neg = false;
@@ -223,6 +277,15 @@ long posix_strtol(const char *restrict nptr, char **restrict endptr, int base)
 	return (long) (neg ? -result : result);
 }
 
+/**
+ * Convert a string to a long long integer.
+ *
+ * @param nptr Input string.
+ * @param endptr Pointer to the final part of the string which
+ *     was not used for conversion.
+ * @param base Expected base of the string representation.
+ * @return Result of the conversion.
+ */
 long long posix_strtoll(
     const char *restrict nptr, char **restrict endptr, int base)
 {
@@ -233,6 +296,15 @@ long long posix_strtoll(
 	return (long long) (neg ? -result : result);
 }
 
+/**
+ * Convert a string to an unsigned long integer.
+ *
+ * @param nptr Input string.
+ * @param endptr Pointer to the final part of the string which
+ *     was not used for conversion.
+ * @param base Expected base of the string representation.
+ * @return Result of the conversion.
+ */
 unsigned long posix_strtoul(
     const char *restrict nptr, char **restrict endptr, int base)
 {
@@ -242,13 +314,20 @@ unsigned long posix_strtoul(
 	return (unsigned long) result;
 }
 
+/**
+ * Convert a string to a an unsigned long long integer.
+ *
+ * @param nptr Input string.
+ * @param endptr Pointer to the final part of the string which
+ *     was not used for conversion.
+ * @param base Expected base of the string representation.
+ * @return Result of the conversion.
+ */
 unsigned long long posix_strtoull(
     const char *restrict nptr, char **restrict endptr, int base)
 {
 	return internal_strtol(nptr, endptr, base, 0, ULLONG_MAX, NULL);
 }
 
-
 /** @}
  */
-
