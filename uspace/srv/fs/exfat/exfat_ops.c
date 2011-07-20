@@ -685,6 +685,7 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	bitmapp->type = EXFAT_BITMAP;
 	bitmapp->firstc = de->bitmap.firstc;
 	bitmapp->fragmented = true;
+	bitmapp->idx->parent_fragmented = true;
 	bitmapp->refcnt = 1;
 	bitmapp->lnkcnt = 0;
 	bitmapp->size = de->bitmap.size;
@@ -729,6 +730,7 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	uctablep->type = EXFAT_UCTABLE;
 	uctablep->firstc = de->uctable.firstc;
 	uctablep->fragmented = true;
+	uctablep->idx->parent_fragmented = true;
 	uctablep->refcnt = 1;
 	uctablep->lnkcnt = 0;
 	uctablep->size = de->uctable.size;
