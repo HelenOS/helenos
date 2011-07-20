@@ -43,6 +43,7 @@
 #define EXFAT_UCTABLE_IDX	2
 
 #define EXFAT_ROOT_PAR	0
+#define EXFAT_ROOT_POS	0
 
 #define EXFAT_CLST_FIRST	0x00000002
 #define EXFAT_CLST_LAST		0xfffffff6
