@@ -87,6 +87,16 @@
 #define AOFF64_MAX  UINT64_MAX
 #define AOFF64_MIN  UINT64_MIN
 
+#undef INTMAX_MIN
+#undef INTMAX_MAX
+#define INTMAX_MIN INT64_MIN
+#define INTMAX_MAX INT64_MAX
+
+#undef UINTMAX_MIN
+#undef UINTMAX_MAX
+#define UINTMAX_MIN UINT64_MIN
+#define UINTMAX_MAX UINT64_MAX
+
 #include "libc/sys/types.h"
 
 typedef int64_t posix_intmax_t;

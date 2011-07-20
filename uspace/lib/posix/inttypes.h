@@ -38,6 +38,11 @@
 #include "stdint.h"
 #include "libc/inttypes.h"
 
+extern posix_intmax_t posix_strtoimax(const char *restrict nptr,
+    char **restrict endptr, int base);
+extern posix_uintmax_t posix_strtoumax(const char *restrict nptr,
+    char **restrict endptr, int base);
+
 #endif /* POSIX_INTTYPES_H_ */
 
 /** @}
