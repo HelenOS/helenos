@@ -39,6 +39,7 @@
 #include "exfat.h"
 #include "exfat_fat.h"
 #include "exfat_dentry.h"
+#include "exfat_directory.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
@@ -236,6 +237,20 @@ skip_cache:
 	return EOK;
 }
 
+static int exfat_node_get_new_by_pos(exfat_node_t **nodepp, 
+    devmap_handle_t devmap_handle, exfat_cluster_t pfc, unsigned pdi)
+{
+	exfat_idx_t *idxp = exfat_idx_get_by_pos(devmap_handle, pfc, pdi);
+	if (!idxp)
+		return ENOMEM;
+	if (exfat_node_get_new(nodepp) != EOK)
+		return ENOMEM;
+	(*nodepp)->idx = idxp;
+	idxp->nodep = *nodepp;
+	return EOK;
+}
+
+
 /** Internal version of exfat_node_get().
  *
  * @param idxp		Locked index structure.
@@ -367,7 +382,8 @@ int exfat_bitmap_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
 	return exfat_node_get(rfn, devmap_handle, EXFAT_BITMAP_IDX);
 }
-
+*/
+/*
 int exfat_uctable_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
 	return exfat_node_get(rfn, devmap_handle, EXFAT_UCTABLE_IDX);
@@ -504,9 +520,37 @@ libfs_ops_t exfat_libfs_ops = {
  * VFS operations.
  */
 
+/* Print debug info */
+static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
+{
+	printf("exFAT file system mounted\n");
+	printf("Version: %d.%d\n", bs->version.major, bs->version.minor);
+	printf("Volume serial: %d\n", uint32_t_le2host(bs->volume_serial));
+	printf("Volume first sector: %lld\n", VOL_FS(bs));
+	printf("Volume sectors: %lld\n", VOL_CNT(bs));
+	printf("FAT first sector: %d\n", FAT_FS(bs));
+	printf("FAT sectors: %d\n", FAT_CNT(bs));
+	printf("Data first sector: %d\n", DATA_FS(bs));
+	printf("Data sectors: %d\n", DATA_CNT(bs));
+	printf("Root dir first cluster: %d\n", ROOT_FC(bs));
+	printf("Bytes per sector: %d\n", BPS(bs));
+	printf("Sectors per cluster: %d\n", SPC(bs));
+	printf("KBytes per cluster: %d\n", SPC(bs)*BPS(bs)/1024);
+	
+	int i, rc;
+	exfat_cluster_t clst;
+	for (i=0; i<6; i++) {
+		rc = fat_get_cluster(bs, devmap_handle, i, &clst);
+		if (rc != EOK)
+			return;
+		printf("Clst %d: %x\n", i, clst);
+	}
+}
+
 void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	exfat_node_t *rootp=NULL, *bitmapp=NULL, *uctablep=NULL;
 	enum cache_mode cmode;
 	exfat_bs_t *bs;
 
@@ -544,11 +588,9 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	/* get the buffer with the boot sector */
 	bs = block_bb_get(devmap_handle);
-	
-	(void) bs;
 
 	/* Initialize the block cache */
-	rc = block_cache_init(devmap_handle, BS_SIZE, 0 /* XXX */, cmode);
+	rc = block_cache_init(devmap_handle, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
 		async_answer_0(rid, rc);
@@ -573,31 +615,63 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/* Initialize the root node. */
-	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
-	if (!rfn) {
+	rc = exfat_node_get_new_by_pos(&rootp, devmap_handle, EXFAT_ROOT_PAR, 
+	    EXFAT_ROOT_POS);
+	if (rc!=EOK) {
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		exfat_idx_fini_by_devmap_handle(devmap_handle);
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
+	assert(rootp->idx->index == EXFAT_ROOT_IDX);
 
-	fs_node_initialize(rfn);
-	exfat_node_t *rootp = (exfat_node_t *)malloc(sizeof(exfat_node_t));
-	if (!rootp) {
-		free(rfn);
+	rootp->type = EXFAT_DIRECTORY;
+	rootp->firstc = ROOT_FC(bs);
+	rootp->fragmented = true;
+	rootp->refcnt = 1;
+	rootp->lnkcnt = 0;	/* FS root is not linked */
+
+	uint32_t clusters;
+	rc = fat_clusters_get(&clusters, bs, devmap_handle, rootp->firstc);
+	if (rc != EOK) {
+		free(rootp);
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		exfat_idx_fini_by_devmap_handle(devmap_handle);
-		async_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
+	rootp->size = BPS(bs) * SPC(bs) * clusters;
+	fibril_mutex_unlock(&rootp->idx->lock);
+
+	/* Open root directory and looking for Bitmap and UC-Table */
+	exfat_directory_t di;
+	exfat_dentry_t *de;
+	rc = exfat_directory_open(rootp, &di);
+	if (rc != EOK) {
+		free(rootp);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 
-	exfat_node_initialize(rootp);
+	/* Initialize the bitmap node. */
+	rc = exfat_directory_find(&di, EXFAT_DENTRY_BITMAP, &de);
+	if (rc != EOK) {
+		free(rootp);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
 
-	exfat_idx_t *ridxp = exfat_idx_get_by_pos(devmap_handle, EXFAT_ROOT_PAR, 0);
-	if (!ridxp) {
-		free(rfn);
+	rc = exfat_node_get_new_by_pos(&bitmapp, devmap_handle, rootp->firstc, 
+	    di.pos);
+	if (rc!=EOK) {
 		free(rootp);
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
@@ -605,26 +679,76 @@ void exfat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
-	assert(ridxp->index == 0);
-	/* ridxp->lock held */
+	assert(bitmapp->idx->index == EXFAT_BITMAP_IDX);
+	fibril_mutex_unlock(&bitmapp->idx->lock);
 
-	rootp->type = EXFAT_DIRECTORY;
-	rootp->firstc = ROOT_ST(bs);
-	rootp->refcnt = 1;
-	rootp->lnkcnt = 0;	/* FS root is not linked */
-	rootp->idx = ridxp;
-	ridxp->nodep = rootp;
-	rootp->bp = rfn;
-	rfn->data = rootp;
+	bitmapp->type = EXFAT_BITMAP;
+	bitmapp->firstc = de->bitmap.firstc;
+	bitmapp->fragmented = true;
+	bitmapp->refcnt = 1;
+	bitmapp->lnkcnt = 0;
+	bitmapp->size = de->bitmap.size;
 
-	fibril_mutex_unlock(&ridxp->lock);
-	
-	/* TODO */
-	/* We should intitalize bitmap and uctable nodes next to the root node */
-	/* HERE!!! */
+	/* Initialize the uctable node. */
+	rc = exfat_directory_seek(&di, 0);
+	if (rc != EOK) {
+		free(rootp);
+		free(bitmapp);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
 
-	/* async_answer_0(rid, EOK); */
-	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
+	rc = exfat_directory_find(&di, EXFAT_DENTRY_UCTABLE, &de);
+	if (rc != EOK) {
+		free(rootp);
+		free(bitmapp);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
+
+	rc = exfat_node_get_new_by_pos(&uctablep, devmap_handle, rootp->firstc, 
+	    di.pos);
+	if (rc!=EOK) {
+		free(rootp);
+		free(bitmapp);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+	assert(uctablep->idx->index == EXFAT_UCTABLE_IDX);
+	fibril_mutex_unlock(&uctablep->idx->lock);
+
+	uctablep->type = EXFAT_UCTABLE;
+	uctablep->firstc = de->uctable.firstc;
+	uctablep->fragmented = true;
+	uctablep->refcnt = 1;
+	uctablep->lnkcnt = 0;
+	uctablep->size = de->uctable.size;
+
+	rc = exfat_directory_close(&di);
+	if (rc!=EOK) {
+		free(rootp);
+		free(bitmapp);
+		free(uctablep);
+		(void) block_cache_fini(devmap_handle);
+		block_fini(devmap_handle);
+		exfat_idx_fini_by_devmap_handle(devmap_handle);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	exfat_fsinfo(bs, devmap_handle);
+	printf("Root dir size: %lld\n", rootp->size);
+
+	async_answer_3(rid, EOK, rootp->idx->index, rootp->size, rootp->lnkcnt);
 }
 
 void exfat_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -680,6 +804,24 @@ void exfat_unmount(ipc_callid_t rid, ipc_call_t *request)
 	libfs_unmount(&exfat_libfs_ops, rid, request);
 }
 
+/*
+int bitmap_is_allocated(exfat_bs_t *bs, devmap_handle_t devmap_handle,
+    exfat_cluster_t clst, bool *status)
+{
+	fs_node_t *fn;
+	exfat_node_t *bitmap;
+	int rc;
+
+	rc = exfat_bitmap_get(&fn, devmap_handle);
+	if (rc != EOK)
+		return rc;
+
+	nbitmap = EXFAT_NODE(fn);
+
+	
+	return EOK;
+}
+*/
 
 /**
  * @}
