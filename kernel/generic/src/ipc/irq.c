@@ -173,6 +173,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
+	irq->driver_as = AS;
 	
 	/*
 	 * Enlist the IRQ structure in the uspace IRQ hash table and the
@@ -198,7 +199,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq_spinlock_lock(&box->irq_lock, false);
 	
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
-	list_append(&irq->notif_cfg.link, &box->irq_head);
+	list_append(&irq->notif_cfg.link, &box->irq_list);
 	
 	irq_spinlock_unlock(&box->irq_lock, false);
 	irq_spinlock_unlock(&irq->lock, false);
@@ -280,10 +281,10 @@ loop:
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&box->irq_lock, false);
 	
-	while (box->irq_head.next != &box->irq_head) {
+	while (!list_empty(&box->irq_list)) {
 		DEADLOCK_PROBE_INIT(p_irqlock);
 		
-		irq_t *irq = list_get_instance(box->irq_head.next, irq_t,
+		irq_t *irq = list_get_instance(list_first(&box->irq_list), irq_t,
 		    notif_cfg.link);
 		
 		if (!irq_spinlock_trylock(&irq->lock)) {
@@ -363,6 +364,25 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 	if (!code)
 		return IRQ_DECLINE;
 	
+#define CMD_MEM_READ(target) \
+do { \
+	void *va = code->cmds[i].addr; \
+	if (AS != irq->driver_as) \
+		as_switch(AS, irq->driver_as); \
+	memcpy_from_uspace(&target, va, (sizeof(target))); \
+	if (dstarg) \
+		scratch[dstarg] = target; \
+} while(0)
+
+#define CMD_MEM_WRITE(val) \
+do { \
+	void *va = code->cmds[i].addr; \
+	if (AS != irq->driver_as) \
+		as_switch(AS, irq->driver_as); \
+	memcpy_to_uspace(va, &val, sizeof(val)); \
+} while (0)
+
+	as_t *current_as = AS;
 	size_t i;
 	for (i = 0; i < code->cmdcount; i++) {
 		uint32_t dstval;
@@ -421,6 +441,54 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 				    (uint32_t) scratch[srcarg]);
 			}
 			break;
+		case CMD_MEM_READ_8: {
+			uint8_t val;
+			CMD_MEM_READ(val);
+			break;
+			}
+		case CMD_MEM_READ_16: {
+			uint16_t val;
+			CMD_MEM_READ(val);
+			break;
+			}
+		case CMD_MEM_READ_32: {
+			uint32_t val;
+			CMD_MEM_READ(val);
+			break;
+			}
+		case CMD_MEM_WRITE_8: {
+			uint8_t val = code->cmds[i].value;
+			CMD_MEM_WRITE(val);
+			break;
+			}
+		case CMD_MEM_WRITE_16: {
+			uint16_t val = code->cmds[i].value;
+			CMD_MEM_WRITE(val);
+			break;
+			}
+		case CMD_MEM_WRITE_32: {
+			uint32_t val = code->cmds[i].value;
+			CMD_MEM_WRITE(val);
+			break;
+			}
+		case CMD_MEM_WRITE_A_8:
+			if (srcarg) {
+				uint8_t val = scratch[srcarg];
+				CMD_MEM_WRITE(val);
+			}
+			break;
+		case CMD_MEM_WRITE_A_16:
+			if (srcarg) {
+				uint16_t val = scratch[srcarg];
+				CMD_MEM_WRITE(val);
+			}
+			break;
+		case CMD_MEM_WRITE_A_32:
+			if (srcarg) {
+				uint32_t val = scratch[srcarg];
+				CMD_MEM_WRITE(val);
+			}
+			break;
 		case CMD_BTEST:
 			if ((srcarg) && (dstarg)) {
 				dstval = scratch[srcarg] & code->cmds[i].value;
@@ -434,12 +502,18 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			}
 			break;
 		case CMD_ACCEPT:
+			if (AS != current_as)
+				as_switch(AS, current_as);
 			return IRQ_ACCEPT;
 		case CMD_DECLINE:
 		default:
+			if (AS != current_as)
+				as_switch(AS, current_as);
 			return IRQ_DECLINE;
 		}
 	}
+	if (AS != current_as)
+		as_switch(AS, current_as);
 	
 	return IRQ_DECLINE;
 }

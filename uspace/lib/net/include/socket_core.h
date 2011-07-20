@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet 
+/** @addtogroup libnet
  *  @{
  */
 
@@ -44,21 +44,22 @@
 #include <net/in.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
 /** Initial size of the received packet queue. */
-#define SOCKET_INITIAL_RECEIVED_SIZE	4
+#define SOCKET_INITIAL_RECEIVED_SIZE  4
 
 /** Maximum size of the received packet queue. */
-#define SOCKET_MAX_RECEIVED_SIZE	0
+#define SOCKET_MAX_RECEIVED_SIZE  0
 
 /** Initial size of the sockets for acceptance queue. */
-#define SOCKET_INITIAL_ACCEPTED_SIZE	1
+#define SOCKET_INITIAL_ACCEPTED_SIZE  1
 
 /** Maximum size of the sockets for acceptance queue. */
-#define SOCKET_MAX_ACCEPTEDED_SIZE	0
+#define SOCKET_MAX_ACCEPTEDED_SIZE  0
 
 /** Listening sockets' port map key. */
-#define SOCKET_MAP_KEY_LISTENING	"L"
+#define SOCKET_MAP_KEY_LISTENING  "L"
 
 /** Type definition of the socket core.
  * @see socket_core
@@ -74,8 +75,8 @@ typedef struct socket_port socket_port_t;
 struct socket_core {
 	/** Socket identifier. */
 	int socket_id;
-	/** Client application phone. */
-	int phone;
+	/** Client application session. */
+	async_sess_t *sess;
 	/** Bound port. */
 	int port;
 	/** Received packets queue. */
@@ -107,15 +108,15 @@ GENERIC_CHAR_MAP_DECLARE(socket_port_map, socket_core_t *);
  */
 INT_MAP_DECLARE(socket_ports, socket_port_t);
 
-extern void socket_cores_release(int, socket_cores_t *, socket_ports_t *,
-    void (*)(socket_core_t *));
+extern void socket_cores_release(async_sess_t *, socket_cores_t *,
+    socket_ports_t *, void (*)(socket_core_t *));
 extern int socket_bind(socket_cores_t *, socket_ports_t *, int, void *, size_t,
     int, int, int);
 extern int socket_bind_free_port(socket_ports_t *, socket_core_t *, int, int,
     int);
-extern int socket_create(socket_cores_t *, int, void *, int *);
-extern int socket_destroy(int, int, socket_cores_t *, socket_ports_t *,
-    void (*)(socket_core_t *));
+extern int socket_create(socket_cores_t *, async_sess_t *, void *, int *);
+extern int socket_destroy(async_sess_t *, int, socket_cores_t *,
+    socket_ports_t *, void (*)(socket_core_t *));
 extern int socket_reply_packets(packet_t *, size_t *);
 extern socket_core_t *socket_port_find(socket_ports_t *, int, const uint8_t *,
     size_t);

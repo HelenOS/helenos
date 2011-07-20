@@ -88,7 +88,7 @@ typedef struct btree_node {
 /** B-tree structure. */
 typedef struct {
 	btree_node_t *root;	/**< B-tree root node pointer. */
-	link_t leaf_head;	/**< Leaf-level list head. */
+	list_t leaf_list;	/**< List of leaves. */
 } btree_t;
 
 extern void btree_init(void);

@@ -1,38 +1,46 @@
-/*	$OpenBSD: screen.c,v 1.13 2006/04/20 03:25:36 ray Exp $	*/
-/*	$NetBSD: screen.c,v 1.4 1995/04/29 01:11:36 mycroft Exp $	*/
-
-/*-
- * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
- *
- * This code is derived from software contributed to Berkeley by
- * Chris Torek and Darren F. Provine.
+/*
+ * Copyright (c) 2011 Martin Decky
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
  *
- *	@(#)screen.c	8.1 (Berkeley) 5/31/93
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** Attributations
+ *
+ * screen.c 8.1 (Berkeley) 5/31/93
+ * NetBSD: screen.c,v 1.4 1995/04/29 01:11:36 mycroft
+ * OpenBSD: screen.c,v 1.13 2006/04/20 03:25:36 ray
+ *
+ * Based upon BSD Tetris
+ *
+ * Copyright (c) 1992, 1993
+ *      The Regents of the University of California.
+ *      Distributed under BSD license.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Chris Torek and Darren F. Provine.
+ *
  */
 
 /** @addtogroup tetris
@@ -68,6 +76,10 @@ static bool use_color;          /* true => use colors */
 
 static const struct shape *lastshape;
 
+static suseconds_t timeleft = 0;
+
+console_ctrl_t *console;
+
 
 /*
  * putstr() is for unpadded strings (either as in termcap(5) or
@@ -81,20 +93,20 @@ static inline void putstr(const char *s)
 
 static void start_standout(uint32_t color)
 {
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0xffffff,
+	console_flush(console);
+	console_set_rgb_color(console, 0xffffff,
 	    use_color ? color : 0x000000);
 }
 
 static void resume_normal(void)
 {
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	console_flush(console);
+	console_set_style(console, STYLE_NORMAL);
 }
 
 void clear_screen(void)
 {
-	console_clear(fphone(stdout));
+	console_clear(console);
 	moveto(0, 0);
 }
 
@@ -104,7 +116,7 @@ void clear_screen(void)
 void scr_clear(void)
 {
 	resume_normal();
-	console_clear(fphone(stdout));
+	console_clear(console);
 	curscore = -1;
 	memset(curscreen, 0, sizeof(curscreen));
 }
@@ -114,28 +126,28 @@ void scr_clear(void)
  */
 void scr_init(void)
 {
-	console_cursor_visibility(fphone(stdout), 0);
+	console_cursor_visibility(console, 0);
 	resume_normal();
 	scr_clear();
 }
 
 void moveto(sysarg_t r, sysarg_t c)
 {
-	fflush(stdout);
-	console_set_pos(fphone(stdout), c, r);
+	console_flush(console);
+	console_set_pos(console, c, r);
 }
 
 winsize_t winsize;
 
 static int get_display_size(winsize_t *ws)
 {
-	return console_get_size(fphone(stdout), &ws->ws_col, &ws->ws_row);
+	return console_get_size(console, &ws->ws_col, &ws->ws_row);
 }
 
 static bool get_display_color_sup(void)
 {
 	sysarg_t ccap;
-	int rc = console_get_color_cap(fphone(stdout), &ccap);
+	int rc = console_get_color_cap(console, &ccap);
 	
 	if (rc != 0)
 		return false;
@@ -178,7 +190,7 @@ void scr_set(void)
  */
 void scr_end(void)
 {
-	console_cursor_visibility(fphone(stdout), 1);
+	console_cursor_visibility(console, 1);
 }
 
 void stop(const char *why)
@@ -301,7 +313,7 @@ void scr_update(void)
 	if (cur_so)
 		resume_normal();
 	
-	fflush(stdout);
+	console_flush(console);
 }
 
 /*
@@ -319,6 +331,82 @@ void scr_msg(char *s, bool set)
 	else
 		while (--l >= 0)
 			(void) putchar(' ');
+}
+
+/** Sleep for the current turn time
+ *
+ * Eat any input that might be available.
+ *
+ */
+void tsleep(void)
+{
+	suseconds_t timeout = fallrate;
+	
+	while (timeout > 0) {
+		kbd_event_t event;
+		
+		if (!console_get_kbd_event_timeout(console, &event, &timeout))
+			break;
+	}
+}
+
+/** Get char with timeout
+ *
+ */
+int tgetchar(void)
+{
+	/*
+	 * Reset timeleft to fallrate whenever it is not positive
+	 * and increase speed.
+	 */
+	
+	if (timeleft <= 0) {
+		faster();
+		timeleft = fallrate;
+	}
+	
+	/*
+	 * Wait to see if there is any input. If so, take it and
+	 * update timeleft so that the next call to tgetchar()
+	 * will not wait as long. If there is no input,
+	 * make timeleft zero and return -1.
+	 */
+	
+	wchar_t c = 0;
+	
+	while (c == 0) {
+		kbd_event_t event;
+		
+		if (!console_get_kbd_event_timeout(console, &event, &timeleft)) {
+			timeleft = 0;
+			return -1;
+		}
+		
+		if (event.type == KEY_PRESS)
+			c = event.c;
+	}
+	
+	return (int) c;
+}
+
+/** Get char without timeout
+ *
+ */
+int twait(void)
+{
+	wchar_t c = 0;
+	
+	while (c == 0) {
+		kbd_event_t event;
+		
+		if (!console_get_kbd_event(console, &event))
+			return -1;
+		
+		if (event.type == KEY_PRESS)
+			c = event.c;
+	}
+	
+	return (int) c;
 }
 
 /** @}

@@ -296,36 +296,35 @@ int measured_strings_reply(const measured_string_t *strings, size_t count)
  * This method should be used only following other IPC messages as the array
  * size has to be negotiated in advance.
  *
- * @param[in] phone	The other module phone.
+ * @param[in] exch	Exchange.
  * @param[out] strings	The returned measured strings array.
  * @param[out] data	The measured strings data. This memory block stores the
  *			actual character strings.
  * @param[in] count	The size of the measured strings array.
  * @return		EOK on success.
  * @return		EINVAL if the strings or data parameter is NULL.
- * @return		EINVAL if the phone or count parameter is not positive.
+ * @return		EINVAL if the exch or count parameter is invalid.
  * @return		EINVAL if the sent array differs in size.
  * @return		ENOMEM if there is not enough memory left.
  * @return		Other error codes as defined for the
  *			async_data_read_start() function.
  */
-int
-measured_strings_return(int phone, measured_string_t **strings, uint8_t **data,
-    size_t count)
+int measured_strings_return(async_exch_t *exch, measured_string_t **strings,
+    uint8_t **data, size_t count)
 {
 	size_t *lengths;
 	size_t index;
 	uint8_t *next;
 	int rc;
 
-	if ((phone < 0) || (!strings) || (!data) || (count <= 0))
+	if ((exch == NULL) || (!strings) || (!data) || (count <= 0))
 		return EINVAL;
 
 	lengths = (size_t *) malloc(sizeof(size_t) * (count + 1));
 	if (!lengths)
 		return ENOMEM;
 
-	rc = async_data_read_start(phone, lengths,
+	rc = async_data_read_start(exch, lengths,
 	    sizeof(size_t) * (count + 1));
 	if (rc != EOK) {
 		free(lengths);
@@ -350,7 +349,7 @@ measured_strings_return(int phone, measured_string_t **strings, uint8_t **data,
 	for (index = 0; index < count; index++) {
 		(*strings)[index].length = lengths[index];
 		if (lengths[index] > 0) {
-			rc = async_data_read_start(phone, next, lengths[index]);
+			rc = async_data_read_start(exch, next, lengths[index]);
 			if (rc != EOK) {
 			    	free(lengths);
 				free(data);
@@ -374,31 +373,30 @@ measured_strings_return(int phone, measured_string_t **strings, uint8_t **data,
  * This method should be used only following other IPC messages as the array
  * size has to be negotiated in advance.
  *
- * @param[in] phone	The other module phone.
+ * @param[in] exch	Exchange.
  * @param[in] strings	The measured strings array to be transferred.
  * @param[in] count	The measured strings array size.
  * @return		EOK on success.
  * @return		EINVAL if the strings parameter is NULL.
- * @return		EINVAL if the phone or count parameter is not positive.
+ * @return		EINVAL if the exch or count parameter is invalid.
  * @return		Other error codes as defined for the
  *			async_data_write_start() function.
  */
-int
-measured_strings_send(int phone, const measured_string_t *strings,
+int measured_strings_send(async_exch_t *exch, const measured_string_t *strings,
     size_t count)
 {
 	size_t *lengths;
 	size_t index;
 	int rc;
 
-	if ((phone < 0) || (!strings) || (count <= 0))
+	if ((exch == NULL) || (!strings) || (count <= 0))
 		return EINVAL;
 
 	lengths = prepare_lengths(strings, count);
 	if (!lengths)
 		return ENOMEM;
 
-	rc = async_data_write_start(phone, lengths,
+	rc = async_data_write_start(exch, lengths,
 	    sizeof(size_t) * (count + 1));
 	if (rc != EOK) {
 		free(lengths);
@@ -409,7 +407,7 @@ measured_strings_send(int phone, const measured_string_t *strings,
 
 	for (index = 0; index < count; index++) {
 		if (strings[index].length > 0) {
-			rc = async_data_write_start(phone, strings[index].value,
+			rc = async_data_write_start(exch, strings[index].value,
 			    strings[index].length);
 			if (rc != EOK)
 				return rc;
@@ -421,4 +419,3 @@ measured_strings_send(int phone, const measured_string_t *strings,
 
 /** @}
  */
-

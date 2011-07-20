@@ -71,7 +71,7 @@ int next_thread_id;
 
 ipc_call_t thread_ipc_req[THBUF_SIZE];
 
-int phoneid;
+async_sess_t *sess;
 bool abort_trace;
 
 uintptr_t thash;
@@ -80,7 +80,7 @@ static fibril_condvar_t state_cv;
 static fibril_mutex_t state_lock;
 
 static bool cev_valid;
-static console_event_t cev;
+static kbd_event_t cev;
 
 void thread_trace_start(uintptr_t thread_hash);
 
@@ -145,38 +145,35 @@ static int program_run_fibril(void *arg)
 
 static int connect_task(task_id_t task_id)
 {
-	int rc;
-
-	rc = async_connect_kbox(task_id);
-
-	if (rc == ENOTSUP) {
-		printf("You do not have userspace debugging support "
-		    "compiled in the kernel.\n");
-		printf("Compile kernel with 'Support for userspace debuggers' "
-		    "(CONFIG_UDEBUG) enabled.\n");
-		return rc;
-	}
-
-	if (rc < 0) {
+	async_sess_t *ksess = async_connect_kbox(task_id);
+	
+	if (!ksess) {
+		if (errno == ENOTSUP) {
+			printf("You do not have userspace debugging support "
+			    "compiled in the kernel.\n");
+			printf("Compile kernel with 'Support for userspace debuggers' "
+			    "(CONFIG_UDEBUG) enabled.\n");
+			return errno;
+		}
+		
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, rc);
-		return rc;
+		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, errno);
+		return errno;
 	}
-
-	phoneid = rc;
-
-	rc = udebug_begin(phoneid);
+	
+	int rc = udebug_begin(ksess);
 	if (rc < 0) {
 		printf("udebug_begin() -> %d\n", rc);
 		return rc;
 	}
-
-	rc = udebug_set_evmask(phoneid, UDEBUG_EM_ALL);
+	
+	rc = udebug_set_evmask(ksess, UDEBUG_EM_ALL);
 	if (rc < 0) {
 		printf("udebug_set_evmask(0x%x) -> %d\n ", UDEBUG_EM_ALL, rc);
 		return rc;
 	}
-
+	
+	sess = ksess;
 	return 0;
 }
 
@@ -187,7 +184,7 @@ static int get_thread_list(void)
 	size_t tb_needed;
 	int i;
 
-	rc = udebug_thread_read(phoneid, thread_hash_buf,
+	rc = udebug_thread_read(sess, thread_hash_buf,
 		THBUF_SIZE*sizeof(unsigned), &tb_copied, &tb_needed);
 	if (rc < 0) {
 		printf("udebug_thread_read() -> %d\n", rc);
@@ -313,7 +310,7 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
 		return;
 
 	memset(&call, 0, sizeof(call));
-	rc = udebug_mem_read(phoneid, &call.args, sc_args[1], sizeof(call.args));
+	rc = udebug_mem_read(sess, &call.args, sc_args[1], sizeof(call.args));
 
 	if (rc >= 0) {
 		ipcp_call_out(sc_args[0], &call, sc_rc);
@@ -324,10 +321,9 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 {
 	ipc_call_t question, reply;
 	int rc;
-	int phoneidx;
+	int phoneid;
 
-//	printf("sc_ipc_call_sync_fast()\n");
-	phoneidx = sc_args[0];
+	phoneid = sc_args[0];
 
 	IPC_SET_IMETHOD(question, sc_args[1]);
 	IPC_SET_ARG1(question, sc_args[2]);
@@ -336,16 +332,12 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 	IPC_SET_ARG4(question, 0);
 	IPC_SET_ARG5(question, 0);
 
-//	printf("memset\n");
 	memset(&reply, 0, sizeof(reply));
-//	printf("udebug_mem_read(phone=%d, buffer_ptr=%u, src_addr=%d, n=%d\n",
-//		phoneid, &reply.args, sc_args[5], sizeof(reply.args));
-	rc = udebug_mem_read(phoneid, &reply.args, sc_args[5], sizeof(reply.args));
-//	printf("dmr->%d\n", rc);
-	if (rc < 0) return;
-
-//	printf("call ipc_call_sync\n");
-	ipcp_call_sync(phoneidx, &question, &reply);
+	rc = udebug_mem_read(sess, &reply.args, sc_args[5], sizeof(reply.args));
+	if (rc < 0)
+		return;
+	
+	ipcp_call_sync(phoneid, &question, &reply);
 }
 
 static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
@@ -354,7 +346,7 @@ static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
 	int rc;
 
 	memset(&question, 0, sizeof(question));
-	rc = udebug_mem_read(phoneid, &question.args, sc_args[1],
+	rc = udebug_mem_read(sess, &question.args, sc_args[1],
 	    sizeof(question.args));
 
 	if (rc < 0) {
@@ -371,7 +363,7 @@ static void sc_ipc_call_sync_slow_e(unsigned thread_id, sysarg_t *sc_args)
 	int rc;
 
 	memset(&reply, 0, sizeof(reply));
-	rc = udebug_mem_read(phoneid, &reply.args, sc_args[2],
+	rc = udebug_mem_read(sess, &reply.args, sc_args[2],
 	    sizeof(reply.args));
 
 	if (rc < 0) {
@@ -390,13 +382,10 @@ static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 	if (sc_rc == 0) return;
 
 	memset(&call, 0, sizeof(call));
-	rc = udebug_mem_read(phoneid, &call, sc_args[0], sizeof(call));
-//	printf("udebug_mem_read(phone %d, dest %d, app-mem src %d, size %d -> %d\n",
-//		phoneid, (int)&call, sc_args[0], sizeof(call), rc);
-
-	if (rc >= 0) {
+	rc = udebug_mem_read(sess, &call, sc_args[0], sizeof(call));
+	
+	if (rc >= 0)
 		ipcp_call_in(&call, sc_rc);
-	}
 }
 
 static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
@@ -406,15 +395,10 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 	int rc;
 
 	/* Read syscall arguments */
-	rc = udebug_args_read(phoneid, thread_hash, sc_args);
-
-	async_serialize_start();
-
-//	printf("[%d] ", thread_id);
+	rc = udebug_args_read(sess, thread_hash, sc_args);
 
 	if (rc < 0) {
 		printf("error\n");
-		async_serialize_end();
 		return;
 	}
 
@@ -431,8 +415,6 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 	default:
 		break;
 	}
-
-	async_serialize_end();
 }
 
 static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
@@ -443,15 +425,12 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 	int rc;
 
 	/* Read syscall arguments */
-	rc = udebug_args_read(phoneid, thread_hash, sc_args);
-
-	async_serialize_start();
+	rc = udebug_args_read(sess, thread_hash, sc_args);
 
 //	printf("[%d] ", thread_id);
 
 	if (rc < 0) {
 		printf("error\n");
-		async_serialize_end();
 		return;
 	}
 
@@ -480,16 +459,11 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 	default:
 		break;
 	}
-
-	async_serialize_end();
 }
 
 static void event_thread_b(uintptr_t hash)
 {
-	async_serialize_start();
 	printf("New thread, hash %p\n", (void *) hash);
-	async_serialize_end();
-
 	thread_trace_start(hash);
 }
 
@@ -526,7 +500,7 @@ static int trace_loop(void *thread_hash_arg)
 		fibril_mutex_unlock(&state_lock);
 
 		/* Run thread until an event occurs */
-		rc = udebug_go(phoneid, thread_hash,
+		rc = udebug_go(sess, thread_hash,
 		    &ev_type, &val0, &val1);
 
 //		printf("rc = %d, ev_type=%d\n", rc, ev_type);
@@ -655,26 +629,28 @@ error:
 static int cev_fibril(void *arg)
 {
 	(void) arg;
-
+	
+	console_ctrl_t *console = console_init(stdin, stdout);
+	
 	while (true) {
 		fibril_mutex_lock(&state_lock);
 		while (cev_valid)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
-
-		if (!console_get_event(fphone(stdin), &cev))
+		
+		if (!console_get_kbd_event(console, &cev))
 			return -1;
-
+		
 		fibril_mutex_lock(&state_lock);
 		cev_valid = true;
 		fibril_condvar_broadcast(&state_cv);
-		fibril_mutex_unlock(&state_lock);		
+		fibril_mutex_unlock(&state_lock);
 	}
 }
 
 static void trace_task(task_id_t task_id)
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	bool done;
 	int i;
 	int rc;
@@ -726,7 +702,7 @@ static void trace_task(task_id_t task_id)
 			break;
 		case KC_P:
 			printf("Pause...\n");
-			rc = udebug_stop(phoneid, thash);
+			rc = udebug_stop(sess, thash);
 			if (rc != EOK)
 				printf("Error: stop -> %d\n", rc);
 			break;
@@ -742,8 +718,8 @@ static void trace_task(task_id_t task_id)
 
 	printf("\nTerminate debugging session...\n");
 	abort_trace = true;
-	udebug_end(phoneid);
-	async_hangup(phoneid);
+	udebug_end(sess);
+	async_hangup(sess);
 
 	ipcp_cleanup();
 
@@ -815,6 +791,7 @@ static void main_init(void)
 
 	proto_register(SERVICE_VFS, p);
 
+#if 0
 	p = proto_new("console");
 
 	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
@@ -850,6 +827,7 @@ static void main_init(void)
 
 	proto_console = p;
 	proto_register(SERVICE_CONSOLE, p);
+#endif
 }
 
 static void print_syntax()

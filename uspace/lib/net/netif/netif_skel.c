@@ -60,7 +60,6 @@ netif_globals_t netif_globals;
 
 /** Probe the existence of the device.
  *
- * @param[in] netif_phone Network interface phone.
  * @param[in] device_id   Device identifier.
  * @param[in] irq         Device interrupt number.
  * @param[in] io          Device input/output address.
@@ -70,8 +69,7 @@ netif_globals_t netif_globals;
  *         netif_probe_message().
  *
  */
-static int netif_probe_req_local(int netif_phone, device_id_t device_id,
-    int irq, void *io)
+static int netif_probe_req_local(device_id_t device_id, int irq, void *io)
 {
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	int result = netif_probe_message(device_id, irq, io);
@@ -82,7 +80,6 @@ static int netif_probe_req_local(int netif_phone, device_id_t device_id,
 
 /** Send the packet queue.
  *
- * @param[in] netif_phone Network interface phone.
  * @param[in] device_id   Device identifier.
  * @param[in] packet      Packet queue.
  * @param[in] sender      Sending module service.
@@ -92,8 +89,8 @@ static int netif_probe_req_local(int netif_phone, device_id_t device_id,
  *         function.
  *
  */
-static int netif_send_msg_local(int netif_phone, device_id_t device_id,
-    packet_t *packet, services_t sender)
+static int netif_send_msg_local(device_id_t device_id, packet_t *packet,
+    services_t sender)
 {
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	int result = netif_send_message(device_id, packet, sender);
@@ -104,7 +101,6 @@ static int netif_send_msg_local(int netif_phone, device_id_t device_id,
 
 /** Start the device.
  *
- * @param[in] netif_phone Network interface phone.
  * @param[in] device_id   Device identifier.
  *
  * @return EOK on success.
@@ -114,7 +110,7 @@ static int netif_send_msg_local(int netif_phone, device_id_t device_id,
  *         netif_start_message() function.
  *
  */
-static int netif_start_req_local(int netif_phone, device_id_t device_id)
+static int netif_start_req_local(device_id_t device_id)
 {
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	
@@ -127,8 +123,7 @@ static int netif_start_req_local(int netif_phone, device_id_t device_id)
 	
 	int result = netif_start_message(device);
 	if (result > NETIF_NULL) {
-		int phone = device->nil_phone;
-		nil_device_state_msg(phone, device_id, result);
+		nil_device_state_msg(netif_globals.nil_sess, device_id, result);
 		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return EOK;
 	}
@@ -140,7 +135,6 @@ static int netif_start_req_local(int netif_phone, device_id_t device_id)
 
 /** Stop the device.
  *
- * @param[in] netif_phone Network interface phone.
  * @param[in] device_id   Device identifier.
  *
  * @return EOK on success.
@@ -150,7 +144,7 @@ static int netif_start_req_local(int netif_phone, device_id_t device_id)
  *         netif_stop_message() function.
  *
  */
-static int netif_stop_req_local(int netif_phone, device_id_t device_id)
+static int netif_stop_req_local(device_id_t device_id)
 {
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	
@@ -163,8 +157,7 @@ static int netif_stop_req_local(int netif_phone, device_id_t device_id)
 	
 	int result = netif_stop_message(device);
 	if (result > NETIF_NULL) {
-		int phone = device->nil_phone;
-		nil_device_state_msg(phone, device_id, result);
+		nil_device_state_msg(netif_globals.nil_sess, device_id, result);
 		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return EOK;
 	}
@@ -218,7 +211,7 @@ void null_device_stats(device_stats_t *stats)
  */
 void netif_pq_release(packet_id_t packet_id)
 {
-	pq_release_remote(netif_globals.net_phone, packet_id);
+	pq_release_remote(netif_globals.sess, packet_id);
 }
 
 /** Allocate new packet to handle the given content size.
@@ -231,33 +224,31 @@ void netif_pq_release(packet_id_t packet_id)
  */
 packet_t *netif_packet_get_1(size_t content)
 {
-	return packet_get_1_remote(netif_globals.net_phone, content);
+	return packet_get_1_remote(netif_globals.sess, content);
 }
 
 /** Register the device notification receiver,
  *
- * Register a  network interface layer module as the device
+ * Register a network interface layer module as the device
  * notification receiver.
  *
- * @param[in] device_id Device identifier.
- * @param[in] phone     Network interface layer module phone.
+ * @param[in] sess      Session to the network interface layer module.
  *
  * @return EOK on success.
- * @return ENOENT if there is no such device.
  * @return ELIMIT if there is another module registered.
  *
  */
-static int register_message(device_id_t device_id, int phone)
+static int register_message(async_sess_t *sess)
 {
-	netif_device_t *device;
-	int rc = find_device(device_id, &device);
-	if (rc != EOK)
-		return rc;
-	
-	if (device->nil_phone >= 0)
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	if (netif_globals.nil_sess != NULL) {
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return ELIMIT;
+	}
 	
-	device->nil_phone = phone;
+	netif_globals.nil_sess = sess;
+	
+	fibril_rwlock_write_unlock(&netif_globals.lock);
 	return EOK;
 }
 
@@ -287,33 +278,30 @@ static int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
 	
 	*count = 0;
 	
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return register_message(callback);
+	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NETIF_PROBE:
-		return netif_probe_req_local(0, IPC_GET_DEVICE(*call),
+		return netif_probe_req_local(IPC_GET_DEVICE(*call),
 		    NETIF_GET_IRQ(*call), NETIF_GET_IO(*call));
 	
-	case IPC_M_CONNECT_TO_ME:
-		fibril_rwlock_write_lock(&netif_globals.lock);
-		
-		rc = register_message(IPC_GET_DEVICE(*call), IPC_GET_PHONE(*call));
-		
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return rc;
-	
 	case NET_NETIF_SEND:
-		rc = packet_translate_remote(netif_globals.net_phone, &packet,
+		rc = packet_translate_remote(netif_globals.sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
 		
-		return netif_send_msg_local(0, IPC_GET_DEVICE(*call), packet,
+		return netif_send_msg_local(IPC_GET_DEVICE(*call), packet,
 		    IPC_GET_SENDER(*call));
 	
 	case NET_NETIF_START:
-		return netif_start_req_local(0, IPC_GET_DEVICE(*call));
+		return netif_start_req_local(IPC_GET_DEVICE(*call));
 	
 	case NET_NETIF_STATS:
 		fibril_rwlock_read_lock(&netif_globals.lock);
@@ -339,7 +327,7 @@ static int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
 		return rc;
 	
 	case NET_NETIF_STOP:
-		return netif_stop_req_local(0, IPC_GET_DEVICE(*call));
+		return netif_stop_req_local(IPC_GET_DEVICE(*call));
 	
 	case NET_NETIF_GET_ADDR:
 		fibril_rwlock_read_lock(&netif_globals.lock);
@@ -361,7 +349,8 @@ static int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
  * @param[in] icall Initial message call structure.
  *
  */
-static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	/*
 	 * Accept the connection by answering
@@ -384,8 +373,7 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int res = netif_module_message(callid, &call, &answer, &count);
 		
 		/* End if said to either by the message or the processing result */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
+		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */
@@ -408,7 +396,8 @@ int netif_module_start(void)
 {
 	async_set_client_connection(netif_client_connection);
 	
-	netif_globals.net_phone = connect_to_service(SERVICE_NETWORKING);
+	netif_globals.sess = connect_to_service(SERVICE_NETWORKING);
+	netif_globals.nil_sess = NULL;
 	netif_device_map_initialize(&netif_globals.device_map);
 	
 	int rc = pm_init();

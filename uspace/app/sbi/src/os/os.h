@@ -37,7 +37,7 @@ size_t os_str_length(const char *str);
 int os_str_get_char(const char *str, int index, int *out_char);
 char *os_chr_to_astr(wchar_t chr);
 void os_input_disp_help(void);
-int os_input_line(char **ptr);
+int os_input_line(const char *prompt, char **ptr);
 int os_exec(char * const cmd[]);
 
 void os_store_ef_path(char *path);

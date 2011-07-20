@@ -43,6 +43,7 @@
 #include <ipc/devmap.h>
 #include <fibril_synch.h>
 #include <atomic.h>
+#include <async.h>
 
 #include "util.h"
 
@@ -86,19 +87,19 @@ typedef struct driver {
 	 */
 	int state;
 	
-	/** Phone asociated with this driver. */
-	int phone;
+	/** Session asociated with this driver. */
+	async_sess_t *sess;
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
 	const char *binary_path;
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
-	/** Pointer to the linked list of devices controlled by this driver. */
-	link_t devices;
+	/** List of devices controlled by this driver. */
+	list_t devices;
 	
 	/**
-	 * Fibril mutex for this driver - driver state, list of devices, phone.
+	 * Fibril mutex for this driver - driver state, list of devices, session.
 	 */
 	fibril_mutex_t driver_mutex;
 } driver_t;
@@ -106,7 +107,7 @@ typedef struct driver {
 /** The list of drivers. */
 typedef struct driver_list {
 	/** List of drivers */
-	link_t drivers;
+	list_t drivers;
 	/** Fibril mutex for list of drivers. */
 	fibril_mutex_t drivers_mutex;
 } driver_list_t;
@@ -128,7 +129,7 @@ struct dev_node {
 	fun_node_t *pfun;
 	
 	/** List of device functions. */
-	link_t functions;
+	list_t functions;
 	/** Driver of this device. */
 	driver_t *drv;
 	/** The state of the device. */
@@ -168,8 +169,8 @@ struct fun_node {
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
 	
-	/** The list of device classes to which this device function belongs. */
-	link_t classes;
+	/** List of device classes to which this device function belongs. */
+	list_t classes;
 	/** Devmap handle if the device function is registered by devmap. */
 	devmap_handle_t devmap_handle;
 	
@@ -226,7 +227,7 @@ typedef struct dev_class {
 	 * List of dev_class_info structures - one for each device registered by
 	 * this class.
 	 */
-	link_t devices;
+	list_t devices;
 	
 	/**
 	 * Default base name for the device within the class, might be overrided
@@ -278,7 +279,7 @@ typedef struct dev_class_info {
 /** The list of device classes. */
 typedef struct class_list {
 	/** List of classes. */
-	link_t classes;
+	list_t classes;
 	
 	/**
 	 * Hash table of devices registered by devmapper using their class name,
@@ -311,7 +312,7 @@ extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
 extern void attach_driver(dev_node_t *, driver_t *);
-extern void add_device(int, driver_t *, dev_node_t *, dev_tree_t *);
+extern void add_device(async_sess_t *, driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);

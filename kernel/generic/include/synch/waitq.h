@@ -62,7 +62,7 @@ typedef struct {
 	int missed_wakeups;
 	
 	/** List of sleeping threads for which there was no missed_wakeup. */
-	link_t head;
+	list_t sleepers;
 } waitq_t;
 
 #define waitq_sleep(wq) \

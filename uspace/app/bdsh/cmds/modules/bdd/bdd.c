@@ -101,7 +101,7 @@ int cmd_bdd(char **argv)
 		return CMD_FAILURE;
 	}
 
-	rc = block_init(handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, handle, 2048);
 	if (rc != EOK)  {
 		printf("%s: Error initializing libblock.\n", cmdname);
 		return CMD_FAILURE;

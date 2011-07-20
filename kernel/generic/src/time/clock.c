@@ -93,6 +93,7 @@ void clock_counter_init(void)
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;
 	clock_parea.unpriv = true;
+	clock_parea.mapped = false;
 	ddi_parea_register(&clock_parea);
 	
 	/*
@@ -162,8 +163,9 @@ void clock(void)
 		irq_spinlock_lock(&CPU->timeoutlock, false);
 		
 		link_t *cur;
-		while ((cur = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
-			timeout_t *timeout = list_get_instance(cur, timeout_t, link);
+		while ((cur = list_first(&CPU->timeout_active_list)) != NULL) {
+			timeout_t *timeout = list_get_instance(cur, timeout_t,
+			    link);
 			
 			irq_spinlock_lock(&timeout->lock, false);
 			if (timeout->ticks-- != 0) {

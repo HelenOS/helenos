@@ -38,6 +38,9 @@
 extern int ddf_log_init(const char *, log_level_t);
 extern void ddf_msg(log_level_t, const char *, ...);
 
+extern void ddf_dump_buffer(char *, size_t, const void *, size_t, size_t,
+    size_t);
+
 #endif
 
 /** @}

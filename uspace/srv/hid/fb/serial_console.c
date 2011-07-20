@@ -51,6 +51,9 @@
 #include "main.h"
 #include "serial_console.h"
 
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
+
 #define MAX_CONTROL 20
 
 static sysarg_t scr_width;
@@ -311,7 +314,7 @@ static void draw_text_data(keyfield_t *data, sysarg_t x0, sysarg_t y0,
 /**
  * Main function of the thread serving client connections.
  */
-void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	keyfield_t *interbuf = NULL;
 	size_t intersize = 0;
@@ -343,13 +346,15 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		int retval;
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		if (!IPC_GET_IMETHOD(call)) {
 			client_connected = 0;
 			async_answer_0(callid, EOK);
 			
 			/* Exit thread */
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_SHARE_OUT:
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);

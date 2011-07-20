@@ -42,8 +42,8 @@
 #include <err.h>
 #include <malloc.h>
 #include <sysinfo.h>
+#include <ns.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
 #include <ipc/irc.h>
 #include <net/modules.h>
 #include <packet_client.h>
@@ -75,7 +75,7 @@
 #define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
 
 static bool irc_service = false;
-static int irc_phone = -1;
+static async_sess_t *irc_sess = NULL;
 
 /** NE2000 kernel interrupt command sequence.
  *
@@ -151,30 +151,31 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	device_id_t device_id = IRQ_GET_DEVICE(*call);
 	netif_device_t *device;
-	int nil_phone;
+	async_sess_t *nil_sess;
 	ne2k_t *ne2k;
 	
 	fibril_rwlock_read_lock(&netif_globals.lock);
 	
-	if (find_device(device_id, &device) == EOK) {
-		nil_phone = device->nil_phone;
+	nil_sess = netif_globals.nil_sess;
+	
+	if (find_device(device_id, &device) == EOK)
 		ne2k = (ne2k_t *) device->specific;
-	} else
+	else
 		ne2k = NULL;
 	
 	fibril_rwlock_read_unlock(&netif_globals.lock);
 	
 	if (ne2k != NULL) {
-		link_t *frames =
+		list_t *frames =
 		    ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
 		
 		if (frames != NULL) {
 			while (!list_empty(frames)) {
-				frame_t *frame =
-				    list_get_instance(frames->next, frame_t, link);
+				frame_t *frame = list_get_instance(
+				    list_first(frames), frame_t, link);
 				
 				list_remove(&frame->link);
-				nil_received_msg(nil_phone, device_id, frame->packet,
+				nil_received_msg(nil_sess, device_id, frame->packet,
 				    SERVICE_NONE);
 				free(frame);
 			}
@@ -275,7 +276,6 @@ int netif_probe_message(device_id_t device_id, int irq, void *io)
 	bzero(ne2k, sizeof(ne2k_t));
 	
 	device->device_id = device_id;
-	device->nil_phone = -1;
 	device->specific = (void *) ne2k;
 	device->state = NETIF_STOPPED;
 	
@@ -328,8 +328,11 @@ int netif_start_message(netif_device_t *device)
 		
 		change_state(device, NETIF_ACTIVE);
 		
-		if (irc_service)
-			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, ne2k->irq);
+		if (irc_service) {
+			async_exch_t *exch = async_exchange_begin(irc_sess);
+			async_msg_1(exch, IRC_ENABLE_INTERRUPT, ne2k->irq);
+			async_exchange_end(exch);
+		}
 	}
 	
 	return device->state;
@@ -387,13 +390,14 @@ int netif_initialize(void)
 		irc_service = true;
 	
 	if (irc_service) {
-		while (irc_phone < 0)
-			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
+		while (!irc_sess)
+			irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+			    SERVICE_IRC, 0, 0);
 	}
 	
 	async_set_interrupt_received(irq_handler);
 	
-	return async_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, NULL);
+	return service_register(SERVICE_NE2000);
 }
 
 int main(int argc, char *argv[])

@@ -63,13 +63,15 @@
 typedef struct {
 	IRQ_SPINLOCK_DECLARE(lock);
 	
+	parea_t parea;
+	
 	uint32_t cursor;
 	uint8_t *addr;
 	uint8_t *backbuf;
 	ioport8_t *base;
 } ega_instance_t;
 
-static void ega_putchar(outdev_t *, wchar_t, bool);
+static void ega_putchar(outdev_t *, wchar_t);
 static void ega_redraw(outdev_t *);
 
 static outdev_operations_t egadev_ops = {
@@ -436,7 +438,7 @@ static uint16_t ega_oem_glyph(const wchar_t ch)
 /*
  * This function takes care of scrolling.
  */
-static void ega_check_cursor(ega_instance_t *instance, bool silent)
+static void ega_check_cursor(ega_instance_t *instance)
 {
 	if (instance->cursor < EGA_SCREEN)
 		return;
@@ -447,7 +449,7 @@ static void ega_check_cursor(ega_instance_t *instance, bool silent)
 	memsetw(instance->backbuf + (EGA_SCREEN - EGA_COLS) * 2,
 	    EGA_COLS, EMPTY_CHAR);
 	
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		memmove((void *) instance->addr,
 		    (void *) (instance->addr + EGA_COLS * 2),
 		    (EGA_SCREEN - EGA_COLS) * 2);
@@ -458,9 +460,9 @@ static void ega_check_cursor(ega_instance_t *instance, bool silent)
 	instance->cursor = instance->cursor - EGA_COLS;
 }
 
-static void ega_show_cursor(ega_instance_t *instance, bool silent)
+static void ega_show_cursor(ega_instance_t *instance)
 {
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		pio_write_8(instance->base + EGA_INDEX_REG, 0x0a);
 		uint8_t stat = pio_read_8(instance->base + EGA_DATA_REG);
 		pio_write_8(instance->base + EGA_INDEX_REG, 0x0a);
@@ -468,9 +470,9 @@ static void ega_show_cursor(ega_instance_t *instance, bool silent)
 	}
 }
 
-static void ega_move_cursor(ega_instance_t *instance, bool silent)
+static void ega_move_cursor(ega_instance_t *instance)
 {
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		pio_write_8(instance->base + EGA_INDEX_REG, 0x0e);
 		pio_write_8(instance->base + EGA_DATA_REG,
 		    (uint8_t) ((instance->cursor >> 8) & 0xff));
@@ -480,9 +482,9 @@ static void ega_move_cursor(ega_instance_t *instance, bool silent)
 	}
 }
 
-static void ega_sync_cursor(ega_instance_t *instance, bool silent)
+static void ega_sync_cursor(ega_instance_t *instance)
 {
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		pio_write_8(instance->base + EGA_INDEX_REG, 0x0e);
 		uint8_t hi = pio_read_8(instance->base + EGA_DATA_REG);
 		pio_write_8(instance->base + EGA_INDEX_REG, 0x0f);
@@ -502,16 +504,16 @@ static void ega_sync_cursor(ega_instance_t *instance, bool silent)
 	memsetw(instance->backbuf + instance->cursor * 2,
 	    EGA_SCREEN - instance->cursor, EMPTY_CHAR);
 	
-	if (!silent)
+	if ((!instance->parea.mapped) || (console_override))
 		memsetw(instance->addr + instance->cursor * 2,
 		    EGA_SCREEN - instance->cursor, EMPTY_CHAR);
 	
-	ega_check_cursor(instance, silent);
-	ega_move_cursor(instance, silent);
-	ega_show_cursor(instance, silent);
+	ega_check_cursor(instance);
+	ega_move_cursor(instance);
+	ega_show_cursor(instance);
 }
 
-static void ega_display_char(ega_instance_t *instance, wchar_t ch, bool silent)
+static void ega_display_char(ega_instance_t *instance, wchar_t ch)
 {
 	uint16_t index = ega_oem_glyph(ch);
 	uint8_t glyph;
@@ -528,13 +530,13 @@ static void ega_display_char(ega_instance_t *instance, wchar_t ch, bool silent)
 	instance->backbuf[instance->cursor * 2] = glyph;
 	instance->backbuf[instance->cursor * 2 + 1] = style;
 	
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		instance->addr[instance->cursor * 2] = glyph;
 		instance->addr[instance->cursor * 2 + 1] = style;
 	}
 }
 
-static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
+static void ega_putchar(outdev_t *dev, wchar_t ch)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
@@ -554,12 +556,12 @@ static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
 			instance->cursor--;
 		break;
 	default:
-		ega_display_char(instance, ch, silent);
+		ega_display_char(instance, ch);
 		instance->cursor++;
 		break;
 	}
-	ega_check_cursor(instance, silent);
-	ega_move_cursor(instance, silent);
+	ega_check_cursor(instance);
+	ega_move_cursor(instance);
 	
 	irq_spinlock_unlock(&instance->lock, true);
 }
@@ -571,8 +573,8 @@ static void ega_redraw(outdev_t *dev)
 	irq_spinlock_lock(&instance->lock, true);
 	
 	memcpy(instance->addr, instance->backbuf, EGA_VRAM_SIZE);
-	ega_move_cursor(instance, silent);
-	ega_show_cursor(instance, silent);
+	ega_move_cursor(instance);
+	ega_show_cursor(instance);
 	
 	irq_spinlock_unlock(&instance->lock, true);
 }
@@ -611,14 +613,22 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 		return NULL;
 	}
 	
+	link_initialize(&instance->parea.link);
+	instance->parea.pbase = addr;
+	instance->parea.frames = SIZE2FRAMES(EGA_VRAM_SIZE);
+	instance->parea.unpriv = false;
+	instance->parea.mapped = false;
+	ddi_parea_register(&instance->parea);
+	
 	/* Synchronize the back buffer and cursor position. */
 	memcpy(instance->backbuf, instance->addr, EGA_VRAM_SIZE);
-	ega_sync_cursor(instance, silent);
+	ega_sync_cursor(instance);
 	
 	if (!fb_exported) {
 		/*
-		 * This is the necessary evil until the userspace driver is entirely
-		 * self-sufficient.
+		 * We export the kernel framebuffer for uspace usage.
+		 * This is used in the case the uspace framebuffer
+		 * driver is not self-sufficient.
 		 */
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 2);

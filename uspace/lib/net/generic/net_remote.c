@@ -46,21 +46,24 @@
 #include <net_interface.h>
 #include <adt/measured_strings.h>
 
-/** Connects to the networking module.
+/** Connect to the networking module.
  *
- * @return		The networking module phone on success.
+ * @return Networking module session on success.
+ *
  */
-int net_connect_module(void)
+async_sess_t *net_connect_module(void)
 {
 	return connect_to_service(SERVICE_NETWORKING);
 }
 
-/** Frees the received settings.
+/** Free the received settings.
  *
- * @param[in] settings	The received settings.
- * @param[in] data	The received settings data.
- * @see	net_get_device_conf_req()
+ * @param[in] settings Received settings.
+ * @param[in] data     Received settings data.
+ *
+ * @see net_get_device_conf_req()
  * @see net_get_conf_req()
+ *
  */
 void net_free_settings(measured_string_t *settings, uint8_t *data)
 {
@@ -70,56 +73,60 @@ void net_free_settings(measured_string_t *settings, uint8_t *data)
 		free(data);
 }
 
-/** Returns the global configuration.
+/** Return the global configuration.
  *
  * The configuration names are read and the appropriate settings are set
  * instead. Call net_free_settings() function to release the returned
  * configuration.
  *
- * @param[in] net_phone	The networking module phone.
- * @param[in,out] configuration The requested configuration. The names are read
- * and the appropriate settings are set instead.
+ * @param[in]     sess          Networking module session.
+ * @param[in,out] configuration Requested configuration. The names are
+ *                              read and the appropriate settings are set
+ *                              instead.
  *
- * @param[in] count	The configuration entries count.
- * @param[in,out] data	The configuration and settings data.
- * @return		EOK on success.
- * @return		EINVAL if the configuration is NULL.
- * @return		EINVAL if the count is zero.
- * @return		Other error codes as defined for the
- *			generic_translate_req() function.
+ * @param[in]     count         Configuration entries count.
+ * @param[in,out] data          Configuration and settings data.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the configuration is NULL.
+ * @return EINVAL if the count is zero.
+ * @return Other error codes as defined for the
+ *         generic_translate_req() function.
+ *
  */
-int
-net_get_conf_req(int net_phone, measured_string_t **configuration,
+int net_get_conf_req(async_sess_t *sess, measured_string_t **configuration,
     size_t count, uint8_t **data)
 {
-	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF, 0, 0,
+	return generic_translate_req(sess, NET_NET_GET_DEVICE_CONF, 0, 0,
 	    *configuration, count, configuration, data);
 }
 
-/** Returns the device specific configuration.
+/** Return the device specific configuration.
  *
- * Returns the global configuration if the device specific is not found.
+ * Return the global configuration if the device specific is not found.
  * The configuration names are read and the appropriate settings are set
  * instead. Call net_free_settings() function to release the returned
  * configuration.
  *
- * @param[in] net_phone	The networking module phone.
- * @param[in] device_id	The device identifier.
- * @param[in,out] configuration The requested device configuration. The names
- *			are read and the appropriate settings are set instead.
- * @param[in] count	The configuration entries count.
- * @param[in,out] data	The configuration and settings data.
- * @return		EOK on success.
- * @return		EINVAL if the configuration is NULL.
- * @return		EINVAL if the count is zero.
- * @return		Other error codes as defined for the
- *			generic_translate_req() function.
+ * @param[in]     sess          The networking module session.
+ * @param[in]     device_id     Device identifier.
+ * @param[in,out] configuration Requested device configuration. The names
+ *                              are read and the appropriate settings are
+ *                              set instead.
+ * @param[in]     count         Configuration entries count.
+ * @param[in,out] data          Configuration and settings data.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the configuration is NULL.
+ * @return EINVAL if the count is zero.
+ * @return Other error codes as defined for the
+ *         generic_translate_req() function.
+ *
  */
-int
-net_get_device_conf_req(int net_phone, device_id_t device_id,
+int net_get_device_conf_req(async_sess_t *sess, device_id_t device_id,
     measured_string_t **configuration, size_t count, uint8_t **data)
 {
-	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF,
+	return generic_translate_req(sess, NET_NET_GET_DEVICE_CONF,
 	    device_id, 0, *configuration, count, configuration, data);
 }
 

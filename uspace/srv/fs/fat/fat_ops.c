@@ -66,7 +66,7 @@
 static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
 
 /** List of cached free FAT nodes. */
-static LIST_INITIALIZE(ffn_head);
+static LIST_INITIALIZE(ffn_list);
 
 /*
  * Forward declarations of FAT libfs operations.
@@ -146,7 +146,6 @@ static int fat_node_sync(fat_node_t *node)
 
 static int fat_node_fini_by_devmap_handle(devmap_handle_t devmap_handle)
 {
-	link_t *lnk;
 	fat_node_t *nodep;
 	int rc;
 
@@ -158,7 +157,7 @@ static int fat_node_fini_by_devmap_handle(devmap_handle_t devmap_handle)
 
 restart:
 	fibril_mutex_lock(&ffn_mutex);
-	for (lnk = ffn_head.next; lnk != &ffn_head; lnk = lnk->next) {
+	list_foreach(ffn_list, lnk) {
 		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
 		if (!fibril_mutex_trylock(&nodep->lock)) {
 			fibril_mutex_unlock(&ffn_mutex);
@@ -195,7 +194,7 @@ restart:
 		free(nodep->bp);
 		free(nodep);
 
-		/* Need to restart because we changed the ffn_head list. */
+		/* Need to restart because we changed ffn_list. */
 		goto restart;
 	}
 	fibril_mutex_unlock(&ffn_mutex);
@@ -210,10 +209,11 @@ static int fat_node_get_new(fat_node_t **nodepp)
 	int rc;
 
 	fibril_mutex_lock(&ffn_mutex);
-	if (!list_empty(&ffn_head)) {
+	if (!list_empty(&ffn_list)) {
 		/* Try to use a cached free node structure. */
 		fat_idx_t *idxp_tmp;
-		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
+		nodep = list_get_instance(list_first(&ffn_list), fat_node_t,
+		    ffn_link);
 		if (!fibril_mutex_trylock(&nodep->lock))
 			goto skip_cache;
 		idxp_tmp = nodep->idx;
@@ -472,7 +472,7 @@ int fat_node_put(fs_node_t *fn)
 	if (!--nodep->refcnt) {
 		if (nodep->idx) {
 			fibril_mutex_lock(&ffn_mutex);
-			list_append(&nodep->ffn_link, &ffn_head);
+			list_append(&nodep->ffn_link, &ffn_list);
 			fibril_mutex_unlock(&ffn_mutex);
 		} else {
 			/*
@@ -969,7 +969,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	free(opts);
 
 	/* initialize libblock */
-	rc = block_init(devmap_handle, BS_SIZE);
+	rc = block_init(EXCHANGE_SERIALIZE, devmap_handle, BS_SIZE);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		return;

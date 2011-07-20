@@ -60,7 +60,7 @@ void version_print(const char *term)
 {
 	printf("HelenOS release %s (%s)%s%s\n", release, name, revision, timestamp);
 	printf("Running on %s (%s)\n", arch, term);
-	printf("Copyright (c) 2001-2010 HelenOS project\n\n");
+	printf("Copyright (c) 2001-2011 HelenOS project\n\n");
 }
 
 /** @}

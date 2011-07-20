@@ -209,7 +209,7 @@ void os_input_disp_help(void)
  *
  * @param ptr	Place to store pointer to new string.
  */
-int os_input_line(char **ptr)
+int os_input_line(const char *prompt, char **ptr)
 {
 	char *line;
 	int rc;
@@ -218,6 +218,8 @@ int os_input_line(char **ptr)
 		tinput = tinput_new();
 		if (tinput == NULL)
 			return EIO;
+
+		tinput_set_prompt(tinput, prompt);
 	}
 
 	rc = tinput_read(tinput, &line);

@@ -93,7 +93,7 @@ typedef struct {
 	sheet_t sh;
 } doc_t;
 
-static int con;
+static console_ctrl_t *con;
 static doc_t doc;
 static bool done;
 static pane_t pane;
@@ -114,9 +114,9 @@ static void cursor_show(void);
 static void cursor_hide(void);
 static void cursor_setvis(bool visible);
 
-static void key_handle_unmod(console_event_t const *ev);
-static void key_handle_ctrl(console_event_t const *ev);
-static void key_handle_shift(console_event_t const *ev);
+static void key_handle_unmod(kbd_event_t const *ev);
+static void key_handle_ctrl(kbd_event_t const *ev);
+static void key_handle_shift(kbd_event_t const *ev);
 static void key_handle_movement(unsigned int key, bool shift);
 
 static int file_save(char const *fname);
@@ -157,13 +157,13 @@ static void status_display(char const *str);
 
 int main(int argc, char *argv[])
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	coord_t coord;
 	bool new_file;
 
 	spt_t pt;
 
-	con = fphone(stdout);
+	con = console_init(stdin, stdout);
 	console_clear(con);
 
 	console_get_size(con, &scr_columns, &scr_rows);
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 	done = false;
 
 	while (!done) {
-		console_get_event(con, &ev);
+		console_get_kbd_event(con, &ev);
 		pane.rflags = 0;
 
 		if (ev.type == KEY_PRESS) {
@@ -276,7 +276,7 @@ static void cursor_setvis(bool visible)
 }
 
 /** Handle key without modifier. */
-static void key_handle_unmod(console_event_t const *ev)
+static void key_handle_unmod(kbd_event_t const *ev)
 {
 	switch (ev->key) {
 	case KC_ENTER:
@@ -319,7 +319,7 @@ static void key_handle_unmod(console_event_t const *ev)
 }
 
 /** Handle Shift-key combination. */
-static void key_handle_shift(console_event_t const *ev)
+static void key_handle_shift(kbd_event_t const *ev)
 {
 	switch (ev->key) {
 	case KC_LEFT:
@@ -343,7 +343,7 @@ static void key_handle_shift(console_event_t const *ev)
 }
 
 /** Handle Ctrl-key combination. */
-static void key_handle_ctrl(console_event_t const *ev)
+static void key_handle_ctrl(kbd_event_t const *ev)
 {
 	switch (ev->key) {
 	case KC_Q:
@@ -496,7 +496,7 @@ static void file_save_as(void)
 /** Ask for a file name. */
 static char *filename_prompt(char const *prompt, char const *init_value)
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	char *str;
 	wchar_t buffer[INFNAME_MAX_LEN + 1];
 	int max_len;
@@ -516,7 +516,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 	done = false;
 
 	while (!done) {
-		console_get_event(con, &ev);
+		console_get_kbd_event(con, &ev);
 
 		if (ev.type == KEY_PRESS) {
 			/* Handle key press. */
@@ -530,7 +530,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 				case KC_BACKSPACE:
 					if (nc > 0) {
 						putchar('\b');
-						fflush(stdout);
+						console_flush(con);
 						--nc;
 					}
 					break;
@@ -540,7 +540,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 				default:
 					if (ev.c >= 32 && nc < max_len) {
 						putchar(ev.c);
-						fflush(stdout);
+						console_flush(con);
 						buffer[nc++] = ev.c;
 					}
 					break;
@@ -688,7 +688,7 @@ static void pane_text_display(void)
 		console_set_pos(con, 0, i);
 		for (j = 0; j < scr_columns; ++j)
 			putchar(' ');
-		fflush(stdout);
+		console_flush(con);
 	}
 
 	pane.rflags |= (REDRAW_STATUS | REDRAW_CARET);
@@ -756,9 +756,9 @@ static void pane_row_range_display(int r0, int r1)
 
 		if (coord_cmp(&csel_start, &rbc) <= 0 &&
 		    coord_cmp(&rbc, &csel_end) < 0) {
-			fflush(stdout);
+			console_flush(con);
 			console_set_style(con, STYLE_SELECTED);
-			fflush(stdout);
+			console_flush(con);
 		}
 
 		console_set_pos(con, 0, i);
@@ -767,15 +767,15 @@ static void pane_row_range_display(int r0, int r1)
 		s_column = pane.sh_column;
 		while (pos < size) {
 			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
-				fflush(stdout);
+				console_flush(con);
 				console_set_style(con, STYLE_SELECTED);
-				fflush(stdout);
+				console_flush(con);
 			}
 	
 			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-				fflush(stdout);
+				console_flush(con);
 				console_set_style(con, STYLE_NORMAL);
-				fflush(stdout);
+				console_flush(con);
 			}
 	
 			c = str_decode(row_buf, &pos, size);
@@ -793,9 +793,9 @@ static void pane_row_range_display(int r0, int r1)
 		}
 
 		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-			fflush(stdout);
+			console_flush(con);
 			console_set_style(con, STYLE_NORMAL);
-			fflush(stdout);
+			console_flush(con);
 		}
 
 		/* Fill until the end of display area. */
@@ -807,7 +807,7 @@ static void pane_row_range_display(int r0, int r1)
 
 		for (j = 0; j < fill; ++j)
 			putchar(' ');
-		fflush(stdout);
+		console_flush(con);
 		console_set_style(con, STYLE_NORMAL);
 	}
 
@@ -832,7 +832,7 @@ static void pane_status_display(void)
 	
 	int pos = scr_columns - 1 - n;
 	printf("%*s", pos, "");
-	fflush(stdout);
+	console_flush(con);
 	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;
@@ -1157,7 +1157,7 @@ static void status_display(char const *str)
 	
 	int pos = -(scr_columns - 3);
 	printf(" %*s ", pos, str);
-	fflush(stdout);
+	console_flush(con);
 	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;

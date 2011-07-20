@@ -37,6 +37,7 @@
 #ifndef KERN_S3C24XX_UART_H_
 #define KERN_S3C24XX_UART_H_
 
+#include <ddi/ddi.h>
 #include <ddi/irq.h>
 #include <console/chardev.h>
 #include <typedefs.h>
@@ -82,9 +83,10 @@ typedef struct {
 	s3c24xx_uart_io_t *io;
 	indev_t *indev;
 	irq_t irq;
+	parea_t parea;
 } s3c24xx_uart_t;
 
-extern outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *, inr_t inr);
+extern outdev_t *s3c24xx_uart_init(uintptr_t, inr_t inr);
 extern void s3c24xx_uart_input_wire(s3c24xx_uart_t *,
     indev_t *);
 

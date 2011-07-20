@@ -91,16 +91,17 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": Task Monitoring Service\n");
-
+	printf("%s: Task Monitoring Service\n", NAME);
+	
 	if (event_subscribe(EVENT_FAULT, 0) != EOK) {
-		printf(NAME ": Error registering fault notifications.\n");
+		printf("%s: Error registering fault notifications.\n", NAME);
 		return -1;
 	}
-
+	
 	async_set_interrupt_received(fault_event);
+	task_retval(0);
 	async_manager();
-
+	
 	return 0;
 }
 

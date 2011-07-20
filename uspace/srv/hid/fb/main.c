@@ -27,7 +27,7 @@
  */
 
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <async.h>
 #include <as.h>
@@ -39,7 +39,6 @@
 #include "ega.h"
 #include "msim.h"
 #include "ski.h"
-#include "sgcn.h"
 #include "niagara.h"
 #include "main.h"
 
@@ -88,12 +87,6 @@ int main(int argc, char *argv[])
 #ifdef MSIM_ENABLED
 	if ((!initialized) && (fb_kind == 3)) {
 		if (msim_init() == 0)
-			initialized = true;
-	}
-#endif
-#ifdef SGCN_ENABLED
-	if ((!initialized) && (fb_kind == 4)) {
-		if (sgcn_init() == 0)
 			initialized = true;
 	}
 #endif

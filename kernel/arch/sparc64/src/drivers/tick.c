@@ -43,13 +43,12 @@
 #include <arch.h>
 #include <debug.h>
 
-#define TICK_RESTART_TIME	50	/* Worst case estimate. */
-
 /** Initialize tick and stick interrupt. */
 void tick_init(void)
 {
 	/* initialize TICK interrupt */
 	tick_compare_reg_t compare;
+	softint_reg_t clear;
 
 	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
@@ -58,10 +57,13 @@ void tick_init(void)
 	CPU->arch.next_tick_cmpr = compare.tick_cmpr;
 	tick_compare_write(compare.value);
 
+	clear.value = 0;
+	clear.tick_int = 1;
+	clear_softint_write(clear.value);
+
 #if defined (US3) || defined (SUN4V)
 	/* disable STICK interrupts and clear any pending ones */
 	tick_compare_reg_t stick_compare;
-	softint_reg_t clear;
 
 	stick_compare.value = stick_compare_read();
 	stick_compare.int_dis = true;

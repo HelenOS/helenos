@@ -63,9 +63,6 @@
 /** Maximum waiting sockets queue size. */
 #define SOCKET_MAX_ACCEPTED_SIZE	0
 
-/** Default timeout for connections in microseconds. */
-#define SOCKET_CONNECT_TIMEOUT	(1 * 1000 * 1000)
-
 /**
  * Maximum number of random attempts to find a new socket identifier before
  * switching to the sequence.
@@ -85,8 +82,8 @@ typedef struct socket socket_t;
 struct socket {
 	/** Socket identifier. */
 	int socket_id;
-	/** Parent module phone. */
-	int phone;
+	/** Parent module session. */
+	async_sess_t *sess;
 	/** Parent module service. */
 	services_t service;
 
@@ -145,14 +142,10 @@ INT_MAP_DECLARE(sockets, socket_t);
 
 /** Socket client library global data. */
 static struct socket_client_globals {
-	/** TCP module phone. */
-	int tcp_phone;
-	/** UDP module phone. */
-	int udp_phone;
-
-//	/** The last socket identifier.
-//	 */
-//	int last_id;
+	/** TCP module session. */
+	async_sess_t *tcp_sess;
+	/** UDP module session. */
+	async_sess_t *udp_sess;
 
 	/** Active sockets. */
 	sockets_t *sockets;
@@ -165,9 +158,8 @@ static struct socket_client_globals {
 	 */
 	fibril_rwlock_t lock;
 } socket_globals = {
-	.tcp_phone = -1,
-	.udp_phone = -1,
-//	.last_id = 0,
+	.tcp_sess = NULL,
+	.udp_sess = NULL,
 	.sockets = NULL,
 	.lock = FIBRIL_RWLOCK_INITIALIZER(socket_globals.lock)
 };
@@ -201,8 +193,9 @@ static sockets_t *socket_get_sockets(void)
  *
  * @param[in] iid	The initial message identifier.
  * @param[in] icall	The initial message call structure.
+ * @param[in] arg	Local argument.
  */
-static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
+static void socket_connection(ipc_callid_t iid, ipc_call_t * icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -280,42 +273,38 @@ loop:
 	goto loop;
 }
 
-/** Returns the TCP module phone.
+/** Return the TCP module session.
  *
- * Connects to the TCP module if necessary.
+ * Connect to the TCP module if necessary.
  *
- * @return		The TCP module phone.
- * @return		Other error codes as defined for the
- *			bind_service_timeout() function.
+ * @return The TCP module session.
+ *
  */
-static int socket_get_tcp_phone(void)
+static async_sess_t *socket_get_tcp_sess(void)
 {
-	if (socket_globals.tcp_phone < 0) {
-		socket_globals.tcp_phone = bind_service_timeout(SERVICE_TCP,
-		    0, 0, SERVICE_TCP, socket_connection,
-		    SOCKET_CONNECT_TIMEOUT);
+	if (socket_globals.tcp_sess == NULL) {
+		socket_globals.tcp_sess = bind_service(SERVICE_TCP,
+		    0, 0, SERVICE_TCP, socket_connection);
 	}
 
-	return socket_globals.tcp_phone;
+	return socket_globals.tcp_sess;
 }
 
-/** Returns the UDP module phone.
+/** Return the UDP module session.
  *
- * Connects to the UDP module if necessary.
+ * Connect to the UDP module if necessary.
  *
- * @return		The UDP module phone.
- * @return		Other error codes as defined for the
- *			bind_service_timeout() function.
+ * @return The UDP module session.
+ *
  */
-static int socket_get_udp_phone(void)
+static async_sess_t *socket_get_udp_sess(void)
 {
-	if (socket_globals.udp_phone < 0) {
-		socket_globals.udp_phone = bind_service_timeout(SERVICE_UDP,
-		    0, 0, SERVICE_UDP, socket_connection,
-		    SOCKET_CONNECT_TIMEOUT);
+	if (socket_globals.udp_sess == NULL) {
+		socket_globals.udp_sess = bind_service(SERVICE_UDP,
+		    0, 0, SERVICE_UDP, socket_connection);
 	}
 
-	return socket_globals.udp_phone;
+	return socket_globals.udp_sess;
 }
 
 /** Tries to find a new free socket identifier.
@@ -331,7 +320,6 @@ static int socket_generate_new_id(void)
 
 	sockets = socket_get_sockets();
 	count = 0;
-//	socket_id = socket_globals.last_id;
 
 	do {
 		if (count < SOCKET_ID_TRIES) {
@@ -344,32 +332,27 @@ static int socket_generate_new_id(void)
 		} else {
 			if (socket_id < INT_MAX) {
 				++socket_id;
-/*			} else if(socket_globals.last_id) {
- *				socket_globals.last_id = 0;
- *				socket_id = 1;
- */			} else {
+			} else {
 				return ELIMIT;
 			}
 		}
 	} while (sockets_find(sockets, socket_id));
-
-//	last_id = socket_id
+	
 	return socket_id;
 }
 
 /** Initializes a new socket specific data.
  *
  * @param[in,out] socket The socket to be initialized.
- * @param[in] socket_id	The new socket identifier.
- * @param[in] phone	The parent module phone.
- * @param[in] service	The parent module service.
+ * @param[in] socket_id  The new socket identifier.
+ * @param[in] sess       The parent module session.
+ * @param[in] service    The parent module service.
  */
-static void
-socket_initialize(socket_t *socket, int socket_id, int phone,
-    services_t service)
+static void socket_initialize(socket_t *socket, int socket_id,
+    async_sess_t *sess, services_t service)
 {
 	socket->socket_id = socket_id;
-	socket->phone = phone;
+	socket->sess = sess;
 	socket->service = service;
 	dyn_fifo_initialize(&socket->received, SOCKET_INITIAL_RECEIVED_SIZE);
 	dyn_fifo_initialize(&socket->accepted, SOCKET_INITIAL_ACCEPTED_SIZE);
@@ -394,12 +377,12 @@ socket_initialize(socket_t *socket, int socket_id, int phone,
  *			this time.
  * @return		Other error codes as defined for the NET_SOCKET message.
  * @return		Other error codes as defined for the
- *			bind_service_timeout() function.
+ *			bind_service() function.
  */
 int socket(int domain, int type, int protocol)
 {
 	socket_t *socket;
-	int phone;
+	async_sess_t *sess;
 	int socket_id;
 	services_t service;
 	sysarg_t fragment_size;
@@ -416,7 +399,7 @@ int socket(int domain, int type, int protocol)
 
 			switch (protocol) {
 			case IPPROTO_TCP:
-				phone = socket_get_tcp_phone();
+				sess = socket_get_tcp_sess();
 				service = SERVICE_TCP;
 				break;
 			default:
@@ -431,7 +414,7 @@ int socket(int domain, int type, int protocol)
 
 			switch (protocol) {
 			case IPPROTO_UDP:
-				phone = socket_get_udp_phone();
+				sess = socket_get_udp_sess();
 				service = SERVICE_UDP;
 				break;
 			default:
@@ -452,8 +435,8 @@ int socket(int domain, int type, int protocol)
 		return EPFNOSUPPORT;
 	}
 
-	if (phone < 0)
-		return phone;
+	if (sess == NULL)
+		return ENOENT;
 
 	/* Create a new socket structure */
 	socket = (socket_t *) malloc(sizeof(socket_t));
@@ -470,9 +453,12 @@ int socket(int domain, int type, int protocol)
 		free(socket);
 		return socket_id;
 	}
-
-	rc = (int) async_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL,
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	rc = (int) async_req_3_3(exch, NET_SOCKET, socket_id, 0, service, NULL,
 	    &fragment_size, &header_size);
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		free(socket);
@@ -483,7 +469,7 @@ int socket(int domain, int type, int protocol)
 	socket->header_size = (size_t) header_size;
 
 	/* Finish the new socket initialization */
-	socket_initialize(socket, socket_id, phone, service);
+	socket_initialize(socket, socket_id, sess, service);
 	/* Store the new socket */
 	rc = sockets_add(socket_get_sockets(), socket_id, socket);
 
@@ -492,8 +478,12 @@ int socket(int domain, int type, int protocol)
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
-		async_msg_3(phone, NET_SOCKET_CLOSE, (sysarg_t) socket_id, 0,
+		
+		exch = async_exchange_begin(sess);
+		async_msg_3(exch, NET_SOCKET_CLOSE, (sysarg_t) socket_id, 0,
 		    service);
+		async_exchange_end(exch);
+		
 		return rc;
 	}
 
@@ -537,10 +527,12 @@ socket_send_data(int socket_id, sysarg_t message, sysarg_t arg2,
 	}
 
 	/* Request the message */
-	message_id = async_send_3(socket->phone, message,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	message_id = async_send_3(exch, message,
 	    (sysarg_t) socket->socket_id, arg2, socket->service, NULL);
 	/* Send the address */
-	async_data_write_start(socket->phone, data, datalength);
+	async_data_write_start(exch, data, datalength);
+	async_exchange_end(exch);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &result);
@@ -597,8 +589,10 @@ int listen(int socket_id, int backlog)
 	}
 
 	/* Request listen backlog change */
-	result = (int) async_req_3_0(socket->phone, NET_SOCKET_LISTEN,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	result = (int) async_req_3_0(exch, NET_SOCKET_LISTEN,
 	    (sysarg_t) socket->socket_id, (sysarg_t) backlog, socket->service);
+	async_exchange_end(exch);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
 	return result;
@@ -668,7 +662,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 		free(new_socket);
 		return socket_id;
 	}
-	socket_initialize(new_socket, socket_id, socket->phone,
+	socket_initialize(new_socket, socket_id, socket->sess,
 	    socket->service);
 	result = sockets_add(socket_get_sockets(), new_socket->socket_id,
 	    new_socket);
@@ -680,12 +674,15 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 	}
 
 	/* Request accept */
-	message_id = async_send_5(socket->phone, NET_SOCKET_ACCEPT,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	message_id = async_send_5(exch, NET_SOCKET_ACCEPT,
 	    (sysarg_t) socket->socket_id, 0, socket->service, 0,
 	    new_socket->socket_id, &answer);
 
 	/* Read address */
-	async_data_read_start(socket->phone, cliaddr, *addrlen);
+	async_data_read_start(exch, cliaddr, *addrlen);
+	async_exchange_end(exch);
+	
 	fibril_rwlock_write_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &ipc_result);
 	result = (int) ipc_result;
@@ -779,8 +776,11 @@ int closesocket(int socket_id)
 	}
 
 	/* Request close */
-	rc = (int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	rc = (int) async_req_3_0(exch, NET_SOCKET_CLOSE,
 	    (sysarg_t) socket->socket_id, 0, socket->service);
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		return rc;
@@ -852,38 +852,42 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 	}
 
 	/* Request send */
-	message_id = async_send_5(socket->phone, message,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	
+	message_id = async_send_5(exch, message,
 	    (sysarg_t) socket->socket_id,
 	    (fragments == 1 ? datalength : socket->data_fragment_size),
 	    socket->service, (sysarg_t) flags, fragments, &answer);
 
 	/* Send the address if given */
 	if (!toaddr ||
-	    (async_data_write_start(socket->phone, toaddr, addrlen) == EOK)) {
+	    (async_data_write_start(exch, toaddr, addrlen) == EOK)) {
 		if (fragments == 1) {
 			/* Send all if only one fragment */
-			async_data_write_start(socket->phone, data, datalength);
+			async_data_write_start(exch, data, datalength);
 		} else {
 			/* Send the first fragment */
-			async_data_write_start(socket->phone, data,
+			async_data_write_start(exch, data,
 			    socket->data_fragment_size - socket->header_size);
 			data = ((const uint8_t *) data) +
 			    socket->data_fragment_size - socket->header_size;
 	
 			/* Send the middle fragments */
 			while (--fragments > 1) {
-				async_data_write_start(socket->phone, data,
+				async_data_write_start(exch, data,
 				    socket->data_fragment_size);
 				data = ((const uint8_t *) data) +
 				    socket->data_fragment_size;
 			}
 
 			/* Send the last fragment */
-			async_data_write_start(socket->phone, data,
+			async_data_write_start(exch, data,
 			    (datalength + socket->header_size) %
 			    socket->data_fragment_size);
 		}
 	}
+	
+	async_exchange_end(exch);
 
 	async_wait_for(message_id, &result);
 
@@ -1025,6 +1029,8 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		return 0;
 	}
+	
+	async_exch_t *exch = async_exchange_begin(socket->sess);
 
 	/* Prepare lengths if more fragments */
 	if (fragments > 1) {
@@ -1037,24 +1043,23 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		}
 
 		/* Request packet data */
-		message_id = async_send_4(socket->phone, message,
+		message_id = async_send_4(exch, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
 		    (sysarg_t) flags, &answer);
 
 		/* Read the address if desired */
 		if(!fromaddr ||
-		    (async_data_read_start(socket->phone, fromaddr,
+		    (async_data_read_start(exch, fromaddr,
 		    *addrlen) == EOK)) {
 			/* Read the fragment lengths */
-			if (async_data_read_start(socket->phone, lengths,
+			if (async_data_read_start(exch, lengths,
 			    sizeof(int) * (fragments + 1)) == EOK) {
 				if (lengths[fragments] <= datalength) {
 
 					/* Read all fragments if long enough */
 					for (index = 0; index < fragments;
 					    ++index) {
-						async_data_read_start(
-						    socket->phone, data,
+						async_data_read_start(exch, data,
 						    lengths[index]);
 						data = ((uint8_t *) data) +
 						    lengths[index];
@@ -1066,18 +1071,19 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		free(lengths);
 	} else { /* fragments == 1 */
 		/* Request packet data */
-		message_id = async_send_4(socket->phone, message,
+		message_id = async_send_4(exch, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
 		    (sysarg_t) flags, &answer);
 
 		/* Read the address if desired */
 		if (!fromaddr ||
-		    (async_data_read_start(socket->phone, fromaddr,
-		        *addrlen) == EOK)) {
+		    (async_data_read_start(exch, fromaddr, *addrlen) == EOK)) {
 			/* Read all if only one fragment */
-			async_data_read_start(socket->phone, data, datalength);
+			async_data_read_start(exch, data, datalength);
 		}
 	}
+	
+	async_exchange_end(exch);
 
 	async_wait_for(message_id, &ipc_result);
 	result = (int) ipc_result;
@@ -1189,16 +1195,20 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 	}
 
 	/* Request option value */
-	message_id = async_send_3(socket->phone, NET_SOCKET_GETSOCKOPT,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	
+	message_id = async_send_3(exch, NET_SOCKET_GETSOCKOPT,
 	    (sysarg_t) socket->socket_id, (sysarg_t) optname, socket->service,
 	    NULL);
 
 	/* Read the length */
-	if (async_data_read_start(socket->phone, optlen,
+	if (async_data_read_start(exch, optlen,
 	    sizeof(*optlen)) == EOK) {
 		/* Read the value */
-		async_data_read_start(socket->phone, value, *optlen);
+		async_data_read_start(exch, value, *optlen);
 	}
+	
+	async_exchange_end(exch);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &result);

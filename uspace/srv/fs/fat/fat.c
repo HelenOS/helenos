@@ -38,7 +38,7 @@
 
 #include "fat.h"
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
@@ -75,7 +75,7 @@ fs_reg_t fat_reg;
  * upon each request, FAT might want to keep the connections open after the
  * request has been completed.
  */
-static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void fat_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
 		/*
@@ -87,14 +87,15 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	dprintf(NAME ": connection opened\n");
-	while (1) {
-		ipc_callid_t callid;
-		ipc_call_t call;
 	
-		callid = async_get_call(&call);
-		switch  (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
 			return;
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_MOUNTED:
 			fat_mounted(callid, &call);
 			break;
@@ -143,22 +144,20 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
-	int vfs_phone;
-	int rc;
-
 	printf(NAME ": HelenOS FAT file system server\n");
-
-	rc = fat_idx_init();
+	
+	int rc = fat_idx_init();
 	if (rc != EOK)
 		goto err;
-
-	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
-	if (vfs_phone < EOK) {
+	
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
 	
-	rc = fs_register(vfs_phone, &fat_reg, &fat_vfs_info, fat_connection);
+	rc = fs_register(vfs_sess, &fat_reg, &fat_vfs_info, fat_connection);
 	if (rc != EOK) {
 		fat_idx_fini();
 		goto err;
@@ -167,9 +166,10 @@ int main(int argc, char **argv)
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();
-	/* not reached */
+	
+	/* Not reached */
 	return 0;
-
+	
 err:
 	printf(NAME ": Failed to register file system (%d)\n", rc);
 	return rc;
@@ -177,4 +177,4 @@ err:
 
 /**
  * @}
- */ 
+ */

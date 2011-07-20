@@ -38,97 +38,115 @@
 #include <icmp_remote.h>
 #include <net/modules.h>
 #include <packet_client.h>
-
-#include <async.h>
-#include <errno.h>
 #include <ipc/services.h>
 #include <ipc/icmp.h>
 #include <sys/types.h>
+#include <async.h>
+#include <errno.h>
 
-/** Sends the Destination Unreachable error notification packet.
+/** Send the Destination Unreachable error notification packet.
  *
  * Beginning of the packet is sent as the notification packet data.
  * The source and the destination addresses should be set in the original
  * packet.
  *
- * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- * @param[in] code	The error specific code.
- * @param[in] mtu	The error MTU value.
- * @param[in] packet	The original packet.
- * @return		EOK on success.
- * @return		EPERM if the ICMP error notifications are disabled.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] sess   ICMP module session.
+ * @param[in] code   Error specific code.
+ * @param[in] mtu    Error MTU value.
+ * @param[in] packet Original packet.
+ *
+ * @return EOK on success.
+ * @return EPERM if the ICMP error notifications are disabled.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int
-icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
+int icmp_destination_unreachable_msg(async_sess_t *sess, icmp_code_t code,
     icmp_param_t mtu, packet_t *packet)
 {
-	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (sysarg_t) code,
+	async_exch_t *exch = async_exchange_begin(sess);
+	async_msg_3(exch, NET_ICMP_DEST_UNREACH, (sysarg_t) code,
 	    (sysarg_t) packet_get_id(packet), (sysarg_t) mtu);
+	async_exchange_end(exch);
+	
 	return EOK;
 }
 
-/** Sends the Source Quench error notification packet.
+/** Send the Source Quench error notification packet.
  *
  * Beginning of the packet is sent as the notification packet data.
  * The source and the destination addresses should be set in the original
  * packet.
  *
- * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- * @param[in] packet	The original packet.
- * @return		EOK on success.
- * @return		EPERM if the ICMP error notifications are disabled.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] sess   ICMP module session.
+ * @param[in] packet Original packet.
+ *
+ * @return EOK on success.
+ * @return EPERM if the ICMP error notifications are disabled.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int icmp_source_quench_msg(int icmp_phone, packet_t *packet)
+int icmp_source_quench_msg(async_sess_t *sess, packet_t *packet)
 {
-	async_msg_2(icmp_phone, NET_ICMP_SOURCE_QUENCH, 0,
+	async_exch_t *exch = async_exchange_begin(sess);
+	async_msg_2(exch, NET_ICMP_SOURCE_QUENCH, 0,
 	    (sysarg_t) packet_get_id(packet));
+	async_exchange_end(exch);
+	
 	return EOK;
 }
 
-/** Sends the Time Exceeded error notification packet.
+/** Send the Time Exceeded error notification packet.
  *
  * Beginning of the packet is sent as the notification packet data.
  * The source and the destination addresses should be set in the original
  * packet.
  *
- * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- * @param[in] code	The error specific code.
- * @param[in] packet	The original packet.
- * @return		EOK on success.
- * @return		EPERM if the ICMP error notifications are disabled.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] sess   ICMP module session.
+ * @param[in] code   Error specific code.
+ * @param[in] packet Original packet.
+ *
+ * @return EOK on success.
+ * @return EPERM if the ICMP error notifications are disabled.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t *packet)
+int icmp_time_exceeded_msg(async_sess_t *sess, icmp_code_t code,
+    packet_t *packet)
 {
-	async_msg_2(icmp_phone, NET_ICMP_TIME_EXCEEDED, (sysarg_t) code,
+	async_exch_t *exch = async_exchange_begin(sess);
+	async_msg_2(exch, NET_ICMP_TIME_EXCEEDED, (sysarg_t) code,
 	    (sysarg_t) packet_get_id(packet));
+	async_exchange_end(exch);
+	
 	return EOK;
 }
 
-/** Sends the Parameter Problem error notification packet.
+/** Send the Parameter Problem error notification packet.
  *
  * Beginning of the packet is sent as the notification packet data.
  * The source and the destination addresses should be set in the original
  * packet.
  *
- * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- * @param[in] code	The error specific code.
- * @param[in] pointer	The problematic parameter offset.
- * @param[in] packet	The original packet.
- * @return		EOK on success.
- * @return		EPERM if the ICMP error notifications are disabled.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] sess    ICMP module session.
+ * @param[in] code    Error specific code.
+ * @param[in] pointer Problematic parameter offset.
+ * @param[in] packet  Original packet.
+ *
+ * @return EOK on success.
+ * @return EPERM if the ICMP error notifications are disabled.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code,
+int icmp_parameter_problem_msg(async_sess_t *sess, icmp_code_t code,
     icmp_param_t pointer, packet_t *packet)
 {
-	async_msg_3(icmp_phone, NET_ICMP_PARAMETERPROB, (sysarg_t) code,
+	async_exch_t *exch = async_exchange_begin(sess);
+	async_msg_3(exch, NET_ICMP_PARAMETERPROB, (sysarg_t) code,
 	    (sysarg_t) packet_get_id(packet), (sysarg_t) pointer);
+	async_exchange_end(exch);
+	
 	return EOK;
 }
 
 /** @}
  */
-

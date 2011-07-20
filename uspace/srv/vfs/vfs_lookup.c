@@ -49,7 +49,7 @@
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 
 FIBRIL_MUTEX_INITIALIZE(plb_mutex);
-LIST_INITIALIZE(plb_head);	/**< PLB entry ring buffer. */
+LIST_INITIALIZE(plb_entries);	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
 /** Perform a path lookup.
@@ -101,14 +101,14 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	size_t first;	/* the first free index */
 	size_t last;	/* the last free index */
 
-	if (list_empty(&plb_head)) {
+	if (list_empty(&plb_entries)) {
 		first = 0;
 		last = PLB_SIZE - 1;
 	} else {
-		plb_entry_t *oldest = list_get_instance(plb_head.next,
-		    plb_entry_t, plb_link);
-		plb_entry_t *newest = list_get_instance(plb_head.prev,
-		    plb_entry_t, plb_link);
+		plb_entry_t *oldest = list_get_instance(
+		    list_first(&plb_entries), plb_entry_t, plb_link);
+		plb_entry_t *newest = list_get_instance(
+		    list_last(&plb_entries), plb_entry_t, plb_link);
 
 		first = (newest->index + newest->len) % PLB_SIZE;
 		last = (oldest->index - 1) % PLB_SIZE;
@@ -144,7 +144,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	 * Claim PLB space by inserting the entry into the PLB entry ring
 	 * buffer.
 	 */
-	list_append(&entry.plb_link, &plb_head);
+	list_append(&entry.plb_link, &plb_entries);
 	
 	fibril_mutex_unlock(&plb_mutex);
 
@@ -158,15 +158,15 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	memcpy(plb, &path[cnt1], cnt2);
 
 	ipc_call_t answer;
-	int phone = vfs_grab_phone(root->fs_handle);
-	aid_t req = async_send_5(phone, VFS_OUT_LOOKUP, (sysarg_t) first,
+	async_exch_t *exch = vfs_exchange_grab(root->fs_handle);
+	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) first,
 	    (sysarg_t) (first + len - 1) % PLB_SIZE,
 	    (sysarg_t) root->devmap_handle, (sysarg_t) lflag, (sysarg_t) index,
 	    &answer);
 	
 	sysarg_t rc;
 	async_wait_for(req, &rc);
-	vfs_release_phone(root->fs_handle, phone);
+	vfs_exchange_release(exch);
 	
 	fibril_mutex_lock(&plb_mutex);
 	list_remove(&entry.plb_link);
@@ -207,16 +207,16 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
  */
 int vfs_open_node_internal(vfs_lookup_res_t *result)
 {
-	int phone = vfs_grab_phone(result->triplet.fs_handle);
+	async_exch_t *exch = vfs_exchange_grab(result->triplet.fs_handle);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, VFS_OUT_OPEN_NODE,
+	aid_t req = async_send_2(exch, VFS_OUT_OPEN_NODE,
 	    (sysarg_t) result->triplet.devmap_handle,
 	    (sysarg_t) result->triplet.index, &answer);
 	
 	sysarg_t rc;
 	async_wait_for(req, &rc);
-	vfs_release_phone(result->triplet.fs_handle, phone);
+	vfs_exchange_release(exch);
 	
 	if (rc == EOK) {
 		result->size =

@@ -175,26 +175,21 @@ static void srv_start(const char *fname)
 
 static void console(const char *dev)
 {
-	char hid_in[DEVMAP_NAME_MAXLEN];
-	int rc;
-	
-	snprintf(hid_in, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
-	
-	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, hid_in);
+	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, dev);
 	
 	/* Wait for the input device to be ready */
 	devmap_handle_t handle;
-	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	int rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, hid_in,
+		printf("%s: Error waiting on %s (%s)\n", NAME, dev,
 		    str_error(rc));
 		return;
 	}
 	
-	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, hid_in, NULL);
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, dev, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
-		    hid_in, str_error(rc));
+		    dev, str_error(rc));
 	}
 }
 
@@ -271,23 +266,18 @@ int main(int argc, char *argv[])
 	
 	mount_tmpfs();
 	
-#ifdef CONFIG_START_DEVMAN
 	spawn("/srv/devman");
-#endif
 	spawn("/srv/apic");
 	spawn("/srv/i8259");
-	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
 	srv_start("/srv/s3c24ser");
-	srv_start("/srv/adb_ms");
-	srv_start("/srv/char_ms");
 	srv_start("/srv/s3c24ts");
 	
 	spawn("/srv/fb");
-	spawn("/srv/kbd");
-	console("hid_in/kbd");
+	spawn("/srv/input");
+	console("hid/input");
 	
 	spawn("/srv/clip");
 	

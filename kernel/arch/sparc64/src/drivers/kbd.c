@@ -34,7 +34,6 @@
 
 #include <arch/drivers/kbd.h>
 #include <genarch/ofw/ofw_tree.h>
-#include <genarch/ofw/fhc.h>
 #include <genarch/ofw/ebus.h>
 #include <console/console.h>
 #include <ddi/irq.h>
@@ -50,101 +49,11 @@
 #include <genarch/kbrd/kbrd.h>
 #endif
 
-#ifdef CONFIG_Z8530
-#include <genarch/drivers/z8530/z8530.h>
-#endif
-
 #ifdef CONFIG_NS16550
 #include <genarch/drivers/ns16550/ns16550.h>
 #endif
 
 #ifdef CONFIG_SUN_KBD
-
-#ifdef CONFIG_Z8530
-
-static bool kbd_z8530_init(ofw_tree_node_t *node)
-{
-	const char *name = ofw_tree_node_name(node);
-	
-	if (str_cmp(name, "zs") != 0)
-		return false;
-	
-	/*
-	 * Read 'interrupts' property.
-	 */
-	ofw_tree_property_t *prop = ofw_tree_getprop(node, "interrupts");
-	if ((!prop) || (!prop->value)) {
-		printf("z8530: Unable to find interrupts property\n");
-		return false;
-	}
-	
-	uint32_t interrupts = *((uint32_t *) prop->value);
-	
-	/*
-	 * Read 'reg' property.
-	 */
-	prop = ofw_tree_getprop(node, "reg");
-	if ((!prop) || (!prop->value)) {
-		printf("z8530: Unable to find reg property\n");
-		return false;
-	}
-	
-	size_t size = ((ofw_fhc_reg_t *) prop->value)->size;
-	
-	uintptr_t pa;
-	if (!ofw_fhc_apply_ranges(node->parent,
-	    ((ofw_fhc_reg_t *) prop->value), &pa)) {
-		printf("z8530: Failed to determine address\n");
-		return false;
-	}
-	
-	inr_t inr;
-	cir_t cir;
-	void *cir_arg;
-	if (!ofw_fhc_map_interrupt(node->parent,
-	    ((ofw_fhc_reg_t *) prop->value), interrupts, &inr, &cir,
-	    &cir_arg)) {
-		printf("z8530: Failed to determine interrupt\n");
-		return false;
-	}
-	
-	/*
-	 * We need to pass aligned address to hw_map().
-	 * However, the physical keyboard address can
-	 * be pretty much unaligned, depending on the
-	 * underlying controller.
-	 */
-	uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
-	size_t offset = pa - aligned_addr;
-	
-	z8530_t *z8530 = (z8530_t *)
-	    (hw_map(aligned_addr, offset + size) + offset);
-	
-	z8530_instance_t *z8530_instance = z8530_init(z8530, inr, cir, cir_arg);
-	if (z8530_instance) {
-		kbrd_instance_t *kbrd_instance = kbrd_init();
-		if (kbrd_instance) {
-			indev_t *sink = stdin_wire();
-			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
-			z8530_wire(z8530_instance, kbrd);
-		}
-	}
-	
-	/*
-	 * This is the necessary evil until the userspace drivers are
-	 * entirely self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
-	    (uintptr_t) z8530);
-	sysinfo_set_item_val("kbd.address.physical", NULL, pa);
-	sysinfo_set_item_val("kbd.type.z8530", NULL, true);
-	
-	return true;
-}
-
-#endif /* CONFIG_Z8530 */
 
 #ifdef CONFIG_NS16550
 
@@ -242,10 +151,6 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
  */
 void kbd_init(ofw_tree_node_t *node)
 {
-#ifdef CONFIG_Z8530
-	kbd_z8530_init(node);
-#endif
-	
 #ifdef CONFIG_NS16550
 	kbd_ns16550_init(node);
 #endif

@@ -35,11 +35,13 @@
 
 #include <net/packet.h>
 #include <sys/types.h>
+#include <async.h>
 
-extern int packet_translate_remote(int, packet_t **, packet_id_t);
-extern packet_t *packet_get_4_remote(int, size_t, size_t, size_t, size_t);
-extern packet_t *packet_get_1_remote(int, size_t);
-extern void pq_release_remote(int, packet_id_t);
+extern int packet_translate_remote(async_sess_t *, packet_t **, packet_id_t);
+extern packet_t *packet_get_4_remote(async_sess_t *, size_t, size_t, size_t,
+    size_t);
+extern packet_t *packet_get_1_remote(async_sess_t *, size_t);
+extern void pq_release_remote(async_sess_t *, packet_id_t);
 
 #endif
 

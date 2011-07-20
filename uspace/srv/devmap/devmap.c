@@ -36,7 +36,7 @@
  */
 
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
@@ -56,14 +56,18 @@
  *
  */
 typedef struct {
-	/** Pointers to previous and next drivers in linked list */
+	/** Link to drivers_list */
 	link_t drivers;
-	/** Pointer to the linked list of devices controlled by this driver */
-	link_t devices;
-	/** Phone asociated with this driver */
-	sysarg_t phone;
+	
+	/** List of devices controlled by this driver */
+	list_t devices;
+	
+	/** Session asociated with this driver */
+	async_sess_t *sess;
+	
 	/** Device driver name */
 	char *name;
+	
 	/** Fibril mutex for list of devices owned by this driver */
 	fibril_mutex_t devices_mutex;
 } devmap_driver_t;
@@ -72,12 +76,15 @@ typedef struct {
  *
  */
 typedef struct {
-	/** Pointer to the previous and next device in the list of all namespaces */
+	/** Link to namespaces_list */
 	link_t namespaces;
+	
 	/** Unique namespace identifier */
 	devmap_handle_t handle;
+	
 	/** Namespace name */
 	char *name;
+	
 	/** Reference count */
 	size_t refcnt;
 } devmap_namespace_t;
@@ -86,10 +93,9 @@ typedef struct {
  *
  */
 typedef struct {
-	/** Pointer to the previous and next device in the list of all devices */
+	/** Link to global list of devices (devices_list) */
 	link_t devices;
-	/** Pointer to the previous and next device in the list of devices
-	    owned by one driver */
+	/** Link to driver list of devices (devmap_driver_t.devices) */
 	link_t driver_devices;
 	/** Unique device identifier */
 	devmap_handle_t handle;
@@ -217,11 +223,9 @@ static bool devmap_fqdn_split(const char *fqdn, char **ns_name, char **name)
 /** Find namespace with given name. */
 static devmap_namespace_t *devmap_namespace_find_name(const char *name)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
+	list_foreach(namespaces_list, item) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
 		if (str_cmp(namespace->name, name) == 0)
@@ -238,11 +242,9 @@ static devmap_namespace_t *devmap_namespace_find_name(const char *name)
  */
 static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
+	list_foreach(namespaces_list, item) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
 		if (namespace->handle == handle)
@@ -256,11 +258,9 @@ static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 static devmap_device_t *devmap_device_find_name(const char *ns_name,
     const char *name)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = devices_list.next; item != &devices_list; item = item->next) {
+	list_foreach(devices_list, item) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
 		if ((str_cmp(device->namespace->name, ns_name) == 0)
@@ -278,11 +278,9 @@ static devmap_device_t *devmap_device_find_name(const char *ns_name,
  */
 static devmap_device_t *devmap_device_find_handle(devmap_handle_t handle)
 {
-	link_t *item;
-	
 	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	for (item = devices_list.next; item != &devices_list; item = item->next) {
+	list_foreach(devices_list, item) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
 		if (device->handle == handle)
@@ -404,19 +402,13 @@ static devmap_driver_t *devmap_driver_register(void)
 	/*
 	 * Create connection to the driver
 	 */
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-	
-	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
+	driver->sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (!driver->sess) {
 		free(driver->name);
 		free(driver);
-		async_answer_0(callid, ENOTSUP);
 		async_answer_0(iid, ENOTSUP);
 		return NULL;
 	}
-	
-	driver->phone = IPC_GET_ARG5(call);
-	async_answer_0(callid, EOK);
 	
 	/*
 	 * Initialize mutex for list of devices
@@ -461,8 +453,8 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	
 	fibril_mutex_lock(&drivers_list_mutex);
 	
-	if (driver->phone != 0)
-		async_hangup(driver->phone);
+	if (driver->sess)
+		async_hangup(driver->sess);
 	
 	/* Remove it from list of drivers */
 	list_remove(&(driver->drivers));
@@ -471,9 +463,10 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	fibril_mutex_lock(&devices_list_mutex);
 	fibril_mutex_lock(&driver->devices_mutex);
 	
-	while (!list_empty(&(driver->devices))) {
-		devmap_device_t *device = list_get_instance(driver->devices.next,
-		    devmap_device_t, driver_devices);
+	while (!list_empty(&driver->devices)) {
+		devmap_device_t *device = list_get_instance(
+		    list_first(&driver->devices), devmap_device_t,
+		    driver_devices);
 		devmap_device_unregister_core(device);
 	}
 	
@@ -606,21 +599,21 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 	devmap_handle_t handle = IPC_GET_ARG2(*call);
 	devmap_device_t *dev = devmap_device_find_handle(handle);
 	
-	if ((dev == NULL) || (dev->driver == NULL) || (dev->driver->phone == 0)) {
+	if ((dev == NULL) || (dev->driver == NULL) || (!dev->driver->sess)) {
 		fibril_mutex_unlock(&devices_list_mutex);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
 	
-	if (dev->forward_interface == 0) {
-		async_forward_fast(callid, dev->driver->phone,
-		    dev->handle, 0, 0,
-		    IPC_FF_NONE);
-	} else {
-		async_forward_fast(callid, dev->driver->phone,
-		    dev->forward_interface, dev->handle, 0,
-		    IPC_FF_NONE);
-	}
+	async_exch_t *exch = async_exchange_begin(dev->driver->sess);
+	
+	if (dev->forward_interface == 0)
+		async_forward_fast(callid, exch, dev->handle, 0, 0, IPC_FF_NONE);
+	else
+		async_forward_fast(callid, exch, dev->forward_interface,
+		    dev->handle, 0, IPC_FF_NONE);
+	
+	async_exchange_end(exch);
 	
 	fibril_mutex_unlock(&devices_list_mutex);
 }
@@ -813,10 +806,8 @@ static void devmap_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	link_t *item;
 	size_t pos = 0;
-	for (item = namespaces_list.next; item != &namespaces_list;
-	    item = item->next) {
+	list_foreach(namespaces_list, item) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
 		
@@ -879,9 +870,8 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	link_t *item;
 	size_t pos = 0;
-	for (item = devices_list.next; item != &devices_list; item = item->next) {
+	list_foreach(devices_list, item) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
 		
@@ -1028,15 +1018,14 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	if (driver == NULL)
 		return;
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DEVMAP_DRIVER_UNREGISTER:
 			if (NULL == driver)
 				async_answer_0(callid, ENOENT);
@@ -1079,15 +1068,14 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 	/* Accept connection */
 	async_answer_0(iid, EOK);
 	
-	bool cont = true;
-	while (cont) {
+	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cont = false;
-			continue;
 		case DEVMAP_DEVICE_GET_HANDLE:
 			devmap_device_get_handle(callid, &call);
 			break;
@@ -1124,7 +1112,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 /** Function for handling connections to devmap
  *
  */
-static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Select interface */
 	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {

@@ -41,7 +41,7 @@
 typedef struct {
 	fibril_mutex_t mtx;
 	fibril_condvar_t cv;
-	link_t list;
+	list_t list;
 } prodcons_t;
 
 extern void prodcons_initialize(prodcons_t *);

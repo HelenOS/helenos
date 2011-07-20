@@ -61,24 +61,28 @@
 #include <elf.h>
 #include "include/elf_core.h"
 
-static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size);
-static int write_all(int fd, void *data, size_t len);
-static int write_mem_area(int fd, as_area_info_t *area, int phoneid);
+static off64_t align_foff_up(off64_t, uintptr_t, size_t);
+static int write_all(int, void *, size_t);
+static int write_mem_area(int, as_area_info_t *, async_sess_t *);
 
 #define BUFFER_SIZE 0x1000
 static uint8_t buffer[BUFFER_SIZE];
 
 /** Save ELF core file.
  *
- * @param file_name	Name of file to save to.
- * @param ainfo		Array of @a n memory area info structures.
- * @param n		Number of memory areas.
- * @param phoneid	Debugging phone.
+ * @param file_name Name of file to save to.
+ * @param ainfo     Array of @a n memory area info structures.
+ * @param n         Number of memory areas.
+ * @param sess      Debugging session.
  *
- * @return		EOK on sucess, ENOENT if file cannot be created,
- *			ENOMEM on out of memory, EIO on write error.
+ * @return EOK on sucess.
+ * @return ENOENT if file cannot be created.
+ * @return ENOMEM on out of memory.
+ * @return EIO on write error.
+ *
  */
-int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n, int phoneid)
+int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
+    async_sess_t *sess)
 {
 	elf_header_t elf_hdr;
 	off64_t foff;
@@ -188,7 +192,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n, 
 			free(p_hdr);
 			return EIO;
 		}
-		if (write_mem_area(fd, &ainfo[i], phoneid) != EOK) {
+		if (write_mem_area(fd, &ainfo[i], sess) != EOK) {
 			printf("Failed writing memory data.\n");
 			free(p_hdr);
 			return EIO;
@@ -214,13 +218,14 @@ static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size)
 
 /** Write memory area from application to core file.
  *
- * @param fd		File to write to.
- * @param area		Memory area info structure.
- * @param phoneid	Debugging phone.
+ * @param fd   File to write to.
+ * @param area Memory area info structure.
+ * @param sess Debugging session.
  *
- * @return		EOK on success, EIO on failure.
+ * @return EOK on success, EIO on failure.
+ *
  */
-static int write_mem_area(int fd, as_area_info_t *area, int phoneid)
+static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 {
 	size_t to_copy;
 	size_t total;
@@ -232,7 +237,7 @@ static int write_mem_area(int fd, as_area_info_t *area, int phoneid)
 
 	while (total < area->size) {
 		to_copy = min(area->size - total, BUFFER_SIZE);
-		rc = udebug_mem_read(phoneid, buffer, addr, to_copy);
+		rc = udebug_mem_read(sess, buffer, addr, to_copy);
 		if (rc < 0) {
 			printf("Failed reading task memory.\n");
 			return EIO;
