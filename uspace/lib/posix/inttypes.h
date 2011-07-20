@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Fixed size integer types.
  */
 
 #ifndef POSIX_INTTYPES_H_

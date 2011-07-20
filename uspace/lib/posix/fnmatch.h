@@ -29,13 +29,13 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Filename-matching.
  */
 
 #ifndef POSIX_FNMATCH_H_
 #define POSIX_FNMATCH_H_
 
-/* Error Values. */
+/* Error Values */
 #undef FNM_NOMATCH
 #define FNM_NOMATCH 1
 
@@ -65,4 +65,3 @@ extern int posix_fnmatch(const char *pattern, const char *string, int flags);
 
 /** @}
  */
-

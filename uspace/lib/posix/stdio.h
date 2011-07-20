@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Standard buffered input/output.
  */
 
 #ifndef POSIX_STDIO_H_

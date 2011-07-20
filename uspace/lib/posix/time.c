@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Time measurement support.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -62,6 +62,11 @@
 #define SECS_PER_HOUR (SECS_PER_MIN * MINS_PER_HOUR)
 #define SECS_PER_DAY (SECS_PER_HOUR * HOURS_PER_DAY)
 
+/**
+ *
+ * @param year
+ * @return
+ */
 static bool _is_leap_year(time_t year)
 {
 	year += 1900;
@@ -75,6 +80,12 @@ static bool _is_leap_year(time_t year)
 	return false;
 }
 
+/**
+ *
+ * @param year
+ * @param mon
+ * @return
+ */
 static int _days_in_month(time_t year, time_t mon)
 {
 	assert(mon >= 0 && mon <= 11);
@@ -91,6 +102,13 @@ static int _days_in_month(time_t year, time_t mon)
 	}
 }
 
+/**
+ *
+ * @param year
+ * @param mon
+ * @param mday
+ * @return
+ */
 static int _day_of_year(time_t year, time_t mon, time_t mday)
 {
 	static int mdays[] =
@@ -101,7 +119,12 @@ static int _day_of_year(time_t year, time_t mon, time_t mday)
 	return (_is_leap_year(year) ? leap_mdays[mon] : mdays[mon]) + mday - 1;
 }
 
-/* Integer division that rounds to negative infinity.
+/**
+ * Integer division that rounds to negative infinity.
+ *
+ * @param op1
+ * @param op2
+ * @return
  */
 static time_t _floor_div(time_t op1, time_t op2)
 {
@@ -112,7 +135,12 @@ static time_t _floor_div(time_t op1, time_t op2)
 	}
 }
 
-/* Modulo that rounds to negative infinity.
+/**
+ * Modulo that rounds to negative infinity.
+ *
+ * @param op1
+ * @param op2
+ * @return
  */
 static time_t _floor_mod(time_t op1, time_t op2)
 {
@@ -131,6 +159,13 @@ static time_t _floor_mod(time_t op1, time_t op2)
 	return result;
 }
 
+/**
+ *
+ * @param year
+ * @param mon
+ * @param mday
+ * @return
+ */
 static time_t _days_since_epoch(time_t year, time_t mon, time_t mday)
 {
 	return (year - 70) * 365 + _floor_div(year - 69, 4) -
@@ -138,7 +173,12 @@ static time_t _days_since_epoch(time_t year, time_t mon, time_t mday)
 	    _day_of_year(year, mon, mday);
 }
 
-/* Assumes normalized broken-down time. */
+/**
+ * Assumes normalized broken-down time.
+ *
+ * @param tm
+ * @return
+ */
 static time_t _secs_since_epoch(const struct posix_tm *tm)
 {
 	return _days_since_epoch(tm->tm_year, tm->tm_mon, tm->tm_mday) *
@@ -146,6 +186,13 @@ static time_t _secs_since_epoch(const struct posix_tm *tm)
 	    tm->tm_min * SECS_PER_MIN + tm->tm_sec;
 }
 
+/**
+ * 
+ * @param year
+ * @param mon
+ * @param mday
+ * @return
+ */
 static int _day_of_week(time_t year, time_t mon, time_t mday)
 {
 	/* 1970-01-01 is Thursday */
@@ -164,6 +211,11 @@ struct _long_tm {
 	int tm_isdst;
 };
 
+/**
+ *
+ * @param ltm
+ * @param ptm
+ */
 static void _posix_to_long_tm(struct _long_tm *ltm, struct posix_tm *ptm)
 {
 	assert(ltm != NULL && ptm != NULL);
@@ -178,6 +230,11 @@ static void _posix_to_long_tm(struct _long_tm *ltm, struct posix_tm *ptm)
 	ltm->tm_isdst = ptm->tm_isdst;
 }
 
+/**
+ *
+ * @param ptm
+ * @param ltm
+ */
 static void _long_to_posix_tm(struct posix_tm *ptm, struct _long_tm *ltm)
 {
 	assert(ltm != NULL && ptm != NULL);
@@ -195,6 +252,10 @@ static void _long_to_posix_tm(struct posix_tm *ptm, struct _long_tm *ltm)
 	ptm->tm_isdst = ltm->tm_isdst;
 }
 
+/**
+ * 
+ * @param tm
+ */
 static void _normalize_time(struct _long_tm *tm)
 {
 	// TODO: DST correction
@@ -240,8 +301,12 @@ static void _normalize_time(struct _long_tm *tm)
 	tm->tm_wday = _day_of_week(tm->tm_year, tm->tm_mon, tm->tm_mday);
 }
 
-/* Which day the week-based year starts on relative to the first calendar day.
+/**
+ * Which day the week-based year starts on relative to the first calendar day.
  * E.g. if the year starts on December 31st, the return value is -1.
+ *
+ * @param year
+ * @return
  */
 static int _wbyear_offset(int year)
 {
@@ -249,8 +314,12 @@ static int _wbyear_offset(int year)
 	return _floor_mod(4 - start_wday, 7) - 3;
 }
 
-/* Returns week-based year of the specified time.
+/**
+ * Returns week-based year of the specified time.
  * Assumes normalized broken-down time.
+ *
+ * @param tm
+ * @return
  */
 static int _wbyear(const struct posix_tm *tm)
 {
@@ -267,9 +336,10 @@ static int _wbyear(const struct posix_tm *tm)
 	return tm->tm_year;
 }
 
-/** Week number of the year, assuming weeks start on sunday.
- *  The first Sunday of January is the first day of week 1;
- *  days in the new year before this are in week 0.
+/**
+ * Week number of the year, assuming weeks start on sunday.
+ * The first Sunday of January is the first day of week 1;
+ * days in the new year before this are in week 0.
  *
  * @param tm Normalized broken-down time.
  * @return The week number (0 - 53).
@@ -280,11 +350,12 @@ static int _sun_week_number(const struct posix_tm *tm)
 	return (tm->tm_yday - first_day + 7) / 7;
 }
 
-/** Week number of the year, assuming weeks start on monday.
- *  If the week containing January 1st has four or more days in the new year,
- *  then it is considered week 1. Otherwise, it is the last week of the previous
- *  year, and the next week is week 1. Both January 4th and the first Thursday
- *  of January are always in week 1.
+/**
+ * Week number of the year, assuming weeks start on monday.
+ * If the week containing January 1st has four or more days in the new year,
+ * then it is considered week 1. Otherwise, it is the last week of the previous
+ * year, and the next week is week 1. Both January 4th and the first Thursday
+ * of January are always in week 1.
  *
  * @param tm Normalized broken-down time.
  * @return The week number (1 - 53).
@@ -304,9 +375,10 @@ static int _iso_week_number(const struct posix_tm *tm)
 	return (day / 7 + 1);
 }
 
-/** Week number of the year, assuming weeks start on monday.
- *  The first Monday of January is the first day of week 1;
- *  days in the new year before this are in week 0. 
+/**
+ * Week number of the year, assuming weeks start on monday.
+ * The first Monday of January is the first day of week 1;
+ * days in the new year before this are in week 0. 
  *
  * @param tm Normalized broken-down time.
  * @return The week number (0 - 53).
@@ -323,6 +395,9 @@ int posix_daylight;
 long posix_timezone;
 char *posix_tzname[2];
 
+/**
+ * 
+ */
 void posix_tzset(void)
 {
 	// TODO: read environment
@@ -332,16 +407,23 @@ void posix_tzset(void)
 	posix_timezone = 0;
 }
 
+/**
+ * 
+ * @param time1
+ * @param time0
+ * @return
+ */
 double posix_difftime(time_t time1, time_t time0)
 {
 	return (double) (time1 - time0);
 }
 
-/** This function first normalizes the provided broken-down time
- *  (moves all values to their proper bounds) and then tries to
- *  calculate the appropriate time_t representation.
+/**
+ * This function first normalizes the provided broken-down time
+ * (moves all values to their proper bounds) and then tries to
+ * calculate the appropriate time_t representation.
  *
- * @param timeptr Broken-down time.
+ * @param tm Broken-down time.
  * @return time_t representation of the time, undefined value on overflow
  */
 time_t posix_mktime(struct posix_tm *tm)
@@ -357,12 +439,23 @@ time_t posix_mktime(struct posix_tm *tm)
 	return _secs_since_epoch(tm);
 }
 
+/**
+ *
+ * @param timer
+ * @return
+ */
 struct posix_tm *posix_gmtime(const time_t *timer)
 {
 	static struct posix_tm result;
 	return posix_gmtime_r(timer, &result);
 }
 
+/**
+ * 
+ * @param timer
+ * @param result
+ * @return
+ */
 struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
     struct posix_tm *restrict result)
 {
@@ -393,7 +486,7 @@ struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
 
 /**
  *
- * @param timep
+ * @param timer
  * @return
  */
 struct posix_tm *posix_localtime(const time_t *timer)
@@ -402,6 +495,12 @@ struct posix_tm *posix_localtime(const time_t *timer)
 	return posix_localtime_r(timer, &result);
 }
 
+/**
+ * 
+ * @param timer
+ * @param result
+ * @return
+ */
 struct posix_tm *posix_localtime_r(const time_t *restrict timer,
     struct posix_tm *restrict result)
 {
@@ -412,7 +511,7 @@ struct posix_tm *posix_localtime_r(const time_t *restrict timer,
 
 /**
  *
- * @param tm
+ * @param timeptr
  * @return
  */
 char *posix_asctime(const struct posix_tm *timeptr)
@@ -421,6 +520,12 @@ char *posix_asctime(const struct posix_tm *timeptr)
 	return posix_asctime_r(timeptr, buf);
 }
 
+/**
+ * 
+ * @param timeptr
+ * @param buf
+ * @return
+ */
 char *posix_asctime_r(const struct posix_tm *restrict timeptr,
     char *restrict buf)
 {
@@ -447,7 +552,7 @@ char *posix_asctime_r(const struct posix_tm *restrict timeptr,
 
 /**
  * 
- * @param timep
+ * @param timer
  * @return
  */
 char *posix_ctime(const time_t *timer)
@@ -459,6 +564,12 @@ char *posix_ctime(const time_t *timer)
 	return posix_asctime(loctime);
 }
 
+/**
+ * 
+ * @param timer
+ * @param buf
+ * @return
+ */
 char *posix_ctime_r(const time_t *timer, char *buf)
 {
 	struct posix_tm loctime;
@@ -476,8 +587,8 @@ char *posix_ctime_r(const time_t *timer, char *buf)
  * @param tm
  * @return
  */
-size_t posix_strftime(char *s, size_t maxsize,
-    const char *format, const struct posix_tm *tm)
+size_t posix_strftime(char *restrict s, size_t maxsize,
+    const char *restrict format, const struct posix_tm *restrict tm)
 {
 	// TODO: use locale
 	static const char *wday_abbr[] = {
@@ -654,6 +765,29 @@ size_t posix_strftime(char *s, size_t maxsize,
 	return maxsize - remaining;
 }
 
+/**
+ * 
+ * @param s
+ * @param maxsize
+ * @param format
+ * @param tm
+ * @param loc
+ * @return
+ */
+extern size_t posix_strftime_l(char *restrict s, size_t maxsize,
+    const char *restrict format, const struct posix_tm *restrict tm,
+    posix_locale_t loc)
+{
+	// TODO
+	not_implemented();
+}
+
+/**
+ *
+ * @param clock_id
+ * @param res
+ * @return
+ */
 int posix_clock_getres(posix_clockid_t clock_id, struct posix_timespec *res)
 {
 	assert(res != NULL);
@@ -669,6 +803,12 @@ int posix_clock_getres(posix_clockid_t clock_id, struct posix_timespec *res)
 	}
 }
 
+/**
+ * 
+ * @param clock_id
+ * @param tp
+ * @return
+ */
 int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
 {
 	assert(tp != NULL);
@@ -687,6 +827,12 @@ int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
 	}
 }
 
+/**
+ * 
+ * @param clock_id
+ * @param tp
+ * @return
+ */
 int posix_clock_settime(posix_clockid_t clock_id,
     const struct posix_timespec *tp)
 {
@@ -705,6 +851,14 @@ int posix_clock_settime(posix_clockid_t clock_id,
 	}
 }
 
+/**
+ * 
+ * @param clock_id
+ * @param flags
+ * @param rqtp
+ * @param rmtp
+ * @return
+ */
 int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
     const struct posix_timespec *rqtp, struct posix_timespec *rmtp)
 {
@@ -734,6 +888,13 @@ struct __posix_timer {
 	struct posix_sigevent evp;
 };
 
+/**
+ * 
+ * @param clockid
+ * @param evp
+ * @param timerid
+ * @return
+ */
 int posix_timer_create(posix_clockid_t clockid,
     struct posix_sigevent *restrict evp,
     posix_timer_t *restrict timerid)
@@ -742,18 +903,34 @@ int posix_timer_create(posix_clockid_t clockid,
 	not_implemented();
 }
 
+/**
+ * 
+ * @param timerid
+ * @return
+ */
 int posix_timer_delete(posix_timer_t timerid)
 {
 	// TODO
 	not_implemented();
 }
 
+/**
+ * 
+ * @param timerid
+ * @return
+ */
 int posix_timer_getoverrun(posix_timer_t timerid)
 {
 	// TODO
 	not_implemented();
 }
 
+/**
+ * 
+ * @param timerid
+ * @param value
+ * @return
+ */
 int posix_timer_gettime(posix_timer_t timerid,
     struct posix_itimerspec *value)
 {
@@ -761,6 +938,14 @@ int posix_timer_gettime(posix_timer_t timerid,
 	not_implemented();
 }
 
+/**
+ * 
+ * @param timerid
+ * @param flags
+ * @param value
+ * @param ovalue
+ * @return
+ */
 int posix_timer_settime(posix_timer_t timerid, int flags,
     const struct posix_itimerspec *restrict value,
     struct posix_itimerspec *restrict ovalue)

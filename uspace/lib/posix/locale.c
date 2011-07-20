@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Locale-specific definitions.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -40,6 +40,8 @@
 #include "errno.h"
 #include "limits.h"
 #include "string.h"
+
+// TODO: documentation
 
 struct __posix_locale {
 	int _dummy;
@@ -72,6 +74,12 @@ const struct posix_lconv C_LOCALE = {
 	.thousands_sep = (char *) ""
 };
 
+/**
+ * 
+ * @param category
+ * @param locale
+ * @return
+ */
 char *posix_setlocale(int category, const char *locale)
 {
 	// TODO
@@ -82,12 +90,21 @@ char *posix_setlocale(int category, const char *locale)
 	return NULL;
 }
 
+/**
+ * 
+ * @return
+ */
 struct posix_lconv *posix_localeconv(void)
 {
 	// TODO
 	return (struct posix_lconv *) &C_LOCALE;
 }
 
+/**
+ * 
+ * @param locobj
+ * @return
+ */
 posix_locale_t posix_duplocale(posix_locale_t locobj)
 {
 	if (locobj == NULL) {
@@ -103,11 +120,22 @@ posix_locale_t posix_duplocale(posix_locale_t locobj)
 	return copy;
 }
 
+/**
+ * 
+ * @param locobj
+ */
 void posix_freelocale(posix_locale_t locobj)
 {
 	free(locobj);
 }
 
+/**
+ * 
+ * @param category_mask
+ * @param locale
+ * @param base
+ * @return
+ */
 posix_locale_t posix_newlocale(int category_mask, const char *locale,
     posix_locale_t base)
 {
@@ -128,7 +156,12 @@ posix_locale_t posix_newlocale(int category_mask, const char *locale,
 	return new;
 }
 
-posix_locale_t posix_uselocale (posix_locale_t newloc)
+/**
+ * 
+ * @param newloc
+ * @return
+ */
+posix_locale_t posix_uselocale(posix_locale_t newloc)
 {
 	// TODO
 	return NULL;

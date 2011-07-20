@@ -512,7 +512,7 @@ static long double parse_hexadecimal(const char **sptr)
  *
  * @param nptr Input string.
  * @param endptr If non-NULL, *endptr is set to the position of the first
- *    unrecognized character.
+ *     unrecognized character.
  * @return An approximate representation of the input floating-point number.
  */
 long double posix_strtold(const char *restrict nptr, char **restrict endptr)

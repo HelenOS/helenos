@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Data types definitions.
  */
 
 #ifndef POSIX_SYS_TYPES_H_
@@ -48,10 +48,10 @@ typedef long posix_blkcnt_t;
 typedef int64_t posix_pid_t;
 typedef sysarg_t posix_dev_t;
 
-/* PThread types */
+/* PThread Types */
 typedef struct posix_thread_attr posix_thread_attr_t;
 
-/* Clock types */
+/* Clock Types */
 typedef long posix_clock_t;
 typedef int posix_clockid_t;
 

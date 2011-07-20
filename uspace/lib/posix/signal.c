@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Signal handling.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -43,6 +43,8 @@
 
 #include "libc/fibril_synch.h"
 #include "libc/task.h"
+
+// TODO: documentation
 
 /* Used to serialize signal handling. */
 static FIBRIL_MUTEX_INITIALIZE(_signal_mutex);
@@ -62,6 +64,10 @@ static struct posix_sigaction _signal_actions[_TOP_SIGNAL + 1] = {
 	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER
 };
 
+/**
+ * 
+ * @param signo
+ */
 void __posix_default_signal_handler(int signo)
 {
 	switch (signo) {
@@ -117,17 +123,29 @@ void __posix_default_signal_handler(int signo)
 	}
 }
 
+/**
+ *
+ * @param signo
+ */
 void __posix_hold_signal_handler(int signo)
 {
 	/* Nothing */
 }
 
+/**
+ * 
+ * @param signo
+ */
 void __posix_ignore_signal_handler(int signo)
 {
 	/* Nothing */
 }
 
-
+/**
+ * 
+ * @param set
+ * @return
+ */
 int posix_sigemptyset(posix_sigset_t *set)
 {
 	assert(set != NULL);
@@ -136,6 +154,11 @@ int posix_sigemptyset(posix_sigset_t *set)
 	return 0;
 }
 
+/**
+ * 
+ * @param set
+ * @return
+ */
 int posix_sigfillset(posix_sigset_t *set)
 {
 	assert(set != NULL);
@@ -144,6 +167,12 @@ int posix_sigfillset(posix_sigset_t *set)
 	return 0;
 }
 
+/**
+ * 
+ * @param set
+ * @param signo
+ * @return
+ */
 int posix_sigaddset(posix_sigset_t *set, int signo)
 {
 	assert(set != NULL);
@@ -152,6 +181,12 @@ int posix_sigaddset(posix_sigset_t *set, int signo)
 	return 0;
 }
 
+/**
+ * 
+ * @param set
+ * @param signo
+ * @return
+ */
 int posix_sigdelset(posix_sigset_t *set, int signo)
 {
 	assert(set != NULL);
@@ -160,6 +195,12 @@ int posix_sigdelset(posix_sigset_t *set, int signo)
 	return 0;
 }
 
+/**
+ * 
+ * @param set
+ * @param signo
+ * @return
+ */
 int posix_sigismember(const posix_sigset_t *set, int signo)
 {
 	assert(set != NULL);
@@ -167,6 +208,12 @@ int posix_sigismember(const posix_sigset_t *set, int signo)
 	return (*set & (1 << signo)) != 0;
 }
 
+/**
+ * 
+ * @param sig
+ * @param act
+ * @param oact
+ */
 static void _sigaction_unsafe(int sig, const struct posix_sigaction *restrict act,
     struct posix_sigaction *restrict oact)
 {
@@ -181,6 +228,13 @@ static void _sigaction_unsafe(int sig, const struct posix_sigaction *restrict ac
 	}
 }
 
+/**
+ * 
+ * @param sig
+ * @param act
+ * @param oact
+ * @return
+ */
 int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
     struct posix_sigaction *restrict oact)
 {
@@ -205,6 +259,12 @@ int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
 	return 0;
 }
 
+/**
+ * 
+ * @param sig
+ * @param func
+ * @return
+ */
 void (*posix_signal(int sig, void (*func)(int)))(int)
 {
 	struct posix_sigaction new = {
@@ -221,6 +281,12 @@ void (*posix_signal(int sig, void (*func)(int)))(int)
 	}
 }
 
+/**
+ * 
+ * @param signo
+ * @param siginfo
+ * @return
+ */
 static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
 {
 	assert(signo >= 0 && signo <= _TOP_SIGNAL);
@@ -258,6 +324,11 @@ static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
 	return 0;
 }
 
+/**
+ * 
+ * @param sig
+ * @return
+ */
 int posix_raise(int sig)
 {
 	if (sig >= 0 && sig <= _TOP_SIGNAL) {
@@ -272,6 +343,12 @@ int posix_raise(int sig)
 	}
 }
 
+/**
+ * 
+ * @param pid
+ * @param signo
+ * @return
+ */
 int posix_kill(posix_pid_t pid, int signo)
 {
 	if (pid < 1) {
@@ -302,12 +379,23 @@ int posix_kill(posix_pid_t pid, int signo)
 	return 0;
 }
 
+/**
+ * 
+ * @param pid
+ * @param sig
+ * @return
+ */
 int posix_killpg(posix_pid_t pid, int sig)
 {
 	assert(pid > 1);
 	return posix_kill(-pid, sig);
 }
 
+/**
+ * 
+ * @param pinfo
+ * @param message
+ */
 void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message)
 {
 	assert(pinfo != NULL);
@@ -315,6 +403,11 @@ void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message)
 	// TODO: print si_code
 }
 
+/**
+ * 
+ * @param signum
+ * @param message
+ */
 void posix_psignal(int signum, const char *message)
 {
 	char *sigmsg = posix_strsignal(signum);
@@ -325,6 +418,13 @@ void posix_psignal(int signum, const char *message)
 	}
 }
 
+/**
+ * 
+ * @param how
+ * @param set
+ * @param oset
+ * @return
+ */
 int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
     posix_sigset_t *restrict oset)
 {
@@ -357,6 +457,13 @@ int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
 	return 0;
 }
 
+/**
+ * 
+ * @param how
+ * @param set
+ * @param oset
+ * @return
+ */
 int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
     posix_sigset_t *restrict oset)
 {
@@ -370,4 +477,3 @@ int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
 
 /** @}
  */
-

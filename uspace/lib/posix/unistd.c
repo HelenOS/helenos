@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Miscellaneous standard definitions.
  */
 
 #define LIBPOSIX_INTERNAL

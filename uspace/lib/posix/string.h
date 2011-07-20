@@ -105,7 +105,7 @@ extern size_t posix_strnlen(const char *s, size_t n);
 /* Signal Messages */
 extern char *posix_strsignal(int signum);
 
-/* Legacy declarations */
+/* Legacy Declarations */
 #ifndef POSIX_STRINGS_H_
 extern int posix_ffs(int i);
 extern int posix_strcasecmp(const char *s1, const char *s2);

@@ -29,11 +29,13 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Password handling.
  */
 
 #ifndef POSIX_PWD_H_
 #define POSIX_PWD_H_
+
+// TODO: documentation
 
 #include "sys/types.h"
 
@@ -75,4 +77,3 @@ extern int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
 
 /** @}
  */
-

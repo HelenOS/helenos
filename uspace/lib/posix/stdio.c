@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Standard buffered input/output.
  */
 
 #define LIBPOSIX_INTERNAL

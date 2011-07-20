@@ -29,11 +29,13 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Signal handling.
  */
 
 #ifndef POSIX_SIGNAL_H_
 #define POSIX_SIGNAL_H_
+
+// TODO: documentation
 
 #include "libc/errno.h"
 #include "sys/types.h"
@@ -107,7 +109,6 @@ typedef struct posix_ucontext {
 	posix_mcontext_t uc_mcontext;
 } posix_ucontext_t;
 
-
 /* Values of posix_sigevent::sigev_notify */
 #undef SIGEV_NONE
 #undef SIGEV_SIGNAL
@@ -153,7 +154,7 @@ typedef struct posix_ucontext {
 #define MINSIGSTKSZ 0
 #define SIGSTKSZ 0
 
-/* full POSIX set */
+/* Full POSIX set */
 enum {
 	/* Termination Signals */
 	SIGABRT,
@@ -213,7 +214,6 @@ enum {
 };
 
 /* Values for sigaction field si_code. */
-
 enum {
 	SI_USER,
 	SI_QUEUE,
@@ -286,11 +286,12 @@ extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
 	#ifndef sigevent
 		#define sigevent posix_sigevent
 	#endif
-	#define sigaction posix_sigaction
 	#define mcontext_t posix_mcontext_t
 	#define ucontext_t posix_ucontext_t
 	#define stack_t posix_stack_t
 	#define siginfo_t posix_siginfo_t
+
+	#define sigaction posix_sigaction
 
 	#define signal posix_signal
 	#define raise posix_raise

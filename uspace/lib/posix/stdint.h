@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Integer types.
  */
 
 #ifndef POSIX_STDINT_H_

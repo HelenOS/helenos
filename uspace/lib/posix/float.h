@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Floating type support.
  */
 
 #ifndef POSIX_FLOAT_H_

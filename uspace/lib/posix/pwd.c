@@ -29,14 +29,16 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Password handling.
  */
 
 #define LIBPOSIX_INTERNAL
+
 #include "pwd.h"
 #include "string.h"
 #include "errno.h"
 
+// TODO: documentation
 
 static bool entry_read = false;
 
@@ -52,6 +54,8 @@ static const struct posix_passwd dummy_pwd = {
 /**
  * Since HelenOS doesn't have user accounts, this always returns
  * the same made-up entry.
+ *
+ * @return
  */
 struct posix_passwd *posix_getpwent(void)
 {
@@ -177,4 +181,3 @@ int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
 
 /** @}
  */
-

@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file File status handling.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -79,8 +79,7 @@ int posix_fstat(int fd, struct posix_stat *st)
 	struct stat hst;
 	int rc = fstat(fd, &hst);
 	if (rc < 0) {
-		/* fstat() returns negative error code instead of using errno.
-		 */
+		/* fstat() returns negative error code instead of using errno. */
 		errno = -rc;
 		return -1;
 	}
@@ -95,7 +94,7 @@ int posix_fstat(int fd, struct posix_stat *st)
  * @param st Status structure to be filled with information.
  * @return Zero on success, -1 otherwise.
  */
-int posix_lstat(const char *path, struct posix_stat *st)
+int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
 {
 	/* There are currently no symbolic links in HelenOS. */
 	return posix_stat(path, st);
@@ -108,13 +107,12 @@ int posix_lstat(const char *path, struct posix_stat *st)
  * @param st Status structure to be filled with information.
  * @return Zero on success, -1 otherwise.
  */
-int posix_stat(const char *path, struct posix_stat *st)
+int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 {
 	struct stat hst;
 	int rc = stat(path, &hst);
 	if (rc < 0) {
-		/* stat() returns negative error code instead of using errno.
-		 */
+		/* stat() returns negative error code instead of using errno. */
 		errno = -rc;
 		return -1;
 	}

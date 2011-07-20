@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Boolean type and values.
  */
 
 #ifndef POSIX_STDBOOL_H_
@@ -49,4 +49,3 @@
 #define __bool_true_false_are_defined 1
 
 #endif /* POSIX_STDBOOL_H_ */
-
