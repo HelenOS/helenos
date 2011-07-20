@@ -546,10 +546,10 @@ long double posix_strtold(const char *restrict nptr, char **restrict endptr)
 		// TODO: handle the parenthesised case
 		
 		if (endptr != NULL) {
-			*endptr = (char *) &nptr[i + 3];
+			*endptr = (char *) nptr;
 		}
-		errno = ERANGE;
-		return negative ? -0.0l : +0.0l;
+		errno = EINVAL;
+		return 0;
 	}
 	
 	/* check for Infinity */

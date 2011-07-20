@@ -39,6 +39,7 @@
 #include "stdlib.h"
 
 #include "errno.h"
+#include "limits.h"
 
 #include "libc/sort.h"
 #include "libc/str.h"
@@ -137,7 +138,16 @@ posix_lldiv_t posix_lldiv(long long numer, long long denom)
 static int sort_compare_wrapper(void *elem1, void *elem2, void *userdata)
 {
 	int (*compare)(const void *, const void *) = userdata;
-	return compare(elem1, elem2);
+	int ret = compare(elem1, elem2);
+	
+	/* Native qsort internals expect this. */
+	if (ret < 0) {
+		return -1;
+	} else if (ret > 0) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 /**
@@ -352,7 +362,13 @@ void *posix_calloc(size_t nelem, size_t elsize)
  */
 void *posix_realloc(void *ptr, size_t size)
 {
-	return realloc(ptr, size);
+	if (ptr != NULL && size == 0) {
+		/* Native realloc does not handle this special case. */
+		free(ptr);
+		return NULL;
+	} else {
+		return realloc(ptr, size);
+	}
 }
 
 /**

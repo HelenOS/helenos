@@ -189,7 +189,7 @@ static inline unsigned long long internal_strtol(
 			if (result > boundary) {
 				/* overflow */
 				errno = ERANGE;
-				result = max_value;
+				result = real_max_value;
 				break;
 			}
 		}
