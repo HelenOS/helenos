@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file String manipulation.
  */
 
 #ifndef POSIX_STRING_H_
@@ -102,10 +102,10 @@ extern int posix_strerror_r(int errnum, char *buf, size_t bufsz);
 extern size_t posix_strlen(const char *s);
 extern size_t posix_strnlen(const char *s, size_t n);
 
-/* Signal messages */
+/* Signal Messages */
 extern char *posix_strsignal(int signum);
 
-/* Legacy declarations */
+/* Legacy Declarations */
 #ifndef POSIX_STRINGS_H_
 extern int posix_ffs(int i);
 extern int posix_strcasecmp(const char *s1, const char *s2);

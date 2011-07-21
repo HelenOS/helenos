@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Helper definitions common for all libposix files.
  */
 
 #ifndef LIBPOSIX_COMMON_H_

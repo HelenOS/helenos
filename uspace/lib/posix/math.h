@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Mathematical operations.
  */
 
 #ifndef POSIX_MATH_H_

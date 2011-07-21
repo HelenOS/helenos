@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Time measurement support.
  */
 
 #ifndef POSIX_TIME_H_
@@ -93,19 +93,16 @@ struct posix_itimerspec {
 typedef struct __posix_timer *posix_timer_t;
 
 /* Timezones */
-
 extern int posix_daylight;
 extern long posix_timezone;
 extern char *posix_tzname[2];
-
 extern void posix_tzset(void);
 
-/* time_t */
-
+/* Elapsed Time */
 extern double posix_difftime(time_t time1, time_t time0);
 
 /* Broken-down Time */
-extern time_t posix_mktime(struct posix_tm *timeptr);
+extern time_t posix_mktime(struct posix_tm *tm);
 extern struct posix_tm *posix_gmtime(const time_t *timer);
 extern struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
     struct posix_tm *restrict result);
@@ -119,16 +116,13 @@ extern char *posix_asctime_r(const struct posix_tm *restrict timeptr,
     char *restrict buf);
 extern char *posix_ctime(const time_t *timer);
 extern char *posix_ctime_r(const time_t *timer, char *buf);
-
 extern size_t posix_strftime(char *restrict s, size_t maxsize,
     const char *restrict format, const struct posix_tm *restrict tm);
-
 extern size_t posix_strftime_l(char *restrict s, size_t maxsize,
     const char *restrict format, const struct posix_tm *restrict tm,
     posix_locale_t loc);
 
-/* Clocks. */
-
+/* Clocks */
 extern int posix_clock_getres(posix_clockid_t clock_id,
     struct posix_timespec *res);
 extern int posix_clock_gettime(posix_clockid_t clock_id,
@@ -138,10 +132,9 @@ extern int posix_clock_settime(posix_clockid_t clock_id,
 extern int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
     const struct posix_timespec *rqtp, struct posix_timespec *rmtp);
 
-/* Timers. */
-
 #if 0
 
+/* Timers */
 extern int posix_timer_create(posix_clockid_t clockid,
     struct posix_sigevent *restrict evp,
     posix_timer_t *restrict timerid);
@@ -158,31 +151,31 @@ extern int posix_timer_settime(posix_timer_t timerid, int flags,
 /* CPU Time */
 extern posix_clock_t posix_clock(void);
 
-
 #ifndef LIBPOSIX_INTERNAL
 	#define tm posix_tm
-
 	#define timespec posix_timespec
 	#define itimerspec posix_itimerspec
 	#define timer_t posix_timer_t
-
-	#define difftime posix_difftime
-	#define mktime posix_mktime
-	#define gmtime posix_gmtime
-	#define gmtime_r posix_gmtime_r
-	#define localtime posix_localtime
-	#define localtime_r posix_localtime_r
 
 	#define daylight posix_daylight
 	#define timezone posix_timezone
 	#define tzname posix_tzname
 	#define tzset posix_tzset
 
+	#define difftime posix_difftime
+
+	#define mktime posix_mktime
+	#define gmtime posix_gmtime
+	#define gmtime_r posix_gmtime_r
+	#define localtime posix_localtime
+	#define localtime_r posix_localtime_r
+
 	#define asctime posix_asctime
 	#define asctime_r posix_asctime_r
 	#define ctime posix_ctime
 	#define ctime_r posix_ctime_r
 	#define strftime posix_strftime
+	#define strftime_l posix_strftime_l
 
 	#define clock_getres posix_clock_getres
 	#define clock_gettime posix_clock_gettime

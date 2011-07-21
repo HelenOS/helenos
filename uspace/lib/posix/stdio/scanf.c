@@ -302,8 +302,10 @@ static void _release_stream(_input_provider *self)
 	/* Destruct internal structures. */
 	self->fetched = 0;
 	self->cursor = NULL;
-	free(self->window);
-	self->window = NULL;
+	if (self->window) {
+		free(self->window);
+		self->window = NULL;
+	}
 	self->window_size = 0;
 	self->state = _PROV_CONSTRUCTED;
 }
@@ -652,7 +654,7 @@ static inline int _internal_scanf(
 
 				/* Update the cursor so it can be returned to the provider. */
 				cur_borrowed += cur_updated - cur_limited;
-				if (width != -1) {
+				if (width != -1 && cur_limited != NULL) {
 					/* Deallocate duplicated part of the cursor view. */
 					free(cur_limited);
 				}
@@ -832,7 +834,7 @@ static inline int _internal_scanf(
 
 				/* Update the cursor so it can be returned to the provider. */
 				cur_borrowed += cur_updated - cur_limited;
-				if (width != -1) {
+				if (width != -1 && cur_limited != NULL) {
 					/* Deallocate duplicated part of the cursor view. */
 					free(cur_limited);
 				}

@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Standard library definitions.
  */
 
 #ifndef POSIX_STDLIB_H_
@@ -55,7 +55,7 @@ extern int posix_abs(int i);
 extern long posix_labs(long i);
 extern long long posix_llabs(long long i);
 
-/* Integer division */
+/* Integer Division */
 
 typedef struct {
 	int quot, rem;
@@ -79,13 +79,10 @@ extern void posix_qsort(void *array, size_t count, size_t size,
 extern void *posix_bsearch(const void *key, const void *base,
     size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 
-
 /* Environment Access */
 extern char *posix_getenv(const char *name);
 extern int posix_putenv(char *string);
-
 extern int posix_system(const char *string);
-
 
 /* Symbolic Links */
 extern char *posix_realpath(const char *restrict name, char *restrict resolved);
@@ -100,7 +97,6 @@ extern long double posix_strtold(const char *restrict nptr, char **restrict endp
 extern int posix_atoi(const char *nptr);
 extern long int posix_atol(const char *nptr);
 extern long long int posix_atoll(const char *nptr);
-
 extern long int posix_strtol(const char *restrict nptr,
     char **restrict endptr, int base);
 extern long long int posix_strtoll(const char *restrict nptr,
@@ -109,7 +105,6 @@ extern unsigned long int posix_strtoul(const char *restrict nptr,
     char **restrict endptr, int base);
 extern unsigned long long int posix_strtoull(
     const char *restrict nptr, char **restrict endptr, int base);
-
 
 /* Memory Allocation */
 extern void *posix_malloc(size_t size);

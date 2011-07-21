@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Support for waiting.
  */
 
 #ifndef POSIX_SYS_WAIT_H_

@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file File status handling.
  */
 
 #ifndef POSIX_SYS_STAT_H_

@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Miscellaneous standard definitions.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -89,7 +89,7 @@ int posix_isatty(int fd)
 {
 	/* Always returns false, because there is no easy way to find
      * out under HelenOS. */
-	return false;
+	return 0;
 }
 
 /**
@@ -206,11 +206,7 @@ int posix_access(const char *path, int amode)
 	if (amode == F_OK) {
 		/* Check file existence by attempt to open it. */
 		int fd = open(path, O_RDONLY);
-		if (fd < 0) {
-			/* FIXME: open() returns error code as negative retval. */
-			errno = -fd;
-			fd = -1;
-		} else {
+		if (fd != -1) {
 			close(fd);
 		}
 		return fd;
@@ -238,8 +234,10 @@ long posix_sysconf(int name)
 	if (cpu_stats && cpu_count > 0) {
 		clk_tck = ((long) cpu_stats[0].frequency_mhz) * 1000000L;
 	}
-	free(cpu_stats);
-	cpu_stats = 0;
+	if (cpu_stats) {
+		free(cpu_stats);
+		cpu_stats = 0;
+	}
 
 	long phys_pages = 0;
 	long avphys_pages = 0;
@@ -247,9 +245,9 @@ long posix_sysconf(int name)
 	if (mem_stats) {
 		phys_pages = (long) (mem_stats->total / getpagesize());
 		avphys_pages = (long) (mem_stats->free / getpagesize());
+		free(mem_stats);
+		mem_stats = 0;
 	}
-	free(mem_stats);
-	mem_stats = 0;
 
 	switch (name) {
 	case _SC_PHYS_PAGES:

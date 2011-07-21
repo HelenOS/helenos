@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Support for waiting.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -64,4 +64,3 @@ posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
 
 /** @}
  */
-

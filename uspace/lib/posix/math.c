@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Mathematical operations.
  */
 
 #define LIBPOSIX_INTERNAL
