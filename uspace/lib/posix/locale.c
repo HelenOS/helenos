@@ -126,7 +126,9 @@ posix_locale_t posix_duplocale(posix_locale_t locobj)
  */
 void posix_freelocale(posix_locale_t locobj)
 {
-	free(locobj);
+	if (locobj) {
+		free(locobj);
+	}
 }
 
 /**

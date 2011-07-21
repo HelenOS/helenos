@@ -967,9 +967,9 @@ posix_clock_t posix_clock(void)
 	stats_task_t *task_stats = stats_get_task(task_get_id());
 	if (task_stats) {
 		total_cycles = (posix_clock_t) (task_stats->kcycles + task_stats->ucycles);
+		free(task_stats);
+		task_stats = 0;
 	}
-	free(task_stats);
-	task_stats = 0;
 
 	return total_cycles;
 }

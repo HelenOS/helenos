@@ -552,8 +552,12 @@ int posix_fnmatch(const char *pattern, const char *string, int flags)
 	bool result = _full_match(pattern, string, flags);
 
 	if ((flags & FNM_CASEFOLD) != 0) {
-		free((char *) pattern);
-		free((char *) string);
+		if (pattern) {
+			free((char *) pattern);
+		}
+		if (string) {
+			free((char *) string);
+		}
 	}
 
 	return result ? 0 : FNM_NOMATCH;
