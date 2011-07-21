@@ -354,11 +354,12 @@ int posix_fsetpos(FILE *stream, const posix_fpos_t *pos)
 int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos)
 {
 	off64_t ret = ftell(stream);
-	if (ret == -1) {
-		return errno;
+	if (ret != -1) {
+		pos->offset = ret;
+		return 0;
+	} else {
+		return -1;
 	}
-	pos->offset = ret;
-	return 0;
 }
 
 /**
