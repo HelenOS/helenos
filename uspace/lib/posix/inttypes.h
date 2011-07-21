@@ -43,6 +43,11 @@ extern posix_intmax_t posix_strtoimax(const char *restrict nptr,
 extern posix_uintmax_t posix_strtoumax(const char *restrict nptr,
     char **restrict endptr, int base);
 
+#ifndef LIBPOSIX_INTERNAL
+	#define strtoimax posix_strtoimax
+	#define strtoumax posix_strtoumax
+#endif
+
 #endif /* POSIX_INTTYPES_H_ */
 
 /** @}
