@@ -274,6 +274,12 @@ int main (int argc, char **argv)
 	return 0;
 }
 
+/**Inserts the '.' and '..' directory entries in the root directory.
+ *
+ * @param sb		Pointer to the superblock structure.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int insert_dentries(const struct mfs_sb_info *sb)
 {
 	void *root_block;
@@ -321,6 +327,12 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 	return rc;
 }
 
+/**Initialize the inode table.
+ *
+ * @param sb		Pointer to the superblock structure.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int init_inode_table(const struct mfs_sb_info *sb)
 {
 	unsigned int i;
@@ -348,6 +360,12 @@ static int init_inode_table(const struct mfs_sb_info *sb)
 	return rc;
 }
 
+/**Initialize a V1 root inode.
+ *
+ * @param sb		Ponter to the superblock structure.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int make_root_ino(const struct mfs_sb_info *sb)
 {
 	struct mfs_inode *ino_buf;
@@ -379,7 +397,12 @@ static int make_root_ino(const struct mfs_sb_info *sb)
 	return rc;
 }
 
-/*Initialize a Minix V2 root inode on disk, also valid for V3 filesystem*/
+/**Initialize a Minix V2 root inode on disk, also valid for V3 filesystem.
+ *
+ * @param sb		Pointer to the superblock structure.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int make_root_ino2(const struct mfs_sb_info *sb)
 {
 	struct mfs2_inode *ino_buf;
@@ -413,6 +436,12 @@ static int make_root_ino2(const struct mfs_sb_info *sb)
 	return rc;
 }
 
+/**Initialize the superblock structure on disk.
+ *
+ * @param sb		Pointer to the superblock structure.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int init_superblock(struct mfs_sb_info *sb)
 {
 	aoff64_t inodes;
@@ -492,6 +521,12 @@ static int init_superblock(struct mfs_sb_info *sb)
 	return rc;
 }
 
+/**Write the V1/V2 superblock on disk.
+ *
+ * @param sbi		Pointer to the superblock structure to write on disk.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int write_superblock(const struct mfs_sb_info *sbi)
 {
 	struct mfs_superblock *sb;
@@ -519,6 +554,12 @@ static int write_superblock(const struct mfs_sb_info *sbi)
 	return rc;
 }
 
+/**Write the V3s superblock on disk.
+ *
+ * @param sbi		Pointer to the superblock structure to write on disk.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int write_superblock3(const struct mfs_sb_info *sbi)
 {
 	struct mfs3_superblock *sb;
@@ -546,6 +587,12 @@ static int write_superblock3(const struct mfs_sb_info *sbi)
 	return rc;
 }
 
+/**Initialize the inode and block bitmaps on disk.
+ *
+ * @param sb		Pointer to the superblock structure.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int init_bitmaps(const struct mfs_sb_info *sb)
 {
 	uint32_t *ibmap_buf, *zbmap_buf;
@@ -595,6 +642,12 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	return rc;
 }
 
+/**Mark a bitmap entry as used or free.
+ *
+ * @param bmap		32-bit pointer to the bitmap in memory.
+ * @param idx		The index in the bitmap of the bit to set at 1 or 0.
+ * @param v		FREE to clear the bit, USED to set the bit.
+ */
 static void mark_bmap(uint32_t *bmap, int idx, int v)
 {
 	if (v == FREE)
@@ -603,6 +656,14 @@ static void mark_bmap(uint32_t *bmap, int idx, int v)
 		bmap[idx / 32] |= 1 << (idx % 32);
 }
 
+/**Write a block on disk.
+ *
+ * @param off		64-bit block offset on disk.
+ * @param size		size of the block.
+ * @param data		Pointer to the block content.
+ *
+ * @return		EOK on success or a negative error number.
+ */
 static inline int write_block(aoff64_t off, size_t size, const void *data)
 {
 	if (shift == 3) {
