@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 #ifdef CONFIG_MOUNT_DATA
 	/* Make sure fat is running. */
 	if (str_cmp(STRING(RDFMT), "fat") != 0) {
-		spawn("/srv/fat");
+		srv_start("/srv/fat");
 	}
 	mount_data();
 #else
