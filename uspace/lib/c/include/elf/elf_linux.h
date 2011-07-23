@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup debug
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef ELF_CORE_H_
-#define ELF_CORE_H_
+#ifndef LIBC_ELF_LINUX_H_
+#define LIBC_ELF_LINUX_H_
 
-#include <async.h>
-#include <elf/elf_linux.h>
-#include <libarch/istate.h>
+#include <elf/elf.h>
+#include <libarch/elf_linux.h>
 
-extern int elf_core_save(const char *, as_area_info_t *, unsigned int,
-    async_sess_t *, istate_t *);
+/*
+ * Note types
+ */
+#define NT_PRSTATUS	1
+
+typedef int pid_t;
+typedef struct {
+	long tv_sec;
+	long tv_usec;
+} linux_timeval_t;
+
+typedef struct {
+	int sig_info[3];
+	short cursig;
+	unsigned long sigpend;
+	unsigned long sighold;
+	pid_t pid;
+	pid_t ppid;
+	pid_t pgrp;
+	pid_t sid;
+	linux_timeval_t pr_utime;
+	linux_timeval_t pr_stime;
+	linux_timeval_t pr_cutime;
+	linux_timeval_t pr_sid;
+	elf_regs_t regs;
+	int fpvalid;
+} elf_prstatus_t;
 
 #endif
 

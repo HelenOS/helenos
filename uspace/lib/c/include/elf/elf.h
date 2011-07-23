@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef ELF_H_
-#define ELF_H_
+#ifndef LIBC_ELF_H_
+#define LIBC_ELF_H_
 
 #include <arch/elf.h>
 #include <sys/types.h>
@@ -43,8 +43,8 @@
  */
 #define	EV_CURRENT	1
 
-/** 
- * ELF types 
+/**
+ * ELF types
  */
 #define ET_NONE		0	/* No type */
 #define ET_REL		1	/* Relocatable file */
@@ -328,18 +328,40 @@ struct elf64_symbol {
 	elf_xword st_size;
 };
 
-#ifdef __32_BITS__ 
+/*
+ * ELF note segment entry
+ */
+struct elf32_note {
+	elf_word namesz;
+	elf_word descsz;
+	elf_word type;
+};
+struct elf64_note {
+	elf_xword namesz;
+	elf_xword descsz;
+	elf_xword type;
+};
+
+#ifdef __32_BITS__
 typedef struct elf32_header elf_header_t;
 typedef struct elf32_segment_header elf_segment_header_t;
 typedef struct elf32_section_header elf_section_header_t;
 typedef struct elf32_symbol elf_symbol_t;
+typedef struct elf32_note elf_note_t;
 #endif
 #ifdef __64_BITS__
 typedef struct elf64_header elf_header_t;
 typedef struct elf64_segment_header elf_segment_header_t;
 typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
+typedef struct elf64_note elf_note_t;
 #endif
+
+/*
+ * Note types are not defined by the standard. These are the ones used
+ * by SVr4 derivatives.
+ */
+#define NT_PRSTATUS	1
 
 extern char *elf_error(unsigned int rc);
 

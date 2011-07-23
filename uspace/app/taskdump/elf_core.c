@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,14 +37,18 @@
  *
  * Looking at core files produced by Linux, these don't have section headers,
  * only program headers, although objdump shows them as having sections.
- * Basically at the beginning there should be a note segment (which we
- * do not write) and one loadable segment per memory area (which we do write).
+ * Basically at the beginning there should be a note segment followed
+ * by one loadable segment per memory area.
  *
- * The note segment probably contains register state, etc. -- we don't
- * deal with these yet. Nevertheless you can use these core files with
- * objdump or gdb.
+ * The note segment contains a series of records with register state,
+ * process info etc. We only write one record NT_PRSTATUS which contains
+ * process/register state (anything which is not register state we fill
+ * with zeroes).
  */
 
+#include <align.h>
+#include <elf/elf.h>
+#include <elf/elf_linux.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -57,12 +61,13 @@
 #include <as.h>
 #include <udebug.h>
 #include <macros.h>
+#include <libarch/istate.h>
 
-#include <elf.h>
-#include "include/elf_core.h"
+#include "elf_core.h"
 
 static off64_t align_foff_up(off64_t, uintptr_t, size_t);
-static int write_all(int, void *, size_t);
+static int write_all(int, const void *, size_t);
+static int align_pos(int, size_t);
 static int write_mem_area(int, as_area_info_t *, async_sess_t *);
 
 #define BUFFER_SIZE 0x1000
@@ -82,21 +87,33 @@ static uint8_t buffer[BUFFER_SIZE];
  *
  */
 int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
-    async_sess_t *sess)
+    async_sess_t *sess, istate_t *istate)
 {
 	elf_header_t elf_hdr;
 	off64_t foff;
 	size_t n_ph;
 	elf_word flags;
 	elf_segment_header_t *p_hdr;
+	elf_prstatus_t pr_status;
+	elf_note_t note;
+	size_t word_size;
 
 	int fd;
 	int rc;
 	unsigned int i;
 
-	n_ph = n;
+#ifdef __32_BITS__
+	word_size = 4;
+#endif
+#ifdef __64_BITS__
+	word_size = 8;
+#endif
+	memset(&pr_status, 0, sizeof(pr_status));
+	istate_to_elf_regs(istate, &pr_status.regs);
 
-	p_hdr = malloc(sizeof(elf_segment_header_t) * n);
+	n_ph = n + 1;
+
+	p_hdr = malloc(sizeof(elf_segment_header_t) * n_ph);
 	if (p_hdr == NULL) {
 		printf("Failed allocating memory.\n");
 		return ENOMEM;
@@ -114,9 +131,10 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	 *
 	 * 	ELF header
 	 *	program headers
+	 *	note segment
 	 * repeat:
 	 *	(pad for alignment)
-	 *	segment data
+	 *	core segment
 	 * end repeat
 	 */
 
@@ -146,28 +164,42 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	/* foff is used for allocation of file space for segment data. */
 	foff = elf_hdr.e_phoff + n_ph * sizeof(elf_segment_header_t);
 
-	for (i = 1; i <= n; ++i) {
-		foff = align_foff_up(foff, ainfo[i - 1].start_addr, PAGE_SIZE);
+	memset(&p_hdr[0], 0, sizeof(p_hdr[0]));
+	p_hdr[0].p_type = PT_NOTE;
+	p_hdr[0].p_offset = foff;
+	p_hdr[0].p_vaddr = 0;
+	p_hdr[0].p_paddr = 0;
+	p_hdr[0].p_filesz = sizeof(elf_note_t)
+	    + ALIGN_UP((str_size("CORE") + 1), word_size)
+	    + ALIGN_UP(sizeof(elf_prstatus_t), word_size);
+	p_hdr[0].p_memsz = 0;
+	p_hdr[0].p_flags = 0;
+	p_hdr[0].p_align = 1;
+
+	foff += p_hdr[0].p_filesz;
+
+	for (i = 0; i < n; ++i) {
+		foff = align_foff_up(foff, ainfo[i].start_addr, PAGE_SIZE);
 
 		flags = 0;
-		if (ainfo[i - 1].flags & AS_AREA_READ)
+		if (ainfo[i].flags & AS_AREA_READ)
 			flags |= PF_R;
-		if (ainfo[i - 1].flags & AS_AREA_WRITE)
+		if (ainfo[i].flags & AS_AREA_WRITE)
 			flags |= PF_W;
-		if (ainfo[i - 1].flags & AS_AREA_EXEC)
+		if (ainfo[i].flags & AS_AREA_EXEC)
 			flags |= PF_X;
 
-		memset(&p_hdr[i - 1], 0, sizeof(p_hdr[i - 1]));
-		p_hdr[i - 1].p_type = PT_LOAD;
-		p_hdr[i - 1].p_offset = foff;
-		p_hdr[i - 1].p_vaddr = ainfo[i - 1].start_addr;
-		p_hdr[i - 1].p_paddr = 0;
-		p_hdr[i - 1].p_filesz = ainfo[i - 1].size;
-		p_hdr[i - 1].p_memsz = ainfo[i - 1].size;
-		p_hdr[i - 1].p_flags = flags;
-		p_hdr[i - 1].p_align = PAGE_SIZE;
+		memset(&p_hdr[i + 1], 0, sizeof(p_hdr[i + 1]));
+		p_hdr[i + 1].p_type = PT_LOAD;
+		p_hdr[i + 1].p_offset = foff;
+		p_hdr[i + 1].p_vaddr = ainfo[i].start_addr;
+		p_hdr[i + 1].p_paddr = 0;
+		p_hdr[i + 1].p_filesz = ainfo[i].size;
+		p_hdr[i + 1].p_memsz = ainfo[i].size;
+		p_hdr[i + 1].p_flags = flags;
+		p_hdr[i + 1].p_align = PAGE_SIZE;
 
-		foff += ainfo[i - 1].size;
+		foff += ainfo[i].size;
 	}
 
 	rc = write_all(fd, &elf_hdr, sizeof(elf_hdr));
@@ -186,13 +218,54 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		}
 	}
 
-	for (i = 0; i < n_ph; ++i) {
+	if (lseek(fd, p_hdr[0].p_offset, SEEK_SET) == (off64_t) -1) {
+		printf("Failed writing memory data.\n");
+		free(p_hdr);
+		return EIO;
+	}
+
+	/*
+	 * Write note header
+	 */
+	note.namesz = str_size("CORE") + 1;
+	note.descsz = sizeof(elf_prstatus_t);
+	note.type = NT_PRSTATUS;
+
+	rc = write_all(fd, &note, sizeof(elf_note_t));
+	if (rc != EOK) {
+		printf("Failed writing note header.\n");
+		free(p_hdr);
+		return EIO;
+	}
+
+	rc = write_all(fd, "CORE", note.namesz);
+	if (rc != EOK) {
+		printf("Failed writing note header.\n");
+		free(p_hdr);
+		return EIO;
+	}
+
+	rc = align_pos(fd, word_size);
+	if (rc != EOK) {
+		printf("Failed writing note header.\n");
+		free(p_hdr);
+		return EIO;
+	}
+
+	rc = write_all(fd, &pr_status, sizeof(elf_prstatus_t));
+	if (rc != EOK) {
+		printf("Failed writing register data.\n");
+		free(p_hdr);
+		return EIO;
+	}
+
+	for (i = 1; i < n_ph; ++i) {
 		if (lseek(fd, p_hdr[i].p_offset, SEEK_SET) == (off64_t) -1) {
 			printf("Failed writing memory data.\n");
 			free(p_hdr);
 			return EIO;
 		}
-		if (write_mem_area(fd, &ainfo[i], sess) != EOK) {
+		if (write_mem_area(fd, &ainfo[i - 1], sess) != EOK) {
 			printf("Failed writing memory data.\n");
 			free(p_hdr);
 			return EIO;
@@ -209,10 +282,10 @@ static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size)
 {
 	off64_t rva = vaddr % page_size;
 	off64_t rfo = foff % page_size;
-	
+
 	if (rva >= rfo)
 		return (foff + (rva - rfo));
-	
+
 	return (foff + (page_size + (rva - rfo)));
 }
 
@@ -267,7 +340,7 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
  * @return		EOK on error, return value from write() if writing
  *			failed.
  */
-static int write_all(int fd, void *data, size_t len)
+static int write_all(int fd, const void *data, size_t len)
 {
 	int cnt = 0;
 
@@ -286,6 +359,24 @@ static int write_all(int fd, void *data, size_t len)
 	return EOK;
 }
 
+static int align_pos(int fd, size_t align)
+{
+	off64_t cur_pos;
+	size_t rem, adv;
+
+	cur_pos = lseek(fd, 0, SEEK_CUR);
+	if (cur_pos < 0)
+		return -1;
+
+	rem = cur_pos % align;
+	adv = align - rem;
+
+	cur_pos = lseek(fd, adv, SEEK_CUR);
+	if (cur_pos < 0)
+		return -1;
+
+	return EOK;
+}
 
 /** @}
  */

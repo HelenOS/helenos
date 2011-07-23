@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup debug
+/** @addtogroup libcmips64
  * @{
  */
 /** @file
  */
 
-#ifndef ELF_CORE_H_
-#define ELF_CORE_H_
+#ifndef LIBC_mips64_ELF_LINUX_H_
+#define LBIC_mips64_ELF_LINUX_H_
 
-#include <async.h>
-#include <elf/elf_linux.h>
 #include <libarch/istate.h>
+#include <sys/types.h>
 
-extern int elf_core_save(const char *, as_area_info_t *, unsigned int,
-    async_sess_t *, istate_t *);
+typedef struct {
+	/* TODO */
+	uint64_t pad[16];
+} elf_regs_t;
+
+static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
+{
+	/* TODO */
+	(void) istate; (void) elf_regs;
+}
 
 #endif
 

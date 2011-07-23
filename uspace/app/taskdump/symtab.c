@@ -35,6 +35,7 @@
  * use it to lookup symbol names/addresses in both directions.
  */
 
+#include <elf/elf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -42,7 +43,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <elf.h>
 #include "include/symtab.h"
 
 static int elf_hdr_check(elf_header_t *hdr);
