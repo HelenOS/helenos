@@ -28,7 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
@@ -55,7 +55,7 @@
 #include <loader/pcb.h>
 #include <entry_point.h>
 
-#include "elf_load.h"
+#include <elf/elf_load.h>
 
 #define DPRINTF(...)
 
