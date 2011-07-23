@@ -121,6 +121,13 @@ RD_DRV_CFG =
 
 RD_LIBS =
 
+ifeq ($(CONFIG_DEVEL_FILES), y)
+	RD_LIBS += \
+		$(USPACE_PATH)/lib/c/libc.a \
+		$(USPACE_PATH)/lib/softint/libsoftint.a \
+		$(USPACE_PATH)/lib/softfloat/libsoftfloat.a
+endif
+
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += \
 		$(USPACE_PATH)/lib/c/libc.so0 \

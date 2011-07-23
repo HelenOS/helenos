@@ -57,6 +57,11 @@ build_dist: clean_dist
 	for file in $(RD_LIBS) ; do \
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
+ifeq ($(CONFIG_DEVEL_FILES), y)
+	mkdir "$(DIST_PATH)/inc/c/"
+	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"
+	cat "$(USPACE_PATH)/lib/c/arch/$(UARCH)/_link.ld" | sed 's/^STARTUP(.*)$$//g' > "$(DIST_PATH)/inc/_link.ld"
+endif
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
@@ -90,5 +95,6 @@ clean_dist:
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
 	rm -f $(USPACE_PATH)/dist/lib/*
+	rm -rf $(USPACE_PATH)/dist/inc/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*
