@@ -174,7 +174,8 @@ LIBS = \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
-	lib/usbvirt
+	lib/usbvirt \
+	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
