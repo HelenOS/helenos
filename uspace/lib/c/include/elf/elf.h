@@ -357,14 +357,6 @@ typedef struct elf64_symbol elf_symbol_t;
 typedef struct elf64_note elf_note_t;
 #endif
 
-/*
- * Note types are not defined by the standard. These are the ones used
- * by SVr4 derivatives.
- */
-#define NT_PRSTATUS	1
-
-extern char *elf_error(unsigned int rc);
-
 #endif
 
 /** @}

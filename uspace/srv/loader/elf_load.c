@@ -48,13 +48,13 @@
 #include <align.h>
 #include <assert.h>
 #include <as.h>
+#include <elf/elf.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <smc.h>
 #include <loader/pcb.h>
 #include <entry_point.h>
 
-#include "elf.h"
 #include "elf_load.h"
 
 #define DPRINTF(...)

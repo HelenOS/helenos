@@ -37,10 +37,10 @@
 #define ELF_LOAD_H_
 
 #include <arch/elf.h>
+#include <elf/elf.h>
 #include <sys/types.h>
 #include <loader/pcb.h>
 
-#include "elf.h"
 
 typedef enum {
 	/** Leave all segments in RW access mode. */
@@ -81,9 +81,9 @@ typedef struct {
 	elf_info_t *info;
 } elf_ld_t;
 
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_info_t *info);
-void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
+extern const char *elf_error(unsigned int);
+extern int elf_load_file(const char *, size_t, eld_flags_t, elf_info_t *);
+extern void elf_create_pcb(elf_info_t *, pcb_t *);
 
 #endif
 

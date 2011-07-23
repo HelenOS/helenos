@@ -58,8 +58,9 @@
 #include <async.h>
 #include <str.h>
 #include <as.h>
-#include <elf.h>
-#include <elf_load.h>
+#include <elf/elf.h>
+
+#include "elf_load.h"
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>

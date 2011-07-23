@@ -58,8 +58,6 @@ LSONAME = libc.so0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-EXTRA_CFLAGS += -I../../srv/loader/include
-
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
