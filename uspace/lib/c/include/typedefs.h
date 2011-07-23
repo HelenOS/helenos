@@ -30,12 +30,15 @@
  * @{
  */
 /** @file
+ *
+ * This header allows including a kernel header using typedefs.h from
+ * libc. User-space code should use sys/types.h directly.
  */
 
-#ifndef LIBC_ELF_H_
-#define LIBC_ELF_H_
+#ifndef LIBC_TYPEDEFS_H_
+#define LIBC_TYPEDEFS_H_
 
-#include <kernel/lib/elf.h>
+#include <sys/types.h>
 
 #endif
 
