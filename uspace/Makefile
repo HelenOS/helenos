@@ -114,6 +114,11 @@ DIRS = \
 	drv/bus/usb/usbmouse \
 	drv/bus/usb/vhc
 
+ifeq ($(CONFIG_BINUTILS),y)
+DIRS += \
+	app/binutils
+endif
+
 ## Networking
 #
 
