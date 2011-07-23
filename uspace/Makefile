@@ -36,6 +36,10 @@ DIRS = \
 	app/bdsh \
 	app/blkdump \
 	app/bnchmark \
+	app/cc \
+	app/ccom \
+	app/ccom/mkext \
+	app/cpp \
 	app/edit \
 	app/ext2info \
 	app/getterm \
