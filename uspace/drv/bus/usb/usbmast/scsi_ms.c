@@ -63,12 +63,15 @@ const char *usbmast_scsi_dev_type_str(unsigned type)
 static void usbmast_dump_sense(usbmast_fun_t *mfun)
 {
 	scsi_sense_data_t sense_buf;
+	unsigned sense_key;
 	int rc;
 
 	rc = usbmast_request_sense(mfun, &sense_buf, sizeof(sense_buf));
 	if (rc == EOK) {
-		printf("Got sense data (sense_key=0x%x, asc=0x%02x, "
-		    "ascq=0x%02x.\n", sense_buf.flags_key & 0x0f,
+		sense_key = sense_buf.flags_key & 0x0f;
+		printf("Got sense data. Sense key: 0x%x (%s), ASC 0x%02x, "
+		    "ASCQ 0x%02x.\n", sense_key,
+		    scsi_get_sense_key_str(sense_key),
 		    sense_buf.additional_code,
 		    sense_buf.additional_cqual);
 	} else {

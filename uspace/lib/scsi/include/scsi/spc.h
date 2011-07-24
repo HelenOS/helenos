@@ -204,11 +204,16 @@ enum scsi_sense_key {
 	SCSI_SK_COPY_ABORTED	= 0xa,
 	SCSI_SK_ABORTED_COMMAND	= 0xb,
 	SCSI_SK_VOLUME_OVERFLOW	= 0xd,
-	SCSI_SK_MISCOMPARE	= 0xe
+	SCSI_SK_MISCOMPARE	= 0xe,
+
+	SCSI_SK_LIMIT		= 0x10
 };
 
 extern const char *scsi_dev_type_str[SCSI_DEV_LIMIT];
+extern const char *scsi_sense_key_str[SCSI_SK_LIMIT];
+
 extern const char *scsi_get_dev_type_str(unsigned);
+extern const char *scsi_get_sense_key_str(unsigned);
 
 #endif
 
