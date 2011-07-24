@@ -57,30 +57,37 @@ bool usb_mast_verbose = false;
  * @param mfun		Mass storage function
  * @param tag		Command block wrapper tag (automatically compared
  *			with answer)
- * @param cmd		Command block
- * @param cmd_size	Command block size in bytes
- * @param ddir		Direction in which data will be transferred
- * @param dbuf		Data send/receive buffer
- * @param dbuf_size	Size of the data buffer
- * @param xferred_size	Number of bytes actually transferred
- * @param cmd_status	Command status
+ * @param cmd		SCSI command
  *
  * @return		Error code
  */
-static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
-    size_t cmd_size, usb_direction_t ddir, void *dbuf, size_t dbuf_size,
-    size_t *xferred_size, cmd_status_t *cmd_status)
+int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 {
 	int rc;
 	int retval = EOK;
 	size_t act_size;
 	usb_pipe_t *bulk_in_pipe = mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe;
 	usb_pipe_t *bulk_out_pipe = mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe;
+	usb_direction_t ddir;
+	void *dbuf;
+	size_t dbuf_size;
+
+	if (cmd->data_out != NULL && cmd->data_in == NULL) {
+		ddir = USB_DIRECTION_OUT;
+		dbuf = (void *)cmd->data_out;
+		dbuf_size = cmd->data_out_size;
+	} else if (cmd->data_out == NULL && cmd->data_in != NULL) {
+		ddir = USB_DIRECTION_IN;
+		dbuf = cmd->data_in;
+		dbuf_size = cmd->data_in_size;
+	} else {
+		assert(false);
+	}
 
 	/* Prepare CBW - command block wrapper */
 	usb_massstor_cbw_t cbw;
 	usb_massstor_cbw_prepare(&cbw, tag, dbuf_size, ddir, mfun->lun,
-	    cmd_size, cmd);
+	    cmd->cdb_size, cmd->cdb);
 
 	/* Send the CBW. */
 	MASTLOG("Sending CBW.\n");
@@ -147,11 +154,11 @@ static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
 	 */
 	switch (csw.dCSWStatus) {
 	case cbs_passed:
-		*cmd_status = CMDS_GOOD;
+		cmd->status = CMDS_GOOD;
 		break;
 	case cbs_failed:
 		MASTLOG("Command failed\n");
-		*cmd_status = CMDS_FAILED;
+		cmd->status = CMDS_FAILED;
 		break;
 	case cbs_phase_error:
 		MASTLOG("Phase error\n");
@@ -176,54 +183,10 @@ static int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
 	 * received (sent).
 	 */
 
-	if (xferred_size != NULL)
-		*xferred_size = dbuf_size - residue;
+	if (ddir == USB_DIRECTION_IN)
+		cmd->rcvd_size = dbuf_size - residue;
 
 	return retval;
-}
-
-/** Perform data-in command.
- *
- * @param mfun		Mass storage function
- * @param tag		Command block wrapper tag (automatically compared with
- *			answer)
- * @param cmd		CDB (Command Descriptor)
- * @param cmd_size	CDB length in bytes
- * @param dbuf		Data receive buffer
- * @param dbuf_size	Data receive buffer size in bytes
- * @param proc_size	Number of bytes actually processed by device
- * @param cmd_status	Command status
- *
- * @return Error code
- */
-int usb_massstor_data_in(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
-    size_t cmd_size, void *dbuf, size_t dbuf_size, size_t *proc_size,
-    cmd_status_t *cmd_status)
-{
-	return usb_massstor_cmd(mfun, tag, cmd, cmd_size, USB_DIRECTION_IN,
-	    dbuf, dbuf_size, proc_size, cmd_status);
-}
-
-/** Perform data-out command.
- *
- * @param mfun		Mass storage function
- * @param tag		Command block wrapper tag (automatically compared with
- *			answer)
- * @param cmd		CDB (Command Descriptor)
- * @param cmd_size	CDB length in bytes
- * @param data		Command data
- * @param data_size	Size of @a data in bytes
- * @param proc_size	Number of bytes actually processed by device
- * @param cmd_status	Command status
- *
- * @return Error code
- */
-int usb_massstor_data_out(usbmast_fun_t *mfun, uint32_t tag, const void *cmd,
-    size_t cmd_size, const void *data, size_t data_size, size_t *proc_size,
-    cmd_status_t *cmd_status)
-{
-	return usb_massstor_cmd(mfun, tag, cmd, cmd_size, USB_DIRECTION_OUT,
-	    (void *) data, data_size, proc_size, cmd_status);
 }
 
 /** Perform bulk-only mass storage reset.
