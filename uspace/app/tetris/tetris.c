@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i <= 5; i++) {
 		for (j = i + 1; j <= 5; j++) {
 			if (keys[i] == keys[j])
-				errx(1, "duplicate command keys specified.");
+				errx(1, "%s", "duplicate command keys specified.");
 		}
 		
 		if (keys[i] == ' ')
