@@ -90,17 +90,6 @@ void free_not_null(const void *ptr)
 		free(ptr);
 }
 
-char *clone_string(const char *s)
-{
-	size_t size = str_size(s) + 1;
-	char *str;
-	
-	str = (char *) malloc(size);
-	if (str != NULL)
-		str_cpy(str, size, s);
-	return str;
-}
-
 void replace_char(char *str, char orig, char repl)
 {
 	while (*str) {

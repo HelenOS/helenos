@@ -421,9 +421,9 @@ bool create_root_nodes(dev_tree_t *tree)
 		return false;
 	}
 	
-	insert_fun_node(tree, fun, clone_string(""), NULL);
+	insert_fun_node(tree, fun, str_dup(""), NULL);
 	match_id_t *id = create_match_id();
-	id->id = clone_string("root");
+	id->id = str_dup("root");
 	id->score = 100;
 	add_match_id(&fun->match_ids, id);
 	tree->root_node = fun;

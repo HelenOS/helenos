@@ -43,7 +43,6 @@ extern char *get_path_elem_end(char *);
 extern bool skip_spaces(char **);
 extern size_t get_nonspace_len(const char *);
 extern void free_not_null(const void *);
-extern char *clone_string(const char *);
 extern void replace_char(char *, char, char);
 
 #endif
