@@ -178,7 +178,7 @@ typedef struct {
 	/** Additional Sense Length */
 	uint8_t additional_len;
 	/** Command-specific Information */
-	uint8_t cmd_spec;
+	uint32_t cmd_spec;
 	/** Additional Sense Code */
 	uint8_t additional_code;
 	/** Additional Sense Code Qualifier */

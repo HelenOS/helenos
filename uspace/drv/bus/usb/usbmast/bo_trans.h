@@ -46,10 +46,15 @@
 #define BULK_IN_EP 0
 #define BULK_OUT_EP 1
 
+typedef enum cmd_status {
+	CMDS_GOOD,
+	CMDS_FAILED
+} cmd_status_t;
+
 extern int usb_massstor_data_in(usbmast_fun_t *, uint32_t, const void *,
-    size_t, void *, size_t, size_t *);
+    size_t, void *, size_t, size_t *, cmd_status_t *);
 extern int usb_massstor_data_out(usbmast_fun_t *, uint32_t, const void *,
-    size_t, const void *, size_t, size_t *);
+    size_t, const void *, size_t, size_t *, cmd_status_t *);
 extern int usb_massstor_reset(usbmast_dev_t *);
 extern void usb_massstor_reset_recovery(usbmast_dev_t *);
 extern int usb_massstor_get_max_lun(usbmast_dev_t *);
