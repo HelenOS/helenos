@@ -36,10 +36,6 @@ DIRS = \
 	app/bdsh \
 	app/blkdump \
 	app/bnchmark \
-	app/cc \
-	app/ccom \
-	app/ccom/mkext \
-	app/cpp \
 	app/edit \
 	app/ext2info \
 	app/getterm \
@@ -113,6 +109,14 @@ DIRS = \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/usbmouse \
 	drv/bus/usb/vhc
+
+ifeq ($(CONFIG_PCC),y)
+DIRS += \
+	app/cc \
+	app/ccom \
+	app/ccom/mkext \
+	app/cpp
+endif
 
 ifeq ($(CONFIG_BINUTILS),y)
 DIRS += \

@@ -144,10 +144,6 @@ RD_APPS_ESSENTIAL = \
 RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
-	$(USPACE_PATH)/app/cc/cc \
-	$(USPACE_PATH)/app/ccom/ccom \
-	$(USPACE_PATH)/app/ccom/mkext/cc_mkext \
-	$(USPACE_PATH)/app/cpp/cpp \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
@@ -175,6 +171,14 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv
+
+ifeq ($(CONFIG_PCC),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/cc/cc \
+	$(USPACE_PATH)/app/ccom/ccom \
+	$(USPACE_PATH)/app/ccom/mkext/cc_mkext \
+	$(USPACE_PATH)/app/cpp/cpp
+endif
 
 ifeq ($(CONFIG_BINUTILS),y)
 RD_APPS_NON_ESSENTIAL += \
