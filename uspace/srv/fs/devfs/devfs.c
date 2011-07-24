@@ -56,67 +56,6 @@ static vfs_info_t devfs_vfs_info = {
 	.write_retains_size = false,
 };
 
-fs_reg_t devfs_reg;
-
-static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	if (iid)
-		async_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call))
-			return;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case VFS_OUT_MOUNTED:
-			devfs_mounted(callid, &call);
-			break;
-		case VFS_OUT_MOUNT:
-			devfs_mount(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNTED:
-			devfs_unmounted(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNT:
-			devfs_unmount(callid, &call);
-			break;
-		case VFS_OUT_LOOKUP:
-			devfs_lookup(callid, &call);
-			break;
-		case VFS_OUT_OPEN_NODE:
-			devfs_open_node(callid, &call);
-			break;
-		case VFS_OUT_STAT:
-			devfs_stat(callid, &call);
-			break;
-		case VFS_OUT_READ:
-			devfs_read(callid, &call);
-			break;
-		case VFS_OUT_WRITE:
-			devfs_write(callid, &call);
-			break;
-		case VFS_OUT_TRUNCATE:
-			devfs_truncate(callid, &call);
-			break;
-		case VFS_OUT_CLOSE:
-			devfs_close(callid, &call);
-			break;
-		case VFS_OUT_SYNC:
-			devfs_sync(callid, &call);
-			break;
-		case VFS_OUT_DESTROY:
-			devfs_destroy(callid, &call);
-			break;
-		default:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Device Filesystem\n", NAME);
@@ -133,8 +72,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	int rc = fs_register(vfs_sess, &devfs_reg, &devfs_vfs_info,
-	    devfs_connection);
+	int rc = fs_register(vfs_sess, &devfs_vfs_info, &devfs_ops,
+	    &devfs_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system (%d)\n", NAME, rc);
 		return rc;
@@ -151,3 +90,4 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
+
