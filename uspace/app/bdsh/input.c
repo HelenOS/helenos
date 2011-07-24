@@ -169,7 +169,7 @@ int process_input(cliuser_t *usr)
 		new_iostate.stdout = to;
 	}
 	
-	rc = run_command(cmd, usr, &new_iostate);
+	rc = run_command(actual_cmd, usr, &new_iostate);
 	
 finit_with_files:
 	if (from != NULL) {
