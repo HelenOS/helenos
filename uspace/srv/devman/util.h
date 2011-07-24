@@ -46,8 +46,6 @@ extern void free_not_null(const void *);
 extern char *clone_string(const char *);
 extern void replace_char(char *, char, char);
 
-extern ssize_t safe_read(int, void *, size_t);
-
 #endif
 
 /** @}

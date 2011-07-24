@@ -269,9 +269,10 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = safe_read(fd, buf, len);
+	ssize_t read_bytes = read_all(fd, buf, len);
 	if (read_bytes <= 0) {
-		log_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
+		log_msg(LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
+		    read_bytes);
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;
