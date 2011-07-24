@@ -43,9 +43,9 @@ static inline uint8_t pio_read_8(ioport8_t *port)
 	uint8_t val;
 	
 	asm volatile (
-		"inb %w[port], %b[val]\n"
-		: [val] "=a" (val)
-		: [port] "d" (port)
+		"inb %w1, %b0\n"
+		: "=a" (val)
+		: "d" (port)
 	);
 	
 	return val;
@@ -56,9 +56,9 @@ static inline uint16_t pio_read_16(ioport16_t *port)
 	uint16_t val;
 	
 	asm volatile (
-		"inw %w[port], %w[val]\n"
-		: [val] "=a" (val)
-		: [port] "d" (port)
+		"inw %w1, %w0\n"
+		: "=a" (val)
+		: "d" (port)
 	);
 	
 	return val;
@@ -69,9 +69,9 @@ static inline uint32_t pio_read_32(ioport32_t *port)
 	uint32_t val;
 	
 	asm volatile (
-		"inl %w[port], %[val]\n"
-		: [val] "=a" (val)
-		: [port] "d" (port)
+		"inl %w1, %0\n"
+		: "=a" (val)
+		: "d" (port)
 	);
 	
 	return val;
@@ -80,24 +80,24 @@ static inline uint32_t pio_read_32(ioport32_t *port)
 static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 	asm volatile (
-		"outb %b[val], %w[port]\n"
-		:: [val] "a" (val), [port] "d" (port)
+		"outb %b0, %w1\n"
+		:: "a" (val), "d" (port)
 	);
 }
 
 static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
 	asm volatile (
-		"outw %w[val], %w[port]\n"
-		:: [val] "a" (val), [port] "d" (port)
+		"outw %w0, %w1\n"
+		:: "a" (val), "d" (port)
 	);
 }
 
 static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
 	asm volatile (
-		"outl %[val], %w[port]\n"
-		:: [val] "a" (val), [port] "d" (port)
+		"outl %0, %w1\n"
+		:: "a" (val), "d" (port)
 	);
 }
 
