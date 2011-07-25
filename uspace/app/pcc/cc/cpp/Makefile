@@ -30,9 +30,11 @@ USPACE_PREFIX = ../../../..
 MIPDIR = ../../mip
 ARCHDIR = ../../arch/$(PLATFORM)
 EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR) -w
-EXTRA_CLEAN = y.tab.c y.tab.h
 DEFS = -DCPP_DEBUG -Dfree=free -DCPPBUF=16384
 BINARY = cpp
+
+PRE_DEPEND = compat.c
+EXTRA_CLEAN = compat.c y.tab.c y.tab.h
 
 POSIX_COMPAT = y
 
@@ -42,10 +44,13 @@ SOURCES = \
 	y.tab.c \
 	cpp.c \
 	token.c \
-	$(MIPDIR)/compat.c
+	compat.c
+
+include $(USPACE_PREFIX)/Makefile.common
 
 y.tab.c:
 	$(YACC) -d cpy.y
 
-include $(USPACE_PREFIX)/Makefile.common
+compat.c: $(MIPDIR)/compat.c
+	ln -s -f $^ $@
 

@@ -34,13 +34,17 @@ EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR) -I$(OSDIR) -w
 DEFS = -Dmach_$(PLATFORM) -D__helenos__
 BINARY = cc
 
+PRE_DEPEND = compat.c
+EXTRA_CLEAN = compat.c
+
 POSIX_COMPAT = y
-
-
 
 SOURCES = \
 	cc.c \
-	$(MIPDIR)/compat.c
+	compat.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+compat.c: $(MIPDIR)/compat.c
+	ln -s -f $^ $@
 

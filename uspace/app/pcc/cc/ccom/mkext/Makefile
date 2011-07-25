@@ -36,12 +36,24 @@ BINARY = cc_mkext
 
 POSIX_COMPAT = y
 
+PRE_DEPEND = mkext.c table.c common.c
+EXTRA_CLEAN = mkext.c table.c common.c
+
 # FIXME: external.{c,h} must be generated for each target system
 
 SOURCES = \
-	${MIPDIR}/mkext.c \
-	$(MDIR)/table.c \
-	${MIPDIR}/common.c
+	mkext.c \
+	table.c \
+	common.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+mkext.c: $(MIPDIR)/mkext.c
+	ln -s -f $^ $@
+
+table.c: $(MDIR)/table.c
+	ln -s -f $^ $@
+
+common.c: $(MIPDIR)/common.c
+	ln -s -f $^ $@
 
