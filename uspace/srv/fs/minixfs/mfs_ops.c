@@ -257,9 +257,24 @@ void mfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 void mfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap = (devmap_handle_t) IPC_GET_ARG1(*request);
+	struct mfs_instance *inst;
+
+	int r = mfs_instance_get(devmap, &inst);
+	if (r != EOK) {
+		async_answer_0(rid, r);
+		return;
+	}
 
 	(void) block_cache_fini(devmap);
 	block_fini(devmap);
+
+	/* Remove the instance from the list */
+	fibril_mutex_lock(&inst_list_mutex);
+	list_remove(&inst->link);
+	fibril_mutex_unlock(&inst_list_mutex);
+
+	free(inst->sbi);
+	free(inst);
 
 	async_answer_0(rid, EOK);
 }
