@@ -86,7 +86,6 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EOK);
 	}
 
-	printf(NAME ": connection opened\n");
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
