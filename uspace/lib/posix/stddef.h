@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Standard type definitions.
  */
 
 #ifndef POSIX_STDDEF_H_

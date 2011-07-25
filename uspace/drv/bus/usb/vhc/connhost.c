@@ -140,21 +140,16 @@ static int register_endpoint(ddf_fun_t *fun,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
+	/* TODO: Use usb_endpoint_manager_add_ep */
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	endpoint_t *ep = endpoint_get(
+	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1);
 	if (ep == NULL) {
 		return ENOMEM;
 	}
 
-	int rc = endpoint_init(ep, address, endpoint, direction, transfer_type,
-	    USB_SPEED_FULL, 1);
-	if (rc != EOK) {
-		free(ep);
-		return rc;
-	}
-
-	rc = usb_endpoint_manager_register_ep(&vhc->ep_manager, ep, 1);
+	int rc = usb_endpoint_manager_register_ep(&vhc->ep_manager, ep, 1);
 	if (rc != EOK) {
 		endpoint_destroy(ep);
 		return rc;

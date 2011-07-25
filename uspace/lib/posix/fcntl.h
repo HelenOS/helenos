@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file File control.
  */
 
 #ifndef POSIX_FCNTL_H_

@@ -33,6 +33,8 @@
 /**
  * @file
  * @brief Serial TTY-like keyboard controller driver.
+ *
+ * Keyboard emulation on a serial terminal.
  */
 
 #include <kbd.h>
@@ -62,6 +64,11 @@ static int ds;
 
 #include <stdio.h>
 
+/**
+ * Sequnece definitions are primarily for Xterm. Additionally we define
+ * sequences that are unique to Gnome terminal -- most are the same but
+ * some differ.
+ */
 static int seq_defs[] = {
 	/* Not shifted */
 
@@ -80,6 +87,7 @@ static int seq_defs[] = {
 
 	0,	KC_MINUS,	0x2d, GSP_END,
 	0,	KC_EQUALS,	0x3d, GSP_END,
+
 	0,	KC_BACKSPACE,	0x08, GSP_END,
 
 	0,	KC_TAB,		0x09, GSP_END,
@@ -214,6 +222,13 @@ static int seq_defs[] = {
 	0,	KC_LEFT,	0x1b, 0x5b, 0x44, GSP_END,
 	0,	KC_DOWN,	0x1b, 0x5b, 0x42, GSP_END,
 	0,	KC_RIGHT,	0x1b, 0x5b, 0x43, GSP_END,
+
+	/*
+	 * Sequences specific to Gnome terminal
+	 */
+	0,	KC_BACKSPACE,	0x7f, GSP_END, /* ASCII DEL */
+	0,	KC_HOME,	0x1b, 0x4f, 0x48, GSP_END,
+	0,	KC_END,		0x1b, 0x4f, 0x46, GSP_END,
 
 	0,	0
 };

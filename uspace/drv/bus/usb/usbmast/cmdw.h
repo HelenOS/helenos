@@ -30,29 +30,34 @@
  * @{
  */
 /** @file
- * Generic functions for USB mass storage.
+ * USB mass storage commands.
  */
 
-#ifndef USB_USBMAST_MAST_H_
-#define USB_USBMAST_MAST_H_
+#ifndef CMDW_H_
+#define CMDW_H_
 
-#include <scsi/spc.h>
 #include <sys/types.h>
 #include <usb/usb.h>
-#include <usb/dev/pipes.h>
-#include <usb/dev/driver.h>
 
-#define BULK_IN_EP 0
-#define BULK_OUT_EP 1
+typedef struct {
+	uint32_t dCBWSignature;
+	uint32_t dCBWTag;
+	uint32_t dCBWDataTransferLength;
+	uint8_t bmCBWFlags;
+	uint8_t bCBWLUN;
+	uint8_t bCBWBLength;
+	uint8_t CBWCB[16];
+} __attribute__((packed)) usb_massstor_cbw_t;
 
-extern int usb_massstor_data_in(usb_device_t *, uint32_t, uint8_t, const void *,
-    size_t, void *, size_t, size_t *);
-extern int usb_massstor_data_out(usb_device_t *, uint32_t, uint8_t, const void *,
-    size_t, const void *, size_t, size_t *);
-extern int usb_massstor_reset(usb_device_t *);
-extern void usb_massstor_reset_recovery(usb_device_t *);
-extern int usb_massstor_get_max_lun(usb_device_t *);
-extern size_t usb_masstor_get_lun_count(usb_device_t *);
+typedef struct {
+	uint32_t dCSWSignature;
+	uint32_t dCSWTag;
+	uint32_t dCSWDataResidue;
+	uint8_t dCSWStatus;
+} __attribute__((packed)) usb_massstor_csw_t;
+
+extern void usb_massstor_cbw_prepare(usb_massstor_cbw_t *, uint32_t, uint32_t,
+    usb_direction_t, uint8_t, uint8_t, const uint8_t *);
 
 #endif
 

@@ -192,8 +192,10 @@ void os_input_disp_help(void)
  *
  * @param ptr	Place to store pointer to new string.
  */
-int os_input_line(char **ptr)
+int os_input_line(const char *prompt, char **ptr)
 {
+	printf("%s", prompt);
+
 	if (fgets(os_input_buffer, OS_INPUT_BUFFER_SIZE, stdin) == NULL)
 		os_input_buffer[0] = '\0';
 

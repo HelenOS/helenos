@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2008 Tim Post
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
-/** @file Character classification.
- */
+#ifndef COMPL_H
+#define COMPL_H
 
-#ifndef POSIX_CTYPE_H_
-#define POSIX_CTYPE_H_
+#include <tinput.h>
 
-#include "libc/ctype.h"
+extern tinput_compl_ops_t compl_ops;
 
-/* Classification of Characters */
-extern int posix_isxdigit(int c);
-extern int posix_isblank(int c);
-extern int posix_iscntrl(int c);
-extern int posix_isgraph(int c);
-extern int posix_isprint(int c);
-extern int posix_ispunct(int c);
-
-/* Obsolete Functions and Macros */
-extern int posix_isascii(int c);
-extern int posix_toascii(int c);
-#undef _tolower
-#define _tolower(c) ((c) - 'A' + 'a')
-#undef _toupper
-#define _toupper(c) ((c) - 'a' + 'A')
-
-
-#ifndef LIBPOSIX_INTERNAL
-	#define isxdigit posix_isxdigit
-	#define isblank posix_isblank
-	#define iscntrl posix_iscntrl
-	#define isgraph posix_isgraph
-	#define isprint posix_isprint
-	#define ispunct posix_ispunct
-	
-	#define isascii posix_isascii
-	#define toascii posix_toascii
 #endif
-
-#endif /* POSIX_CTYPE_H_ */
-
-/** @}
- */

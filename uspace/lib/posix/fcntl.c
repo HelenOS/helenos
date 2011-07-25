@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file File control.
  */
 
 #define LIBPOSIX_INTERNAL

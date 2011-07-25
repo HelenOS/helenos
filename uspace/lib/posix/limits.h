@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Implementation-defined limit constants.
  */
 
 #ifndef POSIX_LIMITS_H_

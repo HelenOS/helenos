@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Miscellaneous standard definitions.
  */
 
 #ifndef POSIX_UNISTD_H_

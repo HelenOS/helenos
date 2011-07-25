@@ -29,11 +29,13 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Locale-specific definitions.
  */
 
 #ifndef POSIX_LOCALE_H_
 #define POSIX_LOCALE_H_
+
+// TODO: documentation
 
 #ifndef NULL
 	#define NULL ((void *) 0)
@@ -82,30 +84,30 @@
 #define LC_GLOBAL_LOCALE NULL
 
 struct posix_lconv {
-	char    *currency_symbol;
-	char    *decimal_point;
-	char     frac_digits;
-	char    *grouping;
-	char    *int_curr_symbol;
-	char     int_frac_digits;
-	char     int_n_cs_precedes;
-	char     int_n_sep_by_space;
-	char     int_n_sign_posn;
-	char     int_p_cs_precedes;
-	char     int_p_sep_by_space;
-	char     int_p_sign_posn;
-	char    *mon_decimal_point;
-	char    *mon_grouping;
-	char    *mon_thousands_sep;
-	char    *negative_sign;
-	char     n_cs_precedes;
-	char     n_sep_by_space;
-	char     n_sign_posn;
-	char    *positive_sign;
-	char     p_cs_precedes;
-	char     p_sep_by_space;
-	char     p_sign_posn;
-	char    *thousands_sep;
+	char *currency_symbol;
+	char *decimal_point;
+	char  frac_digits;
+	char *grouping;
+	char *int_curr_symbol;
+	char  int_frac_digits;
+	char  int_n_cs_precedes;
+	char  int_n_sep_by_space;
+	char  int_n_sign_posn;
+	char  int_p_cs_precedes;
+	char  int_p_sep_by_space;
+	char  int_p_sign_posn;
+	char *mon_decimal_point;
+	char *mon_grouping;
+	char *mon_thousands_sep;
+	char *negative_sign;
+	char  n_cs_precedes;
+	char  n_sep_by_space;
+	char  n_sign_posn;
+	char *positive_sign;
+	char  p_cs_precedes;
+	char  p_sep_by_space;
+	char  p_sign_posn;
+	char *thousands_sep;
 };
 
 extern char *posix_setlocale(int category, const char *locale);
@@ -116,7 +118,7 @@ extern posix_locale_t posix_duplocale(posix_locale_t locobj);
 extern void posix_freelocale(posix_locale_t locobj);
 extern posix_locale_t posix_newlocale(int category_mask, const char *locale,
     posix_locale_t base);
-extern posix_locale_t posix_uselocale (posix_locale_t newloc);
+extern posix_locale_t posix_uselocale(posix_locale_t newloc);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define lconv posix_lconv
@@ -129,7 +131,6 @@ extern posix_locale_t posix_uselocale (posix_locale_t newloc);
 	#define duplocale posix_duplocale
 	#define freelocale posix_freelocale
 #endif
-
 
 #endif /* POSIX_LOCALE_H_ */
 

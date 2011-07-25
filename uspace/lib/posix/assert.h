@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Program assertion.
  */
 
 /* NO include guard on purpose. */
@@ -51,4 +51,3 @@
 
 /** @}
  */
-

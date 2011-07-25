@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Integer types.
  */
 
 #ifndef POSIX_STDINT_H_
@@ -86,6 +86,16 @@
 #undef AOFF64_MIN
 #define AOFF64_MAX  UINT64_MAX
 #define AOFF64_MIN  UINT64_MIN
+
+#undef INTMAX_MIN
+#undef INTMAX_MAX
+#define INTMAX_MIN INT64_MIN
+#define INTMAX_MAX INT64_MAX
+
+#undef UINTMAX_MIN
+#undef UINTMAX_MAX
+#define UINTMAX_MIN UINT64_MIN
+#define UINTMAX_MAX UINT64_MAX
 
 #include "libc/sys/types.h"
 

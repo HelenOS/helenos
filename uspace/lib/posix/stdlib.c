@@ -30,7 +30,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Standard library definitions.
  */
 
 #define LIBPOSIX_INTERNAL
@@ -39,6 +39,7 @@
 #include "stdlib.h"
 
 #include "errno.h"
+#include "limits.h"
 
 #include "libc/sort.h"
 #include "libc/str.h"
@@ -58,6 +59,7 @@ int posix_atexit(void (*func)(void))
 }
 
 /**
+ * Integer absolute value.
  * 
  * @param i Input value.
  * @return Absolute value of the parameter.
@@ -68,6 +70,7 @@ int posix_abs(int i)
 }
 
 /**
+ * Long integer absolute value.
  * 
  * @param i Input value.
  * @return Absolute value of the parameter.
@@ -78,6 +81,7 @@ long posix_labs(long i)
 }
 
 /**
+ * Long long integer absolute value.
  * 
  * @param i Input value.
  * @return Absolute value of the parameter.
@@ -87,16 +91,37 @@ long long posix_llabs(long long i)
 	return i < 0 ? -i : i;
 }
 
+/**
+ * Compute the quotient and remainder of an integer division.
+ *
+ * @param numer Numerator.
+ * @param denom Denominator.
+ * @return Quotient and remainder packed into structure.
+ */
 posix_div_t posix_div(int numer, int denom)
 {
 	return (posix_div_t) { .quot = numer / denom, .rem = numer % denom };
 }
 
+/**
+ * Compute the quotient and remainder of a long integer division.
+ *
+ * @param numer Numerator.
+ * @param denom Denominator.
+ * @return Quotient and remainder packed into structure.
+ */
 posix_ldiv_t posix_ldiv(long numer, long denom)
 {
 	return (posix_ldiv_t) { .quot = numer / denom, .rem = numer % denom };
 }
 
+/**
+ * Compute the quotient and remainder of a long long integer division.
+ *
+ * @param numer Numerator.
+ * @param denom Denominator.
+ * @return Quotient and remainder packed into structure.
+ */
 posix_lldiv_t posix_lldiv(long long numer, long long denom)
 {
 	return (posix_lldiv_t) { .quot = numer / denom, .rem = numer % denom };
@@ -108,22 +133,30 @@ posix_lldiv_t posix_lldiv(long long numer, long long denom)
  * @param elem1 First element to compare.
  * @param elem2 Second element to compare.
  * @param compare Comparison function without userdata parameter.
- *
  * @return Relative ordering of the elements.
  */
 static int sort_compare_wrapper(void *elem1, void *elem2, void *userdata)
 {
 	int (*compare)(const void *, const void *) = userdata;
-	return compare(elem1, elem2);
+	int ret = compare(elem1, elem2);
+	
+	/* Native qsort internals expect this. */
+	if (ret < 0) {
+		return -1;
+	} else if (ret > 0) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 /**
  * Array sorting utilizing the quicksort algorithm.
  *
- * @param array
- * @param count
- * @param size
- * @param compare
+ * @param array Array of elements to sort.
+ * @param count Number of elements in the array.
+ * @param size Width of each element.
+ * @param compare Decides relative ordering of two elements.
  */
 void posix_qsort(void *array, size_t count, size_t size,
     int (*compare)(const void *, const void *))
@@ -170,11 +203,12 @@ void *posix_bsearch(const void *key, const void *base,
 
 /**
  * Retrieve a value of the given environment variable.
+ *
  * Since HelenOS doesn't support env variables at the moment,
  * this function always returns NULL.
  *
- * @param name
- * @return Always NULL.
+ * @param name Name of the variable.
+ * @return Value of the variable or NULL if such variable does not exist.
  */
 char *posix_getenv(const char *name)
 {
@@ -194,9 +228,12 @@ int posix_putenv(char *string)
 }
 
 /**
+ * Issue a command.
  *
- * @param string String to be passed to a command interpreter.
- * @return
+ * @param string String to be passed to a command interpreter or NULL.
+ * @return Termination status of the command if the command is not NULL,
+ *     otherwise indicate whether there is a command interpreter (non-zero)
+ *     or not (zero).
  */
 int posix_system(const char *string) {
 	// TODO: does nothing at the moment
@@ -204,12 +241,16 @@ int posix_system(const char *string) {
 }
 
 /**
+ * Resolve absolute pathname.
  * 
- * @param name
- * @param resolved
- * @return
+ * @param name Pathname to be resolved.
+ * @param resolved Either buffer for the resolved absolute pathname or NULL.
+ * @return On success, either resolved (if it was not NULL) or pointer to the
+ *     newly allocated buffer containing the absolute pathname (if resolved was
+ *     NULL). Otherwise NULL.
+ *
  */
-char *posix_realpath(const char *name, char *resolved)
+char *posix_realpath(const char *restrict name, char *restrict resolved)
 {
 	#ifndef PATH_MAX
 		assert(resolved == NULL);
@@ -253,8 +294,8 @@ char *posix_realpath(const char *name, char *resolved)
  * Converts a string representation of a floating-point number to
  * its native representation. See posix_strtold().
  *
- * @param nptr
- * @return
+ * @param nptr String representation of a floating-point number.
+ * @return Double-precision number resulting from the string conversion.
  */
 double posix_atof(const char *nptr)
 {
@@ -265,9 +306,10 @@ double posix_atof(const char *nptr)
  * Converts a string representation of a floating-point number to
  * its native representation. See posix_strtold().
  *
- * @param nptr
- * @param endptr
- * @return
+ * @param nptr String representation of a floating-point number.
+ * @param endptr Pointer to the final part of the string which
+ *     was not used for conversion.
+ * @return Single-precision number resulting from the string conversion.
  */
 float posix_strtof(const char *restrict nptr, char **restrict endptr)
 {
@@ -278,9 +320,10 @@ float posix_strtof(const char *restrict nptr, char **restrict endptr)
  * Converts a string representation of a floating-point number to
  * its native representation. See posix_strtold().
  *
- * @param nptr
- * @param endptr
- * @return
+ * @param nptr String representation of a floating-point number.
+ * @param endptr Pointer to the final part of the string which
+ *     was not used for conversion.
+ * @return Double-precision number resulting from the string conversion.
  */
 double posix_strtod(const char *restrict nptr, char **restrict endptr)
 {
@@ -288,9 +331,10 @@ double posix_strtod(const char *restrict nptr, char **restrict endptr)
 }
 
 /**
+ * Allocate memory chunk.
  *
- * @param size
- * @return
+ * @param size Size of the chunk to allocate.
+ * @return Either pointer to the allocated chunk or NULL if not possible.
  */
 void *posix_malloc(size_t size)
 {
@@ -298,10 +342,11 @@ void *posix_malloc(size_t size)
 }
 
 /**
+ * Allocate memory for an array of elements.
  *
- * @param nelem
- * @param elsize
- * @return
+ * @param nelem Number of elements in the array.
+ * @param elsize Size of each element.
+ * @return Either pointer to the allocated array or NULL if not possible.
  */
 void *posix_calloc(size_t nelem, size_t elsize)
 {
@@ -309,23 +354,33 @@ void *posix_calloc(size_t nelem, size_t elsize)
 }
 
 /**
+ * Reallocate memory chunk to a new size.
  *
- * @param ptr
- * @param size
- * @return
+ * @param ptr Memory chunk to reallocate. Might be NULL.
+ * @param size Size of the reallocated chunk. Might be zero.
+ * @return Either NULL or the pointer to the newly reallocated chunk.
  */
 void *posix_realloc(void *ptr, size_t size)
 {
-	return realloc(ptr, size);
+	if (ptr != NULL && size == 0) {
+		/* Native realloc does not handle this special case. */
+		free(ptr);
+		return NULL;
+	} else {
+		return realloc(ptr, size);
+	}
 }
 
 /**
+ * Free allocated memory chunk.
  *
- * @param ptr
+ * @param ptr Memory chunk to be freed.
  */
 void posix_free(void *ptr)
 {
-	free(ptr);
+	if (ptr) {
+		free(ptr);
+	}
 }
 
 /**
@@ -340,11 +395,13 @@ char *posix_mktemp(char *tmpl)
 }
 
 /**
- * Should read system load statistics. Not supported. Always returns -1.
+ * Get system load average statistics.
  *
- * @param loadavg
- * @param nelem
- * @return
+ * Not supported. Always returns -1.
+ *
+ * @param loadavg Array where the load averages shall be placed.
+ * @param nelem Maximum number of elements to be placed into the array.
+ * @return Number of elements placed into the array on success, -1 otherwise.
  */
 int bsd_getloadavg(double loadavg[], int nelem)
 {

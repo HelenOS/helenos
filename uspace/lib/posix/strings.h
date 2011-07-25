@@ -30,14 +30,14 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Additional string manipulation.
  */
 
 #ifndef POSIX_STRINGS_H_
 #define POSIX_STRINGS_H_
 
-#ifndef POSIX_STRING_H_
 /* Search Functions */
+#ifndef POSIX_STRING_H_
 extern int posix_ffs(int i);
 #endif
 
@@ -55,7 +55,7 @@ extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 
 /* Legacy Functions */
 extern int posix_bcmp(const void *mem1, const void *mem2, size_t n);
-extern void posix_bcopy(const void *dest, void *src, size_t n);
+extern void posix_bcopy(const void *src, void *dest, size_t n);
 extern void posix_bzero(void *mem, size_t n);
 extern char *posix_index(const char *s, int c);
 extern char *posix_rindex(const char *s, int c);

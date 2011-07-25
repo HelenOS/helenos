@@ -37,7 +37,7 @@
 #include <mem.h>
 #include <sys/types.h>
 #include <usb/usb.h>
-#include "cmds.h"
+#include "cmdw.h"
 
 void usb_massstor_cbw_prepare(usb_massstor_cbw_t *cbw,
     uint32_t tag, uint32_t transfer_length, usb_direction_t dir,

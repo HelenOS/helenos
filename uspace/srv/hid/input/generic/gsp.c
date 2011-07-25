@@ -103,7 +103,7 @@ int gsp_insert_defs(gsp_t *p, const int *defs)
 		key = *dp++;
 		if (key == 0) break;
 
-		/* Insert one sequence. */		
+		/* Insert one sequence. */
 		rc = gsp_insert_seq(p, dp, mods, key);
 		if (rc != 0)
 			return rc;
@@ -196,7 +196,8 @@ int gsp_step(gsp_t *p, int state, int input, unsigned *mods, unsigned *key)
 	}
 
 	if (t == NULL) {
-		printf("gsp_step: not found\n");
+		printf("gsp_step: not found, state=%d, input=0x%x\n",
+		    state, input);
 		*mods = 0;
 		*key = 0;
 		return 0;
@@ -204,6 +205,7 @@ int gsp_step(gsp_t *p, int state, int input, unsigned *mods, unsigned *key)
 
 	*mods = t->out_mods;
 	*key = t->out_key;
+
 	return t->new_state;
 }
 

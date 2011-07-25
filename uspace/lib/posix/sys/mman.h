@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Memory management declarations.
  */
 
 #ifndef POSIX_SYS_MMAN_H_

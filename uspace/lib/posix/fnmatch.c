@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file Filename-matching.
  */
 
 // TODO: clean this up a bit
@@ -44,6 +44,8 @@
 
 #include "internal/common.h"
 #include "fnmatch.h"
+
+// TODO: documentation
 
 #define INVALID_PATTERN -1
 
@@ -168,12 +170,24 @@ static const struct _char_class _char_classes[] = {
 	{ "xdigit", isxdigit }
 };
 
+/**
+ * 
+ * @param key
+ * @param elem
+ * @return
+ */
 static int _class_compare(const void *key, const void *elem)
 {
 	const struct _char_class *class = elem;
 	return strcmp((const char *) key, class->name);
 }
 
+/**
+ * 
+ * @param cname
+ * @param c
+ * @return
+ */
 static bool _is_in_class (const char *cname, int c)
 {
 	/* Search for class in the array of supported character classes. */
@@ -190,6 +204,13 @@ static bool _is_in_class (const char *cname, int c)
 	}
 }
 
+/**
+ * 
+ * @param pattern
+ * @param str
+ * @param flags
+ * @return
+ */
 static int _match_char_class(const char **pattern, const char *str, int flags)
 {
 	char class[MAX_CLASS_OR_COLL_LEN + 1];
@@ -203,6 +224,12 @@ static int _match_char_class(const char **pattern, const char *str, int flags)
 
 /************** END CHARACTER CLASSES ****************/
 
+/**
+ * 
+ * @param pattern
+ * @param flags
+ * @return
+ */
 static _coll_elm_t _next_coll_elm(const char **pattern, int flags)
 {
 	const char *p = *pattern;
@@ -239,7 +266,11 @@ static _coll_elm_t _next_coll_elm(const char **pattern, int flags)
 }
 
 /**
- *
+ * 
+ * @param pattern
+ * @param str
+ * @param flags
+ * @return
  */
 static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 {
@@ -326,7 +357,11 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 }
 
 /**
- *
+ * 
+ * @param pattern
+ * @param string
+ * @param flags
+ * @return
  */
 static bool _partial_match(const char **pattern, const char **string, int flags)
 {
@@ -420,6 +455,13 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 	return true;
 }
 
+/**
+ * 
+ * @param pattern
+ * @param string
+ * @param flags
+ * @return
+ */
 static bool _full_match(const char *pattern, const char *string, int flags)
 {
 	const bool pathname = (flags & FNM_PATHNAME) != 0;
@@ -475,6 +517,11 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 	return *string == '\0' || (leading_dir && *string == '/');
 }
 
+/**
+ * 
+ * @param s
+ * @return
+ */
 static char *_casefold(const char *s)
 {
 	char *result = strdup(s);
@@ -505,8 +552,12 @@ int posix_fnmatch(const char *pattern, const char *string, int flags)
 	bool result = _full_match(pattern, string, flags);
 
 	if ((flags & FNM_CASEFOLD) != 0) {
-		free((char *) pattern);
-		free((char *) string);
+		if (pattern) {
+			free((char *) pattern);
+		}
+		if (string) {
+			free((char *) string);
+		}
 	}
 
 	return result ? 0 : FNM_NOMATCH;
@@ -603,4 +654,3 @@ void __posix_fnmatch_test()
 
 /** @}
  */
-

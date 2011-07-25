@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup drvusbmast
  * @{
  */
-/** @file Character classification.
+/** @file
+ * USB mass storage bulk-only transport.
  */
 
-#ifndef POSIX_CTYPE_H_
-#define POSIX_CTYPE_H_
+#ifndef BO_TRANS_H_
+#define BO_TRANS_H_
 
-#include "libc/ctype.h"
+#include <scsi/spc.h>
+#include <sys/types.h>
+#include <usb/usb.h>
+#include <usb/dev/pipes.h>
+#include <usb/dev/driver.h>
+#include "usbmast.h"
 
-/* Classification of Characters */
-extern int posix_isxdigit(int c);
-extern int posix_isblank(int c);
-extern int posix_iscntrl(int c);
-extern int posix_isgraph(int c);
-extern int posix_isprint(int c);
-extern int posix_ispunct(int c);
+#define BULK_IN_EP 0
+#define BULK_OUT_EP 1
 
-/* Obsolete Functions and Macros */
-extern int posix_isascii(int c);
-extern int posix_toascii(int c);
-#undef _tolower
-#define _tolower(c) ((c) - 'A' + 'a')
-#undef _toupper
-#define _toupper(c) ((c) - 'a' + 'A')
+extern int usb_massstor_data_in(usbmast_fun_t *, uint32_t, const void *,
+    size_t, void *, size_t, size_t *);
+extern int usb_massstor_data_out(usbmast_fun_t *, uint32_t, const void *,
+    size_t, const void *, size_t, size_t *);
+extern int usb_massstor_reset(usbmast_dev_t *);
+extern void usb_massstor_reset_recovery(usbmast_dev_t *);
+extern int usb_massstor_get_max_lun(usbmast_dev_t *);
+extern size_t usb_masstor_get_lun_count(usbmast_dev_t *);
 
-
-#ifndef LIBPOSIX_INTERNAL
-	#define isxdigit posix_isxdigit
-	#define isblank posix_isblank
-	#define iscntrl posix_iscntrl
-	#define isgraph posix_isgraph
-	#define isprint posix_isprint
-	#define ispunct posix_ispunct
-	
-	#define isascii posix_isascii
-	#define toascii posix_toascii
 #endif
 
-#endif /* POSIX_CTYPE_H_ */
-
-/** @}
+/**
+ * @}
  */

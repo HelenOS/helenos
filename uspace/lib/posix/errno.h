@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file System error numbers.
  */
 
 #ifndef POSIX_ERRNO_H_
@@ -324,4 +324,3 @@ enum {
 
 /** @}
  */
-

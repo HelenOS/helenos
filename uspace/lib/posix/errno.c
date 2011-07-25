@@ -29,7 +29,7 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file
+/** @file System error numbers.
  */
 
 #include "errno.h"
@@ -50,4 +50,3 @@ int *__posix_errno(void)
 
 /** @}
  */
-

@@ -62,4 +62,3 @@ include $(USPACE_PREFIX)/Makefile.common
 
 $(INCLUDE_LIBC): ../c/include
 	ln -s -f -n $^ $@
-

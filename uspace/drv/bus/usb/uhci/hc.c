@@ -46,6 +46,15 @@
 #define UHCI_STATUS_USED_INTERRUPTS \
     (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)
 
+static const irq_cmd_t uhci_irq_commands[] =
+{
+	{ .cmd = CMD_PIO_READ_16, .dstarg = 1, .addr = NULL/*filled later*/},
+	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2,
+	  .value = UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS },
+	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
+	{ .cmd = CMD_PIO_WRITE_A_16, .srcarg = 1, .addr = NULL/*filled later*/},
+	{ .cmd = CMD_ACCEPT },
+};
 
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
@@ -53,6 +62,39 @@ static void hc_init_hw(hc_t *instance);
 
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
+
+/*----------------------------------------------------------------------------*/
+/** Get number of commands used in IRQ code.
+ * @return Number of commands.
+ */
+size_t hc_irq_cmd_count(void)
+{
+	return sizeof(uhci_irq_commands) / sizeof(irq_cmd_t);
+}
+/*----------------------------------------------------------------------------*/
+/** Generate IRQ code commands.
+ * @param[out] cmds Place to store the commands.
+ * @param[in] cmd_size Size of the place (bytes).
+ * @param[in] regs Physical address of device's registers.
+ * @param[in] reg_size Size of the register area (bytes).
+ *
+ * @return Error code.
+ */
+int hc_get_irq_commands(
+    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size)
+{
+	if (cmd_size < sizeof(uhci_irq_commands)
+	    || reg_size < sizeof(uhci_regs_t))
+		return EOVERFLOW;
+
+	uhci_regs_t *registers = (uhci_regs_t*)regs;
+
+	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
+
+	cmds[0].addr = (void*)&registers->usbsts;
+	cmds[3].addr = (void*)&registers->usbsts;
+	return EOK;
+}
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hc driver structure
  *
@@ -68,7 +110,7 @@ static int hc_debug_checker(void *arg);
  */
 int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 {
-	assert(reg_size >= sizeof(regs_t));
+	assert(reg_size >= sizeof(uhci_regs_t));
 	int ret;
 
 #define CHECK_RET_RETURN(ret, message...) \
@@ -81,19 +123,18 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
-	regs_t *io;
+	uhci_regs_t *io;
 	ret = pio_enable(regs, reg_size, (void **)&io);
-	CHECK_RET_RETURN(ret,
-	    "Failed(%d) to gain access to registers at %p: %s.\n",
-	    ret, io, str_error(ret));
+	CHECK_RET_RETURN(ret, "Failed to gain access to registers at %p: %s.\n",
+	    io, str_error(ret));
 	instance->registers = io;
-	usb_log_debug("Device registers at %p (%zuB) accessible.\n",
-	    io, reg_size);
+	usb_log_debug(
+	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
 
 	ret = hc_init_mem_structures(instance);
 	CHECK_RET_RETURN(ret,
-	    "Failed(%d) to initialize UHCI memory structures: %s.\n",
-	    ret, str_error(ret));
+	    "Failed to initialize UHCI memory structures: %s.\n",
+	    str_error(ret));
 
 	hc_init_hw(instance);
 	if (!interrupts) {
@@ -115,14 +156,14 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 void hc_init_hw(hc_t *instance)
 {
 	assert(instance);
-	regs_t *registers = instance->registers;
+	uhci_regs_t *registers = instance->registers;
 
 	/* Reset everything, who knows what touched it before us */
 	pio_write_16(&registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
-	async_usleep(10000); /* 10ms according to USB spec */
+	async_usleep(50000); /* 50ms according to USB spec(root hub reset) */
 	pio_write_16(&registers->usbcmd, 0);
 
-	/* Reset hc, all states and counters */
+	/* Reset hc, all states and counters. Hope that hw is not broken */
 	pio_write_16(&registers->usbcmd, UHCI_CMD_HCRESET);
 	do { async_usleep(10); }
 	while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
@@ -140,9 +181,9 @@ void hc_init_hw(hc_t *instance)
 		    UHCI_INTR_ALLOW_INTERRUPTS);
 	}
 
-	const uint16_t status = pio_read_16(&registers->usbcmd);
-	if (status != 0)
-		usb_log_warning("Previous command value: %x.\n", status);
+	const uint16_t cmd = pio_read_16(&registers->usbcmd);
+	if (cmd != 0)
+		usb_log_warning("Previous command value: %x.\n", cmd);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&registers->usbcmd,
@@ -169,67 +210,36 @@ int hc_init_mem_structures(hc_t *instance)
 		return ret; \
 	} else (void) 0
 
-	/* Init interrupt code */
-	instance->interrupt_code.cmds = instance->interrupt_commands;
-	{
-		/* Read status register */
-		instance->interrupt_commands[0].cmd = CMD_PIO_READ_16;
-		instance->interrupt_commands[0].dstarg = 1;
-		instance->interrupt_commands[0].addr =
-		    &instance->registers->usbsts;
-
-		/* Test whether we are the interrupt cause */
-		instance->interrupt_commands[1].cmd = CMD_BTEST;
-		instance->interrupt_commands[1].value =
-		    UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS;
-		instance->interrupt_commands[1].srcarg = 1;
-		instance->interrupt_commands[1].dstarg = 2;
-
-		/* Predicate cleaning and accepting */
-		instance->interrupt_commands[2].cmd = CMD_PREDICATE;
-		instance->interrupt_commands[2].value = 2;
-		instance->interrupt_commands[2].srcarg = 2;
-
-		/* Write clean status register */
-		instance->interrupt_commands[3].cmd = CMD_PIO_WRITE_A_16;
-		instance->interrupt_commands[3].srcarg = 1;
-		instance->interrupt_commands[3].addr =
-		    &instance->registers->usbsts;
-
-		/* Accept interrupt */
-		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
-
-		instance->interrupt_code.cmdcount = UHCI_NEEDED_IRQ_COMMANDS;
-	}
-
 	/* Init transfer lists */
 	int ret = hc_init_transfer_lists(instance);
-	CHECK_RET_RETURN(ret, "Failed to init transfer lists.\n");
+	CHECK_RET_RETURN(ret, "Failed to initialize transfer lists.\n");
 	usb_log_debug("Initialized transfer lists.\n");
-
-	/* Init USB frame list page*/
-	instance->frame_list = get_page();
-	ret = instance->frame_list ? EOK : ENOMEM;
-	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
-	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
-
-	/* Set all frames to point to the first queue head */
-	const uint32_t queue = LINK_POINTER_QH(
-	        addr_to_phys(instance->transfers_interrupt.queue_head));
-
-	unsigned i = 0;
-	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
-		instance->frame_list[i] = queue;
-	}
 
 	/* Init device keeper */
 	usb_device_keeper_init(&instance->manager);
-	usb_log_debug("Initialized device manager.\n");
+	usb_log_debug("Initialized device keeper.\n");
 
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    str_error(ret));
+
+	/* Init USB frame list page*/
+	instance->frame_list = get_page();
+	if (!instance->frame_list) {
+		usb_log_error("Failed to get frame list page.\n");
+		usb_endpoint_manager_destroy(&instance->ep_manager);
+		return ENOMEM;
+	}
+	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
+
+	/* Set all frames to point to the first queue head */
+	const uint32_t queue = LINK_POINTER_QH(
+	        addr_to_phys(instance->transfers_interrupt.queue_head));
+	unsigned i = 0;
+	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
+		instance->frame_list[i] = queue;
+	}
 
 	return EOK;
 #undef CHECK_RET_RETURN
@@ -251,8 +261,8 @@ int hc_init_transfer_lists(hc_t *instance)
 do { \
 	int ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
-		usb_log_error("Failed(%d) to setup %s transfer list: %s.\n", \
-		    ret, name, str_error(ret)); \
+		usb_log_error("Failed to setup %s transfer list: %s.\n", \
+		    name, str_error(ret)); \
 		transfer_list_fini(&instance->transfers_bulk_full); \
 		transfer_list_fini(&instance->transfers_control_full); \
 		transfer_list_fini(&instance->transfers_control_slow); \
