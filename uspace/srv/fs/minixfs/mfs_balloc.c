@@ -68,7 +68,7 @@ mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 int
 mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
 {
-	return mfs_free_bit(inst, inum, BMAP_INODE);
+	return mfs_free_bit(inst, inum - 1, BMAP_INODE);
 }
 
 /**Allocate a new zone.
@@ -118,6 +118,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	struct mfs_sb_info *sbi;
 	int r;
 	unsigned start_block;
+	unsigned *search;
 	block_t *b;
 
 	assert(inst != NULL);
@@ -125,6 +126,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	assert(sbi != NULL);
 
 	if (bid == BMAP_ZONE) {
+		search = &sbi->zsearch;
 		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
 			printf(NAME ": Error! Trying to free beyond the" \
@@ -133,6 +135,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		}
 	} else {
 		/*bid == BMAP_INODE*/
+		search = &sbi->isearch;
 		start_block = 2;
 		if (idx > sbi->ninodes) {
 			printf(NAME ": Error! Trying to free beyond the" \
@@ -159,6 +162,9 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	b->dirty = true;
 	r = block_put(b);
 	mfsdebug("free index %u\n", idx);
+
+	if (*search > idx)
+		*search = idx;
 
 out_err:
 	return r;
