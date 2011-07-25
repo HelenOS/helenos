@@ -89,21 +89,6 @@ write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
 	return rw_map_ondisk(old_zone, mnode, rblock, true, new_zone);
 }
 
-int
-free_zone(struct mfs_node *mnode, const uint32_t zone)
-{
-	int r;
-	uint32_t old_zone;
-
-	r = rw_map_ondisk(&old_zone, mnode, zone, true, 0);
-	on_error(r, return r);
-
-	if (old_zone > 0)
-		r = mfs_free_zone(mnode->instance, old_zone);
-
-	return r;
-}
-
 static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	      bool write_mode, uint32_t w_block)
