@@ -33,7 +33,10 @@ OSDIR = ../../os/helenos
 EXTRA_CFLAGS = -I$(MIPDIR) -I$(MDIR) -I$(OSDIR) -I. -w
 DEFS = -Dmach_$(PLATFORM) -D__helenos__ -DPCC_DEBUG -DGCC_COMPAT -Dfree=free
 BINARY = ccom
-EXTRA_CLEAN = cgram.c cgram.h scan.c external.c external.h
+
+PRE_DEPEND = cgram.c scan.c external.c external.h common.c compat.c
+EXTRA_CLEAN = cgram.c cgram.h scan.c external.c external.h common.c compat.c \
+	$(MIPDIR)/*.o $(MDIR)/*.o
 
 POSIX_COMPAT = y
 
@@ -50,8 +53,8 @@ SOURCES = \
 	$(MIPDIR)/reader.c \
 	$(MIPDIR)/optim2.c \
 	$(MIPDIR)/regs.c \
-	$(MIPDIR)/common.c \
-	$(MIPDIR)/compat.c \
+	common.c \
+	compat.c \
 	cgram.c \
 	scan.c \
 	builtins.c \
@@ -66,6 +69,8 @@ SOURCES = \
 	symtabs.c \
 	trees.c
 
+include $(USPACE_PREFIX)/Makefile.common
+
 cgram.c: cgram.y
 	$(YACC) $(YFLAGS) -d $<
 	mv y.tab.c cgram.c
@@ -75,9 +80,15 @@ scan.c: scan.l cgram.c
 	$(LEX) $(LFLAGS) $<
 	mv lex.yy.c scan.c
 
-external.c external.h:
-	ln -s arch/$(PLATFORM)/external.c external.c
-	ln -s arch/$(PLATFORM)/external.h external.h
+compat.c: $(MIPDIR)/compat.c
+	ln -s -f $^ $@
 
-include $(USPACE_PREFIX)/Makefile.common
+common.c: $(MIPDIR)/common.c
+	ln -s -f $^ $@
+
+external.c: arch/$(PLATFORM)/external.c
+	ln -s -f $^ $@
+
+external.h: arch/$(PLATFORM)/external.h
+	ln -s -f $^ $@
 
