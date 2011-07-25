@@ -88,7 +88,7 @@ int posix_getlogin_r(char *name, size_t namesize)
 int posix_isatty(int fd)
 {
 	/* Always returns false, because there is no easy way to find
-     * out under HelenOS. */
+	 * out under HelenOS. */
 	return 0;
 }
 
