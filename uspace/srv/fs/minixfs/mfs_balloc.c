@@ -55,7 +55,10 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
 int
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 {
-	return mfs_alloc_bit(inst, inum, BMAP_INODE);
+	int r = mfs_alloc_bit(inst, inum, BMAP_INODE);
+
+	*inum += 1;
+	return r;
 }
 
 /**Free an inode.
@@ -159,6 +162,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	chunk = conv32(sbi->native, ptr[idx / chunk_bits]);
 	chunk &= ~(1 << (idx % chunk_bits));
 	ptr[idx / chunk_bits] = conv32(sbi->native, chunk);
+
 	b->dirty = true;
 	r = block_put(b);
 	mfsdebug("free index %u\n", idx);
@@ -230,7 +234,6 @@ retry:
 
 		/*Free bit found in this block, compute the real index*/
 		*idx = freebit + bits_per_block * i;
-		*idx += (bid == BMAP_INODE) ? 1 : 0;
 		mfsdebug("alloc index %d %d\n", (int) *idx, i);
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
