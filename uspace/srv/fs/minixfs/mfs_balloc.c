@@ -44,19 +44,41 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
 static int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
 
-
+/**Allocate a new inode.
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param inum		Pointer to a 32 bit number where the index of
+ * 			the new inode will be saved.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 {
 	return mfs_alloc_bit(inst, inum, BMAP_INODE);
 }
 
+/**Free an inode.
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param inum		Number of the inode to free.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
 {
 	return mfs_free_bit(inst, inum, BMAP_INODE);
 }
 
+/**Allocate a new zone.
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param zone		Pointer to a 32 bit number where the index
+ * 			of the zone will be saved.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
 {
@@ -66,6 +88,13 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
 	return r;
 }
 
+/**Free a zone.
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param zone		Index of the zone to free.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
 {
@@ -74,6 +103,15 @@ mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
 	return mfs_free_bit(inst, zone, BMAP_ZONE);
 }
 
+/**Clear a bit in a bitmap.
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param idx		Index of the bit to clear.
+ * @param bid		BMAP_ZONE if operating on the zone's bitmap,
+ * 			BMAP_INODE if operating on the inode's bitmap.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int
 mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 {
@@ -126,6 +164,16 @@ out_err:
 	return r;
 }
 
+/**Search a free bit in a bitmap and mark it as used.
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param idx		Pointer of a 32 bit number where the index
+ * 			of the found bit will be stored.
+ * @param bid		BMAP_ZONE if operating on the zone's bitmap,
+ * 			BMAP_INODE if operating on the inode's bitmap.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 static int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 {
