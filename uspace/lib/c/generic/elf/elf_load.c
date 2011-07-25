@@ -147,7 +147,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	int i, rc;
 
 	rc = read_all(elf->fd, header, sizeof(elf_header_t));
-	if (rc < 0) {
+	if (rc != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
 	}
@@ -210,7 +210,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 
 		rc = read_all(elf->fd, &segment_hdr,
 		    sizeof(elf_segment_header_t));
-		if (rc < 0) {
+		if (rc != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
@@ -232,7 +232,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 
 		rc = read_all(elf->fd, &section_hdr,
 		    sizeof(elf_section_header_t));
-		if (rc < 0) {
+		if (rc != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
@@ -320,7 +320,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	void *seg_ptr;
 	uintptr_t seg_addr;
 	size_t mem_sz;
-	int rc;
+	ssize_t rc;
 
 	bias = elf->bias;
 
@@ -400,7 +400,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 
 		rc = read_all(elf->fd, dp, now);
 
-		if (rc < 0) { 
+		if (rc != (ssize_t) now) { 
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
