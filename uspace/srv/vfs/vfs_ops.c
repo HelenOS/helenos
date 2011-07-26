@@ -75,7 +75,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	vfs_node_t *mp_node = NULL;
 	vfs_node_t *mr_node;
 	fs_index_t rindex;
-	size_t rsize;
+	aoff64_t rsize;
 	unsigned rlnkcnt;
 	async_exch_t *exch;
 	sysarg_t rc;
@@ -145,8 +145,8 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			}
 
 			rindex = (fs_index_t) IPC_GET_ARG1(answer);
-			rsize = (size_t) IPC_GET_ARG2(answer);
-			rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
+			rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
+			rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 			
 			mr_res.triplet.fs_handle = fs_handle;
 			mr_res.triplet.devmap_handle = devmap_handle;
@@ -228,8 +228,9 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	
 	if (rc == EOK) {
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
-		rsize = (size_t) IPC_GET_ARG2(answer);
-		rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
+		rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer),
+		    IPC_GET_ARG3(answer));
+		rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 		
 		mr_res.triplet.fs_handle = fs_handle;
 		mr_res.triplet.devmap_handle = devmap_handle;
