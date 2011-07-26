@@ -45,57 +45,67 @@
 #include "../stdint.h"
 #include "../strings.h"
 #include "../errno.h"
+#include "../limits.h"
+
+// FIXME: #include <float.h>
 
 #ifndef HUGE_VALL
 	#define HUGE_VALL (+1.0l / +0.0l)
 #endif
 
 #ifndef abs
-	#define abs(x) ((x < 0) ? -x : x)
+	#define abs(x) (((x) < 0) ? -(x) : (x))
 #endif
 
-// TODO: clean up
+/* If the constants are not defined, use double precision as default. */
+#ifndef LDBL_MANT_DIG
+	#define LDBL_MANT_DIG 53
+#endif
+#ifndef LDBL_MAX_EXP
+	#define LDBL_MAX_EXP 1024
+#endif
+#ifndef LDBL_MIN_EXP
+	#define LDBL_MIN_EXP (-1021)
+#endif
+#ifndef LDBL_DIG
+	#define LDBL_DIG 15
+#endif
+#ifndef LDBL_MIN
+	#define LDBL_MIN 2.2250738585072014E-308
+#endif
 
-// FIXME: ensure it builds and works on all platforms
+/* power functions ************************************************************/
 
-const int max_small_pow5 = 15;
-
-/* The value at index i is approximately 5**i. */
-long double small_pow5[] = {
-	0x1P0,
-	0x5P0,
-	0x19P0,
-	0x7dP0,
-	0x271P0,
-	0xc35P0,
-	0x3d09P0,
-	0x1312dP0,
-	0x5f5e1P0,
-	0x1dcd65P0,
-	0x9502f9P0,
-	0x2e90eddP0,
-	0xe8d4a51P0,
-	0x48c27395P0,
-	0x16bcc41e9P0,
-	0x71afd498dP0
-};
+#if LDBL_MAX_EXP >= 16384
+const int MAX_POW5 = 12;
+#else
+const int MAX_POW5 = 8;
+#endif
 
 /* The value at index i is approximately 5**(2**i). */
-long double large_pow5[] = {
-	0x5P0l,
-	0x19P0l,
-	0x271P0l,
-	0x5f5e1P0l,
-	0x2386f26fc1P0l,
-	0x4ee2d6d415b85acef81P0l,
-	0x184f03e93ff9f4daa797ed6e38ed64bf6a1f01P0l,
-	0x24ee91f2603a6337f19bccdb0dac404dc08d3cff5ecP128l,
-	0x553f75fdcefcef46eeddcP512l,
-	0x1c633415d4c1d238d98cab8a978a0b1f138cb07303P1024l,
-	0x325d9d61a05d4305d9434f4a3c62d433949ae6209d492P2200l,
-	0x9e8b3b5dc53d5de4a74d28ce329ace526a3197bbebe3034f77154ce2bcba1964P4500l,
-	0x6230290145104bcd64a60a9fc025254932bb0fd922271133eeae7P9300l
+long double pow5[] = {
+	0x5p0l,
+	0x19p0l,
+	0x271p0l,
+	0x5F5E1p0l,
+	0x2386F26FC1p0l,
+	0x4EE2D6D415B85ACEF81p0l,
+	0x184F03E93FF9F4DAA797ED6E38ED6p36l,
+	0x127748F9301D319BF8CDE66D86D62p185l,
+	0x154FDD7F73BF3BD1BBB77203731FDp482l,
+#if LDBL_MAX_EXP >= 16384
+	0x1C633415D4C1D238D98CAB8A978A0p1076l,
+	0x192ECEB0D02EA182ECA1A7A51E316p2265l,
+	0x13D1676BB8A7ABBC94E9A519C6535p4643l,
+	0x188C0A40514412F3592982A7F0094p9398l,
+#endif
 };
+
+#if LDBL_MAX_EXP >= 16384
+const int MAX_POW2 = 15;
+#else
+const int MAX_POW2 = 9;
+#endif
 
 /* Powers of two. */
 long double pow2[] = {
@@ -109,61 +119,55 @@ long double pow2[] = {
 	0x1P128l,
 	0x1P256l,
 	0x1P512l,
+#if LDBL_MAX_EXP >= 16384
 	0x1P1024l,
 	0x1P2048l,
 	0x1P4096l,
-	0x1P8192l
+	0x1P8192l,
+#endif
 };
 
 /**
- * Decides whether the argument is still in range representable by
- * long double or not.
- *
- * @param num Floating point number to be checked.
- * @return True if the argument is out of range, false otherwise.
- */
-static inline bool out_of_range(long double num)
-{
-	return num == 0.0l || num == HUGE_VALL;
-}
-
-/**
  * Multiplies a number by a power of five.
- * The result is not exact and may not be the best possible approximation.
+ * The result may be inexact and may not be the best possible approximation.
  *
- * @param base Number to be multiplied.
- * @param exponent Base 5 exponent.
- * @return base multiplied by 5**exponent.
+ * @param mant Number to be multiplied.
+ * @param exp Base 5 exponent.
+ * @return mant multiplied by 5**exp
  */
-static long double mul_pow5(long double base, int exponent)
+static long double mul_pow5(long double mant, int exp)
 {
-	if (out_of_range(base)) {
-		return base;
+	if (mant == 0.0l || mant == HUGE_VALL) {
+		return mant;
 	}
 	
-	if (abs(exponent) >> 13 != 0) {
+	if (abs(exp) >> (MAX_POW5 + 1) != 0) {
+		/* Too large exponent. */
 		errno = ERANGE;
-		return exponent < 0 ? 0.0l : HUGE_VALL;
+		return exp < 0 ? LDBL_MIN : HUGE_VALL;
 	}
 	
-	if (exponent < 0) {
-		exponent = -exponent;
-		base /= small_pow5[exponent & 0xF];
-		for (int i = 4; i < 13; ++i) {
-			if (((exponent >> i) & 1) != 0) {
-				base /= large_pow5[i];
-				if (out_of_range(base)) {
+	if (exp < 0) {
+		exp = abs(exp);
+		for (int bit = 0; bit <= MAX_POW5; ++bit) {
+			/* Multiply by powers of five bit-by-bit. */
+			if (((exp >> bit) & 1) != 0) {
+				mant /= pow5[bit];
+				if (mant == 0.0l) {
+					/* Underflow. */
+					mant = LDBL_MIN;
 					errno = ERANGE;
 					break;
 				}
 			}
 		}
 	} else {
-		base *= small_pow5[exponent & 0xF];
-		for (int i = 4; i < 13; ++i) {
-			if (((exponent >> i) & 1) != 0) {
-				base *= large_pow5[i];
-				if (out_of_range(base)) {
+		for (int bit = 0; bit <= MAX_POW5; ++bit) {
+			/* Multiply by powers of five bit-by-bit. */
+			if (((exp >> bit) & 1) != 0) {
+				mant *= pow5[bit];
+				if (mant == HUGE_VALL) {
+					/* Overflow. */
 					errno = ERANGE;
 					break;
 				}
@@ -171,43 +175,44 @@ static long double mul_pow5(long double base, int exponent)
 		}
 	}
 	
-	return base;
+	return mant;
 }
 
 /**
- * Multiplies a number by a power of two.
+ * Multiplies a number by a power of two. This is always exact.
  *
- * @param base Number to be multiplied.
- * @param exponent Base 2 exponent.
- * @return base multiplied by 2**exponent.
+ * @param mant Number to be multiplied.
+ * @param exp Base 2 exponent.
+ * @return mant multiplied by 2**exp.
  */
-static long double mul_pow2(long double base, int exponent)
+static long double mul_pow2(long double mant, int exp)
 {
-	if (out_of_range(base)) {
-		return base;
+	if (mant == 0.0l || mant == HUGE_VALL) {
+		return mant;
 	}
 	
-	if (abs(exponent) >> 14 != 0) {
+	if (exp > LDBL_MAX_EXP || exp < LDBL_MIN_EXP) {
 		errno = ERANGE;
-		return exponent < 0 ? 0.0l : HUGE_VALL;
+		return exp < 0 ? LDBL_MIN : HUGE_VALL;
 	}
 	
-	if (exponent < 0) {
-		exponent = -exponent;
-		for (int i = 0; i < 14; ++i) {
-			if (((exponent >> i) & 1) != 0) {
-				base /= pow2[i];
-				if (out_of_range(base)) {
+	if (exp < 0) {
+		exp = abs(exp);
+		for (int i = 0; i <= MAX_POW2; ++i) {
+			if (((exp >> i) & 1) != 0) {
+				mant /= pow2[i];
+				if (mant == 0.0l) {
+					mant = LDBL_MIN;
 					errno = ERANGE;
 					break;
 				}
 			}
 		}
 	} else {
-		for (int i = 0; i < 14; ++i) {
-			if (((exponent >> i) & 1) != 0) {
-				base *= pow2[i];
-				if (out_of_range(base)) {
+		for (int i = 0; i <= MAX_POW2; ++i) {
+			if (((exp >> i) & 1) != 0) {
+				mant *= pow2[i];
+				if (mant == HUGE_VALL) {
 					errno = ERANGE;
 					break;
 				}
@@ -215,8 +220,12 @@ static long double mul_pow2(long double base, int exponent)
 		}
 	}
 	
-	return base;
+	return mant;
 }
+
+/* end power functions ********************************************************/
+
+
 
 /**
  * Convert decimal string representation of the floating point number.
@@ -230,104 +239,65 @@ static long double mul_pow2(long double base, int exponent)
  */
 static long double parse_decimal(const char **sptr)
 {
-	// TODO: Use strtol(), at least for exponent.
+	assert(sptr != NULL);
+	assert (*sptr != NULL);
 	
 	const int DEC_BASE = 10;
 	const char DECIMAL_POINT = '.';
 	const char EXPONENT_MARK = 'e';
-	/* The highest amount of digits that can be safely parsed
-	 * before an overflow occurs.
-	 */
-	const int PARSE_DECIMAL_DIGS = 19;
 	
-	/* significand */
-	uint64_t significand = 0;
-	
-	/* position in the input string */
-	int i = 0;
+	const char *str = *sptr;
+	long double significand = 0;
+	long exponent = 0;
 	
 	/* number of digits parsed so far */
 	int parsed_digits = 0;
+	bool after_decimal = false;
 	
-	int exponent = 0;
-	
-	const char *str = *sptr;
-	
-	/* digits before decimal point */
-	while (isdigit(str[i])) {
-		if (parsed_digits == 0 && str[i] == '0') {
+	while (isdigit(*str) || (!after_decimal && *str == DECIMAL_POINT)) {
+		if (*str == DECIMAL_POINT) {
+			after_decimal = true;
+			str++;
+			continue;
+		}
+		
+		if (parsed_digits == 0 && *str == '0') {
 			/* Nothing, just skip leading zeros. */
-		} else if (parsed_digits < PARSE_DECIMAL_DIGS) {
-			significand *= DEC_BASE;
-			significand += str[i] - '0';
+		} else if (parsed_digits < LDBL_DIG) {
+			significand = significand * DEC_BASE + (*str - '0');
 			parsed_digits++;
 		} else {
 			exponent++;
 		}
 		
-		i++;
-	}
-	
-	if (str[i] == DECIMAL_POINT) {
-		i++;
-		
-		/* digits after decimal point */
-		while (isdigit(str[i])) {
-			if (parsed_digits == 0 && str[i] == '0') {
-				/* Skip leading zeros and decrement exponent. */
-				exponent--;
-			} else if (parsed_digits < PARSE_DECIMAL_DIGS) {
-				significand *= DEC_BASE;
-				significand += str[i] - '0';
-				exponent--;
-				parsed_digits++;
-			} else {
-				/* ignore */
-			}
-			
-			i++;
+		if (after_decimal) {
+			/* Decrement exponent if we are parsing the fractional part. */
+			exponent--;
 		}
+		
+		str++;
 	}
 	
 	/* exponent */
-	if (tolower(str[i]) == EXPONENT_MARK) {
-		i++;
+	if (tolower(*str) == EXPONENT_MARK) {
+		str++;
 		
-		bool negative = false;
-		int exp = 0;
+		/* Returns MIN/MAX value on error, which is ok. */
+		long exp = strtol(str, (char **) &str, DEC_BASE);
 		
-		switch (str[i]) {
-		case '-':
-			negative = true;
-			/* fallthrough */
-		case '+':
-			i++;
+		if (exponent > 0 && exp > LONG_MAX - exponent) {
+			exponent = LONG_MAX;
+		} else if (exponent < 0 && exp < LONG_MIN - exponent) {
+			exponent = LONG_MIN;
+		} else {
+			exponent += exp;
 		}
-		
-		while (isdigit(str[i])) {
-			if (exp < 65536) {
-				exp *= DEC_BASE;
-				exp += str[i] - '0';
-			}
-			
-			i++;
-		}
-		
-		if (negative) {
-			exp = -exp;
-		}
-		
-		exponent += exp;
 	}
 	
-	long double result = (long double) significand;
-	result = mul_pow5(result, exponent);
-	if (result != HUGE_VALL) {
-		result = mul_pow2(result, exponent);
-	}
+	*sptr = str;
 	
-	*sptr = &str[i];
-	return result;
+	/* Return multiplied by a power of ten. */
+	return mul_pow2(mul_pow5(significand, exponent), exponent);
 }
 
 /**
@@ -346,23 +316,6 @@ static inline int hex_value(char ch)
 }
 
 /**
- * Get the count of leading zero bits up to the maximum of 3 zero bits.
- *
- * @param val Integer value.
- * @return How many leading zero bits there are. (Maximum is 3)
- */
-static inline int leading_zeros(uint64_t val)
-{
-	for (int i = 3; i > 0; --i) {
-		if ((val >> (64 - i)) == 0) {
-			return i;
-		}
-	}
-	
-	return 0;
-}
-
-/**
  * Convert hexadecimal string representation of the floating point number.
  * Function expects the string pointer to be already pointed at the first
  * digit (i.e. leading optional sign and 0x prefix were already consumed
@@ -375,129 +328,64 @@ static inline int leading_zeros(uint64_t val)
  */
 static long double parse_hexadecimal(const char **sptr)
 {
-	// TODO: Use strtol(), at least for exponent.
-	
-	/* this function currently always rounds to zero */
-	// TODO: honor rounding mode
+	assert(sptr != NULL && *sptr != NULL);
 	
 	const int DEC_BASE = 10;
 	const int HEX_BASE = 16;
 	const char DECIMAL_POINT = '.';
 	const char EXPONENT_MARK = 'p';
-	/* The highest amount of digits that can be safely parsed
-	 * before an overflow occurs.
-	 */
-	const int PARSE_HEX_DIGS = 16;
-	
-	/* significand */
-	uint64_t significand = 0;
-	
-	/* position in the input string */
-	int i = 0;
-	
-	/* number of digits parsed so far */
-	int parsed_digits = 0;
-	
-	int exponent = 0;
 	
 	const char *str = *sptr;
+	long double significand = 0;
+	long exponent = 0;
 	
-	/* digits before decimal point */
-	while (posix_isxdigit(str[i])) {
-		if (parsed_digits == 0 && str[i] == '0') {
+	/* number of bits parsed so far */
+	int parsed_bits = 0;
+	bool after_decimal = false;
+	
+	while (posix_isxdigit(*str) || (!after_decimal && *str == DECIMAL_POINT)) {
+		if (*str == DECIMAL_POINT) {
+			after_decimal = true;
+			str++;
+			continue;
+		}
+		
+		if (parsed_bits == 0 && *str == '0') {
 			/* Nothing, just skip leading zeros. */
-		} else if (parsed_digits < PARSE_HEX_DIGS) {
-			significand *= HEX_BASE;
-			significand += hex_value(str[i]);
-			parsed_digits++;
-		} else if (parsed_digits == PARSE_HEX_DIGS) {
-			/* The first digit may have had leading zeros,
-			 * so we need to parse one more digit and shift
-			 * the value accordingly.
-			 */
-			
-			int zeros = leading_zeros(significand);
-			significand = (significand << zeros) |
-			    (hex_value(str[i]) >> (4 - zeros));
-			
-			exponent += (4 - zeros);
-			parsed_digits++;
+		} else if (parsed_bits <= LDBL_MANT_DIG) {
+			significand = significand * HEX_BASE + hex_value(*str);
+			parsed_bits += 4;
 		} else {
 			exponent += 4;
 		}
 		
-		i++;
-	}
-	
-	if (str[i] == DECIMAL_POINT) {
-		i++;
-		
-		/* digits after decimal point */
-		while (posix_isxdigit(str[i])) {
-			if (parsed_digits == 0 && str[i] == '0') {
-				/* Skip leading zeros and decrement exponent. */
-				exponent -= 4;
-			} else if (parsed_digits < PARSE_HEX_DIGS) {
-				significand *= HEX_BASE;
-				significand += hex_value(str[i]);
-				exponent -= 4;
-				parsed_digits++;
-			} else if (parsed_digits == PARSE_HEX_DIGS) {
-				/* The first digit may have had leading zeros,
-				 * so we need to parse one more digit and shift
-				 * the value accordingly.
-				 */
-				
-				int zeros = leading_zeros(significand);
-				significand = (significand << zeros) |
-				    (hex_value(str[i]) >> (4 - zeros));
-				
-				exponent -= zeros;
-				parsed_digits++;
-			} else {
-				/* ignore */
-			}
-			
-			i++;
+		if (after_decimal) {
+			exponent -= 4;
 		}
+		
+		str++;
 	}
 	
 	/* exponent */
-	if (tolower(str[i]) == EXPONENT_MARK) {
-		i++;
+	if (tolower(*str) == EXPONENT_MARK) {
+		str++;
 		
-		bool negative = false;
-		int exp = 0;
+		/* Returns MIN/MAX value on error, which is ok. */
+		long exp = strtol(str, (char **) &str, DEC_BASE);
 		
-		switch (str[i]) {
-		case '-':
-			negative = true;
-			/* fallthrough */
-		case '+':
-			i++;
+		if (exponent > 0 && exp > LONG_MAX - exponent) {
+			exponent = LONG_MAX;
+		} else if (exponent < 0 && exp < LONG_MIN - exponent) {
+			exponent = LONG_MIN;
+		} else {
+			exponent += exp;
 		}
-		
-		while (isdigit(str[i])) {
-			if (exp < 65536) {
-				exp *= DEC_BASE;
-				exp += str[i] - '0';
-			}
-			
-			i++;
-		}
-		
-		if (negative) {
-			exp = -exp;
-		}
-		
-		exponent += exp;
 	}
 	
-	long double result = (long double) significand;
-	result = mul_pow2(result, exponent);
+	*sptr = str;
 	
-	*sptr = &str[i];
-	return result;
+	/* Return multiplied by a power of two. */
+	return mul_pow2(significand, exponent);
 }
 
 /**
