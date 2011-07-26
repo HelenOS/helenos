@@ -92,8 +92,9 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 	unsigned lnkcnt;
 	rc = vfs_out_ops->mounted(devmap_handle, opts, &index, &size, &lnkcnt);
 
-	if (rc == EOK)	// FIXME: size is 64-bit
-		async_answer_3(rid, EOK, index, size, lnkcnt);
+	if (rc == EOK)
+		async_answer_4(rid, EOK, index, LOWER32(size), UPPER32(size),
+		    lnkcnt);
 	else
 		async_answer_0(rid, rc);
 
@@ -155,8 +156,8 @@ static void vfs_out_write(ipc_callid_t rid, ipc_call_t *req)
 
 	rc = vfs_out_ops->write(devmap_handle, index, pos, &wbytes, &nsize);
 
-	if (rc == EOK)	// FIXME: nsize is 64-bit
-		async_answer_2(rid, EOK, wbytes, nsize);
+	if (rc == EOK)
+		async_answer_3(rid, EOK, wbytes, LOWER32(nsize), UPPER32(nsize));
 	else
 		async_answer_0(rid, rc);
 }
@@ -433,8 +434,8 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/*
 	 * Do not release the FS node so that it stays in memory.
 	 */
-	async_answer_3(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
-	    IPC_GET_ARG3(answer));
+	async_answer_4(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
+	    IPC_GET_ARG3(answer), IPC_GET_ARG4(answer));
 }
 
 void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *req)
