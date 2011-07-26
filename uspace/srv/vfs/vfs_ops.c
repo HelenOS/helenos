@@ -795,16 +795,16 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	sysarg_t rc;
 	ipc_call_t answer;
 	if (read) {
-		rc = async_data_read_forward_3_1(fs_exch, VFS_OUT_READ,
-		    file->node->devmap_handle, file->node->index, file->pos,
-		    &answer);
+		rc = async_data_read_forward_4_1(fs_exch, VFS_OUT_READ,
+		    file->node->devmap_handle, file->node->index,
+		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	} else {
 		if (file->append)
 			file->pos = file->node->size;
 		
-		rc = async_data_write_forward_3_1(fs_exch, VFS_OUT_WRITE,
-		    file->node->devmap_handle, file->node->index, file->pos,
-		    &answer);
+		rc = async_data_write_forward_4_1(fs_exch, VFS_OUT_WRITE,
+		    file->node->devmap_handle, file->node->index,
+		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	}
 	
 	vfs_exchange_release(fs_exch);
@@ -821,7 +821,8 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	else {
 		/* Update the cached version of node's size. */
 		if (rc == EOK)
-			file->node->size = IPC_GET_ARG2(answer); 
+			file->node->size = MERGE_LOUP32(IPC_GET_ARG2(answer),
+			    IPC_GET_ARG3(answer));
 		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 	

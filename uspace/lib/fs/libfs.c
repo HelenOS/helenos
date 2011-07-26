@@ -156,8 +156,8 @@ static void vfs_out_write(ipc_callid_t rid, ipc_call_t *req)
 
 	rc = vfs_out_ops->write(devmap_handle, index, pos, &wbytes, &nsize);
 
-	if (rc == EOK)	// FIXME: nsize is 64-bit
-		async_answer_2(rid, EOK, wbytes, nsize);
+	if (rc == EOK)
+		async_answer_3(rid, EOK, wbytes, LOWER32(nsize), UPPER32(nsize));
 	else
 		async_answer_0(rid, rc);
 }
