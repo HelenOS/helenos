@@ -279,6 +279,10 @@ static int compl_get_next(void *state, char **compl)
 					break;
 
 				cs->dir = opendir(*cs->path);
+
+				/* Skip directories that we fail to open. */
+				if (cs->dir == NULL)
+					cs->path++;
 			}
 
 			/* If it was the last one, we are done */

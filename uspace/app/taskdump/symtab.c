@@ -35,6 +35,7 @@
  * use it to lookup symbol names/addresses in both directions.
  */
 
+#include <elf/elf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -42,14 +43,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <elf.h>
 #include "include/symtab.h"
 
 static int elf_hdr_check(elf_header_t *hdr);
 static int section_hdr_load(int fd, const elf_header_t *ehdr, int idx,
     elf_section_header_t *shdr);
 static int chunk_load(int fd, off64_t start, size_t size, void **ptr);
-static int read_all(int fd, void *buf, size_t len);
 
 /** Load symbol table from an ELF file.
  *
@@ -89,7 +88,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	}
 
 	rc = read_all(fd, &elf_hdr, sizeof(elf_header_t));
-	if (rc != EOK) {
+	if (rc != sizeof(elf_header_t)) {
 		printf("failed reading elf header\n");
 		free(stab);
 		return EIO;
@@ -311,7 +310,7 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
 		return EIO;
 
 	rc = read_all(fd, sec_hdr, sizeof(elf_section_header_t));
-	if (rc != EOK)
+	if (rc != sizeof(elf_section_header_t))
 		return EIO;
 
 	return EOK;
@@ -330,10 +329,11 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
  */
 static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 {
-	int rc;
+	ssize_t rc;
+	off64_t offs;
 
-	rc = lseek(fd, start, SEEK_SET);
-	if (rc == (off64_t) -1) {
+	offs = lseek(fd, start, SEEK_SET);
+	if (offs == (off64_t) -1) {
 		printf("failed seeking chunk\n");
 		*ptr = NULL;
 		return EIO;
@@ -346,42 +346,12 @@ static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 	}
 
 	rc = read_all(fd, *ptr, size);
-	if (rc != EOK) {
+	if (rc != (ssize_t) size) {
 		printf("failed reading chunk\n");
 		free(*ptr);
 		*ptr = NULL;
 		return EIO;
 	}
-
-	return EOK;
-}
-
-/** Read until the buffer is read in its entirety.
- *
- * This function fails if it cannot read exactly @a len bytes from the file.
- *
- * @param fd		The file to read from.
- * @param buf		Buffer for storing data, @a len bytes long.
- * @param len		Number of bytes to read.
- *
- * @return		EOK on error, EIO if file is short or return value
- *			from read() if reading failed.
- */
-static int read_all(int fd, void *buf, size_t len)
-{
-	int cnt = 0;
-
-	do {
-		buf += cnt;
-		len -= cnt;
-		cnt = read(fd, buf, len);
-	} while (cnt > 0 && (len - cnt) > 0);
-
-	if (cnt < 0)
-		return cnt;
-
-	if (len - cnt > 0)
-		return EIO;
 
 	return EOK;
 }

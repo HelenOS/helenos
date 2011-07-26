@@ -58,8 +58,8 @@
 #include <async.h>
 #include <str.h>
 #include <as.h>
-#include <elf.h>
-#include <elf_load.h>
+#include <elf/elf.h>
+#include <elf/elf_load.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -347,8 +347,8 @@ static int ldr_load_dyn_linked(elf_info_t *p_info)
 	prog_mod.dyn.soname = "[program]";
 
 	/* Initialize list of loaded modules */
-	list_initialize(&runtime_env->modules_head);
-	list_append(&prog_mod.modules_link, &runtime_env->modules_head);
+	list_initialize(&runtime_env->modules);
+	list_append(&prog_mod.modules_link, &runtime_env->modules);
 
 	/* Pointer to program module. Used as root of the module graph. */
 	runtime_env->program = &prog_mod;
