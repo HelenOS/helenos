@@ -212,7 +212,7 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size);
 
 /*mfs_dentry.c*/
 extern int
-read_directory_entry(struct mfs_node *mnode,
+read_dentry(struct mfs_node *mnode,
 		     struct mfs_dentry_info *d_info, unsigned index);
 
 extern int

@@ -34,7 +34,7 @@
 #include "mfs_utils.h"
 
 int
-read_directory_entry(struct mfs_node *mnode,
+read_dentry(struct mfs_node *mnode,
 		     struct mfs_dentry_info *d_info, unsigned index)
 {
 	const struct mfs_instance *inst = mnode->instance;
@@ -143,7 +143,7 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 	/*Search the directory entry to be removed*/
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize ; ++i) {
-		r = read_directory_entry(mnode, &d_info, i);
+		r = read_dentry(mnode, &d_info, i);
 		on_error(r, return r);
 
 		if (!bcmp(d_info.d_name, d_name, name_len)) {
@@ -172,7 +172,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	/*Search for an empty dentry*/
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
-		r = read_directory_entry(mnode, &d_info, i);
+		r = read_dentry(mnode, &d_info, i);
 		on_error(r, return r);
 
 		if (d_info.d_inum == 0) {
@@ -186,7 +186,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 		r = inode_grow(mnode, sbi->dirsize);
 		on_error(r, goto out);
 
-		r = read_directory_entry(mnode, &d_info, i);
+		r = read_dentry(mnode, &d_info, i);
 		on_error(r, goto out);
 	}
 

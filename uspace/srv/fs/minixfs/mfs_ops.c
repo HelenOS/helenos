@@ -375,7 +375,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
-		r = read_directory_entry(mnode, &d_info, i);
+		r = read_dentry(mnode, &d_info, i);
 		on_error(r, return r);
 
 		if (!d_info.d_inum) {
@@ -604,7 +604,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	/* The first two dentries are always . and .. */
 	unsigned i;
 	for (i = 2; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
-		r = read_directory_entry(mnode, &d_info, i);
+		r = read_dentry(mnode, &d_info, i);
 		on_error(r, return r);
 
 		if (d_info.d_inum) {
@@ -657,7 +657,7 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
 		for (; pos < mnode->ino_i->i_size / sbi->dirsize; ++pos) {
-			rc = read_directory_entry(mnode, &d_info, pos);
+			rc = read_dentry(mnode, &d_info, pos);
 			on_error(rc, goto out_error);
 
 			if (d_info.d_inum) {
