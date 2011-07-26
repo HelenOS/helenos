@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
+ *
+ * This header allows including a kernel header using typedefs.h from
+ * libc. User-space code should use sys/types.h directly.
  */
 
-#ifndef LIBC_RTLD_SYMBOL_H_
-#define LIBC_RTLD_SYMBOL_H_
+#ifndef LIBC_TYPEDEFS_H_
+#define LIBC_TYPEDEFS_H_
 
-#include <elf/elf.h>
-#include <rtld/rtld.h>
-
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
+#include <sys/types.h>
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_RTLD_SYMBOL_H_
-#define LIBC_RTLD_SYMBOL_H_
+#ifndef LIBC_ELF_LINUX_H_
+#define LIBC_ELF_LINUX_H_
 
 #include <elf/elf.h>
-#include <rtld/rtld.h>
+#include <libarch/elf_linux.h>
 
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
+/*
+ * Note types
+ */
+#define NT_PRSTATUS	1
+
+typedef int pid_t;
+typedef struct {
+	long tv_sec;
+	long tv_usec;
+} linux_timeval_t;
+
+typedef struct {
+	int sig_info[3];
+	short cursig;
+	unsigned long sigpend;
+	unsigned long sighold;
+	pid_t pid;
+	pid_t ppid;
+	pid_t pgrp;
+	pid_t sid;
+	linux_timeval_t pr_utime;
+	linux_timeval_t pr_stime;
+	linux_timeval_t pr_cutime;
+	linux_timeval_t pr_sid;
+	elf_regs_t regs;
+	int fpvalid;
+} elf_prstatus_t;
 
 #endif
 

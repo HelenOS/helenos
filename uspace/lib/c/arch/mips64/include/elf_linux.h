@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcmips64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_RTLD_SYMBOL_H_
-#define LIBC_RTLD_SYMBOL_H_
+#ifndef LIBC_mips64_ELF_LINUX_H_
+#define LBIC_mips64_ELF_LINUX_H_
 
-#include <elf/elf.h>
-#include <rtld/rtld.h>
+#include <libarch/istate.h>
+#include <sys/types.h>
 
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
+typedef struct {
+	/* TODO */
+	uint64_t pad[16];
+} elf_regs_t;
+
+static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
+{
+	/* TODO */
+	(void) istate; (void) elf_regs;
+}
 
 #endif
 

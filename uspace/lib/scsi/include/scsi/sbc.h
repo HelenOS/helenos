@@ -55,11 +55,27 @@ enum scsi_cmd_sbc {
 	SCSI_CMD_WRITE_16		= 0x8a
 };
 
+/** SCSI Read (10) command */
+typedef struct {
+	/** Operation code (SCSI_CMD_READ_10) */
+	uint8_t op_code;
+	/** RdProtect, DPO, FUA, Reserved, FUA_NV, Obsolete */
+	uint8_t flags;
+	/** Logical block address */
+	uint32_t lba;
+	/** Reserved, Group Number */
+	uint8_t group_no;
+	/** Transfer length */
+	uint16_t xfer_len;
+	/** Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_read_10_t;
+
 /** SCSI Read (12) command */
 typedef struct {
 	/** Operation code (SCSI_CMD_READ_12) */
 	uint8_t op_code;
-	/** RdProtect, DPO, FUA, Reserved, FUA_NV, Reserved */
+	/** RdProtect, DPO, FUA, Reserved, FUA_NV, Obsolete */
 	uint8_t flags;
 	/** Logical block address */
 	uint32_t lba;
@@ -114,11 +130,27 @@ typedef struct {
 	uint32_t block_size;
 } scsi_read_capacity_10_data_t;
 
+/** SCSI Write (10) command */
+typedef struct {
+	/** Operation code (SCSI_CMD_WRITE_10) */
+	uint8_t op_code;
+	/** WrProtect, DPO, FUA, Reserved, FUA_NV, Obsolete */
+	uint8_t flags;
+	/** Logical block address */
+	uint32_t lba;
+	/** Reserved, Group Number */
+	uint8_t group_no;
+	/** Transfer length */
+	uint16_t xfer_len;
+	/** Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_write_10_t;
+
 /** SCSI Write (12) command */
 typedef struct {
 	/** Operation code (SCSI_CMD_WRITE_12) */
 	uint8_t op_code;
-	/** WrProtect, DPO, FUA, Reserved, FUA_NV, Reserved */
+	/** WrProtect, DPO, FUA, Reserved, FUA_NV, Obsolete */
 	uint8_t flags;
 	/** Logical block address */
 	uint32_t lba;

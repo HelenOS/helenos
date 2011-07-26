@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,64 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libcia32
  * @{
  */
 /** @file
- * @brief ELF loader structures and public functions.
  */
 
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
+#ifndef LIBC_ia32_ELF_LINUX_H_
+#define LBIC_ia32_ELF_LINUX_H_
 
-#include <arch/elf.h>
+#include <libarch/istate.h>
 #include <sys/types.h>
-#include <loader/pcb.h>
 
-#include "elf.h"
-
-typedef enum {
-	/** Leave all segments in RW access mode. */
-	ELDF_RW = 1
-} eld_flags_t;
-
-/**
- * Some data extracted from the headers are stored here
- */
 typedef struct {
-	/** Entry point */
-	entry_point_t entry;
+	uint32_t ebx;
+	uint32_t ecx;
+	uint32_t edx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
+	uint32_t eax;
+	uint32_t ds;
+	uint32_t es;
+	uint32_t fs;
+	uint32_t gs;
+	uint32_t old_eax;
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t esp;
+	uint32_t ss;
+} elf_regs_t;
 
-	/** ELF interpreter name or NULL if statically-linked */
-	const char *interp;
+static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
+{
+	elf_regs->ebx = istate->ebx;
+	elf_regs->ecx = istate->ecx;
+	elf_regs->edx = istate->edx;
+	elf_regs->esi = istate->esi;
+	elf_regs->edi = istate->edi;
+	elf_regs->ebp = istate->ebp;
+	elf_regs->eax = istate->eax;
 
-	/** Pointer to the dynamic section */
-	void *dynamic;
-} elf_info_t;
+	elf_regs->ds = istate->ds;
+	elf_regs->es = istate->es;
+	elf_regs->fs = istate->fs;
+	elf_regs->gs = istate->gs;
 
-/**
- * Holds information about an ELF binary being loaded.
- */
-typedef struct {
-	/** Filedescriptor of the file from which we are loading */
-	int fd;
-
-	/** Difference between run-time addresses and link-time addresses */
-	uintptr_t bias;
-
-	/** Flags passed to the ELF loader. */
-	eld_flags_t flags;
-
-	/** A copy of the ELF file header */
-	elf_header_t *header;
-
-	/** Store extracted info here */
-	elf_info_t *info;
-} elf_ld_t;
-
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_info_t *info);
-void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
+	elf_regs->old_eax = 0;
+	elf_regs->eip = istate->eip;
+	elf_regs->cs = istate->cs;
+	elf_regs->eflags = istate->eflags;
+	elf_regs->esp = istate->esp;
+	elf_regs->ss = istate->ss;
+}
 
 #endif
 

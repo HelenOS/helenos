@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2006 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_RTLD_SYMBOL_H_
-#define LIBC_RTLD_SYMBOL_H_
+#ifndef KERN_ELF_LOAD_H_
+#define KERN_ELF_LOAD_H_
 
-#include <elf/elf.h>
-#include <rtld/rtld.h>
+#include <arch/elf.h>
+#include <typedefs.h>
 
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
+/**
+ * ELF error return codes
+ */
+#define EE_OK			0	/* No error */
+#define EE_INVALID		1	/* Invalid ELF image */
+#define	EE_MEMORY		2	/* Cannot allocate address space */
+#define EE_INCOMPATIBLE		3	/* ELF image is not compatible with current architecture */
+#define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
+#define EE_LOADER		5	/* The image is actually a program loader. */
+#define EE_IRRECOVERABLE	6
+
+/**
+ * This flags is passed when running the loader, otherwise elf_load()
+ * would return with a EE_LOADER error code.
+ *
+ */
+#define ELD_F_NONE    0
+#define ELD_F_LOADER  1
+
+extern unsigned int elf_load(elf_header_t *, as_t *, unsigned int);
+extern const char *elf_error(unsigned int rc);
 
 #endif
 

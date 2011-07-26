@@ -33,6 +33,7 @@
  */
 
 #include <async.h>
+#include <elf/elf_linux.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -71,6 +72,8 @@ static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
 static void autoload_syms(void);
 static char *get_app_task_name(void);
 static char *fmt_sym_address(uintptr_t addr);
+
+static istate_t reg_state;
 
 int main(int argc, char *argv[])
 {
@@ -292,7 +295,10 @@ static int areas_dump(void)
 
 	if (write_core_file) {
 		printf("Writing core file '%s'\n", core_file_name);
-		rc = elf_core_save(core_file_name, ainfo_buf, n_areas, sess);
+
+		rc = elf_core_save(core_file_name, ainfo_buf, n_areas, sess,
+		    &reg_state);
+
 		if (rc != EOK) {
 			printf("Failed writing core file.\n");
 			return EIO;
@@ -320,6 +326,9 @@ static int thread_dump(uintptr_t thash)
 
 	pc = istate_get_pc(&istate);
 	fp = istate_get_fp(&istate);
+
+	/* Save register state for dumping to core file later. */
+	reg_state = istate;
 
 	sym_pc = fmt_sym_address(pc);
 	printf("Thread %p: PC = %s. FP = %p\n", (void *) thash,

@@ -36,16 +36,7 @@ import os
 import random
 import xstruct
 import array
-
-exclude_names = set(['.svn', '.bzr'])
-
-def align_up(size, alignment):
-	"Return size aligned up to alignment"
-	
-	if (size % alignment == 0):
-		return size
-	
-	return ((size // alignment) + 1) * alignment
+from imgutil import *
 
 def subtree_size(root, cluster_size, dirent_size):
 	"Recursive directory walk and calculate size"
@@ -53,15 +44,12 @@ def subtree_size(root, cluster_size, dirent_size):
 	size = 0
 	files = 2
 	
-	for name in os.listdir(root):
-		canon = os.path.join(root, name)
-		
-		if (os.path.isfile(canon) and (not name in exclude_names)):
-			size += align_up(os.path.getsize(canon), cluster_size)
+	for item in listdir_items(root):
+		if item.is_file:
+			size += align_up(item.size, cluster_size)
 			files += 1
-		
-		if (os.path.isdir(canon) and (not name in exclude_names)):
-			size += subtree_size(canon, cluster_size, dirent_size)
+		elif item.is_dir:
+			size += subtree_size(item.path, cluster_size, dirent_size)
 			files += 1
 	
 	return size + align_up(files * dirent_size, cluster_size)
@@ -71,16 +59,13 @@ def root_entries(root):
 	
 	return len(os.listdir(root))
 
-def write_file(path, outf, cluster_size, data_start, fat, reserved_clusters):
+def write_file(item, outf, cluster_size, data_start, fat, reserved_clusters):
 	"Store the contents of a file"
 	
-	size = os.path.getsize(path)
 	prev = -1
 	first = 0
 	
-	inf = open(path, "rb")
-	rd = 0;
-	while (rd < size):
+	for data in chunks(item, cluster_size):
 		empty_cluster = fat.index(0)
 		fat[empty_cluster] = 0xffff
 		
@@ -91,13 +76,10 @@ def write_file(path, outf, cluster_size, data_start, fat, reserved_clusters):
 		
 		prev = empty_cluster
 		
-		data = bytes(inf.read(cluster_size));
 		outf.seek(data_start + (empty_cluster - reserved_clusters) * cluster_size)
 		outf.write(data)
-		rd += len(data)
-	inf.close()
 	
-	return first, size
+	return first, item.size
 
 def write_directory(directory, outf, cluster_size, data_start, fat, reserved_clusters, dirent_size, empty_cluster):
 	"Store the contents of a directory"
@@ -302,16 +284,13 @@ def recursion(head, root, outf, cluster_size, root_start, data_start, fat, reser
 	else:
 		empty_cluster = 0
 	
-	for name in os.listdir(root):
-		canon = os.path.join(root, name)
-		
-		if (os.path.isfile(canon) and (not name in exclude_names)):
-			rv = write_file(canon, outf, cluster_size, data_start, fat, reserved_clusters)
-			directory.append(create_dirent(name, False, rv[0], rv[1]))
-		
-		if (os.path.isdir(canon) and (not name in exclude_names)):
-			rv = recursion(False, canon, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
-			directory.append(create_dirent(name, True, rv[0], rv[1]))
+	for item in listdir_items(root):		
+		if item.is_file:
+			rv = write_file(item, outf, cluster_size, data_start, fat, reserved_clusters)
+			directory.append(create_dirent(item.name, False, rv[0], rv[1]))
+		elif item.is_dir:
+			rv = recursion(False, item.path, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
+			directory.append(create_dirent(item.name, True, rv[0], rv[1]))
 	
 	if (head):
 		outf.seek(root_start)

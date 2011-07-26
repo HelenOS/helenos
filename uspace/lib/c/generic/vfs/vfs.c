@@ -416,6 +416,68 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		return -1;
 }
 
+/** Read entire buffer.
+ *
+ * In face of short reads this function continues reading until either
+ * the entire buffer is read or no more data is available (at end of file).
+ *
+ * @param fildes	File descriptor
+ * @param buf		Buffer, @a nbytes bytes long
+ * @param nbytes	Number of bytes to read
+ *
+ * @return		On success, positive number of bytes read.
+ *			On failure, negative error code from read().
+ */
+ssize_t read_all(int fildes, void *buf, size_t nbyte)
+{
+	ssize_t cnt = 0;
+	size_t nread = 0;
+	uint8_t *bp = (uint8_t *) buf;
+
+	do {
+		bp += cnt;
+		nread += cnt;
+		cnt = read(fildes, bp, nbyte - nread);
+	} while (cnt > 0 && (nbyte - nread - cnt) > 0);
+
+	if (cnt < 0)
+		return cnt;
+
+	return nread + cnt;
+}
+
+/** Write entire buffer.
+ *
+ * This function fails if it cannot write exactly @a len bytes to the file.
+ *
+ * @param fildes	File descriptor
+ * @param buf		Data, @a nbytes bytes long
+ * @param nbytes	Number of bytes to write
+ *
+ * @return		EOK on error, return value from write() if writing
+ *			failed.
+ */
+ssize_t write_all(int fildes, const void *buf, size_t nbyte)
+{
+	ssize_t cnt = 0;
+	ssize_t nwritten = 0;
+	const uint8_t *bp = (uint8_t *) buf;
+
+	do {
+		bp += cnt;
+		nwritten += cnt;
+		cnt = write(fildes, bp, nbyte - nwritten);
+	} while (cnt > 0 && ((ssize_t )nbyte - nwritten - cnt) > 0);
+
+	if (cnt < 0)
+		return cnt;
+
+	if ((ssize_t)nbyte - nwritten - cnt > 0)
+		return EIO;
+
+	return nbyte;
+}
+
 int fsync(int fildes)
 {
 	async_exch_t *exch = vfs_exchange_begin();
