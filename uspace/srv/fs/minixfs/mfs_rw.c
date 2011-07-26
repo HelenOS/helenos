@@ -31,7 +31,6 @@
  */
 
 #include "mfs.h"
-#include "mfs_utils.h"
 
 static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,

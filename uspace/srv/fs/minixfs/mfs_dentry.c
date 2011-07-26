@@ -31,7 +31,6 @@
  */
 
 #include "mfs.h"
-#include "mfs_utils.h"
 
 int
 read_dentry(struct mfs_node *mnode,

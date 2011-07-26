@@ -32,7 +32,6 @@
 
 #include <byteorder.h>
 #include "mfs.h"
-#include "mfs_utils.h"
 
 uint16_t conv16(bool native, uint16_t n)
 {

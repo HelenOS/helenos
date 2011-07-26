@@ -32,7 +32,6 @@
 
 #include <stdlib.h>
 #include "mfs.h"
-#include "mfs_utils.h"
 
 static int
 mfs_write_inode_raw(struct mfs_node *mnode);

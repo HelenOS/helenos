@@ -237,6 +237,16 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone);
 extern int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone);
 
+/*mfs_utils.c*/
+extern uint16_t
+conv16(bool native, uint16_t n);
+
+extern uint32_t
+conv32(bool native, uint32_t n);
+
+extern uint64_t
+conv64(bool native, uint64_t n);
+
 #endif
 
 /**

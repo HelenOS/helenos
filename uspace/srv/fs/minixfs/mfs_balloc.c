@@ -32,7 +32,6 @@
 
 #include <stdlib.h>
 #include "mfs.h"
-#include "mfs_utils.h"
 
 static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize,

@@ -34,7 +34,6 @@
 #include <fibril_synch.h>
 #include <align.h>
 #include "mfs.h"
-#include "mfs_utils.h"
 
 static bool check_magic_number(uint16_t magic, bool *native,
 			       mfs_version_t *version, bool *longfilenames);
