@@ -276,7 +276,7 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 			continue;
 
 		r = mfs_free_zone(inst, dbl_zone[i]);
-		on_error(r, return r);
+		on_error(r, goto out);
 	}
 
 	if (fzone_to_free == 0) {
@@ -284,8 +284,8 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 		ino_i->i_izone[1] = 0;
 		ino_i->dirty = true;
 	}
+out:
 	free(dbl_zone);
-
 	return r;
 }
 
