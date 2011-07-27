@@ -65,8 +65,10 @@ static struct posix_sigaction _signal_actions[_TOP_SIGNAL + 1] = {
 };
 
 /**
- * 
- * @param signo
+ * Default signal handler. Executes the default action for each signal,
+ * as reasonable within HelenOS.
+ *
+ * @param signo Signal number.
  */
 void __posix_default_signal_handler(int signo)
 {
@@ -74,16 +76,16 @@ void __posix_default_signal_handler(int signo)
 	case SIGABRT:
 		abort();
 	case SIGQUIT:
-		fprintf(stderr, "Quit signal raised. Exiting.");
+		fprintf(stderr, "Quit signal raised. Exiting.\n");
 		exit(EXIT_FAILURE);
 	case SIGINT:
-		fprintf(stderr, "Interrupt signal caught. Exiting.");
+		fprintf(stderr, "Interrupt signal caught. Exiting.\n");
 		exit(EXIT_FAILURE);
 	case SIGTERM:
-		fprintf(stderr, "Termination signal caught. Exiting.");
+		fprintf(stderr, "Termination signal caught. Exiting.\n");
 		exit(EXIT_FAILURE);
 	case SIGSTOP:
-		fprintf(stderr, "Stop signal caught, but unsupported. Ignoring.");
+		fprintf(stderr, "Stop signal caught, but unsupported. Ignoring.\n");
 		break;
 	case SIGKILL:
 		/* This will only occur when raise or similar is called. */

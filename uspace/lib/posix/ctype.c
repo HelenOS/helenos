@@ -93,7 +93,7 @@ int posix_isgraph(int c)
  */
 int posix_isprint(int c)
 {
-	return posix_isacsii(c) && !posix_iscntrl(c);
+	return posix_isascii(c) && !posix_iscntrl(c);
 }
 
 /**

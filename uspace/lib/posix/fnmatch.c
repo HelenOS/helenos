@@ -524,6 +524,7 @@ static bool _full_match(const char *pattern, const char *string, int flags)
  */
 static char *_casefold(const char *s)
 {
+	assert(s != NULL);
 	char *result = strdup(s);
 	for (char *i = result; *i != '\0'; ++i) {
 		*i = tolower(*i);
@@ -541,6 +542,9 @@ static char *_casefold(const char *s)
  */
 int posix_fnmatch(const char *pattern, const char *string, int flags)
 {
+	assert(pattern != NULL);
+	assert(string != NULL);
+
 	// TODO: don't fold everything in advance, but only when needed
 
 	if ((flags & FNM_CASEFOLD) != 0) {
