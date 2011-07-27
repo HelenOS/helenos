@@ -76,7 +76,7 @@ read_dentry(struct mfs_node *mnode,
 		memcpy(d_info->d_name, d->d_name, namelen);
 	}
 
-	block_put(b);
+	r = block_put(b);
 
 	d_info->index = index;
 	d_info->node = mnode;
@@ -121,7 +121,7 @@ write_dentry(struct mfs_dentry_info *d_info)
 	}
 
 	b->dirty = true;
-	block_put(b);
+	r = block_put(b);
 
 out:
 	return r;

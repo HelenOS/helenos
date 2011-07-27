@@ -164,7 +164,6 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 
 	b->dirty = true;
 	r = block_put(b);
-	mfsdebug("free index %u\n", idx);
 
 	if (*search > idx)
 		*search = idx;
@@ -227,13 +226,13 @@ retry:
 						sbi->native, tmp);
 		if (freebit == -1) {
 			/*No free bit in this block*/
-			block_put(b);
+			r = block_put(b);
+			on_error(r, goto out);
 			continue;
 		}
 
 		/*Free bit found in this block, compute the real index*/
 		*idx = freebit + bits_per_block * i;
-		mfsdebug("alloc index %d %d\n", (int) *idx, i);
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
 			r = block_put(b);

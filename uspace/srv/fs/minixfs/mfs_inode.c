@@ -242,7 +242,7 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 		ino->i_izone[i] = conv16(native, ino_i->i_izone[i]);
 
 	b->dirty = true;
-	block_put(b);
+	r = block_put(b);
 
 	ino_i->dirty = false;
 out:
@@ -287,7 +287,7 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 		ino2->i_izone[i] = conv32(native, ino_i->i_izone[i]);
 
 	b->dirty = true;
-	block_put(b);
+	r = block_put(b);
 	ino_i->dirty = false;
 
 out:
