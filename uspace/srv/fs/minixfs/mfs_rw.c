@@ -134,13 +134,14 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			if (write_mode) {
 				uint32_t zone;
 				r = alloc_zone_and_clear(inst, &zone);
-				if (r != EOK)
-					return r;
+				on_error(r, return r);
 
 				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
 			} else {
-				return -1;
+				/*Sparse block*/
+				*b = 0;
+				return EOK;
 			}
 		}
 
@@ -169,8 +170,11 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 
 			ino_i->i_izone[1] = zone;
 			ino_i->dirty = true;
-		} else
-			return -1;
+		} else {
+			/*Sparse block*/
+			*b = 0;
+			return EOK;
+		}
 	}
 
 	r = read_ind_zone(inst, ino_i->i_izone[1], &ind_zone);
@@ -192,7 +196,9 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			ind_zone[ind2_off] = zone;
 			write_ind_zone(inst, ino_i->i_izone[1], ind_zone);
 		} else {
-			r = -1;
+			/*Sparse block*/
+			r = EOK;
+			*b = 0;
 			goto out_free_ind1;
 		}
 	}

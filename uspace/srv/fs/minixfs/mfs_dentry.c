@@ -182,8 +182,23 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	}
 
 	if (!empty_dentry_found) {
-		r = inode_grow(mnode, sbi->dirsize);
+		uint32_t b, pos;
+		pos = mnode->ino_i->i_size;
+		r = read_map(&b, mnode, pos);
 		on_error(r, goto out);
+
+		if (b == 0) {
+			/*Increase the inode size*/
+
+			uint32_t dummy;
+			r = mfs_alloc_zone(mnode->instance, &b);
+			on_error(r, goto out);
+			r = write_map(mnode, pos, b, &dummy);
+			on_error(r, goto out);
+		}
+
+		mnode->ino_i->i_size += sbi->dirsize;
+		mnode->ino_i->dirty = true;
 
 		r = read_dentry(mnode, &d_info, i);
 		on_error(r, goto out);

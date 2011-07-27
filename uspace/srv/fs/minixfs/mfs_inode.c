@@ -351,62 +351,6 @@ exit_error:
 	return r;
 }
 
-int
-inode_grow(struct mfs_node *mnode, size_t size_grow)
-{
-	unsigned i;
-	struct mfs_sb_info *sbi = mnode->instance->sbi;
-	struct mfs_ino_info *ino_i = mnode->ino_i;
-	const int bs = sbi->block_size;
-
-	const uint32_t old_size = ino_i->i_size;
-	const uint32_t new_size = old_size + size_grow;
-
-	assert(size_grow > 0);
-
-	/*Compute the number of zones to add to the inode*/
-	unsigned zones_to_add = 0;
-	if (old_size == 0)
-		++zones_to_add;
-
-	zones_to_add += (new_size / bs) - (old_size / bs);
-
-	/*Compute the start zone*/
-	unsigned start_zone = old_size / bs;
-	start_zone += (old_size % bs) != 0;
-
-	int r;
-	for (i = 0; i < zones_to_add; ++i) {
-		uint32_t new_zone;
-		uint32_t dummy;
-
-		r = mfs_alloc_zone(mnode->instance, &new_zone);
-		on_error(r, return r);
-
-		block_t *b;
-		r = block_get(&b, mnode->instance->handle, new_zone,
-			      BLOCK_FLAGS_NOREAD);
-		on_error(r, return r);
-
-		memset(b->data, 0, bs);
-		b->dirty = true;
-		block_put(b);
-
-		r = write_map(mnode, (start_zone + i) * bs,
-			      new_zone, &dummy);
-
-		on_error(r, return r);
-
-		ino_i->i_size += bs;
-		ino_i->dirty = true;
-	}
-
-	ino_i->i_size = new_size;
-	ino_i->dirty = true;
-
-	return EOK;
-}
-
 /**
  * @}
  */
