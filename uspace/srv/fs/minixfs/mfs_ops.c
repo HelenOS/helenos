@@ -655,6 +655,11 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 		struct mfs_dentry_info d_info;
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
+		if (pos < 2) {
+			/*Skip the first two dentries ('.' and '..')*/
+			pos = 2;
+		}
+
 		for (; pos < mnode->ino_i->i_size / sbi->dirsize; ++pos) {
 			rc = read_dentry(mnode, &d_info, pos);
 			on_error(rc, goto out_error);
