@@ -66,7 +66,6 @@
 #include "elf_core.h"
 
 static off64_t align_foff_up(off64_t, uintptr_t, size_t);
-static int write_all(int, const void *, size_t);
 static int align_pos(int, size_t);
 static int write_mem_area(int, as_area_info_t *, async_sess_t *);
 
@@ -99,7 +98,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	size_t word_size;
 
 	int fd;
-	int rc;
+	ssize_t rc;
 	unsigned int i;
 
 #ifdef __32_BITS__
@@ -203,7 +202,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	}
 
 	rc = write_all(fd, &elf_hdr, sizeof(elf_hdr));
-	if (rc != EOK) {
+	if (rc != sizeof(elf_hdr)) {
 		printf("Failed writing ELF header.\n");
 		free(p_hdr);
 		return EIO;
@@ -211,7 +210,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 
 	for (i = 0; i < n_ph; ++i) {
 		rc = write_all(fd, &p_hdr[i], sizeof(p_hdr[i]));
-		if (rc != EOK) {
+		if (rc != sizeof(p_hdr[i])) {
 			printf("Failed writing program header.\n");
 			free(p_hdr);
 			return EIO;
@@ -232,14 +231,14 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	note.type = NT_PRSTATUS;
 
 	rc = write_all(fd, &note, sizeof(elf_note_t));
-	if (rc != EOK) {
+	if (rc != sizeof(elf_note_t)) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
 	rc = write_all(fd, "CORE", note.namesz);
-	if (rc != EOK) {
+	if (rc != (ssize_t) note.namesz) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
@@ -253,7 +252,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	}
 
 	rc = write_all(fd, &pr_status, sizeof(elf_prstatus_t));
-	if (rc != EOK) {
+	if (rc != sizeof(elf_prstatus_t)) {
 		printf("Failed writing register data.\n");
 		free(p_hdr);
 		return EIO;
@@ -303,7 +302,7 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 	size_t to_copy;
 	size_t total;
 	uintptr_t addr;
-	int rc;
+	ssize_t rc;
 
 	addr = area->start_addr;
 	total = 0;
@@ -317,7 +316,7 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 		}
 
 		rc = write_all(fd, buffer, to_copy);
-		if (rc != EOK) {
+		if (rc != (ssize_t) to_copy) {
 			printf("Failed writing memory contents.\n");
 			return EIO;
 		}
@@ -325,36 +324,6 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 		addr += to_copy;
 		total += to_copy;
 	}
-
-	return EOK;
-}
-
-/** Write until the buffer is written in its entirety.
- *
- * This function fails if it cannot write exactly @a len bytes to the file.
- *
- * @param fd		The file to write to.
- * @param buf		Data, @a len bytes long.
- * @param len		Number of bytes to write.
- *
- * @return		EOK on error, return value from write() if writing
- *			failed.
- */
-static int write_all(int fd, const void *data, size_t len)
-{
-	int cnt = 0;
-
-	do {
-		data += cnt;
-		len -= cnt;
-		cnt = write(fd, data, len);
-	} while (cnt > 0 && (len - cnt) > 0);
-
-	if (cnt < 0)
-		return cnt;
-
-	if (len - cnt > 0)
-		return EIO;
 
 	return EOK;
 }

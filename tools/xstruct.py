@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2008 Martin Decky
+# Copyright (c) 2011 Martin Sucha
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,31 @@ Convert descriptive structure definitions to structure object
 """
 
 import struct
+import types
+
+ranges = {
+	'B': ((int, long), 0x00, 0xff),
+	'H': ((int, long), 0x0000, 0xffff),
+	'L': ((int, long), 0x00000000, 0xffffffff),
+	'Q': ((int, long), 0x0000000000000000, 0xffffffffffffffff),
+	'b': ((int, long), -0x80, 0x7f),
+	'h': ((int, long), -0x8000, 0x7fff),
+	'l': ((int, long), -0x80000000, 0x7fffffff) ,
+	'q': ((int, long), -0x8000000000000000, 0x7fffffffffffffff),
+}
+
+def check_range(varname, fmt, value):
+	if value == None:
+		raise ValueError('Variable "%s" not set' % varname)
+	if not fmt in ranges:
+		return
+	vartype, varmin, varmax = ranges[fmt]
+	if not isinstance(value, vartype):
+		raise ValueError('Variable "%s" is %s but should be %s' %
+		                 (varname, str(type(value)), str(vartype)))
+	if value < varmin or value > varmax:
+		raise ValueError('Variable "%s" value %s out of range %s..%s' % 
+		                 (varname, repr(value), repr(varmin), repr(varmax)))
 
 class Struct:
 	def size(self):
@@ -37,14 +63,26 @@ class Struct:
 	
 	def pack(self):
 		args = []
-		for variable in self._args_:
-			if (isinstance(self.__dict__[variable], list)):
-				for item in self.__dict__[variable]:
+		for variable, fmt, length in self._args_:
+			value = self.__dict__[variable]
+			if isinstance(value, list):
+				if length != None and length != len(value):
+					raise ValueError('Variable "%s" length %u does not match %u' %
+				                      (variable, len(value), length))
+				for index, item in enumerate(value):
+					check_range(variable + '[' + repr(index) + ']', fmt, item)
 					args.append(item)
 			else:
-				args.append(self.__dict__[variable])
-		
+				check_range(variable, fmt, value)
+				args.append(value)		
 		return struct.pack(self._format_, *args)
+	
+	def unpack(self, data):
+		values = struct.unpack(self._format_, data)
+		i = 0
+		for variable, fmt, length in self._args_:
+			self.__dict__[variable] = values[i]
+			i += 1
 
 def create(definition):
 	"Create structure object"
@@ -76,13 +114,15 @@ def create(definition):
 		if (variable != None):
 			subtokens = token.split("[")
 			
+			length = None
 			if (len(subtokens) > 1):
-				format += "%d" % int(subtokens[1].split("]")[0])
+				length = int(subtokens[1].split("]")[0])
+				format += "%d" % length
 			
 			format += variable
 			
 			inst.__dict__[subtokens[0]] = None
-			args.append(subtokens[0])
+			args.append((subtokens[0], variable, length))
 			
 			variable = None
 			continue

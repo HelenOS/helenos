@@ -73,19 +73,6 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry);
 static int section_header(elf_ld_t *elf, elf_section_header_t *entry);
 static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
 
-/** Read until the buffer is read in its entirety. */
-static int my_read(int fd, void *buf, size_t len)
-{
-	int cnt = 0;
-	do {
-		buf += cnt;
-		len -= cnt;
-		cnt = read(fd, buf, len);
-	} while ((cnt > 0) && ((len - cnt) > 0));
-
-	return cnt;
-}
-
 /** Load ELF binary from a file.
  *
  * Load an ELF binary from the specified file. If the file is
@@ -159,8 +146,8 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	elf_header_t *header = &header_buf;
 	int i, rc;
 
-	rc = my_read(elf->fd, header, sizeof(elf_header_t));
-	if (rc < 0) {
+	rc = read_all(elf->fd, header, sizeof(elf_header_t));
+	if (rc != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
 	}
@@ -221,9 +208,9 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		lseek(elf->fd, header->e_phoff
 		        + i * sizeof(elf_segment_header_t), SEEK_SET);
 
-		rc = my_read(elf->fd, &segment_hdr,
+		rc = read_all(elf->fd, &segment_hdr,
 		    sizeof(elf_segment_header_t));
-		if (rc < 0) {
+		if (rc != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
@@ -243,9 +230,9 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		lseek(elf->fd, header->e_shoff
 		    + i * sizeof(elf_section_header_t), SEEK_SET);
 
-		rc = my_read(elf->fd, &section_hdr,
+		rc = read_all(elf->fd, &section_hdr,
 		    sizeof(elf_section_header_t));
-		if (rc < 0) {
+		if (rc != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
@@ -333,7 +320,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	void *seg_ptr;
 	uintptr_t seg_addr;
 	size_t mem_sz;
-	int rc;
+	ssize_t rc;
 
 	bias = elf->bias;
 
@@ -411,9 +398,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		now = 16384;
 		if (now > left) now = left;
 
-		rc = my_read(elf->fd, dp, now);
+		rc = read_all(elf->fd, dp, now);
 
-		if (rc < 0) { 
+		if (rc != (ssize_t) now) { 
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}

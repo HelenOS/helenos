@@ -35,7 +35,8 @@
 
 #include <libfs.h>
 
-extern fs_reg_t devfs_reg;
+extern vfs_out_ops_t devfs_ops;
+extern libfs_ops_t devfs_libfs_ops;
 
 #endif
 

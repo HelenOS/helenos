@@ -56,6 +56,12 @@ typedef struct {
 	uint8_t dCSWStatus;
 } __attribute__((packed)) usb_massstor_csw_t;
 
+enum cmd_block_status {
+	cbs_passed	= 0x00,
+	cbs_failed	= 0x01,
+	cbs_phase_error = 0x02
+};
+
 extern void usb_massstor_cbw_prepare(usb_massstor_cbw_t *, uint32_t, uint32_t,
     usb_direction_t, uint8_t, uint8_t, const uint8_t *);
 
