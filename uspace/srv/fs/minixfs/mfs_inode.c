@@ -39,11 +39,13 @@ mfs_write_inode_raw(struct mfs_node *mnode);
 static int
 mfs2_write_inode_raw(struct mfs_node *mnode);
 
-static struct mfs_ino_info *
-mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum);
+static int
+mfs_read_inode_raw(const struct mfs_instance *instance,
+		struct mfs_ino_info **ino_ptr, uint16_t inum);
 
-static struct mfs_ino_info *
-mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
+static int
+mfs2_read_inode_raw(const struct mfs_instance *instance,
+		struct mfs_ino_info **ino_ptr, uint32_t inum);
 
 
 int
@@ -51,28 +53,27 @@ get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	  fs_index_t index)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
+	int r;
 
 	if (sbi->fs_version == MFS_VERSION_V1) {
 		/*Read a MFS V1 inode*/
-		*ino_i = mfs_read_inode_raw(inst, index);
+		r = mfs_read_inode_raw(inst, ino_i, index);
 	} else {
 		/*Read a MFS V2/V3 inode*/
-		*ino_i = mfs2_read_inode_raw(inst, index);
+		r = mfs2_read_inode_raw(inst, ino_i, index);
 	}
 
-	if (*ino_i == NULL)
-		return -1;
-
-	return EOK;
+	return r;
 }
 
-static struct mfs_ino_info *
-mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum) {
-	struct mfs_inode *ino = NULL;
+static int
+mfs_read_inode_raw(const struct mfs_instance *instance,
+		struct mfs_ino_info **ino_ptr, uint16_t inum) {
+	struct mfs_inode *ino;
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
 	block_t *b;
-	int i;
+	int i, r;
 
 	sbi = instance->sbi;
 	assert(sbi);
@@ -81,22 +82,22 @@ mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum) {
 	inum -= 1;
 
 	const int ino_off = inum % sbi->ino_per_block;
-	const size_t ino_size = sizeof(struct mfs_inode);
 
 	ino_i = malloc(sizeof(*ino_i));
-	ino = malloc(ino_size);
 
-	if (!ino || !ino_i)
+	if (!ino_i) {
+		r = ENOMEM;
 		goto out_err;
+	}
 
 	const int itable_off = sbi->itable_off;
 
-	if (block_get(&b, instance->handle,
+	r = block_get(&b, instance->handle,
 		      itable_off + inum / sbi->ino_per_block,
-		      BLOCK_FLAGS_NONE) != EOK)
-		goto out_err;
+		      BLOCK_FLAGS_NONE);
+	on_error(r, goto out_err);
 
-	memcpy(ino, ((uint8_t *) b->data) + ino_off * ino_size, ino_size);
+	ino = b->data + ino_off * sizeof(struct mfs_inode);
 
 	ino_i->i_mode = conv16(sbi->native, ino->i_mode);
 	ino_i->i_uid = conv16(sbi->native, ino->i_uid);
@@ -110,35 +111,33 @@ mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum) {
 	for (i = 0; i < V1_NR_INDIRECT_ZONES; ++i)
 		ino_i->i_izone[i] = conv16(sbi->native, ino->i_izone[i]);
 
-	block_put(b);
-	free(ino);
+	r = block_put(b);
 	ino_i->dirty = false;
+	*ino_ptr = ino_i;
 
-	return ino_i;
+	return r;
 
 out_err:
-	if (ino)
-		free(ino);
 	if (ino_i)
 		free(ino_i);
-	return NULL;
+	return EOK;
 }
 
-static struct mfs_ino_info *
-mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum) {
-	struct mfs2_inode *ino = NULL;
+static int
+mfs2_read_inode_raw(const struct mfs_instance *instance,
+		struct mfs_ino_info **ino_ptr, uint32_t inum) {
+	struct mfs2_inode *ino;
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
 	block_t *b;
-	int i;
+	int i, r;
 
-	const size_t ino_size = sizeof(struct mfs2_inode);
-
-	ino = malloc(ino_size);
 	ino_i = malloc(sizeof(*ino_i));
 
-	if (!ino || !ino_i)
+	if (!ino_i) {
+		r = ENOMEM;
 		goto out_err;
+	}
 
 	sbi = instance->sbi;
 	assert(sbi);
@@ -149,12 +148,12 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum) {
 	const int itable_off = sbi->itable_off;
 	const int ino_off = inum % sbi->ino_per_block;
 
-	if (block_get(&b, instance->handle,
+	r = block_get(&b, instance->handle,
 		      itable_off + inum / sbi->ino_per_block,
-		      BLOCK_FLAGS_NONE) != EOK)
-		goto out_err;
+		      BLOCK_FLAGS_NONE);
+	on_error(r, goto out_err);
 
-	memcpy(ino, b->data + ino_off * ino_size, ino_size);
+	ino = b->data + ino_off * sizeof(struct mfs2_inode);
 
 	ino_i->i_mode = conv16(sbi->native, ino->i_mode);
 	ino_i->i_nlinks = conv16(sbi->native, ino->i_nlinks);
@@ -171,18 +170,16 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum) {
 	for (i = 0; i < V2_NR_INDIRECT_ZONES; ++i)
 		ino_i->i_izone[i] = conv32(sbi->native, ino->i_izone[i]);
 
-	block_put(b);
-	free(ino);
+	r = block_put(b);
 	ino_i->dirty = false;
+	*ino_ptr = ino_i;
 
-	return ino_i;
+	return r;
 
 out_err:
-	if (ino)
-		free(ino);
 	if (ino_i)
 		free(ino_i);
-	return NULL;
+	return EOK;
 }
 
 int
