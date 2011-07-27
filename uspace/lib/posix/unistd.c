@@ -178,6 +178,22 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 }
 
 /**
+ * Remove a directory.
+ *
+ * @param path Directory pathname.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_rmdir(const char *path)
+{
+	int rc = rmdir(path);
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	return 0;
+}
+
+/**
  * Remove a link to a file.
  * 
  * @param path File pathname.

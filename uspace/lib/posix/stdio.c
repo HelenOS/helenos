@@ -692,16 +692,32 @@ int posix_putchar_unlocked(int c)
 }
 
 /**
- * Remove a file.
+ * Remove a file or directory.
  *
  * @param path Pathname of the file that shall be removed.
- * @return Zero on success, -1 otherwise.
+ * @return Zero on success, -1 (with errno set) otherwise.
  */
 int posix_remove(const char *path)
 {
-	// FIXME: unlink() and rmdir() seem to be equivalent at the moment,
-	//        but that does not have to be true forever
-	return unlink(path);
+	struct stat st;
+	int rc = stat(path, &st);
+	
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	
+	if (st.is_directory) {
+		rc = rmdir(path);
+	} else {
+		rc = unlink(path);
+	}
+	
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	return 0;
 }
 
 /**

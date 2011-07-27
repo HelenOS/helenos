@@ -72,6 +72,7 @@ extern posix_gid_t posix_getgid(void);
 extern ssize_t posix_read(int fildes, void *buf, size_t nbyte);
 
 /* Deleting Files */
+extern int posix_rmdir(const char *path);
 extern int posix_unlink(const char *path);
 
 /* Standard Streams */
@@ -155,6 +156,7 @@ extern int posix_pipe(int fildes[2]);
 
 	#define read posix_read
 
+	#define rmdir posix_rmdir
 	#define unlink posix_unlink
 
 	#define access posix_access
