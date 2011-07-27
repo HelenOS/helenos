@@ -156,6 +156,12 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	rc = mfs_global_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed global initialization\n");
+		goto err;
+	}
+
 	rc = fs_register(vfs_sess, &mfs_reg, &mfs_vfs_info, mfs_connection);
 	if (rc != EOK)
 		goto err;

@@ -145,12 +145,16 @@ struct mfs_instance {
 	link_t link;
 	devmap_handle_t handle;
 	struct mfs_sb_info *sbi;
+	unsigned open_nodes_cnt;
 };
 
 /*MinixFS node in core*/
 struct mfs_node {
 	struct mfs_ino_info *ino_i;
 	struct mfs_instance *instance;
+	unsigned refcnt;
+	fs_node_t *fsnode;
+	link_t link;
 };
 
 /*mfs_ops.c*/
@@ -184,6 +188,9 @@ mfs_unmount(ipc_callid_t rid, ipc_call_t *request);
 
 extern void
 mfs_sync(ipc_callid_t rid, ipc_call_t *request);
+
+extern int
+mfs_global_init(void);
 
 /*mfs_inode.c*/
 extern int

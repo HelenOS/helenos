@@ -33,7 +33,13 @@
 #include <stdlib.h>
 #include <fibril_synch.h>
 #include <align.h>
+#include <adt/hash_table.h>
 #include "mfs.h"
+
+#define OPEN_NODES_KEYS 2
+#define OPEN_NODES_DEV_HANDLE_KEY 0
+#define OPEN_NODES_INODE_KEY 1
+#define OPEN_NODES_BUCKETS 256
 
 static bool check_magic_number(uint16_t magic, bool *native,
 			       mfs_version_t *version, bool *longfilenames);
@@ -56,6 +62,10 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
 static int mfs_destroy_node(fs_node_t *fn);
+static hash_index_t open_nodes_hash(unsigned long key[]);
+static int open_nodes_compare(unsigned long key[], hash_count_t keys,
+		link_t *item);
+static void open_nodes_remove_cb(link_t *link);
 
 static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 			fs_index_t index);
@@ -63,6 +73,8 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 
 static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
+static hash_table_t open_nodes;
+static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
 
 libfs_ops_t mfs_libfs_ops = {
 	.size_get = mfs_size_get,
@@ -83,6 +95,49 @@ libfs_ops_t mfs_libfs_ops = {
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
 };
+
+/* Hash table interface for open nodes hash table */
+static hash_index_t open_nodes_hash(unsigned long key[])
+{
+	/* TODO: This is very simple and probably can be improved */
+	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
+}
+
+static int open_nodes_compare(unsigned long key[], hash_count_t keys,
+		link_t *item)
+{
+	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
+	assert(keys > 0);
+	if (mnode->instance->handle !=
+	    ((devmap_handle_t) key[OPEN_NODES_DEV_HANDLE_KEY])) {
+		return false;
+	}
+	if (keys == 1) {
+		return true;
+	}
+	assert(keys == 2);
+	return (mnode->ino_i->index == key[OPEN_NODES_INODE_KEY]);
+}
+
+static void open_nodes_remove_cb(link_t *link)
+{
+	/* We don't use remove callback for this hash table */
+}
+
+static hash_table_operations_t open_nodes_ops = {
+	.hash = open_nodes_hash,
+	.compare = open_nodes_compare,
+	.remove_callback = open_nodes_remove_cb,
+};
+
+int mfs_global_init(void)
+{
+	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
+			OPEN_NODES_KEYS, &open_nodes_ops)) {
+		return ENOMEM;
+	}
+	return EOK;
+}
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -137,6 +192,8 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
+
+	instance->open_nodes_cnt = 0;
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 
@@ -264,6 +321,11 @@ void mfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+	if (inst->open_nodes_cnt != 0) {
+		async_answer_0(rid, EBUSY);
+		return;
+	}
+
 	(void) block_cache_fini(devmap);
 	block_fini(devmap);
 
@@ -291,6 +353,8 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	struct mfs_node *mnode;
 	fs_node_t *fsnode;
 	uint32_t inum;
+
+	mfsdebug("%s()\n", __FUNCTION__);
 
 	r = mfs_instance_get(handle, &inst);
 	on_error(r, return r);
@@ -341,12 +405,25 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	ino_i->dirty = true;
 	mnode->ino_i = ino_i;
 	mnode->instance = inst;
+	mnode->refcnt = 1;
 
-	r = put_inode(mnode);
-	on_error(r, goto out_err_2);
+	link_initialize(&mnode->link);
+
+	unsigned long key[] = {
+		[OPEN_NODES_DEV_HANDLE_KEY] = inst->handle,
+		[OPEN_NODES_INODE_KEY] = inum,
+	};
+
+	fibril_mutex_lock(&open_nodes_lock);
+	hash_table_insert(&open_nodes, key, &mnode->link);
+	fibril_mutex_unlock(&open_nodes_lock);
+	inst->open_nodes_cnt++;
+
+	mnode->ino_i->dirty = true;
 
 	fs_node_initialize(fsnode);
 	fsnode->data = mnode;
+	mnode->fsnode = fsnode;
 	*rfn = fsnode;
 
 	return EOK;
@@ -365,6 +442,8 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_dentry_info d_info;
 	int r;
+
+	mfsdebug("%s()\n", __FUNCTION__);
 
 	if (!S_ISDIR(ino_i->i_mode))
 		return ENOTDIR;
@@ -419,6 +498,8 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 	int rc;
 	struct mfs_instance *instance;
 
+	mfsdebug("%s()\n", __FUNCTION__);
+
 	rc = mfs_instance_get(devmap_handle, &instance);
 	on_error(rc, return rc);
 
@@ -427,14 +508,31 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 
 static int mfs_node_put(fs_node_t *fsnode)
 {
+	int rc = EOK;
 	struct mfs_node *mnode = fsnode->data;
 
-	put_inode(mnode);
-	free(mnode->ino_i);
-	free(mnode);
-	free(fsnode);
+	mfsdebug("%s()\n", __FUNCTION__);
 
-	return EOK;
+	fibril_mutex_lock(&open_nodes_lock);
+
+	assert(mnode->refcnt > 0);
+	mnode->refcnt--;
+	if (mnode->refcnt == 0) {
+		unsigned long key[] = {
+			[OPEN_NODES_DEV_HANDLE_KEY] = mnode->instance->handle,
+			[OPEN_NODES_INODE_KEY] = mnode->ino_i->index
+		};
+		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
+		assert(mnode->instance->open_nodes_cnt > 0);
+		mnode->instance->open_nodes_cnt--;
+		rc = put_inode(mnode);
+		free(mnode->ino_i);
+		free(mnode);
+		free(fsnode);
+	}
+
+	fibril_mutex_unlock(&open_nodes_lock);
+	return rc;
 }
 
 static int mfs_node_open(fs_node_t *fsnode)
@@ -458,10 +556,12 @@ static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 
+	mfsdebug("%s()\n", __FUNCTION__);
+
 	assert(mnode);
 	assert(mnode->ino_i);
 
-	return mnode->ino_i->i_nlinks;;
+	return mnode->ino_i->i_nlinks;
 }
 
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
@@ -470,6 +570,26 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	fs_node_t *node = NULL;
 	struct mfs_node *mnode = NULL;
 	int rc;
+
+	mfsdebug("%s()\n", __FUNCTION__);
+
+	fibril_mutex_lock(&open_nodes_lock);
+
+	/* Check if the node is not already open */
+	unsigned long key[] = {
+		[OPEN_NODES_DEV_HANDLE_KEY] = inst->handle,
+		[OPEN_NODES_INODE_KEY] = index,
+	};
+	link_t *already_open = hash_table_find(&open_nodes, key);
+
+	if (already_open) {
+		mnode = hash_table_get_instance(already_open, struct mfs_node, link);
+		*rfn = mnode->fsnode;
+		mnode->refcnt++;
+
+		fibril_mutex_unlock(&open_nodes_lock);
+		return EOK;
+	}
 
 	node = malloc(sizeof(fs_node_t));
 	if (!node) {
@@ -492,10 +612,18 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 
 	ino_i->index = index;
 	mnode->ino_i = ino_i;
+	mnode->refcnt = 1;
+	link_initialize(&mnode->link);
 
 	mnode->instance = inst;
 	node->data = mnode;
+	mnode->fsnode = node;
 	*rfn = node;
+
+	hash_table_insert(&open_nodes, key, &mnode->link);
+	inst->open_nodes_cnt++;
+
+	fibril_mutex_unlock(&open_nodes_lock);
 
 	return EOK;
 
@@ -504,6 +632,7 @@ out_err:
 		free(node);
 	if (mnode)
 		free(mnode);
+	fibril_mutex_unlock(&open_nodes_lock);
 	return rc;
 }
 
@@ -541,6 +670,8 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *child = cfn->data;
 	struct mfs_sb_info *sbi = parent->instance->sbi;
 
+	mfsdebug("%s()\n", __FUNCTION__);
+
 	if (str_size(name) > sbi->max_name_len)
 		return ENAMETOOLONG;
 
@@ -550,7 +681,12 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	if (S_ISDIR(child->ino_i->i_mode)) {
 		r = insert_dentry(child, ".", child->ino_i->index);
 		on_error(r, goto exit_error);
+		child->ino_i->i_nlinks++;
+		child->ino_i->dirty = true;
 		r = insert_dentry(child, "..", parent->ino_i->index);
+		on_error(r, goto exit_error);
+		parent->ino_i->i_nlinks++;
+		parent->ino_i->dirty = true;
 	}
 
 exit_error:
@@ -564,6 +700,8 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *child = cfn->data;
 	bool has_children;
 	int r;
+
+	mfsdebug("%s()\n", __FUNCTION__);
 
 	if (!parent)
 		return EBUSY;
@@ -582,9 +720,14 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	assert(chino->i_nlinks >= 1);
 	--chino->i_nlinks;
 
+	if (chino->i_nlinks == 0 && S_ISDIR(chino->i_mode)) {
+		parent->ino_i->i_nlinks--;
+		parent->ino_i->dirty = true;
+	}
+
 	chino->dirty = true;
 
-	return EOK;
+	return r;
 }
 
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
