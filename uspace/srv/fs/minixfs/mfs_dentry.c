@@ -200,8 +200,8 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 		mnode->ino_i->i_size += sbi->dirsize;
 		mnode->ino_i->dirty = true;
 
-		r = read_dentry(mnode, &d_info, i);
-		on_error(r, goto out);
+		d_info.index = i;
+		d_info.node = mnode;
 	}
 
 	d_info.d_inum = d_inum;
