@@ -100,13 +100,13 @@ static devmap_handle_t handle;
 static int shift;
 
 static struct option const long_options[] = {
-	{ "help", no_argument, 0, 'h' },
-	{ "long-names", no_argument, 0, 'l' },
-	{ "block-size", required_argument, 0, 'b' },
-	{ "inodes", required_argument, 0, 'i' },
-	{ NULL, no_argument, 0, '1' },
-	{ NULL, no_argument, 0, '2' },
-	{ 0, 0, 0, 0 }
+		{ "help", no_argument, 0, 'h' },
+		{ "long-names", no_argument, 0, 'l' },
+		{ "block-size", required_argument, 0, 'b' },
+		{ "inodes", required_argument, 0, 'i' },
+		{ NULL, no_argument, 0, '1' },
+		{ NULL, no_argument, 0, '2' },
+		{ 0, 0, 0, 0 }
 };
 
 int main (int argc, char **argv)
@@ -168,7 +168,7 @@ int main (int argc, char **argv)
 	}
 
 	if (sb.block_size < MFS_MIN_BLOCKSIZE || 
-				sb.block_size > MFS_MAX_BLOCKSIZE) {
+			sb.block_size > MFS_MAX_BLOCKSIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
 	} else if (num_of_set_bits(sb.block_size) != 1) {
@@ -223,7 +223,7 @@ int main (int argc, char **argv)
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
-		    sb.dev_nblocks);
+				sb.dev_nblocks);
 	}
 
 	if (devblock_size != 512) {
@@ -294,7 +294,7 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 		return ENOMEM;
 
 	dentry_ptr = root_block;
-	
+
 	if (sb->fs_version != 3) {
 		/*Directory entries for V1/V2 filesystem*/
 		struct mfs_dentry *dentry = root_block;
@@ -303,7 +303,7 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 		memcpy(dentry->d_name, ".\0", 2);
 
 		dentry = (struct mfs_dentry *) NEXT_DENTRY(dentry_ptr,
-							sb->dirsize);
+				sb->dirsize);
 
 		dentry->d_inum = MFS_ROOT_INO;
 		memcpy(dentry->d_name, "..\0", 3);
@@ -315,7 +315,7 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 		memcpy(dentry->d_name, ".\0", 2);
 
 		dentry = (struct mfs3_dentry *) NEXT_DENTRY(dentry_ptr,
-							sb->dirsize);
+				sb->dirsize);
 
 		dentry->d_inum = MFS_ROOT_INO;
 		memcpy(dentry->d_name, "..\0", 3);
@@ -386,7 +386,7 @@ static int make_root_ino(const struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO - 1].i_uid = 0;
 	ino_buf[MFS_ROOT_INO - 1].i_gid = 0;
 	ino_buf[MFS_ROOT_INO - 1].i_size = (sb->longnames ? MFSL_DIRSIZE :
-						MFS_DIRSIZE) * 2;
+	MFS_DIRSIZE) * 2;
 	ino_buf[MFS_ROOT_INO - 1].i_mtime = sec;
 	ino_buf[MFS_ROOT_INO - 1].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO - 1].i_dzone[0] = sb->first_data_zone;
@@ -455,11 +455,11 @@ static int init_superblock(struct mfs_sb_info *sb)
 	if (sb->fs_version == 1) {
 		/*Valid only for MFS V1*/
 		sb->n_zones = sb->dev_nblocks > UINT16_MAX ? 
-			UINT16_MAX : sb->dev_nblocks;
+				UINT16_MAX : sb->dev_nblocks;
 	} else {
 		/*Valid for MFS V2/V3*/
 		sb->n_zones = sb->dev_nblocks > UINT32_MAX ?
-			UINT32_MAX : sb->dev_nblocks;
+				UINT32_MAX : sb->dev_nblocks;
 
 		if (sb->fs_version == 3) {
 			sb->ino_per_block = V3_INODES_PER_BLOCK(sb->block_size);
@@ -475,7 +475,7 @@ static int init_superblock(struct mfs_sb_info *sb)
 
 	if (inodes % sb->ino_per_block)
 		inodes = ((inodes / sb->ino_per_block) + 1) * sb->ino_per_block;
-	
+
 	if (sb->fs_version < 3)
 		sb->n_inodes = inodes > UINT16_MAX ? UINT16_MAX : inodes;
 	else
@@ -492,7 +492,7 @@ static int init_superblock(struct mfs_sb_info *sb)
 
 	/*Compute first data zone position*/
 	sb->first_data_zone = 2 + sb->itable_size + 
-				sb->zbmap_blocks + sb->ibmap_blocks;
+			sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Set log2 of zone to block ratio to zero*/
 	sb->log2_zone_size = 0;
@@ -689,13 +689,13 @@ static void help_cmd_mkminix(help_level_t level)
 	if (level == HELP_SHORT) {
 		printf(NAME": tool to create new Minix file systems\n");
 	} else {
-	printf("Usage: [options] device\n"
-		"-1         Make a Minix version 1 filesystem\n"
-		"-2         Make a Minix version 2 filesystem\n"
-		"-b ##      Specify the block size in bytes (V3 only),\n"
-		"           valid block size values are 1024, 2048 and 4096 bytes per block\n"
-		"-i ##      Specify the number of inodes for the filesystem\n"
-		"-l         Use 30-char long filenames (V1/V2 only)\n");
+		printf("Usage: [options] device\n"
+				"-1         Make a Minix version 1 filesystem\n"
+				"-2         Make a Minix version 2 filesystem\n"
+				"-b ##      Specify the block size in bytes (V3 only),\n"
+				"           valid block size values are 1024, 2048 and 4096 bytes per block\n"
+				"-i ##      Specify the number of inodes for the filesystem\n"
+				"-l         Use 30-char long filenames (V1/V2 only)\n");
 	}
 }
 
