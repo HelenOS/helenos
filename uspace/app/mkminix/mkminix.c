@@ -445,6 +445,9 @@ static int make_root_ino2(const struct mfs_sb_info *sb)
 static int init_superblock(struct mfs_sb_info *sb)
 {
 	aoff64_t inodes;
+	unsigned long ind;
+	unsigned long ind2;
+	unsigned long zones;
 	int rc;
 
 	if (sb->longnames)
@@ -456,12 +459,26 @@ static int init_superblock(struct mfs_sb_info *sb)
 		/*Valid only for MFS V1*/
 		sb->n_zones = sb->dev_nblocks > UINT16_MAX ? 
 				UINT16_MAX : sb->dev_nblocks;
+		ind = MFS_BLOCKSIZE / sizeof(uint16_t);
+		ind2 = ind * ind;
+		sb->max_file_size = (V1_NR_DIRECT_ZONES + ind + ind2) * MFS_BLOCKSIZE;
 	} else {
 		/*Valid for MFS V2/V3*/
+		size_t ptrsize;
+		if (sb->fs_version == 2)
+			ptrsize = sizeof(uint16_t);
+		else
+			ptrsize = sizeof(uint32_t);
+		ind = sb->block_size / ptrsize;
+		ind2 = ind * ind;
+		zones = V2_NR_DIRECT_ZONES + ind + ind2;
+		sb->max_file_size = zones * sb->block_size;
 		sb->n_zones = sb->dev_nblocks > UINT32_MAX ?
 				UINT32_MAX : sb->dev_nblocks;
 
 		if (sb->fs_version == 3) {
+			if(INT32_MAX / sb->block_size < zones)
+				sb->max_file_size = INT32_MAX;
 			sb->ino_per_block = V3_INODES_PER_BLOCK(sb->block_size);
 			sb->n_zones /= (sb->block_size / MFS_MIN_BLOCKSIZE);
 		}
@@ -511,6 +528,7 @@ static int init_superblock(struct mfs_sb_info *sb)
 	printf(NAME ": inode bitmap blocks = %ld\n", sb->ibmap_blocks);
 	printf(NAME ": zone bitmap blocks = %ld\n", sb->zbmap_blocks);
 	printf(NAME ": first data zone = %d\n", (uint32_t) sb->first_data_zone);
+	printf(NAME ": max file size = %u\n", sb->max_file_size);
 	printf(NAME ": long fnames = %s\n", sb->longnames ? "Yes" : "No");
 
 	if (sb->fs_version == 3)
@@ -544,7 +562,7 @@ static int write_superblock(const struct mfs_sb_info *sbi)
 	sb->s_zbmap_blocks = (uint16_t) sbi->zbmap_blocks;
 	sb->s_first_data_zone = (uint16_t) sbi->first_data_zone;
 	sb->s_log2_zone_size = sbi->log2_zone_size;
-	sb->s_max_file_size = UINT32_MAX;
+	sb->s_max_file_size = sbi->max_file_size;
 	sb->s_magic = sbi->magic;
 	sb->s_state = MFS_VALID_FS;
 
@@ -576,7 +594,7 @@ static int write_superblock3(const struct mfs_sb_info *sbi)
 	sb->s_zbmap_blocks = (uint16_t) sbi->zbmap_blocks;
 	sb->s_first_data_zone = (uint16_t) sbi->first_data_zone;
 	sb->s_log2_zone_size = sbi->log2_zone_size;
-	sb->s_max_file_size = UINT32_MAX;
+	sb->s_max_file_size = sbi->max_file_size;
 	sb->s_magic = sbi->magic;
 	sb->s_block_size = sbi->block_size;
 	sb->s_disk_version = 3;
