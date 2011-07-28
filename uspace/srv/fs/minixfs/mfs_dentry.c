@@ -32,6 +32,15 @@
 
 #include "mfs.h"
 
+/**Read a directory entry from disk.
+ *
+ * @param mnode		Pointer to the directory node.
+ * @param d_info	Pointer to a directory entry structure where the dentry info
+ *			will be stored.
+ * @param index		index of the dentry in the list.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 read_dentry(struct mfs_node *mnode,
 		     struct mfs_dentry_info *d_info, unsigned index)
@@ -85,6 +94,12 @@ out_err:
 	return r;
 }
 
+/**Write a directory entry on disk.
+ *
+ * @param d_info	Pointer to the directory entry structure to write on disk.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 write_dentry(struct mfs_dentry_info *d_info)
 {
@@ -127,6 +142,13 @@ out:
 	return r;
 }
 
+/**Remove a directory entry from a directory.
+ *
+ * @param mnode		Pointer to the directory node.
+ * @param d_name	Name of the directory entry to delete.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 remove_dentry(struct mfs_node *mnode, const char *d_name)
 {
@@ -155,6 +177,14 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 	return ENOENT;
 }
 
+/**Insert a new directory entry in a existing directory.
+ *
+ * @param mnode		Pointer to the directory node.
+ * @param d_name	Name of the new directory entry.
+ * @param d_inum	index of the inode that will be pointed by the new dentry.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 {
