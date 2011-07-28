@@ -297,7 +297,17 @@ recognized:
 
 	mfsdebug("mount successful\n");
 
-	async_answer_0(rid, EOK);
+	fs_node_t *fn;
+	mfs_node_get(&fn, devmap_handle, MFS_ROOT_INO);
+
+	struct mfs_node *nroot = fn->data;
+
+	async_answer_3(rid, EOK,
+			MFS_ROOT_INO,
+			0,
+			nroot->ino_i->i_nlinks);
+
+	mfs_node_put(fn);
 }
 
 void mfs_mount(ipc_callid_t rid, ipc_call_t *request)
