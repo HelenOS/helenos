@@ -109,11 +109,24 @@ char *posix_getcwd(char *buf, size_t size)
 		errno = EINVAL;
 		return NULL;
 	}
+	
+	/* Save the original value to comply with the "no modification on
+	 * success" semantics.
+	 */
+	int orig_errno = errno;
+	errno = EOK;
+	
 	char *ret = getcwd(buf, size);
-	/* Check errno to avoid shadowing possible ENOMEM. */
-	if (ret == NULL && errno == EOK) {
-		errno = ERANGE;
+	if (ret == NULL) {
+		/* Check errno to avoid shadowing other possible errors. */
+		if (errno == EOK) {
+			errno = ERANGE;
+		}
+	} else {
+		/* Success, restore previous errno value. */
+		errno = orig_errno;
 	}
+	
 	return ret;
 }
 
