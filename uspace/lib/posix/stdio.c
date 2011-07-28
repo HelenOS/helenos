@@ -721,6 +721,18 @@ int posix_remove(const char *path)
 }
 
 /**
+ * Rename a file or directory.
+ *
+ * @param old
+ * @param new
+ * @return Zero on success, -1 (with errno set) otherwise.
+ */
+int posix_rename(const char *old, const char *new)
+{
+	return errnify(rename, old, new);
+}
+
+/**
  * 
  * @param s
  * @return

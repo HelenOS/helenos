@@ -115,6 +115,9 @@ extern int posix_putchar_unlocked(int c);
 /* Deleting Files */
 extern int posix_remove(const char *path);
 
+/* Renaming Files */
+extern int posix_rename(const char *old, const char *new);
+
 /* Temporary Files */
 #undef L_tmpnam
 #define L_tmpnam PATH_MAX
@@ -168,6 +171,8 @@ extern char *posix_tmpnam(char *s);
 	#define putchar_unlocked posix_putchar_unlocked
 
 	#define remove posix_remove
+
+	#define rename posix_rename
 
 	#define tmpnam posix_tmpnam
 #endif
