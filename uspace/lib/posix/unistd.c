@@ -110,7 +110,8 @@ char *posix_getcwd(char *buf, size_t size)
 		return NULL;
 	}
 	char *ret = getcwd(buf, size);
-	if (ret == NULL) {
+	/* Check errno to avoid shadowing possible ENOMEM. */
+	if (ret == NULL && errno == EOK) {
 		errno = ERANGE;
 	}
 	return ret;
@@ -270,10 +271,10 @@ int posix_access(const char *path, int amode)
 		int fd = open(path, O_RDONLY);
 		if (fd < 0) {
 			errno = -fd;
-			return 0;
+			return -1;
 		}
 		close(fd);
-		return 1;
+		return 0;
 	} else {
 		/* Invalid amode argument. */
 		errno = EINVAL;
