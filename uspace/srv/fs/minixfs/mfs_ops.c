@@ -1018,6 +1018,7 @@ mfs_destroy_node(fs_node_t *fn)
 out:
 	free(mnode->ino_i);
 	free(mnode);
+	free(fn);
 	return r;
 }
 
