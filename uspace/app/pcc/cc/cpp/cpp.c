@@ -1707,8 +1707,8 @@ unpstr(const usch *c)
 	}
 }
 
-ssize_t
-write_all(int fd, const void* buffer, size_t count)
+static ssize_t
+_write_all(int fd, const void* buffer, size_t count)
 {
 	size_t remaining = count;
 	while (remaining > 0) {
@@ -1727,7 +1727,7 @@ flbuf()
 {
 	if (obufp == 0)
 		return;
-	if (Mflag == 0 && write_all(ofd, outbuf, obufp) < 0)
+	if (Mflag == 0 && _write_all(ofd, outbuf, obufp) < 0)
 		error("obuf write error");
 	lastoch = outbuf[obufp-1];
 	obufp = 0;
