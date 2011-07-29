@@ -251,7 +251,7 @@ int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
 		    "WARNING: registering handler for a partially"
 		    " or fully unsupported signal. This handler may only be"
 		    " invoked by the raise() function, which may not be what"
-		    " the application developer intended.\nSignal name");
+		    " the application developer intended");
 	}
 
 	fibril_mutex_lock(&_signal_mutex);
@@ -359,13 +359,13 @@ int posix_kill(posix_pid_t pid, int signo)
 		return -1;
 	}
 
-	if (pid == (posix_pid_t) task_get_id()) {
-		return posix_raise(signo);
-	}
-
-	if (pid > _TOP_SIGNAL) {
+	if (signo > _TOP_SIGNAL) {
 		errno = EINVAL;
 		return -1;
+	}
+
+	if (pid == (posix_pid_t) task_get_id()) {
+		return posix_raise(signo);
 	}
 
 	switch (signo) {
