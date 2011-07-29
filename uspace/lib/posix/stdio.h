@@ -122,6 +122,8 @@ extern int posix_rename(const char *old, const char *new);
 #undef L_tmpnam
 #define L_tmpnam PATH_MAX
 extern char *posix_tmpnam(char *s);
+extern char *posix_tempnam(const char *dir, const char *pfx);
+extern FILE *posix_tmpfile(void);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define ctermid posix_ctermid
@@ -175,6 +177,8 @@ extern char *posix_tmpnam(char *s);
 	#define rename posix_rename
 
 	#define tmpnam posix_tmpnam
+	#define tempnam posix_tempnam
+	#define tmpfile posix_tmpfile
 #endif
 
 #endif /* POSIX_STDIO_H_ */

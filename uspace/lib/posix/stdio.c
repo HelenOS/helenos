@@ -43,8 +43,10 @@
 
 #include "assert.h"
 #include "errno.h"
+#include "stdlib.h"
 #include "string.h"
 #include "sys/types.h"
+#include "unistd.h"
 
 #include "libc/io/printf_core.h"
 #include "libc/str.h"
@@ -733,14 +735,113 @@ int posix_rename(const char *old, const char *new)
 }
 
 /**
- * 
- * @param s
- * @return
+ * Get a unique temporary file name (obsolete).
+ *
+ * @param s Buffer for the file name. Must be at least L_tmpnam bytes long.
+ * @return The value of s on success, NULL on failure.
  */
 char *posix_tmpnam(char *s)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
+	assert(L_tmpnam >= posix_strlen("/tmp/tnXXXXXX"));
+	
+	static char buffer[L_tmpnam + 1];
+	if (s == NULL) {
+		s = buffer;
+	}
+	
+	posix_strcpy(s, "/tmp/tnXXXXXX");
+	posix_mktemp(s);
+	
+	if (*s == '\0') {
+		/* Errno set by mktemp(). */
+		return NULL;
+	}
+	
+	return s;
+}
+
+/**
+ * Get an unique temporary file name with additional constraints (obsolete).
+ *
+ * @param dir Path to directory, where the file should be created.
+ * @param pfx Optional prefix up to 5 characters long.
+ * @return Newly allocated unique path for temporary file. NULL on failure.
+ */
+char *posix_tempnam(const char *dir, const char *pfx)
+{
+	/* Sequence number of the filename. */
+	static int seq = 0;
+	
+	size_t dir_len = posix_strlen(dir);
+	if (dir[dir_len - 1] == '/') {
+		dir_len--;
+	}
+	
+	size_t pfx_len = posix_strlen(pfx);
+	if (pfx_len > 5) {
+		pfx_len = 5;
+	}
+	
+	char *result = malloc(dir_len + /* slash*/ 1 +
+	    pfx_len + /* three-digit seq */ 3 + /* .tmp */ 4 + /* nul */ 1);
+	
+	if (result == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	char *res_ptr = result;
+	posix_strncpy(res_ptr, dir, dir_len);
+	res_ptr += dir_len;
+	posix_strncpy(res_ptr, pfx, pfx_len);
+	res_ptr += pfx_len;
+	
+	for (; seq < 1000; ++seq) {
+		snprintf(res_ptr, 8, "%03d.tmp", seq);
+		
+		int orig_errno = errno;
+		errno = 0;
+		/* Check if the file exists. */
+		if (posix_access(result, F_OK) == -1) {
+			if (errno == ENOENT) {
+				errno = orig_errno;
+				break;
+			} else {
+				/* errno set by access() */
+				return NULL;
+			}
+		}
+	}
+	
+	if (seq == 1000) {
+		free(result);
+		errno = EINVAL;
+		return NULL;
+	}
+	
+	return result;
+}
+
+/**
+ * Create and open an unique temporary file.
+ * The file is automatically removed when the stream is closed.
+ *
+ * @param dir Path to directory, where the file should be created.
+ * @param pfx Optional prefix up to 5 characters long.
+ * @return Newly allocated unique path for temporary file. NULL on failure.
+ */
+FILE *posix_tmpfile(void)
+{
+	char filename[] = "/tmp/tfXXXXXX";
+	int fd = posix_mkstemp(filename);
+	if (fd == -1) {
+		/* errno set by mkstemp(). */
+		return NULL;
+	}
+	
+	/* Unlink the created file, so that it's removed on close(). */
+	posix_unlink(filename);
+	return fdopen(fd, "w+");
 }
 
 /** @}
