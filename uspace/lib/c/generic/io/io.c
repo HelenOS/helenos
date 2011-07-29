@@ -593,11 +593,12 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 				need_flush = true;
 		}
 		
-		buf += now;
+		data += now;
 		stream->buf_head += now;
 		buf_free -= now;
 		bytes_left -= now;
 		total_written += now;
+		stream->buf_state = _bs_write;
 		
 		if (buf_free == 0) {
 			/* Only need to drain buffer. */
@@ -605,9 +606,6 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 			need_flush = false;
 		}
 	}
-	
-	if (total_written > 0)
-		stream->buf_state = _bs_write;
 
 	if (need_flush)
 		fflush(stream);

@@ -47,6 +47,8 @@
 #include <macros.h>
 #include <arch.h>
 
+#include <lib/elf_load.h>
+
 static const char *error_codes[] = {
 	"no error",
 	"invalid image",

@@ -51,7 +51,7 @@ static char *found;
 static char *find_command(char *);
 static int try_access(const char *);
 
-const char *search_dir[] = { "app", "srv", NULL };
+const char *search_dir[] = { "/app", "/srv", NULL };
 
 /* work-around for access() */
 static int try_access(const char *f)
