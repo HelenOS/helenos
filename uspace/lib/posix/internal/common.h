@@ -42,6 +42,16 @@
     "Function %s() in file %s at line %d is not implemented\n", \
     __func__, __FILE__, __LINE__), abort())
 
+/* A little helper macro to avoid typing this over and over. */
+#define errnify(func, ...) ({ \
+	int rc = func(__VA_ARGS__); \
+	if (rc < 0) { \
+		errno = -rc; \
+		rc = -1; \
+	} \
+	rc; \
+})
+
 #endif /* LIBPOSIX_COMMON_H_ */
 
 /** @}

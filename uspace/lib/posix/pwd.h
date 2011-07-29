@@ -35,8 +35,6 @@
 #ifndef POSIX_PWD_H_
 #define POSIX_PWD_H_
 
-// TODO: documentation
-
 #include "sys/types.h"
 
 struct posix_passwd {

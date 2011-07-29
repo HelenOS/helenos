@@ -49,6 +49,8 @@
 #include "libc/io/printf_core.h"
 #include "libc/str.h"
 #include "libc/malloc.h"
+#include "libc/adt/list.h"
+#include "libc/sys/stat.h"
 
 
 /* not the best of solutions, but freopen and ungetc will eventually
@@ -251,39 +253,54 @@ FILE *posix_freopen(const char *restrict filename,
 {
 	assert(mode != NULL);
 	assert(stream != NULL);
-
+	
+	/* Retieve the node. */
+	struct stat st;
+	int rc;
+	
 	if (filename == NULL) {
-		// TODO
-		
-		/* print error to stderr as well, to avoid hard to find problems
-		 * with buggy apps that expect this to work
-		 */
-		fprintf(stderr,
-		    "ERROR: Application wants to use freopen() to change mode of opened stream.\n"
-		    "       libposix does not support that yet, the application may function improperly.\n");
-		errno = ENOTSUP;
-		return NULL;
+		rc = fstat(stream->fd, &st);
+	} else {
+		rc = stat(filename, &st);
 	}
-
-	FILE* copy = malloc(sizeof(FILE));
-	if (copy == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	memcpy(copy, stream, sizeof(FILE));
-	fclose(copy); /* copy is now freed */
 	
-	copy = fopen(filename, mode); /* open new stream */
-	if (copy == NULL) {
-		/* fopen() sets errno */
+	if (rc != EOK) {
+		fclose(stream);
+		errno = -rc;
 		return NULL;
 	}
 	
-	/* move the new stream to the original location */
-	memcpy(stream, copy, sizeof (FILE));
-	free(copy);
+	fdi_node_t node = {
+		.fs_handle = st.fs_handle,
+		.devmap_handle = st.devmap_handle,
+		.index = st.index
+	};
 	
-	/* update references in the file list */
+	/* Open a new stream. */
+	FILE* new = fopen_node(&node, mode);
+	if (new == NULL) {
+		fclose(stream);
+		/* fopen_node() sets errno. */
+		return NULL;
+	}
+	
+	/* Close the original stream without freeing it (ignoring errors). */
+	if (stream->buf != NULL) {
+		fflush(stream);
+	}
+	if (stream->sess != NULL) {
+		async_hangup(stream->sess);
+	}
+	if (stream->fd >= 0) {
+		close(stream->fd);
+	}
+	list_remove(&stream->link);
+	
+	/* Move the new stream to the original location. */
+	memcpy(stream, new, sizeof (FILE));
+	free(new);
+	
+	/* Update references in the file list. */
 	stream->link.next->prev = &stream->link;
 	stream->link.prev->next = &stream->link;
 	
@@ -675,16 +692,44 @@ int posix_putchar_unlocked(int c)
 }
 
 /**
- * Remove a file.
+ * Remove a file or directory.
  *
  * @param path Pathname of the file that shall be removed.
- * @return Zero on success, -1 otherwise.
+ * @return Zero on success, -1 (with errno set) otherwise.
  */
 int posix_remove(const char *path)
 {
-	// FIXME: unlink() and rmdir() seem to be equivalent at the moment,
-	//        but that does not have to be true forever
-	return unlink(path);
+	struct stat st;
+	int rc = stat(path, &st);
+	
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	
+	if (st.is_directory) {
+		rc = rmdir(path);
+	} else {
+		rc = unlink(path);
+	}
+	
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	return 0;
+}
+
+/**
+ * Rename a file or directory.
+ *
+ * @param old
+ * @param new
+ * @return Zero on success, -1 (with errno set) otherwise.
+ */
+int posix_rename(const char *old, const char *new)
+{
+	return errnify(rename, old, new);
 }
 
 /**

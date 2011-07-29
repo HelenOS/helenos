@@ -38,6 +38,33 @@
 #include "../internal/common.h"
 #include "wait.h"
 
+#include "../libc/task.h"
+#include "../assert.h"
+#include "../errno.h"
+#include "../limits.h"
+#include "../signal.h"
+
+int __posix_wifexited(int status) {
+	return status != INT_MIN;
+}
+
+int __posix_wexitstatus(int status) {
+	assert(__posix_wifexited(status));
+	return status;
+}
+
+int __posix_wifsignaled(int status) {
+	return status == INT_MIN;
+}
+
+int __posix_wtermsig(int status) {
+	assert(__posix_wifsignaled(status));
+	/* There is no way to distinguish reason
+	 * for unexpected termination at the moment.
+	 */
+	return SIGABRT;
+}
+
 /**
  * 
  * @param stat_ptr
@@ -45,8 +72,9 @@
  */
 posix_pid_t posix_wait(int *stat_ptr)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
+	/* HelenOS does not support this. */
+	errno = ENOSYS;
+	return (posix_pid_t) -1;
 }
 
 /**
@@ -58,8 +86,30 @@ posix_pid_t posix_wait(int *stat_ptr)
  */
 posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
+	assert(stat_ptr != NULL);
+	assert(options == 0 /* None of the options are supported. */);
+	
+	task_exit_t texit;
+	int retval;
+	
+	int rc = task_wait((task_id_t) pid, &texit, &retval);
+	
+	if (rc < 0) {
+		/* Unable to retrieve status. */
+		errno = -rc;
+		return (posix_pid_t) -1;
+	}
+	
+	if (texit == TASK_EXIT_NORMAL) {
+		// FIXME: relies on application not returning this value
+		assert(retval != INT_MIN);
+		*stat_ptr = retval;
+	} else {
+		/* Reserve the lowest value for unexpected termination. */
+		*stat_ptr = INT_MIN;
+	}
+	
+	return pid;
 }
 
 /** @}
