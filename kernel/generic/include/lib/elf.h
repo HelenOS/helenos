@@ -326,10 +326,17 @@ struct elf32_note {
 	elf_word descsz;
 	elf_word type;
 };
+/*
+ * NOTE: namesz, descsz and type should be 64-bits wide (elf_xword)
+ * per the 64-bit ELF spec. The Linux kernel however screws up and
+ * defines them as Elf64_Word, which is 32-bits wide(!). We are trying
+ * to make our core files compatible with Linux GDB target so we copy
+ * the blunder here.
+ */
 struct elf64_note {
-	elf_xword namesz;
-	elf_xword descsz;
-	elf_xword type;
+	elf_word namesz;
+	elf_word descsz;
+	elf_word type;
 };
 
 #ifdef __32_BITS__
