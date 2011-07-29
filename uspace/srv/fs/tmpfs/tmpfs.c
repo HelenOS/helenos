@@ -60,94 +60,6 @@ vfs_info_t tmpfs_vfs_info = {
 	.write_retains_size = false,
 };
 
-fs_reg_t tmpfs_reg;
-
-/**
- * This connection fibril processes VFS requests from VFS.
- *
- * In order to support simultaneous VFS requests, our design is as follows.
- * The connection fibril accepts VFS requests from VFS. If there is only one
- * instance of the fibril, VFS will need to serialize all VFS requests it sends
- * to FAT. To overcome this bottleneck, VFS can send TMPFS the
- * IPC_M_CONNECT_ME_TO call. In that case, a new connection fibril will be
- * created, which in turn will accept the call. Thus, a new phone will be
- * opened for VFS.
- *
- * There are few issues with this arrangement. First, VFS can run out of
- * available phones. In that case, VFS can close some other phones or use one
- * phone for more serialized requests. Similarily, TMPFS can refuse to duplicate
- * the connection. VFS should then just make use of already existing phones and
- * route its requests through them. To avoid paying the fibril creation price 
- * upon each request, TMPFS might want to keep the connections open after the
- * request has been completed.
- */
-static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	if (iid) {
-		/*
-		 * This only happens for connections opened by
-		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
-		 * created by IPC_M_CONNECT_TO_ME.
-		 */
-		async_answer_0(iid, EOK);
-	}
-	
-	dprintf(NAME ": connection opened\n");
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call))
-			return;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case VFS_OUT_MOUNTED:
-			tmpfs_mounted(callid, &call);
-			break;
-		case VFS_OUT_MOUNT:
-			tmpfs_mount(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNTED:
-			tmpfs_unmounted(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNT:
-			tmpfs_unmount(callid, &call);
-			break;
-		case VFS_OUT_LOOKUP:
-			tmpfs_lookup(callid, &call);
-			break;
-		case VFS_OUT_READ:
-			tmpfs_read(callid, &call);
-			break;
-		case VFS_OUT_WRITE:
-			tmpfs_write(callid, &call);
-			break;
-		case VFS_OUT_TRUNCATE:
-			tmpfs_truncate(callid, &call);
-			break;
-		case VFS_OUT_CLOSE:
-			tmpfs_close(callid, &call);
-			break;
-		case VFS_OUT_DESTROY:
-			tmpfs_destroy(callid, &call);
-			break;
-		case VFS_OUT_OPEN_NODE:
-			tmpfs_open_node(callid, &call);
-			break;
-		case VFS_OUT_STAT:
-			tmpfs_stat(callid, &call);
-			break;
-		case VFS_OUT_SYNC:
-			tmpfs_sync(callid, &call);
-			break;
-		default:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-	}
-}
-
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS TMPFS file system server\n");
@@ -164,8 +76,8 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	int rc = fs_register(vfs_sess, &tmpfs_reg, &tmpfs_vfs_info,
-	    tmpfs_connection);
+	int rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
+	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
 		printf(NAME ": Failed to register file system (%d)\n", rc);
 		return rc;

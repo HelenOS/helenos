@@ -35,8 +35,8 @@
 #ifndef LIBC_RTLD_SYMBOL_H_
 #define LIBC_RTLD_SYMBOL_H_
 
+#include <elf/elf.h>
 #include <rtld/rtld.h>
-#include <elf.h>
 
 elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
 elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);

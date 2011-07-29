@@ -43,7 +43,7 @@ static runtime_env_t rt_env_static;
 void rtld_init_static(void)
 {
 	runtime_env = &rt_env_static;
-	list_initialize(&runtime_env->modules_head);
+	list_initialize(&runtime_env->modules);
 	runtime_env->next_bias = 0x2000000;
 	runtime_env->program = NULL;
 }
