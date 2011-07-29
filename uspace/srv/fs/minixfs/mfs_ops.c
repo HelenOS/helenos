@@ -691,12 +691,12 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	if (S_ISDIR(child->ino_i->i_mode)) {
 		r = insert_dentry(child, ".", child->ino_i->index);
 		on_error(r, goto exit_error);
-		child->ino_i->i_nlinks++;
-		child->ino_i->dirty = true;
+		//child->ino_i->i_nlinks++;
+		//child->ino_i->dirty = true;
 		r = insert_dentry(child, "..", parent->ino_i->index);
 		on_error(r, goto exit_error);
-		parent->ino_i->i_nlinks++;
-		parent->ino_i->dirty = true;
+		//parent->ino_i->i_nlinks++;
+		//parent->ino_i->dirty = true;
 	}
 
 exit_error:
@@ -729,11 +729,12 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	assert(chino->i_nlinks >= 1);
 	--chino->i_nlinks;
-
+/*
 	if (chino->i_nlinks == 0 && S_ISDIR(chino->i_mode)) {
 		parent->ino_i->i_nlinks--;
 		parent->ino_i->dirty = true;
 	}
+*/
 
 	chino->dirty = true;
 
@@ -1024,11 +1025,10 @@ mfs_destroy_node(fs_node_t *fn)
 	on_error(r, return r);
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
 	on_error(r, return r);
+	r = mfs_node_put(fn);
+	on_error(r, return r);
 
 out:
-	free(mnode->ino_i);
-	free(mnode);
-	free(fn);
 	return r;
 }
 
