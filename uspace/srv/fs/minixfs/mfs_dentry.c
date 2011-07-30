@@ -167,7 +167,10 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 		r = read_dentry(mnode, &d_info, i);
 		on_error(r, return r);
 
-		if (!bcmp(d_info.d_name, d_name, name_len)) {
+		const size_t d_name_len = str_size(d_info.d_name);
+
+		if (name_len == d_name_len &&
+				!bcmp(d_info.d_name, d_name, name_len)) {
 			d_info.d_inum = 0;
 			r = write_dentry(&d_info);
 			return r;
