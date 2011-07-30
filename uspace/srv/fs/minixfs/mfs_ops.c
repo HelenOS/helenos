@@ -1010,7 +1010,7 @@ mfs_destroy_node(fs_node_t *fn)
 	mfsdebug("mfs_destroy_node %d\n", mnode->ino_i->index);
 
 	r = mfs_has_children(&has_children, fn);
-	on_error(r, return r);
+	on_error(r, goto out);
 
 	assert(!has_children);
 
@@ -1022,13 +1022,12 @@ mfs_destroy_node(fs_node_t *fn)
 
 	/*Free the entire inode content*/
 	r = inode_shrink(mnode, mnode->ino_i->i_size);
-	on_error(r, return r);
+	on_error(r, goto out);
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
-	on_error(r, return r);
-	r = mfs_node_put(fn);
-	on_error(r, return r);
+	on_error(r, goto out);
 
 out:
+	mfs_node_put(fn);
 	return r;
 }
 
