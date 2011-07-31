@@ -34,6 +34,7 @@
 #include <arch/asm.h>
 #include <arch/_components.h>
 #include <genarch/efi.h>
+#include <arch/sal.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>
@@ -118,12 +119,20 @@ static void read_efi_memmap(void)
 
 static void read_sal_configuration(void)
 {
-	if (!bootpar) {
-		/* Configure default values for simulators. */
+	if (bootpar && bootpar->efi_system_table) {
+		/* TODO: read the real values from SAL */
 		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
 		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
+		
+		efi_guid_t sal_guid = SAL_SYSTEM_TABLE_GUID;
+		sal_system_table_header_t *sal_st;
+		
+		sal_st = efi_vendor_table_find(
+		    (efi_system_table_t *) bootpar->efi_system_table, sal_guid);
+
+		sal_system_table_parse(sal_st);
 	} else {
-		/* TODO: read the real values from SAL */
+		/* Configure default values for simulators. */
 		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
 		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
 	}
