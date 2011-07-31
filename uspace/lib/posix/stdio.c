@@ -725,8 +725,8 @@ int posix_remove(const char *path)
 /**
  * Rename a file or directory.
  *
- * @param old
- * @param new
+ * @param old Old pathname.
+ * @param new New pathname.
  * @return Zero on success, -1 (with errno set) otherwise.
  */
 int posix_rename(const char *old, const char *new)

@@ -112,7 +112,7 @@ extern void *posix_calloc(size_t nelem, size_t elsize);
 extern void *posix_realloc(void *ptr, size_t size);
 extern void posix_free(void *ptr);
 
-/* Temporary files */
+/* Temporary Files */
 extern int posix_mkstemp(char *tmpl);
 
 /* Legacy Declarations */
