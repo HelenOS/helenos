@@ -112,6 +112,9 @@ extern void *posix_calloc(size_t nelem, size_t elsize);
 extern void *posix_realloc(void *ptr, size_t size);
 extern void posix_free(void *ptr);
 
+/* Temporary Files */
+extern int posix_mkstemp(char *tmpl);
+
 /* Legacy Declarations */
 extern char *posix_mktemp(char *tmpl);
 extern int bsd_getloadavg(double loadavg[], int nelem);
@@ -156,6 +159,8 @@ extern int bsd_getloadavg(double loadavg[], int nelem);
 	#define calloc posix_calloc
 	#define realloc posix_realloc
 	#define free posix_free
+
+	#define mkstemp posix_mkstemp
 
 	#define mktemp posix_mktemp
 	#define getloadavg bsd_getloadavg

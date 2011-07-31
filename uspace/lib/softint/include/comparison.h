@@ -26,40 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup softint
  * @{
  */
-/** @file Support for waiting.
+/**
+ * @file Signed and unsigned comparisons.
  */
 
-#ifndef POSIX_SYS_WAIT_H_
-#define POSIX_SYS_WAIT_H_
+#ifndef __SOFTINT_COMPARISON_H__
+#define __SOFTINT_COMPARISON_H__
 
-#include "types.h"
+/* Signed comparison (a < b => 0, a == b => 1, a > b => 2). */
+int __cmpdi2 (long long a, long long b);
 
-#undef WIFEXITED
-#undef WEXITSTATUS
-#undef WIFSIGNALED
-#undef WTERMSIG
-#define WIFEXITED(status) __posix_wifexited(status)
-#define WEXITSTATUS(status) __posix_wexitstatus(status)
-#define WIFSIGNALED(status) __posix_wifsignaled(status)
-#define WTERMSIG(status) __posix_wtermsig(status)
+/* Unsigned comparison (a < b => 0, a == b => 1, a > b => 2). */
+int __ucmpdi2 (unsigned long long a, unsigned long long b);
 
-extern int __posix_wifexited(int status);
-extern int __posix_wexitstatus(int status);
-extern int __posix_wifsignaled(int status);
-extern int __posix_wtermsig(int status);
-
-extern posix_pid_t posix_wait(int *stat_ptr);
-extern posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define wait posix_wait
-	#define waitpid posix_waitpid
 #endif
-
-#endif /* POSIX_SYS_WAIT_H_ */
 
 /** @}
  */

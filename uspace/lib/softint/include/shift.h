@@ -26,40 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup softint
  * @{
  */
-/** @file Support for waiting.
+/**
+ * @file Logical and arithmetic shifts.
  */
 
-#ifndef POSIX_SYS_WAIT_H_
-#define POSIX_SYS_WAIT_H_
+#ifndef __SOFTINT_SHIFT_H__
+#define __SOFTINT_SHIFT_H__
 
-#include "types.h"
+/* Arithmetic/logical shift left. */
+long long __ashldi3 (long long val, int shift);
 
-#undef WIFEXITED
-#undef WEXITSTATUS
-#undef WIFSIGNALED
-#undef WTERMSIG
-#define WIFEXITED(status) __posix_wifexited(status)
-#define WEXITSTATUS(status) __posix_wexitstatus(status)
-#define WIFSIGNALED(status) __posix_wifsignaled(status)
-#define WTERMSIG(status) __posix_wtermsig(status)
+/* Arithmetic shift right. */
+long long __ashrdi3 (long long val, int shift);
 
-extern int __posix_wifexited(int status);
-extern int __posix_wexitstatus(int status);
-extern int __posix_wifsignaled(int status);
-extern int __posix_wtermsig(int status);
+/* Logical shift right. */
+long long __lshrdi3 (long long val, int shift);
 
-extern posix_pid_t posix_wait(int *stat_ptr);
-extern posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define wait posix_wait
-	#define waitpid posix_waitpid
 #endif
-
-#endif /* POSIX_SYS_WAIT_H_ */
 
 /** @}
  */

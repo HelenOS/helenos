@@ -59,6 +59,7 @@ extern int posix_isatty(int fd);
 
 /* Working Directory */
 extern char *posix_getcwd(char *buf, size_t size);
+extern int posix_chdir(const char *path);
 
 /* Query Memory Parameters */
 extern int posix_getpagesize(void);
@@ -68,11 +69,16 @@ extern posix_pid_t posix_getpid(void);
 extern posix_uid_t posix_getuid(void);
 extern posix_gid_t posix_getgid(void);
 
-/* File Input/Output */
+/* File Manipulation */
+extern int posix_close(int fildes);
 extern ssize_t posix_read(int fildes, void *buf, size_t nbyte);
-
-/* Deleting Files */
+extern ssize_t posix_write(int fildes, const void *buf, size_t nbyte);
+extern int posix_fsync(int fildes);
+extern int posix_ftruncate(int fildes, posix_off_t length);
+extern int posix_rmdir(const char *path);
 extern int posix_unlink(const char *path);
+extern int posix_dup(int fildes);
+extern int posix_dup2(int fildes, int fildes2);
 
 /* Standard Streams */
 #undef STDIN_FILENO
@@ -143,6 +149,7 @@ extern int posix_pipe(int fildes[2]);
 	#define getlogin_r posix_getlogin_r
 
 	#define getcwd posix_getcwd
+	#define chdir posix_chdir
 
 	#define isatty posix_isatty
 
@@ -153,9 +160,15 @@ extern int posix_pipe(int fildes[2]);
 	#define getuid posix_getuid
 	#define getgid posix_getgid
 
+	#define close posix_close
 	#define read posix_read
-
+	#define write posix_write
+	#define fsync posix_fsync
+	#define ftruncate posix_ftruncate
+	#define rmdir posix_rmdir
 	#define unlink posix_unlink
+	#define dup posix_dup
+	#define dup2 posix_dup2
 
 	#define access posix_access
 

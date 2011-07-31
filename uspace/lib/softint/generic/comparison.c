@@ -26,40 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup softint
  * @{
  */
-/** @file Support for waiting.
+/**
+ * @file Signed and unsigned comparisons.
  */
 
-#ifndef POSIX_SYS_WAIT_H_
-#define POSIX_SYS_WAIT_H_
+#include <comparison.h>
+#include <lltype.h>
 
-#include "types.h"
+#define LESSER  0;
+#define EQUAL   1;
+#define GREATER 2;
 
-#undef WIFEXITED
-#undef WEXITSTATUS
-#undef WIFSIGNALED
-#undef WTERMSIG
-#define WIFEXITED(status) __posix_wifexited(status)
-#define WEXITSTATUS(status) __posix_wexitstatus(status)
-#define WIFSIGNALED(status) __posix_wifsignaled(status)
-#define WTERMSIG(status) __posix_wtermsig(status)
+int __cmpdi2 (long long a, long long b)
+{
+	union lltype lla;
+	union lltype llb;
 
-extern int __posix_wifexited(int status);
-extern int __posix_wexitstatus(int status);
-extern int __posix_wifsignaled(int status);
-extern int __posix_wtermsig(int status);
+	lla.s_whole = a;
+	llb.s_whole = b;
 
-extern posix_pid_t posix_wait(int *stat_ptr);
-extern posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options);
+	if (lla.s_half[HI] < llb.s_half[HI]) {
+		return LESSER;
+	} else if (lla.s_half[HI] > llb.s_half[HI]) {
+		return GREATER;
+	} else {
+		if (lla.u_half[LO] < llb.u_half[LO]) {
+			return LESSER;
+		} else if (lla.u_half[LO] > llb.u_half[LO]) {
+			return GREATER;
+		} else {
+			return EQUAL;
+		}
+	}
+}
 
-#ifndef LIBPOSIX_INTERNAL
-	#define wait posix_wait
-	#define waitpid posix_waitpid
-#endif
+int __ucmpdi2 (unsigned long long a, unsigned long long b)
+{
+	union lltype lla;
+	union lltype llb;
 
-#endif /* POSIX_SYS_WAIT_H_ */
+	lla.u_whole = a;
+	llb.u_whole = b;
+
+	if (lla.u_half[HI] < llb.u_half[HI]) {
+		return LESSER;
+	} else if (lla.u_half[HI] > llb.u_half[HI]) {
+		return GREATER;
+	} else {
+		if (lla.u_half[LO] < llb.u_half[LO]) {
+			return LESSER;
+		} else if (lla.u_half[LO] > llb.u_half[LO]) {
+			return GREATER;
+		} else {
+			return EQUAL;
+		}
+	}
+}
 
 /** @}
  */

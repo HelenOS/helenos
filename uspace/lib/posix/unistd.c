@@ -109,11 +109,35 @@ char *posix_getcwd(char *buf, size_t size)
 		errno = EINVAL;
 		return NULL;
 	}
+	
+	/* Save the original value to comply with the "no modification on
+	 * success" semantics.
+	 */
+	int orig_errno = errno;
+	errno = EOK;
+	
 	char *ret = getcwd(buf, size);
-	if (ret == NULL && errno == EOK) {
-		errno = ERANGE;
+	if (ret == NULL) {
+		/* Check errno to avoid shadowing other possible errors. */
+		if (errno == EOK) {
+			errno = ERANGE;
+		}
+	} else {
+		/* Success, restore previous errno value. */
+		errno = orig_errno;
 	}
+	
 	return ret;
+}
+
+/**
+ * Change the current working directory.
+ *
+ * @param path New working directory.
+ */
+int posix_chdir(const char *path)
+{
+	return errnify(chdir, path);
 }
 
 /**
@@ -159,6 +183,17 @@ posix_gid_t posix_getgid(void)
 }
 
 /**
+ * Close a file.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @return 0 on success, -1 on error.
+ */
+int posix_close(int fildes)
+{
+	return errnify(close, fildes);
+}
+
+/**
  * Read from a file.
  *
  * @param fildes File descriptor of the opened file.
@@ -168,13 +203,54 @@ posix_gid_t posix_getgid(void)
  */
 ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 {
-	int rc = read(fildes, buf, nbyte);
-	if (rc < 0) {
-		errno = -rc;
-		return -1;
-	} else {
-		return rc;
-	}
+	return errnify(read, fildes, buf, nbyte);
+}
+
+/**
+ * Write to a file.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param buf Buffer to write.
+ * @param nbyte Size of the buffer.
+ * @return Number of written bytes on success, -1 otherwise.
+ */
+ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
+{
+	return errnify(write, fildes, buf, nbyte);
+}
+
+/**
+ * Requests outstanding data to be written to the underlying storage device.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_fsync(int fildes)
+{
+	return errnify(fsync, fildes);
+}
+
+/**
+ * Truncate a file to a specified length.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param length New length of the file.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_ftruncate(int fildes, posix_off_t length)
+{
+	return errnify(ftruncate, fildes, (aoff64_t) length);
+}
+
+/**
+ * Remove a directory.
+ *
+ * @param path Directory pathname.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_rmdir(const char *path)
+{
+	return errnify(rmdir, path);
 }
 
 /**
@@ -185,13 +261,31 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
  */
 int posix_unlink(const char *path)
 {
-	int rc = unlink(path);
-	if (rc < 0) {
-		errno = -rc;
-		return -1;
-	} else {
-		return rc;
-	}
+	return errnify(unlink, path);
+}
+
+/**
+ * Duplicate an open file descriptor.
+ *
+ * @param fildes File descriptor to be duplicated.
+ * @return On success, new file descriptor for the same file, otherwise -1.
+ */
+int posix_dup(int fildes)
+{
+	return posix_fcntl(fildes, F_DUPFD, 0);
+}
+
+/**
+ * Duplicate an open file descriptor.
+ * 
+ * @param fildes File descriptor to be duplicated.
+ * @param fildes2 File descriptor to be paired with the same file description
+ *     as is paired fildes.
+ * @return fildes2 on success, -1 otherwise.
+ */
+int posix_dup2(int fildes, int fildes2)
+{
+	return errnify(dup2, fildes, fildes2);
 }
 
 /**
@@ -203,15 +297,18 @@ int posix_unlink(const char *path)
  */
 int posix_access(const char *path, int amode)
 {
-	if (amode == F_OK) {
-		/* Check file existence by attempt to open it. */
+	if (amode == F_OK || (amode & (X_OK | W_OK | R_OK))) {
+		/* HelenOS doesn't support permissions, permission checks
+		 * are equal to existence check.
+		 *
+		 * Check file existence by attempting to open it.
+		 */
 		int fd = open(path, O_RDONLY);
-		if (fd != -1) {
-			close(fd);
+		if (fd < 0) {
+			errno = -fd;
+			return -1;
 		}
-		return fd;
-	} else if (amode & (X_OK | W_OK | R_OK)) {
-		/* HelenOS doesn't support permissions, return success. */
+		close(fd);
 		return 0;
 	} else {
 		/* Invalid amode argument. */

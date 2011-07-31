@@ -38,15 +38,13 @@
 #include "string.h"
 #include "errno.h"
 
-// TODO: documentation
-
 static bool entry_read = false;
 
 /* dummy user account */
 static const struct posix_passwd dummy_pwd = {
 	.pw_name = (char *) "user",
-	.pw_uid = 1,
-	.pw_gid = 1,
+	.pw_uid = 0,
+	.pw_gid = 0,
 	.pw_dir = (char *) "/",
 	.pw_shell = (char *) "/app/bdsh"
 };
@@ -114,13 +112,16 @@ int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
     char *buffer, size_t bufsize, struct posix_passwd **result)
 {
 	assert(name != NULL);
+	assert(pwd != NULL);
+	assert(buffer != NULL);
+	assert(result != NULL);
 	
 	if (posix_strcmp(name, "user") != 0) {
 		*result = NULL;
 		return 0;
 	}
 	
-	return posix_getpwuid_r(1, pwd, buffer, bufsize, result);
+	return posix_getpwuid_r(0, pwd, buffer, bufsize, result);
 }
 
 /**
@@ -131,7 +132,7 @@ int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
  */
 struct posix_passwd *posix_getpwuid(posix_uid_t uid)
 {
-	if (uid != 1) {
+	if (uid != 0) {
 		return NULL;
 	}
 
@@ -158,7 +159,7 @@ int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
 	static const char bf[] = { 'u', 's', 'e', 'r', '\0',
 	    '/', '\0', 'b', 'd', 's', 'h', '\0' };
 	
-	if (uid != 1) {
+	if (uid != 0) {
 		*result = NULL;
 		return 0;
 	}
@@ -170,8 +171,8 @@ int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
 	memcpy(buffer, bf, sizeof(bf));
 
 	pwd->pw_name = (char *) bf;
-	pwd->pw_uid = 1;
-	pwd->pw_gid = 1;
+	pwd->pw_uid = 0;
+	pwd->pw_gid = 0;
 	pwd->pw_dir = (char *) bf + 5;
 	pwd->pw_shell = (char *) bf + 7;
 	*result = (struct posix_passwd *) pwd;

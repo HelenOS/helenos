@@ -39,12 +39,7 @@
 #undef assert
 
 #ifndef NDEBUG
-	#define assert(expr) \
-		do { \
-			if (!(expr)) { \
-				assert_abort(#expr, __FILE__, __LINE__); \
-			} \
-		} while (0)
+	#define assert(expr) ((expr) ? (void) 0 : assert_abort(#expr, __FILE__, __LINE__))
 #else
 	#define assert(expr) ((void) 0)
 #endif

@@ -43,12 +43,16 @@
 
 #include "assert.h"
 #include "errno.h"
+#include "stdlib.h"
 #include "string.h"
 #include "sys/types.h"
+#include "unistd.h"
 
 #include "libc/io/printf_core.h"
 #include "libc/str.h"
 #include "libc/malloc.h"
+#include "libc/adt/list.h"
+#include "libc/sys/stat.h"
 
 
 /* not the best of solutions, but freopen and ungetc will eventually
@@ -251,39 +255,54 @@ FILE *posix_freopen(const char *restrict filename,
 {
 	assert(mode != NULL);
 	assert(stream != NULL);
-
+	
+	/* Retieve the node. */
+	struct stat st;
+	int rc;
+	
 	if (filename == NULL) {
-		// TODO
-		
-		/* print error to stderr as well, to avoid hard to find problems
-		 * with buggy apps that expect this to work
-		 */
-		fprintf(stderr,
-		    "ERROR: Application wants to use freopen() to change mode of opened stream.\n"
-		    "       libposix does not support that yet, the application may function improperly.\n");
-		errno = ENOTSUP;
-		return NULL;
+		rc = fstat(stream->fd, &st);
+	} else {
+		rc = stat(filename, &st);
 	}
-
-	FILE* copy = malloc(sizeof(FILE));
-	if (copy == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	memcpy(copy, stream, sizeof(FILE));
-	fclose(copy); /* copy is now freed */
 	
-	copy = fopen(filename, mode); /* open new stream */
-	if (copy == NULL) {
-		/* fopen() sets errno */
+	if (rc != EOK) {
+		fclose(stream);
+		errno = -rc;
 		return NULL;
 	}
 	
-	/* move the new stream to the original location */
-	memcpy(stream, copy, sizeof (FILE));
-	free(copy);
+	fdi_node_t node = {
+		.fs_handle = st.fs_handle,
+		.devmap_handle = st.devmap_handle,
+		.index = st.index
+	};
 	
-	/* update references in the file list */
+	/* Open a new stream. */
+	FILE* new = fopen_node(&node, mode);
+	if (new == NULL) {
+		fclose(stream);
+		/* fopen_node() sets errno. */
+		return NULL;
+	}
+	
+	/* Close the original stream without freeing it (ignoring errors). */
+	if (stream->buf != NULL) {
+		fflush(stream);
+	}
+	if (stream->sess != NULL) {
+		async_hangup(stream->sess);
+	}
+	if (stream->fd >= 0) {
+		close(stream->fd);
+	}
+	list_remove(&stream->link);
+	
+	/* Move the new stream to the original location. */
+	memcpy(stream, new, sizeof (FILE));
+	free(new);
+	
+	/* Update references in the file list. */
 	stream->link.next->prev = &stream->link;
 	stream->link.prev->next = &stream->link;
 	
@@ -675,27 +694,154 @@ int posix_putchar_unlocked(int c)
 }
 
 /**
- * Remove a file.
+ * Remove a file or directory.
  *
  * @param path Pathname of the file that shall be removed.
- * @return Zero on success, -1 otherwise.
+ * @return Zero on success, -1 (with errno set) otherwise.
  */
 int posix_remove(const char *path)
 {
-	// FIXME: unlink() and rmdir() seem to be equivalent at the moment,
-	//        but that does not have to be true forever
-	return unlink(path);
+	struct stat st;
+	int rc = stat(path, &st);
+	
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	
+	if (st.is_directory) {
+		rc = rmdir(path);
+	} else {
+		rc = unlink(path);
+	}
+	
+	if (rc != EOK) {
+		errno = -rc;
+		return -1;
+	}
+	return 0;
 }
 
 /**
- * 
- * @param s
- * @return
+ * Rename a file or directory.
+ *
+ * @param old Old pathname.
+ * @param new New pathname.
+ * @return Zero on success, -1 (with errno set) otherwise.
+ */
+int posix_rename(const char *old, const char *new)
+{
+	return errnify(rename, old, new);
+}
+
+/**
+ * Get a unique temporary file name (obsolete).
+ *
+ * @param s Buffer for the file name. Must be at least L_tmpnam bytes long.
+ * @return The value of s on success, NULL on failure.
  */
 char *posix_tmpnam(char *s)
 {
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
+	assert(L_tmpnam >= posix_strlen("/tmp/tnXXXXXX"));
+	
+	static char buffer[L_tmpnam + 1];
+	if (s == NULL) {
+		s = buffer;
+	}
+	
+	posix_strcpy(s, "/tmp/tnXXXXXX");
+	posix_mktemp(s);
+	
+	if (*s == '\0') {
+		/* Errno set by mktemp(). */
+		return NULL;
+	}
+	
+	return s;
+}
+
+/**
+ * Get an unique temporary file name with additional constraints (obsolete).
+ *
+ * @param dir Path to directory, where the file should be created.
+ * @param pfx Optional prefix up to 5 characters long.
+ * @return Newly allocated unique path for temporary file. NULL on failure.
+ */
+char *posix_tempnam(const char *dir, const char *pfx)
+{
+	/* Sequence number of the filename. */
+	static int seq = 0;
+	
+	size_t dir_len = posix_strlen(dir);
+	if (dir[dir_len - 1] == '/') {
+		dir_len--;
+	}
+	
+	size_t pfx_len = posix_strlen(pfx);
+	if (pfx_len > 5) {
+		pfx_len = 5;
+	}
+	
+	char *result = malloc(dir_len + /* slash*/ 1 +
+	    pfx_len + /* three-digit seq */ 3 + /* .tmp */ 4 + /* nul */ 1);
+	
+	if (result == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	char *res_ptr = result;
+	posix_strncpy(res_ptr, dir, dir_len);
+	res_ptr += dir_len;
+	posix_strncpy(res_ptr, pfx, pfx_len);
+	res_ptr += pfx_len;
+	
+	for (; seq < 1000; ++seq) {
+		snprintf(res_ptr, 8, "%03d.tmp", seq);
+		
+		int orig_errno = errno;
+		errno = 0;
+		/* Check if the file exists. */
+		if (posix_access(result, F_OK) == -1) {
+			if (errno == ENOENT) {
+				errno = orig_errno;
+				break;
+			} else {
+				/* errno set by access() */
+				return NULL;
+			}
+		}
+	}
+	
+	if (seq == 1000) {
+		free(result);
+		errno = EINVAL;
+		return NULL;
+	}
+	
+	return result;
+}
+
+/**
+ * Create and open an unique temporary file.
+ * The file is automatically removed when the stream is closed.
+ *
+ * @param dir Path to directory, where the file should be created.
+ * @param pfx Optional prefix up to 5 characters long.
+ * @return Newly allocated unique path for temporary file. NULL on failure.
+ */
+FILE *posix_tmpfile(void)
+{
+	char filename[] = "/tmp/tfXXXXXX";
+	int fd = posix_mkstemp(filename);
+	if (fd == -1) {
+		/* errno set by mkstemp(). */
+		return NULL;
+	}
+	
+	/* Unlink the created file, so that it's removed on close(). */
+	posix_unlink(filename);
+	return fdopen(fd, "w+");
 }
 
 /** @}

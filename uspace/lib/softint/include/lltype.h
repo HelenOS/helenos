@@ -26,40 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup softint
  * @{
  */
-/** @file Support for waiting.
+/**
+ * @file Abstraction over 64-bit integral type to allow simple manipulation.
  */
 
-#ifndef POSIX_SYS_WAIT_H_
-#define POSIX_SYS_WAIT_H_
+#ifndef __SOFTINT_LLTYPE_H__
+#define __SOFTINT_LLTYPE_H__
 
-#include "types.h"
+#include <stdint.h>
 
-#undef WIFEXITED
-#undef WEXITSTATUS
-#undef WIFSIGNALED
-#undef WTERMSIG
-#define WIFEXITED(status) __posix_wifexited(status)
-#define WEXITSTATUS(status) __posix_wexitstatus(status)
-#define WIFSIGNALED(status) __posix_wifsignaled(status)
-#define WTERMSIG(status) __posix_wtermsig(status)
+#define HALF_BIT_CNT (sizeof(int32_t) * sizeof(char))
+#define WHOLE_BIT_CNT (sizeof(int64_t) * sizeof(char))
 
-extern int __posix_wifexited(int status);
-extern int __posix_wexitstatus(int status);
-extern int __posix_wifsignaled(int status);
-extern int __posix_wtermsig(int status);
-
-extern posix_pid_t posix_wait(int *stat_ptr);
-extern posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define wait posix_wait
-	#define waitpid posix_waitpid
+#ifdef __BE__
+	#define LO 1
+	#define HI 0
+#else
+	#define LO 0
+	#define HI 1
 #endif
 
-#endif /* POSIX_SYS_WAIT_H_ */
+union lltype {
+	int64_t s_whole;
+	uint64_t u_whole;
+	int32_t s_half[2];
+	uint32_t u_half[2];
+};
+
+#endif
 
 /** @}
  */
