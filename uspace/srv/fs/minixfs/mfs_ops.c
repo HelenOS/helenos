@@ -1024,7 +1024,6 @@ mfs_destroy_node(fs_node_t *fn)
 	r = inode_shrink(mnode, mnode->ino_i->i_size);
 	on_error(r, goto out);
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
-	on_error(r, goto out);
 
 out:
 	mfs_node_put(fn);
