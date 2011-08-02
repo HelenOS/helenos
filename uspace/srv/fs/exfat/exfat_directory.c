@@ -186,10 +186,12 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	exfat_dentry_t *d = NULL;
 	int rc, i;
 	size_t offset = 0;
+	aoff64_t start_pos = 0;
 	
 	rc = exfat_directory_find(di, EXFAT_DENTRY_FILE, &d);
 	if (rc != EOK)
 		return rc;
+	start_pos = di->pos;
 	*df = d->file;
 
 	rc = exfat_directory_next(di);
@@ -220,6 +222,7 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	if (rc != EOK)
 		return rc;
 
+	exfat_directory_seek(di, start_pos);
 	return EOK;
 }
 
