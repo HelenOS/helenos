@@ -1077,6 +1077,11 @@ void exfat_open_node(ipc_callid_t rid, ipc_call_t *request)
 	libfs_open_node(&exfat_libfs_ops, exfat_reg.fs_handle, rid, request);
 }
 
+void exfat_stat(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_stat(&exfat_libfs_ops, exfat_reg.fs_handle, rid, request);
+}
+
 /**
  * @}
  */
