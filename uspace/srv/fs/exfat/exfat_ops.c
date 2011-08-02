@@ -61,7 +61,7 @@
 
 #define EXFAT_NODE(node)	((node) ? (exfat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
-
+#define DPS(bs) (BPS((bs)) / sizeof(exfat_dentry_t))
 
 /** Mutex protecting the list of cached free FAT nodes. */
 static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
@@ -258,8 +258,8 @@ static int exfat_node_get_new_by_pos(exfat_node_t **nodepp,
 static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 {
 	block_t *b=NULL;
-	//exfat_bs_t *bs;
-	//exfat_dentry_t *d;
+	exfat_bs_t *bs;
+	exfat_dentry_t *d;
 	exfat_node_t *nodep = NULL;
 	int rc;
 
@@ -289,39 +289,50 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	if (rc != EOK)
 		return rc;
 
-	//bs = block_bb_get(idxp->devmap_handle);
+	bs = block_bb_get(idxp->devmap_handle);
 
-	/* Access to exFAT directory and read two entries:
-	 * file entry and stream entry 
-	 */
-	/*
-	exfat_directory_t di;
-	exfat_dentry_t *de;
-	exfat_directory_open(&di, ???);
-	exfat_directory_seek(&di, idxp->pdi);
-	exfat_directory_get(&di, &de); 
+	rc = exfat_block_get_by_clst(&b, bs, idxp->devmap_handle, 
+	    idxp->parent_fragmented, idxp->pfc, NULL, 
+	    (idxp->pdi * sizeof(exfat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		(void) exfat_node_put(FS_NODE(nodep));
+		return rc;
+	}
 
-	switch (exfat_classify_dentry(de)) {
+	d = ((exfat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
+	switch (exfat_classify_dentry(d)) {
 	case EXFAT_DENTRY_FILE:
-		nodep->type = (de->file.attr & EXFAT_ATTR_SUBDIR)? 
+		nodep->type = (d->file.attr & EXFAT_ATTR_SUBDIR)? 
 		    EXFAT_DIRECTORY : EXFAT_FILE;
-		exfat_directory_next(&di);
-		exfat_directory_get(&di, &de);
-		nodep->firtsc = de->stream.firstc;
-		nodep->size = de->stream.data_size;
-		nodep->fragmented = (de->stream.flags & 0x02) == 0;
+		rc = block_put(b);
+		if (rc != EOK) {
+			(void) exfat_node_put(FS_NODE(nodep));
+			return rc;
+		}
+		rc = exfat_block_get_by_clst(&b, bs, idxp->devmap_handle, 
+			idxp->parent_fragmented, idxp->pfc, NULL, 
+			((idxp->pdi+1) * sizeof(exfat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			(void) exfat_node_put(FS_NODE(nodep));
+			return rc;
+		}
+		d = ((exfat_dentry_t *)b->data) + ((idxp->pdi+1) % DPS(bs));
+		
+		nodep->firstc = d->stream.firstc;
+		nodep->size = d->stream.data_size;
+		nodep->fragmented = (d->stream.flags & 0x02) == 0;
 		break;
 	case EXFAT_DENTRY_BITMAP:
 		nodep->type = EXFAT_BITMAP;
-		nodep->firstc = de->bitmap.firstc;
-		nodep->size = de->bitmap.size;
-		nodep->fragmented = false;
+		nodep->firstc = d->bitmap.firstc;
+		nodep->size = d->bitmap.size;
+		nodep->fragmented = true;
 		break;
 	case EXFAT_DENTRY_UCTABLE:
 		nodep->type = EXFAT_UCTABLE;
-		nodep->firstc = de->uctable.firstc;
-		nodep->size = de->uctable.size;
-		nodep->fragmented = false;
+		nodep->firstc = d->uctable.firstc;
+		nodep->size = d->uctable.size;
+		nodep->fragmented = true;
 		break;
 	default:
 	case EXFAT_DENTRY_SKIP:
@@ -332,22 +343,9 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	case EXFAT_DENTRY_STREAM:
 	case EXFAT_DENTRY_NAME:
 		(void) block_put(b);
-		(void) fat_node_put(FS_NODE(nodep));
+		(void) exfat_node_put(FS_NODE(nodep));
 		return ENOENT;
 	}
-	*/
-
-	/* Read the block that contains the dentry of interest. */
-	/*
-	rc = _fat_block_get(&b, bs, idxp->devmap_handle, idxp->pfc, NULL,
-	    (idxp->pdi * sizeof(fat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
-	if (rc != EOK) {
-		(void) fat_node_put(FS_NODE(nodep));
-		return rc;
-	}
-
-	d = ((fat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
-	*/
 
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
@@ -392,6 +390,7 @@ int exfat_uctable_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 
 int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
+	/* TODO */
 	*rfn = NULL;
 	return EOK;
 }
@@ -427,27 +426,32 @@ int exfat_node_open(fs_node_t *fn)
 
 int exfat_node_put(fs_node_t *fn)
 {
+	/* TODO */
 	return EOK;
 }
 
 int exfat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
 {
+	/* TODO */
 	*rfn = NULL;
 	return EOK;
 }
 
 int exfat_destroy_node(fs_node_t *fn)
 {
+	/* TODO */
 	return EOK;
 }
 
 int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
+	/* TODO */
 	return EOK;
 }
 
 int exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
+	/* TODO */
 	return EOK;
 }
 
