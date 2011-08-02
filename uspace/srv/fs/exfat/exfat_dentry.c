@@ -105,13 +105,13 @@ void exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentr
 bool exfat_valid_char(wchar_t ch)
 {
 	/* TODO */
-	return false;
+	return true;
 }
 
 bool exfat_valid_name(const char *name)
 {
 	/* TODO */
-	return false;
+	return true;
 }
 
 /**
