@@ -112,8 +112,7 @@ static void exfat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			exfat_lookup(callid, &call);
 			break;
 		case VFS_OUT_READ:
-			/* exfat_read(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_read(callid, &call);
 			break;
 		case VFS_OUT_WRITE:
 			/* exfat_write(callid, &call); */
@@ -124,24 +123,20 @@ static void exfat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			async_answer_0(callid, ENOTSUP);
 			break;
 		case VFS_OUT_STAT:
-			/* exfat_stat(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_stat(callid, &call);
 			break;
 		case VFS_OUT_CLOSE:
-			/* exfat_close(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_close(callid, &call);
 			break;
 		case VFS_OUT_DESTROY:
 			/* exfat_destroy(callid, &call); */
 			async_answer_0(callid, ENOTSUP);
 			break;
 		case VFS_OUT_OPEN_NODE:
-			/* exfat_open_node(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_open_node(callid, &call);
 			break;
 		case VFS_OUT_SYNC:
-			/* exfat_sync(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_sync(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
