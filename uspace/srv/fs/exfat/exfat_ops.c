@@ -1082,6 +1082,31 @@ void exfat_stat(ipc_callid_t rid, ipc_call_t *request)
 	libfs_stat(&exfat_libfs_ops, exfat_reg.fs_handle, rid, request);
 }
 
+void exfat_sync(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+
+	fs_node_t *fn;
+	int rc = exfat_node_get(&fn, devmap_handle, index);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	if (!fn) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	exfat_node_t *nodep = EXFAT_NODE(fn);
+
+	nodep->dirty = true;
+	rc = exfat_node_sync(nodep);
+
+	exfat_node_put(fn);
+	async_answer_0(rid, rc);
+}
+
 /**
  * @}
  */
