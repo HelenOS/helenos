@@ -946,6 +946,126 @@ void exfat_lookup(ipc_callid_t rid, ipc_call_t *request)
 	libfs_lookup(&exfat_libfs_ops, exfat_reg.fs_handle, rid, request);
 }
 
+void exfat_read(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
+	fs_node_t *fn;
+	exfat_node_t *nodep;
+	exfat_bs_t *bs;
+	size_t bytes=0;
+	block_t *b;
+	int rc;
+
+	rc = exfat_node_get(&fn, devmap_handle, index);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	if (!fn) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+	nodep = EXFAT_NODE(fn);
+
+	ipc_callid_t callid;
+	size_t len;
+	if (!async_data_read_receive(&callid, &len)) {
+		exfat_node_put(fn);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	bs = block_bb_get(devmap_handle);
+
+	if (nodep->type == EXFAT_FILE) {
+		/*
+		 * Our strategy for regular file reads is to read one block at
+		 * most and make use of the possibility to return less data than
+		 * requested. This keeps the code very simple.
+		 */
+		if (pos >= nodep->size) {
+			/* reading beyond the EOF */
+			bytes = 0;
+			(void) async_data_read_finalize(callid, NULL, 0);
+		} else {
+			bytes = min(len, BPS(bs) - pos % BPS(bs));
+			bytes = min(bytes, nodep->size - pos);
+			rc = exfat_block_get(&b, bs, nodep, pos / BPS(bs),
+			    BLOCK_FLAGS_NONE);
+			if (rc != EOK) {
+				exfat_node_put(fn);
+				async_answer_0(callid, rc);
+				async_answer_0(rid, rc);
+				return;
+			}
+			(void) async_data_read_finalize(callid,
+			    b->data + pos % BPS(bs), bytes);
+			rc = block_put(b);
+			if (rc != EOK) {
+				exfat_node_put(fn);
+				async_answer_0(rid, rc);
+				return;
+			}
+		}
+	} else {
+		if (nodep->type != EXFAT_DIRECTORY) {
+			async_answer_0(callid, ENOTSUP);
+			async_answer_0(rid, ENOTSUP);
+			return;
+		}
+			
+		aoff64_t spos = pos;
+		char name[EXFAT_FILENAME_LEN+1];
+		exfat_file_dentry_t df;
+		exfat_stream_dentry_t ds;
+
+		assert(nodep->size % BPS(bs) == 0);
+		assert(BPS(bs) % sizeof(exfat_dentry_t) == 0);
+
+		exfat_directory_t di;
+		rc = exfat_directory_open(nodep, &di);
+		if (rc != EOK) goto err;
+		rc = exfat_directory_seek(&di, pos);
+		if (rc != EOK) {
+			(void) exfat_directory_close(&di);
+			goto err;
+		}
+
+		rc = exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN, &df, &ds);
+		if (rc == EOK) goto hit;
+		if (rc == ENOENT) goto miss;
+
+err:
+		(void) exfat_node_put(fn);
+		async_answer_0(callid, rc);
+		async_answer_0(rid, rc);
+		return;
+
+miss:
+		rc = exfat_directory_close(&di);
+		if (rc!=EOK)
+			goto err;
+		rc = exfat_node_put(fn);
+		async_answer_0(callid, rc != EOK ? rc : ENOENT);
+		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
+		return;
+
+hit:
+		pos = di.pos;
+		rc = exfat_directory_close(&di);
+		if (rc!=EOK)
+			goto err;
+		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
+		bytes = (pos - spos)+1;
+	}
+
+	rc = exfat_node_put(fn);
+	async_answer_1(rid, rc, (sysarg_t)bytes);
+}
 
 /**
  * @}
