@@ -426,7 +426,30 @@ int exfat_node_open(fs_node_t *fn)
 
 int exfat_node_put(fs_node_t *fn)
 {
-	/* TODO */
+	exfat_node_t *nodep = EXFAT_NODE(fn);
+	bool destroy = false;
+
+	fibril_mutex_lock(&nodep->lock);
+	if (!--nodep->refcnt) {
+		if (nodep->idx) {
+			fibril_mutex_lock(&ffn_mutex);
+			list_append(&nodep->ffn_link, &ffn_head);
+			fibril_mutex_unlock(&ffn_mutex);
+		} else {
+			/*
+			 * The node does not have any index structure associated
+			 * with itself. This can only mean that we are releasing
+			 * the node after a failed attempt to allocate the index
+			 * structure for it.
+			 */
+			destroy = true;
+		}
+	}
+	fibril_mutex_unlock(&nodep->lock);
+	if (destroy) {
+		free(nodep->bp);
+		free(nodep);
+	}
 	return EOK;
 }
 
