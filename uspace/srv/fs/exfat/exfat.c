@@ -109,8 +109,7 @@ static void exfat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			exfat_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
-			/* exfat_lookup(callid, &call); */
-			async_answer_0(callid, ENOTSUP);
+			exfat_lookup(callid, &call);
 			break;
 		case VFS_OUT_READ:
 			/* exfat_read(callid, &call); */

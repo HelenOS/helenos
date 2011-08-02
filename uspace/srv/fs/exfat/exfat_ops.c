@@ -941,6 +941,12 @@ int bitmap_is_allocated(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 }
 */
 
+void exfat_lookup(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_lookup(&exfat_libfs_ops, exfat_reg.fs_handle, rid, request);
+}
+
+
 /**
  * @}
  */
