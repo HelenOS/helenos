@@ -390,7 +390,56 @@ int exfat_uctable_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 
 int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
-	/* TODO */
+	exfat_node_t *parentp = EXFAT_NODE(pfn);
+	char name[EXFAT_FILENAME_LEN+1];
+	exfat_file_dentry_t df;
+	exfat_stream_dentry_t ds;
+	devmap_handle_t devmap_handle;
+	int rc;
+
+	fibril_mutex_lock(&parentp->idx->lock);
+	devmap_handle = parentp->idx->devmap_handle;
+	fibril_mutex_unlock(&parentp->idx->lock);
+	
+	exfat_directory_t di;
+	rc = exfat_directory_open(parentp, &di);
+	if (rc != EOK)
+		return rc;
+
+	while (exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN, 
+	    &df, &ds) == EOK) {
+		if (stricmp(name, component) == 0) {
+			/* hit */
+			exfat_node_t *nodep;
+			aoff64_t o = di.pos % (BPS(di.bs) / sizeof(exfat_dentry_t));
+			exfat_idx_t *idx = exfat_idx_get_by_pos(devmap_handle,
+				parentp->firstc, di.bnum * DPS(di.bs) + o);
+			if (!idx) {
+				/*
+				 * Can happen if memory is low or if we
+				 * run out of 32-bit indices.
+				 */
+				rc = exfat_directory_close(&di);
+				return (rc == EOK) ? ENOMEM : rc;
+			}
+			rc = exfat_node_get_core(&nodep, idx);
+			fibril_mutex_unlock(&idx->lock);
+			if (rc != EOK) {
+				(void) exfat_directory_close(&di);
+				return rc;
+			}
+			*rfn = FS_NODE(nodep);
+			rc = exfat_directory_close(&di);
+			if (rc != EOK)
+				(void) exfat_node_put(*rfn);
+			return rc;
+		} else {
+			rc = exfat_directory_next(&di);
+			if (rc != EOK)
+				break;
+		}
+	}
+	(void) exfat_directory_close(&di);
 	*rfn = NULL;
 	return EOK;
 }
