@@ -480,8 +480,48 @@ int exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 
 int exfat_has_children(bool *has_children, fs_node_t *fn)
 {
+	exfat_directory_t di;
+	exfat_dentry_t *d;
+	exfat_node_t *nodep = EXFAT_NODE(fn);
+	int rc;
+
 	*has_children = false;
-	return EOK;
+
+	if (nodep->type != EXFAT_DIRECTORY)
+		return EOK;
+
+	fibril_mutex_lock(&nodep->idx->lock);
+
+	rc = exfat_directory_open(nodep, &di);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&nodep->idx->lock);
+		return rc;
+	}
+
+	do {
+		rc = exfat_directory_get(&di, &d);
+		if (rc != EOK) {
+			(void) exfat_directory_close(&di);
+			fibril_mutex_unlock(&nodep->idx->lock);
+			return rc;
+		}
+		switch (exfat_classify_dentry(d)) {
+		case EXFAT_DENTRY_SKIP:
+		case EXFAT_DENTRY_FREE:
+			continue;
+		case EXFAT_DENTRY_LAST:
+			*has_children = false;
+			goto exit;
+		default:
+			*has_children = true;
+			goto exit;
+		}
+	} while (exfat_directory_next(&di) == EOK);
+
+exit:
+	rc = exfat_directory_close(&di);
+	fibril_mutex_unlock(&nodep->idx->lock);
+	return rc;
 }
 
 
