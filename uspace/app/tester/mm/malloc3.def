@@ -1,0 +1,6 @@
+{
+	"malloc3",
+	"Multi-heap memory allocator test",
+	&test_malloc3,
+	true
+},

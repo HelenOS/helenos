@@ -53,7 +53,7 @@
  * reply upto the given timeout. Blocks the caller until the reply or the
  * timeout occurs.
  *
- * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
+ * @param[in] sess The ICMP session.
  * @param[in] size	The message data length in bytes.
  * @param[in] timeout	The timeout in milliseconds.
  * @param[in] ttl	The time to live.
@@ -72,7 +72,7 @@
  * @return		EPARTY if there was an internal error.
  */
 int
-icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl,
+icmp_echo_msg(async_sess_t *sess, size_t size, mseconds_t timeout, ip_ttl_t ttl,
     ip_tos_t tos, int dont_fragment, const struct sockaddr *addr,
     socklen_t addrlen)
 {
@@ -81,12 +81,16 @@ icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl,
 
 	if (addrlen <= 0)
 		return EINVAL;
-
-	message_id = async_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl,
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	message_id = async_send_5(exch, NET_ICMP_ECHO, size, timeout, ttl,
 	    tos, (sysarg_t) dont_fragment, NULL);
-
+	
 	/* Send the address */
-	async_data_write_start(icmp_phone, addr, (size_t) addrlen);
+	async_data_write_start(exch, addr, (size_t) addrlen);
+	
+	async_exchange_end(exch);
 
 	async_wait_for(message_id, &result);
 	return (int) result;

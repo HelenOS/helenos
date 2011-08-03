@@ -52,15 +52,14 @@
 #include <errno.h>
 #include <str.h>
 
-#define KLOG_PAGES    4
+#define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
-#define KLOG_LATENCY  8
 
 /** Kernel log cyclic buffer */
 static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
-static bool klog_inited = false;
+static atomic_t klog_inited = {false};
 
 /** First kernel log characters */
 static size_t klog_start = 0;
@@ -75,7 +74,7 @@ static size_t klog_stored = 0;
 static size_t klog_uspace = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "*klog_lock");
+SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "klog_lock");
 
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
@@ -87,7 +86,7 @@ static indev_operations_t stdin_ops = {
 	.poll = NULL
 };
 
-static void stdout_write(outdev_t *, wchar_t, bool);
+static void stdout_write(outdev_t *, wchar_t);
 static void stdout_redraw(outdev_t *);
 
 static outdev_operations_t stdout_ops = {
@@ -95,8 +94,8 @@ static outdev_operations_t stdout_ops = {
 	.redraw = stdout_redraw
 };
 
-/** Silence output */
-bool silent = false;
+/** Override kernel console lockout */
+bool console_override = false;
 
 /** Standard input and output character devices */
 indev_t *stdin = NULL;
@@ -122,22 +121,18 @@ void stdout_wire(outdev_t *outdev)
 	list_append(&outdev->link, &stdout->list);
 }
 
-static void stdout_write(outdev_t *dev, wchar_t ch, bool silent)
+static void stdout_write(outdev_t *dev, wchar_t ch)
 {
-	link_t *cur;
-	
-	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+	list_foreach(dev->list, cur) {
 		outdev_t *sink = list_get_instance(cur, outdev_t, link);
 		if ((sink) && (sink->op->write))
-			sink->op->write(sink, ch, silent);
+			sink->op->write(sink, ch);
 	}
 }
 
 static void stdout_redraw(outdev_t *dev)
 {
-	link_t *cur;
-	
-	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+	list_foreach(dev->list, cur) {
 		outdev_t *sink = list_get_instance(cur, outdev_t, link);
 		if ((sink) && (sink->op->redraw))
 			sink->op->redraw(sink);
@@ -160,25 +155,25 @@ void klog_init(void)
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
 	klog_parea.unpriv = false;
+	klog_parea.mapped = false;
 	ddi_parea_register(&klog_parea);
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
 	
-	spinlock_lock(&klog_lock);
-	klog_inited = true;
-	spinlock_unlock(&klog_lock);
+	event_set_unmask_callback(EVENT_KLOG, klog_update);
+	atomic_set(&klog_inited, true);
 }
 
 void grab_console(void)
 {
-	bool prev = silent;
+	bool prev = console_override;
 	
-	silent = false;
+	console_override = true;
 	if ((stdout) && (stdout->op->redraw))
 		stdout->op->redraw(stdout);
 	
-	if ((stdin) && (prev)) {
+	if ((stdin) && (!prev)) {
 		/*
 		 * Force the console to print the prompt.
 		 */
@@ -188,12 +183,11 @@ void grab_console(void)
 
 void release_console(void)
 {
-	// FIXME arch_release_console
-	silent = true;
+	console_override = false;
 }
 
-/** Tell kernel to get keyboard/console access again */
-sysarg_t sys_debug_enable_console(void)
+/** Activate kernel console override */
+sysarg_t sys_debug_activate_console(void)
 {
 #ifdef CONFIG_KCONSOLE
 	grab_console();
@@ -201,13 +195,6 @@ sysarg_t sys_debug_enable_console(void)
 #else
 	return false;
 #endif
-}
-
-/** Tell kernel to relinquish keyboard/console access */
-sysarg_t sys_debug_disable_console(void)
-{
-	release_console();
-	return true;
 }
 
 /** Get string from input character device.
@@ -262,11 +249,15 @@ wchar_t getc(indev_t *indev)
 
 void klog_update(void)
 {
+	if (!atomic_get(&klog_inited))
+		return;
+	
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_inited) && (event_is_subscribed(EVENT_KLOG)) && (klog_uspace > 0)) {
-		event_notify_3(EVENT_KLOG, klog_start, klog_len, klog_uspace);
-		klog_uspace = 0;
+	if (klog_uspace > 0) {
+		if (event_notify_3(EVENT_KLOG, true, klog_start, klog_len,
+		    klog_uspace) == EOK)
+			klog_uspace = 0;
 	}
 	
 	spinlock_unlock(&klog_lock);
@@ -274,14 +265,25 @@ void klog_update(void)
 
 void putchar(const wchar_t ch)
 {
+	bool ordy = ((stdout) && (stdout->op->write));
+	
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_stored > 0) && (stdout) && (stdout->op->write)) {
-		/* Print charaters stored in kernel log */
-		size_t i;
-		for (i = klog_len - klog_stored; i < klog_len; i++)
-			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_LENGTH], silent);
-		klog_stored = 0;
+	/* Print charaters stored in kernel log */
+	if (ordy) {
+		while (klog_stored > 0) {
+			wchar_t tmp = klog[(klog_start + klog_len - klog_stored) % KLOG_LENGTH];
+			klog_stored--;
+			
+			/*
+			 * We need to give up the spinlock for
+			 * the physical operation of writting out
+			 * the character.
+			 */
+			spinlock_unlock(&klog_lock);
+			stdout->op->write(stdout, tmp);
+			spinlock_lock(&klog_lock);
+		}
 	}
 	
 	/* Store character in the cyclic kernel log */
@@ -291,9 +293,24 @@ void putchar(const wchar_t ch)
 	else
 		klog_start = (klog_start + 1) % KLOG_LENGTH;
 	
-	if ((stdout) && (stdout->op->write))
-		stdout->op->write(stdout, ch, silent);
-	else {
+	if (!ordy) {
+		if (klog_stored < klog_len)
+			klog_stored++;
+	}
+	
+	/* The character is stored for uspace */
+	if (klog_uspace < klog_len)
+		klog_uspace++;
+	
+	spinlock_unlock(&klog_lock);
+	
+	if (ordy) {
+		/*
+		 * Output the character. In this case
+		 * it should be no longer buffered.
+		 */
+		stdout->op->write(stdout, ch);
+	} else {
 		/*
 		 * No standard output routine defined yet.
 		 * The character is still stored in the kernel log
@@ -303,28 +320,12 @@ void putchar(const wchar_t ch)
 		 * the character for low-level debugging purposes.
 		 * Note that the early_putc() function might be
 		 * a no-op on certain hardware configurations.
-		 *
 		 */
 		early_putchar(ch);
-		
-		if (klog_stored < klog_len)
-			klog_stored++;
 	}
 	
-	/* The character is stored for uspace */
-	if (klog_uspace < klog_len)
-		klog_uspace++;
-	
-	/* Check notify uspace to update */
-	bool update;
-	if ((klog_uspace > KLOG_LATENCY) || (ch == '\n'))
-		update = true;
-	else
-		update = false;
-	
-	spinlock_unlock(&klog_lock);
-	
-	if (update)
+	/* Force notification on newline */
+	if (ch == '\n')
 		klog_update();
 }
 

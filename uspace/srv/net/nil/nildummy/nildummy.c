@@ -43,7 +43,6 @@
 #include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
-
 #include <net/modules.h>
 #include <net/device.h>
 #include <il_remote.h>
@@ -52,7 +51,6 @@
 #include <packet_remote.h>
 #include <netif_remote.h>
 #include <nil_skel.h>
-
 #include "nildummy.h"
 
 /** The module name. */
@@ -66,26 +64,26 @@ nildummy_globals_t nildummy_globals;
 
 DEVICE_MAP_IMPLEMENT(nildummy_devices, nildummy_device_t);
 
-int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
+int nil_device_state_msg_local(device_id_t device_id, sysarg_t state)
 {
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
-	if (nildummy_globals.proto.phone)
-		il_device_state_msg(nildummy_globals.proto.phone, device_id,
+	if (nildummy_globals.proto.sess)
+		il_device_state_msg(nildummy_globals.proto.sess, device_id,
 		    state, nildummy_globals.proto.service);
 	fibril_rwlock_read_unlock(&nildummy_globals.protos_lock);
 	
 	return EOK;
 }
 
-int nil_initialize(int net_phone)
+int nil_initialize(async_sess_t *sess)
 {
 	fibril_rwlock_initialize(&nildummy_globals.devices_lock);
 	fibril_rwlock_initialize(&nildummy_globals.protos_lock);
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
 	fibril_rwlock_write_lock(&nildummy_globals.protos_lock);
 	
-	nildummy_globals.net_phone = net_phone;
-	nildummy_globals.proto.phone = 0;
+	nildummy_globals.net_sess = sess;
+	nildummy_globals.proto.sess = NULL;
 	int rc = nildummy_devices_initialize(&nildummy_globals.devices);
 	
 	fibril_rwlock_write_unlock(&nildummy_globals.protos_lock);
@@ -98,9 +96,10 @@ int nil_initialize(int net_phone)
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
+ * @param[in]     arg    Local argument.
  *
  */
-static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;
@@ -108,17 +107,17 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
-			rc = nil_device_state_msg_local(0,
-			    IPC_GET_DEVICE(*icall), IPC_GET_STATE(*icall));
+			rc = nil_device_state_msg_local(IPC_GET_DEVICE(*icall),
+			    IPC_GET_STATE(*icall));
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_NIL_RECEIVED:
-			rc = packet_translate_remote(nildummy_globals.net_phone,
+			rc = packet_translate_remote(nildummy_globals.net_sess,
 			    &packet, IPC_GET_PACKET(*icall));
 			if (rc == EOK)
-				rc = nil_received_msg_local(0,
-				    IPC_GET_DEVICE(*icall), packet, 0);
+				rc = nil_received_msg_local(IPC_GET_DEVICE(*icall),
+				    packet, 0);
 			
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
@@ -176,8 +175,8 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 		
 		/* Notify the upper layer module */
 		fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
-		if (nildummy_globals.proto.phone) {
-			il_mtu_changed_msg(nildummy_globals.proto.phone,
+		if (nildummy_globals.proto.sess) {
+			il_mtu_changed_msg(nildummy_globals.proto.sess,
 			    device->device_id, device->mtu,
 			    nildummy_globals.proto.service);
 		}
@@ -199,16 +198,16 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 		device->mtu = NET_DEFAULT_MTU;
 
 	/* Bind the device driver */
-	device->phone = netif_bind_service(device->service, device->device_id,
+	device->sess = netif_bind_service(device->service, device->device_id,
 	    SERVICE_ETHERNET, nildummy_receiver);
-	if (device->phone < 0) {
+	if (device->sess == NULL) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		free(device);
-		return device->phone;
+		return ENOENT;
 	}
 	
 	/* Get hardware address */
-	int rc = netif_get_addr_req(device->phone, device->device_id,
+	int rc = netif_get_addr_req(device->sess, device->device_id,
 	    &device->addr, &device->addr_data);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
@@ -303,15 +302,15 @@ static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len
 	return EOK;
 }
 
-int nil_received_msg_local(int nil_phone, device_id_t device_id,
-    packet_t *packet, services_t target)
+int nil_received_msg_local(device_id_t device_id, packet_t *packet,
+    services_t target)
 {
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 	
-	if (nildummy_globals.proto.phone) {
+	if (nildummy_globals.proto.sess) {
 		do {
 			packet_t *next = pq_detach(packet);
-			il_received_msg(nildummy_globals.proto.phone, device_id,
+			il_received_msg(nildummy_globals.proto.sess, device_id,
 			    packet, nildummy_globals.proto.service);
 			packet = next;
 		} while (packet);
@@ -327,21 +326,21 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
  * Pass received packets for this service.
  *
  * @param[in] service Module service.
- * @param[in] phone   Service phone.
+ * @param[in] sess    Service session.
  *
  * @return EOK on success.
  * @return ENOENT if the service is not known.
  * @return ENOMEM if there is not enough memory left.
  *
  */
-static int nildummy_register_message(services_t service, int phone)
+static int nildummy_register_message(services_t service, async_sess_t *sess)
 {
 	fibril_rwlock_write_lock(&nildummy_globals.protos_lock);
 	nildummy_globals.proto.service = service;
-	nildummy_globals.proto.phone = phone;
+	nildummy_globals.proto.sess = sess;
 	
-	printf("%s: Protocol registered (service: %d, phone: %d)\n",
-	    NAME, nildummy_globals.proto.service, nildummy_globals.proto.phone);
+	printf("%s: Protocol registered (service: %d)\n",
+	    NAME, nildummy_globals.proto.service);
 	
 	fibril_rwlock_write_unlock(&nildummy_globals.protos_lock);
 	return EOK;
@@ -372,7 +371,7 @@ static int nildummy_send_message(device_id_t device_id, packet_t *packet,
 	
 	/* Send packet queue */
 	if (packet)
-		netif_send_msg(device->phone, device_id, packet,
+		netif_send_msg(device->sess, device_id, packet,
 		    SERVICE_NILDUMMY);
 	
 	fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
@@ -392,16 +391,22 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return nildummy_register_message(NIL_GET_PROTO(*call), callback);
+	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NIL_DEVICE:
 		return nildummy_device_message(IPC_GET_DEVICE(*call),
 		    IPC_GET_SERVICE(*call), IPC_GET_MTU(*call));
 	
 	case NET_NIL_SEND:
-		rc = packet_translate_remote(nildummy_globals.net_phone,
+		rc = packet_translate_remote(nildummy_globals.net_sess,
 		    &packet, IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
@@ -431,10 +436,6 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return rc;
 		return measured_strings_reply(address, 1);
-	
-	case IPC_M_CONNECT_TO_ME:
-		return nildummy_register_message(NIL_GET_PROTO(*call),
-		    IPC_GET_PHONE(*call));
 	}
 	
 	return ENOTSUP;

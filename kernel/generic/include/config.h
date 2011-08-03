@@ -35,13 +35,21 @@
 #ifndef KERN_CONFIG_H_
 #define KERN_CONFIG_H_
 
-#include <typedefs.h>
 #include <arch/mm/page.h>
 
-#define STACK_SIZE  PAGE_SIZE
+#define ONE_FRAME    0
+#define TWO_FRAMES   1
+#define FOUR_FRAMES  2
+
+#define STACK_FRAMES  TWO_FRAMES
+#define STACK_SIZE    ((1 << STACK_FRAMES) << PAGE_WIDTH)
 
 #define CONFIG_INIT_TASKS        32
 #define CONFIG_TASK_NAME_BUFLEN  32
+
+#ifndef __ASM__
+
+#include <typedefs.h>
 
 typedef struct {
 	uintptr_t addr;
@@ -78,6 +86,8 @@ typedef struct {
 extern config_t config;
 extern init_t init;
 extern ballocs_t ballocs;
+
+#endif /* __ASM__ */
 
 #endif
 

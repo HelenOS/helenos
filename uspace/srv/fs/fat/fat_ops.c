@@ -69,7 +69,7 @@
 static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
 
 /** List of cached free FAT nodes. */
-static LIST_INITIALIZE(ffn_head);
+static LIST_INITIALIZE(ffn_list);
 
 /*
  * Forward declarations of FAT libfs operations.
@@ -87,7 +87,6 @@ static int fat_has_children(bool *, fs_node_t *);
 static fs_index_t fat_index_get(fs_node_t *);
 static aoff64_t fat_size_get(fs_node_t *);
 static unsigned fat_lnkcnt_get(fs_node_t *);
-static char fat_plb_get_char(unsigned);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static devmap_handle_t fat_device_get(fs_node_t *node);
@@ -149,7 +148,6 @@ static int fat_node_sync(fat_node_t *node)
 
 static int fat_node_fini_by_devmap_handle(devmap_handle_t devmap_handle)
 {
-	link_t *lnk;
 	fat_node_t *nodep;
 	int rc;
 
@@ -161,7 +159,7 @@ static int fat_node_fini_by_devmap_handle(devmap_handle_t devmap_handle)
 
 restart:
 	fibril_mutex_lock(&ffn_mutex);
-	for (lnk = ffn_head.next; lnk != &ffn_head; lnk = lnk->next) {
+	list_foreach(ffn_list, lnk) {
 		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
 		if (!fibril_mutex_trylock(&nodep->lock)) {
 			fibril_mutex_unlock(&ffn_mutex);
@@ -198,7 +196,7 @@ restart:
 		free(nodep->bp);
 		free(nodep);
 
-		/* Need to restart because we changed the ffn_head list. */
+		/* Need to restart because we changed ffn_list. */
 		goto restart;
 	}
 	fibril_mutex_unlock(&ffn_mutex);
@@ -213,10 +211,11 @@ static int fat_node_get_new(fat_node_t **nodepp)
 	int rc;
 
 	fibril_mutex_lock(&ffn_mutex);
-	if (!list_empty(&ffn_head)) {
+	if (!list_empty(&ffn_list)) {
 		/* Try to use a cached free node structure. */
 		fat_idx_t *idxp_tmp;
-		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
+		nodep = list_get_instance(list_first(&ffn_list), fat_node_t,
+		    ffn_link);
 		if (!fibril_mutex_trylock(&nodep->lock))
 			goto skip_cache;
 		idxp_tmp = nodep->idx;
@@ -463,7 +462,7 @@ int fat_node_put(fs_node_t *fn)
 	if (!--nodep->refcnt) {
 		if (nodep->idx) {
 			fibril_mutex_lock(&ffn_mutex);
-			list_append(&nodep->ffn_link, &ffn_head);
+			list_append(&nodep->ffn_link, &ffn_list);
 			fibril_mutex_unlock(&ffn_mutex);
 		} else {
 			/*
@@ -822,11 +821,6 @@ unsigned fat_lnkcnt_get(fs_node_t *fn)
 	return FAT_NODE(fn)->lnkcnt;
 }
 
-char fat_plb_get_char(unsigned pos)
-{
-	return fat_reg.plb_ro[pos % PLB_SIZE];
-}
-
 bool fat_is_directory(fs_node_t *fn)
 {
 	return FAT_NODE(fn)->type == FAT_DIRECTORY;
@@ -857,30 +851,22 @@ libfs_ops_t fat_libfs_ops = {
 	.index_get = fat_index_get,
 	.size_get = fat_size_get,
 	.lnkcnt_get = fat_lnkcnt_get,
-	.plb_get_char = fat_plb_get_char,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
 	.device_get = fat_device_get
 };
 
 /*
- * VFS operations.
+ * FAT VFS_OUT operations.
  */
 
-void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
+static int
+fat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index,
+    aoff64_t *size, unsigned *linkcnt)
 {
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;
 	fat_bs_t *bs;
-
-	/* Accept the mount options */
-	char *opts;
-	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
-
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	int rc;
 
 	/* Check for option enabling write through. */
 	if (str_cmp(opts, "wtcache") == 0)
@@ -888,21 +874,16 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	else
 		cmode = CACHE_MODE_WB;
 
-	free(opts);
-
 	/* initialize libblock */
-	rc = block_init(devmap_handle, BS_SIZE);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	rc = block_init(EXCHANGE_SERIALIZE, devmap_handle, BS_SIZE);
+	if (rc != EOK)
+		return rc;
 
 	/* prepare the boot block */
 	rc = block_bb_read(devmap_handle, BS_BLOCK);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 
 	/* get the buffer with the boot sector */
@@ -910,16 +891,14 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	if (BPS(bs) != BS_SIZE) {
 		block_fini(devmap_handle);
-		async_answer_0(rid, ENOTSUP);
-		return;
+		return ENOTSUP;
 	}
 
 	/* Initialize the block cache */
 	rc = block_cache_init(devmap_handle, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 
 	/* Do some simple sanity checks on the file system. */
@@ -927,16 +906,14 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 
 	rc = fat_idx_init_by_devmap_handle(devmap_handle);
 	if (rc != EOK) {
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 
 	/* Initialize the root node. */
@@ -945,8 +922,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		fat_idx_fini_by_devmap_handle(devmap_handle);
-		async_answer_0(rid, ENOMEM);
-		return;
+		return ENOMEM;
 	}
 
 	fs_node_initialize(rfn);
@@ -956,8 +932,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		fat_idx_fini_by_devmap_handle(devmap_handle);
-		async_answer_0(rid, ENOMEM);
-		return;
+		return ENOMEM;
 	}
 	fat_node_initialize(rootp);
 
@@ -968,8 +943,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		fat_idx_fini_by_devmap_handle(devmap_handle);
-		async_answer_0(rid, ENOMEM);
-		return;
+		return ENOMEM;
 	}
 	assert(ridxp->index == 0);
 	/* ridxp->lock held */
@@ -1003,26 +977,22 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	fibril_mutex_unlock(&ridxp->lock);
 
-	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
+	*index = ridxp->index;
+	*size = rootp->size;
+	*linkcnt = rootp->lnkcnt;
+
+	return EOK;
 }
 
-void fat_mount(ipc_callid_t rid, ipc_call_t *request)
+static int fat_unmounted(devmap_handle_t devmap_handle)
 {
-	libfs_mount(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
-}
-
-void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
-{
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	int rc;
 
 	rc = fat_root_get(&fn, devmap_handle);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
 	nodep = FAT_NODE(fn);
 
 	/*
@@ -1031,8 +1001,7 @@ void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if (nodep->refcnt != 2) {
 		(void) fat_node_put(fn);
-		async_answer_0(rid, EBUSY);
-		return;
+		return EBUSY;
 	}
 
 	/*
@@ -1051,25 +1020,13 @@ void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	(void) block_cache_fini(devmap_handle);
 	block_fini(devmap_handle);
 
-	async_answer_0(rid, EOK);
+	return EOK;
 }
 
-void fat_unmount(ipc_callid_t rid, ipc_call_t *request)
+static int
+fat_read(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
+    size_t *rbytes)
 {
-	libfs_unmount(&fat_libfs_ops, rid, request);
-}
-
-void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_lookup(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
-}
-
-void fat_read(ipc_callid_t rid, ipc_call_t *request)
-{
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t pos =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
@@ -1078,14 +1035,10 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 
 	rc = fat_node_get(&fn, devmap_handle, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 	nodep = FAT_NODE(fn);
 
 	ipc_callid_t callid;
@@ -1093,8 +1046,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	if (!async_data_read_receive(&callid, &len)) {
 		fat_node_put(fn);
 		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
-		return;
+		return EINVAL;
 	}
 
 	bs = block_bb_get(devmap_handle);
@@ -1117,16 +1069,14 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			if (rc != EOK) {
 				fat_node_put(fn);
 				async_answer_0(callid, rc);
-				async_answer_0(rid, rc);
-				return;
+				return rc;
 			}
 			(void) async_data_read_finalize(callid,
 			    b->data + pos % BPS(bs), bytes);
 			rc = block_put(b);
 			if (rc != EOK) {
 				fat_node_put(fn);
-				async_answer_0(rid, rc);
-				return;
+				return rc;
 			}
 		}
 	} else {
@@ -1154,8 +1104,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 err:
 		(void) fat_node_put(fn);
 		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 
 miss:
 		rc = fat_directory_close(&di);
@@ -1163,8 +1112,8 @@ miss:
 			goto err;
 		rc = fat_node_put(fn);
 		async_answer_0(callid, rc != EOK ? rc : ENOENT);
-		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
-		return;
+		*rbytes = 0;
+		return rc != EOK ? rc : ENOENT;
 
 hit:
 		pos = di.pos;
@@ -1176,33 +1125,28 @@ hit:
 	}
 
 	rc = fat_node_put(fn);
-	async_answer_1(rid, rc, (sysarg_t)bytes);
+	*rbytes = bytes;
+	return rc;
 }
 
-void fat_write(ipc_callid_t rid, ipc_call_t *request)
+static int
+fat_write(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
+    size_t *wbytes, aoff64_t *nsize)
 {
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t pos =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
-	size_t bytes, size;
+	size_t bytes;
 	block_t *b;
 	aoff64_t boundary;
 	int flags = BLOCK_FLAGS_NONE;
 	int rc;
 
 	rc = fat_node_get(&fn, devmap_handle, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 	nodep = FAT_NODE(fn);
 
 	ipc_callid_t callid;
@@ -1210,8 +1154,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	if (!async_data_write_receive(&callid, &len)) {
 		(void) fat_node_put(fn);
 		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
-		return;
+		return EINVAL;
 	}
 
 	bs = block_bb_get(devmap_handle);
@@ -1239,15 +1182,13 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
 			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		rc = fat_block_get(&b, bs, nodep, pos / BPS(bs), flags);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
 			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		(void) async_data_write_finalize(callid,
 		    b->data + pos % BPS(bs), bytes);
@@ -1255,17 +1196,16 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		rc = block_put(b);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		if (pos + bytes > nodep->size) {
 			nodep->size = pos + bytes;
 			nodep->dirty = true;	/* need to sync node */
 		}
-		size = nodep->size;
+		*wbytes = bytes;
+		*nsize = nodep->size;
 		rc = fat_node_put(fn);
-		async_answer_2(rid, rc, bytes, nodep->size);
-		return;
+		return rc;
 	} else {
 		/*
 		 * This is the more difficult case. We must allocate new
@@ -1281,8 +1221,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			/* could not allocate a chain of nclsts clusters */
 			(void) fat_node_put(fn);
 			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		/* zero fill any gaps */
 		rc = fat_fill_gap(bs, nodep, mcl, pos);
@@ -1290,8 +1229,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
 			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		rc = _fat_block_get(&b, bs, devmap_handle, lcl, NULL,
 		    (pos / BPS(bs)) % SPC(bs), flags);
@@ -1299,8 +1237,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
 			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		(void) async_data_write_finalize(callid,
 		    b->data + pos % BPS(bs), bytes);
@@ -1309,8 +1246,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		/*
 		 * Append the cluster chain starting in mcl to the end of the
@@ -1320,37 +1256,29 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
-		nodep->size = size = pos + bytes;
-		nodep->dirty = true;		/* need to sync node */
+		*nsize = nodep->size = pos + bytes;
 		rc = fat_node_put(fn);
-		async_answer_2(rid, rc, bytes, size);
-		return;
+		nodep->dirty = true;		/* need to sync node */
+		*wbytes = bytes;
+		return rc;
 	}
 }
 
-void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
+static int
+fat_truncate(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t size)
 {
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t size =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
 	int rc;
 
 	rc = fat_node_get(&fn, devmap_handle, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 	nodep = FAT_NODE(fn);
 
 	bs = block_bb_get(devmap_handle);
@@ -1394,32 +1322,25 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 	}
 out:
 	fat_node_put(fn);
-	async_answer_0(rid, rc);
-	return;
+	return rc;
 }
 
-void fat_close(ipc_callid_t rid, ipc_call_t *request)
+static int fat_close(devmap_handle_t devmap_handle, fs_index_t index)
 {
-	async_answer_0(rid, EOK);
+	return EOK;
 }
 
-void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
+static int fat_destroy(devmap_handle_t devmap_handle, fs_index_t index)
 {
-	devmap_handle_t devmap_handle = (devmap_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	int rc;
 
 	rc = fat_node_get(&fn, devmap_handle, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 
 	nodep = FAT_NODE(fn);
 	/*
@@ -1429,34 +1350,17 @@ void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
 	assert(nodep->refcnt == 2);
 
 	rc = fat_destroy_node(fn);
-	async_answer_0(rid, rc);
+	return rc;
 }
 
-void fat_open_node(ipc_callid_t rid, ipc_call_t *request)
+static int fat_sync(devmap_handle_t devmap_handle, fs_index_t index)
 {
-	libfs_open_node(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
-}
-
-void fat_stat(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_stat(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
-}
-
-void fat_sync(ipc_callid_t rid, ipc_call_t *request)
-{
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-
 	fs_node_t *fn;
 	int rc = fat_node_get(&fn, devmap_handle, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 
 	fat_node_t *nodep = FAT_NODE(fn);
 
@@ -1464,8 +1368,19 @@ void fat_sync(ipc_callid_t rid, ipc_call_t *request)
 	rc = fat_node_sync(nodep);
 
 	fat_node_put(fn);
-	async_answer_0(rid, rc);
+	return rc;
 }
+
+vfs_out_ops_t fat_ops = {
+	.mounted = fat_mounted,
+	.unmounted = fat_unmounted,
+	.read = fat_read,
+	.write = fat_write,
+	.truncate = fat_truncate,
+	.close = fat_close,
+	.destroy = fat_destroy,
+	.sync = fat_sync,
+};
 
 /**
  * @}

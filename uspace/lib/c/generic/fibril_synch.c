@@ -147,8 +147,8 @@ static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 		awaiter_t *wdp;
 		fibril_t *f;
 	
-		assert(!list_empty(&fm->waiters));
-		tmp = fm->waiters.next;
+		tmp = list_first(&fm->waiters);
+		assert(tmp != NULL);
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
 		wdp->active = true;
 		wdp->wu_event.inlist = false;
@@ -278,7 +278,7 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 	frw->oi.owned_by = NULL;
 	
 	while (!list_empty(&frw->waiters)) {
-		link_t *tmp = frw->waiters.next;
+		link_t *tmp = list_first(&frw->waiters);
 		awaiter_t *wdp;
 		fibril_t *f;
 		
@@ -421,7 +421,7 @@ static void _fibril_condvar_wakeup_common(fibril_condvar_t *fcv, bool once)
 
 	futex_down(&async_futex);
 	while (!list_empty(&fcv->waiters)) {
-		tmp = fcv->waiters.next;
+		tmp = list_first(&fcv->waiters);
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
 		list_remove(&wdp->wu_event.link);
 		wdp->wu_event.inlist = false;

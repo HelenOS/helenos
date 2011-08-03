@@ -221,8 +221,7 @@
 	move $k0, $sp
 	
 	/* move $k0 pointer to kernel stack */
-	lui $k0, %hi(supervisor_sp)
-	ori $k0, $k0, %lo(supervisor_sp)
+	la $k0, supervisor_sp
 	
 	/* move $k0 (supervisor_sp) */
 	lw $k0, ($k0)

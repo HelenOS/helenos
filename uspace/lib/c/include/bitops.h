@@ -37,6 +37,21 @@
 
 #include <sys/types.h>
 
+/** Mask with bit @a n set. */
+#define BIT_V(type, n) \
+    ((type)1 << ((n) - 1))
+
+/** Mask with rightmost @a n bits set. */
+#define BIT_RRANGE(type, n) \
+    (BIT_V(type, (n) + 1) - 1)
+
+/** Mask with bits @a hi .. @a lo set. @a hi >= @a lo. */
+#define BIT_RANGE(type, hi, lo) \
+    (BIT_RRANGE(type, (hi) - (lo) + 1) << (lo))
+
+/** Extract range of bits @a hi .. @a lo from @a value. */
+#define BIT_RANGE_EXTRACT(type, hi, lo, value) \
+    (((value) >> (lo)) & BIT_RRANGE(type, (hi) - (lo) + 1))
 
 /** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
  *

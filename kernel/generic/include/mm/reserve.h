@@ -37,6 +37,7 @@
 
 #include <typedefs.h>
 
+extern void reserve_init(void);
 extern bool reserve_try_alloc(size_t);
 extern void reserve_force_alloc(size_t);
 extern void reserve_free(size_t);

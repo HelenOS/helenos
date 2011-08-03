@@ -47,15 +47,11 @@
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <security/cap.h>
-#include <lib/elf.h>
+#include <lib/elf_load.h>
 #include <errno.h>
 #include <print.h>
 #include <syscall/copy.h>
 #include <proc/program.h>
-
-#ifndef LOADED_PROG_STACK_PAGES_NO
-#define LOADED_PROG_STACK_PAGES_NO 1
-#endif
 
 /**
  * Points to the binary image used as the program loader. All non-initial
@@ -89,12 +85,12 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 		return ELIMIT;
 	
 	/*
-	 * Create the data address space area.
+	 * Create the stack address space area.
 	 */
 	as_area_t *area = as_area_create(as,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
-	    LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
-	    AS_AREA_ATTR_NONE, &anon_backend, NULL);
+	    STACK_SIZE, USTACK_ADDRESS, AS_AREA_ATTR_NONE,
+	    &anon_backend, NULL);
 	if (!area)
 		return ENOMEM;
 	

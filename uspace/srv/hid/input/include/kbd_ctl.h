@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2011 Jiri Svoboda
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup inputgen generic
+ * @brief Keyboard controller driver interface.
+ * @ingroup input
+ * @{
+ */
+/** @file
+ */
+
+#ifndef KBD_CTL_H_
+#define KBD_CTL_H_
+
+#include <kbd_port.h>
+
+struct kbd_dev;
+
+typedef struct kbd_ctl_ops {
+	void (*parse)(sysarg_t);
+	int (*init)(struct kbd_dev *);
+	void (*set_ind)(struct kbd_dev *, unsigned int);
+} kbd_ctl_ops_t;
+
+extern kbd_ctl_ops_t apple_ctl;
+extern kbd_ctl_ops_t gxe_fb_ctl;
+extern kbd_ctl_ops_t kbdev_ctl;
+extern kbd_ctl_ops_t pc_ctl;
+extern kbd_ctl_ops_t stty_ctl;
+extern kbd_ctl_ops_t sun_ctl;
+
+#endif
+
+/**
+ * @}
+ */

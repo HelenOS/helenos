@@ -118,7 +118,7 @@ sysarg_t sys_futex_sleep(uintptr_t uaddr)
 	 * Find physical address of futex counter.
 	 */
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
+	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), false);
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
 		return (sysarg_t) ENOENT;
@@ -154,7 +154,7 @@ sysarg_t sys_futex_wakeup(uintptr_t uaddr)
 	 * Find physical address of futex counter.
 	 */
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
+	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), false);
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
 		return (sysarg_t) ENOENT;
@@ -271,13 +271,10 @@ void futex_ht_remove_callback(link_t *item)
 /** Remove references from futexes known to the current task. */
 void futex_cleanup(void)
 {
-	link_t *cur;
-	
 	mutex_lock(&futex_ht_lock);
 	mutex_lock(&TASK->futexes_lock);
 
-	for (cur = TASK->futexes.leaf_head.next;
-	    cur != &TASK->futexes.leaf_head; cur = cur->next) {
+	list_foreach(TASK->futexes.leaf_list, cur) {
 		btree_node_t *node;
 		unsigned int i;
 		

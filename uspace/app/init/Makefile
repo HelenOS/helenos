@@ -29,6 +29,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = init
+STATIC_NEEDED = y
 
 SOURCES = \
 	init.c

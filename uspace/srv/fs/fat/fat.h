@@ -226,22 +226,8 @@ typedef struct fat_node {
 	fat_cluster_t	currc_cached_value;
 } fat_node_t;
 
-extern fs_reg_t fat_reg;
-
-extern void fat_mounted(ipc_callid_t, ipc_call_t *);
-extern void fat_mount(ipc_callid_t, ipc_call_t *);
-extern void fat_unmounted(ipc_callid_t, ipc_call_t *);
-extern void fat_unmount(ipc_callid_t, ipc_call_t *);
-extern void fat_lookup(ipc_callid_t, ipc_call_t *);
-extern void fat_read(ipc_callid_t, ipc_call_t *);
-extern void fat_write(ipc_callid_t, ipc_call_t *);
-extern void fat_truncate(ipc_callid_t, ipc_call_t *);
-extern void fat_stat(ipc_callid_t, ipc_call_t *);
-extern void fat_close(ipc_callid_t, ipc_call_t *);
-extern void fat_destroy(ipc_callid_t, ipc_call_t *);
-extern void fat_open_node(ipc_callid_t, ipc_call_t *);
-extern void fat_stat(ipc_callid_t, ipc_call_t *);
-extern void fat_sync(ipc_callid_t, ipc_call_t *);
+extern vfs_out_ops_t fat_ops;
+extern libfs_ops_t fat_libfs_ops;
 
 extern int fat_idx_get_new(fat_idx_t **, devmap_handle_t);
 extern fat_idx_t *fat_idx_get_by_pos(devmap_handle_t, fat_cluster_t, unsigned);

@@ -39,18 +39,23 @@
 #include <async.h>
 #include <bool.h>
 
-extern int devmap_get_phone(devmap_interface_t, unsigned int);
-extern void devmap_hangup_phone(devmap_interface_t iface);
+extern async_exch_t *devmap_exchange_begin_blocking(devmap_interface_t);
+extern async_exch_t *devmap_exchange_begin(devmap_interface_t);
+extern void devmap_exchange_end(async_exch_t *);
 
 extern int devmap_driver_register(const char *, async_client_conn_t);
 extern int devmap_device_register(const char *, devmap_handle_t *);
-extern int devmap_device_register_with_iface(const char *, devmap_handle_t *, sysarg_t);
+extern int devmap_device_register_with_iface(const char *, devmap_handle_t *,
+    sysarg_t);
 
-extern int devmap_device_get_handle(const char *, devmap_handle_t *, unsigned int);
-extern int devmap_namespace_get_handle(const char *, devmap_handle_t *, unsigned int);
+extern int devmap_device_get_handle(const char *, devmap_handle_t *,
+    unsigned int);
+extern int devmap_namespace_get_handle(const char *, devmap_handle_t *,
+    unsigned int);
 extern devmap_handle_type_t devmap_handle_probe(devmap_handle_t);
 
-extern int devmap_device_connect(devmap_handle_t, unsigned int);
+extern async_sess_t *devmap_device_connect(exch_mgmt_t, devmap_handle_t,
+    unsigned int);
 
 extern int devmap_null_create(void);
 extern void devmap_null_destroy(int);

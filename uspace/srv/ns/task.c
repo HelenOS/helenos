@@ -188,7 +188,7 @@ typedef struct {
 	ipc_callid_t callid;  /**< Call ID waiting for the connection */
 } pending_wait_t;
 
-static link_t pending_wait;
+static list_t pending_wait;
 
 int task_init(void)
 {
@@ -211,11 +211,10 @@ int task_init(void)
 /** Process pending wait requests */
 void process_pending_wait(void)
 {
-	link_t *cur;
 	task_exit_t texit;
 	
 loop:
-	for (cur = pending_wait.next; cur != &pending_wait; cur = cur->next) {
+	list_foreach(pending_wait, cur) {
 		pending_wait_t *pr = list_get_instance(cur, pending_wait_t, link);
 		
 		unsigned long keys[2] = {

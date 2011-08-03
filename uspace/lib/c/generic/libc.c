@@ -48,9 +48,12 @@
 #include <loader/pcb.h>
 #include "private/libc.h"
 #include "private/async.h"
-#include "private/async_sess.h"
 #include "private/malloc.h"
 #include "private/io.h"
+
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
 
 static bool env_setup = false;
 
@@ -59,7 +62,6 @@ void __main(void *pcb_ptr)
 	/* Initialize user task run-time environment */
 	__malloc_init();
 	__async_init();
-	__async_sess_init();
 	
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)
@@ -76,6 +78,11 @@ void __main(void *pcb_ptr)
 	int argc;
 	char **argv;
 	
+#ifdef __IN_SHARED_LIBC__
+	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
+		runtime_env = (runtime_env_t *) __pcb->rtld_runtime;
+	}
+#endif
 	/*
 	 * Get command line arguments and initialize
 	 * standard input and output

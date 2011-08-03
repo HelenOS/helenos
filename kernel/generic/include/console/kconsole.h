@@ -90,7 +90,7 @@ extern bool kconsole_notify;
 extern irq_t kconsole_irq;
 
 SPINLOCK_EXTERN(cmd_lock);
-extern link_t cmd_head;
+extern list_t cmd_list;
 
 extern void kconsole_init(void);
 extern void kconsole_notify_init(void);

@@ -38,87 +38,86 @@
 #include <task.h>
 #include <unistd.h>
 #include <errno.h>
-
-#include <ipc/services.h>
-
 #include <net/modules.h>
-
 #include <adt/generic_char_map.h>
 #include <adt/module_map.h>
 
 GENERIC_CHAR_MAP_IMPLEMENT(modules, module_t)
 
-/** Adds module to the module map.
+/** Add module to the module map.
  *
- * @param[out] module	The module structure added.
- * @param[in] modules	The module map.
- * @param[in] name	The module name.
- * @param[in] filename	The full path filename.
- * @param[in] service	The module service.
- * @param[in] task_id	The module current task identifier. Zero means not
- *			running.
- * @param[in] connect_module The module connecting function.
- * @return		EOK on success.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[out] module         Module structure added.
+ * @param[in]  modules        Module map.
+ * @param[in]  name           Module name.
+ * @param[in]  filename       Full path filename.
+ * @param[in]  service        Module service.
+ * @param[in]  task_id        Module current task identifier.
+ *                            Zero means not running.
+ * @param[in]  connect_module Module connecting function.
+ *
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int
-add_module(module_t **module, modules_t *modules, const uint8_t *name,
+int add_module(module_t **module, modules_t *modules, const uint8_t *name,
     const uint8_t *filename, services_t service, task_id_t task_id,
     connect_module_t connect_module)
 {
 	module_t *tmp_module;
 	int rc;
-
+	
 	tmp_module = (module_t *) malloc(sizeof(module_t));
 	if (!tmp_module)
 		return ENOMEM;
-
+	
 	tmp_module->task_id = task_id;
-	tmp_module->phone = 0;
+	tmp_module->sess = NULL;
 	tmp_module->usage = 0;
 	tmp_module->name = name;
 	tmp_module->filename = filename;
 	tmp_module->service = service;
 	tmp_module->connect_module = connect_module;
-
+	
 	rc = modules_add(modules, tmp_module->name, 0, tmp_module);
 	if (rc != EOK) {
 		free(tmp_module);
 		return rc;
 	}
+	
 	if (module)
 		*module = tmp_module;
-
+	
 	return EOK;
 }
 
-/** Searches and returns the specified module.
+/** Search and return the specified module.
  *
  * If the module is not running, the module filaname is spawned.
  * If the module is not connected, the connect_function is called.
  *
- * @param[in] modules	The module map.
- * @param[in] name	The module name.
- * @return		The running module found. It does not have to be
- *			connected.
- * @return		NULL if there is no such module.
+ * @param[in] modules Module map.
+ * @param[in] name    Module name.
+ *
+ * @return The running module found. It does not have to be
+ *         connected.
+ * @return NULL if there is no such module.
+ *
  */
 module_t *get_running_module(modules_t *modules, uint8_t *name)
 {
-	module_t *module;
-
-	module = modules_find(modules, name, 0);
+	module_t *module = modules_find(modules, name, 0);
 	if (!module)
 		return NULL;
-
+	
 	if (!module->task_id) {
 		module->task_id = net_spawn(module->filename);
 		if (!module->task_id)
 			return NULL;
 	}
-	if (!module->phone)
-		module->phone = module->connect_module(module->service);
-
+	
+	if (!module->sess)
+		module->sess = module->connect_module(module->service);
+	
 	return module;
 }
 

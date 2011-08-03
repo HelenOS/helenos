@@ -35,7 +35,12 @@
 #ifndef ELF_CORE_H_
 #define ELF_CORE_H_
 
-int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n, int phoneid);
+#include <async.h>
+#include <elf/elf_linux.h>
+#include <libarch/istate.h>
+
+extern int elf_core_save(const char *, as_area_info_t *, unsigned int,
+    async_sess_t *, istate_t *);
 
 #endif
 

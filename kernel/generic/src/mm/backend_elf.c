@@ -138,7 +138,7 @@ void elf_share(as_area_t *area)
 	 * Find the node in which to start linear search.
 	 */
 	if (area->flags & AS_AREA_WRITE) {
-		node = list_get_instance(area->used_space.leaf_head.next,
+		node = list_get_instance(list_first(&area->used_space.leaf_list),
 		    btree_node_t, leaf_link);
 	} else {
 		(void) btree_search(&area->sh_info->pagemap, start_anon, &leaf);
@@ -152,7 +152,7 @@ void elf_share(as_area_t *area)
 	 * Copy used anonymous portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	for (cur = &node->leaf_link; cur != &area->used_space.leaf_head;
+	for (cur = &node->leaf_link; cur != &area->used_space.leaf_list.head;
 	    cur = cur->next) {
 		unsigned int i;
 		
@@ -169,7 +169,7 @@ void elf_share(as_area_t *area)
 			 */
 			if (!(area->flags & AS_AREA_WRITE))
 				if (base >= entry->p_vaddr &&
-				    base + count * PAGE_SIZE <= start_anon)
+				    base + P2SZ(count) <= start_anon)
 					continue;
 			
 			for (j = 0; j < count; j++) {
@@ -181,17 +181,16 @@ void elf_share(as_area_t *area)
 				 */
 				if (!(area->flags & AS_AREA_WRITE))
 					if (base >= entry->p_vaddr &&
-					    base + (j + 1) * PAGE_SIZE <=
-					    start_anon)
+					    base + P2SZ(j + 1) <= start_anon)
 						continue;
 				
 				page_table_lock(area->as, false);
 				pte = page_mapping_find(area->as,
-				    base + j * PAGE_SIZE);
+				    base + P2SZ(j), false);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
 				btree_insert(&area->sh_info->pagemap,
-				    (base + j * PAGE_SIZE) - area->base,
+				    (base + P2SZ(j)) - area->base,
 				    (void *) PTE_GET_FRAME(pte), NULL);
 				page_table_unlock(area->as, false);
 

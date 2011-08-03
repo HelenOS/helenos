@@ -31,6 +31,7 @@ USPACE_PREFIX = ../../..
 LIBS = $(LIBFS_PREFIX)/libfs.a
 EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
 BINARY = devfs
+STATIC_NEEDED = y
 
 SOURCES = \
 	devfs.c \

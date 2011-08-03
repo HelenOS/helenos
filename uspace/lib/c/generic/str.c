@@ -552,7 +552,73 @@ void str_append(char *dest, size_t size, const char *src)
 	size_t dstr_size;
 
 	dstr_size = str_size(dest);
+	if (dstr_size >= size)
+		return;
+	
 	str_cpy(dest + dstr_size, size - dstr_size, src);
+}
+
+/** Convert space-padded ASCII to string.
+ *
+ * Common legacy text encoding in hardware is 7-bit ASCII fitted into
+ * a fixed-with byte buffer (bit 7 always zero), right-padded with spaces
+ * (ASCII 0x20). Convert space-padded ascii to string representation.
+ *
+ * If the text does not fit into the destination buffer, the function converts
+ * as many characters as possible and returns EOVERFLOW.
+ *
+ * If the text contains non-ASCII bytes (with bit 7 set), the whole string is
+ * converted anyway and invalid characters are replaced with question marks
+ * (U_SPECIAL) and the function returns EIO.
+ *
+ * Regardless of return value upon return @a dest will always be well-formed.
+ *
+ * @param dest		Destination buffer
+ * @param size		Size of destination buffer
+ * @param src		Space-padded ASCII.
+ * @param n		Size of the source buffer in bytes.
+ *
+ * @return		EOK on success, EOVERFLOW if the text does not fit
+ *			destination buffer, EIO if the text contains
+ *			non-ASCII bytes.
+ */
+int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n)
+{
+	size_t sidx;
+	size_t didx;
+	size_t dlast;
+	uint8_t byte;
+	int rc;
+	int result;
+
+	/* There must be space for a null terminator in the buffer. */
+	assert(size > 0);
+	result = EOK;
+
+	didx = 0;
+	dlast = 0;
+	for (sidx = 0; sidx < n; ++sidx) {
+		byte = src[sidx];
+		if (!ascii_check(byte)) {
+			byte = U_SPECIAL;
+			result = EIO;
+		}
+
+		rc = chr_encode(byte, dest, &didx, size - 1);
+		if (rc != EOK) {
+			assert(rc == EOVERFLOW);
+			dest[didx] = '\0';
+			return rc;
+		}
+
+		/* Remember dest index after last non-empty character */
+		if (byte != 0x20)
+			dlast = didx;
+	}
+
+	/* Terminate string after last non-empty character */
+	dest[dlast] = '\0';
+	return result;
 }
 
 /** Convert wide string to string.

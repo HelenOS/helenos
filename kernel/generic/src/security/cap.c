@@ -91,7 +91,7 @@ static sysarg_t cap_grant(task_id_t taskid, cap_t caps)
 	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
 	
-	if ((!task) || (!context_check(CONTEXT, task->context))) {
+	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return (sysarg_t) ENOENT;
 	}
@@ -120,7 +120,7 @@ static sysarg_t cap_revoke(task_id_t taskid, cap_t caps)
 	irq_spinlock_lock(&tasks_lock, true);
 	
 	task_t *task = task_find_by_id(taskid);
-	if ((!task) || (!context_check(CONTEXT, task->context))) {
+	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return (sysarg_t) ENOENT;
 	}

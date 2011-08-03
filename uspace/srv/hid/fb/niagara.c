@@ -28,7 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup niagarafb SGCN
+/** @defgroup niagarafb
  * @brief	userland driver of the Niagara console output
  * @{
  */ 

@@ -40,7 +40,7 @@
 
 #include <stdio.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include <task.h>
@@ -56,89 +56,30 @@ static vfs_info_t devfs_vfs_info = {
 	.write_retains_size = false,
 };
 
-fs_reg_t devfs_reg;
-
-static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	if (iid)
-		async_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		switch  (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			return;
-		case VFS_OUT_MOUNTED:
-			devfs_mounted(callid, &call);
-			break;
-		case VFS_OUT_MOUNT:
-			devfs_mount(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNTED:
-			devfs_unmounted(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNT:
-			devfs_unmount(callid, &call);
-			break;
-		case VFS_OUT_LOOKUP:
-			devfs_lookup(callid, &call);
-			break;
-		case VFS_OUT_OPEN_NODE:
-			devfs_open_node(callid, &call);
-			break;
-		case VFS_OUT_STAT:
-			devfs_stat(callid, &call);
-			break;
-		case VFS_OUT_READ:
-			devfs_read(callid, &call);
-			break;
-		case VFS_OUT_WRITE:
-			devfs_write(callid, &call);
-			break;
-		case VFS_OUT_TRUNCATE:
-			devfs_truncate(callid, &call);
-			break;
-		case VFS_OUT_CLOSE:
-			devfs_close(callid, &call);
-			break;
-		case VFS_OUT_SYNC:
-			devfs_sync(callid, &call);
-			break;
-		case VFS_OUT_DESTROY:
-			devfs_destroy(callid, &call);
-			break;
-		default:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS Device Filesystem\n");
+	printf("%s: HelenOS Device Filesystem\n", NAME);
 	
 	if (!devfs_init()) {
-		printf(NAME ": failed to initialize devfs\n");
+		printf("%s: failed to initialize devfs\n", NAME);
 		return -1;
 	}
 	
-	int vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
-	if (vfs_phone < EOK) {
-		printf(NAME ": Unable to connect to VFS\n");
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
+		printf("%s: Unable to connect to VFS\n", NAME);
 		return -1;
 	}
 	
-	int rc = fs_register(vfs_phone, &devfs_reg, &devfs_vfs_info,
-	    devfs_connection);
+	int rc = fs_register(vfs_sess, &devfs_vfs_info, &devfs_ops,
+	    &devfs_libfs_ops);
 	if (rc != EOK) {
-		printf(NAME ": Failed to register file system (%d)\n", rc);
+		printf("%s: Failed to register file system (%d)\n", NAME, rc);
 		return rc;
 	}
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
 	
@@ -149,3 +90,4 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
+

@@ -53,10 +53,12 @@ SOURCES = \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \
 	cmds/builtin_cmds.c \
+	compl.c \
 	errors.c \
 	input.c \
 	util.c \
 	exec.c \
-	scli.c
+	scli.c \
+	tok.c
 
 include $(USPACE_PREFIX)/Makefile.common

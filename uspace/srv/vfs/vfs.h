@@ -52,7 +52,7 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
-	async_sess_t session;
+	async_sess_t *sess;
 } fs_info_t;
 
 /**
@@ -144,9 +144,9 @@ typedef struct {
 
 extern fibril_mutex_t nodes_mutex;
 
-extern fibril_condvar_t fs_head_cv;
-extern fibril_mutex_t fs_head_lock;
-extern link_t fs_head;		/**< List of registered file systems. */
+extern fibril_condvar_t fs_list_cv;
+extern fibril_mutex_t fs_list_lock;
+extern list_t fs_list;		/**< List of registered file systems. */
 
 extern vfs_pair_t rootfs;	/**< Root file system. */
 
@@ -157,17 +157,17 @@ typedef struct {
 	size_t len;		/**< Number of characters in this PLB entry. */
 } plb_entry_t;
 
-extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_head. */
+extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_entries. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
-extern link_t plb_head;		/**< List of active PLB entries. */
+extern list_t plb_entries;	/**< List of active PLB entries. */
 
 #define MAX_MNTOPTS_LEN		256
 
 /** Holding this rwlock prevents changes in file system namespace. */ 
 extern fibril_rwlock_t namespace_rwlock;
 
-extern int vfs_grab_phone(fs_handle_t);
-extern void vfs_release_phone(fs_handle_t, int);
+extern async_exch_t *vfs_exchange_grab(fs_handle_t);
+extern void vfs_exchange_release(async_exch_t *);
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
@@ -175,7 +175,6 @@ extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
 extern int vfs_open_node_internal(vfs_lookup_res_t *);
-extern int vfs_close_internal(vfs_file_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);

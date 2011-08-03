@@ -41,14 +41,17 @@
 #include <devmap.h>
 #include <ipc/char.h>
 #include <async.h>
+#include <async_obsolete.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysinfo.h>
 #include <errno.h>
 #include <inttypes.h>
-
 #include "s3c24xx_uart.h"
+
+// FIXME: remove this header
+#include <kernel/ipc/ipc_methods.h>
 
 #define NAME "s3c24ser"
 #define NAMESPACE "char"
@@ -67,7 +70,8 @@ static irq_code_t uart_irq_code = {
 /** S3C24xx UART instance structure */
 static s3c24xx_uart_t *uart;
 
-static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
 static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static int s3c24xx_uart_init(s3c24xx_uart_t *uart);
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte);
@@ -109,7 +113,8 @@ int main(int argc, char *argv[])
 }
 
 /** Character device connection handler. */
-static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -122,11 +127,14 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case IPC_M_CONNECT_TO_ME:
 			printf(NAME ": creating callback connection\n");
 			uart->client_phone = IPC_GET_ARG5(call);
@@ -155,7 +163,7 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 		uint32_t status = pio_read_32(&uart->io->uerstat);
 
 		if (uart->client_phone != -1) {
-			async_msg_1(uart->client_phone, CHAR_NOTIF_BYTE,
+			async_obsolete_msg_1(uart->client_phone, CHAR_NOTIF_BYTE,
 			    data);
 		}
 

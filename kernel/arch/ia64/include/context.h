@@ -48,13 +48,13 @@
  */
 #define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
-/* RSE stack starts at the bottom of memory stack. */
+/* RSE stack starts at the bottom of memory stack, hence the division by 2. */
 #define context_set(c, _pc, stack, size)								\
 	do {												\
 		(c)->pc = (uintptr_t) _pc;								\
-		(c)->bsp = ((uintptr_t) stack) + ALIGN_UP((size), REGISTER_STACK_ALIGNMENT);		\
+		(c)->bsp = ((uintptr_t) stack) + ALIGN_UP((size / 2), REGISTER_STACK_ALIGNMENT);	\
 		(c)->ar_pfs &= PFM_MASK; 								\
-		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), STACK_ALIGNMENT) - SP_DELTA;		\
+		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size / 2), STACK_ALIGNMENT) - SP_DELTA;	\
 	} while (0);
 
 /*

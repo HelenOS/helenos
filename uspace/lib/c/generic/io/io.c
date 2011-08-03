@@ -43,9 +43,11 @@
 #include <async.h>
 #include <io/klog.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_sess.h>
 #include <ipc/devmap.h>
 #include <adt/list.h>
 #include "../private/io.h"
+#include "../private/stdio.h"
 
 static void _ffillbuf(FILE *stream);
 static void _fflushbuf(FILE *stream);
@@ -55,7 +57,7 @@ static FILE stdin_null = {
 	.error = true,
 	.eof = true,
 	.klog = false,
-	.phone = -1,
+	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
 	.buf_size = 0,
@@ -69,7 +71,7 @@ static FILE stdout_klog = {
 	.error = false,
 	.eof = false,
 	.klog = true,
-	.phone = -1,
+	.sess = NULL,
 	.btype = _IOLBF,
 	.buf = NULL,
 	.buf_size = BUFSIZ,
@@ -83,7 +85,7 @@ static FILE stderr_klog = {
 	.error = false,
 	.eof = false,
 	.klog = true,
-	.phone = -1,
+	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
 	.buf_size = 0,
@@ -124,12 +126,9 @@ void __stdio_init(int filc, fdi_node_t *filv[])
 
 void __stdio_done(void)
 {
-	link_t *link = files.next;
-	
-	while (link != &files) {
-		FILE *file = list_get_instance(link, FILE, link);
+	while (!list_empty(&files)) {
+		FILE *file = list_get_instance(list_first(&files), FILE, link);
 		fclose(file);
-		link = files.next;
 	}
 }
 
@@ -254,7 +253,7 @@ FILE *fopen(const char *path, const char *mode)
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
-	stream->phone = -1;
+	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
 	
@@ -276,7 +275,7 @@ FILE *fdopen(int fd, const char *mode)
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
-	stream->phone = -1;
+	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
 	
@@ -308,7 +307,7 @@ FILE *fopen_node(fdi_node_t *node, const char *mode)
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
-	stream->phone = -1;
+	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
 	
@@ -323,8 +322,8 @@ int fclose(FILE *stream)
 	
 	fflush(stream);
 	
-	if (stream->phone >= 0)
-		async_hangup(stream->phone);
+	if (stream->sess != NULL)
+		async_hangup(stream->sess);
 	
 	if (stream->fd >= 0)
 		rc = close(stream->fd);
@@ -594,11 +593,12 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 				need_flush = true;
 		}
 		
-		buf += now;
+		data += now;
 		stream->buf_head += now;
 		buf_free -= now;
 		bytes_left -= now;
 		total_written += now;
+		stream->buf_state = _bs_write;
 		
 		if (buf_free == 0) {
 			/* Only need to drain buffer. */
@@ -606,9 +606,6 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 			need_flush = false;
 		}
 	}
-	
-	if (total_written > 0)
-		stream->buf_state = _bs_write;
 
 	if (need_flush)
 		fflush(stream);
@@ -714,6 +711,7 @@ int fseek(FILE *stream, off64_t offset, int whence)
 
 off64_t ftell(FILE *stream)
 {
+	_fflushbuf(stream);
 	return lseek(stream->fd, 0, SEEK_CUR);
 }
 
@@ -731,7 +729,7 @@ int fflush(FILE *stream)
 		return EOK;
 	}
 	
-	if (stream->fd >= 0 && stream->need_sync) {
+	if ((stream->fd >= 0) && (stream->need_sync)) {
 		/**
 		 * Better than syncing always, but probably still not the
 		 * right thing to do.
@@ -769,16 +767,16 @@ int fileno(FILE *stream)
 	return stream->fd;
 }
 
-int fphone(FILE *stream)
+async_sess_t *fsession(exch_mgmt_t mgmt, FILE *stream)
 {
 	if (stream->fd >= 0) {
-		if (stream->phone < 0)
-			stream->phone = fd_phone(stream->fd);
+		if (stream->sess == NULL)
+			stream->sess = fd_session(mgmt, stream->fd);
 		
-		return stream->phone;
+		return stream->sess;
 	}
 	
-	return -1;
+	return NULL;
 }
 
 int fnode(FILE *stream, fdi_node_t *node)

@@ -90,17 +90,6 @@ void free_not_null(const void *ptr)
 		free(ptr);
 }
 
-char *clone_string(const char *s)
-{
-	size_t size = str_size(s) + 1;
-	char *str;
-	
-	str = (char *) malloc(size);
-	if (str != NULL)
-		str_cpy(str, size, s);
-	return str;
-}
-
 void replace_char(char *str, char orig, char repl)
 {
 	while (*str) {
@@ -108,33 +97,6 @@ void replace_char(char *str, char orig, char repl)
 			*str = repl;
 		str++;
 	}
-}
-
-ssize_t safe_read(int fd, void *buffer, size_t size)
-{
-	if (size == 0) {
-		return 0;
-	}
-
-	uint8_t *buf_ptr = (uint8_t *) buffer;
-
-	size_t total_read = 0;
-	while (total_read < size) {
-		ssize_t bytes_read = read(fd, buf_ptr, size - total_read);
-		if (bytes_read < 0) {
-			/* Error. */
-			return bytes_read;
-		} else if (bytes_read == 0) {
-			/* Possibly end of file. */
-			break;
-		} else {
-			/* Read at least something. */
-			buf_ptr += bytes_read;
-			total_read += bytes_read;
-		}
-	}
-
-	return (ssize_t) total_read;
 }
 
 /** @}

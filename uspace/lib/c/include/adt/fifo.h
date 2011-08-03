@@ -50,12 +50,12 @@
 typedef unsigned long fifo_count_t;
 typedef unsigned long fifo_index_t;
 
-#define FIFO_CREATE_STATIC(name, t, itms)		\
-	struct {					\
-		t fifo[(itms)];				\
-		fifo_count_t items;			\
-		fifo_index_t head;			\
-		fifo_index_t tail;			\
+#define FIFO_CREATE_STATIC(name, t, itms) \
+	struct { \
+		t fifo[(itms)]; \
+		fifo_count_t items; \
+		fifo_index_t head; \
+		fifo_index_t tail; \
 	} name
 
 /** Create and initialize static FIFO.

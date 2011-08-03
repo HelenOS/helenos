@@ -37,29 +37,27 @@
 #ifndef LIBC_SERVICES_H_
 #define LIBC_SERVICES_H_
 
+#include <fourcc.h>
+
 typedef enum {
-	SERVICE_NONE = 0,
-	SERVICE_LOAD,
-	SERVICE_PCI,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_VFS,
-	SERVICE_DEVMAP,
-	SERVICE_DEVMAN,
-	SERVICE_IRC,
-	SERVICE_CLIPBOARD,
-	SERVICE_NETWORKING,
-	SERVICE_LO,
-	SERVICE_NE2000,
-	SERVICE_ETHERNET,
-	SERVICE_NILDUMMY,
-	SERVICE_IP,
-	SERVICE_ARP,
-	SERVICE_RARP,
-	SERVICE_ICMP,
-	SERVICE_UDP,
-	SERVICE_TCP,
-	SERVICE_SOCKET
+	SERVICE_NONE       = 0,
+	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
+	SERVICE_VIDEO      = FOURCC('v', 'i', 'd', ' '),
+	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
+	SERVICE_DEVMAP     = FOURCC('d', 'e', 'v', 'p'),
+	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
+	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
+	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
+	SERVICE_NETWORKING = FOURCC('n', 'e', 't', ' '),
+	SERVICE_LO         = FOURCC('l', 'o', ' ', ' '),
+	SERVICE_NE2000     = FOURCC('n', 'e', '2', 'k'),
+	SERVICE_ETHERNET   = FOURCC('e', 't', 'h', ' '),
+	SERVICE_NILDUMMY   = FOURCC('n', 'i', 'l', 'd'),
+	SERVICE_IP         = FOURCC('i', 'p', 'v', '4'),
+	SERVICE_ARP        = FOURCC('a', 'r', 'p', ' '),
+	SERVICE_ICMP       = FOURCC('i', 'c', 'm', 'p'),
+	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
+	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
 } services_t;
 
 #endif

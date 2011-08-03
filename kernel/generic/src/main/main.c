@@ -70,6 +70,7 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/slab.h>
+#include <mm/reserve.h>
 #include <synch/waitq.h>
 #include <synch/futex.h>
 #include <arch/arch.h>
@@ -116,8 +117,6 @@ static void main_bsp_separated_stack(void);
 static void main_ap_separated_stack(void);
 #endif
 
-#define CONFIG_STACK_SIZE  ((1 << STACK_FRAMES) * STACK_SIZE)
-
 /** Main kernel routine for bootstrap CPU.
  *
  * The code here still runs on the boot stack, which knows nothing about
@@ -137,7 +136,7 @@ NO_TRACE void main_bsp(void)
 	config.base = hardcoded_load_address;
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size +
 	    hardcoded_kdata_size, PAGE_SIZE);
-	config.stack_size = CONFIG_STACK_SIZE;
+	config.stack_size = STACK_SIZE;
 	
 	/* Initialy the stack is placed just after the kernel */
 	config.stack_base = config.base + config.kernel_size;
@@ -163,8 +162,8 @@ NO_TRACE void main_bsp(void)
 		config.stack_base = ALIGN_UP(stack_safe, PAGE_SIZE);
 	
 	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack), config.stack_base,
-	    THREAD_STACK_SIZE);
+	context_set(&ctx, FADDR(main_bsp_separated_stack),
+	    config.stack_base, STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }
@@ -216,6 +215,7 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	ddi_init();
 	arch_post_mm_init();
+	reserve_init();
 	arch_pre_smp_init();
 	smp_init();
 	
@@ -320,7 +320,7 @@ void main_ap(void)
 	 */
 	context_save(&CPU->saved_context);
 	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack),
-	    (uintptr_t) CPU->stack, CPU_STACK_SIZE);
+	    (uintptr_t) CPU->stack, STACK_SIZE);
 	context_restore(&CPU->saved_context);
 	/* not reached */
 }

@@ -269,9 +269,10 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = safe_read(fd, buf, len);
+	ssize_t read_bytes = read_all(fd, buf, len);
 	if (read_bytes <= 0) {
-		log_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
+		log_msg(LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
+		    read_bytes);
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;
@@ -420,9 +421,9 @@ bool create_root_nodes(dev_tree_t *tree)
 		return false;
 	}
 	
-	insert_fun_node(tree, fun, clone_string(""), NULL);
+	insert_fun_node(tree, fun, str_dup(""), NULL);
 	match_id_t *id = create_match_id();
-	id->id = clone_string("root");
+	id->id = str_dup("root");
 	id->score = 100;
 	add_match_id(&fun->match_ids, id);
 	tree->root_node = fun;
@@ -465,15 +466,13 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 	
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
 	
-	link_t *link = drivers_list->drivers.next;
-	while (link != &drivers_list->drivers) {
+	list_foreach(drivers_list->drivers, link) {
 		drv = list_get_instance(link, driver_t, drivers);
 		score = get_match_score(drv, node);
 		if (score > best_score) {
 			best_score = score;
 			best_drv = drv;
 		}
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
@@ -535,19 +534,15 @@ driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
 {
 	driver_t *res = NULL;
 	driver_t *drv = NULL;
-	link_t *link;
 	
 	fibril_mutex_lock(&drv_list->drivers_mutex);
 	
-	link = drv_list->drivers.next;
-	while (link != &drv_list->drivers) {
+	list_foreach(drv_list->drivers, link) {
 		drv = list_get_instance(link, driver_t, drivers);
 		if (str_cmp(drv->name, drv_name) == 0) {
 			res = drv;
 			break;
 		}
-
-		link = link->next;
 	}
 	
 	fibril_mutex_unlock(&drv_list->drivers_mutex);
@@ -563,16 +558,18 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 {
 	dev_node_t *dev;
 	link_t *link;
-	int phone;
 
 	log_msg(LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
 	    driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
+	
+	async_exch_t *exch = async_exchange_begin(driver->sess);
+	async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE, exch,
+	    DRIVER_DEVMAN, 0, 0);
+	async_exchange_end(exch);
 
-	phone = async_connect_me_to(driver->phone, DRIVER_DEVMAN, 0, 0);
-
-	if (phone < 0) {
+	if (!sess) {
 		fibril_mutex_unlock(&driver->driver_mutex);
 		return;
 	}
@@ -581,8 +578,8 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * Go through devices list as long as there is some device
 	 * that has not been passed to the driver.
 	 */
-	link = driver->devices.next;
-	while (link != &driver->devices) {
+	link = driver->devices.head.next;
+	while (link != &driver->devices.head) {
 		dev = list_get_instance(link, dev_node_t, driver_devices);
 		if (dev->passed_to_driver) {
 			link = link->next;
@@ -601,7 +598,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		 */
 		fibril_mutex_unlock(&driver->driver_mutex);
 
-		add_device(phone, driver, dev, tree);
+		add_device(sess, driver, dev, tree);
 
 		/*
 		 * Lock again as we will work with driver's
@@ -619,10 +616,10 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		/*
 		 * Restart the cycle to go through all devices again.
 		 */
-		link = driver->devices.next;
+		link = driver->devices.head.next;
 	}
 
-	async_hangup(phone);
+	async_hangup(sess);
 
 	/*
 	 * Once we passed all devices to the driver, we need to mark the
@@ -672,7 +669,7 @@ void init_driver(driver_t *drv)
 	list_initialize(&drv->match_ids.ids);
 	list_initialize(&drv->devices);
 	fibril_mutex_initialize(&drv->driver_mutex);
-	drv->phone = -1;
+	drv->sess = NULL;
 }
 
 /** Device driver structure clean-up.
@@ -736,7 +733,8 @@ void devmap_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
  * @param drv		The driver's structure.
  * @param node		The device's node in the device tree.
  */
-void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
+void add_device(async_sess_t *sess, driver_t *drv, dev_node_t *dev,
+    dev_tree_t *tree)
 {
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
@@ -745,9 +743,6 @@ void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	log_msg(LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
 	    drv->name, dev->pfun->name);
 	
-	sysarg_t rc;
-	ipc_call_t answer;
-	
 	/* Send the device to the driver. */
 	devman_handle_t parent_handle;
 	if (dev->pfun) {
@@ -755,13 +750,19 @@ void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	} else {
 		parent_handle = 0;
 	}
-
-	aid_t req = async_send_2(phone, DRIVER_ADD_DEVICE, dev->handle,
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(exch, DRIVER_ADD_DEVICE, dev->handle,
 	    parent_handle, &answer);
 	
-	/* Send the device's name to the driver. */
-	rc = async_data_write_start(phone, dev->pfun->name,
+	/* Send the device name to the driver. */
+	sysarg_t rc = async_data_write_start(exch, dev->pfun->name,
 	    str_size(dev->pfun->name) + 1);
+	
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		/* TODO handle error */
 	}
@@ -822,10 +823,14 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 
 	if (is_running) {
 		/* Notify the driver about the new device. */
-		int phone = async_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
-		if (phone >= 0) {
-			add_device(phone, drv, dev, tree);
-			async_hangup(phone);
+		async_exch_t *exch = async_exchange_begin(drv->sess);
+		async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE, exch,
+		    DRIVER_DEVMAN, 0, 0);
+		async_exchange_end(exch);
+		
+		if (sess) {
+			add_device(sess, drv, dev, tree);
+			async_hangup(sess);
 		}
 	}
 	
@@ -1176,11 +1181,8 @@ fun_node_t *find_fun_node_in_device(dev_node_t *dev, const char *name)
 	assert(name != NULL);
 
 	fun_node_t *fun;
-	link_t *link;
 
-	for (link = dev->functions.next;
-	    link != &dev->functions;
-	    link = link->next) {
+	list_foreach(dev->functions, link) {
 		fun = list_get_instance(link, fun_node_t, dev_functions);
 
 		if (str_cmp(name, fun->name) == 0)
@@ -1374,14 +1376,12 @@ dev_class_t *find_dev_class_no_lock(class_list_t *class_list,
     const char *class_name)
 {
 	dev_class_t *cl;
-	link_t *link = class_list->classes.next;
 	
-	while (link != &class_list->classes) {
+	list_foreach(class_list->classes, link) {
 		cl = list_get_instance(link, dev_class_t, link);
 		if (str_cmp(cl->name, class_name) == 0) {
 			return cl;
 		}
-		link = link->next;
 	}
 	
 	return NULL;
@@ -1397,10 +1397,7 @@ dev_class_info_t *find_dev_in_class(dev_class_t *dev_class, const char *dev_name
 	assert(dev_class != NULL);
 	assert(dev_name != NULL);
 
-	link_t *link;
-	for (link = dev_class->devices.next;
-	    link != &dev_class->devices;
-	    link = link->next) {
+	list_foreach(dev_class->devices, link) {
 		dev_class_info_t *dev = list_get_instance(link,
 		    dev_class_info_t, link);
 

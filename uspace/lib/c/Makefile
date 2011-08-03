@@ -40,10 +40,19 @@ COMMON_HEADER_ARCH = arch/$(UARCH)/include/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
+LINKER_SCRIPTS = \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+
 PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
-EXTRA_OUTPUT = $(LINKER_SCRIPT)
-EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPT)
+EXTRA_OUTPUT = $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
 LIBRARY = libc
+SLIBRARY = libc.so.0.0
+LSONAME = libc.so0
+
 
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
@@ -59,11 +68,13 @@ GENERIC_SOURCES = \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/char_dev.c \
+	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
 	generic/str.c \
 	generic/str_error.c \
+	generic/l18n/langs.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \
 	generic/pcb.c \
@@ -83,12 +94,13 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/console.c \
 	generic/io/screenbuffer.c \
-	generic/ipc/ns.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
+	generic/ns.c \
+	generic/ns_obsolete.c \
 	generic/async.c \
-	generic/async_sess.c \
+	generic/async_obsolete.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.c \
@@ -96,6 +108,7 @@ GENERIC_SOURCES = \
 	generic/adt/dynamic_fifo.c \
 	generic/adt/measured_strings.c \
 	generic/adt/char_map.c \
+	generic/adt/prodcons.c \
 	generic/time.c \
 	generic/stdlib.c \
 	generic/mman.c \
@@ -113,7 +126,16 @@ GENERIC_SOURCES = \
 	generic/arg_parse.c \
 	generic/sort.c \
 	generic/stats.c \
-	generic/assert.c \
+	generic/assert.c
+
+ifeq ($(CONFIG_RTLD),y)
+	GENERIC_SOURCES += \
+		generic/dlfcn.c \
+		generic/rtld/rtld.c \
+		generic/rtld/dynamic.c \
+		generic/rtld/module.c \
+		generic/rtld/symbol.c
+endif
 
 SOURCES = \
 	$(GENERIC_SOURCES) \
@@ -132,8 +154,17 @@ $(INCLUDE_KERNEL)/arch: ../../../kernel/generic/include/arch $(INCLUDE_KERNEL)
 $(INCLUDE_KERNEL): ../../../kernel/generic/include/
 	ln -sfn ../$< $@
 
-$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
+$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../$< $@

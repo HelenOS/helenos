@@ -44,37 +44,39 @@
  * Helper function to read to or write from a device
  * using its character interface.
  *
- * @param dev_phone	Phone to the device.
- * @param buf		Buffer for the data read from or written to the device.
- * @param size		Maximum size of data (in bytes) to be read or written.
- * @param read		Read from the device if true, write to it otherwise.
+ * @param sess Session to the device.
+ * @param buf  Buffer for the data read from or written to the device.
+ * @param size Maximum size of data (in bytes) to be read or written.
+ * @param read Read from the device if true, write to it otherwise.
  *
- * @return		Non-negative number of bytes actually read from or
- *			written to the device on success, negative error number
- *			otherwise.
+ * @return Non-negative number of bytes actually read from or
+ *         written to the device on success, negative error number
+ *         otherwise.
+ *
  */
-static ssize_t char_dev_rw(int dev_phone, void *buf, size_t size, bool read)
+static ssize_t char_dev_rw(async_sess_t *sess, void *buf, size_t size, bool read)
 {
-	async_serialize_start();
-	
 	ipc_call_t answer;
 	aid_t req;
 	int ret;
 	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
 	if (read) {
-		req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE),
+		req = async_send_1(exch, DEV_IFACE_ID(CHAR_DEV_IFACE),
 		    CHAR_DEV_READ, &answer);
-		ret = async_data_read_start(dev_phone, buf, size);
+		ret = async_data_read_start(exch, buf, size);
 	} else {
-		req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE),
+		req = async_send_1(exch, DEV_IFACE_ID(CHAR_DEV_IFACE),
 		    CHAR_DEV_WRITE, &answer);
-		ret = async_data_write_start(dev_phone, buf, size);
+		ret = async_data_write_start(exch, buf, size);
 	}
+	
+	async_exchange_end(exch);
 	
 	sysarg_t rc;
 	if (ret != EOK) {
 		async_wait_for(req, &rc);
-		async_serialize_end();
 		if (rc == EOK)
 			return (ssize_t) ret;
 		
@@ -82,7 +84,6 @@ static ssize_t char_dev_rw(int dev_phone, void *buf, size_t size, bool read)
 	}
 	
 	async_wait_for(req, &rc);
-	async_serialize_end();
 	
 	ret = (int) rc;
 	if (ret != EOK)
@@ -93,31 +94,33 @@ static ssize_t char_dev_rw(int dev_phone, void *buf, size_t size, bool read)
 
 /** Read from character device.
  *
- * @param dev_phone	Phone to the device.
- * @param buf		Output buffer for the data read from the device.
- * @param size		Maximum size (in bytes) of the data to be read.
+ * @param sess Session to the device.
+ * @param buf  Output buffer for the data read from the device.
+ * @param size Maximum size (in bytes) of the data to be read.
  *
- * @return		Non-negative number of bytes actually read from the
- *			device on success, negative error number otherwise.
+ * @return Non-negative number of bytes actually read from the
+ *         device on success, negative error number otherwise.
+ *
  */
-ssize_t char_dev_read(int dev_phone, void *buf, size_t size)
+ssize_t char_dev_read(async_sess_t *sess, void *buf, size_t size)
 {
-	return char_dev_rw(dev_phone, buf, size, true);
+	return char_dev_rw(sess, buf, size, true);
 }
 
 /** Write to character device.
  *
- * @param dev_phone	Phone to the device.
- * @param buf		Input buffer containg the data to be written to the
- *			device.
- * @param size		Maximum size (in bytes) of the data to be written.
+ * @param sess Session to the device.
+ * @param buf  Input buffer containg the data to be written to the
+ *             device.
+ * @param size Maximum size (in bytes) of the data to be written.
  *
- * @return		Non-negative number of bytes actually written to the
- *			device on success, negative error number otherwise.
+ * @return Non-negative number of bytes actually written to the
+ *         device on success, negative error number otherwise.
+ *
  */
-ssize_t char_dev_write(int dev_phone, void *buf, size_t size)
+ssize_t char_dev_write(async_sess_t *sess, void *buf, size_t size)
 {
-	return char_dev_rw(dev_phone, buf, size, false);
+	return char_dev_rw(sess, buf, size, false);
 }
 
 /** @}

@@ -480,7 +480,7 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 	va = istate->cr_ifa; /* faulting address */
 	
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	if (t) {
 		/*
 		 * The mapping was found in software page hash table.
@@ -598,7 +598,7 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 	
 	
 	page_table_lock(AS, true);
-	pte_t *entry = page_mapping_find(AS, va);
+	pte_t *entry = page_mapping_find(AS, va, true);
 	if (entry) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -650,7 +650,7 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 	va = istate->cr_ifa;  /* faulting address */
 	
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->w)) {
 		/*
@@ -683,7 +683,7 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 	va = istate->cr_ifa;  /* faulting address */
 	
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->x)) {
 		/*
@@ -716,7 +716,7 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 	va = istate->cr_ifa;  /* faulting address */
 	
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p)) {
 		/*
@@ -752,7 +752,7 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 	 * Assume a write to a read-only page.
 	 */
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	ASSERT(!t->w);
 	if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
@@ -777,7 +777,7 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	va = istate->cr_ifa;  /* faulting address */
 	
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, va, true);
 	ASSERT(t);
 	
 	if (t->p) {

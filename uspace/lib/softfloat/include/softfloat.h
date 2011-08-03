@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -35,140 +35,138 @@
 #ifndef __SOFTFLOAT_H__
 #define __SOFTFLOAT_H__
 
-float __addsf3(float a, float b);
-double __adddf3(double a, double b);
-long double __addtf3(long double a, long double b);
-long double __addxf3(long double a, long double b);
- 
-float __subsf3(float a, float b);
-double __subdf3(double a, double b);
-long double __subtf3(long double a, long double b);
-long double __subxf3(long double a, long double b);
- 
-float __mulsf3(float a, float b);
-double __muldf3(double a, double b);
-long double __multf3(long double a, long double b);
-long double __mulxf3(long double a, long double b);
- 
-float __divsf3(float a, float b);
-double __divdf3(double a, double b);
-long double __divtf3(long double a, long double b);
-long double __divxf3(long double a, long double b);
- 
-float __negsf2(float a);
-double __negdf2(double a);
-long double __negtf2(long double a);
-long double __negxf2(long double a);
- 
-double __extendsfdf2(float a);
-long double __extendsftf2(float a);
-long double __extendsfxf2(float a);
-long double __extenddftf2(double a);
-long double __extenddfxf2(double a);
- 
-double __truncxfdf2(long double a);
-double __trunctfdf2(long double a);
-float __truncxfsf2(long double a);
-float __trunctfsf2(long double a);
-float __truncdfsf2(double a);
- 
-int __fixsfsi(float a);
-int __fixdfsi(double a);
-int __fixtfsi(long double a);
-int __fixxfsi(long double a);
- 
-long __fixsfdi(float a);
-long __fixdfdi(double a);
-long __fixtfdi(long double a);
-long __fixxfdi(long double a);
- 
-long long __fixsfti(float a);
-long long __fixdfti(double a);
-long long __fixtfti(long double a);
-long long __fixxfti(long double a);
- 
-unsigned int __fixunssfsi(float a);
-unsigned int __fixunsdfsi(double a);
-unsigned int __fixunstfsi(long double a);
-unsigned int __fixunsxfsi(long double a);
- 
-unsigned long __fixunssfdi(float a);
-unsigned long __fixunsdfdi(double a);
-unsigned long __fixunstfdi(long double a);
-unsigned long __fixunsxfdi(long double a);
- 
-unsigned long long __fixunssfti(float a);
-unsigned long long __fixunsdfti(double a);
-unsigned long long __fixunstfti(long double a);
-unsigned long long __fixunsxfti(long double a);
- 
-float __floatsisf(int i);
-double __floatsidf(int i);
-long double __floatsitf(int i);
-long double __floatsixf(int i);
- 
-float __floatdisf(long i);
-double __floatdidf(long i);
-long double __floatditf(long i);
-long double __floatdixf(long i);
- 
-float __floattisf(long long i);
-double __floattidf(long long i);
-long double __floattitf(long long i);
-long double __floattixf(long long i);
- 
-float __floatunsisf(unsigned int i);
-double __floatunsidf(unsigned int i);
-long double __floatunsitf(unsigned int i);
-long double __floatunsixf(unsigned int i);
- 
-float __floatundisf(unsigned long i);
-double __floatundidf(unsigned long i);
-long double __floatunditf(unsigned long i);
-long double __floatundixf(unsigned long i);
- 
-float __floatuntisf(unsigned long long i);
-double __floatuntidf(unsigned long long i);
-long double __floatuntitf(unsigned long long i);
-long double __floatuntixf(unsigned long long i);
- 
-int __cmpsf2(float a, float b);
-int __cmpdf2(double a, double b);
-int __cmptf2(long double a, long double b);
- 
-int __unordsf2(float a, float b);
-int __unorddf2(double a, double b);
-int __unordtf2(long double a, long double b);
- 
-int __eqsf2(float a, float b);
-int __eqdf2(double a, double b);
-int __eqtf2(long double a, long double b);
- 
-int __nesf2(float a, float b);
-int __nedf2(double a, double b);
-int __netf2(long double a, long double b);
- 
-int __gesf2(float a, float b);
-int __gedf2(double a, double b);
-int __getf2(long double a, long double b);
- 
-int __ltsf2(float a, float b);
-int __ltdf2(double a, double b);
-int __lttf2(long double a, long double b);
-int __lesf2(float a, float b);
-int __ledf2(double a, double b);
-int __letf2(long double a, long double b);
- 
-int __gtsf2(float a, float b);
-int __gtdf2(double a, double b);
-int __gttf2(long double a, long double b);
- 
-/* Not implemented yet*/ 
-float __powisf2(float a, int b);
+extern float __addsf3(float, float);
+extern double __adddf3(double, double);
+extern long double __addtf3(long double, long double);
+extern long double __addxf3(long double, long double);
+
+extern float __subsf3(float, float);
+extern double __subdf3(double, double);
+extern long double __subtf3(long double, long double);
+extern long double __subxf3(long double, long double);
+
+extern float __mulsf3(float, float);
+extern double __muldf3(double, double);
+extern long double __multf3(long double, long double);
+extern long double __mulxf3(long double, long double);
+
+extern float __divsf3(float, float);
+extern double __divdf3(double, double);
+extern long double __divtf3(long double, long double);
+extern long double __divxf3(long double, long double);
+
+extern float __negsf2(float);
+extern double __negdf2(double);
+extern long double __negtf2(long double);
+extern long double __negxf2(long double);
+
+extern double __extendsfdf2(float);
+extern long double __extendsftf2(float);
+extern long double __extendsfxf2(float);
+extern long double __extenddftf2(double);
+extern long double __extenddfxf2(double);
+
+extern double __truncxfdf2(long double);
+extern double __trunctfdf2(long double);
+extern float __truncxfsf2(long double);
+extern float __trunctfsf2(long double);
+extern float __truncdfsf2(double);
+
+extern int __fixsfsi(float);
+extern int __fixdfsi(double);
+extern int __fixtfsi(long double);
+extern int __fixxfsi(long double);
+
+extern long __fixsfdi(float);
+extern long __fixdfdi(double);
+extern long __fixtfdi(long double);
+extern long __fixxfdi(long double);
+
+extern long long __fixsfti(float);
+extern long long __fixdfti(double);
+extern long long __fixtfti(long double);
+extern long long __fixxfti(long double);
+
+extern unsigned int __fixunssfsi(float);
+extern unsigned int __fixunsdfsi(double);
+extern unsigned int __fixunstfsi(long double);
+extern unsigned int __fixunsxfsi(long double);
+
+extern unsigned long __fixunssfdi(float);
+extern unsigned long __fixunsdfdi(double);
+extern unsigned long __fixunstfdi(long double);
+extern unsigned long __fixunsxfdi(long double);
+
+extern unsigned long long __fixunssfti(float);
+extern unsigned long long __fixunsdfti(double);
+extern unsigned long long __fixunstfti(long double);
+extern unsigned long long __fixunsxfti(long double);
+
+extern float __floatsisf(int);
+extern double __floatsidf(int);
+extern long double __floatsitf(int);
+extern long double __floatsixf(int);
+
+extern float __floatdisf(long);
+extern double __floatdidf(long);
+extern long double __floatditf(long);
+extern long double __floatdixf(long);
+
+extern float __floattisf(long long);
+extern double __floattidf(long long);
+extern long double __floattitf(long long);
+extern long double __floattixf(long long);
+
+extern float __floatunsisf(unsigned int);
+extern double __floatunsidf(unsigned int);
+extern long double __floatunsitf(unsigned int);
+extern long double __floatunsixf(unsigned int);
+
+extern float __floatundisf(unsigned long);
+extern double __floatundidf(unsigned long);
+extern long double __floatunditf(unsigned long);
+extern long double __floatundixf(unsigned long);
+
+extern float __floatuntisf(unsigned long long);
+extern double __floatuntidf(unsigned long long);
+extern long double __floatuntitf(unsigned long long);
+extern long double __floatuntixf(unsigned long long);
+
+extern int __cmpsf2(float, float);
+extern int __cmpdf2(double, double);
+extern int __cmptf2(long double, long double);
+
+extern int __unordsf2(float, float);
+extern int __unorddf2(double, double);
+extern int __unordtf2(long double, long double);
+
+extern int __eqsf2(float, float);
+extern int __eqdf2(double, double);
+extern int __eqtf2(long double, long double);
+
+extern int __nesf2(float, float);
+extern int __nedf2(double, double);
+extern int __netf2(long double, long double);
+
+extern int __gesf2(float, float);
+extern int __gedf2(double, double);
+extern int __getf2(long double, long double);
+
+extern int __ltsf2(float, float);
+extern int __ltdf2(double, double);
+extern int __lttf2(long double, long double);
+extern int __lesf2(float, float);
+extern int __ledf2(double, double);
+extern int __letf2(long double, long double);
+
+extern int __gtsf2(float, float);
+extern int __gtdf2(double, double);
+extern int __gttf2(long double, long double);
+
+/* Not implemented yet */
+extern float __powisf2(float, int);
 
 #endif
 
-
- /** @}
+/** @}
  */
-

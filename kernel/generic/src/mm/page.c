@@ -59,6 +59,8 @@
  */
 
 #include <mm/page.h>
+#include <genarch/mm/page_ht.h>
+#include <genarch/mm/page_pt.h>
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <mm/as.h>
@@ -69,6 +71,8 @@
 #include <memstr.h>
 #include <debug.h>
 #include <arch.h>
+#include <syscall/copy.h>
+#include <errno.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -107,7 +111,7 @@ void map_structure(uintptr_t addr, size_t size)
  * Map virtual address page to physical address frame
  * using flags. Allocate and setup any missing page tables.
  *
- * @param as    Address space to wich page belongs.
+ * @param as    Address space to which page belongs.
  * @param page  Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is
  *              done.
@@ -134,7 +138,7 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
- * @param as   Address space to wich page belongs.
+ * @param as   Address space to which page belongs.
  * @param page Virtual address of the page to be demapped.
  *
  */
@@ -151,25 +155,55 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 	memory_barrier();
 }
 
-/** Find mapping for virtual page
+/** Find mapping for virtual page.
  *
- * Find mapping for virtual page.
- *
- * @param as   Address space to wich page belongs.
- * @param page Virtual page.
+ * @param as     Address space to which page belongs.
+ * @param page   Virtual page.
+ * @param nolock True if the page tables need not be locked.
  *
  * @return NULL if there is no such mapping; requested mapping
  *         otherwise.
  *
  */
-NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page)
+NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 {
-	ASSERT(page_table_locked(as));
+	ASSERT(nolock || page_table_locked(as));
 	
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_find);
 	
-	return page_mapping_operations->mapping_find(as, page);
+	return page_mapping_operations->mapping_find(as, page, nolock);
+}
+
+/** Syscall wrapper for getting mapping of a virtual page.
+ * 
+ * @retval EOK Everything went find, @p uspace_frame and @p uspace_node
+ *             contains correct values.
+ * @retval ENOENT Virtual address has no mapping.
+ */
+sysarg_t sys_page_find_mapping(uintptr_t virt_address,
+    uintptr_t *uspace_frame)
+{
+	mutex_lock(&AS->lock);
+	
+	pte_t *pte = page_mapping_find(AS, virt_address, false);
+	if (!PTE_VALID(pte) || !PTE_PRESENT(pte)) {
+		mutex_unlock(&AS->lock);
+		
+		return (sysarg_t) ENOENT;
+	}
+	
+	uintptr_t phys_address = PTE_GET_FRAME(pte);
+	
+	mutex_unlock(&AS->lock);
+	
+	int rc = copy_to_uspace(uspace_frame,
+	    &phys_address, sizeof(phys_address));
+	if (rc != EOK) {
+		return (sysarg_t) rc;
+	}
+	
+	return EOK;
 }
 
 /** @}

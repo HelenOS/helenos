@@ -35,6 +35,8 @@
 #ifndef LIBC_IPC_CLIPBOARD_H_
 #define LIBC_IPC_CLIPBOARD_H_
 
+#include <ipc/common.h>
+
 typedef enum {
 	CLIPBOARD_PUT_DATA = IPC_FIRST_USER_METHOD,
 	CLIPBOARD_GET_DATA,

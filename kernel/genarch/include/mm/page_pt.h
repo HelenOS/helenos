@@ -128,7 +128,7 @@ extern as_operations_t as_pt_operations;
 extern page_mapping_operations_t pt_mapping_operations;
 
 extern void page_mapping_insert_pt(as_t *, uintptr_t, uintptr_t, unsigned int);
-extern pte_t *page_mapping_find_pt(as_t *, uintptr_t);
+extern pte_t *page_mapping_find_pt(as_t *, uintptr_t, bool);
 
 #endif
 
