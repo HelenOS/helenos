@@ -161,22 +161,8 @@ typedef struct exfat_node {
 } exfat_node_t;
 
 
-extern fs_reg_t exfat_reg;
-
-extern void exfat_mounted(ipc_callid_t, ipc_call_t *);
-extern void exfat_mount(ipc_callid_t, ipc_call_t *);
-extern void exfat_unmounted(ipc_callid_t, ipc_call_t *);
-extern void exfat_unmount(ipc_callid_t, ipc_call_t *);
-extern void exfat_lookup(ipc_callid_t, ipc_call_t *);
-extern void exfat_read(ipc_callid_t, ipc_call_t *);
-extern void exfat_write(ipc_callid_t, ipc_call_t *);
-extern void exfat_truncate(ipc_callid_t, ipc_call_t *);
-extern void exfat_stat(ipc_callid_t, ipc_call_t *);
-extern void exfat_close(ipc_callid_t, ipc_call_t *);
-extern void exfat_destroy(ipc_callid_t, ipc_call_t *);
-extern void exfat_open_node(ipc_callid_t, ipc_call_t *);
-extern void exfat_stat(ipc_callid_t, ipc_call_t *);
-extern void exfat_sync(ipc_callid_t, ipc_call_t *);
+extern vfs_out_ops_t exfat_ops;
+extern libfs_ops_t exfat_libfs_ops;
 
 extern int exfat_idx_get_new(exfat_idx_t **, devmap_handle_t);
 extern exfat_idx_t *exfat_idx_get_by_pos(devmap_handle_t, exfat_cluster_t, unsigned);
