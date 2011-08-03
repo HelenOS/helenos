@@ -959,12 +959,10 @@ fat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index,
 		if (rc != EOK) {
 			free(rfn);
 			free(rootp);
-			free(ridxp); /* TODO: Is it right way to free ridxp? */
 			(void) block_cache_fini(devmap_handle);
 			block_fini(devmap_handle);
 			fat_idx_fini_by_devmap_handle(devmap_handle);
-			async_answer_0(rid, ENOTSUP);
-			return;
+			return ENOTSUP;
 		}
 		rootp->size = BPS(bs) * SPC(bs) * clusters;
 	} else

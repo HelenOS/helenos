@@ -82,7 +82,6 @@ extern void str_append(char *dest, size_t size, const char *src);
 
 extern int wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
-extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern char *wstr_to_astr(const wchar_t *src);
 extern int str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 extern int utf16_to_str(char *dest, size_t size, const uint16_t *src);
