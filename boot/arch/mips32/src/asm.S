@@ -43,7 +43,7 @@ start:
 	/*
 	 * Setup the CP0 configuration
 	 *  - Disable 64-bit kernel addressing mode
-	 *  - DIsable 64-bit supervisor adressing mode
+	 *  - Disable 64-bit supervisor adressing mode
 	 *  - Disable 64-bit user addressing mode
 	 */
 	mfc0 $a0, $status
