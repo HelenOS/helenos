@@ -126,6 +126,12 @@ extern char *posix_tempnam(const char *dir, const char *pfx);
 extern FILE *posix_tmpfile(void);
 
 #ifndef LIBPOSIX_INTERNAL
+	/* DEBUG macro does not belong to POSIX stdio.h. Its unconditional
+	 * definition in the native stdio.h causes unexpected behaviour of
+	 * applications which uses their own DEBUG macro (e.g. debugging
+	 * output is printed even if not desirable). */
+	#undef DEBUG
+
 	#define ctermid posix_ctermid
 
 	#define clearerr posix_clearerr
