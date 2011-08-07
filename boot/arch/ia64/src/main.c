@@ -117,13 +117,20 @@ static void read_efi_memmap(void)
 	bootinfo.memmap_items = items;
 }
 
+static void read_pal_configuration(void)
+{
+	if (bootpar) {
+		/* TODO: read the real value from PAL */
+		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
+	} else {
+		/* Configure default values for simulators. */
+		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
+	}
+}
+
 static void read_sal_configuration(void)
 {
 	if (bootpar && bootpar->efi_system_table) {
-		/* TODO: read the real values from SAL */
-		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
-		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
-		
 		efi_guid_t sal_guid = SAL_SYSTEM_TABLE_GUID;
 		sal_system_table_header_t *sal_st;
 		
@@ -131,9 +138,10 @@ static void read_sal_configuration(void)
 		    (efi_system_table_t *) bootpar->efi_system_table, sal_guid);
 
 		sal_system_table_parse(sal_st);
+		
+		bootinfo.sys_freq = sal_base_clock_frequency();
 	} else {
 		/* Configure default values for simulators. */
-		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
 		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
 	}
 }
@@ -197,6 +205,7 @@ void bootstrap(void)
 
 	read_efi_memmap();
 	read_sal_configuration();
+	read_pal_configuration();
 	
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(&bootinfo);

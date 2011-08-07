@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2011 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,51 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-ia64-little
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = ia64
+.explicit
 
-BITS = 64
-ENDIANESS = LE
-PAGE_SIZE = 16384
-EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
+.global sal_call
 
-RD_SRVS_NON_ESSENTIAL +=
-
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042
-
-SOURCES = \
-	arch/$(BARCH)/src/boot.S \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/sal.c \
-	arch/$(BARCH)/src/sal_asm.S \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/efi.c \
-	genarch/src/division.c \
-	generic/src/balloc.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
-
-ifeq ($(MACHINE),ski)
-SOURCES += \
-	arch/$(BARCH)/src/ski.c
-endif
+#
+# Assume the following PSR bits are already 0, as expected by SAL:
+#
+#  be, cpl, is, da, dd, ss, ri, ed, ia
+#
+# Assume PSR.bn is 1, as expected by SAL.
+#
+sal_call:
+	alloc loc0 = ar.pfs, 11, 5, 8, 0
+	
+	mov loc1 = gp
+	mov loc2 = rp
+	
+	addl loc3 = @gprel(sal_proc), gp
+	addl loc4 = @gprel(sal_proc_gp), gp
+	
+	mov out0 = in0
+	mov out1 = in1
+	mov out2 = in2
+	mov out3 = in3
+	mov out4 = in4
+	mov out5 = in5
+	mov out6 = in6
+	mov out7 = in7 ;;
+	
+	ld8 loc3 = [loc3]
+	ld8 gp = [loc4] ;;
+	
+	mov b6 = loc3 ;;
+	br.call.sptk.many rp = b6
+	
+	cmp.ne p7,p0 = 0, in8
+	cmp.ne p8,p0 = 0, in9
+	cmp.ne p9,p0 = 0, in10 ;;
+	
+(p7)	st8 [in8] = r9
+(p8)	st8 [in9] = r10
+(p9)	st8 [in10] = r11
+	
+	mov gp = loc1
+	mov rp = loc2 ;;
+	
+	mov ar.pfs = loc0
+	br.ret.sptk.many rp

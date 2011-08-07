@@ -32,6 +32,11 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+/*
+ * Essential SAL procedures' IDs
+ */
+#define SAL_FREQ_BASE	0x1000012
+
 typedef struct {
 	uint8_t signature[4];
 	uint32_t total_length;
@@ -101,5 +106,13 @@ typedef struct {
 } sal_ap_wakeup_desc_t;
 
 extern void sal_system_table_parse(sal_system_table_header_t *);
+
+extern uint64_t sal_base_clock_frequency(void);
+
+#define sal_call_1_1(id, arg1, ret1) \
+	sal_call((id), (arg1), 0, 0, 0, 0, 0, 0, (ret1), NULL, NULL)
+
+extern uint64_t sal_call(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
+    uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *, uint64_t *);
 
 #endif
