@@ -152,7 +152,6 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/irc/fhc \
 		srv/hw/irc/obio
 endif
 
@@ -164,6 +163,7 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/scsi \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \

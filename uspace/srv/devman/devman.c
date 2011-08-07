@@ -269,9 +269,10 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = safe_read(fd, buf, len);
+	ssize_t read_bytes = read_all(fd, buf, len);
 	if (read_bytes <= 0) {
-		log_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
+		log_msg(LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
+		    read_bytes);
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;
@@ -420,9 +421,9 @@ bool create_root_nodes(dev_tree_t *tree)
 		return false;
 	}
 	
-	insert_fun_node(tree, fun, clone_string(""), NULL);
+	insert_fun_node(tree, fun, str_dup(""), NULL);
 	match_id_t *id = create_match_id();
-	id->id = clone_string("root");
+	id->id = str_dup("root");
 	id->score = 100;
 	add_match_id(&fun->match_ids, id);
 	tree->root_node = fun;

@@ -93,6 +93,7 @@ void clock_counter_init(void)
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;
 	clock_parea.unpriv = true;
+	clock_parea.mapped = false;
 	ddi_parea_register(&clock_parea);
 	
 	/*

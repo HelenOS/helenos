@@ -403,7 +403,7 @@ int netif_initialize(void)
 int main(int argc, char *argv[])
 {
 	/* Start the module */
-	return netif_module_start(SERVICE_ETHERNET);
+	return netif_module_start();
 }
 
 /** @}

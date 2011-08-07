@@ -403,11 +403,6 @@ static unsigned int locfs_lnkcnt_get(fs_node_t *fn)
 	return 1;
 }
 
-static char locfs_plb_get_char(unsigned pos)
-{
-	return locfs_reg.plb_ro[pos % PLB_SIZE];
-}
-
 static bool locfs_is_directory(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
@@ -447,7 +442,6 @@ libfs_ops_t locfs_libfs_ops = {
 	.index_get = locfs_index_get,
 	.size_get = locfs_size_get,
 	.lnkcnt_get = locfs_lnkcnt_get,
-	.plb_get_char = locfs_plb_get_char,
 	.is_directory = locfs_is_directory,
 	.is_file = locfs_is_file,
 	.device_get = locfs_device_get
@@ -462,65 +456,30 @@ bool locfs_init(void)
 	return true;
 }
 
-void locfs_mounted(ipc_callid_t rid, ipc_call_t *request)
+static int locfs_mounted(service_id_t service_id, const char *opts,
+    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
-	char *opts;
-	
-	/* Accept the mount options */
-	sysarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
-	    0, NULL);
-	if (retval != EOK) {
-		async_answer_0(rid, retval);
-		return;
-	}
-	
-	free(opts);
-	async_answer_3(rid, EOK, 0, 0, 0);
+	*index = 0;
+	*size = 0;
+	*lnkcnt = 0;
+	return EOK;
 }
 
-void locfs_mount(ipc_callid_t rid, ipc_call_t *request)
+static int locfs_unmounted(service_id_t service_id)
 {
-	libfs_mount(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
+	return ENOTSUP;
 }
 
-void locfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+static int
+locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
+    size_t *rbytes)
 {
-	async_answer_0(rid, ENOTSUP);
-}
-
-void locfs_unmount(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_unmount(&locfs_libfs_ops, rid, request);
-}
-
-void locfs_lookup(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_lookup(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
-}
-
-void locfs_open_node(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_open_node(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
-}
-
-void locfs_stat(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_stat(&locfs_libfs_ops, locfs_reg.fs_handle, rid, request);
-}
-
-void locfs_read(ipc_callid_t rid, ipc_call_t *request)
-{
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t pos =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
-	
 	if (index == 0) {
 		ipc_callid_t callid;
 		size_t size;
 		if (!async_data_read_receive(&callid, &size)) {
 			async_answer_0(callid, EINVAL);
-			async_answer_0(rid, EINVAL);
-			return;
+			return EINVAL;
 		}
 		
 		loc_sdesc_t *desc;
@@ -540,8 +499,8 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
-			async_answer_1(rid, EOK, 1);
-			return;
+			*rbytes = 1;
+			return EOK;
 		}
 		
 		free(desc);
@@ -555,16 +514,15 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 			if (pos < count) {
 				async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 				free(desc);
-				async_answer_1(rid, EOK, 1);
-				return;
+				*rbytes = 1;
+				return EOK;
 			}
 			
 			free(desc);
 		}
 		
 		async_answer_0(callid, ENOENT);
-		async_answer_1(rid, ENOENT, 0);
-		return;
+		return ENOENT;
 	}
 	
 	loc_object_type_t type = loc_id_probe(index);
@@ -575,8 +533,7 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 		size_t size;
 		if (!async_data_read_receive(&callid, &size)) {
 			async_answer_0(callid, EINVAL);
-			async_answer_0(rid, EINVAL);
-			return;
+			return EINVAL;
 		}
 		
 		loc_sdesc_t *desc;
@@ -585,14 +542,13 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
-			async_answer_1(rid, EOK, 1);
-			return;
+			*rbytes = 1;
+			return EOK;
 		}
 		
 		free(desc);
 		async_answer_0(callid, ENOENT);
-		async_answer_1(rid, ENOENT, 0);
-		return;
+		return ENOENT;
 	}
 	
 	if (type == LOC_OBJECT_SERVICE) {
@@ -606,8 +562,7 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
-			async_answer_0(rid, ENOENT);
-			return;
+			return ENOENT;
 		}
 		
 		service_t *dev = hash_table_get_instance(lnk, service_t, link);
@@ -617,17 +572,15 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 		if (!async_data_read_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
-			async_answer_0(rid, EINVAL);
-			return;
+			return EINVAL;
 		}
 		
 		/* Make a request at the driver */
 		async_exch_t *exch = async_exchange_begin(dev->sess);
 		
 		ipc_call_t answer;
-		aid_t msg = async_send_3(exch, IPC_GET_IMETHOD(*request),
-		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
-		    IPC_GET_ARG3(*request), &answer);
+		aid_t msg = async_send_4(exch, VFS_OUT_READ, service_id,
+		    index, LOWER32(pos), UPPER32(pos), &answer);
 		
 		/* Forward the IPC_M_DATA_READ request to the driver */
 		async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
@@ -639,30 +592,26 @@ void locfs_read(ipc_callid_t rid, ipc_call_t *request)
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
-		size_t bytes = IPC_GET_ARG1(answer);
 		
-		/* Driver reply is the final result of the whole operation */
-		async_answer_1(rid, rc, bytes);
-		return;
+		*rbytes = IPC_GET_ARG1(answer);
+		return rc;
 	}
 	
-	async_answer_0(rid, ENOENT);
+	return ENOENT;
 }
 
-void locfs_write(ipc_callid_t rid, ipc_call_t *request)
+static int
+locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
+    size_t *wbytes, aoff64_t *nsize)
 {
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	if (index == 0) {
-		async_answer_0(rid, ENOTSUP);
-		return;
-	}
+	if (index == 0)
+		return ENOTSUP;
 	
 	loc_object_type_t type = loc_id_probe(index);
 	
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
-		async_answer_0(rid, ENOTSUP);
-		return;
+		return ENOTSUP;
 	}
 	
 	if (type == LOC_OBJECT_SERVICE) {
@@ -675,8 +624,7 @@ void locfs_write(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
-			async_answer_0(rid, ENOENT);
-			return;
+			return ENOENT;
 		}
 		
 		service_t *dev = hash_table_get_instance(lnk, service_t, link);
@@ -686,17 +634,15 @@ void locfs_write(ipc_callid_t rid, ipc_call_t *request)
 		if (!async_data_write_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
-			async_answer_0(rid, EINVAL);
-			return;
+			return EINVAL;
 		}
 		
 		/* Make a request at the driver */
 		async_exch_t *exch = async_exchange_begin(dev->sess);
 		
 		ipc_call_t answer;
-		aid_t msg = async_send_3(exch, IPC_GET_IMETHOD(*request),
-		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
-		    IPC_GET_ARG3(*request), &answer);
+		aid_t msg = async_send_4(exch, VFS_OUT_WRITE, service_id,
+		    index, LOWER32(pos), UPPER32(pos), &answer);
 		
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
 		async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
@@ -708,36 +654,31 @@ void locfs_write(ipc_callid_t rid, ipc_call_t *request)
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
-		size_t bytes = IPC_GET_ARG1(answer);
 		
-		/* Driver reply is the final result of the whole operation */
-		async_answer_1(rid, rc, bytes);
-		return;
+		*wbytes = IPC_GET_ARG1(answer);
+		*nsize = 0;
+		return rc;
 	}
 	
-	async_answer_0(rid, ENOENT);
+	return ENOENT;
 }
 
-void locfs_truncate(ipc_callid_t rid, ipc_call_t *request)
+static int
+locfs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
-	async_answer_0(rid, ENOTSUP);
+	return ENOTSUP;
 }
 
-void locfs_close(ipc_callid_t rid, ipc_call_t *request)
+static int locfs_close(service_id_t service_id, fs_index_t index)
 {
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
-	if (index == 0) {
-		async_answer_0(rid, EOK);
-		return;
-	}
+	if (index == 0)
+		return EOK;
 	
 	loc_object_type_t type = loc_id_probe(index);
 	
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
-		async_answer_0(rid, EOK);
-		return;
+		return EOK;
 	}
 	
 	if (type == LOC_OBJECT_SERVICE) {
@@ -749,8 +690,7 @@ void locfs_close(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
-			async_answer_0(rid, ENOENT);
-			return;
+			return ENOENT;
 		}
 		
 		service_t *dev = hash_table_get_instance(lnk, service_t, link);
@@ -764,28 +704,22 @@ void locfs_close(ipc_callid_t rid, ipc_call_t *request)
 		
 		fibril_mutex_unlock(&services_mutex);
 		
-		async_answer_0(rid, EOK);
-		return;
+		return EOK;
 	}
 	
-	async_answer_0(rid, ENOENT);
+	return ENOENT;
 }
 
-void locfs_sync(ipc_callid_t rid, ipc_call_t *request)
+static int locfs_sync(service_id_t service_id, fs_index_t index)
 {
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
-	if (index == 0) {
-		async_answer_0(rid, EOK);
-		return;
-	}
+	if (index == 0)
+		return EOK;
 	
 	loc_object_type_t type = loc_id_probe(index);
 	
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
-		async_answer_0(rid, EOK);
-		return;
+		return EOK;
 	}
 	
 	if (type == LOC_OBJECT_SERVICE) {
@@ -797,8 +731,7 @@ void locfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&services, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
-			async_answer_0(rid, ENOENT);
-			return;
+			return ENOENT;
 		}
 		
 		service_t *dev = hash_table_get_instance(lnk, service_t, link);
@@ -808,8 +741,8 @@ void locfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		async_exch_t *exch = async_exchange_begin(dev->sess);
 		
 		ipc_call_t answer;
-		aid_t msg = async_send_2(exch, IPC_GET_IMETHOD(*request),
-		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
+		aid_t msg = async_send_2(exch, VFS_OUT_SYNC, service_id,
+		    index, &answer);
 		
 		async_exchange_end(exch);
 		
@@ -819,18 +752,27 @@ void locfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		
-		/* Driver reply is the final result of the whole operation */
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
-	async_answer_0(rid, ENOENT);
+	return  ENOENT;
 }
 
-void locfs_destroy(ipc_callid_t rid, ipc_call_t *request)
+static int locfs_destroy(service_id_t service_id, fs_index_t index)
 {
-	async_answer_0(rid, ENOTSUP);
+	return ENOTSUP;
 }
+
+vfs_out_ops_t locfs_ops = {
+	.mounted = locfs_mounted,
+	.unmounted = locfs_unmounted,
+	.read = locfs_read,
+	.write = locfs_write,
+	.truncate = locfs_truncate,
+	.close = locfs_close,
+	.destroy = locfs_destroy,
+	.sync = locfs_sync,
+};
 
 /**
  * @}

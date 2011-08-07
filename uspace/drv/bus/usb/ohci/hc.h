@@ -50,9 +50,7 @@
 #include "endpoint_list.h"
 #include "hw_struct/hcca.h"
 
-#define OHCI_NEEDED_IRQ_COMMANDS 5
-
-/** Main OHCI drier structure */
+/** Main OHCI driver structure */
 typedef struct hc {
 	/** USB bus driver, devices and addresses */
 	usb_device_keeper_t manager;
@@ -75,19 +73,15 @@ typedef struct hc {
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;
 
-	/** Code to be executed in kernel interrupt handler */
-	irq_code_t interrupt_code;
-
-	/** Commands that form interrupt code */
-	irq_cmd_t interrupt_commands[OHCI_NEEDED_IRQ_COMMANDS];
-
 	/** USB hub emulation structure */
 	rh_t rh;
 } hc_t;
 
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
+size_t hc_irq_cmd_count(void);
+int hc_get_irq_commands(
+    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size);
 int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
-void hc_start_hw(hc_t *instance);
+int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 
 /** Safely dispose host controller internal structures
  *

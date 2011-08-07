@@ -64,6 +64,7 @@ typedef struct {
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
+#include <arch/istate.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
@@ -304,16 +305,6 @@ extern void as_deinstall_arch(as_t *);
 extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
-
-/**
- * This flags is passed when running the loader, otherwise elf_load()
- * would return with a EE_LOADER error code.
- *
- */
-#define ELD_F_NONE    0
-#define ELD_F_LOADER  1
-
-extern unsigned int elf_load(elf_header_t *, as_t *, unsigned int);
 
 /* Address space area related syscalls. */
 extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int);

@@ -47,7 +47,7 @@ extern int ip_packet_size_req_remote(async_sess_t *, device_id_t,
     packet_dimension_t *);
 extern int ip_received_error_msg_remote(async_sess_t *, device_id_t, packet_t *,
     services_t, services_t);
-extern int ip_device_req_remote(async_sess_t *, device_id_t);
+extern int ip_device_req_remote(async_sess_t *, device_id_t, services_t);
 extern int ip_add_route_req_remote(async_sess_t *, device_id_t, in_addr_t,
     in_addr_t, in_addr_t);
 extern int ip_send_msg_remote(async_sess_t *, device_id_t, packet_t *,

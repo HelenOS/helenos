@@ -170,11 +170,8 @@ void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t * descriptor);
 void usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor,
     void * serialized_descriptor);
 
-usb_hub_descriptor_t * usb_create_deserialized_hub_desriptor(
-    void * serialized_descriptor);
-
-void usb_deserialize_hub_desriptor(void * serialized_descriptor,
-    usb_hub_descriptor_t * descriptor);
+int usb_deserialize_hub_desriptor(
+    void *serialized_descriptor, size_t size, usb_hub_descriptor_t *descriptor);
 
 
 #endif	/* USBHUB_PRIVATE_H */

@@ -29,9 +29,11 @@
 
 
 #include <arch/main.h>
+#include <arch/types.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
 #include <arch/_components.h>
+#include <genarch/efi.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>
@@ -50,11 +52,82 @@
 #define DEFAULT_FREQ_SCALE		0x0000000100000001ULL	/* 1/1 */
 #define DEFAULT_SYS_FREQ		100000000ULL		/* 100MHz */
 
-#define EFI_MEMMAP_FREE_MEM		0
-#define EFI_MEMMAP_IO			1
-#define EFI_MEMMAP_IO_PORTS		2
+#define MEMMAP_FREE_MEM		0
+#define MEMMAP_IO		1
+#define MEMMAP_IO_PORTS		2
+
+extern boot_param_t *bootpar;
 
 static bootinfo_t bootinfo;
+
+static void read_efi_memmap(void)
+{
+	memmap_item_t *memmap = bootinfo.memmap;
+	size_t items = 0;
+	
+	if (!bootpar) {
+		/* Fake-up a memory map for simulators. */
+		memmap[items].base = DEFAULT_MEMORY_BASE;
+		memmap[items].size = DEFAULT_MEMORY_SIZE;
+		memmap[items].type = MEMMAP_FREE_MEM;
+		items++;
+
+		memmap[items].base = DEFAULT_LEGACY_IO_BASE;
+		memmap[items].size = DEFAULT_LEGACY_IO_SIZE;
+		memmap[items].type = MEMMAP_IO_PORTS;
+		items++;		 
+	} else {
+		char *cur, *mm_base = (char *) bootpar->efi_memmap;
+		size_t mm_size = bootpar->efi_memmap_sz;
+		size_t md_size = bootpar->efi_memdesc_sz;
+		
+		/*
+		 * Walk the EFI memory map using the V1 memory descriptor
+		 * format. The actual memory descriptor can use newer format,
+		 * but it must always be backwards compatible with the V1
+		 * format.
+		 */
+		for (cur = mm_base;
+		    (cur < mm_base + (mm_size - md_size)) &&
+		    (items < MEMMAP_ITEMS);
+		    cur += md_size) {
+			efi_v1_memdesc_t *md = (efi_v1_memdesc_t *) cur;
+
+			switch ((efi_memory_type_t) md->type) {
+			case EFI_CONVENTIONAL_MEMORY:
+				memmap[items].type = MEMMAP_FREE_MEM;
+				break;
+			case EFI_MEMORY_MAPPED_IO:
+				memmap[items].type = MEMMAP_IO;
+				break;
+			case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
+				memmap[items].type = MEMMAP_IO_PORTS;
+				break;
+			default:
+				continue;
+			}
+			
+			memmap[items].base = md->phys_start;
+			memmap[items].size = md->pages * EFI_PAGE_SIZE;
+			items++;
+		}
+	}
+	
+	bootinfo.memmap_items = items;
+}
+
+static void read_sal_configuration(void)
+{
+	if (!bootpar) {
+		/* Configure default values for simulators. */
+		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
+		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
+	} else {
+		/* TODO: read the real values from SAL */
+		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
+		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
+	}
+}
 
 void bootstrap(void)
 {
@@ -112,33 +185,9 @@ void bootstrap(void)
 	}
 	
 	printf(".\n");
-	
-	if (!bootinfo.hello_configured) {	/* XXX */
-		/*
-		 * Load configuration defaults for simulators.
-		 */
-		 bootinfo.memmap_items = 0;
-		 
-		 bootinfo.memmap[bootinfo.memmap_items].base =
-		     DEFAULT_MEMORY_BASE;
-		 bootinfo.memmap[bootinfo.memmap_items].size =
-		     DEFAULT_MEMORY_SIZE;
-		 bootinfo.memmap[bootinfo.memmap_items].type =
-		     EFI_MEMMAP_FREE_MEM;
-		 bootinfo.memmap_items++;
 
-		 bootinfo.memmap[bootinfo.memmap_items].base =
-		     DEFAULT_LEGACY_IO_BASE;
-		 bootinfo.memmap[bootinfo.memmap_items].size =
-		     DEFAULT_LEGACY_IO_SIZE;
-		 bootinfo.memmap[bootinfo.memmap_items].type =
-		     EFI_MEMMAP_IO_PORTS;
-		 bootinfo.memmap_items++;
-		 
-		 bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
-		 bootinfo.sys_freq = DEFAULT_SYS_FREQ;
-	}
-	
+	read_efi_memmap();
+	read_sal_configuration();
 	
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(&bootinfo);

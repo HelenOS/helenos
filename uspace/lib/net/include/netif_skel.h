@@ -204,7 +204,7 @@ extern void null_device_stats(device_stats_t *);
 extern void netif_pq_release(packet_id_t);
 extern packet_t *netif_packet_get_1(size_t);
 
-extern int netif_module_start(sysarg_t);
+extern int netif_module_start(void);
 
 #endif
 

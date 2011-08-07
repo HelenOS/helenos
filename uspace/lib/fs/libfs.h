@@ -42,6 +42,19 @@
 #include <loc.h>
 
 typedef struct {
+	int (* mounted)(service_id_t, const char *, fs_index_t *, aoff64_t *,
+	    unsigned *);
+	int (* unmounted)(service_id_t);
+	int (* read)(service_id_t, fs_index_t, aoff64_t, size_t *);
+	int (* write)(service_id_t, fs_index_t, aoff64_t, size_t *,
+	    aoff64_t *);
+	int (* truncate)(service_id_t, fs_index_t, aoff64_t);
+	int (* close)(service_id_t, fs_index_t);
+	int (* destroy)(service_id_t, fs_index_t);
+	int (* sync)(service_id_t, fs_index_t);
+} vfs_out_ops_t;
+
+typedef struct {
 	bool mp_active;
 	async_sess_t *sess;
 	fs_handle_t fs_handle;
@@ -70,13 +83,12 @@ typedef struct {
 	int (* unlink)(fs_node_t *, fs_node_t *, const char *);
 	int (* has_children)(bool *, fs_node_t *);
 	/*
-	 * The second set of methods are usually mere getters that do not return
-	 * an integer error code.
+	 * The second set of methods are usually mere getters that do not
+	 * return an integer error code.
 	 */
 	fs_index_t (* index_get)(fs_node_t *);
 	aoff64_t (* size_get)(fs_node_t *);
 	unsigned int (* lnkcnt_get)(fs_node_t *);
-	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
 	service_id_t (* device_get)(fs_node_t *);
@@ -87,17 +99,10 @@ typedef struct {
 	uint8_t *plb_ro;         /**< Read-only PLB view. */
 } fs_reg_t;
 
-extern int fs_register(async_sess_t *, fs_reg_t *, vfs_info_t *,
-    async_client_conn_t);
+extern int fs_register(async_sess_t *, vfs_info_t *, vfs_out_ops_t *,
+    libfs_ops_t *);
 
 extern void fs_node_initialize(fs_node_t *);
-
-extern void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
-extern void libfs_unmount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
-extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
-extern void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
-extern void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
-    ipc_call_t *);
 
 #endif
 

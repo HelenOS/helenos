@@ -35,7 +35,8 @@
 
 #include <libfs.h>
 
-extern fs_reg_t locfs_reg;
+extern vfs_out_ops_t locfs_ops;
+extern libfs_ops_t locfs_libfs_ops;
 
 #endif
 

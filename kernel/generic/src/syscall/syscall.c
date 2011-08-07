@@ -185,9 +185,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_sysinfo_get_data_size,
 	(syshandler_t) sys_sysinfo_get_data,
 	
-	/* Debug calls */
-	(syshandler_t) sys_debug_enable_console,
-	(syshandler_t) sys_debug_disable_console
+	/* Kernel console syscalls. */
+	(syshandler_t) sys_debug_activate_console
 };
 
 /** @}

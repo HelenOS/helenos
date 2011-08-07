@@ -55,6 +55,7 @@ PACK = $(TOOLS_PATH)/pack.py
 MKHORD = $(TOOLS_PATH)/mkhord.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
+MKEXT2 = $(TOOLS_PATH)/mkext2.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
@@ -81,6 +82,10 @@ endif
 
 ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
+endif
+
+ifeq ($(RDFMT),ext2fs)
+	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext2fs/ext2fs
 endif
 
 RD_SRVS_ESSENTIAL = \

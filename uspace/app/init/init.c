@@ -269,7 +269,6 @@ int main(int argc, char *argv[])
 	spawn("/srv/devman");
 	spawn("/srv/apic");
 	spawn("/srv/i8259");
-	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
@@ -294,6 +293,10 @@ int main(int argc, char *argv[])
 #endif
 	
 #ifdef CONFIG_MOUNT_DATA
+	/* Make sure fat is running. */
+	if (str_cmp(STRING(RDFMT), "fat") != 0) {
+		srv_start("/srv/fat");
+	}
 	mount_data();
 #else
 	(void) mount_data;

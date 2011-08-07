@@ -75,7 +75,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	vfs_node_t *mp_node = NULL;
 	vfs_node_t *mr_node;
 	fs_index_t rindex;
-	size_t rsize;
+	aoff64_t rsize;
 	unsigned rlnkcnt;
 	async_exch_t *exch;
 	sysarg_t rc;
@@ -145,8 +145,8 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			}
 
 			rindex = (fs_index_t) IPC_GET_ARG1(answer);
-			rsize = (size_t) IPC_GET_ARG2(answer);
-			rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
+			rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
+			rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 			
 			mr_res.triplet.fs_handle = fs_handle;
 			mr_res.triplet.service_id = service_id;
@@ -228,8 +228,9 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	
 	if (rc == EOK) {
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
-		rsize = (size_t) IPC_GET_ARG2(answer);
-		rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
+		rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer),
+		    IPC_GET_ARG3(answer));
+		rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 		
 		mr_res.triplet.fs_handle = fs_handle;
 		mr_res.triplet.service_id = service_id;
@@ -794,16 +795,16 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	sysarg_t rc;
 	ipc_call_t answer;
 	if (read) {
-		rc = async_data_read_forward_3_1(fs_exch, VFS_OUT_READ,
-		    file->node->service_id, file->node->index, file->pos,
-		    &answer);
+		rc = async_data_read_forward_4_1(fs_exch, VFS_OUT_READ,
+		    file->node->service_id, file->node->index,
+		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	} else {
 		if (file->append)
 			file->pos = file->node->size;
 		
-		rc = async_data_write_forward_3_1(fs_exch, VFS_OUT_WRITE,
-		    file->node->service_id, file->node->index, file->pos,
-		    &answer);
+		rc = async_data_write_forward_4_1(fs_exch, VFS_OUT_WRITE,
+		    file->node->service_id, file->node->index,
+		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	}
 	
 	vfs_exchange_release(fs_exch);
@@ -820,7 +821,8 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	else {
 		/* Update the cached version of node's size. */
 		if (rc == EOK)
-			file->node->size = IPC_GET_ARG2(answer); 
+			file->node->size = MERGE_LOUP32(IPC_GET_ARG2(answer),
+			    IPC_GET_ARG3(answer));
 		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 	

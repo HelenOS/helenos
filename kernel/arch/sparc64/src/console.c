@@ -37,7 +37,6 @@
 
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>
-#include <arch/drivers/sgcn.h>
 #include <genarch/srln/srln.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -88,28 +87,6 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 #endif
 }
 
-/** Initilize I/O on the Serengeti machine. */
-static void serengeti_init(void)
-{
-#ifdef CONFIG_SGCN_KBD
-	sgcn_instance_t *sgcn_instance = sgcnin_init();
-	if (sgcn_instance) {
-		srln_instance_t *srln_instance = srln_init();
-		if (srln_instance) {
-			indev_t *sink = stdin_wire();
-			indev_t *srln = srln_wire(srln_instance, sink);
-			sgcnin_wire(sgcn_instance, srln);
-		}
-	}
-#endif
-	
-#ifdef CONFIG_SGCN_PRN
-	outdev_t *sgcndev = sgcnout_init();
-	if (sgcndev)
-		stdout_wire(sgcndev);
-#endif
-}
-
 /**
  * Initialize input/output. Auto-detects the type of machine
  * and calls the appropriate I/O init routine. 
@@ -126,11 +103,8 @@ void standalone_sparc64_console_init(void)
 	/* "def-cn" = "default console" */
 	prop = ofw_tree_getprop(aliases, "def-cn");
 	
-	if ((!prop) || (!prop->value) || (str_cmp(prop->value, "/sgcn") != 0)) {
+	if ((!prop) || (!prop->value))
 		standard_console_init(aliases);
-	} else {
-		serengeti_init();
-	}
 }
 
 /** @}

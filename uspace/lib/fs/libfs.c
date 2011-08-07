@@ -44,6 +44,7 @@
 #include <dirent.h>
 #include <mem.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 #define on_error(rc, action) \
 	do { \
@@ -60,6 +61,228 @@
 		return; \
 	} while (0)
 
+static fs_reg_t reg;
+
+static vfs_out_ops_t *vfs_out_ops = NULL;
+static libfs_ops_t *libfs_ops = NULL;
+
+static void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
+static void libfs_unmount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
+static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
+    ipc_call_t *);
+static void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
+static void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
+    ipc_call_t *);
+
+static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	char *opts;
+	int rc;
+	
+	/* Accept the mount options. */
+	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+
+	fs_index_t index;
+	aoff64_t size;
+	unsigned lnkcnt;
+	rc = vfs_out_ops->mounted(service_id, opts, &index, &size, &lnkcnt);
+
+	if (rc == EOK)
+		async_answer_4(rid, EOK, index, LOWER32(size), UPPER32(size),
+		    lnkcnt);
+	else
+		async_answer_0(rid, rc);
+
+	free(opts);
+}
+
+static void vfs_out_mount(ipc_callid_t rid, ipc_call_t *req)
+{
+	libfs_mount(libfs_ops, reg.fs_handle, rid, req);
+}
+
+static void vfs_out_unmounted(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	int rc; 
+
+	rc = vfs_out_ops->unmounted(service_id);
+
+	async_answer_0(rid, rc);
+}
+
+static void vfs_out_unmount(ipc_callid_t rid, ipc_call_t *req)
+{
+		
+	libfs_unmount(libfs_ops, rid, req);
+}
+
+static void vfs_out_lookup(ipc_callid_t rid, ipc_call_t *req)
+{
+	libfs_lookup(libfs_ops, reg.fs_handle, rid, req);
+}
+
+static void vfs_out_read(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
+	    IPC_GET_ARG4(*req));
+	size_t rbytes;
+	int rc;
+
+	rc = vfs_out_ops->read(service_id, index, pos, &rbytes);
+
+	if (rc == EOK)
+		async_answer_1(rid, EOK, rbytes);
+	else
+		async_answer_0(rid, rc);
+}
+
+static void vfs_out_write(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
+	    IPC_GET_ARG4(*req));
+	size_t wbytes;
+	aoff64_t nsize;
+	int rc;
+
+	rc = vfs_out_ops->write(service_id, index, pos, &wbytes, &nsize);
+
+	if (rc == EOK)
+		async_answer_3(rid, EOK, wbytes, LOWER32(nsize), UPPER32(nsize));
+	else
+		async_answer_0(rid, rc);
+}
+
+static void vfs_out_truncate(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	aoff64_t size = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
+	    IPC_GET_ARG4(*req));
+	int rc;
+
+	rc = vfs_out_ops->truncate(service_id, index, size);
+
+	async_answer_0(rid, rc);
+}
+
+static void vfs_out_close(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	int rc;
+
+	rc = vfs_out_ops->close(service_id, index);
+
+	async_answer_0(rid, rc);
+}
+
+static void vfs_out_destroy(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	int rc;
+
+	rc = vfs_out_ops->destroy(service_id, index);
+
+	async_answer_0(rid, rc);
+}
+
+static void vfs_out_open_node(ipc_callid_t rid, ipc_call_t *req)
+{
+	libfs_open_node(libfs_ops, reg.fs_handle, rid, req);
+}
+
+static void vfs_out_stat(ipc_callid_t rid, ipc_call_t *req)
+{
+	libfs_stat(libfs_ops, reg.fs_handle, rid, req);
+}
+
+static void vfs_out_sync(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	int rc;
+
+	rc = vfs_out_ops->sync(service_id, index);
+
+	async_answer_0(rid, rc);
+}
+
+static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	if (iid) {
+		/*
+		 * This only happens for connections opened by
+		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
+		 * created by IPC_M_CONNECT_TO_ME.
+		 */
+		async_answer_0(iid, EOK);
+	}
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			return;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case VFS_OUT_MOUNTED:
+			vfs_out_mounted(callid, &call);
+			break;
+		case VFS_OUT_MOUNT:
+			vfs_out_mount(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNTED:
+			vfs_out_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			vfs_out_unmount(callid, &call);
+			break;
+		case VFS_OUT_LOOKUP:
+			vfs_out_lookup(callid, &call);
+			break;
+		case VFS_OUT_READ:
+			vfs_out_read(callid, &call);
+			break;
+		case VFS_OUT_WRITE:
+			vfs_out_write(callid, &call);
+			break;
+		case VFS_OUT_TRUNCATE:
+			vfs_out_truncate(callid, &call);
+			break;
+		case VFS_OUT_CLOSE:
+			vfs_out_close(callid, &call);
+			break;
+		case VFS_OUT_DESTROY:
+			vfs_out_destroy(callid, &call);
+			break;
+		case VFS_OUT_OPEN_NODE:
+			vfs_out_open_node(callid, &call);
+			break;
+		case VFS_OUT_STAT:
+			vfs_out_stat(callid, &call);
+			break;
+		case VFS_OUT_SYNC:
+			vfs_out_sync(callid, &call);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+			break;
+		}
+	}
+}
+
 /** Register file system server.
  *
  * This function abstracts away the tedious registration protocol from
@@ -67,18 +290,16 @@
  * code.
  *
  * @param sess Session for communication with VFS.
- * @param reg  File system registration structure. It will be
- *             initialized by this function.
  * @param info VFS info structure supplied by the file system
  *             implementation.
- * @param conn Connection fibril for handling all calls originating in
- *             VFS.
+ * @param vops Address of the vfs_out_ops_t structure.
+ * @param lops Address of the libfs_ops_t structure.
  *
  * @return EOK on success or a non-zero error code on errror.
  *
  */
-int fs_register(async_sess_t *sess, fs_reg_t *reg, vfs_info_t *info,
-    async_client_conn_t conn)
+int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
+    libfs_ops_t *lops)
 {
 	/*
 	 * Tell VFS that we are here and want to get registered.
@@ -103,15 +324,21 @@ int fs_register(async_sess_t *sess, fs_reg_t *reg, vfs_info_t *info,
 	}
 	
 	/*
+	 * Set VFS_OUT and libfs operations.
+	 */
+	vfs_out_ops = vops;
+	libfs_ops = lops;
+
+	/*
 	 * Ask VFS for callback connection.
 	 */
-	async_connect_to_me(exch, 0, 0, 0, conn, NULL);
+	async_connect_to_me(exch, 0, 0, 0, vfs_connection, NULL);
 	
 	/*
 	 * Allocate piece of address space for PLB.
 	 */
-	reg->plb_ro = as_get_mappable_page(PLB_SIZE);
-	if (!reg->plb_ro) {
+	reg.plb_ro = as_get_mappable_page(PLB_SIZE);
+	if (!reg.plb_ro) {
 		async_exchange_end(exch);
 		async_wait_for(req, NULL);
 		return ENOMEM;
@@ -120,7 +347,7 @@ int fs_register(async_sess_t *sess, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = async_share_in_start_0_0(exch, reg->plb_ro, PLB_SIZE);
+	rc = async_share_in_start_0_0(exch, reg.plb_ro, PLB_SIZE);
 	
 	async_exchange_end(exch);
 	
@@ -133,13 +360,13 @@ int fs_register(async_sess_t *sess, fs_reg_t *reg, vfs_info_t *info,
 	 * Pick up the answer for the request to the VFS_IN_REQUEST call.
 	 */
 	async_wait_for(req, NULL);
-	reg->fs_handle = (int) IPC_GET_ARG1(answer);
+	reg.fs_handle = (int) IPC_GET_ARG1(answer);
 	
 	/*
 	 * Tell the async framework that other connections are to be handled by
 	 * the same connection fibril as well.
 	 */
-	async_set_client_connection(conn);
+	async_set_client_connection(vfs_connection);
 	
 	return IPC_GET_RETVAL(answer);
 }
@@ -150,12 +377,12 @@ void fs_node_initialize(fs_node_t *fn)
 }
 
 void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
-    ipc_call_t *request)
+    ipc_call_t *req)
 {
-	service_id_t mp_service_id = (service_id_t) IPC_GET_ARG1(*request);
-	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
-	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
-	service_id_t mr_service_id = (service_id_t) IPC_GET_ARG4(*request);
+	service_id_t mp_service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*req);
+	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*req);
+	service_id_t mr_service_id = (service_id_t) IPC_GET_ARG4(*req);
 	
 	async_sess_t *mountee_sess = async_clone_receive(EXCHANGE_PARALLEL);
 	if (mountee_sess == NULL) {
@@ -207,14 +434,14 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/*
 	 * Do not release the FS node so that it stays in memory.
 	 */
-	async_answer_3(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
-	    IPC_GET_ARG3(answer));
+	async_answer_4(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
+	    IPC_GET_ARG3(answer), IPC_GET_ARG4(answer));
 }
 
-void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
+void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *req)
 {
-	service_id_t mp_service_id = (service_id_t) IPC_GET_ARG1(*request);
-	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
+	service_id_t mp_service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*req);
 	fs_node_t *fn;
 	int res;
 
@@ -258,6 +485,11 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, res);
 }
 
+static char plb_get_char(unsigned pos)
+{
+	return reg.plb_ro[pos % PLB_SIZE];
+}
+
 /** Lookup VFS triplet by name in the file system name space.
  *
  * The path passed in the PLB must be in the canonical file system path format
@@ -272,14 +504,14 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
  *
  */
 void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
-    ipc_call_t *request)
+    ipc_call_t *req)
 {
-	unsigned int first = IPC_GET_ARG1(*request);
-	unsigned int last = IPC_GET_ARG2(*request);
+	unsigned int first = IPC_GET_ARG1(*req);
+	unsigned int last = IPC_GET_ARG2(*req);
 	unsigned int next = first;
-	service_id_t service_id = IPC_GET_ARG3(*request);
-	int lflag = IPC_GET_ARG4(*request);
-	fs_index_t index = IPC_GET_ARG5(*request);
+	service_id_t service_id = IPC_GET_ARG3(*req);
+	int lflag = IPC_GET_ARG4(*req);
+	fs_index_t index = IPC_GET_ARG5(*req);
 	char component[NAME_MAX + 1];
 	int len;
 	int rc;
@@ -297,7 +529,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (cur->mp_data.mp_active) {
 		async_exch_t *exch = async_exchange_begin(cur->mp_data.sess);
 		async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last,
-		    cur->mp_data.service_id, lflag, index, IPC_FF_ROUTE_FROM_ME);
+		    cur->mp_data.service_id, lflag, index,
+		    IPC_FF_ROUTE_FROM_ME);
 		async_exchange_end(exch);
 		
 		(void) ops->node_put(cur);
@@ -305,7 +538,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	
 	/* Eat slash */
-	if (ops->plb_get_char(next) == '/')
+	if (plb_get_char(next) == '/')
 		next++;
 	
 	while (next <= last) {
@@ -318,13 +551,13 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		
 		/* Collect the component */
 		len = 0;
-		while ((next <= last) && (ops->plb_get_char(next) != '/')) {
+		while ((next <= last) && (plb_get_char(next) != '/')) {
 			if (len + 1 == NAME_MAX) {
 				/* Component length overflow */
 				async_answer_0(rid, ENAMETOOLONG);
 				goto out;
 			}
-			component[len++] = ops->plb_get_char(next);
+			component[len++] = plb_get_char(next);
 			/* Process next character */
 			next++;
 		}
@@ -356,8 +589,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				next--;
 			
 			async_exch_t *exch = async_exchange_begin(tmp->mp_data.sess);
-			async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last,
-			    tmp->mp_data.service_id, lflag, index,
+			async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next,
+			    last, tmp->mp_data.service_id, lflag, index,
 			    IPC_FF_ROUTE_FROM_ME);
 			async_exchange_end(exch);
 			
@@ -450,7 +683,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			/* Collect next component */
 			len = 0;
 			while (next <= last) {
-				if (ops->plb_get_char(next) == '/') {
+				if (plb_get_char(next) == '/') {
 					/* More than one component */
 					async_answer_0(rid, ENOENT);
 					goto out;
@@ -462,7 +695,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					goto out;
 				}
 				
-				component[len++] = ops->plb_get_char(next);
+				component[len++] = plb_get_char(next);
 				/* Process next character */
 				next++;
 			}
@@ -636,7 +869,8 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	rc = ops->node_open(fn);
 	aoff64_t size = ops->size_get(fn);
-	async_answer_4(rid, rc, LOWER32(size), UPPER32(size), ops->lnkcnt_get(fn),
+	async_answer_4(rid, rc, LOWER32(size), UPPER32(size),
+	    ops->lnkcnt_get(fn),
 	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);

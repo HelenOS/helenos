@@ -316,6 +316,12 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		return;
 	}
 	
+	if (fun->conn_handler != NULL) {
+		/* Driver has a custom connection handler. */
+		(*fun->conn_handler)(iid, icall, (void *)fun);
+		return;
+	}
+	
 	/*
 	 * TODO - if the client is not a driver, check whether it is allowed to
 	 * use the device.
@@ -613,7 +619,7 @@ int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 	if (match_id == NULL)
 		return ENOMEM;
 	
-	match_id->id = match_id_str;
+	match_id->id = str_dup(match_id_str);
 	match_id->score = 90;
 	
 	add_match_id(&fun->match_ids, match_id);

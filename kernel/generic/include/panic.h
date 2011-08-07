@@ -59,7 +59,7 @@ typedef enum {
 
 struct istate;
 
-extern bool silent;
+extern bool console_override;
 
 extern void panic_common(panic_category_t, struct istate *, int,
     uintptr_t, const char *, ...) __attribute__ ((noreturn))

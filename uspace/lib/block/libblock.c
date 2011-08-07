@@ -257,13 +257,13 @@ void *block_bb_get(service_id_t service_id)
 
 static hash_index_t cache_hash(unsigned long *key)
 {
-	return *key & (CACHE_BUCKETS - 1);
+	return MERGE_LOUP32(key[0], key[1]) & (CACHE_BUCKETS - 1);
 }
 
 static int cache_compare(unsigned long *key, hash_count_t keys, link_t *item)
 {
 	block_t *b = hash_table_get_instance(item, block_t, hash_link);
-	return b->lba == *key;
+	return b->lba == MERGE_LOUP32(key[0], key[1]);
 }
 
 static void cache_remove_callback(link_t *item)
@@ -304,7 +304,7 @@ int block_cache_init(service_id_t service_id, size_t size, unsigned blocks,
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
-	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
+	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 2,
 	    &cache_ops)) {
 		free(cache);
 		return ENOMEM;
@@ -343,8 +343,11 @@ int block_cache_fini(service_id_t service_id)
 				return rc;
 		}
 
-		unsigned long key = b->lba;
-		hash_table_remove(&cache->block_hash, &key, 1);
+		unsigned long key[2] = {
+			LOWER32(b->lba),
+			UPPER32(b->lba)
+		};
+		hash_table_remove(&cache->block_hash, key, 2);
 		
 		free(b->data);
 		free(b);
@@ -397,7 +400,11 @@ int block_get(block_t **block, service_id_t service_id, aoff64_t ba, int flags)
 	cache_t *cache;
 	block_t *b;
 	link_t *l;
-	unsigned long key = ba;
+	unsigned long key[2] = {
+		LOWER32(ba),
+		UPPER32(ba)
+	};
+
 	int rc;
 	
 	devcon = devcon_search(service_id);
@@ -412,7 +419,7 @@ retry:
 	b = NULL;
 
 	fibril_mutex_lock(&cache->lock);
-	l = hash_table_find(&cache->block_hash, &key);
+	l = hash_table_find(&cache->block_hash, key);
 	if (l) {
 found:
 		/*
@@ -450,7 +457,6 @@ found:
 			/*
 			 * Try to recycle a block from the free list.
 			 */
-			unsigned long temp_key;
 recycle:
 			if (list_empty(&cache->free_list)) {
 				fibril_mutex_unlock(&cache->lock);
@@ -498,7 +504,7 @@ recycle:
 					fibril_mutex_unlock(&b->lock);
 					goto retry;
 				}
-				l = hash_table_find(&cache->block_hash, &key);
+				l = hash_table_find(&cache->block_hash, key);
 				if (l) {
 					/*
 					 * Someone else must have already
@@ -521,8 +527,11 @@ recycle:
 			 * table.
 			 */
 			list_remove(&b->free_link);
-			temp_key = b->lba;
-			hash_table_remove(&cache->block_hash, &temp_key, 1);
+			unsigned long temp_key[2] = {
+				LOWER32(b->lba),
+				UPPER32(b->lba)
+			};
+			hash_table_remove(&cache->block_hash, temp_key, 2);
 		}
 
 		block_initialize(b);
@@ -530,7 +539,7 @@ recycle:
 		b->size = cache->lblock_size;
 		b->lba = ba;
 		b->pba = ba_ltop(devcon, b->lba);
-		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
+		hash_table_insert(&cache->block_hash, key, &b->hash_link);
 
 		/*
 		 * Lock the block before releasing the cache lock. Thus we don't
@@ -642,8 +651,11 @@ retry:
 			/*
 			 * Take the block out of the cache and free it.
 			 */
-			unsigned long key = block->lba;
-			hash_table_remove(&cache->block_hash, &key, 1);
+			unsigned long key[2] = {
+				LOWER32(block->lba),
+				UPPER32(block->lba)
+			};
+			hash_table_remove(&cache->block_hash, key, 2);
 			fibril_mutex_unlock(&block->lock);
 			free(block->data);
 			free(block);

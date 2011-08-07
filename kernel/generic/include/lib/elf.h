@@ -107,17 +107,6 @@
 #define ELFDATA2MSB  2  /* Most signigicant byte first (big endian) */
 
 /**
- * ELF error return codes
- */
-#define EE_OK             0  /* No error */
-#define EE_INVALID        1  /* Invalid ELF image */
-#define EE_MEMORY         2  /* Cannot allocate address space */
-#define EE_INCOMPATIBLE   3  /* ELF image is not compatible with current architecture */
-#define EE_UNSUPPORTED    4  /* Non-supported ELF (e.g. dynamic ELFs) */
-#define EE_LOADER         5  /* The image is actually a program loader */
-#define EE_IRRECOVERABLE  6
-
-/**
  * ELF section types
  */
 #define SHT_NULL      0
@@ -147,6 +136,11 @@
 #define SHF_EXECINSTR  0x4
 #define SHF_TLS        0x400
 #define SHF_MASKPROC   0xf0000000
+
+/** Macros for decomposing elf_symbol.st_info into binging and type */
+#define ELF_ST_BIND(i)     ((i) >> 4)
+#define ELF_ST_TYPE(i)     ((i) & 0x0f)
+#define ELF_ST_INFO(b, t)  (((b) << 4) + ((t) & 0x0f))
 
 /**
  * Symbol binding
@@ -194,7 +188,6 @@
  * These types are found to be identical in both 32-bit and 64-bit
  * ELF object file specifications. They are the only types used
  * in ELF header.
- *
  */
 typedef uint64_t elf_xword;
 typedef int64_t elf_sxword;
@@ -206,7 +199,6 @@ typedef uint16_t elf_half;
  * 32-bit ELF data types.
  *
  * These types are specific for 32-bit format.
- *
  */
 typedef uint32_t elf32_addr;
 typedef uint32_t elf32_off;
@@ -215,7 +207,6 @@ typedef uint32_t elf32_off;
  * 64-bit ELF data types.
  *
  * These types are specific for 64-bit format.
- *
  */
 typedef uint64_t elf64_addr;
 typedef uint64_t elf64_off;
@@ -331,11 +322,34 @@ struct elf64_symbol {
 	elf_xword st_size;
 };
 
+/*
+ * ELF note segment entry
+ */
+struct elf32_note {
+	elf_word namesz;
+	elf_word descsz;
+	elf_word type;
+};
+
+/*
+ * NOTE: namesz, descsz and type should be 64-bits wide (elf_xword)
+ * per the 64-bit ELF spec. The Linux kernel however screws up and
+ * defines them as Elf64_Word, which is 32-bits wide(!). We are trying
+ * to make our core files compatible with Linux GDB target so we copy
+ * the blunder here.
+ */
+struct elf64_note {
+	elf_word namesz;
+	elf_word descsz;
+	elf_word type;
+};
+
 #ifdef __32_BITS__
 typedef struct elf32_header elf_header_t;
 typedef struct elf32_segment_header elf_segment_header_t;
 typedef struct elf32_section_header elf_section_header_t;
 typedef struct elf32_symbol elf_symbol_t;
+typedef struct elf32_note elf_note_t;
 #endif
 
 #ifdef __64_BITS__
@@ -343,9 +357,8 @@ typedef struct elf64_header elf_header_t;
 typedef struct elf64_segment_header elf_segment_header_t;
 typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
+typedef struct elf64_note elf_note_t;
 #endif
-
-extern const char *elf_error(unsigned int rc);
 
 /** Interpreter string used to recognize the program loader */
 #define ELF_INTERP_ZSTR  "kernel"

@@ -478,6 +478,7 @@ static int start_device(netif_t *netif)
 		return rc;
 	
 	/* Network interface layer startup */
+	services_t internet_service;
 	if (netif->nil) {
 		setting = measured_strings_find(&netif->configuration, (uint8_t *) CONF_MTU, 0);
 		if (!setting)
@@ -485,14 +486,17 @@ static int start_device(netif_t *netif)
 			    (uint8_t *) CONF_MTU, 0);
 		
 		int mtu = setting ? strtol((char *) setting->value, NULL, 10) : 0;
-		
-		rc = nil_device_req(netif->nil->sess, netif->id, mtu);
+		rc = nil_device_req(netif->nil->sess, netif->id, mtu,
+		    netif->driver->service);
 		if (rc != EOK)
 			return rc;
-	}
+		
+		internet_service = netif->nil->service;
+	} else
+		internet_service = netif->driver->service;
 	
 	/* Inter-network layer startup */
-	rc = ip_device_req(netif->il->sess, netif->id);
+	rc = ip_device_req(netif->il->sess, netif->id, internet_service);
 	if (rc != EOK)
 		return rc;
 	

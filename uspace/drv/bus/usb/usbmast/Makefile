@@ -31,18 +31,21 @@ USPACE_PREFIX = ../../../..
 LIBS = \
 	$(LIBUSBDEV_PREFIX)/libusbdev.a \
 	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBSCSI_PREFIX)/libscsi.a
 
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBSCSI_PREFIX)/include
 
 BINARY = usbmast
 
 SOURCES = \
-	inquiry.c \
+	bo_trans.c \
+	cmdw.c \
 	main.c \
-	mast.c
+	scsi_ms.c
 
 include $(USPACE_PREFIX)/Makefile.common

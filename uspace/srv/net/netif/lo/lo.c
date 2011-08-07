@@ -224,7 +224,7 @@ int netif_stop_message(netif_device_t *device)
 int main(int argc, char *argv[])
 {
 	/* Start the module */
-	return netif_module_start(SERVICE_NILDUMMY);
+	return netif_module_start();
 }
 
 /** @}

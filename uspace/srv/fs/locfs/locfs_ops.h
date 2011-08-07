@@ -33,24 +33,9 @@
 #ifndef LOCFS_LOCFS_OPS_H_
 #define LOCFS_LOCFS_OPS_H_
 
-#include <ipc/common.h>
 #include <bool.h>
 
 extern bool locfs_init(void);
-
-extern void locfs_mounted(ipc_callid_t, ipc_call_t *);
-extern void locfs_mount(ipc_callid_t, ipc_call_t *);
-extern void locfs_unmounted(ipc_callid_t, ipc_call_t *);
-extern void locfs_unmount(ipc_callid_t, ipc_call_t *);
-extern void locfs_lookup(ipc_callid_t, ipc_call_t *);
-extern void locfs_open_node(ipc_callid_t, ipc_call_t *);
-extern void locfs_stat(ipc_callid_t, ipc_call_t *);
-extern void locfs_sync(ipc_callid_t, ipc_call_t *);
-extern void locfs_read(ipc_callid_t, ipc_call_t *);
-extern void locfs_write(ipc_callid_t, ipc_call_t *);
-extern void locfs_truncate(ipc_callid_t, ipc_call_t *);
-extern void locfs_close(ipc_callid_t, ipc_call_t *);
-extern void locfs_destroy(ipc_callid_t, ipc_call_t *);
 
 #endif
 
