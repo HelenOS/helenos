@@ -53,7 +53,7 @@
 #include "s3c24xx_ts.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define NAME "s3c24ser"
 #define NAMESPACE "hid"

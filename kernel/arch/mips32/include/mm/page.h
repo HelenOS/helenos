@@ -49,8 +49,6 @@
 #	define PA2KA(x)	((x) + 0x80000000)
 #endif
 
-#ifdef KERNEL
-
 /*
  * Implementation of generic 4-level page table interface.
  * 
@@ -186,8 +184,6 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 extern void page_arch_init(void);
 
 #endif /* __ASM__ */
-
-#endif /* KERNEL */
 
 #endif
 

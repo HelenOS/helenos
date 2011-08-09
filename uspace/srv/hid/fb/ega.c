@@ -55,7 +55,7 @@
 #include "main.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define MAX_SAVED_SCREENS  256
 

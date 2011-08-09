@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <synch/synch.h>
+#include <abi/synch.h>
 #include <adt/list.h>
 
 typedef enum {

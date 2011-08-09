@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sync
+/** @addtogroup ppc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_SYNCH_H_
-#define KERN_SYNCH_H_
+#ifndef KERN_ppc32_MSR_H_
+#define KERN_ppc32_MSR_H_
 
-/** Request with no timeout. */
-#define SYNCH_NO_TIMEOUT	0
+/* MSR bits */
+#define MSR_DR  (1 << 4)
+#define MSR_IR  (1 << 5)
+#define MSR_PR  (1 << 14)
+#define MSR_EE  (1 << 15)
 
-/** No flags specified. */
-#define SYNCH_FLAGS_NONE		0
-/** Non-blocking operation request. */
-#define SYNCH_FLAGS_NON_BLOCKING	(1 << 0)
-/** Interruptible operation. */
-#define SYNCH_FLAGS_INTERRUPTIBLE	(1 << 1)
-
-/** Could not satisfy the request without going to sleep. */
-#define ESYNCH_WOULD_BLOCK	1
-/** Timeout occurred. */
-#define ESYNCH_TIMEOUT		2
-/** Sleep was interrupted. */
-#define ESYNCH_INTERRUPTED	4
-/** Operation succeeded without sleeping. */
-#define ESYNCH_OK_ATOMIC	8
-/** Operation succeeded and did sleep. */
-#define ESYNCH_OK_BLOCKED	16
-
-#define SYNCH_FAILED(rc) \
-	((rc) & (ESYNCH_WOULD_BLOCK | ESYNCH_TIMEOUT | ESYNCH_INTERRUPTED))
-#define SYNCH_OK(rc) \
-	((rc) & (ESYNCH_OK_ATOMIC | ESYNCH_OK_BLOCKED))
+/* HID0 bits */
+#define HID0_STEN  (1 << 24)
+#define HID0_ICE   (1 << 15)
+#define HID0_DCE   (1 << 14)
+#define HID0_ICFI  (1 << 11)
+#define HID0_DCI   (1 << 10)
 
 #endif
 

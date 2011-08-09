@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericddi
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_DDI_ARG_H_
-#define KERN_DDI_ARG_H_
+#ifndef ABI_ERRNO_H_
+#define ABI_ERRNO_H_
 
-#ifdef KERNEL
+/**
+ * Values in the range [-1, -255] are kernel error codes,
+ * values in the range [-256, -512] are user error codes.
+ */
 
-#include <typedefs.h>
+#define EOK             0   /* No error */
+#define ENOENT         -1   /* No such entry */
+#define ENOMEM         -2   /* Not enough memory */
+#define ELIMIT         -3   /* Limit exceeded */
+#define EREFUSED       -4   /* Connection refused */
+#define EFORWARD       -5   /* Forward error */
+#define EPERM          -6   /* Permission denied */
 
-#endif /* KERNEL */
+/*
+ * Answerbox closed connection, call
+ * sys_ipc_hangup() to close the connection.
+ * Used by answerbox to close the connection.
+ */
+#define EHANGUP        -7
 
-/** Structure encapsulating arguments for SYS_PHYSMEM_MAP syscall. */
-typedef struct {
-	/** ID of the destination task. */
-	uint64_t task_id;
-	/** Physical address of starting frame. */
-	void *phys_base;
-	/** Virtual address of starting page. */
-	void *virt_base;
-	/** Number of pages to map. */
-	size_t pages;
-	/** Address space area flags for the mapping. */
-	unsigned int flags;
-} ddi_memarg_t;
+/*
+ * The other party encountered an error when
+ * receiving the call.
+ */
+#define EPARTY         -8
 
-/** Structure encapsulating arguments for SYS_ENABLE_IOSPACE syscall. */
-typedef struct {
-	uint64_t task_id;  /**< ID of the destination task. */
-	void *ioaddr;      /**< Starting I/O space address. */
-	size_t size;       /**< Number of bytes. */
-} ddi_ioarg_t;
+#define EEXISTS        -9   /* Entry already exists */
+#define EBADMEM        -10  /* Bad memory pointer */
+#define ENOTSUP        -11  /* Not supported */
+#define EADDRNOTAVAIL  -12  /* Address not available. */
+#define ETIMEOUT       -13  /* Timeout expired */
+#define EINVAL         -14  /* Invalid value */
+#define EBUSY          -15  /* Resource is busy */
+#define EOVERFLOW      -16  /* The result does not fit its size. */
+#define EINTR          -17  /* Operation was interrupted. */
 
 #endif
 

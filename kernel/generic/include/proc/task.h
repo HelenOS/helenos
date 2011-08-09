@@ -54,7 +54,7 @@
 #include <udebug/udebug.h>
 #include <ipc/kbox.h>
 #include <mm/as.h>
-#include <sysinfo/abi.h>
+#include <abi/sysinfo.h>
 
 struct thread;
 

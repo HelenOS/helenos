@@ -36,8 +36,8 @@
 #define LIBC_IPC_COMMON_H_
 
 #include <sys/types.h>
+#include <abi/ipc/ipc.h>
 #include <atomic.h>
-#include <kernel/ipc/ipc.h>
 
 #define IPC_FLAG_BLOCKING  0x01
 

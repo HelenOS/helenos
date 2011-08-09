@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup genericproc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_VISUALS_H_
-#define KERN_VISUALS_H_
+#ifndef ABI_PROC_UARG_H_
+#define ABI_PROC_UARG_H_
 
-typedef enum {
-	VISUAL_UNKNOWN = 0,
-	VISUAL_INDIRECT_8,
-	VISUAL_RGB_5_5_5_LE,
-	VISUAL_RGB_5_5_5_BE,
-	VISUAL_RGB_5_6_5_LE,
-	VISUAL_RGB_5_6_5_BE,
-	VISUAL_BGR_8_8_8,
-	VISUAL_BGR_0_8_8_8,
-	VISUAL_BGR_8_8_8_0,
-	VISUAL_RGB_8_8_8,
-	VISUAL_RGB_0_8_8_8,
-	VISUAL_RGB_8_8_8_0
-} visual_t;
+/** Structure passed to uinit kernel thread as argument. */
+typedef struct uspace_arg {
+	void *uspace_entry;
+	void *uspace_stack;
+	
+	void (* uspace_thread_function)();
+	void *uspace_thread_arg;
+	
+	struct uspace_arg *uspace_uarg;
+} uspace_arg_t;
 
 #endif
 

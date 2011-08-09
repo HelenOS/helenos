@@ -38,7 +38,6 @@
 #include <synch/semaphore.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <synch/synch.h>
 #include <arch/asm.h>
 #include <arch.h>
 

@@ -52,7 +52,7 @@
 #include "cuda_adb.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define NAME "cuda_adb"
 

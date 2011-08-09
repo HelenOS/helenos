@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_IPC_METHODS_H_
-#define KERN_IPC_METHODS_H_
+#ifndef ABI_IPC_METHODS_H_
+#define ABI_IPC_METHODS_H_
 
 /* Well known phone descriptors */
 #define PHONE_NS  0

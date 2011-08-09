@@ -38,7 +38,7 @@
 #include <genarch/ofw/sbus.h>
 #include <genarch/ofw/upa.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <typedefs.h>

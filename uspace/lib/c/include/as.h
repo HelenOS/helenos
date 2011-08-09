@@ -36,8 +36,8 @@
 #define LIBC_AS_H_
 
 #include <sys/types.h>
+#include <abi/mm/as.h>
 #include <task.h>
-#include <kernel/mm/as.h>
 #include <libarch/config.h>
 
 static inline size_t SIZE2PAGES(size_t size)

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_EVENT_TYPES_H_
-#define KERN_EVENT_TYPES_H_
+#ifndef ABI_IPC_EVENT_H_
+#define ABI_IPC_EVENT_H_
 
 typedef enum event_type {
 	/** New data available in kernel log */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericmm
  * @{
  */
 /** @file
- *
- * This header allows including a kernel header using typedefs.h from
- * libc. User-space code should use sys/types.h directly.
  */
 
-#ifndef LIBC_TYPEDEFS_H_
-#define LIBC_TYPEDEFS_H_
+#ifndef ABI_AS_H_
+#define ABI_AS_H_
 
-#include <sys/types.h>
+/** Address space area flags. */
+#define AS_AREA_READ       1
+#define AS_AREA_WRITE      2
+#define AS_AREA_EXEC       4
+#define AS_AREA_CACHEABLE  8
+
+/** Address space area info exported to uspace. */
+typedef struct {
+	/** Starting address */
+	uintptr_t start_addr;
+	
+	/** Area size */
+	size_t size;
+	
+	/** Area flags */
+	unsigned int flags;
+} as_area_info_t;
 
 #endif
 

@@ -35,7 +35,7 @@
 #ifndef LIBC_UDEBUG_H_
 #define LIBC_UDEBUG_H_
 
-#include <kernel/udebug/udebug.h>
+#include <abi/udebug.h>
 #include <sys/types.h>
 #include <async.h>
 

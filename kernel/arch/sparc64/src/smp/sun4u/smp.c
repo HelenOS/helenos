@@ -41,7 +41,6 @@
 #include <config.h>
 #include <macros.h>
 #include <typedefs.h>
-#include <synch/synch.h>
 #include <synch/waitq.h>
 #include <print.h>
 #include <arch/cpu_node.h>

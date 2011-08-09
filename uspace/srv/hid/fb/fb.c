@@ -48,8 +48,8 @@
 #include <ipc/fb.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
-#include <kernel/errno.h>
-#include <kernel/genarch/fb/visuals.h>
+#include <errno.h>
+#include <abi/fb/visuals.h>
 #include <io/color.h>
 #include <io/style.h>
 #include <async.h>
@@ -66,7 +66,7 @@
 #include "pointer_mask.xbm"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define DEFAULT_BGCOLOR  0xf0f0f0
 #define DEFAULT_FGCOLOR  0x000000

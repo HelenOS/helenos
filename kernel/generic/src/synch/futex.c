@@ -38,7 +38,6 @@
 #include <synch/futex.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>
-#include <synch/synch.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/slab.h>

@@ -106,7 +106,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <arch/barrier.h>
+#include <libarch/barrier.h>
 #include <bool.h>
 #include <malloc.h>
 #include <mem.h>

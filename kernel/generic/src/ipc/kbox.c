@@ -32,11 +32,10 @@
 /** @file
  */
 
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <ipc/ipc.h>
-#include <ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <ipc/ipcrsc.h>
 #include <arch.h>
 #include <errno.h>

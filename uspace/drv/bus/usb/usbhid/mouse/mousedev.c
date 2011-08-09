@@ -56,7 +56,7 @@
 #define ARROWS_PER_SINGLE_WHEEL 3
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define NAME "mouse"
 

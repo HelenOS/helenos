@@ -36,15 +36,17 @@
 #ifndef KERN_sparc64_ISTATE_H_
 #define KERN_sparc64_ISTATE_H_
 
-#include <arch/regdef.h>
+#include <trace.h>
 
 #ifdef KERNEL
-#include <typedefs.h>
-#include <trace.h>
-#else
-#include <sys/types.h>
-#define NO_TRACE
-#endif
+
+#include <arch/regdef.h>
+
+#else /* KERNEL */
+
+#include <libarch/regdef.h>
+
+#endif /* KERNEL */
 
 typedef struct istate {
 	uint64_t tnpc;

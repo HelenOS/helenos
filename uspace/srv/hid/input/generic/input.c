@@ -62,7 +62,7 @@
 #include <mouse.h>
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 /* In microseconds */
 #define DISCOVERY_POLL_INTERVAL  (10 * 1000 * 1000)

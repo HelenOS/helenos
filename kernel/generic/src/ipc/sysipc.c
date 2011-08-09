@@ -39,7 +39,7 @@
 #include <memstr.h>
 #include <debug.h>
 #include <ipc/ipc.h>
-#include <ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>

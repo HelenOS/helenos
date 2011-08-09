@@ -30,8 +30,7 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-INCLUDE_KERNEL = include/kernel
-INCLUDE_ARCH = include/arch
+INCLUDE_ABI = include/abi
 INCLUDE_LIBARCH = include/libarch
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
@@ -46,9 +45,9 @@ LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
-PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
+PRE_DEPEND = $(INCLUDE_ABI) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
-EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(INCLUDE_ABI) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
 LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
@@ -143,15 +142,10 @@ SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-$(INCLUDE_ARCH): $(INCLUDE_KERNEL) $(INCLUDE_KERNEL)/arch
-	ln -sfn kernel/arch $@
-
 $(INCLUDE_LIBARCH): arch/$(UARCH)/include
 	ln -sfn ../$< $@
 
-$(INCLUDE_KERNEL)/arch: ../../../kernel/generic/include/arch $(INCLUDE_KERNEL)
-
-$(INCLUDE_KERNEL): ../../../kernel/generic/include/
+$(INCLUDE_ABI): ../../../abi/include/
 	ln -sfn ../$< $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in

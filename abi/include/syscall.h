@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_UARG_H_
-#define KERN_UARG_H_
+#ifndef ABI_SYSCALL_H_
+#define ABI_SYSCALL_H_
 
-/** Structure passed to uinit kernel thread as argument. */
-typedef struct uspace_arg {
-	void *uspace_entry;
-	void *uspace_stack;
+typedef enum {
+	SYS_KLOG = 0,
+	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
 	
-	void (* uspace_thread_function)();
-	void *uspace_thread_arg;
+	SYS_THREAD_CREATE,
+	SYS_THREAD_EXIT,
+	SYS_THREAD_GET_ID,
+	SYS_THREAD_USLEEP,
+	SYS_THREAD_UDELAY,
 	
-	struct uspace_arg *uspace_uarg;
-} uspace_arg_t;
+	SYS_TASK_GET_ID,
+	SYS_TASK_SET_NAME,
+	SYS_TASK_KILL,
+	SYS_TASK_EXIT,
+	SYS_PROGRAM_SPAWN_LOADER,
+	
+	SYS_FUTEX_SLEEP,
+	SYS_FUTEX_WAKEUP,
+	SYS_SMC_COHERENCE,
+	
+	SYS_AS_AREA_CREATE,
+	SYS_AS_AREA_RESIZE,
+	SYS_AS_AREA_CHANGE_FLAGS,
+	SYS_AS_AREA_DESTROY,
+	SYS_AS_GET_UNMAPPED_AREA,
+	
+	SYS_PAGE_FIND_MAPPING,
+	
+	SYS_IPC_CALL_SYNC_FAST,
+	SYS_IPC_CALL_SYNC_SLOW,
+	SYS_IPC_CALL_ASYNC_FAST,
+	SYS_IPC_CALL_ASYNC_SLOW,
+	SYS_IPC_ANSWER_FAST,
+	SYS_IPC_ANSWER_SLOW,
+	SYS_IPC_FORWARD_FAST,
+	SYS_IPC_FORWARD_SLOW,
+	SYS_IPC_WAIT,
+	SYS_IPC_POKE,
+	SYS_IPC_HANGUP,
+	SYS_IPC_CONNECT_KBOX,
+	
+	SYS_EVENT_SUBSCRIBE,
+	SYS_EVENT_UNMASK,
+	
+	SYS_CAP_GRANT,
+	SYS_CAP_REVOKE,
+	
+	SYS_DEVICE_ASSIGN_DEVNO,
+	SYS_PHYSMEM_MAP,
+	SYS_IOSPACE_ENABLE,
+	SYS_REGISTER_IRQ,
+	SYS_UNREGISTER_IRQ,
+	
+	SYS_SYSINFO_GET_TAG,
+	SYS_SYSINFO_GET_VALUE,
+	SYS_SYSINFO_GET_DATA_SIZE,
+	SYS_SYSINFO_GET_DATA,
+	
+	SYS_DEBUG_ACTIVATE_CONSOLE,
+	
+	SYSCALL_END
+} syscall_t;
 
 #endif
 

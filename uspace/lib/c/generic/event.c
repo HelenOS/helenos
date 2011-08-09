@@ -38,7 +38,6 @@
 
 #include <libc.h>
 #include <event.h>
-#include <kernel/ipc/event_types.h>
 
 /** Subscribe event notifications.
  *

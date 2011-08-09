@@ -33,8 +33,8 @@
  * Data structures passed between kernel sysinfo and user space.
  */
 
-#ifndef KERN_ABI_H_
-#define KERN_ABI_H_
+#ifndef ABI_SYSINFO_H_
+#define ABI_SYSINFO_H_
 
 /** Number of load components */
 #define LOAD_STEPS  3

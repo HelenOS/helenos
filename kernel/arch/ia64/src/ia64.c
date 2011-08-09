@@ -49,7 +49,7 @@
 #include <macros.h>
 #include <userspace.h>
 #include <console/console.h>
-#include <proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
 #include <arch/bootinfo.h>
