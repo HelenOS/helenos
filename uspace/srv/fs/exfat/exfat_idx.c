@@ -66,7 +66,7 @@ typedef struct {
 	uint64_t remaining;
 
 	/** Sorted list of intervals of freed indices. */
-	link_t freed_list;
+	list_t freed_list;
 } unused_t;
 
 /** Mutex protecting the list of unused structures. */
@@ -87,7 +87,6 @@ static void unused_initialize(unused_t *u, devmap_handle_t devmap_handle)
 static unused_t *unused_find(devmap_handle_t devmap_handle, bool lock)
 {
 	unused_t *u;
-	link_t *l;
 
 	if (lock)
 		fibril_mutex_lock(&unused_lock);
