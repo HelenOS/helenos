@@ -105,10 +105,10 @@
 #define ISFLEX 1
 
 /* Define alternate standard lib directory */
-//#undef LIBDIR
+#define LIBDIR "/lib/"
 
 /* Define path to alternate linker */
-//#undef LINKER
+#define LINKER "/app/ld"
 
 /* Using Mach-O ABI */
 //#undef MACHOABI
@@ -141,13 +141,13 @@
 //#undef PECOFFABI
 
 /* Define path to alternate preprocessor */
-//#undef PREPROCESSOR
+#undef PREPROCESSOR
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Define alternate standard include directory */
-//#undef STDINC
+#define STDINC "/inc/"
 
 /* Define if target defaults to BIG endian */
 //#undef TARGET_BIG_ENDIAN
