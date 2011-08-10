@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,65 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-ROOT_PATH = $(USPACE_PREFIX)/..
-
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-
-BINARY = fb
-
--include $(COMMON_MAKEFILE)
--include $(CONFIG_MAKEFILE)
+USPACE_PREFIX = ../..
+LIBRARY = libimgmap
 
 SOURCES = \
-	main.c \
-	ppm.c
-
-ifneq ($(UARCH),ia64)
-	SOURCES += \
-		fb.c \
-		font-8x16.c
-	EXTRA_CFLAGS += -DFB_ENABLED
-endif
-
-ifeq ($(UARCH),ia32)
-	SOURCES += \
-		ega.c
-	EXTRA_CFLAGS += -DEGA_ENABLED
-endif
-
-ifeq ($(UARCH),ia64)
-	SOURCES += \
-		ega.c \
-		ski.c \
-		serial_console.c
-	EXTRA_CFLAGS += -DSKI_ENABLED -DEGA_ENABLED
-endif
-
-ifeq ($(UARCH),amd64)
-	SOURCES += \
-		ega.c
-	EXTRA_CFLAGS += -DEGA_ENABLED
-endif
-
-ifeq ($(UARCH),mips32)
-	SOURCES += \
-		msim.c \
-		serial_console.c
-	EXTRA_CFLAGS += -DMSIM_ENABLED
-endif
-
-ifeq ($(UARCH),sparc64)
-	ifeq ($(PROCESSOR),sun4v)
-		SOURCES += \
-			niagara.c \
-			serial_console.c
-		EXTRA_CFLAGS += -DNIAGARA_ENABLED
-	endif
-endif
-
-LIBS = $(LIBIMGMAP_PREFIX)/libimgmap.a
-EXTRA_CFLAGS += -I$(LIBIMGMAP_PREFIX) -D$(UARCH)
+	imgmap.c
 
 include $(USPACE_PREFIX)/Makefile.common

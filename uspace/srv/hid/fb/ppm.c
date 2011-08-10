@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <errno.h>
+#include <imgmap.h>
 
 #include "ppm.h"
 
@@ -92,6 +93,37 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 	unsigned int i;
 	unsigned int color;
 	unsigned int coef;
+	
+	/*
+	 * This is temporary hack to draw
+	 * image maps within the original code base.
+	 * This will be completely rewritten in the
+	 * new framebuffer server.
+	 */
+	if (data[0] == 'I') {
+		imgmap_t *img = (imgmap_t *) data;
+		
+		if (img->visual != VISUAL_BGR_8_8_8)
+			return EINVAL;
+		
+		data = img->data;
+		
+		for (sysarg_t y = 0; y < img->height; y++) {
+			for (sysarg_t x = 0; x < img->width; x++) {
+				if ((x > maxwidth) || (y > maxheight)) {
+					data += 3;
+					continue;
+				}
+				
+				color = (data[2] << 16) + (data[1] << 8) + data[0];
+				
+				(*putpixel)(vport, sx + x, sy + y, color);
+				data += 3;
+			}
+		}
+		
+		return 0;
+	}
 	
 	/* Read magic */
 	if ((data[0] != 'P') || (data[1] != '6'))

@@ -1094,7 +1094,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			}
 			shm = dest;
 			
-			if (shm[0] != 'P')
+			if ((shm[0] != 'P') || (shm[0] != 'I'))
 				return false;
 			
 			return true;

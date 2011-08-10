@@ -40,9 +40,11 @@
 #include <str.h>
 #include <align.h>
 #include <bool.h>
+#include <imgmap.h>
 
 #include "console.h"
 #include "gcons.h"
+#include "images.h"
 
 #define CONSOLE_TOP     66
 #define CONSOLE_MARGIN  6
@@ -56,11 +58,6 @@
 #define COLOR_MAIN        0xffffff
 #define COLOR_FOREGROUND  0x202020
 #define COLOR_BACKGROUND  0xffffff
-
-extern char _binary_gfx_helenos_ppm_start[0];
-extern int _binary_gfx_helenos_ppm_size;
-extern char _binary_gfx_nameic_ppm_start[0];
-extern int _binary_gfx_nameic_ppm_size;
 
 extern char _binary_gfx_anim_1_ppm_start[0];
 extern int _binary_gfx_anim_1_ppm_size;
@@ -83,6 +80,9 @@ extern int _binary_gfx_cons_kernel_ppm_size;
 static bool use_gcons = false;
 static sysarg_t xres;
 static sysarg_t yres;
+
+static imgmap_t *helenos_img;
+static imgmap_t *nameic_img;
 
 enum butstate {
 	CONS_DISCONNECTED = 0,
@@ -357,23 +357,25 @@ int gcons_mouse_btn(bool state)
 	return -1;
 }
 
-/** Draw a PPM pixmap to framebuffer
+/** Draw an image map to framebuffer
  *
- * @param logo Pointer to PPM data
- * @param size Size of PPM data
- * @param x Coordinate of upper left corner
- * @param y Coordinate of upper left corner
+ * @param img  Image map
+ * @param x    Coordinate of upper left corner
+ * @param y    Coordinate of upper left corner
  *
  */
-static void draw_pixmap(char *logo, size_t size, sysarg_t x, sysarg_t y)
+static void draw_imgmap(imgmap_t *img, sysarg_t x, sysarg_t y)
 {
+	if (img == NULL)
+		return;
+	
 	/* Create area */
-	char *shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
+	char *shm = mmap(NULL, img->size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
 	    MAP_ANONYMOUS, 0, 0);
 	if (shm == MAP_FAILED)
 		return;
 	
-	memcpy(shm, logo, size);
+	memcpy(shm, img, img->size);
 	
 	/* Send area */
 	int rc = async_obsolete_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
@@ -393,7 +395,7 @@ drop:
 	
 exit:
 	/* Remove area */
-	munmap(shm, size);
+	munmap(shm, img->size);
 }
 
 /** Redraws console graphics */
@@ -405,10 +407,8 @@ void gcons_redraw_console(void)
 	vp_switch(0);
 	set_rgb_color(COLOR_MAIN, COLOR_MAIN);
 	clear();
-	draw_pixmap(_binary_gfx_helenos_ppm_start,
-	    (size_t) &_binary_gfx_helenos_ppm_size, xres - 66, 2);
-	draw_pixmap(_binary_gfx_nameic_ppm_start,
-	    (size_t) &_binary_gfx_nameic_ppm_size, 5, 17);
+	draw_imgmap(helenos_img, xres - 66, 2);
+	draw_imgmap(nameic_img, 5, 17);
 	
 	unsigned int i;
 	for (i = 0; i < CONSOLE_COUNT; i++)
@@ -503,6 +503,10 @@ void gcons_init(int phone)
 	
 	if ((xres < 800) || (yres < 600))
 		return;
+	
+	/* Create image maps */
+	helenos_img = imgmap_decode_tga((void *) helenos_tga);
+	nameic_img = imgmap_decode_tga((void *) nameic_tga);
 	
 	/* Create console viewport */
 	
