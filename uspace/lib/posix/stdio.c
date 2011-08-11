@@ -256,7 +256,7 @@ FILE *posix_freopen(const char *restrict filename,
 	assert(mode != NULL);
 	assert(stream != NULL);
 	
-	/* Retieve the node. */
+	/* Retrieve the node. */
 	struct stat st;
 	int rc;
 	
@@ -264,6 +264,15 @@ FILE *posix_freopen(const char *restrict filename,
 		rc = fstat(stream->fd, &st);
 	} else {
 		rc = stat(filename, &st);
+		if (-rc == ENOENT) {
+			/* file does not exist, create new file */
+			FILE* tmp = fopen(filename, mode);
+			if (tmp != NULL) {
+				fclose(tmp);
+				/* try again */
+				rc = stat(filename, &st);
+			}
+		}
 	}
 	
 	if (rc != EOK) {
