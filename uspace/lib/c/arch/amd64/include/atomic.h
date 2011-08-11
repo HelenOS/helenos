@@ -44,16 +44,16 @@
 static inline void atomic_inc(atomic_t *val)
 {
 	asm volatile (
-		"lock incq %[count]\n"
-		: [count] "+m" (val->count)
+		"lock incq %0\n"
+		: "+m" (val->count)
 	);
 }
 
 static inline void atomic_dec(atomic_t *val)
 {
 	asm volatile (
-		"lock decq %[count]\n"
-		: [count] "+m" (val->count)
+		"lock decq %0\n"
+		: "+m" (val->count)
 	);
 }
 
@@ -62,9 +62,9 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 	atomic_count_t r = 1;
 	
 	asm volatile (
-		"lock xaddq %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+		"lock xaddq %1, %0\n"
+		: "+m" (val->count),
+		  "+r" (r)
 	);
 	
 	return r;
@@ -75,9 +75,9 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 	atomic_count_t r = -1;
 	
 	asm volatile (
-		"lock xaddq %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+		"lock xaddq %1, %0\n"
+		: "+m" (val->count),
+		  "+r" (r)
 	);
 	
 	return r;
