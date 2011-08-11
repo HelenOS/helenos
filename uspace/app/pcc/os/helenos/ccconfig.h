@@ -34,10 +34,10 @@
 /* common cpp predefines */
 #define CPPADD	{ "-D__helenos__", "-D__ELF__", NULL, }
 
-#define CRT0FILE ""
-#define CRT0FILE_PROFILE ""
+#undef CRT0FILE
+#undef CRT0FILE_PROFILE
 
-#define LIBCLIBS { NULL }
+#define LIBCLIBS { "/lib/libc.a", "/lib/libsoftfloat.a", "/lib/libsoftint.a", NULL }
 #define LIBCLIBS_PROFILE LIBCLIBS
 
 #define STARTFILES { NULL }
@@ -46,7 +46,7 @@
 #define STARTFILES_S { NULL }
 #define ENDFILES_S { NULL }
 
-#define STARTLABEL "_start"
+#define STARTLABEL "__entry"
 
 #if defined(mach_ia32)
 #define CPPMDADD { "-D__i386__", NULL, }
@@ -73,7 +73,7 @@
 #endif
 
 #ifndef STDINC
-#define STDINC "/include/"
+#define STDINC "/inc/c/"
 #endif
 
 #ifndef INCLUDEDIR

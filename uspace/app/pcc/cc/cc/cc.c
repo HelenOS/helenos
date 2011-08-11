@@ -1149,6 +1149,11 @@ nocom:
 				}
 			}
 		}
+#ifdef __helenos__
+		av[j++] = "-T";
+		av[j++] = "/inc/_link.ld";
+#endif
+		
 		av[j++] = 0;
 		eflag |= callsys(ld, av);
 		if (nc==1 && nxo==1 && eflag==0)

@@ -5,7 +5,7 @@
 //#undef AOUTABI
 
 /* Define path to alternate assembler */
-//#undef ASSEMBLER
+#define ASSEMBLER "/app/as"
 
 /* Using Classic 68k ABI */
 //#undef CLASSIC68K
@@ -147,7 +147,7 @@
 #define STDC_HEADERS 1
 
 /* Define alternate standard include directory */
-#define STDINC "/inc/"
+#define STDINC "/inc/c"
 
 /* Define if target defaults to BIG endian */
 //#undef TARGET_BIG_ENDIAN

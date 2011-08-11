@@ -313,7 +313,9 @@ main(int argc, char *argv[])
 		}
 
 	mkdope();
+#ifndef __helenos__
 	signal(SIGSEGV, segvcatch);
+#endif
 #ifdef SIGBUS
 	signal(SIGBUS, segvcatch);
 #endif
