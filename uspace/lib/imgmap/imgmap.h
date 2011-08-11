@@ -40,7 +40,6 @@
 #include <abi/fb/visuals.h>
 
 typedef struct {
-	uint8_t tag;
 	size_t size;
 	sysarg_t width;
 	sysarg_t height;
@@ -48,7 +47,7 @@ typedef struct {
 	uint8_t data[];
 } imgmap_t;
 
-extern imgmap_t *imgmap_decode_tga(void *);
+extern imgmap_t *imgmap_decode_tga(void *, size_t);
 
 #endif
 

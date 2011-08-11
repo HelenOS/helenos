@@ -59,30 +59,22 @@
 #define COLOR_FOREGROUND  0x202020
 #define COLOR_BACKGROUND  0xffffff
 
-extern char _binary_gfx_anim_1_ppm_start[0];
-extern int _binary_gfx_anim_1_ppm_size;
-extern char _binary_gfx_anim_2_ppm_start[0];
-extern int _binary_gfx_anim_2_ppm_size;
-extern char _binary_gfx_anim_3_ppm_start[0];
-extern int _binary_gfx_anim_3_ppm_size;
-extern char _binary_gfx_anim_4_ppm_start[0];
-extern int _binary_gfx_anim_4_ppm_size;
-
-extern char _binary_gfx_cons_selected_ppm_start[0];
-extern int _binary_gfx_cons_selected_ppm_size;
-extern char _binary_gfx_cons_idle_ppm_start[0];
-extern int _binary_gfx_cons_idle_ppm_size;
-extern char _binary_gfx_cons_has_data_ppm_start[0];
-extern int _binary_gfx_cons_has_data_ppm_size;
-extern char _binary_gfx_cons_kernel_ppm_start[0];
-extern int _binary_gfx_cons_kernel_ppm_size;
-
 static bool use_gcons = false;
 static sysarg_t xres;
 static sysarg_t yres;
 
 static imgmap_t *helenos_img;
 static imgmap_t *nameic_img;
+
+static imgmap_t *anim_1_img;
+static imgmap_t *anim_2_img;
+static imgmap_t *anim_3_img;
+static imgmap_t *anim_4_img;
+
+static imgmap_t *cons_has_data_img;
+static imgmap_t *cons_idle_img;
+static imgmap_t *cons_kernel_img;
+static imgmap_t *cons_selected_img;
 
 enum butstate {
 	CONS_DISCONNECTED = 0,
@@ -100,8 +92,8 @@ static enum butstate console_state[CONSOLE_COUNT];
 
 static int fbphone;
 
-/** List of pixmaps identifying these icons */
-static int ic_pixmaps[CONS_LAST] = {-1, -1, -1, -1, -1, -1};
+/** List of image maps identifying these icons */
+static int ic_imgmaps[CONS_LAST] = {-1, -1, -1, -1, -1, -1};
 static int animation = -1;
 
 static size_t active_console = 0;
@@ -148,9 +140,9 @@ static void redraw_state(size_t index)
 	
 	enum butstate state = console_state[index];
 	
-	if (ic_pixmaps[state] != -1)
-		async_obsolete_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[index],
-		    ic_pixmaps[state]);
+	if (ic_imgmaps[state] != -1)
+		async_obsolete_msg_2(fbphone, FB_VP_DRAW_IMGMAP, cstatus_vp[index],
+		    ic_imgmaps[state]);
 	
 	if ((state != CONS_DISCONNECTED) && (state != CONS_KERNEL)
 	    && (state != CONS_DISCONNECTED_SEL)) {
@@ -387,7 +379,7 @@ static void draw_imgmap(imgmap_t *img, sysarg_t x, sysarg_t y)
 		goto drop;
 	
 	/* Draw logo */
-	async_obsolete_msg_2(fbphone, FB_DRAW_PPM, x, y);
+	async_obsolete_msg_2(fbphone, FB_DRAW_IMGMAP, x, y);
 	
 drop:
 	/* Drop area */
@@ -417,25 +409,27 @@ void gcons_redraw_console(void)
 	vp_switch(console_vp);
 }
 
-/** Creates a pixmap on framebuffer
+/** Create an image map on framebuffer
  *
- * @param data PPM data
- * @param size PPM data size
+ * @param img Image map.
  *
- * @return Pixmap identification
+ * @return Image map identification
  *
  */
-static int make_pixmap(char *data, size_t size)
+static int make_imgmap(imgmap_t *img)
 {
+	if (img == NULL)
+		return -1;
+	
 	/* Create area */
-	char *shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
-	    MAP_ANONYMOUS, 0, 0);
+	char *shm = mmap(NULL, img->size, PROTO_READ | PROTO_WRITE,
+	    MAP_SHARED | MAP_ANONYMOUS, 0, 0);
 	if (shm == MAP_FAILED)
 		return -1;
 	
-	memcpy(shm, data, size);
+	memcpy(shm, img, img->size);
 	
-	int pxid = -1;
+	int id = -1;
 	
 	/* Send area */
 	int rc = async_obsolete_req_1_0(fbphone, FB_PREPARE_SHM, (sysarg_t) shm);
@@ -446,12 +440,12 @@ static int make_pixmap(char *data, size_t size)
 	if (rc)
 		goto drop;
 	
-	/* Obtain pixmap */
-	rc = async_obsolete_req_0_0(fbphone, FB_SHM2PIXMAP);
+	/* Obtain image map identifier */
+	rc = async_obsolete_req_0_0(fbphone, FB_SHM2IMGMAP);
 	if (rc < 0)
 		goto drop;
 	
-	pxid = rc;
+	id = rc;
 	
 drop:
 	/* Drop area */
@@ -459,9 +453,9 @@ drop:
 	
 exit:
 	/* Remove area */
-	munmap(shm, size);
+	munmap(shm, img->size);
 	
-	return pxid;
+	return id;
 }
 
 static void make_anim(void)
@@ -471,21 +465,17 @@ static void make_anim(void)
 	if (an < 0)
 		return;
 	
-	int pm = make_pixmap(_binary_gfx_anim_1_ppm_start,
-	    (size_t) &_binary_gfx_anim_1_ppm_size);
-	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	int pm = make_imgmap(anim_1_img);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDIMGMAP, an, pm);
 	
-	pm = make_pixmap(_binary_gfx_anim_2_ppm_start,
-	    (size_t) &_binary_gfx_anim_2_ppm_size);
-	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	pm = make_imgmap(anim_2_img);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDIMGMAP, an, pm);
 	
-	pm = make_pixmap(_binary_gfx_anim_3_ppm_start,
-	    (size_t) &_binary_gfx_anim_3_ppm_size);
-	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	pm = make_imgmap(anim_3_img);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDIMGMAP, an, pm);
 	
-	pm = make_pixmap(_binary_gfx_anim_4_ppm_start,
-	    (size_t) &_binary_gfx_anim_4_ppm_size);
-	async_obsolete_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
+	pm = make_imgmap(anim_4_img);
+	async_obsolete_msg_2(fbphone, FB_ANIM_ADDIMGMAP, an, pm);
 	
 	async_obsolete_msg_1(fbphone, FB_ANIM_START, an);
 	
@@ -505,8 +495,28 @@ void gcons_init(int phone)
 		return;
 	
 	/* Create image maps */
-	helenos_img = imgmap_decode_tga((void *) helenos_tga);
-	nameic_img = imgmap_decode_tga((void *) nameic_tga);
+	helenos_img = imgmap_decode_tga((void *) helenos_tga,
+	    helenos_tga_size);
+	nameic_img = imgmap_decode_tga((void *) nameic_tga,
+	    nameic_tga_size);
+	
+	anim_1_img = imgmap_decode_tga((void *) anim_1_tga,
+	    anim_1_tga_size);
+	anim_2_img = imgmap_decode_tga((void *) anim_2_tga,
+	    anim_2_tga_size);
+	anim_3_img = imgmap_decode_tga((void *) anim_3_tga,
+	    anim_3_tga_size);
+	anim_4_img = imgmap_decode_tga((void *) anim_4_tga,
+	    anim_4_tga_size);
+	
+	cons_has_data_img = imgmap_decode_tga((void *) cons_has_data_tga,
+	    cons_has_data_tga_size);
+	cons_idle_img = imgmap_decode_tga((void *) cons_idle_tga,
+	    cons_idle_tga_size);
+	cons_kernel_img = imgmap_decode_tga((void *) cons_kernel_tga,
+	    cons_kernel_tga_size);
+	cons_selected_img = imgmap_decode_tga((void *) cons_selected_tga,
+	    cons_selected_tga_size);
 	
 	/* Create console viewport */
 	
@@ -534,22 +544,12 @@ void gcons_init(int phone)
 	}
 	
 	/* Initialize icons */
-	ic_pixmaps[CONS_SELECTED] =
-	    make_pixmap(_binary_gfx_cons_selected_ppm_start,
-	    (size_t) &_binary_gfx_cons_selected_ppm_size);
-	ic_pixmaps[CONS_IDLE] =
-	    make_pixmap(_binary_gfx_cons_idle_ppm_start,
-	    (size_t) &_binary_gfx_cons_idle_ppm_size);
-	ic_pixmaps[CONS_HAS_DATA] =
-	    make_pixmap(_binary_gfx_cons_has_data_ppm_start,
-	    (size_t) &_binary_gfx_cons_has_data_ppm_size);
-	ic_pixmaps[CONS_DISCONNECTED] =
-	    make_pixmap(_binary_gfx_cons_idle_ppm_start,
-	    (size_t) &_binary_gfx_cons_idle_ppm_size);
-	ic_pixmaps[CONS_KERNEL] =
-	    make_pixmap(_binary_gfx_cons_kernel_ppm_start,
-	    (size_t) &_binary_gfx_cons_kernel_ppm_size);
-	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];
+	ic_imgmaps[CONS_SELECTED] = make_imgmap(cons_selected_img);
+	ic_imgmaps[CONS_IDLE] = make_imgmap(cons_idle_img);
+	ic_imgmaps[CONS_HAS_DATA] = make_imgmap(cons_has_data_img);
+	ic_imgmaps[CONS_DISCONNECTED] = make_imgmap(cons_idle_img);
+	ic_imgmaps[CONS_KERNEL] = make_imgmap(cons_kernel_img);
+	ic_imgmaps[CONS_DISCONNECTED_SEL] = ic_imgmaps[CONS_SELECTED];
 	
 	make_anim();
 	

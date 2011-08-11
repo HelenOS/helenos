@@ -68,10 +68,10 @@ typedef enum {
 	IMG_EMTPY = 0,
 	IMG_CMAP = 1,
 	IMG_BGRA = 2,
-	IMG_BW = 3,
+	IMG_GRAY = 3,
 	IMG_CMAP_RLE = 9,
 	IMG_BGRA_RLE = 10,
-	IMG_BW_RLE = 11
+	IMG_GRAY_RLE = 11
 } img_type_t;
 
 typedef struct {
@@ -103,19 +103,27 @@ typedef struct {
 /** Decode Truevision TGA header
  *
  * @param[in]  data Memory representation of TGA.
+ * @param[in]  size Size of the representation (in bytes).
  * @param[out] tga  Decoded TGA.
  *
  * @return True on succesful decoding.
  * @return False on failure.
  *
  */
-static bool decode_tga_header(void *data, tga_t *tga)
+static bool decode_tga_header(void *data, size_t size, tga_t *tga)
 {
+	/* Header sanity check */
+	if (size < sizeof(tga_header_t))
+		return false;
+	
 	tga_header_t *head = (tga_header_t *) data;
 	
 	/* Image ID field */
 	tga->id_data = data + sizeof(tga_header_t);
 	tga->id_length = head->id_length;
+	
+	if (size < sizeof(tga_header_t) + tga->id_length)
+		return false;
 	
 	/* Color map type */
 	tga->cmap_type = head->cmap_type;
@@ -130,6 +138,10 @@ static bool decode_tga_header(void *data, tga_t *tga)
 	tga->cmap_data = tga->id_data + tga->id_length;
 	tga->cmap_length = ALIGN_UP(tga->cmap_entries * tga->cmap_bpp, 8) >> 3;
 	
+	if (size < sizeof(tga_header_t) + tga->id_length +
+	    tga->cmap_length)
+		return false;
+	
 	/* Image specification */
 	tga->startx = uint16_t_le2host(head->startx);
 	tga->starty = uint16_t_le2host(head->starty);
@@ -141,6 +153,10 @@ static bool decode_tga_header(void *data, tga_t *tga)
 	tga->img_data = tga->cmap_data + tga->cmap_length;
 	tga->img_length = ALIGN_UP(tga->width * tga->height * tga->img_bpp, 8) >> 3;
 	
+	if (size < sizeof(tga_header_t) + tga->id_length +
+	    tga->cmap_length + tga->img_length)
+		return false;
+	
 	return true;
 }
 
@@ -151,16 +167,17 @@ static bool decode_tga_header(void *data, tga_t *tga)
  * limited to uncompressed 24 bit true-color images without
  * alpha channel.
  *
- * @param data[in] Memory representation of TGA.
+ * @param[in] data Memory representation of TGA.
+ * @param[in] size Size of the representation (in bytes).
  *
  * @return Newly allocated image map.
  * @return NULL on error or unsupported format.
  *
  */
-imgmap_t *imgmap_decode_tga(void *data)
+imgmap_t *imgmap_decode_tga(void *data, size_t size)
 {
 	tga_t tga;
-	if (!decode_tga_header(data, &tga))
+	if (!decode_tga_header(data, size, &tga))
 		return NULL;
 	
 	/*
@@ -177,40 +194,62 @@ imgmap_t *imgmap_decode_tga(void *data)
 	
 	switch (tga.img_type) {
 	case IMG_BGRA:
+		if (tga.img_bpp != 24)
+			return NULL;
+		break;
+	case IMG_GRAY:
+		if (tga.img_bpp != 8)
+			return NULL;
 		break;
 	default:
 		/* Unsupported */
 		return NULL;
 	}
 	
-	if (tga.img_bpp != 24)
-		return NULL;
-	
 	if (tga.img_alpha_bpp != 0)
 		return NULL;
 	
 	sysarg_t twidth = tga.startx + tga.width;
 	sysarg_t theight = tga.starty + tga.height;
-	size_t size = twidth * theight * 3;
+	size_t bsize = twidth * theight * 3;
 	
-	imgmap_t *imgmap = (imgmap_t *) malloc(sizeof(imgmap_t) + size);
+	imgmap_t *imgmap = (imgmap_t *) malloc(sizeof(imgmap_t) + bsize);
 	if (imgmap == NULL)
 		return NULL;
 	
-	imgmap->tag = 'I';
-	imgmap->size = sizeof(imgmap_t) + size;
+	imgmap->size = sizeof(imgmap_t) + bsize;
 	imgmap->width = twidth;
 	imgmap->height = theight;
 	imgmap->visual = VISUAL_BGR_8_8_8;
 	
-	memset(imgmap->data, 0, size);
+	memset(imgmap->data, 0, bsize);
 	
-	for (sysarg_t y = tga.starty; y < theight; y++) {
-		size_t src_offset = (y - tga.starty) * tga.width * 3;
-		size_t dst_offset = ((theight - y - 1) * twidth + tga.startx) * 3;
-		
-		memcpy(imgmap->data + dst_offset, tga.img_data + src_offset,
-		    tga.width * 3);
+	/*
+	 * TGA is encoded in a bottom-up manner.
+	 */
+	
+	switch (tga.img_type) {
+	case IMG_BGRA:
+		for (sysarg_t y = tga.starty; y < theight; y++) {
+			size_t src_offset = (y - tga.starty) * tga.width * 3;
+			size_t dst_offset = ((theight - y - 1) * twidth + tga.startx) * 3;
+			
+			memcpy(imgmap->data + dst_offset, tga.img_data + src_offset,
+			    tga.width * 3);
+		}
+		break;
+	case IMG_GRAY:
+		for (sysarg_t y = tga.starty; y < theight; y++) {
+			for (sysarg_t x = tga.startx; x < twidth; x++) {
+				uint8_t val =
+				    ((uint8_t *) tga.img_data)[(y - tga.starty) * tga.width + (x - tga.startx)];
+				size_t dst_offset = ((theight - y - 1) * twidth + x) * 3;
+				memset(imgmap->data + dst_offset, val, 3);
+			}
+		}
+		break;
+	default:
+		break;
 	}
 	
 	return imgmap;

@@ -32,37 +32,28 @@ LIBS = $(LIBIMGMAP_PREFIX)/libimgmap.a
 EXTRA_CFLAGS += -I$(LIBIMGMAP_PREFIX)
 BINARY = console
 
-GENERIC_SOURCES = \
+SOURCES = \
 	console.c \
 	keybuffer.c \
 	images.c \
 	gcons.c
 
-IMAGES_OLD = \
-	gfx/cons_selected.ppm \
-	gfx/cons_idle.ppm \
-	gfx/cons_has_data.ppm \
-	gfx/cons_kernel.ppm \
-	gfx/anim_1.ppm \
-	gfx/anim_2.ppm \
-	gfx/anim_3.ppm \
-	gfx/anim_4.ppm
-
 IMAGES = \
 	gfx/helenos.tga \
-	gfx/nameic.tga
-
-SOURCES = \
-	$(GENERIC_SOURCES) \
-	$(IMAGES_OLD)
+	gfx/nameic.tga \
+	gfx/cons_selected.tga \
+	gfx/cons_idle.tga \
+	gfx/cons_has_data.tga \
+	gfx/cons_kernel.tga \
+	gfx/anim_1.tga \
+	gfx/anim_2.tga \
+	gfx/anim_3.tga \
+	gfx/anim_4.tga
 
 PRE_DEPEND = images.c images.h
 EXTRA_CLEAN = images.c images.h
 
 include $(USPACE_PREFIX)/Makefile.common
-
-%.o: %.ppm
-	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) $< $@
 
 images.c images.h: $(IMAGES)
 	$(ROOT_PATH)/tools/mkarray.py images CONSOLE_IMAGES $^

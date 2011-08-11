@@ -68,7 +68,7 @@ def main():
 		offset = 0
 		cnt = 0
 		
-		while (len(src_data[offset:]) > item_size):
+		while (len(src_data[offset:]) >= item_size):
 			byte = struct.unpack_from(fmt, src_data, offset)
 			
 			if (offset > 0):
@@ -82,6 +82,12 @@ def main():
 			cnt += 1
 		
 		data_rec += "\n};\n"
+		data_ctx.append(data_rec)
+		
+		header_rec = "extern size_t %s_size;" % symbol
+		header_ctx.append(header_rec)
+		
+		data_rec = "size_t %s_size = %u;\n" % (symbol, offset)
 		data_ctx.append(data_rec)
 	
 	header = open("%s.h" % dest, "w")

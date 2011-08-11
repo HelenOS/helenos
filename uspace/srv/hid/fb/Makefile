@@ -39,8 +39,7 @@ BINARY = fb
 -include $(CONFIG_MAKEFILE)
 
 SOURCES = \
-	main.c \
-	ppm.c
+	main.c
 
 ifneq ($(UARCH),ia64)
 	SOURCES += \
