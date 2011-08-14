@@ -61,6 +61,9 @@
 #define ROOT_FC(bs)		uint32_t_le2host(bs->rootdir_cluster)
 #define VOL_FLAGS(bs)	uint16_t_le2host(bs->volume_flags)
 
+#define EXFAT_NODE(node)	((node) ? (exfat_node_t *) (node)->data : NULL)
+#define FS_NODE(node)	((node) ? (node)->bp : NULL)
+#define DPS(bs) (BPS((bs)) / sizeof(exfat_dentry_t))
 
 typedef struct exfat_bs {
 	uint8_t jump[3];				/* 0x00 jmp and nop instructions */
@@ -176,6 +179,13 @@ extern int exfat_idx_init(void);
 extern void exfat_idx_fini(void);
 extern int exfat_idx_init_by_devmap_handle(devmap_handle_t);
 extern void exfat_idx_fini_by_devmap_handle(devmap_handle_t);
+
+extern int exfat_node_put(fs_node_t *);
+extern int exfat_bitmap_get(fs_node_t **, devmap_handle_t);
+/*
+static int exfat_uctable_get(fs_node_t **, devmap_handle_t);
+*/
+
 
 #endif
 

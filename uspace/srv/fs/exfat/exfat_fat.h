@@ -75,25 +75,6 @@ extern int exfat_set_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t value);
 extern int exfat_sanity_check(struct exfat_bs *, devmap_handle_t);
 
-extern int bitmap_alloc_clusters(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t *firstc, exfat_cluster_t count);
-extern int bitmap_append_clusters(struct exfat_bs *bs, struct exfat_node *nodep, 
-    exfat_cluster_t count);
-extern int bitmap_free_clusters(struct exfat_bs *bs, struct exfat_node *nodep, 
-    exfat_cluster_t count);
-extern int bitmap_replicate_clusters(struct exfat_bs *bs, struct exfat_node *nodep); 
-
-extern int bitmap_is_free(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t clst);
-extern int bitmap_set_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc);
-extern int bitmap_clear_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc);
-extern int bitmap_set_clusters(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc, exfat_cluster_t count);
-extern int bitmap_clear_clusters(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc, exfat_cluster_t count);
-
 extern int exfat_append_clusters(struct exfat_bs *, struct exfat_node *,
     exfat_cluster_t, exfat_cluster_t);
 extern int exfat_chop_clusters(struct exfat_bs *, struct exfat_node *,

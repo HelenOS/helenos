@@ -33,7 +33,7 @@
 
 /**
  * @file	exfat_fat.c
- * @brief	Functions that manipulate the File Allocation Tables.
+ * @brief	Functions that manipulate the File Allocation Table.
  */
 
 #include "exfat_fat.h"
@@ -168,7 +168,7 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
 	return rc;
 }
 
-/** Read block from file located on a FAT file system.
+/** Read block from file located on a exFAT file system.
  *
  * @param block		Pointer to a block pointer for storing result.
  * @param bs		Buffer holding the boot sector of the file system.
@@ -475,141 +475,6 @@ int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl
 	return EOK;
 }
 
-int bitmap_is_free(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t clst)
-{
-	/* TODO */
-	return EOK;
-}
-
-int bitmap_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc)
-{
-	/* TODO */
-	return EOK;
-}
-
-int bitmap_clear_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc)
-{
-	/* TODO */
-	return EOK;
-}
-
-int bitmap_set_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc, exfat_cluster_t count)
-{
-	int rc;
-	exfat_cluster_t clst;
-	clst = firstc;
-
-	while (clst < firstc+count ) {
-		rc = bitmap_set_cluster(bs, devmap_handle, clst);
-		if (rc != EOK) {
-			if ((clst-firstc) > 0)
-				(void) bitmap_clear_clusters(bs, devmap_handle, firstc, clst-firstc);
-			return rc;
-		}
-		clst++;
-	}
-	return EOK;
-}
-
-int bitmap_clear_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc, exfat_cluster_t count)
-{
-	int rc;
-	exfat_cluster_t clst;
-	clst = firstc;
-
-	while (clst < firstc+count ) {
-		rc = bitmap_clear_cluster(bs, devmap_handle, clst);
-		if (rc != EOK)
-			return rc;
-		clst++;
-	}
-	return EOK;
-}
-
-int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t *firstc, exfat_cluster_t count)
-{
-	exfat_cluster_t startc, endc;
-	startc = EXFAT_CLST_FIRST;
-
-	while (startc < DATA_CNT(bs)+2) {
-		if (bitmap_is_free(bs, devmap_handle, startc) == EOK) {
-			endc = startc+1;
-			while (bitmap_is_free(bs, devmap_handle, endc) == EOK) {
-				if ((endc - startc)+1 == count){
-					*firstc = startc;
-					return bitmap_set_clusters(bs, devmap_handle, startc, count);
-				}
-				else
-					endc++;
-			}
-			startc = endc+1;
-		} 
-		else
-			startc++;
-	}
-	return ENOSPC;
-}
-
-
-int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
-    exfat_cluster_t count)
-{
-	if (nodep->firstc == 0) {
-		return bitmap_alloc_clusters(bs, nodep->idx->devmap_handle, 
-		    &nodep->firstc, count);
-	} else {
-		exfat_cluster_t lastc, clst;
-		lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
-
-		clst = lastc+1;
-		while (bitmap_is_free(bs, nodep->idx->devmap_handle, clst) == EOK) {
-			if ((clst - lastc) == count){
-				return bitmap_set_clusters(bs, nodep->idx->devmap_handle, 
-				    lastc+1, count);
-			}
-			else
-				clst++;
-		}
-		return ENOSPC;
-	}
-}
-
-
-int bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
-    exfat_cluster_t count)
-{
-	exfat_cluster_t lastc;
-	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
-	lastc -= count;
-
-	return bitmap_clear_clusters(bs, nodep->idx->devmap_handle, lastc+1, count);
-}
-
-
-int bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
-{
-	int rc;
-	exfat_cluster_t lastc, clst;
-	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
-	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
-
-	for (clst = nodep->firstc; clst < lastc; clst++) {
-		rc = exfat_set_cluster(bs, devmap_handle, clst, clst+1);
-		if (rc != EOK)
-			return rc;
-	}
-
-	return exfat_set_cluster(bs, devmap_handle, lastc, EXFAT_CLST_EOF);
-}
-
-
-
 /** Perform basic sanity checks on the file system.
  *
  * Verify if values of boot sector fields are sane. Also verify media
@@ -618,6 +483,7 @@ int bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
  */
 int exfat_sanity_check(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 {
+	/* TODO */
 	return EOK;
 }
 

@@ -40,6 +40,7 @@
 #include "exfat_fat.h"
 #include "exfat_dentry.h"
 #include "exfat_directory.h"
+#include "exfat_bitmap.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
@@ -59,10 +60,6 @@
 #include <malloc.h>
 #include <stdio.h>
 
-#define EXFAT_NODE(node)	((node) ? (exfat_node_t *) (node)->data : NULL)
-#define FS_NODE(node)	((node) ? (node)->bp : NULL)
-#define DPS(bs) (BPS((bs)) / sizeof(exfat_dentry_t))
-
 /** Mutex protecting the list of cached free FAT nodes. */
 static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
 
@@ -72,15 +69,12 @@ static LIST_INITIALIZE(ffn_list);
 /*
  * Forward declarations of FAT libfs operations.
  */
-/*
-static int exfat_bitmap_get(fs_node_t **, devmap_handle_t);
-static int exfat_uctable_get(fs_node_t **, devmap_handle_t);
-*/
+
 static int exfat_root_get(fs_node_t **, devmap_handle_t);
 static int exfat_match(fs_node_t **, fs_node_t *, const char *);
 static int exfat_node_get(fs_node_t **, devmap_handle_t, fs_index_t);
 static int exfat_node_open(fs_node_t *);
-static int exfat_node_put(fs_node_t *);
+/* static int exfat_node_put(fs_node_t *); */
 static int exfat_create_node(fs_node_t **, devmap_handle_t, int);
 static int exfat_destroy_node(fs_node_t *);
 static int exfat_link(fs_node_t *, fs_node_t *, const char *);
@@ -458,12 +452,11 @@ int exfat_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 	return exfat_node_get(rfn, devmap_handle, EXFAT_ROOT_IDX);
 }
 
-/*
 int exfat_bitmap_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
 	return exfat_node_get(rfn, devmap_handle, EXFAT_BITMAP_IDX);
 }
-*/
+
 /*
 int exfat_uctable_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
