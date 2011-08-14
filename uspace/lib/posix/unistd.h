@@ -71,16 +71,12 @@ extern posix_gid_t posix_getgid(void);
 
 /* File Manipulation */
 extern int posix_close(int fildes);
-
 extern ssize_t posix_read(int fildes, void *buf, size_t nbyte);
 extern ssize_t posix_write(int fildes, const void *buf, size_t nbyte);
-
 extern int posix_fsync(int fildes);
 extern int posix_ftruncate(int fildes, posix_off_t length);
-
 extern int posix_rmdir(const char *path);
 extern int posix_unlink(const char *path);
-
 extern int posix_dup(int fildes);
 extern int posix_dup2(int fildes, int fildes2);
 

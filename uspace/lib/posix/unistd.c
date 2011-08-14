@@ -185,7 +185,7 @@ posix_gid_t posix_getgid(void)
 /**
  * Close a file.
  *
- * @param fildes
+ * @param fildes File descriptor of the opened file.
  * @return 0 on success, -1 on error.
  */
 int posix_close(int fildes)
@@ -222,13 +222,21 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 /**
  * Requests outstanding data to be written to the underlying storage device.
  *
- * @param fildes
+ * @param fildes File descriptor of the opened file.
+ * @return Zero on success, -1 otherwise.
  */
 int posix_fsync(int fildes)
 {
 	return errnify(fsync, fildes);
 }
 
+/**
+ * Truncate a file to a specified length.
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param length New length of the file.
+ * @return Zero on success, -1 otherwise.
+ */
 int posix_ftruncate(int fildes, posix_off_t length)
 {
 	return errnify(ftruncate, fildes, (aoff64_t) length);
@@ -256,11 +264,25 @@ int posix_unlink(const char *path)
 	return errnify(unlink, path);
 }
 
+/**
+ * Duplicate an open file descriptor.
+ *
+ * @param fildes File descriptor to be duplicated.
+ * @return On success, new file descriptor for the same file, otherwise -1.
+ */
 int posix_dup(int fildes)
 {
 	return posix_fcntl(fildes, F_DUPFD, 0);
 }
 
+/**
+ * Duplicate an open file descriptor.
+ * 
+ * @param fildes File descriptor to be duplicated.
+ * @param fildes2 File descriptor to be paired with the same file description
+ *     as is paired fildes.
+ * @return fildes2 on success, -1 otherwise.
+ */
 int posix_dup2(int fildes, int fildes2)
 {
 	return errnify(dup2, fildes, fildes2);

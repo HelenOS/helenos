@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2005 Josef Cejka
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
@@ -27,18 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat
+/** @addtogroup softint
  * @{
  */
-/** @file Multiplication functions.
+/**
+ * @file Logical and arithmetic shifts.
  */
 
-#ifndef __MUL_H__
-#define __MUL_H__
+#ifndef __SOFTINT_SHIFT_H__
+#define __SOFTINT_SHIFT_H__
 
-extern float32 mulFloat32(float32, float32);
-extern float64 mulFloat64(float64, float64);
-extern float128 mulFloat128(float128, float128);
+/* Arithmetic/logical shift left. */
+long long __ashldi3 (long long val, int shift);
+
+/* Arithmetic shift right. */
+long long __ashrdi3 (long long val, int shift);
+
+/* Logical shift right. */
+long long __lshrdi3 (long long val, int shift);
 
 #endif
 

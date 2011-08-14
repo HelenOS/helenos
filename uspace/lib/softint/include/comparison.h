@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2005 Josef Cejka
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
@@ -27,18 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat
+/** @addtogroup softint
  * @{
  */
-/** @file Multiplication functions.
+/**
+ * @file Signed and unsigned comparisons.
  */
 
-#ifndef __MUL_H__
-#define __MUL_H__
+#ifndef __SOFTINT_COMPARISON_H__
+#define __SOFTINT_COMPARISON_H__
 
-extern float32 mulFloat32(float32, float32);
-extern float64 mulFloat64(float64, float64);
-extern float128 mulFloat128(float128, float128);
+/* Signed comparison (a < b => 0, a == b => 1, a > b => 2). */
+int __cmpdi2 (long long a, long long b);
+
+/* Unsigned comparison (a < b => 0, a == b => 1, a > b => 2). */
+int __ucmpdi2 (unsigned long long a, unsigned long long b);
 
 #endif
 

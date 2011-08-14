@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2005 Josef Cejka
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
@@ -27,18 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat
+/** @addtogroup softint
  * @{
  */
-/** @file Multiplication functions.
+/**
+ * @file Abstraction over 64-bit integral type to allow simple manipulation.
  */
 
-#ifndef __MUL_H__
-#define __MUL_H__
+#ifndef __SOFTINT_LLTYPE_H__
+#define __SOFTINT_LLTYPE_H__
 
-extern float32 mulFloat32(float32, float32);
-extern float64 mulFloat64(float64, float64);
-extern float128 mulFloat128(float128, float128);
+#include <stdint.h>
+
+#define HALF_BIT_CNT (sizeof(int32_t) * sizeof(char))
+#define WHOLE_BIT_CNT (sizeof(int64_t) * sizeof(char))
+
+#ifdef __BE__
+	#define LO 1
+	#define HI 0
+#else
+	#define LO 0
+	#define HI 1
+#endif
+
+union lltype {
+	int64_t s_whole;
+	uint64_t u_whole;
+	int32_t s_half[2];
+	uint32_t u_half[2];
+};
 
 #endif
 
