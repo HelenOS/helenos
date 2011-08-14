@@ -53,6 +53,8 @@ void exfat_directory_init(exfat_directory_t *di)
 	di->pos = 0;
 	di->bnum = 0;
 	di->last = false;
+	di->fragmented = false;
+	di->firstc = 0;
 }
 
 int exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
@@ -61,9 +63,24 @@ int exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
 	di->nodep = nodep;	
 	if (di->nodep->type != EXFAT_DIRECTORY)
 		return EINVAL;
+	di->devmap_handle = nodep->idx->devmap_handle;
+	di->fragmented = nodep->fragmented;
+	di->firstc = nodep->firstc;
 
-	di->bs = block_bb_get(di->nodep->idx->devmap_handle);
-	di->blocks = di->nodep->size / BPS(di->bs);
+	di->bs = block_bb_get(di->devmap_handle);
+	di->blocks = nodep->size / BPS(di->bs);
+	return EOK;
+}
+
+int exfat_directory_open_parent(exfat_directory_t *di, 
+    devmap_handle_t devmap_handle, exfat_cluster_t firstc, bool fragmented)
+{
+	exfat_directory_init(di);
+	di->devmap_handle = devmap_handle;
+	di->fragmented = fragmented;
+	di->firstc = firstc;
+	di->bs = block_bb_get(devmap_handle);
+	di->blocks = 0;
 	return EOK;
 }
 
@@ -83,22 +100,27 @@ static int exfat_directory_block_load(exfat_directory_t *di)
 	int rc;
 
 	i = (di->pos * sizeof(exfat_dentry_t)) / BPS(di->bs);
-	if (i < di->blocks) {
-		if (di->b && di->bnum != i) {
-			block_put(di->b);
-			di->b = NULL;
-		}
-		if (!di->b) {
-			rc = exfat_block_get(&di->b, di->bs, di->nodep, i, BLOCK_FLAGS_NONE);
-			if (rc != EOK) {
-				di->b = NULL;
-				return rc;
-			}
-			di->bnum = i;
-		}
-		return EOK;
+	if (di->nodep && (i >= di->blocks))
+		return ENOENT;
+
+	if (di->b && di->bnum != i) {
+		block_put(di->b);
+		di->b = NULL;
 	}
-	return ENOENT;
+	if (!di->b) {
+		if (di->nodep) {
+			rc = exfat_block_get(&di->b, di->bs, di->nodep, i, BLOCK_FLAGS_NONE);
+		} else {
+			rc = exfat_block_get_by_clst(&di->b, di->bs, di->devmap_handle,
+			    di->fragmented, di->firstc, NULL, i, BLOCK_FLAGS_NONE);
+		}
+		if (rc != EOK) {
+			di->b = NULL;
+			return rc;
+		}
+		di->bnum = i;
+	}
+	return EOK;
 }
 
 int exfat_directory_next(exfat_directory_t *di)

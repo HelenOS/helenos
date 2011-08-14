@@ -111,7 +111,37 @@ static void exfat_node_initialize(exfat_node_t *node)
 
 static int exfat_node_sync(exfat_node_t *node)
 {
-	/* TODO */
+//	block_t *b;
+//	exfat_bs_t *bs;
+//	fat_dentry_t *d;
+//	int rc;
+
+//	assert(node->dirty);
+
+//	bs = block_bb_get(node->idx->devmap_handle);
+
+	/* Read the block that contains the dentry of interest. */
+/*
+	rc = _fat_block_get(&b, bs, node->idx->devmap_handle, node->idx->pfc,
+	    NULL, (node->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
+	    BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+
+	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % DPS(bs));
+
+	d->firstc = host2uint16_t_le(node->firstc);
+	if (node->type == FAT_FILE) {
+		d->size = host2uint32_t_le(node->size);
+	} else if (node->type == FAT_DIRECTORY) {
+		d->attr = FAT_ATTR_SUBDIR;
+	}
+*/
+	/* TODO: update other fields? (e.g time fields) */
+
+//	b->dirty = true;		/* need to sync block */
+//	rc = block_put(b);
+//	return rc;
 	return EOK;
 }
 
@@ -365,7 +395,6 @@ static int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep,
 	bs = block_bb_get(devmap_handle);
 
 	if (nodep->fragmented) {
-		/* TODO */
 		rc = bitmap_append_clusters(bs, nodep, clusters);
 		if (rc != ENOSPC)
 			return rc;
@@ -405,7 +434,6 @@ static int exfat_node_shrink(devmap_handle_t devmap_handle, exfat_node_t *nodep,
 	bs = block_bb_get(devmap_handle);
 
 	if (nodep->fragmented) {
-		/* TODO */
 		exfat_cluster_t clsts, prev_clsts, new_clsts;
 		prev_clsts = ROUND_UP(nodep->size, BPC(bs)) / BPC(bs);
 		new_clsts =  ROUND_UP(size, BPC(bs)) / BPC(bs);
@@ -413,7 +441,6 @@ static int exfat_node_shrink(devmap_handle_t devmap_handle, exfat_node_t *nodep,
 		assert(new_clsts < prev_clsts);
 
 		clsts = prev_clsts - new_clsts;
-		
 		rc = bitmap_free_clusters(bs, nodep, clsts);
 		if (rc != EOK)
 			return rc;
@@ -687,8 +714,6 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 * uninitialized until the corresponding node is synced. Thus the valid
 	 * dentry data is kept in the child node structure.
 	 */
-
-	/* TODO */
 	rc = exfat_directory_write_file(&di, name);
 	if (rc!=EOK)
 		return rc;
@@ -896,14 +921,21 @@ static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 	printf("Bytes per sector: %d\n", BPS(bs));
 	printf("Sectors per cluster: %d\n", SPC(bs));
 	printf("KBytes per cluster: %d\n", SPC(bs)*BPS(bs)/1024);
-	
+
+	/* bitmap_set_cluster(bs, devmap_handle, 9); */
+	/* bitmap_clear_cluster(bs, devmap_handle, 9); */
+
 	int i, rc;
 	exfat_cluster_t clst;
-	for (i=0; i<6; i++) {
+	for (i=0; i<=10; i++) {
 		rc = exfat_get_cluster(bs, devmap_handle, i, &clst);
 		if (rc != EOK)
 			return;
-		printf("Clst %d: %x\n", i, clst);
+		printf("Clst %d: %x", i, clst);
+		if (i>=2)
+			printf(", Bitmap: %d\n", bitmap_is_free(bs, devmap_handle, i)!=EOK);
+		else
+			printf("\n");
 	}
 }
 

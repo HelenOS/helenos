@@ -35,22 +35,28 @@
 
 #include <stdint.h>
 #include "exfat.h"
+#include "exfat_fat.h"
 #include "exfat_dentry.h"
 
 typedef struct {
 	/* Directory data */
 	exfat_bs_t *bs;
 	exfat_node_t *nodep;
+	devmap_handle_t devmap_handle;
 	uint32_t blocks;
 	uint32_t bnum;
 	aoff64_t pos;
 	block_t *b;
 	bool last;
+	bool fragmented;
+	exfat_cluster_t firstc;
 } __attribute__ ((packed)) exfat_directory_t;
 
 
 extern void exfat_directory_init(exfat_directory_t *di);
 extern int exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di);
+extern int exfat_directory_open_parent(exfat_directory_t *di, 
+    devmap_handle_t devmap_handle, exfat_cluster_t firstc, bool fragmented);
 extern int exfat_directory_close(exfat_directory_t *di);
 
 extern int exfat_directory_next(exfat_directory_t *di);
