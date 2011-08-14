@@ -327,7 +327,26 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 
 int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 {
-	/* TODO */
+	int rc, count;
+	exfat_dentry_t *de;
+
+	rc = exfat_directory_get(di, &de);
+	if (rc != EOK)
+		return rc;
+	count = de->file.count+1;
+	
+	while (count) {
+		rc = exfat_directory_get(di, &de);
+		if (rc != EOK)
+			return rc;
+		de->type &= (~EXFAT_TYPE_USED);
+		di->b->dirty = true;
+
+		rc = exfat_directory_next(di);
+		if (rc!=EOK)
+			return rc;
+		count--;
+	}
 	return EOK;
 }
 
