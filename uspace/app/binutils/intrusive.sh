@@ -91,6 +91,10 @@
 # non-GNU libc which implements its own native fnmatch. To resolve this 
 # incompatibility, libiberty fnmatch has to be manually hidden.
 #
+# Patch 8
+# When building binutils for arm32 target, there is a conflict with
+# libposix function name redefinitons in one of the arm-specific files.
+#
 
 case "$1" in
 	"do")
@@ -98,6 +102,7 @@ case "$1" in
 		cp -f "$2/configure" "$2/configure.backup"
 		cp -f "$2/bfd/configure" "$2/bfd/configure.backup"
 		cp -f "$2/gas/configure" "$2/gas/configure.backup"
+		cp -f "$2/gas/config/tc-arm.c" "$2/gas/config/tc-arm.c.backup"
 		cp -f "$2/intl/configure" "$2/intl/configure.backup"
 		cp -f "$2/ld/configure" "$2/ld/configure.backup"
 		cp -f "$2/libiberty/configure" "$2/libiberty/configure.backup"
@@ -128,6 +133,12 @@ case "$1" in
 		# See Patch 1.
 		sed 's/^cross_compiling=no/cross_compiling=yes/g' \
 		> "$2/gas/configure"
+
+		# Patch gas tc-arm.c.
+		cat "$2/gas/config/tc-arm.c.backup" | \
+		# See Patch 8.
+		sed 's/\(#include "dwarf2dbg.h"\)/\1\n#undef div/g' \
+		> "$2/gas/config/tc-arm.c"
 
 		# Patch intl configure script.
 		cat "$2/intl/configure.backup" | \
@@ -192,6 +203,7 @@ case "$1" in
 		mv -f "$2/configure.backup" "$2/configure"
 		mv -f "$2/bfd/configure.backup" "$2/bfd/configure"
 		mv -f "$2/gas/configure.backup" "$2/gas/configure"
+		mv -f "$2/gas/config/tc-arm.c.backup" "$2/gas/config/tc-arm.c"
 		mv -f "$2/intl/configure.backup" "$2/intl/configure"
 		mv -f "$2/ld/configure.backup" "$2/ld/configure"
 		mv -f "$2/libiberty/configure.backup" "$2/libiberty/configure"
