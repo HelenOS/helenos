@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <byteorder.h>
 #include <mem.h>
+#include <malloc.h>
 #include <str.h>
 
 
@@ -248,9 +249,73 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	return EOK;
 }
 
-int exfat_directory_sync_file(exfat_directory_t *di, 
-    exfat_file_dentry_t *df, exfat_stream_dentry_t *ds)
+static uint16_t exfat_directory_set_checksum(const uint8_t *bytes, size_t count)
 {
+	uint16_t checksum = 0;
+	size_t idx;
+
+	for (idx = 0; idx < count; idx++) {
+		if (idx == 2 || idx == 3)
+			continue;
+		checksum = ((checksum << 15) | (checksum >> 1)) + (uint16_t)bytes[idx];
+	}
+	return checksum;
+}
+
+int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df, 
+    exfat_stream_dentry_t *ds)
+{
+	int rc, i, count;
+	exfat_dentry_t *array=NULL, *de;
+	aoff64_t pos = di->pos;
+
+	rc = exfat_directory_get(di, &de);
+	if (rc != EOK)
+		return rc;
+	count = de->file.count+1;
+	array = (exfat_dentry_t *) malloc(count*sizeof(exfat_dentry_t));
+	if (!array)
+		return ENOMEM;
+	for (i=0; i<count; i++) {
+		rc = exfat_directory_get(di, &de);
+		if (rc != EOK)
+			return rc;
+		memcpy((uint8_t *)&array[i], (uint8_t *)de, sizeof(exfat_dentry_t));
+		rc = exfat_directory_next(di);
+		if (rc!=EOK) {
+			free(array);
+			return rc;
+		}
+	}
+	rc = exfat_directory_seek(di, pos);
+	if (rc!=EOK) {
+		free(array);
+		return rc;
+	}
+
+	/* Sync */
+	array[0].file.attr = df->attr;
+	array[1].stream.firstc = ds->firstc;
+	array[1].stream.flags = ds->flags;
+	array[1].stream.valid_data_size = ds->valid_data_size;
+	array[1].stream.data_size = ds->data_size;
+	array[0].file.checksum = exfat_directory_set_checksum((uint8_t *)array,
+	    count*sizeof(exfat_dentry_t));
+
+	/* Store */
+	for (i=0; i<count; i++) {
+		rc = exfat_directory_get(di, &de);
+		if (rc != EOK)
+			return rc;
+		memcpy((uint8_t *)de, (uint8_t *)&array[i], sizeof(exfat_dentry_t));
+		di->b->dirty = true;
+		rc = exfat_directory_next(di);
+		if (rc!=EOK) {
+			free(array);
+			return rc;
+		}
+	}
+
 	return EOK;
 }
 
