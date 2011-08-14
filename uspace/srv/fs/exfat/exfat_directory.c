@@ -248,6 +248,12 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	return EOK;
 }
 
+int exfat_directory_sync_file(exfat_directory_t *di, 
+    exfat_file_dentry_t *df, exfat_stream_dentry_t *ds)
+{
+	return EOK;
+}
+
 int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 {
 	/* TODO */

@@ -70,6 +70,8 @@ extern int exfat_directory_find_continue(exfat_directory_t *di,
 
 extern int exfat_directory_read_file(exfat_directory_t *di, char *name, 
     size_t size, exfat_file_dentry_t *df, exfat_stream_dentry_t *ds);
+extern int exfat_directory_sync_file(exfat_directory_t *di, 
+    exfat_file_dentry_t *df, exfat_stream_dentry_t *ds);
 extern int exfat_directory_write_file(exfat_directory_t *di, const char *name);
 extern int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos);
 

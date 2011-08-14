@@ -111,38 +111,37 @@ static void exfat_node_initialize(exfat_node_t *node)
 
 static int exfat_node_sync(exfat_node_t *node)
 {
-//	block_t *b;
-//	exfat_bs_t *bs;
-//	fat_dentry_t *d;
-//	int rc;
+	int rc;
+	exfat_directory_t di;
+	exfat_file_dentry_t df;
+	exfat_stream_dentry_t ds;
 
-//	assert(node->dirty);
+	if (!(node->type == EXFAT_DIRECTORY || node->type == EXFAT_FILE))
+		return EOK;
 
-//	bs = block_bb_get(node->idx->devmap_handle);
+	if (node->type == EXFAT_DIRECTORY)
+		df.attr = EXFAT_ATTR_SUBDIR;
+	else
+		df.attr = 0;
 
-	/* Read the block that contains the dentry of interest. */
-/*
-	rc = _fat_block_get(&b, bs, node->idx->devmap_handle, node->idx->pfc,
-	    NULL, (node->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
-	    BLOCK_FLAGS_NONE);
-	if (rc != EOK)
-		return rc;
-
-	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % DPS(bs));
-
-	d->firstc = host2uint16_t_le(node->firstc);
-	if (node->type == FAT_FILE) {
-		d->size = host2uint32_t_le(node->size);
-	} else if (node->type == FAT_DIRECTORY) {
-		d->attr = FAT_ATTR_SUBDIR;
+	ds.firstc = host2uint32_t_le(node->firstc);
+	if (node->size == 0 && node->firstc == 0) {
+		ds.flags = 0;
+	} else {
+		ds.flags = 1;
+		ds.flags |= (!node->fragmented << 1);
 	}
-*/
-	/* TODO: update other fields? (e.g time fields) */
+	ds.valid_data_size = host2uint64_t_le(node->size);
+	ds.data_size = host2uint64_t_le(node->size);
 
-//	b->dirty = true;		/* need to sync block */
-//	rc = block_put(b);
-//	return rc;
-	return EOK;
+	exfat_directory_open_parent(&di, node->idx->devmap_handle, node->idx->pfc, 
+	    node->idx->parent_fragmented);
+	rc = exfat_directory_sync_file(&di, &df, &ds);
+	if (rc != EOK) {
+		(void) exfat_directory_close(&di);
+		return rc;
+	}
+	return exfat_directory_close(&di);
 }
 
 static int exfat_node_fini_by_devmap_handle(devmap_handle_t devmap_handle)
