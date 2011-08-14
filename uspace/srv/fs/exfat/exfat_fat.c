@@ -482,13 +482,54 @@ int bitmap_is_free(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 	return EOK;
 }
 
-int bitmap_set_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc, exfat_cluster_t count)
+int bitmap_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc)
 {
 	/* TODO */
 	return EOK;
 }
 
+int bitmap_clear_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc)
+{
+	/* TODO */
+	return EOK;
+}
+
+int bitmap_set_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc, exfat_cluster_t count)
+{
+	int rc;
+	exfat_cluster_t clst;
+	clst = firstc;
+
+	while (clst < firstc+count ) {
+		rc = bitmap_set_cluster(bs, devmap_handle, clst);
+		if (rc != EOK) {
+			if ((clst-firstc) > 0)
+				(void) bitmap_clear_clusters(bs, devmap_handle, firstc, clst-firstc);
+			return rc;
+		}
+		clst++;
+	}
+	return EOK;
+}
+
+int bitmap_clear_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc, exfat_cluster_t count)
+{
+	int rc;
+	exfat_cluster_t clst;
+	clst = firstc;
+
+	while (clst < firstc+count ) {
+		rc = bitmap_clear_cluster(bs, devmap_handle, clst);
+		if (rc != EOK)
+			return rc;
+		clst++;
+	}
+	return EOK;
+}
 
 int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
     exfat_cluster_t *firstc, exfat_cluster_t count)
@@ -543,8 +584,11 @@ int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 int bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
     exfat_cluster_t count)
 {
-	/* TODO */
-	return EOK;
+	exfat_cluster_t lastc;
+	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
+	lastc -= count;
+
+	return bitmap_clear_clusters(bs, nodep->idx->devmap_handle, lastc+1, count);
 }
 
 
