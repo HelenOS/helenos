@@ -519,8 +519,24 @@ int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
     exfat_cluster_t count)
 {
-	/* TODO */
-	return EOK;
+	if (nodep->firstc == 0) {
+		return bitmap_alloc_clusters(bs, nodep->idx->devmap_handle, 
+		    &nodep->firstc, count);
+	} else {
+		exfat_cluster_t lastc, clst;
+		lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
+
+		clst = lastc+1;
+		while (bitmap_is_free(bs, nodep->idx->devmap_handle, clst) == EOK) {
+			if ((clst - lastc) == count){
+				return bitmap_set_clusters(bs, nodep->idx->devmap_handle, 
+				    lastc+1, count);
+			}
+			else
+				clst++;
+		}
+		return ENOSPC;
+	}
 }
 
 
