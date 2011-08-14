@@ -51,12 +51,46 @@
 int bitmap_is_free(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
     exfat_cluster_t clst)
 {
-	/* TODO */
+	fs_node_t *fn;
+	block_t *b=NULL;
+	exfat_node_t *bitmapp;
+	uint8_t *bitmap;
+	int rc;
+	bool alloc;
+
+	clst -= EXFAT_CLST_FIRST;
+	
+	rc = exfat_bitmap_get(&fn, devmap_handle);
+	if (rc != EOK)
+		return rc;
+	bitmapp = EXFAT_NODE(fn);
+	
+	aoff64_t offset = clst / 8;
+	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		return rc;
+	}
+	bitmap = (uint8_t *)b->data;
+	alloc = bitmap[offset % BPS(bs)] & (1 << (clst % 8));
+
+	rc = block_put(b);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		return rc;
+	}
+	rc = exfat_node_put(fn);
+	if (rc != EOK)
+		return rc;
+
+	if (alloc)
+		return ENOENT;
+
 	return EOK;
 }
 
 int bitmap_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc)
+    exfat_cluster_t clst)
 {
 	fs_node_t *fn;
 	block_t *b=NULL;
@@ -64,22 +98,21 @@ int bitmap_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 	uint8_t *bitmap;
 	int rc;
 
-	firstc -= EXFAT_CLST_FIRST;
+	clst -= EXFAT_CLST_FIRST;
 	
-	/* rc = exfat_node_get(&fn, devmap_handle, EXFAT_BITMAP_IDX); */
 	rc = exfat_bitmap_get(&fn, devmap_handle);
 	if (rc != EOK)
 		return rc;
 	bitmapp = EXFAT_NODE(fn);
 	
-	aoff64_t offset = firstc / 8;
+	aoff64_t offset = clst / 8;
 	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		(void) exfat_node_put(fn);
 		return rc;
 	}
 	bitmap = (uint8_t *)b->data;
-	bitmap[offset % BPS(bs)] |= (1 << (firstc % 8));
+	bitmap[offset % BPS(bs)] |= (1 << (clst % 8));
 
 	b->dirty = true;
 	rc = block_put(b);
@@ -92,10 +125,38 @@ int bitmap_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 }
 
 int bitmap_clear_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t firstc)
+    exfat_cluster_t clst)
 {
-	/* TODO */
-	return EOK;
+	fs_node_t *fn;
+	block_t *b=NULL;
+	exfat_node_t *bitmapp;
+	uint8_t *bitmap;
+	int rc;
+
+	clst -= EXFAT_CLST_FIRST;
+	
+	rc = exfat_bitmap_get(&fn, devmap_handle);
+	if (rc != EOK)
+		return rc;
+	bitmapp = EXFAT_NODE(fn);
+	
+	aoff64_t offset = clst / 8;
+	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		return rc;
+	}
+	bitmap = (uint8_t *)b->data;
+	bitmap[offset % BPS(bs)] &= ~(1 << (clst % 8));
+
+	b->dirty = true;
+	rc = block_put(b);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		return rc;
+	}
+	
+	return exfat_node_put(fn);
 }
 
 int bitmap_set_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
