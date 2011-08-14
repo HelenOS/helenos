@@ -107,7 +107,7 @@ static void exfat_node_initialize(exfat_node_t *node)
 	node->lnkcnt = 0;
 	node->refcnt = 0;
 	node->dirty = false;
-	node->fragmented = true;
+	node->fragmented = false;
 	node->lastc_cached_valid = false;
 	node->lastc_cached_value = 0;
 	node->currc_cached_valid = false;
@@ -117,6 +117,7 @@ static void exfat_node_initialize(exfat_node_t *node)
 
 static int exfat_node_sync(exfat_node_t *node)
 {
+	/* TODO */
 	return EOK;
 }
 
@@ -363,6 +364,89 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	return EOK;
 }
 
+static int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep, exfat_cluster_t clusters)
+{
+	exfat_bs_t *bs;
+	int rc;
+	bs = block_bb_get(devmap_handle);
+
+	if (nodep->fragmented) {
+		/* TODO */
+		rc = bitmap_append_clusters(bs, nodep, clusters);
+		if (rc != ENOSPC)
+			return rc;
+		if (rc == ENOSPC) {
+			nodep->fragmented = true;
+			nodep->dirty = true;		/* need to sync node */
+			rc = bitmap_replicate_clusters(bs, nodep);
+			if (rc != EOK)
+				return rc;
+		}
+	}
+
+	/* If we cant linear expand the node, we should use FAT instead */
+	exfat_cluster_t mcl, lcl;
+
+	/* create an independent chain of nclsts clusters in all FATs */
+	rc = exfat_alloc_clusters(bs, devmap_handle, clusters, &mcl, &lcl);
+	if (rc != EOK)
+		return rc;
+	/*
+	 * Append the cluster chain starting in mcl to the end of the
+	 * node's cluster chain.
+	 */
+	rc = exfat_append_clusters(bs, nodep, mcl, lcl);
+	if (rc != EOK) {
+		(void) exfat_free_clusters(bs, devmap_handle, mcl);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int exfat_node_shrink(devmap_handle_t devmap_handle, exfat_node_t *nodep, aoff64_t size)
+{
+	exfat_bs_t *bs;
+	int rc;
+	bs = block_bb_get(devmap_handle);
+
+	if (nodep->fragmented) {
+		/* TODO */
+		exfat_cluster_t clsts, prev_clsts, new_clsts;
+		prev_clsts = ROUND_UP(nodep->size, BPC(bs)) / BPC(bs);
+		new_clsts =  ROUND_UP(size, BPC(bs)) / BPC(bs);
+
+		assert(new_clsts < prev_clsts);
+
+		clsts = prev_clsts - new_clsts;
+		
+		rc = bitmap_free_clusters(bs, nodep, clsts);
+		if (rc != EOK)
+			return rc;
+	} else {
+		/*
+		 * The node will be shrunk, clusters will be deallocated.
+		 */
+		if (size == 0) {
+			rc = exfat_chop_clusters(bs, nodep, 0);
+			if (rc != EOK)
+				return rc;
+		} else {
+			exfat_cluster_t lastc;
+			rc = exfat_cluster_walk(bs, devmap_handle, nodep->firstc,
+			    &lastc, NULL, (size - 1) / BPC(bs));
+			if (rc != EOK)
+				return rc;
+			rc = exfat_chop_clusters(bs, nodep, lastc);
+			if (rc != EOK)
+				return rc;
+		}
+	}
+
+	nodep->size = size;
+	nodep->dirty = true;		/* need to sync node */
+	return EOK;
+}
 
 
 /*
@@ -503,27 +587,201 @@ int exfat_node_put(fs_node_t *fn)
 
 int exfat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
 {
-	/* TODO */
-	*rfn = NULL;
+	exfat_idx_t *idxp;
+	exfat_node_t *nodep;
+	int rc;
+
+	rc = exfat_node_get_new(&nodep);
+	if (rc != EOK)
+		return rc;
+
+	rc = exfat_idx_get_new(&idxp, devmap_handle);
+	if (rc != EOK) {
+		(void) exfat_node_put(FS_NODE(nodep));
+		return rc;
+	}
+
+	if (flags & L_DIRECTORY)
+		nodep->type = EXFAT_DIRECTORY;
+	else
+		nodep->type = EXFAT_FILE;
+
+	nodep->firstc = 0;
+	nodep->size = 0;
+	nodep->fragmented = false;
+	nodep->lnkcnt = 0;	/* not linked anywhere */
+	nodep->refcnt = 1;
+	nodep->dirty = true;
+
+	nodep->idx = idxp;
+	idxp->nodep = nodep;
+
+	fibril_mutex_unlock(&idxp->lock);
+	*rfn = FS_NODE(nodep);
 	return EOK;
 }
 
 int exfat_destroy_node(fs_node_t *fn)
 {
-	/* TODO */
-	return EOK;
+	exfat_node_t *nodep = EXFAT_NODE(fn);
+	exfat_bs_t *bs;
+	bool has_children;
+	int rc;
+
+	/*
+	 * The node is not reachable from the file system. This means that the
+	 * link count should be zero and that the index structure cannot be
+	 * found in the position hash. Obviously, we don't need to lock the node
+	 * nor its index structure.
+	 */
+	assert(nodep->lnkcnt == 0);
+
+	/*
+	 * The node may not have any children.
+	 */
+	rc = exfat_has_children(&has_children, fn);
+	if (rc != EOK)
+		return rc;
+	assert(!has_children);
+
+	bs = block_bb_get(nodep->idx->devmap_handle);
+	if (nodep->firstc != 0) {
+		assert(nodep->size);
+		/* Free all clusters allocated to the node. */
+		if (nodep->fragmented)
+			rc = exfat_free_clusters(bs, nodep->idx->devmap_handle,
+				nodep->firstc);
+		else
+			rc = bitmap_free_clusters(bs, nodep, 
+			    ROUND_UP(nodep->size, BPC(bs)) / BPC(bs));
+	} 
+
+	exfat_idx_destroy(nodep->idx);
+	free(nodep->bp);
+	free(nodep);
+	return rc;
 }
 
 int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
+	exfat_node_t *parentp = EXFAT_NODE(pfn);
+	exfat_node_t *childp = EXFAT_NODE(cfn);
+	exfat_directory_t di;
+	int rc;
+
+	fibril_mutex_lock(&childp->lock);
+	if (childp->lnkcnt == 1) {
+		/*
+		 * On FAT, we don't support multiple hard links.
+		 */
+		fibril_mutex_unlock(&childp->lock);
+		return EMLINK;
+	}
+	assert(childp->lnkcnt == 0);
+	fibril_mutex_unlock(&childp->lock);
+
+	if (!exfat_valid_name(name))
+		return ENOTSUP;
+
+	fibril_mutex_lock(&parentp->idx->lock);
+	rc = exfat_directory_open(parentp, &di);
+	if (rc != EOK)
+		return rc;
+
+	/*
+	 * At this point we only establish the link between the parent and the
+	 * child.  The dentry, except of the name and the extension, will remain
+	 * uninitialized until the corresponding node is synced. Thus the valid
+	 * dentry data is kept in the child node structure.
+	 */
+
 	/* TODO */
+	rc = exfat_directory_write_file(&di, name);
+	if (rc!=EOK)
+		return rc;
+	rc = exfat_directory_close(&di);
+	if (rc!=EOK)
+		return rc;
+
+	fibril_mutex_unlock(&parentp->idx->lock);
+	if (rc != EOK)
+		return rc;
+
+	fibril_mutex_lock(&childp->idx->lock);
+
+
+	childp->idx->pfc = parentp->firstc;
+	childp->idx->parent_fragmented = parentp->fragmented;
+	childp->idx->pdi = di.pos;	/* di.pos holds absolute position of SFN entry */
+	fibril_mutex_unlock(&childp->idx->lock);
+
+	fibril_mutex_lock(&childp->lock);
+	childp->lnkcnt = 1;
+	childp->dirty = true;		/* need to sync node */
+	fibril_mutex_unlock(&childp->lock);
+
+	/*
+	 * Hash in the index structure into the position hash.
+	 */
+	exfat_idx_hashin(childp->idx);
+
 	return EOK;
+
 }
 
 int exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
-	/* TODO */
+	exfat_node_t *parentp = EXFAT_NODE(pfn);
+	exfat_node_t *childp = EXFAT_NODE(cfn);
+	bool has_children;
+	int rc;
+
+	if (!parentp)
+		return EBUSY;
+
+	rc = exfat_has_children(&has_children, cfn);
+	if (rc != EOK)
+		return rc;
+	if (has_children)
+		return ENOTEMPTY;
+
+	fibril_mutex_lock(&parentp->lock);
+	fibril_mutex_lock(&childp->lock);
+	assert(childp->lnkcnt == 1);
+	fibril_mutex_lock(&childp->idx->lock);
+	
+	exfat_directory_t di;
+	rc = exfat_directory_open(parentp,&di);
+	if (rc != EOK)
+		goto error;
+	rc = exfat_directory_erase_file(&di, childp->idx->pdi);
+	if (rc != EOK)
+		goto error;
+	rc = exfat_directory_close(&di);
+	if (rc != EOK)
+		goto error;
+
+	/* remove the index structure from the position hash */
+	exfat_idx_hashout(childp->idx);
+	/* clear position information */
+	childp->idx->pfc = 0;
+	childp->idx->pdi = 0;
+	fibril_mutex_unlock(&childp->idx->lock);
+	childp->lnkcnt = 0;
+	childp->refcnt++;	/* keep the node in memory until destroyed */
+	childp->dirty = true;
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&parentp->lock);
+
 	return EOK;
+
+error:
+	(void) exfat_directory_close(&di);
+	fibril_mutex_unlock(&childp->idx->lock);
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&parentp->lock);
+	return rc;
+
 }
 
 int exfat_has_children(bool *has_children, fs_node_t *fn)
@@ -649,7 +907,7 @@ static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 	int i, rc;
 	exfat_cluster_t clst;
 	for (i=0; i<6; i++) {
-		rc = fat_get_cluster(bs, devmap_handle, i, &clst);
+		rc = exfat_get_cluster(bs, devmap_handle, i, &clst);
 		if (rc != EOK)
 			return;
 		printf("Clst %d: %x\n", i, clst);
@@ -726,7 +984,7 @@ exfat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index
 	rootp->lnkcnt = 0;	/* FS root is not linked */
 
 	uint32_t clusters;
-	rc = fat_clusters_get(&clusters, bs, devmap_handle, rootp->firstc);
+	rc = exfat_clusters_get(&clusters, bs, devmap_handle, rootp->firstc);
 	if (rc != EOK) {
 		free(rootp);
 		(void) block_cache_fini(devmap_handle);
@@ -1038,20 +1296,152 @@ static int
 exfat_write(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
-	/* TODO */
-	return EOK;
+	fs_node_t *fn;
+	exfat_node_t *nodep;
+	exfat_bs_t *bs;
+	size_t bytes;
+	block_t *b;
+	aoff64_t boundary;
+	int flags = BLOCK_FLAGS_NONE;
+	int rc;
+
+	rc = exfat_node_get(&fn, devmap_handle, index);
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
+	nodep = EXFAT_NODE(fn);
+
+	ipc_callid_t callid;
+	size_t len;
+	if (!async_data_write_receive(&callid, &len)) {
+		(void) exfat_node_put(fn);
+		async_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+
+	bs = block_bb_get(devmap_handle);
+
+	/*
+	 * In all scenarios, we will attempt to write out only one block worth
+	 * of data at maximum. There might be some more efficient approaches,
+	 * but this one greatly simplifies fat_write(). Note that we can afford
+	 * to do this because the client must be ready to handle the return
+	 * value signalizing a smaller number of bytes written.
+	 */
+	bytes = min(len, BPS(bs) - pos % BPS(bs));
+	if (bytes == BPS(bs))
+		flags |= BLOCK_FLAGS_NOREAD;
+
+	boundary = ROUND_UP(nodep->size, BPC(bs));
+
+	if (pos >= boundary) {
+		unsigned nclsts;
+		nclsts = (ROUND_UP(pos + bytes, BPC(bs)) - boundary) / BPC(bs);
+		rc = exfat_node_expand(devmap_handle, nodep, nclsts);
+		if (rc != EOK) {
+			/* could not expand node */
+			(void) exfat_node_put(fn);
+			async_answer_0(callid, rc);
+			return rc;
+		}
+	}
+
+	if (pos + bytes > nodep->size) {
+		nodep->size = pos + bytes;
+		nodep->dirty = true;	/* need to sync node */
+	}
+
+	/*
+	 * This is the easier case - we are either overwriting already
+	 * existing contents or writing behind the EOF, but still within
+	 * the limits of the last cluster. The node size may grow to the
+	 * next block size boundary.
+	 */
+	rc = exfat_block_get(&b, bs, nodep, pos / BPS(bs), flags);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		async_answer_0(callid, rc);
+		return rc;
+	}
+
+	(void) async_data_write_finalize(callid,
+		b->data + pos % BPS(bs), bytes);
+	b->dirty = true;		/* need to sync block */
+	rc = block_put(b);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		return rc;
+	}
+
+
+	*wbytes = bytes;
+	*nsize = nodep->size;
+	rc = exfat_node_put(fn);
+	return rc;
 }
 
 static int
 exfat_truncate(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t size)
 {
-	/* TODO */
-	return EOK;
+	fs_node_t *fn;
+	exfat_node_t *nodep;
+	exfat_bs_t *bs;
+	int rc;
+
+	rc = exfat_node_get(&fn, devmap_handle, index);
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
+	nodep = EXFAT_NODE(fn);
+
+	bs = block_bb_get(devmap_handle);
+
+	if (nodep->size == size) {
+		rc = EOK;
+	} else if (nodep->size < size) {
+		/*
+		 * The standard says we have the freedom to grow the node.
+		 * For now, we simply return an error.
+		 */
+		rc = EINVAL;
+	} else if (ROUND_UP(nodep->size, BPC(bs)) == ROUND_UP(size, BPC(bs))) {
+		/*
+		 * The node will be shrunk, but no clusters will be deallocated.
+		 */
+		nodep->size = size;
+		nodep->dirty = true;		/* need to sync node */
+		rc = EOK;
+	} else {
+		rc = exfat_node_shrink(devmap_handle, nodep, size);
+	}
+
+	(void) exfat_node_put(fn);
+	return rc;
 }
+
 static int exfat_destroy(devmap_handle_t devmap_handle, fs_index_t index)
 {
-	/* TODO */
-	return EOK;
+	fs_node_t *fn;
+	exfat_node_t *nodep;
+	int rc;
+
+	rc = exfat_node_get(&fn, devmap_handle, index);
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
+
+	nodep = EXFAT_NODE(fn);
+	/*
+	 * We should have exactly two references. One for the above
+	 * call to fat_node_get() and one from fat_unlink().
+	 */
+	assert(nodep->refcnt == 2);
+
+	rc = exfat_destroy_node(fn);
+	return rc;
 }
 
 vfs_out_ops_t exfat_ops = {
