@@ -281,10 +281,9 @@ static int exfat_node_get_new_by_pos(exfat_node_t **nodepp,
  */
 static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 {
-	block_t *b=NULL;
-	exfat_bs_t *bs;
 	exfat_dentry_t *d;
 	exfat_node_t *nodep = NULL;
+	exfat_directory_t di;
 	int rc;
 
 	if (idxp->nodep) {
@@ -313,35 +312,37 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	if (rc != EOK)
 		return rc;
 
-	bs = block_bb_get(idxp->devmap_handle);
-
-	rc = exfat_block_get_by_clst(&b, bs, idxp->devmap_handle, 
-	    idxp->parent_fragmented, idxp->pfc, NULL, 
-	    (idxp->pdi * sizeof(exfat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+	exfat_directory_open_parent(&di, idxp->devmap_handle, idxp->pfc, 
+	    idxp->parent_fragmented);
+	rc = exfat_directory_seek(&di, idxp->pdi);
 	if (rc != EOK) {
+		(void) exfat_directory_close(&di);
+		(void) exfat_node_put(FS_NODE(nodep));
+		return rc;
+	}
+	rc = exfat_directory_get(&di, &d);
+	if (rc != EOK) {
+		(void) exfat_directory_close(&di);
 		(void) exfat_node_put(FS_NODE(nodep));
 		return rc;
 	}
 
-	d = ((exfat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
 	switch (exfat_classify_dentry(d)) {
 	case EXFAT_DENTRY_FILE:
 		nodep->type = (d->file.attr & EXFAT_ATTR_SUBDIR)? 
 		    EXFAT_DIRECTORY : EXFAT_FILE;
-		rc = block_put(b);
+		rc = exfat_directory_next(&di);
 		if (rc != EOK) {
+			(void) exfat_directory_close(&di);
 			(void) exfat_node_put(FS_NODE(nodep));
 			return rc;
 		}
-		rc = exfat_block_get_by_clst(&b, bs, idxp->devmap_handle, 
-			idxp->parent_fragmented, idxp->pfc, NULL, 
-			((idxp->pdi+1) * sizeof(exfat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+		rc = exfat_directory_get(&di, &d);
 		if (rc != EOK) {
+			(void) exfat_directory_close(&di);
 			(void) exfat_node_put(FS_NODE(nodep));
 			return rc;
 		}
-		d = ((exfat_dentry_t *)b->data) + ((idxp->pdi+1) % DPS(bs));
-		
 		nodep->firstc = d->stream.firstc;
 		nodep->size = d->stream.data_size;
 		nodep->fragmented = (d->stream.flags & 0x02) == 0;
@@ -366,7 +367,7 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	case EXFAT_DENTRY_GUID:
 	case EXFAT_DENTRY_STREAM:
 	case EXFAT_DENTRY_NAME:
-		(void) block_put(b);
+		(void) exfat_directory_close(&di);
 		(void) exfat_node_put(FS_NODE(nodep));
 		return ENOENT;
 	}
@@ -374,7 +375,7 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
 
-	rc = block_put(b);
+	rc = exfat_directory_close(&di);
 	if (rc != EOK) {
 		(void) exfat_node_put(FS_NODE(nodep));
 		return rc;
