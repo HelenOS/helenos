@@ -49,8 +49,9 @@
 #define BS_BLOCK		0
 #define BS_SIZE			512
 
-#define BPS(bs)			(1 << (bs->bytes_per_sector))
-#define SPC(bs)			(1 << (bs->sec_per_cluster))
+#define BPS(bs)			((uint32_t) (1 << (bs->bytes_per_sector)))
+#define SPC(bs)			((uint32_t)(1 << (bs->sec_per_cluster)))
+#define BPC(bs)			((uint32_t)(BPS(bs)*SPC(bs)))
 #define VOL_FS(bs)		uint64_t_le2host(bs->volume_start)
 #define VOL_CNT(bs)		uint64_t_le2host(bs->volume_count)
 #define FAT_FS(bs)		uint32_t_le2host(bs->fat_sector_start)
