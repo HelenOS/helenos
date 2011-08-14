@@ -672,7 +672,7 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fibril_mutex_lock(&childp->lock);
 	if (childp->lnkcnt == 1) {
 		/*
-		 * On FAT, we don't support multiple hard links.
+		 * We don't support multiple hard links.
 		 */
 		fibril_mutex_unlock(&childp->lock);
 		return EMLINK;

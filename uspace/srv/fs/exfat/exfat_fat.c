@@ -475,11 +475,44 @@ int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl
 	return EOK;
 }
 
-int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
-    exfat_cluster_t *firstc, exfat_cluster_t count)
+int bitmap_is_free(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t clst)
 {
 	/* TODO */
 	return EOK;
+}
+
+int bitmap_set_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc, exfat_cluster_t count)
+{
+	/* TODO */
+	return EOK;
+}
+
+
+int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t *firstc, exfat_cluster_t count)
+{
+	exfat_cluster_t startc, endc;
+	startc = EXFAT_CLST_FIRST;
+
+	while (startc < DATA_CNT(bs)+2) {
+		if (bitmap_is_free(bs, devmap_handle, startc) == EOK) {
+			endc = startc+1;
+			while (bitmap_is_free(bs, devmap_handle, endc) == EOK) {
+				if ((endc - startc)+1 == count){
+					*firstc = startc;
+					return bitmap_set_clusters(bs, devmap_handle, startc, count);
+				}
+				else
+					endc++;
+			}
+			startc = endc+1;
+		} 
+		else
+			startc++;
+	}
+	return ENOSPC;
 }
 
 

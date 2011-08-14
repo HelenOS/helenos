@@ -83,6 +83,11 @@ extern int bitmap_free_clusters(struct exfat_bs *bs, struct exfat_node *nodep,
     exfat_cluster_t count);
 extern int bitmap_replicate_clusters(struct exfat_bs *bs, struct exfat_node *nodep); 
 
+extern int bitmap_is_free(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t clst);
+extern int bitmap_set_clusters(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t firstc, exfat_cluster_t count);
+
 extern int exfat_append_clusters(struct exfat_bs *, struct exfat_node *,
     exfat_cluster_t, exfat_cluster_t);
 extern int exfat_chop_clusters(struct exfat_bs *, struct exfat_node *,
