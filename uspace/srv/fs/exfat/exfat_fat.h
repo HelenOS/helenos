@@ -58,9 +58,9 @@ struct exfat_bs;
 typedef uint32_t exfat_cluster_t;
 
 
-#define fat_clusters_get(numc, bs, dh, fc) \
-    fat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint32_t) -1)
-extern int fat_cluster_walk(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
+#define exfat_clusters_get(numc, bs, dh, fc) \
+    exfat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint32_t) -1)
+extern int exfat_cluster_walk(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
     exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
     uint32_t max_clusters);
 extern int exfat_block_get(block_t **block, struct exfat_bs *bs,
@@ -69,12 +69,27 @@ extern int exfat_block_get_by_clst(block_t **block, struct exfat_bs *bs,
     devmap_handle_t devmap_handle, bool fragmented, exfat_cluster_t fcl,
     exfat_cluster_t *clp, aoff64_t bn, int flags);
 
-extern int fat_get_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
+extern int exfat_get_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t *value);
-extern int fat_set_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
+extern int exfat_set_cluster(struct exfat_bs *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t value);
 extern int exfat_sanity_check(struct exfat_bs *, devmap_handle_t);
 
+extern int bitmap_alloc_clusters(struct exfat_bs *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t *firstc, exfat_cluster_t count);
+extern int bitmap_append_clusters(struct exfat_bs *bs, struct exfat_node *nodep, 
+    exfat_cluster_t count);
+extern int bitmap_free_clusters(struct exfat_bs *bs, struct exfat_node *nodep, 
+    exfat_cluster_t count);
+extern int bitmap_replicate_clusters(struct exfat_bs *bs, struct exfat_node *nodep); 
+
+extern int exfat_append_clusters(struct exfat_bs *, struct exfat_node *,
+    exfat_cluster_t, exfat_cluster_t);
+extern int exfat_chop_clusters(struct exfat_bs *, struct exfat_node *,
+    exfat_cluster_t);
+extern int exfat_alloc_clusters(struct exfat_bs *, devmap_handle_t, unsigned,
+    exfat_cluster_t *, exfat_cluster_t *);
+extern int exfat_free_clusters(struct exfat_bs *, devmap_handle_t, exfat_cluster_t);
 
 
 #endif

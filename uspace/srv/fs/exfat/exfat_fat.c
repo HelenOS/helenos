@@ -55,7 +55,7 @@
  * during allocation of clusters. The lock does not have to be held durring
  * deallocation of clusters.
  */
-static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
+static FIBRIL_MUTEX_INITIALIZE(exfat_alloc_lock);
 
 /** Walk the cluster chain.
  *
@@ -71,7 +71,7 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
  * @return		EOK on success or a negative error code.
  */
 int
-fat_cluster_walk(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+exfat_cluster_walk(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
     exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
     uint32_t max_clusters)
 {
@@ -88,12 +88,12 @@ fat_cluster_walk(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 		return EOK;
 	}
 
-	while (clst <= EXFAT_CLST_LAST && clusters < max_clusters) {
+	while (clst != EXFAT_CLST_EOF && clusters < max_clusters) {
 		assert(clst >= EXFAT_CLST_FIRST);
 		if (lastc)
 			*lastc = clst;	/* remember the last cluster number */
 
-		rc = fat_get_cluster(bs, devmap_handle, clst, &clst);
+		rc = exfat_get_cluster(bs, devmap_handle, clst, &clst);
 		if (rc != EOK)
 			return rc;
 
@@ -101,7 +101,7 @@ fat_cluster_walk(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 		clusters++;
 	}
 
-	if (lastc && clst <= EXFAT_CLST_LAST)
+	if (lastc && clst != EXFAT_CLST_EOF)
 		*lastc = clst;
 	if (numc)
 		*numc = clusters;
@@ -201,7 +201,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 		    (fcl-EXFAT_CLST_FIRST)*SPC(bs) + bn, flags);
 	} else {
 		max_clusters = bn / SPC(bs);
-		rc = fat_cluster_walk(bs, devmap_handle, fcl, &c, &clusters, max_clusters);
+		rc = exfat_cluster_walk(bs, devmap_handle, fcl, &c, &clusters, max_clusters);
 		if (rc != EOK)
 			return rc;
 		assert(clusters == max_clusters);
@@ -227,7 +227,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
  * @return		EOK or a negative error code.
  */
 int
-fat_get_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
+exfat_get_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t *value)
 {
 	block_t *b;
@@ -257,7 +257,7 @@ fat_get_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
  * @return		EOK on success or a negative error code.
  */
 int
-fat_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
+exfat_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
     exfat_cluster_t clst, exfat_cluster_t value)
 {
 	block_t *b;
@@ -276,6 +276,236 @@ fat_set_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 	rc = block_put(b);
 	return rc;
 }
+
+/** Allocate clusters in FAT.
+ *
+ * This function will attempt to allocate the requested number of clusters in
+ * the FAT.  The FAT will be altered so that the allocated
+ * clusters form an independent chain (i.e. a chain which does not belong to any
+ * file yet).
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param devmap_handle	Device handle of the file system.
+ * @param nclsts	Number of clusters to allocate.
+ * @param mcl		Output parameter where the first cluster in the chain
+ *			will be returned.
+ * @param lcl		Output parameter where the last cluster in the chain
+ *			will be returned.
+ *
+ * @return		EOK on success, a negative error code otherwise.
+ */
+int
+exfat_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, unsigned nclsts,
+    exfat_cluster_t *mcl, exfat_cluster_t *lcl)
+{
+	exfat_cluster_t *lifo;    /* stack for storing free cluster numbers */
+	unsigned found = 0;     /* top of the free cluster number stack */
+	exfat_cluster_t clst, value;
+	int rc = EOK;
+
+	lifo = (exfat_cluster_t *) malloc(nclsts * sizeof(exfat_cluster_t));
+	if (!lifo)
+		return ENOMEM;
+
+	fibril_mutex_lock(&exfat_alloc_lock);
+	for (clst=EXFAT_CLST_FIRST; clst < DATA_CNT(bs)+2 && found < nclsts; clst++) {
+		rc = exfat_get_cluster(bs, devmap_handle, clst, &value);
+		if (rc != EOK)
+			break;
+
+		if (value == 0) {
+		   /*
+			* The cluster is free. Put it into our stack
+			* of found clusters and mark it as non-free.
+			*/
+			lifo[found] = clst;
+			rc = exfat_set_cluster(bs, devmap_handle, clst,
+				(found == 0) ?  EXFAT_CLST_EOF : lifo[found - 1]);
+			if (rc != EOK)
+				break;
+
+			found++;
+		}
+	}
+
+	if (rc == EOK && found == nclsts) {
+		*mcl = lifo[found - 1];
+		*lcl = lifo[0];
+		free(lifo);
+		fibril_mutex_unlock(&exfat_alloc_lock);
+		return EOK;
+	}
+
+	/* If something wrong - free the clusters */
+	if (found > 0) {
+		while (found--)
+			rc = exfat_set_cluster(bs, devmap_handle, lifo[found], 0);
+	}
+
+	free(lifo);
+	fibril_mutex_unlock(&exfat_alloc_lock);
+	return ENOSPC;
+}
+
+/** Free clusters forming a cluster chain in FAT.
+ *
+ * @param bs		Buffer hodling the boot sector of the file system.
+ * @param devmap_handle	Device handle of the file system.
+ * @param firstc	First cluster in the chain which is to be freed.
+ *
+ * @return		EOK on success or a negative return code.
+ */
+int
+exfat_free_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, exfat_cluster_t firstc)
+{
+	exfat_cluster_t nextc;
+	int rc;
+
+	/* Mark all clusters in the chain as free */
+	while (firstc != EXFAT_CLST_EOF) {
+		assert(firstc >= EXFAT_CLST_FIRST && firstc < EXFAT_CLST_BAD);
+		rc = exfat_get_cluster(bs, devmap_handle, firstc, &nextc);
+		if (rc != EOK)
+			return rc;
+		rc = exfat_set_cluster(bs, devmap_handle, firstc, 0);
+		if (rc != EOK)
+			return rc;
+		firstc = nextc;
+	}
+
+	return EOK;
+}
+
+/** Append a cluster chain to the last file cluster in FAT.
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param nodep		Node representing the file.
+ * @param mcl		First cluster of the cluster chain to append.
+ * @param lcl		Last cluster of the cluster chain to append.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+exfat_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t mcl,
+    exfat_cluster_t lcl)
+{
+	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+	exfat_cluster_t lastc;
+	int rc;
+
+	if (nodep->firstc == 0) {
+		/* No clusters allocated to the node yet. */
+		nodep->firstc = mcl;
+		nodep->dirty = true;	/* need to sync node */
+	} else {
+		if (nodep->lastc_cached_valid) {
+			lastc = nodep->lastc_cached_value;
+			nodep->lastc_cached_valid = false;
+		} else {
+			rc = exfat_cluster_walk(bs, devmap_handle, nodep->firstc,
+			    &lastc, NULL, (uint16_t) -1);
+			if (rc != EOK)
+				return rc;
+		}
+
+		rc = exfat_set_cluster(bs, nodep->idx->devmap_handle, lastc, mcl);
+		if (rc != EOK)
+			return rc;
+	}
+
+	nodep->lastc_cached_valid = true;
+	nodep->lastc_cached_value = lcl;
+
+	return EOK;
+}
+
+/** Chop off node clusters in FAT.
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param nodep		FAT node where the chopping will take place.
+ * @param lcl		Last cluster which will remain in the node. If this
+ *			argument is FAT_CLST_RES0, then all clusters will
+ *			be chopped off.
+ *
+ * @return		EOK on success or a negative return code.
+ */
+int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl)
+{
+	int rc;
+	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+
+	/*
+	 * Invalidate cached cluster numbers.
+	 */
+	nodep->lastc_cached_valid = false;
+	if (nodep->currc_cached_value != lcl)
+		nodep->currc_cached_valid = false;
+
+	if (lcl == 0) {
+		/* The node will have zero size and no clusters allocated. */
+		rc = exfat_free_clusters(bs, devmap_handle, nodep->firstc);
+		if (rc != EOK)
+			return rc;
+		nodep->firstc = 0;
+		nodep->dirty = true;		/* need to sync node */
+	} else {
+		exfat_cluster_t nextc;
+
+		rc = exfat_get_cluster(bs, devmap_handle, lcl, &nextc);
+		if (rc != EOK)
+			return rc;
+
+		/* Terminate the cluster chain */
+		rc = exfat_set_cluster(bs, devmap_handle, lcl, EXFAT_CLST_EOF);
+		if (rc != EOK)
+			return rc;
+
+		/* Free all following clusters. */
+		rc = exfat_free_clusters(bs, devmap_handle, nextc);
+		if (rc != EOK)
+			return rc;
+	}
+
+	/*
+	 * Update and re-enable the last cluster cache.
+	 */
+	nodep->lastc_cached_valid = true;
+	nodep->lastc_cached_value = lcl;
+
+	return EOK;
+}
+
+int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t *firstc, exfat_cluster_t count)
+{
+	/* TODO */
+	return EOK;
+}
+
+
+int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
+    exfat_cluster_t count)
+{
+	/* TODO */
+	return EOK;
+}
+
+
+int bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
+    exfat_cluster_t count)
+{
+	/* TODO */
+	return EOK;
+}
+
+
+int bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
+{
+	/* TODO */
+	return EOK;
+}
+
+
 
 /** Perform basic sanity checks on the file system.
  *
