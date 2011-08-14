@@ -594,8 +594,18 @@ int bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 
 int bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
 {
-	/* TODO */
-	return EOK;
+	int rc;
+	exfat_cluster_t lastc, clst;
+	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
+
+	for (clst = nodep->firstc; clst < lastc; clst++) {
+		rc = exfat_set_cluster(bs, devmap_handle, clst, clst+1);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return exfat_set_cluster(bs, devmap_handle, lastc, EXFAT_CLST_EOF);
 }
 
 
