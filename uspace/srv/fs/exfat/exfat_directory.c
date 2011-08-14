@@ -226,6 +226,18 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	return EOK;
 }
 
+int exfat_directory_write_file(exfat_directory_t *di, const char *name)
+{
+	/* TODO */
+	return EOK;
+}
+
+int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
+{
+	/* TODO */
+	return EOK;
+}
+
 
 /**
  * @}
