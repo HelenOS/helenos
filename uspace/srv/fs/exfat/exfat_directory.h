@@ -75,10 +75,9 @@ extern int exfat_directory_sync_file(exfat_directory_t *di,
 extern int exfat_directory_write_file(exfat_directory_t *di, const char *name);
 extern int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos);
 
-/*
 extern int exfat_directory_expand(exfat_directory_t *di);
 extern int exfat_directory_lookup_free(exfat_directory_t *di, size_t count);
-*/
+
 
 #endif
 

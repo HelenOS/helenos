@@ -350,6 +350,61 @@ int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 	return EOK;
 }
 
+int exfat_directory_expand(exfat_directory_t *di)
+{
+	int rc;
+
+	if (!di->nodep)
+		return ENOSPC;
+
+	rc = exfat_node_expand(di->nodep->idx->devmap_handle, di->nodep, 1);
+	if (rc != EOK)
+		return rc;
+
+	di->fragmented = di->nodep->fragmented;
+	di->nodep->size += BPC(di->bs);
+	di->nodep->dirty = true;		/* need to sync node */
+	di->blocks = di->nodep->size / BPS(di->bs);
+	
+	return EOK;
+}
+
+int exfat_directory_lookup_free(exfat_directory_t *di, size_t count)
+{
+	int rc;
+	exfat_dentry_t *d;
+	size_t found;
+	aoff64_t pos;
+
+	rc = exfat_directory_seek(di, 0);
+	if (rc != EOK)
+		return rc;
+
+	do {
+		found = 0;
+		pos = 0;
+		do {
+			if (exfat_directory_get(di, &d) == EOK) {
+				switch (exfat_classify_dentry(d)) {
+				case EXFAT_DENTRY_LAST:
+				case EXFAT_DENTRY_FREE:
+					if (found==0) pos = di->pos;
+					found++;
+					if (found == count) {
+						exfat_directory_seek(di, pos);
+						return EOK;
+					}
+					break;
+				default:
+					found = 0;
+					break;
+				}
+			}
+		} while (exfat_directory_next(di) == EOK);	
+	} while (exfat_directory_expand(di) == EOK);
+	return ENOSPC;
+}
+
 
 /**
  * @}
