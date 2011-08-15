@@ -180,6 +180,8 @@ extern void exfat_idx_fini(void);
 extern int exfat_idx_init_by_devmap_handle(devmap_handle_t);
 extern void exfat_idx_fini_by_devmap_handle(devmap_handle_t);
 
+extern int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep,
+    exfat_cluster_t clusters);
 extern int exfat_node_put(fs_node_t *);
 extern int exfat_bitmap_get(fs_node_t **, devmap_handle_t);
 /*
