@@ -82,7 +82,8 @@ extern int exfat_chop_clusters(struct exfat_bs *, struct exfat_node *,
 extern int exfat_alloc_clusters(struct exfat_bs *, devmap_handle_t, unsigned,
     exfat_cluster_t *, exfat_cluster_t *);
 extern int exfat_free_clusters(struct exfat_bs *, devmap_handle_t, exfat_cluster_t);
-
+extern int exfat_zero_cluster(struct exfat_bs * bs, devmap_handle_t devmap_handle, 
+    exfat_cluster_t mcl);
 
 #endif
 

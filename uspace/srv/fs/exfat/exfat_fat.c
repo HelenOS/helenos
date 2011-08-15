@@ -193,7 +193,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 	exfat_cluster_t c;
 	int rc;
 
-	if (fcl < EXFAT_CLST_FIRST)
+	if (fcl < EXFAT_CLST_FIRST || fcl > DATA_CNT(bs)+2)
 		return ELIMIT;
 
 	if (!fragmented) {
@@ -471,6 +471,28 @@ int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl
 	 */
 	nodep->lastc_cached_valid = true;
 	nodep->lastc_cached_value = lcl;
+
+	return EOK;
+}
+
+int
+exfat_zero_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, exfat_cluster_t c)
+{
+	size_t i;
+	block_t *b;
+	int rc;
+
+	for (i = 0; i < SPC(bs); i++) {
+		rc = exfat_block_get_by_clst(&b, bs, devmap_handle, false, c, NULL, i,
+		    BLOCK_FLAGS_NOREAD);
+		if (rc != EOK)
+			return rc;
+		memset(b->data, 0, BPS(bs));
+		b->dirty = true;
+		rc = block_put(b);
+		if (rc != EOK)
+			return rc;
+	}
 
 	return EOK;
 }
