@@ -388,7 +388,7 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	return EOK;
 }
 
-static int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep, exfat_cluster_t clusters)
+int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep, exfat_cluster_t clusters)
 {
 	exfat_bs_t *bs;
 	int rc;
@@ -414,6 +414,11 @@ static int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep,
 	rc = exfat_alloc_clusters(bs, devmap_handle, clusters, &mcl, &lcl);
 	if (rc != EOK)
 		return rc;
+	rc = exfat_zero_cluster(bs, devmap_handle, mcl);
+	if (rc != EOK) {
+		(void) exfat_free_clusters(bs, devmap_handle, mcl);
+		return rc;
+	}
 	/*
 	 * Append the cluster chain starting in mcl to the end of the
 	 * node's cluster chain.
