@@ -69,15 +69,22 @@ exfat_dentry_clsf_t exfat_classify_dentry(const exfat_dentry_t *d)
 	}
 }
 
-uint16_t exfat_name_hash(const uint16_t *name)
+uint16_t exfat_name_hash(const uint16_t *name, const uint16_t *uctable, size_t chars)
 {
-	/* TODO */
-	return 0;
-}
+	uint16_t hash = 0;
+	uint16_t ch;
+	while (*name) {
+		if (*name < chars)
+			ch = uint16_t_le2host(uctable[*name]);
+		else
+			ch = *name;
+		name++;
 
-void exfat_set_checksum(const exfat_dentry_t *d, uint16_t *chksum)
-{
-	/* TODO */
+		hash = ((hash << 15) | (hash >> 1)) + (ch & 0xff);
+		hash = ((hash << 15) | (hash >> 1)) + (ch >> 8);
+	}
+
+	return hash;
 }
 
 void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_t *dst, size_t *offset)
@@ -91,17 +98,6 @@ void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_
 	dst[*offset] = '\0';
 }
 
-void exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentry_t *name)
-{
-	/* TODO */
-	size_t idx=0;
-	while (src[*offset] && idx < EXFAT_NAME_PART_LEN) {
-		name->name[idx] = src[*offset];
-		(*offset)++;
-		idx++;
-	}
-}
-
 bool exfat_valid_char(wchar_t ch)
 {
 	/* TODO */
@@ -112,6 +108,16 @@ bool exfat_valid_name(const char *name)
 {
 	/* TODO */
 	return true;
+}
+
+size_t utf16_length(const uint16_t *wstr)
+{
+	size_t len = 0;
+	
+	while (*wstr++ != 0)
+		len++;
+	
+	return len;
 }
 
 /**

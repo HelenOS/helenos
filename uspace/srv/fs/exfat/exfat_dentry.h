@@ -150,14 +150,17 @@ typedef enum {
 
 extern exfat_dentry_clsf_t exfat_classify_dentry(const exfat_dentry_t *d);
 
-extern uint16_t exfat_name_hash(const uint16_t *name);
-extern void exfat_set_checksum(const exfat_dentry_t *d, uint16_t *chksum);
+extern uint16_t exfat_name_hash(const uint16_t *name, const uint16_t *uctable, 
+    size_t chars);
 
-extern void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_t *dst, size_t *offset);
-extern void exfat_dentry_set_name(const uint16_t *src, size_t *offset, exfat_name_dentry_t *name);
+extern void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, 
+    uint16_t *dst, size_t *offset);
+
 
 extern bool exfat_valid_char(wchar_t ch);
 extern bool exfat_valid_name(const char *name);
+
+extern size_t utf16_length(const uint16_t *wstr);
 
 
 #endif
