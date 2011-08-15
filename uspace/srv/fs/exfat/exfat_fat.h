@@ -85,6 +85,9 @@ extern int exfat_free_clusters(struct exfat_bs *, devmap_handle_t, exfat_cluster
 extern int exfat_zero_cluster(struct exfat_bs * bs, devmap_handle_t devmap_handle, 
     exfat_cluster_t mcl);
 
+extern int exfat_read_uctable(struct exfat_bs *bs, struct exfat_node *nodep, 
+    uint8_t *uctable);
+
 #endif
 
 /**

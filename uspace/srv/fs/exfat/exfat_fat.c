@@ -497,6 +497,32 @@ exfat_zero_cluster(exfat_bs_t *bs, devmap_handle_t devmap_handle, exfat_cluster_
 	return EOK;
 }
 
+int
+exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
+{
+	size_t i, blocks, count;
+	block_t *b;
+	int rc;
+	blocks = ROUND_UP(nodep->size, BPS(bs))/BPS(bs);
+	count = BPS(bs);
+	
+	for (i = 0; i < blocks; i++) {
+		rc = exfat_block_get(&b, bs, nodep, i, BLOCK_FLAGS_NOREAD);
+		if (rc != EOK)
+			return rc;
+		if (i == blocks-1)
+			count = nodep->size - i*BPS(bs);
+		memcpy(uctable, b->data, count);
+		uctable += count;
+		rc = block_put(b);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+
 /** Perform basic sanity checks on the file system.
  *
  * Verify if values of boot sector fields are sane. Also verify media
