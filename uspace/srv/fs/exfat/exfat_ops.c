@@ -136,6 +136,12 @@ static int exfat_node_sync(exfat_node_t *node)
 
 	exfat_directory_open_parent(&di, node->idx->devmap_handle, node->idx->pfc, 
 	    node->idx->parent_fragmented);
+	rc = exfat_directory_seek(&di, node->idx->pdi);
+	if (rc != EOK) {
+		(void) exfat_directory_close(&di);
+		return rc;
+	}
+
 	rc = exfat_directory_sync_file(&di, &df, &ds);
 	if (rc != EOK) {
 		(void) exfat_directory_close(&di);
@@ -613,8 +619,10 @@ int exfat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
 {
 	exfat_idx_t *idxp;
 	exfat_node_t *nodep;
+	exfat_bs_t *bs;
 	int rc;
 
+	bs = block_bb_get(devmap_handle);
 	rc = exfat_node_get_new(&nodep);
 	if (rc != EOK)
 		return rc;
@@ -625,11 +633,6 @@ int exfat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
 		return rc;
 	}
 
-	if (flags & L_DIRECTORY)
-		nodep->type = EXFAT_DIRECTORY;
-	else
-		nodep->type = EXFAT_FILE;
-
 	nodep->firstc = 0;
 	nodep->size = 0;
 	nodep->fragmented = false;
@@ -639,8 +642,20 @@ int exfat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
 
 	nodep->idx = idxp;
 	idxp->nodep = nodep;
-
 	fibril_mutex_unlock(&idxp->lock);
+
+	if (flags & L_DIRECTORY) {
+		nodep->type = EXFAT_DIRECTORY;
+		rc = exfat_node_expand(devmap_handle, nodep, 1);
+		if (rc != EOK) {
+			(void) exfat_node_put(FS_NODE(nodep));
+			return rc;
+		}
+		nodep->size = BPC(bs);
+	} else {
+		nodep->type = EXFAT_FILE;
+	}
+
 	*rfn = FS_NODE(nodep);
 	return EOK;
 }
@@ -711,7 +726,6 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	rc = exfat_directory_open(parentp, &di);
 	if (rc != EOK)
 		return rc;
-
 	/*
 	 * At this point we only establish the link between the parent and the
 	 * child.  The dentry, except of the name and the extension, will remain
@@ -734,7 +748,7 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->parent_fragmented = parentp->fragmented;
-	childp->idx->pdi = di.pos;	/* di.pos holds absolute position of SFN entry */
+	childp->idx->pdi = di.pos;
 	fibril_mutex_unlock(&childp->idx->lock);
 
 	fibril_mutex_lock(&childp->lock);
@@ -931,7 +945,7 @@ static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 
 	int i, rc;
 	exfat_cluster_t clst;
-	for (i=0; i<=10; i++) {
+	for (i=0; i<=7; i++) {
 		rc = exfat_get_cluster(bs, devmap_handle, i, &clst);
 		if (rc != EOK)
 			return;
@@ -1168,25 +1182,6 @@ static int exfat_unmounted(devmap_handle_t devmap_handle)
 	return EOK;
 }
 
-/*
-int bitmap_is_allocated(exfat_bs_t *bs, devmap_handle_t devmap_handle,
-    exfat_cluster_t clst, bool *status)
-{
-	fs_node_t *fn;
-	exfat_node_t *bitmap;
-	int rc;
-
-	rc = exfat_bitmap_get(&fn, devmap_handle);
-	if (rc != EOK)
-		return rc;
-
-	nbitmap = EXFAT_NODE(fn);
-
-	
-	return EOK;
-}
-*/
-
 static int
 exfat_read(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
@@ -1363,7 +1358,6 @@ exfat_write(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
 		flags |= BLOCK_FLAGS_NOREAD;
 
 	boundary = ROUND_UP(nodep->size, BPC(bs));
-
 	if (pos >= boundary) {
 		unsigned nclsts;
 		nclsts = (ROUND_UP(pos + bytes, BPC(bs)) - boundary) / BPC(bs);
