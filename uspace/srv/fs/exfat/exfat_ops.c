@@ -394,7 +394,7 @@ int exfat_node_expand(devmap_handle_t devmap_handle, exfat_node_t *nodep, exfat_
 	int rc;
 	bs = block_bb_get(devmap_handle);
 
-	if (nodep->fragmented) {
+	if (!nodep->fragmented) {
 		rc = bitmap_append_clusters(bs, nodep, clusters);
 		if (rc != ENOSPC)
 			return rc;
@@ -438,7 +438,7 @@ static int exfat_node_shrink(devmap_handle_t devmap_handle, exfat_node_t *nodep,
 	int rc;
 	bs = block_bb_get(devmap_handle);
 
-	if (nodep->fragmented) {
+	if (!nodep->fragmented) {
 		exfat_cluster_t clsts, prev_clsts, new_clsts;
 		prev_clsts = ROUND_UP(nodep->size, BPC(bs)) / BPC(bs);
 		new_clsts =  ROUND_UP(size, BPC(bs)) / BPC(bs);
