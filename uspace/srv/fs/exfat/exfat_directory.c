@@ -35,6 +35,7 @@
  * @brief	Functions that work with FAT directory.
  */
 
+#include "exfat.h"
 #include "exfat_directory.h"
 #include "exfat_fat.h"
 #include <libblock.h>
@@ -43,7 +44,7 @@
 #include <mem.h>
 #include <malloc.h>
 #include <str.h>
-
+#include <align.h>
 
 void exfat_directory_init(exfat_directory_t *di)
 {
@@ -69,7 +70,8 @@ int exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
 	di->firstc = nodep->firstc;
 
 	di->bs = block_bb_get(di->devmap_handle);
-	di->blocks = nodep->size / BPS(di->bs);
+/*	di->blocks = nodep->size / BPS(di->bs); */
+	di->blocks = ROUND_UP(nodep->size, BPS(di->bs))/BPS(di->bs);
 	return EOK;
 }
 
@@ -299,8 +301,8 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	array[1].stream.flags = ds->flags;
 	array[1].stream.valid_data_size = ds->valid_data_size;
 	array[1].stream.data_size = ds->data_size;
-	array[0].file.checksum = exfat_directory_set_checksum((uint8_t *)array,
-	    count*sizeof(exfat_dentry_t));
+	array[0].file.checksum = host2uint16_t_le(exfat_directory_set_checksum((uint8_t *)array,
+	    count*sizeof(exfat_dentry_t)));
 
 	/* Store */
 	for (i=0; i<count; i++) {
@@ -319,10 +321,141 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	return EOK;
 }
 
+int exfat_directory_print(exfat_directory_t *di)
+{
+	int rc;
+	exfat_dentry_t *de;
+	exfat_directory_seek(di, 0);
+	do
+	{
+		rc = exfat_directory_get(di, &de);
+		if (rc != EOK)
+			return rc;
+		switch (de->type) {
+		case EXFAT_TYPE_VOLLABEL:
+			printf("EXFAT_DENTRY_VOLLABEL\n"); break;
+		case EXFAT_TYPE_BITMAP:
+			printf("EXFAT_DENTRY_BITMAP\n"); break;
+		case EXFAT_TYPE_UCTABLE:
+			printf("EXFAT_DENTRY_UCTABLE\n"); break;
+		case EXFAT_TYPE_GUID:
+			printf("EXFAT_DENTRY_GUID\n"); break;
+		case EXFAT_TYPE_FILE:
+			printf("EXFAT_DENTRY_FILE\n"); break;
+		case EXFAT_TYPE_STREAM:
+			printf("EXFAT_DENTRY_STREAM\n"); break;
+		case EXFAT_TYPE_NAME:
+			printf("EXFAT_DENTRY_NAME\n"); break;
+		case EXFAT_TYPE_UNUSED:
+			printf("EXFAT_DENTRY_LAST\n");
+			return EOK;
+		default:
+			if (de->type & EXFAT_TYPE_USED)
+				printf("EXFAT_DENTRY_SKIP\n");
+			else
+				printf("EXFAT_DENTRY_FREE\n");
+		}
+	} while (exfat_directory_next(di) == EOK);
+	exfat_directory_seek(di, 0);
+	return EOK;
+}
+
 int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 {
-	/* TODO */
-	return EOK;
+	fs_node_t *fn;
+	exfat_node_t *uctablep;
+	uint16_t *uctable;
+	exfat_dentry_t df, ds, *de;
+	uint16_t wname[EXFAT_FILENAME_LEN+1];
+	int rc, i;
+	size_t uctable_chars;
+	aoff64_t pos;
+
+	rc = str_to_utf16(wname, EXFAT_FILENAME_LEN, name);
+	if (rc != EOK)
+		return rc;
+	rc = exfat_uctable_get(&fn, di->devmap_handle);
+	if (rc != EOK)
+		return rc;
+	uctablep = EXFAT_NODE(fn);
+
+	uctable_chars = ALIGN_DOWN(uctablep->size, sizeof(uint16_t)) / sizeof(uint16_t); 
+	uctable = (uint16_t *) malloc(uctable_chars * sizeof(uint16_t));
+	rc = exfat_read_uctable(di->bs, uctablep, (uint8_t *)uctable);
+	if (rc != EOK) {
+		(void) exfat_node_put(fn);
+		free(uctable);
+		return rc;
+	}
+
+	/* Fill stream entry */
+	ds.type = EXFAT_TYPE_STREAM;
+	ds.stream.flags = 0;
+	ds.stream.valid_data_size = 0;
+	ds.stream.data_size = 0;
+	ds.stream.name_size = utf16_length(wname);
+	ds.stream.hash = host2uint16_t_le(exfat_name_hash(wname, uctable, 
+	    uctable_chars));
+
+	/* Fill file entry */
+	df.type = EXFAT_TYPE_FILE;
+	df.file.attr = 0;
+	df.file.count = ROUND_UP(ds.stream.name_size, EXFAT_NAME_PART_LEN) / 
+	    EXFAT_NAME_PART_LEN + 1;
+	df.file.checksum = 0;
+
+	free(uctable);
+	rc = exfat_node_put(fn);
+	if (rc != EOK)
+		return rc;
+
+	/* Looking for set of free entries */
+	rc = exfat_directory_lookup_free(di, df.file.count+1);
+	if (rc != EOK)
+		return rc;
+	pos = di->pos;
+
+	/* Write file entry */
+	rc = exfat_directory_get(di, &de);
+	if (rc != EOK)
+		return rc;
+	memcpy(de, &df, sizeof(exfat_dentry_t));
+	di->b->dirty = true;
+	rc = exfat_directory_next(di);
+	if (rc != EOK)
+		return rc;
+
+	/* Write stream entry */
+	rc = exfat_directory_get(di, &de);
+	if (rc != EOK)
+		return rc;
+	memcpy(de, &ds, sizeof(exfat_dentry_t));
+	di->b->dirty = true;
+
+	/* Write file name */
+	size_t chars = EXFAT_NAME_PART_LEN;
+	uint16_t *sname = wname;
+
+	for (i=0; i<ds.stream.name_size; i++)
+		wname[i] = host2uint16_t_le(wname[i]);
+
+	for (i=0; i < df.file.count-1; i++) {
+		rc = exfat_directory_next(di);
+		if (rc != EOK)
+			return rc;
+
+		if (i == df.file.count-2)
+			chars = ds.stream.name_size - EXFAT_NAME_PART_LEN*(df.file.count-2);
+		rc = exfat_directory_get(di, &de);
+		if (rc != EOK)
+			return rc;
+		de->type = EXFAT_TYPE_NAME;
+		memcpy((uint8_t*)de->name.name, (uint8_t*)sname, sizeof(uint16_t)*chars);
+		di->b->dirty = true;
+		sname += chars;
+	}
+	
+	return exfat_directory_seek(di, pos);
 }
 
 int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
