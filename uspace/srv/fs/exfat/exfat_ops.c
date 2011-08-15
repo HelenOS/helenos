@@ -489,12 +489,11 @@ int exfat_bitmap_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 	return exfat_node_get(rfn, devmap_handle, EXFAT_BITMAP_IDX);
 }
 
-/*
 int exfat_uctable_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
 	return exfat_node_get(rfn, devmap_handle, EXFAT_UCTABLE_IDX);
 }
-*/
+
 
 int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
