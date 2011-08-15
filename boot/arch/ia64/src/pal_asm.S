@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2011 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,42 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-ia64-little
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = ia64
+.explicit
 
-BITS = 64
-ENDIANESS = LE
-PAGE_SIZE = 16384
-EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
+.global pal_static_call
 
-RD_SRVS_NON_ESSENTIAL +=
+pal_static_call:
+	alloc loc0 = ar.pfs, 7, 5, 0, 0
+	
+	mov loc1 = gp
+	mov loc2 = rp
+	
+	addl loc3 = @gprel(pal_proc), gp
+	
+	mov r28 = in0
+	mov r29 = in1
+	mov r30 = in2
+	mov r31 = in3 ;;
+	
+	ld8 loc3 = [loc3]
+	movl loc4 = 0f ;;
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042
+	mov b6 = loc3
+	mov rp = loc4 ;;
+	br.cond.sptk.many b6
 
-SOURCES = \
-	arch/$(BARCH)/src/boot.S \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/sal.c \
-	arch/$(BARCH)/src/sal_asm.S \
-	arch/$(BARCH)/src/pal.c \
-	arch/$(BARCH)/src/pal_asm.S \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/efi.c \
-	genarch/src/division.c \
-	generic/src/balloc.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+0:
+	cmp.ne p7,p0 = 0, in4
+	cmp.ne p8,p0 = 0, in5
+	cmp.ne p9,p0 = 0, in6 ;;
+	
+(p7)	st8 [in4] = r9
+(p8)	st8 [in5] = r10
+(p9)	st8 [in6] = r11
+	
+	mov gp = loc1
+	mov rp = loc2 ;;
+	
+	mov ar.pfs = loc0
+	br.ret.sptk.many rp
 
-ifeq ($(MACHINE),ski)
-SOURCES += \
-	arch/$(BARCH)/src/ski.c
-endif

@@ -26,83 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_EFI_H_
-#define BOOT_EFI_H_
+#ifndef BOOT_ia64_PAL_H_
+#define BOOT_ia64_PAL_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 
-typedef struct {
-	uint64_t signature;
-	uint32_t revision;
-	uint32_t header_size;
-	uint32_t crc32;
-	uint32_t reserved;
-} efi_table_header_t;
+/*
+ * Essential PAL procedures' IDs
+ */
+#define PAL_FREQ_RATIOS		14	
 
-#define SAL_SYSTEM_TABLE_GUID \
-	{ \
-		{ \
-			0x32, 0x2d, 0x9d, 0xeb, 0x88, 0x2d, 0xd3, 0x11, \
-			0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d \
-		} \
-	}
+extern uint64_t pal_proc_freq_ratio(void);
 
-typedef union {
-	uint8_t bytes[16];
-	struct {
-		uint64_t low;
-		uint64_t high;
-	};
-} efi_guid_t;
+#define pal_static_call_0_1(id, ret1) \
+	pal_static_call((id), 0, 0, 0, (ret1), NULL, NULL)
 
-typedef struct {
-	efi_guid_t guid;
-	void *table;
-} efi_configuration_table_t;
-
-typedef struct {
-	efi_table_header_t hdr;
-	char *fw_vendor;
-	uint32_t fw_revision;
-	void *cons_in_handle;
-	void *cons_in;
-	void *cons_out_handle;
-	void *cons_out;
-	void *cons_err_handle;
-	void *cons_err;
-	void *runtime_services;
-	void *boot_services;
-	sysarg_t conf_table_entries;
-	efi_configuration_table_t *conf_table;
-} efi_system_table_t;
-
-typedef enum {
-	EFI_RESERVED,
-	EFI_LOADER_CODE,
-	EFI_LOADER_DATA,
-	EFI_BOOT_SERVICES_CODE,
-	EFI_BOOT_SERVICES_DATA,
-	EFI_RUNTIME_SERVICES_CODE,
-	EFI_RUNTIME_SERVICES_DATA,
-	EFI_CONVENTIONAL_MEMORY,
-	EFI_UNUSABLE_MEMORY,
-	EFI_ACPI_RECLAIM_MEMORY,
-	EFI_ACPI_MEMORY_NVS,
-	EFI_MEMORY_MAPPED_IO,
-	EFI_MEMORY_MAPPED_IO_PORT_SPACE,
-	EFI_PAL_CODE
-} efi_memory_type_t;
-
-typedef struct {
-	uint32_t type;
-	uint64_t phys_start;
-	uint64_t virt_start;
-	uint64_t pages;
-	uint64_t attribute;
-} efi_v1_memdesc_t;
-
-#define EFI_PAGE_SIZE	4096
-
-extern void *efi_vendor_table_find(efi_system_table_t *, efi_guid_t);
+extern uint64_t pal_static_call(uint64_t, uint64_t, uint64_t, uint64_t,
+    uint64_t *, uint64_t *, uint64_t *);
 
 #endif
