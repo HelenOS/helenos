@@ -42,6 +42,7 @@
 #include <byteorder.h>
 #include <mem.h>
 #include <str.h>
+#include <align.h>
 
 int fat_directory_block_load(fat_directory_t *);
 
@@ -54,7 +55,7 @@ int fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 		return EINVAL;
 
 	di->bs = block_bb_get(di->nodep->idx->devmap_handle);
-	di->blocks = di->nodep->size / BPS(di->bs);
+	di->blocks = ROUND_UP(nodep->size, BPS(di->bs))/BPS(di->bs);
 	di->pos = 0;
 	di->bnum = 0;
 	di->last = false;
