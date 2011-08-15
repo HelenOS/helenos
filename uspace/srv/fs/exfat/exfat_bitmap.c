@@ -201,20 +201,16 @@ int bitmap_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle,
 	startc = EXFAT_CLST_FIRST;
 
 	while (startc < DATA_CNT(bs)+2) {
-		if (bitmap_is_free(bs, devmap_handle, startc) == EOK) {
-			endc = startc+1;
-			while (bitmap_is_free(bs, devmap_handle, endc) == EOK) {
-				if ((endc - startc)+1 == count){
-					*firstc = startc;
-					return bitmap_set_clusters(bs, devmap_handle, startc, count);
-				}
-				else
-					endc++;
+		endc = startc;
+		while (bitmap_is_free(bs, devmap_handle, endc) == EOK) {
+			if ((endc - startc)+1 == count){
+				*firstc = startc;
+				return bitmap_set_clusters(bs, devmap_handle, startc, count);
 			}
-			startc = endc+1;
-		} 
-		else
-			startc++;
+			else
+				endc++;
+		}
+		startc = endc+1;
 	}
 	return ENOSPC;
 }
