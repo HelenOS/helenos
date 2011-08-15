@@ -35,6 +35,7 @@
 #include <arch/_components.h>
 #include <genarch/efi.h>
 #include <arch/sal.h>
+#include <arch/pal.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>
@@ -120,8 +121,7 @@ static void read_efi_memmap(void)
 static void read_pal_configuration(void)
 {
 	if (bootpar) {
-		/* TODO: read the real value from PAL */
-		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
+		bootinfo.freq_scale = pal_proc_freq_ratio();
 	} else {
 		/* Configure default values for simulators. */
 		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;

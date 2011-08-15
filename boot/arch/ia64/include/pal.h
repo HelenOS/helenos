@@ -26,56 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/sal.h>
+#ifndef BOOT_ia64_PAL_H_
+#define BOOT_ia64_PAL_H_
+
 #include <arch/types.h>
+#include <typedefs.h>
 
-static sal_ap_wakeup_desc_t *sal_ap_wakeup;
+/*
+ * Essential PAL procedures' IDs
+ */
+#define PAL_FREQ_RATIOS		14	
 
-extern uint64_t pal_proc;
+extern uint64_t pal_proc_freq_ratio(void);
 
-uint64_t sal_proc = 0;
-uint64_t sal_proc_gp = 0;
+#define pal_static_call_0_1(id, ret1) \
+	pal_static_call((id), 0, 0, 0, (ret1), NULL, NULL)
 
-void sal_system_table_parse(sal_system_table_header_t *sst)
-{
-	uint8_t *cur = (uint8_t *) &sst[1];
-	uint16_t entry;
+extern uint64_t pal_static_call(uint64_t, uint64_t, uint64_t, uint64_t,
+    uint64_t *, uint64_t *, uint64_t *);
 
-	for (entry = 0; entry < sst->entry_count; entry++) {
-		switch ((sal_sst_type_t) *cur) {
-		case SSTT_ENTRYPOINT_DESC:
-			pal_proc = ((sal_entrypoint_desc_t *) cur)->pal_proc;
-			sal_proc = ((sal_entrypoint_desc_t *) cur)->sal_proc;
-			sal_proc_gp = ((sal_entrypoint_desc_t *) cur)->sal_proc_gp;
-			cur += sizeof(sal_entrypoint_desc_t);
-			break;
-		case SSTT_MEMORY_DESC:
-			cur += sizeof(sal_memory_desc_t);
-			break;
-		case SSTT_PLATFORM_FEATURES_DESC:
-			cur += sizeof(sal_platform_features_desc_t);
-			break;
-		case SSTT_TR_DESC:
-			cur += sizeof(sal_tr_desc_t);
-			break;
-		case SSTT_PTC_COHERENCE_DOMAIN_DESC:
-			cur += sizeof(sal_ptc_coherence_domain_desc_t);
-			break;
-		case SSTT_AP_WAKEUP_DESC:
-			sal_ap_wakeup = (sal_ap_wakeup_desc_t *) cur;
-			cur += sizeof(sal_ap_wakeup_desc_t);
-			break;
-		default:
-			return;
-		}
-	}
-}
-
-uint64_t sal_base_clock_frequency(void)
-{
-	uint64_t freq;
-	
-	sal_call_1_1(SAL_FREQ_BASE, 0, &freq);
-	
-	return freq;
-}
+#endif
