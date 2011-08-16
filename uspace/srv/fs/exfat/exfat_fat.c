@@ -373,6 +373,9 @@ exfat_free_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, exfat_cluster
 		rc = exfat_set_cluster(bs, devmap_handle, firstc, 0);
 		if (rc != EOK)
 			return rc;
+		rc = bitmap_clear_cluster(bs, devmap_handle, firstc);
+		if (rc != EOK)
+			return rc;
 		firstc = nextc;
 	}
 
