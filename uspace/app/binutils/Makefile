@@ -31,7 +31,7 @@ space = $(nullstring) # space
 
 # When redefined to 'y' on the command line, certain areas of this Makefile
 # behave slightly differently to simplify the maintenance of binutils port.
-MAINTAIN_BINUTILS=n
+MAINTAIN_BINUTILS = n
 
 # Information for obtaining specific binutils redistributable package.
 # Might be subject to change in the future.
