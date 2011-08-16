@@ -65,11 +65,13 @@
 #define SRV_CONSOLE  "/srv/console"
 #define APP_GETTERM  "/app/getterm"
 
+/** Print banner */
 static void info_print(void)
 {
 	printf("%s: HelenOS init\n", NAME);
 }
 
+/** Report mount operation success */
 static bool mount_report(const char *desc, const char *mntpt,
     const char *fstype, const char *dev, int rc)
 {
@@ -99,6 +101,17 @@ static bool mount_report(const char *desc, const char *mntpt,
 	return true;
 }
 
+/** Mount root filesystem
+ *
+ * The operation blocks until the root filesystem
+ * server is ready for mounting.
+ *
+ * @param[in] fstype Root filesystem type.
+ *
+ * @return True on success.
+ * @return False on failure.
+ *
+ */
 static bool mount_root(const char *fstype)
 {
 	const char *opts = "";
@@ -112,6 +125,15 @@ static bool mount_root(const char *fstype)
 	    ROOT_DEVICE, rc);
 }
 
+/** Mount locfs filesystem
+ *
+ * The operation blocks until the locfs filesystem
+ * server is ready for mounting.
+ *
+ * @return True on success.
+ * @return False on failure.
+ *
+ */
 static bool mount_locfs(void)
 {
 	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
@@ -156,7 +178,7 @@ static void srv_start(const char *fname)
 	
 	rc = task_wait(id, &texit, &retval);
 	if (rc != EOK) {
-		printf("%s: Error waiting for %s (%s(\n", NAME, fname,
+		printf("%s: Error waiting for %s (%s)\n", NAME, fname,
 		    str_error(rc));
 		return;
 	}
