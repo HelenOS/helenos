@@ -275,7 +275,7 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 	
 	kdev->port_ops = port;
 	kdev->ctl_ops = ctl;
-	kdev->service_id = 0;
+	kdev->svc_id = 0;
 	
 	/* Initialize port driver. */
 	if ((*kdev->port_ops->init)(kdev) != 0)
@@ -303,7 +303,7 @@ static void mouse_add_dev(mouse_port_ops_t *port, mouse_proto_ops_t *proto)
 	
 	mdev->port_ops = port;
 	mdev->proto_ops = proto;
-	mdev->service_id = 0;
+	mdev->svc_id = 0;
 	
 	/* Initialize port driver. */
 	if ((*mdev->port_ops->init)(mdev) != 0)
@@ -327,15 +327,21 @@ fail:
  * @param service_id	Service ID of the keyboard device
  *
  */
-static int kbd_add_kbdev(service_id_t service_id)
+static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
 {
 	kbd_dev_t *kdev = kbd_dev_new();
 	if (kdev == NULL)
 		return -1;
 	
-	kdev->service_id = service_id;
+	kdev->svc_id = service_id;
 	kdev->port_ops = NULL;
 	kdev->ctl_ops = &kbdev_ctl;
+	
+	int rc = loc_service_get_name(service_id, &kdev->svc_name);
+	if (rc != EOK) {
+		kdev->svc_name = NULL;
+		goto fail;
+	}
 	
 	/* Initialize controller driver. */
 	if ((*kdev->ctl_ops->init)(kdev) != 0) {
@@ -343,9 +349,12 @@ static int kbd_add_kbdev(service_id_t service_id)
 	}
 	
 	list_append(&kdev->kbd_devs, &kbd_devs);
+	*kdevp = kdev;
 	return EOK;
 	
 fail:
+	if (kdev->svc_name != NULL)
+		free(kdev->svc_name);
 	free(kdev);
 	return -1;
 }
@@ -355,15 +364,21 @@ fail:
  * @param service_id	Service ID of the mouse device
  *
  */
-static int mouse_add_mousedev(service_id_t service_id)
+static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
 {
 	mouse_dev_t *mdev = mouse_dev_new();
 	if (mdev == NULL)
 		return -1;
 	
-	mdev->service_id = service_id;
+	mdev->svc_id = service_id;
 	mdev->port_ops = NULL;
 	mdev->proto_ops = &mousedev_proto;
+	
+	int rc = loc_service_get_name(service_id, &mdev->svc_name);
+	if (rc != EOK) {
+		mdev->svc_name = NULL;
+		goto fail;
+	}
 	
 	/* Initialize controller driver. */
 	if ((*mdev->proto_ops->init)(mdev) != 0) {
@@ -371,6 +386,7 @@ static int mouse_add_mousedev(service_id_t service_id)
 	}
 	
 	list_append(&mdev->mouse_devs, &mouse_devs);
+	*mdevp = mdev;
 	return EOK;
 	
 fail:
@@ -493,7 +509,6 @@ static int dev_discovery_fibril(void *arg)
 	service_id_t *svcs;
 	size_t count, i;
 	bool already_known;
-	const char *dev_name = "todo";
 	int rc;
 	
 	rc = loc_category_get_id("keyboard", &keyboard_cat, IPC_FLAG_BLOCKING);
@@ -528,16 +543,17 @@ static int dev_discovery_fibril(void *arg)
 			list_foreach(kbd_devs, kdev_link) {
 				kbd_dev_t *kdev = list_get_instance(kdev_link,
 				    kbd_dev_t, kbd_devs);
-				if (kdev->service_id == svcs[i]) {
+				if (kdev->svc_id == svcs[i]) {
 					already_known = true;
 					break;
 				}
 			}
 
 			if (!already_known) {
-				if (kbd_add_kbdev(svcs[i]) == EOK) {
+				kbd_dev_t *kdev;
+				if (kbd_add_kbdev(svcs[i], &kdev) == EOK) {
 					printf("%s: Connected keyboard device '%s'\n",
-					    NAME, dev_name);
+					    NAME, kdev->svc_name);
 				}
 			}
 		}
@@ -561,16 +577,17 @@ static int dev_discovery_fibril(void *arg)
 			list_foreach(mouse_devs, mdev_link) {
 				mouse_dev_t *mdev = list_get_instance(mdev_link,
 				    mouse_dev_t, mouse_devs);
-				if (mdev->service_id == svcs[i]) {
+				if (mdev->svc_id == svcs[i]) {
 					already_known = true;
 					break;
 				}
 			}
 
 			if (!already_known) {
-				if (mouse_add_mousedev(svcs[i]) == EOK) {
+				mouse_dev_t *mdev;
+				if (mouse_add_mousedev(svcs[i], &mdev) == EOK) {
 					printf("%s: Connected mouse device '%s'\n",
-					    NAME, dev_name);
+					    NAME, mdev->svc_name);
 				}
 			}
 		}

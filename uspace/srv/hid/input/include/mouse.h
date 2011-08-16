@@ -48,7 +48,10 @@ typedef struct mouse_dev {
 	link_t mouse_devs;
 	
 	/** Service ID (only for mousedev devices) */
-	service_id_t service_id;
+	service_id_t svc_id;
+	
+	/** Device service name (only for mousedev devices) */
+	char *svc_name;
 	
 	/** Port ops */
 	struct mouse_port_ops *port_ops;

@@ -116,22 +116,18 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 
 static int mousedev_proto_init(mouse_dev_t *mdev)
 {
-	char *svc_name;
-	
-	if (asprintf(&svc_name, "devname%" PRIun, mdev->service_id) > 0)
-		svc_name = (char *) "unknown";
-	
 	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
-	    mdev->service_id, 0);
+	    mdev->svc_id, 0);
 	if (sess == NULL) {
-		printf("%s: Failed starting session with '%s'\n", NAME, svc_name);
+		printf("%s: Failed starting session with '%s'\n", NAME,
+		    mdev->svc_name);
 		return -1;
 	}
 	
 	mousedev_t *mousedev = mousedev_new(mdev);
 	if (mousedev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
-		    NAME, svc_name);
+		    NAME, mdev->svc_name);
 		return -1;
 	}
 	
@@ -140,7 +136,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with '%s'.\n", NAME,
-		    svc_name);
+		    mdev->svc_name);
 		mousedev_destroy(mousedev);
 		return -1;
 	}
@@ -150,7 +146,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
-		    NAME, svc_name);
+		    NAME, mdev->svc_name);
 		mousedev_destroy(mousedev);
 		return -1;
 	}

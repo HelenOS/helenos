@@ -290,6 +290,49 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
 	return retval;
 }
 
+/** Get service name.
+ *
+ * Provided ID of a service, return its name.
+ *
+ * @param svc_id	Service ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_service_get_name(service_id_t svc_id, char **name)
+{
+	async_exch_t *exch;
+	char name_buf[LOC_NAME_MAXLEN + 1];
+	
+	*name = NULL;
+	memset(name_buf, 0, LOC_NAME_MAXLEN + 1);
+	exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, LOC_SERVICE_GET_NAME, svc_id, &answer);
+	int rc = async_data_read_start(exch, name_buf, LOC_NAME_MAXLEN);
+	
+	loc_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK)
+		return retval;
+	
+	*name = str_dup(name_buf);
+	if (*name == NULL)
+		return ENOMEM;
+	
+	return EOK;
+}
+
+
 int loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
 {

@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <bool.h>
 #include <fibril_synch.h>
+#include <macros.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ipc/loc.h>
@@ -530,6 +531,46 @@ static int loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 	/* TODO */
 	return EOK;
 }
+
+static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	loc_service_t *svc;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	fibril_mutex_lock(&services_list_mutex);
+	
+	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
+	if (svc == NULL) {
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	act_size = str_size(svc->name);
+	if (act_size > size) {
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(callid, EOVERFLOW);
+		async_answer_0(iid, EOVERFLOW);
+		return;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, svc->name,
+	    min(size, act_size));
+	
+	fibril_mutex_unlock(&services_list_mutex);
+	
+	async_answer_0(iid, retval);
+}
+
 
 /** Connect client to the service.
  *
@@ -1195,6 +1236,9 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_SERVICE_GET_ID:
 			loc_service_get_id(callid, &call);
+			break;
+		case LOC_SERVICE_GET_NAME:
+			loc_service_get_name(callid, &call);
 			break;
 		case LOC_NAMESPACE_GET_ID:
 			loc_namespace_get_id(callid, &call);

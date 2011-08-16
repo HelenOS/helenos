@@ -97,23 +97,19 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 	async_sess_t *sess;
 	async_exch_t *exch;
 	kbdev_t *kbdev;
-	char *svc_name;
 	int rc;
 
-	if (asprintf(&svc_name, "devname%" PRIun, kdev->service_id) > 0)
-		svc_name = (char *) "unknown";
-
-	sess = loc_service_connect(EXCHANGE_SERIALIZE, kdev->service_id, 0);
+	sess = loc_service_connect(EXCHANGE_SERIALIZE, kdev->svc_id, 0);
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s.'\n", NAME,
-		    svc_name);
+		    kdev->svc_name);
 		return -1;
 	}
 
 	kbdev = kbdev_new(kdev);
 	if (kbdev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
-		    NAME, svc_name);
+		    NAME, kdev->svc_name);
 		return -1;
 	}
 
@@ -122,7 +118,7 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 	exch = async_exchange_begin(sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with '%s'.\n", NAME,
-		    svc_name);
+		    kdev->svc_name);
 		kbdev_destroy(kbdev);
 		return -1;
 	}
@@ -130,7 +126,7 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
-		    NAME, svc_name);
+		    NAME, kdev->svc_name);
 		async_exchange_end(exch);
 		kbdev_destroy(kbdev);
 		return -1;

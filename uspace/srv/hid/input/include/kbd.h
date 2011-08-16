@@ -50,7 +50,10 @@ typedef struct kbd_dev {
 	link_t kbd_devs;
 
 	/** Service ID (only for kbdev devices) */
-	service_id_t service_id;
+	service_id_t svc_id;
+
+	/** Device service name (only for kbdev devices) */
+	char *svc_name;
 
 	/** Port ops */
 	struct kbd_port_ops *port_ops;
