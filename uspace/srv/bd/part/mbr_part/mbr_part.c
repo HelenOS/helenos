@@ -65,7 +65,6 @@
 #include <sys/typefmt.h>
 #include <inttypes.h>
 #include <libblock.h>
-#include <loc.h>
 #include <errno.h>
 #include <bool.h>
 #include <byteorder.h>
