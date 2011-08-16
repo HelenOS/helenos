@@ -303,20 +303,24 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 {
 	async_exch_t *exch;
 	char name_buf[LOC_NAME_MAXLEN + 1];
+	ipc_call_t dreply;
+	size_t act_size;
+	sysarg_t dretval;
 	
 	*name = NULL;
-	memset(name_buf, 0, LOC_NAME_MAXLEN + 1);
 	exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, LOC_SERVICE_GET_NAME, svc_id, &answer);
-	int rc = async_data_read_start(exch, name_buf, LOC_NAME_MAXLEN);
+	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN,
+	    &dreply);
+	async_wait_for(dreq, &dretval);
 	
 	loc_exchange_end(exch);
 	
-	if (rc != EOK) {
+	if (dretval != EOK) {
 		async_wait_for(req, NULL);
-		return rc;
+		return dretval;
 	}
 	
 	sysarg_t retval;
@@ -325,6 +329,10 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	if (retval != EOK)
 		return retval;
 	
+	act_size = IPC_GET_ARG2(dreply);
+	assert(act_size <= LOC_NAME_MAXLEN);
+	name_buf[act_size] = '\0';
+
 	*name = str_dup(name_buf);
 	if (*name == NULL)
 		return ENOMEM;
