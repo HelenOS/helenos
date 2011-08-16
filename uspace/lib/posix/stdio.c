@@ -283,7 +283,7 @@ FILE *posix_freopen(const char *restrict filename,
 	
 	fdi_node_t node = {
 		.fs_handle = st.fs_handle,
-		.devmap_handle = st.devmap_handle,
+		.service_id = st.service_id,
 		.index = st.index
 	};
 	
