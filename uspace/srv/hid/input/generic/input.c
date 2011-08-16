@@ -487,7 +487,6 @@ static void kbd_devs_reclaim(void)
  * @param arg Ignored
  *
  */
-#include <sys/typefmt.h>
 static int dev_discovery_fibril(void *arg)
 {
 	category_id_t keyboard_cat, mouse_cat;
@@ -614,7 +613,7 @@ int main(int argc, char **argv)
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
-
+	
 	/* Add legacy mouse devices. */
 	mouse_add_legacy_devs();
 	

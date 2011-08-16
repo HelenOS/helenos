@@ -49,9 +49,8 @@
 #include <kbd_port.h>
 #include <loc.h>
 #include <stdlib.h>
-#include <sys/typefmt.h>
 #include <vfs/vfs_sess.h>
-
+#include <sys/typefmt.h>
 
 static int kbdev_ctl_init(kbd_dev_t *);
 static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned int);
