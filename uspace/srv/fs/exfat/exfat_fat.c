@@ -37,6 +37,7 @@
  */
 
 #include "exfat_fat.h"
+#include "exfat_bitmap.h"
 #include "exfat.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
@@ -300,7 +301,7 @@ exfat_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, unsigned ncl
 {
 	exfat_cluster_t *lifo;    /* stack for storing free cluster numbers */
 	unsigned found = 0;     /* top of the free cluster number stack */
-	exfat_cluster_t clst, value;
+	exfat_cluster_t clst;
 	int rc = EOK;
 
 	lifo = (exfat_cluster_t *) malloc(nclsts * sizeof(exfat_cluster_t));
@@ -309,11 +310,8 @@ exfat_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, unsigned ncl
 
 	fibril_mutex_lock(&exfat_alloc_lock);
 	for (clst=EXFAT_CLST_FIRST; clst < DATA_CNT(bs)+2 && found < nclsts; clst++) {
-		rc = exfat_get_cluster(bs, devmap_handle, clst, &value);
-		if (rc != EOK)
-			break;
-
-		if (value == 0) {
+		/* Need to rewrite because of multiple exfat_bitmap_get calls */
+		if (bitmap_is_free(bs, devmap_handle, clst)==EOK) {
 		   /*
 			* The cluster is free. Put it into our stack
 			* of found clusters and mark it as non-free.
@@ -323,8 +321,11 @@ exfat_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, unsigned ncl
 				(found == 0) ?  EXFAT_CLST_EOF : lifo[found - 1]);
 			if (rc != EOK)
 				break;
-
 			found++;
+			rc = bitmap_set_cluster(bs, devmap_handle, clst);
+			if (rc != EOK)
+				break;
+
 		}
 	}
 
@@ -338,8 +339,10 @@ exfat_alloc_clusters(exfat_bs_t *bs, devmap_handle_t devmap_handle, unsigned ncl
 
 	/* If something wrong - free the clusters */
 	if (found > 0) {
-		while (found--)
-			rc = exfat_set_cluster(bs, devmap_handle, lifo[found], 0);
+		while (found--) {
+			(void) bitmap_clear_cluster(bs, devmap_handle, lifo[found]);
+			(void) exfat_set_cluster(bs, devmap_handle, lifo[found], 0);
+		}
 	}
 
 	free(lifo);
