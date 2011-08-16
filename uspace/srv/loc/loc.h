@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,98 +26,81 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup loc
  * @{
  */
-/** @file
+/** @file HelenOS location service.
  */
 
-#ifndef CUDA_ADB_H_
-#define CUDA_ADB_H_
+#ifndef LOC_H_
+#define LOC_H_
 
-#include <sys/types.h>
-#include <ipc/loc.h>
+#include <async.h>
 #include <fibril_synch.h>
+#include <sys/types.h>
 
+/** Representation of server (supplier).
+ *
+ * Each server supplies a set of services.
+ *
+ */
 typedef struct {
-	uint8_t b;
-	uint8_t pad0[0x1ff];
+	/** Link to servers_list */
+	link_t servers;
+	
+	/** List of services supplied by this server */
+	list_t services;
+	
+	/** Session asociated with this server */
+	async_sess_t *sess;
+	
+	/** Server name */
+	char *name;
+	
+	/** Fibril mutex for list of services owned by this server */
+	fibril_mutex_t services_mutex;
+} loc_server_t;
 
-	uint8_t a;
-	uint8_t pad1[0x1ff];
-
-	uint8_t dirb;
-	uint8_t pad2[0x1ff];
-
-	uint8_t dira;
-	uint8_t pad3[0x1ff];
-
-	uint8_t t1cl;
-	uint8_t pad4[0x1ff];
-
-	uint8_t t1ch;
-	uint8_t pad5[0x1ff];
-
-	uint8_t t1ll;
-	uint8_t pad6[0x1ff];
-
-	uint8_t t1lh;
-	uint8_t pad7[0x1ff];
-
-	uint8_t t2cl;
-	uint8_t pad8[0x1ff];
-
-	uint8_t t2ch;
-	uint8_t pad9[0x1ff];
-
-	uint8_t sr;
-	uint8_t pad10[0x1ff];
-
-	uint8_t acr;
-	uint8_t pad11[0x1ff];
-
-	uint8_t pcr;
-	uint8_t pad12[0x1ff];
-
-	uint8_t ifr;
-	uint8_t pad13[0x1ff];
-
-	uint8_t ier;
-	uint8_t pad14[0x1ff];
-
-	uint8_t anh;
-	uint8_t pad15[0x1ff];
-} cuda_t;
-
-enum {
-	CUDA_RCV_BUF_SIZE = 5
-};
-
-enum cuda_xfer_state {
-	cx_listen,
-	cx_receive,
-	cx_rcv_end,
-	cx_send_start,
-	cx_send
-};
-
+/** Info about registered namespaces
+ *
+ */
 typedef struct {
-	service_id_t service_id;
-	int client_phone;
-} adb_dev_t;
+	/** Link to namespaces_list */
+	link_t namespaces;
+	
+	/** Unique namespace identifier */
+	service_id_t id;
+	
+	/** Namespace name */
+	char *name;
+	
+	/** Reference count */
+	size_t refcnt;
+} loc_namespace_t;
 
+/** Info about registered service
+ *
+ */
 typedef struct {
-	cuda_t *cuda;
-	uintptr_t cuda_physical;
-	uintptr_t cuda_kernel;
+	/** Link to global list of services (services_list) */
+	link_t services;
+	/** Link to server list of services (loc_server_t.services) */
+	link_t server_services;
+	/** Link to list of services in category (category_t.services) */
+	link_t cat_services;
+	/** Unique service identifier */
+	service_id_t id;
+	/** Service namespace */
+	loc_namespace_t *namespace;
+	/** Service name */
+	char *name;
+	/** Supplier of this service */
+	loc_server_t *server;
+	/** Use this interface when forwarding to server. */
+	sysarg_t forward_interface;
+} loc_service_t;
 
-	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
-	uint8_t snd_buf[CUDA_RCV_BUF_SIZE];
-	size_t bidx;
-	size_t snd_bytes;
-	enum cuda_xfer_state xstate;
-	fibril_mutex_t dev_lock;
-} cuda_instance_t;
+extern service_id_t loc_create_id(void);
 
 #endif
 

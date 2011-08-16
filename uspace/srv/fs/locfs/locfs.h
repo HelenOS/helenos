@@ -28,66 +28,18 @@
 
 /** @addtogroup fs
  * @{
- */
+ */ 
 
-/**
- * @file devfs.c
- * @brief Devices file system.
- *
- * Every device registered to device mapper is represented as a file in this
- * file system.
- */
+#ifndef LOCFS_LOCFS_H_
+#define LOCFS_LOCFS_H_
 
-#include <stdio.h>
-#include <ipc/services.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
-#include <task.h>
 #include <libfs.h>
-#include "devfs.h"
-#include "devfs_ops.h"
 
-#define NAME  "devfs"
+extern vfs_out_ops_t locfs_ops;
+extern libfs_ops_t locfs_libfs_ops;
 
-static vfs_info_t devfs_vfs_info = {
-	.name = NAME,
-	.concurrent_read_write = false,
-	.write_retains_size = false,
-};
-
-int main(int argc, char *argv[])
-{
-	printf("%s: HelenOS Device Filesystem\n", NAME);
-	
-	if (!devfs_init()) {
-		printf("%s: failed to initialize devfs\n", NAME);
-		return -1;
-	}
-	
-	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_VFS, 0, 0);
-	if (!vfs_sess) {
-		printf("%s: Unable to connect to VFS\n", NAME);
-		return -1;
-	}
-	
-	int rc = fs_register(vfs_sess, &devfs_vfs_info, &devfs_ops,
-	    &devfs_libfs_ops);
-	if (rc != EOK) {
-		printf("%s: Failed to register file system (%d)\n", NAME, rc);
-		return rc;
-	}
-	
-	printf("%s: Accepting connections\n", NAME);
-	task_retval(0);
-	async_manager();
-	
-	/* Not reached */
-	return 0;
-}
+#endif
 
 /**
  * @}
  */
-

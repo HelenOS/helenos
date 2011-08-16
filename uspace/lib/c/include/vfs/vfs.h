@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <ipc/vfs.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <stdio.h>
 
 /** Libc version of the VFS triplet.
@@ -48,7 +48,7 @@
  */
 typedef struct {
 	fs_handle_t fs_handle;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 	fs_index_t index;
 } fdi_node_t;
 

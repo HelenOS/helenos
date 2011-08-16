@@ -47,7 +47,9 @@
 #include <kbd.h>
 #include <kbd_ctl.h>
 #include <kbd_port.h>
+#include <loc.h>
 #include <stdlib.h>
+#include <sys/typefmt.h>
 #include <vfs/vfs_sess.h>
 
 
@@ -69,9 +71,6 @@ typedef struct {
 
 	/** Session with kbdev device */
 	async_sess_t *sess;
-
-	/** File descriptor of open kbdev device */
-	int fd;
 } kbdev_t;
 
 static kbdev_t *kbdev_new(kbd_dev_t *kdev)
@@ -83,7 +82,6 @@ static kbdev_t *kbdev_new(kbd_dev_t *kdev)
 		return NULL;
 
 	kbdev->kbd_dev = kdev;
-	kbdev->fd = -1;
 
 	return kbdev;
 }
@@ -92,47 +90,40 @@ static void kbdev_destroy(kbdev_t *kbdev)
 {
 	if (kbdev->sess != NULL)
 		async_hangup(kbdev->sess);
-	if (kbdev->fd >= 0)
-		close(kbdev->fd);
 	free(kbdev);
 }
 
 static int kbdev_ctl_init(kbd_dev_t *kdev)
 {
-	const char *pathname;
 	async_sess_t *sess;
 	async_exch_t *exch;
 	kbdev_t *kbdev;
-	int fd;
+	char *svc_name;
 	int rc;
 
-	pathname = kdev->dev_path;
+	if (asprintf(&svc_name, "devname%" PRIun, kdev->service_id) > 0)
+		svc_name = (char *) "unknown";
 
-	fd = open(pathname, O_RDWR);
-	if (fd < 0) {
-		return -1;
-	}
-
-	sess = fd_session(EXCHANGE_SERIALIZE, fd);
+	sess = loc_service_connect(EXCHANGE_SERIALIZE, kdev->service_id, 0);
 	if (sess == NULL) {
-		printf("%s: Failed starting session with '%s'\n", NAME, pathname);
-		close(fd);
+		printf("%s: Failed starting session with '%s.'\n", NAME,
+		    svc_name);
 		return -1;
 	}
 
 	kbdev = kbdev_new(kdev);
 	if (kbdev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
-		    NAME, pathname);
+		    NAME, svc_name);
 		return -1;
 	}
 
-	kbdev->fd = fd;
 	kbdev->sess = sess;
 
 	exch = async_exchange_begin(sess);
 	if (exch == NULL) {
-		printf("%s: Failed starting exchange with '%s'.\n", NAME, pathname);
+		printf("%s: Failed starting exchange with '%s'.\n", NAME,
+		    svc_name);
 		kbdev_destroy(kbdev);
 		return -1;
 	}
@@ -140,7 +131,7 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
-		    NAME, pathname);
+		    NAME, svc_name);
 		async_exchange_end(exch);
 		kbdev_destroy(kbdev);
 		return -1;

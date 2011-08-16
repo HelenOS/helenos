@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <libblock.h>
 #include <mem.h>
-#include <devmap.h>
+#include <loc.h>
 #include <byteorder.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	int rc;
 	char *endptr;
 	char *dev_path;
-	devmap_handle_t handle;
+	service_id_t service_id;
 	ext2_filesystem_t filesystem;
 	int arg_flags;
 	uint32_t inode = 0;
@@ -177,13 +177,13 @@ int main(int argc, char **argv)
 
 	dev_path = *argv;
 
-	rc = devmap_device_get_handle(dev_path, &handle, 0);
+	rc = loc_service_get_id(dev_path, &service_id, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", dev_path);
 		return 2;
 	}
 
-	rc = ext2_filesystem_init(&filesystem, handle);
+	rc = ext2_filesystem_init(&filesystem, service_id);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libext2.\n");
 		return 3;

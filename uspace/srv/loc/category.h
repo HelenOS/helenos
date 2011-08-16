@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup loc
  * @{
  */
-/** @file
+/** @file Categories for location service.
  */
 
-#ifndef LIBC_DEVMAP_H_
-#define LIBC_DEVMAP_H_
+#ifndef CATEGORY_H_
+#define CATEGORY_H_
 
-#include <ipc/devmap.h>
-#include <async.h>
-#include <bool.h>
+#include <adt/list.h>
+#include "loc.h"
 
-extern async_exch_t *devmap_exchange_begin_blocking(devmap_interface_t);
-extern async_exch_t *devmap_exchange_begin(devmap_interface_t);
-extern void devmap_exchange_end(async_exch_t *);
+typedef sysarg_t catid_t;
 
-extern int devmap_driver_register(const char *, async_client_conn_t);
-extern int devmap_device_register(const char *, devmap_handle_t *);
-extern int devmap_device_register_with_iface(const char *, devmap_handle_t *,
-    sysarg_t);
+/** Service category */
+typedef struct {
+	/** Protects this structure, list of services */
+	fibril_mutex_t mutex;
 
-extern int devmap_device_get_handle(const char *, devmap_handle_t *,
-    unsigned int);
-extern int devmap_namespace_get_handle(const char *, devmap_handle_t *,
-    unsigned int);
-extern devmap_handle_type_t devmap_handle_probe(devmap_handle_t);
+	/** Identifier */
+	catid_t id;
 
-extern async_sess_t *devmap_device_connect(exch_mgmt_t, devmap_handle_t,
-    unsigned int);
+	/** Category name */
+	const char *name;
 
-extern int devmap_null_create(void);
-extern void devmap_null_destroy(int);
+	/** Link to list of categories (categ_dir_t.categories) */
+	link_t cat_list;
 
-extern size_t devmap_count_namespaces(void);
-extern size_t devmap_count_devices(devmap_handle_t);
+	/** List of services in this category (loc_service_t) */
+	list_t services;
+} category_t;
 
-extern size_t devmap_get_namespaces(dev_desc_t **);
-extern size_t devmap_get_devices(devmap_handle_t, dev_desc_t **);
+/** Service directory ogranized by categories (yellow pages) */
+typedef struct {
+	/** Protects this structure, list of categories */
+	fibril_mutex_t mutex;
+	/** List of all categories (category_t) */
+	list_t categories;
+} categ_dir_t;
+
+extern void categ_dir_init(categ_dir_t *);
+extern void categ_dir_add_cat(categ_dir_t *, category_t *);
+extern category_t *category_new(const char *);
+extern int category_add_service(category_t *, loc_service_t *);
+extern category_t *category_get(categ_dir_t *, catid_t);
+extern category_t *category_find_by_name(categ_dir_t *, const char *);
+extern int category_get_services(category_t *, service_id_t *, size_t,
+    size_t *);
+
 
 #endif
 

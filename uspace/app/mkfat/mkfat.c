@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <libblock.h>
 #include <mem.h>
-#include <devmap.h>
+#include <loc.h>
 #include <byteorder.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
@@ -84,7 +84,7 @@ static void syntax_print(void);
 static int fat_params_compute(struct fat_cfg const *cfg,
     struct fat_params *par);
 static int fat_blocks_write(struct fat_params const *par,
-    devmap_handle_t handle);
+    service_id_t service_id);
 static void fat_bootsec_create(struct fat_params const *par, struct fat_bs *bs);
 
 int main(int argc, char **argv)
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 	int rc;
 	char *dev_path;
-	devmap_handle_t handle;
+	service_id_t service_id;
 	size_t block_size;
 	char *endptr;
 	aoff64_t dev_nblocks;
@@ -137,25 +137,25 @@ int main(int argc, char **argv)
 
 	dev_path = *argv;
 
-	rc = devmap_device_get_handle(dev_path, &handle, 0);
+	rc = loc_service_get_id(dev_path, &service_id, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", dev_path);
 		return 2;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
 	}
 
-	rc = block_get_bsize(handle, &block_size);
+	rc = block_get_bsize(service_id, &block_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(handle, &dev_nblocks);
+	rc = block_get_nblocks(service_id, &dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
@@ -182,13 +182,13 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	rc = fat_blocks_write(&par, handle);
+	rc = fat_blocks_write(&par, service_id);
 	if (rc != EOK) {
 		printf(NAME ": Error writing device.\n");
 		return 2;
 	}
 
-	block_fini(handle);
+	block_fini(service_id);
 	printf("Success.\n");
 
 	return 0;
@@ -233,7 +233,7 @@ static int fat_params_compute(struct fat_cfg const *cfg, struct fat_params *par)
 }
 
 /** Create file system with the given parameters. */
-static int fat_blocks_write(struct fat_params const *par, devmap_handle_t handle)
+static int fat_blocks_write(struct fat_params const *par, service_id_t service_id)
 {
 	aoff64_t addr;
 	uint8_t *buffer;
@@ -244,7 +244,7 @@ static int fat_blocks_write(struct fat_params const *par, devmap_handle_t handle
 
 	fat_bootsec_create(par, &bs);
 
-	rc = block_write_direct(handle, BS_BLOCK, 1, &bs);
+	rc = block_write_direct(service_id, BS_BLOCK, 1, &bs);
 	if (rc != EOK)
 		return EIO;
 
@@ -256,7 +256,7 @@ static int fat_blocks_write(struct fat_params const *par, devmap_handle_t handle
 
 	/* Reserved sectors */
 	for (i = 0; i < par->reserved_sectors - 1; ++i) {
-		rc = block_write_direct(handle, addr, 1, buffer);
+		rc = block_write_direct(service_id, addr, 1, buffer);
 		if (rc != EOK)
 			return EIO;
 
@@ -276,7 +276,7 @@ static int fat_blocks_write(struct fat_params const *par, devmap_handle_t handle
 				buffer[3] = 0xFF;
 			}
 
-			rc = block_write_direct(handle, addr, 1, buffer);
+			rc = block_write_direct(service_id, addr, 1, buffer);
 			if (rc != EOK)
 				return EIO;
 
@@ -290,7 +290,7 @@ static int fat_blocks_write(struct fat_params const *par, devmap_handle_t handle
 
 	/* Root directory */
 	for (i = 0; i < par->rootdir_sectors; ++i) {
-		rc = block_write_direct(handle, addr, 1, buffer);
+		rc = block_write_direct(service_id, addr, 1, buffer);
 		if (rc != EOK)
 			return EIO;
 

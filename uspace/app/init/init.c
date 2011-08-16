@@ -45,15 +45,15 @@
 #include <malloc.h>
 #include <macros.h>
 #include <str.h>
-#include <devmap.h>
+#include <loc.h>
 #include <str_error.h>
 #include "init.h"
 
 #define ROOT_DEVICE       "bd/initrd"
 #define ROOT_MOUNT_POINT  "/"
 
-#define DEVFS_FS_TYPE      "devfs"
-#define DEVFS_MOUNT_POINT  "/dev"
+#define LOCFS_FS_TYPE      "locfs"
+#define LOCFS_MOUNT_POINT  "/loc"
 
 #define TMPFS_FS_TYPE      "tmpfs"
 #define TMPFS_MOUNT_POINT  "/tmp"
@@ -112,12 +112,12 @@ static bool mount_root(const char *fstype)
 	    ROOT_DEVICE, rc);
 }
 
-static bool mount_devfs(void)
+static bool mount_locfs(void)
 {
-	int rc = mount(DEVFS_FS_TYPE, DEVFS_MOUNT_POINT, "", "",
+	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
 	    IPC_FLAG_BLOCKING);
-	return mount_report("Device filesystem", DEVFS_MOUNT_POINT, DEVFS_FS_TYPE,
-	    NULL, rc);
+	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
+	    LOCFS_FS_TYPE, NULL, rc);
 }
 
 static void spawn(const char *fname)
@@ -173,38 +173,38 @@ static void srv_start(const char *fname)
 	}
 }
 
-static void console(const char *dev)
+static void console(const char *svc)
 {
-	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, dev);
+	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, svc);
 	
-	/* Wait for the input device to be ready */
-	devmap_handle_t handle;
-	int rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	/* Wait for the input service to be ready */
+	service_id_t service_id;
+	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, dev,
+		printf("%s: Error waiting on %s (%s)\n", NAME, svc,
 		    str_error(rc));
 		return;
 	}
 	
-	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, dev, NULL);
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, svc, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
-		    dev, str_error(rc));
+		    svc, str_error(rc));
 	}
 }
 
-static void getterm(const char *dev, const char *app, bool wmsg)
+static void getterm(const char *svc, const char *app, bool wmsg)
 {
-	char term[DEVMAP_NAME_MAXLEN];
+	char term[LOC_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(term, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
 	
 	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
 	
-	/* Wait for the terminal device to be ready */
-	devmap_handle_t handle;
-	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	/* Wait for the terminal service to be ready */
+	service_id_t service_id;
+	rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, term,
 		    str_error(rc));
@@ -256,10 +256,10 @@ int main(int argc, char *argv[])
 		spawn("/srv/tmpfs");
 	}
 	
-	spawn("/srv/devfs");
+	spawn("/srv/locfs");
 	spawn("/srv/taskmon");
 	
-	if (!mount_devfs()) {
+	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
 		return -2;
 	}

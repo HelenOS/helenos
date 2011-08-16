@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,100 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup fs
  * @{
  */
-/** @file
+
+/**
+ * @file locfs.c
+ * @brief Location-service file system.
+ *
+ * Every service registered with location service is represented as a file in this
+ * file system.
  */
 
-#ifndef CUDA_ADB_H_
-#define CUDA_ADB_H_
+#include <stdio.h>
+#include <ipc/services.h>
+#include <ns.h>
+#include <async.h>
+#include <errno.h>
+#include <task.h>
+#include <libfs.h>
+#include "locfs.h"
+#include "locfs_ops.h"
 
-#include <sys/types.h>
-#include <ipc/loc.h>
-#include <fibril_synch.h>
+#define NAME  "locfs"
 
-typedef struct {
-	uint8_t b;
-	uint8_t pad0[0x1ff];
-
-	uint8_t a;
-	uint8_t pad1[0x1ff];
-
-	uint8_t dirb;
-	uint8_t pad2[0x1ff];
-
-	uint8_t dira;
-	uint8_t pad3[0x1ff];
-
-	uint8_t t1cl;
-	uint8_t pad4[0x1ff];
-
-	uint8_t t1ch;
-	uint8_t pad5[0x1ff];
-
-	uint8_t t1ll;
-	uint8_t pad6[0x1ff];
-
-	uint8_t t1lh;
-	uint8_t pad7[0x1ff];
-
-	uint8_t t2cl;
-	uint8_t pad8[0x1ff];
-
-	uint8_t t2ch;
-	uint8_t pad9[0x1ff];
-
-	uint8_t sr;
-	uint8_t pad10[0x1ff];
-
-	uint8_t acr;
-	uint8_t pad11[0x1ff];
-
-	uint8_t pcr;
-	uint8_t pad12[0x1ff];
-
-	uint8_t ifr;
-	uint8_t pad13[0x1ff];
-
-	uint8_t ier;
-	uint8_t pad14[0x1ff];
-
-	uint8_t anh;
-	uint8_t pad15[0x1ff];
-} cuda_t;
-
-enum {
-	CUDA_RCV_BUF_SIZE = 5
+static vfs_info_t locfs_vfs_info = {
+	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,
 };
 
-enum cuda_xfer_state {
-	cx_listen,
-	cx_receive,
-	cx_rcv_end,
-	cx_send_start,
-	cx_send
-};
+int main(int argc, char *argv[])
+{
+	printf("%s: HelenOS Device Filesystem\n", NAME);
+	
+	if (!locfs_init()) {
+		printf("%s: failed to initialize locfs\n", NAME);
+		return -1;
+	}
+	
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
+		printf("%s: Unable to connect to VFS\n", NAME);
+		return -1;
+	}
+	
+	int rc = fs_register(vfs_sess, &locfs_vfs_info, &locfs_ops,
+	    &locfs_libfs_ops);
+	if (rc != EOK) {
+		printf("%s: Failed to register file system (%d)\n", NAME, rc);
+		return rc;
+	}
+	
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
+	async_manager();
+	
+	/* Not reached */
+	return 0;
+}
 
-typedef struct {
-	service_id_t service_id;
-	int client_phone;
-} adb_dev_t;
-
-typedef struct {
-	cuda_t *cuda;
-	uintptr_t cuda_physical;
-	uintptr_t cuda_kernel;
-
-	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
-	uint8_t snd_buf[CUDA_RCV_BUF_SIZE];
-	size_t bidx;
-	size_t snd_bytes;
-	enum cuda_xfer_state xstate;
-	fibril_mutex_t dev_lock;
-} cuda_instance_t;
-
-#endif
-
-/** @}
+/**
+ * @}
  */
+

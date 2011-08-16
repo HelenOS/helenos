@@ -321,7 +321,7 @@
 	 * @details
 	 * The purpose of this driver is to simplify querying of unknown
 	 * devices from within HelenOS (without a driver, no node at all
-	 * may appear under /dev/devices).
+	 * may appear under /loc/devices).
 	 */
 
 

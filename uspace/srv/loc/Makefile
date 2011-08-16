@@ -27,14 +27,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-LIBS = $(LIBFS_PREFIX)/libfs.a
-EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
-BINARY = devfs
+USPACE_PREFIX = ../..
+BINARY = loc
 STATIC_NEEDED = y
 
 SOURCES = \
-	devfs.c \
-	devfs_ops.c
+	category.c \
+	loc.c
 
 include $(USPACE_PREFIX)/Makefile.common

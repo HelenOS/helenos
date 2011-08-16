@@ -28,15 +28,14 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
-#ifndef DEVFS_DEVFS_H_
-#define DEVFS_DEVFS_H_
+#ifndef LOCFS_LOCFS_OPS_H_
+#define LOCFS_LOCFS_OPS_H_
 
-#include <libfs.h>
+#include <bool.h>
 
-extern vfs_out_ops_t devfs_ops;
-extern libfs_ops_t devfs_libfs_ops;
+extern bool locfs_init(void);
 
 #endif
 
