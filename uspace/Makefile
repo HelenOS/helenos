@@ -47,6 +47,7 @@ DIRS = \
 	app/klog \
 	app/lsusb \
 	app/mkfat \
+	app/mkexfat \
 	app/redir \
 	app/sbi \
 	app/stats \
