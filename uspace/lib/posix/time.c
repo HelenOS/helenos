@@ -328,7 +328,7 @@ static int _wbyear(const struct posix_tm *tm)
 		/* Last week of previous year. */
 		return tm->tm_year - 1;
 	}
-	if (day > 364 + _is_leap_year(tm->tm_year)){
+	if (day > 364 + _is_leap_year(tm->tm_year)) {
 		/* First week of next year. */
 		return tm->tm_year + 1;
 	}
@@ -367,7 +367,7 @@ static int _iso_week_number(const struct posix_tm *tm)
 		/* Last week of previous year. */
 		return 53;
 	}
-	if (day > 364 + _is_leap_year(tm->tm_year)){
+	if (day > 364 + _is_leap_year(tm->tm_year)) {
 		/* First week of next year. */
 		return 1;
 	}

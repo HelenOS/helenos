@@ -495,7 +495,7 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 		    *string == '.' && *(string - 1) == '/') {
 			end = string;
 		} else {
-			end= strchrnul(string, pathname ? '/' : '\0');
+			end = strchrnul(string, pathname ? '/' : '\0');
 		}
 
 		/* Try to match every possible offset. */

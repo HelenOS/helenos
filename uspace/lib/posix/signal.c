@@ -311,7 +311,7 @@ static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
 
 	if ((action.sa_flags & SA_RESETHAND) && signo != SIGILL && signo != SIGTRAP) {
 		_signal_actions[signo] = (struct posix_sigaction) DEFAULT_HANDLER;
-	};
+	}
 
 	if (action.sa_flags & SA_SIGINFO) {
 		assert(action.sa_sigaction != NULL);
