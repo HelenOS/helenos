@@ -361,10 +361,12 @@ static void loc_register_class_dev(dev_class_info_t *cli)
 static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*call);
+	category_id_t cat_id;
+	int rc;
 	
 	/* Get class name. */
 	char *class_name;
-	int rc = async_data_write_accept((void **) &class_name, true,
+	rc = async_data_write_accept((void **) &class_name, true,
 	    0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -382,6 +384,14 @@ static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
 	
 	/* Register the device's class alias with location service. */
 	loc_register_class_dev(class_info);
+	
+	rc = loc_category_get_id(class_name, &cat_id, IPC_FLAG_BLOCKING);
+	if (rc == EOK) {
+		loc_service_add_to_cat(fun->service_id, cat_id);
+	} else {
+		log_msg(LVL_ERROR, "Failed adding function `%s' to category "
+		    "`%s'.", fun->pathname, class_name);
+	}
 	
 	log_msg(LVL_NOTE, "Function `%s' added to class `%s' as `%s'.",
 	    fun->pathname, class_name, class_info->dev_name);
@@ -759,7 +769,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Device Manager\n");
 
-	if (log_init(NAME, LVL_ERROR) != EOK) {
+	if (log_init(NAME, LVL_WARN) != EOK) {
 		printf(NAME ": Error initializing logging subsystem.\n");
 		return -1;
 	}

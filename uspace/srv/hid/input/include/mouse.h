@@ -38,6 +38,7 @@
 #define MOUSE_H_
 
 #include <adt/list.h>
+#include <ipc/loc.h>
 
 struct mouse_port_ops;
 struct mouse_proto_ops;
@@ -46,8 +47,8 @@ typedef struct mouse_dev {
 	/** Link to mouse_devs list */
 	link_t mouse_devs;
 	
-	/** Path to the device (only for mouseev devices) */
-	const char *dev_path;
+	/** Service ID (only for mousedev devices) */
+	service_id_t service_id;
 	
 	/** Port ops */
 	struct mouse_port_ops *port_ops;

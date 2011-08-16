@@ -47,11 +47,15 @@ extern int loc_server_register(const char *, async_client_conn_t);
 extern int loc_service_register(const char *, service_id_t *);
 extern int loc_service_register_with_iface(const char *, service_id_t *,
     sysarg_t);
+extern int loc_service_add_to_cat(service_id_t, category_id_t);
 
 extern int loc_service_get_id(const char *, service_id_t *,
     unsigned int);
 extern int loc_namespace_get_id(const char *, service_id_t *,
     unsigned int);
+extern int loc_category_get_id(const char *, category_id_t *,
+    unsigned int);
+extern int loc_category_get_svcs(category_id_t, category_id_t **, size_t *);
 extern loc_object_type_t loc_id_probe(service_id_t);
 
 extern async_sess_t *loc_service_connect(exch_mgmt_t, service_id_t,

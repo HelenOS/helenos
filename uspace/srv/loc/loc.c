@@ -48,67 +48,11 @@
 #include <ipc/loc.h>
 #include <assert.h>
 
+#include "category.h"
+#include "loc.h"
+
 #define NAME          "loc"
 #define NULL_SERVICES  256
-
-/** Representation of server (supplier).
- *
- * Each server supplies a set of services.
- *
- */
-typedef struct {
-	/** Link to servers_list */
-	link_t servers;
-	
-	/** List of services supplied by this server */
-	list_t services;
-	
-	/** Session asociated with this server */
-	async_sess_t *sess;
-	
-	/** Server name */
-	char *name;
-	
-	/** Fibril mutex for list of services owned by this server */
-	fibril_mutex_t services_mutex;
-} loc_server_t;
-
-/** Info about registered namespaces
- *
- */
-typedef struct {
-	/** Link to namespaces_list */
-	link_t namespaces;
-	
-	/** Unique namespace identifier */
-	service_id_t id;
-	
-	/** Namespace name */
-	char *name;
-	
-	/** Reference count */
-	size_t refcnt;
-} loc_namespace_t;
-
-/** Info about registered service
- *
- */
-typedef struct {
-	/** Link to global list of services (services_list) */
-	link_t services;
-	/** Link to server list of services (loc_server_t.services) */
-	link_t server_services;
-	/** Unique service identifier */
-	service_id_t id;
-	/** Service namespace */
-	loc_namespace_t *namespace;
-	/** Service name */
-	char *name;
-	/** Supplier of this service */
-	loc_server_t *server;
-	/** Use this interface when forwarding to server. */
-	sysarg_t forward_interface;
-} loc_service_t;
 
 LIST_INITIALIZE(services_list);
 LIST_INITIALIZE(namespaces_list);
@@ -136,7 +80,10 @@ static loc_service_t *null_services[NULL_SERVICES];
  */
 static LIST_INITIALIZE(dummy_null_services);
 
-static service_id_t loc_create_id(void)
+/** Service directory ogranized by categories (yellow pages) */
+static categ_dir_t cdir;
+
+service_id_t loc_create_id(void)
 {
 	/* TODO: allow reusing old ids after their unregistration
 	 * and implement some version of LRU algorithm, avoid overflow
@@ -733,6 +680,40 @@ recheck:
 	free(name);
 }
 
+/** Find ID for category specified by name.
+ *
+ * On success, answer will contain EOK int retval and service ID in arg1.
+ * On failure, error code will be sent in retval.
+ *
+ */
+static void loc_category_get_id(ipc_callid_t iid, ipc_call_t *icall)
+{
+	char *name;
+	category_t *cat;
+	
+	/* Get service name */
+	int rc = async_data_write_accept((void **) &name, true, 0,
+	    LOC_NAME_MAXLEN, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	fibril_mutex_lock(&cdir.mutex);
+
+	cat = category_find_by_name(&cdir, name);
+	if (cat == NULL) {
+		/* Category not found */
+		async_answer_0(iid, ENOENT);
+		goto cleanup;
+	}
+	
+	async_answer_1(iid, EOK, cat->id);
+cleanup:
+	fibril_mutex_unlock(&cdir.mutex);
+	free(name);
+}
+
 static void loc_id_probe(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&services_list_mutex);
@@ -891,6 +872,58 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, retval);
 }
 
+static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	int rc;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	fibril_mutex_lock(&cdir.mutex);
+	
+	category_t *cat = category_get(&cdir, IPC_GET_ARG1(*icall));
+	if (cat == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	category_id_t *id_buf = (category_id_t *) malloc(size);
+	if (id_buf == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	fibril_mutex_lock(&cat->mutex);
+	
+	rc = category_get_services(cat, id_buf, size, &act_size);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&cat->mutex);
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	fibril_mutex_unlock(&cat->mutex);
+	fibril_mutex_unlock(&cdir.mutex);
+	
+	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	free(id_buf);
+	
+	async_answer_1(iid, retval, act_size);
+}
+
+
 static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&null_services_mutex);
@@ -990,20 +1023,60 @@ static void loc_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
+{
+	category_t *cat;
+	loc_service_t *svc;
+	catid_t cat_id;
+	service_id_t svc_id;
+	sysarg_t retval;
+	
+	svc_id = IPC_GET_ARG1(*icall);
+	cat_id = IPC_GET_ARG2(*icall);
+	
+	fibril_mutex_lock(&services_list_mutex);
+	fibril_mutex_lock(&cdir.mutex);
+	
+	cat = category_get(&cdir, cat_id);
+	svc = loc_service_find_id(svc_id);
+	
+	fibril_mutex_lock(&cat->mutex);
+	retval = category_add_service(cat, svc);
+
+	fibril_mutex_unlock(&cat->mutex);
+	fibril_mutex_unlock(&cdir.mutex);
+	fibril_mutex_unlock(&services_list_mutex);
+
+	async_answer_0(iid, retval);
+}
+
+
 /** Initialize location service.
  *
  *
  */
 static bool loc_init(void)
 {
-	fibril_mutex_lock(&null_services_mutex);
-	
 	unsigned int i;
+	category_t *cat;
+
 	for (i = 0; i < NULL_SERVICES; i++)
 		null_services[i] = NULL;
 	
-	fibril_mutex_unlock(&null_services_mutex);
-	
+	categ_dir_init(&cdir);
+
+	cat = category_new("bd");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("keyboard");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("mouse");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("serial");
+	categ_dir_add_cat(&cdir, cat);
+
 	return true;
 }
 
@@ -1032,6 +1105,10 @@ static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall)
 				async_answer_0(callid, ENOENT);
 			else
 				async_answer_0(callid, EOK);
+			break;
+		case LOC_SERVICE_ADD_TO_CAT:
+			/* Add service to category */
+			loc_service_add_to_cat(callid, &call);
 			break;
 		case LOC_SERVICE_REGISTER:
 			/* Register one service */
@@ -1082,6 +1159,12 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case LOC_NAMESPACE_GET_ID:
 			loc_namespace_get_id(callid, &call);
+			break;
+		case LOC_CATEGORY_GET_ID:
+			loc_category_get_id(callid, &call);
+			break;
+		case LOC_CATEGORY_GET_SVCS:
+			loc_category_get_svcs(callid, &call);
 			break;
 		case LOC_ID_PROBE:
 			loc_id_probe(callid, &call);

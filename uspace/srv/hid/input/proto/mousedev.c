@@ -43,9 +43,11 @@
 #include <errno.h>
 #include <ipc/mouseev.h>
 #include <input.h>
+#include <loc.h>
 #include <mouse.h>
 #include <mouse_port.h>
 #include <mouse_proto.h>
+#include <sys/typefmt.h>
 
 /** Mousedev softstate */
 typedef struct {
@@ -54,9 +56,6 @@ typedef struct {
 	
 	/** Session to mouse device */
 	async_sess_t *sess;
-	
-	/** File descriptor of open mousedev device */
-	int fd;
 } mousedev_t;
 
 static mousedev_t *mousedev_new(mouse_dev_t *mdev)
@@ -66,7 +65,6 @@ static mousedev_t *mousedev_new(mouse_dev_t *mdev)
 		return NULL;
 	
 	mousedev->mouse_dev = mdev;
-	mousedev->fd = -1;
 	
 	return mousedev;
 }
@@ -75,9 +73,6 @@ static void mousedev_destroy(mousedev_t *mousedev)
 {
 	if (mousedev->sess != NULL)
 		async_hangup(mousedev->sess);
-	
-	if (mousedev->fd >= 0)
-		close(mousedev->fd);
 	
 	free(mousedev);
 }
@@ -121,32 +116,31 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 
 static int mousedev_proto_init(mouse_dev_t *mdev)
 {
-	const char *pathname = mdev->dev_path;
+	char *svc_name;
 	
-	int fd = open(pathname, O_RDWR);
-	if (fd < 0)
-		return -1;
+	if (asprintf(&svc_name, "devname%" PRIun, mdev->service_id) > 0)
+		svc_name = (char *) "unknown";
 	
-	async_sess_t *sess = fd_session(EXCHANGE_SERIALIZE, fd);
+	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
+	    mdev->service_id, 0);
 	if (sess == NULL) {
-		printf("%s: Failed starting session with '%s'\n", NAME, pathname);
-		close(fd);
+		printf("%s: Failed starting session with '%s'\n", NAME, svc_name);
 		return -1;
 	}
 	
 	mousedev_t *mousedev = mousedev_new(mdev);
 	if (mousedev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
-		    NAME, pathname);
+		    NAME, svc_name);
 		return -1;
 	}
 	
-	mousedev->fd = fd;
 	mousedev->sess = sess;
 	
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL) {
-		printf("%s: Failed starting exchange with '%s'.\n", NAME, pathname);
+		printf("%s: Failed starting exchange with '%s'.\n", NAME,
+		    svc_name);
 		mousedev_destroy(mousedev);
 		return -1;
 	}
@@ -156,7 +150,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
-		    NAME, pathname);
+		    NAME, svc_name);
 		mousedev_destroy(mousedev);
 		return -1;
 	}

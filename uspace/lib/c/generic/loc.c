@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007 Josef Cejka
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -330,6 +330,56 @@ int loc_namespace_get_id(const char *name, service_id_t *handle,
 	return retval;
 }
 
+/** Get category ID.
+ *
+ * Provided name of a category, return its ID.
+ *
+ * @param name		Category name
+ * @param cat_id	Place to store ID
+ * @param flags		IPC_FLAG_BLOCKING to wait for location service to start
+ * @return		EOK on success or negative error code
+ */
+int loc_category_get_id(const char *name, category_id_t *cat_id,
+    unsigned int flags)
+{
+	async_exch_t *exch;
+	
+	if (flags & IPC_FLAG_BLOCKING)
+		exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
+	else {
+		exch = loc_exchange_begin(LOC_PORT_CONSUMER);
+		if (exch == NULL)
+			return errno;
+	}
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, LOC_CATEGORY_GET_ID,
+	    &answer);
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+	
+	loc_exchange_end(exch);
+	
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK) {
+		if (cat_id != NULL)
+			*cat_id = (category_id_t) -1;
+		
+		return retval;
+	}
+	
+	if (cat_id != NULL)
+		*cat_id = (category_id_t) IPC_GET_ARG1(answer);
+	
+	return retval;
+}
+
+
 loc_object_type_t loc_id_probe(service_id_t handle)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
@@ -392,6 +442,24 @@ static size_t loc_count_namespaces_internal(async_exch_t *exch)
 	return count;
 }
 
+/** Add service to category.
+ *
+ * @param svc_id	Service ID
+ * @param cat_id	Category ID
+ * @return		EOK on success or negative error code
+ */
+int loc_service_add_to_cat(service_id_t svc_id, service_id_t cat_id)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	
+	exch = loc_exchange_begin_blocking(LOC_PORT_SUPPLIER);
+	retval = async_req_2_0(exch, LOC_SERVICE_ADD_TO_CAT, svc_id, cat_id);
+	loc_exchange_end(exch);
+	
+	return retval;
+}
+
 static size_t loc_count_services_internal(async_exch_t *exch,
     service_id_t ns_handle)
 {
@@ -424,7 +492,7 @@ size_t loc_count_services(service_id_t ns_handle)
 
 size_t loc_get_namespaces(loc_sdesc_t **data)
 {
-	/* Loop until namespaces read succesful */
+	/* Loop until read is succesful */
 	while (true) {
 		async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 		size_t count = loc_count_namespaces_internal(exch);
@@ -473,7 +541,7 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 
 size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 {
-	/* Loop until devices read succesful */
+	/* Loop until read is succesful */
 	while (true) {
 		async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 		size_t count = loc_count_services_internal(exch, ns_handle);
@@ -518,4 +586,83 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 		*data = devs;
 		return count;
 	}
+}
+
+static int loc_category_get_svcs_internal(category_id_t cat_id,
+    service_id_t *id_buf, size_t buf_size, size_t *act_size)
+{
+	async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, LOC_CATEGORY_GET_SVCS, cat_id,
+	    &answer);
+	int rc = async_data_read_start(exch, id_buf, buf_size);
+	
+	loc_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK) {
+		return retval;
+	}
+	
+	*act_size = IPC_GET_ARG1(answer);
+	return EOK;
+}
+
+/** Get list of services in category.
+ *
+ * Returns an allocated array of service IDs.
+ *
+ * @param cat_id	Category ID
+ * @param data		Place to store pointer to array of IDs
+ * @param count		Place to store number of IDs
+ * @return 		EOK on success or negative error code
+ */
+int loc_category_get_svcs(category_id_t cat_id, category_id_t **data,
+    size_t *count)
+{
+	service_id_t *ids;
+	size_t act_size;
+	size_t alloc_size;
+	int rc;
+
+	*data = NULL;
+	act_size = 0;	/* silence warning */
+
+	rc = loc_category_get_svcs_internal(cat_id, NULL, 0, &act_size);
+	if (rc != EOK)
+		return rc;
+
+	alloc_size = act_size;
+	ids = malloc(alloc_size);
+	if (ids == NULL)
+		return ENOMEM;
+
+	while (true) {
+		rc = loc_category_get_svcs_internal(cat_id, ids, alloc_size,
+		    &act_size);
+		if (rc != EOK)
+			return rc;
+
+		if (act_size <= alloc_size)
+			break;
+
+		alloc_size *= 2;
+		free(ids);
+
+		ids = malloc(alloc_size);
+		if (ids == NULL)
+			return ENOMEM;
+	}
+
+	*count = act_size / sizeof(category_id_t);
+	*data = ids;
+	return EOK;
 }

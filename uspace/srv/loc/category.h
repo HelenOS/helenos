@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,55 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief HelenOS input server.
- * @ingroup input
+/** @addtogroup loc
  * @{
  */
-/** @file
+/** @file Categories for location service.
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#ifndef CATEGORY_H_
+#define CATEGORY_H_
 
 #include <adt/list.h>
-#include <ipc/loc.h>
+#include "loc.h"
 
-struct kbd_port_ops;
-struct kbd_ctl_ops;
-struct layout;
+typedef sysarg_t catid_t;
 
-typedef struct kbd_dev {
-	/** Link to kbd_devs list */
-	link_t kbd_devs;
+/** Service category */
+typedef struct {
+	/** Protects this structure, list of services */
+	fibril_mutex_t mutex;
 
-	/** Service ID (only for kbdev devices) */
-	service_id_t service_id;
+	/** Identifier */
+	catid_t id;
 
-	/** Port ops */
-	struct kbd_port_ops *port_ops;
+	/** Category name */
+	const char *name;
 
-	/** Ctl ops */
-	struct kbd_ctl_ops *ctl_ops;
+	/** Link to list of categories (categ_dir_t.categories) */
+	link_t cat_list;
 
-	/** Controller-private data */
-	void *ctl_private;
+	/** List of services in this category (loc_service_t) */
+	list_t services;
+} category_t;
 
-	/** Currently active modifiers. */
-	unsigned mods;
+/** Service directory ogranized by categories (yellow pages) */
+typedef struct {
+	/** Protects this structure, list of categories */
+	fibril_mutex_t mutex;
+	/** List of all categories (category_t) */
+	list_t categories;
+} categ_dir_t;
 
-	/** Currently pressed lock keys. We track these to tackle autorepeat. */
-	unsigned lock_keys;
+extern void categ_dir_init(categ_dir_t *);
+extern void categ_dir_add_cat(categ_dir_t *, category_t *);
+extern category_t *category_new(const char *);
+extern int category_add_service(category_t *, loc_service_t *);
+extern category_t *category_get(categ_dir_t *, catid_t);
+extern category_t *category_find_by_name(categ_dir_t *, const char *);
+extern int category_get_services(category_t *, service_id_t *, size_t,
+    size_t *);
 
-	/** Active keyboard layout */
-	struct layout *active_layout;
-} kbd_dev_t;
-
-extern void kbd_push_data(kbd_dev_t *, sysarg_t);
-extern void kbd_push_event(kbd_dev_t *, int, unsigned int);
 
 #endif
 
-/**
- * @}
+/** @}
  */

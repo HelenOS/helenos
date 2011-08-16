@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2007 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -30,61 +29,80 @@
 /** @addtogroup loc
  * @{
  */
+/** @file HelenOS location service.
+ */
 
-#ifndef LIBC_IPC_LOC_H_
-#define LIBC_IPC_LOC_H_
+#ifndef LOC_H_
+#define LOC_H_
 
-#include <ipc/common.h>
+#include <async.h>
+#include <fibril_synch.h>
+#include <sys/types.h>
 
-#define LOC_NAME_MAXLEN  255
-
-typedef sysarg_t service_id_t;
-typedef sysarg_t category_id_t;
-
-typedef enum {
-	LOC_OBJECT_NONE,
-	LOC_OBJECT_NAMESPACE,
-	LOC_OBJECT_SERVICE
-} loc_object_type_t;
-
-typedef enum {
-	LOC_SERVER_REGISTER = IPC_FIRST_USER_METHOD,
-	LOC_SERVER_UNREGISTER,
-	LOC_SERVICE_ADD_TO_CAT,
-	LOC_SERVICE_REGISTER,
-	LOC_SERVICE_UNREGISTER,
-	LOC_SERVICE_GET_ID,
-	LOC_NAMESPACE_GET_ID,
-	LOC_CATEGORY_GET_ID,
-	LOC_CATEGORY_GET_SVCS,
-	LOC_ID_PROBE,
-	LOC_NULL_CREATE,
-	LOC_NULL_DESTROY,
-	LOC_GET_NAMESPACE_COUNT,
-	LOC_GET_SERVICE_COUNT,
-	LOC_GET_NAMESPACES,
-	LOC_GET_SERVICES
-} loc_request_t;
-
-/** Ports provided by location service.
+/** Representation of server (supplier).
  *
- * Every process that connects to loc must ask one of following
- * ports, otherwise connection will be refused.
+ * Each server supplies a set of services.
  *
  */
-typedef enum {
-	/** Service supplier (server) port */
-	LOC_PORT_SUPPLIER = 1,
-	/** Service consumer (client) port */
-	LOC_PORT_CONSUMER,
-	/** Create new connection to instance of device that
-	    is specified by second argument of call. */
-	LOC_CONNECT_TO_SERVICE
-} loc_interface_t;
-
 typedef struct {
+	/** Link to servers_list */
+	link_t servers;
+	
+	/** List of services supplied by this server */
+	list_t services;
+	
+	/** Session asociated with this server */
+	async_sess_t *sess;
+	
+	/** Server name */
+	char *name;
+	
+	/** Fibril mutex for list of services owned by this server */
+	fibril_mutex_t services_mutex;
+} loc_server_t;
+
+/** Info about registered namespaces
+ *
+ */
+typedef struct {
+	/** Link to namespaces_list */
+	link_t namespaces;
+	
+	/** Unique namespace identifier */
 	service_id_t id;
-	char name[LOC_NAME_MAXLEN + 1];
-} loc_sdesc_t;
+	
+	/** Namespace name */
+	char *name;
+	
+	/** Reference count */
+	size_t refcnt;
+} loc_namespace_t;
+
+/** Info about registered service
+ *
+ */
+typedef struct {
+	/** Link to global list of services (services_list) */
+	link_t services;
+	/** Link to server list of services (loc_server_t.services) */
+	link_t server_services;
+	/** Link to list of services in category (category_t.services) */
+	link_t cat_services;
+	/** Unique service identifier */
+	service_id_t id;
+	/** Service namespace */
+	loc_namespace_t *namespace;
+	/** Service name */
+	char *name;
+	/** Supplier of this service */
+	loc_server_t *server;
+	/** Use this interface when forwarding to server. */
+	sysarg_t forward_interface;
+} loc_service_t;
+
+extern service_id_t loc_create_id(void);
 
 #endif
+
+/** @}
+ */

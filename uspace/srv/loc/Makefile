@@ -32,6 +32,7 @@ BINARY = loc
 STATIC_NEEDED = y
 
 SOURCES = \
+	category.c \
 	loc.c
 
 include $(USPACE_PREFIX)/Makefile.common
