@@ -29,7 +29,7 @@
 /** @addtogroup arm32
  * @{
  */
-/** 
+/**
  * @file
  * @brief Utilities for convenient manipulation with ARM registers.
  */
@@ -37,54 +37,51 @@
 #ifndef KERN_arm32_REGUTILS_H_
 #define KERN_arm32_REGUTILS_H_
 
-#define STATUS_REG_IRQ_DISABLED_BIT (1 << 7)
-#define STATUS_REG_MODE_MASK        0x1f
+#define STATUS_REG_IRQ_DISABLED_BIT  (1 << 7)
+#define STATUS_REG_MODE_MASK         0x1f
 
-#define CP15_R1_HIGH_VECTORS_BIT    (1 << 13)
-
+#define CP15_R1_HIGH_VECTORS_BIT     (1 << 13)
 
 /* ARM Processor Operation Modes */
-#define USER_MODE         0x10
-#define FIQ_MODE          0x11
-#define	IRQ_MODE          0x12
-#define	SUPERVISOR_MODE   0x13
-#define	ABORT_MODE        0x17
-#define	UNDEFINED_MODE    0x1b
-#define	SYSTEM_MODE       0x1f
+#define USER_MODE        0x10
+#define FIQ_MODE         0x11
+#define IRQ_MODE         0x12
+#define SUPERVISOR_MODE  0x13
+#define ABORT_MODE       0x17
+#define UNDEFINED_MODE   0x1b
+#define SYSTEM_MODE      0x1f
 
 /* [CS]PRS manipulation macros */
-#define GEN_STATUS_READ(nm,reg) \
-static inline uint32_t nm## _status_reg_read(void) \
-{ \
-	uint32_t retval; \
-	asm volatile( \
-		"mrs %[retval], " #reg \
-		: [retval] "=r" (retval) \
-	); \
-	return retval; \
-}
+#define GEN_STATUS_READ(nm, reg) \
+	static inline uint32_t nm## _status_reg_read(void) \
+	{ \
+		uint32_t retval; \
+		\
+		asm volatile ( \
+			"mrs %[retval], " #reg \
+			: [retval] "=r" (retval) \
+		); \
+		\
+		return retval; \
+	}
 
-#define GEN_STATUS_WRITE(nm,reg,fieldname, field) \
-static inline void nm## _status_reg_ ##fieldname## _write(uint32_t value) \
-{ \
-	asm volatile( \
-		"msr " #reg "_" #field ", %[value]" \
-		:: [value] "r" (value) \
-	); \
-}
+#define GEN_STATUS_WRITE(nm, reg, fieldname, field) \
+	static inline void nm## _status_reg_ ##fieldname## _write(uint32_t value) \
+	{ \
+		asm volatile ( \
+			"msr " #reg "_" #field ", %[value]" \
+			:: [value] "r" (value) \
+		); \
+	}
 
+/** Return the value of CPSR (Current Program Status Register). */
+GEN_STATUS_READ(current, cpsr);
 
-/** Returns the value of CPSR (Current Program Status Register). */
-GEN_STATUS_READ(current, cpsr)
-
-
-/** Sets control bits of CPSR. */
+/** Set control bits of CPSR. */
 GEN_STATUS_WRITE(current, cpsr, control, c);
 
-
-/** Returns the value of SPSR (Saved Program Status Register). */
-GEN_STATUS_READ(saved, spsr)
-
+/** Return the value of SPSR (Saved Program Status Register). */
+GEN_STATUS_READ(saved, spsr);
 
 #endif
 

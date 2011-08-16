@@ -36,7 +36,7 @@
 #define KERN_ppc32_EXCEPTION_H_
 
 #include <typedefs.h>
-#include <arch/cpu.h>
+#include <arch/msr.h>
 #include <trace.h>
 
 typedef struct istate {

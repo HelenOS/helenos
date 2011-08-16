@@ -35,7 +35,7 @@
 #include <async.h>
 #include <async_obsolete.h>
 #include <ns_obsolete.h>
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 int service_obsolete_connect(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
 {

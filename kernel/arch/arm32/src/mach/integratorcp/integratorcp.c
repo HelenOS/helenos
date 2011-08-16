@@ -47,7 +47,7 @@
 #include <arch/mm/frame.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <ddi/ddi.h>
 #include <print.h>
 

@@ -41,8 +41,6 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
-#ifdef KERNEL
-
 #ifndef __ASM__
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
@@ -199,8 +197,6 @@ extern void page_arch_init(void);
 extern void page_fault(unsigned int, istate_t *);
 
 #endif /* __ASM__ */
-
-#endif /* KERNEL */
 
 #endif
 

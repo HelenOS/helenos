@@ -35,32 +35,8 @@
 #ifndef KERN_AS_H_
 #define KERN_AS_H_
 
-#ifdef KERNEL
-	#include <typedefs.h>
-#else
-	#include <sys/types.h>
-#endif
-
-/** Address space area flags. */
-#define AS_AREA_READ       1
-#define AS_AREA_WRITE      2
-#define AS_AREA_EXEC       4
-#define AS_AREA_CACHEABLE  8
-
-/** Address space area info exported to userspace. */
-typedef struct {
-	/** Starting address */
-	uintptr_t start_addr;
-	
-	/** Area size */
-	size_t size;
-	
-	/** Area flags */
-	unsigned int flags;
-} as_area_info_t;
-
-#ifdef KERNEL
-
+#include <typedefs.h>
+#include <abi/mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
@@ -316,8 +292,6 @@ extern sysarg_t sys_as_get_unmapped_area(uintptr_t, size_t);
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);
 extern void as_print(as_t *);
-
-#endif /* KERNEL */
 
 #endif
 

@@ -40,7 +40,7 @@
 #include <userspace.h>
 #include <memstr.h>
 #include <proc/thread.h>
-#include <proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <print.h>
 #include <console/console.h>
 #include <syscall/syscall.h>
@@ -51,7 +51,7 @@
 #include <arch/barrier.h>
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>

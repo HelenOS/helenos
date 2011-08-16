@@ -37,13 +37,11 @@
  * First the answerbox, then the phone.
  */
 
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
-#include <synch/synch.h>
 #include <ipc/ipc.h>
-#include <ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
 #include <errno.h>

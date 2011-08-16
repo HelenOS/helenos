@@ -38,8 +38,6 @@
 
 #include <stdint.h>
 
-typedef void (* putpixel_cb_t)(void *, unsigned int, unsigned int, uint32_t);
-
 extern int fb_init(void);
 
 #endif
