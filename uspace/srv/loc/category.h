@@ -68,6 +68,8 @@ typedef struct {
 
 extern void categ_dir_init(categ_dir_t *);
 extern void categ_dir_add_cat(categ_dir_t *, category_t *);
+extern int categ_dir_get_categories(categ_dir_t *, service_id_t *, size_t,
+    size_t *);
 extern category_t *category_new(const char *);
 extern int category_add_service(category_t *, loc_service_t *);
 extern category_t *category_get(categ_dir_t *, catid_t);

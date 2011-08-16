@@ -754,6 +754,45 @@ static void loc_get_service_count(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
+static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	int rc;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	category_id_t *id_buf = (category_id_t *) malloc(size);
+	if (id_buf == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	fibril_mutex_lock(&cdir.mutex);
+	
+	rc = categ_dir_get_categories(&cdir, id_buf, size, &act_size);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	fibril_mutex_unlock(&cdir.mutex);
+	
+	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	free(id_buf);
+	
+	async_answer_1(iid, retval, act_size);
+}
+
 static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
@@ -1180,6 +1219,9 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case LOC_GET_SERVICE_COUNT:
 			loc_get_service_count(callid, &call);
+			break;
+		case LOC_GET_CATEGORIES:
+			loc_get_categories(callid, &call);
 			break;
 		case LOC_GET_NAMESPACES:
 			loc_get_namespaces(callid, &call);

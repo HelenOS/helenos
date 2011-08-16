@@ -54,6 +54,37 @@ void categ_dir_add_cat(categ_dir_t *cdir, category_t *cat)
 	list_append(&cat->cat_list, &cdir->categories);
 }
 
+/** Get list of categories. */
+int categ_dir_get_categories(categ_dir_t *cdir, category_id_t *id_buf,
+    size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	assert(fibril_mutex_is_locked(&cdir->mutex));
+
+	buf_cnt = buf_size / sizeof(category_id_t);
+
+	act_cnt = list_count(&cdir->categories);
+	*act_size = act_cnt * sizeof(category_id_t);
+
+	if (buf_size % sizeof(category_id_t) != 0)
+		return EINVAL;
+
+	size_t pos = 0;
+	list_foreach(cdir->categories, item) {
+		category_t *cat =
+		    list_get_instance(item, category_t, cat_list);
+
+		if (pos < buf_cnt)
+			id_buf[pos] = cat->id;
+		pos++;
+	}
+
+	return EOK;
+}
+
+
 /** Initialize category structure. */
 static void category_init(category_t *cat, const char *name)
 {

@@ -588,14 +588,13 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 	}
 }
 
-static int loc_category_get_svcs_internal(category_id_t cat_id,
-    service_id_t *id_buf, size_t buf_size, size_t *act_size)
+static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
+    sysarg_t *id_buf, size_t buf_size, size_t *act_size)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, LOC_CATEGORY_GET_SVCS, cat_id,
-	    &answer);
+	aid_t req = async_send_1(exch, method, arg1, &answer);
 	int rc = async_data_read_start(exch, id_buf, buf_size);
 	
 	loc_exchange_end(exch);
@@ -616,17 +615,18 @@ static int loc_category_get_svcs_internal(category_id_t cat_id,
 	return EOK;
 }
 
-/** Get list of services in category.
+/** Get list of IDs.
  *
  * Returns an allocated array of service IDs.
  *
- * @param cat_id	Category ID
+ * @param method	IPC method
+ * @param arg1		IPC argument 1
  * @param data		Place to store pointer to array of IDs
  * @param count		Place to store number of IDs
  * @return 		EOK on success or negative error code
  */
-int loc_category_get_svcs(category_id_t cat_id, category_id_t **data,
-    size_t *count)
+static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
+    sysarg_t **data, size_t *count)
 {
 	service_id_t *ids;
 	size_t act_size;
@@ -636,7 +636,8 @@ int loc_category_get_svcs(category_id_t cat_id, category_id_t **data,
 	*data = NULL;
 	act_size = 0;	/* silence warning */
 
-	rc = loc_category_get_svcs_internal(cat_id, NULL, 0, &act_size);
+	rc = loc_category_get_ids_once(method, arg1, NULL, 0,
+	    &act_size);
 	if (rc != EOK)
 		return rc;
 
@@ -646,7 +647,7 @@ int loc_category_get_svcs(category_id_t cat_id, category_id_t **data,
 		return ENOMEM;
 
 	while (true) {
-		rc = loc_category_get_svcs_internal(cat_id, ids, alloc_size,
+		rc = loc_category_get_ids_once(method, arg1, ids, alloc_size,
 		    &act_size);
 		if (rc != EOK)
 			return rc;
@@ -665,4 +666,34 @@ int loc_category_get_svcs(category_id_t cat_id, category_id_t **data,
 	*count = act_size / sizeof(category_id_t);
 	*data = ids;
 	return EOK;
+}
+
+/** Get list of services in category.
+ *
+ * Returns an allocated array of service IDs.
+ *
+ * @param cat_id	Category ID
+ * @param data		Place to store pointer to array of IDs
+ * @param count		Place to store number of IDs
+ * @return 		EOK on success or negative error code
+ */
+int loc_category_get_svcs(category_id_t cat_id, service_id_t **data,
+    size_t *count)
+{
+	return loc_get_ids_internal(LOC_CATEGORY_GET_SVCS, cat_id,
+	    data, count);
+}
+
+/** Get list of categories.
+ *
+ * Returns an allocated array of category IDs.
+ *
+ * @param data		Place to store pointer to array of IDs
+ * @param count		Place to store number of IDs
+ * @return 		EOK on success or negative error code
+ */
+int loc_get_categories(category_id_t **data, size_t *count)
+{
+	return loc_get_ids_internal(LOC_GET_CATEGORIES, 0,
+	    data, count);
 }
