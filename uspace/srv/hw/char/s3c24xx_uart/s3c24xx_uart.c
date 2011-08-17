@@ -38,7 +38,7 @@
 
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <devmap.h>
+#include <loc.h>
 #include <ipc/char.h>
 #include <async.h>
 #include <async_obsolete.h>
@@ -51,7 +51,7 @@
 #include "s3c24xx_uart.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define NAME "s3c24ser"
 #define NAMESPACE "char"
@@ -82,9 +82,9 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": S3C24xx on-chip UART driver\n");
 
-	rc = devmap_driver_register(NAME, s3c24xx_uart_connection);
+	rc = loc_server_register(NAME, s3c24xx_uart_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return -1;
 	}
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 	if (s3c24xx_uart_init(uart) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->devmap_handle);
+	rc = loc_service_register(NAMESPACE "/" NAME, &uart->service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/" NAME);

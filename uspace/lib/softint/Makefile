@@ -34,7 +34,9 @@ SLIBRARY = libsoftint.so.0.0
 LSONAME = libsofti.so0
 
 SOURCES = \
+	generic/comparison.c \
 	generic/division.c \
-	generic/multiplication.c
+	generic/multiplication.c \
+	generic/shift.c
 
 include $(USPACE_PREFIX)/Makefile.common

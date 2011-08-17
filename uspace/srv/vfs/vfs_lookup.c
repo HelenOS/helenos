@@ -161,7 +161,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	async_exch_t *exch = vfs_exchange_grab(root->fs_handle);
 	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) first,
 	    (sysarg_t) (first + len - 1) % PLB_SIZE,
-	    (sysarg_t) root->devmap_handle, (sysarg_t) lflag, (sysarg_t) index,
+	    (sysarg_t) root->service_id, (sysarg_t) lflag, (sysarg_t) index,
 	    &answer);
 	
 	sysarg_t rc;
@@ -184,7 +184,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 		return EOK;
 	
 	result->triplet.fs_handle = (fs_handle_t) rc;
-	result->triplet.devmap_handle = (devmap_handle_t) IPC_GET_ARG1(answer);
+	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
 	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
 	result->size =
 	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(answer), IPC_GET_ARG4(answer));
@@ -211,7 +211,7 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VFS_OUT_OPEN_NODE,
-	    (sysarg_t) result->triplet.devmap_handle,
+	    (sysarg_t) result->triplet.service_id,
 	    (sysarg_t) result->triplet.index, &answer);
 	
 	sysarg_t rc;

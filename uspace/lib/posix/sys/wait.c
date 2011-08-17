@@ -66,9 +66,11 @@ int __posix_wtermsig(int status) {
 }
 
 /**
+ * Wait for any child process to stop or terminate.
  * 
- * @param stat_ptr
- * @return
+ * @param stat_ptr Location of the final status code of the child process.
+ * @return ID of the child process for which status is reported,
+ *     -1 on signal interrupt, (pid_t)-1 otherwise.
  */
 posix_pid_t posix_wait(int *stat_ptr)
 {
@@ -78,11 +80,15 @@ posix_pid_t posix_wait(int *stat_ptr)
 }
 
 /**
+ * Wait for a child process to stop or terminate.
  * 
- * @param pid
- * @param stat_ptr
- * @param options
- * @return
+ * @param pid What child process shall the caller wait for. See POSIX manual
+ *     for details.
+ * @param stat_ptr Location of the final status code of the child process.
+ * @param options Constraints of the waiting. See POSIX manual for details.
+ * @return ID of the child process for which status is reported,
+ *     -1 on signal interrupt, 0 if non-blocking wait is requested but there is
+ *     no child process whose status can be reported, (pid_t)-1 otherwise.
  */
 posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
 {

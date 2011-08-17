@@ -41,7 +41,6 @@
 #define FRAME_WIDTH		13
 #define FRAME_SIZE		(1 << FRAME_WIDTH)
 
-#ifdef KERNEL
 #ifndef __ASM__
 
 #include <typedefs.h>
@@ -50,7 +49,6 @@ extern uintptr_t last_frame;
 extern void frame_arch_init(void);
 #define physmem_print()
 
-#endif
 #endif
 
 #endif

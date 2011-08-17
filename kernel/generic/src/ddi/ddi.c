@@ -40,7 +40,6 @@
  */
 
 #include <ddi/ddi.h>
-#include <ddi/ddi_arg.h>
 #include <proc/task.h>
 #include <security/cap.h>
 #include <mm/frame.h>

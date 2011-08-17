@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <kernel/syscall/syscall.h>
+#include <abi/syscall.h>
 #include "syscalls.h"
 #include "trace.h"
 

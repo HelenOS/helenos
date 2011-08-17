@@ -42,7 +42,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <macros.h>
@@ -91,7 +91,7 @@ static size_t comm_size;
 static uintptr_t dev_physical = 0x13000000;
 static gxe_bd_t *dev;
 
-static devmap_handle_t devmap_handle[MAX_DISKS];
+static service_id_t service_id[MAX_DISKS];
 
 static fibril_mutex_t dev_lock[MAX_DISKS];
 
@@ -125,7 +125,7 @@ static int gxe_bd_init(void)
 	int rc, i;
 	char name[16];
 
-	rc = devmap_driver_register(NAME, gxe_bd_connection);
+	rc = loc_server_register(NAME, gxe_bd_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
@@ -141,7 +141,7 @@ static int gxe_bd_init(void)
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
-		rc = devmap_device_register(name, &devmap_handle[i]);
+		rc = loc_service_register(name, &service_id[i]);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -158,7 +158,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dsid;
 	unsigned int flags;
 	int retval;
 	uint64_t ba;
@@ -166,12 +166,12 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	int disk_id, i;
 
 	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	dsid = IPC_GET_ARG1(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (devmap_handle[i] == dh)
+		if (service_id[i] == dsid)
 			disk_id = i;
 
 	if (disk_id < 0) {

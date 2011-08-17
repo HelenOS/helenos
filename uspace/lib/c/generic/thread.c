@@ -36,7 +36,7 @@
 #include <libc.h>
 #include <stdlib.h>
 #include <libarch/faddr.h>
-#include <kernel/proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <fibril.h>
 #include <str.h>
 #include <async.h>

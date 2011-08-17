@@ -62,120 +62,127 @@
 
 #ifdef __ASM__
 
+#ifdef KERNEL
+
 #include <arch/asm/regname.h>
 
-# ctx: address of the structure with saved context
+#else /* KERNEL */
+
+#include <libarch/regname.h>
+
+#endif /* KERNEL */
+
+/* ctx: address of the structure with saved context */
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req
-	sw $s0,OFFSET_S0(\ctx)
-	sw $s1,OFFSET_S1(\ctx)
-	sw $s2,OFFSET_S2(\ctx)
-	sw $s3,OFFSET_S3(\ctx)
-	sw $s4,OFFSET_S4(\ctx)
-	sw $s5,OFFSET_S5(\ctx)
-	sw $s6,OFFSET_S6(\ctx)
-	sw $s7,OFFSET_S7(\ctx)
-	sw $s8,OFFSET_S8(\ctx)
-	sw $gp,OFFSET_GP(\ctx)
-
+	sw $s0, OFFSET_S0(\ctx)
+	sw $s1, OFFSET_S1(\ctx)
+	sw $s2, OFFSET_S2(\ctx)
+	sw $s3, OFFSET_S3(\ctx)
+	sw $s4, OFFSET_S4(\ctx)
+	sw $s5, OFFSET_S5(\ctx)
+	sw $s6, OFFSET_S6(\ctx)
+	sw $s7, OFFSET_S7(\ctx)
+	sw $s8, OFFSET_S8(\ctx)
+	sw $gp, OFFSET_GP(\ctx)
+	
 #ifndef KERNEL
-	sw $k1,OFFSET_TLS(\ctx)
-
+	sw $k1, OFFSET_TLS(\ctx)
+	
 #ifdef CONFIG_FPU
-	mfc1 $t0,$20
+	mfc1 $t0, $20
 	sw $t0, OFFSET_F20(\ctx)
-
-	mfc1 $t0,$21
+	
+	mfc1 $t0, $21
 	sw $t0, OFFSET_F21(\ctx)
-
-	mfc1 $t0,$22
+	
+	mfc1 $t0, $22
 	sw $t0, OFFSET_F22(\ctx)
-
-	mfc1 $t0,$23
+	
+	mfc1 $t0, $23
 	sw $t0, OFFSET_F23(\ctx)
-
-	mfc1 $t0,$24
+	
+	mfc1 $t0, $24
 	sw $t0, OFFSET_F24(\ctx)
-
-	mfc1 $t0,$25
+	
+	mfc1 $t0, $25
 	sw $t0, OFFSET_F25(\ctx)
-
-	mfc1 $t0,$26
+	
+	mfc1 $t0, $26
 	sw $t0, OFFSET_F26(\ctx)
-
-	mfc1 $t0,$27
+	
+	mfc1 $t0, $27
 	sw $t0, OFFSET_F27(\ctx)
-
-	mfc1 $t0,$28
+	
+	mfc1 $t0, $28
 	sw $t0, OFFSET_F28(\ctx)
-
-	mfc1 $t0,$29
+	
+	mfc1 $t0, $29
 	sw $t0, OFFSET_F29(\ctx)
 	
-	mfc1 $t0,$30
+	mfc1 $t0, $30
 	sw $t0, OFFSET_F30(\ctx)
 #endif /* CONFIG_FPU */
 #endif /* KERNEL */
-
-	sw $ra,OFFSET_PC(\ctx)
-	sw $sp,OFFSET_SP(\ctx)
+	
+	sw $ra, OFFSET_PC(\ctx)
+	sw $sp, OFFSET_SP(\ctx)
 .endm
 
-# ctx: address of the structure with saved context
+/* ctx: address of the structure with saved context */
 .macro CONTEXT_RESTORE_ARCH_CORE ctx:req
-	lw $s0,OFFSET_S0(\ctx)
-	lw $s1,OFFSET_S1(\ctx)
-	lw $s2,OFFSET_S2(\ctx)
-	lw $s3,OFFSET_S3(\ctx)
-	lw $s4,OFFSET_S4(\ctx)
-	lw $s5,OFFSET_S5(\ctx)
-	lw $s6,OFFSET_S6(\ctx)
-	lw $s7,OFFSET_S7(\ctx)
-	lw $s8,OFFSET_S8(\ctx)
-	lw $gp,OFFSET_GP(\ctx)
+	lw $s0, OFFSET_S0(\ctx)
+	lw $s1, OFFSET_S1(\ctx)
+	lw $s2, OFFSET_S2(\ctx)
+	lw $s3, OFFSET_S3(\ctx)
+	lw $s4, OFFSET_S4(\ctx)
+	lw $s5, OFFSET_S5(\ctx)
+	lw $s6, OFFSET_S6(\ctx)
+	lw $s7, OFFSET_S7(\ctx)
+	lw $s8, OFFSET_S8(\ctx)
+	lw $gp, OFFSET_GP(\ctx)
 #ifndef KERNEL
-	lw $k1,OFFSET_TLS(\ctx)
-
+	lw $k1, OFFSET_TLS(\ctx)
+	
 #ifdef CONFIG_FPU
 	lw $t0, OFFSET_F20(\ctx)
-	mtc1 $t0,$20
-
+	mtc1 $t0, $20
+	
 	lw $t0, OFFSET_F21(\ctx)
-	mtc1 $t0,$21
-
+	mtc1 $t0, $21
+	
 	lw $t0, OFFSET_F22(\ctx)
-	mtc1 $t0,$22
-
+	mtc1 $t0, $22
+	
 	lw $t0, OFFSET_F23(\ctx)
-	mtc1 $t0,$23
-
+	mtc1 $t0, $23
+	
 	lw $t0, OFFSET_F24(\ctx)
-	mtc1 $t0,$24
-
+	mtc1 $t0, $24
+	
 	lw $t0, OFFSET_F25(\ctx)
-	mtc1 $t0,$25
-
+	mtc1 $t0, $25
+	
 	lw $t0, OFFSET_F26(\ctx)
-	mtc1 $t0,$26
-
+	mtc1 $t0, $26
+	
 	lw $t0, OFFSET_F27(\ctx)
-	mtc1 $t0,$27
-
+	mtc1 $t0, $27
+	
 	lw $t0, OFFSET_F28(\ctx)
-	mtc1 $t0,$28
-
+	mtc1 $t0, $28
+	
 	lw $t0, OFFSET_F29(\ctx)
-	mtc1 $t0,$29
-
+	mtc1 $t0, $29
+	
 	lw $t0, OFFSET_F30(\ctx)
-	mtc1 $t0,$30
+	mtc1 $t0, $30
 #endif /* CONFIG_FPU */
 #endif /* KERNEL */
-
-	lw $ra,OFFSET_PC(\ctx)
-	lw $sp,OFFSET_SP(\ctx)
+	
+	lw $ra, OFFSET_PC(\ctx)
+	lw $sp, OFFSET_SP(\ctx)
 .endm
 
-#endif
-
+#endif /* __ASM__ */
 
 #endif

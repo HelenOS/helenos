@@ -37,7 +37,7 @@
 #include <arch/mach/testarm/testarm.h>
 #include <mm/page.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>

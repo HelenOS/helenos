@@ -35,8 +35,6 @@
 #ifndef KERN_ia32_CONTEXT_H_
 #define KERN_ia32_CONTEXT_H_
 
-#ifdef KERNEL
-
 #include <typedefs.h>
 
 #define STACK_ITEM_SIZE  4
@@ -55,8 +53,6 @@
 		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
 		(c)->ebp = 0; \
 	} while (0)
-
-#endif /* KERNEL */
 
 /*
  * Only save registers that must be preserved across

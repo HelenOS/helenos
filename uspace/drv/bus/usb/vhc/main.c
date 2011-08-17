@@ -33,7 +33,7 @@
  * Virtual host controller.
  */
 
-#include <devmap.h>
+#include <loc.h>
 #include <async.h>
 #include <unistd.h>
 #include <stdlib.h>

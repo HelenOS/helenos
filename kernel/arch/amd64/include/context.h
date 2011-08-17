@@ -35,8 +35,6 @@
 #ifndef KERN_amd64_CONTEXT_H_
 #define KERN_amd64_CONTEXT_H_
 
-#ifdef KERNEL
-
 #include <typedefs.h>
 
 /* According to ABI the stack MUST be aligned on 
@@ -51,8 +49,6 @@
 		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
 		(c)->rbp = 0; \
 	} while (0)
-
-#endif /* KERNEL */
 
 /* We include only registers that must be preserved
  * during function call

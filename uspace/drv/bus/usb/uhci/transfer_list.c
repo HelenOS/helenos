@@ -25,17 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver transfer list implementation
  */
+
 #include <errno.h>
 #include <usb/debug.h>
-#include <arch/barrier.h>
-
-
+#include <libarch/barrier.h>
 #include "transfer_list.h"
 #include "batch.h"
 

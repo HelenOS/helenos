@@ -105,7 +105,12 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	word_size = 4;
 #endif
 #ifdef __64_BITS__
-	word_size = 8;
+	/*
+	 * This should be 8 per the 64-bit ELF spec, but the Linux kernel
+	 * screws up and uses 4 anyway (and screws up elf_note_t as well)
+	 * and we are trying to be compatible with Linux GDB target. Sigh.
+	 */
+	word_size = 4;
 #endif
 	memset(&pr_status, 0, sizeof(pr_status));
 	istate_to_elf_regs(istate, &pr_status.regs);

@@ -40,7 +40,7 @@
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <ipc/devman.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <fibril_synch.h>
 #include <atomic.h>
 #include <async.h>
@@ -52,9 +52,9 @@
 #define MATCH_EXT ".ma"
 #define DEVICE_BUCKETS 256
 
-#define DEVMAP_CLASS_NAMESPACE "class"
-#define DEVMAP_DEVICE_NAMESPACE "devices"
-#define DEVMAP_SEPARATOR '\\'
+#define LOC_CLASS_NAMESPACE "class"
+#define LOC_DEVICE_NAMESPACE "devices"
+#define LOC_SEPARATOR '\\'
 
 struct dev_node;
 typedef struct dev_node dev_node_t;
@@ -171,8 +171,8 @@ struct fun_node {
 	
 	/** List of device classes to which this device function belongs. */
 	list_t classes;
-	/** Devmap handle if the device function is registered by devmap. */
-	devmap_handle_t devmap_handle;
+	/** Service ID if the device function is registered with loc. */
+	service_id_t service_id;
 	
 	/**
 	 * Used by the hash table of functions indexed by devman device handles.
@@ -180,9 +180,9 @@ struct fun_node {
 	link_t devman_fun;
 	
 	/**
-	 * Used by the hash table of functions indexed by devmap device handles.
+	 * Used by the hash table of functions indexed by service IDs.
 	 */
-	link_t devmap_fun;
+	link_t loc_fun;
 };
 
 
@@ -207,10 +207,10 @@ typedef struct dev_tree {
 	hash_table_t devman_functions;
 	
 	/**
-	 * Hash table of devices registered by devmapper, indexed by devmap
-	 * handles.
+	 * Hash table of services registered with location service, indexed by
+	 * service IDs.
 	 */
-	hash_table_t devmap_functions;
+	hash_table_t loc_functions;
 } dev_tree_t;
 
 typedef struct dev_class {
@@ -266,14 +266,14 @@ typedef struct dev_class_info {
 	
 	/** The name of the device function within the class. */
 	char *dev_name;
-	/** The handle of the device by device mapper in the class namespace. */
-	devmap_handle_t devmap_handle;
+	/** Service ID in the class namespace. */
+	service_id_t service_id;
 	
 	/**
-	 * Link in the hash table of devices registered by the devmapper using
+	 * Link to hash table of services registered with location service using
 	 * their class names.
 	 */
-	link_t devmap_link;
+	link_t loc_link;
 } dev_class_info_t;
 
 /** The list of device classes. */
@@ -282,10 +282,10 @@ typedef struct class_list {
 	list_t classes;
 	
 	/**
-	 * Hash table of devices registered by devmapper using their class name,
-	 * indexed by devmap handles.
+	 * Hash table of services registered with location service using their
+	 * class name, indexed by service IDs.
 	 */
-	hash_table_t devmap_functions;
+	hash_table_t loc_functions;
 	
 	/** Fibril mutex for list of classes. */
 	fibril_rwlock_t rwlock;
@@ -363,15 +363,15 @@ extern dev_class_t *find_dev_class_no_lock(class_list_t *, const char *);
 extern dev_class_info_t *find_dev_in_class(dev_class_t *, const char *);
 extern void add_dev_class_no_lock(class_list_t *, dev_class_t *);
 
-/* Devmap devices */
+/* Loc services */
 
-extern void devmap_register_tree_function(fun_node_t *, dev_tree_t *);
+extern void loc_register_tree_function(fun_node_t *, dev_tree_t *);
 
-extern fun_node_t *find_devmap_tree_function(dev_tree_t *, devmap_handle_t);
-extern fun_node_t *find_devmap_class_function(class_list_t *, devmap_handle_t);
+extern fun_node_t *find_loc_tree_function(dev_tree_t *, service_id_t);
+extern fun_node_t *find_loc_class_function(class_list_t *, service_id_t);
 
-extern void class_add_devmap_function(class_list_t *, dev_class_info_t *);
-extern void tree_add_devmap_function(dev_tree_t *, fun_node_t *);
+extern void class_add_loc_function(class_list_t *, dev_class_info_t *);
+extern void tree_add_loc_function(dev_tree_t *, fun_node_t *);
 
 #endif
 

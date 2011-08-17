@@ -52,8 +52,6 @@
 #	define PA2KA(x)	((x) + 0x80000000)
 #endif
 
-#ifdef KERNEL
-
 /* Number of entries in each level. */
 #define PTL0_ENTRIES_ARCH 	(2 << 12)	/* 4096 */
 #define PTL1_ENTRIES_ARCH 	0
@@ -318,8 +316,6 @@ extern void page_arch_init(void);
 
 
 #endif /* __ASM__ */
-
-#endif /* KERNEL */
 
 #endif
 
