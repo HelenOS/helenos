@@ -40,6 +40,10 @@
 #include <ipc/devmap.h>
 #include <stdio.h>
 
+enum vfs_change_state_type {
+	VFS_PASS_HANDLE
+};
+
 /** Libc version of the VFS triplet.
  *
  * Unique identification of a file system node

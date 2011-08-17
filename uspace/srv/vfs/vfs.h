@@ -188,6 +188,8 @@ extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
+extern void vfs_pass_handle(sysarg_t, sysarg_t, int);
+
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
 extern int vfs_fd_assign(vfs_file_t *, int);
