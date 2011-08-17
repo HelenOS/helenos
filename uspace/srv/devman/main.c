@@ -681,16 +681,13 @@ static void devman_connection_loc(ipc_callid_t iid, ipc_call_t *icall)
 		fun = find_loc_class_function(&class_list, service_id);
 	
 	if (fun == NULL || fun->dev->drv == NULL) {
+		log_msg(LVL_WARN, "devman_connection_loc(): function "
+		    "not found.\n");
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
 	dev = fun->dev;
-	
-	if ((dev->state != DEVICE_USABLE) || (!dev->drv->sess)) {
-		async_answer_0(iid, EINVAL);
-		return;
-	}
 	
 	async_exch_t *exch = async_exchange_begin(dev->drv->sess);
 	async_forward_fast(iid, exch, DRIVER_CLIENT, fun->handle, 0,
