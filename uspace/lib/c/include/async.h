@@ -478,6 +478,12 @@ extern async_sess_t *async_clone_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
 
+extern int async_state_change_start(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, async_exch_t *);
+extern bool async_state_change_receive(ipc_callid_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
+extern int async_state_change_finalize(ipc_callid_t, async_exch_t *);
+
 #endif
 
 /** @}

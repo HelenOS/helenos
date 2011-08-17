@@ -2461,5 +2461,38 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	return sess;
 }
 
+int async_state_change_start(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_exch_t *other_exch)
+{
+	return async_req_5_0(exch, IPC_M_STATE_CHANGE_AUTHORIZE,
+	    arg1, arg2, arg3, 0, other_exch->phone);
+}
+
+bool async_state_change_receive(ipc_callid_t *callid, sysarg_t *arg1,
+    sysarg_t *arg2, sysarg_t *arg3)
+{
+	assert(callid);
+
+	ipc_call_t call;
+	*callid = async_get_call(&call);
+
+	if (IPC_GET_IMETHOD(call) != IPC_M_STATE_CHANGE_AUTHORIZE)
+		return false;
+	
+	if (arg1)
+		*arg1 = IPC_GET_ARG1(call);
+	if (arg2)
+		*arg2 = IPC_GET_ARG2(call);
+	if (arg3)
+		*arg3 = IPC_GET_ARG3(call);
+
+	return true;
+}
+
+int async_state_change_finalize(ipc_callid_t callid, async_exch_t *other_exch)
+{
+	return ipc_answer_1(callid, EOK, other_exch->phone);
+}
+
 /** @}
  */
