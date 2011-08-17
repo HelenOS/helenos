@@ -78,7 +78,8 @@ const struct posix_lconv C_LOCALE = {
 	.thousands_sep = (char *) ""
 };
 
-/** Set program locale.
+/**
+ * Set program locale.
  * 
  * @param category What category to set.
  * @param locale Locale name.
@@ -94,7 +95,8 @@ char *posix_setlocale(int category, const char *locale)
 	return NULL;
 }
 
-/** Return locale-specific information.
+/**
+ * Return locale-specific information.
  * 
  * @return Information about the current locale.
  */
@@ -104,7 +106,8 @@ struct posix_lconv *posix_localeconv(void)
 	return (struct posix_lconv *) &C_LOCALE;
 }
 
-/** Duplicate locale object.
+/**
+ * Duplicate locale object.
  * 
  * @param locobj Object to duplicate.
  * @return Duplicated object.
@@ -124,7 +127,8 @@ posix_locale_t posix_duplocale(posix_locale_t locobj)
 	return copy;
 }
 
-/** Free locale object.
+/**
+ * Free locale object.
  * 
  * @param locobj Object to free.
  */
@@ -135,7 +139,8 @@ void posix_freelocale(posix_locale_t locobj)
 	}
 }
 
-/** Create or modify a locale object.
+/**
+ * Create or modify a locale object.
  * 
  * @param category_mask Mask of categories to be set or modified.
  * @param locale Locale to be used.
@@ -162,7 +167,8 @@ posix_locale_t posix_newlocale(int category_mask, const char *locale,
 	return new;
 }
 
-/** Set locale for the current thread.
+/**
+ * Set locale for the current thread.
  * 
  * @param newloc Locale to use.
  * @return The previously set locale or LC_GLOBAL_LOCALE

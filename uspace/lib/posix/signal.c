@@ -135,25 +135,28 @@ void __posix_default_signal_handler(int signo)
 	}
 }
 
-/** Just an empty function to get an unique pointer value for comparison.
+/**
+ * Just an empty function to get an unique pointer value for comparison.
  *
- * @param signo
+ * @param signo Signal number.
  */
 void __posix_hold_signal_handler(int signo)
 {
 	/* Nothing */
 }
 
-/** Empty function to be used as ignoring handler.
+/**
+ * Empty function to be used as ignoring handler.
  * 
- * @param signo
+ * @param signo Signal number.
  */
 void __posix_ignore_signal_handler(int signo)
 {
 	/* Nothing */
 }
 
-/** Clear the signal set.
+/**
+ * Clear the signal set.
  * 
  * @param set Pointer to the signal set.
  * @return Always returns zero.
@@ -166,7 +169,8 @@ int posix_sigemptyset(posix_sigset_t *set)
 	return 0;
 }
 
-/** Fill the signal set (i.e. add all signals).
+/**
+ * Fill the signal set (i.e. add all signals).
  * 
  * @param set Pointer to the signal set.
  * @return Always returns zero.
@@ -179,7 +183,8 @@ int posix_sigfillset(posix_sigset_t *set)
 	return 0;
 }
 
-/** Add a signal to the set.
+/**
+ * Add a signal to the set.
  * 
  * @param set Pointer to the signal set.
  * @param signo Signal number to add.
@@ -193,7 +198,8 @@ int posix_sigaddset(posix_sigset_t *set, int signo)
 	return 0;
 }
 
-/** Delete a signal from the set.
+/**
+ * Delete a signal from the set.
  * 
  * @param set Pointer to the signal set.
  * @param signo Signal number to remove.
@@ -207,7 +213,8 @@ int posix_sigdelset(posix_sigset_t *set, int signo)
 	return 0;
 }
 
-/** Inclusion test for a signal set.
+/**
+ * Inclusion test for a signal set.
  * 
  * @param set Pointer to the signal set.
  * @param signo Signal number to query.
@@ -220,9 +227,10 @@ int posix_sigismember(const posix_sigset_t *set, int signo)
 	return (*set & (1 << signo)) != 0;
 }
 
-/** Unsafe variant of the sigaction() function.
- *  Doesn't do any checking of its arguments and
- *  does not deal with thread-safety.
+/**
+ * Unsafe variant of the sigaction() function.
+ * Doesn't do any checking of its arguments and
+ * does not deal with thread-safety.
  * 
  * @param sig
  * @param act
@@ -242,7 +250,8 @@ static void _sigaction_unsafe(int sig, const struct posix_sigaction *restrict ac
 	}
 }
 
-/** Sets a new action for the given signal number.
+/**
+ * Sets a new action for the given signal number.
  * 
  * @param sig Signal number to set action for.
  * @param act If not NULL, contents of this structure are
@@ -275,7 +284,8 @@ int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
 	return 0;
 }
 
-/** Sets a new handler for the given signal number.
+/**
+ * Sets a new handler for the given signal number.
  * 
  * @param sig Signal number to set handler for.
  * @param func Handler function.
@@ -303,7 +313,8 @@ typedef struct {
 	posix_siginfo_t siginfo;
 } signal_queue_item;
 
-/** Queue blocked signal.
+/**
+ * Queue blocked signal.
  *
  * @param signo Signal number.
  * @param siginfo Additional information about the signal.
@@ -321,7 +332,8 @@ static void _queue_signal(int signo, posix_siginfo_t *siginfo)
 }
 
 
-/** Executes an action associated with the given signal.
+/**
+ * Executes an action associated with the given signal.
  *
  * @param signo Signal number.
  * @param siginfo Additional information about the circumstances of this raise.
@@ -365,7 +377,8 @@ static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
 	return 0;
 }
 
-/** Raise all unblocked previously queued signals.
+/**
+ * Raise all unblocked previously queued signals.
  */
 static void _dequeue_unblocked_signals()
 {
@@ -389,7 +402,8 @@ static void _dequeue_unblocked_signals()
 	}
 }
 
-/** Raise a signal for the calling process.
+/**
+ * Raise a signal for the calling process.
  * 
  * @param sig Signal number.
  * @return -1 with errno set on failure, 0 on success.
@@ -408,7 +422,8 @@ int posix_raise(int sig)
 	}
 }
 
-/** Raises a signal for a selected process.
+/**
+ * Raises a signal for a selected process.
  * 
  * @param pid PID of the process for which the signal shall be raised.
  * @param signo Signal to raise.
@@ -445,8 +460,9 @@ int posix_kill(posix_pid_t pid, int signo)
 	return 0;
 }
 
-/** Send a signal to a process group. Always fails at the moment because of
- *  lack of this functionality in HelenOS.
+/**
+ * Send a signal to a process group. Always fails at the moment because of
+ * lack of this functionality in HelenOS.
  * 
  * @param pid PID of the process group.
  * @param sig Signal number.
@@ -458,7 +474,8 @@ int posix_killpg(posix_pid_t pid, int sig)
 	return posix_kill(-pid, sig);
 }
 
-/** Outputs information about the signal to the standard error stream.
+/**
+ * Outputs information about the signal to the standard error stream.
  * 
  * @param pinfo SigInfo struct to write.
  * @param message String to output alongside human-readable signal description.
@@ -470,7 +487,8 @@ void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message)
 	// TODO: print si_code
 }
 
-/** Outputs information about the signal to the standard error stream.
+/**
+ * Outputs information about the signal to the standard error stream.
  * 
  * @param signum Signal number.
  * @param message String to output alongside human-readable signal description.
@@ -485,7 +503,8 @@ void posix_psignal(int signum, const char *message)
 	}
 }
 
-/** Manipulate the signal mask of the calling thread.
+/**
+ * Manipulate the signal mask of the calling thread.
  * 
  * @param how What to do with the mask.
  * @param set Signal set to work with.
@@ -524,7 +543,8 @@ int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
 	return 0;
 }
 
-/** Manipulate the signal mask of the process.
+/**
+ * Manipulate the signal mask of the process.
  * 
  * @param how What to do with the mask.
  * @param set Signal set to work with.

@@ -161,13 +161,7 @@ extern posix_clock_t posix_clock(void);
 	#define clock_gettime posix_clock_gettime
 	#define clock_settime posix_clock_settime
 	#define clock_nanosleep posix_clock_nanosleep
-	
-	#define timer_create posix_timer_create
-	#define timer_delete posix_timer_delete
-	#define timer_getoverrun posix_timer_getoverrun
-	#define timer_gettime posix_timer_gettime
-	#define timer_settime posix_timer_settime
-	
+
 	#define clock posix_clock
 #endif
 
