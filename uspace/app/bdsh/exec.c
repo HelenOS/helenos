@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <str_error.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "util.h"

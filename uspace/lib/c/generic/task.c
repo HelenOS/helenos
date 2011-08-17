@@ -45,6 +45,7 @@
 #include <malloc.h>
 #include <libc.h>
 #include "private/ns.h"
+#include <vfs/vfs.h>
 
 task_id_t task_get_id(void)
 {

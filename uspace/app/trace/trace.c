@@ -49,6 +49,7 @@
 #include <fibril_synch.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
+#include <vfs/vfs.h>
 
 #include <libc.h>
 

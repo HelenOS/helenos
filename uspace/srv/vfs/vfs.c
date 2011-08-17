@@ -46,6 +46,7 @@
 #include <str.h>
 #include <as.h>
 #include <atomic.h>
+#include <vfs/vfs.h>
 #include "vfs.h"
 
 #define NAME  "vfs"

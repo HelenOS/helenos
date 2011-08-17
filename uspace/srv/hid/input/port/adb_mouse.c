@@ -41,6 +41,7 @@
 #include <mouse.h>
 #include <errno.h>
 #include <devmap.h>
+#include <stdio.h>
 
 static mouse_dev_t *mouse_dev;
 static async_sess_t *dev_sess;
