@@ -37,7 +37,7 @@
 #define CUDA_ADB_H_
 
 #include <sys/types.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <fibril_synch.h>
 
 typedef struct {
@@ -103,7 +103,7 @@ enum cuda_xfer_state {
 };
 
 typedef struct {
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 	int client_phone;
 } adb_dev_t;
 

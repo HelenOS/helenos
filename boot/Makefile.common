@@ -72,7 +72,7 @@ INIT_TASKS = \
 	$(USPACE_PATH)/srv/ns/ns \
 	$(USPACE_PATH)/srv/loader/loader \
 	$(USPACE_PATH)/app/init/init \
-	$(USPACE_PATH)/srv/devmap/devmap \
+	$(USPACE_PATH)/srv/loc/loc \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs
 
@@ -92,7 +92,7 @@ RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/fb/fb \
 	$(USPACE_PATH)/srv/hid/input/input \
 	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/fs/devfs/devfs
+	$(USPACE_PATH)/srv/fs/locfs/locfs
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \

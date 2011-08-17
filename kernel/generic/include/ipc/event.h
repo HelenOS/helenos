@@ -35,7 +35,7 @@
 #ifndef KERN_EVENT_H_
 #define KERN_EVENT_H_
 
-#include <ipc/event_types.h>
+#include <abi/ipc/event.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <ipc/ipc.h>

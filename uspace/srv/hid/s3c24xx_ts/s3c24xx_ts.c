@@ -38,7 +38,7 @@
 
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <devmap.h>
+#include <loc.h>
 #include <io/console.h>
 #include <vfs/vfs.h>
 #include <ipc/mouseev.h>
@@ -53,7 +53,7 @@
 #include "s3c24xx_ts.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define NAME "s3c24ser"
 #define NAMESPACE "hid"
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": S3C24xx touchscreen driver\n");
 
-	rc = devmap_driver_register(NAME, s3c24xx_ts_connection);
+	rc = loc_server_register(NAME, s3c24xx_ts_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return -1;
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	if (s3c24xx_ts_init(ts) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/mouse", &ts->devmap_handle);
+	rc = loc_service_register(NAMESPACE "/mouse", &ts->service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/mouse");

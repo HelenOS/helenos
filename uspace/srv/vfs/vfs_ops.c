@@ -53,7 +53,7 @@
 #include <vfs/canonify.h>
 
 /* Forward declarations of static functions. */
-static int vfs_truncate_internal(fs_handle_t, devmap_handle_t, fs_index_t,
+static int vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
     aoff64_t);
 
 /**
@@ -64,10 +64,10 @@ FIBRIL_RWLOCK_INITIALIZE(namespace_rwlock);
 
 vfs_pair_t rootfs = {
 	.fs_handle = 0,
-	.devmap_handle = 0
+	.service_id = 0
 };
 
-static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
+static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
     fs_handle_t fs_handle, char *mp, char *opts)
 {
 	vfs_lookup_res_t mp_res;
@@ -124,7 +124,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			/* Tell the mountee that it is being mounted. */
 			exch = vfs_exchange_grab(fs_handle);
 			msg = async_send_1(exch, VFS_OUT_MOUNTED,
-			    (sysarg_t) devmap_handle, &answer);
+			    (sysarg_t) service_id, &answer);
 			/* Send the mount options */
 			rc = async_data_write_start(exch, (void *)opts,
 			    str_size(opts));
@@ -149,14 +149,14 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 			
 			mr_res.triplet.fs_handle = fs_handle;
-			mr_res.triplet.devmap_handle = devmap_handle;
+			mr_res.triplet.service_id = service_id;
 			mr_res.triplet.index = rindex;
 			mr_res.size = rsize;
 			mr_res.lnkcnt = rlnkcnt;
 			mr_res.type = VFS_NODE_DIRECTORY;
 			
 			rootfs.fs_handle = fs_handle;
-			rootfs.devmap_handle = devmap_handle;
+			rootfs.service_id = service_id;
 			
 			/* Add reference to the mounted root. */
 			mr_node = vfs_node_get(&mr_res); 
@@ -177,8 +177,8 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	}
 	
 	/*
-	 * At this point, we have all necessary pieces: file system and device
-	 * handles, and we know the mount point VFS node.
+	 * At this point, we have all necessary pieces: file system handle
+	 * and service ID, and we know the mount point VFS node.
 	 */
 	
 	async_exch_t *mountee_exch = vfs_exchange_grab(fs_handle);
@@ -186,10 +186,10 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	
 	exch = vfs_exchange_grab(mp_res.triplet.fs_handle);
 	msg = async_send_4(exch, VFS_OUT_MOUNT,
-	    (sysarg_t) mp_res.triplet.devmap_handle,
+	    (sysarg_t) mp_res.triplet.service_id,
 	    (sysarg_t) mp_res.triplet.index,
 	    (sysarg_t) fs_handle,
-	    (sysarg_t) devmap_handle, &answer);
+	    (sysarg_t) service_id, &answer);
 	
 	/* Send connection */
 	rc = async_exchange_clone(exch, mountee_exch);
@@ -233,7 +233,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 		rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 		
 		mr_res.triplet.fs_handle = fs_handle;
-		mr_res.triplet.devmap_handle = devmap_handle;
+		mr_res.triplet.service_id = service_id;
 		mr_res.triplet.index = rindex;
 		mr_res.size = rsize;
 		mr_res.lnkcnt = rlnkcnt;
@@ -254,14 +254,14 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 
 	/*
 	 * We expect the library to do the device-name to device-handle
 	 * translation for us, thus the device handle will arrive as ARG1
 	 * in the request.
 	 */
-	devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	service_id = (service_id_t) IPC_GET_ARG1(*request);
 	
 	/*
 	 * Mount flags are passed as ARG2.
@@ -349,7 +349,7 @@ recheck:
 	async_answer_0(callid, EOK);
 	
 	/* Do the mount */
-	vfs_mount_internal(rid, devmap_handle, fs_handle, mp, opts);
+	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
 	free(mp);
 	free(fs_name);
 	free(opts);
@@ -408,7 +408,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	 * someone is working with it.
 	 */
 	if (vfs_nodes_refcount_sum_get(mr_node->fs_handle,
-	    mr_node->devmap_handle) != 2) {
+	    mr_node->service_id) != 2) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		vfs_node_put(mr_node);
 		free(mp);
@@ -429,7 +429,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		
 		exch = vfs_exchange_grab(mr_node->fs_handle);
 		rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED,
-		    mr_node->devmap_handle);
+		    mr_node->service_id);
 		vfs_exchange_release(exch);
 		
 		if (rc != EOK) {
@@ -440,7 +440,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		rootfs.fs_handle = 0;
-		rootfs.devmap_handle = 0;
+		rootfs.service_id = 0;
 	} else {
 		
 		/*
@@ -469,7 +469,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		
 		exch = vfs_exchange_grab(mp_node->fs_handle);
 		rc = async_req_2_0(exch, VFS_OUT_UNMOUNT,
-		    mp_node->devmap_handle, mp_node->index);
+		    mp_node->service_id, mp_node->index);
 		vfs_exchange_release(exch);
 		
 		if (rc != EOK) {
@@ -574,7 +574,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		fibril_rwlock_write_lock(&node->contents_rwlock);
 		if (node->size) {
 			rc = vfs_truncate_internal(node->fs_handle,
-			    node->devmap_handle, node->index, 0);
+			    node->service_id, node->index, 0);
 			if (rc) {
 				fibril_rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
@@ -627,7 +627,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	vfs_lookup_res_t lr;
 	
 	lr.triplet.fs_handle = IPC_GET_ARG1(*request);
-	lr.triplet.devmap_handle = IPC_GET_ARG2(*request);
+	lr.triplet.service_id = IPC_GET_ARG2(*request);
 	lr.triplet.index = IPC_GET_ARG3(*request);
 	int oflag = IPC_GET_ARG4(*request);
 	
@@ -648,7 +648,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 		fibril_rwlock_write_lock(&node->contents_rwlock);
 		if (node->size) {
 			rc = vfs_truncate_internal(node->fs_handle,
-			    node->devmap_handle, node->index, 0);
+			    node->service_id, node->index, 0);
 			if (rc) {
 				fibril_rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
@@ -711,7 +711,7 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	/* Make a VFS_OUT_SYMC request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_2(fs_exch, VFS_OUT_SYNC, file->node->devmap_handle,
+	msg = async_send_2(fs_exch, VFS_OUT_SYNC, file->node->service_id,
 	    file->node->index, &answer);
 	
 	vfs_exchange_release(fs_exch);
@@ -796,14 +796,14 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	ipc_call_t answer;
 	if (read) {
 		rc = async_data_read_forward_4_1(fs_exch, VFS_OUT_READ,
-		    file->node->devmap_handle, file->node->index,
+		    file->node->service_id, file->node->index,
 		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	} else {
 		if (file->append)
 			file->pos = file->node->size;
 		
 		rc = async_data_write_forward_4_1(fs_exch, VFS_OUT_WRITE,
-		    file->node->devmap_handle, file->node->index,
+		    file->node->service_id, file->node->index,
 		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	}
 	
@@ -934,12 +934,12 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, EINVAL);
 }
 
-int vfs_truncate_internal(fs_handle_t fs_handle, devmap_handle_t devmap_handle,
+int vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
     fs_index_t index, aoff64_t size)
 {
 	async_exch_t *exch = vfs_exchange_grab(fs_handle);
 	sysarg_t rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
-	    (sysarg_t) devmap_handle, (sysarg_t) index, LOWER32(size),
+	    (sysarg_t) service_id, (sysarg_t) index, LOWER32(size),
 	    UPPER32(size));
 	vfs_exchange_release(exch);
 	
@@ -962,7 +962,7 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 
 	fibril_rwlock_write_lock(&file->node->contents_rwlock);
 	rc = vfs_truncate_internal(file->node->fs_handle,
-	    file->node->devmap_handle, file->node->index, size);
+	    file->node->service_id, file->node->index, size);
 	if (rc == EOK)
 		file->node->size = size;
 	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
@@ -996,7 +996,7 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
 	
 	aid_t msg;
-	msg = async_send_3(exch, VFS_OUT_STAT, file->node->devmap_handle,
+	msg = async_send_3(exch, VFS_OUT_STAT, file->node->service_id,
 	    file->node->index, true, NULL);
 	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	
@@ -1049,7 +1049,7 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
 	
 	aid_t msg;
-	msg = async_send_3(exch, VFS_OUT_STAT, node->devmap_handle,
+	msg = async_send_3(exch, VFS_OUT_STAT, node->service_id,
 	    node->index, false, NULL);
 	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	
@@ -1226,7 +1226,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Check whether linking to the same file system instance. */
 	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
-	    (old_node->devmap_handle != new_par_lr.triplet.devmap_handle)) {
+	    (old_node->service_id != new_par_lr.triplet.service_id)) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		vfs_node_put(old_node);
 		async_answer_0(rid, EXDEV);	/* different file systems */

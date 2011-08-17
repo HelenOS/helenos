@@ -39,7 +39,7 @@
 #include <memstr.h>
 #include <debug.h>
 #include <ipc/ipc.h>
-#include <ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
@@ -426,8 +426,6 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	}
 	case IPC_M_DATA_READ: {
 		size_t size = IPC_GET_ARG2(call->data);
-		if (size <= 0)
-			return ELIMIT;
 		if (size > DATA_XFER_LIMIT) {
 			int flags = IPC_GET_ARG3(call->data);
 			if (flags & IPC_XF_RESTRICT)

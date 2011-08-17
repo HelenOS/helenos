@@ -102,14 +102,9 @@
 typedef int64_t posix_intmax_t;
 typedef uint64_t posix_uintmax_t;
 
-// FIXME: should be integrated into build process similarly to uintptr_t
-typedef ssize_t posix_intptr_t;
-
 #ifndef LIBPOSIX_INTERNAL
 	#define intmax_t posix_intmax_t
 	#define uintmax_t posix_uintmax_t
-
-	#define intptr_t posix_intptr_t
 #endif
 
 #endif /* POSIX_STDINT_H_ */

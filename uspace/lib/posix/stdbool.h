@@ -35,9 +35,6 @@
 #ifndef POSIX_STDBOOL_H_
 #define POSIX_STDBOOL_H_
 
-// TODO: propose for inclusion in libc and drop bool.h,
-//       it's a very silly incompatibility with standard C
-
 #ifdef LIBC_BOOL_H_
 	#error "You can't include bool.h and stdbool.h at the same time."
 #endif

@@ -57,7 +57,7 @@ const char *test_devman2(void)
 	const char *err_msg = NULL;
 	char *path = NULL;
 	while (rc == EOK) {
-		rc = asprintf(&path, "/dev/class/%s\\%zu", DEVICE_CLASS, idx);
+		rc = asprintf(&path, "/loc/class/%s\\%zu", DEVICE_CLASS, idx);
 		if (rc < 0) {
 			continue;
 		}

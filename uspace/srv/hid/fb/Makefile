@@ -39,8 +39,7 @@ BINARY = fb
 -include $(CONFIG_MAKEFILE)
 
 SOURCES = \
-	main.c \
-	ppm.c
+	main.c
 
 ifneq ($(UARCH),ia64)
 	SOURCES += \
@@ -85,6 +84,7 @@ ifeq ($(UARCH),sparc64)
 	endif
 endif
 
-EXTRA_CFLAGS += -D$(UARCH)
+LIBS = $(LIBIMGMAP_PREFIX)/libimgmap.a
+EXTRA_CFLAGS += -I$(LIBIMGMAP_PREFIX) -D$(UARCH)
 
 include $(USPACE_PREFIX)/Makefile.common

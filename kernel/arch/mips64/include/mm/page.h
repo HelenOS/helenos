@@ -49,13 +49,11 @@
 	#define PA2KA(addr)  ((addr) + 0xffffffff80000000)
 #endif
 
-#ifdef KERNEL
 #ifndef __ASM__
 
 extern void page_arch_init(void);
 
 #endif /* __ASM__ */
-#endif /* KERNEL */
 
 #endif
 

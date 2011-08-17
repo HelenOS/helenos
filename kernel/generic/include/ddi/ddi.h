@@ -35,8 +35,8 @@
 #ifndef KERN_DDI_H_
 #define KERN_DDI_H_
 
-#include <ddi/ddi_arg.h>
 #include <typedefs.h>
+#include <abi/ddi/arg.h>
 #include <proc/task.h>
 #include <adt/list.h>
 

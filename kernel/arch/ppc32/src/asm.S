@@ -27,7 +27,7 @@
  */
 
 #include <arch/asm/regname.h>
-#include <arch/cpu.h>
+#include <arch/msr.h>
 
 .text
 

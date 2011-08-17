@@ -35,18 +35,7 @@
 #ifndef KERN_ia32_ISTATE_H_
 #define KERN_ia32_ISTATE_H_
 
-#ifdef KERNEL
-
-#include <typedefs.h>
 #include <trace.h>
-
-#else /* KERNEL */
-
-#include <sys/types.h>
-
-#define NO_TRACE
-
-#endif /* KERNEL */
 
 typedef struct istate {
 	/*

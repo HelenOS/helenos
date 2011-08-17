@@ -48,8 +48,8 @@
 #include <ipc/fb.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
-#include <kernel/errno.h>
-#include <kernel/genarch/fb/visuals.h>
+#include <errno.h>
+#include <abi/fb/visuals.h>
 #include <io/color.h>
 #include <io/style.h>
 #include <async.h>
@@ -58,15 +58,15 @@
 #include <stdio.h>
 #include <byteorder.h>
 #include <io/screenbuffer.h>
+#include <imgmap.h>
 #include "font-8x16.h"
 #include "fb.h"
 #include "main.h"
-#include "ppm.h"
 #include "pointer.xbm"
 #include "pointer_mask.xbm"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define DEFAULT_BGCOLOR  0xf0f0f0
 #define DEFAULT_FGCOLOR  0x000000
@@ -75,7 +75,7 @@
 
 #define MAX_ANIM_LEN    8
 #define MAX_ANIMATIONS  4
-#define MAX_PIXMAPS     256  /**< Maximum number of saved pixmaps */
+#define MAX_IMGMAPS     256  /**< Maximum number of saved image maps */
 #define MAX_VIEWPORTS   128  /**< Viewport is a rectangular area on the screen */
 
 /** Function to render a pixel from a RGB value. */
@@ -159,19 +159,13 @@ typedef struct {
 	
 	unsigned int pos;
 	unsigned int animlen;
-	unsigned int pixmaps[MAX_ANIM_LEN];
+	unsigned int imgmaps[MAX_ANIM_LEN];
 } animation_t;
 
 static animation_t animations[MAX_ANIMATIONS];
 static bool anims_enabled;
 
-typedef struct {
-	unsigned int width;
-	unsigned int height;
-	uint8_t *data;
-} pixmap_t;
-
-static pixmap_t pixmaps[MAX_PIXMAPS];
+static imgmap_t *imgmaps[MAX_IMGMAPS];
 static viewport_t viewports[128];
 
 static bool client_connected = false;  /**< Allow only 1 connection */
@@ -211,7 +205,6 @@ static void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
 
 static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
     unsigned int row);
-
 
 #define RED(x, bits)                 (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
 #define GREEN(x, bits)               (((x) >> (8 + 8 - (bits))) & ((1 << (bits)) - 1))
@@ -874,7 +867,6 @@ static void cursor_hide(viewport_t *vport)
 	}
 }
 
-
 /** Show cursor if cursor showing is enabled
  *
  */
@@ -887,7 +879,6 @@ static void cursor_show(viewport_t *vport)
 	}
 }
 
-
 /** Invert cursor, if it is enabled
  *
  */
@@ -898,7 +889,6 @@ static void cursor_blink(viewport_t *vport)
 	else
 		cursor_show(vport);
 }
-
 
 /** Draw character at given position relative to viewport
  *
@@ -980,75 +970,90 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 	cursor_show(vport);
 }
 
-
-static void putpixel_pixmap(void *data, unsigned int x, unsigned int y, uint32_t color)
+static void putpixel(viewport_t *vport, unsigned int x, unsigned int y,
+    uint32_t color)
 {
-	int pm = *((int *) data);
-	pixmap_t *pmap = &pixmaps[pm];
-	unsigned int pos = (y * pmap->width + x) * screen.pixelbytes;
-	
-	screen.rgb_conv(&pmap->data[pos], color);
-}
-
-
-static void putpixel(void *data, unsigned int x, unsigned int y, uint32_t color)
-{
-	viewport_t *vport = (viewport_t *) data;
 	unsigned int dx = vport->x + x;
 	unsigned int dy = vport->y + y;
 	
 	screen.rgb_conv(&screen.fb_addr[FB_POS(dx, dy)], color);
 }
 
-
-/** Return first free pixmap
+/** Draw image map
+ *
+ * @param[in] img       Image map.
+ * @param[in] sx        Coordinate of upper left corner.
+ * @param[in] sy        Coordinate of upper left corner.
+ * @param[in] maxwidth  Maximum allowed width for picture.
+ * @param[in] maxheight Maximum allowed height for picture.
+ * @param[in] vport     Viewport.
+ *
+ * @return EOK on success.
  *
  */
-static int find_free_pixmap(void)
+static int imgmap_draw(imgmap_t *img, unsigned int sx, unsigned int sy,
+    unsigned int maxwidth, unsigned int maxheight, void *vport)
+{
+	if (img->visual != VISUAL_BGR_8_8_8)
+		return EINVAL;
+	
+	uint8_t *data = (uint8_t *) img->data;
+	
+	for (sysarg_t y = 0; y < img->height; y++) {
+		for (sysarg_t x = 0; x < img->width; x++) {
+			if ((x > maxwidth) || (y > maxheight)) {
+				data += 3;
+				continue;
+			}
+			
+			uint32_t color = (data[2] << 16) + (data[1] << 8) + data[0];
+			
+			putpixel(vport, sx + x, sy + y, color);
+			data += 3;
+		}
+	}
+	
+	return EOK;
+}
+
+/** Return first free image map
+ *
+ */
+static int find_free_imgmap(void)
 {
 	unsigned int i;
 	
-	for (i = 0; i < MAX_PIXMAPS; i++)
-		if (!pixmaps[i].data)
+	for (i = 0; i < MAX_IMGMAPS; i++)
+		if (!imgmaps[i])
 			return i;
 	
 	return -1;
 }
 
-
-/** Create a new pixmap and return appropriate ID
+/** Create a new image map and return appropriate ID
  *
  */
-static int shm2pixmap(unsigned char *shm, size_t size)
+static int shm2imgmap(imgmap_t *shm, size_t size)
 {
-	int pm;
-	pixmap_t *pmap;
-	
-	pm = find_free_pixmap();
-	if (pm == -1)
+	int im = find_free_imgmap();
+	if (im == -1)
 		return ELIMIT;
 	
-	pmap = &pixmaps[pm];
-	
-	if (ppm_get_data(shm, size, &pmap->width, &pmap->height))
-		return EINVAL;
-	
-	pmap->data = malloc(pmap->width * pmap->height * screen.pixelbytes);
-	if (!pmap->data)
+	imgmap_t *imap = malloc(size);
+	if (!imap)
 		return ENOMEM;
 	
-	ppm_draw(shm, size, 0, 0, pmap->width, pmap->height, putpixel_pixmap, (void *) &pm);
-	
-	return pm;
+	memcpy(imap, shm, size);
+	imgmaps[im] = imap;
+	return im;
 }
-
 
 /** Handle shared memory communication calls
  *
- * Protocol for drawing pixmaps:
+ * Protocol for drawing image maps:
  * - FB_PREPARE_SHM(client shm identification)
  * - IPC_M_AS_AREA_SEND
- * - FB_DRAW_PPM(startx, starty)
+ * - FB_DRAW_IMGMAP(startx, starty)
  * - FB_DROP_SHM
  *
  * Protocol for text drawing
@@ -1070,7 +1075,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	static keyfield_t *interbuffer = NULL;
 	static size_t intersize = 0;
 	
-	static unsigned char *shm = NULL;
+	static imgmap_t *shm = NULL;
 	static sysarg_t shm_id = 0;
 	static size_t shm_size;
 	
@@ -1092,11 +1097,8 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 				shm_id = 0;
 				return false;
 			}
+			
 			shm = dest;
-			
-			if (shm[0] != 'P')
-				return false;
-			
 			return true;
 		} else {
 			intersize = IPC_GET_ARG2(*call);
@@ -1106,10 +1108,9 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	case FB_PREPARE_SHM:
 		if (shm_id)
 			retval = EBUSY;
-		else 
+		else
 			shm_id = IPC_GET_ARG1(*call);
 		break;
-		
 	case FB_DROP_SHM:
 		if (shm) {
 			as_area_destroy(shm);
@@ -1117,19 +1118,19 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		}
 		shm_id = 0;
 		break;
-		
-	case FB_SHM2PIXMAP:
+	case FB_SHM2IMGMAP:
 		if (!shm) {
 			retval = EINVAL;
 			break;
 		}
-		retval = shm2pixmap(shm, shm_size);
+		retval = shm2imgmap(shm, shm_size);
 		break;
-	case FB_DRAW_PPM:
+	case FB_DRAW_IMGMAP:
 		if (!shm) {
 			retval = EINVAL;
 			break;
 		}
+		
 		x = IPC_GET_ARG1(*call);
 		y = IPC_GET_ARG2(*call);
 		
@@ -1138,8 +1139,8 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			break;
 		}
 		
-		ppm_draw(shm, shm_size, IPC_GET_ARG1(*call),
-		    IPC_GET_ARG2(*call), vport->width - x, vport->height - y, putpixel, (void *) vport);
+		imgmap_draw(shm, IPC_GET_ARG1(*call), IPC_GET_ARG2(*call),
+		    vport->width - x, vport->height - y, vport);
 		break;
 	case FB_DRAW_TEXT_DATA:
 		x = IPC_GET_ARG1(*call);
@@ -1166,22 +1167,23 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	
 	if (handled)
 		async_answer_0(callid, retval);
+	
 	return handled;
 }
 
-
-static void copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
+static void copy_vp_to_imgmap(viewport_t *vport, imgmap_t *imap)
 {
 	unsigned int width = vport->width;
 	unsigned int height = vport->height;
 	
 	if (width + vport->x > screen.xres)
 		width = screen.xres - vport->x;
+	
 	if (height + vport->y > screen.yres)
 		height = screen.yres - vport->y;
 	
-	unsigned int realwidth = pmap->width <= width ? pmap->width : width;
-	unsigned int realheight = pmap->height <= height ? pmap->height : height;
+	unsigned int realwidth = imap->width <= width ? imap->width : width;
+	unsigned int realheight = imap->height <= height ? imap->height : height;
 	
 	unsigned int srcrowsize = vport->width * screen.pixelbytes;
 	unsigned int realrowsize = realwidth * screen.pixelbytes;
@@ -1189,46 +1191,46 @@ static void copy_vp_to_pixmap(viewport_t *vport, pixmap_t *pmap)
 	unsigned int y;
 	for (y = 0; y < realheight; y++) {
 		unsigned int tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
-		memcpy(pmap->data + srcrowsize * y, screen.fb_addr + tmp, realrowsize);
+		memcpy(imap->data + srcrowsize * y, screen.fb_addr + tmp, realrowsize);
 	}
 }
 
-
-/** Save viewport to pixmap
+/** Save viewport to image map
  *
  */
-static int save_vp_to_pixmap(viewport_t *vport)
+static int save_vp_to_imgmap(viewport_t *vport)
 {
-	int pm;
-	pixmap_t *pmap;
-	
-	pm = find_free_pixmap();
-	if (pm == -1)
+	int im = find_free_imgmap();
+	if (im == -1)
 		return ELIMIT;
 	
-	pmap = &pixmaps[pm];
-	pmap->data = malloc(screen.pixelbytes * vport->width * vport->height);
-	if (!pmap->data)
+	size_t size = screen.pixelbytes * vport->width * vport->height;
+	imgmap_t *imap = malloc(sizeof(imgmap_t) + size);
+	if (!imap)
 		return ENOMEM;
 	
-	pmap->width = vport->width;
-	pmap->height = vport->height;
+	imap->size = sizeof(imgmap_t) + size;
+	imap->width = vport->width;
+	imap->height = vport->height;
+	imap->visual = (visual_t) -1;
 	
-	copy_vp_to_pixmap(vport, pmap);
-	
-	return pm;
+	copy_vp_to_imgmap(vport, imap);
+	imgmaps[im] = imap;
+	return im;
 }
 
-
-/** Draw pixmap on screen
+/** Draw image map to screen
  *
- * @param vp Viewport to draw on
- * @param pm Pixmap identifier
+ * @param vp Viewport to draw to
+ * @param im Image map identifier
  *
  */
-static int draw_pixmap(int vp, int pm)
+static int draw_imgmap(int vp, int im)
 {
-	pixmap_t *pmap = &pixmaps[pm];
+	imgmap_t *imap = imgmaps[im];
+	if (!imap)
+		return EINVAL;
+	
 	viewport_t *vport = &viewports[vp];
 	
 	unsigned int width = vport->width;
@@ -1236,27 +1238,27 @@ static int draw_pixmap(int vp, int pm)
 	
 	if (width + vport->x > screen.xres)
 		width = screen.xres - vport->x;
+	
 	if (height + vport->y > screen.yres)
 		height = screen.yres - vport->y;
 	
-	if (!pmap->data)
-		return EINVAL;
+	unsigned int realwidth = imap->width <= width ? imap->width : width;
+	unsigned int realheight = imap->height <= height ? imap->height : height;
 	
-	unsigned int realwidth = pmap->width <= width ? pmap->width : width;
-	unsigned int realheight = pmap->height <= height ? pmap->height : height;
-	
-	unsigned int srcrowsize = vport->width * screen.pixelbytes;
-	unsigned int realrowsize = realwidth * screen.pixelbytes;
-	
-	unsigned int y;
-	for (y = 0; y < realheight; y++) {
-		unsigned int tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
-		memcpy(screen.fb_addr + tmp, pmap->data + y * srcrowsize, realrowsize);
-	}
+	if (imap->visual == (visual_t) -1) {
+		unsigned int srcrowsize = vport->width * screen.pixelbytes;
+		unsigned int realrowsize = realwidth * screen.pixelbytes;
+		
+		unsigned int y;
+		for (y = 0; y < realheight; y++) {
+			unsigned int tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
+			memcpy(screen.fb_addr + tmp, imap->data + y * srcrowsize, realrowsize);
+		}
+	} else
+		imgmap_draw(imap, 0, 0, realwidth, realheight, vport);
 	
 	return EOK;
 }
-
 
 /** Tick animation one step forward
  *
@@ -1276,7 +1278,7 @@ static void anims_tick(void)
 		    (!animations[i].enabled))
 			continue;
 		
-		draw_pixmap(animations[i].vp, animations[i].pixmaps[animations[i].pos]);
+		draw_imgmap(animations[i].vp, animations[i].imgmaps[animations[i].pos]);
 		animations[i].pos = (animations[i].pos + 1) % animations[i].animlen;
 	}
 }
@@ -1286,7 +1288,7 @@ static unsigned int pointer_x;
 static unsigned int pointer_y;
 static bool pointer_shown, pointer_enabled;
 static int pointer_vport = -1;
-static int pointer_pixmap = -1;
+static int pointer_imgmap = -1;
 
 
 static void mouse_show(void)
@@ -1309,10 +1311,10 @@ static void mouse_show(void)
 		viewports[pointer_vport].y = pointer_y;
 	}
 	
-	if (pointer_pixmap == -1)
-		pointer_pixmap = save_vp_to_pixmap(&viewports[pointer_vport]);
+	if (pointer_imgmap == -1)
+		pointer_imgmap = save_vp_to_imgmap(&viewports[pointer_vport]);
 	else
-		copy_vp_to_pixmap(&viewports[pointer_vport], &pixmaps[pointer_pixmap]);
+		copy_vp_to_imgmap(&viewports[pointer_vport], imgmaps[pointer_imgmap]);
 	
 	/* Draw mouse pointer. */
 	for (i = 0; i < pointer_height; i++)
@@ -1337,7 +1339,7 @@ static void mouse_hide(void)
 {
 	/* Restore image under the pointer. */
 	if (pointer_shown) {
-		draw_pixmap(pointer_vport, pointer_pixmap);
+		draw_imgmap(pointer_vport, pointer_imgmap);
 		pointer_shown = 0;
 	}
 }
@@ -1392,7 +1394,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		}
 		animations[i].initialized = 0;
 		break;
-	case FB_ANIM_ADDPIXMAP:
+	case FB_ANIM_ADDIMGMAP:
 		i = IPC_GET_ARG1(*call);
 		if (i >= MAX_ANIMATIONS || i < 0 ||
 			!animations[i].initialized) {
@@ -1404,12 +1406,12 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			break;
 		}
 		newval = IPC_GET_ARG2(*call);
-		if (newval < 0 || newval > MAX_PIXMAPS ||
-			!pixmaps[newval].data) {
+		if (newval < 0 || newval > MAX_IMGMAPS ||
+			!imgmaps[newval]) {
 			retval = EINVAL;
 			break;
 		}
-		animations[i].pixmaps[animations[i].animlen++] = newval;
+		animations[i].imgmaps[animations[i].animlen++] = newval;
 		break;
 	case FB_ANIM_CHGVP:
 		i = IPC_GET_ARG1(*call);
@@ -1448,49 +1450,55 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	return handled;
 }
 
-
-/** Handler for messages concerning pixmap handling
+/** Handler for messages concerning image map handling
  *
  */
-static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+static int imgmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 {
 	bool handled = true;
 	int retval = EOK;
 	int i, nvp;
 	
 	switch (IPC_GET_IMETHOD(*call)) {
-	case FB_VP_DRAW_PIXMAP:
+	case FB_VP_DRAW_IMGMAP:
 		nvp = IPC_GET_ARG1(*call);
 		if (nvp == -1)
 			nvp = vp;
+		
 		if (nvp < 0 || nvp >= MAX_VIEWPORTS ||
-			!viewports[nvp].initialized) {
+		    !viewports[nvp].initialized) {
 			retval = EINVAL;
 			break;
 		}
+		
 		i = IPC_GET_ARG2(*call);
-		retval = draw_pixmap(nvp, i);
+		retval = draw_imgmap(nvp, i);
 		break;
-	case FB_VP2PIXMAP:
+	case FB_VP2IMGMAP:
 		nvp = IPC_GET_ARG1(*call);
 		if (nvp == -1)
 			nvp = vp;
+		
 		if (nvp < 0 || nvp >= MAX_VIEWPORTS ||
-			!viewports[nvp].initialized)
-			retval = EINVAL;
-		else
-			retval = save_vp_to_pixmap(&viewports[nvp]);
-		break;
-	case FB_DROP_PIXMAP:
-		i = IPC_GET_ARG1(*call);
-		if (i >= MAX_PIXMAPS) {
+		    !viewports[nvp].initialized) {
 			retval = EINVAL;
 			break;
 		}
-		if (pixmaps[i].data) {
-			free(pixmaps[i].data);
-			pixmaps[i].data = NULL;
+		
+		retval = save_vp_to_imgmap(&viewports[nvp]);
+		break;
+	case FB_DROP_IMGMAP:
+		i = IPC_GET_ARG1(*call);
+		if (i >= MAX_IMGMAPS) {
+			retval = EINVAL;
+			break;
 		}
+		
+		if (imgmaps[i]) {
+			free(imgmaps[i]);
+			imgmaps[i] = NULL;
+		}
+		
 		break;
 	default:
 		handled = 0;
@@ -1615,7 +1623,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall,
 		if (shm_handle(callid, &call, vp))
 			continue;
 		
-		if (pixmap_handle(callid, &call, vp))
+		if (imgmap_handle(callid, &call, vp))
 			continue;
 		
 		if (anim_handle(callid, &call, vp))

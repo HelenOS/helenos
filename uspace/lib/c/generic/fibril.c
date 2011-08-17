@@ -40,7 +40,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <arch/barrier.h>
+#include <libarch/barrier.h>
 #include <libarch/faddr.h>
 #include <futex.h>
 #include <assert.h>

@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 #include <config.h>
-#include <arch/cpu.h>
+#include <arch/msr.h>
 #include <arch/mm/asid.h>
 #include <trace.h>
 

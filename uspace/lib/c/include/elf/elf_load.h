@@ -37,7 +37,6 @@
 #ifndef ELF_LOAD_H_
 #define ELF_LOAD_H_
 
-#include <arch/elf.h>
 #include <elf/elf.h>
 #include <sys/types.h>
 #include <loader/pcb.h>
@@ -47,7 +46,7 @@
  */
 #define EE_OK			0	/* No error */
 #define EE_INVALID		1	/* Invalid ELF image */
-#define	EE_MEMORY		2	/* Cannot allocate address space */
+#define EE_MEMORY		2	/* Cannot allocate address space */
 #define EE_INCOMPATIBLE		3	/* ELF image is not compatible with current architecture */
 #define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
 #define EE_LOADER		5	/* The image is actually a program loader. */

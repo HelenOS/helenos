@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <async.h>
 #include <errno.h>
-#include <devmap.h>
+#include <loc.h>
 #include <input.h>
 #include <mouse_port.h>
 #include <mouse.h>
@@ -81,14 +81,14 @@ static void mouse_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 static int chardev_port_init(mouse_dev_t *mdev)
 {
-	devmap_handle_t handle;
+	service_id_t service_id;
 	unsigned int i;
 	int rc;
 	
 	mouse_dev = mdev;
 	
 	for (i = 0; i < num_devs; i++) {
-		rc = devmap_device_get_handle(in_devs[i], &handle, 0);
+		rc = loc_service_get_id(in_devs[i], &service_id, 0);
 		if (rc == EOK)
 			break;
 	}
@@ -98,7 +98,7 @@ static int chardev_port_init(mouse_dev_t *mdev)
 		return -1;
 	}
 	
-	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle,
+	dev_sess = loc_service_connect(EXCHANGE_ATOMIC, service_id,
 	    IPC_FLAG_BLOCKING);
 	if (dev_sess == NULL) {
 		printf("%s: Failed connecting to device\n", NAME);

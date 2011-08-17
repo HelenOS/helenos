@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <libblock.h>
 #include <mem.h>
-#include <devmap.h>
+#include <loc.h>
 #include <byteorder.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
 	int rc;
 	char *dev_path;
-	devmap_handle_t handle;
+	service_id_t service_id;
 	size_t block_size;
 	char *endptr;
 	aoff64_t block_offset = 0;
@@ -127,25 +127,25 @@ int main(int argc, char **argv)
 
 	dev_path = *argv;
 
-	rc = devmap_device_get_handle(dev_path, &handle, 0);
+	rc = loc_service_get_id(dev_path, &service_id, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", dev_path);
 		return 2;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
 	}
 
-	rc = block_get_bsize(handle, &block_size);
+	rc = block_get_bsize(service_id, &block_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(handle, &dev_nblocks);
+	rc = block_get_nblocks(service_id, &dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	}
@@ -155,13 +155,13 @@ int main(int argc, char **argv)
 	data = malloc(block_size);
 	if (data == NULL) {
 		printf(NAME ": Error allocating data buffer of %" PRIuOFF64 " bytes", (aoff64_t) block_size);
-		block_fini(handle);
+		block_fini(service_id);
 		return 3;
 	}
 	
 	limit = block_offset + block_count;
 	for (current = block_offset; current < limit; current++) {
-		rc = block_read_direct(handle, current, 1, data);
+		rc = block_read_direct(service_id, current, 1, data);
 		if (rc != EOK) {
 			printf(NAME ": Error reading block at %" PRIuOFF64 " \n", current);
 			free(data);
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	
 	free(data);
 
-	block_fini(handle);
+	block_fini(service_id);
 
 	return 0;
 }

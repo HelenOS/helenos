@@ -32,7 +32,7 @@
 .global context_restore
 
 #include <libarch/regname.h>
-#include <arch/context_offset.h>
+#include <libarch/context_offset.h>
 
 context_save:
 	CONTEXT_SAVE_ARCH_CORE r3

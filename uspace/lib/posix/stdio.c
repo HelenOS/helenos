@@ -256,7 +256,7 @@ FILE *posix_freopen(const char *restrict filename,
 	assert(mode != NULL);
 	assert(stream != NULL);
 	
-	/* Retieve the node. */
+	/* Retrieve the node. */
 	struct stat st;
 	int rc;
 	
@@ -264,6 +264,15 @@ FILE *posix_freopen(const char *restrict filename,
 		rc = fstat(stream->fd, &st);
 	} else {
 		rc = stat(filename, &st);
+		if (-rc == ENOENT) {
+			/* file does not exist, create new file */
+			FILE* tmp = fopen(filename, mode);
+			if (tmp != NULL) {
+				fclose(tmp);
+				/* try again */
+				rc = stat(filename, &st);
+			}
+		}
 	}
 	
 	if (rc != EOK) {
@@ -274,7 +283,7 @@ FILE *posix_freopen(const char *restrict filename,
 	
 	fdi_node_t node = {
 		.fs_handle = st.fs_handle,
-		.devmap_handle = st.devmap_handle,
+		.service_id = st.service_id,
 		.index = st.index
 	};
 	
@@ -307,32 +316,6 @@ FILE *posix_freopen(const char *restrict filename,
 	stream->link.prev->next = &stream->link;
 	
 	return stream;
-}
-
-/**
- *
- * @param buf
- * @param size
- * @param mode
- * @return
- */
-FILE *posix_fmemopen(void *restrict buf, size_t size,
-    const char *restrict mode)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- *
- * @param bufp
- * @param sizep
- * @return
- */
-FILE *posix_open_memstream(char **bufp, size_t *sizep)
-{
-	// TODO
-	not_implemented();
 }
 
 /**

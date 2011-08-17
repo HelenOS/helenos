@@ -34,6 +34,8 @@
 #include <arch/asm.h>
 #include <arch/_components.h>
 #include <genarch/efi.h>
+#include <arch/sal.h>
+#include <arch/pal.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>
@@ -116,15 +118,30 @@ static void read_efi_memmap(void)
 	bootinfo.memmap_items = items;
 }
 
-static void read_sal_configuration(void)
+static void read_pal_configuration(void)
 {
-	if (!bootpar) {
+	if (bootpar) {
+		bootinfo.freq_scale = pal_proc_freq_ratio();
+	} else {
 		/* Configure default values for simulators. */
 		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
-		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
+	}
+}
+
+static void read_sal_configuration(void)
+{
+	if (bootpar && bootpar->efi_system_table) {
+		efi_guid_t sal_guid = SAL_SYSTEM_TABLE_GUID;
+		sal_system_table_header_t *sal_st;
+		
+		sal_st = efi_vendor_table_find(
+		    (efi_system_table_t *) bootpar->efi_system_table, sal_guid);
+
+		sal_system_table_parse(sal_st);
+		
+		bootinfo.sys_freq = sal_base_clock_frequency();
 	} else {
-		/* TODO: read the real values from SAL */
-		bootinfo.freq_scale = DEFAULT_FREQ_SCALE;
+		/* Configure default values for simulators. */
 		bootinfo.sys_freq = DEFAULT_SYS_FREQ;
 	}
 }
@@ -188,6 +205,7 @@ void bootstrap(void)
 
 	read_efi_memmap();
 	read_sal_configuration();
+	read_pal_configuration();
 	
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(&bootinfo);

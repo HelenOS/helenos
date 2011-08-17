@@ -35,15 +35,17 @@
 #ifndef KERN_ia64_ISTATE_H_
 #define KERN_ia64_ISTATE_H_
 
-#include <arch/register.h>
+#include <trace.h>
 
 #ifdef KERNEL
-#include <typedefs.h>
-#include <trace.h>
-#else
-#include <sys/types.h>
-#define NO_TRACE
-#endif
+
+#include <arch/register.h>
+
+#else /* KERNEL */
+
+#include <libarch/register.h>
+
+#endif /* KERNEL */
 
 typedef struct istate {
 	uint128_t f2;

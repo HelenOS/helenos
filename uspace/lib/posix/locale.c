@@ -41,7 +41,11 @@
 #include "limits.h"
 #include "string.h"
 
-// TODO: documentation
+/* Just a very basic dummy implementation.
+ * This should allow code using locales to work properly, but doesn't provide
+ * any localization functionality.
+ * Should be extended/rewritten when or if HelenOS supports locales natively.
+ */
 
 struct __posix_locale {
 	int _dummy;
@@ -75,10 +79,11 @@ const struct posix_lconv C_LOCALE = {
 };
 
 /**
+ * Set program locale.
  * 
- * @param category
- * @param locale
- * @return
+ * @param category What category to set.
+ * @param locale Locale name.
+ * @return Original locale name on success, NULL on failure.
  */
 char *posix_setlocale(int category, const char *locale)
 {
@@ -91,8 +96,9 @@ char *posix_setlocale(int category, const char *locale)
 }
 
 /**
+ * Return locale-specific information.
  * 
- * @return
+ * @return Information about the current locale.
  */
 struct posix_lconv *posix_localeconv(void)
 {
@@ -101,9 +107,10 @@ struct posix_lconv *posix_localeconv(void)
 }
 
 /**
+ * Duplicate locale object.
  * 
- * @param locobj
- * @return
+ * @param locobj Object to duplicate.
+ * @return Duplicated object.
  */
 posix_locale_t posix_duplocale(posix_locale_t locobj)
 {
@@ -121,8 +128,9 @@ posix_locale_t posix_duplocale(posix_locale_t locobj)
 }
 
 /**
+ * Free locale object.
  * 
- * @param locobj
+ * @param locobj Object to free.
  */
 void posix_freelocale(posix_locale_t locobj)
 {
@@ -132,11 +140,12 @@ void posix_freelocale(posix_locale_t locobj)
 }
 
 /**
+ * Create or modify a locale object.
  * 
- * @param category_mask
- * @param locale
- * @param base
- * @return
+ * @param category_mask Mask of categories to be set or modified.
+ * @param locale Locale to be used.
+ * @param base Object to modify. 0 if new object is to be created.
+ * @return The new/modified locale object.
  */
 posix_locale_t posix_newlocale(int category_mask, const char *locale,
     posix_locale_t base)
@@ -159,14 +168,15 @@ posix_locale_t posix_newlocale(int category_mask, const char *locale,
 }
 
 /**
+ * Set locale for the current thread.
  * 
- * @param newloc
- * @return
+ * @param newloc Locale to use.
+ * @return The previously set locale or LC_GLOBAL_LOCALE
  */
 posix_locale_t posix_uselocale(posix_locale_t newloc)
 {
 	// TODO
-	return NULL;
+	return LC_GLOBAL_LOCALE;
 }
 
 /** @}

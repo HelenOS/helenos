@@ -118,9 +118,6 @@ extern char *posix_ctime(const time_t *timer);
 extern char *posix_ctime_r(const time_t *timer, char *buf);
 extern size_t posix_strftime(char *restrict s, size_t maxsize,
     const char *restrict format, const struct posix_tm *restrict tm);
-extern size_t posix_strftime_l(char *restrict s, size_t maxsize,
-    const char *restrict format, const struct posix_tm *restrict tm,
-    posix_locale_t loc);
 
 /* Clocks */
 extern int posix_clock_getres(posix_clockid_t clock_id,
@@ -131,22 +128,6 @@ extern int posix_clock_settime(posix_clockid_t clock_id,
     const struct posix_timespec *tp); 
 extern int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
     const struct posix_timespec *rqtp, struct posix_timespec *rmtp);
-
-#if 0
-
-/* Timers */
-extern int posix_timer_create(posix_clockid_t clockid,
-    struct posix_sigevent *restrict evp,
-    posix_timer_t *restrict timerid);
-extern int posix_timer_delete(posix_timer_t timerid);
-extern int posix_timer_getoverrun(posix_timer_t timerid);
-extern int posix_timer_gettime(posix_timer_t timerid,
-    struct posix_itimerspec *value);
-extern int posix_timer_settime(posix_timer_t timerid, int flags,
-    const struct posix_itimerspec *restrict value,
-    struct posix_itimerspec *restrict ovalue);
-
-#endif
 
 /* CPU Time */
 extern posix_clock_t posix_clock(void);
@@ -175,19 +156,12 @@ extern posix_clock_t posix_clock(void);
 	#define ctime posix_ctime
 	#define ctime_r posix_ctime_r
 	#define strftime posix_strftime
-	#define strftime_l posix_strftime_l
 
 	#define clock_getres posix_clock_getres
 	#define clock_gettime posix_clock_gettime
 	#define clock_settime posix_clock_settime
 	#define clock_nanosleep posix_clock_nanosleep
-	
-	#define timer_create posix_timer_create
-	#define timer_delete posix_timer_delete
-	#define timer_getoverrun posix_timer_getoverrun
-	#define timer_gettime posix_timer_gettime
-	#define timer_settime posix_timer_settime
-	
+
 	#define clock posix_clock
 #endif
 

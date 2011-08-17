@@ -30,8 +30,10 @@
  * @{
  */
 /** @file
- */ 
+ */
 
+#include <sys/types.h>
+#include <abi/ddi/arg.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
 #include <libc.h>
@@ -39,7 +41,6 @@
 #include <as.h>
 #include <align.h>
 #include <libarch/config.h>
-#include <kernel/ddi/ddi_arg.h>
 
 /** Return unique device number.
  *

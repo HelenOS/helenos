@@ -115,7 +115,7 @@ typedef struct {
 	char model[STR_BOUNDS(40) + 1];
 
 	fibril_mutex_t lock;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 } disk_t;
 
 #endif

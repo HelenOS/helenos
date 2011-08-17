@@ -31,7 +31,7 @@
 .global context_save
 .global context_restore
 
-#include <kernel/arch/context_offset.h>
+#include <libarch/context_offset.h>
 
 ## Save current CPU context
 #
