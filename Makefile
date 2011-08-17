@@ -26,6 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# Just for this Makefile. Sub-makes will run in parallel if requested.
+.NOTPARALLEL:
+
 CSCOPE = cscope
 CHECK = tools/check.sh
 CONFIG = tools/config.py
