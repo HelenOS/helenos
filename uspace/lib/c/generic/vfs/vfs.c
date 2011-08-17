@@ -68,7 +68,7 @@ static size_t cwd_size = 0;
  * @return New exchange.
  *
  */
-static async_exch_t *vfs_exchange_begin(void)
+async_exch_t *vfs_exchange_begin(void)
 {
 	fibril_mutex_lock(&vfs_mutex);
 	
@@ -86,7 +86,7 @@ static async_exch_t *vfs_exchange_begin(void)
  * @param exch Exchange to be finished.
  *
  */
-static void vfs_exchange_end(async_exch_t *exch)
+void vfs_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }

@@ -37,7 +37,8 @@
 #define LIBC_LOADER_H_
 
 #include <task.h>
-#include <vfs/vfs.h>
+
+typedef struct fdi_node fdi_node_t;
 
 /** Forward declararion */
 struct loader;

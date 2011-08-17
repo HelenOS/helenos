@@ -36,7 +36,8 @@
 #define LIBC_TASK_H_
 
 #include <sys/types.h>
-#include <vfs/vfs.h>
+
+typedef struct fdi_node fdi_node_t;
 
 typedef uint64_t task_id_t;
 

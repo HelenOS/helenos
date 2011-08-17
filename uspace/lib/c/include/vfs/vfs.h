@@ -39,6 +39,7 @@
 #include <ipc/vfs.h>
 #include <ipc/devmap.h>
 #include <stdio.h>
+#include <async.h>
 
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE
@@ -50,7 +51,7 @@ enum vfs_change_state_type {
  * within a file system instance.
  *
  */
-typedef struct {
+typedef struct fdi_node {
 	fs_handle_t fs_handle;
 	devmap_handle_t devmap_handle;
 	fs_index_t index;
@@ -67,6 +68,9 @@ extern int fd_node(int, fdi_node_t *);
 
 extern FILE *fopen_node(fdi_node_t *, const char *);
 extern int fnode(FILE *, fdi_node_t *);
+
+extern async_exch_t *vfs_exchange_begin(void);
+extern void vfs_exchange_end(async_exch_t *);
 
 #endif
 
