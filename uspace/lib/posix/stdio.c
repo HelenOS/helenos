@@ -319,32 +319,6 @@ FILE *posix_freopen(const char *restrict filename,
 }
 
 /**
- *
- * @param buf
- * @param size
- * @param mode
- * @return
- */
-FILE *posix_fmemopen(void *restrict buf, size_t size,
-    const char *restrict mode)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- *
- * @param bufp
- * @param sizep
- * @return
- */
-FILE *posix_open_memstream(char **bufp, size_t *sizep)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
  * Write error messages to standard error.
  *
  * @param s Error message.
