@@ -151,7 +151,7 @@ MAKE_TARGETS = all-gas all-ld
 ifeq ($(COMPILER),$(findstring $(COMPILER),$(SUPPORTED_COMPILERS)))
 all: $(COMMON_MAKEFILE_PATCHED) all_ $(TOOLCHAIN) $(BINUTILS_PATCHED) \
 		$(CONFOBJ_OBJECT) $(BINUTILS_CONFIGURED) $(REDIST_DETECT)
-	make -C $(REDIST_DIR) $(MAKE_TARGETS)
+	$(MAKE) -C $(REDIST_DIR) $(MAKE_TARGETS)
 	cp -f $(REDIST_DIR)/gas/as-new $(BIN_DIR)/as
 	cp -f $(REDIST_DIR)/ld/ld-new $(BIN_DIR)/ld
 else
@@ -185,7 +185,7 @@ $(CONFOBJ_OBJECT): $(CONFOBJ_SOURCE) $(TOOLCHAIN)
 	./gcc -c -o $@ $<
 
 # Generate false toolchain scripts.
-$(TOOLCHAIN): $(TOOLCHAIN_SCRIPT)
+$(TOOLCHAIN): $(TOOLCHAIN_SCRIPT) $(COMMON_MAKEFILE_PATCHED)
 	./$< gcc $(CC) \
 		'$(CFLAGS)' '$(LINKER_SCRIPT)' '$(LIBS) $(BASE_LIBS) $(CONFOBJ_OBJECT)'
 	./$< as $(AS)
@@ -204,7 +204,8 @@ $(BINUTILS_PATCHED): $(BINUTILS_PATCH) $(REDIST_DETECT)
 
 # Configure binutils.
 # $LD variable have to exported to override configure script caching.
-$(BINUTILS_CONFIGURED): $(REDIST_DIR)/configure $(REDIST_DETECT)
+$(BINUTILS_CONFIGURED): $(REDIST_DETECT) $(BINUTILS_PATCHED) \
+		$(TOOLCHAIN) $(CONFOBJ_OBJECT)
 	export LD=ld; \
 	cd $(REDIST_DIR); \
 	./configure --target=$(TARGET) $(CONF_FLAGS)
