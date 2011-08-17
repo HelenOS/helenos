@@ -202,12 +202,6 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 	async_client_data_destroy = dtor;
 }
 
-void *async_get_client_data(void)
-{
-	assert(fibril_connection);
-	return fibril_connection->client->data;
-}
-
 /** Default fibril function that gets called to handle new connection.
  *
  * This function is defined as a weak symbol - to be redefined in user code.
@@ -625,6 +619,35 @@ static void async_client_put(client_t *client)
 		
 		free(client);
 	}
+}
+
+void *async_get_client_data(void)
+{
+	assert(fibril_connection);
+	return fibril_connection->client->data;
+}
+
+void *async_get_client_data_by_hash(sysarg_t client_hash)
+{
+	client_t *client = async_client_get(client_hash, false);
+	if (!client)
+		return NULL;
+	if (!client->data) {
+		async_client_put(client);
+		return NULL;
+	}
+
+	return client->data;
+}
+
+void async_put_client_data_by_hash(sysarg_t client_hash)
+{
+	client_t *client = async_client_get(client_hash, false);
+
+	assert(client);
+	assert(client->data);
+
+	async_client_put(client);
 }
 
 /** Wrapper for client connection fibril.

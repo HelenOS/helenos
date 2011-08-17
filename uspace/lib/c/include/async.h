@@ -185,6 +185,8 @@ extern void async_destroy_manager(void);
 extern void async_set_client_data_constructor(async_client_data_ctor_t);
 extern void async_set_client_data_destructor(async_client_data_dtor_t);
 extern void *async_get_client_data(void);
+extern void *async_get_client_data_by_hash(sysarg_t);
+extern void async_put_client_data_by_hash(sysarg_t);
 
 extern void async_set_client_connection(async_client_conn_t);
 extern void async_set_interrupt_received(async_interrupt_handler_t);
