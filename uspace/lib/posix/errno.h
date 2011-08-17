@@ -56,7 +56,7 @@
  * necessary to compare errno against abs(ECODE), because there is no
  * redefinition for such error codes.
  *
- * FIXME: maybe all HOS error codes should be redefined
+ * XXX: maybe all HOS error codes should be redefined
  *
  * NOTE: This redefinition is slightly POSIX incompatible, since the
  *  specification requires the macro values to be usable in preprocessing

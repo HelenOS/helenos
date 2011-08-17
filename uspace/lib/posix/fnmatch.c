@@ -623,7 +623,7 @@ int posix_fnmatch(const char *pattern, const char *string, int flags)
 	return result ? 0 : FNM_NOMATCH;
 }
 
-// FIXME: put the testcases somewhere else
+// FIXME: put the testcases to the app/tester after fnmatch is included into libc
 
 #if 0
 

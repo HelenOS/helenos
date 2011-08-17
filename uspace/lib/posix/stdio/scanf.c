@@ -706,7 +706,7 @@ static inline int _internal_scanf(
 							*pz = (size_t) ures;
 							break;
 						case LMOD_t: ;
-							// FIXME: What is unsigned counterpart of the ptrdiff_t?
+							// XXX: What is unsigned counterpart of the ptrdiff_t?
 							size_t *pt = va_arg(arg, size_t *);
 							*pt = (size_t) ures;
 							break;
@@ -1220,7 +1220,7 @@ int posix_vsscanf(
 	return _internal_scanf(&provider, format, arg);
 }
 
-// FIXME: put the testcases somewhere else
+// FIXME: put the testcases to the app/tester after scanf is included into libc
 
 #if 0
 
