@@ -579,6 +579,54 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	return callid;
 }
 
+static client_t *async_client_get(sysarg_t client_hash, bool create)
+{
+	unsigned long key = client_hash;
+	client_t *client = NULL;
+
+	futex_down(&async_futex);
+	link_t *lnk = hash_table_find(&client_hash_table, &key);
+	if (lnk) {
+		client = hash_table_get_instance(lnk, client_t, link);
+		atomic_inc(&client->refcnt);
+	} else if (create) {
+		client = malloc(sizeof(client_t));
+		if (client) {
+			client->in_task_hash = client_hash;
+			client->data = async_client_data_create();
+		
+			atomic_set(&client->refcnt, 1);
+			hash_table_insert(&client_hash_table, &key, &client->link);
+		}
+	}
+
+	futex_up(&async_futex);
+	return client;
+}
+
+static void async_client_put(client_t *client)
+{
+	bool destroy;
+	unsigned long key = client->in_task_hash;
+	
+	futex_down(&async_futex);
+	
+	if (atomic_predec(&client->refcnt) == 0) {
+		hash_table_remove(&client_hash_table, &key, 1);
+		destroy = true;
+	} else
+		destroy = false;
+	
+	futex_up(&async_futex);
+	
+	if (destroy) {
+		if (client->data)
+			async_client_data_destroy(client->data);
+		
+		free(client);
+	}
+}
+
 /** Wrapper for client connection fibril.
  *
  * When a new connection arrives, a fibril with this implementing function is
@@ -598,39 +646,18 @@ static int connection_fibril(void *arg)
 	 */
 	fibril_connection = (connection_t *) arg;
 	
-	futex_down(&async_futex);
-	
 	/*
 	 * Add our reference for the current connection in the client task
 	 * tracking structure. If this is the first reference, create and
 	 * hash in a new tracking structure.
 	 */
-	
-	unsigned long key = fibril_connection->in_task_hash;
-	link_t *lnk = hash_table_find(&client_hash_table, &key);
-	
-	client_t *client;
-	
-	if (lnk) {
-		client = hash_table_get_instance(lnk, client_t, link);
-		atomic_inc(&client->refcnt);
-	} else {
-		client = malloc(sizeof(client_t));
-		if (!client) {
-			ipc_answer_0(fibril_connection->callid, ENOMEM);
-			futex_up(&async_futex);
-			return 0;
-		}
-		
-		client->in_task_hash = fibril_connection->in_task_hash;
-		client->data = async_client_data_create();
-		
-		atomic_set(&client->refcnt, 1);
-		hash_table_insert(&client_hash_table, &key, &client->link);
+
+	client_t *client = async_client_get(fibril_connection->in_task_hash, true);
+	if (!client) {
+		ipc_answer_0(fibril_connection->callid, ENOMEM);
+		return 0;
 	}
-	
-	futex_up(&async_futex);
-	
+
 	fibril_connection->client = client;
 	
 	/*
@@ -642,30 +669,13 @@ static int connection_fibril(void *arg)
 	/*
 	 * Remove the reference for this client task connection.
 	 */
-	bool destroy;
-	
-	futex_down(&async_futex);
-	
-	if (atomic_predec(&client->refcnt) == 0) {
-		hash_table_remove(&client_hash_table, &key, 1);
-		destroy = true;
-	} else
-		destroy = false;
-	
-	futex_up(&async_futex);
-	
-	if (destroy) {
-		if (client->data)
-			async_client_data_destroy(client->data);
-		
-		free(client);
-	}
+	async_client_put(client);
 	
 	/*
 	 * Remove myself from the connection hash table.
 	 */
 	futex_down(&async_futex);
-	key = fibril_connection->in_phone_hash;
+	unsigned long key = fibril_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
 	
