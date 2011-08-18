@@ -101,6 +101,7 @@ typedef struct {
 } loc_service_t;
 
 extern service_id_t loc_create_id(void);
+extern void loc_category_change_event(void);
 
 #endif
 

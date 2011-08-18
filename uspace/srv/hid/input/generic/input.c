@@ -65,9 +65,6 @@
 // FIXME: remove this header
 #include <abi/ipc/methods.h>
 
-/* In microseconds */
-#define DISCOVERY_POLL_INTERVAL  (10 * 1000 * 1000)
-
 #define NUM_LAYOUTS  3
 
 static layout_ops_t *layout[NUM_LAYOUTS] = {
@@ -496,16 +493,9 @@ static void kbd_devs_reclaim(void)
 	}
 }
 
-/** Periodically check for new input devices.
- *
- * Looks under /loc/class/keyboard and /loc/class/mouse.
- *
- * @param arg Ignored
- *
- */
-static int dev_discovery_fibril(void *arg)
+static int dev_check_new_kbdevs(void)
 {
-	category_id_t keyboard_cat, mouse_cat;
+	category_id_t keyboard_cat;
 	service_id_t *svcs;
 	size_t count, i;
 	bool already_known;
@@ -517,98 +507,131 @@ static int dev_discovery_fibril(void *arg)
 		return ENOENT;
 	}
 	
+	/*
+	 * Check for new keyboard devices
+	 */
+	rc = loc_category_get_svcs(keyboard_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf("%s: Failed getting list of keyboard devices.\n",
+		    NAME);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+		
+		/* Determine whether we already know this device. */
+		list_foreach(kbd_devs, kdev_link) {
+			kbd_dev_t *kdev = list_get_instance(kdev_link,
+			    kbd_dev_t, kbd_devs);
+			if (kdev->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+		
+		if (!already_known) {
+			kbd_dev_t *kdev;
+			if (kbd_add_kbdev(svcs[i], &kdev) == EOK) {
+				printf("%s: Connected keyboard device '%s'\n",
+				    NAME, kdev->svc_name);
+			}
+		}
+	}
+	
+	free(svcs);
+	
+	/* XXX Handle device removal */
+	
+	return EOK;
+}
+
+static int dev_check_new_mousedevs(void)
+{
+	category_id_t mouse_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	bool already_known;
+	int rc;
+	
 	rc = loc_category_get_id("mouse", &mouse_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category 'mouse'.\n", NAME);
 		return ENOENT;
 	}
 	
-	while (true) {
-		async_usleep(DISCOVERY_POLL_INTERVAL);
-		
-		/*
-		 * Check for new keyboard devices
-		 */
-		rc = loc_category_get_svcs(keyboard_cat, &svcs, &count);
-		if (rc != EOK) {
-			printf("%s: Failed getting list of keyboard devices.\n",
-			    NAME);
-			continue;
-		}
-
-		for (i = 0; i < count; i++) {
-			already_known = false;
-			
-			/* Determine whether we already know this device. */
-			list_foreach(kbd_devs, kdev_link) {
-				kbd_dev_t *kdev = list_get_instance(kdev_link,
-				    kbd_dev_t, kbd_devs);
-				if (kdev->svc_id == svcs[i]) {
-					already_known = true;
-					break;
-				}
-			}
-
-			if (!already_known) {
-				kbd_dev_t *kdev;
-				if (kbd_add_kbdev(svcs[i], &kdev) == EOK) {
-					printf("%s: Connected keyboard device '%s'\n",
-					    NAME, kdev->svc_name);
-				}
-			}
-		}
-		
-		/* XXX Handle device removal */
-		
-		/*
-		 * Check for new mouse devices
-		 */
-		rc = loc_category_get_svcs(mouse_cat, &svcs, &count);
-		if (rc != EOK) {
-			printf("%s: Failed getting list of mouse devices.\n",
-			    NAME);
-			continue;
-		}
-
-		for (i = 0; i < count; i++) {
-			already_known = false;
-			
-			/* Determine whether we already know this device. */
-			list_foreach(mouse_devs, mdev_link) {
-				mouse_dev_t *mdev = list_get_instance(mdev_link,
-				    mouse_dev_t, mouse_devs);
-				if (mdev->svc_id == svcs[i]) {
-					already_known = true;
-					break;
-				}
-			}
-
-			if (!already_known) {
-				mouse_dev_t *mdev;
-				if (mouse_add_mousedev(svcs[i], &mdev) == EOK) {
-					printf("%s: Connected mouse device '%s'\n",
-					    NAME, mdev->svc_name);
-				}
-			}
-		}
-		
-		/* XXX Handle device removal */
+	/*
+	 * Check for new mouse devices
+	 */
+	rc = loc_category_get_svcs(mouse_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf("%s: Failed getting list of mouse devices.\n",
+		    NAME);
+		return EIO;
 	}
+	
+	for (i = 0; i < count; i++) {
+		already_known = false;
+		
+		/* Determine whether we already know this device. */
+		list_foreach(mouse_devs, mdev_link) {
+			mouse_dev_t *mdev = list_get_instance(mdev_link,
+			    mouse_dev_t, mouse_devs);
+			if (mdev->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+		
+		if (!already_known) {
+			mouse_dev_t *mdev;
+			if (mouse_add_mousedev(svcs[i], &mdev) == EOK) {
+				printf("%s: Connected mouse device '%s'\n",
+				    NAME, mdev->svc_name);
+			}
+		}
+	}
+	
+	free(svcs);
+	
+	/* XXX Handle device removal */
 	
 	return EOK;
 }
 
-/** Start a fibril for discovering new devices. */
-static void input_start_dev_discovery(void)
+static int dev_check_new(void)
 {
-	fid_t fid = fibril_create(dev_discovery_fibril, NULL);
-	if (!fid) {
-		printf("%s: Failed to create device discovery fibril.\n",
-		    NAME);
-		return;
-	}
+	int rc;
 	
-	fibril_add_ready(fid);
+	rc = dev_check_new_kbdevs();
+	if (rc != EOK)
+		return rc;
+	
+	rc = dev_check_new_mousedevs();
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+static void cat_change_cb(void)
+{
+	dev_check_new();
+}
+
+/** Start listening for new devices. */
+static int input_start_dev_discovery(void)
+{
+	int rc;
+
+	rc = loc_register_cat_change_cb(cat_change_cb);
+	if (rc != EOK) {
+		printf("%s: Failed registering callback for device discovery. "
+		    "(%d)\n", NAME, rc);
+		return rc;
+	}
+
+	return dev_check_new();
 }
 
 int main(int argc, char **argv)

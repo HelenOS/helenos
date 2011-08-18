@@ -49,17 +49,14 @@
 #define NAME "lsusb"
 
 #define MAX_USB_ADDRESS USB11_ADDRESS_MAX
-#define MAX_FAILED_ATTEMPTS 10
 #define MAX_PATH_LENGTH 1024
 
-static void print_found_hc(size_t class_index, const char *path)
+static void print_found_hc(service_id_t sid, const char *path)
 {
-	// printf(NAME ": host controller %zu is `%s'.\n", class_index, path);
-	printf("Bus %02zu: %s\n", class_index, path);
+	printf("Bus %" PRIun ": %s\n", sid, path);
 }
 static void print_found_dev(usb_address_t addr, const char *path)
 {
-	// printf(NAME ":     device with address %d is `%s'.\n", addr, path);
 	printf("  Device %02d: %s\n", addr, path);
 }
 
@@ -94,25 +91,45 @@ static void print_hc_devices(devman_handle_t hc_handle)
 
 int main(int argc, char *argv[])
 {
-	size_t class_index = 0;
-	size_t failed_attempts = 0;
+	category_id_t usbhc_cat;
+	service_id_t *svcs;
+	size_t count;
+	size_t i;
+	int rc;
 
-	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
-		class_index++;
+	rc = loc_category_get_id(USB_HC_CATEGORY, &usbhc_cat, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving category '%s'",
+		    USB_HC_CATEGORY);
+		return 1;
+	}
+
+	rc = loc_category_get_svcs(usbhc_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf(NAME ": Error getting list of host controllers.\n");
+		return 1;
+	}
+
+	for (i = 0; i < count; i++) {
 		devman_handle_t hc_handle = 0;
-		int rc = usb_ddf_get_hc_handle_by_class(class_index, &hc_handle);
+		int rc = usb_ddf_get_hc_handle_by_sid(svcs[i], &hc_handle);
 		if (rc != EOK) {
-			failed_attempts++;
+			printf(NAME ": Error resolving handle of HC with SID %"
+			    PRIun ", skipping.\n", svcs[i]);
 			continue;
 		}
 		char path[MAX_PATH_LENGTH];
 		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
 		if (rc != EOK) {
+			printf(NAME ": Error resolving path of HC with SID %"
+			    PRIun ", skipping.\n", svcs[i]);
 			continue;
 		}
-		print_found_hc(class_index, path);
+		print_found_hc(svcs[i], path);
 		print_hc_devices(hc_handle);
 	}
+
+	free(svcs);
 
 	return 0;
 }

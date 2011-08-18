@@ -634,16 +634,16 @@ static remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
 	return fun->ops->default_handler;
 }
 
-/** Add exposed function to class.
+/** Add exposed function to category.
  *
  * Must only be called when the function is bound.
  */
-int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name)
+int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 {
 	assert(fun->bound == true);
 	assert(fun->ftype == fun_exposed);
 	
-	return devman_add_device_to_class(fun->handle, class_name);
+	return devman_add_device_to_category(fun->handle, cat_name);
 }
 
 int ddf_driver_main(driver_t *drv)
