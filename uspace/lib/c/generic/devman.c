@@ -332,7 +332,7 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
 	else {
 		exch = devman_exchange_begin(DEVMAN_CLIENT);
 		if (exch == NULL)
-			return errno;
+			return ENOMEM;
 	}
 	
 	ipc_call_t answer;
@@ -363,61 +363,11 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
 	return retval;
 }
 
-int devman_device_get_handle_by_class(const char *classname,
-    const char *devname, devman_handle_t *handle, unsigned int flags)
-{
-	async_exch_t *exch;
-	
-	if (flags & IPC_FLAG_BLOCKING)
-		exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
-	else {
-		exch = devman_exchange_begin(DEVMAN_CLIENT);
-		if (exch == NULL)
-			return errno;
-	}
-	
-	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEVMAN_DEVICE_GET_HANDLE_BY_CLASS,
-	    flags, &answer);
-	sysarg_t retval = async_data_write_start(exch, classname,
-	    str_size(classname));
-	
-	if (retval != EOK) {
-		devman_exchange_end(exch);
-		async_wait_for(req, NULL);
-		return retval;
-	}
-	
-	retval = async_data_write_start(exch, devname,
-	    str_size(devname));
-	
-	devman_exchange_end(exch);
-	
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		return retval;
-	}
-	
-	async_wait_for(req, &retval);
-	
-	if (retval != EOK) {
-		if (handle != NULL)
-			*handle = (devman_handle_t) -1;
-		
-		return retval;
-	}
-	
-	if (handle != NULL)
-		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
-	
-	return retval;
-}
-
 int devman_get_device_path(devman_handle_t handle, char *path, size_t path_size)
 {
 	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
 	if (exch == NULL)
-		return errno;
+		return ENOMEM;
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEVMAN_DEVICE_GET_DEVICE_PATH,
@@ -460,6 +410,19 @@ int devman_get_device_path(devman_handle_t handle, char *path, size_t path_size)
 	/* Terminate the string (trailing 0 not send over IPC). */
 	path[transferred_size] = 0;
 	return EOK;
+}
+
+int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	sysarg_t retval = async_req_1_1(exch, DEVMAN_FUN_SID_TO_HANDLE,
+	    sid, handle);
+	
+	devman_exchange_end(exch);
+	return (int) retval;
 }
 
 /** @}

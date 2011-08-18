@@ -45,12 +45,12 @@ static bool try_parse_bus_and_address(const char *path,
     char **func_start,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
 {
-	size_t class_index;
+	uint64_t sid;
 	size_t address;
 	int rc;
 	char *ptr;
 
-	rc = str_size_t(path, &ptr, 10, false, &class_index);
+	rc = str_uint64(path, &ptr, 10, false, &sid);
 	if (rc != EOK) {
 		return false;
 	}
@@ -63,7 +63,7 @@ static bool try_parse_bus_and_address(const char *path,
 	if (rc != EOK) {
 		return false;
 	}
-	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
+	rc = usb_ddf_get_hc_handle_by_sid(sid, out_hc_handle);
 	if (rc != EOK) {
 		return false;
 	}
