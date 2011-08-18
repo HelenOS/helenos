@@ -310,6 +310,7 @@ NO_TRACE static inline bool interrupts_disabled(void)
 	return ((v & EFLAGS_IF) == 0);
 }
 
+#ifndef PROCESSOR_i486
 /** Write to MSR */
 NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 {
@@ -320,6 +321,7 @@ NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 		   "d" ((uint32_t) (value >> 32))
 	);
 }
+#endif
 
 NO_TRACE static inline uint64_t read_msr(uint32_t msr)
 {
