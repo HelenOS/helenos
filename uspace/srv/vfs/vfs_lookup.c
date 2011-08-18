@@ -200,39 +200,6 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	return EOK;
 }
 
-/** Perform a node open operation.
- *
- * @return EOK on success or an error code from errno.h.
- *
- */
-int vfs_open_node_internal(vfs_lookup_res_t *result)
-{
-	async_exch_t *exch = vfs_exchange_grab(result->triplet.fs_handle);
-	
-	ipc_call_t answer;
-	aid_t req = async_send_2(exch, VFS_OUT_OPEN_NODE,
-	    (sysarg_t) result->triplet.devmap_handle,
-	    (sysarg_t) result->triplet.index, &answer);
-	
-	sysarg_t rc;
-	async_wait_for(req, &rc);
-	vfs_exchange_release(exch);
-	
-	if (rc == EOK) {
-		result->size =
-		    MERGE_LOUP32(IPC_GET_ARG1(answer), IPC_GET_ARG2(answer));
-		result->lnkcnt = (unsigned int) IPC_GET_ARG3(answer);
-		if (IPC_GET_ARG4(answer) & L_FILE)
-			result->type = VFS_NODE_FILE;
-		else if (IPC_GET_ARG4(answer) & L_DIRECTORY)
-			result->type = VFS_NODE_DIRECTORY;
-		else
-			result->type = VFS_NODE_UNKNOWN;
-	}
-	
-	return rc;
-}
-
 /**
  * @}
  */

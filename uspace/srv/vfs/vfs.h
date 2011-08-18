@@ -174,7 +174,6 @@ extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
-extern int vfs_open_node_internal(vfs_lookup_res_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
@@ -203,7 +202,6 @@ extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
-extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);
 extern void vfs_dup(ipc_callid_t, ipc_call_t *);
 extern void vfs_close(ipc_callid_t, ipc_call_t *);

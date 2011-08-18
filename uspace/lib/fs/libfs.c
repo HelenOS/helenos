@@ -71,8 +71,6 @@ static void libfs_unmount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
 static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
 static void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
-static void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
-    ipc_call_t *);
 
 static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 {
@@ -197,11 +195,6 @@ static void vfs_out_destroy(ipc_callid_t rid, ipc_call_t *req)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_out_open_node(ipc_callid_t rid, ipc_call_t *req)
-{
-	libfs_open_node(libfs_ops, reg.fs_handle, rid, req);
-}
-
 static void vfs_out_stat(ipc_callid_t rid, ipc_call_t *req)
 {
 	libfs_stat(libfs_ops, reg.fs_handle, rid, req);
@@ -266,9 +259,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_OUT_DESTROY:
 			vfs_out_destroy(callid, &call);
-			break;
-		case VFS_OUT_OPEN_NODE:
-			vfs_out_open_node(callid, &call);
 			break;
 		case VFS_OUT_STAT:
 			vfs_out_stat(callid, &call);
@@ -842,38 +832,6 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	async_answer_0(rid, EOK);
-}
-
-/** Open VFS triplet.
- *
- * @param ops     libfs operations structure with function pointers to
- *                file system implementation
- * @param rid     Request ID of the VFS_OUT_OPEN_NODE request.
- * @param request VFS_OUT_OPEN_NODE request data itself.
- *
- */
-void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
-    ipc_call_t *request)
-{
-	devmap_handle_t devmap_handle = IPC_GET_ARG1(*request);
-	fs_index_t index = IPC_GET_ARG2(*request);
-	
-	fs_node_t *fn;
-	int rc = ops->node_get(&fn, devmap_handle, index);
-	on_error(rc, answer_and_return(rid, rc));
-	
-	if (fn == NULL) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
-	
-	rc = ops->node_open(fn);
-	aoff64_t size = ops->size_get(fn);
-	async_answer_4(rid, rc, LOWER32(size), UPPER32(size),
-	    ops->lnkcnt_get(fn),
-	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
-	
-	(void) ops->node_put(fn);
 }
 
 /** @}
