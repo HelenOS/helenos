@@ -92,7 +92,7 @@ static void category_init(category_t *cat, const char *name)
 	cat->name = str_dup(name);
 	cat->id = loc_create_id();
 	link_initialize(&cat->cat_list);
-	list_initialize(&cat->services);
+	list_initialize(&cat->svc_memb);
 }
 
 /** Allocate new category. */
@@ -112,19 +112,40 @@ category_t *category_new(const char *name)
 int category_add_service(category_t *cat, loc_service_t *svc)
 {
 	assert(fibril_mutex_is_locked(&cat->mutex));
+	assert(fibril_mutex_is_locked(&services_list_mutex));
 
 	/* Verify that category does not contain this service yet. */
-	list_foreach(cat->services, item) {
-
-		loc_service_t *csvc = list_get_instance(item, loc_service_t,
-		    cat_services);
-		if (csvc == svc) {
+	list_foreach(cat->svc_memb, item) {
+		svc_categ_t *memb = list_get_instance(item, svc_categ_t,
+		    cat_link);
+		if (memb->svc == svc) {
 			return EEXIST;
 		}
 	}
 
-	list_append(&svc->cat_services, &cat->services);
+	svc_categ_t *nmemb = malloc(sizeof(svc_categ_t));
+	if (nmemb == NULL)
+		return ENOMEM;
+
+	nmemb->svc = svc;
+	nmemb->cat = cat;
+
+	list_append(&nmemb->cat_link, &cat->svc_memb);
+	list_append(&nmemb->svc_link, &svc->cat_memb);
+
 	return EOK;
+}
+
+/** Remove service from category. */
+void category_remove_service(svc_categ_t *memb)
+{
+	assert(fibril_mutex_is_locked(&memb->cat->mutex));
+	assert(fibril_mutex_is_locked(&services_list_mutex));
+
+	list_remove(&memb->cat_link);
+	list_remove(&memb->svc_link);
+
+	free(memb);
 }
 
 /** Get category by ID. */
@@ -168,19 +189,19 @@ int category_get_services(category_t *cat, service_id_t *id_buf,
 
 	buf_cnt = buf_size / sizeof(service_id_t);
 
-	act_cnt = list_count(&cat->services);
+	act_cnt = list_count(&cat->svc_memb);
 	*act_size = act_cnt * sizeof(service_id_t);
 
 	if (buf_size % sizeof(service_id_t) != 0)
 		return EINVAL;
 
 	size_t pos = 0;
-	list_foreach(cat->services, item) {
-		loc_service_t *svc =
-		    list_get_instance(item, loc_service_t, cat_services);
+	list_foreach(cat->svc_memb, item) {
+		svc_categ_t *memb =
+		    list_get_instance(item, svc_categ_t, cat_link);
 
 		if (pos < buf_cnt)
-			id_buf[pos] = svc->id;
+			id_buf[pos] = memb->svc->id;
 		pos++;
 	}
 
