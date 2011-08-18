@@ -459,14 +459,14 @@ size_t posix_strspn(const char *s1, const char *s2)
  * @return Pointer to the first character of the substring in s1, or NULL if
  *     not found.
  */
-char* posix_strstr (const char* haystack, const char* needle)
+char *posix_strstr(const char *haystack, const char *needle)
 {
 	assert(haystack != NULL);
 	assert(needle != NULL);
 	
 	/* Special case - needle is an empty string. */
 	if (needle[0] == '\0') {
-		return (char*) haystack;
+		return (char *) haystack;
 	}
 	
 	/* Preprocess needle. */
@@ -491,16 +491,16 @@ char* posix_strstr (const char* haystack, const char* needle)
 	/* Search needle using the precomputed table. */
 	size_t npos = 0;
 	
-	for (size_t hpos = 0; haystack[hpos] != '\0'; ++ hpos) {
+	for (size_t hpos = 0; haystack[hpos] != '\0'; ++hpos) {
 		while (npos != 0 && haystack[hpos] != needle[npos]) {
 			npos = prefix_table[npos];
 		}
 		
 		if (haystack[hpos] == needle[npos]) {
-			npos ++;
+			npos++;
 			
 			if (npos == nlen) {
-				return (char*) (haystack + hpos - nlen + 1);
+				return (char *) (haystack + hpos - nlen + 1);
 			}
 		}
 	}
