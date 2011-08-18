@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -153,6 +154,8 @@ struct fun_node {
 	devman_handle_t handle;
 	/** Name of the function, assigned by the device driver */
 	char *name;
+	/** Function type */
+	fun_type_t ftype;
 	
 	/** Full path and name of the device in device hierarchy */
 	char *pathname;
@@ -264,6 +267,7 @@ extern bool init_device_tree(dev_tree_t *, driver_list_t *);
 extern bool create_root_nodes(dev_tree_t *);
 extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
 extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
+extern void remove_fun_node(dev_tree_t *, fun_node_t *);
 
 /* Loc services */
 

@@ -266,29 +266,29 @@ int loc_server_register(const char *name, async_client_conn_t conn)
 	return retval;
 }
 
-/** Register new device.
+/** Register new service.
  *
- * The @p interface is used when forwarding connection to the driver.
+ * The @p interface is used when forwarding connection to the server.
  * If not 0, the first argument is the interface and the second argument
  * is the service ID.
  *
  * When the interface is zero (default), the first argument is directly
  * the handle (to ensure backward compatibility).
  *
- * @param      fqdn      Fully qualified device name.
- * @param[out] handle    Handle to the created instance of device.
- * @param      interface Interface when forwarding.
+ * @param      fqsn      Fully qualified service name
+ * @param[out] sid       Service ID of new service
+ * @param      interface Interface when forwarding
  *
  */
-int loc_service_register_with_iface(const char *fqdn,
-    service_id_t *handle, sysarg_t interface)
+int loc_service_register_with_iface(const char *fqsn,
+    service_id_t *sid, sysarg_t interface)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_SUPPLIER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVICE_REGISTER, interface, 0,
 	    &answer);
-	sysarg_t retval = async_data_write_start(exch, fqdn, str_size(fqdn));
+	sysarg_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
 	
 	loc_exchange_end(exch);
 	
@@ -300,27 +300,43 @@ int loc_service_register_with_iface(const char *fqdn,
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK) {
-		if (handle != NULL)
-			*handle = -1;
+		if (sid != NULL)
+			*sid = -1;
 		
 		return retval;
 	}
 	
-	if (handle != NULL)
-		*handle = (service_id_t) IPC_GET_ARG1(answer);
+	if (sid != NULL)
+		*sid = (service_id_t) IPC_GET_ARG1(answer);
 	
 	return retval;
 }
 
-/** Register new device.
+/** Register new service.
  *
- * @param fqdn   Fully qualified device name.
- * @param handle Output: Handle to the created instance of device.
+ * @param fqsn	Fully qualified service name
+ * @param sid	Output: ID of new service
  *
  */
-int loc_service_register(const char *fqdn, service_id_t *handle)
+int loc_service_register(const char *fqdn, service_id_t *sid)
 {
-	return loc_service_register_with_iface(fqdn, handle, 0);
+	return loc_service_register_with_iface(fqdn, sid, 0);
+}
+
+/** Unregister service.
+ *
+ * @param sid	Service ID
+ */
+int loc_service_unregister(service_id_t sid)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	
+	exch = loc_exchange_begin_blocking(LOC_PORT_SUPPLIER);
+	retval = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
+	loc_exchange_end(exch);
+	
+	return (int)retval;
 }
 
 int loc_service_get_id(const char *fqdn, service_id_t *handle,

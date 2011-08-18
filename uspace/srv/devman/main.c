@@ -277,8 +277,10 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		free(fun_name);
 		return;
 	}
-
+	
 	fun_node_t *fun = create_fun_node();
+	fun->ftype = ftype;
+	
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		delete_fun_node(fun);
@@ -366,6 +368,48 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, EOK);
 }
 
+/** Remove function. */
+static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
+{
+	devman_handle_t fun_handle = IPC_GET_ARG1(*call);
+	dev_tree_t *tree = &device_tree;
+	int rc;
+	
+	fibril_rwlock_write_lock(&tree->rwlock);
+	
+	fun_node_t *fun = find_fun_node_no_lock(&device_tree, fun_handle);
+	if (fun == NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		async_answer_0(callid, ENOENT);
+		return;
+	}
+	
+	log_msg(LVL_DEBUG, "devman_remove_function(fun='%s')", fun->pathname);
+	
+	if (fun->ftype == fun_inner) {
+		/* Handle possible descendants */
+		/* TODO */
+		log_msg(LVL_WARN, "devman_remove_function(): not handling "
+		    "descendants\n");
+	} else {
+		/* Unregister from location service */
+		rc = loc_service_unregister(fun->service_id);
+		if (rc != EOK) {
+			log_msg(LVL_ERROR, "Failed unregistering tree service.");
+			fibril_rwlock_write_unlock(&tree->rwlock);
+			async_answer_0(callid, EIO);
+			return;
+		}
+	}
+	
+	remove_fun_node(&device_tree, fun);
+	fibril_rwlock_write_unlock(&tree->rwlock);
+	delete_fun_node(fun);
+	
+	log_msg(LVL_DEBUG, "devman_remove_function() succeeded.");
+	async_answer_0(callid, EOK);
+}
+
 /** Initialize driver which has registered itself as running and ready.
  *
  * The initialization is done in a separate fibril to avoid deadlocks (if the
@@ -417,6 +461,9 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_ADD_DEVICE_TO_CATEGORY:
 			devman_add_function_to_cat(callid, &call);
+			break;
+		case DEVMAN_REMOVE_FUNCTION:
+			devman_remove_function(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL); 

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,42 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup locinfo
  * @{
  */
-/** @file
+/** @file locinfo.c Print information from location service.
  */
 
-#ifndef LIBC_DEVMAN_H_
-#define LIBC_DEVMAN_H_
+#include <errno.h>
+#include <loc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
 
-#include <ipc/devman.h>
-#include <ipc/loc.h>
-#include <async.h>
-#include <bool.h>
+#define NAME "locinfo"
 
-extern async_exch_t *devman_exchange_begin_blocking(devman_interface_t);
-extern async_exch_t *devman_exchange_begin(devman_interface_t);
-extern void devman_exchange_end(async_exch_t *);
+int main(int argc, char *argv[])
+{
+	category_id_t *cat_ids;
+	size_t cat_cnt;
+	service_id_t *svc_ids;
+	size_t svc_cnt;
 
-extern int devman_driver_register(const char *, async_client_conn_t);
-extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
-    devman_handle_t, devman_handle_t *);
-extern int devman_remove_function(devman_handle_t);
+	size_t i, j;
+	char *cat_name;
+	char *svc_name;
+	int rc;
 
-extern async_sess_t *devman_device_connect(exch_mgmt_t, devman_handle_t,
-    unsigned int);
-extern async_sess_t *devman_parent_device_connect(exch_mgmt_t, devman_handle_t,
-    unsigned int);
+	rc = loc_get_categories(&cat_ids, &cat_cnt);
+	if (rc != EOK) {
+		printf(NAME ": Error getting list of categories.\n");
+		return 1;
+	}
 
-extern int devman_device_get_handle(const char *, devman_handle_t *,
-    unsigned int);
-extern int devman_get_device_path(devman_handle_t, char *, size_t);
+	for (i = 0; i < cat_cnt; i++) {
+		rc = loc_category_get_name(cat_ids[i], &cat_name);
+		if (rc != EOK)
+			cat_name = str_dup("<unknown>");
 
-extern int devman_add_device_to_category(devman_handle_t, const char *);
-extern int devman_fun_sid_to_handle(service_id_t, devman_handle_t *);
+		if (cat_name == NULL) {
+			printf(NAME ": Error allocating memory.\n");
+			return 1;
+		}
 
-#endif
+		printf("%s (%" PRIun "):\n", cat_name, cat_ids[i]);
+
+		rc = loc_category_get_svcs(cat_ids[i], &svc_ids, &svc_cnt);
+		if (rc != EOK) {
+			printf(NAME ": Failed getting list of services in "
+			    "category %s, skipping.\n", cat_name);
+			free(cat_name);
+			continue;
+		}
+
+		for (j = 0; j < svc_cnt; j++) {
+			rc = loc_service_get_name(svc_ids[j], &svc_name);
+			if (rc != EOK) {
+				printf(NAME ": Unknown service name (SID %"
+				    PRIun ").\n", svc_ids[j]);
+				continue;
+			}
+			printf("\t%s (%" PRIun ")\n", svc_name, svc_ids[j]);
+		}
+
+		free(svc_ids);
+		free(cat_name);
+	}
+
+	free(cat_ids);
+	return 0;
+}
 
 /** @}
  */
