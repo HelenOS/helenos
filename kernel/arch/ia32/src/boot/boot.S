@@ -96,22 +96,6 @@ multiboot_image_start:
 	
 	pm_status $status_prot
 	
-	movl $(INTEL_CPUID_LEVEL), %eax
-	cpuid
-	cmp $0x0, %eax  /* any function > 0? */
-	jbe pse_unsupported
-	
-	movl $(INTEL_CPUID_STANDARD), %eax
-	cpuid
-	bt $(INTEL_PSE), %edx
-	jc pse_supported
-	
-	pse_unsupported:
-		
-		pm_error $err_pse
-	
-	pse_supported:
-	
 #include "vesa_prot.inc"
 	
 	/* Map kernel and turn paging on */
