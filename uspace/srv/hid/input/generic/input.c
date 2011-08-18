@@ -539,6 +539,8 @@ static int dev_check_new_kbdevs(void)
 		}
 	}
 	
+	free(svcs);
+	
 	/* XXX Handle device removal */
 	
 	return EOK;
@@ -589,6 +591,8 @@ static int dev_check_new_mousedevs(void)
 			}
 		}
 	}
+	
+	free(svcs);
 	
 	/* XXX Handle device removal */
 	
