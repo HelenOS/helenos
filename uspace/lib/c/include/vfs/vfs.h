@@ -51,7 +51,6 @@ extern int mount(const char *, const char *, const char *, const char *,
     unsigned int);
 extern int unmount(const char *);
 
-extern FILE *fopen_handle(int);
 extern int fhandle(FILE *, int *);
 
 extern int fd_wait(void);

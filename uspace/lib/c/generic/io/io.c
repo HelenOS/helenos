@@ -103,21 +103,21 @@ static LIST_INITIALIZE(files);
 void __stdio_init(int filc)
 {
 	if (filc > 0) {
-		stdin = fopen_handle(0);
+		stdin = fdopen(0, "r");
 	} else {
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
 	
 	if (filc > 1) {
-		stdout = fopen_handle(1);
+		stdout = fdopen(1, "w");
 	} else {
 		stdout = &stdout_klog;
 		list_append(&stdout->link, &files);
 	}
 	
 	if (filc > 2) {
-		stderr = fopen_handle(2);
+		stderr = fdopen(2, "w");
 	} else {
 		stderr = &stderr_klog;
 		list_append(&stderr->link, &files);
@@ -263,28 +263,6 @@ FILE *fopen(const char *path, const char *mode)
 }
 
 FILE *fdopen(int fd, const char *mode)
-{
-	/* Open file. */
-	FILE *stream = malloc(sizeof(FILE));
-	if (stream == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	stream->fd = fd;
-	stream->error = false;
-	stream->eof = false;
-	stream->klog = false;
-	stream->sess = NULL;
-	stream->need_sync = false;
-	_setvbuf(stream);
-	
-	list_append(&stream->link, &files);
-	
-	return stream;
-}
-
-FILE *fopen_handle(int fd)
 {
 	/* Open file. */
 	FILE *stream = malloc(sizeof(FILE));
