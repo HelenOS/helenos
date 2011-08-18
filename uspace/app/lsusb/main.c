@@ -53,12 +53,10 @@
 
 static void print_found_hc(service_id_t sid, const char *path)
 {
-	// printf(NAME ": host controller %zu is `%s'.\n", class_index, path);
 	printf("Bus %" PRIun ": %s\n", sid, path);
 }
 static void print_found_dev(usb_address_t addr, const char *path)
 {
-	// printf(NAME ":     device with address %d is `%s'.\n", addr, path);
 	printf("  Device %02d: %s\n", addr, path);
 }
 
@@ -99,10 +97,10 @@ int main(int argc, char *argv[])
 	size_t i;
 	int rc;
 
-	rc = loc_category_get_id(USB_HC_DDF_CLASS_NAME, &usbhc_cat, 0);
+	rc = loc_category_get_id(USB_HC_CATEGORY, &usbhc_cat, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving category '%s'",
-		    USB_HC_DDF_CLASS_NAME);
+		    USB_HC_CATEGORY);
 		return 1;
 	}
 

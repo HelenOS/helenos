@@ -331,15 +331,15 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, EOK, fun->handle);
 }
 
-static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
+static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*call);
 	category_id_t cat_id;
 	int rc;
 	
-	/* Get class name. */
-	char *class_name;
-	rc = async_data_write_accept((void **) &class_name, true,
+	/* Get category name. */
+	char *cat_name;
+	rc = async_data_write_accept((void **) &cat_name, true,
 	    0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -352,16 +352,16 @@ static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
-	rc = loc_category_get_id(class_name, &cat_id, IPC_FLAG_BLOCKING);
+	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
 	if (rc == EOK) {
 		loc_service_add_to_cat(fun->service_id, cat_id);
 	} else {
 		log_msg(LVL_ERROR, "Failed adding function `%s' to category "
-		    "`%s'.", fun->pathname, class_name);
+		    "`%s'.", fun->pathname, cat_name);
 	}
 	
-	log_msg(LVL_NOTE, "Function `%s' added to class `%s'.",
-	    fun->pathname, class_name);
+	log_msg(LVL_NOTE, "Function `%s' added to category `%s'.",
+	    fun->pathname, cat_name);
 
 	async_answer_0(callid, EOK);
 }
@@ -415,8 +415,8 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_ADD_FUNCTION:
 			devman_add_function(callid, &call);
 			break;
-		case DEVMAN_ADD_DEVICE_TO_CLASS:
-			devman_add_function_to_class(callid, &call);
+		case DEVMAN_ADD_DEVICE_TO_CATEGORY:
+			devman_add_function_to_cat(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL); 

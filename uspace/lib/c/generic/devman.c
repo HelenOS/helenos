@@ -270,16 +270,16 @@ int devman_add_function(const char *name, fun_type_t ftype,
 	return retval;
 }
 
-int devman_add_device_to_class(devman_handle_t devman_handle,
-    const char *class_name)
+int devman_add_device_to_category(devman_handle_t devman_handle,
+    const char *cat_name)
 {
 	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CLASS,
+	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CATEGORY,
 	    devman_handle, &answer);
-	sysarg_t retval = async_data_write_start(exch, class_name,
-	    str_size(class_name));
+	sysarg_t retval = async_data_write_start(exch, cat_name,
+	    str_size(cat_name));
 	
 	devman_exchange_end(exch);
 	

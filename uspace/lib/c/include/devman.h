@@ -58,7 +58,7 @@ extern int devman_device_get_handle(const char *, devman_handle_t *,
     unsigned int);
 extern int devman_get_device_path(devman_handle_t, char *, size_t);
 
-extern int devman_add_device_to_class(devman_handle_t, const char *);
+extern int devman_add_device_to_category(devman_handle_t, const char *);
 extern int devman_fun_sid_to_handle(service_id_t, devman_handle_t *);
 
 #endif
