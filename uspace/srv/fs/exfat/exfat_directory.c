@@ -282,7 +282,7 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 		rc = exfat_directory_get(di, &de);
 		if (rc != EOK)
 			return rc;
-		memcpy((uint8_t *)&array[i], (uint8_t *)de, sizeof(exfat_dentry_t));
+		array[i] = *de;
 		rc = exfat_directory_next(di);
 		if (rc!=EOK) {
 			free(array);
@@ -296,11 +296,11 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	}
 
 	/* Sync */
-	array[0].file.attr = df->attr;
-	array[1].stream.firstc = ds->firstc;
+	array[0].file.attr = host2uint16_t_le(df->attr);
+	array[1].stream.firstc = host2uint32_t_le(ds->firstc);
 	array[1].stream.flags = ds->flags;
-	array[1].stream.valid_data_size = ds->valid_data_size;
-	array[1].stream.data_size = ds->data_size;
+	array[1].stream.valid_data_size = host2uint64_t_le(ds->valid_data_size);
+	array[1].stream.data_size = host2uint64_t_le(ds->data_size);
 	array[0].file.checksum = host2uint16_t_le(exfat_directory_set_checksum((uint8_t *)array,
 	    count*sizeof(exfat_dentry_t)));
 
@@ -309,7 +309,7 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 		rc = exfat_directory_get(di, &de);
 		if (rc != EOK)
 			return rc;
-		memcpy((uint8_t *)de, (uint8_t *)&array[i], sizeof(exfat_dentry_t));
+		*de = array[i];
 		di->b->dirty = true;
 		rc = exfat_directory_next(di);
 		if (rc!=EOK) {
@@ -317,6 +317,7 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 			return rc;
 		}
 	}
+	free(array);
 
 	return EOK;
 }
@@ -368,7 +369,7 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 	exfat_dentry_t df, ds, *de;
 	uint16_t wname[EXFAT_FILENAME_LEN+1];
 	int rc, i;
-	size_t uctable_chars;
+	size_t uctable_chars, j;
 	aoff64_t pos;
 
 	rc = str_to_utf16(wname, EXFAT_FILENAME_LEN, name);
@@ -419,7 +420,7 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 	rc = exfat_directory_get(di, &de);
 	if (rc != EOK)
 		return rc;
-	memcpy(de, &df, sizeof(exfat_dentry_t));
+	*de = df;
 	di->b->dirty = true;
 	rc = exfat_directory_next(di);
 	if (rc != EOK)
@@ -429,7 +430,7 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 	rc = exfat_directory_get(di, &de);
 	if (rc != EOK)
 		return rc;
-	memcpy(de, &ds, sizeof(exfat_dentry_t));
+	*de = ds;
 	di->b->dirty = true;
 
 	/* Write file name */
@@ -450,7 +451,12 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 		if (rc != EOK)
 			return rc;
 		de->type = EXFAT_TYPE_NAME;
-		memcpy((uint8_t*)de->name.name, (uint8_t*)sname, sizeof(uint16_t)*chars);
+		/* test */
+		for (j=0; j<chars; j++){
+			de->name.name[j] = *sname;
+			sname++;
+		}
+
 		di->b->dirty = true;
 		sname += chars;
 	}

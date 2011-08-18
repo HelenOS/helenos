@@ -124,15 +124,15 @@ static int exfat_node_sync(exfat_node_t *node)
 	else
 		df.attr = 0;
 
-	ds.firstc = host2uint32_t_le(node->firstc);
+	ds.firstc = node->firstc;
 	if (node->size == 0 && node->firstc == 0) {
 		ds.flags = 0;
 	} else {
 		ds.flags = 1;
 		ds.flags |= (!node->fragmented << 1);
 	}
-	ds.valid_data_size = host2uint64_t_le(node->size);
-	ds.data_size = host2uint64_t_le(node->size);
+	ds.valid_data_size = node->size;
+	ds.data_size = node->size;
 
 	exfat_directory_open_parent(&di, node->idx->devmap_handle, node->idx->pfc, 
 	    node->idx->parent_fragmented);
@@ -334,7 +334,7 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 
 	switch (exfat_classify_dentry(d)) {
 	case EXFAT_DENTRY_FILE:
-		nodep->type = (d->file.attr & EXFAT_ATTR_SUBDIR)? 
+		nodep->type = (uint16_t_le2host(d->file.attr) & EXFAT_ATTR_SUBDIR)? 
 		    EXFAT_DIRECTORY : EXFAT_FILE;
 		rc = exfat_directory_next(&di);
 		if (rc != EOK) {
@@ -348,20 +348,20 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 			(void) exfat_node_put(FS_NODE(nodep));
 			return rc;
 		}
-		nodep->firstc = d->stream.firstc;
-		nodep->size = d->stream.data_size;
+		nodep->firstc = uint32_t_le2host(d->stream.firstc);
+		nodep->size = uint64_t_le2host(d->stream.data_size);
 		nodep->fragmented = (d->stream.flags & 0x02) == 0;
 		break;
 	case EXFAT_DENTRY_BITMAP:
 		nodep->type = EXFAT_BITMAP;
-		nodep->firstc = d->bitmap.firstc;
-		nodep->size = d->bitmap.size;
+		nodep->firstc = uint32_t_le2host(d->bitmap.firstc);
+		nodep->size = uint64_t_le2host(d->bitmap.size);
 		nodep->fragmented = true;
 		break;
 	case EXFAT_DENTRY_UCTABLE:
 		nodep->type = EXFAT_UCTABLE;
-		nodep->firstc = d->uctable.firstc;
-		nodep->size = d->uctable.size;
+		nodep->firstc = uint32_t_le2host(d->uctable.firstc);
+		nodep->size = uint64_t_le2host(d->uctable.size);
 		nodep->fragmented = true;
 		break;
 	default:
@@ -1073,12 +1073,12 @@ exfat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index
 	fibril_mutex_unlock(&bitmapp->idx->lock);
 
 	bitmapp->type = EXFAT_BITMAP;
-	bitmapp->firstc = de->bitmap.firstc;
+	bitmapp->firstc = uint32_t_le2host(de->bitmap.firstc);
 	bitmapp->fragmented = true;
 	bitmapp->idx->parent_fragmented = true;
 	bitmapp->refcnt = 1;
 	bitmapp->lnkcnt = 0;
-	bitmapp->size = de->bitmap.size;
+	bitmapp->size = uint64_t_le2host(de->bitmap.size);
 
 	/* Initialize the uctable node. */
 	rc = exfat_directory_seek(&di, 0);
@@ -1115,12 +1115,12 @@ exfat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index
 	fibril_mutex_unlock(&uctablep->idx->lock);
 
 	uctablep->type = EXFAT_UCTABLE;
-	uctablep->firstc = de->uctable.firstc;
+	uctablep->firstc = uint32_t_le2host(de->uctable.firstc);
 	uctablep->fragmented = true;
 	uctablep->idx->parent_fragmented = true;
 	uctablep->refcnt = 1;
 	uctablep->lnkcnt = 0;
-	uctablep->size = de->uctable.size;
+	uctablep->size = uint64_t_le2host(de->uctable.size);
 
 	rc = exfat_directory_close(&di);
 	if (rc!=EOK) {
