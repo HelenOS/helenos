@@ -382,6 +382,7 @@ void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
 	 * Add a new reference to the underlying VFS node.
 	 */
 	vfs_node_addref(donor_file->node);
+	(void) vfs_open_node_remote(donor_file->node);
 
 	acceptor_file = _vfs_file_get(acceptor_data, acceptor_fd);
 	assert(acceptor_file);
