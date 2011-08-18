@@ -535,6 +535,45 @@ static int loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 	return EOK;
 }
 
+static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	category_t *cat;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	fibril_mutex_lock(&cdir.mutex);
+	
+	cat = category_get(&cdir, IPC_GET_ARG1(*icall));
+	if (cat == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	act_size = str_size(cat->name);
+	if (act_size > size) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, EOVERFLOW);
+		async_answer_0(iid, EOVERFLOW);
+		return;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, cat->name,
+	    min(size, act_size));
+	
+	fibril_mutex_unlock(&cdir.mutex);
+	
+	async_answer_0(iid, retval);
+}
+
 static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
@@ -573,7 +612,6 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	
 	async_answer_0(iid, retval);
 }
-
 
 /** Connect client to the service.
  *
@@ -1296,6 +1334,9 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case LOC_CATEGORY_GET_ID:
 			loc_category_get_id(callid, &call);
+			break;
+		case LOC_CATEGORY_GET_NAME:
+			loc_category_get_name(callid, &call);
 			break;
 		case LOC_CATEGORY_GET_SVCS:
 			loc_category_get_svcs(callid, &call);

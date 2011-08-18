@@ -363,16 +363,17 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
 	return retval;
 }
 
-/** Get service name.
+/** Get object name.
  *
- * Provided ID of a service, return its name.
+ * Provided ID of an object, return its name.
  *
- * @param svc_id	Service ID
+ * @param method	IPC method
+ * @param id		Object ID
  * @param name		Place to store pointer to new string. Caller should
  *			free it using free().
  * @return		EOK on success or negative error code
  */
-int loc_service_get_name(service_id_t svc_id, char **name)
+static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 {
 	async_exch_t *exch;
 	char name_buf[LOC_NAME_MAXLEN + 1];
@@ -384,7 +385,7 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, LOC_SERVICE_GET_NAME, svc_id, &answer);
+	aid_t req = async_send_1(exch, method, id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN,
 	    &dreply);
 	async_wait_for(dreq, &dretval);
@@ -413,6 +414,33 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	return EOK;
 }
 
+/** Get category name.
+ *
+ * Provided ID of a service, return its name.
+ *
+ * @param cat_id	Category ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_category_get_name(category_id_t cat_id, char **name)
+{
+	return loc_get_name_internal(LOC_CATEGORY_GET_NAME, cat_id, name);
+}
+
+/** Get service name.
+ *
+ * Provided ID of a service, return its name.
+ *
+ * @param svc_id	Service ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_service_get_name(service_id_t svc_id, char **name)
+{
+	return loc_get_name_internal(LOC_SERVICE_GET_NAME, svc_id, name);
+}
 
 int loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
