@@ -47,24 +47,6 @@
 #include "libc/str_error.h"
 
 /**
- * Decides whether s2 is a prefix of s1.
- *
- * @param s1 String in which to look for a prefix.
- * @param s2 Prefix string to look for.
- * @return True if s2 is a prefix of s1, false otherwise.
- */
-static bool begins_with(const char *s1, const char *s2)
-{
-	while (*s1 == *s2 && *s2 != '\0') {
-		s1++;
-		s2++;
-	}
-	
-	/* true if the end was reached */
-	return *s2 == '\0';
-}
-
-/**
  * The same as strpbrk, except it returns pointer to the nul terminator
  * if no occurence is found.
  *
@@ -470,31 +452,57 @@ size_t posix_strspn(const char *s1, const char *s2)
 }
 
 /**
- * Find a substring.
+ * Find a substring. Uses Knuth-Morris-Pratt algorithm.
  *
  * @param s1 String in which to look for a substring.
  * @param s2 Substring to look for.
  * @return Pointer to the first character of the substring in s1, or NULL if
  *     not found.
  */
-char *posix_strstr(const char *s1, const char *s2)
+char* posix_strstr (const char* haystack, const char* needle)
 {
-	assert(s1 != NULL);
-	assert(s2 != NULL);
-
-	/* special case - needle is an empty string */
-	if (*s2 == '\0') {
-		return (char *) s1;
+	assert(haystack != NULL);
+	assert(needle != NULL);
+	
+	/* Special case - needle is an empty string. */
+	if (needle[0] == '\0') {
+		return (char*) haystack;
 	}
-
-	// TODO: use faster algorithm
-	/* check for prefix from every position - quadratic complexity */
-	while (*s1 != '\0') {
-		if (begins_with(s1, s2)) {
-			return (char *) s1;
+	
+	/* Preprocess needle. */
+	size_t nlen = posix_strlen(needle);
+	size_t prefix_table[nlen + 1];
+	
+	{
+		size_t i = 0;
+		ssize_t j = -1;
+		
+		prefix_table[i] = j;
+		
+		while (i < nlen) {
+			while (j >= 0 && needle[i] != needle[j]) {
+				j = prefix_table[j];
+			}
+			i++; j++;
+			prefix_table[i] = j;
+		}
+	}
+	
+	/* Search needle using the precomputed table. */
+	size_t npos = 0;
+	
+	for (size_t hpos = 0; haystack[hpos] != '\0'; ++ hpos) {
+		while (npos != 0 && haystack[hpos] != needle[npos]) {
+			npos = prefix_table[npos];
 		}
 		
-		s1++;
+		if (haystack[hpos] == needle[npos]) {
+			npos ++;
+			
+			if (npos == nlen) {
+				return (char*) (haystack + hpos - nlen + 1);
+			}
+		}
 	}
 	
 	return NULL;

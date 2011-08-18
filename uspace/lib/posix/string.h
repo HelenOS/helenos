@@ -85,7 +85,7 @@ extern char *gnu_strchrnul(const char *s, int c);
 extern char *posix_strpbrk(const char *s1, const char *s2);
 extern size_t posix_strcspn(const char *s1, const char *s2);
 extern size_t posix_strspn(const char *s1, const char *s2);
-extern char *posix_strstr(const char *s1, const char *s2);
+extern char *posix_strstr(const char *haystack, const char *needle);
 
 /* Collation Functions */
 extern int posix_strcoll(const char *s1, const char *s2);
