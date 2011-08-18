@@ -84,6 +84,9 @@ static LIST_INITIALIZE(dummy_null_services);
 /** Service directory ogranized by categories (yellow pages) */
 static categ_dir_t cdir;
 
+static FIBRIL_MUTEX_INITIALIZE(callback_sess_mutex);
+static async_sess_t *callback_sess = NULL;
+
 service_id_t loc_create_id(void)
 {
 	/* TODO: allow reusing old ids after their unregistration
@@ -532,6 +535,45 @@ static int loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 	return EOK;
 }
 
+static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	category_t *cat;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	fibril_mutex_lock(&cdir.mutex);
+	
+	cat = category_get(&cdir, IPC_GET_ARG1(*icall));
+	if (cat == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	act_size = str_size(cat->name);
+	if (act_size > size) {
+		fibril_mutex_unlock(&cdir.mutex);
+		async_answer_0(callid, EOVERFLOW);
+		async_answer_0(iid, EOVERFLOW);
+		return;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, cat->name,
+	    min(size, act_size));
+	
+	fibril_mutex_unlock(&cdir.mutex);
+	
+	async_answer_0(iid, retval);
+}
+
 static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
@@ -570,7 +612,6 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	
 	async_answer_0(iid, retval);
 }
-
 
 /** Connect client to the service.
  *
@@ -719,6 +760,46 @@ recheck:
 	
 	fibril_mutex_unlock(&services_list_mutex);
 	free(name);
+}
+
+/** Find ID for category specified by name.
+ *
+ * On success, answer will contain EOK int retval and service ID in arg1.
+ * On failure, error code will be sent in retval.
+ *
+ */
+static void loc_callback_create(ipc_callid_t iid, ipc_call_t *icall)
+{
+	async_sess_t *cb_sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (cb_sess == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	fibril_mutex_lock(&callback_sess_mutex);
+	if (callback_sess != NULL) {
+		fibril_mutex_unlock(&callback_sess_mutex);
+		async_answer_0(iid, EEXIST);
+		return;
+	}
+	
+	callback_sess = cb_sess;
+	fibril_mutex_unlock(&callback_sess_mutex);
+	
+	async_answer_0(iid, EOK);
+}
+
+void loc_category_change_event(void)
+{
+	fibril_mutex_lock(&callback_sess_mutex);
+
+	if (callback_sess != NULL) {
+		async_exch_t *exch = async_exchange_begin(callback_sess);
+		async_msg_0(exch, LOC_EVENT_CAT_CHANGE);
+		async_exchange_end(exch);
+	}
+
+	fibril_mutex_unlock(&callback_sess_mutex);
 }
 
 /** Find ID for category specified by name.
@@ -1128,6 +1209,8 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&services_list_mutex);
 
 	async_answer_0(iid, retval);
+
+	loc_category_change_event();
 }
 
 
@@ -1155,6 +1238,9 @@ static bool loc_init(void)
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("serial");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("usbhc");
 	categ_dir_add_cat(&cdir, cat);
 
 	return true;
@@ -1243,8 +1329,14 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 		case LOC_NAMESPACE_GET_ID:
 			loc_namespace_get_id(callid, &call);
 			break;
+		case LOC_CALLBACK_CREATE:
+			loc_callback_create(callid, &call);
+			break;
 		case LOC_CATEGORY_GET_ID:
 			loc_category_get_id(callid, &call);
+			break;
+		case LOC_CATEGORY_GET_NAME:
+			loc_category_get_name(callid, &call);
 			break;
 		case LOC_CATEGORY_GET_SVCS:
 			loc_category_get_svcs(callid, &call);

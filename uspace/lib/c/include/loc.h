@@ -39,6 +39,8 @@
 #include <async.h>
 #include <bool.h>
 
+typedef void (*loc_cat_change_cb_t)(void);
+
 extern async_exch_t *loc_exchange_begin_blocking(loc_interface_t);
 extern async_exch_t *loc_exchange_begin(loc_interface_t);
 extern void loc_exchange_end(async_exch_t *);
@@ -72,6 +74,7 @@ extern size_t loc_count_services(service_id_t);
 extern size_t loc_get_namespaces(loc_sdesc_t **);
 extern size_t loc_get_services(service_id_t, loc_sdesc_t **);
 extern int loc_get_categories(category_id_t **, size_t *);
+extern int loc_register_cat_change_cb(loc_cat_change_cb_t);
 
 
 #endif

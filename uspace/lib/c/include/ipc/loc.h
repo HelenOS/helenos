@@ -56,7 +56,9 @@ typedef enum {
 	LOC_SERVICE_GET_ID,
 	LOC_SERVICE_GET_NAME,
 	LOC_NAMESPACE_GET_ID,
+	LOC_CALLBACK_CREATE,
 	LOC_CATEGORY_GET_ID,
+	LOC_CATEGORY_GET_NAME,
 	LOC_CATEGORY_GET_SVCS,
 	LOC_ID_PROBE,
 	LOC_NULL_CREATE,
@@ -67,6 +69,10 @@ typedef enum {
 	LOC_GET_NAMESPACES,
 	LOC_GET_SERVICES
 } loc_request_t;
+
+typedef enum {
+	LOC_EVENT_CAT_CHANGE = IPC_FIRST_USER_METHOD
+} loc_event_t;
 
 /** Ports provided by location service.
  *

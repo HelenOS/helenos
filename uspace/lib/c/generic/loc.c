@@ -44,11 +44,50 @@ static FIBRIL_MUTEX_INITIALIZE(loc_cons_block_mutex);
 static FIBRIL_MUTEX_INITIALIZE(loc_supplier_mutex);
 static FIBRIL_MUTEX_INITIALIZE(loc_consumer_mutex);
 
+static FIBRIL_MUTEX_INITIALIZE(loc_callback_mutex);
+static bool loc_callback_created = false;
+
 static async_sess_t *loc_supp_block_sess = NULL;
 static async_sess_t *loc_cons_block_sess = NULL;
 
 static async_sess_t *loc_supplier_sess = NULL;
 static async_sess_t *loc_consumer_sess = NULL;
+
+static loc_cat_change_cb_t cat_change_cb = NULL;
+
+static void loc_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	loc_cat_change_cb_t cb_fun;
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			/* TODO: Handle hangup */
+			return;
+		}
+		
+		int retval;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case LOC_EVENT_CAT_CHANGE:
+			fibril_mutex_lock(&loc_callback_mutex);
+			cb_fun = cat_change_cb;
+			if (cb_fun != NULL) {
+				(*cb_fun)();
+			}
+			fibril_mutex_unlock(&loc_callback_mutex);
+			retval = 0;
+			break;
+		default:
+			retval = ENOTSUP;
+		}
+		
+		async_answer_0(callid, retval);
+	}
+}
+
 
 static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
     async_sess_t **dst)
@@ -59,6 +98,40 @@ static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
 		*dst = src;
 	
 	fibril_mutex_unlock(mtx);
+}
+
+static int loc_callback_create(void)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	int rc = EOK;
+
+	fibril_mutex_lock(&loc_callback_mutex);
+	
+	if (!loc_callback_created) {
+		exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
+		
+		ipc_call_t answer;
+		aid_t req = async_send_0(exch, LOC_CALLBACK_CREATE, &answer);
+		async_connect_to_me(exch, 0, 0, 0, loc_cb_conn, NULL);
+		loc_exchange_end(exch);
+		
+		async_wait_for(req, &retval);
+		if (rc != EOK)
+			goto done;
+		
+		if (retval != EOK) {
+			rc = retval;
+			goto done;
+		}
+		
+		loc_callback_created = true;
+	}
+	
+	rc = EOK;
+done:
+	fibril_mutex_unlock(&loc_callback_mutex);
+	return rc;
 }
 
 /** Start an async exchange on the loc session (blocking).
@@ -290,16 +363,17 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
 	return retval;
 }
 
-/** Get service name.
+/** Get object name.
  *
- * Provided ID of a service, return its name.
+ * Provided ID of an object, return its name.
  *
- * @param svc_id	Service ID
+ * @param method	IPC method
+ * @param id		Object ID
  * @param name		Place to store pointer to new string. Caller should
  *			free it using free().
  * @return		EOK on success or negative error code
  */
-int loc_service_get_name(service_id_t svc_id, char **name)
+static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 {
 	async_exch_t *exch;
 	char name_buf[LOC_NAME_MAXLEN + 1];
@@ -311,7 +385,7 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, LOC_SERVICE_GET_NAME, svc_id, &answer);
+	aid_t req = async_send_1(exch, method, id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN,
 	    &dreply);
 	async_wait_for(dreq, &dretval);
@@ -340,6 +414,33 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	return EOK;
 }
 
+/** Get category name.
+ *
+ * Provided ID of a service, return its name.
+ *
+ * @param cat_id	Category ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_category_get_name(category_id_t cat_id, char **name)
+{
+	return loc_get_name_internal(LOC_CATEGORY_GET_NAME, cat_id, name);
+}
+
+/** Get service name.
+ *
+ * Provided ID of a service, return its name.
+ *
+ * @param svc_id	Service ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_service_get_name(service_id_t svc_id, char **name)
+{
+	return loc_get_name_internal(LOC_SERVICE_GET_NAME, svc_id, name);
+}
 
 int loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
@@ -747,4 +848,13 @@ int loc_get_categories(category_id_t **data, size_t *count)
 {
 	return loc_get_ids_internal(LOC_GET_CATEGORIES, 0,
 	    data, count);
+}
+
+int loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun)
+{
+	if (loc_callback_create() != EOK)
+		return EIO;
+
+	cat_change_cb = cb_fun;
+	return EOK;
 }

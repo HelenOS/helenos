@@ -204,13 +204,13 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev,
 		return rc;
 	}
 	
-	usb_log_debug("%s function created (jandle: %" PRIun ").\n",
+	usb_log_debug("%s function created (handle: %" PRIun ").\n",
 	    NAME, fun->handle);
 	
-	rc = ddf_fun_add_to_class(fun, "keyboard");
+	rc = ddf_fun_add_to_category(fun, "keyboard");
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class 'keyboard': %s.\n",
+		    "Could not add DDF function to category 'keyboard': %s.\n",
 		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(fun);

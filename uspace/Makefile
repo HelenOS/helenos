@@ -43,6 +43,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/locinfo \
 	app/lsusb \
 	app/mkfat \
 	app/redir \

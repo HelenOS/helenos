@@ -58,7 +58,7 @@ typedef struct {
 usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
 
 const char *HID_MOUSE_FUN_NAME;
-const char *HID_MOUSE_CLASS_NAME;
+const char *HID_MOUSE_CATEGORY;
 
 /*----------------------------------------------------------------------------*/
 

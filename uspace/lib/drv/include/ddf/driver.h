@@ -150,7 +150,7 @@ extern void ddf_fun_destroy(ddf_fun_t *);
 extern int ddf_fun_bind(ddf_fun_t *);
 extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 
-extern int ddf_fun_add_to_class(ddf_fun_t *, const char *);
+extern int ddf_fun_add_to_category(ddf_fun_t *, const char *);
 
 #endif
 
