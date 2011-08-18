@@ -647,6 +647,10 @@ void async_put_client_data_by_hash(sysarg_t client_hash)
 	assert(client);
 	assert(client->data);
 
+	/* Drop the reference we got in async_get_client_data_by_hash(). */
+	async_client_put(client);
+
+	/* Drop our own reference we got at the beginning of this function. */
 	async_client_put(client);
 }
 
