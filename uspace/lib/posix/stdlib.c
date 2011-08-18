@@ -48,6 +48,7 @@
 #include "libc/sort.h"
 #include "libc/str.h"
 #include "libc/vfs/vfs.h"
+#include "libc/stats.h"
 
 /**
  * 
@@ -472,15 +473,31 @@ char *posix_mktemp(char *tmpl)
 /**
  * Get system load average statistics.
  *
- * Not supported. Always returns -1.
- *
  * @param loadavg Array where the load averages shall be placed.
  * @param nelem Maximum number of elements to be placed into the array.
  * @return Number of elements placed into the array on success, -1 otherwise.
  */
 int bsd_getloadavg(double loadavg[], int nelem)
 {
-	return -1;
+	assert(nelem > 0);
+	
+	size_t count;
+	load_t *loads = stats_get_load(&count);
+	
+	if (loads == NULL) {
+		return -1;
+	}
+	
+	if (((size_t) nelem) < count) {
+		count = nelem;
+	}
+	
+	for (size_t i = 0; i < count; ++i) {
+		loadavg[i] = (double) loads[i];
+	}
+	
+	free(loads);
+	return count;
 }
 
 /** @}

@@ -25,16 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
 /** @file
  * @brief OHCI driver transfer list implementation
  */
+
 #include <errno.h>
 #include <usb/debug.h>
-#include <arch/barrier.h>
-
+#include <libarch/barrier.h>
 #include "endpoint_list.h"
 
 /** Initialize transfer list structures.

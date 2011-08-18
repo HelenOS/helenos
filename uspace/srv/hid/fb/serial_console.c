@@ -52,7 +52,7 @@
 #include "serial_console.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define MAX_CONTROL 20
 

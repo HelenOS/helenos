@@ -35,19 +35,17 @@
 #ifndef KERN_mips64_ISTATE_H_
 #define KERN_mips64_ISTATE_H_
 
-#include <arch/cp0.h>
+#include <trace.h>
 
 #ifdef KERNEL
 
-#include <typedefs.h>
-#include <trace.h>
+#include <arch/cp0.h>
 
-#else
+#else /* KERNEL */
 
-#include <sys/types.h>
-#define NO_TRACE
+#include <libarch/cp0.h>
 
-#endif
+#endif /* KERNEL */
 
 typedef struct istate {
 	/*

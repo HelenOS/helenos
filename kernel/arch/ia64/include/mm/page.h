@@ -41,8 +41,6 @@
 #define PAGE_SIZE   FRAME_SIZE
 #define PAGE_WIDTH  FRAME_WIDTH
 
-#ifdef KERNEL
-
 /** Bit width of the TLB-locked portion of kernel address space. */
 #define KERNEL_PAGE_WIDTH  28  /* 256M */
 #define IO_PAGE_WIDTH      26  /* 64M */
@@ -314,8 +312,6 @@ extern bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v);
 extern void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame, int flags);
 
 #endif /* __ASM__ */
-
-#endif /* KERNEL */
 
 #endif
 

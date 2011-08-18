@@ -64,9 +64,6 @@ extern ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
 /* Opening Streams */
 extern FILE *posix_freopen(const char *restrict filename,
     const char *restrict mode, FILE *restrict stream);
-extern FILE *posix_fmemopen(void *restrict buf, size_t size,
-    const char *restrict mode);
-extern FILE *posix_open_memstream(char **bufp, size_t *sizep);
 
 /* Error Messages */
 extern void posix_perror(const char *s);
@@ -142,8 +139,6 @@ extern FILE *posix_tmpfile(void);
 	#define getline posix_getline
 
 	#define freopen posix_freopen
-	#define fmemopen posix_fmemopen
-	#define open_memstream posix_open_memstream
 
 	#define perror posix_perror
 

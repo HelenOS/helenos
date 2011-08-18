@@ -283,7 +283,7 @@ FILE *posix_freopen(const char *restrict filename,
 	
 	fdi_node_t node = {
 		.fs_handle = st.fs_handle,
-		.devmap_handle = st.devmap_handle,
+		.service_id = st.service_id,
 		.index = st.index
 	};
 	
@@ -316,32 +316,6 @@ FILE *posix_freopen(const char *restrict filename,
 	stream->link.prev->next = &stream->link;
 	
 	return stream;
-}
-
-/**
- *
- * @param buf
- * @param size
- * @param mode
- * @return
- */
-FILE *posix_fmemopen(void *restrict buf, size_t size,
-    const char *restrict mode)
-{
-	// TODO
-	not_implemented();
-}
-
-/**
- *
- * @param bufp
- * @param sizep
- * @return
- */
-FILE *posix_open_memstream(char **bufp, size_t *sizep)
-{
-	// TODO
-	not_implemented();
 }
 
 /**

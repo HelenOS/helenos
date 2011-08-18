@@ -46,9 +46,9 @@ start:
 	 *  - Enable 64-bit supervisor adressing mode
 	 *  - Enable 64-bit user addressing mode
 	 */
-	dmfc0 $a0, $status
+	mfc0 $a0, $status
 	ori $a0, 0x00e0
-	dmtc0 $a0, $status
+	mtc0 $a0, $status
 	
 	/*
 	 * Setup CPU map (on msim this code

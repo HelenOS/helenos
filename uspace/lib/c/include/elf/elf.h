@@ -35,7 +35,9 @@
 #ifndef LIBC_ELF_H_
 #define LIBC_ELF_H_
 
-#include <kernel/lib/elf.h>
+#include <sys/types.h>
+#include <abi/elf.h>
+#include <libarch/elf.h>
 
 #endif
 

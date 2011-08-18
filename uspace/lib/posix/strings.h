@@ -47,7 +47,7 @@ extern int posix_strcasecmp(const char *s1, const char *s2);
 extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
 #endif
 
-/* TODO: not implemented due to missing locale.h
+/* TODO: not implemented due to missing locale support
  *
  * int strcasecmp_l(const char *, const char *, locale_t);
  * int strncasecmp_l(const char *, const char *, size_t, locale_t);

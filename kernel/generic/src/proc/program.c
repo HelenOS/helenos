@@ -39,7 +39,6 @@
 #include <main/uinit.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/uarg.h>
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <arch.h>

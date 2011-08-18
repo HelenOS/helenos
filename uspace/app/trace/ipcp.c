@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <adt/hash_table.h>
 #include <sys/typefmt.h>
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include "ipc_desc.h"
 #include "proto.h"
 #include "trace.h"

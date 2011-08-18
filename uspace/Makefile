@@ -64,7 +64,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	srv/clip \
-	srv/devmap \
+	srv/loc \
 	srv/devman \
 	srv/loader \
 	srv/ns \
@@ -78,8 +78,9 @@ DIRS = \
 	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
-	srv/fs/devfs \
+	srv/fs/locfs \
 	srv/fs/ext2fs \
+	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
@@ -133,10 +134,6 @@ DIRS += \
 ## Platform-specific hardware support
 #
 
-ifneq ($(UARCH),abs32le)
-	DIRS += srv/hid/console
-endif
-
 ifeq ($(UARCH),amd64)
 	DIRS += \
 		drv/infrastructure/rootpc \
@@ -181,6 +178,7 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
+	lib/imgmap \
 	lib/net \
 	lib/ext2 \
 	lib/usb \

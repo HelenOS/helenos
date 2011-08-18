@@ -44,7 +44,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <errno.h>
@@ -60,7 +60,7 @@ static size_t block_size;
 static aoff64_t num_blocks;
 static FILE *img;
 
-static devmap_handle_t devmap_handle;
+static service_id_t service_id;
 static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	if (file_bd_init(image_name) != EOK)
 		return -1;
 
-	rc = devmap_device_register(device_name, &devmap_handle);
+	rc = loc_service_register(device_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register device '%s'.\n",
 			device_name);
@@ -141,7 +141,7 @@ static int file_bd_init(const char *fname)
 	int rc;
 	long img_size;
 
-	rc = devmap_driver_register(NAME, file_bd_connection);
+	rc = loc_server_register(NAME, file_bd_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;

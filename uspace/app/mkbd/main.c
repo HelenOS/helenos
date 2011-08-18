@@ -42,7 +42,7 @@
 #include <bool.h>
 #include <getopt.h>
 #include <devman.h>
-#include <devmap.h>
+#include <loc.h>
 #include <usb/dev/hub.h>
 #include <usb/hid/iface.h>
 #include <usb/dev/pipes.h>

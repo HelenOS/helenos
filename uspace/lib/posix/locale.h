@@ -35,8 +35,6 @@
 #ifndef POSIX_LOCALE_H_
 #define POSIX_LOCALE_H_
 
-// TODO: documentation
-
 #ifndef NULL
 	#define NULL ((void *) 0)
 #endif

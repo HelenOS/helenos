@@ -41,8 +41,6 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
-#ifdef KERNEL
-
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x80000000))
 
@@ -176,8 +174,6 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 
 extern void page_arch_init(void);
 extern void page_fault(unsigned int, istate_t *);
-
-#endif /* KERNEL */
 
 #endif
 

@@ -38,13 +38,11 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/uarg.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <arch/asm.h>
 #include <arch/cycle.h>
 #include <arch.h>
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <cpu.h>

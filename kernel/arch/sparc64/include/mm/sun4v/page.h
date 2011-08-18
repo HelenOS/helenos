@@ -45,8 +45,6 @@
 
 #define MMU_PAGES_PER_PAGE	(1 << (PAGE_WIDTH - MMU_PAGE_WIDTH))
 
-#ifdef KERNEL
-
 #ifndef __ASM__
 
 #include <arch/interrupt.h>
@@ -67,8 +65,6 @@ typedef union {
 extern void page_arch_init(void);
 
 #endif /* !def __ASM__ */
-
-#endif /* KERNEL */
 
 #endif
 

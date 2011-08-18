@@ -35,8 +35,6 @@
 #ifndef POSIX_SIGNAL_H_
 #define POSIX_SIGNAL_H_
 
-// TODO: documentation
-
 #include "libc/errno.h"
 #include "sys/types.h"
 
@@ -56,7 +54,7 @@ extern void __posix_ignore_signal_handler(int signo);
 typedef int posix_sig_atomic_t;
 typedef uint32_t posix_sigset_t;
 typedef struct posix_mcontext {
-	// FIXME: should not be empty to avoid compiler warnings (-pedantic)
+	/* must not be empty to avoid compiler warnings (-pedantic) */
 	int dummy;
 } posix_mcontext_t;
 
