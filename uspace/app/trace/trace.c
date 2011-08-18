@@ -586,23 +586,23 @@ static loader_t *preload_task(const char *path, char **argv,
 		goto error;
 
 	/* Send default files */
-	fdi_node_t *files[4];
-	fdi_node_t stdin_node;
-	fdi_node_t stdout_node;
-	fdi_node_t stderr_node;
+	int *files[4];
+	int fd_stdin;
+	int fd_stdout;
+	int fd_stderr;
 	
-	if ((stdin != NULL) && (fnode(stdin, &stdin_node) == EOK))
-		files[0] = &stdin_node;
+	if ((stdin != NULL) && (fhandle(stdin, &fd_stdin) == EOK))
+		files[0] = &fd_stdin;
 	else
 		files[0] = NULL;
 	
-	if ((stdout != NULL) && (fnode(stdout, &stdout_node) == EOK))
-		files[1] = &stdout_node;
+	if ((stdout != NULL) && (fhandle(stdout, &fd_stdout) == EOK))
+		files[1] = &fd_stdout;
 	else
 		files[1] = NULL;
 	
-	if ((stderr != NULL) && (fnode(stderr, &stderr_node) == EOK))
-		files[2] = &stderr_node;
+	if ((stderr != NULL) && (fhandle(stderr, &fd_stderr) == EOK))
+		files[2] = &fd_stderr;
 	else
 		files[2] = NULL;
 	
@@ -761,8 +761,6 @@ static void main_init(void)
 	p = proto_new("vfs");
 	o = oper_new("open", 2, arg_def, V_INT_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_OPEN, o);
-	o = oper_new("open_node", 4, arg_def, V_INT_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_OPEN_NODE, o);
 	o = oper_new("read", 1, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_READ, o);
 	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);

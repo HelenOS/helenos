@@ -255,40 +255,31 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
  * @return Zero on success or negative error code.
  *
  */
-int loader_set_files(loader_t *ldr, fdi_node_t *const files[])
+int loader_set_files(loader_t *ldr, int * const files[])
 {
-	/*
-	 * Serialize the arguments into a single array. First
-	 * compute size of the buffer needed.
-	 */
-	fdi_node_t *const *ap = files;
-	size_t count = 0;
-	while (*ap != NULL) {
-		count++;
-		ap++;
-	}
-	
-	fdi_node_t *files_buf;
-	files_buf = (fdi_node_t *) malloc(count * sizeof(fdi_node_t));
-	if (files_buf == NULL)
-		return ENOMEM;
-	
-	/* Fill the buffer */
-	size_t i;
-	for (i = 0; i < count; i++)
-		files_buf[i] = *files[i];
-	
 	/* Send serialized files to the loader */
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	async_exch_t *vfs_exch = vfs_exchange_begin();
 	
+	int i;
+	for (i = 0; files[i]; i++)
+		;
+
 	ipc_call_t answer;
-	aid_t req = async_send_0(exch, LOADER_SET_FILES, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *) files_buf,
-	    count * sizeof(fdi_node_t));
+	aid_t req = async_send_1(exch, LOADER_SET_FILES, i, &answer);
+
+	sysarg_t rc;
 	
+	for (i = 0; files[i]; i++) {
+		rc = async_state_change_start(exch, VFS_PASS_HANDLE, *files[i],
+		    0, vfs_exch); 
+		if (rc != EOK)
+			break;
+	}
+	
+	vfs_exchange_end(vfs_exch);
 	async_exchange_end(exch);
-	free(files_buf);
-	
+
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return (int) rc;

@@ -328,25 +328,6 @@ int open(const char *path, int oflag, ...)
 	return ret;
 }
 
-int open_node(fdi_node_t *node, int oflag)
-{
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_4(exch, VFS_IN_OPEN_NODE, node->fs_handle,
-	    node->devmap_handle, node->index, oflag, &answer);
-	
-	vfs_exchange_end(exch);
-
-	sysarg_t rc;
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK)
-		return (int) rc;
-	
-	return (int) IPC_GET_ARG1(answer);
-}
-
 int close(int fildes)
 {
 	sysarg_t rc;
@@ -816,20 +797,6 @@ async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
 	}
 	
 	return devmap_device_connect(mgmt, stat.device, 0);
-}
-
-int fd_node(int fildes, fdi_node_t *node)
-{
-	struct stat stat;
-	int rc = fstat(fildes, &stat);
-	
-	if (rc == EOK) {
-		node->fs_handle = stat.fs_handle;
-		node->devmap_handle = stat.devmap_handle;
-		node->index = stat.index;
-	}
-	
-	return rc;
 }
 
 int dup2(int oldfd, int newfd)

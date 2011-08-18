@@ -102,23 +102,23 @@ int task_kill(task_id_t task_id)
 int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 {
 	/* Send default files */
-	fdi_node_t *files[4];
-	fdi_node_t stdin_node;
-	fdi_node_t stdout_node;
-	fdi_node_t stderr_node;
+	int *files[4];
+	int fd_stdin;
+	int fd_stdout;
+	int fd_stderr;
 	
-	if ((stdin != NULL) && (fnode(stdin, &stdin_node) == EOK))
-		files[0] = &stdin_node;
+	if ((stdin != NULL) && (fhandle(stdin, &fd_stdin) == EOK))
+		files[0] = &fd_stdin;
 	else
 		files[0] = NULL;
 	
-	if ((stdout != NULL) && (fnode(stdout, &stdout_node) == EOK))
-		files[1] = &stdout_node;
+	if ((stdout != NULL) && (fhandle(stdout, &fd_stdout) == EOK))
+		files[1] = &fd_stdout;
 	else
 		files[1] = NULL;
 	
-	if ((stderr != NULL) && (fnode(stderr, &stderr_node) == EOK))
-		files[2] = &stderr_node;
+	if ((stderr != NULL) && (fhandle(stderr, &fd_stderr) == EOK))
+		files[2] = &fd_stderr;
 	else
 		files[2] = NULL;
 	
@@ -142,7 +142,7 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
  *
  */
 int task_spawnvf(task_id_t *id, const char *path, const char *const args[],
-    fdi_node_t *const files[])
+    int *const files[])
 {
 	/* Connect to a program loader. */
 	loader_t *ldr = loader_connect();

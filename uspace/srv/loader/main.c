@@ -60,6 +60,7 @@
 #include <as.h>
 #include <elf/elf.h>
 #include <elf/elf_load.h>
+#include <vfs/vfs.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -88,11 +89,7 @@ static char **argv = NULL;
 static char *arg_buf = NULL;
 
 /** Number of preset files */
-static int filc = 0;
-/** Preset files vector */
-static fdi_node_t **filv = NULL;
-/** Buffer holding all preset files */
-static fdi_node_t *fil_buf = NULL;
+static unsigned int filc = 0;
 
 static elf_info_t prog_info;
 
@@ -238,47 +235,22 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
-	fdi_node_t *buf;
-	size_t buf_size;
-	int rc = async_data_write_accept((void **) &buf, false, 0, 0,
-	    sizeof(fdi_node_t), &buf_size);
-	
-	if (rc == EOK) {
-		int count = buf_size / sizeof(fdi_node_t);
-		
-		/*
-		 * Allocate new filv
-		 */
-		fdi_node_t **_filv = (fdi_node_t **) calloc(count + 1, sizeof(fdi_node_t *));
-		if (_filv == NULL) {
-			free(buf);
-			async_answer_0(rid, ENOMEM);
-			return;
+	size_t count = IPC_GET_ARG1(*request);
+
+	async_exch_t *vfs_exch = vfs_exchange_begin();
+
+	for (filc = 0; filc < count; filc++) {
+		ipc_callid_t callid;
+
+		if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
+			async_answer_0(callid, EINVAL);
+			break;
 		}
-		
-		/*
-		 * Fill the new filv with argument pointers
-		 */
-		int i;
-		for (i = 0; i < count; i++)
-			_filv[i] = &buf[i];
-		
-		_filv[count] = NULL;
-		
-		/*
-		 * Copy temporary data to global variables
-		 */
-		if (fil_buf != NULL)
-			free(fil_buf);
-		
-		if (filv != NULL)
-			free(filv);
-		
-		filc = count;
-		fil_buf = buf;
-		filv = _filv;
+		async_state_change_finalize(callid, vfs_exch);
 	}
-	
+
+	vfs_exchange_end(vfs_exch);
+
 	async_answer_0(rid, EOK);
 }
 
@@ -307,7 +279,6 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	pcb.argv = argv;
 	
 	pcb.filc = filc;
-	pcb.filv = filv;
 	
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
