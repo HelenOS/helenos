@@ -780,7 +780,7 @@ static int ns8250_add_device(ddf_dev_t *dev)
 
 	ns->fun = fun;
 	
-	ddf_fun_add_to_class(fun, "serial");
+	ddf_fun_add_to_category(fun, "serial");
 	
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized.",
 	    dev->name);

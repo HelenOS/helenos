@@ -142,11 +142,11 @@ static int test1_add_device(ddf_dev_t *dev)
 		return rc;
 	}
 
-	ddf_fun_add_to_class(fun_a, "virtual");
+	ddf_fun_add_to_category(fun_a, "virtual");
 
 	if (str_cmp(dev->name, "null") == 0) {
 		fun_a->ops = &char_device_ops;
-		ddf_fun_add_to_class(fun_a, "virt-null");
+		ddf_fun_add_to_category(fun_a, "virt-null");
 	} else if (str_cmp(dev->name, "test1") == 0) {
 		(void) register_fun_verbose(dev,
 		    "cloning myself ;-)", "clone",

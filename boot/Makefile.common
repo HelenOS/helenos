@@ -156,6 +156,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
+	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \

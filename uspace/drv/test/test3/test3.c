@@ -49,7 +49,7 @@ static driver_t test3_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int register_fun_and_add_to_class(ddf_dev_t *parent,
+static int register_fun_and_add_to_category(ddf_dev_t *parent,
      const char *base_name, size_t index, const char *class_name)
 {
 	ddf_fun_t *fun = NULL;
@@ -76,7 +76,7 @@ static int register_fun_and_add_to_class(ddf_dev_t *parent,
 		goto leave;
 	}
 	
-	ddf_fun_add_to_class(fun, class_name);
+	ddf_fun_add_to_category(fun, class_name);
 
 	ddf_msg(LVL_NOTE, "Registered exposed function `%s'.", fun_name);
 
@@ -99,7 +99,7 @@ static int test3_add_device(ddf_dev_t *dev)
 
 	size_t i;
 	for (i = 0; i < 20; i++) {
-		rc = register_fun_and_add_to_class(dev,
+		rc = register_fun_and_add_to_category(dev,
 		    "test3_", i, "test3");
 		if (rc != EOK) {
 			break;

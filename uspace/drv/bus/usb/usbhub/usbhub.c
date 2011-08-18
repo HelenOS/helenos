@@ -130,7 +130,7 @@ int usb_hub_add_device(usb_device_t *usb_dev) {
 
 	opResult = ddf_fun_bind(hub_fun);
 	assert(opResult == EOK);
-	opResult = ddf_fun_add_to_class(hub_fun, "hub");
+	opResult = ddf_fun_add_to_category(hub_fun, "hub");
 	assert(opResult == EOK);
 
 	opResult = usb_hub_start_hub_fibril(hub_info);

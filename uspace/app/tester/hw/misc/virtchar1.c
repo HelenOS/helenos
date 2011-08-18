@@ -48,7 +48,6 @@
 #include "../../tester.h"
 
 #define DEVICE_PATH_NORMAL "/loc/devices/\\virt\\null\\a"
-#define DEVICE_PATH_CLASSES "/loc/class/virt-null\\1"
 #define BUFFER_SIZE 64
 
 static const char *test_virtchar1_internal(const char *path)
@@ -100,11 +99,6 @@ const char *test_virtchar1(void)
 	const char *res;
 
 	res = test_virtchar1_internal(DEVICE_PATH_NORMAL);
-	if (res != NULL) {
-		return res;
-	}
-
-	res = test_virtchar1_internal(DEVICE_PATH_CLASSES);
 	if (res != NULL) {
 		return res;
 	}
