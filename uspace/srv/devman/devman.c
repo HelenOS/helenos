@@ -1099,6 +1099,26 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
 	return true;
 }
 
+/** Remove function from device tree.
+ *
+ * @param tree		Device tree
+ * @param node		Function node to remove
+ */
+void remove_fun_node(dev_tree_t *tree, fun_node_t *fun)
+{
+	assert(tree != NULL);
+	assert(fun != NULL);
+	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
+	
+	/* Remove the node from the handle-to-node map. */
+	unsigned long key = fun->handle;
+	hash_table_remove(&tree->devman_functions, &key, 1);
+	
+	/* Remove the node from the list of its parent's children. */
+	if (fun->dev != NULL)
+		list_remove(&fun->dev_functions);
+}
+
 /** Find function node with a specified path in the device tree.
  * 
  * @param path		The path of the function node in the device tree.
