@@ -81,7 +81,8 @@ typedef enum {
 } vfs_in_request_t;
 
 typedef enum {
-	VFS_OUT_READ = IPC_FIRST_USER_METHOD,
+	VFS_OUT_OPEN_NODE = IPC_FIRST_USER_METHOD,
+	VFS_OUT_READ,
 	VFS_OUT_WRITE,
 	VFS_OUT_TRUNCATE,
 	VFS_OUT_CLOSE,
