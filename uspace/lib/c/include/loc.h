@@ -49,6 +49,7 @@ extern int loc_server_register(const char *, async_client_conn_t);
 extern int loc_service_register(const char *, service_id_t *);
 extern int loc_service_register_with_iface(const char *, service_id_t *,
     sysarg_t);
+extern int loc_service_unregister(service_id_t);
 extern int loc_service_add_to_cat(service_id_t, category_id_t);
 
 extern int loc_service_get_id(const char *, service_id_t *,

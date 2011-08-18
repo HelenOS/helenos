@@ -66,7 +66,7 @@ LIST_INITIALIZE(servers_list);
  *  create_id_mutex
  **/
 
-static FIBRIL_MUTEX_INITIALIZE(services_list_mutex);
+FIBRIL_MUTEX_INITIALIZE(services_list_mutex);
 static FIBRIL_CONDVAR_INITIALIZE(services_list_cv);
 static FIBRIL_MUTEX_INITIALIZE(servers_list_mutex);
 static FIBRIL_MUTEX_INITIALIZE(create_id_mutex);
@@ -310,10 +310,21 @@ static void loc_namespace_delref(loc_namespace_t *namespace)
 static void loc_service_unregister_core(loc_service_t *service)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
-
+	assert(fibril_mutex_is_locked(&cdir.mutex));
+	
 	loc_namespace_delref(service->namespace);
 	list_remove(&(service->services));
 	list_remove(&(service->server_services));
+	
+	/* Remove service from all categories. */
+	while (!list_empty(&service->cat_memb)) {
+		link_t *link = list_first(&service->cat_memb);
+		svc_categ_t *memb = list_get_instance(link, svc_categ_t,
+		    svc_link);
+		fibril_mutex_lock(&memb->cat->mutex);
+		category_remove_service(memb);
+		fibril_mutex_unlock(&memb->cat->mutex);
+	}
 	
 	free(service->name);
 	free(service);
@@ -414,6 +425,7 @@ static int loc_server_unregister(loc_server_t *server)
 	/* Unregister all its services */
 	fibril_mutex_lock(&services_list_mutex);
 	fibril_mutex_lock(&server->services_mutex);
+	fibril_mutex_lock(&cdir.mutex);
 	
 	while (!list_empty(&server->services)) {
 		loc_service_t *service = list_get_instance(
@@ -422,6 +434,7 @@ static int loc_server_unregister(loc_server_t *server)
 		loc_service_unregister_core(service);
 	}
 	
+	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&server->services_mutex);
 	fibril_mutex_unlock(&services_list_mutex);
 	fibril_mutex_unlock(&servers_list_mutex);
@@ -491,6 +504,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 	
 	link_initialize(&service->services);
 	link_initialize(&service->server_services);
+	list_initialize(&service->cat_memb);
 	
 	/* Check that service is not already registered */
 	if (loc_service_find_name(namespace->name, service->name) != NULL) {
@@ -528,11 +542,24 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 /**
  *
  */
-static int loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall, 
+static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall, 
     loc_server_t *server)
 {
-	/* TODO */
-	return EOK;
+	loc_service_t *svc;
+	
+	fibril_mutex_lock(&services_list_mutex);
+	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
+	if (svc == NULL) {
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	fibril_mutex_lock(&cdir.mutex);
+	loc_service_unregister_core(svc);
+	fibril_mutex_unlock(&cdir.mutex);
+	fibril_mutex_unlock(&services_list_mutex);
+	async_answer_0(iid, EOK);
 }
 
 static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
@@ -1175,7 +1202,9 @@ static void loc_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	fibril_mutex_lock(&services_list_mutex);
+	fibril_mutex_lock(&cdir.mutex);
 	loc_service_unregister_core(null_services[i]);
+	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&services_list_mutex);
 	
 	null_services[i] = NULL;
@@ -1241,6 +1270,9 @@ static bool loc_init(void)
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("usbhc");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("virtual");
 	categ_dir_add_cat(&cdir, cat);
 
 	return true;

@@ -307,6 +307,25 @@ async_sess_t *devman_device_connect(exch_mgmt_t mgmt, devman_handle_t handle,
 	return sess;
 }
 
+/** Remove function from device.
+ *
+ * Request devman to remove function owned by this driver task.
+ * @param funh      Devman handle of the function
+ *
+ * @return EOK on success or negative error code.
+ */
+int devman_remove_function(devman_handle_t funh)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	
+	exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	retval = async_req_1_0(exch, DEVMAN_REMOVE_FUNCTION, (sysarg_t) funh);
+	devman_exchange_end(exch);
+	
+	return (int) retval;
+}
+
 async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
     devman_handle_t handle, unsigned int flags)
 {
