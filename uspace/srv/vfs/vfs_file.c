@@ -42,6 +42,7 @@
 #include <bool.h>
 #include <fibril.h>
 #include <fibril_synch.h>
+#include <adt/list.h>
 #include "vfs.h"
 
 #define VFS_DATA	((vfs_client_data_t *) async_get_client_data())
@@ -49,8 +50,15 @@
 
 typedef struct {
 	fibril_mutex_t lock;
+	fibril_condvar_t cv;
+	list_t passed_handles;
 	vfs_file_t **files;
 } vfs_client_data_t;
+
+typedef struct {
+	link_t link;
+	int handle;
+} vfs_boxed_handle_t;
 
 static int _vfs_fd_free(vfs_client_data_t *, int);
 
@@ -84,6 +92,17 @@ static void vfs_files_done(vfs_client_data_t *vfs_data)
 	}
 	
 	free(vfs_data->files);
+
+	while (!list_empty(&vfs_data->passed_handles)) {
+		link_t *lnk;
+		vfs_boxed_handle_t *bh;
+		
+		lnk = list_first(&vfs_data->passed_handles);
+		list_remove(lnk);
+
+		bh = list_get_instance(lnk, vfs_boxed_handle_t, link);
+		free(bh);
+	}
 }
 
 void *vfs_client_data_create(void)
@@ -93,6 +112,8 @@ void *vfs_client_data_create(void)
 	vfs_data = malloc(sizeof(vfs_client_data_t));
 	if (vfs_data) {
 		fibril_mutex_initialize(&vfs_data->lock);
+		fibril_condvar_initialize(&vfs_data->cv);
+		list_initialize(&vfs_data->passed_handles);
 		vfs_data->files = NULL;
 	}
 	
@@ -330,13 +351,21 @@ void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
 	vfs_client_data_t *acceptor_data = NULL;
 	vfs_file_t *donor_file = NULL;
 	vfs_file_t *acceptor_file = NULL;
+	vfs_boxed_handle_t *bh;
 	int acceptor_fd;
+
+	acceptor_data = async_get_client_data_by_hash(acceptor_hash);
+	if (!acceptor_data)
+		return;
+
+	bh = malloc(sizeof(vfs_boxed_handle_t));
+	assert(bh);
+
+	link_initialize(&bh->link);
+	bh->handle = -1;
 
 	donor_data = async_get_client_data_by_hash(donor_hash);
 	if (!donor_data)
-		return;
-	acceptor_data = async_get_client_data_by_hash(acceptor_hash);
-	if (!acceptor_data)
 		goto out;
 
 	donor_file = _vfs_file_get(donor_data, donor_fd);
@@ -346,6 +375,8 @@ void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
 	acceptor_fd = _vfs_fd_alloc(acceptor_data, false);
 	if (acceptor_fd < 0)
 		goto out;
+
+	bh->handle = acceptor_fd;
 
 	/*
 	 * Add a new reference to the underlying VFS node.
@@ -363,6 +394,11 @@ void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
 	acceptor_file->pos = donor_file->pos;
 
 out:
+	fibril_mutex_lock(&acceptor_data->lock);
+	list_append(&bh->link, &acceptor_data->passed_handles);
+	fibril_condvar_broadcast(&acceptor_data->cv);
+	fibril_mutex_unlock(&acceptor_data->lock);
+
 	if (donor_data)
 		async_put_client_data_by_hash(donor_hash);
 	if (acceptor_data)
@@ -371,6 +407,26 @@ out:
 		_vfs_file_put(donor_data, donor_file);
 	if (acceptor_file)
 		_vfs_file_put(acceptor_data, acceptor_file);
+
+}
+
+int vfs_wait_handle_internal(void)
+{
+	vfs_client_data_t *vfs_data = VFS_DATA;	
+	int fd;
+	
+	fibril_mutex_lock(&vfs_data->lock);
+	while (list_empty(&vfs_data->passed_handles))
+		fibril_condvar_wait(&vfs_data->cv, &vfs_data->lock);
+	link_t *lnk = list_first(&vfs_data->passed_handles);
+	list_remove(lnk);
+	fibril_mutex_unlock(&vfs_data->lock);
+
+	vfs_boxed_handle_t *bh = list_get_instance(lnk, vfs_boxed_handle_t, link);
+	fd = bh->handle;
+	free(bh);
+
+	return fd;
 }
 
 /**

@@ -188,6 +188,7 @@ extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
 extern void vfs_pass_handle(sysarg_t, sysarg_t, int);
+extern int vfs_wait_handle_internal(void);
 
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
@@ -214,6 +215,7 @@ extern void vfs_stat(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
+extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
 
 #endif
 

@@ -241,12 +241,15 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 
 	for (filc = 0; filc < count; filc++) {
 		ipc_callid_t callid;
+		int fd;
 
 		if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
 			async_answer_0(callid, EINVAL);
 			break;
 		}
 		async_state_change_finalize(callid, vfs_exch);
+		fd = fd_wait();
+		assert(fd == (int) filc);
 	}
 
 	vfs_exchange_end(vfs_exch);

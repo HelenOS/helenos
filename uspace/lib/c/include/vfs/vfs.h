@@ -54,6 +54,8 @@ extern int unmount(const char *);
 extern FILE *fopen_handle(int);
 extern int fhandle(FILE *, int *);
 
+extern int fd_wait(void);
+
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
 

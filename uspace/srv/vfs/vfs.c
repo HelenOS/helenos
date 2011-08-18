@@ -117,6 +117,10 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_DUP:
 			vfs_dup(callid, &call);
+			break;
+		case VFS_IN_WAIT_HANDLE:
+			vfs_wait_handle(callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;

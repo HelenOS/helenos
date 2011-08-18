@@ -814,5 +814,20 @@ int dup2(int oldfd, int newfd)
 	return (int) rc;
 }
 
+int fd_wait(void)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	sysarg_t ret;
+	sysarg_t rc = async_req_0_1(exch, VFS_IN_WAIT_HANDLE, &ret);
+	
+	vfs_exchange_end(exch);
+	
+	if (rc == EOK)
+		return (int) ret;
+	
+	return (int) rc;
+}
+
 /** @}
  */
