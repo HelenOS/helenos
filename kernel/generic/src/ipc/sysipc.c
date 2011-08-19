@@ -252,9 +252,6 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
-			/* Set 'task ID' as arg3 and arg4 of response */
-			IPC_SET_ARG3(answer->data, LOWER32(TASK->taskid));
-			IPC_SET_ARG4(answer->data, UPPER32(TASK->taskid));
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
 			    (sysarg_t) &TASK->phones[phoneid]);
