@@ -49,11 +49,14 @@ static int tok_finish_string(tokenizer_t *);
  * @param out_tokens array of strings where to store the result
  * @param max_tokens number of elements of the out_tokens array
  */
-int tok_init(tokenizer_t *tok, char *input, char **out_tokens,
+int tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
     size_t max_tokens)
 {	
 	tok->in = input;
 	tok->in_offset = 0;
+	tok->last_in_offset = 0;
+	tok->in_char_offset = 0;
+	tok->last_in_char_offset = 0;
 	
 	tok->outtok = out_tokens;
 	tok->outtok_offset = 0;
@@ -200,15 +203,18 @@ int tok_finish_string(tokenizer_t *tok)
 /** Get a char from input, advancing the input position */
 wchar_t tok_get_char(tokenizer_t *tok)
 {
+	tok->in_char_offset++;
 	return str_decode(tok->in, &tok->in_offset, STR_NO_LIMIT);
 }
 
 /** Get a char from input, while staying on the same input position */
 wchar_t tok_look_char(tokenizer_t *tok)
 {
-	size_t old_offset = tok->in_offset;
+	off_t old_offset = tok->in_offset;
+	off_t old_char_offset = tok->in_char_offset;
 	wchar_t ret = tok_get_char(tok);
 	tok->in_offset = old_offset;
+	tok->in_char_offset = old_char_offset;
 	return ret;
 }
 
@@ -230,8 +236,19 @@ int tok_push_token(tokenizer_t *tok)
 	}
 	
 	tok->outbuf[tok->outbuf_offset++] = 0;
-	tok->outtok[tok->outtok_offset++] = tok->outbuf + tok->outbuf_last_start;
+	token_t *tokinfo = &tok->outtok[tok->outtok_offset++]
+	tokinfo.text = tok->outbuf + tok->outbuf_last_start;
+	tokinfo.byte_start = tok->last_in_offset;
+	tokinfo.byte_length = tok->in_offset - tok->last_in_offset - 1;
+	tokinfo.char_start = tok->last_in_char_offset;
+	tokinfo.char_length = tok->in_char_offset - tok->last_in_char_offset
+	    - 1;
+	tok->outtok[tok->outtok_offset]
 	tok->outbuf_last_start = tok->outbuf_offset;
+	
+	/* We have consumed the first char of the next token already */
+	tok->last_in_offset = tok->in_offset-1;
+	tok->last_in_char_offset = tok->in_char_offset-1;
 	
 	return EOK;
 }
