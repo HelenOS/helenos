@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar 
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,85 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup devctl
  * @{
- * @}
+ */
+/** @file Control device framework (devman server).
  */
 
-/** @addtogroup libc
- */
-/** @file
- */
+#include <devman.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/typefmt.h>
 
-#include <libc.h>
-#include <event.h>
+#define NAME "devctl"
 
-/** Subscribe event notifications.
- *
- * @param evno    Event type to subscribe.
- * @param imethod Use this interface and method for notifying me.
- *
- * @return Value returned by the kernel.
- *
- */
-int event_subscribe(event_type_t evno, sysarg_t imethod)
+#define MAX_NAME_LENGTH 1024
+
+static int fun_tree_print(devman_handle_t funh, int lvl)
 {
-	return __SYSCALL2(SYS_EVENT_SUBSCRIBE, (sysarg_t) evno,
-	    (sysarg_t) imethod);
+	char name[MAX_NAME_LENGTH];
+	devman_handle_t devh;
+	devman_handle_t *cfuns;
+	size_t count, i;
+	int rc;
+	int j;
+
+	for (j = 0; j < lvl; j++)
+		printf("    ");
+
+	rc = devman_fun_get_name(funh, name, MAX_NAME_LENGTH);
+	if (rc != EOK) {
+		str_cpy(name, MAX_NAME_LENGTH, "unknown");
+		return ENOMEM;
+	}
+
+	if (name[0] == '\0')
+		str_cpy(name, MAX_NAME_LENGTH, "/");
+
+	printf("%s (%" PRIun ")\n", name, funh);
+
+	rc = devman_fun_get_child(funh, &devh);
+	if (rc == ENOENT)
+		return EOK;
+
+	if (rc != EOK) {
+		printf(NAME ": Failed getting child device for function "
+		    "%s.\n", "xxx");
+		return rc;
+	}
+
+	rc = devman_dev_get_functions(devh, &cfuns, &count);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting list of functions for "
+		    "device %s.\n", "xxx");
+		return rc;
+	}
+
+	for (i = 0; i < count; i++)
+		fun_tree_print(cfuns[i], lvl + 1);
+
+	free(cfuns);
+	return EOK;
 }
 
-int event_task_subscribe(event_task_type_t evno, sysarg_t imethod)
+int main(int argc, char *argv[])
 {
-	return __SYSCALL2(SYS_EVENT_SUBSCRIBE, (sysarg_t) evno,
-	    (sysarg_t) imethod);
-}
+	devman_handle_t root_fun;
+	int rc;
 
-/** Unmask event notifications.
- *
- * @param evno Event type to unmask.
- *
- * @return Value returned by the kernel.
- *
- */
-int event_unmask(event_type_t evno)
-{
-	return __SYSCALL1(SYS_EVENT_UNMASK, (sysarg_t) evno);
-}
+	rc = devman_fun_get_handle("/", &root_fun, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving root function.\n");
+		return 1;
+	}
 
-int event_task_unmask(event_task_type_t evno)
-{
-	return __SYSCALL1(SYS_EVENT_UNMASK, (sysarg_t) evno);
+	rc = fun_tree_print(root_fun, 0);
+	if (rc != EOK)
+		return 1;
+
+	return 0;
 }
 
 /** @}

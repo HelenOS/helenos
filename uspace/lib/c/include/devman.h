@@ -55,9 +55,13 @@ extern async_sess_t *devman_device_connect(exch_mgmt_t, devman_handle_t,
 extern async_sess_t *devman_parent_device_connect(exch_mgmt_t, devman_handle_t,
     unsigned int);
 
-extern int devman_device_get_handle(const char *, devman_handle_t *,
+extern int devman_fun_get_handle(const char *, devman_handle_t *,
     unsigned int);
-extern int devman_get_device_path(devman_handle_t, char *, size_t);
+extern int devman_fun_get_child(devman_handle_t, devman_handle_t *);
+extern int devman_dev_get_functions(devman_handle_t, devman_handle_t **,
+    size_t *);
+extern int devman_fun_get_name(devman_handle_t, char *, size_t);
+extern int devman_fun_get_path(devman_handle_t, char *, size_t);
 
 extern int devman_add_device_to_category(devman_handle_t, const char *);
 extern int devman_fun_sid_to_handle(service_id_t, devman_handle_t *);

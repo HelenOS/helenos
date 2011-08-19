@@ -256,42 +256,18 @@ FILE *posix_freopen(const char *restrict filename,
 	assert(mode != NULL);
 	assert(stream != NULL);
 	
-	/* Retrieve the node. */
-	struct stat st;
-	int rc;
-	
 	if (filename == NULL) {
-		rc = fstat(stream->fd, &st);
-	} else {
-		rc = stat(filename, &st);
-		if (-rc == ENOENT) {
-			/* file does not exist, create new file */
-			FILE* tmp = fopen(filename, mode);
-			if (tmp != NULL) {
-				fclose(tmp);
-				/* try again */
-				rc = stat(filename, &st);
-			}
-		}
+		/* POSIX allows this to be imlementation-defined. HelenOS currently
+		 * does not support changing the mode. */
+		// FIXME: handle mode change once it is supported
+		return stream;
 	}
-	
-	if (rc != EOK) {
-		fclose(stream);
-		errno = -rc;
-		return NULL;
-	}
-	
-	fdi_node_t node = {
-		.fs_handle = st.fs_handle,
-		.service_id = st.service_id,
-		.index = st.index
-	};
 	
 	/* Open a new stream. */
-	FILE* new = fopen_node(&node, mode);
+	FILE* new = fopen(filename, mode);
 	if (new == NULL) {
 		fclose(stream);
-		/* fopen_node() sets errno. */
+		/* errno was set by fopen() */
 		return NULL;
 	}
 	

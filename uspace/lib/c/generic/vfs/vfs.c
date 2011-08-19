@@ -68,7 +68,7 @@ static size_t cwd_size = 0;
  * @return New exchange.
  *
  */
-static async_exch_t *vfs_exchange_begin(void)
+async_exch_t *vfs_exchange_begin(void)
 {
 	fibril_mutex_lock(&vfs_mutex);
 	
@@ -86,7 +86,7 @@ static async_exch_t *vfs_exchange_begin(void)
  * @param exch Exchange to be finished.
  *
  */
-static void vfs_exchange_end(async_exch_t *exch)
+void vfs_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }
@@ -326,25 +326,6 @@ int open(const char *path, int oflag, ...)
 	free(abs);
 	
 	return ret;
-}
-
-int open_node(fdi_node_t *node, int oflag)
-{
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_4(exch, VFS_IN_OPEN_NODE, node->fs_handle,
-	    node->service_id, node->index, oflag, &answer);
-	
-	vfs_exchange_end(exch);
-
-	sysarg_t rc;
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK)
-		return (int) rc;
-	
-	return (int) IPC_GET_ARG1(answer);
 }
 
 int close(int fildes)
@@ -818,26 +799,27 @@ async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
 	return loc_service_connect(mgmt, stat.service, 0);
 }
 
-int fd_node(int fildes, fdi_node_t *node)
-{
-	struct stat stat;
-	int rc = fstat(fildes, &stat);
-	
-	if (rc == EOK) {
-		node->fs_handle = stat.fs_handle;
-		node->service_id = stat.service_id;
-		node->index = stat.index;
-	}
-	
-	return rc;
-}
-
 int dup2(int oldfd, int newfd)
 {
 	async_exch_t *exch = vfs_exchange_begin();
 	
 	sysarg_t ret;
 	sysarg_t rc = async_req_2_1(exch, VFS_IN_DUP, oldfd, newfd, &ret);
+	
+	vfs_exchange_end(exch);
+	
+	if (rc == EOK)
+		return (int) ret;
+	
+	return (int) rc;
+}
+
+int fd_wait(void)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	sysarg_t ret;
+	sysarg_t rc = async_req_0_1(exch, VFS_IN_WAIT_HANDLE, &ret);
 	
 	vfs_exchange_end(exch);
 	

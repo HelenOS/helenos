@@ -90,11 +90,11 @@ void __main(void *pcb_ptr)
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
-		__stdio_init(0, NULL);
+		__stdio_init(0);
 	} else {
 		argc = __pcb->argc;
 		argv = __pcb->argv;
-		__stdio_init(__pcb->filc, __pcb->filv);
+		__stdio_init(__pcb->filc);
 		(void) chdir(__pcb->cwd);
 	}
 	

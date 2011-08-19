@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entry.S \
-	arch/$(UARCH)/src/entryjmp.s \
-	arch/$(UARCH)/src/thread_entry.s \
-	arch/$(UARCH)/src/syscall.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/setjmp.S \
-	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S \
-	arch/$(UARCH)/src/rtld/dynamic.c \
-	arch/$(UARCH)/src/rtld/reloc.c
+USPACE_PREFIX = ../..
+BINARY = devctl
 
-.PRECIOUS: arch/$(UARCH)/src/entry.o
+SOURCES = \
+	devctl.c
+
+include $(USPACE_PREFIX)/Makefile.common

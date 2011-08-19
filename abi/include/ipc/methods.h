@@ -170,12 +170,24 @@
  */
 #define IPC_M_DATA_READ  8
 
+/** Authorize change of recipient's state in a third party task.
+ * - ARG1 - user protocol defined data
+ * - ARG2 - user protocol defined data
+ * - ARG3 - user protocol defined data
+ * - ARG5 - sender's phone to the third party task
+ *
+ * on EOK answer, the recipient must set:
+ *
+ * - ARG1 - recipient's phone to the third party task
+ */
+#define IPC_M_STATE_CHANGE_AUTHORIZE	9
+
 /** Debug the recipient.
  * - ARG1 - specifies the debug method (from udebug_method_t)
  * - other arguments are specific to the debug method
  *
  */
-#define IPC_M_DEBUG  9
+#define IPC_M_DEBUG 10
 
 /** Last system IPC method */
 #define IPC_M_LAST_SYSTEM  511

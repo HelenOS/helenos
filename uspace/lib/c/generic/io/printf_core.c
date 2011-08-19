@@ -205,7 +205,7 @@ static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *p
 			counter++;
 	}
 	
-	return (int) (counter + 1);
+	return (int) (counter);
 }
 
 /** Print one formatted wide character.
@@ -243,7 +243,7 @@ static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_
 			counter++;
 	}
 	
-	return (int) (counter + 1);
+	return (int) (counter);
 }
 
 /** Print string.

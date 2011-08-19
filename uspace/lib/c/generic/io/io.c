@@ -100,24 +100,24 @@ FILE *stderr = NULL;
 
 static LIST_INITIALIZE(files);
 
-void __stdio_init(int filc, fdi_node_t *filv[])
+void __stdio_init(int filc)
 {
 	if (filc > 0) {
-		stdin = fopen_node(filv[0], "r");
+		stdin = fdopen(0, "r");
 	} else {
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
 	
 	if (filc > 1) {
-		stdout = fopen_node(filv[1], "w");
+		stdout = fdopen(1, "w");
 	} else {
 		stdout = &stdout_klog;
 		list_append(&stdout->link, &files);
 	}
 	
 	if (filc > 2) {
-		stderr = fopen_node(filv[2], "w");
+		stderr = fdopen(2, "w");
 	} else {
 		stderr = &stderr_klog;
 		list_append(&stderr->link, &files);
@@ -272,38 +272,6 @@ FILE *fdopen(int fd, const char *mode)
 	}
 	
 	stream->fd = fd;
-	stream->error = false;
-	stream->eof = false;
-	stream->klog = false;
-	stream->sess = NULL;
-	stream->need_sync = false;
-	_setvbuf(stream);
-	
-	list_append(&stream->link, &files);
-	
-	return stream;
-}
-
-FILE *fopen_node(fdi_node_t *node, const char *mode)
-{
-	int flags;
-	if (!parse_mode(mode, &flags))
-		return NULL;
-	
-	/* Open file. */
-	FILE *stream = malloc(sizeof(FILE));
-	if (stream == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	stream->fd = open_node(node, flags);
-	if (stream->fd < 0) {
-		/* errno was set by open_node() */
-		free(stream);
-		return NULL;
-	}
-	
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
@@ -779,10 +747,12 @@ async_sess_t *fsession(exch_mgmt_t mgmt, FILE *stream)
 	return NULL;
 }
 
-int fnode(FILE *stream, fdi_node_t *node)
+int fhandle(FILE *stream, int *handle)
 {
-	if (stream->fd >= 0)
-		return fd_node(stream->fd, node);
+	if (stream->fd >= 0) {
+		*handle = stream->fd;
+		return EOK;
+	}
 	
 	return ENOENT;
 }
