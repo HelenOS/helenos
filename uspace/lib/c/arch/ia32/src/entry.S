@@ -45,17 +45,18 @@ __entry:
 	mov %ax, %es
 	mov %ax, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
-
+	
 #ifndef PROCESSOR_i486	
 	# Detect the mechanism used for making syscalls
 	movl $(INTEL_CPUID_STANDARD), %eax
 	cpuid
 	bt $(INTEL_SEP), %edx
 	jnc 0f
-	leal __syscall_fast_func, %eax
-	movl $__syscall_fast, (%eax)
-0:
+		leal __syscall_fast_func, %eax
+		movl $__syscall_fast, (%eax)
+	0:
 #endif
+	
 	#
 	# Create the first stack frame.
 	#
