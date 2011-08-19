@@ -44,6 +44,7 @@
 #include <bool.h>
 #include <errno.h>
 #include <async.h>
+#include <stdio.h>
 
 #define NAME  "apic"
 

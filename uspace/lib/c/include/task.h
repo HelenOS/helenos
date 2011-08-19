@@ -36,7 +36,6 @@
 #define LIBC_TASK_H_
 
 #include <sys/types.h>
-#include <vfs/vfs.h>
 
 typedef uint64_t task_id_t;
 
@@ -52,7 +51,7 @@ extern int task_kill(task_id_t);
 extern task_id_t task_spawn(const char *, const char *const[], int *);
 extern int task_spawnv(task_id_t *, const char *path, const char *const []);
 extern int task_spawnvf(task_id_t *, const char *path, const char *const [],
-    fdi_node_t *const []);
+    int *const []);
 extern int task_spawnl(task_id_t *, const char *path, ...);
 
 extern int task_wait(task_id_t id, task_exit_t *, int *);

@@ -49,6 +49,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
+#include <ipc/event.h>
 #include <print.h>
 #include <errno.h>
 #include <func.h>
@@ -56,7 +57,6 @@
 #include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
-#include <ipc/event.h>
 
 /** Spinlock protecting the tasks_tree AVL tree. */
 IRQ_SPINLOCK_INITIALIZE(tasks_lock);
@@ -200,6 +200,8 @@ task_t *task_create(as_t *as, const char *name)
 	task->ipc_info.answer_received = 0;
 	task->ipc_info.irq_notif_received = 0;
 	task->ipc_info.forwarded = 0;
+
+	event_task_init(task);
 	
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */

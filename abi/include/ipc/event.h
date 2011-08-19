@@ -35,6 +35,7 @@
 #ifndef ABI_IPC_EVENT_H_
 #define ABI_IPC_EVENT_H_
 
+/** Global events */
 typedef enum event_type {
 	/** New data available in kernel log */
 	EVENT_KLOG = 0,
@@ -44,6 +45,12 @@ typedef enum event_type {
 	EVENT_FAULT,
 	EVENT_END
 } event_type_t;
+
+/** Per-task events. */
+typedef enum event_task_type {
+	EVENT_TASK_STATE_CHANGE = EVENT_END,
+	EVENT_TASK_END
+} event_task_type_t;
 
 #endif
 

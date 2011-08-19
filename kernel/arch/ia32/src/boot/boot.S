@@ -96,22 +96,6 @@ multiboot_image_start:
 	
 	pm_status $status_prot
 	
-	movl $(INTEL_CPUID_LEVEL), %eax
-	cpuid
-	cmp $0x0, %eax  /* any function > 0? */
-	jbe pse_unsupported
-	
-	movl $(INTEL_CPUID_STANDARD), %eax
-	cpuid
-	bt $(INTEL_PSE), %edx
-	jc pse_supported
-	
-	pse_unsupported:
-		
-		pm_error $err_pse
-	
-	pse_supported:
-	
 #include "vesa_prot.inc"
 	
 	/* Map kernel and turn paging on */
@@ -139,6 +123,73 @@ multiboot_image_start:
 		hlt
 		jmp hlt0
 
+/** Calculate unmapped address of the end of the kernel. */
+calc_end_of_kernel:
+	movl $hardcoded_load_address, %edi
+	andl $0x7fffffff, %edi
+	movl (%edi), %esi
+	andl $0x7fffffff, %esi
+	
+	movl $hardcoded_ktext_size, %edi
+	andl $0x7fffffff, %edi
+	addl (%edi), %esi
+	andl $0x7fffffff, %esi
+	
+	movl $hardcoded_kdata_size, %edi
+	andl $0x7fffffff, %edi
+	addl (%edi), %esi
+	andl $0x7fffffff, %esi
+	movl %esi, end_of_kernel
+	ret
+
+/** Find free 2M (+4k for alignment) region where to store page tables */
+find_mem_for_pt:
+	/* Check if multiboot info is present */
+	cmpl $0x2BADB002, grub_eax
+	je check_multiboot_map
+	ret
+check_multiboot_map:
+	/* Copy address of the multiboot info to ebx */
+	movl grub_ebx, %ebx
+	/* Check if memory map flag is present */
+	movl (%ebx), %edx
+	andl $(1 << 6), %edx
+	jnz use_multiboot_map
+	ret
+use_multiboot_map:
+	/* Copy address of the memory map to edx */
+	movl 48(%ebx), %edx
+	movl %edx, %ecx
+	addl 44(%ebx), %ecx
+	/* Find a free region at least 2M in size */
+	check_memmap_loop:
+		/* Is this a free region? */
+		cmp $1, 20(%edx)
+		jnz next_region
+		/* Check size */
+		cmp $0, 16(%edx)
+		jnz next_region
+		cmpl $(2 * 1024 * 1024 + 4 * 1024), 12(%edx)
+		jbe next_region
+		cmp $0, 8(%edx)
+		jz found_region
+	next_region:
+		cmp %ecx, %edx
+		jbe next_region_do
+		ret
+	next_region_do:
+		addl (%edx), %edx
+		addl $4, %edx
+		jmp check_memmap_loop
+	found_region:
+		/* Use end of the found region */
+		mov 4(%edx), %ecx
+		add 12(%edx), %ecx
+		sub $(2 * 1024 * 1024), %ecx
+		mov %ecx, free_area
+	ret
+		
+
 /** Setup mapping for the kernel.
  *
  * Setup mapping for both the unmapped and mapped sections
@@ -147,24 +198,62 @@ multiboot_image_start:
  */
 .global map_kernel
 map_kernel:
+	/* Paging features */
 	movl %cr4, %ecx
-	orl $(1 << 4), %ecx      /* PSE on */
 	andl $(~(1 << 5)), %ecx  /* PAE off */
 	movl %ecx, %cr4
 	
-	movl $(page_directory + 0), %esi
-	movl $(page_directory + 2048), %edi
+	call calc_end_of_kernel
+	call find_mem_for_pt
+	mov end_of_kernel, %esi
+	mov free_area, %ecx
+	cmpl %esi, %ecx
+	jbe use_end_of_kernel
+	mov %ecx, %esi
+	/* Align address down to 4k */
+	andl $(~4095), %esi
+use_end_of_kernel:
+	
+	/* Align address to 4k */
+	addl $4095, %esi
+	andl $(~4095), %esi
+	
+	/* Allocate space for page tables*/	
+	movl %esi, pt_loc
+	movl $ballocs, %edi
+	andl $0x7fffffff, %edi
+	movl %esi, (%edi)
+	addl $4, %edi
+	movl $(2*1024*1024), (%edi)
+	
+	/* Fill page tables */
 	xorl %ecx, %ecx
 	xorl %ebx, %ebx
 	
+	floop_pt:
+		movl $((1 << 1) | (1 << 0)), %eax
+		orl %ebx, %eax
+		movl %eax, (%esi, %ecx, 4)
+		addl $(4 * 1024), %ebx
+		
+		incl %ecx
+		cmpl $(512 * 1024), %ecx
+		jl floop_pt
+	
+	/* Fill page directory */
+	movl $(page_directory + 0), %esi
+	movl $(page_directory + 2048), %edi
+	xorl %ecx, %ecx
+	movl pt_loc, %ebx
+	
 	floop:
-		movl $((1 << 7) | (1 << 1) | (1 << 0)), %eax
+		movl $((1 << 1) | (1 << 0)), %eax
 		orl %ebx, %eax
 		/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
 		movl %eax, (%esi, %ecx, 4)
 		/* Mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
 		movl %eax, (%edi, %ecx, 4)
-		addl $(4 * 1024 * 1024), %ebx
+		addl $(4 * 1024), %ebx
 		
 		incl %ecx
 		cmpl $512, %ecx
@@ -522,6 +611,13 @@ grub_eax:
 	.long 0
 
 grub_ebx:
+	.long 0
+
+pt_loc:
+	.long 0
+end_of_kernel:
+	.long 0
+free_area:
 	.long 0
 
 err_pse:

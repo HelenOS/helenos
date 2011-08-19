@@ -39,6 +39,9 @@
 
 NO_TRACE static inline uint64_t get_cycle(void)
 {
+#ifdef PROCESSOR_i486
+	return 0;
+#else
 	uint64_t v;
 	
 	asm volatile(
@@ -47,6 +50,7 @@ NO_TRACE static inline uint64_t get_cycle(void)
 	);
 	
 	return v;
+#endif
 }
 
 #endif
