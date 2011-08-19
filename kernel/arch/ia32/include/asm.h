@@ -321,7 +321,6 @@ NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 		   "d" ((uint32_t) (value >> 32))
 	);
 }
-#endif
 
 NO_TRACE static inline uint64_t read_msr(uint32_t msr)
 {
@@ -336,6 +335,7 @@ NO_TRACE static inline uint64_t read_msr(uint32_t msr)
 	
 	return ((uint64_t) dx << 32) | ax;
 }
+#endif
 
 
 /** Return base address of current stack
