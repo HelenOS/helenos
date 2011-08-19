@@ -628,14 +628,13 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 int ipc_connect_to_me(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     task_id_t *task_id, sysarg_t *phonehash)
 {
-	sysarg_t task_id_lo = 0;
-	sysarg_t task_id_hi = 0;
-	int rc;
-
-	rc = ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
-	    NULL, NULL, &task_id_lo, &task_id_hi, phonehash);
-
-	*task_id = (task_id_t) MERGE_LOUP32(task_id_lo, task_id_hi);
+	ipc_call_t data;
+	int rc = __SYSCALL6(SYS_IPC_CALL_SYNC_FAST, phoneid,
+	    IPC_M_CONNECT_TO_ME, arg1, arg2, arg3, (sysarg_t) &data);
+	if (rc == EOK) {
+		*task_id = data.in_task_id;
+		*phonehash = IPC_GET_ARG5(data);
+	}	
 	return rc;
 }
 

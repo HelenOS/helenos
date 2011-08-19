@@ -229,6 +229,8 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 			call->data.phone = call->caller_phone;
 		}
 	}
+
+	call->data.task_id = TASK->taskid;
 	
 	if (do_lock)
 		irq_spinlock_lock(&callerbox->lock, true);
