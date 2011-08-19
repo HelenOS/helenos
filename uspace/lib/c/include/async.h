@@ -448,6 +448,11 @@ extern bool async_state_change_receive(ipc_callid_t *, sysarg_t *, sysarg_t *,
     sysarg_t *);
 extern int async_state_change_finalize(ipc_callid_t, async_exch_t *);
 
+extern void *async_remote_state_acquire(async_sess_t *);
+extern void async_remote_state_update(async_sess_t *, void *);
+extern void async_remote_state_release(async_sess_t *);
+extern void async_remote_state_release_exchange(async_exch_t *);
+
 #endif
 
 /** @}

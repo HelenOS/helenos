@@ -67,6 +67,12 @@ struct _async_sess {
 	
 	/** Number of opened exchanges */
 	atomic_t refcnt;
+	
+	/** Mutex for stateful connections */
+	fibril_mutex_t remote_state_mtx;
+	
+	/** Data for stateful connections */
+	void *remote_state_data;
 };
 
 /** Exchange data */
