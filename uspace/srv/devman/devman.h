@@ -234,7 +234,7 @@ extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
 extern void attach_driver(dev_node_t *, driver_t *);
-extern void add_device(async_sess_t *, driver_t *, dev_node_t *, dev_tree_t *);
+extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);

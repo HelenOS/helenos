@@ -547,16 +547,6 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	    driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
-	
-	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE, exch,
-	    DRIVER_DEVMAN, 0, 0);
-	async_exchange_end(exch);
-
-	if (!sess) {
-		fibril_mutex_unlock(&driver->driver_mutex);
-		return;
-	}
 
 	/*
 	 * Go through devices list as long as there is some device
@@ -582,7 +572,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		 */
 		fibril_mutex_unlock(&driver->driver_mutex);
 
-		add_device(sess, driver, dev, tree);
+		add_device(driver, dev, tree);
 
 		/*
 		 * Lock again as we will work with driver's
@@ -602,8 +592,6 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		 */
 		link = driver->devices.head.next;
 	}
-
-	async_hangup(sess);
 
 	/*
 	 * Once we passed all devices to the driver, we need to mark the
@@ -717,8 +705,7 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
  * @param drv		The driver's structure.
  * @param node		The device's node in the device tree.
  */
-void add_device(async_sess_t *sess, driver_t *drv, dev_node_t *dev,
-    dev_tree_t *tree)
+void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 {
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
@@ -735,7 +722,7 @@ void add_device(async_sess_t *sess, driver_t *drv, dev_node_t *dev,
 		parent_handle = 0;
 	}
 	
-	async_exch_t *exch = async_exchange_begin(sess);
+	async_exch_t *exch = async_exchange_begin(drv->sess);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, DRIVER_ADD_DEVICE, dev->handle,
@@ -805,18 +792,9 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	bool is_running = drv->state == DRIVER_RUNNING;
 	fibril_mutex_unlock(&drv->driver_mutex);
 
-	if (is_running) {
-		/* Notify the driver about the new device. */
-		async_exch_t *exch = async_exchange_begin(drv->sess);
-		async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE, exch,
-		    DRIVER_DEVMAN, 0, 0);
-		async_exchange_end(exch);
-		
-		if (sess) {
-			add_device(sess, drv, dev, tree);
-			async_hangup(sess);
-		}
-	}
+	/* Notify the driver about the new device. */
+	if (is_running)
+		add_device(drv, dev, tree);
 	
 	return true;
 }

@@ -194,7 +194,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	async_set_client_connection(conn);
 	
 	exch = devman_exchange_begin(DEVMAN_DRIVER);
-	async_connect_to_me(exch, 0, 0, 0, NULL, NULL);
+	async_connect_to_me(exch, 0, 0, 0, conn, NULL);
 	devman_exchange_end(exch);
 	
 	async_wait_for(req, &retval);
