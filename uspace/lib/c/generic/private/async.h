@@ -35,11 +35,54 @@
 #ifndef LIBC_PRIVATE_ASYNC_H_
 #define LIBC_PRIVATE_ASYNC_H_
 
-#include <ipc/common.h>
+#include <async.h>
 #include <adt/list.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <sys/time.h>
 #include <bool.h>
+
+/** Session data */
+struct _async_sess {
+	/** List of inactive exchanges */
+	list_t exch_list;
+	
+	/** Exchange management style */
+	exch_mgmt_t mgmt;
+	
+	/** Session identification */
+	int phone;
+	
+	/** First clone connection argument */
+	sysarg_t arg1;
+	
+	/** Second clone connection argument */
+	sysarg_t arg2;
+	
+	/** Third clone connection argument */
+	sysarg_t arg3;
+	
+	/** Exchange mutex */
+	fibril_mutex_t mutex;
+	
+	/** Number of opened exchanges */
+	atomic_t refcnt;
+};
+
+/** Exchange data */
+struct _async_exch {
+	/** Link into list of inactive exchanges */
+	link_t sess_link;
+	
+	/** Link into global list of inactive exchanges */
+	link_t global_link;
+	
+	/** Session pointer */
+	async_sess_t *sess;
+	
+	/** Exchange identification */
+	int phone;
+};
 
 /** Structures of this type are used to track the timeout events. */
 typedef struct {

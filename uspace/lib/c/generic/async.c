@@ -97,6 +97,7 @@
 #define LIBC_ASYNC_C_
 #include <ipc/ipc.h>
 #include <async.h>
+#include "private/async.h"
 #undef LIBC_ASYNC_C_
 
 #include <futex.h>
@@ -112,7 +113,6 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <macros.h>
-#include "private/async.h"
 
 #define CLIENT_HASH_TABLE_BUCKETS  32
 #define CONN_HASH_TABLE_BUCKETS    32
