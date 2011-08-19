@@ -66,25 +66,36 @@ static void print_pipe_usage(void);
 int process_input(cliuser_t *usr)
 {
 	char *cmd[WORD_MAX];
+	token_t tokens_space[WORD_MAX];
+	token_t *tokens = tokens_space;
 	int rc = 0;
 	tokenizer_t tok;
-	int i, pipe_count, processed_pipes;
-	int pipe_pos[2];
-	char **actual_cmd;
+	unsigned int i, pipe_count, processed_pipes;
+	unsigned int pipe_pos[2];
 	char *redir_from = NULL;
 	char *redir_to = NULL;
 
 	if (NULL == usr->line)
 		return CL_EFAIL;
 
-	rc = tok_init(&tok, usr->line, cmd, WORD_MAX);
+	rc = tok_init(&tok, usr->line, tokens, WORD_MAX);
 	if (rc != EOK) {
 		goto finit;
 	}
 	
-	rc = tok_tokenize(&tok);
+	size_t tokens_length;
+	rc = tok_tokenize(&tok, &tokens_length);
 	if (rc != EOK) {
 		goto finit;
+	}
+	
+	if (tokens_length > 0 && tokens[0].type == TOKTYPE_SPACE) {
+		tokens++;
+		tokens_length--;
+	}
+	
+	if (tokens_length > 0 && tokens[tokens_length-1].type == TOKTYPE_SPACE) {
+		tokens_length--;
 	}
 	
 	/* Until full support for pipes is implemented, allow for a simple case:
@@ -92,9 +103,8 @@ int process_input(cliuser_t *usr)
 	 * 
 	 * First find the pipes and check that there are no more
 	 */
-	int cmd_length = 0;
-	for (i = 0, pipe_count = 0; cmd[i] != NULL; i++, cmd_length++) {
-		if (cmd[i][0] == '|') {
+	for (i = 0, pipe_count = 0; i < tokens_length; i++) {
+		if (tokens[i].type == TOKTYPE_PIPE) {
 			if (pipe_count >= 2) {
 				print_pipe_usage();
 				rc = ENOTSUP;
@@ -105,25 +115,30 @@ int process_input(cliuser_t *usr)
 		}
 	}
 	
-	actual_cmd = cmd;
+	unsigned int cmd_token_start = 0;
+	unsigned int cmd_token_end = tokens_length;
+	
 	processed_pipes = 0;
 	
 	/* Check if the first part (from <file> |) is present */
-	if (pipe_count > 0 && pipe_pos[0] == 2 && str_cmp(cmd[0], "from") == 0) {
+	if (pipe_count > 0 && (pipe_pos[0] == 3 || pipe_pos[0] == 4) && str_cmp(tokens[0].text, "from") == 0) {
 		/* Ignore the first three tokens (from, file, pipe) and set from */
-		redir_from = cmd[1];
-		actual_cmd = cmd + 3;
+		redir_from = tokens[2].text;
+		cmd_token_start = pipe_pos[0]+1;
+		printf("set cmd_token_start = %d\n", cmd_token_start);
 		processed_pipes++;
 	}
 	
 	/* Check if the second part (| to <file>) is present */
 	if ((pipe_count - processed_pipes) > 0 &&
-	    pipe_pos[processed_pipes] == cmd_length - 3 &&
-	    str_cmp(cmd[cmd_length-2], "to") == 0) {
+	    (pipe_pos[processed_pipes] == tokens_length - 4 ||
+	    (pipe_pos[processed_pipes] == tokens_length - 5 &&
+	    tokens[tokens_length-4].type == TOKTYPE_SPACE )) &&
+	    str_cmp(tokens[tokens_length-3].text, "to") == 0) {
 		/* Ignore the last three tokens (pipe, to, file) and set to */
-		redir_to = cmd[cmd_length-1];
-		cmd[cmd_length-3] = NULL;
-		cmd_length -= 3;
+		redir_to = tokens[tokens_length-1].text;
+		cmd_token_end = pipe_pos[processed_pipes];
+		printf("set cmd_token_end = %d\n", cmd_token_end);
 		processed_pipes++;
 	}
 	
@@ -133,7 +148,17 @@ int process_input(cliuser_t *usr)
 		goto finit;
 	}
 	
-	if (actual_cmd[0] == NULL) {
+	/* Convert tokens of the command to string array */
+	unsigned int cmd_pos = 0;
+	for (i = cmd_token_start; i < cmd_token_end; i++) {
+		if (tokens[i].type != TOKTYPE_SPACE) {
+			cmd[cmd_pos++] = tokens[i].text;
+			printf("%s\n", tokens[i].text);
+		}
+	}
+	cmd[cmd_pos++] = NULL;
+	
+	if (cmd[0] == NULL) {
 		print_pipe_usage();
 		rc = ENOTSUP;
 		goto finit;
@@ -169,7 +194,7 @@ int process_input(cliuser_t *usr)
 		new_iostate.stdout = to;
 	}
 	
-	rc = run_command(actual_cmd, usr, &new_iostate);
+	rc = run_command(cmd, usr, &new_iostate);
 	
 finit_with_files:
 	if (from != NULL) {

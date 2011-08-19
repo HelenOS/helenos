@@ -37,8 +37,8 @@ typedef enum {
 
 typedef struct {
 	char *text;
-	off_t byte_start;
-	off_t char_start;
+	unsigned int byte_start;
+	unsigned int char_start;
 	size_t byte_length;
 	size_t char_length;
  	token_type_t type;
@@ -46,10 +46,10 @@ typedef struct {
 
 typedef struct {
 	char *in;
-	off_t in_offset;
-	off_t last_in_offset;
-	off_t in_char_offset;
-	off_t last_in_char_offset;
+	unsigned int in_offset;
+	unsigned int last_in_offset;
+	unsigned int in_char_offset;
+	unsigned int last_in_char_offset;
 	
 	char *outbuf;
 	size_t outbuf_offset;
@@ -57,12 +57,13 @@ typedef struct {
 	size_t outbuf_last_start;
 	
 	token_t *outtok;
+	token_type_t current_type;
 	size_t outtok_offset;
 	size_t outtok_size;
 } tokenizer_t;
 
 extern int tok_init(tokenizer_t *, char *, token_t *, size_t);
 extern void tok_fini(tokenizer_t *);
-extern int tok_tokenize(tokenizer_t *);
+extern int tok_tokenize(tokenizer_t *, size_t *);
 
 #endif

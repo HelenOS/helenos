@@ -41,6 +41,7 @@ static int tok_push_char(tokenizer_t *, wchar_t);
 static int tok_push_token(tokenizer_t *);
 static bool tok_pending_chars(tokenizer_t *);
 static int tok_finish_string(tokenizer_t *);
+static void tok_start_token(tokenizer_t *, token_type_t);
 
 /** Initialize the token parser
  * 
@@ -60,9 +61,7 @@ int tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
 	
 	tok->outtok = out_tokens;
 	tok->outtok_offset = 0;
-	/* Leave one slot for a null terminator */
-	assert(max_tokens > 0);
-	tok->outtok_size = max_tokens - 1;
+	tok->outtok_size = max_tokens;
 	
 	/* Prepare a buffer where all the token strings will be stored */
 	size_t len = str_size(input) + max_tokens + 1;
@@ -89,7 +88,7 @@ void tok_fini(tokenizer_t *tok)
 }
 
 /** Tokenize the input string into the tokens */
-int tok_tokenize(tokenizer_t *tok)
+int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 {
 	int rc;
 	wchar_t cur_char;
@@ -97,8 +96,7 @@ int tok_tokenize(tokenizer_t *tok)
 	/* Read the input line char by char and append tokens */
 	while ((cur_char = tok_get_char(tok)) != 0) {
 		if (cur_char == ' ') {
-			/* Spaces delimit tokens, but are not processed in any way
-			 * Push the token if there is any.
+			/* Push the token if there is any.
 			 * There may not be any pending char for a token in case
 			 * there are several spaces in the input.
 			 */
@@ -108,6 +106,13 @@ int tok_tokenize(tokenizer_t *tok)
 					return rc;
 				}
 			}
+			tok_start_token(tok, TOKTYPE_SPACE);
+			/* Eat all spaces */
+			while (tok_look_char(tok) == ' ') {
+				tok_push_char(tok, tok_get_char(tok));
+			}
+			tok_push_token(tok);
+			
 		}
 		else if (cur_char == '|') {
 			/* Pipes are tokens that are delimiters and should be output
@@ -119,6 +124,8 @@ int tok_tokenize(tokenizer_t *tok)
 					return rc;
 				}
 			}
+			
+			tok_start_token(tok, TOKTYPE_PIPE);
 			
 			rc = tok_push_char(tok, '|');
 			if (rc != EOK) {
@@ -134,12 +141,16 @@ int tok_tokenize(tokenizer_t *tok)
 			/* A string starts with a quote (') and ends again with a quote.
 			 * A literal quote is written as ''
 			 */
+			tok_start_token(tok, TOKTYPE_TEXT);
 			rc = tok_finish_string(tok);
 			if (rc != EOK) {
 				return rc;
 			}
 		}
 		else {
+			if (!tok_pending_chars(tok)) {
+				tok_start_token(tok, TOKTYPE_TEXT);
+			}
 			/* If we are handling any other character, just append it to
 			 * the current token.
 			 */
@@ -158,9 +169,7 @@ int tok_tokenize(tokenizer_t *tok)
 		}
 	}
 	
-	/* We always have a space for the terminator, as we
-	 * reserved it in tok_init */
-	tok->outtok[tok->outtok_offset] = 0;
+	*tokens_length = tok->outtok_offset;
 	
 	return EOK;
 }
@@ -210,8 +219,8 @@ wchar_t tok_get_char(tokenizer_t *tok)
 /** Get a char from input, while staying on the same input position */
 wchar_t tok_look_char(tokenizer_t *tok)
 {
-	off_t old_offset = tok->in_offset;
-	off_t old_char_offset = tok->in_char_offset;
+	unsigned int old_offset = tok->in_offset;
+	unsigned int old_char_offset = tok->in_char_offset;
 	wchar_t ret = tok_get_char(tok);
 	tok->in_offset = old_offset;
 	tok->in_char_offset = old_char_offset;
@@ -222,6 +231,11 @@ wchar_t tok_look_char(tokenizer_t *tok)
 int tok_push_char(tokenizer_t *tok, wchar_t ch)
 {
 	return chr_encode(ch, tok->outbuf, &tok->outbuf_offset, tok->outbuf_size);
+}
+
+void tok_start_token(tokenizer_t *tok, token_type_t type)
+{
+	tok->current_type = type;
 }
 
 /** Push the current token to the output array */
@@ -236,14 +250,14 @@ int tok_push_token(tokenizer_t *tok)
 	}
 	
 	tok->outbuf[tok->outbuf_offset++] = 0;
-	token_t *tokinfo = &tok->outtok[tok->outtok_offset++]
-	tokinfo.text = tok->outbuf + tok->outbuf_last_start;
-	tokinfo.byte_start = tok->last_in_offset;
-	tokinfo.byte_length = tok->in_offset - tok->last_in_offset - 1;
-	tokinfo.char_start = tok->last_in_char_offset;
-	tokinfo.char_length = tok->in_char_offset - tok->last_in_char_offset
+	token_t *tokinfo = &tok->outtok[tok->outtok_offset++];
+	tokinfo->type = tok->current_type;
+	tokinfo->text = tok->outbuf + tok->outbuf_last_start;
+	tokinfo->byte_start = tok->last_in_offset;
+	tokinfo->byte_length = tok->in_offset - tok->last_in_offset - 1;
+	tokinfo->char_start = tok->last_in_char_offset;
+	tokinfo->char_length = tok->in_char_offset - tok->last_in_char_offset
 	    - 1;
-	tok->outtok[tok->outtok_offset]
 	tok->outbuf_last_start = tok->outbuf_offset;
 	
 	/* We have consumed the first char of the next token already */
