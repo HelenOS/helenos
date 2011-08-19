@@ -51,41 +51,16 @@
  */
 int posix_fcntl(int fd, int cmd, ...)
 {
-	int rc;
 	int flags;
 
 	switch (cmd) {
 	case F_DUPFD:
-	case F_DUPFD_CLOEXEC: /* FD_CLOEXEC is not supported. */
-		/* VFS does not provide means to express constraints on the new
-		 * file descriptor so the third argument is ignored. */
-
-		/* Retrieve node triplet corresponding to the file descriptor. */
-		/* Empty statement after label. */;
-		fdi_node_t node;
-		rc = fd_node(fd, &node);
-		if (rc != EOK) {
-			errno = -rc;
-			return -1;
-		}
-
-		/* Reopen the node so the fresh file descriptor is generated. */
-		int newfd = open_node(&node, 0);
-		if (newfd < 0) {
-			errno = -newfd;
-			return -1;
-		}
-
-		/* Associate the newly generated descriptor to the file description
-		 * of the old file descriptor. Just reopened node will be automatically
-		 * closed. */
-		rc = dup2(fd, newfd);
-		if (rc != EOK) {
-			errno = -rc;
-			return -1;
-		}
-
-		return newfd;
+	case F_DUPFD_CLOEXEC:
+		/* VFS currently does not provide the functionality to duplicate
+		 * opened file descriptor. */
+		// FIXME: implement this once dup() is available
+		errno = ENOTSUP;
+		return -1;
 	case F_GETFD:
 		/* FD_CLOEXEC is not supported. There are no other flags. */
 		return 0;
