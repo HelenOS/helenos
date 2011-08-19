@@ -42,7 +42,7 @@
 #include <vfs/vfs.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <devmap.h>
+#include <loc.h>
 
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void adb_kbd_reg0_data(uint16_t data);
@@ -65,17 +65,17 @@ static async_sess_t *dev_sess;
 static int adb_port_init(kbd_dev_t *kdev)
 {
 	const char *dev = "adb/kbd";
-	devmap_handle_t handle;
+	service_id_t service_id;
 	async_exch_t *exch;
 	int rc;
 	
 	kbd_dev = kdev;
 	
-	rc = devmap_device_get_handle(dev, &handle, 0);
+	rc = loc_service_get_id(dev, &service_id, 0);
 	if (rc != EOK)
 		return rc;
 	
-	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle, 0);
+	dev_sess = loc_service_connect(EXCHANGE_ATOMIC, service_id, 0);
 	if (dev_sess == NULL) {
 		printf("%s: Failed to connect to device\n", NAME);
 		return ENOENT;

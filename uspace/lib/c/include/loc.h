@@ -32,39 +32,51 @@
 /** @file
  */
 
-#ifndef LIBC_DEVMAP_H_
-#define LIBC_DEVMAP_H_
+#ifndef LIBC_LOC_H_
+#define LIBC_LOC_H_
 
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <async.h>
 #include <bool.h>
 
-extern async_exch_t *devmap_exchange_begin_blocking(devmap_interface_t);
-extern async_exch_t *devmap_exchange_begin(devmap_interface_t);
-extern void devmap_exchange_end(async_exch_t *);
+typedef void (*loc_cat_change_cb_t)(void);
 
-extern int devmap_driver_register(const char *, async_client_conn_t);
-extern int devmap_device_register(const char *, devmap_handle_t *);
-extern int devmap_device_register_with_iface(const char *, devmap_handle_t *,
+extern async_exch_t *loc_exchange_begin_blocking(loc_interface_t);
+extern async_exch_t *loc_exchange_begin(loc_interface_t);
+extern void loc_exchange_end(async_exch_t *);
+
+extern int loc_server_register(const char *, async_client_conn_t);
+extern int loc_service_register(const char *, service_id_t *);
+extern int loc_service_register_with_iface(const char *, service_id_t *,
     sysarg_t);
+extern int loc_service_unregister(service_id_t);
+extern int loc_service_add_to_cat(service_id_t, category_id_t);
 
-extern int devmap_device_get_handle(const char *, devmap_handle_t *,
+extern int loc_service_get_id(const char *, service_id_t *,
     unsigned int);
-extern int devmap_namespace_get_handle(const char *, devmap_handle_t *,
+extern int loc_service_get_name(service_id_t, char **);
+extern int loc_namespace_get_id(const char *, service_id_t *,
     unsigned int);
-extern devmap_handle_type_t devmap_handle_probe(devmap_handle_t);
+extern int loc_category_get_id(const char *, category_id_t *,
+    unsigned int);
+extern int loc_category_get_name(category_id_t, char **);
+extern int loc_category_get_svcs(category_id_t, category_id_t **, size_t *);
+extern loc_object_type_t loc_id_probe(service_id_t);
 
-extern async_sess_t *devmap_device_connect(exch_mgmt_t, devmap_handle_t,
+extern async_sess_t *loc_service_connect(exch_mgmt_t, service_id_t,
     unsigned int);
 
-extern int devmap_null_create(void);
-extern void devmap_null_destroy(int);
+extern int loc_null_create(void);
+extern void loc_null_destroy(int);
 
-extern size_t devmap_count_namespaces(void);
-extern size_t devmap_count_devices(devmap_handle_t);
+extern size_t loc_count_namespaces(void);
+extern size_t loc_count_services(service_id_t);
 
-extern size_t devmap_get_namespaces(dev_desc_t **);
-extern size_t devmap_get_devices(devmap_handle_t, dev_desc_t **);
+extern size_t loc_get_namespaces(loc_sdesc_t **);
+extern size_t loc_get_services(service_id_t, loc_sdesc_t **);
+extern int loc_get_categories(category_id_t **, size_t *);
+extern int loc_register_cat_change_cb(loc_cat_change_cb_t);
+
 
 #endif
 

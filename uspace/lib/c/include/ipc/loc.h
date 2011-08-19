@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Josef Cejka
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +27,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup devmap
+/** @addtogroup loc
  * @{
  */
 
-#ifndef LIBC_IPC_DEVMAP_H_
-#define LIBC_IPC_DEVMAP_H_
+#ifndef LIBC_IPC_LOC_H_
+#define LIBC_IPC_LOC_H_
 
 #include <ipc/common.h>
 
-#define DEVMAP_NAME_MAXLEN  255
+#define LOC_NAME_MAXLEN  255
 
-typedef sysarg_t devmap_handle_t;
-
-typedef enum {
-	DEV_HANDLE_NONE,
-	DEV_HANDLE_NAMESPACE,
-	DEV_HANDLE_DEVICE
-} devmap_handle_type_t;
+typedef sysarg_t service_id_t;
+typedef sysarg_t category_id_t;
 
 typedef enum {
-	DEVMAP_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
-	DEVMAP_DRIVER_UNREGISTER,
-	DEVMAP_DEVICE_REGISTER,
-	DEVMAP_DEVICE_UNREGISTER,
-	DEVMAP_DEVICE_GET_HANDLE,
-	DEVMAP_NAMESPACE_GET_HANDLE,
-	DEVMAP_HANDLE_PROBE,
-	DEVMAP_NULL_CREATE,
-	DEVMAP_NULL_DESTROY,
-	DEVMAP_GET_NAMESPACE_COUNT,
-	DEVMAP_GET_DEVICE_COUNT,
-	DEVMAP_GET_NAMESPACES,
-	DEVMAP_GET_DEVICES
-} devmap_request_t;
+	LOC_OBJECT_NONE,
+	LOC_OBJECT_NAMESPACE,
+	LOC_OBJECT_SERVICE
+} loc_object_type_t;
 
-/** Interface provided by devmap.
+typedef enum {
+	LOC_SERVER_REGISTER = IPC_FIRST_USER_METHOD,
+	LOC_SERVER_UNREGISTER,
+	LOC_SERVICE_ADD_TO_CAT,
+	LOC_SERVICE_REGISTER,
+	LOC_SERVICE_UNREGISTER,
+	LOC_SERVICE_GET_ID,
+	LOC_SERVICE_GET_NAME,
+	LOC_NAMESPACE_GET_ID,
+	LOC_CALLBACK_CREATE,
+	LOC_CATEGORY_GET_ID,
+	LOC_CATEGORY_GET_NAME,
+	LOC_CATEGORY_GET_SVCS,
+	LOC_ID_PROBE,
+	LOC_NULL_CREATE,
+	LOC_NULL_DESTROY,
+	LOC_GET_NAMESPACE_COUNT,
+	LOC_GET_SERVICE_COUNT,
+	LOC_GET_CATEGORIES,
+	LOC_GET_NAMESPACES,
+	LOC_GET_SERVICES
+} loc_request_t;
+
+typedef enum {
+	LOC_EVENT_CAT_CHANGE = IPC_FIRST_USER_METHOD
+} loc_event_t;
+
+/** Ports provided by location service.
  *
- * Every process that connects to devmap must ask one of following
- * interfaces otherwise connection will be refused.
+ * Every process that connects to loc must ask one of following
+ * ports, otherwise connection will be refused.
  *
  */
 typedef enum {
-	/** Connect as device driver */
-	DEVMAP_DRIVER = 1,
-	/** Connect as client */
-	DEVMAP_CLIENT,
+	/** Service supplier (server) port */
+	LOC_PORT_SUPPLIER = 1,
+	/** Service consumer (client) port */
+	LOC_PORT_CONSUMER,
 	/** Create new connection to instance of device that
 	    is specified by second argument of call. */
-	DEVMAP_CONNECT_TO_DEVICE
-} devmap_interface_t;
+	LOC_CONNECT_TO_SERVICE
+} loc_interface_t;
 
 typedef struct {
-	devmap_handle_t handle;
-	char name[DEVMAP_NAME_MAXLEN + 1];
-} dev_desc_t;
+	service_id_t id;
+	char name[LOC_NAME_MAXLEN + 1];
+} loc_sdesc_t;
 
 #endif

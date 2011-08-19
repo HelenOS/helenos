@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,14 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-LIBS = $(LIBFS_PREFIX)/libfs.a
-EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
-BINARY = devfs
-STATIC_NEEDED = y
+USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -Iinclude
+BINARY = locinfo
 
 SOURCES = \
-	devfs.c \
-	devfs_ops.c
+	locinfo.c
 
 include $(USPACE_PREFIX)/Makefile.common

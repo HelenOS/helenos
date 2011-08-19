@@ -68,18 +68,18 @@ fs_index_t tmpfs_next_index = 1;
 
 /* Forward declarations of static functions. */
 static int tmpfs_match(fs_node_t **, fs_node_t *, const char *);
-static int tmpfs_node_get(fs_node_t **, devmap_handle_t, fs_index_t);
+static int tmpfs_node_get(fs_node_t **, service_id_t, fs_index_t);
 static int tmpfs_node_open(fs_node_t *);
 static int tmpfs_node_put(fs_node_t *);
-static int tmpfs_create_node(fs_node_t **, devmap_handle_t, int);
+static int tmpfs_create_node(fs_node_t **, service_id_t, int);
 static int tmpfs_destroy_node(fs_node_t *);
 static int tmpfs_link_node(fs_node_t *, fs_node_t *, const char *);
 static int tmpfs_unlink_node(fs_node_t *, fs_node_t *, const char *);
 
 /* Implementation of helper functions. */
-static int tmpfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+static int tmpfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	return tmpfs_node_get(rfn, devmap_handle, TMPFS_SOME_ROOT); 
+	return tmpfs_node_get(rfn, service_id, TMPFS_SOME_ROOT); 
 }
 
 static int tmpfs_has_children(bool *has_children, fs_node_t *fn)
@@ -113,7 +113,7 @@ static bool tmpfs_is_file(fs_node_t *fn)
 	return TMPFS_NODE(fn)->type == TMPFS_FILE;
 }
 
-static devmap_handle_t tmpfs_device_get(fs_node_t *fn)
+static service_id_t tmpfs_device_get(fs_node_t *fn)
 {
 	return 0;
 }
@@ -157,9 +157,9 @@ static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	
 	switch (keys) {
 	case 1:
-		return (nodep->devmap_handle == key[NODES_KEY_DEV]);
+		return (nodep->service_id == key[NODES_KEY_DEV]);
 	case 2:	
-		return ((nodep->devmap_handle == key[NODES_KEY_DEV]) &&
+		return ((nodep->service_id == key[NODES_KEY_DEV]) &&
 		    (nodep->index == key[NODES_KEY_INDEX]));
 	default:
 		assert((keys == 1) || (keys == 2));
@@ -201,7 +201,7 @@ static void tmpfs_node_initialize(tmpfs_node_t *nodep)
 {
 	nodep->bp = NULL;
 	nodep->index = 0;
-	nodep->devmap_handle = 0;
+	nodep->service_id = 0;
 	nodep->type = TMPFS_NONE;
 	nodep->lnkcnt = 0;
 	nodep->size = 0;
@@ -225,22 +225,22 @@ bool tmpfs_init(void)
 	return true;
 }
 
-static bool tmpfs_instance_init(devmap_handle_t devmap_handle)
+static bool tmpfs_instance_init(service_id_t service_id)
 {
 	fs_node_t *rfn;
 	int rc;
 	
-	rc = tmpfs_create_node(&rfn, devmap_handle, L_DIRECTORY);
+	rc = tmpfs_create_node(&rfn, service_id, L_DIRECTORY);
 	if (rc != EOK || !rfn)
 		return false;
 	TMPFS_NODE(rfn)->lnkcnt = 0;	/* FS root is not linked */
 	return true;
 }
 
-static void tmpfs_instance_done(devmap_handle_t devmap_handle)
+static void tmpfs_instance_done(service_id_t service_id)
 {
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle
+		[NODES_KEY_DEV] = service_id
 	};
 	/*
 	 * Here we are making use of one special feature of our hash table
@@ -269,10 +269,10 @@ int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-int tmpfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
+int tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle,
+		[NODES_KEY_DEV] = service_id,
 		[NODES_KEY_INDEX] = index
 	};
 	link_t *lnk = hash_table_find(&nodes, key);
@@ -298,7 +298,7 @@ int tmpfs_node_put(fs_node_t *fn)
 	return EOK;
 }
 
-int tmpfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
+int tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 {
 	fs_node_t *rootfn;
 	int rc;
@@ -317,13 +317,13 @@ int tmpfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
 	fs_node_initialize(nodep->bp);
 	nodep->bp->data = nodep;	/* link the FS and TMPFS nodes */
 
-	rc = tmpfs_root_get(&rootfn, devmap_handle);
+	rc = tmpfs_root_get(&rootfn, service_id);
 	assert(rc == EOK);
 	if (!rootfn)
 		nodep->index = TMPFS_SOME_ROOT;
 	else
 		nodep->index = tmpfs_next_index++;
-	nodep->devmap_handle = devmap_handle;
+	nodep->service_id = service_id;
 	if (lflag & L_DIRECTORY) 
 		nodep->type = TMPFS_DIRECTORY;
 	else 
@@ -331,7 +331,7 @@ int tmpfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
 
 	/* Insert the new node into the nodes hash table. */
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = nodep->devmap_handle,
+		[NODES_KEY_DEV] = nodep->service_id,
 		[NODES_KEY_INDEX] = nodep->index
 	};
 	hash_table_insert(&nodes, key, &nodep->nh_link);
@@ -347,7 +347,7 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	assert(list_empty(&nodep->cs_list));
 
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = nodep->devmap_handle,
+		[NODES_KEY_DEV] = nodep->service_id,
 		[NODES_KEY_INDEX] = nodep->index
 	};
 	hash_table_remove(&nodes, key, 2);
@@ -431,28 +431,28 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
  */
 
 static int
-tmpfs_mounted(devmap_handle_t devmap_handle, const char *opts,
+tmpfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
 	fs_node_t *rootfn;
 	int rc;
 	
 	/* Check if this device is not already mounted. */
-	rc = tmpfs_root_get(&rootfn, devmap_handle);
+	rc = tmpfs_root_get(&rootfn, service_id);
 	if ((rc == EOK) && (rootfn)) {
 		(void) tmpfs_node_put(rootfn);
 		return EEXIST;
 	}
 
 	/* Initialize TMPFS instance. */
-	if (!tmpfs_instance_init(devmap_handle))
+	if (!tmpfs_instance_init(service_id))
 		return ENOMEM;
 
-	rc = tmpfs_root_get(&rootfn, devmap_handle);
+	rc = tmpfs_root_get(&rootfn, service_id);
 	assert(rc == EOK);
 	tmpfs_node_t *rootp = TMPFS_NODE(rootfn);
 	if (str_cmp(opts, "restore") == 0) {
-		if (!tmpfs_restore(devmap_handle))
+		if (!tmpfs_restore(service_id))
 			return ELIMIT;
 	}
 
@@ -463,13 +463,13 @@ tmpfs_mounted(devmap_handle_t devmap_handle, const char *opts,
 	return EOK;
 }
 
-static int tmpfs_unmounted(devmap_handle_t devmap_handle)
+static int tmpfs_unmounted(service_id_t service_id)
 {
-	tmpfs_instance_done(devmap_handle);
+	tmpfs_instance_done(service_id);
 	return EOK;
 }
 
-static int tmpfs_read(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
+static int tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	/*
@@ -477,7 +477,7 @@ static int tmpfs_read(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t 
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle,
+		[NODES_KEY_DEV] = service_id,
 		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
@@ -531,7 +531,7 @@ static int tmpfs_read(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t 
 }
 
 static int
-tmpfs_write(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
+tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
 	/*
@@ -539,7 +539,7 @@ tmpfs_write(devmap_handle_t devmap_handle, fs_index_t index, aoff64_t pos,
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle,
+		[NODES_KEY_DEV] = service_id,
 		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
@@ -593,14 +593,14 @@ out:
 	return EOK;
 }
 
-static int tmpfs_truncate(devmap_handle_t devmap_handle, fs_index_t index,
+static int tmpfs_truncate(service_id_t service_id, fs_index_t index,
     aoff64_t size)
 {
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle,
+		[NODES_KEY_DEV] = service_id,
 		[NODES_KEY_INDEX] = index
 	};
 	link_t *hlp = hash_table_find(&nodes, key);
@@ -628,16 +628,16 @@ static int tmpfs_truncate(devmap_handle_t devmap_handle, fs_index_t index,
 	return EOK;
 }
 
-static int tmpfs_close(devmap_handle_t devmap_handle, fs_index_t index)
+static int tmpfs_close(service_id_t service_id, fs_index_t index)
 {
 	return EOK;
 }
 
-static int tmpfs_destroy(devmap_handle_t devmap_handle, fs_index_t index)
+static int tmpfs_destroy(service_id_t service_id, fs_index_t index)
 {
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle,
+		[NODES_KEY_DEV] = service_id,
 		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
@@ -648,7 +648,7 @@ static int tmpfs_destroy(devmap_handle_t devmap_handle, fs_index_t index)
 	return tmpfs_destroy_node(FS_NODE(nodep));
 }
 
-static int tmpfs_sync(devmap_handle_t devmap_handle, fs_index_t index)
+static int tmpfs_sync(service_id_t service_id, fs_index_t index)
 {
 	/*
 	 * TMPFS keeps its data structures always consistent,

@@ -115,7 +115,7 @@ void vfs_node_delref(vfs_node_t *node)
 		
 		unsigned long key[] = {
 			[KEY_FS_HANDLE] = node->fs_handle,
-			[KEY_DEV_HANDLE] = node->devmap_handle,
+			[KEY_DEV_HANDLE] = node->service_id,
 			[KEY_INDEX] = node->index
 		};
 		
@@ -137,7 +137,7 @@ void vfs_node_delref(vfs_node_t *node)
 		
 		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
 		sysarg_t rc = async_req_2_0(exch, VFS_OUT_DESTROY,
-		    (sysarg_t) node->devmap_handle, (sysarg_t)node->index);
+		    (sysarg_t) node->service_id, (sysarg_t)node->index);
 		
 		assert(rc == EOK);
 		vfs_exchange_release(exch);
@@ -159,7 +159,7 @@ void vfs_node_forget(vfs_node_t *node)
 	fibril_mutex_lock(&nodes_mutex);
 	unsigned long key[] = {
 		[KEY_FS_HANDLE] = node->fs_handle,
-		[KEY_DEV_HANDLE] = node->devmap_handle,
+		[KEY_DEV_HANDLE] = node->service_id,
 		[KEY_INDEX] = node->index
 	};
 	hash_table_remove(&nodes, key, 3);
@@ -183,7 +183,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 {
 	unsigned long key[] = {
 		[KEY_FS_HANDLE] = result->triplet.fs_handle,
-		[KEY_DEV_HANDLE] = result->triplet.devmap_handle,
+		[KEY_DEV_HANDLE] = result->triplet.service_id,
 		[KEY_INDEX] = result->triplet.index
 	};
 	link_t *tmp;
@@ -199,7 +199,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		}
 		memset(node, 0, sizeof(vfs_node_t));
 		node->fs_handle = result->triplet.fs_handle;
-		node->devmap_handle = result->triplet.devmap_handle;
+		node->service_id = result->triplet.service_id;
 		node->index = result->triplet.index;
 		node->size = result->size;
 		node->lnkcnt = result->lnkcnt;
@@ -251,7 +251,7 @@ int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
 	return (node->fs_handle == (fs_handle_t) key[KEY_FS_HANDLE]) &&
-	    (node->devmap_handle == key[KEY_DEV_HANDLE]) &&
+	    (node->service_id == key[KEY_DEV_HANDLE]) &&
 	    (node->index == key[KEY_INDEX]);
 }
 
@@ -263,7 +263,7 @@ struct refcnt_data {
 	/** Sum of all reference counts for this file system instance. */
 	unsigned refcnt;
 	fs_handle_t fs_handle;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 };
 
 static void refcnt_visitor(link_t *item, void *arg)
@@ -272,17 +272,17 @@ static void refcnt_visitor(link_t *item, void *arg)
 	struct refcnt_data *rd = (void *) arg;
 
 	if ((node->fs_handle == rd->fs_handle) &&
-	    (node->devmap_handle == rd->devmap_handle))
+	    (node->service_id == rd->service_id))
 		rd->refcnt += node->refcnt;
 }
 
 unsigned
-vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, devmap_handle_t devmap_handle)
+vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, service_id_t service_id)
 {
 	struct refcnt_data rd = {
 		.refcnt = 0,
 		.fs_handle = fs_handle,
-		.devmap_handle = devmap_handle
+		.service_id = service_id
 	};
 
 	fibril_mutex_lock(&nodes_mutex);
@@ -304,7 +304,7 @@ int vfs_open_node_remote(vfs_node_t *node)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VFS_OUT_OPEN_NODE,
-	    (sysarg_t) node->devmap_handle, (sysarg_t) node->index, &answer);
+	    (sysarg_t) node->service_id, (sysarg_t) node->index, &answer);
 	
 	vfs_exchange_release(exch);
 

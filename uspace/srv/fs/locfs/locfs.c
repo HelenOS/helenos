@@ -28,18 +28,66 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
-#ifndef DEVFS_DEVFS_H_
-#define DEVFS_DEVFS_H_
+/**
+ * @file locfs.c
+ * @brief Location-service file system.
+ *
+ * Every service registered with location service is represented as a file in this
+ * file system.
+ */
 
+#include <stdio.h>
+#include <ipc/services.h>
+#include <ns.h>
+#include <async.h>
+#include <errno.h>
+#include <task.h>
 #include <libfs.h>
+#include "locfs.h"
+#include "locfs_ops.h"
 
-extern vfs_out_ops_t devfs_ops;
-extern libfs_ops_t devfs_libfs_ops;
+#define NAME  "locfs"
 
-#endif
+static vfs_info_t locfs_vfs_info = {
+	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,
+};
+
+int main(int argc, char *argv[])
+{
+	printf("%s: HelenOS Device Filesystem\n", NAME);
+	
+	if (!locfs_init()) {
+		printf("%s: failed to initialize locfs\n", NAME);
+		return -1;
+	}
+	
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
+		printf("%s: Unable to connect to VFS\n", NAME);
+		return -1;
+	}
+	
+	int rc = fs_register(vfs_sess, &locfs_vfs_info, &locfs_ops,
+	    &locfs_libfs_ops);
+	if (rc != EOK) {
+		printf("%s: Failed to register file system (%d)\n", NAME, rc);
+		return rc;
+	}
+	
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
+	async_manager();
+	
+	/* Not reached */
+	return 0;
+}
 
 /**
  * @}
  */
+

@@ -122,7 +122,7 @@ static int postponed_birth(void *arg)
 		return rc;
 	}
 
-	ddf_fun_add_to_class(fun_a, "virtual");
+	ddf_fun_add_to_category(fun_a, "virtual");
 
 	return EOK;
 }

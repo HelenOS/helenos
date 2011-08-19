@@ -55,7 +55,7 @@
 #include <ipc/devman.h>
 #include <ipc/driver.h>
 #include <thread.h>
-#include <devmap.h>
+#include <loc.h>
 
 #include "devman.h"
 
@@ -63,7 +63,6 @@
 
 static driver_list_t drivers_list;
 static dev_tree_t device_tree;
-static class_list_t class_list;
 
 /** Register running driver. */
 static driver_t *devman_driver_register(void)
@@ -278,8 +277,10 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		free(fun_name);
 		return;
 	}
-
+	
 	fun_node_t *fun = create_fun_node();
+	fun->ftype = ftype;
+	
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		delete_fun_node(fun);
@@ -325,46 +326,22 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 			fibril_add_ready(assign_fibril);
 		}
 	} else {
-		devmap_register_tree_function(fun, tree);
+		loc_register_tree_function(fun, tree);
 	}
 	
 	/* Return device handle to parent's driver. */
 	async_answer_1(callid, EOK, fun->handle);
 }
 
-static void devmap_register_class_dev(dev_class_info_t *cli)
-{
-	/* Create devmap path and name for the device. */
-	char *devmap_pathname = NULL;
-
-	asprintf(&devmap_pathname, "%s/%s%c%s", DEVMAP_CLASS_NAMESPACE,
-	    cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
-	if (devmap_pathname == NULL)
-		return;
-	
-	/*
-	 * Register the device by the device mapper and remember its devmap
-	 * handle.
-	 */
-	devmap_device_register_with_iface(devmap_pathname,
-	    &cli->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
-	
-	/*
-	 * Add device to the hash map of class devices registered by device
-	 * mapper.
-	 */
-	class_add_devmap_function(&class_list, cli);
-	
-	free(devmap_pathname);
-}
-
-static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
+static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*call);
+	category_id_t cat_id;
+	int rc;
 	
-	/* Get class name. */
-	char *class_name;
-	int rc = async_data_write_accept((void **) &class_name, true,
+	/* Get category name. */
+	char *cat_name;
+	rc = async_data_write_accept((void **) &cat_name, true,
 	    0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -377,15 +354,59 @@ static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
-	dev_class_t *cl = get_dev_class(&class_list, class_name);
-	dev_class_info_t *class_info = add_function_to_class(fun, cl, NULL);
+	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
+	if (rc == EOK) {
+		loc_service_add_to_cat(fun->service_id, cat_id);
+	} else {
+		log_msg(LVL_ERROR, "Failed adding function `%s' to category "
+		    "`%s'.", fun->pathname, cat_name);
+	}
 	
-	/* Register the device's class alias by devmapper. */
-	devmap_register_class_dev(class_info);
-	
-	log_msg(LVL_NOTE, "Function `%s' added to class `%s' as `%s'.",
-	    fun->pathname, class_name, class_info->dev_name);
+	log_msg(LVL_NOTE, "Function `%s' added to category `%s'.",
+	    fun->pathname, cat_name);
 
+	async_answer_0(callid, EOK);
+}
+
+/** Remove function. */
+static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
+{
+	devman_handle_t fun_handle = IPC_GET_ARG1(*call);
+	dev_tree_t *tree = &device_tree;
+	int rc;
+	
+	fibril_rwlock_write_lock(&tree->rwlock);
+	
+	fun_node_t *fun = find_fun_node_no_lock(&device_tree, fun_handle);
+	if (fun == NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		async_answer_0(callid, ENOENT);
+		return;
+	}
+	
+	log_msg(LVL_DEBUG, "devman_remove_function(fun='%s')", fun->pathname);
+	
+	if (fun->ftype == fun_inner) {
+		/* Handle possible descendants */
+		/* TODO */
+		log_msg(LVL_WARN, "devman_remove_function(): not handling "
+		    "descendants\n");
+	} else {
+		/* Unregister from location service */
+		rc = loc_service_unregister(fun->service_id);
+		if (rc != EOK) {
+			log_msg(LVL_ERROR, "Failed unregistering tree service.");
+			fibril_rwlock_write_unlock(&tree->rwlock);
+			async_answer_0(callid, EIO);
+			return;
+		}
+	}
+	
+	remove_fun_node(&device_tree, fun);
+	fibril_rwlock_write_unlock(&tree->rwlock);
+	delete_fun_node(fun);
+	
+	log_msg(LVL_DEBUG, "devman_remove_function() succeeded.");
 	async_answer_0(callid, EOK);
 }
 
@@ -438,8 +459,11 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_ADD_FUNCTION:
 			devman_add_function(callid, &call);
 			break;
-		case DEVMAN_ADD_DEVICE_TO_CLASS:
-			devman_add_function_to_class(callid, &call);
+		case DEVMAN_ADD_DEVICE_TO_CATEGORY:
+			devman_add_function_to_cat(callid, &call);
+			break;
+		case DEVMAN_REMOVE_FUNCTION:
+			devman_remove_function(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL); 
@@ -463,40 +487,6 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	fun_node_t *fun = find_fun_node_by_path(&device_tree, pathname);
 	
 	free(pathname);
-
-	if (fun == NULL) {
-		async_answer_0(iid, ENOENT);
-		return;
-	}
-
-	async_answer_1(iid, EOK, fun->handle);
-}
-
-/** Find handle for the device instance identified by device class name. */
-static void devman_function_get_handle_by_class(ipc_callid_t iid,
-    ipc_call_t *icall)
-{
-	char *classname;
-	char *devname;
-
-	int rc = async_data_write_accept((void **) &classname, true, 0, 0, 0, 0);
-	if (rc != EOK) {
-		async_answer_0(iid, rc);
-		return;
-	}
-	rc = async_data_write_accept((void **) &devname, true, 0, 0, 0, 0);
-	if (rc != EOK) {
-		free(classname);
-		async_answer_0(iid, rc);
-		return;
-	}
-
-
-	fun_node_t *fun = find_fun_node_by_class(&class_list,
-	    classname, devname);
-
-	free(classname);
-	free(devname);
 
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
@@ -543,6 +533,20 @@ static void devman_get_device_path_by_handle(ipc_callid_t iid,
 	free(buffer);
 }
 
+/** Find handle for the function instance identified by its service ID. */
+static void devman_fun_sid_to_handle(ipc_callid_t iid, ipc_call_t *icall)
+{
+	fun_node_t *fun;
+
+	fun = find_loc_tree_function(&device_tree, IPC_GET_ARG1(*icall));
+	
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	async_answer_1(iid, EOK, fun->handle);
+}
 
 /** Function for handling connections from a client to the device manager. */
 static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
@@ -561,11 +565,11 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_DEVICE_GET_HANDLE:
 			devman_function_get_handle(callid, &call);
 			break;
-		case DEVMAN_DEVICE_GET_HANDLE_BY_CLASS:
-			devman_function_get_handle_by_class(callid, &call);
-			break;
 		case DEVMAN_DEVICE_GET_DEVICE_PATH:
 			devman_get_device_path_by_handle(callid, &call);
+			break;
+		case DEVMAN_FUN_SID_TO_HANDLE:
+			devman_fun_sid_to_handle(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);
@@ -658,29 +662,24 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	async_exchange_end(exch);
 }
 
-/** Function for handling connections from a client forwarded by the device
- * mapper to the device manager. */
-static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
+/** Function for handling connections from a client forwarded by the location
+ * service to the device manager. */
+static void devman_connection_loc(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devmap_handle_t devmap_handle = IPC_GET_ARG2(*icall);
+	service_id_t service_id = IPC_GET_ARG2(*icall);
 	fun_node_t *fun;
 	dev_node_t *dev;
 
-	fun = find_devmap_tree_function(&device_tree, devmap_handle);
-	if (fun == NULL)
-		fun = find_devmap_class_function(&class_list, devmap_handle);
+	fun = find_loc_tree_function(&device_tree, service_id);
 	
 	if (fun == NULL || fun->dev->drv == NULL) {
+		log_msg(LVL_WARN, "devman_connection_loc(): function "
+		    "not found.\n");
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
 	dev = fun->dev;
-	
-	if ((dev->state != DEVICE_USABLE) || (!dev->drv->sess)) {
-		async_answer_0(iid, EINVAL);
-		return;
-	}
 	
 	async_exch_t *exch = async_exchange_begin(dev->drv->sess);
 	async_forward_fast(iid, exch, DRIVER_CLIENT, fun->handle, 0,
@@ -688,7 +687,7 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 	async_exchange_end(exch);
 	
 	log_msg(LVL_DEBUG,
-	    "Forwarding devmapper request for `%s' function to driver `%s'.",
+	    "Forwarding loc service request for `%s' function to driver `%s'.",
 	    fun->pathname, dev->drv->name);
 }
 
@@ -707,9 +706,9 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		/* Connect client to selected device. */
 		devman_forward(iid, icall, false);
 		break;
-	case DEVMAN_CONNECT_FROM_DEVMAP:
-		/* Someone connected through devmap node. */
-		devman_connection_devmapper(iid, icall);
+	case DEVMAN_CONNECT_FROM_LOC:
+		/* Someone connected through loc node. */
+		devman_connection_loc(iid, icall);
 		break;
 	case DEVMAN_CONNECT_TO_PARENTS_DEVICE:
 		/* Connect client to selected device. */
@@ -742,15 +741,13 @@ static bool devman_init(void)
 		return false;
 	}
 
-	init_class_list(&class_list);
-	
 	/*
-	 * !!! devman_connection ... as the device manager is not a real devmap
+	 * !!! devman_connection ... as the device manager is not a real loc
 	 * driver (it uses a completely different ipc protocol than an ordinary
-	 * devmap driver) forwarding a connection from client to the devman by
-	 * devmapper would not work.
+	 * loc driver) forwarding a connection from client to the devman by
+	 * location service would not work.
 	 */
-	devmap_driver_register(NAME, devman_connection);
+	loc_server_register(NAME, devman_connection);
 	
 	return true;
 }
@@ -759,7 +756,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Device Manager\n");
 
-	if (log_init(NAME, LVL_ERROR) != EOK) {
+	if (log_init(NAME, LVL_WARN) != EOK) {
 		printf(NAME ": Error initializing logging subsystem.\n");
 		return -1;
 	}

@@ -30,12 +30,12 @@
  * @{
  */
 
-#ifndef DEVFS_DEVFS_OPS_H_
-#define DEVFS_DEVFS_OPS_H_
+#ifndef LOCFS_LOCFS_OPS_H_
+#define LOCFS_LOCFS_OPS_H_
 
 #include <bool.h>
 
-extern bool devfs_init(void);
+extern bool locfs_init(void);
 
 #endif
 

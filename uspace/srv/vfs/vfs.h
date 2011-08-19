@@ -37,7 +37,7 @@
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
-#include <devmap.h>
+#include <loc.h>
 #include <bool.h>
 #include <ipc/vfs.h>
 
@@ -60,13 +60,13 @@ typedef struct {
  */
 #define VFS_PAIR \
 	fs_handle_t fs_handle; \
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 
 /**
  * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
  * doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
- * @note	fs_handle, devmap_handle and index are meant to be returned in one
+ * @note	fs_handle, service_id and index are meant to be returned in one
  *		IPC reply.
  */
 #define VFS_TRIPLET \
@@ -179,7 +179,7 @@ extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
-extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
+extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 
 
 #define MAX_OPEN_FILES	128

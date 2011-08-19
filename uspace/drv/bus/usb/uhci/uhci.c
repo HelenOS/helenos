@@ -266,7 +266,7 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
 	    str_error(ret));
 
-	ret = ddf_fun_add_to_class(instance->hc_fun, USB_HC_DDF_CLASS_NAME);
+	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add UHCI to HC class: %s.\n", str_error(ret));
 

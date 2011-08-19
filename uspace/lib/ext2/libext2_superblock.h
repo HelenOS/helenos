@@ -109,7 +109,7 @@ extern uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *);
 extern uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *);
 extern uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *);
 
-extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
+extern int ext2_superblock_read_direct(service_id_t, ext2_superblock_t **);
 extern int ext2_superblock_check_sanity(ext2_superblock_t *);
 
 #endif

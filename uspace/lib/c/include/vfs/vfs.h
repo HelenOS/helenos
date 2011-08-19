@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <ipc/vfs.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <stdio.h>
 #include <async.h>
 

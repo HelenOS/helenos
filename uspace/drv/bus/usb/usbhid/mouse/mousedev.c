@@ -73,8 +73,8 @@ usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 
 const char *HID_MOUSE_FUN_NAME = "mouse";
 const char *HID_MOUSE_WHEEL_FUN_NAME = "mouse-wheel";
-const char *HID_MOUSE_CLASS_NAME = "mouse";
-const char *HID_MOUSE_WHEEL_CLASS_NAME = "keyboard";
+const char *HID_MOUSE_CATEGORY = "mouse";
+const char *HID_MOUSE_WHEEL_CATEGORY = "keyboard";
 
 /** Default idle rate for mouses. */
 static const uint8_t IDLE_RATE = 0;
@@ -324,7 +324,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	assert(hid_dev != NULL);
 	assert(mouse != NULL);
 	
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    HID_MOUSE_FUN_NAME);
@@ -344,13 +344,13 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		return rc;
 	}
 	
-	usb_log_debug("Adding DDF function to class %s...\n", 
-	    HID_MOUSE_CLASS_NAME);
-	rc = ddf_fun_add_to_class(fun, HID_MOUSE_CLASS_NAME);
+	usb_log_debug("Adding DDF function to category %s...\n", 
+	    HID_MOUSE_CATEGORY);
+	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class %s: %s.\n",
-		    HID_MOUSE_CLASS_NAME, str_error(rc));
+		    "Could not add DDF function to category %s: %s.\n",
+		    HID_MOUSE_CATEGORY, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -382,13 +382,13 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		return rc;
 	}
 	
-	usb_log_debug("Adding DDF function to class %s...\n", 
-	    HID_MOUSE_WHEEL_CLASS_NAME);
-	rc = ddf_fun_add_to_class(fun, HID_MOUSE_WHEEL_CLASS_NAME);
+	usb_log_debug("Adding DDF function to category %s...\n", 
+	    HID_MOUSE_WHEEL_CATEGORY);
+	rc = ddf_fun_add_to_category(fun, HID_MOUSE_WHEEL_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class %s: %s.\n",
-		    HID_MOUSE_WHEEL_CLASS_NAME, str_error(rc));
+		    "Could not add DDF function to category %s: %s.\n",
+		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}

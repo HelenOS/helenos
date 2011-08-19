@@ -43,6 +43,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/locinfo \
 	app/lsusb \
 	app/mkfat \
 	app/redir \
@@ -64,7 +65,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	srv/clip \
-	srv/devmap \
+	srv/loc \
 	srv/devman \
 	srv/loader \
 	srv/ns \
@@ -78,7 +79,7 @@ DIRS = \
 	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
-	srv/fs/devfs \
+	srv/fs/locfs \
 	srv/fs/ext2fs \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \

@@ -101,7 +101,7 @@ usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 };
 
 const char *HID_KBD_FUN_NAME = "keyboard";
-const char *HID_KBD_CLASS_NAME = "keyboard";
+const char *HID_KBD_CATEGORY_NAME = "keyboard";
 
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 
@@ -523,7 +523,7 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	assert(hid_dev->usb_dev != NULL);
 	assert(kbd_dev != NULL);
 	
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    HID_KBD_FUN_NAME);
@@ -550,12 +550,12 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	usb_log_debug("%s function created. Handle: %" PRIun "\n",
 	    HID_KBD_FUN_NAME, fun->handle);
 	
-	usb_log_debug("Adding DDF function to class %s...\n", 
+	usb_log_debug("Adding DDF function to category %s...\n", 
 	    HID_KBD_CLASS_NAME);
-	rc = ddf_fun_add_to_class(fun, HID_KBD_CLASS_NAME);
+	rc = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class %s: %s.\n",
+		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;

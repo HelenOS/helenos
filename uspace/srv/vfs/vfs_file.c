@@ -136,7 +136,7 @@ static int vfs_file_close_remote(vfs_file_t *file)
 	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
 	
 	ipc_call_t answer;
-	aid_t msg = async_send_2(exch, VFS_OUT_CLOSE, file->node->devmap_handle,
+	aid_t msg = async_send_2(exch, VFS_OUT_CLOSE, file->node->service_id,
 	    file->node->index, &answer);
 	
 	vfs_exchange_release(exch);
