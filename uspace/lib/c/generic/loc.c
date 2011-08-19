@@ -314,8 +314,8 @@ int loc_service_register_with_iface(const char *fqsn,
 
 /** Register new service.
  *
- * @param fqsn	Fully qualified service name
- * @param sid	Output: ID of new service
+ * @param fqsn Fully qualified service name
+ * @param sid  Output: ID of new service
  *
  */
 int loc_service_register(const char *fqdn, service_id_t *sid)

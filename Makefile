@@ -53,7 +53,7 @@ precheck: clean
 	$(MAKE) all PRECHECK=y
 
 cscope:
-	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
+	find abi kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
 
 # Pre-integration build check
 check: $(CHECK)

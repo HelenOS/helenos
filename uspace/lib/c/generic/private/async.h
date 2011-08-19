@@ -35,6 +35,7 @@
 #ifndef LIBC_PRIVATE_ASYNC_H_
 #define LIBC_PRIVATE_ASYNC_H_
 
+#include <ipc/common.h>
 #include <adt/list.h>
 #include <fibril.h>
 #include <sys/time.h>

@@ -37,7 +37,6 @@
 #define LIBC_PCB_H_
 
 #include <sys/types.h>
-#include <vfs/vfs.h>
 
 typedef void (*entry_point_t)(void);
 
@@ -61,9 +60,7 @@ typedef struct {
 	char **argv;
 	
 	/** Number of preset files. */
-	int filc;
-	/** Preset files. */
-	fdi_node_t **filv;
+	unsigned int filc;
 	
 	/*
 	 * ELF-specific data.

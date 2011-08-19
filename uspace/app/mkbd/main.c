@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 	dev_sess = sess;
 	
 	char path[MAX_PATH_LENGTH];
-	rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
+	rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
 		return ENOMEM;
 	}

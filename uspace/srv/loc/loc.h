@@ -35,6 +35,7 @@
 #ifndef LOC_H_
 #define LOC_H_
 
+#include <ipc/loc.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <sys/types.h>

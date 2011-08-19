@@ -427,8 +427,18 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 /** Function for handling connections to device driver. */
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	sysarg_t conn_type;
+
+	if (iid == 0) {
+		/* Callback connection from devman */
+		/* XXX Use separate handler for this type of connection */
+		conn_type = DRIVER_DEVMAN;
+	} else {
+		conn_type = IPC_GET_ARG1(*icall);
+	}
+
 	/* Select interface */
-	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
+	switch (conn_type) {
 	case DRIVER_DEVMAN:
 		/* Handle request from device manager */
 		driver_connection_devman(iid, icall);
