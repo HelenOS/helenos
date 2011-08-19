@@ -35,6 +35,7 @@
  * @brief VFS service for HelenOS.
  */
 
+#include <vfs/vfs.h>
 #include <ipc/services.h>
 #include <abi/ipc/event.h>
 #include <event.h>
@@ -46,7 +47,7 @@
 #include <str.h>
 #include <as.h>
 #include <atomic.h>
-#include <vfs/vfs.h>
+#include <macros.h>
 #include "vfs.h"
 
 #define NAME  "vfs"
@@ -142,8 +143,10 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 	switch (IPC_GET_IMETHOD(*call)) {
 	case VFS_TASK_STATE_CHANGE:
 		if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
-			vfs_pass_handle(IPC_GET_ARG4(*call),
-			    IPC_GET_ARG5(*call), (int) IPC_GET_ARG2(*call));
+			vfs_pass_handle(
+			    (task_id_t) MERGE_LOUP32(IPC_GET_ARG4(*call),
+			    IPC_GET_ARG5(*call)), call->in_task_id,
+			    (int) IPC_GET_ARG2(*call));
 		break;
 	default:
 		break;

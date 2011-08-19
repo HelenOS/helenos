@@ -160,6 +160,8 @@ static int event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2,
 				IPC_SET_ARG4(call->data, a4);
 				IPC_SET_ARG5(call->data, a5);
 				
+				call->data.task_id = TASK ? TASK->taskid : 0;
+				
 				irq_spinlock_lock(&event->answerbox->irq_lock, true);
 				list_append(&call->link, &event->answerbox->irq_notifs);
 				irq_spinlock_unlock(&event->answerbox->irq_lock, true);

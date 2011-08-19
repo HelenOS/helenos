@@ -293,7 +293,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->data.phone = phone;
-		call->data.task = TASK;
+		call->data.task_id = TASK->taskid;
 	}
 	
 	irq_spinlock_lock(&box->lock, true);
@@ -405,7 +405,7 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 		if (!call->caller_phone)
 			call->caller_phone = call->data.phone;
 		call->data.phone = newphone;
-		call->data.task = TASK;
+		call->data.task_id = TASK->taskid;
 	}
 	
 	return ipc_call(newphone, call);

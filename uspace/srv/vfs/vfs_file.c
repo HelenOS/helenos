@@ -43,6 +43,7 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
+#include <task.h>
 #include "vfs.h"
 
 #define VFS_DATA	((vfs_client_data_t *) async_get_client_data())
@@ -345,7 +346,7 @@ void vfs_file_put(vfs_file_t *file)
 	_vfs_file_put(VFS_DATA, file);
 }
 
-void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
+void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 {
 	vfs_client_data_t *donor_data = NULL;
 	vfs_client_data_t *acceptor_data = NULL;
@@ -354,7 +355,7 @@ void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
 	vfs_boxed_handle_t *bh;
 	int acceptor_fd;
 
-	acceptor_data = async_get_client_data_by_hash(acceptor_hash);
+	acceptor_data = async_get_client_data_by_id(acceptor_id);
 	if (!acceptor_data)
 		return;
 
@@ -364,7 +365,7 @@ void vfs_pass_handle(sysarg_t donor_hash, sysarg_t acceptor_hash, int donor_fd)
 	link_initialize(&bh->link);
 	bh->handle = -1;
 
-	donor_data = async_get_client_data_by_hash(donor_hash);
+	donor_data = async_get_client_data_by_id(donor_id);
 	if (!donor_data)
 		goto out;
 
@@ -401,9 +402,9 @@ out:
 	fibril_mutex_unlock(&acceptor_data->lock);
 
 	if (donor_data)
-		async_put_client_data_by_hash(donor_hash);
+		async_put_client_data_by_id(donor_id);
 	if (acceptor_data)
-		async_put_client_data_by_hash(acceptor_hash);
+		async_put_client_data_by_id(acceptor_id);
 	if (donor_file)
 		_vfs_file_put(donor_data, donor_file);
 	if (acceptor_file)

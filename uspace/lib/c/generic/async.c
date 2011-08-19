@@ -111,6 +111,7 @@
 #include <malloc.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <macros.h>
 #include "private/async.h"
 
 #define CLIENT_HASH_TABLE_BUCKETS  32
@@ -137,7 +138,7 @@ typedef struct {
 typedef struct {
 	link_t link;
 	
-	sysarg_t in_task_hash;
+	sysarg_t in_task_id;
 	atomic_t refcnt;
 	void *data;
 } client_t;
@@ -149,8 +150,8 @@ typedef struct {
 	/** Hash table link. */
 	link_t link;
 	
-	/** Incoming client task hash. */
-	sysarg_t in_task_hash;
+	/** Incoming client task ID. */
+	task_id_t in_task_id;
 	
 	/** Incoming phone hash. */
 	sysarg_t in_phone_hash;
@@ -282,10 +283,12 @@ static hash_index_t client_hash(unsigned long key[])
 static int client_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	assert(key);
+	assert(keys == 2);
 	assert(item);
 	
 	client_t *client = hash_table_get_instance(item, client_t, link);
-	return (key[0] == client->in_task_hash);
+	return (key[0] == LOWER32(client->in_task_id) &&
+	    (key[1] == UPPER32(client->in_task_id)));
 }
 
 static void client_remove(link_t *item)
@@ -573,24 +576,27 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	return callid;
 }
 
-static client_t *async_client_get(sysarg_t client_hash, bool create)
+static client_t *async_client_get(task_id_t client_id, bool create)
 {
-	unsigned long key = client_hash;
+	unsigned long key[2] = {
+		LOWER32(client_id),
+		UPPER32(client_id),
+	};
 	client_t *client = NULL;
 
 	futex_down(&async_futex);
-	link_t *lnk = hash_table_find(&client_hash_table, &key);
+	link_t *lnk = hash_table_find(&client_hash_table, key);
 	if (lnk) {
 		client = hash_table_get_instance(lnk, client_t, link);
 		atomic_inc(&client->refcnt);
 	} else if (create) {
 		client = malloc(sizeof(client_t));
 		if (client) {
-			client->in_task_hash = client_hash;
+			client->in_task_id = client_id;
 			client->data = async_client_data_create();
 		
 			atomic_set(&client->refcnt, 1);
-			hash_table_insert(&client_hash_table, &key, &client->link);
+			hash_table_insert(&client_hash_table, key, &client->link);
 		}
 	}
 
@@ -601,12 +607,15 @@ static client_t *async_client_get(sysarg_t client_hash, bool create)
 static void async_client_put(client_t *client)
 {
 	bool destroy;
-	unsigned long key = client->in_task_hash;
+	unsigned long key[2] = {
+		LOWER32(client->in_task_id),
+		UPPER32(client->in_task_id)
+	};
 	
 	futex_down(&async_futex);
 	
 	if (atomic_predec(&client->refcnt) == 0) {
-		hash_table_remove(&client_hash_table, &key, 1);
+		hash_table_remove(&client_hash_table, key, 2);
 		destroy = true;
 	} else
 		destroy = false;
@@ -627,9 +636,9 @@ void *async_get_client_data(void)
 	return fibril_connection->client->data;
 }
 
-void *async_get_client_data_by_hash(sysarg_t client_hash)
+void *async_get_client_data_by_id(task_id_t client_id)
 {
-	client_t *client = async_client_get(client_hash, false);
+	client_t *client = async_client_get(client_id, false);
 	if (!client)
 		return NULL;
 	if (!client->data) {
@@ -640,9 +649,9 @@ void *async_get_client_data_by_hash(sysarg_t client_hash)
 	return client->data;
 }
 
-void async_put_client_data_by_hash(sysarg_t client_hash)
+void async_put_client_data_by_id(task_id_t client_id)
 {
-	client_t *client = async_client_get(client_hash, false);
+	client_t *client = async_client_get(client_id, false);
 
 	assert(client);
 	assert(client->data);
@@ -679,7 +688,7 @@ static int connection_fibril(void *arg)
 	 * hash in a new tracking structure.
 	 */
 
-	client_t *client = async_client_get(fibril_connection->in_task_hash, true);
+	client_t *client = async_client_get(fibril_connection->in_task_id, true);
 	if (!client) {
 		ipc_answer_0(fibril_connection->callid, ENOMEM);
 		return 0;
@@ -736,7 +745,7 @@ static int connection_fibril(void *arg)
  * it into the hash table, so that later we can easily do routing of messages to
  * particular fibrils.
  *
- * @param in_task_hash  Identification of the incoming connection.
+ * @param in_task_id    Identification of the incoming connection.
  * @param in_phone_hash Identification of the incoming connection.
  * @param callid        Hash of the opening IPC_M_CONNECT_ME_TO call.
  *                      If callid is zero, the connection was opened by
@@ -750,7 +759,7 @@ static int connection_fibril(void *arg)
  * @return New fibril id or NULL on failure.
  *
  */
-fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
+fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
     ipc_callid_t callid, ipc_call_t *call,
     async_client_conn_t cfibril, void *carg)
 {
@@ -762,7 +771,7 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
 		return (uintptr_t) NULL;
 	}
 	
-	conn->in_task_hash = in_task_hash;
+	conn->in_task_id = in_task_id;
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
@@ -821,7 +830,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril, etc. */
-		async_new_connection(call->in_task_hash, IPC_GET_ARG5(*call),
+		async_new_connection(call->in_task_id, IPC_GET_ARG5(*call),
 		    callid, call, client_connection, NULL);
 		return;
 	}
@@ -969,7 +978,7 @@ void async_destroy_manager(void)
 void __async_init(void)
 {
 	if (!hash_table_create(&client_hash_table, CLIENT_HASH_TABLE_BUCKETS,
-	    1, &client_hash_table_ops))
+	    2, &client_hash_table_ops))
 		abort();
 	
 	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_BUCKETS,
