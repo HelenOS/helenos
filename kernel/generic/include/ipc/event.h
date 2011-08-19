@@ -40,7 +40,7 @@
 #include <synch/spinlock.h>
 #include <ipc/ipc.h>
 
-typedef struct task task_t;
+struct task;
 
 typedef void (*event_callback_t)(void *);
 
@@ -62,10 +62,10 @@ typedef struct {
 } event_t;
 
 extern void event_init(void);
-extern void event_task_init(task_t *);
+extern void event_task_init(struct task *);
 extern void event_cleanup_answerbox(answerbox_t *);
 extern void event_set_unmask_callback(event_type_t, event_callback_t);
-extern void event_task_set_unmask_callback(task_t *, event_task_type_t,
+extern void event_task_set_unmask_callback(struct task *, event_task_type_t,
     event_callback_t);
 
 #define event_notify_0(e, m) \
@@ -96,7 +96,7 @@ extern void event_task_set_unmask_callback(task_t *, event_task_type_t,
 
 extern int event_notify(event_type_t, bool, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern int event_task_notify(task_t *, event_task_type_t, bool, sysarg_t, sysarg_t,
+extern int event_task_notify(struct task *, event_task_type_t, bool, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 extern sysarg_t sys_event_subscribe(sysarg_t, sysarg_t);

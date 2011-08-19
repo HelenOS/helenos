@@ -138,7 +138,7 @@ typedef struct {
 typedef struct {
 	link_t link;
 	
-	sysarg_t in_task_id;
+	task_id_t in_task_id;
 	atomic_t refcnt;
 	void *data;
 } client_t;

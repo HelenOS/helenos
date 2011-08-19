@@ -35,6 +35,7 @@
 #ifndef ABI_IPC_EVENT_H_
 #define ABI_IPC_EVENT_H_
 
+/** Global events */
 typedef enum event_type {
 	/** New data available in kernel log */
 	EVENT_KLOG = 0,

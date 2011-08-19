@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,85 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32proc
+/** @addtogroup devctl
  * @{
  */
-/** @file
+/** @file Control device framework (devman server).
  */
 
-#include <proc/scheduler.h>
-#include <cpu.h>
-#include <proc/task.h>
-#include <proc/thread.h>
-#include <arch.h>
-#include <arch/interrupt.h>
-#include <arch/pm.h>
-#include <arch/asm.h>
-#include <arch/ddi/ddi.h>
+#include <devman.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/typefmt.h>
 
-/** Perform ia32 specific tasks needed before the new task is run.
- *
- * Interrupts are disabled.
- */
-void before_task_runs_arch(void)
+#define NAME "devctl"
+
+#define MAX_NAME_LENGTH 1024
+
+static int fun_tree_print(devman_handle_t funh, int lvl)
 {
-	io_perm_bitmap_install();
-}
+	char name[MAX_NAME_LENGTH];
+	devman_handle_t devh;
+	devman_handle_t *cfuns;
+	size_t count, i;
+	int rc;
+	int j;
 
-/** Perform ia32 specific tasks needed before the new thread is scheduled.
- *
- * THREAD is locked and interrupts are disabled.
- */
-void before_thread_runs_arch(void)
-{
-	uintptr_t kstk = (uintptr_t) &THREAD->kstack[STACK_SIZE];
-	
-#ifndef PROCESSOR_i486
-	if (CPU->arch.fi.bits.sep) {
-		/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
-		write_msr(IA32_MSR_SYSENTER_ESP, kstk - sizeof(istate_t));
+	for (j = 0; j < lvl; j++)
+		printf("    ");
+
+	rc = devman_fun_get_name(funh, name, MAX_NAME_LENGTH);
+	if (rc != EOK) {
+		str_cpy(name, MAX_NAME_LENGTH, "unknown");
+		return ENOMEM;
 	}
-#endif
-	
-	/* Set kernel stack for CPL3 -> CPL0 switch via interrupt */
-	CPU->arch.tss->esp0 = kstk;
-	CPU->arch.tss->ss0 = GDT_SELECTOR(KDATA_DES);
-	
-	/* Set up TLS in GS register */
-	set_tls_desc(THREAD->arch.tls);
+
+	if (name[0] == '\0')
+		str_cpy(name, MAX_NAME_LENGTH, "/");
+
+	printf("%s (%" PRIun ")\n", name, funh);
+
+	rc = devman_fun_get_child(funh, &devh);
+	if (rc == ENOENT)
+		return EOK;
+
+	if (rc != EOK) {
+		printf(NAME ": Failed getting child device for function "
+		    "%s.\n", "xxx");
+		return rc;
+	}
+
+	rc = devman_dev_get_functions(devh, &cfuns, &count);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting list of functions for "
+		    "device %s.\n", "xxx");
+		return rc;
+	}
+
+	for (i = 0; i < count; i++)
+		fun_tree_print(cfuns[i], lvl + 1);
+
+	free(cfuns);
+	return EOK;
 }
 
-void after_thread_ran_arch(void)
+int main(int argc, char *argv[])
 {
+	devman_handle_t root_fun;
+	int rc;
+
+	rc = devman_fun_get_handle("/", &root_fun, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving root function.\n");
+		return 1;
+	}
+
+	rc = fun_tree_print(root_fun, 0);
+	if (rc != EOK)
+		return 1;
+
+	return 0;
 }
 
 /** @}
