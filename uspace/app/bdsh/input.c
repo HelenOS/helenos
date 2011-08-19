@@ -125,7 +125,6 @@ int process_input(cliuser_t *usr)
 		/* Ignore the first three tokens (from, file, pipe) and set from */
 		redir_from = tokens[2].text;
 		cmd_token_start = pipe_pos[0]+1;
-		printf("set cmd_token_start = %d\n", cmd_token_start);
 		processed_pipes++;
 	}
 	
@@ -138,7 +137,6 @@ int process_input(cliuser_t *usr)
 		/* Ignore the last three tokens (pipe, to, file) and set to */
 		redir_to = tokens[tokens_length-1].text;
 		cmd_token_end = pipe_pos[processed_pipes];
-		printf("set cmd_token_end = %d\n", cmd_token_end);
 		processed_pipes++;
 	}
 	
@@ -153,7 +151,6 @@ int process_input(cliuser_t *usr)
 	for (i = cmd_token_start; i < cmd_token_end; i++) {
 		if (tokens[i].type != TOKTYPE_SPACE) {
 			cmd[cmd_pos++] = tokens[i].text;
-			printf("%s\n", tokens[i].text);
 		}
 	}
 	cmd[cmd_pos++] = NULL;
