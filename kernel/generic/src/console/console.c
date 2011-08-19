@@ -247,7 +247,7 @@ wchar_t getc(indev_t *indev)
 	return ch;
 }
 
-void klog_update(void *e)
+void klog_update(void *event)
 {
 	if (!atomic_get(&klog_inited))
 		return;

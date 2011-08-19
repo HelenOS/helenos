@@ -52,6 +52,10 @@
 
 #define NAME  "vfs"
 
+enum {
+	VFS_TASK_STATE_CHANGE
+};
+
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	bool cont = true;
@@ -133,10 +137,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	 * connection fibril terminates.
 	 */
 }
-
-enum {
-	VFS_TASK_STATE_CHANGE
-};
 
 static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 {

@@ -262,8 +262,7 @@ int loader_set_files(loader_t *ldr, int * const files[])
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 	
 	int i;
-	for (i = 0; files[i]; i++)
-		;
+	for (i = 0; files[i]; i++);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, LOADER_SET_FILES, i, &answer);
