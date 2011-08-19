@@ -268,7 +268,7 @@ int loader_set_files(loader_t *ldr, int * const files[])
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, LOADER_SET_FILES, i, &answer);
 
-	sysarg_t rc;
+	sysarg_t rc = EOK;
 	
 	for (i = 0; files[i]; i++) {
 		rc = async_state_change_start(exch, VFS_PASS_HANDLE, *files[i],
