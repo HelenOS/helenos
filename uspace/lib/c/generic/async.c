@@ -1471,15 +1471,19 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	if (exch == NULL)
 		return ENOENT;
 	
-	sysarg_t task_hash;
+	task_id_t task_id;
+	sysarg_t task_id_lo;
+	sysarg_t task_id_hi;
 	sysarg_t phone_hash;
 	int rc = async_req_3_5(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
-	    NULL, NULL, NULL, &task_hash, &phone_hash);
+	    NULL, NULL, &task_id_lo, &task_id_hi, &phone_hash);
 	if (rc != EOK)
 		return rc;
+
+	task_id = (task_id_t) MERGE_LOUP32(task_id_lo, task_id_hi);
 	
 	if (client_receiver != NULL)
-		async_new_connection(task_hash, phone_hash, 0, NULL,
+		async_new_connection(task_id, phone_hash, 0, NULL,
 		    client_receiver, carg);
 	
 	return EOK;
