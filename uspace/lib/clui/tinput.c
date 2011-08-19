@@ -590,6 +590,45 @@ static size_t common_pref_len(const char *a, const char *b)
 	return i;
 }
 
+/* Print a list of completions */
+static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
+{
+	unsigned int i;
+	/* Determine the maximum length of the completion in chars */
+	size_t max_length = 0;
+	for (i = 0; i < cnum; i++)
+		max_length = max(max_length, str_length(compl[i]));
+	
+	unsigned int cols = max(1, (ti->con_cols + 1) / (max_length + 1));
+	unsigned int col_width = ti->con_cols / cols;
+	unsigned int rows = cnum / cols + ((cnum % cols) != 0);
+	
+	unsigned int row, col;
+	
+	for (row = 0; row < rows; row++) {
+		bool wlc = false;
+		for (col = 0; col < cols; col++) {
+			size_t compl_idx = col * rows + row;
+			if (compl_idx >= cnum)
+				break;
+			if (col)
+				printf(" ");
+			printf("%s", compl[compl_idx]);
+			size_t compl_len = str_length(compl[compl_idx]);
+			if (col == cols -1) {
+				wlc = (compl_len == max_length);
+			}
+			else {
+				for (i = compl_len; i < col_width; i++) {
+					printf(" ");
+				}
+			}
+		}
+		if (!wlc) printf("\n");
+	}
+}
+
+
 static void tinput_text_complete(tinput_t *ti)
 {
 	void *state;
@@ -675,8 +714,7 @@ static void tinput_text_complete(tinput_t *ti)
 			qsort(compl, cnum, sizeof(char *), compl_cmp, NULL);
 
 			tinput_jump_after(ti);
-			for (i = 0; i < cnum; i++)
-				printf("%s\n", compl[i]);
+			tinput_show_completions(ti, compl, cnum);
 			tinput_display(ti);
 		}
 	} else if (cnum == 1) {
