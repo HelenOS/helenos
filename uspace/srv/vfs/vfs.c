@@ -36,6 +36,8 @@
  */
 
 #include <ipc/services.h>
+#include <abi/ipc/event.h>
+#include <event.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
@@ -44,6 +46,7 @@
 #include <str.h>
 #include <as.h>
 #include <atomic.h>
+#include <vfs/vfs.h>
 #include "vfs.h"
 
 #define NAME  "vfs"
@@ -78,9 +81,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_OPEN:
 			vfs_open(callid, &call);
-			break;
-		case VFS_IN_OPEN_NODE:
-			vfs_open_node(callid, &call);
 			break;
 		case VFS_IN_CLOSE:
 			vfs_close(callid, &call);
@@ -117,6 +117,10 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_DUP:
 			vfs_dup(callid, &call);
+			break;
+		case VFS_IN_WAIT_HANDLE:
+			vfs_wait_handle(callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;
@@ -127,6 +131,23 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	 * Open files for this client will be cleaned up when its last
 	 * connection fibril terminates.
 	 */
+}
+
+enum {
+	VFS_TASK_STATE_CHANGE
+};
+
+static void notification_received(ipc_callid_t callid, ipc_call_t *call)
+{
+	switch (IPC_GET_IMETHOD(*call)) {
+	case VFS_TASK_STATE_CHANGE:
+		if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
+			vfs_pass_handle(IPC_GET_ARG4(*call),
+			    IPC_GET_ARG5(*call), (int) IPC_GET_ARG2(*call));
+		break;
+	default:
+		break;
+	}
 }
 
 int main(int argc, char **argv)
@@ -167,6 +188,12 @@ int main(int argc, char **argv)
 	 * Set a connection handling function/fibril.
 	 */
 	async_set_client_connection(vfs_connection);
+
+	/*
+	 * Set notification handler and subscribe to notifications.
+	 */
+	async_set_interrupt_received(notification_received);
+	event_task_subscribe(EVENT_TASK_STATE_CHANGE, VFS_TASK_STATE_CHANGE);
 
 	/*
 	 * Register at the naming service.

@@ -617,79 +617,6 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, EOK, fd);
 }
 
-void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
-{
-	// FIXME: check for sanity of the supplied fs, dev and index
-	
-	/*
-	 * The interface is open_node(fs, dev, index, oflag).
-	 */
-	vfs_lookup_res_t lr;
-	
-	lr.triplet.fs_handle = IPC_GET_ARG1(*request);
-	lr.triplet.service_id = IPC_GET_ARG2(*request);
-	lr.triplet.index = IPC_GET_ARG3(*request);
-	int oflag = IPC_GET_ARG4(*request);
-	
-	fibril_rwlock_read_lock(&namespace_rwlock);
-	
-	int rc = vfs_open_node_internal(&lr);
-	if (rc != EOK) {
-		fibril_rwlock_read_unlock(&namespace_rwlock);
-		async_answer_0(rid, rc);
-		return;
-	}
-	
-	vfs_node_t *node = vfs_node_get(&lr);
-	fibril_rwlock_read_unlock(&namespace_rwlock);
-	
-	/* Truncate the file if requested and if necessary. */
-	if (oflag & O_TRUNC) {
-		fibril_rwlock_write_lock(&node->contents_rwlock);
-		if (node->size) {
-			rc = vfs_truncate_internal(node->fs_handle,
-			    node->service_id, node->index, 0);
-			if (rc) {
-				fibril_rwlock_write_unlock(&node->contents_rwlock);
-				vfs_node_put(node);
-				async_answer_0(rid, rc);
-				return;
-			}
-			node->size = 0;
-		}
-		fibril_rwlock_write_unlock(&node->contents_rwlock);
-	}
-	
-	/*
-	 * Get ourselves a file descriptor and the corresponding vfs_file_t
-	 * structure.
-	 */
-	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
-	if (fd < 0) {
-		vfs_node_put(node);
-		async_answer_0(rid, fd);
-		return;
-	}
-	vfs_file_t *file = vfs_file_get(fd);
-	file->node = node;
-	if (oflag & O_APPEND)
-		file->append = true;
-	
-	/*
-	 * The following increase in reference count is for the fact that the
-	 * file is being opened and that a file structure is pointing to it.
-	 * It is necessary so that the file will not disappear when
-	 * vfs_node_put() is called. The reference will be dropped by the
-	 * respective VFS_IN_CLOSE.
-	 */
-	vfs_node_addref(node);
-	vfs_node_put(node);
-	vfs_file_put(file);
-	
-	/* Success! Return the new file descriptor to the client. */
-	async_answer_1(rid, EOK, fd);
-}
-
 void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
@@ -1346,6 +1273,12 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ret);
 	else
 		async_answer_1(rid, EOK, newfd);
+}
+
+void vfs_wait_handle(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = vfs_wait_handle_internal();
+	async_answer_1(rid, EOK, fd);
 }
 
 /**

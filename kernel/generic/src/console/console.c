@@ -247,7 +247,7 @@ wchar_t getc(indev_t *indev)
 	return ch;
 }
 
-void klog_update(void)
+void klog_update(void *e)
 {
 	if (!atomic_get(&klog_inited))
 		return;
@@ -326,7 +326,7 @@ void putchar(const wchar_t ch)
 	
 	/* Force notification on newline */
 	if (ch == '\n')
-		klog_update();
+		klog_update(NULL);
 }
 
 /** Print using kernel facility
@@ -357,7 +357,7 @@ sysarg_t sys_klog(int fd, const void *buf, size_t size)
 		printf("%s", data);
 		free(data);
 	} else
-		klog_update();
+		klog_update(NULL);
 	
 	return size;
 }

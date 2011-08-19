@@ -174,7 +174,6 @@ extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
-extern int vfs_open_node_internal(vfs_lookup_res_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
@@ -188,6 +187,9 @@ extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
+extern void vfs_pass_handle(sysarg_t, sysarg_t, int);
+extern int vfs_wait_handle_internal(void);
+
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
 extern int vfs_fd_assign(vfs_file_t *, int);
@@ -196,12 +198,12 @@ extern int vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);
+extern int vfs_open_node_remote(vfs_node_t *);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
-extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);
 extern void vfs_dup(ipc_callid_t, ipc_call_t *);
 extern void vfs_close(ipc_callid_t, ipc_call_t *);
@@ -214,6 +216,7 @@ extern void vfs_stat(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
+extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
 
 #endif
 
