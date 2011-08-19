@@ -40,6 +40,7 @@
 #include <loc.h>
 #include <bool.h>
 #include <ipc/vfs.h>
+#include <task.h>
 
 #ifndef dprintf
 	#define dprintf(...)
@@ -187,7 +188,7 @@ extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
-extern void vfs_pass_handle(sysarg_t, sysarg_t, int);
+extern void vfs_pass_handle(task_id_t, task_id_t, int);
 extern int vfs_wait_handle_internal(void);
 
 extern vfs_file_t *vfs_file_get(int);
