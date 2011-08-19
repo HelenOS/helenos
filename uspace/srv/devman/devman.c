@@ -919,6 +919,37 @@ dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
 	return dev;
 }
 
+/** Get list of device functions. */
+int dev_get_functions(dev_tree_t *tree, dev_node_t *dev,
+    devman_handle_t *hdl_buf, size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	assert(fibril_rwlock_is_locked(&tree->rwlock));
+
+	buf_cnt = buf_size / sizeof(devman_handle_t);
+
+	act_cnt = list_count(&dev->functions);
+	*act_size = act_cnt * sizeof(devman_handle_t);
+
+	if (buf_size % sizeof(devman_handle_t) != 0)
+		return EINVAL;
+
+	size_t pos = 0;
+	list_foreach(dev->functions, item) {
+		fun_node_t *fun =
+		    list_get_instance(item, fun_node_t, dev_functions);
+
+		if (pos < buf_cnt)
+			hdl_buf[pos] = fun->handle;
+		pos++;
+	}
+
+	return EOK;
+}
+
+
 /* Function nodes */
 
 /** Create a new function node.
@@ -1144,7 +1175,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	 */
 	char *rel_path = path;
 	char *next_path_elem = NULL;
-	bool cont = true;
+	bool cont = (rel_path[1] != '\0');
 	
 	while (cont && fun != NULL) {
 		next_path_elem  = get_path_elem_end(rel_path + 1);
