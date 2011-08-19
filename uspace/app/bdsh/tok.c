@@ -91,11 +91,11 @@ void tok_fini(tokenizer_t *tok)
 int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 {
 	int rc;
-	wchar_t cur_char;
+	wchar_t next_char;
 	
 	/* Read the input line char by char and append tokens */
-	while ((cur_char = tok_get_char(tok)) != 0) {
-		if (cur_char == ' ') {
+	while ((next_char = tok_look_char(tok)) != 0) {
+		if (next_char == ' ') {
 			/* Push the token if there is any.
 			 * There may not be any pending char for a token in case
 			 * there are several spaces in the input.
@@ -107,16 +107,16 @@ int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 				}
 			}
 			tok_start_token(tok, TOKTYPE_SPACE);
-			/* Eat all spaces */
+			/* Eat all the spaces */
 			while (tok_look_char(tok) == ' ') {
 				tok_push_char(tok, tok_get_char(tok));
 			}
 			tok_push_token(tok);
 			
 		}
-		else if (cur_char == '|') {
-			/* Pipes are tokens that are delimiters and should be output
-			 * as a separate token
+		else if (next_char == '|') {
+			/* Pipes are tokens that are delimiters and should be
+			 * output as a separate token
 			 */
 			if (tok_pending_chars(tok)) {
 				rc = tok_push_token(tok);
@@ -127,7 +127,7 @@ int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			
 			tok_start_token(tok, TOKTYPE_PIPE);
 			
-			rc = tok_push_char(tok, '|');
+			rc = tok_push_char(tok, tok_get_char(tok));
 			if (rc != EOK) {
 				return rc;
 			}
@@ -137,11 +137,13 @@ int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 				return rc;
 			}
 		}
-		else if (cur_char == '\'') {
+		else if (next_char == '\'') {
 			/* A string starts with a quote (') and ends again with a quote.
 			 * A literal quote is written as ''
 			 */
 			tok_start_token(tok, TOKTYPE_TEXT);
+			/* Eat the quote */
+			tok_get_char(tok);
 			rc = tok_finish_string(tok);
 			if (rc != EOK) {
 				return rc;
@@ -154,7 +156,7 @@ int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			/* If we are handling any other character, just append it to
 			 * the current token.
 			 */
-			rc = tok_push_char(tok, cur_char);
+			rc = tok_push_char(tok, tok_get_char(tok));
 			if (rc != EOK) {
 				return rc;
 			}
@@ -178,10 +180,12 @@ int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 int tok_finish_string(tokenizer_t *tok)
 {
 	int rc;
-	wchar_t cur_char;
+	wchar_t next_char;
 	
-	while ((cur_char = tok_get_char(tok)) != 0) {
-		if (cur_char == '\'') {
+	while ((next_char = tok_look_char(tok)) != 0) {
+		if (next_char == '\'') {
+			/* Eat the quote */
+			tok_get_char(tok);
 			if (tok_look_char(tok) == '\'') {
 				/* Encode a single literal quote */
 				rc = tok_push_char(tok, '\'');
@@ -198,7 +202,7 @@ int tok_finish_string(tokenizer_t *tok)
 			}
 		}
 		else {
-			rc = tok_push_char(tok, cur_char);
+			rc = tok_push_char(tok, tok_get_char(tok));
 			if (rc != EOK) {
 				return rc;
 			}
@@ -254,15 +258,14 @@ int tok_push_token(tokenizer_t *tok)
 	tokinfo->type = tok->current_type;
 	tokinfo->text = tok->outbuf + tok->outbuf_last_start;
 	tokinfo->byte_start = tok->last_in_offset;
-	tokinfo->byte_length = tok->in_offset - tok->last_in_offset - 1;
+	tokinfo->byte_length = tok->in_offset - tok->last_in_offset;
 	tokinfo->char_start = tok->last_in_char_offset;
-	tokinfo->char_length = tok->in_char_offset - tok->last_in_char_offset
-	    - 1;
+	tokinfo->char_length = tok->in_char_offset - tok->last_in_char_offset;
 	tok->outbuf_last_start = tok->outbuf_offset;
 	
 	/* We have consumed the first char of the next token already */
-	tok->last_in_offset = tok->in_offset-1;
-	tok->last_in_char_offset = tok->in_char_offset-1;
+	tok->last_in_offset = tok->in_offset;
+	tok->last_in_char_offset = tok->in_char_offset;
 	
 	return EOK;
 }
