@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <fmtutil.h>
 
 #include "config.h"
 #include "entry.h"
@@ -127,28 +129,30 @@ static void help_commands(void)
 /** Display survival tips. ('help' without arguments) */
 static void help_survival(void)
 {
-	printf("Don't panic!\n\n");
+	print_wrapped_console(
+	    "Don't panic!\n\n"
 
-	printf("This is Bdsh, the Brain dead shell, currently "
+	    "This is Bdsh, the Brain dead shell, currently "
 	    "the primary user interface to HelenOS. Bdsh allows you to enter "
 	    "commands and supports history (Up, Down arrow keys), "
 	    "line editing (Left Arrow, Right Arrow, Home, End, Backspace), "
 	    "selection (Shift + movement keys), copy and paste (Ctrl-C, "
-	    "Ctrl-V), similar to common desktop environments.\n\n");
+	    "Ctrl-V), similar to common desktop environments.\n\n"
 
-	printf("The most basic filesystem commands are Bdsh builtins. Type "
+	    "The most basic filesystem commands are Bdsh builtins. Type "
 	    "'help commands' [Enter] to see the list of Bdsh builtin commands. "
 	    "Other commands are external executables located in the /app and "
 	    "/srv directories. Type 'ls /app' [Enter] and 'ls /srv' [Enter] "
 	    "to see their list. You can execute an external command simply "
-	    "by entering its name (e.g. type 'tetris' [Enter]).\n\n");
+	    "by entering its name (e.g. type 'tetris' [Enter]).\n\n"
 
-	printf("HelenOS has virtual consoles (VCs). You can switch between "
-	    "these using the F1-F11 keys.\n\n");
+	    "HelenOS has virtual consoles (VCs). You can switch between "
+	    "these using the F1-F11 keys.\n\n"
 
-	printf("This is but a small glimpse of what you can do with HelenOS. "
+	    "This is but a small glimpse of what you can do with HelenOS. "
 	    "To learn more please point your browser to the HelenOS User's "
-	    "Guide: http://trac.helenos.org/trac.fcgi/wiki/UsersGuide\n\n");
+	    "Guide: http://trac.helenos.org/trac.fcgi/wiki/UsersGuide\n\n",
+	     ALIGN_LEFT);
 }
 
 int cmd_help(char *argv[])
