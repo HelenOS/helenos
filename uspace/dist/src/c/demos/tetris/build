@@ -1,7 +1,7 @@
-cc -I/inc/c -E -o scores.i scores.c
-cc -I/inc/c -E -o screen.i screen.c
-cc -I/inc/c -E -o shapes.i shapes.c
-cc -I/inc/c -E -o tetris.i tetris.c
+cc -D__PCC__ -I/inc/c -E -o scores.i scores.c
+cc -D__PCC__ -I/inc/c -E -o screen.i screen.c
+cc -D__PCC__ -I/inc/c -E -o shapes.i shapes.c
+cc -D__PCC__ -I/inc/c -E -o tetris.i tetris.c
 
 cc -S -o scores.s scores.i
 cc -S -o screen.s screen.i
