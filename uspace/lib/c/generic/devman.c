@@ -88,7 +88,7 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 			
 			if (devman_driver_block_sess == NULL)
 				devman_driver_block_sess =
-				    service_connect_blocking(EXCHANGE_SERIALIZE,
+				    service_connect_blocking(EXCHANGE_PARALLEL,
 				    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		}
 		
@@ -137,7 +137,7 @@ async_exch_t *devman_exchange_begin(devman_interface_t iface)
 		
 		if (devman_driver_sess == NULL)
 			devman_driver_sess =
-			    service_connect(EXCHANGE_SERIALIZE, SERVICE_DEVMAN,
+			    service_connect(EXCHANGE_PARALLEL, SERVICE_DEVMAN,
 			    DEVMAN_DRIVER, 0);
 		
 		fibril_mutex_unlock(&devman_driver_mutex);
