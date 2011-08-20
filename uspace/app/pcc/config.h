@@ -1,11 +1,10 @@
-
-// FIXME: find out which of them are actually true
+/* Hard-coded, because wiring up configure script would just not be worth the effort. */
 
 /* Using a.out ABI */
 //#undef AOUTABI
 
 /* Define path to alternate assembler */
-//#undef ASSEMBLER
+#define ASSEMBLER "/app/as"
 
 /* Using Classic 68k ABI */
 //#undef CLASSIC68K
@@ -94,21 +93,28 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #define HAVE_VSNPRINTF 1
 
-/* Define if host is BIG endian */
-//#undef HOST_BIG_ENDIAN
+#ifdef __BE__
+	/* Define if host is BIG endian */
+	#define HOST_BIG_ENDIAN
+	/* Define if target defaults to BIG endian */
+	#undef TARGET_BIG_ENDIAN
+#endif
 
-/* Define if host is LITTLE endian */
-#define HOST_LITTLE_ENDIAN
-// FIXME: check architecture
+#ifdef __LE__
+	/* Define if host is LITTLE endian */
+	#define HOST_LITTLE_ENDIAN
+	/* Define if target defaults to LITTLE endian */
+	#define TARGET_LITTLE_ENDIAN
+#endif
 
 /* lex is flex */
 #define ISFLEX 1
 
 /* Define alternate standard lib directory */
-//#undef LIBDIR
+#define LIBDIR "/lib/"
 
 /* Define path to alternate linker */
-//#undef LINKER
+#define LINKER "/app/ld"
 
 /* Using Mach-O ABI */
 //#undef MACHOABI
@@ -141,20 +147,14 @@
 //#undef PECOFFABI
 
 /* Define path to alternate preprocessor */
-//#undef PREPROCESSOR
+#undef PREPROCESSOR
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Define alternate standard include directory */
-//#undef STDINC
+#define STDINC "/inc/c"
 
-/* Define if target defaults to BIG endian */
-//#undef TARGET_BIG_ENDIAN
-
-/* Define if target defaults to LITTLE endian */
-#define TARGET_LITTLE_ENDIAN
-// FIXME: check architecture
 
 /* Target OS */
 #define TARGOS helenos
@@ -163,7 +163,7 @@
 #define TARGOSVER 0
 
 /* Enable thread-local storage (TLS). */
-// #undef TLS
+#define TLS 1
 
 /* Version string */
 #define VERSSTR "pcc 1.0.0.RELEASE 20110221 for HelenOS"
