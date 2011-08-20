@@ -37,8 +37,6 @@
 
 #include "ctype.h"
 
-// TODO: propose for inclusion in libc
-
 /**
  * Checks whether character is a hexadecimal digit.
  *

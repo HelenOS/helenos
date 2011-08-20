@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,68 +26,85 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @brief Test devman service.
+/** @addtogroup devctl
  * @{
  */
-/**
- * @file
+/** @file Control device framework (devman server).
  */
 
-#include <inttypes.h>
-#include <errno.h>
-#include <str_error.h>
-#include <sys/types.h>
-#include <async.h>
 #include <devman.h>
-#include <str.h>
-#include <async.h>
-#include <vfs/vfs.h>
-#include <vfs/vfs_sess.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "../tester.h"
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/typefmt.h>
 
-#define DEVICE_CLASS "test3"
+#define NAME "devctl"
 
-const char *test_devman2(void)
+#define MAX_NAME_LENGTH 1024
+
+static int fun_tree_print(devman_handle_t funh, int lvl)
 {
-	size_t idx = 1;
-	int rc = EOK;
-	const char *err_msg = NULL;
-	char *path = NULL;
-	while (rc == EOK) {
-		rc = asprintf(&path, "/loc/class/%s\\%zu", DEVICE_CLASS, idx);
-		if (rc < 0) {
-			continue;
-		}
-		int fd = open(path, O_RDONLY);
-		if (fd < 0) {
-			TPRINTF("Failed opening `%s': %s.\n",
-			    path, str_error(fd));
-			rc = fd;
-			err_msg = "Failed opening file";
-			continue;
-		}
-		async_sess_t *sess = fd_session(EXCHANGE_SERIALIZE, fd);
-		close(fd);
-		if (sess == NULL) {
-			TPRINTF("Failed opening phone: %s.\n", str_error(errno));
-			rc = errno;
-			err_msg = "Failed opening file descriptor phone";
-			continue;
-		}
-		async_hangup(sess);
-		TPRINTF("Path `%s' okay.\n", path);
-		free(path);
-		idx++;
-		rc = EOK;
+	char name[MAX_NAME_LENGTH];
+	devman_handle_t devh;
+	devman_handle_t *cfuns;
+	size_t count, i;
+	int rc;
+	int j;
+
+	for (j = 0; j < lvl; j++)
+		printf("    ");
+
+	rc = devman_fun_get_name(funh, name, MAX_NAME_LENGTH);
+	if (rc != EOK) {
+		str_cpy(name, MAX_NAME_LENGTH, "unknown");
+		return ENOMEM;
 	}
-	
-	if (path != NULL)
-		free(path);
-	
-	return err_msg;
+
+	if (name[0] == '\0')
+		str_cpy(name, MAX_NAME_LENGTH, "/");
+
+	printf("%s (%" PRIun ")\n", name, funh);
+
+	rc = devman_fun_get_child(funh, &devh);
+	if (rc == ENOENT)
+		return EOK;
+
+	if (rc != EOK) {
+		printf(NAME ": Failed getting child device for function "
+		    "%s.\n", "xxx");
+		return rc;
+	}
+
+	rc = devman_dev_get_functions(devh, &cfuns, &count);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting list of functions for "
+		    "device %s.\n", "xxx");
+		return rc;
+	}
+
+	for (i = 0; i < count; i++)
+		fun_tree_print(cfuns[i], lvl + 1);
+
+	free(cfuns);
+	return EOK;
+}
+
+int main(int argc, char *argv[])
+{
+	devman_handle_t root_fun;
+	int rc;
+
+	rc = devman_fun_get_handle("/", &root_fun, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving root function.\n");
+		return 1;
+	}
+
+	rc = fun_tree_print(root_fun, 0);
+	if (rc != EOK)
+		return 1;
+
+	return 0;
 }
 
 /** @}

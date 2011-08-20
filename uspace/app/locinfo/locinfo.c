@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,76 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @brief Test devman service.
+/** @addtogroup locinfo
  * @{
  */
-/**
- * @file
+/** @file locinfo.c Print information from location service.
  */
 
-#include <inttypes.h>
 #include <errno.h>
-#include <str_error.h>
-#include <sys/types.h>
-#include <async.h>
-#include <devman.h>
+#include <loc.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str.h>
-#include <vfs/vfs.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "../tester.h"
+#include <sys/types.h>
+#include <sys/typefmt.h>
 
-#define DEVICE_PATH_NORMAL "/virt/null/a"
-#define DEVICE_CLASS "virt-null"
-#define DEVICE_CLASS_NAME "1"
-#define DEVICE_PATH_CLASSES DEVICE_CLASS "/" DEVICE_CLASS_NAME
+#define NAME "locinfo"
 
-const char *test_devman1(void)
+int main(int argc, char *argv[])
 {
-	devman_handle_t handle_primary;
-	devman_handle_t handle_class;
-	
+	category_id_t *cat_ids;
+	size_t cat_cnt;
+	service_id_t *svc_ids;
+	size_t svc_cnt;
+
+	size_t i, j;
+	char *cat_name;
+	char *svc_name;
 	int rc;
-	
-	TPRINTF("Asking for handle of `%s'...\n", DEVICE_PATH_NORMAL);
-	rc = devman_device_get_handle(DEVICE_PATH_NORMAL, &handle_primary, 0);
+
+	rc = loc_get_categories(&cat_ids, &cat_cnt);
 	if (rc != EOK) {
-		TPRINTF(" ...failed: %s.\n", str_error(rc));
-		if (rc == ENOENT) {
-			TPRINTF("Have you compiled the test drivers?\n");
+		printf(NAME ": Error getting list of categories.\n");
+		return 1;
+	}
+
+	for (i = 0; i < cat_cnt; i++) {
+		rc = loc_category_get_name(cat_ids[i], &cat_name);
+		if (rc != EOK)
+			cat_name = str_dup("<unknown>");
+
+		if (cat_name == NULL) {
+			printf(NAME ": Error allocating memory.\n");
+			return 1;
 		}
-		return "Failed getting device handle";
+
+		printf("%s (%" PRIun "):\n", cat_name, cat_ids[i]);
+
+		rc = loc_category_get_svcs(cat_ids[i], &svc_ids, &svc_cnt);
+		if (rc != EOK) {
+			printf(NAME ": Failed getting list of services in "
+			    "category %s, skipping.\n", cat_name);
+			free(cat_name);
+			continue;
+		}
+
+		for (j = 0; j < svc_cnt; j++) {
+			rc = loc_service_get_name(svc_ids[j], &svc_name);
+			if (rc != EOK) {
+				printf(NAME ": Unknown service name (SID %"
+				    PRIun ").\n", svc_ids[j]);
+				continue;
+			}
+			printf("\t%s (%" PRIun ")\n", svc_name, svc_ids[j]);
+		}
+
+		free(svc_ids);
+		free(cat_name);
 	}
 
-	TPRINTF("Asking for handle of `%s' by class..\n", DEVICE_PATH_CLASSES);
-	rc = devman_device_get_handle_by_class(DEVICE_CLASS, DEVICE_CLASS_NAME,
-	    &handle_class, 0);
-	if (rc != EOK) {
-		TPRINTF(" ...failed: %s.\n", str_error(rc));
-		return "Failed getting device class handle";
-	}
-
-	TPRINTF("Received handles %" PRIun " and %" PRIun ".\n",
-	    handle_primary, handle_class);
-	if (handle_primary != handle_class) {
-		return "Retrieved different handles for the same device";
-	}
-
-	return NULL;
+	free(cat_ids);
+	return 0;
 }
 
 /** @}

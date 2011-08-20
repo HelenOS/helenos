@@ -37,6 +37,8 @@
 
 #include <cpu.h>
 #include <ipc/ipc.h>
+#include <ipc/event.h>
+#include <ipc/kbox.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/futex.h>
@@ -52,7 +54,6 @@
 #include <mm/tlb.h>
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
-#include <ipc/kbox.h>
 #include <mm/as.h>
 #include <abi/sysinfo.h>
 
@@ -92,8 +93,8 @@ typedef struct task {
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
 	stats_ipc_t ipc_info;   /**< IPC statistics */
-	/** List of synchronous answerboxes. */
-	list_t sync_boxes;
+	list_t sync_boxes;      /**< List of synchronous answerboxes. */
+	event_t events[EVENT_TASK_END - EVENT_END];
 	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */

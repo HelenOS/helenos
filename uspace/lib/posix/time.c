@@ -50,7 +50,6 @@
 #include "libc/stats.h"
 #include "libc/sys/time.h"
 
-// TODO: documentation
 // TODO: test everything in this file
 
 /* In some places in this file, phrase "normalized broken-down time" is used.
@@ -71,7 +70,8 @@
 #define SECS_PER_HOUR (SECS_PER_MIN * MINS_PER_HOUR)
 #define SECS_PER_DAY (SECS_PER_HOUR * HOURS_PER_DAY)
 
-/** Checks whether the year is a leap year.
+/**
+ * Checks whether the year is a leap year.
  *
  * @param year Year since 1900 (e.g. for 1970, the value is 70).
  * @return true if year is a leap year, false otherwise
@@ -89,8 +89,9 @@ static bool _is_leap_year(time_t year)
 	return false;
 }
 
-/** Returns how many days there are in the given month of the given year.
- *  Note that year is only taken into account if month is February.
+/**
+ * Returns how many days there are in the given month of the given year.
+ * Note that year is only taken into account if month is February.
  *
  * @param year Year since 1900 (can be negative).
  * @param mon Month of the year. 0 for January, 11 for December.
@@ -112,8 +113,9 @@ static int _days_in_month(time_t year, time_t mon)
 	}
 }
 
-/** For specified year, month and day of month, returns which day of that year
- *  it is.
+/**
+ * For specified year, month and day of month, returns which day of that year
+ * it is.
  *
  * For example, given date 2011-01-03, the corresponding expression is:
  *     _day_of_year(111, 0, 3) == 2
@@ -133,12 +135,13 @@ static int _day_of_year(time_t year, time_t mon, time_t mday)
 	return (_is_leap_year(year) ? leap_mdays[mon] : mdays[mon]) + mday - 1;
 }
 
-/** Integer division that rounds to negative infinity.
- *  Used by some functions in this file.
+/**
+ * Integer division that rounds to negative infinity.
+ * Used by some functions in this file.
  *
- * @param op1
- * @param op2
- * @return
+ * @param op1 Divident.
+ * @param op2 Divisor.
+ * @return Rounded quotient.
  */
 static time_t _floor_div(time_t op1, time_t op2)
 {
@@ -149,12 +152,13 @@ static time_t _floor_div(time_t op1, time_t op2)
 	}
 }
 
-/** Modulo that rounds to negative infinity.
- *  Used by some functions in this file.
+/**
+ * Modulo that rounds to negative infinity.
+ * Used by some functions in this file.
  *
- * @param op1
- * @param op2
- * @return
+ * @param op1 Divident.
+ * @param op2 Divisor.
+ * @return Remainder.
  */
 static time_t _floor_mod(time_t op1, time_t op2)
 {
@@ -173,8 +177,9 @@ static time_t _floor_mod(time_t op1, time_t op2)
 	return result;
 }
 
-/** Number of days since the Epoch.
- *  Epoch is 1970-01-01, which is also equal to day 0.
+/**
+ * Number of days since the Epoch.
+ * Epoch is 1970-01-01, which is also equal to day 0.
  *
  * @param year Year (year 1900 = 0, may be negative).
  * @param mon Month (January = 0).
@@ -188,7 +193,8 @@ static time_t _days_since_epoch(time_t year, time_t mon, time_t mday)
 	    _day_of_year(year, mon, mday);
 }
 
-/** Seconds since the Epoch. see also _days_since_epoch().
+/**
+ * Seconds since the Epoch. see also _days_since_epoch().
  * 
  * @param tm Normalized broken-down time.
  * @return Number of seconds since the epoch, not counting leap seconds.
@@ -200,7 +206,8 @@ static time_t _secs_since_epoch(const struct posix_tm *tm)
 	    tm->tm_min * SECS_PER_MIN + tm->tm_sec;
 }
 
-/** Which day of week the specified date is.
+/**
+ * Which day of week the specified date is.
  * 
  * @param year Year (year 1900 = 0).
  * @param mon Month (January = 0).
@@ -213,8 +220,9 @@ static int _day_of_week(time_t year, time_t mon, time_t mday)
 	return _floor_mod((_days_since_epoch(year, mon, mday) + 4), 7);
 }
 
-/** Normalizes the broken-down time and optionally adds specified amount of
- *  seconds.
+/**
+ * Normalizes the broken-down time and optionally adds specified amount of
+ * seconds.
  * 
  * @param tm Broken-down time to normalize.
  * @param sec_add Seconds to add.
@@ -296,8 +304,9 @@ static int _normalize_time(struct posix_tm *tm, time_t sec_add)
 	return 0;
 }
 
-/** Which day the week-based year starts on, relative to the first calendar day.
- *  E.g. if the year starts on December 31st, the return value is -1.
+/**
+ * Which day the week-based year starts on, relative to the first calendar day.
+ * E.g. if the year starts on December 31st, the return value is -1.
  *
  * @param Year since 1900.
  * @return Offset of week-based year relative to calendar year.
@@ -308,7 +317,8 @@ static int _wbyear_offset(int year)
 	return _floor_mod(4 - start_wday, 7) - 3;
 }
 
-/** Returns week-based year of the specified time.
+/**
+ * Returns week-based year of the specified time.
  *
  * @param tm Normalized broken-down time.
  * @return Week-based year.
@@ -328,9 +338,10 @@ static int _wbyear(const struct posix_tm *tm)
 	return tm->tm_year;
 }
 
-/** Week number of the year, assuming weeks start on sunday.
- *  The first Sunday of January is the first day of week 1;
- *  days in the new year before this are in week 0.
+/**
+ * Week number of the year, assuming weeks start on sunday.
+ * The first Sunday of January is the first day of week 1;
+ * days in the new year before this are in week 0.
  *
  * @param tm Normalized broken-down time.
  * @return The week number (0 - 53).
@@ -341,11 +352,12 @@ static int _sun_week_number(const struct posix_tm *tm)
 	return (tm->tm_yday - first_day + 7) / 7;
 }
 
-/** Week number of the year, assuming weeks start on monday.
- *  If the week containing January 1st has four or more days in the new year,
- *  then it is considered week 1. Otherwise, it is the last week of the previous
- *  year, and the next week is week 1. Both January 4th and the first Thursday
- *  of January are always in week 1.
+/**
+ * Week number of the year, assuming weeks start on monday.
+ * If the week containing January 1st has four or more days in the new year,
+ * then it is considered week 1. Otherwise, it is the last week of the previous
+ * year, and the next week is week 1. Both January 4th and the first Thursday
+ * of January are always in week 1.
  *
  * @param tm Normalized broken-down time.
  * @return The week number (1 - 53).
@@ -365,9 +377,10 @@ static int _iso_week_number(const struct posix_tm *tm)
 	return (day / 7 + 1);
 }
 
-/** Week number of the year, assuming weeks start on monday.
- *  The first Monday of January is the first day of week 1;
- *  days in the new year before this are in week 0. 
+/**
+ * Week number of the year, assuming weeks start on monday.
+ * The first Monday of January is the first day of week 1;
+ * days in the new year before this are in week 0. 
  *
  * @param tm Normalized broken-down time.
  * @return The week number (0 - 53).
@@ -384,8 +397,8 @@ int posix_daylight;
 long posix_timezone;
 char *posix_tzname[2];
 
-/** Set timezone conversion information.
- * 
+/**
+ * Set timezone conversion information.
  */
 void posix_tzset(void)
 {
@@ -396,10 +409,11 @@ void posix_tzset(void)
 	posix_timezone = 0;
 }
 
-/** Calculate the difference between two times, in seconds.
+/**
+ * Calculate the difference between two times, in seconds.
  * 
- * @param time1
- * @param time0
+ * @param time1 First time.
+ * @param time0 Second time.
  * @return Time in seconds.
  */
 double posix_difftime(time_t time1, time_t time0)
@@ -407,12 +421,13 @@ double posix_difftime(time_t time1, time_t time0)
 	return (double) (time1 - time0);
 }
 
-/** This function first normalizes the provided broken-down time
- *  (moves all values to their proper bounds) and then tries to
- *  calculate the appropriate time_t representation.
+/**
+ * This function first normalizes the provided broken-down time
+ * (moves all values to their proper bounds) and then tries to
+ * calculate the appropriate time_t representation.
  *
  * @param tm Broken-down time.
- * @return time_t representation of the time, undefined value on overflow
+ * @return time_t representation of the time, undefined value on overflow.
  */
 time_t posix_mktime(struct posix_tm *tm)
 {
@@ -423,7 +438,8 @@ time_t posix_mktime(struct posix_tm *tm)
 	return _secs_since_epoch(tm);
 }
 
-/** Converts a time value to a broken-down UTC time.
+/**
+ * Converts a time value to a broken-down UTC time.
  *
  * @param timer Time to convert.
  * @return Normalized broken-down time in UTC, NULL on overflow.
@@ -436,7 +452,8 @@ struct posix_tm *posix_gmtime(const time_t *timer)
 	return posix_gmtime_r(timer, &result);
 }
 
-/** Converts a time value to a broken-down UTC time.
+/**
+ * Converts a time value to a broken-down UTC time.
  * 
  * @param timer Time to convert.
  * @param result Structure to store the result to.
@@ -464,7 +481,8 @@ struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
 	return result;
 }
 
-/** Converts a time value to a broken-down local time.
+/**
+ * Converts a time value to a broken-down local time.
  *
  * @param timer Time to convert.
  * @return Normalized broken-down time in local timezone, NULL on overflow.
@@ -475,7 +493,8 @@ struct posix_tm *posix_localtime(const time_t *timer)
 	return posix_localtime_r(timer, &result);
 }
 
-/** Converts a time value to a broken-down local time.
+/**
+ * Converts a time value to a broken-down local time.
  * 
  * @param timer Time to convert.
  * @param result Structure to store the result to.
@@ -489,8 +508,9 @@ struct posix_tm *posix_localtime_r(const time_t *restrict timer,
 	return posix_gmtime_r(timer, result);
 }
 
-/** Converts broken-down time to a string in format
- *  "Sun Jan 1 00:00:00 1970\n". (Obsolete)
+/**
+ * Converts broken-down time to a string in format
+ * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
  *
  * @param timeptr Broken-down time structure.
  * @return Pointer to a statically allocated string.
@@ -501,8 +521,9 @@ char *posix_asctime(const struct posix_tm *timeptr)
 	return posix_asctime_r(timeptr, buf);
 }
 
-/** Converts broken-down time to a string in format
- *  "Sun Jan 1 00:00:00 1970\n". (Obsolete)
+/**
+ * Converts broken-down time to a string in format
+ * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
  *
  * @param timeptr Broken-down time structure.
  * @param buf Buffer to store string to, must be at least ASCTIME_BUF_LEN
@@ -533,7 +554,8 @@ char *posix_asctime_r(const struct posix_tm *restrict timeptr,
 	return buf;
 }
 
-/** Equivalent to asctime(localtime(clock)).
+/**
+ * Equivalent to asctime(localtime(clock)).
  * 
  * @param timer Time to convert.
  * @return Pointer to a statically allocated string holding the date.
@@ -547,7 +569,8 @@ char *posix_ctime(const time_t *timer)
 	return posix_asctime(loctime);
 }
 
-/** Reentrant variant of ctime().
+/**
+ * Reentrant variant of ctime().
  * 
  * @param timer Time to convert.
  * @param buf Buffer to store string to. Must be at least ASCTIME_BUF_LEN
@@ -563,8 +586,9 @@ char *posix_ctime_r(const time_t *timer, char *buf)
 	return posix_asctime_r(&loctime, buf);
 }
 
-/** Convert time and date to a string, based on a specified format and
- *  current locale.
+/**
+ * Convert time and date to a string, based on a specified format and
+ * current locale.
  * 
  * @param s Buffer to write string to.
  * @param maxsize Size of the buffer.
@@ -754,7 +778,8 @@ size_t posix_strftime(char *restrict s, size_t maxsize,
 	return maxsize - remaining;
 }
 
-/** Get clock resolution. Only CLOCK_REALTIME is supported.
+/**
+ * Get clock resolution. Only CLOCK_REALTIME is supported.
  *
  * @param clock_id Clock ID.
  * @param res Pointer to the variable where the resolution is to be written.
@@ -775,11 +800,12 @@ int posix_clock_getres(posix_clockid_t clock_id, struct posix_timespec *res)
 	}
 }
 
-/** Get time. Only CLOCK_REALTIME is supported.
+/**
+ * Get time. Only CLOCK_REALTIME is supported.
  * 
  * @param clock_id ID of the clock to query.
  * @param tp Pointer to the variable where the time is to be written.
- * @return
+ * @return 0 on success, -1 with errno on failure.
  */
 int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
 {
@@ -799,8 +825,9 @@ int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
 	}
 }
 
-/** Set time on a specified clock. As HelenOS doesn't support this yet,
- *  this function always fails.
+/**
+ * Set time on a specified clock. As HelenOS doesn't support this yet,
+ * this function always fails.
  * 
  * @param clock_id ID of the clock to set.
  * @param tp Time to set.
@@ -824,7 +851,8 @@ int posix_clock_settime(posix_clockid_t clock_id,
 	}
 }
 
-/** Sleep on a specified clock.
+/**
+ * Sleep on a specified clock.
  * 
  * @param clock_id ID of the clock to sleep on (only CLOCK_REALTIME supported).
  * @param flags Flags (none supported).
@@ -854,7 +882,8 @@ int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
 	}
 }
 
-/** Get CPU time used since the process invocation.
+/**
+ * Get CPU time used since the process invocation.
  *
  * @return Consumed CPU cycles by this process or -1 if not available.
  */

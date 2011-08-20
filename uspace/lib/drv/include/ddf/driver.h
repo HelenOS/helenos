@@ -148,9 +148,10 @@ extern int ddf_driver_main(driver_t *);
 extern ddf_fun_t *ddf_fun_create(ddf_dev_t *, fun_type_t, const char *);
 extern void ddf_fun_destroy(ddf_fun_t *);
 extern int ddf_fun_bind(ddf_fun_t *);
+extern int ddf_fun_unbind(ddf_fun_t *);
 extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 
-extern int ddf_fun_add_to_class(ddf_fun_t *, const char *);
+extern int ddf_fun_add_to_category(ddf_fun_t *, const char *);
 
 #endif
 

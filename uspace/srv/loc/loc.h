@@ -35,6 +35,7 @@
 #ifndef LOC_H_
 #define LOC_H_
 
+#include <ipc/loc.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
@@ -88,6 +89,8 @@ typedef struct {
 	link_t server_services;
 	/** Link to list of services in category (category_t.services) */
 	link_t cat_services;
+	/** List of category memberships (svc_categ_t) */
+	list_t cat_memb;
 	/** Unique service identifier */
 	service_id_t id;
 	/** Service namespace */
@@ -100,7 +103,10 @@ typedef struct {
 	sysarg_t forward_interface;
 } loc_service_t;
 
+extern fibril_mutex_t services_list_mutex;
+
 extern service_id_t loc_create_id(void);
+extern void loc_category_change_event(void);
 
 #endif
 

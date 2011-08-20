@@ -139,8 +139,6 @@ extern FILE *posix_tmpfile(void);
 	#define getline posix_getline
 
 	#define freopen posix_freopen
-	#define fmemopen posix_fmemopen
-	#define open_memstream posix_open_memstream
 
 	#define perror posix_perror
 

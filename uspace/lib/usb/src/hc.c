@@ -200,34 +200,21 @@ usb_address_t usb_hc_get_address_by_handle(devman_handle_t dev_handle)
 
 /** Get host controller handle by its class index.
  *
- * @param class_index Class index for the host controller.
+ * @param sid Service ID of the HC function.
  * @param hc_handle Where to store the HC handle
  *	(can be NULL for existence test only).
  * @return Error code.
  */
-int usb_ddf_get_hc_handle_by_class(size_t class_index,
-    devman_handle_t *hc_handle)
+int usb_ddf_get_hc_handle_by_sid(service_id_t sid, devman_handle_t *hc_handle)
 {
-	char *class_index_str;
-	devman_handle_t hc_handle_tmp;
+	devman_handle_t handle;
 	int rc;
-
-	rc = asprintf(&class_index_str, "%zu", class_index);
-	if (rc < 0) {
-		return ENOMEM;
-	}
-	rc = devman_device_get_handle_by_class("usbhc", class_index_str,
-	    &hc_handle_tmp, 0);
-	free(class_index_str);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (hc_handle != NULL) {
-		*hc_handle = hc_handle_tmp;
-	}
-
-	return EOK;
+	
+	rc = devman_fun_sid_to_handle(sid, &handle);
+	if (hc_handle != NULL)
+		*hc_handle = handle;
+	
+	return rc;
 }
 
 /** Find host controller handle that is ancestor of given device.

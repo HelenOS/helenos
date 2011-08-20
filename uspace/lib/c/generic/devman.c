@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007 Josef Cejka
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -194,7 +194,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	async_set_client_connection(conn);
 	
 	exch = devman_exchange_begin(DEVMAN_DRIVER);
-	async_connect_to_me(exch, 0, 0, 0, NULL, NULL);
+	async_connect_to_me(exch, 0, 0, 0, conn, NULL);
 	devman_exchange_end(exch);
 	
 	async_wait_for(req, &retval);
@@ -270,16 +270,16 @@ int devman_add_function(const char *name, fun_type_t ftype,
 	return retval;
 }
 
-int devman_add_device_to_class(devman_handle_t devman_handle,
-    const char *class_name)
+int devman_add_device_to_category(devman_handle_t devman_handle,
+    const char *cat_name)
 {
 	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CLASS,
+	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CATEGORY,
 	    devman_handle, &answer);
-	sysarg_t retval = async_data_write_start(exch, class_name,
-	    str_size(class_name));
+	sysarg_t retval = async_data_write_start(exch, cat_name,
+	    str_size(cat_name));
 	
 	devman_exchange_end(exch);
 	
@@ -307,6 +307,25 @@ async_sess_t *devman_device_connect(exch_mgmt_t mgmt, devman_handle_t handle,
 	return sess;
 }
 
+/** Remove function from device.
+ *
+ * Request devman to remove function owned by this driver task.
+ * @param funh      Devman handle of the function
+ *
+ * @return EOK on success or negative error code.
+ */
+int devman_remove_function(devman_handle_t funh)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	
+	exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	retval = async_req_1_0(exch, DEVMAN_REMOVE_FUNCTION, (sysarg_t) funh);
+	devman_exchange_end(exch);
+	
+	return (int) retval;
+}
+
 async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
     devman_handle_t handle, unsigned int flags)
 {
@@ -322,7 +341,7 @@ async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
 	return sess;
 }
 
-int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
+int devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
     unsigned int flags)
 {
 	async_exch_t *exch;
@@ -332,7 +351,7 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
 	else {
 		exch = devman_exchange_begin(DEVMAN_CLIENT);
 		if (exch == NULL)
-			return errno;
+			return ENOMEM;
 	}
 	
 	ipc_call_t answer;
@@ -363,103 +382,164 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
 	return retval;
 }
 
-int devman_device_get_handle_by_class(const char *classname,
-    const char *devname, devman_handle_t *handle, unsigned int flags)
+static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
+    size_t buf_size)
 {
 	async_exch_t *exch;
+	ipc_call_t dreply;
+	size_t act_size;
+	sysarg_t dretval;
 	
-	if (flags & IPC_FLAG_BLOCKING)
-		exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
-	else {
-		exch = devman_exchange_begin(DEVMAN_CLIENT);
-		if (exch == NULL)
-			return errno;
-	}
+	exch = devman_exchange_begin_blocking(LOC_PORT_CONSUMER);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEVMAN_DEVICE_GET_HANDLE_BY_CLASS,
-	    flags, &answer);
-	sysarg_t retval = async_data_write_start(exch, classname,
-	    str_size(classname));
-	
-	if (retval != EOK) {
-		devman_exchange_end(exch);
-		async_wait_for(req, NULL);
-		return retval;
-	}
-	
-	retval = async_data_write_start(exch, devname,
-	    str_size(devname));
+	aid_t req = async_send_1(exch, method, arg1, &answer);
+	aid_t dreq = async_data_read(exch, buf, buf_size - 1, &dreply);
+	async_wait_for(dreq, &dretval);
 	
 	devman_exchange_end(exch);
 	
-	if (retval != EOK) {
+	if (dretval != EOK) {
 		async_wait_for(req, NULL);
-		return retval;
+		return dretval;
 	}
 	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK)
+		return retval;
+	
+	act_size = IPC_GET_ARG2(dreply);
+	assert(act_size <= buf_size - 1);
+	buf[act_size] = '\0';
+	
+	return EOK;
+}
+
+int devman_fun_get_path(devman_handle_t handle, char *buf, size_t buf_size)
+{
+	return devman_get_str_internal(DEVMAN_FUN_GET_PATH, handle, buf,
+	    buf_size);
+}
+
+int devman_fun_get_name(devman_handle_t handle, char *buf, size_t buf_size)
+{
+	return devman_get_str_internal(DEVMAN_FUN_GET_NAME, handle, buf,
+	    buf_size);
+}
+
+static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,
+    devman_handle_t *handle_buf, size_t buf_size, size_t *act_size)
+{
+	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, method, arg1, &answer);
+	int rc = async_data_read_start(exch, handle_buf, buf_size);
+	
+	devman_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	sysarg_t retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK) {
-		if (handle != NULL)
-			*handle = (devman_handle_t) -1;
-		
 		return retval;
 	}
 	
-	if (handle != NULL)
-		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
-	
-	return retval;
+	*act_size = IPC_GET_ARG1(answer);
+	return EOK;
 }
 
-int devman_get_device_path(devman_handle_t handle, char *path, size_t path_size)
+/** Get list of handles.
+ *
+ * Returns an allocated array of handles.
+ *
+ * @param method	IPC method
+ * @param arg1		IPC argument 1
+ * @param data		Place to store pointer to array of handles
+ * @param count		Place to store number of handles
+ * @return 		EOK on success or negative error code
+ */
+static int devman_get_handles_internal(sysarg_t method, sysarg_t arg1,
+    devman_handle_t **data, size_t *count)
+{
+	devman_handle_t *handles;
+	size_t act_size;
+	size_t alloc_size;
+	int rc;
+
+	*data = NULL;
+	act_size = 0;	/* silence warning */
+
+	rc = devman_get_handles_once(method, arg1, NULL, 0,
+	    &act_size);
+	if (rc != EOK)
+		return rc;
+
+	alloc_size = act_size;
+	handles = malloc(alloc_size);
+	if (handles == NULL)
+		return ENOMEM;
+
+	while (true) {
+		rc = devman_get_handles_once(method, arg1, handles, alloc_size,
+		    &act_size);
+		if (rc != EOK)
+			return rc;
+
+		if (act_size <= alloc_size)
+			break;
+
+		alloc_size *= 2;
+		free(handles);
+
+		handles = malloc(alloc_size);
+		if (handles == NULL)
+			return ENOMEM;
+	}
+
+	*count = act_size / sizeof(devman_handle_t);
+	*data = handles;
+	return EOK;
+}
+
+int devman_fun_get_child(devman_handle_t funh, devman_handle_t *devh)
 {
 	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
 	if (exch == NULL)
-		return errno;
+		return ENOMEM;
 	
-	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEVMAN_DEVICE_GET_DEVICE_PATH,
-	    handle, &answer);
-	
-	ipc_call_t data_request_call;
-	aid_t data_request = async_data_read(exch, path, path_size,
-	    &data_request_call);
+	sysarg_t retval = async_req_1_1(exch, DEVMAN_FUN_GET_CHILD,
+	    funh, devh);
 	
 	devman_exchange_end(exch);
-	
-	if (data_request == 0) {
-		async_wait_for(req, NULL);
+	return (int) retval;
+}
+
+int devman_dev_get_functions(devman_handle_t devh, devman_handle_t **funcs,
+    size_t *count)
+{
+	return devman_get_handles_internal(DEVMAN_DEV_GET_FUNCTIONS,
+	    devh, funcs, count);
+}
+
+int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
 		return ENOMEM;
-	}
 	
-	sysarg_t data_request_rc;
-	async_wait_for(data_request, &data_request_rc);
+	sysarg_t retval = async_req_1_1(exch, DEVMAN_FUN_SID_TO_HANDLE,
+	    sid, handle);
 	
-	sysarg_t opening_request_rc;
-	async_wait_for(req, &opening_request_rc);
-	
-	if (data_request_rc != EOK) {
-		/* Prefer the return code of the opening request. */
-		if (opening_request_rc != EOK)
-			return (int) opening_request_rc;
-		else
-			return (int) data_request_rc;
-	}
-	
-	if (opening_request_rc != EOK)
-		return (int) opening_request_rc;
-	
-	/* To be on the safe-side. */
-	path[path_size - 1] = 0;
-	size_t transferred_size = IPC_GET_ARG2(data_request_call);
-	if (transferred_size >= path_size)
-		return ELIMIT;
-	
-	/* Terminate the string (trailing 0 not send over IPC). */
-	path[transferred_size] = 0;
-	return EOK;
+	devman_exchange_end(exch);
+	return (int) retval;
 }
 
 /** @}

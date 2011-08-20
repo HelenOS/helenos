@@ -146,6 +146,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/ccom/ccom \
 	$(USPACE_PATH)/app/ccom/mkext/cc_mkext \
 	$(USPACE_PATH)/app/cpp/cpp \
+	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
@@ -153,6 +154,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
+	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \

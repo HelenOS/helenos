@@ -63,6 +63,10 @@ ifeq ($(PROCESSOR),pentium4)
 	SUNCC_CFLAGS += -xarch=sse2
 endif
 
+ifeq ($(PROCESSOR),i486)
+	CMN2 = -march=i486
+endif
+
 ifeq ($(PROCESSOR),core)
 	CMN2 = -march=prescott
 	SUNCC_CFLAGS += -xarch=sse3

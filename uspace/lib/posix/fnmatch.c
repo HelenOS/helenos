@@ -65,9 +65,10 @@ typedef int coll_elm_t;
  */
 #define COLL_ELM_INVALID -1
 
-/** Get collating element matching a string.
+/**
+ * Get collating element matching a string.
  *
- * @param str
+ * @param str String representation of the element.
  * @return Matching collating element or COLL_ELM_INVALID.
  */
 static coll_elm_t _coll_elm_get(const char* str)
@@ -78,20 +79,22 @@ static coll_elm_t _coll_elm_get(const char* str)
 	return str[0];
 }
 
-/** Get collating element matching a single character.
+/**
+ * Get collating element matching a single character.
  *
- * @param c
- * @return
+ * @param c Character representation of the element.
+ * @return Matching collating element.
  */
 static coll_elm_t _coll_elm_char(int c)
 {
 	return c;
 }
 
-/** Match collating element with a beginning of a string.
+/**
+ * Match collating element with a beginning of a string.
  *
- * @param elm
- * @param str
+ * @param elm Collating element to match.
+ * @param str String which beginning should match the element.
  * @return 0 if the element doesn't match, or the number of characters matched.
  */
 static int _coll_elm_match(coll_elm_t elm, const char *str)
@@ -99,8 +102,9 @@ static int _coll_elm_match(coll_elm_t elm, const char *str)
 	return elm == *str;
 }
 
-/** Checks whether a string begins with a collating element in the given range.
- *  Ordering depends on the locale (if locales are supported).
+/**
+ * Checks whether a string begins with a collating element in the given range.
+ * Ordering depends on the locale (if locales are supported).
  *
  * @param first First element of the range.
  * @param second Last element of the range.
@@ -113,7 +117,8 @@ static int _coll_elm_between(coll_elm_t first, coll_elm_t second,
 	return *str >= first && *str <= second;
 }
 
-/** Read a string delimited by [? and ?].
+/**
+ * Read a string delimited by [? and ?].
  *
  * @param pattern Pointer to the string to read from. Its position is moved
  *    to the first character after the closing ].
@@ -188,11 +193,12 @@ static const struct _char_class _char_classes[] = {
 	{ "xdigit", isxdigit }
 };
 
-/** Compare function for binary search in the _char_classes array. 
+/**
+ * Compare function for binary search in the _char_classes array.
  * 
- * @param key
- * @param elem
- * @return
+ * @param key Key of the searched element.
+ * @param elem Element of _char_classes array.
+ * @return Ordering indicator (-1 less than, 0 equal, 1 greater than).
  */
 static int _class_compare(const void *key, const void *elem)
 {
@@ -200,7 +206,8 @@ static int _class_compare(const void *key, const void *elem)
 	return strcmp((const char *) key, class->name);
 }
 
-/** Returns whether the given character belongs to the specified character class.
+/**
+ * Returns whether the given character belongs to the specified character class.
  * 
  * @param cname Name of the character class.
  * @param c Character.
@@ -222,8 +229,9 @@ static bool _is_in_class (const char *cname, int c)
 	}
 }
 
-/** Tries to parse an initial part of the pattern as a character class pattern,
- *  and if successful, matches the beginning of the given string against the class.
+/**
+ * Tries to parse an initial part of the pattern as a character class pattern,
+ * and if successful, matches the beginning of the given string against the class.
  * 
  * @param pattern Pointer to the pattern to match. Must begin with a class
  *    specifier and is repositioned to the first character after the specifier
@@ -247,8 +255,9 @@ static int _match_char_class(const char **pattern, const char *str, int flags)
 
 /************** END CHARACTER CLASSES ****************/
 
-/** Reads the next collating element in the pattern, taking into account
- *  locale (if supported) and flags (see fnmatch()).
+/**
+ * Reads the next collating element in the pattern, taking into account
+ * locale (if supported) and flags (see fnmatch()).
  * 
  * @param pattern Pattern.
  * @param flags Flags given to fnmatch().
@@ -298,8 +307,9 @@ static coll_elm_t _next_coll_elm(const char **pattern, int flags)
 	return _coll_elm_char(*p);
 }
 
-/** Matches the beginning of the given string against a bracket expression
- *  the pattern begins with.
+/**
+ * Matches the beginning of the given string against a bracket expression
+ * the pattern begins with.
  * 
  * @param pattern Pointer to the beginning of a bracket expression in a pattern.
  *     On success, the pointer is moved to the first character after the
@@ -393,8 +403,9 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 	#undef _matched
 }
 
-/** Matches a portion of the pattern containing no asterisks (*) against
- *  the given string.
+/**
+ * Matches a portion of the pattern containing no asterisks (*) against
+ * the given string.
  * 
  * @param pattern Pointer to the unmatched portion of the pattern.
  *     On success, the pointer is moved to the first asterisk, or to the
@@ -496,7 +507,8 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 	return true;
 }
 
-/** Match string against a pattern.
+/**
+ * Match string against a pattern.
  * 
  * @param pattern Pattern.
  * @param string String to match.
@@ -558,7 +570,8 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 	return *string == '\0' || (leading_dir && *string == '/');
 }
 
-/** Transform the entire string to lowercase.
+/**
+ * Transform the entire string to lowercase.
  * 
  * @param s Input string.
  * @return Newly allocated copy of the input string with all uppercase
@@ -577,10 +590,11 @@ static char *_casefold(const char *s)
 /**
  * Filename pattern matching.
  *
- * @param pattern
- * @param string
- * @param flags
- * @return
+ * @param pattern Pattern to match the string against.
+ * @param string Matched string.
+ * @param flags Flags altering the matching of special characters
+ *     (mainly for dot and slash).
+ * @return Zero if the string matches the pattern, FNM_NOMATCH otherwise.
  */
 int posix_fnmatch(const char *pattern, const char *string, int flags)
 {
@@ -609,7 +623,7 @@ int posix_fnmatch(const char *pattern, const char *string, int flags)
 	return result ? 0 : FNM_NOMATCH;
 }
 
-// FIXME: put the testcases somewhere else
+// FIXME: put the testcases to the app/tester after fnmatch is included into libc
 
 #if 0
 

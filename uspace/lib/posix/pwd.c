@@ -50,10 +50,13 @@ static const struct posix_passwd dummy_pwd = {
 };
 
 /**
+ * Retrieve next broken-down entry from the user database.
+ *
  * Since HelenOS doesn't have user accounts, this always returns
  * the same made-up entry.
  *
- * @return
+ * @return Next user database entry or NULL if not possible. Since HelenOS
+ *     doesn't have user accounts, this always returns the same made-up entry.
  */
 struct posix_passwd *posix_getpwent(void)
 {
@@ -66,7 +69,7 @@ struct posix_passwd *posix_getpwent(void)
 }
 
 /**
- * "Rewind the user list".
+ * Rewind the user list.
  */
 void posix_setpwent(void)
 {
@@ -85,7 +88,7 @@ void posix_endpwent(void)
  * Find an entry by name.
  *
  * @param name Name of the entry.
- * @return
+ * @return Either found entry or NULL if no such entry exists.
  */
 struct posix_passwd *posix_getpwnam(const char *name)
 {
@@ -102,11 +105,12 @@ struct posix_passwd *posix_getpwnam(const char *name)
  * Find an entry by name, thread safely.
  *
  * @param name Name of the entry.
- * @param pwd
- * @param buffer
- * @param bufsize
- * @param result
- * @return
+ * @param pwd Original structure.
+ * @param buffer Buffer for the strings referenced from the result structure.
+ * @param bufsize Length of the buffer.
+ * @param result Where to store updated structure.
+ * @return Zero on success (either found or not found, but without an error),
+ *     non-zero error number if error occured.
  */
 int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
     char *buffer, size_t bufsize, struct posix_passwd **result)
@@ -128,7 +132,7 @@ int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
  * Find an entry by UID.
  *
  * @param uid UID of the entry.
- * @return
+ * @return Either found entry or NULL if no such entry exists.
  */
 struct posix_passwd *posix_getpwuid(posix_uid_t uid)
 {
@@ -143,11 +147,12 @@ struct posix_passwd *posix_getpwuid(posix_uid_t uid)
  * Find an entry by UID, thread safely.
  *
  * @param uid UID of the entry.
- * @param pwd
- * @param buffer
- * @param bufsize
- * @param result
- * @return
+ * @param pwd Original structure.
+ * @param buffer Buffer for the strings referenced from the result structure.
+ * @param bufsize Length of the buffer.
+ * @param result Where to store updated structure.
+ * @return Zero on success (either found or not found, but without an error),
+ *     non-zero error number if error occured.
  */
 int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
     char *buffer, size_t bufsize, struct posix_passwd **result)

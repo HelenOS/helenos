@@ -50,15 +50,12 @@
  * void *memcpy(void *, const void *, size_t);
  * void *memmove(void *, const void *, size_t);
  *
- * unimplemented due to missing locales
+ * TODO: not implemented due to missing locale support
  *
  * int      strcoll_l(const char *, const char *, locale_t);
  * char    *strerror_l(int, locale_t);
  * size_t   strxfrm_l(char *restrict, const char *restrict, size_t, locale_t);
- *
  */
-
-// TODO: provide *_l once there is locale.h
 
 #ifndef NULL
 	#define NULL  ((void *) 0)
@@ -88,7 +85,7 @@ extern char *gnu_strchrnul(const char *s, int c);
 extern char *posix_strpbrk(const char *s1, const char *s2);
 extern size_t posix_strcspn(const char *s1, const char *s2);
 extern size_t posix_strspn(const char *s1, const char *s2);
-extern char *posix_strstr(const char *s1, const char *s2);
+extern char *posix_strstr(const char *haystack, const char *needle);
 
 /* Collation Functions */
 extern int posix_strcoll(const char *s1, const char *s2);

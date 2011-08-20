@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-INTEL_CPUID_STANDARD = 1
-INTEL_SEP = 11
+USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -Iinclude
+BINARY = locinfo
 
-.section .init, "ax"
+SOURCES = \
+	locinfo.c
 
-.org 0
-
-.globl __entry
-
-## User-space task entry point
-#
-# %edi contains the PCB pointer
-#
-__entry:
-	mov %ss, %ax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	# Do not set %gs, it contains descriptor that can see TLS
-	
-	# Detect the mechanism used for making syscalls
-	movl $(INTEL_CPUID_STANDARD), %eax
-	cpuid
-	bt $(INTEL_SEP), %edx
-	jnc 0f
-	leal __syscall_fast_func, %eax
-	movl $__syscall_fast, (%eax)
-0:
-	#
-	# Create the first stack frame.
-	#
-	pushl $0
-	movl %esp, %ebp
-	
-	# Pass the PCB pointer to __main as the first argument
-	pushl %edi
-	call __main
+include $(USPACE_PREFIX)/Makefile.common

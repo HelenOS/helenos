@@ -175,7 +175,7 @@ extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern void async_wait_for(aid_t, sysarg_t *);
 extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 
-extern fid_t async_new_connection(sysarg_t, sysarg_t, ipc_callid_t,
+extern fid_t async_new_connection(task_id_t, sysarg_t, ipc_callid_t,
     ipc_call_t *, async_client_conn_t, void *);
 
 extern void async_usleep(suseconds_t);
@@ -185,6 +185,8 @@ extern void async_destroy_manager(void);
 extern void async_set_client_data_constructor(async_client_data_ctor_t);
 extern void async_set_client_data_destructor(async_client_data_dtor_t);
 extern void *async_get_client_data(void);
+extern void *async_get_client_data_by_id(task_id_t);
+extern void async_put_client_data_by_id(task_id_t);
 
 extern void async_set_client_connection(async_client_conn_t);
 extern void async_set_interrupt_received(async_interrupt_handler_t);
@@ -475,6 +477,12 @@ extern int async_exchange_clone(async_exch_t *, async_exch_t *);
 extern async_sess_t *async_clone_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
+
+extern int async_state_change_start(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, async_exch_t *);
+extern bool async_state_change_receive(ipc_callid_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
+extern int async_state_change_finalize(ipc_callid_t, async_exch_t *);
 
 #endif
 

@@ -26,17 +26,42 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entry.S \
-	arch/$(UARCH)/src/entryjmp.s \
-	arch/$(UARCH)/src/thread_entry.s \
-	arch/$(UARCH)/src/syscall.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/setjmp.S \
-	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S \
-	arch/$(UARCH)/src/rtld/dynamic.c \
-	arch/$(UARCH)/src/rtld/reloc.c
+INTEL_CPUID_STANDARD = 1
+INTEL_SEP = 11
 
-.PRECIOUS: arch/$(UARCH)/src/entry.o
+.section .init, "ax"
+
+.org 0
+
+.globl __entry
+
+## User-space task entry point
+#
+# %edi contains the PCB pointer
+#
+__entry:
+	mov %ss, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	# Do not set %gs, it contains descriptor that can see TLS
+
+#ifndef PROCESSOR_i486	
+	# Detect the mechanism used for making syscalls
+	movl $(INTEL_CPUID_STANDARD), %eax
+	cpuid
+	bt $(INTEL_SEP), %edx
+	jnc 0f
+	leal __syscall_fast_func, %eax
+	movl $__syscall_fast, (%eax)
+0:
+#endif
+	#
+	# Create the first stack frame.
+	#
+	pushl $0
+	movl %esp, %ebp
+	
+	# Pass the PCB pointer to __main as the first argument
+	pushl %edi
+	call __main

@@ -40,6 +40,7 @@ DIRS = \
 	app/ccom \
 	app/ccom/mkext \
 	app/cpp \
+	app/devctl \
 	app/edit \
 	app/ext2info \
 	app/getterm \
@@ -47,6 +48,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/locinfo \
 	app/lsusb \
 	app/mkfat \
 	app/redir \
