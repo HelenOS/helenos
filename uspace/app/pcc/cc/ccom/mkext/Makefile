@@ -31,7 +31,7 @@ MIPDIR = ../../../mip
 MDIR = ../../../arch/$(PLATFORM)
 OSDIR = ../../../os/helenos
 EXTRA_CFLAGS = -I$(MIPDIR) -I$(MDIR) -I$(OSDIR) -I. -w
-DEFS = -DMKEXT -Dmach_$(PLATFORM) -D__helenos__
+DEFS = -DGCC_COMPAT -DPCC_DEBUG -DMKEXT -Dmach_$(PLATFORM) -D__helenos__
 BINARY = cc_mkext
 
 POSIX_COMPAT = y

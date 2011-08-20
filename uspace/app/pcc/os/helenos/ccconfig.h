@@ -80,8 +80,8 @@
 #define INCLUDEDIR STDINC
 #endif
 
-// XXX: what's STABS?
-// #define STABS
+#define STABS
+
 #ifndef ELFABI
 #define ELFABI
 #endif

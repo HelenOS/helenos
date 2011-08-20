@@ -32,6 +32,7 @@ MDIR = ../../arch/$(PLATFORM)
 OSDIR = ../../os/helenos
 EXTRA_CFLAGS = -I$(MIPDIR) -I$(MDIR) -I$(OSDIR) -I. -w
 DEFS = -Dmach_$(PLATFORM) -D__helenos__ -DPCC_DEBUG -DGCC_COMPAT -Dfree=free
+LIBS = $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 BINARY = ccom
 
 PRE_DEPEND = cgram.c scan.c external.c external.h common.c compat.c
