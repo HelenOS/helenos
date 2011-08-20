@@ -60,7 +60,7 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, sysarg_t service, sysarg_t arg2,
 	 * parallel exchanges using multiple connections. Shift out
 	 * first argument for non-initial connections.
 	 */
-	async_sess_args_shift(sess);
+	async_sess_args_set(sess, arg2, arg3, 0);
 	
 	return sess;
 }

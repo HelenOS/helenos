@@ -332,10 +332,14 @@ extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern int async_hangup(async_sess_t *);
 extern void async_poke(void);
 
-void async_sess_args_shift(async_sess_t *sess);
-
 extern async_exch_t *async_exchange_begin(async_sess_t *);
 extern void async_exchange_end(async_exch_t *);
+
+/*
+ * FIXME These functions just work around problems with parallel exchange
+ * management. Proper solution needs to be implemented.
+ */
+void async_sess_args_set(async_sess_t *sess, sysarg_t, sysarg_t, sysarg_t);
 
 /*
  * User-friendly wrappers for async_share_in_start().

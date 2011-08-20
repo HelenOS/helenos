@@ -1657,21 +1657,22 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 	return sess;
 }
 
-/** Shift arguments for new connections left by one.
+/** Set arguments for new connections.
  *
  * FIXME This is an ugly hack to work around the problem that parallel
  * exchanges are implemented using parallel connections. When we create
- * such a session via a naming server, the naming server shifts the
- * arguments for the initial connection, but not for the latter connections.
+ * a callback session, the framework does not know arguments for the new
+ * connections.
  *
  * The proper solution seems to be to implement parallel exchanges using
  * tagging.
  */
-void async_sess_args_shift(async_sess_t *sess)
+void async_sess_args_set(async_sess_t *sess, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
 {
-	sess->arg1 = sess->arg2;
-	sess->arg2 = sess->arg3;
-	sess->arg3 = 0;
+	sess->arg1 = arg1;
+	sess->arg2 = arg2;
+	sess->arg3 = arg3;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
