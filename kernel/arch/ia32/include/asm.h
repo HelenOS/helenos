@@ -311,6 +311,7 @@ NO_TRACE static inline bool interrupts_disabled(void)
 }
 
 #ifndef PROCESSOR_i486
+
 /** Write to MSR */
 NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 {
@@ -335,7 +336,8 @@ NO_TRACE static inline uint64_t read_msr(uint32_t msr)
 	
 	return ((uint64_t) dx << 32) | ax;
 }
-#endif
+
+#endif /* PROCESSOR_i486 */
 
 
 /** Return base address of current stack

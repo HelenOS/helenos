@@ -406,8 +406,8 @@ int_\i:
 	cmpl $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%esp)
 #ifdef PROCESSOR_i486
 	jz 0f
-	movl %eax, %ebp
-0:
+		movl %eax, %ebp
+	0:
 #else
 	cmovnzl %eax, %ebp
 #endif

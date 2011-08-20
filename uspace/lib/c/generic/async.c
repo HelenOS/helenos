@@ -97,6 +97,7 @@
 #define LIBC_ASYNC_C_
 #include <ipc/ipc.h>
 #include <async.h>
+#include "private/async.h"
 #undef LIBC_ASYNC_C_
 
 #include <futex.h>
@@ -112,7 +113,6 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <macros.h>
-#include "private/async.h"
 
 #define CLIENT_HASH_TABLE_BUCKETS  32
 #define CONN_HASH_TABLE_BUCKETS    32
@@ -995,6 +995,9 @@ void __async_init(void)
 	session_ns->arg2 = 0;
 	session_ns->arg3 = 0;
 	
+	fibril_mutex_initialize(&session_ns->remote_state_mtx);
+	session_ns->remote_state_data = NULL;
+	
 	list_initialize(&session_ns->exch_list);
 	fibril_mutex_initialize(&session_ns->mutex);
 	atomic_set(&session_ns->refcnt, 0);
@@ -1471,19 +1474,21 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	if (exch == NULL)
 		return ENOENT;
 	
-	task_id_t task_id;
-	sysarg_t task_id_lo;
-	sysarg_t task_id_hi;
 	sysarg_t phone_hash;
-	int rc = async_req_3_5(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
-	    NULL, NULL, &task_id_lo, &task_id_hi, &phone_hash);
-	if (rc != EOK)
-		return rc;
+	sysarg_t rc;
 
-	task_id = (task_id_t) MERGE_LOUP32(task_id_lo, task_id_hi);
-	
+	aid_t req;
+	ipc_call_t answer;
+	req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	    &answer);
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return (int) rc;
+
+	phone_hash = IPC_GET_ARG5(answer);
+
 	if (client_receiver != NULL)
-		async_new_connection(task_id, phone_hash, 0, NULL,
+		async_new_connection(answer.in_task_id, phone_hash, 0, NULL,
 		    client_receiver, carg);
 	
 	return EOK;
@@ -1557,6 +1562,9 @@ async_sess_t *async_connect_me(exch_mgmt_t mgmt, async_exch_t *exch)
 	sess->arg1 = 0;
 	sess->arg2 = 0;
 	sess->arg3 = 0;
+	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
 	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
@@ -1639,6 +1647,9 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
 	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
@@ -1689,6 +1700,9 @@ async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
 	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
@@ -1719,6 +1733,9 @@ async_sess_t *async_connect_kbox(task_id_t id)
 	sess->arg1 = 0;
 	sess->arg2 = 0;
 	sess->arg3 = 0;
+	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
 	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
@@ -2383,6 +2400,9 @@ async_sess_t *async_clone_receive(exch_mgmt_t mgmt)
 	sess->arg2 = 0;
 	sess->arg3 = 0;
 	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
@@ -2429,6 +2449,9 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	sess->arg2 = 0;
 	sess->arg3 = 0;
 	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
@@ -2471,6 +2494,9 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	sess->arg2 = 0;
 	sess->arg3 = 0;
 	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
@@ -2509,6 +2535,76 @@ bool async_state_change_receive(ipc_callid_t *callid, sysarg_t *arg1,
 int async_state_change_finalize(ipc_callid_t callid, async_exch_t *other_exch)
 {
 	return ipc_answer_1(callid, EOK, other_exch->phone);
+}
+
+/** Lock and get session remote state
+ *
+ * Lock and get the local replica of the remote state
+ * in stateful sessions. The call should be paired
+ * with async_remote_state_release*().
+ *
+ * @param[in] sess Stateful session.
+ *
+ * @return Local replica of the remote state.
+ *
+ */
+void *async_remote_state_acquire(async_sess_t *sess)
+{
+	fibril_mutex_lock(&sess->remote_state_mtx);
+	return sess->remote_state_data;
+}
+
+/** Update the session remote state
+ *
+ * Update the local replica of the remote state
+ * in stateful sessions. The remote state must
+ * be already locked.
+ *
+ * @param[in] sess  Stateful session.
+ * @param[in] state New local replica of the remote state.
+ *
+ */
+void async_remote_state_update(async_sess_t *sess, void *state)
+{
+	assert(fibril_mutex_is_locked(&sess->remote_state_mtx));
+	sess->remote_state_data = state;
+}
+
+/** Release the session remote state
+ *
+ * Unlock the local replica of the remote state
+ * in stateful sessions.
+ *
+ * @param[in] sess Stateful session.
+ *
+ */
+void async_remote_state_release(async_sess_t *sess)
+{
+	assert(fibril_mutex_is_locked(&sess->remote_state_mtx));
+	
+	fibril_mutex_unlock(&sess->remote_state_mtx);
+}
+
+/** Release the session remote state and end an exchange
+ *
+ * Unlock the local replica of the remote state
+ * in stateful sessions. This is convenience function
+ * which gets the session pointer from the exchange
+ * and also ends the exchange.
+ *
+ * @param[in] exch Stateful session's exchange.
+ *
+ */
+void async_remote_state_release_exchange(async_exch_t *exch)
+{
+	if (exch == NULL)
+		return;
+	
+	async_sess_t *sess = exch->sess;
+	assert(fibril_mutex_is_locked(&sess->remote_state_mtx));
+	
+	async_exchange_end(exch);
+	fibril_mutex_unlock(&sess->remote_state_mtx);
 }
 
 /** @}
