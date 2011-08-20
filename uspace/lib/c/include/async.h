@@ -332,6 +332,8 @@ extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern int async_hangup(async_sess_t *);
 extern void async_poke(void);
 
+void async_sess_args_shift(async_sess_t *sess);
+
 extern async_exch_t *async_exchange_begin(async_sess_t *);
 extern void async_exchange_end(async_exch_t *);
 

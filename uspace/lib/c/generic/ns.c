@@ -55,6 +55,13 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, sysarg_t service, sysarg_t arg2,
 	    async_connect_me_to(mgmt, exch, service, arg2, arg3);
 	async_exchange_end(exch);
 	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_shift(sess);
+	
 	return sess;
 }
 
