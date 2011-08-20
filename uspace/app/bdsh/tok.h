@@ -37,8 +37,8 @@ typedef enum {
 
 typedef struct {
 	char *text;
-	unsigned int byte_start;
-	unsigned int char_start;
+	size_t byte_start;
+	size_t char_start;
 	size_t byte_length;
 	size_t char_length;
  	token_type_t type;
@@ -46,10 +46,10 @@ typedef struct {
 
 typedef struct {
 	char *in;
-	unsigned int in_offset;
-	unsigned int last_in_offset;
-	unsigned int in_char_offset;
-	unsigned int last_in_char_offset;
+	size_t in_offset;
+	size_t last_in_offset;
+	size_t in_char_offset;
+	size_t last_in_char_offset;
 	
 	char *outbuf;
 	size_t outbuf_offset;
