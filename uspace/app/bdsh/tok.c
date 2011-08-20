@@ -223,8 +223,8 @@ wchar_t tok_get_char(tokenizer_t *tok)
 /** Get a char from input, while staying on the same input position */
 wchar_t tok_look_char(tokenizer_t *tok)
 {
-	unsigned int old_offset = tok->in_offset;
-	unsigned int old_char_offset = tok->in_char_offset;
+	size_t old_offset = tok->in_offset;
+	size_t old_char_offset = tok->in_char_offset;
 	wchar_t ret = tok_get_char(tok);
 	tok->in_offset = old_offset;
 	tok->in_char_offset = old_char_offset;
