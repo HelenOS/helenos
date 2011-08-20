@@ -192,49 +192,7 @@ int process_input(cliuser_t *usr)
 		new_iostate.stdout = to;
 	}
 
-	if (str_cmp(cmd[0], "batch") == 0 && cmd[1] != NULL) {
-		FILE *batch = fopen(cmd[1], "r");
-		if (batch == NULL) {
-			printf("Cannot open file %s\n", cmd[1]);
-			rc = errno;
-		} else {
-			cliuser_t fusr;
-			fusr.name = usr->name;
-			fusr.cwd = usr->cwd;
-			fusr.prompt = usr->prompt;
-			fusr.line = malloc(INPUT_MAX + 1);
-			char *cur = fusr.line;
-			char *end = fusr.line + INPUT_MAX;
-			int c = fgetc(batch);
-			while (fusr.line != NULL) {
-				if (c == '\n' || c == EOF || cur == end) {
-					*cur = '\0';
-					if (cur == fusr.line) {
-						/* skip empty line */
-						rc = 0;
-						free(cur);
-					} else {
-						printf(">%s\n", fusr.line);
-						rc = process_input(&fusr);
-						/* fusr->line was freed by process_input() */
-					}
-					if (rc == 0 && c != EOF) {
-						fusr.line = malloc(INPUT_MAX + 1);
-						cur = fusr.line;
-						end = fusr.line + INPUT_MAX;
-					} else {
-						break;
-					}
-				} else {
-					*cur++ = c;
-				}
-				c = fgetc(batch);
-			}
-			fclose(batch);
-		}
-	} else {
-		rc = run_command(cmd, usr, &new_iostate);
-	}
+	rc = run_command(cmd, usr, &new_iostate);
 	
 finit_with_files:
 	if (from != NULL) {

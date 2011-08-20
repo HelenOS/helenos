@@ -49,6 +49,7 @@ SOURCES = \
 	cmds/modules/mount/mount.c \
 	cmds/modules/unmount/unmount.c \
 	cmds/modules/kcon/kcon.c \
+	cmds/builtins/batch/batch.c \
 	cmds/builtins/exit/exit.c \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \

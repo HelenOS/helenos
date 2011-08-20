@@ -42,7 +42,6 @@
 static const char *cmdname = "help";
 extern const char *progname;
 
-#define HELP_IS_BATCH		3
 #define HELP_IS_COMMANDS	2
 #define HELP_IS_MODULE		1
 #define HELP_IS_BUILTIN		0
@@ -54,9 +53,6 @@ volatile int mod_switch = -1;
 static int is_mod_or_builtin(char *cmd)
 {
 	int rc = HELP_IS_RUBBISH;
-
-	if (str_cmp(cmd, "batch") == 0)
-		return HELP_IS_BATCH;
 
 	if (str_cmp(cmd, "commands") == 0)
 		return HELP_IS_COMMANDS;
@@ -95,26 +91,6 @@ void help_cmd_help(unsigned int level)
 	return;
 }
 
-static void help_batch(unsigned int level)
-{
-	if (level == HELP_SHORT) {
-		printf(
-		"\n  batch [filename]\n"
-		"  Issues commands stored in the file.\n"
-		"  Each command must correspond to the single line in the file.\n\n");
-	} else {
-		printf(
-		"\n  `batch' - issues a batch of commands\n"
-		"  Issues commands stored in the file. Each command must correspond\n"
-		"  to the single line in the file. Empty lines can be used to visually\n"
-		"  separate groups of commands. There is no support for comments,\n"
-		"  variables, recursion or other programming constructs - the `batch'\n"
-		"  command is indeed very trivial.\n\n");
-	}
-
-	return;
-}
-
 static void help_commands(void)
 {
 	builtin_t *cmd;
@@ -144,7 +120,6 @@ static void help_commands(void)
 				printf("   %-16s\t%s\n", mod->name, mod->desc);
 	}
 
-	printf("   %-16s\t%s\n", "batch", "Issue batch of commands");
 	printf("\n  Try %s %s for more information on how `%s' works.\n\n",
 		cmdname, cmdname, cmdname);
 }
@@ -205,9 +180,6 @@ int cmd_help(char *argv[])
 			return CMD_FAILURE;
 		case HELP_IS_COMMANDS:
 			help_commands();
-			return CMD_SUCCESS;
-		case HELP_IS_BATCH:
-			help_batch(level);
 			return CMD_SUCCESS;
 		case HELP_IS_MODULE:
 			help_module(mod_switch, level);
