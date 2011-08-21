@@ -924,6 +924,7 @@ libfs_ops_t exfat_libfs_ops = {
  */
 
 /* Print debug info */
+/*
 static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 {
 	printf("exFAT file system mounted\n");
@@ -940,9 +941,6 @@ static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 	printf("Sectors per cluster: %d\n", SPC(bs));
 	printf("KBytes per cluster: %d\n", SPC(bs)*BPS(bs)/1024);
 
-	/* bitmap_set_cluster(bs, devmap_handle, 9); */
-	/* bitmap_clear_cluster(bs, devmap_handle, 9); */
-
 	int i, rc;
 	exfat_cluster_t clst;
 	for (i=0; i<=7; i++) {
@@ -956,7 +954,8 @@ static void exfat_fsinfo(exfat_bs_t *bs, devmap_handle_t devmap_handle)
 			printf("\n");
 	}
 }
-
+*/
+ 
 static int
 exfat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
@@ -1133,8 +1132,7 @@ exfat_mounted(devmap_handle_t devmap_handle, const char *opts, fs_index_t *index
 		return ENOMEM;
 	}
 
-	exfat_fsinfo(bs, devmap_handle);
-	printf("Root dir size: %lld\n", rootp->size);
+	/* exfat_fsinfo(bs, devmap_handle); */
 
 	*index = rootp->idx->index;
 	*size = rootp->size;

@@ -265,47 +265,58 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 	return size;
 }
 
-size_t fat_lfn_get_part(const uint16_t *src, size_t src_size, uint16_t *dst, size_t *offset)
-{
-	while (src_size!=0 && (*offset)!=0) {
-		src_size--;
-		if (src[src_size] == 0 || src[src_size] == FAT_LFN_PAD)
-			continue;
-
-		(*offset)--;
-		dst[(*offset)] = uint16_t_le2host(src[src_size]);
-	}
-	return (*offset);
-}
-
 size_t fat_lfn_get_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
 {
-	fat_lfn_get_part(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE, dst, offset);
-	fat_lfn_get_part(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE, dst, offset);
-	fat_lfn_get_part(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE, dst, offset);
-
-	return *offset;
-}
-
-size_t fat_lfn_set_part(const uint16_t *src, size_t *offset, size_t src_size, uint16_t *dst, size_t dst_size)
-{
-	size_t idx;
-	for (idx=0; idx < dst_size; idx++) {
-		if (*offset < src_size) {
-			dst[idx] = uint16_t_le2host(src[*offset]);
-			(*offset)++;
-		}
-		else
-			dst[idx] = FAT_LFN_PAD;
+	int i;
+	for (i=1; i>=0 && *offset>0; i--) {
+		if (d->lfn.part3[i] == 0 || d->lfn.part3[i] == FAT_LFN_PAD)
+			continue;
+		(*offset)--;
+		dst[(*offset)] = uint16_t_le2host(d->lfn.part3[i]);
+	}
+	for (i=5; i>=0 && *offset>0; i--) {
+		if (d->lfn.part2[i] == 0 || d->lfn.part2[i] == FAT_LFN_PAD)
+			continue;
+		(*offset)--;
+		dst[(*offset)] = uint16_t_le2host(d->lfn.part2[i]);
+	}
+	for (i=4; i>=0 && *offset>0; i--) {
+		if (d->lfn.part1[i] == 0 || d->lfn.part1[i] == FAT_LFN_PAD)
+			continue;
+		(*offset)--;
+		dst[(*offset)] = uint16_t_le2host(d->lfn.part1[i]);
 	}
 	return *offset;
 }
 
 size_t fat_lfn_set_entry(const uint16_t *src, size_t *offset, size_t size, fat_dentry_t *d)
 {
-	fat_lfn_set_part(src, offset, size, FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
-	fat_lfn_set_part(src, offset, size, FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
-	fat_lfn_set_part(src, offset, size, FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);
+	size_t idx;
+	for (idx=0; idx < 5; idx++) {
+		if (*offset < size) {
+			d->lfn.part1[idx] = host2uint16_t_le(src[*offset]);
+			(*offset)++;
+		}
+		else
+			d->lfn.part1[idx] = FAT_LFN_PAD;
+	}
+	for (idx=0; idx < 6; idx++) {
+		if (*offset < size) {
+			d->lfn.part2[idx] = host2uint16_t_le(src[*offset]);
+			(*offset)++;
+		}
+		else
+			d->lfn.part2[idx] = FAT_LFN_PAD;
+	}
+	for (idx=0; idx < 2; idx++) {
+		if (*offset < size) {
+			d->lfn.part3[idx] = host2uint16_t_le(src[*offset]);
+			(*offset)++;
+		}
+		else
+			d->lfn.part3[idx] = FAT_LFN_PAD;
+	}
+
 	if (src[*offset] == 0)
 		offset++;
 	FAT_LFN_ATTR(d) = FAT_ATTR_LFN;

@@ -179,7 +179,6 @@ int main(int argc, char **argv)
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
 		    dev_nblocks);
-		printf("Device total size: %lld Mb\n", dev_nblocks*cfg.sector_size/(1024*1024));
 		cfg.total_sectors = dev_nblocks;
 	}
 
