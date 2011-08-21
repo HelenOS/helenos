@@ -39,6 +39,7 @@
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
+#include <typedefs.h>
 
 #define IPC_MAX_PHONES  32
 
@@ -96,8 +97,11 @@ typedef struct answerbox {
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
-	/** Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME. */
-	struct task *task;
+	/**
+	 * Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME,
+	 * or the task which answered the call.
+	 */
+	task_id_t task_id;
 	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
 } ipc_data_t;

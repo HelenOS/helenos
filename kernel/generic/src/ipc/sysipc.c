@@ -53,6 +53,7 @@
 #include <console/console.h>
 #include <mm/as.h>
 #include <print.h>
+#include <macros.h>
 
 /**
  * Maximum buffer size allowed for IPC_M_DATA_WRITE and IPC_M_DATA_READ
@@ -251,8 +252,6 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
-			/* Set 'task hash' as arg4 of response */
-			IPC_SET_ARG4(answer->data, (sysarg_t) TASK);
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
 			    (sysarg_t) &TASK->phones[phoneid]);
@@ -374,8 +373,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 				    IPC_GET_ARG1(*olddata),
 				    IPC_GET_ARG2(*olddata),
 				    IPC_GET_ARG3(*olddata),
-				    (sysarg_t) olddata->task,
-				    (sysarg_t) TASK);
+				    LOWER32(olddata->task_id),
+				    UPPER32(olddata->task_id));
 				IPC_SET_RETVAL(answer->data, rc);
 			}
 

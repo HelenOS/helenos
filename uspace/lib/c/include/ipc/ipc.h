@@ -253,7 +253,7 @@ extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
 extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, void *, ipc_async_callback_t, bool);
 
-extern int ipc_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t *,
+extern int ipc_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t, task_id_t *,
     sysarg_t *);
 extern int ipc_connect_me(int);
 extern int ipc_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);

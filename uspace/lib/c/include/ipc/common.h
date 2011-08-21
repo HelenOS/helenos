@@ -38,12 +38,13 @@
 #include <sys/types.h>
 #include <abi/ipc/ipc.h>
 #include <atomic.h>
+#include <task.h>
 
 #define IPC_FLAG_BLOCKING  0x01
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
-	sysarg_t in_task_hash;
+	task_id_t in_task_id;
 	sysarg_t in_phone_hash;
 } ipc_call_t;
 

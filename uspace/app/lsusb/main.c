@@ -80,7 +80,7 @@ static void print_hc_devices(devman_handle_t hc_handle)
 			continue;
 		}
 		char path[MAX_PATH_LENGTH];
-		rc = devman_get_device_path(dev_handle, path, MAX_PATH_LENGTH);
+		rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
 		if (rc != EOK) {
 			continue;
 		}
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		char path[MAX_PATH_LENGTH];
-		rc = devman_get_device_path(hc_handle, path, MAX_PATH_LENGTH);
+		rc = devman_fun_get_path(hc_handle, path, MAX_PATH_LENGTH);
 		if (rc != EOK) {
 			printf(NAME ": Error resolving path of HC with SID %"
 			    PRIun ", skipping.\n", svcs[i]);
