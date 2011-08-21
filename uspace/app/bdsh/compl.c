@@ -97,7 +97,11 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	static const char *dirlist_arg[] = { ".", NULL };
 	int retval;
 	tokenizer_t tok;
-	token_t tokens[WORD_MAX];
+	token_t *tokens = calloc(WORD_MAX, sizeof(token_t));
+	if (tokens == NULL) {
+		retval = ENOMEM;
+		goto error;
+	}
 	int current_token;
 	size_t tokens_length;
 
@@ -253,6 +257,8 @@ error:
 		free(stext);
 	if (cs != NULL)
 		free(cs);
+	if (tokens != NULL)
+		free(tokens);
 
 	return retval;
 }
