@@ -50,7 +50,6 @@ typedef uint32_t sysarg_t;
 typedef int32_t ssize_t;
 typedef uint32_t size_t;
 
-typedef int32_t intptr_t;
 typedef uint32_t uintptr_t;
 typedef int32_t intptr_t;
 typedef uint32_t atomic_count_t;
