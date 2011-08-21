@@ -151,7 +151,7 @@ static void help_survival(void)
 
 	    "This is but a small glimpse of what you can do with HelenOS. "
 	    "To learn more please point your browser to the HelenOS User's "
-	    "Guide: http://trac.helenos.org/trac.fcgi/wiki/UsersGuide\n\n",
+	    "Guide: http://trac.helenos.org/wiki/UsersGuide\n\n",
 	    ALIGN_LEFT);
 }
 
