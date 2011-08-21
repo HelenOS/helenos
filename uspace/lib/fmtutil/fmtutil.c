@@ -144,9 +144,10 @@ int print_aligned_w(const wchar_t *wstr, size_t width, align_mode_t mode)
 			while (i < len && wstr[i] == ' ') i++;
 			if (i == len) break;
 			if (done_words) {
-				// TODO: use better formula
-				size_t spaces = 1 + (excess_spaces /
-				    (words - 1));
+				size_t spaces = 1 + (((done_words *
+				    excess_spaces) / (words - 1)) -
+				    (((done_words - 1) * excess_spaces) /
+				    (words - 1)));
 				for (j = 0; j < spaces; j++) {
 					putchar(' ');
 				}
