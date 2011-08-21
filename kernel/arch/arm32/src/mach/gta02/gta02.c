@@ -38,7 +38,7 @@
 #include <arch/mm/page.h>
 #include <mm/page.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
 #include <genarch/drivers/s3c24xx_irqc/s3c24xx_irqc.h>
 #include <genarch/drivers/s3c24xx_timer/s3c24xx_timer.h>

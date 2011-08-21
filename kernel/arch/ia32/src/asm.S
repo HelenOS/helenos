@@ -404,7 +404,13 @@ int_\i:
 	 */
 	xorl %eax, %eax
 	cmpl $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%esp)
+#ifdef PROCESSOR_i486
+	jz 0f
+		movl %eax, %ebp
+	0:
+#else
 	cmovnzl %eax, %ebp
+#endif
 
 	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
 	movl ISTATE_OFFSET_EIP(%esp), %eax

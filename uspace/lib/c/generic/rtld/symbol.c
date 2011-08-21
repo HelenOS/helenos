@@ -37,10 +37,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <elf/elf.h>
 #include <rtld/rtld.h>
 #include <rtld/rtld_debug.h>
 #include <rtld/symbol.h>
-#include <elf.h>
 
 /*
  * Hash tables are 32-bit (elf_word) even for 64-bit ELF files.
@@ -117,7 +117,7 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
 {
 	module_t *m, *dm;
 	elf_symbol_t *sym, *s;
-	link_t queue_head;
+	list_t queue;
 	size_t i;
 
 	/*
@@ -131,17 +131,17 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
 	modules_untag();
 
 	/* Insert root (the program) into the queue and tag it */
-	list_initialize(&queue_head);
+	list_initialize(&queue);
 	start->bfs_tag = true;
-	list_append(&start->queue_link, &queue_head);
+	list_append(&start->queue_link, &queue);
 
 	/* If the symbol is found, it will be stored in 'sym' */
 	sym = NULL;
 
 	/* While queue is not empty */
-	while (!list_empty(&queue_head)) {
+	while (!list_empty(&queue)) {
 		/* Pop first element from the queue */
-		m = list_get_instance(queue_head.next, module_t, queue_link);
+		m = list_get_instance(list_first(&queue), module_t, queue_link);
 		list_remove(&m->queue_link);
 
 		s = def_find_in_module(name, m);
@@ -161,14 +161,14 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
 
 			if (dm->bfs_tag == false) {
 				dm->bfs_tag = true;
-				list_append(&dm->queue_link, &queue_head);
+				list_append(&dm->queue_link, &queue);
 			}
 		}
 	}
 
 	/* Empty the queue so that we leave it in a clean state */
-	while (!list_empty(&queue_head))
-		list_remove(queue_head.next);
+	while (!list_empty(&queue))
+		list_remove(list_first(&queue));
 
 	if (!sym) {
 		return NULL; /* Not found */

@@ -175,6 +175,8 @@ static int add_platform_fun(ddf_dev_t *dev)
 		return rc;
 	}
 
+	free(match_id);
+
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,

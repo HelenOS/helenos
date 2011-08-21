@@ -32,6 +32,8 @@
 #include <task.h>
 #include "scli.h"
 
+extern const char *search_dir[];
+
 extern unsigned int try_exec(char *, char **, iostate_t *);
 
 #endif

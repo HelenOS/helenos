@@ -123,8 +123,8 @@ typedef struct {
 	/** Callback phone to the client */
 	int client_phone;
 
-	/** Device handle */
-	devmap_handle_t devmap_handle;
+	/** Service ID */
+	service_id_t service_id;
 
 	/** Device/driver state */
 	ts_state_t state;

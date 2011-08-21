@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <str_error.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "util.h"
@@ -50,6 +51,8 @@ static char *found;
 
 static char *find_command(char *);
 static int try_access(const char *);
+
+const char *search_dir[] = { "/app", "/srv", NULL };
 
 /* work-around for access() */
 static int try_access(const char *f)
@@ -68,10 +71,7 @@ static int try_access(const char *f)
  * cmd as it was presented */
 static char *find_command(char *cmd)
 {
-	char *path_tok;
-	char *path[PATH_MAX];
-	int n = 0, i = 0;
-	size_t x = str_size(cmd) + 2;
+	size_t i;
 
 	found = (char *)malloc(PATH_MAX);
 
@@ -80,32 +80,16 @@ static char *find_command(char *cmd)
 		return (char *) cmd;
 	}
 
-	path_tok = str_dup(PATH);
-
-	/* Extract the PATH env to a path[] array */
-	path[n] = strtok(path_tok, PATH_DELIM);
-	while (NULL != path[n]) {
-		if ((str_size(path[n]) + x ) > PATH_MAX) {
-			cli_error(CL_ENOTSUP,
-				"Segment %d of path is too large, search ends at segment %d",
-				n, n-1);
-			break;
-		}
-		path[++n] = strtok(NULL, PATH_DELIM);
-	}
-
 	/* We now have n places to look for the command */
-	for (i=0; path[i]; i++) {
+	for (i = 0; search_dir[i] != NULL; i++) {
 		memset(found, 0, sizeof(found));
-		snprintf(found, PATH_MAX, "%s/%s", path[i], cmd);
+		snprintf(found, PATH_MAX, "%s/%s", search_dir[i], cmd);
 		if (-1 != try_access(found)) {
-			free(path_tok);
 			return (char *) found;
 		}
 	}
 
 	/* We didn't find it, just give it back as-is. */
-	free(path_tok);
 	return (char *) cmd;
 }
 
@@ -115,8 +99,8 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	task_exit_t texit;
 	char *tmp;
 	int rc, retval, i;
-	fdi_node_t file_nodes[3];
-	fdi_node_t *file_nodes_p[4];
+	int file_handles[3];
+	int *file_handles_p[4];
 	FILE *files[3];
 
 	tmp = str_dup(find_command(cmd));
@@ -127,16 +111,16 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	files[2] = io->stderr;
 	
 	for (i = 0; i < 3 && files[i] != NULL; i++) {
-		if (fnode(files[i], &file_nodes[i]) == EOK) {
-			file_nodes_p[i] = &file_nodes[i];
+		if (fhandle(files[i], &file_handles[i]) == EOK) {
+			file_handles_p[i] = &file_handles[i];
 		}
 		else {
-			file_nodes_p[i] = NULL;
+			file_handles_p[i] = NULL;
 		}
 	}
-	file_nodes_p[i] = NULL;
+	file_handles_p[i] = NULL;
 
-	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_nodes_p);
+	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_handles_p);
 	free(tmp);
 
 	if (rc != 0) {

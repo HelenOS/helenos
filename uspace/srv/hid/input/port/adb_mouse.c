@@ -40,7 +40,8 @@
 #include <mouse_port.h>
 #include <mouse.h>
 #include <errno.h>
-#include <devmap.h>
+#include <loc.h>
+#include <stdio.h>
 
 static mouse_dev_t *mouse_dev;
 static async_sess_t *dev_sess;
@@ -77,12 +78,12 @@ static int adb_port_init(mouse_dev_t *mdev)
 	
 	mouse_dev = mdev;
 	
-	devmap_handle_t handle;
-	int rc = devmap_device_get_handle(dev, &handle, 0);
+	service_id_t service_id;
+	int rc = loc_service_get_id(dev, &service_id, 0);
 	if (rc != EOK)
 		return rc;
 	
-	dev_sess = devmap_device_connect(EXCHANGE_ATOMIC, handle, 0);
+	dev_sess = loc_service_connect(EXCHANGE_ATOMIC, service_id, 0);
 	if (dev_sess == NULL) {
 		printf("%s: Failed to connect to device\n", NAME);
 		return ENOENT;

@@ -36,7 +36,6 @@
 
 #include <synch/waitq.h>
 #include <synch/semaphore.h>
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 
 static semaphore_t sem;

@@ -25,17 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver transfer list implementation
  */
+
 #include <errno.h>
 #include <usb/debug.h>
-#include <arch/barrier.h>
-
-
+#include <libarch/barrier.h>
 #include "transfer_list.h"
 #include "batch.h"
 
@@ -140,7 +140,7 @@ void transfer_list_add_batch(
 	/* Add to the driver's list */
 	list_append(&batch->link, &instance->batch_list);
 
-	usb_log_debug("Batch %p " USB_TRANSFER_BATCH_FMT " scheduled in queue %s.\n",
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " scheduled in queue %s.\n",
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch), instance->name);
 	fibril_mutex_unlock(&instance->guard);
 }

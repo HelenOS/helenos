@@ -120,7 +120,9 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 	preemption_disable();
 	asm volatile (
 		"0:\n"
+#ifndef PROCESSOR_i486
 		"pause\n"        /* Pentium 4's HT love this instruction */
+#endif
 		"mov %[count], %[tmp]\n"
 		"testl %[tmp], %[tmp]\n"
 		"jnz 0b\n"       /* lightweight looping on locked spinlock */

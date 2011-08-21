@@ -35,18 +35,7 @@
 #ifndef KERN_amd64_ISTATE_H_
 #define KERN_amd64_ISTATE_H_
 
-#ifdef KERNEL
-
-#include <typedefs.h>
 #include <trace.h>
-
-#else /* KERNEL */
-
-#include <sys/types.h>
-
-#define NO_TRACE
-
-#endif /* KERNEL */
 
 /** This is passed to interrupt handlers */
 typedef struct istate {

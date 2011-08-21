@@ -62,9 +62,17 @@
 
 #ifdef __ASM__
 
+#ifdef KERNEL
+
 #include <arch/asm/regname.h>
 
-# ctx: address of the structure with saved context
+#else /* KERNEL */
+
+#include <libarch/regname.h>
+
+#endif /* KERNEL */
+
+/* ctx: address of the structure with saved context */
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req
 	sd $s0, OFFSET_S0(\ctx)
 	sd $s1, OFFSET_S1(\ctx)
@@ -120,7 +128,7 @@
 	sd $sp, OFFSET_SP(\ctx)
 .endm
 
-# ctx: address of the structure with saved context
+/* ctx: address of the structure with saved context */
 .macro CONTEXT_RESTORE_ARCH_CORE ctx:req
 	ld $s0, OFFSET_S0(\ctx)
 	ld $s1, OFFSET_S1(\ctx)

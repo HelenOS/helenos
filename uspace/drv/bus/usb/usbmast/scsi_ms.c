@@ -45,9 +45,10 @@
 #include <str.h>
 #include <scsi/sbc.h>
 #include <scsi/spc.h>
-#include "cmds.h"
-#include "mast.h"
+#include "cmdw.h"
+#include "bo_trans.h"
 #include "scsi_ms.h"
+#include "usbmast.h"
 
 /** Get string representation for SCSI peripheral device type.
  *
@@ -59,16 +60,75 @@ const char *usbmast_scsi_dev_type_str(unsigned type)
 	return scsi_get_dev_type_str(type);
 }
 
+static void usbmast_dump_sense(scsi_sense_data_t *sense_buf)
+{
+	unsigned sense_key;
+
+	sense_key = sense_buf->flags_key & 0x0f;
+	printf("Got sense data. Sense key: 0x%x (%s), ASC 0x%02x, "
+	    "ASCQ 0x%02x.\n", sense_key,
+	    scsi_get_sense_key_str(sense_key),
+	    sense_buf->additional_code,
+	    sense_buf->additional_cqual);
+}
+
+/** Run SCSI command.
+ *
+ * Run command and repeat in case of unit attention.
+ * XXX This is too simplified.
+ */
+static int usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
+{
+	uint8_t sense_key;
+	scsi_sense_data_t sense_buf;
+	int rc;
+
+	do {
+		rc = usb_massstor_cmd(mfun, 0xDEADBEEF, cmd);
+		if (rc != EOK) {
+			usb_log_error("Inquiry transport failed, device %s: %s.\n",
+			   mfun->mdev->ddf_dev->name, str_error(rc));
+			return rc;
+		}
+
+		if (cmd->status == CMDS_GOOD)
+			return EOK;
+
+		usb_log_error("SCSI command failed, device %s.\n",
+		    mfun->mdev->ddf_dev->name);
+
+		rc = usbmast_request_sense(mfun, &sense_buf, sizeof(sense_buf));
+		if (rc != EOK) {
+			usb_log_error("Failed to read sense data.\n");
+			return EIO;
+		}
+
+		/* Dump sense data to log */
+		usbmast_dump_sense(&sense_buf);
+
+		/* Get sense key */
+		sense_key = sense_buf.flags_key & 0x0f;
+
+		if (sense_key == SCSI_SK_UNIT_ATTENTION) {
+			printf("Got unit attention. Re-trying command.\n");
+		}
+
+	} while (sense_key == SCSI_SK_UNIT_ATTENTION);
+
+	/* Command status is not good, nevertheless transport succeeded. */
+	return EOK;
+}
+
 /** Perform SCSI Inquiry command on USB mass storage device.
  *
- * @param dev		USB device.
- * @param inquiry_result Where to store parsed inquiry result.
- * @return		Error code.
+ * @param mfun		Mass storage function
+ * @param inquiry_result Where to store parsed inquiry result
+ * @return		Error code
  */
-int usbmast_inquiry(usb_device_t *dev, usbmast_inquiry_data_t *inq_res)
+int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 {
 	scsi_std_inquiry_data_t inq_data;
-	size_t response_len;
+	scsi_cmd_t cmd;
 	scsi_cdb_inquiry_t cdb;
 	int rc;
 
@@ -76,18 +136,29 @@ int usbmast_inquiry(usb_device_t *dev, usbmast_inquiry_data_t *inq_res)
 	cdb.op_code = SCSI_CMD_INQUIRY;
 	cdb.alloc_len = host2uint16_t_be(sizeof(inq_data));
 
-	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
-	    sizeof(cdb), &inq_data, sizeof(inq_data), &response_len);
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.cdb = &cdb;
+	cmd.cdb_size = sizeof(cdb);
+	cmd.data_in = &inq_data;
+	cmd.data_in_size = sizeof(inq_data);
+
+	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
 
 	if (rc != EOK) {
-		usb_log_error("Inquiry failed, device %s: %s.\n",
-		   dev->ddf_dev->name, str_error(rc));
+		usb_log_error("Inquiry transport failed, device %s: %s.\n",
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
-	if (response_len < SCSI_STD_INQUIRY_DATA_MIN_SIZE) {
+	if (cmd.status != CMDS_GOOD) {
+		usb_log_error("Inquiry command failed, device %s.\n",
+		   mfun->mdev->ddf_dev->name);
+		return EIO;
+	}
+
+	if (cmd.rcvd_size < SCSI_STD_INQUIRY_DATA_MIN_SIZE) {
 		usb_log_error("SCSI Inquiry response too short (%zu).\n",
-		    response_len);
+		    cmd.rcvd_size);
 		return EIO;
 	}
 
@@ -117,35 +188,40 @@ int usbmast_inquiry(usb_device_t *dev, usbmast_inquiry_data_t *inq_res)
 
 /** Perform SCSI Request Sense command on USB mass storage device.
  *
- * @param dev		USB device
+ * @param mfun		Mass storage function
  * @param buf		Destination buffer
  * @param size		Size of @a buf
  *
  * @return		Error code.
  */
-int usbmast_request_sense(usb_device_t *dev, void *buf, size_t size)
+int usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
 {
+	scsi_cmd_t cmd;
 	scsi_cdb_request_sense_t cdb;
-	size_t data_len;
 	int rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_REQUEST_SENSE;
 	cdb.alloc_len = min(size, SCSI_SENSE_DATA_MAX_SIZE);
 
-	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
-	    sizeof(cdb), buf, size, &data_len);
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.cdb = &cdb;
+	cmd.cdb_size = sizeof(cdb);
+	cmd.data_in = buf;
+	cmd.data_in_size = size;
 
-        if (rc != EOK) {
+	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
+
+        if (rc != EOK || cmd.status != CMDS_GOOD) {
 		usb_log_error("Request Sense failed, device %s: %s.\n",
-		   dev->ddf_dev->name, str_error(rc));
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
-	if (data_len < SCSI_SENSE_DATA_MIN_SIZE) {
+	if (cmd.rcvd_size < SCSI_SENSE_DATA_MIN_SIZE) {
 		/* The missing bytes should be considered to be zeroes. */
-		memset((uint8_t *)buf + data_len, 0,
-		    SCSI_SENSE_DATA_MIN_SIZE - data_len);
+		memset((uint8_t *)buf + cmd.rcvd_size, 0,
+		    SCSI_SENSE_DATA_MIN_SIZE - cmd.rcvd_size);
 	}
 
 	return EOK;
@@ -153,35 +229,46 @@ int usbmast_request_sense(usb_device_t *dev, void *buf, size_t size)
 
 /** Perform SCSI Read Capacity command on USB mass storage device.
  *
- * @param dev		USB device.
- * @param nblocks	Output, number of blocks.
- * @param block_size	Output, block size in bytes.
+ * @param mfun		Mass storage function
+ * @param nblocks	Output, number of blocks
+ * @param block_size	Output, block size in bytes
  *
  * @return		Error code.
  */
-int usbmast_read_capacity(usb_device_t *dev, uint32_t *nblocks,
+int usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
     uint32_t *block_size)
 {
+	scsi_cmd_t cmd;
 	scsi_cdb_read_capacity_10_t cdb;
 	scsi_read_capacity_10_data_t data;
-	size_t data_len;
 	int rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
 
-	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
-	    sizeof(cdb), &data, sizeof(data), &data_len);
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.cdb = &cdb;
+	cmd.cdb_size = sizeof(cdb);
+	cmd.data_in = &data;
+	cmd.data_in_size = sizeof(data);
+
+	rc = usbmast_run_cmd(mfun, &cmd);
 
         if (rc != EOK) {
-		usb_log_error("Read Capacity (10) failed, device %s: %s.\n",
-		   dev->ddf_dev->name, str_error(rc));
+		usb_log_error("Read Capacity (10) transport failed, device %s: %s.\n",
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
-	if (data_len < sizeof(data)) {
+	if (cmd.status != CMDS_GOOD) {
+		usb_log_error("Read Capacity (10) command failed, device %s.\n",
+		   mfun->mdev->ddf_dev->name);
+		return EIO;
+	}
+
+	if (cmd.rcvd_size < sizeof(data)) {
 		usb_log_error("SCSI Read Capacity response too short (%zu).\n",
-		    data_len);
+		    cmd.rcvd_size);
 		return EIO;
 	}
 
@@ -193,45 +280,102 @@ int usbmast_read_capacity(usb_device_t *dev, uint32_t *nblocks,
 
 /** Perform SCSI Read command on USB mass storage device.
  *
- * @param dev		USB device.
- * @param ba		Address of first block.
- * @param nblocks	Number of blocks to read.
- * @param bsize		Block size.
+ * @param mfun		Mass storage function
+ * @param ba		Address of first block
+ * @param nblocks	Number of blocks to read
  *
- * @return		Error code.
+ * @return		Error code
  */
-int usbmast_read(usb_device_t *dev, uint64_t ba, size_t nblocks, size_t bsize,
-    void *buf)
+int usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
 {
-	scsi_cdb_read_12_t cdb;
-	size_t data_len;
+	scsi_cmd_t cmd;
+	scsi_cdb_read_10_t cdb;
 	int rc;
-
-	/* XXX Need softstate to store block size. */
 
 	if (ba > UINT32_MAX)
 		return ELIMIT;
 
-	if ((uint64_t)nblocks * bsize > UINT32_MAX)
+	if (nblocks > UINT16_MAX)
 		return ELIMIT;
 
 	memset(&cdb, 0, sizeof(cdb));
-	cdb.op_code = SCSI_CMD_READ_12;
+	cdb.op_code = SCSI_CMD_READ_10;
 	cdb.lba = host2uint32_t_be(ba);
-	cdb.xfer_len = host2uint32_t_be(nblocks);
+	cdb.xfer_len = host2uint16_t_be(nblocks);
 
-	rc = usb_massstor_data_in(dev, 0xDEADBEEF, 0, (uint8_t *) &cdb,
-	    sizeof(cdb), buf, nblocks * bsize, &data_len);
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.cdb = &cdb;
+	cmd.cdb_size = sizeof(cdb);
+	cmd.data_in = buf;
+	cmd.data_in_size = nblocks * mfun->block_size;
+
+	rc = usbmast_run_cmd(mfun, &cmd);
 
         if (rc != EOK) {
-		usb_log_error("Read (12) failed, device %s: %s.\n",
-		   dev->ddf_dev->name, str_error(rc));
+		usb_log_error("Read (10) transport failed, device %s: %s.\n",
+		   mfun->mdev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
-	if (data_len < nblocks * bsize) {
+	if (cmd.status != CMDS_GOOD) {
+		usb_log_error("Read (10) command failed, device %s.\n",
+		   mfun->mdev->ddf_dev->name);
+		return EIO;
+	}
+
+	if (cmd.rcvd_size < nblocks * mfun->block_size) {
 		usb_log_error("SCSI Read response too short (%zu).\n",
-		    data_len);
+		    cmd.rcvd_size);
+		return EIO;
+	}
+
+	return EOK;
+}
+
+/** Perform SCSI Write command on USB mass storage device.
+ *
+ * @param mfun		Mass storage function
+ * @param ba		Address of first block
+ * @param nblocks	Number of blocks to read
+ * @param data		Data to write
+ *
+ * @return		Error code
+ */
+int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
+    const void *data)
+{
+	scsi_cmd_t cmd;
+	scsi_cdb_write_10_t cdb;
+	int rc;
+
+	if (ba > UINT32_MAX)
+		return ELIMIT;
+
+	if (nblocks > UINT16_MAX)
+		return ELIMIT;
+
+	memset(&cdb, 0, sizeof(cdb));
+	cdb.op_code = SCSI_CMD_WRITE_10;
+	cdb.lba = host2uint32_t_be(ba);
+	cdb.xfer_len = host2uint16_t_be(nblocks);
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.cdb = &cdb;
+	cmd.cdb_size = sizeof(cdb);
+	cmd.data_out = data;
+	cmd.data_out_size = nblocks * mfun->block_size;
+
+	rc = usbmast_run_cmd(mfun, &cmd);
+
+        if (rc != EOK) {
+		usb_log_error("Write (10) transport failed, device %s: %s.\n",
+		   mfun->mdev->ddf_dev->name, str_error(rc));
+		return rc;
+	}
+
+	if (cmd.status != CMDS_GOOD) {
+		usb_log_error("Write (10) command failed, device %s.\n",
+		   mfun->mdev->ddf_dev->name);
 		return EIO;
 	}
 

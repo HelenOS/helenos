@@ -37,6 +37,7 @@
  */
 
 #include <adt/list.h>
+#include <bool.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
 #include <sysinfo.h>
@@ -52,7 +53,7 @@
 #include <adt/fifo.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <devmap.h>
+#include <loc.h>
 #include <input.h>
 #include <kbd.h>
 #include <kbd_port.h>
@@ -62,10 +63,7 @@
 #include <mouse.h>
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
-
-/* In microseconds */
-#define DISCOVERY_POLL_INTERVAL  (10 * 1000 * 1000)
+#include <abi/ipc/methods.h>
 
 #define NUM_LAYOUTS  3
 
@@ -274,7 +272,7 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 	
 	kdev->port_ops = port;
 	kdev->ctl_ops = ctl;
-	kdev->dev_path = NULL;
+	kdev->svc_id = 0;
 	
 	/* Initialize port driver. */
 	if ((*kdev->port_ops->init)(kdev) != 0)
@@ -302,7 +300,7 @@ static void mouse_add_dev(mouse_port_ops_t *port, mouse_proto_ops_t *proto)
 	
 	mdev->port_ops = port;
 	mdev->proto_ops = proto;
-	mdev->dev_path = NULL;
+	mdev->svc_id = 0;
 	
 	/* Initialize port driver. */
 	if ((*mdev->port_ops->init)(mdev) != 0)
@@ -323,18 +321,24 @@ fail:
 
 /** Add new kbdev device.
  *
- * @param dev_path Filesystem path to the device (/dev/class/...)
+ * @param service_id	Service ID of the keyboard device
  *
  */
-static int kbd_add_kbdev(const char *dev_path)
+static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
 {
 	kbd_dev_t *kdev = kbd_dev_new();
 	if (kdev == NULL)
 		return -1;
 	
-	kdev->dev_path = dev_path;
+	kdev->svc_id = service_id;
 	kdev->port_ops = NULL;
 	kdev->ctl_ops = &kbdev_ctl;
+	
+	int rc = loc_service_get_name(service_id, &kdev->svc_name);
+	if (rc != EOK) {
+		kdev->svc_name = NULL;
+		goto fail;
+	}
 	
 	/* Initialize controller driver. */
 	if ((*kdev->ctl_ops->init)(kdev) != 0) {
@@ -342,27 +346,36 @@ static int kbd_add_kbdev(const char *dev_path)
 	}
 	
 	list_append(&kdev->kbd_devs, &kbd_devs);
+	*kdevp = kdev;
 	return EOK;
 	
 fail:
+	if (kdev->svc_name != NULL)
+		free(kdev->svc_name);
 	free(kdev);
 	return -1;
 }
 
 /** Add new mousedev device.
  *
- * @param dev_path Filesystem path to the device (/dev/class/...)
+ * @param service_id	Service ID of the mouse device
  *
  */
-static int mouse_add_mousedev(const char *dev_path)
+static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
 {
 	mouse_dev_t *mdev = mouse_dev_new();
 	if (mdev == NULL)
 		return -1;
 	
-	mdev->dev_path = dev_path;
+	mdev->svc_id = service_id;
 	mdev->port_ops = NULL;
 	mdev->proto_ops = &mousedev_proto;
+	
+	int rc = loc_service_get_name(service_id, &mdev->svc_name);
+	if (rc != EOK) {
+		mdev->svc_name = NULL;
+		goto fail;
+	}
 	
 	/* Initialize controller driver. */
 	if ((*mdev->proto_ops->init)(mdev) != 0) {
@@ -370,6 +383,7 @@ static int mouse_add_mousedev(const char *dev_path)
 	}
 	
 	list_append(&mdev->mouse_devs, &mouse_devs);
+	*mdevp = mdev;
 	return EOK;
 	
 fail:
@@ -409,7 +423,7 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&ski_port, &stty_ctl);
 #endif
 #if defined(MACHINE_msim)
-	kbd_add_dev(&msim_port, &pc_ctl);
+	kbd_add_dev(&msim_port, &stty_ctl);
 #endif
 #if (defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)) && defined(CONFIG_FB)
 	kbd_add_dev(&gxemul_port, &gxe_fb_ctl);
@@ -479,72 +493,145 @@ static void kbd_devs_reclaim(void)
 	}
 }
 
-/** Periodically check for new input devices.
- *
- * Looks under /dev/class/keyboard and /dev/class/mouse.
- *
- * @param arg Ignored
- *
- */
-static int dev_discovery_fibril(void *arg)
+static int dev_check_new_kbdevs(void)
 {
-	char *dev_path;
-	size_t kbd_id = 1;
-	size_t mouse_id = 1;
+	category_id_t keyboard_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	bool already_known;
 	int rc;
 	
-	while (true) {
-		async_usleep(DISCOVERY_POLL_INTERVAL);
-		
-		/*
-		 * Check for new keyboard device
-		 */
-		rc = asprintf(&dev_path, "/dev/class/keyboard\\%zu", kbd_id);
-		if (rc < 0)
-			continue;
-		
-		if (kbd_add_kbdev(dev_path) == EOK) {
-			printf("%s: Connected keyboard device '%s'\n",
-			    NAME, dev_path);
-			
-			/* XXX Handle device removal */
-			++kbd_id;
-		}
-		
-		free(dev_path);
-		
-		/*
-		 * Check for new mouse device
-		 */
-		rc = asprintf(&dev_path, "/dev/class/mouse\\%zu", mouse_id);
-		if (rc < 0)
-			continue;
-		
-		if (mouse_add_mousedev(dev_path) == EOK) {
-			printf("%s: Connected mouse device '%s'\n",
-			    NAME, dev_path);
-			
-			/* XXX Handle device removal */
-			++mouse_id;
-		}
-		
-		free(dev_path);
+	rc = loc_category_get_id("keyboard", &keyboard_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'keyboard'.\n", NAME);
+		return ENOENT;
 	}
+	
+	/*
+	 * Check for new keyboard devices
+	 */
+	rc = loc_category_get_svcs(keyboard_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf("%s: Failed getting list of keyboard devices.\n",
+		    NAME);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+		
+		/* Determine whether we already know this device. */
+		list_foreach(kbd_devs, kdev_link) {
+			kbd_dev_t *kdev = list_get_instance(kdev_link,
+			    kbd_dev_t, kbd_devs);
+			if (kdev->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+		
+		if (!already_known) {
+			kbd_dev_t *kdev;
+			if (kbd_add_kbdev(svcs[i], &kdev) == EOK) {
+				printf("%s: Connected keyboard device '%s'\n",
+				    NAME, kdev->svc_name);
+			}
+		}
+	}
+	
+	free(svcs);
+	
+	/* XXX Handle device removal */
 	
 	return EOK;
 }
 
-/** Start a fibril for discovering new devices. */
-static void input_start_dev_discovery(void)
+static int dev_check_new_mousedevs(void)
 {
-	fid_t fid = fibril_create(dev_discovery_fibril, NULL);
-	if (!fid) {
-		printf("%s: Failed to create device discovery fibril.\n",
-		    NAME);
-		return;
+	category_id_t mouse_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	bool already_known;
+	int rc;
+	
+	rc = loc_category_get_id("mouse", &mouse_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'mouse'.\n", NAME);
+		return ENOENT;
 	}
 	
-	fibril_add_ready(fid);
+	/*
+	 * Check for new mouse devices
+	 */
+	rc = loc_category_get_svcs(mouse_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf("%s: Failed getting list of mouse devices.\n",
+		    NAME);
+		return EIO;
+	}
+	
+	for (i = 0; i < count; i++) {
+		already_known = false;
+		
+		/* Determine whether we already know this device. */
+		list_foreach(mouse_devs, mdev_link) {
+			mouse_dev_t *mdev = list_get_instance(mdev_link,
+			    mouse_dev_t, mouse_devs);
+			if (mdev->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+		
+		if (!already_known) {
+			mouse_dev_t *mdev;
+			if (mouse_add_mousedev(svcs[i], &mdev) == EOK) {
+				printf("%s: Connected mouse device '%s'\n",
+				    NAME, mdev->svc_name);
+			}
+		}
+	}
+	
+	free(svcs);
+	
+	/* XXX Handle device removal */
+	
+	return EOK;
+}
+
+static int dev_check_new(void)
+{
+	int rc;
+	
+	rc = dev_check_new_kbdevs();
+	if (rc != EOK)
+		return rc;
+	
+	rc = dev_check_new_mousedevs();
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+static void cat_change_cb(void)
+{
+	dev_check_new();
+}
+
+/** Start listening for new devices. */
+static int input_start_dev_discovery(void)
+{
+	int rc;
+
+	rc = loc_register_cat_change_cb(cat_change_cb);
+	if (rc != EOK) {
+		printf("%s: Failed registering callback for device discovery. "
+		    "(%d)\n", NAME, rc);
+		return rc;
+	}
+
+	return dev_check_new();
 }
 
 int main(int argc, char **argv)
@@ -571,18 +658,18 @@ int main(int argc, char **argv)
 	mouse_add_legacy_devs();
 	
 	/* Register driver */
-	int rc = devmap_driver_register(NAME, client_connection);
+	int rc = loc_server_register(NAME, client_connection);
 	if (rc < 0) {
-		printf("%s: Unable to register driver (%d)\n", NAME, rc);
+		printf("%s: Unable to register server (%d)\n", NAME, rc);
 		return -1;
 	}
 	
-	char kbd[DEVMAP_NAME_MAXLEN + 1];
-	snprintf(kbd, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
+	char kbd[LOC_NAME_MAXLEN + 1];
+	snprintf(kbd, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	
-	devmap_handle_t devmap_handle;
-	if (devmap_device_register(kbd, &devmap_handle) != EOK) {
-		printf("%s: Unable to register device %s\n", NAME, kbd);
+	service_id_t service_id;
+	if (loc_service_register(kbd, &service_id) != EOK) {
+		printf("%s: Unable to register service %s\n", NAME, kbd);
 		return -1;
 	}
 	

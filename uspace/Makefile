@@ -36,6 +36,7 @@ DIRS = \
 	app/bdsh \
 	app/blkdump \
 	app/bnchmark \
+	app/devctl \
 	app/edit \
 	app/ext2info \
 	app/getterm \
@@ -43,6 +44,7 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/locinfo \
 	app/lsusb \
 	app/mkfat \
 	app/redir \
@@ -64,7 +66,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	srv/clip \
-	srv/devmap \
+	srv/loc \
 	srv/devman \
 	srv/loader \
 	srv/ns \
@@ -78,8 +80,9 @@ DIRS = \
 	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
-	srv/fs/devfs \
+	srv/fs/locfs \
 	srv/fs/ext2fs \
+	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
@@ -120,10 +123,6 @@ DIRS += \
 ## Platform-specific hardware support
 #
 
-ifneq ($(UARCH),abs32le)
-	DIRS += srv/hid/console
-endif
-
 ifeq ($(UARCH),amd64)
 	DIRS += \
 		drv/infrastructure/rootpc \
@@ -163,11 +162,13 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/fmtutil \
 	lib/scsi \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
+	lib/imgmap \
 	lib/net \
 	lib/ext2 \
 	lib/usb \

@@ -56,7 +56,7 @@
 #include <fibril_synch.h>
 #include <stdint.h>
 #include <str.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -79,9 +79,6 @@
  * command.
  */
 static const size_t identify_data_size = 512;
-
-/** Size of the communication area. */
-static size_t comm_size;
 
 /** I/O base address of the command registers. */
 static uintptr_t cmd_physical;
@@ -178,7 +175,7 @@ int main(int argc, char **argv)
 			continue;
 		
 		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
-		rc = devmap_device_register(name, &disk[i].devmap_handle);
+		rc = loc_service_register(name, &disk[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -246,7 +243,7 @@ static int ata_bd_init(void)
 	void *vaddr;
 	int rc;
 
-	rc = devmap_driver_register(NAME, ata_bd_connection);
+	rc = loc_server_register(NAME, ata_bd_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
@@ -279,20 +276,21 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dsid;
+	size_t comm_size;	/**< Size of the communication area. */
 	unsigned int flags;
 	int retval;
 	uint64_t ba;
 	size_t cnt;
 	int disk_id, i;
 
-	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	/* Get the device service ID. */
+	dsid = IPC_GET_ARG1(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (disk[i].devmap_handle == dh)
+		if (disk[i].service_id == dsid)
 			disk_id = i;
 
 	if (disk_id < 0 || disk[disk_id].present == false) {

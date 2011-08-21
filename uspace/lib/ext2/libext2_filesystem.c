@@ -49,17 +49,17 @@
  * initializes libblock cache with appropriate logical block size.
  * 
  * @param fs			Pointer to ext2_filesystem_t to initialize
- * @param devmap_handle	Device handle of the block device
+ * @param service_id	Service ID of the block device
  * 
  * @return 		EOK on success or negative error code on failure
  */
-int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
+int ext2_filesystem_init(ext2_filesystem_t *fs, service_id_t service_id)
 {
 	int rc;
 	ext2_superblock_t *temp_superblock;
 	size_t block_size;
 	
-	fs->device = devmap_handle;
+	fs->device = service_id;
 	
 	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 2048);
 	if (rc != EOK) {
@@ -79,7 +79,7 @@ int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
 		return ENOTSUP;
 	}
 	
-	rc = block_cache_init(devmap_handle, block_size, 0, CACHE_MODE_WT);
+	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;

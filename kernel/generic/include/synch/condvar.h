@@ -38,7 +38,7 @@
 #include <typedefs.h>
 #include <synch/waitq.h>
 #include <synch/mutex.h>
-#include <synch/synch.h>
+#include <abi/synch.h>
 
 typedef struct {
 	waitq_t wq;

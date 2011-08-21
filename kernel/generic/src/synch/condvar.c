@@ -38,7 +38,6 @@
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
-#include <synch/synch.h>
 #include <arch.h>
 
 /** Initialize condition variable.

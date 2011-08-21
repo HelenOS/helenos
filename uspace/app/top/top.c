@@ -41,7 +41,6 @@
 #include <task.h>
 #include <thread.h>
 #include <sys/time.h>
-#include <arch/barrier.h>
 #include <errno.h>
 #include <sort.h>
 #include "screen.h"

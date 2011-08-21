@@ -63,7 +63,6 @@ typedef struct uhci {
 static inline uhci_t * dev_to_uhci(const ddf_dev_t *dev)
 {
 	assert(dev);
-	assert(dev->driver_data);
 	return dev->driver_data;
 }
 /*----------------------------------------------------------------------------*/
@@ -77,10 +76,12 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
 	uhci_t *uhci = dev_to_uhci(dev);
-	hc_t *hc = &uhci->hc;
+	if (!uhci) {
+		usb_log_error("Interrupt on not yet initialized device.\n");
+		return;
+	}
 	const uint16_t status = IPC_GET_ARG1(*call);
-	assert(hc);
-	hc_interrupt(hc, status);
+	hc_interrupt(&uhci->hc, status);
 }
 /*----------------------------------------------------------------------------*/
 /** Operations supported by the HC driver */
@@ -191,6 +192,7 @@ if (ret != EOK) { \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
 	free(instance); \
+	device->driver_data = NULL; \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -221,29 +223,37 @@ if (ret != EOK) { \
 
 	ret = pci_disable_legacy(device);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
+	    "Failed to disable legacy USB: %s.\n", str_error(ret));
+
+	const size_t cmd_count = hc_irq_cmd_count();
+	irq_cmd_t irq_cmds[cmd_count];
+	ret =
+	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+
+	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+
+        /* Register handler to avoid interrupt lockup */
+        ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
+        CHECK_RET_DEST_FREE_RETURN(ret,
+            "Failed to register interrupt handler: %s.\n", str_error(ret));
 
 	bool interrupts = false;
-#ifdef CONFIG_USBHC_NO_INTERRUPTS
-	usb_log_warning("Interrupts disabled in OS config, " \
-	    "falling back to polling.\n");
-#else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_warning("Failed to enable interrupts: %s.\n",
-		    str_error(ret));
-		usb_log_info("HW interrupts not available, " \
-		    "falling back to polling.\n");
+		usb_log_warning("Failed to enable interrupts: %s."
+		    " Falling back to polling.\n", str_error(ret));
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
-#endif
-
 
 	ret = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed(%d) to init uhci_hcd: %s.\n", ret, str_error(ret));
+	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
+
+	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -252,32 +262,23 @@ if (ret != EOK) { \
 	return ret; \
 } else (void)0
 
-	/* It does no harm if we register this on polling */
-	ret = register_interrupt_handler(device, irq, irq_handler,
-	    &instance->hc.interrupt_code);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register interrupt handler: %s.\n",
-	    ret, str_error(ret));
-
 	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to bind UHCI device function: %s.\n",
-	    ret, str_error(ret));
+	CHECK_RET_FINI_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
+	    str_error(ret));
 
-	ret = ddf_fun_add_to_class(instance->hc_fun, USB_HC_DDF_CLASS_NAME);
+	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add UHCI to HC class: %s.\n", str_error(ret));
 
 	ret = rh_init(&instance->rh, instance->rh_fun,
 	    (uintptr_t)instance->hc.registers + 0x10, 4);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to setup UHCI root hub: %s.\n", ret, str_error(ret));
+	    "Failed to setup UHCI root hub: %s.\n", str_error(ret));
 
 	ret = ddf_fun_bind(instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register UHCI root hub: %s.\n", ret, str_error(ret));
+	    "Failed to register UHCI root hub: %s.\n", str_error(ret));
 
-	device->driver_data = instance;
 	return EOK;
 #undef CHECK_RET_FINI_RETURN
 }

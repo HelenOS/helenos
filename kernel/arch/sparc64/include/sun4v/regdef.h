@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -36,19 +36,10 @@
 #ifndef KERN_sparc64_sun4v_REGDEF_H_
 #define KERN_sparc64_sun4v_REGDEF_H_
 
-#define PSTATE_IE_BIT	(1 << 1)
-#define PSTATE_PRIV_BIT	(1 << 2)
-#define PSTATE_PEF_BIT	(1 << 4)
+#define TSTATE_CWP_MASK  0x1f
 
-#define TSTATE_PSTATE_SHIFT	8
-#define TSTATE_PRIV_BIT		(PSTATE_PRIV_BIT << TSTATE_PSTATE_SHIFT)
-#define TSTATE_CWP_MASK		0x1f
-#define TSTATE_IE_BIT		(PSTATE_IE_BIT << TSTATE_PSTATE_SHIFT)
-
-#define WSTATE_NORMAL(n)	(n)
-#define WSTATE_OTHER(n)		((n) << 3)
-
-#define TSTATE_PEF_BIT		(PSTATE_PEF_BIT << TSTATE_PSTATE_SHIFT)
+#define WSTATE_NORMAL(n)  (n)
+#define WSTATE_OTHER(n)   ((n) << 3)
 
 #endif
 

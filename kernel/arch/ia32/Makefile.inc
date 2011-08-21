@@ -43,6 +43,10 @@ CLANG_CFLAGS += $(CMN1)
 ## Accepted CPUs
 #
 
+ifeq ($(PROCESSOR),i486)
+	CMN2 = -march=i486
+endif
+
 ifeq ($(PROCESSOR),athlon_xp)
 	CMN2 = -march=athlon-xp
 	SUNCC_CFLAGS += -xarch=ssea

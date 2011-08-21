@@ -316,6 +316,12 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		return;
 	}
 	
+	if (fun->conn_handler != NULL) {
+		/* Driver has a custom connection handler. */
+		(*fun->conn_handler)(iid, icall, (void *)fun);
+		return;
+	}
+	
 	/*
 	 * TODO - if the client is not a driver, check whether it is allowed to
 	 * use the device.
@@ -421,8 +427,18 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 /** Function for handling connections to device driver. */
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	sysarg_t conn_type;
+
+	if (iid == 0) {
+		/* Callback connection from devman */
+		/* XXX Use separate handler for this type of connection */
+		conn_type = DRIVER_DEVMAN;
+	} else {
+		conn_type = IPC_GET_ARG1(*icall);
+	}
+
 	/* Select interface */
-	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
+	switch (conn_type) {
 	case DRIVER_DEVMAN:
 		/* Handle request from device manager */
 		driver_connection_devman(iid, icall);
@@ -575,6 +591,7 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
  */
 int ddf_fun_bind(ddf_fun_t *fun)
 {
+	assert(fun->bound == false);
 	assert(fun->name != NULL);
 	
 	int res;
@@ -589,6 +606,31 @@ int ddf_fun_bind(ddf_fun_t *fun)
 	
 	fun->bound = true;
 	return res;
+}
+
+/** Unbind a function node.
+ *
+ * Unbind the specified function from the system. This effectively makes
+ * the function invisible to the system.
+ *
+ * @param fun		Function to bind
+ * @return		EOK on success or negative error code
+ */
+int ddf_fun_unbind(ddf_fun_t *fun)
+{
+	int res;
+	
+	assert(fun->bound == true);
+	
+	add_to_functions_list(fun);
+	res = devman_remove_function(fun->handle);
+	if (res != EOK)
+		return res;
+
+	remove_from_functions_list(fun);
+	
+	fun->bound = false;
+	return EOK;
 }
 
 /** Add single match ID to inner function.
@@ -613,7 +655,7 @@ int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 	if (match_id == NULL)
 		return ENOMEM;
 	
-	match_id->id = match_id_str;
+	match_id->id = str_dup(match_id_str);
 	match_id->score = 90;
 	
 	add_match_id(&fun->match_ids, match_id);
@@ -628,16 +670,16 @@ static remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
 	return fun->ops->default_handler;
 }
 
-/** Add exposed function to class.
+/** Add exposed function to category.
  *
  * Must only be called when the function is bound.
  */
-int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name)
+int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 {
 	assert(fun->bound == true);
 	assert(fun->ftype == fun_exposed);
 	
-	return devman_add_device_to_class(fun->handle, class_name);
+	return devman_add_device_to_category(fun->handle, cat_name);
 }
 
 int ddf_driver_main(driver_t *drv)

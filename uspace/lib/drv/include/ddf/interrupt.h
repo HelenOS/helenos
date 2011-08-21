@@ -35,7 +35,7 @@
 #ifndef DDF_INTERRUPT_H_
 #define DDF_INTERRUPT_H_
 
-#include <kernel/ddi/irq.h>
+#include <abi/ddi/irq.h>
 #include <adt/list.h>
 #include <ddi.h>
 #include <fibril_synch.h>

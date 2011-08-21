@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
@@ -35,37 +34,16 @@
 #define EXT2FS_EXT2FS_H_
 
 #include <libext2.h>
-#include <fibril_synch.h>
 #include <libfs.h>
-#include <atomic.h>
 #include <sys/types.h>
-#include <bool.h>
-#include "../../vfs/vfs.h"
-
-#ifndef dprintf
-#define dprintf(...)	printf(__VA_ARGS__)
-#endif
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 
-extern fs_reg_t ext2fs_reg;
+extern vfs_out_ops_t ext2fs_ops;
+extern libfs_ops_t ext2fs_libfs_ops;
 
 extern int ext2fs_global_init(void);
 extern int ext2fs_global_fini(void);
-extern void ext2fs_mounted(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_mount(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_unmounted(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_unmount(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_lookup(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_read(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_write(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_truncate(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_stat(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_close(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_destroy(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_open_node(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_stat(ipc_callid_t, ipc_call_t *);
-extern void ext2fs_sync(ipc_callid_t, ipc_call_t *);
 
 #endif
 

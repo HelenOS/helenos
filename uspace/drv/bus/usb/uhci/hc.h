@@ -83,7 +83,7 @@ typedef struct uhci_regs {
 
 	/** SOF modification to match external timers */
 	uint8_t sofmod;
-} regs_t;
+} uhci_regs_t;
 
 #define UHCI_FRAME_LIST_COUNT 1024
 #define UHCI_INT_EMULATOR_TIMEOUT 10000
@@ -99,7 +99,7 @@ typedef struct hc {
 	usb_endpoint_manager_t ep_manager;
 
 	/** Addresses of I/O registers */
-	regs_t *registers;
+	uhci_regs_t *registers;
 
 	/** Frame List contains 1024 link pointers */
 	link_pointer_t *frame_list;
@@ -115,27 +115,19 @@ typedef struct hc {
 
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
-
-	/** Code to be executed in kernel interrupt handler */
-	irq_code_t interrupt_code;
-
-	/** Commands that form interrupt code */
-	irq_cmd_t interrupt_commands[UHCI_NEEDED_IRQ_COMMANDS];
-
 	/** Fibril periodically checking status register*/
 	fid_t interrupt_emulator;
-
 	/** Indicator of hw interrupts availability */
 	bool hw_interrupts;
 
 	/** Number of hw failures detected. */
 	unsigned hw_failures;
 } hc_t;
-
+size_t hc_irq_cmd_count(void);
+int hc_get_irq_commands(
+    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size);
 int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
-
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
 void hc_interrupt(hc_t *instance, uint16_t status);
 
 /** Safely dispose host controller internal structures

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
@@ -42,7 +41,7 @@
 #include <libblock.h>
 #include <libext2.h>
 #include <ipc/services.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <macros.h>
 #include <async.h>
 #include <errno.h>
@@ -69,7 +68,7 @@
 
 typedef struct ext2fs_instance {
 	link_t link;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 	ext2_filesystem_t *filesystem;
 	unsigned int open_nodes_count;
 } ext2fs_instance_t;
@@ -85,11 +84,11 @@ typedef struct ext2fs_node {
 /*
  * Forward declarations of auxiliary functions
  */
-static int ext2fs_instance_get(devmap_handle_t, ext2fs_instance_t **);
-static void ext2fs_read_directory(ipc_callid_t, ipc_callid_t, aoff64_t,
-	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
-static void ext2fs_read_file(ipc_callid_t, ipc_callid_t, aoff64_t,
-	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
+static int ext2fs_instance_get(service_id_t, ext2fs_instance_t **);
+static int ext2fs_read_directory(ipc_callid_t, aoff64_t, size_t,
+    ext2fs_instance_t *, ext2_inode_ref_t *, size_t *);
+static int ext2fs_read_file(ipc_callid_t, aoff64_t, size_t, ext2fs_instance_t *,
+    ext2_inode_ref_t *, size_t *);
 static bool ext2fs_is_dots(const uint8_t *, size_t);
 static int ext2fs_node_get_core(fs_node_t **, ext2fs_instance_t *, fs_index_t);
 static int ext2fs_node_put_core(ext2fs_node_t *);
@@ -97,12 +96,12 @@ static int ext2fs_node_put_core(ext2fs_node_t *);
 /*
  * Forward declarations of EXT2 libfs operations.
  */
-static int ext2fs_root_get(fs_node_t **, devmap_handle_t);
+static int ext2fs_root_get(fs_node_t **, service_id_t);
 static int ext2fs_match(fs_node_t **, fs_node_t *, const char *);
-static int ext2fs_node_get(fs_node_t **, devmap_handle_t, fs_index_t);
+static int ext2fs_node_get(fs_node_t **, service_id_t, fs_index_t);
 static int ext2fs_node_open(fs_node_t *);
 static int ext2fs_node_put(fs_node_t *);
-static int ext2fs_create_node(fs_node_t **, devmap_handle_t, int);
+static int ext2fs_create_node(fs_node_t **, service_id_t, int);
 static int ext2fs_destroy_node(fs_node_t *);
 static int ext2fs_link(fs_node_t *, fs_node_t *, const char *);
 static int ext2fs_unlink(fs_node_t *, fs_node_t *, const char *);
@@ -110,10 +109,9 @@ static int ext2fs_has_children(bool *, fs_node_t *);
 static fs_index_t ext2fs_index_get(fs_node_t *);
 static aoff64_t ext2fs_size_get(fs_node_t *);
 static unsigned ext2fs_lnkcnt_get(fs_node_t *);
-static char ext2fs_plb_get_char(unsigned);
 static bool ext2fs_is_directory(fs_node_t *);
 static bool ext2fs_is_file(fs_node_t *node);
-static devmap_handle_t ext2fs_device_get(fs_node_t *node);
+static service_id_t ext2fs_device_get(fs_node_t *node);
 
 /*
  * Static variables
@@ -135,8 +133,8 @@ static int open_nodes_compare(unsigned long key[], hash_count_t keys,
 {
 	ext2fs_node_t *enode = hash_table_get_instance(item, ext2fs_node_t, link);
 	assert(keys > 0);
-	if (enode->instance->devmap_handle !=
-	    ((devmap_handle_t) key[OPEN_NODES_DEV_HANDLE_KEY])) {
+	if (enode->instance->service_id !=
+	    ((service_id_t) key[OPEN_NODES_DEV_HANDLE_KEY])) {
 		return false;
 	}
 	if (keys == 1) {
@@ -181,11 +179,11 @@ int ext2fs_global_fini(void)
  */
 
 /**
- * Find an instance of filesystem for the given devmap_handle
+ * Find an instance of filesystem for the given service_id
  */
-int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
+int ext2fs_instance_get(service_id_t service_id, ext2fs_instance_t **inst)
 {
-	EXT2FS_DBG("(%" PRIun ", -)", devmap_handle);
+	EXT2FS_DBG("(%" PRIun ", -)", service_id);
 	ext2fs_instance_t *tmp;
 	
 	fibril_mutex_lock(&instance_list_mutex);
@@ -199,7 +197,7 @@ int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 	list_foreach(instance_list, link) {
 		tmp = list_get_instance(link, ext2fs_instance_t, link);
 		
-		if (tmp->devmap_handle == devmap_handle) {
+		if (tmp->service_id == service_id) {
 			*inst = tmp;
 			fibril_mutex_unlock(&instance_list_mutex);
 			return EOK;
@@ -214,10 +212,10 @@ int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 
 
 
-int ext2fs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+int ext2fs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	EXT2FS_DBG("(-, %" PRIun ")", devmap_handle);
-	return ext2fs_node_get(rfn, devmap_handle, EXT2_INODE_ROOT_INDEX);
+	EXT2FS_DBG("(-, %" PRIun ")", service_id);
+	return ext2fs_node_get(rfn, service_id, EXT2_INODE_ROOT_INDEX);
 }
 
 int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
@@ -290,14 +288,14 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 }
 
 /** Instantiate a EXT2 in-core node. */
-int ext2fs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
+int ext2fs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
-	EXT2FS_DBG("(-,%" PRIun ",%u)", devmap_handle, index);
+	EXT2FS_DBG("(-,%" PRIun ",%u)", service_id, index);
 	
 	ext2fs_instance_t *inst = NULL;
 	int rc;
 	
-	rc = ext2fs_instance_get(devmap_handle, &inst);
+	rc = ext2fs_instance_get(service_id, &inst);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -318,7 +316,7 @@ int ext2fs_node_get_core(fs_node_t **rfn, ext2fs_instance_t *inst,
 	
 	/* Check if the node is not already open */
 	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = inst->devmap_handle,
+		[OPEN_NODES_DEV_HANDLE_KEY] = inst->service_id,
 		[OPEN_NODES_INODE_KEY] = index,
 	};
 	link_t *already_open = hash_table_find(&open_nodes, key);
@@ -412,7 +410,7 @@ int ext2fs_node_put_core(ext2fs_node_t *enode)
 	int rc;
 
 	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = enode->instance->devmap_handle,
+		[OPEN_NODES_DEV_HANDLE_KEY] = enode->instance->service_id,
 		[OPEN_NODES_INODE_KEY] = enode->inode_ref->index,
 	};
 	hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
@@ -430,7 +428,7 @@ int ext2fs_node_put_core(ext2fs_node_t *enode)
 	return EOK;
 }
 
-int ext2fs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
+int ext2fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	EXT2FS_DBG("");
 	// TODO
@@ -539,11 +537,6 @@ unsigned ext2fs_lnkcnt_get(fs_node_t *fn)
 	return count;
 }
 
-char ext2fs_plb_get_char(unsigned pos)
-{
-	return ext2fs_reg.plb_ro[pos % PLB_SIZE];
-}
-
 bool ext2fs_is_directory(fs_node_t *fn)
 {
 	ext2fs_node_t *enode = EXT2FS_NODE(fn);
@@ -563,11 +556,11 @@ bool ext2fs_is_file(fs_node_t *fn)
 	return is_file;
 }
 
-devmap_handle_t ext2fs_device_get(fs_node_t *fn)
+service_id_t ext2fs_device_get(fs_node_t *fn)
 {
 	EXT2FS_DBG("");
 	ext2fs_node_t *enode = EXT2FS_NODE(fn);
-	return enode->instance->devmap_handle;
+	return enode->instance->service_id;
 }
 
 /** libfs operations */
@@ -585,7 +578,6 @@ libfs_ops_t ext2fs_libfs_ops = {
 	.index_get = ext2fs_index_get,
 	.size_get = ext2fs_size_get,
 	.lnkcnt_get = ext2fs_lnkcnt_get,
-	.plb_get_char = ext2fs_plb_get_char,
 	.is_directory = ext2fs_is_directory,
 	.is_file = ext2fs_is_file,
 	.device_get = ext2fs_device_get
@@ -595,48 +587,33 @@ libfs_ops_t ext2fs_libfs_ops = {
  * VFS operations.
  */
 
-void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
+static int ext2fs_mounted(service_id_t service_id, const char *opts,
+   fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
 	EXT2FS_DBG("");
 	int rc;
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	ext2_filesystem_t *fs;
 	ext2fs_instance_t *inst;
 	bool read_only;
 	
-	/* Accept the mount options */
-	char *opts;
-	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
-	
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-
-	free(opts);
-	
 	/* Allocate libext2 filesystem structure */
 	fs = (ext2_filesystem_t *) malloc(sizeof(ext2_filesystem_t));
-	if (fs == NULL) {
-		async_answer_0(rid, ENOMEM);
-		return;
-	}
+	if (fs == NULL)
+		return ENOMEM;
 	
 	/* Allocate instance structure */
 	inst = (ext2fs_instance_t *) malloc(sizeof(ext2fs_instance_t));
 	if (inst == NULL) {
 		free(fs);
-		async_answer_0(rid, ENOMEM);
-		return;
+		return ENOMEM;
 	}
 	
 	/* Initialize the filesystem  */
-	rc = ext2_filesystem_init(fs, devmap_handle);
+	rc = ext2_filesystem_init(fs, service_id);
 	if (rc != EOK) {
 		free(fs);
 		free(inst);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	/* Do some sanity checking */
@@ -645,8 +622,7 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ext2_filesystem_fini(fs);
 		free(fs);
 		free(inst);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	/* Check flags */
@@ -655,13 +631,12 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ext2_filesystem_fini(fs);
 		free(fs);
 		free(inst);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	/* Initialize instance */
 	link_initialize(&inst->link);
-	inst->devmap_handle = devmap_handle;
+	inst->service_id = service_id;
 	inst->filesystem = fs;
 	inst->open_nodes_count = 0;
 	
@@ -672,8 +647,7 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ext2_filesystem_fini(fs);
 		free(fs);
 		free(inst);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	ext2fs_node_t *enode = EXT2FS_NODE(root_node);
 		
@@ -682,41 +656,32 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	list_append(&inst->link, &instance_list);
 	fibril_mutex_unlock(&instance_list_mutex);
 	
-	async_answer_3(rid, EOK,
-	    EXT2_INODE_ROOT_INDEX,
-	    0,
-	    ext2_inode_get_usage_count(enode->inode_ref->inode));
+	*index = EXT2_INODE_ROOT_INDEX;
+	*size = 0;
+	*lnkcnt = ext2_inode_get_usage_count(enode->inode_ref->inode);
 	
 	ext2fs_node_put(root_node);
+
+	return EOK;
 }
 
-void ext2fs_mount(ipc_callid_t rid, ipc_call_t *request)
+static int ext2fs_unmounted(service_id_t service_id)
 {
 	EXT2FS_DBG("");
-	libfs_mount(&ext2fs_libfs_ops, ext2fs_reg.fs_handle, rid, request);
-}
-
-void ext2fs_unmounted(ipc_callid_t rid, ipc_call_t *request)
-{
-	EXT2FS_DBG("");
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	ext2fs_instance_t *inst;
 	int rc;
 	
-	rc = ext2fs_instance_get(devmap_handle, &inst);
+	rc = ext2fs_instance_get(service_id, &inst);
 	
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
 	
 	fibril_mutex_lock(&open_nodes_lock);
 
 	EXT2FS_DBG("open_nodes_count = %d", inst->open_nodes_count)
 	if (inst->open_nodes_count != 0) {
 		fibril_mutex_unlock(&open_nodes_lock);
-		async_answer_0(rid, EBUSY);
-		return;
+		return EBUSY;
 	}
 	
 	/* Remove the instance from the list */
@@ -728,28 +693,14 @@ void ext2fs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	
 	ext2_filesystem_fini(inst->filesystem);
 	
-	async_answer_0(rid, EOK);
+	return EOK;
 }
 
-void ext2fs_unmount(ipc_callid_t rid, ipc_call_t *request)
+static int
+ext2fs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
+    size_t *rbytes)
 {
 	EXT2FS_DBG("");
-	libfs_unmount(&ext2fs_libfs_ops, rid, request);
-}
-
-void ext2fs_lookup(ipc_callid_t rid, ipc_call_t *request)
-{
-	EXT2FS_DBG("");
-	libfs_lookup(&ext2fs_libfs_ops, ext2fs_reg.fs_handle, rid, request);
-}
-
-void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
-{
-	EXT2FS_DBG("");
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t pos =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	
 	ext2fs_instance_t *inst;
 	ext2_inode_ref_t *inode_ref;
@@ -762,40 +713,38 @@ void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
-		return;
+		return EINVAL;
 	}
 	
-	rc = ext2fs_instance_get(devmap_handle, &inst);
+	rc = ext2fs_instance_get(service_id, &inst);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	rc = ext2_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	if (ext2_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
-		    EXT2_INODE_MODE_FILE)) {
-		ext2fs_read_file(rid, callid, pos, size, inst, inode_ref);
-	}
-	else if (ext2_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
-		    EXT2_INODE_MODE_DIRECTORY)) {
-		ext2fs_read_directory(rid, callid, pos, size, inst, inode_ref);
-	}
-	else {
+	    EXT2_INODE_MODE_FILE)) {
+		rc = ext2fs_read_file(callid, pos, size, inst, inode_ref,
+		    rbytes);
+	} else if (ext2_inode_is_type(inst->filesystem->superblock,
+	    inode_ref->inode, EXT2_INODE_MODE_DIRECTORY)) {
+		rc = ext2fs_read_directory(callid, pos, size, inst, inode_ref,
+		    rbytes);
+	} else {
 		/* Other inode types not supported */
 		async_answer_0(callid, ENOTSUP);
-		async_answer_0(rid, ENOTSUP);
+		rc = ENOTSUP;
 	}
 	
 	ext2_filesystem_put_inode_ref(inode_ref);
 	
+	return rc;
 }
 
 /**
@@ -813,8 +762,8 @@ bool ext2fs_is_dots(const uint8_t *name, size_t name_size) {
 	return false;
 }
 
-void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
-	size_t size, ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref)
+int ext2fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
+    ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	ext2_directory_iterator_t it;
 	aoff64_t next;
@@ -826,8 +775,7 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 	rc = ext2_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	/* Find next interesting directory entry.
@@ -840,7 +788,7 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		}
 		
 		name_size = ext2_directory_entry_ll_get_name_length(
-			inst->filesystem->superblock, it.current);
+		    inst->filesystem->superblock, it.current);
 		
 		/* skip . and .. */
 		if (ext2fs_is_dots(&it.current->name, name_size)) {
@@ -848,20 +796,19 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		}
 		
 		/* The on-disk entry does not contain \0 at the end
-			* end of entry name, so we copy it to new buffer
-			* and add the \0 at the end
-			*/
+		 * end of entry name, so we copy it to new buffer
+		 * and add the \0 at the end
+		 */
 		buf = malloc(name_size+1);
 		if (buf == NULL) {
 			ext2_directory_iterator_fini(&it);
 			async_answer_0(callid, ENOMEM);
-			async_answer_0(rid, ENOMEM);
-			return;
+			return ENOMEM;
 		}
 		memcpy(buf, &it.current->name, name_size);
-		*(buf+name_size) = 0;
+		*(buf + name_size) = 0;
 		found = true;
-		(void) async_data_read_finalize(callid, buf, name_size+1);
+		(void) async_data_read_finalize(callid, buf, name_size + 1);
 		free(buf);
 		break;
 		
@@ -870,37 +817,32 @@ skip:
 		if (rc != EOK) {
 			ext2_directory_iterator_fini(&it);
 			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 	}
 	
 	if (found) {
 		rc = ext2_directory_iterator_next(&it);
-		if (rc != EOK) {
-			async_answer_0(rid, rc);
-			return;
-		}
+		if (rc != EOK)
+			return rc;
 		next = it.current_offset;
 	}
 	
 	rc = ext2_directory_iterator_fini(&it);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	if (rc != EOK)
+		return rc;
 	
 	if (found) {
-		async_answer_1(rid, EOK, next-pos);
-	}
-	else {
+		*rbytes = next - pos;
+		return EOK;
+	} else {
 		async_answer_0(callid, ENOENT);
-		async_answer_0(rid, ENOENT);
+		return ENOENT;
 	}
 }
 
-void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
-	size_t size, ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref)
+int ext2fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
+    ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	int rc;
 	uint32_t block_size;
@@ -918,8 +860,8 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 	if (pos >= file_size) {
 		/* Read 0 bytes successfully */
 		async_data_read_finalize(callid, NULL, 0);
-		async_answer_1(rid, EOK, 0);
-		return;
+		*rbytes = 0;
+		return EOK;
 	}
 	
 	/* For now, we only read data from one block at a time */
@@ -938,8 +880,7 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		inode_ref->inode, file_block, &fs_block);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	/* Check for sparse file
@@ -951,102 +892,82 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		buffer = malloc(bytes);
 		if (buffer == NULL) {
 			async_answer_0(callid, ENOMEM);
-			async_answer_0(rid, ENOMEM);
-			return;
+			return ENOMEM;
 		}
 		
 		memset(buffer, 0, bytes);
 		
 		async_data_read_finalize(callid, buffer, bytes);
-		async_answer_1(rid, EOK, bytes);
+		*rbytes = bytes;
 		
 		free(buffer);
 		
-		return;
+		return EOK;
 	}
 	
 	/* Usual case - we need to read a block from device */
-	rc = block_get(&block, inst->devmap_handle, fs_block, BLOCK_FLAGS_NONE);
+	rc = block_get(&block, inst->service_id, fs_block, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	assert(offset_in_block + bytes <= block_size);
 	async_data_read_finalize(callid, block->data + offset_in_block, bytes);
 	
 	rc = block_put(block);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-		
-	async_answer_1(rid, EOK, bytes);
-}
-
-void ext2fs_write(ipc_callid_t rid, ipc_call_t *request)
-{
-	EXT2FS_DBG("");
-//	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-//	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-//	aoff64_t pos =
-//	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
+	if (rc != EOK)
+		return rc;
 	
-	// TODO
-	async_answer_0(rid, ENOTSUP);
+	*rbytes = bytes;
+	return EOK;
 }
 
-void ext2fs_truncate(ipc_callid_t rid, ipc_call_t *request)
+static int
+ext2fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
+    size_t *wbytes, aoff64_t *nsize)
 {
 	EXT2FS_DBG("");
-//	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-//	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-//	aoff64_t size =
-//	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
-	
-	// TODO
-	async_answer_0(rid, ENOTSUP);
+	return ENOTSUP;
 }
 
-void ext2fs_close(ipc_callid_t rid, ipc_call_t *request)
+static int
+ext2fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
 	EXT2FS_DBG("");
-	async_answer_0(rid, EOK);
+	return ENOTSUP;
 }
 
-void ext2fs_destroy(ipc_callid_t rid, ipc_call_t *request)
+static int ext2fs_close(service_id_t service_id, fs_index_t index)
 {
 	EXT2FS_DBG("");
-//	devmap_handle_t devmap_handle = (devmap_handle_t)IPC_GET_ARG1(*request);
-//	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	
-	// TODO
-	async_answer_0(rid, ENOTSUP);
+	return EOK;
 }
 
-void ext2fs_open_node(ipc_callid_t rid, ipc_call_t *request)
+static int ext2fs_destroy(service_id_t service_id, fs_index_t index)
 {
 	EXT2FS_DBG("");
-	libfs_open_node(&ext2fs_libfs_ops, ext2fs_reg.fs_handle, rid, request);
+	return ENOTSUP;
 }
 
-void ext2fs_stat(ipc_callid_t rid, ipc_call_t *request)
+static int ext2fs_sync(service_id_t service_id, fs_index_t index)
 {
 	EXT2FS_DBG("");
-	libfs_stat(&ext2fs_libfs_ops, ext2fs_reg.fs_handle, rid, request);
+	return ENOTSUP;
 }
 
-void ext2fs_sync(ipc_callid_t rid, ipc_call_t *request)
-{
-	EXT2FS_DBG("");
-//	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-//	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
-	// TODO
-	async_answer_0(rid, ENOTSUP);
-}
+vfs_out_ops_t ext2fs_ops = {
+	.mounted = ext2fs_mounted,
+	.unmounted = ext2fs_unmounted,
+	.read = ext2fs_read,
+	.write = ext2fs_write,
+	.truncate = ext2fs_truncate,
+	.close = ext2fs_close,
+	.destroy = ext2fs_destroy,
+	.sync = ext2fs_sync,
+};
 
 /**
  * @}
  */
+

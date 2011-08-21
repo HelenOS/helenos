@@ -51,7 +51,7 @@
 #include <async.h>
 #include <fibril_synch.h>
 #include <stdio.h>
-#include <devmap.h>
+#include <loc.h>
 #include <ipc/bd.h>
 #include <macros.h>
 
@@ -234,15 +234,15 @@ static bool rd_init(void)
 	printf("%s: Found RAM disk at %p, %zu bytes\n", NAME,
 	    (void *) rd_ph_addr, rd_size);
 	
-	int rc = devmap_driver_register(NAME, rd_connection);
+	int rc = loc_server_register(NAME, rd_connection);
 	if (rc < 0) {
 		printf("%s: Unable to register driver (%d)\n", NAME, rc);
 		return false;
 	}
 	
-	devmap_handle_t devmap_handle;
-	if (devmap_device_register("bd/initrd", &devmap_handle) != EOK) {
-		printf("%s: Unable to register device\n", NAME);
+	service_id_t service_id;
+	if (loc_service_register("bd/initrd", &service_id) != EOK) {
+		printf("%s: Unable to register device service\n", NAME);
 		return false;
 	}
 	

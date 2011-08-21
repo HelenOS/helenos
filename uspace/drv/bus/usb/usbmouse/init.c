@@ -115,7 +115,7 @@ int usb_mouse_create(usb_device_t *dev)
 		goto leave;
 	
 	/* Add the function to mouse class. */
-	rc = ddf_fun_add_to_class(mouse->mouse_fun, "mouse");
+	rc = ddf_fun_add_to_category(mouse->mouse_fun, "mouse");
 	if (rc != EOK)
 		goto leave;
 	

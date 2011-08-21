@@ -39,7 +39,6 @@
 #include <main/uinit.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/uarg.h>
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <arch.h>
@@ -47,7 +46,7 @@
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <security/cap.h>
-#include <lib/elf.h>
+#include <lib/elf_load.h>
 #include <errno.h>
 #include <print.h>
 #include <syscall/copy.h>

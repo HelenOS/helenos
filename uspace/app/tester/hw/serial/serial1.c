@@ -71,7 +71,7 @@ const char *test_serial1(void)
 		}
 	
 	devman_handle_t handle;
-	int res = devman_device_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
+	int res = devman_fun_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
 	    IPC_FLAG_BLOCKING);
 	if (res != EOK)
 		return "Could not get serial device handle";

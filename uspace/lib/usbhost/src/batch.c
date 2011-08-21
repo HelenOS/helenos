@@ -108,6 +108,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->ep);
+	assert(instance->next_step);
 	endpoint_release(instance->ep);
 	instance->next_step(instance);
 }
@@ -127,7 +128,7 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 	/* We are data in, we need data */
 	memcpy(instance->buffer, instance->data_buffer, instance->buffer_size);
 
-	usb_log_debug("Batch %p " USB_TRANSFER_BATCH_FMT " completed (%zuB): %s.\n",
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed (%zuB): %s.\n",
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
 	    instance->transfered_size, str_error(instance->error));
 
@@ -144,7 +145,7 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 	assert(instance);
 	assert(instance->callback_out);
 
-	usb_log_debug("Batch %p " USB_TRANSFER_BATCH_FMT " completed: %s.\n",
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed: %s.\n",
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
 	    str_error(instance->error));
 

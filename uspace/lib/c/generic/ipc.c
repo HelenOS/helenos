@@ -46,6 +46,7 @@
 #include <adt/list.h>
 #include <futex.h>
 #include <fibril.h>
+#include <macros.h>
 
 /**
  * Structures of this type are used for keeping track
@@ -610,14 +611,14 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 
 /** Request callback connection.
  *
- * The @a taskhash and @a phonehash identifiers returned
+ * The @a task_id and @a phonehash identifiers returned
  * by the kernel can be used for connection tracking.
  *
  * @param phoneid   Phone handle used for contacting the other side.
  * @param arg1      User defined argument.
  * @param arg2      User defined argument.
  * @param arg3      User defined argument.
- * @param taskhash  Opaque identifier of the client task.
+ * @param task_id   Identifier of the client task.
  * @param phonehash Opaque identifier of the phone that will
  *                  be used for incoming calls.
  *
@@ -625,10 +626,16 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
  *
  */
 int ipc_connect_to_me(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
-    sysarg_t *taskhash, sysarg_t *phonehash)
+    task_id_t *task_id, sysarg_t *phonehash)
 {
-	return ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2,
-	    arg3, NULL, NULL, NULL, taskhash, phonehash);
+	ipc_call_t data;
+	int rc = __SYSCALL6(SYS_IPC_CALL_SYNC_FAST, phoneid,
+	    IPC_M_CONNECT_TO_ME, arg1, arg2, arg3, (sysarg_t) &data);
+	if (rc == EOK) {
+		*task_id = data.in_task_id;
+		*phonehash = IPC_GET_ARG5(data);
+	}	
+	return rc;
 }
 
 /** Request cloned connection.

@@ -37,13 +37,13 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <async_obsolete.h>
+#include "private/async.h"
 #undef LIBC_ASYNC_C_
 #undef LIBC_ASYNC_OBSOLETE_C_
 
 #include <fibril.h>
 #include <malloc.h>
 #include <errno.h>
-#include "private/async.h"
 
 /** Send message and return id of the sent message.
  *
