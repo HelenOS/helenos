@@ -62,6 +62,10 @@
 static driver_t *driver;
 
 /** Devices */
+LIST_INITIALIZE(devices);
+FIBRIL_MUTEX_INITIALIZE(devices_mutex);
+
+/** Functions */
 LIST_INITIALIZE(functions);
 FIBRIL_MUTEX_INITIALIZE(functions_mutex);
 
@@ -226,21 +230,32 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 	fibril_mutex_unlock(&functions_mutex);
 }
 
-static ddf_fun_t *driver_get_function(list_t *functions, devman_handle_t handle)
+static ddf_dev_t *driver_get_device(devman_handle_t handle)
+{
+	ddf_dev_t *dev = NULL;
+	
+	assert(fibril_mutex_is_locked(&devices_mutex));
+	
+	list_foreach(devices, link) {
+		dev = list_get_instance(link, ddf_dev_t, link);
+		if (dev->handle == handle)
+			return dev;
+	}
+	
+	return NULL;
+}
+
+static ddf_fun_t *driver_get_function(devman_handle_t handle)
 {
 	ddf_fun_t *fun = NULL;
 	
-	fibril_mutex_lock(&functions_mutex);
+	assert(fibril_mutex_is_locked(&functions_mutex));
 	
-	list_foreach(*functions, link) {
+	list_foreach(functions, link) {
 		fun = list_get_instance(link, ddf_fun_t, link);
-		if (fun->handle == handle) {
-			fibril_mutex_unlock(&functions_mutex);
+		if (fun->handle == handle)
 			return fun;
-		}
 	}
-	
-	fibril_mutex_unlock(&functions_mutex);
 	
 	return NULL;
 }
@@ -269,7 +284,88 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	if (res != EOK)
 		delete_device(dev);
 	
+	fibril_mutex_lock(&devices_mutex);
+	list_append(&dev->link, &devices);
+	fibril_mutex_unlock(&devices_mutex);
+	
 	async_answer_0(iid, res);
+}
+
+static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t devh;
+	ddf_dev_t *dev;
+	int rc;
+	
+	printf("libdrv: driver_dev_offline()\n");
+	devh = IPC_GET_ARG1(*icall);
+	
+	fibril_mutex_lock(&devices_mutex);
+	dev = driver_get_device(devh);
+	fibril_mutex_unlock(&devices_mutex);
+	/* XXX need lock on dev */
+	
+	if (dev == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (driver->driver_ops->dev_remove != NULL)
+		rc = driver->driver_ops->dev_remove(dev);
+	else
+		rc = ENOTSUP;
+	
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
+static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t funh;
+	ddf_fun_t *fun;
+	int rc;
+	
+	funh = IPC_GET_ARG1(*icall);
+	fibril_mutex_lock(&functions_mutex);
+	fun = driver_get_function(funh);
+	fibril_mutex_unlock(&functions_mutex);
+	/* XXX Need lock on fun */
+	
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (driver->driver_ops->fun_online != NULL)
+		rc = driver->driver_ops->fun_online(fun);
+	else
+		rc = ENOTSUP;
+	
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
+static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t funh;
+	ddf_fun_t *fun;
+	int rc;
+	
+	funh = IPC_GET_ARG1(*icall);
+	fibril_mutex_lock(&functions_mutex);
+	fun = driver_get_function(funh);
+	fibril_mutex_unlock(&functions_mutex);
+	/* XXX Need lock on fun */
+	
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (driver->driver_ops->fun_offline != NULL)
+		rc = driver->driver_ops->fun_offline(fun);
+	else
+		rc = ENOTSUP;
+	
+	async_answer_0(iid, (sysarg_t) rc);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
@@ -285,11 +381,20 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case DRIVER_ADD_DEVICE:
+		case DRIVER_DEV_ADD:
 			driver_add_device(callid, &call);
 			break;
+		case DRIVER_DEV_REMOVE:
+			driver_dev_remove(callid, &call);
+			break;
+		case DRIVER_FUN_ONLINE:
+			driver_fun_online(callid, &call);
+			break;
+		case DRIVER_FUN_OFFLINE:
+			driver_fun_offline(callid, &call);
+			break;
 		default:
-			async_answer_0(callid, ENOENT);
+			async_answer_0(callid, ENOTSUP);
 		}
 	}
 }
@@ -307,7 +412,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 * the device to which the client connected.
 	 */
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
-	ddf_fun_t *fun = driver_get_function(&functions, handle);
+
+	fibril_mutex_lock(&functions_mutex);
+	ddf_fun_t *fun = driver_get_function(handle);
+	fibril_mutex_unlock(&functions_mutex);
+	/* XXX Need a lock on fun */
 	
 	if (fun == NULL) {
 		printf("%s: driver_connection_gen error - no function with handle"
@@ -613,7 +722,7 @@ int ddf_fun_bind(ddf_fun_t *fun)
  * Unbind the specified function from the system. This effectively makes
  * the function invisible to the system.
  *
- * @param fun		Function to bind
+ * @param fun		Function to unbind
  * @return		EOK on success or negative error code
  */
 int ddf_fun_unbind(ddf_fun_t *fun)
@@ -622,7 +731,6 @@ int ddf_fun_unbind(ddf_fun_t *fun)
 	
 	assert(fun->bound == true);
 	
-	add_to_functions_list(fun);
 	res = devman_remove_function(fun->handle);
 	if (res != EOK)
 		return res;
@@ -630,6 +738,42 @@ int ddf_fun_unbind(ddf_fun_t *fun)
 	remove_from_functions_list(fun);
 	
 	fun->bound = false;
+	return EOK;
+}
+
+/** Online function.
+ *
+ * @param fun		Function to online
+ * @return		EOK on success or negative error code
+ */
+int ddf_fun_online(ddf_fun_t *fun)
+{
+	int res;
+	
+	assert(fun->bound == true);
+	
+	res = devman_drv_fun_online(fun->handle);
+	if (res != EOK)
+		return res;
+	
+	return EOK;
+}
+
+/** Offline function.
+ *
+ * @param fun		Function to offline
+ * @return		EOK on success or negative error code
+ */
+int ddf_fun_offline(ddf_fun_t *fun)
+{
+	int res;
+	
+	assert(fun->bound == true);
+	
+	res = devman_drv_fun_offline(fun->handle);
+	if (res != EOK)
+		return res;
+	
 	return EOK;
 }
 

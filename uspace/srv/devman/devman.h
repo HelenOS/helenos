@@ -239,8 +239,12 @@ extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
 extern void attach_driver(dev_node_t *, driver_t *);
+extern void detach_driver(dev_node_t *);
 extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
+extern int driver_dev_remove(dev_node_t *);
+extern int driver_fun_online(fun_node_t *);
+extern int driver_fun_offline(fun_node_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
@@ -273,6 +277,7 @@ extern fun_node_t *find_fun_node_in_device(dev_node_t *, const char *);
 extern bool init_device_tree(dev_tree_t *, driver_list_t *);
 extern bool create_root_nodes(dev_tree_t *);
 extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
+extern void remove_dev_node(dev_tree_t *, dev_node_t *);
 extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
 extern void remove_fun_node(dev_tree_t *, fun_node_t *);
 

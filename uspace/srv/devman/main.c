@@ -236,6 +236,89 @@ static int assign_driver_fibril(void *arg)
 	return EOK;
 }
 
+static int online_function(fun_node_t *fun)
+{
+	dev_node_t *dev;
+	
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	
+	if (fun->ftype == fun_inner) {
+		dev = create_dev_node();
+		if (dev == NULL) {
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
+			delete_fun_node(fun);
+			return ENOMEM;
+		}
+
+		insert_dev_node(&device_tree, dev, fun);
+	}
+	
+	fibril_rwlock_write_unlock(&device_tree.rwlock);
+	
+	log_msg(LVL_DEBUG, "devman_add_function(fun=\"%s\")", fun->pathname);
+	
+	if (fun->ftype == fun_inner) {
+		dev = fun->child;
+		assert(dev != NULL);
+		
+		/*
+		 * Try to find a suitable driver and assign it to the device.  We do
+		 * not want to block the current fibril that is used for processing
+		 * incoming calls: we will launch a separate fibril to handle the
+		 * driver assigning. That is because assign_driver can actually include
+		 * task spawning which could take some time.
+		 */
+		fid_t assign_fibril = fibril_create(assign_driver_fibril, dev);
+		if (assign_fibril == 0) {
+			/*
+			 * Fallback in case we are out of memory.
+			 * Probably not needed as we will die soon anyway ;-).
+			 */
+			(void) assign_driver_fibril(fun);
+		} else {
+			fibril_add_ready(assign_fibril);
+		}
+	} else {
+		loc_register_tree_function(fun, &device_tree);
+	}
+	
+	return EOK;
+}
+
+static int offline_function(fun_node_t *fun)
+{
+	int rc;
+	
+	if (fun->ftype == fun_inner) {
+		printf("devman_drv_fun_offline(): %p is inner fun, removing "
+		    "child dev.\n", fun);
+		if (fun->child != NULL) {
+			dev_node_t *dev = fun->child;
+			
+			rc = driver_dev_remove(dev);
+			if (rc != EOK) {
+				return ENOTSUP;
+			}
+			detach_driver(dev);
+			fibril_rwlock_write_lock(&device_tree.rwlock);
+			remove_dev_node(&device_tree, dev);
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
+			delete_dev_node(dev);
+		}
+	} else {
+		/* Unregister from location service */
+		rc = loc_service_unregister(fun->service_id);
+		if (rc != EOK) {
+			log_msg(LVL_ERROR, "Failed unregistering tree service.");
+			return EIO;
+		}
+		
+		fun->service_id = 0;
+	}
+	
+	return EOK;
+}
+
 /** Handle function registration.
  *
  * Child devices are registered by their parent's device driver.
@@ -249,7 +332,6 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	
 	fibril_rwlock_write_lock(&tree->rwlock);
 
-	dev_node_t *dev = NULL;
 	dev_node_t *pdev = find_dev_node_no_lock(&device_tree, dev_handle);
 	
 	if (pdev == NULL) {
@@ -296,46 +378,16 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
-
-	if (ftype == fun_inner) {
-		dev = create_dev_node();
-		if (dev == NULL) {
-			fibril_rwlock_write_unlock(&tree->rwlock);
-			delete_fun_node(fun);
-			async_answer_0(callid, ENOMEM);
-			return;
-		}
-
-		insert_dev_node(tree, dev, fun);
-	}
-
+	
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	
-	log_msg(LVL_DEBUG, "devman_add_function(fun=\"%s\")", fun->pathname);
-	
 	devman_receive_match_ids(match_count, &fun->match_ids);
-
-	if (ftype == fun_inner) {
-		assert(dev != NULL);
-		/*
-		 * Try to find a suitable driver and assign it to the device.  We do
-		 * not want to block the current fibril that is used for processing
-		 * incoming calls: we will launch a separate fibril to handle the
-		 * driver assigning. That is because assign_driver can actually include
-		 * task spawning which could take some time.
-		 */
-		fid_t assign_fibril = fibril_create(assign_driver_fibril, dev);
-		if (assign_fibril == 0) {
-			/*
-			 * Fallback in case we are out of memory.
-			 * Probably not needed as we will die soon anyway ;-).
-			 */
-			(void) assign_driver_fibril(fun);
-		} else {
-			fibril_add_ready(assign_fibril);
-		}
-	} else {
-		loc_register_tree_function(fun, tree);
+	
+	rc = online_function(fun);
+	if (rc != EOK) {
+		/* XXX clean up */
+		async_answer_0(callid, rc);
+		return;
 	}
 	
 	/* Return device handle to parent's driver. */
@@ -377,6 +429,64 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, EOK);
 }
 
+/** Online function by driver request.
+ *
+ */
+static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
+    driver_t *drv)
+{
+	fun_node_t *fun;
+	int rc;
+
+	printf("devman_drv_fun_online()\n");
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
+	
+	if (fun == NULL || fun->dev == NULL || fun->dev->drv != drv) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	rc = online_function(fun);
+	if (rc != EOK) {
+		printf("devman_drv_fun_online() online_fun->ERROR\n");
+		async_answer_0(iid, (sysarg_t) rc);
+		return;
+	}
+	printf("devman_drv_fun_online() online_fun->OK\n");
+	
+	async_answer_0(iid, (sysarg_t) EOK);
+}
+
+
+/** Offline function by driver request.
+ *
+ */
+static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
+    driver_t *drv)
+{
+	fun_node_t *fun;
+	int rc;
+
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
+	
+	if (fun == NULL || fun->dev == NULL || fun->dev->drv != drv) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	rc = offline_function(fun);
+	if (rc != EOK) {
+		async_answer_0(iid, (sysarg_t) rc);
+		return;
+	}
+	
+	async_answer_0(iid, (sysarg_t) EOK);
+}
+
 /** Remove function. */
 static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -398,16 +508,21 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	if (fun->ftype == fun_inner) {
 		/* Handle possible descendants */
 		/* TODO */
-		log_msg(LVL_WARN, "devman_remove_function(): not handling "
-		    "descendants\n");
+		if (fun->child != NULL) {
+			log_msg(LVL_WARN, "devman_remove_function(): not handling "
+			    "descendants\n");
+		}
 	} else {
-		/* Unregister from location service */
-		rc = loc_service_unregister(fun->service_id);
-		if (rc != EOK) {
-			log_msg(LVL_ERROR, "Failed unregistering tree service.");
-			fibril_rwlock_write_unlock(&tree->rwlock);
-			async_answer_0(callid, EIO);
-			return;
+		if (fun->service_id != 0) {
+			/* Unregister from location service */
+			rc = loc_service_unregister(fun->service_id);
+			if (rc != EOK) {
+				log_msg(LVL_ERROR, "Failed unregistering tree "
+				    "service.");
+				fibril_rwlock_write_unlock(&tree->rwlock);
+				async_answer_0(callid, EIO);
+				return;
+			}
 		}
 	}
 	
@@ -484,11 +599,17 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_ADD_DEVICE_TO_CATEGORY:
 			devman_add_function_to_cat(callid, &call);
 			break;
+		case DEVMAN_DRV_FUN_ONLINE:
+			devman_drv_fun_online(callid, &call, driver);
+			break;
+		case DEVMAN_DRV_FUN_OFFLINE:
+			devman_drv_fun_offline(callid, &call, driver);
+			break;
 		case DEVMAN_REMOVE_FUNCTION:
 			devman_remove_function(callid, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL); 
+			async_answer_0(callid, EINVAL);
 			break;
 		}
 	}
@@ -665,6 +786,58 @@ static void devman_fun_get_child(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 }
 
+/** Online function.
+ *
+ * Send a request to online a function to the responsible driver.
+ * The driver may offline other functions if necessary (i.e. if the state
+ * of this function is linked to state of another function somehow).
+ */
+static void devman_fun_online(ipc_callid_t iid, ipc_call_t *icall)
+{
+	fun_node_t *fun;
+	int rc;
+
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
+	
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	rc = driver_fun_online(fun);
+	
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
+/** Offline function.
+ *
+ * Send a request to offline a function to the responsible driver. As
+ * a result the subtree rooted at that function should be cleanly
+ * detatched. The driver may offline other functions if necessary
+ * (i.e. if the state of this function is linked to state of another
+ * function somehow).
+ */
+static void devman_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
+{
+	fun_node_t *fun;
+	int rc;
+
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
+	
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	rc = driver_fun_offline(fun);
+	
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
 /** Find handle for the function instance identified by its service ID. */
 static void devman_fun_sid_to_handle(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -708,6 +881,12 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_FUN_GET_PATH:
 			devman_fun_get_path(callid, &call);
+			break;
+		case DEVMAN_FUN_ONLINE:
+			devman_fun_online(callid, &call);
+			break;
+		case DEVMAN_FUN_OFFLINE:
+			devman_fun_offline(callid, &call);
 			break;
 		case DEVMAN_FUN_SID_TO_HANDLE:
 			devman_fun_sid_to_handle(callid, &call);

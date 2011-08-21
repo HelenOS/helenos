@@ -482,6 +482,28 @@ void attach_driver(dev_node_t *dev, driver_t *drv)
 	fibril_mutex_unlock(&drv->driver_mutex);
 }
 
+/** Detach driver from device.
+ *
+ * @param node		The device's node in the device tree.
+ * @param drv		The driver.
+ */
+void detach_driver(dev_node_t *dev)
+{
+	/* XXX need lock on dev */
+	driver_t *drv = dev->drv;
+	
+	assert(drv != NULL);
+	log_msg(LVL_DEBUG, "detach_driver(dev=\"%s\",drv=\"%s\")",
+	    dev->pfun->pathname, drv->name);
+	
+	fibril_mutex_lock(&drv->driver_mutex);
+	
+	dev->drv = NULL;
+	list_remove(&dev->driver_devices);
+	
+	fibril_mutex_unlock(&drv->driver_mutex);
+}
+
 /** Start a driver
  *
  * @param drv		The driver's structure.
@@ -725,7 +747,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	async_exch_t *exch = async_exchange_begin(drv->sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(exch, DRIVER_ADD_DEVICE, dev->handle,
+	aid_t req = async_send_2(exch, DRIVER_DEV_ADD, dev->handle,
 	    parent_handle, &answer);
 	
 	/* Send the device name to the driver. */
@@ -797,6 +819,67 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 		add_device(drv, dev, tree);
 	
 	return true;
+}
+
+int driver_dev_remove(dev_node_t *dev)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	driver_t *drv;
+	
+	assert(dev != NULL);
+	log_msg(LVL_DEBUG, "driver_dev_remove(%p)", dev);
+	drv = dev->drv;
+	
+	exch = async_exchange_begin(drv->sess);
+	retval = async_req_1_0(exch, DRIVER_DEV_REMOVE, dev->handle);
+	async_exchange_end(exch);
+	
+	return retval;
+
+}
+
+int driver_fun_online(fun_node_t *fun)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	driver_t *drv;
+	
+	log_msg(LVL_DEBUG, "driver_fun_online(%p)", fun);
+	if (fun->dev == NULL) {
+		/* XXX root function? */
+		return EINVAL;
+	}
+	
+	drv = fun->dev->drv;
+	
+	exch = async_exchange_begin(drv->sess);
+	retval = async_req_1_0(exch, DRIVER_FUN_ONLINE, fun->handle);
+	loc_exchange_end(exch);
+	
+	return retval;
+}
+
+int driver_fun_offline(fun_node_t *fun)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	driver_t *drv;
+	
+	log_msg(LVL_DEBUG, "driver_fun_offline(%p)", fun);
+	if (fun->dev == NULL) {
+		/* XXX root function? */
+		return EINVAL;
+	}
+	
+	drv = fun->dev->drv;
+	
+	exch = async_exchange_begin(drv->sess);
+	retval = async_req_1_0(exch, DRIVER_FUN_OFFLINE, fun->handle);
+	loc_exchange_end(exch);
+	
+	return retval;
+
 }
 
 /** Initialize the device tree.
@@ -1064,6 +1147,29 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 	return true;
 }
 
+/** Remove device from device tree.
+ *
+ * @param tree		Device tree
+ * @param dev		Device node
+ */
+void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
+{
+	assert(tree != NULL);
+	assert(dev != NULL);
+	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
+	
+	log_msg(LVL_DEBUG, "remove_dev_node(dev=%p)", dev);
+	
+	/* Remove node from the handle-to-node map. */
+	unsigned long key = dev->handle;
+	hash_table_remove(&tree->devman_devices, &key, 1);
+	
+	/* Unlink from parent function. */
+	dev->pfun->child = NULL;
+	dev->pfun = NULL;
+}
+
+
 /** Insert new function into device tree.
  *
  * @param tree		The device tree.
@@ -1126,6 +1232,8 @@ void remove_fun_node(dev_tree_t *tree, fun_node_t *fun)
 	/* Remove the node from the list of its parent's children. */
 	if (fun->dev != NULL)
 		list_remove(&fun->dev_functions);
+	
+	fun->dev = NULL;
 }
 
 /** Find function node with a specified path in the device tree.
