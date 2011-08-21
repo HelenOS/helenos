@@ -59,20 +59,17 @@ int print_wrapped_console(const char *str, align_mode_t alignment)
 	return print_wrapped(str, con_cols, alignment);
 }
 
-static int print_line(wchar_t *wstr, size_t chars, void *data)
+/** Line consumer that prints the lines aligned according to spec
+ *
+ **/
+static int print_line(wchar_t *wstr, size_t chars, bool last, void *data)
 {
-	//char *line = wstr_to_astr(wstr);
 	printmode_t *pm = (printmode_t *) data;
-	//if (line == NULL) {
-	//	return ENOMEM;
-	//}
+	wchar_t old_char = wstr[chars];
 	wstr[chars] = 0;
-	return print_aligned_w(wstr, pm->width, pm->alignment);
-	//printf("%s", line);
-	//if (pm->newline_always || chars < pm->width)
-	//	printf("\n");
-	//free(line);
-	//return EOK;
+	int rc = print_aligned_w(wstr, pm->width, last, pm->alignment);
+	wstr[chars] = old_char;
+	return rc;
 }
 
 int print_wrapped(const char *str, size_t width, align_mode_t mode)
@@ -90,11 +87,12 @@ int print_wrapped(const char *str, size_t width, align_mode_t mode)
 	return rc;
 }
 
-int print_aligned_w(const wchar_t *wstr, size_t width, align_mode_t mode)
+int print_aligned_w(const wchar_t *wstr, size_t width, bool last,
+    align_mode_t mode)
 {
 	size_t i;
 	size_t len = wstr_length(wstr);
-	if (mode == ALIGN_LEFT) {
+	if (mode == ALIGN_LEFT || (mode == ALIGN_JUSTIFY && last)) {
 		for (i = 0; i < width; i++) {
 			if (i < len)
 				putchar(wstr[i]);
@@ -170,19 +168,17 @@ skip_words:
 	
 	return EOK;
 }
-int print_aligned(const char *str, size_t width, align_mode_t mode)
+int print_aligned(const char *str, size_t width, bool last, align_mode_t mode)
 {
 	wchar_t *wstr = str_to_awstr(str);
 	if (wstr == NULL) {
 		return ENOMEM;
 	}
-	int rc = print_aligned_w(wstr, width, mode);
+	int rc = print_aligned_w(wstr, width, last, mode);
 	free(wstr);
 	return rc;
 }
 
-/**
- */
 int wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 {
 	size_t word_start = 0;
@@ -201,7 +197,8 @@ int wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 		/* Skip spaces and process newlines */
 		while (wstr[pos] == ' ' || wstr[pos] == '\n') {
 			if (wstr[pos] == '\n') {
-				consumer(wstr + line_start, line_len, data);
+				consumer(wstr + line_start, line_len, true,
+				    data);
 				last_word_end = line_start = pos + 1;
 				line_len = 0;
 			}
@@ -212,16 +209,18 @@ int wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 		while (wstr[pos] != 0 && wstr[pos] != ' ' &&
 		    wstr[pos] != '\n')
 			pos++;
+		bool last = wstr[pos] == 0;
 		/* Check if the line still fits width */
 		if (pos - line_start > width) {
 			if (line_len > 0)
-				consumer(wstr + line_start, line_len, data);
+				consumer(wstr + line_start, line_len, last,
+				    data);
 			line_start = last_word_end = word_start;
 			line_len = 0;
 		}
 		/* Check if we need to force wrap of long word*/
 		if (pos - word_start > width) {
-			consumer(wstr + word_start, width, data);
+			consumer(wstr + word_start, width, last, data);
 			pos = line_start = last_word_end = word_start + width;
 			line_len = 0;
 		}
@@ -232,7 +231,7 @@ int wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 	 * Moreover, the last portion does not contain spaces or newlines 
 	 */
 	if (pos - line_start > 0)
-		consumer(wstr + line_start, pos - line_start, data);
+		consumer(wstr + line_start, pos - line_start, true, data);
 
 	return EOK;
 }

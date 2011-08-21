@@ -38,14 +38,15 @@ typedef enum {
  * 
  * @param content pointer to line data (note: this is NOT null-terminated)
  * @param size number of characters in line
+ * @param end_of_para true if the line is the last line of the paragraph
  * @param data user data
  * 
  * @returns EOK on success or error code on failure
  */
-typedef int (*line_consumer_fn)(wchar_t *, size_t, void *);
+typedef int (*line_consumer_fn)(wchar_t *, size_t, bool, void *);
 
-extern int print_aligned_w(const wchar_t *, size_t, align_mode_t);
-extern int print_aligned(const char *, size_t, align_mode_t);
+extern int print_aligned_w(const wchar_t *, size_t, bool, align_mode_t);
+extern int print_aligned(const char *, size_t, bool, align_mode_t);
 extern int print_wrapped(const char *, size_t, align_mode_t);
 extern int print_wrapped_console(const char *, align_mode_t);
 
