@@ -268,19 +268,19 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 size_t fat_lfn_get_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
 {
 	int i;
-	for (i=1; i>=0 && *offset>0; i--) {
+	for (i=FAT_LFN_PART3_SIZE-1; i>=0 && *offset>0; i--) {
 		if (d->lfn.part3[i] == 0 || d->lfn.part3[i] == FAT_LFN_PAD)
 			continue;
 		(*offset)--;
 		dst[(*offset)] = uint16_t_le2host(d->lfn.part3[i]);
 	}
-	for (i=5; i>=0 && *offset>0; i--) {
+	for (i=FAT_LFN_PART2_SIZE-1; i>=0 && *offset>0; i--) {
 		if (d->lfn.part2[i] == 0 || d->lfn.part2[i] == FAT_LFN_PAD)
 			continue;
 		(*offset)--;
 		dst[(*offset)] = uint16_t_le2host(d->lfn.part2[i]);
 	}
-	for (i=4; i>=0 && *offset>0; i--) {
+	for (i=FAT_LFN_PART1_SIZE-1; i>=0 && *offset>0; i--) {
 		if (d->lfn.part1[i] == 0 || d->lfn.part1[i] == FAT_LFN_PAD)
 			continue;
 		(*offset)--;
@@ -292,7 +292,7 @@ size_t fat_lfn_get_entry(const fat_dentry_t *d, uint16_t *dst, size_t *offset)
 size_t fat_lfn_set_entry(const uint16_t *src, size_t *offset, size_t size, fat_dentry_t *d)
 {
 	size_t idx;
-	for (idx=0; idx < 5; idx++) {
+	for (idx=0; idx < FAT_LFN_PART1_SIZE; idx++) {
 		if (*offset < size) {
 			d->lfn.part1[idx] = host2uint16_t_le(src[*offset]);
 			(*offset)++;
@@ -300,7 +300,7 @@ size_t fat_lfn_set_entry(const uint16_t *src, size_t *offset, size_t size, fat_d
 		else
 			d->lfn.part1[idx] = FAT_LFN_PAD;
 	}
-	for (idx=0; idx < 6; idx++) {
+	for (idx=0; idx < FAT_LFN_PART2_SIZE; idx++) {
 		if (*offset < size) {
 			d->lfn.part2[idx] = host2uint16_t_le(src[*offset]);
 			(*offset)++;
@@ -308,7 +308,7 @@ size_t fat_lfn_set_entry(const uint16_t *src, size_t *offset, size_t size, fat_d
 		else
 			d->lfn.part2[idx] = FAT_LFN_PAD;
 	}
-	for (idx=0; idx < 2; idx++) {
+	for (idx=0; idx < FAT_LFN_PART3_SIZE; idx++) {
 		if (*offset < size) {
 			d->lfn.part3[idx] = host2uint16_t_le(src[*offset]);
 			(*offset)++;
