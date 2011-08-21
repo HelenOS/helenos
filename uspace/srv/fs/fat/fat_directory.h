@@ -48,7 +48,7 @@ typedef struct {
 	aoff64_t pos;
 	block_t *b;
 	bool last;
-} __attribute__ ((packed)) fat_directory_t;
+} fat_directory_t;
 
 
 extern int fat_directory_open(fat_node_t *, fat_directory_t *);

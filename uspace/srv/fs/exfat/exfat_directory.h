@@ -50,7 +50,7 @@ typedef struct {
 	bool last;
 	bool fragmented;
 	exfat_cluster_t firstc;
-} __attribute__ ((packed)) exfat_directory_t;
+} exfat_directory_t;
 
 
 extern void exfat_directory_init(exfat_directory_t *di);
