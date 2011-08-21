@@ -730,11 +730,12 @@ void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 wchar_t *str_to_awstr(const char *str)
 {
 	size_t len = str_length(str);
-        wchar_t *wstr = calloc(len+1, sizeof(wchar_t));
-        if (wstr == NULL) {
-                return NULL;
-        }
-        str_to_wstr(wstr, len+1, str);
+	
+	wchar_t *wstr = calloc(len+1, sizeof(wchar_t));
+	if (wstr == NULL)
+		return NULL;
+	
+	str_to_wstr(wstr, len + 1, str);
 	return wstr;
 }
 

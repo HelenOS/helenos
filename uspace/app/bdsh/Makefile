@@ -30,8 +30,8 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBCLUI_PREFIX)/libclui.a \
 	$(LIBFMTUTIL_PREFIX)/libfmtutil.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX) -I$(LIBFMTUTIL_PREFIX)\
-	-I. -Icmds/ -Icmds/builtins -Icmds/modules
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX) \
+	-I$(LIBFMTUTIL_PREFIX) -I. -Icmds/ -Icmds/builtins -Icmds/modules
 BINARY = bdsh
 
 SOURCES = \
