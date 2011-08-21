@@ -34,7 +34,7 @@ class TextFileDemo is
 		var in_file : TextFile;
 		var out_file : TextFile;
 
-		name = "/readme";
+		name = "/textdemo";
 
 		in_file = new TextFile();
 		in_file.OpenRead(name);

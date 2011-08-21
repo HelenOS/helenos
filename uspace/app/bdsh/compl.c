@@ -98,7 +98,7 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	int retval;
 	tokenizer_t tok;
 	token_t tokens[WORD_MAX];
-	unsigned int current_token;
+	int current_token;
 	size_t tokens_length;
 
 	cs = calloc(1, sizeof(compl_t));
@@ -126,7 +126,8 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	}
 	
 	/* Find the current token */
-	for (current_token = 0; current_token < tokens_length; current_token++) {
+	for (current_token = 0; current_token < (int) tokens_length;
+	    current_token++) {
 		token_t *t = &tokens[current_token];
 		size_t end = t->char_start + t->char_length;
 		/* Check if the caret lies inside the token or immediately
@@ -136,8 +137,9 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 			break;
 		}
 	}
+	if (tokens_length == 0) current_token = -1;
 	
-	if (tokens[current_token].type != TOKTYPE_SPACE) {
+	if (current_token >= 0 && tokens[current_token].type != TOKTYPE_SPACE) {
 		*cstart = tokens[current_token].char_start;
 	}
 	else {
@@ -153,9 +155,12 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 		retval = ENOMEM;
 		goto error;
 	}
+	prefix[pref_size] = 0;
 
-	str_ncpy(prefix, pref_size + 1, stext +
-	    tokens[current_token].byte_start, pref_size);
+	if (current_token >= 0) {
+		str_ncpy(prefix, pref_size + 1, stext +
+		    tokens[current_token].byte_start, pref_size);
+	}
 
 	/*
 	 * Determine if the token being completed is a command or argument.
@@ -165,7 +170,7 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 
 	/* Skip any whitespace before current token */
 	int prev_token = current_token - 1;
-	if (prev_token != -1 && tokens[prev_token].type == TOKTYPE_SPACE) {
+	if (prev_token >= 0 && tokens[prev_token].type == TOKTYPE_SPACE) {
 		prev_token--;
 	}
 
@@ -173,7 +178,7 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	 * It is a command if it is the first token or if it immediately
 	 * follows a pipe token.
 	 */
-	if (prev_token == -1 || tokens[prev_token].type == TOKTYPE_SPACE)
+	if (prev_token < 0 || tokens[prev_token].type == TOKTYPE_SPACE)
 		cs->is_command = true;
 	else
 		cs->is_command = false;

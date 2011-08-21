@@ -162,6 +162,7 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/fmtutil \
 	lib/scsi \
 	lib/softint \
 	lib/softfloat \
