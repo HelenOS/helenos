@@ -163,6 +163,9 @@ int print_aligned_w(const wchar_t *wstr, size_t width, align_mode_t mode)
 			done_chars++;
 		}
 	}
+	else {
+		return EINVAL;
+	}
 	
 	return EOK;
 }
