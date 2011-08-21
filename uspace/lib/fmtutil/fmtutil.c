@@ -130,14 +130,13 @@ int print_aligned_w(const wchar_t *wstr, size_t width, align_mode_t mode)
 			space = wstr[i] == ' ';
 			if (!space) word_chars++;
 		}
-		if (words == 0) {
-			return EOK;
-		}
+		size_t done_words = 0;
+		size_t done_chars = 0;
+		if (words == 0)
+			goto skip_words;
 		size_t excess_spaces = width - word_chars - (words-1);
 		space = true;
 		i = 0;
-		size_t done_words = 0;
-		size_t done_chars = 0;
 		size_t j;
 		while (i < len) {
 			/* Find a word */
@@ -159,6 +158,7 @@ int print_aligned_w(const wchar_t *wstr, size_t width, align_mode_t mode)
 			}
 			done_words++;
 		}
+skip_words:
 		while (done_chars < width) {
 			putchar(' ');
 			done_chars++;
