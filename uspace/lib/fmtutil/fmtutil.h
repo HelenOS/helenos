@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include "../tester.h"
+typedef enum {
+	ALIGN_LEFT,
+	ALIGN_RIGHT,
+	ALIGN_CENTER,
+	ALIGN_JUSTIFY
+} align_mode_t;
 
-#define BUF_SIZE  32
+/** Callback that processes a line of characters.
+ * (e.g. as a result of wrap operation)
+ * 
+ * @param content pointer to line data (note: this is NOT null-terminated)
+ * @param size number of characters in line
+ * @param end_of_para true if the line is the last line of the paragraph
+ * @param data user data
+ * 
+ * @returns EOK on success or error code on failure
+ */
+typedef int (*line_consumer_fn)(wchar_t *, size_t, bool, void *);
 
-static char buf[BUF_SIZE + 1];
+extern int print_aligned_w(const wchar_t *, size_t, bool, align_mode_t);
+extern int print_aligned(const char *, size_t, bool, align_mode_t);
+extern int print_wrapped(const char *, size_t, align_mode_t);
+extern int print_wrapped_console(const char *, align_mode_t);
 
-const char *test_stdio1(void)
-{
-	FILE *file;
-	const char *file_name = "/textdemo";
-	
-	TPRINTF("Open file \"%s\"...", file_name);
-	errno = 0;
-	file = fopen(file_name, "rt");
-	if (file == NULL) {
-		TPRINTF("errno = %d\n", errno);
-		return "Failed opening file";
-	} else
-		TPRINTF("OK\n");
-	
-	TPRINTF("Read file...");
-	size_t cnt = fread(buf, 1, BUF_SIZE, file);
-	if (ferror(file)) {
-		TPRINTF("errno = %d\n", errno);
-		fclose(file);
-		return "Failed reading file";
-	} else
-		TPRINTF("OK\n");
-	
-	buf[cnt] = '\0';
-	TPRINTF("Read %zu bytes, string \"%s\"\n", cnt, buf);
-	
-	TPRINTF("Seek to beginning...");
-	if (fseek(file, 0, SEEK_SET) != 0) {
-		TPRINTF("errno = %d\n", errno);
-		fclose(file);
-		return "Failed seeking in file";
-	} else
-		TPRINTF("OK\n");
-	
-	TPRINTF("Read using fgetc()...");
-	while (true) {
-		int c = fgetc(file);
-		if (c == EOF)
-			break;
-		
-		TPRINTF(".");
-	}
-	TPRINTF("[EOF]\n");
-	
-	TPRINTF("Close...");
-	if (fclose(file) != 0) {
-		TPRINTF("errno = %d\n", errno);
-		return "Failed closing file";
-	} else
-		TPRINTF("OK\n");
-	
-	return NULL;
-}
+/** Wrap characters in a wide string to the given length.
+ *
+ * @param wstr the null-terminated wide string to wrap
+ * @param size number of characters to wrap to
+ * @param consumer the function that receives wrapped lines
+ * @param data user data to pass to the consumer function
+ */
+extern int wrap(wchar_t *, size_t, line_consumer_fn, void *);

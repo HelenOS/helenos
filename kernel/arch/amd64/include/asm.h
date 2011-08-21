@@ -40,6 +40,8 @@
 #include <arch/cpu.h>
 #include <trace.h>
 
+#define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
+
 /** Return base address of current stack.
  *
  * Return the base address of the current stack.
@@ -76,8 +78,6 @@ NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
 	}
 }
 
-#define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
-
 /** Byte from port
  *
  * Get byte from port
@@ -90,15 +90,16 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
 		uint8_t val;
+		
 		asm volatile (
 			"inb %w[port], %b[val]\n"
 			: [val] "=a" (val)
 			: [port] "d" (port)
 		);
+		
 		return val;
-	} else {
+	} else
 		return (uint8_t) *port;
-	}
 }
 
 /** Word from port
@@ -113,15 +114,16 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
 		uint16_t val;
+		
 		asm volatile (
 			"inw %w[port], %w[val]\n"
 			: [val] "=a" (val)
 			: [port] "d" (port)
 		);
+		
 		return val;
-	} else {
+	} else
 		return (uint16_t) *port;
-	}
 }
 
 /** Double word from port
@@ -136,15 +138,16 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
 		uint32_t val;
+		
 		asm volatile (
 			"inl %w[port], %[val]\n"
 			: [val] "=a" (val)
 			: [port] "d" (port)
 		);
+		
 		return val;
-	} else {
+	} else
 		return (uint32_t) *port;
-	}
 }
 
 /** Byte to port
@@ -162,9 +165,8 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 			"outb %b[val], %w[port]\n"
 			:: [val] "a" (val), [port] "d" (port)
 		);	
-	} else {
+	} else
 		*port = val;
-	}
 }
 
 /** Word to port
@@ -182,9 +184,8 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 			"outw %w[val], %w[port]\n"
 			:: [val] "a" (val), [port] "d" (port)
 		);
-	} else {
+	} else
 		*port = val;
-	}
 }
 
 /** Double word to port
@@ -202,9 +203,8 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 			"outl %[val], %w[port]\n"
 			:: [val] "a" (val), [port] "d" (port)
 		);
-	} else {
+	} else
 		*port = val;
-	}
 }
 
 /** Swap Hidden part of GS register with visible one */

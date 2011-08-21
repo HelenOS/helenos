@@ -62,6 +62,11 @@ typedef struct dev_node dev_node_t;
 struct fun_node;
 typedef struct fun_node fun_node_t;
 
+typedef struct {
+	fibril_mutex_t mutex;
+	struct driver *driver;
+} client_t;
+
 typedef enum {
 	/** Driver has not been started. */
 	DRIVER_NOT_STARTED = 0,

@@ -1657,6 +1657,24 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 	return sess;
 }
 
+/** Set arguments for new connections.
+ *
+ * FIXME This is an ugly hack to work around the problem that parallel
+ * exchanges are implemented using parallel connections. When we create
+ * a callback session, the framework does not know arguments for the new
+ * connections.
+ *
+ * The proper solution seems to be to implement parallel exchanges using
+ * tagging.
+ */
+void async_sess_args_set(async_sess_t *sess, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
+{
+	sess->arg1 = arg1;
+	sess->arg2 = arg2;
+	sess->arg3 = arg3;
+}
+
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
  *
  * Ask through phone for a new connection to some service and block until

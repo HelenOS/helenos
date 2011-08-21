@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2005 Martin Decky
  * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -717,6 +718,25 @@ void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 	} while (c != '\0');
 
 	dest[dlen - 1] = '\0';
+}
+
+/** Convert string to wide string.
+ *
+ * Convert string @a src to wide string. A new wide NULL-terminated
+ * string will be allocated on the heap.
+ *
+ * @param src	Source string.
+ */
+wchar_t *str_to_awstr(const char *str)
+{
+	size_t len = str_length(str);
+	
+	wchar_t *wstr = calloc(len+1, sizeof(wchar_t));
+	if (wstr == NULL)
+		return NULL;
+	
+	str_to_wstr(wstr, len + 1, str);
+	return wstr;
 }
 
 /** Find first occurence of character in string.
