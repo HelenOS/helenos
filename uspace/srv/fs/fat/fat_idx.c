@@ -115,13 +115,13 @@ static hash_table_t up_hash;
 #define UPH_BUCKETS_LOG	12
 #define UPH_BUCKETS	(1 << UPH_BUCKETS_LOG)
 
-#define UPH_DH_KEY	0
+#define UPH_SID_KEY	0
 #define UPH_PFC_KEY	1
 #define UPH_PDI_KEY	2
 
 static hash_index_t pos_hash(unsigned long key[])
 {
-	service_id_t service_id = (service_id_t)key[UPH_DH_KEY];
+	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
 	fat_cluster_t pfc = (fat_cluster_t)key[UPH_PFC_KEY];
 	unsigned pdi = (unsigned)key[UPH_PDI_KEY];
 
@@ -149,7 +149,7 @@ static hash_index_t pos_hash(unsigned long key[])
 
 static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	service_id_t service_id = (service_id_t)key[UPH_DH_KEY];
+	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
 	fat_cluster_t pfc;
 	unsigned pdi;
 	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uph_link);
@@ -189,12 +189,12 @@ static hash_table_t ui_hash;
 #define UIH_BUCKETS_LOG	12
 #define UIH_BUCKETS	(1 << UIH_BUCKETS_LOG)
 
-#define UIH_DH_KEY	0
+#define UIH_SID_KEY	0
 #define UIH_INDEX_KEY	1
 
 static hash_index_t idx_hash(unsigned long key[])
 {
-	service_id_t service_id = (service_id_t)key[UIH_DH_KEY];
+	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
 	fs_index_t index = (fs_index_t)key[UIH_INDEX_KEY];
 
 	hash_index_t h;
@@ -208,7 +208,7 @@ static hash_index_t idx_hash(unsigned long key[])
 
 static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	service_id_t service_id = (service_id_t)key[UIH_DH_KEY];
+	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
 	fs_index_t index;
 	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
 
@@ -401,7 +401,7 @@ int fat_idx_get_new(fat_idx_t **fidxp, service_id_t service_id)
 	}
 		
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = service_id,
+		[UIH_SID_KEY] = service_id,
 		[UIH_INDEX_KEY] = fidx->index,
 	};
 	
@@ -419,7 +419,7 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 	fat_idx_t *fidx;
 	link_t *l;
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = service_id,
+		[UPH_SID_KEY] = service_id,
 		[UPH_PFC_KEY] = pfc,
 		[UPH_PDI_KEY] = pdi,
 	};
@@ -438,7 +438,7 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 		}
 		
 		unsigned long ikey[] = {
-			[UIH_DH_KEY] = service_id,
+			[UIH_SID_KEY] = service_id,
 			[UIH_INDEX_KEY] = fidx->index,
 		};
 	
@@ -457,7 +457,7 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 void fat_idx_hashin(fat_idx_t *idx)
 {
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = idx->service_id,
+		[UPH_SID_KEY] = idx->service_id,
 		[UPH_PFC_KEY] = idx->pfc,
 		[UPH_PDI_KEY] = idx->pdi,
 	};
@@ -470,7 +470,7 @@ void fat_idx_hashin(fat_idx_t *idx)
 void fat_idx_hashout(fat_idx_t *idx)
 {
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = idx->service_id,
+		[UPH_SID_KEY] = idx->service_id,
 		[UPH_PFC_KEY] = idx->pfc,
 		[UPH_PDI_KEY] = idx->pdi,
 	};
@@ -486,7 +486,7 @@ fat_idx_get_by_index(service_id_t service_id, fs_index_t index)
 	fat_idx_t *fidx = NULL;
 	link_t *l;
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = service_id,
+		[UIH_SID_KEY] = service_id,
 		[UIH_INDEX_KEY] = index,
 	};
 
@@ -508,7 +508,7 @@ fat_idx_get_by_index(service_id_t service_id, fs_index_t index)
 void fat_idx_destroy(fat_idx_t *idx)
 {
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = idx->service_id,
+		[UIH_SID_KEY] = idx->service_id,
 		[UIH_INDEX_KEY] = idx->index,
 	};
 	service_id_t service_id = idx->service_id;
@@ -570,10 +570,10 @@ int fat_idx_init_by_service_id(service_id_t service_id)
 void fat_idx_fini_by_service_id(service_id_t service_id)
 {
 	unsigned long ikey[] = {
-		[UIH_DH_KEY] = service_id
+		[UIH_SID_KEY] = service_id
 	};
 	unsigned long pkey[] = {
-		[UPH_DH_KEY] = service_id
+		[UPH_SID_KEY] = service_id
 	};
 
 	/*
