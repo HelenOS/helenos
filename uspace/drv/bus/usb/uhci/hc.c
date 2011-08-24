@@ -40,11 +40,18 @@
 #include <usb/usb.h>
 
 #include "hc.h"
+#include "batch.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \
     (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
 #define UHCI_STATUS_USED_INTERRUPTS \
     (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)
+
+static int schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+{
+	assert(hcd);
+	return hc_schedule(hcd->private_data, batch);
+}
 
 static const irq_cmd_t uhci_irq_commands[] =
 {
@@ -130,6 +137,11 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	instance->registers = io;
 	usb_log_debug(
 	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
+	hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
+	instance->generic.private_data = instance;
+	instance->generic.schedule = schedule;
+	instance->generic.batch_private_ctor = uhci_transfer_batch_create;
+	instance->generic.batch_private_dtor = uhci_transfer_batch_dispose;
 
 	ret = hc_init_mem_structures(instance);
 	CHECK_RET_RETURN(ret,

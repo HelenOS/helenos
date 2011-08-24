@@ -41,6 +41,7 @@
 #include <usb/host/device_keeper.h>
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/batch.h>
+#include <usb/host/hcd.h>
 
 #include "transfer_list.h"
 
@@ -93,6 +94,7 @@ typedef struct uhci_regs {
 
 /** Main UHCI driver structure */
 typedef struct hc {
+	hcd_t generic;
 	/** USB bus driver, devices and addresses */
 	usb_device_keeper_t manager;
 	/** USB bus driver, endpoints */

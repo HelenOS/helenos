@@ -45,6 +45,9 @@ usb_transfer_batch_t * batch_get(
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg);
 
+void * uhci_transfer_batch_create(usb_transfer_batch_t *batch);
+void uhci_transfer_batch_dispose(void *uhci_batch);
+
 void batch_dispose(usb_transfer_batch_t *instance);
 
 bool batch_is_complete(usb_transfer_batch_t *instance);

@@ -44,6 +44,23 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
+static void batch_setup_control(usb_transfer_batch_t *batch)
+{
+	// TODO Find a better way to do this
+	if (batch->setup_buffer[0] & (1 << 7))
+		batch_control_read(batch);
+	else
+		batch_control_write(batch);
+}
+
+void (*batch_setup[4][3])(usb_transfer_batch_t*) =
+{
+	{ NULL, NULL, batch_setup_control },
+	{ NULL, NULL, NULL },
+	{ batch_bulk_in, batch_bulk_out, NULL },
+	{ batch_interrupt_in, batch_interrupt_out, NULL },
+};
+ // */
 /** UHCI specific data required for USB transfer */
 typedef struct uhci_transfer_batch {
 	/** Queue head
@@ -67,12 +84,67 @@ static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
  *
  * @param[in] uhci_batch Instance to destroy.
  */
-static void uhci_transfer_batch_dispose(void *uhci_batch)
+void uhci_transfer_batch_dispose(void *uhci_batch)
 {
 	uhci_transfer_batch_t *instance = uhci_batch;
 	assert(instance);
 	free32(instance->device_buffer);
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
+{
+#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
+	if (ptr == NULL) { \
+		usb_log_error(message); \
+		if (uhci_data) { \
+			uhci_transfer_batch_dispose(uhci_data); \
+		} \
+		return NULL; \
+	} else (void)0
+
+	uhci_transfer_batch_t *uhci_data =
+	    calloc(1, sizeof(uhci_transfer_batch_t));
+	CHECK_NULL_DISPOSE_RETURN(uhci_data,
+	    "Failed to allocate UHCI batch.\n");
+
+	uhci_data->td_count =
+	    (batch->buffer_size + batch->ep->max_packet_size - 1)
+	    / batch->ep->max_packet_size;
+	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
+		uhci_data->td_count += 2;
+	}
+
+	assert((sizeof(td_t) % 16) == 0);
+	const size_t total_size = (sizeof(td_t) * uhci_data->td_count)
+	    + sizeof(qh_t) + batch->setup_size + batch->buffer_size;
+	uhci_data->device_buffer = malloc32(total_size);
+	CHECK_NULL_DISPOSE_RETURN(uhci_data->device_buffer,
+	    "Failed to allocate UHCI buffer.\n");
+	bzero(uhci_data->device_buffer, total_size);
+
+	uhci_data->tds = uhci_data->device_buffer;
+	uhci_data->qh =
+	    (uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count));
+
+	qh_init(uhci_data->qh);
+	qh_set_element_td(uhci_data->qh, uhci_data->tds);
+
+	void *setup =
+	    uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count)
+	    + sizeof(qh_t);
+	/* Copy SETUP packet data to device buffer */
+	memcpy(setup, batch->setup_buffer, batch->setup_size);
+	/* Set generic data buffer pointer */
+	batch->data_buffer = setup + batch->setup_size;
+	batch->private_data = uhci_data;
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
+	    " memory structures ready.\n", batch,
+	    USB_TRANSFER_BATCH_ARGS(*batch));
+	assert(batch_setup[batch->ep->transfer_type][batch->ep->direction]);
+	batch_setup[batch->ep->transfer_type][batch->ep->direction](batch);
+
+	return uhci_data;
 }
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.

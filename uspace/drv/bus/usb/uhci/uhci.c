@@ -86,7 +86,7 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 /*----------------------------------------------------------------------------*/
 /** Operations supported by the HC driver */
 static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
+	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
 /** Get address of the device identified by handle.
@@ -99,7 +99,7 @@ static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	usb_device_keeper_t *manager = &dev_to_uhci(fun->dev)->hc.manager;
+	usb_device_keeper_t *manager = &dev_to_uhci(fun->dev)->hc.generic.dev_manager;
 	usb_address_t addr = usb_device_keeper_find(manager, handle);
 
 	if (addr < 0) {
@@ -201,7 +201,7 @@ if (ret != EOK) { \
 	int ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI HC function.\n");
 	instance->hc_fun->ops = &hc_ops;
-	instance->hc_fun->driver_data = &instance->hc;
+	instance->hc_fun->driver_data = &instance->hc.generic;
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci_rh");
 	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
