@@ -31,12 +31,13 @@ LIBRARY = libusbhost
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include \
-	-Iinclude
+	-Iinclude 
 
 SOURCES = \
 	src/batch.c \
 	src/device_keeper.c \
 	src/endpoint.c \
+	src/iface.c \
 	src/usb_endpoint_manager.c
 
 include $(USPACE_PREFIX)/Makefile.common
