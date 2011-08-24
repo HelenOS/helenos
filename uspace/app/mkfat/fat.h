@@ -46,7 +46,7 @@
 #define FAT16	16
 #define FAT32	32
 
-#define FAT_SIZE(a) ((a==FAT12)? 1.5 : ( (a==FAT16)? 2 : 4  ) ) 
+#define FAT_SIZE(a) (((a) == FAT12) ? 1.5 : (((a) == FAT16) ? 2 : 4)) 
 
 typedef struct fat_bs {
 	uint8_t		ji[3];		/**< Jump instruction. */

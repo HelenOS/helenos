@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: mkfat32 [--size <sectors>] [--type 12|16|32] <device_name>\n");
+	printf("syntax: mkfat [--size <sectors>] [--type 12|16|32] <device_name>\n");
 }
 
 /** Derive sizes of different filesystem structures.
@@ -228,11 +228,11 @@ static int fat_params_compute(struct fat_cfg *cfg)
 	uint32_t non_data_sectors_lb;
 
 	/*
-     * Make a conservative guess on the FAT size needed for the file
-     * system. The optimum could be potentially smaller since we
-     * do not subtract size of the FAT itself when computing the
-     * size of the data region.
-     */
+	 * Make a conservative guess on the FAT size needed for the file
+	 * system. The optimum could be potentially smaller since we
+	 * do not subtract size of the FAT itself when computing the
+	 * size of the data region.
+	 */
 
 	if (cfg->fat_type == FAT12)
 		cfg->sectors_per_cluster = 1;
@@ -241,8 +241,7 @@ static int fat_params_compute(struct fat_cfg *cfg)
 	if (cfg->fat_type != FAT32) {
 		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
 			cfg->sector_size);
-	}
-	else
+	} else
 		cfg->rootdir_sectors = 0;
 	non_data_sectors_lb = cfg->reserved_sectors + cfg->rootdir_sectors;
 
@@ -250,8 +249,8 @@ static int fat_params_compute(struct fat_cfg *cfg)
 	    cfg->sectors_per_cluster);
 
 	if ((cfg->fat_type == FAT12 && cfg->total_clusters > FAT12_CLST_MAX) ||
-		(cfg->fat_type == FAT16 && (cfg->total_clusters <= FAT12_CLST_MAX ||
-		cfg->total_clusters > FAT16_CLST_MAX)) ||
+	    (cfg->fat_type == FAT16 && (cfg->total_clusters <= FAT12_CLST_MAX ||
+	    cfg->total_clusters > FAT16_CLST_MAX)) ||
 	    (cfg->fat_type == FAT32 && cfg->total_clusters <= FAT16_CLST_MAX))
 		return ENOSPC;
 
@@ -339,7 +338,7 @@ static int fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id)
 			++addr;
 		}
 	} else {
-		for (i=0; i<cfg->sectors_per_cluster; i++) {
+		for (i = 0; i < cfg->sectors_per_cluster; i++) {
 			rc = block_write_direct(service_id, addr, 1, buffer);
 			if (rc != EOK)
 				return EIO;
