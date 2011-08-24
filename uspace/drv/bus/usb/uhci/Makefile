@@ -41,7 +41,6 @@ EXTRA_CFLAGS += \
 BINARY = uhci
 
 SOURCES = \
-	iface.c \
 	main.c \
 	transfer_list.c \
 	uhci.c \

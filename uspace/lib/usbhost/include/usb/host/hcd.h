@@ -60,6 +60,11 @@ static inline int hcd_init(hcd_t *hcd, size_t bandwidth)
 	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth);
 }
 /*----------------------------------------------------------------------------*/
+static inline void hcd_destroy(hcd_t *hcd)
+{
+	usb_endpoint_manager_destroy(&hcd->ep_manager);
+}
+/*----------------------------------------------------------------------------*/
 static inline void reset_ep_if_need(
     hcd_t *hcd, usb_target_t target, const char* setup_data)
 {

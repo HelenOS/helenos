@@ -43,6 +43,14 @@
 #include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
+static void batch_control_write(usb_transfer_batch_t *instance);
+static void batch_control_read(usb_transfer_batch_t *instance);
+
+static void batch_interrupt_in(usb_transfer_batch_t *instance);
+static void batch_interrupt_out(usb_transfer_batch_t *instance);
+
+static void batch_bulk_in(usb_transfer_batch_t *instance);
+static void batch_bulk_out(usb_transfer_batch_t *instance);
 
 static void batch_setup_control(usb_transfer_batch_t *batch)
 {
@@ -92,6 +100,24 @@ void uhci_transfer_batch_dispose(void *uhci_batch)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
+/** Allocate memory and initialize internal data structure.
+ *
+ * @param[in] fun DDF function to pass to callback.
+ * @param[in] ep Communication target
+ * @param[in] buffer Data source/destination.
+ * @param[in] buffer_size Size of the buffer.
+ * @param[in] setup_buffer Setup data source (if not NULL)
+ * @param[in] setup_size Size of setup_buffer (should be always 8)
+ * @param[in] func_in function to call on inbound transfer completion
+ * @param[in] func_out function to call on outbound transfer completion
+ * @param[in] arg additional parameter to func_in or func_out
+ * @return Valid pointer if all structures were successfully created,
+ * NULL otherwise.
+ *
+ * Determines the number of needed transfer descriptors (TDs).
+ * Prepares a transport buffer (that is accessible by the hardware).
+ * Initializes parameters needed for the transfer and callback.
+ */
 void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
 {
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
@@ -147,87 +173,6 @@ void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
 	return uhci_data;
 }
 /*----------------------------------------------------------------------------*/
-/** Allocate memory and initialize internal data structure.
- *
- * @param[in] fun DDF function to pass to callback.
- * @param[in] ep Communication target
- * @param[in] buffer Data source/destination.
- * @param[in] buffer_size Size of the buffer.
- * @param[in] setup_buffer Setup data source (if not NULL)
- * @param[in] setup_size Size of setup_buffer (should be always 8)
- * @param[in] func_in function to call on inbound transfer completion
- * @param[in] func_out function to call on outbound transfer completion
- * @param[in] arg additional parameter to func_in or func_out
- * @return Valid pointer if all structures were successfully created,
- * NULL otherwise.
- *
- * Determines the number of needed transfer descriptors (TDs).
- * Prepares a transport buffer (that is accessible by the hardware).
- * Initializes parameters needed for the transfer and callback.
- */
-usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
-    char *buffer, size_t buffer_size,
-    const char* setup_buffer, size_t setup_size,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg)
-{
-	assert(ep);
-	assert(func_in == NULL || func_out == NULL);
-	assert(func_in != NULL || func_out != NULL);
-
-#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
-	if (ptr == NULL) { \
-		usb_log_error(message); \
-		if (uhci_data) { \
-			uhci_transfer_batch_dispose(uhci_data); \
-		} \
-		return NULL; \
-	} else (void)0
-
-	uhci_transfer_batch_t *uhci_data =
-	    malloc(sizeof(uhci_transfer_batch_t));
-	CHECK_NULL_DISPOSE_RETURN(uhci_data,
-	    "Failed to allocate UHCI batch.\n");
-	bzero(uhci_data, sizeof(uhci_transfer_batch_t));
-
-	uhci_data->td_count =
-	    (buffer_size + ep->max_packet_size - 1) / ep->max_packet_size;
-	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		uhci_data->td_count += 2;
-	}
-
-	assert((sizeof(td_t) % 16) == 0);
-	const size_t total_size = (sizeof(td_t) * uhci_data->td_count)
-	    + sizeof(qh_t) + setup_size + buffer_size;
-	uhci_data->device_buffer = malloc32(total_size);
-	CHECK_NULL_DISPOSE_RETURN(uhci_data->device_buffer,
-	    "Failed to allocate UHCI buffer.\n");
-	bzero(uhci_data->device_buffer, total_size);
-
-	uhci_data->tds = uhci_data->device_buffer;
-	uhci_data->qh =
-	    (uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count));
-
-	qh_init(uhci_data->qh);
-	qh_set_element_td(uhci_data->qh, uhci_data->tds);
-
-	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
-	CHECK_NULL_DISPOSE_RETURN(instance,
-	    "Failed to allocate batch instance.\n");
-	void *setup =
-	    uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count)
-	    + sizeof(qh_t);
-	void *data_buffer = setup + setup_size;
-	usb_transfer_batch_init(instance, ep, buffer, data_buffer, buffer_size,
-	    setup, setup_size, func_in, func_out, arg, fun,
-	    uhci_data, uhci_transfer_batch_dispose);
-
-	memcpy(instance->setup_buffer, setup_buffer, setup_size);
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
-	    " memory structures ready.\n", instance,
-	    USB_TRANSFER_BATCH_ARGS(*instance));
-	return instance;
-}
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs for activity.
  *
@@ -287,7 +232,7 @@ substract_ret:
  *
  * Uses generic control function with pids OUT and IN.
  */
-void batch_control_write(usb_transfer_batch_t *instance)
+static void batch_control_write(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
@@ -303,7 +248,7 @@ void batch_control_write(usb_transfer_batch_t *instance)
  *
  * Uses generic control with pids IN and OUT.
  */
-void batch_control_read(usb_transfer_batch_t *instance)
+static void batch_control_read(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_control(instance, USB_PID_IN, USB_PID_OUT);
@@ -317,7 +262,7 @@ void batch_control_read(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_IN.
  */
-void batch_interrupt_in(usb_transfer_batch_t *instance)
+static void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
@@ -331,7 +276,7 @@ void batch_interrupt_in(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_OUT.
  */
-void batch_interrupt_out(usb_transfer_batch_t *instance)
+static void batch_interrupt_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
@@ -347,7 +292,7 @@ void batch_interrupt_out(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_IN.
  */
-void batch_bulk_in(usb_transfer_batch_t *instance)
+static void batch_bulk_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
@@ -361,7 +306,7 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_OUT.
  */
-void batch_bulk_out(usb_transfer_batch_t *instance)
+static void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
@@ -379,7 +324,7 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
  * Transactions with alternating toggle bit and supplied pid value.
  * The last transfer is marked with IOC flag.
  */
-void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
+static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
 	uhci_transfer_batch_t *data = instance->private_data;
@@ -430,7 +375,7 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
  * Status stage with toggle 1 and pid supplied by parameter.
  * The last transfer is marked with IOC.
  */
-void batch_control(usb_transfer_batch_t *instance,
+static void batch_control(usb_transfer_batch_t *instance,
    usb_packet_id data_stage, usb_packet_id status_stage)
 {
 	assert(instance);

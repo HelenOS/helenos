@@ -141,26 +141,26 @@ int pci_enable_interrupts(const ddf_dev_t *device)
 int pci_disable_legacy(const ddf_dev_t *device)
 {
 	assert(device);
-	
+
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	/* See UHCI design guide for these values p.45,
 	 * write all WC bits in USB legacy register */
 	const sysarg_t address = 0xc0;
 	const sysarg_t value = 0xaf00;
-	
+
 	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
+
 	const int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
-	
+
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
-	
+
 	return rc;
 }
 

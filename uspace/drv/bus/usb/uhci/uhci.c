@@ -40,7 +40,6 @@
 #include <usb/debug.h>
 
 #include "uhci.h"
-#include "iface.h"
 #include "pci.h"
 
 #include "hc.h"
