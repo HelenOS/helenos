@@ -71,7 +71,6 @@ extern size_t wstr_nlength(const wchar_t *str, size_t size);
 
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);
-extern bool wstr_is_ascii(const wchar_t *wstr);
 
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, size_t max_len);

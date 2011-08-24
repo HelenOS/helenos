@@ -367,18 +367,6 @@ bool ascii_check(wchar_t ch)
 	return false;
 }
 
-/** Check whether wide string is plain ASCII.
- *
- * @return True if wide string is plain ASCII.
- *
- */
-bool wstr_is_ascii(const wchar_t *wstr)
-{
-	while (*wstr && ascii_check(*wstr))
-		wstr++;
-	return *wstr == 0;
-}
-
 /** Check whether character is valid
  *
  * @return True if character is a valid Unicode code point.
