@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,18 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a
-EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX)
-BINARY = fat
-STATIC_NEEDED = y
+USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -Iinclude
+BINARY = filecrc
 
 SOURCES = \
-	fat.c \
-	fat_ops.c \
-	fat_idx.c \
-	fat_dentry.c \
-	fat_directory.c \
-	fat_fat.c
+	filecrc.c \
+	crc32.c
 
 include $(USPACE_PREFIX)/Makefile.common

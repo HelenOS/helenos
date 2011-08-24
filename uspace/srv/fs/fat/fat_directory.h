@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
@@ -32,62 +30,48 @@
  * @{
  */ 
 
-/**
- * @file	fat.c
- * @brief	FAT file system driver for HelenOS.
- */
+#ifndef FAT_FAT_DIRECTORY_H_
+#define FAT_FAT_DIRECTORY_H_
 
+#include <stdint.h>
 #include "fat.h"
-#include <ipc/services.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
-#include <unistd.h>
-#include <task.h>
-#include <stdio.h>
-#include <libfs.h>
-#include "../../vfs/vfs.h"
+#include "fat_dentry.h"
 
-#define NAME	"fat"
+#define FAT_MAX_SFN 9999
 
-vfs_info_t fat_vfs_info = {
-	.name = NAME,
-	.concurrent_read_write = false,
-	.write_retains_size = false,	
-};
+typedef struct {
+	/* Directory data */
+	fat_bs_t *bs;
+	fat_node_t *nodep;
+	uint32_t blocks;
+	uint32_t bnum;
+	aoff64_t pos;
+	block_t *b;
+	bool last;
+} fat_directory_t;
 
-int main(int argc, char **argv)
-{
-	printf(NAME ": HelenOS FAT file system server\n");
-	
-	int rc = fat_idx_init();
-	if (rc != EOK)
-		goto err;
-	
-	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_VFS, 0, 0);
-	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
-		return -1;
-	}
-	
-	rc = fs_register(vfs_sess, &fat_vfs_info, &fat_ops, &fat_libfs_ops);
-	if (rc != EOK) {
-		fat_idx_fini();
-		goto err;
-	}
-	
-	printf(NAME ": Accepting connections\n");
-	task_retval(0);
-	async_manager();
-	
-	/* Not reached */
-	return 0;
-	
-err:
-	printf(NAME ": Failed to register file system (%d)\n", rc);
-	return rc;
-}
+
+extern int fat_directory_open(fat_node_t *, fat_directory_t *);
+extern int fat_directory_close(fat_directory_t *);
+
+extern int fat_directory_next(fat_directory_t *);
+extern int fat_directory_prev(fat_directory_t *);
+extern int fat_directory_seek(fat_directory_t *, aoff64_t);
+extern int fat_directory_get(fat_directory_t *, fat_dentry_t **);
+
+extern int fat_directory_read(fat_directory_t *, char *, fat_dentry_t **);
+extern int fat_directory_write(fat_directory_t *, const char *, fat_dentry_t *);
+extern int fat_directory_erase(fat_directory_t *);
+extern int fat_directory_lookup_name(fat_directory_t *, const char *, fat_dentry_t **);
+extern bool fat_directory_is_sfn_exist(fat_directory_t *, fat_dentry_t *);
+
+extern int fat_directory_lookup_free(fat_directory_t *di, size_t count);
+extern int fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de);
+extern int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const char *lname);
+extern int fat_directory_expand(fat_directory_t *di);
+
+
+#endif
 
 /**
  * @}

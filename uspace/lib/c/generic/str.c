@@ -2,6 +2,7 @@
  * Copyright (c) 2005 Martin Decky
  * Copyright (c) 2008 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -366,6 +367,18 @@ bool ascii_check(wchar_t ch)
 	return false;
 }
 
+/** Check whether wide string is plain ASCII.
+ *
+ * @return True if wide string is plain ASCII.
+ *
+ */
+bool wstr_is_ascii(const wchar_t *wstr)
+{
+	while (*wstr && ascii_check(*wstr))
+		wstr++;
+	return *wstr == 0;
+}
+
 /** Check whether character is valid
  *
  * @return True if character is a valid Unicode code point.
@@ -618,9 +631,12 @@ int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n)
  * @param dest	Destination buffer.
  * @param size	Size of the destination buffer.
  * @param src	Source wide string.
+ *
+ * @return EOK, if success, negative otherwise.
  */
-void wstr_to_str(char *dest, size_t size, const wchar_t *src)
+int wstr_to_str(char *dest, size_t size, const wchar_t *src)
 {
+	int rc;
 	wchar_t ch;
 	size_t src_idx;
 	size_t dest_off;
@@ -632,12 +648,92 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest_off = 0;
 
 	while ((ch = src[src_idx++]) != 0) {
-		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
+		rc = chr_encode(ch, dest, &dest_off, size - 1);
+		if (rc != EOK)
 			break;
 	}
 
 	dest[dest_off] = '\0';
+	return rc;
 }
+
+/** Convert UTF16 string to string.
+ *
+ * Convert utf16 string @a src to string. The output is written to the buffer
+ * specified by @a dest and @a size. @a size must be non-zero and the string
+ * written will always be well-formed. Surrogate pairs also supported.
+ *
+ * @param dest	Destination buffer.
+ * @param size	Size of the destination buffer.
+ * @param src	Source utf16 string.
+ *
+ * @return EOK, if success, negative otherwise.
+ */
+int utf16_to_str(char *dest, size_t size, const uint16_t *src)
+{
+	size_t idx=0, dest_off=0;
+	wchar_t ch;
+	int rc = EOK;
+
+	/* There must be space for a null terminator in the buffer. */
+	assert(size > 0);
+
+	while (src[idx]) {
+		if ((src[idx] & 0xfc00) == 0xd800) {
+			if (src[idx+1] && (src[idx+1] & 0xfc00) == 0xdc00) {
+				ch = 0x10000;
+				ch += (src[idx] & 0x03FF) << 10;
+				ch += (src[idx+1] & 0x03FF);
+				idx += 2;
+			}
+			else
+				break;
+		} else {
+			ch = src[idx];
+			idx++;
+		}
+		rc = chr_encode(ch, dest, &dest_off, size-1);
+		if (rc != EOK)
+			break;
+	}
+	dest[dest_off] = '\0';
+	return rc;
+}
+
+int str_to_utf16(uint16_t *dest, size_t size, const char *src)
+{
+	int rc=EOK;
+	size_t offset=0;
+	size_t idx=0;
+	wchar_t c;
+
+	assert(size > 0);
+	
+	while ((c = str_decode(src, &offset, STR_NO_LIMIT)) != 0) {
+		if (c > 0x10000) {
+			if (idx+2 >= size-1) {
+				rc=EOVERFLOW;
+				break;
+			}
+			c = (c - 0x10000);
+			dest[idx] = 0xD800 | (c >> 10);
+			dest[idx+1] = 0xDC00 | (c & 0x3FF);
+			idx++;
+		} else {
+			 dest[idx] = c;
+		}
+
+		idx++;
+		if (idx >= size-1) {
+			rc=EOVERFLOW;
+			break;
+		}
+	}
+
+	dest[idx] = '\0';
+	return rc;
+}
+
 
 /** Convert wide string to new string.
  *
@@ -697,9 +793,12 @@ char *wstr_to_astr(const wchar_t *src)
  * @param dest	Destination buffer.
  * @param dlen	Length of destination buffer (number of wchars).
  * @param src	Source string.
+ *
+ * @return EOK, if success, negative otherwise.
  */
-void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
+int str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 {
+	int rc=EOK;
 	size_t offset;
 	size_t di;
 	wchar_t c;
@@ -710,14 +809,17 @@ void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 	di = 0;
 
 	do {
-		if (di >= dlen - 1)
+		if (di >= dlen - 1) {
+			rc = EOVERFLOW;
 			break;
+		}
 
 		c = str_decode(src, &offset, STR_NO_LIMIT);
 		dest[di++] = c;
 	} while (c != '\0');
 
 	dest[dlen - 1] = '\0';
+	return rc;
 }
 
 /** Convert string to wide string.
@@ -782,6 +884,41 @@ char *str_rchr(const char *str, wchar_t ch)
 	}
 	
 	return (char *) res;
+}
+
+/** Find first occurence of character in wide string.
+ *
+ * @param wstr String to search.
+ * @param ch  Character to look for.
+ *
+ * @return Pointer to character in @a wstr or NULL if not found.
+ */
+wchar_t *wstr_chr(const wchar_t *wstr, wchar_t ch)
+{
+	while (*wstr && *wstr != ch)
+		wstr++;
+	if (*wstr)
+		return (wchar_t *) wstr;
+	else
+		return NULL;
+}
+
+/** Find last occurence of character in wide string.
+ *
+ * @param wstr String to search.
+ * @param ch  Character to look for.
+ *
+ * @return Pointer to character in @a wstr or NULL if not found.
+ */
+wchar_t *wstr_rchr(const wchar_t *wstr, wchar_t ch)
+{
+	const wchar_t *res = NULL;
+	while (*wstr) {
+		if (*wstr == ch)
+			res = wstr;
+		wstr++;
+	}
+	return (wchar_t *) res;
 }
 
 /** Insert a wide character into a wide string.
@@ -1036,6 +1173,36 @@ char *str_ndup(const char *src, size_t n)
 	return dest;
 }
 
+void str_reverse(char* begin, char* end) 
+{
+    char aux;
+    while(end>begin)
+        aux=*end, *end--=*begin, *begin++=aux;
+}
+
+int size_t_str(size_t value, int base, char* str, size_t size) 
+{
+    static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    char* wstr=str;
+	
+	if (size == 0) 
+		return EINVAL;
+    if (base<2 || base>35) {
+        *str='\0';
+        return EINVAL;
+    }
+
+    do {
+        *wstr++ = num[value % base];
+		if (--size == 0)
+			return EOVERFLOW;
+    } while(value /= base);
+    *wstr='\0';
+
+    // Reverse string
+    str_reverse(str,wstr-1);
+	return EOK;
+}
 
 /** Convert initial part of string to unsigned long according to given base.
  * The number may begin with an arbitrary number of whitespaces followed by

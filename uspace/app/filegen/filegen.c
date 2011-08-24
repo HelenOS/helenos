@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
@@ -28,66 +26,93 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup filecheck
  * @{
- */ 
-
-/**
- * @file	fat.c
- * @brief	FAT file system driver for HelenOS.
  */
 
-#include "fat.h"
-#include <ipc/services.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
+/**
+ * @file	filecrc.c
+ * @brief	Tool for generating file with random data
+ *
+ */
+
+
 #include <unistd.h>
-#include <task.h>
 #include <stdio.h>
-#include <libfs.h>
-#include "../../vfs/vfs.h"
+#include <stdlib.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/time.h>
+#include "crc32.h"
 
-#define NAME	"fat"
+#define NAME	"filegen"
+#define VERSION "0.0.1"
 
-vfs_info_t fat_vfs_info = {
-	.name = NAME,
-	.concurrent_read_write = false,
-	.write_retains_size = false,	
-};
+#define BUFFERSIZE 256
 
-int main(int argc, char **argv)
-{
-	printf(NAME ": HelenOS FAT file system server\n");
+
+static void print_help(void);
+
+
+int main(int argc, char **argv) {
+	int rc;
+	uint64_t size = 0;
 	
-	int rc = fat_idx_init();
-	if (rc != EOK)
-		goto err;
-	
-	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_VFS, 0, 0);
-	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
-		return -1;
+	if (argc < 3) {
+		print_help();
+		return 0;
 	}
 	
-	rc = fs_register(vfs_sess, &fat_vfs_info, &fat_ops, &fat_libfs_ops);
+	int fd = open(argv[1], O_WRONLY | O_CREAT);
+	if (fd < 0) {
+		printf("Unable to open %s for writing\n", argv[1]);
+		return 1;
+	}
+	
+	rc = str_uint64(argv[2], NULL, 10, true, &size);
 	if (rc != EOK) {
-		fat_idx_fini();
-		goto err;
+		printf("Cannot convert size to number\n");
+		return 1;
 	}
 	
-	printf(NAME ": Accepting connections\n");
-	task_retval(0);
-	async_manager();
+	struct timeval tv;	
+	gettimeofday(&tv, NULL);
+	srandom(tv.tv_sec + tv.tv_usec / 100000);	
+
+	uint64_t i=0, pbuf=0;
+	uint32_t crc=~0;
+	char buf[BUFFERSIZE];
 	
-	/* Not reached */
+	while (i<size) {
+		pbuf=0;
+		while (i<size && pbuf<BUFFERSIZE) {
+			buf[pbuf] = rand() % 255;
+			i++;
+			pbuf++;
+		}
+		if (pbuf) {
+			crc32(buf, pbuf, &crc);
+			write(fd, buf, pbuf);
+		}
+	}
+	
+	close(fd);
+	crc = ~crc;
+	printf("%s : %x\n", argv[1], crc);
+
 	return 0;
-	
-err:
-	printf(NAME ": Failed to register file system (%d)\n", rc);
-	return rc;
 }
+
+
+/* Displays help for filegen */
+static void print_help(void)
+{
+	printf(
+	   "Usage:  %s <file> <size in bytes>\n",
+	   NAME);
+}
+
 
 /**
  * @}

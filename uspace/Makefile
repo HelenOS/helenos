@@ -38,6 +38,8 @@ DIRS = \
 	app/bnchmark \
 	app/devctl \
 	app/edit \
+	app/filecrc \
+	app/filegen \
 	app/ext2info \
 	app/getterm \
 	app/init \
@@ -78,6 +80,7 @@ DIRS = \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
+	srv/fs/exfat \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/locfs \

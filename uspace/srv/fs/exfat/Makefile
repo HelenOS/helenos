@@ -30,15 +30,15 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a
 EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX)
-BINARY = fat
-STATIC_NEEDED = y
+BINARY = exfat
 
 SOURCES = \
-	fat.c \
-	fat_ops.c \
-	fat_idx.c \
-	fat_dentry.c \
-	fat_directory.c \
-	fat_fat.c
+	exfat.c \
+	exfat_fat.c \
+	exfat_bitmap.c \
+	exfat_ops.c \
+	exfat_idx.c \
+	exfat_dentry.c \
+	exfat_directory.c
 
 include $(USPACE_PREFIX)/Makefile.common

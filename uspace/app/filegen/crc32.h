@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
@@ -28,67 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
- * @{
- */ 
-
-/**
- * @file	fat.c
- * @brief	FAT file system driver for HelenOS.
- */
-
-#include "fat.h"
-#include <ipc/services.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
 #include <unistd.h>
-#include <task.h>
-#include <stdio.h>
-#include <libfs.h>
-#include "../../vfs/vfs.h"
 
-#define NAME	"fat"
-
-vfs_info_t fat_vfs_info = {
-	.name = NAME,
-	.concurrent_read_write = false,
-	.write_retains_size = false,	
-};
-
-int main(int argc, char **argv)
-{
-	printf(NAME ": HelenOS FAT file system server\n");
-	
-	int rc = fat_idx_init();
-	if (rc != EOK)
-		goto err;
-	
-	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_VFS, 0, 0);
-	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
-		return -1;
-	}
-	
-	rc = fs_register(vfs_sess, &fat_vfs_info, &fat_ops, &fat_libfs_ops);
-	if (rc != EOK) {
-		fat_idx_fini();
-		goto err;
-	}
-	
-	printf(NAME ": Accepting connections\n");
-	task_retval(0);
-	async_manager();
-	
-	/* Not reached */
-	return 0;
-	
-err:
-	printf(NAME ": Failed to register file system (%d)\n", rc);
-	return rc;
-}
-
-/**
- * @}
- */
+void crc32(char *buf, size_t size, uint32_t * crc);
