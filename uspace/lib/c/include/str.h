@@ -98,9 +98,6 @@ extern bool wstr_remove(wchar_t *str, size_t pos);
 extern char *str_dup(const char *);
 extern char *str_ndup(const char *, size_t max_size);
 
-extern void str_reverse(char* begin, char* end);
-extern int size_t_str(size_t value, int base, char* str, size_t size);
-
 extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
 extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
 

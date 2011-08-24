@@ -1161,37 +1161,6 @@ char *str_ndup(const char *src, size_t n)
 	return dest;
 }
 
-void str_reverse(char* begin, char* end) 
-{
-    char aux;
-    while(end>begin)
-        aux=*end, *end--=*begin, *begin++=aux;
-}
-
-int size_t_str(size_t value, int base, char* str, size_t size) 
-{
-    static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    char* wstr=str;
-	
-	if (size == 0) 
-		return EINVAL;
-    if (base<2 || base>35) {
-        *str='\0';
-        return EINVAL;
-    }
-
-    do {
-        *wstr++ = num[value % base];
-		if (--size == 0)
-			return EOVERFLOW;
-    } while(value /= base);
-    *wstr='\0';
-
-    // Reverse string
-    str_reverse(str,wstr-1);
-	return EOK;
-}
-
 /** Convert initial part of string to unsigned long according to given base.
  * The number may begin with an arbitrary number of whitespaces followed by
  * optional sign (`+' or `-'). If the base is 0 or 16, the prefix `0x' may be

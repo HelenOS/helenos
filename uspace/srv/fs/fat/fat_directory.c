@@ -43,6 +43,7 @@
 #include <mem.h>
 #include <str.h>
 #include <align.h>
+#include <stdio.h>
 
 int fat_directory_block_load(fat_directory_t *);
 
@@ -346,10 +347,9 @@ int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de, const char *
 		name_len = FAT_NAME_LEN;
 	str_to_ascii(name, lname, name_len, FAT_SFN_CHAR);
 
-	size_t idx;
+	unsigned idx;
 	for (idx=1; idx <= FAT_MAX_SFN; idx++) {
-		if (size_t_str(idx, 10, number, FAT_NAME_LEN-2)!=EOK)
-			return EOVERFLOW;
+		snprintf(number, sizeof(number), "%u", idx);
 
 		/* Fill de->name with FAT_PAD */
 		memset(de->name, FAT_PAD, FAT_NAME_LEN+FAT_EXT_LEN);
