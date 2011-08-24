@@ -79,11 +79,11 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);
 
-extern int wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
+extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern char *wstr_to_astr(const wchar_t *src);
+extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 extern wchar_t *str_to_awstr(const char *src);
-extern int str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 extern int utf16_to_str(char *dest, size_t size, const uint16_t *src);
 extern int str_to_utf16(uint16_t *dest, size_t size, const char *src);
 

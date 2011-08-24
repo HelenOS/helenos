@@ -619,12 +619,9 @@ int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n)
  * @param dest	Destination buffer.
  * @param size	Size of the destination buffer.
  * @param src	Source wide string.
- *
- * @return EOK, if success, negative otherwise.
  */
-int wstr_to_str(char *dest, size_t size, const wchar_t *src)
+void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 {
-	int rc;
 	wchar_t ch;
 	size_t src_idx;
 	size_t dest_off;
@@ -636,13 +633,11 @@ int wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest_off = 0;
 
 	while ((ch = src[src_idx++]) != 0) {
-		rc = chr_encode(ch, dest, &dest_off, size - 1);
-		if (rc != EOK)
+		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
 
 	dest[dest_off] = '\0';
-	return rc;
 }
 
 /** Convert UTF16 string to string.
@@ -781,12 +776,9 @@ char *wstr_to_astr(const wchar_t *src)
  * @param dest	Destination buffer.
  * @param dlen	Length of destination buffer (number of wchars).
  * @param src	Source string.
- *
- * @return EOK, if success, negative otherwise.
  */
-int str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
+void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 {
-	int rc=EOK;
 	size_t offset;
 	size_t di;
 	wchar_t c;
@@ -797,17 +789,14 @@ int str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 	di = 0;
 
 	do {
-		if (di >= dlen - 1) {
-			rc = EOVERFLOW;
+		if (di >= dlen - 1)
 			break;
-		}
 
 		c = str_decode(src, &offset, STR_NO_LIMIT);
 		dest[di++] = c;
 	} while (c != '\0');
 
 	dest[dlen - 1] = '\0';
-	return rc;
 }
 
 /** Convert string to wide string.
