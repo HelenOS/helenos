@@ -116,7 +116,7 @@ static int request_address(
 	assert(hcd);
 	assert(address);
 
-	usb_log_debug("Address request with speed %d.\n", speed);
+	usb_log_debug("Address request speed: %s.\n", usb_str_speed(speed));
 	*address = device_keeper_get_free_address(&hcd->dev_manager, speed);
 	usb_log_debug("Address request with result: %d.\n", *address);
 	if (*address <= 0)
@@ -190,6 +190,7 @@ static int register_endpoint(
 	usb_speed_t speed =
 	    usb_device_keeper_get_speed(&hcd->dev_manager, address);
 	if (speed >= USB_SPEED_MAX) {
+		// Does this happen?
 		speed = ep_speed;
 	}
 	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
@@ -305,7 +306,6 @@ static int control_write(
 {
 	return send_batch(fun, target, USB_DIRECTION_BOTH, data, size,
 	    setup_data, setup_size, NULL, callback, arg, "Control WRITE");
-//	usb_endpoint_manager_reset_if_need(&hc->ep_manager, target, setup_data);
 }
 /*----------------------------------------------------------------------------*/
 /** Control read transaction interface function

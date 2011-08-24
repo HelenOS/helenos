@@ -37,6 +37,7 @@
 #include <usb/usb.h>
 #include <usb/debug.h>
 #include <usb/host/batch.h>
+#include <usb/host/hcd.h>
 
 void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
 void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
@@ -148,6 +149,14 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed: %s.\n",
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
 	    str_error(instance->error));
+
+	if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
+	    && instance->error == EOK) {
+		usb_target_t target =
+		    {instance->ep->address, instance->ep->endpoint};
+		reset_ep_if_need(
+		    fun_to_hcd(instance->fun), target, instance->setup_buffer);
+	}
 
 	instance->callback_out(instance->fun,
 	    instance->error, instance->arg);

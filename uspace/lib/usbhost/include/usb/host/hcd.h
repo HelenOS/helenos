@@ -40,7 +40,6 @@
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/batch.h>
 #include <usbhc_iface.h>
-//#include <driver.h>
 
 typedef struct hcd hcd_t;
 
@@ -53,20 +52,28 @@ struct hcd {
 	void * (*batch_private_ctor)(usb_transfer_batch_t *);
 	void (*batch_private_dtor)(void *);
 };
-
+/*----------------------------------------------------------------------------*/
 static inline int hcd_init(hcd_t *hcd, size_t bandwidth)
 {
 	assert(hcd);
 	usb_device_keeper_init(&hcd->dev_manager);
 	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth);
 }
-
+/*----------------------------------------------------------------------------*/
+static inline void reset_ep_if_need(
+    hcd_t *hcd, usb_target_t target, const char* setup_data)
+{
+	assert(hcd);
+	usb_endpoint_manager_reset_if_need(
+	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
+}
+/*----------------------------------------------------------------------------*/
 static inline hcd_t * fun_to_hcd(ddf_fun_t *fun)
 {
 	assert(fun);
 	return fun->driver_data;
 }
-
+/*----------------------------------------------------------------------------*/
 extern usbhc_iface_t hcd_iface;
 
 #endif
