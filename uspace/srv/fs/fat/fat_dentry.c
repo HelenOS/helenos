@@ -355,7 +355,7 @@ bool fat_valid_name(const char *name)
 	bool result = true;
 	
 	while ((ch = str_decode(name, &offset, STR_NO_LIMIT)) != 0) {
-		if (wstr_chr(FAT_STOP_CHARS, ch) != NULL) {
+		if (str_chr(FAT_STOP_CHARS, ch) != NULL) {
 			result = false;
 			break;
 		}

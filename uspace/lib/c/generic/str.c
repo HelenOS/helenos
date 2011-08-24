@@ -874,23 +874,6 @@ char *str_rchr(const char *str, wchar_t ch)
 	return (char *) res;
 }
 
-/** Find first occurence of character in wide string.
- *
- * @param wstr String to search.
- * @param ch  Character to look for.
- *
- * @return Pointer to character in @a wstr or NULL if not found.
- */
-wchar_t *wstr_chr(const wchar_t *wstr, wchar_t ch)
-{
-	while (*wstr && *wstr != ch)
-		wstr++;
-	if (*wstr)
-		return (wchar_t *) wstr;
-	else
-		return NULL;
-}
-
 /** Insert a wide character into a wide string.
  *
  * Insert a wide character into a wide string at position

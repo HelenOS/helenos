@@ -38,7 +38,7 @@
 #include <bool.h>
 
 #define IS_D_CHAR(ch) (isalnum(ch) || ch == '_')
-#define FAT_STOP_CHARS L"*?/\\\n\t|'"
+#define FAT_STOP_CHARS "*?/\\\n\t|'"
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
