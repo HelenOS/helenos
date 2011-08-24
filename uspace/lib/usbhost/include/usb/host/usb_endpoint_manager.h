@@ -37,7 +37,7 @@
  * This structure shall simplify the management.
  */
 #ifndef LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
-#define LIBUSBHOST_HOST_YSB_ENDPOINT_MANAGER_H
+#define LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 
 #include <stdlib.h>
 #include <adt/hash_table.h>
