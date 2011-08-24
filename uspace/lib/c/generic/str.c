@@ -891,24 +891,6 @@ wchar_t *wstr_chr(const wchar_t *wstr, wchar_t ch)
 		return NULL;
 }
 
-/** Find last occurence of character in wide string.
- *
- * @param wstr String to search.
- * @param ch  Character to look for.
- *
- * @return Pointer to character in @a wstr or NULL if not found.
- */
-wchar_t *wstr_rchr(const wchar_t *wstr, wchar_t ch)
-{
-	const wchar_t *res = NULL;
-	while (*wstr) {
-		if (*wstr == ch)
-			res = wstr;
-		wstr++;
-	}
-	return (wchar_t *) res;
-}
-
 /** Insert a wide character into a wide string.
  *
  * Insert a wide character into a wide string at position
