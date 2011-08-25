@@ -179,7 +179,8 @@ int main(int argc, char **argv)
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
 		    dev_nblocks);
-		cfg.total_sectors = dev_nblocks;
+		if (dev_nblocks < cfg.total_sectors)
+			cfg.total_sectors = dev_nblocks;
 	}
 
 	if (cfg.fat_type == FAT12 && cfg.sector_size != 512) {
