@@ -77,17 +77,10 @@ static inline int send_batch(
 
 	}
 
-	/* No private data and no private data_dtor, these should be set by
-	 * batch_init_hook*/
+	/* No private data and no private data dtor, these will be set later */
 	usb_transfer_batch_init(batch, ep, data, NULL, size, setup_data,
 	    setup_size, in, out, arg, fun, NULL, NULL);
-	if (hcd->batch_init_hook) {
-		ret = hcd->batch_init_hook(batch);
-		if (ret != EOK)
-			goto out;
-	} else {
-		usb_log_warning("Missing batch_private_data constructor!\n");
-	}
+
 	if (hcd->schedule) {
 		ret = hcd->schedule(hcd, batch);
 	} else {
@@ -203,8 +196,9 @@ static int register_endpoint(
 	if (!ep)
 		return ENOMEM;
 	int ret = EOK;
+
 	if (hcd->ep_add_hook) {
-		ret = hcd->ep_add_hook(ep);
+		ret = hcd->ep_add_hook(hcd, ep);
 	}
 	if (ret != EOK) {
 		endpoint_destroy(ep);

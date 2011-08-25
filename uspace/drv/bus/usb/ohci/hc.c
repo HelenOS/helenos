@@ -202,7 +202,6 @@ if (ret != EOK) { \
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
 	instance->generic.private_data = instance;
 	instance->generic.schedule = schedule;
-	instance->generic.batch_init_hook = batch_init_ohci;
 	instance->generic.ep_add_hook = NULL;
 
 	ret = hc_init_memory(instance);

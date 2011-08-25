@@ -50,7 +50,6 @@ struct hcd {
 
 	int (*schedule)(hcd_t *, usb_transfer_batch_t *);
 	int (*ep_add_hook)(hcd_t *, endpoint_t *);
-	int (*batch_init_hook)(usb_transfer_batch_t *);
 };
 /*----------------------------------------------------------------------------*/
 static inline int hcd_init(hcd_t *hcd, size_t bandwidth)

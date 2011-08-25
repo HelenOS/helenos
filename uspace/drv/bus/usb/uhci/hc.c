@@ -197,8 +197,8 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;
-	instance->generic.batch_init_hook = batch_init_uhci;
 	instance->generic.ep_add_hook = NULL;
+
 #undef CHECK_RET_DEST_FUN_RETURN
 
 	ret = hc_init_mem_structures(instance);
@@ -381,6 +381,10 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	hc_t *instance = hcd->private_data;
 	assert(instance);
 	assert(batch);
+	int ret = batch_init_uhci(batch);
+	if (ret != EOK) {
+		return ret;
+	}
 
 	transfer_list_t *list =
 	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
