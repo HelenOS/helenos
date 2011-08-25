@@ -237,16 +237,14 @@ int hc_add_endpoint(
 	if (ep == NULL)
 		return ENOMEM;
 
-	hcd_endpoint_t *hcd_ep = hcd_endpoint_assign(ep);
-	if (hcd_ep == NULL) {
+	int ret = hcd_endpoint_assign(ep);
+	if (ret != EOK) {
 		endpoint_destroy(ep);
-		return ENOMEM;
+		return ret;
 	}
 
-	int ret =
-	    usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
+	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
 	if (ret != EOK) {
-		hcd_endpoint_clear(ep);
 		endpoint_destroy(ep);
 		return ret;
 	}
@@ -256,21 +254,21 @@ int hc_add_endpoint(
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
 		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], hcd_ep);
+		    &instance->lists[ep->transfer_type], hcd_endpoint_get(ep));
 		instance->registers->control_current = 0;
 		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
 		instance->registers->control &= ~C_BLE;
 		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], hcd_ep);
+		    &instance->lists[ep->transfer_type], hcd_endpoint_get(ep));
 		instance->registers->control |= C_BLE;
 		break;
 	case USB_TRANSFER_ISOCHRONOUS:
 	case USB_TRANSFER_INTERRUPT:
 		instance->registers->control &= (~C_PLE & ~C_IE);
 		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], hcd_ep);
+		    &instance->lists[ep->transfer_type], hcd_endpoint_get(ep));
 		instance->registers->control |= C_PLE | C_IE;
 		break;
 	}
@@ -326,7 +324,6 @@ int hc_remove_endpoint(hc_t *instance, usb_address_t address,
 		default:
 			break;
 		}
-		hcd_endpoint_clear(ep);
 	} else {
 		usb_log_warning("Endpoint without hcd equivalent structure.\n");
 	}

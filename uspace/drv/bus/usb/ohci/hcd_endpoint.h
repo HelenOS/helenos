@@ -51,8 +51,7 @@ typedef struct hcd_endpoint {
 	link_t link;
 } hcd_endpoint_t;
 
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep);
-void hcd_endpoint_clear(endpoint_t *ep);
+int hcd_endpoint_assign(endpoint_t *ep);
 
 /** Get and convert assigned hcd_endpoint_t structure
  * @param[in] ep USBD endpoint structure.

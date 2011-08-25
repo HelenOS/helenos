@@ -60,51 +60,51 @@ static int hcd_ep_toggle_get(void *hcd_ep)
 	return ed_toggle_get(instance->ed);
 }
 /*----------------------------------------------------------------------------*/
+/** Disposes hcd endpoint structure
+ *
+ * @param[in] hcd_ep endpoint structure
+ */
+static void hcd_ep_destroy(void *hcd_ep)
+{
+	if (hcd_ep) {
+		hcd_endpoint_t *instance = hcd_ep;
+		free32(instance->ed);
+		free32(instance->td);
+		free(instance);
+	}
+}
+/*----------------------------------------------------------------------------*/
 /** Creates new hcd endpoint representation.
  *
  * @param[in] ep USBD endpoint structure
  * @return pointer to a new hcd endpoint structure, NULL on failure.
  */
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
+int hcd_endpoint_assign(endpoint_t *ep)
 {
 	assert(ep);
 	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
 	if (hcd_ep == NULL)
-		return NULL;
+		return ENOMEM;
 
 	hcd_ep->ed = malloc32(sizeof(ed_t));
 	if (hcd_ep->ed == NULL) {
 		free(hcd_ep);
-		return NULL;
+		return ENOMEM;
 	}
 
 	hcd_ep->td = malloc32(sizeof(td_t));
 	if (hcd_ep->td == NULL) {
 		free32(hcd_ep->ed);
 		free(hcd_ep);
-		return NULL;
+		return ENOMEM;
 	}
 
 	ed_init(hcd_ep->ed, ep);
 	ed_set_td(hcd_ep->ed, hcd_ep->td);
 	endpoint_set_hc_data(
-	    ep, hcd_ep, NULL, hcd_ep_toggle_get, hcd_ep_toggle_set);
+	    ep, hcd_ep, hcd_ep_destroy, hcd_ep_toggle_get, hcd_ep_toggle_set);
 
-	return hcd_ep;
-}
-/*----------------------------------------------------------------------------*/
-/** Disposes assigned hcd endpoint structure
- *
- * @param[in] ep USBD endpoint structure
- */
-void hcd_endpoint_clear(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
-	assert(hcd_ep);
-	free32(hcd_ep->ed);
-	free32(hcd_ep->td);
-	free(hcd_ep);
+	return EOK;
 }
 /**
  * @}
