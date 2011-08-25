@@ -188,6 +188,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	if (cfg.fat_type != FAT12 && cfg.fat_type != FAT16 && cfg.fat_type != FAT32) {
+		printf(NAME ": Error. Unknown FAT type.\n");
+		return 2;
+	}
+
 	printf(NAME ": Creating FAT%d filesystem on device %s.\n", cfg.fat_type, dev_path);
 
 	rc = fat_params_compute(&cfg);
