@@ -64,6 +64,7 @@ static int interrupt_emulator(hc_t *instance);
 static int schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
+	batch_init_ohci(batch);
 	return hc_schedule(hcd->private_data, batch);
 }
 /*----------------------------------------------------------------------------*/
@@ -146,15 +147,32 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 #define CHECK_RET_RELEASE(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
-	hc_remove_endpoint(instance, hub_address, 0, USB_DIRECTION_BOTH); \
-	usb_device_keeper_release(&instance->manager, hub_address); \
 	return ret; \
 } else (void)0
+	endpoint_t *ep =
+	    endpoint_get(hub_address, 0, USB_DIRECTION_BOTH,
+	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64);
+	if (ep == NULL)
+		return ENOMEM;
 
-	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
-	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
-	CHECK_RET_RELEASE(ret,
-	    "Failed to add OHCI root hub endpoint 0: %s.\n", str_error(ret));
+	int ret = ohci_endpoint_init(&instance->generic, ep);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+		return ret;
+	}
+
+	ret = usb_endpoint_manager_register_ep(&instance->generic.ep_manager, ep, 0);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+		return ret;
+	}
+	hc_enqueue_endpoint(instance, ep);
+
+
+//	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
+//	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
+//	CHECK_RET_RELEASE(ret,
+//	    "Failed to add OHCI root hub endpoint 0: %s.\n", str_error(ret));
 
 	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
 	CHECK_RET_RELEASE(ret,
@@ -200,7 +218,7 @@ if (ret != EOK) { \
 	    str_error(ret));
 
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
-	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
+	CHECK_RET_RETURN(ret, "Failed to initialize generic driver: %s.\n",
 	    str_error(ret));
 	instance->generic.private_data = instance;
 	instance->generic.schedule = schedule;
