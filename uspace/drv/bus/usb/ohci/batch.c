@@ -65,7 +65,7 @@ static void batch_data(usb_transfer_batch_t *instance);
  *
  * @param[in] ohci_batch Instance to destroy.
  */
-static void ohci_transfer_batch_dispose(void *ohci_batch)
+static void ohci_batch_dispose(void *ohci_batch)
 {
 	ohci_transfer_batch_t *instance = ohci_batch;
 	if (!instance)
@@ -80,6 +80,68 @@ static void ohci_transfer_batch_dispose(void *ohci_batch)
 		free(instance->tds);
 	}
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+int batch_init_ohci(usb_transfer_batch_t *batch)
+{
+	assert(batch);
+#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
+        if (ptr == NULL) { \
+                usb_log_error(message); \
+		if (data) { \
+			ohci_batch_dispose(data); \
+		} \
+                return ENOMEM; \
+        } else (void)0
+
+	const hcd_endpoint_t *hcd_ep = hcd_endpoint_get(batch->ep);
+	assert(hcd_ep);
+
+	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
+	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
+
+	data->td_count = ((batch->buffer_size + OHCI_TD_MAX_TRANSFER - 1)
+	    / OHCI_TD_MAX_TRANSFER);
+	/* Control transfer need Setup and Status stage */
+	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
+		data->td_count += 2;
+	}
+
+	/* We need an extra place for TD that is currently assigned to hcd_ep*/
+	data->tds = calloc(sizeof(td_t*), data->td_count + 1);
+	CHECK_NULL_DISPOSE_RETURN(data->tds,
+	    "Failed to allocate transfer descriptors.\n");
+
+	/* Add TD left over by the previous transfer */
+	data->tds[0] = hcd_ep->td;
+	data->leave_td = 0;
+	unsigned i = 1;
+	for (; i <= data->td_count; ++i) {
+		data->tds[i] = malloc32(sizeof(td_t));
+		CHECK_NULL_DISPOSE_RETURN(data->tds[i],
+		    "Failed to allocate TD %d.\n", i );
+	}
+
+	data->ed = hcd_ep->ed;
+	batch->private_data = data;
+	batch->private_data_dtor = ohci_batch_dispose;
+
+	/* NOTE: OHCI is capable of handling buffer that crosses page boundaries
+	 * it is, however, not capable of handling buffer that occupies more
+	 * than two pages (the first page is computed using start pointer, the
+	 * other using the end pointer) */
+        if (batch->setup_size + batch->buffer_size > 0) {
+		data->device_buffer =
+		    malloc32(batch->setup_size + batch->buffer_size);
+                CHECK_NULL_DISPOSE_RETURN(data->device_buffer,
+                    "Failed to allocate device accessible buffer.\n");
+                memcpy(data->device_buffer, batch->setup_buffer,
+		    batch->setup_size);
+		batch->data_buffer = data->device_buffer + batch->setup_size;
+        }
+
+	return EOK;
+#undef CHECK_NULL_DISPOSE_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /** Allocate memory initialize internal structures
@@ -118,7 +180,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    "Failed to allocate batch instance.\n");
 	usb_transfer_batch_init(instance, ep, buffer, NULL, buffer_size,
 	    NULL, setup_size, func_in, func_out, arg, fun, NULL,
-	    ohci_transfer_batch_dispose);
+	    ohci_batch_dispose);
 
 	const hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
 	assert(hcd_ep);

@@ -42,7 +42,7 @@
 #include <usb/usb.h>
 #include <usb/host/device_keeper.h>
 #include <usb/host/usb_endpoint_manager.h>
-#include <usbhc_iface.h>
+#include <usb/host/hcd.h>
 
 #include "batch.h"
 #include "ohci_regs.h"
@@ -56,6 +56,9 @@ typedef struct hc {
 	usb_device_keeper_t manager;
 	/** USB bus driver, endpoints */
 	usb_endpoint_manager_t ep_manager;
+
+	/** Generic USB hc driver */
+	hcd_t generic;
 
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;

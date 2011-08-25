@@ -193,6 +193,11 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    str_error(ret));
 
+	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
+	instance->generic.schedule = NULL;
+	instance->generic.batch_init_hook = batch_init_ohci;
+	instance->generic.ep_add_hook = NULL;
+
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
 	    str_error(ret));
