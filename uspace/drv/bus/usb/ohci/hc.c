@@ -162,6 +162,12 @@ if (ret != EOK) { \
 #undef CHECK_RET_RELEASE
 }
 /*----------------------------------------------------------------------------*/
+static int schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+{
+	assert(hcd);
+	return hc_schedule(hcd->private_data, batch);
+}
+/*----------------------------------------------------------------------------*/
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
@@ -194,7 +200,8 @@ if (ret != EOK) { \
 	    str_error(ret));
 
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
-	instance->generic.schedule = NULL;
+	instance->generic.private_data = instance;
+	instance->generic.schedule = schedule;
 	instance->generic.batch_init_hook = batch_init_ohci;
 	instance->generic.ep_add_hook = NULL;
 

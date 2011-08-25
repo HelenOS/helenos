@@ -42,6 +42,33 @@
 #include "utils/malloc32.h"
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
+/*
+static void batch_control_write(usb_transfer_batch_t *instance);
+static void batch_control_read(usb_transfer_batch_t *instance);
+
+static void batch_interrupt_in(usb_transfer_batch_t *instance);
+static void batch_interrupt_out(usb_transfer_batch_t *instance);
+
+static void batch_bulk_in(usb_transfer_batch_t *instance);
+static void batch_bulk_out(usb_transfer_batch_t *instance);
+*/
+static void batch_setup_control(usb_transfer_batch_t *batch)
+{
+        // TODO Find a better way to do this
+        if (batch->setup_buffer[0] & (1 << 7))
+                batch_control_read(batch);
+        else
+                batch_control_write(batch);
+}
+
+void (*batch_setup[4][3])(usb_transfer_batch_t*) =
+{
+        { NULL, NULL, batch_setup_control },
+        { NULL, NULL, NULL },
+        { batch_bulk_in, batch_bulk_out, NULL },
+        { batch_interrupt_in, batch_interrupt_out, NULL },
+};
+
 
 /** OHCI specific data required for USB transfer */
 typedef struct ohci_transfer_batch {
@@ -139,6 +166,9 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 		    batch->setup_size);
 		batch->data_buffer = data->device_buffer + batch->setup_size;
         }
+
+        assert(batch_setup[batch->ep->transfer_type][batch->ep->direction]);
+        batch_setup[batch->ep->transfer_type][batch->ep->direction](batch);
 
 	return EOK;
 #undef CHECK_NULL_DISPOSE_RETURN
