@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
 		    dev_nblocks);
-		if (dev_nblocks < cfg.total_sectors)
+		if (!cfg.total_sectors || dev_nblocks < cfg.total_sectors)
 			cfg.total_sectors = dev_nblocks;
 	}
 
