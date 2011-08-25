@@ -183,11 +183,6 @@ int main(int argc, char **argv)
 			cfg.total_sectors = dev_nblocks;
 	}
 
-	if (cfg.fat_type == FAT12 && cfg.sector_size != 512) {
-		printf(NAME ": Error. Device block size is not 512 bytes for FAT12 file system.\n");
-		return 2;
-	}
-
 	if (cfg.total_sectors == 0) {
 		printf(NAME ": Error. You must specify filesystem size.\n");
 		return 1;
