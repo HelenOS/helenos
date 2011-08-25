@@ -138,9 +138,12 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->generic.dev_manager, hub_address, hub_fun->handle);
 
-#define CHECK_RET_RELEASE(ret, message...) \
+#define CHECK_RET_DESTROY(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
+	endpoint_destroy(ep); \
+	usb_endpoint_manager_unregister_ep(&instance->generic.ep_manager, \
+	    hub_address, 0, USB_DIRECTION_BOTH); \
 	return ret; \
 } else (void)0
 	endpoint_t *ep =
@@ -150,30 +153,19 @@ if (ret != EOK) { \
 		return ENOMEM;
 
 	int ret = ohci_endpoint_init(&instance->generic, ep);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-		return ret;
-	}
+	CHECK_RET_DESTROY(ret, "Failed to initialize rh OHCI ep structures.\n");
 
-	ret = usb_endpoint_manager_register_ep(&instance->generic.ep_manager, ep, 0);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-		return ret;
-	}
-	hc_enqueue_endpoint(instance, ep);
-
-
-//	int ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
-//	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
-//	CHECK_RET_RELEASE(ret,
-//	    "Failed to add OHCI root hub endpoint 0: %s.\n", str_error(ret));
+	ret = usb_endpoint_manager_register_ep(
+	    &instance->generic.ep_manager, ep, 0);
+	CHECK_RET_DESTROY(ret, "Failed to initialize rh control ep.\n");
+	ep = NULL;
 
 	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
-	CHECK_RET_RELEASE(ret,
+	CHECK_RET_DESTROY(ret,
 	    "Failed to add root hub match-id: %s.\n", str_error(ret));
 
 	ret = ddf_fun_bind(hub_fun);
-	CHECK_RET_RELEASE(ret,
+	CHECK_RET_DESTROY(ret,
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
 
 	return EOK;
@@ -247,15 +239,13 @@ void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep)
 		break;
 	case USB_TRANSFER_BULK:
 		instance->registers->control &= ~C_BLE;
-		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
+		endpoint_list_add_ep(list, ohci_ep);
 		instance->registers->control |= C_BLE;
 		break;
 	case USB_TRANSFER_ISOCHRONOUS:
 	case USB_TRANSFER_INTERRUPT:
 		instance->registers->control &= (~C_PLE & ~C_IE);
-		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
+		endpoint_list_add_ep(list, ohci_ep);
 		instance->registers->control |= C_PLE | C_IE;
 		break;
 	}
@@ -367,6 +357,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	}
 
 	if (status & I_UE) {
+		usb_log_fatal("Error like no other!\n");
 		hc_start(instance);
 	}
 

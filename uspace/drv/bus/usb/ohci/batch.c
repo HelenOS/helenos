@@ -60,7 +60,7 @@ static void batch_setup_control(usb_transfer_batch_t *batch)
         else
                 batch_control_write(batch);
 }
-
+/*----------------------------------------------------------------------------*/
 void (*batch_setup[4][3])(usb_transfer_batch_t*) =
 {
         { NULL, NULL, batch_setup_control },
@@ -97,7 +97,6 @@ static void ohci_batch_dispose(void *ohci_batch)
 	ohci_transfer_batch_t *instance = ohci_batch;
 	if (!instance)
 		return;
-	free32(instance->device_buffer);
 	unsigned i = 0;
 	if (instance->tds) {
 		for (; i< instance->td_count; ++i) {
@@ -106,6 +105,7 @@ static void ohci_batch_dispose(void *ohci_batch)
 		}
 		free(instance->tds);
 	}
+	free32(instance->device_buffer);
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -121,9 +121,6 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
                 return ENOMEM; \
         } else (void)0
 
-	const ohci_endpoint_t *ohci_ep = ohci_endpoint_get(batch->ep);
-	assert(ohci_ep);
-
 	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
 	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
 
@@ -134,13 +131,14 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 		data->td_count += 2;
 	}
 
-	/* We need an extra place for TD that is assigned to ohci_ep */
+	/* We need an extra place for TD that was left at ED */
 	data->tds = calloc(sizeof(td_t*), data->td_count + 1);
 	CHECK_NULL_DISPOSE_RETURN(data->tds,
 	    "Failed to allocate transfer descriptors.\n");
 
 	/* Add TD left over by the previous transfer */
-	data->tds[0] = ohci_ep->td;
+	data->ed = ohci_endpoint_get(batch->ep)->ed;
+	data->tds[0] = ohci_endpoint_get(batch->ep)->td;
 	data->leave_td = 0;
 	unsigned i = 1;
 	for (; i <= data->td_count; ++i) {
@@ -149,9 +147,6 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 		    "Failed to allocate TD %d.\n", i );
 	}
 
-	data->ed = ohci_ep->ed;
-	batch->private_data = data;
-	batch->private_data_dtor = ohci_batch_dispose;
 
 	/* NOTE: OHCI is capable of handling buffer that crosses page boundaries
 	 * it is, however, not capable of handling buffer that occupies more
@@ -162,10 +157,14 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 		    malloc32(batch->setup_size + batch->buffer_size);
                 CHECK_NULL_DISPOSE_RETURN(data->device_buffer,
                     "Failed to allocate device accessible buffer.\n");
+		/* Copy setup data */
                 memcpy(data->device_buffer, batch->setup_buffer,
 		    batch->setup_size);
 		batch->data_buffer = data->device_buffer + batch->setup_size;
         }
+
+	batch->private_data = data;
+	batch->private_data_dtor = ohci_batch_dispose;
 
         assert(batch_setup[batch->ep->transfer_type][batch->ep->direction]);
         batch_setup[batch->ep->transfer_type][batch->ep->direction](batch);
@@ -220,7 +219,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(instance->ep);
 	assert(ohci_ep);
-	ohci_ep->td = data->tds[i];
+	ohci_ep->td = data->tds[data->leave_td];
 	assert(i > 0);
 	for (--i;i < data->td_count; ++i)
 		instance->transfered_size -= td_remain_size(data->tds[i]);
@@ -362,8 +361,9 @@ void batch_control(usb_transfer_batch_t *instance,
 	td_init(data->tds[0], USB_DIRECTION_BOTH, instance->setup_buffer,
 		instance->setup_size, toggle);
 	td_set_next(data->tds[0], data->tds[1]);
-	usb_log_debug("Created SETUP TD: %x:%x:%x:%x.\n", data->tds[0]->status,
-	    data->tds[0]->cbp, data->tds[0]->next, data->tds[0]->be);
+	usb_log_debug("Created CONTROL SETUP TD: %x:%x:%x:%x.\n",
+	    data->tds[0]->status, data->tds[0]->cbp, data->tds[0]->next,
+	    data->tds[0]->be);
 
 	/* data stage */
 	size_t td_current = 1;
@@ -377,7 +377,7 @@ void batch_control(usb_transfer_batch_t *instance,
 		td_init(data->tds[td_current], data_dir, buffer,
 		    transfer_size, toggle);
 		td_set_next(data->tds[td_current], data->tds[td_current + 1]);
-		usb_log_debug("Created DATA TD: %x:%x:%x:%x.\n",
+		usb_log_debug("Created CONTROL DATA TD: %x:%x:%x:%x.\n",
 		    data->tds[td_current]->status, data->tds[td_current]->cbp,
 		    data->tds[td_current]->next, data->tds[td_current]->be);
 
@@ -391,7 +391,7 @@ void batch_control(usb_transfer_batch_t *instance,
 	assert(td_current == data->td_count - 1);
 	td_init(data->tds[td_current], status_dir, NULL, 0, 1);
 	td_set_next(data->tds[td_current], data->tds[td_current + 1]);
-	usb_log_debug("Created STATUS TD: %x:%x:%x:%x.\n",
+	usb_log_debug("Created CONTROL STATUS TD: %x:%x:%x:%x.\n",
 	    data->tds[td_current]->status, data->tds[td_current]->cbp,
 	    data->tds[td_current]->next, data->tds[td_current]->be);
 }
