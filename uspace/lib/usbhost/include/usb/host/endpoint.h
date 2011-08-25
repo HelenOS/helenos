@@ -55,6 +55,7 @@ typedef struct endpoint {
 	volatile bool active;
 	struct {
 		void *data;
+		void (*data_dtor)(void*);
 		int (*toggle_get)(void *);
 		void (*toggle_set)(void *, int);
 	} hc_data;
@@ -67,7 +68,8 @@ endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
 void endpoint_destroy(endpoint_t *instance);
 
 void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int));
+    void *data, void (*data_dtor)(void *),
+    int (*toggle_get)(void *), void (*toggle_set)(void *, int));
 
 void endpoint_clear_hc_data(endpoint_t *instance);
 

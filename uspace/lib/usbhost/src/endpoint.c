@@ -52,6 +52,10 @@ endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
 		instance->max_packet_size = max_packet_size;
 		instance->toggle = 0;
 		instance->active = false;
+		instance->hc_data.data = NULL;
+		instance->hc_data.data_dtor = NULL;
+		instance->hc_data.toggle_get = NULL;
+		instance->hc_data.toggle_set = NULL;
 		fibril_mutex_initialize(&instance->guard);
 		fibril_condvar_initialize(&instance->avail);
 		endpoint_clear_hc_data(instance);
@@ -63,14 +67,20 @@ void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
 	assert(!instance->active);
+	if (instance->hc_data.data) {
+		assert(instance->hc_data.data_dtor);
+		instance->hc_data.data_dtor(instance->hc_data.data);
+	}
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
 void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int))
+    void *data, void (*data_dtor)(void *),
+    int (*toggle_get)(void *), void (*toggle_set)(void *, int))
 {
 	assert(instance);
 	instance->hc_data.data = data;
+	instance->hc_data.data_dtor = data_dtor;
 	instance->hc_data.toggle_get = toggle_get;
 	instance->hc_data.toggle_set = toggle_set;
 }

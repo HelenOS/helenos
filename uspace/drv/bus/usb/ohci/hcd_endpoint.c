@@ -87,7 +87,8 @@ hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
 
 	ed_init(hcd_ep->ed, ep);
 	ed_set_td(hcd_ep->ed, hcd_ep->td);
-	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
+	endpoint_set_hc_data(
+	    ep, hcd_ep, NULL, hcd_ep_toggle_get, hcd_ep_toggle_set);
 
 	return hcd_ep;
 }
