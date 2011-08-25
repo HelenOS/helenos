@@ -38,7 +38,7 @@
 
 #include "hw_struct/queue_head.h"
 
-int batch_init_private(usb_transfer_batch_t *batch);
+int batch_init_uhci(usb_transfer_batch_t *batch);
 bool batch_is_complete(usb_transfer_batch_t *batch);
 qh_t * batch_qh(usb_transfer_batch_t *batch);
 #endif

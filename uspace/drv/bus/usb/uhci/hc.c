@@ -197,7 +197,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;
-	instance->generic.batch_init_hook = batch_init_private;
+	instance->generic.batch_init_hook = batch_init_uhci;
 	instance->generic.ep_add_hook = NULL;
 #undef CHECK_RET_DEST_FUN_RETURN
 

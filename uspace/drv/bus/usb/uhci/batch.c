@@ -118,7 +118,7 @@ static void uhci_transfer_batch_dispose(void *uhci_batch)
  * Prepares a transport buffer (that is accessible by the hardware).
  * Initializes parameters needed for the transfer and callback.
  */
-int batch_init_private(usb_transfer_batch_t *batch)
+int batch_init_uhci(usb_transfer_batch_t *batch)
 {
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
 	if (ptr == NULL) { \
