@@ -234,9 +234,6 @@ static int fat_params_compute(struct fat_cfg *cfg)
 	 * size of the data region.
 	 */
 
-	if (cfg->fat_type == FAT12)
-		cfg->sectors_per_cluster = 1;
-
 	cfg->reserved_sectors = 1 + cfg->addt_res_sectors;
 	if (cfg->fat_type != FAT32) {
 		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
