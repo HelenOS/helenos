@@ -89,8 +89,8 @@ uint16_t exfat_name_hash(const uint16_t *name, const uint16_t *uctable, size_t c
 
 void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_t *dst, size_t *offset)
 {
-	size_t i=0; 
-	while(i<EXFAT_NAME_PART_LEN && *offset < size) {
+	size_t i = 0; 
+	while (i < EXFAT_NAME_PART_LEN && *offset < size) {
 		dst[*offset] = uint16_t_le2host(name->name[i]);
 		i++;
 		(*offset)++;

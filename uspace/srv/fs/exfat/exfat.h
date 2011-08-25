@@ -50,16 +50,16 @@
 #define BS_SIZE			512
 
 #define BPS(bs)			((uint32_t) (1 << (bs->bytes_per_sector)))
-#define SPC(bs)			((uint32_t)(1 << (bs->sec_per_cluster)))
-#define BPC(bs)			((uint32_t)(BPS(bs)*SPC(bs)))
+#define SPC(bs)			((uint32_t) (1 << (bs->sec_per_cluster)))
+#define BPC(bs)			((uint32_t) (BPS(bs) * SPC(bs)))
 #define VOL_FS(bs)		uint64_t_le2host(bs->volume_start)
 #define VOL_CNT(bs)		uint64_t_le2host(bs->volume_count)
 #define FAT_FS(bs)		uint32_t_le2host(bs->fat_sector_start)
 #define FAT_CNT(bs)		uint32_t_le2host(bs->fat_sector_count)
 #define DATA_FS(bs)		uint32_t_le2host(bs->data_start_sector)
-#define DATA_CNT(bs)	uint32_t_le2host(bs->data_clusters)
+#define DATA_CNT(bs)		uint32_t_le2host(bs->data_clusters)
 #define ROOT_FC(bs)		uint32_t_le2host(bs->rootdir_cluster)
-#define VOL_FLAGS(bs)	uint16_t_le2host(bs->volume_flags)
+#define VOL_FLAGS(bs)		uint16_t_le2host(bs->volume_flags)
 
 #define EXFAT_NODE(node)	((node) ? (exfat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
@@ -180,8 +180,7 @@ extern void exfat_idx_fini(void);
 extern int exfat_idx_init_by_service_id(service_id_t);
 extern void exfat_idx_fini_by_service_id(service_id_t);
 
-extern int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep,
-    exfat_cluster_t clusters);
+extern int exfat_node_expand(service_id_t, exfat_node_t *, exfat_cluster_t);
 extern int exfat_node_put(fs_node_t *);
 extern int exfat_bitmap_get(fs_node_t **, service_id_t);
 extern int exfat_uctable_get(fs_node_t **, service_id_t);

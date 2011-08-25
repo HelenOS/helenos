@@ -52,7 +52,7 @@ int bitmap_is_free(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t clst)
 {
 	fs_node_t *fn;
-	block_t *b=NULL;
+	block_t *b = NULL;
 	exfat_node_t *bitmapp;
 	uint8_t *bitmap;
 	int rc;
@@ -93,7 +93,7 @@ int bitmap_set_cluster(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t clst)
 {
 	fs_node_t *fn;
-	block_t *b=NULL;
+	block_t *b = NULL;
 	exfat_node_t *bitmapp;
 	uint8_t *bitmap;
 	int rc;
@@ -128,7 +128,7 @@ int bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t clst)
 {
 	fs_node_t *fn;
-	block_t *b=NULL;
+	block_t *b = NULL;
 	exfat_node_t *bitmapp;
 	uint8_t *bitmap;
 	int rc;
@@ -141,7 +141,8 @@ int bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id,
 	bitmapp = EXFAT_NODE(fn);
 	
 	aoff64_t offset = clst / 8;
-	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs), BLOCK_FLAGS_NONE);
+	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs),
+	    BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		(void) exfat_node_put(fn);
 		return rc;
@@ -166,11 +167,12 @@ int bitmap_set_clusters(exfat_bs_t *bs, service_id_t service_id,
 	exfat_cluster_t clst;
 	clst = firstc;
 
-	while (clst < firstc+count ) {
+	while (clst < firstc + count ) {
 		rc = bitmap_set_cluster(bs, service_id, clst);
 		if (rc != EOK) {
-			if ((clst-firstc) > 0)
-				(void) bitmap_clear_clusters(bs, service_id, firstc, clst-firstc);
+			if (clst - firstc > 0)
+				(void) bitmap_clear_clusters(bs, service_id,
+				    firstc, clst - firstc);
 			return rc;
 		}
 		clst++;
@@ -185,7 +187,7 @@ int bitmap_clear_clusters(exfat_bs_t *bs, service_id_t service_id,
 	exfat_cluster_t clst;
 	clst = firstc;
 
-	while (clst < firstc+count ) {
+	while (clst < firstc + count) {
 		rc = bitmap_clear_cluster(bs, service_id, clst);
 		if (rc != EOK)
 			return rc;
@@ -200,14 +202,13 @@ int bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id,
 	exfat_cluster_t startc, endc;
 	startc = EXFAT_CLST_FIRST;
 
-	while (startc < DATA_CNT(bs)+2) {
+	while (startc < DATA_CNT(bs) + 2) {
 		endc = startc;
 		while (bitmap_is_free(bs, service_id, endc) == EOK) {
-			if ((endc - startc)+1 == count){
+			if ((endc - startc) + 1 == count) {
 				*firstc = startc;
 				return bitmap_set_clusters(bs, service_id, startc, count);
-			}
-			else
+			} else
 				endc++;
 		}
 		startc = endc+1;
@@ -226,13 +227,12 @@ int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 		exfat_cluster_t lastc, clst;
 		lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
 
-		clst = lastc+1;
+		clst = lastc + 1;
 		while (bitmap_is_free(bs, nodep->idx->service_id, clst) == EOK) {
-			if ((clst - lastc) == count){
+			if (clst - lastc == count){
 				return bitmap_set_clusters(bs, nodep->idx->service_id, 
-				    lastc+1, count);
-			}
-			else
+				    lastc + 1, count);
+			} else
 				clst++;
 		}
 		return ENOSPC;
@@ -247,7 +247,7 @@ int bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
 	lastc -= count;
 
-	return bitmap_clear_clusters(bs, nodep->idx->service_id, lastc+1, count);
+	return bitmap_clear_clusters(bs, nodep->idx->service_id, lastc + 1, count);
 }
 
 
@@ -259,7 +259,7 @@ int bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
 	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
 
 	for (clst = nodep->firstc; clst < lastc; clst++) {
-		rc = exfat_set_cluster(bs, service_id, clst, clst+1);
+		rc = exfat_set_cluster(bs, service_id, clst, clst + 1);
 		if (rc != EOK)
 			return rc;
 	}

@@ -41,25 +41,23 @@
 struct exfat_node;
 struct exfat_bs;
 
-extern int bitmap_alloc_clusters(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t *firstc, exfat_cluster_t count);
-extern int bitmap_append_clusters(struct exfat_bs *bs, struct exfat_node *nodep, 
-    exfat_cluster_t count);
-extern int bitmap_free_clusters(struct exfat_bs *bs, struct exfat_node *nodep, 
-    exfat_cluster_t count);
-extern int bitmap_replicate_clusters(struct exfat_bs *bs, struct exfat_node *nodep); 
+extern int bitmap_alloc_clusters(struct exfat_bs *, service_id_t, 
+    exfat_cluster_t *, exfat_cluster_t);
+extern int bitmap_append_clusters(struct exfat_bs *, struct exfat_node *, 
+    exfat_cluster_t);
+extern int bitmap_free_clusters(struct exfat_bs *, struct exfat_node *, 
+    exfat_cluster_t);
+extern int bitmap_replicate_clusters(struct exfat_bs *, struct exfat_node *); 
 
-extern int bitmap_is_free(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t clst);
-extern int bitmap_set_cluster(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t clst);
-extern int bitmap_clear_cluster(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t clst);
+extern int bitmap_is_free(struct exfat_bs *, service_id_t, exfat_cluster_t);
+extern int bitmap_set_cluster(struct exfat_bs *, service_id_t, exfat_cluster_t);
+extern int bitmap_clear_cluster(struct exfat_bs *, service_id_t, 
+    exfat_cluster_t);
 
-extern int bitmap_set_clusters(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t firstc, exfat_cluster_t count);
-extern int bitmap_clear_clusters(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t firstc, exfat_cluster_t count);
+extern int bitmap_set_clusters(struct exfat_bs *, service_id_t, 
+    exfat_cluster_t, exfat_cluster_t);
+extern int bitmap_clear_clusters(struct exfat_bs *, service_id_t, 
+    exfat_cluster_t, exfat_cluster_t);
 
 
 #endif
