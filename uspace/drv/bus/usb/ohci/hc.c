@@ -132,7 +132,8 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	assert(hub_fun);
 
 	const usb_address_t hub_address =
-	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
+	    device_keeper_get_free_address(
+	        &instance->generic.dev_manager, USB_SPEED_FULL);
 	if (hub_address <= 0) {
 		usb_log_error("Failed to get OHCI root hub address: %s\n",
 		    str_error(hub_address));
@@ -140,7 +141,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	}
 	instance->rh.address = hub_address;
 	usb_device_keeper_bind(
-	    &instance->manager, hub_address, hub_fun->handle);
+	    &instance->generic.dev_manager, hub_address, hub_fun->handle);
 
 #define CHECK_RET_RELEASE(ret, message...) \
 if (ret != EOK) { \
@@ -199,6 +200,8 @@ if (ret != EOK) { \
 	    str_error(ret));
 
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
+	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
+	    str_error(ret));
 	instance->generic.private_data = instance;
 	instance->generic.schedule = schedule;
 	instance->generic.ep_add_hook = ohci_endpoint_init;

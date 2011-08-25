@@ -88,7 +88,8 @@ static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	usb_device_keeper_t *manager = &dev_to_ohci(fun->dev)->hc.generic.dev_manager;
+	usb_device_keeper_t *manager =
+	    &dev_to_ohci(fun->dev)->hc.generic.dev_manager;
 
 	usb_address_t addr = usb_device_keeper_find(manager, handle);
 	if (addr < 0) {
