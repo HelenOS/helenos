@@ -654,7 +654,7 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
  */
 int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 {
-	size_t idx=0, dest_off=0;
+	size_t idx = 0, dest_off = 0;
 	wchar_t ch;
 	int rc = EOK;
 
@@ -663,10 +663,10 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 
 	while (src[idx]) {
 		if ((src[idx] & 0xfc00) == 0xd800) {
-			if (src[idx+1] && (src[idx+1] & 0xfc00) == 0xdc00) {
+			if (src[idx + 1] && (src[idx + 1] & 0xfc00) == 0xdc00) {
 				ch = 0x10000;
 				ch += (src[idx] & 0x03FF) << 10;
-				ch += (src[idx+1] & 0x03FF);
+				ch += (src[idx + 1] & 0x03FF);
 				idx += 2;
 			}
 			else
@@ -675,7 +675,7 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 			ch = src[idx];
 			idx++;
 		}
-		rc = chr_encode(ch, dest, &dest_off, size-1);
+		rc = chr_encode(ch, dest, &dest_off, size - 1);
 		if (rc != EOK)
 			break;
 	}
@@ -685,30 +685,30 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 
 int str_to_utf16(uint16_t *dest, size_t size, const char *src)
 {
-	int rc=EOK;
-	size_t offset=0;
-	size_t idx=0;
+	int rc = EOK;
+	size_t offset = 0;
+	size_t idx = 0;
 	wchar_t c;
 
 	assert(size > 0);
 	
 	while ((c = str_decode(src, &offset, STR_NO_LIMIT)) != 0) {
 		if (c > 0x10000) {
-			if (idx+2 >= size-1) {
-				rc=EOVERFLOW;
+			if (idx + 2 >= size - 1) {
+				rc = EOVERFLOW;
 				break;
 			}
 			c = (c - 0x10000);
 			dest[idx] = 0xD800 | (c >> 10);
-			dest[idx+1] = 0xDC00 | (c & 0x3FF);
+			dest[idx + 1] = 0xDC00 | (c & 0x3FF);
 			idx++;
 		} else {
 			 dest[idx] = c;
 		}
 
 		idx++;
-		if (idx >= size-1) {
-			rc=EOVERFLOW;
+		if (idx >= size - 1) {
+			rc = EOVERFLOW;
 			break;
 		}
 	}
