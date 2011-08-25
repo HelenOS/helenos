@@ -32,16 +32,16 @@
  * @brief OHCI driver
  */
 #include "utils/malloc32.h"
-#include "hcd_endpoint.h"
+#include "ohci_endpoint.h"
 
 /** Callback to set toggle on ED.
  *
  * @param[in] hcd_ep hcd endpoint structure
  * @param[in] toggle new value of toggle bit
  */
-static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
+static void ohci_ep_toggle_set(void *ohci_ep, int toggle)
 {
-	hcd_endpoint_t *instance = hcd_ep;
+	ohci_endpoint_t *instance = ohci_ep;
 	assert(instance);
 	assert(instance->ed);
 	ed_toggle_set(instance->ed, toggle);
@@ -52,9 +52,9 @@ static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
  * @param[in] hcd_ep hcd endpoint structure
  * @return Current value of toggle bit.
  */
-static int hcd_ep_toggle_get(void *hcd_ep)
+static int ohci_ep_toggle_get(void *ohci_ep)
 {
-	hcd_endpoint_t *instance = hcd_ep;
+	ohci_endpoint_t *instance = ohci_ep;
 	assert(instance);
 	assert(instance->ed);
 	return ed_toggle_get(instance->ed);
@@ -64,10 +64,10 @@ static int hcd_ep_toggle_get(void *hcd_ep)
  *
  * @param[in] hcd_ep endpoint structure
  */
-static void hcd_ep_destroy(void *hcd_ep)
+static void ohci_ep_destroy(void *ohci_ep)
 {
-	if (hcd_ep) {
-		hcd_endpoint_t *instance = hcd_ep;
+	if (ohci_ep) {
+		ohci_endpoint_t *instance = ohci_ep;
 		free32(instance->ed);
 		free32(instance->td);
 		free(instance);
@@ -79,30 +79,30 @@ static void hcd_ep_destroy(void *hcd_ep)
  * @param[in] ep USBD endpoint structure
  * @return pointer to a new hcd endpoint structure, NULL on failure.
  */
-int hcd_endpoint_assign(endpoint_t *ep)
+int ohci_endpoint_assign(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(ep);
-	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
-	if (hcd_ep == NULL)
+	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));
+	if (ohci_ep == NULL)
 		return ENOMEM;
 
-	hcd_ep->ed = malloc32(sizeof(ed_t));
-	if (hcd_ep->ed == NULL) {
-		free(hcd_ep);
-		return ENOMEM;
-	}
-
-	hcd_ep->td = malloc32(sizeof(td_t));
-	if (hcd_ep->td == NULL) {
-		free32(hcd_ep->ed);
-		free(hcd_ep);
+	ohci_ep->ed = malloc32(sizeof(ed_t));
+	if (ohci_ep->ed == NULL) {
+		free(ohci_ep);
 		return ENOMEM;
 	}
 
-	ed_init(hcd_ep->ed, ep);
-	ed_set_td(hcd_ep->ed, hcd_ep->td);
+	ohci_ep->td = malloc32(sizeof(td_t));
+	if (ohci_ep->td == NULL) {
+		free32(ohci_ep->ed);
+		free(ohci_ep);
+		return ENOMEM;
+	}
+
+	ed_init(ohci_ep->ed, ep);
+	ed_set_td(ohci_ep->ed, ohci_ep->td);
 	endpoint_set_hc_data(
-	    ep, hcd_ep, hcd_ep_destroy, hcd_ep_toggle_get, hcd_ep_toggle_set);
+	    ep, ohci_ep, ohci_ep_destroy, ohci_ep_toggle_get, ohci_ep_toggle_set);
 
 	return EOK;
 }

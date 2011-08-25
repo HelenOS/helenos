@@ -38,7 +38,7 @@
 #include <usb/debug.h>
 
 #include "batch.h"
-#include "hcd_endpoint.h"
+#include "ohci_endpoint.h"
 #include "utils/malloc32.h"
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
@@ -121,8 +121,8 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
                 return ENOMEM; \
         } else (void)0
 
-	const hcd_endpoint_t *hcd_ep = hcd_endpoint_get(batch->ep);
-	assert(hcd_ep);
+	const ohci_endpoint_t *ohci_ep = ohci_endpoint_get(batch->ep);
+	assert(ohci_ep);
 
 	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
 	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
@@ -134,13 +134,13 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 		data->td_count += 2;
 	}
 
-	/* We need an extra place for TD that is currently assigned to hcd_ep*/
+	/* We need an extra place for TD that is assigned to ohci_ep */
 	data->tds = calloc(sizeof(td_t*), data->td_count + 1);
 	CHECK_NULL_DISPOSE_RETURN(data->tds,
 	    "Failed to allocate transfer descriptors.\n");
 
 	/* Add TD left over by the previous transfer */
-	data->tds[0] = hcd_ep->td;
+	data->tds[0] = ohci_ep->td;
 	data->leave_td = 0;
 	unsigned i = 1;
 	for (; i <= data->td_count; ++i) {
@@ -149,7 +149,7 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 		    "Failed to allocate TD %d.\n", i );
 	}
 
-	data->ed = hcd_ep->ed;
+	data->ed = ohci_ep->ed;
 	batch->private_data = data;
 	batch->private_data_dtor = ohci_batch_dispose;
 
@@ -212,8 +212,8 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    NULL, setup_size, func_in, func_out, arg, fun, NULL,
 	    ohci_batch_dispose);
 
-	const hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
-	assert(hcd_ep);
+	const ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+	assert(ohci_ep);
 
 	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
 	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
@@ -232,7 +232,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    "Failed to allocate transfer descriptors.\n");
 
 	/* Add TD left over by the previous transfer */
-	data->tds[0] = hcd_ep->td;
+	data->tds[0] = ohci_ep->td;
 	data->leave_td = 0;
 	unsigned i = 1;
 	for (; i <= data->td_count; ++i) {
@@ -241,7 +241,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 		    "Failed to allocate TD %d.\n", i );
 	}
 
-	data->ed = hcd_ep->ed;
+	data->ed = ohci_ep->ed;
 
 	/* NOTE: OHCI is capable of handling buffer that crosses page boundaries
 	 * it is, however, not capable of handling buffer that occupies more
@@ -302,16 +302,17 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	}
 	data->leave_td = i;
 	assert(data->leave_td <= data->td_count);
-	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(instance->ep);
-	assert(hcd_ep);
-	hcd_ep->td = data->tds[i];
+
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(instance->ep);
+	assert(ohci_ep);
+	ohci_ep->td = data->tds[i];
 	assert(i > 0);
 	for (--i;i < data->td_count; ++i)
 		instance->transfered_size -= td_remain_size(data->tds[i]);
 
 	/* Clear possible ED HALT */
 	data->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
-	const uint32_t pa = addr_to_phys(hcd_ep->td);
+	const uint32_t pa = addr_to_phys(ohci_ep->td);
 	assert(pa == (data->ed->td_head & ED_TDHEAD_PTR_MASK));
 	assert(pa == (data->ed->td_tail & ED_TDTAIL_PTR_MASK));
 

@@ -41,7 +41,7 @@
 #include <usb/ddfiface.h>
 
 #include "hc.h"
-#include "hcd_endpoint.h"
+#include "ohci_endpoint.h"
 
 #define OHCI_USED_INTERRUPTS \
     (I_SO | I_WDH | I_UE | I_RHSC)
@@ -202,7 +202,7 @@ if (ret != EOK) { \
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
 	instance->generic.private_data = instance;
 	instance->generic.schedule = schedule;
-	instance->generic.ep_add_hook = NULL;
+	instance->generic.ep_add_hook = ohci_endpoint_assign;
 
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
@@ -248,7 +248,7 @@ int hc_add_endpoint(
 	if (ep == NULL)
 		return ENOMEM;
 
-	int ret = hcd_endpoint_assign(ep);
+	int ret = ohci_endpoint_assign(&instance->generic, ep);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
 		return ret;
@@ -260,26 +260,26 @@ int hc_add_endpoint(
 		return ret;
 	}
 
-	/* Enqueue hcd_ep */
+	/* Enqueue ep */
 	switch (ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
 		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], hcd_endpoint_get(ep));
+		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
 		instance->registers->control_current = 0;
 		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
 		instance->registers->control &= ~C_BLE;
 		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], hcd_endpoint_get(ep));
+		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
 		instance->registers->control |= C_BLE;
 		break;
 	case USB_TRANSFER_ISOCHRONOUS:
 	case USB_TRANSFER_INTERRUPT:
 		instance->registers->control &= (~C_PLE & ~C_IE);
 		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], hcd_endpoint_get(ep));
+		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
 		instance->registers->control |= C_PLE | C_IE;
 		break;
 	}
@@ -308,28 +308,28 @@ int hc_remove_endpoint(hc_t *instance, usb_address_t address,
 		return ENOENT;
 	}
 
-	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
-	if (hcd_ep) {
-		/* Dequeue hcd_ep */
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+	if (ohci_ep) {
+		/* Dequeue ep */
 		switch (ep->transfer_type) {
 		case USB_TRANSFER_CONTROL:
 			instance->registers->control &= ~C_CLE;
 			endpoint_list_remove_ep(
-			    &instance->lists[ep->transfer_type], hcd_ep);
+			    &instance->lists[ep->transfer_type], ohci_ep);
 			instance->registers->control_current = 0;
 			instance->registers->control |= C_CLE;
 			break;
 		case USB_TRANSFER_BULK:
 			instance->registers->control &= ~C_BLE;
 			endpoint_list_remove_ep(
-			    &instance->lists[ep->transfer_type], hcd_ep);
+			    &instance->lists[ep->transfer_type], ohci_ep);
 			instance->registers->control |= C_BLE;
 			break;
 		case USB_TRANSFER_ISOCHRONOUS:
 		case USB_TRANSFER_INTERRUPT:
 			instance->registers->control &= (~C_PLE & ~C_IE);
 			endpoint_list_remove_ep(
-			    &instance->lists[ep->transfer_type], hcd_ep);
+			    &instance->lists[ep->transfer_type], ohci_ep);
 			instance->registers->control |= C_PLE | C_IE;
 			break;
 		default:
