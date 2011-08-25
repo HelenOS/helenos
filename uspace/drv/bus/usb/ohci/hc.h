@@ -52,11 +52,6 @@
 
 /** Main OHCI driver structure */
 typedef struct hc {
-	/** USB bus driver, devices and addresses */
-	usb_device_keeper_t manager;
-	/** USB bus driver, endpoints */
-	usb_endpoint_manager_t ep_manager;
-
 	/** Generic USB hc driver */
 	hcd_t generic;
 
@@ -90,30 +85,12 @@ int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
  *
  * @param[in] instance Host controller structure to use.
  */
-static inline void hc_fini(hc_t *instance)
-	{ /* TODO: implement*/ };
+static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
 
 void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep);
 void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep);
 
-int hc_add_endpoint(hc_t *instance, usb_address_t address, usb_endpoint_t ep,
-    usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
-    size_t max_packet_size, size_t size, unsigned interval);
-int hc_remove_endpoint(hc_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction);
-endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw);
-
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return fun->driver_data; }
 #endif
 /**
  * @}

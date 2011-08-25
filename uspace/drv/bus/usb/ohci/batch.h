@@ -40,30 +40,9 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/batch.h>
 
-usb_transfer_batch_t * batch_get(
-    ddf_fun_t *fun, endpoint_t *ep, char *buffer, size_t size,
-    const char *setup_buffer, size_t setup_size,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out,
-    void *arg);
-
 int batch_init_ohci(usb_transfer_batch_t *batch);
-
 bool batch_is_complete(usb_transfer_batch_t *batch);
-
-void batch_commit(usb_transfer_batch_t *instance);
-
-void batch_control_write(usb_transfer_batch_t *instance);
-
-void batch_control_read(usb_transfer_batch_t *instance);
-
-void batch_interrupt_in(usb_transfer_batch_t *instance);
-
-void batch_interrupt_out(usb_transfer_batch_t *instance);
-
-void batch_bulk_in(usb_transfer_batch_t *instance);
-
-void batch_bulk_out(usb_transfer_batch_t *instance);
+void batch_commit(usb_transfer_batch_t *batch);
 #endif
 /**
  * @}

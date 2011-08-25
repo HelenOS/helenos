@@ -60,13 +60,7 @@ static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
-/*----------------------------------------------------------------------------*/
-static int schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
-{
-	assert(hcd);
-	batch_init_ohci(batch);
-	return hc_schedule(hcd->private_data, batch);
-}
+static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 /*----------------------------------------------------------------------------*/
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
@@ -210,18 +204,12 @@ if (ret != EOK) { \
 	    "Failed to gain access to device registers: %s.\n", str_error(ret));
 
 	list_initialize(&instance->pending_batches);
-	usb_device_keeper_init(&instance->manager);
-
-	ret = usb_endpoint_manager_init(&instance->ep_manager,
-	    BANDWIDTH_AVAILABLE_USB11);
-	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
-	    str_error(ret));
 
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
 	CHECK_RET_RETURN(ret, "Failed to initialize generic driver: %s.\n",
 	    str_error(ret));
 	instance->generic.private_data = instance;
-	instance->generic.schedule = schedule;
+	instance->generic.schedule = hc_schedule;
 	instance->generic.ep_add_hook = ohci_endpoint_init;
 
 	ret = hc_init_memory(instance);
@@ -301,109 +289,18 @@ void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep)
 	}
 }
 /*----------------------------------------------------------------------------*/
-/** Create and register endpoint structures.
- *
- * @param[in] instance OHCI driver structure.
- * @param[in] address USB address of the device.
- * @param[in] endpoint USB endpoint number.
- * @param[in] speed Communication speeed of the device.
- * @param[in] type Endpoint's transfer type.
- * @param[in] direction Endpoint's direction.
- * @param[in] mps Maximum packet size the endpoint accepts.
- * @param[in] size Maximum allowed buffer size.
- * @param[in] interval Time between transfers(interrupt transfers only).
- * @return Error code
- */
-int hc_add_endpoint(
-    hc_t *instance, usb_address_t address, usb_endpoint_t endpoint,
-    usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
-    size_t mps, size_t size, unsigned interval)
-{
-	endpoint_t *ep =
-	    endpoint_get(address, endpoint, direction, type, speed, mps);
-	if (ep == NULL)
-		return ENOMEM;
-
-	int ret = ohci_endpoint_init(&instance->generic, ep);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-		return ret;
-	}
-	hc_enqueue_endpoint(instance, ep);
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/** Dequeue and delete endpoint structures
- *
- * @param[in] instance OHCI hc driver structure.
- * @param[in] address USB address of the device.
- * @param[in] endpoint USB endpoint number.
- * @param[in] direction Direction of the endpoint.
- * @return Error code
- */
-int hc_remove_endpoint(hc_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
-	    address, endpoint, direction, NULL);
-	if (ep == NULL) {
-		usb_log_error("Endpoint unregister failed: No such EP.\n");
-		fibril_mutex_unlock(&instance->guard);
-		return ENOENT;
-	}
-
-	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
-	if (ohci_ep) {
-		hc_dequeue_endpoint(instance, ep);
-	} else {
-		usb_log_warning("Endpoint without hcd equivalent structure.\n");
-	}
-	int ret = usb_endpoint_manager_unregister_ep(&instance->ep_manager,
-	    address, endpoint, direction);
-	fibril_mutex_unlock(&instance->guard);
-	return ret;
-}
-/*----------------------------------------------------------------------------*/
-/** Get access to endpoint structures
- *
- * @param[in] instance OHCI hc driver structure.
- * @param[in] address USB address of the device.
- * @param[in] endpoint USB endpoint number.
- * @param[in] direction Direction of the endpoint.
- * @param[out] bw Reserved bandwidth.
- * @return Error code
- */
-endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
-	    address, endpoint, direction, bw);
-	fibril_mutex_unlock(&instance->guard);
-	return ep;
-}
-/*----------------------------------------------------------------------------*/
 /** Add USB transfer to the schedule.
  *
  * @param[in] instance OHCI hc driver structure.
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
+int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
+	assert(hcd);
+	batch_init_ohci(batch);
+	hc_t *instance = hcd->private_data;
 	assert(instance);
-	assert(batch);
-	assert(batch->ep);
 
 	/* Check for root hub communication */
 	if (batch->ep->address == instance->rh.address) {

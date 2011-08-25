@@ -41,7 +41,6 @@
 #include <usb/debug.h>
 
 #include "ohci.h"
-#include "iface.h"
 #include "pci.h"
 #include "hc.h"
 #include "root_hub.h"

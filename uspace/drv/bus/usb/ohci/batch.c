@@ -42,7 +42,7 @@
 #include "utils/malloc32.h"
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
-/*
+
 static void batch_control_write(usb_transfer_batch_t *instance);
 static void batch_control_read(usb_transfer_batch_t *instance);
 
@@ -51,7 +51,7 @@ static void batch_interrupt_out(usb_transfer_batch_t *instance);
 
 static void batch_bulk_in(usb_transfer_batch_t *instance);
 static void batch_bulk_out(usb_transfer_batch_t *instance);
-*/
+
 static void batch_setup_control(usb_transfer_batch_t *batch)
 {
         // TODO Find a better way to do this
@@ -172,91 +172,6 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 
 	return EOK;
 #undef CHECK_NULL_DISPOSE_RETURN
-}
-/*----------------------------------------------------------------------------*/
-/** Allocate memory initialize internal structures
- *
- * @param[in] fun DDF function to pass to callback.
- * @param[in] ep Communication target
- * @param[in] buffer Data source/destination.
- * @param[in] buffer_size Size of the buffer.
- * @param[in] setup_buffer Setup data source (if not NULL)
- * @param[in] setup_size Size of setup_buffer (should be always 8)
- * @param[in] func_in function to call on inbound transfer completion
- * @param[in] func_out function to call on outbound transfer completion
- * @param[in] arg additional parameter to func_in or func_out
- * @return Valid pointer if all structures were successfully created,
- * NULL otherwise.
- *
- * Allocates and initializes structures needed by the OHCI hw for the transfer.
- */
-usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
-    char *buffer, size_t buffer_size,
-    const char *setup_buffer, size_t setup_size,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg)
-{
-#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
-        if (ptr == NULL) { \
-                usb_log_error(message); \
-                if (instance) { \
-                        usb_transfer_batch_dispose(instance); \
-                } \
-                return NULL; \
-        } else (void)0
-
-	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
-	CHECK_NULL_DISPOSE_RETURN(instance,
-	    "Failed to allocate batch instance.\n");
-	usb_transfer_batch_init(instance, ep, buffer, NULL, buffer_size,
-	    NULL, setup_size, func_in, func_out, arg, fun, NULL,
-	    ohci_batch_dispose);
-
-	const ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
-	assert(ohci_ep);
-
-	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
-	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
-	instance->private_data = data;
-
-	data->td_count =
-	    ((buffer_size + OHCI_TD_MAX_TRANSFER - 1) / OHCI_TD_MAX_TRANSFER);
-	/* Control transfer need Setup and Status stage */
-	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		data->td_count += 2;
-	}
-
-	/* We need an extra place for TD that is currently assigned to hcd_ep*/
-	data->tds = calloc(sizeof(td_t*), data->td_count + 1);
-	CHECK_NULL_DISPOSE_RETURN(data->tds,
-	    "Failed to allocate transfer descriptors.\n");
-
-	/* Add TD left over by the previous transfer */
-	data->tds[0] = ohci_ep->td;
-	data->leave_td = 0;
-	unsigned i = 1;
-	for (; i <= data->td_count; ++i) {
-		data->tds[i] = malloc32(sizeof(td_t));
-		CHECK_NULL_DISPOSE_RETURN(data->tds[i],
-		    "Failed to allocate TD %d.\n", i );
-	}
-
-	data->ed = ohci_ep->ed;
-
-	/* NOTE: OHCI is capable of handling buffer that crosses page boundaries
-	 * it is, however, not capable of handling buffer that occupies more
-	 * than two pages (the first page is computed using start pointer, the
-	 * other using the end pointer) */
-        if (setup_size + buffer_size > 0) {
-		data->device_buffer = malloc32(setup_size + buffer_size);
-                CHECK_NULL_DISPOSE_RETURN(data->device_buffer,
-                    "Failed to allocate device accessible buffer.\n");
-		instance->setup_buffer = data->device_buffer;
-		instance->data_buffer = data->device_buffer + setup_size;
-                memcpy(instance->setup_buffer, setup_buffer, setup_size);
-        }
-
-	return instance;
 }
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs' status.

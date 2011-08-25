@@ -46,7 +46,6 @@ SOURCES = \
 	batch.c \
 	endpoint_list.c \
 	hc.c \
-	iface.c \
 	main.c \
 	ohci.c \
 	ohci_endpoint.c \
