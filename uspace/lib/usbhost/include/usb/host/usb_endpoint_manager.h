@@ -76,6 +76,7 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
 void usb_endpoint_manager_reset_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
 
+/** Wrapper combining allocation and insertion */
 static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,

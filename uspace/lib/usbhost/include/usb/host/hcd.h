@@ -49,8 +49,8 @@ struct hcd {
 	void *private_data;
 
 	int (*schedule)(hcd_t *, usb_transfer_batch_t *);
-	void * (*batch_private_ctor)(usb_transfer_batch_t *);
-	void (*batch_private_dtor)(void *);
+	int (*batch_init_hook)(usb_transfer_batch_t *);
+	int (*ep_add_hook)(endpoint_t *);
 };
 /*----------------------------------------------------------------------------*/
 static inline int hcd_init(hcd_t *hcd, size_t bandwidth)

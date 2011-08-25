@@ -77,14 +77,14 @@ static inline int send_batch(
 
 	}
 
+	/* No private data and no private data_dtor, these should be set by
+	 * batch_init_hook*/
 	usb_transfer_batch_init(batch, ep, data, NULL, size, setup_data,
-	    setup_size, in, out, arg, fun, NULL, hcd->batch_private_dtor);
-	if (hcd->batch_private_ctor) {
-		batch->private_data = hcd->batch_private_ctor(batch);
-		if (!batch->private_data) {
-			ret = ENOMEM;
+	    setup_size, in, out, arg, fun, NULL, NULL);
+	if (hcd->batch_init_hook) {
+		ret = hcd->batch_init_hook(batch);
+		if (ret != EOK)
 			goto out;
-		}
 	} else {
 		usb_log_warning("Missing batch_private_data constructor!\n");
 	}
@@ -198,8 +198,24 @@ static int register_endpoint(
 	    usb_str_direction(direction), usb_str_speed(speed),
 	    max_packet_size, interval);
 
-	return usb_endpoint_manager_add_ep(&hcd->ep_manager, address, endpoint,
-	    direction, transfer_type, speed, max_packet_size, size);
+	endpoint_t *ep = endpoint_get(
+	    address, endpoint, direction, transfer_type, speed, max_packet_size);
+	if (!ep)
+		return ENOMEM;
+	int ret = EOK;
+	if (hcd->ep_add_hook) {
+		ret = hcd->ep_add_hook(ep);
+	}
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+		return ret;
+	}
+
+	ret = usb_endpoint_manager_register_ep(&hcd->ep_manager, ep, size);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+	}
+	return ret;
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(

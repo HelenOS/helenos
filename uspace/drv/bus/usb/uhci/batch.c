@@ -92,7 +92,7 @@ static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
  *
  * @param[in] uhci_batch Instance to destroy.
  */
-void uhci_transfer_batch_dispose(void *uhci_batch)
+static void uhci_transfer_batch_dispose(void *uhci_batch)
 {
 	uhci_transfer_batch_t *instance = uhci_batch;
 	assert(instance);
@@ -118,7 +118,7 @@ void uhci_transfer_batch_dispose(void *uhci_batch)
  * Prepares a transport buffer (that is accessible by the hardware).
  * Initializes parameters needed for the transfer and callback.
  */
-void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
+int batch_init_private(usb_transfer_batch_t *batch)
 {
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
 	if (ptr == NULL) { \
@@ -126,7 +126,7 @@ void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
 		if (uhci_data) { \
 			uhci_transfer_batch_dispose(uhci_data); \
 		} \
-		return NULL; \
+		return ENOMEM; \
 	} else (void)0
 
 	uhci_transfer_batch_t *uhci_data =
@@ -163,6 +163,7 @@ void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
 	memcpy(setup, batch->setup_buffer, batch->setup_size);
 	/* Set generic data buffer pointer */
 	batch->data_buffer = setup + batch->setup_size;
+	batch->private_data_dtor = uhci_transfer_batch_dispose;
 	batch->private_data = uhci_data;
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
 	    " memory structures ready.\n", batch,
@@ -170,9 +171,8 @@ void * uhci_transfer_batch_create(usb_transfer_batch_t *batch)
 	assert(batch_setup[batch->ep->transfer_type][batch->ep->direction]);
 	batch_setup[batch->ep->transfer_type][batch->ep->direction](batch);
 
-	return uhci_data;
+	return EOK;
 }
-/*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs for activity.
  *
