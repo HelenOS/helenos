@@ -60,7 +60,12 @@ static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
-
+/*----------------------------------------------------------------------------*/
+static int schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+{
+	assert(hcd);
+	return hc_schedule(hcd->private_data, batch);
+}
 /*----------------------------------------------------------------------------*/
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
@@ -162,12 +167,6 @@ if (ret != EOK) { \
 #undef CHECK_RET_RELEASE
 }
 /*----------------------------------------------------------------------------*/
-static int schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
-{
-	assert(hcd);
-	return hc_schedule(hcd->private_data, batch);
-}
-/*----------------------------------------------------------------------------*/
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
@@ -202,7 +201,7 @@ if (ret != EOK) { \
 	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
 	instance->generic.private_data = instance;
 	instance->generic.schedule = schedule;
-	instance->generic.ep_add_hook = ohci_endpoint_assign;
+	instance->generic.ep_add_hook = ohci_endpoint_init;
 
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
@@ -223,6 +222,62 @@ if (ret != EOK) { \
 	hc_start(instance);
 
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep)
+{
+	endpoint_list_t *list = &instance->lists[ep->transfer_type];
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+	/* Enqueue ep */
+	switch (ep->transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		instance->registers->control &= ~C_CLE;
+		endpoint_list_add_ep(list, ohci_ep);
+		instance->registers->control_current = 0;
+		instance->registers->control |= C_CLE;
+		break;
+	case USB_TRANSFER_BULK:
+		instance->registers->control &= ~C_BLE;
+		endpoint_list_add_ep(
+		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
+		instance->registers->control |= C_BLE;
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+	case USB_TRANSFER_INTERRUPT:
+		instance->registers->control &= (~C_PLE & ~C_IE);
+		endpoint_list_add_ep(
+		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
+		instance->registers->control |= C_PLE | C_IE;
+		break;
+	}
+}
+/*----------------------------------------------------------------------------*/
+void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep)
+{
+	/* Dequeue ep */
+	endpoint_list_t *list = &instance->lists[ep->transfer_type];
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+	switch (ep->transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		instance->registers->control &= ~C_CLE;
+		endpoint_list_remove_ep(list, ohci_ep);
+		instance->registers->control_current = 0;
+		instance->registers->control |= C_CLE;
+		break;
+	case USB_TRANSFER_BULK:
+		instance->registers->control &= ~C_BLE;
+		endpoint_list_remove_ep(list, ohci_ep);
+		instance->registers->control |= C_BLE;
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+	case USB_TRANSFER_INTERRUPT:
+		instance->registers->control &= (~C_PLE & ~C_IE);
+		endpoint_list_remove_ep(list, ohci_ep);
+		instance->registers->control |= C_PLE | C_IE;
+		break;
+	default:
+		break;
+	}
 }
 /*----------------------------------------------------------------------------*/
 /** Create and register endpoint structures.
@@ -248,7 +303,7 @@ int hc_add_endpoint(
 	if (ep == NULL)
 		return ENOMEM;
 
-	int ret = ohci_endpoint_assign(&instance->generic, ep);
+	int ret = ohci_endpoint_init(&instance->generic, ep);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
 		return ret;
@@ -259,30 +314,7 @@ int hc_add_endpoint(
 		endpoint_destroy(ep);
 		return ret;
 	}
-
-	/* Enqueue ep */
-	switch (ep->transfer_type) {
-	case USB_TRANSFER_CONTROL:
-		instance->registers->control &= ~C_CLE;
-		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
-		instance->registers->control_current = 0;
-		instance->registers->control |= C_CLE;
-		break;
-	case USB_TRANSFER_BULK:
-		instance->registers->control &= ~C_BLE;
-		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
-		instance->registers->control |= C_BLE;
-		break;
-	case USB_TRANSFER_ISOCHRONOUS:
-	case USB_TRANSFER_INTERRUPT:
-		instance->registers->control &= (~C_PLE & ~C_IE);
-		endpoint_list_add_ep(
-		    &instance->lists[ep->transfer_type], ohci_endpoint_get(ep));
-		instance->registers->control |= C_PLE | C_IE;
-		break;
-	}
+	hc_enqueue_endpoint(instance, ep);
 
 	return EOK;
 }
@@ -310,31 +342,7 @@ int hc_remove_endpoint(hc_t *instance, usb_address_t address,
 
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
 	if (ohci_ep) {
-		/* Dequeue ep */
-		switch (ep->transfer_type) {
-		case USB_TRANSFER_CONTROL:
-			instance->registers->control &= ~C_CLE;
-			endpoint_list_remove_ep(
-			    &instance->lists[ep->transfer_type], ohci_ep);
-			instance->registers->control_current = 0;
-			instance->registers->control |= C_CLE;
-			break;
-		case USB_TRANSFER_BULK:
-			instance->registers->control &= ~C_BLE;
-			endpoint_list_remove_ep(
-			    &instance->lists[ep->transfer_type], ohci_ep);
-			instance->registers->control |= C_BLE;
-			break;
-		case USB_TRANSFER_ISOCHRONOUS:
-		case USB_TRANSFER_INTERRUPT:
-			instance->registers->control &= (~C_PLE & ~C_IE);
-			endpoint_list_remove_ep(
-			    &instance->lists[ep->transfer_type], ohci_ep);
-			instance->registers->control |= C_PLE | C_IE;
-			break;
-		default:
-			break;
-		}
+		hc_dequeue_endpoint(instance, ep);
 	} else {
 		usb_log_warning("Endpoint without hcd equivalent structure.\n");
 	}

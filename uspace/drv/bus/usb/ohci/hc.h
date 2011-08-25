@@ -83,8 +83,8 @@ typedef struct hc {
 size_t hc_irq_cmd_count(void);
 int hc_get_irq_commands(
     irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size);
-int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
+int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
 
 /** Safely dispose host controller internal structures
  *
@@ -92,6 +92,9 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
  */
 static inline void hc_fini(hc_t *instance)
 	{ /* TODO: implement*/ };
+
+void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep);
+void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep);
 
 int hc_add_endpoint(hc_t *instance, usb_address_t address, usb_endpoint_t ep,
     usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,

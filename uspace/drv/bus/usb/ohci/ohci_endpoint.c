@@ -33,6 +33,7 @@
  */
 #include "utils/malloc32.h"
 #include "ohci_endpoint.h"
+#include "hc.h"
 
 /** Callback to set toggle on ED.
  *
@@ -64,10 +65,11 @@ static int ohci_ep_toggle_get(void *ohci_ep)
  *
  * @param[in] hcd_ep endpoint structure
  */
-static void ohci_ep_destroy(void *ohci_ep)
+static void ohci_endpoint_fini(endpoint_t *ep)
 {
-	if (ohci_ep) {
-		ohci_endpoint_t *instance = ohci_ep;
+	ohci_endpoint_t *instance = ep->hc_data.data;
+	hc_dequeue_endpoint(instance->hcd->private_data, ep);
+	if (instance) {
 		free32(instance->ed);
 		free32(instance->td);
 		free(instance);
@@ -79,7 +81,7 @@ static void ohci_ep_destroy(void *ohci_ep)
  * @param[in] ep USBD endpoint structure
  * @return pointer to a new hcd endpoint structure, NULL on failure.
  */
-int ohci_endpoint_assign(hcd_t *hcd, endpoint_t *ep)
+int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(ep);
 	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));
@@ -102,8 +104,9 @@ int ohci_endpoint_assign(hcd_t *hcd, endpoint_t *ep)
 	ed_init(ohci_ep->ed, ep);
 	ed_set_td(ohci_ep->ed, ohci_ep->td);
 	endpoint_set_hc_data(
-	    ep, ohci_ep, ohci_ep_destroy, ohci_ep_toggle_get, ohci_ep_toggle_set);
-
+	    ep, ohci_ep, ohci_endpoint_fini, ohci_ep_toggle_get, ohci_ep_toggle_set);
+	ohci_ep->hcd = hcd;
+	hc_enqueue_endpoint(hcd->private_data, ep);
 	return EOK;
 }
 /**

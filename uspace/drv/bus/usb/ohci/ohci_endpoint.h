@@ -54,7 +54,7 @@ typedef struct ohci_endpoint {
 	hcd_t *hcd;
 } ohci_endpoint_t;
 
-int ohci_endpoint_assign(hcd_t *hcd, endpoint_t *ep);
+int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
 
 /** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
