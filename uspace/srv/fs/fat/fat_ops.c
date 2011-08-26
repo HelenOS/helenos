@@ -603,8 +603,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->service_id);
 	rc = fat_directory_open(parentp, &di);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 
 	/*
 	 * At this point we only establish the link between the parent and the
@@ -615,15 +617,18 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	memset(&de, 0, sizeof(fat_dentry_t));
 
 	rc = fat_directory_write(&di, name, &de);
-	if (rc != EOK)
+	if (rc != EOK) {
+		(void) fat_directory_close(&di);
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 	rc = fat_directory_close(&di);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
-	if (rc != EOK)
-		return rc;
 
 	fibril_mutex_lock(&childp->idx->lock);
 
