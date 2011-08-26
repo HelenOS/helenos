@@ -33,7 +33,8 @@
 
 /**
  * @file	exfat_ops.c
- * @brief	Implementation of VFS operations for the exFAT file system server.
+ * @brief	Implementation of VFS operations for the exFAT file system
+ *		server.
  */
 
 #include "exfat.h"
@@ -334,7 +335,8 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 
 	switch (exfat_classify_dentry(d)) {
 	case EXFAT_DENTRY_FILE:
-		nodep->type = (uint16_t_le2host(d->file.attr) & EXFAT_ATTR_SUBDIR)? 
+		nodep->type =
+		    (uint16_t_le2host(d->file.attr) & EXFAT_ATTR_SUBDIR) ? 
 		    EXFAT_DIRECTORY : EXFAT_FILE;
 		rc = exfat_directory_next(&di);
 		if (rc != EOK) {
@@ -394,7 +396,8 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	return EOK;
 }
 
-int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep, exfat_cluster_t clusters)
+int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep,
+    exfat_cluster_t clusters)
 {
 	exfat_bs_t *bs;
 	int rc;
@@ -438,7 +441,8 @@ int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep, exfat_cluste
 	return EOK;
 }
 
-static int exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep, aoff64_t size)
+static int exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep,
+    aoff64_t size)
 {
 	exfat_bs_t *bs;
 	int rc;
@@ -504,7 +508,7 @@ int exfat_uctable_get(fs_node_t **rfn, service_id_t service_id)
 int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	exfat_node_t *parentp = EXFAT_NODE(pfn);
-	char name[EXFAT_FILENAME_LEN+1];
+	char name[EXFAT_FILENAME_LEN + 1];
 	exfat_file_dentry_t df;
 	exfat_stream_dentry_t ds;
 	service_id_t service_id;
@@ -519,12 +523,13 @@ int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	if (rc != EOK)
 		return rc;
 
-	while (exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN, 
-	    &df, &ds) == EOK) {
+	while (exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN, &df,
+	    &ds) == EOK) {
 		if (stricmp(name, component) == 0) {
 			/* hit */
 			exfat_node_t *nodep;
-			aoff64_t o = di.pos % (BPS(di.bs) / sizeof(exfat_dentry_t));
+			aoff64_t o = di.pos %
+			    (BPS(di.bs) / sizeof(exfat_dentry_t));
 			exfat_idx_t *idx = exfat_idx_get_by_pos(service_id,
 				parentp->firstc, di.bnum * DPS(di.bs) + o);
 			if (!idx) {
@@ -733,10 +738,10 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 * dentry data is kept in the child node structure.
 	 */
 	rc = exfat_directory_write_file(&di, name);
-	if (rc!=EOK)
+	if (rc != EOK)
 		return rc;
 	rc = exfat_directory_close(&di);
-	if (rc!=EOK)
+	if (rc != EOK)
 		return rc;
 
 	fibril_mutex_unlock(&parentp->idx->lock);
@@ -961,7 +966,7 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
 {
 	int rc;
-	exfat_node_t *rootp=NULL, *bitmapp=NULL, *uctablep=NULL;
+	exfat_node_t *rootp = NULL, *bitmapp = NULL, *uctablep = NULL;
 	enum cache_mode cmode;
 	exfat_bs_t *bs;
 
@@ -1061,7 +1066,7 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	rc = exfat_node_get_new_by_pos(&bitmapp, service_id, rootp->firstc, 
 	    di.pos);
-	if (rc!=EOK) {
+	if (rc != EOK) {
 		free(rootp);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
@@ -1102,7 +1107,7 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	rc = exfat_node_get_new_by_pos(&uctablep, service_id, rootp->firstc, 
 	    di.pos);
-	if (rc!=EOK) {
+	if (rc != EOK) {
 		free(rootp);
 		free(bitmapp);
 		(void) block_cache_fini(service_id);
@@ -1122,7 +1127,7 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	uctablep->size = uint64_t_le2host(de->uctable.size);
 
 	rc = exfat_directory_close(&di);
-	if (rc!=EOK) {
+	if (rc != EOK) {
 		free(rootp);
 		free(bitmapp);
 		free(uctablep);
@@ -1187,7 +1192,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	fs_node_t *fn;
 	exfat_node_t *nodep;
 	exfat_bs_t *bs;
-	size_t bytes=0;
+	size_t bytes = 0;
 	block_t *b;
 	int rc;
 
@@ -1243,7 +1248,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 			
 		aoff64_t spos = pos;
-		char name[EXFAT_FILENAME_LEN+1];
+		char name[EXFAT_FILENAME_LEN + 1];
 		exfat_file_dentry_t df;
 		exfat_stream_dentry_t ds;
 
@@ -1259,9 +1264,12 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			goto err;
 		}
 
-		rc = exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN, &df, &ds);
-		if (rc == EOK) goto hit;
-		if (rc == ENOENT) goto miss;
+		rc = exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN,
+		    &df, &ds);
+		if (rc == EOK)
+		    goto hit;
+		if (rc == ENOENT)
+		    goto miss;
 
 err:
 		(void) exfat_node_put(fn);
@@ -1280,10 +1288,11 @@ miss:
 hit:
 		pos = di.pos;
 		rc = exfat_directory_close(&di);
-		if (rc!=EOK)
+		if (rc != EOK)
 			goto err;
-		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
-		bytes = (pos - spos)+1;
+		(void) async_data_read_finalize(callid, name,
+		    str_size(name) + 1);
+		bytes = (pos - spos) + 1;
 	}
 
 	rc = exfat_node_put(fn);
@@ -1395,7 +1404,6 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 	}
 
-
 	*wbytes = bytes;
 	*nsize = nodep->size;
 	rc = exfat_node_put(fn);
@@ -1475,7 +1483,6 @@ vfs_out_ops_t exfat_ops = {
 	.destroy = exfat_destroy,
 	.sync = exfat_sync,
 };
-
 
 /**
  * @}

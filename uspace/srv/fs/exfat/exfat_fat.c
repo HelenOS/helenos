@@ -134,11 +134,11 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
 
 	if (nodep->fragmented) {
 		if (((((nodep->size - 1) / BPS(bs)) / SPC(bs)) == bn / SPC(bs)) &&
-			nodep->lastc_cached_valid) {
-				/*
-			* This is a request to read a block within the last cluster
-			* when fortunately we have the last cluster number cached.
-			*/
+		    nodep->lastc_cached_valid) {
+			/*
+			 * This is a request to read a block within the last cluster
+			 * when fortunately we have the last cluster number cached.
+			 */
 			return block_get(block, nodep->idx->service_id, DATA_FS(bs) + 
 		        (nodep->lastc_cached_value-EXFAT_CLST_FIRST)*SPC(bs) + 
 			    (bn % SPC(bs)), flags);
@@ -194,12 +194,12 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 	exfat_cluster_t c;
 	int rc;
 
-	if (fcl < EXFAT_CLST_FIRST || fcl > DATA_CNT(bs)+2)
+	if (fcl < EXFAT_CLST_FIRST || fcl > DATA_CNT(bs) + 2)
 		return ELIMIT;
 
 	if (!fragmented) {
 		rc = block_get(block, service_id, DATA_FS(bs) + 
-		    (fcl-EXFAT_CLST_FIRST)*SPC(bs) + bn, flags);
+		    (fcl - EXFAT_CLST_FIRST)*SPC(bs) + bn, flags);
 	} else {
 		max_clusters = bn / SPC(bs);
 		rc = exfat_cluster_walk(bs, service_id, fcl, &c, &clusters, max_clusters);
@@ -208,7 +208,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 		assert(clusters == max_clusters);
 
 		rc = block_get(block, service_id, DATA_FS(bs) + 
-		    (c-EXFAT_CLST_FIRST)*SPC(bs) + (bn % SPC(bs)), flags);
+		    (c - EXFAT_CLST_FIRST) * SPC(bs) + (bn % SPC(bs)), flags);
 
 		if (clp)
 			*clp = c;
@@ -309,16 +309,17 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 		return ENOMEM;
 
 	fibril_mutex_lock(&exfat_alloc_lock);
-	for (clst=EXFAT_CLST_FIRST; clst < DATA_CNT(bs)+2 && found < nclsts; clst++) {
+	for (clst = EXFAT_CLST_FIRST; clst < DATA_CNT(bs) + 2 && found < nclsts;
+	    clst++) {
 		/* Need to rewrite because of multiple exfat_bitmap_get calls */
-		if (bitmap_is_free(bs, service_id, clst)==EOK) {
-		   /*
-			* The cluster is free. Put it into our stack
-			* of found clusters and mark it as non-free.
-			*/
+		if (bitmap_is_free(bs, service_id, clst) == EOK) {
+			/*
+			 * The cluster is free. Put it into our stack
+			 * of found clusters and mark it as non-free.
+			 */
 			lifo[found] = clst;
 			rc = exfat_set_cluster(bs, service_id, clst,
-				(found == 0) ?  EXFAT_CLST_EOF : lifo[found - 1]);
+			    (found == 0) ?  EXFAT_CLST_EOF : lifo[found - 1]);
 			if (rc != EOK)
 				break;
 			found++;
@@ -338,11 +339,9 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	}
 
 	/* If something wrong - free the clusters */
-	if (found > 0) {
-		while (found--) {
-			(void) bitmap_clear_cluster(bs, service_id, lifo[found]);
-			(void) exfat_set_cluster(bs, service_id, lifo[found], 0);
-		}
+	while (found--) {
+		(void) bitmap_clear_cluster(bs, service_id, lifo[found]);
+		(void) exfat_set_cluster(bs, service_id, lifo[found], 0);
 	}
 
 	free(lifo);
@@ -489,8 +488,8 @@ exfat_zero_cluster(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t c)
 	int rc;
 
 	for (i = 0; i < SPC(bs); i++) {
-		rc = exfat_block_get_by_clst(&b, bs, service_id, false, c, NULL, i,
-		    BLOCK_FLAGS_NOREAD);
+		rc = exfat_block_get_by_clst(&b, bs, service_id, false, c, NULL,
+		    i, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
 		memset(b->data, 0, BPS(bs));
@@ -516,8 +515,8 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
 		rc = exfat_block_get(&b, bs, nodep, i, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
-		if (i == blocks-1)
-			count = nodep->size - i*BPS(bs);
+		if (i == blocks - 1)
+			count = nodep->size - i * BPS(bs);
 		memcpy(uctable, b->data, count);
 		uctable += count;
 		rc = block_put(b);

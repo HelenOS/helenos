@@ -57,22 +57,20 @@ struct exfat_bs;
 
 typedef uint32_t exfat_cluster_t;
 
-
 #define exfat_clusters_get(numc, bs, sid, fc) \
     exfat_cluster_walk((bs), (sid), (fc), NULL, (numc), (uint32_t) -1)
-extern int exfat_cluster_walk(struct exfat_bs *bs, service_id_t service_id, 
-    exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
-    uint32_t max_clusters);
-extern int exfat_block_get(block_t **block, struct exfat_bs *bs,
-    struct exfat_node *nodep, aoff64_t bn, int flags);
-extern int exfat_block_get_by_clst(block_t **block, struct exfat_bs *bs, 
-    service_id_t service_id, bool fragmented, exfat_cluster_t fcl,
-    exfat_cluster_t *clp, aoff64_t bn, int flags);
 
-extern int exfat_get_cluster(struct exfat_bs *bs, service_id_t service_id,
-    exfat_cluster_t clst, exfat_cluster_t *value);
-extern int exfat_set_cluster(struct exfat_bs *bs, service_id_t service_id,
-    exfat_cluster_t clst, exfat_cluster_t value);
+extern int exfat_cluster_walk(struct exfat_bs *, service_id_t, 
+    exfat_cluster_t, exfat_cluster_t *, uint32_t *, uint32_t);
+extern int exfat_block_get(block_t **, struct exfat_bs *, struct exfat_node *,
+    aoff64_t, int);
+extern int exfat_block_get_by_clst(block_t **, struct exfat_bs *, service_id_t,
+    bool, exfat_cluster_t, exfat_cluster_t *, aoff64_t, int);
+
+extern int exfat_get_cluster(struct exfat_bs *, service_id_t, exfat_cluster_t,
+    exfat_cluster_t *);
+extern int exfat_set_cluster(struct exfat_bs *, service_id_t, exfat_cluster_t,
+    exfat_cluster_t);
 extern int exfat_sanity_check(struct exfat_bs *, service_id_t);
 
 extern int exfat_append_clusters(struct exfat_bs *, struct exfat_node *,
@@ -82,11 +80,10 @@ extern int exfat_chop_clusters(struct exfat_bs *, struct exfat_node *,
 extern int exfat_alloc_clusters(struct exfat_bs *, service_id_t, unsigned,
     exfat_cluster_t *, exfat_cluster_t *);
 extern int exfat_free_clusters(struct exfat_bs *, service_id_t, exfat_cluster_t);
-extern int exfat_zero_cluster(struct exfat_bs * bs, service_id_t service_id, 
-    exfat_cluster_t mcl);
+extern int exfat_zero_cluster(struct exfat_bs *, service_id_t, exfat_cluster_t);
 
-extern int exfat_read_uctable(struct exfat_bs *bs, struct exfat_node *nodep, 
-    uint8_t *uctable);
+extern int exfat_read_uctable(struct exfat_bs *, struct exfat_node *,
+    uint8_t *);
 
 #endif
 

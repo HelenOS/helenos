@@ -146,12 +146,11 @@ int exfat_directory_prev(exfat_directory_t *di)
 	
 	if (di->pos > 0) {
 		di->pos -= 1;
-		rc=exfat_directory_block_load(di);
-	}
-	else
+		rc = exfat_directory_block_load(di);
+	} else
 		return ENOENT;
 	
-	if (rc!=EOK)
+	if (rc != EOK)
 		di->pos += 1;
 	
 	return rc;
@@ -280,7 +279,7 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	if (rc != EOK)
 		return rc;
 	count = de->file.count + 1;
-	array = (exfat_dentry_t *) malloc(count*sizeof(exfat_dentry_t));
+	array = (exfat_dentry_t *) malloc(count * sizeof(exfat_dentry_t));
 	if (!array)
 		return ENOMEM;
 	for (i = 0; i < count; i++) {
@@ -289,7 +288,7 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 			return rc;
 		array[i] = *de;
 		rc = exfat_directory_next(di);
-		if (rc!=EOK) {
+		if (rc != EOK) {
 			free(array);
 			return rc;
 		}
@@ -377,7 +376,7 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 		return rc;
 
 	/* Looking for set of free entries */
-	rc = exfat_directory_lookup_free(di, df.file.count+1);
+	rc = exfat_directory_lookup_free(di, df.file.count + 1);
 	if (rc != EOK)
 		return rc;
 	pos = di->pos;
