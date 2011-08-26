@@ -33,11 +33,11 @@
  */ 
 
 /**
- * @file	fat.c
+ * @file	exfat.c
  * @brief	FAT file system driver for HelenOS.
  */
 
-#include "fat.h"
+#include "exfat.h"
 #include <ipc/services.h>
 #include <ns.h>
 #include <async.h>
@@ -48,9 +48,9 @@
 #include <libfs.h>
 #include "../../vfs/vfs.h"
 
-#define NAME	"fat"
+#define NAME	"exfat"
 
-vfs_info_t fat_vfs_info = {
+vfs_info_t exfat_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
 	.write_retains_size = false,	
@@ -58,12 +58,12 @@ vfs_info_t fat_vfs_info = {
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS FAT file system server\n");
-	
-	int rc = fat_idx_init();
+	printf(NAME ": HelenOS exFAT file system server\n");
+
+	int rc = exfat_idx_init();
 	if (rc != EOK)
 		goto err;
-	
+
 	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
 	    SERVICE_VFS, 0, 0);
 	if (!vfs_sess) {
@@ -71,23 +71,24 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	rc = fs_register(vfs_sess, &fat_vfs_info, &fat_ops, &fat_libfs_ops);
+	rc = fs_register(vfs_sess, &exfat_vfs_info, &exfat_ops, &exfat_libfs_ops);
 	if (rc != EOK) {
-		fat_idx_fini();
+		exfat_idx_fini();
 		goto err;
 	}
 	
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();
-	
-	/* Not reached */
+
+	/* not reached */
 	return 0;
-	
+
 err:
 	printf(NAME ": Failed to register file system (%d)\n", rc);
 	return rc;
 }
+
 
 /**
  * @}
