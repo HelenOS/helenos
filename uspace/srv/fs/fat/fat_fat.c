@@ -795,7 +795,7 @@ int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
 			nodep->lastc_cached_valid = false;
 		} else {
 			rc = fat_cluster_walk(bs, service_id, nodep->firstc,
-			    &lastc, NULL, (uint16_t) -1);
+			    &lastc, NULL, (uint32_t) -1);
 			if (rc != EOK)
 				return rc;
 		}
