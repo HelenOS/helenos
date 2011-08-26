@@ -124,20 +124,8 @@ extern int fat_alloc_clusters(struct fat_bs *, service_id_t, unsigned,
 extern int fat_free_clusters(struct fat_bs *, service_id_t, fat_cluster_t);
 extern int fat_alloc_shadow_clusters(struct fat_bs *, service_id_t,
     fat_cluster_t *, unsigned);
-extern int fat_get_cluster_fat12(struct fat_bs *, service_id_t, unsigned,
-    fat_cluster_t, fat_cluster_t *);
-extern int fat_get_cluster_fat16(struct fat_bs *, service_id_t, unsigned,
-    fat_cluster_t, fat_cluster_t *);
-extern int fat_get_cluster_fat32(struct fat_bs *, service_id_t, unsigned,
-    fat_cluster_t, fat_cluster_t *);
 extern int fat_get_cluster(struct fat_bs *, service_id_t, unsigned,
     fat_cluster_t, fat_cluster_t *);
-extern int fat_set_cluster_fat12(struct fat_bs *, service_id_t, unsigned,
-    fat_cluster_t, fat_cluster_t);
-extern int fat_set_cluster_fat16(struct fat_bs *, service_id_t, unsigned,
-    fat_cluster_t, fat_cluster_t);
-extern int fat_set_cluster_fat32(struct fat_bs *, service_id_t, unsigned,
-    fat_cluster_t, fat_cluster_t);
 extern int fat_set_cluster(struct fat_bs *, service_id_t, unsigned,
     fat_cluster_t, fat_cluster_t);
 extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,

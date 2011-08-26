@@ -288,7 +288,7 @@ fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
  *
  * @return		EOK or a negative error code.
  */
-int
+static int
 fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
@@ -358,7 +358,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK or a negative error code.
  */
-int
+static int
 fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
@@ -389,7 +389,7 @@ fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK or a negative error code.
  */
-int
+static int
 fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
@@ -450,7 +450,7 @@ fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or a negative error code.
  */
-int
+static int
 fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
@@ -493,8 +493,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 			block_put(b);
 			return ERANGE;
 		}
-	}
-	else
+	} else
 		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs)) + 1];
 
 	if (IS_ODD(clst)) {
@@ -539,7 +538,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or a negative error code.
  */
-int
+static int
 fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
@@ -572,7 +571,7 @@ fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or a negative error code.
  */
-int
+static int
 fat_set_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {

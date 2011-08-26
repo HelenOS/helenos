@@ -314,8 +314,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	if (FAT_IS_FAT32(bs)) {
 		nodep->firstc = uint16_t_le2host(d->firstc_lo) | 
 		    (uint16_t_le2host(d->firstc_hi) << 16);
-	} 
-	else
+	} else
 		nodep->firstc = uint16_t_le2host(d->firstc);
 
 	if (d->attr & FAT_ATTR_SUBDIR) {
@@ -332,7 +331,8 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		 * size of the directory by walking the FAT.
 		 */
 		uint32_t clusters;
-		rc = fat_clusters_get(&clusters, bs, idxp->service_id, nodep->firstc);
+		rc = fat_clusters_get(&clusters, bs, idxp->service_id,
+		    nodep->firstc);
 		if (rc != EOK) {
 			(void) block_put(b);
 			(void) fat_node_put(FS_NODE(nodep));
@@ -391,9 +391,10 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		if (fat_dentry_namecmp(name, component) == 0) {
 			/* hit */
 			fat_node_t *nodep;
-			aoff64_t o = di.pos % (BPS(di.bs) / sizeof(fat_dentry_t));
+			aoff64_t o = di.pos %
+			    (BPS(di.bs) / sizeof(fat_dentry_t));
 			fat_idx_t *idx = fat_idx_get_by_pos(service_id,
-				parentp->firstc, di.bnum * DPS(di.bs) + o);
+			    parentp->firstc, di.bnum * DPS(di.bs) + o);
 			if (!idx) {
 				/*
 				 * Can happen if memory is low or if we
@@ -614,10 +615,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	memset(&de, 0, sizeof(fat_dentry_t));
 
 	rc = fat_directory_write(&di, name, &de);
-	if (rc!=EOK)
+	if (rc != EOK)
 		return rc;
 	rc = fat_directory_close(&di);
-	if (rc!=EOK)
+	if (rc != EOK)
 		return rc;
 
 	fibril_mutex_unlock(&parentp->idx->lock);
@@ -712,7 +713,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_lock(&childp->idx->lock);
 	
 	fat_directory_t di;
-	rc = fat_directory_open(parentp,&di);
+	rc = fat_directory_open(parentp, &di);
 	if (rc != EOK)
 		goto error;
 	rc = fat_directory_seek(&di, childp->idx->pdi);
@@ -1088,7 +1089,8 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 		fat_directory_t di;
 		rc = fat_directory_open(nodep, &di);
-		if (rc != EOK) goto err;
+		if (rc != EOK)
+			goto err;
 		rc = fat_directory_seek(&di, pos);
 		if (rc != EOK) {
 			(void) fat_directory_close(&di);
@@ -1096,8 +1098,10 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 
 		rc = fat_directory_read(&di, name, &d);
-		if (rc == EOK) goto hit;
-		if (rc == ENOENT) goto miss;
+		if (rc == EOK)
+			goto hit;
+		if (rc == ENOENT)
+			goto miss;
 
 err:
 		(void) fat_node_put(fn);
@@ -1106,7 +1110,7 @@ err:
 
 miss:
 		rc = fat_directory_close(&di);
-		if (rc!=EOK)
+		if (rc != EOK)
 			goto err;
 		rc = fat_node_put(fn);
 		async_answer_0(callid, rc != EOK ? rc : ENOENT);
@@ -1116,10 +1120,11 @@ miss:
 hit:
 		pos = di.pos;
 		rc = fat_directory_close(&di);
-		if (rc!=EOK)
+		if (rc != EOK)
 			goto err;
-		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
-		bytes = (pos - spos)+1;
+		(void) async_data_read_finalize(callid, name,
+		    str_size(name) + 1);
+		bytes = (pos - spos) + 1;
 	}
 
 	rc = fat_node_put(fn);
