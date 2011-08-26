@@ -46,7 +46,7 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
 
-#define min(a, b)		((a) < (b) ? (a) : (b))
+#define min(a, b)	((a) < (b) ? (a) : (b))
 
 /*
  * Convenience macros for accessing some frequently used boot sector members.
@@ -55,16 +55,19 @@
 #define SPC(bs)		(bs)->spc
 #define RSCNT(bs)	uint16_t_le2host((bs)->rscnt)
 #define FATCNT(bs)	(bs)->fatcnt
-#define SF(bs)		(uint16_t_le2host((bs)->sec_per_fat) !=0 ? \
+
+#define SF(bs)		(uint16_t_le2host((bs)->sec_per_fat) ? \
     uint16_t_le2host((bs)->sec_per_fat) : \
     uint32_t_le2host(bs->fat32.sectors_per_fat))
-#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
-#define TS(bs)		(uint16_t_le2host((bs)->totsec16) != 0 ? \
-			uint16_t_le2host((bs)->totsec16) : \
-			uint32_t_le2host(bs->totsec32))
 
-#define BS_BLOCK		0
-#define BS_SIZE			512
+#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
+
+#define TS(bs)		(uint16_t_le2host((bs)->totsec16) ? \
+    uint16_t_le2host((bs)->totsec16) : \
+    uint32_t_le2host(bs->totsec32))
+
+#define BS_BLOCK	0
+#define BS_SIZE		512
 
 typedef struct fat_bs {
 	uint8_t		ji[3];		/**< Jump instruction. */

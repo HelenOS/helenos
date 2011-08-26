@@ -50,13 +50,6 @@
 #include <malloc.h>
 #include <mem.h>
 
-/*
- * Convenience macros for computing some frequently used values from the
- * primitive boot sector members.
- */
-#define CLBN2PBN(bs, cl, bn) \
-	(SSA((bs)) + ((cl) - FAT_CLST_FIRST) * SPC((bs)) + (bn) % SPC((bs)))
-
 #define IS_ODD(number)	(number & 0x1)
 
 /**
@@ -243,7 +236,8 @@ _fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
  *
  * @return		EOK on success or a negative error code.
  */
-int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
+int
+fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
 {
 	block_t *b;
 	aoff64_t o, boundary;
@@ -285,7 +279,7 @@ int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t po
 	return EOK;
 }
 
-/** Get cluster from the first FAT. FAT12 version
+/** Get cluster from the first FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param service_id	Service ID for the file system.
@@ -303,7 +297,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	aoff64_t offset;
 	int rc;
 
-	offset = (clst + clst/2);
+	offset = (clst + clst / 2);
 	if (offset / BPS(bs) >= SF(bs))
 		return ERANGE;
 
@@ -312,14 +306,15 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	if (rc != EOK)
 		return rc;
 
-	byte1 = ((uint8_t*) b->data)[offset % BPS(bs)];
+	byte1 = ((uint8_t *) b->data)[offset % BPS(bs)];
 	/* This cluster access spans a sector boundary. Check only for FAT12 */
 	if ((offset % BPS(bs)) + 1 == BPS(bs)) {
-		/* Is it last sector of FAT? */
+		/* Is this the last sector of FAT? */
 		if (offset / BPS(bs) < SF(bs)) {
-			/* No. Reading next sector */
+			/* No, read the next sector */
 			rc = block_get(&b1, service_id, 1 + RSCNT(bs) +
-				SF(bs)*fatno + offset / BPS(bs), BLOCK_FLAGS_NONE);
+			    SF(bs) * fatno + offset / BPS(bs),
+			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
 				block_put(b);
 				return rc;
@@ -335,15 +330,13 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 				block_put(b);
 				return rc;
 			}
-		}
-		else {
-			/* Yes. It is last sector of FAT */
+		} else {
+			/* Yes. This is the last sector of FAT */
 			block_put(b);
 			return ERANGE;
 		}
-	}
-	else
-		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs))+1];
+	} else
+		byte2 = ((uint8_t *) b->data)[(offset % BPS(bs)) + 1];
 
 	*value = uint16_t_le2host(byte1 | (byte2 << 8));
 	if (IS_ODD(clst))
@@ -352,10 +345,11 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 		*value = (*value) & FAT12_MASK;
 	
 	rc = block_put(b);
+
 	return rc;
 }
 
-/** Get cluster from the first FAT. FAT16 version
+/** Get cluster from the first FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param service_id	Service ID for the file system.
@@ -386,7 +380,7 @@ fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	return rc;
 }
 
-/** Get cluster from the first FAT. FAT32 version
+/** Get cluster from the first FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param service_id	Service ID for the file system.
@@ -410,7 +404,8 @@ fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	if (rc != EOK)
 		return rc;
 
-	*value = uint32_t_le2host(*(uint32_t *)(b->data + offset % BPS(bs))) & FAT32_MASK;
+	*value = uint32_t_le2host(*(uint32_t *)(b->data + offset % BPS(bs))) &
+	    FAT32_MASK;
 
 	rc = block_put(b);
 
@@ -435,20 +430,17 @@ fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 
 	assert(fatno < FATCNT(bs));
 
-	if (FAT_IS_FAT12(bs)) {
+	if (FAT_IS_FAT12(bs))
 		rc = fat_get_cluster_fat12(bs, service_id, fatno, clst, value);
-	}
-	else {
-		if (FAT_IS_FAT32(bs))
-			rc = fat_get_cluster_fat32(bs, service_id, fatno, clst, value);
-		else
-			rc = fat_get_cluster_fat16(bs, service_id, fatno, clst, value);
-	}
+	else if (FAT_IS_FAT16(bs))
+		rc = fat_get_cluster_fat16(bs, service_id, fatno, clst, value);
+	else
+		rc = fat_get_cluster_fat32(bs, service_id, fatno, clst, value);
 
 	return rc;
 }
 
-/** Set cluster in one instance of FAT. FAT12 version.
+/** Set cluster in one instance of FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param service_id	Service ID for the file system.
@@ -462,12 +454,12 @@ int
 fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
-	block_t *b, *b1=NULL;
+	block_t *b, *b1 = NULL;
 	aoff64_t offset;
 	uint16_t byte1, byte2;
 	int rc;
 
-	offset = (clst + clst/2);
+	offset = (clst + clst / 2);
 	if (offset / BPS(bs) >= SF(bs))
 		return ERANGE;
 	
@@ -478,13 +470,14 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 
 	byte1 = ((uint8_t*) b->data)[offset % BPS(bs)];
 	bool border = false;
-	/* This cluster access spans a sector boundary. Check only for FAT12 */
-	if ((offset % BPS(bs))+1 == BPS(bs)) {
-		/* Is it last sector of FAT? */
+	/* This cluster access spans a sector boundary. */
+	if ((offset % BPS(bs)) + 1 == BPS(bs)) {
+		/* Is it the last sector of FAT? */
 		if (offset / BPS(bs) < SF(bs)) {
-			/* No. Reading next sector */
+			/* No, read the next sector */
 			rc = block_get(&b1, service_id, 1 + RSCNT(bs) +
-				SF(bs)*fatno + offset / BPS(bs), BLOCK_FLAGS_NONE);
+			    SF(bs) * fatno + offset / BPS(bs),
+			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
 				block_put(b);
 				return rc;
@@ -493,17 +486,16 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 			 * Combining value with last byte of current sector and
 			 * first byte of next sector
 			 */
-			byte2 = ((uint8_t*) b1->data)[0];
+			byte2 = ((uint8_t *) b1->data)[0];
 			border = true;
-		}
-		else {
-			/* Yes. It is last sector of fat */
+		} else {
+			/* Yes. This is the last sector of FAT */
 			block_put(b);
 			return ERANGE;
 		}
 	}
 	else
-		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs))+1];
+		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs)) + 1];
 
 	if (IS_ODD(clst)) {
 		byte1 &= 0x0f;
@@ -518,9 +510,9 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	byte1 = byte1 | (value & 0xff);
 	byte2 = byte2 | (value >> 8);
 
-	((uint8_t*) b->data)[(offset % BPS(bs))] = byte1;
+	((uint8_t *) b->data)[(offset % BPS(bs))] = byte1;
 	if (border) {
-		((uint8_t*) b1->data)[0] = byte2;
+		((uint8_t *) b1->data)[0] = byte2;
 
 		b1->dirty = true;
 		rc = block_put(b1);
@@ -529,14 +521,15 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 			return rc;
 		}
 	} else 
-		((uint8_t*) b->data)[(offset % BPS(bs))+1] = byte2;
+		((uint8_t *) b->data)[(offset % BPS(bs)) + 1] = byte2;
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);
+
 	return rc;
 }
 
-/** Set cluster in one instance of FAT. FAT16 version.
+/** Set cluster in one instance of FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param service_id	Service ID for the file system.
@@ -565,10 +558,11 @@ fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);
+
 	return rc;
 }
 
-/** Set cluster in one instance of FAT. FAT32 version.
+/** Set cluster in one instance of FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param service_id	Service ID for the file system.
@@ -601,6 +595,7 @@ fat_set_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 
 	b->dirty = true;	/* need to sync block */
 	rc = block_put(b);
+
 	return rc;
 }
 
@@ -624,10 +619,10 @@ fat_set_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 
 	if (FAT_IS_FAT12(bs))
 		rc = fat_set_cluster_fat12(bs, service_id, fatno, clst, value);
-	else if (FAT_IS_FAT32(bs))
-		rc = fat_set_cluster_fat32(bs, service_id, fatno, clst, value);
-	else
+	else if (FAT_IS_FAT16(bs))
 		rc = fat_set_cluster_fat16(bs, service_id, fatno, clst, value);
+	else
+		rc = fat_set_cluster_fat32(bs, service_id, fatno, clst, value);
 
 	return rc;
 }
@@ -694,23 +689,24 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	 * Search FAT1 for unused clusters.
 	 */
 	fibril_mutex_lock(&fat_alloc_lock);
-	for (clst=FAT_CLST_FIRST; clst < CC(bs)+2 && found < nclsts; clst++) {
+	for (clst = FAT_CLST_FIRST; clst < CC(bs) + 2 && found < nclsts;
+	    clst++) {
 		rc = fat_get_cluster(bs, service_id, FAT1, clst, &value);
-		if (rc != EOK)
-		break;
-
-		if (value == FAT_CLST_RES0) {
-		/*
-		 * The cluster is free. Put it into our stack
-		 * of found clusters and mark it as non-free.
-		 */
-		lifo[found] = clst;
-		rc = fat_set_cluster(bs, service_id, FAT1, clst,
-		    (found == 0) ?  clst_last1 : lifo[found - 1]);
 		if (rc != EOK)
 			break;
 
-		found++;
+		if (value == FAT_CLST_RES0) {
+			/*
+			 * The cluster is free. Put it into our stack
+			 * of found clusters and mark it as non-free.
+			 */
+			lifo[found] = clst;
+			rc = fat_set_cluster(bs, service_id, FAT1, clst,
+			    (found == 0) ?  clst_last1 : lifo[found - 1]);
+			if (rc != EOK)
+				break;
+
+			found++;
 		}
 	}
 
@@ -726,15 +722,14 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	}
 
 	/* If something wrong - free the clusters */
-	if (found > 0) {
-		while (found--) {
-		rc = fat_set_cluster(bs, service_id, FAT1, lifo[found],
+	while (found--) {
+		(void) fat_set_cluster(bs, service_id, FAT1, lifo[found],
 		    FAT_CLST_RES0);
-		}
 	}
 
 	free(lifo);
 	fibril_mutex_unlock(&fat_alloc_lock);
+
 	return ENOSPC;
 }
 
@@ -756,16 +751,17 @@ fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1(bs)) {
 		assert(firstc >= FAT_CLST_FIRST && firstc < clst_bad);
+
 		rc = fat_get_cluster(bs, service_id, FAT1, firstc, &nextc);
 		if (rc != EOK)
 			return rc;
+
 		for (fatno = FAT1; fatno < FATCNT(bs); fatno++) {
 			rc = fat_set_cluster(bs, service_id, fatno, firstc,
 			    FAT_CLST_RES0);
 			if (rc != EOK)
 				return rc;
 		}
-
 		firstc = nextc;
 	}
 
@@ -781,8 +777,7 @@ fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
  *
  * @return		EOK on success or a negative error code.
  */
-int
-fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
+int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
     fat_cluster_t lcl)
 {
 	service_id_t service_id = nodep->idx->service_id;
@@ -941,7 +936,8 @@ int fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 	 * It can be removed provided that functions such as fat_read() are
 	 * sanitized to support file systems with this property.
 	 */
-	if (!FAT_IS_FAT32(bs) && (RDE(bs) * sizeof(fat_dentry_t)) % BPS(bs) != 0)
+	if (!FAT_IS_FAT32(bs) &&
+	    (RDE(bs) * sizeof(fat_dentry_t)) % BPS(bs) != 0)
 		return ENOTSUP;
 
 	/* Check signature of each FAT. */
@@ -954,7 +950,9 @@ int fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 		if (rc != EOK)
 			return EIO;
 
-		/* Check that first byte of FAT contains the media descriptor. */
+		/*
+		 * Check that first byte of FAT contains the media descriptor.
+		 */
 		if ((e0 & 0xff) != bs->mdesc)
 			return ENOTSUP;
 
@@ -963,7 +961,7 @@ int fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 		 * set to one.
 		 */
 		if (!FAT_IS_FAT12(bs) && 
-			((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
+		    ((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
 			return ENOTSUP;
 	}
 

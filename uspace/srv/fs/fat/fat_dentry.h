@@ -70,16 +70,16 @@
 #define FAT_LFN_LAST		0x40
 #define FAT_LFN_ERASED		0x80
 
-#define FAT_LFN_ORDER(d) (d->lfn.order)
+#define FAT_LFN_ORDER(d) ((d)->lfn.order)
 #define FAT_IS_LFN(d) \
-    ((FAT_LFN_ORDER(d) & FAT_LFN_LAST) == FAT_LFN_LAST)
+    ((FAT_LFN_ORDER((d)) & FAT_LFN_LAST) == FAT_LFN_LAST)
 #define FAT_LFN_COUNT(d) \
-    (FAT_LFN_ORDER(d) ^ FAT_LFN_LAST)
-#define FAT_LFN_PART1(d) (d->lfn.part1)
-#define FAT_LFN_PART2(d) (d->lfn.part2)
-#define FAT_LFN_PART3(d) (d->lfn.part3)
-#define FAT_LFN_ATTR(d) (d->lfn.attr)
-#define FAT_LFN_CHKSUM(d) (d->lfn.check_sum)
+    (FAT_LFN_ORDER((d)) ^ FAT_LFN_LAST)
+#define FAT_LFN_PART1(d) ((d)->lfn.part1)
+#define FAT_LFN_PART2(d) ((d)->lfn.part2)
+#define FAT_LFN_PART3(d) ((d)->lfn.part3)
+#define FAT_LFN_ATTR(d) ((d)->lfn.attr)
+#define FAT_LFN_CHKSUM(d) ((d)->lfn.check_sum)
 
 #define FAT_LFN_NAME_SIZE   260
 #define FAT_LFN_MAX_COUNT   20
@@ -97,40 +97,38 @@ typedef enum {
 	FAT_DENTRY_LFN
 } fat_dentry_clsf_t;
 
-typedef struct {
-	union {
-		struct {
-			uint8_t		name[8];
-			uint8_t		ext[3];
-			uint8_t		attr;
-			uint8_t		lcase;
-			uint8_t		ctime_fine;
-			uint16_t	ctime;
-			uint16_t	cdate;
-			uint16_t	adate;
-			union {
-				uint16_t	eaidx;		/* FAT12/FAT16 */
-				uint16_t	firstc_hi;	/* FAT32 */
-			} __attribute__ ((packed));
-			uint16_t	mtime;
-			uint16_t	mdate;
-			union {
-				uint16_t	firstc;		/* FAT12/FAT16 */
-				uint16_t	firstc_lo;	/* FAT32 */
-			} __attribute__ ((packed));
-			uint32_t	size;
+typedef union {
+	struct {
+		uint8_t		name[8];
+		uint8_t		ext[3];
+		uint8_t		attr;
+		uint8_t		lcase;
+		uint8_t		ctime_fine;
+		uint16_t	ctime;
+		uint16_t	cdate;
+		uint16_t	adate;
+		union {
+			uint16_t	eaidx;		/* FAT12/FAT16 */
+			uint16_t	firstc_hi;	/* FAT32 */
 		} __attribute__ ((packed));
-		struct {
-			uint8_t		order;
-			uint16_t	part1[FAT_LFN_PART1_SIZE];
-			uint8_t		attr;
-			uint8_t		type;
-			uint8_t		check_sum;
-			uint16_t	part2[FAT_LFN_PART2_SIZE];
-			uint16_t	firstc_lo; /* MUST be 0 */
-			uint16_t	part3[FAT_LFN_PART3_SIZE];
-		} __attribute__ ((packed)) lfn;
-	};
+		uint16_t	mtime;
+		uint16_t	mdate;
+		union {
+			uint16_t	firstc;		/* FAT12/FAT16 */
+			uint16_t	firstc_lo;	/* FAT32 */
+		} __attribute__ ((packed));
+		uint32_t	size;
+	} __attribute__ ((packed));
+	struct {
+		uint8_t		order;
+		uint16_t	part1[FAT_LFN_PART1_SIZE];
+		uint8_t		attr;
+		uint8_t		type;
+		uint8_t		check_sum;
+		uint16_t	part2[FAT_LFN_PART2_SIZE];
+		uint16_t	firstc_lo; /* MUST be 0 */
+		uint16_t	part3[FAT_LFN_PART3_SIZE];
+	} __attribute__ ((packed)) lfn;
 } __attribute__ ((packed)) fat_dentry_t;
 
 
@@ -143,14 +141,14 @@ extern uint8_t fat_dentry_chksum(uint8_t *);
 extern size_t fat_lfn_str_nlength(const uint16_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
 extern size_t fat_lfn_get_entry(const fat_dentry_t *, uint16_t *, size_t *);
-extern size_t fat_lfn_set_entry(const uint16_t *, size_t *, size_t, fat_dentry_t *);
+extern size_t fat_lfn_set_entry(const uint16_t *, size_t *, size_t,
+    fat_dentry_t *);
 
-extern void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad);
-extern size_t utf16_length(const uint16_t *wstr);
+extern void str_to_ascii(char *, const char *, size_t, uint8_t);
+extern size_t utf16_length(const uint16_t *);
 
-extern bool fat_valid_name(const char *name);
-extern bool fat_valid_short_name(const char *name);
-
+extern bool fat_valid_name(const char *);
+extern bool fat_valid_short_name(const char *);
 
 #endif
 

@@ -75,6 +75,9 @@
 #define DS(bs)	  (TS(bs) - SSA(bs))
 #define CC(bs)	  (DS(bs) / SPC(bs))
 
+#define CLBN2PBN(bs, cl, bn) \
+	(SSA((bs)) + ((cl) - FAT_CLST_FIRST) * SPC((bs)) + (bn) % SPC((bs)))
+
 #define FAT_IS_FAT12(bs)	(CC(bs) < FAT12_CLST_MAX)
 #define FAT_IS_FAT16(bs) \
     ((CC(bs) >= FAT12_CLST_MAX) && (CC(bs) < FAT16_CLST_MAX))
