@@ -252,7 +252,8 @@ static int fat_params_compute(struct fat_cfg *cfg)
 	    (cfg->fat_type == FAT32 && cfg->total_clusters <= FAT16_CLST_MAX))
 		return ENOSPC;
 
-	fat_bytes = (cfg->total_clusters + 2) * FAT_SIZE(cfg->fat_type);
+	fat_bytes = div_round_up((cfg->total_clusters + 2) *
+	    FAT_CLUSTER_DOUBLE_SIZE(cfg->fat_type), 2);
 	cfg->fat_sectors = div_round_up(fat_bytes, cfg->sector_size);
 
 	return EOK;
