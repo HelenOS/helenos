@@ -684,6 +684,7 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
 	if (!lifo)
 		return ENOMEM;
+	
 	/*
 	 * Search FAT1 for unused clusters.
 	 */
@@ -761,6 +762,7 @@ fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
 			if (rc != EOK)
 				return rc;
 		}
+
 		firstc = nextc;
 	}
 
