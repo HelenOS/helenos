@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericproc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_BOOL_H_
-#define LIBC_BOOL_H_
+#ifndef ABI_PROC_THREAD_H_
+#define ABI_PROC_THREAD_H_
 
-#include <libarch/types.h>
-#include <abi/bool.h>
+typedef uint64_t thread_id_t;
 
-#define false  0
-#define true   1
+/** Thread states */
+typedef enum {
+	/** It is an error, if thread is found in this state. */
+	Invalid,
+	/** State of a thread that is currently executing on some CPU. */
+	Running,
+	/** Thread in this state is waiting for an event. */
+	Sleeping,
+	/** State of threads in a run queue. */
+	Ready,
+	/** Threads are in this state before they are first readied. */
+	Entering,
+	/** After a thread calls thread_exit(), it is put into Exiting state. */
+	Exiting,
+	/** Threads that were not detached but exited are Lingering. */
+	Lingering
+} state_t;
 
 #endif
 

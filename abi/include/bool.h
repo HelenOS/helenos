@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_BOOL_H_
-#define LIBC_BOOL_H_
+#ifndef ABI_BOOL_H_
+#define ABI_BOOL_H_
 
-#include <libarch/types.h>
-#include <abi/bool.h>
-
-#define false  0
-#define true   1
+typedef uint8_t bool;
 
 #endif
 

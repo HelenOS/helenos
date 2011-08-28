@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericproc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_BOOL_H_
-#define LIBC_BOOL_H_
+#ifndef ABI_PROC_TASK_H_
+#define ABI_PROC_TASK_H_
 
-#include <libarch/types.h>
-#include <abi/bool.h>
-
-#define false  0
-#define true   1
+typedef uint64_t task_id_t;
 
 #endif
 

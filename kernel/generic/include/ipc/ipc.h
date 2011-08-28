@@ -35,10 +35,11 @@
 #ifndef KERN_IPC_H_
 #define KERN_IPC_H_
 
-#include <abi/ipc/ipc.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
+#include <abi/ipc/ipc.h>
+#include <abi/proc/task.h>
 #include <typedefs.h>
 
 #define IPC_MAX_PHONES  32
