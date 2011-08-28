@@ -78,6 +78,7 @@ DIRS = \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
+	srv/fs/exfat \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/locfs \
@@ -162,6 +163,7 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/fmtutil \
 	lib/scsi \
 	lib/softint \
 	lib/softfloat \
