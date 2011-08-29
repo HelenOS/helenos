@@ -672,9 +672,15 @@ static void dev_del_ref(ddf_dev_t *dev)
 		delete_device(dev);
 }
 
-/** Increase function reference count. */
+/** Increase function reference count.
+ *
+ * This also increases reference count on the device. The device structure
+ * will thus not be deallocated while there are some associated function
+ * structures.
+ */
 static void fun_add_ref(ddf_fun_t *fun)
 {
+	dev_add_ref(fun->dev);
 	atomic_inc(&fun->refcnt);
 }
 
@@ -684,8 +690,12 @@ static void fun_add_ref(ddf_fun_t *fun)
  */
 static void fun_del_ref(ddf_fun_t *fun)
 {
+	ddf_dev_t *dev = fun->dev;
+
 	if (atomic_predec(&fun->refcnt) == 0)
 		delete_function(fun);
+
+	dev_del_ref(dev);
 }
 
 /** Create a DDF function node.
@@ -720,10 +730,10 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 		return NULL;
 
 	/* Add one reference that will be dropped by ddf_fun_destroy() */
+	fun->dev = dev;
 	fun_add_ref(fun);
 
 	fun->bound = false;
-	fun->dev = dev;
 	fun->ftype = ftype;
 
 	fun->name = str_dup(name);
