@@ -80,6 +80,8 @@ struct ddf_dev {
 	 * device manager).
 	 */
 	devman_handle_t handle;
+	/** Reference count */
+	atomic_t refcnt;
 	
 	/**
 	 * Session to the parent device driver (if it is different from this
@@ -103,6 +105,8 @@ struct ddf_fun {
 	bool bound;
 	/** Function indentifier (asigned by device manager) */
 	devman_handle_t handle;
+	/** Reference count */
+	atomic_t refcnt;
 	
 	/** Device which this function belogs to */
 	ddf_dev_t *dev;

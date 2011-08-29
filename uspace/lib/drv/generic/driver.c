@@ -85,6 +85,10 @@ static irq_code_t default_pseudocode = {
 
 static ddf_dev_t *create_device(void);
 static void delete_device(ddf_dev_t *);
+static void dev_add_ref(ddf_dev_t *);
+static void dev_del_ref(ddf_dev_t *);
+static void fun_add_ref(ddf_fun_t *);
+static void fun_del_ref(ddf_fun_t *);
 static remote_handler_t *function_get_default_handler(ddf_fun_t *);
 static void *function_get_ops(ddf_fun_t *, dev_inferface_idx_t);
 
@@ -260,7 +264,7 @@ static ddf_fun_t *driver_get_function(devman_handle_t handle)
 	return NULL;
 }
 
-static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *dev_name = NULL;
 	int res;
@@ -269,6 +273,9 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
     	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
 	ddf_dev_t *dev = create_device();
+
+	/* Add one reference that will be dropped by driver_dev_remove() */
+	dev_add_ref(dev);
 	dev->handle = dev_handle;
 
 	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
@@ -281,8 +288,12 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	(void) parent_fun_handle;
 	
 	res = driver->driver_ops->add_device(dev);
-	if (res != EOK)
-		delete_device(dev);
+	
+	if (res != EOK) {
+		dev_del_ref(dev);
+		async_answer_0(iid, res);
+		return;
+	}
 	
 	fibril_mutex_lock(&devices_mutex);
 	list_append(&dev->link, &devices);
@@ -302,8 +313,8 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fibril_mutex_lock(&devices_mutex);
 	dev = driver_get_device(devh);
+	dev_add_ref(dev);
 	fibril_mutex_unlock(&devices_mutex);
-	/* XXX need lock on dev */
 	
 	if (dev == NULL) {
 		async_answer_0(iid, ENOENT);
@@ -315,6 +326,9 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	else
 		rc = ENOTSUP;
 	
+	if (rc == EOK)
+		dev_del_ref(dev);
+	
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
@@ -325,20 +339,32 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 	
 	funh = IPC_GET_ARG1(*icall);
+	
+	/*
+	 * Look up the function. Bump reference count so that
+	 * the function continues to exist until we return
+	 * from the driver.
+	 */
 	fibril_mutex_lock(&functions_mutex);
+	
 	fun = driver_get_function(funh);
+	if (fun != NULL)
+		fun_add_ref(fun);
+	
 	fibril_mutex_unlock(&functions_mutex);
-	/* XXX Need lock on fun */
 	
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
+	/* Call driver entry point */
 	if (driver->driver_ops->fun_online != NULL)
 		rc = driver->driver_ops->fun_online(fun);
 	else
 		rc = ENOTSUP;
+	
+	fun_del_ref(fun);
 	
 	async_answer_0(iid, (sysarg_t) rc);
 }
@@ -350,16 +376,26 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 	
 	funh = IPC_GET_ARG1(*icall);
+	
+	/*
+	 * Look up the function. Bump reference count so that
+	 * the function continues to exist until we return
+	 * from the driver.
+	 */
 	fibril_mutex_lock(&functions_mutex);
+	
 	fun = driver_get_function(funh);
+	if (fun != NULL)
+		fun_add_ref(fun);
+	
 	fibril_mutex_unlock(&functions_mutex);
-	/* XXX Need lock on fun */
 	
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
+	/* Call driver entry point */
 	if (driver->driver_ops->fun_offline != NULL)
 		rc = driver->driver_ops->fun_offline(fun);
 	else
@@ -382,7 +418,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case DRIVER_DEV_ADD:
-			driver_add_device(callid, &call);
+			driver_dev_add(callid, &call);
 			break;
 		case DRIVER_DEV_REMOVE:
 			driver_dev_remove(callid, &call);
@@ -574,11 +610,10 @@ static ddf_dev_t *create_device(void)
 {
 	ddf_dev_t *dev;
 
-	dev = malloc(sizeof(ddf_dev_t));
+	dev = calloc(1, sizeof(ddf_dev_t));
 	if (dev == NULL)
 		return NULL;
 
-	memset(dev, 0, sizeof(ddf_dev_t));
 	return dev;
 }
 
@@ -609,7 +644,7 @@ static void delete_device(ddf_dev_t *dev)
 	free(dev);
 }
 
-/** Delete device structure.
+/** Delete function structure.
  *
  * @param dev		The device structure.
  */
@@ -619,6 +654,38 @@ static void delete_function(ddf_fun_t *fun)
 	if (fun->name != NULL)
 		free(fun->name);
 	free(fun);
+}
+
+/** Increase device reference count. */
+static void dev_add_ref(ddf_dev_t *dev)
+{
+	atomic_inc(&dev->refcnt);
+}
+
+/** Decrease device reference count.
+ *
+ * Free the device structure if the reference count drops to zero.
+ */
+static void dev_del_ref(ddf_dev_t *dev)
+{
+	if (atomic_predec(&dev->refcnt) == 0)
+		delete_device(dev);
+}
+
+/** Increase function reference count. */
+static void fun_add_ref(ddf_fun_t *fun)
+{
+	atomic_inc(&fun->refcnt);
+}
+
+/** Decrease function reference count.
+ *
+ * Free the function structure if the reference count drops to zero.
+ */
+static void fun_del_ref(ddf_fun_t *fun)
+{
+	if (atomic_predec(&fun->refcnt) == 0)
+		delete_function(fun);
 }
 
 /** Create a DDF function node.
@@ -652,6 +719,9 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 	if (fun == NULL)
 		return NULL;
 
+	/* Add one reference that will be dropped by ddf_fun_destroy() */
+	fun_add_ref(fun);
+
 	fun->bound = false;
 	fun->dev = dev;
 	fun->ftype = ftype;
@@ -675,7 +745,14 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 void ddf_fun_destroy(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
-	delete_function(fun);
+
+	/*
+	 * Drop the reference added by ddf_fun_create(). This will deallocate
+	 * the function as soon as all other references are dropped (i.e.
+	 * as soon control leaves all driver entry points called in context
+	 * of this function.
+	 */
+	fun_del_ref(fun);
 }
 
 static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
