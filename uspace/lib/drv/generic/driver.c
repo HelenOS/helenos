@@ -341,7 +341,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	funh = IPC_GET_ARG1(*icall);
 	
 	/*
-	 * Look up the function. Bump reference count so that
+	 * Look the function up. Bump reference count so that
 	 * the function continues to exist until we return
 	 * from the driver.
 	 */
@@ -378,7 +378,7 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	funh = IPC_GET_ARG1(*icall);
 	
 	/*
-	 * Look up the function. Bump reference count so that
+	 * Look the function up. Bump reference count so that
 	 * the function continues to exist until we return
 	 * from the driver.
 	 */
