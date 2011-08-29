@@ -733,7 +733,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	usb_log_debug("Creating KBD function...\n");
 	int rc = usb_kbd_create_function(hid_dev, kbd_dev);
 	if (rc != EOK) {
-		usb_kbd_free(&kbd_dev);
+		usb_kbd_destroy(kbd_dev);
 		return rc;
 	}
 	
@@ -778,42 +778,39 @@ int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev)
  *
  * @param kbd_dev Pointer to the structure to be destroyed.
  */
-void usb_kbd_free(usb_kbd_t **kbd_dev)
+void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 {
-	if (kbd_dev == NULL || *kbd_dev == NULL) {
+	if (kbd_dev == NULL) {
 		return;
 	}
 	
 	// hangup phone to the console
-	async_obsolete_hangup((*kbd_dev)->console_phone);
+	async_obsolete_hangup(kbd_dev->console_phone);
 	
-	if ((*kbd_dev)->repeat_mtx != NULL) {
+	if (kbd_dev->repeat_mtx != NULL) {
 		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
 		// FIXME - the fibril_mutex_is_locked may not cause
 		// fibril scheduling
-		while (fibril_mutex_is_locked((*kbd_dev)->repeat_mtx)) {}
-		free((*kbd_dev)->repeat_mtx);
+		while (fibril_mutex_is_locked(kbd_dev->repeat_mtx)) {}
+		free(kbd_dev->repeat_mtx);
 	}
 	
 	// free all buffers
-	if ((*kbd_dev)->keys != NULL) {
-		free((*kbd_dev)->keys);
+	if (kbd_dev->keys != NULL) {
+		free(kbd_dev->keys);
 	}
-	if ((*kbd_dev)->keys_old != NULL) {
-		free((*kbd_dev)->keys_old);
+	if (kbd_dev->keys_old != NULL) {
+		free(kbd_dev->keys_old);
 	}
-	if ((*kbd_dev)->led_data != NULL) {
-		free((*kbd_dev)->led_data);
+	if (kbd_dev->led_data != NULL) {
+		free(kbd_dev->led_data);
 	}
-	if ((*kbd_dev)->led_path != NULL) {
-		usb_hid_report_path_free((*kbd_dev)->led_path);
+	if (kbd_dev->led_path != NULL) {
+		usb_hid_report_path_free(kbd_dev->led_path);
 	}
-	if ((*kbd_dev)->output_buffer != NULL) {
-		usb_hid_report_output_free((*kbd_dev)->output_buffer);
+	if (kbd_dev->output_buffer != NULL) {
+		usb_hid_report_output_free(kbd_dev->output_buffer);
 	}
-
-	free(*kbd_dev);
-	*kbd_dev = NULL;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -829,7 +826,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 		if (usb_kbd_is_initialized(kbd_dev)) {
 			usb_kbd_mark_unusable(kbd_dev);
 		} else {
-			usb_kbd_free(&kbd_dev);
+			usb_kbd_destroy(kbd_dev);
 		}
 	}
 }

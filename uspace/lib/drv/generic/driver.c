@@ -641,6 +641,8 @@ static ddf_fun_t *create_function(void)
  */
 static void delete_device(ddf_dev_t *dev)
 {
+	if (dev->driver_data != NULL)
+		free(dev->driver_data);
 	free(dev);
 }
 
@@ -651,6 +653,8 @@ static void delete_device(ddf_dev_t *dev)
 static void delete_function(ddf_fun_t *fun)
 {
 	clean_match_ids(&fun->match_ids);
+	if (fun->driver_data != NULL)
+		free(fun->driver_data);
 	if (fun->name != NULL)
 		free(fun->name);
 	free(fun);

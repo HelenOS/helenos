@@ -166,21 +166,6 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 
 /*----------------------------------------------------------------------------*/
 
-static void usb_multimedia_free(usb_multimedia_t **multim_dev)
-{
-	if (multim_dev == NULL || *multim_dev == NULL) {
-		return;
-	}
-	
-	// hangup phone to the console
-	async_obsolete_hangup((*multim_dev)->console_phone);
-
-	free(*multim_dev);
-	*multim_dev = NULL;
-}
-
-/*----------------------------------------------------------------------------*/
-
 static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev, 
     usb_multimedia_t *multim_dev)
 {
@@ -246,10 +231,8 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	usb_log_debug(NAME " HID/multimedia device structure initialized.\n");
 	
 	int rc = usb_multimedia_create_function(hid_dev, multim_dev);
-	if (rc != EOK) {
-		usb_multimedia_free(&multim_dev);
+	if (rc != EOK)
 		return rc;
-	}
 	
 	usb_log_debug(NAME " HID/multimedia structure initialized.\n");
 	
@@ -266,7 +249,8 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 	
 	if (data != NULL) {
 		usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
-		usb_multimedia_free(&multim_dev);
+		// hangup phone to the console
+		async_obsolete_hangup(multim_dev->console_phone);
 	}
 }
 

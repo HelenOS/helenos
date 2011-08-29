@@ -214,24 +214,6 @@ static driver_t pci_driver = {
 	.driver_ops = &pci_ops
 };
 
-static pci_bus_t *pci_bus_new(void)
-{
-	pci_bus_t *bus;
-	
-	bus = (pci_bus_t *) calloc(1, sizeof(pci_bus_t));
-	if (bus == NULL)
-		return NULL;
-	
-	fibril_mutex_initialize(&bus->conf_mutex);
-	return bus;
-}
-
-static void pci_bus_delete(pci_bus_t *bus)
-{
-	assert(bus != NULL);
-	free(bus);
-}
-
 static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
 	pci_bus_t *bus = PCI_BUS_FROM_FUN(fun);
@@ -583,12 +565,14 @@ static int pci_add_device(ddf_dev_t *dnode)
 	ddf_msg(LVL_DEBUG, "pci_add_device");
 	dnode->parent_sess = NULL;
 	
-	bus = pci_bus_new();
+	bus = ddf_dev_data_alloc(dnode, sizeof(pci_bus_t));
 	if (bus == NULL) {
 		ddf_msg(LVL_ERROR, "pci_add_device allocation failed.");
 		rc = ENOMEM;
 		goto fail;
 	}
+	fibril_mutex_initialize(&bus->conf_mutex);
+
 	bus->dnode = dnode;
 	dnode->driver_data = bus;
 	
@@ -654,9 +638,6 @@ static int pci_add_device(ddf_dev_t *dnode)
 	return EOK;
 	
 fail:
-	if (bus != NULL)
-		pci_bus_delete(bus);
-	
 	if (dnode->parent_sess)
 		async_hangup(dnode->parent_sess);
 	
