@@ -147,9 +147,9 @@ static int test1_add_device(ddf_dev_t *dev)
 	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
-	test1 = calloc(1, sizeof(test1_t));
+	test1 = ddf_dev_data_alloc(dev, sizeof(test1_t));
 	if (test1 == NULL) {
-		ddf_msg(LVL_ERROR, "Failed allocating softstate.\n");
+		ddf_msg(LVL_ERROR, "Failed allocating soft state.\n");
 		return ENOMEM;
 	}
 
@@ -158,6 +158,8 @@ static int test1_add_device(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
 		return ENOMEM;
 	}
+
+	test1->fun_a = fun_a;
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
@@ -186,8 +188,6 @@ static int test1_add_device(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "Device `%s' accepted.", dev->name);
 
-	test1->fun_a = fun_a;
-	dev->driver_data = test1;
 	return EOK;
 }
 

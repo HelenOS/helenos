@@ -698,6 +698,21 @@ static void fun_del_ref(ddf_fun_t *fun)
 	dev_del_ref(dev);
 }
 
+/** Allocate driver-specific device data. */
+extern void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
+{
+	void *data;
+
+	assert(dev->driver_data == NULL);
+
+	data = calloc(1, size);
+	if (data == NULL)
+		return NULL;
+
+	dev->driver_data = data;
+	return data;
+}
+
 /** Create a DDF function node.
  *
  * Create a DDF function (in memory). Both child devices and external clients
@@ -743,6 +758,22 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 	}
 
 	return fun;
+}
+
+/** Allocate driver-specific function data. */
+extern void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
+{
+	void *data;
+
+	assert(fun->bound == false);
+	assert(fun->driver_data == NULL);
+
+	data = calloc(1, size);
+	if (data == NULL)
+		return NULL;
+
+	fun->driver_data = data;
+	return data;
 }
 
 /** Destroy DDF function node.
