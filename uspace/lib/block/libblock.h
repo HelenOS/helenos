@@ -113,6 +113,7 @@ extern int block_seqread(service_id_t, size_t *, size_t *, aoff64_t *, void *,
 
 extern int block_get_bsize(service_id_t, size_t *);
 extern int block_get_nblocks(service_id_t, aoff64_t *);
+extern int block_get_toc(service_id_t, uint8_t, void *);
 extern int block_read_direct(service_id_t, aoff64_t, size_t, void *);
 extern int block_read_bytes_direct(service_id_t, aoff64_t, size_t, void *);
 extern int block_write_direct(service_id_t, aoff64_t, size_t, const void *);
