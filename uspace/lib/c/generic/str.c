@@ -550,7 +550,7 @@ void str_append(char *dest, size_t size, const char *src)
 /** Convert space-padded ASCII to string.
  *
  * Common legacy text encoding in hardware is 7-bit ASCII fitted into
- * a fixed-with byte buffer (bit 7 always zero), right-padded with spaces
+ * a fixed-width byte buffer (bit 7 always zero), right-padded with spaces
  * (ASCII 0x20). Convert space-padded ascii to string representation.
  *
  * If the text does not fit into the destination buffer, the function converts
