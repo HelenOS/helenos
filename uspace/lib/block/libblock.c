@@ -910,7 +910,7 @@ int block_get_toc(service_id_t service_id, uint8_t session, void *data)
 	
 	int rc = read_toc(devcon->sess, session);
 	if (rc == EOK)
-		memcpy(buf, devcon->comm_area, devcon->pblock_size);
+		memcpy(data, devcon->comm_area, devcon->pblock_size);
 	
 	fibril_mutex_unlock(&devcon->comm_area_lock);
 	
