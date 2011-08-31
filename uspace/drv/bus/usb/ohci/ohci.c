@@ -90,7 +90,7 @@ static int usb_iface_get_address(
 	usb_device_keeper_t *manager =
 	    &dev_to_ohci(fun->dev)->hc.generic.dev_manager;
 
-	usb_address_t addr = usb_device_keeper_find(manager, handle);
+	const usb_address_t addr = usb_device_keeper_find(manager, handle);
 	if (addr < 0) {
 		return addr;
 	}

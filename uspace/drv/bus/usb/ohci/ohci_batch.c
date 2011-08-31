@@ -37,7 +37,7 @@
 #include <usb/usb.h>
 #include <usb/debug.h>
 
-#include "batch.h"
+#include "ohci_batch.h"
 #include "ohci_endpoint.h"
 #include "utils/malloc32.h"
 #include "hw_struct/endpoint_descriptor.h"

@@ -36,9 +36,9 @@
 
 #include <usb/usb.h>
 #include <usb/dev/driver.h>
+#include <usb/host/batch.h>
 
 #include "ohci_regs.h"
-#include "batch.h"
 
 #define HUB_DESCRIPTOR_MAX_SIZE (7 + 2 + 2)
 

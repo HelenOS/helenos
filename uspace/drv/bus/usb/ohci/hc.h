@@ -44,7 +44,7 @@
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/hcd.h>
 
-#include "batch.h"
+#include "ohci_batch.h"
 #include "ohci_regs.h"
 #include "root_hub.h"
 #include "endpoint_list.h"
