@@ -65,16 +65,9 @@ void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
-	/* Copy data unless we are sure we sent it */
-	if (uhci_batch->usb_batch->ep->direction != USB_DIRECTION_OUT) {
-		memcpy(uhci_batch->usb_batch->buffer,
-		    uhci_transfer_batch_data_buffer(uhci_batch),
-		    uhci_batch->usb_batch->buffer_size);
-	}
-	if (uhci_batch->usb_batch->callback_out)
-		usb_transfer_batch_call_out(uhci_batch->usb_batch);
-	if (uhci_batch->usb_batch->callback_in)
-		usb_transfer_batch_call_in(uhci_batch->usb_batch);
+	usb_transfer_batch_finish(uhci_batch->usb_batch,
+	    uhci_transfer_batch_data_buffer(uhci_batch),
+	    uhci_batch->usb_batch->buffer_size);
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/

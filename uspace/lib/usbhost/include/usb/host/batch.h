@@ -89,7 +89,8 @@ usb_transfer_batch_t * usb_transfer_batch_get(
     void (*private_data_dtor)(void *p_data)
 );
 
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance);
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance,
+    const void* data, size_t size);
 void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
 void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
 void usb_transfer_batch_dispose(usb_transfer_batch_t *instance);
@@ -119,11 +120,11 @@ static inline void usb_transfer_batch_call_out_and_dispose(
 }
 /*----------------------------------------------------------------------------*/
 static inline void usb_transfer_batch_finish_error(
-    usb_transfer_batch_t *instance, int error)
+    usb_transfer_batch_t *instance, const void* data, size_t size, int error)
 {
 	assert(instance);
 	instance->error = error;
-	usb_transfer_batch_finish(instance);
+	usb_transfer_batch_finish(instance, data, size);
 }
 /*----------------------------------------------------------------------------*/
 static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)

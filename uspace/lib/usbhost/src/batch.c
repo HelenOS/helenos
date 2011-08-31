@@ -83,11 +83,23 @@ usb_transfer_batch_t * usb_transfer_batch_get(
  * @param[in] instance Batch structure to use.
  *
  */
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
+void usb_transfer_batch_finish(
+    usb_transfer_batch_t *instance, const void *data, size_t size)
 {
 	assert(instance);
-	if (instance->next_step)
-		instance->next_step(instance);
+	assert(instance->ep);
+	/* we care about the data and there are some to copy */
+        if (instance->ep->direction != USB_DIRECTION_OUT
+	    && data) {
+		const size_t min_size =
+		    size < instance->buffer_size ? size : instance->buffer_size;
+                memcpy(instance->buffer, data, min_size);
+        }
+        if (instance->callback_out)
+                usb_transfer_batch_call_out(instance);
+        if (instance->callback_in)
+                usb_transfer_batch_call_in(instance);
+
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare data, get error status and call callback in.
