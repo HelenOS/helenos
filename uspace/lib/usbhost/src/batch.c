@@ -39,8 +39,7 @@
 #include <usb/host/batch.h>
 #include <usb/host/hcd.h>
 
-void usb_transfer_batch_init(
-    usb_transfer_batch_t *instance,
+usb_transfer_batch_t * usb_transfer_batch_get(
     endpoint_t *ep,
     char *buffer,
     char *data_buffer,
@@ -52,28 +51,31 @@ void usb_transfer_batch_init(
     void *arg,
     ddf_fun_t *fun,
     void *private_data,
-    void (*private_data_dtor)(void *p_data)
+    void (*private_data_dtor)(void *)
     )
 {
-	assert(instance);
-	link_initialize(&instance->link);
-	instance->ep = ep;
-	instance->callback_in = func_in;
-	instance->callback_out = func_out;
-	instance->arg = arg;
-	instance->buffer = buffer;
-	instance->data_buffer = data_buffer;
-	instance->buffer_size = buffer_size;
-	instance->setup_buffer = setup_buffer;
-	instance->setup_size = setup_size;
-	instance->fun = fun;
-	instance->private_data = private_data;
-	instance->private_data_dtor = private_data_dtor;
-	instance->transfered_size = 0;
-	instance->next_step = NULL;
-	instance->error = EOK;
-	if (instance->ep)
-		endpoint_use(instance->ep);
+	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
+	if (instance) {
+		link_initialize(&instance->link);
+		instance->ep = ep;
+		instance->callback_in = func_in;
+		instance->callback_out = func_out;
+		instance->arg = arg;
+		instance->buffer = buffer;
+		instance->data_buffer = data_buffer;
+		instance->buffer_size = buffer_size;
+		instance->setup_buffer = setup_buffer;
+		instance->setup_size = setup_size;
+		instance->fun = fun;
+		instance->private_data = private_data;
+		instance->private_data_dtor = private_data_dtor;
+		instance->transfered_size = 0;
+		instance->next_step = NULL;
+		instance->error = EOK;
+		if (instance->ep)
+			endpoint_use(instance->ep);
+	}
+	return instance;
 }
 /*----------------------------------------------------------------------------*/
 /** Mark batch as finished and continue with next step.
@@ -84,8 +86,6 @@ void usb_transfer_batch_init(
 void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	if (instance->ep)
-		endpoint_release(instance->ep);
 	if (instance->next_step)
 		instance->next_step(instance);
 }
@@ -149,6 +149,9 @@ void usb_transfer_batch_dispose(usb_transfer_batch_t *instance)
 		return;
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
+	if (instance->ep) {
+		endpoint_release(instance->ep);
+	}
 	if (instance->private_data) {
 		assert(instance->private_data_dtor);
 		instance->private_data_dtor(instance->private_data);

@@ -70,24 +70,20 @@ static inline int send_batch(
 		    target.address, target.endpoint, name, bw, res_bw);
 		return ENOSPC;
 	}
-	usb_transfer_batch_t *batch = malloc(sizeof(usb_transfer_batch_t));
-	if (!batch) {
-		ret = ENOMEM;
-		goto out;
-
-	}
-
-	/* No private data and no private data dtor, these will be set later */
-	usb_transfer_batch_init(batch, ep, data, NULL, size, setup_data,
-	    setup_size, in, out, arg, fun, NULL, NULL);
-
-	if (hcd->schedule) {
-		ret = hcd->schedule(hcd, batch);
-	} else {
+	if (!hcd->schedule) {
 		usb_log_error("HCD does not implement scheduler.\n");
-		ret = ENOTSUP;
+		return ENOTSUP;
 	}
-out:
+
+	/* No private data and no private data dtor */
+	usb_transfer_batch_t *batch =
+	    usb_transfer_batch_get(ep, data, NULL, size, setup_data,
+		setup_size, in, out, arg, fun, NULL, NULL);
+	if (!batch) {
+		return ENOMEM;
+	}
+
+	ret = hcd->schedule(hcd, batch);
 	if (ret != EOK)
 		usb_transfer_batch_dispose(batch);
 

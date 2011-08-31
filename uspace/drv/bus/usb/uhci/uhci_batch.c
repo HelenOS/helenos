@@ -75,7 +75,6 @@ void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 		usb_transfer_batch_call_out(uhci_batch->usb_batch);
 	if (uhci_batch->usb_batch->callback_in)
 		usb_transfer_batch_call_in(uhci_batch->usb_batch);
-	usb_transfer_batch_finish(uhci_batch->usb_batch);
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/

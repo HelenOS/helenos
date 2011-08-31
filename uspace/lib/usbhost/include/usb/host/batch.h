@@ -74,8 +74,7 @@ struct usb_transfer_batch {
 	(batch).buffer_size, (batch).ep->max_packet_size
 
 
-void usb_transfer_batch_init(
-    usb_transfer_batch_t *instance,
+usb_transfer_batch_t * usb_transfer_batch_get(
     endpoint_t *ep,
     char *buffer,
     char *data_buffer,
