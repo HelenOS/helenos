@@ -41,35 +41,7 @@
 #include "ohci_endpoint.h"
 #include "utils/malloc32.h"
 
-static void control_write(ohci_transfer_batch_t *instance);
-static void control_read(ohci_transfer_batch_t *instance);
-
-static void interrupt_in(ohci_transfer_batch_t *instance);
-static void interrupt_out(ohci_transfer_batch_t *instance);
-
-static void bulk_in(ohci_transfer_batch_t *instance);
-static void bulk_out(ohci_transfer_batch_t *instance);
-
-static void setup_control(ohci_transfer_batch_t *ohci_batch)
-{
-        // TODO Find a better way to do this
-        if (ohci_batch->device_buffer[0] & (1 << 7))
-                control_read(ohci_batch);
-        else
-                control_write(ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
-static void batch_control(ohci_transfer_batch_t *instance,
-    usb_direction_t data_dir, usb_direction_t status_dir);
-static void batch_data(ohci_transfer_batch_t *instance);
-/*----------------------------------------------------------------------------*/
-void (*batch_setup[4][3])(ohci_transfer_batch_t*) =
-{
-        { NULL, NULL, setup_control },
-        { NULL, NULL, NULL },
-        { bulk_in, bulk_out, NULL },
-        { interrupt_in, interrupt_out, NULL },
-};
+void (*const batch_setup[4][3])(ohci_transfer_batch_t*);
 /*----------------------------------------------------------------------------*/
 /** Safely destructs ohci_transfer_batch_t structure
  *
@@ -116,7 +88,7 @@ if (ptr == NULL) { \
 	    calloc(sizeof(ohci_transfer_batch_t), 1);
 	CHECK_NULL_DISPOSE_RET(ohci_batch,
 	    "Failed to allocate OHCI batch data.\n");
-
+	link_initialize(&ohci_batch->link);
 	ohci_batch->td_count =
 	    (usb_batch->buffer_size + OHCI_TD_MAX_TRANSFER - 1)
 	    / OHCI_TD_MAX_TRANSFER;
@@ -248,86 +220,6 @@ void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 	ed_set_end_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares control write transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Uses generic control transfer using direction OUT(data stage) and
- * IN(status stage).
- */
-void control_write(ohci_transfer_batch_t *ohci_batch)
-{
-	assert(ohci_batch);
-	batch_control(ohci_batch, USB_DIRECTION_OUT, USB_DIRECTION_IN);
-	usb_log_debug("Batch %p CONTROL WRITE initialized.\n", ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
-/** Prepares control read transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Uses generic control transfer using direction IN(data stage) and
- * OUT(status stage).
- */
-void control_read(ohci_transfer_batch_t *ohci_batch)
-{
-	assert(ohci_batch);
-	batch_control(ohci_batch, USB_DIRECTION_IN, USB_DIRECTION_OUT);
-	usb_log_debug("Batch %p CONTROL READ initialized.\n", ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare interrupt in transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer.
- */
-void interrupt_in(ohci_transfer_batch_t *ohci_batch)
-{
-	assert(ohci_batch);
-	batch_data(ohci_batch);
-	usb_log_debug("Batch %p INTERRUPT IN initialized.\n", ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare interrupt out transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer.
- */
-void interrupt_out(ohci_transfer_batch_t *ohci_batch)
-{
-	assert(ohci_batch);
-	batch_data(ohci_batch);
-	usb_log_debug("Batch %p INTERRUPT OUT initialized.\n", ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare bulk in transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer.
- */
-void bulk_in(ohci_transfer_batch_t *ohci_batch)
-{
-	assert(ohci_batch);
-	batch_data(ohci_batch);
-	usb_log_debug("Batch %p BULK IN initialized.\n", ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare bulk out transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer.
- */
-void bulk_out(ohci_transfer_batch_t *ohci_batch)
-{
-	assert(ohci_batch);
-	batch_data(ohci_batch);
-	usb_log_debug("Batch %p BULK OUT initialized.\n", ohci_batch);
-}
-/*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
  *
  * @param[in] instance Batch structure to use.
@@ -338,7 +230,7 @@ void bulk_out(ohci_transfer_batch_t *ohci_batch)
  * Data stage with alternating toggle and direction supplied by parameter.
  * Status stage with toggle 1 and direction supplied by parameter.
  */
-void batch_control(ohci_transfer_batch_t *ohci_batch,
+static void batch_control(ohci_transfer_batch_t *ohci_batch,
     usb_direction_t data_dir, usb_direction_t status_dir)
 {
 	assert(ohci_batch);
@@ -396,6 +288,10 @@ void batch_control(ohci_transfer_batch_t *ohci_batch,
 	    ohci_batch->tds[td_current]->be);
 }
 /*----------------------------------------------------------------------------*/
+#define LOG_BATCH_INITIALIZED(batch, name, dir) \
+	usb_log_debug2("Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    (batch), (name), (dir), USB_TRANSFER_BATCH_ARGS(*(batch)))
+
 /** Prepare generic data transfer
  *
  * @param[in] instance Batch structure to use.
@@ -403,7 +299,7 @@ void batch_control(ohci_transfer_batch_t *ohci_batch,
  * Direction is supplied by the associated ep and toggle is maintained by the
  * OHCI hw in ED.
  */
-void batch_data(ohci_transfer_batch_t *ohci_batch)
+static void batch_data(ohci_transfer_batch_t *ohci_batch)
 {
 	assert(ohci_batch);
 	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
@@ -433,7 +329,30 @@ void batch_data(ohci_transfer_batch_t *ohci_batch)
 		assert(td_current < ohci_batch->td_count);
 		++td_current;
 	}
+	LOG_BATCH_INITIALIZED(ohci_batch->usb_batch,
+	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
+	    usb_str_direction(ohci_batch->usb_batch->ep->direction));
 }
+/*----------------------------------------------------------------------------*/
+static void setup_control(ohci_transfer_batch_t *ohci_batch)
+{
+        // TODO Find a better way to do this
+        if (ohci_batch->device_buffer[0] & (1 << 7)) {
+		batch_control(ohci_batch, USB_DIRECTION_IN, USB_DIRECTION_OUT);
+		LOG_BATCH_INITIALIZED(ohci_batch->usb_batch, "control", "write");
+        } else {
+		batch_control(ohci_batch, USB_DIRECTION_OUT, USB_DIRECTION_IN);
+		LOG_BATCH_INITIALIZED(ohci_batch->usb_batch, "control", "write");
+	}
+}
+/*----------------------------------------------------------------------------*/
+void (*const batch_setup[4][3])(ohci_transfer_batch_t*) =
+{
+        { NULL, NULL, setup_control },
+        { NULL, NULL, NULL },
+        { batch_data, batch_data, NULL },
+        { batch_data, batch_data, NULL },
+};
 /**
  * @}
  */
