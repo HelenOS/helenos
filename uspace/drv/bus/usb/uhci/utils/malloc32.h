@@ -49,7 +49,7 @@
  * @param[in] addr Virtual address to translate
  * @return Physical address if exists, NULL otherwise.
  */
-static inline uintptr_t addr_to_phys(void *addr)
+static inline uintptr_t addr_to_phys(const void *addr)
 {
 	if (addr == NULL)
 		return 0;
