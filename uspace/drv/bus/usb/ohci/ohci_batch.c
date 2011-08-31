@@ -40,110 +40,104 @@
 #include "ohci_batch.h"
 #include "ohci_endpoint.h"
 #include "utils/malloc32.h"
-#include "hw_struct/endpoint_descriptor.h"
-#include "hw_struct/transfer_descriptor.h"
 
-static void batch_control_write(usb_transfer_batch_t *instance);
-static void batch_control_read(usb_transfer_batch_t *instance);
+static void control_write(ohci_transfer_batch_t *instance);
+static void control_read(ohci_transfer_batch_t *instance);
 
-static void batch_interrupt_in(usb_transfer_batch_t *instance);
-static void batch_interrupt_out(usb_transfer_batch_t *instance);
+static void interrupt_in(ohci_transfer_batch_t *instance);
+static void interrupt_out(ohci_transfer_batch_t *instance);
 
-static void batch_bulk_in(usb_transfer_batch_t *instance);
-static void batch_bulk_out(usb_transfer_batch_t *instance);
+static void bulk_in(ohci_transfer_batch_t *instance);
+static void bulk_out(ohci_transfer_batch_t *instance);
 
-static void batch_setup_control(usb_transfer_batch_t *batch)
+static void setup_control(ohci_transfer_batch_t *ohci_batch)
 {
         // TODO Find a better way to do this
-        if (batch->setup_buffer[0] & (1 << 7))
-                batch_control_read(batch);
+        if (ohci_batch->device_buffer[0] & (1 << 7))
+                control_read(ohci_batch);
         else
-                batch_control_write(batch);
+                control_write(ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
-void (*batch_setup[4][3])(usb_transfer_batch_t*) =
-{
-        { NULL, NULL, batch_setup_control },
-        { NULL, NULL, NULL },
-        { batch_bulk_in, batch_bulk_out, NULL },
-        { batch_interrupt_in, batch_interrupt_out, NULL },
-};
-
-
-/** OHCI specific data required for USB transfer */
-typedef struct ohci_transfer_batch {
-	/** Endpoint descriptor of the target endpoint. */
-	ed_t *ed;
-	/** List of TDs needed for the transfer */
-	td_t **tds;
-	/** Number of TDs used by the transfer */
-	size_t td_count;
-	/** Dummy TD to be left at the ED and used by the next transfer */
-	size_t leave_td;
-	/** Data buffer, must be accessible byb the OHCI hw. */
-	void *device_buffer;
-} ohci_transfer_batch_t;
-/*----------------------------------------------------------------------------*/
-static void batch_control(usb_transfer_batch_t *instance,
+static void batch_control(ohci_transfer_batch_t *instance,
     usb_direction_t data_dir, usb_direction_t status_dir);
-static void batch_data(usb_transfer_batch_t *instance);
+static void batch_data(ohci_transfer_batch_t *instance);
+/*----------------------------------------------------------------------------*/
+void (*batch_setup[4][3])(ohci_transfer_batch_t*) =
+{
+        { NULL, NULL, setup_control },
+        { NULL, NULL, NULL },
+        { bulk_in, bulk_out, NULL },
+        { interrupt_in, interrupt_out, NULL },
+};
 /*----------------------------------------------------------------------------*/
 /** Safely destructs ohci_transfer_batch_t structure
  *
  * @param[in] ohci_batch Instance to destroy.
  */
-static void ohci_batch_dispose(void *ohci_batch)
+static void ohci_transfer_batch_dispose(ohci_transfer_batch_t *ohci_batch)
 {
-	ohci_transfer_batch_t *instance = ohci_batch;
-	if (!instance)
+	if (!ohci_batch)
 		return;
 	unsigned i = 0;
-	if (instance->tds) {
-		for (; i< instance->td_count; ++i) {
-			if (i != instance->leave_td)
-				free32(instance->tds[i]);
+	if (ohci_batch->tds) {
+		for (; i< ohci_batch->td_count; ++i) {
+			if (i != ohci_batch->leave_td)
+				free32(ohci_batch->tds[i]);
 		}
-		free(instance->tds);
+		free(ohci_batch->tds);
 	}
-	free32(instance->device_buffer);
-	free(instance);
+	usb_transfer_batch_dispose(ohci_batch->usb_batch);
+	free32(ohci_batch->device_buffer);
+	free(ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
-int batch_init_ohci(usb_transfer_batch_t *batch)
+void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(batch);
-#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
-        if (ptr == NULL) { \
-                usb_log_error(message); \
-		if (data) { \
-			ohci_batch_dispose(data); \
-		} \
-                return ENOMEM; \
-        } else (void)0
+	assert(ohci_batch);
+	assert(ohci_batch->usb_batch);
+	usb_transfer_batch_finish(ohci_batch->usb_batch,
+	    ohci_batch->device_buffer + ohci_batch->usb_batch->setup_size,
+	    ohci_batch->usb_batch->buffer_size);
+	ohci_transfer_batch_dispose(ohci_batch);
+}
+/*----------------------------------------------------------------------------*/
+ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
+{
+	assert(usb_batch);
+#define CHECK_NULL_DISPOSE_RET(ptr, message...) \
+if (ptr == NULL) { \
+	usb_log_error(message); \
+	ohci_transfer_batch_dispose(ohci_batch); \
+	return NULL; \
+} else (void)0
 
-	ohci_transfer_batch_t *data = calloc(sizeof(ohci_transfer_batch_t), 1);
-	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
+	ohci_transfer_batch_t *ohci_batch =
+	    calloc(sizeof(ohci_transfer_batch_t), 1);
+	CHECK_NULL_DISPOSE_RET(ohci_batch,
+	    "Failed to allocate OHCI batch data.\n");
 
-	data->td_count = ((batch->buffer_size + OHCI_TD_MAX_TRANSFER - 1)
-	    / OHCI_TD_MAX_TRANSFER);
+	ohci_batch->td_count =
+	    (usb_batch->buffer_size + OHCI_TD_MAX_TRANSFER - 1)
+	    / OHCI_TD_MAX_TRANSFER;
 	/* Control transfer need Setup and Status stage */
-	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
-		data->td_count += 2;
+	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
+		ohci_batch->td_count += 2;
 	}
 
 	/* We need an extra place for TD that was left at ED */
-	data->tds = calloc(sizeof(td_t*), data->td_count + 1);
-	CHECK_NULL_DISPOSE_RETURN(data->tds,
-	    "Failed to allocate transfer descriptors.\n");
+	ohci_batch->tds = calloc(ohci_batch->td_count + 1, sizeof(td_t*));
+	CHECK_NULL_DISPOSE_RET(ohci_batch->tds,
+	    "Failed to allocate OHCI transfer descriptors.\n");
 
 	/* Add TD left over by the previous transfer */
-	data->ed = ohci_endpoint_get(batch->ep)->ed;
-	data->tds[0] = ohci_endpoint_get(batch->ep)->td;
-	data->leave_td = 0;
+	ohci_batch->ed = ohci_endpoint_get(usb_batch->ep)->ed;
+	ohci_batch->tds[0] = ohci_endpoint_get(usb_batch->ep)->td;
+	ohci_batch->leave_td = 0;
 	unsigned i = 1;
-	for (; i <= data->td_count; ++i) {
-		data->tds[i] = malloc32(sizeof(td_t));
-		CHECK_NULL_DISPOSE_RETURN(data->tds[i],
+	for (; i <= ohci_batch->td_count; ++i) {
+		ohci_batch->tds[i] = malloc32(sizeof(td_t));
+		CHECK_NULL_DISPOSE_RET(ohci_batch->tds[i],
 		    "Failed to allocate TD %d.\n", i );
 	}
 
@@ -152,25 +146,30 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
 	 * it is, however, not capable of handling buffer that occupies more
 	 * than two pages (the first page is computed using start pointer, the
 	 * other using the end pointer) */
-        if (batch->setup_size + batch->buffer_size > 0) {
-		data->device_buffer =
-		    malloc32(batch->setup_size + batch->buffer_size);
-                CHECK_NULL_DISPOSE_RETURN(data->device_buffer,
+        if (usb_batch->setup_size + usb_batch->buffer_size > 0) {
+		/* Use one buffer for setup and data stage */
+		ohci_batch->device_buffer =
+		    malloc32(usb_batch->setup_size + usb_batch->buffer_size);
+                CHECK_NULL_DISPOSE_RET(ohci_batch->device_buffer,
                     "Failed to allocate device accessible buffer.\n");
 		/* Copy setup data */
-                memcpy(data->device_buffer, batch->setup_buffer,
-		    batch->setup_size);
-		batch->data_buffer = data->device_buffer + batch->setup_size;
+                memcpy(ohci_batch->device_buffer, usb_batch->setup_buffer,
+		    usb_batch->setup_size);
+		/* Copy generic data */
+		if (usb_batch->ep->direction != USB_DIRECTION_IN)
+			memcpy(
+			    ohci_batch->device_buffer + usb_batch->setup_size,
+			    usb_batch->buffer, usb_batch->buffer_size);
         }
+	ohci_batch->usb_batch = usb_batch;
 
-	batch->private_data = data;
-	batch->private_data_dtor = ohci_batch_dispose;
+        assert(
+	   batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction]);
+        batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction](
+	    ohci_batch);
 
-        assert(batch_setup[batch->ep->transfer_type][batch->ep->direction]);
-        batch_setup[batch->ep->transfer_type][batch->ep->direction](batch);
-
-	return EOK;
-#undef CHECK_NULL_DISPOSE_RETURN
+	return ohci_batch;
+#undef CHECK_NULL_DISPOSE_RET
 }
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs' status.
@@ -182,53 +181,59 @@ int batch_init_ohci(usb_transfer_batch_t *batch)
  * active TD. Stop with true if an error is found. Return true if the walk
  * completes with the last TD.
  */
-bool batch_is_complete(usb_transfer_batch_t *instance)
+bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	ohci_transfer_batch_t *data = instance->private_data;
-	assert(data);
-	usb_log_debug("Batch(%p) checking %zu td(s) for completion.\n",
-	    instance, data->td_count);
-	usb_log_debug("ED: %x:%x:%x:%x.\n",
-	    data->ed->status, data->ed->td_head, data->ed->td_tail,
-	    data->ed->next);
+	assert(ohci_batch);
+	assert(ohci_batch->usb_batch);
+
+	usb_log_debug("Batch %p checking %zu td(s) for completion.\n",
+	    ohci_batch->usb_batch, ohci_batch->td_count);
+	usb_log_debug2("ED: %x:%x:%x:%x.\n",
+	    ohci_batch->ed->status, ohci_batch->ed->td_head,
+	    ohci_batch->ed->td_tail, ohci_batch->ed->next);
+
 	size_t i = 0;
-	instance->transfered_size = instance->buffer_size;
-	for (; i < data->td_count; ++i) {
-		assert(data->tds[i] != NULL);
+	for (; i < ohci_batch->td_count; ++i) {
+		assert(ohci_batch->tds[i] != NULL);
 		usb_log_debug("TD %zu: %x:%x:%x:%x.\n", i,
-		    data->tds[i]->status, data->tds[i]->cbp, data->tds[i]->next,
-		    data->tds[i]->be);
-		if (!td_is_finished(data->tds[i])) {
+		    ohci_batch->tds[i]->status, ohci_batch->tds[i]->cbp,
+		    ohci_batch->tds[i]->next, ohci_batch->tds[i]->be);
+		if (!td_is_finished(ohci_batch->tds[i])) {
 			return false;
 		}
-		instance->error = td_error(data->tds[i]);
-		if (instance->error != EOK) {
-			usb_log_debug("Batch(%p) found error TD(%zu):%x.\n",
-			    instance, i, data->tds[i]->status);
+		ohci_batch->usb_batch->error = td_error(ohci_batch->tds[i]);
+		if (ohci_batch->usb_batch->error != EOK) {
+			usb_log_debug("Batch %p found error TD(%zu):%x.\n",
+			    ohci_batch->usb_batch, i,
+			    ohci_batch->tds[i]->status);
 			/* Make sure TD queue is empty (one TD),
 			 * ED should be marked as halted */
-			data->ed->td_tail =
-			    (data->ed->td_head & ED_TDTAIL_PTR_MASK);
+			ohci_batch->ed->td_tail =
+			    (ohci_batch->ed->td_head & ED_TDTAIL_PTR_MASK);
 			++i;
 			break;
 		}
 	}
-	data->leave_td = i;
-	assert(data->leave_td <= data->td_count);
 
-	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(instance->ep);
+	assert(i <= ohci_batch->td_count);
+	ohci_batch->leave_td = i;
+
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ohci_batch->usb_batch->ep);
 	assert(ohci_ep);
-	ohci_ep->td = data->tds[data->leave_td];
+	ohci_ep->td = ohci_batch->tds[ohci_batch->leave_td];
 	assert(i > 0);
-	for (--i;i < data->td_count; ++i)
-		instance->transfered_size -= td_remain_size(data->tds[i]);
+	ohci_batch->usb_batch->transfered_size =
+	    ohci_batch->usb_batch->buffer_size;
+	for (--i;i < ohci_batch->td_count; ++i)
+		ohci_batch->usb_batch->transfered_size
+		    -= td_remain_size(ohci_batch->tds[i]);
 
 	/* Clear possible ED HALT */
-	data->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+	ohci_batch->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+	/* just make sure that we are leaving the right TD behind */
 	const uint32_t pa = addr_to_phys(ohci_ep->td);
-	assert(pa == (data->ed->td_head & ED_TDHEAD_PTR_MASK));
-	assert(pa == (data->ed->td_tail & ED_TDTAIL_PTR_MASK));
+	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
+	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
 
 	return true;
 }
@@ -237,12 +242,10 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
  *
  * @param[in] instance Batch structure to use
  */
-void batch_commit(usb_transfer_batch_t *instance)
+void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	ohci_transfer_batch_t *data = instance->private_data;
-	assert(data);
-	ed_set_end_td(data->ed, data->tds[data->td_count]);
+	assert(ohci_batch);
+	ed_set_end_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares control write transfer.
@@ -252,14 +255,11 @@ void batch_commit(usb_transfer_batch_t *instance)
  * Uses generic control transfer using direction OUT(data stage) and
  * IN(status stage).
  */
-void batch_control_write(usb_transfer_batch_t *instance)
+void control_write(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
-	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	batch_control(instance, USB_DIRECTION_OUT, USB_DIRECTION_IN);
-	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
+	assert(ohci_batch);
+	batch_control(ohci_batch, USB_DIRECTION_OUT, USB_DIRECTION_IN);
+	usb_log_debug("Batch %p CONTROL WRITE initialized.\n", ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares control read transfer.
@@ -269,12 +269,11 @@ void batch_control_write(usb_transfer_batch_t *instance)
  * Uses generic control transfer using direction IN(data stage) and
  * OUT(status stage).
  */
-void batch_control_read(usb_transfer_batch_t *instance)
+void control_read(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	batch_control(instance, USB_DIRECTION_IN, USB_DIRECTION_OUT);
-	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
+	assert(ohci_batch);
+	batch_control(ohci_batch, USB_DIRECTION_IN, USB_DIRECTION_OUT);
+	usb_log_debug("Batch %p CONTROL READ initialized.\n", ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare interrupt in transfer.
@@ -283,12 +282,11 @@ void batch_control_read(usb_transfer_batch_t *instance)
  *
  * Data transfer.
  */
-void batch_interrupt_in(usb_transfer_batch_t *instance)
+void interrupt_in(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	batch_data(instance);
-	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
+	assert(ohci_batch);
+	batch_data(ohci_batch);
+	usb_log_debug("Batch %p INTERRUPT IN initialized.\n", ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare interrupt out transfer.
@@ -297,14 +295,11 @@ void batch_interrupt_in(usb_transfer_batch_t *instance)
  *
  * Data transfer.
  */
-void batch_interrupt_out(usb_transfer_batch_t *instance)
+void interrupt_out(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
-	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	batch_data(instance);
-	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
+	assert(ohci_batch);
+	batch_data(ohci_batch);
+	usb_log_debug("Batch %p INTERRUPT OUT initialized.\n", ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare bulk in transfer.
@@ -313,12 +308,11 @@ void batch_interrupt_out(usb_transfer_batch_t *instance)
  *
  * Data transfer.
  */
-void batch_bulk_in(usb_transfer_batch_t *instance)
+void bulk_in(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	batch_data(instance);
-	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+	assert(ohci_batch);
+	batch_data(ohci_batch);
+	usb_log_debug("Batch %p BULK IN initialized.\n", ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare bulk out transfer.
@@ -327,14 +321,11 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
  *
  * Data transfer.
  */
-void batch_bulk_out(usb_transfer_batch_t *instance)
+void bulk_out(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
-	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	batch_data(instance);
-	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
+	assert(ohci_batch);
+	batch_data(ohci_batch);
+	usb_log_debug("Batch %p BULK OUT initialized.\n", ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
@@ -347,53 +338,62 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
  * Data stage with alternating toggle and direction supplied by parameter.
  * Status stage with toggle 1 and direction supplied by parameter.
  */
-void batch_control(usb_transfer_batch_t *instance,
+void batch_control(ohci_transfer_batch_t *ohci_batch,
     usb_direction_t data_dir, usb_direction_t status_dir)
 {
-	assert(instance);
-	ohci_transfer_batch_t *data = instance->private_data;
-	assert(data);
-	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", data->ed,
-	    data->ed->status, data->ed->td_tail, data->ed->td_head,
-	    data->ed->next);
+	assert(ohci_batch);
+	assert(ohci_batch->usb_batch);
+	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
+	    ohci_batch->ed->status, ohci_batch->ed->td_tail,
+	    ohci_batch->ed->td_head, ohci_batch->ed->next);
+
 	int toggle = 0;
+	char* buffer = ohci_batch->device_buffer;
+
 	/* setup stage */
-	td_init(data->tds[0], USB_DIRECTION_BOTH, instance->setup_buffer,
-		instance->setup_size, toggle);
-	td_set_next(data->tds[0], data->tds[1]);
+	td_init(ohci_batch->tds[0], USB_DIRECTION_BOTH, buffer,
+		ohci_batch->usb_batch->setup_size, toggle);
+	td_set_next(ohci_batch->tds[0], ohci_batch->tds[1]);
 	usb_log_debug("Created CONTROL SETUP TD: %x:%x:%x:%x.\n",
-	    data->tds[0]->status, data->tds[0]->cbp, data->tds[0]->next,
-	    data->tds[0]->be);
+	    ohci_batch->tds[0]->status, ohci_batch->tds[0]->cbp,
+	    ohci_batch->tds[0]->next, ohci_batch->tds[0]->be);
+	buffer += ohci_batch->usb_batch->setup_size;
 
 	/* data stage */
 	size_t td_current = 1;
-	size_t remain_size = instance->buffer_size;
-	char *buffer = instance->data_buffer;
+	size_t remain_size = ohci_batch->usb_batch->buffer_size;
 	while (remain_size > 0) {
-		size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER ?
+		const size_t transfer_size =
+		    remain_size > OHCI_TD_MAX_TRANSFER ?
 		    OHCI_TD_MAX_TRANSFER : remain_size;
 		toggle = 1 - toggle;
 
-		td_init(data->tds[td_current], data_dir, buffer,
+		td_init(ohci_batch->tds[td_current], data_dir, buffer,
 		    transfer_size, toggle);
-		td_set_next(data->tds[td_current], data->tds[td_current + 1]);
+		td_set_next(ohci_batch->tds[td_current],
+		    ohci_batch->tds[td_current + 1]);
 		usb_log_debug("Created CONTROL DATA TD: %x:%x:%x:%x.\n",
-		    data->tds[td_current]->status, data->tds[td_current]->cbp,
-		    data->tds[td_current]->next, data->tds[td_current]->be);
+		    ohci_batch->tds[td_current]->status,
+		    ohci_batch->tds[td_current]->cbp,
+		    ohci_batch->tds[td_current]->next,
+		    ohci_batch->tds[td_current]->be);
 
 		buffer += transfer_size;
 		remain_size -= transfer_size;
-		assert(td_current < data->td_count - 1);
+		assert(td_current < ohci_batch->td_count - 1);
 		++td_current;
 	}
 
 	/* status stage */
-	assert(td_current == data->td_count - 1);
-	td_init(data->tds[td_current], status_dir, NULL, 0, 1);
-	td_set_next(data->tds[td_current], data->tds[td_current + 1]);
+	assert(td_current == ohci_batch->td_count - 1);
+	td_init(ohci_batch->tds[td_current], status_dir, NULL, 0, 1);
+	td_set_next(ohci_batch->tds[td_current],
+	    ohci_batch->tds[td_current + 1]);
 	usb_log_debug("Created CONTROL STATUS TD: %x:%x:%x:%x.\n",
-	    data->tds[td_current]->status, data->tds[td_current]->cbp,
-	    data->tds[td_current]->next, data->tds[td_current]->be);
+	    ohci_batch->tds[td_current]->status,
+	    ohci_batch->tds[td_current]->cbp,
+	    ohci_batch->tds[td_current]->next,
+	    ohci_batch->tds[td_current]->be);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer
@@ -403,32 +403,34 @@ void batch_control(usb_transfer_batch_t *instance,
  * Direction is supplied by the associated ep and toggle is maintained by the
  * OHCI hw in ED.
  */
-void batch_data(usb_transfer_batch_t *instance)
+void batch_data(ohci_transfer_batch_t *ohci_batch)
 {
-	assert(instance);
-	ohci_transfer_batch_t *data = instance->private_data;
-	assert(data);
-	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", data->ed,
-	    data->ed->status, data->ed->td_tail, data->ed->td_head,
-	    data->ed->next);
+	assert(ohci_batch);
+	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
+	    ohci_batch->ed->status, ohci_batch->ed->td_tail,
+	    ohci_batch->ed->td_head, ohci_batch->ed->next);
 
+	const usb_direction_t direction = ohci_batch->usb_batch->ep->direction;
 	size_t td_current = 0;
-	size_t remain_size = instance->buffer_size;
-	char *buffer = instance->data_buffer;
+	size_t remain_size = ohci_batch->usb_batch->buffer_size;
+	char *buffer = ohci_batch->device_buffer;
 	while (remain_size > 0) {
 		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
 		    ? OHCI_TD_MAX_TRANSFER : remain_size;
 
-		td_init(data->tds[td_current], instance->ep->direction,
+		td_init(ohci_batch->tds[td_current], direction,
 		    buffer, transfer_size, -1);
-		td_set_next(data->tds[td_current], data->tds[td_current + 1]);
+		td_set_next(ohci_batch->tds[td_current],
+		    ohci_batch->tds[td_current + 1]);
 		usb_log_debug("Created DATA TD: %x:%x:%x:%x.\n",
-		    data->tds[td_current]->status, data->tds[td_current]->cbp,
-		    data->tds[td_current]->next, data->tds[td_current]->be);
+		    ohci_batch->tds[td_current]->status,
+		    ohci_batch->tds[td_current]->cbp,
+		    ohci_batch->tds[td_current]->next,
+		    ohci_batch->tds[td_current]->be);
 
 		buffer += transfer_size;
 		remain_size -= transfer_size;
-		assert(td_current < data->td_count);
+		assert(td_current < ohci_batch->td_count);
 		++td_current;
 	}
 }

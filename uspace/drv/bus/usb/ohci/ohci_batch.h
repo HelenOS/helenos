@@ -34,15 +34,42 @@
 #ifndef DRV_OHCI_BATCH_H
 #define DRV_OHCI_BATCH_H
 
+#include <adt/list.h>
 #include <usbhc_iface.h>
 #include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/endpoint.h>
 #include <usb/host/batch.h>
 
-int batch_init_ohci(usb_transfer_batch_t *batch);
-bool batch_is_complete(usb_transfer_batch_t *batch);
-void batch_commit(usb_transfer_batch_t *batch);
+#include "hw_struct/transfer_descriptor.h"
+#include "hw_struct/endpoint_descriptor.h"
+
+/** OHCI specific data required for USB transfer */
+typedef struct ohci_transfer_batch {
+	/** Link */
+	link_t link;
+	/** Endpoint descriptor of the target endpoint. */
+	ed_t *ed;
+	/** List of TDs needed for the transfer */
+	td_t **tds;
+	/** Number of TDs used by the transfer */
+	size_t td_count;
+	/** Dummy TD to be left at the ED and used by the next transfer */
+	size_t leave_td;
+	/** Data buffer, must be accessible by the OHCI hw. */
+	char *device_buffer;
+	/** Generic USB transfer structure */
+	usb_transfer_batch_t *usb_batch;
+} ohci_transfer_batch_t;
+
+ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *batch);
+bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *batch);
+void ohci_transfer_batch_commit(ohci_transfer_batch_t *batch);
+void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *batch);
+/*----------------------------------------------------------------------------*/
+static inline ohci_transfer_batch_t *ohci_transfer_batch_from_link(link_t *l)
+{
+	assert(l);
+	return list_get_instance(l, ohci_transfer_batch_t, link);
+}
 #endif
 /**
  * @}

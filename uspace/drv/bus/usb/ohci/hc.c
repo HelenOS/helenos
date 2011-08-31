@@ -288,7 +288,6 @@ void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep)
 int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	batch_init_ohci(batch);
 	hc_t *instance = hcd->private_data;
 	assert(instance);
 
@@ -297,10 +296,13 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 		rh_request(&instance->rh, batch);
 		return EOK;
 	}
+	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
+	if (!ohci_batch)
+		return ENOMEM;
 
 	fibril_mutex_lock(&instance->guard);
-	list_append(&batch->link, &instance->pending_batches);
-	batch_commit(batch);
+	list_append(&ohci_batch->link, &instance->pending_batches);
+	ohci_transfer_batch_commit(ohci_batch);
 
 	/* Control and bulk schedules need a kick to start working */
 	switch (batch->ep->transfer_type)
@@ -340,15 +342,15 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		usb_log_debug2("Periodic current: %#" PRIx32 ".\n",
 		    instance->registers->periodic_current);
 
-		link_t *current = instance->pending_batches.head.next;
-		while (current != &instance->pending_batches.head) {
+		link_t *current = list_first(&instance->pending_batches);
+		while (current && current != &instance->pending_batches.head) {
 			link_t *next = current->next;
-			usb_transfer_batch_t *batch =
-			    usb_transfer_batch_from_link(current);
+			ohci_transfer_batch_t *batch =
+			    ohci_transfer_batch_from_link(current);
 
-			if (batch_is_complete(batch)) {
+			if (ohci_transfer_batch_is_complete(batch)) {
 				list_remove(current);
-				usb_transfer_batch_finish(batch);
+				ohci_transfer_batch_finish_dispose(batch);
 			}
 
 			current = next;
