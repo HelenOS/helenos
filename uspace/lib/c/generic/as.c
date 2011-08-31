@@ -122,7 +122,7 @@ void *as_get_mappable_page(size_t size)
  * @retval EOK No error, @p frame holds the translation.
  * @retval ENOENT Mapping not found.
  */
-int as_get_physical_mapping(void *address, uintptr_t *frame)
+int as_get_physical_mapping(const void *address, uintptr_t *frame)
 {
 	uintptr_t tmp_frame;
 	uintptr_t virt = (uintptr_t) address;
