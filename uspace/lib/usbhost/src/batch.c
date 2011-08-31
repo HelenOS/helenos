@@ -127,7 +127,9 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 	assert(instance->ep);
 
 	/* We are data in, we need data */
-	memcpy(instance->buffer, instance->data_buffer, instance->buffer_size);
+	if (instance->data_buffer && (instance->buffer != instance->data_buffer))
+		memcpy(instance->buffer,
+		    instance->data_buffer, instance->buffer_size);
 
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed (%zuB): %s.\n",
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
