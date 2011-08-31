@@ -90,11 +90,35 @@ void usb_transfer_batch_init(
     void (*private_data_dtor)(void *p_data)
 );
 
-void usb_transfer_batch_call_in_and_dispose(usb_transfer_batch_t *instance);
-void usb_transfer_batch_call_out_and_dispose(usb_transfer_batch_t *instance);
 void usb_transfer_batch_finish(usb_transfer_batch_t *instance);
+void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
+void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
 void usb_transfer_batch_dispose(usb_transfer_batch_t *instance);
 
+/** Helper function, calls callback and correctly destroys batch structure.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+static inline void usb_transfer_batch_call_in_and_dispose(
+    usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	usb_transfer_batch_call_in(instance);
+	usb_transfer_batch_dispose(instance);
+}
+/*----------------------------------------------------------------------------*/
+/** Helper function calls callback and correctly destroys batch structure.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+static inline void usb_transfer_batch_call_out_and_dispose(
+    usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	usb_transfer_batch_call_out(instance);
+	usb_transfer_batch_dispose(instance);
+}
+/*----------------------------------------------------------------------------*/
 static inline void usb_transfer_batch_finish_error(
     usb_transfer_batch_t *instance, int error)
 {
@@ -102,7 +126,7 @@ static inline void usb_transfer_batch_finish_error(
 	instance->error = error;
 	usb_transfer_batch_finish(instance);
 }
-
+/*----------------------------------------------------------------------------*/
 static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)
 {
 	assert(l);

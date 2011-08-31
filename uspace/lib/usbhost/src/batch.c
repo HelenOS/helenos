@@ -39,9 +39,6 @@
 #include <usb/host/batch.h>
 #include <usb/host/hcd.h>
 
-void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
-void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
-
 void usb_transfer_batch_init(
     usb_transfer_batch_t *instance,
     endpoint_t *ep,
@@ -75,29 +72,8 @@ void usb_transfer_batch_init(
 	instance->transfered_size = 0;
 	instance->next_step = NULL;
 	instance->error = EOK;
-	endpoint_use(instance->ep);
-}
-/*----------------------------------------------------------------------------*/
-/** Helper function, calls callback and correctly destroys batch structure.
- *
- * @param[in] instance Batch structure to use.
- */
-void usb_transfer_batch_call_in_and_dispose(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	usb_transfer_batch_call_in(instance);
-	usb_transfer_batch_dispose(instance);
-}
-/*----------------------------------------------------------------------------*/
-/** Helper function calls callback and correctly destroys batch structure.
- *
- * @param[in] instance Batch structure to use.
- */
-void usb_transfer_batch_call_out_and_dispose(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	usb_transfer_batch_call_out(instance);
-	usb_transfer_batch_dispose(instance);
+	if (instance->ep)
+		endpoint_use(instance->ep);
 }
 /*----------------------------------------------------------------------------*/
 /** Mark batch as finished and continue with next step.
@@ -108,10 +84,10 @@ void usb_transfer_batch_call_out_and_dispose(usb_transfer_batch_t *instance)
 void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	assert(instance->ep);
-	assert(instance->next_step);
-	endpoint_release(instance->ep);
-	instance->next_step(instance);
+	if (instance->ep)
+		endpoint_release(instance->ep);
+	if (instance->next_step)
+		instance->next_step(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare data, get error status and call callback in.
@@ -124,7 +100,6 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_in);
-	assert(instance->ep);
 
 	/* We are data in, we need data */
 	if (instance->data_buffer && (instance->buffer != instance->data_buffer))
@@ -170,7 +145,8 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
  */
 void usb_transfer_batch_dispose(usb_transfer_batch_t *instance)
 {
-	assert(instance);
+	if (!instance)
+		return;
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
 	if (instance->private_data) {
