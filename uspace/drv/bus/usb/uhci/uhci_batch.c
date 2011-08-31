@@ -46,7 +46,7 @@
 
 static void batch_control(uhci_transfer_batch_t *uhci_batch,
     usb_packet_id data_stage, usb_packet_id status_stage);
-static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_packet_id pid);
+static void batch_data(uhci_transfer_batch_t *uhci_batch);
 /*----------------------------------------------------------------------------*/
 static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 {
@@ -71,7 +71,7 @@ void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
-static void (*batch_setup[4][3])(uhci_transfer_batch_t*);
+static void (* const batch_setup[4][3])(uhci_transfer_batch_t*);
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.
  *
@@ -105,7 +105,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 	    calloc(1, sizeof(uhci_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(uhci_batch,
 	    "Failed to allocate UHCI batch.\n");
-
+	link_initialize(&uhci_batch->link);
 	uhci_batch->td_count =
 	    (usb_batch->buffer_size + usb_batch->ep->max_packet_size - 1)
 	    / usb_batch->ep->max_packet_size;
@@ -202,82 +202,10 @@ substract_ret:
 	return true;
 }
 
-#define LOG_BATCH_INITIALIZED(batch, name) \
-	usb_log_debug2("Batch %p %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    (batch), (name), USB_TRANSFER_BATCH_ARGS(*(batch)))
+#define LOG_BATCH_INITIALIZED(batch, name, dir) \
+	usb_log_debug2("Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    (batch), (name), (dir), USB_TRANSFER_BATCH_ARGS(*(batch)))
 
-/*----------------------------------------------------------------------------*/
-/** Prepares control write transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Uses generic control function with pids OUT and IN.
- */
-static void control_write(uhci_transfer_batch_t *uhci_batch)
-{
-	batch_control(uhci_batch, USB_PID_OUT, USB_PID_IN);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control write");
-}
-/*----------------------------------------------------------------------------*/
-/** Prepares control read transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Uses generic control with pids IN and OUT.
- */
-static void control_read(uhci_transfer_batch_t *uhci_batch)
-{
-	batch_control(uhci_batch, USB_PID_IN, USB_PID_OUT);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control read");
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare interrupt in transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer with PID_IN.
- */
-static void interrupt_in(uhci_transfer_batch_t *uhci_batch)
-{
-	batch_data(uhci_batch, USB_PID_IN);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "interrupt in");
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare interrupt out transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer with PID_OUT.
- */
-static void interrupt_out(uhci_transfer_batch_t *uhci_batch)
-{
-	batch_data(uhci_batch, USB_PID_OUT);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "interrupt out");
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare bulk in transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer with PID_IN.
- */
-static void bulk_in(uhci_transfer_batch_t *uhci_batch)
-{
-	batch_data(uhci_batch, USB_PID_IN);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "bulk in");
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare bulk out transfer.
- *
- * @param[in] instance Batch structure to use.
- *
- * Data transfer with PID_OUT.
- */
-static void bulk_out(uhci_transfer_batch_t *uhci_batch)
-{
-	batch_data(uhci_batch, USB_PID_OUT);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "bulk out");
-}
 /*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer
  *
@@ -287,11 +215,18 @@ static void bulk_out(uhci_transfer_batch_t *uhci_batch)
  * Transactions with alternating toggle bit and supplied pid value.
  * The last transfer is marked with IOC flag.
  */
-static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_packet_id pid)
+static void batch_data(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
+	static const usb_packet_id pids[] = {
+		[USB_DIRECTION_IN] = USB_PID_IN,
+		[USB_DIRECTION_OUT] = USB_PID_OUT,
+	};
+	assert(uhci_batch->usb_batch->ep->direction == USB_DIRECTION_OUT ||
+	    uhci_batch->usb_batch->ep->direction == USB_DIRECTION_IN);
 
+	const usb_packet_id pid = pids[uhci_batch->usb_batch->ep->direction];
 	const bool low_speed =
 	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
@@ -325,6 +260,9 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_packet_id pid)
 	}
 	td_set_ioc(&uhci_batch->tds[td - 1]);
 	endpoint_toggle_set(uhci_batch->usb_batch->ep, toggle);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch,
+	    usb_str_transfer_type(uhci_batch->usb_batch->ep->transfer_type),
+	    usb_str_direction(uhci_batch->usb_batch->ep->direction));
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
@@ -396,21 +334,27 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch,
 /*----------------------------------------------------------------------------*/
 static void batch_setup_control(uhci_transfer_batch_t *uhci_batch)
 {
-	// TODO Find a better way to do this
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
-	if (uhci_batch->usb_batch->setup_buffer[0] & (1 << 7))
-		control_read(uhci_batch);
-	else
-		control_write(uhci_batch);
+	assert(uhci_batch->usb_batch->setup_buffer);
+	// TODO Find a better way to do this
+	/* Check first bit of the first setup request byte
+	 * (it signals hc-> dev or dev->hc communication) */
+	if (uhci_batch->usb_batch->setup_buffer[0] & (1 << 7)) {
+		batch_control(uhci_batch, USB_PID_IN, USB_PID_OUT);
+		LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control", "read");
+	} else {
+		batch_control(uhci_batch, USB_PID_OUT, USB_PID_IN);
+		LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control", "write");
+	}
 }
 /*----------------------------------------------------------------------------*/
-static void (*batch_setup[4][3])(uhci_transfer_batch_t*) =
+static void (* const batch_setup[4][3])(uhci_transfer_batch_t*) =
 {
 	{ NULL, NULL, batch_setup_control },
 	{ NULL, NULL, NULL },
-	{ bulk_in, bulk_out, NULL },
-	{ interrupt_in, interrupt_out, NULL },
+	{ batch_data, batch_data, NULL },
+	{ batch_data, batch_data, NULL },
 };
 /**
  * @}
