@@ -41,13 +41,13 @@ EXTRA_CFLAGS += \
 BINARY = uhci
 
 SOURCES = \
+	hc.c \
 	main.c \
+	pci.c \
+	root_hub.c \
 	transfer_list.c \
 	uhci.c \
-	hc.c \
-	root_hub.c \
-	hw_struct/transfer_descriptor.c \
-	pci.c \
-	batch.c
+	uhci_batch.c \
+	hw_struct/transfer_descriptor.c
 
 include $(USPACE_PREFIX)/Makefile.common

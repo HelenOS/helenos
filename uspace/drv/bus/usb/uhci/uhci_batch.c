@@ -37,7 +37,7 @@
 #include <usb/usb.h>
 #include <usb/debug.h>
 
-#include "batch.h"
+#include "uhci_batch.h"
 #include "transfer_list.h"
 #include "hw_struct/transfer_descriptor.h"
 #include "utils/malloc32.h"

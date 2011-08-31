@@ -40,7 +40,7 @@
 #include <usb/usb.h>
 
 #include "hc.h"
-#include "batch.h"
+#include "uhci_batch.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \
     (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
