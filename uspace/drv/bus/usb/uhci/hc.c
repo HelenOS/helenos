@@ -127,9 +127,9 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		while (!list_empty(&done)) {
 			link_t *item = list_first(&done);
 			list_remove(item);
-			usb_transfer_batch_t *batch =
-			    list_get_instance(item, usb_transfer_batch_t, link);
-			usb_transfer_batch_finish(batch);
+			uhci_transfer_batch_t *batch =
+			    uhci_transfer_batch_from_link(item);
+			uhci_transfer_batch_call_dispose(batch);
 		}
 	}
 	/* Resume interrupts are not supported */
@@ -381,15 +381,16 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	hc_t *instance = hcd->private_data;
 	assert(instance);
 	assert(batch);
-	int ret = batch_init_uhci(batch);
-	if (ret != EOK) {
-		return ret;
+	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
+	if (!uhci_batch) {
+		usb_log_error("Failed to create UHCI transfer structures.\n");
+		return ENOMEM;
 	}
 
 	transfer_list_t *list =
 	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
 	assert(list);
-	transfer_list_add_batch(list, batch);
+	transfer_list_add_batch(list, uhci_batch);
 
 	return EOK;
 }

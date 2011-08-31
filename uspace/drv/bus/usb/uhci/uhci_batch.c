@@ -43,62 +43,43 @@
 #include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
-static void batch_control_write(usb_transfer_batch_t *instance);
-static void batch_control_read(usb_transfer_batch_t *instance);
 
-static void batch_interrupt_in(usb_transfer_batch_t *instance);
-static void batch_interrupt_out(usb_transfer_batch_t *instance);
-
-static void batch_bulk_in(usb_transfer_batch_t *instance);
-static void batch_bulk_out(usb_transfer_batch_t *instance);
-
-static void batch_setup_control(usb_transfer_batch_t *batch)
-{
-	// TODO Find a better way to do this
-	if (batch->setup_buffer[0] & (1 << 7))
-		batch_control_read(batch);
-	else
-		batch_control_write(batch);
-}
-
-void (*batch_setup[4][3])(usb_transfer_batch_t*) =
-{
-	{ NULL, NULL, batch_setup_control },
-	{ NULL, NULL, NULL },
-	{ batch_bulk_in, batch_bulk_out, NULL },
-	{ batch_interrupt_in, batch_interrupt_out, NULL },
-};
- // */
-/** UHCI specific data required for USB transfer */
-typedef struct uhci_transfer_batch {
-	/** Queue head
-	 * This QH is used to maintain UHCI schedule structure and the element
-	 * pointer points to the first TD of this batch.
-	 */
-	qh_t *qh;
-	/** List of TDs needed for the transfer */
-	td_t *tds;
-	/** Number of TDs used by the transfer */
-	size_t td_count;
-	/** Data buffer, must be accessible by the UHCI hw */
-	void *device_buffer;
-} uhci_transfer_batch_t;
-/*----------------------------------------------------------------------------*/
-static void batch_control(usb_transfer_batch_t *instance,
+static void batch_control(uhci_transfer_batch_t *uhci_batch,
     usb_packet_id data_stage, usb_packet_id status_stage);
-static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
+static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_packet_id pid);
+/*----------------------------------------------------------------------------*/
+static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
+{
+	if (uhci_batch) {
+		usb_transfer_batch_dispose(uhci_batch->usb_batch);
+		free32(uhci_batch->device_buffer);
+		free(uhci_batch);
+	}
+}
 /*----------------------------------------------------------------------------*/
 /** Safely destructs uhci_transfer_batch_t structure
  *
  * @param[in] uhci_batch Instance to destroy.
  */
-static void uhci_transfer_batch_dispose(void *uhci_batch)
+void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 {
-	uhci_transfer_batch_t *instance = uhci_batch;
-	assert(instance);
-	free32(instance->device_buffer);
-	free(instance);
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
+	/* Copy data unless we are sure we sent it */
+	if (uhci_batch->usb_batch->ep->direction != USB_DIRECTION_OUT) {
+		memcpy(uhci_batch->usb_batch->buffer,
+		    uhci_transfer_batch_data_buffer(uhci_batch),
+		    uhci_batch->usb_batch->buffer_size);
+	}
+	if (uhci_batch->usb_batch->callback_out)
+		usb_transfer_batch_call_out(uhci_batch->usb_batch);
+	if (uhci_batch->usb_batch->callback_in)
+		usb_transfer_batch_call_in(uhci_batch->usb_batch);
+	usb_transfer_batch_finish(uhci_batch->usb_batch);
+	uhci_transfer_batch_dispose(uhci_batch);
 }
+/*----------------------------------------------------------------------------*/
+static void (*batch_setup[4][3])(uhci_transfer_batch_t*);
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.
  *
@@ -118,60 +99,62 @@ static void uhci_transfer_batch_dispose(void *uhci_batch)
  * Prepares a transport buffer (that is accessible by the hardware).
  * Initializes parameters needed for the transfer and callback.
  */
-int batch_init_uhci(usb_transfer_batch_t *batch)
+uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 {
+	assert((sizeof(td_t) % 16) == 0);
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
 	if (ptr == NULL) { \
 		usb_log_error(message); \
-		if (uhci_data) { \
-			uhci_transfer_batch_dispose(uhci_data); \
-		} \
-		return ENOMEM; \
+		uhci_transfer_batch_dispose(uhci_batch); \
+		return NULL; \
 	} else (void)0
 
-	uhci_transfer_batch_t *uhci_data =
+	uhci_transfer_batch_t *uhci_batch =
 	    calloc(1, sizeof(uhci_transfer_batch_t));
-	CHECK_NULL_DISPOSE_RETURN(uhci_data,
+	CHECK_NULL_DISPOSE_RETURN(uhci_batch,
 	    "Failed to allocate UHCI batch.\n");
 
-	uhci_data->td_count =
-	    (batch->buffer_size + batch->ep->max_packet_size - 1)
-	    / batch->ep->max_packet_size;
-	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
-		uhci_data->td_count += 2;
+	uhci_batch->td_count =
+	    (usb_batch->buffer_size + usb_batch->ep->max_packet_size - 1)
+	    / usb_batch->ep->max_packet_size;
+	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
+		uhci_batch->td_count += 2;
 	}
 
-	assert((sizeof(td_t) % 16) == 0);
-	const size_t total_size = (sizeof(td_t) * uhci_data->td_count)
-	    + sizeof(qh_t) + batch->setup_size + batch->buffer_size;
-	uhci_data->device_buffer = malloc32(total_size);
-	CHECK_NULL_DISPOSE_RETURN(uhci_data->device_buffer,
+	const size_t total_size = (sizeof(td_t) * uhci_batch->td_count)
+	    + sizeof(qh_t) + usb_batch->setup_size + usb_batch->buffer_size;
+	uhci_batch->device_buffer = malloc32(total_size);
+	CHECK_NULL_DISPOSE_RETURN(uhci_batch->device_buffer,
 	    "Failed to allocate UHCI buffer.\n");
-	bzero(uhci_data->device_buffer, total_size);
+	bzero(uhci_batch->device_buffer, total_size);
 
-	uhci_data->tds = uhci_data->device_buffer;
-	uhci_data->qh =
-	    (uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count));
+	uhci_batch->tds = uhci_batch->device_buffer;
+	uhci_batch->qh =
+	    (uhci_batch->device_buffer + (sizeof(td_t) * uhci_batch->td_count));
 
-	qh_init(uhci_data->qh);
-	qh_set_element_td(uhci_data->qh, uhci_data->tds);
+	qh_init(uhci_batch->qh);
+	qh_set_element_td(uhci_batch->qh, &uhci_batch->tds[0]);
 
-	void *setup =
-	    uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count)
+	void *dest =
+	    uhci_batch->device_buffer + (sizeof(td_t) * uhci_batch->td_count)
 	    + sizeof(qh_t);
-	/* Copy SETUP packet data to device buffer */
-	memcpy(setup, batch->setup_buffer, batch->setup_size);
-	/* Set generic data buffer pointer */
-	batch->data_buffer = setup + batch->setup_size;
-	batch->private_data_dtor = uhci_transfer_batch_dispose;
-	batch->private_data = uhci_data;
+	/* Copy SETUP packet data to the device buffer */
+	memcpy(dest, usb_batch->setup_buffer, usb_batch->setup_size);
+	dest += usb_batch->setup_size;
+	/* Copy generic data if unless they are provided by the device */
+	if (usb_batch->ep->direction != USB_DIRECTION_IN) {
+		memcpy(dest, usb_batch->buffer, usb_batch->buffer_size);
+	}
+	uhci_batch->usb_batch = usb_batch;
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
-	    " memory structures ready.\n", batch,
-	    USB_TRANSFER_BATCH_ARGS(*batch));
-	assert(batch_setup[batch->ep->transfer_type][batch->ep->direction]);
-	batch_setup[batch->ep->transfer_type][batch->ep->direction](batch);
+	    " memory structures ready.\n", usb_batch,
+	    USB_TRANSFER_BATCH_ARGS(*usb_batch));
+	assert(
+	    batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction]);
+	batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction](
+	    uhci_batch);
 
-	return EOK;
+	return uhci_batch;
 }
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs for activity.
@@ -183,41 +166,47 @@ int batch_init_uhci(usb_transfer_batch_t *batch)
  * processed). Stop with true if an error is found. Return true if the last TD
  * is reached.
  */
-bool batch_is_complete(usb_transfer_batch_t *instance)
+bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	uhci_transfer_batch_t *data = instance->private_data;
-	assert(data);
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
 
-	usb_log_debug2("Batch(%p) checking %zu transfer(s) for completion.\n",
-	    instance, data->td_count);
-	instance->transfered_size = 0;
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
+	    " checking %zu transfer(s) for completion.\n",
+	    uhci_batch->usb_batch,
+	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch),
+	    uhci_batch->td_count);
+	uhci_batch->usb_batch->transfered_size = 0;
 	size_t i = 0;
-	for (;i < data->td_count; ++i) {
-		if (td_is_active(&data->tds[i])) {
+	for (;i < uhci_batch->td_count; ++i) {
+		if (td_is_active(&uhci_batch->tds[i])) {
 			return false;
 		}
 
-		instance->error = td_status(&data->tds[i]);
-		if (instance->error != EOK) {
-			usb_log_debug("Batch(%p) found error TD(%zu):%"
-			    PRIx32 ".\n", instance, i, data->tds[i].status);
-			td_print_status(&data->tds[i]);
+		uhci_batch->usb_batch->error = td_status(&uhci_batch->tds[i]);
+		if (uhci_batch->usb_batch->error != EOK) {
+			assert(uhci_batch->usb_batch->ep != NULL);
 
-			assert(instance->ep != NULL);
-			endpoint_toggle_set(instance->ep,
-			    td_toggle(&data->tds[i]));
+			usb_log_debug("Batch(%p) found error TD(%zu):%"
+			    PRIx32 ".\n", uhci_batch->usb_batch, i,
+			    uhci_batch->tds[i].status);
+			td_print_status(&uhci_batch->tds[i]);
+
+			endpoint_toggle_set(uhci_batch->usb_batch->ep,
+			    td_toggle(&uhci_batch->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
 		}
 
-		instance->transfered_size += td_act_size(&data->tds[i]);
-		if (td_is_short(&data->tds[i]))
+		uhci_batch->usb_batch->transfered_size
+		    += td_act_size(&uhci_batch->tds[i]);
+		if (td_is_short(&uhci_batch->tds[i]))
 			goto substract_ret;
 	}
 substract_ret:
-	instance->transfered_size -= instance->setup_size;
+	uhci_batch->usb_batch->transfered_size
+	    -= uhci_batch->usb_batch->setup_size;
 	return true;
 }
 
@@ -232,14 +221,10 @@ substract_ret:
  *
  * Uses generic control function with pids OUT and IN.
  */
-static void batch_control_write(usb_transfer_batch_t *instance)
+static void control_write(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
-	batch_control(instance, USB_PID_OUT, USB_PID_IN);
-	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	LOG_BATCH_INITIALIZED(instance, "control write");
+	batch_control(uhci_batch, USB_PID_OUT, USB_PID_IN);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control write");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares control read transfer.
@@ -248,12 +233,10 @@ static void batch_control_write(usb_transfer_batch_t *instance)
  *
  * Uses generic control with pids IN and OUT.
  */
-static void batch_control_read(usb_transfer_batch_t *instance)
+static void control_read(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	batch_control(instance, USB_PID_IN, USB_PID_OUT);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	LOG_BATCH_INITIALIZED(instance, "control read");
+	batch_control(uhci_batch, USB_PID_IN, USB_PID_OUT);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control read");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare interrupt in transfer.
@@ -262,12 +245,10 @@ static void batch_control_read(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_IN.
  */
-static void batch_interrupt_in(usb_transfer_batch_t *instance)
+static void interrupt_in(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	batch_data(instance, USB_PID_IN);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	LOG_BATCH_INITIALIZED(instance, "interrupt in");
+	batch_data(uhci_batch, USB_PID_IN);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "interrupt in");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare interrupt out transfer.
@@ -276,14 +257,10 @@ static void batch_interrupt_in(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_OUT.
  */
-static void batch_interrupt_out(usb_transfer_batch_t *instance)
+static void interrupt_out(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
-	batch_data(instance, USB_PID_OUT);
-	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	LOG_BATCH_INITIALIZED(instance, "interrupt out");
+	batch_data(uhci_batch, USB_PID_OUT);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "interrupt out");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare bulk in transfer.
@@ -292,12 +269,10 @@ static void batch_interrupt_out(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_IN.
  */
-static void batch_bulk_in(usb_transfer_batch_t *instance)
+static void bulk_in(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	batch_data(instance, USB_PID_IN);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
-	LOG_BATCH_INITIALIZED(instance, "bulk in");
+	batch_data(uhci_batch, USB_PID_IN);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "bulk in");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare bulk out transfer.
@@ -306,14 +281,10 @@ static void batch_bulk_in(usb_transfer_batch_t *instance)
  *
  * Data transfer with PID_OUT.
  */
-static void batch_bulk_out(usb_transfer_batch_t *instance)
+static void bulk_out(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
-	batch_data(instance, USB_PID_OUT);
-	instance->next_step = usb_transfer_batch_call_out_and_dispose;
-	LOG_BATCH_INITIALIZED(instance, "bulk out");
+	batch_data(uhci_batch, USB_PID_OUT);
+	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "bulk out");
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer
@@ -324,44 +295,44 @@ static void batch_bulk_out(usb_transfer_batch_t *instance)
  * Transactions with alternating toggle bit and supplied pid value.
  * The last transfer is marked with IOC flag.
  */
-static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
+static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_packet_id pid)
 {
-	assert(instance);
-	uhci_transfer_batch_t *data = instance->private_data;
-	assert(data);
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
 
-	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
-	int toggle = endpoint_toggle_get(instance->ep);
+	const bool low_speed =
+	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
+	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
+	const usb_target_t target = {
+	    uhci_batch->usb_batch->ep->address,
+	    uhci_batch->usb_batch->ep->endpoint };
+
+	int toggle = endpoint_toggle_get(uhci_batch->usb_batch->ep);
 	assert(toggle == 0 || toggle == 1);
 
 	size_t td = 0;
-	size_t remain_size = instance->buffer_size;
-	char *buffer = instance->data_buffer;
+	size_t remain_size = uhci_batch->usb_batch->buffer_size;
+	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
+
 	while (remain_size > 0) {
 		const size_t packet_size =
-		    (instance->ep->max_packet_size > remain_size) ?
-		    remain_size : instance->ep->max_packet_size;
+		    (remain_size < mps) ? remain_size : mps;
 
-		td_t *next_td = (td + 1 < data->td_count)
-		    ? &data->tds[td + 1] : NULL;
+		const td_t *next_td = (td + 1 < uhci_batch->td_count)
+		    ? &uhci_batch->tds[td + 1] : NULL;
 
-
-		usb_target_t target =
-		    { instance->ep->address, instance->ep->endpoint };
-
-		assert(td < data->td_count);
+		assert(td < uhci_batch->td_count);
 		td_init(
-		    &data->tds[td], DEFAULT_ERROR_COUNT, packet_size,
+		    &uhci_batch->tds[td], DEFAULT_ERROR_COUNT, packet_size,
 		    toggle, false, low_speed, target, pid, buffer, next_td);
 
 		++td;
 		toggle = 1 - toggle;
 		buffer += packet_size;
-		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
 	}
-	td_set_ioc(&data->tds[td - 1]);
-	endpoint_toggle_set(instance->ep, toggle);
+	td_set_ioc(&uhci_batch->tds[td - 1]);
+	endpoint_toggle_set(uhci_batch->usb_batch->ep, toggle);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
@@ -375,71 +346,80 @@ static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
  * Status stage with toggle 1 and pid supplied by parameter.
  * The last transfer is marked with IOC.
  */
-static void batch_control(usb_transfer_batch_t *instance,
-   usb_packet_id data_stage, usb_packet_id status_stage)
+static void batch_control(uhci_transfer_batch_t *uhci_batch,
+   usb_packet_id data_stage_pid, usb_packet_id status_stage_pid)
 {
-	assert(instance);
-	uhci_transfer_batch_t *data = instance->private_data;
-	assert(data);
-	assert(data->td_count >= 2);
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
+	assert(uhci_batch->usb_batch->ep);
+	assert(uhci_batch->td_count >= 2);
 
-	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
-	const usb_target_t target =
-	    { instance->ep->address, instance->ep->endpoint };
+	const bool low_speed =
+	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
+	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
+	const usb_target_t target = {
+	    uhci_batch->usb_batch->ep->address,
+	    uhci_batch->usb_batch->ep->endpoint };
 
 	/* setup stage */
 	td_init(
-	    data->tds, DEFAULT_ERROR_COUNT, instance->setup_size, 0, false,
-	    low_speed, target, USB_PID_SETUP, instance->setup_buffer,
-	    &data->tds[1]);
+	    &uhci_batch->tds[0], DEFAULT_ERROR_COUNT,
+	    uhci_batch->usb_batch->setup_size, 0, false,
+	    low_speed, target, USB_PID_SETUP,
+	    uhci_transfer_batch_setup_buffer(uhci_batch), &uhci_batch->tds[1]);
 
 	/* data stage */
 	size_t td = 1;
 	unsigned toggle = 1;
-	size_t remain_size = instance->buffer_size;
-	char *buffer = instance->data_buffer;
+	size_t remain_size = uhci_batch->usb_batch->buffer_size;
+	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
+
 	while (remain_size > 0) {
 		const size_t packet_size =
-		    (instance->ep->max_packet_size > remain_size) ?
-		    remain_size : instance->ep->max_packet_size;
+		    (remain_size < mps) ? remain_size : mps;
 
 		td_init(
-		    &data->tds[td], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, target, data_stage,
-		    buffer, &data->tds[td + 1]);
+		    &uhci_batch->tds[td], DEFAULT_ERROR_COUNT, packet_size,
+		    toggle, false, low_speed, target, data_stage_pid,
+		    buffer, &uhci_batch->tds[td + 1]);
 
 		++td;
 		toggle = 1 - toggle;
 		buffer += packet_size;
-		assert(td < data->td_count);
-		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
+		assert(td < uhci_batch->td_count);
 	}
 
 	/* status stage */
-	assert(td == data->td_count - 1);
+	assert(td == uhci_batch->td_count - 1);
 
 	td_init(
-	    &data->tds[td], DEFAULT_ERROR_COUNT, 0, 1, false, low_speed,
-	    target, status_stage, NULL, NULL);
-	td_set_ioc(&data->tds[td]);
+	    &uhci_batch->tds[td], DEFAULT_ERROR_COUNT, 0, 1, false, low_speed,
+	    target, status_stage_pid, NULL, NULL);
+	td_set_ioc(&uhci_batch->tds[td]);
 
 	usb_log_debug2("Control last TD status: %x.\n",
-	    data->tds[td].status);
+	    uhci_batch->tds[td].status);
 }
 /*----------------------------------------------------------------------------*/
-/** Provides access to QH data structure.
- *
- * @param[in] instance Batch pointer to use.
- * @return Pointer to the QH used by the batch.
- */
-qh_t * batch_qh(usb_transfer_batch_t *instance)
+static void batch_setup_control(uhci_transfer_batch_t *uhci_batch)
 {
-	assert(instance);
-	uhci_transfer_batch_t *data = instance->private_data;
-	assert(data);
-	return data->qh;
+	// TODO Find a better way to do this
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
+	if (uhci_batch->usb_batch->setup_buffer[0] & (1 << 7))
+		control_read(uhci_batch);
+	else
+		control_write(uhci_batch);
 }
+/*----------------------------------------------------------------------------*/
+static void (*batch_setup[4][3])(uhci_transfer_batch_t*) =
+{
+	{ NULL, NULL, batch_setup_control },
+	{ NULL, NULL, NULL },
+	{ bulk_in, bulk_out, NULL },
+	{ interrupt_in, interrupt_out, NULL },
+};
 /**
  * @}
  */
