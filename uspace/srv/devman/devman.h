@@ -127,6 +127,9 @@ typedef enum {
 
 /** Device node in the device tree. */
 struct dev_node {
+	/** Reference count */
+	atomic_t refcnt;
+	
 	/** The global unique identifier of the device. */
 	devman_handle_t handle;
 	
@@ -155,6 +158,9 @@ struct dev_node {
 
 /** Function node in the device tree. */
 struct fun_node {
+	/** Reference count */
+	atomic_t refcnt;
+	
 	/** The global unique identifier of the function */
 	devman_handle_t handle;
 	/** Name of the function, assigned by the device driver */
@@ -238,13 +244,13 @@ extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
 extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_node_t *, driver_t *);
-extern void detach_driver(dev_node_t *);
+extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
+extern void detach_driver(dev_tree_t *, dev_node_t *);
 extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
-extern int driver_dev_remove(dev_node_t *);
-extern int driver_fun_online(fun_node_t *);
-extern int driver_fun_offline(fun_node_t *);
+extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
+extern int driver_fun_online(dev_tree_t *, fun_node_t *);
+extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
@@ -257,6 +263,8 @@ extern void delete_driver(driver_t *);
 
 extern dev_node_t *create_dev_node(void);
 extern void delete_dev_node(dev_node_t *node);
+extern void dev_add_ref(dev_node_t *);
+extern void dev_del_ref(dev_node_t *);
 extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
@@ -266,11 +274,14 @@ extern int dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
 
 extern fun_node_t *create_fun_node(void);
 extern void delete_fun_node(fun_node_t *);
+extern void fun_add_ref(fun_node_t *);
+extern void fun_del_ref(fun_node_t *);
 extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
 extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
-extern fun_node_t *find_fun_node_in_device(dev_node_t *, const char *);
+extern fun_node_t *find_fun_node_in_device(dev_tree_t *tree, dev_node_t *,
+    const char *);
 
 /* Device tree */
 

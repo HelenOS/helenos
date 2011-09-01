@@ -241,19 +241,17 @@ static int online_function(fun_node_t *fun)
 	dev_node_t *dev;
 	
 	fibril_rwlock_write_lock(&device_tree.rwlock);
-	
+
 	if (fun->ftype == fun_inner) {
 		dev = create_dev_node();
 		if (dev == NULL) {
 			fibril_rwlock_write_unlock(&device_tree.rwlock);
-			delete_fun_node(fun);
 			return ENOMEM;
 		}
 
 		insert_dev_node(&device_tree, dev, fun);
+		dev_add_ref(dev);
 	}
-	
-	fibril_rwlock_write_unlock(&device_tree.rwlock);
 	
 	log_msg(LVL_DEBUG, "devman_add_function(fun=\"%s\")", fun->pathname);
 	
@@ -282,6 +280,8 @@ static int online_function(fun_node_t *fun)
 		loc_register_tree_function(fun, &device_tree);
 	}
 	
+	fibril_rwlock_write_unlock(&device_tree.rwlock);
+	
 	return EOK;
 }
 
@@ -289,32 +289,46 @@ static int offline_function(fun_node_t *fun)
 {
 	int rc;
 	
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	
 	if (fun->ftype == fun_inner) {
 		printf("devman_drv_fun_offline(): %p is inner fun, removing "
 		    "child dev.\n", fun);
 		if (fun->child != NULL) {
 			dev_node_t *dev = fun->child;
 			
-			rc = driver_dev_remove(dev);
+			dev_add_ref(dev);
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
+			
+			rc = driver_dev_remove(&device_tree, dev);
 			if (rc != EOK) {
+				dev_del_ref(dev);
 				return ENOTSUP;
 			}
-			detach_driver(dev);
+			
+			detach_driver(&device_tree, dev);
+			
 			fibril_rwlock_write_lock(&device_tree.rwlock);
 			remove_dev_node(&device_tree, dev);
-			fibril_rwlock_write_unlock(&device_tree.rwlock);
-			delete_dev_node(dev);
+			
+			/* Delete ref created when node was inserted */
+			dev_del_ref(dev);
+			/* Delete ref created by dev_add_ref(dev) above */
+			dev_del_ref(dev);
 		}
 	} else {
 		/* Unregister from location service */
 		rc = loc_service_unregister(fun->service_id);
 		if (rc != EOK) {
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
 			log_msg(LVL_ERROR, "Failed unregistering tree service.");
 			return EIO;
 		}
 		
 		fun->service_id = 0;
 	}
+	
+	fibril_rwlock_write_unlock(&device_tree.rwlock);
 	
 	return EOK;
 }
@@ -330,12 +344,8 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t match_count = IPC_GET_ARG3(*call);
 	dev_tree_t *tree = &device_tree;
 	
-	fibril_rwlock_write_lock(&tree->rwlock);
-
-	dev_node_t *pdev = find_dev_node_no_lock(&device_tree, dev_handle);
-	
+	dev_node_t *pdev = find_dev_node(&device_tree, dev_handle);
 	if (pdev == NULL) {
-		fibril_rwlock_write_unlock(&tree->rwlock);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
@@ -346,7 +356,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		    "Unknown function type %d provided by driver.",
 		    (int) ftype);
 
-		fibril_rwlock_write_unlock(&tree->rwlock);
+		dev_del_ref(pdev);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
@@ -354,14 +364,17 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	char *fun_name = NULL;
 	int rc = async_data_write_accept((void **)&fun_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&tree->rwlock);
+		dev_del_ref(pdev);
 		async_answer_0(callid, rc);
 		return;
 	}
 	
+	fibril_rwlock_write_lock(&tree->rwlock);
+	
 	/* Check that function with same name is not there already. */
-	if (find_fun_node_in_device(pdev, fun_name) != NULL) {
+	if (find_fun_node_in_device(tree, pdev, fun_name) != NULL) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
+		dev_del_ref(pdev);
 		async_answer_0(callid, EEXISTS);
 		printf(NAME ": Warning, driver tried to register `%s' twice.\n",
 		    fun_name);
@@ -370,16 +383,19 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	fun_node_t *fun = create_fun_node();
+	fun_add_ref(fun);
 	fun->ftype = ftype;
 	
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
+		dev_del_ref(pdev);
 		delete_fun_node(fun);
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
 	
 	fibril_rwlock_write_unlock(&tree->rwlock);
+	dev_del_ref(pdev);
 	
 	devman_receive_match_ids(match_count, &fun->match_ids);
 	
@@ -407,13 +423,15 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
-	}	
+	}
 	
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
 		async_answer_0(callid, ENOENT);
 		return;
 	}
+	
+	fibril_rwlock_read_lock(&device_tree.rwlock);
 	
 	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
 	if (rc == EOK) {
@@ -425,6 +443,9 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 	
 	log_msg(LVL_NOTE, "Function `%s' added to category `%s'.",
 	    fun->pathname, cat_name);
+
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	fun_del_ref(fun);
 
 	async_answer_0(callid, EOK);
 }
@@ -439,21 +460,30 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 	int rc;
 
 	printf("devman_drv_fun_online()\n");
-	fibril_rwlock_write_lock(&device_tree.rwlock);
-	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
-	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
-	
-	if (fun == NULL || fun->dev == NULL || fun->dev->drv != drv) {
+	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
+	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+	if (fun->dev == NULL || fun->dev->drv != drv) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		fun_del_ref(fun);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	
 	rc = online_function(fun);
 	if (rc != EOK) {
 		printf("devman_drv_fun_online() online_fun->ERROR\n");
+		fun_del_ref(fun);
 		async_answer_0(iid, (sysarg_t) rc);
 		return;
 	}
+	
+	fun_del_ref(fun);
 	printf("devman_drv_fun_online() online_fun->OK\n");
 	
 	async_answer_0(iid, (sysarg_t) EOK);
@@ -469,21 +499,28 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 	fun_node_t *fun;
 	int rc;
 
-	fibril_rwlock_write_lock(&device_tree.rwlock);
-	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
-	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
-	
-	if (fun == NULL || fun->dev == NULL || fun->dev->drv != drv) {
+	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
+	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	if (fun->dev == NULL || fun->dev->drv != drv) {
+		fun_del_ref(fun);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	fibril_rwlock_write_unlock(&device_tree.rwlock);
+	
 	rc = offline_function(fun);
 	if (rc != EOK) {
+		fun_del_ref(fun);
 		async_answer_0(iid, (sysarg_t) rc);
 		return;
 	}
 	
+	fun_del_ref(fun);
 	async_answer_0(iid, (sysarg_t) EOK);
 }
 
@@ -494,20 +531,20 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	dev_tree_t *tree = &device_tree;
 	int rc;
 	
-	fibril_rwlock_write_lock(&tree->rwlock);
 	
-	fun_node_t *fun = find_fun_node_no_lock(&device_tree, fun_handle);
+	fun_node_t *fun = find_fun_node(&device_tree, fun_handle);
 	if (fun == NULL) {
-		fibril_rwlock_write_unlock(&tree->rwlock);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
+	
+	fibril_rwlock_write_lock(&tree->rwlock);
 	
 	log_msg(LVL_DEBUG, "devman_remove_function(fun='%s')", fun->pathname);
 	
 	if (fun->ftype == fun_inner) {
 		/* Handle possible descendants */
-		/* TODO */
+		/* TODO - This is a surprise removal */
 		if (fun->child != NULL) {
 			log_msg(LVL_WARN, "devman_remove_function(): not handling "
 			    "descendants\n");
@@ -520,6 +557,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 				log_msg(LVL_ERROR, "Failed unregistering tree "
 				    "service.");
 				fibril_rwlock_write_unlock(&tree->rwlock);
+				fun_del_ref(fun);
 				async_answer_0(callid, EIO);
 				return;
 			}
@@ -528,7 +566,11 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	
 	remove_fun_node(&device_tree, fun);
 	fibril_rwlock_write_unlock(&tree->rwlock);
-	delete_fun_node(fun);
+	
+	/* Delete ref added when inserting function into tree */
+	fun_del_ref(fun);
+	/* Delete ref added above when looking up function */
+	fun_del_ref(fun);
 	
 	log_msg(LVL_DEBUG, "devman_remove_function() succeeded.");
 	async_answer_0(callid, EOK);
@@ -620,6 +662,7 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *pathname;
+	devman_handle_t handle;
 	
 	int rc = async_data_write_accept((void **) &pathname, true, 0, 0, 0, 0);
 	if (rc != EOK) {
@@ -636,7 +679,14 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	async_answer_1(iid, EOK, fun->handle);
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+	handle = fun->handle;
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+
+	/* Delete reference created above by find_fun_node_by_path() */
+	fun_del_ref(fun);
+
+	async_answer_1(iid, EOK, handle);
 }
 
 /** Get device name. */
@@ -654,6 +704,7 @@ static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
+		fun_del_ref(fun);
 		return;
 	}
 
@@ -661,8 +712,11 @@ static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	if (buffer == NULL) {
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(iid, ENOMEM);
+		fun_del_ref(fun);
 		return;
 	}
+
+	fibril_rwlock_read_lock(&device_tree.rwlock);
 
 	size_t sent_length = str_size(fun->name);
 	if (sent_length > data_len) {
@@ -672,6 +726,8 @@ static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	async_data_read_finalize(data_callid, fun->name, sent_length);
 	async_answer_0(iid, EOK);
 
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	fun_del_ref(fun);
 	free(buffer);
 }
 
@@ -691,6 +747,7 @@ static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
+		fun_del_ref(fun);
 		return;
 	}
 
@@ -698,9 +755,12 @@ static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
 	if (buffer == NULL) {
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(iid, ENOMEM);
+		fun_del_ref(fun);
 		return;
 	}
-
+	
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+	
 	size_t sent_length = str_size(fun->pathname);
 	if (sent_length > data_len) {
 		sent_length = data_len;
@@ -709,6 +769,8 @@ static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
 	async_data_read_finalize(data_callid, fun->pathname, sent_length);
 	async_answer_0(iid, EOK);
 
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	fun_del_ref(fun);
 	free(buffer);
 }
 
@@ -776,6 +838,7 @@ static void devman_fun_get_child(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	if (fun->child == NULL) {
+		fun_del_ref(fun);
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		async_answer_0(iid, ENOENT);
 		return;
@@ -783,6 +846,7 @@ static void devman_fun_get_child(ipc_callid_t iid, ipc_call_t *icall)
 	
 	async_answer_1(iid, EOK, fun->child->handle);
 	
+	fun_del_ref(fun);
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 }
 
@@ -797,16 +861,14 @@ static void devman_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	fun_node_t *fun;
 	int rc;
 
-	fibril_rwlock_write_lock(&device_tree.rwlock);
-	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
-	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
-	
+	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
-	rc = driver_fun_online(fun);
+	rc = driver_fun_online(&device_tree, fun);
+	fun_del_ref(fun);
 	
 	async_answer_0(iid, (sysarg_t) rc);
 }
@@ -824,16 +886,14 @@ static void devman_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	fun_node_t *fun;
 	int rc;
 
-	fibril_rwlock_write_lock(&device_tree.rwlock);
-	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
-	fibril_rwlock_write_unlock(&device_tree.rwlock); /* XXX FIXME */
-	
+	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
-	rc = driver_fun_offline(fun);
+	rc = driver_fun_offline(&device_tree, fun);
+	fun_del_ref(fun);
 	
 	async_answer_0(iid, (sysarg_t) rc);
 }
@@ -850,7 +910,10 @@ static void devman_fun_sid_to_handle(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
+	fibril_rwlock_read_lock(&device_tree.rwlock);
 	async_answer_1(iid, EOK, fun->handle);
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	fun_del_ref(fun);
 }
 
 /** Function for handling connections from a client to the device manager. */
@@ -908,8 +971,13 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL)
 		dev = find_dev_node(&device_tree, handle);
-	else
+	else {
+		fibril_rwlock_read_lock(&device_tree.rwlock);
 		dev = fun->dev;
+		if (dev != NULL)
+			dev_add_ref(dev);
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+	}
 
 	/*
 	 * For a valid function to connect to we need a device. The root
@@ -921,7 +989,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		log_msg(LVL_ERROR, "IPC forwarding failed - no device or "
 		    "function with handle %" PRIun " was found.", handle);
 		async_answer_0(iid, ENOENT);
-		return;
+		goto cleanup;
 	}
 
 	if (fun == NULL && !drv_to_parent) {
@@ -929,7 +997,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		    "connect to handle %" PRIun ", refers to a device.",
 		    handle);
 		async_answer_0(iid, ENOENT);
-		return;
+		goto cleanup;
 	}
 	
 	driver_t *driver = NULL;
@@ -951,7 +1019,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		log_msg(LVL_ERROR, "IPC forwarding refused - " \
 		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
-		return;
+		goto cleanup;
 	}
 	
 	int method;
@@ -964,7 +1032,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		log_msg(LVL_ERROR,
 		    "Could not forward to driver `%s'.", driver->name);
 		async_answer_0(iid, EINVAL);
-		return;
+		goto cleanup;
 	}
 
 	if (fun != NULL) {
@@ -980,6 +1048,12 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	async_exch_t *exch = async_exchange_begin(driver->sess);
 	async_forward_fast(iid, exch, method, fwd_h, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
+
+cleanup:
+	if (dev != NULL)
+		dev_del_ref(dev);
+	if (fun != NULL)
+		fun_del_ref(fun);
 }
 
 /** Function for handling connections from a client forwarded by the location
@@ -999,12 +1073,16 @@ static void devman_connection_loc(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
+	fibril_rwlock_read_lock(&device_tree.rwlock);
 	dev = fun->dev;
+	fun_del_ref(fun);
 	
 	async_exch_t *exch = async_exchange_begin(dev->drv->sess);
 	async_forward_fast(iid, exch, DRIVER_CLIENT, fun->handle, 0,
 	    IPC_FF_NONE);
 	async_exchange_end(exch);
+	
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	
 	log_msg(LVL_DEBUG,
 	    "Forwarding loc service request for `%s' function to driver `%s'.",
