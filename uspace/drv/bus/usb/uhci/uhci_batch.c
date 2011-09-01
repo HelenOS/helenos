@@ -151,7 +151,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs for activity.
  *
- * @param[in] instance Batch structure to use.
+ * @param[in] uhci_batch Batch structure to use.
  * @return False, if there is an active TD, true otherwise.
  *
  * Walk all TDs. Stop with false if there is an active one (it is to be
@@ -201,15 +201,10 @@ substract_ret:
 	    -= uhci_batch->usb_batch->setup_size;
 	return true;
 }
-
-#define LOG_BATCH_INITIALIZED(batch, name, dir) \
-	usb_log_debug2("Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    (batch), (name), (dir), USB_TRANSFER_BATCH_ARGS(*(batch)))
-
 /*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer
  *
- * @param[in] instance Batch structure to use.
+ * @param[in] uhci_batch Batch structure to use.
  * @param[in] pid Pid to use for data transactions.
  *
  * Transactions with alternating toggle bit and supplied pid value.
@@ -260,14 +255,17 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	}
 	td_set_ioc(&uhci_batch->tds[td - 1]);
 	endpoint_toggle_set(uhci_batch->usb_batch->ep, toggle);
-	LOG_BATCH_INITIALIZED(uhci_batch->usb_batch,
+	usb_log_debug2(
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    uhci_batch->usb_batch,
 	    usb_str_transfer_type(uhci_batch->usb_batch->ep->transfer_type),
-	    usb_str_direction(uhci_batch->usb_batch->ep->direction));
+	    usb_str_direction(uhci_batch->usb_batch->ep->direction),
+	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
  *
- * @param[in] instance Batch structure to use.
+ * @param[in] uhci_batch Batch structure to use.
  * @param[in] data_stage Pid to use for data tds.
  * @param[in] status_stage Pid to use for data tds.
  *
@@ -340,13 +338,19 @@ static void batch_setup_control(uhci_transfer_batch_t *uhci_batch)
 	// TODO Find a better way to do this
 	/* Check first bit of the first setup request byte
 	 * (it signals hc-> dev or dev->hc communication) */
+	const char *direction = NULL;
 	if (uhci_batch->usb_batch->setup_buffer[0] & (1 << 7)) {
 		batch_control(uhci_batch, USB_PID_IN, USB_PID_OUT);
-		LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control", "read");
+		direction = "read";
 	} else {
 		batch_control(uhci_batch, USB_PID_OUT, USB_PID_IN);
-		LOG_BATCH_INITIALIZED(uhci_batch->usb_batch, "control", "write");
+		direction = "write";
 	}
+	usb_log_debug2(
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    uhci_batch->usb_batch,
+	    usb_str_transfer_type(uhci_batch->usb_batch->ep->transfer_type),
+	    direction, USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
 static void (* const batch_setup[4][3])(uhci_transfer_batch_t*) =

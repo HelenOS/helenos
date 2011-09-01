@@ -146,7 +146,7 @@ if (ptr == NULL) { \
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs' status.
  *
- * @param[in] instance Batch structure to use.
+ * @param[in] ohci_batch Batch structure to use.
  * @return False, if there is an active TD, true otherwise.
  *
  * Walk all TDs (usually there is just one). Stop with false if there is an
@@ -212,7 +212,7 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 /*----------------------------------------------------------------------------*/
 /** Starts execution of the TD list
  *
- * @param[in] instance Batch structure to use
+ * @param[in] ohci_batch Batch structure to use
  */
 void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 {
@@ -222,7 +222,7 @@ void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
  *
- * @param[in] instance Batch structure to use.
+ * @param[in] ohci_batch Batch structure to use.
  * @param[in] data_dir Direction to use for data stage.
  * @param[in] status_dir Direction to use for status stage.
  *
@@ -288,13 +288,9 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch,
 	    ohci_batch->tds[td_current]->be);
 }
 /*----------------------------------------------------------------------------*/
-#define LOG_BATCH_INITIALIZED(batch, name, dir) \
-	usb_log_debug2("Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    (batch), (name), (dir), USB_TRANSFER_BATCH_ARGS(*(batch)))
-
 /** Prepare generic data transfer
  *
- * @param[in] instance Batch structure to use.
+ * @param[in] ohci_batch Batch structure to use.
  *
  * Direction is supplied by the associated ep and toggle is maintained by the
  * OHCI hw in ED.
@@ -329,21 +325,32 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 		assert(td_current < ohci_batch->td_count);
 		++td_current;
 	}
-	LOG_BATCH_INITIALIZED(ohci_batch->usb_batch,
+	usb_log_debug2(
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    ohci_batch->usb_batch,
 	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
-	    usb_str_direction(ohci_batch->usb_batch->ep->direction));
+	    usb_str_direction(ohci_batch->usb_batch->ep->direction),
+	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
 static void setup_control(ohci_transfer_batch_t *ohci_batch)
 {
         // TODO Find a better way to do this
+	/* Check first bit of the first setup request byte
+	 * (it signals hc-> dev or dev->hc communication) */
+	const char *direction;
         if (ohci_batch->device_buffer[0] & (1 << 7)) {
 		batch_control(ohci_batch, USB_DIRECTION_IN, USB_DIRECTION_OUT);
-		LOG_BATCH_INITIALIZED(ohci_batch->usb_batch, "control", "write");
+		direction = "read";
         } else {
 		batch_control(ohci_batch, USB_DIRECTION_OUT, USB_DIRECTION_IN);
-		LOG_BATCH_INITIALIZED(ohci_batch->usb_batch, "control", "write");
+		direction = "write";
 	}
+	usb_log_debug2(
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    ohci_batch->usb_batch,
+	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
+	    direction, USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
 void (*const batch_setup[4][3])(ohci_transfer_batch_t*) =
