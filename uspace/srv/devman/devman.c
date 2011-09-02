@@ -845,6 +845,14 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	if (is_running)
 		add_device(drv, dev, tree);
 	
+	fibril_mutex_lock(&drv->driver_mutex);
+	fibril_mutex_unlock(&drv->driver_mutex);
+
+	fibril_rwlock_write_lock(&tree->rwlock);
+	if (dev->pfun != NULL) {
+		dev->pfun->state = FUN_ON_LINE;
+	}
+	fibril_rwlock_write_unlock(&tree->rwlock);
 	return true;
 }
 
@@ -1105,6 +1113,7 @@ fun_node_t *create_fun_node(void)
 	if (fun == NULL)
 		return NULL;
 	
+	fun->state = FUN_INIT;
 	atomic_set(&fun->refcnt, 0);
 	link_initialize(&fun->dev_functions);
 	list_initialize(&fun->match_ids.ids);
@@ -1274,6 +1283,8 @@ void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
 	/* Unlink from parent function. */
 	dev->pfun->child = NULL;
 	dev->pfun = NULL;
+	
+	dev->state = DEVICE_REMOVED;
 }
 
 
@@ -1337,6 +1348,7 @@ void remove_fun_node(dev_tree_t *tree, fun_node_t *fun)
 		list_remove(&fun->dev_functions);
 	
 	fun->dev = NULL;
+	fun->state = FUN_REMOVED;
 }
 
 /** Find function node with a specified path in the device tree.

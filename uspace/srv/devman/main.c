@@ -233,6 +233,9 @@ static int assign_driver_fibril(void *arg)
 {
 	dev_node_t *dev_node = (dev_node_t *) arg;
 	assign_driver(dev_node, &drivers_list, &device_tree);
+
+	/* Delete one reference we got from the caller. */
+	dev_del_ref(dev_node);
 	return EOK;
 }
 
@@ -242,6 +245,13 @@ static int online_function(fun_node_t *fun)
 	
 	fibril_rwlock_write_lock(&device_tree.rwlock);
 
+	if (fun->state == FUN_ON_LINE) {
+		fibril_rwlock_write_unlock(&device_tree.rwlock);
+		log_msg(LVL_WARN, "Function %s is already on line.",
+		    fun->pathname);
+		return EOK;
+	}
+	
 	if (fun->ftype == fun_inner) {
 		dev = create_dev_node();
 		if (dev == NULL) {
@@ -259,6 +269,8 @@ static int online_function(fun_node_t *fun)
 		dev = fun->child;
 		assert(dev != NULL);
 		
+		/* Give one reference over to assign_driver_fibril(). */
+		dev_add_ref(dev);
 		/*
 		 * Try to find a suitable driver and assign it to the device.  We do
 		 * not want to block the current fibril that is used for processing
@@ -268,14 +280,13 @@ static int online_function(fun_node_t *fun)
 		 */
 		fid_t assign_fibril = fibril_create(assign_driver_fibril, dev);
 		if (assign_fibril == 0) {
-			/*
-			 * Fallback in case we are out of memory.
-			 * Probably not needed as we will die soon anyway ;-).
-			 */
-			(void) assign_driver_fibril(fun);
-		} else {
-			fibril_add_ready(assign_fibril);
+			log_msg(LVL_ERROR, "Failed to create fibril for "
+			    "assigning driver.");
+			/* XXX Cleanup */
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
+			return ENOMEM;
 		}
+		fibril_add_ready(assign_fibril);
 	} else {
 		loc_register_tree_function(fun, &device_tree);
 	}
@@ -290,6 +301,13 @@ static int offline_function(fun_node_t *fun)
 	int rc;
 	
 	fibril_rwlock_write_lock(&device_tree.rwlock);
+	
+	if (fun->state == FUN_OFF_LINE) {
+		fibril_rwlock_write_unlock(&device_tree.rwlock);
+		log_msg(LVL_WARN, "Function %s is already off line.",
+		    fun->pathname);
+		return EOK;
+	}
 	
 	if (fun->ftype == fun_inner) {
 		printf("devman_drv_fun_offline(): %p is inner fun, removing "
@@ -328,6 +346,7 @@ static int offline_function(fun_node_t *fun)
 		fun->service_id = 0;
 	}
 	
+	fun->state = FUN_OFF_LINE;
 	fibril_rwlock_write_unlock(&device_tree.rwlock);
 	
 	return EOK;

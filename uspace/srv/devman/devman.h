@@ -117,12 +117,14 @@ typedef struct driver_list {
 	fibril_mutex_t drivers_mutex;
 } driver_list_t;
 
-/** The state of the device. */
+/** Device state */
 typedef enum {
 	DEVICE_NOT_INITIALIZED = 0,
 	DEVICE_USABLE,
 	DEVICE_NOT_PRESENT,
-	DEVICE_INVALID
+	DEVICE_INVALID,
+	/** Device node has been removed from the tree */
+	DEVICE_REMOVED
 } device_state_t;
 
 /** Device node in the device tree. */
@@ -156,10 +158,21 @@ struct dev_node {
 	bool passed_to_driver;
 };
 
+/** Function state */
+typedef enum {
+	FUN_INIT = 0,
+	FUN_OFF_LINE,
+	FUN_ON_LINE,
+	/** Function node has been removed from the tree */
+	FUN_REMOVED
+} fun_state_t;
+
 /** Function node in the device tree. */
 struct fun_node {
 	/** Reference count */
 	atomic_t refcnt;
+	/** State */
+	fun_state_t state;
 	
 	/** The global unique identifier of the function */
 	devman_handle_t handle;
