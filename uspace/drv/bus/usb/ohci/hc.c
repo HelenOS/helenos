@@ -138,34 +138,24 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->generic.dev_manager, hub_address, hub_fun->handle);
 
-#define CHECK_RET_DESTROY(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
-	endpoint_destroy(ep); \
-	usb_endpoint_manager_unregister_ep(&instance->generic.ep_manager, \
-	    hub_address, 0, USB_DIRECTION_BOTH); \
 	return ret; \
 } else (void)0
-	endpoint_t *ep =
-	    endpoint_get(hub_address, 0, USB_DIRECTION_BOTH,
-	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64);
-	if (ep == NULL)
-		return ENOMEM;
-
-	int ret = ohci_endpoint_init(&instance->generic, ep);
-	CHECK_RET_DESTROY(ret, "Failed to initialize rh OHCI ep structures.\n");
-
-	ret = usb_endpoint_manager_register_ep(
-	    &instance->generic.ep_manager, ep, 0);
-	CHECK_RET_DESTROY(ret, "Failed to initialize rh control ep.\n");
-	ep = NULL;
+	int ret = usb_endpoint_manager_add_ep(
+	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH,
+	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64, 0);
+	CHECK_RET_RETURN(ret,
+	    "Failed to register root hub control endpoint: %s.\n",
+	    str_error(ret));
 
 	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
-	CHECK_RET_DESTROY(ret,
+	CHECK_RET_RETURN(ret,
 	    "Failed to add root hub match-id: %s.\n", str_error(ret));
 
 	ret = ddf_fun_bind(hub_fun);
-	CHECK_RET_DESTROY(ret,
+	CHECK_RET_RETURN(ret,
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
 
 	return EOK;
