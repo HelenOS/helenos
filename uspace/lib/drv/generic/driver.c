@@ -308,7 +308,6 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	ddf_dev_t *dev;
 	int rc;
 	
-	printf("libdrv: driver_dev_offline()\n");
 	devh = IPC_GET_ARG1(*icall);
 	
 	fibril_mutex_lock(&devices_mutex);

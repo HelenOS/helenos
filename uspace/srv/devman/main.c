@@ -310,8 +310,9 @@ static int offline_function(fun_node_t *fun)
 	}
 	
 	if (fun->ftype == fun_inner) {
-		printf("devman_drv_fun_offline(): %p is inner fun, removing "
-		    "child dev.\n", fun);
+		log_msg(LVL_DEBUG, "Offlining inner function %s.",
+		    fun->pathname);
+		
 		if (fun->child != NULL) {
 			dev_node_t *dev = fun->child;
 			
