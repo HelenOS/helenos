@@ -1230,6 +1230,13 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	cat = category_get(&cdir, cat_id);
 	svc = loc_service_find_id(svc_id);
 	
+	if (cat == NULL || svc == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
 	fibril_mutex_lock(&cat->mutex);
 	retval = category_add_service(cat, svc);
 
