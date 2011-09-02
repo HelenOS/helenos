@@ -325,6 +325,14 @@ static int offline_function(fun_node_t *fun)
 				return ENOTSUP;
 			}
 			
+			/* Verify that driver removed all functions */
+			fibril_rwlock_read_lock(&device_tree.rwlock);
+			if (!list_empty(&dev->functions)) {
+				fibril_rwlock_read_unlock(&device_tree.rwlock);
+				return EIO;
+			}
+			fibril_rwlock_read_unlock(&device_tree.rwlock);
+			
 			detach_driver(&device_tree, dev);
 			
 			fibril_rwlock_write_lock(&device_tree.rwlock);

@@ -95,10 +95,14 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 static ddf_dev_ops_t isa_fun_ops;
 
 static int isa_add_device(ddf_dev_t *dev);
+static int isa_fun_online(ddf_fun_t *fun);
+static int isa_fun_offline(ddf_fun_t *fun);
 
 /** The isa device driver's standard operations */
 static driver_ops_t isa_ops = {
-	.add_device = &isa_add_device
+	.add_device = &isa_add_device,
+	.fun_online = &isa_fun_online,
+	.fun_offline = &isa_fun_offline
 };
 
 /** The isa device driver structure. */
@@ -493,6 +497,19 @@ static int isa_add_device(ddf_dev_t *dev)
 
 	return EOK;
 }
+
+static int isa_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "isa_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int isa_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "isa_fun_offline()");
+	return ddf_fun_offline(fun);
+}
+
 
 static void isa_init() 
 {
