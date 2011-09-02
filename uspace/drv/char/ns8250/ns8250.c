@@ -112,32 +112,6 @@ typedef struct ns8250 {
 	fibril_mutex_t mutex;
 } ns8250_t;
 
-/** Create per-device soft-state structure.
- *
- * @return	Pointer to soft-state structure.
- */
-static ns8250_t *ns8250_new(void)
-{
-	ns8250_t *ns;
-	
-	ns = (ns8250_t *) calloc(1, sizeof(ns8250_t));
-	if (ns == NULL)
-		return NULL;
-	
-	fibril_mutex_initialize(&ns->mutex);
-	return ns;
-}
-
-/** Delete soft-state structure.
- *
- * @param ns	The driver data structure.
- */
-static void ns8250_delete(ns8250_t *ns)
-{
-	assert(ns != NULL);
-	free(ns);
-}
-
 /** Find out if there is some incomming data available on the serial port.
  *
  * @param port		The base address of the serial port device's ports.
@@ -720,14 +694,14 @@ static int ns8250_add_device(ddf_dev_t *dev)
 	    dev->name, (int) dev->handle);
 	
 	/* Allocate soft-state for the device */
-	ns = ns8250_new();
+	ns = ddf_dev_data_alloc(dev, sizeof(ns8250_t));
 	if (ns == NULL) {
 		rc = ENOMEM;
 		goto fail;
 	}
 	
+	fibril_mutex_initialize(&ns->mutex);
 	ns->dev = dev;
-	dev->driver_data = ns;
 	
 	rc = ns8250_dev_initialize(ns);
 	if (rc != EOK)
@@ -791,8 +765,6 @@ fail:
 		ddf_fun_destroy(fun);
 	if (need_cleanup)
 		ns8250_dev_cleanup(ns);
-	if (ns != NULL)
-		ns8250_delete(ns);
 	return rc;
 }
 

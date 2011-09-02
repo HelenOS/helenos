@@ -182,21 +182,18 @@ static usb_mouse_t *usb_mouse_new(void)
 
 /*----------------------------------------------------------------------------*/
 
-static void usb_mouse_free(usb_mouse_t **mouse_dev)
+static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
 {
-	assert(mouse_dev != NULL && *mouse_dev != NULL);
+	assert(mouse_dev != NULL);
 	
 	// hangup phone to the console
-	if ((*mouse_dev)->mouse_phone >= 0) {
-		async_obsolete_hangup((*mouse_dev)->mouse_phone);
+	if (mouse_dev->mouse_phone >= 0) {
+		async_obsolete_hangup(mouse_dev->mouse_phone);
 	}
 	
-	if ((*mouse_dev)->wheel_phone >= 0) {
-		async_obsolete_hangup((*mouse_dev)->wheel_phone);
+	if (mouse_dev->wheel_phone >= 0) {
+		async_obsolete_hangup(mouse_dev->wheel_phone);
 	}
-	
-	free(*mouse_dev);
-	*mouse_dev = NULL;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -436,7 +433,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
 	if (rc != EOK) {
-		usb_mouse_free(&mouse_dev);
+		usb_mouse_destroy(mouse_dev);
 		return rc;
 	}
 	
@@ -463,7 +460,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data != NULL) {
-		usb_mouse_free((usb_mouse_t **)&data);
+		usb_mouse_destroy((usb_mouse_t *)data);
 	}
 }
 

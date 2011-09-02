@@ -62,9 +62,13 @@ virtual_function_t virtual_functions[] = {
 };
 
 static int rootvirt_add_device(ddf_dev_t *dev);
+static int rootvirt_fun_online(ddf_fun_t *fun);
+static int rootvirt_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t rootvirt_ops = {
-	.add_device = &rootvirt_add_device
+	.add_device = &rootvirt_add_device,
+	.fun_online = &rootvirt_fun_online,
+	.fun_offline = &rootvirt_fun_offline
 };
 
 static driver_t rootvirt_driver = {
@@ -137,6 +141,18 @@ static int rootvirt_add_device(ddf_dev_t *dev)
 	}
 
 	return EOK;
+}
+
+static int rootvirt_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "rootvirt_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int rootvirt_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "rootvirt_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

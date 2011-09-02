@@ -144,17 +144,6 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	ddf_fun_t *fun = NULL;
 	usbmast_fun_t *mfun = NULL;
 
-	/* Allocate softstate */
-	mfun = calloc(1, sizeof(usbmast_fun_t));
-	if (mfun == NULL) {
-		usb_log_error("Failed allocating softstate.\n");
-		rc = ENOMEM;
-		goto error;
-	}
-
-	mfun->mdev = mdev;
-	mfun->lun = lun;
-
 	if (asprintf(&fun_name, "l%u", lun) < 0) {
 		usb_log_error("Out of memory.\n");
 		rc = ENOMEM;
@@ -169,6 +158,18 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	}
 
 	free(fun_name);
+
+	/* Allocate soft state */
+	mfun = ddf_dev_data_alloc(mdev->ddf_dev, sizeof(usbmast_fun_t));
+	if (mfun == NULL) {
+		usb_log_error("Failed allocating softstate.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	mfun->mdev = mdev;
+	mfun->lun = lun;
+
 	fun_name = NULL;
 
 	/* Set up a connection handler. */
@@ -226,8 +227,6 @@ error:
 		ddf_fun_destroy(fun);
 	if (fun_name != NULL)
 		free(fun_name);
-	if (mfun != NULL)
-		free(mfun);
 	return rc;
 }
 

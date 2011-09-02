@@ -191,7 +191,6 @@ if (ret != EOK) { \
 		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
-	free(instance); \
 	device->driver_data = NULL; \
 	usb_log_error(message); \
 	return ret; \
