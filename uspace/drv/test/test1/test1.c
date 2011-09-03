@@ -204,7 +204,7 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 
 	rc = ddf_fun_unbind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed offlining function '%s'.", name);
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
 		return rc;
 	}
 
