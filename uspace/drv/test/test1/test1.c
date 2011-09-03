@@ -195,7 +195,7 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 {
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')\n", fun, name);
+	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')", fun, name);
 	rc = ddf_fun_offline(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", name);
