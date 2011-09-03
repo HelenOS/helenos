@@ -319,10 +319,13 @@ static int offline_function(fun_node_t *fun)
 			dev_add_ref(dev);
 			fibril_rwlock_write_unlock(&device_tree.rwlock);
 			
-			rc = driver_dev_remove(&device_tree, dev);
-			if (rc != EOK) {
-				dev_del_ref(dev);
-				return ENOTSUP;
+			/* If device is owned by driver, ask driver to give it up. */
+			if (dev->state == DEVICE_USABLE) {
+				rc = driver_dev_remove(&device_tree, dev);
+				if (rc != EOK) {
+					dev_del_ref(dev);
+					return ENOTSUP;
+				}
 			}
 			
 			/* Verify that driver removed all functions */
@@ -331,9 +334,11 @@ static int offline_function(fun_node_t *fun)
 				fibril_rwlock_read_unlock(&device_tree.rwlock);
 				return EIO;
 			}
+			driver_t *driver = dev->drv;
 			fibril_rwlock_read_unlock(&device_tree.rwlock);
 			
-			detach_driver(&device_tree, dev);
+			if (driver)
+				detach_driver(&device_tree, dev);
 			
 			fibril_rwlock_write_lock(&device_tree.rwlock);
 			remove_dev_node(&device_tree, dev);

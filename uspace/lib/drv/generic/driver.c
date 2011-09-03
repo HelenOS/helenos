@@ -312,7 +312,8 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fibril_mutex_lock(&devices_mutex);
 	dev = driver_get_device(devh);
-	dev_add_ref(dev);
+	if (dev != NULL)
+		dev_add_ref(dev);
 	fibril_mutex_unlock(&devices_mutex);
 	
 	if (dev == NULL) {

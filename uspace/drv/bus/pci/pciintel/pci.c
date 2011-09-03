@@ -202,10 +202,14 @@ static ddf_dev_ops_t pci_fun_ops = {
 };
 
 static int pci_add_device(ddf_dev_t *);
+static int pci_fun_online(ddf_fun_t *);
+static int pci_fun_offline(ddf_fun_t *);
 
 /** PCI bus driver standard operations */
 static driver_ops_t pci_ops = {
-	.add_device = &pci_add_device
+	.add_device = &pci_add_device,
+	.fun_online = &pci_fun_online,
+	.fun_offline = &pci_fun_offline,
 };
 
 /** PCI bus driver structure */
@@ -648,6 +652,18 @@ fail:
 		ddf_fun_destroy(ctl);
 	
 	return rc;
+}
+
+static int pci_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "pci_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int pci_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "pci_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 static void pciintel_init(void)
