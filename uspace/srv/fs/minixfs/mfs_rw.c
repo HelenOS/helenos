@@ -295,7 +295,7 @@ reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 	block_t *b;
 	int r;
 
-	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NOREAD);
+	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NOREAD);
 	on_error(r, return r);
 
 	memset(b->data, 0, b->size);
@@ -330,7 +330,7 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 	if (*ind_zone == NULL)
 		return ENOMEM;
 
-	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NONE);
+	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NONE);
 	if (r != EOK) {
 		free(*ind_zone);
 		return r;
@@ -359,7 +359,7 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 	unsigned i;
 	block_t *b;
 
-	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NONE);
+	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NONE);
 	on_error(r, return r);
 
 	if (sbi->fs_version == MFS_VERSION_V1) {

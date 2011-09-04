@@ -57,17 +57,9 @@
 #define mfsdebug(...)
 #endif
 
-#ifdef _MAIN
-#define GLOBAL
-#else
-#define GLOBAL extern
-#endif
-
 #define on_error(r, inst) do {	\
 				if (r != EOK) inst;	\
 			}while(0)
-
-GLOBAL fs_reg_t mfs_reg;
 
 typedef uint32_t bitchunk_t;
 
@@ -143,7 +135,7 @@ struct mfs_dentry_info {
 
 struct mfs_instance {
 	link_t link;
-	devmap_handle_t handle;
+	service_id_t service_id;
 	struct mfs_sb_info *sbi;
 	unsigned open_nodes_cnt;
 };
@@ -158,36 +150,8 @@ struct mfs_node {
 };
 
 /*mfs_ops.c*/
-extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
-extern void mfs_mount(ipc_callid_t rid, ipc_call_t *request);
-extern void mfs_lookup(ipc_callid_t rid, ipc_call_t *request);
-extern int mfs_instance_get(devmap_handle_t handle,
-			    struct mfs_instance **instance);
-
-extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
-extern void mfs_close(ipc_callid_t rid, ipc_call_t *request);
-extern void mfs_open_node(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_read(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_write(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_truncate(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_destroy(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_unmounted(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_unmount(ipc_callid_t rid, ipc_call_t *request);
-
-extern void
-mfs_sync(ipc_callid_t rid, ipc_call_t *request);
+extern vfs_out_ops_t mfs_ops;
+extern libfs_ops_t mfs_libfs_ops;
 
 extern int
 mfs_global_init(void);

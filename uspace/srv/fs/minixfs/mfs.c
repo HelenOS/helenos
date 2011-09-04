@@ -37,8 +37,6 @@
  * @brief	Minix file system driver for HelenOS.
  */
 
-#define _MAIN
-
 #include <ipc/services.h>
 #include <ns.h>
 #include <async.h>
@@ -54,93 +52,6 @@ vfs_info_t mfs_vfs_info = {
 	.concurrent_read_write = false,
 	.write_retains_size = false,
 };
-
-
-/**
- * This connection fibril processes VFS requests from VFS.
- *
- * In order to support simultaneous VFS requests, our design is as follows.
- * The connection fibril accepts VFS requests from VFS. If there is only one
- * instance of the fibril, VFS will need to serialize all VFS requests it sends
- * to MinixFS. To overcome this bottleneck, VFS can send MinixFS the IPC_M_CONNECT_ME_TO
- * call. In that case, a new connection fibril will be created, which in turn
- * will accept the call. Thus, a new phone will be opened for VFS.
- *
- * There are few issues with this arrangement. First, VFS can run out of
- * available phones. In that case, VFS can close some other phones or use one
- * phone for more serialized requests. Similarily, MinixFS can refuse to duplicate
- * the connection. VFS should then just make use of already existing phones and
- * route its requests through them. To avoid paying the fibril creation price
- * upon each request, MinixFS might want to keep the connections open after the
- * request has been completed.
- */
-
-static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	if (iid) {
-		/*
-		 * This only happens for connections opened by
-		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
-		 * created by IPC_M_CONNECT_TO_ME.
-		 */
-		async_answer_0(iid, EOK);
-	}
-
-	while (1) {
-		ipc_callid_t callid;
-		ipc_call_t call;
-
-		callid = async_get_call(&call);
-		int method = IPC_GET_IMETHOD(call);
-
-		/*mfsdebug(NAME "method = %d\n", method);*/
-		switch  (method) {
-		case VFS_OUT_MOUNTED:
-			mfs_mounted(callid, &call);
-			break;
-		case VFS_OUT_MOUNT:
-			mfs_mount(callid, &call);
-			break;
-		case VFS_OUT_STAT:
-			mfs_stat(callid, &call);
-			break;
-		case VFS_OUT_LOOKUP:
-			mfs_lookup(callid, &call);
-			break;
-		case VFS_OUT_READ:
-			mfs_read(callid, &call);
-			break;
-		case VFS_OUT_OPEN_NODE:
-			mfs_open_node(callid, &call);
-			break;
-		case VFS_OUT_CLOSE:
-			mfs_close(callid, &call);
-			break;
-		case VFS_OUT_WRITE:
-			mfs_write(callid, &call);
-			break;
-		case VFS_OUT_TRUNCATE:
-			mfs_truncate(callid, &call);
-			break;
-		case VFS_OUT_DESTROY:
-			mfs_destroy(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNTED:
-			mfs_unmounted(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNT:
-			mfs_unmount(callid, &call);
-			break;
-		case VFS_OUT_SYNC:
-			mfs_sync(callid, &call);
-			break;
-		default:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-	}
-}
-
 
 int main(int argc, char **argv)
 {
@@ -162,7 +73,7 @@ int main(int argc, char **argv)
 		goto err;
 	}
 
-	rc = fs_register(vfs_sess, &mfs_reg, &mfs_vfs_info, mfs_connection);
+	rc = fs_register(vfs_sess, &mfs_vfs_info, &mfs_ops, &mfs_libfs_ops);
 	if (rc != EOK)
 		goto err;
 

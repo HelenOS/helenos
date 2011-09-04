@@ -96,7 +96,7 @@ static int	insert_dentries(const struct mfs_sb_info *sb);
 
 static inline int write_block(aoff64_t off, size_t size, const void *data);
 
-static devmap_handle_t handle;
+static service_id_t service_id;
 static int shift;
 
 static struct option const long_options[] = {
@@ -200,25 +200,25 @@ int main (int argc, char **argv)
 		exit(0);
 	}
 
-	rc = devmap_device_get_handle(device_name, &handle, 0);
+	rc = loc_service_get_id(device_name, &service_id, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", device_name);
 		return 2;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
 	}
 
-	rc = block_get_bsize(handle, &devblock_size);
+	rc = block_get_bsize(service_id, &devblock_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(handle, &sb.dev_nblocks);
+	rc = block_get_nblocks(service_id, &sb.dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
@@ -270,6 +270,8 @@ int main (int argc, char **argv)
 		printf(NAME ": Error. Root directory initialization failed\n");
 		return 2;
 	}
+
+	block_fini(service_id);
 
 	return 0;
 }
@@ -599,7 +601,7 @@ static int write_superblock3(const struct mfs_sb_info *sbi)
 	sb->s_block_size = sbi->block_size;
 	sb->s_disk_version = 3;
 
-	rc = block_write_direct(handle, MFS_SUPERBLOCK << 1, 1 << 1, sb); 
+	rc = block_write_direct(service_id, MFS_SUPERBLOCK << 1, 1 << 1, sb);
 	free(sb);
 
 	return rc;
@@ -689,7 +691,7 @@ static inline int write_block(aoff64_t off, size_t size, const void *data)
 		aoff64_t tmp_off = off << 1;
 		uint8_t *data_ptr = (uint8_t *) data;
 
-		rc = block_write_direct(handle, tmp_off << 2, size << 2, data_ptr);
+		rc = block_write_direct(service_id, tmp_off << 2, size << 2, data_ptr);
 
 		if (rc != EOK)
 			return rc;
@@ -697,9 +699,9 @@ static inline int write_block(aoff64_t off, size_t size, const void *data)
 		data_ptr += 2048;
 		tmp_off++;
 
-		return block_write_direct(handle, tmp_off << 2, size << 2, data_ptr);
+		return block_write_direct(service_id, tmp_off << 2, size << 2, data_ptr);
 	}
-	return block_write_direct(handle, off << shift, size << shift, data);	
+	return block_write_direct(service_id, off << shift, size << shift, data);
 }
 
 static void help_cmd_mkminix(help_level_t level)

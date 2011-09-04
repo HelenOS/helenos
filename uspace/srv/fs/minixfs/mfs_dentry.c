@@ -60,7 +60,7 @@ read_dentry(struct mfs_node *mnode,
 		goto out_err;
 	}
 
-	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
+	r = block_get(&b, inst->service_id, block, BLOCK_FLAGS_NONE);
 	on_error(r, goto out_err);
 
 	unsigned dentries_per_zone = sbi->block_size / sbi->dirsize;
@@ -114,7 +114,7 @@ write_dentry(struct mfs_dentry_info *d_info)
 	r = read_map(&block, mnode, d_off_bytes);
 	on_error(r, goto out);
 
-	r = block_get(&b, mnode->instance->handle, block, BLOCK_FLAGS_NONE);
+	r = block_get(&b, mnode->instance->service_id, block, BLOCK_FLAGS_NONE);
 	on_error(r, goto out);
 
 	const size_t name_len = sbi->max_name_len;

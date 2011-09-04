@@ -149,7 +149,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	/*Compute the bitmap block*/
 	uint32_t block = idx / (sbi->block_size * 8) + start_block;
 
-	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
+	r = block_get(&b, inst->service_id, block, BLOCK_FLAGS_NONE);
 	on_error(r, goto out_err);
 
 	/*Compute the bit index in the block*/
@@ -215,7 +215,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 retry:
 
 	for (i = *search / bits_per_block; i < nblocks; ++i) {
-		r = block_get(&b, inst->handle, i + start_block,
+		r = block_get(&b, inst->service_id, i + start_block,
 			      BLOCK_FLAGS_NONE);
 
 		on_error(r, goto out);

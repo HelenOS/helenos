@@ -37,7 +37,7 @@
 #include "mfs.h"
 
 #define OPEN_NODES_KEYS 2
-#define OPEN_NODES_DEV_HANDLE_KEY 0
+#define OPEN_NODES_SERVICE_KEY 0
 #define OPEN_NODES_INODE_KEY 1
 #define OPEN_NODES_BUCKETS 256
 
@@ -50,15 +50,14 @@ static int mfs_node_put(fs_node_t *fsnode);
 static int mfs_node_open(fs_node_t *fsnode);
 static fs_index_t mfs_index_get(fs_node_t *fsnode);
 static unsigned mfs_lnkcnt_get(fs_node_t *fsnode);
-static char mfs_plb_get_char(unsigned pos);
 static bool mfs_is_directory(fs_node_t *fsnode);
 static bool mfs_is_file(fs_node_t *fsnode);
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode);
-static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle);
-static devmap_handle_t mfs_device_get(fs_node_t *fsnode);
+static int mfs_root_get(fs_node_t **rfn, service_id_t service_id);
+static service_id_t mfs_device_get(fs_node_t *fsnode);
 static aoff64_t mfs_size_get(fs_node_t *node);
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
-static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
+static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
 static int mfs_destroy_node(fs_node_t *fn);
@@ -67,8 +66,10 @@ static int open_nodes_compare(unsigned long key[], hash_count_t keys,
 		link_t *item);
 static void open_nodes_remove_cb(link_t *link);
 
-static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
+static int mfs_node_get(fs_node_t **rfn, service_id_t service_id,
 			fs_index_t index);
+static int
+mfs_instance_get(service_id_t service_id, struct mfs_instance **instance);
 
 
 static LIST_INITIALIZE(inst_list);
@@ -91,7 +92,6 @@ libfs_ops_t mfs_libfs_ops = {
 	.link = mfs_link,
 	.unlink = mfs_unlink,
 	.destroy = mfs_destroy_node,
-	.plb_get_char = mfs_plb_get_char,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
 };
@@ -108,8 +108,8 @@ static int open_nodes_compare(unsigned long key[], hash_count_t keys,
 {
 	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
 	assert(keys > 0);
-	if (mnode->instance->handle !=
-	    ((devmap_handle_t) key[OPEN_NODES_DEV_HANDLE_KEY])) {
+	if (mnode->instance->service_id !=
+	    ((service_id_t) key[OPEN_NODES_SERVICE_KEY])) {
 		return false;
 	}
 	if (keys == 1) {
@@ -139,9 +139,10 @@ int mfs_global_init(void)
 	return EOK;
 }
 
-void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
+		aoff64_t *size, unsigned *linkcnt)
 {
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;
 	struct mfs_superblock *sb;
 	struct mfs3_superblock *sb3;
@@ -150,16 +151,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	bool native, longnames;
 	mfs_version_t version;
 	uint16_t magic;
-
-	/* Accept the mount options */
-	char *opts;
-	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
-
-	if (rc != EOK) {
-		mfsdebug("Can't accept async data write\n");
-		async_answer_0(rid, rc);
-		return;
-	}
+	int rc;
 
 	/* Check for option enabling write through. */
 	if (str_cmp(opts, "wtcache") == 0)
@@ -167,47 +159,38 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	else
 		cmode = CACHE_MODE_WB;
 
-	free(opts);
-
 	/* initialize libblock */
-	rc = block_init(EXCHANGE_SERIALIZE, devmap_handle, 1024);
-	if (rc != EOK) {
-		mfsdebug("libblock initialization failed\n");
-		async_answer_0(rid, rc);
-		return;
-	}
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
+	if (rc != EOK)
+		return rc;
 
 	/*Allocate space for generic MFS superblock*/
 	sbi = malloc(sizeof(*sbi));
-
 	if (!sbi) {
-		async_answer_0(rid, ENOMEM);
-		return;
+		block_fini(service_id);
+		return ENOMEM;
 	}
 
 	/*Allocate space for filesystem instance*/
 	instance = malloc(sizeof(*instance));
-
 	if (!instance) {
-		async_answer_0(rid, ENOMEM);
-		return;
+		block_fini(service_id);
+		return ENOMEM;
 	}
 
 	instance->open_nodes_cnt = 0;
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
-
 	if (!sb) {
-		async_answer_0(rid, ENOMEM);
-		return;
+		block_fini(service_id);
+		return ENOMEM;
 	}
 
 	/* Read the superblock */
-	rc = block_read_direct(devmap_handle, MFS_SUPERBLOCK << 1, 1, sb);
+	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 1, sb);
 	if (rc != EOK) {
-		block_fini(devmap_handle);
-		async_answer_0(rid, rc);
-		return;
+		block_fini(service_id);
+		return rc;
 	}
 
 	sb3 = (struct mfs3_superblock *) sb;
@@ -220,9 +203,8 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	if (!check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
 		mfsdebug("magic number not recognized\n");
-		block_fini(devmap_handle);
-		async_answer_0(rid, ENOTSUP);
-		return;
+		block_fini(service_id);
+		return ENOTSUP;
 	}
 
 	/*This is a V3 Minix filesystem*/
@@ -277,18 +259,19 @@ recognized:
 
 	free(sb);
 
-	rc = block_cache_init(devmap_handle, sbi->block_size, 0, cmode);
-
+	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
-		block_fini(devmap_handle);
-		async_answer_0(rid, EINVAL);
+		free(sbi);
+		free(instance);
+		block_cache_fini(service_id);
+		block_fini(service_id);
 		mfsdebug("block cache initialization failed\n");
-		return;
+		return EINVAL;
 	}
 
 	/*Initialize the instance structure and add it to the list*/
 	link_initialize(&instance->link);
-	instance->handle = devmap_handle;
+	instance->service_id = service_id;
 	instance->sbi = sbi;
 
 	fibril_mutex_lock(&inst_list_mutex);
@@ -298,46 +281,31 @@ recognized:
 	mfsdebug("mount successful\n");
 
 	fs_node_t *fn;
-	mfs_node_get(&fn, devmap_handle, MFS_ROOT_INO);
+	mfs_node_get(&fn, service_id, MFS_ROOT_INO);
 
-	struct mfs_node *nroot = fn->data;
+	struct mfs_node *mroot = fn->data;
 
-	async_answer_3(rid, EOK,
-			MFS_ROOT_INO,
-			0,
-			nroot->ino_i->i_nlinks);
+	*index = mroot->ino_i->index;
+	*size = mroot->ino_i->i_size;
+	*linkcnt = mroot->ino_i->i_nlinks;
 
-	mfs_node_put(fn);
+	return mfs_node_put(fn);
 }
 
-void mfs_mount(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_unmounted(service_id_t service_id)
 {
-	libfs_mount(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
-}
-
-void mfs_unmount(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_unmount(&mfs_libfs_ops, rid, request);
-}
-
-void mfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
-{
-	devmap_handle_t devmap = (devmap_handle_t) IPC_GET_ARG1(*request);
 	struct mfs_instance *inst;
 
-	int r = mfs_instance_get(devmap, &inst);
-	if (r != EOK) {
-		async_answer_0(rid, r);
-		return;
-	}
+	int r = mfs_instance_get(service_id, &inst);
+	if (r != EOK)
+		return r;
 
-	if (inst->open_nodes_cnt != 0) {
-		async_answer_0(rid, EBUSY);
-		return;
-	}
+	if (inst->open_nodes_cnt != 0)
+		return EBUSY;
 
-	(void) block_cache_fini(devmap);
-	block_fini(devmap);
+	(void) block_cache_fini(service_id);
+	block_fini(service_id);
 
 	/* Remove the instance from the list */
 	fibril_mutex_lock(&inst_list_mutex);
@@ -346,17 +314,16 @@ void mfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 
 	free(inst->sbi);
 	free(inst);
-
-	async_answer_0(rid, EOK);
+	return EOK;
 }
 
-devmap_handle_t mfs_device_get(fs_node_t *fsnode)
+service_id_t mfs_device_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
-	return node->instance->handle;
+	return node->instance->service_id;
 }
 
-static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
+static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	int r;
 	struct mfs_instance *inst;
@@ -366,7 +333,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 
 	mfsdebug("%s()\n", __FUNCTION__);
 
-	r = mfs_instance_get(handle, &inst);
+	r = mfs_instance_get(service_id, &inst);
 	on_error(r, return r);
 
 	/*Alloc a new inode*/
@@ -420,7 +387,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	link_initialize(&mnode->link);
 
 	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = inst->handle,
+		[OPEN_NODES_SERVICE_KEY] = inst->service_id,
 		[OPEN_NODES_INODE_KEY] = inum,
 	};
 
@@ -497,12 +464,8 @@ static aoff64_t mfs_size_get(fs_node_t *node)
 	return mnode->ino_i->i_size;
 }
 
-void mfs_stat(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_stat(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
-}
-
-static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
+static int
+mfs_node_get(fs_node_t **rfn, service_id_t service_id,
 			fs_index_t index)
 {
 	int rc;
@@ -510,13 +473,14 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 
 	mfsdebug("%s()\n", __FUNCTION__);
 
-	rc = mfs_instance_get(devmap_handle, &instance);
+	rc = mfs_instance_get(service_id, &instance);
 	on_error(rc, return rc);
 
 	return mfs_node_core_get(rfn, instance, index);
 }
 
-static int mfs_node_put(fs_node_t *fsnode)
+static int
+mfs_node_put(fs_node_t *fsnode)
 {
 	int rc = EOK;
 	struct mfs_node *mnode = fsnode->data;
@@ -529,7 +493,7 @@ static int mfs_node_put(fs_node_t *fsnode)
 	mnode->refcnt--;
 	if (mnode->refcnt == 0) {
 		unsigned long key[] = {
-			[OPEN_NODES_DEV_HANDLE_KEY] = mnode->instance->handle,
+			[OPEN_NODES_SERVICE_KEY] = mnode->instance->service_id,
 			[OPEN_NODES_INODE_KEY] = mnode->ino_i->index
 		};
 		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
@@ -587,7 +551,7 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 
 	/* Check if the node is not already open */
 	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = inst->handle,
+		[OPEN_NODES_SERVICE_KEY] = inst->service_id,
 		[OPEN_NODES_INODE_KEY] = index,
 	};
 	link_t *already_open = hash_table_find(&open_nodes, key);
@@ -658,20 +622,10 @@ static bool mfs_is_file(fs_node_t *fsnode)
 	return S_ISREG(node->ino_i->i_mode);
 }
 
-static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
+static int mfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	int rc = mfs_node_get(rfn, handle, MFS_ROOT_INO);
+	int rc = mfs_node_get(rfn, service_id, MFS_ROOT_INO);
 	return rc;
-}
-
-void mfs_lookup(ipc_callid_t rid, ipc_call_t *request)
-{
-	libfs_lookup(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
-}
-
-static char mfs_plb_get_char(unsigned pos)
-{
-	return mfs_reg.plb_ro[pos % PLB_SIZE];
 }
 
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
@@ -771,25 +725,18 @@ out:
 	return EOK;
 }
 
-void
-mfs_read(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
+		size_t *rbytes)
 {
 	int rc;
-	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
-					       IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 
-	rc = mfs_node_get(&fn, handle, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	rc = mfs_node_get(&fn, service_id, index);
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 
 	struct mfs_node *mnode;
 	struct mfs_ino_info *ino_i;
@@ -826,8 +773,7 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 		rc = mfs_node_put(fn);
 		async_answer_0(callid, rc != EOK ? rc : ENOENT);
-		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
-		return;
+		return rc;
 found:
 		async_data_read_finalize(callid, d_info.d_name,
 					 str_size(d_info.d_name) + 1);
@@ -865,7 +811,7 @@ found:
 			goto out_success;
 		}
 
-		rc = block_get(&b, handle, zone, BLOCK_FLAGS_NONE);
+		rc = block_get(&b, service_id, zone, BLOCK_FLAGS_NONE);
 		on_error(rc, goto out_error);
 
 		async_data_read_finalize(callid, b->data +
@@ -874,43 +820,33 @@ found:
 		rc = block_put(b);
 		if (rc != EOK) {
 			mfs_node_put(fn);
-			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 	}
 out_success:
 	rc = mfs_node_put(fn);
-	async_answer_1(rid, rc, (sysarg_t)bytes);
-	return;
+	*rbytes = bytes;
+	return rc;
 out_error:
 	;
 	int tmp = mfs_node_put(fn);
 	async_answer_0(callid, tmp != EOK ? tmp : rc);
-	async_answer_0(rid, tmp != EOK ? tmp : rc);
+	return tmp != EOK ? tmp : rc;
 }
 
-void
-mfs_write(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
+		size_t *wbytes, aoff64_t *nsize)
 {
-	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
-					       IPC_GET_ARG4(*request));
-
 	fs_node_t *fn;
 	int r;
 	int flags = BLOCK_FLAGS_NONE;
 
-	r = mfs_node_get(&fn, handle, index);
-	if (r != EOK) {
-		async_answer_0(rid, r);
-		return;
-	}
-
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	r = mfs_node_get(&fn, service_id, index);
+	if (r != EOK)
+		return r;
+	if (!fn)
+		return ENOENT;
 
 	ipc_callid_t callid;
 	size_t len;
@@ -952,7 +888,7 @@ mfs_write(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	block_t *b;
-	r = block_get(&b, handle, block, flags);
+	r = block_get(&b, service_id, block, flags);
 	on_error(r, goto out_err);
 
 	async_data_write_finalize(callid, b->data + pos % bs, bytes);
@@ -961,43 +897,37 @@ mfs_write(ipc_callid_t rid, ipc_call_t *request)
 	r = block_put(b);
 	if (r != EOK) {
 		mfs_node_put(fn);
-		async_answer_0(rid, r);
-		return;
+		return r;
 	}
 
 	ino_i->i_size = pos + bytes;
 	ino_i->dirty = true;
 	r = mfs_node_put(fn);
-	async_answer_2(rid, r, bytes, pos + bytes);
-	return;
+	*nsize = pos + bytes;
+	*wbytes = bytes;
+	return r;
 
 out_err:
 	mfs_node_put(fn);
 	async_answer_0(callid, r);
-	async_answer_0(rid, r);
+	return r;
 }
 
-void
-mfs_destroy(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_destroy(service_id_t service_id, fs_index_t index)
 {
-	devmap_handle_t handle = (devmap_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	fs_node_t *fn;
 	int r;
 
-	r = mfs_node_get(&fn, handle, index);
-	if (r != EOK) {
-		async_answer_0(rid, r);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	r = mfs_node_get(&fn, service_id, index);
+	if (r != EOK)
+		return r;
+	if (!fn)
+		return ENOENT;
 
 	/*Destroy the inode*/
 	r = mfs_destroy_node(fn);
-	async_answer_0(rid, r);
+	return r;
 }
 
 static int
@@ -1030,26 +960,17 @@ out:
 	return r;
 }
 
-void
-mfs_truncate(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
-	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t size = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
-						IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	int r;
 
-	r = mfs_node_get(&fn, handle, index);
-	if (r != EOK) {
-		async_answer_0(rid, r);
-		return;
-	}
-
-	if (!fn) {
-		async_answer_0(rid, r);
-		return;
-	}
+	r = mfs_node_get(&fn, service_id, index);
+	if (r != EOK)
+		return r;
+	if (!fn)
+		return r;
 
 	struct mfs_node *mnode = fn->data;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
@@ -1059,22 +980,27 @@ mfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	else
 		r = inode_shrink(mnode, ino_i->i_size - size);
 
-	async_answer_0(rid, r);
 	mfs_node_put(fn);
+	return r;
 }
 
-int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
+static int
+mfs_instance_get(service_id_t service_id, struct mfs_instance **instance)
 {
-	link_t *link;
 	struct mfs_instance *instance_ptr;
 
 	fibril_mutex_lock(&inst_list_mutex);
 
-	for (link = inst_list.next; link != &inst_list; link = link->next) {
+	if (list_empty(&inst_list)) {
+		fibril_mutex_unlock(&inst_list_mutex);
+		return EINVAL;
+	}
+
+	list_foreach(inst_list, link) {
 		instance_ptr = list_get_instance(link, struct mfs_instance,
 						 link);
 
-		if (instance_ptr->handle == handle) {
+		if (instance_ptr->service_id == service_id) {
 			*instance = instance_ptr;
 			fibril_mutex_unlock(&inst_list_mutex);
 			return EOK;
@@ -1116,41 +1042,38 @@ static bool check_magic_number(uint16_t magic, bool *native,
 	return rc;
 }
 
-void
-mfs_close(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_close(service_id_t service_id, fs_index_t index)
 {
-	async_answer_0(rid, EOK);
+	return 0;
 }
 
-void
-mfs_open_node(ipc_callid_t rid, ipc_call_t *request)
+static int
+mfs_sync(service_id_t service_id, fs_index_t index)
 {
-	libfs_open_node(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
-}
-
-void
-mfs_sync(ipc_callid_t rid, ipc_call_t *request)
-{
-	devmap_handle_t devmap = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-
 	fs_node_t *fn;
-	int rc = mfs_node_get(&fn, devmap, index);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	if (!fn) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	int rc = mfs_node_get(&fn, service_id, index);
+	if (rc != EOK)
+		return rc;
+	if (!fn)
+		return ENOENT;
 
 	struct mfs_node *mnode = fn->data;
 	mnode->ino_i->dirty = true;
 
-	rc = mfs_node_put(fn);
-	async_answer_0(rid, rc);
+	return mfs_node_put(fn);
 }
+
+vfs_out_ops_t mfs_ops = {
+	.mounted = mfs_mounted,
+	.unmounted = mfs_unmounted,
+	.read = mfs_read,
+	.write = mfs_write,
+	.truncate = mfs_truncate,
+	.close = mfs_close,
+	.destroy = mfs_destroy,
+	.sync = mfs_sync,
+};
 
 /**
  * @}

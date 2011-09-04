@@ -92,7 +92,7 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 
 	const int itable_off = sbi->itable_off;
 
-	r = block_get(&b, instance->handle,
+	r = block_get(&b, instance->service_id,
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
 	on_error(r, goto out_err);
@@ -148,7 +148,7 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 	const int itable_off = sbi->itable_off;
 	const int ino_off = inum % sbi->ino_per_block;
 
-	r = block_get(&b, instance->handle,
+	r = block_get(&b, instance->service_id,
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
 	on_error(r, goto out_err);
@@ -220,7 +220,7 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 	const int ino_off = inum % sbi->ino_per_block;
 	const bool native = sbi->native;
 
-	r = block_get(&b, mnode->instance->handle,
+	r = block_get(&b, mnode->instance->service_id,
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
 
@@ -262,7 +262,7 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	const int ino_off = inum % sbi->ino_per_block;
 	const bool native = sbi->native;
 
-	r = block_get(&b, mnode->instance->handle,
+	r = block_get(&b, mnode->instance->service_id,
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
 
