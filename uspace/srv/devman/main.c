@@ -506,8 +506,9 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 {
 	fun_node_t *fun;
 	int rc;
-
-	printf("devman_drv_fun_online()\n");
+	
+	log_msg(LVL_DEBUG, "devman_drv_fun_online()");
+	
 	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
@@ -525,14 +526,12 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 	
 	rc = online_function(fun);
 	if (rc != EOK) {
-		printf("devman_drv_fun_online() online_fun->ERROR\n");
 		fun_del_ref(fun);
 		async_answer_0(iid, (sysarg_t) rc);
 		return;
 	}
 	
 	fun_del_ref(fun);
-	printf("devman_drv_fun_online() online_fun->OK\n");
 	
 	async_answer_0(iid, (sysarg_t) EOK);
 }

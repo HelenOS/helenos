@@ -1276,11 +1276,18 @@ static bool loc_init(void)
 	cat = category_new("serial");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("test3");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("usbhc");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("virt-null");
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("virtual");
 	categ_dir_add_cat(&cdir, cat);
+
 
 	return true;
 }
