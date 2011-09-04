@@ -134,7 +134,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			if (write_mode) {
 				uint32_t zone;
 				r = alloc_zone_and_clear(inst, &zone);
-				on_error(r, return r);
+				if (r != EOK)
+					return r;
 
 				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
@@ -146,7 +147,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		}
 
 		r = read_ind_zone(inst, ino_i->i_izone[0], &ind_zone);
-		on_error(r, return r);
+		if (r != EOK)
+			return r;
 
 		*b = ind_zone[rblock];
 		if (write_mode) {
@@ -166,7 +168,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		if (write_mode) {
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
-			on_error(r, return r);
+			if (r != EOK)
+				return r;
 
 			ino_i->i_izone[1] = zone;
 			ino_i->dirty = true;
@@ -178,7 +181,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	}
 
 	r = read_ind_zone(inst, ino_i->i_izone[1], &ind_zone);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	/*
 	 *Compute the position of the second indirect
@@ -191,7 +195,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		if (write_mode) {
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
-			on_error(r, goto out_free_ind1);
+			if (r != EOK)
+				goto out_free_ind1;
 
 			ind_zone[ind2_off] = zone;
 			write_ind_zone(inst, ino_i->i_izone[1], ind_zone);
@@ -204,7 +209,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	}
 
 	r = read_ind_zone(inst, ind_zone[ind2_off], &ind2_zone);
-	on_error(r, goto out_free_ind1);
+	if (r != EOK)
+		goto out_free_ind1;
 
 	*b = ind2_zone[ind2_off % ptrs_per_block];
 	if (write_mode) {
@@ -246,7 +252,8 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 		/*free the single indirect zone*/
 		if (ino_i->i_izone[0]) {
 			r = mfs_free_zone(inst, ino_i->i_izone[0]);
-			on_error(r, return r);
+			if (r != EOK)
+				return r;
 
 			ino_i->i_izone[0] = 0;
 			ino_i->dirty = true;
@@ -269,14 +276,16 @@ prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	}
 
 	r = read_ind_zone(inst, ino_i->i_izone[1], &dbl_zone);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	for (i = fzone_to_free; i < ptrs_per_block; ++i) {
 		if (dbl_zone[i] == 0)
 			continue;
 
 		r = mfs_free_zone(inst, dbl_zone[i]);
-		on_error(r, goto out);
+		if (r != EOK)
+			goto out;
 	}
 
 	if (fzone_to_free == 0) {
@@ -296,7 +305,8 @@ reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 	int r;
 
 	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NOREAD);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	memset(b->data, 0, b->size);
 	b->dirty = true;
@@ -310,7 +320,8 @@ alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone)
 	int r;
 
 	r = mfs_alloc_zone(inst, zone);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	r = reset_zone_content(inst, *zone);
 	return r;
@@ -360,7 +371,8 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 	block_t *b;
 
 	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NONE);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	if (sbi->fs_version == MFS_VERSION_V1) {
 		uint16_t *dest_ptr = b->data;

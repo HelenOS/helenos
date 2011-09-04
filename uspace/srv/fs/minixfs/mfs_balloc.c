@@ -150,7 +150,8 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	uint32_t block = idx / (sbi->block_size * 8) + start_block;
 
 	r = block_get(&b, inst->service_id, block, BLOCK_FLAGS_NONE);
-	on_error(r, goto out_err);
+	if (r != EOK)
+		goto out_err;
 
 	/*Compute the bit index in the block*/
 	idx %= (sbi->block_size * 8);
@@ -218,7 +219,8 @@ retry:
 		r = block_get(&b, inst->service_id, i + start_block,
 			      BLOCK_FLAGS_NONE);
 
-		on_error(r, goto out);
+		if (r != EOK)
+			goto out;
 
 		unsigned tmp = *search % bits_per_block;
 
@@ -227,7 +229,8 @@ retry:
 		if (freebit == -1) {
 			/*No free bit in this block*/
 			r = block_put(b);
-			on_error(r, goto out);
+			if (r != EOK)
+				goto out;
 			continue;
 		}
 
@@ -236,7 +239,8 @@ retry:
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
 			r = block_put(b);
-			on_error(r, goto out);
+			if (r != EOK)
+				goto out;
 			break;
 		}
 

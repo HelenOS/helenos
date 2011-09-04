@@ -57,10 +57,6 @@
 #define mfsdebug(...)
 #endif
 
-#define on_error(r, inst) do {	\
-				if (r != EOK) inst;	\
-			}while(0)
-
 typedef uint32_t bitchunk_t;
 
 typedef enum {

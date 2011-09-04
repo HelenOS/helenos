@@ -334,11 +334,13 @@ static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	mfsdebug("%s()\n", __FUNCTION__);
 
 	r = mfs_instance_get(service_id, &inst);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	/*Alloc a new inode*/
 	r = mfs_alloc_inode(inst, &inum);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	struct mfs_ino_info *ino_i;
 
@@ -431,7 +433,8 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = read_dentry(mnode, &d_info, i);
-		on_error(r, return r);
+		if (r != EOK)
+			return r;
 
 		if (!d_info.d_inum) {
 			/*This entry is not used*/
@@ -474,7 +477,8 @@ mfs_node_get(fs_node_t **rfn, service_id_t service_id,
 	mfsdebug("%s()\n", __FUNCTION__);
 
 	rc = mfs_instance_get(service_id, &instance);
-	on_error(rc, return rc);
+	if (rc != EOK)
+		return rc;
 
 	return mfs_node_core_get(rfn, instance, index);
 }
@@ -582,7 +586,8 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	struct mfs_ino_info *ino_i;
 
 	rc = get_inode(inst, &ino_i, index);
-	on_error(rc, goto out_err);
+	if (rc != EOK)
+		goto out_err;
 
 	ino_i->index = index;
 	mnode->ino_i = ino_i;
@@ -640,15 +645,18 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return ENAMETOOLONG;
 
 	int r = insert_dentry(parent, name, child->ino_i->index);
-	on_error(r, goto exit_error);
+	if (r != EOK)
+		goto exit_error;
 
 	if (S_ISDIR(child->ino_i->i_mode)) {
 		r = insert_dentry(child, ".", child->ino_i->index);
-		on_error(r, goto exit_error);
+		if (r != EOK)
+			goto exit_error;
 		//child->ino_i->i_nlinks++;
 		//child->ino_i->dirty = true;
 		r = insert_dentry(child, "..", parent->ino_i->index);
-		on_error(r, goto exit_error);
+		if (r != EOK)
+			goto exit_error;
 		//parent->ino_i->i_nlinks++;
 		//parent->ino_i->dirty = true;
 	}
@@ -671,13 +679,15 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return EBUSY;
 
 	r = mfs_has_children(&has_children, cfn);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	if (has_children)
 		return ENOTEMPTY;
 
 	r = remove_dentry(parent, name);
-	on_error(r, return r);
+	if (r != EOK)
+		return r;
 
 	struct mfs_ino_info *chino = child->ino_i;
 
@@ -712,7 +722,8 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	unsigned i;
 	for (i = 2; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = read_dentry(mnode, &d_info, i);
-		on_error(r, return r);
+		if (r != EOK)
+			return r;
 
 		if (d_info.d_inum) {
 			/*A valid entry has been found*/
@@ -763,7 +774,8 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 		for (; pos < mnode->ino_i->i_size / sbi->dirsize; ++pos) {
 			rc = read_dentry(mnode, &d_info, pos);
-			on_error(rc, goto out_error);
+			if (rc != EOK)
+				goto out_error;
 
 			if (d_info.d_inum) {
 				/*Dentry found!*/
@@ -795,7 +807,8 @@ found:
 		block_t *b;
 
 		rc = read_map(&zone, mnode, pos);
-		on_error(rc, goto out_error);
+		if (rc != EOK)
+			goto out_error;
 
 		if (zone == 0) {
 			/*sparse file*/
@@ -812,7 +825,8 @@ found:
 		}
 
 		rc = block_get(&b, service_id, zone, BLOCK_FLAGS_NONE);
-		on_error(rc, goto out_error);
+		if (rc != EOK)
+			goto out_error;
 
 		async_data_read_finalize(callid, b->data +
 					 pos % sbi->block_size, bytes);
@@ -869,27 +883,32 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	if (pos < boundary) {
 		r = read_map(&block, mnode, pos);
-		on_error(r, goto out_err);
+		if (r != EOK)
+			goto out_err;
 
 		if (block == 0) {
 			/*Writing in a sparse block*/
 			r = mfs_alloc_zone(mnode->instance, &block);
-			on_error(r, goto out_err);
+			if (r != EOK)
+				goto out_err;
 			flags = BLOCK_FLAGS_NOREAD;
 		}
 	} else {
 		uint32_t dummy;
 
 		r = mfs_alloc_zone(mnode->instance, &block);
-		on_error(r, goto out_err);
+		if (r != EOK)
+			goto out_err;
 
 		r = write_map(mnode, pos, block, &dummy);
-		on_error(r, goto out_err);
+		if (r != EOK)
+			goto out_err;
 	}
 
 	block_t *b;
 	r = block_get(&b, service_id, block, flags);
-	on_error(r, goto out_err);
+	if (r != EOK)
+		goto out_err;
 
 	async_data_write_finalize(callid, b->data + pos % bs, bytes);
 	b->dirty = true;
@@ -940,7 +959,8 @@ mfs_destroy_node(fs_node_t *fn)
 	mfsdebug("mfs_destroy_node %d\n", mnode->ino_i->index);
 
 	r = mfs_has_children(&has_children, fn);
-	on_error(r, goto out);
+	if (r != EOK)
+		goto out;
 
 	assert(!has_children);
 
@@ -952,7 +972,8 @@ mfs_destroy_node(fs_node_t *fn)
 
 	/*Free the entire inode content*/
 	r = inode_shrink(mnode, mnode->ino_i->i_size);
-	on_error(r, goto out);
+	if (r != EOK)
+		goto out;
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
 
 out:

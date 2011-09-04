@@ -95,7 +95,8 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 	r = block_get(&b, instance->service_id,
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
-	on_error(r, goto out_err);
+	if (r != EOK)
+		goto out_err;
 
 	ino = b->data + ino_off * sizeof(struct mfs_inode);
 
@@ -151,7 +152,8 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 	r = block_get(&b, instance->service_id,
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
-	on_error(r, goto out_err);
+	if (r != EOK)
+		goto out_err;
 
 	ino = b->data + ino_off * sizeof(struct mfs2_inode);
 
@@ -224,7 +226,8 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
 
-	on_error(r, goto out);
+	if (r != EOK)
+		goto out;
 
 	struct mfs_inode *ino = b->data;
 	ino += ino_off;
@@ -266,7 +269,8 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 		      itable_off + inum / sbi->ino_per_block,
 		      BLOCK_FLAGS_NONE);
 
-	on_error(r, goto out);
+	if (r != EOK)
+		goto out;
 
 	struct mfs2_inode *ino2 = b->data;
 	ino2 += ino_off;
@@ -329,7 +333,8 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 		uint32_t old_zone;
 
 		r = write_map(mnode, pos, 0, &old_zone);
-		on_error(r, goto exit_error);
+		if (r != EOK)
+			goto exit_error;
 
 		ino_i->i_size -= bs;
 
@@ -337,7 +342,8 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 			continue; /*Sparse block*/
 
 		r = mfs_free_zone(mnode->instance, old_zone);
-		on_error(r, goto exit_error);
+		if (r != EOK)
+			goto exit_error;
 	}
 
 	ino_i->i_size = new_size;

@@ -52,7 +52,8 @@ read_dentry(struct mfs_node *mnode,
 	block_t *b;
 
 	int r = read_map(&block, mnode, index * sbi->dirsize);
-	on_error(r, goto out_err);
+	if (r != EOK)
+		goto out_err;
 
 	if (block == 0) {
 		/*End of the dentries list*/
@@ -61,7 +62,8 @@ read_dentry(struct mfs_node *mnode,
 	}
 
 	r = block_get(&b, inst->service_id, block, BLOCK_FLAGS_NONE);
-	on_error(r, goto out_err);
+	if (r != EOK)
+		goto out_err;
 
 	unsigned dentries_per_zone = sbi->block_size / sbi->dirsize;
 	unsigned dentry_off = index % dentries_per_zone;
@@ -112,10 +114,12 @@ write_dentry(struct mfs_dentry_info *d_info)
 	int r;
 
 	r = read_map(&block, mnode, d_off_bytes);
-	on_error(r, goto out);
+	if (r != EOK)
+		goto out;
 
 	r = block_get(&b, mnode->instance->service_id, block, BLOCK_FLAGS_NONE);
-	on_error(r, goto out);
+	if (r != EOK)
+		goto out;
 
 	const size_t name_len = sbi->max_name_len;
 	uint8_t *ptr = b->data;
@@ -165,7 +169,8 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize ; ++i) {
 		r = read_dentry(mnode, &d_info, i);
-		on_error(r, return r);
+		if (r != EOK)
+			return r;
 
 		const size_t d_name_len = str_size(d_info.d_name);
 
@@ -205,7 +210,8 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = read_dentry(mnode, &d_info, i);
-		on_error(r, return r);
+		if (r != EOK)
+			return r;
 
 		if (d_info.d_inum == 0) {
 			/*This entry is not used*/
@@ -218,16 +224,19 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 		uint32_t b, pos;
 		pos = mnode->ino_i->i_size;
 		r = read_map(&b, mnode, pos);
-		on_error(r, goto out);
+		if (r != EOK)
+			goto out;
 
 		if (b == 0) {
 			/*Increase the inode size*/
 
 			uint32_t dummy;
 			r = mfs_alloc_zone(mnode->instance, &b);
-			on_error(r, goto out);
+			if (r != EOK)
+				goto out;
 			r = write_map(mnode, pos, b, &dummy);
-			on_error(r, goto out);
+			if (r != EOK)
+				goto out;
 		}
 
 		mnode->ino_i->i_size += sbi->dirsize;
