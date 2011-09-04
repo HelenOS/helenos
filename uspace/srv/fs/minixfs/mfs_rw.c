@@ -55,7 +55,7 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
  *Returns zero if the block does not exist.
  */
 int
-read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
+mfs_read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
 {
 	int r;
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -77,7 +77,7 @@ out:
 }
 
 int
-write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
+mfs_write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
 	  uint32_t *old_zone)
 {
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -228,7 +228,7 @@ out_free_ind1:
 
 /*Free unused indirect zones*/
 int
-prune_ind_zones(struct mfs_node *mnode, size_t new_size)
+mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 {
 	struct mfs_instance *inst = mnode->instance;
 	struct mfs_sb_info *sbi = inst->sbi;

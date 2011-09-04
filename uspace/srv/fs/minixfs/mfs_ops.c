@@ -182,6 +182,8 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 	if (!sb) {
+		free(instance);
+		free(sbi);
 		block_fini(service_id);
 		return ENOMEM;
 	}
@@ -189,6 +191,9 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Read the superblock */
 	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 1, sb);
 	if (rc != EOK) {
+		free(instance);
+		free(sbi);
+		free(sb);
 		block_fini(service_id);
 		return rc;
 	}
@@ -203,6 +208,9 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	if (!check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
 		mfsdebug("magic number not recognized\n");
+		free(instance);
+		free(sbi);
+		free(sb);
 		block_fini(service_id);
 		return ENOTSUP;
 	}
@@ -261,8 +269,9 @@ recognized:
 
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
-		free(sbi);
 		free(instance);
+		free(sbi);
+		free(sb);
 		block_cache_fini(service_id);
 		block_fini(service_id);
 		mfsdebug("block cache initialization failed\n");
@@ -432,7 +441,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
-		r = read_dentry(mnode, &d_info, i);
+		r = mfs_read_dentry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
 
@@ -503,7 +512,7 @@ mfs_node_put(fs_node_t *fsnode)
 		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
 		assert(mnode->instance->open_nodes_cnt > 0);
 		mnode->instance->open_nodes_cnt--;
-		rc = put_inode(mnode);
+		rc = mfs_put_inode(mnode);
 		free(mnode->ino_i);
 		free(mnode);
 		free(fsnode);
@@ -585,7 +594,7 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 
 	struct mfs_ino_info *ino_i;
 
-	rc = get_inode(inst, &ino_i, index);
+	rc = mfs_get_inode(inst, &ino_i, index);
 	if (rc != EOK)
 		goto out_err;
 
@@ -644,17 +653,17 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	if (str_size(name) > sbi->max_name_len)
 		return ENAMETOOLONG;
 
-	int r = insert_dentry(parent, name, child->ino_i->index);
+	int r = mfs_insert_dentry(parent, name, child->ino_i->index);
 	if (r != EOK)
 		goto exit_error;
 
 	if (S_ISDIR(child->ino_i->i_mode)) {
-		r = insert_dentry(child, ".", child->ino_i->index);
+		r = mfs_insert_dentry(child, ".", child->ino_i->index);
 		if (r != EOK)
 			goto exit_error;
 		//child->ino_i->i_nlinks++;
 		//child->ino_i->dirty = true;
-		r = insert_dentry(child, "..", parent->ino_i->index);
+		r = mfs_insert_dentry(child, "..", parent->ino_i->index);
 		if (r != EOK)
 			goto exit_error;
 		//parent->ino_i->i_nlinks++;
@@ -685,7 +694,7 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	if (has_children)
 		return ENOTEMPTY;
 
-	r = remove_dentry(parent, name);
+	r = mfs_remove_dentry(parent, name);
 	if (r != EOK)
 		return r;
 
@@ -721,7 +730,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	/* The first two dentries are always . and .. */
 	unsigned i;
 	for (i = 2; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
-		r = read_dentry(mnode, &d_info, i);
+		r = mfs_read_dentry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
 
@@ -773,7 +782,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 
 		for (; pos < mnode->ino_i->i_size / sbi->dirsize; ++pos) {
-			rc = read_dentry(mnode, &d_info, pos);
+			rc = mfs_read_dentry(mnode, &d_info, pos);
 			if (rc != EOK)
 				goto out_error;
 
@@ -806,7 +815,7 @@ found:
 		uint32_t zone;
 		block_t *b;
 
-		rc = read_map(&zone, mnode, pos);
+		rc = mfs_read_map(&zone, mnode, pos);
 		if (rc != EOK)
 			goto out_error;
 
@@ -882,7 +891,7 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		flags = BLOCK_FLAGS_NOREAD;
 
 	if (pos < boundary) {
-		r = read_map(&block, mnode, pos);
+		r = mfs_read_map(&block, mnode, pos);
 		if (r != EOK)
 			goto out_err;
 
@@ -900,7 +909,7 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (r != EOK)
 			goto out_err;
 
-		r = write_map(mnode, pos, block, &dummy);
+		r = mfs_write_map(mnode, pos, block, &dummy);
 		if (r != EOK)
 			goto out_err;
 	}
@@ -971,7 +980,7 @@ mfs_destroy_node(fs_node_t *fn)
 	}
 
 	/*Free the entire inode content*/
-	r = inode_shrink(mnode, mnode->ino_i->i_size);
+	r = mfs_inode_shrink(mnode, mnode->ino_i->i_size);
 	if (r != EOK)
 		goto out;
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
@@ -999,7 +1008,7 @@ mfs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 	if (ino_i->i_size == size)
 		r = EOK;
 	else
-		r = inode_shrink(mnode, ino_i->i_size - size);
+		r = mfs_inode_shrink(mnode, ino_i->i_size - size);
 
 	mfs_node_put(fn);
 	return r;

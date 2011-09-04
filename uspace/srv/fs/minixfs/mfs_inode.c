@@ -49,7 +49,7 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 
 
 int
-get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
+mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	  fs_index_t index)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
@@ -185,7 +185,7 @@ out_err:
 }
 
 int
-put_inode(struct mfs_node *mnode)
+mfs_put_inode(struct mfs_node *mnode)
 {
 	int rc = EOK;
 
@@ -299,7 +299,7 @@ out:
 }
 
 int
-inode_shrink(struct mfs_node *mnode, size_t size_shrink)
+mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 {
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
@@ -332,7 +332,7 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 	for (i = 0; i < zones_to_free; ++i, pos -= bs) {
 		uint32_t old_zone;
 
-		r = write_map(mnode, pos, 0, &old_zone);
+		r = mfs_write_map(mnode, pos, 0, &old_zone);
 		if (r != EOK)
 			goto exit_error;
 
@@ -348,7 +348,7 @@ inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 
 	ino_i->i_size = new_size;
 
-	return prune_ind_zones(mnode, new_size);
+	return mfs_prune_ind_zones(mnode, new_size);
 
 exit_error:
 	return r;

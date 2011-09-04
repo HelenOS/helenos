@@ -42,7 +42,7 @@
  * @return		EOK on success or a negative error code.
  */
 int
-read_dentry(struct mfs_node *mnode,
+mfs_read_dentry(struct mfs_node *mnode,
 		     struct mfs_dentry_info *d_info, unsigned index)
 {
 	const struct mfs_instance *inst = mnode->instance;
@@ -51,7 +51,7 @@ read_dentry(struct mfs_node *mnode,
 	uint32_t block;
 	block_t *b;
 
-	int r = read_map(&block, mnode, index * sbi->dirsize);
+	int r = mfs_read_map(&block, mnode, index * sbi->dirsize);
 	if (r != EOK)
 		goto out_err;
 
@@ -103,7 +103,7 @@ out_err:
  * @return		EOK on success or a negative error code.
  */
 int
-write_dentry(struct mfs_dentry_info *d_info)
+mfs_write_dentry(struct mfs_dentry_info *d_info)
 {
 	struct mfs_node *mnode = d_info->node;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -113,7 +113,7 @@ write_dentry(struct mfs_dentry_info *d_info)
 	uint32_t block;
 	int r;
 
-	r = read_map(&block, mnode, d_off_bytes);
+	r = mfs_read_map(&block, mnode, d_off_bytes);
 	if (r != EOK)
 		goto out;
 
@@ -154,7 +154,7 @@ out:
  * @return		EOK on success or a negative error code.
  */
 int
-remove_dentry(struct mfs_node *mnode, const char *d_name)
+mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 {
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_dentry_info d_info;
@@ -168,7 +168,7 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 	/*Search the directory entry to be removed*/
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize ; ++i) {
-		r = read_dentry(mnode, &d_info, i);
+		r = mfs_read_dentry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
 
@@ -177,7 +177,7 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
 		if (name_len == d_name_len &&
 				!bcmp(d_info.d_name, d_name, name_len)) {
 			d_info.d_inum = 0;
-			r = write_dentry(&d_info);
+			r = mfs_write_dentry(&d_info);
 			return r;
 		}
 	}
@@ -194,7 +194,7 @@ remove_dentry(struct mfs_node *mnode, const char *d_name)
  * @return		EOK on success or a negative error code.
  */
 int
-insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
+mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 {
 	int r;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -209,7 +209,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	/*Search for an empty dentry*/
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
-		r = read_dentry(mnode, &d_info, i);
+		r = mfs_read_dentry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
 
@@ -223,7 +223,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	if (!empty_dentry_found) {
 		uint32_t b, pos;
 		pos = mnode->ino_i->i_size;
-		r = read_map(&b, mnode, pos);
+		r = mfs_read_map(&b, mnode, pos);
 		if (r != EOK)
 			goto out;
 
@@ -234,7 +234,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 			r = mfs_alloc_zone(mnode->instance, &b);
 			if (r != EOK)
 				goto out;
-			r = write_map(mnode, pos, b, &dummy);
+			r = mfs_write_map(mnode, pos, b, &dummy);
 			if (r != EOK)
 				goto out;
 		}
@@ -250,7 +250,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	memcpy(d_info.d_name, d_name, name_len);
 	d_info.d_name[name_len] = 0;
 
-	r = write_dentry(&d_info);
+	r = mfs_write_dentry(&d_info);
 out:
 	return r;
 }

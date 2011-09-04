@@ -154,39 +154,39 @@ mfs_global_init(void);
 
 /*mfs_inode.c*/
 extern int
-get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
+mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	  fs_index_t index);
 
 extern int
-put_inode(struct mfs_node *mnode);
+mfs_put_inode(struct mfs_node *mnode);
 
 extern int
-inode_shrink(struct mfs_node *mnode, size_t size_shrink);
+mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink);
 
 /*mfs_rw.c*/
 extern int
-read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
+mfs_read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 
 extern int
-write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
+mfs_write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
 	  uint32_t *old_zone);
 
 extern int
-prune_ind_zones(struct mfs_node *mnode, size_t new_size);
+mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size);
 
 /*mfs_dentry.c*/
 extern int
-read_dentry(struct mfs_node *mnode,
+mfs_read_dentry(struct mfs_node *mnode,
 		     struct mfs_dentry_info *d_info, unsigned index);
 
 extern int
-write_dentry(struct mfs_dentry_info *d_info);
+mfs_write_dentry(struct mfs_dentry_info *d_info);
 
 extern int
-remove_dentry(struct mfs_node *mnode, const char *d_name);
+mfs_remove_dentry(struct mfs_node *mnode, const char *d_name);
 
 extern int
-insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
+mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
 
 /*mfs_balloc.c*/
 extern int
