@@ -38,7 +38,6 @@
 #include <synch/futex.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>
-#include <synch/synch.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/slab.h>
@@ -271,13 +270,10 @@ void futex_ht_remove_callback(link_t *item)
 /** Remove references from futexes known to the current task. */
 void futex_cleanup(void)
 {
-	link_t *cur;
-	
 	mutex_lock(&futex_ht_lock);
 	mutex_lock(&TASK->futexes_lock);
 
-	for (cur = TASK->futexes.leaf_head.next;
-	    cur != &TASK->futexes.leaf_head; cur = cur->next) {
+	list_foreach(TASK->futexes.leaf_list, cur) {
 		btree_node_t *node;
 		unsigned int i;
 		

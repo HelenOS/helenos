@@ -60,9 +60,9 @@ typedef struct endpoint {
 	} hc_data;
 } endpoint_t;
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
+endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
+    usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
+    size_t max_packet_size);
 
 void endpoint_destroy(endpoint_t *instance);
 

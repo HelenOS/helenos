@@ -1,0 +1,30 @@
+OUTPUT_FORMAT(elf64-tradlittlemips)
+ENTRY(start)
+
+SECTIONS {
+	. = 0xffffffffbfc00000;
+	.text : {
+		*(BOOTSTRAP);
+		*(.text);
+	}
+	.data : {
+		*(.data);       /* initialized data */
+		*(.rodata);
+		*(.rodata.*);
+		*(.sdata);
+		*(.reginfo);
+		*(.sbss);
+		*(.scommon);
+		*(.bss);        /* uninitialized static variables */
+		*(COMMON);      /* global variables */
+[[COMPONENTS]]
+	}
+	
+	/DISCARD/ : {
+		*(.gnu.*);
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note);
+	}
+}

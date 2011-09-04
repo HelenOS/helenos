@@ -37,9 +37,9 @@
 #ifndef NET_NILDUMMY_H_
 #define NET_NILDUMMY_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <adt/measured_strings.h>
 
@@ -80,8 +80,8 @@ struct nildummy_device {
 	/** Device driver service. */
 	services_t service;
 	
-	/** Driver phone. */
-	int phone;
+	/** Driver session. */
+	async_sess_t *sess;
 	
 	/** Maximal transmission unit. */
 	size_t mtu;
@@ -98,14 +98,14 @@ struct nildummy_proto {
 	/** Protocol service. */
 	services_t service;
 	
-	/** Protocol module phone. */
-	int phone;
+	/** Protocol module session. */
+	async_sess_t *sess;
 };
 
 /** Dummy nil global data. */
 struct nildummy_globals {
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
 	
 	/** Lock for devices. */
 	fibril_rwlock_t devices_lock;

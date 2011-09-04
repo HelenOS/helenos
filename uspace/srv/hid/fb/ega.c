@@ -55,7 +55,7 @@
 #include "main.h"
 
 // FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 
 #define MAX_SAVED_SCREENS  256
 
@@ -255,7 +255,8 @@ static int print_screen(sysarg_t i)
 	return (int) i;
 }
 
-static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	size_t intersize = 0;
 	keyfield_t *interbuf = NULL;
@@ -412,14 +413,14 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			style = rgb_to_ega_style(fg_rgb, bg_rgb);
 			retval = 0;
 			break;
-		case FB_VP_DRAW_PIXMAP:
+		case FB_VP_DRAW_IMGMAP:
 			scr = IPC_GET_ARG2(call);
 			retval = print_screen(scr);
 			break;
-		case FB_VP2PIXMAP:
+		case FB_VP2IMGMAP:
 			retval = save_screen();
 			break;
-		case FB_DROP_PIXMAP:
+		case FB_DROP_IMGMAP:
 			scr = IPC_GET_ARG1(call);
 			
 			if (scr >= MAX_SAVED_SCREENS) {

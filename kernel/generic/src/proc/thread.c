@@ -38,13 +38,11 @@
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
-#include <proc/uarg.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <arch/asm.h>
 #include <arch/cycle.h>
 #include <arch.h>
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <cpu.h>
@@ -259,7 +257,7 @@ void thread_ready(thread_t *thread)
 	 * on respective processor.
 	 */
 	
-	list_append(&thread->rq_link, &cpu->rq[i].rq_head);
+	list_append(&thread->rq_link, &cpu->rq[i].rq);
 	cpu->rq[i].n++;
 	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
 	
@@ -321,6 +319,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->priority = -1;          /* Start in rq[0] */
 	thread->cpu = NULL;
 	thread->flags = flags;
+	thread->nomigrate = 0;
 	thread->state = Entering;
 	
 	timeout_initialize(&thread->sleep_timeout);
@@ -421,7 +420,7 @@ void thread_attach(thread_t *thread, task_t *task)
 	if (thread->flags & THREAD_FLAG_USPACE)
 		atomic_inc(&task->lifecount);
 	
-	list_append(&thread->th_link, &task->th_head);
+	list_append(&thread->th_link, &task->threads);
 	
 	irq_spinlock_pass(&task->lock, &threads_lock);
 	
@@ -481,6 +480,23 @@ restart:
 	
 	/* Not reached */
 	while (true);
+}
+
+/** Prevent the current thread from being migrated to another processor. */
+void thread_migration_disable(void)
+{
+	ASSERT(THREAD);
+
+	THREAD->nomigrate++;
+}
+
+/** Allow the current thread to be migrated to another processor. */
+void thread_migration_enable(void)
+{
+	ASSERT(THREAD);
+	ASSERT(THREAD->nomigrate > 0);
+
+	THREAD->nomigrate--;
 }
 
 /** Thread sleep

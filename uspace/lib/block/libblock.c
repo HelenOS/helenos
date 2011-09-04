@@ -38,7 +38,7 @@
 
 #include "libblock.h"
 #include "../../srv/vfs/vfs.h"
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <ipc/bd.h>
 #include <ipc/services.h>
 #include <errno.h>
@@ -59,7 +59,7 @@
 /** Lock protecting the device connection list */
 static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
 /** Device connection list head. */
-static LIST_INITIALIZE(dcl_head);
+static LIST_INITIALIZE(dcl);
 
 #define CACHE_BUCKETS_LOG2  10
 #define CACHE_BUCKETS       (1 << CACHE_BUCKETS_LOG2)
@@ -71,13 +71,13 @@ typedef struct {
 	unsigned block_count;     /**< Total number of blocks. */
 	unsigned blocks_cached;   /**< Number of cached blocks. */
 	hash_table_t block_hash;
-	link_t free_head;
+	list_t free_list;
 	enum cache_mode mode;
 } cache_t;
 
 typedef struct {
 	link_t link;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 	async_sess_t *sess;
 	fibril_mutex_t comm_area_lock;
 	void *comm_area;
@@ -92,17 +92,16 @@ static int read_blocks(devcon_t *, aoff64_t, size_t);
 static int write_blocks(devcon_t *, aoff64_t, size_t);
 static int get_block_size(async_sess_t *, size_t *);
 static int get_num_blocks(async_sess_t *, aoff64_t *);
+static int read_toc(async_sess_t *, uint8_t);
 static aoff64_t ba_ltop(devcon_t *, aoff64_t);
 
-static devcon_t *devcon_search(devmap_handle_t devmap_handle)
+static devcon_t *devcon_search(service_id_t service_id)
 {
-	link_t *cur;
-	
 	fibril_mutex_lock(&dcl_lock);
 	
-	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
+	list_foreach(dcl, cur) {
 		devcon_t *devcon = list_get_instance(cur, devcon_t, link);
-		if (devcon->devmap_handle == devmap_handle) {
+		if (devcon->service_id == service_id) {
 			fibril_mutex_unlock(&dcl_lock);
 			return devcon;
 		}
@@ -112,10 +111,9 @@ static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 	return NULL;
 }
 
-static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
+static int devcon_add(service_id_t service_id, async_sess_t *sess,
     size_t bsize, void *comm_area, size_t comm_size)
 {
-	link_t *cur;
 	devcon_t *devcon;
 	
 	if (comm_size < bsize)
@@ -126,7 +124,7 @@ static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
 		return ENOMEM;
 	
 	link_initialize(&devcon->link);
-	devcon->devmap_handle = devmap_handle;
+	devcon->service_id = service_id;
 	devcon->sess = sess;
 	fibril_mutex_initialize(&devcon->comm_area_lock);
 	devcon->comm_area = comm_area;
@@ -137,15 +135,15 @@ static int devcon_add(devmap_handle_t devmap_handle, async_sess_t *sess,
 	devcon->cache = NULL;
 	
 	fibril_mutex_lock(&dcl_lock);
-	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
+	list_foreach(dcl, cur) {
 		devcon_t *d = list_get_instance(cur, devcon_t, link);
-		if (d->devmap_handle == devmap_handle) {
+		if (d->service_id == service_id) {
 			fibril_mutex_unlock(&dcl_lock);
 			free(devcon);
 			return EEXIST;
 		}
 	}
-	list_append(&devcon->link, &dcl_head);
+	list_append(&devcon->link, &dcl);
 	fibril_mutex_unlock(&dcl_lock);
 	return EOK;
 }
@@ -157,7 +155,7 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-int block_init(exch_mgmt_t mgmt, devmap_handle_t devmap_handle,
+int block_init(exch_mgmt_t mgmt, service_id_t service_id,
     size_t comm_size)
 {
 	void *comm_area = mmap(NULL, comm_size, PROTO_READ | PROTO_WRITE,
@@ -165,7 +163,7 @@ int block_init(exch_mgmt_t mgmt, devmap_handle_t devmap_handle,
 	if (!comm_area)
 		return ENOMEM;
 	
-	async_sess_t *sess = devmap_device_connect(mgmt, devmap_handle,
+	async_sess_t *sess = loc_service_connect(mgmt, service_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
 		munmap(comm_area, comm_size);
@@ -192,7 +190,7 @@ int block_init(exch_mgmt_t mgmt, devmap_handle_t devmap_handle,
 		return rc;
 	}
 	
-	rc = devcon_add(devmap_handle, sess, bsize, comm_area, comm_size);
+	rc = devcon_add(service_id, sess, bsize, comm_area, comm_size);
 	if (rc != EOK) {
 		munmap(comm_area, comm_size);
 		async_hangup(sess);
@@ -202,13 +200,13 @@ int block_init(exch_mgmt_t mgmt, devmap_handle_t devmap_handle,
 	return EOK;
 }
 
-void block_fini(devmap_handle_t devmap_handle)
+void block_fini(service_id_t service_id)
 {
-	devcon_t *devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(service_id);
 	assert(devcon);
 	
 	if (devcon->cache)
-		(void) block_cache_fini(devmap_handle);
+		(void) block_cache_fini(service_id);
 	
 	devcon_remove(devcon);
 	
@@ -221,12 +219,12 @@ void block_fini(devmap_handle_t devmap_handle)
 	free(devcon);
 }
 
-int block_bb_read(devmap_handle_t devmap_handle, aoff64_t ba)
+int block_bb_read(service_id_t service_id, aoff64_t ba)
 {
 	void *bb_buf;
 	int rc;
 
-	devcon_t *devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(service_id);
 	if (!devcon)
 		return ENOENT;
 	if (devcon->bb_buf)
@@ -251,22 +249,22 @@ int block_bb_read(devmap_handle_t devmap_handle, aoff64_t ba)
 	return EOK;
 }
 
-void *block_bb_get(devmap_handle_t devmap_handle)
+void *block_bb_get(service_id_t service_id)
 {
-	devcon_t *devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(service_id);
 	assert(devcon);
 	return devcon->bb_buf;
 }
 
 static hash_index_t cache_hash(unsigned long *key)
 {
-	return *key & (CACHE_BUCKETS - 1);
+	return MERGE_LOUP32(key[0], key[1]) & (CACHE_BUCKETS - 1);
 }
 
 static int cache_compare(unsigned long *key, hash_count_t keys, link_t *item)
 {
 	block_t *b = hash_table_get_instance(item, block_t, hash_link);
-	return b->lba == *key;
+	return b->lba == MERGE_LOUP32(key[0], key[1]);
 }
 
 static void cache_remove_callback(link_t *item)
@@ -279,10 +277,10 @@ static hash_table_operations_t cache_ops = {
 	.remove_callback = cache_remove_callback
 };
 
-int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks,
+int block_cache_init(service_id_t service_id, size_t size, unsigned blocks,
     enum cache_mode mode)
 {
-	devcon_t *devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(service_id);
 	cache_t *cache;
 	if (!devcon)
 		return ENOENT;
@@ -293,7 +291,7 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 		return ENOMEM;
 	
 	fibril_mutex_initialize(&cache->lock);
-	list_initialize(&cache->free_head);
+	list_initialize(&cache->free_list);
 	cache->lblock_size = size;
 	cache->block_count = blocks;
 	cache->blocks_cached = 0;
@@ -307,7 +305,7 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
-	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
+	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 2,
 	    &cache_ops)) {
 		free(cache);
 		return ENOMEM;
@@ -317,9 +315,9 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 	return EOK;
 }
 
-int block_cache_fini(devmap_handle_t devmap_handle)
+int block_cache_fini(service_id_t service_id)
 {
-	devcon_t *devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(service_id);
 	cache_t *cache;
 	int rc;
 
@@ -334,8 +332,8 @@ int block_cache_fini(devmap_handle_t devmap_handle)
 	 * free list, i.e. the block reference count should be zero. Do not
 	 * bother with the cache and block locks because we are single-threaded.
 	 */
-	while (!list_empty(&cache->free_head)) {
-		block_t *b = list_get_instance(cache->free_head.next,
+	while (!list_empty(&cache->free_list)) {
+		block_t *b = list_get_instance(list_first(&cache->free_list),
 		    block_t, free_link);
 
 		list_remove(&b->free_link);
@@ -346,8 +344,11 @@ int block_cache_fini(devmap_handle_t devmap_handle)
 				return rc;
 		}
 
-		unsigned long key = b->lba;
-		hash_table_remove(&cache->block_hash, &key, 1);
+		unsigned long key[2] = {
+			LOWER32(b->lba),
+			UPPER32(b->lba)
+		};
+		hash_table_remove(&cache->block_hash, key, 2);
 		
 		free(b->data);
 		free(b);
@@ -366,7 +367,7 @@ static bool cache_can_grow(cache_t *cache)
 {
 	if (cache->blocks_cached < CACHE_LO_WATERMARK)
 		return true;
-	if (!list_empty(&cache->free_head))
+	if (!list_empty(&cache->free_list))
 		return false;
 	return true;
 }
@@ -386,7 +387,7 @@ static void block_initialize(block_t *b)
  *
  * @param block			Pointer to where the function will store the
  * 				block pointer on success.
- * @param devmap_handle		Device handle of the block device.
+ * @param service_id		Service ID of the block device.
  * @param ba			Block address (logical).
  * @param flags			If BLOCK_FLAGS_NOREAD is specified, block_get()
  * 				will not read the contents of the block from the
@@ -394,16 +395,20 @@ static void block_initialize(block_t *b)
  *
  * @return			EOK on success or a negative error code.
  */
-int block_get(block_t **block, devmap_handle_t devmap_handle, aoff64_t ba, int flags)
+int block_get(block_t **block, service_id_t service_id, aoff64_t ba, int flags)
 {
 	devcon_t *devcon;
 	cache_t *cache;
 	block_t *b;
 	link_t *l;
-	unsigned long key = ba;
+	unsigned long key[2] = {
+		LOWER32(ba),
+		UPPER32(ba)
+	};
+
 	int rc;
 	
-	devcon = devcon_search(devmap_handle);
+	devcon = devcon_search(service_id);
 
 	assert(devcon);
 	assert(devcon->cache);
@@ -415,7 +420,7 @@ retry:
 	b = NULL;
 
 	fibril_mutex_lock(&cache->lock);
-	l = hash_table_find(&cache->block_hash, &key);
+	l = hash_table_find(&cache->block_hash, key);
 	if (l) {
 found:
 		/*
@@ -453,14 +458,13 @@ found:
 			/*
 			 * Try to recycle a block from the free list.
 			 */
-			unsigned long temp_key;
 recycle:
-			if (list_empty(&cache->free_head)) {
+			if (list_empty(&cache->free_list)) {
 				fibril_mutex_unlock(&cache->lock);
 				rc = ENOMEM;
 				goto out;
 			}
-			l = cache->free_head.next;
+			l = list_first(&cache->free_list);
 			b = list_get_instance(l, block_t, free_link);
 
 			fibril_mutex_lock(&b->lock);
@@ -475,7 +479,7 @@ recycle:
 				 * block_get() draining the free list.
 				 */
 				list_remove(&b->free_link);
-				list_append(&b->free_link, &cache->free_head);
+				list_append(&b->free_link, &cache->free_list);
 				fibril_mutex_unlock(&cache->lock);
 				fibril_mutex_lock(&devcon->comm_area_lock);
 				memcpy(devcon->comm_area, b->data, b->size);
@@ -501,7 +505,7 @@ recycle:
 					fibril_mutex_unlock(&b->lock);
 					goto retry;
 				}
-				l = hash_table_find(&cache->block_hash, &key);
+				l = hash_table_find(&cache->block_hash, key);
 				if (l) {
 					/*
 					 * Someone else must have already
@@ -524,16 +528,19 @@ recycle:
 			 * table.
 			 */
 			list_remove(&b->free_link);
-			temp_key = b->lba;
-			hash_table_remove(&cache->block_hash, &temp_key, 1);
+			unsigned long temp_key[2] = {
+				LOWER32(b->lba),
+				UPPER32(b->lba)
+			};
+			hash_table_remove(&cache->block_hash, temp_key, 2);
 		}
 
 		block_initialize(b);
-		b->devmap_handle = devmap_handle;
+		b->service_id = service_id;
 		b->size = cache->lblock_size;
 		b->lba = ba;
 		b->pba = ba_ltop(devcon, b->lba);
-		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
+		hash_table_insert(&cache->block_hash, key, &b->hash_link);
 
 		/*
 		 * Lock the block before releasing the cache lock. Thus we don't
@@ -579,7 +586,7 @@ out:
  */
 int block_put(block_t *block)
 {
-	devcon_t *devcon = devcon_search(block->devmap_handle);
+	devcon_t *devcon = devcon_search(block->service_id);
 	cache_t *cache;
 	unsigned blocks_cached;
 	enum cache_mode mode;
@@ -645,8 +652,11 @@ retry:
 			/*
 			 * Take the block out of the cache and free it.
 			 */
-			unsigned long key = block->lba;
-			hash_table_remove(&cache->block_hash, &key, 1);
+			unsigned long key[2] = {
+				LOWER32(block->lba),
+				UPPER32(block->lba)
+			};
+			hash_table_remove(&cache->block_hash, key, 2);
 			fibril_mutex_unlock(&block->lock);
 			free(block->data);
 			free(block);
@@ -667,7 +677,7 @@ retry:
 			fibril_mutex_unlock(&cache->lock);
 			goto retry;
 		}
-		list_append(&block->free_link, &cache->free_head);
+		list_append(&block->free_link, &cache->free_list);
 	}
 	fibril_mutex_unlock(&block->lock);
 	fibril_mutex_unlock(&cache->lock);
@@ -677,7 +687,7 @@ retry:
 
 /** Read sequential data from a block device.
  *
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param bufpos	Pointer to the first unread valid offset within the
  * 			communication buffer.
  * @param buflen	Pointer to the number of unread bytes that are ready in
@@ -689,7 +699,7 @@ retry:
  *
  * @return		EOK on success or a negative return code on failure.
  */
-int block_seqread(devmap_handle_t devmap_handle, size_t *bufpos, size_t *buflen,
+int block_seqread(service_id_t service_id, size_t *bufpos, size_t *buflen,
     aoff64_t *pos, void *dst, size_t size)
 {
 	size_t offset = 0;
@@ -697,7 +707,7 @@ int block_seqread(devmap_handle_t devmap_handle, size_t *bufpos, size_t *buflen,
 	size_t block_size;
 	devcon_t *devcon;
 
-	devcon = devcon_search(devmap_handle);
+	devcon = devcon_search(service_id);
 	assert(devcon);
 	block_size = devcon->pblock_size;
 	
@@ -743,19 +753,19 @@ int block_seqread(devmap_handle_t devmap_handle, size_t *bufpos, size_t *buflen,
 
 /** Read blocks directly from device (bypass cache).
  *
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  * @param src		Buffer for storing the data.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_read_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt, void *buf)
+int block_read_direct(service_id_t service_id, aoff64_t ba, size_t cnt, void *buf)
 {
 	devcon_t *devcon;
 	int rc;
 
-	devcon = devcon_search(devmap_handle);
+	devcon = devcon_search(service_id);
 	assert(devcon);
 	
 	fibril_mutex_lock(&devcon->comm_area_lock);
@@ -771,20 +781,20 @@ int block_read_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt, vo
 
 /** Write blocks directly to device (bypass cache).
  *
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  * @param src		The data to be written.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_write_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt,
+int block_write_direct(service_id_t service_id, aoff64_t ba, size_t cnt,
     const void *data)
 {
 	devcon_t *devcon;
 	int rc;
 
-	devcon = devcon_search(devmap_handle);
+	devcon = devcon_search(service_id);
 	assert(devcon);
 	
 	fibril_mutex_lock(&devcon->comm_area_lock);
@@ -799,16 +809,16 @@ int block_write_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt,
 
 /** Get device block size.
  *
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param bsize		Output block size.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_get_bsize(devmap_handle_t devmap_handle, size_t *bsize)
+int block_get_bsize(service_id_t service_id, size_t *bsize)
 {
 	devcon_t *devcon;
 
-	devcon = devcon_search(devmap_handle);
+	devcon = devcon_search(service_id);
 	assert(devcon);
 	
 	return get_block_size(devcon->sess, bsize);
@@ -816,14 +826,14 @@ int block_get_bsize(devmap_handle_t devmap_handle, size_t *bsize)
 
 /** Get number of blocks on device.
  *
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param nblocks	Output number of blocks.
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_get_nblocks(devmap_handle_t devmap_handle, aoff64_t *nblocks)
+int block_get_nblocks(service_id_t service_id, aoff64_t *nblocks)
 {
-	devcon_t *devcon = devcon_search(devmap_handle);
+	devcon_t *devcon = devcon_search(service_id);
 	assert(devcon);
 	
 	return get_num_blocks(devcon->sess, nblocks);
@@ -831,14 +841,14 @@ int block_get_nblocks(devmap_handle_t devmap_handle, aoff64_t *nblocks)
 
 /** Read bytes directly from the device (bypass cache)
  * 
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param abs_offset	Absolute offset in bytes where to start reading
  * @param bytes			Number of bytes to read
  * @param data			Buffer that receives the data
  * 
  * @return		EOK on success or negative error code on failure.
  */
-int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
+int block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
     size_t bytes, void *data)
 {
 	int rc;
@@ -850,7 +860,7 @@ int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
 	size_t blocks;
 	size_t offset;
 	
-	rc = block_get_bsize(devmap_handle, &phys_block_size);
+	rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -868,7 +878,7 @@ int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
 		return ENOMEM;
 	}
 	
-	rc = block_read_direct(devmap_handle, first_block, blocks, buffer);
+	rc = block_read_direct(service_id, first_block, blocks, buffer);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
@@ -879,6 +889,32 @@ int block_read_bytes_direct(devmap_handle_t devmap_handle, aoff64_t abs_offset,
 	free(buffer);
 	
 	return EOK;
+}
+
+/** Get TOC from device.
+ *
+ * @param service_id Service ID of the block device.
+ * @param session    Starting session.
+ * @param data       Buffer to read TOC into.
+ *
+ * @return EOK on success.
+ * @return Error code on failure.
+ *
+ */
+int block_get_toc(service_id_t service_id, uint8_t session, void *data)
+{
+	devcon_t *devcon = devcon_search(service_id);
+	assert(devcon);
+	
+	fibril_mutex_lock(&devcon->comm_area_lock);
+	
+	int rc = read_toc(devcon->sess, session);
+	if (rc == EOK)
+		memcpy(data, devcon->comm_area, devcon->pblock_size);
+	
+	fibril_mutex_unlock(&devcon->comm_area_lock);
+	
+	return rc;
 }
 
 /** Read blocks from block device.
@@ -902,7 +938,7 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 	if (rc != EOK) {
 		printf("Error %d reading %zu blocks starting at block %" PRIuOFF64
 		    " from device handle %" PRIun "\n", rc, cnt, ba,
-		    devcon->devmap_handle);
+		    devcon->service_id);
 #ifndef NDEBUG
 		stacktrace_print();
 #endif
@@ -931,7 +967,7 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 	
 	if (rc != EOK) {
 		printf("Error %d writing %zu blocks starting at block %" PRIuOFF64
-		    " to device handle %" PRIun "\n", rc, cnt, ba, devcon->devmap_handle);
+		    " to device handle %" PRIun "\n", rc, cnt, ba, devcon->service_id);
 #ifndef NDEBUG
 		stacktrace_print();
 #endif
@@ -968,6 +1004,16 @@ static int get_num_blocks(async_sess_t *sess, aoff64_t *nblocks)
 	if (rc == EOK)
 		*nblocks = (aoff64_t) MERGE_LOUP32(nb_l, nb_h);
 	
+	return rc;
+}
+
+/** Get TOC from block device. */
+static int read_toc(async_sess_t *sess, uint8_t session)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_1_0(exch, BD_READ_TOC, session);
+	async_exchange_end(exch);
+
 	return rc;
 }
 

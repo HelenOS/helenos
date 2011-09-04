@@ -35,12 +35,6 @@
 #ifndef KERN_mips32_CP0_H_
 #define KERN_mips32_CP0_H_
 
-#ifdef KERNEL
-#include <typedefs.h>
-#else
-#include <sys/types.h>
-#endif
-
 #define cp0_status_ie_enabled_bit     (1 << 0)
 #define cp0_status_exl_exception_bit  (1 << 1)
 #define cp0_status_erl_error_bit      (1 << 2)
@@ -48,35 +42,52 @@
 #define cp0_status_bev_bootstrap_bit  (1 << 22)
 #define cp0_status_fpu_bit            (1 << 29)
 
-#define cp0_status_im_shift		8
-#define cp0_status_im_mask              0xff00
+#define cp0_status_im_shift  8
+#define cp0_status_im_mask   0xff00
 
-#define cp0_cause_excno(cause) ((cause >> 2) & 0x1f)
-#define cp0_cause_coperr(cause) ((cause >> 28) & 0x3)
+#define cp0_cause_excno(cause)   ((cause >> 2) & 0x1f)
+#define cp0_cause_coperr(cause)  ((cause >> 28) & 0x3)
 
-#define fpu_cop_id 1
+#define fpu_cop_id  1
 
 /*
  * Magic value for use in msim.
  */
-#define cp0_compare_value 		100000
+#define cp0_compare_value  100000
 
-#define cp0_mask_all_int() cp0_status_write(cp0_status_read() & ~(cp0_status_im_mask))
-#define cp0_unmask_all_int() cp0_status_write(cp0_status_read() | cp0_status_im_mask)
-#define cp0_mask_int(it) cp0_status_write(cp0_status_read() & ~(1 << (cp0_status_im_shift + (it))))
-#define cp0_unmask_int(it) cp0_status_write(cp0_status_read() | (1 << (cp0_status_im_shift + (it))))
+#define cp0_mask_all_int() \
+	cp0_status_write(cp0_status_read() & ~(cp0_status_im_mask))
 
-#define GEN_READ_CP0(nm,reg) static inline uint32_t cp0_ ##nm##_read(void) \
-  { \
-      uint32_t retval; \
-      asm volatile ("mfc0 %0, $" #reg : "=r"(retval)); \
-      return retval; \
-  }
+#define cp0_unmask_all_int() \
+	cp0_status_write(cp0_status_read() | cp0_status_im_mask)
 
-#define GEN_WRITE_CP0(nm,reg) static inline void cp0_ ##nm##_write(uint32_t val) \
- { \
-    asm volatile ("mtc0 %0, $" #reg : : "r"(val) ); \
- }
+#define cp0_mask_int(it) \
+	cp0_status_write(cp0_status_read() & ~(1 << (cp0_status_im_shift + (it))))
+
+#define cp0_unmask_int(it) \
+	cp0_status_write(cp0_status_read() | (1 << (cp0_status_im_shift + (it))))
+
+#define GEN_READ_CP0(nm, reg) \
+	static inline uint32_t cp0_ ##nm##_read(void) \
+	{ \
+		uint32_t retval; \
+		\
+		asm volatile ( \
+			"mfc0 %0, $" #reg \
+			: "=r"(retval) \
+		); \
+		\
+		return retval; \
+	}
+
+#define GEN_WRITE_CP0(nm, reg) \
+	static inline void cp0_ ##nm##_write(uint32_t val) \
+	{ \
+		asm volatile ( \
+			"mtc0 %0, $" #reg \
+			:: "r"(val) \
+		); \
+	}
 
 GEN_READ_CP0(index, 0);
 GEN_WRITE_CP0(index, 0);

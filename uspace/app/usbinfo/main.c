@@ -41,7 +41,7 @@
 #include <bool.h>
 #include <getopt.h>
 #include <devman.h>
-#include <devmap.h>
+#include <loc.h>
 #include <usb/hc.h>
 #include <usb/dev/pipes.h>
 #include "usbinfo.h"
@@ -55,7 +55,9 @@ static void print_usage(char *app_name)
 	printf(NAME ": query USB devices for descriptors\n\n");
 	printf("Usage: %s [options] device [device [device [ ... ]]]\n",
 	    app_name);
-	printf(_INDENT "The device is a devman path to the device.\n");
+	printf(_INDENT "The device can be specified in two ways.\n");
+	printf(_INDENT "  o Using its devman path, e.g. /hw/pci0/.../usb00_a1.\n");
+	printf(_INDENT "  o Or using BUS.ADDR numbers as printed by lsusb.\n");
 
 	_OPTION("-h --help", "Print this help and exit.");
 	_OPTION("-i --identification", "Brief device identification.");
@@ -64,6 +66,8 @@ static void print_usage(char *app_name)
 	_OPTION("-T --descriptor-tree-full", "Print detailed descriptor tree");
 	_OPTION("-s --strings", "Try to print all string descriptors.");
 	_OPTION("-S --status", "Get status of the device.");
+	_OPTION("-r --hid-report", "Dump HID report descriptor.");
+	_OPTION("-r --hid-report-usages", "Dump usages of HID report.");
 
 	printf("\n");
 	printf("If no option is specified, `-i' is considered default.\n");
@@ -81,9 +85,11 @@ static struct option long_options[] = {
 	{"descriptor-tree-full", no_argument, NULL, 'T'},
 	{"strings", no_argument, NULL, 's'},
 	{"status", no_argument, NULL, 'S'},
+	{"hid-report", no_argument, NULL, 'r'},
+	{"hid-report-usages", no_argument, NULL, 'R'},
 	{0, 0, NULL, 0}
 };
-static const char *short_options = "himtTsS";
+static const char *short_options = "himtTsSrR";
 
 static usbinfo_action_t actions[] = {
 	{
@@ -114,6 +120,16 @@ static usbinfo_action_t actions[] = {
 	{
 		.opt = 'S',
 		.action = dump_status,
+		.active = false
+	},
+	{
+		.opt = 'r',
+		.action = dump_hidreport_raw,
+		.active = false
+	},
+	{
+		.opt = 'R',
+		.action = dump_hidreport_usages,
 		.active = false
 	},
 	{

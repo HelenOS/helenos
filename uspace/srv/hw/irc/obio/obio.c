@@ -54,7 +54,7 @@
 #include <align.h>
 #include <async.h>
 #include <stdio.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
 #define NAME "obio"
 
@@ -75,8 +75,9 @@ static volatile uint64_t *base_virt;
  *
  * @param iid		Hash of the request that opened the connection.
  * @param icall		Call data of the request that opened the connection.
+ * @param arg		Local argument.
  */
-static void obio_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

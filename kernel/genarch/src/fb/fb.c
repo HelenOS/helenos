@@ -35,7 +35,6 @@
 
 #include <genarch/fb/font-8x16.h>
 #include <genarch/fb/logo-196x66.h>
-#include <genarch/fb/visuals.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -81,6 +80,8 @@ typedef void (* rgb_conv_t)(void *, uint32_t);
 typedef struct {
 	SPINLOCK_DECLARE(lock);
 	
+	parea_t parea;
+	
 	uint8_t *addr;
 	uint16_t *backbuf;
 	uint8_t *glyphs;
@@ -108,7 +109,7 @@ typedef struct {
 	unsigned int position;
 } fb_instance_t;
 
-static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent);
+static void fb_putchar(outdev_t *dev, wchar_t ch);
 static void fb_redraw_internal(fb_instance_t *instance);
 static void fb_redraw(outdev_t *dev);
 
@@ -214,13 +215,13 @@ static void bgr_323(void *dst, uint32_t rgb)
 /** Hide logo and refresh screen
  *
  */
-static void logo_hide(fb_instance_t *instance, bool silent)
+static void logo_hide(fb_instance_t *instance)
 {
 	instance->ylogo = 0;
 	instance->ytrim = instance->yres;
 	instance->rowtrim = instance->rows;
 	
-	if (!silent)
+	if ((!instance->parea.mapped) || (console_override))
 		fb_redraw_internal(instance);
 }
 
@@ -228,19 +229,19 @@ static void logo_hide(fb_instance_t *instance, bool silent)
  *
  */
 static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
-    unsigned int col, unsigned int row, bool silent, bool overlay)
+    unsigned int col, unsigned int row, bool overlay)
 {
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(row);
 	unsigned int yd;
 	
 	if (y >= instance->ytrim)
-		logo_hide(instance, silent);
+		logo_hide(instance);
 	
 	if (!overlay)
 		instance->backbuf[BB_POS(instance, col, row)] = glyph;
 	
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		for (yd = 0; yd < FONT_SCANLINES; yd++)
 			memcpy(&instance->addr[FB_POS(instance, x, y + yd + instance->ylogo)],
 			    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
@@ -252,14 +253,14 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
  *
  *
  */
-static void screen_scroll(fb_instance_t *instance, bool silent)
+static void screen_scroll(fb_instance_t *instance)
 {
 	if (instance->ylogo > 0) {
-		logo_hide(instance, silent);
+		logo_hide(instance);
 		return;
 	}
 	
-	if (!silent) {
+	if ((!instance->parea.mapped) || (console_override)) {
 		unsigned int row;
 		
 		for (row = 0; row < instance->rows; row++) {
@@ -297,21 +298,21 @@ static void screen_scroll(fb_instance_t *instance, bool silent)
 	    instance->cols, 0);
 }
 
-static void cursor_put(fb_instance_t *instance, bool silent)
+static void cursor_put(fb_instance_t *instance)
 {
 	unsigned int col = instance->position % instance->cols;
 	unsigned int row = instance->position / instance->cols;
 	
-	glyph_draw(instance, fb_font_glyph(U_CURSOR), col, row, silent, true);
+	glyph_draw(instance, fb_font_glyph(U_CURSOR), col, row, true);
 }
 
-static void cursor_remove(fb_instance_t *instance, bool silent)
+static void cursor_remove(fb_instance_t *instance)
 {
 	unsigned int col = instance->position % instance->cols;
 	unsigned int row = instance->position / instance->cols;
 	
 	glyph_draw(instance, instance->backbuf[BB_POS(instance, col, row)],
-	    col, row, silent, true);
+	    col, row, true);
 }
 
 /** Render glyphs
@@ -361,32 +362,32 @@ static void glyphs_render(fb_instance_t *instance)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
+static void fb_putchar(outdev_t *dev, wchar_t ch)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);
 	
 	switch (ch) {
 	case '\n':
-		cursor_remove(instance, silent);
+		cursor_remove(instance);
 		instance->position += instance->cols;
 		instance->position -= instance->position % instance->cols;
 		break;
 	case '\r':
-		cursor_remove(instance, silent);
+		cursor_remove(instance);
 		instance->position -= instance->position % instance->cols;
 		break;
 	case '\b':
-		cursor_remove(instance, silent);
+		cursor_remove(instance);
 		if (instance->position % instance->cols)
 			instance->position--;
 		break;
 	case '\t':
-		cursor_remove(instance, silent);
+		cursor_remove(instance);
 		do {
 			glyph_draw(instance, fb_font_glyph(' '),
 			    instance->position % instance->cols,
-			    instance->position / instance->cols, silent, false);
+			    instance->position / instance->cols, false);
 			instance->position++;
 		} while ((instance->position % 8)
 		    && (instance->position < instance->cols * instance->rows));
@@ -394,16 +395,16 @@ static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
 	default:
 		glyph_draw(instance, fb_font_glyph(ch),
 		    instance->position % instance->cols,
-		    instance->position / instance->cols, silent, false);
+		    instance->position / instance->cols, false);
 		instance->position++;
 	}
 	
 	if (instance->position >= instance->cols * instance->rows) {
 		instance->position -= instance->cols;
-		screen_scroll(instance, silent);
+		screen_scroll(instance);
 	}
 	
-	cursor_put(instance, silent);
+	cursor_put(instance);
 	
 	spinlock_unlock(&instance->lock);
 }
@@ -554,6 +555,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	fbdev->data = instance;
 	
 	spinlock_initialize(&instance->lock, "*fb.instance.lock");
+	
 	instance->rgb_conv = rgb_conv;
 	instance->pixelbytes = pixelbytes;
 	instance->xres = props->x;
@@ -622,10 +624,18 @@ outdev_t *fb_init(fb_properties_t *props)
 	memsetw(instance->backbuf, instance->cols * instance->rows, 0);
 	glyphs_render(instance);
 	
+	link_initialize(&instance->parea.link);
+	instance->parea.pbase = props->addr;
+	instance->parea.frames = SIZE2FRAMES(fbsize);
+	instance->parea.unpriv = false;
+	instance->parea.mapped = false;
+	ddi_parea_register(&instance->parea);
+	
 	if (!fb_exported) {
 		/*
-		 * This is the necessary evil until the userspace driver is entirely
-		 * self-sufficient.
+		 * We export the kernel framebuffer for uspace usage.
+		 * This is used in the case the uspace framebuffer
+		 * driver is not self-sufficient.
 		 */
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 1);

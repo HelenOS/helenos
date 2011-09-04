@@ -1,36 +1,36 @@
-/* Copyright (c) 2008, Tim Post <tinkertim@gmail.com>
+/*
+ * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- * Redistributions of source code must retain the above copyright notice, this
- * list of conditions and the following disclaimer.
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
  *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the original program's authors nor the names of its
- * contributors may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <fmtutil.h>
 
 #include "config.h"
 #include "entry.h"
@@ -129,28 +129,30 @@ static void help_commands(void)
 /** Display survival tips. ('help' without arguments) */
 static void help_survival(void)
 {
-	printf("Don't panic!\n\n");
+	print_wrapped_console(
+	    "Don't panic!\n\n"
 
-	printf("This is Bdsh, the Brain dead shell, currently "
+	    "This is Bdsh, the Brain dead shell, currently "
 	    "the primary user interface to HelenOS. Bdsh allows you to enter "
 	    "commands and supports history (Up, Down arrow keys), "
 	    "line editing (Left Arrow, Right Arrow, Home, End, Backspace), "
 	    "selection (Shift + movement keys), copy and paste (Ctrl-C, "
-	    "Ctrl-V), similar to common desktop environments.\n\n");
+	    "Ctrl-V), similar to common desktop environments.\n\n"
 
-	printf("The most basic filesystem commands are Bdsh builtins. Type "
+	    "The most basic filesystem commands are Bdsh builtins. Type "
 	    "'help commands' [Enter] to see the list of Bdsh builtin commands. "
 	    "Other commands are external executables located in the /app and "
 	    "/srv directories. Type 'ls /app' [Enter] and 'ls /srv' [Enter] "
 	    "to see their list. You can execute an external command simply "
-	    "by entering its name (e.g. type 'tetris' [Enter]).\n\n");
+	    "by entering its name (e.g. type 'tetris' [Enter]).\n\n"
 
-	printf("HelenOS has virtual consoles (VCs). You can switch between "
-	    "these using the F1-F11 keys.\n\n");
+	    "HelenOS has virtual consoles (VCs). You can switch between "
+	    "these using the F1-F11 keys.\n\n"
 
-	printf("This is but a small glimpse of what you can do with HelenOS. "
+	    "This is but a small glimpse of what you can do with HelenOS. "
 	    "To learn more please point your browser to the HelenOS User's "
-	    "Guide: http://trac.helenos.org/trac.fcgi/wiki/UsersGuide\n\n");
+	    "Guide: http://trac.helenos.org/wiki/UsersGuide\n\n",
+	    ALIGN_LEFT);
 }
 
 int cmd_help(char *argv[])

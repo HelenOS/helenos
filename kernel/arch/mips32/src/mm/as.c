@@ -60,11 +60,11 @@ void as_install_arch(as_t *as)
 
 	/*
 	 * Install ASID.
-	 */	
+	 */
 	hi.value = cp0_entry_hi_read();
 
 	hi.asid = as->asid;
-	cp0_entry_hi_write(hi.value);	
+	cp0_entry_hi_write(hi.value);
 }
 
 /** @}

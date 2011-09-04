@@ -34,7 +34,7 @@
  */
 
 #include <typedefs.h>
-#include <sysinfo/abi.h>
+#include <abi/sysinfo.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
 #include <synch/spinlock.h>
@@ -172,9 +172,7 @@ static size_t get_task_virtmem(as_t *as)
 	size_t pages = 0;
 	
 	/* Walk the B+ tree and count pages */
-	link_t *cur;
-	for (cur = as->as_area_btree.leaf_head.next;
-	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+	list_foreach(as->as_area_btree.leaf_list, cur) {
 		btree_node_t *node =
 		    list_get_instance(cur, btree_node_t, leaf_link);
 		
@@ -217,9 +215,7 @@ static size_t get_task_resmem(as_t *as)
 	size_t pages = 0;
 	
 	/* Walk the B+ tree and count pages */
-	link_t *cur;
-	for (cur = as->as_area_btree.leaf_head.next;
-	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+	list_foreach(as->as_area_btree.leaf_list, cur) {
 		btree_node_t *node =
 		    list_get_instance(cur, btree_node_t, leaf_link);
 		

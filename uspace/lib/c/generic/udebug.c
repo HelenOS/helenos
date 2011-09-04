@@ -34,7 +34,7 @@
 
 #include <udebug.h>
 #include <sys/types.h>
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <async.h>
 
 int udebug_begin(async_sess_t *sess)

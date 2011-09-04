@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 #include <synch/semaphore.h>
-#include <synch/synch.h>
+#include <abi/synch.h>
 
 typedef enum {
 	MUTEX_PASSIVE,

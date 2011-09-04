@@ -69,6 +69,8 @@ typedef enum {
 	USB_DIRECTION_BOTH
 } usb_direction_t;
 
+const char *usb_str_direction(usb_direction_t);
+
 /** USB speeds. */
 typedef enum {
 	/** USB 1.1 low speed (1.5Mbits/s). */
@@ -171,8 +173,8 @@ typedef enum {
 #undef _MAKE_PID_NIBBLE
 } usb_packet_id;
 
-/** Class name for USB host controllers. */
-#define USB_HC_DDF_CLASS_NAME "usbhc"
+/** Category for USB host controllers. */
+#define USB_HC_CATEGORY "usbhc"
 
 #endif
 /**

@@ -40,13 +40,15 @@ FPU_NO_CFLAGS = -mno-sse -mno-sse2
 # in GCC concerning the "large" memory model and tail call optimization
 # is fixed.
 #
-# If GCC generates a code for tail call, instead of generating ..
+# When GCC generates a code for tail call, instead of generating ..
 #
 #   jmp *fnc
 #
 # it generates an assembly code with an illegal immediate prefix:
 #
 #   jmp *$fnc
+#
+# See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=48385 for reference.
 #
 
 CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer -fno-optimize-sibling-calls

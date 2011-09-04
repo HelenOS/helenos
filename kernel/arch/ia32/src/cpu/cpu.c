@@ -117,11 +117,13 @@ void cpu_arch_init(void)
 			: [mask] "i" (CR4_OSFXSR_MASK | (1 << 10))
 		);
 	}
-	
+
+#ifndef PROCESSOR_i486
 	if (CPU->arch.fi.bits.sep) {
 		/* Setup fast SYSENTER/SYSEXIT syscalls */
 		syscall_setup_cpu();
 	}
+#endif
 }
 
 void cpu_identify(void)

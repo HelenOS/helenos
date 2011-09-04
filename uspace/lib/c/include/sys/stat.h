@@ -38,17 +38,17 @@
 #include <sys/types.h>
 #include <bool.h>
 #include <ipc/vfs.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
 struct stat {
 	fs_handle_t fs_handle;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 	fs_index_t index;
 	unsigned int lnkcnt;
 	bool is_file;
 	bool is_directory;
 	aoff64_t size;
-	devmap_handle_t device;
+	service_id_t service;
 };
 
 extern int fstat(int, struct stat *);

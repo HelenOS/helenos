@@ -35,7 +35,7 @@
 #ifndef LIBC_ERRNO_H_
 #define LIBC_ERRNO_H_
 
-#include <kernel/errno.h>
+#include <abi/errno.h>
 #include <fibril.h>
 
 #define errno  (*(__errno()))
@@ -54,6 +54,7 @@ extern int *__errno(void) __attribute__((const));
 #define EXDEV         (-264)
 #define EIO           (-265)
 #define EMLINK        (-266)
+#define ENXIO         (-267)
 
 /** Bad checksum. */
 #define EBADCHECKSUM  (-300)

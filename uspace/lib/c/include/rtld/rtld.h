@@ -48,7 +48,7 @@ typedef struct {
 	module_t *program;
 
 	/** List of all loaded modules including rtld and the program */
-	link_t modules_head;
+	list_t modules;
 
 	/** Temporary hack to place each module at different address. */
 	uintptr_t next_bias;

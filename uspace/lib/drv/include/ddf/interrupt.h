@@ -35,7 +35,7 @@
 #ifndef DDF_INTERRUPT_H_
 #define DDF_INTERRUPT_H_
 
-#include <kernel/ddi/irq.h>
+#include <abi/ddi/irq.h>
 #include <adt/list.h>
 #include <ddi.h>
 #include <fibril_synch.h>
@@ -59,7 +59,7 @@ typedef struct interrupt_context {
 
 typedef struct interrupt_context_list {
 	int curr_id;
-	link_t contexts;
+	list_t contexts;
 	fibril_mutex_t mutex;
 } interrupt_context_list_t;
 

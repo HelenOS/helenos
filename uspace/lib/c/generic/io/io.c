@@ -44,7 +44,7 @@
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <adt/list.h>
 #include "../private/io.h"
 #include "../private/stdio.h"
@@ -100,24 +100,24 @@ FILE *stderr = NULL;
 
 static LIST_INITIALIZE(files);
 
-void __stdio_init(int filc, fdi_node_t *filv[])
+void __stdio_init(int filc)
 {
 	if (filc > 0) {
-		stdin = fopen_node(filv[0], "r");
+		stdin = fdopen(0, "r");
 	} else {
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
 	
 	if (filc > 1) {
-		stdout = fopen_node(filv[1], "w");
+		stdout = fdopen(1, "w");
 	} else {
 		stdout = &stdout_klog;
 		list_append(&stdout->link, &files);
 	}
 	
 	if (filc > 2) {
-		stderr = fopen_node(filv[2], "w");
+		stderr = fdopen(2, "w");
 	} else {
 		stderr = &stderr_klog;
 		list_append(&stderr->link, &files);
@@ -126,12 +126,9 @@ void __stdio_init(int filc, fdi_node_t *filv[])
 
 void __stdio_done(void)
 {
-	link_t *link = files.next;
-	
-	while (link != &files) {
-		FILE *file = list_get_instance(link, FILE, link);
+	while (!list_empty(&files)) {
+		FILE *file = list_get_instance(list_first(&files), FILE, link);
 		fclose(file);
-		link = files.next;
 	}
 }
 
@@ -275,38 +272,6 @@ FILE *fdopen(int fd, const char *mode)
 	}
 	
 	stream->fd = fd;
-	stream->error = false;
-	stream->eof = false;
-	stream->klog = false;
-	stream->sess = NULL;
-	stream->need_sync = false;
-	_setvbuf(stream);
-	
-	list_append(&stream->link, &files);
-	
-	return stream;
-}
-
-FILE *fopen_node(fdi_node_t *node, const char *mode)
-{
-	int flags;
-	if (!parse_mode(mode, &flags))
-		return NULL;
-	
-	/* Open file. */
-	FILE *stream = malloc(sizeof(FILE));
-	if (stream == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	stream->fd = open_node(node, flags);
-	if (stream->fd < 0) {
-		/* errno was set by open_node() */
-		free(stream);
-		return NULL;
-	}
-	
 	stream->error = false;
 	stream->eof = false;
 	stream->klog = false;
@@ -596,11 +561,12 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 				need_flush = true;
 		}
 		
-		buf += now;
+		data += now;
 		stream->buf_head += now;
 		buf_free -= now;
 		bytes_left -= now;
 		total_written += now;
+		stream->buf_state = _bs_write;
 		
 		if (buf_free == 0) {
 			/* Only need to drain buffer. */
@@ -608,9 +574,6 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 			need_flush = false;
 		}
 	}
-	
-	if (total_written > 0)
-		stream->buf_state = _bs_write;
 
 	if (need_flush)
 		fflush(stream);
@@ -716,6 +679,7 @@ int fseek(FILE *stream, off64_t offset, int whence)
 
 off64_t ftell(FILE *stream)
 {
+	_fflushbuf(stream);
 	return lseek(stream->fd, 0, SEEK_CUR);
 }
 
@@ -783,10 +747,12 @@ async_sess_t *fsession(exch_mgmt_t mgmt, FILE *stream)
 	return NULL;
 }
 
-int fnode(FILE *stream, fdi_node_t *node)
+int fhandle(FILE *stream, int *handle)
 {
-	if (stream->fd >= 0)
-		return fd_node(stream->fd, node);
+	if (stream->fd >= 0) {
+		*handle = stream->fd;
+		return EOK;
+	}
 	
 	return ENOENT;
 }

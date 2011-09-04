@@ -41,7 +41,7 @@
 int service_register(sysarg_t service)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
-	int rc = async_connect_to_me(exch, service, 0, 0, NULL);
+	int rc = async_connect_to_me(exch, service, 0, 0, NULL, NULL);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -55,6 +55,13 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, sysarg_t service, sysarg_t arg2,
 	    async_connect_me_to(mgmt, exch, service, arg2, arg3);
 	async_exchange_end(exch);
 	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_set(sess, arg2, arg3, 0);
+	
 	return sess;
 }
 
@@ -65,6 +72,13 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, sysarg_t service,
 	async_sess_t *sess =
 	    async_connect_me_to_blocking(mgmt, exch, service, arg2, arg3);
 	async_exchange_end(exch);
+	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_set(sess, arg2, arg3, 0);
 	
 	return sess;
 }

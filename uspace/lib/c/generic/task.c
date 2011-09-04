@@ -45,6 +45,7 @@
 #include <malloc.h>
 #include <libc.h>
 #include "private/ns.h"
+#include <vfs/vfs.h>
 
 task_id_t task_get_id(void)
 {
@@ -100,6 +101,49 @@ int task_kill(task_id_t task_id)
  */
 int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 {
+	/* Send default files */
+	int *files[4];
+	int fd_stdin;
+	int fd_stdout;
+	int fd_stderr;
+	
+	if ((stdin != NULL) && (fhandle(stdin, &fd_stdin) == EOK))
+		files[0] = &fd_stdin;
+	else
+		files[0] = NULL;
+	
+	if ((stdout != NULL) && (fhandle(stdout, &fd_stdout) == EOK))
+		files[1] = &fd_stdout;
+	else
+		files[1] = NULL;
+	
+	if ((stderr != NULL) && (fhandle(stderr, &fd_stderr) == EOK))
+		files[2] = &fd_stderr;
+	else
+		files[2] = NULL;
+	
+	files[3] = NULL;
+	
+	return task_spawnvf(id, path, args, files);
+}
+
+/** Create a new task by running an executable from the filesystem.
+ *
+ * This is really just a convenience wrapper over the more complicated
+ * loader API. Arguments are passed as a null-terminated array of strings.
+ * Files are passed as null-terminated array of pointers to fdi_node_t.
+ *
+ * @param id    If not NULL, the ID of the task is stored here on success.
+ * @param path  Pathname of the binary to execute.
+ * @param argv  Command-line arguments.
+ * @param files Standard files to use.
+ *
+ * @return Zero on success or negative error code.
+ *
+ */
+int task_spawnvf(task_id_t *id, const char *path, const char *const args[],
+    int *const files[])
+{
 	/* Connect to a program loader. */
 	loader_t *ldr = loader_connect();
 	if (ldr == NULL)
@@ -126,29 +170,7 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 	if (rc != EOK)
 		goto error;
 	
-	/* Send default files */
-	fdi_node_t *files[4];
-	fdi_node_t stdin_node;
-	fdi_node_t stdout_node;
-	fdi_node_t stderr_node;
-	
-	if ((stdin != NULL) && (fnode(stdin, &stdin_node) == EOK))
-		files[0] = &stdin_node;
-	else
-		files[0] = NULL;
-	
-	if ((stdout != NULL) && (fnode(stdout, &stdout_node) == EOK))
-		files[1] = &stdout_node;
-	else
-		files[1] = NULL;
-	
-	if ((stderr != NULL) && (fnode(stderr, &stderr_node) == EOK))
-		files[2] = &stderr_node;
-	else
-		files[2] = NULL;
-	
-	files[3] = NULL;
-	
+	/* Send files */
 	rc = loader_set_files(ldr, files);
 	if (rc != EOK)
 		goto error;

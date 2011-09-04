@@ -33,7 +33,7 @@
  */
 
 #ifndef KERN_mips32_DEBUG_H_
-#define KERN_mips23_DEBUG_H_
+#define KERN_mips32_DEBUG_H_
 
 /** Enter the simulator trace mode */
 #define ___traceon()  asm volatile ( "\t.word\t0x39\n");

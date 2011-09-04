@@ -37,6 +37,7 @@
 #ifndef NET_UDP_H_
 #define NET_UDP_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <socket_core.h>
 #include <tl_common.h>
@@ -48,12 +49,12 @@ typedef struct udp_globals udp_globals_t;
 
 /** UDP global data. */
 struct udp_globals {
-	/** Networking module phone. */
-	int net_phone;
-	/** IP module phone. */
-	int ip_phone;
-	/** ICMP module phone. */
-	int icmp_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
+	/** IP module session. */
+	async_sess_t *ip_sess;
+	/** ICMP module session. */
+	async_sess_t *icmp_sess;
 	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
 	/** Indicates whether UDP checksum computing is enabled. */

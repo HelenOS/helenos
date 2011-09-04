@@ -51,9 +51,9 @@
 #include <atomic.h>
 #include "vfs.h"
 
-FIBRIL_CONDVAR_INITIALIZE(fs_head_cv);
-FIBRIL_MUTEX_INITIALIZE(fs_head_lock);
-LIST_INITIALIZE(fs_head);
+FIBRIL_CONDVAR_INITIALIZE(fs_list_cv);
+FIBRIL_MUTEX_INITIALIZE(fs_list_lock);
+LIST_INITIALIZE(fs_list);
 
 atomic_t fs_handle_next = {
 	.count = 1
@@ -148,7 +148,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	fibril_mutex_lock(&fs_head_lock);
+	fibril_mutex_lock(&fs_list_lock);
 	
 	/*
 	 * Check for duplicit registrations.
@@ -158,7 +158,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		 * We already register a fs like this.
 		 */
 		dprintf("FS is already registered.\n");
-		fibril_mutex_unlock(&fs_head_lock);
+		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
 		async_answer_0(rid, EEXISTS);
 		return;
@@ -168,7 +168,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * Add fs_info to the list of registered FS's.
 	 */
 	dprintf("Inserting FS into the list of registered file systems.\n");
-	list_append(&fs_info->fs_link, &fs_head);
+	list_append(&fs_info->fs_link, &fs_list);
 	
 	/*
 	 * Now we want the client to send us the IPC_M_CONNECT_TO_ME call so
@@ -179,7 +179,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (!fs_info->sess) {
 		dprintf("Callback connection expected\n");
 		list_remove(&fs_info->fs_link);
-		fibril_mutex_unlock(&fs_head_lock);
+		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
 		async_answer_0(rid, EINVAL);
 		return;
@@ -196,7 +196,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (!async_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
 		list_remove(&fs_info->fs_link);
-		fibril_mutex_unlock(&fs_head_lock);
+		fibril_mutex_unlock(&fs_list_lock);
 		async_hangup(fs_info->sess);
 		free(fs_info);
 		async_answer_0(callid, EINVAL);
@@ -210,7 +210,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (size != PLB_SIZE) {
 		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
 		list_remove(&fs_info->fs_link);
-		fibril_mutex_unlock(&fs_head_lock);
+		fibril_mutex_unlock(&fs_list_lock);
 		async_hangup(fs_info->sess);
 		free(fs_info);
 		async_answer_0(callid, EINVAL);
@@ -234,8 +234,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
 	async_answer_1(rid, EOK, (sysarg_t) fs_info->fs_handle);
 	
-	fibril_condvar_broadcast(&fs_head_cv);
-	fibril_mutex_unlock(&fs_head_lock);
+	fibril_condvar_broadcast(&fs_list_cv);
+	fibril_mutex_unlock(&fs_list_lock);
 	
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",
 	    FS_NAME_MAXLEN, fs_info->vfs_info.name, fs_info->fs_handle);
@@ -253,17 +253,16 @@ async_exch_t *vfs_exchange_grab(fs_handle_t handle)
 {
 	/*
 	 * For now, we don't try to be very clever and very fast.
-	 * We simply lookup the session in the fs_head list and
+	 * We simply lookup the session in fs_list and
 	 * begin an exchange.
 	 */
-	fibril_mutex_lock(&fs_head_lock);
+	fibril_mutex_lock(&fs_list_lock);
 	
-	link_t *cur;
-	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+	list_foreach(fs_list, cur) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
 		
 		if (fs->fs_handle == handle) {
-			fibril_mutex_unlock(&fs_head_lock);
+			fibril_mutex_unlock(&fs_list_lock);
 			
 			assert(fs->sess);
 			async_exch_t *exch = async_exchange_begin(fs->sess);
@@ -273,7 +272,7 @@ async_exch_t *vfs_exchange_grab(fs_handle_t handle)
 		}
 	}
 	
-	fibril_mutex_unlock(&fs_head_lock);
+	fibril_mutex_unlock(&fs_list_lock);
 	
 	return NULL;
 }
@@ -292,7 +291,7 @@ void vfs_exchange_release(async_exch_t *exch)
  *
  * @param name File system name.
  * @param lock If true, the function will lock and unlock the
- *             fs_head_lock.
+ *             fs_list_lock.
  *
  * @return File system handle or zero if file system not found.
  *
@@ -302,19 +301,18 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	int handle = 0;
 	
 	if (lock)
-		fibril_mutex_lock(&fs_head_lock);
+		fibril_mutex_lock(&fs_list_lock);
 	
-	link_t *cur;
-	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+	list_foreach(fs_list, cur) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (str_cmp(fs->vfs_info.name, name) == 0) { 
+		if (str_cmp(fs->vfs_info.name, name) == 0) {
 			handle = fs->fs_handle;
 			break;
 		}
 	}
 	
 	if (lock)
-		fibril_mutex_unlock(&fs_head_lock);
+		fibril_mutex_unlock(&fs_list_lock);
 	
 	return handle;
 }
@@ -329,17 +327,16 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 {
 	vfs_info_t *info = NULL;
-	link_t *cur;
 	
-	fibril_mutex_lock(&fs_head_lock);
-	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+	fibril_mutex_lock(&fs_list_lock);
+	list_foreach(fs_list, cur) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) { 
 			info = &fs->vfs_info;
 			break;
 		}
 	}
-	fibril_mutex_unlock(&fs_head_lock);
+	fibril_mutex_unlock(&fs_list_lock);
 	
 	return info;
 }

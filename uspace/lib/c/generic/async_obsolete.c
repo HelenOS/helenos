@@ -37,13 +37,13 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <async_obsolete.h>
+#include "private/async.h"
 #undef LIBC_ASYNC_C_
 #undef LIBC_ASYNC_OBSOLETE_C_
 
 #include <fibril.h>
 #include <malloc.h>
 #include <errno.h>
-#include "private/async.h"
 
 /** Send message and return id of the sent message.
  *
@@ -165,16 +165,6 @@ int async_obsolete_hangup(int phone)
 	return ipc_hangup(phone);
 }
 
-void async_obsolete_serialize_start(void)
-{
-	fibril_inc_sercount();
-}
-
-void async_obsolete_serialize_end(void)
-{
-	fibril_dec_sercount();
-}
-
 /** Wrapper for IPC_M_DATA_WRITE calls using the async framework.
  *
  * @param phoneid Phone that will be used to contact the receiving side.
@@ -239,7 +229,7 @@ int async_obsolete_data_read_start_generic(int phoneid, void *dst, size_t size, 
  *
  */
 int async_obsolete_connect_to_me(int phone, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_client_conn_t client_receiver)
+    sysarg_t arg3, async_client_conn_t client_receiver, void *carg)
 {
 	sysarg_t task_hash;
 	sysarg_t phone_hash;
@@ -250,7 +240,7 @@ int async_obsolete_connect_to_me(int phone, sysarg_t arg1, sysarg_t arg2,
 	
 	if (client_receiver != NULL)
 		async_new_connection(task_hash, phone_hash, 0, NULL,
-		    client_receiver);
+		    client_receiver, carg);
 	
 	return EOK;
 }

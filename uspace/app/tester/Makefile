@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBEXT2_PREFIX)/libext2.a
+LIBS = $(LIBEXT2_PREFIX)/libext2.a $(LIBBLOCK_PREFIX)/libblock.a
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBEXT2_PREFIX)
 BINARY = tester
 
@@ -55,8 +55,6 @@ SOURCES = \
 	mm/malloc2.c \
 	mm/malloc3.c \
 	mm/mapping1.c \
-	devs/devman1.c \
-	devs/devman2.c \
 	hw/misc/virtchar1.c \
 	hw/serial/serial1.c \
 	libext2/libext2_1.c

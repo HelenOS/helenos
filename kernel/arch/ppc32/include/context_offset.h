@@ -74,9 +74,18 @@
 #define OFFSET_FPSCR 0x90
 
 #ifdef __ASM__
-# include <arch/asm/regname.h>
 
-# ctx: address of the structure with saved context
+#ifdef KERNEL
+
+#include <arch/asm/regname.h>
+
+#else /* KERNEL */
+
+#include <libarch/regname.h>
+
+#endif /* KERNEL */
+
+/* ctx: address of the structure with saved context */
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req
 	stw sp, OFFSET_SP(\ctx)
 	stw r2, OFFSET_R2(\ctx)
@@ -101,7 +110,7 @@
 	stw r31, OFFSET_R31(\ctx)
 .endm
 
-# ctx: address of the structure with saved context
+/* ctx: address of the structure with saved context */
 .macro CONTEXT_RESTORE_ARCH_CORE ctx:req
 	lwz sp, OFFSET_SP(\ctx)
 	lwz r2, OFFSET_R2(\ctx)

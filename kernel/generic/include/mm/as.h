@@ -35,35 +35,12 @@
 #ifndef KERN_AS_H_
 #define KERN_AS_H_
 
-#ifdef KERNEL
-	#include <typedefs.h>
-#else
-	#include <sys/types.h>
-#endif
-
-/** Address space area flags. */
-#define AS_AREA_READ       1
-#define AS_AREA_WRITE      2
-#define AS_AREA_EXEC       4
-#define AS_AREA_CACHEABLE  8
-
-/** Address space area info exported to userspace. */
-typedef struct {
-	/** Starting address */
-	uintptr_t start_addr;
-	
-	/** Area size */
-	size_t size;
-	
-	/** Area flags */
-	unsigned int flags;
-} as_area_info_t;
-
-#ifdef KERNEL
-
+#include <typedefs.h>
+#include <abi/mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
+#include <arch/istate.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
@@ -253,7 +230,7 @@ typedef struct mem_backend {
 extern as_t *AS_KERNEL;
 
 extern as_operations_t *as_operations;
-extern link_t inactive_as_with_asid_head;
+extern list_t inactive_as_with_asid_list;
 
 extern void as_init(void);
 
@@ -305,16 +282,6 @@ extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
 
-/**
- * This flags is passed when running the loader, otherwise elf_load()
- * would return with a EE_LOADER error code.
- *
- */
-#define ELD_F_NONE    0
-#define ELD_F_LOADER  1
-
-extern unsigned int elf_load(elf_header_t *, as_t *, unsigned int);
-
 /* Address space area related syscalls. */
 extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
@@ -325,8 +292,6 @@ extern sysarg_t sys_as_get_unmapped_area(uintptr_t, size_t);
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);
 extern void as_print(as_t *);
-
-#endif /* KERNEL */
 
 #endif
 

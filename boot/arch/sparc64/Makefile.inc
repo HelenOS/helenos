@@ -42,7 +42,6 @@ EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu -mcmodel=medlow
 RD_SRVS_NON_ESSENTIAL +=
 
 RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/irc/fhc/fhc \
 	$(USPACE_PATH)/srv/hw/irc/obio/obio
 
 SOURCES = \

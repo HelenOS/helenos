@@ -86,8 +86,8 @@ typedef struct {
 	/** Callback phone to the client */
 	int client_phone;
 
-	/** Device handle */
-	devmap_handle_t devmap_handle;
+	/** Service ID */
+	service_id_t service_id;
 } s3c24xx_uart_t;
 
 #endif

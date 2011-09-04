@@ -90,6 +90,7 @@ int init_rd(rd_header_t *header, size_t size)
 	    FRAME_SIZE);
 	rd_parea.frames = SIZE2FRAMES(dsize);
 	rd_parea.unpriv = false;
+	rd_parea.mapped = false;
 	ddi_parea_register(&rd_parea);
 
 	sysinfo_set_item_val("rd", NULL, true);

@@ -86,7 +86,7 @@ static indev_operations_t stdin_ops = {
 	.poll = NULL
 };
 
-static void stdout_write(outdev_t *, wchar_t, bool);
+static void stdout_write(outdev_t *, wchar_t);
 static void stdout_redraw(outdev_t *);
 
 static outdev_operations_t stdout_ops = {
@@ -94,8 +94,8 @@ static outdev_operations_t stdout_ops = {
 	.redraw = stdout_redraw
 };
 
-/** Silence output */
-bool silent = false;
+/** Override kernel console lockout */
+bool console_override = false;
 
 /** Standard input and output character devices */
 indev_t *stdin = NULL;
@@ -121,22 +121,18 @@ void stdout_wire(outdev_t *outdev)
 	list_append(&outdev->link, &stdout->list);
 }
 
-static void stdout_write(outdev_t *dev, wchar_t ch, bool silent)
+static void stdout_write(outdev_t *dev, wchar_t ch)
 {
-	link_t *cur;
-	
-	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+	list_foreach(dev->list, cur) {
 		outdev_t *sink = list_get_instance(cur, outdev_t, link);
 		if ((sink) && (sink->op->write))
-			sink->op->write(sink, ch, silent);
+			sink->op->write(sink, ch);
 	}
 }
 
 static void stdout_redraw(outdev_t *dev)
 {
-	link_t *cur;
-	
-	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+	list_foreach(dev->list, cur) {
 		outdev_t *sink = list_get_instance(cur, outdev_t, link);
 		if ((sink) && (sink->op->redraw))
 			sink->op->redraw(sink);
@@ -159,6 +155,7 @@ void klog_init(void)
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
 	klog_parea.unpriv = false;
+	klog_parea.mapped = false;
 	ddi_parea_register(&klog_parea);
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
@@ -170,13 +167,13 @@ void klog_init(void)
 
 void grab_console(void)
 {
-	bool prev = silent;
+	bool prev = console_override;
 	
-	silent = false;
+	console_override = true;
 	if ((stdout) && (stdout->op->redraw))
 		stdout->op->redraw(stdout);
 	
-	if ((stdin) && (prev)) {
+	if ((stdin) && (!prev)) {
 		/*
 		 * Force the console to print the prompt.
 		 */
@@ -186,12 +183,11 @@ void grab_console(void)
 
 void release_console(void)
 {
-	// FIXME arch_release_console
-	silent = true;
+	console_override = false;
 }
 
-/** Tell kernel to get keyboard/console access again */
-sysarg_t sys_debug_enable_console(void)
+/** Activate kernel console override */
+sysarg_t sys_debug_activate_console(void)
 {
 #ifdef CONFIG_KCONSOLE
 	grab_console();
@@ -199,13 +195,6 @@ sysarg_t sys_debug_enable_console(void)
 #else
 	return false;
 #endif
-}
-
-/** Tell kernel to relinquish keyboard/console access */
-sysarg_t sys_debug_disable_console(void)
-{
-	release_console();
-	return true;
 }
 
 /** Get string from input character device.
@@ -258,7 +247,7 @@ wchar_t getc(indev_t *indev)
 	return ch;
 }
 
-void klog_update(void)
+void klog_update(void *event)
 {
 	if (!atomic_get(&klog_inited))
 		return;
@@ -292,7 +281,7 @@ void putchar(const wchar_t ch)
 			 * the character.
 			 */
 			spinlock_unlock(&klog_lock);
-			stdout->op->write(stdout, tmp, silent);
+			stdout->op->write(stdout, tmp);
 			spinlock_lock(&klog_lock);
 		}
 	}
@@ -320,7 +309,7 @@ void putchar(const wchar_t ch)
 		 * Output the character. In this case
 		 * it should be no longer buffered.
 		 */
-		stdout->op->write(stdout, ch, silent);
+		stdout->op->write(stdout, ch);
 	} else {
 		/*
 		 * No standard output routine defined yet.
@@ -337,7 +326,7 @@ void putchar(const wchar_t ch)
 	
 	/* Force notification on newline */
 	if (ch == '\n')
-		klog_update();
+		klog_update(NULL);
 }
 
 /** Print using kernel facility
@@ -368,7 +357,7 @@ sysarg_t sys_klog(int fd, const void *buf, size_t size)
 		printf("%s", data);
 		free(data);
 	} else
-		klog_update();
+		klog_update(NULL);
 	
 	return size;
 }

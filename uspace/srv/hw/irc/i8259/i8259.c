@@ -49,7 +49,7 @@
 #include <align.h>
 #include <async.h>
 #include <stdio.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
 #define NAME  "i8259"
 
@@ -97,9 +97,9 @@ static int pic_enable_irq(sysarg_t irq)
  *
  * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
- *
+ * @param arg	Local argument.
  */
-static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;

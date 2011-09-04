@@ -49,6 +49,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
+#include <ipc/event.h>
 #include <print.h>
 #include <errno.h>
 #include <func.h>
@@ -56,7 +57,6 @@
 #include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
-#include <ipc/event.h>
 
 /** Spinlock protecting the tasks_tree AVL tree. */
 IRQ_SPINLOCK_INITIALIZE(tasks_lock);
@@ -154,8 +154,8 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 	mutex_initialize(&task->futexes_lock, MUTEX_PASSIVE);
 	
-	list_initialize(&task->th_head);
-	list_initialize(&task->sync_box_head);
+	list_initialize(&task->threads);
+	list_initialize(&task->sync_boxes);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
@@ -200,6 +200,8 @@ task_t *task_create(as_t *as, const char *name)
 	task->ipc_info.answer_received = 0;
 	task->ipc_info.irq_notif_received = 0;
 	task->ipc_info.forwarded = 0;
+
+	event_task_init(task);
 	
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
@@ -434,8 +436,7 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 	uint64_t kret = task->kcycles;
 	
 	/* Current values of threads */
-	link_t *cur;
-	for (cur = task->th_head.next; cur != &task->th_head; cur = cur->next) {
+	list_foreach(task->threads, cur) {
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		
 		irq_spinlock_lock(&thread->lock, false);
@@ -467,8 +468,7 @@ static void task_kill_internal(task_t *task)
 	 * Interrupt all threads.
 	 */
 	
-	link_t *cur;
-	for (cur = task->th_head.next; cur != &task->th_head; cur = cur->next) {
+	list_foreach(task->threads, cur) {
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		bool sleeping = false;
 		

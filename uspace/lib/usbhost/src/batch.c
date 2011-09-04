@@ -108,6 +108,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->ep);
+	assert(instance->next_step);
 	endpoint_release(instance->ep);
 	instance->next_step(instance);
 }
@@ -127,12 +128,9 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 	/* We are data in, we need data */
 	memcpy(instance->buffer, instance->data_buffer, instance->buffer_size);
 
-	usb_log_debug("Batch(%p) done (T%d.%d, %s %s in, %zuB): %s (%d).\n",
-	    instance, instance->ep->address, instance->ep->endpoint,
-	    usb_str_speed(instance->ep->speed),
-	    usb_str_transfer_type_short(instance->ep->transfer_type),
-	    instance->transfered_size, str_error(instance->error),
-	    instance->error);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed (%zuB): %s.\n",
+	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
+	    instance->transfered_size, str_error(instance->error));
 
 	instance->callback_in(instance->fun, instance->error,
 	    instance->transfered_size, instance->arg);
@@ -147,11 +145,9 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 	assert(instance);
 	assert(instance->callback_out);
 
-	usb_log_debug("Batch(%p) done (T%d.%d, %s %s out): %s (%d).\n",
-	    instance, instance->ep->address, instance->ep->endpoint,
-	    usb_str_speed(instance->ep->speed),
-	    usb_str_transfer_type_short(instance->ep->transfer_type),
-	    str_error(instance->error), instance->error);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed: %s.\n",
+	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
+	    str_error(instance->error));
 
 	instance->callback_out(instance->fun,
 	    instance->error, instance->arg);
@@ -164,7 +160,8 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 void usb_transfer_batch_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	usb_log_debug("Batch(%p) disposing.\n", instance);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
+	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
 	if (instance->private_data) {
 		assert(instance->private_data_dtor);
 		instance->private_data_dtor(instance->private_data);

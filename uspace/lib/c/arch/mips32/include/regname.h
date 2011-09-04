@@ -1,0 +1,1 @@
+../../../../../../kernel/arch/mips32/include/asm/regname.h

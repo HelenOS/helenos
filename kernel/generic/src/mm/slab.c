@@ -179,8 +179,6 @@ static unsigned int _slab_initialized = 0;
 NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
     unsigned int flags)
 {
-	
-	
 	size_t zone = 0;
 	
 	void *data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);
@@ -316,8 +314,8 @@ NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 		
 		spinlock_lock(&cache->slablock);
 	} else {
-		slab = list_get_instance(cache->partial_slabs.next, slab_t,
-		    link);
+		slab = list_get_instance(list_first(&cache->partial_slabs),
+		    slab_t, link);
 		list_remove(&slab->link);
 	}
 	
@@ -359,9 +357,9 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 	spinlock_lock(&cache->maglock);
 	if (!list_empty(&cache->magazines)) {
 		if (first)
-			cur = cache->magazines.next;
+			cur = list_first(&cache->magazines);
 		else
-			cur = cache->magazines.prev;
+			cur = list_last(&cache->magazines);
 		
 		mag = list_get_instance(cur, slab_magazine_t, link);
 		list_remove(&mag->link);
@@ -811,9 +809,7 @@ size_t slab_reclaim(unsigned int flags)
 	irq_spinlock_lock(&slab_cache_lock, true);
 	
 	size_t frames = 0;
-	link_t *cur;
-	for (cur = slab_cache_list.next; cur != &slab_cache_list;
-	    cur = cur->next) {
+	list_foreach(slab_cache_list, cur) {
 		slab_cache_t *cache = list_get_instance(cur, slab_cache_t, link);
 		frames += _slab_reclaim(cache, flags);
 	}
@@ -860,11 +856,11 @@ void slab_print_list(void)
 		
 		link_t *cur;
 		size_t i;
-		for (i = 0, cur = slab_cache_list.next;
-		    (i < skip) && (cur != &slab_cache_list);
+		for (i = 0, cur = slab_cache_list.head.next;
+		    (i < skip) && (cur != &slab_cache_list.head);
 		    i++, cur = cur->next);
 		
-		if (cur == &slab_cache_list) {
+		if (cur == &slab_cache_list.head) {
 			irq_spinlock_unlock(&slab_cache_lock, true);
 			break;
 		}
@@ -939,9 +935,7 @@ void slab_enable_cpucache(void)
 	
 	irq_spinlock_lock(&slab_cache_lock, false);
 	
-	link_t *cur;
-	for (cur = slab_cache_list.next; cur != &slab_cache_list;
-	    cur = cur->next) {
+	list_foreach(slab_cache_list, cur) {
 		slab_cache_t *slab = list_get_instance(cur, slab_cache_t, link);
 		if ((slab->flags & SLAB_CACHE_MAGDEFERRED) !=
 		    SLAB_CACHE_MAGDEFERRED)

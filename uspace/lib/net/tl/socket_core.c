@@ -37,17 +37,14 @@
 #include <socket_core.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-
 #include <net/socket_codes.h>
 #include <net/in.h>
 #include <net/inet.h>
 #include <net/packet.h>
 #include <net/modules.h>
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
-
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
 
@@ -55,7 +52,7 @@
  * Maximum number of random attempts to find a new socket identifier before
  * switching to the sequence.
  */
-#define SOCKET_ID_TRIES	100
+#define SOCKET_ID_TRIES  100
 
 /** Bound port sockets.*/
 struct socket_port {
@@ -71,25 +68,23 @@ GENERIC_CHAR_MAP_IMPLEMENT(socket_port_map, socket_core_t *);
 
 INT_MAP_IMPLEMENT(socket_ports, socket_port_t);
 
-/** Destroys the socket.
+/** Destroy the socket.
  *
  * If the socket is bound, the port is released.
- * Releases all buffered packets, calls the release function and removes the
+ * Release all buffered packets, call the release function and remove the
  * socket from the local sockets.
  *
- * @param[in] packet_phone The packet server phone to release buffered packets.
- * @param[in] socket	The socket to be destroyed.
- * @param[in,out] local_sockets The local sockets to be updated.
- * @param[in,out] global_sockets The global sockets to be updated.
- * @param[in] socket_release The client release callback function.
+ * @param[in]     sess           Packet server session.
+ * @param[in]     socket         Socket to be destroyed.
+ * @param[in,out] local_sockets  Local sockets to be updated.
+ * @param[in,out] global_sockets Global sockets to be updated.
+ * @param[in]     socket_release Client release callback function.
+ *
  */
-static void
-socket_destroy_core(int packet_phone, socket_core_t *socket,
+static void socket_destroy_core(async_sess_t *sess, socket_core_t *socket,
     socket_cores_t *local_sockets, socket_ports_t *global_sockets,
     void (* socket_release)(socket_core_t *socket))
 {
-	int packet_id;
-
 	/* If bound */
 	if (socket->port) {
 		/* Release the port */
@@ -97,46 +92,46 @@ socket_destroy_core(int packet_phone, socket_core_t *socket,
 	}
 	
 	/* Release all received packets */
+	int packet_id;
 	while ((packet_id = dyn_fifo_pop(&socket->received)) >= 0)
-		pq_release_remote(packet_phone, packet_id);
-
+		pq_release_remote(sess, packet_id);
+	
 	dyn_fifo_destroy(&socket->received);
 	dyn_fifo_destroy(&socket->accepted);
-
+	
 	if (socket_release)
 		socket_release(socket);
-
+	
 	socket_cores_exclude(local_sockets, socket->socket_id, free);
 }
 
-/** Destroys local sockets.
+/** Destroy local sockets.
  *
- * Releases all buffered packets and calls the release function for each of the
+ * Release all buffered packets and call the release function for each of the
  * sockets.
  *
- * @param[in] packet_phone The packet server phone to release buffered packets.
- * @param[in] local_sockets The local sockets to be destroyed.
- * @param[in,out] global_sockets The global sockets to be updated.
- * @param[in] socket_release The client release callback function.
+ * @param[in]     sess           Packet server session.
+ * @param[in]     local_sockets  Local sockets to be destroyed.
+ * @param[in,out] global_sockets Global sockets to be updated.
+ * @param[in]     socket_release Client release callback function.
+ *
  */
-void
-socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
+void socket_cores_release(async_sess_t *sess, socket_cores_t *local_sockets,
     socket_ports_t *global_sockets,
     void (* socket_release)(socket_core_t *socket))
 {
-	int index;
-
 	if (!socket_cores_is_valid(local_sockets))
 		return;
-
+	
 	local_sockets->magic = 0;
-
+	
+	int index;
 	for (index = 0; index < local_sockets->next; ++index) {
 		if (socket_cores_item_is_valid(&local_sockets->items[index])) {
 			local_sockets->items[index].magic = 0;
-
+			
 			if (local_sockets->items[index].value) {
-				socket_destroy_core(packet_phone,
+				socket_destroy_core(sess,
 				    local_sockets->items[index].value,
 				    local_sockets, global_sockets,
 				    socket_release);
@@ -145,7 +140,7 @@ socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
 			}
 		}
 	}
-
+	
 	free(local_sockets->items);
 }
 
@@ -405,20 +400,22 @@ static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 	return socket_id;
 }
 
-/** Creates a new socket.
+/** Create a new socket.
  *
- * @param[in,out] local_sockets The local sockets to be updated.
- * @param[in] app_phone	The application phone.
- * @param[in] specific_data The socket specific data.
- * @param[in,out] socket_id The new socket identifier. A new identifier is
- *			chosen if set to zero or negative. A negative identifier
- *			is chosen if set to negative.
- * @return		EOK on success.
- * @return		EINVAL if the socket_id parameter is NULL.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in,out] local_sockets Local sockets to be updated.
+ * @param[in]     sess          Application session.
+ * @param[in]     specific_data Socket specific data.
+ * @param[in,out] socket_id     New socket identifier. A new identifier
+ *                              is chosen if set to zero or negative.
+ *                              A negative identifier is chosen if set
+ *                              to negative.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the socket_id parameter is NULL.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int
-socket_create(socket_cores_t *local_sockets, int app_phone,
+int socket_create(socket_cores_t *local_sockets, async_sess_t* sess,
     void *specific_data, int *socket_id)
 {
 	socket_core_t *socket;
@@ -445,7 +442,7 @@ socket_create(socket_cores_t *local_sockets, int app_phone,
 		return ENOMEM;
 	
 	/* Initialize */
-	socket->phone = app_phone;
+	socket->sess = sess;
 	socket->port = -1;
 	socket->key = NULL;
 	socket->key_length = 0;
@@ -474,39 +471,39 @@ socket_create(socket_cores_t *local_sockets, int app_phone,
 	return EOK;
 }
 
-/** Destroys the socket.
+/** Destroy the socket.
  *
  * If the socket is bound, the port is released.
- * Releases all buffered packets, calls the release function and removes the
+ * Release all buffered packets, call the release function and remove the
  * socket from the local sockets.
  *
- * @param[in] packet_phone The packet server phone to release buffered packets.
- * @param[in] socket_id	The socket identifier.
- * @param[in,out] local_sockets The local sockets to be updated.
- * @param[in,out] global_sockets The global sockets to be updated.
- * @param[in] socket_release The client release callback function.
- * @return		EOK on success.
- * @return		ENOTSOCK if the socket is not found.
+ * @param[in]     sess           Packet server session.
+ * @param[in]     socket_id      Socket identifier.
+ * @param[in,out] local_sockets  Local sockets to be updated.
+ * @param[in,out] global_sockets Global sockets to be updated.
+ * @param[in]     socket_release Client release callback function.
+ *
+ * @return EOK on success.
+ * @return ENOTSOCK if the socket is not found.
+ *
  */
 int
-socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
+socket_destroy(async_sess_t *sess, int socket_id, socket_cores_t *local_sockets,
     socket_ports_t *global_sockets,
     void (*socket_release)(socket_core_t *socket))
 {
-	socket_core_t *socket;
-	int accepted_id;
-
 	/* Find the socket */
-	socket = socket_cores_find(local_sockets, socket_id);
+	socket_core_t *socket = socket_cores_find(local_sockets, socket_id);
 	if (!socket)
 		return ENOTSOCK;
 	
 	/* Destroy all accepted sockets */
+	int accepted_id;
 	while ((accepted_id = dyn_fifo_pop(&socket->accepted)) >= 0)
-		socket_destroy(packet_phone, accepted_id, local_sockets,
+		socket_destroy(sess, accepted_id, local_sockets,
 		    global_sockets, socket_release);
 	
-	socket_destroy_core(packet_phone, socket, local_sockets, global_sockets,
+	socket_destroy_core(sess, socket, local_sockets, global_sockets,
 	    socket_release);
 	
 	return EOK;

@@ -60,7 +60,7 @@ link_t *prodcons_consume(prodcons_t *pc)
 	while (list_empty(&pc->list))
 		fibril_condvar_wait(&pc->cv, &pc->mtx);
 	
-	link_t *head = pc->list.next;
+	link_t *head = list_first(&pc->list);
 	list_remove(head);
 	
 	fibril_mutex_unlock(&pc->mtx);

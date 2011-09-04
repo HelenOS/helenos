@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @ingroup libcmips32eb
+ * @ingroup libcmips32
  */
 
 #ifndef LIBC_mips32_ATOMIC_H_

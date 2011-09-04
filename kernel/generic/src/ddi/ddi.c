@@ -40,7 +40,6 @@
  */
 
 #include <ddi/ddi.h>
-#include <ddi/ddi_arg.h>
 #include <proc/task.h>
 #include <security/cap.h>
 #include <mm/frame.h>
@@ -121,7 +120,33 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	backend_data.base = pf;
 	backend_data.frames = pages;
 	
-	/* Find the zone of the physical memory */
+	/*
+	 * Check if the memory region is explicitly enabled
+	 * for mapping by any parea structure.
+	 */
+	
+	mutex_lock(&parea_lock);
+	btree_node_t *nodep;
+	parea_t *parea = (parea_t *) btree_search(&parea_btree,
+	    (btree_key_t) pf, &nodep);
+	
+	if ((parea != NULL) && (parea->frames >= pages)) {
+		if ((!priv) && (!parea->unpriv)) {
+			mutex_unlock(&parea_lock);
+			return EPERM;
+		}
+		
+		goto map;
+	}
+	
+	parea = NULL;
+	mutex_unlock(&parea_lock);
+	
+	/*
+	 * Check if the memory region is part of physical
+	 * memory generally enabled for mapping.
+	 */
+	
 	irq_spinlock_lock(&zones.lock, true);
 	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
@@ -152,34 +177,6 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 		goto map;
 	}
 	
-	if (zone_flags_available(zones.info[znum].flags)) {
-		/*
-		 * Frames are part of physical memory, check
-		 * if the memory region is enabled for mapping.
-		 */
-		irq_spinlock_unlock(&zones.lock, true);
-		
-		mutex_lock(&parea_lock);
-		btree_node_t *nodep;
-		parea_t *parea = (parea_t *) btree_search(&parea_btree,
-		    (btree_key_t) pf, &nodep);
-		
-		if ((!parea) || (parea->frames < pages)) {
-			mutex_unlock(&parea_lock);
-			return ENOENT;
-		}
-		
-		if (!priv) {
-			if (!parea->unpriv) {
-				mutex_unlock(&parea_lock);
-				return EPERM;
-			}
-		}
-		
-		mutex_unlock(&parea_lock);
-		goto map;
-	}
-	
 	irq_spinlock_unlock(&zones.lock, true);
 	return ENOENT;
 	
@@ -187,16 +184,26 @@ map:
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
 		/*
-		 * The address space area could not have been created.
+		 * The address space area was not created.
 		 * We report it using ENOMEM.
 		 */
+		
+		if (parea != NULL)
+			mutex_unlock(&parea_lock);
+		
 		return ENOMEM;
 	}
 	
 	/*
 	 * Mapping is created on-demand during page fault.
 	 */
-	return 0;
+	
+	if (parea != NULL) {
+		parea->mapped = true;
+		mutex_unlock(&parea_lock);
+	}
+	
+	return EOK;
 }
 
 /** Enable range of I/O space for task.

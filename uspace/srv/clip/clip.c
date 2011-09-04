@@ -147,7 +147,7 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
-static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);

@@ -47,12 +47,11 @@
 #include <arch/mm/frame.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <ddi/ddi.h>
 #include <print.h>
 
 #define SDRAM_SIZE	(sdram[((*(uint32_t *)(ICP_CMCR+ICP_SDRAMCR_OFFSET) & ICP_SDRAM_MASK) >> 2)])
-static parea_t fb_parea;
 static icp_hw_map_t icp_hw_map;
 static irq_t icp_timer_irq;
 struct arm_machine_ops icp_machine_ops = {
@@ -295,13 +294,8 @@ void icp_output_init(void)
 	};
 	
 	outdev_t *fbdev = fb_init(&prop);
-	if (fbdev) {
+	if (fbdev)
 		stdout_wire(fbdev);
-		fb_parea.pbase = ICP_FB;
-		fb_parea.frames = 300;
-		fb_parea.unpriv = false;
-		ddi_parea_register(&fb_parea);
-	}
 #endif
 }
 

@@ -34,15 +34,17 @@
 #ifndef KERN_arm32_ISTATE_H_
 #define KERN_arm32_ISTATE_H_
 
-#include <arch/regutils.h>
+#include <trace.h>
 
 #ifdef KERNEL
-#include <typedefs.h>
-#include <trace.h>
-#else
-#include <sys/types.h>
-#define NO_TRACE
-#endif
+
+#include <arch/regutils.h>
+
+#else /* KERNEL */
+
+#include <libarch/regutils.h>
+
+#endif /* KERNEL */
 
 /** Struct representing CPU state saved when an exception occurs. */
 typedef struct istate {

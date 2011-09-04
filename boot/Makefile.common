@@ -55,6 +55,7 @@ PACK = $(TOOLS_PATH)/pack.py
 MKHORD = $(TOOLS_PATH)/mkhord.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
+MKEXT2 = $(TOOLS_PATH)/mkext2.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
@@ -71,7 +72,7 @@ INIT_TASKS = \
 	$(USPACE_PATH)/srv/ns/ns \
 	$(USPACE_PATH)/srv/loader/loader \
 	$(USPACE_PATH)/app/init/init \
-	$(USPACE_PATH)/srv/devmap/devmap \
+	$(USPACE_PATH)/srv/loc/loc \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs
 
@@ -83,11 +84,15 @@ ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
 endif
 
+ifeq ($(RDFMT),ext2fs)
+	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext2fs/ext2fs
+endif
+
 RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/fb/fb \
-	$(USPACE_PATH)/srv/hid/kbd/kbd \
+	$(USPACE_PATH)/srv/hid/input/input \
 	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/fs/devfs/devfs
+	$(USPACE_PATH)/srv/fs/locfs/locfs
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
@@ -97,6 +102,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/fs/minixfs/mfs \
+	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
@@ -110,15 +116,15 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
 	$(USPACE_PATH)/srv/net/net/net \
 	$(USPACE_PATH)/srv/devman/devman
-	
-RD_DRVS = \
-	root \
-	rootvirt \
-	test1 \
-	test2 \
-	test3
 
-RD_DRV_CFG = 
+RD_DRVS = \
+	infrastructure/root \
+	infrastructure/rootvirt \
+	test/test1 \
+	test/test2 \
+	test/test3
+
+RD_DRV_CFG =
 
 RD_LIBS =
 
@@ -138,6 +144,7 @@ RD_APPS_ESSENTIAL = \
 RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
+	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
@@ -145,6 +152,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
+	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkminix/mkminix \
 	$(USPACE_PATH)/app/lsusb/lsusb \

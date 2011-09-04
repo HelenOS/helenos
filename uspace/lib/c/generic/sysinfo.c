@@ -46,9 +46,9 @@
  * @return Sysinfo item type.
  *
  */
-sysinfo_item_tag_t sysinfo_get_tag(const char *path)
+sysinfo_item_val_type_t sysinfo_get_val_type(const char *path)
 {
-	return (sysinfo_item_tag_t) __SYSCALL2(SYS_SYSINFO_GET_TAG,
+	return (sysinfo_item_val_type_t) __SYSCALL2(SYS_SYSINFO_GET_VAL_TYPE,
 	    (sysarg_t) path, (sysarg_t) str_size(path));
 }
 

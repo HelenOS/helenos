@@ -35,99 +35,14 @@
 #ifndef KERN_IPC_H_
 #define KERN_IPC_H_
 
-/** Length of data being transfered with IPC call
- *
- * The uspace may not be able to utilize full length
- *
- */
-#define IPC_CALL_LEN  6
-
-/** Maximum active async calls per phone */
-#define IPC_MAX_ASYNC_CALLS  4
-
-/* Flags for calls */
-
-/** This is answer to a call */
-#define IPC_CALL_ANSWERED  (1 << 0)
-
-/** Answer will not be passed to userspace, will be discarded */
-#define IPC_CALL_DISCARD_ANSWER  (1 << 1)
-
-/** Call was forwarded */
-#define IPC_CALL_FORWARDED  (1 << 2)
-
-/** Identify connect_me_to answer */
-#define IPC_CALL_CONN_ME_TO  (1 << 3)
-
-/** Interrupt notification */
-#define IPC_CALL_NOTIF  (1 << 4)
-
-
-/** Bits used in call hashes.
- *
- * The addresses are aligned at least to 4 that is why we can use the 2 least
- * significant bits of the call address.
- *
- */
-
-/** Type of this call is 'answer' */
-#define IPC_CALLID_ANSWERED  1
-
-/** Type of this call is 'notification' */
-#define IPC_CALLID_NOTIFICATION  2
-
-/* Return values from sys_ipc_call_async(). */
-#define IPC_CALLRET_FATAL      -1
-#define IPC_CALLRET_TEMPORARY  -2
-
-
-/* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))
-#define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))
-#define IPC_SET_ARG1(data, val)       ((data).args[1] = (val))
-#define IPC_SET_ARG2(data, val)       ((data).args[2] = (val))
-#define IPC_SET_ARG3(data, val)       ((data).args[3] = (val))
-#define IPC_SET_ARG4(data, val)       ((data).args[4] = (val))
-#define IPC_SET_ARG5(data, val)       ((data).args[5] = (val))
-
-#define IPC_GET_IMETHOD(data)  ((data).args[0])
-#define IPC_GET_RETVAL(data)   ((data).args[0])
-
-#define IPC_GET_ARG1(data)  ((data).args[1])
-#define IPC_GET_ARG2(data)  ((data).args[2])
-#define IPC_GET_ARG3(data)  ((data).args[3])
-#define IPC_GET_ARG4(data)  ((data).args[4])
-#define IPC_GET_ARG5(data)  ((data).args[5])
-
-/* Forwarding flags. */
-#define IPC_FF_NONE  0
-
-/**
- * The call will be routed as though it was initially sent via the phone used to
- * forward it. This feature is intended to support the situation in which the
- * forwarded call needs to be handled by the same connection fibril as any other
- * calls that were initially sent by the forwarder to the same destination. This
- * flag has no imapct on routing replies.
- *
- */
-#define IPC_FF_ROUTE_FROM_ME  (1 << 0)
-
-/* Data transfer flags. */
-#define IPC_XF_NONE  0
-
-/** Restrict the transfer size if necessary. */
-#define IPC_XF_RESTRICT  (1 << 0)
-
-/** User-defined IPC methods */
-#define IPC_FIRST_USER_METHOD  1024
-
-#ifdef KERNEL
-
-#define IPC_MAX_PHONES  32
-
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
+#include <abi/ipc/ipc.h>
+#include <abi/proc/task.h>
+#include <typedefs.h>
+
+#define IPC_MAX_PHONES  64
 
 struct answerbox;
 struct task;
@@ -165,26 +80,29 @@ typedef struct answerbox {
 	link_t sync_box_link;
 	
 	/** Phones connected to this answerbox. */
-	link_t connected_phones;
+	list_t connected_phones;
 	/** Received calls. */
-	link_t calls;
-	link_t dispatched_calls;  /* Should be hash table in the future */
+	list_t calls;
+	list_t dispatched_calls;  /* Should be hash table in the future */
 	
 	/** Answered calls. */
-	link_t answers;
+	list_t answers;
 	
 	IRQ_SPINLOCK_DECLARE(irq_lock);
 	
 	/** Notifications from IRQ handlers. */
-	link_t irq_notifs;
+	list_t irq_notifs;
 	/** IRQs with notifications to this answerbox. */
-	link_t irq_head;
+	list_t irq_list;
 } answerbox_t;
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
-	/** Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME. */
-	struct task *task;
+	/**
+	 * Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME,
+	 * or the task which answered the call.
+	 */
+	task_id_t task_id;
 	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
 } ipc_data_t;
@@ -242,11 +160,9 @@ extern void ipc_answerbox_init(answerbox_t *, struct task *);
 extern void ipc_cleanup(void);
 extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
-extern void ipc_cleanup_call_list(link_t *);
+extern void ipc_cleanup_call_list(list_t *);
 
 extern void ipc_print_task(task_id_t);
-
-#endif /* KERNEL */
 
 #endif
 
