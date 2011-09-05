@@ -80,6 +80,7 @@ DIRS = \
 	srv/bd/part/mbr_part \
 	srv/fs/exfat \
 	srv/fs/fat \
+	srv/fs/cdfs \
 	srv/fs/tmpfs \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
