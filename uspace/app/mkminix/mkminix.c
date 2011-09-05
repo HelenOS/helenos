@@ -113,7 +113,7 @@ int main (int argc, char **argv)
 {
 	int rc, c, opt_ind;
 	char *device_name;
-	aoff64_t devblock_size;
+	size_t devblock_size;
 
 	struct mfs_sb_info sb;
 
