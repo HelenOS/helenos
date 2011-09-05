@@ -297,7 +297,7 @@ recognized:
 
 	*index = mroot->ino_i->index;
 	*size = mroot->ino_i->i_size;
-	*linkcnt = mroot->ino_i->i_nlinks;
+	*linkcnt = 1;
 
 	return mfs_node_put(fn);
 }
@@ -548,16 +548,15 @@ static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 
-	mfsdebug("%s()\n", __FUNCTION__);
+	mfsdebug("%s() %d\n", __FUNCTION__, mnode->ino_i->i_nlinks);
 
 	if (S_ISDIR(mnode->ino_i->i_mode)) {
 		if (mnode->ino_i->i_nlinks > 1)
 			return 1;
 		else
 			return 0;
-	}
-
-	return mnode->ino_i->i_nlinks;
+	} else
+		return mnode->ino_i->i_nlinks;
 }
 
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
