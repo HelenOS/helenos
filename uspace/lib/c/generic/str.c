@@ -1290,6 +1290,147 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
 	return EOK;
 }
 
+/** Convert string to uint8_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint8_t(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint8_t *result)
+{
+	assert(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	uint64_t res;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	/* Check for overflow */
+	uint8_t _res = (uint8_t) res;
+	if (_res != res)
+		return EOVERFLOW;
+	
+	*result = _res;
+	
+	return EOK;
+}
+
+/** Convert string to uint16_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint16_t(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint16_t *result)
+{
+	assert(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	uint64_t res;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	/* Check for overflow */
+	uint16_t _res = (uint16_t) res;
+	if (_res != res)
+		return EOVERFLOW;
+	
+	*result = _res;
+	
+	return EOK;
+}
+
+/** Convert string to uint32_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint32_t *result)
+{
+	assert(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	uint64_t res;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	/* Check for overflow */
+	uint32_t _res = (uint32_t) res;
+	if (_res != res)
+		return EOVERFLOW;
+	
+	*result = _res;
+	
+	return EOK;
+}
+
 /** Convert string to uint64_t.
  *
  * @param nptr   Pointer to string.
