@@ -41,12 +41,14 @@
 
 static int test2_add_device(ddf_dev_t *dev);
 static int test2_dev_remove(ddf_dev_t *dev);
+static int test2_dev_gone(ddf_dev_t *dev);
 static int test2_fun_online(ddf_fun_t *fun);
 static int test2_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.add_device = &test2_add_device,
 	.dev_remove = &test2_dev_remove,
+	.dev_gone = &test2_dev_gone,
 	.fun_online = &test2_fun_online,
 	.fun_offline = &test2_fun_offline
 };
@@ -110,12 +112,12 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 	return EOK;
 }
 
-/** Add child devices after some sleep.
+/** Simulate plugging and surprise unplugging.
  *
  * @param arg Parent device structure (ddf_dev_t *).
  * @return Always EOK.
  */
-static int postponed_birth(void *arg)
+static int plug_unplug(void *arg)
 {
 	test2_t *test2 = (test2_t *) arg;
 	ddf_fun_t *fun_a;
@@ -143,6 +145,14 @@ static int postponed_birth(void *arg)
 	ddf_fun_add_to_category(fun_a, "virtual");
 	test2->fun_a = fun_a;
 
+	async_usleep(10000000);
+
+	ddf_msg(LVL_NOTE, "Unbinding function test1.");
+	ddf_fun_unbind(test2->test1);
+	async_usleep(1000000);
+	ddf_msg(LVL_NOTE, "Unbinding function child.");
+	ddf_fun_unbind(test2->child);
+
 	return EOK;
 }
 
@@ -157,6 +167,21 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 		return rc;
 	}
 
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
+static int fun_unbind(ddf_fun_t *fun, const char *name)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_unbind(%p, '%s')", fun, name);
 	rc = ddf_fun_unbind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
@@ -183,7 +208,7 @@ static int test2_add_device(ddf_dev_t *dev)
 	test2->dev = dev;
 
 	if (str_cmp(dev->name, "child") != 0) {
-		fid_t postpone = fibril_create(postponed_birth, test2);
+		fid_t postpone = fibril_create(plug_unplug, test2);
 		if (postpone == 0) {
 			ddf_msg(LVL_ERROR, "fibril_create() failed.");
 			return ENOMEM;
@@ -231,6 +256,40 @@ static int test2_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
+static int test2_dev_gone(ddf_dev_t *dev)
+{
+	test2_t *test2 = (test2_t *)dev->driver_data;
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "test2_dev_gone(%p)", dev);
+
+	if (test2->fun_a != NULL) {
+		rc = fun_unbind(test2->fun_a, "a");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->fun_err != NULL) {
+		rc = fun_unbind(test2->fun_err, "ERROR");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->child != NULL) {
+		rc = fun_unbind(test2->child, "child");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->test1 != NULL) {
+		rc = fun_unbind(test2->test1, "test1");
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
 
 static int test2_fun_online(ddf_fun_t *fun)
 {
@@ -247,7 +306,7 @@ static int test2_fun_offline(ddf_fun_t *fun)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&test2_driver);
 }
 

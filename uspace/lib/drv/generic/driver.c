@@ -332,6 +332,36 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
+static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t devh;
+	ddf_dev_t *dev;
+	int rc;
+	
+	devh = IPC_GET_ARG1(*icall);
+	
+	fibril_mutex_lock(&devices_mutex);
+	dev = driver_get_device(devh);
+	if (dev != NULL)
+		dev_add_ref(dev);
+	fibril_mutex_unlock(&devices_mutex);
+	
+	if (dev == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (driver->driver_ops->dev_gone != NULL)
+		rc = driver->driver_ops->dev_gone(dev);
+	else
+		rc = ENOTSUP;
+	
+	if (rc == EOK)
+		dev_del_ref(dev);
+	
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
 static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t funh;
@@ -422,6 +452,9 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DRIVER_DEV_REMOVE:
 			driver_dev_remove(callid, &call);
+			break;
+		case DRIVER_DEV_GONE:
+			driver_dev_gone(callid, &call);
 			break;
 		case DRIVER_FUN_ONLINE:
 			driver_fun_online(callid, &call);

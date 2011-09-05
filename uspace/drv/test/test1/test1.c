@@ -41,12 +41,14 @@
 
 static int test1_add_device(ddf_dev_t *dev);
 static int test1_dev_remove(ddf_dev_t *dev);
+static int test1_dev_gone(ddf_dev_t *dev);
 static int test1_fun_online(ddf_fun_t *fun);
 static int test1_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.add_device = &test1_add_device,
 	.dev_remove = &test1_dev_remove,
+	.dev_gone = &test1_dev_gone,
 	.fun_online = &test1_fun_online,
 	.fun_offline = &test1_fun_offline
 };
@@ -212,6 +214,21 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 	return EOK;
 }
 
+static int fun_unbind(ddf_fun_t *fun, const char *name)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_unbind(%p, '%s')", fun, name);
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
 static int test1_dev_remove(ddf_dev_t *dev)
 {
 	test1_t *test1 = (test1_t *)dev->driver_data;
@@ -233,6 +250,34 @@ static int test1_dev_remove(ddf_dev_t *dev)
 
 	if (test1->child != NULL) {
 		rc = fun_remove(test1->child, "child");
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+static int test1_dev_gone(ddf_dev_t *dev)
+{
+	test1_t *test1 = (test1_t *)dev->driver_data;
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);
+
+	if (test1->fun_a != NULL) {
+		rc = fun_unbind(test1->fun_a, "a");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test1->clone != NULL) {
+		rc = fun_unbind(test1->clone, "clone");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test1->child != NULL) {
+		rc = fun_unbind(test1->child, "child");
 		if (rc != EOK)
 			return rc;
 	}

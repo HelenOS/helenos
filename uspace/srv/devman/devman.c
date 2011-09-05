@@ -877,7 +877,29 @@ int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 	async_exchange_end(exch);
 	
 	return retval;
+}
 
+int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	driver_t *drv;
+	devman_handle_t handle;
+	
+	assert(dev != NULL);
+	
+	log_msg(LVL_DEBUG, "driver_dev_gone(%p)", dev);
+	
+	fibril_rwlock_read_lock(&tree->rwlock);
+	drv = dev->drv;
+	handle = dev->handle;
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
+	exch = async_exchange_begin(drv->sess);
+	retval = async_req_1_0(exch, DRIVER_DEV_GONE, handle);
+	async_exchange_end(exch);
+	
+	return retval;
 }
 
 int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)

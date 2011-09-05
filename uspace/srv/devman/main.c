@@ -315,12 +315,15 @@ static int offline_function(fun_node_t *fun)
 		
 		if (fun->child != NULL) {
 			dev_node_t *dev = fun->child;
+			device_state_t dev_state;
 			
 			dev_add_ref(dev);
-			fibril_rwlock_write_unlock(&device_tree.rwlock);
+			dev_state = dev->state;
 			
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
+
 			/* If device is owned by driver, ask driver to give it up. */
-			if (dev->state == DEVICE_USABLE) {
+			if (dev_state == DEVICE_USABLE) {
 				rc = driver_dev_remove(&device_tree, dev);
 				if (rc != EOK) {
 					dev_del_ref(dev);
@@ -332,8 +335,10 @@ static int offline_function(fun_node_t *fun)
 			fibril_rwlock_read_lock(&device_tree.rwlock);
 			if (!list_empty(&dev->functions)) {
 				fibril_rwlock_read_unlock(&device_tree.rwlock);
+				dev_del_ref(dev);
 				return EIO;
 			}
+			
 			driver_t *driver = dev->drv;
 			fibril_rwlock_read_unlock(&device_tree.rwlock);
 			
@@ -578,7 +583,6 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	dev_tree_t *tree = &device_tree;
 	int rc;
 	
-	
 	fun_node_t *fun = find_fun_node(&device_tree, fun_handle);
 	if (fun == NULL) {
 		async_answer_0(callid, ENOENT);
@@ -597,11 +601,55 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	if (fun->ftype == fun_inner) {
-		/* Handle possible descendants */
-		/* TODO - This is a surprise removal */
+		/* This is a surprise removal. Handle possible descendants */
 		if (fun->child != NULL) {
-			log_msg(LVL_WARN, "devman_remove_function(): not handling "
-			    "descendants\n");
+			dev_node_t *dev = fun->child;
+			device_state_t dev_state;
+			int gone_rc;
+			
+			dev_add_ref(dev);
+			dev_state = dev->state;
+			
+			fibril_rwlock_write_unlock(&device_tree.rwlock);
+			
+			/* If device is owned by driver, inform driver it is gone. */
+			if (dev_state == DEVICE_USABLE)
+				gone_rc = driver_dev_gone(&device_tree, dev);
+			else
+				gone_rc = EOK;
+			
+			fibril_rwlock_read_lock(&device_tree.rwlock);
+			
+			/* Verify that driver succeeded and removed all functions */
+			if (gone_rc != EOK || !list_empty(&dev->functions)) {
+				log_msg(LVL_ERROR, "Driver did not remove "
+				    "functions for device that is gone. "
+				    "Device node is now defunct.");
+				
+				/*
+				 * Not much we can do but mark the device
+				 * node as having invalid state. This
+				 * is a driver bug.
+				 */
+				dev->state = DEVICE_INVALID;
+				fibril_rwlock_read_unlock(&device_tree.rwlock);
+				dev_del_ref(dev);
+				return;
+			}
+			
+			driver_t *driver = dev->drv;
+			fibril_rwlock_read_unlock(&device_tree.rwlock);
+			
+			if (driver)
+				detach_driver(&device_tree, dev);
+			
+			fibril_rwlock_write_lock(&device_tree.rwlock);
+			remove_dev_node(&device_tree, dev);
+			
+			/* Delete ref created when node was inserted */
+			dev_del_ref(dev);
+			/* Delete ref created by dev_add_ref(dev) above */
+			dev_del_ref(dev);
 		}
 	} else {
 		if (fun->service_id != 0) {

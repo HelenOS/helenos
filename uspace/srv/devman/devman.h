@@ -262,6 +262,7 @@ extern void detach_driver(dev_tree_t *, dev_node_t *);
 extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
+extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
 extern int driver_fun_online(dev_tree_t *, fun_node_t *);
 extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
 
