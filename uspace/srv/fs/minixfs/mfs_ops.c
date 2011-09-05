@@ -160,7 +160,7 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		cmode = CACHE_MODE_WB;
 
 	/* initialize libblock */
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 4096);
 	if (rc != EOK)
 		return rc;
 
@@ -174,6 +174,7 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/*Allocate space for filesystem instance*/
 	instance = malloc(sizeof(*instance));
 	if (!instance) {
+		free(sbi);
 		block_fini(service_id);
 		return ENOMEM;
 	}
@@ -306,6 +307,8 @@ mfs_unmounted(service_id_t service_id)
 {
 	struct mfs_instance *inst;
 
+	mfsdebug("%s()\n", __FUNCTION__);
+
 	int r = mfs_instance_get(service_id, &inst);
 	if (r != EOK)
 		return r;
@@ -371,12 +374,14 @@ static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 		goto out_err_2;
 	}
 
-	if (flags & L_DIRECTORY)
+	if (flags & L_DIRECTORY) {
 		ino_i->i_mode = S_IFDIR;
-	else
+		ino_i->i_nlinks = 2; /*This accounts for the '.' dentry*/
+	} else {
 		ino_i->i_mode = S_IFREG;
+		ino_i->i_nlinks = 1;
+	}
 
-	ino_i->i_nlinks = 1;
 	ino_i->i_uid = 0;
 	ino_i->i_gid = 0;
 	ino_i->i_size = 0;
@@ -545,8 +550,12 @@ static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 
 	mfsdebug("%s()\n", __FUNCTION__);
 
-	assert(mnode);
-	assert(mnode->ino_i);
+	if (S_ISDIR(mnode->ino_i->i_mode)) {
+		if (mnode->ino_i->i_nlinks > 1)
+			return 1;
+		else
+			return 0;
+	}
 
 	return mnode->ino_i->i_nlinks;
 }
@@ -661,13 +670,13 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		r = mfs_insert_dentry(child, ".", child->ino_i->index);
 		if (r != EOK)
 			goto exit_error;
-		//child->ino_i->i_nlinks++;
-		//child->ino_i->dirty = true;
+
 		r = mfs_insert_dentry(child, "..", parent->ino_i->index);
 		if (r != EOK)
 			goto exit_error;
-		//parent->ino_i->i_nlinks++;
-		//parent->ino_i->dirty = true;
+
+		parent->ino_i->i_nlinks++;
+		parent->ino_i->dirty = true;
 	}
 
 exit_error:
@@ -701,13 +710,16 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_ino_info *chino = child->ino_i;
 
 	assert(chino->i_nlinks >= 1);
-	--chino->i_nlinks;
-/*
-	if (chino->i_nlinks == 0 && S_ISDIR(chino->i_mode)) {
+	chino->i_nlinks--;
+	mfsdebug("Links: %d\n", chino->i_nlinks);
+
+	if (chino->i_nlinks <= 1 && S_ISDIR(chino->i_mode)) {
+		/* The child directory will be destroyed, decrease the
+		 * parent hard links counter.
+		 */
 		parent->ino_i->i_nlinks--;
 		parent->ino_i->dirty = true;
 	}
-*/
 
 	chino->dirty = true;
 
