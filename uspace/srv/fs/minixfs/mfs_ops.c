@@ -204,10 +204,11 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	if (check_magic_number(sb->s_magic, &native, &version, &longnames)) {
 		/*This is a V1 or V2 Minix filesystem*/
 		magic = sb->s_magic;
-		goto recognized;
-	}
-
-	if (!check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
+	} else if (check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
+		/*This is a V3 Minix filesystem*/
+		magic = sb3->s_magic;
+	} else {
+		/*Not recognized*/
 		mfsdebug("magic number not recognized\n");
 		free(instance);
 		free(sbi);
@@ -215,12 +216,6 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		block_fini(service_id);
 		return ENOTSUP;
 	}
-
-	/*This is a V3 Minix filesystem*/
-
-	magic = sb3->s_magic;
-
-recognized:
 
 	mfsdebug("magic number recognized = %04x\n", magic);
 
