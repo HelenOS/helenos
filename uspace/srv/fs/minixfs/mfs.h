@@ -158,7 +158,7 @@ mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	  fs_index_t index);
 
 extern int
-mfs_put_inode(struct mfs_node *mnode);
+mfs_put_inode_core(struct mfs_node *mnode);
 
 extern int
 mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink);

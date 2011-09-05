@@ -190,7 +190,7 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	}
 
 	/* Read the superblock */
-	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 1, sb);
+	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 2, sb);
 	if (rc != EOK) {
 		free(instance);
 		free(sbi);
@@ -512,7 +512,7 @@ mfs_node_put(fs_node_t *fsnode)
 		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
 		assert(mnode->instance->open_nodes_cnt > 0);
 		mnode->instance->open_nodes_cnt--;
-		rc = mfs_put_inode(mnode);
+		rc = mfs_put_inode_core(mnode);
 		free(mnode->ino_i);
 		free(mnode);
 		free(fsnode);
@@ -960,8 +960,7 @@ mfs_destroy(service_id_t service_id, fs_index_t index)
 		return ENOENT;
 
 	/*Destroy the inode*/
-	r = mfs_destroy_node(fn);
-	return r;
+	return mfs_destroy_node(fn);
 }
 
 static int
@@ -979,16 +978,12 @@ mfs_destroy_node(fs_node_t *fn)
 
 	assert(!has_children);
 
-	if (mnode->ino_i->i_nlinks > 0) {
-		mfsdebug("nlinks = %d", mnode->ino_i->i_nlinks);
-		r = EOK;
-		goto out;
-	}
-
 	/*Free the entire inode content*/
 	r = mfs_inode_shrink(mnode, mnode->ino_i->i_size);
 	if (r != EOK)
 		goto out;
+
+	/*Mark the inode as free in the bitmap*/
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
 
 out:

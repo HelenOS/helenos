@@ -185,7 +185,7 @@ out_err:
 }
 
 int
-mfs_put_inode(struct mfs_node *mnode)
+mfs_put_inode_core(struct mfs_node *mnode)
 {
 	int rc = EOK;
 
