@@ -82,6 +82,11 @@ mfs_write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
 {
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
 
+	if (pos >= sbi->max_file_size) {
+		/*Can't write beyond the maximum file size*/
+		return EINVAL;
+	}
+
 	/*Compute the relative block number in file*/
 	int rblock = pos / sbi->block_size;
 
@@ -96,17 +101,12 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	int ptrs_per_block;
 	uint32_t *ind_zone, *ind2_zone;
 
-	assert(mnode);
 	struct mfs_ino_info *ino_i = mnode->ino_i;
-
-	assert(ino_i);
-	assert(mnode->instance);
-
 	struct mfs_instance *inst = mnode->instance;
 	struct mfs_sb_info *sbi = inst->sbi;
-	assert(sbi);
 
 	const mfs_version_t fs_version = sbi->fs_version;
+	const bool deleting = write_mode && (w_block == 0);
 
 	if (fs_version == MFS_VERSION_V1) {
 		nr_direct = V1_NR_DIRECT_ZONES;
@@ -131,7 +131,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	if (rblock < ptrs_per_block) {
 		/*The wanted block is in the single indirect zone chain*/
 		if (ino_i->i_izone[0] == 0) {
-			if (write_mode) {
+			if (write_mode && !deleting) {
 				uint32_t zone;
 				r = alloc_zone_and_clear(inst, &zone);
 				if (r != EOK)
@@ -165,7 +165,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 
 	/*read the first indirect zone of the chain*/
 	if (ino_i->i_izone[1] == 0) {
-		if (write_mode) {
+		if (write_mode && !deleting) {
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
 			if (r != EOK)
@@ -192,7 +192,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 
 	/*read the second indirect zone of the chain*/
 	if (ind_zone[ind2_off] == 0) {
-		if (write_mode) {
+		if (write_mode && !deleting) {
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
 			if (r != EOK)
