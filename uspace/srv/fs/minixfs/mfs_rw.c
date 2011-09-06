@@ -370,7 +370,7 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 	unsigned i;
 	block_t *b;
 
-	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NONE);
+	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NOREAD);
 	if (r != EOK)
 		return r;
 
