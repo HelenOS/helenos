@@ -138,6 +138,8 @@ typedef struct driver_ops {
 	int (*add_device)(ddf_dev_t *);
 	/** Ask driver to remove a device */
 	int (*dev_remove)(ddf_dev_t *);
+	/** Inform driver a device disappeared */
+	int (*dev_gone)(ddf_dev_t *);
 	/** Ask driver to online a specific function */
 	int (*fun_online)(ddf_fun_t *);
 	/** Ask driver to offline a specific function */

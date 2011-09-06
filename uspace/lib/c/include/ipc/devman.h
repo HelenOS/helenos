@@ -146,9 +146,9 @@ typedef enum {
 typedef enum {
 	DRIVER_DEV_ADD = IPC_FIRST_USER_METHOD,
 	DRIVER_DEV_REMOVE,
+	DRIVER_DEV_GONE,
 	DRIVER_FUN_ONLINE,
 	DRIVER_FUN_OFFLINE,
-
 } devman_to_driver_t;
 
 typedef enum {

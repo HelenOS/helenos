@@ -54,7 +54,7 @@ static bool mfs_is_directory(fs_node_t *fsnode);
 static bool mfs_is_file(fs_node_t *fsnode);
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode);
 static int mfs_root_get(fs_node_t **rfn, service_id_t service_id);
-static service_id_t mfs_device_get(fs_node_t *fsnode);
+static service_id_t mfs_service_get(fs_node_t *fsnode);
 static aoff64_t mfs_size_get(fs_node_t *node);
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
 static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags);
@@ -80,7 +80,7 @@ static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
 libfs_ops_t mfs_libfs_ops = {
 	.size_get = mfs_size_get,
 	.root_get = mfs_root_get,
-	.device_get = mfs_device_get,
+	.service_get = mfs_service_get,
 	.is_directory = mfs_is_directory,
 	.is_file = mfs_is_file,
 	.node_get = mfs_node_get,
@@ -324,7 +324,7 @@ mfs_unmounted(service_id_t service_id)
 	return EOK;
 }
 
-service_id_t mfs_device_get(fs_node_t *fsnode)
+service_id_t mfs_service_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return node->instance->service_id;

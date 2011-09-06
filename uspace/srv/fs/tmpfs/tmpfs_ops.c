@@ -113,7 +113,7 @@ static bool tmpfs_is_file(fs_node_t *fn)
 	return TMPFS_NODE(fn)->type == TMPFS_FILE;
 }
 
-static service_id_t tmpfs_device_get(fs_node_t *fn)
+static service_id_t tmpfs_service_get(fs_node_t *fn)
 {
 	return 0;
 }
@@ -135,7 +135,7 @@ libfs_ops_t tmpfs_libfs_ops = {
 	.lnkcnt_get = tmpfs_lnkcnt_get,
 	.is_directory = tmpfs_is_directory,
 	.is_file = tmpfs_is_file,
-	.device_get = tmpfs_device_get
+	.service_get = tmpfs_service_get
 };
 
 /** Hash table of all TMPFS nodes. */
