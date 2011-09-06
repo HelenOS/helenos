@@ -91,7 +91,7 @@ typedef struct {
 	unsigned int (* lnkcnt_get)(fs_node_t *);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
-	service_id_t (* device_get)(fs_node_t *);
+	service_id_t (* service_get)(fs_node_t *);
 } libfs_ops_t;
 
 typedef struct {

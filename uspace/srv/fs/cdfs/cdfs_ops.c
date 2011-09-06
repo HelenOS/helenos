@@ -628,7 +628,7 @@ static bool cdfs_is_file(fs_node_t *fn)
 	return (node->type == CDFS_FILE);
 }
 
-static service_id_t cdfs_device_get(fs_node_t *fn)
+static service_id_t cdfs_service_get(fs_node_t *fn)
 {
 	return 0;
 }
@@ -649,7 +649,7 @@ libfs_ops_t cdfs_libfs_ops = {
 	.lnkcnt_get = cdfs_lnkcnt_get,
 	.is_directory = cdfs_is_directory,
 	.is_file = cdfs_is_file,
-	.device_get = cdfs_device_get
+	.service_get = cdfs_service_get
 };
 
 static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,

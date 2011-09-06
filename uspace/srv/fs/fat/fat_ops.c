@@ -89,7 +89,7 @@ static aoff64_t fat_size_get(fs_node_t *);
 static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
-static service_id_t fat_device_get(fs_node_t *node);
+static service_id_t fat_service_get(fs_node_t *node);
 
 /*
  * Helper functions.
@@ -837,7 +837,7 @@ bool fat_is_file(fs_node_t *fn)
 	return FAT_NODE(fn)->type == FAT_FILE;
 }
 
-service_id_t fat_device_get(fs_node_t *node)
+service_id_t fat_service_get(fs_node_t *node)
 {
 	return 0;
 }
@@ -859,7 +859,7 @@ libfs_ops_t fat_libfs_ops = {
 	.lnkcnt_get = fat_lnkcnt_get,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
-	.device_get = fat_device_get
+	.service_get = fat_service_get
 };
 
 /*

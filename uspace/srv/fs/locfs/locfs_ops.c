@@ -417,7 +417,7 @@ static bool locfs_is_file(fs_node_t *fn)
 	return (node->type == LOC_OBJECT_SERVICE);
 }
 
-static service_id_t locfs_device_get(fs_node_t *fn)
+static service_id_t locfs_service_get(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
@@ -444,7 +444,7 @@ libfs_ops_t locfs_libfs_ops = {
 	.lnkcnt_get = locfs_lnkcnt_get,
 	.is_directory = locfs_is_directory,
 	.is_file = locfs_is_file,
-	.device_get = locfs_device_get
+	.service_get = locfs_service_get
 };
 
 bool locfs_init(void)

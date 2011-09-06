@@ -86,7 +86,7 @@ static aoff64_t exfat_size_get(fs_node_t *);
 static unsigned exfat_lnkcnt_get(fs_node_t *);
 static bool exfat_is_directory(fs_node_t *);
 static bool exfat_is_file(fs_node_t *node);
-static service_id_t exfat_device_get(fs_node_t *node);
+static service_id_t exfat_service_get(fs_node_t *node);
 
 /*
  * Helper functions.
@@ -897,7 +897,7 @@ bool exfat_is_file(fs_node_t *fn)
 	return EXFAT_NODE(fn)->type == EXFAT_FILE;
 }
 
-service_id_t exfat_device_get(fs_node_t *node)
+service_id_t exfat_service_get(fs_node_t *node)
 {
 	return 0;
 }
@@ -920,7 +920,7 @@ libfs_ops_t exfat_libfs_ops = {
 	.lnkcnt_get = exfat_lnkcnt_get,
 	.is_directory = exfat_is_directory,
 	.is_file = exfat_is_file,
-	.device_get = exfat_device_get
+	.service_get = exfat_service_get
 };
 
 
