@@ -30,9 +30,9 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBMINIX_PREFIX)
-BINARY = mkminix
+BINARY = mkmfs
 
 SOURCES = \
-	mkminix.c
+	mkmfs.c
 
 include $(USPACE_PREFIX)/Makefile.common

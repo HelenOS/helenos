@@ -47,7 +47,7 @@ DIRS = \
 	app/locinfo \
 	app/lsusb \
 	app/mkfat \
-	app/mkminix \
+	app/mkmfs \
 	app/redir \
 	app/sbi \
 	app/stats \
@@ -82,7 +82,7 @@ DIRS = \
 	srv/fs/exfat \
 	srv/fs/fat \
 	srv/fs/tmpfs \
-	srv/fs/minixfs \
+	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
 	srv/hid/console \

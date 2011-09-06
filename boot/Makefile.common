@@ -101,7 +101,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/clip/clip \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
-	$(USPACE_PATH)/srv/fs/minixfs/mfs \
+	$(USPACE_PATH)/srv/fs/mfs/mfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
@@ -154,7 +154,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
-	$(USPACE_PATH)/app/mkminix/mkminix \
+	$(USPACE_PATH)/app/mkmfs/mkmfs \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/redir/redir \
