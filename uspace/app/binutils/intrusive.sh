@@ -56,7 +56,7 @@
 # 
 # Patch 2
 # Enabled cross compilation flag brings along some anomalies which
-# have to reverted. 
+# have to be reverted. 
 #
 # Patch 3
 # Binutils plugin support is dependent on libdl.so library.
