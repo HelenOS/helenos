@@ -32,7 +32,7 @@
  */
 
 /**
- * @file	mkminix.c
+ * @file	mkmfs.c
  * @brief	Tool for creating new Minix file systems.
  *
  */
@@ -50,7 +50,7 @@
 #include <time.h>
 #include <minix.h>
 
-#define NAME	"mkminix"
+#define NAME	"mkmfs"
 
 #define FREE	0
 #define USED	1
@@ -82,7 +82,7 @@ struct mfs_sb_info {
 	bool longnames;
 };
 
-static void	help_cmd_mkminix(help_level_t level);
+static void	help_cmd_mkmfs(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
 static int	init_superblock(struct mfs_sb_info *sb);
 static int	write_superblock(const struct mfs_sb_info *sbi);
@@ -129,8 +129,8 @@ int main (int argc, char **argv)
 	sb.ino_per_block = V3_INODES_PER_BLOCK(MFS_MAX_BLOCKSIZE);
 
 	if (argc == 1) {
-		help_cmd_mkminix(HELP_SHORT);
-		printf("Incorrect number of arguments, try `mkminix --help'\n");
+		help_cmd_mkmfs(HELP_SHORT);
+		printf("Incorrect number of arguments, try `mkmfs --help'\n");
 		exit(0);
 	}
 
@@ -138,7 +138,7 @@ int main (int argc, char **argv)
 		c = getopt_long(argc, argv, "lh12b:i:", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
-			help_cmd_mkminix(HELP_LONG);
+			help_cmd_mkmfs(HELP_LONG);
 			exit(0);
 		case '1':
 			sb.magic = MFS_MAGIC_V1;
@@ -196,7 +196,7 @@ int main (int argc, char **argv)
 	device_name = argv[0];
 
 	if (!device_name) {
-		help_cmd_mkminix(HELP_LONG);
+		help_cmd_mkmfs(HELP_LONG);
 		exit(0);
 	}
 
@@ -704,7 +704,7 @@ static inline int write_block(aoff64_t off, size_t size, const void *data)
 	return block_write_direct(service_id, off << shift, size << shift, data);
 }
 
-static void help_cmd_mkminix(help_level_t level)
+static void help_cmd_mkmfs(help_level_t level)
 {
 	if (level == HELP_SHORT) {
 		printf(NAME": tool to create new Minix file systems\n");

@@ -55,8 +55,6 @@ int
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 {
 	int r = mfs_alloc_bit(inst, inum, BMAP_INODE);
-
-	*inum += 1;
 	return r;
 }
 
@@ -70,7 +68,7 @@ mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 int
 mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
 {
-	return mfs_free_bit(inst, inum - 1, BMAP_INODE);
+	return mfs_free_bit(inst, inum, BMAP_INODE);
 }
 
 /**Allocate a new zone.
@@ -201,7 +199,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 		search = &sbi->zsearch;
 		start_block = 2 + sbi->ibmap_blocks;
 		nblocks = sbi->zbmap_blocks;
-		limit = sbi->nzones;
+		limit = sbi->nzones - sbi->firstdatazone - 1;
 	} else {
 		/*bid == BMAP_INODE*/
 		search = &sbi->isearch;
