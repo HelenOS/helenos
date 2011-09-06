@@ -212,9 +212,9 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	if (r != EOK)
 		goto out_free_ind1;
 
-	*b = ind2_zone[ind2_off % ptrs_per_block];
+	*b = ind2_zone[rblock - (ind2_off * ptrs_per_block)];
 	if (write_mode) {
-		ind2_zone[ind2_off % ptrs_per_block] = w_block;
+		ind2_zone[rblock - (ind2_off * ptrs_per_block)] = w_block;
 		write_ind_zone(inst, ind_zone[ind2_off], ind2_zone);
 	}
 
