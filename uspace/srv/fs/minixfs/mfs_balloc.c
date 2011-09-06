@@ -55,8 +55,6 @@ int
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 {
 	int r = mfs_alloc_bit(inst, inum, BMAP_INODE);
-
-	*inum += 1;
 	return r;
 }
 
@@ -70,7 +68,7 @@ mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
 int
 mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
 {
-	return mfs_free_bit(inst, inum - 1, BMAP_INODE);
+	return mfs_free_bit(inst, inum, BMAP_INODE);
 }
 
 /**Allocate a new zone.
