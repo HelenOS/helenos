@@ -60,7 +60,7 @@
  * Dumps 8 bytes of buffer if PID_SETUP is used.
  */
 void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
-    bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer,
+    bool low_speed, usb_target_t target, usb_packet_id pid, const void *buffer,
     const td_t *next)
 {
 	assert(instance);
