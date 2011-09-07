@@ -94,10 +94,9 @@ case "$1" in
 		echo '			sed '\'s/ -Wc++-compat//g\'' | \'
 		echo '			sed '\'s/ [ ]*/ /g\''`"'
 					# Add flags:
-					# -Wno-shadow
-					#		Silents the warning caused by 
-					#		harmless bug in ld/ldlang.h and ld/ldlex.c.
-#		echo '		GCC_ARGS="$GCC_ARGS -Wno-shadow"'
+					# -example
+					#		Flag description.
+#		echo '		GCC_ARGS="$GCC_ARGS -example"'
 		echo '		echo' \'"$2"\' '"$GCC_ARGS"' \'"$CFLAGS"\'
 		echo "		$2" '$GCC_ARGS' "$CFLAGS"
 		echo '	fi'
