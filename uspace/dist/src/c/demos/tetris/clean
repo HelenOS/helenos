@@ -1,0 +1,16 @@
+rm tetris_
+
+rm scores.o
+rm screen.o
+rm shapes.o
+rm tetris.o
+
+rm scores.s
+rm screen.s
+rm shapes.s
+rm tetris.s
+
+rm scores.i
+rm screen.i
+rm shapes.i
+rm tetris.i

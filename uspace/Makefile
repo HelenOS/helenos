@@ -117,6 +117,19 @@ DIRS = \
 	drv/bus/usb/usbmouse \
 	drv/bus/usb/vhc
 
+ifeq ($(CONFIG_PCC),y)
+DIRS += \
+	app/cc \
+	app/ccom \
+	app/ccom/mkext \
+	app/cpp
+endif
+
+ifeq ($(CONFIG_BINUTILS),y)
+DIRS += \
+	app/binutils
+endif
+
 ## Networking
 #
 
@@ -179,7 +192,8 @@ LIBS = \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
-	lib/usbvirt
+	lib/usbvirt \
+	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
