@@ -35,6 +35,7 @@
 #ifndef LIBUSB_USB_H_
 #define LIBUSB_USB_H_
 
+#include <bool.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
@@ -128,6 +129,17 @@ typedef struct {
 	usb_address_t address;
 	usb_endpoint_t endpoint;
 } usb_target_t;
+
+/** Check USB target for allowed values (address and endpoint).
+ *
+ * @param target.
+ * @return True, if values are wihtin limits, false otherwise.
+ */
+static inline bool usb_target_is_valid(usb_target_t target)
+{
+	return !(target.endpoint > 15 || target.endpoint < 0
+	    || target.address >= USB11_ADDRESS_MAX || target.address < 0);
+}
 
 /** Compare USB targets (addresses and endpoints).
  *

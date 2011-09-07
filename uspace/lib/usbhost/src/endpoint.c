@@ -88,6 +88,7 @@ void endpoint_set_hc_data(endpoint_t *instance,
 void endpoint_clear_hc_data(endpoint_t *instance)
 {
 	assert(instance);
+	instance->destroy_hook = NULL;
 	instance->hc_data.data = NULL;
 	instance->hc_data.toggle_get = NULL;
 	instance->hc_data.toggle_set = NULL;
