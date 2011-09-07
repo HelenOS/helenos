@@ -230,8 +230,8 @@ if (ret != EOK) { \
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
-	unregister_interrupt_handler(device, irq); \
 	hc_fini(&instance->hc); \
+	unregister_interrupt_handler(device, irq); \
 	CHECK_RET_DEST_FREE_RETURN(ret, message); \
 } else (void)0
 
@@ -244,8 +244,10 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
 
-	hc_register_hub(&instance->hc, instance->rh_fun);
-	return EOK;
+	ret = hc_register_hub(&instance->hc, instance->rh_fun);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
+	return ret;
 
 #undef CHECK_RET_FINI_RETURN
 }

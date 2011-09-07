@@ -138,24 +138,28 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->generic.dev_manager, hub_address, hub_fun->handle);
 
-#define CHECK_RET_RETURN(ret, message...) \
+#define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
+	usb_endpoint_manager_unregister_ep( \
+	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH);\
+	usb_device_keeper_release( \
+	    &instance->generic.dev_manager, hub_address); \
 	return ret; \
 } else (void)0
 	int ret = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH,
 	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64, 0);
-	CHECK_RET_RETURN(ret,
+	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to register root hub control endpoint: %s.\n",
 	    str_error(ret));
 
 	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
-	CHECK_RET_RETURN(ret,
+	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to add root hub match-id: %s.\n", str_error(ret));
 
 	ret = ddf_fun_bind(hub_fun);
-	CHECK_RET_RETURN(ret,
+	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
 
 	return EOK;
