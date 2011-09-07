@@ -35,10 +35,11 @@ MAINTAIN_BINUTILS = n
 
 # Information for obtaining specific binutils redistributable package.
 # Might be subject to change in the future.
-REDIST_VERSION = 2.21
+REDIST_VERSION = 2.21.1
 REDIST_NAME = binutils-$(REDIST_VERSION)
 REDIST_FILENAME = $(REDIST_NAME).tar.bz2
 REDIST_SOURCE = ftp://ftp.gnu.org/gnu/binutils/
+REDIST_MIRROR = http://www.helenos.org/binutils/
 
 # Directory for the binutils source tree.
 REDIST_DIR = ./redist
@@ -166,6 +167,9 @@ $(COMMON_MAKEFILE_PATCHED): $(MAKEFILE_PATCH) $(COMMON_MAKEFILE_NATIVE)
 # Download binutils redistributable package.
 $(REDIST_FILENAME):
 	wget -c $(REDIST_SOURCE)$(REDIST_FILENAME)
+	if [ ! -e $(REDIST_FILENAME) ]; then \
+		wget -c $(REDIST_MIRROR)$(REDIST_FILENAME); \
+	fi
 
 # Extract binutils source tree.
 $(REDIST_DETECT): $(REDIST_FILENAME)
