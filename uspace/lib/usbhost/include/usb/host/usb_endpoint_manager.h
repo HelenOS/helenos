@@ -51,7 +51,6 @@
 typedef struct usb_endpoint_manager {
 	hash_table_t ep_table;
 	fibril_mutex_t guard;
-	fibril_condvar_t change;
 	size_t free_bw;
 } usb_endpoint_manager_t;
 

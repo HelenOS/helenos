@@ -143,7 +143,6 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
-	fibril_condvar_initialize(&instance->change);
 	instance->free_bw = available_bandwidth;
 	const bool ht =
 	    hash_table_create(&instance->ep_table, BUCKET_COUNT, MAX_KEYS, &op);
@@ -193,7 +192,6 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 	hash_table_insert(&instance->ep_table, key, &node->link);
 	instance->free_bw -= bw;
 	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_broadcast(&instance->change);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -220,7 +218,6 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 	hash_table_remove(&instance->ep_table, key, MAX_KEYS);
 
 	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_broadcast(&instance->change);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
