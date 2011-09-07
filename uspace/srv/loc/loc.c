@@ -1230,6 +1230,13 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	cat = category_get(&cdir, cat_id);
 	svc = loc_service_find_id(svc_id);
 	
+	if (cat == NULL || svc == NULL) {
+		fibril_mutex_unlock(&cdir.mutex);
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
 	fibril_mutex_lock(&cat->mutex);
 	retval = category_add_service(cat, svc);
 
@@ -1269,11 +1276,18 @@ static bool loc_init(void)
 	cat = category_new("serial");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("test3");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("usbhc");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("virt-null");
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("virtual");
 	categ_dir_add_cat(&cdir, cat);
+
 
 	return true;
 }

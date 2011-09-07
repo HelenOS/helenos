@@ -157,7 +157,7 @@ void usb_hid_new_report(usb_hid_dev_t *hid_dev);
 
 int usb_hid_report_number(usb_hid_dev_t *hid_dev);
 
-void usb_hid_free(usb_hid_dev_t **hid_dev);
+void usb_hid_destroy(usb_hid_dev_t *hid_dev);
 
 #endif /* USB_HID_USBHID_H_ */
 

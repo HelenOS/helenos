@@ -326,6 +326,30 @@ int devman_remove_function(devman_handle_t funh)
 	return (int) retval;
 }
 
+int devman_drv_fun_online(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_DRIVER);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	sysarg_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_ONLINE, funh);
+	
+	devman_exchange_end(exch);
+	return (int) retval;
+}
+
+int devman_drv_fun_offline(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_DRIVER);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	sysarg_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_OFFLINE, funh);
+	
+	devman_exchange_end(exch);
+	return (int) retval;
+}
+
 async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
     devman_handle_t handle, unsigned int flags)
 {
@@ -427,6 +451,30 @@ int devman_fun_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 {
 	return devman_get_str_internal(DEVMAN_FUN_GET_NAME, handle, buf,
 	    buf_size);
+}
+
+int devman_fun_online(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	sysarg_t retval = async_req_1_0(exch, DEVMAN_FUN_ONLINE, funh);
+	
+	devman_exchange_end(exch);
+	return (int) retval;
+}
+
+int devman_fun_offline(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	sysarg_t retval = async_req_1_0(exch, DEVMAN_FUN_OFFLINE, funh);
+	
+	devman_exchange_end(exch);
+	return (int) retval;
 }
 
 static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,

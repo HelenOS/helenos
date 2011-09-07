@@ -117,16 +117,21 @@ typedef struct driver_list {
 	fibril_mutex_t drivers_mutex;
 } driver_list_t;
 
-/** The state of the device. */
+/** Device state */
 typedef enum {
 	DEVICE_NOT_INITIALIZED = 0,
 	DEVICE_USABLE,
 	DEVICE_NOT_PRESENT,
-	DEVICE_INVALID
+	DEVICE_INVALID,
+	/** Device node has been removed from the tree */
+	DEVICE_REMOVED
 } device_state_t;
 
 /** Device node in the device tree. */
 struct dev_node {
+	/** Reference count */
+	atomic_t refcnt;
+	
 	/** The global unique identifier of the device. */
 	devman_handle_t handle;
 	
@@ -153,8 +158,22 @@ struct dev_node {
 	bool passed_to_driver;
 };
 
+/** Function state */
+typedef enum {
+	FUN_INIT = 0,
+	FUN_OFF_LINE,
+	FUN_ON_LINE,
+	/** Function node has been removed from the tree */
+	FUN_REMOVED
+} fun_state_t;
+
 /** Function node in the device tree. */
 struct fun_node {
+	/** Reference count */
+	atomic_t refcnt;
+	/** State */
+	fun_state_t state;
+	
 	/** The global unique identifier of the function */
 	devman_handle_t handle;
 	/** Name of the function, assigned by the device driver */
@@ -238,9 +257,14 @@ extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
 extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_node_t *, driver_t *);
+extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
+extern void detach_driver(dev_tree_t *, dev_node_t *);
 extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
+extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
+extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
+extern int driver_fun_online(dev_tree_t *, fun_node_t *);
+extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
@@ -253,6 +277,8 @@ extern void delete_driver(driver_t *);
 
 extern dev_node_t *create_dev_node(void);
 extern void delete_dev_node(dev_node_t *node);
+extern void dev_add_ref(dev_node_t *);
+extern void dev_del_ref(dev_node_t *);
 extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
@@ -262,17 +288,21 @@ extern int dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
 
 extern fun_node_t *create_fun_node(void);
 extern void delete_fun_node(fun_node_t *);
+extern void fun_add_ref(fun_node_t *);
+extern void fun_del_ref(fun_node_t *);
 extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
 extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
-extern fun_node_t *find_fun_node_in_device(dev_node_t *, const char *);
+extern fun_node_t *find_fun_node_in_device(dev_tree_t *tree, dev_node_t *,
+    const char *);
 
 /* Device tree */
 
 extern bool init_device_tree(dev_tree_t *, driver_list_t *);
 extern bool create_root_nodes(dev_tree_t *);
 extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
+extern void remove_dev_node(dev_tree_t *, dev_node_t *);
 extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
 extern void remove_fun_node(dev_tree_t *, fun_node_t *);
 

@@ -92,7 +92,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize USB/HID device.\n");
-		usb_hid_free(&hid_dev);
+		usb_hid_destroy(hid_dev);
 		return rc;
 	}	
 	

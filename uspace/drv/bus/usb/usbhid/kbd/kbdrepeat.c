@@ -79,8 +79,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 		// check if the kbd structure is usable
 		if (!usb_kbd_is_initialized(kbd)) {
 			if (usb_kbd_is_ready_to_destroy(kbd)) {
-				usb_kbd_free(&kbd);
-				assert(kbd == NULL);
+				usb_kbd_destroy(kbd);
 			}
 			return;
 		}

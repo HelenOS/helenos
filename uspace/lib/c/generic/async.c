@@ -1776,14 +1776,31 @@ static int async_hangup_internal(int phone)
  */
 int async_hangup(async_sess_t *sess)
 {
+	async_exch_t *exch;
+	
 	assert(sess);
 	
 	if (atomic_get(&sess->refcnt) > 0)
 		return EBUSY;
 	
+	fibril_mutex_lock(&async_sess_mutex);
+	
 	int rc = async_hangup_internal(sess->phone);
 	if (rc == EOK)
 		free(sess);
+	
+	while (!list_empty(&sess->exch_list)) {
+		exch = (async_exch_t *)
+		    list_get_instance(list_first(&sess->exch_list),
+		    async_exch_t, sess_link);
+		
+		list_remove(&exch->sess_link);
+		list_remove(&exch->global_link);
+		async_hangup_internal(exch->phone);
+		free(exch);
+	}
+	
+	fibril_mutex_unlock(&async_sess_mutex);
 	
 	return rc;
 }

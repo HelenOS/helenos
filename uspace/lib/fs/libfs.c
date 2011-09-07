@@ -836,7 +836,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	stat.is_file = ops->is_file(fn);
 	stat.is_directory = ops->is_directory(fn);
 	stat.size = ops->size_get(fn);
-	stat.service = ops->device_get(fn);
+	stat.service = ops->service_get(fn);
 	
 	ops->node_put(fn);
 	

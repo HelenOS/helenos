@@ -66,10 +66,14 @@
 #define VIRTUAL_FUN_MATCH_SCORE 100
 
 static int root_add_device(ddf_dev_t *dev);
+static int root_fun_online(ddf_fun_t *fun);
+static int root_fun_offline(ddf_fun_t *fun);
 
 /** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
-	.add_device = &root_add_device
+	.add_device = &root_add_device,
+	.fun_online = &root_fun_online,
+	.fun_offline = &root_fun_offline
 };
 
 /** The root device driver structure. */
@@ -211,6 +215,18 @@ static int root_add_device(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed adding child device for platform.");
 
 	return res;
+}
+
+static int root_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "root_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int root_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "root_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])
