@@ -52,13 +52,15 @@ typedef struct usb_endpoint_manager {
 	hash_table_t ep_table;
 	fibril_mutex_t guard;
 	size_t free_bw;
+	size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 } usb_endpoint_manager_t;
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth);
+    size_t available_bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
 
 void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
 

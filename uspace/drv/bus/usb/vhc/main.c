@@ -72,7 +72,8 @@ static int vhc_add_device(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 	data->magic = 0xDEADBEEF;
-	rc = usb_endpoint_manager_init(&data->ep_manager, (size_t) -1);
+	rc = usb_endpoint_manager_init(&data->ep_manager, (size_t) -1,
+	    bandwidth_count_usb11);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to initialize endpoint manager.\n");
 		free(data);

@@ -191,7 +191,8 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	usb_log_debug(
 	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
 
-	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11);
+	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
+	    bandwidth_count_usb11);
 	CHECK_RET_RETURN(ret, "Failed to initialize HCD generic driver: %s.\n",
 	    str_error(ret));
 

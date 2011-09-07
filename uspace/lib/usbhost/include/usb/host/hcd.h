@@ -52,11 +52,12 @@ struct hcd {
 	int (*ep_add_hook)(hcd_t *, endpoint_t *);
 };
 /*----------------------------------------------------------------------------*/
-static inline int hcd_init(hcd_t *hcd, size_t bandwidth)
+static inline int hcd_init(hcd_t *hcd, size_t bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(hcd);
 	usb_device_keeper_init(&hcd->dev_manager);
-	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth);
+	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
 }
 /*----------------------------------------------------------------------------*/
 static inline void hcd_destroy(hcd_t *hcd)

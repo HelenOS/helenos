@@ -139,11 +139,13 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 }
 /*----------------------------------------------------------------------------*/
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth)
+    size_t available_bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
 	instance->free_bw = available_bandwidth;
+	instance->bw_count = bw_count;
 	const bool ht =
 	    hash_table_create(&instance->ep_table, BUCKET_COUNT, MAX_KEYS, &op);
 	return ht ? EOK : ENOMEM;
@@ -157,10 +159,11 @@ void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance)
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
     endpoint_t *ep, size_t data_size)
 {
-	assert(ep);
-	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
-	    data_size, ep->max_packet_size);
 	assert(instance);
+	assert(instance->bw_count);
+	assert(ep);
+	const size_t bw = instance->bw_count(ep->speed, ep->transfer_type,
+	    data_size, ep->max_packet_size);
 
 	fibril_mutex_lock(&instance->guard);
 
