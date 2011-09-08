@@ -75,6 +75,7 @@ mfs_read_dentry(struct mfs_node *mnode,
 
 		d_info->d_inum = conv32(sbi->native, d3->d_inum);
 		memcpy(d_info->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
+		d_info->d_name[MFS3_MAX_NAME_LEN] = 0;
 	} else {
 		const int namelen = longnames ? MFS_L_MAX_NAME_LEN :
 				    MFS_MAX_NAME_LEN;
@@ -85,6 +86,7 @@ mfs_read_dentry(struct mfs_node *mnode,
 					    MFS_DIRSIZE);
 		d_info->d_inum = conv16(sbi->native, d->d_inum);
 		memcpy(d_info->d_name, d->d_name, namelen);
+		d_info->d_name[namelen] = 0;
 	}
 
 	r = block_put(b);
@@ -248,7 +250,8 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 
 	d_info.d_inum = d_inum;
 	memcpy(d_info.d_name, d_name, name_len);
-	d_info.d_name[name_len] = 0;
+	if (name_len < sbi->max_name_len)
+		d_info.d_name[name_len] = 0;
 
 	r = mfs_write_dentry(&d_info);
 out:
