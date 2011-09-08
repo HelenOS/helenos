@@ -94,8 +94,6 @@ static void rm_end(rm_job_t *rm)
 
 	if (NULL != rm->cwd)
 		free(rm->cwd);
-
-	return;
 }
 
 static unsigned int rm_recursive_not_empty_dirs(const char *path)
@@ -128,6 +126,8 @@ static unsigned int rm_recursive_not_empty_dirs(const char *path)
 			break;
 		}
 	}
+
+	closedir(dirp);
 	
 	return ret;
 }
