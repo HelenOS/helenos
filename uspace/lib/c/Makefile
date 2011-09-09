@@ -92,7 +92,6 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
-	generic/io/screenbuffer.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \

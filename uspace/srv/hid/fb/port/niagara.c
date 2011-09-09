@@ -28,90 +28,92 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup niagarafb
- * @brief	userland driver of the Niagara console output
- * @{
- */ 
 /** @file
  */
 
-#include <async.h>
-#include <sysinfo.h>
-#include <as.h>
+#include <sys/types.h>
 #include <errno.h>
-#include <stdio.h>
+#include <sysinfo.h>
 #include <ddi.h>
-
-#include "serial_console.h"
+#include <as.h>
+#include <align.h>
+#include "../ctl/serial.h"
 #include "niagara.h"
 
-#define WIDTH 80
-#define HEIGHT 24
+#define OUTPUT_FIFO_SIZE  ((PAGE_SIZE) - 2 * sizeof(uint64_t))
 
-/**
- * Virtual address mapped to the buffer shared with the kernel counterpart.
- */
-static uintptr_t output_buffer_addr;
-
-/*
- * Kernel counterpart of the driver reads characters to be printed from here.
- * Keep in sync with the definition from
- * kernel/arch/sparc64/src/drivers/niagara.c.
- */
-#define OUTPUT_BUFFER_SIZE	((PAGE_SIZE) - 2 * 8)
 typedef volatile struct {
 	uint64_t read_ptr;
 	uint64_t write_ptr;
-	char data[OUTPUT_BUFFER_SIZE];
-}
-	__attribute__ ((packed))
-	__attribute__ ((aligned(PAGE_SIZE)))
-	*output_buffer_t;
+	char data[OUTPUT_FIFO_SIZE];
+} __attribute__((packed)) output_fifo_t;
 
-output_buffer_t output_buffer;
+typedef struct {
+	output_fifo_t *fifo;
+} niagara_t;
 
-/**
- * Pushes the character to the Niagara serial.
- * @param c	character to be pushed
- */
-static void niagara_putc(char c)
+static niagara_t niagara;
+
+static void niagara_putc(const char c)
 {
-	while (output_buffer->write_ptr ==
-	       (output_buffer->read_ptr + OUTPUT_BUFFER_SIZE - 1)
-	       % OUTPUT_BUFFER_SIZE)
-		;
-	output_buffer->data[output_buffer->write_ptr] = (uint64_t) c;
-	output_buffer->write_ptr =
-		((output_buffer->write_ptr) + 1) % OUTPUT_BUFFER_SIZE;
+	while (niagara.fifo->write_ptr ==
+	    (niagara.fifo->read_ptr + OUTPUT_FIFO_SIZE - 1)
+	    % OUTPUT_FIFO_SIZE);
+	
+	niagara.fifo->data[niagara.fifo->write_ptr] = c;
+	niagara.fifo->write_ptr =
+	    ((niagara.fifo->write_ptr) + 1) % OUTPUT_FIFO_SIZE;
 }
 
-/**
- * Initializes the Niagara serial driver.
- */
+static void niagara_putchar(wchar_t ch)
+{
+	if ((ch >= 0) && (ch < 128))
+		niagara_putc(ch);
+	else
+		niagara_putc('?');
+}
+
+static void niagara_control_puts(const char *str)
+{
+	while (*str)
+		niagara_putc(*(str++));
+}
+
 int niagara_init(void)
 {
-	sysarg_t paddr;
-	if (sysinfo_get_value("niagara.outbuf.address", &paddr) != EOK)
-		return -1;
+	sysarg_t present;
+	int rc = sysinfo_get_value("fb", &present);
+	if (rc != EOK)
+		present = false;
 	
-	output_buffer_addr = (uintptr_t) as_get_mappable_page(PAGE_SIZE);
-	int result = physmem_map((void *) paddr,
-	    (void *) output_buffer_addr, 1,
+	if (!present)
+		return ENOENT;
+	
+	sysarg_t kind;
+	rc = sysinfo_get_value("fb.kind", &kind);
+	if (rc != EOK)
+		kind = (sysarg_t) -1;
+	
+	if (kind != 5)
+		return EINVAL;
+	
+	sysarg_t paddr;
+	rc = sysinfo_get_value("niagara.outbuf.address", &paddr);
+	if (rc != EOK)
+		return rc;
+	
+	niagara.fifo =
+	    (output_fifo_t *) as_get_mappable_page(sizeof(output_fifo_t));
+	if (niagara.fifo == NULL)
+		return ENOMEM;
+	
+	rc = physmem_map((void *) paddr, (void *) niagara.fifo, 1,
 	    AS_AREA_READ | AS_AREA_WRITE);
-
-	if (result != 0) {
-		printf("Niagara: uspace driver couldn't map physical memory: %d\n",
-			result);
-	}
-
-	output_buffer = (output_buffer_t) output_buffer_addr;
-
-	serial_console_init(niagara_putc, WIDTH, HEIGHT);
-	async_set_client_connection(serial_client_connection);
-	return 0;
+	if (rc != EOK)
+		return rc;
+	
+	return serial_init(niagara_putchar, niagara_control_puts);
 }
 
-/** 
- * @}
+/** @}
  */
- 

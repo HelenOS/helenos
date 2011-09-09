@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup skifb
- * @brief	HelenOS ski text console.
- * @ingroup fbs
- * @{
- */ 
 /** @file
  */
 
-#ifndef FB_SKI_H_
-#define FB_SKI_H_
+#ifndef FB_PORT_EGA_H_
+#define FB_PORT_EGA_H_
 
-extern int ski_init(void);
+extern int ega_init(void);
 
 #endif
 
 /** @}
  */
-

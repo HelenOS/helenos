@@ -42,6 +42,7 @@
  * This function converts the character to an appropriate
  * glyph in the font or returns an index to the question
  * mark glyph if no specific glyph exists.
+ *
  */
 uint16_t fb_font_glyph(const wchar_t ch)
 {

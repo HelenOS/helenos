@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2008 Pavel Rimsky
+ * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup niagarafb
- * @brief	userland driver of the Niagara console output
- * @{
- */
- 
 /** @file
  */
 
-#ifndef FB_NIAGARA_H_
-#define FB_NIAGARA_H_
+#ifndef FB_PORT_KCHAR_H_
+#define FB_PORT_KCHAR_H_
 
-int niagara_init(void);
+extern int kchar_init(void);
 
 #endif
 
-/** 
- * @}
+/** @}
  */

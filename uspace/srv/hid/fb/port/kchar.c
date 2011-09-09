@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +27,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
- */
 /** @file
  */
 
-#ifndef LIBC_FB_H_
-#define LIBC_FB_H_
+#include <sys/types.h>
+#include <errno.h>
+#include <sysinfo.h>
+#include <ddi.h>
+#include <as.h>
+#include <align.h>
+#include "../ctl/serial.h"
+#include "kchar.h"
 
-#include <ipc/common.h>
+typedef struct {
+	uint8_t *addr;
+} kchar_t;
 
-typedef enum {
-	FB_PUTCHAR = IPC_FIRST_USER_METHOD,
-	FB_CLEAR,
-	FB_GET_CSIZE,
-	FB_GET_COLOR_CAP,
-	FB_CURSOR_VISIBILITY,
-	FB_CURSOR_GOTO,
-	FB_SCROLL,
-	FB_VIEWPORT_SWITCH,
-	FB_VIEWPORT_CREATE,
-	FB_VIEWPORT_DELETE,
-	FB_SET_STYLE,
-	FB_SET_COLOR,
-	FB_SET_RGB_COLOR,
-	FB_GET_RESOLUTION,
-	FB_DRAW_TEXT_DATA,
-	FB_FLUSH,
-	FB_DRAW_IMGMAP,
-	FB_PREPARE_SHM,
-	FB_DROP_SHM,
-	FB_SHM2IMGMAP,
-	FB_VP_DRAW_IMGMAP,
-	FB_VP2IMGMAP,
-	FB_DROP_IMGMAP,
-	FB_ANIM_CREATE,
-	FB_ANIM_DROP,
-	FB_ANIM_ADDIMGMAP,
-	FB_ANIM_CHGVP,
-	FB_ANIM_START,
-	FB_ANIM_STOP,
-	FB_POINTER_MOVE,
-	FB_SCREEN_YIELD,
-	FB_SCREEN_RECLAIM
-} fb_request_t;
+static kchar_t kchar;
 
-enum {
-	FB_CCAP_NONE = 0,
-	FB_CCAP_STYLE,
-	FB_CCAP_INDEXED,
-	FB_CCAP_RGB
-};
+static void kchar_putchar(wchar_t ch)
+{
+	if ((ch >= 0) && (ch < 128))
+		*kchar.addr = ch;
+	else
+		*kchar.addr = '?';
+}
 
-#endif
+static void kchar_control_puts(const char *str)
+{
+	while (*str)
+		*kchar.addr = *(str++);
+}
+
+int kchar_init(void)
+{
+	sysarg_t present;
+	int rc = sysinfo_get_value("fb", &present);
+	if (rc != EOK)
+		present = false;
+	
+	if (!present)
+		return ENOENT;
+	
+	sysarg_t kind;
+	rc = sysinfo_get_value("fb.kind", &kind);
+	if (rc != EOK)
+		kind = (sysarg_t) -1;
+	
+	if (kind != 3)
+		return EINVAL;
+	
+	sysarg_t paddr;
+	rc = sysinfo_get_value("fb.address.physical", &paddr);
+	if (rc != EOK)
+		return rc;
+	
+	kchar.addr = as_get_mappable_page(1);
+	if (kchar.addr == NULL)
+		return ENOMEM;
+	
+	rc = physmem_map((void *) paddr, kchar.addr,
+	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	if (rc != EOK)
+		return rc;
+	
+	return serial_init(kchar_putchar, kchar_control_puts);
+}
 
 /** @}
  */

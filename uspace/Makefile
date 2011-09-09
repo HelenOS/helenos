@@ -185,7 +185,7 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
-	lib/imgmap \
+	lib/fb \
 	lib/net \
 	lib/ext2 \
 	lib/usb \

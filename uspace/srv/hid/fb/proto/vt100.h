@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen
- * @brief HelenOS generic uspace keyboard handler.
- * @ingroup kbd
- * @{
- */
 /** @file
  */
 
-#ifndef __KEYBUFFER_H__
-#define __KEYBUFFER_H__
+#ifndef FB_PROTO_VT100_H_
+#define FB_PROTO_VT100_H_
 
 #include <sys/types.h>
-#include <io/console.h>
-#include <bool.h>
+#include <screenbuffer.h>
 
-/** Size of buffer for pressed keys */
-#define KEYBUFFER_SIZE  128
+typedef void (* vt100_putchar_t)(wchar_t ch);
+typedef void (* vt100_control_puts_t)(const char *str);
 
-typedef struct {
-	kbd_event_t fifo[KEYBUFFER_SIZE];
-	size_t head;
-	size_t tail;
-	size_t items;
-} keybuffer_t;
+/** Forward declaration */
+struct vt100_state;
+typedef struct vt100_state vt100_state_t;
 
-extern void keybuffer_free(keybuffer_t *);
-extern void keybuffer_init(keybuffer_t *);
-extern size_t keybuffer_available(keybuffer_t *);
-extern bool keybuffer_empty(keybuffer_t *);
-extern void keybuffer_push(keybuffer_t *, const kbd_event_t *);
-extern bool keybuffer_pop(keybuffer_t *, kbd_event_t *);
+extern vt100_state_t *vt100_state_create(sysarg_t, sysarg_t, vt100_putchar_t,
+    vt100_control_puts_t);
+extern void vt100_get_resolution(vt100_state_t *, sysarg_t *, sysarg_t *);
+extern int vt100_yield(vt100_state_t *);
+extern int vt100_claim(vt100_state_t *);
+
+extern void vt100_putchar(vt100_state_t *, wchar_t);
+
+extern void vt100_set_attr(vt100_state_t *, char_attrs_t);
+extern void vt100_goto(vt100_state_t *, sysarg_t, sysarg_t);
+extern void vt100_cursor_visibility(vt100_state_t *, bool);
 
 #endif
 
-/**
- * @}
+/** @}
  */

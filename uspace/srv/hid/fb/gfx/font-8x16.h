@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup console
+/** @addtogroup genarch
  * @{
  */
 /** @file
  */
 
-#ifndef GCONS_H_
-#define GCONS_H_
+#ifndef FONT_8X16_H_
+#define FONT_8X16_H_
 
 #include <sys/types.h>
 
-void gcons_init(int);
+#define FONT_GLYPHS     2899
+#define FONT_WIDTH      8
+#define FONT_SCANLINES  16
 
-void gcons_redraw_console(void);
-void gcons_change_console(size_t);
-void gcons_notify_char(size_t);
-void gcons_in_kernel(void);
-
-void gcons_notify_connect(size_t);
-void gcons_notify_disconnect(size_t);
-
-void gcons_mouse_move(ssize_t, ssize_t);
-int gcons_mouse_btn(bool state);
+extern uint16_t fb_font_glyph(const wchar_t);
+extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif
 

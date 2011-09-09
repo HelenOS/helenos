@@ -26,18 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup egafb
- * @brief HelenOS EGA framebuffer.
+/** @addtogroup fb
  * @ingroup fbs
  * @{
  */
 /** @file
  */
 
-#ifndef FB_EGA_H_
-#define FB_EGA_H_
+#ifndef FB_PORT_KFB_H_
+#define FB_PORT_KFB_H_
 
-extern int ega_init(void);
+extern int kfb_init(void);
 
 #endif
 

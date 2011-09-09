@@ -43,11 +43,14 @@ typedef enum {
 	COLOR_RED     = 4,
 	COLOR_MAGENTA = 5,
 	COLOR_YELLOW  = 6,
-	COLOR_WHITE   = 7,
-	
-	CATTR_BRIGHT  = 8,
-	CATTR_BLINK   = 8
+	COLOR_WHITE   = 7
 } console_color_t;
+
+typedef enum {
+	CATTR_NORMAL = 0,
+	CATTR_BRIGHT = 8,
+	CATTR_BLINK  = 16
+} console_color_attr_t;
 
 #endif
 

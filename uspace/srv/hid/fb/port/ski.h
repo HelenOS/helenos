@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,51 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup msimfb MSIM text console
- * @brief HelenOS MSIM text console.
- * @ingroup fbs
- * @{
- */
 /** @file
  */
 
-#include <async.h>
-#include <libc.h>
-#include <sysinfo.h>
-#include <as.h>
-#include <ddi.h>
-#include <errno.h>
+#ifndef FB_PORT_SKI_H_
+#define FB_PORT_SKI_H_
 
-#include "serial_console.h"
-#include "msim.h"
+extern int ski_init(void);
 
-#define WIDTH 80
-#define HEIGHT 24
-
-static char *virt_addr;
-
-static void msim_putc(const char c)
-{
-	*virt_addr = c;
-}
-
-int msim_init(void)
-{
-	sysarg_t phys_addr;
-	if (sysinfo_get_value("fb.address.physical", &phys_addr) != EOK)
-		return -1;
-	
-	virt_addr = (char *) as_get_mappable_page(1);
-	
-	if (physmem_map((void *) phys_addr, virt_addr, 1,
-	    AS_AREA_READ | AS_AREA_WRITE) != 0)
-		return -1;
-	
-	serial_console_init(msim_putc, WIDTH, HEIGHT);
-	
-	async_set_client_connection(serial_client_connection);
-	return 0;
-}
+#endif
 
 /** @}
  */

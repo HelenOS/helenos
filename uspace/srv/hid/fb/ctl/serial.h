@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup imgmap
- * @{
- */
-/**
- * @file
+/** @file
  */
 
-#ifndef IMGMAP_IMGMAP_H_
-#define IMGMAP_IMGMAP_H_
+#ifndef FB_CTL_SERIAL_H_
+#define FB_CTL_SERIAL_H_
 
-#include <sys/types.h>
-#include <abi/fb/visuals.h>
+#include "../proto/vt100.h"
 
-typedef struct {
-	size_t size;
-	sysarg_t width;
-	sysarg_t height;
-	visual_t visual;
-	uint8_t data[];
-} imgmap_t;
-
-extern imgmap_t *imgmap_decode_tga(void *, size_t);
+extern int serial_init(vt100_putchar_t, vt100_control_puts_t);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FB_MAIN_H_
-#define FB_MAIN_H_
+/** @file
+ */
 
-extern void receive_comm_area(ipc_callid_t, ipc_call_t *, void **);
+#ifndef FB_PORT_NIAGARA_H_
+#define FB_PORT_NIAGARA_H_
+
+extern int niagara_init(void);
 
 #endif
+
+/**
+ * @}
+ */

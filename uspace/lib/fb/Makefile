@@ -27,9 +27,11 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libimgmap
+LIBRARY = libfb
 
 SOURCES = \
-	imgmap.c
+	fb.c \
+	imgmap.c \
+	screenbuffer.c
 
 include $(USPACE_PREFIX)/Makefile.common

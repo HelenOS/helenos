@@ -75,7 +75,7 @@ const char *test_console1(void)
 		for (j = 0; j < 2; j++) {
 			for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
 				console_flush(console);
-				console_set_color(console, i, COLOR_WHITE,
+				console_set_color(console, COLOR_WHITE, i,
 				    j ? CATTR_BRIGHT : 0);
 				printf(" %s ", color_name[i]);
 			}
@@ -88,7 +88,7 @@ const char *test_console1(void)
 		for (j = 0; j < 2; j++) {
 			for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
 				console_flush(console);
-				console_set_color(console, COLOR_WHITE, i,
+				console_set_color(console, i, COLOR_WHITE,
 				    j ? CATTR_BRIGHT : 0);
 				printf(" %s ", color_name[i]);
 			}
@@ -101,25 +101,25 @@ const char *test_console1(void)
 		
 		for (i = 0; i < 255; i += 16) {
 			console_flush(console);
-			console_set_rgb_color(console, (255 - i) << 16, i << 16);
+			console_set_rgb_color(console, i << 16, (255 - i) << 16);
 			putchar('X');
 		}
 		console_flush(console);
-		console_set_color(console, COLOR_BLACK, COLOR_WHITE, 0);
+		console_set_color(console, COLOR_WHITE, COLOR_BLACK, 0);
 		putchar('\n');
 		
 		for (i = 0; i < 255; i += 16) {
 			console_flush(console);
-			console_set_rgb_color(console, (255 - i) << 8, i << 8);
+			console_set_rgb_color(console, i << 8, (255 - i) << 8);
 			putchar('X');
 		}
 		console_flush(console);
-		console_set_color(console, COLOR_BLACK, COLOR_WHITE, 0);
+		console_set_color(console, COLOR_WHITE, COLOR_BLACK, 0);
 		putchar('\n');
 		
 		for (i = 0; i < 255; i += 16) {
 			console_flush(console);
-			console_set_rgb_color(console, 255 - i, i);
+			console_set_rgb_color(console, i, 255 - i);
 			putchar('X');
 		}
 		console_flush(console);
