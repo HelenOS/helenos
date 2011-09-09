@@ -71,7 +71,7 @@ typedef struct list {
 	    iterator != &(list).head; iterator = iterator->next)
 
 #define assert_link_not_used(link) \
-	ASSERT((link)->prev == NULL && (link)->next == NULL)
+	ASSERT(((link)->prev == NULL) && ((link)->next == NULL))
 
 /** Initialize doubly-linked circular list link
  *
@@ -157,8 +157,11 @@ NO_TRACE static inline void list_append(link_t *link, list_t *list)
  */
 NO_TRACE static inline void list_remove(link_t *link)
 {
-	link->next->prev = link->prev;
-	link->prev->next = link->next;
+	if ((link->prev != NULL) && (link->next != NULL)) {
+		link->next->prev = link->prev;
+		link->prev->next = link->next;
+	}
+	
 	link_initialize(link);
 }
 

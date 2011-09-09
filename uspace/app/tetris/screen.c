@@ -94,8 +94,8 @@ static inline void putstr(const char *s)
 static void start_standout(uint32_t color)
 {
 	console_flush(console);
-	console_set_rgb_color(console, 0xffffff,
-	    use_color ? color : 0x000000);
+	console_set_rgb_color(console, use_color ? color : 0x000000,
+	    0xffffff);
 }
 
 static void resume_normal(void)
@@ -152,7 +152,7 @@ static bool get_display_color_sup(void)
 	if (rc != 0)
 		return false;
 	
-	return (ccap >= CONSOLE_CCAP_RGB);
+	return ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);
 }
 
 /*

@@ -26,6 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# Just for this Makefile. Sub-makes will run in parallel if requested.
+.NOTPARALLEL:
+
 CSCOPE = cscope
 CHECK = tools/check.sh
 CONFIG = tools/config.py
@@ -65,19 +68,13 @@ endif
 
 # Autotool (detects compiler features)
 
-$(COMMON_MAKEFILE): autotool
-$(COMMON_HEADER): autotool
-
-autotool: $(CONFIG_MAKEFILE)
+autotool $(COMMON_MAKEFILE) $(COMMON_HEADER): $(CONFIG_MAKEFILE)
 	$(AUTOTOOL)
 	-[ -f $(COMMON_HEADER_PREV) ] && diff -q $(COMMON_HEADER_PREV) $(COMMON_HEADER) && mv -f $(COMMON_HEADER_PREV) $(COMMON_HEADER)
 
 # Build-time configuration
 
-$(CONFIG_MAKEFILE): config_default
-$(CONFIG_HEADER): config_default
-
-config_default: $(CONFIG_RULES)
+config_default $(CONFIG_MAKEFILE) $(CONFIG_HEADER): $(CONFIG_RULES)
 ifeq ($(HANDS_OFF),y)
 	$(CONFIG) $< hands-off $(PROFILE)
 else
@@ -99,6 +96,7 @@ release:
 
 distclean: clean
 	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
+	cd ./uspace/app/binutils/; ./distclean.sh
 
 clean:
 	rm -fr $(SANDBOX)

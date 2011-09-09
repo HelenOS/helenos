@@ -47,14 +47,10 @@
 #include <errno.h>
 #include <ipc/adb.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <assert.h>
 #include "cuda_adb.h"
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
-
-#define NAME "cuda_adb"
+#define NAME  "cuda_adb"
 
 static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int cuda_init(void);
@@ -153,7 +149,7 @@ int main(int argc, char *argv[])
 	printf(NAME ": VIA-CUDA Apple Desktop Bus driver\n");
 
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
-		adb_dev[i].client_phone = -1;
+		adb_dev[i].client_sess = NULL;
 		adb_dev[i].service_id = 0;
 	}
 
@@ -198,7 +194,6 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_call_t call;
 	sysarg_t method;
 	service_id_t dsid;
-	int retval;
 	int dev_addr, i;
 
 	/* Get the device handle. */
@@ -219,7 +214,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	async_answer_0(iid, EOK);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
 		
@@ -229,29 +224,26 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			return;
 		}
 		
-		switch (method) {
-		case IPC_M_CONNECT_TO_ME:
-			if (adb_dev[dev_addr].client_phone != -1) {
-				retval = ELIMIT;
-				break;
-			}
-			adb_dev[dev_addr].client_phone = IPC_GET_ARG5(call);
-			/*
-			 * A hack so that we send the data to the phone
-			 * regardless of which address the device is on.
-			 */
-			for (i = 0; i < ADB_MAX_ADDR; ++i) {
-				if (adb_dev[i].service_id == dsid) {
-					adb_dev[i].client_phone = IPC_GET_ARG5(call);
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
+		if (sess != NULL) {
+			if (adb_dev[dev_addr].client_sess == NULL) {
+				adb_dev[dev_addr].client_sess = sess;
+				
+				/*
+				 * A hack so that we send the data to the session
+				 * regardless of which address the device is on.
+				 */
+				for (i = 0; i < ADB_MAX_ADDR; ++i) {
+					if (adb_dev[i].service_id == dsid)
+						adb_dev[i].client_sess = sess;
 				}
-			}
-			retval = 0;
-			break;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
+				
+				async_answer_0(callid, EOK);
+			} else
+				async_answer_0(callid, ELIMIT);
+		} else
+			async_answer_0(callid, EINVAL);
 	}
 }
 
@@ -482,10 +474,13 @@ static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
 
 	reg_val = ((uint16_t) data[1] << 8) | (uint16_t) data[2];
 
-	if (adb_dev[dev_addr].client_phone == -1)
+	if (adb_dev[dev_addr].client_sess == NULL)
 		return;
 
-	async_obsolete_msg_1(adb_dev[dev_addr].client_phone, ADB_REG_NOTIF, reg_val);
+	async_exch_t *exch =
+	    async_exchange_begin(adb_dev[dev_addr].client_sess);
+	async_msg_1(exch, ADB_REG_NOTIF, reg_val);
+	async_exchange_end(exch);
 }
 
 static void cuda_autopoll_set(bool enable)

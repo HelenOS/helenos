@@ -653,7 +653,7 @@ static int _unlink(const char *path, int lflag)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_0(exch, VFS_IN_UNLINK, NULL);
+	req = async_send_1(exch, VFS_IN_UNLINK, lflag, NULL);
 	rc = async_data_write_start(exch, pa, pa_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
