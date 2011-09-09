@@ -42,7 +42,6 @@
 #include <io/console.h>
 #include <ipc/kbdev.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 
@@ -69,9 +68,6 @@
 #include "kbdrepeat.h"
 
 #include "../usbhid.h"
-
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
 
 /*----------------------------------------------------------------------------*/
 
@@ -166,7 +162,7 @@ static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
  * Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
- * assumes the caller is the console and thus it stores IPC phone to it for 
+ * assumes the caller is the console and thus it stores IPC session to it for
  * later use by the driver to notify about key events.
  *
  * @param fun Device function handling the call.
@@ -177,41 +173,39 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
-	int callback;
 	
-	usb_kbd_t *kbd_dev = (usb_kbd_t *)fun->driver_data;
+	usb_kbd_t *kbd_dev = (usb_kbd_t *) fun->driver_data;
 	if (kbd_dev == NULL) {
 		usb_log_debug("default_connection_handler: "
 		    "Missing parameter.\n");
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-
-	switch (method) {
-	case IPC_M_CONNECT_TO_ME:
-		callback = IPC_GET_ARG5(*icall);
-
-		if (kbd_dev->console_phone != -1) {
+	
+	async_sess_t *sess =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	if (sess != NULL) {
+		if (kbd_dev->console_sess == NULL) {
+			kbd_dev->console_sess = sess;
+			usb_log_debug("default_connection_handler: OK\n");
+			async_answer_0(icallid, EOK);
+		} else {
 			usb_log_debug("default_connection_handler: "
-			    "console phone already set\n");
+			    "console session already set\n");
 			async_answer_0(icallid, ELIMIT);
-			return;
 		}
-
-		kbd_dev->console_phone = callback;
-		
-		usb_log_debug("default_connection_handler: OK\n");
-		async_answer_0(icallid, EOK);
-		break;
-	case KBDEV_SET_IND:
-		kbd_dev->mods = IPC_GET_ARG1(*icall);
-		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
-		async_answer_0(icallid, EOK);
-		break;
-	default:
-		usb_log_debug("default_connection_handler: Wrong function.\n");
-		async_answer_0(icallid, EINVAL);
-		break;
+	} else {
+		switch (method) {
+		case KBDEV_SET_IND:
+			kbd_dev->mods = IPC_GET_ARG1(*icall);
+			usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
+			async_answer_0(icallid, EOK);
+			break;
+		default:
+			usb_log_debug("default_connection_handler: Wrong function.\n");
+			async_answer_0(icallid, EINVAL);
+			break;
+		}
 	}
 }
 
@@ -300,13 +294,15 @@ void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type,
     unsigned int key)
 {
 	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
-	if (kbd_dev->console_phone < 0) {
+	if (kbd_dev->console_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 	
-	async_obsolete_msg_2(kbd_dev->console_phone, KBDEV_EVENT, type, key);
+	async_exch_t *exch = async_exchange_begin(kbd_dev->console_sess);
+	async_msg_2(exch, KBDEV_EVENT, type, key);
+	async_exchange_end(exch);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -509,7 +505,7 @@ static usb_kbd_t *usb_kbd_new(void)
 		return NULL;
 	}
 	
-	kbd_dev->console_phone = -1;
+	kbd_dev->console_sess = NULL;
 	kbd_dev->initialized = USB_KBD_STATUS_UNINITIALIZED;
 	
 	return kbd_dev;
@@ -784,8 +780,8 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 		return;
 	}
 	
-	// hangup phone to the console
-	async_obsolete_hangup(kbd_dev->console_phone);
+	// hangup session to the console
+	async_hangup(kbd_dev->console_sess);
 	
 	if (kbd_dev->repeat_mtx != NULL) {
 		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));

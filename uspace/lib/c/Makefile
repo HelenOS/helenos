@@ -96,9 +96,7 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/ns.c \
-	generic/ns_obsolete.c \
 	generic/async.c \
-	generic/async_obsolete.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.c \

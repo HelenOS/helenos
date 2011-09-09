@@ -95,11 +95,11 @@ typedef enum {
 } exch_mgmt_t;
 
 /** Forward declarations */
-struct _async_exch;
-struct _async_sess;
+struct async_exch;
+struct async_sess;
 
-typedef struct _async_sess async_sess_t;
-typedef struct _async_exch async_exch_t;
+typedef struct async_sess async_sess_t;
+typedef struct async_exch async_exch_t;
 
 extern atomic_t threads_in_ipc_wait;
 
