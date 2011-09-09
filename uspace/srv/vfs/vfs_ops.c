@@ -223,8 +223,14 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 		return;
 	}
 	
-	vfs_exchange_release(exch);
+	/*
+	 * Wait for the answer before releasing the exchange to avoid deadlock
+	 * in case the answer depends on further calls to the same file system.
+	 * Think of a case when mounting a FS on a file_bd backed by a file on
+	 * the same FS. 
+	 */
 	async_wait_for(msg, &rc);
+	vfs_exchange_release(exch);
 	
 	if (rc == EOK) {
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
