@@ -893,6 +893,8 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 	console_caps_t ccaps;
 	fb_vp_get_caps(fb_sess, console_vp, &ccaps);
 	
+	mouse.x = xres / 2;
+	mouse.y = yres / 2;
 	mouse.pressed = false;
 	
 	/* Inititalize consoles */
