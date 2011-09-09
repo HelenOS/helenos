@@ -512,7 +512,7 @@ mfs_node_put(fs_node_t *fsnode)
 		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
 		assert(mnode->instance->open_nodes_cnt > 0);
 		mnode->instance->open_nodes_cnt--;
-		rc = mfs_put_inode_core(mnode);
+		rc = mfs_put_inode(mnode);
 		free(mnode->ino_i);
 		free(mnode);
 		free(fsnode);
