@@ -1,1 +1,1 @@
-/home/jirkazr/HelenOS_pcc/uspace/app/pcc/config.h
+../../config.h
