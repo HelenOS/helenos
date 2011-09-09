@@ -467,12 +467,7 @@ found:
 
 static aoff64_t mfs_size_get(fs_node_t *node)
 {
-	assert(node);
-
 	const struct mfs_node *mnode = node->data;
-	assert(mnode);
-	assert(mnode->ino_i);
-
 	return mnode->ino_i->i_size;
 }
 
@@ -534,8 +529,6 @@ static int mfs_node_open(fs_node_t *fsnode)
 static fs_index_t mfs_index_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
-
-	assert(mnode->ino_i);
 	return mnode->ino_i->index;
 }
 

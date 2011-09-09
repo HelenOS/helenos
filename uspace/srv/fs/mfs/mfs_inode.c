@@ -84,7 +84,6 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 	int i, r;
 
 	sbi = instance->sbi;
-	assert(sbi);
 
 	/*inode 0 does not exist*/
 	inum -= 1;
@@ -149,7 +148,6 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 	}
 
 	sbi = instance->sbi;
-	assert(sbi);
 
 	/*inode 0 does not exist*/
 	inum -= 1;
@@ -203,16 +201,11 @@ mfs_put_inode(struct mfs_node *mnode)
 {
 	int rc = EOK;
 
-	assert(mnode);
-	assert(mnode->ino_i);
-
 	if (!mnode->ino_i->dirty)
 		goto out;
 
 	struct mfs_instance *inst = mnode->instance;
-	assert(inst);
 	struct mfs_sb_info *sbi = inst->sbi;
-	assert(sbi);
 
 	if (sbi->fs_version == MFS_VERSION_V1)
 		rc = mfs_write_inode_raw(mnode);
