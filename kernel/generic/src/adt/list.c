@@ -48,7 +48,7 @@
  * @param link	Item to look for.
  * @param list	List to look in.
  *
- * @return true if link is contained in head, false otherwise.
+ * @return true if link is contained in list, false otherwise.
  *
  */
 int list_member(const link_t *link, const list_t *list)
