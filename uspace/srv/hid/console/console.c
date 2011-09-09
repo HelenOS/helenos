@@ -59,7 +59,7 @@
 #define CONSOLE_TOP     66
 #define CONSOLE_MARGIN  12
 
-#define STATE_START   110
+#define STATE_START   100
 #define STATE_TOP     8
 #define STATE_SPACE   4
 #define STATE_WIDTH   48
@@ -367,7 +367,8 @@ static void cons_mouse_move(sysarg_t dx, sysarg_t dy)
 
 static console_t *cons_find_icon(sysarg_t x, sysarg_t y)
 {
-	sysarg_t status_start = STATE_START + (xres - 800) / 2;
+	sysarg_t status_start =
+	    STATE_START + (xres - 800) / 2 + CONSOLE_MARGIN;
 	
 	if ((y < STATE_TOP) || (y >= STATE_TOP + STATE_HEIGHT))
 		return NULL;
@@ -378,7 +379,7 @@ static console_t *cons_find_icon(sysarg_t x, sysarg_t y)
 	if (x >= status_start + (STATE_WIDTH + STATE_SPACE) * CONSOLE_COUNT)
 		return NULL;
 	
-	if (((x - status_start) % (STATE_WIDTH + STATE_SPACE)) < STATE_SPACE)
+	if (((x - status_start) % (STATE_WIDTH + STATE_SPACE)) >= STATE_WIDTH)
 		return NULL;
 	
 	sysarg_t btn = (x - status_start) / (STATE_WIDTH + STATE_SPACE);
