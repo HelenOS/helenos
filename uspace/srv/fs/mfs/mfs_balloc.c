@@ -121,9 +121,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	unsigned *search;
 	block_t *b;
 
-	assert(inst != NULL);
 	sbi = inst->sbi;
-	assert(sbi != NULL);
 
 	if (bid == BMAP_ZONE) {
 		search = &sbi->zsearch;
@@ -191,9 +189,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 	unsigned bits_per_block;
 	int r, freebit;
 
-	assert(inst != NULL);
 	sbi = inst->sbi;
-	assert(sbi != NULL);
 
 	if (bid == BMAP_ZONE) {
 		search = &sbi->zsearch;

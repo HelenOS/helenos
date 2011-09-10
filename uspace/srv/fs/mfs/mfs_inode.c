@@ -47,7 +47,15 @@ static int
 mfs2_read_inode_raw(const struct mfs_instance *instance,
 		struct mfs_ino_info **ino_ptr, uint32_t inum);
 
-
+/**Read a MINIX inode from disk
+ *
+ * @param inst		Pointer to the filesystem instance.
+ * @param ino_i		Pointer to the generic MINIX inode
+ * 			where the inode content will be stored.
+ * @param index		index of the inode to read.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	  fs_index_t index)
@@ -76,7 +84,6 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 	int i, r;
 
 	sbi = instance->sbi;
-	assert(sbi);
 
 	/*inode 0 does not exist*/
 	inum -= 1;
@@ -141,7 +148,6 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 	}
 
 	sbi = instance->sbi;
-	assert(sbi);
 
 	/*inode 0 does not exist*/
 	inum -= 1;
@@ -184,21 +190,22 @@ out_err:
 	return EOK;
 }
 
+/**Write a MINIX inode on disk (if marked as dirty)
+ *
+ * @param mnode		Pointer to the generic MINIX inode in memory.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
-mfs_put_inode_core(struct mfs_node *mnode)
+mfs_put_inode(struct mfs_node *mnode)
 {
 	int rc = EOK;
-
-	assert(mnode);
-	assert(mnode->ino_i);
 
 	if (!mnode->ino_i->dirty)
 		goto out;
 
 	struct mfs_instance *inst = mnode->instance;
-	assert(inst);
 	struct mfs_sb_info *sbi = inst->sbi;
-	assert(sbi);
 
 	if (sbi->fs_version == MFS_VERSION_V1)
 		rc = mfs_write_inode_raw(mnode);
@@ -298,6 +305,13 @@ out:
 	return r;
 }
 
+/**Reduce the inode size of a given number of bytes
+ *
+ * @param mnode		Pointer to the generic MINIX inode in memory.
+ * @param size_shrink	Number of bytes that will be subtracted to the inode.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 {

@@ -52,7 +52,12 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
 /**Given the position in the file expressed in
  *bytes, this function returns the on-disk block
  *relative to that position.
- *Returns zero if the block does not exist.
+ *
+ * @param b	Pointer to a 32bit number where the block number will be stored
+ * @param mnode	Pointer to a generic MINIX inode in memory.
+ * @param pos	Position in file.
+ *
+ * @return	EOK on success or a negative error code.
  */
 int
 mfs_read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
@@ -226,7 +231,13 @@ out_free_ind1:
 	return r;
 }
 
-/*Free unused indirect zones*/
+/**Free unused indirect zones from a MINIX inode according to it's new size.
+ *
+ * @param mnode		Pointer to a generic MINIX inode in memory.
+ * @param new_size	The new size of the inode.
+ *
+ * @return		EOK on success or a negative error code.
+ */
 int
 mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 {
@@ -238,6 +249,8 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 
 	mfs_version_t fs_version = sbi->fs_version;
 	
+	assert(new_size <= ino_i->i_size);
+
 	if (fs_version == MFS_VERSION_V1) {
 		nr_direct = V1_NR_DIRECT_ZONES;
 		ptrs_per_block = MFS_BLOCKSIZE / sizeof(uint16_t);
