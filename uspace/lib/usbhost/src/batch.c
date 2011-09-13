@@ -43,7 +43,7 @@ usb_transfer_batch_t * usb_transfer_batch_get(
     endpoint_t *ep,
     char *buffer,
     size_t buffer_size,
-    char setup_buffer[USB_SETUP_PACKET_SIZE],
+    uint64_t setup_buffer,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
@@ -67,8 +67,7 @@ usb_transfer_batch_t * usb_transfer_batch_get(
 		instance->transfered_size = 0;
 		instance->error = EOK;
 		if (ep && ep->transfer_type == USB_TRANSFER_CONTROL) {
-			assert(setup_buffer);
-			memcpy(instance->setup_buffer, setup_buffer,
+			memcpy(instance->setup_buffer, &setup_buffer,
 			    USB_SETUP_PACKET_SIZE);
 			instance->setup_size = USB_SETUP_PACKET_SIZE;
 		}
