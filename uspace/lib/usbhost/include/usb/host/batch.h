@@ -40,6 +40,8 @@
 #include <usb/usb.h>
 #include <usb/host/endpoint.h>
 
+#define USB_SETUP_PACKET_SIZE 8
+
 typedef struct usb_transfer_batch usb_transfer_batch_t;
 struct usb_transfer_batch {
 	endpoint_t *ep;
@@ -48,7 +50,7 @@ struct usb_transfer_batch {
 	void *arg;
 	char *buffer;
 	size_t buffer_size;
-	char *setup_buffer;
+	char setup_buffer[USB_SETUP_PACKET_SIZE];
 	size_t setup_size;
 	size_t transfered_size;
 	int error;
@@ -75,8 +77,7 @@ usb_transfer_batch_t * usb_transfer_batch_get(
     endpoint_t *ep,
     char *buffer,
     size_t buffer_size,
-    char *setup_buffer,
-    size_t setup_size,
+    char setup_buffer[USB_SETUP_PACKET_SIZE],
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
