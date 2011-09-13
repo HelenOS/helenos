@@ -72,10 +72,8 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	usbhc_iface_funcs_t ipc_method;
 	switch (pipe->transfer_type) {
 		case USB_TRANSFER_INTERRUPT:
-			ipc_method = IPC_M_USBHC_INTERRUPT_IN;
-			break;
 		case USB_TRANSFER_BULK:
-			ipc_method = IPC_M_USBHC_BULK_IN;
+			ipc_method = IPC_M_USBHC_DATA_READ;
 			break;
 		default:
 			return ENOTSUP;
@@ -220,10 +218,8 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	usbhc_iface_funcs_t ipc_method;
 	switch (pipe->transfer_type) {
 		case USB_TRANSFER_INTERRUPT:
-			ipc_method = IPC_M_USBHC_INTERRUPT_OUT;
-			break;
 		case USB_TRANSFER_BULK:
-			ipc_method = IPC_M_USBHC_BULK_OUT;
+			ipc_method = IPC_M_USBHC_DATA_WRITE;
 			break;
 		default:
 			return ENOTSUP;
