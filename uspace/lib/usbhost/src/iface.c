@@ -40,7 +40,7 @@
 
 static inline int send_batch(
     ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
-    void *data, size_t size, void * setup_data, size_t setup_size,
+    void *data, size_t size, void * setup_data,
     usbhc_iface_transfer_in_callback_t in,
     usbhc_iface_transfer_out_callback_t out, void *arg, const char* name)
 {
@@ -235,7 +235,7 @@ static int interrupt_out(
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	return send_batch(fun, target, USB_DIRECTION_OUT, data, size,
-	    NULL, 0, NULL, callback, arg, "Interrupt OUT");
+	    NULL, NULL, callback, arg, "Interrupt OUT");
 }
 /*----------------------------------------------------------------------------*/
 /** Interrupt in transaction interface function
@@ -253,7 +253,7 @@ static int interrupt_in(
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	return send_batch(fun, target, USB_DIRECTION_IN, data, size,
-	    NULL, 0, callback, NULL, arg, "Interrupt IN");
+	    NULL, callback, NULL, arg, "Interrupt IN");
 }
 /*----------------------------------------------------------------------------*/
 /** Bulk out transaction interface function
@@ -271,7 +271,7 @@ static int bulk_out(
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	return send_batch(fun, target, USB_DIRECTION_OUT, data, size,
-	    NULL, 0, NULL, callback, arg, "Bulk OUT");
+	    NULL, NULL, callback, arg, "Bulk OUT");
 }
 /*----------------------------------------------------------------------------*/
 /** Bulk in transaction interface function
@@ -289,7 +289,7 @@ static int bulk_in(
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	return send_batch(fun, target, USB_DIRECTION_IN, data, size,
-	    NULL, 0, callback, NULL, arg, "Bulk IN");
+	    NULL, callback, NULL, arg, "Bulk IN");
 }
 /*----------------------------------------------------------------------------*/
 /** Control write transaction interface function
@@ -310,7 +310,7 @@ static int control_write(
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	return send_batch(fun, target, USB_DIRECTION_BOTH, data, size,
-	    setup_data, setup_size, NULL, callback, arg, "Control WRITE");
+	    setup_data, NULL, callback, arg, "Control WRITE");
 }
 /*----------------------------------------------------------------------------*/
 /** Control read transaction interface function
@@ -331,7 +331,23 @@ static int control_read(
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	return send_batch(fun, target, USB_DIRECTION_BOTH, data, size,
-	    setup_data, setup_size, callback, NULL, arg, "Control READ");
+	    setup_data, callback, NULL, arg, "Control READ");
+}
+/*----------------------------------------------------------------------------*/
+static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
+    uint8_t *data, size_t size, usbhc_iface_transfer_in_callback_t callback,
+    void *arg)
+{
+	return send_batch(fun, target, USB_DIRECTION_IN, data, size,
+	    &setup_data, callback, NULL, arg, "READ");
+}
+/*----------------------------------------------------------------------------*/
+static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
+    const uint8_t *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return send_batch(fun, target, USB_DIRECTION_OUT, (uint8_t*)data, size,
+	    &setup_data, NULL, callback, arg, "WRITE");
 }
 /*----------------------------------------------------------------------------*/
 usbhc_iface_t hcd_iface = {
@@ -351,6 +367,9 @@ usbhc_iface_t hcd_iface = {
 
 	.control_write = control_write,
 	.control_read = control_read,
+
+	.read = usb_read,
+	.write = usb_write,
 };
 /**
  * @}
