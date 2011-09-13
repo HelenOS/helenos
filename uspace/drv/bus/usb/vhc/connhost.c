@@ -171,18 +171,12 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
 {
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    address, endpoint, direction, NULL);
-	if (ep == NULL) {
-		return ENOENT;
-	}
-
 	int rc = usb_endpoint_manager_unregister_ep(&vhc->ep_manager,
 	    address, endpoint, direction);
 
 	return rc;
 }
-
+#if 0
 /** Schedule interrupt out transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -412,6 +406,84 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 
 	return EOK;
 }
+#endif
+static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
+    uint8_t *data_buffer, size_t data_buffer_size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	VHC_DATA(vhc, fun);
+
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
+	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
+	if (ep == NULL) {
+		return ENOENT;
+	}
+	const usb_transfer_type_t transfer_type = ep->transfer_type;
+
+
+	vhc_transfer_t *transfer = vhc_transfer_create(target.address,
+	    target.endpoint, USB_DIRECTION_IN, transfer_type,
+	    fun, arg);
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+	if (transfer_type == USB_TRANSFER_CONTROL) {
+		transfer->setup_buffer = malloc(sizeof(uint64_t));
+		assert(transfer->setup_buffer);
+		memcpy(transfer->setup_buffer, &setup_buffer, sizeof(uint64_t));
+		transfer->setup_buffer_size = sizeof(uint64_t);
+	}
+	transfer->data_buffer = data_buffer;
+	transfer->data_buffer_size = data_buffer_size;
+	transfer->callback_in = callback;
+
+	int rc = vhc_virtdev_add_transfer(vhc, transfer);
+	if (rc != EOK) {
+		free(transfer);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
+    const uint8_t *data_buffer, size_t data_buffer_size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	VHC_DATA(vhc, fun);
+
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
+	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
+	if (ep == NULL) {
+		return ENOENT;
+	}
+	const usb_transfer_type_t transfer_type = ep->transfer_type;
+
+
+	vhc_transfer_t *transfer = vhc_transfer_create(target.address,
+	    target.endpoint, USB_DIRECTION_OUT, transfer_type,
+	    fun, arg);
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+	if (transfer_type == USB_TRANSFER_CONTROL) {
+		transfer->setup_buffer = malloc(sizeof(uint64_t));
+		assert(transfer->setup_buffer);
+		memcpy(transfer->setup_buffer, &setup_buffer, sizeof(uint64_t));
+		transfer->setup_buffer_size = sizeof(uint64_t);
+	}
+	transfer->data_buffer = (void*)data_buffer;
+	transfer->data_buffer_size = data_buffer_size;
+	transfer->callback_out = callback;
+
+	int rc = vhc_virtdev_add_transfer(vhc, transfer);
+	if (rc != EOK) {
+		free(transfer);
+		return rc;
+	}
+
+	return EOK;
+}
 
 static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
@@ -459,14 +531,8 @@ usbhc_iface_t vhc_iface = {
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,
 
-	.interrupt_out = interrupt_out,
-	.interrupt_in = interrupt_in,
-
-	.bulk_in = bulk_in,
-	.bulk_out = bulk_out,
-
-	.control_write = control_write,
-	.control_read = control_read
+	.write = usb_write,
+	.read = usb_read,
 };
 
 usb_iface_t vhc_usb_iface = {
