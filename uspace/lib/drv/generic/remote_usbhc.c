@@ -392,7 +392,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
-	if (!usb_iface->control_write) {
+	if (!usb_iface->write) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
@@ -433,14 +433,15 @@ ipc_callid_t callid, ipc_call_t *call)
 		free(data_buffer);
 		return;
 	}
-	trans->setup_packet = setup_packet;
 	trans->buffer = data_buffer;
 	trans->size = data_buffer_len;
 
-	rc = usb_iface->control_write(fun, target,
-	    setup_packet, setup_packet_len,
-	    data_buffer, data_buffer_len,
-	    callback_out, trans);
+	assert(setup_packet_len == 8);
+	uint64_t setup_buffer;
+	memcpy(&setup_buffer, setup_packet, 8);
+	free(setup_packet);
+	rc = usb_iface->write(fun, target, setup_buffer, trans->buffer,
+	    trans->size, callback_out, trans);
 
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -455,7 +456,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
-	if (!usb_iface->control_read) {
+	if (!usb_iface->read) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
@@ -493,7 +494,6 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	trans->data_caller = data_callid;
-	trans->setup_packet = setup_packet;
 	trans->size = data_len;
 	trans->buffer = malloc(data_len);
 	if (trans->buffer == NULL) {
@@ -503,11 +503,12 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = usb_iface->control_read(fun, target,
-	    setup_packet, setup_packet_len,
-	    trans->buffer, trans->size,
-	    callback_in, trans);
-
+	assert(setup_packet_len == 8);
+	uint64_t setup_buffer;
+	memcpy(&setup_buffer, setup_packet, 8);
+	free(setup_packet);
+	rc = usb_iface->read(fun, target, setup_buffer, trans->buffer,
+	    trans->size, callback_in, trans);
 	if (rc != EOK) {
 		async_answer_0(data_callid, rc);
 		async_answer_0(callid, rc);
