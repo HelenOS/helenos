@@ -44,13 +44,9 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 static hash_index_t node_hash(unsigned long key[])
 {
-	hash_index_t hash = 0;
-	unsigned i = 0;
-	for (;i < MAX_KEYS; ++i) {
-		hash ^= key[i];
-	}
-	hash %= BUCKET_COUNT;
-	return hash;
+	/* USB endpoints use 4 bits, thus ((key[0] << 4) | key[1])
+	 * produces unique value for every address.endpoint pair */
+	return ((key[0] << 4) | key[1]) % BUCKET_COUNT;
 }
 /*----------------------------------------------------------------------------*/
 static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
@@ -62,7 +58,9 @@ static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	bool match = true;
 	switch (keys) {
 	case 3:
-		match = match && (key[2] == node->ep->direction);
+		match = match &&
+		    ((key[2] == node->ep->direction)
+		    || (node->ep->direction == USB_DIRECTION_BOTH));
 	case 2:
 		match = match && (key[1] == (unsigned long)node->ep->endpoint);
 	case 1:
