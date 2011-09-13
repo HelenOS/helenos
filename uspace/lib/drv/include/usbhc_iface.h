@@ -184,7 +184,11 @@ typedef enum {
 	 * - EOK - endpoint unregistered
 	 * - ENOENT - unknown endpoint
 	 */
-	IPC_M_USBHC_UNREGISTER_ENDPOINT
+	IPC_M_USBHC_UNREGISTER_ENDPOINT,
+
+	IPC_M_USBHC_DATA_READ,
+
+	IPC_M_USBHC_DATA_WRITE,
 } usbhc_iface_funcs_t;
 
 /** Callback for outgoing transfer. */
@@ -235,6 +239,12 @@ typedef struct {
 	int (*control_read)(ddf_fun_t *, usb_target_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
+
+	int (*read)(ddf_fun_t *, usb_target_t, uint64_t, uint8_t *, size_t,
+	    usbhc_iface_transfer_in_callback_t, void *);
+
+	int (*write)(ddf_fun_t *, usb_target_t, uint64_t, const uint8_t *,
+	    size_t, usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 
 
