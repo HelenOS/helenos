@@ -112,13 +112,13 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
  * @param[in] instance TD structure to use.
  * @return Error code.
  */
-int td_status(td_t *instance)
+int td_status(const td_t *instance)
 {
 	assert(instance);
 
 	/* This is hc internal error it should never be reported. */
 	if ((instance->status & TD_STATUS_ERROR_BIT_STUFF) != 0)
-		return EAGAIN;
+		return EIO;
 
 	/* CRC or timeout error, like device not present or bad data,
 	 * it won't be reported unless err count reached zero */
@@ -149,7 +149,7 @@ int td_status(td_t *instance)
  *
  * @param[in] instance TD structure to use.
  */
-void td_print_status(td_t *instance)
+void td_print_status(const td_t *instance)
 {
 	assert(instance);
 	const uint32_t s = instance->status;

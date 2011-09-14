@@ -63,25 +63,22 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *batch);
 void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch);
 bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch);
 
-static inline void * uhci_transfer_batch_data_buffer(
-    uhci_transfer_batch_t *uhci_batch)
-{
-	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
-	assert(uhci_batch->device_buffer);
-	return uhci_batch->device_buffer + sizeof(qh_t) +
-	    uhci_batch->td_count * sizeof(td_t) +
-	    uhci_batch->usb_batch->setup_size;
-}
-/*----------------------------------------------------------------------------*/
 static inline void * uhci_transfer_batch_setup_buffer(
-    uhci_transfer_batch_t *uhci_batch)
+    const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
 	assert(uhci_batch->device_buffer);
 	return uhci_batch->device_buffer + sizeof(qh_t) +
 	    uhci_batch->td_count * sizeof(td_t);
+}
+/*----------------------------------------------------------------------------*/
+static inline void * uhci_transfer_batch_data_buffer(
+    const uhci_transfer_batch_t *uhci_batch)
+{
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
+	return uhci_transfer_batch_setup_buffer(uhci_batch) +
+	    uhci_batch->usb_batch->setup_size;
 }
 /*----------------------------------------------------------------------------*/
 static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)

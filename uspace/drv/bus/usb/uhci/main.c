@@ -63,15 +63,16 @@ int uhci_add_device(ddf_dev_t *device)
 	usb_log_debug2("uhci_add_device() called\n");
 	assert(device);
 
-	int ret = device_setup_uhci(device);
+	const int ret = device_setup_uhci(device);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize UHCI driver: %s.\n",
 		    str_error(ret));
-		return ret;
+	} else {
+		usb_log_info("Controlling new UHCI device '%s'.\n",
+		    device->name);
 	}
-	usb_log_info("Controlling new UHCI device '%s'.\n", device->name);
 
-	return EOK;
+	return ret;
 }
 /*----------------------------------------------------------------------------*/
 /** Initialize global driver structures (NONE).

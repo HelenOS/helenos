@@ -133,7 +133,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 	/* Copy SETUP packet data to the device buffer */
 	memcpy(dest, usb_batch->setup_buffer, usb_batch->setup_size);
 	dest += usb_batch->setup_size;
-	/* Copy generic data if unless they are provided by the device */
+	/* Copy generic data unless they are provided by the device */
 	if (usb_batch->ep->direction != USB_DIRECTION_IN) {
 		memcpy(dest, usb_batch->buffer, usb_batch->buffer_size);
 	}
@@ -141,6 +141,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
 	    " memory structures ready.\n", usb_batch,
 	    USB_TRANSFER_BATCH_ARGS(*usb_batch));
+
 	assert(
 	    batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction]);
 	batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction](
@@ -214,12 +215,14 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
+	assert(uhci_batch->usb_batch->ep);
+	assert(uhci_batch->usb_batch->ep->direction == USB_DIRECTION_OUT ||
+	    uhci_batch->usb_batch->ep->direction == USB_DIRECTION_IN);
+
 	static const usb_packet_id pids[] = {
 		[USB_DIRECTION_IN] = USB_PID_IN,
 		[USB_DIRECTION_OUT] = USB_PID_OUT,
 	};
-	assert(uhci_batch->usb_batch->ep->direction == USB_DIRECTION_OUT ||
-	    uhci_batch->usb_batch->ep->direction == USB_DIRECTION_IN);
 
 	const usb_packet_id pid = pids[uhci_batch->usb_batch->ep->direction];
 	const bool low_speed =
