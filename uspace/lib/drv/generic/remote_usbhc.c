@@ -229,6 +229,7 @@ static void callback_in(ddf_fun_t *fun,
 void remote_usbhc_control_write(ddf_fun_t *fun, void *iface,
 ipc_callid_t callid, ipc_call_t *call)
 {
+	assert(false);
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
@@ -290,6 +291,7 @@ ipc_callid_t callid, ipc_call_t *call)
 void remote_usbhc_control_read(ddf_fun_t *fun, void *iface,
 ipc_callid_t callid, ipc_call_t *call)
 {
+	assert(false);
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
@@ -387,9 +389,8 @@ void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 #undef _INIT_FROM_MIDDLE_DATA3
 #undef _INIT_FROM_LOW_DATA3
 
-	int rc = usb_iface->register_endpoint(fun, target.address,
-	    speed, target.endpoint,
-	    transfer_type, direction, max_packet_size, interval);
+	int rc = usb_iface->register_endpoint(fun, target.address, speed,
+	    target.endpoint, transfer_type, direction, max_packet_size, interval);
 
 	async_answer_0(callid, rc);
 }
@@ -430,6 +431,9 @@ static void remote_usbhc_data_read(
 	}
 
 	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
+	const uint64_t setup =
+	    ((uint64_t)DEV_IPC_GET_ARG2(*call)) |
+	    (((uint64_t)DEV_IPC_GET_ARG3(*call)) << 32);
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
@@ -450,7 +454,7 @@ static void remote_usbhc_data_read(
 	}
 
 	const int rc = hc_iface->read(
-	    fun, target, 0, trans->buffer, trans->size, callback_in, trans);
+	    fun, target, setup, trans->buffer, trans->size, callback_in, trans);
 
 	if (rc != EOK) {
 		async_answer_0(trans->data_caller, rc);
@@ -474,6 +478,10 @@ static void remote_usbhc_data_write(
 	}
 
 	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
+	const size_t data_buffer_len = DEV_IPC_GET_ARG2(*call);
+	const uint64_t setup =
+	    ((uint64_t)DEV_IPC_GET_ARG3(*call)) |
+	    (((uint64_t)DEV_IPC_GET_ARG4(*call)) << 32);
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
@@ -481,18 +489,20 @@ static void remote_usbhc_data_write(
 		return;
 	}
 
-	int rc = async_data_write_accept(&trans->buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE,
-	    0, &trans->size);
+	if (data_buffer_len > 0) {
+		int rc = async_data_write_accept(&trans->buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE,
+		    0, &trans->size);
 
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_transaction_destroy(trans);
-		return;
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			async_transaction_destroy(trans);
+			return;
+		}
 	}
 
-	rc = hc_iface->write(
-	    fun, target, 0, trans->buffer, trans->size, callback_out, trans);
+	int rc = hc_iface->write(
+	    fun, target, setup, trans->buffer, trans->size, callback_out, trans);
 
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
