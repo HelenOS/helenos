@@ -149,36 +149,19 @@ typedef enum {
 	 */
 	IPC_M_USBHC_UNREGISTER_ENDPOINT,
 
-	/** Issue control WRITE transfer.
-	 * See explanation at usb_iface_funcs_t (OUT transaction) for
-	 * call parameters.
-	 * This call is immediately followed by two IPC data writes
-	 * from the caller (setup packet and actual data).
-	 */
-	IPC_M_USBHC_CONTROL_WRITE,
-
-	/** Issue control READ transfer.
-	 * See explanation at usb_iface_funcs_t (IN transaction) for
-	 * call parameters.
-	 * This call is immediately followed by IPC data write from the caller
-	 * (setup packet) and IPC data read (buffer that was read).
-	 */
-	IPC_M_USBHC_CONTROL_READ,
-
 	/** Get data from device.
 	 * See explanation at usb_iface_funcs_t (IN transaction).
 	 */
-	IPC_M_USBHC_DATA_READ,
+	IPC_M_USBHC_READ,
 
 	/** Send data to device.
 	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
-	IPC_M_USBHC_DATA_WRITE,
+	IPC_M_USBHC_WRITE,
 } usbhc_iface_funcs_t;
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *,
-    int, void *);
+typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *, int, void *);
 
 /** Callback for incoming transfer. */
 typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,

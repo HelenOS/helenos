@@ -80,7 +80,7 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	 * Make call identifying target USB device and type of transfer.
 	 */
 	aid_t opening_request = async_send_2(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_DATA_READ, target.packed, NULL);
+	    IPC_M_USBHC_READ, target.packed, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -219,7 +219,7 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	 * Make call identifying target USB device and type of transfer.
 	 */
 	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_DATA_WRITE, target.packed, size, NULL);
+	    IPC_M_USBHC_WRITE, target.packed, size, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -344,7 +344,7 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
 	 */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
 	aid_t opening_request = async_send_4(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_DATA_READ, target.packed,
+	    IPC_M_USBHC_READ, target.packed,
 	    (setup_packet & UINT32_MAX), (setup_packet >> 32), NULL);
 
 	if (opening_request == 0) {
@@ -485,7 +485,7 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	 */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
 	aid_t opening_request = async_send_5(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_DATA_WRITE, target.packed, data_buffer_size,
+	    IPC_M_USBHC_WRITE, target.packed, data_buffer_size,
 	    (setup_packet & UINT32_MAX), (setup_packet >> 32), NULL);
 	
 	if (opening_request == 0) {
