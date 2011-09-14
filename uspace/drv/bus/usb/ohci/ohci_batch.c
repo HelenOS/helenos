@@ -85,7 +85,7 @@ if (ptr == NULL) { \
 } else (void)0
 
 	ohci_transfer_batch_t *ohci_batch =
-	    calloc(sizeof(ohci_transfer_batch_t), 1);
+	    calloc(1, sizeof(ohci_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RET(ohci_batch,
 	    "Failed to allocate OHCI batch data.\n");
 	link_initialize(&ohci_batch->link);
