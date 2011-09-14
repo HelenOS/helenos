@@ -135,8 +135,8 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 
 	if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
 	    && instance->error == EOK) {
-		usb_target_t target =
-		    {instance->ep->address, instance->ep->endpoint};
+		const usb_target_t target =
+		    {{ instance->ep->address, instance->ep->endpoint }};
 		reset_ep_if_need(
 		    fun_to_hcd(instance->fun), target, instance->setup_buffer);
 	}

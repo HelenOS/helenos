@@ -238,8 +238,8 @@ ipc_callid_t callid, ipc_call_t *call)
 	}
 
 	usb_target_t target = {
-		.address = DEV_IPC_GET_ARG1(*call),
-		.endpoint = DEV_IPC_GET_ARG2(*call)
+		{.address = DEV_IPC_GET_ARG1(*call),
+		.endpoint = DEV_IPC_GET_ARG2(*call) }
 	};
 	size_t data_buffer_len = DEV_IPC_GET_ARG3(*call);
 
@@ -301,10 +301,10 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	usb_target_t target = {
+	usb_target_t target = {{
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
-	};
+	}};
 
 	int rc;
 
@@ -435,10 +435,10 @@ static void remote_usbhc_data_read(
 		return;
 	}
 
-	const usb_target_t target = {
+	const usb_target_t target = {{
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
-	};
+	}};
 
 
 	async_transaction_t *trans = async_transaction_create(callid);
@@ -483,10 +483,10 @@ static void remote_usbhc_data_write(
 		return;
 	}
 
-	const usb_target_t target = {
+	const usb_target_t target = {{
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
-	};
+	}};
 
 
 	async_transaction_t *trans = async_transaction_create(callid);
