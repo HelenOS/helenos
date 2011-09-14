@@ -64,20 +64,13 @@
 static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered)
 {
-	/*
-	 * Get corresponding IPC method.
-	 * In future, replace with static array of mappings
-	 * transfer type -> method.
-	 */
-	usbhc_iface_funcs_t ipc_method;
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-		case USB_TRANSFER_BULK:
-			ipc_method = IPC_M_USBHC_DATA_READ;
-			break;
-		default:
-			return ENOTSUP;
-	}
+	/* Only interrupt and bulk transfers are supported */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    return ENOTSUP;
+
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
 	
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
@@ -86,8 +79,8 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
-	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    ipc_method, pipe->wire->address, pipe->endpoint_no, NULL);
+	aid_t opening_request = async_send_2(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_DATA_READ, target.packed, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -210,20 +203,13 @@ int usb_pipe_read(usb_pipe_t *pipe,
 static int usb_pipe_write_no_check(usb_pipe_t *pipe,
     void *buffer, size_t size)
 {
-	/*
-	 * Get corresponding IPC method.
-	 * In future, replace with static array of mappings
-	 * transfer type -> method.
-	 */
-	usbhc_iface_funcs_t ipc_method;
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-		case USB_TRANSFER_BULK:
-			ipc_method = IPC_M_USBHC_DATA_WRITE;
-			break;
-		default:
-			return ENOTSUP;
-	}
+	/* Only interrupt and bulk transfers are supported */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    return ENOTSUP;
+
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
 
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
@@ -232,8 +218,8 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
-	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    ipc_method, pipe->wire->address, pipe->endpoint_no, NULL);
+	aid_t opening_request = async_send_2(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_DATA_WRITE, target.packed, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -347,13 +333,15 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
+
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_CONTROL_READ, pipe->wire->address, pipe->endpoint_no,
-	    NULL);
+	aid_t opening_request = async_send_2(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_CONTROL_READ, target.packed, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -493,12 +481,15 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
+
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	aid_t opening_request = async_send_4(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_CONTROL_WRITE, pipe->wire->address, pipe->endpoint_no,
+	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_CONTROL_WRITE, target.packed,
 	    data_buffer_size, NULL);
 	
 	if (opening_request == 0) {

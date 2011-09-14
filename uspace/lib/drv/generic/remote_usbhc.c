@@ -237,11 +237,8 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	usb_target_t target = {
-		{.address = DEV_IPC_GET_ARG1(*call),
-		.endpoint = DEV_IPC_GET_ARG2(*call) }
-	};
-	size_t data_buffer_len = DEV_IPC_GET_ARG3(*call);
+	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
+	size_t data_buffer_len = DEV_IPC_GET_ARG2(*call);
 
 	int rc;
 
@@ -301,10 +298,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	usb_target_t target = {{
-		.address = DEV_IPC_GET_ARG1(*call),
-		.endpoint = DEV_IPC_GET_ARG2(*call)
-	}};
+	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
 
 	int rc;
 
@@ -378,8 +372,7 @@ void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 #define _INIT_FROM_LOW_DATA3(type, var, arg_no) \
 	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % (1 << 8)
 
-	_INIT_FROM_HIGH_DATA2(usb_address_t, address, 1);
-	_INIT_FROM_LOW_DATA2(usb_endpoint_t, endpoint, 1);
+	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
 
 	_INIT_FROM_HIGH_DATA3(usb_speed_t, speed, 2);
 	_INIT_FROM_MIDDLE_DATA3(usb_transfer_type_t, transfer_type, 2);
@@ -394,7 +387,8 @@ void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 #undef _INIT_FROM_MIDDLE_DATA3
 #undef _INIT_FROM_LOW_DATA3
 
-	int rc = usb_iface->register_endpoint(fun, address, speed, endpoint,
+	int rc = usb_iface->register_endpoint(fun, target.address,
+	    speed, target.endpoint,
 	    transfer_type, direction, max_packet_size, interval);
 
 	async_answer_0(callid, rc);
@@ -435,11 +429,7 @@ static void remote_usbhc_data_read(
 		return;
 	}
 
-	const usb_target_t target = {{
-		.address = DEV_IPC_GET_ARG1(*call),
-		.endpoint = DEV_IPC_GET_ARG2(*call)
-	}};
-
+	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
@@ -483,11 +473,7 @@ static void remote_usbhc_data_write(
 		return;
 	}
 
-	const usb_target_t target = {{
-		.address = DEV_IPC_GET_ARG1(*call),
-		.endpoint = DEV_IPC_GET_ARG2(*call)
-	}};
-
+	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
