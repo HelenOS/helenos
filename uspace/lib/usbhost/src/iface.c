@@ -106,7 +106,8 @@ static int request_address(
 	assert(address);
 
 	usb_log_debug("Address request speed: %s.\n", usb_str_speed(speed));
-	*address = device_keeper_get_free_address(&hcd->dev_manager, speed);
+	*address =
+	    usb_device_manager_get_free_address(&hcd->dev_manager, speed);
 	usb_log_debug("Address request with result: %d.\n", *address);
 	if (*address <= 0)
 		return *address;
@@ -128,7 +129,7 @@ static int bind_address(
 	assert(hcd);
 
 	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
-	usb_device_keeper_bind(&hcd->dev_manager, address, handle);
+	usb_device_manager_bind(&hcd->dev_manager, address, handle);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -146,7 +147,7 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	const bool found =
-	    usb_device_keeper_find_by_address(&hcd->dev_manager, address, handle);
+	    usb_device_manager_find_by_address(&hcd->dev_manager, address, handle);
 	return found ? EOK : ENOENT;
 }
 /*----------------------------------------------------------------------------*/
@@ -162,7 +163,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
-	usb_device_keeper_release(&hcd->dev_manager, address);
+	usb_device_manager_release(&hcd->dev_manager, address);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -179,7 +180,7 @@ static int register_endpoint(
 	/* Default address is not bound or registered,
 	 * thus it does not provide speed info. */
 	const usb_speed_t speed = (address == 0) ? ep_speed :
-	    usb_device_keeper_get_speed(&hcd->dev_manager, address);
+	    usb_device_manager_get_speed(&hcd->dev_manager, address);
 
 	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),

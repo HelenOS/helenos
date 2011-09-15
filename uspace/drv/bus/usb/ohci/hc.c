@@ -127,7 +127,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	assert(hub_fun);
 
 	const usb_address_t hub_address =
-	    device_keeper_get_free_address(
+	    usb_device_manager_get_free_address(
 	        &instance->generic.dev_manager, USB_SPEED_FULL);
 	if (hub_address <= 0) {
 		usb_log_error("Failed to get OHCI root hub address: %s\n",
@@ -135,7 +135,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 		return hub_address;
 	}
 	instance->rh.address = hub_address;
-	usb_device_keeper_bind(
+	usb_device_manager_bind(
 	    &instance->generic.dev_manager, hub_address, hub_fun->handle);
 
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
@@ -143,7 +143,7 @@ if (ret != EOK) { \
 	usb_log_error(message); \
 	usb_endpoint_manager_unregister_ep( \
 	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH);\
-	usb_device_keeper_release( \
+	usb_device_manager_release( \
 	    &instance->generic.dev_manager, hub_address); \
 	return ret; \
 } else (void)0

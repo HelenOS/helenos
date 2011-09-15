@@ -61,8 +61,8 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
 {
 	VHC_DATA(vhc, fun);
 
-	usb_address_t addr = device_keeper_get_free_address(&vhc->dev_keeper,
-	    USB_SPEED_HIGH);
+	usb_address_t addr = usb_device_manager_get_free_address(
+	    &vhc->dev_manager, USB_SPEED_HIGH);
 	if (addr < 0) {
 		return addr;
 	}
@@ -87,7 +87,7 @@ static int bind_address(ddf_fun_t *fun,
 	VHC_DATA(vhc, fun);
 	usb_log_debug("Binding handle %" PRIun " to address %d.\n",
 	    handle, address);
-	usb_device_keeper_bind(&vhc->dev_keeper, address, handle);
+	usb_device_manager_bind(&vhc->dev_manager, address, handle);
 
 	return EOK;
 }
@@ -104,7 +104,7 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 {
 	VHC_DATA(vhc, fun);
 	bool found =
-	    usb_device_keeper_find_by_address(&vhc->dev_keeper, address, handle);
+	    usb_device_manager_find_by_address(&vhc->dev_manager, address, handle);
 	return found ? EOK : ENOENT;
 }
 
@@ -118,7 +118,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	VHC_DATA(vhc, fun);
 	usb_log_debug("Releasing address %d...\n", address);
-	usb_device_keeper_release(&vhc->dev_keeper, address);
+	usb_device_manager_release(&vhc->dev_manager, address);
 
 	return ENOTSUP;
 }
@@ -513,7 +513,7 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
 	}
 
 	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
-	usb_address_t addr = usb_device_keeper_find(&vhc->dev_keeper, handle);
+	usb_address_t addr = usb_device_manager_find(&vhc->dev_manager, handle);
 	if (addr < 0) {
 		return addr;
 	} else {

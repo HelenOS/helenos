@@ -40,8 +40,6 @@
 #include <ddi.h>
 
 #include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/hcd.h>
 
 #include "ohci_batch.h"

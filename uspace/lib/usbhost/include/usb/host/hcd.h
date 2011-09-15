@@ -36,7 +36,7 @@
 #define LIBUSBHOST_HOST_HCD_H
 
 #include <assert.h>
-#include <usb/host/device_keeper.h>
+#include <usb/host/usb_device_manager.h>
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/usb_transfer_batch.h>
 #include <usbhc_iface.h>
@@ -44,7 +44,7 @@
 typedef struct hcd hcd_t;
 
 struct hcd {
-	usb_device_keeper_t dev_manager;
+	usb_device_manager_t dev_manager;
 	usb_endpoint_manager_t ep_manager;
 	void *private_data;
 
@@ -56,7 +56,7 @@ static inline int hcd_init(hcd_t *hcd, size_t bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(hcd);
-	usb_device_keeper_init(&hcd->dev_manager);
+	usb_device_manager_init(&hcd->dev_manager);
 	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
 }
 /*----------------------------------------------------------------------------*/
