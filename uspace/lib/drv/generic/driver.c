@@ -270,7 +270,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	int res;
 	
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
-    	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
+	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
 	ddf_dev_t *dev = create_device();
 

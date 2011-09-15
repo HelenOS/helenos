@@ -151,14 +151,12 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	assert(keys <= h->max_keys);
 	
 	if (keys == h->max_keys) {
-		link_t *cur;
-		
 		/*
 		 * All keys are known, hash_table_find() can be used to find the
 		 * entry.
 		 */
 		
-		cur = hash_table_find(h, key);
+		link_t *cur = hash_table_find(h, key);
 		if (cur) {
 			list_remove(cur);
 			h->op->remove_callback(cur);
@@ -173,9 +171,8 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	 */
 	hash_index_t chain;
 	for (chain = 0; chain < h->entries; chain++) {
-		link_t *cur;
-		
-		for (cur = h->entry[chain].head.next; cur != &h->entry[chain].head;
+		for (link_t *cur = h->entry[chain].head.next;
+		    cur != &h->entry[chain].head;
 		    cur = cur->next) {
 			if (h->op->compare(key, keys, cur)) {
 				link_t *hlp;
