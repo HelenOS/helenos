@@ -62,6 +62,7 @@ GENERIC_SOURCES = \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
+	generic/cfg.c \
 	generic/clipboard.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
