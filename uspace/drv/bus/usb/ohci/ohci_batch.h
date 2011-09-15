@@ -37,7 +37,7 @@
 #include <adt/list.h>
 #include <usbhc_iface.h>
 #include <usb/usb.h>
-#include <usb/host/batch.h>
+#include <usb/host/usb_transfer_batch.h>
 
 #include "hw_struct/transfer_descriptor.h"
 #include "hw_struct/endpoint_descriptor.h"

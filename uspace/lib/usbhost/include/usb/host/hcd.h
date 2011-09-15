@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <usb/host/device_keeper.h>
 #include <usb/host/usb_endpoint_manager.h>
-#include <usb/host/batch.h>
+#include <usb/host/usb_transfer_batch.h>
 #include <usbhc_iface.h>
 
 typedef struct hcd hcd_t;

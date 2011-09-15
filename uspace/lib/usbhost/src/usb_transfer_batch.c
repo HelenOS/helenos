@@ -36,7 +36,7 @@
 
 #include <usb/usb.h>
 #include <usb/debug.h>
-#include <usb/host/batch.h>
+#include <usb/host/usb_transfer_batch.h>
 #include <usb/host/hcd.h>
 
 usb_transfer_batch_t * usb_transfer_batch_get(

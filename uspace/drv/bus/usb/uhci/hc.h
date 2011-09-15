@@ -38,7 +38,6 @@
 #include <fibril.h>
 #include <ddi.h>
 
-#include <usb/host/batch.h>
 #include <usb/host/hcd.h>
 
 #include "transfer_list.h"

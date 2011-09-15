@@ -36,7 +36,7 @@
 
 #include <usb/usb.h>
 #include <usb/dev/driver.h>
-#include <usb/host/batch.h>
+#include <usb/host/usb_transfer_batch.h>
 
 #include "ohci_regs.h"
 
@@ -65,7 +65,6 @@ typedef struct rh {
 	} __attribute__ ((packed)) descriptors;
 	/** size of hub descriptor */
 	size_t hub_descriptor_size;
-
 } rh_t;
 
 void rh_init(rh_t *instance, ohci_regs_t *regs);

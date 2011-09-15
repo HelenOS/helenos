@@ -34,7 +34,7 @@
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
 
-#include <usb/host/batch.h>
+#include <usb/host/usb_transfer_batch.h>
 #include <adt/list.h>
 
 #include "hw_struct/queue_head.h"

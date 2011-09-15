@@ -31,8 +31,8 @@
 /** @file
  * USB transfer transaction structures.
  */
-#ifndef LIBUSBHOST_HOST_BATCH_H
-#define LIBUSBHOST_HOST_BATCH_H
+#ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
+#define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
 #include <adt/list.h>
 
