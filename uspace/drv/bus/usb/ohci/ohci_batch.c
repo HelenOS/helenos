@@ -41,7 +41,7 @@
 #include "ohci_endpoint.h"
 #include "utils/malloc32.h"
 
-void (*const batch_setup[4][3])(ohci_transfer_batch_t*);
+static void (*const batch_setup[4][3])(ohci_transfer_batch_t*, usb_direction_t);
 /*----------------------------------------------------------------------------*/
 /** Safely destructs ohci_transfer_batch_t structure
  *
@@ -135,10 +135,9 @@ if (ptr == NULL) { \
         }
 	ohci_batch->usb_batch = usb_batch;
 
-        assert(
-	   batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction]);
-        batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction](
-	    ohci_batch);
+	const usb_direction_t dir = usb_transfer_batch_direction(usb_batch);
+	assert(batch_setup[usb_batch->ep->transfer_type][dir]);
+	batch_setup[usb_batch->ep->transfer_type][dir](ohci_batch, dir);
 
 	return ohci_batch;
 #undef CHECK_NULL_DISPOSE_RET
@@ -223,24 +222,29 @@ void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 /** Prepare generic control transfer
  *
  * @param[in] ohci_batch Batch structure to use.
- * @param[in] data_dir Direction to use for data stage.
- * @param[in] status_dir Direction to use for status stage.
+ * @param[in] dir Communication direction
  *
  * Setup stage with toggle 0 and direction BOTH(SETUP_PID)
  * Data stage with alternating toggle and direction supplied by parameter.
  * Status stage with toggle 1 and direction supplied by parameter.
  */
-static void batch_control(ohci_transfer_batch_t *ohci_batch,
-    usb_direction_t data_dir, usb_direction_t status_dir)
+static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 {
 	assert(ohci_batch);
 	assert(ohci_batch->usb_batch);
+	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
 	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
 	    ohci_batch->ed->status, ohci_batch->ed->td_tail,
 	    ohci_batch->ed->td_head, ohci_batch->ed->next);
+	static const usb_direction_t reverse_dir[] = {
+		[USB_DIRECTION_IN]  = USB_DIRECTION_OUT,
+		[USB_DIRECTION_OUT] = USB_DIRECTION_IN,
+	};
 
 	int toggle = 0;
-	char* buffer = ohci_batch->device_buffer;
+	const char* buffer = ohci_batch->device_buffer;
+	const usb_direction_t data_dir = dir;
+	const usb_direction_t status_dir = reverse_dir[dir];
 
 	/* setup stage */
 	td_init(ohci_batch->tds[0], USB_DIRECTION_BOTH, buffer,
@@ -286,23 +290,31 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch,
 	    ohci_batch->tds[td_current]->cbp,
 	    ohci_batch->tds[td_current]->next,
 	    ohci_batch->tds[td_current]->be);
+	usb_log_debug2(
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    ohci_batch->usb_batch,
+	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
+	    usb_str_direction(dir),
+	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer
  *
  * @param[in] ohci_batch Batch structure to use.
+ * @paramp[in] dir Communication direction.
  *
  * Direction is supplied by the associated ep and toggle is maintained by the
  * OHCI hw in ED.
  */
-static void batch_data(ohci_transfer_batch_t *ohci_batch)
+static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 {
 	assert(ohci_batch);
+	assert(ohci_batch->usb_batch);
+	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
 	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
 	    ohci_batch->ed->status, ohci_batch->ed->td_tail,
 	    ohci_batch->ed->td_head, ohci_batch->ed->next);
 
-	const usb_direction_t direction = ohci_batch->usb_batch->ep->direction;
 	size_t td_current = 0;
 	size_t remain_size = ohci_batch->usb_batch->buffer_size;
 	char *buffer = ohci_batch->device_buffer;
@@ -310,10 +322,11 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
 		    ? OHCI_TD_MAX_TRANSFER : remain_size;
 
-		td_init(ohci_batch->tds[td_current], direction,
-		    buffer, transfer_size, -1);
+		td_init(ohci_batch->tds[td_current], dir, buffer,
+		    transfer_size, -1);
 		td_set_next(ohci_batch->tds[td_current],
 		    ohci_batch->tds[td_current + 1]);
+
 		usb_log_debug("Created DATA TD: %x:%x:%x:%x.\n",
 		    ohci_batch->tds[td_current]->status,
 		    ohci_batch->tds[td_current]->cbp,
@@ -329,33 +342,13 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
 	    ohci_batch->usb_batch,
 	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
-	    usb_str_direction(ohci_batch->usb_batch->ep->direction),
+	    usb_str_direction(dir),
 	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
-static void setup_control(ohci_transfer_batch_t *ohci_batch)
+static void (*const batch_setup[4][3])(ohci_transfer_batch_t*, usb_direction_t) =
 {
-        // TODO Find a better way to do this
-	/* Check first bit of the first setup request byte
-	 * (it signals hc-> dev or dev->hc communication) */
-	const char *direction;
-        if (ohci_batch->device_buffer[0] & (1 << 7)) {
-		batch_control(ohci_batch, USB_DIRECTION_IN, USB_DIRECTION_OUT);
-		direction = "read";
-        } else {
-		batch_control(ohci_batch, USB_DIRECTION_OUT, USB_DIRECTION_IN);
-		direction = "write";
-	}
-	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    ohci_batch->usb_batch,
-	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
-	    direction, USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
-}
-/*----------------------------------------------------------------------------*/
-void (*const batch_setup[4][3])(ohci_transfer_batch_t*) =
-{
-        { NULL, NULL, setup_control },
+        { batch_control, batch_control, NULL },
         { NULL, NULL, NULL },
         { batch_data, batch_data, NULL },
         { batch_data, batch_data, NULL },
