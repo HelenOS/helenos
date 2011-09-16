@@ -50,6 +50,7 @@ DIRS = \
 	app/mkmfs \
 	app/redir \
 	app/sbi \
+	app/sportdmp \
 	app/stats \
 	app/taskdump \
 	app/tester \
