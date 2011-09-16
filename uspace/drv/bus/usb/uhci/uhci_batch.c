@@ -67,7 +67,7 @@ void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
-static void (*const batch_setup[4][3])(uhci_transfer_batch_t*, usb_direction_t);
+static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t);
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.
  *
@@ -140,8 +140,8 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 
 	const usb_direction_t dir = usb_transfer_batch_direction(usb_batch);
 
-	assert(batch_setup[usb_batch->ep->transfer_type][dir]);
-	batch_setup[usb_batch->ep->transfer_type][dir](uhci_batch, dir);
+	assert(batch_setup[usb_batch->ep->transfer_type]);
+	batch_setup[usb_batch->ep->transfer_type](uhci_batch, dir);
 
 	return uhci_batch;
 }
@@ -335,12 +335,12 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir
 	    uhci_batch->tds[td].status);
 }
 /*----------------------------------------------------------------------------*/
-static void (*const batch_setup[4][3])(uhci_transfer_batch_t*, usb_direction_t) =
+static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t) =
 {
-	{ batch_control, batch_control, NULL },
-	{ NULL, NULL, NULL },
-	{ batch_data, batch_data, NULL },
-	{ batch_data, batch_data, NULL },
+	[USB_TRANSFER_CONTROL] = batch_control,
+	[USB_TRANSFER_BULK] = batch_data,
+	[USB_TRANSFER_INTERRUPT] = batch_data,
+	[USB_TRANSFER_ISOCHRONOUS] = NULL,
 };
 /**
  * @}

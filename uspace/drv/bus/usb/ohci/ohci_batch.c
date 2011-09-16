@@ -41,7 +41,7 @@
 #include "ohci_endpoint.h"
 #include "utils/malloc32.h"
 
-static void (*const batch_setup[4][3])(ohci_transfer_batch_t*, usb_direction_t);
+static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t);
 /*----------------------------------------------------------------------------*/
 /** Safely destructs ohci_transfer_batch_t structure
  *
@@ -136,8 +136,8 @@ if (ptr == NULL) { \
 	ohci_batch->usb_batch = usb_batch;
 
 	const usb_direction_t dir = usb_transfer_batch_direction(usb_batch);
-	assert(batch_setup[usb_batch->ep->transfer_type][dir]);
-	batch_setup[usb_batch->ep->transfer_type][dir](ohci_batch, dir);
+	assert(batch_setup[usb_batch->ep->transfer_type]);
+	batch_setup[usb_batch->ep->transfer_type](ohci_batch, dir);
 
 	return ohci_batch;
 #undef CHECK_NULL_DISPOSE_RET
@@ -346,12 +346,12 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
-static void (*const batch_setup[4][3])(ohci_transfer_batch_t*, usb_direction_t) =
+static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t) =
 {
-        { batch_control, batch_control, NULL },
-        { NULL, NULL, NULL },
-        { batch_data, batch_data, NULL },
-        { batch_data, batch_data, NULL },
+	[USB_TRANSFER_CONTROL] = batch_control,
+	[USB_TRANSFER_BULK] = batch_data,
+	[USB_TRANSFER_INTERRUPT] = batch_data,
+	[USB_TRANSFER_ISOCHRONOUS] = NULL,
 };
 /**
  * @}
