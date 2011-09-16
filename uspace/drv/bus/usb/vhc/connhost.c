@@ -439,6 +439,7 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 
 	int rc = vhc_virtdev_add_transfer(vhc, transfer);
 	if (rc != EOK) {
+		free(transfer->setup_buffer);
 		free(transfer);
 		return rc;
 	}
@@ -478,6 +479,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 
 	int rc = vhc_virtdev_add_transfer(vhc, transfer);
 	if (rc != EOK) {
+		free(transfer->setup_buffer);
 		free(transfer);
 		return rc;
 	}
