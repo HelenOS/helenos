@@ -37,28 +37,30 @@
 #include <assert.h>
 #include <adt/list.h>
 #include <usb/host/endpoint.h>
+#include <usb/host/hcd.h>
 
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
 
 /** Connector structure linking ED to to prepared TD. */
-typedef struct hcd_endpoint {
+typedef struct ohci_endpoint {
 	/** OHCI endpoint descriptor */
 	ed_t *ed;
 	/** Currently enqueued transfer descriptor */
 	td_t *td;
 	/** Linked list used by driver software */
 	link_t link;
-} hcd_endpoint_t;
+	/** Device using this ep */
+	hcd_t *hcd;
+} ohci_endpoint_t;
 
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep);
-void hcd_endpoint_clear(endpoint_t *ep);
+int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
 
-/** Get and convert assigned hcd_endpoint_t structure
+/** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
  * @return Pointer to assigned hcd endpoint structure
  */
-static inline hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
+static inline ohci_endpoint_t * ohci_endpoint_get(endpoint_t *ep)
 {
 	assert(ep);
 	return ep->hc_data.data;

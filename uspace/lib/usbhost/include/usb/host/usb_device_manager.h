@@ -25,20 +25,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libusbhost
  * @{
  */
 /** @file
- * Device keeper structure and functions.
+ * Device manager structure and functions.
  *
  * Typical USB host controller needs to keep track of various settings for
  * each device that is connected to it.
  * State of toggle bit, device speed etc. etc.
  * This structure shall simplify the management.
  */
-#ifndef LIBUSBHOST_HOST_DEVICE_KEEPER_H
-#define LIBUSBHOST_HOST_DEVICE_KEEPER_H
+#ifndef LIBUSBHOST_HOST_USB_DEVICE_MANAGER_H
+#define LIBUSBHOST_HOST_USB_DEVICE_MANAGER_H
 
 #include <adt/list.h>
 #include <devman.h>
@@ -56,33 +55,33 @@ struct usb_device_info {
 	devman_handle_t handle;
 };
 
-/** Host controller device keeper.
+/** Host controller device manager.
  * You shall not access members directly but only using functions below.
  */
 typedef struct {
 	struct usb_device_info devices[USB_ADDRESS_COUNT];
 	fibril_mutex_t guard;
 	usb_address_t last_address;
-} usb_device_keeper_t;
+} usb_device_manager_t;
 
-void usb_device_keeper_init(usb_device_keeper_t *instance);
+void usb_device_manager_init(usb_device_manager_t *instance);
 
-usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
-    usb_speed_t speed);
+usb_address_t usb_device_manager_get_free_address(
+    usb_device_manager_t *instance, usb_speed_t speed);
 
-void usb_device_keeper_bind(usb_device_keeper_t *instance,
+void usb_device_manager_bind(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t handle);
 
-void usb_device_keeper_release(usb_device_keeper_t *instance,
+void usb_device_manager_release(usb_device_manager_t *instance,
     usb_address_t address);
 
-usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
+usb_address_t usb_device_manager_find(usb_device_manager_t *instance,
     devman_handle_t handle);
 
-bool usb_device_keeper_find_by_address(usb_device_keeper_t *instance,
+bool usb_device_manager_find_by_address(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t *handle);
 
-usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
+usb_speed_t usb_device_manager_get_speed(usb_device_manager_t *instance,
     usb_address_t address);
 #endif
 /**

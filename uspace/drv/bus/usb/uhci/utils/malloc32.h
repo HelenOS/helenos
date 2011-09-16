@@ -49,7 +49,7 @@
  * @param[in] addr Virtual address to translate
  * @return Physical address if exists, NULL otherwise.
  */
-static inline uintptr_t addr_to_phys(void *addr)
+static inline uintptr_t addr_to_phys(const void *addr)
 {
 	if (addr == NULL)
 		return 0;
@@ -101,11 +101,17 @@ static inline void * get_page(void)
 	void *free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
 	if (free_address == 0)
 		return NULL;
-	void *ret = as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
+	void *address = as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
 		  AS_AREA_READ | AS_AREA_WRITE);
-	if (ret != free_address)
+	if (address != free_address)
 		return NULL;
-	return ret;
+	return address;
+}
+/*----------------------------------------------------------------------------*/
+static inline void return_page(void *page)
+{
+	if (page)
+		as_area_destroy(page);
 }
 
 #endif

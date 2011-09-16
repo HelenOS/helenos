@@ -44,13 +44,9 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 static hash_index_t node_hash(unsigned long key[])
 {
-	hash_index_t hash = 0;
-	unsigned i = 0;
-	for (;i < MAX_KEYS; ++i) {
-		hash ^= key[i];
-	}
-	hash %= BUCKET_COUNT;
-	return hash;
+	/* USB endpoints use 4 bits, thus ((key[0] << 4) | key[1])
+	 * produces unique value for every address.endpoint pair */
+	return ((key[0] << 4) | key[1]) % BUCKET_COUNT;
 }
 /*----------------------------------------------------------------------------*/
 static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
@@ -62,7 +58,9 @@ static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	bool match = true;
 	switch (keys) {
 	case 3:
-		match = match && (key[2] == node->ep->direction);
+		match = match &&
+		    ((key[2] == node->ep->direction)
+		    || (node->ep->direction == USB_DIRECTION_BOTH));
 	case 2:
 		match = match && (key[1] == (unsigned long)node->ep->endpoint);
 	case 1:
@@ -139,13 +137,14 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 }
 /*----------------------------------------------------------------------------*/
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth)
+    size_t available_bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
-	fibril_condvar_initialize(&instance->change);
 	instance->free_bw = available_bandwidth;
-	bool ht =
+	instance->bw_count = bw_count;
+	const bool ht =
 	    hash_table_create(&instance->ep_table, BUCKET_COUNT, MAX_KEYS, &op);
 	return ht ? EOK : ENOMEM;
 }
@@ -158,25 +157,27 @@ void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance)
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
     endpoint_t *ep, size_t data_size)
 {
-	assert(ep);
-	size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
-	    data_size, ep->max_packet_size);
 	assert(instance);
+	assert(instance->bw_count);
+	assert(ep);
+	const size_t bw = instance->bw_count(ep->speed, ep->transfer_type,
+	    data_size, ep->max_packet_size);
 
-	unsigned long key[MAX_KEYS] =
-	    {ep->address, ep->endpoint, ep->direction};
 	fibril_mutex_lock(&instance->guard);
-
-	link_t *item =
-	    hash_table_find(&instance->ep_table, key);
-	if (item != NULL) {
-		fibril_mutex_unlock(&instance->guard);
-		return EEXISTS;
-	}
 
 	if (bw > instance->free_bw) {
 		fibril_mutex_unlock(&instance->guard);
 		return ENOSPC;
+	}
+
+	unsigned long key[MAX_KEYS] =
+	    {ep->address, ep->endpoint, ep->direction};
+
+	const link_t *item =
+	    hash_table_find(&instance->ep_table, key);
+	if (item != NULL) {
+		fibril_mutex_unlock(&instance->guard);
+		return EEXISTS;
 	}
 
 	node_t *node = malloc(sizeof(node_t));
@@ -192,7 +193,6 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 	hash_table_insert(&instance->ep_table, key, &node->link);
 	instance->free_bw -= bw;
 	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_broadcast(&instance->change);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -210,14 +210,15 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 	}
 
 	node_t *node = hash_table_get_instance(item, node_t, link);
-	if (node->ep->active)
+	if (node->ep->active) {
+		fibril_mutex_unlock(&instance->guard);
 		return EBUSY;
+	}
 
 	instance->free_bw += node->bw;
 	hash_table_remove(&instance->ep_table, key, MAX_KEYS);
 
 	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_broadcast(&instance->change);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -229,12 +230,12 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
 	unsigned long key[MAX_KEYS] = {address, endpoint, direction};
 
 	fibril_mutex_lock(&instance->guard);
-	link_t *item = hash_table_find(&instance->ep_table, key);
+	const link_t *item = hash_table_find(&instance->ep_table, key);
 	if (item == NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return NULL;
 	}
-	node_t *node = hash_table_get_instance(item, node_t, link);
+	const node_t *node = hash_table_get_instance(item, node_t, link);
 	if (bw)
 		*bw = node->bw;
 
@@ -254,16 +255,16 @@ void usb_endpoint_manager_reset_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data)
 {
 	assert(instance);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB11_ADDRESS_MAX || target.address < 0) {
+	if (!usb_target_is_valid(target)) {
 		usb_log_error("Invalid data when checking for toggle reset.\n");
 		return;
 	}
 
+	assert(data);
 	switch (data[1])
 	{
-	case 0x01: /*clear feature*/
-		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
+	case 0x01: /* Clear Feature -- resets only cleared ep */
+		/* Recipient is endpoint, value is zero (ENDPOINT_STALL) */
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			/* endpoint number is < 16, thus first byte is enough */
 			usb_target_t reset_target =
@@ -275,9 +276,9 @@ void usb_endpoint_manager_reset_if_need(
 		}
 	break;
 
-	case 0x9: /* set configuration */
-	case 0x11: /* set interface */
-		/* target must be device */
+	case 0x9: /* Set Configuration */
+	case 0x11: /* Set Interface */
+		/* Recipient must be device */
 		if ((data[0] & 0xf) == 0) {
 			usb_target_t reset_target =
 			    { .address = target.address, 0 };

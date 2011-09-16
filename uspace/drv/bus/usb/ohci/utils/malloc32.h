@@ -45,7 +45,7 @@
  * @param[in] addr Virtual address to translate
  * @return Physical address if exists, NULL otherwise.
  */
-static inline uintptr_t addr_to_phys(void *addr)
+static inline uintptr_t addr_to_phys(const void *addr)
 {
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);

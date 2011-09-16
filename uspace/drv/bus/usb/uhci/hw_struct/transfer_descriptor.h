@@ -68,7 +68,7 @@ typedef struct transfer_descriptor {
 #define TD_STATUS_ACTLEN_POS 0
 #define TD_STATUS_ACTLEN_MASK 0x7ff
 
-	/* double word with USB device specific info */
+	/** Double word with USB device specific info */
 	volatile uint32_t device;
 #define TD_DEVICE_MAXLEN_POS 21
 #define TD_DEVICE_MAXLEN_MASK 0x7ff
@@ -86,29 +86,30 @@ typedef struct transfer_descriptor {
 
 	/* According to UHCI design guide, there is 16 bytes of
 	 * data available here.
-	 * According to linux kernel the hardware does not care,
-	 * it just needs to be aligned. We don't use it anyway.
+	 * According to Linux kernel the hardware does not care,
+	 * memory just needs to be aligned. We don't use it anyway.
 	 */
 } __attribute__((packed)) td_t;
 
 
 void td_init(td_t *instance, int error_count, size_t size, bool toggle,
     bool iso, bool low_speed, usb_target_t target, usb_packet_id pid,
-    void *buffer, td_t *next);
+    const void *buffer, const td_t *next);
 
-int td_status(td_t *instance);
+int td_status(const td_t *instance);
 
-void td_print_status(td_t *instance);
+void td_print_status(const td_t *instance);
 /*----------------------------------------------------------------------------*/
 /** Helper function for parsing actual size out of TD.
  *
  * @param[in] instance TD structure to use.
  * @return Parsed actual size.
  */
-static inline size_t td_act_size(td_t *instance)
+static inline size_t td_act_size(const td_t *instance)
 {
 	assert(instance);
 	const uint32_t s = instance->status;
+	/* Actual size is encoded as n-1 (UHCI design guide p. 23) */
 	return ((s >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
 }
 /*----------------------------------------------------------------------------*/
@@ -118,7 +119,7 @@ static inline size_t td_act_size(td_t *instance)
  * @return True if data packet is short (less than max bytes and SPD set),
  * false otherwise.
  */
-static inline bool td_is_short(td_t *instance)
+static inline bool td_is_short(const td_t *instance)
 {
 	const size_t act_size = td_act_size(instance);
 	const size_t max_size =
@@ -133,7 +134,7 @@ static inline bool td_is_short(td_t *instance)
  * @param[in] instance TD structure to use.
  * @return Toggle bit value.
  */
-static inline int td_toggle(td_t *instance)
+static inline int td_toggle(const td_t *instance)
 {
 	assert(instance);
 	return (instance->device & TD_DEVICE_DATA_TOGGLE_ONE_FLAG) ? 1 : 0;
@@ -144,7 +145,7 @@ static inline int td_toggle(td_t *instance)
  * @param[in] instance TD structure to use.
  * @return Active bit value.
  */
-static inline bool td_is_active(td_t *instance)
+static inline bool td_is_active(const td_t *instance)
 {
 	assert(instance);
 	return (instance->status & TD_STATUS_ERROR_ACTIVE) != 0;

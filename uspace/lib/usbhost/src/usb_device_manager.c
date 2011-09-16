@@ -30,21 +30,21 @@
  * @{
  */
 /** @file
- * Device keeper structure and functions (implementation).
+ * Device manager structure and functions (implementation).
  */
 #include <assert.h>
 #include <errno.h>
 #include <usb/debug.h>
-#include <usb/host/device_keeper.h>
+#include <usb/host/usb_device_manager.h>
 
 /*----------------------------------------------------------------------------*/
-/** Initialize device keeper structure.
+/** Initialize device manager structure.
  *
  * @param[in] instance Memory place to initialize.
  *
  * Set all values to false/0.
  */
-void usb_device_keeper_init(usb_device_keeper_t *instance)
+void usb_device_manager_init(usb_device_manager_t *instance)
 {
 	assert(instance);
 	unsigned i = 0;
@@ -62,12 +62,12 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance Device manager structure to use.
  * @param[in] speed Speed of the device requiring address.
  * @return Free address, or error code.
  */
-usb_address_t device_keeper_get_free_address(
-    usb_device_keeper_t *instance, usb_speed_t speed)
+usb_address_t usb_device_manager_get_free_address(
+    usb_device_manager_t *instance, usb_speed_t speed)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -96,11 +96,11 @@ usb_address_t device_keeper_get_free_address(
 /*----------------------------------------------------------------------------*/
 /** Bind USB address to devman handle.
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance Device manager structure to use.
  * @param[in] address Device address
  * @param[in] handle Devman handle of the device.
  */
-void usb_device_keeper_bind(usb_device_keeper_t *instance,
+void usb_device_manager_bind(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t handle)
 {
 	assert(instance);
@@ -116,11 +116,11 @@ void usb_device_keeper_bind(usb_device_keeper_t *instance,
 /*----------------------------------------------------------------------------*/
 /** Release used USB address.
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance Device manager structure to use.
  * @param[in] address Device address
  */
-void usb_device_keeper_release(
-    usb_device_keeper_t *instance, usb_address_t address)
+void usb_device_manager_release(
+    usb_device_manager_t *instance, usb_address_t address)
 {
 	assert(instance);
 	assert(address > 0);
@@ -135,12 +135,12 @@ void usb_device_keeper_release(
 /*----------------------------------------------------------------------------*/
 /** Find USB address associated with the device
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance Device manager structure to use.
  * @param[in] handle Devman handle of the device seeking its address.
  * @return USB Address, or error code.
  */
-usb_address_t usb_device_keeper_find(
-    usb_device_keeper_t *instance, devman_handle_t handle)
+usb_address_t usb_device_manager_find(
+    usb_device_manager_t *instance, devman_handle_t handle)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -160,12 +160,12 @@ usb_address_t usb_device_keeper_find(
 /** Find devman handle assigned to USB address.
  * Intentionally refuse to find handle of default address.
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance Device manager structure to use.
  * @param[in] address Address the caller wants to find.
  * @param[out] handle Where to store found handle.
  * @return Whether such address is currently occupied.
  */
-bool usb_device_keeper_find_by_address(usb_device_keeper_t *instance,
+bool usb_device_manager_find_by_address(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t *handle)
 {
 	assert(instance);
@@ -190,12 +190,12 @@ bool usb_device_keeper_find_by_address(usb_device_keeper_t *instance,
 /*----------------------------------------------------------------------------*/
 /** Get speed associated with the address
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance Device manager structure to use.
  * @param[in] address Address of the device.
  * @return USB speed.
  */
-usb_speed_t usb_device_keeper_get_speed(
-    usb_device_keeper_t *instance, usb_address_t address)
+usb_speed_t usb_device_manager_get_speed(
+    usb_device_manager_t *instance, usb_address_t address)
 {
 	assert(instance);
 	assert(address >= 0);

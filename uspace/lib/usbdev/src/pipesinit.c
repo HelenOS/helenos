@@ -485,13 +485,14 @@ int usb_pipe_register_with_speed(usb_pipe_t *pipe, usb_speed_t speed,
 	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
 	
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
 #define _PACK2(high, low) (((high) << 16) + (low))
 #define _PACK3(high, middle, low) (((((high) << 8) + (middle)) << 8) + (low))
 	
 	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
 	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REGISTER_ENDPOINT,
-	    _PACK2(pipe->wire->address, pipe->endpoint_no),
+	    IPC_M_USBHC_REGISTER_ENDPOINT, target.packed,
 	    _PACK3(speed, pipe->transfer_type, pipe->direction),
 	    _PACK2(pipe->max_packet_size, interval));
 	async_exchange_end(exch);

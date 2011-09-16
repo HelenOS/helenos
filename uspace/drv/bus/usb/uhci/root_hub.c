@@ -49,16 +49,8 @@
  */
 int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 {
-	int ret;
-
+	assert(instance);
 	assert(fun);
-
-	ret = ddf_fun_add_match_id(fun, "usb&uhci&root-hub", 100);
-	if (ret != EOK) {
-		usb_log_error("Failed to add root hub match id: %s\n",
-		    str_error(ret));
-		return ret;
-	}
 
 	/* Initialize resource structure */
 	instance->resource_list.count = 1;
@@ -69,7 +61,12 @@ int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 	instance->io_regs.res.io_range.size = reg_size;
 	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
 
-	return EOK;
+	const int ret = ddf_fun_add_match_id(fun, "usb&uhci&root-hub", 100);
+	if (ret != EOK) {
+		usb_log_error("Failed to add root hub match id: %s\n",
+		    str_error(ret));
+	}
+	return ret;
 }
 /**
  * @}
