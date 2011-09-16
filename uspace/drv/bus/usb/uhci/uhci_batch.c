@@ -44,10 +44,6 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
-static void batch_control(uhci_transfer_batch_t *uhci_batch,
-    usb_packet_id data_stage, usb_packet_id status_stage);
-static void batch_data(uhci_transfer_batch_t *uhci_batch);
-/*----------------------------------------------------------------------------*/
 static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	if (uhci_batch) {
@@ -71,7 +67,7 @@ void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
-static void (* const batch_setup[4][3])(uhci_transfer_batch_t*);
+static void (*const batch_setup[4][3])(uhci_transfer_batch_t*, usb_direction_t);
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.
  *
@@ -142,10 +138,10 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 	    " memory structures ready.\n", usb_batch,
 	    USB_TRANSFER_BATCH_ARGS(*usb_batch));
 
-	assert(
-	    batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction]);
-	batch_setup[usb_batch->ep->transfer_type][usb_batch->ep->direction](
-	    uhci_batch);
+	const usb_direction_t dir = usb_transfer_batch_direction(usb_batch);
+
+	assert(batch_setup[usb_batch->ep->transfer_type][dir]);
+	batch_setup[usb_batch->ep->transfer_type][dir](uhci_batch, dir);
 
 	return uhci_batch;
 }
@@ -203,28 +199,28 @@ substract_ret:
 	return true;
 }
 /*----------------------------------------------------------------------------*/
+static const usb_packet_id direction_pids[] = {
+	[USB_DIRECTION_IN] = USB_PID_IN,
+	[USB_DIRECTION_OUT] = USB_PID_OUT,
+};
+/*----------------------------------------------------------------------------*/
 /** Prepare generic data transfer
  *
  * @param[in] uhci_batch Batch structure to use.
- * @param[in] pid Pid to use for data transactions.
+ * @param[in] dir Communication direction.
  *
  * Transactions with alternating toggle bit and supplied pid value.
  * The last transfer is marked with IOC flag.
  */
-static void batch_data(uhci_transfer_batch_t *uhci_batch)
+static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
 	assert(uhci_batch->usb_batch->ep);
-	assert(uhci_batch->usb_batch->ep->direction == USB_DIRECTION_OUT ||
-	    uhci_batch->usb_batch->ep->direction == USB_DIRECTION_IN);
+	assert(dir == USB_DIRECTION_OUT || dir == USB_DIRECTION_IN);
 
-	static const usb_packet_id pids[] = {
-		[USB_DIRECTION_IN] = USB_PID_IN,
-		[USB_DIRECTION_OUT] = USB_PID_OUT,
-	};
 
-	const usb_packet_id pid = pids[uhci_batch->usb_batch->ep->direction];
+	const usb_packet_id pid = direction_pids[dir];
 	const bool low_speed =
 	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
@@ -269,22 +265,28 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 /** Prepare generic control transfer
  *
  * @param[in] uhci_batch Batch structure to use.
- * @param[in] data_stage Pid to use for data tds.
- * @param[in] status_stage Pid to use for data tds.
+ * @param[in] dir Communication direction.
  *
  * Setup stage with toggle 0 and USB_PID_SETUP.
- * Data stage with alternating toggle and pid supplied by parameter.
- * Status stage with toggle 1 and pid supplied by parameter.
+ * Data stage with alternating toggle and pid determined by the communication
+ * direction.
+ * Status stage with toggle 1 and pid determined by the communication direction.
  * The last transfer is marked with IOC.
  */
-static void batch_control(uhci_transfer_batch_t *uhci_batch,
-   usb_packet_id data_stage_pid, usb_packet_id status_stage_pid)
+static void batch_control(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
 	assert(uhci_batch->usb_batch->ep);
+	assert(dir == USB_DIRECTION_OUT || dir == USB_DIRECTION_IN);
 	assert(uhci_batch->td_count >= 2);
+	static const usb_packet_id status_stage_pids[] = {
+		[USB_DIRECTION_IN] = USB_PID_OUT,
+		[USB_DIRECTION_OUT] = USB_PID_IN,
+	};
 
+	const usb_packet_id data_stage_pid = direction_pids[dir];
+	const usb_packet_id status_stage_pid = status_stage_pids[dir];
 	const bool low_speed =
 	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
@@ -333,32 +335,9 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch,
 	    uhci_batch->tds[td].status);
 }
 /*----------------------------------------------------------------------------*/
-static void batch_setup_control(uhci_transfer_batch_t *uhci_batch)
+static void (*const batch_setup[4][3])(uhci_transfer_batch_t*, usb_direction_t) =
 {
-	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
-	assert(uhci_batch->usb_batch->setup_buffer);
-	// TODO Find a better way to do this
-	/* Check first bit of the first setup request byte
-	 * (it signals hc-> dev or dev->hc communication) */
-	const char *direction = NULL;
-	if (uhci_batch->usb_batch->setup_buffer[0] & (1 << 7)) {
-		batch_control(uhci_batch, USB_PID_IN, USB_PID_OUT);
-		direction = "read";
-	} else {
-		batch_control(uhci_batch, USB_PID_OUT, USB_PID_IN);
-		direction = "write";
-	}
-	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    uhci_batch->usb_batch,
-	    usb_str_transfer_type(uhci_batch->usb_batch->ep->transfer_type),
-	    direction, USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch));
-}
-/*----------------------------------------------------------------------------*/
-static void (* const batch_setup[4][3])(uhci_transfer_batch_t*) =
-{
-	{ NULL, NULL, batch_setup_control },
+	{ batch_control, batch_control, NULL },
 	{ NULL, NULL, NULL },
 	{ batch_data, batch_data, NULL },
 	{ batch_data, batch_data, NULL },
