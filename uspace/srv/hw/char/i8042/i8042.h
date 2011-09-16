@@ -38,8 +38,9 @@
 #ifndef i8042_H_
 #define i8042_H_
 
+#include <sys/types.h>
 #include <libarch/ddi.h>
-#include <libarch/types.h>
+#include <async.h>
 
 /** i8042 HW I/O interface */
 struct i8042 {
@@ -52,11 +53,11 @@ typedef struct i8042 i8042_t;
 /** Softstate structure, one for each serial port (primary and aux). */
 typedef struct {
 	service_id_t service_id;
-	int client_phone;
+	async_sess_t *client_sess;
 } i8042_port_t;
 
 #endif
 
 /**
  * @}
- */ 
+ */

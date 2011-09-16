@@ -64,22 +64,13 @@
 static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered)
 {
-	/*
-	 * Get corresponding IPC method.
-	 * In future, replace with static array of mappings
-	 * transfer type -> method.
-	 */
-	usbhc_iface_funcs_t ipc_method;
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-			ipc_method = IPC_M_USBHC_INTERRUPT_IN;
-			break;
-		case USB_TRANSFER_BULK:
-			ipc_method = IPC_M_USBHC_BULK_IN;
-			break;
-		default:
-			return ENOTSUP;
-	}
+	/* Only interrupt and bulk transfers are supported */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    return ENOTSUP;
+
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
 	
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
@@ -88,8 +79,8 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
-	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    ipc_method, pipe->wire->address, pipe->endpoint_no, NULL);
+	aid_t opening_request = async_send_2(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_READ, target.packed, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -212,22 +203,13 @@ int usb_pipe_read(usb_pipe_t *pipe,
 static int usb_pipe_write_no_check(usb_pipe_t *pipe,
     void *buffer, size_t size)
 {
-	/*
-	 * Get corresponding IPC method.
-	 * In future, replace with static array of mappings
-	 * transfer type -> method.
-	 */
-	usbhc_iface_funcs_t ipc_method;
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-			ipc_method = IPC_M_USBHC_INTERRUPT_OUT;
-			break;
-		case USB_TRANSFER_BULK:
-			ipc_method = IPC_M_USBHC_BULK_OUT;
-			break;
-		default:
-			return ENOTSUP;
-	}
+	/* Only interrupt and bulk transfers are supported */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    return ENOTSUP;
+
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
 
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
@@ -237,7 +219,7 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	 * Make call identifying target USB device and type of transfer.
 	 */
 	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    ipc_method, pipe->wire->address, pipe->endpoint_no, NULL);
+	    IPC_M_USBHC_WRITE, target.packed, size, NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
@@ -351,30 +333,25 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
+
+	assert(setup_buffer_size == 8);
+	uint64_t setup_packet;
+	memcpy(&setup_packet, setup_buffer, 8);
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_CONTROL_READ, pipe->wire->address, pipe->endpoint_no,
-	    NULL);
-	
+	aid_t opening_request = async_send_4(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_READ, target.packed,
+	    (setup_packet & UINT32_MAX), (setup_packet >> 32), NULL);
+
 	if (opening_request == 0) {
 		async_exchange_end(exch);
 		return ENOMEM;
 	}
-	
-	/*
-	 * Send the setup packet.
-	 */
-	int rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
-	if (rc != EOK) {
-		async_exchange_end(exch);
-		pipe_end_transaction(pipe);
-		async_wait_for(opening_request, NULL);
-		return rc;
-	}
-	
+
 	/*
 	 * Retrieve the data.
 	 */
@@ -497,36 +474,31 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 
+	const usb_target_t target =
+	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
+	assert(setup_buffer_size == 8);
+	uint64_t setup_packet;
+	memcpy(&setup_packet, setup_buffer, 8);
+
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	aid_t opening_request = async_send_4(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_CONTROL_WRITE, pipe->wire->address, pipe->endpoint_no,
-	    data_buffer_size, NULL);
+	aid_t opening_request = async_send_5(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_WRITE, target.packed, data_buffer_size,
+	    (setup_packet & UINT32_MAX), (setup_packet >> 32), NULL);
 	
 	if (opening_request == 0) {
 		async_exchange_end(exch);
 		pipe_end_transaction(pipe);
 		return ENOMEM;
 	}
-	
-	/*
-	 * Send the setup packet.
-	 */
-	int rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
-	if (rc != EOK) {
-		async_exchange_end(exch);
-		pipe_end_transaction(pipe);
-		async_wait_for(opening_request, NULL);
-		return rc;
-	}
-	
+
 	/*
 	 * Send the data (if any).
 	 */
 	if (data_buffer_size > 0) {
-		rc = async_data_write_start(exch, data_buffer, data_buffer_size);
+		int rc = async_data_write_start(exch, data_buffer, data_buffer_size);
 		
 		/* All data sent, pipe can be released. */
 		async_exchange_end(exch);

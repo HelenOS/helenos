@@ -404,7 +404,7 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 
 static void fun_hw_res_alloc(isa_fun_t *fun)
 {
-	fun->hw_resources.resources = 
+	fun->hw_resources.resources =
 	    (hw_resource_t *)malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
 }
 

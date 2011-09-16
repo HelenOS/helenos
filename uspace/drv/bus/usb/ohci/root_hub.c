@@ -120,9 +120,8 @@ static inline void interrupt_request(
 {
 	assert(request);
 
-	memcpy(request->data_buffer, &mask, size);
 	request->transfered_size = size;
-	usb_transfer_batch_finish_error(request, EOK);
+	usb_transfer_batch_finish_error(request, &mask, size, EOK);
 }
 
 #define TRANSFER_OK(bytes) \
@@ -205,7 +204,7 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 	case USB_TRANSFER_CONTROL:
 		usb_log_debug("Root hub got CONTROL packet\n");
 		const int ret = control_request(instance, request);
-		usb_transfer_batch_finish_error(request, ret);
+		usb_transfer_batch_finish_error(request, NULL, 0, ret);
 		break;
 	case USB_TRANSFER_INTERRUPT:
 		usb_log_debug("Root hub got INTERRUPT packet\n");
@@ -214,7 +213,7 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 			usb_log_debug("No changes..\n");
 			assert(instance->unfinished_interrupt_transfer == NULL);
 			instance->unfinished_interrupt_transfer = request;
-			break;
+			return;
 		}
 		usb_log_debug("Processing changes...\n");
 		interrupt_request(request, mask, instance->interrupt_mask_size);
@@ -222,8 +221,9 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 
 	default:
 		usb_log_error("Root hub got unsupported request.\n");
-		usb_transfer_batch_finish_error(request, EINVAL);
+		usb_transfer_batch_finish_error(request, NULL, 0, EINVAL);
 	}
+	usb_transfer_batch_dispose(request);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -243,6 +243,7 @@ void rh_interrupt(rh_t *instance)
 	const uint16_t mask = create_interrupt_mask(instance);
 	interrupt_request(instance->unfinished_interrupt_transfer,
 	    mask, instance->interrupt_mask_size);
+	usb_transfer_batch_dispose(instance->unfinished_interrupt_transfer);
 
 	instance->unfinished_interrupt_transfer = NULL;
 }
@@ -388,8 +389,8 @@ int get_status(rh_t *instance, usb_transfer_batch_t *request)
 	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS) {
 		const uint32_t data = instance->registers->rh_status &
 		    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
-		memcpy(request->data_buffer, &data, 4);
-		TRANSFER_OK(4);
+		memcpy(request->buffer, &data, sizeof(data));
+		TRANSFER_OK(sizeof(data));
 	}
 
 	/* Copy appropriate rh_port_status register, OHCI designers were
@@ -401,8 +402,8 @@ int get_status(rh_t *instance, usb_transfer_batch_t *request)
 
 		const uint32_t data =
 		    instance->registers->rh_port_status[port - 1];
-		memcpy(request->data_buffer, &data, 4);
-		TRANSFER_OK(4);
+		memcpy(request->buffer, &data, sizeof(data));
+		TRANSFER_OK(sizeof(data));
 	}
 
 	return ENOTSUP;
@@ -482,7 +483,7 @@ int get_descriptor(rh_t *instance, usb_transfer_batch_t *request)
 		size = request->buffer_size;
 	}
 
-	memcpy(request->data_buffer, descriptor, size);
+	memcpy(request->buffer, descriptor, size);
 	TRANSFER_OK(size);
 }
 /*----------------------------------------------------------------------------*/
@@ -712,7 +713,7 @@ int control_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
 		if (request->buffer_size != 1)
 			return EINVAL;
-		request->data_buffer[0] = 1;
+		request->buffer[0] = 1;
 		TRANSFER_OK(1);
 
 	case USB_DEVREQ_CLEAR_FEATURE:

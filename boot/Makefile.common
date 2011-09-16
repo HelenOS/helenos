@@ -129,6 +129,13 @@ RD_DRV_CFG =
 
 RD_LIBS =
 
+ifeq ($(CONFIG_DEVEL_FILES), y)
+	RD_LIBS += \
+		$(USPACE_PATH)/lib/c/libc.a \
+		$(USPACE_PATH)/lib/softint/libsoftint.a \
+		$(USPACE_PATH)/lib/softfloat/libsoftfloat.a
+endif
+
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += \
 		$(USPACE_PATH)/lib/c/libc.so0 \
@@ -176,6 +183,20 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv
+
+ifeq ($(CONFIG_PCC),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/cc/cc \
+	$(USPACE_PATH)/app/ccom/ccom \
+	$(USPACE_PATH)/app/ccom/mkext/cc_mkext \
+	$(USPACE_PATH)/app/cpp/cpp
+endif
+
+ifeq ($(CONFIG_BINUTILS),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/binutils/bin/as \
+	$(USPACE_PATH)/app/binutils/bin/ld
+endif
 
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \

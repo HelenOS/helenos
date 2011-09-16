@@ -37,9 +37,8 @@
 #define USB_HID_KBDDEV_H_
 
 #include <stdint.h>
-
+#include <async.h>
 #include <fibril_synch.h>
-
 #include <usb/hid/hid.h>
 #include <usb/hid/hidparser.h>
 #include <ddf/driver.h>
@@ -57,7 +56,7 @@ struct usb_hid_dev;
  * Holds a reference to generic USB/HID device structure and keyboard-specific
  * data, such as currently pressed keys, modifiers and lock keys.
  *
- * Also holds a IPC phone to the console (since there is now no other way to 
+ * Also holds a IPC session to the console (since there is now no other way to 
  * communicate with it).
  *
  * @note Storing active lock keys in this structure results in their setting
@@ -82,8 +81,8 @@ typedef struct usb_kbd_t {
 	/** Currently active lock keys. */
 	unsigned lock_keys;
 	
-	/** IPC phone to the console device (for sending key events). */
-	int console_phone;
+	/** IPC session to the console device (for sending key events). */
+	async_sess_t *console_sess;
 	
 	/** @todo What is this actually? */
 	ddf_dev_ops_t ops;

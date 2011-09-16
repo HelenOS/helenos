@@ -85,3 +85,5 @@ void ras_check(unsigned int n, istate_t *istate)
 	istate->pc = rewrite_pc;
 }
 
+/** @}
+ */

@@ -57,8 +57,8 @@ static inline void qh_init(qh_t *instance)
 {
 	assert(instance);
 
-	instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
-	instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
+	instance->element = LINK_POINTER_TERM;
+	instance->next = LINK_POINTER_TERM;
 }
 /*----------------------------------------------------------------------------*/
 /** Set queue head next pointer
@@ -70,7 +70,10 @@ static inline void qh_init(qh_t *instance)
  */
 static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
 {
-	uint32_t pa = addr_to_phys(next);
+	/* Physical address has to be below 4GB,
+	 * it is an UHCI limitation and malloc32
+	 * should guarantee this */
+	const uint32_t pa = addr_to_phys(next);
 	if (pa) {
 		instance->next = LINK_POINTER_QH(pa);
 	} else {
@@ -87,7 +90,10 @@ static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
  */
 static inline void qh_set_element_td(qh_t *instance, td_t *td)
 {
-	uint32_t pa = addr_to_phys(td);
+	/* Physical address has to be below 4GB,
+	 * it is an UHCI limitation and malloc32
+	 * should guarantee this */
+	const uint32_t pa = addr_to_phys(td);
 	if (pa) {
 		instance->element = LINK_POINTER_TD(pa);
 	} else {

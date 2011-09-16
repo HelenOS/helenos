@@ -195,23 +195,31 @@ static void srv_start(const char *fname)
 	}
 }
 
-static void console(const char *svc)
+static void console(const char *isvc, const char *fbsvc)
 {
-	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, svc);
+	printf("%s: Spawning %s %s %s\n", NAME, SRV_CONSOLE, isvc, fbsvc);
 	
 	/* Wait for the input service to be ready */
 	service_id_t service_id;
-	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
+	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, svc,
+		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
 		    str_error(rc));
 		return;
 	}
 	
-	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, svc, NULL);
+	/* Wait for the framebuffer service to be ready */
+	rc = loc_service_get_id(fbsvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
-		    svc, str_error(rc));
+		printf("%s: Error waiting on %s (%s)\n", NAME, fbsvc,
+		    str_error(rc));
+		return;
+	}
+	
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, isvc, fbsvc, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s %s %s (%s)\n", NAME, SRV_CONSOLE,
+		    isvc, fbsvc, str_error(rc));
 	}
 }
 
@@ -299,7 +307,7 @@ int main(int argc, char *argv[])
 	
 	spawn("/srv/fb");
 	spawn("/srv/input");
-	console("hid/input");
+	console("hid/input", "hid/fb0");
 	
 	spawn("/srv/clip");
 	

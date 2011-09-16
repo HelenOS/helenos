@@ -46,16 +46,12 @@
 
 #include <errno.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <str_error.h>
 
 #include <ipc/kbdev.h>
 #include <io/console.h>
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
-
-#define NAME "multimedia-keys"
+#define NAME  "multimedia-keys"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -68,8 +64,8 @@ typedef struct usb_multimedia_t {
 	//int32_t *keys;
 	/** Count of stored keys (i.e. number of keys in the report). */
 	//size_t key_count;	
-	/** IPC phone to the console device (for sending key events). */
-	int console_phone;
+	/** IPC session to the console device (for sending key events). */
+	async_sess_t *console_sess;
 } usb_multimedia_t;
 
 
@@ -78,7 +74,7 @@ typedef struct usb_multimedia_t {
  * Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
- * assumes the caller is the console and thus it stores IPC phone to it for 
+ * assumes the caller is the console and thus it stores IPC session to it for
  * later use by the driver to notify about key events.
  *
  * @param fun Device function handling the call.
@@ -90,30 +86,25 @@ static void default_connection_handler(ddf_fun_t *fun,
 {
 	usb_log_debug(NAME " default_connection_handler()\n");
 	
-	sysarg_t method = IPC_GET_IMETHOD(*icall);
-	
 	usb_multimedia_t *multim_dev = (usb_multimedia_t *)fun->driver_data;
 	
 	if (multim_dev == NULL) {
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
-
-		if (multim_dev->console_phone != -1) {
-			async_answer_0(icallid, ELIMIT);
-			return;
-		}
-
-		multim_dev->console_phone = callback;
-		usb_log_debug(NAME " Saved phone to console: %d\n", callback);
-		async_answer_0(icallid, EOK);
-		return;
-	}
 	
-	async_answer_0(icallid, EINVAL);
+	async_sess_t *sess =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	if (sess != NULL) {
+		if (multim_dev->console_sess == NULL) {
+			multim_dev->console_sess = sess;
+			usb_log_debug(NAME " Saved session to console: %p\n",
+			    sess);
+			async_answer_0(icallid, EOK);
+		} else
+			async_answer_0(icallid, ELIMIT);
+	} else
+		async_answer_0(icallid, EINVAL);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -154,14 +145,15 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 	ev.c = 0;
 
 	usb_log_debug2(NAME " Sending key %d to the console\n", ev.key);
-	if (multim_dev->console_phone < 0) {
+	if (multim_dev->console_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 	
-	async_obsolete_msg_4(multim_dev->console_phone, KBDEV_EVENT, ev.type, ev.key, 
-	    ev.mods, ev.c);
+	async_exch_t *exch = async_exchange_begin(multim_dev->console_sess);
+	async_msg_4(exch, KBDEV_EVENT, ev.type, ev.key, ev.mods, ev.c);
+	async_exchange_end(exch);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -221,7 +213,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		return ENOMEM;
 	}
 	
-	multim_dev->console_phone = -1;
+	multim_dev->console_sess = NULL;
 	
 	/*! @todo Autorepeat */
 	
@@ -249,8 +241,8 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 	
 	if (data != NULL) {
 		usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
-		// hangup phone to the console
-		async_obsolete_hangup(multim_dev->console_phone);
+		// hangup session to the console
+		async_hangup(multim_dev->console_sess);
 	}
 }
 

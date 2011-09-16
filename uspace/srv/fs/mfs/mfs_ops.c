@@ -467,12 +467,7 @@ found:
 
 static aoff64_t mfs_size_get(fs_node_t *node)
 {
-	assert(node);
-
 	const struct mfs_node *mnode = node->data;
-	assert(mnode);
-	assert(mnode->ino_i);
-
 	return mnode->ino_i->i_size;
 }
 
@@ -512,7 +507,7 @@ mfs_node_put(fs_node_t *fsnode)
 		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
 		assert(mnode->instance->open_nodes_cnt > 0);
 		mnode->instance->open_nodes_cnt--;
-		rc = mfs_put_inode_core(mnode);
+		rc = mfs_put_inode(mnode);
 		free(mnode->ino_i);
 		free(mnode);
 		free(fsnode);
@@ -534,8 +529,6 @@ static int mfs_node_open(fs_node_t *fsnode)
 static fs_index_t mfs_index_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
-
-	assert(mnode->ino_i);
 	return mnode->ino_i->index;
 }
 

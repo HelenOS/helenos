@@ -62,6 +62,7 @@ GENERIC_SOURCES = \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
+	generic/cfg.c \
 	generic/clipboard.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
@@ -92,14 +93,11 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
-	generic/io/screenbuffer.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/ns.c \
-	generic/ns_obsolete.c \
 	generic/async.c \
-	generic/async_obsolete.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.c \

@@ -1,0 +1,52 @@
+#	$Id: Makefile.in,v 1.8 2008/12/19 08:08:48 ragge Exp $
+#
+# Makefile.in for the f77 frontend of pcc.
+#
+VPATH=@srcdir@
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libexecdir = @libexecdir@
+includedir = @includedir@
+strip = @strip@
+CC = @CC@
+TARGOS = @targos@
+TARGMACH = @targmach@
+F77LIBDIR=-L${prefix}/lib
+CFLAGS = @CFLAGS@ @ADD_CFLAGS@  -DLIBEXECDIR=\"${libexecdir}\" -DINCLUDEDIR=\"${includedir}\"
+CPPFLAGS = @CPPFLAGS@ -I${top_builddir} -I${top_srcdir}/os/${TARGOS} -I${MDIR} \
+	-Dmach_${TARGMACH} -Dos_${TARGOS} -I${FCOMDIR} -DLANG_F77 \
+	-DLIBDIR=\"${F77LIBDIR}\"
+LIBS = @LIBS@
+LDFLAGS = @LDFLAGS@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+OBJS=f77.o
+DEST=@BINPREFIX@f77
+
+MIPDIR=${top_srcdir}/mip
+MDIR=${top_srcdir}/arch/$(TARGMACH)
+FCOMDIR=${top_srcdir}/f77/fcom
+
+all: ${DEST}
+
+${DEST}: $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $@
+
+.c.o:
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c $<
+
+install:
+	${INSTALL_PROGRAM} ${DEST} ${bindir}
+	@if [ ${strip} = yes ]; then		\
+		strip ${bindir}/${DEST} ;	\
+		echo strip ${bindir}/${DEST} ;	\
+	fi
+
+clean:
+	/bin/rm -f  $(OBJS) ${DEST}
+
+distclean: clean
+	/bin/rm -f  Makefile

@@ -60,20 +60,20 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	assert(io_reg_address);
 	assert(io_reg_size);
 	assert(irq_no);
-	
+
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	hw_resource_list_t hw_resources;
 	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
 	if (rc != EOK) {
 		async_hangup(parent_sess);
 		return rc;
 	}
-	
+
 	uintptr_t io_address = 0;
 	size_t io_size = 0;
 	bool io_found = false;
@@ -101,19 +101,19 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 			break;
 		}
 	}
-	
+
 	async_hangup(parent_sess);
-	
+
 	if (!io_found || !irq_found)
 		return ENOENT;
-	
+
 	*io_reg_address = io_address;
 	*io_reg_size = io_size;
 	*irq_no = irq;
-	
+
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Call the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
@@ -126,13 +126,13 @@ int pci_enable_interrupts(const ddf_dev_t *device)
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	const bool enabled = hw_res_enable_interrupt(parent_sess);
 	async_hangup(parent_sess);
-	
+
 	return enabled ? EOK : EIO;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Call the PCI driver with a request to clear legacy support register
  *
  * @param[in] device Device asking to disable interrupts
@@ -141,26 +141,26 @@ int pci_enable_interrupts(const ddf_dev_t *device)
 int pci_disable_legacy(const ddf_dev_t *device)
 {
 	assert(device);
-	
+
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	/* See UHCI design guide for these values p.45,
 	 * write all WC bits in USB legacy register */
 	const sysarg_t address = 0xc0;
 	const sysarg_t value = 0xaf00;
-	
+
 	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
+
 	const int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
-	
+
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
-	
+
 	return rc;
 }
 

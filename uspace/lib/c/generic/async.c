@@ -117,6 +117,54 @@
 #define CLIENT_HASH_TABLE_BUCKETS  32
 #define CONN_HASH_TABLE_BUCKETS    32
 
+/** Session data */
+struct async_sess {
+	/** List of inactive exchanges */
+	list_t exch_list;
+	
+	/** Exchange management style */
+	exch_mgmt_t mgmt;
+	
+	/** Session identification */
+	int phone;
+	
+	/** First clone connection argument */
+	sysarg_t arg1;
+	
+	/** Second clone connection argument */
+	sysarg_t arg2;
+	
+	/** Third clone connection argument */
+	sysarg_t arg3;
+	
+	/** Exchange mutex */
+	fibril_mutex_t mutex;
+	
+	/** Number of opened exchanges */
+	atomic_t refcnt;
+	
+	/** Mutex for stateful connections */
+	fibril_mutex_t remote_state_mtx;
+	
+	/** Data for stateful connections */
+	void *remote_state_data;
+};
+
+/** Exchange data */
+struct async_exch {
+	/** Link into list of inactive exchanges */
+	link_t sess_link;
+	
+	/** Link into global list of inactive exchanges */
+	link_t global_link;
+	
+	/** Session pointer */
+	async_sess_t *sess;
+	
+	/** Exchange identification */
+	int phone;
+};
+
 /** Async framework global futex */
 atomic_t async_futex = FUTEX_INITIALIZER;
 
@@ -133,6 +181,19 @@ typedef struct {
 	ipc_callid_t callid;
 	ipc_call_t call;
 } msg_t;
+
+/** Message data */
+typedef struct {
+	awaiter_t wdata;
+	
+	/** If reply was received. */
+	bool done;
+	
+	/** Pointer to where the answer data is stored. */
+	ipc_call_t *dataptr;
+	
+	sysarg_t retval;
+} amsg_t;
 
 /* Client connection data */
 typedef struct {

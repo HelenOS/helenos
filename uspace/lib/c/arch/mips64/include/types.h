@@ -52,6 +52,7 @@ typedef int64_t ssize_t;
 typedef uint64_t size_t;
 
 typedef uint64_t uintptr_t;
+typedef int64_t intptr_t;
 typedef uint64_t atomic_count_t;
 typedef int64_t atomic_signed_t;
 

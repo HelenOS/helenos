@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,127 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fb
- * @ingroup fbs
- * @{
- */
-/** @file
- */
-
 #ifndef FB_FB_H_
 #define FB_FB_H_
 
-#include <stdint.h>
+#include <sys/types.h>
+#include <bool.h>
+#include <loc.h>
+#include <io/console.h>
+#include <io/style.h>
+#include <io/color.h>
+#include <fb.h>
+#include <screenbuffer.h>
+#include <imgmap.h>
 
-extern int fb_init(void);
+struct fbdev;
+struct fbvp;
+
+typedef struct {
+	int (* yield)(struct fbdev *dev);
+	int (* claim)(struct fbdev *dev);
+	void (* pointer_update)(struct fbdev *dev, sysarg_t x, sysarg_t y,
+	    bool visible);
+	
+	int (* get_resolution)(struct fbdev *dev, sysarg_t *width,
+	    sysarg_t *height);
+	void (* font_metrics)(struct fbdev *dev, sysarg_t width,
+	    sysarg_t height, sysarg_t *cols, sysarg_t *rows);
+	
+	int (* vp_create)(struct fbdev *dev, struct fbvp *vp);
+	void (* vp_destroy)(struct fbdev *dev, struct fbvp *vp);
+	
+	void (* vp_clear)(struct fbdev *dev, struct fbvp *vp);
+	console_caps_t (* vp_get_caps)(struct fbdev *dev, struct fbvp *vp);
+	
+	void (* vp_cursor_update)(struct fbdev *dev, struct fbvp *vp,
+	    sysarg_t prev_col, sysarg_t prev_row, sysarg_t col, sysarg_t row,
+	    bool visible);
+	void (* vp_cursor_flash)(struct fbdev *dev, struct fbvp *vp,
+	    sysarg_t col, sysarg_t row);
+	
+	void (* vp_char_update)(struct fbdev *dev, struct fbvp *vp, sysarg_t col,
+	    sysarg_t row);
+	
+	void (* vp_imgmap_damage)(struct fbdev *dev, struct fbvp *vp,
+	    imgmap_t *imgmap, sysarg_t col, sysarg_t row, sysarg_t cols,
+	    sysarg_t rows);
+} fbdev_ops_t;
+
+typedef struct fbdev {
+	link_t link;
+	
+	atomic_t refcnt;
+	bool claimed;
+	
+	sysarg_t index;
+	service_id_t dsid;
+	struct fbvp *active_vp;
+	
+	list_t vps;
+	list_t frontbufs;
+	list_t imagemaps;
+	list_t sequences;
+	
+	fbdev_ops_t ops;
+	void *data;
+} fbdev_t;
+
+typedef struct fbvp {
+	link_t link;
+	
+	sysarg_t x;
+	sysarg_t y;
+	
+	sysarg_t width;
+	sysarg_t height;
+	
+	sysarg_t cols;
+	sysarg_t rows;
+	
+	char_attrs_t attrs;
+	list_t sequences;
+	
+	screenbuffer_t *backbuf;
+	sysarg_t top_row;
+	
+	bool cursor_active;
+	bool cursor_flash;
+	
+	void *data;
+} fbvp_t;
+
+typedef struct {
+	link_t link;
+	
+	size_t size;
+	unsigned int flags;
+	void *data;
+} frontbuf_t;
+
+typedef struct {
+	link_t link;
+	link_t seq_link;
+	
+	size_t size;
+	unsigned int flags;
+	void *data;
+} imagemap_t;
+
+typedef struct {
+	link_t link;
+	
+	list_t imagemaps;
+	size_t count;
+} sequence_t;
+
+typedef struct {
+	link_t link;
+	
+	sequence_t *seq;
+	size_t current;
+} sequence_vp_t;
+
+extern fbdev_t *fbdev_register(fbdev_ops_t *, void *);
 
 #endif
-
-/** @}
- */

@@ -96,3 +96,6 @@ typedef struct {
 } loc_sdesc_t;
 
 #endif
+
+/** @}
+ */
