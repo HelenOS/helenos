@@ -77,10 +77,11 @@ usb_transfer_batch_t * usb_transfer_batch_get(
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
-/** Mark batch as finished and continue with next step.
+/** Mark batch as finished and run callback.
  *
  * @param[in] instance Batch structure to use.
- *
+ * @param[in] data Data to copy to the output buffer.
+ * @param[in] size Size of @p data.
  */
 void usb_transfer_batch_finish(
     usb_transfer_batch_t *instance, const void *data, size_t size)

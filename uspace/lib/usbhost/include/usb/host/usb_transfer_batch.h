@@ -43,19 +43,38 @@
 #define USB_SETUP_PACKET_SIZE 8
 
 typedef struct usb_transfer_batch usb_transfer_batch_t;
+/** Structure stores additional data needed for communication with EP */
 struct usb_transfer_batch {
+	/** Endpoint used for communication */
 	endpoint_t *ep;
+	/** Function called on completion (IN version) */
 	usbhc_iface_transfer_in_callback_t callback_in;
+	/** Function called on completion (OUT version) */
 	usbhc_iface_transfer_out_callback_t callback_out;
+	/** Argument to pass to the completion function */
 	void *arg;
+	/** Place for data to send/receive */
 	char *buffer;
+	/** Size of memory pointed to by buffer member */
 	size_t buffer_size;
+	/** Place to store SETUP data needed by control transfers */
 	char setup_buffer[USB_SETUP_PACKET_SIZE];
+	/** Used portion of setup_buffer member
+	 *
+	 * SETUP buffer must be 8 bytes for control transfers and is left
+	 * unused for all other transfers. Thus, this field is either 0 or 8.
+	 */
 	size_t setup_size;
+	/** Actually used portion of the buffer */
 	size_t transfered_size;
+	/** Indicates success/failure of the communication */
 	int error;
+	/** Host controller function, passed to callback function */
 	ddf_fun_t *fun;
+
+	/** Driver specific data */
 	void *private_data;
+	/** Callback to properly remove driver data during destruction */
 	void (*private_data_dtor)(void *p_data);
 };
 
@@ -116,12 +135,44 @@ static inline void usb_transfer_batch_call_out_and_dispose(
 	usb_transfer_batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
+/** Helper function, sets error value and finishes transfer.
+ *
+ * @param[in] instance Batch structure to use.
+ * @param[in] data Data to copy to the output buffer.
+ * @param[in] size Size of @p data.
+ * @param[in] error Set batch status to this error value.
+ */
 static inline void usb_transfer_batch_finish_error(
     usb_transfer_batch_t *instance, const void* data, size_t size, int error)
 {
 	assert(instance);
 	instance->error = error;
 	usb_transfer_batch_finish(instance, data, size);
+}
+/*----------------------------------------------------------------------------*/
+/** Helper function, determines batch direction absed on the present callbacks
+ * @param[in] instance Batch structure to use.
+ * @return USB_DIRECTION_IN, or USB_DIRECTION_OUT.
+ */
+static inline usb_direction_t usb_transfer_batch_direction(
+    const usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	if (instance->callback_in) {
+		assert(instance->callback_out == NULL);
+		assert(instance->ep == NULL
+		    || instance->ep->transfer_type == USB_TRANSFER_CONTROL
+		    || instance->ep->direction == USB_DIRECTION_IN);
+		return USB_DIRECTION_IN;
+	}
+	if (instance->callback_out) {
+		assert(instance->callback_in == NULL);
+		assert(instance->ep == NULL
+		    || instance->ep->transfer_type == USB_TRANSFER_CONTROL
+		    || instance->ep->direction == USB_DIRECTION_OUT);
+		return USB_DIRECTION_OUT;
+	}
+	assert(false);
 }
 #endif
 /**
