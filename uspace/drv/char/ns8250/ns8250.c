@@ -411,10 +411,21 @@ static inline void ns8250_port_interrupts_disable(ioport8_t *port)
  */
 static int ns8250_interrupt_enable(ns8250_t *ns)
 {
+	/*
+	 * Enable interrupt using IRC service.
+	 * TODO: This is a temporary solution until the device framework
+	 * takes care of this itself.
+	 */
 	async_sess_t *irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
 	    SERVICE_IRC, 0, 0);
+	if (!irc_sess) {
+		return EIO;
+	}
 
 	async_exch_t *exch = async_exchange_begin(irc_sess);
+	if (!exch) {
+		return EIO;
+	}
 	async_msg_1(exch, IRC_ENABLE_INTERRUPT, ns->irq);
 	async_exchange_end(exch);
 
