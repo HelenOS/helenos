@@ -68,19 +68,19 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 		return ENOMEM;
 
 	hw_resource_list_t hw_resources;
-	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
+	const int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
+	async_hangup(parent_sess);
 	if (rc != EOK) {
-		async_hangup(parent_sess);
 		return rc;
 	}
 
 	uintptr_t io_address = 0;
 	size_t io_size = 0;
 	bool io_found = false;
-	
+
 	int irq = 0;
 	bool irq_found = false;
-	
+
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		const hw_resource_t *res = &hw_resources.resources[i];
@@ -101,8 +101,7 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 			break;
 		}
 	}
-
-	async_hangup(parent_sess);
+	free(hw_resources.resources);
 
 	if (!io_found || !irq_found)
 		return ENOENT;
