@@ -35,18 +35,22 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
+#include <device/hw_res.h>
+#include <devman.h>
+#include <assert.h>
 #include <stdio.h>
 #include <errno.h>
 
-//#include <device/hw_res.h>
 //#include <str_error.h>
 
-
-//#include "pci.h"
+#include "ddf_log.h"
+#include "sb16.h"
 
 #define NAME "sb16"
 
 static int sb_add_device(ddf_dev_t *device);
+static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
+    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size, int *irq);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t sb_driver_ops = {
 	.add_device = sb_add_device,
@@ -57,17 +61,6 @@ static driver_t sb_driver = {
 	.driver_ops = &sb_driver_ops
 };
 //static ddf_dev_ops_t sb_ops = {};
-/*----------------------------------------------------------------------------*/
-/** Initializes a new ddf driver instance of SB16.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-static int sb_add_device(ddf_dev_t *device)
-{
-	assert(device);
-	return ENOTSUP;
-}
 /*----------------------------------------------------------------------------*/
 /** Initializes global driver structures (NONE).
  *
@@ -82,6 +75,75 @@ int main(int argc, char *argv[])
 	printf(NAME": HelenOS SB16 audio driver.\n");
 	ddf_log_init(NAME, LVL_DEBUG2);
 	return ddf_driver_main(&sb_driver);
+}
+/*----------------------------------------------------------------------------*/
+/** Initializes a new ddf driver instance of SB16.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ */
+static int sb_add_device(ddf_dev_t *device)
+{
+	assert(device);
+	uintptr_t sb_regs = 0, mpu_regs = 0;
+	size_t sb_regs_size = 0, mpu_regs_size = 0;
+	int irq = 0;
+	int ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
+	    &mpu_regs_size, &irq);
+
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
+    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size, int *irq)
+{
+	assert(device);
+	assert(sb_regs);
+	assert(sb_regs_size);
+	assert(mpu_regs);
+	assert(mpu_regs_size);
+	assert(irq);
+
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+            IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+
+	hw_resource_list_t hw_resources;
+	const int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
+	if (rc != EOK) {
+		async_hangup(parent_sess);
+		return rc;
+	}
+
+	size_t i;
+	for (i = 0; i < hw_resources.count; i++) {
+		const hw_resource_t *res = &hw_resources.resources[i];
+		switch (res->type) {
+		case INTERRUPT:
+			*irq = res->res.interrupt.irq;
+			ddf_log_debug("Found interrupt: %d.\n", *irq);
+			break;
+		case IO_RANGE:
+			ddf_log_debug("Found io: %" PRIx64" %zu.\n",
+			    res->res.io_range.address, res->res.io_range.size);
+			if (res->res.io_range.size >= sizeof(sb16_regs_t)) {
+	                        *sb_regs = res->res.io_range.address;
+		                *sb_regs_size = res->res.io_range.size;
+			} else {
+				*mpu_regs = res->res.io_range.address;
+				*mpu_regs_size = res->res.io_range.size;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	async_hangup(parent_sess);
+	free(hw_resources.resources);
+	return EOK;
 }
 /**
  * @}
