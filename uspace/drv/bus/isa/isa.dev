@@ -12,4 +12,9 @@ keyboard:
 	match 100 isa/keyboard
 	irq 1
 	io_range 060 10
-	
+
+sb16:
+	match 100 isa/sb16
+	irq 5
+	io_range 220 20
+	io_range 330 2

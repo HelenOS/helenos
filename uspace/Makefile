@@ -101,6 +101,7 @@ DIRS = \
 	srv/net/nil/eth \
 	srv/net/nil/nildummy \
 	srv/net/net \
+	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/test/test1 \
