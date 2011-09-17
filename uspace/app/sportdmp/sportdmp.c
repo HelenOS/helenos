@@ -35,13 +35,38 @@
 
 #define BUF_SIZE 1
 
+static void syntax_print() {
+	fprintf(stderr, "Usage: sportdmp <baud> <device_path>\n");
+}
+
 int main(int argc, char **argv)
 {
+	const char* devpath = "/hw/pci0/00:01.0/com1/a";
+	sysarg_t baud = 9600;
+	
+	if (argc > 1) {
+		char *endptr;
+		baud = strtol(argv[1], &endptr, 10);
+		if (*endptr != '\0') {
+			fprintf(stderr, "Invalid value for baud\n");
+			syntax_print();
+			return 1;
+		}
+	}
+	
+	if (argc > 2) {
+		devpath = argv[2];
+	}
+	
+	if (argc > 3) {
+		syntax_print();
+		return 1;
+	}
+	
 	devman_handle_t device;
-	int rc = devman_fun_get_handle("/hw/pci0/00:01.0/com1/a",
-	    &device, IPC_FLAG_BLOCKING);
+	int rc = devman_fun_get_handle(devpath, &device, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		fprintf(stderr, "Cannot open device\n");
+		fprintf(stderr, "Cannot open device %s\n", devpath);
 		return 1;
 	}
 	
@@ -52,7 +77,7 @@ int main(int argc, char **argv)
 	}
 	
 	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, 9600,
+	rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, baud,
 	    SERIAL_NO_PARITY, 8, 1);
 	async_exchange_end(exch);
 	
@@ -75,7 +100,7 @@ int main(int argc, char **argv)
 		}
 		ssize_t i;
 		for (i = 0; i < read; i++) {
-			if (buf[i] >= 32 && buf[i] < 128)
+			if ((buf[i] >= 32) && (buf[i] < 128))
 				putchar((wchar_t) buf[i]);
 			else
 				putchar('.');
