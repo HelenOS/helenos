@@ -144,10 +144,10 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		aoff64_t *size, unsigned *linkcnt)
 {
 	enum cache_mode cmode;
-	struct mfs_superblock *sb;
-	struct mfs3_superblock *sb3;
-	struct mfs_sb_info *sbi;
-	struct mfs_instance *instance;
+	struct mfs_superblock *sb = NULL;
+	struct mfs3_superblock *sb3 = NULL;
+	struct mfs_sb_info *sbi = NULL;
+	struct mfs_instance *instance = NULL;
 	bool native, longnames;
 	mfs_version_t version;
 	uint16_t magic;
@@ -167,37 +167,29 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/*Allocate space for generic MFS superblock*/
 	sbi = malloc(sizeof(*sbi));
 	if (!sbi) {
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	/*Allocate space for filesystem instance*/
 	instance = malloc(sizeof(*instance));
 	if (!instance) {
-		free(sbi);
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	instance->open_nodes_cnt = 0;
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 	if (!sb) {
-		free(instance);
-		free(sbi);
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	/* Read the superblock */
 	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 2, sb);
-	if (rc != EOK) {
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_fini(service_id);
-		return rc;
-	}
+	if (rc != EOK)
+		goto out_error;
 
 	sb3 = (struct mfs3_superblock *) sb;
 
@@ -210,11 +202,8 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	} else {
 		/*Not recognized*/
 		mfsdebug("magic number not recognized\n");
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_fini(service_id);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto out_error;
 	}
 
 	mfsdebug("magic number recognized = %04x\n", magic);
@@ -261,17 +250,12 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	}
 	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 
-	free(sb);
-
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_cache_fini(service_id);
-		block_fini(service_id);
 		mfsdebug("block cache initialization failed\n");
-		return EINVAL;
+		block_cache_fini(service_id);
+		rc = EINVAL;
+		goto out_error;
 	}
 
 	/*Initialize the instance structure and add it to the list*/
@@ -294,7 +278,19 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	*size = mroot->ino_i->i_size;
 	*linkcnt = 1;
 
+	free(sb);
+
 	return mfs_node_put(fn);
+
+out_error:
+	block_fini(service_id);
+	if (sb)
+		free(sb);
+	if (sbi)
+		free(sbi);
+	if(instance)
+		free(instance);
+	return rc;
 }
 
 static int
