@@ -29,48 +29,24 @@
 /** @addtogroup tcp
  * @{
  */
-
-/**
- * @file TCP (Transmission Control Protocol) network module
+/** @file TCP connections
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef CONN_H
+#define CONN_H
 
-#include "rqueue.h"
-#include "test.h"
+#include "tcp_type.h"
 
-#define NAME       "tcp"
+extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);
+void tcp_conn_add(tcp_conn_t *);
+extern void tcp_conn_sync(tcp_conn_t *);
+extern tcp_conn_t *tcp_conn_find(tcp_sockpair_t *);
+extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
+extern void tcp_unexpected_segment(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_sockpair_flipped(tcp_sockpair_t *, tcp_sockpair_t *);
+extern void tcp_reply_rst(tcp_sockpair_t *, tcp_segment_t *);
 
-int main(int argc, char **argv)
-{
-	int rc;
+#endif
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
-
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

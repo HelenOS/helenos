@@ -31,44 +31,36 @@
  */
 
 /**
- * @file TCP (Transmission Control Protocol) network module
+ * @file
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#include <byteorder.h>
+#include "header.h"
+#include "segment.h"
+#include "std.h"
+#include "tcp_type.h"
 
-#include "rqueue.h"
-#include "test.h"
-
-#define NAME       "tcp"
-
-int main(int argc, char **argv)
+void tcp_header_setup(tcp_conn_t *conn, tcp_segment_t *seg, tcp_header_t *hdr)
 {
-	int rc;
+	hdr->src_port = host2uint16_t_be(conn->ident.local.port);
+	hdr->dest_port = host2uint16_t_be(conn->ident.foreign.port);
+	hdr->seq = 0;
+	hdr->ack = 0;
+	hdr->doff_flags = 0;
+	hdr->window = 0;
+	hdr->checksum = 0;
+	hdr->urg_ptr = 0;
+}
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+void tcp_phdr_setup(tcp_conn_t *conn, tcp_segment_t *seg, tcp_phdr_t *phdr)
+{
+	phdr->src_addr = conn->ident.local.addr.ipv4;
+	phdr->dest_addr = conn->ident.foreign.addr.ipv4;
+	phdr->zero = 0;
+	phdr->protocol = 0; /* XXX */
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
+	/* XXX This will only work as long as we don't have any header options */
+	phdr->tcp_length = sizeof(tcp_header_t) + tcp_segment_data_len(seg);
 }
 
 /**

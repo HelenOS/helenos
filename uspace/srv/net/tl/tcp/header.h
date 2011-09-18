@@ -29,48 +29,21 @@
 /** @addtogroup tcp
  * @{
  */
-
-/**
- * @file TCP (Transmission Control Protocol) network module
+/** @file TCP header definitions
+ *
+ * Based on IETF RFC 793
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef HEADER_H
+#define HEADER_H
 
-#include "rqueue.h"
-#include "test.h"
+#include "std.h"
+#include "tcp_type.h"
 
-#define NAME       "tcp"
+extern void tcp_header_setup(tcp_conn_t *, tcp_segment_t *, tcp_header_t *);
+extern void tcp_phdr_setup(tcp_conn_t *, tcp_segment_t *, tcp_phdr_t *);
 
-int main(int argc, char **argv)
-{
-	int rc;
+#endif
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
-
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

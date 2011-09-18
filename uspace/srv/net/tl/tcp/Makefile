@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,6 +32,15 @@ EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = tcp
 
 SOURCES = \
-	tcp.c
+	conn.c \
+	header.c \
+	iqueue.c \
+	rqueue.c \
+	segment.c \
+	seq_no.c \
+	state.c \
+	tcp.c \
+	test.c \
+	tqueue.c 
 
 include $(USPACE_PREFIX)/Makefile.common

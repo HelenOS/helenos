@@ -31,44 +31,46 @@
  */
 
 /**
- * @file TCP (Transmission Control Protocol) network module
+ * @file
  */
 
-#include <async.h>
-#include <errno.h>
+#include <byteorder.h>
 #include <io/log.h>
-#include <stdio.h>
-#include <task.h>
-
+#include "header.h"
 #include "rqueue.h"
-#include "test.h"
+#include "segment.h"
+#include "tqueue.h"
+#include "tcp_type.h"
 
-#define NAME       "tcp"
-
-int main(int argc, char **argv)
+void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 {
-	int rc;
+	tcp_segment_t *seg;
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+	log_msg(LVL_DEBUG, "tcp_tqueue_ctrl_seg(%p, %u)", conn, ctrl);
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
+	seg = tcp_segment_make_ctrl(ctrl);
+	seg->seq = conn->snd_nxt;
+	seg->ack = conn->rcv_nxt;
+	tcp_tqueue_seg(conn, seg);
+}
 
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
+void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_tqueue_seg(%p, %p)", conn, seg);
+	/* XXX queue */
 
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
+	conn->snd_nxt += seg->len;
+	tcp_transmit_segment(&conn->ident, seg);
+}
 
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
+void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_transmit_segment(%p, %p)", sp, seg);
+/*
+	tcp_pdu_prepare(conn, seg, &data, &len);
+	tcp_pdu_transmit(data, len);
+*/
+	tcp_rqueue_bounce_seg(sp, seg);
 }
 
 /**

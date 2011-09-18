@@ -31,44 +31,51 @@
  */
 
 /**
- * @file TCP (Transmission Control Protocol) network module
+ * @file
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#include <stdlib.h>
+#include "segment.h"
+#include "seq_no.h"
+#include "tcp_type.h"
 
-#include "rqueue.h"
-#include "test.h"
-
-#define NAME       "tcp"
-
-int main(int argc, char **argv)
+tcp_segment_t *tcp_segment_new(void)
 {
-	int rc;
+	return calloc(1, sizeof(tcp_segment_t));
+}
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+/** Create a control segment. */
+tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t ctrl)
+{
+	tcp_segment_t *seg;
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
+	seg = tcp_segment_new();
+	if (seg == NULL)
+		return NULL;
 
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
+	seg->ctrl = ctrl;
+	seg->len = seq_no_control_len(ctrl);
 
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
+	return seg;
+}
 
-	tcp_test();
+tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
+{
+	tcp_segment_t *rseg;
 
-	async_manager();
+	rseg = tcp_segment_new();
+	if (rseg == NULL)
+		return NULL;
 
-	/* Not reached */
-	return 0;
+	rseg->ctrl = CTL_RST;
+	rseg->seq = seg->ack;
+
+	return rseg;
+}
+
+size_t tcp_segment_data_len(tcp_segment_t *seg)
+{
+	return seg->len - seq_no_control_len(seg->ctrl);
 }
 
 /**

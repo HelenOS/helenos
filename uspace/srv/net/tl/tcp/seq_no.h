@@ -29,48 +29,24 @@
 /** @addtogroup tcp
  * @{
  */
-
-/**
- * @file TCP (Transmission Control Protocol) network module
+/** @file TCP sequence numbers
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef SEQ_NO_H
+#define SEQ_NO_H
 
-#include "rqueue.h"
-#include "test.h"
+#include <sys/types.h>
+#include "tcp_type.h"
 
-#define NAME       "tcp"
+extern bool seq_no_ack_acceptable(tcp_conn_t *, uint32_t);
+extern bool seq_no_segment_acked(tcp_conn_t *, tcp_segment_t *, uint32_t);
+extern bool seq_no_syn_acked(tcp_conn_t *);
+extern bool seq_no_segment_ready(tcp_conn_t *, tcp_segment_t *);
+extern bool seq_no_segment_acceptable(tcp_conn_t *, tcp_segment_t *);
 
-int main(int argc, char **argv)
-{
-	int rc;
+extern uint32_t seq_no_control_len(tcp_control_t);
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+#endif
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

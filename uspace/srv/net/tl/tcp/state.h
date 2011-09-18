@@ -29,48 +29,38 @@
 /** @addtogroup tcp
  * @{
  */
-
-/**
- * @file TCP (Transmission Control Protocol) network module
+/** @file TCP state machine
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef STATE_H
+#define STATE_H
 
-#include "rqueue.h"
-#include "test.h"
+#include <sys/types.h>
+#include "tcp_type.h"
 
-#define NAME       "tcp"
+/*
+ * User calls
+ */
+extern void tcp_uc_open(uint16_t, tcp_sock_t *, acpass_t, tcp_conn_t **);
+extern void tcp_uc_send(tcp_conn_t *, void *, size_t, xflags_t);
+extern void tcp_uc_receive(tcp_conn_t *, void *, size_t, size_t *, xflags_t *);
+extern void tcp_uc_close(tcp_conn_t *);
+extern void tcp_uc_abort(tcp_conn_t *);
+extern void tcp_uc_status(tcp_conn_t *, tcp_conn_status_t *);
 
-int main(int argc, char **argv)
-{
-	int rc;
+/*
+ * Arriving segments
+ */
+extern void tcp_as_segment_arrived(tcp_sockpair_t *, tcp_segment_t *);
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+/*
+ * Timeouts
+ */
+extern void tcp_to_user(void);
+extern void tcp_to_retransmit(void);
+extern void tcp_to_time_wait(void);
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
+#endif
 
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

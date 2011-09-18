@@ -31,44 +31,62 @@
  */
 
 /**
- * @file TCP (Transmission Control Protocol) network module
+ * @file
  */
 
 #include <async.h>
 #include <errno.h>
-#include <io/log.h>
 #include <stdio.h>
-#include <task.h>
+#include <thread.h>
+#include "state.h"
+#include "tcp_type.h"
 
-#include "rqueue.h"
 #include "test.h"
 
-#define NAME       "tcp"
-
-int main(int argc, char **argv)
+static void test_srv(void *arg)
 {
+	tcp_conn_t *conn;
+	tcp_sock_t sock;
+
+	printf("test_srv()\n");
+	sock.port = 1024;
+	sock.addr.ipv4 = 0x7f000001;
+	tcp_uc_open(80, &sock, ap_passive, &conn);
+}
+
+static void test_cli(void *arg)
+{
+	tcp_conn_t *conn;
+	tcp_sock_t sock;
+
+	printf("test_cli()\n");
+
+	sock.port = 80;
+	sock.addr.ipv4 = 0x7f000001;
+	
+	async_usleep(1000*1000*3);
+	tcp_uc_open(1024, &sock, ap_active, &conn);
+}
+
+void tcp_test(void)
+{
+	thread_id_t srv_tid;
+	thread_id_t cli_tid;
 	int rc;
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+	printf("tcp_test()\n");
 
-	rc = log_init(NAME, LVL_DEBUG);
+	rc = thread_create(test_srv, NULL, "test_srv", &srv_tid);
 	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
+		printf("Failed to create server thread.\n");
+		return;
 	}
 
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
+	rc = thread_create(test_cli, NULL, "test_cli", &cli_tid);
+	if (rc != EOK) {
+		printf("Failed to create client thread.\n");
+		return;
+	}
 }
 
 /**

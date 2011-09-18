@@ -29,48 +29,73 @@
 /** @addtogroup tcp
  * @{
  */
-
-/**
- * @file TCP (Transmission Control Protocol) network module
+/** @file TCP header definitions
+ *
+ * Based on IETF RFC 793
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef STD_H
+#define STD_H
 
-#include "rqueue.h"
-#include "test.h"
+#include <sys/types.h>
 
-#define NAME       "tcp"
+/** TCP Header (fixed part) */
+typedef struct {
+	/** Source port */
+	uint16_t src_port;
+	/** Destination port */
+	uint16_t dest_port;
+	/** Sequence number */
+	uint32_t seq;
+	/** Acknowledgement number */
+	uint32_t ack;
+	/** Data Offset, Reserved, Flags */
+	uint16_t doff_flags;
+	/** Window */
+	uint16_t window;
+	/* Checksum */
+	uint16_t checksum;
+	/** Urgent pointer */
+	uint16_t urg_ptr;
+} tcp_header_t;
 
-int main(int argc, char **argv)
-{
-	int rc;
+/** Bits in tcp_header_t.doff_flags */
+enum doff_flags_bits {
+	DF_DATA_OFFSET_h	= 15,
+	DF_DATA_OFFSET_l	= 12,
+	DF_URG			= 5,
+	DF_ACK			= 4,
+	DF_PSH			= 3,
+	DF_RST			= 2,
+	DF_SYN			= 1,
+	DF_FIN			= 0
+};
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+/** TCP pseudo header */
+typedef struct {
+	/** Source address */
+	uint32_t src_addr;
+	/** Destination address */
+	uint32_t dest_addr;
+	/** Zero */
+	uint8_t zero;
+	/** Protocol */
+	uint8_t protocol;
+	/** TCP length */
+	uint16_t tcp_length;
+} tcp_phdr_t;
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
+/** Option kind */
+enum opt_kind {
+	/** End of option list */
+	OPT_END_LIST		= 0,
+	/** No-operation */
+	OPT_NOP			= 1,
+	/** Maximum segment size */
+	OPT_MAX_SEG_SIZE	= 2
+};
 
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
+#endif
 
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

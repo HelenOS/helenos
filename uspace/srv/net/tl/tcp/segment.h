@@ -29,48 +29,21 @@
 /** @addtogroup tcp
  * @{
  */
-
-/**
- * @file TCP (Transmission Control Protocol) network module
+/** @file
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef SEGMENT_H
+#define SEGMENT_H
 
-#include "rqueue.h"
-#include "test.h"
+#include "tcp_type.h"
 
-#define NAME       "tcp"
+extern tcp_segment_t *tcp_segment_new(void);
+extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
+extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
+extern size_t tcp_segment_data_len(tcp_segment_t *);
 
-int main(int argc, char **argv)
-{
-	int rc;
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+#endif
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
-
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
-
-	tcp_test();
-
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

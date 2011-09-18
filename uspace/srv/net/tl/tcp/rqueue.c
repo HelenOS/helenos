@@ -31,44 +31,86 @@
  */
 
 /**
- * @file TCP (Transmission Control Protocol) network module
+ * @file
  */
 
-#include <async.h>
+#include <adt/prodcons.h>
 #include <errno.h>
 #include <io/log.h>
-#include <stdio.h>
-#include <task.h>
-
+#include <stdlib.h>
+#include <thread.h>
 #include "rqueue.h"
-#include "test.h"
+#include "state.h"
+#include "tcp_type.h"
 
-#define NAME       "tcp"
+static prodcons_t rqueue;
 
-int main(int argc, char **argv)
+void tcp_rqueue_init(void)
 {
-	int rc;
+	prodcons_initialize(&rqueue);
+}
 
-	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
+/** Bounce segment directy into receive queue without constructing the PDU.
+ *
+ * This is for testing purposes only.
+ */
+void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
+{
+	tcp_sockpair_t rident;
 
-	rc = log_init(NAME, LVL_DEBUG);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
+	log_msg(LVL_DEBUG, "tcp_rqueue_bounce_seg()");
+
+	/* Reverse the identification */
+	rident.local = sp->foreign;
+	rident.foreign = sp->local;
+
+	tcp_rqueue_insert_seg(&rident, seg);
+}
+
+void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
+{
+	tcp_rqueue_entry_t *rqe;
+	log_msg(LVL_DEBUG, "tcp_rqueue_insert_seg()");
+
+	rqe = calloc(1, sizeof(tcp_rqueue_entry_t));
+	if (rqe == NULL) {
+		log_msg(LVL_ERROR, "Failed allocating RQE.");
+		return;
 	}
 
-	printf(NAME ": Accepting connections\n");
-//	task_retval(0);
+	rqe->sp = *sp;
+	rqe->seg = seg;
 
-	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
+	prodcons_produce(&rqueue, &rqe->link);
+}
 
-	tcp_test();
+static void tcp_rqueue_thread(void *arg)
+{
+	link_t *link;
+	tcp_rqueue_entry_t *rqe;
 
-	async_manager();
+	log_msg(LVL_DEBUG, "tcp_rqueue_thread()");
 
-	/* Not reached */
-	return 0;
+	while (true) {
+		link = prodcons_consume(&rqueue);
+		rqe = list_get_instance(link, tcp_rqueue_entry_t, link);
+
+		tcp_as_segment_arrived(&rqe->sp, rqe->seg);
+	}
+}
+
+void tcp_rqueue_thread_start(void)
+{
+	thread_id_t tid;
+        int rc;
+
+	log_msg(LVL_DEBUG, "tcp_rqueue_thread_start()");
+
+	rc = thread_create(tcp_rqueue_thread, NULL, "rqueue", &tid);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failde creating rqueue thread.");
+		return;
+	}
 }
 
 /**

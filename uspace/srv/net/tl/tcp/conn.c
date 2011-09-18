@@ -1,0 +1,455 @@
+/*
+ * Copyright (c) 2011 Jiri Svoboda
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup tcp
+ * @{
+ */
+
+/**
+ * @file
+ */
+
+#include <adt/list.h>
+#include <errno.h>
+#include <io/log.h>
+#include <stdlib.h>
+#include "conn.h"
+#include "iqueue.h"
+#include "segment.h"
+#include "seq_no.h"
+#include "tcp_type.h"
+#include "tqueue.h"
+
+LIST_INITIALIZE(conn_list);
+
+static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
+
+tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
+{
+	tcp_conn_t *conn;
+
+	conn = calloc(1, sizeof(tcp_conn_t));
+	if (conn == NULL)
+		return NULL;
+
+	tcp_iqueue_init(&conn->incoming, conn);
+
+	conn->cstate = st_listen;
+	conn->ident.local = *lsock;
+	if (fsock != NULL)
+		conn->ident.foreign = *fsock;
+
+	return conn;
+}
+
+void tcp_conn_add(tcp_conn_t *conn)
+{
+	list_append(&conn->link, &conn_list);
+}
+
+void tcp_conn_sync(tcp_conn_t *conn)
+{
+	/* XXX select ISS */
+	conn->iss = 1;
+	conn->snd_nxt = conn->iss;
+	conn->snd_una = conn->iss;
+
+	tcp_tqueue_ctrl_seg(conn, CTL_SYN);
+	conn->cstate = st_syn_sent;
+}
+
+static bool tcp_socket_equal(tcp_sock_t *a, tcp_sock_t *b)
+{
+	log_msg(LVL_DEBUG, "tcp_socket_equal((%x,%u), (%x,%u))",
+	    a->addr.ipv4, a->port, b->addr.ipv4, b->port);
+
+	if (a->addr.ipv4 != b->addr.ipv4)
+		return false;
+
+	if (a->port != b->port)
+		return false;
+
+	log_msg(LVL_DEBUG, " -> match");
+
+	return true;
+}
+
+static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
+{
+	log_msg(LVL_DEBUG, "tcp_sockpair_match(%p, %p)", sp, pattern);
+
+	if (!tcp_socket_equal(&sp->local, &pattern->local))
+		return false;
+
+	if (!tcp_socket_equal(&sp->foreign, &pattern->foreign))
+		return false;
+
+	return true;
+}
+
+tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_find(%p)", sp);
+
+	list_foreach(conn_list, link) {
+		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
+		if (tcp_sockpair_match(sp, &conn->ident)) {
+			return conn;
+		}
+	}
+
+	return NULL;
+}
+
+static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_sa_listen(%p, %p)", conn, seg);
+
+	if ((seg->ctrl & CTL_RST) != 0) {
+		log_msg(LVL_DEBUG, "Ignoring incoming RST.");
+		return;
+	}
+
+	if ((seg->ctrl & CTL_ACK) != 0) {
+		log_msg(LVL_DEBUG, "Incoming ACK, send acceptable RST.");
+		tcp_reply_rst(&conn->ident, seg);
+		return;
+	}
+
+	if ((seg->ctrl & CTL_SYN) == 0) {
+		log_msg(LVL_DEBUG, "SYN not present. Ignoring segment.");
+		return;
+	}
+
+	log_msg(LVL_DEBUG, "Got SYN, sending SYN, ACK.");
+
+	conn->rcv_nxt = seg->seq + 1;
+	conn->irs = seg->seq;
+
+	log_msg(LVL_DEBUG, "rcv_nxt=%u", conn->rcv_nxt);
+
+	if (seg->len > 1)
+		log_msg(LVL_WARN, "SYN combined with data, ignoring data.");
+
+	/* XXX select ISS */
+	conn->iss = 1;
+	conn->snd_nxt = conn->iss;
+	conn->snd_una = conn->iss;
+
+	conn->cstate = st_syn_received;
+
+	tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
+}
+
+static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_sa_syn_sent(%p, %p)", conn, seg);
+
+	if ((seg->ctrl & CTL_ACK) != 0) {
+		log_msg(LVL_DEBUG, "snd_una=%u, seg.ack=%u, snd_nxt=%u",
+		    conn->snd_una, seg->ack, conn->snd_nxt);
+		if (!seq_no_ack_acceptable(conn, seg->ack)) {
+			log_msg(LVL_WARN, "ACK not acceptable, send RST.");
+			tcp_reply_rst(&conn->ident, seg);
+			return;
+		}
+	}
+
+	if ((seg->ctrl & CTL_RST) != 0) {
+		log_msg(LVL_DEBUG, "Connection reset.");
+		/* XXX Signal user error */
+		conn->cstate = st_closed;
+		/* XXX delete connection */
+		return;
+	}
+
+	/* XXX precedence */
+
+	if ((seg->ctrl & CTL_SYN) == 0) {
+		log_msg(LVL_DEBUG, "No SYN bit, ignoring segment.");
+		return;
+	}
+
+	conn->rcv_nxt = seg->seq + 1;
+	conn->irs = seg->seq;
+
+	if ((seg->ctrl & CTL_ACK) != 0) {
+		conn->snd_una = seg->ack;
+		/* XXX process retransmission queue */
+	}
+
+	log_msg(LVL_DEBUG, "Sent SYN, got SYN.");
+
+	if (seq_no_syn_acked(conn)) {
+		log_msg(LVL_DEBUG, " syn acked -> Established");
+		conn->cstate = st_established;
+		tcp_tqueue_ctrl_seg(conn, CTL_ACK /* XXX */);
+	} else {
+		log_msg(LVL_DEBUG, " syn not acked -> Syn-Received");
+		conn->cstate = st_syn_received;
+		tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
+	}
+}
+
+static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	tcp_segment_t *pseg;
+
+	log_msg(LVL_DEBUG, "tcp_conn_sa_seq(%p, %p)", conn, seg);
+
+	/* XXX Discard old duplicates */
+
+	/* Queue for processing */
+	tcp_iqueue_insert_seg(&conn->incoming, seg);
+
+	/*
+	 * Process all segments from incoming queue that are ready.
+	 * Unacceptable segments are discarded by tcp_iqueue_get_ready_seg().
+	 *
+	 * XXX Need to return ACK for unacceptable segments
+	 */
+	while (tcp_iqueue_get_ready_seg(&conn->incoming, &pseg) == EOK)
+		tcp_conn_seg_process(conn, pseg);
+}
+
+static cproc_t tcp_conn_seg_proc_rst(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_sp(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_syn(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	if (!seq_no_ack_acceptable(conn, seg->ack)) {
+		/* ACK is not acceptable, send RST. */
+		log_msg(LVL_WARN, "Segment ACK not acceptable, sending RST.");
+		tcp_reply_rst(&conn->ident, seg);
+	}
+
+	log_msg(LVL_DEBUG, "SYN ACKed -> Established");
+
+	conn->cstate = st_established;
+
+	/* XXX Not mentioned in spec?! */
+	conn->snd_una = seg->ack;
+
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_fw2(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_cw(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_cls(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack_tw(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_ack(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_ack(%p, %p)", conn, seg);
+
+	if ((seg->ctrl & CTL_ACK) == 0) {
+		log_msg(LVL_WARN, "Segment has no ACK. Dropping.");
+		/* XXX Free segment */
+		return cp_done;
+	}
+
+	switch (conn->cstate) {
+	case st_syn_received:
+		return tcp_conn_seg_proc_ack_sr(conn, seg);
+	case st_established:
+		return tcp_conn_seg_proc_ack_est(conn, seg);
+	case st_fin_wait_1:
+		return tcp_conn_seg_proc_ack_fw1(conn, seg);
+	case st_fin_wait_2:
+		return tcp_conn_seg_proc_ack_fw2(conn, seg);
+	case st_close_wait:
+		return tcp_conn_seg_proc_ack_cw(conn, seg);
+	case st_closing:
+		return tcp_conn_seg_proc_ack_cls(conn, seg);
+	case st_last_ack:
+		return tcp_conn_seg_proc_ack_la(conn, seg);
+	case st_time_wait:
+		return tcp_conn_seg_proc_ack_tw(conn, seg);
+	case st_listen:
+	case st_syn_sent:
+	case st_closed:
+		assert(false);
+	}
+
+	assert(false);
+}
+
+static cproc_t tcp_conn_seg_proc_urg(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	return cp_continue;
+}
+
+/** Process incoming segment.
+ *
+ * We are in connection state where segments are processed in order
+ * of sequence number. This processes one segment taken from the
+ * connection incoming segments queue.
+ */
+static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_seg_process(%p, %p)", conn, seg);
+
+	/* Check whether segment is acceptable */
+	/* XXX Permit valid ACKs, URGs and RSTs */
+/*	if (!seq_no_segment_acceptable(conn, seg)) {
+		log_msg(LVL_WARN, "Segment not acceptable, dropping.");
+		if ((seg->ctrl & CTL_RST) == 0) {
+			tcp_tqueue_ctrl_seg(conn, CTL_ACK);
+		}
+		return;
+	}
+*/
+
+	if (tcp_conn_seg_proc_rst(conn, seg) == cp_done)
+		return;
+
+	if (tcp_conn_seg_proc_sp(conn, seg) == cp_done)
+		return;
+
+	if (tcp_conn_seg_proc_syn(conn, seg) == cp_done)
+		return;
+
+	if (tcp_conn_seg_proc_ack(conn, seg) == cp_done)
+		return;
+
+	if (tcp_conn_seg_proc_urg(conn, seg) == cp_done)
+		return;
+
+	if (tcp_conn_seg_proc_text(conn, seg) == cp_done)
+		return;
+
+	if (tcp_conn_seg_proc_fin(conn, seg) == cp_done)
+		return;
+}
+
+void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_segment_arrived(%p, %p)", conn, seg);
+
+	switch (conn->cstate) {
+	case st_listen:
+		tcp_conn_sa_listen(conn, seg); break;
+	case st_syn_sent:
+		tcp_conn_sa_syn_sent(conn, seg); break;
+	case st_syn_received:
+	case st_established:
+	case st_fin_wait_1:
+	case st_fin_wait_2:
+	case st_close_wait:
+	case st_closing:
+	case st_last_ack:
+	case st_time_wait:
+		/* Process segments in order of sequence number */
+		tcp_conn_sa_queue(conn, seg); break;
+	case st_closed:
+		assert(false);
+	}
+}
+
+void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", sp, seg);
+
+	if ((seg->ctrl & CTL_RST) == 0)
+		tcp_reply_rst(sp, seg);
+}
+
+void tcp_sockpair_flipped(tcp_sockpair_t *sp, tcp_sockpair_t *fsp)
+{
+	fsp->local = sp->foreign;
+	fsp->foreign = sp->local;
+}
+
+/** Send RST in response to an incoming segment. */
+void tcp_reply_rst(tcp_sockpair_t *sp, tcp_segment_t *seg)
+{
+	tcp_sockpair_t rsp;
+	tcp_segment_t *rseg;
+
+	log_msg(LVL_DEBUG, "tcp_reply_rst(%p, %p)", sp, seg);
+
+	tcp_sockpair_flipped(sp, &rsp);
+	rseg = tcp_segment_make_rst(seg);
+	tcp_transmit_segment(&rsp, rseg);
+}
+
+/**
+ * @}
+ */
