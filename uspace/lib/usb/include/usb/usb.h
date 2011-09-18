@@ -35,6 +35,7 @@
 #ifndef LIBUSB_USB_H_
 #define LIBUSB_USB_H_
 
+#include <bool.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
@@ -104,7 +105,7 @@ typedef enum {
 /** USB address type.
  * Negative values could be used to indicate error.
  */
-typedef int usb_address_t;
+typedef int16_t usb_address_t;
 
 /** Default USB address. */
 #define USB_ADDRESS_DEFAULT 0
@@ -114,7 +115,7 @@ typedef int usb_address_t;
 /** USB endpoint number type.
  * Negative values could be used to indicate error.
  */
-typedef int usb_endpoint_t;
+typedef int16_t usb_endpoint_t;
 
 /** Maximum endpoint number in USB 1.1.
  */
@@ -124,10 +125,24 @@ typedef int usb_endpoint_t;
 /** USB complete address type. 
  * Pair address + endpoint is identification of transaction recipient.
  */
-typedef struct {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
+typedef union {
+	struct {
+		usb_address_t address;
+		usb_endpoint_t endpoint;
+	} __attribute__((packed));
+	uint32_t packed;
 } usb_target_t;
+
+/** Check USB target for allowed values (address and endpoint).
+ *
+ * @param target.
+ * @return True, if values are wihtin limits, false otherwise.
+ */
+static inline bool usb_target_is_valid(usb_target_t target)
+{
+	return !(target.endpoint > 15 || target.endpoint < 0
+	    || target.address >= USB11_ADDRESS_MAX || target.address < 0);
+}
 
 /** Compare USB targets (addresses and endpoints).
  *

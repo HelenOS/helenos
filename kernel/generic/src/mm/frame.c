@@ -1141,7 +1141,6 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 	pfn_t pfn = ADDR2PFN(frame);
 	size_t znum = find_zone(pfn, 1, 0);
 
-	
 	ASSERT(znum != (size_t) -1);
 	
 	size = zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);

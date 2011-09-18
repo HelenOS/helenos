@@ -421,12 +421,16 @@ static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 static int kfb_yield(fbdev_t *dev)
 {
 	if (kfb.backbuf == NULL) {
-		kfb.backbuf = malloc(kfb.size);
+		kfb.backbuf =
+		    malloc(kfb.width * kfb.height * kfb.pixel_bytes);
 		if (kfb.backbuf == NULL)
 			return ENOMEM;
 	}
 	
-	memcpy(kfb.backbuf, kfb.addr, kfb.size);
+	for (sysarg_t y = 0; y < kfb.height; y++)
+		memcpy(kfb.backbuf + y * kfb.width * kfb.pixel_bytes,
+		    kfb.addr + FB_POS(0, y), kfb.width * kfb.pixel_bytes);
+	
 	return EOK;
 }
 
@@ -435,7 +439,11 @@ static int kfb_claim(fbdev_t *dev)
 	if (kfb.backbuf == NULL)
 		return ENOENT;
 	
-	memcpy(kfb.addr, kfb.backbuf, kfb.size);
+	for (sysarg_t y = 0; y < kfb.height; y++)
+		memcpy(kfb.addr + FB_POS(0, y),
+		    kfb.backbuf + y * kfb.width * kfb.pixel_bytes,
+		    kfb.width * kfb.pixel_bytes);
+	
 	return EOK;
 }
 

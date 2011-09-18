@@ -69,21 +69,21 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	hw_resource_list_t hw_resources;
 	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
+	async_hangup(parent_sess);
 	if (rc != EOK) {
-		async_hangup(parent_sess);
 		return rc;
 	}
-	
+
 	uintptr_t mem_address = 0;
 	size_t mem_size = 0;
 	bool mem_found = false;
-	
+
 	int irq = 0;
 	bool irq_found = false;
-	
+
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
@@ -106,17 +106,15 @@ int pci_get_my_registers(ddf_dev_t *dev,
 			break;
 		}
 	}
-	
+	free(hw_resources.resources);
+
 	if (mem_found && irq_found) {
 		*mem_reg_address = mem_address;
 		*mem_reg_size = mem_size;
 		*irq_no = irq;
-		rc = EOK;
-	} else
-		rc = ENOENT;
-	
-	async_hangup(parent_sess);
-	return rc;
+		return EOK;
+	}
+	return ENOENT;
 }
 
 /** Call the PCI driver with a request to enable interrupts

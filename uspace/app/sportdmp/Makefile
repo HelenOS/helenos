@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2011 Martin Sucha
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-
-LIBS = \
-	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBHOST_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
-
-BINARY = uhci
+USPACE_PREFIX = ../..
+#LIBS = 
+#EXTRA_CFLAGS = 
+BINARY = sportdmp
 
 SOURCES = \
-	hc.c \
-	main.c \
-	pci.c \
-	root_hub.c \
-	transfer_list.c \
-	uhci.c \
-	uhci_batch.c \
-	hw_struct/transfer_descriptor.c
+	sportdmp.c
 
 include $(USPACE_PREFIX)/Makefile.common

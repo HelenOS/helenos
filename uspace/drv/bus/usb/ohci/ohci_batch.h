@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver iface
+ * @brief OHCI driver USB transaction structure
  */
-#ifndef DRV_UHCI_IFACE_H
-#define DRV_UHCI_IFACE_H
+#ifndef DRV_OHCI_BATCH_H
+#define DRV_OHCI_BATCH_H
 
+#include <adt/list.h>
 #include <usbhc_iface.h>
+#include <usb/usb.h>
+#include <usb/host/usb_transfer_batch.h>
 
-extern usbhc_iface_t hc_iface;
+#include "hw_struct/transfer_descriptor.h"
+#include "hw_struct/endpoint_descriptor.h"
 
+/** OHCI specific data required for USB transfer */
+typedef struct ohci_transfer_batch {
+	/** Link */
+	link_t link;
+	/** Endpoint descriptor of the target endpoint. */
+	ed_t *ed;
+	/** List of TDs needed for the transfer */
+	td_t **tds;
+	/** Number of TDs used by the transfer */
+	size_t td_count;
+	/** Dummy TD to be left at the ED and used by the next transfer */
+	size_t leave_td;
+	/** Data buffer, must be accessible by the OHCI hw. */
+	char *device_buffer;
+	/** Generic USB transfer structure */
+	usb_transfer_batch_t *usb_batch;
+} ohci_transfer_batch_t;
+
+ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *batch);
+bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *batch);
+void ohci_transfer_batch_commit(ohci_transfer_batch_t *batch);
+void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *batch);
+/*----------------------------------------------------------------------------*/
+static inline ohci_transfer_batch_t *ohci_transfer_batch_from_link(link_t *l)
+{
+	assert(l);
+	return list_get_instance(l, ohci_transfer_batch_t, link);
+}
 #endif
 /**
  * @}

@@ -38,8 +38,8 @@ static unsigned dp[3] =
     { TD_STATUS_DP_IN, TD_STATUS_DP_OUT, TD_STATUS_DP_SETUP };
 static unsigned togg[2] = { TD_STATUS_T_0, TD_STATUS_T_1 };
 
-void td_init(
-    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle)
+void td_init(td_t *instance,
+    usb_direction_t dir, const void *buffer, size_t size, int toggle)
 {
 	assert(instance);
 	bzero(instance, sizeof(td_t));

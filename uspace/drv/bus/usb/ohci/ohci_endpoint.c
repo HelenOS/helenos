@@ -32,16 +32,17 @@
  * @brief OHCI driver
  */
 #include "utils/malloc32.h"
-#include "hcd_endpoint.h"
+#include "ohci_endpoint.h"
+#include "hc.h"
 
 /** Callback to set toggle on ED.
  *
  * @param[in] hcd_ep hcd endpoint structure
  * @param[in] toggle new value of toggle bit
  */
-static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
+static void ohci_ep_toggle_set(void *ohci_ep, int toggle)
 {
-	hcd_endpoint_t *instance = hcd_ep;
+	ohci_endpoint_t *instance = ohci_ep;
 	assert(instance);
 	assert(instance->ed);
 	ed_toggle_set(instance->ed, toggle);
@@ -52,12 +53,27 @@ static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
  * @param[in] hcd_ep hcd endpoint structure
  * @return Current value of toggle bit.
  */
-static int hcd_ep_toggle_get(void *hcd_ep)
+static int ohci_ep_toggle_get(void *ohci_ep)
 {
-	hcd_endpoint_t *instance = hcd_ep;
+	ohci_endpoint_t *instance = ohci_ep;
 	assert(instance);
 	assert(instance->ed);
 	return ed_toggle_get(instance->ed);
+}
+/*----------------------------------------------------------------------------*/
+/** Disposes hcd endpoint structure
+ *
+ * @param[in] hcd_ep endpoint structure
+ */
+static void ohci_endpoint_fini(endpoint_t *ep)
+{
+	ohci_endpoint_t *instance = ep->hc_data.data;
+	hc_dequeue_endpoint(instance->hcd->private_data, ep);
+	if (instance) {
+		free32(instance->ed);
+		free32(instance->td);
+		free(instance);
+	}
 }
 /*----------------------------------------------------------------------------*/
 /** Creates new hcd endpoint representation.
@@ -65,45 +81,33 @@ static int hcd_ep_toggle_get(void *hcd_ep)
  * @param[in] ep USBD endpoint structure
  * @return pointer to a new hcd endpoint structure, NULL on failure.
  */
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
+int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(ep);
-	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
-	if (hcd_ep == NULL)
-		return NULL;
+	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));
+	if (ohci_ep == NULL)
+		return ENOMEM;
 
-	hcd_ep->ed = malloc32(sizeof(ed_t));
-	if (hcd_ep->ed == NULL) {
-		free(hcd_ep);
-		return NULL;
+	ohci_ep->ed = malloc32(sizeof(ed_t));
+	if (ohci_ep->ed == NULL) {
+		free(ohci_ep);
+		return ENOMEM;
 	}
 
-	hcd_ep->td = malloc32(sizeof(td_t));
-	if (hcd_ep->td == NULL) {
-		free32(hcd_ep->ed);
-		free(hcd_ep);
-		return NULL;
+	ohci_ep->td = malloc32(sizeof(td_t));
+	if (ohci_ep->td == NULL) {
+		free32(ohci_ep->ed);
+		free(ohci_ep);
+		return ENOMEM;
 	}
 
-	ed_init(hcd_ep->ed, ep);
-	ed_set_td(hcd_ep->ed, hcd_ep->td);
-	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
-
-	return hcd_ep;
-}
-/*----------------------------------------------------------------------------*/
-/** Disposes assigned hcd endpoint structure
- *
- * @param[in] ep USBD endpoint structure
- */
-void hcd_endpoint_clear(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
-	assert(hcd_ep);
-	free32(hcd_ep->ed);
-	free32(hcd_ep->td);
-	free(hcd_ep);
+	ed_init(ohci_ep->ed, ep);
+	ed_set_td(ohci_ep->ed, ohci_ep->td);
+	endpoint_set_hc_data(
+	    ep, ohci_ep, ohci_endpoint_fini, ohci_ep_toggle_get, ohci_ep_toggle_set);
+	ohci_ep->hcd = hcd;
+	hc_enqueue_endpoint(hcd->private_data, ep);
+	return EOK;
 }
 /**
  * @}

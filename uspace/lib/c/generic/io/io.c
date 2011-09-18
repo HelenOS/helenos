@@ -417,15 +417,13 @@ static void _fflushbuf(FILE *stream)
 		return;
 
 	bytes_used = stream->buf_head - stream->buf_tail;
-	if (bytes_used == 0)
-		return;
 
 	/* If buffer has prefetched read data, we need to seek back. */
-	if (stream->buf_state == _bs_read)
+	if (bytes_used > 0 && stream->buf_state == _bs_read)
 		lseek(stream->fd, - (ssize_t) bytes_used, SEEK_CUR);
 
 	/* If buffer has unwritten data, we need to write them out. */
-	if (stream->buf_state == _bs_write)
+	if (bytes_used > 0 && stream->buf_state == _bs_write)
 		(void) _fwrite(stream->buf_tail, 1, bytes_used, stream);
 
 	stream->buf_head = stream->buf;

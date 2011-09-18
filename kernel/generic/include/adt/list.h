@@ -172,7 +172,7 @@ NO_TRACE static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-NO_TRACE static inline int list_empty(list_t *list)
+NO_TRACE static inline int list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -185,7 +185,7 @@ NO_TRACE static inline int list_empty(list_t *list)
  * @return NULL if the list is empty.
  *
  */
-static inline link_t *list_first(list_t *list)
+static inline link_t *list_first(const list_t *list)
 {
 	return ((list->head.next == &list->head) ? NULL : list->head.next);
 }

@@ -35,17 +35,16 @@
 #define DRV_UHCI_TRANSFER_LIST_H
 
 #include <fibril_synch.h>
-#include <usb/host/batch.h>
 
 #include "hw_struct/queue_head.h"
-
+#include "uhci_batch.h"
 /** Structure maintaining both hw queue and software list
  * of currently executed transfers
  */
 typedef struct transfer_list {
 	/** Guard against multiple add/remove races */
 	fibril_mutex_t guard;
-	/** UHCI hw structure represeting this queue */
+	/** UHCI hw structure representing this queue */
 	qh_t *queue_head;
 	/** Assigned name, for nicer debug output */
 	const char *name;
@@ -57,7 +56,7 @@ void transfer_list_fini(transfer_list_t *instance);
 int transfer_list_init(transfer_list_t *instance, const char *name);
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 void transfer_list_add_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch);
+    transfer_list_t *instance, uhci_transfer_batch_t *batch);
 void transfer_list_remove_finished(transfer_list_t *instance, list_t *done);
 void transfer_list_abort_all(transfer_list_t *instance);
 #endif

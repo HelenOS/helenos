@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
- * @brief Virtual USB host controller common definitions.
+ *
  */
-#ifndef VHCD_VHCD_H_
-#define VHCD_VHCD_H_
+#ifndef LIBUSBHOST_HOST_HCD_H
+#define LIBUSBHOST_HOST_HCD_H
 
-#include <usb/debug.h>
-#include <usbvirt/device.h>
-#include <usb/host/usb_endpoint_manager.h>
+#include <assert.h>
 #include <usb/host/usb_device_manager.h>
+#include <usb/host/usb_endpoint_manager.h>
+#include <usb/host/usb_transfer_batch.h>
 #include <usbhc_iface.h>
-#include <async.h>
 
-#define NAME "vhc"
+typedef struct hcd hcd_t;
 
-typedef struct {
-	link_t link;
-	async_sess_t *dev_sess;
-	usbvirt_device_t *dev_local;
-	bool plugged;
-	usb_address_t address;
-	fibril_mutex_t guard;
-	list_t transfer_queue;
-} vhc_virtdev_t;
-
-typedef struct {
-	uint32_t magic;
-	list_t devices;
-	fibril_mutex_t guard;
-	usb_endpoint_manager_t ep_manager;
+struct hcd {
 	usb_device_manager_t dev_manager;
-	usbvirt_device_t *hub;
-	ddf_fun_t *hc_fun;
-} vhc_data_t;
+	usb_endpoint_manager_t ep_manager;
+	void *private_data;
 
-typedef struct {
-	link_t link;
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	void *setup_buffer;
-	size_t setup_buffer_size;
-	void *data_buffer;
-	size_t data_buffer_size;
-	ddf_fun_t *ddf_fun;
-	void *callback_arg;
-	usbhc_iface_transfer_in_callback_t callback_in;
-	usbhc_iface_transfer_out_callback_t callback_out;
-} vhc_transfer_t;
-
-vhc_transfer_t *vhc_transfer_create(usb_address_t, usb_endpoint_t,
-    usb_direction_t, usb_transfer_type_t, ddf_fun_t *, void *);
-int vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
-int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
-int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
-void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
-int vhc_virtdev_add_transfer(vhc_data_t *, vhc_transfer_t *);
-
-int vhc_transfer_queue_processor(void *arg);
-
+	int (*schedule)(hcd_t *, usb_transfer_batch_t *);
+	int (*ep_add_hook)(hcd_t *, endpoint_t *);
+};
+/*----------------------------------------------------------------------------*/
+static inline int hcd_init(hcd_t *hcd, size_t bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
+{
+	assert(hcd);
+	usb_device_manager_init(&hcd->dev_manager);
+	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
+}
+/*----------------------------------------------------------------------------*/
+static inline void hcd_destroy(hcd_t *hcd)
+{
+	usb_endpoint_manager_destroy(&hcd->ep_manager);
+}
+/*----------------------------------------------------------------------------*/
+static inline void reset_ep_if_need(
+    hcd_t *hcd, usb_target_t target, const char* setup_data)
+{
+	assert(hcd);
+	usb_endpoint_manager_reset_if_need(
+	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
+}
+/*----------------------------------------------------------------------------*/
+static inline hcd_t * fun_to_hcd(ddf_fun_t *fun)
+{
+	assert(fun);
+	return fun->driver_data;
+}
+/*----------------------------------------------------------------------------*/
+extern usbhc_iface_t hcd_iface;
 
 #endif
 /**

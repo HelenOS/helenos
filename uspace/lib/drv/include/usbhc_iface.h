@@ -122,43 +122,6 @@ typedef enum {
 	 */
 	IPC_M_USBHC_RELEASE_ADDRESS,
 
-
-	/** Send interrupt data to device.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_INTERRUPT_OUT,
-
-	/** Get interrupt data from device.
-	 * See explanation at usb_iface_funcs_t (IN transaction).
-	 */
-	IPC_M_USBHC_INTERRUPT_IN,
-
-	/** Send bulk data to device.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_BULK_OUT,
-
-	/** Get bulk data from device.
-	 * See explanation at usb_iface_funcs_t (IN transaction).
-	 */
-	IPC_M_USBHC_BULK_IN,
-
-	/** Issue control WRITE transfer.
-	 * See explanation at usb_iface_funcs_t (OUT transaction) for
-	 * call parameters.
-	 * This call is immediately followed by two IPC data writes
-	 * from the caller (setup packet and actual data).
-	 */
-	IPC_M_USBHC_CONTROL_WRITE,
-
-	/** Issue control READ transfer.
-	 * See explanation at usb_iface_funcs_t (IN transaction) for
-	 * call parameters.
-	 * This call is immediately followed by IPC data write from the caller
-	 * (setup packet) and IPC data read (buffer that was read).
-	 */
-	IPC_M_USBHC_CONTROL_READ,
-
 	/** Register endpoint attributes at host controller.
 	 * This is used to reserve portion of USB bandwidth.
 	 * When speed is invalid, speed of the device is used.
@@ -184,30 +147,25 @@ typedef enum {
 	 * - EOK - endpoint unregistered
 	 * - ENOENT - unknown endpoint
 	 */
-	IPC_M_USBHC_UNREGISTER_ENDPOINT
+	IPC_M_USBHC_UNREGISTER_ENDPOINT,
+
+	/** Get data from device.
+	 * See explanation at usb_iface_funcs_t (IN transaction).
+	 */
+	IPC_M_USBHC_READ,
+
+	/** Send data to device.
+	 * See explanation at usb_iface_funcs_t (OUT transaction).
+	 */
+	IPC_M_USBHC_WRITE,
 } usbhc_iface_funcs_t;
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *,
-    int, void *);
+typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *, int, void *);
 
 /** Callback for incoming transfer. */
 typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
     int, size_t, void *);
-
-
-/** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t,
-    void *, size_t,
-    usbhc_iface_transfer_out_callback_t, void *);
-
-/** Setup transfer processing function prototype. @deprecated */
-typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
-
-/** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t,
-    void *, size_t,
-    usbhc_iface_transfer_in_callback_t, void *);
 
 /** USB host controller communication interface. */
 typedef struct {
@@ -222,19 +180,11 @@ typedef struct {
 	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
 	    usb_direction_t);
 
-	usbhc_iface_transfer_out_t interrupt_out;
-	usbhc_iface_transfer_in_t interrupt_in;
-
-	usbhc_iface_transfer_out_t bulk_out;
-	usbhc_iface_transfer_in_t bulk_in;
-
-	int (*control_write)(ddf_fun_t *, usb_target_t,
-	    void *, size_t, void *, size_t,
-	    usbhc_iface_transfer_out_callback_t, void *);
-
-	int (*control_read)(ddf_fun_t *, usb_target_t,
-	    void *, size_t, void *, size_t,
+	int (*read)(ddf_fun_t *, usb_target_t, uint64_t, uint8_t *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
+
+	int (*write)(ddf_fun_t *, usb_target_t, uint64_t, const uint8_t *,
+	    size_t, usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 
 
