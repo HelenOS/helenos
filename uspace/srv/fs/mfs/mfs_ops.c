@@ -248,6 +248,19 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
 				    MFS_MAX_NAME_LEN;
 	}
+
+	if (sbi->log2_zone_size != 0) {
+		/* In MFS, file space is allocated per zones.
+		 * Zones are a collection of consecutive blocks on disk.
+		 *
+		 * The current MFS implementation supports only filesystems
+		 * where the size of a zone is equal to the
+		 * size of a block.
+		 */
+		rc = ENOTSUP;
+		goto out_error;
+	}
+
 	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
