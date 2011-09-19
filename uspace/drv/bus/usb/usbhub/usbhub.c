@@ -56,12 +56,19 @@
 
 #define HUB_FNC_NAME "hub"
 
+/** Standard get hub global status request */
+static const usb_device_request_setup_packet_t get_hub_status_request = {
+	.index = 0,
+	.request_type = USB_HUB_REQ_TYPE_GET_HUB_STATUS,
+	.request = USB_HUB_REQUEST_GET_STATUS,
+	.value = 0,
+	.length = sizeof(usb_hub_status_t),
+};
+
 static int usb_set_first_configuration(usb_device_t *usb_device);
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev);
 static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info);
-static int usb_process_hub_over_current(usb_hub_info_t *hub_info,
-    usb_hub_status_t status);
-static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
+static void usb_process_hub_over_current(usb_hub_info_t *hub_info,
     usb_hub_status_t status);
 static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info);
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
@@ -370,60 +377,43 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
  * @param status hub status bitmask
  * @return error code
  */
-static int usb_process_hub_over_current(usb_hub_info_t *hub_info,
-    usb_hub_status_t status) {
-	int opResult;
-	if (usb_hub_is_status(status, USB_HUB_FEATURE_HUB_OVER_CURRENT)) {
-		//poweroff all ports
-		unsigned int port;
+static void usb_process_hub_over_current(usb_hub_info_t *hub_info,
+    usb_hub_status_t status)
+{
+	if (status & USB_HUB_STATUS_OVER_CURRENT) {
+		/* Over-current detected on one or all ports,
+		 * switch them all off to prevent damage. */
+		//TODO Consider ganged power switching here.
+		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
-			opResult = usb_hub_clear_port_feature(
+			const int opResult = usb_hub_clear_port_feature(
 			    hub_info->control_pipe, port,
 			    USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
-				    "Cannot power off port %d;  %s\n",
+				    "HUB OVER-CURRENT: Cannot power off port"
+				    " %d:  %s\n",
 				    port, str_error(opResult));
 			}
 		}
 	} else {
-		//power all ports
-		unsigned int port;
+		/* Over-current condition is gone, it is safe to turn the
+		 * ports on. */
+		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
-			opResult = usb_hub_set_port_feature(
+			const int opResult = usb_hub_set_port_feature(
 			    hub_info->control_pipe, port,
 			    USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
-				    "Cannot power off port %d;  %s\n",
+				    "HUB OVER-CURRENT GONE: Cannot power on "
+				    "port %d;  %s\n",
 				    port, str_error(opResult));
 			}
 		}
 	}
-	return opResult;
 }
-
-/**
- * process hub local power change
- *
- * This change is ignored.
- * @param hub_info hub instance
- * @param status hub status bitmask
- * @return error code
- */
-static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
-    usb_hub_status_t status) {
-	int opResult = EOK;
-	opResult = usb_hub_clear_feature(hub_info->control_pipe,
-	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
-	if (opResult != EOK) {
-		usb_log_error("Cannnot clear hub power change flag: "
-		    "%s\n",
-		    str_error(opResult));
-	}
-	return opResult;
-}
-
+/*----------------------------------------------------------------------------*/
 /**
  * process hub interrupts
  *
@@ -431,40 +421,55 @@ static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
  * local-power change.
  * @param hub_info hub instance
  */
-static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info) {
+static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info)
+{
+	assert(hub_info);
+	assert(hub_info->usb_device);
 	usb_log_debug("Global interrupt on a hub\n");
-	usb_pipe_t *pipe = hub_info->control_pipe;
+	usb_pipe_t *ctrlpipe = &hub_info->usb_device->ctrl_pipe;
 	int opResult;
 
-	usb_port_status_t status;
+	usb_hub_status_t status;
 	size_t rcvd_size;
-	usb_device_request_setup_packet_t request;
-	//int opResult;
-	usb_hub_set_hub_status_request(&request);
-	//endpoint 0
 
 	opResult = usb_pipe_control_read(
-	    pipe,
-	    &request, sizeof (usb_device_request_setup_packet_t),
-	    &status, 4, &rcvd_size
-	    );
+	    ctrlpipe, &get_hub_status_request, sizeof(get_hub_status_request),
+	    &status, sizeof(usb_hub_status_t), &rcvd_size);
 	if (opResult != EOK) {
 		usb_log_error("Could not get hub status: %s\n",
 		    str_error(opResult));
 		return;
 	}
-	if (rcvd_size != sizeof (usb_port_status_t)) {
+	if (rcvd_size != sizeof(usb_hub_status_t)) {
 		usb_log_error("Received status has incorrect size\n");
 		return;
 	}
-	//port reset
-	if (
-	    usb_hub_is_status(status, 16 + USB_HUB_FEATURE_C_HUB_OVER_CURRENT)) {
+
+	/* Handle status changes */
+	if (status & USB_HUB_STATUS_C_OVER_CURRENT)
 		usb_process_hub_over_current(hub_info, status);
-	}
-	if (
-	    usb_hub_is_status(status, 16 + USB_HUB_FEATURE_C_HUB_LOCAL_POWER)) {
-		usb_process_hub_local_power_change(hub_info, status);
+
+	if (status & USB_HUB_STATUS_C_LOCAL_POWER) {
+		/* NOTE: Handling this is more complicated.
+		 * If the transition is from bus power to local power, all
+		 * is good and we may signal the parent hub that we don't
+		 * need the power.
+		 * If the transition is from local power to bus power
+		 * the hub should turn off all the ports and devices need
+		 * to be reinitialized taking into account the limited power
+		 * that is now available.
+		 * There is no support for power distribution in HelenOS,
+		 * (or other OSes/hub devices that I've seen) so this is not
+		 * implemented.
+		 * Just ACK the change.
+		 */
+		const int opResult = usb_hub_clear_feature(ctrlpipe,
+		    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+		if (opResult != EOK) {
+			usb_log_error("Cannot clear hub power change flag: "
+			    "%s\n",
+			    str_error(opResult));
+		}
 	}
 }
 

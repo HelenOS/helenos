@@ -49,13 +49,23 @@ typedef uint32_t usb_port_status_t;
 
 /**
  * structure holding hub status and changes flags.
- * should not be accessed directly, use supplied getter/setter methods.
  *
  * For more information refer to table 11.16.2.5 in
  * "Universal Serial Bus Specification Revision 1.1"
  *
  */
 typedef uint32_t usb_hub_status_t;
+// TODO Mind the endiannes, changes are in the first byte of the second word
+// status is int he first byte of the first word
+#define USB_HUB_STATUS_OVER_CURRENT \
+    (1 << (USB_HUB_FEATURE_HUB_OVER_CURRENT))
+#define USB_HUB_STATUS_LOCAL_POWER \
+    (1 << (USB_HUB_FEATURE_HUB_LOCAL_POWER))
+
+#define USB_HUB_STATUS_C_OVER_CURRENT \
+    (1 << (16 + USB_HUB_FEATURE_C_HUB_OVER_CURRENT))
+#define USB_HUB_STATUS_C_LOCAL_POWER \
+    (1 << (16 + USB_HUB_FEATURE_C_HUB_LOCAL_POWER))
 
 /**
  * set values in request to be it a port status request
@@ -63,23 +73,10 @@ typedef uint32_t usb_hub_status_t;
  * @param port
  */
 static inline void usb_hub_set_port_status_request(
-    usb_device_request_setup_packet_t *request, uint16_t port) {
+    usb_device_request_setup_packet_t *request, uint16_t port)
+{
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS;
-	request->request = USB_HUB_REQUEST_GET_STATUS;
-	request->value = 0;
-	request->length = 4;
-}
-
-/**
- * set values in request to be it a port status request
- * @param request
- * @param port
- */
-static inline void usb_hub_set_hub_status_request(
-    usb_device_request_setup_packet_t *request) {
-	request->index = 0;
-	request->request_type = USB_HUB_REQ_TYPE_GET_HUB_STATUS;
 	request->request = USB_HUB_REQUEST_GET_STATUS;
 	request->value = 0;
 	request->length = 4;
@@ -91,9 +88,10 @@ static inline void usb_hub_set_hub_status_request(
  * @return
  */
 static inline usb_device_request_setup_packet_t *
-usb_hub_create_port_status_request(uint16_t port) {
+    usb_hub_create_port_status_request(uint16_t port)
+{
 	usb_device_request_setup_packet_t *result =
-	    malloc(sizeof (usb_device_request_setup_packet_t));
+	    malloc(sizeof(usb_device_request_setup_packet_t));
 	usb_hub_set_port_status_request(result, port);
 	return result;
 }
@@ -354,7 +352,6 @@ static inline usb_speed_t usb_port_speed(usb_port_status_t status) {
 
 
 #endif	/* HUB_PORT_STATUS_H */
-
 /**
  * @}
  */
