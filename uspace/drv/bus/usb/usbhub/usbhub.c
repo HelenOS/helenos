@@ -56,21 +56,14 @@
 
 
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev);
-
 static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info);
-
 static int usb_hub_set_configuration(usb_hub_info_t *hub_info);
-
 static int usb_hub_start_hub_fibril(usb_hub_info_t *hub_info);
-
 static int usb_process_hub_over_current(usb_hub_info_t *hub_info,
     usb_hub_status_t status);
-
 static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
     usb_hub_status_t status);
-
 static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info);
-
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
     bool was_error, void *data);
 
@@ -92,14 +85,13 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 int usb_hub_add_device(usb_device_t *usb_dev) {
 	if (!usb_dev) return EINVAL;
 	usb_hub_info_t *hub_info = usb_hub_info_create(usb_dev);
+
 	//create hc connection
 	usb_log_debug("Initializing USB wire abstraction.\n");
 	int opResult = usb_hc_connection_initialize_from_device(
-	    &hub_info->connection,
-	    hub_info->usb_device->ddf_dev);
+	    &hub_info->connection, hub_info->usb_device->ddf_dev);
 	if (opResult != EOK) {
-		usb_log_error("Could not initialize connection to device, "
-		    " %s\n",
+		usb_log_error("Could not initialize connection to device: %s\n",
 		    str_error(opResult));
 		free(hub_info);
 		return opResult;
@@ -108,7 +100,7 @@ int usb_hub_add_device(usb_device_t *usb_dev) {
 	//set hub configuration
 	opResult = usb_hub_set_configuration(hub_info);
 	if (opResult != EOK) {
-		usb_log_error("Could not set hub configuration, %s\n",
+		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
 		free(hub_info);
 		return opResult;
@@ -189,9 +181,12 @@ leave:
  * @param usb_dev usb device structure
  * @return basic usb_hub_info_t structure
  */
-static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev) {
-	usb_hub_info_t * result = malloc(sizeof (usb_hub_info_t));
-	if (!result) return NULL;
+static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
+{
+	usb_hub_info_t *result = malloc(sizeof (usb_hub_info_t));
+	if (!result)
+	    return NULL;
+
 	result->usb_device = usb_dev;
 	result->status_change_pipe = usb_dev->pipes[0].pipe;
 	result->control_pipe = &usb_dev->ctrl_pipe;
@@ -204,6 +199,7 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev) {
 	fibril_mutex_initialize(&result->pending_ops_mutex);
 	fibril_condvar_initialize(&result->pending_ops_cv);
 	result->pending_ops_count = 0;
+
 	return result;
 }
 

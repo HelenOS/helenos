@@ -64,8 +64,8 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
  * @param addr
  */
 static inline void usb_hub_set_descriptor_request(
-    usb_device_request_setup_packet_t * request
-    ) {
+    usb_device_request_setup_packet_t *request )
+{
 	request->index = 0;
 	request->request_type = USB_HUB_REQ_TYPE_GET_DESCRIPTOR;
 	request->request = USB_HUB_REQUEST_GET_DESCRIPTOR;
@@ -84,8 +84,8 @@ static inline void usb_hub_set_descriptor_request(
  * @return Operation result
  */
 static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
-    int port_index,
-    usb_hub_class_feature_t feature) {
+    int port_index, usb_hub_class_feature_t feature)
+{
 
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
@@ -108,8 +108,8 @@ static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
  * @return Operation result
  */
 static inline int usb_hub_set_port_feature(usb_pipe_t *pipe,
-    int port_index,
-    usb_hub_class_feature_t feature) {
+    int port_index, usb_hub_class_feature_t feature)
+{
 
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
@@ -151,7 +151,8 @@ static inline int usb_hub_clear_feature(usb_pipe_t *pipe,
  * @return Operation result
  */
 static inline int usb_hub_set_feature(usb_pipe_t *pipe,
-    usb_hub_class_feature_t feature) {
+    usb_hub_class_feature_t feature)
+{
 
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE,
@@ -165,10 +166,10 @@ static inline int usb_hub_set_feature(usb_pipe_t *pipe,
 }
 
 
-void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t * descriptor);
+void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t *descriptor);
 
-void usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor,
-    void * serialized_descriptor);
+void usb_serialize_hub_descriptor(usb_hub_descriptor_t *descriptor,
+    void *serialized_descriptor);
 
 int usb_deserialize_hub_desriptor(
     void *serialized_descriptor, size_t size, usb_hub_descriptor_t *descriptor);
