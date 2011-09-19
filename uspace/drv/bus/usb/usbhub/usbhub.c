@@ -159,30 +159,33 @@ int usb_hub_add_device(usb_device_t *usb_dev)
  * @return Whether to continue polling.
  */
 bool hub_port_changes_callback(usb_device_t *dev,
-    uint8_t *change_bitmap, size_t change_bitmap_size, void *arg) {
+    uint8_t *change_bitmap, size_t change_bitmap_size, void *arg)
+{
 	usb_log_debug("hub_port_changes_callback\n");
-	usb_hub_info_t *hub = (usb_hub_info_t *) arg;
+	usb_hub_info_t *hub = arg;
 
 	/* FIXME: check that we received enough bytes. */
 	if (change_bitmap_size == 0) {
 		goto leave;
 	}
 
-	bool change;
-	change = ((uint8_t*) change_bitmap)[0] & 1;
+	/* Lowest bit indicates global change */
+	const bool change = change_bitmap[0] & 1;
 	if (change) {
 		usb_hub_process_global_interrupt(hub);
 	}
 
-	size_t port;
-	for (port = 1; port < hub->port_count + 1; port++) {
-		bool change = (change_bitmap[port / 8] >> (port % 8)) % 2;
+	/* N + 1 bit indicates change on port N */
+	size_t port = 1;
+	for (; port < hub->port_count + 1; port++) {
+		const bool change = (change_bitmap[port / 8] >> (port % 8)) & 1;
 		if (change) {
 			usb_hub_process_port_interrupt(hub, port);
 		}
 	}
 leave:
 	/* FIXME: proper interval. */
+	// TODO Interval should be handled by USB HC scheduler not here
 	async_usleep(1000 * 250);
 
 	return true;
@@ -204,7 +207,8 @@ leave:
  */
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 {
-	usb_hub_info_t *result = malloc(sizeof (usb_hub_info_t));
+	assert(usb_dev);
+	usb_hub_info_t *result = malloc(sizeof(usb_hub_info_t));
 	if (!result)
 	    return NULL;
 
@@ -214,9 +218,8 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 	result->is_default_address_used = false;
 
 	result->ports = NULL;
-	result->port_count = (size_t) - 1;
+	result->port_count = -1;
 	fibril_mutex_initialize(&result->port_mutex);
-
 	fibril_mutex_initialize(&result->pending_ops_mutex);
 	fibril_condvar_initialize(&result->pending_ops_cv);
 	result->pending_ops_count = 0;
@@ -314,12 +317,14 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
  * @param hub_info hub representation
  * @return error code
  */
-static int usb_hub_set_configuration(usb_hub_info_t *hub_info) {
+static int usb_hub_set_configuration(usb_hub_info_t *hub_info)
+{
 	//device descriptor
-	usb_standard_device_descriptor_t *std_descriptor
+	const usb_standard_device_descriptor_t *std_descriptor
 	    = &hub_info->usb_device->descriptors.device;
 	usb_log_debug("Hub has %d configurations\n",
 	    std_descriptor->configuration_count);
+
 	if (std_descriptor->configuration_count < 1) {
 		usb_log_error("There are no configurations available\n");
 		return EINVAL;

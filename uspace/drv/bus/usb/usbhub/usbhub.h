@@ -76,18 +76,18 @@ struct usb_hub_info_t {
 	 * pointer into this structure, so that it does not have to be
 	 * searched again and again for the 'right pipe'.
 	 */
-	usb_pipe_t * status_change_pipe;
+	usb_pipe_t *status_change_pipe;
 
-	/** convenience pointer to control pipe
+	/** Convenience pointer to control pipe
 	 *
 	 * Control pipe is initialized in usb_device structure. This is
-	 * pointer into this structure, so that it does not have to be
-	 * searched again and again for the 'right pipe'.
+	 * pointer into that structure, so that we don't not have to
+	 * search again and again for the 'right pipe'.
 	 */
-	usb_pipe_t * control_pipe;
+	usb_pipe_t *control_pipe;
 
-	/** generic usb device data*/
-	usb_device_t * usb_device;
+	/** Generic usb device data*/
+	usb_device_t *usb_device;
 
 	/** Number of pending operations on the mutex to prevent shooting
 	 * ourselves in the foot.
@@ -100,7 +100,6 @@ struct usb_hub_info_t {
 	fibril_mutex_t pending_ops_mutex;
 	/** Condition variable for pending_ops_count. */
 	fibril_condvar_t pending_ops_cv;
-
 };
 
 int usb_hub_add_device(usb_device_t *usb_dev);
