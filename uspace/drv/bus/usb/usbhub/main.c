@@ -37,9 +37,9 @@
 
 #include <usb/dev/driver.h>
 #include <usb/classes/classes.h>
+#include <usb/debug.h>
 
 #include "usbhub.h"
-#include "usbhub_private.h"
 
 /** Hub status-change endpoint description.
  *
