@@ -44,6 +44,11 @@ tcp_segment_t *tcp_segment_new(void)
 	return calloc(1, sizeof(tcp_segment_t));
 }
 
+void tcp_segment_delete(tcp_segment_t *seg)
+{
+	free(seg);
+}
+
 /** Create a control segment. */
 tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t ctrl)
 {

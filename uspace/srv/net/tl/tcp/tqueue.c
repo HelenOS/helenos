@@ -63,6 +63,15 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_transmit_segment(&conn->ident, seg);
 }
 
+/** Remove ACKed segments from retransmission queue.
+ *
+ * This should be called when SND.UNA is updated due to incoming ACK.
+ */
+void tcp_tqueue_remove_acked(tcp_conn_t *conn)
+{
+	(void) conn;
+}
+
 void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_transmit_segment(%p, %p)", sp, seg);

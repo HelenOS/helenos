@@ -39,6 +39,7 @@
 #include <io/log.h>
 #include <stdlib.h>
 #include "iqueue.h"
+#include "segment.h"
 #include "seq_no.h"
 #include "tcp_type.h"
 
@@ -84,7 +85,7 @@ int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 		log_msg(LVL_DEBUG, "Skipping unacceptable segment");
 
 		list_remove(&iqe->link);
-		/* XXX free segment */
+		tcp_segment_delete(iqe->seg);
 
          	link = list_first(&iqueue->list);
 		if (link == NULL) {

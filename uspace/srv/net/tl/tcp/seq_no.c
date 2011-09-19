@@ -67,6 +67,53 @@ bool seq_no_ack_acceptable(tcp_conn_t *conn, uint32_t seg_ack)
 	return seq_no_lt_le(conn->snd_una, seg_ack, conn->snd_nxt);
 }
 
+/** Determine wheter ack is duplicate.
+ *
+ * ACK is duplicate if it refers to a sequence number that has
+ * aleady been acked (SEG.ACK < SND.UNA).
+ */
+bool seq_no_ack_duplicate(tcp_conn_t *conn, uint32_t seg_ack)
+{
+	uint32_t diff;
+
+	/*
+	 * There does not seem to be a three-point comparison
+	 * equivalent of SEG.ACK < SND.UNA. Thus we do it
+	 * on a best-effort basis, based on the difference.
+	 * [-2^31, 0) means less-than, [0, 2^31) means greater-than.
+	 */
+	diff = seg_ack - conn->snd_una;
+	return (diff & (0x1 << 31)) != 0;
+}
+
+/** Determine segment has new window update.
+ *
+ * Window update is new if either SND.WL1 < SEG.SEQ or
+ * (SND.WL1 = SEG.SEQ and SND.WL2 <= SEG.ACK).
+ */
+bool seq_no_new_wnd_update(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	bool n_seq, n_ack;
+
+	assert(seq_no_segment_acceptable(conn, seg));
+
+	/*
+	 * We make use of the fact that the peer should not ACK anything
+	 * beyond our send window (we surely haven't sent that yet)
+	 * as we should have filtered those acks out.
+	 * We use SND.UNA+SND.WND as the third point of comparison.
+	 */
+
+	n_seq = seq_no_lt_le(conn->snd_wl1, seg->seq,
+	    conn->snd_una + conn->snd_wnd);
+
+	n_ack = conn->snd_wl1 == seg->seq &&
+	    seq_no_le_lt(conn->snd_wl2, seg->ack,
+	    conn->snd_una + conn->snd_wnd + 1);
+
+	return n_seq || n_ack;
+}
+
 /** Determine if segment is ready for processing.
  *
  * Assuming segment is acceptable, a segment is ready if it intersects

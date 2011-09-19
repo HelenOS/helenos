@@ -151,6 +151,7 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->rcv_nxt = seg->seq + 1;
 	conn->irs = seg->seq;
 
+
 	log_msg(LVL_DEBUG, "rcv_nxt=%u", conn->rcv_nxt);
 
 	if (seg->len > 1)
@@ -160,6 +161,15 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->iss = 1;
 	conn->snd_nxt = conn->iss;
 	conn->snd_una = conn->iss;
+
+	/*
+	 * Surprisingly the spec does not deal with initial window setting.
+	 * Set SND.WND = SEG.WND and set SND.WL1 so that next segment
+	 * will always be accepted as new window setting.
+	 */
+	conn->snd_wnd = seg->wnd;
+	conn->snd_wl1 = seg->seq;
+	conn->snd_wl2 = seg->seq;
 
 	conn->cstate = st_syn_received;
 
@@ -200,7 +210,7 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if ((seg->ctrl & CTL_ACK) != 0) {
 		conn->snd_una = seg->ack;
-		/* XXX process retransmission queue */
+		tcp_tqueue_remove_acked(conn);
 	}
 
 	log_msg(LVL_DEBUG, "Sent SYN, got SYN.");
@@ -239,16 +249,19 @@ static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
 
 static cproc_t tcp_conn_seg_proc_rst(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	/* TODO */
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_sp(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	/* TODO */
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_syn(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	/* TODO */
 	return cp_continue;
 }
 
@@ -258,6 +271,8 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* ACK is not acceptable, send RST. */
 		log_msg(LVL_WARN, "Segment ACK not acceptable, sending RST.");
 		tcp_reply_rst(&conn->ident, seg);
+		tcp_segment_delete(seg);
+		return cp_done;
 	}
 
 	log_msg(LVL_DEBUG, "SYN ACKed -> Established");
@@ -272,36 +287,75 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 
 static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	if (!seq_no_ack_acceptable(conn, seg->ack)) {
+		if (!seq_no_ack_duplicate(conn, seg->ack)) {
+			/* Not acceptable, not duplicate. Send ACK and drop. */
+			tcp_tqueue_ctrl_seg(conn, CTL_ACK);
+			tcp_segment_delete(seg);
+			return cp_done;
+		}
+	} else {
+		/* Update SND.UNA */
+		conn->snd_una = seg->ack;
+
+		/* Prune acked segments from retransmission queue */
+		tcp_tqueue_remove_acked(conn);
+	}
+
+	if (seq_no_new_wnd_update(conn, seg)) {
+		conn->snd_wnd = seg->wnd;
+		conn->snd_wl1 = seg->seq;
+		conn->snd_wl2 = seg->ack;
+	}
+
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
+		return cp_done;
+
+	/* TODO */
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_ack_fw2(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
+		return cp_done;
+
+	/* TODO */
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_ack_cw(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	return cp_continue;
+	/* The same processing as in Established state */
+	return tcp_conn_seg_proc_ack_est(conn, seg);
 }
 
 static cproc_t tcp_conn_seg_proc_ack_cls(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
+		return cp_done;
+
+	/* TODO */
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
+		return cp_done;
+
+	/* TODO */
 	return cp_continue;
 }
 
 static cproc_t tcp_conn_seg_proc_ack_tw(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	/* Nothing to do */
 	return cp_continue;
 }
 
@@ -311,7 +365,7 @@ static cproc_t tcp_conn_seg_proc_ack(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if ((seg->ctrl & CTL_ACK) == 0) {
 		log_msg(LVL_WARN, "Segment has no ACK. Dropping.");
-		/* XXX Free segment */
+		tcp_segment_delete(seg);
 		return cp_done;
 	}
 
@@ -348,6 +402,26 @@ static cproc_t tcp_conn_seg_proc_urg(tcp_conn_t *conn, tcp_segment_t *seg)
 
 static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	switch (conn->cstate) {
+	case st_established:
+	case st_fin_wait_1:
+	case st_fin_wait_2:
+		/* OK */
+		break;
+	case st_close_wait:
+	case st_closing:
+	case st_last_ack:
+	case st_time_wait:
+		/* Invalid since FIN has been received. Ignore text. */
+		return cp_continue;
+	case st_listen:
+	case st_syn_sent:
+	case st_syn_received:
+	case st_closed:
+		assert(false);
+	}
+
+	/* TODO Process segment text */
 	return cp_continue;
 }
 

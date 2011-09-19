@@ -38,6 +38,7 @@
 #include "tcp_type.h"
 
 extern tcp_segment_t *tcp_segment_new(void);
+extern void tcp_segment_delete(tcp_segment_t *);
 extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
 extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
 extern size_t tcp_segment_data_len(tcp_segment_t *);

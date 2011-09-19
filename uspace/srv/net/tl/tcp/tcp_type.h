@@ -147,6 +147,8 @@ typedef struct {
 	uint32_t ack;
 	/** Segment length in sequence space */
 	uint32_t len;
+	/** Segment window */
+	uint32_t wnd;
 	/** Segment urgent pointer */
 	uint32_t up;
 

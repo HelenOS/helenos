@@ -40,6 +40,7 @@
 
 extern void tcp_tqueue_ctrl_seg(tcp_conn_t *, tcp_control_t);
 extern void tcp_tqueue_seg(tcp_conn_t *, tcp_segment_t *);
+extern void tcp_tqueue_remove_acked(tcp_conn_t *);
 extern void tcp_transmit_segment(tcp_sockpair_t *, tcp_segment_t *);
 extern void tcp_header_setup(tcp_conn_t *, tcp_segment_t *, tcp_header_t *);
 extern void tcp_phdr_setup(tcp_conn_t *, tcp_segment_t *, tcp_phdr_t *);
