@@ -54,11 +54,11 @@
 #include <usb/dev/pipes.h>
 #include <usb/classes/classes.h>
 
+#define HUB_FNC_NAME "hub"
 
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev);
 static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info);
 static int usb_hub_set_configuration(usb_hub_info_t *hub_info);
-static int usb_hub_start_hub_fibril(usb_hub_info_t *hub_info);
 static int usb_process_hub_over_current(usb_hub_info_t *hub_info,
     usb_hub_status_t status);
 static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
@@ -82,7 +82,8 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
  * @param usb_dev generic usb device information
  * @return error code
  */
-int usb_hub_add_device(usb_device_t *usb_dev) {
+int usb_hub_add_device(usb_device_t *usb_dev)
+{
 	if (!usb_dev) return EINVAL;
 	usb_hub_info_t *hub_info = usb_hub_info_create(usb_dev);
 
@@ -105,6 +106,7 @@ int usb_hub_add_device(usb_device_t *usb_dev) {
 		free(hub_info);
 		return opResult;
 	}
+
 	//get port count and create attached_devs
 	opResult = usb_hub_process_hub_specific_info(hub_info);
 	if (opResult != EOK) {
@@ -114,19 +116,38 @@ int usb_hub_add_device(usb_device_t *usb_dev) {
 		return opResult;
 	}
 
-	usb_log_debug("Creating 'hub' function in DDF.\n");
+	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.\n");
 	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
-	    fun_exposed, "hub");
-	assert(hub_fun != NULL);
-	hub_fun->ops = NULL;
+	    fun_exposed, HUB_FNC_NAME);
+	if (hub_fun == NULL) {
+		usb_log_error("Failed to create hub function.\n");
+		free(hub_info);
+		return ENOMEM;
+	}
 
 	opResult = ddf_fun_bind(hub_fun);
-	assert(opResult == EOK);
-
-	opResult = usb_hub_start_hub_fibril(hub_info);
-	if (opResult != EOK)
+	if (opResult != EOK) {
+		usb_log_error("Failed to bind hub function: %s.\n",
+		   str_error(opResult));
 		free(hub_info);
-	return opResult;
+		ddf_fun_destroy(hub_fun);
+		return opResult;
+	}
+
+	opResult = usb_device_auto_poll(hub_info->usb_device, 0,
+	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
+	    usb_hub_polling_terminated_callback, hub_info);
+	if (opResult != EOK) {
+		ddf_fun_destroy(hub_fun);
+		free(hub_info);
+		usb_log_error("Failed to create polling fibril: %s.\n",
+		    str_error(opResult));
+		return opResult;
+	}
+	usb_log_info("Controlling hub '%s' (%zu ports).\n",
+	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
+
+	return EOK;
 }
 
 /** Callback for polling hub for changes.
@@ -321,33 +342,6 @@ static int usb_hub_set_configuration(usb_hub_info_t *hub_info) {
 	usb_log_debug("\tUsed configuration %d\n",
 	    config_descriptor->configuration_number);
 
-	return EOK;
-}
-
-/**
- * create and start fibril with hub control loop
- *
- * Before the fibril is started, the control pipe and host controller
- * connection of the hub is open.
- *
- * @param hub_info hub representing structure
- * @return error code
- */
-static int usb_hub_start_hub_fibril(usb_hub_info_t *hub_info) {
-	int rc;
-
-	rc = usb_device_auto_poll(hub_info->usb_device, 0,
-	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
-	    usb_hub_polling_terminated_callback, hub_info);
-	if (rc != EOK) {
-		usb_log_error("Failed to create polling fibril: %s.\n",
-		    str_error(rc));
-		free(hub_info);
-		return rc;
-	}
-
-	usb_log_info("Controlling hub `%s' (%zu ports).\n",
-	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
 	return EOK;
 }
 
