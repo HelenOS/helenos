@@ -592,6 +592,10 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
+
+		/* Do not propagate EHANGUP back to VFS. */
+		if ((int) rc == EHANGUP)
+			rc = ENOTSUP;
 		
 		*rbytes = IPC_GET_ARG1(answer);
 		return rc;
@@ -654,6 +658,10 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
+
+		/* Do not propagate EHANGUP back to VFS. */
+		if ((int) rc == EHANGUP)
+			rc = ENOTSUP;
 		
 		*wbytes = IPC_GET_ARG1(answer);
 		*nsize = 0;
