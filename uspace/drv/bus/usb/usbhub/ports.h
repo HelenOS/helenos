@@ -61,7 +61,9 @@ typedef struct {
  *
  * @param port Port to be initialized.
  */
-static inline void usb_hub_port_init(usb_hub_port_t *port) {
+static inline void usb_hub_port_init(usb_hub_port_t *port)
+{
+	assert(port);
 	port->attached_device.address = -1;
 	port->attached_device.handle = 0;
 	fibril_mutex_initialize(&port->reset_mutex);

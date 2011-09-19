@@ -37,28 +37,28 @@
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
+#include <stdio.h>
 
-#include <usb_iface.h>
+#include <usb/usb.h>
+#include <usb/dev/pipes.h>
+#include <usb/classes/classes.h>
 #include <usb/ddfiface.h>
 #include <usb/descriptor.h>
 #include <usb/dev/recognise.h>
 #include <usb/dev/request.h>
 #include <usb/classes/hub.h>
 #include <usb/dev/poll.h>
-#include <stdio.h>
+#include <usb_iface.h>
 
 #include "usbhub.h"
-#include "usbhub_private.h"
+#include "utils.h"
 #include "port_status.h"
-#include <usb/usb.h>
-#include <usb/dev/pipes.h>
-#include <usb/classes/classes.h>
 
 #define HUB_FNC_NAME "hub"
 
+static int usb_set_first_configuration(usb_device_t *usb_device);
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev);
 static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info);
-static int usb_hub_set_configuration(usb_hub_info_t *hub_info);
 static int usb_process_hub_over_current(usb_hub_info_t *hub_info,
     usb_hub_status_t status);
 static int usb_process_hub_local_power_change(usb_hub_info_t *hub_info,
@@ -84,10 +84,15 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
  */
 int usb_hub_add_device(usb_device_t *usb_dev)
 {
-	if (!usb_dev) return EINVAL;
+	assert(usb_dev);
+	/* Create driver soft-state structure */
 	usb_hub_info_t *hub_info = usb_hub_info_create(usb_dev);
+	if (hub_info == NULL) {
+		usb_log_error("Failed to create hun driver structure.\n");
+		return ENOMEM;
+	}
 
-	//create hc connection
+	/* Create hc connection */
 	usb_log_debug("Initializing USB wire abstraction.\n");
 	int opResult = usb_hc_connection_initialize_from_device(
 	    &hub_info->connection, hub_info->usb_device->ddf_dev);
@@ -98,8 +103,8 @@ int usb_hub_add_device(usb_device_t *usb_dev)
 		return opResult;
 	}
 
-	//set hub configuration
-	opResult = usb_hub_set_configuration(hub_info);
+	/* Set hub's first configuration. (There should be only one) */
+	opResult = usb_set_first_configuration(usb_dev);
 	if (opResult != EOK) {
 		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
@@ -232,12 +237,13 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
  * Particularly read port count and initialize structure holding port
  * information. If there are non-removable devices, start initializing them.
  * This function is hub-specific and should be run only after the hub is
- * configured using usb_hub_set_configuration function.
+ * configured using usb_set_first_configuration function.
  * @param hub_info hub representation
  * @return error code
  */
 int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 {
+	assert(hub_info);
 	// get hub descriptor
 	usb_log_debug("Retrieving descriptor\n");
 	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
@@ -266,6 +272,7 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 	usb_log_debug("Setting port count to %d.\n", descriptor.ports_count);
 	hub_info->port_count = descriptor.ports_count;
 
+	// TODO Why +1 ?
 	hub_info->ports =
 	    malloc(sizeof(usb_hub_port_t) * (hub_info->port_count + 1));
 	if (!hub_info->ports) {
@@ -303,41 +310,41 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 		}
 
 	} else {
-		usb_log_debug("Power not switched, not going to be powered\n");
+		usb_log_debug("Power not switched, ports always powered\n");
 	}
 	return EOK;
 }
 
 /**
- * Set configuration of hub
+ * Set configuration of and USB device
  *
  * Check whether there is at least one configuration and sets the first one.
  * This function should be run prior to running any hub-specific action.
- * @param hub_info hub representation
+ * @param usb_device usb device representation
  * @return error code
  */
-static int usb_hub_set_configuration(usb_hub_info_t *hub_info)
+static int usb_set_first_configuration(usb_device_t *usb_device)
 {
-	//device descriptor
-	const usb_standard_device_descriptor_t *std_descriptor
-	    = &hub_info->usb_device->descriptors.device;
-	usb_log_debug("Hub has %d configurations\n",
-	    std_descriptor->configuration_count);
+	assert(usb_device);
+	/* Get number of possible configurations from device descriptor */
+	const size_t configuration_count =
+	    usb_device->descriptors.device.configuration_count;
+	usb_log_debug("Hub has %d configurations.\n", configuration_count);
 
-	if (std_descriptor->configuration_count < 1) {
+	if (configuration_count < 1) {
 		usb_log_error("There are no configurations available\n");
 		return EINVAL;
 	}
 
+	// TODO: Make sure that there is enough data and the cast is correct
 	usb_standard_configuration_descriptor_t *config_descriptor
 	    = (usb_standard_configuration_descriptor_t *)
-	    hub_info->usb_device->descriptors.configuration;
+	    usb_device->descriptors.configuration;
 
-	/* Set configuration. */
-	int opResult = usb_request_set_configuration(
-	    &hub_info->usb_device->ctrl_pipe,
-	    config_descriptor->configuration_number);
-
+	/* Set configuration. Use the configuration that was in
+	 * usb_device->descriptors.configuration */
+	const int opResult = usb_request_set_configuration(
+	    &usb_device->ctrl_pipe, config_descriptor->configuration_number);
 	if (opResult != EOK) {
 		usb_log_error("Failed to set hub configuration: %s.\n",
 		    str_error(opResult));

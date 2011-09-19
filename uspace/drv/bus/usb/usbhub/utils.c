@@ -41,8 +41,7 @@
 #include <usb/classes/hub.h>
 
 #include "usbhub.h"
-#include "usbhub_private.h"
-#include "port_status.h"
+#include "utils.h"
 
 
 size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;

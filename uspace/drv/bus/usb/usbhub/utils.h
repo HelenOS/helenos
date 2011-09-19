@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,10 +34,8 @@
  * @brief Hub driver private definitions
  */
 
-#ifndef USBHUB_PRIVATE_H
-#define	USBHUB_PRIVATE_H
-
-#include "usbhub.h"
+#ifndef USBHUB_UTILS_H
+#define USBHUB_UTILS_H
 
 #include <adt/list.h>
 #include <bool.h>
@@ -47,6 +46,8 @@
 #include <usb/usb.h>
 #include <usb/debug.h>
 #include <usb/dev/request.h>
+
+#include "usbhub.h"
 
 //************
 //
@@ -165,7 +166,6 @@ static inline int usb_hub_set_feature(usb_pipe_t *pipe,
 	    sizeof (clear_request), NULL, 0);
 }
 
-
 void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t *descriptor);
 
 void usb_serialize_hub_descriptor(usb_hub_descriptor_t *descriptor,
@@ -174,9 +174,7 @@ void usb_serialize_hub_descriptor(usb_hub_descriptor_t *descriptor,
 int usb_deserialize_hub_desriptor(
     void *serialized_descriptor, size_t size, usb_hub_descriptor_t *descriptor);
 
-
-#endif	/* USBHUB_PRIVATE_H */
-
+#endif
 /**
  * @}
  */

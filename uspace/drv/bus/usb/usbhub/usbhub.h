@@ -55,12 +55,12 @@ struct usb_hub_info_t {
 	/** Number of ports. */
 	size_t port_count;
 
-	/** attached device handles, for each port one */
+	/** Attached device handles, for each port one */
 	usb_hub_port_t *ports;
 
 	fibril_mutex_t port_mutex;
 
-	/** connection to hcd */
+	/** Connection to hcd */
 	usb_hc_connection_t connection;
 
 	/** default address is used indicator

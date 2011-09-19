@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,6 @@
 #include <bool.h>
 #include <sys/types.h>
 #include <usb/dev/request.h>
-#include "usbhub_private.h"
 
 /**
  * structure holding port status and changes flags.
