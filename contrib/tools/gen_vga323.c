@@ -32,7 +32,8 @@
 #define GREEN(i)  (((i) >> 3) & ((1 << 2) - 1))
 #define BLUE(i)   ((i) & ((1 << 3) - 1))
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	unsigned int i;
 	
 	for (i = 0; i < 256; i++)

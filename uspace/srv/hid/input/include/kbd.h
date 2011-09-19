@@ -39,6 +39,7 @@
 #define KBD_KBD_H_
 
 #include <adt/list.h>
+#include <ipc/loc.h>
 
 struct kbd_port_ops;
 struct kbd_ctl_ops;
@@ -48,8 +49,11 @@ typedef struct kbd_dev {
 	/** Link to kbd_devs list */
 	link_t kbd_devs;
 
-	/** Path to the device (only for kbdev devices) */
-	const char *dev_path;
+	/** Service ID (only for kbdev devices) */
+	service_id_t svc_id;
+
+	/** Device service name (only for kbdev devices) */
+	char *svc_name;
 
 	/** Port ops */
 	struct kbd_port_ops *port_ops;
@@ -70,8 +74,8 @@ typedef struct kbd_dev {
 	struct layout *active_layout;
 } kbd_dev_t;
 
-extern void kbd_push_scancode(kbd_dev_t *, int);
-extern void kbd_push_ev(kbd_dev_t *, int, unsigned int);
+extern void kbd_push_data(kbd_dev_t *, sysarg_t);
+extern void kbd_push_event(kbd_dev_t *, int, unsigned int);
 
 #endif
 

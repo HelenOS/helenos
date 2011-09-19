@@ -147,7 +147,6 @@ static int lo_create(device_id_t device_id, netif_device_t **device)
 	
 	null_device_stats((device_stats_t *) (*device)->specific);
 	(*device)->device_id = device_id;
-	(*device)->nil_phone = -1;
 	(*device)->state = NETIF_STOPPED;
 	int index = netif_device_map_add(&netif_globals.device_map,
 	    (*device)->device_id, *device);
@@ -201,10 +200,10 @@ int netif_send_message(device_id_t device_id, packet_t *packet, services_t sende
 		next = pq_next(next);
 	} while (next);
 	
-	int phone = device->nil_phone;
+	async_sess_t *nil_sess = netif_globals.nil_sess;
 	fibril_rwlock_write_unlock(&netif_globals.lock);
 	
-	nil_received_msg(phone, device_id, packet, sender);
+	nil_received_msg(nil_sess, device_id, packet, sender);
 	
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	return EOK;

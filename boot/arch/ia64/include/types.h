@@ -29,9 +29,11 @@
 #ifndef BOOT_ia64_TYPES_H_
 #define BOOT_ia64_TYPES_H_
 
+#include <arch/common.h>
+
 #define TASKMAP_MAX_RECORDS		32
 #define BOOTINFO_TASK_NAME_BUFLEN	32
-#define MEMMAP_ITEMS			128	
+#define MEMMAP_ITEMS			128
 
 typedef uint64_t size_t;
 typedef uint64_t sysarg_t;
@@ -52,19 +54,27 @@ typedef struct {
 	unsigned int type;
 	unsigned long base;
 	unsigned long size;
-} efi_memmap_item_t;
+} memmap_item_t;
 
 typedef struct {
 	binit_t taskmap;
 
-	efi_memmap_item_t memmap[MEMMAP_ITEMS];
+	memmap_item_t memmap[MEMMAP_ITEMS];
 	unsigned int memmap_items;
 
 	sysarg_t *sapic;
 	unsigned long sys_freq;
 	unsigned long freq_scale;
 	unsigned int wakeup_intno;
-	int hello_configured;
 } bootinfo_t;
+
+/** This is a minimal ELILO-compatible boot parameter structure. */
+typedef struct {
+	uint64_t cmd_line;
+	uint64_t efi_system_table;
+	uint64_t efi_memmap;
+	uint64_t efi_memmap_sz;
+	uint64_t efi_memdesc_sz;
+} boot_param_t;
 
 #endif

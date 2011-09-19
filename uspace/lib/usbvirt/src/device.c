@@ -48,9 +48,9 @@ static usbvirt_device_t *DEV = NULL;
 
 /** Main IPC call handling from virtual host controller.
  *
- * @param iid		Caller identification
- * @param icall		Initial incoming call
- * @param arg		Local argument
+ * @param iid   Caller identification
+ * @param icall Initial incoming call
+ * @param arg   Local argument
  */
 static void callback_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
@@ -86,7 +86,7 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 		return ELIMIT;
 	
 	devman_handle_t handle;
-	int rc = devman_device_get_handle(vhc_path, &handle, 0);
+	int rc = devman_fun_get_handle(vhc_path, &handle, 0);
 	if (rc != EOK)
 		return rc;
 	

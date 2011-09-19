@@ -41,7 +41,6 @@
 
 #include <ipc/common.h>
 #include <fibril.h>
-#include <fibril_synch.h>
 #include <sys/time.h>
 #include <atomic.h>
 #include <bool.h>
@@ -54,11 +53,11 @@ typedef void (*async_client_data_dtor_t)(void *);
 
 /** Client connection handler
  *
- * @param callid	ID of incoming call or 0 if connection initiated from
- *			inside using async_connect_to_me()
- * @param call		Incoming call or 0 if connection initiated from inside
- * @param arg		Local argument passed from async_new_connection() or
- *			async_connect_to_me()
+ * @param callid ID of incoming call or 0 if connection initiated from
+ *               inside using async_connect_to_me()
+ * @param call   Incoming call or 0 if connection initiated from inside
+ * @param arg    Local argument passed from async_new_connection() or
+ *               async_connect_to_me()
  */
 typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *, void *);
 
@@ -95,47 +94,12 @@ typedef enum {
 	EXCHANGE_SERIALIZE
 } exch_mgmt_t;
 
-/** Session data */
-typedef struct {
-	/** List of inactive exchanges */
-	list_t exch_list;
-	
-	/** Exchange management style */
-	exch_mgmt_t mgmt;
-	
-	/** Session identification */
-	int phone;
-	
-	/** First clone connection argument */
-	sysarg_t arg1;
-	
-	/** Second clone connection argument */
-	sysarg_t arg2;
-	
-	/** Third clone connection argument */
-	sysarg_t arg3;
-	
-	/** Exchange mutex */
-	fibril_mutex_t mutex;
-	
-	/** Number of opened exchanges */
-	atomic_t refcnt;
-} async_sess_t;
+/** Forward declarations */
+struct async_exch;
+struct async_sess;
 
-/** Exchange data */
-typedef struct {
-	/** Link into list of inactive exchanges */
-	link_t sess_link;
-	
-	/** Link into global list of inactive exchanges */
-	link_t global_link;
-	
-	/** Session pointer */
-	async_sess_t *sess;
-	
-	/** Exchange identification */
-	int phone;
-} async_exch_t;
+typedef struct async_sess async_sess_t;
+typedef struct async_exch async_exch_t;
 
 extern atomic_t threads_in_ipc_wait;
 
@@ -175,7 +139,7 @@ extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern void async_wait_for(aid_t, sysarg_t *);
 extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 
-extern fid_t async_new_connection(sysarg_t, sysarg_t, ipc_callid_t,
+extern fid_t async_new_connection(task_id_t, sysarg_t, ipc_callid_t,
     ipc_call_t *, async_client_conn_t, void *);
 
 extern void async_usleep(suseconds_t);
@@ -185,6 +149,8 @@ extern void async_destroy_manager(void);
 extern void async_set_client_data_constructor(async_client_data_ctor_t);
 extern void async_set_client_data_destructor(async_client_data_dtor_t);
 extern void *async_get_client_data(void);
+extern void *async_get_client_data_by_id(task_id_t);
+extern void async_put_client_data_by_id(task_id_t);
 
 extern void async_set_client_connection(async_client_conn_t);
 extern void async_set_interrupt_received(async_interrupt_handler_t);
@@ -370,6 +336,12 @@ extern async_exch_t *async_exchange_begin(async_sess_t *);
 extern void async_exchange_end(async_exch_t *);
 
 /*
+ * FIXME These functions just work around problems with parallel exchange
+ * management. Proper solution needs to be implemented.
+ */
+void async_sess_args_set(async_sess_t *sess, sysarg_t, sysarg_t, sysarg_t);
+
+/*
  * User-friendly wrappers for async_share_in_start().
  */
 
@@ -475,6 +447,17 @@ extern int async_exchange_clone(async_exch_t *, async_exch_t *);
 extern async_sess_t *async_clone_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
+
+extern int async_state_change_start(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, async_exch_t *);
+extern bool async_state_change_receive(ipc_callid_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
+extern int async_state_change_finalize(ipc_callid_t, async_exch_t *);
+
+extern void *async_remote_state_acquire(async_sess_t *);
+extern void async_remote_state_update(async_sess_t *, void *);
+extern void async_remote_state_release(async_sess_t *);
+extern void async_remote_state_release_exchange(async_exch_t *);
 
 #endif
 

@@ -38,7 +38,7 @@
 #define LIBNET_MODULES_MAP_H_
 
 #include <task.h>
-#include <ipc/services.h>
+#include <async.h>
 #include <net/modules.h>
 #include <adt/generic_char_map.h>
 
@@ -59,8 +59,8 @@ struct module_struct {
 	task_id_t task_id;
 	/** Module service identifier. */
 	services_t service;
-	/** Module phone if running and connected. */
-	int phone;
+	/** Module session if running and connected. */
+	async_sess_t *sess;
 	/** Usage counter. */
 	int usage;
 	/** Module name. */

@@ -44,9 +44,9 @@
 #include <mm/slab.h>
 #include <arch/cpu.h>
 #include <mm/tlb.h>
-#include <proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <udebug/udebug.h>
-#include <sysinfo/abi.h>
+#include <abi/sysinfo.h>
 
 #define THREAD_NAME_BUFLEN  20
 

@@ -50,9 +50,9 @@
 #include <errno.h>
 #include <assert.h>
 #include <str.h>
-#include <devmap.h>
+#include <loc.h>
 #include <ipc/vfs.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
 static FIBRIL_MUTEX_INITIALIZE(vfs_mutex);
 static async_sess_t *vfs_sess = NULL;
@@ -68,7 +68,7 @@ static size_t cwd_size = 0;
  * @return New exchange.
  *
  */
-static async_exch_t *vfs_exchange_begin(void)
+async_exch_t *vfs_exchange_begin(void)
 {
 	fibril_mutex_lock(&vfs_mutex);
 	
@@ -86,7 +86,7 @@ static async_exch_t *vfs_exchange_begin(void)
  * @param exch Exchange to be finished.
  *
  */
-static void vfs_exchange_end(async_exch_t *exch)
+void vfs_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }
@@ -141,29 +141,29 @@ char *absolutize(const char *path, size_t *retlen)
 	return ncwd_path;
 }
 
-int mount(const char *fs_name, const char *mp, const char *fqdn,
+int mount(const char *fs_name, const char *mp, const char *fqsn,
     const char *opts, unsigned int flags)
 {
 	int null_id = -1;
-	char null[DEVMAP_NAME_MAXLEN];
+	char null[LOC_NAME_MAXLEN];
 	
-	if (str_cmp(fqdn, "") == 0) {
+	if (str_cmp(fqsn, "") == 0) {
 		/* No device specified, create a fresh
 		   null/%d device instead */
-		null_id = devmap_null_create();
+		null_id = loc_null_create();
 		
 		if (null_id == -1)
 			return ENOMEM;
 		
-		snprintf(null, DEVMAP_NAME_MAXLEN, "null/%d", null_id);
-		fqdn = null;
+		snprintf(null, LOC_NAME_MAXLEN, "null/%d", null_id);
+		fqsn = null;
 	}
 	
-	devmap_handle_t devmap_handle;
-	int res = devmap_device_get_handle(fqdn, &devmap_handle, flags);
+	service_id_t service_id;
+	int res = loc_service_get_id(fqsn, &service_id, flags);
 	if (res != EOK) {
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		return res;
 	}
@@ -172,7 +172,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	char *mpa = absolutize(mp, &mpa_size);
 	if (!mpa) {
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		return ENOMEM;
 	}
@@ -180,7 +180,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	async_exch_t *exch = vfs_exchange_begin();
 
 	sysarg_t rc_orig;
-	aid_t req = async_send_2(exch, VFS_IN_MOUNT, devmap_handle, flags, NULL);
+	aid_t req = async_send_2(exch, VFS_IN_MOUNT, service_id, flags, NULL);
 	sysarg_t rc = async_data_write_start(exch, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
@@ -188,7 +188,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -203,7 +203,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -218,7 +218,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -234,7 +234,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -247,7 +247,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	async_wait_for(req, &rc);
 	
 	if ((rc != EOK) && (null_id != -1))
-		devmap_null_destroy(null_id);
+		loc_null_destroy(null_id);
 	
 	return (int) rc;
 }
@@ -328,25 +328,6 @@ int open(const char *path, int oflag, ...)
 	return ret;
 }
 
-int open_node(fdi_node_t *node, int oflag)
-{
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_4(exch, VFS_IN_OPEN_NODE, node->fs_handle,
-	    node->devmap_handle, node->index, oflag, &answer);
-	
-	vfs_exchange_end(exch);
-
-	sysarg_t rc;
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK)
-		return (int) rc;
-	
-	return (int) IPC_GET_ARG1(answer);
-}
-
 int close(int fildes)
 {
 	sysarg_t rc;
@@ -414,6 +395,68 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		return (ssize_t) IPC_GET_ARG1(answer);
 	else
 		return -1;
+}
+
+/** Read entire buffer.
+ *
+ * In face of short reads this function continues reading until either
+ * the entire buffer is read or no more data is available (at end of file).
+ *
+ * @param fildes	File descriptor
+ * @param buf		Buffer, @a nbytes bytes long
+ * @param nbytes	Number of bytes to read
+ *
+ * @return		On success, positive number of bytes read.
+ *			On failure, negative error code from read().
+ */
+ssize_t read_all(int fildes, void *buf, size_t nbyte)
+{
+	ssize_t cnt = 0;
+	size_t nread = 0;
+	uint8_t *bp = (uint8_t *) buf;
+
+	do {
+		bp += cnt;
+		nread += cnt;
+		cnt = read(fildes, bp, nbyte - nread);
+	} while (cnt > 0 && (nbyte - nread - cnt) > 0);
+
+	if (cnt < 0)
+		return cnt;
+
+	return nread + cnt;
+}
+
+/** Write entire buffer.
+ *
+ * This function fails if it cannot write exactly @a len bytes to the file.
+ *
+ * @param fildes	File descriptor
+ * @param buf		Data, @a nbytes bytes long
+ * @param nbytes	Number of bytes to write
+ *
+ * @return		EOK on error, return value from write() if writing
+ *			failed.
+ */
+ssize_t write_all(int fildes, const void *buf, size_t nbyte)
+{
+	ssize_t cnt = 0;
+	ssize_t nwritten = 0;
+	const uint8_t *bp = (uint8_t *) buf;
+
+	do {
+		bp += cnt;
+		nwritten += cnt;
+		cnt = write(fildes, bp, nbyte - nwritten);
+	} while (cnt > 0 && ((ssize_t )nbyte - nwritten - cnt) > 0);
+
+	if (cnt < 0)
+		return cnt;
+
+	if ((ssize_t)nbyte - nwritten - cnt > 0)
+		return EIO;
+
+	return nbyte;
 }
 
 int fsync(int fildes)
@@ -610,7 +653,7 @@ static int _unlink(const char *path, int lflag)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_0(exch, VFS_IN_UNLINK, NULL);
+	req = async_send_1(exch, VFS_IN_UNLINK, lflag, NULL);
 	rc = async_data_write_start(exch, pa, pa_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
@@ -748,26 +791,12 @@ async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
 		return NULL;
 	}
 	
-	if (!stat.device) {
+	if (!stat.service) {
 		errno = ENOENT;
 		return NULL;
 	}
 	
-	return devmap_device_connect(mgmt, stat.device, 0);
-}
-
-int fd_node(int fildes, fdi_node_t *node)
-{
-	struct stat stat;
-	int rc = fstat(fildes, &stat);
-	
-	if (rc == EOK) {
-		node->fs_handle = stat.fs_handle;
-		node->devmap_handle = stat.devmap_handle;
-		node->index = stat.index;
-	}
-	
-	return rc;
+	return loc_service_connect(mgmt, stat.service, 0);
 }
 
 int dup2(int oldfd, int newfd)
@@ -776,6 +805,21 @@ int dup2(int oldfd, int newfd)
 	
 	sysarg_t ret;
 	sysarg_t rc = async_req_2_1(exch, VFS_IN_DUP, oldfd, newfd, &ret);
+	
+	vfs_exchange_end(exch);
+	
+	if (rc == EOK)
+		return (int) ret;
+	
+	return (int) rc;
+}
+
+int fd_wait(void)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	sysarg_t ret;
+	sysarg_t rc = async_req_0_1(exch, VFS_IN_WAIT_HANDLE, &ret);
 	
 	vfs_exchange_end(exch);
 	

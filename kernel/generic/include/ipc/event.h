@@ -35,12 +35,14 @@
 #ifndef KERN_EVENT_H_
 #define KERN_EVENT_H_
 
-#include <ipc/event_types.h>
+#include <abi/ipc/event.h>
 #include <typedefs.h>
 #include <synch/spinlock.h>
 #include <ipc/ipc.h>
 
-typedef void (*event_callback_t)(void);
+struct task;
+
+typedef void (*event_callback_t)(void *);
 
 /** Event notification structure. */
 typedef struct {
@@ -60,8 +62,11 @@ typedef struct {
 } event_t;
 
 extern void event_init(void);
+extern void event_task_init(struct task *);
 extern void event_cleanup_answerbox(answerbox_t *);
 extern void event_set_unmask_callback(event_type_t, event_callback_t);
+extern void event_task_set_unmask_callback(struct task *, event_task_type_t,
+    event_callback_t);
 
 #define event_notify_0(e, m) \
 	event_notify((e), (m), 0, 0, 0, 0, 0)
@@ -76,8 +81,23 @@ extern void event_set_unmask_callback(event_type_t, event_callback_t);
 #define event_notify_5(e, m, a1, a2, a3, a4, a5) \
 	event_notify((e), (m), (a1), (a2), (a3), (a4), (a5))
 
+#define event_task_notify_0(t, e, m) \
+	event_task_notify((t), (e), (m), 0, 0, 0, 0, 0)
+#define event_task_notify_1(t, e, m, a1) \
+	event_task_notify((t), (e), (m), (a1), 0, 0, 0, 0)
+#define event_task_notify_2(t, e, m, a1, a2) \
+	event_task_notify((t), (e), (m), (a1), (a2), 0, 0, 0)
+#define event_task_notify_3(t, e, m, a1, a2, a3) \
+	event_task_notify((t), (e), (m), (a1), (a2), (a3), 0, 0)
+#define event_task_notify_4(t, e, m, a1, a2, a3, a4) \
+	event_task_notify((t), (e), (m), (a1), (a2), (a3), (a4), 0)
+#define event_task_notify_5(t, e, m, a1, a2, a3, a4, a5) \
+	event_task_notify((t), (e), (m), (a1), (a2), (a3), (a4), (a5))
+
 extern int event_notify(event_type_t, bool, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
+extern int event_task_notify(struct task *, event_task_type_t, bool, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
 
 extern sysarg_t sys_event_subscribe(sysarg_t, sysarg_t);
 extern sysarg_t sys_event_unmask(sysarg_t);

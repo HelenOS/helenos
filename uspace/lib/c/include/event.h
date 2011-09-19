@@ -35,10 +35,13 @@
 #ifndef LIBC_EVENT_H_
 #define LIBC_EVENT_H_
 
-#include <kernel/ipc/event_types.h>
+#include <abi/ipc/event.h>
+#include <libarch/types.h>
 
 extern int event_subscribe(event_type_t, sysarg_t);
+extern int event_task_subscribe(event_task_type_t, sysarg_t);
 extern int event_unmask(event_type_t);
+extern int event_task_unmask(event_task_type_t);
 
 #endif
 

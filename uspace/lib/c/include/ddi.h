@@ -36,7 +36,7 @@
 #define LIBC_DDI_H_
 
 #include <sys/types.h>
-#include <kernel/ddi/irq.h>
+#include <abi/ddi/irq.h>
 #include <task.h>
 
 extern int device_assign_devno(void);

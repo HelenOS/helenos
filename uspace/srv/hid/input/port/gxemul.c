@@ -107,17 +107,14 @@ static void gxemul_port_write(uint8_t data)
 }
 
 /** Process data sent when a key is pressed.
- *  
- *  @param keybuffer Buffer of pressed keys.
- *  @param call      IPC call.
  *
- *  @return Always 1.
+ * @param keybuffer Buffer of pressed keys.
+ * @param call      IPC call.
+ *
  */
 static void gxemul_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
-	int scan_code = IPC_GET_ARG2(*call);
-
-	kbd_push_scancode(kbd_dev, scan_code);
+	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
 }
 
 /** @}

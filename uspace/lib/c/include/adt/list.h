@@ -71,7 +71,7 @@ typedef struct list {
 	    iterator != &(list).head; iterator = iterator->next)
 
 #define assert_link_not_used(link) \
-	assert((link)->prev == NULL && (link)->next == NULL)
+	assert(((link)->prev == NULL) && ((link)->next == NULL))
 
 /** Initialize doubly-linked circular list link
  *
@@ -157,8 +157,11 @@ static inline void list_append(link_t *link, list_t *list)
  */
 static inline void list_remove(link_t *link)
 {
-	link->next->prev = link->prev;
-	link->prev->next = link->next;
+	if ((link->prev != NULL) && (link->next != NULL)) {
+		link->next->prev = link->prev;
+		link->prev->next = link->next;
+	}
+	
 	link_initialize(link);
 }
 
@@ -169,7 +172,7 @@ static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-static inline int list_empty(list_t *list)
+static inline int list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -182,7 +185,7 @@ static inline int list_empty(list_t *list)
  * @return NULL if the list is empty.
  *
  */
-static inline link_t *list_first(list_t *list)
+static inline link_t *list_first(const list_t *list)
 {
 	return ((list->head.next == &list->head) ? NULL : list->head.next);
 }

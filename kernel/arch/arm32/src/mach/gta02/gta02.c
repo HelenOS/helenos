@@ -38,7 +38,7 @@
 #include <arch/mm/page.h>
 #include <mm/page.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
 #include <genarch/drivers/s3c24xx_irqc/s3c24xx_irqc.h>
 #include <genarch/drivers/s3c24xx_timer/s3c24xx_timer.h>
@@ -157,8 +157,6 @@ static void gta02_frame_init(void)
 static void gta02_output_init(void)
 {
 #ifdef CONFIG_FB
-	parea_t fb_parea;
-
 	fb_properties_t prop = {
 		.addr = GTA02_FB_BASE,
 		.offset = 0,
@@ -169,20 +167,13 @@ static void gta02_output_init(void)
 	};
 
 	outdev_t *fb_dev = fb_init(&prop);
-	if (fb_dev) {
+	if (fb_dev)
 		stdout_wire(fb_dev);
-		fb_parea.pbase = GTA02_FB_BASE;
-		fb_parea.frames = 150;
-		fb_parea.unpriv = false;
-		ddi_parea_register(&fb_parea);
-	}
 #endif
 
 	/* Initialize serial port of the debugging console. */
-	s3c24xx_uart_io_t *scons_io;
-
-	scons_io = (void *) hw_map(GTA02_SCONS_BASE, PAGE_SIZE);
-	gta02_scons_dev = s3c24xx_uart_init(scons_io, S3C24XX_INT_UART2);
+	gta02_scons_dev =
+	    s3c24xx_uart_init(GTA02_SCONS_BASE, S3C24XX_INT_UART2);
 
 	if (gta02_scons_dev) {
 		/* Create output device. */

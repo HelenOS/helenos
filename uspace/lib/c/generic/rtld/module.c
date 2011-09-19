@@ -34,19 +34,19 @@
  * @file
  */
 
+#include <adt/list.h>
+#include <elf/elf_load.h>
+#include <fcntl.h>
+#include <loader/pcb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <adt/list.h>
-#include <loader/pcb.h>
 
 #include <rtld/rtld.h>
 #include <rtld/rtld_debug.h>
 #include <rtld/dynamic.h>
 #include <rtld/rtld_arch.h>
 #include <rtld/module.h>
-#include <elf_load.h>
 
 /** (Eagerly) process all relocation tables in a module.
  *
@@ -92,9 +92,6 @@ void module_process_relocs(module_t *m)
  */
 module_t *module_find(const char *name)
 {
-	link_t *head = &runtime_env->modules_head;
-
-	link_t *cur;
 	module_t *m;
 	const char *p, *soname;
 
@@ -109,8 +106,7 @@ module_t *module_find(const char *name)
 	soname = p ? (p + 1) : name;
 
 	/* Traverse list of all modules. Not extremely fast, but simple */
-	DPRINTF("head = %p\n", head);
-	for (cur = head->next; cur != head; cur = cur->next) {
+	list_foreach(runtime_env->modules, cur) {
 		DPRINTF("cur = %p\n", cur);
 		m = list_get_instance(cur, module_t, modules_link);
 		if (str_cmp(m->dyn.soname, soname) == 0) {
@@ -176,7 +172,7 @@ module_t *module_load(const char *name)
 	dynamic_parse(info.dynamic, m->bias, &m->dyn);
 
 	/* Insert into the list of loaded modules */
-	list_append(&m->modules_link, &runtime_env->modules_head);
+	list_append(&m->modules_link, &runtime_env->modules);
 
 	return m;
 }
@@ -248,12 +244,9 @@ void module_load_deps(module_t *m)
  */
 void modules_process_relocs(module_t *start)
 {
-	link_t *head = &runtime_env->modules_head;
-
-	link_t *cur;
 	module_t *m;
 
-	for (cur = head->next; cur != head; cur = cur->next) {
+	list_foreach(runtime_env->modules, cur) {
 		m = list_get_instance(cur, module_t, modules_link);
 
 		/* Skip rtld, since it has already been processed */
@@ -267,12 +260,9 @@ void modules_process_relocs(module_t *start)
  */
 void modules_untag(void)
 {
-	link_t *head = &runtime_env->modules_head;
-
-	link_t *cur;
 	module_t *m;
 
-	for (cur = head->next; cur != head; cur = cur->next) {
+	list_foreach(runtime_env->modules, cur) {
 		m = list_get_instance(cur, module_t, modules_link);
 		m->bfs_tag = false;
 	}

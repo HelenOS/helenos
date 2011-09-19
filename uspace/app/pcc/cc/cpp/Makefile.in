@@ -1,0 +1,105 @@
+#	$Id: Makefile.in,v 1.30 2011/01/16 11:59:37 ragge Exp $
+#
+# Makefile.in for cpp
+#
+VPATH=@srcdir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+builddir=@builddir@
+top_builddir=@top_builddir@
+XFL=-DCPP_DEBUG
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libexecdir = @libexecdir@
+datarootdir = @datarootdir@
+mandir = @mandir@
+strip = @strip@
+CC = @CC@
+EXEEXT = @EXEEXT@
+CFLAGS = @CFLAGS@ @ADD_CFLAGS@
+CPPFLAGS = @CPPFLAGS@ @ADD_CPPFLAGS@ ${XFL} -I${srcdir} -I${top_builddir} -I${builddir} -I${MIPDIR} -I${MDIR}
+LIBS = @LIBS@
+LDFLAGS = @LDFLAGS@
+LEX = @LEX@
+YACC = @YACC@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+TARGMACH = @targmach@
+
+OBJS=cpp.o cpy.o token.o compat.o
+HEADERS=cpp.h
+DEST=@BINPREFIX@cpp$(EXEEXT)
+
+MIPDIR=$(top_srcdir)/mip
+MDIR=$(top_srcdir)/arch/$(TARGMACH)
+
+all: ${DEST}
+
+${DEST}: $(OBJS) $(HEADERS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $@
+
+.c.o:
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c $<
+
+.l.o:
+	$(LEX) $(LFLAGS) $<
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ lex.yy.c
+
+.y.o:
+	$(YACC) -d $(YFLAGS) $<
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ y.tab.c
+
+compat.o: $(MIPDIR)/compat.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/compat.c
+
+$(OBJS): $(HEADERS)
+
+cpp.o: cpy.o
+token.o: cpy.o
+
+test:
+	./cpp < tests/test1 > tests/run1
+	cmp tests/run1 tests/res1
+	./cpp < tests/test2 > tests/run2
+	cmp tests/run2 tests/res2
+	./cpp < tests/test3 > tests/run3
+	cmp tests/run3 tests/res3
+	./cpp < tests/test4 > tests/run4
+	cmp tests/run4 tests/res4
+	./cpp < tests/test5 > tests/run5
+	cmp tests/run5 tests/res5
+	./cpp < tests/test6 > tests/run6
+	cmp tests/run6 tests/res6
+	./cpp < tests/test7 > tests/run7
+	cmp tests/run7 tests/res7
+	./cpp < tests/test8 > tests/run8
+	cmp tests/run8 tests/res8
+	./cpp < tests/test9 > tests/run9
+	cmp tests/run9 tests/res9
+	./cpp < tests/test10 > tests/run10
+	cmp tests/run10 tests/res10
+	./cpp < tests/test11 > tests/run11
+	cmp tests/run11 tests/res11
+	./cpp < tests/test12 > tests/run12
+	cmp tests/run12 tests/res12
+	./cpp < tests/test13 > tests/run13
+	cmp tests/run13 tests/res13
+
+
+install:
+	test -z "${DESTDIR}$(libexecdir)" || mkdir -p "${DESTDIR}$(libexecdir)"
+	${INSTALL_PROGRAM} ${DEST} ${DESTDIR}${libexecdir}
+	@if [ ${strip} = yes ]; then		\
+		strip ${DESTDIR}${libexecdir}/${DEST} ;	\
+		echo strip ${DESTDIR}${libexecdir}/${DEST} ;	\
+	fi
+	test -z "${DESTDIR}$(mandir)/man1" || mkdir -p "${DESTDIR}$(mandir)/man1"       
+	${INSTALL} $(srcdir)/cpp.1 ${DESTDIR}${mandir}/man1/$(DEST).1
+
+clean:
+	/bin/rm -f $(OBJS) $(DEST) lex.yy.c y.tab.[ch] tests/run*
+
+distclean: clean
+	/bin/rm -f Makefile

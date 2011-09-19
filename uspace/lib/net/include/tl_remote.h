@@ -37,21 +37,20 @@
 #ifndef LIBNET_TL_REMOTE_H_
 #define LIBNET_TL_REMOTE_H_
 
-#include <async.h>
 #include <ipc/services.h>
 #include <ipc/tl.h>
-
 #include <generic.h>
 #include <net/device.h>
 #include <net/packet.h>
 #include <packet_client.h>
+#include <async.h>
 
 /** @name Transport layer module interface
  * This interface is used by other modules.
  */
 /*@{*/
 
-extern int tl_received_msg(int, device_id_t, packet_t *, services_t,
+extern int tl_received_msg(async_sess_t *, device_id_t, packet_t *, services_t,
     services_t);
 
 /*@}*/

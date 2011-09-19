@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Comparison functions.
  */
 
 #ifndef __COMPARISON_H__
@@ -41,15 +42,29 @@ extern int isFloat32SigNaN(float32);
 extern int isFloat32Infinity(float32);
 extern int isFloat32Zero(float32);
 
+extern int isFloat32eq(float32, float32);
+extern int isFloat32lt(float32, float32);
+extern int isFloat32gt(float32, float32);
+
 extern int isFloat64NaN(float64);
 extern int isFloat64SigNaN(float64);
 
 extern int isFloat64Infinity(float64);
 extern int isFloat64Zero(float64);
 
-extern int isFloat32eq(float32, float32);
-extern int isFloat32lt(float32, float32);
-extern int isFloat32gt(float32, float32);
+extern int isFloat64eq(float64, float64);
+extern int isFloat64lt(float64, float64);
+extern int isFloat64gt(float64, float64);
+
+extern int isFloat128NaN(float128);
+extern int isFloat128SigNaN(float128);
+
+extern int isFloat128Infinity(float128);
+extern int isFloat128Zero(float128);
+
+extern int isFloat128eq(float128, float128);
+extern int isFloat128lt(float128, float128);
+extern int isFloat128gt(float128, float128);
 
 #endif
 

@@ -28,70 +28,19 @@
 #
 
 USPACE_PREFIX = ../../..
-ROOT_PATH = $(USPACE_PREFIX)/..
-
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-
+LIBS = $(LIBFB_PREFIX)/libfb.a
+EXTRA_CFLAGS += -I$(LIBFB_PREFIX)
 BINARY = fb
 
--include $(COMMON_MAKEFILE)
--include $(CONFIG_MAKEFILE)
-
 SOURCES = \
-	main.c \
-	ppm.c
-
-ifneq ($(UARCH),ia64)
-	SOURCES += \
-		fb.c \
-		font-8x16.c
-	EXTRA_CFLAGS += -DFB_ENABLED
-endif
-
-ifeq ($(UARCH),ia32)
-	SOURCES += \
-		ega.c
-	EXTRA_CFLAGS += -DEGA_ENABLED
-endif
-
-ifeq ($(UARCH),ia64)
-	SOURCES += \
-		ega.c \
-		ski.c \
-		serial_console.c
-	EXTRA_CFLAGS += -DSKI_ENABLED -DEGA_ENABLED
-endif
-
-ifeq ($(UARCH),amd64)
-	SOURCES += \
-		ega.c
-	EXTRA_CFLAGS += -DEGA_ENABLED
-endif
-
-ifeq ($(UARCH),mips32)
-	SOURCES += \
-		msim.c \
-		serial_console.c
-	EXTRA_CFLAGS += -DMSIM_ENABLED
-endif
-
-ifeq ($(UARCH),sparc64)
-	ifeq ($(PROCESSOR),sun4v)
-		SOURCES += \
-			niagara.c \
-			serial_console.c
-		EXTRA_CFLAGS += -DNIAGARA_ENABLED
-	endif
-	
-	ifeq ($(MACHINE),serengeti)
-		SOURCES += \
-			sgcn.c \
-			serial_console.c
-		EXTRA_CFLAGS += -DSGCN_ENABLED
-	endif
-endif
-
-EXTRA_CFLAGS += -D$(UARCH)
+	gfx/font-8x16.c \
+	ctl/serial.c \
+	port/ega.c \
+	port/kfb.c \
+	port/kchar.c \
+	port/niagara.c \
+	port/ski.c \
+	proto/vt100.c \
+	fb.c
 
 include $(USPACE_PREFIX)/Makefile.common

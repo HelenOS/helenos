@@ -31,7 +31,7 @@
 .set noat
 .set noreorder
 
-#include <arch/context_offset.h>
+#include <libarch/context_offset.h>
 	
 .global context_save
 .global context_restore

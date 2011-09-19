@@ -35,7 +35,6 @@
  */
 
 #include <async.h>
-#include <async_obsolete.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
@@ -340,11 +339,11 @@ int main(int argc, char *argv[])
 	printf("PING %s (%s) %zu(%zu) bytes of data\n", config.dest_addr,
 	    config.dest_str, config.size, config.size);
 	
-	int icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
-	if (icmp_phone < 0) {
+	async_sess_t *sess = icmp_connect_module();
+	if (!sess) {
 		fprintf(stderr, "%s: Unable to connect to ICMP service (%s)\n", NAME,
-		    str_error(icmp_phone));
-		return icmp_phone;
+		    str_error(errno));
+		return errno;
 	}
 	
 	unsigned int seq;
@@ -355,12 +354,12 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			async_obsolete_hangup(icmp_phone);
+			async_hangup(sess);
 			return ret;
 		}
 		
 		/* Ping! */
-		int result = icmp_echo_msg(icmp_phone, config.size, config.timeout,
+		int result = icmp_echo_msg(sess, config.size, config.timeout,
 		    config.ttl, config.tos, !config.fragments, config.dest_raw,
 		    config.dest_len);
 		
@@ -370,7 +369,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			async_obsolete_hangup(icmp_phone);
+			async_hangup(sess);
 			return ret;
 		}
 		
@@ -390,7 +389,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	async_obsolete_hangup(icmp_phone);
+	async_hangup(sess);
 	
 	return 0;
 }

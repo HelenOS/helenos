@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -35,9 +35,9 @@
 #ifndef KERN_sparc64_ELF_H_
 #define KERN_sparc64_ELF_H_
 
-#define	ELF_MACHINE		EM_SPARCV9
-#define ELF_DATA_ENCODING	ELFDATA2MSB
-#define ELF_CLASS		ELFCLASS64
+#define ELF_MACHINE        EM_SPARCV9
+#define ELF_DATA_ENCODING  ELFDATA2MSB
+#define ELF_CLASS          ELFCLASS64
 
 #endif
 

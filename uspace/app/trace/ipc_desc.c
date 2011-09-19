@@ -32,8 +32,7 @@
 /** @file
  */
 
-#include <kernel/ipc/ipc.h>
-#include <kernel/ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <stdlib.h>
 #include "ipc_desc.h"
 

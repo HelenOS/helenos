@@ -39,10 +39,6 @@
 #define EXIT_FAILURE 1
 #endif
 
-/* Work around for getenv() */
-#define PATH "/srv:/app"
-#define PATH_DELIM ":"
-
 /* Used in many places */
 #define SMALL_BUFLEN 256
 #define LARGE_BUFLEN 1024

@@ -45,8 +45,6 @@
 #include "remote_usbhid.h"
 #include "remote_pci.h"
 
-#include <stdio.h>
-
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		&remote_hw_res_iface,
@@ -67,10 +65,9 @@ remote_iface_t *get_remote_iface(int idx)
 remote_iface_func_ptr_t
 get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
 {
-	if (iface_method_idx >= rem_iface->method_count) {
+	if (iface_method_idx >= rem_iface->method_count)
 		return NULL;
-	}
-
+	
 	return rem_iface->methods[iface_method_idx];
 }
 

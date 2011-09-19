@@ -660,7 +660,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
  * @return Item value type.
  *
  */
-sysarg_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
+sysarg_t sys_sysinfo_get_val_type(void *path_ptr, size_t path_size)
 {
 	/*
 	 * Get the item.

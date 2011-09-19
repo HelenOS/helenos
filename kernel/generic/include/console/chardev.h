@@ -72,7 +72,7 @@ struct outdev;
 /* Output character device operations interface. */
 typedef struct {
 	/** Write character to output. */
-	void (* write)(struct outdev *, wchar_t, bool);
+	void (* write)(struct outdev *, wchar_t);
 	
 	/** Redraw any previously cached characters. */
 	void (* redraw)(struct outdev *);

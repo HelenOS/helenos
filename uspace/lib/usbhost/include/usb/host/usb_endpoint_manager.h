@@ -37,7 +37,7 @@
  * This structure shall simplify the management.
  */
 #ifndef LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
-#define LIBUSBHOST_HOST_YSB_ENDPOINT_MANAGER_H
+#define LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 
 #include <stdlib.h>
 #include <adt/hash_table.h>
@@ -51,15 +51,16 @@
 typedef struct usb_endpoint_manager {
 	hash_table_t ep_table;
 	fibril_mutex_t guard;
-	fibril_condvar_t change;
 	size_t free_bw;
+	size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 } usb_endpoint_manager_t;
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth);
+    size_t available_bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
 
 void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
 
@@ -76,28 +77,23 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
 void usb_endpoint_manager_reset_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
 
+/** Wrapper combining allocation and insertion */
 static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
     size_t data_size)
 {
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
+	endpoint_t *ep = endpoint_get(
+	    address, endpoint, direction, type, speed, max_packet_size);
+	if (!ep)
 		return ENOMEM;
 
-	int ret = endpoint_init(ep, address, endpoint, direction, type, speed,
-	    max_packet_size);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(instance, ep, data_size);
+	const int ret =
+	    usb_endpoint_manager_register_ep(instance, ep, data_size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
-		return ret;
 	}
-	return EOK;
+	return ret;
 }
 #endif
 /**

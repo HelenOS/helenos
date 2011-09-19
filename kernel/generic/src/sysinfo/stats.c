@@ -34,7 +34,7 @@
  */
 
 #include <typedefs.h>
-#include <sysinfo/abi.h>
+#include <abi/sysinfo.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
 #include <synch/spinlock.h>

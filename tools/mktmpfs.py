@@ -34,8 +34,7 @@ TMPFS creator
 import sys
 import os
 import xstruct
-
-exclude_names = set(['.svn', '.bzr'])
+from imgutil import listdir_items, chunks
 
 HEADER = """little:
 	char tag[5]  /* 'TMPFS' */
@@ -70,37 +69,28 @@ def usage(prname):
 def recursion(root, outf):
 	"Recursive directory walk"
 	
-	for name in os.listdir(root):
-		canon = os.path.join(root, name)
-		
-		if (os.path.isfile(canon) and (not name in exclude_names)):
-			size = os.path.getsize(canon)
-			
-			dentry = xstruct.create(DENTRY_FILE % len(name))
+	for item in listdir_items(root):		
+		if item.is_file:			
+			dentry = xstruct.create(DENTRY_FILE % len(item.name))
 			dentry.kind = TMPFS_FILE
-			dentry.fname_len = len(name)
-			dentry.fname = name.encode('ascii')
-			dentry.flen = size
+			dentry.fname_len = len(item.name)
+			dentry.fname = item.name.encode('ascii')
+			dentry.flen = item.size
 			
 			outf.write(dentry.pack())
 			
-			inf = open(canon, "rb")
-			rd = 0;
-			while (rd < size):
-				data = inf.read(4096);
+			for data in chunks(item, 4096):
 				outf.write(data)
-				rd += len(data)
-			inf.close()
 		
-		if (os.path.isdir(canon) and (not name in exclude_names)):
-			dentry = xstruct.create(DENTRY_DIRECTORY % len(name))
+		elif item.is_dir:
+			dentry = xstruct.create(DENTRY_DIRECTORY % len(item.name))
 			dentry.kind = TMPFS_DIRECTORY
-			dentry.fname_len = len(name)
-			dentry.fname = name.encode('ascii')
+			dentry.fname_len = len(item.name)
+			dentry.fname = item.name.encode('ascii')
 			
 			outf.write(dentry.pack())
 			
-			recursion(canon, outf)
+			recursion(item.path, outf)
 			
 			dentry = xstruct.create(DENTRY_NONE)
 			dentry.kind = TMPFS_NONE

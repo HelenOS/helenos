@@ -49,6 +49,9 @@ endif
 ifeq ($(RDFMT),fat)
 	$(MKFAT) 1048576 $(DIST_PATH) $@
 endif
+ifeq ($(RDFMT),ext2fs)
+	$(MKEXT2) 1048576 $(DIST_PATH) $@
+endif
 
 build_dist: clean_dist
 	for file in $(RD_SRVS) ; do \
@@ -57,6 +60,11 @@ build_dist: clean_dist
 	for file in $(RD_LIBS) ; do \
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
+ifeq ($(CONFIG_DEVEL_FILES), y)
+	mkdir "$(DIST_PATH)/inc/c/"
+	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"
+	cat "$(USPACE_PATH)/lib/c/arch/$(UARCH)/_link.ld" | sed 's/^STARTUP(.*)$$//g' > "$(DIST_PATH)/inc/_link.ld"
+endif
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
@@ -64,14 +72,18 @@ build_dist: clean_dist
 		cp "$$file" "$(DIST_PATH)/cfg/net/" ; \
 	done
 	for drv in $(RD_DRVS) ; do \
-		mkdir -p "$(DIST_PATH)/$(DRVS_PATH)/$$drv" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv/$$drv" "$(DIST_PATH)/$(DRVS_PATH)/$$drv/$$drv" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv/$$drv.ma" "$(DIST_PATH)/$(DRVS_PATH)/$$drv/$$drv.ma" ; \
+		drv_dir="`dirname "$$drv"`" ; \
+		drv_name="`basename "$$drv"`" ; \
+		mkdir -p "$(DIST_PATH)/$(DRVS_PATH)/$$drv_name" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv_dir/$$drv_name/$$drv_name" "$(DIST_PATH)/$(DRVS_PATH)/$$drv_name/" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv_dir/$$drv_name/$$drv_name.ma" "$(DIST_PATH)/$(DRVS_PATH)/$$drv_name/" ; \
 	done
 	for file in $(RD_DRV_CFG) ; do \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file" "$(DIST_PATH)/$(DRVS_PATH)/$$file" ; \
+		file_dir="`dirname "$$file"`" ; \
+		file_name="`basename "$$file"`" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/$$file_name.dev" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
 	done
-	
+
 clean: clean_dist
 	$(MAKE) -f $(BUILD) clean PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)
@@ -86,5 +98,6 @@ clean_dist:
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
 	rm -f $(USPACE_PATH)/dist/lib/*
+	rm -rf $(USPACE_PATH)/dist/inc/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

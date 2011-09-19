@@ -37,8 +37,7 @@
 
 #include <libarch/thread.h>
 #include <sys/types.h>
-
-typedef uint64_t thread_id_t;
+#include <abi/proc/thread.h>
 
 extern int thread_create(void (*)(void *), void *, const char *, thread_id_t *);
 extern void thread_exit(int) __attribute__((noreturn));

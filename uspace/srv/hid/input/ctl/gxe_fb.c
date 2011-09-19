@@ -43,12 +43,12 @@
 #include <gsp.h>
 #include <stroke.h>
 
-static void gxe_fb_ctl_parse_scancode(int);
+static void gxe_fb_ctl_parse(sysarg_t);
 static int gxe_fb_ctl_init(kbd_dev_t *);
-static void gxe_fb_ctl_set_ind(kbd_dev_t *, unsigned);
+static void gxe_fb_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 kbd_ctl_ops_t gxe_fb_ctl = {
-	.parse_scancode = gxe_fb_ctl_parse_scancode,
+	.parse = gxe_fb_ctl_parse,
 	.init = gxe_fb_ctl_init,
 	.set_ind = gxe_fb_ctl_set_ind
 };
@@ -228,7 +228,7 @@ static int gxe_fb_ctl_init(kbd_dev_t *kdev)
 	return gsp_insert_defs(&sp, seq_defs);
 }
 
-static void gxe_fb_ctl_parse_scancode(int scancode)
+static void gxe_fb_ctl_parse(sysarg_t scancode)
 {
 	unsigned mods, key;
 

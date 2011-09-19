@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
+ * @ingroup libcmips32
  */
 
 #include <tls.h>

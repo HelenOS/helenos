@@ -28,7 +28,7 @@
 
 BFD_ARCH = mips
 BFD = binary
-GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
+GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
 
 BITS = 32
 

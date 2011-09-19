@@ -27,7 +27,7 @@
 #
 
 #include <arch/asm/regname.h>
-#include <arch/cpu.h>
+#include <arch/msr.h>
 #include <arch/mm/page.h>
 
 .section K_UNMAPPED_TEXT_START, "ax"

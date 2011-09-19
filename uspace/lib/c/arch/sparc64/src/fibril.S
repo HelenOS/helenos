@@ -26,9 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <kernel/arch/context_offset.h>
+#include <libarch/context_offset.h>
 
-.text   
+.text
 
 .global context_save
 .global context_restore

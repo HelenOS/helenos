@@ -27,8 +27,8 @@
  */
 
 /** @addtogroup inputgen generic
- * @brief	Keyboard port driver interface.
- * @ingroup  input
+ * @brief Keyboard port driver interface.
+ * @ingroup input
  * @{
  */
 /** @file
@@ -50,19 +50,15 @@ typedef struct kbd_port_ops {
 
 extern kbd_port_ops_t adb_port;
 extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t dummy_port;
 extern kbd_port_ops_t gxemul_port;
 extern kbd_port_ops_t msim_port;
 extern kbd_port_ops_t niagara_port;
 extern kbd_port_ops_t ns16550_port;
 extern kbd_port_ops_t pl050_port;
-extern kbd_port_ops_t sgcn_port;
 extern kbd_port_ops_t ski_port;
-extern kbd_port_ops_t z8530_port;
 
 #endif
 
 /**
  * @}
- */ 
-
+ */

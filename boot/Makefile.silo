@@ -30,11 +30,7 @@
 
 include Makefile.common
 
-ifeq ($(CONFIG_AOUT_ISOFS_B),y)
-	SILO_PACKAGE = a.out
-else
-	SILO_PACKAGE = raw
-endif
+SILO_PACKAGE = a.out
 
 ISOFS_B = silo/$(SILO_PACKAGE)/isofs.b
 SECOND_B = silo/$(SILO_PACKAGE)/second.b

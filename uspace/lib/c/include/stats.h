@@ -39,7 +39,8 @@
 #include <thread.h>
 #include <stdint.h>
 #include <bool.h>
-#include <kernel/sysinfo/abi.h>
+#include <sys/types.h>
+#include <abi/sysinfo.h>
 
 extern stats_cpu_t *stats_get_cpus(size_t *);
 extern stats_physmem_t *stats_get_physmem(void);

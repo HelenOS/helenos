@@ -37,13 +37,11 @@
  * First the answerbox, then the phone.
  */
 
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
-#include <synch/synch.h>
 #include <ipc/ipc.h>
-#include <ipc/ipc_methods.h>
+#include <abi/ipc/methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
 #include <errno.h>
@@ -231,6 +229,8 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 			call->data.phone = call->caller_phone;
 		}
 	}
+
+	call->data.task_id = TASK->taskid;
 	
 	if (do_lock)
 		irq_spinlock_lock(&callerbox->lock, true);
@@ -295,7 +295,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->data.phone = phone;
-		call->data.task = TASK;
+		call->data.task_id = TASK->taskid;
 	}
 	
 	irq_spinlock_lock(&box->lock, true);
@@ -407,7 +407,7 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 		if (!call->caller_phone)
 			call->caller_phone = call->data.phone;
 		call->data.phone = newphone;
-		call->data.task = TASK;
+		call->data.task_id = TASK->taskid;
 	}
 	
 	return ipc_call(newphone, call);

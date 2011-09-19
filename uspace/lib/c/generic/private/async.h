@@ -35,8 +35,10 @@
 #ifndef LIBC_PRIVATE_ASYNC_H_
 #define LIBC_PRIVATE_ASYNC_H_
 
+#include <async.h>
 #include <adt/list.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <sys/time.h>
 #include <bool.h>
 
@@ -77,19 +79,6 @@ typedef struct {
 	/** Wakeup wait data. */
 	wu_event_t wu_event;
 } awaiter_t;
-
-/** Message data */
-typedef struct {
-	awaiter_t wdata;
-	
-	/** If reply was received. */
-	bool done;
-	
-	/** Pointer to where the answer data is stored. */
-	ipc_call_t *dataptr;
-	
-	sysarg_t retval;
-} amsg_t;
 
 extern void __async_init(void);
 extern void async_insert_timeout(awaiter_t *);

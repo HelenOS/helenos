@@ -37,7 +37,6 @@
 
 #include <assert.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <fibril_synch.h>
 #include <malloc.h>
 /* TODO remove stdio */
@@ -72,9 +71,6 @@
 
 #include "tcp.h"
 #include "tcp_header.h"
-
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
 
 /** TCP module name. */
 #define NAME  "tcp"
@@ -209,7 +205,8 @@ static int tcp_queue_received_packet(socket_core_t *, tcp_socket_data_t *,
 static void tcp_queue_received_end_of_data(socket_core_t *socket);
 
 static int tcp_received_msg(device_id_t, packet_t *, services_t, services_t);
-static int tcp_process_client_messages(ipc_callid_t, ipc_call_t);
+static int tcp_process_client_messages(async_sess_t *, ipc_callid_t,
+    ipc_call_t);
 
 static int tcp_listen_message(socket_cores_t *, int, int);
 static int tcp_connect_message(socket_cores_t *, int, struct sockaddr *,
@@ -327,9 +324,9 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	}
 
 	if (!socket) {
-		if (tl_prepare_icmp_packet(tcp_globals.net_phone,
-		    tcp_globals.icmp_phone, packet, error) == EOK) {
-			icmp_destination_unreachable_msg(tcp_globals.icmp_phone,
+		if (tl_prepare_icmp_packet(tcp_globals.net_sess,
+		    tcp_globals.icmp_sess, packet, error) == EOK) {
+			icmp_destination_unreachable_msg(tcp_globals.icmp_sess,
 			    ICMP_PORT_UNREACH, 0, packet);
 		}
 		return EADDRNOTAVAIL;
@@ -400,11 +397,11 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 		    flip_checksum(compact_checksum(checksum)));
 		fibril_rwlock_write_unlock(socket_data->local_lock);
 
-		rc = tl_prepare_icmp_packet(tcp_globals.net_phone,
-		    tcp_globals.icmp_phone, packet, error);
+		rc = tl_prepare_icmp_packet(tcp_globals.net_sess,
+		    tcp_globals.icmp_sess, packet, error);
 		if (rc == EOK) {
 			/* Checksum error ICMP */
-			icmp_parameter_problem_msg(tcp_globals.icmp_phone,
+			icmp_parameter_problem_msg(tcp_globals.icmp_sess,
 			    ICMP_PARAM_POINTER,
 			    ((size_t) ((void *) &header->checksum)) -
 			    ((size_t) ((void *) header)), packet);
@@ -442,7 +439,7 @@ has_error_service:
 		    packet, fragments, total_length);
 		break;
 	default:
-		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 	}
 
 	if (rc != EOK) {
@@ -505,7 +502,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 		while (length <= offset) {
 			/* Release the acknowledged packets */
 			next_packet = pq_next(packet);
-			pq_release_remote(tcp_globals.net_phone,
+			pq_release_remote(tcp_globals.net_sess,
 			    packet_get_id(packet));
 			packet = next_packet;
 			offset -= length;
@@ -564,7 +561,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 			tmp_packet = next_packet;
 			next_packet = pq_next(next_packet);
 			pq_insert_after(tmp_packet, next_packet);
-			pq_release_remote(tcp_globals.net_phone,
+			pq_release_remote(tcp_globals.net_sess,
 			    packet_get_id(tmp_packet));
 		}
 		assert(new_sequence_number + total_length ==
@@ -601,7 +598,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 				next_packet = pq_detach(packet);
 				if (packet == socket_data->incoming)
 					socket_data->incoming = next_packet;
-				pq_release_remote(tcp_globals.net_phone,
+				pq_release_remote(tcp_globals.net_sess,
 				    packet_get_id(packet));
 				packet = next_packet;
 				continue;
@@ -624,7 +621,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 				new_sequence_number = sequence_number + length;
 				if (length <= 0) {
 					/* Remove the empty packet */
-					pq_release_remote(tcp_globals.net_phone,
+					pq_release_remote(tcp_globals.net_sess,
 					    packet_get_id(packet));
 					packet = next_packet;
 					continue;
@@ -671,7 +668,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 					}
 				}
 				/* Remove the duplicit or corrupted packet */
-				pq_release_remote(tcp_globals.net_phone,
+				pq_release_remote(tcp_globals.net_sess,
 				    packet_get_id(packet));
 				packet = next_packet;
 				continue;
@@ -698,9 +695,9 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 		    length);
 		if (rc != EOK) {
 			/* Remove the corrupted packets */
-			pq_release_remote(tcp_globals.net_phone,
+			pq_release_remote(tcp_globals.net_sess,
 			    packet_get_id(packet));
-			pq_release_remote(tcp_globals.net_phone,
+			pq_release_remote(tcp_globals.net_sess,
 			    packet_get_id(next_packet));
 		} else {
 			while (next_packet) {
@@ -711,12 +708,12 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 				rc = pq_set_order(next_packet,
 				    new_sequence_number, length);
 				if (rc != EOK) {
-					pq_release_remote(tcp_globals.net_phone,
+					pq_release_remote(tcp_globals.net_sess,
 					    packet_get_id(next_packet));
 				}
 				rc = pq_insert_after(packet, next_packet);
 				if (rc != EOK) {
-					pq_release_remote(tcp_globals.net_phone,
+					pq_release_remote(tcp_globals.net_sess,
 					    packet_get_id(next_packet));
 				}
 				next_packet = tmp_packet;
@@ -725,7 +722,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 	} else {
 		printf("unexpected\n");
 		/* Release duplicite or restricted */
-		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 		forced_ack = true;
 	}
 
@@ -793,7 +790,7 @@ int tcp_queue_received_packet(socket_core_t *socket,
 	    SOCKET_MAX_RECEIVED_SIZE);
 	if (rc != EOK)
 		return tcp_release_and_return(packet, rc);
-	rc = tl_get_ip_packet_dimension(tcp_globals.ip_phone,
+	rc = tl_get_ip_packet_dimension(tcp_globals.ip_sess,
 	    &tcp_globals.dimensions, socket_data->device_id, &packet_dimension);
 	if (rc != EOK)
 		return tcp_release_and_return(packet, rc);
@@ -802,11 +799,12 @@ int tcp_queue_received_packet(socket_core_t *socket,
 	socket_data->window -= total_length;
 
 	/* Notify the destination socket */
-	async_obsolete_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (sysarg_t) socket->socket_id,
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t) socket->socket_id,
 	    ((packet_dimension->content < socket_data->data_fragment_size) ?
 	    packet_dimension->content : socket_data->data_fragment_size), 0, 0,
 	    (sysarg_t) fragments);
+	async_exchange_end(exch);
 
 	return EOK;
 }
@@ -823,10 +821,10 @@ static void tcp_queue_received_end_of_data(socket_core_t *socket)
 	assert(socket != NULL);
 
 	/* Notify the destination socket */
-	async_obsolete_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (sysarg_t) socket->socket_id,
-	    0, 0, 0,
-	    (sysarg_t) 0 /* 0 fragments == no more data */);
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t) socket->socket_id,
+	    0, 0, 0, (sysarg_t) 0 /* 0 fragments == no more data */);
+	async_exchange_end(exch);
 }
 
 int tcp_process_syn_sent(socket_core_t *socket, tcp_socket_data_t *
@@ -852,7 +850,7 @@ int tcp_process_syn_sent(socket_core_t *socket, tcp_socket_data_t *
 	/* Release additional packets */
 	next_packet = pq_detach(packet);
 	if (next_packet) {
-		pq_release_remote(tcp_globals.net_phone,
+		pq_release_remote(tcp_globals.net_sess,
 		    packet_get_id(next_packet));
 	}
 
@@ -939,7 +937,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	/* Create a socket */
 	socket_id = -1;
-	rc = socket_create(socket_data->local_sockets, listening_socket->phone,
+	rc = socket_create(socket_data->local_sockets, listening_socket->sess,
 	    socket_data, &socket_id);
 	if (rc != EOK) {
 		free(socket_data->addr);
@@ -992,7 +990,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 //	tcp_globals.last_used_port = socket->port;
 	fibril_rwlock_write_unlock(&tcp_globals.lock);
 	if (rc != EOK) {
-		socket_destroy(tcp_globals.net_phone, socket->socket_id,
+		socket_destroy(tcp_globals.net_sess, socket->socket_id,
 		    socket_data->local_sockets, &tcp_globals.sockets,
 		    tcp_free_socket_data);
 		return tcp_release_and_return(packet, rc);
@@ -1004,7 +1002,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 	/* Release additional packets */
 	next_packet = pq_detach(packet);
 	if (next_packet) {
-		pq_release_remote(tcp_globals.net_phone,
+		pq_release_remote(tcp_globals.net_sess,
 		    packet_get_id(next_packet));
 	}
 
@@ -1013,7 +1011,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 		rc = packet_trim(packet, 0,
 		    packet_get_data_length(packet) - sizeof(*header));
 		if (rc != EOK) {
-			socket_destroy(tcp_globals.net_phone, socket->socket_id,
+			socket_destroy(tcp_globals.net_sess, socket->socket_id,
 			    socket_data->local_sockets, &tcp_globals.sockets,
 			    tcp_free_socket_data);
 			return tcp_release_and_return(packet, rc);
@@ -1024,7 +1022,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	rc = tcp_queue_packet(socket, socket_data, packet, 1);
 	if (rc != EOK) {
-		socket_destroy(tcp_globals.net_phone, socket->socket_id,
+		socket_destroy(tcp_globals.net_sess, socket->socket_id,
 		    socket_data->local_sockets, &tcp_globals.sockets,
 		    tcp_free_socket_data);
 		return rc;
@@ -1032,7 +1030,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	packet = tcp_get_packets_to_send(socket, socket_data);
 	if (!packet) {
-		socket_destroy(tcp_globals.net_phone, socket->socket_id,
+		socket_destroy(tcp_globals.net_sess, socket->socket_id,
 		    socket_data->local_sockets, &tcp_globals.sockets,
 		    tcp_free_socket_data);
 		return EINVAL;
@@ -1067,7 +1065,7 @@ int tcp_process_syn_received(socket_core_t *socket,
 	tcp_process_acknowledgement(socket, socket_data, header);
 
 	socket_data->next_incoming = ntohl(header->sequence_number); /* + 1; */
-	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 	socket_data->state = TCP_SOCKET_ESTABLISHED;
 	listening_socket = socket_cores_find(socket_data->local_sockets,
 	    socket_data->listening_socket_id);
@@ -1081,10 +1079,12 @@ int tcp_process_syn_received(socket_core_t *socket,
 		    (-1 * socket->socket_id), listening_socket_data->backlog);
 		if (rc == EOK) {
 			/* Notify the destination socket */
-			async_obsolete_msg_5(socket->phone, NET_SOCKET_ACCEPTED,
+			async_exch_t *exch = async_exchange_begin(socket->sess);
+			async_msg_5(exch, NET_SOCKET_ACCEPTED,
 			    (sysarg_t) listening_socket->socket_id,
 			    socket_data->data_fragment_size, TCP_HEADER_SIZE,
 			    0, (sysarg_t) socket->socket_id);
+			async_exchange_end(exch);
 
 			fibril_rwlock_write_unlock(socket_data->local_lock);
 			return EOK;
@@ -1180,7 +1180,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
 
 				/* Add to acknowledged or release */
 				if (pq_add(&acknowledged, packet, 0, 0) != EOK)
-					pq_release_remote(tcp_globals.net_phone,
+					pq_release_remote(tcp_globals.net_sess,
 					    packet_get_id(packet));
 				packet = next;
 			} else if (old < socket_data->expected)
@@ -1189,7 +1189,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
 
 		/* Release acknowledged */
 		if (acknowledged) {
-			pq_release_remote(tcp_globals.net_phone,
+			pq_release_remote(tcp_globals.net_sess,
 			    packet_get_id(acknowledged));
 		}
 		return;
@@ -1233,13 +1233,14 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 	assert(call);
 	assert(answer);
 	assert(answer_count);
-
+	
 	*answer_count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_CONNECT_TO_ME:
-		return tcp_process_client_messages(callid, *call);
-	}
-
+	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return tcp_process_client_messages(callback, callid, *call);
+	
 	return ENOTSUP;
 }
 
@@ -1269,11 +1270,11 @@ void tcp_initialize_socket_data(tcp_socket_data_t *socket_data)
 	socket_data->data_fragment_size = MAX_TCP_FRAGMENT_SIZE;
 }
 
-int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
+int tcp_process_client_messages(async_sess_t *sess, ipc_callid_t callid,
+    ipc_call_t call)
 {
 	int res;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
@@ -1324,7 +1325,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			socket_data->local_sockets = &local_sockets;
 			fibril_rwlock_write_lock(&lock);
 			socket_id = SOCKET_GET_SOCKET_ID(call);
-			res = socket_create(&local_sockets, app_phone,
+			res = socket_create(&local_sockets, sess,
 			    socket_data, &socket_id);
 			SOCKET_SET_SOCKET_ID(answer, socket_id);
 			fibril_rwlock_write_unlock(&lock);
@@ -1332,7 +1333,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 				free(socket_data);
 				break;
 			}
-			if (tl_get_ip_packet_dimension(tcp_globals.ip_phone,
+			if (tl_get_ip_packet_dimension(tcp_globals.ip_sess,
 			    &tcp_globals.dimensions, DEVICE_INVALID_ID,
 			    &packet_dimension) == EOK) {
 				SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
@@ -1507,12 +1508,12 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		}
 	}
 
-	/* Release the application phone */
-	async_obsolete_hangup(app_phone);
+	/* Release the application session */
+	async_hangup(sess);
 
 	printf("release\n");
 	/* Release all local sockets */
-	socket_cores_release(tcp_globals.net_phone, &local_sockets,
+	socket_cores_release(tcp_globals.net_sess, &local_sockets,
 	    &tcp_globals.sockets, tcp_free_socket_data);
 
 	return EOK;
@@ -1620,7 +1621,7 @@ int tcp_release_after_timeout(void *data)
 		if (socket_data->local_sockets == timeout->local_sockets) {
 			local_lock = socket_data->local_lock;
 			fibril_rwlock_write_lock(local_lock);
-			socket_destroy(tcp_globals.net_phone,
+			socket_destroy(tcp_globals.net_sess,
 			    timeout->socket_id, timeout->local_sockets,
 			    &tcp_globals.sockets, tcp_free_socket_data);
 			fibril_rwlock_write_unlock(local_lock);
@@ -1753,7 +1754,7 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
 		tcp_globals.last_used_port = socket->port;
 	}
 
-	rc = ip_get_route_req(tcp_globals.ip_phone, IPPROTO_TCP,
+	rc = ip_get_route_req(tcp_globals.ip_sess, IPPROTO_TCP,
 	    addr, addrlen, &socket_data->device_id,
 	    &socket_data->pseudo_header, &socket_data->headerlen);
 	if (rc != EOK)
@@ -1901,7 +1902,7 @@ packet_t *tcp_get_packets_to_send(socket_core_t *socket, tcp_socket_data_t *
 		} else {
 			rc = pq_insert_after(previous, copy);
 			if (rc != EOK) {
-				pq_release_remote(tcp_globals.net_phone,
+				pq_release_remote(tcp_globals.net_sess,
 				    packet_get_id(copy));
 				return sending;
 			}
@@ -1938,14 +1939,14 @@ packet_t *tcp_send_prepare_packet(socket_core_t *socket, tcp_socket_data_t *
 	rc = ip_client_set_pseudo_header_data_length(socket_data->pseudo_header,
 	    socket_data->headerlen, packet_get_data_length(packet));
 	if (rc != EOK) {
-		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 		return NULL;
 	}
 
 	/* Get the header */
 	header = (tcp_header_t *) packet_get_data(packet);
 	if (!header) {
-		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 		return NULL;
 	}
 	assert(ntohl(header->sequence_number) == sequence_number);
@@ -1970,14 +1971,14 @@ packet_t *tcp_send_prepare_packet(socket_core_t *socket, tcp_socket_data_t *
 	/* Prepare the packet */
 	rc = ip_client_prepare_packet(packet, IPPROTO_TCP, 0, 0, 0, 0);
 	if (rc != EOK) {
-		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 		return NULL;
 	}
 
 	rc = tcp_prepare_timeout(tcp_timeout, socket, socket_data,
 	    sequence_number, socket_data->state, socket_data->timeout, true);
 	if (rc != EOK) {
-		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 		return NULL;
 	}
 
@@ -1994,7 +1995,7 @@ packet_t *tcp_prepare_copy(socket_core_t *socket, tcp_socket_data_t *
 	assert(socket->specific_data == socket_data);
 
 	/* Make a copy of the packet */
-	copy = packet_get_copy(tcp_globals.net_phone, packet);
+	copy = packet_get_copy(tcp_globals.net_sess, packet);
 	if (!copy)
 		return NULL;
 
@@ -2008,7 +2009,7 @@ void tcp_send_packets(device_id_t device_id, packet_t *packet)
 
 	while (packet) {
 		next = pq_detach(packet);
-		ip_send_msg(tcp_globals.ip_phone, device_id, packet,
+		ip_send_msg(tcp_globals.ip_sess, device_id, packet,
 		    SERVICE_TCP, 0);
 		packet = next;
 	}
@@ -2121,7 +2122,7 @@ int tcp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 	if (packet_id < 0)
 		return NO_DATA;
 
-	rc = packet_translate_remote(tcp_globals.net_phone, &packet, packet_id);
+	rc = packet_translate_remote(tcp_globals.net_sess, &packet, packet_id);
 	if (rc != EOK)
 		return rc;
 
@@ -2132,7 +2133,7 @@ int tcp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 
 	/* Release the packet */
 	dyn_fifo_pop(&socket->received);
-	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 
 	/* Return the total length */
 	return (int) length;
@@ -2170,7 +2171,7 @@ int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
 	    (socket_data->state != TCP_SOCKET_CLOSE_WAIT))
 		return ENOTCONN;
 
-	rc = tl_get_ip_packet_dimension(tcp_globals.ip_phone,
+	rc = tl_get_ip_packet_dimension(tcp_globals.ip_sess,
 	    &tcp_globals.dimensions, socket_data->device_id, &packet_dimension);
 	if (rc != EOK)
 		return rc;
@@ -2181,7 +2182,7 @@ int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
 
 	for (index = 0; index < fragments; index++) {
 		/* Read the data fragment */
-		result = tl_socket_read_packet_data(tcp_globals.net_phone,
+		result = tl_socket_read_packet_data(tcp_globals.net_sess,
 		    &packet, TCP_HEADER_SIZE, packet_dimension,
 		    socket_data->addr, socket_data->addrlen);
 		if (result < 0)
@@ -2244,7 +2245,7 @@ tcp_close_message(socket_cores_t *local_sockets, int socket_id)
 
 	default:
 		/* Just destroy */
-		rc = socket_destroy(tcp_globals.net_phone, socket_id,
+		rc = socket_destroy(tcp_globals.net_sess, socket_id,
 		    local_sockets, &tcp_globals.sockets,
 		    tcp_free_socket_data);
 		if (rc == EOK) {
@@ -2292,13 +2293,13 @@ int tcp_create_notification_packet(packet_t **packet, socket_core_t *socket,
 	assert(packet);
 
 	/* Get the device packet dimension */
-	rc = tl_get_ip_packet_dimension(tcp_globals.ip_phone,
+	rc = tl_get_ip_packet_dimension(tcp_globals.ip_sess,
 	    &tcp_globals.dimensions, socket_data->device_id, &packet_dimension);
 	if (rc != EOK)
 		return rc;
 
 	/* Get a new packet */
-	*packet = packet_get_4_remote(tcp_globals.net_phone, TCP_HEADER_SIZE,
+	*packet = packet_get_4_remote(tcp_globals.net_sess, TCP_HEADER_SIZE,
 	    packet_dimension->addr_len, packet_dimension->prefix,
 	    packet_dimension->suffix);
 	
@@ -2361,7 +2362,7 @@ int tcp_accept_message(socket_cores_t *local_sockets, int socket_id,
 			    socket_data->addrlen);
 			if (rc != EOK)
 				return rc;
-			rc = tl_get_ip_packet_dimension(tcp_globals.ip_phone,
+			rc = tl_get_ip_packet_dimension(tcp_globals.ip_sess,
 			    &tcp_globals.dimensions, socket_data->device_id,
 			    &packet_dimension);
 			if (rc != EOK)
@@ -2433,7 +2434,7 @@ void tcp_free_socket_data(socket_core_t *socket)
  */
 int tcp_release_and_return(packet_t *packet, int result)
 {
-	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(tcp_globals.net_sess, packet_get_id(packet));
 	return result;
 }
 
@@ -2442,6 +2443,7 @@ int tcp_release_and_return(packet_t *packet, int result)
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
  * @param[in]     arg   Local argument.
+ *
  */
 static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
@@ -2451,7 +2453,7 @@ static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_TL_RECEIVED:
-			rc = packet_translate_remote(tcp_globals.net_phone, &packet,
+			rc = packet_translate_remote(tcp_globals.net_sess, &packet,
 			    IPC_GET_PACKET(*icall));
 			if (rc == EOK)
 				rc = tcp_received_msg(IPC_GET_DEVICE(*icall), packet,
@@ -2469,25 +2471,25 @@ static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 /** Initialize the TCP module.
  *
- * @param[in] net_phone Network module phone.
+ * @param[in] sess Network module session.
  *
  * @return EOK on success.
  * @return ENOMEM if there is not enough memory left.
  *
  */
-int tl_initialize(int net_phone)
+int tl_initialize(async_sess_t *sess)
 {
 	fibril_rwlock_initialize(&tcp_globals.lock);
 	fibril_rwlock_write_lock(&tcp_globals.lock);
 	
-	tcp_globals.net_phone = net_phone;
+	tcp_globals.net_sess = sess;
 	
-	tcp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
-	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
+	tcp_globals.icmp_sess = icmp_connect_module();
+	tcp_globals.ip_sess = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
 	    SERVICE_TCP, tcp_receiver);
-	if (tcp_globals.ip_phone < 0) {
+	if (tcp_globals.ip_sess == NULL) {
 		fibril_rwlock_write_unlock(&tcp_globals.lock);
-		return tcp_globals.ip_phone;
+		return ENOENT;
 	}
 	
 	int rc = socket_ports_initialize(&tcp_globals.sockets);

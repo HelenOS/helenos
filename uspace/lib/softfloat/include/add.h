@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Addition functions.
  */
 
 #ifndef __ADD_H__
@@ -37,6 +38,7 @@
 
 extern float32 addFloat32(float32, float32);
 extern float64 addFloat64(float64, float64);
+extern float128 addFloat128(float128, float128);
 
 #endif
 

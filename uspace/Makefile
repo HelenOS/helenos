@@ -36,6 +36,7 @@ DIRS = \
 	app/bdsh \
 	app/blkdump \
 	app/bnchmark \
+	app/devctl \
 	app/edit \
 	app/ext2info \
 	app/getterm \
@@ -43,10 +44,13 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/locinfo \
 	app/lsusb \
 	app/mkfat \
+	app/mkmfs \
 	app/redir \
 	app/sbi \
+	app/sportdmp \
 	app/stats \
 	app/taskdump \
 	app/tester \
@@ -64,7 +68,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	srv/clip \
-	srv/devmap \
+	srv/loc \
 	srv/devman \
 	srv/loader \
 	srv/ns \
@@ -76,12 +80,14 @@ DIRS = \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
+	srv/fs/exfat \
 	srv/fs/fat \
+	srv/fs/cdfs \
 	srv/fs/tmpfs \
-	srv/fs/devfs \
+	srv/fs/mfs \
+	srv/fs/locfs \
 	srv/fs/ext2fs \
-	srv/hid/adb_mouse \
-	srv/hid/char_mouse \
+	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
@@ -95,22 +101,35 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root \
-	drv/rootvirt \
-	drv/test1 \
-	drv/test2 \
-	drv/test3 \
-	drv/ehci \
-	drv/ohci \
-	drv/uhci \
-	drv/uhcirh \
-	drv/usbflbk \
-	drv/usbhid \
-	drv/usbhub \
-	drv/usbmast \
-	drv/usbmid \
-	drv/usbmouse \
-	drv/vhc
+	drv/infrastructure/root \
+	drv/infrastructure/rootvirt \
+	drv/test/test1 \
+	drv/test/test2 \
+	drv/test/test3 \
+	drv/bus/usb/ehci \
+	drv/bus/usb/ohci \
+	drv/bus/usb/uhci \
+	drv/bus/usb/uhcirh \
+	drv/bus/usb/usbflbk \
+	drv/bus/usb/usbhid \
+	drv/bus/usb/usbhub \
+	drv/bus/usb/usbmast \
+	drv/bus/usb/usbmid \
+	drv/bus/usb/usbmouse \
+	drv/bus/usb/vhc
+
+ifeq ($(CONFIG_PCC),y)
+DIRS += \
+	app/cc \
+	app/ccom \
+	app/ccom/mkext \
+	app/cpp
+endif
+
+ifeq ($(CONFIG_BINUTILS),y)
+DIRS += \
+	app/binutils
+endif
 
 ## Networking
 #
@@ -122,37 +141,34 @@ DIRS += \
 ## Platform-specific hardware support
 #
 
-ifneq ($(UARCH),abs32le)
-	DIRS += srv/hid/console
-endif
-
 ifeq ($(UARCH),amd64)
 	DIRS += \
-		drv/rootpc \
-		drv/pciintel \
-		drv/isa \
-		drv/ns8250 \
+		drv/infrastructure/rootpc \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
 	DIRS += \
-		drv/rootpc \
-		drv/pciintel \
-		drv/isa \
-		drv/ns8250 \
+		drv/infrastructure/rootpc \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
-	DIRS += srv/hw/bus/cuda_adb
+	DIRS += \
+		drv/infrastructure/rootmac \
+		srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/irc/fhc \
 		srv/hw/irc/obio
 endif
 
@@ -164,17 +180,21 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/fmtutil \
+	lib/scsi \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
+	lib/fb \
 	lib/net \
 	lib/ext2 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
-	lib/usbvirt
+	lib/usbvirt \
+	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

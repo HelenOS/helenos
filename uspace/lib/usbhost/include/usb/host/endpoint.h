@@ -53,6 +53,7 @@ typedef struct endpoint {
 	fibril_mutex_t guard;
 	fibril_condvar_t avail;
 	volatile bool active;
+	void (*destroy_hook)(struct endpoint *);
 	struct {
 		void *data;
 		int (*toggle_get)(void *);
@@ -60,14 +61,15 @@ typedef struct endpoint {
 	} hc_data;
 } endpoint_t;
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
+endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
+    usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
+    size_t max_packet_size);
 
 void endpoint_destroy(endpoint_t *instance);
 
 void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int));
+    void *data, void (*destroy_hook)(endpoint_t *),
+    int (*toggle_get)(void *), void (*toggle_set)(void *, int));
 
 void endpoint_clear_hc_data(endpoint_t *instance);
 

@@ -147,13 +147,13 @@ static void niagara_key_pressed(void)
 	while (input_buffer->read_ptr != input_buffer->write_ptr) {
 		c = input_buffer->data[input_buffer->read_ptr];
 		input_buffer->read_ptr =
-			((input_buffer->read_ptr) + 1) % INPUT_BUFFER_SIZE;
-		kbd_push_scancode(kbd_dev, c);
+		    ((input_buffer->read_ptr) + 1) % INPUT_BUFFER_SIZE;
+		kbd_push_data(kbd_dev, c);
 	}
 }
 
 /**
- * Thread to poll SGCN for keypresses.
+ * Thread to poll Niagara console for keypresses.
  */
 static void niagara_thread_impl(void *arg)
 {

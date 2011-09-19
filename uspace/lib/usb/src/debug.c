@@ -67,9 +67,9 @@ void usb_log_enable(usb_log_level_t level, const char *message_prefix)
 		int rc = asprintf(&fname, "/log/%s", message_prefix);
 		if (rc > 0) {
 			log_stream = fopen(fname, "w");
-			if (log_stream != NULL) {
+			if (log_stream != NULL)
 				setvbuf(log_stream, NULL, _IOFBF, BUFSIZ);
-			}
+			
 			free(fname);
 		}
 	}

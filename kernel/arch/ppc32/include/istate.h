@@ -35,9 +35,17 @@
 #ifndef KERN_ppc32_EXCEPTION_H_
 #define KERN_ppc32_EXCEPTION_H_
 
-#include <typedefs.h>
-#include <arch/cpu.h>
 #include <trace.h>
+
+#ifdef KERNEL
+
+#include <arch/msr.h>
+
+#else /* KERNEL */
+
+#include <libarch/msr.h>
+
+#endif /* KERNEL */
 
 typedef struct istate {
 	uint32_t r0;

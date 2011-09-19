@@ -41,8 +41,8 @@
 
 #include <sys/types.h>
 #include <ipc/common.h>
-#include <kernel/ipc/ipc_methods.h>
-#include <kernel/synch/synch.h>
+#include <abi/ipc/methods.h>
+#include <abi/synch.h>
 #include <task.h>
 
 typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
@@ -253,7 +253,7 @@ extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
 extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, void *, ipc_async_callback_t, bool);
 
-extern int ipc_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t *,
+extern int ipc_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t, task_id_t *,
     sysarg_t *);
 extern int ipc_connect_me(int);
 extern int ipc_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);

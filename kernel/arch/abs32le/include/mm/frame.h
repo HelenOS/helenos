@@ -38,14 +38,10 @@
 #define FRAME_WIDTH  12  /* 4K */
 #define FRAME_SIZE   (1 << FRAME_WIDTH)
 
-#ifdef KERNEL
-
 #include <typedefs.h>
 
 extern void frame_arch_init(void);
 extern void physmem_print(void);
-
-#endif /* KERNEL */
 
 #endif
 
