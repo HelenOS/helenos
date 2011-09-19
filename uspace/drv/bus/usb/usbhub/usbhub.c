@@ -213,7 +213,6 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 	    return NULL;
 
 	result->usb_device = usb_dev;
-	result->status_change_pipe = usb_dev->pipes[0].pipe;
 	result->control_pipe = &usb_dev->ctrl_pipe;
 	result->is_default_address_used = false;
 

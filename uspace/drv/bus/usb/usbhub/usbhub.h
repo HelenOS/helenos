@@ -70,14 +70,6 @@ struct usb_hub_info_t {
 	 */
 	bool is_default_address_used;
 
-	/** convenience pointer to status change pipe
-	 *
-	 * Status change pipe is initialized in usb_device structure. This is
-	 * pointer into this structure, so that it does not have to be
-	 * searched again and again for the 'right pipe'.
-	 */
-	usb_pipe_t *status_change_pipe;
-
 	/** Convenience pointer to control pipe
 	 *
 	 * Control pipe is initialized in usb_device structure. This is
