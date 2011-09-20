@@ -46,7 +46,8 @@ EXTRA_CFLAGS = \
 
 
 SOURCES_INTERFACES = \
-	hids/bootkbd.c
+	hids/bootkbd.c \
+	hids/logitech_wireless.c
 
 SOURCES = \
 	main.c \
