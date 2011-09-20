@@ -52,6 +52,7 @@ SOURCES = \
 	main.c \
 	device.c \
 	ifaces.c \
+	life.c \
 	stdreq.c \
 	$(SOURCES_INTERFACES)
 	
