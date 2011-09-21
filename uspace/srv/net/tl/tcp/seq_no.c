@@ -70,7 +70,7 @@ bool seq_no_ack_acceptable(tcp_conn_t *conn, uint32_t seg_ack)
 /** Determine wheter ack is duplicate.
  *
  * ACK is duplicate if it refers to a sequence number that has
- * aleady been acked (SEG.ACK < SND.UNA).
+ * aleady been acked (SEG.ACK <= SND.UNA).
  */
 bool seq_no_ack_duplicate(tcp_conn_t *conn, uint32_t seg_ack)
 {
@@ -80,10 +80,11 @@ bool seq_no_ack_duplicate(tcp_conn_t *conn, uint32_t seg_ack)
 	 * There does not seem to be a three-point comparison
 	 * equivalent of SEG.ACK < SND.UNA. Thus we do it
 	 * on a best-effort basis, based on the difference.
-	 * [-2^31, 0) means less-than, [0, 2^31) means greater-than.
+	 * [-2^31, 0) means less-than, 0 means equal, [0, 2^31)
+	 * means greater-than. Less-than or equal means duplicate.
 	 */
 	diff = seg_ack - conn->snd_una;
-	return (diff & (0x1 << 31)) != 0;
+	return diff == 0 || (diff & (0x1 << 31)) != 0;
 }
 
 /** Determine segment has new window update.
@@ -173,6 +174,36 @@ uint32_t seq_no_control_len(tcp_control_t ctrl)
 		++len;
 
 	return len;
+}
+
+/** Calculate the amount of trim needed to fit segment in receive window. */
+extern void seq_no_seg_trim_calc(tcp_conn_t *conn, tcp_segment_t *seg,
+    uint32_t *left, uint32_t *right)
+{
+	assert(seq_no_segment_acceptable(conn, seg));
+
+	/*
+	 * If RCV.NXT is between SEG.SEQ and RCV.NXT+RCV.WND, then
+	 * left trim amount is positive
+	 */
+	if (seq_no_lt_le(seg->seq, conn->rcv_nxt,
+	    conn->rcv_nxt + conn->rcv_wnd)) {
+		*left = conn->rcv_nxt - seg->seq;
+	} else {
+		*left = 0;
+	}
+
+	/*
+	 * If SEG.SEQ+SEG.LEN is between SEG.SEQ and RCV.NXT+RCV.WND,
+	 * then right trim is zero.
+	 */
+	if (seq_no_lt_le(seg->seq - 1, seg->seq + seg->len,
+	    conn->rcv_nxt + conn->rcv_wnd)) {
+		*right = 0;
+	} else {
+		*right = (seg->seq + seg->len) -
+		    (conn->rcv_nxt + conn->rcv_wnd);
+	}
 }
 
 /**

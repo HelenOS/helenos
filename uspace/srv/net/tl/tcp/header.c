@@ -60,7 +60,7 @@ void tcp_phdr_setup(tcp_conn_t *conn, tcp_segment_t *seg, tcp_phdr_t *phdr)
 	phdr->protocol = 0; /* XXX */
 
 	/* XXX This will only work as long as we don't have any header options */
-	phdr->tcp_length = sizeof(tcp_header_t) + tcp_segment_data_len(seg);
+	phdr->tcp_length = sizeof(tcp_header_t) + tcp_segment_text_size(seg);
 }
 
 /**

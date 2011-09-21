@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <mem.h>
 #include <stdlib.h>
 #include "segment.h"
 #include "seq_no.h"
@@ -78,7 +79,69 @@ tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
 	return rseg;
 }
 
-size_t tcp_segment_data_len(tcp_segment_t *seg)
+/** Trim segment to the specified interval.
+ *
+ * Trim any text or control whose sequence number is outside of [lo, hi)
+ * interval.
+ */
+void tcp_segment_trim(tcp_segment_t *seg, uint32_t left, uint32_t right)
+{
+	uint32_t t_size;
+
+	assert(left + right <= seg->len);
+
+	/* Special case, entire segment trimmed from left */
+	if (left == seg->len) {
+		seg->seq = seg->seq + seg->len;
+		seg->len = 0;
+		return;
+	}
+
+	/* Special case, entire segment trimmed from right */
+	if (right == seg->len) {
+		seg->len = 0;
+		return;
+	}
+
+	/* General case */
+
+	t_size = tcp_segment_text_size(seg);
+
+	if (left > 0 && (seg->ctrl & CTL_SYN) != 0) {
+		/* Trim SYN */
+		seg->ctrl &= ~CTL_SYN;
+		seg->seq++;
+		seg->len--;
+		left--;
+	}
+
+	if (right > 0 && (seg->ctrl & CTL_FIN) != 0) {
+		/* Trim FIN */
+		seg->ctrl &= ~CTL_FIN;
+		seg->len--;
+		right--;
+	}
+
+	if (left > 0 || right > 0) {
+		/* Trim segment text */
+		assert(left + right <= t_size);
+
+		seg->data += left;
+		seg->len -= left + right;
+	}
+}
+
+/** Copy out text data from segment.
+ *
+ */
+void tcp_segment_text_copy(tcp_segment_t *seg, void *buf, size_t size)
+{
+	assert(size <= tcp_segment_text_size(seg));
+	memcpy(buf, seg->data, size);
+}
+
+/** Return number of bytes in segment text. */
+size_t tcp_segment_text_size(tcp_segment_t *seg)
 {
 	return seg->len - seq_no_control_len(seg->ctrl);
 }

@@ -42,6 +42,7 @@ void tcp_conn_add(tcp_conn_t *);
 extern void tcp_conn_sync(tcp_conn_t *);
 extern tcp_conn_t *tcp_conn_find(tcp_sockpair_t *);
 extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
+extern void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);
 extern void tcp_unexpected_segment(tcp_sockpair_t *, tcp_segment_t *);
 extern void tcp_sockpair_flipped(tcp_sockpair_t *, tcp_sockpair_t *);
 extern void tcp_reply_rst(tcp_sockpair_t *, tcp_segment_t *);

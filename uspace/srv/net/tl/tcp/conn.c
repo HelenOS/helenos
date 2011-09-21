@@ -37,6 +37,7 @@
 #include <adt/list.h>
 #include <errno.h>
 #include <io/log.h>
+#include <macros.h>
 #include <stdlib.h>
 #include "conn.h"
 #include "iqueue.h"
@@ -44,6 +45,8 @@
 #include "seq_no.h"
 #include "tcp_type.h"
 #include "tqueue.h"
+
+#define RCV_BUF_SIZE 4096
 
 LIST_INITIALIZE(conn_list);
 
@@ -53,10 +56,24 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 {
 	tcp_conn_t *conn;
 
+	/* Allocate connection structure */
 	conn = calloc(1, sizeof(tcp_conn_t));
 	if (conn == NULL)
 		return NULL;
 
+	/* Allocate receive buffer */
+	conn->rcv_buf_size = RCV_BUF_SIZE;
+	conn->rcv_buf_used = 0;
+	conn->rcv_buf = calloc(1, conn->rcv_buf_size);
+	if (conn->rcv_buf == NULL) {
+		free(conn);
+		return NULL;
+	}
+
+	/* Set up receive window. */
+	conn->rcv_wnd = conn->rcv_buf_size;
+
+	/* Initialize incoming segment queue */
 	tcp_iqueue_init(&conn->incoming, conn);
 
 	conn->cstate = st_listen;
@@ -174,6 +191,8 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->cstate = st_syn_received;
 
 	tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
+
+	tcp_segment_delete(seg);
 }
 
 static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
@@ -224,6 +243,8 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 		conn->cstate = st_syn_received;
 		tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
 	}
+
+	tcp_segment_delete(seg);
 }
 
 static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
@@ -287,12 +308,23 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 
 static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_ack_est(%p, %p)", conn, seg);
+
+	log_msg(LVL_DEBUG, "SEG.ACK=%u, SND.UNA=%u, SND.NXT=%u",
+	    (unsigned)seg->ack, (unsigned)conn->snd_una,
+	    (unsigned)conn->snd_nxt);
+
 	if (!seq_no_ack_acceptable(conn, seg->ack)) {
+		log_msg(LVL_DEBUG, "ACK not acceptable.");
 		if (!seq_no_ack_duplicate(conn, seg->ack)) {
+			log_msg(LVL_WARN, "Not acceptable, not duplicate. "
+			    "Send ACK and drop.");
 			/* Not acceptable, not duplicate. Send ACK and drop. */
 			tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 			tcp_segment_delete(seg);
 			return cp_done;
+		} else {
+			log_msg(LVL_DEBUG, "Ignoring duplicate ACK.");
 		}
 	} else {
 		/* Update SND.UNA */
@@ -400,8 +432,14 @@ static cproc_t tcp_conn_seg_proc_urg(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment text. */
 static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	size_t text_size;
+	size_t xfer_size;
+
+	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_text(%p, %p)", conn, seg);
+
 	switch (conn->cstate) {
 	case st_established:
 	case st_fin_wait_1:
@@ -421,7 +459,45 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 		assert(false);
 	}
 
-	/* TODO Process segment text */
+	/*
+	 * Process segment text
+	 */
+	assert(seq_no_segment_ready(conn, seg));
+
+	/* Trim anything outside our receive window */
+	tcp_conn_trim_seg_to_wnd(conn, seg);
+
+	/* Determine how many bytes to copy */
+	text_size = tcp_segment_text_size(seg);
+	xfer_size = min(text_size, conn->rcv_buf_size - conn->rcv_buf_used);
+
+	/* Copy data to receive buffer */
+	tcp_segment_text_copy(seg, conn->rcv_buf, xfer_size);
+
+	/* Advance RCV.NXT */
+	conn->rcv_nxt += xfer_size;
+
+	/* Update receive window. XXX Not an efficient strategy. */
+	conn->rcv_wnd -= xfer_size;
+
+	/* XXX Signal user that some data arrived. */
+
+	/* Send ACK */
+	if (xfer_size > 0)
+		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
+
+	/* Anything left in the segment? (text, FIN) */
+	if (xfer_size < seg->len) {
+		/*
+		 * Some text or control remains. Insert remainder back
+		 * into the incoming queue.
+		 */
+		tcp_conn_trim_seg_to_wnd(conn, seg);
+		tcp_iqueue_insert_seg(&conn->incoming, seg);
+
+		return cp_done;
+	}
+
 	return cp_continue;
 }
 
@@ -471,6 +547,8 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if (tcp_conn_seg_proc_fin(conn, seg) == cp_done)
 		return;
+
+	tcp_segment_delete(seg);
 }
 
 void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
@@ -495,6 +573,14 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 	case st_closed:
 		assert(false);
 	}
+}
+
+void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	uint32_t left, right;
+
+	seq_no_seg_trim_calc(conn, seg, &left, &right);
+	tcp_segment_trim(seg, left, right);
 }
 
 void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)

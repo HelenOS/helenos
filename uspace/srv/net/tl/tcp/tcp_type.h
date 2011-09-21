@@ -108,6 +108,12 @@ typedef struct tcp_conn {
 	/** Queue of incoming segments */
 	tcp_iqueue_t incoming;
 
+	/** Receive buffer */
+	uint8_t *rcv_buf;
+	/** Receive buffer size */
+	size_t rcv_buf_size;
+	size_t rcv_buf_used;
+
 	/** Send unacknowledged */
 	uint32_t snd_una;
 	/** Send next */
@@ -152,8 +158,10 @@ typedef struct {
 	/** Segment urgent pointer */
 	uint32_t up;
 
-	/** Segment data */
+	/** Segment data, may be moved when trimming segment */
 	void *data;
+	/** Segment data, original pointer used to free data */
+	void *dfptr;
 } tcp_segment_t;
 
 typedef enum {

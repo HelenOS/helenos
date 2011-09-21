@@ -35,13 +35,16 @@
 #ifndef SEGMENT_H
 #define SEGMENT_H
 
+#include <sys/types.h>
 #include "tcp_type.h"
 
 extern tcp_segment_t *tcp_segment_new(void);
 extern void tcp_segment_delete(tcp_segment_t *);
 extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
 extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
-extern size_t tcp_segment_data_len(tcp_segment_t *);
+extern void tcp_segment_trim(tcp_segment_t *, uint32_t, uint32_t);
+extern void tcp_segment_text_copy(tcp_segment_t *, void *, size_t);
+extern size_t tcp_segment_text_size(tcp_segment_t *);
 
 
 #endif
