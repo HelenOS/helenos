@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP sequence numbers
+/** @file Sequence number computations
  */
 
 #ifndef SEQ_NO_H

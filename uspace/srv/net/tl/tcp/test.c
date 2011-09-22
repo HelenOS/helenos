@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file Internal TCP test
  */
 
 #include <async.h>

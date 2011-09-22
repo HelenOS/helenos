@@ -29,9 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP header definitions
- *
- * Based on IETF RFC 793
+/** @file TCP header encoding and decoding
  */
 
 #ifndef HEADER_H

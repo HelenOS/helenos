@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP state machine
+/** @file TCP entry points (close to those defined in the RFC)
  */
 
 #ifndef STATE_H

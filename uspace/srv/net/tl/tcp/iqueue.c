@@ -31,7 +31,9 @@
  */
 
 /**
- * @file
+ * @file Connection incoming segments queue
+ *
+ * Segments are sorted in order of their sequence number.
  */
 
 #include <adt/list.h>
@@ -43,12 +45,22 @@
 #include "seq_no.h"
 #include "tcp_type.h"
 
+/** Initialize incoming segments queue.
+ *
+ * @param iqueue	Incoming queue
+ * @param conn		Connection the queue is associated with
+ */
 void tcp_iqueue_init(tcp_iqueue_t *iqueue, tcp_conn_t *conn)
 {
 	list_initialize(&iqueue->list);
 	iqueue->conn = conn;
 }
 
+/** Insert segment into incoming queue.
+ *
+ * @param iqueue	Incoming queue
+ * @param seg		Segment
+ */
 void tcp_iqueue_insert_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 {
 	tcp_iqueue_entry_t *iqe;
@@ -66,6 +78,15 @@ void tcp_iqueue_insert_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 	list_append(&iqe->link, &iqueue->list);
 }
 
+/** Get next ready segment from incoming queue.
+ *
+ * Return the segment with the earliest sequence number if it is ready.
+ * A segment is ready if its SEG.SEQ is earlier or equal to RCV.NXT.
+ *
+ * @param iqueue	Incoming queue
+ * @param seg		Place to store pointer to segment
+ * @return		EOK on success, ENOENT if no segment is ready
+ */
 int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 {
 	tcp_iqueue_entry_t *iqe;

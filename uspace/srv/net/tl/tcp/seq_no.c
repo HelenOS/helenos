@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file Sequence number computations
  */
 
 #include <assert.h>

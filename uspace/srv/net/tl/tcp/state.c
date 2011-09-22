@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file TCP entry points (close to those defined in the RFC)
  */
 
 #include <io/log.h>

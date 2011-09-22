@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file
+/** @file Internal TCP test
  */
 
 #ifndef TEST_H

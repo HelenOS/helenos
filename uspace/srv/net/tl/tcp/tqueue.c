@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file TCP transmission queue
  */
 
 #include <byteorder.h>

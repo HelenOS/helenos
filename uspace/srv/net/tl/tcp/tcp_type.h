@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file
+/** @file TCP type definitions
  */
 
 #ifndef TCP_TYPE_H

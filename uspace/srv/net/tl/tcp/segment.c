@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file Segment processing
  */
 
 #include <mem.h>
@@ -40,17 +40,22 @@
 #include "seq_no.h"
 #include "tcp_type.h"
 
+/** Alocate new segment structure. */
 tcp_segment_t *tcp_segment_new(void)
 {
 	return calloc(1, sizeof(tcp_segment_t));
 }
 
+/** Delete segment. */
 void tcp_segment_delete(tcp_segment_t *seg)
 {
 	free(seg);
 }
 
-/** Create a control segment. */
+/** Create a control segment.
+ *
+  * @return	Control segment
+ */
 tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t ctrl)
 {
 	tcp_segment_t *seg;
@@ -65,6 +70,11 @@ tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t ctrl)
 	return seg;
 }
 
+/** Create an RST segment.
+ *
+ * @param seg	Segment we are replying to
+ * @return	RST segment
+ */
 tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
 {
 	tcp_segment_t *rseg;
@@ -79,10 +89,15 @@ tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
 	return rseg;
 }
 
-/** Trim segment to the specified interval.
+/** Trim segment from left and right by the specified amount.
  *
- * Trim any text or control whose sequence number is outside of [lo, hi)
- * interval.
+ * Trim any text or control to remove the specified amount of sequence
+ * numbers from the left (lower sequence numbers) and right side
+ * (higher sequence numbers) of the segment.
+ *
+ * @param seg		Segment, will be modified in place
+ * @param left		Amount of sequence numbers to trim from the left
+ * @param right		Amount of sequence numbers to trim from the right
  */
 void tcp_segment_trim(tcp_segment_t *seg, uint32_t left, uint32_t right)
 {
@@ -133,6 +148,13 @@ void tcp_segment_trim(tcp_segment_t *seg, uint32_t left, uint32_t right)
 
 /** Copy out text data from segment.
  *
+ * Data is copied from the beginning of the segment text up to @a size bytes.
+ * @a size must not be greater than the size of the segment text, but
+ * it can be less.
+ *
+ * @param seg	Segment
+ * @param buf	Destination buffer
+ * @param size	Size of destination buffer
  */
 void tcp_segment_text_copy(tcp_segment_t *seg, void *buf, size_t size)
 {
@@ -140,7 +162,11 @@ void tcp_segment_text_copy(tcp_segment_t *seg, void *buf, size_t size)
 	memcpy(buf, seg->data, size);
 }
 
-/** Return number of bytes in segment text. */
+/** Return number of bytes in segment text.
+ *
+ * @param seg	Segment
+ * @return	Number of bytes in segment text
+ */
 size_t tcp_segment_text_size(tcp_segment_t *seg)
 {
 	return seg->len - seq_no_control_len(seg->ctrl);

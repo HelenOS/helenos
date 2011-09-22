@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file TCP header encoding and decoding
  */
 
 #include <byteorder.h>

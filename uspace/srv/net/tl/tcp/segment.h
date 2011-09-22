@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file
+/** @file Segment processing
  */
 
 #ifndef SEGMENT_H

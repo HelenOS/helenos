@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP connections
+/** @file TCP connection processing and state machine
  */
 
 #ifndef CONN_H

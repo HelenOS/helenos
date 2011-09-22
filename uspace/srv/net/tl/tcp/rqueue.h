@@ -29,7 +29,7 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file Global segment reception queue
+/** @file Global segment receive queue
  */
 
 #ifndef RQUEUE_H

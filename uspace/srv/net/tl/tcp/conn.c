@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file TCP connection processing and state machine
  */
 
 #include <adt/list.h>
@@ -52,6 +52,12 @@ LIST_INITIALIZE(conn_list);
 
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
 
+/** Create new segment structure.
+ *
+ * @param lsock		Local socket (will be deeply copied)
+ * @param fsock		Foreign socket (will be deeply copied)
+ * @return		New segment or NULL
+ */
 tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 {
 	tcp_conn_t *conn;
@@ -84,11 +90,20 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	return conn;
 }
 
+/** Enlist connection.
+ *
+ * Add connection to the connection map.
+ */
 void tcp_conn_add(tcp_conn_t *conn)
 {
 	list_append(&conn->link, &conn_list);
 }
 
+/** Synchronize connection.
+ *
+ * This is the first step of an active connection attempt,
+ * sends out SYN and sets up ISS and SND.xxx.
+ */
 void tcp_conn_sync(tcp_conn_t *conn)
 {
 	/* XXX select ISS */
@@ -100,6 +115,11 @@ void tcp_conn_sync(tcp_conn_t *conn)
 	conn->cstate = st_syn_sent;
 }
 
+/** Compare two sockets.
+ *
+ * Two sockets are equal if the address is equal and the port number
+ * is equal.
+ */
 static bool tcp_socket_equal(tcp_sock_t *a, tcp_sock_t *b)
 {
 	log_msg(LVL_DEBUG, "tcp_socket_equal((%x,%u), (%x,%u))",
@@ -116,6 +136,7 @@ static bool tcp_socket_equal(tcp_sock_t *a, tcp_sock_t *b)
 	return true;
 }
 
+/** Match socket with pattern. */
 static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 {
 	log_msg(LVL_DEBUG, "tcp_sockpair_match(%p, %p)", sp, pattern);
@@ -129,6 +150,14 @@ static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 	return true;
 }
 
+/** Find connection structure for specified socket pair.
+ *
+ * A connection is uniquely identified by a socket pair. Look up our
+ * connection map and return connection structure based on socket pair.
+ *
+ * @param sp	Socket pair
+ * @return	Connection structure or NULL if not found.
+ */
 tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_find(%p)", sp);
@@ -143,6 +172,11 @@ tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
 	return NULL;
 }
 
+/** Segment arrived in Listen state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ */
 static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_sa_listen(%p, %p)", conn, seg);
@@ -195,6 +229,11 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_delete(seg);
 }
 
+/** Segment arrived in Syn-Sent state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ */
 static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_sa_syn_sent(%p, %p)", conn, seg);
@@ -247,6 +286,13 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_delete(seg);
 }
 
+/** Segment arrived in state where segments are processed in sequence order.
+ *
+ * Queue segment in incoming segments queue for processing.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ */
 static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	tcp_segment_t *pseg;
@@ -268,24 +314,52 @@ static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
 		tcp_conn_seg_process(conn, pseg);
 }
 
+/** Process segment RST field.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_rst(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	/* TODO */
 	return cp_continue;
 }
 
+/** Process segment security and precedence fields.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_sp(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	/* TODO */
 	return cp_continue;
 }
 
+/** Process segment SYN field.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_syn(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	/* TODO */
 	return cp_continue;
 }
 
+/** Process segment ACK field in Syn-Received state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	if (!seq_no_ack_acceptable(conn, seg->ack)) {
@@ -306,6 +380,13 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment ACK field in Established state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_ack_est(%p, %p)", conn, seg);
@@ -343,6 +424,13 @@ static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment ACK field in Fin-Wait-1 state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
@@ -352,6 +440,13 @@ static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment ACK field in Fin-Wait-2 state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_fw2(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
@@ -361,12 +456,26 @@ static cproc_t tcp_conn_seg_proc_ack_fw2(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment ACK field in Close-Wait state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_cw(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	/* The same processing as in Established state */
 	return tcp_conn_seg_proc_ack_est(conn, seg);
 }
 
+/** Process segment ACK field in Closing state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_cls(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
@@ -376,6 +485,13 @@ static cproc_t tcp_conn_seg_proc_ack_cls(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment ACK field in Last-Ack state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
@@ -385,12 +501,26 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment ACK field in Time-Wait state.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack_tw(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	/* Nothing to do */
 	return cp_continue;
 }
 
+/** Process segment ACK field.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_ack(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_ack(%p, %p)", conn, seg);
@@ -427,12 +557,25 @@ static cproc_t tcp_conn_seg_proc_ack(tcp_conn_t *conn, tcp_segment_t *seg)
 	assert(false);
 }
 
+/** Process segment URG field.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_urg(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	return cp_continue;
 }
 
-/** Process segment text. */
+/** Process segment text.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	size_t text_size;
@@ -501,6 +644,13 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	return cp_continue;
 }
 
+/** Process segment FIN field.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ * @return		cp_done if we are done with this segment, cp_continue
+ *			if not
+ */
 static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	return cp_continue;
@@ -511,6 +661,9 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
  * We are in connection state where segments are processed in order
  * of sequence number. This processes one segment taken from the
  * connection incoming segments queue.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
  */
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 {
@@ -551,6 +704,11 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_delete(seg);
 }
 
+/** Segment arrived on a connection.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ */
 void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_segment_arrived(%p, %p)", conn, seg);
@@ -575,6 +733,11 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 	}
 }
 
+/** Trim segment to the receive window.
+ *
+ * @param conn		Connection
+ * @param seg		Segment
+ */
 void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	uint32_t left, right;
@@ -583,6 +746,13 @@ void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_trim(seg, left, right);
 }
 
+/** Handle unexpected segment received on a socket pair.
+ *
+ * We reply with an RST unless the received segment has RST.
+ *
+ * @param sp		Socket pair which received the segment
+ * @param seg		Unexpected segment
+ */
 void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", sp, seg);
@@ -591,13 +761,24 @@ void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 		tcp_reply_rst(sp, seg);
 }
 
+/** Compute flipped socket pair for response.
+ *
+ * Flipped socket pair has local and foreign sockes exchanged.
+ *
+ * @param sp		Socket pair
+ * @param fsp		Place to store flipped socket pair
+ */
 void tcp_sockpair_flipped(tcp_sockpair_t *sp, tcp_sockpair_t *fsp)
 {
 	fsp->local = sp->foreign;
 	fsp->foreign = sp->local;
 }
 
-/** Send RST in response to an incoming segment. */
+/** Send RST in response to an incoming segment.
+ *
+ * @param sp		Socket pair which received the segment
+ * @param seg		Incoming segment
+ */
 void tcp_reply_rst(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_sockpair_t rsp;

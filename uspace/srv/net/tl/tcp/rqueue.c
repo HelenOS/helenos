@@ -31,7 +31,7 @@
  */
 
 /**
- * @file
+ * @file Global segment receive queue
  */
 
 #include <adt/prodcons.h>
@@ -39,12 +39,14 @@
 #include <io/log.h>
 #include <stdlib.h>
 #include <thread.h>
+#include "conn.h"
 #include "rqueue.h"
 #include "state.h"
 #include "tcp_type.h"
 
 static prodcons_t rqueue;
 
+/** Initialize segment receive queue. */
 void tcp_rqueue_init(void)
 {
 	prodcons_initialize(&rqueue);
@@ -53,6 +55,9 @@ void tcp_rqueue_init(void)
 /** Bounce segment directy into receive queue without constructing the PDU.
  *
  * This is for testing purposes only.
+ *
+ * @param sp	Socket pair, oriented for transmission
+ * @param seg	Segment
  */
 void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
@@ -61,12 +66,16 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	log_msg(LVL_DEBUG, "tcp_rqueue_bounce_seg()");
 
 	/* Reverse the identification */
-	rident.local = sp->foreign;
-	rident.foreign = sp->local;
+	tcp_sockpair_flipped(sp, &rident);
 
 	tcp_rqueue_insert_seg(&rident, seg);
 }
 
+/** Insert segment into receive queue.
+ *
+ * @param sp	Socket pair, oriented for reception
+ * @param seg	Segment
+ */
 void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_rqueue_entry_t *rqe;
@@ -84,6 +93,7 @@ void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	prodcons_produce(&rqueue, &rqe->link);
 }
 
+/** Receive queue handler thread. */
 static void tcp_rqueue_thread(void *arg)
 {
 	link_t *link;
@@ -99,6 +109,7 @@ static void tcp_rqueue_thread(void *arg)
 	}
 }
 
+/** Start receive queue handler thread. */
 void tcp_rqueue_thread_start(void)
 {
 	thread_id_t tid;
