@@ -33,82 +33,18 @@
  * @brief various utilities
  */
 #include <ddf/driver.h>
-#include <bool.h>
 #include <errno.h>
 
 #include <usbhc_iface.h>
 #include <usb/descriptor.h>
 #include <usb/classes/hub.h>
+#include <usb/debug.h>
+
 
 #include "usbhub.h"
 #include "utils.h"
 
 
-size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;
-
-//*********************************************
-//
-//  various utils
-//
-//*********************************************
-
-//hub descriptor utils
-
-/**
- * create uint8_t array with serialized descriptor
- *
- * @param descriptor
- * @return newly created serializd descriptor pointer
- */
-void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t *descriptor) {
-	//base size
-	size_t size = 7;
-	//variable size according to port count
-	size_t var_size = (descriptor->ports_count + 7) / 8;
-	size += 2 * var_size;
-	uint8_t *result = malloc(size);
-	//size
-	if (result)
-		usb_serialize_hub_descriptor(descriptor, result);
-	return result;
-}
-
-/**
- * serialize descriptor into given buffer
- *
- * The buffer size is not checked.
- * @param descriptor
- * @param serialized_descriptor
- */
-void usb_serialize_hub_descriptor(usb_hub_descriptor_t *descriptor,
-    void *serialized_descriptor)
-{
-	//base size
-	uint8_t *sdescriptor = serialized_descriptor;
-	size_t size = 7;
-	//variable size according to port count
-	size_t var_size = (descriptor->ports_count + 7) / 8;
-	size += 2 * var_size;
-	//size
-	sdescriptor[0] = size;
-	//descriptor type
-	sdescriptor[1] = USB_DESCTYPE_HUB;
-	sdescriptor[2] = descriptor->ports_count;
-	/// @fixme handling of endianness??
-	sdescriptor[3] = descriptor->hub_characteristics / 256;
-	sdescriptor[4] = descriptor->hub_characteristics % 256;
-	sdescriptor[5] = descriptor->pwr_on_2_good_time;
-	sdescriptor[6] = descriptor->current_requirement;
-
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
-		sdescriptor[7 + i] = descriptor->devices_removable[i];
-	}
-	for (i = 0; i < var_size; ++i) {
-		sdescriptor[7 + var_size + i] = 255;
-	}
-}
-/*----------------------------------------------------------------------------*/
 /**
  * Deserialize descriptor into given pointer
  *

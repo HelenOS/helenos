@@ -37,23 +37,9 @@
 #ifndef USBHUB_UTILS_H
 #define USBHUB_UTILS_H
 
-#include <adt/list.h>
-#include <bool.h>
-#include <ddf/driver.h>
-#include <fibril_synch.h>
-
-#include <usb/classes/hub.h>
 #include <usb/usb.h>
-#include <usb/debug.h>
-#include <usb/dev/request.h>
 
-#include "usbhub.h"
-
-
-void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t *descriptor);
-
-void usb_serialize_hub_descriptor(usb_hub_descriptor_t *descriptor,
-    void *serialized_descriptor);
+#define USB_HUB_MAX_DESCRIPTOR_SIZE 71
 
 int usb_deserialize_hub_desriptor(
     void *serialized_descriptor, size_t size, usb_hub_descriptor_t *descriptor);

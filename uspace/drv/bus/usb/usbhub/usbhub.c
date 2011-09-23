@@ -40,6 +40,7 @@
 #include <stdio.h>
 
 #include <usb/usb.h>
+#include <usb/debug.h>
 #include <usb/dev/pipes.h>
 #include <usb/classes/classes.h>
 #include <usb/ddfiface.h>
