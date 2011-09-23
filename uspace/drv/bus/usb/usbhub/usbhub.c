@@ -53,7 +53,6 @@
 #include <usb_iface.h>
 
 #include "usbhub.h"
-#include "utils.h"
 #include "port_status.h"
 
 #define HUB_FNC_NAME "hub"
@@ -241,31 +240,21 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 	/* Get hub descriptor. */
 	usb_log_debug("Retrieving descriptor\n");
 	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
-	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
-	int opResult;
 
+	usb_hub_descriptor_header_t descriptor;
 	size_t received_size;
-	opResult = usb_request_get_descriptor(control_pipe,
+	int opResult = usb_request_get_descriptor(control_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DESCTYPE_HUB, 0, 0, serialized_descriptor,
-	    USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
-
+	    USB_DESCTYPE_HUB, 0, 0, &descriptor,
+	    sizeof(usb_hub_descriptor_t), &received_size);
 	if (opResult != EOK) {
 		usb_log_error("Failed to receive hub descriptor: %s.\n",
 		    str_error(opResult));
 		return opResult;
 	}
-	usb_log_debug2("Parsing descriptor\n");
-	usb_hub_descriptor_t descriptor;
-	opResult = usb_deserialize_hub_desriptor(
-	        serialized_descriptor, received_size, &descriptor);
-	if (opResult != EOK) {
-		usb_log_error("Could not parse descriptor: %s\n",
-		    str_error(opResult));
-		return opResult;
-	}
-	usb_log_debug("Setting port count to %d.\n", descriptor.ports_count);
-	hub_info->port_count = descriptor.ports_count;
+
+	usb_log_debug("Setting port count to %d.\n", descriptor.port_count);
+	hub_info->port_count = descriptor.port_count;
 
 	// TODO Why +1 ?
 	hub_info->ports =
@@ -280,10 +269,10 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 	}
 
 	const bool is_power_switched =
-	    !(descriptor.hub_characteristics & HUB_CHAR_NO_POWER_SWITCH_FLAG);
+	    !(descriptor.characteristics & HUB_CHAR_NO_POWER_SWITCH_FLAG);
 	if (is_power_switched) {
 		usb_log_debug("Hub power switched\n");
-		const bool per_port_power = descriptor.hub_characteristics
+		const bool per_port_power = descriptor.characteristics
 		    & HUB_CHAR_POWER_PER_PORT_FLAG;
 
 		for (port = 1; port <= hub_info->port_count; ++port) {
@@ -302,7 +291,6 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 				}
 			}
 		}
-
 	} else {
 		usb_log_debug("Power not switched, ports always powered\n");
 	}

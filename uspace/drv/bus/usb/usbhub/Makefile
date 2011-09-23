@@ -43,7 +43,6 @@ BINARY = usbhub
 
 SOURCES = \
 	main.c \
-	utils.c \
 	usbhub.c \
 	port.c
 

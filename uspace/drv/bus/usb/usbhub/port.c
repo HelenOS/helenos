@@ -44,7 +44,6 @@
 
 #include "port.h"
 #include "usbhub.h"
-#include "utils.h"
 #include "port_status.h"
 
 /** Information for fibril for device discovery. */
