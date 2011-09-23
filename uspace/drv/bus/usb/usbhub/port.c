@@ -72,17 +72,18 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
  * @param feature Feature selector
  * @return Operation result
  */
-int usb_hub_clear_port_feature(usb_pipe_t *pipe,
-    int port_index, usb_hub_class_feature_t feature)
+int usb_hub_clear_port_feature(
+    usb_hub_port_t *port, usb_hub_class_feature_t feature)
 {
+	assert(port);
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
 		.request = USB_DEVREQ_CLEAR_FEATURE,
 		.value = feature,
-		.index = port_index,
+		.index = port->port_number,
 		.length = 0,
 	};
-	return usb_pipe_control_write(pipe, &clear_request,
+	return usb_pipe_control_write(port->control_pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
 /*----------------------------------------------------------------------------*/
@@ -95,18 +96,18 @@ int usb_hub_clear_port_feature(usb_pipe_t *pipe,
  * @param feature Feature selector
  * @return Operation result
  */
-int usb_hub_set_port_feature(usb_pipe_t *pipe,
-    int port_index, usb_hub_class_feature_t feature)
+int usb_hub_set_port_feature(
+    usb_hub_port_t *port, usb_hub_class_feature_t feature)
 {
-
+	assert(port);
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
 		.request = USB_DEVREQ_SET_FEATURE,
-		.index = port_index,
+		.index = port->port_number,
 		.value = feature,
 		.length = 0,
 	};
-	return usb_pipe_control_write(pipe, &clear_request,
+	return usb_pipe_control_write(port->control_pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
 
@@ -138,8 +139,8 @@ void usb_hub_process_port_interrupt(usb_hub_info_t *hub, size_t port)
 		    port, device_connected ? "attached" : "removed");
 		/* ACK the change */
 		const int opResult =
-		    usb_hub_clear_port_feature(hub->control_pipe,
-		    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+		    usb_hub_clear_port_feature(&hub->ports[port],
+		        USB_HUB_FEATURE_C_PORT_CONNECTION);
 		if (opResult != EOK) {
 			usb_log_warning("Failed to clear "
 			    "port-change-connection flag: %s.\n",
@@ -265,8 +266,8 @@ static void usb_hub_port_reset_completed(const usb_hub_info_t *hub,
 	fibril_mutex_unlock(&the_port->reset_mutex);
 
 	/* Clear the port reset change. */
-	int rc = usb_hub_clear_port_feature(hub->control_pipe,
-	    port, USB_HUB_FEATURE_C_PORT_RESET);
+	int rc = usb_hub_clear_port_feature(&hub->ports[port],
+	    USB_HUB_FEATURE_C_PORT_RESET);
 	if (rc != EOK) {
 		usb_log_error("Failed to clear port %d reset feature: %s.\n",
 		    port, str_error(rc));
@@ -325,11 +326,9 @@ static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
  */
 static int enable_port_callback(int port_no, void *arg)
 {
-	usb_hub_info_t *hub = arg;
-	assert(hub);
-	usb_hub_port_t *my_port = hub->ports + port_no;
-	const int rc = usb_hub_set_port_feature(hub->control_pipe,
-		port_no, USB_HUB_FEATURE_PORT_RESET);
+	usb_hub_port_t *port = arg;
+	const int rc =
+	    usb_hub_set_port_feature(port, USB_HUB_FEATURE_PORT_RESET);
 	if (rc != EOK) {
 		usb_log_warning("Port reset failed: %s.\n", str_error(rc));
 		return rc;
@@ -338,13 +337,13 @@ static int enable_port_callback(int port_no, void *arg)
 	/*
 	 * Wait until reset completes.
 	 */
-	fibril_mutex_lock(&my_port->reset_mutex);
-	while (!my_port->reset_completed) {
-		fibril_condvar_wait(&my_port->reset_cv, &my_port->reset_mutex);
+	fibril_mutex_lock(&port->reset_mutex);
+	while (!port->reset_completed) {
+		fibril_condvar_wait(&port->reset_cv, &port->reset_mutex);
 	}
-	fibril_mutex_unlock(&my_port->reset_mutex);
+	fibril_mutex_unlock(&port->reset_mutex);
 
-	if (my_port->reset_okay) {
+	if (port->reset_okay) {
 		return EOK;
 	} else {
 		return ESTALL;
@@ -369,7 +368,8 @@ static int add_device_phase1_worker_fibril(void *arg)
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
 	    &data->hub->connection, data->speed,
-	    enable_port_callback, (int) data->port, data->hub,
+	    enable_port_callback, (int) data->port,
+	    &data->hub->ports[data->port],
 	    &new_address, &child_handle,
 	    NULL, NULL, NULL);
 

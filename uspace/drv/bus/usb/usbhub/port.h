@@ -43,6 +43,8 @@ typedef struct usb_hub_info_t usb_hub_info_t;
 
 /** Information about single port on a hub. */
 typedef struct {
+	size_t port_number;
+	usb_pipe_t *control_pipe;
 	/** Mutex needed by CV for checking port reset. */
 	fibril_mutex_t reset_mutex;
 	/** CV for waiting to port reset completion. */
@@ -62,21 +64,24 @@ typedef struct {
  *
  * @param port Port to be initialized.
  */
-static inline void usb_hub_port_init(usb_hub_port_t *port)
+static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
+    usb_pipe_t *control_pipe)
 {
 	assert(port);
 	port->attached_device.address = -1;
 	port->attached_device.handle = 0;
+	port->port_number = port_number;
+	port->control_pipe = control_pipe;
 	fibril_mutex_initialize(&port->reset_mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }
 
 
 void usb_hub_process_port_interrupt(usb_hub_info_t *hub, size_t port);
-int usb_hub_clear_port_feature(usb_pipe_t *pipe,
-    int port_index, usb_hub_class_feature_t feature);
-int usb_hub_set_port_feature(usb_pipe_t *pipe,
-    int port_index, usb_hub_class_feature_t feature);
+int usb_hub_clear_port_feature(
+    usb_hub_port_t *port, usb_hub_class_feature_t feature);
+int usb_hub_set_port_feature(
+    usb_hub_port_t *port, usb_hub_class_feature_t feature);
 
 
 #endif

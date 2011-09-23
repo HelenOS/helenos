@@ -276,7 +276,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 
 	size_t port;
 	for (port = 0; port < hub_info->port_count + 1; ++port) {
-		usb_hub_port_init(&hub_info->ports[port]);
+		usb_hub_port_init(&hub_info->ports[port], port, control_pipe);
 	}
 
 	const bool is_power_switched =
@@ -289,7 +289,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
 			opResult = usb_hub_set_port_feature(
-			    control_pipe, port, USB_HUB_FEATURE_PORT_POWER);
+			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_error("Cannot power on port %zu: %s.\n",
 				    port, str_error(opResult));
@@ -360,7 +360,6 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 static void usb_hub_over_current(const usb_hub_info_t *hub_info,
     usb_hub_status_t status)
 {
-	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
 		/* Over-current detected on one or all ports,
 		 * switch them all off to prevent damage. */
@@ -368,7 +367,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			const int opResult = usb_hub_clear_port_feature(
-			    control_pipe, port, USB_HUB_FEATURE_PORT_POWER);
+			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT: Cannot power off port"
@@ -382,7 +381,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			const int opResult = usb_hub_set_port_feature(
-			    control_pipe, port, USB_HUB_FEATURE_PORT_POWER);
+			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT GONE: Cannot power on "
