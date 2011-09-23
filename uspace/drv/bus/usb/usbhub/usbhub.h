@@ -63,13 +63,6 @@ struct usb_hub_info_t {
 	/** Connection to hcd */
 	usb_hc_connection_t connection;
 
-	/** default address is used indicator
-	 *
-	 * If default address is requested by this device, it cannot
-	 * be requested by the same hub again, otherwise a deadlock will occur.
-	 */
-	bool is_default_address_used;
-
 	/** Convenience pointer to control pipe
 	 *
 	 * Control pipe is initialized in usb_device structure. This is

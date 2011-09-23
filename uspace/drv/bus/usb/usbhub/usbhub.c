@@ -154,7 +154,7 @@ int usb_hub_add_device(usb_device_t *usb_dev)
 
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Callback for polling hub for changes.
  *
  * @param dev Device where the change occured.
@@ -195,14 +195,7 @@ leave:
 
 	return true;
 }
-
-
-//*********************************************
-//
-//  support functions
-//
-//*********************************************
-
+/*----------------------------------------------------------------------------*/
 /**
  * create usb_hub_info_t structure
  *
@@ -219,7 +212,6 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 
 	info->usb_device = usb_dev;
 	info->control_pipe = &usb_dev->ctrl_pipe;
-	info->is_default_address_used = false;
 
 	info->ports = NULL;
 	info->port_count = -1;
@@ -230,7 +222,7 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 
 	return info;
 }
-
+/*----------------------------------------------------------------------------*/
 /**
  * Load hub-specific information into hub_info structure and process if needed
  *
