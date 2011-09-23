@@ -68,23 +68,16 @@ static const usb_device_request_setup_packet_t get_hub_status_request = {
 static int usb_set_first_configuration(usb_device_t *usb_device);
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev);
 static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info);
-static void usb_process_hub_over_current(usb_hub_info_t *hub_info,
+static void usb_hub_over_current(const usb_hub_info_t *hub_info,
     usb_hub_status_t status);
-static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info);
+static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info);
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
     bool was_error, void *data);
-
-
-//*********************************************
-//
-//  hub driver code, initialization
-//
-//*********************************************
 
 /**
  * Initialize hub device driver fibril
  *
- * Creates hub representation and fibril that periodically checks hub`s status.
+ * Creates hub representation and fibril that periodically checks hub's status.
  * Hub representation is passed to the fibril.
  * @param usb_dev generic usb device information
  * @return error code
@@ -184,7 +177,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	/* Lowest bit indicates global change */
 	const bool change = change_bitmap[0] & 1;
 	if (change) {
-		usb_hub_process_global_interrupt(hub);
+		usb_hub_global_interrupt(hub);
 	}
 
 	/* N + 1 bit indicates change on port N */
@@ -220,29 +213,29 @@ leave:
 static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	usb_hub_info_t *result = malloc(sizeof(usb_hub_info_t));
-	if (!result)
+	usb_hub_info_t *info = malloc(sizeof(usb_hub_info_t));
+	if (!info)
 	    return NULL;
 
-	result->usb_device = usb_dev;
-	result->control_pipe = &usb_dev->ctrl_pipe;
-	result->is_default_address_used = false;
+	info->usb_device = usb_dev;
+	info->control_pipe = &usb_dev->ctrl_pipe;
+	info->is_default_address_used = false;
 
-	result->ports = NULL;
-	result->port_count = -1;
-	fibril_mutex_initialize(&result->port_mutex);
-	fibril_mutex_initialize(&result->pending_ops_mutex);
-	fibril_condvar_initialize(&result->pending_ops_cv);
-	result->pending_ops_count = 0;
+	info->ports = NULL;
+	info->port_count = -1;
+	fibril_mutex_initialize(&info->port_mutex);
+	fibril_mutex_initialize(&info->pending_ops_mutex);
+	fibril_condvar_initialize(&info->pending_ops_cv);
+	info->pending_ops_count = 0;
 
-	return result;
+	return info;
 }
 
 /**
  * Load hub-specific information into hub_info structure and process if needed
  *
- * Particularly read port count and initialize structure holding port
- * information. If there are non-removable devices, start initializing them.
+ * Read port count and initialize structures holding per port information.
+ * If there are any non-removable devices, start initializing them.
  * This function is hub-specific and should be run only after the hub is
  * configured using usb_set_first_configuration function.
  * @param hub_info hub representation
@@ -251,7 +244,8 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 {
 	assert(hub_info);
-	// get hub descriptor
+
+	/* Get hub descriptor. */
 	usb_log_debug("Retrieving descriptor\n");
 	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
 	int opResult;
@@ -321,7 +315,7 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 	}
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /**
  * Set configuration of and USB device
  *
@@ -349,35 +343,28 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	    usb_device->descriptors.configuration;
 
 	/* Set configuration. Use the configuration that was in
-	 * usb_device->descriptors.configuration */
+	 * usb_device->descriptors.configuration i.e. The first one. */
 	const int opResult = usb_request_set_configuration(
 	    &usb_device->ctrl_pipe, config_descriptor->configuration_number);
 	if (opResult != EOK) {
 		usb_log_error("Failed to set hub configuration: %s.\n",
 		    str_error(opResult));
-		return opResult;
+	} else {
+		usb_log_debug("\tUsed configuration %d\n",
+		    config_descriptor->configuration_number);
 	}
-	usb_log_debug("\tUsed configuration %d\n",
-	    config_descriptor->configuration_number);
-
-	return EOK;
+	return opResult;
 }
-
-//*********************************************
-//
-//  change handling functions
-//
-//*********************************************
-
+/*----------------------------------------------------------------------------*/
 /**
- * process hub over current change
+ * Process hub over current change
  *
  * This means either to power off the hub or power it on.
  * @param hub_info hub instance
  * @param status hub status bitmask
  * @return error code
  */
-static void usb_process_hub_over_current(usb_hub_info_t *hub_info,
+static void usb_hub_over_current(const usb_hub_info_t *hub_info,
     usb_hub_status_t status)
 {
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
@@ -415,24 +402,23 @@ static void usb_process_hub_over_current(usb_hub_info_t *hub_info,
 }
 /*----------------------------------------------------------------------------*/
 /**
- * process hub interrupts
+ * Process hub interrupts.
  *
- * The change can be either in the over-current condition or
- * local-power change.
+ * The change can be either in the over-current condition or local-power change.
  * @param hub_info hub instance
  */
-static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info)
+static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
 {
 	assert(hub_info);
 	assert(hub_info->usb_device);
 	usb_log_debug("Global interrupt on a hub\n");
 	usb_pipe_t *ctrlpipe = &hub_info->usb_device->ctrl_pipe;
-	int opResult;
 
 	usb_hub_status_t status;
 	size_t rcvd_size;
-
-	opResult = usb_pipe_control_read(
+	/* NOTE: We can't use standard USB GET_STATUS request, because
+	 * hubs reply is 4byte instead of 2 */
+	const int opResult = usb_pipe_control_read(
 	    ctrlpipe, &get_hub_status_request, sizeof(get_hub_status_request),
 	    &status, sizeof(usb_hub_status_t), &rcvd_size);
 	if (opResult != EOK) {
@@ -447,7 +433,7 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info)
 
 	/* Handle status changes */
 	if (status & USB_HUB_STATUS_C_OVER_CURRENT)
-		usb_process_hub_over_current(hub_info, status);
+		usb_hub_over_current(hub_info, status);
 
 	if (status & USB_HUB_STATUS_C_LOCAL_POWER) {
 		/* NOTE: Handling this is more complicated.
@@ -472,7 +458,7 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info)
 		}
 	}
 }
-
+/*----------------------------------------------------------------------------*/
 /**
  * callback called from hub polling fibril when the fibril terminates
  *
@@ -482,8 +468,9 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t *hub_info)
  * @param data pointer to usb_hub_info_t structure
  */
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
-    bool was_error, void *data) {
-	usb_hub_info_t * hub = data;
+    bool was_error, void *data)
+{
+	usb_hub_info_t *hub = data;
 	assert(hub);
 
 	fibril_mutex_lock(&hub->pending_ops_mutex);
@@ -521,10 +508,6 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 	free(hub->ports);
 	free(hub);
 }
-
-
-
-
 /**
  * @}
  */
