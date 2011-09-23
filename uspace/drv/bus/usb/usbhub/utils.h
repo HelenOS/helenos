@@ -49,29 +49,6 @@
 
 #include "usbhub.h"
 
-//************
-//
-// convenience define for malloc
-//
-//************
-
-/**
- * Set the device request to be a get hub descriptor request.
- * @warning the size is allways set to USB_HUB_MAX_DESCRIPTOR_SIZE
- * @param request
- * @param addr
- */
-static inline void usb_hub_set_descriptor_request(
-    usb_device_request_setup_packet_t *request )
-{
-	request->index = 0;
-	request->request_type = USB_HUB_REQ_TYPE_GET_DESCRIPTOR;
-	request->request = USB_HUB_REQUEST_GET_DESCRIPTOR;
-	request->value_high = USB_DESCTYPE_HUB;
-	request->value_low = 0;
-	request->length = USB_HUB_MAX_DESCRIPTOR_SIZE;
-}
-
 /**
  * Clear feature on hub port.
  *
@@ -114,49 +91,6 @@ static inline int usb_hub_set_port_feature(usb_pipe_t *pipe,
 		.request = USB_DEVREQ_SET_FEATURE,
 		.length = 0,
 		.index = port_index
-	};
-	clear_request.value = feature;
-	return usb_pipe_control_write(pipe, &clear_request,
-	    sizeof (clear_request), NULL, 0);
-}
-
-/**
- * Clear feature on hub port.
- *
- * @param pipe pipe to hub control endpoint
- * @param feature Feature selector
- * @return Operation result
- */
-static inline int usb_hub_clear_feature(usb_pipe_t *pipe,
-    usb_hub_class_feature_t feature) {
-
-	usb_device_request_setup_packet_t clear_request = {
-		.request_type = USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE,
-		.request = USB_DEVREQ_CLEAR_FEATURE,
-		.length = 0,
-		.index = 0
-	};
-	clear_request.value = feature;
-	return usb_pipe_control_write(pipe, &clear_request,
-	    sizeof (clear_request), NULL, 0);
-}
-
-/**
- * Clear feature on hub port.
- *
- * @param pipe pipe to hub control endpoint
- * @param feature Feature selector
- * @return Operation result
- */
-static inline int usb_hub_set_feature(usb_pipe_t *pipe,
-    usb_hub_class_feature_t feature)
-{
-
-	usb_device_request_setup_packet_t clear_request = {
-		.request_type = USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE,
-		.request = USB_DEVREQ_SET_FEATURE,
-		.length = 0,
-		.index = 0
 	};
 	clear_request.value = feature;
 	return usb_pipe_control_write(pipe, &clear_request,

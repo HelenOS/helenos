@@ -58,9 +58,9 @@
 
 /** Standard get hub global status request */
 static const usb_device_request_setup_packet_t get_hub_status_request = {
-	.index = 0,
 	.request_type = USB_HUB_REQ_TYPE_GET_HUB_STATUS,
 	.request = USB_HUB_REQUEST_GET_STATUS,
+	.index = 0,
 	.value = 0,
 	.length = sizeof(usb_hub_status_t),
 };
@@ -440,11 +440,13 @@ static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
 		 * implemented.
 		 * Just ACK the change.
 		 */
-		const int opResult = usb_hub_clear_feature(
-		    control_pipe, USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+		const int opResult = usb_request_clear_feature(
+		    control_pipe, USB_REQUEST_TYPE_CLASS,
+		    USB_REQUEST_RECIPIENT_DEVICE,
+		    USB_HUB_FEATURE_C_HUB_LOCAL_POWER, 0);
 		if (opResult != EOK) {
-			usb_log_error("Cannot clear hub power change flag: "
-			    "%s\n",
+			usb_log_error(
+			    "Failed to clear hub power change flag: %s.\n",
 			    str_error(opResult));
 		}
 	}
