@@ -154,7 +154,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * Check for duplicit registrations.
 	 */
 	if (fs_name_to_handle(fs_info->vfs_info.instance,
-			fs_info->vfs_info.name, false)) {
+	    fs_info->vfs_info.name, false)) {
 		/*
 		 * We already register a fs like this.
 		 */
@@ -307,7 +307,7 @@ fs_handle_t fs_name_to_handle(unsigned int instance, char *name, bool lock)
 	list_foreach(fs_list, cur) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (str_cmp(fs->vfs_info.name, name) == 0 &&
-				instance == fs->vfs_info.instance) {
+		    instance == fs->vfs_info.instance) {
 			handle = fs->fs_handle;
 			break;
 		}

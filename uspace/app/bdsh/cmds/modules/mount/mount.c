@@ -106,7 +106,7 @@ int cmd_mount(char **argv)
 	rc = mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
 	if (rc != EOK) {
 		printf("Unable to mount %s filesystem to %s on %s (rc=%d)\n",
-			t_argv[1], t_argv[2], t_argv[3], rc);
+		    t_argv[1], t_argv[2], t_argv[3], rc);
 		return CMD_FAILURE;
 	}
 

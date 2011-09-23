@@ -181,7 +181,7 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 
 	sysarg_t rc_orig;
 	aid_t req = async_send_3(exch, VFS_IN_MOUNT, service_id, flags,
-			instance, NULL);
+	    instance, NULL);
 	sysarg_t rc = async_data_write_start(exch, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
