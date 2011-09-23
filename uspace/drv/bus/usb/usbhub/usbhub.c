@@ -53,7 +53,7 @@
 #include <usb_iface.h>
 
 #include "usbhub.h"
-#include "port_status.h"
+#include "status.h"
 
 #define HUB_FNC_NAME "hub"
 

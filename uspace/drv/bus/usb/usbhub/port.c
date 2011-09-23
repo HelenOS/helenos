@@ -44,7 +44,7 @@
 
 #include "port.h"
 #include "usbhub.h"
-#include "port_status.h"
+#include "status.h"
 
 /** Information for fibril for device discovery. */
 struct add_device_phase1 {
