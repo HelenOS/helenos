@@ -404,8 +404,9 @@ static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
 	}
 
 	/* Handle status changes */
-	if (status & USB_HUB_STATUS_C_OVER_CURRENT)
+	if (status & USB_HUB_STATUS_C_OVER_CURRENT) {
 		usb_hub_over_current(hub_info, status);
+	}
 
 	if (status & USB_HUB_STATUS_C_LOCAL_POWER) {
 		/* NOTE: Handling this is more complicated.

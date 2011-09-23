@@ -46,27 +46,33 @@
  *
  */
 typedef uint32_t usb_port_status_t;
-// TODO Mind the endiannes, changes are in the first byte of the second word
-// status is in the first byte of the first word
-#define USB_HUB_PORT_STATUS_CONNECTION (1 << (USB_HUB_FEATURE_PORT_CONNECTION))
-#define USB_HUB_PORT_STATUS_ENABLED (1 << (USB_HUB_FEATURE_PORT_ENABLE))
-#define USB_HUB_PORT_STATUS_SUSPEND (1 << (USB_HUB_FEATURE_PORT_SUSPEND))
-#define USB_HUB_PORT_STATUS_OC (1 << (USB_HUB_FEATURE_PORT_OVER_CURRENT))
-#define USB_HUB_PORT_STATUS_RESET (1 << (USB_HUB_FEATURE_PORT_RESET))
-#define USB_HUB_PORT_STATUS_POWER (1 << (USB_HUB_FEATURE_PORT_POWER))
-#define USB_HUB_PORT_STATUS_LOW_SPEED (1 << (USB_HUB_FEATURE_PORT_LOW_SPEED))
-#define USB_HUB_PORT_STATUS_HIGH_SPEED (1 << 10)
+#define USB_HUB_PORT_STATUS_CONNECTION \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_CONNECTION)))
+#define USB_HUB_PORT_STATUS_ENABLED \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_ENABLE)))
+#define USB_HUB_PORT_STATUS_SUSPEND \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_SUSPEND)))
+#define USB_HUB_PORT_STATUS_OC \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_OVER_CURRENT)))
+#define USB_HUB_PORT_STATUS_RESET \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_RESET)))
+#define USB_HUB_PORT_STATUS_POWER \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_POWER)))
+#define USB_HUB_PORT_STATUS_LOW_SPEED \
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_LOW_SPEED)))
+#define USB_HUB_PORT_STATUS_HIGH_SPEED \
+    (uint32_usb2host(1 << 10))
 
 #define USB_HUB_PORT_C_STATUS_CONNECTION \
-    (1 << (USB_HUB_FEATURE_C_PORT_CONNECTION))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_C_PORT_CONNECTION)))
 #define USB_HUB_PORT_C_STATUS_ENABLED \
-    (1 << (USB_HUB_FEATURE_C_PORT_ENABLE))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_C_PORT_ENABLE)))
 #define USB_HUB_PORT_C_STATUS_SUSPEND \
-    (1 << (USB_HUB_FEATURE_C_PORT_SUSPEND))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_C_PORT_SUSPEND)))
 #define USB_HUB_PORT_C_STATUS_OC \
-    (1 << (USB_HUB_FEATURE_C_PORT_OVER_CURRENT))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_C_PORT_OVER_CURRENT)))
 #define USB_HUB_PORT_C_STATUS_RESET \
-    (1 << (USB_HUB_FEATURE_C_PORT_RESET))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_C_PORT_RESET)))
 
 /**
  * structure holding hub status and changes flags.
@@ -76,17 +82,15 @@ typedef uint32_t usb_port_status_t;
  *
  */
 typedef uint32_t usb_hub_status_t;
-// TODO Mind the endiannes, changes are in the first byte of the second word
-// status is in the first byte of the first word
 #define USB_HUB_STATUS_OVER_CURRENT \
-    (1 << (USB_HUB_FEATURE_HUB_OVER_CURRENT))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_HUB_OVER_CURRENT)))
 #define USB_HUB_STATUS_LOCAL_POWER \
-    (1 << (USB_HUB_FEATURE_HUB_LOCAL_POWER))
+    (uint32_usb2host(1 << (USB_HUB_FEATURE_HUB_LOCAL_POWER)))
 
 #define USB_HUB_STATUS_C_OVER_CURRENT \
-    (1 << (16 + USB_HUB_FEATURE_C_HUB_OVER_CURRENT))
+    (uint32_usb2host(1 << (16 + USB_HUB_FEATURE_C_HUB_OVER_CURRENT)))
 #define USB_HUB_STATUS_C_LOCAL_POWER \
-    (1 << (16 + USB_HUB_FEATURE_C_HUB_LOCAL_POWER))
+    (uint32_usb2host(1 << (16 + USB_HUB_FEATURE_C_HUB_LOCAL_POWER)))
 
 
 /**
