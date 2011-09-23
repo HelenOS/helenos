@@ -55,6 +55,7 @@ typedef uint32_t usb_port_status_t;
 #define USB_HUB_PORT_STATUS_RESET (1 << (USB_HUB_FEATURE_PORT_RESET))
 #define USB_HUB_PORT_STATUS_POWER (1 << (USB_HUB_FEATURE_PORT_POWER))
 #define USB_HUB_PORT_STATUS_LOW_SPEED (1 << (USB_HUB_FEATURE_PORT_LOW_SPEED))
+#define USB_HUB_PORT_STATUS_HIGH_SPEED (1 << 10)
 
 #define USB_HUB_PORT_C_STATUS_CONNECTION \
     (1 << (USB_HUB_FEATURE_C_PORT_CONNECTION))
@@ -121,62 +122,6 @@ static inline void usb_hub_set_disable_port_feature_request(
 }
 
 /**
- * set the device request to be a port enable request
- * @param request
- * @param port
- */
-static inline void usb_hub_set_enable_port_request(
-    usb_device_request_setup_packet_t *request, uint16_t port
-    ) {
-	request->index = port;
-	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
-	request->request = USB_HUB_REQUEST_SET_FEATURE;
-	request->value = USB_HUB_FEATURE_C_PORT_ENABLE;
-	request->length = 0;
-}
-
-/**
- * enable specified port
- * @param port
- * @return
- */
-static inline usb_device_request_setup_packet_t *
-usb_hub_create_enable_port_request(uint16_t port) {
-	usb_device_request_setup_packet_t *result =
-	    malloc(sizeof (usb_device_request_setup_packet_t));
-	usb_hub_set_enable_port_request(result, port);
-	return result;
-}
-
-/**
- * set the device request to be a port disable request
- * @param request
- * @param port
- */
-static inline void usb_hub_set_disable_port_request(
-    usb_device_request_setup_packet_t *request, uint16_t port
-    ) {
-	request->index = port;
-	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
-	request->request = USB_HUB_REQUEST_SET_FEATURE;
-	request->value = USB_HUB_FEATURE_C_PORT_SUSPEND;
-	request->length = 0;
-}
-
-/**
- * disable specified port
- * @param port
- * @return
- */
-static inline usb_device_request_setup_packet_t *
-usb_hub_create_disable_port_request(uint16_t port) {
-	usb_device_request_setup_packet_t *result =
-	    malloc(sizeof (usb_device_request_setup_packet_t));
-	usb_hub_set_disable_port_request(result, port);
-	return result;
-}
-
-/**
  * set the device request to be a port disable request
  * @param request
  * @param port
@@ -192,49 +137,6 @@ static inline void usb_hub_set_reset_port_request(
 }
 
 /**
- * disable specified port
- * @param port
- * @return
- */
-static inline usb_device_request_setup_packet_t *
-usb_hub_create_reset_port_request(uint16_t port) {
-	usb_device_request_setup_packet_t *result =
-	    malloc(sizeof (usb_device_request_setup_packet_t));
-	usb_hub_set_reset_port_request(result, port);
-	return result;
-}
-
-/**
- * set the device request to be a port disable request
- * @param request
- * @param port
- */
-static inline void usb_hub_set_power_port_request(
-    usb_device_request_setup_packet_t *request, uint16_t port
-    ) {
-	request->index = port;
-	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
-	request->request = USB_HUB_REQUEST_SET_FEATURE;
-	request->value = USB_HUB_FEATURE_PORT_POWER;
-	request->length = 0;
-}
-
-/**
- * set the device request to be a port disable request
- * @param request
- * @param port
- */
-static inline void usb_hub_unset_power_port_request(
-    usb_device_request_setup_packet_t *request, uint16_t port
-    ) {
-	request->index = port;
-	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
-	request->request = USB_HUB_REQUEST_CLEAR_FEATURE;
-	request->value = USB_HUB_FEATURE_PORT_POWER;
-	request->length = 0;
-}
-
-/**
  * get i`th bit of port status
  * 
  * @param status
@@ -246,96 +148,15 @@ static inline bool usb_port_is_status(usb_port_status_t status, int idx) {
 }
 
 /**
- * set i`th bit of port status
- * 
- * @param status
- * @param idx
- * @param value
- */
-static inline void usb_port_status_set_bit(
-    usb_port_status_t * status, int idx, bool value) {
-	(*status) = value ?
-	    ((*status) | (1 << (idx))) :
-	    ((*status)&(~(1 << (idx))));
-}
-
-/**
- * get i`th bit of hub status
- * 
- * @param status
- * @param idx
- * @return
- */
-static inline bool usb_hub_is_status(usb_hub_status_t status, int idx) {
-	return (status & (1 << idx)) != 0;
-}
-
-/**
- * set i`th bit of hub status
- * 
- * @param status
- * @param idx
- * @param value
- */
-static inline void usb_hub_status_set_bit(
-    usb_hub_status_t *status, int idx, bool value) {
-	(*status) = value ?
-	    ((*status) | (1 << (idx))) :
-	    ((*status)&(~(1 << (idx))));
-}
-
-/**
- * low speed device on the port indicator
- * 
- * @param status
- * @return true if low speed device is attached
- */
-static inline bool usb_port_low_speed(usb_port_status_t status) {
-	return usb_port_is_status(status, 9);
-}
-
-/**
- * set low speed device connected bit in port status
- * 
- * @param status
- * @param low_speed value of the bit
- */
-static inline void usb_port_set_low_speed(usb_port_status_t *status, bool low_speed) {
-	usb_port_status_set_bit(status, 9, low_speed);
-}
-
-//high speed device attached
-
-/**
- * high speed device on the port indicator
- *
- * @param status
- * @return true if high speed device is on port
- */
-static inline bool usb_port_high_speed(usb_port_status_t status) {
-	return usb_port_is_status(status, 10);
-}
-
-/**
- * set high speed device bit in port status
- *
- * @param status
- * @param high_speed value of the bit
- */
-static inline void usb_port_set_high_speed(usb_port_status_t *status, bool high_speed) {
-	usb_port_status_set_bit(status, 10, high_speed);
-}
-
-/**
  * speed getter for port status
  *
  * @param status
  * @return speed of usb device (for more see usb specification)
  */
 static inline usb_speed_t usb_port_speed(usb_port_status_t status) {
-	if (usb_port_low_speed(status))
+	if ((status & USB_HUB_PORT_STATUS_LOW_SPEED) != 0)
 		return USB_SPEED_LOW;
-	if (usb_port_high_speed(status))
+	if ((status & USB_HUB_PORT_STATUS_HIGH_SPEED) != 0)
 		return USB_SPEED_HIGH;
 	return USB_SPEED_FULL;
 }
