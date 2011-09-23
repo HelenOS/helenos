@@ -127,60 +127,72 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port)
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-void usb_hub_port_process_interrupt(usb_hub_info_t *hub, size_t port)
+void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
 {
-	usb_log_debug("Interrupt at port %zu\n", port);
+	assert(port);
+	assert(hub);
+	usb_log_debug("Interrupt at port %zu\n", port->port_number);
 
 	usb_port_status_t status;
-	const int opResult =
-	    get_port_status(&hub->ports[port], &status);
+	const int opResult = get_port_status(port, &status);
 	if (opResult != EOK) {
 		usb_log_error("Failed to get port %zu status: %s.\n",
-		    port, str_error(opResult));
+		    port->port_number, str_error(opResult));
 		return;
 	}
 
 	/* Connection change */
 	if (status & USB_HUB_PORT_C_STATUS_CONNECTION) {
-		const bool device_connected =
+		const bool connected =
 		    (status & USB_HUB_PORT_STATUS_CONNECTION) != 0;
 		usb_log_debug("Connection change on port %zu: device %s.\n",
-		    port, device_connected ? "attached" : "removed");
+		    port->port_number, connected ? "attached" : "removed");
 		/* ACK the change */
-		const int opResult =
-		    usb_hub_port_clear_feature(&hub->ports[port],
-		        USB_HUB_FEATURE_C_PORT_CONNECTION);
+		const int opResult = usb_hub_port_clear_feature(port,
+		    USB_HUB_FEATURE_C_PORT_CONNECTION);
 		if (opResult != EOK) {
-			usb_log_warning("Failed to clear "
-			    "port-change-connection flag: %s.\n",
-			    str_error(opResult));
+			usb_log_warning("Failed to clear port-change-connection"
+			    " flag: %s.\n", str_error(opResult));
 		}
 
-		if (device_connected) {
-			const int opResult = create_add_device_fibril(hub, port,
-			    usb_port_speed(status));
+		if (connected) {
+			const int opResult = create_add_device_fibril(hub,
+			    port->port_number, usb_port_speed(status));
 			if (opResult != EOK) {
 				usb_log_error(
 				    "Cannot handle change on port %zu: %s.\n",
-				    port, str_error(opResult));
+				    port->port_number, str_error(opResult));
 			}
 		} else {
-			usb_hub_port_removed_device(&hub->ports[port]);
+			usb_hub_port_removed_device(port);
 		}
 	}
 
 	/* Enable change, ports are automatically disabled on errors. */
 	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
-		// TODO: Remove device that was connected
-		// TODO: Clear feature C_PORT_ENABLE
+		usb_hub_port_removed_device(port);
+		const int rc = usb_hub_port_clear_feature(port,
+		        USB_HUB_FEATURE_C_PORT_ENABLE);
+		if (rc != EOK) {
+			usb_log_error(
+			    "Failed to clear port %zu enable change feature: "
+			    "%s.\n", port->port_number, str_error(rc));
+		}
 
 	}
 
 	/* Suspend change */
 	if (status & USB_HUB_PORT_C_STATUS_SUSPEND) {
 		usb_log_error("Port %zu went to suspend state, this should"
-		    "NOT happen as we do not support suspend state!", port);
-		// TODO: Clear feature C_PORT_SUSPEND
+		    "NOT happen as we do not support suspend state!",
+		    port->port_number);
+		const int rc = usb_hub_port_clear_feature(port,
+		        USB_HUB_FEATURE_C_PORT_SUSPEND);
+		if (rc != EOK) {
+			usb_log_error(
+			    "Failed to clear port %zu suspend change feature: "
+			    "%s.\n", port->port_number, str_error(rc));
+		}
 	}
 
 	/* Over current */
@@ -189,20 +201,32 @@ void usb_hub_port_process_interrupt(usb_hub_info_t *hub, size_t port)
 		 * 11.13.5 Over-current Reporting and Recovery
 		 * Hub device is responsible for putting port in power off
 		 * mode. USB system software is responsible for powering port
-		 * back on when the over-curent condition is gone */
-		if (!(status & ~USB_HUB_PORT_STATUS_OC)) {
-			// TODO: Power port on, this will cause connect
-			// change and device initialization.
+		 * back on when the over-current condition is gone */
+		const int rc = usb_hub_port_clear_feature(port,
+		    USB_HUB_FEATURE_C_PORT_OVER_CURRENT);
+		if (rc != EOK) {
+			usb_log_error(
+			    "Failed to clear port %zu OC change feature: %s.\n",
+			    port->port_number, str_error(rc));
 		}
-		// TODO: Ack over-power change.
+		if (!(status & ~USB_HUB_PORT_STATUS_OC)) {
+			const int rc = usb_hub_port_set_feature(
+			    port, USB_HUB_FEATURE_PORT_POWER);
+			if (rc != EOK) {
+				usb_log_error(
+				    "Failed to set port %d power after OC:"
+				    " %s.\n", port->port_number, str_error(rc));
+			}
+		}
 	}
 
 	/* Port reset, set on port reset complete. */
 	if (status & USB_HUB_PORT_C_STATUS_RESET) {
-		usb_hub_port_reset_completed(&hub->ports[port], status);
+		usb_hub_port_reset_completed(port, status);
 	}
 
-	usb_log_debug("Port %zu status 0x%08" PRIx32 "\n", port, status);
+	usb_log_debug("Port %zu status 0x%08" PRIx32 "\n",
+	    port->port_number, status);
 }
 
 /**

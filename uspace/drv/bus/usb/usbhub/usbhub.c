@@ -169,10 +169,11 @@ bool hub_port_changes_callback(usb_device_t *dev,
 {
 	usb_log_debug("hub_port_changes_callback\n");
 	usb_hub_info_t *hub = arg;
+	assert(hub);
 
-	/* FIXME: check that we received enough bytes. */
+	/* It is an error condition if we didn't receive enough data */
 	if (change_bitmap_size == 0) {
-		goto leave;
+		return false;
 	}
 
 	/* Lowest bit indicates global change */
@@ -186,14 +187,9 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	for (; port < hub->port_count + 1; port++) {
 		const bool change = (change_bitmap[port / 8] >> (port % 8)) & 1;
 		if (change) {
-			usb_hub_port_process_interrupt(hub, port);
+			usb_hub_port_process_interrupt(&hub->ports[port], hub);
 		}
 	}
-leave:
-	/* FIXME: proper interval. */
-	// TODO Interval should be handled by USB HC scheduler not here
-	async_usleep(1000 * 250);
-
 	return true;
 }
 /*----------------------------------------------------------------------------*/
@@ -255,7 +251,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 	usb_log_debug("Setting port count to %d.\n", descriptor.port_count);
 	hub_info->port_count = descriptor.port_count;
 
-	// TODO Why +1 ?
+	// TODO: +1 hack is no longer necessary
 	hub_info->ports =
 	    malloc(sizeof(usb_hub_port_t) * (hub_info->port_count + 1));
 	if (!hub_info->ports) {
@@ -348,22 +344,9 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
     usb_hub_status_t status)
 {
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
-		/* Over-current detected on one or all ports,
-		 * switch them all off to prevent damage. */
-		//TODO Consider ganged power switching here.
-		//TODO Hub should have turned the ports off already,
-		//this is redundant.
-		size_t port;
-		for (port = 1; port <= hub_info->port_count; ++port) {
-			const int opResult = usb_hub_port_clear_feature(
-			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
-			if (opResult != EOK) {
-				usb_log_warning(
-				    "HUB OVER-CURRENT: Cannot power off port"
-				    " %d:  %s\n",
-				    port, str_error(opResult));
-			}
-		}
+		/* Hub should remove power from all ports if it detects OC */
+		usb_log_warning("Detected hub over-current condition, "
+		    "all ports should be powered off.");
 	} else {
 		/* Over-current condition is gone, it is safe to turn the
 		 * ports on. */
@@ -378,6 +361,15 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 				    port, str_error(opResult));
 			}
 		}
+	}
+	const int opResult = usb_request_clear_feature(
+	    &hub_info->usb_device->ctrl_pipe, USB_REQUEST_TYPE_CLASS,
+	    USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER, 0);
+	if (opResult != EOK) {
+		usb_log_error(
+		    "Failed to clear hub over-current change flag: %s.\n",
+		    str_error(opResult));
 	}
 }
 /*----------------------------------------------------------------------------*/

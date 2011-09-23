@@ -75,7 +75,7 @@ typedef struct {
 #define HUB_CHAR_POWER_PER_PORT_FLAG  (1 << 0)
 #define HUB_CHAR_NO_POWER_SWITCH_FLAG (1 << 1)
 	/* Unused part of characteristics field */
-	uint8_t characteristics_reservered;
+	uint8_t characteristics_reserved;
 	/** Time from power-on to stabilization of current on the port. */
 	uint8_t power_good_time;
 	/** Maximum current requirements in mA. */
