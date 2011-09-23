@@ -212,7 +212,6 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 	    return NULL;
 
 	info->usb_device = usb_dev;
-	info->control_pipe = &usb_dev->ctrl_pipe;
 
 	info->ports = NULL;
 	info->port_count = -1;

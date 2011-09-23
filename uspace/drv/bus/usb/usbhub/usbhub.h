@@ -62,14 +62,6 @@ struct usb_hub_info_t {
 	/** Connection to hcd */
 	usb_hc_connection_t connection;
 
-	/** Convenience pointer to control pipe
-	 *
-	 * Control pipe is initialized in usb_device structure. This is
-	 * pointer into that structure, so that we don't not have to
-	 * search again and again for the 'right pipe'.
-	 */
-	usb_pipe_t *control_pipe;
-
 	/** Generic usb device data*/
 	usb_device_t *usb_device;
 
