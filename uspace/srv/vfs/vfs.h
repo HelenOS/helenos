@@ -170,7 +170,7 @@ extern fibril_rwlock_t namespace_rwlock;
 extern async_exch_t *vfs_exchange_grab(fs_handle_t);
 extern void vfs_exchange_release(async_exch_t *);
 
-extern fs_handle_t fs_name_to_handle(char *, bool);
+extern fs_handle_t fs_name_to_handle(unsigned int instance, char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,

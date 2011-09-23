@@ -58,11 +58,21 @@ vfs_info_t tmpfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
 	.write_retains_size = false,
+	.instance = 0,
 };
 
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS TMPFS file system server\n");
+
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			tmpfs_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			return -1;
+		}
+	}
 	
 	if (!tmpfs_init()) {
 		printf(NAME ": failed to initialize TMPFS\n");

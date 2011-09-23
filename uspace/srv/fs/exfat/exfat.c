@@ -53,12 +53,22 @@
 vfs_info_t exfat_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
-	.write_retains_size = false,	
+	.write_retains_size = false,
+	.instance = 0,
 };
 
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS exFAT file system server\n");
+
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			exfat_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			return -1;
+		}
+	}
 
 	int rc = exfat_idx_init();
 	if (rc != EOK)

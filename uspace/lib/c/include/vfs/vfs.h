@@ -48,7 +48,7 @@ enum vfs_change_state_type {
 extern char *absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int);
+    unsigned int, unsigned int);
 extern int unmount(const char *);
 
 extern int fhandle(FILE *, int *);

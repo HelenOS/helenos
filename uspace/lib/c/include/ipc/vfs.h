@@ -55,6 +55,7 @@ typedef uint32_t fs_index_t;
 typedef struct {
 	/** Unique identifier of the fs. */
 	char name[FS_NAME_MAXLEN + 1];
+	unsigned int instance;
 	bool concurrent_read_write;
 	bool write_retains_size;
 } vfs_info_t;

@@ -275,6 +275,11 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	unsigned int flags = (unsigned int) IPC_GET_ARG2(*request);
 	
 	/*
+	 * Instance number is passed as ARG3.
+	 */
+	unsigned int instance = IPC_GET_ARG3(*request);
+
+	/*
 	 * For now, don't make use of ARG3, but it can be used to
 	 * carry mount options in the future.
 	 */
@@ -334,7 +339,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_lock(&fs_list_lock);
 	fs_handle_t fs_handle;
 recheck:
-	fs_handle = fs_name_to_handle(fs_name, false);
+	fs_handle = fs_name_to_handle(instance, fs_name, false);
 	if (!fs_handle) {
 		if (flags & IPC_FLAG_BLOCKING) {
 			fibril_condvar_wait(&fs_list_cv, &fs_list_lock);
