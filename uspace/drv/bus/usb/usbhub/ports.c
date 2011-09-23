@@ -54,14 +54,61 @@ struct add_device_phase1 {
 };
 
 static void usb_hub_removed_device(usb_hub_info_t *hub, size_t port);
-static void usb_hub_port_reset_completed(usb_hub_info_t *hub,
-    uint16_t port, uint32_t status);
+static void usb_hub_port_reset_completed(const usb_hub_info_t *hub,
+    size_t port, usb_port_status_t status);
 static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
     usb_port_status_t *status);
 static int enable_port_callback(int port_no, void *arg);
 static int add_device_phase1_worker_fibril(void *arg);
 static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
     usb_speed_t speed);
+
+/**
+ * Clear feature on hub port.
+ *
+ * @param hc Host controller telephone
+ * @param address Hub address
+ * @param port_index Port
+ * @param feature Feature selector
+ * @return Operation result
+ */
+int usb_hub_clear_port_feature(usb_pipe_t *pipe,
+    int port_index, usb_hub_class_feature_t feature)
+{
+	usb_device_request_setup_packet_t clear_request = {
+		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
+		.request = USB_DEVREQ_CLEAR_FEATURE,
+		.value = feature,
+		.index = port_index,
+		.length = 0,
+	};
+	return usb_pipe_control_write(pipe, &clear_request,
+	    sizeof(clear_request), NULL, 0);
+}
+/*----------------------------------------------------------------------------*/
+/**
+ * Clear feature on hub port.
+ *
+ * @param hc Host controller telephone
+ * @param address Hub address
+ * @param port_index Port
+ * @param feature Feature selector
+ * @return Operation result
+ */
+int usb_hub_set_port_feature(usb_pipe_t *pipe,
+    int port_index, usb_hub_class_feature_t feature)
+{
+
+	usb_device_request_setup_packet_t clear_request = {
+		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
+		.request = USB_DEVREQ_SET_FEATURE,
+		.index = port_index,
+		.value = feature,
+		.length = 0,
+	};
+	return usb_pipe_control_write(pipe, &clear_request,
+	    sizeof(clear_request), NULL, 0);
+}
 
 /**
  * Process interrupts on given hub port
@@ -159,13 +206,9 @@ void usb_hub_process_port_interrupt(usb_hub_info_t *hub, size_t port)
  */
 static void usb_hub_removed_device(usb_hub_info_t *hub, size_t port)
 {
-
 	/** \TODO remove device from device manager - not yet implemented in
 	 * devide manager
 	 */
-
-	//close address
-
 	usb_hub_port_t *the_port = hub->ports + port;
 
 	fibril_mutex_lock(&hub->port_mutex);
@@ -203,23 +246,24 @@ static void usb_hub_removed_device(usb_hub_info_t *hub, size_t port)
  * @param port
  * @param status
  */
-static void usb_hub_port_reset_completed(usb_hub_info_t *hub,
-    uint16_t port, uint32_t status)
+static void usb_hub_port_reset_completed(const usb_hub_info_t *hub,
+    size_t port, usb_port_status_t status)
 {
-	usb_log_debug("Port %zu reset complete.\n", (size_t) port);
-	if (usb_port_is_status(status, USB_HUB_FEATURE_PORT_ENABLE)) {
-		/* Finalize device adding. */
-		usb_hub_port_t *the_port = hub->ports + port;
-		fibril_mutex_lock(&the_port->reset_mutex);
-		the_port->reset_completed = true;
-		the_port->reset_okay = true;
-		fibril_condvar_broadcast(&the_port->reset_cv);
-		fibril_mutex_unlock(&the_port->reset_mutex);
+	usb_hub_port_t *the_port = hub->ports + port;
+	fibril_mutex_lock(&the_port->reset_mutex);
+	/* Finalize device adding. */
+	the_port->reset_completed = true;
+	the_port->reset_okay = (status & USB_HUB_PORT_STATUS_ENABLED) != 0;
+
+	if (the_port->reset_okay) {
+		usb_log_debug("Port %zu reset complete.\n", port);
 	} else {
 		usb_log_warning(
-		    "Port %zu reset complete but port not enabled.\n",
-		    (size_t) port);
+		    "Port %zu reset complete but port not enabled.\n", port);
 	}
+	fibril_condvar_broadcast(&the_port->reset_cv);
+	fibril_mutex_unlock(&the_port->reset_mutex);
+
 	/* Clear the port reset change. */
 	int rc = usb_hub_clear_port_feature(hub->control_pipe,
 	    port, USB_HUB_FEATURE_C_PORT_RESET);
@@ -228,7 +272,7 @@ static void usb_hub_port_reset_completed(usb_hub_info_t *hub,
 		    port, str_error(rc));
 	}
 }
-
+/*----------------------------------------------------------------------------*/
 /** Retrieve port status.
  *
  * @param[in] ctrl_pipe Control pipe to use.
@@ -284,12 +328,8 @@ static int enable_port_callback(int port_no, void *arg)
 	usb_hub_info_t *hub = arg;
 	assert(hub);
 	usb_hub_port_t *my_port = hub->ports + port_no;
-
-	usb_device_request_setup_packet_t request;
-	usb_hub_set_reset_port_request(&request, port_no);
-
-	const int rc = usb_pipe_control_write(hub->control_pipe,
-	    &request, sizeof (request), NULL, 0);
+	const int rc = usb_hub_set_port_feature(hub->control_pipe,
+		port_no, USB_HUB_FEATURE_PORT_RESET);
 	if (rc != EOK) {
 		usb_log_warning("Port reset failed: %s.\n", str_error(rc));
 		return rc;

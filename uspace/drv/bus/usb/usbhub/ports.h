@@ -37,6 +37,7 @@
 
 #include <usb/dev/driver.h>
 #include <usb/dev/hub.h>
+#include <usb/classes/hub.h>
 
 typedef struct usb_hub_info_t usb_hub_info_t;
 
@@ -72,7 +73,10 @@ static inline void usb_hub_port_init(usb_hub_port_t *port)
 
 
 void usb_hub_process_port_interrupt(usb_hub_info_t *hub, size_t port);
-
+int usb_hub_clear_port_feature(usb_pipe_t *pipe,
+    int port_index, usb_hub_class_feature_t feature);
+int usb_hub_set_port_feature(usb_pipe_t *pipe,
+    int port_index, usb_hub_class_feature_t feature);
 
 
 #endif
