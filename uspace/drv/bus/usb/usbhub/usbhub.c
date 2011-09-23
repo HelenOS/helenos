@@ -247,11 +247,12 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 
 	/* Get hub descriptor. */
 	usb_log_debug("Retrieving descriptor\n");
+	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
 	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
 	int opResult;
 
 	size_t received_size;
-	opResult = usb_request_get_descriptor(hub_info->control_pipe,
+	opResult = usb_request_get_descriptor(control_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_HUB, 0, 0, serialized_descriptor,
 	    USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
@@ -295,8 +296,7 @@ int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
 			opResult = usb_hub_set_port_feature(
-			    hub_info->control_pipe,
-			    port, USB_HUB_FEATURE_PORT_POWER);
+			    control_pipe, port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_error("Cannot power on port %zu: %s.\n",
 				    port, str_error(opResult));
@@ -367,6 +367,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 static void usb_hub_over_current(const usb_hub_info_t *hub_info,
     usb_hub_status_t status)
 {
+	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
 		/* Over-current detected on one or all ports,
 		 * switch them all off to prevent damage. */
@@ -374,8 +375,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			const int opResult = usb_hub_clear_port_feature(
-			    hub_info->control_pipe, port,
-			    USB_HUB_FEATURE_PORT_POWER);
+			    control_pipe, port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT: Cannot power off port"
@@ -389,8 +389,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			const int opResult = usb_hub_set_port_feature(
-			    hub_info->control_pipe, port,
-			    USB_HUB_FEATURE_PORT_POWER);
+			    control_pipe, port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT GONE: Cannot power on "
@@ -412,14 +411,14 @@ static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
 	assert(hub_info);
 	assert(hub_info->usb_device);
 	usb_log_debug("Global interrupt on a hub\n");
-	usb_pipe_t *ctrlpipe = &hub_info->usb_device->ctrl_pipe;
+	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
 
 	usb_hub_status_t status;
 	size_t rcvd_size;
 	/* NOTE: We can't use standard USB GET_STATUS request, because
 	 * hubs reply is 4byte instead of 2 */
-	const int opResult = usb_pipe_control_read(
-	    ctrlpipe, &get_hub_status_request, sizeof(get_hub_status_request),
+	const int opResult = usb_pipe_control_read(control_pipe,
+	    &get_hub_status_request, sizeof(get_hub_status_request),
 	    &status, sizeof(usb_hub_status_t), &rcvd_size);
 	if (opResult != EOK) {
 		usb_log_error("Could not get hub status: %s\n",
@@ -449,8 +448,8 @@ static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
 		 * implemented.
 		 * Just ACK the change.
 		 */
-		const int opResult = usb_hub_clear_feature(ctrlpipe,
-		    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+		const int opResult = usb_hub_clear_feature(
+		    control_pipe, USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 		if (opResult != EOK) {
 			usb_log_error("Cannot clear hub power change flag: "
 			    "%s\n",
