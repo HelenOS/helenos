@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,13 +78,11 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
 }
 
 void usb_hub_port_reset_fail(usb_hub_port_t *port);
-
 void usb_hub_port_process_interrupt(usb_hub_info_t *hub, size_t port);
 int usb_hub_port_clear_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
 int usb_hub_port_set_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
-
 
 #endif
 /**

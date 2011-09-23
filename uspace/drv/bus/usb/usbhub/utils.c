@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +40,6 @@
 #include <usb/descriptor.h>
 #include <usb/classes/hub.h>
 #include <usb/debug.h>
-
 
 #include "usbhub.h"
 #include "utils.h"
