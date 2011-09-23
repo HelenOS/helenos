@@ -71,7 +71,7 @@ static inline void usb_hub_port_init(usb_hub_port_t *port)
 }
 
 
-void usb_hub_process_port_interrupt(usb_hub_info_t *hub, uint16_t port);
+void usb_hub_process_port_interrupt(usb_hub_info_t *hub, size_t port);
 
 
 
