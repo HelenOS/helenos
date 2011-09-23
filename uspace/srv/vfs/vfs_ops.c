@@ -145,7 +145,8 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			}
 
 			rindex = (fs_index_t) IPC_GET_ARG1(answer);
-			rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
+			rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer),
+			    IPC_GET_ARG3(answer));
 			rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 			
 			mr_res.triplet.fs_handle = fs_handle;
@@ -275,10 +276,10 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	unsigned int flags = (unsigned int) IPC_GET_ARG2(*request);
 	
 	/*
-	 * For now, don't make use of ARG3, but it can be used to
-	 * carry mount options in the future.
+	 * Instance number is passed as ARG3.
 	 */
-	
+	unsigned int instance = IPC_GET_ARG3(*request);
+
 	/* We want the client to send us the mount point. */
 	char *mp;
 	int rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
@@ -334,7 +335,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_lock(&fs_list_lock);
 	fs_handle_t fs_handle;
 recheck:
-	fs_handle = fs_name_to_handle(fs_name, false);
+	fs_handle = fs_name_to_handle(instance, fs_name, false);
 	if (!fs_handle) {
 		if (flags & IPC_FLAG_BLOCKING) {
 			fibril_condvar_wait(&fs_list_cv, &fs_list_lock);

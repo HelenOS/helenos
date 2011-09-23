@@ -142,7 +142,7 @@ char *absolutize(const char *path, size_t *retlen)
 }
 
 int mount(const char *fs_name, const char *mp, const char *fqsn,
-    const char *opts, unsigned int flags)
+    const char *opts, unsigned int flags, unsigned int instance)
 {
 	int null_id = -1;
 	char null[LOC_NAME_MAXLEN];
@@ -180,7 +180,8 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 	async_exch_t *exch = vfs_exchange_begin();
 
 	sysarg_t rc_orig;
-	aid_t req = async_send_2(exch, VFS_IN_MOUNT, service_id, flags, NULL);
+	aid_t req = async_send_3(exch, VFS_IN_MOUNT, service_id, flags,
+	    instance, NULL);
 	sysarg_t rc = async_data_write_start(exch, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
