@@ -186,7 +186,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	for (; port < hub->port_count + 1; port++) {
 		const bool change = (change_bitmap[port / 8] >> (port % 8)) & 1;
 		if (change) {
-			usb_hub_process_port_interrupt(hub, port);
+			usb_hub_port_process_interrupt(hub, port);
 		}
 	}
 leave:
@@ -216,7 +216,6 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 
 	info->ports = NULL;
 	info->port_count = -1;
-	fibril_mutex_initialize(&info->port_mutex);
 	fibril_mutex_initialize(&info->pending_ops_mutex);
 	fibril_condvar_initialize(&info->pending_ops_cv);
 	info->pending_ops_count = 0;
@@ -288,7 +287,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 
 		for (port = 1; port <= hub_info->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
-			opResult = usb_hub_set_port_feature(
+			opResult = usb_hub_port_set_feature(
 			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_error("Cannot power on port %zu: %s.\n",
@@ -364,9 +363,11 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 		/* Over-current detected on one or all ports,
 		 * switch them all off to prevent damage. */
 		//TODO Consider ganged power switching here.
+		//TODO Hub should have turned the ports off already,
+		//this is redundant.
 		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
-			const int opResult = usb_hub_clear_port_feature(
+			const int opResult = usb_hub_port_clear_feature(
 			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
@@ -380,7 +381,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 		 * ports on. */
 		size_t port;
 		for (port = 1; port <= hub_info->port_count; ++port) {
-			const int opResult = usb_hub_set_port_feature(
+			const int opResult = usb_hub_port_set_feature(
 			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
@@ -477,17 +478,10 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 	 * Thus, we would flush all pending port resets.
 	 */
 	if (hub->pending_ops_count > 0) {
-		fibril_mutex_lock(&hub->port_mutex);
 		size_t port;
 		for (port = 0; port < hub->port_count; port++) {
-			usb_hub_port_t *the_port = hub->ports + port;
-			fibril_mutex_lock(&the_port->reset_mutex);
-			the_port->reset_completed = true;
-			the_port->reset_okay = false;
-			fibril_condvar_broadcast(&the_port->reset_cv);
-			fibril_mutex_unlock(&the_port->reset_mutex);
+			usb_hub_port_reset_fail(&hub->ports[port]);
 		}
-		fibril_mutex_unlock(&hub->port_mutex);
 	}
 	/* And now wait for them. */
 	while (hub->pending_ops_count > 0) {
