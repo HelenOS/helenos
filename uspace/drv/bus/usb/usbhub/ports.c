@@ -97,13 +97,10 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
 void usb_hub_process_port_interrupt(usb_hub_info_t *hub, uint16_t port)
 {
 	usb_log_debug("Interrupt at port %zu\n", (size_t) port);
-	//determine type of change
-	//usb_pipe_t *pipe = hub->control_pipe;
-
-	int opResult;
 
 	usb_port_status_t status;
-	opResult = get_port_status(&hub->usb_device->ctrl_pipe, port, &status);
+	const int opResult =
+	    get_port_status(&hub->usb_device->ctrl_pipe, port, &status);
 	if (opResult != EOK) {
 		usb_log_error("Failed to get port %zu status: %s.\n",
 		    (size_t) port, str_error(opResult));
@@ -118,7 +115,7 @@ void usb_hub_process_port_interrupt(usb_hub_info_t *hub, uint16_t port)
 		    device_connected ? "device attached" : "device removed");
 
 		if (device_connected) {
-			opResult = create_add_device_fibril(hub, port,
+			const int opResult = create_add_device_fibril(hub, port,
 			    usb_port_speed(status));
 			if (opResult != EOK) {
 				usb_log_error(
@@ -299,15 +296,22 @@ static void usb_hub_port_over_current(usb_hub_info_t *hub,
  * @return Error code.
  */
 static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
-    usb_port_status_t *status) {
+    usb_port_status_t *status)
+{
 	size_t recv_size;
-	usb_device_request_setup_packet_t request;
 	usb_port_status_t status_tmp;
+	/* USB hub specific GET_PORT_STATUS request. See USB Spec 11.16.2.6 */
+	const usb_device_request_setup_packet_t request = {
+		.request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS,
+		.request = USB_HUB_REQUEST_GET_STATUS,
+		.value = 0,
+		.index = port,
+		.length = sizeof(usb_port_status_t),
+	};
 
-	usb_hub_set_port_status_request(&request, port);
-	int rc = usb_pipe_control_read(ctrl_pipe,
-	    &request, sizeof (usb_device_request_setup_packet_t),
-	    &status_tmp, sizeof (status_tmp), &recv_size);
+	const int rc = usb_pipe_control_read(ctrl_pipe,
+	    &request, sizeof(usb_device_request_setup_packet_t),
+	    &status_tmp, sizeof(status_tmp), &recv_size);
 	if (rc != EOK) {
 		return rc;
 	}

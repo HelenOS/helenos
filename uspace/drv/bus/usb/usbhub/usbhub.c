@@ -233,7 +233,7 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
  * @param hub_info hub representation
  * @return error code
  */
-int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
+static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 {
 	assert(hub_info);
 

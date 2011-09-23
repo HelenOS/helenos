@@ -68,35 +68,6 @@ typedef uint32_t usb_hub_status_t;
     (1 << (16 + USB_HUB_FEATURE_C_HUB_LOCAL_POWER))
 
 /**
- * set values in request to be it a port status request
- * @param request
- * @param port
- */
-static inline void usb_hub_set_port_status_request(
-    usb_device_request_setup_packet_t *request, uint16_t port)
-{
-	request->index = port;
-	request->request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS;
-	request->request = USB_HUB_REQUEST_GET_STATUS;
-	request->value = 0;
-	request->length = 4;
-}
-
-/**
- * create request for usb hub port status
- * @param port
- * @return
- */
-static inline usb_device_request_setup_packet_t *
-    usb_hub_create_port_status_request(uint16_t port)
-{
-	usb_device_request_setup_packet_t *result =
-	    malloc(sizeof(usb_device_request_setup_packet_t));
-	usb_hub_set_port_status_request(result, port);
-	return result;
-}
-
-/**
  * set the device request to be a port feature enable request
  * @param request
  * @param port

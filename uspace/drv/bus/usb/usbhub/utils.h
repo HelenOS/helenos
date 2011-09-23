@@ -55,9 +55,6 @@
 //
 //************
 
-
-usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
-
 /**
  * Set the device request to be a get hub descriptor request.
  * @warning the size is allways set to USB_HUB_MAX_DESCRIPTOR_SIZE
