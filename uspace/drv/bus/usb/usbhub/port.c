@@ -49,7 +49,7 @@
 /** Information for fibril for device discovery. */
 struct add_device_phase1 {
 	usb_hub_info_t *hub;
-	size_t port;
+	usb_hub_port_t *port;
 	usb_speed_t speed;
 };
 
@@ -59,7 +59,7 @@ static void usb_hub_port_reset_completed(usb_hub_port_t *port,
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
 static int enable_port_callback(int port_no, void *arg);
 static int add_device_phase1_worker_fibril(void *arg);
-static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
+static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_info_t *hub,
     usb_speed_t speed);
 
 /**
@@ -156,8 +156,8 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
 		}
 
 		if (connected) {
-			const int opResult = create_add_device_fibril(hub,
-			    port->port_number, usb_port_speed(status));
+			const int opResult = create_add_device_fibril(port, hub,
+			    usb_port_speed(status));
 			if (opResult != EOK) {
 				usb_log_error(
 				    "Cannot handle change on port %zu: %s.\n",
@@ -397,36 +397,34 @@ static int add_device_phase1_worker_fibril(void *arg)
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
 	    &data->hub->connection, data->speed,
-	    enable_port_callback, (int) data->port,
-	    &data->hub->ports[data->port],
-	    &new_address, &child_handle,
+	    enable_port_callback, (int) data->port->port_number,
+	    data->port, &new_address, &child_handle,
 	    NULL, NULL, NULL);
 
 	if (rc != EOK) {
 		usb_log_error("Failed registering device on port %zu: %s.\n",
-		    data->port, str_error(rc));
+		    data->port->port_number, str_error(rc));
 		goto leave;
 	}
 
-	fibril_mutex_lock(&data->hub->ports[data->port].mutex);
-	data->hub->ports[data->port].attached_device.handle = child_handle;
-	data->hub->ports[data->port].attached_device.address = new_address;
-	fibril_mutex_unlock(&data->hub->ports[data->port].mutex);
+	fibril_mutex_lock(&data->port->mutex);
+	data->port->attached_device.handle = child_handle;
+	data->port->attached_device.address = new_address;
+	fibril_mutex_unlock(&data->port->mutex);
 
 	usb_log_info("Detected new device on `%s' (port %zu), "
 	    "address %d (handle %" PRIun ").\n",
-	    data->hub->usb_device->ddf_dev->name, data->port,
+	    data->hub->usb_device->ddf_dev->name, data->port->port_number,
 	    new_address, child_handle);
 
 leave:
-	free(arg);
-
 	fibril_mutex_lock(&data->hub->pending_ops_mutex);
 	assert(data->hub->pending_ops_count > 0);
-	data->hub->pending_ops_count--;
+	--data->hub->pending_ops_count;
 	fibril_condvar_signal(&data->hub->pending_ops_cv);
 	fibril_mutex_unlock(&data->hub->pending_ops_mutex);
 
+	free(arg);
 
 	return EOK;
 }
@@ -440,9 +438,11 @@ leave:
  * @param speed Speed of the device.
  * @return Error code.
  */
-static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
+static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_info_t *hub,
     usb_speed_t speed)
 {
+	assert(hub);
+	assert(port);
 	struct add_device_phase1 *data
 	    = malloc(sizeof (struct add_device_phase1));
 	if (data == NULL) {
@@ -452,11 +452,9 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
 	data->port = port;
 	data->speed = speed;
 
-	usb_hub_port_t *the_port = hub->ports + port;
-
-	fibril_mutex_lock(&the_port->mutex);
-	the_port->reset_completed = false;
-	fibril_mutex_unlock(&the_port->mutex);
+	fibril_mutex_lock(&port->mutex);
+	port->reset_completed = false;
+	fibril_mutex_unlock(&port->mutex);
 
 	fid_t fibril = fibril_create(add_device_phase1_worker_fibril, data);
 	if (fibril == 0) {
@@ -464,7 +462,7 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
 		return ENOMEM;
 	}
 	fibril_mutex_lock(&hub->pending_ops_mutex);
-	hub->pending_ops_count++;
+	++hub->pending_ops_count;
 	fibril_mutex_unlock(&hub->pending_ops_mutex);
 	fibril_add_ready(fibril);
 
