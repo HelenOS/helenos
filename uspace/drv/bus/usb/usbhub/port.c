@@ -41,7 +41,7 @@
 
 #include <usb/debug.h>
 
-#include "ports.h"
+#include "port.h"
 #include "usbhub.h"
 #include "utils.h"
 #include "port_status.h"

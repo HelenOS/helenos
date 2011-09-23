@@ -48,7 +48,7 @@
 
 #define NAME "usbhub"
 
-#include "ports.h"
+#include "port.h"
 
 /** Information about attached hub. */
 struct usb_hub_info_t {
