@@ -52,4 +52,3 @@ int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size);
 /**
  * @}
  */
-

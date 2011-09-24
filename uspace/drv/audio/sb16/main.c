@@ -131,23 +131,25 @@ if (ret != EOK) { \
 	ret = dsp_fun ? EOK : ENOMEM;
 	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create dsp function.");
 
-	ret = ddf_fun_bind(dsp_fun);
-	CHECK_RET_UNREG_DEST_RETURN(ret,
-	    "Failed to bind dsp function: %s.\n", str_error(ret));
-	dsp_fun->driver_data = soft_state;
 
 	mixer_fun = ddf_fun_create(device, fun_exposed, "mixer");
 	ret = dsp_fun ? EOK : ENOMEM;
 	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create mixer function.");
+
+	ret = sb16_init_sb16(soft_state, (void*)sb_regs, sb_regs_size);
+	CHECK_RET_UNREG_DEST_RETURN(ret,
+	    "Failed to init sb16 driver: %s.\n", str_error(ret));
+
+	ret = ddf_fun_bind(dsp_fun);
+	CHECK_RET_UNREG_DEST_RETURN(ret,
+	    "Failed to bind dsp function: %s.\n", str_error(ret));
+	dsp_fun->driver_data = soft_state;
 
 	ret = ddf_fun_bind(mixer_fun);
 	CHECK_RET_UNREG_DEST_RETURN(ret,
 	    "Failed to bind mixer function: %s.\n", str_error(ret));
 	mixer_fun->driver_data = soft_state;
 
-	ret = sb16_init_sb16(soft_state, (void*)sb_regs, sb_regs_size);
-	CHECK_RET_UNREG_DEST_RETURN(ret,
-	    "Failed to init sb16 driver: %s.\n", str_error(ret));
 
 	ret = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
 	if (ret == EOK) {
