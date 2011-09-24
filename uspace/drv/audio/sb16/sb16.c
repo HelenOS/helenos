@@ -33,16 +33,19 @@
 #include "dsp_commands.h"
 #include "sb16.h"
 
+#define PIO_DELAY udelay(10)
 
-static inline void sb16_dsp_command(sb16_drv_t *drv, dsp_command_t command)
+
+static inline void sb16_dsp_write(sb16_drv_t *drv, uint8_t data)
 {
 	assert(drv);
 	uint8_t status;
 	do {
+		PIO_DELAY;
 		status = pio_read_8(&drv->regs->dsp_write);
-	} while ((status & DSP_WRITE_READY) == 0);
-
-	pio_write_8(&drv->regs->dsp_write, command);
+	} while ((status & DSP_WRITE_BUSY) != 0);
+	PIO_DELAY;
+	pio_write_8(&drv->regs->dsp_write, data);
 }
 /*----------------------------------------------------------------------------*/
 static inline uint8_t sb16_dsp_read(sb16_drv_t *drv)
@@ -50,8 +53,11 @@ static inline uint8_t sb16_dsp_read(sb16_drv_t *drv)
 	assert(drv);
 	uint8_t status;
 	do {
+		PIO_DELAY;
 		status = pio_read_8(&drv->regs->dsp_read_status);
 	} while ((status & DSP_READ_READY) == 0);
+
+	PIO_DELAY;
 	return pio_read_8(&drv->regs->dsp_data_read);
 }
 /*----------------------------------------------------------------------------*/
@@ -78,15 +84,18 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 
 	/* Reset DSP, see Chapter 2 of Sound Blaster HW programming guide */
 	pio_write_8(&drv->regs->dsp_reset, 1);
-	udelay(3);
+	udelay(3); /* Keep reset for 3 us */
 	pio_write_8(&drv->regs->dsp_reset, 0);
+
+	/* "DSP takes about 100 microseconds to initialize itself" */
 	udelay(100);
+
 
 	unsigned attempts = 100;
 	uint8_t status;
 	do {
+		PIO_DELAY;
 		status = pio_read_8(&drv->regs->dsp_read_status);
-		udelay(10);
 	} while (--attempts && ((status & DSP_READ_READY) == 0));
 
 	if (status & DSP_READ_READY) {
@@ -100,14 +109,13 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 		ddf_log_error("Failed to reset Sound Blaster DSP.\n");
 		return EIO;
 	}
-	ddf_log_note("Sound blaster reset!\n");
-
 
 	/* Get DSP version number */
-	sb16_dsp_command(drv, DSP_VERSION);
-	const uint8_t major = sb16_dsp_read(drv);
-	const uint8_t minor = sb16_dsp_read(drv);
-	ddf_log_note("Sound blaster DSP version: %x.%x.\n", major, minor);
+	sb16_dsp_write(drv, DSP_VERSION);
+	drv->dsp_version.major = sb16_dsp_read(drv);
+	drv->dsp_version.minor = sb16_dsp_read(drv);
+	ddf_log_note("Sound blaster DSP (%x.%x) Initialized.\n",
+	    drv->dsp_version.major, drv->dsp_version.minor);
 
 
 	// TODO Initialize mixer

@@ -42,6 +42,10 @@
 typedef struct sb16_drv {
 	sb16_regs_t *regs;
 	mpu_regs_t *mpu_regs;
+	struct {
+		uint8_t major;
+		uint8_t minor;
+	} dsp_version;
 } sb16_drv_t;
 
 irq_code_t * sb16_irq_code(void);
