@@ -44,7 +44,7 @@ static inline void sb16_dsp_command(sb16_drv_t *drv, dsp_command_t command)
 
 	pio_write_8(&drv->regs->dsp_write, command);
 }
-
+/*----------------------------------------------------------------------------*/
 static inline uint8_t sb16_dsp_read(sb16_drv_t *drv)
 {
 	assert(drv);
@@ -54,8 +54,7 @@ static inline uint8_t sb16_dsp_read(sb16_drv_t *drv)
 	} while ((status & DSP_READ_READY) == 0);
 	return pio_read_8(&drv->regs->dsp_data_read);
 }
-
-
+/*----------------------------------------------------------------------------*/
 /* ISA interrupts should be edge-triggered so there should be no need for
  * irq code magic */
 static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
@@ -78,9 +77,9 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 	ddf_log_debug("PIO registers at %p accessible.\n", drv->regs);
 
 	/* Reset DSP, see Chapter 2 of Sound Blaster HW programming guide */
-	pio_write_16(&drv->regs->dsp_reset, 1);
+	pio_write_8(&drv->regs->dsp_reset, 1);
 	udelay(3);
-	pio_write_16(&drv->regs->dsp_reset, 0);
+	pio_write_8(&drv->regs->dsp_reset, 0);
 	udelay(100);
 
 	unsigned attempts = 100;

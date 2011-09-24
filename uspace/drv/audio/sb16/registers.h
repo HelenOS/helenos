@@ -42,15 +42,18 @@ typedef struct sb16_regs {
 	ioport8_t afm_data;
 	ioport8_t mixer_address;
 	ioport8_t mixer_data;
-	ioport16_t dsp_reset;
+	ioport8_t dsp_reset;
+	ioport8_t __reserved1; /* 0x7 */
 	ioport8_t fm_address_status2;
 	ioport8_t fm_data2;
 	ioport8_t dsp_data_read;
+	ioport8_t __reserved2; /*0xb*/
 	ioport8_t dsp_write; /* Both command and data, bit 7 is write status */
 #define DSP_WRITE_READY (1 << 7)
+	ioport8_t __reserved3; /*0xd*/
 	ioport8_t dsp_read_status; /* Bit 7 */
 #define DSP_READ_READY (1 << 7)
-	ioport8_t reserved;
+	ioport8_t __reserved4; /*0xf*/
 	ioport8_t cd_command_data;
 	ioport8_t cd_status;
 	ioport8_t cd_reset;
