@@ -261,7 +261,12 @@ int fat_directory_erase(fat_directory_t *di)
 int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 {
 	int rc;
-	bool enable_lfn = true; /* TODO: make this a mount option */
+	void *data;
+	fat_instance_t *instance;
+
+	rc = fs_instance_get(di->nodep->idx->service_id, &data);
+	assert(rc == EOK);
+	instance = (fat_instance_t *) data;
 	
 	if (fat_valid_short_name(name)) {
 		/*
@@ -276,7 +281,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 			return rc;
 		rc = fat_directory_write_dentry(di, de);
 		return rc;
-	} else if (enable_lfn && fat_valid_name(name)) {
+	} else if (instance->lfn_enabled && fat_valid_name(name)) {
 		/* We should create long entries to store name */
 		int long_entry_count;
 		uint8_t checksum;
@@ -291,7 +296,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		long_entry_count = lfn_size / FAT_LFN_ENTRY_SIZE;
 		if (lfn_size % FAT_LFN_ENTRY_SIZE)
 			long_entry_count++;
-		rc = fat_directory_lookup_free(di, long_entry_count+1);
+		rc = fat_directory_lookup_free(di, long_entry_count + 1);
 		if (rc != EOK)
 			return rc;
 		aoff64_t start_pos = di->pos;
@@ -327,7 +332,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		} while (lfn_offset < lfn_size);
 		FAT_LFN_ORDER(d) |= FAT_LFN_LAST;
 
-		rc = fat_directory_seek(di, start_pos+long_entry_count);
+		rc = fat_directory_seek(di, start_pos + long_entry_count);
 		return rc;
 	}
 
