@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Functions completing doubly linked circular list implementaion.
+ * @brief	Functions completing doubly linked circular list implementation.
  *
  * This file contains some of the functions implementing doubly linked circular lists.
  * However, this ADT is mostly implemented in @ref list.h.
