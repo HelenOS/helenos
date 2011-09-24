@@ -72,8 +72,6 @@ static int
 mfs_instance_get(service_id_t service_id, struct mfs_instance **instance);
 
 
-static LIST_INITIALIZE(inst_list);
-static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
 
@@ -179,8 +177,6 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		return ENOMEM;
 	}
 
-	instance->open_nodes_cnt = 0;
-
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 	if (!sb) {
 		free(instance);
@@ -267,21 +263,25 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	if (rc != EOK) {
 		free(instance);
 		free(sbi);
-		free(sb);
 		block_cache_fini(service_id);
 		block_fini(service_id);
 		mfsdebug("block cache initialization failed\n");
 		return EINVAL;
 	}
 
-	/*Initialize the instance structure and add it to the list*/
-	link_initialize(&instance->link);
+	/*Initialize the instance structure and remember it*/
 	instance->service_id = service_id;
 	instance->sbi = sbi;
-
-	fibril_mutex_lock(&inst_list_mutex);
-	list_append(&instance->link, &inst_list);
-	fibril_mutex_unlock(&inst_list_mutex);
+	instance->open_nodes_cnt = 0;
+	rc = fs_instance_create(service_id, instance);
+	if (rc != EOK) {
+		free(instance);
+		free(sbi);
+		block_cache_fini(service_id);
+		block_fini(service_id);
+		mfsdebug("fs instance creation failed\n");
+		return rc;
+	}
 
 	mfsdebug("mount successful\n");
 
@@ -314,11 +314,8 @@ mfs_unmounted(service_id_t service_id)
 	(void) block_cache_fini(service_id);
 	block_fini(service_id);
 
-	/* Remove the instance from the list */
-	fibril_mutex_lock(&inst_list_mutex);
-	list_remove(&inst->link);
-	fibril_mutex_unlock(&inst_list_mutex);
-
+	/* Remove and destroy the instance */
+	(void) fs_instance_destroy(service_id);
 	free(inst->sbi);
 	free(inst);
 	return EOK;
@@ -1011,30 +1008,17 @@ mfs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 static int
 mfs_instance_get(service_id_t service_id, struct mfs_instance **instance)
 {
-	struct mfs_instance *instance_ptr;
+	void *data;
+	int rc;
 
-	fibril_mutex_lock(&inst_list_mutex);
-
-	if (list_empty(&inst_list)) {
-		fibril_mutex_unlock(&inst_list_mutex);
-		return EINVAL;
+	rc = fs_instance_get(service_id, &data);
+	if (rc == EOK) {
+		*instance = (struct mfs_instance *) data;
+	} else {
+		mfsdebug("instance not found\n");
 	}
 
-	list_foreach(inst_list, link) {
-		instance_ptr = list_get_instance(link, struct mfs_instance,
-						 link);
-
-		if (instance_ptr->service_id == service_id) {
-			*instance = instance_ptr;
-			fibril_mutex_unlock(&inst_list_mutex);
-			return EOK;
-		}
-	}
-
-	mfsdebug("Instance not found\n");
-
-	fibril_mutex_unlock(&inst_list_mutex);
-	return EINVAL;
+	return rc;
 }
 
 static bool check_magic_number(uint16_t magic, bool *native,

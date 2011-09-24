@@ -104,6 +104,10 @@ extern int fs_register(async_sess_t *, vfs_info_t *, vfs_out_ops_t *,
 
 extern void fs_node_initialize(fs_node_t *);
 
+extern int fs_instance_create(service_id_t, void *);
+extern int fs_instance_get(service_id_t, void **);
+extern int fs_instance_destroy(service_id_t);
+
 #endif
 
 /** @}
