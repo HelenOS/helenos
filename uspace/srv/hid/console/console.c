@@ -903,6 +903,7 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 		consoles[i].index = i;
 		atomic_set(&consoles[i].refcnt, 0);
 		fibril_mutex_initialize(&consoles[i].mtx);
+		prodcons_initialize(&consoles[i].input_pc);
 		
 		if (graphics_state == GRAPHICS_FULL) {
 			/* Create state buttons */
@@ -941,7 +942,6 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 			return false;
 		}
 		
-		prodcons_initialize(&consoles[i].input_pc);
 		cons_redraw_state(&consoles[i]);
 		
 		char vc[LOC_NAME_MAXLEN + 1];
