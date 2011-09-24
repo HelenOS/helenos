@@ -31,16 +31,15 @@
 /** @addtogroup kbd_port
  * @ingroup kbd
  * @{
- */ 
+ */
 /** @file
  * @brief i8042 PS/2 port driver.
  */
 
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <devmap.h>
+#include <loc.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <unistd.h>
 #include <sysinfo.h>
 #include <stdio.h>
@@ -48,11 +47,8 @@
 #include <inttypes.h>
 #include "i8042.h"
 
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
-
-#define NAME "i8042"
-#define NAMESPACE "char"
+#define NAME       "i8042"
+#define NAMESPACE  "char"
 
 /* Interesting bits for status register */
 #define i8042_OUTPUT_FULL	0x01
@@ -134,9 +130,9 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": i8042 PS/2 port driver\n");
 
-	rc = devmap_driver_register(NAME, i8042_connection);
+	rc = loc_server_register(NAME, i8042_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return rc;
 	}
 
@@ -144,10 +140,10 @@ int main(int argc, char *argv[])
 		return -1;
 
 	for (i = 0; i < MAX_DEVS; i++) {
-		i8042_port[i].client_phone = -1;
+		i8042_port[i].client_sess = NULL;
 
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
-		rc = devmap_device_register(name, &i8042_port[i].devmap_handle);
+		rc = loc_service_register(name, &i8042_port[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -220,19 +216,19 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dsid;
 	int retval;
 	int dev_id, i;
 
 	printf(NAME ": connection handler\n");
 
 	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	dsid = IPC_GET_ARG1(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
 	for (i = 0; i < MAX_DEVS; i++) {
-		if (i8042_port[i].devmap_handle == dh)
+		if (i8042_port[i].service_id == dsid)
 			dev_id = i;
 	}
 
@@ -256,26 +252,28 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			return;
 		}
 		
-		switch (method) {
-		case IPC_M_CONNECT_TO_ME:
-			printf(NAME ": creating callback connection\n");
-			if (i8042_port[dev_id].client_phone != -1) {
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
+		if (sess != NULL) {
+			if (i8042_port[dev_id].client_sess == NULL) {
+				i8042_port[dev_id].client_sess = sess;
+				retval = EOK;
+			} else
 				retval = ELIMIT;
+		} else {
+			switch (method) {
+			case IPC_FIRST_USER_METHOD:
+				printf(NAME ": write %" PRIun " to devid %d\n",
+				    IPC_GET_ARG1(call), dev_id);
+				i8042_port_write(dev_id, IPC_GET_ARG1(call));
+				retval = 0;
+				break;
+			default:
+				retval = EINVAL;
 				break;
 			}
-			i8042_port[dev_id].client_phone = IPC_GET_ARG5(call);
-			retval = 0;
-			break;
-		case IPC_FIRST_USER_METHOD:
-			printf(NAME ": write %" PRIun " to devid %d\n",
-			    IPC_GET_ARG1(call), dev_id);
-			i8042_port_write(dev_id, IPC_GET_ARG1(call));
-			retval = 0;
-			break;
-		default:
-			retval = EINVAL;
-			break;
 		}
+		
 		async_answer_0(callid, retval);
 	}
 }
@@ -304,9 +302,11 @@ static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 		devid = DEVID_PRI;
 	}
 
-	if (i8042_port[devid].client_phone != -1) {
-		async_obsolete_msg_1(i8042_port[devid].client_phone,
-		    IPC_FIRST_USER_METHOD, data);
+	if (i8042_port[devid].client_sess != NULL) {
+		async_exch_t *exch =
+		    async_exchange_begin(i8042_port[devid].client_sess);
+		async_msg_1(exch, IPC_FIRST_USER_METHOD, data);
+		async_exchange_end(exch);
 	}
 }
 

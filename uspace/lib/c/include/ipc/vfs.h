@@ -55,13 +55,13 @@ typedef uint32_t fs_index_t;
 typedef struct {
 	/** Unique identifier of the fs. */
 	char name[FS_NAME_MAXLEN + 1];
+	unsigned int instance;
 	bool concurrent_read_write;
 	bool write_retains_size;
 } vfs_info_t;
 
 typedef enum {
 	VFS_IN_OPEN = IPC_FIRST_USER_METHOD,
-	VFS_IN_OPEN_NODE,
 	VFS_IN_READ,
 	VFS_IN_WRITE,
 	VFS_IN_SEEK,
@@ -77,7 +77,8 @@ typedef enum {
 	VFS_IN_UNLINK,
 	VFS_IN_RENAME,
 	VFS_IN_STAT,
-	VFS_IN_DUP
+	VFS_IN_DUP,
+	VFS_IN_WAIT_HANDLE,
 } vfs_in_request_t;
 
 typedef enum {

@@ -29,7 +29,7 @@
 /** @addtogroup libcia32
  * @{
  */
-/** @file
+/** @file Definitions needed to write core files in Linux-ELF format.
  */
 
 #ifndef LIBC_ia32_ELF_LINUX_H_
@@ -38,6 +38,11 @@
 #include <libarch/istate.h>
 #include <sys/types.h>
 
+/** Linux kernel struct pt_regs structure.
+ *
+ * We need this to save register state to a core file in Linux format
+ * (readable by GDB configured for Linux target).
+ */
 typedef struct {
 	uint32_t ebx;
 	uint32_t ecx;
@@ -58,6 +63,7 @@ typedef struct {
 	uint32_t ss;
 } elf_regs_t;
 
+/** Convert istate_t to elf_regs_t. */
 static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
 {
 	elf_regs->ebx = istate->ebx;

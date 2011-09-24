@@ -37,7 +37,7 @@
 #define LIBC_ia32_SYSCALL_H_
 
 #include <sys/types.h>
-#include <kernel/syscall/syscall.h>
+#include <abi/syscall.h>
 
 #define __syscall0  __syscall_fast_func
 #define __syscall1  __syscall_fast_func

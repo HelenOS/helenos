@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2006 Martin Decky
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,13 +53,23 @@
 vfs_info_t fat_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
-	.write_retains_size = false,	
+	.write_retains_size = false,
+	.instance = 0,
 };
 
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS FAT file system server\n");
 	
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			fat_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			return -1;
+		}
+	}
+
 	int rc = fat_idx_init();
 	if (rc != EOK)
 		goto err;

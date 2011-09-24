@@ -41,7 +41,6 @@
 #include <usb/hid/usages/core.h>
 #include <errno.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <str_error.h>
 #include <ipc/mouseev.h>
 #include <io/console.h>
@@ -55,10 +54,7 @@
 /** Number of simulated arrow-key presses for singel wheel step. */
 #define ARROWS_PER_SINGLE_WHEEL 3
 
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
-
-#define NAME "mouse"
+#define NAME  "mouse"
 
 /*----------------------------------------------------------------------------*/
 
@@ -73,8 +69,8 @@ usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 
 const char *HID_MOUSE_FUN_NAME = "mouse";
 const char *HID_MOUSE_WHEEL_FUN_NAME = "mouse-wheel";
-const char *HID_MOUSE_CLASS_NAME = "mouse";
-const char *HID_MOUSE_WHEEL_CLASS_NAME = "keyboard";
+const char *HID_MOUSE_CATEGORY = "mouse";
+const char *HID_MOUSE_WHEEL_CATEGORY = "keyboard";
 
 /** Default idle rate for mouses. */
 static const uint8_t IDLE_RATE = 0;
@@ -127,9 +123,7 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	sysarg_t method = IPC_GET_IMETHOD(*icall);
-	
-	usb_mouse_t *mouse_dev = (usb_mouse_t *)fun->driver_data;
+	usb_mouse_t *mouse_dev = (usb_mouse_t *) fun->driver_data;
 	
 	if (mouse_dev == NULL) {
 		usb_log_debug("default_connection_handler: Missing "
@@ -140,30 +134,30 @@ static void default_connection_handler(ddf_fun_t *fun,
 	
 	usb_log_debug("default_connection_handler: fun->name: %s\n",
 	              fun->name);
-	usb_log_debug("default_connection_handler: mouse_phone: %d, wheel "
-	    "phone: %d\n", mouse_dev->mouse_phone, mouse_dev->wheel_phone);
+	usb_log_debug("default_connection_handler: mouse_sess: %p, "
+	    "wheel_sess: %p\n", mouse_dev->mouse_sess, mouse_dev->wheel_sess);
 	
-	int *phone = (str_cmp(fun->name, HID_MOUSE_FUN_NAME) == 0) 
-		     ? &mouse_dev->mouse_phone : &mouse_dev->wheel_phone;
+	async_sess_t **sess_ptr =
+	    (str_cmp(fun->name, HID_MOUSE_FUN_NAME) == 0) ?
+	    &mouse_dev->mouse_sess : &mouse_dev->wheel_sess;
 	
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
-
-		if (*phone != -1) {
+	async_sess_t *sess =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	if (sess != NULL) {
+		if (*sess_ptr == NULL) {
+			*sess_ptr = sess;
+			usb_log_debug("Console session to mouse set ok (%p).\n",
+			    sess);
+			async_answer_0(icallid, EOK);
+		} else {
 			usb_log_debug("default_connection_handler: Console "
-			    "phone to mouse already set.\n");
+			    "session to mouse already set.\n");
 			async_answer_0(icallid, ELIMIT);
-			return;
 		}
-
-		*phone = callback;
-		usb_log_debug("Console phone to mouse set ok (%d).\n", *phone);
-		async_answer_0(icallid, EOK);
-		return;
+	} else {
+		usb_log_debug("default_connection_handler: Invalid function.\n");
+		async_answer_0(icallid, EINVAL);
 	}
-
-	usb_log_debug("default_connection_handler: Invalid function.\n");
-	async_answer_0(icallid, EINVAL);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -174,29 +168,24 @@ static usb_mouse_t *usb_mouse_new(void)
 	if (mouse == NULL) {
 		return NULL;
 	}
-	mouse->mouse_phone = -1;
-	mouse->wheel_phone = -1;
+	mouse->mouse_sess = NULL;
+	mouse->wheel_sess = NULL;
 	
 	return mouse;
 }
 
 /*----------------------------------------------------------------------------*/
 
-static void usb_mouse_free(usb_mouse_t **mouse_dev)
+static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
 {
-	assert(mouse_dev != NULL && *mouse_dev != NULL);
+	assert(mouse_dev != NULL);
 	
-	// hangup phone to the console
-	if ((*mouse_dev)->mouse_phone >= 0) {
-		async_obsolete_hangup((*mouse_dev)->mouse_phone);
-	}
+	// hangup session to the console
+	if (mouse_dev->mouse_sess != NULL)
+		async_hangup(mouse_dev->mouse_sess);
 	
-	if ((*mouse_dev)->wheel_phone >= 0) {
-		async_obsolete_hangup((*mouse_dev)->wheel_phone);
-	}
-	
-	free(*mouse_dev);
-	*mouse_dev = NULL;
+	if (mouse_dev->wheel_sess != NULL)
+		async_hangup(mouse_dev->wheel_sess);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -205,7 +194,7 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 {
 	unsigned int key = (wheel > 0) ? KC_UP : KC_DOWN;
 
-	if (mouse_dev->wheel_phone < 0) {
+	if (mouse_dev->wheel_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, wheel roll discarded.\n");
 		return;
@@ -217,10 +206,13 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 	for (i = 0; i < count; i++) {
 		/* Send arrow press and release. */
 		usb_log_debug2("Sending key %d to the console\n", key);
-		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT,
-		    KEY_PRESS, key, 0, 0);
-		async_obsolete_msg_4(mouse_dev->wheel_phone, KBDEV_EVENT,
-		    KEY_RELEASE, key, 0, 0);
+		
+		async_exch_t *exch = async_exchange_begin(mouse_dev->wheel_sess);
+		
+		async_msg_4(exch, KBDEV_EVENT, KEY_PRESS, key, 0, 0);
+		async_msg_4(exch, KBDEV_EVENT, KEY_RELEASE, key, 0, 0);
+		
+		async_exchange_end(exch);
 	}
 }
 
@@ -255,8 +247,8 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 {
 	assert(mouse_dev != NULL);
 	
-	if (mouse_dev->mouse_phone < 0) {
-		usb_log_warning(NAME " No console phone.\n");
+	if (mouse_dev->mouse_sess == NULL) {
+		usb_log_warning(NAME " No console session.\n");
 		return true;
 	}
 
@@ -268,13 +260,13 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
 	if ((shift_x != 0) || (shift_y != 0)) {
-		async_obsolete_req_2_0(mouse_dev->mouse_phone,
-		    MOUSEEV_MOVE_EVENT, shift_x, shift_y);
+		async_exch_t *exch = async_exchange_begin(mouse_dev->mouse_sess);
+		async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
+		async_exchange_end(exch);
 	}
-
-	if (wheel != 0) {
+	
+	if (wheel != 0)
 		usb_mouse_send_wheel(mouse_dev, wheel);
-	}
 	
 	/*
 	 * Buttons
@@ -294,14 +286,20 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		
 		if (mouse_dev->buttons[field->usage - field->usage_minimum] == 0
 		    && field->value != 0) {
-			async_obsolete_req_2_0(mouse_dev->mouse_phone,
-			    MOUSEEV_BUTTON_EVENT, field->usage, 1);
+			async_exch_t *exch =
+			    async_exchange_begin(mouse_dev->mouse_sess);
+			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 1);
+			async_exchange_end(exch);
+			
 			mouse_dev->buttons[field->usage - field->usage_minimum]
 			    = field->value;
 		} else if (mouse_dev->buttons[field->usage - field->usage_minimum] != 0
 		    && field->value == 0) {
-			async_obsolete_req_2_0(mouse_dev->mouse_phone,
-			   MOUSEEV_BUTTON_EVENT, field->usage, 0);
+			async_exch_t *exch =
+			    async_exchange_begin(mouse_dev->mouse_sess);
+			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 0);
+			async_exchange_end(exch);
+			
 			mouse_dev->buttons[field->usage - field->usage_minimum] =
 			   field->value;
 		}
@@ -324,7 +322,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	assert(hid_dev != NULL);
 	assert(mouse != NULL);
 	
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    HID_MOUSE_FUN_NAME);
@@ -344,13 +342,13 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		return rc;
 	}
 	
-	usb_log_debug("Adding DDF function to class %s...\n", 
-	    HID_MOUSE_CLASS_NAME);
-	rc = ddf_fun_add_to_class(fun, HID_MOUSE_CLASS_NAME);
+	usb_log_debug("Adding DDF function to category %s...\n", 
+	    HID_MOUSE_CATEGORY);
+	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class %s: %s.\n",
-		    HID_MOUSE_CLASS_NAME, str_error(rc));
+		    "Could not add DDF function to category %s: %s.\n",
+		    HID_MOUSE_CATEGORY, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -382,13 +380,13 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		return rc;
 	}
 	
-	usb_log_debug("Adding DDF function to class %s...\n", 
-	    HID_MOUSE_WHEEL_CLASS_NAME);
-	rc = ddf_fun_add_to_class(fun, HID_MOUSE_WHEEL_CLASS_NAME);
+	usb_log_debug("Adding DDF function to category %s...\n", 
+	    HID_MOUSE_WHEEL_CATEGORY);
+	rc = ddf_fun_add_to_category(fun, HID_MOUSE_WHEEL_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class %s: %s.\n",
-		    HID_MOUSE_WHEEL_CLASS_NAME, str_error(rc));
+		    "Could not add DDF function to category %s: %s.\n",
+		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -436,7 +434,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
 	if (rc != EOK) {
-		usb_mouse_free(&mouse_dev);
+		usb_mouse_destroy(mouse_dev);
 		return rc;
 	}
 	
@@ -463,7 +461,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data != NULL) {
-		usb_mouse_free((usb_mouse_t **)&data);
+		usb_mouse_destroy((usb_mouse_t *)data);
 	}
 }
 

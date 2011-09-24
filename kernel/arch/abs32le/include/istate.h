@@ -35,17 +35,14 @@
 #ifndef KERN_abs32le_ISTATE_H_
 #define KERN_abs32le_ISTATE_H_
 
+#include <trace.h>
+
 #ifdef KERNEL
 
-#include <typedefs.h>
 #include <verify.h>
-#include <trace.h>
 
 #else /* KERNEL */
 
-#include <sys/types.h>
-
-#define NO_TRACE
 #define REQUIRES_EXTENT_MUTABLE(arg)
 #define WRITES(arg)
 

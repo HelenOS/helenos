@@ -37,9 +37,10 @@
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
-#include <devmap.h>
+#include <loc.h>
 #include <bool.h>
 #include <ipc/vfs.h>
+#include <task.h>
 
 #ifndef dprintf
 	#define dprintf(...)
@@ -60,13 +61,13 @@ typedef struct {
  */
 #define VFS_PAIR \
 	fs_handle_t fs_handle; \
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 
 /**
  * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
  * doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
- * @note	fs_handle, devmap_handle and index are meant to be returned in one
+ * @note	fs_handle, service_id and index are meant to be returned in one
  *		IPC reply.
  */
 #define VFS_TRIPLET \
@@ -169,24 +170,26 @@ extern fibril_rwlock_t namespace_rwlock;
 extern async_exch_t *vfs_exchange_grab(fs_handle_t);
 extern void vfs_exchange_release(async_exch_t *);
 
-extern fs_handle_t fs_name_to_handle(char *, bool);
+extern fs_handle_t fs_name_to_handle(unsigned int instance, char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
-extern int vfs_open_node_internal(vfs_lookup_res_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
-extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
+extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 
 
 #define MAX_OPEN_FILES	128
 
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
+
+extern void vfs_pass_handle(task_id_t, task_id_t, int);
+extern int vfs_wait_handle_internal(void);
 
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
@@ -196,12 +199,12 @@ extern int vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);
+extern int vfs_open_node_remote(vfs_node_t *);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
-extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);
 extern void vfs_dup(ipc_callid_t, ipc_call_t *);
 extern void vfs_close(ipc_callid_t, ipc_call_t *);
@@ -214,6 +217,7 @@ extern void vfs_stat(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
+extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
 
 #endif
 

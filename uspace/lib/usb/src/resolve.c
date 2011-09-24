@@ -45,12 +45,12 @@ static bool try_parse_bus_and_address(const char *path,
     char **func_start,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
 {
-	size_t class_index;
+	uint64_t sid;
 	size_t address;
 	int rc;
 	char *ptr;
 
-	rc = str_size_t(path, &ptr, 10, false, &class_index);
+	rc = str_uint64(path, &ptr, 10, false, &sid);
 	if (rc != EOK) {
 		return false;
 	}
@@ -63,7 +63,7 @@ static bool try_parse_bus_and_address(const char *path,
 	if (rc != EOK) {
 		return false;
 	}
-	rc = usb_ddf_get_hc_handle_by_class(class_index, out_hc_handle);
+	rc = usb_ddf_get_hc_handle_by_sid(sid, out_hc_handle);
 	if (rc != EOK) {
 		return false;
 	}
@@ -151,7 +151,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 		}
 		if (str_length(func_start) > 0) {
 			char tmp_path[MAX_DEVICE_PATH ];
-			rc = devman_get_device_path(dev_handle,
+			rc = devman_fun_get_path(dev_handle,
 			    tmp_path, MAX_DEVICE_PATH);
 			if (rc != EOK) {
 				return rc;
@@ -172,7 +172,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 	}
 
 	/* First try to get the device handle. */
-	rc = devman_device_get_handle(path, &dev_handle, 0);
+	rc = devman_fun_get_handle(path, &dev_handle, 0);
 	if (rc != EOK) {
 		free(path);
 		/* Invalid path altogether. */
@@ -183,7 +183,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 	while (str_length(path) > 0) {
 		/* Get device handle first. */
 		devman_handle_t tmp_handle;
-		rc = devman_device_get_handle(path, &tmp_handle, 0);
+		rc = devman_fun_get_handle(path, &tmp_handle, 0);
 		if (rc != EOK) {
 			free(path);
 			return rc;

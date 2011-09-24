@@ -37,7 +37,6 @@
 
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
-#include <synch/synch.h>
 #include <debug.h>
 #include <arch.h>
 

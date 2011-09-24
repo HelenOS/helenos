@@ -44,7 +44,7 @@
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 #include <adt/list.h>
 #include "../private/io.h"
 #include "../private/stdio.h"
@@ -100,24 +100,24 @@ FILE *stderr = NULL;
 
 static LIST_INITIALIZE(files);
 
-void __stdio_init(int filc, fdi_node_t *filv[])
+void __stdio_init(int filc)
 {
 	if (filc > 0) {
-		stdin = fopen_node(filv[0], "r");
+		stdin = fdopen(0, "r");
 	} else {
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
 	
 	if (filc > 1) {
-		stdout = fopen_node(filv[1], "w");
+		stdout = fdopen(1, "w");
 	} else {
 		stdout = &stdout_klog;
 		list_append(&stdout->link, &files);
 	}
 	
 	if (filc > 2) {
-		stderr = fopen_node(filv[2], "w");
+		stderr = fdopen(2, "w");
 	} else {
 		stderr = &stderr_klog;
 		list_append(&stderr->link, &files);
@@ -284,38 +284,6 @@ FILE *fdopen(int fd, const char *mode)
 	return stream;
 }
 
-FILE *fopen_node(fdi_node_t *node, const char *mode)
-{
-	int flags;
-	if (!parse_mode(mode, &flags))
-		return NULL;
-	
-	/* Open file. */
-	FILE *stream = malloc(sizeof(FILE));
-	if (stream == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	stream->fd = open_node(node, flags);
-	if (stream->fd < 0) {
-		/* errno was set by open_node() */
-		free(stream);
-		return NULL;
-	}
-	
-	stream->error = false;
-	stream->eof = false;
-	stream->klog = false;
-	stream->sess = NULL;
-	stream->need_sync = false;
-	_setvbuf(stream);
-	
-	list_append(&stream->link, &files);
-	
-	return stream;
-}
-
 int fclose(FILE *stream)
 {
 	int rc = 0;
@@ -449,15 +417,13 @@ static void _fflushbuf(FILE *stream)
 		return;
 
 	bytes_used = stream->buf_head - stream->buf_tail;
-	if (bytes_used == 0)
-		return;
 
 	/* If buffer has prefetched read data, we need to seek back. */
-	if (stream->buf_state == _bs_read)
+	if (bytes_used > 0 && stream->buf_state == _bs_read)
 		lseek(stream->fd, - (ssize_t) bytes_used, SEEK_CUR);
 
 	/* If buffer has unwritten data, we need to write them out. */
-	if (stream->buf_state == _bs_write)
+	if (bytes_used > 0 && stream->buf_state == _bs_write)
 		(void) _fwrite(stream->buf_tail, 1, bytes_used, stream);
 
 	stream->buf_head = stream->buf;
@@ -779,10 +745,12 @@ async_sess_t *fsession(exch_mgmt_t mgmt, FILE *stream)
 	return NULL;
 }
 
-int fnode(FILE *stream, fdi_node_t *node)
+int fhandle(FILE *stream, int *handle)
 {
-	if (stream->fd >= 0)
-		return fd_node(stream->fd, node);
+	if (stream->fd >= 0) {
+		*handle = stream->fd;
+		return EOK;
+	}
 	
 	return ENOENT;
 }

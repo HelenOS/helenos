@@ -626,7 +626,7 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 		}
 	}
 	
-	usb_hid_free(&hid_dev);
+	usb_hid_destroy(hid_dev);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -645,43 +645,40 @@ int usb_hid_report_number(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-void usb_hid_free(usb_hid_dev_t **hid_dev)
+void usb_hid_destroy(usb_hid_dev_t *hid_dev)
 {
 	int i;
 	
-	if (hid_dev == NULL || *hid_dev == NULL) {
+	if (hid_dev == NULL) {
 		return;
 	}
 	
 	usb_log_debug("Subdrivers: %p, subdriver count: %d\n", 
-	    (*hid_dev)->subdrivers, (*hid_dev)->subdriver_count);
+	    hid_dev->subdrivers, hid_dev->subdriver_count);
 	
-	assert((*hid_dev)->subdrivers != NULL 
-	    || (*hid_dev)->subdriver_count == 0);
+	assert(hid_dev->subdrivers != NULL 
+	    || hid_dev->subdriver_count == 0);
 	
-	for (i = 0; i < (*hid_dev)->subdriver_count; ++i) {
-		if ((*hid_dev)->subdrivers[i].deinit != NULL) {
-			(*hid_dev)->subdrivers[i].deinit(*hid_dev,
-			    (*hid_dev)->subdrivers[i].data);
+	for (i = 0; i < hid_dev->subdriver_count; ++i) {
+		if (hid_dev->subdrivers[i].deinit != NULL) {
+			hid_dev->subdrivers[i].deinit(hid_dev,
+			    hid_dev->subdrivers[i].data);
 		}
 	}
 	
 	// free the subdrivers info
-	if ((*hid_dev)->subdrivers != NULL) {
-		free((*hid_dev)->subdrivers);
+	if (hid_dev->subdrivers != NULL) {
+		free(hid_dev->subdrivers);
 	}
 
 	// destroy the parser
-	if ((*hid_dev)->report != NULL) {
-		usb_hid_free_report((*hid_dev)->report);
+	if (hid_dev->report != NULL) {
+		usb_hid_free_report(hid_dev->report);
 	}
 
-	if ((*hid_dev)->report_desc != NULL) {
-		free((*hid_dev)->report_desc);
+	if (hid_dev->report_desc != NULL) {
+		free(hid_dev->report_desc);
 	}
-
-	free(*hid_dev);
-	*hid_dev = NULL;
 }
 
 /**

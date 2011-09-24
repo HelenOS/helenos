@@ -38,7 +38,6 @@
 
 #include <libc.h>
 #include <event.h>
-#include <kernel/ipc/event_types.h>
 
 /** Subscribe event notifications.
  *
@@ -54,6 +53,12 @@ int event_subscribe(event_type_t evno, sysarg_t imethod)
 	    (sysarg_t) imethod);
 }
 
+int event_task_subscribe(event_task_type_t evno, sysarg_t imethod)
+{
+	return __SYSCALL2(SYS_EVENT_SUBSCRIBE, (sysarg_t) evno,
+	    (sysarg_t) imethod);
+}
+
 /** Unmask event notifications.
  *
  * @param evno Event type to unmask.
@@ -62,6 +67,11 @@ int event_subscribe(event_type_t evno, sysarg_t imethod)
  *
  */
 int event_unmask(event_type_t evno)
+{
+	return __SYSCALL1(SYS_EVENT_UNMASK, (sysarg_t) evno);
+}
+
+int event_task_unmask(event_task_type_t evno)
 {
 	return __SYSCALL1(SYS_EVENT_UNMASK, (sysarg_t) evno);
 }

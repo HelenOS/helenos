@@ -39,7 +39,6 @@
 #define FRAME_WIDTH  12  /* 4KB frames */
 #define FRAME_SIZE   (1 << FRAME_WIDTH)
 
-#ifdef KERNEL
 #ifndef __ASM__
 
 #include <typedefs.h>
@@ -68,7 +67,6 @@ extern void boot_page_table_free(void);
 #define physmem_print()
 
 #endif /* __ASM__ */
-#endif /* KERNEL */
 
 #endif
 

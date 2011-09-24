@@ -36,6 +36,7 @@ DIRS = \
 	app/bdsh \
 	app/blkdump \
 	app/bnchmark \
+	app/devctl \
 	app/edit \
 	app/ext2info \
 	app/getterm \
@@ -43,10 +44,13 @@ DIRS = \
 	app/kill \
 	app/killall \
 	app/klog \
+	app/locinfo \
 	app/lsusb \
 	app/mkfat \
+	app/mkmfs \
 	app/redir \
 	app/sbi \
+	app/sportdmp \
 	app/stats \
 	app/taskdump \
 	app/tester \
@@ -64,7 +68,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	srv/clip \
-	srv/devmap \
+	srv/loc \
 	srv/devman \
 	srv/loader \
 	srv/ns \
@@ -76,10 +80,14 @@ DIRS = \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
+	srv/fs/exfat \
 	srv/fs/fat \
+	srv/fs/cdfs \
 	srv/fs/tmpfs \
-	srv/fs/devfs \
+	srv/fs/mfs \
+	srv/fs/locfs \
 	srv/fs/ext2fs \
+	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
@@ -110,6 +118,19 @@ DIRS = \
 	drv/bus/usb/usbmouse \
 	drv/bus/usb/vhc
 
+ifeq ($(CONFIG_PCC),y)
+DIRS += \
+	app/cc \
+	app/ccom \
+	app/ccom/mkext \
+	app/cpp
+endif
+
+ifeq ($(CONFIG_BINUTILS),y)
+DIRS += \
+	app/binutils
+endif
+
 ## Networking
 #
 
@@ -119,10 +140,6 @@ DIRS += \
 
 ## Platform-specific hardware support
 #
-
-ifneq ($(UARCH),abs32le)
-	DIRS += srv/hid/console
-endif
 
 ifeq ($(UARCH),amd64)
 	DIRS += \
@@ -163,18 +180,21 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/fmtutil \
 	lib/scsi \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
+	lib/fb \
 	lib/net \
 	lib/ext2 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
-	lib/usbvirt
+	lib/usbvirt \
+	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

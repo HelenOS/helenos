@@ -42,9 +42,8 @@
 typedef enum {
 	SERVICE_NONE       = 0,
 	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VIDEO      = FOURCC('v', 'i', 'd', ' '),
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_DEVMAP     = FOURCC('d', 'e', 'v', 'p'),
+	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),

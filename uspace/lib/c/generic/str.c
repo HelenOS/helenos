@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2005 Martin Decky
  * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -548,7 +550,7 @@ void str_append(char *dest, size_t size, const char *src)
 /** Convert space-padded ASCII to string.
  *
  * Common legacy text encoding in hardware is 7-bit ASCII fitted into
- * a fixed-with byte buffer (bit 7 always zero), right-padded with spaces
+ * a fixed-width byte buffer (bit 7 always zero), right-padded with spaces
  * (ASCII 0x20). Convert space-padded ascii to string representation.
  *
  * If the text does not fit into the destination buffer, the function converts
@@ -638,6 +640,84 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest[dest_off] = '\0';
 }
 
+/** Convert UTF16 string to string.
+ *
+ * Convert utf16 string @a src to string. The output is written to the buffer
+ * specified by @a dest and @a size. @a size must be non-zero and the string
+ * written will always be well-formed. Surrogate pairs also supported.
+ *
+ * @param dest	Destination buffer.
+ * @param size	Size of the destination buffer.
+ * @param src	Source utf16 string.
+ *
+ * @return EOK, if success, negative otherwise.
+ */
+int utf16_to_str(char *dest, size_t size, const uint16_t *src)
+{
+	size_t idx = 0, dest_off = 0;
+	wchar_t ch;
+	int rc = EOK;
+
+	/* There must be space for a null terminator in the buffer. */
+	assert(size > 0);
+
+	while (src[idx]) {
+		if ((src[idx] & 0xfc00) == 0xd800) {
+			if (src[idx + 1] && (src[idx + 1] & 0xfc00) == 0xdc00) {
+				ch = 0x10000;
+				ch += (src[idx] & 0x03FF) << 10;
+				ch += (src[idx + 1] & 0x03FF);
+				idx += 2;
+			}
+			else
+				break;
+		} else {
+			ch = src[idx];
+			idx++;
+		}
+		rc = chr_encode(ch, dest, &dest_off, size - 1);
+		if (rc != EOK)
+			break;
+	}
+	dest[dest_off] = '\0';
+	return rc;
+}
+
+int str_to_utf16(uint16_t *dest, size_t size, const char *src)
+{
+	int rc = EOK;
+	size_t offset = 0;
+	size_t idx = 0;
+	wchar_t c;
+
+	assert(size > 0);
+	
+	while ((c = str_decode(src, &offset, STR_NO_LIMIT)) != 0) {
+		if (c > 0x10000) {
+			if (idx + 2 >= size - 1) {
+				rc = EOVERFLOW;
+				break;
+			}
+			c = (c - 0x10000);
+			dest[idx] = 0xD800 | (c >> 10);
+			dest[idx + 1] = 0xDC00 | (c & 0x3FF);
+			idx++;
+		} else {
+			 dest[idx] = c;
+		}
+
+		idx++;
+		if (idx >= size - 1) {
+			rc = EOVERFLOW;
+			break;
+		}
+	}
+
+	dest[idx] = '\0';
+	return rc;
+}
+
+
 /** Convert wide string to new string.
  *
  * Convert wide string @a src to string. Space for the new string is allocated
@@ -717,6 +797,25 @@ void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
 	} while (c != '\0');
 
 	dest[dlen - 1] = '\0';
+}
+
+/** Convert string to wide string.
+ *
+ * Convert string @a src to wide string. A new wide NULL-terminated
+ * string will be allocated on the heap.
+ *
+ * @param src	Source string.
+ */
+wchar_t *str_to_awstr(const char *str)
+{
+	size_t len = str_length(str);
+	
+	wchar_t *wstr = calloc(len+1, sizeof(wchar_t));
+	if (wstr == NULL)
+		return NULL;
+	
+	str_to_wstr(wstr, len + 1, str);
+	return wstr;
 }
 
 /** Find first occurence of character in string.
@@ -1016,7 +1115,6 @@ char *str_ndup(const char *src, size_t n)
 	return dest;
 }
 
-
 /** Convert initial part of string to unsigned long according to given base.
  * The number may begin with an arbitrary number of whitespaces followed by
  * optional sign (`+' or `-'). If the base is 0 or 16, the prefix `0x' may be
@@ -1188,6 +1286,147 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
 	
 	if (str == nptr)
 		return EINVAL;
+	
+	return EOK;
+}
+
+/** Convert string to uint8_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint8_t(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint8_t *result)
+{
+	assert(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	uint64_t res;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	/* Check for overflow */
+	uint8_t _res = (uint8_t) res;
+	if (_res != res)
+		return EOVERFLOW;
+	
+	*result = _res;
+	
+	return EOK;
+}
+
+/** Convert string to uint16_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint16_t(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint16_t *result)
+{
+	assert(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	uint64_t res;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	/* Check for overflow */
+	uint16_t _res = (uint16_t) res;
+	if (_res != res)
+		return EOVERFLOW;
+	
+	*result = _res;
+	
+	return EOK;
+}
+
+/** Convert string to uint32_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint32_t *result)
+{
+	assert(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	uint64_t res;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	/* Check for overflow */
+	uint32_t _res = (uint32_t) res;
+	if (_res != res)
+		return EOVERFLOW;
+	
+	*result = _res;
 	
 	return EOK;
 }

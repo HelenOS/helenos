@@ -72,7 +72,7 @@ INIT_TASKS = \
 	$(USPACE_PATH)/srv/ns/ns \
 	$(USPACE_PATH)/srv/loader/loader \
 	$(USPACE_PATH)/app/init/init \
-	$(USPACE_PATH)/srv/devmap/devmap \
+	$(USPACE_PATH)/srv/loc/loc \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs
 
@@ -92,7 +92,7 @@ RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/fb/fb \
 	$(USPACE_PATH)/srv/hid/input/input \
 	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/fs/devfs/devfs
+	$(USPACE_PATH)/srv/fs/locfs/locfs
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
@@ -101,6 +101,9 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/clip/clip \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
+	$(USPACE_PATH)/srv/fs/mfs/mfs \
+	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
+	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
@@ -126,6 +129,13 @@ RD_DRV_CFG =
 
 RD_LIBS =
 
+ifeq ($(CONFIG_DEVEL_FILES), y)
+	RD_LIBS += \
+		$(USPACE_PATH)/lib/c/libc.a \
+		$(USPACE_PATH)/lib/softint/libsoftint.a \
+		$(USPACE_PATH)/lib/softfloat/libsoftfloat.a
+endif
+
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += \
 		$(USPACE_PATH)/lib/c/libc.so0 \
@@ -142,6 +152,7 @@ RD_APPS_ESSENTIAL = \
 RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
+	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
@@ -149,9 +160,12 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
+	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/mkmfs/mkmfs \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
+	$(USPACE_PATH)/app/sportdmp/sportdmp \
 	$(USPACE_PATH)/app/redir/redir \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
@@ -169,6 +183,20 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv
+
+ifeq ($(CONFIG_PCC),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/cc/cc \
+	$(USPACE_PATH)/app/ccom/ccom \
+	$(USPACE_PATH)/app/ccom/mkext/cc_mkext \
+	$(USPACE_PATH)/app/cpp/cpp
+endif
+
+ifeq ($(CONFIG_BINUTILS),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/binutils/bin/as \
+	$(USPACE_PATH)/app/binutils/bin/ld
+endif
 
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \

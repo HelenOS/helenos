@@ -74,8 +74,8 @@ typedef struct td {
 	volatile uint32_t be; /* buffer end, address of the last byte */
 } __attribute__((packed)) td_t;
 
-void td_init(
-    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle);
+void td_init(td_t *instance,
+    usb_direction_t dir, const void *buffer, size_t size, int toggle);
 
 inline static void td_set_next(td_t *instance, td_t *next)
 {

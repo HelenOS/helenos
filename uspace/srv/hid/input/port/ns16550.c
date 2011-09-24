@@ -37,7 +37,6 @@
 
 #include <ipc/irc.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <sysinfo.h>
 #include <input.h>
 #include <kbd.h>
@@ -157,9 +156,11 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
 	
-	if (irc_service)
-		async_obsolete_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,
-		    IPC_GET_IMETHOD(*call));
+	if (irc_service) {
+		async_exch_t *exch = async_exchange_begin(irc_sess);
+		async_msg_1(exch, IRC_CLEAR_INTERRUPT, IPC_GET_IMETHOD(*call));
+		async_exchange_end(exch);
+	}
 }
 
 /**

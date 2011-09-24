@@ -42,7 +42,6 @@
 #include <io/console.h>
 #include <ipc/kbdev.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 
@@ -69,9 +68,6 @@
 #include "kbdrepeat.h"
 
 #include "../usbhid.h"
-
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
 
 /*----------------------------------------------------------------------------*/
 
@@ -101,7 +97,7 @@ usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 };
 
 const char *HID_KBD_FUN_NAME = "keyboard";
-const char *HID_KBD_CLASS_NAME = "keyboard";
+const char *HID_KBD_CATEGORY_NAME = "keyboard";
 
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 
@@ -166,7 +162,7 @@ static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
  * Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
- * assumes the caller is the console and thus it stores IPC phone to it for 
+ * assumes the caller is the console and thus it stores IPC session to it for
  * later use by the driver to notify about key events.
  *
  * @param fun Device function handling the call.
@@ -177,41 +173,39 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
-	int callback;
 	
-	usb_kbd_t *kbd_dev = (usb_kbd_t *)fun->driver_data;
+	usb_kbd_t *kbd_dev = (usb_kbd_t *) fun->driver_data;
 	if (kbd_dev == NULL) {
 		usb_log_debug("default_connection_handler: "
 		    "Missing parameter.\n");
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-
-	switch (method) {
-	case IPC_M_CONNECT_TO_ME:
-		callback = IPC_GET_ARG5(*icall);
-
-		if (kbd_dev->console_phone != -1) {
+	
+	async_sess_t *sess =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	if (sess != NULL) {
+		if (kbd_dev->console_sess == NULL) {
+			kbd_dev->console_sess = sess;
+			usb_log_debug("default_connection_handler: OK\n");
+			async_answer_0(icallid, EOK);
+		} else {
 			usb_log_debug("default_connection_handler: "
-			    "console phone already set\n");
+			    "console session already set\n");
 			async_answer_0(icallid, ELIMIT);
-			return;
 		}
-
-		kbd_dev->console_phone = callback;
-		
-		usb_log_debug("default_connection_handler: OK\n");
-		async_answer_0(icallid, EOK);
-		break;
-	case KBDEV_SET_IND:
-		kbd_dev->mods = IPC_GET_ARG1(*icall);
-		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
-		async_answer_0(icallid, EOK);
-		break;
-	default:
-		usb_log_debug("default_connection_handler: Wrong function.\n");
-		async_answer_0(icallid, EINVAL);
-		break;
+	} else {
+		switch (method) {
+		case KBDEV_SET_IND:
+			kbd_dev->mods = IPC_GET_ARG1(*icall);
+			usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
+			async_answer_0(icallid, EOK);
+			break;
+		default:
+			usb_log_debug("default_connection_handler: Wrong function.\n");
+			async_answer_0(icallid, EINVAL);
+			break;
+		}
 	}
 }
 
@@ -300,13 +294,15 @@ void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type,
     unsigned int key)
 {
 	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
-	if (kbd_dev->console_phone < 0) {
+	if (kbd_dev->console_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 	
-	async_obsolete_msg_2(kbd_dev->console_phone, KBDEV_EVENT, type, key);
+	async_exch_t *exch = async_exchange_begin(kbd_dev->console_sess);
+	async_msg_2(exch, KBDEV_EVENT, type, key);
+	async_exchange_end(exch);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -509,7 +505,7 @@ static usb_kbd_t *usb_kbd_new(void)
 		return NULL;
 	}
 	
-	kbd_dev->console_phone = -1;
+	kbd_dev->console_sess = NULL;
 	kbd_dev->initialized = USB_KBD_STATUS_UNINITIALIZED;
 	
 	return kbd_dev;
@@ -523,7 +519,7 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	assert(hid_dev->usb_dev != NULL);
 	assert(kbd_dev != NULL);
 	
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    HID_KBD_FUN_NAME);
@@ -550,12 +546,12 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	usb_log_debug("%s function created. Handle: %" PRIun "\n",
 	    HID_KBD_FUN_NAME, fun->handle);
 	
-	usb_log_debug("Adding DDF function to class %s...\n", 
+	usb_log_debug("Adding DDF function to category %s...\n", 
 	    HID_KBD_CLASS_NAME);
-	rc = ddf_fun_add_to_class(fun, HID_KBD_CLASS_NAME);
+	rc = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class %s: %s.\n",
+		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
@@ -733,7 +729,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	usb_log_debug("Creating KBD function...\n");
 	int rc = usb_kbd_create_function(hid_dev, kbd_dev);
 	if (rc != EOK) {
-		usb_kbd_free(&kbd_dev);
+		usb_kbd_destroy(kbd_dev);
 		return rc;
 	}
 	
@@ -778,42 +774,39 @@ int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev)
  *
  * @param kbd_dev Pointer to the structure to be destroyed.
  */
-void usb_kbd_free(usb_kbd_t **kbd_dev)
+void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 {
-	if (kbd_dev == NULL || *kbd_dev == NULL) {
+	if (kbd_dev == NULL) {
 		return;
 	}
 	
-	// hangup phone to the console
-	async_obsolete_hangup((*kbd_dev)->console_phone);
+	// hangup session to the console
+	async_hangup(kbd_dev->console_sess);
 	
-	if ((*kbd_dev)->repeat_mtx != NULL) {
+	if (kbd_dev->repeat_mtx != NULL) {
 		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
 		// FIXME - the fibril_mutex_is_locked may not cause
 		// fibril scheduling
-		while (fibril_mutex_is_locked((*kbd_dev)->repeat_mtx)) {}
-		free((*kbd_dev)->repeat_mtx);
+		while (fibril_mutex_is_locked(kbd_dev->repeat_mtx)) {}
+		free(kbd_dev->repeat_mtx);
 	}
 	
 	// free all buffers
-	if ((*kbd_dev)->keys != NULL) {
-		free((*kbd_dev)->keys);
+	if (kbd_dev->keys != NULL) {
+		free(kbd_dev->keys);
 	}
-	if ((*kbd_dev)->keys_old != NULL) {
-		free((*kbd_dev)->keys_old);
+	if (kbd_dev->keys_old != NULL) {
+		free(kbd_dev->keys_old);
 	}
-	if ((*kbd_dev)->led_data != NULL) {
-		free((*kbd_dev)->led_data);
+	if (kbd_dev->led_data != NULL) {
+		free(kbd_dev->led_data);
 	}
-	if ((*kbd_dev)->led_path != NULL) {
-		usb_hid_report_path_free((*kbd_dev)->led_path);
+	if (kbd_dev->led_path != NULL) {
+		usb_hid_report_path_free(kbd_dev->led_path);
 	}
-	if ((*kbd_dev)->output_buffer != NULL) {
-		usb_hid_report_output_free((*kbd_dev)->output_buffer);
+	if (kbd_dev->output_buffer != NULL) {
+		usb_hid_report_output_free(kbd_dev->output_buffer);
 	}
-
-	free(*kbd_dev);
-	*kbd_dev = NULL;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -829,7 +822,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 		if (usb_kbd_is_initialized(kbd_dev)) {
 			usb_kbd_mark_unusable(kbd_dev);
 		} else {
-			usb_kbd_free(&kbd_dev);
+			usb_kbd_destroy(kbd_dev);
 		}
 	}
 }

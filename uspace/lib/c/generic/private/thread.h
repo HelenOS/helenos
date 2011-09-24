@@ -35,7 +35,7 @@
 #ifndef LIBC_PRIVATE_THREAD_H_
 #define LIBC_PRIVATE_THREAD_H_
 
-#include <kernel/proc/uarg.h>
+#include <abi/proc/uarg.h>
 
 extern void __thread_entry(void);
 extern void __thread_main(uspace_arg_t *);

@@ -43,13 +43,12 @@ EXTRA_CFLAGS += \
 BINARY = ohci
 
 SOURCES = \
-	batch.c \
 	endpoint_list.c \
 	hc.c \
-	hcd_endpoint.c \
-	iface.c \
 	main.c \
 	ohci.c \
+	ohci_batch.c \
+	ohci_endpoint.c \
 	pci.c \
 	root_hub.c \
 	hw_struct/endpoint_descriptor.c \

@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <ipc/devman.h>
+#include <ipc/loc.h>
 #include <ddf/driver.h>
 #include <bool.h>
 #include <async.h>
@@ -60,14 +61,14 @@ int usb_hc_connection_close(usb_hc_connection_t *);
 int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
     devman_handle_t *);
 
-int usb_hc_get_address_by_handle(devman_handle_t);
+usb_address_t usb_hc_get_address_by_handle(devman_handle_t);
 
 int usb_hc_find(devman_handle_t, devman_handle_t *);
 
 int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
     devman_handle_t *);
 
-int usb_ddf_get_hc_handle_by_class(size_t, devman_handle_t *);
+int usb_ddf_get_hc_handle_by_sid(service_id_t, devman_handle_t *);
 
 
 #endif

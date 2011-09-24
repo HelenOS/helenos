@@ -1,0 +1,11 @@
+rm top_
+
+rm top.o
+rm screen.o
+
+rm top.s
+rm screen.s
+
+rm top.i
+rm screen.i
+

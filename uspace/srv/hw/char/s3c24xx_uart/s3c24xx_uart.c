@@ -38,10 +38,9 @@
 
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <devmap.h>
+#include <loc.h>
 #include <ipc/char.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,11 +49,8 @@
 #include <inttypes.h>
 #include "s3c24xx_uart.h"
 
-// FIXME: remove this header
-#include <kernel/ipc/ipc_methods.h>
-
-#define NAME "s3c24ser"
-#define NAMESPACE "char"
+#define NAME       "s3c24ser"
+#define NAMESPACE  "char"
 
 static irq_cmd_t uart_irq_cmds[] = {
 	{
@@ -82,9 +78,9 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": S3C24xx on-chip UART driver\n");
 
-	rc = devmap_driver_register(NAME, s3c24xx_uart_connection);
+	rc = loc_server_register(NAME, s3c24xx_uart_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return -1;
 	}
 
@@ -95,7 +91,7 @@ int main(int argc, char *argv[])
 	if (s3c24xx_uart_init(uart) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->devmap_handle);
+	rc = loc_service_register(NAMESPACE "/" NAME, &uart->service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/" NAME);
@@ -116,17 +112,13 @@ int main(int argc, char *argv[])
 static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
-	int retval;
-
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	async_answer_0(iid, EOK);
-
-	while (1) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		sysarg_t method = IPC_GET_IMETHOD(call);
 		
 		if (!method) {
 			/* The other side has hung up. */
@@ -134,23 +126,26 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
 			return;
 		}
 		
-		switch (method) {
-		case IPC_M_CONNECT_TO_ME:
-			printf(NAME ": creating callback connection\n");
-			uart->client_phone = IPC_GET_ARG5(call);
-			retval = 0;
-			break;
-		case CHAR_WRITE_BYTE:
-			printf(NAME ": write %" PRIun " to device\n",
-			    IPC_GET_ARG1(call));
-			s3c24xx_uart_sendb(uart, (uint8_t) IPC_GET_ARG1(call));
-			retval = 0;
-			break;
-		default:
-			retval = EINVAL;
-			break;
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
+		if (sess != NULL) {
+			if (uart->client_sess == NULL) {
+				uart->client_sess = sess;
+				async_answer_0(callid, EOK);
+			} else
+				async_answer_0(callid, ELIMIT);
+		} else {
+			switch (method) {
+			case CHAR_WRITE_BYTE:
+				printf(NAME ": write %" PRIun " to device\n",
+				    IPC_GET_ARG1(call));
+				s3c24xx_uart_sendb(uart, (uint8_t) IPC_GET_ARG1(call));
+				async_answer_0(callid, EOK);
+				break;
+			default:
+				async_answer_0(callid, EINVAL);
+			}
 		}
-		async_answer_0(callid, retval);
 	}
 }
 
@@ -162,9 +157,10 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 		uint32_t data = pio_read_32(&uart->io->urxh) & 0xff;
 		uint32_t status = pio_read_32(&uart->io->uerstat);
 
-		if (uart->client_phone != -1) {
-			async_obsolete_msg_1(uart->client_phone, CHAR_NOTIF_BYTE,
-			    data);
+		if (uart->client_sess != NULL) {
+			async_exch_t *exch = async_exchange_begin(uart->client_sess);
+			async_msg_1(exch, CHAR_NOTIF_BYTE, data);
+			async_exchange_end(exch);
 		}
 
 		if (status != 0)
@@ -190,7 +186,7 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 		return -1;
 
 	uart->io = vaddr;
-	uart->client_phone = -1;
+	uart->client_sess = NULL;
 
 	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
 	    (void *) uart->paddr, inr);

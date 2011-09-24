@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <kernel/syscall/syscall.h>
+#include <abi/syscall.h>
 #include "syscalls.h"
 #include "trace.h"
 
@@ -74,7 +74,7 @@ const sc_desc_t syscall_desc[] = {
     [SYS_REGISTER_IRQ] = { "register_irq",	4,	V_ERRNO },
     [SYS_UNREGISTER_IRQ] = { "unregister_irq",	2,	V_ERRNO },
 
-    [SYS_SYSINFO_GET_TAG] = { "sysinfo_get_tag",		2,	V_INTEGER },
+    [SYS_SYSINFO_GET_VAL_TYPE] = { "sysinfo_get_val_type",		2,	V_INTEGER },
     [SYS_SYSINFO_GET_VALUE] = { "sysinfo_get_value",		3,	V_ERRNO },
     [SYS_SYSINFO_GET_DATA_SIZE] = { "sysinfo_get_data_size",	3,	V_ERRNO },
     [SYS_SYSINFO_GET_DATA] = { "sysinfo_get_data",		5,	V_ERRNO },

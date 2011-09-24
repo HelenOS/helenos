@@ -320,12 +320,12 @@ uint32_t ext2_superblock_get_block_group_count(ext2_superblock_t *sb)
 
 /** Read a superblock directly from device (i.e. no libblock cache)
  * 
- * @param devmap_handle	Device handle of the block device.
+ * @param service_id	Service ID of the block device.
  * @param superblock	Pointer where to store pointer to new superblock
  * 
  * @return		EOK on success or negative error code on failure.
  */
-int ext2_superblock_read_direct(devmap_handle_t devmap_handle,
+int ext2_superblock_read_direct(service_id_t service_id,
     ext2_superblock_t **superblock)
 {
 	void *data;
@@ -336,7 +336,7 @@ int ext2_superblock_read_direct(devmap_handle_t devmap_handle,
 		return ENOMEM;
 	}
 	
-	rc = block_read_bytes_direct(devmap_handle, EXT2_SUPERBLOCK_OFFSET,
+	rc = block_read_bytes_direct(service_id, EXT2_SUPERBLOCK_OFFSET,
 	    EXT2_SUPERBLOCK_SIZE, data);
 	if (rc != EOK) {
 		free(data);

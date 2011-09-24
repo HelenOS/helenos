@@ -33,7 +33,7 @@
  * Virtual host controller.
  */
 
-#include <devmap.h>
+#include <loc.h>
 #include <async.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -72,13 +72,14 @@ static int vhc_add_device(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 	data->magic = 0xDEADBEEF;
-	rc = usb_endpoint_manager_init(&data->ep_manager, (size_t) -1);
+	rc = usb_endpoint_manager_init(&data->ep_manager, (size_t) -1,
+	    bandwidth_count_usb11);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to initialize endpoint manager.\n");
 		free(data);
 		return rc;
 	}
-	usb_device_keeper_init(&data->dev_keeper);
+	usb_device_manager_init(&data->dev_manager);
 
 	ddf_fun_t *hc = ddf_fun_create(dev, fun_exposed, "hc");
 	if (hc == NULL) {
@@ -103,7 +104,7 @@ static int vhc_add_device(ddf_dev_t *dev)
 		return rc;
 	}
 
-	rc = ddf_fun_add_to_class(hc, USB_HC_DDF_CLASS_NAME);
+	rc = ddf_fun_add_to_category(hc, USB_HC_CATEGORY);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to add function to HC class: %s.\n",
 		    str_error(rc));

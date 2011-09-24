@@ -62,7 +62,7 @@ extern void stdout_wire(outdev_t *outdev);
 extern void console_init(void);
 
 extern void klog_init(void);
-extern void klog_update(void);
+extern void klog_update(void *);
 
 extern wchar_t getc(indev_t *indev);
 extern size_t gets(indev_t *indev, char *buf, size_t buflen);

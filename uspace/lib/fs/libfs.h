@@ -39,26 +39,26 @@
 #include <ipc/vfs.h>
 #include <stdint.h>
 #include <async.h>
-#include <devmap.h>
+#include <loc.h>
 
 typedef struct {
-	int (* mounted)(devmap_handle_t, const char *, fs_index_t *, aoff64_t *,
+	int (* mounted)(service_id_t, const char *, fs_index_t *, aoff64_t *,
 	    unsigned *);
-	int (* unmounted)(devmap_handle_t);
-	int (* read)(devmap_handle_t, fs_index_t, aoff64_t, size_t *);
-	int (* write)(devmap_handle_t, fs_index_t, aoff64_t, size_t *,
+	int (* unmounted)(service_id_t);
+	int (* read)(service_id_t, fs_index_t, aoff64_t, size_t *);
+	int (* write)(service_id_t, fs_index_t, aoff64_t, size_t *,
 	    aoff64_t *);
-	int (* truncate)(devmap_handle_t, fs_index_t, aoff64_t);
-	int (* close)(devmap_handle_t, fs_index_t);
-	int (* destroy)(devmap_handle_t, fs_index_t);
-	int (* sync)(devmap_handle_t, fs_index_t);
+	int (* truncate)(service_id_t, fs_index_t, aoff64_t);
+	int (* close)(service_id_t, fs_index_t);
+	int (* destroy)(service_id_t, fs_index_t);
+	int (* sync)(service_id_t, fs_index_t);
 } vfs_out_ops_t;
 
 typedef struct {
 	bool mp_active;
 	async_sess_t *sess;
 	fs_handle_t fs_handle;
-	devmap_handle_t devmap_handle;
+	service_id_t service_id;
 } mp_data_t;
 
 typedef struct {
@@ -72,12 +72,12 @@ typedef struct {
 	 * code. If some additional return value is to be returned, the first
 	 * argument holds the output argument.
 	 */
-	int (* root_get)(fs_node_t **, devmap_handle_t);
+	int (* root_get)(fs_node_t **, service_id_t);
 	int (* match)(fs_node_t **, fs_node_t *, const char *);
-	int (* node_get)(fs_node_t **, devmap_handle_t, fs_index_t);
+	int (* node_get)(fs_node_t **, service_id_t, fs_index_t);
 	int (* node_open)(fs_node_t *);
 	int (* node_put)(fs_node_t *);
-	int (* create)(fs_node_t **, devmap_handle_t, int);
+	int (* create)(fs_node_t **, service_id_t, int);
 	int (* destroy)(fs_node_t *);
 	int (* link)(fs_node_t *, fs_node_t *, const char *);
 	int (* unlink)(fs_node_t *, fs_node_t *, const char *);
@@ -91,7 +91,7 @@ typedef struct {
 	unsigned int (* lnkcnt_get)(fs_node_t *);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
-	devmap_handle_t (* device_get)(fs_node_t *);
+	service_id_t (* service_get)(fs_node_t *);
 } libfs_ops_t;
 
 typedef struct {

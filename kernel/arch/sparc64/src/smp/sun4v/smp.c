@@ -44,7 +44,6 @@
 #include <macros.h>
 #include <func.h>
 #include <typedefs.h>
-#include <synch/synch.h>
 #include <synch/waitq.h>
 #include <print.h>
 #include <arch/sun4v/hypercall.h>

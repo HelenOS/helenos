@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +37,7 @@
 #include "cmds/cmds.h"
 #include "compl.h"
 #include "exec.h"
+#include "tok.h"
 
 static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state);
 static int compl_get_next(void *state, char **compl);
@@ -87,63 +89,104 @@ typedef struct {
 static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 {
 	compl_t *cs = NULL;
-	size_t p;
-	size_t pref_size;
 	char *stext = NULL;
 	char *prefix = NULL;
 	char *dirname = NULL;
+	int retval;
+	
+	token_t *tokens = calloc(WORD_MAX, sizeof(token_t));
+	if (tokens == NULL) {
+		retval = ENOMEM;
+		goto error;
+	}
+	
+	size_t pref_size;
 	char *rpath_sep;
 	static const char *dirlist_arg[] = { ".", NULL };
-	int retval;
-
+	tokenizer_t tok;
+	ssize_t current_token;
+	size_t tokens_length;
+	
 	cs = calloc(1, sizeof(compl_t));
 	if (!cs) {
 		retval = ENOMEM;
 		goto error;
 	}
-
-	/*
-	 * Copy token pointed to by caret from start up to the caret.
-	 * XXX Ideally we would use the standard tokenizer.
-	 */
-	p = pos;
-	while (p > 0 && text[p - 1] != (wchar_t) ' ')
-		--p;
-	*cstart = p;
-
+	
 	/* Convert text buffer to string */
-	stext = wstr_to_astr(text + *cstart);
+	stext = wstr_to_astr(text);
 	if (stext == NULL) {
 		retval = ENOMEM;
 		goto error;
 	}
-
-	/* Extract the prefix being completed */
+	
+	/* Tokenize the input string */
+	retval = tok_init(&tok, stext, tokens, WORD_MAX);
+	if (retval != EOK) {
+		goto error;
+	}
+	
+	retval = tok_tokenize(&tok, &tokens_length);
+	if (retval != EOK) {
+		goto error;
+	}
+	
+	/* Find the current token */
+	for (current_token = 0; current_token < (ssize_t) tokens_length;
+	    current_token++) {
+		token_t *t = &tokens[current_token];
+		size_t end = t->char_start + t->char_length;
+		
+		/*
+		 * Check if the caret lies inside the token or immediately
+		 * after it
+		 */
+		if (t->char_start <= pos && pos <= end) {
+			break;
+		}
+	}
+	
+	if (tokens_length == 0)
+		current_token = -1;
+	
+	if ((current_token >= 0) && (tokens[current_token].type != TOKTYPE_SPACE))
+		*cstart = tokens[current_token].char_start;
+	else
+		*cstart = pos;
+	
+	/*
+	 * Extract the prefix being completed
+	 * XXX: handle strings, etc.
+	 */
 	pref_size = str_lsize(stext, pos - *cstart);
 	prefix = malloc(pref_size + 1);
 	if (prefix == NULL) {
 		retval = ENOMEM;
 		goto error;
 	}
+	prefix[pref_size] = 0;
 
-	str_ncpy(prefix, pref_size + 1, stext, pref_size);
+	if (current_token >= 0) {
+		str_ncpy(prefix, pref_size + 1, stext +
+		    tokens[current_token].byte_start, pref_size);
+	}
 
 	/*
 	 * Determine if the token being completed is a command or argument.
 	 * We look at the previous token. If there is none or it is a pipe
 	 * ('|'), it is a command, otherwise it is an argument.
-	 * XXX Again we should use the standard tokenizer/parser.
 	 */
 
 	/* Skip any whitespace before current token */
-	while (p > 0 && text[p - 1] == (wchar_t) ' ')
-		--p;
-
+	ssize_t prev_token = current_token - 1;
+	if ((prev_token >= 0) && (tokens[prev_token].type == TOKTYPE_SPACE))
+		prev_token--;
+	
 	/*
 	 * It is a command if it is the first token or if it immediately
 	 * follows a pipe token.
 	 */
-	if (p == 0 || text[p - 1] == '|')
+	if ((prev_token < 0) || (tokens[prev_token].type == TOKTYPE_SPACE))
 		cs->is_command = true;
 	else
 		cs->is_command = false;
@@ -188,12 +231,16 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	}
 
 	cs->prefix_len = str_length(cs->prefix);
+	
+	tok_fini(&tok);
 
 	*state = cs;
 	return EOK;
 
 error:
 	/* Error cleanup */
+	
+	tok_fini(&tok);
 
 	if (cs != NULL && cs->path_list != NULL) {
 		size_t i = 0;
@@ -214,6 +261,8 @@ error:
 		free(stext);
 	if (cs != NULL)
 		free(cs);
+	if (tokens != NULL)
+		free(tokens);
 
 	return retval;
 }

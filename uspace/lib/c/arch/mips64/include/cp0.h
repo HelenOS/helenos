@@ -1,0 +1,1 @@
+../../../../../../kernel/arch/mips64/include/cp0.h

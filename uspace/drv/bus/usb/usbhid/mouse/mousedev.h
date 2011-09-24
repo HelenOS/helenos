@@ -37,6 +37,7 @@
 #define USB_HID_MOUSEDEV_H_
 
 #include <usb/dev/driver.h>
+#include <async.h>
 
 struct usb_hid_dev;
 
@@ -44,9 +45,9 @@ struct usb_hid_dev;
 
 /** Container for USB mouse device. */
 typedef struct {
-	/** IPC phone to console (consumer). */
-	int mouse_phone;
-	int wheel_phone;
+	/** IPC session to console (consumer). */
+	async_sess_t *mouse_sess;
+	async_sess_t *wheel_sess;
 	
 	int32_t *buttons;
 	
@@ -58,7 +59,7 @@ typedef struct {
 usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
 
 const char *HID_MOUSE_FUN_NAME;
-const char *HID_MOUSE_CLASS_NAME;
+const char *HID_MOUSE_CATEGORY;
 
 /*----------------------------------------------------------------------------*/
 

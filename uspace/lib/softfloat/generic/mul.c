@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Multiplication functions.
  */
 
 #include <sftypes.h>
@@ -37,8 +38,12 @@
 #include <comparison.h>
 #include <common.h>
 
-/** Multiply two 32 bit float numbers
+/**
+ * Multiply two single-precision floats.
  *
+ * @param a First input operand.
+ * @param b Second input operand.
+ * @return Result of multiplication.
  */
 float32 mulFloat32(float32 a, float32 b)
 {
@@ -48,22 +53,22 @@ float32 mulFloat32(float32 a, float32 b)
 
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
-	if (isFloat32NaN(a) || isFloat32NaN(b) ) {
+	if (isFloat32NaN(a) || isFloat32NaN(b)) {
 		/* TODO: fix SigNaNs */
 		if (isFloat32SigNaN(a)) {
 			result.parts.fraction = a.parts.fraction;
 			result.parts.exp = a.parts.exp;
 			return result;
-		};
+		}
 		if (isFloat32SigNaN(b)) { /* TODO: fix SigNaN */
 			result.parts.fraction = b.parts.fraction;
 			result.parts.exp = b.parts.exp;
 			return result;
-		};
+		}
 		/* set NaN as result */
 		result.binary = FLOAT32_NAN;
 		return result;
-	};
+	}
 		
 	if (isFloat32Infinity(a)) { 
 		if (isFloat32Zero(b)) {
@@ -97,7 +102,7 @@ float32 mulFloat32(float32 a, float32 b)
 		result.binary = FLOAT32_INF;
 		result.parts.sign = a.parts.sign ^ b.parts.sign;
 		return result;
-	};
+	}
 	
 	if (exp < 0) { 
 		/* FIXME: underflow */
@@ -105,14 +110,14 @@ float32 mulFloat32(float32 a, float32 b)
 		result.parts.fraction = 0x0;
 		result.parts.exp = 0x0;
 		return result;
-	};
+	}
 	
 	frac1 = a.parts.fraction;
 	if (a.parts.exp > 0) {
 		frac1 |= FLOAT32_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
-	};
+	}
 	
 	frac2 = b.parts.fraction;
 
@@ -120,18 +125,18 @@ float32 mulFloat32(float32 a, float32 b)
 		frac2 |= FLOAT32_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
-	};
+	}
 
 	frac1 <<= 1; /* one bit space for rounding */
 
 	frac1 = frac1 * frac2;
-/* round and return */
-	
-	while ((exp < FLOAT32_MAX_EXPONENT) && (frac1 >= ( 1 << (FLOAT32_FRACTION_SIZE + 2)))) { 
-		/* 23 bits of fraction + one more for hidden bit (all shifted 1 bit left)*/
+
+	/* round and return */
+	while ((exp < FLOAT32_MAX_EXPONENT) && (frac1 >= (1 << (FLOAT32_FRACTION_SIZE + 2)))) { 
+		/* 23 bits of fraction + one more for hidden bit (all shifted 1 bit left) */
 		++exp;
 		frac1 >>= 1;
-	};
+	}
 
 	/* rounding */
 	/* ++frac1; FIXME: not works - without it is ok */
@@ -140,9 +145,9 @@ float32 mulFloat32(float32 a, float32 b)
 	if ((exp < FLOAT32_MAX_EXPONENT) && (frac1 >= (1 << (FLOAT32_FRACTION_SIZE + 1)))) {
 		++exp;
 		frac1 >>= 1;
-	};
+	}
 
-	if (exp >= FLOAT32_MAX_EXPONENT ) {	
+	if (exp >= FLOAT32_MAX_EXPONENT) {	
 		/* TODO: fix overflow */
 		/* return infinity*/
 		result.parts.exp = FLOAT32_MAX_EXPONENT;
@@ -158,23 +163,26 @@ float32 mulFloat32(float32 a, float32 b)
 		while ((frac1 > 0) && (exp < 0)) {
 			frac1 >>= 1;
 			++exp;
-		};
+		}
 		if (frac1 == 0) {
 			/* FIXME : underflow */
-		result.parts.exp = 0;
-		result.parts.fraction = 0;
-		return result;
-		};
-	};
+			result.parts.exp = 0;
+			result.parts.fraction = 0;
+			return result;
+		}
+	}
 	result.parts.exp = exp; 
-	result.parts.fraction = frac1 & ( (1 << FLOAT32_FRACTION_SIZE) - 1);
+	result.parts.fraction = frac1 & ((1 << FLOAT32_FRACTION_SIZE) - 1);
 	
 	return result;	
-	
 }
 
-/** Multiply two 64 bit float numbers
+/**
+ * Multiply two double-precision floats.
  *
+ * @param a First input operand.
+ * @param b Second input operand.
+ * @return Result of multiplication.
  */
 float64 mulFloat64(float64 a, float64 b)
 {
@@ -184,22 +192,22 @@ float64 mulFloat64(float64 a, float64 b)
 
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
 	
-	if (isFloat64NaN(a) || isFloat64NaN(b) ) {
+	if (isFloat64NaN(a) || isFloat64NaN(b)) {
 		/* TODO: fix SigNaNs */
 		if (isFloat64SigNaN(a)) {
 			result.parts.fraction = a.parts.fraction;
 			result.parts.exp = a.parts.exp;
 			return result;
-		};
+		}
 		if (isFloat64SigNaN(b)) { /* TODO: fix SigNaN */
 			result.parts.fraction = b.parts.fraction;
 			result.parts.exp = b.parts.exp;
 			return result;
-		};
+		}
 		/* set NaN as result */
 		result.binary = FLOAT64_NAN;
 		return result;
-	};
+	}
 		
 	if (isFloat64Infinity(a)) { 
 		if (isFloat64Zero(b)) {
@@ -232,7 +240,7 @@ float64 mulFloat64(float64 a, float64 b)
 		frac1 |= FLOAT64_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
-	};
+	}
 	
 	frac2 = b.parts.fraction;
 
@@ -240,54 +248,130 @@ float64 mulFloat64(float64 a, float64 b)
 		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
 	} else {
 		++exp;
-	};
+	}
 
 	frac1 <<= (64 - FLOAT64_FRACTION_SIZE - 1);
 	frac2 <<= (64 - FLOAT64_FRACTION_SIZE - 2);
 
-	mul64integers(frac1, frac2, &frac1, &frac2);
+	mul64(frac1, frac2, &frac1, &frac2);
 
-	frac2 |= (frac1 != 0);
-	if (frac2 & (0x1ll << 62)) {
-		frac2 <<= 1;
+	frac1 |= (frac2 != 0);
+	if (frac1 & (0x1ll << 62)) {
+		frac1 <<= 1;
 		exp--;
 	}
 
-	result = finishFloat64(exp, frac2, result.parts.sign);
+	result = finishFloat64(exp, frac1, result.parts.sign);
 	return result;
 }
 
-/** Multiply two 64 bit numbers and return result in two parts
- * @param a first operand
- * @param b second operand
- * @param lo lower part from result
- * @param hi higher part of result
+/**
+ * Multiply two quadruple-precision floats.
+ *
+ * @param a First input operand.
+ * @param b Second input operand.
+ * @return Result of multiplication.
  */
-void mul64integers(uint64_t a,uint64_t b, uint64_t *lo, uint64_t *hi)
+float128 mulFloat128(float128 a, float128 b)
 {
-	uint64_t low, high, middle1, middle2;
-	uint32_t alow, blow;
+	float128 result;
+	uint64_t frac1_hi, frac1_lo, frac2_hi, frac2_lo, tmp_hi, tmp_lo;
+	int32_t exp;
 
-	alow = a & 0xFFFFFFFF;
-	blow = b & 0xFFFFFFFF;
-	
-	a >>= 32;
-	b >>= 32;
-	
-	low = ((uint64_t)alow) * blow;
-	middle1 = a * blow;
-	middle2 = alow * b;
-	high = a * b;
+	result.parts.sign = a.parts.sign ^ b.parts.sign;
 
-	middle1 += middle2;
-	high += (((uint64_t)(middle1 < middle2)) << 32) + (middle1 >> 32);
-	middle1 <<= 32;
-	low += middle1;
-	high += (low < middle1);
-	*lo = low;
-	*hi = high;
-	
-	return;
+	if (isFloat128NaN(a) || isFloat128NaN(b)) {
+		/* TODO: fix SigNaNs */
+		if (isFloat128SigNaN(a)) {
+			result.parts.frac_hi = a.parts.frac_hi;
+			result.parts.frac_lo = a.parts.frac_lo;
+			result.parts.exp = a.parts.exp;
+			return result;
+		}
+		if (isFloat128SigNaN(b)) { /* TODO: fix SigNaN */
+			result.parts.frac_hi = b.parts.frac_hi;
+			result.parts.frac_lo = b.parts.frac_lo;
+			result.parts.exp = b.parts.exp;
+			return result;
+		}
+		/* set NaN as result */
+		result.binary.hi = FLOAT128_NAN_HI;
+		result.binary.lo = FLOAT128_NAN_LO;
+		return result;
+	}
+
+	if (isFloat128Infinity(a)) {
+		if (isFloat128Zero(b)) {
+			/* FIXME: zero * infinity */
+			result.binary.hi = FLOAT128_NAN_HI;
+			result.binary.lo = FLOAT128_NAN_LO;
+			return result;
+		}
+		result.parts.frac_hi = a.parts.frac_hi;
+		result.parts.frac_lo = a.parts.frac_lo;
+		result.parts.exp = a.parts.exp;
+		return result;
+	}
+
+	if (isFloat128Infinity(b)) {
+		if (isFloat128Zero(a)) {
+			/* FIXME: zero * infinity */
+			result.binary.hi = FLOAT128_NAN_HI;
+			result.binary.lo = FLOAT128_NAN_LO;
+			return result;
+		}
+		result.parts.frac_hi = b.parts.frac_hi;
+		result.parts.frac_lo = b.parts.frac_lo;
+		result.parts.exp = b.parts.exp;
+		return result;
+	}
+
+	/* exp is signed so we can easy detect underflow */
+	exp = a.parts.exp + b.parts.exp - FLOAT128_BIAS - 1;
+
+	frac1_hi = a.parts.frac_hi;
+	frac1_lo = a.parts.frac_lo;
+
+	if (a.parts.exp > 0) {
+		or128(frac1_hi, frac1_lo,
+	        FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
+	        &frac1_hi, &frac1_lo);
+	} else {
+		++exp;
+	}
+
+	frac2_hi = b.parts.frac_hi;
+	frac2_lo = b.parts.frac_lo;
+
+	if (b.parts.exp > 0) {
+		or128(frac2_hi, frac2_lo,
+		    FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
+		    &frac2_hi, &frac2_lo);
+	} else {
+		++exp;
+	}
+
+	lshift128(frac2_hi, frac2_lo,
+	    128 - FLOAT128_FRACTION_SIZE, &frac2_hi, &frac2_lo);
+
+	tmp_hi = frac1_hi;
+	tmp_lo = frac1_lo;
+	mul128(frac1_hi, frac1_lo, frac2_hi, frac2_lo,
+	    &frac1_hi, &frac1_lo, &frac2_hi, &frac2_lo);
+	add128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &frac1_hi, &frac1_lo);
+	frac2_hi |= (frac2_lo != 0x0ll);
+
+	if ((FLOAT128_HIDDEN_BIT_MASK_HI << 1) <= frac1_hi) {
+		frac2_hi >>= 1;
+		if (frac1_lo & 0x1ll) {
+			frac2_hi |= (0x1ull < 64);
+		}
+		rshift128(frac1_hi, frac1_lo, 1, &frac1_hi, &frac1_lo);
+		++exp;
+	}
+
+	result = finishFloat128(exp, frac1_hi, frac1_lo, result.parts.sign, frac2_hi);
+	return result;
 }
 
 /** @}

@@ -86,7 +86,7 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 		return ELIMIT;
 	
 	devman_handle_t handle;
-	int rc = devman_device_get_handle(vhc_path, &handle, 0);
+	int rc = devman_fun_get_handle(vhc_path, &handle, 0);
 	if (rc != EOK)
 		return rc;
 	

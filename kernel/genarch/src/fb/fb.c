@@ -35,7 +35,6 @@
 
 #include <genarch/fb/font-8x16.h>
 #include <genarch/fb/logo-196x66.h>
-#include <genarch/fb/visuals.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>

@@ -191,7 +191,7 @@ static int usb_generic_hid_client_connected(ddf_fun_t *fun)
 
 static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 {	
-	/* Create the function exposed under /dev/devices. */
+	/* Create the exposed function. */
 	/** @todo Generate numbers for the devices? */
 	usb_log_debug("Creating DDF function %s...\n", HID_GENERIC_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 

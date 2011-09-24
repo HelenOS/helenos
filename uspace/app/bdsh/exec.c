@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <str_error.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "util.h"
@@ -98,8 +99,8 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	task_exit_t texit;
 	char *tmp;
 	int rc, retval, i;
-	fdi_node_t file_nodes[3];
-	fdi_node_t *file_nodes_p[4];
+	int file_handles[3];
+	int *file_handles_p[4];
 	FILE *files[3];
 
 	tmp = str_dup(find_command(cmd));
@@ -110,16 +111,16 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	files[2] = io->stderr;
 	
 	for (i = 0; i < 3 && files[i] != NULL; i++) {
-		if (fnode(files[i], &file_nodes[i]) == EOK) {
-			file_nodes_p[i] = &file_nodes[i];
+		if (fhandle(files[i], &file_handles[i]) == EOK) {
+			file_handles_p[i] = &file_handles[i];
 		}
 		else {
-			file_nodes_p[i] = NULL;
+			file_handles_p[i] = NULL;
 		}
 	}
-	file_nodes_p[i] = NULL;
+	file_handles_p[i] = NULL;
 
-	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_nodes_p);
+	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_handles_p);
 	free(tmp);
 
 	if (rc != 0) {
@@ -132,11 +133,14 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	if (rc != EOK) {
 		printf("%s: Failed waiting for command (%s)\n", progname,
 		    str_error(rc));
+		return 1;
 	} else if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Command failed (unexpectedly terminated)\n", progname);
+		return 1;
 	} else if (retval != 0) {
 		printf("%s: Command failed (exit code %d)\n",
 		    progname, retval);
+		return 1;
 	}
 
 	return 0;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Division functions.
  */
 
 #ifndef __DIV_H__
@@ -37,8 +38,7 @@
 
 extern float32 divFloat32(float32, float32);
 extern float64 divFloat64(float64, float64);
-
-extern uint64_t divFloat64estim(uint64_t, uint64_t);
+extern float128 divFloat128(float128, float128);
 
 #endif
 

@@ -35,9 +35,7 @@
 #ifndef LIBC_PRIVATE_IO_H_
 #define LIBC_PRIVATE_IO_H_
 
-#include <vfs/vfs.h>
-
-extern void __stdio_init(int filc, fdi_node_t *filv[]);
+extern void __stdio_init(int);
 extern void __stdio_done(void);
 
 #endif
