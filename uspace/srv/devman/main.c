@@ -489,18 +489,17 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
 	if (rc == EOK) {
 		loc_service_add_to_cat(fun->service_id, cat_id);
+		log_msg(LVL_NOTE, "Function `%s' added to category `%s'.",
+		    fun->pathname, cat_name);
 	} else {
 		log_msg(LVL_ERROR, "Failed adding function `%s' to category "
 		    "`%s'.", fun->pathname, cat_name);
 	}
 	
-	log_msg(LVL_NOTE, "Function `%s' added to category `%s'.",
-	    fun->pathname, cat_name);
-
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
-
-	async_answer_0(callid, EOK);
+	
+	async_answer_0(callid, rc);
 }
 
 /** Online function by driver request.

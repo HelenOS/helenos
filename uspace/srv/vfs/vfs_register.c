@@ -153,7 +153,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Check for duplicit registrations.
 	 */
-	if (fs_name_to_handle(fs_info->vfs_info.name, false)) {
+	if (fs_name_to_handle(fs_info->vfs_info.instance,
+	    fs_info->vfs_info.name, false)) {
 		/*
 		 * We already register a fs like this.
 		 */
@@ -296,7 +297,7 @@ void vfs_exchange_release(async_exch_t *exch)
  * @return File system handle or zero if file system not found.
  *
  */
-fs_handle_t fs_name_to_handle(char *name, bool lock)
+fs_handle_t fs_name_to_handle(unsigned int instance, char *name, bool lock)
 {
 	int handle = 0;
 	
@@ -305,7 +306,8 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	
 	list_foreach(fs_list, cur) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (str_cmp(fs->vfs_info.name, name) == 0) {
+		if (str_cmp(fs->vfs_info.name, name) == 0 &&
+		    instance == fs->vfs_info.instance) {
 			handle = fs->fs_handle;
 			break;
 		}

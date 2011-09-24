@@ -872,6 +872,9 @@ void *realloc(const void *addr, const size_t size)
  */
 void free(const void *addr)
 {
+	if (addr == NULL)
+		return;
+
 	futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */
