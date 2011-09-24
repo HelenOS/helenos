@@ -870,7 +870,7 @@ static int
 fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
 {
-	enum cache_mode cmode;
+	enum cache_mode cmode = CACHE_MODE_WB;
 	fat_bs_t *bs;
 	fat_instance_t *instance;
 	int rc;
@@ -878,14 +878,19 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	instance = malloc(sizeof(fat_instance_t));
 	if (!instance)
 		return ENOMEM;
-
 	instance->lfn_enabled = true;
 
-	/* Check for option enabling write through. */
-	if (str_cmp(opts, "wtcache") == 0)
-		cmode = CACHE_MODE_WT;
-	else
-		cmode = CACHE_MODE_WB;
+	/* Parse mount options. */
+	char *mntopts = (char *) opts;
+	char *saveptr;
+	char *opt;
+	while ((opt = strtok_r(mntopts, " ,", &saveptr)) != NULL) {
+		if (str_cmp(opt, "wtcache") == 0)
+			cmode = CACHE_MODE_WT;
+		else if (str_cmp(opt, "nolfn") == 0)
+			instance->lfn_enabled = false;
+		mntopts = NULL;
+	}
 
 	/* initialize libblock */
 	rc = block_init(EXCHANGE_SERIALIZE, service_id, BS_SIZE);
