@@ -36,6 +36,7 @@
 #define DRV_AUDIO_SB16_SB16_H
 
 #include <ddf/driver.h>
+#include <ddi.h>
 #include "registers.h"
 
 typedef struct sb16_drv {
@@ -43,6 +44,7 @@ typedef struct sb16_drv {
 	mpu_regs_t *mpu_regs;
 } sb16_drv_t;
 
+irq_code_t * sb16_irq_code(void);
 int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size);
 int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size);
 

@@ -26,25 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvaudiosb16
- * @{
- */
-/** @file
- * @brief DDF log helper macros
- */
-#ifndef DRV_AUDIO_SB16_DDF_LOG_H
-#define DRV_AUDIO_SB16_DDF_LOG_H
+#include <errno.h>
 
-#include <ddf/log.h>
+#include "sb16.h"
 
-#define ddf_log_fatal(msg...) ddf_msg(LVL_FATAL, msg)
-#define ddf_log_error(msg...) ddf_msg(LVL_ERROR, msg)
-#define ddf_log_warning(msg...) ddf_msg(LVL_WARN, msg)
-#define ddf_log_note(msg...) ddf_msg(LVL_NOTE, msg)
-#define ddf_log_debug(msg...) ddf_msg(LVL_DEBUG, msg)
-#define ddf_log_debug2(msg...) ddf_msg(LVL_DEBUG2, msg)
+/* ISA interrupts should be edge-triggered so there should be no need for
+ * irq code magic */
+static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
+static const irq_code_t irq_code =
+    { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds };
 
-#endif
-/**
- * @}
- */
+/*----------------------------------------------------------------------------*/
+irq_code_t * sb16_irq_code(void)
+{
+	return (irq_code_t*)&irq_code;
+}
+/*----------------------------------------------------------------------------*/
+int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
+{
+	// TODO Setup registers
+	// TODO Initialize dsp: get version number
+	// TODO Initialize dsp: reset DSP
+	// TODO Initialize mixer
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size)
+{
+	return ENOTSUP;
+}

@@ -40,8 +40,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
-
-//#include <str_error.h>
+#include <str_error.h>
 
 #include "ddf_log.h"
 #include "sb16.h"
@@ -77,6 +76,11 @@ int main(int argc, char *argv[])
 	return ddf_driver_main(&sb_driver);
 }
 /*----------------------------------------------------------------------------*/
+static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+{
+	ddf_log_note("SB16 IRQ handler.\n");
+}
+/*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of SB16.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -84,14 +88,86 @@ int main(int argc, char *argv[])
  */
 static int sb_add_device(ddf_dev_t *device)
 {
+#define CHECK_RET_FREE_RETURN(ret, msg...) \
+if (ret != EOK) { \
+	free(soft_state); \
+	ddf_log_error(msg); \
+	return ret; \
+} else (void)0
+
 	assert(device);
+
+	sb16_drv_t *soft_state = malloc(sizeof(sb16_drv_t));
+	int ret = soft_state ? EOK : ENOMEM;
+	CHECK_RET_FREE_RETURN(ret, "Failed to allocate sb16 structure.\n");
+
 	uintptr_t sb_regs = 0, mpu_regs = 0;
 	size_t sb_regs_size = 0, mpu_regs_size = 0;
 	int irq = 0;
-	int ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
-	    &mpu_regs_size, &irq);
 
-	return ret;
+	ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
+	    &mpu_regs_size, &irq);
+	CHECK_RET_FREE_RETURN(ret,
+	    "Failed to get resources: %s.\n", str_error(ret));
+
+	irq_code_t *irq_code = sb16_irq_code();
+	ret = register_interrupt_handler(device, irq, irq_handler, irq_code);
+	CHECK_RET_FREE_RETURN(ret,
+	    "Failed to register irq handler: %s.\n", str_error(ret));
+
+	ddf_fun_t *dsp_fun = NULL, *mixer_fun = NULL;
+#define CHECK_RET_UNREG_DEST_RETURN(ret, msg...) \
+if (ret != EOK) { \
+	ddf_log_error(msg); \
+	if (dsp_fun) \
+		ddf_fun_destroy(dsp_fun); \
+	if (mixer_fun) \
+		ddf_fun_destroy(mixer_fun); \
+	free(soft_state); \
+	unregister_interrupt_handler(device, irq); \
+	return ret; \
+} else (void)0
+	dsp_fun = ddf_fun_create(device, fun_exposed, "dsp");
+	ret = dsp_fun ? EOK : ENOMEM;
+	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create dsp function.");
+
+	ret = ddf_fun_bind(dsp_fun);
+	CHECK_RET_UNREG_DEST_RETURN(ret,
+	    "Failed to bind dsp function: %s.\n", str_error(ret));
+	dsp_fun->driver_data = soft_state;
+
+	mixer_fun = ddf_fun_create(device, fun_exposed, "mixer");
+	ret = dsp_fun ? EOK : ENOMEM;
+	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create mixer function.");
+
+	ret = ddf_fun_bind(mixer_fun);
+	CHECK_RET_UNREG_DEST_RETURN(ret,
+	    "Failed to bind mixer function: %s.\n", str_error(ret));
+	mixer_fun->driver_data = soft_state;
+
+	ret = sb16_init_sb16(soft_state, (void*)sb_regs, sb_regs_size);
+	CHECK_RET_UNREG_DEST_RETURN(ret,
+	    "Failed to init sb16 driver: %s.\n", str_error(ret));
+
+	ret = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
+	if (ret == EOK) {
+		ddf_fun_t *mpu_fun =
+		    ddf_fun_create(device, fun_exposed, "midi");
+		if (mpu_fun) {
+			ret = ddf_fun_bind(mpu_fun);
+			if (ret != EOK)
+				ddf_log_error(
+				    "Failed to bind midi function: %s.\n",
+				    str_error(ret));
+		} else {
+			ddf_log_error("Failed to create midi function.\n");
+		}
+	} else {
+	    ddf_log_warning("Failed to init mpu driver: %s.\n", str_error(ret));
+	}
+
+	/* MPU state does not matter */
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,

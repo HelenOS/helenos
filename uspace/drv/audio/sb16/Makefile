@@ -37,6 +37,7 @@ EXTRA_CFLAGS += \
 BINARY = sb16
 
 SOURCES = \
-	main.c
+	main.c \
+	sb16.c
 
 include $(USPACE_PREFIX)/Makefile.common
