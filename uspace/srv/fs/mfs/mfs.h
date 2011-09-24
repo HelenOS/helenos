@@ -130,7 +130,6 @@ struct mfs_dentry_info {
 };
 
 struct mfs_instance {
-	link_t link;
 	service_id_t service_id;
 	struct mfs_sb_info *sbi;
 	unsigned open_nodes_cnt;
