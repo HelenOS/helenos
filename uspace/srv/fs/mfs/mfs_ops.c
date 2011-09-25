@@ -266,7 +266,6 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
 		mfsdebug("block cache initialization failed\n");
-		block_cache_fini(service_id);
 		rc = EINVAL;
 		goto out_error;
 	}
