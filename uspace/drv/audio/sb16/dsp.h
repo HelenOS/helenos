@@ -26,64 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <libarch/ddi.h>
+/** @addtogroup drvaudiosb16
+ * @{
+ */
+/** @file
+ * @brief SB16 main structure combining all functionality
+ */
+#ifndef DRV_AUDIO_SB16_DSP_H
+#define DRV_AUDIO_SB16_DSP_H
 
-#include "ddf_log.h"
-#include "dsp_commands.h"
-#include "dsp.h"
-#include "sb16.h"
+#include "registers.h"
 
-/* ISA interrupts should be edge-triggered so there should be no need for
- * irq code magic */
-static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
-static const irq_code_t irq_code =
-    { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds };
+#ifndef DSP_PIO_DELAY
+#define DSP_PIO_DELAY udelay(10)
+#endif
 
-/*----------------------------------------------------------------------------*/
-irq_code_t * sb16_irq_code(void)
+#ifndef DSP_RETRY_COUNT
+#define DSP_RETRY_COUNT 100
+#endif
+
+#define DSP_RESET_RESPONSE 0xaa
+
+static inline int dsp_write(sb16_regs_t *regs, uint8_t data)
 {
-	return (irq_code_t*)&irq_code;
-}
-/*----------------------------------------------------------------------------*/
-int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
-{
-	assert(drv);
-	/* Setup registers */
-	int ret = pio_enable(regs, size, (void**)&drv->regs);
-	if (ret != EOK)
-		return ret;
-	ddf_log_debug("PIO registers at %p accessible.\n", drv->regs);
-
-	dsp_reset(drv->regs);
-	/* "DSP takes about 100 microseconds to initialize itself" */
-	udelay(100);
-
-	uint8_t response;
-	ret = dsp_read(drv->regs, &response);
-	if (ret != EOK) {
-		ddf_log_error("Failed to read DSP reset response value.\n");
-		return ret;
-	}
-
-	if (response != DSP_RESET_RESPONSE) {
-		ddf_log_error("Invalid DSP reset response: %x.\n", response);
+	uint8_t status;
+	size_t attempts = DSP_RETRY_COUNT;
+	do {
+		DSP_PIO_DELAY;
+		status = pio_read_8(&regs->dsp_write);
+	} while (--attempts && ((status & DSP_WRITE_BUSY) != 0));
+	if ((status & DSP_WRITE_BUSY))
 		return EIO;
-	}
-
-	/* Get DSP version number */
-	dsp_write(drv->regs, DSP_VERSION);
-	dsp_read(drv->regs, &drv->dsp_version.major);
-	dsp_read(drv->regs, &drv->dsp_version.minor);
-	ddf_log_note("Sound blaster DSP (%x.%x) Initialized.\n",
-	    drv->dsp_version.major, drv->dsp_version.minor);
-
-
-	// TODO Initialize mixer
+	DSP_PIO_DELAY;
+	pio_write_8(&regs->dsp_write, data);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size)
+static inline int dsp_read(sb16_regs_t *regs, uint8_t *data)
 {
-	return ENOTSUP;
+	assert(data);
+	uint8_t status;
+	size_t attempts = DSP_RETRY_COUNT;
+	do {
+		DSP_PIO_DELAY;
+		status = pio_read_8(&regs->dsp_read_status);
+	} while (--attempts && ((status & DSP_READ_READY) == 0));
+
+	if ((status & DSP_READ_READY) == 0)
+		return EIO;
+
+	DSP_PIO_DELAY;
+	*data = pio_read_8(&regs->dsp_data_read);
+	return EOK;
 }
+/*----------------------------------------------------------------------------*/
+static inline void dsp_reset(sb16_regs_t *regs)
+{
+	/* Reset DSP, see Chapter 2 of Sound Blaster HW programming guide */
+	pio_write_8(&regs->dsp_reset, 1);
+	udelay(3); /* Keep reset for 3 us */
+	pio_write_8(&regs->dsp_reset, 0);
+}
+#endif
+/**
+ * @}
+ */
