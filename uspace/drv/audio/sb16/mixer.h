@@ -48,8 +48,8 @@ const char * mixer_type_to_str(mixer_type_t type);
 int mixer_init(sb16_regs_t *regs, mixer_type_t type);
 void mixer_load_volume_levels(sb16_regs_t *regs, mixer_type_t type);
 void mixer_store_volume_levels(sb16_regs_t *regs, mixer_type_t type);
-int mixer_get_control_item_count(sb16_regs_t *regs, mixer_type_t type);
-int mixer_get_control_item_info(sb16_regs_t *regs, mixer_type_t type,
+int mixer_get_control_item_count(mixer_type_t type);
+int mixer_get_control_item_info(mixer_type_t type, unsigned index,
     const char** name, unsigned *channels);
 int mixer_set_volume_level(sb16_regs_t *regs, mixer_type_t type,
     unsigned item, unsigned channel, unsigned level);

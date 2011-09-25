@@ -35,6 +35,8 @@
 #ifndef DRV_AUDIO_SB16_DSP_H
 #define DRV_AUDIO_SB16_DSP_H
 
+#include <libarch/ddi.h>
+
 #include "registers.h"
 
 #ifndef DSP_PIO_DELAY

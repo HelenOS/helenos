@@ -28,7 +28,6 @@
 
 #include <errno.h>
 #include <str_error.h>
-#include <libarch/ddi.h>
 
 #include "ddf_log.h"
 #include "dsp_commands.h"
