@@ -75,9 +75,10 @@
 int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
                                     int32_t usage_page, int32_t usage)
 {	
-	usb_hid_report_usage_path_t *item;
+	usb_hid_report_usage_path_t *item
+		= malloc(sizeof(usb_hid_report_usage_path_t));
 
-	if(!(item=malloc(sizeof(usb_hid_report_usage_path_t)))) {
+	if (item == NULL) {
 		return ENOMEM;
 	}
 	link_initialize(&item->rpath_items_link);

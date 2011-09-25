@@ -74,7 +74,6 @@ const char *HID_MOUSE_WHEEL_CATEGORY = "keyboard";
 
 /** Default idle rate for mouses. */
 static const uint8_t IDLE_RATE = 0;
-static const size_t USB_MOUSE_BUTTON_COUNT = 3;
 
 /*----------------------------------------------------------------------------*/
 
@@ -396,6 +395,48 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 
 /*----------------------------------------------------------------------------*/
 
+/** Get highest index of a button mentioned in given report.
+ *
+ * @param report HID report.
+ * @param report_id Report id we are interested in.
+ * @return Highest button mentioned in the report.
+ * @retval 1 No button was mentioned.
+ *
+ */
+static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t report_id)
+{
+	size_t highest_button = 0;
+
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
+	usb_hid_report_path_set_report_id(path, report_id);
+
+	usb_hid_report_field_t *field = NULL;
+
+	/* Break from within. */
+	while (1) {
+		field = usb_hid_report_get_sibling(
+		    report, field, path,
+		    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		    USB_HID_REPORT_TYPE_INPUT);
+		/* No more buttons? */
+		if (field == NULL) {
+			break;
+		}
+
+		size_t current_button = field->usage - field->usage_minimum;
+		if (current_button > highest_button) {
+			highest_button = current_button;
+		}
+	}
+
+	usb_hid_report_path_free(path);
+
+	return highest_button;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
@@ -413,15 +454,23 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 	
-	mouse_dev->buttons = (int32_t *)calloc(USB_MOUSE_BUTTON_COUNT, 
-	    sizeof(int32_t));
+	// FIXME: This may not be optimal since stupid hardware vendor may
+	// use buttons 1, 2, 3 and 6000 and we would allocate array of
+	// 6001*4B and use only 4 items in it.
+	// Since I doubt that hardware producers would do that, I think
+	// that the current solution is good enough.
+	/* Adding 1 because we will be accessing buttons[highest]. */
+	mouse_dev->buttons_count = usb_mouse_get_highest_button(hid_dev->report,
+	    hid_dev->report_id) + 1;
+	mouse_dev->buttons = calloc(mouse_dev->buttons_count, sizeof(int32_t));
 	
 	if (mouse_dev->buttons == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error(NAME ": out of memory, giving up on device!\n");
 		free(mouse_dev);
 		return ENOMEM;
 	}
-	
+
+
 	// save the Mouse device structure into the HID device structure
 	*data = mouse_dev;
 	

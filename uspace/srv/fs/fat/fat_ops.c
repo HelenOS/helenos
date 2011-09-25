@@ -870,24 +870,39 @@ static int
 fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
 {
-	enum cache_mode cmode;
+	enum cache_mode cmode = CACHE_MODE_WB;
 	fat_bs_t *bs;
+	fat_instance_t *instance;
 	int rc;
 
-	/* Check for option enabling write through. */
-	if (str_cmp(opts, "wtcache") == 0)
-		cmode = CACHE_MODE_WT;
-	else
-		cmode = CACHE_MODE_WB;
+	instance = malloc(sizeof(fat_instance_t));
+	if (!instance)
+		return ENOMEM;
+	instance->lfn_enabled = true;
+
+	/* Parse mount options. */
+	char *mntopts = (char *) opts;
+	char *saveptr;
+	char *opt;
+	while ((opt = strtok_r(mntopts, " ,", &saveptr)) != NULL) {
+		if (str_cmp(opt, "wtcache") == 0)
+			cmode = CACHE_MODE_WT;
+		else if (str_cmp(opt, "nolfn") == 0)
+			instance->lfn_enabled = false;
+		mntopts = NULL;
+	}
 
 	/* initialize libblock */
 	rc = block_init(EXCHANGE_SERIALIZE, service_id, BS_SIZE);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(instance);
 		return rc;
+	}
 
 	/* prepare the boot block */
 	rc = block_bb_read(service_id, BS_BLOCK);
 	if (rc != EOK) {
+		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
@@ -896,6 +911,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	bs = block_bb_get(service_id);
 	
 	if (BPS(bs) != BS_SIZE) {
+		free(instance);
 		block_fini(service_id);
 		return ENOTSUP;
 	}
@@ -903,6 +919,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Initialize the block cache */
 	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
+		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
@@ -910,6 +927,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, service_id);
 	if (rc != EOK) {
+		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
@@ -917,6 +935,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	rc = fat_idx_init_by_service_id(service_id);
 	if (rc != EOK) {
+		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
@@ -925,6 +944,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Initialize the root node. */
 	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
 	if (!rfn) {
+		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		fat_idx_fini_by_service_id(service_id);
@@ -934,6 +954,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	fs_node_initialize(rfn);
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
+		free(instance);
 		free(rfn);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
@@ -944,6 +965,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	fat_idx_t *ridxp = fat_idx_get_by_pos(service_id, FAT_CLST_ROOTPAR, 0);
 	if (!ridxp) {
+		free(instance);
 		free(rfn);
 		free(rootp);
 		(void) block_cache_fini(service_id);
@@ -963,6 +985,8 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		uint32_t clusters;
 		rc = fat_clusters_get(&clusters, bs, service_id, rootp->firstc);
 		if (rc != EOK) {
+			fibril_mutex_unlock(&ridxp->lock);
+			free(instance);
 			free(rfn);
 			free(rootp);
 			(void) block_cache_fini(service_id);
@@ -973,6 +997,18 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		rootp->size = BPS(bs) * SPC(bs) * clusters;
 	} else
 		rootp->size = RDE(bs) * sizeof(fat_dentry_t);
+
+	rc = fs_instance_create(service_id, instance);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&ridxp->lock);
+		free(instance);
+		free(rfn);
+		free(rootp);
+		(void) block_cache_fini(service_id);
+		block_fini(service_id);
+		fat_idx_fini_by_service_id(service_id);
+		return rc;
+	}
 
 	rootp->idx = ridxp;
 	ridxp->nodep = rootp;
@@ -1023,6 +1059,12 @@ static int fat_unmounted(service_id_t service_id)
 	fat_idx_fini_by_service_id(service_id);
 	(void) block_cache_fini(service_id);
 	block_fini(service_id);
+
+	void *data;
+	if (fs_instance_get(service_id, &data) == EOK) {
+		fs_instance_destroy(service_id);
+		free(data);
+	}
 
 	return EOK;
 }

@@ -229,6 +229,10 @@ typedef struct fat_node {
 	fat_cluster_t	currc_cached_value;
 } fat_node_t;
 
+typedef struct {
+	bool lfn_enabled;
+} fat_instance_t;
+
 extern vfs_out_ops_t fat_ops;
 extern libfs_ops_t fat_libfs_ops;
 
