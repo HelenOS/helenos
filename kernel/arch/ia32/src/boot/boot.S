@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2001 Jakub Jermar
  * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
