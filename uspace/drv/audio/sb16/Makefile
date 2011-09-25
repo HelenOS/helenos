@@ -38,6 +38,7 @@ BINARY = sb16
 
 SOURCES = \
 	main.c \
+	mixer.c \
 	sb16.c
 
 include $(USPACE_PREFIX)/Makefile.common

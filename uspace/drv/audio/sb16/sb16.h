@@ -37,6 +37,8 @@
 
 #include <ddf/driver.h>
 #include <ddi.h>
+
+#include "mixer.h"
 #include "registers.h"
 
 typedef struct sb16_drv {
@@ -46,6 +48,7 @@ typedef struct sb16_drv {
 		uint8_t major;
 		uint8_t minor;
 	} dsp_version;
+	mixer_type_t mixer;
 } sb16_drv_t;
 
 irq_code_t * sb16_irq_code(void);

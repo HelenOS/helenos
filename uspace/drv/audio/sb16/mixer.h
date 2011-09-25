@@ -25,57 +25,36 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvaudiosb16
  * @{
  */
 /** @file
  * @brief SB16 main structure combining all functionality
  */
-#ifndef DRV_AUDIO_SB16_REGISTERS_H
-#define DRV_AUDIO_SB16_REGISTERS_H
+#ifndef DRV_AUDIO_SB16_MIXER_H
+#define DRV_AUDIO_SB16_MIXER_H
 
-#include <ddi.h>
+#include "registers.h"
 
-typedef struct sb16_regs {
-	ioport8_t fm_address_status;
-	ioport8_t fm_data;
-	ioport8_t afm_address_status;
-	ioport8_t afm_data;
-	ioport8_t mixer_address;
-	ioport8_t mixer_data;
-	ioport8_t dsp_reset;
-	ioport8_t __reserved1; /* 0x7 */
-	ioport8_t fm_address_status2;
-	ioport8_t fm_data2;
-	ioport8_t dsp_data_read;
-	ioport8_t __reserved2; /*0xb*/
-	ioport8_t dsp_write; /* Both command and data, bit 7 is write status */
-#define DSP_WRITE_BUSY (1 << 7)
-	ioport8_t __reserved3; /*0xd*/
-	ioport8_t dsp_read_status; /* Bit 7 */
-#define DSP_READ_READY (1 << 7)
-	ioport8_t __reserved4; /*0xf*/
-	ioport8_t cd_command_data;
-	ioport8_t cd_status;
-	ioport8_t cd_reset;
-	ioport8_t cd_enable;
-} sb16_regs_t;
+typedef enum mixer_type {
+	SB_MIXER_CT1335,
+	SB_MIXER_CT1345,
+	SB_MIXER_CT1745,
+	SB_MIXER_UNKNOWN,
+} mixer_type_t;
 
-typedef struct mpu_regs {
-	ioport8_t data;
-#define MPU_CMD_ACK (0xfe)
-
-	ioport8_t status_command;
-#define MPU_STATUS_OUTPUT_BUSY (1 << 6)
-#define MPU_STATUS_INPUT_BUSY (1 << 7)
-
-#define MPU_CMD_RESET (0xff)
-#define MPU_CMD_ENTER_UART (0x3f)
-} mpu_regs_t;
-
+const char * mixer_type_to_str(mixer_type_t type);
+int mixer_init(sb16_regs_t *regs, mixer_type_t type);
+void mixer_load_volume_levels(sb16_regs_t *regs, mixer_type_t type);
+void mixer_store_volume_levels(sb16_regs_t *regs, mixer_type_t type);
+int mixer_get_control_item_count(sb16_regs_t *regs, mixer_type_t type);
+int mixer_get_control_item_info(sb16_regs_t *regs, mixer_type_t type,
+    const char** name, unsigned *channels);
+int mixer_set_volume_level(sb16_regs_t *regs, mixer_type_t type,
+    unsigned item, unsigned channel, unsigned level);
+unsigned mixer_get_volume_level(sb16_regs_t *regs, mixer_type_t type,
+    unsigned item, unsigned channel);
 #endif
 /**
  * @}
  */
-

@@ -27,6 +27,7 @@
  */
 
 #include <errno.h>
+#include <str_error.h>
 #include <libarch/ddi.h>
 
 #include "ddf_log.h"
@@ -40,6 +41,10 @@ static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
 static const irq_code_t irq_code =
     { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds };
 
+static mixer_type_t mixer_type_by_dsp_version(unsigned major, unsigned minor)
+{
+	return SB_MIXER_UNKNOWN;
+}
 /*----------------------------------------------------------------------------*/
 irq_code_t * sb16_irq_code(void)
 {
@@ -78,8 +83,18 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 	ddf_log_note("Sound blaster DSP (%x.%x) Initialized.\n",
 	    drv->dsp_version.major, drv->dsp_version.minor);
 
+	/* Initialize mixer */
+	drv->mixer = mixer_type_by_dsp_version(
+	    drv->dsp_version.major, drv->dsp_version.minor);
 
-	// TODO Initialize mixer
+	ret = mixer_init(drv->regs, drv->mixer);
+	if (ret != EOK) {
+		ddf_log_error("Failed to initialize SB mixer: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
+	ddf_log_note("Initialized mixer: %s.\n", mixer_type_to_str(drv->mixer));
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
