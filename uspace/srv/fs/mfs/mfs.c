@@ -38,6 +38,8 @@
  */
 
 #include <ipc/services.h>
+#include <stdlib.h>
+#include <str.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
@@ -51,6 +53,7 @@ vfs_info_t mfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
 	.write_retains_size = false,
+	.instance = 0,
 };
 
 int main(int argc, char **argv)
@@ -58,6 +61,16 @@ int main(int argc, char **argv)
 	int rc;
 
 	printf(NAME ": HelenOS Minix file system server\n");
+
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			mfs_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			rc = -1;
+			goto err;
+		}
+	}
 
 	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
 				SERVICE_VFS, 0, 0);

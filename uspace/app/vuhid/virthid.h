@@ -81,6 +81,29 @@ struct vuhid_interface {
 };
 
 typedef struct {
+	/** Buffer with data from device to the host. */
+	uint8_t *data_in;
+	/** Number of items in @c data_in.
+	 * The total size of @c data_in buffer shall be
+	 * <code>data_in_count * vuhid_interface_t.in_data_size</code>.
+	 */
+	size_t data_in_count;
+
+	/** Current position in the data buffer. */
+	size_t data_in_pos;
+	/** Previous position. */
+	size_t data_in_last_pos;
+
+	/** Delay between transition to "next" input buffer (in ms). */
+	size_t data_in_pos_change_delay;
+
+	/** Message to print when interface becomes alive. */
+	const char *msg_born;
+	/** Message to print when interface dies. */
+	const char *msg_die;
+} vuhid_interface_life_t;
+
+typedef struct {
 	uint8_t length;
 	uint8_t type;
 	uint16_t hid_spec_release;
@@ -92,6 +115,10 @@ typedef struct {
 
 int add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
 void wait_for_interfaces_death(usbvirt_device_t *);
+
+void interface_life_live(vuhid_interface_t *);
+int interface_live_on_data_in(vuhid_interface_t *, void *, size_t, size_t *);
+
 
 #endif
 /**

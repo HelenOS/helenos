@@ -120,7 +120,7 @@ static bool mount_root(const char *fstype)
 		opts = "restore";
 	
 	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
-	    IPC_FLAG_BLOCKING);
+	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
 	    ROOT_DEVICE, rc);
 }
@@ -137,7 +137,7 @@ static bool mount_root(const char *fstype)
 static bool mount_locfs(void)
 {
 	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
-	    IPC_FLAG_BLOCKING);
+	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
 }
@@ -260,14 +260,14 @@ static void getterm(const char *svc, const char *app, bool wmsg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0);
+	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 
 static bool mount_data(void)
 {
-	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0);
+	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0, 0);
 	return mount_report("Data filesystem", DATA_MOUNT_POINT, DATA_FS_TYPE,
 	    DATA_DEVICE, rc);
 }

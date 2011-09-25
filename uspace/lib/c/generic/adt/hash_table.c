@@ -189,7 +189,7 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	}
 }
 
-/** Apply fucntion to all items in hash table.
+/** Apply function to all items in hash table.
  *
  * @param h   Hash table.
  * @param f   Function to be applied.

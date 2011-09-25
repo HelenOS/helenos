@@ -49,7 +49,9 @@ typedef struct {
 	async_sess_t *mouse_sess;
 	async_sess_t *wheel_sess;
 	
+	/* Mouse buttons statuses. */
 	int32_t *buttons;
+	size_t buttons_count;
 	
 	ddf_dev_ops_t ops;
 } usb_mouse_t;

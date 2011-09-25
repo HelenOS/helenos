@@ -51,12 +51,22 @@ static vfs_info_t cdfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
 	.write_retains_size = false,
+	.instance = 0,
 };
 
 int main(int argc, char **argv)
 {
 	printf("%s: HelenOS cdfs file system server\n", NAME);
 	
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			cdfs_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			return -1;
+		}
+	}
+
 	if (!cdfs_init()) {
 		printf("%s: failed to initialize cdfs\n", NAME);
 		return -1;
