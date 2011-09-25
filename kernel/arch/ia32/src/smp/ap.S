@@ -73,7 +73,8 @@ jump_to_kernel:
 	movl (%eax), %esp
 	subl $0x80000000, %esp			# KA2PA(ctx.sp)
 
-	call map_kernel					# map kernel and turn paging on
+	/* We assume that when using SMP, PSE is always available */
+	call map_kernel_pse				# map kernel and turn paging on
 	
 	addl $0x80000000, %esp			# PA2KA(ctx.sp)
 	
