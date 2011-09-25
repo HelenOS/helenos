@@ -35,7 +35,7 @@
 #ifndef DRV_AUDIO_SB16_DSP_COMMANDS_H
 #define DRV_AUDIO_SB16_DSP_COMMANDS_H
 
-/** See SoundBlaster Series HW programming Guide Chapter 6. */
+/** See Sound Blaster Series HW programming Guide Chapter 6. */
 typedef enum dsp_command {
 	DIRECT_8B_OUTPUT = 0x20, /* Followed by unsigned byte of digital data,
 	                          * software controls sampling rate */

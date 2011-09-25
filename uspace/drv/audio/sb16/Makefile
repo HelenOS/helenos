@@ -37,6 +37,7 @@ EXTRA_CFLAGS += \
 BINARY = sb16
 
 SOURCES = \
+	dsp.c \
 	main.c \
 	mixer.c \
 	sb16.c

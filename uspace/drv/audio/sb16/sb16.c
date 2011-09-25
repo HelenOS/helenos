@@ -86,7 +86,7 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 	dsp_write(drv->regs, DSP_VERSION);
 	dsp_read(drv->regs, &drv->dsp_version.major);
 	dsp_read(drv->regs, &drv->dsp_version.minor);
-	ddf_log_note("Sound blaster DSP (%x.%x) Initialized.\n",
+	ddf_log_note("Sound blaster DSP (%x.%x) initialized.\n",
 	    drv->dsp_version.major, drv->dsp_version.minor);
 
 	/* Initialize mixer */

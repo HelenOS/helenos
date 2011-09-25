@@ -25,19 +25,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvaudiosb16
  * @{
  */
 /** @file
- * @brief SB16 main structure combining all functionality
+ * @brief Sound Blaster Digital Sound Processor (DSP) helper functions.
  */
 #ifndef DRV_AUDIO_SB16_DSP_H
 #define DRV_AUDIO_SB16_DSP_H
 
 #include <libarch/ddi.h>
+#include <errno.h>
 
 #include "registers.h"
+#include "dsp_commands.h"
 
 #ifndef DSP_PIO_DELAY
 #define DSP_PIO_DELAY udelay(10)
@@ -89,6 +90,9 @@ static inline void dsp_reset(sb16_regs_t *regs)
 	udelay(3); /* Keep reset for 3 us */
 	pio_write_8(&regs->dsp_reset, 0);
 }
+/*----------------------------------------------------------------------------*/
+int dsp_play_direct(sb16_regs_t *regs, const uint8_t *data, size_t size,
+    unsigned sample_rate, unsigned channels, unsigned bit_depth);
 #endif
 /**
  * @}
