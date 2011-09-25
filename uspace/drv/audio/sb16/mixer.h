@@ -37,6 +37,7 @@
 #include "registers.h"
 
 typedef enum mixer_type {
+	SB_MIXER_NONE,
 	SB_MIXER_CT1335,
 	SB_MIXER_CT1345,
 	SB_MIXER_CT1745,
