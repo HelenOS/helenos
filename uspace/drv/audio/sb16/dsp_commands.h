@@ -37,9 +37,9 @@
 
 /** See Sound Blaster Series HW programming Guide Chapter 6. */
 typedef enum dsp_command {
-	DIRECT_8B_OUTPUT = 0x20, /* Followed by unsigned byte of digital data,
+	DIRECT_8B_OUTPUT = 0x10, /* Followed by unsigned byte of digital data,
 	                          * software controls sampling rate */
-	DIRECT_8B_INPUT = 0x10,  /* Same as DIRECT_8B_OUTPUT but for input */
+	DIRECT_8B_INPUT = 0x20,  /* Same as DIRECT_8B_OUTPUT but for input */
 
 	TRANSFER_TIME_CONSTANT = 0x40, /* Followed by time constant.
 	                                * TC = 65536 - (256 000 000 /
