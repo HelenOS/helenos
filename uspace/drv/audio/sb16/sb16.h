@@ -38,16 +38,14 @@
 #include <ddf/driver.h>
 #include <ddi.h>
 
+#include "dsp.h"
 #include "mixer.h"
 #include "registers.h"
 
 typedef struct sb16_drv {
 	sb16_regs_t *regs;
 	mpu_regs_t *mpu_regs;
-	struct {
-		uint8_t major;
-		uint8_t minor;
-	} dsp_version;
+	sb_dsp_t dsp;
 	sb_mixer_t mixer;
 } sb16_drv_t;
 

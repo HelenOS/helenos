@@ -38,60 +38,24 @@
 #include <errno.h>
 
 #include "registers.h"
-#include "dsp_commands.h"
 
-#ifndef DSP_PIO_DELAY
-#define DSP_PIO_DELAY udelay(10)
-#endif
+typedef struct sb_dsp_t {
+	sb16_regs_t *regs;
+	struct {
+		uint8_t major;
+		uint8_t minor;
+	} version;
+	uint8_t *data_buffer;
+	uint8_t *buffer_position;
+	size_t buffer_size;
+} sb_dsp_t;
 
-#ifndef DSP_RETRY_COUNT
-#define DSP_RETRY_COUNT 100
-#endif
 
-#define DSP_RESET_RESPONSE 0xaa
 
-static inline int dsp_write(sb16_regs_t *regs, uint8_t data)
-{
-	uint8_t status;
-	size_t attempts = DSP_RETRY_COUNT;
-	do {
-		DSP_PIO_DELAY;
-		status = pio_read_8(&regs->dsp_write);
-	} while (--attempts && ((status & DSP_WRITE_BUSY) != 0));
-	if ((status & DSP_WRITE_BUSY))
-		return EIO;
-	DSP_PIO_DELAY;
-	pio_write_8(&regs->dsp_write, data);
-	return EOK;
-}
 /*----------------------------------------------------------------------------*/
-static inline int dsp_read(sb16_regs_t *regs, uint8_t *data)
-{
-	assert(data);
-	uint8_t status;
-	size_t attempts = DSP_RETRY_COUNT;
-	do {
-		DSP_PIO_DELAY;
-		status = pio_read_8(&regs->dsp_read_status);
-	} while (--attempts && ((status & DSP_READ_READY) == 0));
-
-	if ((status & DSP_READ_READY) == 0)
-		return EIO;
-
-	DSP_PIO_DELAY;
-	*data = pio_read_8(&regs->dsp_data_read);
-	return EOK;
-}
+int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs);
 /*----------------------------------------------------------------------------*/
-static inline void dsp_reset(sb16_regs_t *regs)
-{
-	/* Reset DSP, see Chapter 2 of Sound Blaster HW programming guide */
-	pio_write_8(&regs->dsp_reset, 1);
-	udelay(3); /* Keep reset for 3 us */
-	pio_write_8(&regs->dsp_reset, 0);
-}
-/*----------------------------------------------------------------------------*/
-int dsp_play_direct(sb16_regs_t *regs, const uint8_t *data, size_t size,
+int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
     unsigned sample_rate, unsigned channels, unsigned bit_depth);
 #endif
 /**

@@ -67,32 +67,19 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 		return ret;
 	ddf_log_debug("PIO registers at %p accessible.\n", drv->regs);
 
-	dsp_reset(drv->regs);
-	/* "DSP takes about 100 microseconds to initialize itself" */
-	udelay(100);
-
-	uint8_t response;
-	ret = dsp_read(drv->regs, &response);
+	/* Initialize DSP */
+	ret = sb_dsp_init(&drv->dsp, drv->regs);
 	if (ret != EOK) {
-		ddf_log_error("Failed to read DSP reset response value.\n");
+		ddf_log_error("Failed to initialize SB DSP: %s.\n",
+		    str_error(ret));
 		return ret;
 	}
-
-	if (response != DSP_RESET_RESPONSE) {
-		ddf_log_error("Invalid DSP reset response: %x.\n", response);
-		return EIO;
-	}
-
-	/* Get DSP version number */
-	dsp_write(drv->regs, DSP_VERSION);
-	dsp_read(drv->regs, &drv->dsp_version.major);
-	dsp_read(drv->regs, &drv->dsp_version.minor);
 	ddf_log_note("Sound blaster DSP (%x.%x) initialized.\n",
-	    drv->dsp_version.major, drv->dsp_version.minor);
+	    drv->dsp.version.major, drv->dsp.version.minor);
 
 	/* Initialize mixer */
 	const sb_mixer_type_t mixer_type = sb_mixer_type_by_dsp_version(
-	    drv->dsp_version.major, drv->dsp_version.minor);
+	    drv->dsp.version.major, drv->dsp.version.minor);
 
 	ret = sb_mixer_init(&drv->mixer, drv->regs, mixer_type);
 	if (ret != EOK) {

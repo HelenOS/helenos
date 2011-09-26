@@ -33,18 +33,95 @@
  */
 
 #include <libarch/ddi.h>
+#include "ddf_log.h"
+#include "dsp_commands.h"
 #include "dsp.h"
 
-int dsp_play_direct(sb16_regs_t *regs, const uint8_t *data, size_t size,
+
+#ifndef DSP_RETRY_COUNT
+#define DSP_RETRY_COUNT 100
+#endif
+
+#define DSP_RESET_RESPONSE 0xaa
+
+static inline int sb_dsp_read(sb_dsp_t *dsp, uint8_t *data)
+{
+	assert(data);
+	assert(dsp);
+	uint8_t status;
+	size_t attempts = DSP_RETRY_COUNT;
+	do {
+		status = pio_read_8(&dsp->regs->dsp_read_status);
+	} while (--attempts && ((status & DSP_READ_READY) == 0));
+
+	if ((status & DSP_READ_READY) == 0)
+		return EIO;
+
+	*data = pio_read_8(&dsp->regs->dsp_data_read);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static inline int sb_dsp_write(sb_dsp_t *dsp, uint8_t data)
+{
+	assert(dsp);
+	uint8_t status;
+	size_t attempts = DSP_RETRY_COUNT;
+	do {
+		status = pio_read_8(&dsp->regs->dsp_write);
+	} while (--attempts && ((status & DSP_WRITE_BUSY) != 0));
+
+	if ((status & DSP_WRITE_BUSY))
+		return EIO;
+
+	pio_write_8(&dsp->regs->dsp_write, data);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static inline void sb_dsp_reset(sb_dsp_t *dsp)
+{
+	assert(dsp);
+	/* Reset DSP, see Chapter 2 of Sound Blaster HW programming guide */
+	pio_write_8(&dsp->regs->dsp_reset, 1);
+	udelay(3); /* Keep reset for 3 us */
+	pio_write_8(&dsp->regs->dsp_reset, 0);
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
+{
+	assert(dsp);
+	dsp->regs = regs;
+	sb_dsp_reset(dsp);
+	/* "DSP takes about 100 microseconds to initialize itself" */
+	udelay(100);
+	uint8_t response;
+	const int ret = sb_dsp_read(dsp, &response);
+	if (ret != EOK) {
+		ddf_log_error("Failed to read DSP reset response value.\n");
+		return ret;
+	}
+	if (response != DSP_RESET_RESPONSE) {
+		ddf_log_error("Invalid DSP reset response: %x.\n", response);
+		return EIO;
+	}
+
+	/* Get DSP version number */
+	sb_dsp_write(dsp, DSP_VERSION);
+	sb_dsp_read(dsp, &dsp->version.major);
+	sb_dsp_read(dsp, &dsp->version.minor);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
     unsigned sampling_rate, unsigned channels, unsigned bit_depth)
 {
+	assert(dsp);
 	if (channels != 1 || bit_depth != 8)
 		return EIO;
 	/* In microseconds */
 	const unsigned wait_period = 1000000 / sampling_rate;
 	while (size--) {
-		pio_write_8(&regs->dsp_write, DIRECT_8B_OUTPUT);
-		pio_write_8(&regs->dsp_write, *data++);
+		pio_write_8(&dsp->regs->dsp_write, DIRECT_8B_OUTPUT);
+		pio_write_8(&dsp->regs->dsp_write, *data++);
 		udelay(wait_period);
 	}
 	return EOK;
