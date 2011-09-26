@@ -42,14 +42,9 @@ int dsp_play_direct(sb16_regs_t *regs, const uint8_t *data, size_t size,
 		return EIO;
 	/* In microseconds */
 	const unsigned wait_period = 1000000 / sampling_rate;
-	int ret;
 	while (size--) {
-		ret = dsp_write(regs, DIRECT_8B_OUTPUT);
-		if (ret != EOK)
-			return ret;
-		ret = dsp_write(regs, *data++);
-		if (ret != EOK)
-			return ret;
+		pio_write_8(&regs->dsp_write, DIRECT_8B_OUTPUT);
+		pio_write_8(&regs->dsp_write, *data++);
 		udelay(wait_period);
 	}
 	return EOK;

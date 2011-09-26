@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <libarch/ddi.h>
 
+#include "ddf_log.h"
 #include "mixer.h"
 
 #define CT_MIXER_RESET_ADDRESS 0x00
