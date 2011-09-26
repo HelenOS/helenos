@@ -113,12 +113,32 @@ int mixer_init(sb16_regs_t *regs, mixer_type_t type)
 /*----------------------------------------------------------------------------*/
 void mixer_load_volume_levels(sb16_regs_t *regs, mixer_type_t type)
 {
-	/* Default values are ok for now */
+	/* Set Master to maximum */
+	if (!mixer_get_control_item_count(type))
+		return;
+	unsigned levels = 0, channels = 0, current_level;
+	const char *name = NULL;
+	mixer_get_control_item_info(type, 0, &name, &channels, &levels);
+	unsigned channel = 0;
+	for (;channel < channels; ++channel) {
+		current_level =
+		    mixer_get_volume_level(regs, type, 0, channel);
+		ddf_log_note("Setting %s channel %d to %d (%d).\n",
+		    name, channel, levels - 1, current_level);
+
+		mixer_set_volume_level(regs, type, 0, channel, levels - 1);
+
+		current_level =
+		    mixer_get_volume_level(regs, type, 0, channel);
+		ddf_log_note("%s channel %d set to %d.\n",
+		    name, channel, current_level);
+	}
+
 }
 /*----------------------------------------------------------------------------*/
 void mixer_store_volume_levels(sb16_regs_t *regs, mixer_type_t type)
 {
-	/* Default values are ok for now */
+	/* No place to store the values. */
 }
 /*----------------------------------------------------------------------------*/
 int mixer_get_control_item_count(mixer_type_t type)

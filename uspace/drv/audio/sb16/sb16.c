@@ -99,6 +99,7 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 		    str_error(ret));
 		return ret;
 	}
+	mixer_load_volume_levels(drv->regs, drv->mixer);
 	ddf_log_note("Initialized mixer: %s.\n", mixer_type_to_str(drv->mixer));
 
 	return EOK;
