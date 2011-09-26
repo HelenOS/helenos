@@ -52,9 +52,9 @@ static const volume_item_t volume_ct1335[] = {
 };
 
 static const volume_item_t volume_ct1345[] = {
+	{ 0x22, 2, "Master", 8, 1, true },
 	{ 0x04, 2, "Voice", 8, 1, true },
 	{ 0x0a, 1, "Mic", 4, 1, true },
-	{ 0x22, 2, "Master", 8, 1, true },
 	{ 0x26, 2, "MIDI", 8, 1, true },
 	{ 0x28, 2, "CD", 8, 1, true },
 	{ 0x2e, 2, "Line", 8, 1, true },
@@ -142,13 +142,53 @@ int mixer_get_control_item_info(mixer_type_t type, unsigned index,
 }
 /*----------------------------------------------------------------------------*/
 int mixer_set_volume_level(sb16_regs_t *regs, mixer_type_t type,
-    unsigned item, unsigned channel, unsigned level)
+    unsigned index, unsigned channel, unsigned level)
 {
-	return ENOTSUP;
+	if (type == SB_MIXER_UNKNOWN || type == SB_MIXER_NONE)
+		return ENOTSUP;
+	if (index >= volume_table[type].count)
+		return ENOENT;
+	if (level >= volume_table[type].table[index].volume_levels)
+		return ENOTSUP;
+	if (channel >= volume_table[type].table[index].channels)
+		return ENOENT;
+
+	const volume_item_t item = volume_table[type].table[index];
+	const uint8_t address = item.address + (item.same_reg ? 0 : channel);
+	pio_write_8(&regs->mixer_address, address);
+	if (!item.same_reg) {
+		const uint8_t value = level << item.shift;
+		pio_write_8(&regs->mixer_data, value);
+	} else {
+		/* Nasty stuff */
+		uint8_t value = pio_read_8(&regs->mixer_data);
+		/* Remove value that is to be replaced register format is L:R*/
+		value &= (channel ? 0xf0 : 0x0f);
+		/* Add the new value */
+		value |= (level << item.shift) << (channel ? 0 : 4);
+		pio_write_8(&regs->mixer_data, value);
+	}
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 unsigned mixer_get_volume_level(sb16_regs_t *regs, mixer_type_t type,
-    unsigned item, unsigned channel)
+    unsigned index, unsigned channel)
 {
+	if (type == SB_MIXER_UNKNOWN
+	    || type == SB_MIXER_NONE
+	    || (index >= volume_table[type].count)
+	    || (channel >= volume_table[type].table[index].channels))
+		return 0;
+
+	const volume_item_t item = volume_table[type].table[index];
+	const uint8_t address = item.address + (item.same_reg ? 0 : channel);
+	pio_write_8(&regs->mixer_address, address);
+	if (!item.same_reg) {
+		return pio_read_8(&regs->mixer_data) >> item.shift;
+	} else {
+		const uint8_t value =
+		    pio_read_8(&regs->mixer_data) >> (channel ? 0 : 4);
+		return value >> item.shift;
+	}
 	return 0;
 }
