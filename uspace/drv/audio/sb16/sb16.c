@@ -90,17 +90,17 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 	    drv->dsp_version.major, drv->dsp_version.minor);
 
 	/* Initialize mixer */
-	drv->mixer = mixer_type_by_dsp_version(
+	const mixer_type_t mixer_type = mixer_type_by_dsp_version(
 	    drv->dsp_version.major, drv->dsp_version.minor);
 
-	ret = mixer_init(drv->regs, drv->mixer);
+	ret = mixer_init(&drv->mixer, drv->regs, mixer_type);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB mixer: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
-	mixer_load_volume_levels(drv->regs, drv->mixer);
-	ddf_log_note("Initialized mixer: %s.\n", mixer_type_to_str(drv->mixer));
+	ddf_log_note("Initialized mixer: %s.\n",
+	    mixer_type_str(drv->mixer.type));
 
 	return EOK;
 }

@@ -88,7 +88,33 @@ static const struct {
 	    sizeof(volume_ct1745) / sizeof(volume_item_t), volume_ct1745 },
 };
 
-const char * mixer_type_to_str(mixer_type_t type)
+static void mixer_max_master_levels(sb_mixer_t *mixer)
+{
+	assert(mixer);
+	/* Set Master to maximum */
+	if (!mixer_get_control_item_count(mixer))
+		return;
+	unsigned levels = 0, channels = 0, current_level;
+	const char *name = NULL;
+	mixer_get_control_item_info(mixer, 0, &name, &channels, &levels);
+	unsigned channel = 0;
+	for (;channel < channels; ++channel) {
+		current_level =
+		    mixer_get_volume_level(mixer, 0, channel);
+		ddf_log_note("Setting %s channel %d to %d (%d).\n",
+		    name, channel, levels - 1, current_level);
+
+		mixer_set_volume_level(mixer, 0, channel, levels - 1);
+
+		current_level =
+		    mixer_get_volume_level(mixer, 0, channel);
+		ddf_log_note("%s channel %d set to %d.\n",
+		    name, channel, current_level);
+	}
+
+}
+/*----------------------------------------------------------------------------*/
+const char * mixer_type_str(mixer_type_t type)
 {
 	static const char * names[] = {
 		[SB_MIXER_CT1335] = "CT 1335",
@@ -99,115 +125,92 @@ const char * mixer_type_to_str(mixer_type_t type)
 	return names[type];
 }
 /*----------------------------------------------------------------------------*/
-int mixer_init(sb16_regs_t *regs, mixer_type_t type)
+int mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, mixer_type_t type)
 {
+	assert(mixer);
+	mixer->regs = regs;
+	mixer->type = type;
 	if (type == SB_MIXER_UNKNOWN)
 		return ENOTSUP;
 
 	if (type != SB_MIXER_NONE) {
 		pio_write_8(&regs->mixer_address, CT_MIXER_RESET_ADDRESS);
 		pio_write_8(&regs->mixer_data, 1);
+		mixer_max_master_levels(mixer);
 	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void mixer_load_volume_levels(sb16_regs_t *regs, mixer_type_t type)
+int mixer_get_control_item_count(const sb_mixer_t *mixer)
 {
-	/* Set Master to maximum */
-	if (!mixer_get_control_item_count(type))
-		return;
-	unsigned levels = 0, channels = 0, current_level;
-	const char *name = NULL;
-	mixer_get_control_item_info(type, 0, &name, &channels, &levels);
-	unsigned channel = 0;
-	for (;channel < channels; ++channel) {
-		current_level =
-		    mixer_get_volume_level(regs, type, 0, channel);
-		ddf_log_note("Setting %s channel %d to %d (%d).\n",
-		    name, channel, levels - 1, current_level);
-
-		mixer_set_volume_level(regs, type, 0, channel, levels - 1);
-
-		current_level =
-		    mixer_get_volume_level(regs, type, 0, channel);
-		ddf_log_note("%s channel %d set to %d.\n",
-		    name, channel, current_level);
-	}
-
+	assert(mixer);
+	return volume_table[mixer->type].count;
 }
 /*----------------------------------------------------------------------------*/
-void mixer_store_volume_levels(sb16_regs_t *regs, mixer_type_t type)
-{
-	/* No place to store the values. */
-}
-/*----------------------------------------------------------------------------*/
-int mixer_get_control_item_count(mixer_type_t type)
-{
-	return volume_table[type].count;
-}
-/*----------------------------------------------------------------------------*/
-int mixer_get_control_item_info(mixer_type_t type, unsigned index,
+int mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
     const char** name, unsigned *channels, unsigned *levels)
 {
-	if (index > volume_table[type].count)
+	assert(mixer);
+	if (index > volume_table[mixer->type].count)
 		return ENOENT;
 
 	if (name)
-		*name = volume_table[type].table[index].description;
+		*name = volume_table[mixer->type].table[index].description;
 	if (channels)
-		*channels = volume_table[type].table[index].channels;
+		*channels = volume_table[mixer->type].table[index].channels;
 	if (levels)
-		*levels = volume_table[type].table[index].volume_levels;
+		*levels = volume_table[mixer->type].table[index].volume_levels;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int mixer_set_volume_level(sb16_regs_t *regs, mixer_type_t type,
+int mixer_set_volume_level(const sb_mixer_t *mixer,
     unsigned index, unsigned channel, unsigned level)
 {
-	if (type == SB_MIXER_UNKNOWN || type == SB_MIXER_NONE)
+	if (mixer->type == SB_MIXER_UNKNOWN || mixer->type == SB_MIXER_NONE)
 		return ENOTSUP;
-	if (index >= volume_table[type].count)
+	if (index >= volume_table[mixer->type].count)
 		return ENOENT;
-	if (level >= volume_table[type].table[index].volume_levels)
+	if (level >= volume_table[mixer->type].table[index].volume_levels)
 		return ENOTSUP;
-	if (channel >= volume_table[type].table[index].channels)
+	if (channel >= volume_table[mixer->type].table[index].channels)
 		return ENOENT;
 
-	const volume_item_t item = volume_table[type].table[index];
+	const volume_item_t item = volume_table[mixer->type].table[index];
 	const uint8_t address = item.address + (item.same_reg ? 0 : channel);
-	pio_write_8(&regs->mixer_address, address);
+	pio_write_8(&mixer->regs->mixer_address, address);
 	if (!item.same_reg) {
 		const uint8_t value = level << item.shift;
-		pio_write_8(&regs->mixer_data, value);
+		pio_write_8(&mixer->regs->mixer_data, value);
 	} else {
 		/* Nasty stuff */
-		uint8_t value = pio_read_8(&regs->mixer_data);
+		uint8_t value = pio_read_8(&mixer->regs->mixer_data);
 		/* Remove value that is to be replaced register format is L:R*/
 		value &= (channel ? 0xf0 : 0x0f);
 		/* Add the new value */
 		value |= (level << item.shift) << (channel ? 0 : 4);
-		pio_write_8(&regs->mixer_data, value);
+		pio_write_8(&mixer->regs->mixer_data, value);
 	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-unsigned mixer_get_volume_level(sb16_regs_t *regs, mixer_type_t type,
-    unsigned index, unsigned channel)
+unsigned mixer_get_volume_level(const sb_mixer_t *mixer, unsigned index,
+    unsigned channel)
 {
-	if (type == SB_MIXER_UNKNOWN
-	    || type == SB_MIXER_NONE
-	    || (index >= volume_table[type].count)
-	    || (channel >= volume_table[type].table[index].channels))
+	assert(mixer);
+	if (mixer->type == SB_MIXER_UNKNOWN
+	    || mixer->type == SB_MIXER_NONE
+	    || (index >= volume_table[mixer->type].count)
+	    || (channel >= volume_table[mixer->type].table[index].channels))
 		return 0;
 
-	const volume_item_t item = volume_table[type].table[index];
+	const volume_item_t item = volume_table[mixer->type].table[index];
 	const uint8_t address = item.address + (item.same_reg ? 0 : channel);
-	pio_write_8(&regs->mixer_address, address);
+	pio_write_8(&mixer->regs->mixer_address, address);
 	if (!item.same_reg) {
-		return pio_read_8(&regs->mixer_data) >> item.shift;
+		return pio_read_8(&mixer->regs->mixer_data) >> item.shift;
 	} else {
 		const uint8_t value =
-		    pio_read_8(&regs->mixer_data) >> (channel ? 0 : 4);
+		    pio_read_8(&mixer->regs->mixer_data) >> (channel ? 0 : 4);
 		return value >> item.shift;
 	}
 	return 0;

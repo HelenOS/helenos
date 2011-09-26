@@ -48,7 +48,7 @@ typedef struct sb16_drv {
 		uint8_t major;
 		uint8_t minor;
 	} dsp_version;
-	mixer_type_t mixer;
+	sb_mixer_t mixer;
 } sb16_drv_t;
 
 irq_code_t * sb16_irq_code(void);
