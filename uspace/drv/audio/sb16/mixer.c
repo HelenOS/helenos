@@ -88,33 +88,33 @@ static const struct {
 	    sizeof(volume_ct1745) / sizeof(volume_item_t), volume_ct1745 },
 };
 
-static void mixer_max_master_levels(sb_mixer_t *mixer)
+static void sb_mixer_max_master_levels(sb_mixer_t *mixer)
 {
 	assert(mixer);
 	/* Set Master to maximum */
-	if (!mixer_get_control_item_count(mixer))
+	if (!sb_mixer_get_control_item_count(mixer))
 		return;
 	unsigned levels = 0, channels = 0, current_level;
 	const char *name = NULL;
-	mixer_get_control_item_info(mixer, 0, &name, &channels, &levels);
+	sb_mixer_get_control_item_info(mixer, 0, &name, &channels, &levels);
 	unsigned channel = 0;
 	for (;channel < channels; ++channel) {
 		current_level =
-		    mixer_get_volume_level(mixer, 0, channel);
+		    sb_mixer_get_volume_level(mixer, 0, channel);
 		ddf_log_note("Setting %s channel %d to %d (%d).\n",
 		    name, channel, levels - 1, current_level);
 
-		mixer_set_volume_level(mixer, 0, channel, levels - 1);
+		sb_mixer_set_volume_level(mixer, 0, channel, levels - 1);
 
 		current_level =
-		    mixer_get_volume_level(mixer, 0, channel);
+		    sb_mixer_get_volume_level(mixer, 0, channel);
 		ddf_log_note("%s channel %d set to %d.\n",
 		    name, channel, current_level);
 	}
 
 }
 /*----------------------------------------------------------------------------*/
-const char * mixer_type_str(mixer_type_t type)
+const char * sb_mixer_type_str(sb_mixer_type_t type)
 {
 	static const char * names[] = {
 		[SB_MIXER_CT1335] = "CT 1335",
@@ -125,7 +125,7 @@ const char * mixer_type_str(mixer_type_t type)
 	return names[type];
 }
 /*----------------------------------------------------------------------------*/
-int mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, mixer_type_t type)
+int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 {
 	assert(mixer);
 	mixer->regs = regs;
@@ -136,18 +136,18 @@ int mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, mixer_type_t type)
 	if (type != SB_MIXER_NONE) {
 		pio_write_8(&regs->mixer_address, CT_MIXER_RESET_ADDRESS);
 		pio_write_8(&regs->mixer_data, 1);
-		mixer_max_master_levels(mixer);
+		sb_mixer_max_master_levels(mixer);
 	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int mixer_get_control_item_count(const sb_mixer_t *mixer)
+int sb_mixer_get_control_item_count(const sb_mixer_t *mixer)
 {
 	assert(mixer);
 	return volume_table[mixer->type].count;
 }
 /*----------------------------------------------------------------------------*/
-int mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
+int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
     const char** name, unsigned *channels, unsigned *levels)
 {
 	assert(mixer);
@@ -163,7 +163,7 @@ int mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int mixer_set_volume_level(const sb_mixer_t *mixer,
+int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
     unsigned index, unsigned channel, unsigned level)
 {
 	if (mixer->type == SB_MIXER_UNKNOWN || mixer->type == SB_MIXER_NONE)
@@ -193,7 +193,7 @@ int mixer_set_volume_level(const sb_mixer_t *mixer,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-unsigned mixer_get_volume_level(const sb_mixer_t *mixer, unsigned index,
+unsigned sb_mixer_get_volume_level(const sb_mixer_t *mixer, unsigned index,
     unsigned channel)
 {
 	assert(mixer);

@@ -42,21 +42,21 @@ typedef enum mixer_type {
 	SB_MIXER_CT1345,
 	SB_MIXER_CT1745,
 	SB_MIXER_UNKNOWN,
-} mixer_type_t;
+} sb_mixer_type_t;
 
 typedef struct sb_mixer {
 	sb16_regs_t *regs;
-	mixer_type_t type;
+	sb_mixer_type_t type;
 } sb_mixer_t;
 
-const char * mixer_type_str(mixer_type_t type);
-int mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, mixer_type_t type);
-int mixer_get_control_item_count(const sb_mixer_t *mixer);
-int mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
+const char * sb_mixer_type_str(sb_mixer_type_t type);
+int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type);
+int sb_mixer_get_control_item_count(const sb_mixer_t *mixer);
+int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
     const char** name, unsigned *channels, unsigned *levels);
-int mixer_set_volume_level(const sb_mixer_t *mixer,
+int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
     unsigned item, unsigned channel, unsigned level);
-unsigned mixer_get_volume_level(const sb_mixer_t *mixer,
+unsigned sb_mixer_get_volume_level(const sb_mixer_t *mixer,
     unsigned item, unsigned channel);
 #endif
 /**

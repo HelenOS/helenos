@@ -40,7 +40,8 @@ static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
 static const irq_code_t irq_code =
     { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds };
 
-static mixer_type_t mixer_type_by_dsp_version(unsigned major, unsigned minor)
+static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
+    unsigned major, unsigned minor)
 {
 	switch (major)
 	{
@@ -90,17 +91,17 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 	    drv->dsp_version.major, drv->dsp_version.minor);
 
 	/* Initialize mixer */
-	const mixer_type_t mixer_type = mixer_type_by_dsp_version(
+	const sb_mixer_type_t mixer_type = sb_mixer_type_by_dsp_version(
 	    drv->dsp_version.major, drv->dsp_version.minor);
 
-	ret = mixer_init(&drv->mixer, drv->regs, mixer_type);
+	ret = sb_mixer_init(&drv->mixer, drv->regs, mixer_type);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB mixer: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
 	ddf_log_note("Initialized mixer: %s.\n",
-	    mixer_type_str(drv->mixer.type));
+	    sb_mixer_type_str(drv->mixer.type));
 
 	return EOK;
 }
