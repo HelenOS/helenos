@@ -50,7 +50,7 @@ void mixer_load_volume_levels(sb16_regs_t *regs, mixer_type_t type);
 void mixer_store_volume_levels(sb16_regs_t *regs, mixer_type_t type);
 int mixer_get_control_item_count(mixer_type_t type);
 int mixer_get_control_item_info(mixer_type_t type, unsigned index,
-    const char** name, unsigned *channels);
+    const char** name, unsigned *channels, unsigned *levels);
 int mixer_set_volume_level(sb16_regs_t *regs, mixer_type_t type,
     unsigned item, unsigned channel, unsigned level);
 unsigned mixer_get_volume_level(sb16_regs_t *regs, mixer_type_t type,

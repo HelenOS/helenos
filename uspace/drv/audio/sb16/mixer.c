@@ -39,40 +39,39 @@ typedef struct volume_item {
 	uint8_t address;
 	uint8_t channels;
 	const char *description;
-	unsigned min_value;
-	unsigned max_value;
+	unsigned volume_levels;
 	unsigned shift;
 	bool same_reg;
 } volume_item_t;
 
 static const volume_item_t volume_ct1335[] = {
-	{ 0x02, 1, "Master", 0, 7, 1, true },
-	{ 0x06, 1, "MIDI", 0, 7, 1, true },
-	{ 0x08, 1, "CD", 0, 7, 1, true },
-	{ 0x0a, 1, "Voice", 0, 3, 1, true },
+	{ 0x02, 1, "Master", 8, 1, true },
+	{ 0x06, 1, "MIDI", 8, 1, true },
+	{ 0x08, 1, "CD", 8, 1, true },
+	{ 0x0a, 1, "Voice", 4, 1, true },
 };
 
 static const volume_item_t volume_ct1345[] = {
-	{ 0x04, 2, "Voice", 0, 7, 1, true },
-	{ 0x0a, 1, "Mic", 0, 3, 1, true },
-	{ 0x22, 2, "Master", 0, 7, 1, true },
-	{ 0x26, 2, "MIDI", 0, 7, 1, true },
-	{ 0x28, 2, "CD", 0, 7, 1, true },
-	{ 0x2e, 2, "Line", 0, 7, 1, true },
+	{ 0x04, 2, "Voice", 8, 1, true },
+	{ 0x0a, 1, "Mic", 4, 1, true },
+	{ 0x22, 2, "Master", 8, 1, true },
+	{ 0x26, 2, "MIDI", 8, 1, true },
+	{ 0x28, 2, "CD", 8, 1, true },
+	{ 0x2e, 2, "Line", 8, 1, true },
 };
 
 static const volume_item_t volume_ct1745[] = {
-	{ 0x30, 2, "Master", 0, 31, 3, false },
-	{ 0x32, 2, "Voice", 0, 31, 3, false },
-	{ 0x34, 2, "MIDI", 0, 31, 3, false },
-	{ 0x36, 2, "CD", 0, 31, 3, false },
-	{ 0x38, 2, "Line", 0, 31, 3, false },
-	{ 0x3a, 1, "Mic", 0, 31, 3, false },
-	{ 0x3b, 1, "PC Speaker", 0, 3, 6, false },
-	{ 0x3f, 2, "Input Gain", 0, 3, 6, false },
-	{ 0x41, 2, "Output Gain", 0, 3, 6, false },
-	{ 0x44, 2, "Treble", 0, 15, 4, false },
-	{ 0x46, 2, "Bass", 0, 15, 4, false },
+	{ 0x30, 2, "Master", 32, 3, false },
+	{ 0x32, 2, "Voice", 32, 3, false },
+	{ 0x34, 2, "MIDI", 32, 3, false },
+	{ 0x36, 2, "CD", 32, 3, false },
+	{ 0x38, 2, "Line", 32, 3, false },
+	{ 0x3a, 1, "Mic", 32, 3, false },
+	{ 0x3b, 1, "PC Speaker", 4, 6, false },
+	{ 0x3f, 2, "Input Gain", 4, 6, false },
+	{ 0x41, 2, "Output Gain", 4, 6, false },
+	{ 0x44, 2, "Treble", 16, 4, false },
+	{ 0x46, 2, "Bass", 16, 4, false },
 };
 
 static const struct {
@@ -128,15 +127,17 @@ int mixer_get_control_item_count(mixer_type_t type)
 }
 /*----------------------------------------------------------------------------*/
 int mixer_get_control_item_info(mixer_type_t type, unsigned index,
-    const char** name, unsigned *channels)
+    const char** name, unsigned *channels, unsigned *levels)
 {
 	if (index > volume_table[type].count)
 		return ENOENT;
 
 	if (name)
-	    *name = volume_table[type].table[index].description;
+		*name = volume_table[type].table[index].description;
 	if (channels)
-	    *channels = volume_table[type].table[index].channels;
+		*channels = volume_table[type].table[index].channels;
+	if (levels)
+		*levels = volume_table[type].table[index].volume_levels;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
