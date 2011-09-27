@@ -26,15 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvusbhub
  * @{
  */
 /** @file
  * Hub ports related functions.
  */
-#ifndef DRV_USBHUB_PORTS_H
-#define DRV_USBHUB_PORTS_H
+#ifndef DRV_USBHUB_PORT_H
+#define DRV_USBHUB_PORT_H
 
 #include <usb/dev/driver.h>
 #include <usb/dev/hub.h>
