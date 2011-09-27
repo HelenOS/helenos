@@ -35,12 +35,14 @@
  */
 
 #include <bool.h>
+#include <devman.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
 #include <fibril_synch.h>
 
 #include <usb/debug.h>
+#include <usb/dev/hub.h>
 
 #include "port.h"
 #include "usbhub.h"
@@ -53,7 +55,8 @@ struct add_device_phase1 {
 	usb_speed_t speed;
 };
 
-static void usb_hub_port_removed_device(usb_hub_port_t *port);
+static void usb_hub_port_removed_device(usb_hub_port_t *port,
+    usb_hub_info_t *hub);
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
@@ -147,6 +150,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
 		    (status & USB_HUB_PORT_STATUS_CONNECTION) != 0;
 		usb_log_debug("Connection change on port %zu: device %s.\n",
 		    port->port_number, connected ? "attached" : "removed");
+
 		/* ACK the change */
 		const int opResult = usb_hub_port_clear_feature(port,
 		    USB_HUB_FEATURE_C_PORT_CONNECTION);
@@ -164,13 +168,19 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
 				    port->port_number, str_error(opResult));
 			}
 		} else {
-			usb_hub_port_removed_device(port);
+			/* If enabled change was reported leave the removal
+			 * to that handler, it shall ACK the change too. */
+			if (!(status & USB_HUB_PORT_C_STATUS_ENABLED)) {
+				usb_hub_port_removed_device(port, hub);
+			}
 		}
 	}
 
 	/* Enable change, ports are automatically disabled on errors. */
 	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
-		usb_hub_port_removed_device(port);
+		usb_log_info("Port %zu, disabled because of errors.\n",
+		   port->port_number);
+		usb_hub_port_removed_device(port, hub);
 		const int rc = usb_hub_port_clear_feature(port,
 		        USB_HUB_FEATURE_C_PORT_ENABLE);
 		if (rc != EOK) {
@@ -238,24 +248,22 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-static void usb_hub_port_removed_device(usb_hub_port_t *port)
+static void usb_hub_port_removed_device(usb_hub_port_t *port,
+    usb_hub_info_t *hub)
 {
 	assert(port);
-	// TODO remove device from device manager
-
-
+	assert(hub);
 	if (port->attached_device.address >= 0) {
-#if 0
-		usb_log_warning("Device unplug on `%s' (port %zu): " \
-		    "not implemented.\n", hub->usb_device->ddf_dev->name,
-		    (size_t) port);
-#endif
 		fibril_mutex_lock(&port->mutex);
 		port->attached_device.address = -1;
 		port->attached_device.handle = 0;
 		fibril_mutex_unlock(&port->mutex);
+		usb_log_info("Removed device on port %zu.\n",
+		    port->port_number);
 	} else {
-		usb_log_warning("Device removed before being registered.\n");
+		usb_log_warning(
+		    "Device on port %zu removed before being registered.\n",
+		    port->port_number);
 
 		/*
 		 * Device was removed before port reset completed.
@@ -269,7 +277,7 @@ static void usb_hub_port_removed_device(usb_hub_port_t *port)
 /**
  * Process port reset change
  *
- * After this change port should be enabled, unless some problem occured.
+ * After this change port should be enabled, unless some problem occurred.
  * This functions triggers second phase of enabling new device.
  * @param hub
  * @param port
