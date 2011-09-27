@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2001 Jakub Jermar
  * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -123,7 +124,7 @@ multiboot_image_start:
 		
 		/* Map kernel and turn paging on */
 		pm_status $status_non_pse
-		call map_kernel
+		call map_kernel_non_pse
 	
 	stack_init:
 	
@@ -194,8 +195,7 @@ map_kernel_pse:
  * of the kernel. For simplicity, we map the entire 4G space.
  *
  */
-.global map_kernel
-map_kernel:
+map_kernel_non_pse:
 	/* Paging features */
 	movl %cr4, %ecx
 	andl $(~(1 << 5)), %ecx  /* PAE off */

@@ -142,10 +142,10 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		aoff64_t *size, unsigned *linkcnt)
 {
 	enum cache_mode cmode;
-	struct mfs_superblock *sb;
-	struct mfs3_superblock *sb3;
-	struct mfs_sb_info *sbi;
-	struct mfs_instance *instance;
+	struct mfs_superblock *sb = NULL;
+	struct mfs3_superblock *sb3 = NULL;
+	struct mfs_sb_info *sbi = NULL;
+	struct mfs_instance *instance = NULL;
 	bool native, longnames;
 	mfs_version_t version;
 	uint16_t magic;
@@ -165,35 +165,27 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/*Allocate space for generic MFS superblock*/
 	sbi = malloc(sizeof(*sbi));
 	if (!sbi) {
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	/*Allocate space for filesystem instance*/
 	instance = malloc(sizeof(*instance));
 	if (!instance) {
-		free(sbi);
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 	if (!sb) {
-		free(instance);
-		free(sbi);
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	/* Read the superblock */
 	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 2, sb);
-	if (rc != EOK) {
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_fini(service_id);
-		return rc;
-	}
+	if (rc != EOK)
+		goto out_error;
 
 	sb3 = (struct mfs3_superblock *) sb;
 
@@ -206,11 +198,8 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	} else {
 		/*Not recognized*/
 		mfsdebug("magic number not recognized\n");
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_fini(service_id);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto out_error;
 	}
 
 	mfsdebug("magic number recognized = %04x\n", magic);
@@ -255,18 +244,26 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
 				    MFS_MAX_NAME_LEN;
 	}
-	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 
-	free(sb);
+	if (sbi->log2_zone_size != 0) {
+		/* In MFS, file space is allocated per zones.
+		 * Zones are a collection of consecutive blocks on disk.
+		 *
+		 * The current MFS implementation supports only filesystems
+		 * where the size of a zone is equal to the
+		 * size of a block.
+		 */
+		rc = ENOTSUP;
+		goto out_error;
+	}
+
+	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
-		free(instance);
-		free(sbi);
-		block_cache_fini(service_id);
-		block_fini(service_id);
 		mfsdebug("block cache initialization failed\n");
-		return EINVAL;
+		rc = EINVAL;
+		goto out_error;
 	}
 
 	/*Initialize the instance structure and remember it*/
@@ -294,7 +291,19 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	*size = mroot->ino_i->i_size;
 	*linkcnt = 1;
 
+	free(sb);
+
 	return mfs_node_put(fn);
+
+out_error:
+	block_fini(service_id);
+	if (sb)
+		free(sb);
+	if (sbi)
+		free(sbi);
+	if(instance)
+		free(instance);
+	return rc;
 }
 
 static int
@@ -879,35 +888,29 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	const size_t bs = sbi->block_size;
-	size_t bytes = min(len, bs - pos % bs);
-	size_t boundary = ROUND_UP(ino_i->i_size, bs);
+	size_t bytes = min(len, bs - (pos % bs));
 	uint32_t block;
 
 	if (bytes == bs)
 		flags = BLOCK_FLAGS_NOREAD;
 
-	if (pos < boundary) {
-		r = mfs_read_map(&block, mnode, pos);
-		if (r != EOK)
-			goto out_err;
+	r = mfs_read_map(&block, mnode, pos);
+	if (r != EOK)
+		goto out_err;
 
-		if (block == 0) {
-			/*Writing in a sparse block*/
-			r = mfs_alloc_zone(mnode->instance, &block);
-			if (r != EOK)
-				goto out_err;
-			flags = BLOCK_FLAGS_NOREAD;
-		}
-	} else {
+	if (block == 0) {
+		/*Writing in a sparse block*/
 		uint32_t dummy;
 
 		r = mfs_alloc_zone(mnode->instance, &block);
 		if (r != EOK)
 			goto out_err;
-
+		
 		r = mfs_write_map(mnode, pos, block, &dummy);
 		if (r != EOK)
 			goto out_err;
+
+		flags = BLOCK_FLAGS_NOREAD;
 	}
 
 	block_t *b;
@@ -915,7 +918,10 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (r != EOK)
 		goto out_err;
 
-	async_data_write_finalize(callid, b->data + pos % bs, bytes);
+	if (flags == BLOCK_FLAGS_NOREAD)
+		memset(b->data, 0, sbi->block_size);
+
+	async_data_write_finalize(callid, b->data + (pos % bs), bytes);
 	b->dirty = true;
 
 	r = block_put(b);
@@ -924,10 +930,12 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return r;
 	}
 
-	ino_i->i_size = pos + bytes;
-	ino_i->dirty = true;
+	if (pos + bytes > ino_i->i_size) {
+		ino_i->i_size = pos + bytes;
+		ino_i->dirty = true;
+	}
 	r = mfs_node_put(fn);
-	*nsize = pos + bytes;
+	*nsize = ino_i->i_size;
 	*wbytes = bytes;
 	return r;
 

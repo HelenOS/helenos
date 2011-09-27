@@ -327,7 +327,7 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
  * @return Error code.
  */
 static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
-    void *setup_buffer, size_t setup_buffer_size,
+    const void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
 	/* Ensure serialization over the phone. */
@@ -410,7 +410,7 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
  * @return Error code.
  */
 int usb_pipe_control_read(usb_pipe_t *pipe,
-    void *setup_buffer, size_t setup_buffer_size,
+    const void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
 	assert(pipe);

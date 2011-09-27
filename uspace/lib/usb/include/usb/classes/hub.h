@@ -71,7 +71,11 @@ typedef struct {
 	/** Number of downstream ports. */
 	uint8_t port_count;
 	/** Characteristics bitmask. */
-	uint16_t characteristics;
+	uint8_t characteristics;
+#define HUB_CHAR_POWER_PER_PORT_FLAG  (1 << 0)
+#define HUB_CHAR_NO_POWER_SWITCH_FLAG (1 << 1)
+	/* Unused part of characteristics field */
+	uint8_t characteristics_reserved;
 	/** Time from power-on to stabilization of current on the port. */
 	uint8_t power_good_time;
 	/** Maximum current requirements in mA. */
@@ -91,7 +95,7 @@ typedef struct usb_hub_descriptor_type {
     //uint8_t bDescriptorType;
 
     /** Number of downstream ports that this hub supports */
-    uint8_t ports_count;
+    uint8_t port_count;
 
     /**
             D1...D0: Logical Power Switching Mode
@@ -118,8 +122,6 @@ typedef struct usb_hub_descriptor_type {
             Reserved
      */
     uint16_t hub_characteristics;
-#define HUB_CHAR_POWER_PER_PORT_FLAG  (1 << 0)
-#define HUB_CHAR_NO_POWER_SWITCH_FLAG (1 << 1)
 
     /**
             Time (in 2ms intervals) from the time the power-on
@@ -213,13 +215,8 @@ typedef enum {
 /**
  *	Maximum size of usb hub descriptor in bytes
  */
-extern size_t USB_HUB_MAX_DESCRIPTOR_SIZE;
-
-
-
-
-
-
+/* 7 (basic size) + 2*32 (port bitmasks) */
+#define USB_HUB_MAX_DESCRIPTOR_SIZE 71
 
 #endif
 /**
