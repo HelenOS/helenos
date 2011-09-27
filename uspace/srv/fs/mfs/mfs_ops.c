@@ -888,35 +888,29 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	const size_t bs = sbi->block_size;
-	size_t bytes = min(len, bs - pos % bs);
-	size_t boundary = ROUND_UP(ino_i->i_size, bs);
+	size_t bytes = min(len, bs - (pos % bs));
 	uint32_t block;
 
 	if (bytes == bs)
 		flags = BLOCK_FLAGS_NOREAD;
 
-	if (pos < boundary) {
-		r = mfs_read_map(&block, mnode, pos);
-		if (r != EOK)
-			goto out_err;
+	r = mfs_read_map(&block, mnode, pos);
+	if (r != EOK)
+		goto out_err;
 
-		if (block == 0) {
-			/*Writing in a sparse block*/
-			r = mfs_alloc_zone(mnode->instance, &block);
-			if (r != EOK)
-				goto out_err;
-			flags = BLOCK_FLAGS_NOREAD;
-		}
-	} else {
+	if (block == 0) {
+		/*Writing in a sparse block*/
 		uint32_t dummy;
 
 		r = mfs_alloc_zone(mnode->instance, &block);
 		if (r != EOK)
 			goto out_err;
-
+		
 		r = mfs_write_map(mnode, pos, block, &dummy);
 		if (r != EOK)
 			goto out_err;
+
+		flags = BLOCK_FLAGS_NOREAD;
 	}
 
 	block_t *b;
@@ -924,7 +918,10 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (r != EOK)
 		goto out_err;
 
-	async_data_write_finalize(callid, b->data + pos % bs, bytes);
+	if (flags == BLOCK_FLAGS_NOREAD)
+		memset(b->data, 0, sbi->block_size);
+
+	async_data_write_finalize(callid, b->data + (pos % bs), bytes);
 	b->dirty = true;
 
 	r = block_put(b);
@@ -933,10 +930,12 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return r;
 	}
 
-	ino_i->i_size = pos + bytes;
-	ino_i->dirty = true;
+	if (pos + bytes > ino_i->i_size) {
+		ino_i->i_size = pos + bytes;
+		ino_i->dirty = true;
+	}
 	r = mfs_node_put(fn);
-	*nsize = pos + bytes;
+	*nsize = ino_i->i_size;
 	*wbytes = bytes;
 	return r;
 
