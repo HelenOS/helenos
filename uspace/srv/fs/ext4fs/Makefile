@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX)
 BINARY = ext4fs
 
 SOURCES = \
-	ext4fs.c
+	ext4fs.c \
+	ext4fs_ops.c
 
 include $(USPACE_PREFIX)/Makefile.common

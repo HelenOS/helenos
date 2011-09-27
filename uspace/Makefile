@@ -87,6 +87,7 @@ DIRS = \
 	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
+	srv/fs/ext4fs \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \

@@ -35,6 +35,16 @@
  * @brief	EXT4 file system driver for HelenOS.
  */
 
+#include <async.h>
+#include <errno.h>
+#include <libfs.h>
+#include <ns.h>
+#include <stdio.h>
+#include <task.h>
+#include <ipc/services.h>
+#include "ext4fs.h"
+#include "../../vfs/vfs.h"
+
 #define NAME	"ext4fs"
 
 vfs_info_t ext4fs_vfs_info = {
@@ -55,17 +65,32 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// TODO initialization and VFS connection
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+		SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
+		printf(NAME ": failed to connect to VFS\n");
+		return -1;
+	}
+
+	int rc = ext4fs_global_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed global initialization\n");
+		return 1;
+	}
+
+	rc = fs_register(vfs_sess, &ext4fs_vfs_info, &ext4fs_ops,
+	    &ext4fs_libfs_ops);
+	if (rc != EOK) {
+		fprintf(stdout, NAME ": Failed to register fs (%d)\n", rc);
+		return 1;
+	}
 
 	printf(NAME ": Accepting connections\n");
-	/* TODO uncomment when initialization
 	task_retval(0);
 	async_manager();
-	*/
 	/* not reached */
 	return 0;
 }
-
 
 /**
  * @}

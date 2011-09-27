@@ -33,6 +33,14 @@
 #ifndef EXT4FS_EXT4FS_H_
 #define EXT4FS_EXT4FS_H_
 
+#include <libfs.h>
+
+extern vfs_out_ops_t ext4fs_ops;
+extern libfs_ops_t ext4fs_libfs_ops;
+
+extern int ext4fs_global_init(void);
+extern int ext4fs_global_fini(void);
+
 
 #endif
 
