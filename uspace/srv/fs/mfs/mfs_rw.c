@@ -30,6 +30,7 @@
  * @{
  */
 
+#include <align.h>
 #include "mfs.h"
 
 static int
@@ -69,7 +70,7 @@ mfs_read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
 	/*Compute relative block number in file*/
 	int rblock = pos / block_size;
 
-	if (mnode->ino_i->i_size < pos) {
+	if (ROUND_UP(mnode->ino_i->i_size, sbi->block_size) < pos) {
 		/*Trying to read beyond the end of file*/
 		r = EOK;
 		*b = 0;
