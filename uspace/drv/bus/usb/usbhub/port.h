@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,25 +26,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvusbhub
  * @{
  */
 /** @file
  * Hub ports related functions.
  */
-#ifndef DRV_USBHUB_PORTS_H
-#define DRV_USBHUB_PORTS_H
+#ifndef DRV_USBHUB_PORT_H
+#define DRV_USBHUB_PORT_H
 
 #include <usb/dev/driver.h>
 #include <usb/dev/hub.h>
+#include <usb/classes/hub.h>
 
 typedef struct usb_hub_info_t usb_hub_info_t;
 
 /** Information about single port on a hub. */
 typedef struct {
-	/** Mutex needed by CV for checking port reset. */
-	fibril_mutex_t reset_mutex;
+	size_t port_number;
+	usb_pipe_t *control_pipe;
+	/** Mutex needed not only by CV for checking port reset. */
+	fibril_mutex_t mutex;
 	/** CV for waiting to port reset completion. */
 	fibril_condvar_t reset_cv;
 	/** Whether port reset is completed.
@@ -61,18 +64,24 @@ typedef struct {
  *
  * @param port Port to be initialized.
  */
-static inline void usb_hub_port_init(usb_hub_port_t *port) {
+static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
+    usb_pipe_t *control_pipe)
+{
+	assert(port);
 	port->attached_device.address = -1;
 	port->attached_device.handle = 0;
-	fibril_mutex_initialize(&port->reset_mutex);
+	port->port_number = port_number;
+	port->control_pipe = control_pipe;
+	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }
 
-
-void usb_hub_process_port_interrupt(usb_hub_info_t *hub,
-	uint16_t port);
-
-
+void usb_hub_port_reset_fail(usb_hub_port_t *port);
+void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub);
+int usb_hub_port_clear_feature(
+    usb_hub_port_t *port, usb_hub_class_feature_t feature);
+int usb_hub_port_set_feature(
+    usb_hub_port_t *port, usb_hub_class_feature_t feature);
 
 #endif
 /**
