@@ -205,9 +205,12 @@ static bool apic_init(void)
 		return false;
 	}
 
-	if (pio_enable((void *) IO_APIC_BASE, IO_APIC_SIZE,
-	    (void **) &io_apic) != EOK)
+	int rc = pio_enable((void *) IO_APIC_BASE, IO_APIC_SIZE,
+		(void **) &io_apic);
+	if (rc != EOK) {
+		printf("%s: Failed to enable PIO for APIC: %d\n", NAME, rc);
 		return false;	
+	}
 	
 	async_set_client_connection(apic_connection);
 	service_register(SERVICE_IRC);
