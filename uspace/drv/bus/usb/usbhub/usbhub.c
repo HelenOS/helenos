@@ -306,7 +306,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	/* Get number of possible configurations from device descriptor */
 	const size_t configuration_count =
 	    usb_device->descriptors.device.configuration_count;
-	usb_log_debug("Hub has %d configurations.\n", configuration_count);
+	usb_log_debug("Hub has %zu configurations.\n", configuration_count);
 
 	if (configuration_count < 1) {
 		usb_log_error("There are no configurations available\n");
@@ -357,7 +357,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT GONE: Cannot power on "
-				    "port %d;  %s\n",
+				    "port %zu;  %s\n",
 				    port, str_error(opResult));
 			}
 		}

@@ -223,7 +223,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (rc != EOK) {
 				usb_log_error(
-				    "Failed to set port %d power after OC:"
+				    "Failed to set port %zu power after OC:"
 				    " %s.\n", port->port_number, str_error(rc));
 			}
 		}
@@ -305,7 +305,7 @@ static void usb_hub_port_reset_completed(usb_hub_port_t *port,
 	int rc = usb_hub_port_clear_feature(port, USB_HUB_FEATURE_C_PORT_RESET);
 	if (rc != EOK) {
 		usb_log_error(
-		    "Failed to clear port %d reset change feature: %s.\n",
+		    "Failed to clear port %zu reset change feature: %s.\n",
 		    port->port_number, str_error(rc));
 	}
 }
