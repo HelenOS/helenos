@@ -140,6 +140,20 @@ typedef struct fat_bs {
 	};
 } __attribute__ ((packed)) fat_bs_t;
 
+#define FAT32_FSINFO_SIG1	"RRaA"
+#define FAT32_FSINFO_SIG2	"rrAa"
+#define FAT32_FSINFO_SIG3	"\x00\x00\x55\xaa"
+
+typedef struct {
+	uint8_t	sig1[4];
+	uint8_t res1[480];
+	uint8_t sig2[4];
+	uint32_t free_clusters;
+	uint32_t last_allocated_cluster;
+	uint8_t res2[12];
+	uint8_t sig3[4];
+} __attribute__ ((packed)) fat32_fsinfo_t;
+
 typedef enum {
 	FAT_INVALID,
 	FAT_DIRECTORY,
