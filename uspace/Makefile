@@ -190,6 +190,7 @@ LIBS = \
 	lib/fb \
 	lib/net \
 	lib/ext2 \
+	lib/ext4 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
