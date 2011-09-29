@@ -254,6 +254,23 @@ static void usb_hub_port_removed_device(usb_hub_port_t *port,
 	assert(hub);
 	if (port->attached_device.address >= 0) {
 		fibril_mutex_lock(&port->mutex);
+		usb_log_debug("Removing device on port %zu.\n",
+		    port->port_number);
+		const int ret =
+		    devman_remove_function(port->attached_device.handle);
+		if (ret == EOK) {
+			const int ret =
+			    usb_hc_unregister_device(&hub->connection,
+			        port->attached_device.address);
+			if (ret != EOK) {
+				usb_log_error("Failed to unregister "
+				   "address of removed device: %s.\n",
+				   str_error(ret));
+			}
+		} else {
+			usb_log_error("Failed to remove child function on port"
+			   " %zu: %s.\n", port->port_number, str_error(ret));
+		}
 		port->attached_device.address = -1;
 		port->attached_device.handle = 0;
 		fibril_mutex_unlock(&port->mutex);
