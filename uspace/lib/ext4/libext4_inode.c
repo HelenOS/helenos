@@ -32,10 +32,10 @@
 
 /**
  * @file	libext4_inode.c
- * @brief	TODO
+ * @brief	Ext4 inode operations.
  */
 
-
+#include "libext4.h"
 
 /**
  * @}

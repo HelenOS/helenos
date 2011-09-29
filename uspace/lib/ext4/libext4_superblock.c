@@ -32,9 +32,10 @@
 
 /**
  * @file	libext4_superblock.c
- * @brief	TODO
+ * @brief	Ext4 superblock operations.
  */
 
+#include "libext4.h"
 
 
 /**

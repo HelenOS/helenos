@@ -33,10 +33,10 @@
 #ifndef LIBEXT4_LIBEXT4_H_
 #define LIBEXT4_LIBEXT4_H_
 
-#include "libext2_block_group.h"
-#include "libext2_directory.h"
-#include "libext2_inode.h"
-#include "libext2_superblock.h"
+#include "libext4_block_group.h"
+#include "libext4_directory.h"
+#include "libext4_inode.h"
+#include "libext4_superblock.h"
 
 #endif
 
