@@ -35,6 +35,7 @@
 
 #include "libext4_block_group.h"
 #include "libext4_directory.h"
+#include "libext4_filesystem.h"
 #include "libext4_inode.h"
 #include "libext4_superblock.h"
 

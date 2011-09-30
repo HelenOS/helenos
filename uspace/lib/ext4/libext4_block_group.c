@@ -35,6 +35,7 @@
  * @brief	TODO
  */
 
+#include "libext4_block_group.h"
 
 
 /**

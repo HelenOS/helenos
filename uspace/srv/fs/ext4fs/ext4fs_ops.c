@@ -36,10 +36,36 @@
  */
 
 #include <errno.h>
+#include <fibril_synch.h>
+#include <libext4.h>
 #include <libfs.h>
+#include <malloc.h>
 #include <ipc/loc.h>
 #include "ext4fs.h"
 #include "../../vfs/vfs.h"
+
+#define EXT4FS_NODE(node)	((node) ? (ext4fs_node_t *) (node)->data : NULL)
+
+typedef struct ext4fs_instance {
+	link_t link;
+	service_id_t service_id;
+	ext4_filesystem_t *filesystem;
+	unsigned int open_nodes_count;
+} ext4fs_instance_t;
+
+typedef struct ext4fs_node {
+	ext4fs_instance_t *instance;
+	ext4_inode_ref_t *inode_ref;
+	fs_node_t *fs_node;
+	link_t link;
+	unsigned int references;
+} ext4fs_node_t;
+
+/*
+ * Forward declarations of auxiliary functions
+ */
+static int ext4fs_instance_get(service_id_t, ext4fs_instance_t **);
+static int ext4fs_node_get_core(fs_node_t **, ext4fs_instance_t *, fs_index_t);
 
 
 /*
@@ -62,6 +88,14 @@ static bool ext4fs_is_directory(fs_node_t *);
 static bool ext4fs_is_file(fs_node_t *node);
 static service_id_t ext4fs_service_get(fs_node_t *node);
 
+/*
+ * Static variables
+ */
+static LIST_INITIALIZE(instance_list);
+static FIBRIL_MUTEX_INITIALIZE(instance_list_mutex);
+static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
+
+
 /**
  *	TODO comment
  */
@@ -82,6 +116,31 @@ int ext4fs_global_fini(void)
  * EXT4 libfs operations.
  */
 
+int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
+{
+	ext4fs_instance_t *tmp;
+
+	fibril_mutex_lock(&instance_list_mutex);
+
+	if (list_empty(&instance_list)) {
+		fibril_mutex_unlock(&instance_list_mutex);
+		return EINVAL;
+	}
+
+	list_foreach(instance_list, link) {
+		tmp = list_get_instance(link, ext4fs_instance_t, link);
+
+		if (tmp->service_id == service_id) {
+			*inst = tmp;
+			fibril_mutex_unlock(&instance_list_mutex);
+			return EOK;
+		}
+	}
+
+	fibril_mutex_unlock(&instance_list_mutex);
+	return EINVAL;
+}
+
 int ext4fs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	// TODO
@@ -98,6 +157,13 @@ int ext4fs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	// TODO
 	return 0;
+}
+
+int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
+		fs_index_t index)
+{
+	// TODO
+	return EOK;
 }
 
 int ext4fs_node_open(fs_node_t *fn)
@@ -209,13 +275,110 @@ libfs_ops_t ext4fs_libfs_ops = {
 static int ext4fs_mounted(service_id_t service_id, const char *opts,
    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
-	// TODO
+
+	int rc;
+	ext4_filesystem_t *fs;
+	ext4fs_instance_t *inst;
+	bool read_only;
+
+	/* Allocate libext4 filesystem structure */
+	fs = (ext4_filesystem_t *) malloc(sizeof(ext4_filesystem_t));
+	if (fs == NULL) {
+		return ENOMEM;
+	}
+
+	/* Allocate instance structure */
+	inst = (ext4fs_instance_t *) malloc(sizeof(ext4fs_instance_t));
+	if (inst == NULL) {
+		free(fs);
+		return ENOMEM;
+	}
+
+	/* Initialize the filesystem  */
+	rc = ext4_filesystem_init(fs, service_id);
+	if (rc != EOK) {
+		free(fs);
+		free(inst);
+		return rc;
+	}
+
+	/* Do some sanity checking */
+	rc = ext4_filesystem_check_sanity(fs);
+	if (rc != EOK) {
+		ext4_filesystem_fini(fs);
+		free(fs);
+		free(inst);
+		return rc;
+	}
+
+	/* Check flags */
+	rc = ext4_filesystem_check_flags(fs, &read_only);
+	if (rc != EOK) {
+		ext4_filesystem_fini(fs);
+		free(fs);
+		free(inst);
+		return rc;
+	}
+
+	/* Initialize instance */
+	link_initialize(&inst->link);
+	inst->service_id = service_id;
+	inst->filesystem = fs;
+	inst->open_nodes_count = 0;
+
+	/* Read root node */
+	fs_node_t *root_node;
+	rc = ext4fs_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
+	if (rc != EOK) {
+		ext4_filesystem_fini(fs);
+		free(fs);
+		free(inst);
+		return rc;
+	}
+	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
+
+	/* Add instance to the list */
+	fibril_mutex_lock(&instance_list_mutex);
+	list_append(&inst->link, &instance_list);
+	fibril_mutex_unlock(&instance_list_mutex);
+
+	*index = EXT4_INODE_ROOT_INDEX;
+	*size = 0;
+	*lnkcnt = ext4_inode_get_usage_count(enode->inode_ref->inode);
+
+	ext4fs_node_put(root_node);
+
 	return EOK;
 }
 
 static int ext4fs_unmounted(service_id_t service_id)
 {
-	// TODO
+
+	int rc;
+	ext4fs_instance_t *inst;
+
+	rc = ext4fs_instance_get(service_id, &inst);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	fibril_mutex_lock(&open_nodes_lock);
+
+	if (inst->open_nodes_count != 0) {
+		fibril_mutex_unlock(&open_nodes_lock);
+		return EBUSY;
+	}
+
+	/* Remove the instance from the list */
+	fibril_mutex_lock(&instance_list_mutex);
+	list_remove(&inst->link);
+	fibril_mutex_unlock(&instance_list_mutex);
+
+	fibril_mutex_unlock(&open_nodes_lock);
+
+	ext4_filesystem_fini(inst->filesystem);
+
 	return EOK;
 }
 

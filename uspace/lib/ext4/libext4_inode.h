@@ -33,6 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_INODE_H_
 #define LIBEXT4_LIBEXT4_INODE_H_
 
+#include <libblock.h>
 #include <sys/types.h>
 
 // TODO better constant definition !!!
@@ -111,6 +112,16 @@ typedef struct ext4_inode {
 } __attribute__ ((packed)) ext4_inode_t;
 
 
+// TODO check value
+#define EXT4_INODE_ROOT_INDEX	2
+
+typedef struct ext4_inode_ref {
+	block_t *block; // Reference to a block containing this inode
+	ext4_inode_t *inode;
+	uint32_t index; // Index number of this inode
+} ext4_inode_ref_t;
+
+extern uint16_t ext4_inode_get_usage_count(ext4_inode_t *);
 
 #endif
 

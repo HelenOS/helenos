@@ -30,37 +30,38 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_BLOCK_GROUP_H_
-#define LIBEXT4_LIBEXT4_BLOCK_GROUP_H_
-
-#include <sys/types.h>
-
-/*
- * Structure of a blocks group descriptor
+/**
+ * @file	libext4_filesystem.c
+ * @brief	TODO
  */
-typedef struct ext4_block_group {
-	uint32_t bg_block_bitmap_lo; // Blocks bitmap block
-	uint32_t bg_inode_bitmap_lo; // Inodes bitmap block
-	uint32_t bg_inode_table_lo; // Inodes table block
-	uint16_t bg_free_blocks_count_lo; // Free blocks count
-	uint16_t bg_free_inodes_count_lo; // Free inodes count
-	uint16_t bg_used_dirs_count_lo; // Directories count
-	uint16_t bg_flags; // EXT4_BG_flags (INODE_UNINIT, etc)
-	uint32_t bg_reserved[2]; // Likely block/inode bitmap checksum
-	uint16_t bg_itable_unused_lo; // Unused inodes count
-	uint16_t bg_checksum; // crc16(sb_uuid+group+desc)
-	uint32_t bg_block_bitmap_hi; // Blocks bitmap block MSB
-	uint32_t bg_inode_bitmap_hi; // Inodes bitmap block MSB
-	uint32_t bg_inode_table_hi; // Inodes table block MSB
-	uint16_t bg_free_blocks_count_hi; // Free blocks count MSB
-	uint16_t bg_free_inodes_count_hi; // Free inodes count MSB
-	uint16_t bg_used_dirs_count_hi; // Directories count MSB
-	uint16_t bg_itable_unused_hi;  // Unused inodes count MSB
-	uint32_t bg_reserved2[3]; // Padding
-} ext4_group_desc_t;
 
-#endif
+#include <errno.h>
+#include "libext4_filesystem.h"
+
+int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
+{
+	// TODO
+	return EOK;
+}
+
+int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
+{
+	// TODO
+	return EOK;
+}
+
+int ext4_filesystem_check_flags(ext4_filesystem_t *fs, bool *o_read_only)
+{
+	// TODO
+	return EOK;
+}
+
+void ext4_filesystem_fini(ext4_filesystem_t *fs)
+{
+	// TODO
+}
+
 
 /**
  * @}
- */
+ */ 

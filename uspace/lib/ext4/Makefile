@@ -32,9 +32,11 @@ EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 
 SOURCES = \
-	libext4_superblock.c \
 	libext4_block_group.c \
+	libext4_directory.c \
+	libext4_filesystem.c \
 	libext4_inode.c \
-	libext4_directory.c
+	libext4_superblock.c
+	
 
 include $(USPACE_PREFIX)/Makefile.common

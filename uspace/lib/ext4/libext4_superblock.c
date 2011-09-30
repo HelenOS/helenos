@@ -35,7 +35,7 @@
  * @brief	Ext4 superblock operations.
  */
 
-#include "libext4.h"
+#include "libext4_superblock.h"
 
 
 /**
