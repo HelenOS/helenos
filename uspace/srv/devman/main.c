@@ -633,6 +633,9 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 				dev->state = DEVICE_INVALID;
 				fibril_rwlock_read_unlock(&device_tree.rwlock);
 				dev_del_ref(dev);
+				if (gone_rc == EOK)
+					gone_rc = ENOTSUP;
+				async_answer_0(callid, gone_rc);
 				return;
 			}
 			
