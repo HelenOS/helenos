@@ -157,9 +157,6 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	free(fun_name);
-	fun_name = NULL;
-
 	/* Allocate soft state */
 	mfun = ddf_dev_data_alloc(mdev->ddf_dev, sizeof(usbmast_fun_t));
 	if (mfun == NULL) {
@@ -217,6 +214,8 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		    fun_name, str_error(rc));
 		goto error;
 	}
+
+	free(fun_name);
 
 	return EOK;
 
