@@ -158,6 +158,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	}
 
 	free(fun_name);
+	fun_name = NULL;
 
 	/* Allocate soft state */
 	mfun = ddf_dev_data_alloc(mdev->ddf_dev, sizeof(usbmast_fun_t));
@@ -169,8 +170,6 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 
 	mfun->mdev = mdev;
 	mfun->lun = lun;
-
-	fun_name = NULL;
 
 	/* Set up a connection handler. */
 	fun->conn_handler = usbmast_bd_connection;
