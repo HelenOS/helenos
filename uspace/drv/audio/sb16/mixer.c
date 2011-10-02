@@ -35,43 +35,94 @@
 
 #define CT_MIXER_RESET_ADDRESS 0x00
 
-typedef struct volume_item {
+typedef struct channel {
 	uint8_t address;
-	uint8_t channels;
-	const char *description;
-	unsigned volume_levels;
 	unsigned shift;
-	bool same_reg;
+	unsigned volume_levels;
+	bool preserve_bits;
+} channel_t;
+
+typedef struct volume_item {
+	const char *description;
+	uint8_t channels;
+	const channel_t *channel_table;
 } volume_item_t;
 
+/* CT1335 channels */
+static const channel_t channels_table_ct1335[] = {
+	{ 0x02, 1, 8, false }, /* Master, Mono, 3bit volume level */
+	{ 0x06, 1, 8, false }, /* Midi, Mono, 3bit volume level */
+	{ 0x08, 1, 8, false }, /* CD, Mono, 3bit volume level */
+	{ 0x0a, 1, 4, false }, /* Voice, Mono, 2bit volume level */
+};
+
+/* CT1345 channels */
+static const channel_t channels_table_ct1345[] = {
+	{ 0x22, 5, 8, true }, /* Master, Left, 3bit volume level */
+	{ 0x22, 1, 8, true }, /* Master, Right, 3bit volume level */
+	{ 0x26, 5, 8, true }, /* Midi, Left, 3bit volume level */
+	{ 0x26, 1, 8, true }, /* Midi, Right, 3bit volume level */
+	{ 0x28, 5, 8, true }, /* CD, Left, 3bit volume level */
+	{ 0x28, 1, 8, true }, /* CD, Right, 3bit volume level */
+	{ 0x2e, 5, 8, true }, /* Line, Left, 3bit volume level */
+	{ 0x2e, 1, 8, true }, /* Line, Right, 3bit volume level */
+	{ 0x04, 5, 8, true }, /* Voice, Left, 3bit volume level */
+	{ 0x04, 1, 8, true }, /* Voice, Right, 3bit volume level */
+	{ 0x0a, 1, 4, false }, /* Mic, Mono, 2bit volume level */
+};
+
+/* CT1745 channels */
+static const channel_t channels_table_ct1745[] = {
+	{ 0x30, 3, 32, false }, /* Master, Left, 5bit volume level */
+	{ 0x31, 3, 32, false }, /* Master, Right, 5bit volume level */
+	{ 0x32, 3, 32, false }, /* Voice, Left, 5bit volume level */
+	{ 0x33, 3, 32, false }, /* Voice, Right, 5bit volume level */
+	{ 0x34, 3, 32, false }, /* MIDI, Left, 5bit volume level */
+	{ 0x35, 3, 32, false }, /* MIDI, Right, 5bit volume level */
+	{ 0x36, 3, 32, false }, /* CD, Left, 5bit volume level */
+	{ 0x37, 3, 32, false }, /* CD, Right, 5bit volume level */
+	{ 0x38, 3, 32, false }, /* Line, Left, 5bit volume level */
+	{ 0x39, 3, 32, false }, /* Line, Right, 5bit volume level */
+	{ 0x3a, 3, 32, false }, /* Mic, Mono, 5bit volume level */
+	{ 0x3b, 6, 4, false }, /* PC speaker, Mono, 2bit volume level */
+	{ 0x3f, 6, 4, false }, /* Input Gain, Left, 2bit volume level */
+	{ 0x40, 6, 4, false }, /* Input Gain, Right, 2bit volume level */
+	{ 0x41, 6, 4, false }, /* Output Gain, Left, 2bit volume level */
+	{ 0x42, 6, 4, false }, /* Output Gain, Right, 2bit volume level */
+	{ 0x44, 4, 16, false }, /* Treble, Left, 4bit volume level */
+	{ 0x45, 4, 16, false }, /* Treble, Right, 4bit volume level */
+	{ 0x46, 4, 16, false }, /* Bass, Left, 4bit volume level */
+	{ 0x47, 4, 16, false }, /* Bass, Right, 4bit volume level */
+};
+
 static const volume_item_t volume_ct1335[] = {
-	{ 0x02, 1, "Master", 8, 1, true },
-	{ 0x06, 1, "MIDI", 8, 1, true },
-	{ 0x08, 1, "CD", 8, 1, true },
-	{ 0x0a, 1, "Voice", 4, 1, true },
+	{ "Master", 1, &channels_table_ct1335[0] },
+	{ "MIDI", 1, &channels_table_ct1335[1] },
+	{ "CD", 1, &channels_table_ct1335[2] },
+	{ "Voice", 1, &channels_table_ct1335[3] },
 };
 
 static const volume_item_t volume_ct1345[] = {
-	{ 0x22, 2, "Master", 8, 1, true },
-	{ 0x04, 2, "Voice", 8, 1, true },
-	{ 0x0a, 1, "Mic", 4, 1, true },
-	{ 0x26, 2, "MIDI", 8, 1, true },
-	{ 0x28, 2, "CD", 8, 1, true },
-	{ 0x2e, 2, "Line", 8, 1, true },
+	{ "Master", 2, &channels_table_ct1345[0] },
+	{ "Voice", 2, &channels_table_ct1345[8] },
+	{ "Mic", 1, &channels_table_ct1345[10] },
+	{ "MIDI", 2, &channels_table_ct1345[2] },
+	{ "CD", 2, &channels_table_ct1345[4] },
+	{ "Line", 2, &channels_table_ct1345[6] },
 };
 
 static const volume_item_t volume_ct1745[] = {
-	{ 0x30, 2, "Master", 32, 3, false },
-	{ 0x32, 2, "Voice", 32, 3, false },
-	{ 0x34, 2, "MIDI", 32, 3, false },
-	{ 0x36, 2, "CD", 32, 3, false },
-	{ 0x38, 2, "Line", 32, 3, false },
-	{ 0x3a, 1, "Mic", 32, 3, false },
-	{ 0x3b, 1, "PC Speaker", 4, 6, false },
-	{ 0x3f, 2, "Input Gain", 4, 6, false },
-	{ 0x41, 2, "Output Gain", 4, 6, false },
-	{ 0x44, 2, "Treble", 16, 4, false },
-	{ 0x46, 2, "Bass", 16, 4, false },
+	{ "Master", 2, &channels_table_ct1745[0] },
+	{ "Voice", 2, &channels_table_ct1745[2] },
+	{ "MIDI", 2, &channels_table_ct1745[4] },
+	{ "CD", 2, &channels_table_ct1745[6] },
+	{ "Line", 2, &channels_table_ct1745[8] },
+	{ "Mic", 1, &channels_table_ct1745[10] },
+	{ "PC Speaker", 1, &channels_table_ct1745[11] },
+	{ "Input Gain", 2, &channels_table_ct1745[12] },
+	{ "Output Gain", 2, &channels_table_ct1745[14] },
+	{ "Treble", 2, &channels_table_ct1745[16] },
+	{ "Bass", 2, &channels_table_ct1745[0] },
 };
 
 static const struct {
@@ -154,12 +205,13 @@ int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
 	if (index > volume_table[mixer->type].count)
 		return ENOENT;
 
+	const volume_item_t item = volume_table[mixer->type].table[index];
 	if (name)
-		*name = volume_table[mixer->type].table[index].description;
+		*name = item.description;
 	if (channels)
-		*channels = volume_table[mixer->type].table[index].channels;
+		*channels = item.channels;
 	if (levels)
-		*levels = volume_table[mixer->type].table[index].volume_levels;
+		*levels = item.channel_table[0].volume_levels;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -170,26 +222,24 @@ int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
 		return ENOTSUP;
 	if (index >= volume_table[mixer->type].count)
 		return ENOENT;
-	if (level >= volume_table[mixer->type].table[index].volume_levels)
-		return ENOTSUP;
 	if (channel >= volume_table[mixer->type].table[index].channels)
 		return ENOENT;
+	const channel_t chan =
+	    volume_table[mixer->type].table[index].channel_table[channel];
 
-	const volume_item_t item = volume_table[mixer->type].table[index];
-	const uint8_t address = item.address + (item.same_reg ? 0 : channel);
-	pio_write_8(&mixer->regs->mixer_address, address);
-	if (!item.same_reg) {
-		const uint8_t value = level << item.shift;
-		pio_write_8(&mixer->regs->mixer_data, value);
-	} else {
-		/* Nasty stuff */
-		uint8_t value = pio_read_8(&mixer->regs->mixer_data);
-		/* Remove value that is to be replaced register format is L:R*/
-		value &= (channel ? 0xf0 : 0x0f);
-		/* Add the new value */
-		value |= (level << item.shift) << (channel ? 0 : 4);
-		pio_write_8(&mixer->regs->mixer_data, value);
+	if (level > chan.volume_levels)
+		level = chan.volume_levels;
+
+	pio_write_8(&mixer->regs->mixer_address, chan.address);
+	uint8_t value = 0;
+
+	if (chan.preserve_bits) {
+		value = pio_read_8(&mixer->regs->mixer_data);
+		value &= ~(uint8_t)((chan.volume_levels - 1) << chan.shift);
 	}
+
+	value |= level << chan.shift;
+	pio_write_8(&mixer->regs->mixer_data, value);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -203,15 +253,9 @@ unsigned sb_mixer_get_volume_level(const sb_mixer_t *mixer, unsigned index,
 	    || (channel >= volume_table[mixer->type].table[index].channels))
 		return 0;
 
-	const volume_item_t item = volume_table[mixer->type].table[index];
-	const uint8_t address = item.address + (item.same_reg ? 0 : channel);
-	pio_write_8(&mixer->regs->mixer_address, address);
-	if (!item.same_reg) {
-		return pio_read_8(&mixer->regs->mixer_data) >> item.shift;
-	} else {
-		const uint8_t value =
-		    pio_read_8(&mixer->regs->mixer_data) >> (channel ? 0 : 4);
-		return value >> item.shift;
-	}
-	return 0;
+	const channel_t chan =
+	    volume_table[mixer->type].table[index].channel_table[channel];
+	pio_write_8(&mixer->regs->mixer_address, chan.address);
+	return (pio_read_8(&mixer->regs->mixer_data) >> chan.shift)
+	    & (chan.volume_levels - 1);
 }
