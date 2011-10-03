@@ -158,7 +158,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	}
 
 	/* Allocate soft state */
-	mfun = ddf_dev_data_alloc(mdev->ddf_dev, sizeof(usbmast_fun_t));
+	mfun = ddf_fun_data_alloc(fun, sizeof(usbmast_fun_t));
 	if (mfun == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		rc = ENOMEM;
@@ -170,7 +170,6 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 
 	/* Set up a connection handler. */
 	fun->conn_handler = usbmast_bd_connection;
-	fun->driver_data = mfun;
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
