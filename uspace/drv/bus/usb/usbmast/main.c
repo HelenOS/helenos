@@ -93,7 +93,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	unsigned i;
 
 	/* Allocate softstate */
-	mdev = calloc(1, sizeof(usbmast_dev_t));
+	mdev = ddf_dev_data_alloc(dev->ddf_dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		rc = ENOMEM;
