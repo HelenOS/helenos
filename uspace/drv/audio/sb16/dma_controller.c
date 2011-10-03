@@ -33,10 +33,12 @@
  */
 #include <assert.h>
 #include <errno.h>
+#include <ddi.h>
+#include <libarch/ddi.h>
 
 #include "dma_controller.h"
 
-#define DMA_CONTROLLER_FIRST_BASE 0x0
+#define DMA_CONTROLLER_FIRST_BASE ((void*)0x0)
 typedef struct dma_controller_regs_first {
 	uint8_t channel_start0;
 	uint8_t channel_count0;
@@ -55,9 +57,11 @@ typedef struct dma_controller_regs_first {
 
 	uint8_t request; /* Memory to memory transfers, NOT implemented on PCs*/
 	uint8_t single_mask;
-#define DMA_SINGLE_MASK_CHAN_SELECT_MASK (0x3)
-#define DMA_SINGLE_MASK_CHAN_SELECT_SHIFT (0)
-#define DMA_SINGLE_MASK_MASK_ON_FLAG (1 << 2)
+#define DMA_SINGLE_MASK_CHAN_SEL_MASK (0x3)
+#define DMA_SINGLE_MASK_CHAN_SEL_SHIFT (0)
+#define DMA_SINGLE_MASK_CHAN_TO_REG(x) \
+    (((x % 4) & DMA_SINGLE_MASK_CHAN_SEL_MASK) << DMA_SINGLE_MASK_CHAN_SEL_SHIFT)
+#define DMA_SINGLE_MASK_MASKED_FLAG (1 << 2)
 
 	uint8_t mode;
 #define DMA_MODE_CHAN_SELECT_MASK (0x3)
@@ -86,7 +90,7 @@ typedef struct dma_controller_regs_first {
 
 } dma_controller_regs_first_t;
 
-#define DMA_CONTROLLER_SECOND_BASE 0xc0
+#define DMA_CONTROLLER_SECOND_BASE ((void*)0xc0)
 /* See dma_controller_regs_first_t for register values */
 typedef struct dma_controller_regs_second {
 	uint8_t channel_start4;
@@ -120,7 +124,7 @@ typedef struct dma_controller_regs_second {
 	uint8_t multi_mask;
 } dma_controller_regs_second_t;
 
-#define DMA_CONTROLLER_PAGE_BASE 0x81
+#define DMA_CONTROLLER_PAGE_BASE ((void*)0x81)
 typedef struct dma_page_regs {
 	uint8_t channel2;
 	uint8_t channel3;
@@ -140,9 +144,9 @@ typedef struct dma_page_regs {
 } dma_page_regs_t;
 
 typedef struct dma_channel {
-	uint8_t offset_reg_address;
-	uint8_t size_reg_address;
-	uint8_t page_reg_address;
+	uint8_t *offset_reg_address;
+	uint8_t *size_reg_address;
+	uint8_t *page_reg_address;
 } dma_channel_t;
 
 typedef struct dma_controller {
@@ -154,10 +158,14 @@ typedef struct dma_controller {
 
 dma_controller_t controller_8237 = {
 	.channel = {
-	    { 0x00, 0x01, 0x87 }, { 0x02, 0x03, 0x83 },
-	    { 0x04, 0x05, 0x81 }, { 0x06, 0x07, 0x82 },
-	    { 0xc0, 0xc2, 0x8f }, { 0xc4, 0xc6, 0x8b },
-	    { 0xc8, 0xca, 0x89 }, { 0xcc, 0xce, 0x8a } },
+	    { (uint8_t*)0x00, (uint8_t*)0x01, (uint8_t*)0x87 },
+	    { (uint8_t*)0x02, (uint8_t*)0x03, (uint8_t*)0x83 },
+	    { (uint8_t*)0x04, (uint8_t*)0x05, (uint8_t*)0x81 },
+	    { (uint8_t*)0x06, (uint8_t*)0x07, (uint8_t*)0x82 },
+	    { (uint8_t*)0xc0, (uint8_t*)0xc2, (uint8_t*)0x8f },
+	    { (uint8_t*)0xc4, (uint8_t*)0xc6, (uint8_t*)0x8b },
+	    { (uint8_t*)0xc8, (uint8_t*)0xca, (uint8_t*)0x89 },
+	    { (uint8_t*)0xcc, (uint8_t*)0xce, (uint8_t*)0x8a } },
 	.page_table = NULL,
 	.first = NULL,
 	.second = NULL,
@@ -165,15 +173,124 @@ dma_controller_t controller_8237 = {
 
 static inline dma_controller_t *dma_controller_init()
 {
-	return NULL;
+	int ret = pio_enable(DMA_CONTROLLER_PAGE_BASE, sizeof(dma_page_regs_t),
+	    (void**)&controller_8237.page_table);
+	if (ret != EOK)
+		return NULL;
+
+	ret = pio_enable(DMA_CONTROLLER_FIRST_BASE,
+	    sizeof(dma_controller_regs_first_t),
+	    (void**)&controller_8237.first);
+	if (ret != EOK)
+		return NULL;
+
+	ret = pio_enable(DMA_CONTROLLER_SECOND_BASE,
+	    sizeof(dma_controller_regs_second_t),
+	    (void**)&controller_8237.second);
+	if (ret != EOK)
+		return NULL;
+	return &controller_8237;
+}
+/*----------------------------------------------------------------------------*/
+static int dma_setup_channel_8bit(dma_controller_t *controller,
+    unsigned channel, uint32_t pa, uint16_t size)
+{
+	if (channel == 0 || channel > 3)
+		return ENOTSUP;
+	assert(controller);
+	/* Mask DMA request */
+	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
+	    | DMA_SINGLE_MASK_MASKED_FLAG;
+	pio_write_8(&controller->first->single_mask, value);
+
+	/* Set address -- reset flip-flop*/
+	pio_write_8(&controller->first->flip_flop, 1);
+
+	/* Low byte */
+	value = pa & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* High byte */
+	value = (pa >> 8) & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* Page address - third byte */
+	value = (pa >> 16) & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* Set size -- reset flip-flop */
+	pio_write_8(&controller->first->flip_flop, 1);
+
+	/* Low byte */
+	value = size & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* High byte */
+	value = (size >> 8) & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* Unmask DMA request */
+	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
+	pio_write_8(&controller->first->single_mask, value);
+
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int dma_setup_channel_16bit(dma_controller_t *controller,
+    unsigned channel, uintptr_t pa, size_t size)
+{
+	if (channel == 4 || channel > 7)
+		return ENOTSUP;
+	assert(controller);
+	/* Mask DMA request */
+	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
+	    | DMA_SINGLE_MASK_MASKED_FLAG;
+	pio_write_8(&controller->second->single_mask, value);
+
+	/* Set address -- reset flip-flop*/
+	pio_write_8(&controller->second->flip_flop, 1);
+
+	/* Low byte */
+	value = pa & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* High byte */
+	value = (pa >> 8) & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* Page address - third byte */
+	value = (pa >> 16) & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* Set size -- reset flip-flop */
+	pio_write_8(&controller->second->flip_flop, 1);
+
+	/* Low byte */
+	value = size & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* High byte */
+	value = (size >> 8) & 0xff;
+	pio_write_8(controller->channel[channel].offset_reg_address, value);
+
+	/* Unmask DMA request */
+	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
+	pio_write_8(&controller->second->single_mask, value);
+
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 {
 	static dma_controller_t *controller = NULL;
 	if (!controller)
+		controller = dma_controller_init();
+	if (!controller)
 		return EIO;
-	return ENOTSUP;
+	if (channel <= 4)
+		return dma_setup_channel_8bit(controller, channel, pa, size);
+	else
+		return dma_setup_channel_16bit(controller, channel, pa, size);
 }
 /**
  * @}
