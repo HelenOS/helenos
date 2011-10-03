@@ -36,11 +36,114 @@
 
 #include "dma_controller.h"
 
+#define DMA_CONTROLLER_FIRST_BASE 0x0
+typedef struct dma_controller_regs_first {
+	uint8_t channel_start0;
+	uint8_t channel_count0;
+	uint8_t channel_start1;
+	uint8_t channel_count1;
+	uint8_t channel_start2;
+	uint8_t channel_count2;
+	uint8_t channel_start3;
+	uint8_t channel_count3;
+
+	uint8_t command_status;
+	uint8_t request;
+	uint8_t single_mask;
+	uint8_t mode;
+	uint8_t flip_flop;
+	uint8_t master_reset_intermediate;
+	uint8_t multi_mask;
+} dma_controller_regs_first_t;
+
+#define DMA_CONTROLLER_SECOND_BASE 0xc0
+typedef struct dma_controller_regs_second {
+	uint8_t channel_start4;
+	uint8_t reserved0;
+	uint8_t channel_count4;
+	uint8_t reserved1;
+	uint8_t channel_start5;
+	uint8_t reserved2;
+	uint8_t channel_count5;
+	uint8_t reserved3;
+	uint8_t channel_start6;
+	uint8_t reserved4;
+	uint8_t channel_count6;
+	uint8_t reserved5;
+	uint8_t channel_start7;
+	uint8_t reserved6;
+	uint8_t channel_count7;
+
+	uint8_t command_status;
+	uint8_t reserved8;
+	uint8_t request;
+	uint8_t reserved9;
+	uint8_t single_mask;
+	uint8_t reserveda;
+	uint8_t mode;
+	uint8_t reservedb;
+	uint8_t flip_flop;
+	uint8_t reservedc;
+	uint8_t master_reset_intermediate;
+	uint8_t reservedd;
+	uint8_t multi_mask;
+} dma_controller_regs_second_t;
+
+#define DMA_CONTROLLER_PAGE_BASE 0x81
+typedef struct dma_page_regs {
+	uint8_t channel2;
+	uint8_t channel3;
+	uint8_t channel1;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t channel0;
+	uint8_t reserved3;
+	uint8_t channel6;
+	uint8_t channel7;
+	uint8_t channel5;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
+	uint8_t channel4;
+} dma_page_regs_t;
+
+typedef struct dma_channel {
+	uint8_t offset_reg_address;
+	uint8_t size_reg_address;
+	uint8_t page_reg_address;
+} dma_channel_t;
+
+typedef struct dma_controller {
+	dma_channel_t channel[8];
+	dma_page_regs_t *page_table;
+	dma_controller_regs_first_t *first;
+	dma_controller_regs_second_t *second;
+} dma_controller_t;
+
+dma_controller_t controller_8237 = {
+	.channel = {
+	    { 0x00, 0x01, 0x87 }, { 0x02, 0x03, 0x83 },
+	    { 0x04, 0x05, 0x81 }, { 0x06, 0x07, 0x82 },
+	    { 0xc0, 0xc2, 0x8f }, { 0xc4, 0xc6, 0x8b },
+	    { 0xc8, 0xca, 0x89 }, { 0xcc, 0xce, 0x8a } },
+	.page_table = NULL,
+	.first = NULL,
+	.second = NULL,
+};
+
+static inline dma_controller_t *dma_controller_init()
+{
+	return NULL;
+}
+/*----------------------------------------------------------------------------*/
 int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 {
+	static dma_controller_t *controller = NULL;
+	if (!controller)
+		return EIO;
 	return ENOTSUP;
 }
-
 /**
  * @}
  */
