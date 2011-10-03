@@ -48,15 +48,46 @@ typedef struct dma_controller_regs_first {
 	uint8_t channel_count3;
 
 	uint8_t command_status;
-	uint8_t request;
+#define DMA_STATUS_REQ(x) (1 << ((x % 4) + 4))
+#define DMA_STATUS_COMPLETE(x) (1 << (x % 4))
+/* http://wiki.osdev.org/DMA: The only bit that works is COND(bit 2) */
+#define DMA_COMMAND_COND (1 << 2) /* Disables DMA controller */
+
+	uint8_t request; /* Memory to memory transfers, NOT implemented on PCs*/
 	uint8_t single_mask;
+#define DMA_SINGLE_MASK_CHAN_SELECT_MASK (0x3)
+#define DMA_SINGLE_MASK_CHAN_SELECT_SHIFT (0)
+#define DMA_SINGLE_MASK_MASK_ON_FLAG (1 << 2)
+
 	uint8_t mode;
+#define DMA_MODE_CHAN_SELECT_MASK (0x3)
+#define DMA_MODE_CHAN_SELECT_SHIFT (0)
+#define DMA_MODE_CHAN_TRA_MASK (0x3)
+#define DMA_MODE_CHAN_TRA_SHIFT (2)
+#define DMA_MODE_CHAN_TRA_SELF_TEST (0)
+#define DMA_MODE_CHAN_TRA_WRITE (1)
+#define DMA_MODE_CHAN_TRA_READ (2)
+#define DMA_MODE_CHAN_AUTO_FLAG (1 << 4)
+#define DMA_MODE_CHAN_DOWN_FLAG (1 << 5)
+#define DMA_MODE_CHAN_MOD_MASK (0x3)
+#define DMA_MODE_CHAN_MOD_SHIFT (6)
+#define DMA_MODE_CHAN_MOD_DEMAND (0)
+#define DMA_MODE_CHAN_MOD_SINGLE (1)
+#define DMA_MODE_CHAN_MOD_BLOCK (2)
+#define DMA_MODE_CHAN_MOD_CASCADE (3)
+
 	uint8_t flip_flop;
-	uint8_t master_reset_intermediate;
+	uint8_t master_reset; /* Intermediate is not implemented on PCs */
+	uint8_t mask_reset;
+/* Master reset sets Flip-Flop low, clears status,sets all mask bits on */
+
 	uint8_t multi_mask;
+#define DMA_MULTI_MASK_CHAN(x) (1 << (x % 4))
+
 } dma_controller_regs_first_t;
 
 #define DMA_CONTROLLER_SECOND_BASE 0xc0
+/* See dma_controller_regs_first_t for register values */
 typedef struct dma_controller_regs_second {
 	uint8_t channel_start4;
 	uint8_t reserved0;
