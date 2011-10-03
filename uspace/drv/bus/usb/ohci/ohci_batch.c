@@ -53,7 +53,7 @@ static void ohci_transfer_batch_dispose(ohci_transfer_batch_t *ohci_batch)
 		return;
 	unsigned i = 0;
 	if (ohci_batch->tds) {
-		for (; i< ohci_batch->td_count; ++i) {
+		for (; i < ohci_batch->td_count; ++i) {
 			if (i != ohci_batch->leave_td)
 				free32(ohci_batch->tds[i]);
 		}
