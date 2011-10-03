@@ -35,6 +35,7 @@
 #include <libarch/ddi.h>
 
 #include "dma.h"
+#include "dma_controller.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"

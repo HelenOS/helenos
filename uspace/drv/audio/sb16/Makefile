@@ -38,6 +38,7 @@ BINARY = sb16
 
 SOURCES = \
 	dsp.c \
+	dma_controller.c \
 	main.c \
 	mixer.c \
 	sb16.c

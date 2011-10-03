@@ -31,59 +31,10 @@
 /** @file
  * @brief DMA memory management
  */
-#ifndef DRV_AUDIO_SB16_DMA_H
-#define DRV_AUDIO_SB16_DMA_H
+#ifndef DRV_AUDIO_SB16_DMA_CONTROLLER_H
+#define DRV_AUDIO_SB16_DMA_CONTROLLER_H
 
-#include <assert.h>
-#include <errno.h>
-#include <malloc.h>
-#include <mem.h>
-#include <as.h>
-
-#define DMA_ALIGNENT 65536
-
-/** Get physical address translation
- *
- * @param[in] addr Virtual address to translate
- * @return Physical address if exists, NULL otherwise.
- */
-static inline uintptr_t addr_to_phys(const void *addr)
-{
-	if (addr == NULL)
-		return 0;
-
-	uintptr_t result;
-	const int ret = as_get_physical_mapping(addr, &result);
-	if (ret != EOK)
-		return 0;
-	return (result | ((uintptr_t)addr & 0xfff));
-}
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] size Size of the required memory space
- * @return Address of the alligned and big enough memory place, NULL on failure.
- */
-static inline void * malloc24(size_t size)
-{
-	/* This works only reliably when the host has less than 16MB of memory
-	 * as physical address needs to fit into 24 bits */
-
-	/* If we need more than one page there is no guarantee that the
-	 * memory will be continuous */
-	if (size > PAGE_SIZE)
-		return NULL;
-	/* Calculate alignment to make sure the block won't cross page
-	 * boundary */
-	return memalign(DMA_ALIGNENT, size);
-}
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] addr Address of the place allocated by malloc32
- */
-static inline void free24(void *addr)
-	{ free(addr); }
+int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size);
 
 #endif
 /**
