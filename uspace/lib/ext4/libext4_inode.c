@@ -38,9 +38,12 @@
 #include "libext4_inode.h"
 
 // TODO check return type
+/**
+ * TODO doxy
+ */
 uint16_t ext4_inode_get_usage_count(ext4_inode_t *inode)
 {
-	// TODO
+	// TODO check
 	return 0;
 }
 

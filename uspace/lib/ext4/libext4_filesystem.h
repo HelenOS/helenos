@@ -41,6 +41,9 @@ typedef struct ext4_filesystem {
 	ext4_superblock_t *	superblock;
 } ext4_filesystem_t;
 
+// TODO constant value
+#define EXT4_MAX_BLOCK_SIZE		8096
+
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
 extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_flags(ext4_filesystem_t *, bool *);

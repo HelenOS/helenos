@@ -36,29 +36,84 @@
  */
 
 #include <errno.h>
+#include <malloc.h>
 #include "libext4_filesystem.h"
 
+/**
+ * TODO doxy
+ */
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 {
+
+	int rc;
+	ext4_superblock_t *temp_superblock;
+	size_t block_size;
+
+	fs->device = service_id;
+
+	// TODO block size !!!
+	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 2048);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = ext4_superblock_read_direct(fs->device, &temp_superblock);
+	if (rc != EOK) {
+		block_fini(fs->device);
+		return rc;
+	}
+
+	block_size = ext4_superblock_get_block_size(temp_superblock);
+
+	if (block_size > EXT4_MAX_BLOCK_SIZE) {
+		block_fini(fs->device);
+		return ENOTSUP;
+	}
+
+	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
+	if (rc != EOK) {
+		block_fini(fs->device);
+		return rc;
+	}
+
+	fs->superblock = temp_superblock;
+
+
 	// TODO
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 {
-	// TODO
+	int rc;
+
+	rc = ext4_superblock_check_sanity(fs->superblock);
+	if (rc != EOK) {
+		return rc;
+	}
+
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 int ext4_filesystem_check_flags(ext4_filesystem_t *fs, bool *o_read_only)
 {
 	// TODO
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 void ext4_filesystem_fini(ext4_filesystem_t *fs)
 {
-	// TODO
+	free(fs->superblock);
+	block_fini(fs->device);
 }
 
 

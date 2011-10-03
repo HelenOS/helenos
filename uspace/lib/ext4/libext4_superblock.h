@@ -33,6 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_SUPERBLOCK_H_
 #define LIBEXT4_LIBEXT4_SUPERBLOCK_H_
 
+#include <libblock.h>
 #include <sys/types.h>
 
 /*
@@ -139,6 +140,16 @@ typedef struct ext4_superblock {
 
 } __attribute__((packed)) ext4_superblock_t;
 
+// TODO constants
+#define EXT4_SUPERBLOCK_MAGIC		0xEF53
+#define EXT4_SUPERBLOCK_SIZE		1024
+#define EXT4_SUPERBLOCK_OFFSET		1024
+
+extern uint32_t ext4_superblock_get_block_size_log2(ext4_superblock_t *);
+extern uint32_t ext4_superblock_get_block_size(ext4_superblock_t *);
+
+extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
+extern int ext4_superblock_check_sanity(ext4_superblock_t *);
 
 #endif
 

@@ -97,7 +97,7 @@ static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
 
 
 /**
- *	TODO comment
+ *	TODO doxy
  */
 int ext4fs_global_init(void)
 {
@@ -105,6 +105,9 @@ int ext4fs_global_init(void)
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 int ext4fs_global_fini(void)
 {
 	// TODO
@@ -143,8 +146,7 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 
 int ext4fs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	// TODO
-	return 0;
+	return ext4fs_node_get(rfn, service_id, EXT4_INODE_ROOT_INDEX);
 }
 
 int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
@@ -166,9 +168,12 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 int ext4fs_node_open(fs_node_t *fn)
 {
-	// TODO
+	// TODO stateless operation
 	return EOK;
 }
 

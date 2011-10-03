@@ -35,8 +35,80 @@
  * @brief	Ext4 superblock operations.
  */
 
+#include <byteorder.h>
+#include <errno.h>
+#include <libblock.h>
+#include <malloc.h>
 #include "libext4_superblock.h"
 
+/**
+ * TODO doxy
+ */
+uint16_t ext2_superblock_get_magic(ext4_superblock_t *sb)
+{
+	return uint16_t_le2host(sb->s_magic);
+}
+
+/**
+ * TODO doxy
+ */
+uint32_t ext4_superblock_get_first_block(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->s_first_data_block);
+}
+
+/**
+ * TODO doxy
+ */
+uint32_t ext4_superblock_get_block_size_log2(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->s_log_block_size);
+}
+
+/**
+ * TODO doxy
+ */
+uint32_t ext4_superblock_get_block_size(ext4_superblock_t *sb)
+{
+	return 1024 << ext4_superblock_get_block_size_log2(sb);
+}
+
+
+/**
+ * TODO doxy
+ */
+int ext4_superblock_read_direct(service_id_t service_id,
+    ext4_superblock_t **superblock)
+{
+	void *data;
+	int rc;
+
+	data = malloc(EXT4_SUPERBLOCK_SIZE);
+	if (data == NULL) {
+		return ENOMEM;
+	}
+
+	rc = block_read_bytes_direct(service_id, EXT4_SUPERBLOCK_OFFSET,
+	    EXT4_SUPERBLOCK_SIZE, data);
+
+	if (rc != EOK) {
+		free(data);
+		return rc;
+	}
+
+	(*superblock) = data;
+
+	return EOK;
+}
+
+/**
+ * TODO doxy
+ */
+int ext4_superblock_check_sanity(ext4_superblock_t *sb)
+{
+	// TODO
+	return EOK;
+}
 
 /**
  * @}
