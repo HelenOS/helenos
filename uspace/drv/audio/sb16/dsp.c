@@ -33,6 +33,8 @@
  */
 
 #include <libarch/ddi.h>
+
+#include "dma.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
@@ -126,7 +128,6 @@ int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	}
 	return EOK;
 }
-
 /**
  * @}
  */
