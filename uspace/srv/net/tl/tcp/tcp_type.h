@@ -36,6 +36,7 @@
 #define TCP_TYPE_H
 
 #include <adt/list.h>
+#include <fibril_synch.h>
 #include <sys/types.h>
 
 struct tcp_conn;
@@ -113,6 +114,8 @@ typedef struct tcp_conn {
 	/** Receive buffer size */
 	size_t rcv_buf_size;
 	size_t rcv_buf_used;
+	fibril_mutex_t rcv_buf_lock;
+	fibril_condvar_t rcv_buf_cv;
 
 	/** Send buffer */
 	uint8_t *snd_buf;

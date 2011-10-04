@@ -103,7 +103,11 @@ int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 	iqe = list_get_instance(link, tcp_iqueue_entry_t, link);
 
 	while (!seq_no_segment_acceptable(iqueue->conn, iqe->seg)) {
-		log_msg(LVL_DEBUG, "Skipping unacceptable segment");
+		log_msg(LVL_DEBUG, "Skipping unacceptable segment (RCV.NXT=%"
+		    PRIu32 ", RCV.NXT+RCV.WND=%" PRIu32 ", SEG.SEQ=%" PRIu32
+		    ", SEG.LEN=%" PRIu32 ")", iqueue->conn->rcv_nxt,
+		    iqueue->conn->rcv_nxt + iqueue->conn->rcv_wnd,
+		    iqe->seg->seq, iqe->seg->len);
 
 		list_remove(&iqe->link);
 		tcp_segment_delete(iqe->seg);

@@ -44,15 +44,29 @@
 
 #include "test.h"
 
+#define RCV_BUF_SIZE 64
+
 static void test_srv(void *arg)
 {
 	tcp_conn_t *conn;
 	tcp_sock_t sock;
+	char rcv_buf[RCV_BUF_SIZE + 1];
+	size_t rcvd;
+	xflags_t xflags;
 
 	printf("test_srv()\n");
 	sock.port = 1024;
 	sock.addr.ipv4 = 0x7f000001;
 	tcp_uc_open(80, &sock, ap_passive, &conn);
+
+	while (true) {
+		printf("User receive...\n");
+		tcp_uc_receive(conn, rcv_buf, RCV_BUF_SIZE, &rcvd, &xflags);
+		rcv_buf[rcvd] = '\0';
+		printf("User received %zu bytes '%s'.\n", rcvd, rcv_buf);
+
+		async_usleep(1000*1000*2);
+	}
 }
 
 static void test_cli(void *arg)

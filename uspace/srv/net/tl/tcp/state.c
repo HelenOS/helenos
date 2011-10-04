@@ -34,6 +34,7 @@
  * @file TCP entry points (close to those defined in the RFC)
  */
 
+#include <fibril_synch.h>
 #include <io/log.h>
 #include <macros.h>
 #include <mem.h>
@@ -106,7 +107,39 @@ void tcp_uc_send(tcp_conn_t *conn, void *data, size_t size, xflags_t flags)
 void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
     xflags_t *xflags)
 {
+	size_t xfer_size;
+
 	log_msg(LVL_DEBUG, "tcp_uc_receive()");
+
+	fibril_mutex_lock(&conn->rcv_buf_lock);
+
+	/* Wait for data to become available */
+	while (conn->rcv_buf_used == 0) {
+		log_msg(LVL_DEBUG, "tcp_uc_receive() - wait for data");
+		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->rcv_buf_lock);
+	}
+
+	/* Copy data from receive buffer to user buffer */
+	xfer_size = min(size, conn->rcv_buf_used);
+	memcpy(buf, conn->rcv_buf, xfer_size);
+	*rcvd = xfer_size;
+
+	/* Remove data from receive buffer */
+	memmove(conn->rcv_buf, conn->rcv_buf + xfer_size, conn->rcv_buf_used -
+	    xfer_size);
+	conn->rcv_buf_used -= xfer_size;
+	conn->rcv_wnd += xfer_size;
+
+	fibril_mutex_unlock(&conn->rcv_buf_lock);
+
+	/* TODO */
+	*xflags = 0;
+
+	/* Send new size of receive window */
+	tcp_tqueue_ctrl_seg(conn, CTL_ACK);
+
+	log_msg(LVL_DEBUG, "tcp_uc_receive() - returning %zu bytes",
+	    xfer_size);
 }
 
 /** CLOSE user call */

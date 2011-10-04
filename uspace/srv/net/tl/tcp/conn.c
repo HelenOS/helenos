@@ -69,8 +69,11 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 		return NULL;
 
 	/* Allocate receive buffer */
+	fibril_mutex_initialize(&conn->rcv_buf_lock);
+	fibril_condvar_initialize(&conn->rcv_buf_cv);
 	conn->rcv_buf_size = RCV_BUF_SIZE;
 	conn->rcv_buf_used = 0;
+
 	conn->rcv_buf = calloc(1, conn->rcv_buf_size);
 	if (conn->rcv_buf == NULL) {
 		free(conn);
@@ -305,7 +308,12 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if ((seg->ctrl & CTL_ACK) != 0) {
 		conn->snd_una = seg->ack;
-		tcp_tqueue_remove_acked(conn);
+
+		/*
+		 * Prune acked segments from retransmission queue and
+		 * possibly transmit more data.
+		 */
+		tcp_tqueue_ack_received(conn);
 	}
 
 	log_msg(LVL_DEBUG, "Sent SYN, got SYN.");
@@ -458,16 +466,23 @@ static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 	} else {
 		/* Update SND.UNA */
 		conn->snd_una = seg->ack;
-
-		/* Prune acked segments from retransmission queue */
-		tcp_tqueue_remove_acked(conn);
 	}
 
 	if (seq_no_new_wnd_update(conn, seg)) {
 		conn->snd_wnd = seg->wnd;
 		conn->snd_wl1 = seg->seq;
 		conn->snd_wl2 = seg->ack;
+
+		log_msg(LVL_DEBUG, "Updating send window, SND.WND=%" PRIu32
+		    ", SND.WL1=%" PRIu32 ", SND.WL2=%" PRIu32,
+		    conn->snd_wnd, conn->snd_wl1, conn->snd_wl2);
 	}
+
+	/*
+	 * Prune acked segments from retransmission queue and
+	 * possibly transmit more data.
+	 */
+	tcp_tqueue_ack_received(conn);
 
 	return cp_continue;
 }
@@ -658,12 +673,20 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* Trim anything outside our receive window */
 	tcp_conn_trim_seg_to_wnd(conn, seg);
 
+	fibril_mutex_lock(&conn->rcv_buf_lock);
+
 	/* Determine how many bytes to copy */
 	text_size = tcp_segment_text_size(seg);
 	xfer_size = min(text_size, conn->rcv_buf_size - conn->rcv_buf_used);
 
 	/* Copy data to receive buffer */
-	tcp_segment_text_copy(seg, conn->rcv_buf, xfer_size);
+	tcp_segment_text_copy(seg, conn->rcv_buf + conn->rcv_buf_used,
+	    xfer_size);
+	conn->rcv_buf_used += xfer_size;
+
+	/* Signal to the receive function that new data has arrived */
+	fibril_condvar_broadcast(&conn->rcv_buf_cv);
+	fibril_mutex_unlock(&conn->rcv_buf_lock);
 
 	log_msg(LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
 

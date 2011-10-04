@@ -71,6 +71,9 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	seg->seq = conn->snd_nxt;
 	seg->wnd = conn->rcv_wnd;
 
+	log_msg(LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
+	    seg->seq, seg->wnd);
+
 	if ((seg->ctrl & CTL_ACK) != 0)
 		seg->ack = conn->rcv_nxt;
 	else
@@ -87,12 +90,16 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 void tcp_tqueue_new_data(tcp_conn_t *conn)
 {
+	size_t avail_wnd;
 	size_t data_size;
 	tcp_segment_t *seg;
 
 	log_msg(LVL_DEBUG, "tcp_tqueue_new_data()");
 
-	data_size = min(conn->snd_buf_used, conn->snd_wnd);
+	/* Number of free sequence numbers in send window */
+	avail_wnd = (conn->snd_una + conn->snd_wnd) - conn->snd_nxt;
+
+	data_size = min(conn->snd_buf_used, avail_wnd);
 	log_msg(LVL_DEBUG, "conn->snd_buf_used = %zu, SND.WND = %zu, "
 	    "data_size = %zu", conn->snd_buf_used, conn->snd_wnd, data_size);
 
@@ -115,13 +122,16 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	tcp_tqueue_seg(conn, seg);
 }
 
-/** Remove ACKed segments from retransmission queue.
+/** Remove ACKed segments from retransmission queue and possibly transmit
+ * more data.
  *
  * This should be called when SND.UNA is updated due to incoming ACK.
  */
-void tcp_tqueue_remove_acked(tcp_conn_t *conn)
+void tcp_tqueue_ack_received(tcp_conn_t *conn)
 {
 	(void) conn;
+
+	tcp_tqueue_new_data(conn);
 }
 
 void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
