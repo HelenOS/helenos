@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <thread.h>
+#include <str.h>
 #include "state.h"
 #include "tcp_type.h"
 
@@ -58,6 +59,7 @@ static void test_cli(void *arg)
 {
 	tcp_conn_t *conn;
 	tcp_sock_t sock;
+	const char *msg = "Hello World!";
 
 	printf("test_cli()\n");
 
@@ -66,6 +68,9 @@ static void test_cli(void *arg)
 	
 	async_usleep(1000*1000*3);
 	tcp_uc_open(1024, &sock, ap_active, &conn);
+
+	async_usleep(1000*1000*10);
+	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
 }
 
 void tcp_test(void)

@@ -114,6 +114,12 @@ typedef struct tcp_conn {
 	size_t rcv_buf_size;
 	size_t rcv_buf_used;
 
+	/** Send buffer */
+	uint8_t *snd_buf;
+	/** Send buffer size */
+	size_t snd_buf_size;
+	size_t snd_buf_used;
+
 	/** Send unacknowledged */
 	uint32_t snd_una;
 	/** Send next */

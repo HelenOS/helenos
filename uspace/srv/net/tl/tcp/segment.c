@@ -52,9 +52,9 @@ void tcp_segment_delete(tcp_segment_t *seg)
 	free(seg);
 }
 
-/** Create a control segment.
+/** Create a control-only segment.
  *
-  * @return	Control segment
+  * @return	Segment
  */
 tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t ctrl)
 {
@@ -88,6 +88,36 @@ tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
 
 	return rseg;
 }
+
+/** Create a control segment.
+ *
+  * @return	Segment
+ */
+tcp_segment_t *tcp_segment_make_data(tcp_control_t ctrl, void *data,
+    size_t size)
+{
+	tcp_segment_t *seg;
+
+	assert(size > 0);
+
+	seg = tcp_segment_new();
+	if (seg == NULL)
+		return NULL;
+
+	seg->ctrl = ctrl;
+	seg->len = seq_no_control_len(ctrl) + size;
+
+	seg->dfptr = seg->data = malloc(size);
+	if (seg->dfptr == NULL) {
+		free(seg);
+		return NULL;
+	}
+
+	memcpy(seg->data, data, size);
+
+	return seg;
+}
+
 
 /** Trim segment from left and right by the specified amount.
  *

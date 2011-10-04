@@ -36,6 +36,9 @@
 
 #include <byteorder.h>
 #include <io/log.h>
+#include <macros.h>
+#include <mem.h>
+#include "conn.h"
 #include "header.h"
 #include "rqueue.h"
 #include "segment.h"
@@ -49,8 +52,6 @@ void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 	log_msg(LVL_DEBUG, "tcp_tqueue_ctrl_seg(%p, %u)", conn, ctrl);
 
 	seg = tcp_segment_make_ctrl(ctrl);
-	seg->seq = conn->snd_nxt;
-	seg->ack = conn->rcv_nxt;
 	tcp_tqueue_seg(conn, seg);
 }
 
@@ -59,8 +60,59 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	log_msg(LVL_DEBUG, "tcp_tqueue_seg(%p, %p)", conn, seg);
 	/* XXX queue */
 
+	/*
+	 * Always send ACK once we have received SYN, except for RST segments.
+	 * (Spec says we should always send ACK once connection has been
+	 * established.)
+	 */
+	if (tcp_conn_got_syn(conn) && (seg->ctrl & CTL_RST) == 0)
+		seg->ctrl |= CTL_ACK;
+
+	seg->seq = conn->snd_nxt;
+	seg->wnd = conn->rcv_wnd;
+
+	if ((seg->ctrl & CTL_ACK) != 0)
+		seg->ack = conn->rcv_nxt;
+	else
+		seg->ack = 0;
+
 	conn->snd_nxt += seg->len;
+
 	tcp_transmit_segment(&conn->ident, seg);
+}
+
+/** Transmit data from the send buffer.
+ *
+ * @param conn	Connection
+ */
+void tcp_tqueue_new_data(tcp_conn_t *conn)
+{
+	size_t data_size;
+	tcp_segment_t *seg;
+
+	log_msg(LVL_DEBUG, "tcp_tqueue_new_data()");
+
+	data_size = min(conn->snd_buf_used, conn->snd_wnd);
+	log_msg(LVL_DEBUG, "conn->snd_buf_used = %zu, SND.WND = %zu, "
+	    "data_size = %zu", conn->snd_buf_used, conn->snd_wnd, data_size);
+
+	if (data_size == 0)
+		return;
+
+	/* XXX Do not always send immediately */
+
+	seg = tcp_segment_make_data(0, conn->snd_buf, data_size);
+	if (seg == NULL) {
+		log_msg(LVL_ERROR, "Memory allocation failure.");
+		return;
+	}
+
+	/* Remove data from send buffer */
+	memmove(conn->snd_buf, conn->snd_buf + data_size,
+	    conn->snd_buf_used - data_size);
+	conn->snd_buf_used -= data_size;
+
+	tcp_tqueue_seg(conn, seg);
 }
 
 /** Remove ACKed segments from retransmission queue.

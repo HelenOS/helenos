@@ -47,6 +47,7 @@
 #include "tqueue.h"
 
 #define RCV_BUF_SIZE 4096
+#define SND_BUF_SIZE 4096
 
 LIST_INITIALIZE(conn_list);
 
@@ -72,6 +73,15 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	conn->rcv_buf_used = 0;
 	conn->rcv_buf = calloc(1, conn->rcv_buf_size);
 	if (conn->rcv_buf == NULL) {
+		free(conn);
+		return NULL;
+	}
+
+	/** Allocate send buffer */
+	conn->snd_buf_size = SND_BUF_SIZE;
+	conn->snd_buf_used = 0;
+	conn->snd_buf = calloc(1, conn->snd_buf_size);
+	if (conn->snd_buf == NULL) {
 		free(conn);
 		return NULL;
 	}
@@ -170,6 +180,33 @@ tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
 	}
 
 	return NULL;
+}
+
+/** Determine if SYN has been received.
+ *
+ * @param conn	Connection
+ * @return	@c true if SYN has been received, @c false otherwise.
+ */
+bool tcp_conn_got_syn(tcp_conn_t *conn)
+{
+	switch (conn->cstate) {
+	case st_listen:
+	case st_syn_sent:
+		return false;
+	case st_syn_received:
+	case st_established:
+	case st_fin_wait_1:
+	case st_fin_wait_2:
+	case st_close_wait:
+	case st_closing:
+	case st_last_ack:
+	case st_time_wait:
+		return true;
+	case st_closed:
+		assert(false);
+	}
+
+	assert(false);
 }
 
 /** Segment arrived in Listen state.
@@ -272,6 +309,17 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	}
 
 	log_msg(LVL_DEBUG, "Sent SYN, got SYN.");
+
+	/*
+	 * Surprisingly the spec does not deal with initial window setting.
+	 * Set SND.WND = SEG.WND and set SND.WL1 so that next segment
+	 * will always be accepted as new window setting.
+	 */
+	log_msg(LVL_DEBUG, "SND.WND := %" PRIu32 ", SND.WL1 := %" PRIu32 ", "
+	    "SND.WL2 = %" PRIu32, seg->wnd, seg->seq, seg->seq);
+	conn->snd_wnd = seg->wnd;
+	conn->snd_wl1 = seg->seq;
+	conn->snd_wl2 = seg->seq;
 
 	if (seq_no_syn_acked(conn)) {
 		log_msg(LVL_DEBUG, " syn acked -> Established");
@@ -617,6 +665,8 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* Copy data to receive buffer */
 	tcp_segment_text_copy(seg, conn->rcv_buf, xfer_size);
 
+	log_msg(LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
+
 	/* Advance RCV.NXT */
 	conn->rcv_nxt += xfer_size;
 
@@ -763,7 +813,7 @@ void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 /** Compute flipped socket pair for response.
  *
- * Flipped socket pair has local and foreign sockes exchanged.
+ * Flipped socket pair has local and foreign sockets exchanged.
  *
  * @param sp		Socket pair
  * @param fsp		Place to store flipped socket pair

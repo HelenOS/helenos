@@ -35,9 +35,12 @@
  */
 
 #include <io/log.h>
+#include <macros.h>
+#include <mem.h>
 #include "conn.h"
 #include "state.h"
 #include "tcp_type.h"
+#include "tqueue.h"
 
 /*
  * User calls
@@ -77,7 +80,26 @@ void tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
 /** SEND user call */
 void tcp_uc_send(tcp_conn_t *conn, void *data, size_t size, xflags_t flags)
 {
+	size_t buf_free;
+	size_t xfer_size;
+
 	log_msg(LVL_DEBUG, "tcp_uc_send()");
+
+	while (size > 0) {
+		buf_free = conn->snd_buf_size - conn->snd_buf_used;
+		while (buf_free == 0)
+			tcp_tqueue_new_data(conn);
+
+		xfer_size = min(size, buf_free);
+
+		/* Copy data to buffer */
+		memcpy(conn->snd_buf + conn->snd_buf_used, data, xfer_size);
+		data += xfer_size;
+		conn->snd_buf_used += xfer_size;
+		size -= xfer_size;
+	}
+
+	tcp_tqueue_new_data(conn);
 }
 
 /** RECEIVE user call */
