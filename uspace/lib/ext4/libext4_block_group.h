@@ -39,24 +39,24 @@
  * Structure of a blocks group descriptor
  */
 typedef struct ext4_block_group {
-	uint32_t bg_block_bitmap_lo; // Blocks bitmap block
-	uint32_t bg_inode_bitmap_lo; // Inodes bitmap block
-	uint32_t bg_inode_table_lo; // Inodes table block
-	uint16_t bg_free_blocks_count_lo; // Free blocks count
-	uint16_t bg_free_inodes_count_lo; // Free inodes count
-	uint16_t bg_used_dirs_count_lo; // Directories count
-	uint16_t bg_flags; // EXT4_BG_flags (INODE_UNINIT, etc)
-	uint32_t bg_reserved[2]; // Likely block/inode bitmap checksum
-	uint16_t bg_itable_unused_lo; // Unused inodes count
-	uint16_t bg_checksum; // crc16(sb_uuid+group+desc)
-	uint32_t bg_block_bitmap_hi; // Blocks bitmap block MSB
-	uint32_t bg_inode_bitmap_hi; // Inodes bitmap block MSB
-	uint32_t bg_inode_table_hi; // Inodes table block MSB
-	uint16_t bg_free_blocks_count_hi; // Free blocks count MSB
-	uint16_t bg_free_inodes_count_hi; // Free inodes count MSB
-	uint16_t bg_used_dirs_count_hi; // Directories count MSB
-	uint16_t bg_itable_unused_hi;  // Unused inodes count MSB
-	uint32_t bg_reserved2[3]; // Padding
+	uint32_t block_bitmap_lo; // Blocks bitmap block
+	uint32_t inode_bitmap_lo; // Inodes bitmap block
+	uint32_t inode_table_lo; // Inodes table block
+	uint16_t free_blocks_count_lo; // Free blocks count
+	uint16_t free_inodes_count_lo; // Free inodes count
+	uint16_t used_dirs_count_lo; // Directories count
+	uint16_t flags; // EXT4_BG_flags (INODE_UNINIT, etc)
+	uint32_t reserved[2]; // Likely block/inode bitmap checksum
+	uint16_t itable_unused_lo; // Unused inodes count
+	uint16_t checksum; // crc16(sb_uuid+group+desc)
+	uint32_t block_bitmap_hi; // Blocks bitmap block MSB
+	uint32_t inode_bitmap_hi; // Inodes bitmap block MSB
+	uint32_t inode_table_hi; // Inodes table block MSB
+	uint16_t free_blocks_count_hi; // Free blocks count MSB
+	uint16_t free_inodes_count_hi; // Free inodes count MSB
+	uint16_t used_dirs_count_hi; // Directories count MSB
+	uint16_t itable_unused_hi;  // Unused inodes count MSB
+	uint32_t reserved2[3]; // Padding
 } ext4_group_desc_t;
 
 #endif

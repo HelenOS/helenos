@@ -40,11 +40,13 @@
 #include <libext4.h>
 #include <libfs.h>
 #include <malloc.h>
+#include <stdio.h>
 #include <ipc/loc.h>
 #include "ext4fs.h"
 #include "../../vfs/vfs.h"
 
 #define EXT4FS_NODE(node)	((node) ? (ext4fs_node_t *) (node)->data : NULL)
+#define EXT4FS_DBG(format, ...) {if (true) printf("ext4fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
 
 typedef struct ext4fs_instance {
 	link_t link;
@@ -66,7 +68,7 @@ typedef struct ext4fs_node {
  */
 static int ext4fs_instance_get(service_id_t, ext4fs_instance_t **);
 static int ext4fs_node_get_core(fs_node_t **, ext4fs_instance_t *, fs_index_t);
-
+static int ext4fs_node_put_core(ext4fs_node_t *);
 
 /*
  * Forward declarations of EXT4 libfs operations.
@@ -119,6 +121,9 @@ int ext4fs_global_fini(void)
  * EXT4 libfs operations.
  */
 
+/**
+ * TODO doxy
+ */
 int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 {
 	ext4fs_instance_t *tmp;
@@ -144,26 +149,53 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 	return EINVAL;
 }
 
+/**
+ * TODO doxy
+ */
 int ext4fs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return ext4fs_node_get(rfn, service_id, EXT4_INODE_ROOT_INDEX);
 }
 
+/**
+ * TODO doxy
+ */
 int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	// TODO
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 int ext4fs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
-	// TODO
-	return 0;
+	ext4fs_instance_t *inst = NULL;
+	int rc;
+
+	rc = ext4fs_instance_get(service_id, &inst);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return ext4fs_node_get_core(rfn, inst, index);
 }
 
+/**
+ * TODO doxy
+ */
 int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		fs_index_t index)
 {
+	// TODO
+	return EOK;
+}
+
+/**
+ * TODO doxy
+ */
+int ext4fs_node_put_core(ext4fs_node_t *enode) {
 	// TODO
 	return EOK;
 }
@@ -179,7 +211,24 @@ int ext4fs_node_open(fs_node_t *fn)
 
 int ext4fs_node_put(fs_node_t *fn)
 {
-	// TODO
+	EXT4FS_DBG("");
+	int rc;
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+
+	fibril_mutex_lock(&open_nodes_lock);
+
+	assert(enode->references > 0);
+	enode->references--;
+	if (enode->references == 0) {
+		rc = ext4fs_node_put_core(enode);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&open_nodes_lock);
+			return rc;
+		}
+	}
+
+	fibril_mutex_unlock(&open_nodes_lock);
+
 	return EOK;
 }
 
@@ -277,9 +326,14 @@ libfs_ops_t ext4fs_libfs_ops = {
  * VFS operations.
  */
 
+/**
+ * TODO doxy
+ */
 static int ext4fs_mounted(service_id_t service_id, const char *opts,
    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
+
+	EXT4FS_DBG("Mounting...");
 
 	int rc;
 	ext4_filesystem_t *fs;
@@ -299,13 +353,17 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 		return ENOMEM;
 	}
 
-	/* Initialize the filesystem  */
+	EXT4FS_DBG("Basic structures allocated");
+
+	/* Initialize the filesystem */
 	rc = ext4_filesystem_init(fs, service_id);
 	if (rc != EOK) {
 		free(fs);
 		free(inst);
 		return rc;
 	}
+
+	EXT4FS_DBG("initialized");
 
 	/* Do some sanity checking */
 	rc = ext4_filesystem_check_sanity(fs);
@@ -316,8 +374,10 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 		return rc;
 	}
 
+	EXT4FS_DBG("Checked and clean");
+
 	/* Check flags */
-	rc = ext4_filesystem_check_flags(fs, &read_only);
+	rc = ext4_filesystem_check_features(fs, &read_only);
 	if (rc != EOK) {
 		ext4_filesystem_fini(fs);
 		free(fs);
@@ -325,15 +385,19 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 		return rc;
 	}
 
+	EXT4FS_DBG("Features checked");
+
 	/* Initialize instance */
 	link_initialize(&inst->link);
 	inst->service_id = service_id;
 	inst->filesystem = fs;
 	inst->open_nodes_count = 0;
 
+	EXT4FS_DBG("Instance initialized");
+
 	/* Read root node */
 	fs_node_t *root_node;
-	rc = ext4fs_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
+	rc = ext4fs_root_get(&root_node, inst->service_id);
 	if (rc != EOK) {
 		ext4_filesystem_fini(fs);
 		free(fs);
@@ -342,20 +406,31 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	}
 	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
 
+	EXT4FS_DBG("Root node found");
+
 	/* Add instance to the list */
 	fibril_mutex_lock(&instance_list_mutex);
 	list_append(&inst->link, &instance_list);
 	fibril_mutex_unlock(&instance_list_mutex);
 
+	EXT4FS_DBG("Instance added");
+
 	*index = EXT4_INODE_ROOT_INDEX;
 	*size = 0;
 	*lnkcnt = ext4_inode_get_usage_count(enode->inode_ref->inode);
 
+	EXT4FS_DBG("Return values set");
+
 	ext4fs_node_put(root_node);
+
+	EXT4FS_DBG("Mounting finished");
 
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 static int ext4fs_unmounted(service_id_t service_id)
 {
 
@@ -387,6 +462,9 @@ static int ext4fs_unmounted(service_id_t service_id)
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 static int
 ext4fs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
@@ -395,6 +473,9 @@ ext4fs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return 0;
 }
 
+/**
+ * TODO doxy
+ */
 static int
 ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
@@ -403,6 +484,9 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return ENOTSUP;
 }
 
+/**
+ * TODO doxy
+ */
 static int
 ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
@@ -410,18 +494,27 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 	return ENOTSUP;
 }
 
+/**
+ * TODO doxy
+ */
 static int ext4fs_close(service_id_t service_id, fs_index_t index)
 {
 	// TODO
 	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
 static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 {
 	//TODO
 	return ENOTSUP;
 }
 
+/**
+ * TODO doxy
+ */
 static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 {
 	// TODO

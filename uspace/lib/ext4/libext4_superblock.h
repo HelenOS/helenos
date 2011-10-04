@@ -40,29 +40,29 @@
  * Structure of the super block
  */
 typedef struct ext4_superblock {
-	uint32_t s_inodes_count; // Inodes count
+	uint32_t inodes_count; // Inodes count
 	uint32_t s_blocks_count_lo; // Blocks count
 	uint32_t s_r_blocks_count_lo; // Reserved blocks count
-	uint32_t s_free_blocks_count_lo; // Free blocks count
-	uint32_t s_free_inodes_count; // Free inodes count
-	uint32_t s_first_data_block; // First Data Block
-	uint32_t s_log_block_size; // Block size
+	uint32_t free_blocks_count_lo; // Free blocks count
+	uint32_t free_inodes_count; // Free inodes count
+	uint32_t first_data_block; // First Data Block
+	uint32_t log_block_size; // Block size
 	uint32_t s_obso_log_frag_size; // Obsoleted fragment size
 	uint32_t s_blocks_per_group; // Number of blocks per group
 	uint32_t s_obso_frags_per_group; // Obsoleted fragments per group
 	uint32_t s_inodes_per_group; // Number of inodes per group
 	uint32_t s_mtime; // Mount time
 	uint32_t s_wtime; // Write time
-	uint16_t s_mnt_count; // Mount count
-	uint16_t s_max_mnt_count; // Maximal mount count
-	uint16_t s_magic; // Magic signature
-	uint16_t s_state; // File system state
-	uint16_t s_errors; // Behaviour when detecting errors
-	uint16_t s_minor_rev_level; // Minor revision level
-	uint32_t s_lastcheck; // Time of last check
-	uint32_t s_checkinterval; // Maximum time between checks
-	uint32_t s_creator_os; // Creator OS
-	uint32_t s_rev_level; // Revision level
+	uint16_t mount_count; // Mount count
+	uint16_t max_mount_count; // Maximal mount count
+	uint16_t magic; // Magic signature
+	uint16_t state; // File system state
+	uint16_t errors; // Behaviour when detecting errors
+	uint16_t minor_rev_level; // Minor revision level
+	uint32_t last_check; // Time of last check
+	uint32_t checkinterval; // Maximum time between checks
+	uint32_t creator_os; // Creator OS
+	uint32_t rev_level; // Revision level
 	uint16_t s_def_resuid; // Default uid for reserved blocks
 	uint16_t s_def_resgid; // Default gid for reserved blocks
 
@@ -70,9 +70,9 @@ typedef struct ext4_superblock {
 	uint32_t s_first_ino; // First non-reserved inode
 	uint16_t s_inode_size; // Size of inode structure
 	uint16_t s_block_group_nr; // Block group number of this superblock
-	uint32_t s_feature_compat; // Compatible feature set
-	uint32_t s_feature_incompat; // Incompatible feature set
-	uint32_t s_feature_ro_compat; // Readonly-compatible feature set
+	uint32_t features_compatible; // Compatible feature set
+	uint32_t features_incompatible; // Incompatible feature set
+	uint32_t features_read_only; // Readonly-compatible feature set
 	uint8_t s_uuid[16]; // 128-bit uuid for volume
 	char s_volume_name[16]; // Volume name
 	char s_last_mounted[64]; // Directory where last mounted
@@ -121,8 +121,6 @@ typedef struct ext4_superblock {
 	uint32_t s_snapshot_id; // Sequential ID of active snapshot
 	uint64_t s_snapshot_r_blocks_count; /* reserved blocks for active snapshot's future use */
 	uint32_t s_snapshot_list; // inode number of the head of the on-disk snapshot list
-
-	//#define EXT4_S_ERR_START offsetof(struct ext4_super_block, s_error_count)
 	uint32_t s_error_count; // number of fs errors
 	uint32_t s_first_error_time; // First time an error happened
 	uint32_t s_first_error_ino; // Inode involved in first error
@@ -134,19 +132,23 @@ typedef struct ext4_superblock {
 	uint32_t s_last_error_line; // Line number where error happened
 	uint64_t s_last_error_block;     /* block involved of last error */
 	uint8_t s_last_error_func[32];  /* function where the error happened */
-	//#define EXT4_S_ERR_END offsetof(struct ext4_super_block, s_mount_opts)
 	uint8_t s_mount_opts[64];
 	uint32_t s_reserved[112]; // Padding to the end of the block
 
 } __attribute__((packed)) ext4_superblock_t;
 
-// TODO constants
 #define EXT4_SUPERBLOCK_MAGIC		0xEF53
 #define EXT4_SUPERBLOCK_SIZE		1024
 #define EXT4_SUPERBLOCK_OFFSET		1024
 
+extern uint16_t ext4_superblock_get_magic(ext4_superblock_t *);
+extern uint32_t ext4_superblock_get_first_block(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_block_size_log2(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_block_size(ext4_superblock_t *);
+extern uint32_t	ext4_superblock_get_rev_level(ext4_superblock_t *);
+extern uint32_t	ext4_superblock_get_features_compatible(ext4_superblock_t *);
+extern uint32_t	ext4_superblock_get_features_incompatible(ext4_superblock_t *);
+extern uint32_t	ext4_superblock_get_features_read_only(ext4_superblock_t *);
 
 extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
 extern int ext4_superblock_check_sanity(ext4_superblock_t *);

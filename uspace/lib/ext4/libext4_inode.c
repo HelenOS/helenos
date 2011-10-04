@@ -35,6 +35,7 @@
  * @brief	Ext4 inode operations.
  */
 
+#include <byteorder.h>
 #include "libext4_inode.h"
 
 // TODO check return type
@@ -43,8 +44,7 @@
  */
 uint16_t ext4_inode_get_usage_count(ext4_inode_t *inode)
 {
-	// TODO check
-	return 0;
+	return uint16_t_le2host(inode->links_count);
 }
 
 

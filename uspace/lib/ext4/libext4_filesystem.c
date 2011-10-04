@@ -51,35 +51,36 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 
 	fs->device = service_id;
 
-	// TODO block size !!!
+	// TODO what does constant 2048 mean?
 	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 2048);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	/* Read superblock from device */
 	rc = ext4_superblock_read_direct(fs->device, &temp_superblock);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
 	}
 
+	/* Read block size from superblock and check */
 	block_size = ext4_superblock_get_block_size(temp_superblock);
-
 	if (block_size > EXT4_MAX_BLOCK_SIZE) {
 		block_fini(fs->device);
 		return ENOTSUP;
 	}
 
+	/* Initialize block caching */
 	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
 	}
 
+	/* Return loaded superblock */
 	fs->superblock = temp_superblock;
 
-
-	// TODO
 	return EOK;
 }
 
@@ -101,9 +102,29 @@ int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 /**
  * TODO doxy
  */
-int ext4_filesystem_check_flags(ext4_filesystem_t *fs, bool *o_read_only)
+int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 {
-	// TODO
+	/* Feature flags are present in rev 1 and later */
+	if (ext4_superblock_get_rev_level(fs->superblock) == 0) {
+		*o_read_only = false;
+		return EOK;
+	}
+
+	uint32_t incompatible_features;
+	incompatible_features = ext4_superblock_get_features_incompatible(fs->superblock);
+	incompatible_features &= ~EXT4_FEATURE_INCOMPAT_SUPP;
+	if (incompatible_features > 0) {
+		*o_read_only = true;
+		return ENOTSUP;
+	}
+
+	uint32_t compatible_read_only;
+	compatible_read_only = ext4_superblock_get_features_read_only(fs->superblock);
+	compatible_read_only &= ~EXT4_FEATURE_RO_COMPAT_SUPP;
+	if (compatible_read_only > 0) {
+		*o_read_only = true;
+	}
+
 	return EOK;
 }
 
