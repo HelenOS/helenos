@@ -50,7 +50,7 @@ typedef struct ext4_superblock {
 	uint32_t s_obso_log_frag_size; // Obsoleted fragment size
 	uint32_t s_blocks_per_group; // Number of blocks per group
 	uint32_t s_obso_frags_per_group; // Obsoleted fragments per group
-	uint32_t s_inodes_per_group; // Number of inodes per group
+	uint32_t inodes_per_group; // Number of inodes per group
 	uint32_t s_mtime; // Mount time
 	uint32_t s_wtime; // Write time
 	uint16_t mount_count; // Mount count
@@ -68,7 +68,7 @@ typedef struct ext4_superblock {
 
 	// Fields for EXT4_DYNAMIC_REV superblocks only.
 	uint32_t s_first_ino; // First non-reserved inode
-	uint16_t s_inode_size; // Size of inode structure
+	uint16_t inode_size; // Size of inode structure
 	uint16_t s_block_group_nr; // Block group number of this superblock
 	uint32_t features_compatible; // Compatible feature set
 	uint32_t features_incompatible; // Incompatible feature set
@@ -146,6 +146,8 @@ extern uint32_t ext4_superblock_get_first_block(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_block_size_log2(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_block_size(ext4_superblock_t *);
 extern uint32_t	ext4_superblock_get_rev_level(ext4_superblock_t *);
+extern uint16_t	ext4_superblock_get_inode_size(ext4_superblock_t *);
+extern uint32_t	ext4_superblock_get_inodes_per_group(ext4_superblock_t *);
 extern uint32_t	ext4_superblock_get_features_compatible(ext4_superblock_t *);
 extern uint32_t	ext4_superblock_get_features_incompatible(ext4_superblock_t *);
 extern uint32_t	ext4_superblock_get_features_read_only(ext4_superblock_t *);

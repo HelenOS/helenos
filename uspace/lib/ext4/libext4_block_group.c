@@ -35,8 +35,14 @@
  * @brief	TODO
  */
 
-#include "libext4_block_group.h"
+#include <byteorder.h>
+#include "libext4.h"
 
+uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *bg)
+{
+	return ((uint64_t)uint32_t_le2host(bg->inode_table_first_hi) << 32) |
+			uint32_t_le2host(bg->inode_table_first_lo);
+}
 
 /**
  * @}

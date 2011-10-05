@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <libblock.h>
 #include <malloc.h>
-#include "libext4_superblock.h"
+#include "libext4.h"
 
 /**
  * TODO doxy
@@ -79,6 +79,25 @@ uint32_t ext4_superblock_get_block_size(ext4_superblock_t *sb)
 uint32_t ext4_superblock_get_rev_level(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->rev_level);
+}
+
+/**
+ * TODO doxy
+ */
+uint16_t ext4_superblock_get_inode_size(ext4_superblock_t *sb)
+{
+	if (ext4_superblock_get_rev_level(sb) == 0) {
+		return EXT4_REV0_INODE_SIZE;
+	}
+	return uint16_t_le2host(sb->inode_size);
+}
+
+/**
+ * TODO doxy
+ */
+uint32_t ext4_superblock_get_inodes_per_group(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->inodes_per_group);
 }
 
 /**

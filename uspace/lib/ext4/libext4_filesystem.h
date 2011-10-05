@@ -34,6 +34,8 @@
 #define LIBEXT4_LIBEXT4_FILESYSTEM_H_
 
 #include <libblock.h>
+#include "libext4_block_group.h"
+#include "libext4_inode.h"
 #include "libext4_superblock.h"
 
 typedef struct ext4_filesystem {
@@ -41,8 +43,8 @@ typedef struct ext4_filesystem {
 	ext4_superblock_t *	superblock;
 } ext4_filesystem_t;
 
-#define EXT4_MAX_BLOCK_SIZE 65536 //64 KiB
-
+#define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
+#define EXT4_REV0_INODE_SIZE	128
 
 /* Compatible features */
 // TODO features comments !!!
@@ -98,9 +100,14 @@ typedef struct ext4_filesystem {
 
 
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
+extern void ext4_filesystem_fini(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
-extern void ext4_filesystem_fini(ext4_filesystem_t *fs);
+extern int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *, uint32_t,
+    ext4_block_group_ref_t **);
+extern int ext4_filesystem_get_inode_ref(ext4_filesystem_t *, uint32_t,
+		ext4_inode_ref_t **);
+
 
 #endif
 

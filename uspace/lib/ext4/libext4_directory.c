@@ -35,7 +35,7 @@
  * @brief	TODO
  */
 
-#include "libext4_directory.h"
+#include "libext4.h"
 
 
 /**

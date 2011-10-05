@@ -37,7 +37,7 @@
 
 #include <errno.h>
 #include <malloc.h>
-#include "libext4_filesystem.h"
+#include "libext4.h"
 
 /**
  * TODO doxy
@@ -87,6 +87,15 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 /**
  * TODO doxy
  */
+void ext4_filesystem_fini(ext4_filesystem_t *fs)
+{
+	free(fs->superblock);
+	block_fini(fs->device);
+}
+
+/**
+ * TODO doxy
+ */
 int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 {
 	int rc;
@@ -131,12 +140,109 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 /**
  * TODO doxy
  */
-void ext4_filesystem_fini(ext4_filesystem_t *fs)
+int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
+    ext4_block_group_ref_t **ref)
 {
-	free(fs->superblock);
-	block_fini(fs->device);
+	int rc;
+	aoff64_t block_id;
+	uint32_t descriptors_per_block;
+	size_t offset;
+	ext4_block_group_ref_t *newref;
+
+	newref = malloc(sizeof(ext4_block_group_ref_t));
+	if (newref == NULL) {
+		return ENOMEM;
+	}
+
+	descriptors_per_block = ext4_superblock_get_block_size(fs->superblock)
+	    / EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE;
+
+	/* Block group descriptor table starts at the next block after superblock */
+	block_id = ext4_superblock_get_first_block(fs->superblock) + 1;
+
+	/* Find the block containing the descriptor we are looking for */
+	block_id += bgid / descriptors_per_block;
+	offset = (bgid % descriptors_per_block) * EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE;
+
+	rc = block_get(&newref->block, fs->device, block_id, 0);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
+
+	newref->block_group = newref->block->data + offset;
+
+	*ref = newref;
+
+	return EOK;
 }
 
+/**
+ * TODO doxy
+ */
+int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
+    ext4_inode_ref_t **ref)
+{
+	int rc;
+	aoff64_t block_id;
+	uint32_t block_group;
+	uint32_t offset_in_group;
+	uint32_t byte_offset_in_group;
+	size_t offset_in_block;
+	uint32_t inodes_per_group;
+	uint32_t inode_table_start;
+	uint16_t inode_size;
+	uint32_t block_size;
+	ext4_block_group_ref_t *bg_ref;
+	ext4_inode_ref_t *newref;
+
+	newref = malloc(sizeof(ext4_inode_ref_t));
+	if (newref == NULL) {
+		return ENOMEM;
+	}
+
+	inodes_per_group = ext4_superblock_get_inodes_per_group(fs->superblock);
+
+	/* inode numbers are 1-based, but it is simpler to work with 0-based
+	 * when computing indices
+	 */
+	index -= 1;
+	block_group = index / inodes_per_group;
+	offset_in_group = index % inodes_per_group;
+
+	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
+
+	inode_table_start = ext4_block_group_get_inode_table_first_block(
+	    bg_ref->block_group);
+
+	inode_size = ext4_superblock_get_inode_size(fs->superblock);
+	block_size = ext4_superblock_get_block_size(fs->superblock);
+
+	byte_offset_in_group = offset_in_group * inode_size;
+
+	block_id = inode_table_start + (byte_offset_in_group / block_size);
+	offset_in_block = byte_offset_in_group % block_size;
+
+	rc = block_get(&newref->block, fs->device, block_id, 0);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
+
+	newref->inode = newref->block->data + offset_in_block;
+	/* we decremented index above, but need to store the original value
+	 * in the reference
+	 */
+	newref->index = index+1;
+
+	*ref = newref;
+
+	return EOK;
+}
 
 /**
  * @}

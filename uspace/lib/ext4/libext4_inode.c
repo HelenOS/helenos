@@ -36,7 +36,7 @@
  */
 
 #include <byteorder.h>
-#include "libext4_inode.h"
+#include "libext4.h"
 
 // TODO check return type
 /**
