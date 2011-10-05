@@ -38,10 +38,56 @@
 #include <byteorder.h>
 #include "libext4.h"
 
+uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *bg)
+{
+	return ((uint64_t)uint32_t_le2host(bg->block_bitmap_hi) << 32) |
+		uint32_t_le2host(bg->block_bitmap_lo);
+}
+
+uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *bg)
+{
+	return ((uint64_t)uint32_t_le2host(bg->inode_bitmap_hi) << 32) |
+		uint32_t_le2host(bg->inode_bitmap_lo);
+}
+
 uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *bg)
 {
-	return ((uint64_t)uint32_t_le2host(bg->inode_table_first_hi) << 32) |
-			uint32_t_le2host(bg->inode_table_first_lo);
+	return ((uint64_t)uint32_t_le2host(bg->inode_table_first_block_hi) << 32) |
+		uint32_t_le2host(bg->inode_table_first_block_lo);
+}
+
+uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *bg)
+{
+	return ((uint32_t)uint16_t_le2host(bg->free_blocks_count_hi) << 16) |
+		uint16_t_le2host(bg->free_blocks_count_lo);
+}
+
+uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *bg)
+{
+	return ((uint32_t)uint16_t_le2host(bg->free_inodes_count_hi) << 16) |
+		uint16_t_le2host(bg->free_inodes_count_lo);
+}
+
+uint32_t ext4_block_group_get_used_dirs_count(ext4_block_group_t *bg)
+{
+	return ((uint32_t)uint16_t_le2host(bg->used_dirs_count_hi) << 16) |
+		uint16_t_le2host(bg->used_dirs_count_lo);
+}
+
+uint16_t ext4_block_group_get_flags(ext4_block_group_t *bg)
+{
+	return uint16_t_le2host(bg->flags);
+}
+
+uint32_t ext4_block_group_get_itable_unused(ext4_block_group_t *bg)
+{
+	return ((uint32_t)uint16_t_le2host(bg->itable_unused_hi) << 16) |
+		uint16_t_le2host(bg->itable_unused_lo);
+}
+
+uint16_t ext4_block_group_get_checksum(ext4_block_group_t *bg)
+{
+	return uint16_t_le2host(bg->checksum);
 }
 
 /**

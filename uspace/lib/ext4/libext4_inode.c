@@ -38,15 +38,34 @@
 #include <byteorder.h>
 #include "libext4.h"
 
-// TODO check return type
-/**
- * TODO doxy
- */
-uint16_t ext4_inode_get_usage_count(ext4_inode_t *inode)
+/*
+uint32_t ext4_inode_get_mode(ext4_inode_t *inode)
+uint32_t ext4_inode_get_uid(ext4_inode_t *inode)
+*/
+
+uint64_t ext4_inode_get_size(ext4_inode_t *inode)
+{
+	return ((uint64_t)uint32_t_le2host(inode->size_hi)) << 32 |
+			((uint64_t)uint32_t_le2host(inode->size_lo));
+}
+
+/*
+extern uint32_t ext4_inode_get_access_time(ext4_inode_t *);
+extern uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *);
+extern uint32_t ext4_inode_get_modification_time(ext4_inode_t *);
+extern uint32_t ext4_inode_get_deletion_time(ext4_inode_t *);
+extern uint32_t ext4_inode_get_gid(ext4_inode_t *);
+*/
+
+uint16_t ext4_inode_get_links_count(ext4_inode_t *inode)
 {
 	return uint16_t_le2host(inode->links_count);
 }
 
+/*
+extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *);
+extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
+*/
 
 /**
  * @}

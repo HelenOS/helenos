@@ -158,7 +158,7 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	    / EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE;
 
 	/* Block group descriptor table starts at the next block after superblock */
-	block_id = ext4_superblock_get_first_block(fs->superblock) + 1;
+	block_id = ext4_superblock_get_first_data_block(fs->superblock) + 1;
 
 	/* Find the block containing the descriptor we are looking for */
 	block_id += bgid / descriptors_per_block;

@@ -41,49 +41,120 @@
 #include <malloc.h>
 #include "libext4.h"
 
-/**
- * TODO doxy
- */
+uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->inodes_count);
+}
+
+uint64_t ext4_superblock_get_blocks_count(ext4_superblock_t *sb)
+{
+	return ((uint64_t)uint32_t_le2host(sb->blocks_count_hi) << 32) |
+			uint32_t_le2host(sb->blocks_count_lo);
+}
+
+uint64_t ext4_superblock_get_reserved_blocks_count(ext4_superblock_t *sb)
+{
+	return ((uint64_t)uint32_t_le2host(sb->reserved_blocks_count_hi) << 32) |
+			uint32_t_le2host(sb->reserved_blocks_count_lo);
+}
+
+uint64_t ext4_superblock_get_free_blocks_count(ext4_superblock_t *sb)
+{
+	return ((uint64_t)uint32_t_le2host(sb->free_blocks_count_hi) << 32) |
+			uint32_t_le2host(sb->free_blocks_count_lo);
+}
+
+uint32_t ext4_superblock_get_free_inodes_count(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->free_inodes_count);
+}
+
+uint32_t ext4_superblock_get_first_data_block(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->first_data_block);
+}
+
+uint32_t ext4_superblock_get_log_block_size(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->log_block_size);
+}
+
+uint32_t ext4_superblock_get_block_size(ext4_superblock_t *sb)
+{
+	return 1024 << ext4_superblock_get_log_block_size(sb);
+}
+
+
+uint32_t ext4_superblock_get_blocks_per_group(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->blocks_per_group);
+}
+
+uint32_t ext4_superblock_get_inodes_per_group(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->inodes_per_group);
+}
+
+uint32_t ext4_superblock_get_mount_time(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->mount_time);
+}
+
+uint32_t ext4_superblock_get_write_time(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->write_time);
+}
+
+uint16_t ext4_superblock_get_mount_count(ext4_superblock_t *sb)
+{
+	return uint16_t_le2host(sb->mount_count);
+}
+
+uint16_t ext4_superblock_get_max_mount_count(ext4_superblock_t *sb)
+{
+	return uint16_t_le2host(sb->max_mount_count);
+}
+
 uint16_t ext4_superblock_get_magic(ext4_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->magic);
 }
 
-/**
- * TODO doxy
- */
-uint32_t ext4_superblock_get_first_block(ext4_superblock_t *sb)
+uint16_t ext4_superblock_get_state(ext4_superblock_t *sb)
 {
-	return uint32_t_le2host(sb->first_data_block);
+	return uint16_t_le2host(sb->state);
 }
 
-/**
- * TODO doxy
- */
-uint32_t ext4_superblock_get_block_size_log2(ext4_superblock_t *sb)
+uint16_t ext4_superblock_get_errors(ext4_superblock_t *sb)
 {
-	return uint32_t_le2host(sb->log_block_size);
+	return uint16_t_le2host(sb->errors);
 }
 
-/**
- * TODO doxy
- */
-uint32_t ext4_superblock_get_block_size(ext4_superblock_t *sb)
+
+uint16_t ext4_superblock_get_minor_rev_level(ext4_superblock_t *sb)
 {
-	return 1024 << ext4_superblock_get_block_size_log2(sb);
+	return uint16_t_le2host(sb->minor_rev_level);
 }
 
-/**
- * TODO doxy
- */
+uint32_t ext4_superblock_get_last_check_time(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->last_check_time);
+}
+
+uint32_t ext4_superblock_get_check_interval(ext4_superblock_t *sb){
+	return uint32_t_le2host(sb->check_interval);
+}
+
+uint32_t ext4_superblock_get_creator_os(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->creator_os);
+}
+
 uint32_t ext4_superblock_get_rev_level(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->rev_level);
 }
 
-/**
- * TODO doxy
- */
 uint16_t ext4_superblock_get_inode_size(ext4_superblock_t *sb)
 {
 	if (ext4_superblock_get_rev_level(sb) == 0) {
@@ -92,42 +163,31 @@ uint16_t ext4_superblock_get_inode_size(ext4_superblock_t *sb)
 	return uint16_t_le2host(sb->inode_size);
 }
 
-/**
- * TODO doxy
- */
-uint32_t ext4_superblock_get_inodes_per_group(ext4_superblock_t *sb)
+uint16_t ext4_superblock_get_block_group_number(ext4_superblock_t *sb)
 {
-	return uint32_t_le2host(sb->inodes_per_group);
+	return uint16_t_le2host(sb->block_group_number);
 }
 
-/**
- * TODO doxy
- */
 uint32_t ext4_superblock_get_features_compatible(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_compatible);
 }
 
-/**
- * TODO doxy
- */
 uint32_t ext4_superblock_get_features_incompatible(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_incompatible);
 }
 
-/**
- * TODO doxy
- */
 uint32_t ext4_superblock_get_features_read_only(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_read_only);
 }
 
 
-/**
- * TODO doxy
+/*
+ * More complex superblock functions
  */
+
 int ext4_superblock_read_direct(service_id_t service_id,
     ext4_superblock_t **superblock)
 {
@@ -152,9 +212,6 @@ int ext4_superblock_read_direct(service_id_t service_id,
 	return EOK;
 }
 
-/**
- * TODO doxy
- */
 int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 {
 	if (ext4_superblock_get_magic(sb) != EXT4_SUPERBLOCK_MAGIC) {

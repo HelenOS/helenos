@@ -42,7 +42,7 @@
 typedef struct ext4_block_group {
 	uint32_t block_bitmap_lo; // Blocks bitmap block
 	uint32_t inode_bitmap_lo; // Inodes bitmap block
-	uint32_t inode_table_first_lo; // Inodes table block
+	uint32_t inode_table_first_block_lo; // Inodes table block
 	uint16_t free_blocks_count_lo; // Free blocks count
 	uint16_t free_inodes_count_lo; // Free inodes count
 	uint16_t used_dirs_count_lo; // Directories count
@@ -52,7 +52,7 @@ typedef struct ext4_block_group {
 	uint16_t checksum; // crc16(sb_uuid+group+desc)
 	uint32_t block_bitmap_hi; // Blocks bitmap block MSB
 	uint32_t inode_bitmap_hi; // Inodes bitmap block MSB
-	uint32_t inode_table_first_hi; // Inodes table block MSB
+	uint32_t inode_table_first_block_hi; // Inodes table block MSB
 	uint16_t free_blocks_count_hi; // Free blocks count MSB
 	uint16_t free_inodes_count_hi; // Free inodes count MSB
 	uint16_t used_dirs_count_hi; // Directories count MSB
@@ -68,7 +68,15 @@ typedef struct ext4_block_group_ref {
 // TODO check value
 #define EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE 32
 
+extern uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *);
+extern uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *);
 extern uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *);
+extern uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *);
+extern uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *);
+extern uint32_t ext4_block_group_get_used_dirs_count(ext4_block_group_t *);
+extern uint16_t ext4_block_group_get_flags(ext4_block_group_t *);
+extern uint32_t ext4_block_group_get_itable_unused(ext4_block_group_t *);
+extern uint16_t ext4_block_group_get_checksum(ext4_block_group_t *);
 
 #endif
 

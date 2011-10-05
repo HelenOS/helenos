@@ -500,7 +500,7 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 
 	*index = EXT4_INODE_ROOT_INDEX;
 	*size = 0;
-	*lnkcnt = ext4_inode_get_usage_count(enode->inode_ref->inode);
+	*lnkcnt = ext4_inode_get_links_count(enode->inode_ref->inode);
 
 	ext4fs_node_put(root_node);
 
