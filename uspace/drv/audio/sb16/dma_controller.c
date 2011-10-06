@@ -239,7 +239,7 @@ static int dma_setup_channel_8bit(dma_controller_t *controller,
 static int dma_setup_channel_16bit(dma_controller_t *controller,
     unsigned channel, uintptr_t pa, size_t size)
 {
-	if (channel == 4 || channel > 7)
+	if (channel <= 4 || channel > 7)
 		return ENOTSUP;
 	assert(controller);
 	/* Mask DMA request */
@@ -285,9 +285,11 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 	static dma_controller_t *controller = NULL;
 	if (!controller)
 		controller = dma_controller_init();
+
 	if (!controller)
 		return EIO;
-	if (channel <= 4)
+
+	if (channel < 4)
 		return dma_setup_channel_8bit(controller, channel, pa, size);
 	else
 		return dma_setup_channel_16bit(controller, channel, pa, size);
