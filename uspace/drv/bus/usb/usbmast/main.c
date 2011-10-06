@@ -96,8 +96,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	mdev = ddf_dev_data_alloc(dev->ddf_dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
-		rc = ENOMEM;
-		goto error;
+		return ENOMEM;
 	}
 
 	mdev->ddf_dev = dev->ddf_dev;
@@ -124,8 +123,6 @@ static int usbmast_add_device(usb_device_t *dev)
 	return EOK;
 error:
 	/* XXX Destroy functions */
-	if (mdev != NULL)
-		free(mdev);
 	return rc;
 }
 
