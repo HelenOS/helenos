@@ -35,12 +35,15 @@
 
 #include <libblock.h>
 #include <sys/types.h>
+#include "libext4_superblock.h"
 
-#define EXT4_DIRECT_BLOCK_COUNT		12
-#define EXT4_INDIRECT_BLOCK 		EXT4_DIRECT_BLOCK_COUNT
-#define EXT4_DOUBLE_INDIRECT_BLOCK	(EXT4_INDIRECT_BLOCK + 1)
-#define EXT4_TRIPPLE_INDIRECT_BLOCK	(EXT4_DOUBLE_INDIRECT_BLOCK + 1)
-#define EXT4_INODE_BLOCKS			(EXT4_TRIPPLE_INDIRECT_BLOCK + 1)
+
+#define EXT4_INODE_DIRECT_BLOCK_COUNT		12
+#define EXT4_INODE_INDIRECT_BLOCK 			EXT4_INODE_DIRECT_BLOCK_COUNT
+#define EXT4_INODE_DOUBLE_INDIRECT_BLOCK	(EXT4_INODE_INDIRECT_BLOCK + 1)
+#define EXT4_INODE_TRIPPLE_INDIRECT_BLOCK	(EXT4_INODE_DOUBLE_INDIRECT_BLOCK + 1)
+#define EXT4_INODE_BLOCKS					(EXT4_INODE_TRIPPLE_INDIRECT_BLOCK + 1)
+#define EXT4_INODE_INDIRECT_BLOCK_COUNT		(EXT4_INODE_BLOCKS - EXT4_INODE_DIRECT_BLOCK_COUNT)
 
 /*
  * Structure of an inode on the disk
@@ -63,7 +66,28 @@ typedef struct ext4_inode {
     uint32_t file_acl_lo; // File ACL
     uint32_t size_hi;
     uint32_t obso_faddr; // Obsoleted fragment address
-    uint32_t unused_osd2[3]; // OS dependent - not used in HelenOS
+    union {
+    	struct {
+    		uint16_t blocks_high; /* were l_i_reserved1 */
+    		uint16_t file_acl_high;
+    		uint16_t uid_high;   /* these 2 fields */
+    		uint16_t gid_high;   /* were reserved2[0] */
+    		uint32_t reserved2;
+    	} linux2;
+    	struct {
+    		uint16_t reserved1;  /* Obsoleted fragment number/size which are removed in ext4 */
+    		uint16_t mode_high;
+    		uint16_t uid_high;
+    		uint16_t gid_high;
+    		uint32_t author;
+    	} hurd2;
+    	struct {
+    		uint16_t reserved1;  /* Obsoleted fragment number/size which are removed in ext4 */
+    		uint16_t file_acl_high;
+    		uint32_t reserved2[2];
+    	} masix2;
+    } __attribute__ ((packed)) osd2;
+
     uint16_t extra_isize;
     uint16_t pad1;
     uint32_t ctime_extra; // Extra change time (nsec << 2 | epoch)
@@ -74,6 +98,14 @@ typedef struct ext4_inode {
     uint32_t version_hi;   // High 32 bits for 64-bit version
 } __attribute__ ((packed)) ext4_inode_t;
 
+#define EXT4_INODE_MODE_FIFO		0x1000
+#define EXT4_INODE_MODE_CHARDEV		0x2000
+#define EXT4_INODE_MODE_DIRECTORY	0x4000
+#define EXT4_INODE_MODE_BLOCKDEV	0x6000
+#define EXT4_INODE_MODE_FILE		0x8000
+#define EXT4_INODE_MODE_SOFTLINK	0xA000
+#define EXT4_INODE_MODE_SOCKET		0xC000
+#define EXT4_INODE_MODE_TYPE_MASK	0xF000
 
 #define EXT4_INODE_ROOT_INDEX	2
 
@@ -83,11 +115,13 @@ typedef struct ext4_inode_ref {
 	uint32_t index; // Index number of this inode
 } ext4_inode_ref_t;
 
+
+extern uint32_t ext4_inode_get_mode(ext4_superblock_t *, ext4_inode_t *);
+extern bool ext4_inode_is_type(ext4_superblock_t *, ext4_inode_t *, uint32_t);
 /*
-extern uint16_t ext4_inode_get_mode(ext4_inode_t *);
 extern uint32_t ext4_inode_get_uid(ext4_inode_t *);
 */
-extern uint64_t ext4_inode_get_size(ext4_inode_t *);
+extern uint64_t ext4_inode_get_size(ext4_superblock_t *, ext4_inode_t *);
 /*
 extern uint32_t ext4_inode_get_access_time(ext4_inode_t *);
 extern uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *);
@@ -100,6 +134,9 @@ extern uint16_t ext4_inode_get_links_count(ext4_inode_t *);
 extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *);
 extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 */
+
+uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint8_t);
+uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint8_t);
 
 /*
 uint32_t blocks[EXT4_INODE_BLOCKS]; // Pointers to blocks

@@ -38,15 +38,34 @@
 #include <byteorder.h>
 #include "libext4.h"
 
+uint32_t ext4_inode_get_mode(ext4_superblock_t *sb, ext4_inode_t *inode)
+{
+	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_HURD) {
+		return ((uint32_t)uint16_t_le2host(inode->osd2.hurd2.mode_high)) << 16 |
+		    ((uint32_t)uint16_t_le2host(inode->mode));
+	}
+	return uint16_t_le2host(inode->mode);
+}
+
+bool ext4_inode_is_type(ext4_superblock_t *sb, ext4_inode_t *inode, uint32_t type)
+{
+	uint32_t mode = ext4_inode_get_mode(sb, inode);
+	return (mode & EXT4_INODE_MODE_TYPE_MASK) == type;
+}
+
 /*
-uint32_t ext4_inode_get_mode(ext4_inode_t *inode)
 uint32_t ext4_inode_get_uid(ext4_inode_t *inode)
 */
 
-uint64_t ext4_inode_get_size(ext4_inode_t *inode)
+uint64_t ext4_inode_get_size(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
-	return ((uint64_t)uint32_t_le2host(inode->size_hi)) << 32 |
-			((uint64_t)uint32_t_le2host(inode->size_lo));
+	uint32_t major_rev = ext4_superblock_get_rev_level(sb);
+
+	if (major_rev > 0 && ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)) {
+		return ((uint64_t)uint32_t_le2host(inode->size_hi)) << 32 |
+			    ((uint64_t)uint32_t_le2host(inode->size_lo));
+		}
+	return uint32_t_le2host(inode->size_lo);
 }
 
 /*
@@ -66,6 +85,18 @@ uint16_t ext4_inode_get_links_count(ext4_inode_t *inode)
 extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *);
 extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 */
+
+uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint8_t idx)
+{
+	assert(idx < EXT4_INODE_DIRECT_BLOCK_COUNT);
+	return uint32_t_le2host(inode->blocks[idx]);
+}
+
+uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
+{
+	assert(idx < EXT4_INODE_INDIRECT_BLOCK_COUNT);
+	return uint32_t_le2host(inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK]);
+}
 
 /**
  * @}

@@ -39,6 +39,9 @@
 #include "libext4_inode.h"
 #include "libext4_superblock.h"
 
+#include <stdio.h>
+#define EXT4FS_DBG(format, ...) {if (true) printf("ext4fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
+
 #endif
 
 /**

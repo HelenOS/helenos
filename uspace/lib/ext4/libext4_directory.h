@@ -33,6 +33,42 @@
 #ifndef LIBEXT4_LIBEXT4_DIRECTORY_H_
 #define LIBEXT4_LIBEXT4_DIRECTORY_H_
 
+#include "libext4_filesystem.h"
+#include "libext4_inode.h"
+
+/**
+ * Linked list directory entry structure
+ */
+typedef struct ext4_directory_entry_ll {
+	uint32_t inode; // Inode for the entry
+	uint16_t entry_length; // Distance to the next directory entry
+	uint8_t name_length; // Lower 8 bits of name length
+	union {
+		uint8_t name_length_high; // Higher 8 bits of name length
+		uint8_t inode_type; // Type of referenced inode (in rev >= 0.5)
+	} __attribute__ ((packed));
+	uint8_t name; // First byte of name, if present
+} __attribute__ ((packed)) ext4_directory_entry_ll_t;
+
+typedef struct ext4_directory_iterator {
+	ext4_filesystem_t *fs;
+	ext4_inode_ref_t *inode_ref;
+	block_t *current_block;
+	aoff64_t current_offset;
+	ext4_directory_entry_ll_t *current;
+} ext4_directory_iterator_t;
+
+extern uint32_t	ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *);
+extern uint16_t	ext4_directory_entry_ll_get_entry_length(
+    ext4_directory_entry_ll_t *);
+extern uint16_t	ext4_directory_entry_ll_get_name_length(
+    ext4_superblock_t *, ext4_directory_entry_ll_t *);
+
+extern int ext4_directory_iterator_init(ext4_directory_iterator_t *,
+		ext4_filesystem_t *, ext4_inode_ref_t *, aoff64_t);
+extern int ext4_directory_iterator_next(ext4_directory_iterator_t *);
+extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t pos);
+extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
 
 #endif
 

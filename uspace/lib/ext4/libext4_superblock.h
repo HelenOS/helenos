@@ -140,6 +140,9 @@ typedef struct ext4_superblock {
 #define EXT4_SUPERBLOCK_SIZE		1024
 #define EXT4_SUPERBLOCK_OFFSET		1024
 
+#define EXT4_SUPERBLOCK_OS_LINUX	0
+#define EXT4_SUPERBLOCK_OS_HURD		1
+
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_blocks_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_reserved_blocks_count(ext4_superblock_t *);
