@@ -1650,7 +1650,6 @@ void tcp_retransmit_packet(socket_core_t *socket, tcp_socket_data_t *
 
 	/* Sent packet? */
 	packet = pq_find(socket_data->outgoing, sequence_number);
-	printf("retransmit %lu\n", packet_get_id(packet));
 	if (packet) {
 		pq_get_order(packet, NULL, &data_length);
 		copy = tcp_prepare_copy(socket, socket_data, packet,
@@ -1789,7 +1788,6 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
 			socket_data->state = TCP_SOCKET_SYN_SENT;
 
 			/* Send the packet */
-			printf("connecting %lu\n", packet_get_id(packet));
 			tcp_send_packets(socket_data->device_id, packet);
 
 			/* Wait for a reply */

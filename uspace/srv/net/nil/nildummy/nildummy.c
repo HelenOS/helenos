@@ -135,7 +135,7 @@ static int nildummy_device_message(nic_device_id_t device_id,
 		else
 			device->mtu = NET_DEFAULT_MTU;
 		
-		printf("Device %d already exists:\tMTU\t= %zu\n", device->device_id,
+		printf("Device %d already exists (mtu: %zu)\n", device->device_id,
 		    device->mtu);
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		

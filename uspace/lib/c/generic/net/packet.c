@@ -138,13 +138,15 @@ int pm_init(void)
  */
 packet_t *pm_find(packet_id_t packet_id)
 {
-	packet_t *packet;
 	if (!packet_id)
 		return NULL;
-
+	
 	fibril_rwlock_read_lock(&pm_globals.lock);
-	link_t *link =
-	    hash_table_find(&pm_globals.packet_map, &packet_id);
+	
+	unsigned long key = packet_id;
+	link_t *link = hash_table_find(&pm_globals.packet_map, &key);
+	
+	packet_t *packet;
 	if (link != NULL) {
 		pm_entry_t *entry =
 		    hash_table_get_instance(link, pm_entry_t, link);
@@ -171,16 +173,20 @@ int pm_add(packet_t *packet)
 		return EINVAL;
 	
 	fibril_rwlock_write_lock(&pm_globals.lock);
-	pm_entry_t *entry = malloc(sizeof (pm_entry_t));
+	
+	pm_entry_t *entry = malloc(sizeof(pm_entry_t));
 	if (entry == NULL) {
 		fibril_rwlock_write_unlock(&pm_globals.lock);
 		return ENOMEM;
 	}
 	
 	entry->packet = packet;
-	hash_table_insert(&pm_globals.packet_map, &packet->packet_id,
-	    &entry->link);
+	
+	unsigned long key = packet->packet_id;
+	hash_table_insert(&pm_globals.packet_map, &key, &entry->link);
+	
 	fibril_rwlock_write_unlock(&pm_globals.lock);
+	
 	return EOK;
 }
 
@@ -194,7 +200,10 @@ void pm_remove(packet_t *packet)
 	assert(packet_is_valid(packet));
 	
 	fibril_rwlock_write_lock(&pm_globals.lock);
-	hash_table_remove(&pm_globals.packet_map, &packet->packet_id, 1);
+	
+	unsigned long key = packet->packet_id;
+	hash_table_remove(&pm_globals.packet_map, &key, 1);
+	
 	fibril_rwlock_write_unlock(&pm_globals.lock);
 }
 

@@ -37,10 +37,12 @@
 #ifndef LIBC_PACKET_H_
 #define LIBC_PACKET_H_
 
+#include <sys/types.h>
+
 /** Packet identifier type.
  * Value zero is used as an invalid identifier.
  */
-typedef unsigned long packet_id_t;
+typedef sysarg_t packet_id_t;
 
 /** Type definition of the packet.
  * @see packet
@@ -50,7 +52,7 @@ typedef struct packet packet_t;
 /** Type definition of the packet dimension.
  * @see packet_dimension
  */
-typedef struct packet_dimension	packet_dimension_t;
+typedef struct packet_dimension packet_dimension_t;
 
 /** Packet dimension. */
 struct packet_dimension {

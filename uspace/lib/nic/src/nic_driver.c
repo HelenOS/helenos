@@ -670,7 +670,7 @@ void nic_received_packet(nic_t *nic_data, packet_t *packet)
 			break;
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
-		nil_received_msg(nic_data->nil_session, pid, nic_data->device_id);
+		nil_received_msg(nic_data->nil_session, nic_data->device_id, pid);
 	} else {
 		switch (frame_type) {
 		case NIC_FRAME_UNICAST:
@@ -702,9 +702,9 @@ void nic_received_noneth_packet(nic_t *nic_data, packet_t *packet)
 	nic_data->stats.receive_packets++;
 	nic_data->stats.receive_bytes += packet_get_data_length(packet);
 	fibril_rwlock_write_unlock(&nic_data->stats_lock);
-
-	nil_received_msg(nic_data->nil_session, packet_get_id(packet),
-		nic_data->device_id);
+	
+	nil_received_msg(nic_data->nil_session, nic_data->device_id,
+	    packet_get_id(packet));
 }
 
 /**
