@@ -64,7 +64,7 @@ static inline uintptr_t addr_to_phys(const void *addr)
 /** DMA malloc simulator
  *
  * @param[in] size Size of the required memory space
- * @return Address of the alligned and big enough memory place, NULL on failure.
+ * @return Address of the aligned and big enough memory place, NULL on failure.
  */
 static inline void * malloc32(size_t size)
 {
