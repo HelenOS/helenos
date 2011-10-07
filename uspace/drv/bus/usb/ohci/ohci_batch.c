@@ -158,14 +158,14 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 
 	usb_log_debug("Batch %p checking %zu td(s) for completion.\n",
 	    ohci_batch->usb_batch, ohci_batch->td_count);
-	usb_log_debug2("ED: %x:%x:%x:%x.\n",
+	usb_log_debug2("ED: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->ed->status, ohci_batch->ed->td_head,
 	    ohci_batch->ed->td_tail, ohci_batch->ed->next);
 
 	size_t i = 0;
 	for (; i < ohci_batch->td_count; ++i) {
 		assert(ohci_batch->tds[i] != NULL);
-		usb_log_debug("TD %zu: %x:%x:%x:%x.\n", i,
+		usb_log_debug("TD %zu: %08x:%08x:%08x:%08x.\n", i,
 		    ohci_batch->tds[i]->status, ohci_batch->tds[i]->cbp,
 		    ohci_batch->tds[i]->next, ohci_batch->tds[i]->be);
 		if (!td_is_finished(ohci_batch->tds[i])) {
@@ -173,7 +173,7 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 		}
 		ohci_batch->usb_batch->error = td_error(ohci_batch->tds[i]);
 		if (ohci_batch->usb_batch->error != EOK) {
-			usb_log_debug("Batch %p found error TD(%zu):%x.\n",
+			usb_log_debug("Batch %p found error TD(%zu):%08x.\n",
 			    ohci_batch->usb_batch, i,
 			    ohci_batch->tds[i]->status);
 			/* Make sure TD queue is empty (one TD),
@@ -233,7 +233,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	assert(ohci_batch);
 	assert(ohci_batch->usb_batch);
 	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
-	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
+	usb_log_debug("Using ED(%p): %08x:%08x:%08x:%08x.\n", ohci_batch->ed,
 	    ohci_batch->ed->status, ohci_batch->ed->td_tail,
 	    ohci_batch->ed->td_head, ohci_batch->ed->next);
 	static const usb_direction_t reverse_dir[] = {
@@ -250,7 +250,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	td_init(ohci_batch->tds[0], USB_DIRECTION_BOTH, buffer,
 		ohci_batch->usb_batch->setup_size, toggle);
 	td_set_next(ohci_batch->tds[0], ohci_batch->tds[1]);
-	usb_log_debug("Created CONTROL SETUP TD: %x:%x:%x:%x.\n",
+	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->tds[0]->status, ohci_batch->tds[0]->cbp,
 	    ohci_batch->tds[0]->next, ohci_batch->tds[0]->be);
 	buffer += ohci_batch->usb_batch->setup_size;
@@ -268,7 +268,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 		    transfer_size, toggle);
 		td_set_next(ohci_batch->tds[td_current],
 		    ohci_batch->tds[td_current + 1]);
-		usb_log_debug("Created CONTROL DATA TD: %x:%x:%x:%x.\n",
+		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x:%08x.\n",
 		    ohci_batch->tds[td_current]->status,
 		    ohci_batch->tds[td_current]->cbp,
 		    ohci_batch->tds[td_current]->next,
@@ -285,7 +285,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	td_init(ohci_batch->tds[td_current], status_dir, NULL, 0, 1);
 	td_set_next(ohci_batch->tds[td_current],
 	    ohci_batch->tds[td_current + 1]);
-	usb_log_debug("Created CONTROL STATUS TD: %x:%x:%x:%x.\n",
+	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->tds[td_current]->status,
 	    ohci_batch->tds[td_current]->cbp,
 	    ohci_batch->tds[td_current]->next,
@@ -311,7 +311,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 	assert(ohci_batch);
 	assert(ohci_batch->usb_batch);
 	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
-	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", ohci_batch->ed,
+	usb_log_debug("Using ED(%p): %08x:%08x:%08x:%08x.\n", ohci_batch->ed,
 	    ohci_batch->ed->status, ohci_batch->ed->td_tail,
 	    ohci_batch->ed->td_head, ohci_batch->ed->next);
 
@@ -327,7 +327,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 		td_set_next(ohci_batch->tds[td_current],
 		    ohci_batch->tds[td_current + 1]);
 
-		usb_log_debug("Created DATA TD: %x:%x:%x:%x.\n",
+		usb_log_debug("Created DATA TD: %08x:%08x:%08x:%08x.\n",
 		    ohci_batch->tds[td_current]->status,
 		    ohci_batch->tds[td_current]->cbp,
 		    ohci_batch->tds[td_current]->next,
