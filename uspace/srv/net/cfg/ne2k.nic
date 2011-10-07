@@ -2,7 +2,7 @@
 
 NAME=ne2k
 
-HWPATH=/hw/pci0/00:01.0/ne2000/port0
+HWPATH=/hw/pci0/00:01.0/ne2k/port0
 NIL=eth
 IL=ip
 
@@ -18,4 +18,4 @@ IP_BROADCAST=10.0.2.255
 IP_GATEWAY=10.0.2.2
 ARP=arp
 
-MTU=1492
+MTU=1500

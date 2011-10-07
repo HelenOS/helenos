@@ -122,7 +122,8 @@ RD_DRVS = \
 	test/test1 \
 	test/test2 \
 	test/test3 \
-	nic/lo
+	nic/lo \
+	nic/ne2k
 
 RD_DRV_CFG =
 

@@ -117,7 +117,8 @@ DIRS = \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/usbmouse \
 	drv/bus/usb/vhc \
-	drv/nic/lo
+	drv/nic/lo \
+	drv/nic/ne2k
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
