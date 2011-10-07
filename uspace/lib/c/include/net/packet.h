@@ -40,7 +40,7 @@
 /** Packet identifier type.
  * Value zero is used as an invalid identifier.
  */
-typedef int packet_id_t;
+typedef unsigned long packet_id_t;
 
 /** Type definition of the packet.
  * @see packet
@@ -70,6 +70,7 @@ struct packet_dimension {
 
 extern packet_t *pm_find(packet_id_t);
 extern int pm_add(packet_t *);
+extern void pm_remove(packet_t *);
 extern int pm_init(void);
 extern void pm_destroy(void);
 

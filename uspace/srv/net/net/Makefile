@@ -29,8 +29,8 @@
 
 USPACE_PREFIX = ../../..
 ROOT_PATH = $(USPACE_PREFIX)/..
-LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBPACKET_PREFIX)/libpacket.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBPACKET_PREFIX)/include
+LIBS = $(LIBNET_PREFIX)/libnet.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
@@ -42,6 +42,7 @@ BINARY = net
 
 SOURCES = \
 	net.c \
-	net_standalone.c
+	net_standalone.c \
+	packet_server.c
 
 include $(USPACE_PREFIX)/Makefile.common

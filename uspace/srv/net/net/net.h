@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,22 +45,17 @@
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <net/packet.h>
+#include <devman.h>
 
 /** @name Modules definitions
  * @{
  */
-
-#define NE2000_FILENAME  "/srv/ne2000"
-#define NE2000_NAME      "ne2000"
 
 #define ETHERNET_FILENAME  "/srv/eth"
 #define ETHERNET_NAME      "eth"
 
 #define IP_FILENAME  "/srv/ip"
 #define IP_NAME      "ip"
-
-#define LO_FILENAME  "/srv/lo"
-#define LO_NAME      "lo"
 
 #define NILDUMMY_FILENAME  "/srv/nildummy"
 #define NILDUMMY_NAME      "nildummy"
@@ -76,7 +72,7 @@
 #define CONF_IRQ    "IRQ"    /**< Interrupt number configuration label. */
 #define CONF_MTU    "MTU"    /**< Maximum transmission unit configuration label. */
 #define CONF_NAME   "NAME"   /**< Network interface name configuration label. */
-#define CONF_NETIF  "NETIF"  /**< Network interface module name configuration label. */
+#define CONF_HWPATH "HWPATH" /**< Network interface hardware pathname label. */
 #define CONF_NIL    "NIL"    /**< Network interface layer module name configuration label. */
 
 /** @}
@@ -84,6 +80,7 @@
 
 #define CONF_DIR           "/cfg/net"  /**< Configuration directory. */
 #define CONF_GENERAL_FILE  "general"   /**< General configuration file. */
+#define CONF_EXT           ".nic"      /**< Extension for NIC's configuration files. */
 
 /** Configuration settings.
  *
@@ -97,15 +94,16 @@ GENERIC_CHAR_MAP_DECLARE(measured_strings, measured_string_t);
  *
  */
 typedef struct {
+	uint8_t *name;     			/**< System-unique network interface name. */
+	nic_device_id_t id;  		/**< System-unique network interface identifier. */
 	measured_strings_t configuration;  /**< Configuration. */
 	
 	/** Serving network interface driver module index. */
-	module_t *driver;
+	devman_handle_t handle;		/**< Handle for devman */
+	async_sess_t *sess;		 	/**< Driver session. */
 	
-	device_id_t id;  /**< System-unique network interface identifier. */
-	module_t *il;    /**< Serving internet layer module index. */
-	uint8_t *name;   /**< System-unique network interface name. */
 	module_t *nil;   /**< Serving link layer module index. */
+	module_t *il;    /**< Serving internet layer module index. */
 } netif_t;
 
 /** Present network interfaces.
@@ -123,8 +121,8 @@ typedef struct {
 	measured_strings_t configuration;  /**< Global configuration. */
 	modules_t modules;                 /**< Available modules. */
 	
-	/** Network interface structure indices by names. */
-	char_map_t netif_names;
+	/** Network interface structure indices by hardware path. */
+	char_map_t netif_hwpaths;
 	
 	/** Present network interfaces. */
 	netifs_t netifs;

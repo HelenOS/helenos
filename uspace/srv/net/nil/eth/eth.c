@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
  *  @see eth.h
  */
 
+#include <assert.h>
 #include <async.h>
 #include <malloc.h>
 #include <mem.h>
@@ -51,12 +53,12 @@
 #include <ethernet_protocols.h>
 #include <protocol_map.h>
 #include <net/device.h>
-#include <netif_remote.h>
 #include <net_interface.h>
 #include <il_remote.h>
 #include <adt/measured_strings.h>
 #include <packet_client.h>
 #include <packet_remote.h>
+#include <device/nic.h>
 #include <nil_skel.h>
 #include "eth.h"
 
@@ -166,7 +168,7 @@ eth_globals_t eth_globals;
 DEVICE_MAP_IMPLEMENT(eth_devices, eth_device_t);
 INT_MAP_IMPLEMENT(eth_protos, eth_proto_t);
 
-int nil_device_state_msg_local(device_id_t device_id, sysarg_t state)
+int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state)
 {
 	int index;
 	eth_proto_t *proto;
@@ -195,13 +197,8 @@ int nil_initialize(async_sess_t *sess)
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
 	fibril_rwlock_write_lock(&eth_globals.protos_lock);
 	eth_globals.net_sess = sess;
-
-	eth_globals.broadcast_addr =
-	    measured_string_create_bulk((uint8_t *) "\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
-	if (!eth_globals.broadcast_addr) {
-		rc = ENOMEM;
-		goto out;
-	}
+	memcpy(eth_globals.broadcast_addr, "\xFF\xFF\xFF\xFF\xFF\xFF",
+			ETH_ADDR);
 
 	rc = eth_devices_initialize(&eth_globals.devices);
 	if (rc != EOK) {
@@ -214,6 +211,7 @@ int nil_initialize(async_sess_t *sess)
 		free(eth_globals.broadcast_addr);
 		eth_devices_destroy(&eth_globals.devices, free);
 	}
+	
 out:
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 	fibril_rwlock_write_unlock(&eth_globals.devices_lock);
@@ -221,61 +219,20 @@ out:
 	return rc;
 }
 
-/** Process IPC messages from the registered device driver modules in an
- * infinite loop.
+/** Register new device or updates the MTU of an existing one.
  *
- * @param[in]     iid   Message identifier.
- * @param[in,out] icall Message parameters.
- * @param[in]     arg   Local argument.
+ * Determine the device local hardware address.
+ *
+ * @param[in] device_id New device identifier.
+ * @param[in] handle    Device driver handle.
+ * @param[in] mtu       Device maximum transmission unit.
+ *
+ * @return EOK on success.
+ * @return EEXIST if the device with the different service exists.
+ * @return ENOMEM if there is not enough memory left.
  *
  */
-static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	packet_t *packet;
-	int rc;
-
-	while (true) {
-		switch (IPC_GET_IMETHOD(*icall)) {
-		case NET_NIL_DEVICE_STATE:
-			nil_device_state_msg_local(IPC_GET_DEVICE(*icall),
-			    IPC_GET_STATE(*icall));
-			async_answer_0(iid, EOK);
-			break;
-		case NET_NIL_RECEIVED:
-			rc = packet_translate_remote(eth_globals.net_sess,
-			    &packet, IPC_GET_PACKET(*icall));
-			if (rc == EOK)
-				rc = nil_received_msg_local(IPC_GET_DEVICE(*icall),
-				    packet, 0);
-			
-			async_answer_0(iid, (sysarg_t) rc);
-			break;
-		default:
-			async_answer_0(iid, (sysarg_t) ENOTSUP);
-		}
-		
-		iid = async_get_call(icall);
-	}
-}
-
-/** Registers new device or updates the MTU of an existing one.
- *
- * Determines the device local hardware address.
- *
- * @param[in] device_id	The new device identifier.
- * @param[in] service	The device driver service.
- * @param[in] mtu	The device maximum transmission unit.
- * @return		EOK on success.
- * @return		EEXIST if the device with the different service exists.
- * @return		ENOMEM if there is not enough memory left.
- * @return		Other error codes as defined for the
- *			net_get_device_conf_req() function.
- * @return		Other error codes as defined for the
- *			netif_bind_service() function.
- * @return		Other error codes as defined for the
- *			netif_get_addr_req() function.
- */
-static int eth_device_message(device_id_t device_id, services_t service,
+static int eth_device_message(nic_device_id_t device_id, devman_handle_t handle,
     size_t mtu)
 {
 	eth_device_t *device;
@@ -300,7 +257,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	/* An existing device? */
 	device = eth_devices_find(&eth_globals.devices, device_id);
 	if (device) {
-		if (device->service != service) {
+		if (device->handle != handle) {
 			printf("Device %d already exists\n", device->device_id);
 			fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 			return EEXIST;
@@ -339,7 +296,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		return ENOMEM;
 
 	device->device_id = device_id;
-	device->service = service;
+	device->handle = handle;
 	device->flags = 0;
 	if ((mtu > 0) && (mtu <= ETH_MAX_TAGGED_CONTENT(device->flags)))
 		device->mtu = mtu;
@@ -376,17 +333,18 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Bind the device driver */
-	device->sess = netif_bind_service(device->service, device->device_id,
-	    SERVICE_ETHERNET, eth_receiver);
+	device->sess = devman_device_connect(EXCHANGE_SERIALIZE, handle,
+	    IPC_FLAG_BLOCKING);
 	if (device->sess == NULL) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		free(device);
 		return ENOENT;
 	}
 	
+	nic_connect_to_nil(device->sess, SERVICE_ETHERNET, device_id);
+	
 	/* Get hardware address */
-	rc = netif_get_addr_req(device->sess, device->device_id, &device->addr,
-	    &device->addr_data);
+	rc = nic_get_address(device->sess, &device->addr);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		free(device);
@@ -398,18 +356,14 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	    device);
 	if (index < 0) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
-		free(device->addr);
-		free(device->addr_data);
 		free(device);
 		return index;
 	}
 	
-	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
-	    "mac: %02x:%02x:%02x:%02x:%02x:%02x, flags: 0x%x)\n",
-	    NAME, device->device_id, device->service, device->mtu,
-	    device->addr_data[0], device->addr_data[1],
-	    device->addr_data[2], device->addr_data[3],
-	    device->addr_data[4], device->addr_data[5], device->flags);
+	printf("%s: Device registered (id: %d, handle: %zu: mtu: %zu, "
+	    "mac: " PRIMAC ", flags: 0x%x)\n", NAME,
+	    device->device_id, device->handle, device->mtu,
+	    ARGSMAC(device->addr.address), device->flags);
 
 	fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 	return EOK;
@@ -455,27 +409,25 @@ static eth_proto_t *eth_process_packet(int flags, packet_t *packet)
 		suffix = 0;
 		fcs = (eth_fcs_t *) data + length - sizeof(eth_fcs_t);
 		length -= sizeof(eth_fcs_t);
-	} else if(type <= ETH_MAX_CONTENT) {
+	} else if (type <= ETH_MAX_CONTENT) {
 		/* Translate "LSAP" values */
 		if ((header->lsap.dsap == ETH_LSAP_GLSAP) &&
 		    (header->lsap.ssap == ETH_LSAP_GLSAP)) {
 			/* Raw packet -- discard */
 			return NULL;
-		} else if((header->lsap.dsap == ETH_LSAP_SNAP) &&
+		} else if ((header->lsap.dsap == ETH_LSAP_SNAP) &&
 		    (header->lsap.ssap == ETH_LSAP_SNAP)) {
 			/*
 			 * IEEE 802.3 + 802.2 + LSAP + SNAP
 			 * organization code not supported
 			 */
 			type = ntohs(header->snap.ethertype);
-			prefix = sizeof(eth_header_t) +
-			    sizeof(eth_header_lsap_t) +
+			prefix = sizeof(eth_header_t) + sizeof(eth_header_lsap_t) +
 			    sizeof(eth_header_snap_t);
 		} else {
 			/* IEEE 802.3 + 802.2 LSAP */
 			type = lsap_map(header->lsap.dsap);
-			prefix = sizeof(eth_header_t) +
-			    sizeof(eth_header_lsap_t);
+			prefix = sizeof(eth_header_t) + sizeof(eth_header_lsap_t);
 		}
 
 		suffix = (type < ETH_MIN_CONTENT) ? ETH_MIN_CONTENT - type : 0U;
@@ -505,8 +457,7 @@ static eth_proto_t *eth_process_packet(int flags, packet_t *packet)
 	return eth_protos_find(&eth_globals.protos, type);
 }
 
-int nil_received_msg_local(device_id_t device_id, packet_t *packet,
-    services_t target)
+int nil_received_msg_local(nic_device_id_t device_id, packet_t *packet)
 {
 	eth_proto_t *proto;
 	packet_t *next;
@@ -522,8 +473,8 @@ int nil_received_msg_local(device_id_t device_id, packet_t *packet,
 
 	flags = device->flags;
 	fibril_rwlock_read_unlock(&eth_globals.devices_lock);
-	
 	fibril_rwlock_read_lock(&eth_globals.protos_lock);
+	
 	do {
 		next = pq_detach(packet);
 		proto = eth_process_packet(flags, packet);
@@ -536,7 +487,7 @@ int nil_received_msg_local(device_id_t device_id, packet_t *packet,
 			    packet_get_id(packet));
 		}
 		packet = next;
-	} while(packet);
+	} while (packet);
 
 	fibril_rwlock_read_unlock(&eth_globals.protos_lock);
 	return EOK;
@@ -553,7 +504,7 @@ int nil_received_msg_local(device_id_t device_id, packet_t *packet,
  * @return		EBADMEM if either one of the parameters is NULL.
  * @return		ENOENT if there is no such device.
  */
-static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
+static int eth_packet_space_message(nic_device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
 	eth_device_t *device;
@@ -578,37 +529,56 @@ static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
 	return EOK;
 }
 
-/** Returns the device hardware address.
+/** Send the device hardware address.
  *
  * @param[in] device_id	The device identifier.
  * @param[in] type	Type of the desired address.
- * @param[out] address	The device hardware address.
  * @return		EOK on success.
  * @return		EBADMEM if the address parameter is NULL.
  * @return		ENOENT if there no such device.
  */
-static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
-    measured_string_t **address)
+static int eth_addr_message(nic_device_id_t device_id, eth_addr_type_t type)
 {
-	eth_device_t *device;
-
-	if (!address)
-		return EBADMEM;
-
-	if (type == ETH_BROADCAST_ADDR) {
-		*address = eth_globals.broadcast_addr;
-	} else {
+	eth_device_t *device = NULL;
+	uint8_t *address;
+	size_t max_len;
+	ipc_callid_t callid;
+	
+	if (type == ETH_BROADCAST_ADDR)
+		address = eth_globals.broadcast_addr;
+	else {
 		fibril_rwlock_read_lock(&eth_globals.devices_lock);
 		device = eth_devices_find(&eth_globals.devices, device_id);
 		if (!device) {
 			fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 			return ENOENT;
 		}
-		*address = device->addr;
-		fibril_rwlock_read_unlock(&eth_globals.devices_lock);
+		
+		address = (uint8_t *) &device->addr.address;
 	}
 	
-	return (*address) ? EOK : ENOENT;
+	int rc = EOK;
+	if (!async_data_read_receive(&callid, &max_len)) {
+		rc = EREFUSED;
+		goto end;
+	}
+	
+	if (max_len < ETH_ADDR) {
+		async_data_read_finalize(callid, NULL, 0);
+		rc = ELIMIT;
+		goto end;
+	}
+	
+	rc = async_data_read_finalize(callid, address, ETH_ADDR);
+	if (rc != EOK)
+		goto end;
+	
+end:
+	
+	if (type == ETH_LOCAL_ADDR)
+		fibril_rwlock_read_unlock(&eth_globals.devices_lock);
+	
+	return rc;
 }
 
 /** Register receiving module service.
@@ -696,8 +666,16 @@ eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype
 	i = packet_get_addr(packet, &src, &dest);
 	if (i < 0)
 		return i;
+	
 	if (i != ETH_ADDR)
 		return EINVAL;
+	
+	for (i = 0; i < ETH_ADDR; i++) {
+		if (src[i]) {
+			src_addr = src;
+			break;
+		}
+	}
 
 	length = packet_get_data_length(packet);
 	if (length > mtu)
@@ -721,7 +699,7 @@ eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype
 		memcpy(header_dix->source_address, src_addr, ETH_ADDR);
 		memcpy(header_dix->destination_address, dest, ETH_ADDR);
 		src = &header_dix->destination_address[0];
-	} else if(IS_8023_2_LSAP(flags)) {
+	} else if (IS_8023_2_LSAP(flags)) {
 		header_lsap = PACKET_PREFIX(packet, eth_header_lsap_t);
 		if (!header_lsap)
 			return ENOMEM;
@@ -734,7 +712,7 @@ eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype
 		memcpy(header_lsap->header.source_address, src_addr, ETH_ADDR);
 		memcpy(header_lsap->header.destination_address, dest, ETH_ADDR);
 		src = &header_lsap->header.destination_address[0];
-	} else if(IS_8023_2_SNAP(flags)) {
+	} else if (IS_8023_2_SNAP(flags)) {
 		header = PACKET_PREFIX(packet, eth_header_snap_t);
 		if (!header)
 			return ENOMEM;
@@ -745,7 +723,7 @@ eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype
 		header->lsap.ssap = header->lsap.dsap;
 		header->lsap.ctrl = IEEE_8023_2_UI;
 		
-		for (i = 0; i < 3; ++ i)
+		for (i = 0; i < 3; i++)
 			header->snap.protocol[i] = 0;
 		
 		header->snap.ethertype = (uint16_t) ethertype;
@@ -759,7 +737,7 @@ eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype
 		if (!preamble)
 			return ENOMEM;
 		
-		for (i = 0; i < 7; ++ i)
+		for (i = 0; i < 7; i++)
 			preamble->preamble[i] = ETH_PREAMBLE;
 		
 		preamble->sfd = ETH_SFD;
@@ -786,7 +764,7 @@ eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype
  * @return		ENOENT if there no such device.
  * @return		EINVAL if the service parameter is not known.
  */
-static int eth_send_message(device_id_t device_id, packet_t *packet,
+static int eth_send_message(nic_device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	eth_device_t *device;
@@ -812,7 +790,7 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 	next = packet;
 	do {
 		rc = eth_prepare_packet(device->flags, next,
-		    (uint8_t *) device->addr->value, ethertype, device->mtu);
+		    (uint8_t *) &device->addr.address, ethertype, device->mtu);
 		if (rc != EOK) {
 			/* Release invalid packet */
 			tmp = pq_detach(next);
@@ -824,22 +802,63 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 		} else {
 			next = pq_next(next);
 		}
-	} while(next);
+	} while (next);
 	
 	/* Send packet queue */
-	if (packet) {
-		netif_send_msg(device->sess, device_id, packet,
-		    SERVICE_ETHERNET);
-	}
-
+	if (packet)
+		nic_send_message(device->sess, packet_get_id(packet));
+	
 	fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 	return EOK;
+}
+
+static int eth_addr_changed(nic_device_id_t device_id)
+{
+	nic_address_t address;
+	size_t length;
+	ipc_callid_t data_callid;
+	if (!async_data_write_receive(&data_callid, &length)) {
+		async_answer_0(data_callid, EINVAL);
+		return EINVAL;
+	}
+	if (length > sizeof (nic_address_t)) {
+		async_answer_0(data_callid, ELIMIT);
+		return ELIMIT;
+	}
+	if (async_data_write_finalize(data_callid, &address, length) != EOK) {
+		return EINVAL;
+	}
+
+	fibril_rwlock_write_lock(&eth_globals.devices_lock);
+	/* An existing device? */
+	eth_device_t *device = eth_devices_find(&eth_globals.devices, device_id);
+	if (device) {
+		printf("Device %d changing address from " PRIMAC " to " PRIMAC "\n",
+			device_id, ARGSMAC(device->addr.address), ARGSMAC(address.address));
+		memcpy(&device->addr, &address, sizeof (nic_address_t));
+		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
+
+		/* Notify all upper layer modules */
+		fibril_rwlock_read_lock(&eth_globals.protos_lock);
+		int index;
+		for (index = 0; index < eth_protos_count(&eth_globals.protos); index++) {
+			eth_proto_t *proto = eth_protos_get_index(&eth_globals.protos, index);
+			if (proto->sess != NULL) {
+				il_addr_changed_msg(proto->sess, device->device_id,
+						ETH_ADDR, address.address);
+			}
+		}
+
+		fibril_rwlock_read_unlock(&eth_globals.protos_lock);
+		return EOK;
+	} else {
+		return ENOENT;
+	}
 }
 
 int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
-	measured_string_t *address;
 	packet_t *packet;
 	size_t addrlen;
 	size_t prefix;
@@ -860,12 +879,13 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_NIL_DEVICE:
 		return eth_device_message(IPC_GET_DEVICE(*call),
-		    IPC_GET_SERVICE(*call), IPC_GET_MTU(*call));
+		    IPC_GET_DEVICE_HANDLE(*call), IPC_GET_MTU(*call));
 	case NET_NIL_SEND:
 		rc = packet_translate_remote(eth_globals.net_sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
+		
 		return eth_send_message(IPC_GET_DEVICE(*call), packet,
 		    IPC_GET_SERVICE(*call));
 	case NET_NIL_PACKET_SPACE:
@@ -873,24 +893,48 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		    &prefix, &content, &suffix);
 		if (rc != EOK)
 			return rc;
+		
 		IPC_SET_ADDR(*answer, addrlen);
 		IPC_SET_PREFIX(*answer, prefix);
 		IPC_SET_CONTENT(*answer, content);
 		IPC_SET_SUFFIX(*answer, suffix);
 		*answer_count = 4;
+		
 		return EOK;
 	case NET_NIL_ADDR:
-		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_LOCAL_ADDR,
-		    &address);
+		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_LOCAL_ADDR);
 		if (rc != EOK)
 			return rc;
-		return measured_strings_reply(address, 1);
+		
+		IPC_SET_ADDR(*answer, ETH_ADDR);
+		*answer_count = 1;
+		
+		return EOK;
 	case NET_NIL_BROADCAST_ADDR:
-		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_BROADCAST_ADDR,
-		    &address);
+		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_BROADCAST_ADDR);
 		if (rc != EOK)
-			return EOK;
-		return measured_strings_reply(address, 1);
+			return rc;
+		
+		IPC_SET_ADDR(*answer, ETH_ADDR);
+		*answer_count = 1;
+		
+		return EOK;
+	case NET_NIL_DEVICE_STATE:
+		nil_device_state_msg_local(IPC_GET_DEVICE(*call), IPC_GET_STATE(*call));
+		async_answer_0(callid, EOK);
+		return EOK;
+	case NET_NIL_RECEIVED:
+		rc = packet_translate_remote(eth_globals.net_sess, &packet,
+		    IPC_GET_ARG2(*call));
+		if (rc == EOK)
+			rc = nil_received_msg_local(IPC_GET_ARG1(*call), packet);
+		
+		async_answer_0(callid, (sysarg_t) rc);
+		return rc;
+	case NET_NIL_ADDR_CHANGED:
+		rc = eth_addr_changed(IPC_GET_DEVICE(*call));
+		async_answer_0(callid, (sysarg_t) rc);
+		return rc;
 	}
 	
 	return ENOTSUP;

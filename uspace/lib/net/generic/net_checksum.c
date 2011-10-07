@@ -39,10 +39,10 @@
 #include <net_checksum.h>
 
 /** Big-endian encoding CRC divider. */
-#define CRC_DIVIDER_BE	0x04c11db7
+#define CRC_DIVIDER_BE  0x04c11db7
 
 /** Little-endian encoding CRC divider. */
-#define CRC_DIVIDER_LE	0xedb88320
+#define CRC_DIVIDER_LE  0xedb88320
 
 /** Compacts the computed checksum to the 16 bit number adding the carries.
  *
@@ -202,7 +202,7 @@ uint16_t flip_checksum(uint16_t checksum)
 	return checksum ? checksum : IP_CHECKSUM_ZERO;
 }
 
-/** Computes the ip header checksum.
+/** Compute the IP header checksum.
  *
  * To compute the checksum of a new packet, the checksum header field must be
  * zero. To check the checksum of a received packet, the checksum may be left

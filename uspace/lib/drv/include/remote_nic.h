@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libpacket
+/** @addtogroup libdrv
  * @{
  */
-
 /** @file
- * Packet server.
- * The hosting module has to be compiled with both the packet.c and the
- * packet_server.c source files. To function correctly, initialization of the
- * packet map by the pm_init() function has to happen at the first place. Then
- * the packet messages have to be processed by the packet_server_message()
- * function. The packet map should be released by the pm_destroy() function
- * during the module termination.
- * @see IS_NET_PACKET_MESSAGE()
  */
 
-#ifndef LIBPACKET_PACKET_SERVER_H_
-#define LIBPACKET_PACKET_SERVER_H_
+#ifndef LIBDRV_REMOTE_NIC_H_
+#define LIBDRV_REMOTE_NIC_H_
 
-#include <ipc/common.h>
-
-extern int packet_server_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+extern remote_iface_t remote_nic_iface;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

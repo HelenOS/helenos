@@ -67,6 +67,7 @@ GENERIC_SOURCES = \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/char_dev.c \
+	generic/device/nic.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,11 +35,12 @@
  * Packet server implementation.
  */
 
-#include <packet_server.h>
 #include <align.h>
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
+#include <stdio.h>
 #include <fibril_synch.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -47,7 +49,14 @@
 #include <net/packet.h>
 #include <net/packet_header.h>
 
+#include "packet_server.h"
+
+#define PACKET_SERVER_PROFILE 1
+
+/** Number of queues cacheing the unused packets */
 #define FREE_QUEUES_COUNT	7
+/** Maximum number of packets in each queue */
+#define FREE_QUEUE_MAX_LENGTH	16
 
 /** The default address length reserved for new packets. */
 #define DEFAULT_ADDR_LEN	32
@@ -58,43 +67,34 @@
 /** The default suffix reserved for new packets. */
 #define DEFAULT_SUFFIX		64
 
+/** The queue with unused packets */
+typedef struct packet_queue {
+	packet_t *first;	/**< First packet in the queue */
+	size_t packet_size; /**< Maximal size of the packets in this queue */
+	int count;			/**< Length of the queue */
+} packet_queue_t;
+
 /** Packet server global data. */
 static struct {
 	/** Safety lock. */
 	fibril_mutex_t lock;
 	/** Free packet queues. */
-	packet_t *free[FREE_QUEUES_COUNT];
-	
-	/**
-	 * Packet length upper bounds of the free packet queues. The maximal
-	 * lengths of packets in each queue in the ascending order. The last
-	 * queue is not limited.
-	 */
-	size_t sizes[FREE_QUEUES_COUNT];
+	packet_queue_t free_queues[FREE_QUEUES_COUNT];
 	
 	/** Total packets allocated. */
-	unsigned int count;
+	packet_id_t next_id;
 } ps_globals = {
 	.lock = FIBRIL_MUTEX_INITIALIZER(ps_globals.lock),
-	.free = {
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
+	.free_queues = {
+		{ NULL, PAGE_SIZE, 0},
+		{ NULL, PAGE_SIZE * 2, 0},
+		{ NULL, PAGE_SIZE * 4, 0},
+		{ NULL, PAGE_SIZE * 8, 0},
+		{ NULL, PAGE_SIZE * 16, 0},
+		{ NULL, PAGE_SIZE * 32, 0},
+		{ NULL, PAGE_SIZE * 64, 0},
 	},
-	.sizes = {
-		PAGE_SIZE,
-		PAGE_SIZE * 2,
-		PAGE_SIZE * 4,
-		PAGE_SIZE * 8,
-		PAGE_SIZE * 16,
-		PAGE_SIZE * 32,
-		PAGE_SIZE * 64
-	},
-	.count = 0
+	.next_id = 1
 };
 
 /** Clears and initializes the packet according to the given dimensions.
@@ -106,9 +106,8 @@ static struct {
  * @param[in] max_content The maximal content length in bytes.
  * @param[in] max_suffix The maximal suffix length in bytes.
  */
-static void
-packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
-    size_t max_content, size_t max_suffix)
+static void packet_init(packet_t *packet,
+	size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix)
 {
 	/* Clear the packet content */
 	bzero(((void *) packet) + sizeof(packet_t),
@@ -119,6 +118,8 @@ packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
 	packet->metric = 0;
 	packet->previous = 0;
 	packet->next = 0;
+	packet->offload_info = 0;
+	packet->offload_mask = 0;
 	packet->addr_len = 0;
 	packet->src_addr = sizeof(packet_t);
 	packet->dest_addr = packet->src_addr + addr_len;
@@ -126,6 +127,17 @@ packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
 	packet->max_content = max_content;
 	packet->data_start = packet->dest_addr + addr_len + packet->max_prefix;
 	packet->data_end = packet->data_start;
+}
+
+/**
+ * Releases the memory allocated for the packet
+ *
+ * @param[in] packet Pointer to the memory where the packet was allocated
+ */
+static void packet_dealloc(packet_t *packet)
+{
+	pm_remove(packet);
+	munmap(packet, packet->length);
 }
 
 /** Creates a new packet of dimensions at least as given.
@@ -140,29 +152,36 @@ packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
  * @return		The packet of dimensions at least as given.
  * @return		NULL if there is not enough memory left.
  */
-static packet_t *
-packet_create(size_t length, size_t addr_len, size_t max_prefix,
-    size_t max_content, size_t max_suffix)
+static packet_t *packet_alloc(size_t length, size_t addr_len,
+	size_t max_prefix, size_t max_content, size_t max_suffix)
 {
 	packet_t *packet;
 	int rc;
 
+	/* Global lock is locked */
 	assert(fibril_mutex_is_locked(&ps_globals.lock));
+	/* The length is some multiple of PAGE_SIZE */
+	assert(!(length & (PAGE_SIZE - 1)));
 
-	/* Already locked */
 	packet = (packet_t *) mmap(NULL, length, PROTO_READ | PROTO_WRITE,
-	    MAP_SHARED | MAP_ANONYMOUS, 0, 0);
+		MAP_SHARED | MAP_ANONYMOUS, 0, 0);
 	if (packet == MAP_FAILED)
 		return NULL;
+	
+	/* Using 32bit packet_id the id could overflow */
+	packet_id_t pid;
+	do {
+		pid = ps_globals.next_id;
+		ps_globals.next_id++;
+	} while (!pid || pm_find(pid));
+	packet->packet_id = pid;
 
-	ps_globals.count++;
-	packet->packet_id = ps_globals.count;
 	packet->length = length;
 	packet_init(packet, addr_len, max_prefix, max_content, max_suffix);
 	packet->magic_value = PACKET_MAGIC_VALUE;
 	rc = pm_add(packet);
 	if (rc != EOK) {
-		munmap(packet, packet->length);
+		packet_dealloc(packet);
 		return NULL;
 	}
 	
@@ -183,43 +202,46 @@ packet_create(size_t length, size_t addr_len, size_t max_prefix,
  * @return		The packet of dimensions at least as given.
  * @return		NULL if there is not enough memory left.
  */
-static packet_t *
-packet_get_local(size_t addr_len, size_t max_prefix, size_t max_content,
-    size_t max_suffix)
+static packet_t *packet_get_local(size_t addr_len,
+	size_t max_prefix, size_t max_content, size_t max_suffix)
 {
-	size_t length = ALIGN_UP(sizeof(packet_t) + 2 * addr_len +
-	    max_prefix + max_content + max_suffix, PAGE_SIZE);
+	size_t length = ALIGN_UP(sizeof(packet_t) + 2 * addr_len
+		+ max_prefix + max_content + max_suffix, PAGE_SIZE);
 	
+	if (length > PACKET_MAX_LENGTH)
+		return NULL;
+
 	fibril_mutex_lock(&ps_globals.lock);
 	
 	packet_t *packet;
 	unsigned int index;
 	
 	for (index = 0; index < FREE_QUEUES_COUNT; index++) {
-		if ((length > ps_globals.sizes[index]) &&
-		    (index < FREE_QUEUES_COUNT - 1))
+		if ((length > ps_globals.free_queues[index].packet_size) &&
+			(index < FREE_QUEUES_COUNT - 1))
 			continue;
 		
-		packet = ps_globals.free[index];
+		packet = ps_globals.free_queues[index].first;
 		while (packet_is_valid(packet) && (packet->length < length))
 			packet = pm_find(packet->next);
 		
 		if (packet_is_valid(packet)) {
-			if (packet == ps_globals.free[index])
-				ps_globals.free[index] = pq_detach(packet);
-			else
+			ps_globals.free_queues[index].count--;
+			if (packet == ps_globals.free_queues[index].first) {
+				ps_globals.free_queues[index].first = pq_detach(packet);
+			} else {
 				pq_detach(packet);
+			}
 			
-			packet_init(packet, addr_len, max_prefix, max_content,
-			    max_suffix);
+			packet_init(packet, addr_len, max_prefix, max_content, max_suffix);
 			fibril_mutex_unlock(&ps_globals.lock);
 			
 			return packet;
 		}
 	}
 	
-	packet = packet_create(length, addr_len, max_prefix, max_content,
-	    max_suffix);
+	packet = packet_alloc(length, addr_len,
+		max_prefix, max_content, max_suffix);
 	
 	fibril_mutex_unlock(&ps_globals.lock);
 	
@@ -239,12 +261,13 @@ static void packet_release(packet_t *packet)
 	assert(fibril_mutex_is_locked(&ps_globals.lock));
 
 	for (index = 0; (index < FREE_QUEUES_COUNT - 1) &&
-	    (packet->length > ps_globals.sizes[index]); index++) {
+	    (packet->length > ps_globals.free_queues[index].packet_size); index++) {
 		;
 	}
 	
-	result = pq_add(&ps_globals.free[index], packet, packet->length,
-	    packet->length);
+	ps_globals.free_queues[index].count++;
+	result = pq_add(&ps_globals.free_queues[index].first, packet,
+		packet->length,	packet->length);
 	assert(result == EOK);
 }
 
@@ -327,7 +350,7 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *ans
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_PACKET_CREATE_1:
 		packet = packet_get_local(DEFAULT_ADDR_LEN, DEFAULT_PREFIX,
-		    IPC_GET_CONTENT(*call), DEFAULT_SUFFIX);
+			IPC_GET_CONTENT(*call), DEFAULT_SUFFIX);
 		if (!packet)
 			return ENOMEM;
 		*answer_count = 2;
@@ -337,7 +360,7 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *ans
 	
 	case NET_PACKET_CREATE_4:
 		packet = packet_get_local(
-		    ((DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN(*call)) ?
+			((DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN(*call)) ?
 		    IPC_GET_ADDR_LEN(*call) : DEFAULT_ADDR_LEN),
 		    DEFAULT_PREFIX + IPC_GET_PREFIX(*call),
 		    IPC_GET_CONTENT(*call),
@@ -351,8 +374,9 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *ans
 	
 	case NET_PACKET_GET:
 		packet = pm_find(IPC_GET_ID(*call));
-		if (!packet_is_valid(packet))
+		if (!packet_is_valid(packet)) {
 			return ENOENT;
+		}
 		return packet_reply(packet);
 	
 	case NET_PACKET_GET_SIZE:
@@ -368,6 +392,11 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *ans
 	}
 	
 	return ENOTSUP;
+}
+
+int packet_server_init()
+{
+	return EOK;
 }
 
 /** @}

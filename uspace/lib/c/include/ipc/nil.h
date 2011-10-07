@@ -69,6 +69,10 @@ typedef enum {
 	 * @see nil_get_broadcast_addr()
 	 */
 	NET_NIL_BROADCAST_ADDR,
+	/** Device has changed address
+	 * @see nil_addr_changed_msg()
+	 */
+	NET_NIL_ADDR_CHANGED
 } nil_messages;
 
 /** @name Network interface layer specific message parameters definitions */

@@ -34,16 +34,14 @@
  * Wrapper for the standalone networking module.
  */
 
-#include "net.h"
-
 #include <str.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <ipc/net.h>
 #include <errno.h>
-
 #include <ip_interface.h>
-#include <packet_server.h>
+#include "net.h"
+#include "packet_server.h"
 
 /** Networking module global data. */
 extern net_globals_t net_globals;
@@ -61,7 +59,7 @@ int net_initialize_build(async_client_conn_t client_connection)
 {
 	int rc;
 	
-	task_id_t task_id = net_spawn((uint8_t *) "/srv/ip");
+	task_id_t task_id = net_spawn((uint8_t *) IP_FILENAME);
 	if (!task_id)
 		return EINVAL;
 	
