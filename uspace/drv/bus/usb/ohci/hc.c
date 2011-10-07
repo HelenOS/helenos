@@ -570,8 +570,7 @@ int hc_init_memory(hc_t *instance)
 	bzero(instance->hcca, sizeof(hcca_t));
 	usb_log_debug2("OHCI HCCA initialized at %p.\n", instance->hcca);
 
-	unsigned i = 0;
-	for (; i < 32; ++i) {
+	for (unsigned i = 0; i < 32; ++i) {
 		instance->hcca->int_ep[i] =
 		    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa;
 	}

@@ -350,8 +350,7 @@ uint16_t create_interrupt_mask(rh_t *instance)
 	if (instance->registers->rh_status & (RHS_LPSC_FLAG | RHS_OCIC_FLAG)) {
 		mask |= 1;
 	}
-	size_t port = 1;
-	for (; port <= instance->port_count; ++port) {
+	for (size_t port = 1; port <= instance->port_count; ++port) {
 		/* Write-clean bits are those that indicate change */
 		if (RHPS_CHANGE_WC_MASK
 		    & instance->registers->rh_port_status[port - 1]) {

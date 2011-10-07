@@ -51,9 +51,8 @@ static void ohci_transfer_batch_dispose(ohci_transfer_batch_t *ohci_batch)
 {
 	if (!ohci_batch)
 		return;
-	unsigned i = 0;
 	if (ohci_batch->tds) {
-		for (; i < ohci_batch->td_count; ++i) {
+		for (unsigned i = 0; i < ohci_batch->td_count; ++i) {
 			if (i != ohci_batch->leave_td)
 				free32(ohci_batch->tds[i]);
 		}
@@ -106,8 +105,8 @@ if (ptr == NULL) { \
 	ohci_batch->ed = ohci_endpoint_get(usb_batch->ep)->ed;
 	ohci_batch->tds[0] = ohci_endpoint_get(usb_batch->ep)->td;
 	ohci_batch->leave_td = 0;
-	unsigned i = 1;
-	for (; i <= ohci_batch->td_count; ++i) {
+
+	for (unsigned i = 1; i <= ohci_batch->td_count; ++i) {
 		ohci_batch->tds[i] = malloc32(sizeof(td_t));
 		CHECK_NULL_DISPOSE_RET(ohci_batch->tds[i],
 		    "Failed to allocate TD %d.\n", i );
@@ -195,9 +194,10 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 	assert(i > 0);
 	ohci_batch->usb_batch->transfered_size =
 	    ohci_batch->usb_batch->buffer_size;
-	for (--i;i < ohci_batch->td_count; ++i)
+	for (--i;i < ohci_batch->td_count; ++i) {
 		ohci_batch->usb_batch->transfered_size
 		    -= td_remain_size(ohci_batch->tds[i]);
+	}
 
 	/* Clear possible ED HALT */
 	ohci_batch->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
