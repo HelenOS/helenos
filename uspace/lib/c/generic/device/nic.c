@@ -136,18 +136,18 @@ int nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 	assert(address);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE), NIC_GET_ADDRESS);
-	if (rc != EOK) {
-		async_exchange_end(exch);
-		return rc;
-	}
-	
-	rc = async_data_read_start(exch, address, sizeof(nic_address_t));
-	
+	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_GET_ADDRESS, NULL);
+	int rc = async_data_read_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	return rc;
+	sysarg_t res;
+	async_wait_for(aid, &res);
+	
+	if (rc != EOK)
+		return rc;
+	
+	return (int) res;
 }
 
 /** Set the address of the device (e.g. MAC on Ethernet)
@@ -163,13 +163,13 @@ int nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 	assert(address);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	aid_t message_id = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_ADDRESS, NULL);
 	int rc = async_data_write_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
 	sysarg_t res;
-	async_wait_for(message_id, &res);
+	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
 		return rc;

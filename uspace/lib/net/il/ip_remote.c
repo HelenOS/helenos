@@ -122,7 +122,7 @@ async_sess_t *ip_connect_module(services_t service)
  *         function.
  *
  */
-int ip_device_req_remote(async_sess_t *sess, nic_device_id_t device_id,
+int ip_device_req(async_sess_t *sess, nic_device_id_t device_id,
     services_t service)
 {
 	return generic_device_req_remote(sess, NET_IP_DEVICE, device_id,

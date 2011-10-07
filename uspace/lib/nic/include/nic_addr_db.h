@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet
+/**
+ * @addtogroup libnic
  * @{
  */
-/** @file
- * General CRC and checksum computation.
+/**
+ * @file
+ * @brief Generic hash-set based database of addresses
  */
 
-#ifndef LIBNET_CHECKSUM_H_
-#define LIBNET_CHECKSUM_H_
+#ifndef __NIC_ADDR_DB_H__
+#define __NIC_ADDR_DB_H__
 
-#include <byteorder.h>
-#include <sys/types.h>
+#ifndef LIBNIC_INTERNAL
+#error "This is internal libnic header, please don't include it"
+#endif
 
-/** IP checksum value for computed zero checksum.
- *
- * Zero is returned as 0xFFFF (not flipped)
- *
+#include <adt/hash_set.h>
+
+/**
+ * Initial size of DB's hash set
  */
-#define IP_CHECKSUM_ZERO  0xffffU
+#define NIC_ADDR_DB_INIT_SIZE 	8
+/**
+ * Maximal length of addresses in the DB (in bytes).
+ */
+#define NIC_ADDR_MAX_LENGTH		16
 
-#ifdef __BE__
+/**
+ * Fibril-safe database of addresses implemented using hash set.
+ */
+typedef struct nic_addr_db {
+	hash_set_t set;
+	size_t addr_len;
+} nic_addr_db_t;
 
-#define compute_crc32(seed, data, length) \
-	compute_crc32_be(seed, (uint8_t *) data, length)
+/**
+ * Helper structure for keeping the address in the hash set.
+ */
+typedef struct nic_addr_entry {
+	link_t item;
+	size_t addr_len;
+	uint8_t addr[NIC_ADDR_MAX_LENGTH];
+} nic_addr_entry_t;
 
-#endif
-
-#ifdef __LE__
-
-#define compute_crc32(seed, data, length) \
-	compute_crc32_le(seed, (uint8_t *) data, length)
-
-#endif
-
-extern uint32_t compute_crc32_le(uint32_t, uint8_t *, size_t);
-extern uint32_t compute_crc32_be(uint32_t, uint8_t *, size_t);
-extern uint32_t compute_checksum(uint32_t, uint8_t *, size_t);
-extern uint16_t compact_checksum(uint32_t);
-extern uint16_t flip_checksum(uint16_t);
-extern uint16_t ip_checksum(uint8_t *, size_t);
-extern uint64_t multicast_hash(const uint8_t addr[6]);
+extern int nic_addr_db_init(nic_addr_db_t *db, size_t addr_len);
+extern void nic_addr_db_clear(nic_addr_db_t *db);
+extern void nic_addr_db_destroy(nic_addr_db_t *db);
+extern size_t nic_addr_db_count(const nic_addr_db_t *db);
+extern int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr);
+extern int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr);
+extern void nic_addr_db_remove_selected(nic_addr_db_t *db,
+	int (*func)(const uint8_t *, void *), void *arg);
+extern int nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr);
+extern void nic_addr_db_foreach(const nic_addr_db_t *db,
+	void (*func)(const uint8_t *, void *), void *arg);
 
 #endif
 

@@ -122,6 +122,7 @@ int tl_module_start(sysarg_t service)
 	if (rc != EOK)
 		goto out;
 	
+	task_retval(0);
 	async_manager();
 	
 out:

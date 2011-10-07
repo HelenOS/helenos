@@ -31,11 +31,6 @@
  * @{
  */
 
-/** @file
- * Networking subsystem central module implementation.
- *
- */
-
 #include <assert.h>
 #include <async.h>
 #include <ctype.h>
@@ -54,7 +49,6 @@
 #include <ipc/il.h>
 #include <ipc/ip.h>
 #include <ipc/nil.h>
-#include <net/modules.h>
 #include <net/packet.h>
 #include <net/device.h>
 #include <adt/char_map.h>
@@ -71,9 +65,6 @@
 #include "net.h"
 #include "packet_server.h"
 
-/** Networking module name. */
-#define NAME  "net"
-
 #define MAX_PATH_LENGTH  1024
 
 /** Networking module global data. */
@@ -81,8 +72,6 @@ net_globals_t net_globals;
 
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
 DEVICE_MAP_IMPLEMENT(netifs, netif_t);
-
-static int startup(void);
 
 /** Add the configured setting to the configuration map.
  *
@@ -94,8 +83,8 @@ static int startup(void);
  * @return ENOMEM if there is not enough memory left.
  *
  */
-int add_configuration(measured_strings_t *configuration, const uint8_t *name,
-    const uint8_t *value)
+static int add_configuration(measured_strings_t *configuration,
+    const uint8_t *name, const uint8_t *value)
 {
 	int rc;
 	
@@ -145,7 +134,6 @@ static int read_configuration_file(const char *directory, const char *filename,
 		rc = add_configuration(configuration,
 		    (uint8_t *) entry->key, (uint8_t *) entry->value);
 		if (rc != EOK) {
-			printf("%s: Error processing configuration\n", NAME);
 			cfg_unload(&cfg);
 			return rc;
 		}
@@ -179,93 +167,6 @@ static int read_configuration(void)
 {
 	return read_configuration_file(CONF_DIR, CONF_GENERAL_FILE,
 	    &net_globals.configuration);
-}
-
-/** Initialize the networking module.
- *
- * @param[in] client_connection The client connection processing
- *                              function. The module skeleton propagates
- *                              its own one.
- *
- * @return EOK on success.
- * @return ENOMEM if there is not enough memory left.
- *
- */
-static int net_initialize(async_client_conn_t client_connection)
-{
-	int rc;
-	
-	netifs_initialize(&net_globals.netifs);
-	char_map_initialize(&net_globals.netif_hwpaths);
-	modules_initialize(&net_globals.modules);
-	measured_strings_initialize(&net_globals.configuration);
-	
-	rc = read_configuration();
-	if (rc != EOK)
-		return rc;
-	
-	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,
-	    (uint8_t *) ETHERNET_FILENAME, SERVICE_ETHERNET, 0, connect_to_service);
-	if (rc != EOK)
-		return rc;
-	
-	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NILDUMMY_NAME,
-	    (uint8_t *) NILDUMMY_FILENAME, SERVICE_NILDUMMY, 0, connect_to_service);
-	if (rc != EOK)
-		return rc;
-	
-	/* Build specific initialization */
-	return net_initialize_build(client_connection);
-}
-
-/** Start the networking module.
- *
- * Initializes the client connection serving function,
- * initializes the module, registers the module service
- * and starts the async manager, processing IPC messages
- * in an infinite loop.
- *
- * @param[in] client_connection The client connection
- *                              processing function. The
- *                              module skeleton propagates
- *                              its own one.
- *
- * @return EOK on successful module termination.
- * @return Other error codes as defined for the net_initialize() function.
- * @return Other error codes as defined for the REGISTER_ME() macro function.
- *
- */
-static int net_module_start(async_client_conn_t client_connection)
-{
-	int rc;
-	
-	async_set_client_connection(client_connection);
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-	
-	rc = packet_server_init();
-	if (rc != EOK)
-		goto out;
-	
-	rc = net_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-	
-	rc = startup();
-	if (rc != EOK)
-		goto out;
-	
-	rc = service_register(SERVICE_NETWORKING);
-	if (rc != EOK)
-		goto out;
-	
-	task_retval(0);
-	async_manager();
-
-out:
-	pm_destroy();
-	return rc;
 }
 
 /** Return the configured values.
@@ -387,6 +288,8 @@ static void net_free_devices(measured_string_t *devices, size_t count)
  */
 static int init_device(netif_t *netif, devman_handle_t handle)
 {
+	printf("%s: Initializing device '%s'\n", NAME, netif->name);
+	
 	netif->handle = handle;
 	netif->sess = devman_device_connect(EXCHANGE_SERIALIZE, netif->handle,
 	    IPC_FLAG_BLOCKING);
@@ -458,10 +361,11 @@ static int init_device(netif_t *netif, devman_handle_t handle)
 		return ENOENT;
 	}
 	
+	printf("%s: Activating device '%s'\n", NAME, netif->name);
 	return nic_set_state(netif->sess, NIC_STATE_ACTIVE);
 }
 
-static int net_driver_port_ready(devman_handle_t handle)
+static int net_port_ready(devman_handle_t handle)
 {
 	char hwpath[MAX_PATH_LENGTH];
 	int rc = devman_fun_get_path(handle, hwpath, MAX_PATH_LENGTH);
@@ -499,107 +403,11 @@ static int net_driver_ready_local(devman_handle_t handle)
 		return rc;
 	
 	for (size_t i = 0; i < count; i++) {
-		rc = net_driver_port_ready(funs[i]);
+		rc = net_port_ready(funs[i]);
 		if (rc != EOK)
 			return rc;
 	}
 	
-	return EOK;
-}
-
-/** Read the configuration and start all network interfaces.
- *
- * @return EOK on success.
- * @return EXDEV if there is no available system-unique device identifier.
- * @return EINVAL if any of the network interface names are not configured.
- * @return ENOMEM if there is not enough memory left.
- * @return Other error codes as defined for the read_configuration()
- *         function.
- * @return Other error codes as defined for the read_netif_configuration()
- *         function.
- * @return Other error codes as defined for the start_device() function.
- *
- */
-static int startup(void)
-{
-	int rc;
-	
-	DIR *config_dir = opendir(CONF_DIR);
-	if (config_dir == NULL)
-		return ENOENT;
-	
-	struct dirent *dir_entry;
-	while ((dir_entry = readdir(config_dir))) {
-		if (str_cmp(dir_entry->d_name + str_length(dir_entry->d_name)
-			- str_length(CONF_EXT), CONF_EXT) != 0)
-			continue;
-		
-		netif_t *netif = (netif_t *) malloc(sizeof(netif_t));
-		if (!netif)
-			continue;
-		
-		netif->handle = -1;
-		netif->sess = NULL;
-		
-		netif->id = generate_new_device_id();
-		if (!netif->id) {
-			free(netif);
-			continue;
-		}
-		
-		rc = measured_strings_initialize(&netif->configuration);
-		if (rc != EOK) {
-			free(netif);
-			continue;
-		}
-		
-		rc = read_netif_configuration(dir_entry->d_name, netif);
-		if (rc != EOK) {
-			free(netif);
-			continue;
-		}
-		
-		/* Mandatory name */
-		measured_string_t *name = measured_strings_find(&netif->configuration,
-		    (uint8_t *) CONF_NAME, 0);
-		if (!name) {
-			printf("%s: Network interface name is missing\n", NAME);
-			measured_strings_destroy(&netif->configuration, free);
-			free(netif);
-			continue;
-		}
-		
-		netif->name = name->value;
-		
-		/* Mandatory hardware path */
-		measured_string_t *hwpath = measured_strings_find(
-		    &netif->configuration, (const uint8_t *) CONF_HWPATH, 0);
-		if (!hwpath) {
-			measured_strings_destroy(&netif->configuration, free);
-			free(netif);
-		}
-		
-		/* Add to the netifs map */
-		int index = netifs_add(&net_globals.netifs, netif->id, netif);
-		if (index < 0) {
-			measured_strings_destroy(&netif->configuration, free);
-			free(netif);
-			continue;
-		}
-		
-		/*
-		 * Add to the hardware paths map and init network interfaces
-		 * and needed modules.
-		 */
-		rc = char_map_add(&net_globals.netif_hwpaths, hwpath->value, 0, index);
-		if (rc != EOK) {
-			measured_strings_destroy(&netif->configuration, free);
-			netifs_exclude_index(&net_globals.netifs, index, free);
-			continue;
-		}
-	}
-	
-	closedir(config_dir);
 	return EOK;
 }
 
@@ -618,8 +426,8 @@ static int startup(void)
  * @see IS_NET_NET_MESSAGE()
  *
  */
-int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
-    size_t *answer_count)
+static int net_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
 	measured_string_t *strings;
 	uint8_t *data;
@@ -698,28 +506,199 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall,
 	while (true) {
 		/* Clear the answer structure */
 		ipc_call_t answer;
-		size_t answer_count;
-		refresh_answer(&answer, &answer_count);
+		size_t count;
+		refresh_answer(&answer, &count);
 		
 		/* Fetch the next message */
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = net_module_message(callid, &call, &answer, &answer_count);
+		int res;
+		if (IS_NET_PACKET_MESSAGE(call))
+			res = packet_server_message(callid, &call, &answer, &count);
+		else
+			res = net_message(callid, &call, &answer, &count);
 		
 		/* End if told to either by the message or the processing result */
 		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
+		answer_call(callid, res, &answer, count);
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	return net_module_start(net_client_connection);
+	netifs_initialize(&net_globals.netifs);
+	char_map_initialize(&net_globals.netif_hwpaths);
+	modules_initialize(&net_globals.modules);
+	measured_strings_initialize(&net_globals.configuration);
+	async_set_client_connection(net_client_connection);
+	
+	int rc = pm_init();
+	if (rc != EOK) {
+		printf("%s: Unable to initialize packet management\n", NAME);
+		return rc;
+	}
+	
+	rc = packet_server_init();
+	if (rc != EOK) {
+		printf("%s: Unable to initialize packet server\n", NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	rc = read_configuration();
+	if (rc != EOK) {
+		printf("%s: Error reading configuration\n", NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	DIR *config_dir = opendir(CONF_DIR);
+	if (config_dir != NULL) {
+		struct dirent *dir_entry;
+		while ((dir_entry = readdir(config_dir))) {
+			/* Ignore files without the CONF_EXT extension */
+			if ((str_size(dir_entry->d_name) < str_size(CONF_EXT)) ||
+			    (str_cmp(dir_entry->d_name + str_size(dir_entry->d_name) -
+			    str_size(CONF_EXT), CONF_EXT) != 0))
+				continue;
+			
+			
+			netif_t *netif = (netif_t *) malloc(sizeof(netif_t));
+			if (!netif)
+				continue;
+			
+			netif->handle = -1;
+			netif->sess = NULL;
+			
+			netif->id = generate_new_device_id();
+			if (!netif->id) {
+				free(netif);
+				continue;
+			}
+			
+			rc = measured_strings_initialize(&netif->configuration);
+			if (rc != EOK) {
+				free(netif);
+				continue;
+			}
+			
+			rc = read_netif_configuration(dir_entry->d_name, netif);
+			if (rc != EOK) {
+				printf("%s: Error reading configuration %s\n", NAME,
+				    dir_entry->d_name);
+				free(netif);
+				continue;
+			}
+			
+			measured_string_t *name = measured_strings_find(&netif->configuration,
+			    (uint8_t *) CONF_NAME, 0);
+			if (!name) {
+				printf("%s: Network interface name is missing in %s\n",
+				    NAME, dir_entry->d_name);
+				measured_strings_destroy(&netif->configuration, free);
+				free(netif);
+				continue;
+			}
+			
+			netif->name = name->value;
+			
+			/* Mandatory hardware path */
+			measured_string_t *hwpath = measured_strings_find(
+			    &netif->configuration, (const uint8_t *) CONF_HWPATH, 0);
+			if (!hwpath) {
+				printf("%s: Hardware path is missing in %s\n",
+				    NAME, dir_entry->d_name);
+				measured_strings_destroy(&netif->configuration, free);
+				free(netif);
+				continue;
+			}
+			
+			int index = netifs_add(&net_globals.netifs, netif->id, netif);
+			if (index < 0) {
+				measured_strings_destroy(&netif->configuration, free);
+				free(netif);
+				continue;
+			}
+			
+			/*
+			 * Add to the hardware paths map and init network interfaces
+			 * and needed modules.
+			 */
+			rc = char_map_add(&net_globals.netif_hwpaths, hwpath->value, 0, index);
+			if (rc != EOK) {
+				measured_strings_destroy(&netif->configuration, free);
+				netifs_exclude_index(&net_globals.netifs, index, free);
+				continue;
+			}
+		}
+		
+		closedir(config_dir);
+	}
+	
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,
+	    (uint8_t *) ETHERNET_FILENAME, SERVICE_ETHERNET, 0, connect_to_service);
+	if (rc != EOK) {
+		printf("%s: Error adding module '%s'\n", NAME, ETHERNET_NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NILDUMMY_NAME,
+	    (uint8_t *) NILDUMMY_FILENAME, SERVICE_NILDUMMY, 0, connect_to_service);
+	if (rc != EOK) {
+		printf("%s: Error adding module '%s'\n", NAME, NILDUMMY_NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	task_id_t task_id = net_spawn((uint8_t *) IP_FILENAME);
+	if (!task_id) {
+		printf("%s: Error spawning IP module\n", NAME);
+		pm_destroy();
+		return EINVAL;
+	}
+	
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) IP_NAME,
+	    (uint8_t *) IP_FILENAME, SERVICE_IP, task_id, ip_connect_module);
+	if (rc != EOK) {
+		printf("%s: Error adding module '%s'\n", NAME, IP_NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	if (!net_spawn((uint8_t *) "/srv/icmp")) {
+		printf("%s: Error spawning ICMP module\n", NAME);
+		pm_destroy();
+		return EINVAL;
+	}
+	
+	if (!net_spawn((uint8_t *) "/srv/udp")) {
+		printf("%s: Error spawning UDP module\n", NAME);
+		pm_destroy();
+		return EINVAL;
+	}
+	
+	if (!net_spawn((uint8_t *) "/srv/tcp")) {
+		printf("%s: Error spawning TCP module\n", NAME);
+		pm_destroy();
+		return EINVAL;
+	}
+	
+	rc = service_register(SERVICE_NETWORKING);
+	if (rc != EOK) {
+		printf("%s: Error registering service\n", NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	task_retval(0);
+	async_manager();
+	return 0;
 }
 
 /** @}

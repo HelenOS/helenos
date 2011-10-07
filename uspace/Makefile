@@ -116,7 +116,8 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/usbmouse \
-	drv/bus/usb/vhc
+	drv/bus/usb/vhc \
+	drv/nic/lo
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -180,6 +181,7 @@ LIBS = \
 	lib/drv \
 	lib/fb \
 	lib/net \
+	lib/nic \
 	lib/ext2 \
 	lib/usb \
 	lib/usbhost \

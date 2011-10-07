@@ -40,6 +40,7 @@
 
 #include <adt/int_map.h>
 #include <net/eth_phys.h>
+#include <bool.h>
 
 /** Ethernet address length. */
 #define ETH_ADDR  6
@@ -50,6 +51,14 @@
 /** MAC arguments */
 #define ARGSMAC(__a) \
 	(__a)[0], (__a)[1], (__a)[2], (__a)[3], (__a)[4], (__a)[5]
+
+/* Compare MAC address with specific value */
+#define MAC_EQUALS_VALUE(__a, __a0, __a1, __a2, __a3, __a4, __a5) \
+	((__a)[0] == (__a0) && (__a)[1] == (__a1) && (__a)[2] == (__a2) \
+	&& (__a)[3] == (__a3) && (__a)[4] == (__a4) && (__a)[5] == (__a5))
+
+#define MAC_IS_ZERO(__x) \
+	MAC_EQUALS_VALUE(__x, 0, 0, 0, 0, 0, 0)
 
 /** Device identifier to generic type map declaration. */
 #define DEVICE_MAP_DECLARE  INT_MAP_DECLARE
@@ -220,6 +229,31 @@ typedef struct nic_device_stats {
 	unsigned long send_compressed;
 } nic_device_stats_t;
 
+/** Errors corresponding to those in the nic_device_stats_t */
+typedef enum {
+	NIC_SEC_BUFFER_FULL,
+	NIC_SEC_ABORTED,
+	NIC_SEC_CARRIER_LOST,
+	NIC_SEC_FIFO_OVERRUN,
+	NIC_SEC_HEARTBEAT,
+	NIC_SEC_WINDOW_ERROR,
+	/* Error encountered during TX but with other type of error */
+	NIC_SEC_OTHER
+} nic_send_error_cause_t;
+
+/** Errors corresponding to those in the nic_device_stats_t */
+typedef enum {
+	NIC_REC_BUFFER_FULL,
+	NIC_REC_LENGTH,
+	NIC_REC_BUFFER_OVERFLOW,
+	NIC_REC_CRC,
+	NIC_REC_FRAME_ALIGNMENT,
+	NIC_REC_FIFO_OVERRUN,
+	NIC_REC_MISSED,
+	/* Error encountered during RX but with other type of error */
+	NIC_REC_OTHER
+} nic_receive_error_cause_t;
+
 /**
  * Information about the NIC that never changes - name, vendor, model,
  * capabilites and so on.
@@ -243,6 +277,15 @@ typedef struct nic_device_info {
 	 */
 	uint32_t autoneg_support;
 } nic_device_info_t;
+
+/**
+ * Type of the ethernet frame
+ */
+typedef enum nic_frame_type {
+	NIC_FRAME_UNICAST,
+	NIC_FRAME_MULTICAST,
+	NIC_FRAME_BROADCAST
+} nic_frame_type_t;
 
 /**
  * Specifies which unicast frames is the NIC receiving.
@@ -289,6 +332,27 @@ typedef struct nic_vlan_mask {
 
 /* WOL virtue identifier */
 typedef unsigned int nic_wv_id_t;
+
+/**
+ * Structure passed as argument for virtue NIC_WV_MAGIC_PACKET.
+ */
+typedef struct nic_wv_magic_packet_data {
+	uint8_t password[6];
+} nic_wv_magic_packet_data_t;
+
+/**
+ * Structure passed as argument for virtue NIC_WV_DIRECTED_IPV4
+ */
+typedef struct nic_wv_ipv4_data {
+	uint8_t address[4];
+} nic_wv_ipv4_data_t;
+
+/**
+ * Structure passed as argument for virtue NIC_WV_DIRECTED_IPV6
+ */
+typedef struct nic_wv_ipv6_data {
+	uint8_t address[16];
+} nic_wv_ipv6_data_t;
 
 /**
  * WOL virtue types defining the interpretation of data passed to the virtue.
@@ -375,6 +439,26 @@ typedef enum nic_poll_mode {
 	 */
 	NIC_POLL_SOFTWARE_PERIODIC
 } nic_poll_mode_t;
+
+/**
+ * Says if this virtue type is a multi-virtue (there can be multiple virtues of
+ * this type at once).
+ *
+ * @param type
+ *
+ * @return true or false
+ */
+static inline int nic_wv_is_multi(nic_wv_type_t type) {
+	switch (type) {
+	case NIC_WV_FULL_MATCH:
+	case NIC_WV_DESTINATION:
+	case NIC_WV_DIRECTED_IPV4:
+	case NIC_WV_DIRECTED_IPV6:
+		return true;
+	default:
+		return false;
+	}
+}
 
 static inline const char *nic_device_state_to_string(nic_device_state_t state)
 {

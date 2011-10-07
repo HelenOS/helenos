@@ -628,7 +628,7 @@ static int eth_register_message(services_t service, async_sess_t *sess)
 		}
 	}
 	
-	printf("%s: Protocol registered (protocol: %d, service: %d)\n",
+	printf("%s: Protocol registered (protocol: %d, service: %#x)\n",
 	    NAME, proto->protocol, proto->service);
 	
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);

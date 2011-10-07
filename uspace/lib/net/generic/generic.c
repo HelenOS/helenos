@@ -78,7 +78,7 @@ int generic_device_req_remote(async_sess_t *sess, sysarg_t message,
     nic_device_id_t device_id, services_t service)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int rc = async_req_2_0(exch, message, (sysarg_t) device_id,
+	int rc = async_req_3_0(exch, message, (sysarg_t) device_id, 0,
 	    (sysarg_t) service);
 	async_exchange_end(exch);
 	

@@ -42,8 +42,8 @@
  * @see IS_NET_PACKET_MESSAGE()
  */
 
-#ifndef LIBPACKET_PACKET_SERVER_H_
-#define LIBPACKET_PACKET_SERVER_H_
+#ifndef NET_PACKET_SERVER_H_
+#define NET_PACKET_SERVER_H_
 
 #include <ipc/common.h>
 

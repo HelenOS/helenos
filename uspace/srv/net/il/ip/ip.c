@@ -353,7 +353,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	ip_netif->dhcp = false;
 	ip_netif->routing = NET_DEFAULT_IP_ROUTING;
 	configuration = &names[0];
-
+	
 	/* Get configuration */
 	rc = net_get_device_conf_req(ip_globals.net_sess, ip_netif->device_id,
 	    &configuration, count, &data);
@@ -405,7 +405,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 			net_free_settings(configuration, data);
 			return ENOTSUP;
 		}
-
+		
 		if (configuration[6].value) {
 			ip_netif->arp = get_running_module(&ip_globals.modules,
 			    configuration[6].value);
@@ -416,12 +416,13 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 				return EINVAL;
 			}
 		}
+		
 		if (configuration[7].value)
 			ip_netif->routing = (configuration[7].value[0] == 'y');
-
+		
 		net_free_settings(configuration, data);
 	}
-
+	
 	/* Bind netif service which also initializes the device */
 	ip_netif->sess = nil_bind_service(ip_netif->service,
 	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
@@ -431,7 +432,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    ip_netif->service);
 		return ENOENT;
 	}
-
+	
 	/* Has to be after the device netif module initialization */
 	if (ip_netif->arp) {
 		if (route) {
@@ -447,7 +448,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 			ip_netif->arp = 0;
 		}
 	}
-
+	
 	/* Get packet dimensions */
 	rc = nil_packet_size_req(ip_netif->sess, ip_netif->device_id,
 	    &ip_netif->packet_dimension);
@@ -460,7 +461,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    ip_netif->packet_dimension.content, IP_MIN_CONTENT);
 		ip_netif->packet_dimension.content = IP_MIN_CONTENT;
 	}
-
+	
 	index = ip_netifs_add(&ip_globals.netifs, ip_netif->device_id, ip_netif);
 	if (index < 0)
 		return index;
@@ -477,7 +478,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    defgateway, INET_ADDRSTRLEN);
 		printf("%s: Default gateway (%s)\n", NAME, defgateway);
 	}
-
+	
 	return EOK;
 }
 
@@ -497,11 +498,11 @@ static int ip_device_req_local(nic_device_id_t device_id, services_t netif)
 		free(ip_netif);
 		return rc;
 	}
-
+	
 	ip_netif->device_id = device_id;
 	ip_netif->service = netif;
 	ip_netif->state = NIC_STATE_STOPPED;
-
+	
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
 
 	rc = ip_netif_initialize(ip_netif);

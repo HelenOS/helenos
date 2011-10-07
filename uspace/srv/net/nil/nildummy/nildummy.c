@@ -323,7 +323,7 @@ static int nildummy_register_message(services_t service, async_sess_t *sess)
 	nildummy_globals.proto.service = service;
 	nildummy_globals.proto.sess = sess;
 	
-	printf("%s: Protocol registered (service: %d)\n",
+	printf("%s: Protocol registered (service: %#x)\n",
 	    NAME, nildummy_globals.proto.service);
 	
 	fibril_rwlock_write_unlock(&nildummy_globals.protos_lock);

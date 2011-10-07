@@ -66,6 +66,7 @@ GENERIC_SOURCES = \
 	generic/clipboard.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
+	generic/device/hw_res_parsed.c \
 	generic/device/char_dev.c \
 	generic/device/nic.c \
 	generic/elf/elf_load.c \
@@ -103,6 +104,7 @@ GENERIC_SOURCES = \
 	generic/getopt.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
+	generic/adt/hash_set.c \
 	generic/adt/dynamic_fifo.c \
 	generic/adt/measured_strings.c \
 	generic/adt/char_map.c \

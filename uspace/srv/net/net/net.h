@@ -31,11 +31,6 @@
  * @{
  */
 
-/** @file
- * Networking subsystem central module.
- *
- */
-
 #ifndef NET_NET_H_
 #define NET_NET_H_
 
@@ -47,9 +42,7 @@
 #include <net/packet.h>
 #include <devman.h>
 
-/** @name Modules definitions
- * @{
- */
+#define NAME  "net"
 
 #define ETHERNET_FILENAME  "/srv/eth"
 #define ETHERNET_NAME      "eth"
@@ -94,16 +87,19 @@ GENERIC_CHAR_MAP_DECLARE(measured_strings, measured_string_t);
  *
  */
 typedef struct {
-	uint8_t *name;     			/**< System-unique network interface name. */
-	nic_device_id_t id;  		/**< System-unique network interface identifier. */
-	measured_strings_t configuration;  /**< Configuration. */
+	/** System-unique network interface name. */
+	uint8_t *name;
+	/** System-unique network interface identifier. */
+	nic_device_id_t id;
+	/** Configuration. */
+	measured_strings_t configuration;
 	
 	/** Serving network interface driver module index. */
-	devman_handle_t handle;		/**< Handle for devman */
-	async_sess_t *sess;		 	/**< Driver session. */
+	devman_handle_t handle;  /**< Handle for devman */
+	async_sess_t *sess;      /**< Driver session. */
 	
-	module_t *nil;   /**< Serving link layer module index. */
-	module_t *il;    /**< Serving internet layer module index. */
+	module_t *nil;  /**< Serving link layer module index. */
+	module_t *il;   /**< Serving internet layer module index. */
 } netif_t;
 
 /** Present network interfaces.
@@ -127,12 +123,6 @@ typedef struct {
 	/** Present network interfaces. */
 	netifs_t netifs;
 } net_globals_t;
-
-extern int add_configuration(measured_strings_t *, const uint8_t *,
-    const uint8_t *);
-extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, size_t *);
-extern int net_initialize_build(async_client_conn_t);
-extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, size_t *);
 
 #endif
 

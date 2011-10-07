@@ -45,7 +45,6 @@
 #define ip_received_error_msg  ip_received_error_msg_remote
 #define ip_set_gateway_req     ip_set_gateway_req_remote
 #define ip_packet_size_req     ip_packet_size_req_remote
-#define ip_device_req          ip_device_req_remote
 #define ip_add_route_req       ip_add_route_req_remote
 #define ip_send_msg            ip_send_msg_remote
 #define ip_get_route_req       ip_get_route_req_remote

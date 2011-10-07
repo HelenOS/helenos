@@ -121,7 +121,8 @@ RD_DRVS = \
 	infrastructure/rootvirt \
 	test/test1 \
 	test/test2 \
-	test/test3
+	test/test3 \
+	nic/lo
 
 RD_DRV_CFG =
 
