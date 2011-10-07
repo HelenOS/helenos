@@ -312,7 +312,14 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 		return EINVAL;
 	}
 
-	// TODO: Make sure that there is enough data and the cast is correct
+	if (usb_device->descriptors.configuration_size
+	    < sizeof(usb_standard_configuration_descriptor_t)) {
+	    usb_log_error("Configuration descriptor is not big enough"
+	        " to fit standard configuration descriptor.\n");
+	    return EOVERFLOW;
+	}
+
+	// TODO: Make sure that the cast is correct
 	usb_standard_configuration_descriptor_t *config_descriptor
 	    = (usb_standard_configuration_descriptor_t *)
 	    usb_device->descriptors.configuration;
