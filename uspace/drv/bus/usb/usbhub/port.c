@@ -468,7 +468,7 @@ static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_info_t *hub,
 	assert(hub);
 	assert(port);
 	struct add_device_phase1 *data
-	    = malloc(sizeof (struct add_device_phase1));
+	    = malloc(sizeof(struct add_device_phase1));
 	if (data == NULL) {
 		return ENOMEM;
 	}

@@ -211,9 +211,9 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
 
 	info->ports = NULL;
 	info->port_count = -1;
+	info->pending_ops_count = 0;
 	fibril_mutex_initialize(&info->pending_ops_mutex);
 	fibril_condvar_initialize(&info->pending_ops_cv);
-	info->pending_ops_count = 0;
 
 	return info;
 }
@@ -253,13 +253,12 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 
 	// TODO: +1 hack is no longer necessary
 	hub_info->ports =
-	    malloc(sizeof(usb_hub_port_t) * (hub_info->port_count + 1));
+	    calloc(hub_info->port_count + 1, sizeof(usb_hub_port_t));
 	if (!hub_info->ports) {
 		return ENOMEM;
 	}
 
-	size_t port;
-	for (port = 0; port < hub_info->port_count + 1; ++port) {
+	for (size_t port = 1; port < hub_info->port_count + 1; ++port) {
 		usb_hub_port_init(&hub_info->ports[port], port, control_pipe);
 	}
 
@@ -270,7 +269,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 		const bool per_port_power = descriptor.characteristics
 		    & HUB_CHAR_POWER_PER_PORT_FLAG;
 
-		for (port = 1; port <= hub_info->port_count; ++port) {
+		for (size_t port = 1; port <= hub_info->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
 			opResult = usb_hub_port_set_feature(
 			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
