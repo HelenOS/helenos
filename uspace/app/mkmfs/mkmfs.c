@@ -83,7 +83,7 @@ struct mfs_sb_info {
 };
 
 static void	help_cmd_mkmfs(help_level_t level);
-static int	num_of_set_bits(uint32_t n);
+static bool	is_power_of_two(uint32_t n);
 static int	init_superblock(struct mfs_sb_info *sb);
 static int	write_superblock(const struct mfs_sb_info *sbi);
 static int	write_superblock3(const struct mfs_sb_info *sbi);
@@ -171,7 +171,7 @@ int main (int argc, char **argv)
 			sb.block_size > MFS_MAX_BLOCKSIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (num_of_set_bits(sb.block_size) != 1) {
+	} else if (!is_power_of_two(sb.block_size)) {
 		/*Block size must be a power of 2.*/
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
@@ -235,6 +235,7 @@ int main (int argc, char **argv)
 	sb.dev_nblocks /= 2;
 
 	printf(NAME ": Creating Minix file system on device\n");
+	printf(NAME ": Writing superblock\n");
 
 	/*Initialize superblock*/
 	if (init_superblock(&sb) != EOK) {
@@ -242,17 +243,23 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
+	printf(NAME ": Initializing bitmaps\n");
+
 	/*Initialize bitmaps*/
 	if (init_bitmaps(&sb) != EOK) {
 		printf(NAME ": Error. Bitmaps initialization failed\n");
 		return 2;
 	}
 
+	printf(NAME ": Initializing the inode table\n");
+
 	/*Init inode table*/
 	if (init_inode_table(&sb) != EOK) {
 		printf(NAME ": Error. Inode table initialization failed\n");
 		return 2;
 	}
+
+	printf(NAME ": Creating the root directory inode\n");
 
 	/*Make the root inode*/
 	if (sb.fs_version == 1)
@@ -719,11 +726,12 @@ static void help_cmd_mkmfs(help_level_t level)
 	}
 }
 
-static int num_of_set_bits(uint32_t n)
+static bool is_power_of_two(uint32_t n)
 {
-	n = n - ((n >> 1) & 0x55555555);
-	n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
-	return (((n + (n >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+	if (n == 0)
+		return false;
+
+	return (n & (n - 1)) == 0;
 }
 
 
