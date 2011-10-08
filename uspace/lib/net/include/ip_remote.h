@@ -42,18 +42,18 @@
 #include <net/socket.h>
 #include <async.h>
 
-extern int ip_set_gateway_req_remote(async_sess_t *, device_id_t, in_addr_t);
-extern int ip_packet_size_req_remote(async_sess_t *, device_id_t,
+extern int ip_set_gateway_req_remote(async_sess_t *, nic_device_id_t, in_addr_t);
+extern int ip_packet_size_req_remote(async_sess_t *, nic_device_id_t,
     packet_dimension_t *);
-extern int ip_received_error_msg_remote(async_sess_t *, device_id_t, packet_t *,
+extern int ip_received_error_msg_remote(async_sess_t *, nic_device_id_t, packet_t *,
     services_t, services_t);
-extern int ip_device_req_remote(async_sess_t *, device_id_t, services_t);
-extern int ip_add_route_req_remote(async_sess_t *, device_id_t, in_addr_t,
+extern int ip_device_req(async_sess_t *, nic_device_id_t, services_t);
+extern int ip_add_route_req_remote(async_sess_t *, nic_device_id_t, in_addr_t,
     in_addr_t, in_addr_t);
-extern int ip_send_msg_remote(async_sess_t *, device_id_t, packet_t *,
+extern int ip_send_msg_remote(async_sess_t *, nic_device_id_t, packet_t *,
     services_t, services_t);
 extern int ip_get_route_req_remote(async_sess_t *, ip_protocol_t,
-    const struct sockaddr *, socklen_t, device_id_t *, void **, size_t *);
+    const struct sockaddr *, socklen_t, nic_device_id_t *, void **, size_t *);
 
 #endif
 

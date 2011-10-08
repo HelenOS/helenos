@@ -136,6 +136,12 @@ struct ddf_fun {
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
 	int (*add_device)(ddf_dev_t *);
+	/**
+	 * Notification that the device was succesfully added.
+	 * The driver can do any blocking operation without
+	 * blocking the device manager.
+	 */
+	void (*device_added)(ddf_dev_t *dev);
 	/** Ask driver to remove a device */
 	int (*dev_remove)(ddf_dev_t *);
 	/** Inform driver a device disappeared */

@@ -29,7 +29,6 @@
 /** @addtogroup libnet
  * @{
  */
-
 /** @file
  * General CRC and checksum computation.
  */
@@ -41,16 +40,24 @@
 #include <sys/types.h>
 
 /** IP checksum value for computed zero checksum.
+ *
  * Zero is returned as 0xFFFF (not flipped)
+ *
  */
-#define IP_CHECKSUM_ZERO	0xffffU
+#define IP_CHECKSUM_ZERO  0xffffU
 
-#ifdef ARCH_IS_BIG_ENDIAN
+#ifdef __BE__
+
 #define compute_crc32(seed, data, length) \
 	compute_crc32_be(seed, (uint8_t *) data, length)
-#else
+
+#endif
+
+#ifdef __LE__
+
 #define compute_crc32(seed, data, length) \
 	compute_crc32_le(seed, (uint8_t *) data, length)
+
 #endif
 
 extern uint32_t compute_crc32_le(uint32_t, uint8_t *, size_t);
@@ -59,6 +66,7 @@ extern uint32_t compute_checksum(uint32_t, uint8_t *, size_t);
 extern uint16_t compact_checksum(uint32_t);
 extern uint16_t flip_checksum(uint16_t);
 extern uint16_t ip_checksum(uint8_t *, size_t);
+extern uint64_t multicast_hash(const uint8_t addr[6]);
 
 #endif
 

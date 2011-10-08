@@ -353,7 +353,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	ip_netif->dhcp = false;
 	ip_netif->routing = NET_DEFAULT_IP_ROUTING;
 	configuration = &names[0];
-
+	
 	/* Get configuration */
 	rc = net_get_device_conf_req(ip_globals.net_sess, ip_netif->device_id,
 	    &configuration, count, &data);
@@ -405,7 +405,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 			net_free_settings(configuration, data);
 			return ENOTSUP;
 		}
-
+		
 		if (configuration[6].value) {
 			ip_netif->arp = get_running_module(&ip_globals.modules,
 			    configuration[6].value);
@@ -416,12 +416,13 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 				return EINVAL;
 			}
 		}
+		
 		if (configuration[7].value)
 			ip_netif->routing = (configuration[7].value[0] == 'y');
-
+		
 		net_free_settings(configuration, data);
 	}
-
+	
 	/* Bind netif service which also initializes the device */
 	ip_netif->sess = nil_bind_service(ip_netif->service,
 	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
@@ -431,7 +432,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    ip_netif->service);
 		return ENOENT;
 	}
-
+	
 	/* Has to be after the device netif module initialization */
 	if (ip_netif->arp) {
 		if (route) {
@@ -447,7 +448,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 			ip_netif->arp = 0;
 		}
 	}
-
+	
 	/* Get packet dimensions */
 	rc = nil_packet_size_req(ip_netif->sess, ip_netif->device_id,
 	    &ip_netif->packet_dimension);
@@ -460,7 +461,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    ip_netif->packet_dimension.content, IP_MIN_CONTENT);
 		ip_netif->packet_dimension.content = IP_MIN_CONTENT;
 	}
-
+	
 	index = ip_netifs_add(&ip_globals.netifs, ip_netif->device_id, ip_netif);
 	if (index < 0)
 		return index;
@@ -477,11 +478,11 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    defgateway, INET_ADDRSTRLEN);
 		printf("%s: Default gateway (%s)\n", NAME, defgateway);
 	}
-
+	
 	return EOK;
 }
 
-static int ip_device_req_local(device_id_t device_id, services_t netif)
+static int ip_device_req_local(nic_device_id_t device_id, services_t netif)
 {
 	ip_netif_t *ip_netif;
 	ip_route_t *route;
@@ -497,11 +498,11 @@ static int ip_device_req_local(device_id_t device_id, services_t netif)
 		free(ip_netif);
 		return rc;
 	}
-
+	
 	ip_netif->device_id = device_id;
 	ip_netif->service = netif;
-	ip_netif->state = NETIF_STOPPED;
-
+	ip_netif->state = NIC_STATE_STOPPED;
+	
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
 
 	rc = ip_netif_initialize(ip_netif);
@@ -593,7 +594,7 @@ static ip_route_t *ip_find_route(in_addr_t destination) {
 	index = ip_netifs_count(&ip_globals.netifs) - 1;
 	while (index >= 0) {
 		netif = ip_netifs_get_index(&ip_globals.netifs, index);
-		if (netif && (netif->state == NETIF_ACTIVE)) {
+		if (netif && (netif->state == NIC_STATE_ACTIVE)) {
 			route = ip_netif_find_route(netif, destination);
 			if (route)
 				return route;
@@ -1141,7 +1142,7 @@ static int ip_send_route(packet_t *packet, ip_netif_t *netif,
 	return rc;
 }
 
-static int ip_send_msg_local(device_id_t device_id, packet_t *packet,
+static int ip_send_msg_local(nic_device_id_t device_id, packet_t *packet,
     services_t sender, services_t error)
 {
 	int addrlen;
@@ -1257,7 +1258,8 @@ static int ip_send_msg_local(device_id_t device_id, packet_t *packet,
  * @return		EOK on success.
  * @return		ENOENT if device is not found.
  */
-static int ip_device_state_message(device_id_t device_id, device_state_t state)
+static int ip_device_state_message(nic_device_id_t device_id,
+    nic_device_state_t state)
 {
 	ip_netif_t *netif;
 
@@ -1271,7 +1273,8 @@ static int ip_device_state_message(device_id_t device_id, device_state_t state)
 	netif->state = state;
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 
-	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
+	printf("%s: Device %d changed state to '%s'\n", NAME, device_id,
+	    nic_device_state_to_string(state));
 
 	return EOK;
 }
@@ -1311,7 +1314,7 @@ static in_addr_t ip_get_destination(ip_header_t *header)
  * @return		Other error codes as defined for the protocol specific
  *			tl_received_msg() function.
  */
-static int ip_deliver_local(device_id_t device_id, packet_t *packet,
+static int ip_deliver_local(nic_device_id_t device_id, packet_t *packet,
     ip_header_t *header, services_t error)
 {
 	ip_proto_t *proto;
@@ -1412,7 +1415,7 @@ static int ip_deliver_local(device_id_t device_id, packet_t *packet,
  * @return		ENOENT if the packet is for another host and the routing
  *			is disabled.
  */
-static int ip_process_packet(device_id_t device_id, packet_t *packet)
+static int ip_process_packet(nic_device_id_t device_id, packet_t *packet)
 {
 	ip_header_t *header;
 	in_addr_t dest;
@@ -1513,7 +1516,7 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
  * @return EOK on success.
  *
  */
-static int ip_packet_size_message(device_id_t device_id, size_t *addr_len,
+static int ip_packet_size_message(nic_device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
 	ip_netif_t *netif;
@@ -1571,7 +1574,7 @@ static int ip_packet_size_message(device_id_t device_id, size_t *addr_len,
  * @return		EOK on success.
  * @return		ENOENT if device is not found.
  */
-static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
+static int ip_mtu_changed_message(nic_device_id_t device_id, size_t mtu)
 {
 	ip_netif_t *netif;
 
@@ -1628,7 +1631,10 @@ static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			    IPC_GET_MTU(*icall));
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
-		
+		case NET_IL_ADDR_CHANGED:
+			async_answer_0(iid, (sysarg_t) EOK);
+			break;
+
 		default:
 			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
@@ -1688,7 +1694,7 @@ static int ip_register(int protocol, services_t service, async_sess_t *sess,
 	return EOK;
 }
 
-static int ip_add_route_req_local(device_id_t device_id, in_addr_t address,
+static int ip_add_route_req_local(nic_device_id_t device_id, in_addr_t address,
     in_addr_t netmask, in_addr_t gateway)
 {
 	ip_route_t *route;
@@ -1722,7 +1728,8 @@ static int ip_add_route_req_local(device_id_t device_id, in_addr_t address,
 	return index;
 }
 
-static int ip_set_gateway_req_local(device_id_t device_id, in_addr_t gateway)
+static int ip_set_gateway_req_local(nic_device_id_t device_id,
+    in_addr_t gateway)
 {
 	ip_netif_t *netif;
 
@@ -1756,7 +1763,7 @@ static int ip_set_gateway_req_local(device_id_t device_id, in_addr_t gateway)
  * @return EOK on success.
  *
  */
-static int ip_received_error_msg_local(device_id_t device_id,
+static int ip_received_error_msg_local(nic_device_id_t device_id,
     packet_t *packet, services_t target, services_t error)
 {
 	uint8_t *data;
@@ -1817,7 +1824,7 @@ static int ip_received_error_msg_local(device_id_t device_id,
 
 static int ip_get_route_req_local(ip_protocol_t protocol,
     const struct sockaddr *destination, socklen_t addrlen,
-    device_id_t *device_id, void **header, size_t *headerlen)
+    nic_device_id_t *device_id, void **header, size_t *headerlen)
 {
 	struct sockaddr_in *address_in;
 	in_addr_t *dest;
@@ -1908,7 +1915,7 @@ int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	size_t prefix;
 	size_t suffix;
 	size_t content;
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	int rc;
 	
 	*answer_count = 0;

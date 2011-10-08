@@ -38,6 +38,7 @@ SOURCES = \
 	generic/logbuf.c \
 	generic/remote_hw_res.c \
 	generic/remote_char_dev.c \
+	generic/remote_nic.c \
 	generic/remote_usb.c \
 	generic/remote_pci.c \
 	generic/remote_usbhc.c \

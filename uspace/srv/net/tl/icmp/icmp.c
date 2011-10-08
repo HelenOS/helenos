@@ -752,7 +752,7 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return rc;
 		
-		rc = icmp_echo(icmp_id, icmp_seq, ICMP_GET_SIZE(*call),	
+		rc = icmp_echo(icmp_id, icmp_seq, ICMP_GET_SIZE(*call),
 		    ICMP_GET_TIMEOUT(*call), ICMP_GET_TTL(*call),
 		    ICMP_GET_TOS(*call), ICMP_GET_DONT_FRAGMENT(*call),
 		    addr, (socklen_t) size);

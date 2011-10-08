@@ -181,7 +181,7 @@ struct tcp_socket_data {
 	size_t data_fragment_size;
 	
 	/** Device identifier. */
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	
 	/**
 	 * Listening backlog.

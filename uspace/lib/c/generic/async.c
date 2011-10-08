@@ -1846,10 +1846,6 @@ int async_hangup(async_sess_t *sess)
 	
 	fibril_mutex_lock(&async_sess_mutex);
 	
-	int rc = async_hangup_internal(sess->phone);
-	if (rc == EOK)
-		free(sess);
-	
 	while (!list_empty(&sess->exch_list)) {
 		exch = (async_exch_t *)
 		    list_get_instance(list_first(&sess->exch_list),
@@ -1860,6 +1856,9 @@ int async_hangup(async_sess_t *sess)
 		async_hangup_internal(exch->phone);
 		free(exch);
 	}
+
+	int rc = async_hangup_internal(sess->phone);
+	free(sess);
 	
 	fibril_mutex_unlock(&async_sess_mutex);
 	

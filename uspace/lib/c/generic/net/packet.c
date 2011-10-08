@@ -35,6 +35,7 @@
  *  This file has to be compiled with both the packet server and the client.
  */
 
+#include <assert.h>
 #include <malloc.h>
 #include <mem.h>
 #include <fibril_synch.h>
@@ -43,41 +44,63 @@
 
 #include <sys/mman.h>
 
-#include <adt/generic_field.h>
+#include <adt/hash_table.h>
 #include <net/packet.h>
 #include <net/packet_header.h>
 
-/** Packet map page size. */
-#define PACKET_MAP_SIZE	100
-
-/** Returns the packet map page index.
- * @param[in] packet_id The packet identifier.
- */
-#define PACKET_MAP_PAGE(packet_id)	(((packet_id) - 1) / PACKET_MAP_SIZE)
-
-/** Returns the packet index in the corresponding packet map page.
- *  @param[in] packet_id The packet identifier.
- */
-#define PACKET_MAP_INDEX(packet_id)	(((packet_id) - 1) % PACKET_MAP_SIZE)
-
-/** Type definition of the packet map page. */
-typedef packet_t *packet_map_t[PACKET_MAP_SIZE];
-
-/** Packet map.
- * Maps packet identifiers to the packet references.
- * @see generic_field.h
- */
-GENERIC_FIELD_DECLARE(gpm, packet_map_t);
+/** Packet hash table size. */
+#define PACKET_HASH_TABLE_SIZE  128
 
 /** Packet map global data. */
 static struct {
 	/** Safety lock. */
 	fibril_rwlock_t lock;
 	/** Packet map. */
-	gpm_t packet_map;
+	hash_table_t packet_map;
+	/** Packet map operations */
+	hash_table_operations_t operations;
 } pm_globals;
 
-GENERIC_FIELD_IMPLEMENT(gpm, packet_map_t);
+typedef struct {
+	link_t link;
+	packet_t *packet;
+} pm_entry_t;
+
+/**
+ * Hash function for the packet mapping hash table
+ */
+static hash_index_t pm_hash(unsigned long key[])
+{
+	return (hash_index_t) key[0] % PACKET_HASH_TABLE_SIZE;
+}
+
+/**
+ * Key compare function for the packet mapping hash table
+ */
+static int pm_compare(unsigned long key[], hash_count_t keys, link_t *link)
+{
+	pm_entry_t *entry = list_get_instance(link, pm_entry_t, link);
+	return entry->packet->packet_id == key[0];
+}
+
+/**
+ * Remove callback for the packet mapping hash table
+ */
+static void pm_remove_callback(link_t *link)
+{
+	pm_entry_t *entry = list_get_instance(link, pm_entry_t, link);
+	free(entry);
+}
+
+/**
+ * Wrapper used when destroying the whole table
+ */
+static void pm_free_wrapper(link_t *link, void *ignored)
+{
+	pm_entry_t *entry = list_get_instance(link, pm_entry_t, link);
+	free(entry);
+}
+
 
 /** Initializes the packet map.
  *
@@ -86,12 +109,20 @@ GENERIC_FIELD_IMPLEMENT(gpm, packet_map_t);
  */
 int pm_init(void)
 {
-	int rc;
+	int rc = EOK;
 
 	fibril_rwlock_initialize(&pm_globals.lock);
 	
 	fibril_rwlock_write_lock(&pm_globals.lock);
-	rc = gpm_initialize(&pm_globals.packet_map);
+	
+	pm_globals.operations.hash = pm_hash;
+	pm_globals.operations.compare = pm_compare;
+	pm_globals.operations.remove_callback = pm_remove_callback;
+
+	if (!hash_table_create(&pm_globals.packet_map, PACKET_HASH_TABLE_SIZE, 1,
+	    &pm_globals.operations))
+		rc = ENOMEM;
+	
 	fibril_rwlock_write_unlock(&pm_globals.lock);
 	
 	return rc;
@@ -99,98 +130,90 @@ int pm_init(void)
 
 /** Finds the packet mapping.
  *
- * @param[in] packet_id	The packet identifier to be found.
- * @return		The found packet reference.
- * @return		NULL if the mapping does not exist.
+ * @param[in] packet_id Packet identifier to be found.
+ *
+ * @return The found packet reference.
+ * @return NULL if the mapping does not exist.
+ *
  */
 packet_t *pm_find(packet_id_t packet_id)
 {
-	packet_map_t *map;
-	packet_t *packet;
-
 	if (!packet_id)
 		return NULL;
-
+	
 	fibril_rwlock_read_lock(&pm_globals.lock);
-	if (packet_id > PACKET_MAP_SIZE * gpm_count(&pm_globals.packet_map)) {
-		fibril_rwlock_read_unlock(&pm_globals.lock);
-		return NULL;
-	}
-	map = gpm_get_index(&pm_globals.packet_map, PACKET_MAP_PAGE(packet_id));
-	if (!map) {
-		fibril_rwlock_read_unlock(&pm_globals.lock);
-		return NULL;
-	}
-	packet = (*map) [PACKET_MAP_INDEX(packet_id)];
+	
+	unsigned long key = packet_id;
+	link_t *link = hash_table_find(&pm_globals.packet_map, &key);
+	
+	packet_t *packet;
+	if (link != NULL) {
+		pm_entry_t *entry =
+		    hash_table_get_instance(link, pm_entry_t, link);
+		packet = entry->packet;
+	} else
+		packet = NULL;
+	
 	fibril_rwlock_read_unlock(&pm_globals.lock);
 	return packet;
 }
 
 /** Adds the packet mapping.
  *
- * @param[in] packet	The packet to be remembered.
- * @return		EOK on success.
- * @return		EINVAL if the packet is not valid.
- * @return		EINVAL if the packet map is not initialized.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] packet Packet to be remembered.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the packet is not valid.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
 int pm_add(packet_t *packet)
 {
-	packet_map_t *map;
-	int rc;
-
 	if (!packet_is_valid(packet))
 		return EINVAL;
-
+	
 	fibril_rwlock_write_lock(&pm_globals.lock);
-
-	if (PACKET_MAP_PAGE(packet->packet_id) <
-	    gpm_count(&pm_globals.packet_map)) {
-		map = gpm_get_index(&pm_globals.packet_map,
-		    PACKET_MAP_PAGE(packet->packet_id));
-	} else {
-		do {
-			map = (packet_map_t *) malloc(sizeof(packet_map_t));
-			if (!map) {
-				fibril_rwlock_write_unlock(&pm_globals.lock);
-				return ENOMEM;
-			}
-			bzero(map, sizeof(packet_map_t));
-			rc = gpm_add(&pm_globals.packet_map, map);
-			if (rc < 0) {
-				fibril_rwlock_write_unlock(&pm_globals.lock);
-				free(map);
-				return rc;
-			}
-		} while (PACKET_MAP_PAGE(packet->packet_id) >=
-		    gpm_count(&pm_globals.packet_map));
+	
+	pm_entry_t *entry = malloc(sizeof(pm_entry_t));
+	if (entry == NULL) {
+		fibril_rwlock_write_unlock(&pm_globals.lock);
+		return ENOMEM;
 	}
-
-	(*map) [PACKET_MAP_INDEX(packet->packet_id)] = packet;
+	
+	entry->packet = packet;
+	
+	unsigned long key = packet->packet_id;
+	hash_table_insert(&pm_globals.packet_map, &key, &entry->link);
+	
 	fibril_rwlock_write_unlock(&pm_globals.lock);
+	
 	return EOK;
 }
 
-/** Releases the packet map. */
+/** Remove the packet mapping
+ *
+ * @param[in] packet The packet to be removed
+ *
+ */
+void pm_remove(packet_t *packet)
+{
+	assert(packet_is_valid(packet));
+	
+	fibril_rwlock_write_lock(&pm_globals.lock);
+	
+	unsigned long key = packet->packet_id;
+	hash_table_remove(&pm_globals.packet_map, &key, 1);
+	
+	fibril_rwlock_write_unlock(&pm_globals.lock);
+}
+
+/** Release the packet map. */
 void pm_destroy(void)
 {
-	int count;
-	int index;
-	packet_map_t *map;
-	packet_t *packet;
-
 	fibril_rwlock_write_lock(&pm_globals.lock);
-	count = gpm_count(&pm_globals.packet_map);
-	while (count > 0) {
-		map = gpm_get_index(&pm_globals.packet_map, count - 1);
-		for (index = PACKET_MAP_SIZE - 1; index >= 0; --index) {
-			packet = (*map)[index];
-			if (packet_is_valid(packet))
-				munmap(packet, packet->length);
-		}
-	}
-	gpm_destroy(&pm_globals.packet_map, free);
-	/* leave locked */
+	hash_table_apply(&pm_globals.packet_map, pm_free_wrapper, NULL);
+	hash_table_destroy(&pm_globals.packet_map);
+	/* Leave locked */
 }
 
 /** Add packet to the sorted queue.
@@ -198,48 +221,54 @@ void pm_destroy(void)
  * The queue is sorted in the ascending order.
  * The packet is inserted right before the packets of the same order value.
  *
- * @param[in,out] first	The first packet of the queue. Sets the first packet of
- *			the queue. The original first packet may be shifted by
- *			the new packet.
- * @param[in] packet	The packet to be added.
- * @param[in] order	The packet order value.
- * @param[in] metric	The metric value of the packet.
- * @return		EOK on success.
- * @return		EINVAL if the first parameter is NULL.
- * @return		EINVAL if the packet is not valid.
+ * @param[in,out] first First packet of the queue. Sets the first
+ *                      packet of the queue. The original first packet
+ *                      may be shifted by the new packet.
+ * @param[in] packet    Packet to be added.
+ * @param[in] order     Packet order value.
+ * @param[in] metric    Metric value of the packet.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the first parameter is NULL.
+ * @return EINVAL if the packet is not valid.
+ *
  */
 int pq_add(packet_t **first, packet_t *packet, size_t order, size_t metric)
 {
-	packet_t *item;
-
-	if (!first || !packet_is_valid(packet))
+	if ((!first) || (!packet_is_valid(packet)))
 		return EINVAL;
-
+	
 	pq_set_order(packet, order, metric);
 	if (packet_is_valid(*first)) {
-		item = * first;
+		packet_t *cur = *first;
+		
 		do {
-			if (item->order < order) {
-				if (item->next) {
-					item = pm_find(item->next);
-				} else {
-					item->next = packet->packet_id;
-					packet->previous = item->packet_id;
+			if (cur->order < order) {
+				if (cur->next)
+					cur = pm_find(cur->next);
+				else {
+					cur->next = packet->packet_id;
+					packet->previous = cur->packet_id;
+					
 					return EOK;
 				}
 			} else {
-				packet->previous = item->previous;
-				packet->next = item->packet_id;
-				item->previous = packet->packet_id;
-				item = pm_find(packet->previous);
-				if (item)
-					item->next = packet->packet_id;
+				packet->previous = cur->previous;
+				packet->next = cur->packet_id;
+				
+				cur->previous = packet->packet_id;
+				cur = pm_find(packet->previous);
+				
+				if (cur)
+					cur->next = packet->packet_id;
 				else
 					*first = packet;
+				
 				return EOK;
 			}
-		} while (packet_is_valid(item));
+		} while (packet_is_valid(cur));
 	}
+	
 	*first = packet;
 	return EOK;
 }
@@ -311,12 +340,13 @@ packet_t *pq_detach(packet_t *packet)
 		return NULL;
 
 	next = pm_find(packet->next);
-	if (next) {
+	if (next)
 		next->previous = packet->previous;
-		previous = pm_find(next->previous);
-		if (previous)
-			previous->next = next->packet_id;
-	}
+	
+	previous = pm_find(packet->previous);
+	if (previous)
+		previous->next = packet->next ;
+	
 	packet->previous = 0;
 	packet->next = 0;
 	return next;

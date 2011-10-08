@@ -61,7 +61,7 @@
  * @param[in] gateway   Target network gateway. Not used if zero.
  *
  */
-int ip_add_route_req_remote(async_sess_t *sess, device_id_t device_id,
+int ip_add_route_req_remote(async_sess_t *sess, nic_device_id_t device_id,
     in_addr_t address, in_addr_t netmask, in_addr_t gateway)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -122,10 +122,10 @@ async_sess_t *ip_connect_module(services_t service)
  *         function.
  *
  */
-int ip_device_req_remote(async_sess_t *sess, device_id_t device_id,
+int ip_device_req(async_sess_t *sess, nic_device_id_t device_id,
     services_t service)
 {
-	return generic_device_req_remote(sess, NET_IP_DEVICE, device_id, 0,
+	return generic_device_req_remote(sess, NET_IP_DEVICE, device_id,
 	    service);
 }
 
@@ -143,7 +143,7 @@ int ip_device_req_remote(async_sess_t *sess, device_id_t device_id,
  */
 int ip_get_route_req_remote(async_sess_t *sess, ip_protocol_t protocol,
     const struct sockaddr *destination, socklen_t addrlen,
-    device_id_t *device_id, void **header, size_t *headerlen)
+    nic_device_id_t *device_id, void **header, size_t *headerlen)
 {
 	if ((!destination) || (addrlen == 0))
 		return EINVAL;
@@ -195,7 +195,7 @@ int ip_get_route_req_remote(async_sess_t *sess, ip_protocol_t protocol,
  *         generic_packet_size_req_remote() function.
  *
  */
-int ip_packet_size_req_remote(async_sess_t *sess, device_id_t device_id,
+int ip_packet_size_req_remote(async_sess_t *sess, nic_device_id_t device_id,
     packet_dimension_t *packet_dimension)
 {
 	return generic_packet_size_req_remote(sess, NET_IP_PACKET_SPACE,
@@ -215,7 +215,7 @@ int ip_packet_size_req_remote(async_sess_t *sess, device_id_t device_id,
  * @return EOK on success.
  *
  */
-int ip_received_error_msg_remote(async_sess_t *sess, device_id_t device_id,
+int ip_received_error_msg_remote(async_sess_t *sess, nic_device_id_t device_id,
     packet_t *packet, services_t target, services_t error)
 {
 	return generic_received_msg_remote(sess, NET_IP_RECEIVED_ERROR,
@@ -239,7 +239,7 @@ int ip_received_error_msg_remote(async_sess_t *sess, device_id_t device_id,
  *         function.
  *
  */
-int ip_send_msg_remote(async_sess_t *sess, device_id_t device_id,
+int ip_send_msg_remote(async_sess_t *sess, nic_device_id_t device_id,
     packet_t *packet, services_t sender, services_t error)
 {
 	return generic_send_msg_remote(sess, NET_IP_SEND, device_id,
@@ -255,7 +255,7 @@ int ip_send_msg_remote(async_sess_t *sess, device_id_t device_id,
  * @param[in] gateway   Default gateway.
  *
  */
-int ip_set_gateway_req_remote(async_sess_t *sess, device_id_t device_id,
+int ip_set_gateway_req_remote(async_sess_t *sess, nic_device_id_t device_id,
     in_addr_t gateway)
 {
 	async_exch_t *exch = async_exchange_begin(sess);

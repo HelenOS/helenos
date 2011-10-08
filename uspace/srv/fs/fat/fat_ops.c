@@ -1024,11 +1024,45 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	return EOK;
 }
 
+static int fat_update_fat32_fsinfo(service_id_t service_id)
+{
+	fat_bs_t *bs;
+	fat32_fsinfo_t *info;
+	block_t *b;
+	int rc;
+
+	bs = block_bb_get(service_id);
+	assert(FAT_IS_FAT32(bs));
+
+	rc = block_get(&b, service_id, uint16_t_le2host(bs->fat32.fsinfo_sec),
+	    BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+
+	info = (fat32_fsinfo_t *) b->data;
+
+	if (bcmp(info->sig1, FAT32_FSINFO_SIG1, sizeof(info->sig1)) ||
+	    bcmp(info->sig2, FAT32_FSINFO_SIG2, sizeof(info->sig2)) ||
+	    bcmp(info->sig3, FAT32_FSINFO_SIG3, sizeof(info->sig3))) {
+		(void) block_put(b);
+		return EINVAL;
+	}
+
+	/* For now, invalidate the counter. */
+	info->free_clusters = host2uint16_t_le(-1);
+
+	b->dirty = true;
+	return block_put(b);
+}
+
 static int fat_unmounted(service_id_t service_id)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
+	fat_bs_t *bs;
 	int rc;
+
+	bs = block_bb_get(service_id);
 
 	rc = fat_root_get(&fn, service_id);
 	if (rc != EOK)
@@ -1042,6 +1076,13 @@ static int fat_unmounted(service_id_t service_id)
 	if (nodep->refcnt != 2) {
 		(void) fat_node_put(fn);
 		return EBUSY;
+	}
+
+	if (FAT_IS_FAT32(bs)) {
+		/*
+		 * Attempt to update the FAT32 FS info.
+		 */
+		(void) fat_update_fat32_fsinfo(service_id);
 	}
 
 	/*

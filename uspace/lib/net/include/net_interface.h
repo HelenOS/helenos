@@ -34,21 +34,24 @@
 #define LIBNET_NET_INTERFACE_H_
 
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <adt/measured_strings.h>
 #include <async.h>
+#include <devman.h>
 
 /** @name Networking module interface
  * This interface is used by other modules.
  */
 /*@{*/
 
-extern int net_get_device_conf_req(async_sess_t *, device_id_t,
+extern int net_get_device_conf_req(async_sess_t *, nic_device_id_t,
     measured_string_t **, size_t, uint8_t **);
 extern int net_get_conf_req(async_sess_t *, measured_string_t **, size_t,
     uint8_t **);
 extern void net_free_settings(measured_string_t *, uint8_t *);
+extern int net_get_devices_req(async_sess_t *, measured_string_t **, size_t *,
+    uint8_t **);
+extern int net_driver_ready(async_sess_t *, devman_handle_t);
 extern async_sess_t *net_connect_module(void);
 
 /*@}*/

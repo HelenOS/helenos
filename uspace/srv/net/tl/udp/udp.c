@@ -123,7 +123,7 @@ static int udp_release_and_return(packet_t *packet, int result)
  * @return		Other error codes as defined for the
  *			ip_client_process_packet() function.
  */
-static int udp_process_packet(device_id_t device_id, packet_t *packet,
+static int udp_process_packet(nic_device_id_t device_id, packet_t *packet,
     services_t error)
 {
 	size_t length;
@@ -321,7 +321,7 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
  * @return		Other error codes as defined for the
  *			udp_process_packet() function.
  */
-static int udp_received_msg(device_id_t device_id, packet_t *packet,
+static int udp_received_msg(nic_device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
 {
 	int result;
@@ -498,7 +498,7 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	uint32_t checksum;
 	void *ip_header;
 	size_t headerlen;
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	packet_dimension_t *packet_dimension;
 	size_t size;
 	int rc;
@@ -616,9 +616,8 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 		header->checksum =
 		    htons(flip_checksum(compact_checksum(checksum)));
 		free(ip_header);
-	} else {
-		device_id = DEVICE_INVALID_ID;
-	}
+	} else
+		device_id = NIC_DEVICE_INVALID_ID;
 
 	/* Prepare the first packet fragment */
 	rc = ip_client_prepare_packet(packet, IPPROTO_UDP, 0, 0, 0, 0);
@@ -805,7 +804,7 @@ static int udp_process_client_messages(async_sess_t *sess, ipc_callid_t callid,
 			
 			size = MAX_UDP_FRAGMENT_SIZE;
 			if (tl_get_ip_packet_dimension(udp_globals.ip_sess,
-			    &udp_globals.dimensions, DEVICE_INVALID_ID,
+			    &udp_globals.dimensions, NIC_DEVICE_INVALID_ID,
 			    &packet_dimension) == EOK) {
 				if (packet_dimension->content < size)
 					size = packet_dimension->content;

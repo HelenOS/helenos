@@ -106,8 +106,6 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
-	$(USPACE_PATH)/srv/net/netif/lo/lo \
 	$(USPACE_PATH)/srv/net/nil/eth/eth \
 	$(USPACE_PATH)/srv/net/nil/nildummy/nildummy \
 	$(USPACE_PATH)/srv/net/il/arp/arp \
@@ -123,7 +121,9 @@ RD_DRVS = \
 	infrastructure/rootvirt \
 	test/test1 \
 	test/test2 \
-	test/test3
+	test/test3 \
+	nic/lo \
+	nic/ne2k
 
 RD_DRV_CFG =
 
@@ -201,8 +201,8 @@ endif
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
-	$(USPACE_PATH)/srv/net/cfg/lo \
-	$(USPACE_PATH)/srv/net/cfg/ne2k
+	$(USPACE_PATH)/srv/net/cfg/lo.nic \
+	$(USPACE_PATH)/srv/net/cfg/ne2k.nic
 endif
 
 COMPONENTS = \

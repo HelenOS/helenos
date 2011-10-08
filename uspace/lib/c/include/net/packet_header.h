@@ -60,6 +60,9 @@
 /** Packet integrity check magic value. */
 #define PACKET_MAGIC_VALUE	0x11227788
 
+/** Maximum total length of the packet */
+#define PACKET_MAX_LENGTH  65536
+
 /** Packet header. */
 struct packet {
 	/** Packet identifier. */
@@ -84,6 +87,12 @@ struct packet {
 	 * Corresponds to the mapped sharable memory block.
 	 */
 	size_t length;
+
+	/** Offload info provided by the NIC */
+	uint32_t offload_info;
+
+	/** Mask which bits in offload info are valid */
+	uint32_t offload_mask;
 
 	/** Stored source and destination addresses length. */
 	size_t addr_len;

@@ -93,11 +93,10 @@ static int usbmast_add_device(usb_device_t *dev)
 	unsigned i;
 
 	/* Allocate softstate */
-	mdev = calloc(1, sizeof(usbmast_dev_t));
+	mdev = ddf_dev_data_alloc(dev->ddf_dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
-		rc = ENOMEM;
-		goto error;
+		return ENOMEM;
 	}
 
 	mdev->ddf_dev = dev->ddf_dev;
@@ -124,8 +123,6 @@ static int usbmast_add_device(usb_device_t *dev)
 	return EOK;
 error:
 	/* XXX Destroy functions */
-	if (mdev != NULL)
-		free(mdev);
 	return rc;
 }
 
@@ -157,10 +154,8 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	free(fun_name);
-
 	/* Allocate soft state */
-	mfun = ddf_dev_data_alloc(mdev->ddf_dev, sizeof(usbmast_fun_t));
+	mfun = ddf_fun_data_alloc(fun, sizeof(usbmast_fun_t));
 	if (mfun == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		rc = ENOMEM;
@@ -170,11 +165,8 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	mfun->mdev = mdev;
 	mfun->lun = lun;
 
-	fun_name = NULL;
-
 	/* Set up a connection handler. */
 	fun->conn_handler = usbmast_bd_connection;
-	fun->driver_data = mfun;
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
@@ -218,6 +210,8 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		    fun_name, str_error(rc));
 		goto error;
 	}
+
+	free(fun_name);
 
 	return EOK;
 
