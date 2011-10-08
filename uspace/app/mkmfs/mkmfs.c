@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
