@@ -196,6 +196,7 @@ int nil_initialize(async_sess_t *sess)
 	
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
 	fibril_rwlock_write_lock(&eth_globals.protos_lock);
+	
 	eth_globals.net_sess = sess;
 	memcpy(eth_globals.broadcast_addr, "\xFF\xFF\xFF\xFF\xFF\xFF",
 			ETH_ADDR);
