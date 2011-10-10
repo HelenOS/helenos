@@ -141,8 +141,6 @@ int ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos)
 			return rc;
 		}
 
-		EXT4FS_DBG("next_block_phys_idx: \%d", next_block_phys_idx);
-
 		rc = block_get(&it->current_block, it->fs->device, next_block_phys_idx,
 		    BLOCK_FLAGS_NONE);
 		if (rc != EOK) {

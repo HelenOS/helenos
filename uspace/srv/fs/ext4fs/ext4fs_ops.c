@@ -453,6 +453,11 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 		return EOK;
 	}
 
+	// TODO check if directory uses HTree
+	if (ext4_filesystem_has_feature_compatible(fs, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
+		EXT4FS_DBG("Using HTree");
+	}
+
 	rc = ext4_directory_iterator_init(&it, fs, enode->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
@@ -463,7 +468,7 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 		if (it.current->inode != 0) {
 			name_size = ext4_directory_entry_ll_get_name_length(fs->superblock,
 				it.current);
-			if (!ext4fs_is_dots(&it.current->name, name_size)) {
+			if (!ext4fs_is_dots(it.current->name, name_size)) {
 				found = true;
 				break;
 			}
@@ -743,7 +748,10 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	int rc;
 	bool found = false;
 
-	EXT4FS_DBG("inode = \%d", inode_ref->index);
+	// TODO check if directory uses HTree
+	if (ext4_filesystem_has_feature_compatible(inst->filesystem, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
+		EXT4FS_DBG("Using HTree");
+	}
 
 	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
 	if (rc != EOK) {
@@ -764,14 +772,8 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 		name_size = ext4_directory_entry_ll_get_name_length(
 		    inst->filesystem->superblock, it.current);
 
-
-		char* name = (char *)(&it.current->name);
-
-		EXT4FS_DBG("name: \%s", name);
-		EXT4FS_DBG("inode-number: \%d", it.current->inode);
-
 		/* skip . and .. */
-		if (ext4fs_is_dots(&it.current->name, name_size)) {
+		if (ext4fs_is_dots(it.current->name, name_size)) {
 			goto skip;
 		}
 

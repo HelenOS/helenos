@@ -126,6 +126,38 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 	return EOK;
 }
 
+// Feature checkers
+bool ext4_filesystem_has_feature_compatible(ext4_filesystem_t *fs, uint32_t feature)
+{
+	ext4_superblock_t *sb = fs->superblock;
+
+	if (ext4_superblock_get_features_compatible(sb) & feature) {
+		return true;
+	}
+	return false;
+}
+
+bool ext4_filesystem_has_feature_incompatible(ext4_filesystem_t *fs, uint32_t feature)
+{
+	ext4_superblock_t *sb = fs->superblock;
+
+	if (ext4_superblock_get_features_incompatible(sb) & feature) {
+		return true;
+	}
+	return false;
+}
+
+bool ext4_filesystem_has_feature_read_only(ext4_filesystem_t *fs, uint32_t feature)
+{
+	ext4_superblock_t *sb = fs->superblock;
+
+	if (ext4_superblock_get_features_read_only(sb) & feature) {
+		return true;
+	}
+	return false;
+}
+
+
 int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {

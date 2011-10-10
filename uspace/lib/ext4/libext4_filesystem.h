@@ -103,6 +103,9 @@ extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
 extern void ext4_filesystem_fini(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
+extern bool ext4_filesystem_has_feature_compatible(ext4_filesystem_t *, uint32_t);
+extern bool ext4_filesystem_has_feature_incompatible(ext4_filesystem_t *, uint32_t);
+extern bool ext4_filesystem_has_feature_read_only(ext4_filesystem_t *, uint32_t);
 extern int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *, uint32_t,
     ext4_block_group_ref_t **);
 extern int ext4_filesystem_get_inode_ref(ext4_filesystem_t *, uint32_t,

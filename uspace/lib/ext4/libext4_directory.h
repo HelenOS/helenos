@@ -36,6 +36,8 @@
 #include "libext4_filesystem.h"
 #include "libext4_inode.h"
 
+#define EXT4_FILENAME_LEN	255
+
 /**
  * Linked list directory entry structure
  */
@@ -47,7 +49,7 @@ typedef struct ext4_directory_entry_ll {
 		uint8_t name_length_high; // Higher 8 bits of name length
 		uint8_t inode_type; // Type of referenced inode (in rev >= 0.5)
 	} __attribute__ ((packed));
-	uint8_t name; // First byte of name, if present
+	uint8_t name[EXT4_FILENAME_LEN]; // Entry name
 } __attribute__ ((packed)) ext4_directory_entry_ll_t;
 
 typedef struct ext4_directory_iterator {
