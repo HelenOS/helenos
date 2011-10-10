@@ -272,12 +272,9 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	instance->open_nodes_cnt = 0;
 	rc = fs_instance_create(service_id, instance);
 	if (rc != EOK) {
-		free(instance);
-		free(sbi);
 		block_cache_fini(service_id);
-		block_fini(service_id);
 		mfsdebug("fs instance creation failed\n");
-		return rc;
+		goto out_error;
 	}
 
 	mfsdebug("mount successful\n");
