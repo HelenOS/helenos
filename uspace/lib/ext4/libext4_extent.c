@@ -30,21 +30,13 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_H_
-#define LIBEXT4_LIBEXT4_H_
+/**
+ * @file	libext4_extent.c
+ * @brief	TODO
+ */
 
-#include "libext4_block_group.h"
-#include "libext4_directory.h"
-#include "libext4_extent.h"
-#include "libext4_filesystem.h"
-#include "libext4_inode.h"
-#include "libext4_superblock.h"
 
-#include <stdio.h>
-#define EXT4FS_DBG(format, ...) {if (true) printf("ext4fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
-
-#endif
 
 /**
  * @}
- */
+ */ 

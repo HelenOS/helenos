@@ -195,6 +195,16 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	return EOK;
 }
 
+int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
+{
+	int rc;
+
+	rc = block_put(ref->block);
+	free(ref);
+
+	return rc;
+}
+
 int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **ref)
 {
@@ -233,6 +243,12 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 
 	inode_table_start = ext4_block_group_get_inode_table_first_block(
 	    bg_ref->block_group);
+
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
 
 	inode_size = ext4_superblock_get_inode_size(fs->superblock);
 	block_size = ext4_superblock_get_block_size(fs->superblock);

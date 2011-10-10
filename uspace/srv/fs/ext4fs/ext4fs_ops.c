@@ -832,6 +832,12 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	block_t *block;
 	uint8_t *buffer;
 
+	// TODO Check extent
+	if (ext4_filesystem_has_feature_incompatible(inst->filesystem, EXT4_FEATURE_INCOMPAT_EXTENTS)
+			&& ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+		EXT4FS_DBG("Extent found");
+	}
+
 	file_size = ext4_inode_get_size(inst->filesystem->superblock,
 		inode_ref->inode);
 

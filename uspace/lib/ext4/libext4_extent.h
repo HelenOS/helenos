@@ -30,18 +30,44 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_H_
-#define LIBEXT4_LIBEXT4_H_
+#ifndef LIBEXT4_LIBEXT4_EXTENT_H_
+#define LIBEXT4_LIBEXT4_EXTENT_H_
 
-#include "libext4_block_group.h"
-#include "libext4_directory.h"
-#include "libext4_extent.h"
-#include "libext4_filesystem.h"
-#include "libext4_inode.h"
-#include "libext4_superblock.h"
+/*
+ * This is the extent on-disk structure.
+ * It's used at the bottom of the tree.
+ */
+typedef struct ext4_extent {
+	uint32_t first_block; // First logical block extent covers
+	uint16_t block_count; // Number of blocks covered by extent
+	uint16_t start_hi;    // High 16 bits of physical block
+	uint32_t start_lo;    // Low 32 bits of physical block
+} ext4_extent_t;
 
-#include <stdio.h>
-#define EXT4FS_DBG(format, ...) {if (true) printf("ext4fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
+/*
+ * This is index on-disk structure.
+ * It's used at all the levels except the bottom.
+ */
+typedef struct ext4_extent_idx {
+	uint32_t block; // Index covers logical blocks from 'block'
+	uint32_t leaf_lo; /* Pointer to the physical block of the next
+	 	 	 	 	   * level. leaf or next index could be there */
+	uint16_t leaf_hi;     /* high 16 bits of physical block */
+	uint16_t padding;
+} ext4_extent_idx_t;
+
+/*
+ * Each block (leaves and indexes), even inode-stored has header.
+ */
+typedef struct ext4_extent_header {
+	uint16_t magic;
+	uint16_t entries_count; // Number of valid entries
+	uint16_t max_entries_count; // Capacity of store in entries
+	uint16_t depth; // Has tree real underlying blocks?
+	uint32_t generation; // generation of the tree
+} ext4_extent_header_t;
+
+#define EXT4_EXTENT_MAGIC host2uint16_t_le(0xF30A)
 
 #endif
 

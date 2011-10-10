@@ -108,6 +108,7 @@ extern bool ext4_filesystem_has_feature_incompatible(ext4_filesystem_t *, uint32
 extern bool ext4_filesystem_has_feature_read_only(ext4_filesystem_t *, uint32_t);
 extern int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *, uint32_t,
     ext4_block_group_ref_t **);
+extern int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *);
 extern int ext4_filesystem_get_inode_ref(ext4_filesystem_t *, uint32_t,
 		ext4_inode_ref_t **);
 extern int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *);
