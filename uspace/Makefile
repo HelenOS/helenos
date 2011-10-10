@@ -94,13 +94,13 @@ DIRS = \
 	srv/hid/input \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
-	srv/hw/netif/ne2000 \
-	srv/net/netif/lo \
 	srv/net/il/arp \
 	srv/net/il/ip \
 	srv/net/tl/icmp \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy \
 	srv/net/net \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
@@ -117,7 +117,9 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/usbmouse \
-	drv/bus/usb/vhc
+	drv/bus/usb/vhc \
+	drv/nic/lo \
+	drv/nic/ne2k
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -131,13 +133,6 @@ ifeq ($(CONFIG_BINUTILS),y)
 DIRS += \
 	app/binutils
 endif
-
-## Networking
-#
-
-DIRS += \
-	srv/net/nil/eth \
-	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #
@@ -186,9 +181,9 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/packet \
 	lib/fb \
 	lib/net \
+	lib/nic \
 	lib/ext2 \
 	lib/ext4 \
 	lib/usb \

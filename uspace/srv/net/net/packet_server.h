@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +27,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet
+/** @addtogroup libpacket
  * @{
  */
 
-#ifndef LIBNET_NETIF_REMOTE_H_
-#define LIBNET_NETIF_REMOTE_H_
+/** @file
+ * Packet server.
+ * The hosting module has to be compiled with both the packet.c and the
+ * packet_server.c source files. To function correctly, initialization of the
+ * packet map by the pm_init() function has to happen at the first place. Then
+ * the packet messages have to be processed by the packet_server_message()
+ * function. The packet map should be released by the pm_destroy() function
+ * during the module termination.
+ * @see IS_NET_PACKET_MESSAGE()
+ */
 
-#include <ipc/services.h>
-#include <adt/measured_strings.h>
-#include <net/device.h>
-#include <net/packet.h>
-#include <async.h>
+#ifndef NET_PACKET_SERVER_H_
+#define NET_PACKET_SERVER_H_
 
-extern int netif_get_addr_req(async_sess_t *, device_id_t, measured_string_t **,
-    uint8_t **);
-extern int netif_probe_req(async_sess_t *, device_id_t, int, void *);
-extern int netif_send_msg(async_sess_t *, device_id_t, packet_t *, services_t);
-extern int netif_start_req(async_sess_t *, device_id_t);
-extern int netif_stop_req(async_sess_t *, device_id_t);
-extern int netif_stats_req(async_sess_t *, device_id_t, device_stats_t *);
-extern async_sess_t *netif_bind_service(services_t, device_id_t, services_t,
-    async_client_conn_t);
+#include <ipc/common.h>
+
+extern int packet_server_init(void);
+extern int packet_server_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
+    size_t *);
 
 #endif
 

@@ -42,16 +42,20 @@
 
 /** Networking subsystem central module messages. */
 typedef enum {
-	/** Returns the general configuration
+	/** Return general configuration
 	 * @see net_get_conf_req()
 	 */
 	NET_NET_GET_CONF = NET_FIRST,
-	/** Returns the device specific configuration
+	/** Return device specific configuration
 	 * @see net_get_device_conf_req()
 	 */
 	NET_NET_GET_DEVICE_CONF,
-	/** Starts the networking stack. */
-	NET_NET_STARTUP,
+	/** Return number of mastered devices */
+	NET_NET_GET_DEVICES_COUNT,
+	/** Return names and device IDs of all devices */
+	NET_NET_GET_DEVICES,
+	/** Notify the networking service about a ready device */
+	NET_NET_DRIVER_READY
 } net_messages;
 
 #endif

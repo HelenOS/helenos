@@ -793,6 +793,9 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	switch(rc) {
 	case EOK:
 		dev->state = DEVICE_USABLE;
+		exch = async_exchange_begin(drv->sess);
+		async_msg_1(exch, DRIVER_DEV_ADDED, dev->handle);
+		async_exchange_end(exch);
 		break;
 	case ENOENT:
 		dev->state = DEVICE_NOT_PRESENT;
@@ -1065,6 +1068,9 @@ dev_node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
 	
 	link = hash_table_find(&tree->devman_devices, &key);
+	if (link == NULL)
+		return NULL;
+	
 	return hash_table_get_instance(link, dev_node_t, devman_dev);
 }
 

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@
  *
  */
 
-/** @addtogroup ne2000
+/** @addtogroup drv_ne2k
  *  @{
  */
 
@@ -49,18 +50,37 @@
 #define __NET_NETIF_DP8390_H__
 
 #include <fibril_synch.h>
-#include <adt/list.h>
-#include <net/packet.h>
-#include <netif_skel.h>
-
-/** Module name */
-#define NAME  "ne2000"
+#include <nic.h>
+#include <ddf/interrupt.h>
 
 /** Input/output size */
 #define NE2K_IO_SIZE  0x0020
 
-/** Ethernet address length */
-#define ETH_ADDR  6
+/* NE2000 implementation. */
+
+/** NE2000 Data Register */
+#define NE2K_DATA  0x0010
+
+/** NE2000 Reset register */
+#define NE2K_RESET  0x001f
+
+/** NE2000 data start */
+#define NE2K_START  0x4000
+
+/** NE2000 data size */
+#define NE2K_SIZE  0x4000
+
+/** NE2000 retry count */
+#define NE2K_RETRY  0x1000
+
+/** NE2000 error messages rate limiting */
+#define NE2K_ERL  10
+
+/** Minimum Ethernet packet size in bytes */
+#define ETH_MIN_PACK_SIZE  60
+
+/** Maximum Ethernet packet size in bytes */
+#define ETH_MAX_PACK_SIZE_TAGGED  1518
 
 /* National Semiconductor DP8390 Network Interface Controller. */
 
@@ -203,10 +223,11 @@
 
 typedef struct {
 	/* Device configuration */
+	void *base_port; /**< Port assigned from ISA configuration **/
 	void *port;
 	void *data_port;
 	int irq;
-	uint8_t mac[ETH_ADDR];
+	nic_address_t mac;
 	
 	uint8_t start_page;  /**< Ring buffer start page */
 	uint8_t stop_page;   /**< Ring buffer stop page */
@@ -223,24 +244,32 @@ typedef struct {
 	/* Driver run-time variables */
 	bool probed;
 	bool up;
-	
+
+	/* Irq code with assigned addresses for this device */
+	irq_code_t code;
+
+	/* Copy of the receive configuration register */
+	uint8_t receive_configuration;
+
 	/* Device statistics */
-	device_stats_t stats;
+	// TODO: shouldn't be these directly in device.h - nic_device_stats?
 	uint64_t misses;     /**< Receive frame misses */
 	uint64_t underruns;  /**< FIFO underruns */
 	uint64_t overruns;   /**< FIFO overruns */
 } ne2k_t;
 
-typedef struct {
-	link_t link;
-	packet_t *packet;
-} frame_t;
-
-extern int ne2k_probe(ne2k_t *, void *, int);
+extern int ne2k_probe(ne2k_t *);
 extern int ne2k_up(ne2k_t *);
 extern void ne2k_down(ne2k_t *);
-extern void ne2k_send(ne2k_t *, packet_t *);
-extern list_t *ne2k_interrupt(ne2k_t *, uint8_t, uint8_t);
+extern void ne2k_send(nic_t *, packet_t *);
+extern void ne2k_interrupt(nic_t *, uint8_t, uint8_t);
+extern packet_t *ne2k_alloc_packet(nic_t *, size_t);
+
+extern void ne2k_set_accept_mcast(ne2k_t *, int);
+extern void ne2k_set_accept_bcast(ne2k_t *, int);
+extern void ne2k_set_promisc_phys(ne2k_t *, int);
+extern void ne2k_set_mcast_hash(ne2k_t *, uint64_t);
+extern void ne2k_set_physical_address(ne2k_t *, const nic_address_t *address);
 
 #endif
 

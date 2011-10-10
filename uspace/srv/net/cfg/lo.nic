@@ -2,7 +2,7 @@
 
 NAME=lo
 
-NETIF=lo
+HWPATH=/virt/lo/port0
 NIL=nildummy
 IL=ip
 

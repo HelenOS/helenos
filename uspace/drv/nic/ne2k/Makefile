@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Radim Vansa
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,21 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-ROOT_PATH = $(USPACE_PREFIX)/..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
-
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-
--include $(COMMON_MAKEFILE)
--include $(CONFIG_MAKEFILE)
-
-BINARY = ne2000
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNET_PREFIX)/libnet.a $(LIBNIC_PREFIX)/libnic.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNET_PREFIX)/include -I$(LIBNIC_PREFIX)/include
+BINARY = ne2k
 
 SOURCES = \
 	dp8390.c \
-	ne2000.c
+	ne2k.c
 
 include $(USPACE_PREFIX)/Makefile.common

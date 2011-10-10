@@ -54,8 +54,8 @@
  * @return EOK on success.
  *
  */
-int il_device_state_msg(async_sess_t *sess, device_id_t device_id,
-    device_state_t state, services_t target)
+int il_device_state_msg(async_sess_t *sess, nic_device_id_t device_id,
+    nic_device_state_t state, services_t target)
 {
 	return generic_device_state_msg_remote(sess, NET_IL_DEVICE_STATE,
 	    device_id, state, target);
@@ -72,8 +72,8 @@ int il_device_state_msg(async_sess_t *sess, device_id_t device_id,
  * @return EOK on success.
  *
  */
-int il_received_msg(async_sess_t *sess, device_id_t device_id, packet_t *packet,
-    services_t target)
+int il_received_msg(async_sess_t *sess, nic_device_id_t device_id,
+    packet_t *packet, services_t target)
 {
 	return generic_received_msg_remote(sess, NET_IL_RECEIVED, device_id,
 	    packet_get_id(packet), target, 0);
@@ -90,11 +90,33 @@ int il_received_msg(async_sess_t *sess, device_id_t device_id, packet_t *packet,
  * @return EOK on success.
  *
  */
-int il_mtu_changed_msg(async_sess_t *sess, device_id_t device_id, size_t mtu,
+int il_mtu_changed_msg(async_sess_t *sess, nic_device_id_t device_id, size_t mtu,
     services_t target)
 {
 	return generic_device_state_msg_remote(sess, NET_IL_MTU_CHANGED,
 	    device_id, mtu, target);
+}
+
+/** Notify IL layer modules about address change (implemented by ARP)
+ *
+ */
+int il_addr_changed_msg(async_sess_t *sess, nic_device_id_t device_id,
+    size_t addr_len, const uint8_t *address)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	aid_t message_id = async_send_1(exch, NET_IL_ADDR_CHANGED,
+			(sysarg_t) device_id, NULL);
+	int rc = async_data_write_start(exch, address, addr_len);
+	
+	async_exchange_end(exch);
+	
+	sysarg_t res;
+    async_wait_for(message_id, &res);
+    if (rc != EOK)
+		return rc;
+	
+    return (int) res;
 }
 
 /** @}

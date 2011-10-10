@@ -53,6 +53,12 @@ typedef enum {
 	 */
 	NET_IL_MTU_CHANGED,
 	
+	/**
+	 * Device address changed message
+	 * @see il_addr_changed_msg()
+	 */
+	NET_IL_ADDR_CHANGED,
+
 	/** Packet received message.
 	 * @see il_received_msg()
 	 */

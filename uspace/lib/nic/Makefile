@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Radim Vansa
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,10 +27,15 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
-LIBRARY = libpacket
+LIBRARY = libnic
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNET_PREFIX)/libnet.a
+EXTRA_CFLAGS += -DLIBNIC_INTERNAL -Iinclude -I$(LIBDRV_PREFIX)/include -I$(LIBNET_PREFIX)/include
 
 SOURCES = \
-	generic/packet_server.c
+	src/nic_driver.c \
+	src/nic_addr_db.c \
+	src/nic_rx_control.c \
+	src/nic_wol_virtues.c \
+	src/nic_impl.c
 
 include $(USPACE_PREFIX)/Makefile.common

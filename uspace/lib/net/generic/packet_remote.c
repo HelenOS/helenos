@@ -114,7 +114,7 @@ int packet_translate_remote(async_sess_t *sess, packet_t **packet,
 		return EINVAL;
 	
 	*packet = pm_find(packet_id);
-	if (!*packet) {
+	if (*packet == NULL) {
 		async_exch_t *exch = async_exchange_begin(sess);
 		sysarg_t size;
 		int rc = async_req_1_1(exch, NET_PACKET_GET_SIZE, packet_id,
@@ -129,7 +129,7 @@ int packet_translate_remote(async_sess_t *sess, packet_t **packet,
 			return rc;
 	}
 	
-	if ((*packet)->next) {
+	if ((*packet != NULL) && ((*packet)->next)) {
 		packet_t *next;
 		return packet_translate_remote(sess, &next, (*packet)->next);
 	}

@@ -305,6 +305,8 @@ int main(int argc, char *argv[])
 	srv_start("/srv/s3c24ser");
 	srv_start("/srv/s3c24ts");
 	
+	spawn("/srv/net");
+	
 	spawn("/srv/fb");
 	spawn("/srv/input");
 	console("hid/input", "hid/fb0");

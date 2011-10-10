@@ -118,7 +118,7 @@ tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
  *
  */
 int tl_get_ip_packet_dimension(async_sess_t *sess,
-    packet_dimensions_t *packet_dimensions, device_id_t device_id,
+    packet_dimensions_t *packet_dimensions, nic_device_id_t device_id,
     packet_dimension_t **packet_dimension)
 {
 	if (!packet_dimension)
@@ -159,7 +159,7 @@ int tl_get_ip_packet_dimension(async_sess_t *sess,
  */
 int
 tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
-    device_id_t device_id, size_t content)
+    nic_device_id_t device_id, size_t content)
 {
 	packet_dimension_t *packet_dimension;
 
@@ -169,16 +169,16 @@ tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
 
 	packet_dimension->content = content;
 
-	if (device_id != DEVICE_INVALID_ID) {
+	if (device_id != NIC_DEVICE_INVALID_ID) {
 		packet_dimension = packet_dimensions_find(packet_dimensions,
-		    DEVICE_INVALID_ID);
+		    NIC_DEVICE_INVALID_ID);
 
 		if (packet_dimension) {
 			if (packet_dimension->content >= content)
 				packet_dimension->content = content;
 			else
 				packet_dimensions_exclude(packet_dimensions,
-				    DEVICE_INVALID_ID, free);
+				    NIC_DEVICE_INVALID_ID, free);
 		}
 	}
 
