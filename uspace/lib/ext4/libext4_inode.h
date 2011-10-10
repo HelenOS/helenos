@@ -107,6 +107,35 @@ typedef struct ext4_inode {
 #define EXT4_INODE_MODE_SOCKET		0xC000
 #define EXT4_INODE_MODE_TYPE_MASK	0xF000
 
+/*
+ * Inode flags
+ */
+#define EXT4_INODE_FLAG_SECRM		0x00000001 // Secure deletion
+#define EXT4_INODE_FLAG_UNRM		0x00000002 // Undelete
+#define EXT4_INODE_FLAG_COMPR		0x00000004 // Compress file
+#define EXT4_INODE_FLAG_SYNC		0x00000008 // Synchronous updates
+#define EXT4_INODE_FLAG_IMMUTABLE   0x00000010 // Immutable file
+#define EXT4_INODE_FLAG_APPEND		0x00000020 // writes to file may only append
+#define EXT4_INODE_FLAG_NODUMP		0x00000040 // do not dump file
+#define EXT4_INODE_FLAG_NOATIME		0x00000080 // do not update atime
+/* Compression flags */
+#define EXT4_INODE_FLAG_DIRTY		0x00000100
+#define EXT4_INODE_FLAG_COMPRBLK	0x00000200 // One or more compressed clusters
+#define EXT4_INODE_FLAG_NOCOMPR		0x00000400 // Don't compress
+#define EXT4_INODE_FLAG_ECOMPR		0x00000800 // Compression error
+/* End compression flags --- maybe not all used */
+#define EXT4_INODE_FLAG_INDEX		0x00001000 // hash-indexed directory
+#define EXT4_INODE_FLAG_IMAGIC		0x00002000 // AFS directory */
+#define EXT4_INODE_FLAG_JOURNAL_DATA	0x00004000 // File data should be journaled
+#define EXT4_INODE_FLAG_NOTAIL		0x00008000 // File tail should not be merged
+#define EXT4_INODE_FLAG_DIRSYNC		0x00010000 // Dirsync behaviour (directories only)
+#define EXT4_INODE_FLAG_TOPDIR		0x00020000 // Top of directory hierarchies
+#define EXT4_INODE_FLAG_HUGE_FILE	0x00040000 // Set to each huge file
+#define EXT4_INODE_FLAG_EXTENTS		0x00080000 // Inode uses extents
+#define EXT4_INODE_FLAG_EA_INODE	0x00200000 // Inode used for large EA
+#define EXT4_INODE_FLAG_EOFBLOCKS	0x00400000 // Blocks allocated beyond EOF
+#define EXT4_INODE_FLAG_RESERVED	0x80000000 // reserved for ext4 lib
+
 #define EXT4_INODE_ROOT_INDEX	2
 
 typedef struct ext4_inode_ref {
@@ -131,9 +160,9 @@ extern uint32_t ext4_inode_get_gid(ext4_inode_t *);
 */
 extern uint16_t ext4_inode_get_links_count(ext4_inode_t *);
 /*
-extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *);
-extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
+extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *)
 */
+extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint8_t);
 uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint8_t);
@@ -150,6 +179,8 @@ uint32_t crtime; // File creation time
 uint32_t crtime_extra; // Extra file creation time (nsec << 2 | epoch)
 uint32_t version_hi;   // High 32 bits for 64-bit version
 */
+
+extern bool ext4_inode_has_flag(ext4_inode_t *, uint32_t);
 
 #endif
 

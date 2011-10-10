@@ -453,11 +453,6 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 		return EOK;
 	}
 
-	// TODO check if directory uses HTree
-	if (ext4_filesystem_has_feature_compatible(fs, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
-		EXT4FS_DBG("Using HTree");
-	}
-
 	rc = ext4_directory_iterator_init(&it, fs, enode->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
@@ -749,8 +744,9 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	bool found = false;
 
 	// TODO check if directory uses HTree
-	if (ext4_filesystem_has_feature_compatible(inst->filesystem, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
-		EXT4FS_DBG("Using HTree");
+	if (ext4_filesystem_has_feature_compatible(inst->filesystem, EXT4_FEATURE_COMPAT_DIR_INDEX)
+			&& ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
+		EXT4FS_DBG("Directory using HTree");
 	}
 
 	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
@@ -826,8 +822,6 @@ skip:
 int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	uint32_t block_size;
 	aoff64_t file_block;

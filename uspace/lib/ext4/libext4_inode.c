@@ -83,8 +83,11 @@ uint16_t ext4_inode_get_links_count(ext4_inode_t *inode)
 
 /*
 extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *);
-extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 */
+
+uint32_t ext4_inode_get_flags(ext4_inode_t *inode) {
+	return uint32_t_le2host(inode->flags);
+}
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint8_t idx)
 {
@@ -96,6 +99,15 @@ uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
 {
 	assert(idx < EXT4_INODE_INDIRECT_BLOCK_COUNT);
 	return uint32_t_le2host(inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK]);
+}
+
+
+// Flags checker
+bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag) {
+	if (ext4_inode_get_flags(inode) & flag) {
+		return true;
+	}
+	return false;
 }
 
 /**
