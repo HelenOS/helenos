@@ -40,9 +40,6 @@
 #include <malloc.h>
 #include "libext4.h"
 
-/**
- * TODO doxy
- */
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 {
 
@@ -85,18 +82,12 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	return EOK;
 }
 
-/**
- * TODO doxy
- */
 void ext4_filesystem_fini(ext4_filesystem_t *fs)
 {
 	free(fs->superblock);
 	block_fini(fs->device);
 }
 
-/**
- * TODO doxy
- */
 int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 {
 	int rc;
@@ -109,9 +100,6 @@ int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 	return EOK;
 }
 
-/**
- * TODO doxy
- */
 int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 {
 	/* Feature flags are present in rev 1 and later */
@@ -138,14 +126,9 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 	return EOK;
 }
 
-/**
- * TODO doxy
- */
 int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	aoff64_t block_id;
 	uint32_t descriptors_per_block;
@@ -163,45 +146,26 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	/* Block group descriptor table starts at the next block after superblock */
 	block_id = ext4_superblock_get_first_data_block(fs->superblock) + 1;
 
-	EXT4FS_DBG("block_size = \%d", ext4_superblock_get_block_size(fs->superblock));
-	EXT4FS_DBG("descriptors_per_block = \%d", descriptors_per_block);
-	EXT4FS_DBG("bgid = \%d", bgid);
-	EXT4FS_DBG("first_data_block: \%d", (uint32_t)block_id);
-
 	/* Find the block containing the descriptor we are looking for */
 	block_id += bgid / descriptors_per_block;
 	offset = (bgid % descriptors_per_block) * EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE;
 
-	EXT4FS_DBG("updated block_id: \%d", (uint32_t)block_id);
-
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
-
-		EXT4FS_DBG("block_get error: \%d", rc);
-
 		free(newref);
 		return rc;
 	}
-
-	EXT4FS_DBG("block read");
 
 	newref->block_group = newref->block->data + offset;
 
 	*ref = newref;
 
-	EXT4FS_DBG("finished");
-
 	return EOK;
 }
 
-/**
- * TODO doxy
- */
 int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **ref)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	aoff64_t block_id;
 	uint32_t block_group;
@@ -220,11 +184,7 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 		return ENOMEM;
 	}
 
-	EXT4FS_DBG("allocated");
-
 	inodes_per_group = ext4_superblock_get_inodes_per_group(fs->superblock);
-
-	EXT4FS_DBG("inodes_per_group_loaded");
 
 	/* inode numbers are 1-based, but it is simpler to work with 0-based
 	 * when computing indices
@@ -233,22 +193,14 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	block_group = index / inodes_per_group;
 	offset_in_group = index % inodes_per_group;
 
-	EXT4FS_DBG("index: \%d", index);
-	EXT4FS_DBG("inodes_per_group: \%d", inodes_per_group);
-	EXT4FS_DBG("bg_id: \%d", block_group);
-
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
 	}
 
-	EXT4FS_DBG("block_group_ref loaded");
-
 	inode_table_start = ext4_block_group_get_inode_table_first_block(
 	    bg_ref->block_group);
-
-	EXT4FS_DBG("inode_table block loaded");
 
 	inode_size = ext4_superblock_get_inode_size(fs->superblock);
 	block_size = ext4_superblock_get_block_size(fs->superblock);
@@ -258,15 +210,11 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	block_id = inode_table_start + (byte_offset_in_group / block_size);
 	offset_in_block = byte_offset_in_group % block_size;
 
-	EXT4FS_DBG("superblock info loaded");
-
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
 	}
-
-	EXT4FS_DBG("block got");
 
 	newref->inode = newref->block->data + offset_in_block;
 	/* we decremented index above, but need to store the original value
@@ -276,10 +224,9 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 
 	*ref = newref;
 
-	EXT4FS_DBG("finished");
-
 	return EOK;
 }
+
 
 int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 {
@@ -306,7 +253,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	block_t *block;
 
 	/* Handle simple case when we are dealing with direct reference */
-	if (iblock < EXT4_INODE_DIRECT_BLOCKS) {
+	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
 		current_block = ext4_inode_get_direct_block(inode, (uint32_t)iblock);
 		*fblock = current_block;
 		return EOK;
@@ -316,7 +263,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	 * TODO: compute this once when loading filesystem and store in ext2_filesystem_t
 	 */
 	block_ids_per_block = ext4_superblock_get_block_size(fs->superblock) / sizeof(uint32_t);
-	limits[0] = EXT4_INODE_DIRECT_BLOCKS;
+	limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
 	blocks_per_level[0] = 1;
 	for (i = 1; i < 4; i++) {
 		blocks_per_level[i]  = blocks_per_level[i-1] *

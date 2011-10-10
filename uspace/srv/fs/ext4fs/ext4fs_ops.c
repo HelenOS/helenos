@@ -146,8 +146,6 @@ static hash_table_operations_t open_nodes_ops = {
 
 int ext4fs_global_init(void)
 {
-	EXT4FS_DBG("");
-
 	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
 	    OPEN_NODES_KEYS, &open_nodes_ops)) {
 		return ENOMEM;
@@ -158,8 +156,6 @@ int ext4fs_global_init(void)
 
 int ext4fs_global_fini(void)
 {
-	EXT4FS_DBG("");
-
 	hash_table_destroy(&open_nodes);
 	return EOK;
 }
@@ -171,8 +167,6 @@ int ext4fs_global_fini(void)
 
 int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 {
-	EXT4FS_DBG("");
-
 	ext4fs_instance_t *tmp;
 
 	fibril_mutex_lock(&instance_list_mutex);
@@ -199,16 +193,12 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 
 int ext4fs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	EXT4FS_DBG("");
-
 	return ext4fs_node_get(rfn, service_id, EXT4_INODE_ROOT_INDEX);
 }
 
 
 int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
-	EXT4FS_DBG("");
-
 	ext4fs_node_t *eparent = EXT4FS_NODE(pfn);
 	ext4_filesystem_t *fs;
 	ext4_directory_iterator_t it;
@@ -412,7 +402,7 @@ int ext4fs_node_put(fs_node_t *fn)
 
 int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
-	EXT4FS_DBG("");
+	EXT4FS_DBG("not supported");
 
 	// TODO
 	return ENOTSUP;
@@ -421,7 +411,7 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 int ext4fs_destroy_node(fs_node_t *fn)
 {
-	EXT4FS_DBG("");
+	EXT4FS_DBG("not supported");
 
 	// TODO
 	return ENOTSUP;
@@ -430,7 +420,7 @@ int ext4fs_destroy_node(fs_node_t *fn)
 
 int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-	EXT4FS_DBG("");
+	EXT4FS_DBG("not supported");
 
 	// TODO
 	return ENOTSUP;
@@ -439,7 +429,7 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
-	EXT4FS_DBG("");
+	EXT4FS_DBG("not supported");
 
 	// TODO
 	return ENOTSUP;
@@ -448,9 +438,51 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 
 int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 {
-	EXT4FS_DBG("");
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	ext4_directory_iterator_t it;
+	ext4_filesystem_t *fs;
+	int rc;
+	bool found = false;
+	size_t name_size;
 
-	// TODO
+	fs = enode->instance->filesystem;
+
+	if (!ext4_inode_is_type(fs->superblock, enode->inode_ref->inode,
+	    EXT4_INODE_MODE_DIRECTORY)) {
+		*has_children = false;
+		return EOK;
+	}
+
+	rc = ext4_directory_iterator_init(&it, fs, enode->inode_ref, 0);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Find a non-empty directory entry */
+	while (it.current != NULL) {
+		if (it.current->inode != 0) {
+			name_size = ext4_directory_entry_ll_get_name_length(fs->superblock,
+				it.current);
+			if (!ext4fs_is_dots(&it.current->name, name_size)) {
+				found = true;
+				break;
+			}
+		}
+
+		rc = ext4_directory_iterator_next(&it);
+		if (rc != EOK) {
+			ext4_directory_iterator_fini(&it);
+			return rc;
+		}
+	}
+
+	rc = ext4_directory_iterator_fini(&it);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	*has_children = found;
+
 	return EOK;
 }
 
@@ -481,10 +513,10 @@ unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 
 bool ext4fs_is_directory(fs_node_t *fn)
 {
-	EXT4FS_DBG("");
-
-	// TODO
-	return false;
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	bool is_dir = ext4_inode_is_type(enode->instance->filesystem->superblock,
+	    enode->inode_ref->inode, EXT4_INODE_MODE_DIRECTORY);
+	return is_dir;
 }
 
 
@@ -499,10 +531,8 @@ bool ext4fs_is_file(fs_node_t *fn)
 
 service_id_t ext4fs_service_get(fs_node_t *fn)
 {
-	EXT4FS_DBG("");
-
-	// TODO
-	return 0;
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	return enode->instance->service_id;
 }
 
 /*
@@ -535,8 +565,6 @@ libfs_ops_t ext4fs_libfs_ops = {
 static int ext4fs_mounted(service_id_t service_id, const char *opts,
    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	ext4_filesystem_t *fs;
 	ext4fs_instance_t *inst;
@@ -615,8 +643,6 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 
 static int ext4fs_unmounted(service_id_t service_id)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	ext4fs_instance_t *inst;
 
@@ -650,8 +676,6 @@ static int
 ext4fs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
-	EXT4FS_DBG("");
-
 	ext4fs_instance_t *inst;
 	ext4_inode_ref_t *inode_ref;
 	int rc;
@@ -711,7 +735,6 @@ bool ext4fs_is_dots(const uint8_t *name, size_t name_size) {
 int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
-	EXT4FS_DBG("");
 
 	ext4_directory_iterator_t it;
 	aoff64_t next;
@@ -719,6 +742,8 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	size_t name_size;
 	int rc;
 	bool found = false;
+
+	EXT4FS_DBG("inode = \%d", inode_ref->index);
 
 	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
 	if (rc != EOK) {
@@ -731,12 +756,19 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	 * as these are not used in HelenOS
 	 */
 	while (it.current != NULL) {
+
 		if (it.current->inode == 0) {
 			goto skip;
 		}
 
 		name_size = ext4_directory_entry_ll_get_name_length(
 		    inst->filesystem->superblock, it.current);
+
+
+		char* name = (char *)(&it.current->name);
+
+		EXT4FS_DBG("name: \%s", name);
+		EXT4FS_DBG("inode-number: \%d", it.current->inode);
 
 		/* skip . and .. */
 		if (ext4fs_is_dots(&it.current->name, name_size)) {
@@ -877,6 +909,8 @@ static int
 ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
+	EXT4FS_DBG("not supported");
+
 	// TODO
 	return ENOTSUP;
 }
@@ -885,6 +919,8 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 static int
 ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
+	EXT4FS_DBG("not supported");
+
 	// TODO
 	return ENOTSUP;
 }
@@ -899,6 +935,8 @@ static int ext4fs_close(service_id_t service_id, fs_index_t index)
 
 static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 {
+	EXT4FS_DBG("not supported");
+
 	//TODO
 	return ENOTSUP;
 }
@@ -906,6 +944,8 @@ static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 
 static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 {
+	EXT4FS_DBG("not supported");
+
 	// TODO
 	return ENOTSUP;
 }
