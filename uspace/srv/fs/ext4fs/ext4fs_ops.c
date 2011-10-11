@@ -717,10 +717,12 @@ ext4fs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	}
 
 	ext4_filesystem_put_inode_ref(inode_ref);
+
 	return rc;
 }
 
-bool ext4fs_is_dots(const uint8_t *name, size_t name_size) {
+bool ext4fs_is_dots(const uint8_t *name, size_t name_size)
+{
 	if (name_size == 1 && name[0] == '.') {
 		return true;
 	}
@@ -744,8 +746,7 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	bool found = false;
 
 	// TODO check if directory uses HTree
-	if (ext4_filesystem_has_feature_compatible(inst->filesystem, EXT4_FEATURE_COMPAT_DIR_INDEX)
-			&& ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
+	if (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
 		EXT4FS_DBG("Directory using HTree");
 	}
 
@@ -801,14 +802,16 @@ skip:
 
 	if (found) {
 		rc = ext4_directory_iterator_next(&it);
-		if (rc != EOK)
+		if (rc != EOK) {
 			return rc;
+		}
 		next = it.current_offset;
 	}
 
 	rc = ext4_directory_iterator_fini(&it);
-	if (rc != EOK)
+	if (rc != EOK) {
 		return rc;
+	}
 
 	if (found) {
 		*rbytes = next - pos;
@@ -831,12 +834,6 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	size_t bytes;
 	block_t *block;
 	uint8_t *buffer;
-
-	// TODO Check extent
-	if (ext4_filesystem_has_feature_incompatible(inst->filesystem, EXT4_FEATURE_INCOMPAT_EXTENTS)
-			&& ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
-		EXT4FS_DBG("Extent found");
-	}
 
 	file_size = ext4_inode_get_size(inst->filesystem->superblock,
 		inode_ref->inode);
@@ -900,8 +897,9 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	async_data_read_finalize(callid, block->data + offset_in_block, bytes);
 
 	rc = block_put(block);
-	if (rc != EOK)
+	if (rc != EOK) {
 		return rc;
+	}
 
 	*rbytes = bytes;
 	return EOK;

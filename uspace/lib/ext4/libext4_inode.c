@@ -103,8 +103,31 @@ uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
 
 uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx)
 {
-	//ext4_extent_header_t *header = ext4_inode_get_extent_header(inode);
-	// TODO search required block
+	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode);
+
+	if (ext4_extent_header_get_depth(header) == 0) {
+
+		ext4_extent_t *extent = EXT4_EXTENT_FIRST(header);
+
+		// TODO more effective searching?
+		for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
+
+			uint32_t first = ext4_extent_get_first_block(extent);
+			uint16_t count = ext4_extent_get_block_count(extent);
+			uint64_t block = 0;
+
+			if ((idx >= first) && (idx < first + count)) {
+				block = ext4_extent_get_start(extent) + idx;
+				block -= ext4_extent_get_first_block(extent);
+				return block;
+			}
+			// Go to the next extent
+			++extent;
+		}
+	}
+
+	// TODO binary search for depth > 0
+	EXT4FS_DBG("NOT IMPLEMENTED !!!");
 	return 0;
 
 }

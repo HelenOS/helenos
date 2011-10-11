@@ -38,6 +38,23 @@
 #include <byteorder.h>
 #include "libext4_extent.h"
 
+uint32_t ext4_extent_get_first_block(ext4_extent_t *extent)
+{
+	return uint32_t_le2host(extent->first_block);
+}
+
+uint16_t ext4_extent_get_block_count(ext4_extent_t *extent)
+{
+	return uint16_t_le2host(extent->block_count);
+}
+
+uint64_t ext4_extent_get_start(ext4_extent_t *extent)
+{
+	return ((uint64_t)uint16_t_le2host(extent->start_hi)) << 32 |
+			((uint64_t)uint32_t_le2host(extent->start_lo));
+
+}
+
 uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *header)
 {
 	return uint16_t_le2host(header->magic);

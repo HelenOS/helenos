@@ -68,6 +68,12 @@ typedef struct ext4_extent_header {
 } ext4_extent_header_t;
 
 #define EXT4_EXTENT_MAGIC	0xF30A
+#define	EXT4_EXTENT_FIRST(header)	\
+		((ext4_extent_t *) (((void *) (header)) + sizeof(ext4_extent_header_t)))
+
+extern uint32_t ext4_extent_get_first_block(ext4_extent_t *);
+extern uint16_t ext4_extent_get_block_count(ext4_extent_t *);
+extern uint64_t ext4_extent_get_start(ext4_extent_t *);
 
 extern uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *);
 extern uint16_t ext4_extent_header_get_entries_count(ext4_extent_header_t *);
