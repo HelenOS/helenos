@@ -321,7 +321,7 @@ mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 	int r;
 
 	if (size_shrink == 0) {
-		/*File is empty*/
+		/*Nothing to be done*/
 		return EOK;
 	}
 

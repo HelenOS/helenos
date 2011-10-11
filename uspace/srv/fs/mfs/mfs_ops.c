@@ -896,7 +896,6 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		goto out_err;
 
 	if (block == 0) {
-		/*Writing in a sparse block*/
 		uint32_t dummy;
 
 		r = mfs_alloc_zone(mnode->instance, &block);
