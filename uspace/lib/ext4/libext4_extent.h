@@ -67,7 +67,13 @@ typedef struct ext4_extent_header {
 	uint32_t generation; // generation of the tree
 } ext4_extent_header_t;
 
-#define EXT4_EXTENT_MAGIC host2uint16_t_le(0xF30A)
+#define EXT4_EXTENT_MAGIC	0xF30A
+
+extern uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *);
+extern uint16_t ext4_extent_header_get_entries_count(ext4_extent_header_t *);
+extern uint16_t ext4_extent_header_get_max_entries_count(ext4_extent_header_t *);
+extern uint16_t ext4_extent_header_get_depth(ext4_extent_header_t *);
+extern uint32_t ext4_extent_header_get_generation(ext4_extent_header_t *);
 
 #endif
 

@@ -35,7 +35,33 @@
  * @brief	TODO
  */
 
+#include <byteorder.h>
+#include "libext4_extent.h"
 
+uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *header)
+{
+	return uint16_t_le2host(header->magic);
+}
+
+uint16_t ext4_extent_header_get_entries_count(ext4_extent_header_t *header)
+{
+	return uint16_t_le2host(header->entries_count);
+}
+
+uint16_t ext4_extent_header_get_max_entries_count(ext4_extent_header_t *header)
+{
+	return uint16_t_le2host(header->max_entries_count);
+}
+
+uint16_t ext4_extent_header_get_depth(ext4_extent_header_t *header)
+{
+	return uint16_t_le2host(header->depth);
+}
+
+uint32_t ext4_extent_header_get_generation(ext4_extent_header_t *header)
+{
+	return uint32_t_le2host(header->generation);
+}
 
 /**
  * @}

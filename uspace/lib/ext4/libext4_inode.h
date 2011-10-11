@@ -35,6 +35,7 @@
 
 #include <libblock.h>
 #include <sys/types.h>
+#include "libext4_extent.h"
 #include "libext4_superblock.h"
 
 
@@ -166,7 +167,7 @@ extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint8_t);
 uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint8_t);
-
+uint32_t ext4_inode_get_extent_block(ext4_inode_t *, uint64_t);
 /*
 uint32_t blocks[EXT4_INODE_BLOCKS]; // Pointers to blocks
 uint32_t generation;
@@ -180,6 +181,7 @@ uint32_t crtime_extra; // Extra file creation time (nsec << 2 | epoch)
 uint32_t version_hi;   // High 32 bits for 64-bit version
 */
 
+extern ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *);
 extern bool ext4_inode_has_flag(ext4_inode_t *, uint32_t);
 
 #endif

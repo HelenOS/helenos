@@ -300,6 +300,18 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	int level;
 	block_t *block;
 
+	// TODO extents
+	if (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_EXTENTS)) {
+		EXT4FS_DBG("Inode contains Extent");
+		// TODO
+		/*
+		current_block = ext4_inode_get_extent_block(inode, iblock);
+		*fblock = current_block;
+		return EOK;
+		*/
+
+	}
+
 	/* Handle simple case when we are dealing with direct reference */
 	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
 		current_block = ext4_inode_get_direct_block(inode, (uint32_t)iblock);

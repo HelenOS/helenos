@@ -61,7 +61,7 @@ uint64_t ext4_inode_get_size(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
 	uint32_t major_rev = ext4_superblock_get_rev_level(sb);
 
-	if (major_rev > 0 && ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)) {
+	if ((major_rev > 0) && ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)) {
 		return ((uint64_t)uint32_t_le2host(inode->size_hi)) << 32 |
 			    ((uint64_t)uint32_t_le2host(inode->size_lo));
 		}
@@ -101,6 +101,18 @@ uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
 	return uint32_t_le2host(inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK]);
 }
 
+uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx)
+{
+	//ext4_extent_header_t *header = ext4_inode_get_extent_header(inode);
+	// TODO search required block
+	return 0;
+
+}
+
+ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *inode)
+{
+	return (ext4_extent_header_t *)inode->blocks;
+}
 
 // Flags checker
 bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag) {
