@@ -80,7 +80,7 @@ void virtual_hub_device_init(ddf_fun_t *hc_dev)
 	fibril_add_ready(root_hub_registration);
 }
 
-static int pretend_port_rest(int unused, void *unused2)
+static int pretend_port_rest(void *unused2)
 {
 	return EOK;
 }
@@ -114,7 +114,7 @@ int hub_register_in_devman_fibril(void *arg)
 
 	ddf_fun_t *hub_dev;
 	rc = usb_hc_new_device_wrapper(hc_dev->dev, &hc_conn, USB_SPEED_FULL,
-	    pretend_port_rest, 0, NULL, NULL, &rh_ops, hc_dev, &hub_dev);
+	    pretend_port_rest, NULL, NULL, &rh_ops, hc_dev, &hub_dev);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to create root hub: %s.\n",
 		    str_error(rc));

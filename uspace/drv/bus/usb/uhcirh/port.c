@@ -44,7 +44,7 @@
 #include "port.h"
 
 static int uhci_port_check(void *port);
-static int uhci_port_reset_enable(int portno, void *arg);
+static int uhci_port_reset_enable(void *arg);
 static int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
@@ -212,7 +212,7 @@ int uhci_port_check(void *port)
  *
  * Resets and enables the ub port.
  */
-int uhci_port_reset_enable(int portno, void *arg)
+int uhci_port_reset_enable(void *arg)
 {
 	uhci_port_t *port = arg;
 	assert(port);
@@ -259,7 +259,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	int ret, count = 0;
 	do {
 		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
-		    speed, uhci_port_reset_enable, port->number, port,
+		    speed, uhci_port_reset_enable, port,
 		    &port->attached_device.address, NULL, NULL,
 		    &port->attached_device.fun);
 	} while (ret != EOK && ++count < 4);

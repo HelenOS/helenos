@@ -42,8 +42,8 @@
 #include <usb/hc.h>
 
 int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
-    int (*)(int, void *), int, void *,
-    usb_address_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);
+    int (*)(void *), void *, usb_address_t *, ddf_dev_ops_t *, void *,
+    ddf_fun_t **);
 
 /** Info about device attached to host controller.
  *

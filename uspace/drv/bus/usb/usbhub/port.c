@@ -59,7 +59,7 @@ static void usb_hub_port_removed_device(usb_hub_port_t *port,
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
-static int enable_port_callback(int port_no, void *arg);
+static int enable_port_callback(void *arg);
 static int add_device_phase1_worker_fibril(void *arg);
 static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_speed_t speed);
@@ -377,7 +377,7 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
  * @param arg Custom argument, points to @c usb_hub_dev_t.
  * @return Error code.
  */
-static int enable_port_callback(int port_no, void *arg)
+static int enable_port_callback(void *arg)
 {
 	usb_hub_port_t *port = arg;
 	const int rc =
@@ -420,8 +420,7 @@ static int add_device_phase1_worker_fibril(void *arg)
 	ddf_fun_t *child_fun;
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
-	    &data->hub->connection, data->speed,
-	    enable_port_callback, (int) data->port->port_number,
+	    &data->hub->connection, data->speed, enable_port_callback,
 	    data->port, &new_address, NULL, NULL, &child_fun);
 
 	if (rc != EOK) {

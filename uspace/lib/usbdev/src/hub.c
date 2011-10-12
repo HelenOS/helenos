@@ -154,10 +154,8 @@ static void unregister_control_endpoint_on_default_address(
  *
  * The @p enable_port function is expected to enable signaling on given
  * port.
- * The two arguments to it can have arbitrary meaning
- * (the @p port_no is only a suggestion)
- * and are not touched at all by this function
- * (they are passed as is to the @p enable_port function).
+ * The argument can have arbitrary meaning and it is not touched at all
+ * by this function (it is passed as is to the @p enable_port function).
  *
  * If the @p enable_port fails (i.e. does not return EOK), the device
  * addition is canceled.
@@ -174,7 +172,6 @@ static void unregister_control_endpoint_on_default_address(
  * @param[in] dev_speed New device speed.
  * @param[in] enable_port Function for enabling signaling through the port the
  *	device is attached to.
- * @param[in] port_no Port number (passed through to @p enable_port).
  * @param[in] arg Any data argument to @p enable_port.
  * @param[out] assigned_address USB address of the device.
  * @param[in] dev_ops Child device ops.
@@ -192,8 +189,7 @@ static void unregister_control_endpoint_on_default_address(
  */
 int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection,
     usb_speed_t dev_speed,
-    int (*enable_port)(int port_no, void *arg), int port_no, void *arg,
-    usb_address_t *assigned_address,
+    int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
 	assert(connection != NULL);
@@ -277,7 +273,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * Endpoint is registered. We can enable the port and change
 	 * device address.
 	 */
-	rc = enable_port(port_no, arg);
+	rc = enable_port(arg);
 	if (rc != EOK) {
 		goto leave_release_default_address;
 	}
