@@ -39,7 +39,7 @@
 #include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
 
-typedef struct usb_hub_info usb_hub_info_t;
+typedef struct usb_hub_dev usb_hub_dev_t;
 
 /** Information about single port on a hub. */
 typedef struct {
@@ -77,7 +77,7 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
 }
 
 void usb_hub_port_reset_fail(usb_hub_port_t *port);
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub);
+void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
 int usb_hub_port_clear_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
 int usb_hub_port_set_feature(

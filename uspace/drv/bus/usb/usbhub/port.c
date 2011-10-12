@@ -49,19 +49,19 @@
 
 /** Information for fibril for device discovery. */
 struct add_device_phase1 {
-	usb_hub_info_t *hub;
+	usb_hub_dev_t *hub;
 	usb_hub_port_t *port;
 	usb_speed_t speed;
 };
 
 static void usb_hub_port_removed_device(usb_hub_port_t *port,
-    usb_hub_info_t *hub);
+    usb_hub_dev_t *hub);
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
 static int enable_port_callback(int port_no, void *arg);
 static int add_device_phase1_worker_fibril(void *arg);
-static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_info_t *hub,
+static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_speed_t speed);
 
 /**
@@ -129,7 +129,7 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port)
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
+void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
@@ -248,7 +248,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub)
  * @param port port number, starting from 1
  */
 static void usb_hub_port_removed_device(usb_hub_port_t *port,
-    usb_hub_info_t *hub)
+    usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
@@ -374,7 +374,7 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
  * That is announced via change on interrupt pipe.
  *
  * @param port_no Port number (starting at 1).
- * @param arg Custom argument, points to @c usb_hub_info_t.
+ * @param arg Custom argument, points to @c usb_hub_dev_t.
  * @return Error code.
  */
 static int enable_port_callback(int port_no, void *arg)
@@ -462,7 +462,7 @@ leave:
  * @param speed Speed of the device.
  * @return Error code.
  */
-static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_info_t *hub,
+static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_speed_t speed)
 {
 	assert(hub);

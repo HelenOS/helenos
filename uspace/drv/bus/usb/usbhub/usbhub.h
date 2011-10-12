@@ -51,16 +51,13 @@
 #include "port.h"
 
 /** Information about attached hub. */
-struct usb_hub_info {
+struct usb_hub_dev {
 	/** Number of ports. */
 	size_t port_count;
-
-	/** Attached device handles, for each port one */
+	/** Port structures, one for each port */
 	usb_hub_port_t *ports;
-
 	/** Connection to hcd */
 	usb_hc_connection_t connection;
-
 	/** Generic usb device data*/
 	usb_device_t *usb_device;
 
@@ -75,6 +72,7 @@ struct usb_hub_info {
 	fibril_mutex_t pending_ops_mutex;
 	/** Condition variable for pending_ops_count. */
 	fibril_condvar_t pending_ops_cv;
+	/** Pointer to devman usbhub function. */
 	ddf_fun_t *hub_fun;
 };
 

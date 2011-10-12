@@ -67,11 +67,11 @@ static const usb_device_request_setup_packet_t get_hub_status_request = {
 };
 
 static int usb_set_first_configuration(usb_device_t *usb_device);
-static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev);
-static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info);
-static void usb_hub_over_current(const usb_hub_info_t *hub_info,
+static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev);
+static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_info);
+static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
     usb_hub_status_t status);
-static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info);
+static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_info);
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
     bool was_error, void *data);
 /**
@@ -99,7 +99,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	/* Create driver soft-state structure */
-	usb_hub_info_t *hub_info = usb_hub_info_create(usb_dev);
+	usb_hub_dev_t *hub_info = usb_hub_dev_create(usb_dev);
 	if (hub_info == NULL) {
 		usb_log_error("Failed to create hun driver structure.\n");
 		return ENOMEM;
@@ -173,14 +173,14 @@ int usb_hub_device_add(usb_device_t *usb_dev)
  * @param dev Device where the change occured.
  * @param change_bitmap Bitmap of changed ports.
  * @param change_bitmap_size Size of the bitmap in bytes.
- * @param arg Custom argument, points to @c usb_hub_info_t.
+ * @param arg Custom argument, points to @c usb_hub_dev_t.
  * @return Whether to continue polling.
  */
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg)
 {
 	usb_log_debug("hub_port_changes_callback\n");
-	usb_hub_info_t *hub = arg;
+	usb_hub_dev_t *hub = arg;
 	assert(hub);
 
 	/* It is an error condition if we didn't receive enough data */
@@ -206,16 +206,16 @@ bool hub_port_changes_callback(usb_device_t *dev,
 }
 /*----------------------------------------------------------------------------*/
 /**
- * create usb_hub_info_t structure
+ * create usb_hub_dev_t structure
  *
  * Does only basic copying of known information into new structure.
  * @param usb_dev usb device structure
- * @return basic usb_hub_info_t structure
+ * @return basic usb_hub_dev_t structure
  */
-static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
+static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	usb_hub_info_t *info = malloc(sizeof(usb_hub_info_t));
+	usb_hub_dev_t *info = malloc(sizeof(usb_hub_dev_t));
 	if (!info)
 	    return NULL;
 
@@ -240,7 +240,7 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t *usb_dev)
  * @param hub_info hub representation
  * @return error code
  */
-static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
+static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_info)
 {
 	assert(hub_info);
 
@@ -358,7 +358,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
  * @param status hub status bitmask
  * @return error code
  */
-static void usb_hub_over_current(const usb_hub_info_t *hub_info,
+static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
     usb_hub_status_t status)
 {
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
@@ -397,7 +397,7 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
  * The change can be either in the over-current condition or local-power change.
  * @param hub_info hub instance
  */
-static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
+static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_info)
 {
 	assert(hub_info);
 	assert(hub_info->usb_device);
@@ -458,12 +458,12 @@ static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info)
  * Should perform a cleanup - deletes hub_info.
  * @param device usb device afected
  * @param was_error indicates that the fibril is stoped due to an error
- * @param data pointer to usb_hub_info_t structure
+ * @param data pointer to usb_hub_dev_t structure
  */
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
     bool was_error, void *data)
 {
-	usb_hub_info_t *hub = data;
+	usb_hub_dev_t *hub = data;
 	assert(hub);
 
 	fibril_mutex_lock(&hub->pending_ops_mutex);
