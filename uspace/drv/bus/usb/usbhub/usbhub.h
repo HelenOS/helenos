@@ -75,6 +75,7 @@ struct usb_hub_info {
 	fibril_mutex_t pending_ops_mutex;
 	/** Condition variable for pending_ops_count. */
 	fibril_condvar_t pending_ops_cv;
+	ddf_fun_t *hub_fun;
 };
 
 int usb_hub_device_add(usb_device_t *usb_dev);

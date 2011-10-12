@@ -135,20 +135,20 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.\n");
-	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
+	hub_info->hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
 	    fun_exposed, HUB_FNC_NAME);
-	if (hub_fun == NULL) {
+	if (hub_info->hub_fun == NULL) {
 		usb_log_error("Failed to create hub function.\n");
 		free(hub_info);
 		return ENOMEM;
 	}
 
-	opResult = ddf_fun_bind(hub_fun);
+	opResult = ddf_fun_bind(hub_info->hub_fun);
 	if (opResult != EOK) {
 		usb_log_error("Failed to bind hub function: %s.\n",
 		   str_error(opResult));
 		free(hub_info);
-		ddf_fun_destroy(hub_fun);
+		ddf_fun_destroy(hub_info->hub_fun);
 		return opResult;
 	}
 
@@ -156,7 +156,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
 	    usb_hub_polling_terminated_callback, hub_info);
 	if (opResult != EOK) {
-		ddf_fun_destroy(hub_fun);
+		ddf_fun_destroy(hub_info->hub_fun);
 		free(hub_info);
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(opResult));
