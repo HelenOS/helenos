@@ -99,7 +99,7 @@ int uhci_port_init(uhci_port_t *port,
 	port->address = address;
 	port->number = number;
 	port->wait_period_usec = usec;
-	port->attached_device.handle = 0;
+	port->attached_device.fun = NULL;
 	port->attached_device.address = -1;
 	port->rh = rh;
 
@@ -168,7 +168,7 @@ int uhci_port_check(void *port)
 		    instance->id_string, port_status);
 
 		/* Remove any old device */
-		if (instance->attached_device.handle) {
+		if (instance->attached_device.fun) {
 			usb_log_debug2("%s: Removing device.\n",
 			    instance->id_string);
 			uhci_port_remove_device(instance);
@@ -260,8 +260,8 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	do {
 		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 		    speed, uhci_port_reset_enable, port->number, port,
-		    &port->attached_device.address,
-		    &port->attached_device.handle, NULL, NULL, NULL);
+		    &port->attached_device.address, NULL, NULL, NULL,
+		    &port->attached_device.fun);
 	} while (ret != EOK && ++count < 4);
 
 	if (ret != EOK) {
@@ -273,7 +273,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 
 	usb_log_info("New device at port %u, address %d (handle %" PRIun ").\n",
 	    port->number, port->attached_device.address,
-	    port->attached_device.handle);
+	    port->attached_device.fun->handle);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -286,7 +286,7 @@ int uhci_port_remove_device(uhci_port_t *port)
 {
 	assert(port);
 	/* There is nothing to remove. */
-	if (port->attached_device.handle == 0) {
+	if (port->attached_device.fun == NULL) {
 		usb_log_warning("%s: Removed a ghost device.\n",
 		    port->id_string);
 		assert(port->attached_device.address == -1);
@@ -296,13 +296,14 @@ int uhci_port_remove_device(uhci_port_t *port)
 	usb_log_debug("%s: Removing device.\n", port->id_string);
 
 	/* Stop driver first */
-	int ret = devman_remove_function(port->attached_device.handle);
+	int ret = ddf_fun_unbind(port->attached_device.fun);
 	if (ret != EOK) {
 		usb_log_error("%s: Failed to remove child function: %s.\n",
 		   port->id_string, str_error(ret));
 		return ret;
 	}
-	port->attached_device.handle = 0;
+	ddf_fun_destroy(port->attached_device.fun);
+	port->attached_device.fun = NULL;
 
 	/* Driver stopped, free used address */
 	ret = usb_hc_unregister_device(&port->hc_connection,

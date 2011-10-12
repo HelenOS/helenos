@@ -104,7 +104,7 @@ int usb_hc_register_device(usb_hc_connection_t * connection,
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
 	int rc = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_BIND_ADDRESS,
-	    attached_device->address, attached_device->handle);
+	    attached_device->address, attached_device->fun->handle);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -319,10 +319,10 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * It is time to register the device with devman.
 	 */
 	/* FIXME: create device_register that will get opened ctrl pipe. */
-	devman_handle_t child_handle;
+	ddf_fun_t *child_fun;
 	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
-	    parent, &child_handle,
-	    dev_ops, new_dev_data, new_fun);
+	    parent, NULL,
+	    dev_ops, new_dev_data, &child_fun);
 	if (rc != EOK) {
 		rc = ESTALL;
 		goto leave_release_free_address;
@@ -333,7 +333,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 	usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
-		.handle = child_handle
+		.fun = child_fun,
 	};
 	rc = usb_hc_register_device(&hc_conn, &new_device);
 	if (rc != EOK) {
@@ -350,7 +350,10 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		*assigned_address = dev_addr;
 	}
 	if (assigned_handle != NULL) {
-		*assigned_handle = child_handle;
+		*assigned_handle = child_fun->handle;
+	}
+	if (new_fun != NULL) {
+		*new_fun = child_fun;
 	}
 
 	return EOK;

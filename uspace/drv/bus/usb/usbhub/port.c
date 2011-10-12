@@ -256,9 +256,9 @@ static void usb_hub_port_removed_device(usb_hub_port_t *port,
 		fibril_mutex_lock(&port->mutex);
 		usb_log_debug("Removing device on port %zu.\n",
 		    port->port_number);
-		const int ret =
-		    devman_remove_function(port->attached_device.handle);
+		const int ret = ddf_fun_unbind(port->attached_device.fun);
 		if (ret == EOK) {
+			ddf_fun_destroy(port->attached_device.fun);
 			const int ret =
 			    usb_hc_unregister_device(&hub->connection,
 			        port->attached_device.address);
@@ -268,11 +268,11 @@ static void usb_hub_port_removed_device(usb_hub_port_t *port,
 				   str_error(ret));
 			}
 		} else {
-			usb_log_error("Failed to remove child function on port"
+			usb_log_error("Failed to unbind child function on port"
 			   " %zu: %s.\n", port->port_number, str_error(ret));
 		}
 		port->attached_device.address = -1;
-		port->attached_device.handle = 0;
+		port->attached_device.fun = NULL;
 		fibril_mutex_unlock(&port->mutex);
 		usb_log_info("Removed device on port %zu.\n",
 		    port->port_number);
@@ -417,13 +417,13 @@ static int add_device_phase1_worker_fibril(void *arg)
 	assert(data);
 
 	usb_address_t new_address;
-	devman_handle_t child_handle;
+	ddf_fun_t *child_fun;
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
 	    &data->hub->connection, data->speed,
 	    enable_port_callback, (int) data->port->port_number,
-	    data->port, &new_address, &child_handle,
-	    NULL, NULL, NULL);
+	    data->port, &new_address, NULL,
+	    NULL, NULL, &child_fun);
 
 	if (rc != EOK) {
 		usb_log_error("Failed registering device on port %zu: %s.\n",
@@ -432,14 +432,14 @@ static int add_device_phase1_worker_fibril(void *arg)
 	}
 
 	fibril_mutex_lock(&data->port->mutex);
-	data->port->attached_device.handle = child_handle;
+	data->port->attached_device.fun = child_fun;
 	data->port->attached_device.address = new_address;
 	fibril_mutex_unlock(&data->port->mutex);
 
 	usb_log_info("Detected new device on `%s' (port %zu), "
 	    "address %d (handle %" PRIun ").\n",
 	    data->hub->usb_device->ddf_dev->name, data->port->port_number,
-	    new_address, child_handle);
+	    new_address, child_fun->handle);
 
 leave:
 	fibril_mutex_lock(&data->hub->pending_ops_mutex);

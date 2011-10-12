@@ -69,7 +69,7 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
 {
 	assert(port);
 	port->attached_device.address = -1;
-	port->attached_device.handle = 0;
+	port->attached_device.fun = NULL;
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
 	fibril_mutex_initialize(&port->mutex);
