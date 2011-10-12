@@ -95,7 +95,7 @@ typedef struct {
 	/** Some useful descriptors. */
 	usb_device_descriptors_t descriptors;
 
-	/** Generic DDF device backing this one. */
+	/** Generic DDF device backing this one. RO: DO NOT TOUCH!*/
 	ddf_dev_t *ddf_dev;
 	/** Custom driver data.
 	 * Do not use the entry in generic device, that is already used
