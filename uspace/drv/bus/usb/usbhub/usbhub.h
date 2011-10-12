@@ -74,6 +74,8 @@ struct usb_hub_dev {
 	fibril_condvar_t pending_ops_cv;
 	/** Pointer to devman usbhub function. */
 	ddf_fun_t *hub_fun;
+	/** Status indicator */
+	bool running;
 };
 
 int usb_hub_device_add(usb_device_t *usb_dev);

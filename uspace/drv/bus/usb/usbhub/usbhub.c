@@ -84,7 +84,31 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
  */
 int usb_hub_device_gone(usb_device_t *usb_dev)
 {
-	return ENOTSUP;
+	assert(usb_dev);
+	usb_hub_dev_t *hub = usb_dev->driver_data;
+	assert(hub);
+	unsigned tries = 10;
+	while (hub->running) {
+		async_usleep(100000);
+		if (!tries--) {
+			usb_log_error("Can't remove hub, still running.\n");
+			return EINPROGRESS;
+		}
+	}
+
+	assert(!hub->running);
+	const int ret = ddf_fun_unbind(hub->hub_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind '%s' function: %s.\n",
+		   HUB_FNC_NAME, str_error(ret));
+		return ret;
+	}
+	ddf_fun_destroy(hub->hub_fun);
+	free(hub->ports);
+	free(hub);
+	usb_dev->driver_data = NULL;
+	usb_log_info("USB hub driver, stopped and cleaned.\n");
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -125,7 +149,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		return opResult;
 	}
 
-	//get port count and create attached_devs
+	/* Get port count and create attached_devices. */
 	opResult = usb_hub_process_hub_specific_info(hub_info);
 	if (opResult != EOK) {
 		usb_log_error("Could process hub specific info, %s\n",
@@ -156,12 +180,15 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
 	    usb_hub_polling_terminated_callback, hub_info);
 	if (opResult != EOK) {
+		/* Function is already bound */
+		ddf_fun_unbind(hub_info->hub_fun);
 		ddf_fun_destroy(hub_info->hub_fun);
 		free(hub_info);
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(opResult));
 		return opResult;
 	}
+	hub_info->running = true;
 	usb_log_info("Controlling hub '%s' (%zu ports).\n",
 	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
 
@@ -224,8 +251,10 @@ static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev)
 	info->ports = NULL;
 	info->port_count = -1;
 	info->pending_ops_count = 0;
+	info->running = false;
 	fibril_mutex_initialize(&info->pending_ops_mutex);
 	fibril_condvar_initialize(&info->pending_ops_cv);
+	usb_dev->driver_data = info;
 
 	return info;
 }
@@ -488,11 +517,7 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 		    &hub->pending_ops_mutex);
 	}
 	fibril_mutex_unlock(&hub->pending_ops_mutex);
-
-	usb_device_destroy(hub->usb_device);
-
-	free(hub->ports);
-	free(hub);
+	hub->running = false;
 }
 /**
  * @}
