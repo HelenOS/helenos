@@ -297,7 +297,7 @@ leave:
  *	(set to if you wish to ignore the count).
  * @return Error code.
  */
-int usb_device_create_pipes(ddf_dev_t *dev, usb_device_connection_t *wire,
+int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
     usb_endpoint_description_t **endpoints,
     uint8_t *config_descr, size_t config_descr_size,
     int interface_no, int interface_setting,
@@ -417,7 +417,7 @@ rollback_free_only:
  * @param[in] pipes Endpoint mapping to be destroyed.
  * @param[in] pipes_count Number of endpoints.
  */
-int usb_device_destroy_pipes(ddf_dev_t *dev,
+int usb_device_destroy_pipes(const ddf_dev_t *dev,
     usb_endpoint_mapping_t *pipes, size_t pipes_count)
 {
 	assert(dev != NULL);

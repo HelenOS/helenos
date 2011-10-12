@@ -49,7 +49,7 @@
  * @return Error code.
  */
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
-    ddf_dev_t *device)
+    const ddf_dev_t *device)
 {
 	assert(connection);
 

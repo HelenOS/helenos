@@ -166,10 +166,10 @@ int usb_device_select_interface(usb_device_t *, uint8_t,
     usb_endpoint_description_t **);
 
 int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
-int usb_device_create_pipes(ddf_dev_t *, usb_device_connection_t *,
+int usb_device_create_pipes(const ddf_dev_t *, usb_device_connection_t *,
     usb_endpoint_description_t **, uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
-int usb_device_destroy_pipes(ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
+int usb_device_destroy_pipes(const ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
 int usb_device_create(ddf_dev_t *, usb_endpoint_description_t **, usb_device_t **, const char **);
 void usb_device_destroy(usb_device_t *);
 

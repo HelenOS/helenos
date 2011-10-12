@@ -51,7 +51,7 @@
  * @param dev Device in question.
  * @return USB address or error code.
  */
-static usb_address_t get_my_address(async_sess_t *sess, ddf_dev_t *dev)
+static usb_address_t get_my_address(async_sess_t *sess, const ddf_dev_t *dev)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
@@ -77,7 +77,7 @@ static usb_address_t get_my_address(async_sess_t *sess, ddf_dev_t *dev)
  * @param device Device in question.
  * @return Interface number (negative code means any).
  */
-int usb_device_get_assigned_interface(ddf_dev_t *device)
+int usb_device_get_assigned_interface(const ddf_dev_t *device)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, device->handle,
@@ -107,7 +107,7 @@ int usb_device_get_assigned_interface(ddf_dev_t *device)
  * @return Error code.
  */
 int usb_device_connection_initialize_from_device(
-    usb_device_connection_t *connection, ddf_dev_t *dev)
+    usb_device_connection_t *connection, const ddf_dev_t *dev)
 {
 	assert(connection);
 	assert(dev);
