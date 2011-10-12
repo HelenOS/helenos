@@ -126,10 +126,10 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 
 	return EOK;
 }
-
-/** Callback when new device is supposed to be controlled by this driver.
+/*----------------------------------------------------------------------------*/
+/** Callback when a new device is supposed to be controlled by this driver.
  *
- * This callback is a wrapper for USB specific version of @c add_device.
+ * This callback is a wrapper for USB specific version of @c device_add.
  *
  * @param gen_dev Device structure as prepared by DDF.
  * @return Error code.
@@ -155,6 +155,13 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	return driver->ops->device_add(dev);
 }
 /*----------------------------------------------------------------------------*/
+/** Callback when a device is supposed to be removed from the system.
+ *
+ * This callback is a wrapper for USB specific version of @c device_remove.
+ *
+ * @param gen_dev Device structure as prepared by DDF.
+ * @return Error code.
+ */
 int generic_device_remove(ddf_dev_t *gen_dev)
 {
 	assert(driver);
@@ -165,6 +172,13 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	return driver->ops->device_rem(gen_dev->driver_data);
 }
 /*----------------------------------------------------------------------------*/
+/** Callback when a device was removed from the system.
+ *
+ * This callback is a wrapper for USB specific version of @c device_gone.
+ *
+ * @param gen_dev Device structure as prepared by DDF.
+ * @return Error code.
+ */
 int generic_device_gone(ddf_dev_t *gen_dev)
 {
 	assert(driver);
