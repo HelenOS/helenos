@@ -164,6 +164,14 @@ int uhci_port_check(void *port)
 		if ((port_status & STATUS_CONNECTED_CHANGED) == 0)
 			continue;
 
+		int ret =
+		    usb_hc_connection_open(&instance->hc_connection);
+		if (ret != EOK) {
+			usb_log_error("%s: Failed to connect to HC.",
+			    instance->id_string);
+			continue;
+		}
+
 		usb_log_debug("%s: Connected change detected: %x.\n",
 		    instance->id_string, port_status);
 
@@ -174,13 +182,6 @@ int uhci_port_check(void *port)
 			uhci_port_remove_device(instance);
 		}
 
-		int ret =
-		    usb_hc_connection_open(&instance->hc_connection);
-		if (ret != EOK) {
-			usb_log_error("%s: Failed to connect to HC.",
-			    instance->id_string);
-			continue;
-		}
 
 		if ((port_status & STATUS_CONNECTED) != 0) {
 			/* New device */

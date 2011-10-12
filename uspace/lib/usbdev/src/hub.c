@@ -56,7 +56,8 @@
 	do { \
 		assert((conn)); \
 		if (!usb_hc_connection_is_opened((conn))) { \
-			return ENOENT; \
+			usb_log_error("Connection not open.\n"); \
+			return ENOTCONN; \
 		} \
 	} while (false)
 
