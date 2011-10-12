@@ -150,6 +150,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 		    gen_dev->name, err_msg, str_error(rc));
 		return rc;
 	}
+	gen_dev->driver_data = dev;
 
 	return driver->ops->device_add(dev);
 }
@@ -160,17 +161,21 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	if (driver->ops->device_rem == NULL)
 		return ENOTSUP;
-
-	return ENOTSUP;
+	/* Just tell the driver to stop whatever it is doing, keep structures */
+	return driver->ops->device_rem(gen_dev->driver_data);
 }
 /*----------------------------------------------------------------------------*/
 int generic_device_gone(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
-	assert(driver->ops->device_gone);
+	if (driver->ops->device_gone == NULL)
+		return ENOTSUP;
+	const int ret = driver->ops->device_gone(gen_dev->driver_data);
+	if (ret == EOK)
+		usb_device_destroy(gen_dev->driver_data);
 
-	return ENOTSUP;
+	return ret;
 }
 /*----------------------------------------------------------------------------*/
 /** Destroy existing pipes of a USB device.
