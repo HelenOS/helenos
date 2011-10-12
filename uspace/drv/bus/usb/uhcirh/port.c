@@ -284,13 +284,22 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
-	usb_log_debug("Removing device on port %zu.\n", port->number);
+	assert(port);
+	/* There is nothing to remove. */
+	if (port->attached_device.handle == 0) {
+		usb_log_warning("%s: Removed a ghost device.\n",
+		    port->id_string);
+		assert(port->attached_device.address == -1);
+		return EOK;
+	}
+
+	usb_log_debug("%s: Removing device.\n", port->id_string);
 
 	/* Stop driver first */
 	int ret = devman_remove_function(port->attached_device.handle);
 	if (ret != EOK) {
-		usb_log_error("Failed to remove child function on port"
-		   " %zu: %s.\n", port->number, str_error(ret));
+		usb_log_error("%s: Failed to remove child function: %s.\n",
+		   port->id_string, str_error(ret));
 		return ret;
 	}
 	port->attached_device.handle = 0;
@@ -299,13 +308,13 @@ int uhci_port_remove_device(uhci_port_t *port)
 	ret = usb_hc_unregister_device(&port->hc_connection,
 	    port->attached_device.address);
 	if (ret != EOK) {
-		usb_log_error("Failed to unregister address of removed device: "
-		    "%s.\n", str_error(ret));
+		usb_log_error("%s: Failed to unregister address of removed "
+		    "device: %s.\n", port->id_string, str_error(ret));
 		return ret;
 	}
-
 	port->attached_device.address = -1;
-	usb_log_info("Removed device on port %zu.\n", port->number);
+
+	usb_log_info("%s: Removed attached device.\n", port->id_string);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
