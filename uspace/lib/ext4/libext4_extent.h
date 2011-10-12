@@ -48,13 +48,13 @@ typedef struct ext4_extent {
  * This is index on-disk structure.
  * It's used at all the levels except the bottom.
  */
-typedef struct ext4_extent_idx {
-	uint32_t block; // Index covers logical blocks from 'block'
+typedef struct ext4_extent_index {
+	uint32_t first_block; // Index covers logical blocks from 'block'
 	uint32_t leaf_lo; /* Pointer to the physical block of the next
 	 	 	 	 	   * level. leaf or next index could be there */
 	uint16_t leaf_hi;     /* high 16 bits of physical block */
 	uint16_t padding;
-} ext4_extent_idx_t;
+} ext4_extent_index_t;
 
 /*
  * Each block (leaves and indexes), even inode-stored has header.
@@ -70,10 +70,15 @@ typedef struct ext4_extent_header {
 #define EXT4_EXTENT_MAGIC	0xF30A
 #define	EXT4_EXTENT_FIRST(header)	\
 		((ext4_extent_t *) (((void *) (header)) + sizeof(ext4_extent_header_t)))
+#define	EXT4_EXTENT_FIRST_INDEX(header)	\
+		((ext4_extent_index_t *) (((void *) (header)) + sizeof(ext4_extent_header_t)))
 
 extern uint32_t ext4_extent_get_first_block(ext4_extent_t *);
 extern uint16_t ext4_extent_get_block_count(ext4_extent_t *);
 extern uint64_t ext4_extent_get_start(ext4_extent_t *);
+
+extern uint32_t ext4_extent_index_get_first_block(ext4_extent_index_t *);
+extern uint64_t ext4_extent_index_get_leaf(ext4_extent_index_t *);
 
 extern uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *);
 extern uint16_t ext4_extent_header_get_entries_count(ext4_extent_header_t *);

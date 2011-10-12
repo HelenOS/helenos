@@ -303,7 +303,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	/* Handle inode using extents */
 	// TODO check "extents" feature in superblock ???
 	if (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_EXTENTS)) {
-		current_block = ext4_inode_get_extent_block(inode, iblock);
+		current_block = ext4_inode_get_extent_block(inode, iblock, fs->device);
 		*fblock = current_block;
 		return EOK;
 

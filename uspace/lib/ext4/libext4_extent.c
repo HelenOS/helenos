@@ -55,6 +55,17 @@ uint64_t ext4_extent_get_start(ext4_extent_t *extent)
 
 }
 
+uint32_t ext4_extent_index_get_first_block(ext4_extent_index_t *index)
+{
+	return uint32_t_le2host(index->first_block);
+}
+
+uint64_t ext4_extent_index_get_leaf(ext4_extent_index_t *index)
+{
+	return ((uint64_t)uint16_t_le2host(index->leaf_hi)) << 32 |
+				((uint64_t)uint32_t_le2host(index->leaf_lo));
+}
+
 uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *header)
 {
 	return uint16_t_le2host(header->magic);

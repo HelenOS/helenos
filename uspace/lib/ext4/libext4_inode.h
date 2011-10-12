@@ -167,7 +167,7 @@ extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint8_t);
 uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint8_t);
-uint32_t ext4_inode_get_extent_block(ext4_inode_t *, uint64_t);
+uint32_t ext4_inode_get_extent_block(ext4_inode_t *, uint64_t, service_id_t);
 /*
 uint32_t blocks[EXT4_INODE_BLOCKS]; // Pointers to blocks
 uint32_t generation;

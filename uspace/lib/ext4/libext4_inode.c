@@ -36,6 +36,8 @@
  */
 
 #include <byteorder.h>
+#include <errno.h>
+#include <libblock.h>
 #include "libext4.h"
 
 uint32_t ext4_inode_get_mode(ext4_superblock_t *sb, ext4_inode_t *inode)
@@ -101,35 +103,70 @@ uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
 	return uint32_t_le2host(inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK]);
 }
 
-uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx)
+uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx, service_id_t service_id)
 {
 	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode);
+	ext4_extent_t *extent;
+	ext4_extent_index_t *extent_index;
 
-	if (ext4_extent_header_get_depth(header) == 0) {
+	uint32_t first_block;
+	uint16_t block_count;
+	uint64_t phys_block = 0;
+	uint64_t child;
 
-		ext4_extent_t *extent = EXT4_EXTENT_FIRST(header);
+	int rc;
+	block_t* block = NULL;
 
-		// TODO more effective searching?
+	while (ext4_extent_header_get_depth(header) != 0) {
+
+		extent_index = EXT4_EXTENT_FIRST_INDEX(header);
+
 		for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
+			if(idx >= ext4_extent_index_get_first_block(extent_index)) {
 
-			uint32_t first = ext4_extent_get_first_block(extent);
-			uint16_t count = ext4_extent_get_block_count(extent);
-			uint64_t block = 0;
+				child = ext4_extent_index_get_leaf(extent_index);
 
-			if ((idx >= first) && (idx < first + count)) {
-				block = ext4_extent_get_start(extent) + idx;
-				block -= ext4_extent_get_first_block(extent);
-				return block;
+				if (block != NULL) {
+					block_put(block);
+				}
+
+				rc = block_get(&block, service_id, child, BLOCK_FLAGS_NONE);
+				if (rc != EOK) {
+					return 0;
+				}
+				EXT4FS_DBG("get block");
+
+
+				header = (ext4_extent_header_t *)block->data;
+				break;
 			}
-			// Go to the next extent
-			++extent;
 		}
 	}
 
-	// TODO binary search for depth > 0
-	EXT4FS_DBG("NOT IMPLEMENTED !!!");
-	return 0;
+	extent = EXT4_EXTENT_FIRST(header);
 
+	for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
+
+		first_block = ext4_extent_get_first_block(extent);
+		block_count = ext4_extent_get_block_count(extent);
+
+		if ((idx >= first_block) && (idx < first_block + block_count)) {
+			phys_block = ext4_extent_get_start(extent) + idx;
+			phys_block -= ext4_extent_get_first_block(extent);
+
+			// Memory leak prevention
+			if (block != NULL) {
+				block_put(block);
+			}
+			return phys_block;
+		}
+		// Go to the next extent
+		++extent;
+	}
+
+
+	EXT4FS_DBG("ERROR - reached function end");
+	return phys_block;
 }
 
 ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *inode)
