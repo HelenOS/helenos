@@ -74,7 +74,19 @@ static void usb_hub_over_current(const usb_hub_info_t *hub_info,
 static void usb_hub_global_interrupt(const usb_hub_info_t *hub_info);
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
     bool was_error, void *data);
-
+/**
+ * Initialize hub device driver fibril
+ *
+ * Creates hub representation and fibril that periodically checks hub's status.
+ * Hub representation is passed to the fibril.
+ * @param usb_dev generic usb device information
+ * @return error code
+ */
+int usb_hub_device_gone(usb_device_t *usb_dev)
+{
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
 /**
  * Initialize hub device driver fibril
  *

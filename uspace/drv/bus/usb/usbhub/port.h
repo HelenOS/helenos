@@ -39,7 +39,7 @@
 #include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
 
-typedef struct usb_hub_info_t usb_hub_info_t;
+typedef struct usb_hub_info usb_hub_info_t;
 
 /** Information about single port on a hub. */
 typedef struct {

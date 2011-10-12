@@ -51,7 +51,7 @@
 #include "port.h"
 
 /** Information about attached hub. */
-struct usb_hub_info_t {
+struct usb_hub_info {
 	/** Number of ports. */
 	size_t port_count;
 
@@ -78,6 +78,7 @@ struct usb_hub_info_t {
 };
 
 int usb_hub_device_add(usb_device_t *usb_dev);
+int usb_hub_device_gone(usb_device_t *usb_dev);
 
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);
