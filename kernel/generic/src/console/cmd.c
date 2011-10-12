@@ -1176,7 +1176,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		/* Execute the test */
 		test_quiet = true;
-		const char *ret = test->entry();
+		const char *test_ret = test->entry();
 		
 		/* Update and read thread accounting */
 		irq_spinlock_lock(&TASK->lock, true);
@@ -1184,8 +1184,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		task_get_accounting(TASK, &ucycles1, &kcycles1);
 		irq_spinlock_unlock(&TASK->lock, true);
 		
-		if (ret != NULL) {
-			printf("%s\n", ret);
+		if (test_ret != NULL) {
+			printf("%s\n", test_ret);
 			ret = false;
 			break;
 		}
