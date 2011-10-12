@@ -94,7 +94,7 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
  * @return Error code.
  */
 int usb_hc_register_device(usb_hc_connection_t * connection,
-    const usb_hc_attached_device_t *attached_device)
+    const usb_hub_attached_device_t *attached_device)
 {
 	CHECK_CONNECTION(connection);
 	
@@ -331,7 +331,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/*
 	 * And now inform the host controller about the handle.
 	 */
-	usb_hc_attached_device_t new_device = {
+	usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
 		.handle = child_handle
 	};

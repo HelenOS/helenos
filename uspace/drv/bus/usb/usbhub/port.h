@@ -57,7 +57,7 @@ typedef struct {
 	bool reset_okay;
 
 	/** Information about attached device. */
-	usb_hc_attached_device_t attached_device;
+	usb_hub_attached_device_t attached_device;
 } usb_hub_port_t;
 
 /** Initialize hub port information.

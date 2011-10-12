@@ -56,11 +56,11 @@ typedef struct {
 	usb_address_t address;
 	/** Devman handle of the device. */
 	devman_handle_t handle;
-} usb_hc_attached_device_t;
+} usb_hub_attached_device_t;
 
 usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
 int usb_hc_register_device(usb_hc_connection_t *,
-    const usb_hc_attached_device_t *);
+    const usb_hub_attached_device_t *);
 int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
 
 #endif

@@ -62,7 +62,7 @@ typedef struct uhci_port {
 	unsigned wait_period_usec;
 	usb_hc_connection_t hc_connection;
 	ddf_dev_t *rh;
-	usb_hc_attached_device_t attached_device;
+	usb_hub_attached_device_t attached_device;
 	fid_t checker;
 } uhci_port_t;
 
