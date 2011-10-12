@@ -50,7 +50,7 @@ int usb_device_create_match_ids_from_interface(
 int usb_device_create_match_ids(usb_pipe_t *, match_id_list_t *);
 
 int usb_device_register_child_in_devman(usb_address_t, devman_handle_t,
-    ddf_dev_t *, devman_handle_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);
+    ddf_dev_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);
 
 #endif
 /**

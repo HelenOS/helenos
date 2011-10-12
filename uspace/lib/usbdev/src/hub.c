@@ -321,8 +321,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/* FIXME: create device_register that will get opened ctrl pipe. */
 	ddf_fun_t *child_fun;
 	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
-	    parent, NULL,
-	    dev_ops, new_dev_data, &child_fun);
+	    parent, dev_ops, new_dev_data, &child_fun);
 	if (rc != EOK) {
 		rc = ESTALL;
 		goto leave_release_free_address;
