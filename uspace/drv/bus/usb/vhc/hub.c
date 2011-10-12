@@ -113,10 +113,8 @@ int hub_register_in_devman_fibril(void *arg)
 	assert(rc == EOK);
 
 	ddf_fun_t *hub_dev;
-	rc = usb_hc_new_device_wrapper(hc_dev->dev, &hc_conn,
-	    USB_SPEED_FULL,
-	    pretend_port_rest, 0, NULL,
-	    NULL, NULL, &rh_ops, hc_dev, &hub_dev);
+	rc = usb_hc_new_device_wrapper(hc_dev->dev, &hc_conn, USB_SPEED_FULL,
+	    pretend_port_rest, 0, NULL, NULL, &rh_ops, hc_dev, &hub_dev);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to create root hub: %s.\n",
 		    str_error(rc));

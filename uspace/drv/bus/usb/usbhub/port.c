@@ -422,8 +422,7 @@ static int add_device_phase1_worker_fibril(void *arg)
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
 	    &data->hub->connection, data->speed,
 	    enable_port_callback, (int) data->port->port_number,
-	    data->port, &new_address, NULL,
-	    NULL, NULL, &child_fun);
+	    data->port, &new_address, NULL, NULL, &child_fun);
 
 	if (rc != EOK) {
 		usb_log_error("Failed registering device on port %zu: %s.\n",

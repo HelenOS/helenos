@@ -177,7 +177,6 @@ static void unregister_control_endpoint_on_default_address(
  * @param[in] port_no Port number (passed through to @p enable_port).
  * @param[in] arg Any data argument to @p enable_port.
  * @param[out] assigned_address USB address of the device.
- * @param[out] assigned_handle Devman handle of the new device.
  * @param[in] dev_ops Child device ops.
  * @param[in] new_dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
@@ -194,7 +193,7 @@ static void unregister_control_endpoint_on_default_address(
 int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection,
     usb_speed_t dev_speed,
     int (*enable_port)(int port_no, void *arg), int port_no, void *arg,
-    usb_address_t *assigned_address, devman_handle_t *assigned_handle,
+    usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
 	assert(connection != NULL);
@@ -347,9 +346,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 	if (assigned_address != NULL) {
 		*assigned_address = dev_addr;
-	}
-	if (assigned_handle != NULL) {
-		*assigned_handle = child_fun->handle;
 	}
 	if (new_fun != NULL) {
 		*new_fun = child_fun;

@@ -260,7 +260,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	do {
 		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 		    speed, uhci_port_reset_enable, port->number, port,
-		    &port->attached_device.address, NULL, NULL, NULL,
+		    &port->attached_device.address, NULL, NULL,
 		    &port->attached_device.fun);
 	} while (ret != EOK && ++count < 4);
 
