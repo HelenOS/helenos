@@ -77,7 +77,7 @@ struct usb_hub_info_t {
 	fibril_condvar_t pending_ops_cv;
 };
 
-int usb_hub_add_device(usb_device_t *usb_dev);
+int usb_hub_device_add(usb_device_t *usb_dev);
 
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);

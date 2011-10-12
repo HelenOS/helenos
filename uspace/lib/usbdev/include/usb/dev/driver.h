@@ -111,8 +111,8 @@ typedef struct {
 
 /** USB driver ops. */
 typedef struct {
-	/** Callback when new device is about to be controlled by the driver. */
-	int (*add_device)(usb_device_t *);
+	/** Callback when a new device was added to the system. */
+	int (*device_add)(usb_device_t *);
 } usb_driver_ops_t;
 
 /** USB driver structure. */

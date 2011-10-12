@@ -49,7 +49,7 @@
  * @return Error code.
  *
  */
-static int usbmouse_add_device(usb_device_t *dev)
+static int usbmouse_device_add(usb_device_t *dev)
 {
 	int rc = usb_mouse_create(dev);
 	if (rc != EOK) {
@@ -79,7 +79,7 @@ static int usbmouse_add_device(usb_device_t *dev)
 
 /** USB mouse driver ops. */
 static usb_driver_ops_t mouse_driver_ops = {
-	.add_device = usbmouse_add_device,
+	.device_add = usbmouse_device_add,
 };
 
 static usb_endpoint_description_t *endpoints[] = {

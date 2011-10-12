@@ -83,7 +83,7 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
  * @param usb_dev generic usb device information
  * @return error code
  */
-int usb_hub_add_device(usb_device_t *usb_dev)
+int usb_hub_device_add(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	/* Create driver soft-state structure */

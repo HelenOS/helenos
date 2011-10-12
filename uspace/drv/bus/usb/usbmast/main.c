@@ -86,7 +86,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
  * @param dev Representation of a the USB device.
  * @return Error code.
  */
-static int usbmast_add_device(usb_device_t *dev)
+static int usbmast_device_add(usb_device_t *dev)
 {
 	int rc;
 	usbmast_dev_t *mdev = NULL;
@@ -294,7 +294,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 
 /** USB mass storage driver ops. */
 static usb_driver_ops_t usbmast_driver_ops = {
-	.add_device = usbmast_add_device,
+	.device_add = usbmast_device_add,
 };
 
 /** USB mass storage driver. */

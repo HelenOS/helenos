@@ -40,10 +40,10 @@
 #include <str_error.h>
 #include <assert.h>
 
-static int generic_add_device(ddf_dev_t *);
+static int generic_device_add(ddf_dev_t *);
 
 static driver_ops_t generic_driver_ops = {
-	.add_device = generic_add_device
+	.add_device = generic_device_add
 };
 static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops
@@ -130,11 +130,11 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
  * @param gen_dev Device structure as prepared by DDF.
  * @return Error code.
  */
-int generic_add_device(ddf_dev_t *gen_dev)
+int generic_device_add(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
-	assert(driver->ops->add_device);
+	assert(driver->ops->device_add);
 
 	int rc;
 
@@ -147,7 +147,7 @@ int generic_add_device(ddf_dev_t *gen_dev)
 		return rc;
 	}
 
-	return driver->ops->add_device(dev);
+	return driver->ops->device_add(dev);
 }
 
 /** Destroy existing pipes of a USB device.
