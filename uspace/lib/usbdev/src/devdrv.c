@@ -41,9 +41,13 @@
 #include <assert.h>
 
 static int generic_device_add(ddf_dev_t *);
+static int generic_device_remove(ddf_dev_t *);
+static int generic_device_gone(ddf_dev_t *);
 
 static driver_ops_t generic_driver_ops = {
-	.add_device = generic_device_add
+	.add_device = generic_device_add,
+	.dev_remove = generic_device_remove,
+	.dev_gone = generic_device_gone,
 };
 static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops
@@ -149,7 +153,26 @@ int generic_device_add(ddf_dev_t *gen_dev)
 
 	return driver->ops->device_add(dev);
 }
+/*----------------------------------------------------------------------------*/
+int generic_device_remove(ddf_dev_t *gen_dev)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->device_rem == NULL)
+		return ENOTSUP;
 
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+int generic_device_gone(ddf_dev_t *gen_dev)
+{
+	assert(driver);
+	assert(driver->ops);
+	assert(driver->ops->device_gone);
+
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
 /** Destroy existing pipes of a USB device.
  *
  * @param dev Device where to destroy the pipes.
