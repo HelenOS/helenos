@@ -36,9 +36,9 @@
 #include <errno.h>
 #include <str_error.h>
 #include <async.h>
+#include <devman.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/dev/hub.h>    /* usb_hc_new_device_wrapper */
 #include <usb/debug.h>
 
 #include "port.h"
@@ -99,7 +99,8 @@ int uhci_port_init(uhci_port_t *port,
 	port->address = address;
 	port->number = number;
 	port->wait_period_usec = usec;
-	port->attached_device = 0;
+	port->attached_device.handle = 0;
+	port->attached_device.address = -1;
 	port->rh = rh;
 
 	int ret =
@@ -167,7 +168,7 @@ int uhci_port_check(void *port)
 		    instance->id_string, port_status);
 
 		/* Remove any old device */
-		if (instance->attached_device) {
+		if (instance->attached_device.handle) {
 			usb_log_debug2("%s: Removing device.\n",
 			    instance->id_string);
 			uhci_port_remove_device(instance);
@@ -256,11 +257,11 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
 	int ret, count = 0;
-	usb_address_t dev_addr;
 	do {
 		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 		    speed, uhci_port_reset_enable, port->number, port,
-		    &dev_addr, &port->attached_device, NULL, NULL, NULL);
+		    &port->attached_device.address,
+		    &port->attached_device.handle, NULL, NULL, NULL);
 	} while (ret != EOK && ++count < 4);
 
 	if (ret != EOK) {
@@ -271,25 +272,41 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	}
 
 	usb_log_info("New device at port %u, address %d (handle %" PRIun ").\n",
-	    port->number, dev_addr, port->attached_device);
+	    port->number, port->attached_device.address,
+	    port->attached_device.handle);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Remove device.
  *
- * @param[in] port Memory structure to use.
+ * @param[in] port Port instance to use.
  * @return Error code.
- *
- * Does not work, DDF does not support device removal.
- * Does not even free used USB address (it would be dangerous if tis driver
- * is still running).
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
-	usb_log_error("%s: Don't know how to remove device %" PRIun ".\n",
-	    port->id_string, port->attached_device);
-	port->attached_device = 0;
-	return ENOTSUP;
+	usb_log_debug("Removing device on port %zu.\n", port->number);
+
+	/* Stop driver first */
+	int ret = devman_remove_function(port->attached_device.handle);
+	if (ret != EOK) {
+		usb_log_error("Failed to remove child function on port"
+		   " %zu: %s.\n", port->number, str_error(ret));
+		return ret;
+	}
+	port->attached_device.handle = 0;
+
+	/* Driver stopped, free used address */
+	ret = usb_hc_unregister_device(&port->hc_connection,
+	    port->attached_device.address);
+	if (ret != EOK) {
+		usb_log_error("Failed to unregister address of removed device: "
+		    "%s.\n", str_error(ret));
+		return ret;
+	}
+
+	port->attached_device.address = -1;
+	usb_log_info("Removed device on port %zu.\n", port->number);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Enable or disable root hub port.
