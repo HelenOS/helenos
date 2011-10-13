@@ -177,7 +177,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	opResult = usb_device_auto_poll(hub_dev->usb_device, 0,
-	    hub_port_changes_callback, ((hub_dev->port_count + 1) / 8) + 1,
+	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 8) / 8),
 	    usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
 		/* Function is already bound */
@@ -222,9 +222,9 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	}
 
 	/* N + 1 bit indicates change on port N */
-	size_t port = 1;
-	for (; port < hub->port_count + 1; port++) {
-		const bool change = (change_bitmap[port / 8] >> (port % 8)) & 1;
+	for (size_t port = 0; port < hub->port_count + 1; port++) {
+		const size_t bit = port + 1;
+		const bool change = (change_bitmap[bit / 8] >> (bit % 8)) & 1;
 		if (change) {
 			usb_hub_port_process_interrupt(&hub->ports[port], hub);
 		}
@@ -249,7 +249,7 @@ static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev)
 	hub_dev->usb_device = usb_dev;
 
 	hub_dev->ports = NULL;
-	hub_dev->port_count = -1;
+	hub_dev->port_count = 0;
 	hub_dev->pending_ops_count = 0;
 	hub_dev->running = false;
 	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
@@ -292,15 +292,14 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	usb_log_debug("Setting port count to %d.\n", descriptor.port_count);
 	hub_dev->port_count = descriptor.port_count;
 
-	// TODO: +1 hack is no longer necessary
-	hub_dev->ports =
-	    calloc(hub_dev->port_count + 1, sizeof(usb_hub_port_t));
+	hub_dev->ports = calloc(hub_dev->port_count, sizeof(usb_hub_port_t));
 	if (!hub_dev->ports) {
 		return ENOMEM;
 	}
 
-	for (size_t port = 1; port < hub_dev->port_count + 1; ++port) {
-		usb_hub_port_init(&hub_dev->ports[port], port, control_pipe);
+	for (size_t port = 0; port < hub_dev->port_count; ++port) {
+		usb_hub_port_init(
+		    &hub_dev->ports[port], port + 1, control_pipe);
 	}
 
 	const bool is_power_switched =
@@ -310,7 +309,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 		const bool per_port_power = descriptor.characteristics
 		    & HUB_CHAR_POWER_PER_PORT_FLAG;
 
-		for (size_t port = 1; port <= hub_dev->port_count; ++port) {
+		for (size_t port = 0; port < hub_dev->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
 			opResult = usb_hub_port_set_feature(
 			    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
@@ -397,10 +396,10 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 	} else {
 		/* Over-current condition is gone, it is safe to turn the
 		 * ports on. */
-		size_t port;
-		for (port = 1; port <= hub_dev->port_count; ++port) {
+		for (size_t port = 0; port < hub_dev->port_count; ++port) {
 			const int opResult = usb_hub_port_set_feature(
 			    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
+			// TODO: consider power policy here
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT GONE: Cannot power on "
@@ -506,8 +505,7 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 	 * Thus, we would flush all pending port resets.
 	 */
 	if (hub->pending_ops_count > 0) {
-		size_t port;
-		for (port = 0; port < hub->port_count; port++) {
+		for (size_t port = 0; port < hub->port_count; ++port) {
 			usb_hub_port_reset_fail(&hub->ports[port]);
 		}
 	}
