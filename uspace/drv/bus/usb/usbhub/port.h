@@ -75,13 +75,13 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }
-
-void usb_hub_port_reset_fail(usb_hub_port_t *port);
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
+int usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub);
 int usb_hub_port_clear_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
 int usb_hub_port_set_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
+void usb_hub_port_reset_fail(usb_hub_port_t *port);
+void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
 
 #endif
 /**

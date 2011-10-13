@@ -97,6 +97,17 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	}
 
 	assert(!hub->running);
+
+	for (size_t port = 0; port < hub->port_count; ++port) {
+		if (hub->ports[port].attached_device.fun) {
+			const int ret =
+			    usb_hub_port_fini(&hub->ports[port], hub);
+			if (ret != EOK)
+				return ret;
+		}
+	}
+	free(hub->ports);
+
 	const int ret = ddf_fun_unbind(hub->hub_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind '%s' function: %s.\n",
@@ -104,7 +115,7 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 		return ret;
 	}
 	ddf_fun_destroy(hub->hub_fun);
-	free(hub->ports);
+
 	free(hub);
 	usb_dev->driver_data = NULL;
 	usb_log_info("USB hub driver, stopped and cleaned.\n");

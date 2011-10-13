@@ -54,8 +54,7 @@ struct add_device_phase1 {
 	usb_speed_t speed;
 };
 
-static void usb_hub_port_removed_device(usb_hub_port_t *port,
-    usb_hub_dev_t *hub);
+static int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub);
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
@@ -64,20 +63,26 @@ static int add_device_phase1_worker_fibril(void *arg);
 static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_speed_t speed);
 
+int usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub)
+{
+	assert(port);
+	if (port->attached_device.fun)
+		return usb_hub_port_device_gone(port, hub);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
 /**
  * Clear feature on hub port.
  *
- * @param hc Host controller telephone
- * @param address Hub address
- * @param port_index Port
- * @param feature Feature selector
+ * @param port Port structure.
+ * @param feature Feature selector.
  * @return Operation result
  */
 int usb_hub_port_clear_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature)
 {
 	assert(port);
-	usb_device_request_setup_packet_t clear_request = {
+	const usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
 		.request = USB_DEVREQ_CLEAR_FEATURE,
 		.value = feature,
@@ -89,19 +94,17 @@ int usb_hub_port_clear_feature(
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Clear feature on hub port.
+ * Set feature on hub port.
  *
- * @param hc Host controller telephone
- * @param address Hub address
- * @param port_index Port
- * @param feature Feature selector
+ * @param port Port structure.
+ * @param feature Feature selector.
  * @return Operation result
  */
 int usb_hub_port_set_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature)
 {
 	assert(port);
-	usb_device_request_setup_packet_t clear_request = {
+	const usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
 		.request = USB_DEVREQ_SET_FEATURE,
 		.index = port->port_number,
@@ -112,6 +115,11 @@ int usb_hub_port_set_feature(
 	    sizeof(clear_request), NULL, 0);
 }
 /*----------------------------------------------------------------------------*/
+/**
+ * Mark reset process as failed due to external reasons
+ *
+ * @param port Port structure
+ */
 void usb_hub_port_reset_fail(usb_hub_port_t *port)
 {
 	assert(port);
@@ -123,11 +131,11 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port)
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Process interrupts on given hub port
+ * Process interrupts on given port
  *
  * Accepts connection, over current and port reset change.
+ * @param port port structure
  * @param hub hub representation
- * @param port port number, starting from 1
  */
 void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
@@ -170,7 +178,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 			/* If enabled change was reported leave the removal
 			 * to that handler, it shall ACK the change too. */
 			if (!(status & USB_HUB_PORT_C_STATUS_ENABLED)) {
-				usb_hub_port_removed_device(port, hub);
+				usb_hub_port_device_gone(port, hub);
 			}
 		}
 	}
@@ -179,7 +187,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
 		usb_log_info("Port %zu, disabled because of errors.\n",
 		   port->port_number);
-		usb_hub_port_removed_device(port, hub);
+		usb_hub_port_device_gone(port, hub);
 		const int rc = usb_hub_port_clear_feature(port,
 		        USB_HUB_FEATURE_C_PORT_ENABLE);
 		if (rc != EOK) {
@@ -237,46 +245,21 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	usb_log_debug("Port %zu status 0x%08" PRIx32 "\n",
 	    port->port_number, status);
 }
-
+/*----------------------------------------------------------------------------*/
 /**
  * routine called when a device on port has been removed
  *
  * If the device on port had default address, it releases default address.
  * Otherwise does not do anything, because DDF does not allow to remove device
  * from it`s device tree.
+ * @param port port structure
  * @param hub hub representation
- * @param port port number, starting from 1
  */
-static void usb_hub_port_removed_device(usb_hub_port_t *port,
-    usb_hub_dev_t *hub)
+int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
-	if (port->attached_device.address >= 0) {
-		fibril_mutex_lock(&port->mutex);
-		usb_log_debug("Removing device on port %zu.\n",
-		    port->port_number);
-		const int ret = ddf_fun_unbind(port->attached_device.fun);
-		if (ret == EOK) {
-			ddf_fun_destroy(port->attached_device.fun);
-			const int ret =
-			    usb_hc_unregister_device(&hub->connection,
-			        port->attached_device.address);
-			if (ret != EOK) {
-				usb_log_error("Failed to unregister "
-				   "address of removed device: %s.\n",
-				   str_error(ret));
-			}
-		} else {
-			usb_log_error("Failed to unbind child function on port"
-			   " %zu: %s.\n", port->port_number, str_error(ret));
-		}
-		port->attached_device.address = -1;
-		port->attached_device.fun = NULL;
-		fibril_mutex_unlock(&port->mutex);
-		usb_log_info("Removed device on port %zu.\n",
-		    port->port_number);
-	} else {
+	if (port->attached_device.address < 0) {
 		usb_log_warning(
 		    "Device on port %zu removed before being registered.\n",
 		    port->port_number);
@@ -287,19 +270,44 @@ static void usb_hub_port_removed_device(usb_hub_port_t *port,
 		 * port reset callback from new device wrapper.
 		 */
 		usb_hub_port_reset_fail(port);
+		return EOK;
 	}
-}
 
+	fibril_mutex_lock(&port->mutex);
+	assert(port->attached_device.fun);
+	usb_log_debug("Removing device on port %zu.\n", port->port_number);
+	int ret = ddf_fun_unbind(port->attached_device.fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind child function on port"
+		    " %zu: %s.\n", port->port_number, str_error(ret));
+		fibril_mutex_unlock(&port->mutex);
+		return ret;
+	}
+
+	ddf_fun_destroy(port->attached_device.fun);
+	port->attached_device.fun = NULL;
+
+	ret = usb_hc_unregister_device(&hub->connection,
+	    port->attached_device.address);
+	if (ret != EOK) {
+		usb_log_warning("Failed to unregister address of the removed "
+		    "device: %s.\n", str_error(ret));
+	}
+	port->attached_device.address = -1;
+	fibril_mutex_unlock(&port->mutex);
+	usb_log_info("Removed device on port %zu.\n", port->port_number);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
 /**
  * Process port reset change
  *
  * After this change port should be enabled, unless some problem occurred.
  * This functions triggers second phase of enabling new device.
- * @param hub
- * @param port
- * @param status
+ * @param port Port structure
+ * @param status Port status mask
  */
-static void usb_hub_port_reset_completed(usb_hub_port_t *port,
+void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status)
 {
 	assert(port);
@@ -329,8 +337,7 @@ static void usb_hub_port_reset_completed(usb_hub_port_t *port,
 /*----------------------------------------------------------------------------*/
 /** Retrieve port status.
  *
- * @param[in] ctrl_pipe Control pipe to use.
- * @param[in] port Port number (starting at 1).
+ * @param[in] port Port structure
  * @param[out] status Where to store the port status.
  * @return Error code.
  */
@@ -396,13 +403,9 @@ static int enable_port_callback(void *arg)
 	}
 	fibril_mutex_unlock(&port->mutex);
 
-	if (port->reset_okay) {
-		return EOK;
-	} else {
-		return ESTALL;
-	}
+	return port->reset_okay ? EOK : ESTALL;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Fibril for adding a new device.
  *
  * Separate fibril is needed because the port reset completion is announced
@@ -411,7 +414,7 @@ static int enable_port_callback(void *arg)
  * @param arg Pointer to struct add_device_phase1.
  * @return 0 Always.
  */
-static int add_device_phase1_worker_fibril(void *arg)
+int add_device_phase1_worker_fibril(void *arg)
 {
 	struct add_device_phase1 *data = arg;
 	assert(data);
@@ -448,9 +451,9 @@ leave:
 
 	free(arg);
 
-	return EOK;
+	return rc;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Start device adding when connection change is detected.
  *
  * This fires a new fibril to complete the device addition.
