@@ -36,6 +36,7 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/dev/recognise.h>
+#include <usb/debug.h>
 #include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
@@ -219,8 +220,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 	usb_address_t dev_addr = usb_hc_request_address(&hc_conn, dev_speed);
 	if (dev_addr < 0) {
-		usb_hc_connection_close(&hc_conn);
-		return EADDRNOTAVAIL;
+		rc = EADDRNOTAVAIL;
+		goto close_connection;
 	}
 
 	/*
@@ -335,8 +336,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
 	}
-	
-	usb_hc_connection_close(&hc_conn);
+
 
 	/*
 	 * And we are done.
@@ -348,9 +348,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		*new_fun = child_fun;
 	}
 
-	return EOK;
-
-
+	rc = EOK;
+	goto close_connection;
 
 	/*
 	 * Error handling (like nested exceptions) starts here.
@@ -362,7 +361,10 @@ leave_release_default_address:
 leave_release_free_address:
 	usb_hc_unregister_device(&hc_conn, dev_addr);
 
-	usb_hc_connection_close(&hc_conn);
+close_connection:
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_hc_new_device_wrapper(): Failed to close "
+		    "connection.\n");
 
 	return rc;
 }

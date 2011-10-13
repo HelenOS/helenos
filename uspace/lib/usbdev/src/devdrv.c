@@ -390,7 +390,9 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 		}
 	}
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_device_create_pipes(): "
+		    "Failed to close connection.\n");
 
 	*pipes_ptr = pipes;
 	if (pipes_count_ptr != NULL) {
@@ -412,7 +414,9 @@ rollback_unregister_endpoints:
 		}
 	}
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_device_create_pipes(): "
+		    "Failed to close connection.\n");
 
 	/*
 	 * Jump here if something went wrong before some actual communication
@@ -467,7 +471,9 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 		free(pipes[i].pipe);
 	}
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_device_destroy_pipes(): "
+		    "Failed to close connection.\n");
 
 	free(pipes);
 
