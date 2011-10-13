@@ -43,6 +43,8 @@
 
 #include "port.h"
 
+#define MAX_ERROR_COUNT 5
+
 static int uhci_port_check(void *port);
 static int uhci_port_reset_enable(void *arg);
 static int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed);
@@ -150,6 +152,19 @@ int uhci_port_check(void *port)
 	uhci_port_t *instance = port;
 	assert(instance);
 
+	unsigned allowed_failures = MAX_ERROR_COUNT;
+#define CHECK_RET_FAIL(ret, msg...) \
+	if (ret != EOK) { \
+		usb_log_error(msg); \
+		if (!(allowed_failures-- > 0)) { \
+			usb_log_fatal( \
+			   "Maximum number of failures reached, " \
+			   "bailing out.\n"); \
+			return ret; \
+		} \
+		continue; \
+	} else (void)0
+
 	while (1) {
 		async_usleep(instance->wait_period_usec);
 
@@ -164,27 +179,20 @@ int uhci_port_check(void *port)
 		if ((port_status & STATUS_CONNECTED_CHANGED) == 0)
 			continue;
 
-		int ret =
-		    usb_hc_connection_open(&instance->hc_connection);
-		if (ret != EOK) {
-			usb_log_error("%s: Failed to connect to HC.",
-			    instance->id_string);
-			continue;
-		}
-
 		usb_log_debug("%s: Connected change detected: %x.\n",
 		    instance->id_string, port_status);
 
+		int ret = usb_hc_connection_open(&instance->hc_connection);
+		CHECK_RET_FAIL(ret, "%s: Failed to connect to HC %s.\n",
+		    instance->id_string, str_error(ret));
+
 		/* Remove any old device */
 		if (instance->attached_device.fun) {
-			usb_log_debug2("%s: Removing device.\n",
-			    instance->id_string);
 			uhci_port_remove_device(instance);
 		}
 
-
 		if ((port_status & STATUS_CONNECTED) != 0) {
-			/* New device */
+			/* New device, this will take care of WC bits */
 			const usb_speed_t speed =
 			    ((port_status & STATUS_LOW_SPEED) != 0) ?
 			    USB_SPEED_LOW : USB_SPEED_FULL;
@@ -197,10 +205,8 @@ int uhci_port_check(void *port)
 		}
 
 		ret = usb_hc_connection_close(&instance->hc_connection);
-		if (ret != EOK) {
-			usb_log_error("%s: Failed to disconnect.",
-			    instance->id_string);
-		}
+		CHECK_RET_FAIL(ret, "%s: Failed to disconnect from hc: %s.\n",
+		    instance->id_string, str_error(ret));
 	}
 	return EOK;
 }
@@ -257,13 +263,13 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
-	int ret, count = 0;
+	int ret, count = MAX_ERROR_COUNT;
 	do {
 		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 		    speed, uhci_port_reset_enable, port,
 		    &port->attached_device.address, NULL, NULL,
 		    &port->attached_device.fun);
-	} while (ret != EOK && ++count < 4);
+	} while (ret != EOK && count-- > 0);
 
 	if (ret != EOK) {
 		usb_log_error("%s: Failed(%d) to add device: %s.\n",
@@ -272,8 +278,8 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 		return ret;
 	}
 
-	usb_log_info("New device at port %u, address %d (handle %" PRIun ").\n",
-	    port->number, port->attached_device.address,
+	usb_log_info("%s: New device, address %d (handle %" PRIun ").\n",
+	    port->id_string, port->attached_device.address,
 	    port->attached_device.fun->handle);
 	return EOK;
 }
