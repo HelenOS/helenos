@@ -105,14 +105,14 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	    usb_str_class(interface_descriptor->interface_class),
 	    (int) interface_descriptor->interface_number);
 	if (rc < 0) {
-		goto error_leave;
+		return ENOMEM;
 	}
 
 	/* Create the device. */
 	child = ddf_fun_create(parent->ddf_dev, fun_inner, child_name);
+	free(child_name);
 	if (child == NULL) {
-		rc = ENOMEM;
-		goto error_leave;
+		return ENOMEM;
 	}
 
 	iface->fun = child;
@@ -121,30 +121,20 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	child->ops = &child_device_ops;
 
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
-	    interface_descriptor,
-	    &child->match_ids);
+	    interface_descriptor, &child->match_ids);
 	if (rc != EOK) {
-		goto error_leave;
+		ddf_fun_destroy(child);
+		return rc;
 	}
 
 	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
-		goto error_leave;
+		/* This takes care of match_id deallocation as well. */
+		ddf_fun_destroy(child);
+		return rc;
 	}
 
 	return EOK;
-
-error_leave:
-	if (child != NULL) {
-		child->name = NULL;
-		/* This takes care of match_id deallocation as well. */
-		ddf_fun_destroy(child);
-	}
-	if (child_name != NULL) {
-		free(child_name);
-	}
-
-	return rc;
 }
 
 /**

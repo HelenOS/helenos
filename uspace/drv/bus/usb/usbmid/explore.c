@@ -173,6 +173,7 @@ bool usbmid_explore_device(usb_device_t *dev)
 
 	rc = ddf_fun_bind(ctl_fun);
 	if (rc != EOK) {
+		ddf_fun_destroy(ctl_fun);
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
 		return false;
