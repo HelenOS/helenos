@@ -68,10 +68,10 @@ static const usb_device_request_setup_packet_t get_hub_status_request = {
 
 static int usb_set_first_configuration(usb_device_t *usb_device);
 static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev);
-static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_info);
-static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
+static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev);
+static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
     usb_hub_status_t status);
-static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_info);
+static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev);
 static void usb_hub_polling_terminated_callback(usb_device_t *device,
     bool was_error, void *data);
 /**
@@ -123,8 +123,8 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	/* Create driver soft-state structure */
-	usb_hub_dev_t *hub_info = usb_hub_dev_create(usb_dev);
-	if (hub_info == NULL) {
+	usb_hub_dev_t *hub_dev = usb_hub_dev_create(usb_dev);
+	if (hub_dev == NULL) {
 		usb_log_error("Failed to create hun driver structure.\n");
 		return ENOMEM;
 	}
@@ -132,11 +132,11 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Create hc connection */
 	usb_log_debug("Initializing USB wire abstraction.\n");
 	int opResult = usb_hc_connection_initialize_from_device(
-	    &hub_info->connection, hub_info->usb_device->ddf_dev);
+	    &hub_dev->connection, hub_dev->usb_device->ddf_dev);
 	if (opResult != EOK) {
 		usb_log_error("Could not initialize connection to device: %s\n",
 		    str_error(opResult));
-		free(hub_info);
+		free(hub_dev);
 		return opResult;
 	}
 
@@ -145,52 +145,52 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	if (opResult != EOK) {
 		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
-		free(hub_info);
+		free(hub_dev);
 		return opResult;
 	}
 
 	/* Get port count and create attached_devices. */
-	opResult = usb_hub_process_hub_specific_info(hub_info);
+	opResult = usb_hub_process_hub_specific_info(hub_dev);
 	if (opResult != EOK) {
 		usb_log_error("Could process hub specific info, %s\n",
 		    str_error(opResult));
-		free(hub_info);
+		free(hub_dev);
 		return opResult;
 	}
 
 	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.\n");
-	hub_info->hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
+	hub_dev->hub_fun = ddf_fun_create(hub_dev->usb_device->ddf_dev,
 	    fun_exposed, HUB_FNC_NAME);
-	if (hub_info->hub_fun == NULL) {
+	if (hub_dev->hub_fun == NULL) {
 		usb_log_error("Failed to create hub function.\n");
-		free(hub_info);
+		free(hub_dev);
 		return ENOMEM;
 	}
 
-	opResult = ddf_fun_bind(hub_info->hub_fun);
+	opResult = ddf_fun_bind(hub_dev->hub_fun);
 	if (opResult != EOK) {
 		usb_log_error("Failed to bind hub function: %s.\n",
 		   str_error(opResult));
-		free(hub_info);
-		ddf_fun_destroy(hub_info->hub_fun);
+		free(hub_dev);
+		ddf_fun_destroy(hub_dev->hub_fun);
 		return opResult;
 	}
 
-	opResult = usb_device_auto_poll(hub_info->usb_device, 0,
-	    hub_port_changes_callback, ((hub_info->port_count + 1) / 8) + 1,
-	    usb_hub_polling_terminated_callback, hub_info);
+	opResult = usb_device_auto_poll(hub_dev->usb_device, 0,
+	    hub_port_changes_callback, ((hub_dev->port_count + 1) / 8) + 1,
+	    usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
 		/* Function is already bound */
-		ddf_fun_unbind(hub_info->hub_fun);
-		ddf_fun_destroy(hub_info->hub_fun);
-		free(hub_info);
+		ddf_fun_unbind(hub_dev->hub_fun);
+		ddf_fun_destroy(hub_dev->hub_fun);
+		free(hub_dev);
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(opResult));
 		return opResult;
 	}
-	hub_info->running = true;
+	hub_dev->running = true;
 	usb_log_info("Controlling hub '%s' (%zu ports).\n",
-	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
+	    hub_dev->usb_device->ddf_dev->name, hub_dev->port_count);
 
 	return EOK;
 }
@@ -242,40 +242,40 @@ bool hub_port_changes_callback(usb_device_t *dev,
 static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	usb_hub_dev_t *info = malloc(sizeof(usb_hub_dev_t));
-	if (!info)
+	usb_hub_dev_t *hub_dev = malloc(sizeof(usb_hub_dev_t));
+	if (!hub_dev)
 	    return NULL;
 
-	info->usb_device = usb_dev;
+	hub_dev->usb_device = usb_dev;
 
-	info->ports = NULL;
-	info->port_count = -1;
-	info->pending_ops_count = 0;
-	info->running = false;
-	fibril_mutex_initialize(&info->pending_ops_mutex);
-	fibril_condvar_initialize(&info->pending_ops_cv);
-	usb_dev->driver_data = info;
+	hub_dev->ports = NULL;
+	hub_dev->port_count = -1;
+	hub_dev->pending_ops_count = 0;
+	hub_dev->running = false;
+	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
+	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
+	usb_dev->driver_data = hub_dev;
 
-	return info;
+	return hub_dev;
 }
 /*----------------------------------------------------------------------------*/
 /**
- * Load hub-specific information into hub_info structure and process if needed
+ * Load hub-specific information into hub_dev structure and process if needed
  *
  * Read port count and initialize structures holding per port information.
  * If there are any non-removable devices, start initializing them.
  * This function is hub-specific and should be run only after the hub is
  * configured using usb_set_first_configuration function.
- * @param hub_info hub representation
+ * @param hub_dev hub representation
  * @return error code
  */
-static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_info)
+static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 {
-	assert(hub_info);
+	assert(hub_dev);
 
 	/* Get hub descriptor. */
 	usb_log_debug("Retrieving descriptor\n");
-	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
+	usb_pipe_t *control_pipe = &hub_dev->usb_device->ctrl_pipe;
 
 	usb_hub_descriptor_header_t descriptor;
 	size_t received_size;
@@ -290,17 +290,17 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_info)
 	}
 
 	usb_log_debug("Setting port count to %d.\n", descriptor.port_count);
-	hub_info->port_count = descriptor.port_count;
+	hub_dev->port_count = descriptor.port_count;
 
 	// TODO: +1 hack is no longer necessary
-	hub_info->ports =
-	    calloc(hub_info->port_count + 1, sizeof(usb_hub_port_t));
-	if (!hub_info->ports) {
+	hub_dev->ports =
+	    calloc(hub_dev->port_count + 1, sizeof(usb_hub_port_t));
+	if (!hub_dev->ports) {
 		return ENOMEM;
 	}
 
-	for (size_t port = 1; port < hub_info->port_count + 1; ++port) {
-		usb_hub_port_init(&hub_info->ports[port], port, control_pipe);
+	for (size_t port = 1; port < hub_dev->port_count + 1; ++port) {
+		usb_hub_port_init(&hub_dev->ports[port], port, control_pipe);
 	}
 
 	const bool is_power_switched =
@@ -310,10 +310,10 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_info)
 		const bool per_port_power = descriptor.characteristics
 		    & HUB_CHAR_POWER_PER_PORT_FLAG;
 
-		for (size_t port = 1; port <= hub_info->port_count; ++port) {
+		for (size_t port = 1; port <= hub_dev->port_count; ++port) {
 			usb_log_debug("Powering port %zu.\n", port);
 			opResult = usb_hub_port_set_feature(
-			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
+			    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_error("Cannot power on port %zu: %s.\n",
 				    port, str_error(opResult));
@@ -383,11 +383,11 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
  * Process hub over current change
  *
  * This means either to power off the hub or power it on.
- * @param hub_info hub instance
+ * @param hub_dev hub instance
  * @param status hub status bitmask
  * @return error code
  */
-static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
+static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
     usb_hub_status_t status)
 {
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
@@ -398,9 +398,9 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
 		/* Over-current condition is gone, it is safe to turn the
 		 * ports on. */
 		size_t port;
-		for (port = 1; port <= hub_info->port_count; ++port) {
+		for (port = 1; port <= hub_dev->port_count; ++port) {
 			const int opResult = usb_hub_port_set_feature(
-			    &hub_info->ports[port], USB_HUB_FEATURE_PORT_POWER);
+			    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
 				usb_log_warning(
 				    "HUB OVER-CURRENT GONE: Cannot power on "
@@ -410,7 +410,7 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
 		}
 	}
 	const int opResult = usb_request_clear_feature(
-	    &hub_info->usb_device->ctrl_pipe, USB_REQUEST_TYPE_CLASS,
+	    &hub_dev->usb_device->ctrl_pipe, USB_REQUEST_TYPE_CLASS,
 	    USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_HUB_FEATURE_C_HUB_LOCAL_POWER, 0);
 	if (opResult != EOK) {
@@ -424,14 +424,14 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_info,
  * Process hub interrupts.
  *
  * The change can be either in the over-current condition or local-power change.
- * @param hub_info hub instance
+ * @param hub_dev hub instance
  */
-static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_info)
+static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 {
-	assert(hub_info);
-	assert(hub_info->usb_device);
+	assert(hub_dev);
+	assert(hub_dev->usb_device);
 	usb_log_debug("Global interrupt on a hub\n");
-	usb_pipe_t *control_pipe = &hub_info->usb_device->ctrl_pipe;
+	usb_pipe_t *control_pipe = &hub_dev->usb_device->ctrl_pipe;
 
 	usb_hub_status_t status;
 	size_t rcvd_size;
@@ -452,7 +452,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_info)
 
 	/* Handle status changes */
 	if (status & USB_HUB_STATUS_C_OVER_CURRENT) {
-		usb_hub_over_current(hub_info, status);
+		usb_hub_over_current(hub_dev, status);
 	}
 
 	if (status & USB_HUB_STATUS_C_LOCAL_POWER) {
@@ -484,7 +484,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_info)
 /**
  * callback called from hub polling fibril when the fibril terminates
  *
- * Should perform a cleanup - deletes hub_info.
+ * Does not perform cleanup, just marks the hub as not running.
  * @param device usb device afected
  * @param was_error indicates that the fibril is stoped due to an error
  * @param data pointer to usb_hub_dev_t structure
