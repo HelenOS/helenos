@@ -241,7 +241,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t *hub_info)
 	int opResult = usb_request_get_descriptor(control_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_HUB, 0, 0, &descriptor,
-	    sizeof(usb_hub_descriptor_t), &received_size);
+	    sizeof(usb_hub_descriptor_header_t), &received_size);
 	if (opResult != EOK) {
 		usb_log_error("Failed to receive hub descriptor: %s.\n",
 		    str_error(opResult));
