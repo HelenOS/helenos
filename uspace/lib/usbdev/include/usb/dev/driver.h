@@ -157,7 +157,7 @@ static usb_driver_t hub_driver = {
 	 */
 	usb_endpoint_description_t **endpoints;
 	/** Driver ops. */
-	usb_driver_ops_t *ops;
+	const usb_driver_ops_t *ops;
 } usb_driver_t;
 
 int usb_driver_main(usb_driver_t *);

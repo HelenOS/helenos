@@ -53,7 +53,7 @@ static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops
 };
 
-static usb_driver_t *driver = NULL;
+static const usb_driver_t *driver = NULL;
 
 
 /** Main routine of USB device driver.
