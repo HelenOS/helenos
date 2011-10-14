@@ -66,6 +66,8 @@ typedef struct usb_multimedia_t {
 	//size_t key_count;
 	/** IPC session to the console device (for sending key events). */
 	async_sess_t *console_sess;
+	/** DDF function */
+	ddf_fun_t *fun;
 } usb_multimedia_t;
 
 
@@ -191,6 +193,7 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev,
 		ddf_fun_destroy(fun);
 		return rc;
 	}
+	multim_dev->fun = fun;
 
 	return EOK;
 }
@@ -241,6 +244,12 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 		usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
 		// hangup session to the console
 		async_hangup(multim_dev->console_sess);
+		const int ret = ddf_fun_unbind(multim_dev->fun);
+		if (ret != EOK) {
+			usb_log_error("Failed to unbind multim function.\n");
+		} else {
+			ddf_fun_destroy(multim_dev->fun);
+		}
 	}
 }
 
