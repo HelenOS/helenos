@@ -189,8 +189,25 @@ static int usb_generic_hid_client_connected(ddf_fun_t *fun)
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
-{	
+void usb_generic_hid_deinit(usb_hid_dev_t *hid_dev, void *data)
+{
+	ddf_fun_t *fun = data;
+	const int ret = ddf_fun_unbind(fun);
+	if (ret != EOK) {
+		usb_log_error("ailed to unbind generic hid fun.\n");
+		return;
+	}
+	ddf_fun_destroy(fun);
+}
+
+/*----------------------------------------------------------------------------*/
+
+int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
+{
+	if (hid_dev == NULL) {
+		return EINVAL;
+	}
+
 	/* Create the exposed function. */
 	/** @todo Generate numbers for the devices? */
 	usb_log_debug("Creating DDF function %s...\n", HID_GENERIC_FUN_NAME);
@@ -213,19 +230,9 @@ static int usb_generic_hid_create_function(usb_hid_dev_t *hid_dev)
 	}
 
 	usb_log_debug("HID function created. Handle: %" PRIun "\n", fun->handle);
+	*data = fun;
 
 	return EOK;
-}
-
-/*----------------------------------------------------------------------------*/
-
-int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
-{
-	if (hid_dev == NULL) {
-		return EINVAL;
-	}
-
-	return usb_generic_hid_create_function(hid_dev);
 }
 
 /*----------------------------------------------------------------------------*/

@@ -154,7 +154,8 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 	hid_dev->subdrivers[hid_dev->subdriver_count].poll_end = NULL;
 
 	// set the deinit callback
-	hid_dev->subdrivers[hid_dev->subdriver_count].deinit = NULL;
+	hid_dev->subdrivers[hid_dev->subdriver_count].deinit =
+	    usb_generic_hid_deinit;
 
 	// set subdriver count
 	++hid_dev->subdriver_count;
@@ -269,7 +270,7 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 
 	hid_dev->subdrivers[count].init = usb_generic_hid_init;
 	hid_dev->subdrivers[count].poll = usb_generic_hid_polling_callback;
-	hid_dev->subdrivers[count].deinit = NULL;
+	hid_dev->subdrivers[count].deinit = usb_generic_hid_deinit;
 	hid_dev->subdrivers[count].poll_end = NULL;
 
 	hid_dev->subdriver_count = count + 1;
