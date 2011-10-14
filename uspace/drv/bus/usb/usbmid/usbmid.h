@@ -68,6 +68,7 @@ int usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t *,
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *);
 void usbmid_dump_descriptors(uint8_t *, size_t);
+int usbmid_interface_destroy(usbmid_interface_t *mid_iface);
 
 #endif
 /**

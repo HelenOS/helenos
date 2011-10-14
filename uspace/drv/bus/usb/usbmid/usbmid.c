@@ -78,6 +78,20 @@ static ddf_dev_ops_t child_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &child_usb_iface
 };
 
+int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
+{
+	assert(mid_iface);
+	assert_link_not_used(&mid_iface->link);
+	const int ret = ddf_fun_unbind(mid_iface->fun);
+	if (ret != EOK) {
+		return ret;
+	}
+	/* NOTE: interface memebr points somewhere, but we did not
+	 * allocate that space, s leave it be */
+	ddf_fun_destroy(mid_iface->fun);
+	free(mid_iface);
+	return EOK;
+}
 
 /** Spawn new child device from one interface.
  *
