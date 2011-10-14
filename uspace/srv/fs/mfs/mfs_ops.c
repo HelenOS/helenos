@@ -68,7 +68,8 @@ static int mfs_node_get(fs_node_t **rfn, service_id_t service_id,
     fs_index_t index);
 static int mfs_instance_get(service_id_t service_id,
     struct mfs_instance **instance);
-
+static int mfs_check_sanity(struct mfs_sb_info *sbi);
+static bool is_power_of_two(uint32_t n);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -260,6 +261,10 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	}
 
 	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
+	if ((rc = mfs_check_sanity(sbi)) != EOK) {
+		fprintf(stderr, "Filesystem corrupted, invalid superblock");
+		goto out_error;
+	}
 
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
@@ -1070,6 +1075,29 @@ check_magic_number(uint16_t magic, bool *native,
 	return rc;
 }
 
+/** Filesystem sanity check
+ *
+ * @param Pointer to the MFS superblock.
+ *
+ * @return EOK on success, ENOTSUP otherwise.
+ */
+static int
+mfs_check_sanity(struct mfs_sb_info *sbi)
+{
+	if (!is_power_of_two(sbi->block_size) ||
+	    sbi->block_size < MFS_MIN_BLOCKSIZE ||
+	    sbi->block_size > MFS_MAX_BLOCKSIZE)
+		return ENOTSUP;
+	else if (sbi->ibmap_blocks == 0 || sbi->zbmap_blocks == 0)
+		return ENOTSUP;
+	else if (sbi->ninodes == 0 || sbi->nzones == 0)
+		return ENOTSUP;
+	else if (sbi->firstdatazone == 0)
+		return ENOTSUP;
+
+	return EOK;
+}
+
 static int
 mfs_close(service_id_t service_id, fs_index_t index)
 {
@@ -1090,6 +1118,21 @@ mfs_sync(service_id_t service_id, fs_index_t index)
 	mnode->ino_i->dirty = true;
 
 	return mfs_node_put(fn);
+}
+
+/** Check if a given number is a power of two.
+ *
+ * @param n	The number to check.
+ *
+ * @return	true if it is a power of two, false otherwise.
+ */
+static bool
+is_power_of_two(uint32_t n)
+{
+	if (n == 0)
+		return false;
+
+	return (n & (n - 1)) == 0;
 }
 
 vfs_out_ops_t mfs_ops = {
