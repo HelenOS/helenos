@@ -53,7 +53,7 @@
 /*----------------------------------------------------------------------------*/
 
 /* Array of endpoints expected on the device, NULL terminated. */
-usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
+usb_endpoint_description_t *usb_hid_endpoints[] = {
 	&usb_hid_kbd_poll_endpoint_description,
 	&usb_hid_mouse_poll_endpoint_description,
 	&usb_hid_generic_poll_endpoint_description,
