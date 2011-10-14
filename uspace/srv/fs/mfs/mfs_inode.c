@@ -41,11 +41,11 @@ mfs2_write_inode_raw(struct mfs_node *mnode);
 
 static int
 mfs_read_inode_raw(const struct mfs_instance *instance,
-		struct mfs_ino_info **ino_ptr, uint16_t inum);
+    struct mfs_ino_info **ino_ptr, uint16_t inum);
 
 static int
 mfs2_read_inode_raw(const struct mfs_instance *instance,
-		struct mfs_ino_info **ino_ptr, uint32_t inum);
+    struct mfs_ino_info **ino_ptr, uint32_t inum);
 
 /**Read a MINIX inode from disk
  *
@@ -58,16 +58,16 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
  */
 int
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
-	  fs_index_t index)
+    fs_index_t index)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
 	int r;
 
 	if (sbi->fs_version == MFS_VERSION_V1) {
-		/*Read a MFS V1 inode*/
+		/* Read a MFS V1 inode */
 		r = mfs_read_inode_raw(inst, ino_i, index);
 	} else {
-		/*Read a MFS V2/V3 inode*/
+		/* Read a MFS V2/V3 inode */
 		r = mfs2_read_inode_raw(inst, ino_i, index);
 	}
 
@@ -76,7 +76,8 @@ mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 
 static int
 mfs_read_inode_raw(const struct mfs_instance *instance,
-		struct mfs_ino_info **ino_ptr, uint16_t inum) {
+    struct mfs_ino_info **ino_ptr, uint16_t inum)
+{
 	struct mfs_inode *ino;
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
@@ -85,7 +86,7 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 
 	sbi = instance->sbi;
 
-	/*inode 0 does not exist*/
+	/* inode 0 does not exist */
 	inum -= 1;
 
 	const int ino_off = inum % sbi->ino_per_block;
@@ -100,8 +101,9 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 	const int itable_off = sbi->itable_off;
 
 	r = block_get(&b, instance->service_id,
-		      itable_off + inum / sbi->ino_per_block,
-		      BLOCK_FLAGS_NONE);
+	    itable_off + inum / sbi->ino_per_block,
+	    BLOCK_FLAGS_NONE);
+
 	if (r != EOK)
 		goto out_err;
 
@@ -133,7 +135,8 @@ out_err:
 
 static int
 mfs2_read_inode_raw(const struct mfs_instance *instance,
-		struct mfs_ino_info **ino_ptr, uint32_t inum) {
+    struct mfs_ino_info **ino_ptr, uint32_t inum)
+{
 	struct mfs2_inode *ino;
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
@@ -149,15 +152,16 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 
 	sbi = instance->sbi;
 
-	/*inode 0 does not exist*/
+	/* inode 0 does not exist */
 	inum -= 1;
 
 	const int itable_off = sbi->itable_off;
 	const int ino_off = inum % sbi->ino_per_block;
 
 	r = block_get(&b, instance->service_id,
-		      itable_off + inum / sbi->ino_per_block,
-		      BLOCK_FLAGS_NONE);
+	    itable_off + inum / sbi->ino_per_block,
+	    BLOCK_FLAGS_NONE);
+
 	if (r != EOK)
 		goto out_err;
 
@@ -321,7 +325,7 @@ mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 	int r;
 
 	if (size_shrink == 0) {
-		/*Nothing to be done*/
+		/* Nothing to be done */
 		return EOK;
 	}
 
@@ -332,7 +336,7 @@ mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 
 	ino_i->dirty = true;
 
-	/*Compute the number of zones to free*/
+	/* Compute the number of zones to free */
 	unsigned zones_to_free;
 
 	size_t diff = old_size - new_size;
@@ -353,7 +357,7 @@ mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 		ino_i->i_size -= bs;
 
 		if (old_zone == 0)
-			continue; /*Sparse block*/
+			continue; /* Sparse block */
 
 		r = mfs_free_zone(mnode->instance, old_zone);
 		if (r != EOK)
