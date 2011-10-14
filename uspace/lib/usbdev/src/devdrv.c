@@ -332,8 +332,9 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 	size_t i;
 	int rc;
 
-	size_t pipe_count = count_other_pipes(endpoints);
+	const size_t pipe_count = count_other_pipes(endpoints);
 	if (pipe_count == 0) {
+		*pipes_count_ptr = pipe_count;
 		*pipes_ptr = NULL;
 		return EOK;
 	}
@@ -444,12 +445,12 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
     usb_endpoint_mapping_t *pipes, size_t pipes_count)
 {
 	assert(dev != NULL);
-	assert(((pipes != NULL) && (pipes_count > 0))
-	    || ((pipes == NULL) && (pipes_count == 0)));
 
 	if (pipes_count == 0) {
+		assert(pipes == NULL);
 		return EOK;
 	}
+	assert(pipes != NULL);
 
 	int rc;
 
