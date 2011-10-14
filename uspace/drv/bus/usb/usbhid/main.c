@@ -125,13 +125,13 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	   /* Custom argument. */
 	   hid_dev);
 
-
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
 		    dev->ddf_dev->name);
 		usb_hid_destroy(hid_dev);
 		return rc;
 	}
+	hid_dev->running = true;
 	dev->driver_data = hid_dev;
 
 	/*
@@ -194,6 +194,16 @@ static int usb_hid_device_add(usb_device_t *dev)
 static int usb_hid_device_gone(usb_device_t *dev)
 {
 	usb_hid_dev_t *hid_dev = dev->driver_data;
+	unsigned tries = 10;
+	while (hid_dev->running) {
+		async_usleep(100000);
+		if (!tries--) {
+			usb_log_error("Can't remove hub, still running.\n");
+			return EINPROGRESS;
+		}
+	}
+
+	assert(!hid_dev->running);
 	usb_hid_destroy(hid_dev);
 	return EOK;
 }

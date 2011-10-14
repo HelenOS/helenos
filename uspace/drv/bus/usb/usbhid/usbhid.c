@@ -629,6 +629,7 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 		}
 	}
 
+	hid_dev->running = false;
 //	usb_hid_destroy(hid_dev);
 }
 

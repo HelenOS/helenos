@@ -128,6 +128,7 @@ struct usb_hid_dev {
 	size_t max_input_report_size;
 
 	int report_nr;
+	bool running;
 };
 
 /*----------------------------------------------------------------------------*/
