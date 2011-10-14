@@ -539,6 +539,7 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
+		fun->driver_data = NULL; /* We need this later */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -553,9 +554,11 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
+		fun->driver_data = NULL; /* We need this later */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
+	kbd_dev->fun = fun;
 
 	return EOK;
 }
@@ -686,17 +689,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	kbd_dev->repeat.delay_before = DEFAULT_DELAY_BEFORE_FIRST_REPEAT;
 	kbd_dev->repeat.delay_between = DEFAULT_REPEAT_DELAY;
 
-	kbd_dev->repeat_mtx = (fibril_mutex_t *)(
-	    malloc(sizeof(fibril_mutex_t)));
-	if (kbd_dev->repeat_mtx == NULL) {
-		usb_log_fatal("No memory!\n");
-		free(kbd_dev->keys);
-		usb_hid_report_output_free(kbd_dev->output_buffer);
-		free(kbd_dev);
-		return ENOMEM;
-	}
-
-	fibril_mutex_initialize(kbd_dev->repeat_mtx);
+	fibril_mutex_initialize(&kbd_dev->repeat_mtx);
 
 	// save the KBD device structure into the HID device structure
 	*data = kbd_dev;
@@ -783,24 +776,15 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	// hangup session to the console
 	async_hangup(kbd_dev->console_sess);
 
-	if (kbd_dev->repeat_mtx != NULL) {
-		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
-		// FIXME - the fibril_mutex_is_locked may not cause
-		// fibril scheduling
-		while (fibril_mutex_is_locked(kbd_dev->repeat_mtx)) {}
-		free(kbd_dev->repeat_mtx);
-	}
+	//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
+	// FIXME - the fibril_mutex_is_locked may not cause
+	// fibril scheduling
+	while (fibril_mutex_is_locked(&kbd_dev->repeat_mtx)) {}
 
 	// free all buffers
-	if (kbd_dev->keys != NULL) {
-		free(kbd_dev->keys);
-	}
-	if (kbd_dev->keys_old != NULL) {
-		free(kbd_dev->keys_old);
-	}
-	if (kbd_dev->led_data != NULL) {
-		free(kbd_dev->led_data);
-	}
+	free(kbd_dev->keys);
+	free(kbd_dev->keys_old);
+	free(kbd_dev->led_data);
 	if (kbd_dev->led_path != NULL) {
 		usb_hid_report_path_free(kbd_dev->led_path);
 	}

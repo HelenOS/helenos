@@ -668,19 +668,15 @@ void usb_hid_destroy(usb_hid_dev_t *hid_dev)
 		}
 	}
 
-	// free the subdrivers info
-	if (hid_dev->subdrivers != NULL) {
-		free(hid_dev->subdrivers);
-	}
+	/* Free allocated structures */
+	free(hid_dev->subdrivers);
+	free(hid_dev->report_desc);
 
-	// destroy the parser
+	/* Destroy the parser */
 	if (hid_dev->report != NULL) {
 		usb_hid_free_report(hid_dev->report);
 	}
 
-	if (hid_dev->report_desc != NULL) {
-		free(hid_dev->report_desc);
-	}
 }
 
 /**

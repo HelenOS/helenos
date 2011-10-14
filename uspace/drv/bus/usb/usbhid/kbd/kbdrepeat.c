@@ -84,7 +84,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 			return;
 		}
 		
-		fibril_mutex_lock(kbd->repeat_mtx);
+		fibril_mutex_lock(&kbd->repeat_mtx);
 
 		if (kbd->repeat.key_new > 0) {
 			if (kbd->repeat.key_new == kbd->repeat.key_repeated) {
@@ -108,7 +108,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 			}
 			delay = CHECK_DELAY;
 		}
-		fibril_mutex_unlock(kbd->repeat_mtx);
+		fibril_mutex_unlock(&kbd->repeat_mtx);
 		
 		async_usleep(delay);
 	}
@@ -155,9 +155,9 @@ int usb_kbd_repeat_fibril(void *arg)
  */
 void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
 {
-	fibril_mutex_lock(kbd->repeat_mtx);
+	fibril_mutex_lock(&kbd->repeat_mtx);
 	kbd->repeat.key_new = key;
-	fibril_mutex_unlock(kbd->repeat_mtx);
+	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -173,11 +173,11 @@ void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
  */
 void usb_kbd_repeat_stop(usb_kbd_t *kbd, unsigned int key)
 {
-	fibril_mutex_lock(kbd->repeat_mtx);
+	fibril_mutex_lock(&kbd->repeat_mtx);
 	if (key == kbd->repeat.key_new) {
 		kbd->repeat.key_new = 0;
 	}
-	fibril_mutex_unlock(kbd->repeat_mtx);
+	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
 
 /**

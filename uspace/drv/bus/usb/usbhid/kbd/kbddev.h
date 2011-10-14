@@ -91,7 +91,7 @@ typedef struct usb_kbd_t {
 	usb_kbd_repeat_t repeat;
 
 	/** Mutex for accessing the information about auto-repeat. */
-	fibril_mutex_t *repeat_mtx;
+	fibril_mutex_t repeat_mtx;
 
 	uint8_t *output_buffer;
 
@@ -110,6 +110,9 @@ typedef struct usb_kbd_t {
 	 * -1 - ready for destroying
 	 */
 	int initialized;
+
+	/** DDF function */
+	ddf_fun_t *fun;
 } usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/
