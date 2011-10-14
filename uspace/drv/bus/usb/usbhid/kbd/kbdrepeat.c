@@ -72,7 +72,7 @@ static unsigned int CHECK_DELAY = 10000;
 static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 {
 	unsigned int delay = 0;
-	
+
 	usb_log_debug("Starting autorepeat loop.\n");
 
 	while (true) {
@@ -129,16 +129,16 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 int usb_kbd_repeat_fibril(void *arg)
 {
 	usb_log_debug("Autorepeat fibril spawned.\n");
-	
+
 	if (arg == NULL) {
 		usb_log_error("No device!\n");
 		return EINVAL;
 	}
-	
+
 	usb_kbd_t *kbd = (usb_kbd_t *)arg;
-	
+
 	usb_kbd_repeat_loop(kbd);
-	
+
 	return EOK;
 }
 

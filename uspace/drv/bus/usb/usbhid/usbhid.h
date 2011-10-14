@@ -101,32 +101,32 @@ struct usb_hid_subdriver {
 struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
-	
+
 	/** Index of the polling pipe in usb_hid_endpoints array. */
 	int poll_pipe_index;
-	
+
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;
-	
+
 	/** Number of subdrivers. */
 	int subdriver_count;
-	
+
 	/** Report descriptor. */
 	uint8_t *report_desc;
 
 	/** Report descriptor size. */
 	size_t report_desc_size;
-	
+
 	/** HID Report parser. */
 	usb_hid_report_t *report;
-	
+
 	uint8_t report_id;
-	
+
 	uint8_t *input_report;
-	
+
 	size_t input_report_size;
 	size_t max_input_report_size;
-	
+
 	int report_nr;
 };
 

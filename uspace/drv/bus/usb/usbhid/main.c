@@ -75,29 +75,29 @@
 static int usb_hid_try_add_device(usb_device_t *dev)
 {
 	assert(dev != NULL);
-	
+
 	/* 
 	 * Initialize device (get and process descriptors, get address, etc.)
 	 */
 	usb_log_debug("Initializing USB/HID device...\n");
-	
+
 	usb_hid_dev_t *hid_dev = usb_hid_new();
 	if (hid_dev == NULL) {
 		usb_log_error("Error while creating USB/HID device "
 		    "structure.\n");
 		return ENOMEM;
 	}
-	
+
 	int rc = usb_hid_init(hid_dev, dev);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize USB/HID device.\n");
 		usb_hid_destroy(hid_dev);
 		return rc;
 	}	
-	
+
 	usb_log_debug("USB/HID device structure initialized.\n");
-	
+
 	/*
 	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
 	 *    do nej.
@@ -108,7 +108,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	 *    k tej fcii.
 	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
 	 */
-	
+
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
 	 * for the data continuously 
@@ -124,8 +124,8 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	   usb_hid_polling_ended_callback,
 	   /* Custom argument. */
 	   hid_dev);
-	
-	
+
+
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
 		    dev->ddf_dev->name);
@@ -152,28 +152,28 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 static int usb_hid_device_add(usb_device_t *dev)
 {
 	usb_log_debug("usb_hid_device_add()\n");
-	
+
 	if (dev == NULL) {
 		usb_log_warning("Wrong parameter given for add_device().\n");
 		return EINVAL;
 	}
-	
+
 	if (dev->interface_no < 0) {
 		usb_log_warning("Device is not a supported HID device.\n");
 		usb_log_error("Failed to add HID device: endpoints not found."
 		    "\n");
 		return ENOTSUP;
 	}
-	
+
 	int rc = usb_hid_try_add_device(dev);
-	
+
 	if (rc != EOK) {
 		usb_log_warning("Device is not a supported HID device.\n");
 		usb_log_error("Failed to add HID device: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	usb_log_info("HID device `%s' ready to use.\n", dev->ddf_dev->name);
 
 	return EOK;
