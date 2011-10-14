@@ -453,6 +453,8 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		return EINVAL;
 	}
 
+	usb_hid_report_init(hid_dev->report);
+
 	/* The USB device should already be initialized, save it in structure */
 	hid_dev->usb_dev = dev;
 
