@@ -79,10 +79,11 @@ int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
 	if (ret != EOK) {
 		return ret;
 	}
-	/* NOTE: interface memebr points somewhere, but we did not
-	 * allocate that space, s leave it be */
+	/* NOTE: usbmid->interface points somewhere, but we did not
+	 * allocate that space, so don't touch */
 	ddf_fun_destroy(mid_iface->fun);
-	free(mid_iface);
+	/* NOTE: mid_iface is invalid at this point, it was assigned to
+	 * mid_iface->fun->driver_data and freed in ddf_fun_destroy */
 	return EOK;
 }
 
