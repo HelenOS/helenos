@@ -94,7 +94,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 		usb_log_error("Failed to initialize USB/HID device.\n");
 		usb_hid_destroy(hid_dev);
 		return rc;
-	}	
+	}
 
 	usb_log_debug("USB/HID device structure initialized.\n");
 
@@ -129,8 +129,10 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
 		    dev->ddf_dev->name);
+		usb_hid_destroy(hid_dev);
 		return rc;
 	}
+	dev->driver_data = hid_dev;
 
 	/*
 	 * Hurrah, device is initialized.
@@ -181,14 +183,29 @@ static int usb_hid_device_add(usb_device_t *dev)
 
 /*----------------------------------------------------------------------------*/
 
-/* Currently, the framework supports only device adding. Once the framework
- * supports unplug, more callbacks will be added. */
+/**
+ * Callback for removing a device from the driver.
+ *
+ * @param dev Structure representing the device.
+ *
+ * @retval EOK if successful. 
+ * @retval EREFUSED if the device is not supported.
+ */
+static int usb_hid_device_gone(usb_device_t *dev)
+{
+	usb_hid_dev_t *hid_dev = dev->driver_data;
+	usb_hid_destroy(hid_dev);
+	return EOK;
+}
+
+/** USB generic driver callbacks */
 static usb_driver_ops_t usb_hid_driver_ops = {
-        .device_add = usb_hid_device_add,
+	.device_add = usb_hid_device_add,
+	.device_gone = usb_hid_device_gone,
 };
 
 
-/* The driver itself. */
+/** The driver itself. */
 static usb_driver_t usb_hid_driver = {
         .name = NAME,
         .ops = &usb_hid_driver_ops,
