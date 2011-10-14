@@ -111,9 +111,15 @@ static int usbmast_device_add(usb_device_t *dev)
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
-	mdev->luns = usb_masstor_get_lun_count(mdev);
+	mdev->lun_count = usb_masstor_get_lun_count(mdev);
+	mdev->luns = calloc(mdev->lun_count, sizeof(ddf_fun_t*));
+	if (mdev->luns == NULL) {
+		rc = ENOMEM;
+		usb_log_error("Failed allocating luns table.\n");
+		goto error;
+	}
 
-	for (i = 0; i < mdev->luns; i++) {
+	for (i = 0; i < mdev->lun_count; i++) {
 		rc = usbmast_fun_create(mdev, i);
 		if (rc != EOK)
 			goto error;
@@ -161,6 +167,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
+	mfun->ddf_fun = fun;
 	mfun->mdev = mdev;
 	mfun->lun = lun;
 
@@ -211,6 +218,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	}
 
 	free(fun_name);
+	mdev->luns[lun] = fun;
 
 	return EOK;
 

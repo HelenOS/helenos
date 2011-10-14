@@ -40,14 +40,17 @@
 #include <usb/usb.h>
 
 /** Mass storage device. */
-typedef struct {
+typedef struct usbmast_dev {
 	/** DDF device */
 	ddf_dev_t *ddf_dev;
 	/** USB device */
 	usb_device_t *usb_dev;
 	/** Number of LUNs */
-	unsigned luns;
+	unsigned lun_count;
+	/** LUN functions */
+	ddf_fun_t **luns;
 } usbmast_dev_t;
+
 
 /** Mass storage function.
  *
