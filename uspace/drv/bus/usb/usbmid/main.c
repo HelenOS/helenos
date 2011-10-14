@@ -48,7 +48,7 @@
  * @param gen_dev Generic DDF device representing the new device.
  * @return Error code.
  */
-static int usbmid_add_device(usb_device_t *dev)
+static int usbmid_device_add(usb_device_t *dev)
 {
 	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
 
@@ -67,7 +67,7 @@ static int usbmid_add_device(usb_device_t *dev)
 
 /** USB MID driver ops. */
 static usb_driver_ops_t mid_driver_ops = {
-	.add_device = usbmid_add_device,
+	.device_add = usbmid_device_add,
 };
 
 /** USB MID driver. */

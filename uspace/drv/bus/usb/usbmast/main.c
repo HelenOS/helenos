@@ -86,14 +86,14 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
  * @param dev Representation of a the USB device.
  * @return Error code.
  */
-static int usbmast_add_device(usb_device_t *dev)
+static int usbmast_device_add(usb_device_t *dev)
 {
 	int rc;
 	usbmast_dev_t *mdev = NULL;
 	unsigned i;
 
 	/* Allocate softstate */
-	mdev = ddf_dev_data_alloc(dev->ddf_dev, sizeof(usbmast_dev_t));
+	dev->driver_data = mdev = malloc(sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		return ENOMEM;
@@ -102,8 +102,7 @@ static int usbmast_add_device(usb_device_t *dev)
 	mdev->ddf_dev = dev->ddf_dev;
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n",
-	    dev->ddf_dev->name);
+	usb_log_info("Initializing mass storage `%s'.\n", dev->ddf_dev->name);
 	usb_log_debug(" Bulk in endpoint: %d [%zuB].\n",
 	    dev->pipes[BULK_IN_EP].pipe->endpoint_no,
 	    (size_t) dev->pipes[BULK_IN_EP].descriptor->max_packet_size);
@@ -294,7 +293,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 
 /** USB mass storage driver ops. */
 static usb_driver_ops_t usbmast_driver_ops = {
-	.add_device = usbmast_add_device,
+	.device_add = usbmast_device_add,
 };
 
 /** USB mass storage driver. */

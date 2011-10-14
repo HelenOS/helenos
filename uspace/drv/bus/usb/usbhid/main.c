@@ -149,9 +149,9 @@ static int usb_hid_try_add_device(usb_device_t *dev)
  * @retval EOK if successful. 
  * @retval EREFUSED if the device is not supported.
  */
-static int usb_hid_add_device(usb_device_t *dev)
+static int usb_hid_device_add(usb_device_t *dev)
 {
-	usb_log_debug("usb_hid_add_device()\n");
+	usb_log_debug("usb_hid_device_add()\n");
 	
 	if (dev == NULL) {
 		usb_log_warning("Wrong parameter given for add_device().\n");
@@ -184,7 +184,7 @@ static int usb_hid_add_device(usb_device_t *dev)
 /* Currently, the framework supports only device adding. Once the framework
  * supports unplug, more callbacks will be added. */
 static usb_driver_ops_t usb_hid_driver_ops = {
-        .add_device = usb_hid_add_device,
+        .device_add = usb_hid_device_add,
 };
 
 

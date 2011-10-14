@@ -45,7 +45,7 @@
  * @param dev Representation of a generic DDF device.
  * @return Error code.
  */
-static int usbfallback_add_device(usb_device_t *dev)
+static int usbfallback_device_add(usb_device_t *dev)
 {
 	int rc;
 	const char *fun_name = "ctl";
@@ -73,7 +73,7 @@ static int usbfallback_add_device(usb_device_t *dev)
 
 /** USB fallback driver ops. */
 static usb_driver_ops_t usbfallback_driver_ops = {
-	.add_device = usbfallback_add_device,
+	.device_add = usbfallback_device_add,
 };
 
 /** USB fallback driver. */

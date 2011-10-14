@@ -95,7 +95,7 @@ typedef struct {
 	/** Some useful descriptors. */
 	usb_device_descriptors_t descriptors;
 
-	/** Generic DDF device backing this one. */
+	/** Generic DDF device backing this one. RO: DO NOT TOUCH!*/
 	ddf_dev_t *ddf_dev;
 	/** Custom driver data.
 	 * Do not use the entry in generic device, that is already used
@@ -111,8 +111,12 @@ typedef struct {
 
 /** USB driver ops. */
 typedef struct {
-	/** Callback when new device is about to be controlled by the driver. */
-	int (*add_device)(usb_device_t *);
+	/** Callback when a new device was added to the system. */
+	int (*device_add)(usb_device_t *);
+	/** Callback when a device is about to be removed from the system. */
+	int (*device_rem)(usb_device_t *);
+	/** Callback when a device was removed from the system. */
+	int (*device_gone)(usb_device_t *);
 } usb_driver_ops_t;
 
 /** USB driver structure. */
@@ -162,10 +166,10 @@ int usb_device_select_interface(usb_device_t *, uint8_t,
     usb_endpoint_description_t **);
 
 int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
-int usb_device_create_pipes(ddf_dev_t *, usb_device_connection_t *,
+int usb_device_create_pipes(const ddf_dev_t *, usb_device_connection_t *,
     usb_endpoint_description_t **, uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
-int usb_device_destroy_pipes(ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
+int usb_device_destroy_pipes(const ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
 int usb_device_create(ddf_dev_t *, usb_endpoint_description_t **, usb_device_t **, const char **);
 void usb_device_destroy(usb_device_t *);
 

@@ -36,6 +36,7 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/dev/recognise.h>
+#include <usb/debug.h>
 #include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
@@ -56,7 +57,8 @@
 	do { \
 		assert((conn)); \
 		if (!usb_hc_connection_is_opened((conn))) { \
-			return ENOENT; \
+			usb_log_error("Connection not open.\n"); \
+			return ENOTCONN; \
 		} \
 	} while (false)
 
@@ -94,7 +96,7 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
  * @return Error code.
  */
 int usb_hc_register_device(usb_hc_connection_t * connection,
-    const usb_hc_attached_device_t *attached_device)
+    const usb_hub_attached_device_t *attached_device)
 {
 	CHECK_CONNECTION(connection);
 	
@@ -104,7 +106,7 @@ int usb_hc_register_device(usb_hc_connection_t * connection,
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
 	int rc = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_BIND_ADDRESS,
-	    attached_device->address, attached_device->handle);
+	    attached_device->address, attached_device->fun->handle);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -154,10 +156,8 @@ static void unregister_control_endpoint_on_default_address(
  *
  * The @p enable_port function is expected to enable signaling on given
  * port.
- * The two arguments to it can have arbitrary meaning
- * (the @p port_no is only a suggestion)
- * and are not touched at all by this function
- * (they are passed as is to the @p enable_port function).
+ * The argument can have arbitrary meaning and it is not touched at all
+ * by this function (it is passed as is to the @p enable_port function).
  *
  * If the @p enable_port fails (i.e. does not return EOK), the device
  * addition is canceled.
@@ -174,10 +174,8 @@ static void unregister_control_endpoint_on_default_address(
  * @param[in] dev_speed New device speed.
  * @param[in] enable_port Function for enabling signaling through the port the
  *	device is attached to.
- * @param[in] port_no Port number (passed through to @p enable_port).
  * @param[in] arg Any data argument to @p enable_port.
  * @param[out] assigned_address USB address of the device.
- * @param[out] assigned_handle Devman handle of the new device.
  * @param[in] dev_ops Child device ops.
  * @param[in] new_dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
@@ -193,8 +191,7 @@ static void unregister_control_endpoint_on_default_address(
  */
 int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection,
     usb_speed_t dev_speed,
-    int (*enable_port)(int port_no, void *arg), int port_no, void *arg,
-    usb_address_t *assigned_address, devman_handle_t *assigned_handle,
+    int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
 	assert(connection != NULL);
@@ -223,8 +220,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 	usb_address_t dev_addr = usb_hc_request_address(&hc_conn, dev_speed);
 	if (dev_addr < 0) {
-		usb_hc_connection_close(&hc_conn);
-		return EADDRNOTAVAIL;
+		rc = EADDRNOTAVAIL;
+		goto close_connection;
 	}
 
 	/*
@@ -278,7 +275,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * Endpoint is registered. We can enable the port and change
 	 * device address.
 	 */
-	rc = enable_port(port_no, arg);
+	rc = enable_port(arg);
 	if (rc != EOK) {
 		goto leave_release_default_address;
 	}
@@ -319,10 +316,9 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * It is time to register the device with devman.
 	 */
 	/* FIXME: create device_register that will get opened ctrl pipe. */
-	devman_handle_t child_handle;
+	ddf_fun_t *child_fun;
 	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
-	    parent, &child_handle,
-	    dev_ops, new_dev_data, new_fun);
+	    parent, dev_ops, new_dev_data, &child_fun);
 	if (rc != EOK) {
 		rc = ESTALL;
 		goto leave_release_free_address;
@@ -331,17 +327,16 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/*
 	 * And now inform the host controller about the handle.
 	 */
-	usb_hc_attached_device_t new_device = {
+	usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
-		.handle = child_handle
+		.fun = child_fun,
 	};
 	rc = usb_hc_register_device(&hc_conn, &new_device);
 	if (rc != EOK) {
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
 	}
-	
-	usb_hc_connection_close(&hc_conn);
+
 
 	/*
 	 * And we are done.
@@ -349,13 +344,12 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	if (assigned_address != NULL) {
 		*assigned_address = dev_addr;
 	}
-	if (assigned_handle != NULL) {
-		*assigned_handle = child_handle;
+	if (new_fun != NULL) {
+		*new_fun = child_fun;
 	}
 
-	return EOK;
-
-
+	rc = EOK;
+	goto close_connection;
 
 	/*
 	 * Error handling (like nested exceptions) starts here.
@@ -367,7 +361,10 @@ leave_release_default_address:
 leave_release_free_address:
 	usb_hc_unregister_device(&hc_conn, dev_addr);
 
-	usb_hc_connection_close(&hc_conn);
+close_connection:
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_hc_new_device_wrapper(): Failed to close "
+		    "connection.\n");
 
 	return rc;
 }

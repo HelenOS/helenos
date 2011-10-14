@@ -52,7 +52,7 @@ typedef struct {
 } usb_hc_connection_t;
 
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
-    ddf_dev_t *);
+    const ddf_dev_t *);
 int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
 
 int usb_hc_connection_open(usb_hc_connection_t *);
