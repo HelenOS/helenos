@@ -513,6 +513,7 @@ int usb_pipe_unregister(usb_pipe_t *pipe,
     usb_hc_connection_t *hc_connection)
 {
 	assert(pipe);
+	assert(pipe->wire);
 	assert(hc_connection);
 	
 	if (!usb_hc_connection_is_opened(hc_connection))

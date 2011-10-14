@@ -468,7 +468,10 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 	/* Destroy the pipes. */
 	size_t i;
 	for (i = 0; i < pipes_count; i++) {
-		usb_pipe_unregister(pipes[i].pipe, &hc_conn);
+		usb_log_debug2("Unregistering pipe %zu (%spresent).\n",
+		    i, pipes[i].present ? "" : "not ");
+		if (pipes[i].present)
+			usb_pipe_unregister(pipes[i].pipe, &hc_conn);
 		free(pipes[i].pipe);
 	}
 
