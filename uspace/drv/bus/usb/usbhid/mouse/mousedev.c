@@ -185,6 +185,21 @@ static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
 
 	if (mouse_dev->wheel_sess != NULL)
 		async_hangup(mouse_dev->wheel_sess);
+	int ret = ddf_fun_unbind(mouse_dev->mouse_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind mouse function.\n");
+	} else {
+		ddf_fun_destroy(mouse_dev->mouse_fun);
+		/* Prevent double free */
+		mouse_dev->wheel_fun->driver_data = NULL;
+	}
+
+	ret = ddf_fun_unbind(mouse_dev->wheel_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind wheel function.\n");
+	} else {
+		ddf_fun_destroy(mouse_dev->wheel_fun);
+	}
 }
 
 /*----------------------------------------------------------------------------*/
@@ -337,7 +352,6 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
 
@@ -348,9 +362,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_CATEGORY, str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
+	mouse->mouse_fun = fun;
 
 	/*
 	 * Special function for acting as keyboard (wheel)
@@ -375,7 +389,6 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
 
@@ -386,9 +399,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
+	mouse->wheel_fun = fun;
 
 	return EOK;
 }
@@ -510,7 +523,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data != NULL) {
-		usb_mouse_destroy((usb_mouse_t *)data);
+		usb_mouse_destroy(data);
 	}
 }
 
