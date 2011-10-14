@@ -513,16 +513,16 @@ static usb_kbd_t *usb_kbd_new(void)
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
+static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 {
-	assert(hid_dev != NULL);
-	assert(hid_dev->usb_dev != NULL);
 	assert(kbd_dev != NULL);
+	assert(kbd_dev->hid_dev != NULL);
+	assert(kbd_dev->hid_dev->usb_dev != NULL);
 
 	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
-	    HID_KBD_FUN_NAME);
+	ddf_fun_t *fun = ddf_fun_create(kbd_dev->hid_dev->usb_dev->ddf_dev,
+	    fun_exposed, HID_KBD_FUN_NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
@@ -720,7 +720,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	usb_log_debug("HID/KBD device structure initialized.\n");
 
 	usb_log_debug("Creating KBD function...\n");
-	int rc = usb_kbd_create_function(hid_dev, kbd_dev);
+	int rc = usb_kbd_create_function(kbd_dev);
 	if (rc != EOK) {
 		usb_kbd_destroy(kbd_dev);
 		return rc;
@@ -785,11 +785,19 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	free(kbd_dev->keys);
 	free(kbd_dev->keys_old);
 	free(kbd_dev->led_data);
+
 	if (kbd_dev->led_path != NULL) {
 		usb_hid_report_path_free(kbd_dev->led_path);
 	}
 	if (kbd_dev->output_buffer != NULL) {
 		usb_hid_report_output_free(kbd_dev->output_buffer);
+	}
+
+	if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
+		usb_log_warning("Failed to unbind kbd function.\n");
+	} else {
+		kbd_dev->fun->driver_data = NULL;
+		ddf_fun_destroy(kbd_dev->fun);
 	}
 }
 
