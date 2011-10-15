@@ -1162,6 +1162,7 @@ static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 	
 	link_initialize(&service->services);
 	link_initialize(&service->server_services);
+	list_initialize(&service->cat_memb);
 	
 	/* Get unique service ID */
 	service->id = loc_create_id();
