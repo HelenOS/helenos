@@ -114,8 +114,7 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 
 	int rc = usb_device_create_pipes(dev->ddf_dev, &dev->wire, endpoints,
 	    dev->descriptors.configuration, dev->descriptors.configuration_size,
-	    dev->interface_no, alternate_setting,
-	    &pipes, &pipes_count);
+	    dev->interface_no, alternate_setting, &pipes, &pipes_count);
 
 	if (rc != EOK) {
 		return rc;
@@ -318,7 +317,7 @@ leave:
  */
 int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
     usb_endpoint_description_t **endpoints,
-    uint8_t *config_descr, size_t config_descr_size,
+    const uint8_t *config_descr, size_t config_descr_size,
     int interface_no, int interface_setting,
     usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
 {

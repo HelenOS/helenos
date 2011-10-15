@@ -92,7 +92,7 @@ static void dump_tree_internal(
  */
 static void dump_tree(usb_dp_parser_t *parser, usb_dp_parser_data_t *data)
 {
-	uint8_t *ptr = data->data;
+	const uint8_t *ptr = data->data;
 	dump_tree_internal(parser, data, ptr, 0);
 }
 

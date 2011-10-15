@@ -72,10 +72,10 @@ static bool interface_in_list(list_t *list, int interface_no)
  * @param config_descriptor_size Size of configuration descriptor in bytes.
  * @param list List where to add the interfaces.
  */
-static void create_interfaces(uint8_t *config_descriptor,
+static void create_interfaces(const uint8_t *config_descriptor,
     size_t config_descriptor_size, list_t *list)
 {
-	usb_dp_parser_data_t data = {
+	const usb_dp_parser_data_t data = {
 		.data = config_descriptor,
 		.size = config_descriptor_size,
 		.arg = NULL
@@ -148,10 +148,10 @@ bool usbmid_explore_device(usb_device_t *dev)
 	}
 
 	/* Short cuts to save on typing ;-). */
-	uint8_t *config_descriptor_raw = dev->descriptors.configuration;
+	const void *config_descriptor_raw = dev->descriptors.configuration;
 	size_t config_descriptor_size = dev->descriptors.configuration_size;
-	usb_standard_configuration_descriptor_t *config_descriptor =
-	    (usb_standard_configuration_descriptor_t *) config_descriptor_raw;
+	const usb_standard_configuration_descriptor_t *config_descriptor =
+	    config_descriptor_raw;
 
 	/* Select the first configuration */
 	rc = usb_request_set_configuration(&dev->ctrl_pipe,

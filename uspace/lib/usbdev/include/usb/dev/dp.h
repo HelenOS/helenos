@@ -64,7 +64,7 @@ typedef struct {
 /** Descriptor parser data. */
 typedef struct {
 	/** Data to be parsed. */
-	uint8_t *data;
+	const uint8_t *data;
 	/** Size of input data in bytes. */
 	size_t size;
 	/** Custom argument. */

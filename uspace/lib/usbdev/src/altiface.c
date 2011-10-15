@@ -47,7 +47,7 @@
  * @param interface_no Interface number.
  * @return Number of alternate interfaces for @p interface_no interface.
  */
-size_t usb_interface_count_alternates(uint8_t *config_descr,
+size_t usb_interface_count_alternates(const uint8_t *config_descr,
     size_t config_descr_size, uint8_t interface_no)
 {
 	assert(config_descr != NULL);
@@ -89,7 +89,7 @@ size_t usb_interface_count_alternates(uint8_t *config_descr,
  * @param[out] alternates_ptr Where to store pointer to allocated structure.
  * @return Error code.
  */
-int usb_alternate_interfaces_create(uint8_t *config_descr,
+int usb_alternate_interfaces_create(const uint8_t *config_descr,
     size_t config_descr_size, int interface_number,
     usb_alternate_interfaces_t **alternates_ptr)
 {
@@ -159,7 +159,7 @@ int usb_alternate_interfaces_create(uint8_t *config_descr,
 		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
 		    dp_data.data, iface_ptr);
 		if (iface_ptr == NULL) {
-			uint8_t *next = dp_data.data + dp_data.size;
+			const uint8_t *next = dp_data.data + dp_data.size;
 			cur_alt_iface->nested_descriptors_size
 			    = next - cur_alt_iface->nested_descriptors;
 		} else {

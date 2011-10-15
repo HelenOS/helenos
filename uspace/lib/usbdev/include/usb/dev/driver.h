@@ -42,7 +42,7 @@ typedef struct {
 	/** Standard device descriptor. */
 	usb_standard_device_descriptor_t device;
 	/** Full configuration descriptor of current configuration. */
-	uint8_t *configuration;
+	const uint8_t *configuration;
 	size_t configuration_size;
 } usb_device_descriptors_t;
 
@@ -167,14 +167,14 @@ int usb_device_select_interface(usb_device_t *, uint8_t,
 
 int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
 int usb_device_create_pipes(const ddf_dev_t *, usb_device_connection_t *,
-    usb_endpoint_description_t **, uint8_t *, size_t, int, int,
+    usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
 int usb_device_destroy_pipes(const ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
 int usb_device_create(ddf_dev_t *, usb_endpoint_description_t **, usb_device_t **, const char **);
 void usb_device_destroy(usb_device_t *);
 
-size_t usb_interface_count_alternates(uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_create(uint8_t *, size_t, int,
+size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
+int usb_alternate_interfaces_create(const uint8_t *, size_t, int,
     usb_alternate_interfaces_t **);
 
 #endif

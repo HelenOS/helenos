@@ -223,7 +223,7 @@ static int process_endpoint(
  */
 static int process_interface(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    usb_dp_parser_t *parser, usb_dp_parser_data_t *parser_data,
+    const usb_dp_parser_t *parser, const usb_dp_parser_data_t *parser_data,
     const uint8_t *interface_descriptor)
 {
 	const uint8_t *descriptor = usb_dp_get_nested_descriptor(parser,
@@ -283,15 +283,15 @@ static int process_interface(
  */
 int usb_pipe_initialize_from_configuration(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    uint8_t *configuration_descriptor, size_t configuration_descriptor_size,
+    const uint8_t *config_descriptor, size_t config_descriptor_size,
     usb_device_connection_t *connection)
 {
 	assert(connection);
 
-	if (configuration_descriptor == NULL) {
+	if (config_descriptor == NULL) {
 		return EBADMEM;
 	}
-	if (configuration_descriptor_size
+	if (config_descriptor_size
 	    < sizeof(usb_standard_configuration_descriptor_t)) {
 		return ERANGE;
 	}
@@ -309,12 +309,12 @@ int usb_pipe_initialize_from_configuration(
 	/*
 	 * Prepare the descriptor parser.
 	 */
-	usb_dp_parser_t dp_parser = {
+	const usb_dp_parser_t dp_parser = {
 		.nesting = descriptor_nesting
 	};
-	usb_dp_parser_data_t dp_data = {
-		.data = configuration_descriptor,
-		.size = configuration_descriptor_size,
+	const usb_dp_parser_data_t dp_data = {
+		.data = config_descriptor,
+		.size = config_descriptor_size,
 		.arg = connection
 	};
 
@@ -322,7 +322,7 @@ int usb_pipe_initialize_from_configuration(
 	 * Iterate through all interfaces.
 	 */
 	const uint8_t *interface = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, configuration_descriptor);
+	    &dp_data, config_descriptor);
 	if (interface == NULL) {
 		return ENOENT;
 	}
@@ -330,7 +330,7 @@ int usb_pipe_initialize_from_configuration(
 		(void) process_interface(mapping, mapping_count,
 		    &dp_parser, &dp_data, interface);
 		interface = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    configuration_descriptor, interface);
+		    config_descriptor, interface);
 	} while (interface != NULL);
 
 	return EOK;
