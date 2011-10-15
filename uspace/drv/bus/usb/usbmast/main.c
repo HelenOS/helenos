@@ -163,10 +163,6 @@ error:
 		ddf_fun_destroy(mdev->luns[i]);
 	}
 	free(mdev->luns);
-	/*
-	 * Do not free mdev here as it was passed to DDF as device driver data.
-	 * It will be deallocated by DDF when the device is destroyed.
-	 */
 	return rc;
 }
 
