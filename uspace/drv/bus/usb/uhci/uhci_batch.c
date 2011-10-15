@@ -166,8 +166,8 @@ bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch)
 	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch),
 	    uhci_batch->td_count);
 	uhci_batch->usb_batch->transfered_size = 0;
-	size_t i = 0;
-	for (;i < uhci_batch->td_count; ++i) {
+
+	for (size_t i = 0;i < uhci_batch->td_count; ++i) {
 		if (td_is_active(&uhci_batch->tds[i])) {
 			return false;
 		}

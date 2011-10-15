@@ -39,7 +39,7 @@
 #include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
 
-typedef struct usb_hub_info_t usb_hub_info_t;
+typedef struct usb_hub_dev usb_hub_dev_t;
 
 /** Information about single port on a hub. */
 typedef struct {
@@ -57,7 +57,7 @@ typedef struct {
 	bool reset_okay;
 
 	/** Information about attached device. */
-	usb_hc_attached_device_t attached_device;
+	usb_hub_attached_device_t attached_device;
 } usb_hub_port_t;
 
 /** Initialize hub port information.
@@ -69,19 +69,19 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
 {
 	assert(port);
 	port->attached_device.address = -1;
-	port->attached_device.handle = 0;
+	port->attached_device.fun = NULL;
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }
-
-void usb_hub_port_reset_fail(usb_hub_port_t *port);
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_info_t *hub);
+int usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub);
 int usb_hub_port_clear_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
 int usb_hub_port_set_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
+void usb_hub_port_reset_fail(usb_hub_port_t *port);
+void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
 
 #endif
 /**

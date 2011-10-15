@@ -424,8 +424,7 @@ int usb_request_get_device_descriptor(usb_pipe_t *pipe,
 	}
 
 	/* Everything is okay, copy the descriptor. */
-	memcpy(descriptor, &descriptor_tmp,
-	    sizeof(descriptor_tmp));
+	memcpy(descriptor, &descriptor_tmp, sizeof(descriptor_tmp));
 
 	return EOK;
 }
@@ -469,8 +468,7 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
 	}
 
 	/* Everything is okay, copy the descriptor. */
-	memcpy(descriptor, &descriptor_tmp,
-	    sizeof(descriptor_tmp));
+	memcpy(descriptor, &descriptor_tmp, sizeof(descriptor_tmp));
 
 	return EOK;
 }

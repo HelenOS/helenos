@@ -68,7 +68,7 @@ static inline void * malloc32(size_t size)
  * @param[in] addr Address of the place allocated by malloc32
  */
 static inline void free32(void *addr)
-	{ if (addr) free(addr); }
+	{ free(addr); }
 #endif
 /**
  * @}

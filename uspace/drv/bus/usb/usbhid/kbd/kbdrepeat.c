@@ -45,8 +45,6 @@
 #include "kbddev.h"
 
 
-/** Delay between auto-repeat state checks when no key is being repeated. */
-static unsigned int CHECK_DELAY = 10000;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -72,19 +70,17 @@ static unsigned int CHECK_DELAY = 10000;
 static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 {
 	unsigned int delay = 0;
-	
+
 	usb_log_debug("Starting autorepeat loop.\n");
 
 	while (true) {
 		// check if the kbd structure is usable
 		if (!usb_kbd_is_initialized(kbd)) {
-			if (usb_kbd_is_ready_to_destroy(kbd)) {
-				usb_kbd_destroy(kbd);
-			}
+			usb_log_warning("kbd not ready, exiting autorepeat.\n");
 			return;
 		}
 		
-		fibril_mutex_lock(kbd->repeat_mtx);
+		fibril_mutex_lock(&kbd->repeat_mtx);
 
 		if (kbd->repeat.key_new > 0) {
 			if (kbd->repeat.key_new == kbd->repeat.key_repeated) {
@@ -108,7 +104,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 			}
 			delay = CHECK_DELAY;
 		}
-		fibril_mutex_unlock(kbd->repeat_mtx);
+		fibril_mutex_unlock(&kbd->repeat_mtx);
 		
 		async_usleep(delay);
 	}
@@ -129,16 +125,16 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 int usb_kbd_repeat_fibril(void *arg)
 {
 	usb_log_debug("Autorepeat fibril spawned.\n");
-	
+
 	if (arg == NULL) {
 		usb_log_error("No device!\n");
 		return EINVAL;
 	}
-	
+
 	usb_kbd_t *kbd = (usb_kbd_t *)arg;
-	
+
 	usb_kbd_repeat_loop(kbd);
-	
+
 	return EOK;
 }
 
@@ -155,9 +151,9 @@ int usb_kbd_repeat_fibril(void *arg)
  */
 void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
 {
-	fibril_mutex_lock(kbd->repeat_mtx);
+	fibril_mutex_lock(&kbd->repeat_mtx);
 	kbd->repeat.key_new = key;
-	fibril_mutex_unlock(kbd->repeat_mtx);
+	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -173,11 +169,11 @@ void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
  */
 void usb_kbd_repeat_stop(usb_kbd_t *kbd, unsigned int key)
 {
-	fibril_mutex_lock(kbd->repeat_mtx);
+	fibril_mutex_lock(&kbd->repeat_mtx);
 	if (key == kbd->repeat.key_new) {
 		kbd->repeat.key_new = 0;
 	}
-	fibril_mutex_unlock(kbd->repeat_mtx);
+	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
 
 /**

@@ -40,16 +40,20 @@
 #include <str_error.h>
 #include <assert.h>
 
-static int generic_add_device(ddf_dev_t *);
+static int generic_device_add(ddf_dev_t *);
+static int generic_device_remove(ddf_dev_t *);
+static int generic_device_gone(ddf_dev_t *);
 
 static driver_ops_t generic_driver_ops = {
-	.add_device = generic_add_device
+	.add_device = generic_device_add,
+	.dev_remove = generic_device_remove,
+	.dev_gone = generic_device_gone,
 };
 static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops
 };
 
-static usb_driver_t *driver = NULL;
+static const usb_driver_t *driver = NULL;
 
 
 /** Main routine of USB device driver.
@@ -110,8 +114,7 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 
 	int rc = usb_device_create_pipes(dev->ddf_dev, &dev->wire, endpoints,
 	    dev->descriptors.configuration, dev->descriptors.configuration_size,
-	    dev->interface_no, alternate_setting,
-	    &pipes, &pipes_count);
+	    dev->interface_no, alternate_setting, &pipes, &pipes_count);
 
 	if (rc != EOK) {
 		return rc;
@@ -122,19 +125,19 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 
 	return EOK;
 }
-
-/** Callback when new device is supposed to be controlled by this driver.
+/*----------------------------------------------------------------------------*/
+/** Callback when a new device is supposed to be controlled by this driver.
  *
- * This callback is a wrapper for USB specific version of @c add_device.
+ * This callback is a wrapper for USB specific version of @c device_add.
  *
  * @param gen_dev Device structure as prepared by DDF.
  * @return Error code.
  */
-int generic_add_device(ddf_dev_t *gen_dev)
+int generic_device_add(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
-	assert(driver->ops->add_device);
+	assert(driver->ops->device_add);
 
 	int rc;
 
@@ -146,10 +149,52 @@ int generic_add_device(ddf_dev_t *gen_dev)
 		    gen_dev->name, err_msg, str_error(rc));
 		return rc;
 	}
+	gen_dev->driver_data = dev;
 
-	return driver->ops->add_device(dev);
+	rc = driver->ops->device_add(dev);
+	if (rc != EOK)
+		usb_device_destroy(dev);
+	return rc;
 }
+/*----------------------------------------------------------------------------*/
+/** Callback when a device is supposed to be removed from the system.
+ *
+ * This callback is a wrapper for USB specific version of @c device_remove.
+ *
+ * @param gen_dev Device structure as prepared by DDF.
+ * @return Error code.
+ */
+int generic_device_remove(ddf_dev_t *gen_dev)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->device_rem == NULL)
+		return ENOTSUP;
+	/* Just tell the driver to stop whatever it is doing, keep structures */
+	return driver->ops->device_rem(gen_dev->driver_data);
+}
+/*----------------------------------------------------------------------------*/
+/** Callback when a device was removed from the system.
+ *
+ * This callback is a wrapper for USB specific version of @c device_gone.
+ *
+ * @param gen_dev Device structure as prepared by DDF.
+ * @return Error code.
+ */
+int generic_device_gone(ddf_dev_t *gen_dev)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->device_gone == NULL)
+		return ENOTSUP;
+	usb_device_t *usb_dev = gen_dev->driver_data;
+	const int ret = driver->ops->device_gone(usb_dev);
+	if (ret == EOK)
+		usb_device_destroy(usb_dev);
 
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
 /** Destroy existing pipes of a USB device.
  *
  * @param dev Device where to destroy the pipes.
@@ -274,9 +319,9 @@ leave:
  *	(set to if you wish to ignore the count).
  * @return Error code.
  */
-int usb_device_create_pipes(ddf_dev_t *dev, usb_device_connection_t *wire,
+int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
     usb_endpoint_description_t **endpoints,
-    uint8_t *config_descr, size_t config_descr_size,
+    const uint8_t *config_descr, size_t config_descr_size,
     int interface_no, int interface_setting,
     usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
 {
@@ -290,8 +335,9 @@ int usb_device_create_pipes(ddf_dev_t *dev, usb_device_connection_t *wire,
 	size_t i;
 	int rc;
 
-	size_t pipe_count = count_other_pipes(endpoints);
+	const size_t pipe_count = count_other_pipes(endpoints);
 	if (pipe_count == 0) {
+		*pipes_count_ptr = pipe_count;
 		*pipes_ptr = NULL;
 		return EOK;
 	}
@@ -348,7 +394,9 @@ int usb_device_create_pipes(ddf_dev_t *dev, usb_device_connection_t *wire,
 		}
 	}
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_device_create_pipes(): "
+		    "Failed to close connection.\n");
 
 	*pipes_ptr = pipes;
 	if (pipes_count_ptr != NULL) {
@@ -370,7 +418,9 @@ rollback_unregister_endpoints:
 		}
 	}
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_device_create_pipes(): "
+		    "Failed to close connection.\n");
 
 	/*
 	 * Jump here if something went wrong before some actual communication
@@ -394,16 +444,16 @@ rollback_free_only:
  * @param[in] pipes Endpoint mapping to be destroyed.
  * @param[in] pipes_count Number of endpoints.
  */
-int usb_device_destroy_pipes(ddf_dev_t *dev,
+int usb_device_destroy_pipes(const ddf_dev_t *dev,
     usb_endpoint_mapping_t *pipes, size_t pipes_count)
 {
 	assert(dev != NULL);
-	assert(((pipes != NULL) && (pipes_count > 0))
-	    || ((pipes == NULL) && (pipes_count == 0)));
 
 	if (pipes_count == 0) {
+		assert(pipes == NULL);
 		return EOK;
 	}
+	assert(pipes != NULL);
 
 	int rc;
 
@@ -421,11 +471,16 @@ int usb_device_destroy_pipes(ddf_dev_t *dev,
 	/* Destroy the pipes. */
 	size_t i;
 	for (i = 0; i < pipes_count; i++) {
-		usb_pipe_unregister(pipes[i].pipe, &hc_conn);
+		usb_log_debug2("Unregistering pipe %zu (%spresent).\n",
+		    i, pipes[i].present ? "" : "not ");
+		if (pipes[i].present)
+			usb_pipe_unregister(pipes[i].pipe, &hc_conn);
 		free(pipes[i].pipe);
 	}
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_connection_close(&hc_conn) != EOK)
+		usb_log_warning("usb_device_destroy_pipes(): "
+		    "Failed to close connection.\n");
 
 	free(pipes);
 
@@ -543,19 +598,22 @@ void usb_device_destroy(usb_device_t *dev)
 	}
 
 	/* Ignore errors and hope for the best. */
-	usb_device_destroy_pipes(dev->ddf_dev, dev->pipes, dev->pipes_count);
-	if (dev->descriptors.configuration != NULL) {
-		free(dev->descriptors.configuration);
-	}
+	destroy_current_pipes(dev);
 
 	if (dev->alternate_interfaces != NULL) {
-		if (dev->alternate_interfaces->alternatives != NULL) {
-			free(dev->alternate_interfaces->alternatives);
-		}
-		free(dev->alternate_interfaces);
+		free(dev->alternate_interfaces->alternatives);
 	}
+	free(dev->alternate_interfaces);
+	free(dev->descriptors.configuration);
+	free(dev->driver_data);
+}
 
-	free(dev);
+void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
+{
+	assert(usb_dev);
+	assert(usb_dev->driver_data == NULL);
+	return usb_dev->driver_data = calloc(1, size);
+
 }
 
 /**

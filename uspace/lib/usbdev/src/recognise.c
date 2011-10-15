@@ -338,7 +338,6 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
  * @param[in] address Address of the (unknown) attached device.
  * @param[in] hc_handle Handle of the host controller.
  * @param[in] parent Parent device.
- * @param[out] child_handle Handle of the child device.
  * @param[in] dev_ops Child device ops.
  * @param[in] dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
@@ -347,8 +346,7 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
  * @return Error code.
  */
 int usb_device_register_child_in_devman(usb_address_t address,
-    devman_handle_t hc_handle,
-    ddf_dev_t *parent, devman_handle_t *child_handle,
+    devman_handle_t hc_handle, ddf_dev_t *parent,
     ddf_dev_ops_t *dev_ops, void *dev_data, ddf_fun_t **child_fun)
 {
 	size_t this_device_name_index;
@@ -411,10 +409,6 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
 		goto failure;
-	}
-
-	if (child_handle != NULL) {
-		*child_handle = child->handle;
 	}
 
 	if (child_fun != NULL) {

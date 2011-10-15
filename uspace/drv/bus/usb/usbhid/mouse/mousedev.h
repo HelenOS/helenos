@@ -48,12 +48,16 @@ typedef struct {
 	/** IPC session to console (consumer). */
 	async_sess_t *mouse_sess;
 	async_sess_t *wheel_sess;
-	
+
 	/* Mouse buttons statuses. */
 	int32_t *buttons;
 	size_t buttons_count;
-	
+
 	ddf_dev_ops_t ops;
+	/* DDF mouse function */
+	ddf_fun_t *mouse_fun;
+	/* DDF mouse function */
+	ddf_fun_t *wheel_fun;
 } usb_mouse_t;
 
 /*----------------------------------------------------------------------------*/

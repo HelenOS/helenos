@@ -158,11 +158,11 @@ typedef struct {
 int usb_device_connection_initialize_on_default_address(
     usb_device_connection_t *, usb_hc_connection_t *);
 int usb_device_connection_initialize_from_device(usb_device_connection_t *,
-    ddf_dev_t *);
+    const ddf_dev_t *);
 int usb_device_connection_initialize(usb_device_connection_t *,
     devman_handle_t, usb_address_t);
 
-int usb_device_get_assigned_interface(ddf_dev_t *);
+int usb_device_get_assigned_interface(const ddf_dev_t *);
 
 int usb_pipe_initialize(usb_pipe_t *, usb_device_connection_t *,
     usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
@@ -170,7 +170,7 @@ int usb_pipe_initialize_default_control(usb_pipe_t *,
     usb_device_connection_t *);
 int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
-    size_t, uint8_t *, size_t, usb_device_connection_t *);
+    size_t, const uint8_t *, size_t, usb_device_connection_t *);
 int usb_pipe_register_with_speed(usb_pipe_t *, usb_speed_t,
     unsigned int, usb_hc_connection_t *);
 int usb_pipe_register(usb_pipe_t *, unsigned int, usb_hc_connection_t *);
@@ -184,8 +184,8 @@ int usb_pipe_write(usb_pipe_t *, void *, size_t);
 
 int usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
     void *, size_t, size_t *);
-int usb_pipe_control_write(usb_pipe_t *, void *, size_t,
-    void *, size_t);
+int usb_pipe_control_write(usb_pipe_t *, const void *, size_t,
+    const void *, size_t);
 
 #endif
 /**

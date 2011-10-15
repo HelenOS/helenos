@@ -54,7 +54,7 @@ typedef struct {
 	usb_standard_interface_descriptor_t *last_iface;
 } descriptor_walk_context_t;
 
-static bool is_descriptor_kind(uint8_t *d, usb_descriptor_type_t t)
+static bool is_descriptor_kind(const uint8_t *d, usb_descriptor_type_t t)
 {
 	if (d == NULL) {
 		return false;
@@ -179,7 +179,7 @@ static void retrieve_and_dump_hid_report(hid_dump_type_t dump_type,
  * @param depth Descriptor tree depth (currently ignored).
  * @param arg Custom argument, passed as descriptor_walk_context_t.
  */
-static void descriptor_walk_callback(uint8_t *raw_descriptor,
+static void descriptor_walk_callback(const uint8_t *raw_descriptor,
     size_t depth, void *arg)
 {
 	descriptor_walk_context_t *context = (descriptor_walk_context_t *) arg;

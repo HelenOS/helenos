@@ -67,7 +67,7 @@ static usb_dp_descriptor_nesting_t descriptor_nesting[] = {
  * @param descriptor Descriptor in question.
  * @return Whether the given descriptor is endpoint descriptor.
  */
-static inline bool is_endpoint_descriptor(uint8_t *descriptor)
+static inline bool is_endpoint_descriptor(const uint8_t *descriptor)
 {
 	return descriptor[1] == USB_DESCTYPE_ENDPOINT;
 }
@@ -79,7 +79,7 @@ static inline bool is_endpoint_descriptor(uint8_t *descriptor)
  * @return Whether the @p found descriptor fits the @p wanted descriptor.
  */
 static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
-    usb_endpoint_description_t *found)
+    const usb_endpoint_description_t *found)
 {
 #define _SAME(fieldname) ((wanted->fieldname) == (found->fieldname))
 
@@ -119,7 +119,7 @@ static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
  */
 static usb_endpoint_mapping_t *find_endpoint_mapping(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    usb_endpoint_description_t *found_endpoint,
+    const usb_endpoint_description_t *found_endpoint,
     int interface_number, int interface_setting)
 {
 	while (mapping_count > 0) {
@@ -159,27 +159,27 @@ static int process_endpoint(
     usb_standard_endpoint_descriptor_t *endpoint,
     usb_device_connection_t *wire)
 {
-	usb_endpoint_description_t description;
 
 	/*
 	 * Get endpoint characteristics.
 	 */
 
 	/* Actual endpoint number is in bits 0..3 */
-	usb_endpoint_t ep_no = endpoint->endpoint_address & 0x0F;
+	const usb_endpoint_t ep_no = endpoint->endpoint_address & 0x0F;
 
-	/* Endpoint direction is set by bit 7 */
-	description.direction = (endpoint->endpoint_address & 128)
-	    ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
-	/* Transfer type is in bits 0..2 and the enum values corresponds 1:1 */
-	description.transfer_type = endpoint->attributes & 3;
+	const usb_endpoint_description_t description = {
+		/* Endpoint direction is set by bit 7 */
+		.direction = (endpoint->endpoint_address & 128)
+		    ? USB_DIRECTION_IN : USB_DIRECTION_OUT,
+		/* Transfer type is in bits 0..2 and
+		 * the enum values corresponds 1:1 */
+		.transfer_type = endpoint->attributes & 3,
 
-	/*
-	 * Get interface characteristics.
-	 */
-	description.interface_class = interface->interface_class;
-	description.interface_subclass = interface->interface_subclass;
-	description.interface_protocol = interface->interface_protocol;
+		/* Get interface characteristics. */
+		.interface_class = interface->interface_class,
+		.interface_subclass = interface->interface_subclass,
+		.interface_protocol = interface->interface_protocol,
+	};
 
 	/*
 	 * Find the most fitting mapping and initialize the pipe.
@@ -223,10 +223,10 @@ static int process_endpoint(
  */
 static int process_interface(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    usb_dp_parser_t *parser, usb_dp_parser_data_t *parser_data,
-    uint8_t *interface_descriptor)
+    const usb_dp_parser_t *parser, const usb_dp_parser_data_t *parser_data,
+    const uint8_t *interface_descriptor)
 {
-	uint8_t *descriptor = usb_dp_get_nested_descriptor(parser,
+	const uint8_t *descriptor = usb_dp_get_nested_descriptor(parser,
 	    parser_data, interface_descriptor);
 
 	if (descriptor == NULL) {
@@ -283,15 +283,15 @@ static int process_interface(
  */
 int usb_pipe_initialize_from_configuration(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    uint8_t *configuration_descriptor, size_t configuration_descriptor_size,
+    const uint8_t *config_descriptor, size_t config_descriptor_size,
     usb_device_connection_t *connection)
 {
 	assert(connection);
 
-	if (configuration_descriptor == NULL) {
+	if (config_descriptor == NULL) {
 		return EBADMEM;
 	}
-	if (configuration_descriptor_size
+	if (config_descriptor_size
 	    < sizeof(usb_standard_configuration_descriptor_t)) {
 		return ERANGE;
 	}
@@ -309,29 +309,28 @@ int usb_pipe_initialize_from_configuration(
 	/*
 	 * Prepare the descriptor parser.
 	 */
-	usb_dp_parser_t dp_parser = {
+	const usb_dp_parser_t dp_parser = {
 		.nesting = descriptor_nesting
 	};
-	usb_dp_parser_data_t dp_data = {
-		.data = configuration_descriptor,
-		.size = configuration_descriptor_size,
+	const usb_dp_parser_data_t dp_data = {
+		.data = config_descriptor,
+		.size = config_descriptor_size,
 		.arg = connection
 	};
 
 	/*
 	 * Iterate through all interfaces.
 	 */
-	uint8_t *interface = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, configuration_descriptor);
+	const uint8_t *interface = usb_dp_get_nested_descriptor(&dp_parser,
+	    &dp_data, config_descriptor);
 	if (interface == NULL) {
 		return ENOENT;
 	}
 	do {
 		(void) process_interface(mapping, mapping_count,
-		    &dp_parser, &dp_data,
-		    interface);
+		    &dp_parser, &dp_data, interface);
 		interface = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    configuration_descriptor, interface);
+		    config_descriptor, interface);
 	} while (interface != NULL);
 
 	return EOK;
@@ -513,6 +512,7 @@ int usb_pipe_unregister(usb_pipe_t *pipe,
     usb_hc_connection_t *hc_connection)
 {
 	assert(pipe);
+	assert(pipe->wire);
 	assert(hc_connection);
 	
 	if (!usb_hc_connection_is_opened(hc_connection))

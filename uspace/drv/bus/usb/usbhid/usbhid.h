@@ -101,33 +101,34 @@ struct usb_hid_subdriver {
 struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
-	
+
 	/** Index of the polling pipe in usb_hid_endpoints array. */
 	int poll_pipe_index;
-	
+
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;
-	
+
 	/** Number of subdrivers. */
 	int subdriver_count;
-	
+
 	/** Report descriptor. */
 	uint8_t *report_desc;
 
 	/** Report descriptor size. */
 	size_t report_desc_size;
-	
+
 	/** HID Report parser. */
 	usb_hid_report_t *report;
-	
+
 	uint8_t report_id;
-	
+
 	uint8_t *input_report;
-	
+
 	size_t input_report_size;
 	size_t max_input_report_size;
-	
+
 	int report_nr;
+	volatile bool running;
 };
 
 /*----------------------------------------------------------------------------*/
@@ -139,11 +140,9 @@ enum {
 	USB_HID_POLL_EP_COUNT = 3
 };
 
-usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1];
+extern usb_endpoint_description_t *usb_hid_endpoints[];
 
 /*----------------------------------------------------------------------------*/
-
-usb_hid_dev_t *usb_hid_new(void);
 
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 

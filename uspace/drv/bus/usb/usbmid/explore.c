@@ -72,10 +72,10 @@ static bool interface_in_list(list_t *list, int interface_no)
  * @param config_descriptor_size Size of configuration descriptor in bytes.
  * @param list List where to add the interfaces.
  */
-static void create_interfaces(uint8_t *config_descriptor,
+static void create_interfaces(const uint8_t *config_descriptor,
     size_t config_descriptor_size, list_t *list)
 {
-	usb_dp_parser_data_t data = {
+	const usb_dp_parser_data_t data = {
 		.data = config_descriptor,
 		.size = config_descriptor_size,
 		.arg = NULL
@@ -85,8 +85,8 @@ static void create_interfaces(uint8_t *config_descriptor,
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
 
-	uint8_t *interface_ptr = usb_dp_get_nested_descriptor(&parser, &data,
-	    data.data);
+	const uint8_t *interface_ptr =
+	    usb_dp_get_nested_descriptor(&parser, &data, data.data);
 	if (interface_ptr == NULL) {
 		return;
 	}
@@ -148,10 +148,10 @@ bool usbmid_explore_device(usb_device_t *dev)
 	}
 
 	/* Short cuts to save on typing ;-). */
-	uint8_t *config_descriptor_raw = dev->descriptors.configuration;
+	const void *config_descriptor_raw = dev->descriptors.configuration;
 	size_t config_descriptor_size = dev->descriptors.configuration_size;
-	usb_standard_configuration_descriptor_t *config_descriptor =
-	    (usb_standard_configuration_descriptor_t *) config_descriptor_raw;
+	const usb_standard_configuration_descriptor_t *config_descriptor =
+	    config_descriptor_raw;
 
 	/* Select the first configuration */
 	rc = usb_request_set_configuration(&dev->ctrl_pipe,
@@ -162,29 +162,36 @@ bool usbmid_explore_device(usb_device_t *dev)
 		return false;
 	}
 
+	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
+	if (!usb_mid) {
+		usb_log_error("Failed to create USB MID structure.\n");
+		return false;
+	}
+
 	/* Create control function */
-	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
-	if (ctl_fun == NULL) {
+	usb_mid->ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
+	if (usb_mid->ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
 		return false;
 	}
 
-	ctl_fun->ops = &mid_device_ops;
+	usb_mid->ctl_fun->ops = &mid_device_ops;
 
-	rc = ddf_fun_bind(ctl_fun);
+	rc = ddf_fun_bind(usb_mid->ctl_fun);
 	if (rc != EOK) {
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
+		ddf_fun_destroy(usb_mid->ctl_fun);
 		return false;
 	}
 
-	/* Create interface children. */
-	list_t interface_list;
-	list_initialize(&interface_list);
-	create_interfaces(config_descriptor_raw, config_descriptor_size,
-	    &interface_list);
 
-	list_foreach(interface_list, link) {
+	/* Create interface children. */
+	list_initialize(&usb_mid->interface_list);
+	create_interfaces(config_descriptor_raw, config_descriptor_size,
+	    &usb_mid->interface_list);
+
+	list_foreach(usb_mid->interface_list, link) {
 		usbmid_interface_t *iface = list_get_instance(link,
 		    usbmid_interface_t, link);
 

@@ -81,8 +81,7 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	int irq = 0;
 	bool irq_found = false;
 
-	size_t i;
-	for (i = 0; i < hw_resources.count; i++) {
+	for (size_t i = 0; i < hw_resources.count; i++) {
 		const hw_resource_t *res = &hw_resources.resources[i];
 		switch (res->type) {
 		case INTERRUPT:
