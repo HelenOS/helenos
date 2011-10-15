@@ -45,8 +45,6 @@
 #include "kbddev.h"
 
 
-/** Delay between auto-repeat state checks when no key is being repeated. */
-static unsigned int CHECK_DELAY = 10000;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -78,9 +76,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 	while (true) {
 		// check if the kbd structure is usable
 		if (!usb_kbd_is_initialized(kbd)) {
-			if (usb_kbd_is_ready_to_destroy(kbd)) {
-				usb_kbd_destroy(kbd);
-			}
+			usb_log_warning("kbd not ready, exiting autorepeat.\n");
 			return;
 		}
 		

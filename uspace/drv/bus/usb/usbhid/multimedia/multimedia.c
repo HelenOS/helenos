@@ -248,6 +248,7 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 		if (ret != EOK) {
 			usb_log_error("Failed to unbind multim function.\n");
 		} else {
+			usb_log_debug2("%s unbound.\n", multim_dev->fun->name);
 			ddf_fun_destroy(multim_dev->fun);
 		}
 	}

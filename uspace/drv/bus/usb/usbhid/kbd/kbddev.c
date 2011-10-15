@@ -501,7 +501,7 @@ static usb_kbd_t *usb_kbd_new(void)
 	    (usb_kbd_t *)calloc(1, sizeof(usb_kbd_t));
 
 	if (kbd_dev == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		return NULL;
 	}
 
@@ -623,7 +623,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	kbd_dev->keys = (int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
 
 	if (kbd_dev->keys == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		free(kbd_dev);
 		return ENOMEM;
 	}
@@ -632,7 +632,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		(int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
 
 	if (kbd_dev->keys_old == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		free(kbd_dev->keys);
 		free(kbd_dev);
 		return ENOMEM;
@@ -796,6 +796,7 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
 		usb_log_warning("Failed to unbind kbd function.\n");
 	} else {
+		usb_log_debug2("%s unbound.\n", kbd_dev->fun->name);
 		kbd_dev->fun->driver_data = NULL;
 		ddf_fun_destroy(kbd_dev->fun);
 	}
@@ -810,10 +811,11 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 	}
 
 	if (data != NULL) {
-		usb_kbd_t *kbd_dev = (usb_kbd_t *)data;
+		usb_kbd_t *kbd_dev = data;
 		if (usb_kbd_is_initialized(kbd_dev)) {
 			usb_kbd_mark_unusable(kbd_dev);
-		} else {
+			/* wait for autorepeat */
+			async_usleep(CHECK_DELAY);
 			usb_kbd_destroy(kbd_dev);
 		}
 	}

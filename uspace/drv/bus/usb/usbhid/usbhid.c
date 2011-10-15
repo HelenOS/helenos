@@ -417,14 +417,14 @@ usb_hid_dev_t *usb_hid_new(void)
 	    sizeof(usb_hid_dev_t));
 
 	if (hid_dev == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		return NULL;
 	}
 
 	hid_dev->report = (usb_hid_report_t *)(malloc(sizeof(
 	    usb_hid_report_t)));
 	if (hid_dev->report == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		free(hid_dev);
 		return NULL;
 	}
@@ -630,7 +630,6 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
 	}
 
 	hid_dev->running = false;
-//	usb_hid_destroy(hid_dev);
 }
 
 /*----------------------------------------------------------------------------*/

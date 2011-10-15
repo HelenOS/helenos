@@ -205,6 +205,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 
 	assert(!hid_dev->running);
 	usb_hid_destroy(hid_dev);
+	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
 	return EOK;
 }
 
