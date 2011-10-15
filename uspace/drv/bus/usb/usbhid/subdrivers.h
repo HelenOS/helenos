@@ -77,7 +77,7 @@ typedef struct usb_hid_subdriver_mapping {
 	int product_id;
 
 	/** Subdriver for controlling this device. */
-	usb_hid_subdriver_t subdriver;
+	const usb_hid_subdriver_t subdriver;
 } usb_hid_subdriver_mapping_t;
 
 /*----------------------------------------------------------------------------*/

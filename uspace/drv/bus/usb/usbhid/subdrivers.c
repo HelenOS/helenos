@@ -41,18 +41,18 @@
 #include "mouse/mousedev.h"
 #include "generic/hiddev.h"
 
-static usb_hid_subdriver_usage_t path_kbd[] = {
-	{USB_HIDUT_PAGE_GENERIC_DESKTOP, 
-	 USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD}, 
+static const usb_hid_subdriver_usage_t path_kbd[] = {
+	{USB_HIDUT_PAGE_GENERIC_DESKTOP,
+	 USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD},
 	{0, 0}
 };
 
-static usb_hid_subdriver_usage_t path_mouse[] = {
+static const usb_hid_subdriver_usage_t path_mouse[] = {
 	{USB_HIDUT_PAGE_GENERIC_DESKTOP, USB_HIDUT_USAGE_GENERIC_DESKTOP_MOUSE},
 	{0, 0}
 };
 
-static usb_hid_subdriver_usage_t multim_key_path[] = {
+static const usb_hid_subdriver_usage_t multim_key_path[] = {
 	{USB_HIDUT_PAGE_CONSUMER, USB_HIDUT_USAGE_CONSUMER_CONSUMER_CONTROL},
 	{0, 0}
 };
@@ -70,7 +70,6 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 			.poll = usb_kbd_polling_callback,
 			.poll_end = NULL
 		},
-		
 	},
 	{
 		multim_key_path,
