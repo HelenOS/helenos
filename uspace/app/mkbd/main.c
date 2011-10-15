@@ -68,7 +68,7 @@ static int initialize_report_parser(async_sess_t *dev_sess,
 	
 	int rc = usb_hid_report_init(*report);
 	if (rc != EOK) {
-		usb_hid_free_report(*report);
+		usb_hid_report_deinit(*report);
 		*report = NULL;
 		return rc;
 	}
@@ -78,13 +78,13 @@ static int initialize_report_parser(async_sess_t *dev_sess,
 	rc = usbhid_dev_get_report_descriptor_length(dev_sess,
 	    &report_desc_size);
 	if (rc != EOK) {
-		usb_hid_free_report(*report);
+		usb_hid_report_deinit(*report);
 		*report = NULL;
 		return rc;
 	}
 	
 	if (report_desc_size == 0) {
-		usb_hid_free_report(*report);
+		usb_hid_report_deinit(*report);
 		*report = NULL;
 		// TODO: other error code?
 		return EINVAL;
@@ -92,7 +92,7 @@ static int initialize_report_parser(async_sess_t *dev_sess,
 	
 	uint8_t *desc = (uint8_t *) malloc(report_desc_size);
 	if (desc == NULL) {
-		usb_hid_free_report(*report);
+		usb_hid_report_deinit(*report);
 		*report = NULL;
 		return ENOMEM;
 	}
@@ -102,14 +102,14 @@ static int initialize_report_parser(async_sess_t *dev_sess,
 	rc = usbhid_dev_get_report_descriptor(dev_sess, desc, report_desc_size,
 	    &actual_size);
 	if (rc != EOK) {
-		usb_hid_free_report(*report);
+		usb_hid_report_deinit(*report);
 		*report = NULL;
 		free(desc);
 		return rc;
 	}
 	
 	if (actual_size != report_desc_size) {
-		usb_hid_free_report(*report);
+		usb_hid_report_deinit(*report);
 		*report = NULL;
 		free(desc);
 		// TODO: other error code?

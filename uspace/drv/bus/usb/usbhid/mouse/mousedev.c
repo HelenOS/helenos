@@ -267,14 +267,15 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	}
 
 	int shift_x = get_mouse_axis_move_value(hid_dev->report_id,
-	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
+	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
 	int shift_y = get_mouse_axis_move_value(hid_dev->report_id,
-	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
+	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
 	int wheel = get_mouse_axis_move_value(hid_dev->report_id,
-	    hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
+	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
 	if ((shift_x != 0) || (shift_y != 0)) {
-		async_exch_t *exch = async_exchange_begin(mouse_dev->mouse_sess);
+		async_exch_t *exch =
+		    async_exchange_begin(mouse_dev->mouse_sess);
 		async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
 		async_exchange_end(exch);
 	}
@@ -290,9 +291,8 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    USB_HID_REPORT_TYPE_INPUT);
+	    &hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
+	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
 
 	while (field != NULL) {
 		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
@@ -313,14 +313,14 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 			    async_exchange_begin(mouse_dev->mouse_sess);
 			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 0);
 			async_exchange_end(exch);
-			
+
 			mouse_dev->buttons[field->usage - field->usage_minimum] =
 			   field->value;
 		}
-		
+
 		field = usb_hid_report_get_sibling(
-		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
 
@@ -473,8 +473,8 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	// Since I doubt that hardware producers would do that, I think
 	// that the current solution is good enough.
 	/* Adding 1 because we will be accessing buttons[highest]. */
-	mouse_dev->buttons_count = usb_mouse_get_highest_button(hid_dev->report,
-	    hid_dev->report_id) + 1;
+	mouse_dev->buttons_count = 1 + usb_mouse_get_highest_button(
+	    &hid_dev->report, hid_dev->report_id);
 	mouse_dev->buttons = calloc(mouse_dev->buttons_count, sizeof(int32_t));
 
 	if (mouse_dev->buttons == NULL) {
@@ -531,8 +531,8 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 
 int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
-	int rc = usb_hid_parse_report_descriptor(hid_dev->report, 
-	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR, 
+	int rc = usb_hid_parse_report_descriptor(
+	    &hid_dev->report, USB_MOUSE_BOOT_REPORT_DESCRIPTOR,
 	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR_SIZE);
 
 	if (rc != EOK) {
@@ -541,7 +541,7 @@ int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 
-	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe, 
+	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe,
 	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
 
 	if (rc != EOK) {

@@ -271,8 +271,8 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    &hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
+	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	/*! @todo Is this iterating OK if done multiple times? 
@@ -292,7 +292,7 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 		}
 
 		field = usb_hid_report_get_sibling(
-		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
+		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
 		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 		    USB_HID_REPORT_TYPE_INPUT);
 	}

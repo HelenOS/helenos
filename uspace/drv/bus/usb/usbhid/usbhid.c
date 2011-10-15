@@ -203,8 +203,6 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		++i;
 	}
 
-	assert(hid_dev->report != NULL);
-
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
 
 	bool matches = false;
@@ -212,27 +210,25 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 
 	do {
 		usb_log_debug("Trying report id %u\n", report_id);
-		
+
 		if (report_id != 0) {
 			usb_hid_report_path_set_report_id(usage_path,
 				report_id);
 		}
 
 		usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-		    hid_dev->report,
-		    NULL, usage_path, mapping->compare, 
+		    &hid_dev->report, NULL, usage_path, mapping->compare,
 		    USB_HID_REPORT_TYPE_INPUT);
-		
+
 		usb_log_debug("Field: %p\n", field);
 
 		if (field != NULL) {
 			matches = true;
 			break;
 		}
-		
+
 		report_id = usb_hid_get_next_report_id(
-		    hid_dev->report, report_id,
-		    USB_HID_REPORT_TYPE_INPUT);
+		    &hid_dev->report, report_id, USB_HID_REPORT_TYPE_INPUT);
 	} while (!matches && report_id != 0);
 
 	usb_hid_report_path_free(usage_path);
@@ -377,21 +373,20 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 
 static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 {
-	assert(hid_dev != NULL && hid_dev->report != NULL);
+	assert(hid_dev != NULL);
 
 	uint8_t report_id = 0;
-	size_t size;
-
 	size_t max_size = 0;
 
 	do {
 		usb_log_debug("Getting size of the report.\n");
-		size = usb_hid_report_byte_size(hid_dev->report, report_id, 
-		    USB_HID_REPORT_TYPE_INPUT);
+		const size_t size =
+		    usb_hid_report_byte_size(&hid_dev->report, report_id,
+		        USB_HID_REPORT_TYPE_INPUT);
 		usb_log_debug("Report ID: %u, size: %zu\n", report_id, size);
 		max_size = (size > max_size) ? size : max_size;
 		usb_log_debug("Getting next report ID\n");
-		report_id = usb_hid_get_next_report_id(hid_dev->report, 
+		report_id = usb_hid_get_next_report_id(&hid_dev->report,
 		    report_id, USB_HID_REPORT_TYPE_INPUT);
 	} while (report_id != 0);
 
@@ -429,13 +424,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		return EINVAL;
 	}
 
-	hid_dev->report = (usb_hid_report_t *)(malloc(sizeof(
-	    usb_hid_report_t)));
-	if (hid_dev->report == NULL) {
-		usb_log_error("No memory!\n");
-		return ENOMEM;
-	}
-	usb_hid_report_init(hid_dev->report);
+	usb_hid_report_init(&hid_dev->report);
 
 	/* The USB device should already be initialized, save it in structure */
 	hid_dev->usb_dev = dev;
@@ -445,10 +434,10 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	if (rc != EOK) {
 		return rc;
 	}
-		
+
 	/* Get the report descriptor and parse it. */
-	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
-	    hid_dev->report, &hid_dev->report_desc, &hid_dev->report_desc_size);
+	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev,
+	    &hid_dev->report, &hid_dev->report_desc, &hid_dev->report_desc_size);
 
 	bool fallback = false;
 
@@ -523,7 +512,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 				ok = true;
 			}
 		}
-		
+
 		rc = (ok) ? EOK : -1;	// what error to report
 	}
 
@@ -569,13 +558,13 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 
 	// parse the input report
 
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
+	int rc = usb_hid_parse_report(&hid_dev->report, buffer, buffer_size,
 	    &hid_dev->report_id);
 
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_parse_report():"
 		    "%s\n", str_error(rc));
-	}	
+	}
 
 	bool cont = false;
 
@@ -630,7 +619,7 @@ int usb_hid_report_number(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-void usb_hid_destroy(usb_hid_dev_t *hid_dev)
+void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 {
 	int i;
 
@@ -656,9 +645,7 @@ void usb_hid_destroy(usb_hid_dev_t *hid_dev)
 	free(hid_dev->report_desc);
 
 	/* Destroy the parser */
-	if (hid_dev->report != NULL) {
-		usb_hid_free_report(hid_dev->report);
-	}
+	usb_hid_report_deinit(&hid_dev->report);
 
 }
 

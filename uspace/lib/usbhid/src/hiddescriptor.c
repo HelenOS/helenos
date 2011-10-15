@@ -1015,7 +1015,7 @@ void usb_hid_free_report_list(list_t *list)
  * @param parser Opaque HID report parser structure
  * @return void
  */
-void usb_hid_free_report(usb_hid_report_t *report)
+void usb_hid_report_deinit(usb_hid_report_t *report)
 {
 	if(report == NULL){
 		return;
