@@ -52,9 +52,9 @@ typedef struct {
  */
 typedef struct {
 	/** Interface descriptor. */
-	usb_standard_interface_descriptor_t *interface;
+	const usb_standard_interface_descriptor_t *interface;
 	/** Pointer to start of descriptor tree bound with this interface. */
-	uint8_t *nested_descriptors;
+	const uint8_t *nested_descriptors;
 	/** Size of data pointed by nested_descriptors in bytes. */
 	size_t nested_descriptors_size;
 } usb_alternate_interface_descriptors_t;

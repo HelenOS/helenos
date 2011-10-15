@@ -85,8 +85,8 @@ static void create_interfaces(uint8_t *config_descriptor,
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
 
-	uint8_t *interface_ptr = usb_dp_get_nested_descriptor(&parser, &data,
-	    data.data);
+	const uint8_t *interface_ptr =
+	    usb_dp_get_nested_descriptor(&parser, &data, data.data);
 	if (interface_ptr == NULL) {
 		return;
 	}

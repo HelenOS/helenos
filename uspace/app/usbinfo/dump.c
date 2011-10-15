@@ -109,12 +109,12 @@ void dump_match_ids(match_id_list_t *matches, const char *line_prefix)
 	}
 }
 
-static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
+static void dump_tree_descriptor(const uint8_t *descriptor, size_t depth)
 {
 	if (descriptor == NULL) {
 		return;
 	}
-	int type = (int) *(descriptor + 1);
+	int type = descriptor[1];
 	const char *name = "unknown";
 	switch (type) {
 #define _TYPE(descriptor_type) \
@@ -135,14 +135,15 @@ static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
 	    descriptor, descriptor[0]);
 }
 
-static void dump_tree_internal(usb_dp_parser_t *parser, usb_dp_parser_data_t *data,
-    uint8_t *root, size_t depth)
+static void dump_tree_internal(
+    usb_dp_parser_t *parser, usb_dp_parser_data_t *data,
+    const uint8_t *root, size_t depth)
 {
 	if (root == NULL) {
 		return;
 	}
 	dump_tree_descriptor(root, depth);
-	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	const uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
 	do {
 		dump_tree_internal(parser, data, child, depth + 1);
 		child = usb_dp_get_sibling_descriptor(parser, data, root, child);

@@ -46,12 +46,12 @@
  * @param data Descriptor data.
  * @param depth Nesting depth.
  */
-static void dump_tree_descriptor(uint8_t *data, size_t depth)
+static void dump_tree_descriptor(const uint8_t *data, size_t depth)
 {
 	if (data == NULL) {
 		return;
 	}
-	int type = (int) *(data + 1);
+	const int type = data[1];
 	if (type == USB_DESCTYPE_INTERFACE) {
 		usb_standard_interface_descriptor_t *descriptor
 		    = (usb_standard_interface_descriptor_t *) data;
@@ -70,14 +70,15 @@ static void dump_tree_descriptor(uint8_t *data, size_t depth)
  * @param root Pointer to current root.
  * @param depth Nesting depth.
  */
-static void dump_tree_internal(usb_dp_parser_t *parser, usb_dp_parser_data_t *data,
-    uint8_t *root, size_t depth)
+static void dump_tree_internal(
+    usb_dp_parser_t *parser, usb_dp_parser_data_t *data,
+    const uint8_t *root, size_t depth)
 {
 	if (root == NULL) {
 		return;
 	}
 	dump_tree_descriptor(root, depth);
-	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	const uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
 	do {
 		dump_tree_internal(parser, data, child, depth + 1);
 		child = usb_dp_get_sibling_descriptor(parser, data, root, child);
