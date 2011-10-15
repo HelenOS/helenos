@@ -160,19 +160,35 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev, 
-    usb_multimedia_t *multim_dev)
+int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 {
+	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
+		return EINVAL; /*! @todo Other return code? */
+	}
+
+	usb_log_debug(NAME " Initializing HID/multimedia structure...\n");
+
 	/* Create the exposed function. */
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
-	    NAME);
+	ddf_fun_t *fun = ddf_fun_create(
+	    hid_dev->usb_dev->ddf_dev, fun_exposed, NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
 
 	fun->ops = &multimedia_ops;
-	fun->driver_data = multim_dev;   // TODO: maybe change to hid_dev->data
+
+	usb_multimedia_t *multim_dev =
+	    ddf_fun_data_alloc(fun, sizeof(usb_multimedia_t));
+	if (multim_dev == NULL) {
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+
+	multim_dev->console_sess = NULL;
+	multim_dev->fun = fun;
+
+	//todo Autorepeat?
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -193,42 +209,11 @@ static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev,
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	multim_dev->fun = fun;
 
-	return EOK;
-}
-
-/*----------------------------------------------------------------------------*/
-
-int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
-{
-	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
-		return EINVAL; /*! @todo Other return code? */
-	}
-
-	usb_log_debug(NAME " Initializing HID/multimedia structure...\n");
-
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)malloc(
-	    sizeof(usb_multimedia_t));
-	if (multim_dev == NULL) {
-		return ENOMEM;
-	}
-
-	multim_dev->console_sess = NULL;
-
-	/*! @todo Autorepeat */
-
-	// save the KBD device structure into the HID device structure
+	/* Save the KBD device structure into the HID device structure. */
 	*data = multim_dev;
 
-	usb_log_debug(NAME " HID/multimedia device structure initialized.\n");
-
-	int rc = usb_multimedia_create_function(hid_dev, multim_dev);
-	if (rc != EOK)
-		return rc;
-
 	usb_log_debug(NAME " HID/multimedia structure initialized.\n");
-
 	return EOK;
 }
 
