@@ -140,7 +140,7 @@ enum {
 	USB_HID_POLL_EP_COUNT = 3
 };
 
-extern usb_endpoint_description_t *usb_hid_endpoints[];
+extern const usb_endpoint_description_t *usb_hid_endpoints[];
 
 /*----------------------------------------------------------------------------*/
 

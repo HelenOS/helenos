@@ -60,7 +60,7 @@ typedef struct {
 	async_sess_t *console_sess;
 } usb_mouse_t;
 
-extern usb_endpoint_description_t poll_endpoint_description;
+extern const usb_endpoint_description_t poll_endpoint_description;
 
 extern int usb_mouse_create(usb_device_t *);
 extern bool usb_mouse_polling_callback(usb_device_t *, uint8_t *, size_t,

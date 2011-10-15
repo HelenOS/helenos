@@ -117,7 +117,7 @@ typedef struct usb_kbd_t {
 
 /*----------------------------------------------------------------------------*/
 
-usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
+extern const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 
 const char *HID_KBD_FUN_NAME;
 const char *HID_KBD_CLASS_NAME;

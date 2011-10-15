@@ -155,7 +155,7 @@ static usb_driver_t hub_driver = {
 };
 \endcode
 	 */
-	usb_endpoint_description_t **endpoints;
+	const usb_endpoint_description_t **endpoints;
 	/** Driver ops. */
 	const usb_driver_ops_t *ops;
 } usb_driver_t;
@@ -163,14 +163,15 @@ static usb_driver_t hub_driver = {
 int usb_driver_main(usb_driver_t *);
 
 int usb_device_select_interface(usb_device_t *, uint8_t,
-    usb_endpoint_description_t **);
+    const usb_endpoint_description_t **);
 
 int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
 int usb_device_create_pipes(const ddf_dev_t *, usb_device_connection_t *,
-    usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
+    const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
 int usb_device_destroy_pipes(const ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
-int usb_device_create(ddf_dev_t *, usb_endpoint_description_t **, usb_device_t **, const char **);
+int usb_device_create(ddf_dev_t *, const usb_endpoint_description_t **,
+    usb_device_t **, const char **);
 void usb_device_deinit(usb_device_t *);
 void * usb_device_data_alloc(usb_device_t *, size_t);
 

@@ -43,7 +43,7 @@
 #include <errno.h>
 
 /** Mouse polling endpoint description for boot protocol subclass. */
-usb_endpoint_description_t poll_endpoint_description = {
+const usb_endpoint_description_t poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HID,

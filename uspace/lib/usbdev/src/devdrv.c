@@ -80,7 +80,7 @@ int usb_driver_main(usb_driver_t *drv)
  * @param drv USB driver.
  * @return Number of pipes (excluding default control pipe).
  */
-static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
+static size_t count_other_pipes(const usb_endpoint_description_t **endpoints)
 {
 	size_t count = 0;
 	if (endpoints == NULL) {
@@ -100,7 +100,7 @@ static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
  * @param dev Device to be initialized.
  * @return Error code.
  */
-static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
+static int initialize_other_pipes(const usb_endpoint_description_t **endpoints,
     usb_device_t *dev, int alternate_setting)
 {
 	if (endpoints == NULL) {
@@ -237,7 +237,7 @@ static int destroy_current_pipes(usb_device_t *dev)
  * @return Error code.
  */
 int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
-    usb_endpoint_description_t **endpoints)
+    const usb_endpoint_description_t **endpoints)
 {
 	if (dev->interface_no < 0) {
 		return EINVAL;
@@ -320,7 +320,7 @@ leave:
  * @return Error code.
  */
 int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
-    usb_endpoint_description_t **endpoints,
+    const usb_endpoint_description_t **endpoints,
     const uint8_t *config_descr, size_t config_descr_size,
     int interface_no, int interface_setting,
     usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
@@ -525,7 +525,7 @@ static int init_wire_and_ctrl_pipe(usb_device_t *dev, const char **errmsg)
  * @return Error code.
  */
 int usb_device_create(ddf_dev_t *ddf_dev,
-    usb_endpoint_description_t **endpoints,
+    const usb_endpoint_description_t **endpoints,
     usb_device_t **dev_ptr, const char **errstr_ptr)
 {
 	assert(dev_ptr != NULL);
