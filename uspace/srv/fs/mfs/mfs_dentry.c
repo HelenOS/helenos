@@ -43,7 +43,7 @@
  */
 int
 mfs_read_dentry(struct mfs_node *mnode,
-		     struct mfs_dentry_info *d_info, unsigned index)
+    struct mfs_dentry_info *d_info, unsigned index)
 {
 	const struct mfs_instance *inst = mnode->instance;
 	const struct mfs_sb_info *sbi = inst->sbi;
@@ -56,7 +56,7 @@ mfs_read_dentry(struct mfs_node *mnode,
 		goto out_err;
 
 	if (block == 0) {
-		/*End of the dentries list*/
+		/* End of the dentries list */
 		r = EOK;
 		goto out_err;
 	}
@@ -78,12 +78,12 @@ mfs_read_dentry(struct mfs_node *mnode,
 		d_info->d_name[MFS3_MAX_NAME_LEN] = 0;
 	} else {
 		const int namelen = longnames ? MFS_L_MAX_NAME_LEN :
-				    MFS_MAX_NAME_LEN;
+		    MFS_MAX_NAME_LEN;
 
 		struct mfs_dentry *d;
 
 		d = b->data + dentry_off * (longnames ? MFSL_DIRSIZE :
-					    MFS_DIRSIZE);
+		    MFS_DIRSIZE);
 		d_info->d_inum = conv16(sbi->native, d->d_inum);
 		memcpy(d_info->d_name, d->d_name, namelen);
 		d_info->d_name[namelen] = 0;
@@ -100,9 +100,9 @@ out_err:
 
 /**Write a directory entry on disk.
  *
- * @param d_info	Pointer to the directory entry structure to write on disk.
+ * @param d_info Pointer to the directory entry structure to write on disk.
  *
- * @return		EOK on success or a negative error code.
+ * @return	 EOK on success or a negative error code.
  */
 int
 mfs_write_dentry(struct mfs_dentry_info *d_info)
@@ -177,7 +177,8 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 		const size_t d_name_len = str_size(d_info.d_name);
 
 		if (name_len == d_name_len &&
-				!bcmp(d_info.d_name, d_name, name_len)) {
+		    !bcmp(d_info.d_name, d_name, name_len)) {
+
 			d_info.d_inum = 0;
 			r = mfs_write_dentry(&d_info);
 			return r;
@@ -196,7 +197,8 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
  * @return		EOK on success or a negative error code.
  */
 int
-mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
+mfs_insert_dentry(struct mfs_node *mnode, const char *d_name,
+    fs_index_t d_inum)
 {
 	int r;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -208,7 +210,7 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	if (name_len > sbi->max_name_len)
 		return ENAMETOOLONG;
 
-	/*Search for an empty dentry*/
+	/* Search for an empty dentry */
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = mfs_read_dentry(mnode, &d_info, i);
@@ -216,7 +218,7 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 			return r;
 
 		if (d_info.d_inum == 0) {
-			/*This entry is not used*/
+			/* This entry is not used */
 			empty_dentry_found = true;
 			break;
 		}
@@ -230,7 +232,7 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 			goto out;
 
 		if (b == 0) {
-			/*Increase the inode size*/
+			/* Increase the inode size */
 
 			uint32_t dummy;
 			r = mfs_alloc_zone(mnode->instance, &b);
