@@ -102,7 +102,6 @@ static int usbmast_device_gone(usb_device_t *dev)
 		mdev->luns[i] = NULL;
 	}
 	free(mdev->luns);
-	free(mdev);
 	return EOK;
 }
 
@@ -118,7 +117,7 @@ static int usbmast_device_add(usb_device_t *dev)
 	unsigned i;
 
 	/* Allocate softstate */
-	dev->driver_data = mdev = malloc(sizeof(usbmast_dev_t));
+	mdev = usb_device_data_alloc(dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		return ENOMEM;

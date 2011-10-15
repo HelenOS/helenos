@@ -76,12 +76,11 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 {
 	assert(dev != NULL);
 
-	/* 
-	 * Initialize device (get and process descriptors, get address, etc.)
-	 */
+	/* Initialize device (get and process descriptors, get address, etc.) */
 	usb_log_debug("Initializing USB/HID device...\n");
 
-	usb_hid_dev_t *hid_dev = usb_hid_new();
+	usb_hid_dev_t *hid_dev =
+	    usb_device_data_alloc(dev, sizeof(usb_hid_dev_t));
 	if (hid_dev == NULL) {
 		usb_log_error("Error while creating USB/HID device "
 		    "structure.\n");

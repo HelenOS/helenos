@@ -162,7 +162,7 @@ bool usbmid_explore_device(usb_device_t *dev)
 		return false;
 	}
 
-	usb_mid_t *usb_mid = malloc(sizeof(usb_mid_t));
+	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
 	if (!usb_mid) {
 		usb_log_error("Failed to create USB MID structure.\n");
 		return false;
@@ -172,7 +172,6 @@ bool usbmid_explore_device(usb_device_t *dev)
 	usb_mid->ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
 	if (usb_mid->ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
-		free(usb_mid);
 		return false;
 	}
 
@@ -183,7 +182,6 @@ bool usbmid_explore_device(usb_device_t *dev)
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
 		ddf_fun_destroy(usb_mid->ctl_fun);
-		free(usb_mid);
 		return false;
 	}
 
@@ -208,7 +206,6 @@ bool usbmid_explore_device(usb_device_t *dev)
 			    str_error(rc));
 		}
 	}
-	dev->driver_data = usb_mid;
 
 	return true;
 }

@@ -411,31 +411,6 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-usb_hid_dev_t *usb_hid_new(void)
-{
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)calloc(1,
-	    sizeof(usb_hid_dev_t));
-
-	if (hid_dev == NULL) {
-		usb_log_error("No memory!\n");
-		return NULL;
-	}
-
-	hid_dev->report = (usb_hid_report_t *)(malloc(sizeof(
-	    usb_hid_report_t)));
-	if (hid_dev->report == NULL) {
-		usb_log_error("No memory!\n");
-		free(hid_dev);
-		return NULL;
-	}
-
-	hid_dev->poll_pipe_index = -1;
-
-	return hid_dev;
-}
-
-/*----------------------------------------------------------------------------*/
-
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
 	int rc, i;
@@ -454,10 +429,17 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		return EINVAL;
 	}
 
+	hid_dev->report = (usb_hid_report_t *)(malloc(sizeof(
+	    usb_hid_report_t)));
+	if (hid_dev->report == NULL) {
+		usb_log_error("No memory!\n");
+		return ENOMEM;
+	}
 	usb_hid_report_init(hid_dev->report);
 
 	/* The USB device should already be initialized, save it in structure */
 	hid_dev->usb_dev = dev;
+	hid_dev->poll_pipe_index = -1;
 
 	rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {

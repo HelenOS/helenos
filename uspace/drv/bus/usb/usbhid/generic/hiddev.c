@@ -200,6 +200,9 @@ void usb_generic_hid_deinit(usb_hid_dev_t *hid_dev, void *data)
 		return;
 	}
 	usb_log_debug2("%s unbound.\n", fun->name);
+	/* We did not allocate this, so leave this alone
+	 * the device would take care of it */
+	fun->driver_data = NULL;
 	ddf_fun_destroy(fun);
 }
 
@@ -222,7 +225,6 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 	}
 
 	fun->ops = &usb_generic_hid_ops;
-	fun->driver_data = hid_dev;
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -231,6 +233,9 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 		ddf_fun_destroy(fun);
 		return rc;
 	}
+	/* This is nasty both device and this function have the same
+	 * driver data, thus destruction would lead to double free */
+	fun->driver_data = hid_dev;
 
 	usb_log_debug("HID function created. Handle: %" PRIun "\n", fun->handle);
 	*data = fun;

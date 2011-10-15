@@ -144,8 +144,6 @@ extern usb_endpoint_description_t *usb_hid_endpoints[];
 
 /*----------------------------------------------------------------------------*/
 
-usb_hid_dev_t *usb_hid_new(void);
-
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 
 bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer, 

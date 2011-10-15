@@ -151,7 +151,10 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	}
 	gen_dev->driver_data = dev;
 
-	return driver->ops->device_add(dev);
+	rc = driver->ops->device_add(dev);
+	if (rc != EOK)
+		usb_device_destroy(dev);
+	return rc;
 }
 /*----------------------------------------------------------------------------*/
 /** Callback when a device is supposed to be removed from the system.
@@ -184,9 +187,10 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	if (driver->ops->device_gone == NULL)
 		return ENOTSUP;
-	const int ret = driver->ops->device_gone(gen_dev->driver_data);
+	usb_device_t *usb_dev = gen_dev->driver_data;
+	const int ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
-		usb_device_destroy(gen_dev->driver_data);
+		usb_device_destroy(usb_dev);
 
 	return ret;
 }
@@ -594,15 +598,22 @@ void usb_device_destroy(usb_device_t *dev)
 	}
 
 	/* Ignore errors and hope for the best. */
-	usb_device_destroy_pipes(dev->ddf_dev, dev->pipes, dev->pipes_count);
-	free(dev->descriptors.configuration);
+	destroy_current_pipes(dev);
 
 	if (dev->alternate_interfaces != NULL) {
 		free(dev->alternate_interfaces->alternatives);
 	}
 	free(dev->alternate_interfaces);
+	free(dev->descriptors.configuration);
+	free(dev->driver_data);
+}
 
-	free(dev);
+void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
+{
+	assert(usb_dev);
+	assert(usb_dev->driver_data == NULL);
+	return usb_dev->driver_data = calloc(1, size);
+
 }
 
 /**

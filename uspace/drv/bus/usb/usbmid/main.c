@@ -102,7 +102,6 @@ static int usbmid_device_gone(usb_device_t *dev)
 			ret = pret;
 		}
 	}
-	free(usb_mid);
 	return ret;
 }
 
