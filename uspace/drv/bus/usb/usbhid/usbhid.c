@@ -60,8 +60,6 @@ const usb_endpoint_description_t *usb_hid_endpoints[] = {
 	NULL
 };
 
-static const int USB_HID_MAX_SUBDRIVERS = 10;
-
 /*----------------------------------------------------------------------------*/
 
 static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
