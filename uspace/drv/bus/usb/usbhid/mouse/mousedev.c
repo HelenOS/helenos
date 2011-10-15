@@ -123,23 +123,23 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	usb_mouse_t *mouse_dev = (usb_mouse_t *) fun->driver_data;
-	
+
 	if (mouse_dev == NULL) {
 		usb_log_debug("default_connection_handler: Missing "
 		    "parameters.\n");
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-	
+
 	usb_log_debug("default_connection_handler: fun->name: %s\n",
 	              fun->name);
 	usb_log_debug("default_connection_handler: mouse_sess: %p, "
 	    "wheel_sess: %p\n", mouse_dev->mouse_sess, mouse_dev->wheel_sess);
-	
+
 	async_sess_t **sess_ptr =
 	    (str_cmp(fun->name, HID_MOUSE_FUN_NAME) == 0) ?
 	    &mouse_dev->mouse_sess : &mouse_dev->wheel_sess;
-	
+
 	async_sess_t *sess =
 	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 	if (sess != NULL) {
@@ -169,7 +169,7 @@ static usb_mouse_t *usb_mouse_new(void)
 	}
 	mouse->mouse_sess = NULL;
 	mouse->wheel_sess = NULL;
-	
+
 	return mouse;
 }
 
@@ -178,13 +178,28 @@ static usb_mouse_t *usb_mouse_new(void)
 static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
-	
+
 	// hangup session to the console
 	if (mouse_dev->mouse_sess != NULL)
 		async_hangup(mouse_dev->mouse_sess);
-	
+
 	if (mouse_dev->wheel_sess != NULL)
 		async_hangup(mouse_dev->wheel_sess);
+	int ret = ddf_fun_unbind(mouse_dev->mouse_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind mouse function.\n");
+	} else {
+		ddf_fun_destroy(mouse_dev->mouse_fun);
+		/* Prevent double free */
+		mouse_dev->wheel_fun->driver_data = NULL;
+	}
+
+	ret = ddf_fun_unbind(mouse_dev->wheel_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind wheel function.\n");
+	} else {
+		ddf_fun_destroy(mouse_dev->wheel_fun);
+	}
 }
 
 /*----------------------------------------------------------------------------*/
@@ -198,10 +213,10 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 		    "Connection to console not ready, wheel roll discarded.\n");
 		return;
 	}
-	
+
 	int count = ((wheel < 0) ? -wheel : wheel) * ARROWS_PER_SINGLE_WHEEL;
 	int i;
-	
+
 	for (i = 0; i < count; i++) {
 		/* Send arrow press and release. */
 		usb_log_debug2("Sending key %d to the console\n", key);
@@ -245,7 +260,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
     usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
-	
+
 	if (mouse_dev->mouse_sess == NULL) {
 		usb_log_warning(NAME " No console session.\n");
 		return true;
@@ -263,17 +278,17 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
 		async_exchange_end(exch);
 	}
-	
+
 	if (wheel != 0)
 		usb_mouse_send_wheel(mouse_dev, wheel);
-	
+
 	/*
 	 * Buttons
 	 */
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
-	
+
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
@@ -308,7 +323,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
-	
+
 	usb_hid_report_path_free(path);
 
 	return true;
@@ -320,7 +335,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 {
 	assert(hid_dev != NULL);
 	assert(mouse != NULL);
-	
+
 	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
@@ -329,7 +344,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
-	
+
 	fun->ops = &mouse->ops;
 	fun->driver_data = mouse;
 
@@ -337,10 +352,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+
 	usb_log_debug("Adding DDF function to category %s...\n", 
 	    HID_MOUSE_CATEGORY);
 	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
@@ -348,10 +362,10 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_CATEGORY, str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+	mouse->mouse_fun = fun;
+
 	/*
 	 * Special function for acting as keyboard (wheel)
 	 */
@@ -363,7 +377,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Store the initialized HID device and HID ops
 	 * to the DDF function.
@@ -375,10 +389,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+
 	usb_log_debug("Adding DDF function to category %s...\n", 
 	    HID_MOUSE_WHEEL_CATEGORY);
 	rc = ddf_fun_add_to_category(fun, HID_MOUSE_WHEEL_CATEGORY);
@@ -386,10 +399,10 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
-		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+	mouse->wheel_fun = fun;
+
 	return EOK;
 }
 
@@ -440,20 +453,20 @@ static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t rep
 int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
-	
+
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init keyboard structure: no structure"
 		    " given.\n");
 		return EINVAL;
 	}
-	
+
 	usb_mouse_t *mouse_dev = usb_mouse_new();
 	if (mouse_dev == NULL) {
 		usb_log_error("Error while creating USB/HID Mouse device "
 		    "structure.\n");
 		return ENOMEM;
 	}
-	
+
 	// FIXME: This may not be optimal since stupid hardware vendor may
 	// use buttons 1, 2, 3 and 6000 and we would allocate array of
 	// 6001*4B and use only 4 items in it.
@@ -463,7 +476,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	mouse_dev->buttons_count = usb_mouse_get_highest_button(hid_dev->report,
 	    hid_dev->report_id) + 1;
 	mouse_dev->buttons = calloc(mouse_dev->buttons_count, sizeof(int32_t));
-	
+
 	if (mouse_dev->buttons == NULL) {
 		usb_log_error(NAME ": out of memory, giving up on device!\n");
 		free(mouse_dev);
@@ -473,20 +486,20 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 	// save the Mouse device structure into the HID device structure
 	*data = mouse_dev;
-	
+
 	// set handler for incoming calls
 	mouse_dev->ops.default_handler = default_connection_handler;
-	
+
 	// TODO: how to know if the device supports the request???
 	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
 	    hid_dev->usb_dev->interface_no, IDLE_RATE);
-	
+
 	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
 	if (rc != EOK) {
 		usb_mouse_destroy(mouse_dev);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -499,7 +512,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 		    "\n");
 		return false;
 	}
-	
+
 	usb_mouse_t *mouse_dev = (usb_mouse_t *)data;
 		
 	return usb_mouse_process_report(hid_dev, mouse_dev);
@@ -510,7 +523,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data != NULL) {
-		usb_mouse_destroy((usb_mouse_t *)data);
+		usb_mouse_destroy(data);
 	}
 }
 
@@ -521,22 +534,22 @@ int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 	int rc = usb_hid_parse_report_descriptor(hid_dev->report, 
 	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR, 
 	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR_SIZE);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Failed to parse boot report descriptor: %s\n",
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe, 
 	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
-	
+
 	if (rc != EOK) {
 		usb_log_warning("Failed to set boot protocol to the device: "
 		    "%s\n", str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 

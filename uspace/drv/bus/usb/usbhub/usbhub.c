@@ -116,8 +116,6 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	}
 	ddf_fun_destroy(hub->hub_fun);
 
-	free(hub);
-	usb_dev->driver_data = NULL;
 	usb_log_info("USB hub driver, stopped and cleaned.\n");
 	return EOK;
 }
@@ -253,19 +251,18 @@ bool hub_port_changes_callback(usb_device_t *dev,
 static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	usb_hub_dev_t *hub_dev = malloc(sizeof(usb_hub_dev_t));
+	usb_hub_dev_t *hub_dev =
+	    usb_device_data_alloc(usb_dev, sizeof(usb_hub_dev_t));
 	if (!hub_dev)
 	    return NULL;
 
 	hub_dev->usb_device = usb_dev;
-
 	hub_dev->ports = NULL;
 	hub_dev->port_count = 0;
 	hub_dev->pending_ops_count = 0;
 	hub_dev->running = false;
 	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
 	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
-	usb_dev->driver_data = hub_dev;
 
 	return hub_dev;
 }

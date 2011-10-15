@@ -81,6 +81,30 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
+/** Callback when a device is removed from the system.
+ *
+ * @param dev Representation of USB device.
+ * @return Error code.
+ */
+static int usbmast_device_gone(usb_device_t *dev)
+{
+	usbmast_dev_t *mdev = dev->driver_data;
+	assert(mdev);
+
+	for (size_t i = 0; i < mdev->lun_count; ++i) {
+		const int rc = ddf_fun_unbind(mdev->luns[i]);
+		if (rc != EOK) {
+			usb_log_error("Failed to unbind LUN function %zu: "
+			    "%s\n", i, str_error(rc));
+			return rc;
+		}
+		ddf_fun_destroy(mdev->luns[i]);
+		mdev->luns[i] = NULL;
+	}
+	free(mdev->luns);
+	return EOK;
+}
+
 /** Callback when new device is attached and recognized as a mass storage.
  *
  * @param dev Representation of a the USB device.
@@ -93,7 +117,7 @@ static int usbmast_device_add(usb_device_t *dev)
 	unsigned i;
 
 	/* Allocate softstate */
-	dev->driver_data = mdev = malloc(sizeof(usbmast_dev_t));
+	mdev = usb_device_data_alloc(dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		return ENOMEM;
@@ -111,9 +135,15 @@ static int usbmast_device_add(usb_device_t *dev)
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
-	mdev->luns = usb_masstor_get_lun_count(mdev);
+	mdev->lun_count = usb_masstor_get_lun_count(mdev);
+	mdev->luns = calloc(mdev->lun_count, sizeof(ddf_fun_t*));
+	if (mdev->luns == NULL) {
+		rc = ENOMEM;
+		usb_log_error("Failed allocating luns table.\n");
+		goto error;
+	}
 
-	for (i = 0; i < mdev->luns; i++) {
+	for (i = 0; i < mdev->lun_count; i++) {
 		rc = usbmast_fun_create(mdev, i);
 		if (rc != EOK)
 			goto error;
@@ -121,7 +151,19 @@ static int usbmast_device_add(usb_device_t *dev)
 
 	return EOK;
 error:
-	/* XXX Destroy functions */
+	/* Destroy functions */
+	for (size_t i = 0; i < mdev->lun_count; ++i) {
+		if (mdev->luns[i] == NULL)
+			continue;
+		const int rc = ddf_fun_unbind(mdev->luns[i]);
+		if (rc != EOK) {
+			usb_log_warning("Failed to unbind LUN function %zu: "
+			    "%s.\n", i, str_error(rc));
+		}
+		ddf_fun_destroy(mdev->luns[i]);
+	}
+	free(mdev->luns);
+	free(mdev);
 	return rc;
 }
 
@@ -161,6 +203,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
+	mfun->ddf_fun = fun;
 	mfun->mdev = mdev;
 	mfun->lun = lun;
 
@@ -211,6 +254,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	}
 
 	free(fun_name);
+	mdev->luns[lun] = fun;
 
 	return EOK;
 
@@ -294,6 +338,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 /** USB mass storage driver ops. */
 static usb_driver_ops_t usbmast_driver_ops = {
 	.device_add = usbmast_device_add,
+	.device_gone = usbmast_device_gone,
 };
 
 /** USB mass storage driver. */
