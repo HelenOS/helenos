@@ -153,7 +153,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 
 	rc = driver->ops->device_add(dev);
 	if (rc != EOK)
-		usb_device_destroy(dev);
+		usb_device_deinit(dev);
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
@@ -190,7 +190,7 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 	usb_device_t *usb_dev = gen_dev->driver_data;
 	const int ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
-		usb_device_destroy(usb_dev);
+		usb_device_deinit(usb_dev);
 
 	return ret;
 }
@@ -589,9 +589,11 @@ int usb_device_create(ddf_dev_t *ddf_dev,
 
 /** Destroy instance of a USB device.
  *
- * @param dev Device to be destroyed.
+ * @param dev Device to be de-initialized.
+ *
+ * Does not free/destroy supplied pointer.
  */
-void usb_device_destroy(usb_device_t *dev)
+void usb_device_deinit(usb_device_t *dev)
 {
 	if (dev == NULL) {
 		return;
