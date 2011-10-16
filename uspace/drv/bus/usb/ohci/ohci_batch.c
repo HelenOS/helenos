@@ -171,7 +171,8 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 	/* Assume all data got through */
 	ohci_batch->usb_batch->transfered_size =
 	    ohci_batch->usb_batch->buffer_size;
-	/* Assume we will leave the last td behind */
+
+	/* Assume we will leave the last(unused) TD behind */
 	ohci_batch->leave_td = ohci_batch->td_count;
 
 	/* Check all TDs */
@@ -233,16 +234,8 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ohci_batch->usb_batch->ep);
 	assert(ohci_ep);
 	ohci_ep->td = ohci_batch->tds[ohci_batch->leave_td];
-#if 0
-	assert(i > 0);
-	ohci_batch->usb_batch->transfered_size =
-	    ohci_batch->usb_batch->buffer_size;
-	for (--i;i < ohci_batch->td_count; ++i) {
-		ohci_batch->usb_batch->transfered_size
-		    -= td_remain_size(ohci_batch->tds[i]);
-	}
-#endif
-	/* Just make sure that we are leaving the right TD behind */
+
+	/* Make sure that we are leaving the right TD behind */
 	const uint32_t pa = addr_to_phys(ohci_ep->td);
 	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
 	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
@@ -287,7 +280,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	const usb_direction_t data_dir = dir;
 	const usb_direction_t status_dir = reverse_dir[dir];
 
-	/* setup stage */
+	/* Setup stage */
 	td_init(
 	    ohci_batch->tds[0], ohci_batch->tds[1], USB_DIRECTION_BOTH,
 	    buffer, ohci_batch->usb_batch->setup_size, toggle);
@@ -296,7 +289,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	    ohci_batch->tds[0]->next, ohci_batch->tds[0]->be);
 	buffer += ohci_batch->usb_batch->setup_size;
 
-	/* data stage */
+	/* Data stage */
 	size_t td_current = 1;
 	size_t remain_size = ohci_batch->usb_batch->buffer_size;
 	while (remain_size > 0) {
@@ -320,7 +313,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 		++td_current;
 	}
 
-	/* status stage */
+	/* Status stage */
 	assert(td_current == ohci_batch->td_count - 1);
 	td_init(ohci_batch->tds[td_current], ohci_batch->tds[td_current + 1],
 	    status_dir, NULL, 0, 1);
