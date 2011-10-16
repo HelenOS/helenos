@@ -247,9 +247,9 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	const usb_direction_t status_dir = reverse_dir[dir];
 
 	/* setup stage */
-	td_init(ohci_batch->tds[0], USB_DIRECTION_BOTH, buffer,
-		ohci_batch->usb_batch->setup_size, toggle);
-	td_set_next(ohci_batch->tds[0], ohci_batch->tds[1]);
+	td_init(
+	    ohci_batch->tds[0], ohci_batch->tds[1], USB_DIRECTION_BOTH,
+	    buffer, ohci_batch->usb_batch->setup_size, toggle);
 	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->tds[0]->status, ohci_batch->tds[0]->cbp,
 	    ohci_batch->tds[0]->next, ohci_batch->tds[0]->be);
@@ -264,10 +264,9 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 		    OHCI_TD_MAX_TRANSFER : remain_size;
 		toggle = 1 - toggle;
 
-		td_init(ohci_batch->tds[td_current], data_dir, buffer,
-		    transfer_size, toggle);
-		td_set_next(ohci_batch->tds[td_current],
-		    ohci_batch->tds[td_current + 1]);
+		td_init(ohci_batch->tds[td_current],
+		    ohci_batch->tds[td_current + 1],
+		    data_dir, buffer, transfer_size, toggle);
 		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x:%08x.\n",
 		    ohci_batch->tds[td_current]->status,
 		    ohci_batch->tds[td_current]->cbp,
@@ -282,9 +281,8 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 
 	/* status stage */
 	assert(td_current == ohci_batch->td_count - 1);
-	td_init(ohci_batch->tds[td_current], status_dir, NULL, 0, 1);
-	td_set_next(ohci_batch->tds[td_current],
-	    ohci_batch->tds[td_current + 1]);
+	td_init(ohci_batch->tds[td_current], ohci_batch->tds[td_current + 1],
+	    status_dir, NULL, 0, 1);
 	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->tds[td_current]->status,
 	    ohci_batch->tds[td_current]->cbp,
@@ -322,10 +320,9 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
 		    ? OHCI_TD_MAX_TRANSFER : remain_size;
 
-		td_init(ohci_batch->tds[td_current], dir, buffer,
-		    transfer_size, -1);
-		td_set_next(ohci_batch->tds[td_current],
-		    ohci_batch->tds[td_current + 1]);
+		td_init(
+		    ohci_batch->tds[td_current], ohci_batch->tds[td_current + 1],
+		    dir, buffer, transfer_size, -1);
 
 		usb_log_debug("Created DATA TD: %08x:%08x:%08x:%08x.\n",
 		    ohci_batch->tds[td_current]->status,

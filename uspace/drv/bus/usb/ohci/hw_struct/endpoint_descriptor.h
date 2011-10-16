@@ -108,6 +108,30 @@ typedef struct ed {
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 
 /**
+ * Check for SKIP or HALTED flag being set.
+ * @param instance ED
+ * @return true if either SKIP or HALTED flag is set, false otherwise.
+ */
+static inline bool ed_inactive(const ed_t *instance)
+{
+	assert(instance);
+	return (instance->td_head & ED_TDHEAD_HALTED_FLAG)
+	    || (instance->status & ED_STATUS_K_FLAG);
+}
+
+/**
+ * Check whether this ED contains TD to be executed.
+ * @param instance ED
+ * @return true if there are pending TDs, false otherwise.
+ */
+static inline bool ed_transfer_pending(const ed_t *instance)
+{
+	assert(instance);
+	return (instance->td_head & ED_TDHEAD_PTR_MASK)
+	    != (instance->td_tail & ED_TDTAIL_PTR_MASK);
+}
+
+/**
  * Set the last element of TD list
  * @param instance ED
  * @param instance TD to set as the last item.
