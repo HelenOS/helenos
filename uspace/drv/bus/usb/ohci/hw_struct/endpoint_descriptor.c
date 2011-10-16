@@ -33,33 +33,61 @@
  */
 #include "endpoint_descriptor.h"
 
-static unsigned direc[3] =
-    { ED_STATUS_D_IN, ED_STATUS_D_OUT, ED_STATUS_D_TRANSFER };
+/** USB direction to OHCI values translation table. */
+static const uint32_t dir[] = {
+	[USB_DIRECTION_IN] = ED_STATUS_D_IN,
+	[USB_DIRECTION_OUT] = ED_STATUS_D_OUT,
+	[USB_DIRECTION_BOTH] = ED_STATUS_D_TD,
+};
 
-void ed_init(ed_t *instance, endpoint_t *ep)
+/**
+ * Initialize ED.
+ *
+ * @param instance ED structure to initialize.
+ * @param ep Driver endpoint to use.
+ * @param td TD to put in the list.
+ *
+ * If @param ep is NULL, dummy ED is initalized with only skip flag set.
+ */
+void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 {
 	assert(instance);
 	bzero(instance, sizeof(ed_t));
+
 	if (ep == NULL) {
+		/* Mark as dead, used for dummy EDs at the beginning of
+		 * endpoint lists. */
 		instance->status = ED_STATUS_K_FLAG;
 		return;
 	}
-	assert(ep);
+	/* Non-dummy ED must have TD assigned */
+	assert(td);
+
+	/* Status: address, endpoint nr, direction mask and max packet size. */
 	instance->status = 0
 	    | ((ep->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT)
 	    | ((ep->endpoint & ED_STATUS_EN_MASK) << ED_STATUS_EN_SHIFT)
-	    | ((direc[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT)
+	    | ((dir[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT)
 	    | ((ep->max_packet_size & ED_STATUS_MPS_MASK)
 	        << ED_STATUS_MPS_SHIFT);
 
-
+	/* Low speed flag */
 	if (ep->speed == USB_SPEED_LOW)
 		instance->status |= ED_STATUS_S_FLAG;
+
+	/* Isochronous format flag */
 	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
 		instance->status |= ED_STATUS_F_FLAG;
 
+	/* Set TD to the list */
+	const uintptr_t pa = addr_to_phys(td);
+	instance->td_head = pa & ED_TDHEAD_PTR_MASK;
+	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
+
+	/* Set toggle bit */
 	if (ep->toggle)
 		instance->td_head |= ED_TDHEAD_TOGGLE_CARRY;
+
 }
 /**
  * @}

@@ -101,8 +101,7 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 		return ENOMEM;
 	}
 
-	ed_init(ohci_ep->ed, ep);
-	ed_set_td(ohci_ep->ed, ohci_ep->td);
+	ed_init(ohci_ep->ed, ep, ohci_ep->td);
 	endpoint_set_hc_data(
 	    ep, ohci_ep, ohci_endpoint_fini, ohci_ep_toggle_get, ohci_ep_toggle_set);
 	ohci_ep->hcd = hcd;

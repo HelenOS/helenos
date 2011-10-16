@@ -564,7 +564,7 @@ int hc_init_memory(hc_t *instance)
 	}
 
 	/*Init HCCA */
-	instance->hcca = malloc32(sizeof(hcca_t));
+	instance->hcca = hcca_get();
 	if (instance->hcca == NULL)
 		return ENOMEM;
 	bzero(instance->hcca, sizeof(hcca_t));

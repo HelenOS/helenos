@@ -162,46 +162,80 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 	    ohci_batch->ed->status, ohci_batch->ed->td_head,
 	    ohci_batch->ed->td_tail, ohci_batch->ed->next);
 
-	size_t i = 0;
-	for (; i < ohci_batch->td_count; ++i) {
+	if (!ed_inactive(ohci_batch->ed) && ed_transfer_pending(ohci_batch->ed))
+		return false;
+
+	/* Now we may be sure that either the ED is inactive because of errors
+	 * or all transfer descriptors completed successfully */
+
+	/* Assume all data got through */
+	ohci_batch->usb_batch->transfered_size =
+	    ohci_batch->usb_batch->buffer_size;
+
+	/* Assume we will leave the last(unused) TD behind */
+	ohci_batch->leave_td = ohci_batch->td_count;
+
+	/* Check all TDs */
+	for (size_t i = 0; i < ohci_batch->td_count; ++i) {
 		assert(ohci_batch->tds[i] != NULL);
 		usb_log_debug("TD %zu: %08x:%08x:%08x:%08x.\n", i,
 		    ohci_batch->tds[i]->status, ohci_batch->tds[i]->cbp,
 		    ohci_batch->tds[i]->next, ohci_batch->tds[i]->be);
-		if (!td_is_finished(ohci_batch->tds[i])) {
-			return false;
-		}
+
+		/* If the TD got all its data through, it will report 0 bytes
+		 * remain, the sole exception is INPUT with data rounding flag
+		 * (short), i.e. every INPUT. Nice thing is that short packets
+		 * will correctly report remaining data, thus making
+		 * this computation correct (short packets need to be produced
+		 * by the last TD)
+		 * NOTE: This also works for CONTROL transfer as
+		 * the first TD will return 0 remain.
+		 * NOTE: Short packets don't break the assumption that
+		 * we leave the very last(unused) TD behind.
+		 */
+		ohci_batch->usb_batch->transfered_size
+		    -= td_remain_size(ohci_batch->tds[i]);
+
 		ohci_batch->usb_batch->error = td_error(ohci_batch->tds[i]);
 		if (ohci_batch->usb_batch->error != EOK) {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.\n",
 			    ohci_batch->usb_batch, i,
 			    ohci_batch->tds[i]->status);
-			/* Make sure TD queue is empty (one TD),
-			 * ED should be marked as halted */
-			ohci_batch->ed->td_tail =
-			    (ohci_batch->ed->td_head & ED_TDTAIL_PTR_MASK);
-			++i;
+
+			/* ED should be stopped because of errors */
+			assert((ohci_batch->ed->td_head & ED_TDHEAD_HALTED_FLAG) != 0);
+
+			/* Now we have a problem: we don't know what TD
+			 * the head pointer points to, the retiring rules
+			 * described in specs say it should be the one after
+			 * the failed one so set the tail pointer accordingly.
+			 * It will be the one TD we leave behind.
+			 */
+			ohci_batch->leave_td = i + 1;
+
+			/* Check TD assumption */
+			const uint32_t pa = addr_to_phys(
+			    ohci_batch->tds[ohci_batch->leave_td]);
+			assert((ohci_batch->ed->td_head & ED_TDTAIL_PTR_MASK)
+			    == pa);
+
+			ed_set_tail_td(ohci_batch->ed,
+			    ohci_batch->tds[ohci_batch->leave_td]);
+
+			/* Clear possible ED HALT */
+			ohci_batch->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
 			break;
 		}
 	}
+	assert(ohci_batch->usb_batch->transfered_size <=
+	    ohci_batch->usb_batch->buffer_size);
 
-	assert(i <= ohci_batch->td_count);
-	ohci_batch->leave_td = i;
-
+	/* Store the remaining TD */
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ohci_batch->usb_batch->ep);
 	assert(ohci_ep);
 	ohci_ep->td = ohci_batch->tds[ohci_batch->leave_td];
-	assert(i > 0);
-	ohci_batch->usb_batch->transfered_size =
-	    ohci_batch->usb_batch->buffer_size;
-	for (--i;i < ohci_batch->td_count; ++i) {
-		ohci_batch->usb_batch->transfered_size
-		    -= td_remain_size(ohci_batch->tds[i]);
-	}
 
-	/* Clear possible ED HALT */
-	ohci_batch->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
-	/* just make sure that we are leaving the right TD behind */
+	/* Make sure that we are leaving the right TD behind */
 	const uint32_t pa = addr_to_phys(ohci_ep->td);
 	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
 	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
@@ -216,7 +250,7 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 {
 	assert(ohci_batch);
-	ed_set_end_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
+	ed_set_tail_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
@@ -246,16 +280,16 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	const usb_direction_t data_dir = dir;
 	const usb_direction_t status_dir = reverse_dir[dir];
 
-	/* setup stage */
-	td_init(ohci_batch->tds[0], USB_DIRECTION_BOTH, buffer,
-		ohci_batch->usb_batch->setup_size, toggle);
-	td_set_next(ohci_batch->tds[0], ohci_batch->tds[1]);
+	/* Setup stage */
+	td_init(
+	    ohci_batch->tds[0], ohci_batch->tds[1], USB_DIRECTION_BOTH,
+	    buffer, ohci_batch->usb_batch->setup_size, toggle);
 	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->tds[0]->status, ohci_batch->tds[0]->cbp,
 	    ohci_batch->tds[0]->next, ohci_batch->tds[0]->be);
 	buffer += ohci_batch->usb_batch->setup_size;
 
-	/* data stage */
+	/* Data stage */
 	size_t td_current = 1;
 	size_t remain_size = ohci_batch->usb_batch->buffer_size;
 	while (remain_size > 0) {
@@ -264,10 +298,9 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 		    OHCI_TD_MAX_TRANSFER : remain_size;
 		toggle = 1 - toggle;
 
-		td_init(ohci_batch->tds[td_current], data_dir, buffer,
-		    transfer_size, toggle);
-		td_set_next(ohci_batch->tds[td_current],
-		    ohci_batch->tds[td_current + 1]);
+		td_init(ohci_batch->tds[td_current],
+		    ohci_batch->tds[td_current + 1],
+		    data_dir, buffer, transfer_size, toggle);
 		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x:%08x.\n",
 		    ohci_batch->tds[td_current]->status,
 		    ohci_batch->tds[td_current]->cbp,
@@ -280,11 +313,10 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 		++td_current;
 	}
 
-	/* status stage */
+	/* Status stage */
 	assert(td_current == ohci_batch->td_count - 1);
-	td_init(ohci_batch->tds[td_current], status_dir, NULL, 0, 1);
-	td_set_next(ohci_batch->tds[td_current],
-	    ohci_batch->tds[td_current + 1]);
+	td_init(ohci_batch->tds[td_current], ohci_batch->tds[td_current + 1],
+	    status_dir, NULL, 0, 1);
 	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->tds[td_current]->status,
 	    ohci_batch->tds[td_current]->cbp,
@@ -322,10 +354,9 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
 		    ? OHCI_TD_MAX_TRANSFER : remain_size;
 
-		td_init(ohci_batch->tds[td_current], dir, buffer,
-		    transfer_size, -1);
-		td_set_next(ohci_batch->tds[td_current],
-		    ohci_batch->tds[td_current + 1]);
+		td_init(
+		    ohci_batch->tds[td_current], ohci_batch->tds[td_current + 1],
+		    dir, buffer, transfer_size, -1);
 
 		usb_log_debug("Created DATA TD: %08x:%08x:%08x:%08x.\n",
 		    ohci_batch->tds[td_current]->status,
