@@ -59,7 +59,7 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
 	    name, instance->list_head, instance->list_head_pa);
 
-	ed_init(instance->list_head, NULL);
+	ed_init(instance->list_head, NULL, NULL);
 	list_initialize(&instance->endpoint_list);
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;

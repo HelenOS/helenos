@@ -44,28 +44,49 @@
 
 #include "completion_codes.h"
 
+/**
+ * OHCI Endpoint Descriptor representation.
+ *
+ * See OHCI spec. Chapter 4.2, page 16 (pdf page 30) for details */
 typedef struct ed {
+	/**
+	 * Status field.
+	 *
+	 * See table 4-1, p. 17 OHCI spec (pdf page 31).
+	 */
 	volatile uint32_t status;
 #define ED_STATUS_FA_MASK (0x7f)   /* USB device address   */
 #define ED_STATUS_FA_SHIFT (0)
 #define ED_STATUS_EN_MASK (0xf)    /* USB endpoint address */
 #define ED_STATUS_EN_SHIFT (7)
-#define ED_STATUS_D_MASK (0x3)     /* direction */
+#define ED_STATUS_D_MASK (0x3)     /* Direction */
 #define ED_STATUS_D_SHIFT (11)
 #define ED_STATUS_D_OUT (0x1)
 #define ED_STATUS_D_IN (0x2)
-#define ED_STATUS_D_TRANSFER (0x3)
+#define ED_STATUS_D_TD (0x3) /* Direction is specified by TD */
 
-#define ED_STATUS_S_FLAG (1 << 13) /* speed flag: 1 = low */
-#define ED_STATUS_K_FLAG (1 << 14) /* skip flag (no not execute this ED) */
-#define ED_STATUS_F_FLAG (1 << 15) /* format: 1 = isochronous*/
-#define ED_STATUS_MPS_MASK (0x3ff) /* max_packet_size*/
+#define ED_STATUS_S_FLAG (1 << 13) /* Speed flag: 1 = low */
+#define ED_STATUS_K_FLAG (1 << 14) /* Skip flag (no not execute this ED) */
+#define ED_STATUS_F_FLAG (1 << 15) /* Format: 1 = isochronous */
+#define ED_STATUS_MPS_MASK (0x3ff) /* Maximum packet size */
 #define ED_STATUS_MPS_SHIFT (16)
 
+	/**
+	 * Pointer to the last TD.
+	 *
+	 * OHCI hw never changes this field and uses it only for a reference.
+	 */
 	volatile uint32_t td_tail;
 #define ED_TDTAIL_PTR_MASK (0xfffffff0)
 #define ED_TDTAIL_PTR_SHIFT (0)
 
+	/**
+	 * Pointer to the first TD.
+	 *
+	 * Driver should not change this field if the ED is active.
+	 * This field is updated by OHCI hw and points to the next TD
+	 * to be executed.
+	 */
 	volatile uint32_t td_head;
 #define ED_TDHEAD_PTR_MASK (0xfffffff0)
 #define ED_TDHEAD_PTR_SHIFT (0)
@@ -74,53 +95,67 @@ typedef struct ed {
 #define ED_TDHEAD_TOGGLE_CARRY (0x2)
 #define ED_TDHEAD_HALTED_FLAG (0x1)
 
+	/**
+	 * Pointer to the next ED.
+	 *
+	 * Driver should not change this field on active EDs.
+	 */
 	volatile uint32_t next;
 #define ED_NEXT_PTR_MASK (0xfffffff0)
 #define ED_NEXT_PTR_SHIFT (0)
 } __attribute__((packed)) ed_t;
 
-void ed_init(ed_t *instance, endpoint_t *ep);
+void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 
-static inline void ed_set_td(ed_t *instance, td_t *td)
+/**
+ * Set the last element of TD list
+ * @param instance ED
+ * @param instance TD to set as the last item.
+ */
+static inline void ed_set_tail_td(ed_t *instance, const td_t *td)
 {
 	assert(instance);
-	uintptr_t pa = addr_to_phys(td);
-	instance->td_head =
-	    ((pa & ED_TDHEAD_PTR_MASK)
-	    | (instance->td_head & ~ED_TDHEAD_PTR_MASK));
+	const uintptr_t pa = addr_to_phys(td);
 	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
 }
 
-static inline void ed_set_end_td(ed_t *instance, td_t *td)
-{
-	assert(instance);
-	uintptr_t pa = addr_to_phys(td);
-	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
-}
-
-static inline void ed_append_ed(ed_t *instance, ed_t *next)
+/**
+ * Set next ED in ED chain.
+ * @param instance ED to modify
+ * @param next ED to append
+ */
+static inline void ed_append_ed(ed_t *instance, const ed_t *next)
 {
 	assert(instance);
 	assert(next);
-	uint32_t pa = addr_to_phys(next);
+	const uint32_t pa = addr_to_phys(next);
 	assert((pa & ED_NEXT_PTR_MASK) << ED_NEXT_PTR_SHIFT == pa);
 	instance->next = pa;
 }
 
-static inline int ed_toggle_get(ed_t *instance)
+/**
+ * Get toggle bit value stored in this ED
+ * @param instance ED
+ * @return Toggle bit value
+ */
+static inline int ed_toggle_get(const ed_t *instance)
 {
 	assert(instance);
 	return (instance->td_head & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
 }
 
-static inline void ed_toggle_set(ed_t *instance, int toggle)
+/**
+ * Set toggle bit value stored in this ED
+ * @param instance ED
+ * @param toggle Toggle bit value
+ */
+static inline void ed_toggle_set(ed_t *instance, bool toggle)
 {
 	assert(instance);
-	assert(toggle == 0 || toggle == 1);
-	if (toggle == 1) {
+	if (toggle) {
 		instance->td_head |= ED_TDHEAD_TOGGLE_CARRY;
 	} else {
-		/* clear halted flag when reseting toggle */
+		/* Clear halted flag when reseting toggle TODO: Why? */
 		instance->td_head &= ~ED_TDHEAD_TOGGLE_CARRY;
 		instance->td_head &= ~ED_TDHEAD_HALTED_FLAG;
 	}

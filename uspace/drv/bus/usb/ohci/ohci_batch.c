@@ -216,7 +216,7 @@ bool ohci_transfer_batch_is_complete(ohci_transfer_batch_t *ohci_batch)
 void ohci_transfer_batch_commit(ohci_transfer_batch_t *ohci_batch)
 {
 	assert(ohci_batch);
-	ed_set_end_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
+	ed_set_tail_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transfer
