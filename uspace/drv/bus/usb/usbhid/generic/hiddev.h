@@ -40,7 +40,8 @@
 
 struct usb_hid_dev;
 
-usb_endpoint_description_t usb_hid_generic_poll_endpoint_description;
+extern const usb_endpoint_description_t
+    usb_hid_generic_poll_endpoint_description;
 
 const char *HID_GENERIC_FUN_NAME;
 const char *HID_GENERIC_CLASS_NAME;

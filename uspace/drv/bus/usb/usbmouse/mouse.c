@@ -123,7 +123,7 @@ void usb_mouse_polling_ended_callback(usb_device_t *dev, bool recurring_errors,
 	async_hangup(mouse->console_sess);
 	mouse->console_sess = NULL;
 	
-	usb_device_destroy(dev);
+	usb_device_deinit(dev);
 }
 
 /**

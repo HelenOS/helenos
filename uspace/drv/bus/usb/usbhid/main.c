@@ -91,7 +91,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize USB/HID device.\n");
-		usb_hid_destroy(hid_dev);
+		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 
@@ -127,11 +127,10 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
 		    dev->ddf_dev->name);
-		usb_hid_destroy(hid_dev);
+		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 	hid_dev->running = true;
-	dev->driver_data = hid_dev;
 
 	/*
 	 * Hurrah, device is initialized.
@@ -203,7 +202,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	}
 
 	assert(!hid_dev->running);
-	usb_hid_destroy(hid_dev);
+	usb_hid_deinit(hid_dev);
 	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
 	return EOK;
 }

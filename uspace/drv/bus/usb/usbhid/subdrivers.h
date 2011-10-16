@@ -77,12 +77,13 @@ typedef struct usb_hid_subdriver_mapping {
 	int product_id;
 
 	/** Subdriver for controlling this device. */
-	usb_hid_subdriver_t subdriver;
+	const usb_hid_subdriver_t subdriver;
 } usb_hid_subdriver_mapping_t;
 
 /*----------------------------------------------------------------------------*/
 
 extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
+extern const int USB_HID_MAX_SUBDRIVERS;
 
 /*----------------------------------------------------------------------------*/
 

@@ -82,7 +82,7 @@ static usb_driver_ops_t mouse_driver_ops = {
 	.device_add = usbmouse_device_add,
 };
 
-static usb_endpoint_description_t *endpoints[] = {
+static const usb_endpoint_description_t *endpoints[] = {
 	&poll_endpoint_description,
 	NULL
 };
