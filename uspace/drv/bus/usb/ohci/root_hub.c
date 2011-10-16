@@ -34,17 +34,17 @@
 #include <assert.h>
 #include <errno.h>
 #include <str_error.h>
+#include <fibril_synch.h>
 
 #include <usb/debug.h>
+#include <usb/dev/request.h>
+#include <usb/classes/hub.h>
 
 #include "root_hub.h"
 #include <usb/classes/classes.h>
 #include <usb/classes/hub.h>
 #include <usb/dev/driver.h>
 #include "ohci_regs.h"
-
-#include <usb/dev/request.h>
-#include <usb/classes/hub.h>
 
 /**
  * standart device descriptor for ohci root hub
@@ -188,6 +188,7 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->registers->rh_desc_a |= RHDA_OCPM_FLAG;
 #endif
 
+	fibril_mutex_initialize(&instance->guard);
 	rh_init_descriptors(instance);
 
 	usb_log_info("Root hub (%zu ports) initialized.\n",
@@ -215,15 +216,18 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 		break;
 	case USB_TRANSFER_INTERRUPT:
 		usb_log_debug("Root hub got INTERRUPT packet\n");
+		fibril_mutex_lock(&instance->guard);
+		assert(instance->unfinished_interrupt_transfer == NULL);
 		const uint16_t mask = create_interrupt_mask(instance);
 		if (mask == 0) {
 			usb_log_debug("No changes..\n");
-			assert(instance->unfinished_interrupt_transfer == NULL);
 			instance->unfinished_interrupt_transfer = request;
+			fibril_mutex_unlock(&instance->guard);
 			return;
 		}
 		usb_log_debug("Processing changes...\n");
 		interrupt_request(request, mask, instance->interrupt_mask_size);
+		fibril_mutex_unlock(&instance->guard);
 		break;
 
 	default:
@@ -243,16 +247,17 @@ void rh_interrupt(rh_t *instance)
 {
 	assert(instance);
 
-	if (!instance->unfinished_interrupt_transfer)
-		return;
-
-	usb_log_debug("Finalizing interrupt transfer\n");
-	const uint16_t mask = create_interrupt_mask(instance);
-	interrupt_request(instance->unfinished_interrupt_transfer,
-	    mask, instance->interrupt_mask_size);
-	usb_transfer_batch_dispose(instance->unfinished_interrupt_transfer);
-
-	instance->unfinished_interrupt_transfer = NULL;
+	fibril_mutex_lock(&instance->guard);
+	if (instance->unfinished_interrupt_transfer) {
+		usb_log_debug("Finalizing interrupt transfer\n");
+		const uint16_t mask = create_interrupt_mask(instance);
+		interrupt_request(instance->unfinished_interrupt_transfer,
+		    mask, instance->interrupt_mask_size);
+		usb_transfer_batch_dispose(
+		    instance->unfinished_interrupt_transfer);
+		instance->unfinished_interrupt_transfer = NULL;
+	}
+	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
 /**
