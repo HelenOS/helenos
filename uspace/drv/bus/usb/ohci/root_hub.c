@@ -107,13 +107,15 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 
 static void create_serialized_hub_descriptor(rh_t *instance);
 static void rh_init_descriptors(rh_t *instance);
-static uint16_t create_interrupt_mask(rh_t *instance);
-static int get_status(rh_t *instance, usb_transfer_batch_t *request);
-static int get_descriptor(rh_t *instance, usb_transfer_batch_t *request);
-static int set_feature(rh_t *instance, usb_transfer_batch_t *request);
-static int clear_feature(rh_t *instance, usb_transfer_batch_t *request);
-static int set_feature_port(rh_t *instance, uint16_t feature, uint16_t port);
-static int clear_feature_port(rh_t *instance, uint16_t feature, uint16_t port);
+static uint16_t create_interrupt_mask(const rh_t *instance);
+static int get_status(const rh_t *instance, usb_transfer_batch_t *request);
+static int get_descriptor(const rh_t *instance, usb_transfer_batch_t *request);
+static int set_feature(const rh_t *instance, usb_transfer_batch_t *request);
+static int clear_feature(const rh_t *instance, usb_transfer_batch_t *request);
+static int set_feature_port(
+    const rh_t *instance, uint16_t feature, uint16_t port);
+static int clear_feature_port(
+    const rh_t *instance, uint16_t feature, uint16_t port);
 static int control_request(rh_t *instance, usb_transfer_batch_t *request);
 static inline void interrupt_request(
     usb_transfer_batch_t *request, uint16_t mask, size_t size)
@@ -152,16 +154,19 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->interrupt_mask_size = 1 + (instance->port_count / 8);
 	instance->unfinished_interrupt_transfer = NULL;
 
-#ifdef OHCI_POWER_SWITCH_no
+#if defined OHCI_POWER_SWITCH_no
 	/* Set port power mode to no power-switching. (always on) */
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
+
 	/* Set to no over-current reporting */
 	instance->registers->rh_desc_a |= RHDA_NOCP_FLAG;
+
 #elif defined OHCI_POWER_SWITCH_ganged
 	/* Set port power mode to no ganged power-switching. */
 	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
 	instance->registers->rh_desc_a &= ~RHDA_PSM_FLAG;
 	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+
 	/* Set to global over-current */
 	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
 	instance->registers->rh_desc_a &= ~RHDA_OCPM_FLAG;
@@ -173,9 +178,11 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	/* Control all ports by global switch and turn them off */
 	instance->registers->rh_desc_b &= (RHDB_PCC_MASK << RHDB_PCC_SHIFT);
 	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+
 	/* Return control to per port state */
 	instance->registers->rh_desc_b |=
 		((1 << (instance->port_count + 1)) - 1) << RHDB_PCC_SHIFT;
+
 	/* Set per port over-current */
 	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
 	instance->registers->rh_desc_a |= RHDA_OCPM_FLAG;
@@ -341,7 +348,7 @@ void rh_init_descriptors(rh_t *instance)
  * @param instance root hub instance
  * @return Mask of changes.
  */
-uint16_t create_interrupt_mask(rh_t *instance)
+uint16_t create_interrupt_mask(const rh_t *instance)
 {
 	assert(instance);
 	uint16_t mask = 0;
@@ -371,7 +378,7 @@ uint16_t create_interrupt_mask(rh_t *instance)
  * @param request structure containing both request and response information
  * @return error code
  */
-int get_status(rh_t *instance, usb_transfer_batch_t *request)
+int get_status(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -417,7 +424,7 @@ int get_status(rh_t *instance, usb_transfer_batch_t *request)
  * @param request Structure containing both request and response information
  * @return Error code
  */
-int get_descriptor(rh_t *instance, usb_transfer_batch_t *request)
+int get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -495,7 +502,7 @@ int get_descriptor(rh_t *instance, usb_transfer_batch_t *request)
  * @param enable enable or disable the specified feature
  * @return error code
  */
-int set_feature_port(rh_t *instance, uint16_t feature, uint16_t port)
+int set_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
 
@@ -534,7 +541,7 @@ int set_feature_port(rh_t *instance, uint16_t feature, uint16_t port)
  * @param enable enable or disable the specified feature
  * @return error code
  */
-int clear_feature_port(rh_t *instance, uint16_t feature, uint16_t port)
+int clear_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 {
 	assert(instance);
 
@@ -591,7 +598,7 @@ int clear_feature_port(rh_t *instance, uint16_t feature, uint16_t port)
  * @param request structure containing both request and response information
  * @return error code
  */
-int set_feature(rh_t *instance, usb_transfer_batch_t *request)
+int set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -627,14 +634,16 @@ int set_feature(rh_t *instance, usb_transfer_batch_t *request)
  * @param request structure containing both request and response information
  * @return error code
  */
-int clear_feature(rh_t *instance, usb_transfer_batch_t *request)
+int clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
 
 	const usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
+
 	request->transfered_size = 0;
+
 	switch (setup_request->request_type)
 	{
 	case USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE:
@@ -646,8 +655,9 @@ int clear_feature(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE\n");
 		/*
 		 * Chapter 11.16.2 specifies that only C_HUB_LOCAL_POWER and
-		 * C_HUB_OVER_CURRENT are supported. C_HUB_OVER_CURRENT is represented
-		 * by OHCI RHS_OCIC_FLAG. C_HUB_LOCAL_POWER is not supported
+		 * C_HUB_OVER_CURRENT are supported.
+		 * C_HUB_OVER_CURRENT is represented by OHCI RHS_OCIC_FLAG.
+		 * C_HUB_LOCAL_POWER is not supported
 		 * as root hubs do not support local power status feature.
 		 * (OHCI pg. 127) */
 		if (setup_request->value == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
@@ -719,6 +729,7 @@ int control_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug2("Processing request without "
 		    "additional data\n");
 		return clear_feature(instance, request);
+
 	case USB_DEVREQ_SET_FEATURE:
 		usb_log_debug2("Processing request without "
 		    "additional data\n");
