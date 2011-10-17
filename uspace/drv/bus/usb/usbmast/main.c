@@ -71,7 +71,7 @@ static usb_endpoint_description_t bulk_out_ep = {
 	.flags = 0
 };
 
-usb_endpoint_description_t *mast_endpoints[] = {
+static const usb_endpoint_description_t *mast_endpoints[] = {
 	&bulk_in_ep,
 	&bulk_out_ep,
 	NULL

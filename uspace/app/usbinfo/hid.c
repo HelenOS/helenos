@@ -166,7 +166,7 @@ static void retrieve_and_dump_hid_report(hid_dump_type_t dump_type,
 	}
 
 	free(raw_report);
-	usb_hid_free_report(&report);
+	usb_hid_report_deinit(&report);
 }
 
 /** Callback for walking descriptor tree.

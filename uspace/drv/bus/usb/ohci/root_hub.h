@@ -46,6 +46,7 @@
  * ohci root hub representation
  */
 typedef struct rh {
+	fibril_mutex_t guard;
 	/** pointer to ohci driver registers */
 	ohci_regs_t *registers;
 	/** usb address of the root hub */

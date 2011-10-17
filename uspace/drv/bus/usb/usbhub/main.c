@@ -66,7 +66,7 @@ static usb_driver_ops_t usb_hub_driver_ops = {
 };
 
 /** Hub endpoints, excluding control endpoint. */
-static usb_endpoint_description_t *usb_hub_endpoints[] = {
+static const usb_endpoint_description_t *usb_hub_endpoints[] = {
 	&hub_status_change_endpoint_description,
 	NULL,
 };
