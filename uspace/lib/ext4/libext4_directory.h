@@ -63,6 +63,11 @@ typedef struct ext4_directory_iterator {
 
 /* Structures for indexed directory */
 
+typedef struct ext4_directory_dx_countlimit {
+	uint16_t limit;
+    uint16_t count;
+} ext4_directory_dx_countlimit_t;
+
 typedef struct ext4_directory_dx_dot_entry {
 	uint32_t inode;
 	uint16_t entry_length;
@@ -86,13 +91,28 @@ typedef struct ext4_directory_dx_entry {
 
 typedef struct ext4_directory_dx_root {
 		ext4_directory_dx_dot_entry_t dots[2];
-		// TODO insert root info items instead of special datatype
 		ext4_directory_dx_root_info_t info;
-		ext4_directory_dx_entry_t *entries;
+		ext4_directory_dx_entry_t entries[0];
 } ext4_directory_dx_root_t;
 
+typedef struct ext4_directory_dx_hash_info {
+	uint32_t hash;
+	uint32_t minor_hash;
+	uint32_t hash_version;
+	uint32_t *seed;
+} ext4_directory_dx_hash_info_t;
 
-#define EXT4_DIRECTORY_HTREE_EOF  0x7fffffff
+
+#define EXT4_ERR_BAD_DX_DIR			(-75000)
+
+#define EXT4_DIRECTORY_DX_HASH_LEGACY				0
+#define EXT4_DIRECTORY_DX_HASH_HALF_MD4				1
+#define EXT4_DIRECTORY_DX_HASH_TEA					2
+#define EXT4_DIRECTORY_DX_HASH_LEGACY_UNSIGNED		3
+#define EXT4_DIRECTORY_DX_HASH_HALF_MD4_UNSIGNED	4
+#define EXT4_DIRECTORY_DX_HASH_TEA_UNSIGNED			5
+
+#define EXT4_DIRECTORY_HTREE_EOF	0x7fffffff
 
 
 extern uint32_t	ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *);
@@ -101,11 +121,25 @@ extern uint16_t	ext4_directory_entry_ll_get_entry_length(
 extern uint16_t	ext4_directory_entry_ll_get_name_length(
     ext4_superblock_t *, ext4_directory_entry_ll_t *);
 
+extern uint8_t ext4_directory_dx_root_info_get_hash_version(ext4_directory_dx_root_info_t *);
+extern uint8_t ext4_directory_dx_root_info_get_info_length(ext4_directory_dx_root_info_t *);
+extern uint8_t ext4_directory_dx_root_info_get_indirect_levels(ext4_directory_dx_root_info_t *);
+
+extern uint16_t ext4_directory_dx_countlimit_get_limit(ext4_directory_dx_countlimit_t *);
+extern uint16_t ext4_directory_dx_countlimit_get_count(ext4_directory_dx_countlimit_t *);
+
+extern uint32_t ext4_directory_dx_entry_get_hash(ext4_directory_dx_entry_t *);
+extern uint32_t ext4_directory_dx_entry_get_block(ext4_directory_dx_entry_t *);
+
 extern int ext4_directory_iterator_init(ext4_directory_iterator_t *,
 		ext4_filesystem_t *, ext4_inode_ref_t *, aoff64_t);
 extern int ext4_directory_iterator_next(ext4_directory_iterator_t *);
 extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t pos);
 extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
+extern int ext4_directory_dx_find_entry(ext4_directory_iterator_t *,
+		ext4_filesystem_t *, ext4_inode_ref_t *, const char *);
+
+extern void ext4_directory_hash(ext4_directory_dx_hash_info_t *, const char* name);
 
 #endif
 

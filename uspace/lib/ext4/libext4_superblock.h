@@ -108,7 +108,7 @@ typedef struct ext4_superblock {
 	uint32_t free_blocks_count_hi; // Free blocks count
 	uint16_t min_extra_isize; // All inodes have at least # bytes
 	uint16_t want_extra_isize; // New inodes should reserve # bytes
-	uint32_t lags; // Miscellaneous flags
+	uint32_t flags; // Miscellaneous flags
 	uint16_t raid_stride; // RAID stride
 	uint16_t mmp_interval; // # seconds to wait in MMP checking
 	uint64_t mmp_block; // Block for multi-mount protection
@@ -142,6 +142,14 @@ typedef struct ext4_superblock {
 
 #define EXT4_SUPERBLOCK_OS_LINUX	0
 #define EXT4_SUPERBLOCK_OS_HURD		1
+
+/*
+ * Misc. filesystem flags
+ */
+#define EXT4_SUPERBLOCK_FLAGS_SIGNED_HASH	0x0001  /* Signed dirhash in use */
+#define EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH	0x0002  /* Unsigned dirhash in use */
+#define EXT4_SUPERBLOCK_FLAGS_TEST_FILESYS	0x0004  /* to test development code */
+
 
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_blocks_count(ext4_superblock_t *);
@@ -190,7 +198,10 @@ uint8_t s_journal_uuid[16]; // UUID of journal superblock
 uint32_t s_journal_inum; // Inode number of journal file
 uint32_t s_journal_dev; // Device number of journal file
 uint32_t s_last_orphan; // Head of list of inodes to delete
-uint32_t s_hash_seed[4]; // HTREE hash seed
+*/
+extern uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *);
+
+/*
 uint8_t s_def_hash_version; // Default hash version to use
 uint8_t s_jnl_backup_type;
 uint16_t s_desc_size; // Size of group descriptor
@@ -200,7 +211,9 @@ uint32_t s_mkfs_time; // When the filesystem was created
 uint32_t s_jnl_blocks[17]; // Backup of the journal inode
 uint16_t s_min_extra_isize; // All inodes have at least # bytes
 uint16_t s_want_extra_isize; // New inodes should reserve # bytes
-uint32_t s_flags; // Miscellaneous flags
+*/
+extern uint32_t ext4_superblock_get_flags(ext4_superblock_t *);
+/*
 uint16_t s_raid_stride; // RAID stride
 uint16_t s_mmp_interval; // # seconds to wait in MMP checking
 uint64_t s_mmp_block; // Block for multi-mount protection
@@ -228,6 +241,7 @@ uint8_t s_mount_opts[64];
 */
 
 /* More complex superblock functions */
+extern bool ext4_superblock_has_flag(ext4_superblock_t *, uint32_t);
 extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
 extern int ext4_superblock_check_sanity(ext4_superblock_t *);
 

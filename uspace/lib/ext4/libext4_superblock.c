@@ -184,9 +184,28 @@ uint32_t ext4_superblock_get_features_read_only(ext4_superblock_t *sb)
 }
 
 
+uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *sb)
+{
+	return sb->hash_seed;
+}
+
+uint32_t ext4_superblock_get_flags(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->flags);
+}
+
+
 /*
  * More complex superblock functions
  */
+
+bool ext4_superblock_has_flag(ext4_superblock_t *sb, uint32_t flag)
+{
+	if (ext4_superblock_get_flags(sb) & flag) {
+		return true;
+	}
+	return false;
+}
 
 int ext4_superblock_read_direct(service_id_t service_id,
     ext4_superblock_t **superblock)

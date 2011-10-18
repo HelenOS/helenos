@@ -74,8 +74,6 @@ typedef struct ext4fs_node {
 
 static int ext4fs_read_directory(ipc_callid_t, aoff64_t, size_t,
     ext4fs_instance_t *, ext4_inode_ref_t *, size_t *);
-static int ext4fs_read_dx_directory(ipc_callid_t, aoff64_t, size_t,
-    ext4fs_instance_t *, ext4_inode_ref_t *, size_t *);
 static int ext4fs_read_file(ipc_callid_t, aoff64_t, size_t, ext4fs_instance_t *,
     ext4_inode_ref_t *, size_t *);
 static bool ext4fs_is_dots(const uint8_t *, size_t);
@@ -215,6 +213,25 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	if (!ext4_inode_is_type(fs->superblock, eparent->inode_ref->inode,
 	    EXT4_INODE_MODE_DIRECTORY)) {
 		return ENOTDIR;
+	}
+
+	// TODO check super block COMPAT FEATURES
+	if (ext4_inode_has_flag(eparent->inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
+
+		rc = ext4_directory_dx_find_entry(&it, fs, eparent->inode_ref, component);
+
+		// Index isn't corrupted
+		if (rc != EXT4_ERR_BAD_DX_DIR) {
+
+			// TODO check return value
+			if (rc != EOK) {
+				return rc;
+			}
+
+			inode = ext4_directory_entry_ll_get_inode(it.current);
+			return ext4fs_node_get_core(rfn, eparent->instance, inode);
+		}
+
 	}
 
 	rc = ext4_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
@@ -747,13 +764,6 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	int rc;
 	bool found = false;
 
-	// TODO check super block COMPAT FEATURES
-	if (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
-		rc = ext4fs_read_dx_directory(callid, pos, size, inst, inode_ref, rbytes);
-		// TODO return...
-		// return rc;
-	}
-
 	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -824,13 +834,6 @@ skip:
 		async_answer_0(callid, ENOENT);
 		return ENOENT;
 	}
-}
-
-int ext4fs_read_dx_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
-    ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
-{
-	EXT4FS_DBG("Directory using HTree index");
-	return ENOTSUP;
 }
 
 int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,

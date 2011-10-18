@@ -175,7 +175,8 @@ ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *inode)
 }
 
 // Flags checker
-bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag) {
+bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag)
+{
 	if (ext4_inode_get_flags(inode) & flag) {
 		return true;
 	}
