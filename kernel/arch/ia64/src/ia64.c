@@ -92,13 +92,6 @@ void arch_pre_main(void)
 
 void arch_pre_mm_init(void)
 {
-	/*
-	 * Set Interruption Vector Address (i.e. location of interruption vector
-	 * table).
-	 */
-	iva_write((uintptr_t) &ivt);
-	srlz_d();
-	
 }
 
 static void iosapic_init(void)
