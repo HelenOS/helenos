@@ -36,7 +36,7 @@
 #include "libext4_filesystem.h"
 #include "libext4_inode.h"
 
-#define EXT4_FILENAME_LEN	255
+#define EXT4_DIRECTORY_FILENAME_LEN	255
 
 /**
  * Linked list directory entry structure
@@ -49,7 +49,7 @@ typedef struct ext4_directory_entry_ll {
 		uint8_t name_length_high; // Higher 8 bits of name length
 		uint8_t inode_type; // Type of referenced inode (in rev >= 0.5)
 	} __attribute__ ((packed));
-	uint8_t name[EXT4_FILENAME_LEN]; // Entry name
+	uint8_t name[EXT4_DIRECTORY_FILENAME_LEN]; // Entry name
 } __attribute__ ((packed)) ext4_directory_entry_ll_t;
 
 typedef struct ext4_directory_iterator {
@@ -59,6 +59,41 @@ typedef struct ext4_directory_iterator {
 	aoff64_t current_offset;
 	ext4_directory_entry_ll_t *current;
 } ext4_directory_iterator_t;
+
+
+/* Structures for indexed directory */
+
+typedef struct ext4_directory_dx_dot_entry {
+	uint32_t inode;
+	uint16_t entry_length;
+    uint8_t name_length;
+    uint8_t inode_type;
+    uint8_t name[4];
+} ext4_directory_dx_dot_entry_t;
+
+typedef struct ext4_directory_dx_root_info {
+	uint32_t reserved_zero;
+	uint8_t hash_version;
+	uint8_t info_length;
+	uint8_t indirect_levels;
+	uint8_t unused_flags;
+} ext4_directory_dx_root_info_t;
+
+typedef struct ext4_directory_dx_entry {
+	uint32_t hash;
+	uint32_t block;
+} ext4_directory_dx_entry_t;
+
+typedef struct ext4_directory_dx_root {
+		ext4_directory_dx_dot_entry_t dots[2];
+		// TODO insert root info items instead of special datatype
+		ext4_directory_dx_root_info_t info;
+		ext4_directory_dx_entry_t *entries;
+} ext4_directory_dx_root_t;
+
+
+#define EXT4_DIRECTORY_HTREE_EOF  0x7fffffff
+
 
 extern uint32_t	ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *);
 extern uint16_t	ext4_directory_entry_ll_get_entry_length(

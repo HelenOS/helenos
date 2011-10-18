@@ -74,6 +74,8 @@ typedef struct ext4fs_node {
 
 static int ext4fs_read_directory(ipc_callid_t, aoff64_t, size_t,
     ext4fs_instance_t *, ext4_inode_ref_t *, size_t *);
+static int ext4fs_read_dx_directory(ipc_callid_t, aoff64_t, size_t,
+    ext4fs_instance_t *, ext4_inode_ref_t *, size_t *);
 static int ext4fs_read_file(ipc_callid_t, aoff64_t, size_t, ext4fs_instance_t *,
     ext4_inode_ref_t *, size_t *);
 static bool ext4fs_is_dots(const uint8_t *, size_t);
@@ -745,9 +747,11 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	int rc;
 	bool found = false;
 
-	// TODO check if directory uses HTree
+	// TODO check super block COMPAT FEATURES
 	if (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
-		EXT4FS_DBG("Directory using HTree");
+		rc = ext4fs_read_dx_directory(callid, pos, size, inst, inode_ref, rbytes);
+		// TODO return...
+		// return rc;
 	}
 
 	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
@@ -820,6 +824,13 @@ skip:
 		async_answer_0(callid, ENOENT);
 		return ENOENT;
 	}
+}
+
+int ext4fs_read_dx_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
+    ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
+{
+	EXT4FS_DBG("Directory using HTree index");
+	return ENOTSUP;
 }
 
 int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
