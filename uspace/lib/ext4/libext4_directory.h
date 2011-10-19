@@ -95,6 +95,16 @@ typedef struct ext4_directory_dx_root {
 		ext4_directory_dx_entry_t entries[0];
 } ext4_directory_dx_root_t;
 
+typedef struct ext4_directory_dx_node {
+	struct fake_directory_entry {
+		uint32_t inode;
+		uint16_t entry_length;
+	    uint8_t name_length;
+	    uint8_t inode_type;
+	} fake;
+	ext4_directory_dx_entry_t entries[0];
+} ext4_directory_dx_node_t;
+
 
 #define EXT4_ERR_BAD_DX_DIR			(-75000)
 #define EXT4_DIRECTORY_HTREE_EOF	(uint32_t)0x7fffffff

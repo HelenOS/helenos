@@ -49,7 +49,7 @@ typedef struct ext4_hash_info {
 	uint32_t *seed;
 } ext4_hash_info_t;
 
-extern int ext4_hash_string(ext4_hash_info_t *, size_t, const char *);
+extern int ext4_hash_string(ext4_hash_info_t *, int, const char *);
 
 #endif
 

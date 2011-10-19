@@ -244,139 +244,181 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
-int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
-		ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, size_t len, const char *name)
+
+static int ext4_directory_hinfo_init(ext4_hash_info_t *hinfo, block_t *root_block,
+		ext4_superblock_t *sb, size_t name_len, const char *name)
 {
-	int rc;
-	uint32_t fblock;
-	block_t *phys_block;
+	uint32_t block_size, entry_space;
+	uint16_t limit;
 	ext4_directory_dx_root_t *root;
-	uint32_t hash;
-	ext4_hash_info_t hinfo;
 
-	// get direct block 0 (index root)
-	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, 0, &fblock);
-	if (rc != EOK) {
-		return rc;
+	root = (ext4_directory_dx_root_t *)root_block->data;
+
+	if (root->info.hash_version != EXT4_HASH_VERSION_TEA &&
+			root->info.hash_version != EXT4_HASH_VERSION_HALF_MD4 &&
+			root->info.hash_version != EXT4_HASH_VERSION_LEGACY) {
+		return EXT4_ERR_BAD_DX_DIR;
 	}
-
-	rc = block_get(&phys_block, fs->device, fblock, BLOCK_FLAGS_NONE);
-	if (rc != EOK) {
-		it->current_block = NULL;
-			return rc;
-	}
-
-	// Now having index root
-	root = (ext4_directory_dx_root_t *)phys_block->data;
-
-	// Check hash version - only if supported
-	EXT4FS_DBG("hash_version = \%u", root->info.hash_version);
 
 	// Check unused flags
 	if (root->info.unused_flags != 0) {
 		EXT4FS_DBG("ERR: unused_flags = \%u", root->info.unused_flags);
-		block_put(phys_block);
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
 	// Check indirect levels
 	if (root->info.indirect_levels > 1) {
 		EXT4FS_DBG("ERR: indirect_levels = \%u", root->info.indirect_levels);
-		block_put(phys_block);
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
-	uint32_t bs = ext4_superblock_get_block_size(fs->superblock);
+	block_size = ext4_superblock_get_block_size(sb);
 
-	uint32_t entry_space = bs - 2* sizeof(ext4_directory_dx_dot_entry_t) - sizeof(ext4_directory_dx_root_info_t);
+	entry_space = block_size;
+	entry_space -= 2 * sizeof(ext4_directory_dx_dot_entry_t);
+	entry_space -= sizeof(ext4_directory_dx_root_info_t);
     entry_space = entry_space / sizeof(ext4_directory_dx_entry_t);
 
-
-    uint32_t limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)&root->entries);
-    uint32_t count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)&root->entries);
-
+    limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)&root->entries);
     if (limit != entry_space) {
-		block_put(phys_block);
     	return EXT4_ERR_BAD_DX_DIR;
 	}
 
-	if ((count == 0) || (count > limit)) {
-		block_put(phys_block);
-		return EXT4_ERR_BAD_DX_DIR;
-	}
-
-	/* DEBUG list
-    for (uint16_t i = 0; i < count; ++i) {
-    	uint32_t hash = ext4_directory_dx_entry_get_hash(&root->entries[i]);
-    	uint32_t block = ext4_directory_dx_entry_get_block(&root->entries[i]);
-    	EXT4FS_DBG("hash = \%u, block = \%u", hash, block);
-    }
-    */
-
-	hinfo.hash_version = ext4_directory_dx_root_info_get_hash_version(&root->info);
-	if ((hinfo.hash_version <= EXT4_HASH_VERSION_TEA)
-			&& (ext4_superblock_has_flag(fs->superblock, EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH))) {
+	hinfo->hash_version = ext4_directory_dx_root_info_get_hash_version(&root->info);
+	if ((hinfo->hash_version <= EXT4_HASH_VERSION_TEA)
+			&& (ext4_superblock_has_flag(sb, EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH))) {
 		// 3 is magic from ext4 linux implementation
-		hinfo.hash_version += 3;
+		hinfo->hash_version += 3;
 	}
 
-	hinfo.seed = ext4_superblock_get_hash_seed(fs->superblock);
-	hinfo.hash = 0;
+	hinfo->seed = ext4_superblock_get_hash_seed(sb);
+
 	if (name) {
-		ext4_hash_string(&hinfo, len, name);
+		ext4_hash_string(hinfo, name_len, name);
 	}
 
-	hash = hinfo.hash;
+	return EOK;
+}
 
-	ext4_directory_dx_entry_t *p, *q, *m;
+static int ext4_directory_dx_get_leaf_block(ext4_hash_info_t *hinfo,
+		ext4_filesystem_t *fs, ext4_inode_t *inode, uint32_t *leaf_block_idx,
+		block_t *root_block)
+{
+	int rc;
+	uint16_t count, limit, entry_space;
+	uint8_t indirect_level;
+	ext4_directory_dx_root_t *root;
+	ext4_directory_dx_entry_t *p, *q, *m, *at;
+	ext4_directory_dx_entry_t *entries;
+	block_t *tmp_block = NULL;
+	uint32_t fblock;
 
-	// TODO cycle
-	// while (true)
+	root = (ext4_directory_dx_root_t *)root_block->data;
+	entries = (ext4_directory_dx_entry_t *)&root->entries;
 
-		p = &root->entries[1];
-		q = &root->entries[count - 1];
+	limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
+	indirect_level = ext4_directory_dx_root_info_get_indirect_levels(&root->info);
+
+	while (true) {
+
+		count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)entries);
+		if ((count == 0) || (count > limit)) {
+			return EXT4_ERR_BAD_DX_DIR;
+		}
+
+		p = entries + 1;
+		q = entries + count - 1;
 
 		while (p <= q) {
 			m = p + (q - p) / 2;
-			if (ext4_directory_dx_entry_get_hash(m) > hash) {
+			if (ext4_directory_dx_entry_get_hash(m) > hinfo->hash) {
 				q = m - 1;
 			} else {
 				p = m + 1;
 			}
 		}
 
-		/* TODO move to leaf or next node
 		at = p - 1;
-		dxtrace(printk(" %x->%u\n", at == entries? 0: dx_get_hash(at), dx_get_block(at)));
-        frame->bh = bh;
-        frame->entries = entries;
-        frame->at = at;
 
-        if (indirect == 0) {
-			// TODO write return values !!!
+        if (indirect_level == 0) {
+       		*leaf_block_idx = ext4_directory_dx_entry_get_block(at);
         	return EOK;
         }
 
-        indirect--;
+        indirect_level--;
 
-		// TODO read next block
-		if (!(bh = ext4_bread (NULL,dir, dx_get_block(at), 0, err)))
-                        goto fail2;
-		at = entries = ((struct dx_node *) bh->b_data)->entries;
-		if (dx_get_limit(entries) != dx_node_limit (dir)) {
-        	ext4_warning(dir->i_sb, "dx entry: limit != node limit");
-			brelse(bh);
-            *err = ERR_BAD_DX_DIR;
-			goto fail2;
+        rc = ext4_filesystem_get_inode_data_block_index(fs, inode, ext4_directory_dx_entry_get_block(at), &fblock);
+        if (rc != EOK) {
+        	return rc;
+        }
+
+        if (tmp_block) {
+        	block_put(tmp_block);
+        }
+
+        rc = block_get(&tmp_block, fs->device, fblock, BLOCK_FLAGS_NONE);
+        if (rc != EOK) {
+        	// TODO
+        	return rc;
+        }
+
+		entries = ((ext4_directory_dx_node_t *) tmp_block->data)->entries;
+		limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
+
+        entry_space = ext4_superblock_get_block_size(fs->superblock) - sizeof(ext4_directory_dx_dot_entry_t);
+        entry_space = entry_space / sizeof(ext4_directory_dx_entry_t);
+
+
+		if (limit != entry_space) {
+			block_put(tmp_block);
+        	return EXT4_ERR_BAD_DX_DIR;
 		}
-		frame++;
-		frame->bh = NULL;
-		 */
+	}
 
-	// } END WHILE
+	if (tmp_block) {
+		block_put(tmp_block);
+	}
 
+	return EOK;
+}
+
+
+int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
+		ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, size_t len, const char *name)
+{
+	int rc;
+	uint32_t root_block_addr, leaf_block_addr;
+	block_t *root_block;
+	ext4_hash_info_t hinfo;
+
+	// get direct block 0 (index root)
+	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, 0, &root_block_addr);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = block_get(&root_block, fs->device, root_block_addr, BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		it->current_block = NULL;
+		return rc;
+	}
+
+	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, len, name);
+	if (rc != EOK) {
+		EXT4FS_DBG("ERR: leaf block not found");
+		block_put(root_block);
+		return EXT4_ERR_BAD_DX_DIR;
+	}
+
+	rc = ext4_directory_dx_get_leaf_block(&hinfo, fs, inode_ref->inode, &leaf_block_addr, root_block);
+	if (rc != EOK) {
+		return EXT4_ERR_BAD_DX_DIR;
+	}
+
+	// TODO now having block - do directory entry search
 
 	// TODO delete it !!!
+	// TODO block put
 	return EXT4_ERR_BAD_DX_DIR;
 
 	if ((it->current == NULL) || (it->current->inode == 0)) {

@@ -38,8 +38,7 @@
 #include <errno.h>
 #include <mem.h>
 
-#include "libext4_directory.h"
-#include "libext4_hash.h"
+#include "libext4.h"
 
 #define TEA_DELTA 0x9E3779B9
 
@@ -226,7 +225,7 @@ static void str2hashbuf_unsigned(const char *msg, int len, uint32_t *buf, int nu
 	}
 }
 
-int ext4_hash_string(ext4_hash_info_t *hinfo, size_t len, const char *name)
+int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 {
 	uint32_t hash = 0;
 	uint32_t minor_hash = 0;
@@ -252,7 +251,6 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, size_t len, const char *name)
 			}
 		}
     }
-
 
 	switch (hinfo->hash_version) {
 		case EXT4_HASH_VERSION_LEGACY_UNSIGNED:
