@@ -215,10 +215,18 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 
+	/* Find length of component in bytes
+	 * TODO: check for library function call that does this
+	 */
+	component_size = 0;
+	while (*(component+component_size) != 0) {
+		component_size++;
+	}
+
 	// TODO check super block COMPAT FEATURES
 	if (ext4_inode_has_flag(eparent->inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
 
-		rc = ext4_directory_dx_find_entry(&it, fs, eparent->inode_ref, component);
+		rc = ext4_directory_dx_find_entry(&it, fs, eparent->inode_ref, component_size, component);
 
 		// Index isn't corrupted
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
@@ -237,14 +245,6 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	rc = ext4_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
-	}
-
-	/* Find length of component in bytes
-	 * TODO: check for library function call that does this
-	 */
-	component_size = 0;
-	while (*(component+component_size) != 0) {
-		component_size++;
 	}
 
 	while (it.current != NULL) {

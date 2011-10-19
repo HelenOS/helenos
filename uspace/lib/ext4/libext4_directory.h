@@ -95,24 +95,9 @@ typedef struct ext4_directory_dx_root {
 		ext4_directory_dx_entry_t entries[0];
 } ext4_directory_dx_root_t;
 
-typedef struct ext4_directory_dx_hash_info {
-	uint32_t hash;
-	uint32_t minor_hash;
-	uint32_t hash_version;
-	uint32_t *seed;
-} ext4_directory_dx_hash_info_t;
-
 
 #define EXT4_ERR_BAD_DX_DIR			(-75000)
-
-#define EXT4_DIRECTORY_DX_HASH_LEGACY				0
-#define EXT4_DIRECTORY_DX_HASH_HALF_MD4				1
-#define EXT4_DIRECTORY_DX_HASH_TEA					2
-#define EXT4_DIRECTORY_DX_HASH_LEGACY_UNSIGNED		3
-#define EXT4_DIRECTORY_DX_HASH_HALF_MD4_UNSIGNED	4
-#define EXT4_DIRECTORY_DX_HASH_TEA_UNSIGNED			5
-
-#define EXT4_DIRECTORY_HTREE_EOF	0x7fffffff
+#define EXT4_DIRECTORY_HTREE_EOF	(uint32_t)0x7fffffff
 
 
 extern uint32_t	ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *);
@@ -137,9 +122,7 @@ extern int ext4_directory_iterator_next(ext4_directory_iterator_t *);
 extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t pos);
 extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
 extern int ext4_directory_dx_find_entry(ext4_directory_iterator_t *,
-		ext4_filesystem_t *, ext4_inode_ref_t *, const char *);
-
-extern void ext4_directory_hash(ext4_directory_dx_hash_info_t *, const char* name);
+		ext4_filesystem_t *, ext4_inode_ref_t *, size_t, const char *);
 
 #endif
 

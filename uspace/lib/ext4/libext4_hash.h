@@ -30,19 +30,26 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_H_
-#define LIBEXT4_LIBEXT4_H_
+#ifndef LIBEXT4_LIBEXT4_HASH_H_
+#define LIBEXT4_LIBEXT4_HASH_H_
 
-#include "libext4_block_group.h"
-#include "libext4_directory.h"
-#include "libext4_extent.h"
-#include "libext4_filesystem.h"
-#include "libext4_hash.h"
-#include "libext4_inode.h"
-#include "libext4_superblock.h"
+#include <sys/types.h>
 
-#include <stdio.h>
-#define EXT4FS_DBG(format, ...) {if (true) printf("ext4fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
+#define EXT4_HASH_VERSION_LEGACY			0
+#define EXT4_HASH_VERSION_HALF_MD4			1
+#define EXT4_HASH_VERSION_TEA				2
+#define EXT4_HASH_VERSION_LEGACY_UNSIGNED	3
+#define EXT4_HASH_VERSION_HALF_MD4_UNSIGNED	4
+#define EXT4_HASH_VERSION_TEA_UNSIGNED		5
+
+typedef struct ext4_hash_info {
+	uint32_t hash;
+	uint32_t minor_hash;
+	uint32_t hash_version;
+	uint32_t *seed;
+} ext4_hash_info_t;
+
+extern int ext4_hash_string(ext4_hash_info_t *, size_t, const char *);
 
 #endif
 

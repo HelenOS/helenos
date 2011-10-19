@@ -36,6 +36,7 @@ SOURCES = \
 	libext4_directory.c \
 	libext4_extent.c \
 	libext4_filesystem.c \
+	libext4_hash.c \
 	libext4_inode.c \
 	libext4_superblock.c
 	

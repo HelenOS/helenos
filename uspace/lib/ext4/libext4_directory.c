@@ -245,14 +245,14 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 }
 
 int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
-		ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, const char *name)
+		ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, size_t len, const char *name)
 {
 	int rc;
 	uint32_t fblock;
 	block_t *phys_block;
 	ext4_directory_dx_root_t *root;
 	uint32_t hash;
-	ext4_directory_dx_hash_info_t hinfo;
+	ext4_hash_info_t hinfo;
 
 	// get direct block 0 (index root)
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, 0, &fblock);
@@ -314,7 +314,7 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
     */
 
 	hinfo.hash_version = ext4_directory_dx_root_info_get_hash_version(&root->info);
-	if ((hinfo.hash_version <= EXT4_DIRECTORY_DX_HASH_TEA)
+	if ((hinfo.hash_version <= EXT4_HASH_VERSION_TEA)
 			&& (ext4_superblock_has_flag(fs->superblock, EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH))) {
 		// 3 is magic from ext4 linux implementation
 		hinfo.hash_version += 3;
@@ -323,7 +323,7 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 	hinfo.seed = ext4_superblock_get_hash_seed(fs->superblock);
 	hinfo.hash = 0;
 	if (name) {
-		ext4_directory_hash(&hinfo, name);
+		ext4_hash_string(&hinfo, len, name);
 	}
 
 	hash = hinfo.hash;
@@ -386,10 +386,6 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 	return EOK;
 }
 
-void ext4_directory_hash(ext4_directory_dx_hash_info_t *hinfo, const char* name)
-{
-	// TODO
-}
 
 /**
  * @}
