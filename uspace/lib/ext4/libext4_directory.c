@@ -311,7 +311,7 @@ static int ext4_directory_dx_get_leaf_block(ext4_hash_info_t *hinfo,
 	ext4_directory_dx_entry_t *p, *q, *m, *at;
 	ext4_directory_dx_entry_t *entries;
 	block_t *tmp_block = NULL;
-	uint32_t fblock;
+	uint32_t fblock, next_block;
 
 	root = (ext4_directory_dx_root_t *)root_block->data;
 	entries = (ext4_directory_dx_entry_t *)&root->entries;
@@ -340,25 +340,25 @@ static int ext4_directory_dx_get_leaf_block(ext4_hash_info_t *hinfo,
 
 		at = p - 1;
 
+		next_block = ext4_directory_dx_entry_get_block(at);
+
+		if (tmp_block) {
+        	block_put(tmp_block);
+        }
+
         if (indirect_level == 0) {
-       		*leaf_block_idx = ext4_directory_dx_entry_get_block(at);
-        	return EOK;
+        	return ext4_filesystem_get_inode_data_block_index(fs, inode, next_block, leaf_block_idx);
         }
 
         indirect_level--;
 
-        rc = ext4_filesystem_get_inode_data_block_index(fs, inode, ext4_directory_dx_entry_get_block(at), &fblock);
+        rc = ext4_filesystem_get_inode_data_block_index(fs, inode, next_block, &fblock);
         if (rc != EOK) {
         	return rc;
         }
 
-        if (tmp_block) {
-        	block_put(tmp_block);
-        }
-
         rc = block_get(&tmp_block, fs->device, fblock, BLOCK_FLAGS_NONE);
         if (rc != EOK) {
-        	// TODO
         	return rc;
         }
 
@@ -375,11 +375,51 @@ static int ext4_directory_dx_get_leaf_block(ext4_hash_info_t *hinfo,
 		}
 	}
 
-	if (tmp_block) {
-		block_put(tmp_block);
+	// Unreachable
+	return EOK;
+}
+
+
+static int ext4_dirextory_dx_find_dir_entry(block_t *block,
+		ext4_superblock_t *sb, size_t name_len, const char *name,
+		ext4_directory_entry_ll_t **res_entry, aoff64_t *block_offset)
+{
+	ext4_directory_entry_ll_t *dentry;
+	uint16_t dentry_len;
+	uint8_t *addr_limit;
+	aoff64_t offset = 0;
+
+	dentry = (ext4_directory_entry_ll_t *)block->data;
+	addr_limit = block->data + ext4_superblock_get_block_size(sb);
+
+	while ((uint8_t *)dentry < addr_limit) {
+
+		if ((uint8_t*) dentry + name_len > addr_limit) {
+			break;
+		}
+
+		if (name_len == ext4_directory_entry_ll_get_name_length(sb, dentry)) {
+
+			if (bcmp((uint8_t *)name, dentry->name, name_len)) {
+				// TODO check entry ??
+				*block_offset = offset;
+				*res_entry = dentry;
+				return EOK;
+			}
+		}
+
+		// Goto next entry
+		dentry_len = ext4_directory_entry_ll_get_entry_length(dentry);
+        if (dentry_len <= 0) {
+        	// TODO
+        	return -1;
+        }
+
+		offset += dentry_len;
+		dentry = (ext4_directory_entry_ll_t *)((uint8_t *)dentry + dentry_len);
 	}
 
-	return EOK;
+	return ENOENT;
 }
 
 
@@ -388,8 +428,10 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 {
 	int rc;
 	uint32_t root_block_addr, leaf_block_addr;
-	block_t *root_block;
+	aoff64_t block_offset;
+	block_t *root_block, *leaf_block;
 	ext4_hash_info_t hinfo;
+	ext4_directory_entry_ll_t *res_dentry;
 
 	// get direct block 0 (index root)
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, 0, &root_block_addr);
@@ -405,7 +447,6 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 
 	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, len, name);
 	if (rc != EOK) {
-		EXT4FS_DBG("ERR: leaf block not found");
 		block_put(root_block);
 		return EXT4_ERR_BAD_DX_DIR;
 	}
@@ -415,7 +456,23 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
-	// TODO now having block - do directory entry search
+	rc = block_get(&leaf_block, fs->device, leaf_block_addr, BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		return EXT4_ERR_BAD_DX_DIR;
+	}
+
+	rc = ext4_dirextory_dx_find_dir_entry(leaf_block, fs->superblock, len, name,
+			&res_dentry, &block_offset);
+
+	// Found = return it
+	if (rc == EOK) {
+		it->fs = fs;
+		it->inode_ref = inode_ref;
+		it->current_block = leaf_block;
+		it->current_offset = block_offset;
+		it->current = res_dentry;
+		return EOK;
+	}
 
 	// TODO delete it !!!
 	// TODO block put

@@ -237,7 +237,10 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			}
 
 			inode = ext4_directory_entry_ll_get_inode(it.current);
-			return ext4fs_node_get_core(rfn, eparent->instance, inode);
+
+			rc = ext4fs_node_get_core(rfn, eparent->instance, inode);
+			ext4_directory_iterator_fini(&it);
+			return rc;
 		}
 
 	}
