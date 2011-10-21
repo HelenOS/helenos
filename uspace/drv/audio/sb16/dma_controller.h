@@ -34,7 +34,17 @@
 #ifndef DRV_AUDIO_SB16_DMA_CONTROLLER_H
 #define DRV_AUDIO_SB16_DMA_CONTROLLER_H
 
+#include <bool.h>
+
+typedef enum {
+	ON_DEMAND = 0x0,
+	SINGLE_DMA = 0x1,
+	BLOCK_DMA = 0x2,
+} transfer_mode_t;
+
 int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size);
+
+int dma_prepare_channel(unsigned channel, bool write, transfer_mode_t mode);
 
 #endif
 /**

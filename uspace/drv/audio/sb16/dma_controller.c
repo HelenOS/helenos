@@ -147,6 +147,9 @@ typedef struct dma_channel {
 	uint8_t *offset_reg_address;
 	uint8_t *size_reg_address;
 	uint8_t *page_reg_address;
+	uint8_t *single_mask_address;
+	uint8_t *mode_address;
+	uint8_t *flip_flop_address;
 } dma_channel_t;
 
 typedef struct dma_controller {
@@ -154,145 +157,121 @@ typedef struct dma_controller {
 	dma_page_regs_t *page_table;
 	dma_controller_regs_first_t *first;
 	dma_controller_regs_second_t *second;
+	bool initialized;
 } dma_controller_t;
 
 static dma_controller_t controller_8237 = {
 	.channels = {
-	    { (uint8_t*)0x00, (uint8_t*)0x01, (uint8_t*)0x87 },
-	    { (uint8_t*)0x02, (uint8_t*)0x03, (uint8_t*)0x83 },
-	    { (uint8_t*)0x04, (uint8_t*)0x05, (uint8_t*)0x81 },
-	    { (uint8_t*)0x06, (uint8_t*)0x07, (uint8_t*)0x82 },
-	    { (uint8_t*)0xc0, (uint8_t*)0xc2, (uint8_t*)0x8f },
-	    { (uint8_t*)0xc4, (uint8_t*)0xc6, (uint8_t*)0x8b },
-	    { (uint8_t*)0xc8, (uint8_t*)0xca, (uint8_t*)0x89 },
-	    { (uint8_t*)0xcc, (uint8_t*)0xce, (uint8_t*)0x8a } },
+	    /* The first chip */
+	    { (uint8_t*)0x00, (uint8_t*)0x01, (uint8_t*)0x87,
+	      (uint8_t*)0x0a, (uint8_t*)0x0b, (uint8_t*)0x0c, },
+	    { (uint8_t*)0x02, (uint8_t*)0x03, (uint8_t*)0x83,
+	      (uint8_t*)0x0a, (uint8_t*)0x0b, (uint8_t*)0x0c, },
+	    { (uint8_t*)0x04, (uint8_t*)0x05, (uint8_t*)0x81,
+	      (uint8_t*)0x0a, (uint8_t*)0x0b, (uint8_t*)0x0c, },
+	    { (uint8_t*)0x06, (uint8_t*)0x07, (uint8_t*)0x82,
+	      (uint8_t*)0x0a, (uint8_t*)0x0b, (uint8_t*)0x0c, },
+
+	    /* The second chip */
+	    { (uint8_t*)0xc0, (uint8_t*)0xc2, (uint8_t*)0x8f,
+	      (uint8_t*)0xd4, (uint8_t*)0xd6, (uint8_t*)0xd8, },
+	    { (uint8_t*)0xc4, (uint8_t*)0xc6, (uint8_t*)0x8b,
+	      (uint8_t*)0xd4, (uint8_t*)0xd6, (uint8_t*)0xd8, },
+	    { (uint8_t*)0xc8, (uint8_t*)0xca, (uint8_t*)0x89,
+	      (uint8_t*)0xd4, (uint8_t*)0xd6, (uint8_t*)0xd8, },
+	    { (uint8_t*)0xcc, (uint8_t*)0xce, (uint8_t*)0x8a,
+	      (uint8_t*)0xd4, (uint8_t*)0xd6, (uint8_t*)0xd8, }, },
+
 	.page_table = NULL,
 	.first = NULL,
 	.second = NULL,
+	.initialized = false,
 };
 
-static inline const dma_controller_t *dma_controller_init()
+static inline int dma_controller_init(dma_controller_t *controller)
 {
+	assert(controller);
 	int ret = pio_enable(DMA_CONTROLLER_PAGE_BASE, sizeof(dma_page_regs_t),
-	    (void**)&controller_8237.page_table);
+	    (void**)&controller->page_table);
 	if (ret != EOK)
-		return NULL;
+		return EIO;
 
 	ret = pio_enable(DMA_CONTROLLER_FIRST_BASE,
 	    sizeof(dma_controller_regs_first_t),
-	    (void**)&controller_8237.first);
+	    (void**)&controller->first);
 	if (ret != EOK)
-		return NULL;
+		return EIO;
 
 	ret = pio_enable(DMA_CONTROLLER_SECOND_BASE,
 	    sizeof(dma_controller_regs_second_t),
-	    (void**)&controller_8237.second);
+	    (void**)&controller->second);
 	if (ret != EOK)
-		return NULL;
-	return &controller_8237;
-}
-/*----------------------------------------------------------------------------*/
-static int dma_setup_channel_8bit(const dma_controller_t *controller,
-    unsigned channel, uint32_t pa, uint16_t size)
-{
-	if (channel == 0 || channel > 3)
-		return ENOTSUP;
-	assert(controller);
-	/* Mask DMA request */
-	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
-	    | DMA_SINGLE_MASK_MASKED_FLAG;
-	pio_write_8(&controller->first->single_mask, value);
-
-	/* Set address -- reset flip-flop*/
-	pio_write_8(&controller->first->flip_flop, 1);
-
-	/* Low byte */
-	value = pa & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* High byte */
-	value = (pa >> 8) & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* Page address - third byte */
-	value = (pa >> 16) & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* Set size -- reset flip-flop */
-	pio_write_8(&controller->first->flip_flop, 1);
-
-	/* Low byte */
-	value = size & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* High byte */
-	value = (size >> 8) & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* Unmask DMA request */
-	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
-	pio_write_8(&controller->first->single_mask, value);
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int dma_setup_channel_16bit(const dma_controller_t *controller,
-    unsigned channel, uintptr_t pa, size_t size)
-{
-	if (channel <= 4 || channel > 7)
-		return ENOTSUP;
-	assert(controller);
-	/* Mask DMA request */
-	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
-	    | DMA_SINGLE_MASK_MASKED_FLAG;
-	pio_write_8(&controller->second->single_mask, value);
-
-	/* Set address -- reset flip-flop*/
-	pio_write_8(&controller->second->flip_flop, 1);
-
-	/* Low byte */
-	value = pa & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* High byte */
-	value = (pa >> 8) & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* Page address - third byte */
-	value = (pa >> 16) & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* Set size -- reset flip-flop */
-	pio_write_8(&controller->second->flip_flop, 1);
-
-	/* Low byte */
-	value = size & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* High byte */
-	value = (size >> 8) & 0xff;
-	pio_write_8(controller->channels[channel].offset_reg_address, value);
-
-	/* Unmask DMA request */
-	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
-	pio_write_8(&controller->second->single_mask, value);
-
+		return EIO;
+	controller->initialized = true;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 {
-	static const dma_controller_t *controller = NULL;
-	if (!controller)
-		controller = dma_controller_init();
+	if (channel == 0 || channel == 4)
+		return ENOTSUP;
 
-	if (!controller)
+	if (channel > 7)
+		return ENOENT;
+
+	if (!controller_8237.initialized)
+		dma_controller_init(&controller_8237);
+
+	if (!controller_8237.initialized)
 		return EIO;
 
-	if (channel < 4)
-		return dma_setup_channel_8bit(controller, channel, pa, size);
-	else
-		return dma_setup_channel_16bit(controller, channel, pa, size);
+	dma_channel_t dma_channel = controller_8237.channels[channel];
+
+	/* Mask DMA request */
+	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
+	    | DMA_SINGLE_MASK_MASKED_FLAG;
+	pio_write_8(dma_channel.single_mask_address, value);
+
+	/* Set address -- reset flip-flop*/
+	pio_write_8(dma_channel.flip_flop_address, 1);
+
+	/* Low byte */
+	value = pa & 0xff;
+	pio_write_8(dma_channel.offset_reg_address, value);
+
+	/* High byte */
+	value = (pa >> 8) & 0xff;
+	pio_write_8(dma_channel.offset_reg_address, value);
+
+	/* Page address - third byte */
+	value = (pa >> 16) & 0xff;
+	pio_write_8(dma_channel.offset_reg_address, value);
+
+	/* Set size -- reset flip-flop */
+	pio_write_8(dma_channel.flip_flop_address, 1);
+
+	/* Low byte */
+	value = size & 0xff;
+	pio_write_8(dma_channel.offset_reg_address, value);
+
+	/* High byte */
+	value = (size >> 8) & 0xff;
+	pio_write_8(dma_channel.offset_reg_address, value);
+
+	/* Unmask DMA request */
+	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
+	pio_write_8(dma_channel.single_mask_address, value);
+
+	return EOK;
+
+}
+/*----------------------------------------------------------------------------*/
+int dma_prepare_channel(unsigned channel, bool write, transfer_mode_t mode)
+{
+	if (!controller_8237.initialized)
+		return EIO;
+
+	return ENOTSUP;
 }
 /**
  * @}
