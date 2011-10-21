@@ -42,6 +42,7 @@
 #include "dsp.h"
 
 #define BUFFER_SIZE (PAGE_SIZE / 4)
+#define PLAY_BLOCK_SIZE (BUFFER_SIZE / 2)
 
 #ifndef DSP_RETRY_COUNT
 #define DSP_RETRY_COUNT 100
@@ -109,9 +110,10 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 	/* Set 16 bit channel */
 	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, BUFFER_SIZE);
 	if (ret == EOK) {
-		dsp->buffer.buffer_data = buffer;
-		dsp->buffer.buffer_position = buffer;
-		dsp->buffer.buffer_size = BUFFER_SIZE;
+		dsp->buffer.data = buffer;
+		dsp->buffer.position = buffer;
+		dsp->buffer.size = BUFFER_SIZE;
+		memset(buffer, 0x8f, BUFFER_SIZE);
 		dma_prepare_channel(SB_DMA_CHAN_16, false, true, BLOCK_DMA);
 		/* Set 8bit channel */
 		const int ret = dma_setup_channel(SB_DMA_CHAN_8, pa, BUFFER_SIZE);
@@ -129,10 +131,10 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 /*----------------------------------------------------------------------------*/
 static inline void sb_clear_buffer(sb_dsp_t *dsp)
 {
-	free24(dsp->buffer.buffer_data);
-	dsp->buffer.buffer_data = NULL;
-	dsp->buffer.buffer_position = NULL;
-	dsp->buffer.buffer_size = 0;
+	free24(dsp->buffer.data);
+	dsp->buffer.data = NULL;
+	dsp->buffer.position = NULL;
+	dsp->buffer.size = 0;
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
@@ -171,6 +173,40 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	}
 	/* ACK dma8 transfer interrupt */
 	pio_read_8(&dsp->regs->dsp_read_status);
+
+	static size_t interrupt_count = 0;
+
+	const size_t remain_size = dsp->playing.size -
+	    (dsp->playing.position - dsp->playing.data);
+
+	ddf_log_note("Interrupt count %zu, remaining: %zu.\n",
+	    ++interrupt_count, remain_size);
+	if (remain_size == 0) {
+		ddf_log_note("Nothing more to play");
+		sb_dsp_write(dsp, DMA_16B_EXIT);
+		sb_clear_buffer(dsp);
+		return;
+	}
+	if (remain_size < PLAY_BLOCK_SIZE) {
+		ddf_log_note("Last %zu bytes to play.\n", remain_size);
+		/* This is the last block */
+		memcpy(dsp->buffer.position, dsp->playing.position, remain_size);
+		dsp->playing.position += remain_size;
+		dsp->buffer.position += remain_size;
+		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
+		sb_dsp_write(dsp, dsp->playing.mode);
+		sb_dsp_write(dsp, remain_size & 0xff);
+		sb_dsp_write(dsp, remain_size >> 8);
+		return;
+	}
+	ddf_log_note("Playing full block.\n");
+	memcpy(dsp->buffer.position, dsp->playing.position, PLAY_BLOCK_SIZE);
+	dsp->playing.position += PLAY_BLOCK_SIZE;
+	dsp->buffer.position += PLAY_BLOCK_SIZE;
+	/* Wrap around */
+	if (dsp->buffer.position == (dsp->buffer.data + dsp->buffer.size))
+		dsp->buffer.position = dsp->buffer.data;
+
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
@@ -202,9 +238,33 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 
+	ddf_log_fatal("Buffer prepare.\n");
 	const int ret = sb_setup_buffer(dsp);
+	if (ret != EOK)
+		return ret;
 
-	return ret;
+	const size_t play_size =
+	    size < PLAY_BLOCK_SIZE ? size : PLAY_BLOCK_SIZE;
+	memcpy(dsp->buffer.data, dsp->playing.data, play_size);
+
+	ddf_log_note("Playing sound: %zu(%zu) bytes.\n", play_size, size);
+
+	dsp->playing.data = data;
+	dsp->playing.position = data + play_size;
+	dsp->playing.size = size;
+	dsp->playing.mode =
+	    (bit_depth == 16 ? 0x10 : 0) | (channels == 2 ? 0x20 : 0);
+
+	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
+	sb_dsp_write(dsp, sampling_rate >> 8);
+	sb_dsp_write(dsp, sampling_rate & 0xff);
+
+	sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
+	sb_dsp_write(dsp, dsp->playing.mode);
+	sb_dsp_write(dsp, play_size & 0xff);
+	sb_dsp_write(dsp, play_size >> 8);
+
+	return EOK;
 }
 /**
  * @}

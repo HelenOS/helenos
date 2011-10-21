@@ -46,10 +46,16 @@ typedef struct sb_dsp_t {
 		uint8_t minor;
 	} version;
 	struct {
-		uint8_t *buffer_data;
-		uint8_t *buffer_position;
-		size_t buffer_size;
+		uint8_t *data;
+		uint8_t *position;
+		size_t size;
 	} buffer;
+	struct {
+		const uint8_t *data;
+		const uint8_t *position;
+		size_t size;
+		uint8_t mode;
+	} playing;
 } sb_dsp_t;
 
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs);
