@@ -98,7 +98,7 @@ tcp_segment_t *tcp_segment_make_data(tcp_control_t ctrl, void *data,
 {
 	tcp_segment_t *seg;
 
-	assert(size > 0);
+	assert(ctrl != 0 || size > 0);
 
 	seg = tcp_segment_new();
 	if (seg == NULL)

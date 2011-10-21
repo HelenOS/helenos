@@ -62,11 +62,17 @@ static void test_srv(void *arg)
 	while (true) {
 		printf("User receive...\n");
 		tcp_uc_receive(conn, rcv_buf, RCV_BUF_SIZE, &rcvd, &xflags);
+		if (rcvd == 0) {
+			printf("End of data reached.\n");
+			break;
+		}
 		rcv_buf[rcvd] = '\0';
 		printf("User received %zu bytes '%s'.\n", rcvd, rcv_buf);
 
 		async_usleep(1000*1000*2);
 	}
+
+	printf("test_srv() terminating\n");
 }
 
 static void test_cli(void *arg)
@@ -79,12 +85,15 @@ static void test_cli(void *arg)
 
 	sock.port = 80;
 	sock.addr.ipv4 = 0x7f000001;
-	
+
 	async_usleep(1000*1000*3);
 	tcp_uc_open(1024, &sock, ap_active, &conn);
 
 	async_usleep(1000*1000*10);
 	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
+
+	async_usleep(1000*1000*3);
+	tcp_uc_close(conn);
 }
 
 void tcp_test(void)

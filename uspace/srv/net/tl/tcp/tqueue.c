@@ -91,24 +91,38 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 void tcp_tqueue_new_data(tcp_conn_t *conn)
 {
 	size_t avail_wnd;
+	size_t xfer_seqlen;
+	size_t snd_buf_seqlen;
 	size_t data_size;
+	tcp_control_t ctrl;
+
 	tcp_segment_t *seg;
 
 	log_msg(LVL_DEBUG, "tcp_tqueue_new_data()");
 
 	/* Number of free sequence numbers in send window */
 	avail_wnd = (conn->snd_una + conn->snd_wnd) - conn->snd_nxt;
+	snd_buf_seqlen = conn->snd_buf_used + (conn->snd_buf_fin ? 1 : 0);
 
-	data_size = min(conn->snd_buf_used, avail_wnd);
-	log_msg(LVL_DEBUG, "conn->snd_buf_used = %zu, SND.WND = %zu, "
-	    "data_size = %zu", conn->snd_buf_used, conn->snd_wnd, data_size);
+	xfer_seqlen = min(snd_buf_seqlen, avail_wnd);
+	log_msg(LVL_DEBUG, "snd_buf_seqlen = %zu, SND.WND = %zu, "
+	    "xfer_seqlen = %zu", snd_buf_seqlen, conn->snd_wnd,
+	    xfer_seqlen);
 
-	if (data_size == 0)
+	if (xfer_seqlen == 0)
 		return;
 
 	/* XXX Do not always send immediately */
 
-	seg = tcp_segment_make_data(0, conn->snd_buf, data_size);
+	data_size = xfer_seqlen - (conn->snd_buf_fin ? 1 : 0);
+	if (conn->snd_buf_fin && data_size + 1 == xfer_seqlen) {
+		/* We are sending out FIN */
+		ctrl = CTL_FIN;
+	} else {
+		ctrl = 0;
+	}
+
+	seg = tcp_segment_make_data(ctrl, conn->snd_buf, data_size);
 	if (seg == NULL) {
 		log_msg(LVL_ERROR, "Memory allocation failure.");
 		return;
@@ -118,6 +132,7 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	memmove(conn->snd_buf, conn->snd_buf + data_size,
 	    conn->snd_buf_used - data_size);
 	conn->snd_buf_used -= data_size;
+	conn->snd_buf_fin = false;
 
 	tcp_tqueue_seg(conn, seg);
 }

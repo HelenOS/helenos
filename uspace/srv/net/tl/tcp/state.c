@@ -114,9 +114,18 @@ void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
 	fibril_mutex_lock(&conn->rcv_buf_lock);
 
 	/* Wait for data to become available */
-	while (conn->rcv_buf_used == 0) {
+	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin) {
 		log_msg(LVL_DEBUG, "tcp_uc_receive() - wait for data");
 		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->rcv_buf_lock);
+	}
+
+	if (conn->rcv_buf_used == 0) {
+		/* End of data, peer closed connection. */
+		/* XXX How should RECEIVE signal end of data? */
+		assert(conn->rcv_buf_fin);
+		*rcvd = 0;
+		*xflags = 0;
+		return;
 	}
 
 	/* Copy data from receive buffer to user buffer */
@@ -146,6 +155,9 @@ void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
 void tcp_uc_close(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "tcp_uc_close()");
+
+	conn->snd_buf_fin = true;
+	tcp_tqueue_new_data(conn);
 }
 
 /** ABORT user call */

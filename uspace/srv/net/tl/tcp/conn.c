@@ -35,6 +35,7 @@
  */
 
 #include <adt/list.h>
+#include <bool.h>
 #include <errno.h>
 #include <io/log.h>
 #include <macros.h>
@@ -73,6 +74,7 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	fibril_condvar_initialize(&conn->rcv_buf_cv);
 	conn->rcv_buf_size = RCV_BUF_SIZE;
 	conn->rcv_buf_used = 0;
+	conn->rcv_buf_fin = false;
 
 	conn->rcv_buf = calloc(1, conn->rcv_buf_size);
 	if (conn->rcv_buf == NULL) {
@@ -83,6 +85,7 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	/** Allocate send buffer */
 	conn->snd_buf_size = SND_BUF_SIZE;
 	conn->snd_buf_used = 0;
+	conn->snd_buf_fin = false;
 	conn->snd_buf = calloc(1, conn->snd_buf_size);
 	if (conn->snd_buf == NULL) {
 		free(conn);
@@ -696,21 +699,16 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* Update receive window. XXX Not an efficient strategy. */
 	conn->rcv_wnd -= xfer_size;
 
-	/* XXX Signal user that some data arrived. */
-
 	/* Send ACK */
 	if (xfer_size > 0)
 		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 
-	/* Anything left in the segment? (text, FIN) */
 	if (xfer_size < seg->len) {
-		/*
-		 * Some text or control remains. Insert remainder back
-		 * into the incoming queue.
-		 */
+		/* Trim part of segment which we just received */
 		tcp_conn_trim_seg_to_wnd(conn, seg);
-		tcp_iqueue_insert_seg(&conn->incoming, seg);
-
+	} else {
+		/* Nothing left in segment */
+		tcp_segment_delete(seg);
 		return cp_done;
 	}
 
@@ -726,6 +724,27 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_fin(%p, %p)", conn, seg);
+
+	/* Only process FIN if no text is left in segment. */
+	if (tcp_segment_text_size(seg) == 0 && (seg->ctrl & CTL_FIN) != 0) {
+		log_msg(LVL_DEBUG, " - FIN found in segment.");
+
+		conn->rcv_nxt++;
+		conn->rcv_wnd--;
+
+		/* TODO Change connection state */
+
+		/* Add FIN to the receive buffer */
+		fibril_mutex_lock(&conn->rcv_buf_lock);
+		conn->rcv_buf_fin = true;
+		fibril_condvar_broadcast(&conn->rcv_buf_cv);
+		fibril_mutex_unlock(&conn->rcv_buf_lock);
+
+		tcp_segment_delete(seg);
+		return cp_done;
+	}
+
 	return cp_continue;
 }
 
@@ -774,7 +793,14 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_conn_seg_proc_fin(conn, seg) == cp_done)
 		return;
 
-	tcp_segment_delete(seg);
+	/*
+	 * If anything is left from the segment, insert it back into the
+	 * incoming segments queue.
+	 */
+	if (seg->len > 0)
+		tcp_iqueue_insert_seg(&conn->incoming, seg);
+	else
+		tcp_segment_delete(seg);
 }
 
 /** Segment arrived on a connection.
