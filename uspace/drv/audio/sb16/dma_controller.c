@@ -150,14 +150,14 @@ typedef struct dma_channel {
 } dma_channel_t;
 
 typedef struct dma_controller {
-	dma_channel_t channel[8];
+	dma_channel_t channels[8];
 	dma_page_regs_t *page_table;
 	dma_controller_regs_first_t *first;
 	dma_controller_regs_second_t *second;
 } dma_controller_t;
 
-static const dma_controller_t controller_8237 = {
-	.channel = {
+static dma_controller_t controller_8237 = {
+	.channels = {
 	    { (uint8_t*)0x00, (uint8_t*)0x01, (uint8_t*)0x87 },
 	    { (uint8_t*)0x02, (uint8_t*)0x03, (uint8_t*)0x83 },
 	    { (uint8_t*)0x04, (uint8_t*)0x05, (uint8_t*)0x81 },
@@ -208,26 +208,26 @@ static int dma_setup_channel_8bit(const dma_controller_t *controller,
 
 	/* Low byte */
 	value = pa & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* High byte */
 	value = (pa >> 8) & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* Page address - third byte */
 	value = (pa >> 16) & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* Set size -- reset flip-flop */
 	pio_write_8(&controller->first->flip_flop, 1);
 
 	/* Low byte */
 	value = size & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* High byte */
 	value = (size >> 8) & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* Unmask DMA request */
 	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
@@ -252,26 +252,26 @@ static int dma_setup_channel_16bit(const dma_controller_t *controller,
 
 	/* Low byte */
 	value = pa & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* High byte */
 	value = (pa >> 8) & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* Page address - third byte */
 	value = (pa >> 16) & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* Set size -- reset flip-flop */
 	pio_write_8(&controller->second->flip_flop, 1);
 
 	/* Low byte */
 	value = size & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* High byte */
 	value = (size >> 8) & 0xff;
-	pio_write_8(controller->channel[channel].offset_reg_address, value);
+	pio_write_8(controller->channels[channel].offset_reg_address, value);
 
 	/* Unmask DMA request */
 	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);

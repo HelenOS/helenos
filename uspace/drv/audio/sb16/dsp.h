@@ -45,18 +45,19 @@ typedef struct sb_dsp_t {
 		uint8_t major;
 		uint8_t minor;
 	} version;
-	uint8_t *data_buffer;
-	uint8_t *buffer_position;
-	size_t buffer_size;
+	struct {
+		uint8_t *buffer_data;
+		uint8_t *buffer_position;
+		size_t buffer_size;
+	} buffer;
 } sb_dsp_t;
 
-
-
-/*----------------------------------------------------------------------------*/
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs);
-/*----------------------------------------------------------------------------*/
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
     unsigned sample_rate, unsigned channels, unsigned bit_depth);
+int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
+    unsigned sample_rate, unsigned channels, unsigned bit_depth);
+
 #endif
 /**
  * @}

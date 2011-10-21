@@ -33,6 +33,7 @@
  */
 
 #include <libarch/ddi.h>
+#include <str_error.h>
 
 #include "dma.h"
 #include "dma_controller.h"
@@ -46,6 +47,8 @@
 #endif
 
 #define DSP_RESET_RESPONSE 0xaa
+#define SB_DMA_CHAN_16 5
+#define SB_DMA_CHAN_8 1
 
 static inline int sb_dsp_read(sb_dsp_t *dsp, uint8_t *data)
 {
@@ -89,6 +92,25 @@ static inline void sb_dsp_reset(sb_dsp_t *dsp)
 	pio_write_8(&dsp->regs->dsp_reset, 0);
 }
 /*----------------------------------------------------------------------------*/
+static inline int sb_setup_buffer(sb_dsp_t *dsp)
+{
+	assert(dsp);
+	uint8_t *buffer = malloc24(PAGE_SIZE);
+
+	const uintptr_t pa = addr_to_phys(buffer);
+	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, PAGE_SIZE);
+	if (ret == EOK) {
+		dsp->buffer.buffer_data = buffer;
+		dsp->buffer.buffer_position = buffer;
+		dsp->buffer.buffer_size = PAGE_SIZE;
+	} else {
+		ddf_log_error("Failed to setup DMA buffer %s.\n",
+		    str_error(ret));
+		free24(buffer);
+	}
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
 {
 	assert(dsp);
@@ -111,7 +133,8 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
 	sb_dsp_write(dsp, DSP_VERSION);
 	sb_dsp_read(dsp, &dsp->version.major);
 	sb_dsp_read(dsp, &dsp->version.minor);
-	return EOK;
+
+	return ret;
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
@@ -128,6 +151,24 @@ int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 		udelay(wait_period);
 	}
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
+    unsigned sampling_rate, unsigned channels, unsigned bit_depth)
+{
+	assert(dsp);
+	if (!data)
+		return EOK;
+
+	/* Check supported parameters */
+	if (bit_depth != 8 && bit_depth != 16)
+		return ENOTSUP;
+	if (channels != 1 && channels != 2)
+		return ENOTSUP;
+
+	const int ret = sb_setup_buffer(dsp);
+
+	return ret;
 }
 /**
  * @}
