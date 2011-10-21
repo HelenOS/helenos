@@ -50,6 +50,7 @@
 static int sb_add_device(ddf_dev_t *device);
 static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
     size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size, int *irq);
+static int sb_enable_interrupts(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t sb_driver_ops = {
 	.add_device = sb_add_device,
@@ -88,18 +89,17 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
  */
 static int sb_add_device(ddf_dev_t *device)
 {
-#define CHECK_RET_FREE_RETURN(ret, msg...) \
+#define CHECK_RET_RETURN(ret, msg...) \
 if (ret != EOK) { \
-	free(soft_state); \
 	ddf_log_error(msg); \
 	return ret; \
 } else (void)0
 
 	assert(device);
 
-	sb16_drv_t *soft_state = malloc(sizeof(sb16_drv_t));
+	sb16_drv_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_drv_t));
 	int ret = soft_state ? EOK : ENOMEM;
-	CHECK_RET_FREE_RETURN(ret, "Failed to allocate sb16 structure.\n");
+	CHECK_RET_RETURN(ret, "Failed to allocate sb16 structure.\n");
 
 	uintptr_t sb_regs = 0, mpu_regs = 0;
 	size_t sb_regs_size = 0, mpu_regs_size = 0;
@@ -107,13 +107,14 @@ if (ret != EOK) { \
 
 	ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
 	    &mpu_regs_size, &irq);
-	CHECK_RET_FREE_RETURN(ret,
+	CHECK_RET_RETURN(ret,
 	    "Failed to get resources: %s.\n", str_error(ret));
 
 	irq_code_t *irq_code = sb16_irq_code();
 	ret = register_interrupt_handler(device, irq, irq_handler, irq_code);
-	CHECK_RET_FREE_RETURN(ret,
+	CHECK_RET_RETURN(ret,
 	    "Failed to register irq handler: %s.\n", str_error(ret));
+
 
 	ddf_fun_t *dsp_fun = NULL, *mixer_fun = NULL;
 #define CHECK_RET_UNREG_DEST_RETURN(ret, msg...) \
@@ -123,10 +124,14 @@ if (ret != EOK) { \
 		ddf_fun_destroy(dsp_fun); \
 	if (mixer_fun) \
 		ddf_fun_destroy(mixer_fun); \
-	free(soft_state); \
 	unregister_interrupt_handler(device, irq); \
 	return ret; \
 } else (void)0
+
+	ret = sb_enable_interrupts(device);
+	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to enable interrupts: %s.\n",
+	    str_error(ret));
+
 	dsp_fun = ddf_fun_create(device, fun_exposed, "dsp");
 	ret = dsp_fun ? EOK : ENOMEM;
 	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create dsp function.");
@@ -143,13 +148,14 @@ if (ret != EOK) { \
 	ret = ddf_fun_bind(dsp_fun);
 	CHECK_RET_UNREG_DEST_RETURN(ret,
 	    "Failed to bind dsp function: %s.\n", str_error(ret));
-	dsp_fun->driver_data = soft_state;
 
 	ret = ddf_fun_bind(mixer_fun);
 	CHECK_RET_UNREG_DEST_RETURN(ret,
 	    "Failed to bind mixer function: %s.\n", str_error(ret));
-	mixer_fun->driver_data = soft_state;
 
+	/* Everything's OK assign driver_data. */
+	mixer_fun->driver_data = soft_state;
+	dsp_fun->driver_data = soft_state;
 
 	ret = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
 	if (ret == EOK) {
@@ -223,7 +229,20 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 	free(hw_resources.resources);
 	return EOK;
 }
+/*----------------------------------------------------------------------------*/
+int sb_enable_interrupts(ddf_dev_t *device)
+{
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+
+	bool enabled = hw_res_enable_interrupt(parent_sess);
+	async_hangup(parent_sess);
+
+	return enabled ? EOK : EIO;
+}
 /**
  * @}
  */
-

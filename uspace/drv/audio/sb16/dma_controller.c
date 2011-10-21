@@ -156,7 +156,7 @@ typedef struct dma_controller {
 	dma_controller_regs_second_t *second;
 } dma_controller_t;
 
-dma_controller_t controller_8237 = {
+static const dma_controller_t controller_8237 = {
 	.channel = {
 	    { (uint8_t*)0x00, (uint8_t*)0x01, (uint8_t*)0x87 },
 	    { (uint8_t*)0x02, (uint8_t*)0x03, (uint8_t*)0x83 },
@@ -171,7 +171,7 @@ dma_controller_t controller_8237 = {
 	.second = NULL,
 };
 
-static inline dma_controller_t *dma_controller_init()
+static inline const dma_controller_t *dma_controller_init()
 {
 	int ret = pio_enable(DMA_CONTROLLER_PAGE_BASE, sizeof(dma_page_regs_t),
 	    (void**)&controller_8237.page_table);
@@ -192,7 +192,7 @@ static inline dma_controller_t *dma_controller_init()
 	return &controller_8237;
 }
 /*----------------------------------------------------------------------------*/
-static int dma_setup_channel_8bit(dma_controller_t *controller,
+static int dma_setup_channel_8bit(const dma_controller_t *controller,
     unsigned channel, uint32_t pa, uint16_t size)
 {
 	if (channel == 0 || channel > 3)
@@ -236,7 +236,7 @@ static int dma_setup_channel_8bit(dma_controller_t *controller,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int dma_setup_channel_16bit(dma_controller_t *controller,
+static int dma_setup_channel_16bit(const dma_controller_t *controller,
     unsigned channel, uintptr_t pa, size_t size)
 {
 	if (channel <= 4 || channel > 7)
@@ -282,7 +282,7 @@ static int dma_setup_channel_16bit(dma_controller_t *controller,
 /*----------------------------------------------------------------------------*/
 int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 {
-	static dma_controller_t *controller = NULL;
+	static const dma_controller_t *controller = NULL;
 	if (!controller)
 		controller = dma_controller_init();
 

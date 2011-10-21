@@ -59,10 +59,10 @@ static inline uintptr_t addr_to_phys(const void *addr)
 	return (result | ((uintptr_t)addr & 0xfff));
 }
 /*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
+/** DMA mallocator simulator
  *
  * @param[in] size Size of the required memory space
- * @return Address of the alligned and big enough memory place, NULL on failure.
+ * @return Address of the aligned and big enough memory place, NULL on failure.
  */
 static inline void * malloc24(size_t size)
 {
@@ -78,9 +78,9 @@ static inline void * malloc24(size_t size)
 	return memalign(DMA_ALIGNENT, size);
 }
 /*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
+/** DMA mallocator simulator
  *
- * @param[in] addr Address of the place allocated by malloc32
+ * @param[in] addr Address of the place allocated by malloc24
  */
 static inline void free24(void *addr)
 	{ free(addr); }
