@@ -79,7 +79,10 @@ int main(int argc, char *argv[])
 /*----------------------------------------------------------------------------*/
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
-	ddf_log_note("SB16 IRQ handler.\n");
+	assert(dev);
+	sb16_drv_t *sb = dev->driver_data;
+	assert(sb);
+	sb16_interrupt(sb);
 }
 /*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of SB16.

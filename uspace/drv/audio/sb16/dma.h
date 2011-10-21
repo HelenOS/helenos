@@ -40,7 +40,7 @@
 #include <mem.h>
 #include <as.h>
 
-#define DMA_ALIGNENT 65536
+#define DMA_ALIGNENT 1024
 
 /** Get physical address translation
  *
@@ -73,8 +73,6 @@ static inline void * malloc24(size_t size)
 	 * memory will be continuous */
 	if (size > PAGE_SIZE)
 		return NULL;
-	/* Calculate alignment to make sure the block won't cross page
-	 * boundary */
 	return memalign(DMA_ALIGNENT, size);
 }
 /*----------------------------------------------------------------------------*/

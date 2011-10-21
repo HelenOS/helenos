@@ -52,6 +52,7 @@ typedef struct sb16_drv {
 irq_code_t * sb16_irq_code(void);
 int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size);
 int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size);
+void sb16_interrupt(sb16_drv_t *drv);
 
 #endif
 /**

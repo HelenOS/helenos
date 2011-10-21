@@ -43,6 +43,8 @@ typedef struct sb16_regs {
 	ioport8_t afm_address_status;
 	ioport8_t afm_data;
 	ioport8_t mixer_address;
+#define MIXER_IRQ_ADDRESS 0x82 /* The Interrupt Status register, addressed as
+                                * register 82h on the Mixer register map p.27 */
 	ioport8_t mixer_data;
 	ioport8_t dsp_reset;
 	ioport8_t __reserved1; /* 0x7 */
@@ -55,7 +57,7 @@ typedef struct sb16_regs {
 	ioport8_t __reserved3; /*0xd*/
 	ioport8_t dsp_read_status; /* Bit 7 */
 #define DSP_READ_READY (1 << 7)
-	ioport8_t __reserved4; /*0xf*/
+	ioport8_t dma16_ack; /*0xf*/
 	ioport8_t cd_command_data;
 	ioport8_t cd_status;
 	ioport8_t cd_reset;

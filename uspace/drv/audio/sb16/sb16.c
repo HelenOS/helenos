@@ -95,5 +95,26 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 /*----------------------------------------------------------------------------*/
 int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size)
 {
+	drv->mpu_regs = NULL;
 	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+void sb16_interrupt(sb16_drv_t *drv)
+{
+	assert(drv);
+	ddf_log_note("SB16 interrupt.\n");
+	/* The acknowledgment of interrupts on DSP version 4.xx is different;
+	 * It can contain MPU-401 indicator and DMA16 transfers are acked
+	 * differently */
+	if (drv->dsp.version.major >= 4) {
+		pio_write_8(&drv->regs->mixer_address, MIXER_IRQ_ADDRESS);
+		const uint8_t irq_mask = pio_read_8(&drv->regs->mixer_data);
+		ddf_log_note("SB16 IRQ mask %hhx.\n", irq_mask);
+		/* Third bit is MPU-401 interrupt */
+		if (irq_mask & 0x4) {
+			return;
+		}
+	}
+	sb_dsp_interrupt(&drv->dsp);
+
 }

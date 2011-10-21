@@ -41,6 +41,7 @@
 #include "dsp_commands.h"
 #include "dsp.h"
 
+#define BUFFER_SIZE (PAGE_SIZE / 4)
 
 #ifndef DSP_RETRY_COUNT
 #define DSP_RETRY_COUNT 100
@@ -95,18 +96,25 @@ static inline void sb_dsp_reset(sb_dsp_t *dsp)
 static inline int sb_setup_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	uint8_t *buffer = malloc24(PAGE_SIZE);
+	uint8_t *buffer = malloc24(BUFFER_SIZE);
+	if (buffer == NULL) {
+		ddf_log_error("Failed to allocate buffer.\n");
+		return ENOMEM;
+	}
+
 
 	const uintptr_t pa = addr_to_phys(buffer);
+	assert(pa < (1 << 25));
+//	assert((pa & 0xffff) == 0);
 	/* Set 16 bit channel */
-	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, PAGE_SIZE);
+	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, BUFFER_SIZE);
 	if (ret == EOK) {
 		dsp->buffer.buffer_data = buffer;
 		dsp->buffer.buffer_position = buffer;
-		dsp->buffer.buffer_size = PAGE_SIZE;
+		dsp->buffer.buffer_size = BUFFER_SIZE;
 		dma_prepare_channel(SB_DMA_CHAN_16, false, true, BLOCK_DMA);
 		/* Set 8bit channel */
-		const int ret = dma_setup_channel(SB_DMA_CHAN_8, pa, PAGE_SIZE);
+		const int ret = dma_setup_channel(SB_DMA_CHAN_8, pa, BUFFER_SIZE);
 		if (ret == EOK) {
 			dma_prepare_channel(
 			    SB_DMA_CHAN_8, false, true, BLOCK_DMA);
@@ -151,6 +159,18 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
 	sb_dsp_read(dsp, &dsp->version.minor);
 
 	return ret;
+}
+/*----------------------------------------------------------------------------*/
+void sb_dsp_interrupt(sb_dsp_t *dsp)
+{
+	assert(dsp);
+	/* We don't really care about the mode of transport, so ack both */
+	if (dsp->version.major >= 4) {
+		/* ACK dma16 transfer interrupt */
+		pio_read_8(&dsp->regs->dma16_ack);
+	}
+	/* ACK dma8 transfer interrupt */
+	pio_read_8(&dsp->regs->dsp_read_status);
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
