@@ -56,7 +56,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs);
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
     unsigned sample_rate, unsigned channels, unsigned bit_depth);
 int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
-    unsigned sample_rate, unsigned channels, unsigned bit_depth);
+    uint16_t sample_rate, unsigned channels, unsigned bit_depth);
 
 #endif
 /**

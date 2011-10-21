@@ -44,7 +44,8 @@ typedef enum {
 
 int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size);
 
-int dma_prepare_channel(unsigned channel, bool write, transfer_mode_t mode);
+int dma_prepare_channel(
+    unsigned channel, bool write, bool auto_mode, transfer_mode_t mode);
 
 #endif
 /**

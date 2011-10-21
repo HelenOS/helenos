@@ -66,11 +66,13 @@ typedef struct dma_controller_regs_first {
 	uint8_t mode;
 #define DMA_MODE_CHAN_SELECT_MASK (0x3)
 #define DMA_MODE_CHAN_SELECT_SHIFT (0)
+#define DMA_MODE_CHAN_TO_REG(x) \
+    (((x % 4) & DMA_MODE_CHAN_SELECT_MASK) << DMA_MODE_CHAN_SELECT_SHIFT)
 #define DMA_MODE_CHAN_TRA_MASK (0x3)
 #define DMA_MODE_CHAN_TRA_SHIFT (2)
 #define DMA_MODE_CHAN_TRA_SELF_TEST (0)
-#define DMA_MODE_CHAN_TRA_WRITE (1)
-#define DMA_MODE_CHAN_TRA_READ (2)
+#define DMA_MODE_CHAN_TRA_WRITE (0x1)
+#define DMA_MODE_CHAN_TRA_READ (0x2)
 #define DMA_MODE_CHAN_AUTO_FLAG (1 << 4)
 #define DMA_MODE_CHAN_DOWN_FLAG (1 << 5)
 #define DMA_MODE_CHAN_MOD_MASK (0x3)
@@ -215,7 +217,6 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 {
 	if (channel == 0 || channel == 4)
 		return ENOTSUP;
-
 	if (channel > 7)
 		return ENOENT;
 
@@ -266,12 +267,37 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 
 }
 /*----------------------------------------------------------------------------*/
-int dma_prepare_channel(unsigned channel, bool write, transfer_mode_t mode)
+int dma_prepare_channel(
+    unsigned channel, bool write, bool auto_mode, transfer_mode_t mode)
 {
+	if (channel == 0 || channel == 4)
+		return ENOTSUP;
+	if (channel > 7)
+		return ENOENT;
+
 	if (!controller_8237.initialized)
 		return EIO;
 
-	return ENOTSUP;
+	dma_channel_t dma_channel = controller_8237.channels[channel];
+
+	/* Mask DMA request */
+	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
+	    | DMA_SINGLE_MASK_MASKED_FLAG;
+	pio_write_8(dma_channel.single_mask_address, value);
+
+	/* Set DMA mode */
+	value = DMA_MODE_CHAN_TO_REG(channel)
+	    | ((write ? DMA_MODE_CHAN_TRA_WRITE : DMA_MODE_CHAN_TRA_READ)
+	        << DMA_MODE_CHAN_TRA_SHIFT)
+	    | (auto_mode ? DMA_MODE_CHAN_AUTO_FLAG : 0)
+	    | (mode << DMA_MODE_CHAN_MOD_SHIFT);
+	pio_write_8(dma_channel.mode_address, value);
+
+	/* Unmask DMA request */
+	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
+	pio_write_8(dma_channel.single_mask_address, value);
+
+	return EOK;
 }
 /**
  * @}

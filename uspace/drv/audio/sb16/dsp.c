@@ -98,17 +98,33 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 	uint8_t *buffer = malloc24(PAGE_SIZE);
 
 	const uintptr_t pa = addr_to_phys(buffer);
+	/* Set 16 bit channel */
 	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, PAGE_SIZE);
 	if (ret == EOK) {
 		dsp->buffer.buffer_data = buffer;
 		dsp->buffer.buffer_position = buffer;
 		dsp->buffer.buffer_size = PAGE_SIZE;
+		dma_prepare_channel(SB_DMA_CHAN_16, false, true, BLOCK_DMA);
+		/* Set 8bit channel */
+		const int ret = dma_setup_channel(SB_DMA_CHAN_8, pa, PAGE_SIZE);
+		if (ret == EOK) {
+			dma_prepare_channel(
+			    SB_DMA_CHAN_8, false, true, BLOCK_DMA);
+		}
 	} else {
 		ddf_log_error("Failed to setup DMA buffer %s.\n",
 		    str_error(ret));
 		free24(buffer);
 	}
 	return ret;
+}
+/*----------------------------------------------------------------------------*/
+static inline void sb_clear_buffer(sb_dsp_t *dsp)
+{
+	free24(dsp->buffer.buffer_data);
+	dsp->buffer.buffer_data = NULL;
+	dsp->buffer.buffer_position = NULL;
+	dsp->buffer.buffer_size = 0;
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
@@ -154,7 +170,7 @@ int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
-    unsigned sampling_rate, unsigned channels, unsigned bit_depth)
+    uint16_t sampling_rate, unsigned channels, unsigned bit_depth)
 {
 	assert(dsp);
 	if (!data)
