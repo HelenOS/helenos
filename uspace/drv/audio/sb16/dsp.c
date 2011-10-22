@@ -113,7 +113,7 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 		dsp->buffer.data = buffer;
 		dsp->buffer.position = buffer;
 		dsp->buffer.size = BUFFER_SIZE;
-		memset(buffer, 0x8f, BUFFER_SIZE);
+		bzero(buffer, BUFFER_SIZE);
 		dma_prepare_channel(SB_DMA_CHAN_16, false, true, BLOCK_DMA);
 		/* Set 8bit channel */
 		const int ret = dma_setup_channel(SB_DMA_CHAN_8, pa, BUFFER_SIZE);
@@ -195,8 +195,8 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		dsp->buffer.position += remain_size;
 		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
 		sb_dsp_write(dsp, dsp->playing.mode);
-		sb_dsp_write(dsp, remain_size & 0xff);
-		sb_dsp_write(dsp, remain_size >> 8);
+		sb_dsp_write(dsp, (remain_size - 1) & 0xff);
+		sb_dsp_write(dsp, (remain_size - 1) >> 8);
 		return;
 	}
 	ddf_log_note("Playing full block.\n");
@@ -261,8 +261,8 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 
 	sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
 	sb_dsp_write(dsp, dsp->playing.mode);
-	sb_dsp_write(dsp, play_size & 0xff);
-	sb_dsp_write(dsp, play_size >> 8);
+	sb_dsp_write(dsp, (play_size - 1) & 0xff);
+	sb_dsp_write(dsp, (play_size - 1) >> 8);
 
 	return EOK;
 }
