@@ -195,11 +195,13 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	    ++interrupt_count, remain_size);
 	if (remain_size == 0) {
 		ddf_log_note("Nothing more to play");
-		sb_dsp_write(dsp, DMA_16B_EXIT);
+		if (AUTO_DMA_MODE) {
+			sb_dsp_write(dsp, DMA_16B_EXIT);
+		}
 		sb_clear_buffer(dsp);
 		return;
 	}
-	if (remain_size < PLAY_BLOCK_SIZE) {
+	if (remain_size <= PLAY_BLOCK_SIZE) {
 		ddf_log_note("Last %zu bytes to play.\n", remain_size);
 		/* This is the last block */
 		memcpy(dsp->buffer.position, dsp->playing.position, remain_size);
@@ -263,17 +265,20 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 
 	const size_t play_size =
 	    size < PLAY_BLOCK_SIZE ? size : PLAY_BLOCK_SIZE;
-	memcpy(dsp->buffer.data, dsp->playing.data, play_size);
+	const size_t copy_size =
+	    size < BUFFER_SIZE ? size : BUFFER_SIZE;
 
-	ddf_log_debug("Playing sound: %zu(%zu) bytes.\n", play_size, size);
 
 	dsp->playing.data = data;
-	dsp->playing.position = data + play_size;
+	dsp->playing.position = data + copy_size;
 	dsp->playing.size = size;
 	dsp->playing.mode =
 	    (bit_depth == 16 ? 0x10 : 0) | (channels == 2 ? 0x20 : 0);
-
 	ddf_log_debug("Setting mode %hhx.\n", dsp->playing.mode);
+
+	ddf_log_debug("Playing sound: %zu(%zu) bytes.\n", play_size, size);
+	memcpy(dsp->buffer.data, dsp->playing.data, copy_size);
+
 	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
 	sb_dsp_write(dsp, sampling_rate >> 8);
 	sb_dsp_write(dsp, sampling_rate & 0xff);
