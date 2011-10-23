@@ -42,7 +42,7 @@
 #define ddf_log_warning(msg...) ddf_msg(LVL_WARN, msg)
 #define ddf_log_note(msg...) ddf_msg(LVL_NOTE, msg)
 #define ddf_log_debug(msg...) ddf_msg(LVL_DEBUG, msg)
-#define ddf_log_debug2(msg...) ddf_msg(LVL_DEBUG2, msg)
+#define ddf_log_verbose(msg...) ddf_msg(LVL_DEBUG2, msg)
 
 #endif
 /**
