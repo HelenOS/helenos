@@ -118,6 +118,7 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	if (conn->snd_buf_fin && data_size + 1 == xfer_seqlen) {
 		/* We are sending out FIN */
 		ctrl = CTL_FIN;
+		tcp_conn_fin_sent(conn);
 	} else {
 		ctrl = 0;
 	}

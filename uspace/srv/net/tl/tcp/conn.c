@@ -131,6 +131,28 @@ void tcp_conn_sync(tcp_conn_t *conn)
 	conn->cstate = st_syn_sent;
 }
 
+/** FIN has been sent.
+ *
+ * This function should be called when FIN is sent over the connection,
+ * as a result the connection state is changed appropriately.
+ */
+void tcp_conn_fin_sent(tcp_conn_t *conn)
+{
+	switch (conn->cstate) {
+	case st_syn_received:
+	case st_established:
+		log_msg(LVL_DEBUG, "FIN sent -> Fin-Wait-1");
+		conn->cstate = st_fin_wait_1;
+		break;
+	case st_close_wait:
+		log_msg(LVL_DEBUG, "FIN sent -> Close-Wait");
+		conn->cstate = st_last_ack;
+		break;
+	default:
+		assert(false);
+	}
+}
+
 /** Compare two sockets.
  *
  * Two sockets are equal if the address is equal and the port number
@@ -733,7 +755,36 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		conn->rcv_nxt++;
 		conn->rcv_wnd--;
 
-		/* TODO Change connection state */
+		/* Change connection state */
+		switch (conn->cstate) {
+		case st_listen:
+		case st_syn_sent:
+		case st_closed:
+			/* Connection not synchronized */
+			assert(false);
+		case st_syn_received:
+		case st_established:
+			log_msg(LVL_DEBUG, "FIN received -> Close-Wait");
+			conn->cstate = st_close_wait;
+			break;
+		case st_fin_wait_1:
+			log_msg(LVL_DEBUG, "FIN received -> Closing");
+			conn->cstate = st_closing;
+			break;
+		case st_fin_wait_2:
+			log_msg(LVL_DEBUG, "FIN received -> Time-Wait");
+			conn->cstate = st_time_wait;
+			/* XXX start time-wait timer */
+			break;
+		case st_close_wait:
+		case st_closing:
+		case st_last_ack:
+			/* Do nothing */
+			break;
+		case st_time_wait:
+			/* XXX Restart the 2 MSL time-wait timeout */
+			break;
+		}
 
 		/* Add FIN to the receive buffer */
 		fibril_mutex_lock(&conn->rcv_buf_lock);

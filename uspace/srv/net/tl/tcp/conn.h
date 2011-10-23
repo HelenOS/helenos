@@ -41,6 +41,7 @@
 extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);
 void tcp_conn_add(tcp_conn_t *);
 extern void tcp_conn_sync(tcp_conn_t *);
+extern void tcp_conn_fin_sent(tcp_conn_t *);
 extern tcp_conn_t *tcp_conn_find(tcp_sockpair_t *);
 extern bool tcp_conn_got_syn(tcp_conn_t *);
 extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
