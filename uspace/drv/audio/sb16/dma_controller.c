@@ -36,6 +36,7 @@
 #include <ddi.h>
 #include <libarch/ddi.h>
 
+#include "ddf_log.h"
 #include "dma_controller.h"
 
 #define DMA_CONTROLLER_FIRST_BASE ((void*)0x0)
@@ -75,12 +76,12 @@ typedef struct dma_controller_regs_first {
 #define DMA_MODE_CHAN_TRA_READ (0x2)
 #define DMA_MODE_CHAN_AUTO_FLAG (1 << 4)
 #define DMA_MODE_CHAN_DOWN_FLAG (1 << 5)
-#define DMA_MODE_CHAN_MOD_MASK (0x3)
-#define DMA_MODE_CHAN_MOD_SHIFT (6)
-#define DMA_MODE_CHAN_MOD_DEMAND (0)
-#define DMA_MODE_CHAN_MOD_SINGLE (1)
-#define DMA_MODE_CHAN_MOD_BLOCK (2)
-#define DMA_MODE_CHAN_MOD_CASCADE (3)
+#define DMA_MODE_CHAN_MODE_MASK (0x3)
+#define DMA_MODE_CHAN_MODE_SHIFT (6)
+#define DMA_MODE_CHAN_MODE_DEMAND (0)
+#define DMA_MODE_CHAN_MODE_SINGLE (1)
+#define DMA_MODE_CHAN_MODE_BLOCK (2)
+#define DMA_MODE_CHAN_MODE_CASCADE (3)
 
 	uint8_t flip_flop;
 	uint8_t master_reset; /* Intermediate is not implemented on PCs */
@@ -162,6 +163,8 @@ typedef struct dma_controller {
 	bool initialized;
 } dma_controller_t;
 
+
+/* http://zet.aluzina.org/index.php/8237_DMA_controller#DMA_Channel_Registers */
 static dma_controller_t controller_8237 = {
 	.channels = {
 	    /* The first chip */
@@ -226,8 +229,20 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 	if (!controller_8237.initialized)
 		return EIO;
 
-	dma_channel_t dma_channel = controller_8237.channels[channel];
+	/* 16 bit transfers are a bit special */
+	ddf_log_debug("Unspoiled address and size: %p(%zu).\n", pa, size);
+	if (channel > 4) {
+		/* Size is the count of 16bit words */
+		assert(size % 2 == 0);
+		size /= 2;
+		/* Address is fun: lower 16bits need to be shifted by 1 */
+		pa = ((pa & 0xffff) >> 1) | (pa & 0xff0000);
+	}
 
+	const dma_channel_t dma_channel = controller_8237.channels[channel];
+
+	ddf_log_debug("Setting channel %u, to address %p(%zu).\n",
+	    channel, pa, size);
 	/* Mask DMA request */
 	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
 	    | DMA_SINGLE_MASK_MASKED_FLAG;
@@ -238,25 +253,30 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 
 	/* Low byte */
 	value = pa & 0xff;
+	ddf_log_verbose("Writing address low byte: %hhx.\n", value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* High byte */
 	value = (pa >> 8) & 0xff;
+	ddf_log_verbose("Writing address high byte: %hhx.\n", value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* Page address - third byte */
 	value = (pa >> 16) & 0xff;
+	ddf_log_verbose("Writing address page byte: %hhx.\n", value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* Set size -- reset flip-flop */
 	pio_write_8(dma_channel.flip_flop_address, 1);
 
 	/* Low byte */
-	value = size & 0xff;
+	value = (size - 1) & 0xff;
+	ddf_log_verbose("Writing size low byte: %hhx.\n", value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* High byte */
-	value = (size >> 8) & 0xff;
+	value = ((size - 1) >> 8) & 0xff;
+	ddf_log_verbose("Writing size high byte: %hhx.\n", value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* Unmask DMA request */
@@ -264,7 +284,6 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 	pio_write_8(dma_channel.single_mask_address, value);
 
 	return EOK;
-
 }
 /*----------------------------------------------------------------------------*/
 int dma_prepare_channel(
@@ -290,7 +309,8 @@ int dma_prepare_channel(
 	    | ((write ? DMA_MODE_CHAN_TRA_WRITE : DMA_MODE_CHAN_TRA_READ)
 	        << DMA_MODE_CHAN_TRA_SHIFT)
 	    | (auto_mode ? DMA_MODE_CHAN_AUTO_FLAG : 0)
-	    | (mode << DMA_MODE_CHAN_MOD_SHIFT);
+	    | (mode << DMA_MODE_CHAN_MODE_SHIFT);
+	ddf_log_verbose("Setting mode: %hhx.\n", value);
 	pio_write_8(dma_channel.mode_address, value);
 
 	/* Unmask DMA request */
