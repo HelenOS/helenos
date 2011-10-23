@@ -64,6 +64,8 @@ void tcp_iqueue_init(tcp_iqueue_t *iqueue, tcp_conn_t *conn)
 void tcp_iqueue_insert_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 {
 	tcp_iqueue_entry_t *iqe;
+	tcp_iqueue_entry_t *qe;
+	link_t *link;
 	log_msg(LVL_DEBUG, "tcp_iqueue_insert_seg()");
 
 	iqe = calloc(1, sizeof(tcp_iqueue_entry_t));
@@ -74,8 +76,21 @@ void tcp_iqueue_insert_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 
 	iqe->seg = seg;
 
-	/* XXX Sort by sequence number */
-	list_append(&iqe->link, &iqueue->list);
+	/* Sort by sequence number */
+
+	link = list_first(&iqueue->list);
+	while (link != NULL) {
+		qe = list_get_instance(link,
+		    tcp_iqueue_entry_t, link);
+
+		if (seq_no_seg_cmp(iqueue->conn, iqe->seg, qe->seg) >= 0)
+			break;
+	}
+
+	if (link != NULL)
+		list_insert_before(&iqe->link, &qe->link);
+	else
+		list_append(&iqe->link, &iqueue->list);
 }
 
 /** Get next ready segment from incoming queue.

@@ -177,7 +177,7 @@ uint32_t seq_no_control_len(tcp_control_t ctrl)
 }
 
 /** Calculate the amount of trim needed to fit segment in receive window. */
-extern void seq_no_seg_trim_calc(tcp_conn_t *conn, tcp_segment_t *seg,
+void seq_no_seg_trim_calc(tcp_conn_t *conn, tcp_segment_t *seg,
     uint32_t *left, uint32_t *right)
 {
 	assert(seq_no_segment_acceptable(conn, seg));
@@ -204,6 +204,32 @@ extern void seq_no_seg_trim_calc(tcp_conn_t *conn, tcp_segment_t *seg,
 		*right = (seg->seq + seg->len) -
 		    (conn->rcv_nxt + conn->rcv_wnd);
 	}
+}
+
+/** Segment order comparison.
+ *
+ * Compare sequence order of two acceptable segments.
+ *
+ * @param conn		Connection
+ * @param sa		Segment A
+ * @param sb		Segment B
+ *
+ * @return		-1, 0, 1, resp. if A < B, A == B, A > B in terms
+ *			of sequence order of the beginning of the segment.
+ */
+int seq_no_seg_cmp(tcp_conn_t *conn, tcp_segment_t *sa, tcp_segment_t *sb)
+{
+	assert(seq_no_segment_acceptable(conn, sa));
+	assert(seq_no_segment_acceptable(conn, sb));
+
+	if (seq_no_lt_le(sa->seq, sb->seq, conn->rcv_nxt + conn->rcv_wnd))
+		return -1;
+
+	if (seq_no_lt_le(sb->seq, sa->seq, conn->rcv_nxt + conn->rcv_wnd))
+		return +1;
+
+	assert(sa->seq == sb->seq);
+	return 0;
 }
 
 /**

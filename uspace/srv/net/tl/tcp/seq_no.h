@@ -47,6 +47,7 @@ extern bool seq_no_segment_ready(tcp_conn_t *, tcp_segment_t *);
 extern bool seq_no_segment_acceptable(tcp_conn_t *, tcp_segment_t *);
 extern void seq_no_seg_trim_calc(tcp_conn_t *, tcp_segment_t *, uint32_t *,
     uint32_t *);
+extern int seq_no_seg_cmp(tcp_conn_t *, tcp_segment_t *, tcp_segment_t *);
 
 extern uint32_t seq_no_control_len(tcp_control_t);
 
