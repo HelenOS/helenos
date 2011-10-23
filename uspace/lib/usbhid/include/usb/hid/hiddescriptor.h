@@ -77,8 +77,6 @@ void usb_hid_descriptor_print_list(list_t *list);
 
 void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item);
 
-void usb_hid_free_report_list(list_t *list);
-
 usb_hid_report_item_t *usb_hid_report_item_clone(
 		const usb_hid_report_item_t *item);
 

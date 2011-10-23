@@ -973,42 +973,6 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 }
 /*---------------------------------------------------------------------------*/
 
-/**
- * Releases whole linked list of report items
- *
- * @param list List of report descriptor items (usb_hid_report_item_t)
- * @return void
- */
-void usb_hid_free_report_list(list_t *list)
-{
-	return; /* XXX What's this? */
-	
-/*	usb_hid_report_item_t *report_item;
-	link_t *next;
-	
-	if(list == NULL || list_empty(list)) {
-	    return;
-	}
-	
-	next = list->head.next;
-	while (next != &list->head) {
-		report_item = list_get_instance(next, usb_hid_report_item_t,
-		    rpath_items_link);
-
-		while(!list_empty(&report_item->usage_path->link)) {
-			usb_hid_report_remove_last_item(report_item->usage_path);
-		}
-
-		
-	    next = next->next;
-	    
-	    free(report_item);
-	}
-	
-	return;
-	*/
-}
-/*---------------------------------------------------------------------------*/
 
 /** Frees the HID report descriptor parser structure 
  *
