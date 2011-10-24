@@ -72,6 +72,11 @@ static void test_srv(void *arg)
 		async_usleep(1000*1000*2);
 	}
 
+	async_usleep(1000*1000);
+
+	printf("test_srv() close connection\n");
+	tcp_uc_close(conn);
+
 	printf("test_srv() terminating\n");
 }
 

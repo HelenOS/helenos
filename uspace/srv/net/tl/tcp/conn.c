@@ -119,6 +119,15 @@ void tcp_conn_add(tcp_conn_t *conn)
 	list_append(&conn->link, &conn_list);
 }
 
+/** Delist connection.
+ *
+ * Remove connection from the connection map.
+ */
+void tcp_conn_remove(tcp_conn_t *conn)
+{
+	list_remove(&conn->link);
+}
+
 /** Synchronize connection.
  *
  * This is the first step of an active connection attempt,
@@ -149,7 +158,7 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 		conn->cstate = st_fin_wait_1;
 		break;
 	case st_close_wait:
-		log_msg(LVL_DEBUG, "FIN sent -> Close-Wait");
+		log_msg(LVL_DEBUG, "FIN sent -> Last-Ack");
 		conn->cstate = st_last_ack;
 		break;
 	default:
@@ -595,7 +604,13 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
 		return cp_done;
 
-	/* TODO */
+	if (conn->fin_is_acked) {
+		log_msg(LVL_DEBUG, " FIN acked -> Closed");
+		tcp_conn_remove(conn);
+		conn->cstate = st_closed;
+		return cp_done;
+	}
+
 	return cp_continue;
 }
 
@@ -761,6 +776,9 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* Only process FIN if no text is left in segment. */
 	if (tcp_segment_text_size(seg) == 0 && (seg->ctrl & CTL_FIN) != 0) {
 		log_msg(LVL_DEBUG, " - FIN found in segment.");
+
+		/* Send ACK */
+		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 
 		conn->rcv_nxt++;
 		conn->rcv_wnd--;
