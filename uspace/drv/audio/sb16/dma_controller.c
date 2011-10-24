@@ -216,7 +216,8 @@ static inline int dma_controller_init(dma_controller_t *controller)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int dma_setup_channel(unsigned channel, uintptr_t pa, uint16_t size)
+int dma_setup_channel(
+    unsigned channel, uintptr_t pa, uint16_t size, uint8_t mode)
 {
 	if (channel == 0 || channel == 4)
 		return ENOTSUP;
@@ -241,12 +242,17 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, uint16_t size)
 
 	const dma_channel_t dma_channel = controller_8237.channels[channel];
 
-	ddf_log_debug("Setting channel %u, to address %p(%zu).\n",
-	    channel, pa, size);
+	ddf_log_debug("Setting channel %u, to address %p(%zu), mode %hhx.\n",
+	    channel, pa, size, mode);
+
 	/* Mask DMA request */
 	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
 	    | DMA_SINGLE_MASK_MASKED_FLAG;
 	pio_write_8(dma_channel.single_mask_address, value);
+
+	/* Set mode */
+	value = DMA_MODE_CHAN_TO_REG(channel) | mode;
+	pio_write_8(dma_channel.mode_address, value);
 
 	/* Set address -- reset flip-flop*/
 	pio_write_8(dma_channel.flip_flop_address, 0);
@@ -278,40 +284,6 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, uint16_t size)
 	value = ((size - 1) >> 8) & 0xff;
 	ddf_log_verbose("Writing size high byte: %hhx.\n", value);
 	pio_write_8(dma_channel.offset_reg_address, value);
-
-	/* Unmask DMA request */
-	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
-	pio_write_8(dma_channel.single_mask_address, value);
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int dma_prepare_channel(
-    unsigned channel, bool write, bool auto_mode, transfer_mode_t mode)
-{
-	if (channel == 0 || channel == 4)
-		return ENOTSUP;
-	if (channel > 7)
-		return ENOENT;
-
-	if (!controller_8237.initialized)
-		return EIO;
-
-	const dma_channel_t dma_channel = controller_8237.channels[channel];
-
-	/* Mask DMA request */
-	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
-	    | DMA_SINGLE_MASK_MASKED_FLAG;
-	pio_write_8(dma_channel.single_mask_address, value);
-
-	/* Set DMA mode */
-	value = DMA_MODE_CHAN_TO_REG(channel)
-	    | ((write ? DMA_MODE_CHAN_TRA_WRITE : DMA_MODE_CHAN_TRA_READ)
-	        << DMA_MODE_CHAN_TRA_SHIFT)
-	    | (auto_mode ? DMA_MODE_CHAN_AUTO_FLAG : 0)
-	    | (mode << DMA_MODE_CHAN_MODE_SHIFT);
-	ddf_log_verbose("Setting DMA mode: %hhx.\n", value);
-	pio_write_8(dma_channel.mode_address, value);
 
 	/* Unmask DMA request */
 	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);

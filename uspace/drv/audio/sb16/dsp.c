@@ -114,25 +114,14 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 
 	const uintptr_t pa = addr_to_phys(buffer);
 	assert(pa < (1 << 25));
-//	assert((pa & 0xffff) == 0);
 	/* Set 16 bit channel */
-	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, BUFFER_SIZE);
+	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, BUFFER_SIZE,
+	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_SINGLE);
 	if (ret == EOK) {
 		dsp->buffer.data = buffer;
 		dsp->buffer.position = buffer;
 		dsp->buffer.size = BUFFER_SIZE;
 		bzero(buffer, BUFFER_SIZE);
-		dma_prepare_channel(
-		    SB_DMA_CHAN_16, false, AUTO_DMA_MODE, BLOCK_DMA);
-		/* Set 8bit channel */
-		const int ret = dma_setup_channel(SB_DMA_CHAN_8, pa, BUFFER_SIZE);
-		if (ret == EOK) {
-			dma_prepare_channel(
-			    SB_DMA_CHAN_8, false, AUTO_DMA_MODE, BLOCK_DMA);
-		} else {
-			ddf_log_warning("Failed to setup DMA8 channel: %s.\n",
-			    str_error(ret));
-		}
 	} else {
 		ddf_log_error("Failed to setup DMA16 channel %s.\n",
 		    str_error(ret));
@@ -274,7 +263,7 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	dsp->playing.size = size;
 	dsp->playing.mode =
 	    (bit_depth == 16 ? 0x10 : 0) | (channels == 2 ? 0x20 : 0);
-	ddf_log_debug("Setting mode %hhx.\n", dsp->playing.mode);
+	ddf_log_debug("Setting DSP mode %hhx.\n", dsp->playing.mode);
 
 	ddf_log_debug("Playing sound: %zu(%zu) bytes.\n", play_size, size);
 	memcpy(dsp->buffer.data, dsp->playing.data, copy_size);
@@ -286,10 +275,10 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	ddf_log_debug("Set sampling rate %hhx:%hhx.\n",
 	    sampling_rate >> 8, sampling_rate & 0xff);
 
-	if (AUTO_DMA_MODE) {
-		sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
-	} else {
+	if (!AUTO_DMA_MODE || play_size == size) {
 		sb_dsp_write(dsp, SINGLE_DMA_16B_DA_FIFO);
+	} else {
+		sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
 	}
 	sb_dsp_write(dsp, dsp->playing.mode);
 	sb_dsp_write(dsp, (play_size - 1) & 0xff);

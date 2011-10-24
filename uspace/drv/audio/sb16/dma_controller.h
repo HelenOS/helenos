@@ -42,11 +42,15 @@ typedef enum {
 	BLOCK_DMA = 0x2,
 } transfer_mode_t;
 
-int dma_setup_channel(unsigned channel, uintptr_t pa, uint16_t size);
+#define DMA_MODE_WRITE (1 << 2)
+#define DMA_MODE_READ (1 << 3)
+#define DMA_MODE_AUTO (1 << 4)
+#define DMA_MODE_DOWN (1 << 5)
+#define DMA_MODE_SINGLE (1 << 6)
+#define DMA_MODE_BLOCK (1 << 7)
 
-int dma_prepare_channel(
-    unsigned channel, bool write, bool auto_mode, transfer_mode_t mode);
-
+int dma_setup_channel(
+    unsigned channel, uintptr_t pa, uint16_t size, uint8_t mode);
 #endif
 /**
  * @}
