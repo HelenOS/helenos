@@ -161,6 +161,22 @@ typedef enum dsp_command {
 	DMA_16B_CONTINUE = 0xd6, /* Resume requests paused by DMA_16B_PAUSE */
 	DMA_16B_EXIT = 0xd9, /* Ends DMA transfer and terminates I/O process */
 } dsp_command_t;
+/*----------------------------------------------------------------------------*/
+#define DSP_MODE_16BIT 0x10
+#define DSP_MODE_STEREO 0x20
+
+static inline const char * mode_to_str(uint8_t mode)
+{
+	if (mode & 0xcf)
+		return "unknown";
+	static const char * names[] = {
+		"unsigned mono (8bit)",
+		"signed mono (16bit)",
+		"unsigned stereo (8bit)",
+		"signed stereo (16bit)",
+	};
+	return names[mode >> 4];
+}
 
 #endif
 /**

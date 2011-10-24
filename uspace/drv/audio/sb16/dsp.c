@@ -42,9 +42,6 @@
 #include "dsp_commands.h"
 #include "dsp.h"
 
-#define PLAYBACK_16BIT 0x10
-#define PLAYBACK_STEREO 0x20
-
 #define BUFFER_SIZE (PAGE_SIZE / 4)
 #define PLAY_BLOCK_SIZE (BUFFER_SIZE / 2)
 
@@ -144,7 +141,7 @@ static inline void sb_clear_buffer(sb_dsp_t *dsp)
 /*----------------------------------------------------------------------------*/
 static inline size_t sample_count(uint8_t mode, size_t byte_count)
 {
-	if (mode & PLAYBACK_16BIT) {
+	if (mode & DSP_MODE_16BIT) {
 		return byte_count / 2;
 	}
 	return byte_count;
@@ -278,14 +275,14 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	dsp->playing.size = size;
 	dsp->playing.mode = 0;
 	if (sample_size == 16)
-		dsp->playing.mode |= PLAYBACK_16BIT;
+		dsp->playing.mode |= DSP_MODE_16BIT;
 	if (channels == 2)
-		dsp->playing.mode |= PLAYBACK_STEREO;
+		dsp->playing.mode |= DSP_MODE_STEREO;
 
 	const size_t samples = sample_count(dsp->playing.mode, play_size);
 
-	ddf_log_debug("Playing sound(%hhx): %zu(%zu) bytes => %zu samples.\n",
-	    dsp->playing.mode, play_size, size, samples);
+	ddf_log_debug("Playing %s sound: %zu(%zu) bytes => %zu samples.\n",
+	    mode_to_str(dsp->playing.mode), play_size, size, samples);
 
 	memcpy(dsp->buffer.data, dsp->playing.data, copy_size);
 	write_barrier();
