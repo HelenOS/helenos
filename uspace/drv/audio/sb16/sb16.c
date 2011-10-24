@@ -106,7 +106,7 @@ void sb16_interrupt(sb16_drv_t *drv)
 	 * It can contain MPU-401 indicator and DMA16 transfers are acked
 	 * differently */
 	if (drv->dsp.version.major >= 4) {
-		pio_write_8(&drv->regs->mixer_address, MIXER_IRQ_ADDRESS);
+		pio_write_8(&drv->regs->mixer_address, MIXER_IRQ_STATUS_ADDRESS);
 		const uint8_t irq_mask = pio_read_8(&drv->regs->mixer_data);
 		ddf_log_debug("SB16 IRQ mask %hhx.\n", irq_mask);
 		/* Third bit is MPU-401 interrupt */

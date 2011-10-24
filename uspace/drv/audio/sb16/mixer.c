@@ -33,8 +33,6 @@
 #include "ddf_log.h"
 #include "mixer.h"
 
-#define CT_MIXER_RESET_ADDRESS 0x00
-
 typedef struct channel {
 	uint8_t address;
 	unsigned shift;
@@ -185,10 +183,15 @@ int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 		return ENOTSUP;
 
 	if (type != SB_MIXER_NONE) {
-		pio_write_8(&regs->mixer_address, CT_MIXER_RESET_ADDRESS);
+		pio_write_8(&regs->mixer_address, MIXER_RESET_ADDRESS);
 		pio_write_8(&regs->mixer_data, 1);
 		sb_mixer_max_master_levels(mixer);
 	}
+	pio_write_8(&regs->mixer_address, MIXER_PNP_IRQ_ADDRESS);
+	const uint8_t irq = pio_read_8(&regs->mixer_data);
+	pio_write_8(&regs->mixer_address, MIXER_PNP_DMA_ADDRESS);
+	const uint8_t dma = pio_read_8(&regs->mixer_data);
+	ddf_log_debug("SB16 setup with IRQ 0x%hhx and DMA 0x%hhx.\n", irq, dma);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

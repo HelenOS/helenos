@@ -167,7 +167,7 @@ typedef struct dma_controller {
 /* http://zet.aluzina.org/index.php/8237_DMA_controller#DMA_Channel_Registers */
 static dma_controller_t controller_8237 = {
 	.channels = {
-	    /* The first chip */
+	    /* The first chip 8-bit */
 	    { (uint8_t*)0x00, (uint8_t*)0x01, (uint8_t*)0x87,
 	      (uint8_t*)0x0a, (uint8_t*)0x0b, (uint8_t*)0x0c, },
 	    { (uint8_t*)0x02, (uint8_t*)0x03, (uint8_t*)0x83,
@@ -177,7 +177,7 @@ static dma_controller_t controller_8237 = {
 	    { (uint8_t*)0x06, (uint8_t*)0x07, (uint8_t*)0x82,
 	      (uint8_t*)0x0a, (uint8_t*)0x0b, (uint8_t*)0x0c, },
 
-	    /* The second chip */
+	    /* The second chip 16-bit */
 	    { (uint8_t*)0xc0, (uint8_t*)0xc2, (uint8_t*)0x8f,
 	      (uint8_t*)0xd4, (uint8_t*)0xd6, (uint8_t*)0xd8, },
 	    { (uint8_t*)0xc4, (uint8_t*)0xc6, (uint8_t*)0x8b,
@@ -297,7 +297,7 @@ int dma_prepare_channel(
 	if (!controller_8237.initialized)
 		return EIO;
 
-	dma_channel_t dma_channel = controller_8237.channels[channel];
+	const dma_channel_t dma_channel = controller_8237.channels[channel];
 
 	/* Mask DMA request */
 	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel)
@@ -310,7 +310,7 @@ int dma_prepare_channel(
 	        << DMA_MODE_CHAN_TRA_SHIFT)
 	    | (auto_mode ? DMA_MODE_CHAN_AUTO_FLAG : 0)
 	    | (mode << DMA_MODE_CHAN_MODE_SHIFT);
-	ddf_log_verbose("Setting mode: %hhx.\n", value);
+	ddf_log_verbose("Setting DMA mode: %hhx.\n", value);
 	pio_write_8(dma_channel.mode_address, value);
 
 	/* Unmask DMA request */
