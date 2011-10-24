@@ -33,6 +33,7 @@
  */
 
 #include <libarch/ddi.h>
+#include <libarch/barrier.h>
 #include <str_error.h>
 
 #include "dma.h"
@@ -40,6 +41,9 @@
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
+
+#define PLAYBACK_16BIT 0x10
+#define PLAYBACK_STEREO 0x20
 
 #define BUFFER_SIZE (PAGE_SIZE / 4)
 #define PLAY_BLOCK_SIZE (BUFFER_SIZE / 2)
@@ -138,6 +142,14 @@ static inline void sb_clear_buffer(sb_dsp_t *dsp)
 	dsp->buffer.size = 0;
 }
 /*----------------------------------------------------------------------------*/
+static inline size_t sample_count(uint8_t mode, size_t byte_count)
+{
+	if (mode & PLAYBACK_16BIT) {
+		return byte_count / 2;
+	}
+	return byte_count;
+}
+/*----------------------------------------------------------------------------*/
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
 {
 	assert(dsp);
@@ -194,16 +206,20 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		ddf_log_note("Last %zu bytes to play.\n", remain_size);
 		/* This is the last block */
 		memcpy(dsp->buffer.position, dsp->playing.position, remain_size);
+		write_barrier();
 		dsp->playing.position += remain_size;
 		dsp->buffer.position += remain_size;
+		const size_t samples =
+		    sample_count(dsp->playing.mode, remain_size);
 		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
 		sb_dsp_write(dsp, dsp->playing.mode);
-		sb_dsp_write(dsp, (remain_size - 1) & 0xff);
-		sb_dsp_write(dsp, (remain_size - 1) >> 8);
+		sb_dsp_write(dsp, (samples - 1) & 0xff);
+		sb_dsp_write(dsp, (samples - 1) >> 8);
 		return;
 	}
 	ddf_log_note("Playing full block.\n");
 	memcpy(dsp->buffer.position, dsp->playing.position, PLAY_BLOCK_SIZE);
+	write_barrier();
 	dsp->playing.position += PLAY_BLOCK_SIZE;
 	dsp->buffer.position += PLAY_BLOCK_SIZE;
 	/* Wrap around */
@@ -235,14 +251,14 @@ int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
-    uint16_t sampling_rate, unsigned channels, unsigned bit_depth)
+    uint16_t sampling_rate, unsigned channels, unsigned sample_size)
 {
 	assert(dsp);
 	if (!data)
 		return EOK;
 
 	/* Check supported parameters */
-	if (bit_depth != 8 && bit_depth != 16)
+	if (sample_size != 8 && sample_size != 16)
 		return ENOTSUP;
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
@@ -257,22 +273,28 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	const size_t copy_size =
 	    size < BUFFER_SIZE ? size : BUFFER_SIZE;
 
-
 	dsp->playing.data = data;
 	dsp->playing.position = data + copy_size;
 	dsp->playing.size = size;
-	dsp->playing.mode =
-	    (bit_depth == 16 ? 0x10 : 0) | (channels == 2 ? 0x20 : 0);
-	ddf_log_debug("Setting DSP mode %hhx.\n", dsp->playing.mode);
+	dsp->playing.mode = 0;
+	if (sample_size == 16)
+		dsp->playing.mode |= PLAYBACK_16BIT;
+	if (channels == 2)
+		dsp->playing.mode |= PLAYBACK_STEREO;
 
-	ddf_log_debug("Playing sound: %zu(%zu) bytes.\n", play_size, size);
+	const size_t samples = sample_count(dsp->playing.mode, play_size);
+
+	ddf_log_debug("Playing sound(%hhx): %zu(%zu) bytes => %zu samples.\n",
+	    dsp->playing.mode, play_size, size, samples);
+
 	memcpy(dsp->buffer.data, dsp->playing.data, copy_size);
+	write_barrier();
 
 	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
 	sb_dsp_write(dsp, sampling_rate >> 8);
 	sb_dsp_write(dsp, sampling_rate & 0xff);
 
-	ddf_log_debug("Set sampling rate %hhx:%hhx.\n",
+	ddf_log_debug("Sampling rate: %hhx:%hhx.\n",
 	    sampling_rate >> 8, sampling_rate & 0xff);
 
 	if (!AUTO_DMA_MODE || play_size == size) {
@@ -281,8 +303,8 @@ int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 		sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
 	}
 	sb_dsp_write(dsp, dsp->playing.mode);
-	sb_dsp_write(dsp, (play_size - 1) & 0xff);
-	sb_dsp_write(dsp, (play_size - 1) >> 8);
+	sb_dsp_write(dsp, (samples - 1) & 0xff);
+	sb_dsp_write(dsp, (samples - 1) >> 8);
 
 	return EOK;
 }
