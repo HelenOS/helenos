@@ -61,14 +61,14 @@ typedef struct dma_controller_regs_first {
 #define DMA_SINGLE_MASK_CHAN_SEL_MASK (0x3)
 #define DMA_SINGLE_MASK_CHAN_SEL_SHIFT (0)
 #define DMA_SINGLE_MASK_CHAN_TO_REG(x) \
-    (((x % 4) & DMA_SINGLE_MASK_CHAN_SEL_MASK) << DMA_SINGLE_MASK_CHAN_SEL_SHIFT)
+    ((x & DMA_SINGLE_MASK_CHAN_SEL_MASK) << DMA_SINGLE_MASK_CHAN_SEL_SHIFT)
 #define DMA_SINGLE_MASK_MASKED_FLAG (1 << 2)
 
 	uint8_t mode;
 #define DMA_MODE_CHAN_SELECT_MASK (0x3)
 #define DMA_MODE_CHAN_SELECT_SHIFT (0)
 #define DMA_MODE_CHAN_TO_REG(x) \
-    (((x % 4) & DMA_MODE_CHAN_SELECT_MASK) << DMA_MODE_CHAN_SELECT_SHIFT)
+    ((x & DMA_MODE_CHAN_SELECT_MASK) << DMA_MODE_CHAN_SELECT_SHIFT)
 #define DMA_MODE_CHAN_TRA_MASK (0x3)
 #define DMA_MODE_CHAN_TRA_SHIFT (2)
 #define DMA_MODE_CHAN_TRA_SELF_TEST (0)
@@ -216,7 +216,7 @@ static inline int dma_controller_init(dma_controller_t *controller)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
+int dma_setup_channel(unsigned channel, uintptr_t pa, uint16_t size)
 {
 	if (channel == 0 || channel == 4)
 		return ENOTSUP;
@@ -234,7 +234,7 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 	if (channel > 4) {
 		/* Size is the count of 16bit words */
 		assert(size % 2 == 0);
-		size /= 2;
+		size >>= 1;
 		/* Address is fun: lower 16bits need to be shifted by 1 */
 		pa = ((pa & 0xffff) >> 1) | (pa & 0xff0000);
 	}
@@ -249,7 +249,7 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 	pio_write_8(dma_channel.single_mask_address, value);
 
 	/* Set address -- reset flip-flop*/
-	pio_write_8(dma_channel.flip_flop_address, 1);
+	pio_write_8(dma_channel.flip_flop_address, 0);
 
 	/* Low byte */
 	value = pa & 0xff;
@@ -267,7 +267,7 @@ int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size)
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* Set size -- reset flip-flop */
-	pio_write_8(dma_channel.flip_flop_address, 1);
+	pio_write_8(dma_channel.flip_flop_address, 0);
 
 	/* Low byte */
 	value = (size - 1) & 0xff;

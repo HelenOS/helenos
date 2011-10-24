@@ -42,7 +42,7 @@ typedef enum {
 	BLOCK_DMA = 0x2,
 } transfer_mode_t;
 
-int dma_setup_channel(unsigned channel, uintptr_t pa, size_t size);
+int dma_setup_channel(unsigned channel, uintptr_t pa, uint16_t size);
 
 int dma_prepare_channel(
     unsigned channel, bool write, bool auto_mode, transfer_mode_t mode);
