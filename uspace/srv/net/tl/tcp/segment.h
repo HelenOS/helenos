@@ -40,6 +40,7 @@
 
 extern tcp_segment_t *tcp_segment_new(void);
 extern void tcp_segment_delete(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_dup(tcp_segment_t *);
 extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
 extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
 extern tcp_segment_t *tcp_segment_make_data(tcp_control_t, void *, size_t);

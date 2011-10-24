@@ -52,6 +52,40 @@ void tcp_segment_delete(tcp_segment_t *seg)
 	free(seg);
 }
 
+/** Create duplicate of segment.
+ *
+ * @param seg	Segment
+ * @return 	Duplicate segment
+ */
+tcp_segment_t *tcp_segment_dup(tcp_segment_t *seg)
+{
+	tcp_segment_t *scopy;
+	size_t tsize;
+
+	scopy = tcp_segment_new();
+	if (scopy == NULL)
+		return NULL;
+
+	scopy->ctrl = seg->ctrl;
+	scopy->seq = seg->seq;
+	scopy->ack = seg->ack;
+	scopy->len = seg->len;
+	scopy->wnd = seg->wnd;
+	scopy->up = seg->up;
+
+	tsize = tcp_segment_text_size(seg);
+	scopy->data = calloc(tsize, 1);
+	if (scopy->data == NULL) {
+		free(scopy);
+		return NULL;
+	}
+
+	memcpy(scopy->data, seg->data, tsize);
+	scopy->dfptr = scopy->data;
+
+	return scopy;
+}
+
 /** Create a control-only segment.
  *
   * @return	Segment

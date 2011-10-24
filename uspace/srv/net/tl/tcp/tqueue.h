@@ -38,6 +38,7 @@
 #include "std.h"
 #include "tcp_type.h"
 
+extern void tcp_tqueue_init(tcp_tqueue_t *, tcp_conn_t *);
 extern void tcp_tqueue_ctrl_seg(tcp_conn_t *, tcp_control_t);
 extern void tcp_tqueue_seg(tcp_conn_t *, tcp_segment_t *);
 extern void tcp_tqueue_new_data(tcp_conn_t *);

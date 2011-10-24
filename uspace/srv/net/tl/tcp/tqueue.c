@@ -34,16 +34,25 @@
  * @file TCP transmission queue
  */
 
+#include <adt/list.h>
 #include <byteorder.h>
 #include <io/log.h>
 #include <macros.h>
 #include <mem.h>
+#include <stdlib.h>
 #include "conn.h"
 #include "header.h"
 #include "rqueue.h"
 #include "segment.h"
+#include "seq_no.h"
 #include "tqueue.h"
 #include "tcp_type.h"
+
+void tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn)
+{
+	tqueue->conn = conn;
+	list_initialize(&tqueue->list);
+}
 
 void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 {
@@ -57,8 +66,33 @@ void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 
 void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	tcp_segment_t *rt_seg;
+	tcp_tqueue_entry_t *tqe;
+
 	log_msg(LVL_DEBUG, "tcp_tqueue_seg(%p, %p)", conn, seg);
-	/* XXX queue */
+
+	/*
+	 * Add segment to retransmission queue
+	 */
+
+	if (seg->len > 0) {
+		rt_seg = tcp_segment_dup(seg);
+		if (rt_seg == NULL) {
+			log_msg(LVL_ERROR, "Memory allocation failed.");
+			/* XXX Handle properly */
+			return;
+		}
+
+		tqe = calloc(1, sizeof(tcp_tqueue_entry_t));
+		if (tqe == NULL) {
+			log_msg(LVL_ERROR, "Memory allocation failed.");
+			/* XXX Handle properly */
+			return;
+		}
+
+		tqe->seg = rt_seg;
+		list_append(&tqe->link, &conn->retransmit.list);
+	}
 
 	/*
 	 * Always send ACK once we have received SYN, except for RST segments.
@@ -145,8 +179,35 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
  */
 void tcp_tqueue_ack_received(tcp_conn_t *conn)
 {
-	(void) conn;
+	link_t *cur, *next;
 
+	log_msg(LVL_DEBUG, "tcp_tqueue_ack_received(%p)", conn);
+
+	cur = conn->retransmit.list.head.next;
+
+	while (cur != &conn->retransmit.list.head) {
+		next = cur->next;
+
+		tcp_tqueue_entry_t *tqe = list_get_instance(cur,
+		    tcp_tqueue_entry_t, link);
+
+		if (seq_no_segment_acked(conn, tqe->seg, conn->snd_una)) {
+			/* Remove acknowledged segment */
+			list_remove(cur);
+
+			if ((tqe->seg->ctrl & CTL_FIN) != 0) {
+				/* Our FIN has been acked */
+				conn->fin_is_acked = true;
+			}
+
+			tcp_segment_delete(tqe->seg);
+			free(tqe);
+		}
+
+		cur = next;
+	}
+
+	/* Possibly transmit more data */
 	tcp_tqueue_new_data(conn);
 }
 

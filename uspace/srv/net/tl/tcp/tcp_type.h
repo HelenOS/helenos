@@ -98,6 +98,11 @@ typedef struct {
 	list_t list;
 } tcp_iqueue_t;
 
+typedef struct {
+	struct tcp_conn *conn;
+	list_t list;
+} tcp_tqueue_t;
+
 typedef struct tcp_conn {
 	link_t link;
 
@@ -107,8 +112,14 @@ typedef struct tcp_conn {
 	/** Connection state */
 	tcp_cstate_t cstate;
 
+	/** Set when FIN is removed from the retransmission queue */
+	bool fin_is_acked;
+
 	/** Queue of incoming segments */
 	tcp_iqueue_t incoming;
+
+	/** Retransmission queue */
+	tcp_tqueue_t retransmit;
 
 	/** Receive buffer */
 	uint8_t *rcv_buf;
@@ -197,6 +208,11 @@ typedef struct {
 	link_t link;
 	tcp_segment_t *seg;
 } tcp_iqueue_entry_t;
+
+typedef struct {
+	link_t link;
+	tcp_segment_t *seg;
+} tcp_tqueue_entry_t;
 
 typedef enum {
 	cp_continue,

@@ -98,7 +98,11 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	/* Initialize incoming segment queue */
 	tcp_iqueue_init(&conn->incoming, conn);
 
+	/* Initialize retransmission queue */
+	tcp_tqueue_init(&conn->retransmit, conn);
+
 	conn->cstate = st_listen;
+	conn->fin_is_acked = false;
 	conn->ident.local = *lsock;
 	if (fsock != NULL)
 		conn->ident.foreign = *fsock;
@@ -151,6 +155,8 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	default:
 		assert(false);
 	}
+
+	conn->fin_is_acked = false;
 }
 
 /** Compare two sockets.
@@ -524,7 +530,11 @@ static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
 		return cp_done;
 
-	/* TODO */
+	if (conn->fin_is_acked) {
+		log_msg(LVL_DEBUG, " FIN acked -> Fin-Wait-2");
+		conn->cstate = st_fin_wait_2;
+	}
+
 	return cp_continue;
 }
 
