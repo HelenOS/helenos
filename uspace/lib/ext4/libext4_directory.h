@@ -106,6 +106,14 @@ typedef struct ext4_directory_dx_node {
 } ext4_directory_dx_node_t;
 
 
+typedef struct ext4_directory_dx_handle {
+	block_t *block;
+	ext4_directory_dx_entry_t *entries;
+	ext4_directory_dx_entry_t *position;
+} ext4_directory_dx_handle_t;
+
+
+
 #define EXT4_ERR_BAD_DX_DIR			(-75000)
 #define EXT4_DIRECTORY_HTREE_EOF	(uint32_t)0x7fffffff
 
