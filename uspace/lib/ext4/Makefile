@@ -34,6 +34,7 @@ LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 SOURCES = \
 	libext4_block_group.c \
 	libext4_directory.c \
+	libext4_directory_index.c \
 	libext4_extent.c \
 	libext4_filesystem.c \
 	libext4_hash.c \

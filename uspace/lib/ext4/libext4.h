@@ -35,6 +35,7 @@
 
 #include "libext4_block_group.h"
 #include "libext4_directory.h"
+#include "libext4_directory_index.h"
 #include "libext4_extent.h"
 #include "libext4_filesystem.h"
 #include "libext4_hash.h"

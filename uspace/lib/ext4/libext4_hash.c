@@ -235,12 +235,6 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
     uint32_t in[8], buf[4];
     void (*str2hashbuf)(const char *, int, uint32_t *, int) = str2hashbuf_signed;
 
-    /*
-    for (i = 0; i < 8; ++i) {
-    	in[i] = 0;
-    }
-    */
-
     /* Initialize the default seed for the hash checksum functions */
 	buf[0] = 0x67452301;
 	buf[1] = 0xefcdab89;

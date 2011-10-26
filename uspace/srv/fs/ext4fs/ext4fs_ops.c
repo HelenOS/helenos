@@ -231,7 +231,6 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		// Index isn't corrupted
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
 
-			// TODO check return value
 			if (rc != EOK) {
 				return rc;
 			}
