@@ -44,15 +44,20 @@
 #include "iqueue.h"
 #include "segment.h"
 #include "seq_no.h"
+#include "state.h"
 #include "tcp_type.h"
 #include "tqueue.h"
 
 #define RCV_BUF_SIZE 4096
 #define SND_BUF_SIZE 4096
 
+#define MAX_SEGMENT_LIFETIME	(15*1000*1000) //(2*60*1000*1000)
+#define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
+
 LIST_INITIALIZE(conn_list);
 
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
+static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
 
 /** Create new segment structure.
  *
@@ -62,12 +67,16 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
  */
 tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 {
-	tcp_conn_t *conn;
+	tcp_conn_t *conn = NULL;
 
 	/* Allocate connection structure */
 	conn = calloc(1, sizeof(tcp_conn_t));
 	if (conn == NULL)
-		return NULL;
+		goto error;
+
+	conn->tw_timer = fibril_timer_create();
+	if (conn->tw_timer == NULL)
+		goto error;
 
 	/* Allocate receive buffer */
 	fibril_mutex_initialize(&conn->rcv_buf_lock);
@@ -77,20 +86,16 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	conn->rcv_buf_fin = false;
 
 	conn->rcv_buf = calloc(1, conn->rcv_buf_size);
-	if (conn->rcv_buf == NULL) {
-		free(conn);
-		return NULL;
-	}
+	if (conn->rcv_buf == NULL)
+		goto error;
 
 	/** Allocate send buffer */
 	conn->snd_buf_size = SND_BUF_SIZE;
 	conn->snd_buf_used = 0;
 	conn->snd_buf_fin = false;
 	conn->snd_buf = calloc(1, conn->snd_buf_size);
-	if (conn->snd_buf == NULL) {
-		free(conn);
-		return NULL;
-	}
+	if (conn->snd_buf == NULL)
+		goto error;
 
 	/* Set up receive window. */
 	conn->rcv_wnd = conn->rcv_buf_size;
@@ -108,6 +113,18 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 		conn->ident.foreign = *fsock;
 
 	return conn;
+
+error:
+	if (conn != NULL && conn->rcv_buf != NULL)
+		free(conn->rcv_buf);
+	if (conn != NULL && conn->snd_buf != NULL)
+		free(conn->snd_buf);
+	if (conn != NULL && conn->tw_timer != NULL)
+		fibril_timer_destroy(conn->tw_timer);
+	if (conn != NULL)
+		free(conn);
+
+	return NULL;
 }
 
 /** Enlist connection.
@@ -802,7 +819,8 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		case st_fin_wait_2:
 			log_msg(LVL_DEBUG, "FIN received -> Time-Wait");
 			conn->cstate = st_time_wait;
-			/* XXX start time-wait timer */
+			/* Start the Time-Wait timer */
+			tcp_conn_tw_timer_set(conn);
 			break;
 		case st_close_wait:
 		case st_closing:
@@ -810,7 +828,8 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 			/* Do nothing */
 			break;
 		case st_time_wait:
-			/* XXX Restart the 2 MSL time-wait timeout */
+			/* Restart the Time-Wait timer */
+			tcp_conn_tw_timer_set(conn);
 			break;
 		}
 
@@ -909,6 +928,31 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 	case st_closed:
 		assert(false);
 	}
+}
+
+/** Time-Wait timeout handler.
+ *
+ * @param arg	Connection
+ */
+static void tw_timeout_func(void *arg)
+{
+	tcp_conn_t *conn = (tcp_conn_t *) arg;
+
+	log_msg(LVL_DEBUG, "tw_timeout_func(%p)", conn);
+	log_msg(LVL_DEBUG, " TW Timeout -> Closed");
+
+	tcp_conn_remove(conn);
+	conn->cstate = st_closed;
+}
+
+/** Start or restart the Time-Wait timeout.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_tw_timer_set(tcp_conn_t *conn)
+{
+	fibril_timer_set(conn->tw_timer, TIME_WAIT_TIMEOUT, tw_timeout_func,
+	    (void *)conn);
 }
 
 /** Trim segment to the receive window.

@@ -121,6 +121,9 @@ typedef struct tcp_conn {
 	/** Retransmission queue */
 	tcp_tqueue_t retransmit;
 
+	/** Time-Wait timeout timer */
+	fibril_timer_t *tw_timer;
+
 	/** Receive buffer */
 	uint8_t *rcv_buf;
 	/** Receive buffer size */

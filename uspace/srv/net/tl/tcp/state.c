@@ -208,12 +208,6 @@ void tcp_to_retransmit(void)
 	log_msg(LVL_DEBUG, "tcp_to_retransmit()");
 }
 
-/** Time-wait timeout */
-void tcp_to_time_wait(void)
-{
-	log_msg(LVL_DEBUG, "tcp_to_time_wait()");
-}
-
 /**
  * @}
  */

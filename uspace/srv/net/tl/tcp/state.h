@@ -58,7 +58,6 @@ extern void tcp_as_segment_arrived(tcp_sockpair_t *, tcp_segment_t *);
  */
 extern void tcp_to_user(void);
 extern void tcp_to_retransmit(void);
-extern void tcp_to_time_wait(void);
 
 #endif
 
