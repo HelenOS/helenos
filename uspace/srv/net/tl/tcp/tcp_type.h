@@ -207,6 +207,14 @@ typedef struct {
 	tcp_segment_t *seg;
 } tcp_rqueue_entry_t;
 
+/** NCSim queue entry */
+typedef struct {
+	link_t link;
+	suseconds_t delay;
+	tcp_sockpair_t sp;
+	tcp_segment_t *seg;
+} tcp_squeue_entry_t;
+
 typedef struct {
 	link_t link;
 	tcp_segment_t *seg;

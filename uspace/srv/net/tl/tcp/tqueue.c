@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include "conn.h"
 #include "header.h"
+#include "ncsim.h"
 #include "rqueue.h"
 #include "segment.h"
 #include "seq_no.h"
@@ -218,7 +219,8 @@ void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_pdu_prepare(conn, seg, &data, &len);
 	tcp_pdu_transmit(data, len);
 */
-	tcp_rqueue_bounce_seg(sp, seg);
+	//tcp_rqueue_bounce_seg(sp, seg);
+	tcp_ncsim_bounce_seg(sp, seg);
 }
 
 /**

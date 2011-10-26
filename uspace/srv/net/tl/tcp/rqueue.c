@@ -119,7 +119,7 @@ void tcp_rqueue_thread_start(void)
 
 	rc = thread_create(tcp_rqueue_thread, NULL, "rqueue", &tid);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failde creating rqueue thread.");
+		log_msg(LVL_ERROR, "Failed creating rqueue thread.");
 		return;
 	}
 }

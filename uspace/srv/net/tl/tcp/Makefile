@@ -35,6 +35,7 @@ SOURCES = \
 	conn.c \
 	header.c \
 	iqueue.c \
+	ncsim.c \
 	rqueue.c \
 	segment.c \
 	seq_no.c \
