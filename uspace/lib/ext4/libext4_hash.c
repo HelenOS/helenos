@@ -48,6 +48,7 @@
 #define G(x, y, z) (((x) & (y)) + (((x) ^ (y)) & (z)))
 #define H(x, y, z) ((x) ^ (y) ^ (z))
 
+
 /*
  * The generic round function.  The application is so specific that
  * we don't bother protecting all the arguments with parens, as is generally
@@ -61,7 +62,7 @@
 #define K3 015666365641UL
 
 
-static void tea_transform(uint32_t buf[4],uint32_t const in[])
+static void tea_transform(uint32_t buf[4], uint32_t const in[])
 {
 	uint32_t sum = 0;
 	uint32_t b0 = buf[0], b1 = buf[1];
@@ -232,7 +233,13 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 	const char *p;
     int i;
     uint32_t in[8], buf[4];
-    bool unsigned_version = false;
+    void (*str2hashbuf)(const char *, int, uint32_t *, int) = str2hashbuf_signed;
+
+    /*
+    for (i = 0; i < 8; ++i) {
+    	in[i] = 0;
+    }
+    */
 
     /* Initialize the default seed for the hash checksum functions */
 	buf[0] = 0x67452301;
@@ -246,9 +253,9 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 			if (hinfo->seed[i] != 0) {
             	break;
 			}
-			if (i < 4) {
-				memcpy(buf, hinfo->seed, sizeof(buf));
-			}
+		}
+		if (i < 4) {
+			memcpy(buf, hinfo->seed, sizeof(buf));
 		}
     }
 
@@ -263,16 +270,12 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 
 
 		case EXT4_HASH_VERSION_HALF_MD4_UNSIGNED:
-			unsigned_version = true;
+			str2hashbuf = str2hashbuf_unsigned;
 
 		case EXT4_HASH_VERSION_HALF_MD4:
 			p = name;
 			while (len > 0) {
-				if (unsigned_version) {
-					str2hashbuf_unsigned(p, len, in, 8);
-				} else {
-					str2hashbuf_signed(p, len, in, 8);
-				}
+				(*str2hashbuf)(p, len, in, 8);
 				half_md4_transform(buf, in);
 				len -= 32;
 				p += 32;
@@ -283,16 +286,12 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 
 
 		case EXT4_HASH_VERSION_TEA_UNSIGNED:
-			unsigned_version = true;
+			str2hashbuf = str2hashbuf_unsigned;
 
 		case EXT4_HASH_VERSION_TEA:
 			p = name;
 			while (len > 0) {
-				if (unsigned_version) {
-					str2hashbuf_unsigned(p, len, in, 4);
-				} else {
-					str2hashbuf_signed(p, len, in, 4);
-				}
+				(*str2hashbuf)(p, len, in, 4);
 				tea_transform(buf, in);
 				len -= 16;
 				p += 16;
@@ -310,6 +309,7 @@ int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 	if (hash == (EXT4_DIRECTORY_HTREE_EOF << 1)) {
 		hash = (EXT4_DIRECTORY_HTREE_EOF-1) << 1;
 	}
+
 	hinfo->hash = hash;
 	hinfo->minor_hash = minor_hash;
 
