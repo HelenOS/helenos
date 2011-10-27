@@ -48,11 +48,8 @@ static inline int send_batch(
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 
-	int ret;
-
-	size_t res_bw;
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hcd->ep_manager,
-	    target.address, target.endpoint, direction, &res_bw);
+	    target.address, target.endpoint, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    target.address, target.endpoint, name);
@@ -64,10 +61,11 @@ static inline int send_batch(
 
 	const size_t bw = bandwidth_count_usb11(
 	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
-	if (res_bw < bw) {
+	/* Check if we have enough bandwidth reserved */
+	if (ep->bandwidth < bw) {
 		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
 		    "but only %zu is reserved.\n",
-		    target.address, target.endpoint, name, bw, res_bw);
+		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
 	}
 	if (!hcd->schedule) {
@@ -83,7 +81,7 @@ static inline int send_batch(
 		return ENOMEM;
 	}
 
-	ret = hcd->schedule(hcd, batch);
+	const int ret = hcd->schedule(hcd, batch);
 	if (ret != EOK)
 		usb_transfer_batch_dispose(batch);
 
@@ -189,8 +187,9 @@ static int register_endpoint(
 	    usb_str_direction(direction), usb_str_speed(speed),
 	    max_packet_size, interval);
 
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, transfer_type, speed, max_packet_size);
+	endpoint_t *ep =
+	    endpoint_create(address, endpoint, direction, transfer_type,
+	        speed, max_packet_size, 0);
 	if (!ep)
 		return ENOMEM;
 

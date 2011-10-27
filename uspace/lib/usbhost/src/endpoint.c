@@ -38,9 +38,9 @@
 #include <errno.h>
 #include <usb/host/endpoint.h>
 
-endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
+endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
     usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size)
+    size_t max_packet_size, size_t bw)
 {
 	endpoint_t *instance = malloc(sizeof(endpoint_t));
 	if (instance) {
@@ -50,12 +50,14 @@ endpoint_t * endpoint_get(usb_address_t address, usb_endpoint_t endpoint,
 		instance->transfer_type = type;
 		instance->speed = speed;
 		instance->max_packet_size = max_packet_size;
+		instance->bandwidth = bw;
 		instance->toggle = 0;
 		instance->active = false;
 		instance->destroy_hook = NULL;
 		instance->hc_data.data = NULL;
 		instance->hc_data.toggle_get = NULL;
 		instance->hc_data.toggle_set = NULL;
+		link_initialize(&instance->link);
 		fibril_mutex_initialize(&instance->guard);
 		fibril_condvar_initialize(&instance->avail);
 		endpoint_clear_hc_data(instance);

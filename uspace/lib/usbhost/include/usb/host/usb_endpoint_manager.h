@@ -71,8 +71,7 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
 endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
-    size_t *bw);
+    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
 void usb_endpoint_manager_reset_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
@@ -83,8 +82,12 @@ static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
     size_t data_size)
 {
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, type, speed, max_packet_size);
+	assert(instance);
+	const size_t bw =
+	    instance->bw_count(speed, type, data_size, max_packet_size);
+
+	endpoint_t *ep = endpoint_create(
+	    address, endpoint, direction, type, speed, max_packet_size, bw);
 	if (!ep)
 		return ENOMEM;
 

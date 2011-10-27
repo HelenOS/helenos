@@ -142,8 +142,8 @@ static int register_endpoint(ddf_fun_t *fun,
 	/* TODO: Use usb_endpoint_manager_add_ep */
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1);
+	endpoint_t *ep = endpoint_create(
+	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1, 0);
 	if (ep == NULL) {
 		return ENOMEM;
 	}
@@ -413,7 +413,7 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 	VHC_DATA(vhc, fun);
 
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
+	    target.address, target.endpoint, USB_DIRECTION_IN);
 	if (ep == NULL) {
 		return ENOENT;
 	}
@@ -455,7 +455,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 	VHC_DATA(vhc, fun);
 
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
+	    target.address, target.endpoint, USB_DIRECTION_OUT);
 	if (ep == NULL) {
 		return ENOENT;
 	}
