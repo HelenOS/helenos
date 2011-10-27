@@ -103,9 +103,8 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
     devman_handle_t *handle)
 {
 	VHC_DATA(vhc, fun);
-	bool found =
-	    usb_device_manager_find_by_address(&vhc->dev_manager, address, handle);
-	return found ? EOK : ENOENT;
+	return usb_device_manager_get_info_by_address(
+	    &vhc->dev_manager, address, handle, NULL);
 }
 
 /** Release previously requested address.
@@ -517,7 +516,8 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
 	}
 
 	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
-	usb_address_t addr = usb_device_manager_find(&vhc->dev_manager, handle);
+	const usb_address_t addr =
+	    usb_device_manager_find_address(&vhc->dev_manager, handle);
 	if (addr < 0) {
 		return addr;
 	} else {

@@ -37,7 +37,6 @@
 #include <usb/debug.h>
 #include <usb/host/usb_device_manager.h>
 
-/*----------------------------------------------------------------------------*/
 /** Initialize device manager structure.
  *
  * @param[in] instance Memory place to initialize.
@@ -76,7 +75,8 @@ usb_address_t usb_device_manager_get_free_address(
 	do {
 		++new_address;
 		if (new_address > USB11_ADDRESS_MAX)
-			new_address = 1;
+			new_address = 1; // NOTE it should be safe to put 0 here
+			                 // TODO Use mod
 		if (new_address == instance->last_address) {
 			fibril_mutex_unlock(&instance->guard);
 			return ENOSPC;
@@ -85,6 +85,7 @@ usb_address_t usb_device_manager_get_free_address(
 
 	assert(new_address != USB_ADDRESS_DEFAULT);
 	assert(instance->devices[new_address].occupied == false);
+	assert(instance->devices[new_address].handle == 0);
 
 	instance->devices[new_address].occupied = true;
 	instance->devices[new_address].speed = speed;
@@ -130,6 +131,7 @@ void usb_device_manager_release(
 	assert(instance->devices[address].occupied);
 
 	instance->devices[address].occupied = false;
+	instance->devices[address].handle = 0;
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
@@ -139,7 +141,7 @@ void usb_device_manager_release(
  * @param[in] handle Devman handle of the device seeking its address.
  * @return USB Address, or error code.
  */
-usb_address_t usb_device_manager_find(
+usb_address_t usb_device_manager_find_address(
     usb_device_manager_t *instance, devman_handle_t handle)
 {
 	assert(instance);
@@ -156,52 +158,39 @@ usb_address_t usb_device_manager_find(
 	fibril_mutex_unlock(&instance->guard);
 	return ENOENT;
 }
-
-/** Find devman handle assigned to USB address.
- * Intentionally refuse to find handle of default address.
+/*----------------------------------------------------------------------------*/
+/** Find devman handle and speed assigned to USB address.
+ * Intentionally refuse to work on default address.
  *
  * @param[in] instance Device manager structure to use.
  * @param[in] address Address the caller wants to find.
  * @param[out] handle Where to store found handle.
- * @return Whether such address is currently occupied.
+ * @param[out] speed Assigned speed.
+ * @return Error code.
  */
-bool usb_device_manager_find_by_address(usb_device_manager_t *instance,
-    usb_address_t address, devman_handle_t *handle)
+int usb_device_manager_get_info_by_address(usb_device_manager_t *instance,
+    usb_address_t address, devman_handle_t *handle, usb_speed_t *speed)
 {
 	assert(instance);
-	fibril_mutex_lock(&instance->guard);
 	if ((address <= 0) || (address >= USB_ADDRESS_COUNT)) {
-		fibril_mutex_unlock(&instance->guard);
-		return false;
+		return EINVAL;
 	}
+
+	fibril_mutex_lock(&instance->guard);
 	if (!instance->devices[address].occupied) {
 		fibril_mutex_unlock(&instance->guard);
-		return false;
+		return ENOENT;
 	}
 
 	if (handle != NULL) {
 		*handle = instance->devices[address].handle;
 	}
+	if (speed != NULL) {
+		*speed = instance->devices[address].speed;
+	}
 
 	fibril_mutex_unlock(&instance->guard);
-	return true;
-}
-
-/*----------------------------------------------------------------------------*/
-/** Get speed associated with the address
- *
- * @param[in] instance Device manager structure to use.
- * @param[in] address Address of the device.
- * @return USB speed.
- */
-usb_speed_t usb_device_manager_get_speed(
-    usb_device_manager_t *instance, usb_address_t address)
-{
-	assert(instance);
-	assert(address >= 0);
-	assert(address <= USB11_ADDRESS_MAX);
-
-	return instance->devices[address].speed;
+	return EOK;
 }
 /**
  * @}
