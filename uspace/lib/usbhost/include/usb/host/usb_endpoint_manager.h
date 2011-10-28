@@ -63,44 +63,25 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
     size_t available_bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
 
-void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
-
-int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    endpoint_t *ep, size_t data_size);
-
-int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
-
-endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
-
-void usb_endpoint_manager_reset_if_need(
+void usb_endpoint_manager_reset_eps_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
 
-/** Wrapper combining allocation and insertion */
-static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
+int usb_endpoint_manager_register_ep(
+    usb_endpoint_manager_t *instance, endpoint_t *ep, size_t data_size);
+int usb_endpoint_manager_unregister_ep(
+    usb_endpoint_manager_t *instance, endpoint_t *ep);
+endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
+
+int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
-    size_t data_size)
-{
-	assert(instance);
-	const size_t bw =
-	    instance->bw_count(speed, type, data_size, max_packet_size);
+    size_t data_size, int (*callback)(endpoint_t *, void *), void *arg);
 
-	endpoint_t *ep = endpoint_create(
-	    address, endpoint, direction, type, speed, max_packet_size, bw);
-	if (!ep)
-		return ENOMEM;
-
-	const int ret =
-	    usb_endpoint_manager_register_ep(instance, ep, data_size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
-}
+int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    void (*callback)(endpoint_t *, void *), void *arg);
 #endif
 /**
  * @}
  */
-

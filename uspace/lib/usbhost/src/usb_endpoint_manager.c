@@ -119,66 +119,6 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    endpoint_t *ep, size_t data_size)
-{
-	assert(instance);
-	assert(instance->bw_count);
-	assert(ep);
-	ep->bandwidth = instance->bw_count(ep->speed, ep->transfer_type,
-	    data_size, ep->max_packet_size);
-
-	fibril_mutex_lock(&instance->guard);
-
-	if (ep->bandwidth > instance->free_bw) {
-		fibril_mutex_unlock(&instance->guard);
-		return ENOSPC;
-	}
-
-	/* Check for existence */
-	const endpoint_t *endpoint =
-	    find_locked(instance, ep->address, ep->endpoint, ep->direction);
-	if (endpoint != NULL) {
-		fibril_mutex_unlock(&instance->guard);
-		return EEXISTS;
-	}
-	list_t *list = get_list(instance, ep->address);
-	list_append(&ep->link, list);
-
-	instance->free_bw -= ep->bandwidth;
-	fibril_mutex_unlock(&instance->guard);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
-{
-	assert(instance);
-
-	fibril_mutex_lock(&instance->guard);
-	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
-	if (ep != NULL) {
-		list_remove(&ep->link);
-		instance->free_bw += ep->bandwidth;
-	}
-
-	fibril_mutex_unlock(&instance->guard);
-	endpoint_destroy(ep);
-	return (ep != NULL) ? EOK : EINVAL;
-}
-/*----------------------------------------------------------------------------*/
-endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
-{
-	assert(instance);
-
-	fibril_mutex_lock(&instance->guard);
-	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
-	fibril_mutex_unlock(&instance->guard);
-
-	return ep;
-}
-/*----------------------------------------------------------------------------*/
 /** Check setup packet data for signs of toggle reset.
  *
  * @param[in] instance Device keeper structure to use.
@@ -187,7 +127,7 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
  *
  * Really ugly one.
  */
-void usb_endpoint_manager_reset_if_need(
+void usb_endpoint_manager_reset_eps_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data)
 {
 	assert(instance);
@@ -232,4 +172,108 @@ void usb_endpoint_manager_reset_if_need(
 		}
 	break;
 	}
+}
+/*----------------------------------------------------------------------------*/
+int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
+    endpoint_t *ep, size_t data_size)
+{
+	assert(instance);
+	assert(instance->bw_count);
+	assert(ep);
+	fibril_mutex_lock(&instance->guard);
+
+	if (ep->bandwidth > instance->free_bw) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOSPC;
+	}
+
+	/* Check for existence */
+	const endpoint_t *endpoint =
+	    find_locked(instance, ep->address, ep->endpoint, ep->direction);
+	if (endpoint != NULL) {
+		fibril_mutex_unlock(&instance->guard);
+		return EEXISTS;
+	}
+	list_t *list = get_list(instance, ep->address);
+	list_append(&ep->link, list);
+
+	instance->free_bw -= ep->bandwidth;
+	fibril_mutex_unlock(&instance->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int usb_endpoint_manager_unregister_ep(
+    usb_endpoint_manager_t *instance, endpoint_t *ep)
+{
+	assert(instance);
+	if (ep == NULL)
+		return ENOENT;
+	fibril_mutex_lock(&instance->guard);
+	list_remove(&ep->link);
+	fibril_mutex_unlock(&instance->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	assert(instance);
+
+	fibril_mutex_lock(&instance->guard);
+	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
+	fibril_mutex_unlock(&instance->guard);
+
+	return ep;
+}
+/*----------------------------------------------------------------------------*/
+int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
+    size_t data_size, int (*callback)(endpoint_t *, void *), void *arg)
+{
+	assert(instance);
+	const size_t bw =
+	    instance->bw_count(speed, type, data_size, max_packet_size);
+
+	endpoint_t *ep = endpoint_create(
+	    address, endpoint, direction, type, speed, max_packet_size, bw);
+	if (!ep)
+		return ENOMEM;
+
+	if (callback) {
+		const int ret = callback(ep, arg);
+		if (ret != EOK) {
+			endpoint_destroy(ep);
+			return ret;
+		}
+	}
+
+	const int ret =
+	    usb_endpoint_manager_register_ep(instance, ep, data_size);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+	}
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    void (*callback)(endpoint_t *, void *), void *arg)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
+	if (ep != NULL) {
+		list_remove(&ep->link);
+		instance->free_bw += ep->bandwidth;
+	}
+	fibril_mutex_unlock(&instance->guard);
+	if (ep == NULL)
+		return ENOENT;
+
+	if (callback) {
+		callback(ep, arg);
+	}
+	endpoint_destroy(ep);
+	return EOK;
 }

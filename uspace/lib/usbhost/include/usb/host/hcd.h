@@ -50,6 +50,7 @@ struct hcd {
 
 	int (*schedule)(hcd_t *, usb_transfer_batch_t *);
 	int (*ep_add_hook)(hcd_t *, endpoint_t *);
+	void (*ep_remove_hook)(hcd_t *, endpoint_t *);
 };
 /*----------------------------------------------------------------------------*/
 static inline void hcd_init(hcd_t *hcd, size_t bandwidth,
@@ -64,7 +65,7 @@ static inline void reset_ep_if_need(
     hcd_t *hcd, usb_target_t target, const char* setup_data)
 {
 	assert(hcd);
-	usb_endpoint_manager_reset_if_need(
+	usb_endpoint_manager_reset_eps_if_need(
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
 /*----------------------------------------------------------------------------*/

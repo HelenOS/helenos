@@ -53,7 +53,6 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
 		instance->bandwidth = bw;
 		instance->toggle = 0;
 		instance->active = false;
-		instance->destroy_hook = NULL;
 		instance->hc_data.data = NULL;
 		instance->hc_data.toggle_get = NULL;
 		instance->hc_data.toggle_set = NULL;
@@ -69,19 +68,14 @@ void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
 	assert(!instance->active);
-	if (instance->hc_data.data) {
-		assert(instance->destroy_hook);
-		instance->destroy_hook(instance);
-	}
+	assert(instance->hc_data.data == NULL);
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
 void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, void (*destroy_hook)(endpoint_t *),
-    int (*toggle_get)(void *), void (*toggle_set)(void *, int))
+    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int))
 {
 	assert(instance);
-	instance->destroy_hook = destroy_hook;
 	instance->hc_data.data = data;
 	instance->hc_data.toggle_get = toggle_get;
 	instance->hc_data.toggle_set = toggle_set;
@@ -90,7 +84,6 @@ void endpoint_set_hc_data(endpoint_t *instance,
 void endpoint_clear_hc_data(endpoint_t *instance)
 {
 	assert(instance);
-	instance->destroy_hook = NULL;
 	instance->hc_data.data = NULL;
 	instance->hc_data.toggle_get = NULL;
 	instance->hc_data.toggle_set = NULL;

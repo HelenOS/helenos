@@ -48,7 +48,7 @@ static inline int send_batch(
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hcd->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&hcd->ep_manager,
 	    target.address, target.endpoint, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
@@ -164,6 +164,25 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+static int register_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_add_hook)
+		return hcd->ep_add_hook(hcd, ep);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static void unregister_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+/*----------------------------------------------------------------------------*/
 static int register_endpoint(
     ddf_fun_t *fun, usb_address_t address, usb_speed_t ep_speed,
     usb_endpoint_t endpoint,
@@ -187,26 +206,9 @@ static int register_endpoint(
 	    usb_str_direction(direction), usb_str_speed(speed),
 	    max_packet_size, interval);
 
-	endpoint_t *ep =
-	    endpoint_create(address, endpoint, direction, transfer_type,
-	        speed, max_packet_size, 0);
-	if (!ep)
-		return ENOMEM;
-
-	if (hcd->ep_add_hook) {
-		const int ret = hcd->ep_add_hook(hcd, ep);
-		if (ret != EOK) {
-			endpoint_destroy(ep);
-			return ret;
-		}
-	}
-
-	const int ret =
-	    usb_endpoint_manager_register_ep(&hcd->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	return usb_endpoint_manager_add_ep(&hcd->ep_manager, address, endpoint,
+	    direction, transfer_type, speed, max_packet_size, size,
+	    register_helper, hcd);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
@@ -218,8 +220,8 @@ static int unregister_endpoint(
 	assert(hcd);
 	usb_log_debug("Unregister endpoint %d:%d %s.\n",
 	    address, endpoint, usb_str_direction(direction));
-	return usb_endpoint_manager_unregister_ep(&hcd->ep_manager, address,
-	    endpoint, direction);
+	return usb_endpoint_manager_remove_ep(&hcd->ep_manager, address,
+	    endpoint, direction, unregister_helper, hcd);
 }
 /*----------------------------------------------------------------------------*/
 static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
