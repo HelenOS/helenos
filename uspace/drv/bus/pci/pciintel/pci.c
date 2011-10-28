@@ -765,17 +765,13 @@ char *pci_fun_create_name(pci_fun_t *fun)
 
 bool pci_alloc_resource_list(pci_fun_t *fun)
 {
-	fun->hw_resources.resources =
-	    (hw_resource_t *) malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
-	return fun->hw_resources.resources != NULL;
+	fun->hw_resources.resources = fun->resources;
+	return true;
 }
 
 void pci_clean_resource_list(pci_fun_t *fun)
 {
-	if (fun->hw_resources.resources != NULL) {
-		free(fun->hw_resources.resources);
-		fun->hw_resources.resources = NULL;
-	}
+	fun->hw_resources.resources = NULL;
 }
 
 /** Read the base address registers (BARs) of the function and add the addresses
