@@ -132,14 +132,6 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle)
 		instance->hc_data.toggle_set(instance->hc_data.data, toggle);
 	instance->toggle = toggle;
 }
-/*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target)
-{
-	assert(instance);
-	if (instance->address == target.address &&
-	    (instance->endpoint == target.endpoint || target.endpoint == 0))
-		endpoint_toggle_set(instance, 0);
-}
 /**
  * @}
  */

@@ -39,17 +39,18 @@
 #ifndef LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 #define LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 
-#include <stdlib.h>
-#include <adt/hash_table.h>
+#include <adt/list.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
+
 #include <usb/host/endpoint.h>
 
 #define BANDWIDTH_TOTAL_USB11 12000000
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
+#define ENDPOINT_LIST_COUNT 8
 
 typedef struct usb_endpoint_manager {
-	hash_table_t ep_table;
+	list_t endpoint_lists[ENDPOINT_LIST_COUNT];
 	fibril_mutex_t guard;
 	size_t free_bw;
 	size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t);

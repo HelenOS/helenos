@@ -76,7 +76,11 @@ void endpoint_release(endpoint_t *instance);
 
 int endpoint_toggle_get(endpoint_t *instance);
 void endpoint_toggle_set(endpoint_t *instance, int toggle);
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
+
+static inline endpoint_t * endpoint_get_instance(link_t *item)
+{
+	return list_get_instance(item, endpoint_t, link);
+}
 #endif
 /**
  * @}

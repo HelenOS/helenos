@@ -36,10 +36,10 @@
 #define LIBUSBHOST_HOST_HCD_H
 
 #include <assert.h>
+#include <usbhc_iface.h>
 #include <usb/host/usb_device_manager.h>
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/usb_transfer_batch.h>
-#include <usbhc_iface.h>
 
 typedef struct hcd hcd_t;
 
@@ -52,17 +52,12 @@ struct hcd {
 	int (*ep_add_hook)(hcd_t *, endpoint_t *);
 };
 /*----------------------------------------------------------------------------*/
-static inline int hcd_init(hcd_t *hcd, size_t bandwidth,
+static inline void hcd_init(hcd_t *hcd, size_t bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(hcd);
 	usb_device_manager_init(&hcd->dev_manager);
-	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
-}
-/*----------------------------------------------------------------------------*/
-static inline void hcd_destroy(hcd_t *hcd)
-{
-	usb_endpoint_manager_destroy(&hcd->ep_manager);
+	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
 }
 /*----------------------------------------------------------------------------*/
 static inline void reset_ep_if_need(
