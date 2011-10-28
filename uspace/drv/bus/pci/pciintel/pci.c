@@ -559,12 +559,12 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			}
 			
 			fnode = ddf_fun_create(bus->dnode, fun_inner, fun_name);
+			free(fun_name);
 			if (fnode == NULL) {
 				ddf_msg(LVL_ERROR, "Failed creating function.");
 				return;
 			}
 			
-			free(fun_name);
 			fun->fnode = fnode;
 			
 			pci_alloc_resource_list(fun);
