@@ -64,7 +64,7 @@ static int ohci_ep_toggle_get(void *ohci_ep)
 /** Creates new hcd endpoint representation.
  *
  * @param[in] ep USBD endpoint structure
- * @return pointer to a new hcd endpoint structure, NULL on failure.
+ * @return Error code.
  */
 int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
@@ -89,14 +89,14 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 	ed_init(ohci_ep->ed, ep, ohci_ep->td);
 	endpoint_set_hc_data(
 	    ep, ohci_ep, ohci_ep_toggle_get, ohci_ep_toggle_set);
-	ohci_ep->hcd = hcd;
 	hc_enqueue_endpoint(hcd->private_data, ep);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Disposes hcd endpoint structure
  *
- * @param[in] hcd_ep endpoint structure
+ * @param[in] hcd driver using this instance.
+ * @param[in] ep endpoint structure.
  */
 void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 {

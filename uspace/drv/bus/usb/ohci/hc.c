@@ -220,10 +220,16 @@ if (ret != EOK) { \
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep)
+void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
+	assert(instance);
+	assert(ep);
+
 	endpoint_list_t *list = &instance->lists[ep->transfer_type];
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+	assert(list);
+	assert(ohci_ep);
+
 	/* Enqueue ep */
 	switch (ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
@@ -246,11 +252,17 @@ void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep)
 	}
 }
 /*----------------------------------------------------------------------------*/
-void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep)
+void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
+	assert(instance);
+	assert(ep);
+
 	/* Dequeue ep */
 	endpoint_list_t *list = &instance->lists[ep->transfer_type];
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+
+	assert(list);
+	assert(ohci_ep);
 	switch (ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
