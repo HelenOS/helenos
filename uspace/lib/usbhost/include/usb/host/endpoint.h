@@ -40,22 +40,39 @@
 #include <fibril_synch.h>
 #include <usb/usb.h>
 
+/** Host controller side endpoint structure. */
 typedef struct endpoint {
+	/** Part of linked list. */
 	link_t link;
+	/** USB address. */
 	usb_address_t address;
+	/** USB endpoint number. */
 	usb_endpoint_t endpoint;
+	/** Communication direction. */
 	usb_direction_t direction;
+	/** USB transfer type. */
 	usb_transfer_type_t transfer_type;
+	/** Communication speed. */
 	usb_speed_t speed;
+	/** Maximum size of data packets. */
 	size_t max_packet_size;
+	/** Necessary bandwidth. */
 	size_t bandwidth;
+	/** Value of the toggle bit. */
 	unsigned toggle:1;
-	fibril_mutex_t guard;
-	fibril_condvar_t avail;
+	/** True if there is a batch using this scheduled for this endpoint. */
 	volatile bool active;
+	/** Protects resources and active status changes. */
+	fibril_mutex_t guard;
+	/** Signals change of active status. */
+	fibril_condvar_t avail;
+	/** Optional device specific data. */
 	struct {
+		/** Device specific data. */
 		void *data;
+		/** Callback to get the value of toggle bit. */
 		int (*toggle_get)(void *);
+		/** Callback to set the value of toggle bit. */
 		void (*toggle_set)(void *, int);
 	} hc_data;
 } endpoint_t;
@@ -75,6 +92,10 @@ void endpoint_release(endpoint_t *instance);
 int endpoint_toggle_get(endpoint_t *instance);
 void endpoint_toggle_set(endpoint_t *instance, int toggle);
 
+/** list_get_instance wrapper.
+ * @param item Pointer to link member.
+ * @return Pointer to enpoint_t structure.
+ */
 static inline endpoint_t * endpoint_get_instance(link_t *item)
 {
 	return list_get_instance(item, endpoint_t, link);
