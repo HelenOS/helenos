@@ -67,7 +67,6 @@ static const usb_device_request_setup_packet_t get_hub_status_request = {
 };
 
 static int usb_set_first_configuration(usb_device_t *usb_device);
-static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev);
 static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev);
 static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
     usb_hub_status_t status);
@@ -132,11 +131,17 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	/* Create driver soft-state structure */
-	usb_hub_dev_t *hub_dev = usb_hub_dev_create(usb_dev);
+	usb_hub_dev_t *hub_dev =
+	    usb_device_data_alloc(usb_dev, sizeof(usb_hub_dev_t));
 	if (hub_dev == NULL) {
 		usb_log_error("Failed to create hun driver structure.\n");
 		return ENOMEM;
 	}
+	hub_dev->usb_device = usb_dev;
+	hub_dev->pending_ops_count = 0;
+	hub_dev->running = false;
+	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
+	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
 
 	/* Create hc connection */
 	usb_log_debug("Initializing USB wire abstraction.\n");
@@ -145,7 +150,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	if (opResult != EOK) {
 		usb_log_error("Could not initialize connection to device: %s\n",
 		    str_error(opResult));
-		free(hub_dev);
 		return opResult;
 	}
 
@@ -154,7 +158,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	if (opResult != EOK) {
 		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
-		free(hub_dev);
 		return opResult;
 	}
 
@@ -163,7 +166,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	if (opResult != EOK) {
 		usb_log_error("Could process hub specific info, %s\n",
 		    str_error(opResult));
-		free(hub_dev);
 		return opResult;
 	}
 
@@ -172,7 +174,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	    fun_exposed, HUB_FNC_NAME);
 	if (hub_dev->hub_fun == NULL) {
 		usb_log_error("Failed to create hub function.\n");
-		free(hub_dev);
 		return ENOMEM;
 	}
 
@@ -180,7 +181,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	if (opResult != EOK) {
 		usb_log_error("Failed to bind hub function: %s.\n",
 		   str_error(opResult));
-		free(hub_dev);
 		ddf_fun_destroy(hub_dev->hub_fun);
 		return opResult;
 	}
@@ -192,7 +192,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
-		free(hub_dev);
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(opResult));
 		return opResult;
@@ -239,32 +238,6 @@ bool hub_port_changes_callback(usb_device_t *dev,
 		}
 	}
 	return true;
-}
-/*----------------------------------------------------------------------------*/
-/**
- * create usb_hub_dev_t structure
- *
- * Does only basic copying of known information into new structure.
- * @param usb_dev usb device structure
- * @return basic usb_hub_dev_t structure
- */
-static usb_hub_dev_t * usb_hub_dev_create(usb_device_t *usb_dev)
-{
-	assert(usb_dev);
-	usb_hub_dev_t *hub_dev =
-	    usb_device_data_alloc(usb_dev, sizeof(usb_hub_dev_t));
-	if (!hub_dev)
-	    return NULL;
-
-	hub_dev->usb_device = usb_dev;
-	hub_dev->ports = NULL;
-	hub_dev->port_count = 0;
-	hub_dev->pending_ops_count = 0;
-	hub_dev->running = false;
-	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
-	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
-
-	return hub_dev;
 }
 /*----------------------------------------------------------------------------*/
 /**
