@@ -33,6 +33,16 @@
 #include <usb/debug.h>
 #include <usb/host/usb_endpoint_manager.h>
 
+/** Endpoint compare helper function.
+ *
+ * USB_DIRECTION_BOTH matches both IN and OUT.
+ * @param ep Endpoint to compare, non-null.
+ * @param address Tested address.
+ * @param endpoint Tested endpoint number.
+ * @param direction Tested direction.
+ * @return True if ep can be used to communicate with given device,
+ * false otherwise.
+ */
 static inline bool ep_match(const endpoint_t *ep,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
@@ -45,17 +55,33 @@ static inline bool ep_match(const endpoint_t *ep,
 	    && (address == ep->address);
 }
 /*----------------------------------------------------------------------------*/
+/** Get list that holds endpints for given address.
+ * @param instance usb_endpoint_manager structure, non-null.
+ * @param addr USB address, must be >= 0.
+ * @return Pointer to the appropriate list.
+ */
 static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
 {
 	assert(instance);
+	assert(addr >= 0);
 	return &instance->endpoint_lists[addr % ENDPOINT_LIST_COUNT];
 }
 /*----------------------------------------------------------------------------*/
+/** Internal search function, works on locked structure.
+ * @param instance usb_endpoint_manager structure, non-null.
+ * @param address USB address, must be valid.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction.
+ * @return Pointer to endpoint_t structure representing given communication
+ * target, NULL if there is no such endpoint registered.
+ */
 static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
 	assert(fibril_mutex_is_locked(&instance->guard));
+	if (address < 0)
+		return NULL;
 	list_foreach(*get_list(instance, address), iterator) {
 		endpoint_t *ep = endpoint_get_instance(iterator);
 		if (ep_match(ep, address, endpoint, direction))
@@ -64,6 +90,13 @@ static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
 	return NULL;
 }
 /*----------------------------------------------------------------------------*/
+/** Calculate bandwidth that needs to be reserved for communication with EP.
+ * Calculation follows USB 1.1 specification.
+ * @param speed Device's speed.
+ * @param type Type of the transfer.
+ * @param size Number of byte to transfer.
+ * @param max_packet_size Maximum bytes in one packet.
+ */
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size)
 {
@@ -105,6 +138,15 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 	}
 }
 /*----------------------------------------------------------------------------*/
+/** Initialize to default state.
+ * You need to provide valid bw_count function if you plan to use
+ * add_endpoint/remove_endpoint pair.
+ *
+ * @param instance usb_endpoint_manager structure, non-null.
+ * @param available_bandwidth Size of the bandwidth pool.
+ * @param bw_count function to use to calculate endpoint bw requirements.
+ * @return Error code.
+ */
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
     size_t available_bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
@@ -121,14 +163,14 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 /*----------------------------------------------------------------------------*/
 /** Check setup packet data for signs of toggle reset.
  *
- * @param[in] instance Device keeper structure to use.
+ * @param[in] instance usb_endpoint_manager structure, non-null.
  * @param[in] target Device to receive setup packet.
  * @param[in] data Setup packet data.
  *
- * Really ugly one.
+ * Really ugly one. Resets toggle bit on all endpoints that need it.
  */
-void usb_endpoint_manager_reset_eps_if_need(
-    usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data)
+void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
+    usb_target_t target, const uint8_t data[8])
 {
 	assert(instance);
 	if (!usb_target_is_valid(target)) {
@@ -174,14 +216,22 @@ void usb_endpoint_manager_reset_eps_if_need(
 	}
 }
 /*----------------------------------------------------------------------------*/
+/** Register endpoint structure.
+ * Checks for duplicates.
+ * @param instance usb_endpoint_manager, non-null.
+ * @param ep endpoint_t to register.
+ * @param data_size Size of data to transfer.
+ * @return Error code.
+ */
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
     endpoint_t *ep, size_t data_size)
 {
 	assert(instance);
-	assert(instance->bw_count);
-	assert(ep);
-	fibril_mutex_lock(&instance->guard);
+	if (ep == NULL || ep->address < 0)
+		return EINVAL;
 
+	fibril_mutex_lock(&instance->guard);
+	/* Check for available bandwidth */
 	if (ep->bandwidth > instance->free_bw) {
 		fibril_mutex_unlock(&instance->guard);
 		return ENOSPC;
@@ -194,26 +244,41 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 		fibril_mutex_unlock(&instance->guard);
 		return EEXISTS;
 	}
-	list_t *list = get_list(instance, ep->address);
-	list_append(&ep->link, list);
+	list_append(&ep->link, get_list(instance, ep->address));
 
 	instance->free_bw -= ep->bandwidth;
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Unregister endpoint structure.
+ * Checks for duplicates.
+ * @param instance usb_endpoint_manager, non-null.
+ * @param ep endpoint_t to unregister.
+ * @return Error code.
+ */
 int usb_endpoint_manager_unregister_ep(
     usb_endpoint_manager_t *instance, endpoint_t *ep)
 {
 	assert(instance);
-	if (ep == NULL)
-		return ENOENT;
+	if (ep == NULL || ep->address < 0)
+		return EINVAL;
+
 	fibril_mutex_lock(&instance->guard);
+	if (!list_member(&ep->link, get_list(instance, ep->address))) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOENT;
+	}
 	list_remove(&ep->link);
+	instance->free_bw += ep->bandwidth;
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Find endpoint_t representing the given communication route.
+ * @param instance usb_endpoint_manager, non-null.
+ * @param address
+ */
 endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
@@ -222,40 +287,81 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
 	fibril_mutex_lock(&instance->guard);
 	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
 	fibril_mutex_unlock(&instance->guard);
-
 	return ep;
 }
 /*----------------------------------------------------------------------------*/
+/** Create and register new endpoint_t structure.
+ * @param instance usb_endpoint_manager structure, non-null.
+ * @param address USB address.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction.
+ * @param type USB transfer type.
+ * @param speed USB Communication speed.
+ * @param max_packet_size Maximum size of data packets.
+ * @param data_size Expected communication size.
+ * @param callback function to call just after registering.
+ * @param arg Argument to pass to the callback function.
+ * @return Error code.
+ */
 int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
     size_t data_size, int (*callback)(endpoint_t *, void *), void *arg)
 {
 	assert(instance);
+	if (instance->bw_count == NULL)
+		return ENOTSUP;
+	if (address < 0)
+		return EINVAL;
+
 	const size_t bw =
 	    instance->bw_count(speed, type, data_size, max_packet_size);
 
-	endpoint_t *ep = endpoint_create(
+	fibril_mutex_lock(&instance->guard);
+	/* Check for available bandwidth */
+	if (bw > instance->free_bw) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOSPC;
+	}
+
+	/* Check for existence */
+	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
+	if (ep != NULL) {
+		fibril_mutex_unlock(&instance->guard);
+		return EEXISTS;
+	}
+
+	ep = endpoint_create(
 	    address, endpoint, direction, type, speed, max_packet_size, bw);
-	if (!ep)
+	if (!ep) {
+		fibril_mutex_unlock(&instance->guard);
 		return ENOMEM;
+	}
 
 	if (callback) {
 		const int ret = callback(ep, arg);
 		if (ret != EOK) {
+			fibril_mutex_unlock(&instance->guard);
 			endpoint_destroy(ep);
 			return ret;
 		}
 	}
+	list_append(&ep->link, get_list(instance, ep->address));
 
-	const int ret =
-	    usb_endpoint_manager_register_ep(instance, ep, data_size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	instance->free_bw -= ep->bandwidth;
+	fibril_mutex_unlock(&instance->guard);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Unregister and destroy endpoint_t structure representing given route.
+ * @param instance usb_endpoint_manager structure, non-null.
+ * @param address USB address.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction.
+ * @param callback Function to call after unregister, before destruction.
+ * @arg Argument to pass to the callback function.
+ * @return Error code.
+ */
 int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     void (*callback)(endpoint_t *, void *), void *arg)

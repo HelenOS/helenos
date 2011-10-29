@@ -45,14 +45,22 @@
 
 #include <usb/host/endpoint.h>
 
-#define BANDWIDTH_TOTAL_USB11 12000000
+/** Bytes per second in FULL SPEED */
+#define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
+/** 90% of total bandwidth is available for periodic transfers */
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
+/** 16 addresses per list */
 #define ENDPOINT_LIST_COUNT 8
 
+/** Endpoint management structure */
 typedef struct usb_endpoint_manager {
+	/** Store endpoint_t instances */
 	list_t endpoint_lists[ENDPOINT_LIST_COUNT];
+	/** Prevents races accessing lists */
 	fibril_mutex_t guard;
+	/** Size of the bandwidth pool */
 	size_t free_bw;
+	/** Use this function to count bw required by EP */
 	size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 } usb_endpoint_manager_t;
 
@@ -63,8 +71,8 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
     size_t available_bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
 
-void usb_endpoint_manager_reset_eps_if_need(
-    usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
+void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
+    usb_target_t target, const uint8_t data[8]);
 
 int usb_endpoint_manager_register_ep(
     usb_endpoint_manager_t *instance, endpoint_t *ep, size_t data_size);
