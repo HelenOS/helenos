@@ -840,6 +840,60 @@ char *str_chr(const char *str, wchar_t ch)
 	return NULL;
 }
 
+/** Removes specified trailing characters from a string.
+ *
+ * @param str String to remove from.
+ * @param ch  Character to remove.
+ */
+void str_rtrim(char *str, wchar_t ch)
+{
+	size_t off = 0;
+	size_t pos = 0;
+	wchar_t c;
+	bool update_last_chunk = true;
+	char *last_chunk = NULL;
+
+	while ((c = str_decode(str, &off, STR_NO_LIMIT))) {
+		if (c != ch) {
+			update_last_chunk = true;
+			last_chunk = NULL;
+		} else if (update_last_chunk) {
+			update_last_chunk = false;
+			last_chunk = (str + pos);
+		}
+		pos = off;
+	}
+
+	if (last_chunk)
+		*last_chunk = '\0';
+}
+
+/** Removes specified leading characters from a string.
+ *
+ * @param str String to remove from.
+ * @param ch  Character to remove.
+ */
+void str_ltrim(char *str, wchar_t ch)
+{
+	wchar_t acc;
+	size_t off = 0;
+	size_t pos = 0;
+	size_t str_sz = str_size(str);
+
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
+		if (acc != ch)
+			break;
+		else
+			pos = off;
+	}
+
+	if (pos > 0) {
+		memmove(str, &str[pos], str_sz - pos);
+		pos = str_sz - pos;
+		str[str_sz - pos] = '\0';
+	}
+}
+
 /** Find last occurence of character in string.
  *
  * @param str String to search.
