@@ -127,8 +127,7 @@ static int bind_address(
 	assert(hcd);
 
 	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
-	usb_device_manager_bind(&hcd->dev_manager, address, handle);
-	return EOK;
+	return usb_device_manager_bind(&hcd->dev_manager, address, handle);
 }
 /*----------------------------------------------------------------------------*/
 /** Find device handle by address interface function.

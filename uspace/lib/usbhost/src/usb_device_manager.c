@@ -46,8 +46,7 @@
 void usb_device_manager_init(usb_device_manager_t *instance)
 {
 	assert(instance);
-	unsigned i = 0;
-	for (; i < USB_ADDRESS_COUNT; ++i) {
+	for (unsigned i = 0; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
 		instance->devices[i].handle = 0;
 		instance->devices[i].speed = USB_SPEED_MAX;
@@ -100,39 +99,56 @@ usb_address_t usb_device_manager_get_free_address(
  * @param[in] instance Device manager structure to use.
  * @param[in] address Device address
  * @param[in] handle Devman handle of the device.
+ * @return Error code.
  */
-void usb_device_manager_bind(usb_device_manager_t *instance,
+int usb_device_manager_bind(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t handle)
 {
+	if ((address <= 0) || (address >= USB_ADDRESS_COUNT)) {
+		return EINVAL;
+	}
 	assert(instance);
+
 	fibril_mutex_lock(&instance->guard);
-
-	assert(address > 0);
-	assert(address <= USB11_ADDRESS_MAX);
-	assert(instance->devices[address].occupied);
-
+	/* Not reserved */
+	if (!instance->devices[address].occupied) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOENT;
+	}
+	/* Already bound */
+	if (instance->devices[address].handle != 0) {
+		fibril_mutex_unlock(&instance->guard);
+		return EEXISTS;
+	}
 	instance->devices[address].handle = handle;
 	fibril_mutex_unlock(&instance->guard);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Release used USB address.
  *
  * @param[in] instance Device manager structure to use.
  * @param[in] address Device address
+ * @return Error code.
  */
-void usb_device_manager_release(
+int usb_device_manager_release(
     usb_device_manager_t *instance, usb_address_t address)
 {
+	if ((address <= 0) || (address >= USB_ADDRESS_COUNT)) {
+		return EINVAL;
+	}
 	assert(instance);
-	assert(address > 0);
-	assert(address <= USB11_ADDRESS_MAX);
 
 	fibril_mutex_lock(&instance->guard);
-	assert(instance->devices[address].occupied);
+	if (!instance->devices[address].occupied) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOENT;
+	}
 
 	instance->devices[address].occupied = false;
 	instance->devices[address].handle = 0;
 	fibril_mutex_unlock(&instance->guard);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Find USB address associated with the device
@@ -146,14 +162,13 @@ usb_address_t usb_device_manager_find_address(
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
-	usb_address_t address = 1;
-	while (address <= USB11_ADDRESS_MAX) {
+	for (usb_address_t address = 1; address <= USB11_ADDRESS_MAX; ++address)
+	{
 		if (instance->devices[address].handle == handle) {
 			assert(instance->devices[address].occupied);
 			fibril_mutex_unlock(&instance->guard);
 			return address;
 		}
-		++address;
 	}
 	fibril_mutex_unlock(&instance->guard);
 	return ENOENT;
