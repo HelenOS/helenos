@@ -132,6 +132,8 @@ static int irq_to_pin(int irq)
 {
 	// FIXME: get the map from the kernel, even though this may work
 	//	  for simple cases
+	if (irq == 0)
+		return 2;
 	return irq;
 }
 
