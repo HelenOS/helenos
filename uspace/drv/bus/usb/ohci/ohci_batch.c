@@ -58,7 +58,7 @@ static void ohci_transfer_batch_dispose(ohci_transfer_batch_t *ohci_batch)
 		}
 		free(ohci_batch->tds);
 	}
-	usb_transfer_batch_dispose(ohci_batch->usb_batch);
+	usb_transfer_batch_destroy(ohci_batch->usb_batch);
 	free32(ohci_batch->device_buffer);
 	free(ohci_batch);
 }

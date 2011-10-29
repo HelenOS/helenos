@@ -96,7 +96,7 @@ static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
  * @param fun ddf function, non-null.
  * @return pointer cast to hcd_t*.
  */
-static inline hcd_t * fun_to_hcd(ddf_fun_t *fun)
+static inline hcd_t * fun_to_hcd(const ddf_fun_t *fun)
 {
 	assert(fun);
 	return fun->driver_data;

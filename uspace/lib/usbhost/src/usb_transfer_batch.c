@@ -36,10 +36,23 @@
 
 #include <usb/usb.h>
 #include <usb/debug.h>
+
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/host/hcd.h>
 
-usb_transfer_batch_t * usb_transfer_batch_get(
+/** Allocate and initialize usb_transfer_batch structure.
+ * @param ep endpoint used by the transfer batch.
+ * @param buffer data to send/recieve.
+ * @param buffer_size Size of data buffer.
+ * @param setup_buffer Data to send in SETUP stage of control transfer.
+ * @param func_in callback on IN transfer completion.
+ * @param func_out callback on OUT transfer completion.
+ * @param arg Argument to pass to the callback function.
+ * @param private_data driver specific per batch data.
+ * @param private_data_dtor Function to properly destroy private_data.
+ * @return Pointer to valid usb_transfer_batch_t structure, NULL on failure.
+ */
+usb_transfer_batch_t * usb_transfer_batch_create(
     endpoint_t *ep,
     char *buffer,
     size_t buffer_size,
@@ -52,6 +65,11 @@ usb_transfer_batch_t * usb_transfer_batch_get(
     void (*private_data_dtor)(void *)
     )
 {
+	if (func_in == NULL && func_out == NULL)
+		return NULL;
+	if (func_in != NULL && func_out != NULL)
+		return NULL;
+
 	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	if (instance) {
 		instance->ep = ep;
@@ -77,80 +95,11 @@ usb_transfer_batch_t * usb_transfer_batch_get(
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
-/** Mark batch as finished and run callback.
- *
- * @param[in] instance Batch structure to use.
- * @param[in] data Data to copy to the output buffer.
- * @param[in] size Size of @p data.
- */
-void usb_transfer_batch_finish(
-    usb_transfer_batch_t *instance, const void *data, size_t size)
-{
-	assert(instance);
-	assert(instance->ep);
-	/* we care about the data and there are some to copy */
-        if (instance->ep->direction != USB_DIRECTION_OUT
-	    && data) {
-		const size_t min_size =
-		    size < instance->buffer_size ? size : instance->buffer_size;
-                memcpy(instance->buffer, data, min_size);
-        }
-        if (instance->callback_out)
-                usb_transfer_batch_call_out(instance);
-        if (instance->callback_in)
-                usb_transfer_batch_call_in(instance);
-
-}
-/*----------------------------------------------------------------------------*/
-/** Prepare data, get error status and call callback in.
- *
- * @param[in] instance Batch structure to use.
- * Copies data from transport buffer, and calls callback with appropriate
- * parameters.
- */
-void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	assert(instance->callback_in);
-
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed (%zuB): %s.\n",
-	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
-	    instance->transfered_size, str_error(instance->error));
-
-	instance->callback_in(instance->fun, instance->error,
-	    instance->transfered_size, instance->arg);
-}
-/*----------------------------------------------------------------------------*/
-/** Get error status and call callback out.
- *
- * @param[in] instance Batch structure to use.
- */
-void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	assert(instance->callback_out);
-
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed: %s.\n",
-	    instance, USB_TRANSFER_BATCH_ARGS(*instance),
-	    str_error(instance->error));
-
-	if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
-	    && instance->error == EOK) {
-		const usb_target_t target =
-		    {{ instance->ep->address, instance->ep->endpoint }};
-		reset_ep_if_need(
-		    fun_to_hcd(instance->fun), target, instance->setup_buffer);
-	}
-
-	instance->callback_out(instance->fun,
-	    instance->error, instance->arg);
-}
-/*----------------------------------------------------------------------------*/
 /** Correctly dispose all used data structures.
  *
  * @param[in] instance Batch structure to use.
  */
-void usb_transfer_batch_dispose(usb_transfer_batch_t *instance)
+void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
 {
 	if (!instance)
 		return;
@@ -164,6 +113,45 @@ void usb_transfer_batch_dispose(usb_transfer_batch_t *instance)
 		instance->private_data_dtor(instance->private_data);
 	}
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+/** Prepare data and call the right callback.
+ *
+ * @param[in] instance Batch structure to use.
+ * @param[in] data Data to copy to the output buffer.
+ * @param[in] size Size of @p data.
+ */
+void usb_transfer_batch_finish(
+    const usb_transfer_batch_t *instance, const void *data, size_t size)
+{
+	assert(instance);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.\n",
+	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
+
+	/* NOTE: Only one of these pointers should be set. */
+        if (instance->callback_out) {
+		/* Check for commands that reset toggle bit */
+		if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
+		    && instance->error == EOK) {
+			const usb_target_t target =
+			    {{ instance->ep->address, instance->ep->endpoint }};
+			reset_ep_if_need(fun_to_hcd(instance->fun), target,
+			    instance->setup_buffer);
+		}
+		instance->callback_out(instance->fun,
+		    instance->error, instance->arg);
+	}
+
+        if (instance->callback_in) {
+		/* We care about the data and there are some to copy */
+		if (data) {
+			const size_t min_size = size < instance->buffer_size
+			    ? size : instance->buffer_size;
+	                memcpy(instance->buffer, data, min_size);
+		}
+		instance->callback_in(instance->fun, instance->error,
+		    instance->transfered_size, instance->arg);
+	}
 }
 /**
  * @}

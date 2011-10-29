@@ -75,7 +75,7 @@ static inline int send_batch(
 
 	/* No private data and no private data dtor */
 	usb_transfer_batch_t *batch =
-	    usb_transfer_batch_get(ep, data, size, setup_data,
+	    usb_transfer_batch_create(ep, data, size, setup_data,
 	    in, out, arg, fun, NULL, NULL);
 	if (!batch) {
 		return ENOMEM;
@@ -83,7 +83,7 @@ static inline int send_batch(
 
 	const int ret = hcd->schedule(hcd, batch);
 	if (ret != EOK)
-		usb_transfer_batch_dispose(batch);
+		usb_transfer_batch_destroy(batch);
 
 	return ret;
 }
