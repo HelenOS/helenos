@@ -97,7 +97,7 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 	assert(config_descr != NULL);
 	assert(config_descr_size > 0);
 
-	alternates_ptr = NULL;
+	*alternates_ptr = NULL;
 	if (interface_number < 0) {
 		return EOK;
 	}
