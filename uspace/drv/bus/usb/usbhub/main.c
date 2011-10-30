@@ -46,7 +46,8 @@
  *
  * For more information see section 11.15.1 of USB 1.1 specification.
  */
-static usb_endpoint_description_t hub_status_change_endpoint_description = {
+static const usb_endpoint_description_t hub_status_change_endpoint_description =
+{
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HUB,
@@ -55,13 +56,10 @@ static usb_endpoint_description_t hub_status_change_endpoint_description = {
 	.flags = 0
 };
 
-/**
- * USB hub driver operations
- *
- * The most important one is device_add, which is set to usb_hub_device_add.
- */
-static usb_driver_ops_t usb_hub_driver_ops = {
+/** USB hub driver operations. */
+static const usb_driver_ops_t usb_hub_driver_ops = {
 	.device_add = usb_hub_device_add,
+//	.device_rem = usb_hub_device_remove,
 	.device_gone = usb_hub_device_gone,
 };
 
@@ -71,12 +69,11 @@ static const usb_endpoint_description_t *usb_hub_endpoints[] = {
 	NULL,
 };
 /** Static usb hub driver information. */
-static usb_driver_t usb_hub_driver = {
+static const usb_driver_t usb_hub_driver = {
 	.name = NAME,
 	.ops = &usb_hub_driver_ops,
 	.endpoints = usb_hub_endpoints
 };
-
 
 int main(int argc, char *argv[])
 {

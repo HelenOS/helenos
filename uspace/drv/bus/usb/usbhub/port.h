@@ -43,7 +43,9 @@ typedef struct usb_hub_dev usb_hub_dev_t;
 
 /** Information about single port on a hub. */
 typedef struct {
+	/* Port number as reporteed in descriptors. */
 	size_t port_number;
+	/** Device communication pipe. */
 	usb_pipe_t *control_pipe;
 	/** Mutex needed not only by CV for checking port reset. */
 	fibril_mutex_t mutex;
