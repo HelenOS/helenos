@@ -50,17 +50,16 @@ typedef struct ohci_endpoint {
 	td_t *td;
 	/** Linked list used by driver software */
 	link_t link;
-	/** Device using this ep */
-	hcd_t *hcd;
 } ohci_endpoint_t;
 
 int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
+void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
 
 /** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
  * @return Pointer to assigned hcd endpoint structure
  */
-static inline ohci_endpoint_t * ohci_endpoint_get(endpoint_t *ep)
+static inline ohci_endpoint_t * ohci_endpoint_get(const endpoint_t *ep)
 {
 	assert(ep);
 	return ep->hc_data.data;

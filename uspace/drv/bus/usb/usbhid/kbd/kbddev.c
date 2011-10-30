@@ -87,7 +87,7 @@ static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
 /*----------------------------------------------------------------------------*/
 
 /** Keyboard polling endpoint description for boot protocol class. */
-usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
+const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HID,
@@ -173,7 +173,7 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
-	
+
 	usb_kbd_t *kbd_dev = (usb_kbd_t *) fun->driver_data;
 	if (kbd_dev == NULL) {
 		usb_log_debug("default_connection_handler: "
@@ -181,7 +181,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
-	
+
 	async_sess_t *sess =
 	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 	if (sess != NULL) {
@@ -236,47 +236,47 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	usb_log_debug("Creating output report:\n");
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, kbd_dev->led_path, 
+	    &hid_dev->report, NULL, kbd_dev->led_path,
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_OUTPUT);
-	
+
 	while (field != NULL) {
-		
-		if ((field->usage == USB_HID_LED_NUM_LOCK) 
+
+		if ((field->usage == USB_HID_LED_NUM_LOCK)
 		    && (kbd_dev->mods & KM_NUM_LOCK)){
 			field->value = 1;
 		}
 
-		if ((field->usage == USB_HID_LED_CAPS_LOCK) 
+		if ((field->usage == USB_HID_LED_CAPS_LOCK)
 		    && (kbd_dev->mods & KM_CAPS_LOCK)){
 			field->value = 1;
 		}
 
-		if ((field->usage == USB_HID_LED_SCROLL_LOCK) 
+		if ((field->usage == USB_HID_LED_SCROLL_LOCK)
 		    && (kbd_dev->mods & KM_SCROLL_LOCK)){
 			field->value = 1;
 		}
-		
-		field = usb_hid_report_get_sibling(hid_dev->report, field,
-		    kbd_dev->led_path,  
-	    	USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
-			USB_HID_REPORT_TYPE_OUTPUT);
+
+		field = usb_hid_report_get_sibling(
+		    &hid_dev->report, field, kbd_dev->led_path,
+		USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		    USB_HID_REPORT_TYPE_OUTPUT);
 	}
-	
+
 	// TODO: what about the Report ID?
-	int rc = usb_hid_report_output_translate(hid_dev->report, 0,
+	int rc = usb_hid_report_output_translate(&hid_dev->report, 0,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
-	
+
 	if (rc != EOK) {
 		usb_log_warning("Error translating LED output to output report"
 		    ".\n");
 		return;
 	}
-	
+
 	usb_log_debug("Output report buffer: %s\n", 
 	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size, 
 	        0));
-	
+
 	usbhid_req_set_report(&hid_dev->usb_dev->ctrl_pipe, 
 	    hid_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_OUTPUT, 
 	    kbd_dev->output_buffer, kbd_dev->output_size);
@@ -299,7 +299,7 @@ void usb_kbd_push_ev(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev, int type,
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(kbd_dev->console_sess);
 	async_msg_2(exch, KBDEV_EVENT, type, key);
 	async_exchange_end(exch);
@@ -346,7 +346,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 {
 	unsigned int key;
 	size_t i;
-	
+
 	/*
 	 * First of all, check if the kbd have reported phantom state.
 	 *
@@ -361,7 +361,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 		usb_log_debug("Detected phantom state.\n");
 		return;
 	}
-	
+
 	/*
 	 * Key releases
 	 */
@@ -381,7 +381,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 			    "(USB code %" PRIu32 ")\n", key, old_key);
 		}
 	}
-	
+
 	/*
 	 * Key presses
 	 */
@@ -401,9 +401,9 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 			    "(USB code %" PRIu32 ")\n", key, new_key);
 		}
 	}
-	
+
 	memcpy(kbd_dev->keys_old, kbd_dev->keys, kbd_dev->key_count * 4);
-	
+
 	char key_buffer[512];
 	ddf_dump_buffer(key_buffer, 512,
 	    kbd_dev->keys_old, 4, kbd_dev->key_count, 0);
@@ -431,29 +431,28 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
  */
 static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 {
-	assert(hid_dev->report != NULL);
 	assert(hid_dev != NULL);
 	assert(kbd_dev != NULL);
-	
+
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 
 	usb_hid_report_path_set_report_id (path, hid_dev->report_id);
-	
+
 	// fill in the currently pressed keys
-	
+
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    &hid_dev->report, NULL, path,
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_INPUT);
 	unsigned i = 0;
-	
+
 	while (field != NULL) {
 		usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)\n", 
 		    field, field->value, field->usage);
 		
 		assert(i < kbd_dev->key_count);
-		
+
 		// save the key usage
 		if (field->value != 0) {
 			kbd_dev->keys[i] = field->usage;
@@ -462,16 +461,16 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 			kbd_dev->keys[i] = 0;
 		}
 		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
-		
+
 		++i;
-		field = usb_hid_report_get_sibling(hid_dev->report, field, path, 
-		    USB_HID_PATH_COMPARE_END 
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		field = usb_hid_report_get_sibling(
+		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
+		        | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
-	
+
 	usb_hid_report_path_free(path);
-	
+
 	usb_kbd_check_key_changes(hid_dev, kbd_dev);
 }
 
@@ -501,33 +500,33 @@ static usb_kbd_t *usb_kbd_new(void)
 	    (usb_kbd_t *)calloc(1, sizeof(usb_kbd_t));
 
 	if (kbd_dev == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		return NULL;
 	}
-	
+
 	kbd_dev->console_sess = NULL;
 	kbd_dev->initialized = USB_KBD_STATUS_UNINITIALIZED;
-	
+
 	return kbd_dev;
 }
 
 /*----------------------------------------------------------------------------*/
 
-static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
+static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 {
-	assert(hid_dev != NULL);
-	assert(hid_dev->usb_dev != NULL);
 	assert(kbd_dev != NULL);
-	
+	assert(kbd_dev->hid_dev != NULL);
+	assert(kbd_dev->hid_dev->usb_dev != NULL);
+
 	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
-	    HID_KBD_FUN_NAME);
+	ddf_fun_t *fun = ddf_fun_create(kbd_dev->hid_dev->usb_dev->ddf_dev,
+	    fun_exposed, HID_KBD_FUN_NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Store the initialized HID device and HID ops
 	 * to the DDF function.
@@ -539,13 +538,14 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
+		fun->driver_data = NULL; /* We need this later */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+
 	usb_log_debug("%s function created. Handle: %" PRIun "\n",
 	    HID_KBD_FUN_NAME, fun->handle);
-	
+
 	usb_log_debug("Adding DDF function to category %s...\n", 
 	    HID_KBD_CLASS_NAME);
 	rc = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
@@ -553,10 +553,12 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
+		fun->driver_data = NULL; /* We need this later */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+	kbd_dev->fun = fun;
+
 	return EOK;
 }
 
@@ -586,13 +588,13 @@ static int usb_kbd_create_function(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/KBD structure...\n");
-	
+
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init keyboard structure: no structure"
 		    " given.\n");
 		return EINVAL;
 	}
-	
+
 	usb_kbd_t *kbd_dev = usb_kbd_new();
 	if (kbd_dev == NULL) {
 		usb_log_error("Error while creating USB/HID KBD device "
@@ -602,66 +604,66 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 
 	/* Store link to HID device */
 	kbd_dev->hid_dev = hid_dev;
-	
+
 	/*
 	 * TODO: make more general
 	 */
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
-	
+
 	usb_hid_report_path_set_report_id(path, 0);
-	
+
 	kbd_dev->key_count = usb_hid_report_size(
-	    hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT); 
+	    &hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT);
 	usb_hid_report_path_free(path);
-	
+
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
-	
-	kbd_dev->keys = (int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
-	
+
+	kbd_dev->keys = calloc(kbd_dev->key_count, sizeof(int32_t));
+
 	if (kbd_dev->keys == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		free(kbd_dev);
 		return ENOMEM;
 	}
-	
+
 	kbd_dev->keys_old = 
 		(int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
-	
+
 	if (kbd_dev->keys_old == NULL) {
-		usb_log_fatal("No memory!\n");
+		usb_log_error("No memory!\n");
 		free(kbd_dev->keys);
 		free(kbd_dev);
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Output report
 	 */
 	kbd_dev->output_size = 0;
-	kbd_dev->output_buffer = usb_hid_report_output(hid_dev->report, 
+	kbd_dev->output_buffer = usb_hid_report_output(&hid_dev->report,
 	    &kbd_dev->output_size, 0);
 	if (kbd_dev->output_buffer == NULL) {
 		usb_log_warning("Error creating output report buffer.\n");
 		free(kbd_dev->keys);
 		return ENOMEM;
 	}
-	
+
 	usb_log_debug("Output buffer size: %zu\n", kbd_dev->output_size);
-	
+
 	kbd_dev->led_path = usb_hid_report_path();
 	usb_hid_report_path_append_item(
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
-	
-	kbd_dev->led_output_size = usb_hid_report_size(hid_dev->report, 
-	    0, USB_HID_REPORT_TYPE_OUTPUT);
-	
+
+	kbd_dev->led_output_size = usb_hid_report_size(
+	    &hid_dev->report, 0, USB_HID_REPORT_TYPE_OUTPUT);
+
 	usb_log_debug("Output report size (in items): %zu\n", 
 	    kbd_dev->led_output_size);
-	
+
 	kbd_dev->led_data = (int32_t *)calloc(
 	    kbd_dev->led_output_size, sizeof(int32_t));
-	
+
 	if (kbd_dev->led_data == NULL) {
 		usb_log_warning("Error creating buffer for LED output report."
 		    "\n");
@@ -670,14 +672,14 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		free(kbd_dev);
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Modifiers and locks
 	 */
 	kbd_dev->modifiers = 0;
 	kbd_dev->mods = DEFAULT_ACTIVE_MODS;
 	kbd_dev->lock_keys = 0;
-	
+
 	/*
 	 * Autorepeat
 	 */
@@ -685,34 +687,24 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	kbd_dev->repeat.key_repeated = 0;
 	kbd_dev->repeat.delay_before = DEFAULT_DELAY_BEFORE_FIRST_REPEAT;
 	kbd_dev->repeat.delay_between = DEFAULT_REPEAT_DELAY;
-	
-	kbd_dev->repeat_mtx = (fibril_mutex_t *)(
-	    malloc(sizeof(fibril_mutex_t)));
-	if (kbd_dev->repeat_mtx == NULL) {
-		usb_log_fatal("No memory!\n");
-		free(kbd_dev->keys);
-		usb_hid_report_output_free(kbd_dev->output_buffer);
-		free(kbd_dev);
-		return ENOMEM;
-	}
-	
-	fibril_mutex_initialize(kbd_dev->repeat_mtx);
-	
+
+	fibril_mutex_initialize(&kbd_dev->repeat_mtx);
+
 	// save the KBD device structure into the HID device structure
 	*data = kbd_dev;
-	
+
 	// set handler for incoming calls
 	kbd_dev->ops.default_handler = default_connection_handler;
-	
+
 	/*
 	 * Set LEDs according to initial setup.
 	 * Set Idle rate
 	 */
 	usb_kbd_set_led(hid_dev, kbd_dev);
-	
+
 	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
 	    hid_dev->usb_dev->interface_no, IDLE_RATE);
-	
+
 	/*
 	 * Create new fibril for auto-repeat
 	 */
@@ -722,17 +714,17 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);
-	
+
 	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
 	usb_log_debug("HID/KBD device structure initialized.\n");
-	
+
 	usb_log_debug("Creating KBD function...\n");
-	int rc = usb_kbd_create_function(hid_dev, kbd_dev);
+	int rc = usb_kbd_create_function(kbd_dev);
 	if (rc != EOK) {
 		usb_kbd_destroy(kbd_dev);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -744,13 +736,13 @@ bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 		// do not continue polling (???)
 		return false;
 	}
-	
+
 	usb_kbd_t *kbd_dev = (usb_kbd_t *)data;
 	assert(kbd_dev != NULL);
-	
+
 	// TODO: add return value from this function
 	usb_kbd_process_data(hid_dev, kbd_dev);
-	
+
 	return true;
 }
 
@@ -779,33 +771,33 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	if (kbd_dev == NULL) {
 		return;
 	}
-	
+
 	// hangup session to the console
 	async_hangup(kbd_dev->console_sess);
-	
-	if (kbd_dev->repeat_mtx != NULL) {
-		//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
-		// FIXME - the fibril_mutex_is_locked may not cause
-		// fibril scheduling
-		while (fibril_mutex_is_locked(kbd_dev->repeat_mtx)) {}
-		free(kbd_dev->repeat_mtx);
-	}
-	
+
+	//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
+	// FIXME - the fibril_mutex_is_locked may not cause
+	// fibril scheduling
+	while (fibril_mutex_is_locked(&kbd_dev->repeat_mtx)) {}
+
 	// free all buffers
-	if (kbd_dev->keys != NULL) {
-		free(kbd_dev->keys);
-	}
-	if (kbd_dev->keys_old != NULL) {
-		free(kbd_dev->keys_old);
-	}
-	if (kbd_dev->led_data != NULL) {
-		free(kbd_dev->led_data);
-	}
+	free(kbd_dev->keys);
+	free(kbd_dev->keys_old);
+	free(kbd_dev->led_data);
+
 	if (kbd_dev->led_path != NULL) {
 		usb_hid_report_path_free(kbd_dev->led_path);
 	}
 	if (kbd_dev->output_buffer != NULL) {
 		usb_hid_report_output_free(kbd_dev->output_buffer);
+	}
+
+	if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
+		usb_log_warning("Failed to unbind kbd function.\n");
+	} else {
+		usb_log_debug2("%s unbound.\n", kbd_dev->fun->name);
+		kbd_dev->fun->driver_data = NULL;
+		ddf_fun_destroy(kbd_dev->fun);
 	}
 }
 
@@ -816,12 +808,13 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 	if (hid_dev == NULL) {
 		return;
 	}
-	
+
 	if (data != NULL) {
-		usb_kbd_t *kbd_dev = (usb_kbd_t *)data;
+		usb_kbd_t *kbd_dev = data;
 		if (usb_kbd_is_initialized(kbd_dev)) {
 			usb_kbd_mark_unusable(kbd_dev);
-		} else {
+			/* wait for autorepeat */
+			async_usleep(CHECK_DELAY);
 			usb_kbd_destroy(kbd_dev);
 		}
 	}
@@ -831,25 +824,25 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 
 int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
-	int rc = usb_hid_parse_report_descriptor(hid_dev->report, 
-	    USB_KBD_BOOT_REPORT_DESCRIPTOR, 
+	int rc = usb_hid_parse_report_descriptor(
+	    &hid_dev->report, USB_KBD_BOOT_REPORT_DESCRIPTOR,
 	    USB_KBD_BOOT_REPORT_DESCRIPTOR_SIZE);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Failed to parse boot report descriptor: %s\n",
 		    str_error(rc));
 		return rc;
 	}
-	
-	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe, 
+
+	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe,
 	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
-	
+
 	if (rc != EOK) {
 		usb_log_warning("Failed to set boot protocol to the device: "
 		    "%s\n", str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 

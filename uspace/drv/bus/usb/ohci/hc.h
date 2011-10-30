@@ -85,8 +85,8 @@ int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
  */
 static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
 
-void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep);
-void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep);
+void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
+void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
 
 void hc_interrupt(hc_t *instance, uint32_t status);
 #endif

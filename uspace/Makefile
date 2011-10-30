@@ -115,7 +115,6 @@ DIRS = \
 	drv/bus/usb/usbhub \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
-	drv/bus/usb/usbmouse \
 	drv/bus/usb/vhc \
 	drv/nic/lo \
 	drv/nic/ne2k

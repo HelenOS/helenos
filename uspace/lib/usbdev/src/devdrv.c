@@ -53,7 +53,7 @@ static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops
 };
 
-static usb_driver_t *driver = NULL;
+static const usb_driver_t *driver = NULL;
 
 
 /** Main routine of USB device driver.
@@ -63,7 +63,7 @@ static usb_driver_t *driver = NULL;
  * @param drv USB device driver structure.
  * @return Task exit status.
  */
-int usb_driver_main(usb_driver_t *drv)
+int usb_driver_main(const usb_driver_t *drv)
 {
 	assert(drv != NULL);
 
@@ -80,7 +80,7 @@ int usb_driver_main(usb_driver_t *drv)
  * @param drv USB driver.
  * @return Number of pipes (excluding default control pipe).
  */
-static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
+static size_t count_other_pipes(const usb_endpoint_description_t **endpoints)
 {
 	size_t count = 0;
 	if (endpoints == NULL) {
@@ -100,7 +100,7 @@ static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
  * @param dev Device to be initialized.
  * @return Error code.
  */
-static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
+static int initialize_other_pipes(const usb_endpoint_description_t **endpoints,
     usb_device_t *dev, int alternate_setting)
 {
 	if (endpoints == NULL) {
@@ -114,8 +114,7 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 
 	int rc = usb_device_create_pipes(dev->ddf_dev, &dev->wire, endpoints,
 	    dev->descriptors.configuration, dev->descriptors.configuration_size,
-	    dev->interface_no, alternate_setting,
-	    &pipes, &pipes_count);
+	    dev->interface_no, alternate_setting, &pipes, &pipes_count);
 
 	if (rc != EOK) {
 		return rc;
@@ -140,19 +139,24 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	assert(driver->ops->device_add);
 
-	int rc;
-
-	usb_device_t *dev = NULL;
+	usb_device_t *dev = ddf_dev_data_alloc(gen_dev, sizeof(usb_device_t));
+	if (dev == NULL) {
+		usb_log_error("USB device `%s' structure allocation failed.\n",
+		    gen_dev->name);
+		return ENOMEM;
+	}
 	const char *err_msg = NULL;
-	rc = usb_device_create(gen_dev, driver->endpoints, &dev, &err_msg);
+	int rc = usb_device_init(dev, gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
-		usb_log_error("USB device `%s' creation failed (%s): %s.\n",
+		usb_log_error("USB device `%s' init failed (%s): %s.\n",
 		    gen_dev->name, err_msg, str_error(rc));
 		return rc;
 	}
-	gen_dev->driver_data = dev;
 
-	return driver->ops->device_add(dev);
+	rc = driver->ops->device_add(dev);
+	if (rc != EOK)
+		usb_device_deinit(dev);
+	return rc;
 }
 /*----------------------------------------------------------------------------*/
 /** Callback when a device is supposed to be removed from the system.
@@ -185,9 +189,10 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	if (driver->ops->device_gone == NULL)
 		return ENOTSUP;
-	const int ret = driver->ops->device_gone(gen_dev->driver_data);
+	usb_device_t *usb_dev = gen_dev->driver_data;
+	const int ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
-		usb_device_destroy(gen_dev->driver_data);
+		usb_device_deinit(usb_dev);
 
 	return ret;
 }
@@ -234,7 +239,7 @@ static int destroy_current_pipes(usb_device_t *dev)
  * @return Error code.
  */
 int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
-    usb_endpoint_description_t **endpoints)
+    const usb_endpoint_description_t **endpoints)
 {
 	if (dev->interface_no < 0) {
 		return EINVAL;
@@ -317,8 +322,8 @@ leave:
  * @return Error code.
  */
 int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
-    usb_endpoint_description_t **endpoints,
-    uint8_t *config_descr, size_t config_descr_size,
+    const usb_endpoint_description_t **endpoints,
+    const uint8_t *config_descr, size_t config_descr_size,
     int interface_no, int interface_setting,
     usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
 {
@@ -332,8 +337,9 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 	size_t i;
 	int rc;
 
-	size_t pipe_count = count_other_pipes(endpoints);
+	const size_t pipe_count = count_other_pipes(endpoints);
 	if (pipe_count == 0) {
+		*pipes_count_ptr = pipe_count;
 		*pipes_ptr = NULL;
 		return EOK;
 	}
@@ -444,12 +450,12 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
     usb_endpoint_mapping_t *pipes, size_t pipes_count)
 {
 	assert(dev != NULL);
-	assert(((pipes != NULL) && (pipes_count > 0))
-	    || ((pipes == NULL) && (pipes_count == 0)));
 
 	if (pipes_count == 0) {
+		assert(pipes == NULL);
 		return EOK;
 	}
+	assert(pipes != NULL);
 
 	int rc;
 
@@ -467,7 +473,10 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 	/* Destroy the pipes. */
 	size_t i;
 	for (i = 0; i < pipes_count; i++) {
-		usb_pipe_unregister(pipes[i].pipe, &hc_conn);
+		usb_log_debug2("Unregistering pipe %zu (%spresent).\n",
+		    i, pipes[i].present ? "" : "not ");
+		if (pipes[i].present)
+			usb_pipe_unregister(pipes[i].pipe, &hc_conn);
 		free(pipes[i].pipe);
 	}
 
@@ -508,98 +517,91 @@ static int init_wire_and_ctrl_pipe(usb_device_t *dev, const char **errmsg)
 }
 
 
-/** Create new instance of USB device.
+/** Initialize new instance of USB device.
  *
+ * @param[in] usb_dev Pointer to the new device.
  * @param[in] ddf_dev Generic DDF device backing the USB one.
  * @param[in] endpoints NULL terminated array of endpoints (NULL for none).
- * @param[out] dev_ptr Where to store pointer to the new device.
  * @param[out] errstr_ptr Where to store description of context
  *	(in case error occurs).
  * @return Error code.
  */
-int usb_device_create(ddf_dev_t *ddf_dev,
-    usb_endpoint_description_t **endpoints,
-    usb_device_t **dev_ptr, const char **errstr_ptr)
+int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
+    const usb_endpoint_description_t **endpoints, const char **errstr_ptr)
 {
-	assert(dev_ptr != NULL);
+	assert(usb_dev != NULL);
 	assert(ddf_dev != NULL);
 
-	int rc;
-
-	usb_device_t *dev = malloc(sizeof(usb_device_t));
-	if (dev == NULL) {
-		*errstr_ptr = "structure allocation";
-		return ENOMEM;
-	}
-
-	// FIXME: proper deallocation in case of errors
-
-	dev->ddf_dev = ddf_dev;
-	dev->driver_data = NULL;
-	dev->descriptors.configuration = NULL;
-	dev->alternate_interfaces = NULL;
-
-	dev->pipes_count = 0;
-	dev->pipes = NULL;
+	usb_dev->ddf_dev = ddf_dev;
+	usb_dev->driver_data = NULL;
+	usb_dev->descriptors.configuration = NULL;
+	usb_dev->alternate_interfaces = NULL;
+	usb_dev->pipes_count = 0;
+	usb_dev->pipes = NULL;
 
 	/* Initialize backing wire and control pipe. */
-	rc = init_wire_and_ctrl_pipe(dev, errstr_ptr);
+	int rc = init_wire_and_ctrl_pipe(usb_dev, errstr_ptr);
 	if (rc != EOK) {
 		return rc;
 	}
 
 	/* Get our interface. */
-	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
+	usb_dev->interface_no = usb_device_get_assigned_interface(ddf_dev);
 
 	/* Retrieve standard descriptors. */
-	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
-	    &dev->descriptors);
+	rc = usb_device_retrieve_descriptors(&usb_dev->ctrl_pipe,
+	    &usb_dev->descriptors);
 	if (rc != EOK) {
+		/* Nothing allocated, nothing to free. */
 		*errstr_ptr = "descriptor retrieval";
 		return rc;
 	}
 
-	/* Create alternate interfaces. */
-	rc = usb_alternate_interfaces_create(dev->descriptors.configuration,
-	    dev->descriptors.configuration_size, dev->interface_no,
-	    &dev->alternate_interfaces);
-	if (rc != EOK) {
-		/* We will try to silently ignore this. */
-		dev->alternate_interfaces = NULL;
-	}
+	/* Create alternate interfaces. We will silently ignore failure. */
+	//TODO Why ignore?
+	usb_alternate_interfaces_create(usb_dev->descriptors.configuration,
+	    usb_dev->descriptors.configuration_size, usb_dev->interface_no,
+	    &usb_dev->alternate_interfaces);
 
-	rc = initialize_other_pipes(endpoints, dev, 0);
+	rc = initialize_other_pipes(endpoints, usb_dev, 0);
 	if (rc != EOK) {
+		/* Full configuration descriptor is allocated. */
+		free(usb_dev->descriptors.configuration);
+		/* Alternate interfaces may be allocated */
+		usb_alternate_interfaces_destroy(usb_dev->alternate_interfaces);
 		*errstr_ptr = "pipes initialization";
 		return rc;
 	}
 
 	*errstr_ptr = NULL;
-	*dev_ptr = dev;
 
 	return EOK;
 }
 
-/** Destroy instance of a USB device.
+/** Clean instance of a USB device.
  *
- * @param dev Device to be destroyed.
+ * @param dev Device to be de-initialized.
+ *
+ * Does not free/destroy supplied pointer.
  */
-void usb_device_destroy(usb_device_t *dev)
+void usb_device_deinit(usb_device_t *dev)
 {
-	if (dev == NULL) {
-		return;
+	if (dev) {
+		/* Ignore errors and hope for the best. */
+		destroy_current_pipes(dev);
+
+		usb_alternate_interfaces_destroy(dev->alternate_interfaces);
+		free(dev->descriptors.configuration);
+		free(dev->driver_data);
 	}
+}
 
-	/* Ignore errors and hope for the best. */
-	usb_device_destroy_pipes(dev->ddf_dev, dev->pipes, dev->pipes_count);
-	free(dev->descriptors.configuration);
+void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
+{
+	assert(usb_dev);
+	assert(usb_dev->driver_data == NULL);
+	return usb_dev->driver_data = calloc(1, size);
 
-	if (dev->alternate_interfaces != NULL) {
-		free(dev->alternate_interfaces->alternatives);
-	}
-	free(dev->alternate_interfaces);
-
-	free(dev);
 }
 
 /**

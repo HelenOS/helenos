@@ -63,6 +63,8 @@ static int usbfallback_device_add(usb_device_t *dev)
 		return rc;
 	}
 
+	dev->driver_data = ctl_fun;
+
 	usb_log_info("Pretending to control %s `%s'" \
 	    " (node `%s', handle %" PRIun ").\n",
 	    dev->interface_no < 0 ? "device" : "interface",
@@ -71,13 +73,45 @@ static int usbfallback_device_add(usb_device_t *dev)
 	return EOK;
 }
 
+/** Callback when new device is about to be removed.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
+static int usbfallback_device_remove(usb_device_t *dev)
+{
+	return EOK;
+}
+
+/** Callback when new device is removed and recognized as gone by DDF.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
+static int usbfallback_device_gone(usb_device_t *dev)
+{
+	assert(dev);
+	ddf_fun_t *ctl_fun = dev->driver_data;
+	const int ret = ddf_fun_unbind(ctl_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind %s.\n", ctl_fun->name);
+		return ret;
+	}
+	ddf_fun_destroy(ctl_fun);
+	dev->driver_data = NULL;
+
+	return EOK;
+}
+
 /** USB fallback driver ops. */
-static usb_driver_ops_t usbfallback_driver_ops = {
+static const usb_driver_ops_t usbfallback_driver_ops = {
 	.device_add = usbfallback_device_add,
+	.device_rem = usbfallback_device_remove,
+	.device_gone = usbfallback_device_gone,
 };
 
 /** USB fallback driver. */
-static usb_driver_t usbfallback_driver = {
+static const usb_driver_t usbfallback_driver = {
 	.name = NAME,
 	.ops = &usbfallback_driver_ops,
 	.endpoints = NULL

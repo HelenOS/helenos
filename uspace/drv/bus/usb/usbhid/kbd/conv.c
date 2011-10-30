@@ -86,7 +86,7 @@ static int scanmap_simple[255] = {
 	[0x25] = KC_8,
 	[0x26] = KC_9,
 	[0x27] = KC_0,
-	
+
 	[0x28] = KC_ENTER,
 	[0x29] = KC_ESCAPE,
 	[0x2a] = KC_BACKSPACE,
@@ -108,7 +108,7 @@ static int scanmap_simple[255] = {
 	[0x38] = KC_SLASH,
 
 	[0x39] = KC_CAPS_LOCK,
-	
+
 	[0x3a] = KC_F1,
 	[0x3b] = KC_F2,
 	[0x3c] = KC_F3,
@@ -121,7 +121,7 @@ static int scanmap_simple[255] = {
 	[0x43] = KC_F10,
 	[0x44] = KC_F11,
 	[0x45] = KC_F12,
-	
+
 	[0x46] = KC_PRTSCR,
 	[0x47] = KC_SCROLL_LOCK,
 	[0x48] = KC_PAUSE,
@@ -135,9 +135,9 @@ static int scanmap_simple[255] = {
 	[0x50] = KC_LEFT,
 	[0x51] = KC_DOWN,
 	[0x52] = KC_UP,
-	
+
 	//[0x64] = // some funny key
-	
+
 	[0xe0] = KC_LCTRL,
 	[0xe1] = KC_LSHIFT,
 	[0xe2] = KC_LALT,
@@ -146,7 +146,7 @@ static int scanmap_simple[255] = {
 	[0xe5] = KC_RSHIFT,
 	[0xe6] = KC_RALT,
 	//[0xe7] = KC_R	// TODO: right GUI
-	
+
 	[0x53] = KC_NUM_LOCK,
 	[0x54] = KC_NSLASH,
 	[0x55] = KC_NTIMES,
@@ -164,7 +164,7 @@ static int scanmap_simple[255] = {
 	[0x61] = KC_N9,
 	[0x62] = KC_N0,
 	[0x63] = KC_NPERIOD
-	
+
 };
 
 /**
@@ -185,7 +185,7 @@ unsigned int usbhid_parse_scancode(int scancode)
 		return -1;
 
 	key = map[scancode];
-	
+
 	return key;
 }
 

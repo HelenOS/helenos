@@ -50,8 +50,8 @@ void dump_short_device_identification(usbinfo_device_t *dev)
 	    (int) dev->device_descriptor.vendor_id);
 }
 
-static void dump_match_ids_from_interface(uint8_t *descriptor, size_t depth,
-    void *arg)
+static void dump_match_ids_from_interface(
+    const uint8_t *descriptor, size_t depth, void *arg)
 {
 	if (depth != 1) {
 		return;
@@ -164,8 +164,8 @@ static void dump_descriptor_tree_brief_hub(const char *prefix,
 }
 
 
-static void dump_descriptor_tree_callback(uint8_t *descriptor,
-    size_t depth, void *arg)
+static void dump_descriptor_tree_callback(
+    const uint8_t *descriptor, size_t depth, void *arg)
 {
 	const char *indent = get_indent(depth + 1);
 
@@ -245,8 +245,8 @@ void dump_descriptor_tree_full(usbinfo_device_t *dev)
 	    dev);
 }
 
-static void find_string_indexes_callback(uint8_t *descriptor,
-    size_t depth, void *arg)
+static void find_string_indexes_callback(
+    const uint8_t *descriptor, size_t depth, void *arg)
 {
 	size_t descriptor_length = descriptor[0];
 	if (descriptor_length <= 1) {

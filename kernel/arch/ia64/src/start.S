@@ -155,6 +155,15 @@ paging_start:
 	/*
 	 * Now we are paging.
 	 */
+
+	#
+	# Set Interruption Vector Address
+	# (i.e. location of interruption vector table)
+	#
+	movl r8 = ivt ;; 
+	mov cr.iva = r8
+	srlz.d ;;	
+
 	
 	# Switch to register bank 1
 	bsw.1
@@ -164,9 +173,9 @@ paging_start:
 	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
 	mov ar.bspstore = r8
 	loadrs
-	
+
 	#
-	# Initialize memory stack to some sane value and allocate a scratch are
+	# Initialize memory stack to some sane value and allocate a scratch area
 	# on it.
 	#
 	movl sp = stack0 ;;
@@ -186,7 +195,7 @@ paging_start:
 	ssm (1 << 19) ;; /* Disable f32 - f127 */
 	srlz.i
 	srlz.d ;;
-	
+
 	br.call.sptk.many b0 = arch_pre_main
 0:
 	br.call.sptk.many b0 = main_bsp

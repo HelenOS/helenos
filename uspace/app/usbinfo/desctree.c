@@ -49,14 +49,14 @@
 #include <usb/dev/dp.h>
 
 static void browse_descriptor_tree_internal(usb_dp_parser_t *parser,
-    usb_dp_parser_data_t *data, uint8_t *root, size_t depth,
+    usb_dp_parser_data_t *data, const uint8_t *root, size_t depth,
     dump_descriptor_in_tree_t callback, void *arg)
 {
 	if (root == NULL) {
 		return;
 	}
 	callback(root, depth, arg);
-	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	const uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
 	do {
 		browse_descriptor_tree_internal(parser, data, child, depth + 1,
 		    callback, arg);

@@ -47,7 +47,7 @@
 static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	if (uhci_batch) {
-		usb_transfer_batch_dispose(uhci_batch->usb_batch);
+		usb_transfer_batch_destroy(uhci_batch->usb_batch);
 		free32(uhci_batch->device_buffer);
 		free(uhci_batch);
 	}

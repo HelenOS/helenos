@@ -50,7 +50,6 @@ RD_DRVS += \
 	bus/usb/usbhid \
 	bus/usb/usbmast \
 	bus/usb/usbmid \
-	bus/usb/usbmouse \
 	bus/usb/vhc
 
 RD_DRV_CFG += \

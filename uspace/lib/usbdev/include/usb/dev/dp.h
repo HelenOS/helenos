@@ -58,26 +58,28 @@ extern usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[];
 /** Descriptor parser structure. */
 typedef struct {
 	/** Used descriptor nesting. */
-	usb_dp_descriptor_nesting_t *nesting;
+	const usb_dp_descriptor_nesting_t *nesting;
 } usb_dp_parser_t;
 
 /** Descriptor parser data. */
 typedef struct {
 	/** Data to be parsed. */
-	uint8_t *data;
+	const uint8_t *data;
 	/** Size of input data in bytes. */
 	size_t size;
 	/** Custom argument. */
 	void *arg;
 } usb_dp_parser_data_t;
 
-uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *,
-    usb_dp_parser_data_t *, uint8_t *);
-uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *,
-    usb_dp_parser_data_t *, uint8_t *, uint8_t *);
+typedef void (*walk_callback_t)(const uint8_t *, size_t, void *);
 
-void usb_dp_walk_simple(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
-    void (*)(uint8_t *, size_t, void *), void *);
+const uint8_t *usb_dp_get_nested_descriptor(const usb_dp_parser_t *,
+    const usb_dp_parser_data_t *, const uint8_t *);
+const uint8_t *usb_dp_get_sibling_descriptor(const usb_dp_parser_t *,
+    const usb_dp_parser_data_t *, const uint8_t *, const uint8_t *);
+
+void usb_dp_walk_simple(uint8_t *, size_t, const usb_dp_descriptor_nesting_t *,
+    walk_callback_t, void *);
 
 #endif
 /**

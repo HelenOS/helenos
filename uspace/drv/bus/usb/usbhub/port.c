@@ -287,12 +287,25 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	ddf_fun_destroy(port->attached_device.fun);
 	port->attached_device.fun = NULL;
 
-	ret = usb_hc_unregister_device(&hub->connection,
-	    port->attached_device.address);
-	if (ret != EOK) {
-		usb_log_warning("Failed to unregister address of the removed "
-		    "device: %s.\n", str_error(ret));
+	ret = usb_hc_connection_open(&hub->connection);
+	if (ret == EOK) {
+		ret = usb_hc_unregister_device(&hub->connection,
+		    port->attached_device.address);
+		if (ret != EOK) {
+			usb_log_warning("Failed to unregister address of the "
+			    "removed device: %s.\n", str_error(ret));
+		}
+		ret = usb_hc_connection_close(&hub->connection);
+		if (ret != EOK) {
+			usb_log_warning("Failed to close hc connection %s.\n",
+			    str_error(ret));
+		}
+
+	} else {
+		usb_log_warning("Failed to open hc connection %s.\n",
+		    str_error(ret));
 	}
+
 	port->attached_device.address = -1;
 	fibril_mutex_unlock(&port->mutex);
 	usb_log_info("Removed device on port %zu.\n", port->port_number);

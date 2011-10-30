@@ -48,11 +48,8 @@ static inline int send_batch(
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 
-	int ret;
-
-	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hcd->ep_manager,
-	    target.address, target.endpoint, direction, &res_bw);
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&hcd->ep_manager,
+	    target.address, target.endpoint, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    target.address, target.endpoint, name);
@@ -64,10 +61,11 @@ static inline int send_batch(
 
 	const size_t bw = bandwidth_count_usb11(
 	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
-	if (res_bw < bw) {
+	/* Check if we have enough bandwidth reserved */
+	if (ep->bandwidth < bw) {
 		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
 		    "but only %zu is reserved.\n",
-		    target.address, target.endpoint, name, bw, res_bw);
+		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
 	}
 	if (!hcd->schedule) {
@@ -77,15 +75,15 @@ static inline int send_batch(
 
 	/* No private data and no private data dtor */
 	usb_transfer_batch_t *batch =
-	    usb_transfer_batch_get(ep, data, size, setup_data,
+	    usb_transfer_batch_create(ep, data, size, setup_data,
 	    in, out, arg, fun, NULL, NULL);
 	if (!batch) {
 		return ENOMEM;
 	}
 
-	ret = hcd->schedule(hcd, batch);
+	const int ret = hcd->schedule(hcd, batch);
 	if (ret != EOK)
-		usb_transfer_batch_dispose(batch);
+		usb_transfer_batch_destroy(batch);
 
 	return ret;
 }
@@ -129,8 +127,7 @@ static int bind_address(
 	assert(hcd);
 
 	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
-	usb_device_manager_bind(&hcd->dev_manager, address, handle);
-	return EOK;
+	return usb_device_manager_bind(&hcd->dev_manager, address, handle);
 }
 /*----------------------------------------------------------------------------*/
 /** Find device handle by address interface function.
@@ -146,9 +143,8 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 	assert(fun);
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
-	const bool found =
-	    usb_device_manager_find_by_address(&hcd->dev_manager, address, handle);
-	return found ? EOK : ENOENT;
+	return usb_device_manager_get_info_by_address(
+	    &hcd->dev_manager, address, handle, NULL);
 }
 /*----------------------------------------------------------------------------*/
 /** Release address interface function
@@ -167,6 +163,25 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+static int register_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_add_hook)
+		return hcd->ep_add_hook(hcd, ep);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static void unregister_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+/*----------------------------------------------------------------------------*/
 static int register_endpoint(
     ddf_fun_t *fun, usb_address_t address, usb_speed_t ep_speed,
     usb_endpoint_t endpoint,
@@ -179,33 +194,20 @@ static int register_endpoint(
 	const size_t size = max_packet_size;
 	/* Default address is not bound or registered,
 	 * thus it does not provide speed info. */
-	const usb_speed_t speed = (address == 0) ? ep_speed :
-	    usb_device_manager_get_speed(&hcd->dev_manager, address);
+	usb_speed_t speed = ep_speed;
+	/* NOTE The function will return EINVAL and won't
+	 * touch speed variable for default address */
+	usb_device_manager_get_info_by_address(
+	    &hcd->dev_manager, address, NULL, &speed);
 
 	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_direction(direction), usb_str_speed(speed),
 	    max_packet_size, interval);
 
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, transfer_type, speed, max_packet_size);
-	if (!ep)
-		return ENOMEM;
-	int ret = EOK;
-
-	if (hcd->ep_add_hook) {
-		ret = hcd->ep_add_hook(hcd, ep);
-	}
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(&hcd->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	return usb_endpoint_manager_add_ep(&hcd->ep_manager, address, endpoint,
+	    direction, transfer_type, speed, max_packet_size, size,
+	    register_helper, hcd);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
@@ -217,8 +219,8 @@ static int unregister_endpoint(
 	assert(hcd);
 	usb_log_debug("Unregister endpoint %d:%d %s.\n",
 	    address, endpoint, usb_str_direction(direction));
-	return usb_endpoint_manager_unregister_ep(&hcd->ep_manager, address,
-	    endpoint, direction);
+	return usb_endpoint_manager_remove_ep(&hcd->ep_manager, address,
+	    endpoint, direction, unregister_helper, hcd);
 }
 /*----------------------------------------------------------------------------*/
 static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,

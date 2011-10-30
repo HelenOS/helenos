@@ -48,17 +48,21 @@ typedef struct {
 	/** IPC session to console (consumer). */
 	async_sess_t *mouse_sess;
 	async_sess_t *wheel_sess;
-	
+
 	/* Mouse buttons statuses. */
 	int32_t *buttons;
 	size_t buttons_count;
-	
+
 	ddf_dev_ops_t ops;
+	/* DDF mouse function */
+	ddf_fun_t *mouse_fun;
+	/* DDF mouse function */
+	ddf_fun_t *wheel_fun;
 } usb_mouse_t;
 
 /*----------------------------------------------------------------------------*/
 
-usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
+extern const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
 
 const char *HID_MOUSE_FUN_NAME;
 const char *HID_MOUSE_CATEGORY;

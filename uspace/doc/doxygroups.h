@@ -271,12 +271,6 @@
 	 */
 
 	/**
-	 * @defgroup drvusbmouse USB mouse driver
-	 * @ingroup usb
-	 * @brief USB driver for mouse with boot protocol.
-	 */
-
-	/**
 	 * @defgroup drvusbmast USB mass storage driver
 	 * @ingroup usb
 	 * @brief USB driver for mass storage devices (bulk-only protocol).

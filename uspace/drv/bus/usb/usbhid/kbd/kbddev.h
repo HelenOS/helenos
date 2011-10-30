@@ -74,35 +74,35 @@ typedef struct usb_kbd_t {
 	size_t key_count;
 	/** Currently pressed modifiers (bitmap). */
 	uint8_t modifiers;
-	
+
 	/** Currently active modifiers including locks. Sent to the console. */
 	unsigned mods;
-	
+
 	/** Currently active lock keys. */
 	unsigned lock_keys;
-	
+
 	/** IPC session to the console device (for sending key events). */
 	async_sess_t *console_sess;
-	
+
 	/** @todo What is this actually? */
 	ddf_dev_ops_t ops;
-	
+
 	/** Information for auto-repeat of keys. */
 	usb_kbd_repeat_t repeat;
-	
+
 	/** Mutex for accessing the information about auto-repeat. */
-	fibril_mutex_t *repeat_mtx;
-	
+	fibril_mutex_t repeat_mtx;
+
 	uint8_t *output_buffer;
-	
+
 	size_t output_size;
-	
+
 	size_t led_output_size;
-	
+
 	usb_hid_report_path_t *led_path;
-	
+
 	int32_t *led_data;
-	
+
 	/** State of the structure (for checking before use). 
 	 * 
 	 * 0 - not initialized
@@ -110,11 +110,14 @@ typedef struct usb_kbd_t {
 	 * -1 - ready for destroying
 	 */
 	int initialized;
+
+	/** DDF function */
+	ddf_fun_t *fun;
 } usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 
-usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
+extern const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 
 const char *HID_KBD_FUN_NAME;
 const char *HID_KBD_CLASS_NAME;
