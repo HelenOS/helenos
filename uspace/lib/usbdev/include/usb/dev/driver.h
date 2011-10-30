@@ -160,7 +160,7 @@ static usb_driver_t hub_driver = {
 	const usb_driver_ops_t *ops;
 } usb_driver_t;
 
-int usb_driver_main(usb_driver_t *);
+int usb_driver_main(const usb_driver_t *);
 
 int usb_device_select_interface(usb_device_t *, uint8_t,
     const usb_endpoint_description_t **);

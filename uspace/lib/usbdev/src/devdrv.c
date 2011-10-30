@@ -63,7 +63,7 @@ static const usb_driver_t *driver = NULL;
  * @param drv USB device driver structure.
  * @return Task exit status.
  */
-int usb_driver_main(usb_driver_t *drv)
+int usb_driver_main(const usb_driver_t *drv)
 {
 	assert(drv != NULL);
 
