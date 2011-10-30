@@ -109,9 +109,9 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	 * The interface number shall provide uniqueness while the
 	 * class name something humanly understandable.
 	 */
-	rc = asprintf(&child_name, "%s%d",
+	rc = asprintf(&child_name, "%s%hhu",
 	    usb_str_class(interface_descriptor->interface_class),
-	    (int) interface_descriptor->interface_number);
+	    interface_descriptor->interface_number);
 	if (rc < 0) {
 		return ENOMEM;
 	}

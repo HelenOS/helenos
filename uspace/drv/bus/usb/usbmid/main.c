@@ -73,18 +73,47 @@ static int usbmid_device_add(usb_device_t *dev)
 static int usbmid_device_remove(usb_device_t *dev)
 {
 	assert(dev);
-	int ret = ENOTSUP;
-	usb_mid_t *usb_mid = dev->driver_data;
-	assert(usb_mid);
 
-	/* Signal all interface functions */
-	list_foreach(usb_mid->interface_list, item) {
+	/* Remove ctl function */
+	usb_mid_t *usb_mid = dev->driver_data;
+	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
+	ddf_fun_destroy(usb_mid->ctl_fun);
+
+	/* Remove all children */
+	while (!list_empty(&usb_mid->interface_list)) {
+		link_t *item = list_first(&usb_mid->interface_list);
+		list_remove(item);
+
 		usbmid_interface_t *iface = usbmid_interface_from_link(item);
 
-		usb_log_info("Signaling remove to child for interface "
-		    "%d (%s).\n", iface->interface_no,
+		usb_log_info("Removing child for interface %d (%s).\n",
+		    iface->interface_no,
 		    usb_str_class(iface->interface->interface_class));
-		// TODO cascade the call.
+
+		/* Tell the child to go off-line. */
+		int pret = ddf_fun_offline(iface->fun);
+		if (pret != EOK) {
+			usb_log_warning("Failed to turn off child for interface"
+			    " %d (%s): %s\n", iface->interface_no,
+			    usb_str_class(iface->interface->interface_class),
+			    str_error(pret));
+			ret = pret;
+		}
+
+		/* Now remove the child. */
+		pret = usbmid_interface_destroy(iface);
+		if (pret != EOK) {
+			usb_log_error("Failed to remove child for interface "
+			    "%d (%s): %s\n", iface->interface_no,
+			    usb_str_class(iface->interface->interface_class),
+			    str_error(pret));
+			ret = pret;
+		}
 	}
 	return ret;
 }
@@ -116,7 +145,7 @@ static int usbmid_device_gone(usb_device_t *dev)
 
 		usbmid_interface_t *iface = usbmid_interface_from_link(item);
 
-		usb_log_info("Removing child for interface %d (%s).\n",
+		usb_log_info("Child for interface %d (%s) gone.\n",
 		    iface->interface_no,
 		    usb_str_class(iface->interface->interface_class));
 
