@@ -113,6 +113,7 @@ static int usbmast_device_gone(usb_device_t *dev)
 static int usbmast_device_remove(usb_device_t *dev)
 {
 	//TODO: flush buffers, or whatever.
+	//TODO: remove device
 	return ENOTSUP;
 }
 

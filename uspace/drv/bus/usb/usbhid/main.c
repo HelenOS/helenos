@@ -178,7 +178,10 @@ static int usb_hid_device_add(usb_device_t *dev)
  */
 static int usb_hid_device_rem(usb_device_t *dev)
 {
-	return EOK;
+	// TODO: Stop device polling fibril
+	// TODO: Stop autorepeat fibril
+	// TODO: Call deinit
+	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -194,7 +197,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	while (hid_dev->running) {
 		async_usleep(100000);
 		if (!tries--) {
-			usb_log_error("Can't remove hub, still running.\n");
+			usb_log_error("Can't remove hid, still running.\n");
 			return EBUSY;
 		}
 	}
