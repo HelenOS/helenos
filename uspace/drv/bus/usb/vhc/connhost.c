@@ -103,9 +103,8 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
     devman_handle_t *handle)
 {
 	VHC_DATA(vhc, fun);
-	bool found =
-	    usb_device_manager_find_by_address(&vhc->dev_manager, address, handle);
-	return found ? EOK : ENOENT;
+	return usb_device_manager_get_info_by_address(
+	    &vhc->dev_manager, address, handle, NULL);
 }
 
 /** Release previously requested address.
@@ -140,22 +139,12 @@ static int register_endpoint(ddf_fun_t *fun,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
-	/* TODO: Use usb_endpoint_manager_add_ep */
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1);
-	if (ep == NULL) {
-		return ENOMEM;
-	}
+	return usb_endpoint_manager_add_ep(&vhc->ep_manager,
+	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1, 0,
+	    NULL, NULL);
 
-	int rc = usb_endpoint_manager_register_ep(&vhc->ep_manager, ep, 1);
-	if (rc != EOK) {
-		endpoint_destroy(ep);
-		return rc;
-	}
-
-	return EOK;
 }
 
 /** Unregister endpoint (free some bandwidth reservation).
@@ -171,8 +160,8 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
 {
 	VHC_DATA(vhc, fun);
 
-	int rc = usb_endpoint_manager_unregister_ep(&vhc->ep_manager,
-	    address, endpoint, direction);
+	int rc = usb_endpoint_manager_remove_ep(&vhc->ep_manager,
+	    address, endpoint, direction, NULL, NULL);
 
 	return rc;
 }
@@ -413,8 +402,8 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 {
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&vhc->ep_manager,
+	    target.address, target.endpoint, USB_DIRECTION_IN);
 	if (ep == NULL) {
 		return ENOENT;
 	}
@@ -455,8 +444,8 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 {
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&vhc->ep_manager,
+	    target.address, target.endpoint, USB_DIRECTION_OUT);
 	if (ep == NULL) {
 		return ENOENT;
 	}
@@ -517,7 +506,8 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
 	}
 
 	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
-	usb_address_t addr = usb_device_manager_find(&vhc->dev_manager, handle);
+	const usb_address_t addr =
+	    usb_device_manager_find_address(&vhc->dev_manager, handle);
 	if (addr < 0) {
 		return addr;
 	} else {

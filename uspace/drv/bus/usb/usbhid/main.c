@@ -45,8 +45,6 @@
 
 #include "usbhid.h"
 
-/*----------------------------------------------------------------------------*/
-
 #define NAME "usbhid"
 
 /**
@@ -66,11 +64,7 @@
  * @note Currently supports only boot-protocol keyboards.
  *
  * @param dev Device to add.
- *
- * @retval EOK if successful.
- * @retval ENOMEM if there
- * @return Other error code inherited from one of functions usb_kbd_init(),
- *         ddf_fun_bind() and ddf_fun_add_to_class().
+ * @return Error code.
  */
 static int usb_hid_try_add_device(usb_device_t *dev)
 {
@@ -137,7 +131,6 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	 */
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
 /**
  * Callback for passing a new device to the driver.
@@ -145,9 +138,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
  * @note Currently, only boot-protocol keyboards are supported by this driver.
  *
  * @param dev Structure representing the new device.
- *
- * @retval EOK if successful. 
- * @retval EREFUSED if the device is not supported.
+ * @return Error code.
  */
 static int usb_hid_device_add(usb_device_t *dev)
 {
@@ -178,16 +169,23 @@ static int usb_hid_device_add(usb_device_t *dev)
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Callback for a device about to be removed from the driver.
+ *
+ * @param dev Structure representing the device.
+ * @return Error code.
+ */
+static int usb_hid_device_rem(usb_device_t *dev)
+{
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
 /**
  * Callback for removing a device from the driver.
  *
  * @param dev Structure representing the device.
- *
- * @retval EOK if successful. 
- * @retval EREFUSED if the device is not supported.
+ * @return Error code.
  */
 static int usb_hid_device_gone(usb_device_t *dev)
 {
@@ -197,7 +195,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 		async_usleep(100000);
 		if (!tries--) {
 			usb_log_error("Can't remove hub, still running.\n");
-			return EINPROGRESS;
+			return EBUSY;
 		}
 	}
 
@@ -206,23 +204,21 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** USB generic driver callbacks */
-static usb_driver_ops_t usb_hid_driver_ops = {
+static const usb_driver_ops_t usb_hid_driver_ops = {
 	.device_add = usb_hid_device_add,
+	.device_rem = usb_hid_device_rem,
 	.device_gone = usb_hid_device_gone,
 };
-
-
+/*----------------------------------------------------------------------------*/
 /** The driver itself. */
-static usb_driver_t usb_hid_driver = {
+static const usb_driver_t usb_hid_driver = {
         .name = NAME,
         .ops = &usb_hid_driver_ops,
         .endpoints = usb_hid_endpoints
 };
-
 /*----------------------------------------------------------------------------*/
-
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB HID driver.\n");
@@ -231,7 +227,6 @@ int main(int argc, char *argv[])
 
 	return usb_driver_main(&usb_hid_driver);
 }
-
 /**
  * @}
  */

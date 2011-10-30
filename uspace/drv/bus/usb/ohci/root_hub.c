@@ -234,7 +234,7 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_error("Root hub got unsupported request.\n");
 		usb_transfer_batch_finish_error(request, NULL, 0, EINVAL);
 	}
-	usb_transfer_batch_dispose(request);
+	usb_transfer_batch_destroy(request);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -253,7 +253,7 @@ void rh_interrupt(rh_t *instance)
 		const uint16_t mask = create_interrupt_mask(instance);
 		interrupt_request(instance->unfinished_interrupt_transfer,
 		    mask, instance->interrupt_mask_size);
-		usb_transfer_batch_dispose(
+		usb_transfer_batch_destroy(
 		    instance->unfinished_interrupt_transfer);
 		instance->unfinished_interrupt_transfer = NULL;
 	}

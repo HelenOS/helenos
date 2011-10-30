@@ -64,7 +64,36 @@ static int usbmid_device_add(usb_device_t *dev)
 
 	return EOK;
 }
+/*----------------------------------------------------------------------------*/
+/** Callback when a MID device is about to be removed from the host.
+ *
+ * @param gen_dev Generic DDF device representing the removed device.
+ * @return Error code.
+ */
+static int usbmid_device_remove(usb_device_t *dev)
+{
+	assert(dev);
+	int ret = ENOTSUP;
+	usb_mid_t *usb_mid = dev->driver_data;
+	assert(usb_mid);
 
+	/* Signal all interface functions */
+	list_foreach(usb_mid->interface_list, item) {
+		usbmid_interface_t *iface = usbmid_interface_from_link(item);
+
+		usb_log_info("Signaling remove to child for interface "
+		    "%d (%s).\n", iface->interface_no,
+		    usb_str_class(iface->interface->interface_class));
+		// TODO cascade the call.
+	}
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+/** Callback when a MID device was removed from the host.
+ *
+ * @param gen_dev Generic DDF device representing the removed device.
+ * @return Error code.
+ */
 static int usbmid_device_gone(usb_device_t *dev)
 {
 	assert(dev);
@@ -85,8 +114,7 @@ static int usbmid_device_gone(usb_device_t *dev)
 		link_t *item = list_first(&usb_mid->interface_list);
 		list_remove(item);
 
-		usbmid_interface_t *iface = list_get_instance(item,
-		    usbmid_interface_t, link);
+		usbmid_interface_t *iface = usbmid_interface_from_link(item);
 
 		usb_log_info("Removing child for interface %d (%s).\n",
 		    iface->interface_no,
@@ -106,13 +134,14 @@ static int usbmid_device_gone(usb_device_t *dev)
 }
 
 /** USB MID driver ops. */
-static usb_driver_ops_t mid_driver_ops = {
+static const usb_driver_ops_t mid_driver_ops = {
 	.device_add = usbmid_device_add,
+	.device_rem = usbmid_device_remove,
 	.device_gone = usbmid_device_gone,
 };
 
 /** USB MID driver. */
-static usb_driver_t mid_driver = {
+static const usb_driver_t mid_driver = {
 	.name = NAME,
 	.ops = &mid_driver_ops,
 	.endpoints = NULL

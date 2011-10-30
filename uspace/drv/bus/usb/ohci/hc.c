@@ -141,15 +141,16 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
-	usb_endpoint_manager_unregister_ep( \
-	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH);\
+	usb_endpoint_manager_remove_ep( \
+	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH, \
+	    NULL, NULL);\
 	usb_device_manager_release( \
 	    &instance->generic.dev_manager, hub_address); \
 	return ret; \
 } else (void)0
 	int ret = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH,
-	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64, 0);
+	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64, 0, NULL, NULL);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to register root hub control endpoint: %s.\n",
 	    str_error(ret));
@@ -191,13 +192,12 @@ if (ret != EOK) { \
 
 	list_initialize(&instance->pending_batches);
 
-	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
+	hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
 	    bandwidth_count_usb11);
-	CHECK_RET_RETURN(ret, "Failed to initialize generic driver: %s.\n",
-	    str_error(ret));
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;
 	instance->generic.ep_add_hook = ohci_endpoint_init;
+	instance->generic.ep_remove_hook = ohci_endpoint_fini;
 
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
@@ -220,10 +220,16 @@ if (ret != EOK) { \
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep)
+void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
+	assert(instance);
+	assert(ep);
+
 	endpoint_list_t *list = &instance->lists[ep->transfer_type];
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+	assert(list);
+	assert(ohci_ep);
+
 	/* Enqueue ep */
 	switch (ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
@@ -246,11 +252,17 @@ void hc_enqueue_endpoint(hc_t *instance, endpoint_t *ep)
 	}
 }
 /*----------------------------------------------------------------------------*/
-void hc_dequeue_endpoint(hc_t *instance, endpoint_t *ep)
+void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
+	assert(instance);
+	assert(ep);
+
 	/* Dequeue ep */
 	endpoint_list_t *list = &instance->lists[ep->transfer_type];
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+
+	assert(list);
+	assert(ohci_ep);
 	switch (ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
