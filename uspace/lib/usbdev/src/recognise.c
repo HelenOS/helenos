@@ -49,7 +49,7 @@ static size_t device_name_index = 0;
 static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
 /** DDF operations of child devices. */
-ddf_dev_ops_t child_ops = {
+static ddf_dev_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
@@ -338,7 +338,7 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
  * @param[in] address Address of the (unknown) attached device.
  * @param[in] hc_handle Handle of the host controller.
  * @param[in] parent Parent device.
- * @param[in] dev_ops Child device ops.
+ * @param[in] dev_ops Child device ops. Default child_ops will be used if NULL.
  * @param[in] dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
  * @param[out] child_fun Storage where pointer to allocated child function

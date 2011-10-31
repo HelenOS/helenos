@@ -62,7 +62,7 @@ static int usb_iface_get_interface_impl(ddf_fun_t *fun, devman_handle_t handle,
 /** DDF interface of the child - interface function. */
 static usb_iface_t child_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_hub_child_impl,
-	.get_address = usb_iface_get_address_hub_impl,
+	.get_address = usb_iface_get_address_forward_impl,
 	.get_interface = usb_iface_get_interface_impl
 };
 
