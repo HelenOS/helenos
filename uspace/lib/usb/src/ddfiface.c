@@ -43,13 +43,13 @@
 
 /** DDF interface for USB device, implementation for typical hub. */
 usb_iface_t  usb_iface_hub_impl = {
-	.get_hc_handle = usb_iface_get_hc_handle_hub_impl,
+	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
 	.get_address = usb_iface_get_address_forward_impl,
 };
 
 /** DDF interface for USB device, implementation for child of a typical hub. */
 usb_iface_t  usb_iface_hub_child_impl = {
-	.get_hc_handle = usb_iface_get_hc_handle_hub_child_impl,
+	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
 	.get_address = usb_iface_get_address_set_my_handle_impl
 };
 
@@ -60,44 +60,10 @@ usb_iface_t  usb_iface_hub_child_impl = {
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
-int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *fun, devman_handle_t *handle)
+int usb_iface_get_hc_handle_device_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 	return usb_hc_find(fun->handle, handle);
-}
-
-/** Get host controller handle, interface implementation for child of
- * a hub driver.
- *
- * @param[in] fun Device function the operation is running on.
- * @param[out] handle Storage for the host controller handle.
- * @return Error code.
- */
-int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
-    devman_handle_t *handle)
-{
-	assert(fun != NULL);
-	
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, fun->handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-	
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
-	sysarg_t hc_handle;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &hc_handle);
-	
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-	
-	if (rc != EOK)
-		return rc;
-	
-	*handle = hc_handle;
-	return EOK;
 }
 
 /** Get host controller handle, interface implementation for HC driver.
