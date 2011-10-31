@@ -65,21 +65,22 @@
 /** Ask host controller for free address assignment.
  *
  * @param connection Opened connection to host controller.
+ * @param preferred Preferred SUB address.
+ * @param strict Fail if the preferred address is not avialable.
  * @param speed Speed of the new device (device that will be assigned
  *    the returned address).
  * @return Assigned USB address or negative error code.
  */
 usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
-    usb_speed_t speed)
+    usb_address_t preferred, bool strict, usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
 	
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
 	
 	sysarg_t address;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, speed,
-	    &address);
+	int rc = async_req_4_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_REQUEST_ADDRESS, preferred, strict, speed, &address);
 	
 	async_exchange_end(exch);
 	
@@ -222,7 +223,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/*
 	 * Request new address.
 	 */
-	usb_address_t dev_addr = usb_hc_request_address(&hc_conn, dev_speed);
+	usb_address_t dev_addr =
+	    usb_hc_request_address(&hc_conn, 1, false, dev_speed);
 	if (dev_addr < 0) {
 		rc = EADDRNOTAVAIL;
 		goto close_connection;

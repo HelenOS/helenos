@@ -56,23 +56,14 @@
  * @param[out] address Non-null pointer where to store the free address.
  * @return Error code.
  */
-static int request_address(ddf_fun_t *fun, usb_speed_t speed,
-    usb_address_t *address)
+static int request_address(ddf_fun_t *fun, usb_address_t *address, bool strict,
+    usb_speed_t speed)
 {
 	VHC_DATA(vhc, fun);
 
-	usb_address_t addr = 1;
-	const int ret = usb_device_manager_request_address(
-	    &vhc->dev_manager, &addr, false, USB_SPEED_HIGH);
-	if (ret < 0) {
-		return ret;
-	}
-
-	if (address != NULL) {
-		*address = addr;
-	}
-
-	return EOK;
+	assert(address);
+	return usb_device_manager_request_address(
+	    &vhc->dev_manager, address, strict, speed);
 }
 
 /** Bind USB address with device devman handle.

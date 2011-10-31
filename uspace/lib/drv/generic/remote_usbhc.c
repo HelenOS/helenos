@@ -117,10 +117,11 @@ void remote_usbhc_request_address(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
+	usb_address_t address = DEV_IPC_GET_ARG1(*call);
+	const bool strict = DEV_IPC_GET_ARG2(*call);
+	const usb_speed_t speed = DEV_IPC_GET_ARG3(*call);
 
-	usb_address_t address;
-	int rc = usb_iface->request_address(fun, speed, &address);
+	const int rc = usb_iface->request_address(fun, &address, strict, speed);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {

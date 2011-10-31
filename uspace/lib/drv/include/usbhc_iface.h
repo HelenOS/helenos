@@ -169,7 +169,7 @@ typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
 
 /** USB host controller communication interface. */
 typedef struct {
-	int (*request_address)(ddf_fun_t *, usb_speed_t, usb_address_t *);
+	int (*request_address)(ddf_fun_t *, usb_address_t *, bool, usb_speed_t);
 	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
 	int (*find_by_address)(ddf_fun_t *, usb_address_t, devman_handle_t *);
 	int (*release_address)(ddf_fun_t *, usb_address_t);

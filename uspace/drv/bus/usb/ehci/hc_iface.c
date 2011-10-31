@@ -55,8 +55,8 @@
  * @param[out] address Non-null pointer where to store the free address.
  * @return Error code.
  */
-static int request_address(ddf_fun_t *fun, usb_speed_t speed,
-    usb_address_t *address)
+static int request_address(ddf_fun_t *fun, usb_address_t *address, bool strict,
+    usb_speed_t speed)
 {
 	UNSUPPORTED("request_address");
 

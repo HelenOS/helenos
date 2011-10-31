@@ -96,7 +96,7 @@ static inline int send_batch(
  * @return Error code.
  */
 static int request_address(
-    ddf_fun_t *fun, usb_speed_t speed, usb_address_t *address)
+    ddf_fun_t *fun, usb_address_t *address, bool strict, usb_speed_t speed)
 {
 	assert(fun);
 	hcd_t *hcd = fun_to_hcd(fun);
@@ -105,7 +105,7 @@ static int request_address(
 
 	usb_log_debug("Address request speed: %s.\n", usb_str_speed(speed));
 	return usb_device_manager_request_address(
-	    &hcd->dev_manager, address, false, speed);
+	    &hcd->dev_manager, address, strict, speed);
 }
 /*----------------------------------------------------------------------------*/
 /** Bind address interface function
