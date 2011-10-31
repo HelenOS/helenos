@@ -170,7 +170,7 @@ static void unregister_control_endpoint_on_default_address(
  * this function (i.e. from different fibrils).
  *
  * @param[in] parent Parent device (i.e. the hub device).
- * @param[in] connection Connection to host controller.
+ * @param[in] connection Connection to host controller. Must be non-null.
  * @param[in] dev_speed New device speed.
  * @param[in] enable_port Function for enabling signaling through the port the
  *	device is attached to.
@@ -180,8 +180,9 @@ static void unregister_control_endpoint_on_default_address(
  * @param[in] new_dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
  * @param[out] new_fun Storage where pointer to allocated child function
- *	will be written.
+ *	will be written. Must be non-null.
  * @return Error code.
+ * @retval EINVAL Either connection or new_fun is a NULL pointer.
  * @retval ENOENT Connection to HC not opened.
  * @retval EADDRNOTAVAIL Failed retrieving free address from host controller.
  * @retval EBUSY Failed reserving default USB address.
@@ -194,8 +195,11 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
     int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
-	assert(connection != NULL);
+	if (new_fun == NULL || connection == NULL)
+		return EINVAL;
+
 	// FIXME: this is awful, we are accessing directly the structure.
+	// TODO: Why not use provided connection?
 	usb_hc_connection_t hc_conn = {
 		.hc_handle = connection->hc_handle,
 		.hc_sess = NULL
@@ -320,23 +324,24 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
 	    parent, dev_ops, new_dev_data, &child_fun);
 	if (rc != EOK) {
-		rc = ESTALL;
 		goto leave_release_free_address;
 	}
 
 	/*
 	 * And now inform the host controller about the handle.
 	 */
-	usb_hub_attached_device_t new_device = {
+	const usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
 		.fun = child_fun,
 	};
 	rc = usb_hc_register_device(&hc_conn, &new_device);
 	if (rc != EOK) {
+		/* The child function is already created. */
+		child_fun->driver_data = NULL;
+		ddf_fun_destroy(child_fun);
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
 	}
-
 
 	/*
 	 * And we are done.
