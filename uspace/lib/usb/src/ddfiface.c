@@ -38,6 +38,7 @@
 #include <usb/ddfiface.h>
 #include <usb/hc.h>
 #include <usb/debug.h>
+#include <usb/dev/hub.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -50,7 +51,7 @@ usb_iface_t  usb_iface_hub_impl = {
 /** DDF interface for USB device, implementation for child of a typical hub. */
 usb_iface_t  usb_iface_hub_child_impl = {
 	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
-	.get_address = usb_iface_get_address_set_my_handle_impl
+	.get_address = usb_iface_get_address_from_device_data,
 };
 
 
@@ -130,13 +131,17 @@ int usb_iface_get_address_forward_impl(ddf_fun_t *fun, devman_handle_t handle,
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
  */
-int usb_iface_get_address_set_my_handle_impl(ddf_fun_t *fun,
+int usb_iface_get_address_from_device_data(ddf_fun_t *fun,
     devman_handle_t handle, usb_address_t *address)
 {
-	if (handle == 0) {
-		handle = fun->handle;
-	}
-	return usb_iface_get_address_forward_impl(fun, handle, address);
+	assert(fun);
+	assert(handle == 0);
+	assert(fun->driver_data);
+	usb_hub_attached_device_t *device = fun->driver_data;
+	assert(device->fun == fun);
+	if (address)
+		*address = device->address;
+	return EOK;
 }
 
 /**

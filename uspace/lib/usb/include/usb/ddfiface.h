@@ -43,7 +43,7 @@ int usb_iface_get_address_forward_impl(ddf_fun_t *, devman_handle_t,
     usb_address_t *);
 extern usb_iface_t usb_iface_hub_impl;
 
-int usb_iface_get_address_set_my_handle_impl(ddf_fun_t *, devman_handle_t,
+int usb_iface_get_address_from_device_data(ddf_fun_t *, devman_handle_t,
     usb_address_t *);
 extern usb_iface_t usb_iface_hub_child_impl;
 
