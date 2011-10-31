@@ -61,7 +61,7 @@ int usb_hc_connection_close(usb_hc_connection_t *);
 int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
     devman_handle_t *);
 
-usb_address_t usb_hc_get_address_by_handle(devman_handle_t);
+usb_address_t usb_get_address_by_handle(devman_handle_t);
 
 int usb_hc_find(devman_handle_t, devman_handle_t *);
 

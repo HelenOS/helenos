@@ -478,8 +478,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 	return EOK;
 }
 
-static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
-    usb_address_t *address)
+static int tell_address(ddf_fun_t *fun, usb_address_t *address)
 {
 	UNSUPPORTED("tell_address");
 
@@ -496,14 +495,11 @@ static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
 	return EOK;
 }
 
-static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
-    usb_address_t *address)
+static int tell_address_rh(ddf_fun_t *root_hub_fun, usb_address_t *address)
 {
 	VHC_DATA(vhc, root_hub_fun);
 
-	if (handle == 0) {
-		handle = root_hub_fun->handle;
-	}
+	devman_handle_t handle = root_hub_fun->handle;
 
 	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
 	const usb_address_t addr =
@@ -531,12 +527,12 @@ usbhc_iface_t vhc_iface = {
 
 usb_iface_t vhc_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_hc_impl,
-	.get_address = tell_address
+	.get_my_address = tell_address
 };
 
 usb_iface_t rh_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_rh_impl,
-	.get_address = tell_address_rh
+	.get_my_address = tell_address_rh
 };
 
 

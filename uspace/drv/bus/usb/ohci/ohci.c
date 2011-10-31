@@ -75,17 +75,15 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	hc_interrupt(&ohci->hc, status);
 }
 /*----------------------------------------------------------------------------*/
-/** Get address of the device identified by handle.
+/** Get USB address assigned to root hub.
  *
- * @param[in] dev DDF instance of the device to use.
- * @param[in] iid (Unused).
- * @param[in] call Pointer to the call that represents interrupt.
+ * @param[in] fun Root hub function.
+ * @param[out] address Store the address here.
+ * @return Error code.
  */
-static int usb_iface_get_address(
-    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
+static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
 {
 	assert(fun);
-	assert(handle == 0);
 
 	if (address != NULL) {
 		*address = dev_to_ohci(fun->dev)->hc.rh.address;
@@ -100,7 +98,7 @@ static int usb_iface_get_address(
  * @param[out] handle Place to write the handle.
  * @return Error code.
  */
-static int usb_iface_get_hc_handle(
+static int rh_get_hc_handle(
     ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
@@ -114,8 +112,8 @@ static int usb_iface_get_hc_handle(
 /*----------------------------------------------------------------------------*/
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle,
-	.get_address = usb_iface_get_address
+	.get_hc_handle = rh_get_hc_handle,
+	.get_my_address = rh_get_my_address,
 };
 /*----------------------------------------------------------------------------*/
 /** Standard USB HC options (HC interface) */

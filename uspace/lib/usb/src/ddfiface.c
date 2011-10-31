@@ -43,15 +43,15 @@
 #include <assert.h>
 
 /** DDF interface for USB device, implementation for typical hub. */
-usb_iface_t  usb_iface_hub_impl = {
+usb_iface_t usb_iface_hub_impl = {
 	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
-	.get_address = usb_iface_get_address_forward_impl,
+	.get_my_address = usb_iface_get_my_address_forward_impl,
 };
 
 /** DDF interface for USB device, implementation for child of a typical hub. */
-usb_iface_t  usb_iface_hub_child_impl = {
+usb_iface_t usb_iface_hub_child_impl = {
 	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
-	.get_address = usb_iface_get_address_from_device_data,
+	.get_my_address = usb_iface_get_my_address_from_device_data,
 };
 
 
@@ -91,11 +91,10 @@ int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *fun, devman_handle_t *handle)
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
  */
-int usb_iface_get_address_forward_impl(ddf_fun_t *fun, devman_handle_t handle,
+int usb_iface_get_my_address_forward_impl(ddf_fun_t *fun,
     usb_address_t *address)
 {
 	assert(fun);
-	assert(handle == 0);
 
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, fun->handle,
@@ -106,8 +105,8 @@ int usb_iface_get_address_forward_impl(ddf_fun_t *fun, devman_handle_t handle,
 	async_exch_t *exch = async_exchange_begin(parent_sess);
 
 	sysarg_t addr;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_ADDRESS, handle, &addr);
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_MY_ADDRESS, &addr);
 
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
@@ -132,11 +131,10 @@ int usb_iface_get_address_forward_impl(ddf_fun_t *fun, devman_handle_t handle,
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
  */
-int usb_iface_get_address_from_device_data(ddf_fun_t *fun,
-    devman_handle_t handle, usb_address_t *address)
+int usb_iface_get_my_address_from_device_data(ddf_fun_t *fun,
+    usb_address_t *address)
 {
 	assert(fun);
-	assert(handle == 0);
 	assert(fun->driver_data);
 	usb_hub_attached_device_t *device = fun->driver_data;
 	assert(device->fun == fun);

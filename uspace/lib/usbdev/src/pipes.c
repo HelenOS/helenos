@@ -55,14 +55,9 @@ static usb_address_t get_my_address(async_sess_t *sess, const ddf_dev_t *dev)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	/*
-	 * We are sending special value as a handle - zero - to get
-	 * handle of the parent function (that handle was used
-	 * when registering our device @p dev.
-	 */
 	sysarg_t address;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_ADDRESS, 0, &address);
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_MY_ADDRESS, &address);
 	
 	async_exchange_end(exch);
 	
