@@ -95,6 +95,7 @@ int usb_iface_get_address_forward_impl(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
 	assert(fun);
+	assert(handle == 0);
 
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, fun->handle,
