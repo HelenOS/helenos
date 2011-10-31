@@ -54,9 +54,9 @@ static void remote_usbhc_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 /** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
 	[IPC_M_USBHC_REQUEST_ADDRESS] = remote_usbhc_request_address,
+	[IPC_M_USBHC_RELEASE_ADDRESS] = remote_usbhc_release_address,
 	[IPC_M_USBHC_BIND_ADDRESS] = remote_usbhc_bind_address,
 	[IPC_M_USBHC_GET_HANDLE_BY_ADDRESS] = remote_usbhc_find_by_address,
-	[IPC_M_USBHC_RELEASE_ADDRESS] = remote_usbhc_release_address,
 
 	[IPC_M_USBHC_REGISTER_ENDPOINT] = remote_usbhc_register_endpoint,
 	[IPC_M_USBHC_UNREGISTER_ENDPOINT] = remote_usbhc_unregister_endpoint,
@@ -233,32 +233,22 @@ void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 	}
 
 #define _INIT_FROM_HIGH_DATA2(type, var, arg_no) \
-	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) / (1 << 16)
+	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) >> 16)
 #define _INIT_FROM_LOW_DATA2(type, var, arg_no) \
-	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % (1 << 16)
-#define _INIT_FROM_HIGH_DATA3(type, var, arg_no) \
-	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) / (1 << 16)
-#define _INIT_FROM_MIDDLE_DATA3(type, var, arg_no) \
-	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) / (1 << 8)) % (1 << 8)
-#define _INIT_FROM_LOW_DATA3(type, var, arg_no) \
-	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % (1 << 8)
+	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) & 0xffff)
 
 	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
 
-	_INIT_FROM_HIGH_DATA3(usb_speed_t, speed, 2);
-	_INIT_FROM_MIDDLE_DATA3(usb_transfer_type_t, transfer_type, 2);
-	_INIT_FROM_LOW_DATA3(usb_direction_t, direction, 2);
+	_INIT_FROM_HIGH_DATA2(usb_transfer_type_t, transfer_type, 2);
+	_INIT_FROM_LOW_DATA2(usb_direction_t, direction, 2);
 
 	_INIT_FROM_HIGH_DATA2(size_t, max_packet_size, 3);
 	_INIT_FROM_LOW_DATA2(unsigned int, interval, 3);
 
 #undef _INIT_FROM_HIGH_DATA2
 #undef _INIT_FROM_LOW_DATA2
-#undef _INIT_FROM_HIGH_DATA3
-#undef _INIT_FROM_MIDDLE_DATA3
-#undef _INIT_FROM_LOW_DATA3
 
-	int rc = usb_iface->register_endpoint(fun, target.address, speed,
+	int rc = usb_iface->register_endpoint(fun, target.address,
 	    target.endpoint, transfer_type, direction, max_packet_size, interval);
 
 	async_answer_0(callid, rc);

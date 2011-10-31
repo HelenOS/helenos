@@ -175,7 +175,7 @@ typedef struct {
 	int (*release_address)(ddf_fun_t *, usb_address_t);
 
 	int (*register_endpoint)(ddf_fun_t *,
-	    usb_address_t, usb_speed_t, usb_endpoint_t,
+	    usb_address_t, usb_endpoint_t,
 	    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
 	    usb_direction_t);

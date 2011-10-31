@@ -171,8 +171,6 @@ int usb_pipe_initialize_default_control(usb_pipe_t *,
 int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, const uint8_t *, size_t, usb_device_connection_t *);
-int usb_pipe_register_with_speed(usb_pipe_t *, usb_speed_t,
-    unsigned int, usb_hc_connection_t *);
 int usb_pipe_register(usb_pipe_t *, unsigned int, usb_hc_connection_t *);
 int usb_pipe_unregister(usb_pipe_t *, usb_hc_connection_t *);
 

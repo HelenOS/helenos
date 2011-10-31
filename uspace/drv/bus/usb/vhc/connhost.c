@@ -127,7 +127,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
  * @return Error code.
  */
 static int register_endpoint(ddf_fun_t *fun,
-    usb_address_t address, usb_speed_t speed, usb_endpoint_t endpoint,
+    usb_address_t address, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
