@@ -165,7 +165,7 @@ int usb_device_manager_bind_address(usb_device_manager_t *instance,
 int usb_device_manager_release_address(
     usb_device_manager_t *instance, usb_address_t address)
 {
-	if ((address <= 0) || (address >= USB_ADDRESS_COUNT)) {
+	if ((address < 0) || (address >= USB_ADDRESS_COUNT)) {
 		return EINVAL;
 	}
 	assert(instance);

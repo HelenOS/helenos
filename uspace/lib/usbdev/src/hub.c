@@ -264,7 +264,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		goto leave_release_free_address;
 	}
 
-	rc = usb_pipe_register_with_speed(&ctrl_pipe, dev_speed, 0, &hc_conn);
+	rc = usb_pipe_register(&ctrl_pipe, 0, &hc_conn);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_default_address;
@@ -319,6 +319,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * allowing other to access the default address.
 	 */
 	unregister_control_endpoint_on_default_address(&hc_conn);
+	usb_hc_unregister_device(&hc_conn, USB_ADDRESS_DEFAULT);
 
 	/*
 	 * Time to register the new endpoint.
@@ -380,6 +381,7 @@ leave_release_default_address:
 	if (usb_pipe_unregister(&ctrl_pipe, &hc_conn) != EOK)
 		usb_log_warning("%s: Failed to unregister default pipe.\n",
 		    __FUNCTION__);
+	usb_hc_unregister_device(&hc_conn, USB_ADDRESS_DEFAULT);
 
 leave_release_free_address:
 	if (usb_hc_unregister_device(&hc_conn, dev_addr) != EOK)

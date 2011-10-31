@@ -103,7 +103,8 @@ static int request_address(
 	assert(hcd);
 	assert(address);
 
-	usb_log_debug("Address request speed: %s.\n", usb_str_speed(speed));
+	usb_log_debug("Address request: speed: %s, address: %d, strict: %s.\n",
+	    usb_str_speed(speed), *address, strict ? "YES" : "NO");
 	return usb_device_manager_request_address(
 	    &hcd->dev_manager, address, strict, speed);
 }
