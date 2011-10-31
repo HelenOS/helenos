@@ -40,10 +40,12 @@
 /** Initialize device manager structure.
  *
  * @param[in] instance Memory place to initialize.
+ * @param[in] max_speed Maximum allowed USB speed of devices (inclusive).
  *
  * Set all values to false/0.
  */
-void usb_device_manager_init(usb_device_manager_t *instance)
+void usb_device_manager_init(
+    usb_device_manager_t *instance, usb_speed_t max_speed)
 {
 	assert(instance);
 	for (unsigned i = 0; i < USB_ADDRESS_COUNT; ++i) {
@@ -55,6 +57,7 @@ void usb_device_manager_init(usb_device_manager_t *instance)
 	// (it is needed to allow smooth registration at default address)
 	instance->devices[0].occupied = true;
 	instance->last_address = 0;
+	instance->max_speed = max_speed;
 	fibril_mutex_initialize(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
@@ -68,6 +71,8 @@ usb_address_t usb_device_manager_get_free_address(
     usb_device_manager_t *instance, usb_speed_t speed)
 {
 	assert(instance);
+	if (speed > instance->max_speed)
+		return ENOTSUP;
 	fibril_mutex_lock(&instance->guard);
 
 	usb_address_t new_address = instance->last_address;

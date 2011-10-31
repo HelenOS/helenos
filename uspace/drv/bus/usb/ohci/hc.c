@@ -192,8 +192,8 @@ if (ret != EOK) { \
 
 	list_initialize(&instance->pending_batches);
 
-	hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
+	hcd_init(&instance->generic, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;
 	instance->generic.ep_add_hook = ohci_endpoint_init;

@@ -58,12 +58,14 @@ typedef struct {
 		bool occupied;          /**< The address is in use. */
 		devman_handle_t handle; /**< Devman handle of the device. */
 	} devices[USB_ADDRESS_COUNT];
+	usb_speed_t max_speed;
 	fibril_mutex_t guard;
 	/** The last reserved address */
 	usb_address_t last_address;
 } usb_device_manager_t;
 
-void usb_device_manager_init(usb_device_manager_t *instance);
+void usb_device_manager_init(
+    usb_device_manager_t *instance, usb_speed_t max_speed);
 
 usb_address_t usb_device_manager_get_free_address(
     usb_device_manager_t *instance, usb_speed_t speed);
