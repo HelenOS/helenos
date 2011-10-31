@@ -150,6 +150,55 @@ typedef struct ext4_superblock {
 #define EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH	0x0002  /* Unsigned dirhash in use */
 #define EXT4_SUPERBLOCK_FLAGS_TEST_FILESYS	0x0004  /* to test development code */
 
+/* Compatible features */
+#define EXT4_FEATURE_COMPAT_DIR_PREALLOC        0x0001
+#define EXT4_FEATURE_COMPAT_IMAGIC_INODES       0x0002
+#define EXT4_FEATURE_COMPAT_HAS_JOURNAL         0x0004
+#define EXT4_FEATURE_COMPAT_EXT_ATTR            0x0008
+#define EXT4_FEATURE_COMPAT_RESIZE_INODE        0x0010
+#define EXT4_FEATURE_COMPAT_DIR_INDEX           0x0020
+
+/* Read-only compatible features */
+#define EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER     0x0001
+#define EXT4_FEATURE_RO_COMPAT_LARGE_FILE       0x0002
+#define EXT4_FEATURE_RO_COMPAT_BTREE_DIR        0x0004
+#define EXT4_FEATURE_RO_COMPAT_HUGE_FILE        0x0008
+#define EXT4_FEATURE_RO_COMPAT_GDT_CSUM         0x0010
+#define EXT4_FEATURE_RO_COMPAT_DIR_NLINK        0x0020
+#define EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE      0x0040
+
+/* Incompatible features */
+#define EXT4_FEATURE_INCOMPAT_COMPRESSION       0x0001
+#define EXT4_FEATURE_INCOMPAT_FILETYPE          0x0002
+#define EXT4_FEATURE_INCOMPAT_RECOVER           0x0004 /* Needs recovery */
+#define EXT4_FEATURE_INCOMPAT_JOURNAL_DEV       0x0008 /* Journal device */
+#define EXT4_FEATURE_INCOMPAT_META_BG           0x0010
+#define EXT4_FEATURE_INCOMPAT_EXTENTS           0x0040 /* extents support */
+#define EXT4_FEATURE_INCOMPAT_64BIT             0x0080
+#define EXT4_FEATURE_INCOMPAT_MMP               0x0100
+#define EXT4_FEATURE_INCOMPAT_FLEX_BG           0x0200
+#define EXT4_FEATURE_INCOMPAT_EA_INODE          0x0400 /* EA in inode */
+#define EXT4_FEATURE_INCOMPAT_DIRDATA           0x1000 /* data in dirent */
+
+// TODO MODIFY features corresponding with implementation
+#define EXT4_FEATURE_COMPAT_SUPP EXT4_FEATURE_COMPAT_EXT_ATTR
+
+#define EXT4_FEATURE_INCOMPAT_SUPP      (EXT4_FEATURE_INCOMPAT_FILETYPE| \
+                                         EXT4_FEATURE_INCOMPAT_RECOVER| \
+                                         EXT4_FEATURE_INCOMPAT_META_BG| \
+                                         EXT4_FEATURE_INCOMPAT_EXTENTS| \
+                                         EXT4_FEATURE_INCOMPAT_64BIT| \
+                                         EXT4_FEATURE_INCOMPAT_FLEX_BG)
+
+#define EXT4_FEATURE_RO_COMPAT_SUPP     (EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER| \
+                                         EXT4_FEATURE_RO_COMPAT_LARGE_FILE| \
+                                         EXT4_FEATURE_RO_COMPAT_GDT_CSUM| \
+                                         EXT4_FEATURE_RO_COMPAT_DIR_NLINK | \
+                                         EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE | \
+                                         EXT4_FEATURE_RO_COMPAT_BTREE_DIR |\
+                                         EXT4_FEATURE_RO_COMPAT_HUGE_FILE)
+
+
 
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_blocks_count(ext4_superblock_t *);
@@ -204,7 +253,11 @@ extern uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *);
 /*
 uint8_t s_def_hash_version; // Default hash version to use
 uint8_t s_jnl_backup_type;
-uint16_t s_desc_size; // Size of group descriptor
+*/
+
+extern uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *);
+
+/*
 uint32_t s_default_mount_opts; // Default mount options
 uint32_t s_first_meta_bg; // First metablock block group
 uint32_t s_mkfs_time; // When the filesystem was created
@@ -242,6 +295,9 @@ uint8_t s_mount_opts[64];
 
 /* More complex superblock functions */
 extern bool ext4_superblock_has_flag(ext4_superblock_t *, uint32_t);
+extern bool ext4_superblock_has_feature_compatible(ext4_superblock_t *, uint32_t);
+extern bool ext4_superblock_has_feature_incompatible(ext4_superblock_t *, uint32_t);
+extern bool ext4_superblock_has_feature_read_only(ext4_superblock_t *, uint32_t);
 extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
 extern int ext4_superblock_check_sanity(ext4_superblock_t *);
 

@@ -189,6 +189,17 @@ uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *sb)
 	return sb->hash_seed;
 }
 
+uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
+{
+	uint16_t size = uint16_t_le2host(sb->desc_size);
+
+	if (size < EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+		size = EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE;
+	}
+
+	return size;
+}
+
 uint32_t ext4_superblock_get_flags(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->flags);
@@ -196,7 +207,7 @@ uint32_t ext4_superblock_get_flags(ext4_superblock_t *sb)
 
 
 /*
- * More complex superblock functions
+ * More complex superblock operations
  */
 
 bool ext4_superblock_has_flag(ext4_superblock_t *sb, uint32_t flag)
@@ -206,6 +217,32 @@ bool ext4_superblock_has_flag(ext4_superblock_t *sb, uint32_t flag)
 	}
 	return false;
 }
+
+// Feature checkers
+bool ext4_superblock_has_feature_compatible(ext4_superblock_t *sb, uint32_t feature)
+{
+	if (ext4_superblock_get_features_compatible(sb) & feature) {
+		return true;
+	}
+	return false;
+}
+
+bool ext4_superblock_has_feature_incompatible(ext4_superblock_t *sb, uint32_t feature)
+{
+	if (ext4_superblock_get_features_incompatible(sb) & feature) {
+		return true;
+	}
+	return false;
+}
+
+bool ext4_superblock_has_feature_read_only(ext4_superblock_t *sb, uint32_t feature)
+{
+	if (ext4_superblock_get_features_read_only(sb) & feature) {
+		return true;
+	}
+	return false;
+}
+
 
 int ext4_superblock_read_direct(service_id_t service_id,
     ext4_superblock_t **superblock)

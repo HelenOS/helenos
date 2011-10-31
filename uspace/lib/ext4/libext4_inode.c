@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_inode.c
- * @brief	Ext4 inode operations.
+ * @brief	Ext4 inode structure operations.
  */
 
 #include <byteorder.h>
@@ -134,8 +134,6 @@ uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx, service_
 				if (rc != EOK) {
 					return 0;
 				}
-				EXT4FS_DBG("get block");
-
 
 				header = (ext4_extent_header_t *)block->data;
 				break;

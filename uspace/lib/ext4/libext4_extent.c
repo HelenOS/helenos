@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_extent.c
- * @brief	TODO
+ * @brief	Ext4 extent structures operations.
  */
 
 #include <byteorder.h>

@@ -223,8 +223,8 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		component_size++;
 	}
 
-	// TODO check super block COMPAT FEATURES
-	if (ext4_inode_has_flag(eparent->inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
+	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
+			ext4_inode_has_flag(eparent->inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
 
 		rc = ext4_directory_dx_find_entry(&it, fs, eparent->inode_ref, component_size, component);
 

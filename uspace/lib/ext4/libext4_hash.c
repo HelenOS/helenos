@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_hash.c
- * @brief	TODO
+ * @brief	Hashing algorithms for ext4 HTree.
  */
 
 #include <errno.h>

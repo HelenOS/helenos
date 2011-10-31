@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_directory_index.c
- * @brief	TODO
+ * @brief	Ext4 directory index operations.
  */
 
 #include <errno.h>

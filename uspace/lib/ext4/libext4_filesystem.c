@@ -126,38 +126,6 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 	return EOK;
 }
 
-// Feature checkers
-bool ext4_filesystem_has_feature_compatible(ext4_filesystem_t *fs, uint32_t feature)
-{
-	ext4_superblock_t *sb = fs->superblock;
-
-	if (ext4_superblock_get_features_compatible(sb) & feature) {
-		return true;
-	}
-	return false;
-}
-
-bool ext4_filesystem_has_feature_incompatible(ext4_filesystem_t *fs, uint32_t feature)
-{
-	ext4_superblock_t *sb = fs->superblock;
-
-	if (ext4_superblock_get_features_incompatible(sb) & feature) {
-		return true;
-	}
-	return false;
-}
-
-bool ext4_filesystem_has_feature_read_only(ext4_filesystem_t *fs, uint32_t feature)
-{
-	ext4_superblock_t *sb = fs->superblock;
-
-	if (ext4_superblock_get_features_read_only(sb) & feature) {
-		return true;
-	}
-	return false;
-}
-
-
 int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {
@@ -172,15 +140,17 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 		return ENOMEM;
 	}
 
+	//EXT4FS_DBG("desc size = \%u", (uint32_t)ext4_superblock_get_desc_size(fs->superblock));
+
 	descriptors_per_block = ext4_superblock_get_block_size(fs->superblock)
-	    / EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE;
+	    / ext4_superblock_get_desc_size(fs->superblock);
 
 	/* Block group descriptor table starts at the next block after superblock */
 	block_id = ext4_superblock_get_first_data_block(fs->superblock) + 1;
 
 	/* Find the block containing the descriptor we are looking for */
 	block_id += bgid / descriptors_per_block;
-	offset = (bgid % descriptors_per_block) * EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE;
+	offset = (bgid % descriptors_per_block) * ext4_superblock_get_desc_size(fs->superblock);
 
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
@@ -301,8 +271,8 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	block_t *block;
 
 	/* Handle inode using extents */
-	// TODO check "extents" feature in superblock ???
-	if (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_EXTENTS)) {
+	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+			ext4_inode_has_flag(inode, EXT4_INODE_FLAG_EXTENTS)) {
 		current_block = ext4_inode_get_extent_block(inode, iblock, fs->device);
 		*fblock = current_block;
 		return EOK;

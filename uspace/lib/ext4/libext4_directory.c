@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_directory.c
- * @brief	TODO
+ * @brief	Ext4 directory structure operations.
  */
 
 #include <byteorder.h>

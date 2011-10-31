@@ -50,6 +50,7 @@ typedef struct ext4_block_group {
 	uint32_t reserved[2]; // Likely block/inode bitmap checksum
 	uint16_t itable_unused_lo; // Unused inodes count
 	uint16_t checksum; // crc16(sb_uuid+group+desc)
+	/* -------------- */
 	uint32_t block_bitmap_hi; // Blocks bitmap block MSB
 	uint32_t inode_bitmap_hi; // Inodes bitmap block MSB
 	uint32_t inode_table_first_block_hi; // Inodes table block MSB
@@ -65,8 +66,7 @@ typedef struct ext4_block_group_ref {
 	ext4_block_group_t *block_group;
 } ext4_block_group_ref_t;
 
-// TODO check value
-#define EXT4_BLOCK_GROUP_DESCRIPTOR_SIZE 32
+#define EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE 32
 
 extern uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *);
 extern uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *);

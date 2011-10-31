@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_block_group.c
- * @brief	TODO
+ * @brief	Ext4 block group structure operations
  */
 
 #include <byteorder.h>
