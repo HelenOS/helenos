@@ -34,6 +34,8 @@
  */
 #include <sys/types.h>
 #include <fibril_synch.h>
+#include <usb/debug.h>
+#include <usb/dev/hub.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
 #include <usb/ddfiface.h>
@@ -352,6 +354,11 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	if (child_fun == NULL)
 		return EINVAL;
 
+	if (!dev_ops && dev_data) {
+		usb_log_warning("Using standard fun ops with arbitrary "
+		    "driver data. This does not have to work.\n");
+	}
+
 	size_t this_device_name_index;
 
 	fibril_mutex_lock(&device_name_index_mutex);
@@ -365,13 +372,13 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	usb_device_connection_t dev_connection;
 	usb_pipe_t ctrl_pipe;
 
-	rc = usb_device_connection_initialize(&dev_connection, hc_handle, address);
+	rc = usb_device_connection_initialize(
+	    &dev_connection, hc_handle, address);
 	if (rc != EOK) {
 		goto failure;
 	}
 
-	rc = usb_pipe_initialize_default_control(&ctrl_pipe,
-	    &dev_connection);
+	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_connection);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -404,6 +411,19 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	}
 
 	child->driver_data = dev_data;
+	/* Store the attached device in fun driver data if there is no
+	 * other data */
+	if (!dev_data) {
+		usb_hub_attached_device_t *new_device = ddf_fun_data_alloc(
+		    child, sizeof(usb_hub_attached_device_t));
+		if (!new_device) {
+			rc = ENOMEM;
+			goto failure;
+		}
+		new_device->address = address;
+		new_device->fun = child;
+	}
+
 
 	rc = usb_device_create_match_ids(&ctrl_pipe, &child->match_ids);
 	if (rc != EOK) {
@@ -420,9 +440,10 @@ int usb_device_register_child_in_devman(usb_address_t address,
 
 failure:
 	if (child != NULL) {
-		/* This was not malloced by us, does not even have to be
-		 * on heap. */
-		child->driver_data = NULL;
+		/* We know nothing about the data if it came from outside. */
+		if (dev_data) {
+			child->driver_data = NULL;
+		}
 		/* This takes care of match_id deallocation as well. */
 		ddf_fun_destroy(child);
 	}

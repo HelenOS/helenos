@@ -178,7 +178,8 @@ static void unregister_control_endpoint_on_default_address(
  * @param[out] assigned_address USB address of the device.
  * @param[in] dev_ops Child device ops. Will use default if not provided.
  * @param[in] new_dev_data Arbitrary pointer to be stored in the child
- *	as @c driver_data.
+ *	as @c driver_data. Will allocate and assign usb_hub_attached_device_t
+ *	structure if NULL.
  * @param[out] new_fun Storage where pointer to allocated child function
  *	will be written. Must be non-null.
  * @return Error code.
@@ -217,7 +218,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	if (rc != EOK) {
 		return rc;
 	}
-
 
 	/*
 	 * Request new address.
@@ -327,17 +327,21 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		goto leave_release_free_address;
 	}
 
-	/*
-	 * And now inform the host controller about the handle.
-	 */
 	const usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
 		.fun = child_fun,
 	};
+
+
+	/*
+	 * And now inform the host controller about the handle.
+	 */
 	rc = usb_hc_register_device(&hc_conn, &new_device);
 	if (rc != EOK) {
+		/* We know nothing about that data. */
+		if (new_dev_data)
+			child_fun->driver_data = NULL;
 		/* The child function is already created. */
-		child_fun->driver_data = NULL;
 		ddf_fun_destroy(child_fun);
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
