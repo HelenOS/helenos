@@ -189,13 +189,12 @@ static int register_endpoint(
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	const size_t size = max_packet_size;
-	/* Default address is not bound or registered,
-	 * thus it does not provide speed info. */
-	usb_speed_t speed = ep_speed;
-	/* NOTE The function will return EINVAL and won't
-	 * touch speed variable for default address */
-	usb_device_manager_get_info_by_address(
+	usb_speed_t speed = USB_SPEED_MAX;
+	const int ret = usb_device_manager_get_info_by_address(
 	    &hcd->dev_manager, address, NULL, &speed);
+	if (ret != EOK) {
+		return ret;
+	}
 
 	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),

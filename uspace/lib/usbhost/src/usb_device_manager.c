@@ -218,7 +218,7 @@ int usb_device_manager_get_info_by_address(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t *handle, usb_speed_t *speed)
 {
 	assert(instance);
-	if ((address <= 0) || (address >= USB_ADDRESS_COUNT)) {
+	if ((address < 0) || (address >= USB_ADDRESS_COUNT)) {
 		return EINVAL;
 	}
 
