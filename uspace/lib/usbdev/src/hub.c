@@ -253,13 +253,23 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	}
 
 	do {
-		rc = usb_pipe_register_with_speed(&ctrl_pipe, dev_speed, 0,
-		    &hc_conn);
-		if (rc != EOK) {
+		rc = usb_hc_request_address(&hc_conn, USB_ADDRESS_DEFAULT,
+		    true, dev_speed);
+		if (rc != USB_ADDRESS_DEFAULT) {
 			/* Do not overheat the CPU ;-). */
 			async_usleep(ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC);
 		}
-	} while (rc != EOK);
+	} while (rc == ENOENT);
+	if (rc != EOK) {
+		goto leave_release_free_address;
+	}
+
+	rc = usb_pipe_register_with_speed(&ctrl_pipe, dev_speed, 0, &hc_conn);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_default_address;
+	}
+
 	struct timeval end_time;
 
 	rc = gettimeofday(&end_time, NULL);
