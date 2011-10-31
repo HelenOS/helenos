@@ -176,7 +176,7 @@ static void unregister_control_endpoint_on_default_address(
  *	device is attached to.
  * @param[in] arg Any data argument to @p enable_port.
  * @param[out] assigned_address USB address of the device.
- * @param[in] dev_ops Child device ops.
+ * @param[in] dev_ops Child device ops. Will use default if not provided.
  * @param[in] new_dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
  * @param[out] new_fun Storage where pointer to allocated child function
@@ -356,15 +356,19 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * Completely ignoring errors here.
 	 */
 leave_release_default_address:
-	usb_pipe_unregister(&ctrl_pipe, &hc_conn);
+	if (usb_pipe_unregister(&ctrl_pipe, &hc_conn) != EOK)
+		usb_log_warning("%s: Failed to unregister default pipe.\n",
+		    __FUNCTION__);
 
 leave_release_free_address:
-	usb_hc_unregister_device(&hc_conn, dev_addr);
+	if (usb_hc_unregister_device(&hc_conn, dev_addr) != EOK)
+		usb_log_warning("%s: Failed to unregister device.\n",
+		    __FUNCTION__);
 
 close_connection:
 	if (usb_hc_connection_close(&hc_conn) != EOK)
-		usb_log_warning("usb_hc_new_device_wrapper(): Failed to close "
-		    "connection.\n");
+		usb_log_warning("%s: Failed to close connection.\n",
+		    __FUNCTION__);
 
 	return rc;
 }
