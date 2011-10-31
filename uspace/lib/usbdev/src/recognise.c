@@ -349,6 +349,9 @@ int usb_device_register_child_in_devman(usb_address_t address,
     devman_handle_t hc_handle, ddf_dev_t *parent,
     ddf_dev_ops_t *dev_ops, void *dev_data, ddf_fun_t **child_fun)
 {
+	if (child_fun == NULL)
+		return EINVAL;
+
 	size_t this_device_name_index;
 
 	fibril_mutex_lock(&device_name_index_mutex);
@@ -388,6 +391,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	}
 
 	child = ddf_fun_create(parent, fun_inner, child_name);
+	free(child_name);
 	if (child == NULL) {
 		rc = ENOMEM;
 		goto failure;
@@ -411,20 +415,16 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		goto failure;
 	}
 
-	if (child_fun != NULL) {
-		*child_fun = child;
-	}
-
+	*child_fun = child;
 	return EOK;
 
 failure:
 	if (child != NULL) {
-		child->name = NULL;
+		/* This was not malloced by us, does not even have to be
+		 * on heap. */
+		child->driver_data = NULL;
 		/* This takes care of match_id deallocation as well. */
 		ddf_fun_destroy(child);
-	}
-	if (child_name != NULL) {
-		free(child_name);
 	}
 
 	return rc;
