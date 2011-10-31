@@ -378,14 +378,15 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * Completely ignoring errors here.
 	 */
 leave_release_default_address:
-	if (usb_pipe_unregister(&ctrl_pipe, &hc_conn) != EOK)
-		usb_log_warning("%s: Failed to unregister default pipe.\n",
-		    __FUNCTION__);
 	usb_hc_unregister_device(&hc_conn, USB_ADDRESS_DEFAULT);
 
 leave_release_free_address:
 	if (usb_hc_unregister_device(&hc_conn, dev_addr) != EOK)
 		usb_log_warning("%s: Failed to unregister device.\n",
+		    __FUNCTION__);
+	/* This might be either 0:0 or dev_addr:0 */
+	if (usb_pipe_unregister(&ctrl_pipe, &hc_conn) != EOK)
+		usb_log_warning("%s: Failed to unregister default pipe.\n",
 		    __FUNCTION__);
 
 close_connection:
