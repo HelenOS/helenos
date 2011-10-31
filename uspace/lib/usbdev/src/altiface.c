@@ -97,14 +97,13 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 	assert(config_descr != NULL);
 	assert(config_descr_size > 0);
 
+	*alternates_ptr = NULL;
 	if (interface_number < 0) {
-		alternates_ptr = NULL;
 		return EOK;
 	}
 
 	usb_alternate_interfaces_t *alternates
 	    = malloc(sizeof(usb_alternate_interfaces_t));
-
 	if (alternates == NULL) {
 		return ENOMEM;
 	}
@@ -118,8 +117,8 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 		return ENOENT;
 	}
 
-	alternates->alternatives = malloc(alternates->alternative_count
-	    * sizeof(usb_alternate_interface_descriptors_t));
+	alternates->alternatives = calloc(alternates->alternative_count,
+	    sizeof(usb_alternate_interface_descriptors_t));
 	if (alternates->alternatives == NULL) {
 		free(alternates);
 		return ENOMEM;
@@ -175,7 +174,13 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 	return EOK;
 }
 
-
+void usb_alternate_interfaces_destroy(usb_alternate_interfaces_t *alternate)
+{
+	if (!alternate)
+		return;
+	free(alternate->alternatives);
+	free(alternate);
+}
 /**
  * @}
  */

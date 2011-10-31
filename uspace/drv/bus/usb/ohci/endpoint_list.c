@@ -72,7 +72,8 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
  *
  * Does not check whether this replaces an existing list.
  */
-void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next)
+void endpoint_list_set_next(
+    const endpoint_list_t *instance, const endpoint_list_t *next)
 {
 	assert(instance);
 	assert(next);

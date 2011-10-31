@@ -191,25 +191,19 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	usb_log_debug(
 	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
 
-	ret = hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
-	CHECK_RET_RETURN(ret, "Failed to initialize HCD generic driver: %s.\n",
+	ret = hc_init_mem_structures(instance);
+	CHECK_RET_RETURN(ret,
+	    "Failed to initialize UHCI memory structures: %s.\n",
 	    str_error(ret));
+
+#undef CHECK_RET_RETURN
+
+	hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
+	    bandwidth_count_usb11);
 
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;
 	instance->generic.ep_add_hook = NULL;
-
-#undef CHECK_RET_DEST_FUN_RETURN
-
-	ret = hc_init_mem_structures(instance);
-	if (ret != EOK) {
-		usb_log_error(
-		    "Failed to initialize UHCI memory structures: %s.\n",
-		    str_error(ret));
-		hcd_destroy(&instance->generic);
-		return ret;
-	}
 
 	hc_init_hw(instance);
 	if (!interrupts) {
