@@ -104,12 +104,8 @@ static int request_address(
 	assert(address);
 
 	usb_log_debug("Address request speed: %s.\n", usb_str_speed(speed));
-	*address =
-	    usb_device_manager_get_free_address(&hcd->dev_manager, speed);
-	usb_log_debug("Address request with result: %d.\n", *address);
-	if (*address <= 0)
-		return *address;
-	return EOK;
+	return usb_device_manager_request_address(
+	    &hcd->dev_manager, address, false, speed);
 }
 /*----------------------------------------------------------------------------*/
 /** Bind address interface function
@@ -127,7 +123,8 @@ static int bind_address(
 	assert(hcd);
 
 	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
-	return usb_device_manager_bind(&hcd->dev_manager, address, handle);
+	return usb_device_manager_bind_address(
+	    &hcd->dev_manager, address, handle);
 }
 /*----------------------------------------------------------------------------*/
 /** Find device handle by address interface function.
@@ -159,7 +156,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
-	usb_device_manager_release(&hcd->dev_manager, address);
+	usb_device_manager_release_address(&hcd->dev_manager, address);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

@@ -67,13 +67,13 @@ typedef struct {
 void usb_device_manager_init(
     usb_device_manager_t *instance, usb_speed_t max_speed);
 
-usb_address_t usb_device_manager_get_free_address(
-    usb_device_manager_t *instance, usb_speed_t speed);
+int usb_device_manager_request_address(usb_device_manager_t *instance,
+    usb_address_t *address, bool strict, usb_speed_t speed);
 
-int usb_device_manager_bind(usb_device_manager_t *instance,
+int usb_device_manager_bind_address(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t handle);
 
-int usb_device_manager_release(usb_device_manager_t *instance,
+int usb_device_manager_release_address(usb_device_manager_t *instance,
     usb_address_t address);
 
 usb_address_t usb_device_manager_find_address(usb_device_manager_t *instance,
