@@ -42,10 +42,11 @@
 
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 {
-
 	int rc;
 	ext4_superblock_t *temp_superblock;
 	size_t block_size;
+	uint32_t block_ids_per_block;
+	int i;
 
 	fs->device = service_id;
 
@@ -74,6 +75,16 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
+	}
+
+	block_ids_per_block = block_size / sizeof(uint32_t);
+	fs->inode_block_limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
+	fs->inode_blocks_per_level[0] = 1;
+	for (i = 1; i < 4; i++) {
+		fs->inode_blocks_per_level[i]  = fs->inode_blocks_per_level[i-1] *
+		    block_ids_per_block;
+		fs->inode_block_limits[i] = fs->inode_block_limits[i-1] +
+				fs->inode_blocks_per_level[i];
 	}
 
 	/* Return loaded superblock */
@@ -260,9 +271,6 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
     aoff64_t iblock, uint32_t* fblock)
 {
 	int rc;
-	aoff64_t limits[4];
-	uint32_t block_ids_per_block;
-	aoff64_t blocks_per_level[4];
 	uint32_t offset_in_block;
 	uint32_t current_block;
 	aoff64_t block_offset_in_level;
@@ -286,22 +294,10 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 		return EOK;
 	}
 
-	/* Compute limits for indirect block levels
-	 * TODO: compute this once when loading filesystem and store in ext2_filesystem_t
-	 */
-	block_ids_per_block = ext4_superblock_get_block_size(fs->superblock) / sizeof(uint32_t);
-	limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
-	blocks_per_level[0] = 1;
-	for (i = 1; i < 4; i++) {
-		blocks_per_level[i]  = blocks_per_level[i-1] *
-		    block_ids_per_block;
-		limits[i] = limits[i-1] + blocks_per_level[i];
-	}
-
 	/* Determine the indirection level needed to get the desired block */
 	level = -1;
 	for (i = 1; i < 4; i++) {
-		if (iblock < limits[i]) {
+		if (iblock < fs->inode_block_limits[i]) {
 			level = i;
 			break;
 		}
@@ -312,9 +308,9 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	}
 
 	/* Compute offsets for the topmost level */
-	block_offset_in_level = iblock - limits[level-1];
+	block_offset_in_level = iblock - fs->inode_block_limits[level-1];
 	current_block = ext4_inode_get_indirect_block(inode, level-1);
-	offset_in_block = block_offset_in_level / blocks_per_level[level-1];
+	offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 
 	/* Navigate through other levels, until we find the block number
 	 * or find null reference meaning we are dealing with sparse file
@@ -325,7 +321,6 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 			return rc;
 		}
 
-		assert(offset_in_block < block_ids_per_block);
 		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 
 		rc = block_put(block);
@@ -349,8 +344,8 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 		}
 
 		/* Visit the next level */
-		block_offset_in_level %= blocks_per_level[level];
-		offset_in_block = block_offset_in_level / blocks_per_level[level-1];
+		block_offset_in_level %= fs->inode_blocks_per_level[level];
+		offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 	}
 
 	*fblock = current_block;

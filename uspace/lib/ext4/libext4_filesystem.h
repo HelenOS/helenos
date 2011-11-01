@@ -41,6 +41,8 @@
 typedef struct ext4_filesystem {
 	service_id_t device;
 	ext4_superblock_t *	superblock;
+	aoff64_t inode_block_limits[4];
+	aoff64_t inode_blocks_per_level[4];
 } ext4_filesystem_t;
 
 #define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
