@@ -41,6 +41,7 @@
 
 #define FS_NAME_MAXLEN  20
 #define MAX_PATH_LEN    (64 * 1024)
+#define MAX_MNTOPTS_LEN 256
 #define PLB_SIZE        (2 * MAX_PATH_LEN)
 
 /* Basic types. */
@@ -79,6 +80,7 @@ typedef enum {
 	VFS_IN_STAT,
 	VFS_IN_DUP,
 	VFS_IN_WAIT_HANDLE,
+	VFS_IN_GET_MTAB,
 } vfs_in_request_t;
 
 typedef enum {

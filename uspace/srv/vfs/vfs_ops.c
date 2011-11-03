@@ -51,6 +51,11 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <vfs/canonify.h>
+#include <vfs/vfs_mtab.h>
+
+FIBRIL_MUTEX_INITIALIZE(mtab_list_lock);
+LIST_INITIALIZE(mtab_list);
+static size_t mtab_size = 0;
 
 /* Forward declarations of static functions. */
 static int vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
@@ -352,14 +357,40 @@ recheck:
 	}
 	fibril_mutex_unlock(&fs_list_lock);
 	
-	/* Acknowledge that we know fs_name. */
-	async_answer_0(callid, EOK);
-	
 	/* Do the mount */
 	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
+
+	/* Add the filesystem info to the list of mounted filesystems */
+	mtab_list_ent_t *mtab_list_ent = malloc(sizeof(mtab_list_ent_t));
+	if (!mtab_list_ent) {
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
+		free(mp);
+		free(fs_name);
+		free(opts);
+		return;
+	}
+
+	mtab_ent_t *mtab_ent = &mtab_list_ent->mtab_ent;
+
+	mtab_ent->fs_handle = fs_handle;
+	str_cpy(mtab_ent->mp, MAX_PATH_LEN, mp);
+	str_cpy(mtab_ent->fs_name, FS_NAME_MAXLEN, fs_name);
+	str_cpy(mtab_ent->opts, MAX_MNTOPTS_LEN, opts);
+	mtab_ent->flags = flags;
+	mtab_ent->instance = instance;
+
+	link_initialize(&mtab_list_ent->link);
+
+	fibril_mutex_lock(&mtab_list_lock);
+	list_append(&mtab_list_ent->link, &mtab_list);
+	mtab_size++;
+	fibril_mutex_unlock(&mtab_list_lock);
+
 	free(mp);
-	free(fs_name);
-	free(opts);
+
+	/* Acknowledge that we know fs_name. */
+	async_answer_0(callid, EOK);
 }
 
 void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
