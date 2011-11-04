@@ -77,6 +77,9 @@
 /** Obtain PCI bus soft-state from function soft-state */
 #define PCI_BUS_FROM_FUN(fun) ((fun)->busptr)
 
+/** Max is 47, align to something nice. */
+#define ID_MAX_STR_LEN 50
+
 static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 {
 	pci_fun_t *fun = PCI_FUN(fnode);
@@ -309,8 +312,6 @@ void pci_conf_write_32(pci_fun_t *fun, int reg, uint32_t val)
 
 void pci_fun_create_match_ids(pci_fun_t *fun)
 {
-#define ID_MAX_STR_LEN 50 /* Max is 47, align to something nice. */
-
 	int rc;
 	char match_id_str[ID_MAX_STR_LEN];
 
