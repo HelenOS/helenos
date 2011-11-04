@@ -315,6 +315,7 @@ int usb_device_create_match_ids_from_device_descriptor(
 int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
     match_id_list_t *matches)
 {
+	assert(ctrl_pipe);
 	int rc;
 	/*
 	 * Retrieve device descriptor and add matches from it.
@@ -337,8 +338,7 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
 
 /** Probe for device kind and register it in devman.
  *
- * @param[in] address Address of the (unknown) attached device.
- * @param[in] hc_handle Handle of the host controller.
+ * @param[in] ctrl_pipe Control pipe to the device.
  * @param[in] parent Parent device.
  * @param[in] dev_ops Child device ops. Default child_ops will be used if NULL.
  * @param[in] dev_data Arbitrary pointer to be stored in the child
@@ -347,11 +347,11 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
  *	will be written.
  * @return Error code.
  */
-int usb_device_register_child_in_devman(usb_address_t address,
-    devman_handle_t hc_handle, ddf_dev_t *parent,
-    ddf_dev_ops_t *dev_ops, void *dev_data, ddf_fun_t **child_fun)
+int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
+    ddf_dev_t *parent, ddf_dev_ops_t *dev_ops, void *dev_data,
+    ddf_fun_t **child_fun)
 {
-	if (child_fun == NULL)
+	if (child_fun == NULL || ctrl_pipe == NULL)
 		return EINVAL;
 
 	if (!dev_ops && dev_data) {
@@ -359,46 +359,25 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		    "driver data. This does not have to work.\n");
 	}
 
-	size_t this_device_name_index;
-
 	fibril_mutex_lock(&device_name_index_mutex);
-	this_device_name_index = device_name_index;
-	device_name_index++;
+	const size_t this_device_name_index = device_name_index++;
 	fibril_mutex_unlock(&device_name_index_mutex);
 
 	ddf_fun_t *child = NULL;
-	char *child_name = NULL;
 	int rc;
-	usb_device_connection_t dev_connection;
-	usb_pipe_t ctrl_pipe;
-
-	rc = usb_device_connection_initialize(
-	    &dev_connection, hc_handle, address);
-	if (rc != EOK) {
-		goto failure;
-	}
-
-	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_connection);
-	if (rc != EOK) {
-		goto failure;
-	}
-	rc = usb_pipe_probe_default_control(&ctrl_pipe);
-	if (rc != EOK) {
-		goto failure;
-	}
 
 	/*
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usb%02zu_a%d",
-	    this_device_name_index, address);
+	char child_name[12]; /* The format is: "usbAB_aXYZ", length 11 */
+	rc = snprintf(child_name, sizeof(child_name),
+	    "usb%02zu_a%d", this_device_name_index, ctrl_pipe->wire->address);
 	if (rc < 0) {
 		goto failure;
 	}
 
 	child = ddf_fun_create(parent, fun_inner, child_name);
-	free(child_name);
 	if (child == NULL) {
 		rc = ENOMEM;
 		goto failure;
@@ -420,12 +399,12 @@ int usb_device_register_child_in_devman(usb_address_t address,
 			rc = ENOMEM;
 			goto failure;
 		}
-		new_device->address = address;
+		new_device->address = ctrl_pipe->wire->address;
 		new_device->fun = child;
 	}
 
 
-	rc = usb_device_create_match_ids(&ctrl_pipe, &child->match_ids);
+	rc = usb_device_create_match_ids(ctrl_pipe, &child->match_ids);
 	if (rc != EOK) {
 		goto failure;
 	}
