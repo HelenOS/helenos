@@ -65,9 +65,6 @@ static ddf_dev_ops_t child_ops = {
 /** Arguments to printf for BCD coded number. */
 #define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
 
-/* FIXME: make this dynamic */
-#define MATCH_STRING_MAX 256
-
 /** Add formatted match id.
  *
  * @param matches List of match ids where to add to.
@@ -76,31 +73,13 @@ static ddf_dev_ops_t child_ops = {
  * @return Error code.
  */
 static int usb_add_match_id(match_id_list_t *matches, int score,
-    const char *format, ...)
+    const char *match_str)
 {
-	char *match_str = NULL;
-	match_id_t *match_id = NULL;
-	int rc;
-	
-	match_str = malloc(MATCH_STRING_MAX + 1);
-	if (match_str == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
+	assert(matches);
 
-	/*
-	 * FIXME: replace with dynamic allocation of exact size
-	 */
-	va_list args;
-	va_start(args, format	);
-	vsnprintf(match_str, MATCH_STRING_MAX, format, args);
-	match_str[MATCH_STRING_MAX] = 0;
-	va_end(args);
-
-	match_id = create_match_id();
+	match_id_t *match_id = create_match_id();
 	if (match_id == NULL) {
-		rc = ENOMEM;
-		goto failure;
+		return ENOMEM;
 	}
 
 	match_id->id = match_str;
@@ -108,17 +87,6 @@ static int usb_add_match_id(match_id_list_t *matches, int score,
 	add_match_id(matches, match_id);
 
 	return EOK;
-	
-failure:
-	if (match_str != NULL) {
-		free(match_str);
-	}
-	if (match_id != NULL) {
-		match_id->id = NULL;
-		delete_match_id(match_id);
-	}
-	
-	return rc;
 }
 
 /** Add match id to list or return with error code.
@@ -130,9 +98,13 @@ failure:
  */
 #define ADD_MATCHID_OR_RETURN(match_ids, score, format, ...) \
 	do { \
-		int __rc = usb_add_match_id((match_ids), (score), \
-		    format, ##__VA_ARGS__); \
+		char *str = NULL; \
+		int __rc = asprintf(&str, format, ##__VA_ARGS__); \
+		if (__rc > 0) { \
+			__rc = usb_add_match_id((match_ids), (score), str); \
+		} \
 		if (__rc != EOK) { \
+			free(str); \
 			return __rc; \
 		} \
 	} while (0)
@@ -151,10 +123,7 @@ int usb_device_create_match_ids_from_interface(
     const usb_standard_interface_descriptor_t *desc_interface,
     match_id_list_t *matches)
 {
-	if (desc_interface == NULL) {
-		return EINVAL;
-	}
-	if (matches == NULL) {
+	if (desc_interface == NULL || matches == NULL) {
 		return EINVAL;
 	}
 
