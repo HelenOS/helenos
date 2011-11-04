@@ -88,6 +88,36 @@ static inline int send_batch(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
+static int register_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_add_hook)
+		return hcd->ep_add_hook(hcd, ep);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static void unregister_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+/*----------------------------------------------------------------------------*/
+static void unregister_helper_warn(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
+	    ep->address, ep->endpoint, usb_str_direction(ep->direction));
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+/*----------------------------------------------------------------------------*/
 /** Request address interface function
  *
  * @param[in] fun DDF function that was called.
@@ -158,26 +188,9 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
 	usb_device_manager_release_address(&hcd->dev_manager, address);
+	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
+	    unregister_helper_warn, hcd);
 	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int register_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ep_add_hook)
-		return hcd->ep_add_hook(hcd, ep);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static void unregister_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ep_remove_hook)
-		hcd->ep_remove_hook(hcd, ep);
 }
 /*----------------------------------------------------------------------------*/
 static int register_endpoint(
