@@ -79,7 +79,7 @@ void usb_device_manager_init(
 		instance->devices[i].handle = 0;
 		instance->devices[i].speed = USB_SPEED_MAX;
 	}
-	instance->last_address = 0;
+	instance->last_address = 1;
 	instance->max_speed = max_speed;
 	fibril_mutex_initialize(&instance->guard);
 }
@@ -117,6 +117,7 @@ int usb_device_manager_request_address(usb_device_manager_t *instance,
 	}
 	assert(instance->devices[*address].occupied == false);
 	assert(instance->devices[*address].handle == 0);
+	assert(*address != USB_ADDRESS_DEFAULT || strict);
 
 	instance->devices[*address].occupied = true;
 	instance->devices[*address].speed = speed;
