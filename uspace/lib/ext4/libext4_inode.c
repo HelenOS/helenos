@@ -97,6 +97,12 @@ uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint8_t idx)
 	return uint32_t_le2host(inode->blocks[idx]);
 }
 
+void ext4_inode_set_direct_block(ext4_inode_t *inode, uint8_t idx, uint32_t fblock)
+{
+	assert(idx < EXT4_INODE_DIRECT_BLOCK_COUNT);
+	inode->blocks[idx] = host2uint32_t_le(fblock);
+}
+
 uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
 {
 	assert(idx < EXT4_INODE_INDIRECT_BLOCK_COUNT);

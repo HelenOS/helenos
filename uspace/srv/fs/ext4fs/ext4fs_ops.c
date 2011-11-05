@@ -933,12 +933,76 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 
 static int
-ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
+ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 {
-	EXT4FS_DBG("not supported");
+	EXT4FS_DBG("");
+	fs_node_t *fn;
+	ext4fs_node_t *enode;
+	ext4_inode_t *inode;
+	ext4_filesystem_t* fs;
+	aoff64_t old_size;
+	aoff64_t size_diff;
+	int rc;
 
-	// TODO
-	return ENOTSUP;
+	rc = ext4fs_node_get(&fn, service_id, index);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	enode = EXT4FS_NODE(fn);
+	inode = enode->inode_ref->inode;
+	fs = enode->instance->filesystem;
+
+	old_size = ext4_inode_get_size(fs->superblock, inode);
+
+	printf("old size = \%llu, new size = \%llu\n", old_size, new_size);
+
+	if (old_size == new_size) {
+		rc = EOK;
+	} else {
+		/** AAAAAAAAAAAAAAAAAAAA */
+
+		//int rc;
+		uint32_t block_size;
+		uint32_t blocks_count, total_blocks;
+		uint32_t i;
+
+		block_size  = ext4_superblock_get_block_size(fs->superblock);
+
+		if (old_size < new_size) {
+			// TODO don't return immediately
+			EXT4FS_DBG("expand the file");
+			return EINVAL;
+		}
+
+		EXT4FS_DBG("cut the end of the file !");
+
+		size_diff = old_size - new_size;
+		blocks_count = size_diff / block_size;
+		if (size_diff % block_size != 0) {
+			blocks_count++;
+		}
+
+		total_blocks = old_size / block_size;
+		if (old_size % block_size != 0) {
+			total_blocks++;
+		}
+
+		// TODO dirty add to inode_ref_t
+		//ino_i->dirty = true;
+
+		for (i = 0; i< blocks_count; ++i) {
+			// TODO check retval
+			ext4_filesystem_release_inode_block(fs, inode, total_blocks - i);
+			// TODO subtract inode->size
+		}
+
+		/** BBBBBBBBBBBBBBBBBBBB */
+
+	}
+
+	ext4fs_node_put(fn);
+	return rc;
 }
 
 

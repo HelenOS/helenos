@@ -353,6 +353,40 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	return EOK;
 }
 
+
+int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs, ext4_inode_t *inode, uint32_t iblock)
+{
+	int rc;
+	uint32_t fblock;
+
+	// TODO handle with extents
+
+	rc = ext4_filesystem_get_inode_data_block_index(fs, inode, iblock, &fblock);
+	if (rc != EOK) {
+		// TODO error
+		return rc;
+	}
+
+	// Sparse file
+	if (fblock == 0) {
+
+		//
+		return EOK;
+	}
+
+
+	// TODO vyhledat policko s ukazatelem a nastavit nulu
+
+
+	// TODO uvolnit blok v bitmape
+
+	// TODO return
+
+
+	return EOK;
+}
+
+
 /**
  * @}
  */ 
