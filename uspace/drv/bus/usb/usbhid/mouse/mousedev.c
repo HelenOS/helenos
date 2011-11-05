@@ -54,7 +54,7 @@
 /** Number of simulated arrow-key presses for singel wheel step. */
 #define ARROWS_PER_SINGLE_WHEEL 3
 
-#define NAME  "mouse"
+#define NAME "mouse"
 
 /*----------------------------------------------------------------------------*/
 
@@ -122,22 +122,19 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	usb_mouse_t *mouse_dev = (usb_mouse_t *) fun->driver_data;
+	usb_mouse_t *mouse_dev = fun->driver_data;
 
 	if (mouse_dev == NULL) {
-		usb_log_debug("default_connection_handler: Missing "
-		    "parameters.\n");
+		usb_log_debug("%s: Missing parameters.\n", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
 
-	usb_log_debug("default_connection_handler: fun->name: %s\n",
-	              fun->name);
-	usb_log_debug("default_connection_handler: mouse_sess: %p, "
-	    "wheel_sess: %p\n", mouse_dev->mouse_sess, mouse_dev->wheel_sess);
+	usb_log_debug("%s: fun->name: %s\n", __FUNCTION__, fun->name);
+	usb_log_debug("%s: mouse_sess: %p, wheel_sess: %p\n",
+	    __FUNCTION__, mouse_dev->mouse_sess, mouse_dev->wheel_sess);
 
-	async_sess_t **sess_ptr =
-	    (str_cmp(fun->name, HID_MOUSE_FUN_NAME) == 0) ?
+	async_sess_t **sess_ptr = (fun == mouse_dev->mouse_fun) ?
 	    &mouse_dev->mouse_sess : &mouse_dev->wheel_sess;
 
 	async_sess_t *sess =
@@ -145,16 +142,16 @@ static void default_connection_handler(ddf_fun_t *fun,
 	if (sess != NULL) {
 		if (*sess_ptr == NULL) {
 			*sess_ptr = sess;
-			usb_log_debug("Console session to mouse set ok (%p).\n",
-			    sess);
+			usb_log_debug("Console session to %s set ok (%p).\n",
+			    fun->name, sess);
 			async_answer_0(icallid, EOK);
 		} else {
-			usb_log_debug("default_connection_handler: Console "
-			    "session to mouse already set.\n");
+			usb_log_error("Console session to %s already set.\n",
+			    fun->name);
 			async_answer_0(icallid, ELIMIT);
 		}
 	} else {
-		usb_log_debug("default_connection_handler: Invalid function.\n");
+		usb_log_debug("%s: Invalid function.\n", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 	}
 }
@@ -169,6 +166,8 @@ static usb_mouse_t *usb_mouse_new(void)
 	}
 	mouse->mouse_sess = NULL;
 	mouse->wheel_sess = NULL;
+	mouse->buttons = NULL;
+	mouse->buttons_count = 0;
 
 	return mouse;
 }
@@ -179,18 +178,27 @@ static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
 
-	// hangup session to the console
-	if (mouse_dev->mouse_sess != NULL)
-		async_hangup(mouse_dev->mouse_sess);
+	/* Hangup session to the console */
+	if (mouse_dev->mouse_sess != NULL) {
+		const int ret = async_hangup(mouse_dev->mouse_sess);
+		if (ret != EOK)
+			usb_log_warning("Failed to hang up mouse session: "
+			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
+	}
 
-	if (mouse_dev->wheel_sess != NULL)
-		async_hangup(mouse_dev->wheel_sess);
+	if (mouse_dev->wheel_sess != NULL) {
+		const int ret = async_hangup(mouse_dev->wheel_sess);
+		if (ret != EOK)
+			usb_log_warning("Failed to hang up wheel session: "
+			    "%p, %s.\n", mouse_dev->wheel_sess, str_error(ret));
+	}
+
 	int ret = ddf_fun_unbind(mouse_dev->mouse_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind mouse function.\n");
 	} else {
 		ddf_fun_destroy(mouse_dev->mouse_fun);
-		/* Prevent double free */
+		/* Prevent double free, these two functions share driver data */
 		mouse_dev->wheel_fun->driver_data = NULL;
 	}
 
@@ -200,6 +208,7 @@ static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
 	} else {
 		ddf_fun_destroy(mouse_dev->wheel_fun);
 	}
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -214,10 +223,9 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 		return;
 	}
 
-	int count = ((wheel < 0) ? -wheel : wheel) * ARROWS_PER_SINGLE_WHEEL;
-	int i;
-
-	for (i = 0; i < count; i++) {
+	const unsigned count =
+	    ((wheel < 0) ? -wheel : wheel) * ARROWS_PER_SINGLE_WHEEL;
+	for (unsigned i = 0; i < count; i++) {
 		/* Send arrow press and release. */
 		usb_log_debug2("Sending key %d to the console\n", key);
 		
