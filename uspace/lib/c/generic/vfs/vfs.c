@@ -874,12 +874,9 @@ int get_mtab_list(list_t *mtab_list)
 
 		sysarg_t p[3];
 
-		int j;
-		for (j = 0; j < 3; ++j) {
-			rc = async_req_0_1(exch, VFS_IN_PING, &p[j]);
-			if (rc != EOK)
-				goto exit;
-		}
+		rc = async_req_0_3(exch, VFS_IN_PING, &p[0], &p[1], &p[2]);
+		if (rc != EOK)
+			goto exit;
 
 		mtab_ent->flags = p[0];
 		mtab_ent->instance = p[1];

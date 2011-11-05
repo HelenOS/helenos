@@ -1383,24 +1383,17 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 		(void) async_data_read_finalize(callid, mtab_ent->fs_name,
 		    str_size(mtab_ent->fs_name));
 
-		sysarg_t p[3];
+		callid = async_get_call(&data);
 
-		p[0] = mtab_ent->flags;
-		p[1] = mtab_ent->instance;
-		p[2] = mtab_ent->fs_handle;
-
-		int i;
-		for (i = 0; i < 3; ++i) {
-			callid = async_get_call(&data);
-			if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
-				rc = ENOTSUP;
-				async_answer_1(callid, rc, 0);
-				goto exit;
-			}
-			async_answer_1(callid, EOK, p[i]);
+		if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
+			rc = ENOTSUP;
+			async_answer_1(callid, rc, 0);
+			goto exit;
 		}
 
 		rc = EOK;
+		async_answer_3(callid, rc, mtab_ent->flags, mtab_ent->instance,
+		    mtab_ent->fs_handle);
 	}
 
 exit:
