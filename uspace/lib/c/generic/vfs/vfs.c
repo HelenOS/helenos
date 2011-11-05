@@ -34,7 +34,6 @@
 
 #include <vfs/canonify.h>
 #include <vfs/vfs.h>
-#include <vfs/vfs_mtab.h>
 #include <vfs/vfs_sess.h>
 #include <macros.h>
 #include <stdlib.h>
@@ -848,18 +847,15 @@ int get_mtab_list(list_t *mtab_list)
 		goto exit;
 
 	for (i = 0; i < num_mounted_fs; ++i) {
-		mtab_list_ent_t *mtab_list_ent;
 		mtab_ent_t *mtab_ent;
 
-		mtab_list_ent = malloc(sizeof(mtab_list_ent_t));
-		if (!mtab_list_ent) {
+		mtab_ent = malloc(sizeof(mtab_ent_t));
+		if (!mtab_ent) {
 			rc = ENOMEM;
 			goto exit;
 		}
 
-		memset(mtab_list_ent, 0, sizeof(mtab_list_ent_t));
-
-		mtab_ent = &mtab_list_ent->mtab_ent;
+		memset(mtab_ent, 0, sizeof(mtab_ent_t));
 
 		rc = async_data_read_start(exch, (void *) mtab_ent->mp,
 		    MAX_PATH_LEN);
@@ -889,8 +885,8 @@ int get_mtab_list(list_t *mtab_list)
 		mtab_ent->instance = p[1];
 		mtab_ent->fs_handle = p[2];
 
-		link_initialize(&mtab_list_ent->link);
-		list_append(&mtab_list_ent->link, mtab_list);
+		link_initialize(&mtab_ent->link);
+		list_append(&mtab_ent->link, mtab_list);
 	}
 
 exit:

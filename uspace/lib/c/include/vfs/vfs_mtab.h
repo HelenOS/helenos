@@ -39,6 +39,7 @@
 #include <ipc/vfs.h>
 
 typedef struct mtab_ent {
+	link_t link;
 	char mp[MAX_PATH_LEN];
 	char opts[MAX_MNTOPTS_LEN];
 	char fs_name[FS_NAME_MAXLEN];
@@ -46,11 +47,6 @@ typedef struct mtab_ent {
 	unsigned int instance;
 	fs_handle_t  fs_handle;
 } mtab_ent_t;
-
-typedef struct mtab_list_ent {
-	link_t link;
-	mtab_ent_t mtab_ent;
-} mtab_list_ent_t;
 
 #endif
 

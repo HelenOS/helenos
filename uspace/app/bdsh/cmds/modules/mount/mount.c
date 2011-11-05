@@ -67,18 +67,16 @@ static void print_mtab_list(void)
 	LIST_INITIALIZE(mtab_list);
 	get_mtab_list(&mtab_list);
 
-	mtab_list_ent_t *old_ent = NULL;
+	mtab_ent_t *old_ent = NULL;
 
 	list_foreach(mtab_list, cur) {
-		mtab_list_ent_t *ent = list_get_instance(cur, mtab_list_ent_t,
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
-
-		mtab_ent_t *mtab_ent = &ent->mtab_ent;
 
 		if (old_ent)
 			free(old_ent);
 
-		old_ent = ent;
+		old_ent = mtab_ent;
 
 		printf("%s on %s ", mtab_ent->fs_name, mtab_ent->mp);
 

@@ -361,8 +361,8 @@ recheck:
 	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
 
 	/* Add the filesystem info to the list of mounted filesystems */
-	mtab_list_ent_t *mtab_list_ent = malloc(sizeof(mtab_list_ent_t));
-	if (!mtab_list_ent) {
+	mtab_ent_t *mtab_ent = malloc(sizeof(mtab_ent_t));
+	if (!mtab_ent) {
 		async_answer_0(callid, ENOMEM);
 		async_answer_0(rid, ENOMEM);
 		free(mp);
@@ -371,8 +371,6 @@ recheck:
 		return;
 	}
 
-	mtab_ent_t *mtab_ent = &mtab_list_ent->mtab_ent;
-
 	mtab_ent->fs_handle = fs_handle;
 	str_cpy(mtab_ent->mp, MAX_PATH_LEN, mp);
 	str_cpy(mtab_ent->fs_name, FS_NAME_MAXLEN, fs_name);
@@ -380,10 +378,10 @@ recheck:
 	mtab_ent->flags = flags;
 	mtab_ent->instance = instance;
 
-	link_initialize(&mtab_list_ent->link);
+	link_initialize(&mtab_ent->link);
 
 	fibril_mutex_lock(&mtab_list_lock);
-	list_append(&mtab_list_ent->link, &mtab_list);
+	list_append(&mtab_ent->link, &mtab_list);
 	mtab_size++;
 	fibril_mutex_unlock(&mtab_list_lock);
 
@@ -537,15 +535,13 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	int found = 0;
 
 	list_foreach(mtab_list, cur) {
-		mtab_list_ent_t *ent = list_get_instance(cur, mtab_list_ent_t,
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
 
-		mtab_ent_t *mtab_ent = &ent->mtab_ent;
-
 		if (str_cmp(mtab_ent->mp, mp) == 0) {
-			list_remove(&ent->link);
+			list_remove(&mtab_ent->link);
 			mtab_size--;
-			free(ent);
+			free(mtab_ent);
 			found = 1;
 			break;
 		}
@@ -1362,10 +1358,8 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(callid, EOK, mtab_size);
 
 	list_foreach(mtab_list, cur) {
-		mtab_list_ent_t *ent = list_get_instance(cur, mtab_list_ent_t,
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
-
-		mtab_ent_t *mtab_ent = &ent->mtab_ent;
 
 		rc = ENOTSUP;
 
