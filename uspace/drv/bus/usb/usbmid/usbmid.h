@@ -50,7 +50,7 @@ typedef struct {
 	/** Function container. */
 	ddf_fun_t *fun;
 	/** Interface descriptor. */
-	usb_standard_interface_descriptor_t *interface;
+	const usb_standard_interface_descriptor_t *interface;
 	/** Interface number. */
 	int interface_no;
 	/** List link. */

@@ -56,8 +56,7 @@ static ddf_dev_ops_t mid_device_ops = {
 static bool interface_in_list(list_t *list, int interface_no)
 {
 	list_foreach(*list, l) {
-		usbmid_interface_t *iface
-		    = list_get_instance(l, usbmid_interface_t, link);
+		usbmid_interface_t *iface = usbmid_interface_from_link(l);
 		if (iface->interface_no == interface_no) {
 			return true;
 		}
@@ -81,49 +80,45 @@ static void create_interfaces(const uint8_t *config_descriptor,
 		.arg = NULL
 	};
 
-	usb_dp_parser_t parser = {
+	static const usb_dp_parser_t parser = {
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
 
 	const uint8_t *interface_ptr =
-	    usb_dp_get_nested_descriptor(&parser, &data, data.data);
-	if (interface_ptr == NULL) {
-		return;
-	}
+	    usb_dp_get_nested_descriptor(&parser, &data, config_descriptor);
 
-	do {
-		if (interface_ptr[1] != USB_DESCTYPE_INTERFACE) {
-			goto next_descriptor;
-		}
+	/* Walk all descriptors nested in the current configuration decriptor;
+	 * i.e. all interface descriptors. */
+	for (;interface_ptr != NULL;
+	    interface_ptr = usb_dp_get_sibling_descriptor(
+	        &parser, &data, config_descriptor, interface_ptr))
+	{
+		/* The second byte is DESCTYPE byte in all desriptors. */
+		if (interface_ptr[1] != USB_DESCTYPE_INTERFACE)
+			continue;
 
-		usb_standard_interface_descriptor_t *interface
+		const usb_standard_interface_descriptor_t *interface
 		    = (usb_standard_interface_descriptor_t *) interface_ptr;
 
 		/* Skip alternate interfaces. */
-		if (!interface_in_list(list, interface->interface_number)) {
-			usbmid_interface_t *iface
-			    = malloc(sizeof(usbmid_interface_t));
-			if (iface == NULL) {
-				break;
-			}
-			link_initialize(&iface->link);
-			iface->fun = NULL;
-			iface->interface_no = interface->interface_number;
-			iface->interface = interface;
-
-			list_append(&iface->link, list);
+		if (interface_in_list(list, interface->interface_number)) {
+			/* TODO: add the alternatives and create match ids
+			 * for them. */
+			continue;
+		}
+		usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
+		if (iface == NULL) {
+			//TODO: Do something about that failure.
+			break;
 		}
 
-		/* TODO: add the alternatives and create match ids from them
-		 * as well.
-		 */
+		link_initialize(&iface->link);
+		iface->fun = NULL;
+		iface->interface_no = interface->interface_number;
+		iface->interface = interface;
 
-next_descriptor:
-		interface_ptr = usb_dp_get_sibling_descriptor(&parser, &data,
-		    data.data, interface_ptr);
-
-	} while (interface_ptr != NULL);
-
+		list_append(&iface->link, list);
+	}
 }
 
 /** Explore MID device.
