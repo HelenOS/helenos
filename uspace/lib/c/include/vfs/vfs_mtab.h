@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <ipc/vfs.h>
+#include <adt/list.h>
 
 typedef struct mtab_ent {
 	link_t link;
