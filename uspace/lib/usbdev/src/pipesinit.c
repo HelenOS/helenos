@@ -191,14 +191,11 @@ static int process_endpoint(
 		return ENOENT;
 	}
 
-	if (ep_mapping->pipe == NULL) {
-		return EBADMEM;
-	}
 	if (ep_mapping->present) {
 		return EEXISTS;
 	}
 
-	int rc = usb_pipe_initialize(ep_mapping->pipe, wire,
+	int rc = usb_pipe_initialize(&ep_mapping->pipe, wire,
 	    ep_no, description.transfer_type, endpoint->max_packet_size,
 	    description.direction);
 	if (rc != EOK) {
@@ -253,7 +250,7 @@ static int process_interface(
 /** Initialize endpoint pipes from configuration descriptor.
  *
  * The mapping array is expected to conform to following rules:
- * - @c pipe must point to already allocated structure with uninitialized pipe
+ * - @c pipe must be uninitialized pipe
  * - @c description must point to prepared endpoint description
  * - @c descriptor does not need to be initialized (will be overwritten)
  * - @c interface does not need to be initialized (will be overwritten)
@@ -296,19 +293,14 @@ int usb_pipe_initialize_from_configuration(
 		return ERANGE;
 	}
 
-	/*
-	 * Go through the mapping and set all endpoints to not present.
-	 */
-	size_t i;
-	for (i = 0; i < mapping_count; i++) {
+	/* Go through the mapping and set all endpoints to not present. */
+	for (size_t i = 0; i < mapping_count; i++) {
 		mapping[i].present = false;
 		mapping[i].descriptor = NULL;
 		mapping[i].interface = NULL;
 	}
 
-	/*
-	 * Prepare the descriptor parser.
-	 */
+	/* Prepare the descriptor parser. */
 	const usb_dp_parser_t dp_parser = {
 		.nesting = descriptor_nesting
 	};

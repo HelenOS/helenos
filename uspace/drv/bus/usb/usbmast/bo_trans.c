@@ -66,8 +66,8 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	int rc;
 	int retval = EOK;
 	size_t act_size;
-	usb_pipe_t *bulk_in_pipe = mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe;
-	usb_pipe_t *bulk_out_pipe = mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe;
+	usb_pipe_t *bulk_in_pipe = &mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe;
+	usb_pipe_t *bulk_out_pipe = &mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe;
 	usb_direction_t ddir;
 	void *dbuf;
 	size_t dbuf_size;
@@ -117,10 +117,10 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		/* Clear stall condition and continue below to read CSW. */
 		if (ddir == USB_DIRECTION_IN) {
 			usb_pipe_clear_halt(&mfun->mdev->usb_dev->ctrl_pipe,
-			    mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe);
+			    &mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe);
 		} else {
 			usb_pipe_clear_halt(&mfun->mdev->usb_dev->ctrl_pipe,
-			    mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
+			    &mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
 		}
         } else if (rc != EOK) {
 		return EIO;
@@ -215,9 +215,9 @@ void usb_massstor_reset_recovery(usbmast_dev_t *mdev)
 	 */
 	usb_massstor_reset(mdev);
 	usb_pipe_clear_halt(&mdev->usb_dev->ctrl_pipe,
-	    mdev->usb_dev->pipes[BULK_IN_EP].pipe);
+	    &mdev->usb_dev->pipes[BULK_IN_EP].pipe);
 	usb_pipe_clear_halt(&mdev->usb_dev->ctrl_pipe,
-	    mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
+	    &mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
 }
 
 /** Get max LUN of a mass storage device.

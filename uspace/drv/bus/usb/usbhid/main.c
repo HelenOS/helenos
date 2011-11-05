@@ -112,7 +112,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	   /* Callback when data arrives. */
 	   usb_hid_polling_callback,
 	   /* How much data to request. */
-	   dev->pipes[hid_dev->poll_pipe_index].pipe->max_packet_size,
+	   dev->pipes[hid_dev->poll_pipe_index].pipe.max_packet_size,
 	   /* Callback when the polling ends. */
 	   usb_hid_polling_ended_callback,
 	   /* Custom argument. */

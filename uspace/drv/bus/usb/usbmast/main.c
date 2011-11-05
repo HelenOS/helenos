@@ -139,11 +139,11 @@ static int usbmast_device_add(usb_device_t *dev)
 	mdev->usb_dev = dev;
 
 	usb_log_info("Initializing mass storage `%s'.\n", dev->ddf_dev->name);
-	usb_log_debug(" Bulk in endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_IN_EP].pipe->endpoint_no,
+	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
+	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
 	    (size_t) dev->pipes[BULK_IN_EP].descriptor->max_packet_size);
 	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
+	    dev->pipes[BULK_OUT_EP].pipe.endpoint_no,
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");

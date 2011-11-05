@@ -360,11 +360,6 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 
 	/* Now allocate and fully initialize. */
 	for (i = 0; i < pipe_count; i++) {
-		pipes[i].pipe = malloc(sizeof(usb_pipe_t));
-		if (pipes[i].pipe == NULL) {
-			rc = ENOMEM;
-			goto rollback_free_only;
-		}
 		pipes[i].description = endpoints[i];
 		pipes[i].interface_no = interface_no;
 		pipes[i].interface_setting = interface_setting;
@@ -391,7 +386,7 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 
 	for (i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
-			rc = usb_pipe_register(pipes[i].pipe,
+			rc = usb_pipe_register(&pipes[i].pipe,
 			    pipes[i].descriptor->poll_interval, &hc_conn);
 			if (rc != EOK) {
 				goto rollback_unregister_endpoints;
@@ -419,7 +414,7 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 rollback_unregister_endpoints:
 	for (i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
-			usb_pipe_unregister(pipes[i].pipe, &hc_conn);
+			usb_pipe_unregister(&pipes[i].pipe, &hc_conn);
 		}
 	}
 
@@ -433,11 +428,6 @@ rollback_unregister_endpoints:
 	 * allocated memory.
 	 */
 rollback_free_only:
-	for (i = 0; i < pipe_count; i++) {
-		if (pipes[i].pipe != NULL) {
-			free(pipes[i].pipe);
-		}
-	}
 	free(pipes);
 
 	return rc;
@@ -479,8 +469,7 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 		usb_log_debug2("Unregistering pipe %zu (%spresent).\n",
 		    i, pipes[i].present ? "" : "not ");
 		if (pipes[i].present)
-			usb_pipe_unregister(pipes[i].pipe, &hc_conn);
-		free(pipes[i].pipe);
+			usb_pipe_unregister(&pipes[i].pipe, &hc_conn);
 	}
 
 	if (usb_hc_connection_close(&hc_conn) != EOK)

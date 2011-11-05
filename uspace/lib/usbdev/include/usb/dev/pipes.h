@@ -140,7 +140,7 @@ typedef struct {
 /** Mapping of endpoint pipes and endpoint descriptions. */
 typedef struct {
 	/** Endpoint pipe. */
-	usb_pipe_t *pipe;
+	usb_pipe_t pipe;
 	/** Endpoint description. */
 	const usb_endpoint_description_t *description;
 	/** Interface number the endpoint must belong to (-1 for any). */
@@ -148,9 +148,9 @@ typedef struct {
 	/** Alternate interface setting to choose. */
 	int interface_setting;
 	/** Found descriptor fitting the description. */
-	usb_standard_endpoint_descriptor_t *descriptor;
+	const usb_standard_endpoint_descriptor_t *descriptor;
 	/** Interface descriptor the endpoint belongs to. */
-	usb_standard_interface_descriptor_t *interface;
+	const usb_standard_interface_descriptor_t *interface;
 	/** Whether the endpoint was actually found. */
 	bool present;
 } usb_endpoint_mapping_t;

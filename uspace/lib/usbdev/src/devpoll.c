@@ -72,7 +72,7 @@ static int polling_fibril(void *arg)
 	assert(polling_data);
 
 	usb_pipe_t *pipe
-	    = polling_data->dev->pipes[polling_data->pipe_index].pipe;
+	    = &polling_data->dev->pipes[polling_data->pipe_index].pipe;
 	
 	if (polling_data->debug > 0) {
 		usb_endpoint_mapping_t *mapping
@@ -207,8 +207,8 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
 	if (request_size == 0) {
 		return EINVAL;
 	}
-	if ((dev->pipes[pipe_index].pipe->transfer_type != USB_TRANSFER_INTERRUPT)
-	    || (dev->pipes[pipe_index].pipe->direction != USB_DIRECTION_IN)) {
+	if ((dev->pipes[pipe_index].pipe.transfer_type != USB_TRANSFER_INTERRUPT)
+	    || (dev->pipes[pipe_index].pipe.direction != USB_DIRECTION_IN)) {
 		return EINVAL;
 	}
 
@@ -253,8 +253,8 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	if (pipe_index >= dev->pipes_count) {
 		return EINVAL;
 	}
-	if ((dev->pipes[pipe_index].pipe->transfer_type != USB_TRANSFER_INTERRUPT)
-	    || (dev->pipes[pipe_index].pipe->direction != USB_DIRECTION_IN)) {
+	if ((dev->pipes[pipe_index].pipe.transfer_type != USB_TRANSFER_INTERRUPT)
+	    || (dev->pipes[pipe_index].pipe.direction != USB_DIRECTION_IN)) {
 		return EINVAL;
 	}
 	if ((polling == NULL) || (polling->on_data == NULL)) {
