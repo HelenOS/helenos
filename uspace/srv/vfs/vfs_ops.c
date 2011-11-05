@@ -357,9 +357,6 @@ recheck:
 	}
 	fibril_mutex_unlock(&fs_list_lock);
 	
-	/* Do the mount */
-	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
-
 	/* Add the filesystem info to the list of mounted filesystems */
 	mtab_ent_t *mtab_ent = malloc(sizeof(mtab_ent_t));
 	if (!mtab_ent) {
@@ -386,6 +383,9 @@ recheck:
 	fibril_mutex_unlock(&mtab_list_lock);
 
 	free(mp);
+
+	/* Do the mount */
+	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
 
 	/* Acknowledge that we know fs_name. */
 	async_answer_0(callid, EOK);
