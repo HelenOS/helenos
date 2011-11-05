@@ -463,8 +463,6 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		 * VFS_OUT_UNMOUNTED directly to the mounted file system.
 		 */
 		
-		free(mp);
-		
 		exch = vfs_exchange_grab(mr_node->fs_handle);
 		rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED,
 		    mr_node->service_id);
@@ -472,6 +470,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
+			free(mp);
 			vfs_node_put(mr_node);
 			async_answer_0(rid, rc);
 			return;
@@ -489,9 +488,9 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		
 		rc = vfs_lookup_internal(mp, L_MP, &mp_res, NULL);
-		free(mp);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
+			free(mp);
 			vfs_node_put(mr_node);
 			async_answer_0(rid, rc);
 			return;
@@ -500,6 +499,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		vfs_node_t *mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
+			free(mp);
 			vfs_node_put(mr_node);
 			async_answer_0(rid, ENOMEM);
 			return;
@@ -512,6 +512,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
+			free(mp);
 			vfs_node_put(mp_node);
 			vfs_node_put(mr_node);
 			async_answer_0(rid, rc);
@@ -529,8 +530,31 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	 * The only thing left is to forget the unmounted root VFS node.
 	 */
 	vfs_node_forget(mr_node);
-	
 	fibril_rwlock_write_unlock(&namespace_rwlock);
+
+	fibril_mutex_lock(&mtab_list_lock);
+
+	int found = 0;
+
+	list_foreach(mtab_list, cur) {
+		mtab_list_ent_t *ent = list_get_instance(cur, mtab_list_ent_t,
+		    link);
+
+		mtab_ent_t *mtab_ent = &ent->mtab_ent;
+
+		if (str_cmp(mtab_ent->mp, mp) == 0) {
+			list_remove(&ent->link);
+			mtab_size--;
+			free(ent);
+			found = 1;
+			break;
+		}
+	}
+	assert(found);
+
+	free(mp);
+
+	fibril_mutex_unlock(&mtab_list_lock);
 	async_answer_0(rid, EOK);
 }
 
@@ -1317,6 +1341,75 @@ void vfs_wait_handle(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = vfs_wait_handle_internal();
 	async_answer_1(rid, EOK, fd);
+}
+
+void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	ipc_call_t data;
+	sysarg_t rc = EOK;
+	size_t len;
+
+	fibril_mutex_lock(&mtab_list_lock);
+
+	/* Send to the caller the number of mounted filesystems */
+	callid = async_get_call(&data);
+	if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
+		rc = ENOTSUP;
+		async_answer_1(callid, rc, 0);
+		goto exit;
+	}
+	async_answer_1(callid, EOK, mtab_size);
+
+	list_foreach(mtab_list, cur) {
+		mtab_list_ent_t *ent = list_get_instance(cur, mtab_list_ent_t,
+		    link);
+
+		mtab_ent_t *mtab_ent = &ent->mtab_ent;
+
+		rc = ENOTSUP;
+
+		if (!async_data_read_receive(&callid, &len))
+			goto exit;
+
+		(void) async_data_read_finalize(callid, mtab_ent->mp,
+		    str_size(mtab_ent->mp));
+
+		if (!async_data_read_receive(&callid, &len))
+			goto exit;
+
+		(void) async_data_read_finalize(callid, mtab_ent->opts,
+		    str_size(mtab_ent->opts));
+
+		if (!async_data_read_receive(&callid, &len))
+			goto exit;
+
+		(void) async_data_read_finalize(callid, mtab_ent->fs_name,
+		    str_size(mtab_ent->fs_name));
+
+		sysarg_t p[3];
+
+		p[0] = mtab_ent->flags;
+		p[1] = mtab_ent->instance;
+		p[2] = mtab_ent->fs_handle;
+
+		int i;
+		for (i = 0; i < 3; ++i) {
+			callid = async_get_call(&data);
+			if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
+				rc = ENOTSUP;
+				async_answer_1(callid, rc, 0);
+				goto exit;
+			}
+			async_answer_1(callid, EOK, p[i]);
+		}
+
+		rc = EOK;
+	}
+
+exit:
+	fibril_mutex_unlock(&mtab_list_lock);
+	async_answer_0(rid, rc);
 }
 
 /**

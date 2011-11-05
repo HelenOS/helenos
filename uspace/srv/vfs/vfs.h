@@ -219,6 +219,7 @@ extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
 extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
+extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
 
 #endif
 
