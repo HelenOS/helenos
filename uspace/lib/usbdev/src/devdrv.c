@@ -535,7 +535,6 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->ddf_dev = ddf_dev;
 	usb_dev->driver_data = NULL;
 	usb_dev->descriptors.configuration = NULL;
-	usb_dev->alternate_interfaces = NULL;
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
@@ -559,16 +558,16 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 
 	/* Create alternate interfaces. We will silently ignore failure. */
 	//TODO Why ignore?
-	usb_alternate_interfaces_create(usb_dev->descriptors.configuration,
-	    usb_dev->descriptors.configuration_size, usb_dev->interface_no,
-	    &usb_dev->alternate_interfaces);
+	usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
+	    usb_dev->descriptors.configuration,
+	    usb_dev->descriptors.configuration_size, usb_dev->interface_no);
 
 	rc = initialize_other_pipes(endpoints, usb_dev, 0);
 	if (rc != EOK) {
 		/* Full configuration descriptor is allocated. */
 		free(usb_dev->descriptors.configuration);
 		/* Alternate interfaces may be allocated */
-		usb_alternate_interfaces_destroy(usb_dev->alternate_interfaces);
+		usb_alternate_interfaces_deinit(&usb_dev->alternate_interfaces);
 		*errstr_ptr = "pipes initialization";
 		return rc;
 	}
@@ -590,7 +589,7 @@ void usb_device_deinit(usb_device_t *dev)
 		/* Ignore errors and hope for the best. */
 		destroy_current_pipes(dev);
 
-		usb_alternate_interfaces_destroy(dev->alternate_interfaces);
+		usb_alternate_interfaces_deinit(&dev->alternate_interfaces);
 		free(dev->descriptors.configuration);
 		free(dev->driver_data);
 	}

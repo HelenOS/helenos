@@ -86,11 +86,8 @@ typedef struct {
 	 */
 	int interface_no;
 
-	/** Alternative interfaces.
-	 * Set to NULL when the driver controls whole device
-	 * (i.e. more (or any) interfaces).
-	 */
-	usb_alternate_interfaces_t *alternate_interfaces;
+	/** Alternative interfaces. */
+	usb_alternate_interfaces_t alternate_interfaces;
 
 	/** Some useful descriptors. */
 	usb_device_descriptors_t descriptors;
@@ -177,9 +174,9 @@ void usb_device_deinit(usb_device_t *);
 void * usb_device_data_alloc(usb_device_t *, size_t);
 
 size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_create(const uint8_t *, size_t, int,
-    usb_alternate_interfaces_t **);
-void usb_alternate_interfaces_destroy(usb_alternate_interfaces_t *);
+int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
+    const uint8_t *, size_t, int);
+void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
 #endif
 /**
  * @}
