@@ -138,8 +138,7 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
 		    || (iface->interface_number != interface_number)) {
 			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,
-			    &dp_data,
-			    dp_data.data, iface_ptr);
+			    &dp_data, dp_data.data, iface_ptr);
 			continue;
 		}
 
