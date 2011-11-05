@@ -382,10 +382,12 @@ recheck:
 	mtab_size++;
 	fibril_mutex_unlock(&mtab_list_lock);
 
-	free(mp);
-
 	/* Do the mount */
 	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
+
+	free(mp);
+	free(fs_name);
+	free(opts);
 
 	/* Acknowledge that we know fs_name. */
 	async_answer_0(callid, EOK);
