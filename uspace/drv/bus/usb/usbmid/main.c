@@ -67,15 +67,16 @@ static int usbmid_device_add(usb_device_t *dev)
 /*----------------------------------------------------------------------------*/
 /** Callback when a MID device is about to be removed from the host.
  *
- * @param gen_dev Generic DDF device representing the removed device.
+ * @param dev USB device representing the removed device.
  * @return Error code.
  */
 static int usbmid_device_remove(usb_device_t *dev)
 {
 	assert(dev);
+	usb_mid_t *usb_mid = dev->driver_data;
+	assert(usb_mid);
 
 	/* Remove ctl function */
-	usb_mid_t *usb_mid = dev->driver_data;
 	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",
@@ -108,7 +109,7 @@ static int usbmid_device_remove(usb_device_t *dev)
 		/* Now remove the child. */
 		pret = usbmid_interface_destroy(iface);
 		if (pret != EOK) {
-			usb_log_error("Failed to remove child for interface "
+			usb_log_error("Failed to destroy child for interface "
 			    "%d (%s): %s\n", iface->interface_no,
 			    usb_str_class(iface->interface->interface_class),
 			    str_error(pret));
@@ -120,16 +121,18 @@ static int usbmid_device_remove(usb_device_t *dev)
 /*----------------------------------------------------------------------------*/
 /** Callback when a MID device was removed from the host.
  *
- * @param gen_dev Generic DDF device representing the removed device.
+ * @param dev USB device representing the removed device.
  * @return Error code.
  */
 static int usbmid_device_gone(usb_device_t *dev)
 {
 	assert(dev);
+	usb_mid_t *usb_mid = dev->driver_data;
+	assert(usb_mid);
+
 	usb_log_info("USB MID gone: `%s'.\n", dev->ddf_dev->name);
 
 	/* Remove ctl function */
-	usb_mid_t *usb_mid = dev->driver_data;
 	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",

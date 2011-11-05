@@ -123,11 +123,6 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		return ENOMEM;
 	}
 
-	iface->fun = child;
-
-	child->driver_data = iface;
-	child->ops = &child_device_ops;
-
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
 	    interface_descriptor, &child->match_ids);
 	if (rc != EOK) {
@@ -141,6 +136,10 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		ddf_fun_destroy(child);
 		return rc;
 	}
+
+	iface->fun = child;
+	child->driver_data = iface;
+	child->ops = &child_device_ops;
 
 	return EOK;
 }
