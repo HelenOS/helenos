@@ -74,6 +74,7 @@ static usb_address_t get_my_address(async_sess_t *sess, const ddf_dev_t *dev)
  */
 int usb_device_get_assigned_interface(const ddf_dev_t *device)
 {
+	assert(device);
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, device->handle,
 	    IPC_FLAG_BLOCKING);

@@ -301,6 +301,17 @@ leave:
 	return rc;
 }
 
+/** Cleanup structure initialized via usb_device_retrieve_descriptors.
+ *
+ * @param[in] descriptors Where to store the descriptors.
+ */
+void usb_device_release_descriptors(usb_device_descriptors_t *descriptors)
+{
+	assert(descriptors);
+	free(descriptors->configuration);
+	descriptors->configuration = NULL;
+}
+
 /** Create pipes for a device.
  *
  * This is more or less a wrapper that does following actions:
@@ -489,34 +500,6 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 	return EOK;
 }
 
-/** Initialize control pipe in a device.
- *
- * @param dev USB device in question.
- * @param errmsg Where to store error context.
- * @return
- */
-static int init_wire_and_ctrl_pipe(usb_device_t *dev, const char **errmsg)
-{
-	int rc;
-
-	rc = usb_device_connection_initialize_from_device(&dev->wire,
-	    dev->ddf_dev);
-	if (rc != EOK) {
-		*errmsg = "device connection initialization";
-		return rc;
-	}
-
-	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
-	    &dev->wire);
-	if (rc != EOK) {
-		*errmsg = "default control pipe initialization";
-		return rc;
-	}
-
-	return EOK;
-}
-
-
 /** Initialize new instance of USB device.
  *
  * @param[in] usb_dev Pointer to the new device.
@@ -532,6 +515,8 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	assert(usb_dev != NULL);
 	assert(ddf_dev != NULL);
 
+	*errstr_ptr = NULL;
+
 	usb_dev->ddf_dev = ddf_dev;
 	usb_dev->driver_data = NULL;
 	usb_dev->descriptors.configuration = NULL;
@@ -539,8 +524,19 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes = NULL;
 
 	/* Initialize backing wire and control pipe. */
-	int rc = init_wire_and_ctrl_pipe(usb_dev, errstr_ptr);
+	int rc = usb_device_connection_initialize_from_device(
+	    &usb_dev->wire, ddf_dev);
 	if (rc != EOK) {
+		*errstr_ptr = "device connection initialization";
+		return rc;
+	}
+
+	/* This pipe was registered by the hub driver,
+	 * during device initialization. */
+	rc = usb_pipe_initialize_default_control(&usb_dev->ctrl_pipe,
+	    &usb_dev->wire);
+	if (rc != EOK) {
+		*errstr_ptr = "default control pipe initialization";
 		return rc;
 	}
 
@@ -551,28 +547,28 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	rc = usb_device_retrieve_descriptors(&usb_dev->ctrl_pipe,
 	    &usb_dev->descriptors);
 	if (rc != EOK) {
-		/* Nothing allocated, nothing to free. */
 		*errstr_ptr = "descriptor retrieval";
 		return rc;
 	}
 
-	/* Create alternate interfaces. We will silently ignore failure. */
-	//TODO Why ignore?
+	/* Create alternate interfaces. We will silently ignore failure.
+	 * We might either control one interface or an entire device,
+	 * it makes no sense to speak about alternate interfaces when
+	 * controlling a device. */
 	usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
 	    usb_dev->descriptors.configuration,
 	    usb_dev->descriptors.configuration_size, usb_dev->interface_no);
 
+	/* TODO Add comment here. */
 	rc = initialize_other_pipes(endpoints, usb_dev, 0);
 	if (rc != EOK) {
 		/* Full configuration descriptor is allocated. */
-		free(usb_dev->descriptors.configuration);
+		usb_device_release_descriptors(&usb_dev->descriptors);
 		/* Alternate interfaces may be allocated */
 		usb_alternate_interfaces_deinit(&usb_dev->alternate_interfaces);
 		*errstr_ptr = "pipes initialization";
 		return rc;
 	}
-
-	*errstr_ptr = NULL;
 
 	return EOK;
 }
@@ -590,7 +586,7 @@ void usb_device_deinit(usb_device_t *dev)
 		destroy_current_pipes(dev);
 
 		usb_alternate_interfaces_deinit(&dev->alternate_interfaces);
-		free(dev->descriptors.configuration);
+		usb_device_release_descriptors(&dev->descriptors);
 		free(dev->driver_data);
 	}
 }
