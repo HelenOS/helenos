@@ -72,7 +72,7 @@ vfs_pair_t rootfs = {
 	.service_id = 0
 };
 
-static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
+static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
     fs_handle_t fs_handle, char *mp, char *opts)
 {
 	vfs_lookup_res_t mp_res;
@@ -95,7 +95,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			/* Trying to mount root FS over root FS */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			async_answer_0(rid, EBUSY);
-			return;
+			return EBUSY;
 		}
 		
 		rc = vfs_lookup_internal(mp, L_MP, &mp_res, NULL);
@@ -103,14 +103,14 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			/* The lookup failed for some reason. */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			async_answer_0(rid, rc);
-			return;
+			return rc;
 		}
 		
 		mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			async_answer_0(rid, ENOMEM);
-			return;
+			return ENOMEM;
 		}
 		
 		/*
@@ -139,14 +139,14 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 				async_wait_for(msg, NULL);
 				fibril_rwlock_write_unlock(&namespace_rwlock);
 				async_answer_0(rid, rc);
-				return;
+				return rc;
 			}
 			async_wait_for(msg, &rc);
 			
 			if (rc != EOK) {
 				fibril_rwlock_write_unlock(&namespace_rwlock);
 				async_answer_0(rid, rc);
-				return;
+				return rc;
 			}
 
 			rindex = (fs_index_t) IPC_GET_ARG1(answer);
@@ -170,7 +170,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			async_answer_0(rid, rc);
-			return;
+			return rc;
 		} else {
 			/*
 			 * We can't resolve this without the root filesystem
@@ -178,7 +178,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			 */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			async_answer_0(rid, ENOENT);
-			return;
+			return ENOENT;
 		}
 	}
 	
@@ -211,7 +211,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 		
 		async_answer_0(rid, rc);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		return;
+		return rc;
 	}
 	
 	/* send the mount options */
@@ -226,7 +226,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 		
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		async_answer_0(rid, rc);
-		return;
+		return rc;
 	}
 	
 	/*
@@ -262,6 +262,7 @@ static void vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	
 	async_answer_0(rid, rc);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
+	return rc;
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -356,7 +357,18 @@ recheck:
 		return;
 	}
 	fibril_mutex_unlock(&fs_list_lock);
-	
+
+	/* Do the mount */
+	rc = vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
+	if (rc != EOK) {
+		async_answer_0(callid, ENOTSUP);
+		async_answer_0(rid, ENOTSUP);
+		free(mp);
+		free(opts);
+		free(fs_name);
+		return;
+	}
+
 	/* Add the filesystem info to the list of mounted filesystems */
 	mtab_ent_t *mtab_ent = malloc(sizeof(mtab_ent_t));
 	if (!mtab_ent) {
@@ -380,9 +392,6 @@ recheck:
 	list_append(&mtab_ent->link, &mtab_list);
 	mtab_size++;
 	fibril_mutex_unlock(&mtab_list_lock);
-
-	/* Do the mount */
-	vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
 
 	free(mp);
 	free(fs_name);
