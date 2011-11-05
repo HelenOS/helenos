@@ -212,26 +212,18 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
 		return EINVAL;
 	}
 
-	usb_device_auto_polling_t *auto_polling
-	    = malloc(sizeof(usb_device_auto_polling_t));
-	if (auto_polling == NULL) {
-		return ENOMEM;
-	}
+	const usb_device_auto_polling_t auto_polling = {
+		.debug = 1,
+		.auto_clear_halt = true,
+		.delay = 0,
+		.max_failures = MAX_FAILED_ATTEMPTS,
+		.on_data = callback,
+		.on_polling_end = terminated_callback,
+		.on_error = NULL,
+	};
 
-	auto_polling->debug = 1;
-	auto_polling->auto_clear_halt = true;
-	auto_polling->delay = 0;
-	auto_polling->max_failures = MAX_FAILED_ATTEMPTS;
-	auto_polling->on_data = callback;
-	auto_polling->on_polling_end = terminated_callback;
-	auto_polling->on_error = NULL;
-
-	int rc = usb_device_auto_polling(dev, pipe_index, auto_polling,
+	return usb_device_auto_polling(dev, pipe_index, &auto_polling,
 	   request_size, arg);
-
-	free(auto_polling);
-
-	return rc;
 }
 
 /** Start automatic device polling over interrupt in pipe.
@@ -252,7 +244,7 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
  * @retval EOK New fibril polling the device was already started.
  */
 int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
-    usb_device_auto_polling_t *polling,
+    const usb_device_auto_polling_t *polling,
     size_t request_size, void *arg)
 {
 	if (dev == NULL) {
