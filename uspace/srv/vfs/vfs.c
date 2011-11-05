@@ -126,7 +126,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_WAIT_HANDLE:
 			vfs_wait_handle(callid, &call);
 			break;
-		case VFS_IN_GET_MTAB:
+		case VFS_IN_MTAB_GET:
 			vfs_get_mtab(callid, &call);
 			break;
 		default:

@@ -839,7 +839,7 @@ int get_mtab_list(list_t *mtab_list)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 
-	req = async_send_0(exch, VFS_IN_GET_MTAB, NULL);
+	req = async_send_0(exch, VFS_IN_MTAB_GET, NULL);
 
 	/* Ask VFS how many filesystems are mounted */
 	rc = async_req_0_1(exch, VFS_IN_PING, &num_mounted_fs);
