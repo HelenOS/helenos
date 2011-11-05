@@ -368,12 +368,11 @@ recheck:
 		return;
 	}
 
-	mtab_ent->fs_handle = fs_handle;
 	str_cpy(mtab_ent->mp, MAX_PATH_LEN, mp);
 	str_cpy(mtab_ent->fs_name, FS_NAME_MAXLEN, fs_name);
 	str_cpy(mtab_ent->opts, MAX_MNTOPTS_LEN, opts);
-	mtab_ent->flags = flags;
 	mtab_ent->instance = instance;
+	mtab_ent->service_id = service_id;
 
 	link_initialize(&mtab_ent->link);
 
@@ -1392,8 +1391,8 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 		}
 
 		rc = EOK;
-		async_answer_3(callid, rc, mtab_ent->flags, mtab_ent->instance,
-		    mtab_ent->fs_handle);
+		async_answer_2(callid, rc, mtab_ent->instance,
+		    mtab_ent->service_id);
 	}
 
 exit:

@@ -44,9 +44,8 @@ typedef struct mtab_ent {
 	char mp[MAX_PATH_LEN];
 	char opts[MAX_MNTOPTS_LEN];
 	char fs_name[FS_NAME_MAXLEN];
-	unsigned int flags;
 	unsigned int instance;
-	fs_handle_t  fs_handle;
+	service_id_t service_id;
 } mtab_ent_t;
 
 #endif

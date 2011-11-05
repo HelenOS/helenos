@@ -872,15 +872,14 @@ int get_mtab_list(list_t *mtab_list)
 		if (rc != EOK)
 			goto exit;
 
-		sysarg_t p[3];
+		sysarg_t p[2];
 
-		rc = async_req_0_3(exch, VFS_IN_PING, &p[0], &p[1], &p[2]);
+		rc = async_req_0_2(exch, VFS_IN_PING, &p[0], &p[1]);
 		if (rc != EOK)
 			goto exit;
 
-		mtab_ent->flags = p[0];
-		mtab_ent->instance = p[1];
-		mtab_ent->fs_handle = p[2];
+		mtab_ent->instance = p[0];
+		mtab_ent->service_id = p[1];
 
 		link_initialize(&mtab_ent->link);
 		list_append(&mtab_ent->link, mtab_list);

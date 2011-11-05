@@ -83,8 +83,8 @@ static void print_mtab_list(void)
 		if (str_size(mtab_ent->opts) > 0)
 			printf("opts=%s ", mtab_ent->opts);
 
-		printf("(instance=%d, flags=%d, fs_handle=%d)\n",
-		    mtab_ent->instance, mtab_ent->flags, mtab_ent->fs_handle);
+		printf("(instance=%d, service_id=%" PRIu64 ")\n",
+		    mtab_ent->instance, mtab_ent->service_id);
 	}
 
 	if (old_ent)
