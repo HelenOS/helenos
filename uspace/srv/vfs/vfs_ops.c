@@ -1354,7 +1354,7 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 	callid = async_get_call(&data);
 	if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
 		rc = ENOTSUP;
-		async_answer_1(callid, rc, 0);
+		async_answer_0(callid, rc);
 		goto exit;
 	}
 	async_answer_1(callid, EOK, mtab_size);
@@ -1387,7 +1387,7 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 
 		if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
 			rc = ENOTSUP;
-			async_answer_3(callid, rc, 0, 0, 0);
+			async_answer_0(callid, rc);
 			goto exit;
 		}
 
