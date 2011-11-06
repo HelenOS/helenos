@@ -32,6 +32,7 @@
 #include <adt/list.h>
 #include <errno.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -78,13 +79,15 @@ static void print_mtab_list(void)
 
 		old_ent = mtab_ent;
 
-		printf("%s on %s ", mtab_ent->fs_name, mtab_ent->mp);
+		printf("%s", mtab_ent->fs_name);
+		if (mtab_ent->instance)
+			printf("/%d", mtab_ent->instance);
+		printf(" on %s ", mtab_ent->mp);
 
 		if (str_size(mtab_ent->opts) > 0)
 			printf("opts=%s ", mtab_ent->opts);
 
-		printf("(instance=%d, service_id=%" PRIu64 ")\n",
-		    mtab_ent->instance, mtab_ent->service_id);
+		printf("(service=%" PRIun ")\n", mtab_ent->service_id);
 	}
 
 	if (old_ent)
