@@ -52,12 +52,13 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.21"
-GCC_VERSION="4.6.0"
-GDB_VERSION="7.2"
+BINUTILS_VERSION="2.21.1"
+BINUTILS_RELEASE="a"
+GCC_VERSION="4.6.1"
+GDB_VERSION="7.3.1"
 
 BASEDIR="`pwd`"
-BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
+BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
 GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
 GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
@@ -272,11 +273,11 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "c84c5acc9d266f1a7044b51c85a823f5"
-	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "b1957f3209080b2f55bc3756d3a62b7c"
-	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "120d4675366ee82ea52f9ed65b57da04"
-	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "a30090fa655d0db4c970740d353c81f1"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "64260e6c56979ee750a01055f16091a5"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "bde820eac53fa3a8d8696667418557ad"
+	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "0c0e7e35d2215e19de9c97efba507553"
+	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "cbf0d4b701827922cf37ba6a4ace0079"
+	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "0d75ca7ca35b1e7f252223f9d23a6ad1"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "b89a5fac359c618dda97b88645ceab47"
 }
 
 build_target() {
@@ -324,7 +325,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
+	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"

@@ -117,8 +117,8 @@ typedef struct {
 } icmp_reply_t;
 
 /** Global data */
-static int phone_net = -1;
-static int phone_ip = -1;
+static async_sess_t *net_sess = NULL;
+static async_sess_t *ip_sess = NULL;
 static bool error_reporting = true;
 static bool echo_replying = true;
 static packet_dimension_t icmp_dimension;
@@ -172,7 +172,7 @@ static hash_table_operations_t reply_ops = {
  */
 static void icmp_release(packet_t *packet)
 {
-	pq_release_remote(phone_net, packet_get_id(packet));
+	pq_release_remote(net_sess, packet_get_id(packet));
 }
 
 /** Send the ICMP message.
@@ -224,7 +224,7 @@ static int icmp_send_packet(icmp_type_t type, icmp_code_t code,
 		return rc;
 	}
 	
-	return ip_send_msg(phone_ip, -1, packet, SERVICE_ICMP, error);
+	return ip_send_msg(ip_sess, -1, packet, SERVICE_ICMP, error);
 }
 
 /** Prepare the ICMP error packet.
@@ -296,7 +296,7 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 	
 	size_t length = (size_t) addrlen;
 	
-	packet_t *packet = packet_get_4_remote(phone_net, size,
+	packet_t *packet = packet_get_4_remote(net_sess, size,
 	    icmp_dimension.addr_len, ICMP_HEADER_SIZE + icmp_dimension.prefix,
 	    icmp_dimension.suffix);
 	if (!packet)
@@ -594,7 +594,7 @@ static int icmp_process_packet(packet_t *packet, services_t error)
 	case ICMP_REDIRECT_MOBILE:
 	case ICMP_SKIP:
 	case ICMP_PHOTURIS:
-		ip_received_error_msg(phone_ip, -1, packet,
+		ip_received_error_msg(ip_sess, -1, packet,
 		    SERVICE_IP, SERVICE_ICMP);
 		return EOK;
 	
@@ -607,18 +607,21 @@ static int icmp_process_packet(packet_t *packet, services_t error)
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
+ * @param[in]     arg   Local argument.
  *
  */
-static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	bool loop = true;
 	packet_t *packet;
 	int rc;
 	
-	while (loop) {
+	while (true) {
+		if (!IPC_GET_IMETHOD(*icall))
+			break;
+		
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_TL_RECEIVED:
-			rc = packet_translate_remote(phone_net, &packet,
+			rc = packet_translate_remote(net_sess, &packet,
 			    IPC_GET_PACKET(*icall));
 			if (rc == EOK) {
 				rc = icmp_process_packet(packet, IPC_GET_ERROR(*icall));
@@ -628,9 +631,6 @@ static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 			
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
-		case IPC_M_PHONE_HUNGUP:
-			loop = false;
-			continue;
 		default:
 			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
@@ -641,13 +641,13 @@ static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Initialize the ICMP module.
  *
- * @param[in] net_phone Network module phone.
+ * @param[in] sess Network module session.
  *
  * @return EOK on success.
  * @return ENOMEM if there is not enough memory left.
  *
  */
-int tl_initialize(int net_phone)
+int tl_initialize(async_sess_t *sess)
 {
 	measured_string_t names[] = {
 		{
@@ -669,13 +669,13 @@ int tl_initialize(int net_phone)
 	fibril_mutex_initialize(&reply_lock);
 	atomic_set(&icmp_client, 0);
 	
-	phone_net = net_phone;
-	phone_ip = ip_bind_service(SERVICE_IP, IPPROTO_ICMP, SERVICE_ICMP,
+	net_sess = sess;
+	ip_sess = ip_bind_service(SERVICE_IP, IPPROTO_ICMP, SERVICE_ICMP,
 	    icmp_receiver);
-	if (phone_ip < 0)
-		return phone_ip;
+	if (ip_sess == NULL)
+		return ENOENT;
 	
-	int rc = ip_packet_size_req(phone_ip, -1, &icmp_dimension);
+	int rc = ip_packet_size_req(ip_sess, -1, &icmp_dimension);
 	if (rc != EOK)
 		return rc;
 	
@@ -684,7 +684,7 @@ int tl_initialize(int net_phone)
 	
 	/* Get configuration */
 	configuration = &names[0];
-	rc = net_get_conf_req(phone_net, &configuration, count, &data);
+	rc = net_get_conf_req(net_sess, &configuration, count, &data);
 	if (rc != EOK)
 		return rc;
 	
@@ -752,7 +752,7 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return rc;
 		
-		rc = icmp_echo(icmp_id, icmp_seq, ICMP_GET_SIZE(*call),	
+		rc = icmp_echo(icmp_id, icmp_seq, ICMP_GET_SIZE(*call),
 		    ICMP_GET_TIMEOUT(*call), ICMP_GET_TTL(*call),
 		    ICMP_GET_TOS(*call), ICMP_GET_DONT_FRAGMENT(*call),
 		    addr, (socklen_t) size);
@@ -762,7 +762,7 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 		return rc;
 	
 	case NET_ICMP_DEST_UNREACH:
-		rc = packet_translate_remote(phone_net, &packet,
+		rc = packet_translate_remote(net_sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
@@ -771,7 +771,7 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 		    ICMP_GET_MTU(*call), packet);
 	
 	case NET_ICMP_SOURCE_QUENCH:
-		rc = packet_translate_remote(phone_net, &packet,
+		rc = packet_translate_remote(net_sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
@@ -779,7 +779,7 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 		return icmp_source_quench(packet);
 	
 	case NET_ICMP_TIME_EXCEEDED:
-		rc = packet_translate_remote(phone_net, &packet,
+		rc = packet_translate_remote(net_sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
@@ -787,7 +787,7 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
 		return icmp_time_exceeded(ICMP_GET_CODE(*call), packet);
 	
 	case NET_ICMP_PARAMETERPROB:
-		rc = packet_translate_remote(phone_net, &packet,
+		rc = packet_translate_remote(net_sess, &packet,
 		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;

@@ -276,7 +276,7 @@
  * @param[in] call Message call structure.
  *
  */
-#define IPC_GET_DEVICE(call)  ((device_id_t) IPC_GET_ARG1(call))
+#define IPC_GET_DEVICE(call)  ((nic_device_id_t) IPC_GET_ARG1(call))
 
 /** Return the packet identifier message argument.
  *
@@ -297,14 +297,14 @@
  * @param[in] call Message call structure.
  *
  */
-#define IPC_GET_STATE(call)  ((device_state_t) IPC_GET_ARG2(call))
+#define IPC_GET_STATE(call)  ((nic_device_state_t) IPC_GET_ARG2(call))
 
-/** Return the maximum transmission unit message argument.
+/** Return the device handle argument
  *
- * @param[in] call Message call structure.
+ * @param[in] call Message call structure
  *
  */
-#define IPC_GET_MTU(call)  ((size_t) IPC_GET_ARG2(call))
+#define IPC_GET_DEVICE_HANDLE(call) ((devman_handle_t) IPC_GET_ARG2(call))
 
 /** Return the device driver service message argument.
  *
@@ -327,19 +327,19 @@
  */
 #define IPC_GET_SENDER(call)  ((services_t) IPC_GET_ARG3(call))
 
+/** Return the maximum transmission unit message argument.
+ *
+ * @param[in] call Message call structure.
+ *
+ */
+#define IPC_GET_MTU(call)  ((size_t) IPC_GET_ARG3(call))
+
 /** Return the error service message argument.
  &
  * @param[in] call Message call structure.
  *
  */
 #define IPC_GET_ERROR(call)  ((services_t) IPC_GET_ARG4(call))
-
-/** Return the phone message argument.
- *
- * @param[in] call Message call structure.
- *
- */
-#define IPC_GET_PHONE(call)  ((int) IPC_GET_ARG5(call))
 
 /** Set the device identifier in the message answer.
  *

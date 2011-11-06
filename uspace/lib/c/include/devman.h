@@ -37,25 +37,38 @@
 #define LIBC_DEVMAN_H_
 
 #include <ipc/devman.h>
+#include <ipc/loc.h>
 #include <async.h>
 #include <bool.h>
 
-extern int devman_get_phone(devman_interface_t, unsigned int);
-extern void devman_hangup_phone(devman_interface_t);
+extern async_exch_t *devman_exchange_begin_blocking(devman_interface_t);
+extern async_exch_t *devman_exchange_begin(devman_interface_t);
+extern void devman_exchange_end(async_exch_t *);
 
 extern int devman_driver_register(const char *, async_client_conn_t);
 extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
     devman_handle_t, devman_handle_t *);
+extern int devman_remove_function(devman_handle_t);
+extern int devman_drv_fun_online(devman_handle_t);
+extern int devman_drv_fun_offline(devman_handle_t);
 
-extern int devman_device_connect(devman_handle_t, unsigned int);
-extern int devman_parent_device_connect(devman_handle_t, unsigned int);
-
-extern int devman_device_get_handle(const char *, devman_handle_t *,
+extern async_sess_t *devman_device_connect(exch_mgmt_t, devman_handle_t,
     unsigned int);
-extern int devman_device_get_handle_by_class(const char *, const char *,
-    devman_handle_t *, unsigned int);
+extern async_sess_t *devman_parent_device_connect(exch_mgmt_t, devman_handle_t,
+    unsigned int);
 
-extern int devman_add_device_to_class(devman_handle_t, const char *);
+extern int devman_fun_get_handle(const char *, devman_handle_t *,
+    unsigned int);
+extern int devman_fun_get_child(devman_handle_t, devman_handle_t *);
+extern int devman_dev_get_functions(devman_handle_t, devman_handle_t **,
+    size_t *);
+extern int devman_fun_get_name(devman_handle_t, char *, size_t);
+extern int devman_fun_get_path(devman_handle_t, char *, size_t);
+extern int devman_fun_online(devman_handle_t);
+extern int devman_fun_offline(devman_handle_t);
+
+extern int devman_add_device_to_category(devman_handle_t, const char *);
+extern int devman_fun_sid_to_handle(service_id_t, devman_handle_t *);
 
 #endif
 

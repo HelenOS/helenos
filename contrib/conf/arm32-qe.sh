@@ -1,3 +1,3 @@
 #!/bin/sh
 
-qemu-system-arm -M integratorcp --kernel image.boot
+qemu-system-arm $@ -M integratorcp --kernel image.boot

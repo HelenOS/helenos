@@ -50,12 +50,12 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <inttypes.h>
 #include <libblock.h>
-#include <devmap.h>
+#include <loc.h>
 #include <errno.h>
 #include <bool.h>
 #include <byteorder.h>
@@ -80,8 +80,8 @@ typedef struct part {
 	aoff64_t start_addr;
 	/** Number of blocks */
 	aoff64_t length;
-	/** Device representing the partition (outbound device) */
-	devmap_handle_t dev;
+	/** Service representing the partition (outbound device) */
+	service_id_t dsid;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -89,7 +89,7 @@ typedef struct part {
 static size_t block_size;
 
 /** Partitioned device (inbound device) */
-static devmap_handle_t indev_handle;
+static service_id_t indev_sid;
 
 /** List of partitions. This structure is an empty head. */
 static part_t plist_head;
@@ -98,7 +98,7 @@ static int gpt_init(const char *dev_name);
 static int gpt_read(void);
 static part_t *gpt_part_new(void);
 static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part);
-static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf);
 static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf);
 static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba);
@@ -128,17 +128,17 @@ static int gpt_init(const char *dev_name)
 	int rc;
 	int i;
 	char *name;
-	devmap_handle_t dev;
+	service_id_t dsid;
 	uint64_t size_mb;
 	part_t *part;
 
-	rc = devmap_device_get_handle(dev_name, &indev_handle, 0);
+	rc = loc_service_get_id(dev_name, &indev_sid, 0);
 	if (rc != EOK) {
 		printf(NAME ": could not resolve device `%s'.\n", dev_name);
 		return rc;
 	}
 
-	rc = block_init(indev_handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, indev_sid, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": could not init libblock.\n");
 		return rc;
@@ -146,7 +146,7 @@ static int gpt_init(const char *dev_name)
 
 	/* Determine and verify block size. */
 
-	rc = block_get_bsize(indev_handle, &block_size);
+	rc = block_get_bsize(indev_sid, &block_size);
 	if (rc != EOK) {
 		printf(NAME ": error getting block size.\n");
 		return rc;
@@ -162,10 +162,10 @@ static int gpt_init(const char *dev_name)
 	if (rc != EOK)
 		return rc;
 
-	/* Register the driver with device mapper. */
-	rc = devmap_driver_register(NAME, gpt_connection);
+	/* Register server with location service. */
+	rc = loc_server_register(NAME, gpt_connection);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return rc;
 	}
 
@@ -187,9 +187,9 @@ static int gpt_init(const char *dev_name)
 		if (name == NULL)
 			return ENOMEM;
 
-		rc = devmap_device_register(name, &dev);
+		rc = loc_service_register(name, &dsid);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
+			printf(NAME ": Unable to register service %s.\n", name);
 			return rc;
 		}
 
@@ -198,7 +198,7 @@ static int gpt_init(const char *dev_name)
 		printf(NAME ": Registered device %s: %" PRIu64 " blocks "
 		    "%" PRIuOFF64 " MB.\n", name, part->length, size_mb);
 
-		part->dev = dev;
+		part->dsid = dsid;
 		free(name);
 
 		part = part->next;
@@ -227,7 +227,7 @@ static int gpt_read(void)
 		return ENOMEM;
 	}
 
-	rc = block_read_direct(indev_handle, GPT_HDR_BA, 1, gpt_hdr);
+	rc = block_read_direct(indev_sid, GPT_HDR_BA, 1, gpt_hdr);
 	if (rc != EOK) {
 		printf(NAME ": Failed reading GPT header block.\n");
 		return rc;
@@ -255,7 +255,7 @@ static int gpt_read(void)
 		return ENOMEM;
 	}
 
-	rc = block_read_direct(indev_handle, ba, bcnt, etable);
+	rc = block_read_direct(indev_sid, ba, bcnt, etable);
 	if (rc != EOK) {
 		printf(NAME ": Failed reading GPT entries.\n");
 		return rc;
@@ -302,18 +302,18 @@ static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part)
 			part->present = true;
 	}
 
-	part->dev = 0;
+	part->dsid = 0;
 	part->next = NULL;
 }
 
-static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	size_t comm_size;
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dh;
 	unsigned int flags;
 	int retval;
 	aoff64_t ba;
@@ -329,7 +329,7 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * once for each connection.
 	 */
 	part = plist_head.next;
-	while (part != NULL && part->dev != dh)
+	while (part != NULL && part->dsid != dh)
 		part = part->next;
 
 	if (part == NULL) {
@@ -355,14 +355,17 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	(void) async_share_out_finalize(callid, fs_va);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
@@ -406,7 +409,7 @@ static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf)
 	if (gpt_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
-	return block_read_direct(indev_handle, gba, cnt, buf);
+	return block_read_direct(indev_sid, gba, cnt, buf);
 }
 
 /** Write blocks to partition. */
@@ -417,7 +420,7 @@ static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf)
 	if (gpt_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
-	return block_write_direct(indev_handle, gba, cnt, buf);
+	return block_write_direct(indev_sid, gba, cnt, buf);
 }
 
 /** Translate block segment address with range checking. */

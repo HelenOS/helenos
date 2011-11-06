@@ -45,15 +45,15 @@
 #include <malloc.h>
 #include <macros.h>
 #include <str.h>
-#include <devmap.h>
+#include <loc.h>
 #include <str_error.h>
 #include "init.h"
 
 #define ROOT_DEVICE       "bd/initrd"
 #define ROOT_MOUNT_POINT  "/"
 
-#define DEVFS_FS_TYPE      "devfs"
-#define DEVFS_MOUNT_POINT  "/dev"
+#define LOCFS_FS_TYPE      "locfs"
+#define LOCFS_MOUNT_POINT  "/loc"
 
 #define TMPFS_FS_TYPE      "tmpfs"
 #define TMPFS_MOUNT_POINT  "/tmp"
@@ -65,11 +65,13 @@
 #define SRV_CONSOLE  "/srv/console"
 #define APP_GETTERM  "/app/getterm"
 
+/** Print banner */
 static void info_print(void)
 {
 	printf("%s: HelenOS init\n", NAME);
 }
 
+/** Report mount operation success */
 static bool mount_report(const char *desc, const char *mntpt,
     const char *fstype, const char *dev, int rc)
 {
@@ -99,6 +101,17 @@ static bool mount_report(const char *desc, const char *mntpt,
 	return true;
 }
 
+/** Mount root filesystem
+ *
+ * The operation blocks until the root filesystem
+ * server is ready for mounting.
+ *
+ * @param[in] fstype Root filesystem type.
+ *
+ * @return True on success.
+ * @return False on failure.
+ *
+ */
 static bool mount_root(const char *fstype)
 {
 	const char *opts = "";
@@ -107,17 +120,26 @@ static bool mount_root(const char *fstype)
 		opts = "restore";
 	
 	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
-	    IPC_FLAG_BLOCKING);
+	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
 	    ROOT_DEVICE, rc);
 }
 
-static bool mount_devfs(void)
+/** Mount locfs filesystem
+ *
+ * The operation blocks until the locfs filesystem
+ * server is ready for mounting.
+ *
+ * @return True on success.
+ * @return False on failure.
+ *
+ */
+static bool mount_locfs(void)
 {
-	int rc = mount(DEVFS_FS_TYPE, DEVFS_MOUNT_POINT, "", "",
-	    IPC_FLAG_BLOCKING);
-	return mount_report("Device filesystem", DEVFS_MOUNT_POINT, DEVFS_FS_TYPE,
-	    NULL, rc);
+	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
+	    IPC_FLAG_BLOCKING, 0);
+	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
+	    LOCFS_FS_TYPE, NULL, rc);
 }
 
 static void spawn(const char *fname)
@@ -156,7 +178,7 @@ static void srv_start(const char *fname)
 	
 	rc = task_wait(id, &texit, &retval);
 	if (rc != EOK) {
-		printf("%s: Error waiting for %s (%s(\n", NAME, fname,
+		printf("%s: Error waiting for %s (%s)\n", NAME, fname,
 		    str_error(rc));
 		return;
 	}
@@ -173,43 +195,46 @@ static void srv_start(const char *fname)
 	}
 }
 
-static void console(const char *dev)
+static void console(const char *isvc, const char *fbsvc)
 {
-	char hid_in[DEVMAP_NAME_MAXLEN];
-	int rc;
+	printf("%s: Spawning %s %s %s\n", NAME, SRV_CONSOLE, isvc, fbsvc);
 	
-	snprintf(hid_in, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
-	
-	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, hid_in);
-	
-	/* Wait for the input device to be ready */
-	devmap_handle_t handle;
-	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	/* Wait for the input service to be ready */
+	service_id_t service_id;
+	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, hid_in,
+		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
 		    str_error(rc));
 		return;
 	}
 	
-	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, hid_in, NULL);
+	/* Wait for the framebuffer service to be ready */
+	rc = loc_service_get_id(fbsvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
-		    hid_in, str_error(rc));
+		printf("%s: Error waiting on %s (%s)\n", NAME, fbsvc,
+		    str_error(rc));
+		return;
+	}
+	
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, isvc, fbsvc, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s %s %s (%s)\n", NAME, SRV_CONSOLE,
+		    isvc, fbsvc, str_error(rc));
 	}
 }
 
-static void getterm(const char *dev, const char *app, bool wmsg)
+static void getterm(const char *svc, const char *app, bool wmsg)
 {
-	char term[DEVMAP_NAME_MAXLEN];
+	char term[LOC_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(term, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
 	
 	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
 	
-	/* Wait for the terminal device to be ready */
-	devmap_handle_t handle;
-	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	/* Wait for the terminal service to be ready */
+	service_id_t service_id;
+	rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, term,
 		    str_error(rc));
@@ -235,14 +260,14 @@ static void getterm(const char *dev, const char *app, bool wmsg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0);
+	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 
 static bool mount_data(void)
 {
-	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0);
+	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0, 0);
 	return mount_report("Data filesystem", DATA_MOUNT_POINT, DATA_FS_TYPE,
 	    DATA_DEVICE, rc);
 }
@@ -261,33 +286,30 @@ int main(int argc, char *argv[])
 		spawn("/srv/tmpfs");
 	}
 	
-	spawn("/srv/devfs");
+	spawn("/srv/locfs");
 	spawn("/srv/taskmon");
 	
-	if (!mount_devfs()) {
+	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
 		return -2;
 	}
 	
 	mount_tmpfs();
 	
-#ifdef CONFIG_START_DEVMAN
 	spawn("/srv/devman");
-#endif
 	spawn("/srv/apic");
 	spawn("/srv/i8259");
-	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
 	srv_start("/srv/s3c24ser");
-	srv_start("/srv/adb_ms");
-	srv_start("/srv/char_ms");
 	srv_start("/srv/s3c24ts");
 	
+	spawn("/srv/net");
+	
 	spawn("/srv/fb");
-	spawn("/srv/kbd");
-	console("hid_in/kbd");
+	spawn("/srv/input");
+	console("hid/input", "hid/fb0");
 	
 	spawn("/srv/clip");
 	
@@ -303,6 +325,10 @@ int main(int argc, char *argv[])
 #endif
 	
 #ifdef CONFIG_MOUNT_DATA
+	/* Make sure fat is running. */
+	if (str_cmp(STRING(RDFMT), "fat") != 0) {
+		srv_start("/srv/fat");
+	}
 	mount_data();
 #else
 	(void) mount_data;

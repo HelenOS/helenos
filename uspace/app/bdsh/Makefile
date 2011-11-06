@@ -28,9 +28,10 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBCLUI_PREFIX)/libclui.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX) -I. -Icmds/ \
-	-Icmds/builtins -Icmds/modules
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBCLUI_PREFIX)/libclui.a \
+	$(LIBFMTUTIL_PREFIX)/libfmtutil.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX) \
+	-I$(LIBFMTUTIL_PREFIX) -I. -Icmds/ -Icmds/builtins -Icmds/modules
 BINARY = bdsh
 
 SOURCES = \
@@ -49,14 +50,17 @@ SOURCES = \
 	cmds/modules/mount/mount.c \
 	cmds/modules/unmount/unmount.c \
 	cmds/modules/kcon/kcon.c \
+	cmds/builtins/batch/batch.c \
 	cmds/builtins/exit/exit.c \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \
 	cmds/builtin_cmds.c \
+	compl.c \
 	errors.c \
 	input.c \
 	util.c \
 	exec.c \
-	scli.c
+	scli.c \
+	tok.c
 
 include $(USPACE_PREFIX)/Makefile.common

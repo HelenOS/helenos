@@ -37,6 +37,8 @@
 
 #include <cpu.h>
 #include <ipc/ipc.h>
+#include <ipc/event.h>
+#include <ipc/kbox.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/futex.h>
@@ -52,9 +54,8 @@
 #include <mm/tlb.h>
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
-#include <ipc/kbox.h>
 #include <mm/as.h>
-#include <sysinfo/abi.h>
+#include <abi/sysinfo.h>
 
 struct thread;
 
@@ -72,7 +73,7 @@ typedef struct task {
 	
 	char name[TASK_NAME_BUFLEN];
 	/** List of threads contained in this task. */
-	link_t th_head;
+	list_t threads;
 	/** Address space. */
 	as_t *as;
 	/** Unique identity of task. */
@@ -92,8 +93,8 @@ typedef struct task {
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
 	stats_ipc_t ipc_info;   /**< IPC statistics */
-	/** List of synchronous answerboxes. */
-	link_t sync_box_head;
+	list_t sync_boxes;      /**< List of synchronous answerboxes. */
+	event_t events[EVENT_TASK_END - EVENT_END];
 	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */

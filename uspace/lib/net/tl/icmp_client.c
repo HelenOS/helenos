@@ -38,14 +38,8 @@
 #include <icmp_client.h>
 #include <icmp_header.h>
 #include <packet_client.h>
-
-#ifdef CONFIG_DEBUG
-#include <stdio.h>
-#endif
-
 #include <errno.h>
 #include <sys/types.h>
-
 #include <net/icmp_codes.h>
 #include <net/packet.h>
 
@@ -59,8 +53,7 @@
  * @return		The ICMP header length.
  * @return		Zero if the packet contains no data.
  */
-int
-icmp_client_process_packet(packet_t *packet, icmp_type_t *type,
+int icmp_client_process_packet(packet_t *packet, icmp_type_t *type,
     icmp_code_t *code, icmp_param_t *pointer, icmp_param_t *mtu)
 {
 	icmp_header_t *header;
@@ -80,11 +73,6 @@ icmp_client_process_packet(packet_t *packet, icmp_type_t *type,
 	if (mtu)
 		*mtu = header->un.frag.mtu;
 
-	/* Remove debug dump */
-#ifdef CONFIG_DEBUG
-	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code,
-	    packet_get_id(packet));
-#endif
 	return sizeof(icmp_header_t);
 }
 

@@ -29,7 +29,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Other functions (power, complex).
  */
 
 #ifndef __OTHER_H__

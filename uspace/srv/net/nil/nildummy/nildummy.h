@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,9 +38,10 @@
 #ifndef NET_NILDUMMY_H_
 #define NET_NILDUMMY_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
-
+#include <ipc/devman.h>
 #include <net/device.h>
 #include <adt/measured_strings.h>
 
@@ -75,22 +77,19 @@ DEVICE_MAP_DECLARE(nildummy_devices, nildummy_device_t);
 /** Dummy nil device specific data. */
 struct nildummy_device {
 	/** Device identifier. */
-	device_id_t device_id;
-	
-	/** Device driver service. */
-	services_t service;
-	
-	/** Driver phone. */
-	int phone;
+	nic_device_id_t device_id;
+	/** Device driver handle. */
+	devman_handle_t handle;
+	/** Driver session. */
+	async_sess_t *sess;
 	
 	/** Maximal transmission unit. */
 	size_t mtu;
 	
 	/** Actual device hardware address. */
-	measured_string_t *addr;
-	
-	/** Actual device hardware address data. */
-	uint8_t *addr_data;
+	nic_address_t addr;
+	/** Actual device hardware address length. */
+	size_t addr_len;
 };
 
 /** Dummy nil protocol specific data. */
@@ -98,14 +97,14 @@ struct nildummy_proto {
 	/** Protocol service. */
 	services_t service;
 	
-	/** Protocol module phone. */
-	int phone;
+	/** Protocol module session. */
+	async_sess_t *sess;
 };
 
 /** Dummy nil global data. */
 struct nildummy_globals {
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
 	
 	/** Lock for devices. */
 	fibril_rwlock_t devices_lock;

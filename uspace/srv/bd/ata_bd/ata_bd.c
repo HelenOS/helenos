@@ -56,7 +56,7 @@
 #include <fibril_synch.h>
 #include <stdint.h>
 #include <str.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -80,9 +80,6 @@
  */
 static const size_t identify_data_size = 512;
 
-/** Size of the communication area. */
-static size_t comm_size;
-
 /** I/O base address of the command registers. */
 static uintptr_t cmd_physical;
 /** I/O base address of the control registers. */
@@ -104,7 +101,7 @@ static disk_t disk[MAX_DISKS];
 
 static void print_syntax(void);
 static int ata_bd_init(void);
-static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
@@ -120,6 +117,8 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
     void *obuf, size_t obuf_size);
 static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size);
 static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
+    void *obuf, size_t obuf_size);
+static int ata_pcmd_read_toc(int dev_idx, uint8_t ses,
     void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
 static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
@@ -178,7 +177,7 @@ int main(int argc, char **argv)
 			continue;
 		
 		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
-		rc = devmap_device_register(name, &disk[i].devmap_handle);
+		rc = loc_service_register(name, &disk[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -246,7 +245,7 @@ static int ata_bd_init(void)
 	void *vaddr;
 	int rc;
 
-	rc = devmap_driver_register(NAME, ata_bd_connection);
+	rc = loc_server_register(NAME, ata_bd_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
@@ -273,26 +272,27 @@ static int ata_bd_init(void)
 }
 
 /** Block device connection handler */
-static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dsid;
+	size_t comm_size;	/**< Size of the communication area. */
 	unsigned int flags;
 	int retval;
 	uint64_t ba;
 	size_t cnt;
 	int disk_id, i;
 
-	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	/* Get the device service ID. */
+	dsid = IPC_GET_ARG1(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (disk[i].devmap_handle == dh)
+		if (disk[i].service_id == dsid)
 			disk_id = i;
 
 	if (disk_id < 0 || disk[disk_id].present == false) {
@@ -316,14 +316,17 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	(void) async_share_out_finalize(callid, fs_va);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
@@ -351,6 +354,14 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			async_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
 			    UPPER32(disk[disk_id].blocks));
 			continue;
+		case BD_READ_TOC:
+			cnt = IPC_GET_ARG1(call);
+			if (disk[disk_id].dev_type == ata_pkt_dev)
+				retval = ata_pcmd_read_toc(disk_id, cnt, fs_va,
+				    disk[disk_id].block_size);
+			else
+				retval = EINVAL;
+			break;
 		default:
 			retval = EINVAL;
 			break;
@@ -805,6 +816,45 @@ static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
 	if (rc != EOK)
 		return rc;
 
+	return EOK;
+}
+
+/** Issue ATAPI read TOC command.
+ *
+ * Read TOC in 'multi-session' format (first and last session number
+ * with last session LBA).
+ *
+ * http://suif.stanford.edu/~csapuntz/specs/INF-8020.PDF page 171
+ *
+ * Output buffer must be large enough to hold the data, otherwise the
+ * function will fail.
+ *
+ * @param dev_idx	Device index (0 or 1)
+ * @param session	Starting session
+ * @param obuf		Buffer for storing inquiry data read from device
+ * @param obuf_size	Size of obuf in bytes
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_pcmd_read_toc(int dev_idx, uint8_t session, void *obuf,
+    size_t obuf_size)
+{
+	ata_pcmd_read_toc_t cp;
+	int rc;
+
+	memset(&cp, 0, sizeof(cp));
+
+	cp.opcode = PCMD_READ_TOC;
+	cp.msf = 0;
+	cp.format = 0x01; /* 0x01 = multi-session mode */
+	cp.start = session;
+	cp.size = host2uint16_t_be(obuf_size);
+	cp.oldformat = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
+	
+	rc = ata_cmd_packet(0, &cp, sizeof(cp), obuf, obuf_size);
+	if (rc != EOK)
+		return rc;
+	
 	return EOK;
 }
 

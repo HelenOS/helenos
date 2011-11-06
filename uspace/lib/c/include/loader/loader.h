@@ -37,13 +37,10 @@
 #define LIBC_LOADER_H_
 
 #include <task.h>
-#include <vfs/vfs.h>
 
-/** Abstraction of a loader connection */
-typedef struct {
-	/** ID of the phone connected to the loader. */
-	int phone_id;
-} loader_t;
+/** Forward declararion */
+struct loader;
+typedef struct loader loader_t;
 
 extern int loader_spawn(const char *);
 extern loader_t *loader_connect(void);
@@ -51,7 +48,7 @@ extern int loader_get_task_id(loader_t *, task_id_t *);
 extern int loader_set_cwd(loader_t *);
 extern int loader_set_pathname(loader_t *, const char *);
 extern int loader_set_args(loader_t *, const char *const[]);
-extern int loader_set_files(loader_t *, fdi_node_t *const[]);
+extern int loader_set_files(loader_t *, int *const[]);
 extern int loader_load_program(loader_t *);
 extern int loader_run(loader_t *);
 extern void loader_abort(loader_t *);

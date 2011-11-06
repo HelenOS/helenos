@@ -42,14 +42,12 @@
 #include <ip_remote.h>
 #include <ip_interface.h>
 #include <tl_remote.h>
-
 #include <net/socket_codes.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
 #include <net/device.h>
 #include <net/packet.h>
-
 #include <async.h>
 #include <ipc/services.h>
 #include <errno.h>
@@ -106,24 +104,23 @@ tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
  * Try to search a cache and query the IP module if not found.
  * The reply is cached then.
  *
- * @param[in] ip_phone	The IP moduel phone for (semi)remote calls.
- * @param[in] packet_dimensions The packet dimensions cache.
- * @param[in] device_id	The device identifier.
- * @param[out] packet_dimension The IP packet dimensions.
- * @return		EOK on success.
- * @return		EBADMEM if the packet_dimension parameter is NULL.
- * @return		ENOMEM if there is not enough memory left.
- * @return		EINVAL if the packet_dimensions cache is not valid.
- * @return		Other codes as defined for the ip_packet_size_req()
- *			function.
+ * @param[in]  sess              IP module session.
+ * @param[in]  packet_dimensions Packet dimensions cache.
+ * @param[in]  device_id         Device identifier.
+ * @param[out] packet_dimension  IP packet dimensions.
+ *
+ * @return EOK on success.
+ * @return EBADMEM if the packet_dimension parameter is NULL.
+ * @return ENOMEM if there is not enough memory left.
+ * @return EINVAL if the packet_dimensions cache is not valid.
+ * @return Other codes as defined for the ip_packet_size_req()
+ *         function.
+ *
  */
-int
-tl_get_ip_packet_dimension(int ip_phone,
-    packet_dimensions_t *packet_dimensions, device_id_t device_id,
+int tl_get_ip_packet_dimension(async_sess_t *sess,
+    packet_dimensions_t *packet_dimensions, nic_device_id_t device_id,
     packet_dimension_t **packet_dimension)
 {
-	int rc;
-	
 	if (!packet_dimension)
 		return EBADMEM;
 	
@@ -132,10 +129,10 @@ tl_get_ip_packet_dimension(int ip_phone,
 	if (!*packet_dimension) {
 		/* Ask for and remember them if not found */
 		*packet_dimension = malloc(sizeof(**packet_dimension));
-		if(!*packet_dimension)
+		if (!*packet_dimension)
 			return ENOMEM;
 		
-		rc = ip_packet_size_req(ip_phone, device_id, *packet_dimension);
+		int rc = ip_packet_size_req(sess, device_id, *packet_dimension);
 		if (rc != EOK) {
 			free(*packet_dimension);
 			return rc;
@@ -162,7 +159,7 @@ tl_get_ip_packet_dimension(int ip_phone,
  */
 int
 tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
-    device_id_t device_id, size_t content)
+    nic_device_id_t device_id, size_t content)
 {
 	packet_dimension_t *packet_dimension;
 
@@ -172,16 +169,16 @@ tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
 
 	packet_dimension->content = content;
 
-	if (device_id != DEVICE_INVALID_ID) {
+	if (device_id != NIC_DEVICE_INVALID_ID) {
 		packet_dimension = packet_dimensions_find(packet_dimensions,
-		    DEVICE_INVALID_ID);
+		    NIC_DEVICE_INVALID_ID);
 
 		if (packet_dimension) {
 			if (packet_dimension->content >= content)
 				packet_dimension->content = content;
 			else
 				packet_dimensions_exclude(packet_dimensions,
-				    DEVICE_INVALID_ID, free);
+				    NIC_DEVICE_INVALID_ID, free);
 		}
 	}
 
@@ -235,32 +232,30 @@ int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
 
 /** Prepares the packet for ICMP error notification.
  *
- * Keeps the first packet and releases all the others.
- * Releases all the packets on error.
+ * Keep the first packet and release all the others.
+ * Release all the packets on error.
  *
- * @param[in] packet_phone The packet server module phone.
- * @param[in] icmp_phone The ICMP module phone.
- * @param[in] packet	The packet to be send.
- * @param[in] error	The packet error reporting service. Prefixes the
- *			received packet.
- * @return		EOK on success.
- * @return		ENOENT if no packet may be sent.
+ * @param[in] packet_sess Packet server module session.
+ * @param[in] icmp_sess   ICMP module phone.
+ * @param[in] packet      Packet to be send.
+ * @param[in] error       Packet error reporting service. Prefixes the
+ *                        received packet.
+ *
+ * @return EOK on success.
+ * @return ENOENT if no packet may be sent.
+ *
  */
-int
-tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t *packet,
-    services_t error)
+int tl_prepare_icmp_packet(async_sess_t *packet_sess, async_sess_t *icmp_sess,
+    packet_t *packet, services_t error)
 {
-	packet_t *next;
-	uint8_t *src;
-	int length;
-
 	/* Detach the first packet and release the others */
-	next = pq_detach(packet);
+	packet_t *next = pq_detach(packet);
 	if (next)
-		pq_release_remote(packet_phone, packet_get_id(next));
+		pq_release_remote(packet_sess, packet_get_id(next));
 	
-	length = packet_get_addr(packet, &src, NULL);
-	if ((length > 0) && (!error) && (icmp_phone >= 0) &&
+	uint8_t *src;
+	int length = packet_get_addr(packet, &src, NULL);
+	if ((length > 0) && (!error) && (icmp_sess) &&
 	    /*
 	     * Set both addresses to the source one (avoids the source address
 	     * deletion before setting the destination one)
@@ -268,29 +263,30 @@ tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t *packet,
 	    (packet_set_addr(packet, src, src, (size_t) length) == EOK)) {
 		return EOK;
 	} else
-		pq_release_remote(packet_phone, packet_get_id(packet));
-
+		pq_release_remote(packet_sess, packet_get_id(packet));
+	
 	return ENOENT;
 }
 
 /** Receives data from the socket into a packet.
  *
- * @param[in] packet_phone The packet server module phone.
- * @param[out] packet	The new created packet.
- * @param[in] prefix	Reserved packet data prefix length.
- * @param[in] dimension	The packet dimension.
- * @param[in] addr	The destination address.
- * @param[in] addrlen	The address length.
- * @return		Number of bytes received.
- * @return		EINVAL if the client does not send data.
- * @return		ENOMEM if there is not enough memory left.
- * @return		Other error codes as defined for the
- *			async_data_read_finalize() function.
+ * @param[in]  sess      Packet server module session.
+ * @param[out] packet    New created packet.
+ * @param[in]  prefix    Reserved packet data prefix length.
+ * @param[in]  dimension Packet dimension.
+ * @param[in]  addr      Destination address.
+ * @param[in]  addrlen   Address length.
+ *
+ * @return Number of bytes received.
+ * @return EINVAL if the client does not send data.
+ * @return ENOMEM if there is not enough memory left.
+ * @return Other error codes as defined for the
+ *         async_data_read_finalize() function.
+ *
  */
-int
-tl_socket_read_packet_data(int packet_phone, packet_t **packet, size_t prefix,
-    const packet_dimension_t *dimension, const struct sockaddr *addr,
-    socklen_t addrlen)
+int tl_socket_read_packet_data(async_sess_t *sess, packet_t **packet,
+    size_t prefix, const packet_dimension_t *dimension,
+    const struct sockaddr *addr, socklen_t addrlen)
 {
 	ipc_callid_t callid;
 	size_t length;
@@ -305,7 +301,7 @@ tl_socket_read_packet_data(int packet_phone, packet_t **packet, size_t prefix,
 		return EINVAL;
 
 	/* Get a new packet */
-	*packet = packet_get_4_remote(packet_phone, length, dimension->addr_len,
+	*packet = packet_get_4_remote(sess, length, dimension->addr_len,
 	    prefix + dimension->prefix, dimension->suffix);
 	if (!packet)
 		return ENOMEM;
@@ -313,21 +309,21 @@ tl_socket_read_packet_data(int packet_phone, packet_t **packet, size_t prefix,
 	/* Allocate space in the packet */
 	data = packet_suffix(*packet, length);
 	if (!data) {
-		pq_release_remote(packet_phone, packet_get_id(*packet));
+		pq_release_remote(sess, packet_get_id(*packet));
 		return ENOMEM;
 	}
 
 	/* Read the data into the packet */
 	rc = async_data_write_finalize(callid, data, length);
 	if (rc != EOK) {
-		pq_release_remote(packet_phone, packet_get_id(*packet));
+		pq_release_remote(sess, packet_get_id(*packet));
 		return rc;
 	}
 	
 	/* Set the packet destination address */
 	rc = packet_set_addr(*packet, NULL, (uint8_t *) addr, addrlen);
 	if (rc != EOK) {
-		pq_release_remote(packet_phone, packet_get_id(*packet));
+		pq_release_remote(sess, packet_get_id(*packet));
 		return rc;
 	}
 

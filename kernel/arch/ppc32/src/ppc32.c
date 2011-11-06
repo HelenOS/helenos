@@ -40,12 +40,12 @@
 #include <arch/interrupt.h>
 #include <interrupt.h>
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
+#include <abi/fb/visuals.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <genarch/ofw/pci.h>
 #include <userspace.h>
 #include <mm/page.h>
-#include <proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/irq.h>

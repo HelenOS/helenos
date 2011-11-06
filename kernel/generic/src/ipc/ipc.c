@@ -37,12 +37,11 @@
  * First the answerbox, then the phone.
  */
 
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
-#include <synch/synch.h>
 #include <ipc/ipc.h>
+#include <abi/ipc/methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
 #include <errno.h>
@@ -126,7 +125,7 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
-	list_initialize(&box->irq_head);
+	list_initialize(&box->irq_list);
 	box->task = task;
 }
 
@@ -181,7 +180,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	 * that it can be cleaned up if the call is interrupted.
 	 */
 	irq_spinlock_lock(&TASK->lock, true);
-	list_append(&sync_box->sync_box_link, &TASK->sync_box_head);
+	list_append(&sync_box->sync_box_link, &TASK->sync_boxes);
 	irq_spinlock_unlock(&TASK->lock, true);
 	
 	/* We will receive data in a special box. */
@@ -230,6 +229,8 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 			call->data.phone = call->caller_phone;
 		}
 	}
+
+	call->data.task_id = TASK->taskid;
 	
 	if (do_lock)
 		irq_spinlock_lock(&callerbox->lock, true);
@@ -294,7 +295,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->data.phone = phone;
-		call->data.task = TASK;
+		call->data.task_id = TASK->taskid;
 	}
 	
 	irq_spinlock_lock(&box->lock, true);
@@ -406,7 +407,7 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 		if (!call->caller_phone)
 			call->caller_phone = call->data.phone;
 		call->data.phone = newphone;
-		call->data.task = TASK;
+		call->data.task_id = TASK->taskid;
 	}
 	
 	return ipc_call(newphone, call);
@@ -448,7 +449,8 @@ restart:
 		
 		irq_spinlock_lock(&box->irq_lock, false);
 		
-		request = list_get_instance(box->irq_notifs.next, call_t, link);
+		request = list_get_instance(list_first(&box->irq_notifs),
+		    call_t, link);
 		list_remove(&request->link);
 		
 		irq_spinlock_unlock(&box->irq_lock, false);
@@ -457,7 +459,8 @@ restart:
 		answer_cnt++;
 		
 		/* Handle asynchronous answers */
-		request = list_get_instance(box->answers.next, call_t, link);
+		request = list_get_instance(list_first(&box->answers),
+		    call_t, link);
 		list_remove(&request->link);
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
@@ -465,7 +468,8 @@ restart:
 		call_cnt++;
 		
 		/* Handle requests */
-		request = list_get_instance(box->calls.next, call_t, link);
+		request = list_get_instance(list_first(&box->calls),
+		    call_t, link);
 		list_remove(&request->link);
 		
 		/* Append request to dispatch queue */
@@ -492,10 +496,10 @@ restart:
  * @param lst Head of the list to be cleaned up.
  *
  */
-void ipc_cleanup_call_list(link_t *lst)
+void ipc_cleanup_call_list(list_t *lst)
 {
 	while (!list_empty(lst)) {
-		call_t *call = list_get_instance(lst->next, call_t, link);
+		call_t *call = list_get_instance(list_first(lst), call_t, link);
 		if (call->buffer)
 			free(call->buffer);
 		
@@ -524,7 +528,7 @@ void ipc_answerbox_slam_phones(answerbox_t *box, bool notify_box)
 restart_phones:
 	irq_spinlock_lock(&box->lock, true);
 	while (!list_empty(&box->connected_phones)) {
-		phone = list_get_instance(box->connected_phones.next,
+		phone = list_get_instance(list_first(&box->connected_phones),
 		    phone_t, link);
 		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
 			irq_spinlock_unlock(&box->lock, true);
@@ -604,9 +608,9 @@ void ipc_cleanup(void)
 	
 	/* Wait for all answers to interrupted synchronous calls to arrive */
 	ipl_t ipl = interrupts_disable();
-	while (!list_empty(&TASK->sync_box_head)) {
-		answerbox_t *box = list_get_instance(TASK->sync_box_head.next,
-		    answerbox_t, sync_box_link);
+	while (!list_empty(&TASK->sync_boxes)) {
+		answerbox_t *box = list_get_instance(
+		    list_first(&TASK->sync_boxes), answerbox_t, sync_box_link);
 		
 		list_remove(&box->sync_box_link);
 		call_t *call = ipc_wait_for_call(box, SYNCH_NO_TIMEOUT,
@@ -741,11 +745,8 @@ void ipc_print_task(task_id_t taskid)
 	    " [arg5] [flags] [sender\n");
 #endif
 	
-	link_t *cur;
-	
 	printf(" --- incomming calls ---\n");
-	for (cur = task->answerbox.calls.next; cur != &task->answerbox.calls;
-	    cur = cur->next) {
+	list_foreach(task->answerbox.calls, cur) {
 		call_t *call = list_get_instance(cur, call_t, link);
 		
 #ifdef __32_BITS__
@@ -765,9 +766,7 @@ void ipc_print_task(task_id_t taskid)
 	}
 	
 	printf(" --- dispatched calls ---\n");
-	for (cur = task->answerbox.dispatched_calls.next;
-	    cur != &task->answerbox.dispatched_calls;
-	    cur = cur->next) {
+	list_foreach(task->answerbox.dispatched_calls, cur) {
 		call_t *call = list_get_instance(cur, call_t, link);
 		
 #ifdef __32_BITS__
@@ -787,9 +786,7 @@ void ipc_print_task(task_id_t taskid)
 	}
 	
 	printf(" --- incoming answers ---\n");
-	for (cur = task->answerbox.answers.next;
-	    cur != &task->answerbox.answers;
-	    cur = cur->next) {
+	list_foreach(task->answerbox.answers, cur) {
 		call_t *call = list_get_instance(cur, call_t, link);
 		
 #ifdef __32_BITS__

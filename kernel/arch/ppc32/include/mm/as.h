@@ -35,6 +35,8 @@
 #ifndef KERN_ppc32_AS_H_
 #define KERN_ppc32_AS_H_
 
+#include <arch/mm/pht.h>
+
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH  UINT32_C(0x80000000)
@@ -51,7 +53,9 @@ typedef struct {
 #define as_destructor_arch(as)          (as != as)
 #define as_create_arch(as, flags)       (as != as)
 #define as_deinstall_arch(as)
-#define as_invalidate_translation_cache(as, page, cnt)
+
+#define as_invalidate_translation_cache(as, page, cnt) \
+	pht_invalidate((as), (page), (cnt))
 
 extern void as_arch_init(void);
 

@@ -29,31 +29,37 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief	Functions completing doubly linked circular list implementation.
+ *
+ * This file contains some of the functions implementing doubly linked circular lists.
+ * However, this ADT is mostly implemented in @ref list.h.
  */
 
 #include <adt/list.h>
-
+#include <bool.h>
 
 /** Check for membership
  *
- * Check whether link is contained in the list head.
- * The membership is defined as pointer equivalence.
+ * Check whether link is contained in a list.
+ * Membership is defined as pointer equivalence.
  *
- * @param link Item to look for.
- * @param head List to look in.
+ * @param link	Item to look for.
+ * @param list	List to look in.
  *
- * @return true if link is contained in head, false otherwise.
+ * @return true if link is contained in list, false otherwise.
  *
  */
-int list_member(const link_t *link, const link_t *head)
+int list_member(const link_t *link, const list_t *list)
 {
-	int found = 0;
-	link_t *hlp = head->next;
+	bool found = false;
+	link_t *hlp = list->head.next;
 	
-	while (hlp != head) {
+	while (hlp != &list->head) {
 		if (hlp == link) {
-			found = 1;
+			found = true;
 			break;
 		}
 		hlp = hlp->next;
@@ -62,47 +68,41 @@ int list_member(const link_t *link, const link_t *head)
 	return found;
 }
 
-
 /** Concatenate two lists
  *
- * Concatenate lists head1 and head2, producing a single
- * list head1 containing items from both (in head1, head2
- * order) and empty list head2.
+ * Concatenate lists @a list1 and @a list2, producing a single
+ * list @a list1 containing items from both (in @a list1, @a list2
+ * order) and empty list @a list2.
  *
- * @param head1 First list and concatenated output
- * @param head2 Second list and empty output.
+ * @param list1		First list and concatenated output
+ * @param list2 	Second list and empty output.
  *
  */
-void list_concat(link_t *head1, link_t *head2)
+void list_concat(list_t *list1, list_t *list2)
 {
-	if (list_empty(head2))
+	if (list_empty(list2))
 		return;
-	
-	head2->next->prev = head1->prev;
-	head2->prev->next = head1;
-	head1->prev->next = head2->next;
-	head1->prev = head2->prev;
-	list_initialize(head2);
-}
 
+	list2->head.next->prev = list1->head.prev;
+	list2->head.prev->next = &list1->head;
+	list1->head.prev->next = list2->head.next;
+	list1->head.prev = list2->head.prev;
+	list_initialize(list2);
+}
 
 /** Count list items
  *
  * Return the number of items in the list.
  *
- * @param link List to count.
- *
- * @return Number of items in the list.
- *
+ * @param list		List to count.
+ * @return		Number of items in the list.
  */
-unsigned int list_count(const link_t *link)
+unsigned int list_count(const list_t *list)
 {
 	unsigned int count = 0;
-	link_t *hlp = link->next;
 	
-	while (hlp != link) {
+	list_foreach(*list, link) {
 		count++;
-		hlp = hlp->next;
 	}
 	
 	return count;

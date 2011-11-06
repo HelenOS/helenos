@@ -50,118 +50,124 @@
  *
  * Create the local packet mapping as well.
  *
- * @param[in]  phone     The packet server module phone.
- * @param[out] packet    The packet reference pointer to store the received
+ * @param[in]  sess      Packet server module session.
+ * @param[out] packet    Packet reference pointer to store the received
  *                       packet reference.
- * @param[in]  packet_id The packet identifier.
- * @param[in]  size      The packet total size in bytes.
+ * @param[in]  packet_id Packet identifier.
+ * @param[in]  size      Packet total size in bytes.
  *
  * @return EOK on success.
  * @return Other error codes as defined for the pm_add() function.
- * @return Other error codes as defined for the async_share_in_start() function.
+ * @return Other error codes as defined for the async_share_in_start()
+ *         function.
  *
  */
-static int
-packet_return(int phone, packet_t **packet, packet_id_t packet_id, size_t size)
+static int packet_return(async_sess_t *sess, packet_t **packet,
+    packet_id_t packet_id, size_t size)
 {
-	ipc_call_t answer;
-	aid_t message;
-	int rc;
-	
-	message = async_send_1(phone, NET_PACKET_GET, packet_id, &answer);
-
 	*packet = (packet_t *) as_get_mappable_page(size);
-	rc = async_share_in_start_0_0(phone, *packet, size);
-	if (rc != EOK) {
-		munmap(*packet, size);
-		async_wait_for(message, NULL);
-		return rc;
-	}
-	rc = pm_add(*packet);
-	if (rc != EOK) {
-		munmap(*packet, size);
-		async_wait_for(message, NULL);
-		return rc;
-	}
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	ipc_call_t answer;
+	aid_t message = async_send_1(exch, NET_PACKET_GET, packet_id, &answer);
+	int rc = async_share_in_start_0_0(exch, *packet, size);
+	async_exchange_end(exch);
 	
 	sysarg_t result;
 	async_wait_for(message, &result);
 	
+	if (rc != EOK) {
+		munmap(*packet, size);
+		return rc;
+	}
+	
+	rc = pm_add(*packet);
+	if (rc != EOK) {
+		munmap(*packet, size);
+		return rc;
+	}
+	
 	return result;
 }
 
-/** Translates the packet identifier to the packet reference.
+/** Translate the packet identifier to the packet reference.
  *
- * Tries to find mapping first.
- * Contacts the packet server to share the packet if the mapping is not present.
+ * Try to find mapping first. The packet server is asked to share
+ * the packet if the mapping is not present.
  *
- * @param[in] phone	The packet server module phone.
- * @param[out] packet	The packet reference.
- * @param[in] packet_id	The packet identifier.
- * @return		EOK on success.
- * @return		EINVAL if the packet parameter is NULL.
- * @return		Other error codes as defined for the NET_PACKET_GET_SIZE
- *			message.
- * @return		Other error codes as defined for the packet_return()
- *			function.
+ * @param[in]  sess      Packet server module session.
+ * @param[out] packet    Packet reference.
+ * @param[in]  packet_id Packet identifier.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the packet parameter is NULL.
+ * @return Other error codes as defined for the NET_PACKET_GET_SIZE
+ *         message.
+ * @return Other error codes as defined for the packet_return()
+ *         function.
+ *
  */
-int packet_translate_remote(int phone, packet_t **packet, packet_id_t packet_id)
+int packet_translate_remote(async_sess_t *sess, packet_t **packet,
+    packet_id_t packet_id)
 {
-	int rc;
-	
 	if (!packet)
 		return EINVAL;
 	
 	*packet = pm_find(packet_id);
-	if (!*packet) {
+	if (*packet == NULL) {
+		async_exch_t *exch = async_exchange_begin(sess);
 		sysarg_t size;
-		
-		rc = async_req_1_1(phone, NET_PACKET_GET_SIZE, packet_id,
+		int rc = async_req_1_1(exch, NET_PACKET_GET_SIZE, packet_id,
 		    &size);
+		async_exchange_end(exch);
+		
 		if (rc != EOK)
 			return rc;
-		rc = packet_return(phone, packet, packet_id, size);
+		
+		rc = packet_return(sess, packet, packet_id, size);
 		if (rc != EOK)
 			return rc;
 	}
-	if ((*packet)->next) {
+	
+	if ((*packet != NULL) && ((*packet)->next)) {
 		packet_t *next;
-		
-		return packet_translate_remote(phone, &next, (*packet)->next);
+		return packet_translate_remote(sess, &next, (*packet)->next);
 	}
 	
 	return EOK;
 }
 
-/** Obtains the packet of the given dimensions.
+/** Obtain the packet of given dimensions.
  *
- * Contacts the packet server to return the appropriate packet.
+ * Contact the packet server to return the appropriate packet.
  *
- * @param[in] phone	The packet server module phone.
- * @param[in] addr_len	The source and destination addresses maximal length in
- *			bytes.
- * @param[in] max_prefix The maximal prefix length in bytes.
- * @param[in] max_content The maximal content length in bytes.
- * @param[in] max_suffix The maximal suffix length in bytes.
- * @return		The packet reference.
- * @return		NULL on error.
+ * @param[in] sess        Packet server module session.
+ * @param[in] addr_len    Source and destination addresses maximal length
+ *                        in bytes.
+ * @param[in] max_prefix  Maximal prefix length in bytes.
+ * @param[in] max_content Maximal content length in bytes.
+ * @param[in] max_suffix  Maximal suffix length in bytes.
+ *
+ * @return The packet reference.
+ * @return NULL on error.
+ *
  */
-packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
-    size_t max_prefix, size_t max_suffix)
+packet_t *packet_get_4_remote(async_sess_t *sess, size_t max_content,
+    size_t addr_len, size_t max_prefix, size_t max_suffix)
 {
+	async_exch_t *exch = async_exchange_begin(sess);
 	sysarg_t packet_id;
 	sysarg_t size;
-	int rc;
-	
-	rc = async_req_4_2(phone, NET_PACKET_CREATE_4, max_content, addr_len,
+	int rc = async_req_4_2(exch, NET_PACKET_CREATE_4, max_content, addr_len,
 	    max_prefix, max_suffix, &packet_id, &size);
+	async_exchange_end(exch);
+	
 	if (rc != EOK)
 		return NULL;
 	
-	
 	packet_t *packet = pm_find(packet_id);
 	if (!packet) {
-		rc = packet_return(phone, &packet, packet_id, size);
+		rc = packet_return(sess, &packet, packet_id, size);
 		if (rc != EOK)
 			return NULL;
 	}
@@ -169,29 +175,32 @@ packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
 	return packet;
 }
 
-/** Obtains the packet of the given content size.
+/** Obtain the packet of given content size.
  *
- * Contacts the packet server to return the appropriate packet.
+ * Contact the packet server to return the appropriate packet.
  *
- * @param[in] phone	The packet server module phone.
- * @param[in] content	The maximal content length in bytes.
- * @return		The packet reference.
- * @return		NULL on error.
+ * @param[in] sess    Packet server module session.
+ * @param[in] content Maximal content length in bytes.
+ *
+ * @return The packet reference.
+ * @return NULL on error.
+ *
  */
-packet_t *packet_get_1_remote(int phone, size_t content)
+packet_t *packet_get_1_remote(async_sess_t *sess, size_t content)
 {
+	async_exch_t *exch = async_exchange_begin(sess);
 	sysarg_t packet_id;
 	sysarg_t size;
-	int rc;
-	
-	rc = async_req_1_2(phone, NET_PACKET_CREATE_1, content, &packet_id,
+	int rc = async_req_1_2(exch, NET_PACKET_CREATE_1, content, &packet_id,
 	    &size);
+	async_exchange_end(exch);
+	
 	if (rc != EOK)
 		return NULL;
 	
 	packet_t *packet = pm_find(packet_id);
 	if (!packet) {
-		rc = packet_return(phone, &packet, packet_id, size);
+		rc = packet_return(sess, &packet, packet_id, size);
 		if (rc != EOK)
 			return NULL;
 	}
@@ -199,19 +208,22 @@ packet_t *packet_get_1_remote(int phone, size_t content)
 	return packet;
 }
 
-/** Releases the packet queue.
+/** Release the packet queue.
  *
  * All packets in the queue are marked as free for use.
  * The packet queue may be one packet only.
  * The module should not use the packets after this point until they are
  * received or obtained again.
  *
- * @param[in] phone	The packet server module phone.
- * @param[in] packet_id	The packet identifier.
+ * @param[in] sess      Packet server module session.
+ * @param[in] packet_id Packet identifier.
+ *
  */
-void pq_release_remote(int phone, packet_id_t packet_id)
+void pq_release_remote(async_sess_t *sess, packet_id_t packet_id)
 {
-	async_msg_1(phone, NET_PACKET_RELEASE, packet_id);
+	async_exch_t *exch = async_exchange_begin(sess);
+	async_msg_1(exch, NET_PACKET_RELEASE, packet_id);
+	async_exchange_end(exch);
 }
 
 /** @}

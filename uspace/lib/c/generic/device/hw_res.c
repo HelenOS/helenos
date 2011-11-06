@@ -37,38 +37,50 @@
 #include <async.h>
 #include <malloc.h>
 
-int hw_res_get_resource_list(int dev_phone, hw_resource_list_t *hw_resources)
+int hw_res_get_resource_list(async_sess_t *sess,
+    hw_resource_list_t *hw_resources)
 {
 	sysarg_t count = 0;
-
-	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_GET_RESOURCE_LIST, &count);
-
-	hw_resources->count = count;
-	if (rc != EOK)
-		return rc;
 	
-	size_t size = count * sizeof(hw_resource_t);
-	hw_resources->resources = (hw_resource_t *)malloc(size);
-	if (!hw_resources->resources)
-		return ENOMEM;
-	
-	rc = async_data_read_start(dev_phone, hw_resources->resources, size);
 	if (rc != EOK) {
-		free(hw_resources->resources);
-		hw_resources->resources = NULL;
+		async_exchange_end(exch);
 		return rc;
 	}
+	
+	size_t size = count * sizeof(hw_resource_t);
+	hw_resource_t *resources = (hw_resource_t *) malloc(size);
+	if (resources == NULL) {
+		// FIXME: This is protocol violation
+		async_exchange_end(exch);
+		return ENOMEM;
+	}
+	
+	rc = async_data_read_start(exch, resources, size);
+	async_exchange_end(exch);
+	
+	if (rc != EOK) {
+		free(resources);
+		return rc;
+	}
+	
+	hw_resources->resources = resources;
+	hw_resources->count = count;
 	
 	return EOK;
 }
 
-bool hw_res_enable_interrupt(int dev_phone)
+bool hw_res_enable_interrupt(async_sess_t *sess)
 {
-	int rc = async_req_1_0(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_1_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_ENABLE_INTERRUPT);
-
-	return rc == EOK;
+	async_exchange_end(exch);
+	
+	return (rc == EOK);
 }
 
 /** @}

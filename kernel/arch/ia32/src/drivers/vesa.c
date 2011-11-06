@@ -37,7 +37,6 @@
 #ifdef CONFIG_FB
 
 #include <genarch/fb/fb.h>
-#include <genarch/fb/visuals.h>
 #include <arch/drivers/vesa.h>
 #include <console/chardev.h>
 #include <console/console.h>

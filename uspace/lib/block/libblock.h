@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
- * Copyright (c) 2008 Martin Decky 
+ * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,7 @@
 #define LIBBLOCK_LIBBLOCK_H_
 
 #include <stdint.h>
+#include <async.h>
 #include "../../srv/vfs/vfs.h"
 #include <fibril_synch.h>
 #include <adt/hash_table.h>
@@ -70,8 +72,8 @@ typedef struct block {
 	bool toxic;
 	/** Readers / Writer lock protecting the contents of the block. */
 	fibril_rwlock_t contents_lock;
-	/** Handle of the device where the block resides. */
-	devmap_handle_t devmap_handle;
+	/** Service ID of service providing the block device. */
+	service_id_t service_id;
 	/** Logical block address */
 	aoff64_t lba;
 	/** Physical block address */
@@ -94,28 +96,42 @@ enum cache_mode {
 	CACHE_MODE_WB
 };
 
-extern int block_init(devmap_handle_t, size_t);
-extern void block_fini(devmap_handle_t);
+typedef struct {
+	uint16_t size;
+	uint8_t first_session;
+	uint8_t last_session;
+	
+	uint8_t res0;
+	uint8_t adr_ctrl;
+	uint8_t first_track;
+	uint8_t res1;
+	
+	uint32_t first_lba;
+} __attribute__((packed)) toc_block_t;
 
-extern int block_bb_read(devmap_handle_t, aoff64_t);
-extern void *block_bb_get(devmap_handle_t);
+extern int block_init(exch_mgmt_t, service_id_t, size_t);
+extern void block_fini(service_id_t);
 
-extern int block_cache_init(devmap_handle_t, size_t, unsigned, enum cache_mode);
-extern int block_cache_fini(devmap_handle_t);
+extern int block_bb_read(service_id_t, aoff64_t);
+extern void *block_bb_get(service_id_t);
 
-extern int block_get(block_t **, devmap_handle_t, aoff64_t, int);
+extern int block_cache_init(service_id_t, size_t, unsigned, enum cache_mode);
+extern int block_cache_fini(service_id_t);
+
+extern int block_get(block_t **, service_id_t, aoff64_t, int);
 extern int block_put(block_t *);
 
-extern int block_seqread(devmap_handle_t, size_t *, size_t *, aoff64_t *, void *,
+extern int block_seqread(service_id_t, size_t *, size_t *, aoff64_t *, void *,
     size_t);
 
-extern int block_get_bsize(devmap_handle_t, size_t *);
-extern int block_get_nblocks(devmap_handle_t, aoff64_t *);
-extern int block_read_direct(devmap_handle_t, aoff64_t, size_t, void *);
-extern int block_write_direct(devmap_handle_t, aoff64_t, size_t, const void *);
+extern int block_get_bsize(service_id_t, size_t *);
+extern int block_get_nblocks(service_id_t, aoff64_t *);
+extern toc_block_t *block_get_toc(service_id_t, uint8_t);
+extern int block_read_direct(service_id_t, aoff64_t, size_t, void *);
+extern int block_read_bytes_direct(service_id_t, aoff64_t, size_t, void *);
+extern int block_write_direct(service_id_t, aoff64_t, size_t, const void *);
 
 #endif
 
 /** @}
  */
-

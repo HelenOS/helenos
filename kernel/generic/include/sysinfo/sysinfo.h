@@ -37,20 +37,10 @@
 
 #include <typedefs.h>
 #include <str.h>
+#include <abi/sysinfo.h>
 
 /** Framebuffer info exported flags */
 extern bool fb_exported;
-
-/** Item value type
- *
- */
-typedef enum {
-	SYSINFO_VAL_UNDEFINED = 0,     /**< Undefined value */
-	SYSINFO_VAL_VAL = 1,           /**< Constant numeric value */
-	SYSINFO_VAL_DATA = 2,          /**< Constant binary data */
-	SYSINFO_VAL_FUNCTION_VAL = 3,  /**< Generated numeric value */
-	SYSINFO_VAL_FUNCTION_DATA = 4  /**< Generated binary data */
-} sysinfo_item_val_type_t;
 
 /** Subtree type
  *
@@ -144,7 +134,7 @@ extern void sysinfo_set_subtree_fn(const char *, sysinfo_item_t **,
 extern void sysinfo_init(void);
 extern void sysinfo_dump(sysinfo_item_t *);
 
-extern sysarg_t sys_sysinfo_get_tag(void *, size_t);
+extern sysarg_t sys_sysinfo_get_val_type(void *, size_t);
 extern sysarg_t sys_sysinfo_get_value(void *, size_t, void *);
 extern sysarg_t sys_sysinfo_get_data_size(void *, size_t, void *);
 extern sysarg_t sys_sysinfo_get_data(void *, size_t, void *, size_t, size_t *);

@@ -70,24 +70,20 @@ const char *test_serial1(void)
 			return "Unexpected argument error";
 		}
 	
-	int res = devman_get_phone(DEVMAN_CLIENT, IPC_FLAG_BLOCKING);
-	
 	devman_handle_t handle;
-	res = devman_device_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
+	int res = devman_fun_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
 	    IPC_FLAG_BLOCKING);
 	if (res != EOK)
 		return "Could not get serial device handle";
 	
-	int phone = devman_device_connect(handle, IPC_FLAG_BLOCKING);
-	if (phone < 0) {
-		devman_hangup_phone(DEVMAN_CLIENT);
+	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE, handle,
+	    IPC_FLAG_BLOCKING);
+	if (!sess)
 		return "Unable to connect to serial device";
-	}
 	
 	char *buf = (char *) malloc(cnt + 1);
 	if (buf == NULL) {
-		async_hangup(phone);
-		devman_hangup_phone(DEVMAN_CLIENT);
+		async_hangup(sess);
 		return "Failed to allocate input buffer";
 	}
 	
@@ -96,21 +92,25 @@ const char *test_serial1(void)
 	sysarg_t old_stop;
 	sysarg_t old_word_size;
 	
-	res = async_req_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud,
+	async_exch_t *exch = async_exchange_begin(sess);
+	res = async_req_0_4(exch, SERIAL_GET_COM_PROPS, &old_baud,
 	    &old_par, &old_word_size, &old_stop);
+	async_exchange_end(exch);
+	
 	if (res != EOK) {
 		free(buf);
-		async_hangup(phone);
-		devman_hangup_phone(DEVMAN_CLIENT);
+		async_hangup(sess);
 		return "Failed to get old serial communication parameters";
 	}
 	
-	res = async_req_4_0(phone, SERIAL_SET_COM_PROPS, 1200,
+	exch = async_exchange_begin(sess);
+	res = async_req_4_0(exch, SERIAL_SET_COM_PROPS, 1200,
 	    SERIAL_NO_PARITY, 8, 1);
+	async_exchange_end(exch);
+	
 	if (EOK != res) {
 		free(buf);
-		async_hangup(phone);
-		devman_hangup_phone(DEVMAN_CLIENT);
+		async_hangup(sess);
 		return "Failed to set serial communication parameters";
 	}
 	
@@ -119,23 +119,27 @@ const char *test_serial1(void)
 	
 	size_t total = 0;
 	while (total < cnt) {
-		ssize_t read = char_dev_read(phone, buf, cnt - total);
+		ssize_t read = char_dev_read(sess, buf, cnt - total);
 		
 		if (read < 0) {
-			async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+			exch = async_exchange_begin(sess);
+			async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
 			    old_par, old_word_size, old_stop);
+			async_exchange_end(exch);
+			
 			free(buf);
-			async_hangup(phone);
-			devman_hangup_phone(DEVMAN_CLIENT);
+			async_hangup(sess);
 			return "Failed read from serial device";
 		}
 		
 		if ((size_t) read > cnt - total) {
-			async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+			exch = async_exchange_begin(sess);
+			async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
 			    old_par, old_word_size, old_stop);
+			async_exchange_end(exch);
+			
 			free(buf);
-			async_hangup(phone);
-			devman_hangup_phone(DEVMAN_CLIENT);
+			async_hangup(sess);
 			return "Read more data than expected";
 		}
 		
@@ -150,23 +154,27 @@ const char *test_serial1(void)
 			 * Write data back to the device to test the opposite
 			 * direction of data transfer.
 			 */
-			ssize_t written = char_dev_write(phone, buf, read);
+			ssize_t written = char_dev_write(sess, buf, read);
 			
 			if (written < 0) {
-				async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+				exch = async_exchange_begin(sess);
+				async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
 				    old_par, old_word_size, old_stop);
+				async_exchange_end(exch);
+				
 				free(buf);
-				async_hangup(phone);
-				devman_hangup_phone(DEVMAN_CLIENT);
+				async_hangup(sess);
 				return "Failed write to serial device";
 			}
 			
 			if (written != read) {
-				async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+				exch = async_exchange_begin(sess);
+				async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
 				    old_par, old_word_size, old_stop);
+				async_exchange_end(exch);
+				
 				free(buf);
-				async_hangup(phone);
-				devman_hangup_phone(DEVMAN_CLIENT);
+				async_hangup(sess);
 				return "Written less data than read from serial device";
 			}
 			
@@ -179,13 +187,15 @@ const char *test_serial1(void)
 	TPRINTF("Trying to write EOT banner to the serial device\n");
 	
 	size_t eot_size = str_size(EOT);
-	ssize_t written = char_dev_write(phone, (void *) EOT, eot_size);
+	ssize_t written = char_dev_write(sess, (void *) EOT, eot_size);
 	
-	async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+	exch = async_exchange_begin(sess);
+	async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
 	    old_par, old_word_size, old_stop);
+	async_exchange_end(exch);
+	
 	free(buf);
-	async_hangup(phone);
-	devman_hangup_phone(DEVMAN_CLIENT);
+	async_hangup(sess);
 	
 	if (written < 0)
 		return "Failed to write EOT banner to serial device";

@@ -35,21 +35,6 @@
 #ifndef KERN_ppc32_CPU_H_
 #define KERN_ppc32_CPU_H_
 
-/* MSR bits */
-#define MSR_DR  (1 << 4)
-#define MSR_IR  (1 << 5)
-#define MSR_PR  (1 << 14)
-#define MSR_EE  (1 << 15)
-
-/* HID0 bits */
-#define HID0_STEN  (1 << 24)
-#define HID0_ICE   (1 << 15)
-#define HID0_DCE   (1 << 14)
-#define HID0_ICFI  (1 << 11)
-#define HID0_DCI   (1 << 10)
-
-#ifndef __ASM__
-
 #include <typedefs.h>
 #include <trace.h>
 
@@ -65,8 +50,6 @@ NO_TRACE static inline void cpu_version(cpu_arch_t *info)
 		: [cpu_info] "=r" (*info)
 	);
 }
-
-#endif /* __ASM__ */
 
 #endif
 

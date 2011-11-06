@@ -37,6 +37,7 @@
 
 #include <bool.h>
 #include <errno.h>
+#include <ns.h>
 #include <tl_skel.h>
 #include <net_interface.h>
 #include <net/modules.h>
@@ -45,9 +46,11 @@
  *
  * @param[in] iid   The initial message identifier.
  * @param[in] icall The initial message call structure.
+ * @param[in] arg   Local argument.
  *
  */
-static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	/*
 	 * Accept the connection by answering
@@ -76,8 +79,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
+		if ((!IPC_GET_IMETHOD(call)) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */
@@ -101,25 +103,26 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  *         function.
  *
  */
-int tl_module_start(int service)
+int tl_module_start(sysarg_t service)
 {
 	async_set_client_connection(tl_client_connection);
-	int net_phone = net_connect_module();
-	if (net_phone < 0)
-		return net_phone;
+	async_sess_t *sess = net_connect_module();
+	if (!sess)
+		return ENOENT;
 	
 	int rc = pm_init();
 	if (rc != EOK)
 		return rc;
 	
-	rc = tl_initialize(net_phone);
+	rc = tl_initialize(sess);
 	if (rc != EOK)
 		goto out;
 	
-	rc = async_connect_to_me(PHONE_NS, service, 0, 0, NULL);
+	rc = service_register(service);
 	if (rc != EOK)
 		goto out;
 	
+	task_retval(0);
 	async_manager();
 	
 out:

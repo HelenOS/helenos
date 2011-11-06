@@ -242,7 +242,9 @@ def probe_compiler(common, sizes):
 	outf.write(PROBE_TAIL)
 	outf.close()
 	
-	args = [common['CC'], "-S", "-o", PROBE_OUTPUT, PROBE_SOURCE]
+	args = [common['CC']]
+	args.extend(common['CC_ARGS'])
+	args.extend(["-S", "-o", PROBE_OUTPUT, PROBE_SOURCE])
 	
 	try:
 		sys.stderr.write("Checking compiler properties ... ")
@@ -359,6 +361,9 @@ def detect_uints(probe, bytes, tags):
 		
 		typedefs.append({'oldtype': "unsigned %s" % probe['unsigned_sizes'][b], 'newtype': "uint%u_t" % (b * 8)})
 		typedefs.append({'oldtype': "signed %s" % probe['signed_sizes'][b], 'newtype': "int%u_t" % (b * 8)})
+		
+		macros.append({'oldmacro': "unsigned %s" % probe['unsigned_sizes'][b], 'newmacro': "UINT%u_T" % (b * 8)})
+		macros.append({'oldmacro': "signed %s" % probe['signed_sizes'][b], 'newmacro': "INT%u_T" % (b * 8)})
 		
 		macros.append({'oldmacro': "\"%so\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIo%u" % (b * 8)})
 		macros.append({'oldmacro': "\"%su\"" % probe['unsigned_strcs'][b], 'newmacro': "PRIu%u" % (b * 8)})
@@ -522,6 +527,7 @@ def main():
 		check_app(["makedepend", "-f", "-"], "Makedepend utility", "usually part of imake or xutils")
 		
 		# Compiler
+		common['CC_ARGS'] = []
 		if (config['COMPILER'] == "gcc_cross"):
 			if (config['PLATFORM'] == "abs32le"):
 				check_config(config, "CROSS_TARGET")
@@ -535,6 +541,7 @@ def main():
 				
 				if (config['CROSS_TARGET'] == "mips32"):
 					gnu_target = "mipsel-linux-gnu"
+					common['CC_ARGS'].append("-mabi=32")
 			
 			if (config['PLATFORM'] == "amd64"):
 				target = config['PLATFORM']
@@ -554,6 +561,7 @@ def main():
 			
 			if (config['PLATFORM'] == "mips32"):
 				check_config(config, "MACHINE")
+				common['CC_ARGS'].append("-mabi=32")
 				
 				if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim")):
 					target = config['PLATFORM']
@@ -562,6 +570,14 @@ def main():
 				if (config['MACHINE'] == "bgxemul"):
 					target = "mips32eb"
 					gnu_target = "mips-linux-gnu"
+			
+			if (config['PLATFORM'] == "mips64"):
+				check_config(config, "MACHINE")
+				common['CC_ARGS'].append("-mabi=64")
+				
+				if (config['MACHINE'] == "msim"):
+					target = config['PLATFORM']
+					gnu_target = "mips64el-linux-gnu"
 			
 			if (config['PLATFORM'] == "ppc32"):
 				target = config['PLATFORM']

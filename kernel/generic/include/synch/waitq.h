@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 #include <synch/spinlock.h>
-#include <synch/synch.h>
+#include <abi/synch.h>
 #include <adt/list.h>
 
 typedef enum {
@@ -62,7 +62,7 @@ typedef struct {
 	int missed_wakeups;
 	
 	/** List of sleeping threads for which there was no missed_wakeup. */
-	link_t head;
+	list_t sleepers;
 } waitq_t;
 
 #define waitq_sleep(wq) \

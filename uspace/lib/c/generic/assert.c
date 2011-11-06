@@ -36,27 +36,18 @@
 #include <stdlib.h>
 #include <atomic.h>
 #include <stacktrace.h>
+#include <stdint.h>
 
-#define MSG_START	"Assertion failed ("
-#define MSG_FILE	") in file \""
-#define MSG_LINE	"\", line "
-#define MSG_END		".\n"
+static atomic_t failed_asserts = {0};
 
-static atomic_t failed_asserts;
-
-void assert_abort(const char *cond, const char *file, const char *line)
+void assert_abort(const char *cond, const char *file, unsigned int line)
 {
 	/*
 	 * Send the message safely to klog. Nested asserts should not occur.
 	 */
-	klog_write(MSG_START, str_size(MSG_START));
-	klog_write(cond, str_size(cond));
-	klog_write(MSG_FILE, str_size(MSG_FILE));
-	klog_write(file, str_size(file));
-	klog_write(MSG_LINE, str_size(MSG_LINE));
-	klog_write(line, str_size(line));
-	klog_write(MSG_END, str_size(MSG_END));
-
+	klog_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	    cond, file, line);
+	
 	/*
 	 * Check if this is a nested or parallel assert.
 	 */
@@ -68,10 +59,10 @@ void assert_abort(const char *cond, const char *file, const char *line)
 	 * the stack trace. These operations can theoretically trigger nested
 	 * assertions.
 	 */
-	printf(MSG_START "%s" MSG_FILE "%s" MSG_LINE "%s" MSG_END,
+	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
 	stacktrace_print();
-
+	
 	abort();
 }
 

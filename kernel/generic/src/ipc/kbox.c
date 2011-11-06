@@ -32,10 +32,10 @@
 /** @file
  */
 
-#include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <ipc/ipc.h>
+#include <abi/ipc/methods.h>
 #include <ipc/ipcrsc.h>
 #include <arch.h>
 #include <errno.h>
@@ -168,7 +168,7 @@ static void kbox_thread_proc(void *arg)
 		
 		switch (IPC_GET_IMETHOD(call->data)) {
 		
-		case IPC_M_DEBUG_ALL:
+		case IPC_M_DEBUG:
 			/* Handle debug call. */
 			udebug_call_receive(call);
 			break;

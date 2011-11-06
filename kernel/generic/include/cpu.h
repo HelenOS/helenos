@@ -58,7 +58,7 @@ typedef struct cpu {
 	volatile size_t needs_relink;
 	
 	IRQ_SPINLOCK_DECLARE(timeoutlock);
-	link_t timeout_active_head;
+	list_t timeout_active_list;
 	
 	/**
 	 * When system clock loses a tick, it is

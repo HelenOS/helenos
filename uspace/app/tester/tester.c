@@ -63,9 +63,10 @@ test_t tests[] = {
 #include "mm/malloc1.def"
 #include "mm/malloc2.def"
 #include "mm/malloc3.def"
+#include "mm/mapping1.def"
 #include "hw/serial/serial1.def"
 #include "hw/misc/virtchar1.def"
-#include "devs/devman1.def"
+#include "libext2/libext2_1.def"
 	{NULL, NULL, NULL, false}
 };
 

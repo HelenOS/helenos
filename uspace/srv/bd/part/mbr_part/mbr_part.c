@@ -60,12 +60,11 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <inttypes.h>
 #include <libblock.h>
-#include <devmap.h>
 #include <errno.h>
 #include <bool.h>
 #include <byteorder.h>
@@ -99,7 +98,7 @@ typedef struct part {
 	/** Number of blocks */
 	aoff64_t length;
 	/** Device representing the partition (outbound device) */
-	devmap_handle_t dev;
+	service_id_t dsid;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -140,7 +139,7 @@ typedef struct {
 static size_t block_size;
 
 /** Partitioned device (inbound device) */
-static devmap_handle_t indev_handle;
+static service_id_t indef_sid;
 
 /** List of partitions. This structure is an empty head. */
 static part_t plist_head;
@@ -149,7 +148,7 @@ static int mbr_init(const char *dev_name);
 static int mbr_part_read(void);
 static part_t *mbr_part_new(void);
 static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part);
-static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf);
 static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf);
 static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
@@ -179,17 +178,17 @@ static int mbr_init(const char *dev_name)
 	int rc;
 	int i;
 	char *name;
-	devmap_handle_t dev;
+	service_id_t dsid;
 	uint64_t size_mb;
 	part_t *part;
 
-	rc = devmap_device_get_handle(dev_name, &indev_handle, 0);
+	rc = loc_service_get_id(dev_name, &indef_sid, 0);
 	if (rc != EOK) {
 		printf(NAME ": could not resolve device `%s'.\n", dev_name);
 		return rc;
 	}
 
-	rc = block_init(indev_handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, indef_sid, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": could not init libblock.\n");
 		return rc;
@@ -197,7 +196,7 @@ static int mbr_init(const char *dev_name)
 
 	/* Determine and verify block size. */
 
-	rc = block_get_bsize(indev_handle, &block_size);
+	rc = block_get_bsize(indef_sid, &block_size);
 	if (rc != EOK) {
 		printf(NAME ": error getting block size.\n");
 		return rc;
@@ -213,10 +212,10 @@ static int mbr_init(const char *dev_name)
 	if (rc != EOK)
 		return rc;
 
-	/* Register the driver with device mapper. */
-	rc = devmap_driver_register(NAME, mbr_connection);
+	/* Register server with location service. */
+	rc = loc_server_register(NAME, mbr_connection);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register server.\n");
 		return rc;
 	}
 
@@ -238,9 +237,9 @@ static int mbr_init(const char *dev_name)
 		if (name == NULL)
 			return ENOMEM;
 
-		rc = devmap_device_register(name, &dev);
+		rc = loc_service_register(name, &dsid);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
+			printf(NAME ": Unable to register service %s.\n", name);
 			return rc;
 		}
 
@@ -249,7 +248,7 @@ static int mbr_init(const char *dev_name)
 		printf(NAME ": Registered device %s: %" PRIuOFF64 " blocks "
 		    "%" PRIu64 " MB.\n", name, part->length, size_mb);
 
-		part->dev = dev;
+		part->dsid = dsid;
 		free(name);
 
 		part = part->next;
@@ -280,7 +279,7 @@ static int mbr_part_read(void)
 	 * Read primary partition entries.
 	 */
 
-	rc = block_read_direct(indev_handle, 0, 1, brb);
+	rc = block_read_direct(indef_sid, 0, 1, brb);
 	if (rc != EOK) {
 		printf(NAME ": Failed reading MBR block.\n");
 		return rc;
@@ -331,7 +330,7 @@ static int mbr_part_read(void)
 		 * of the extended partition.
 		 */
 		ba = cp.start_addr;
-		rc = block_read_direct(indev_handle, ba, 1, brb);
+		rc = block_read_direct(indef_sid, ba, 1, brb);
 		if (rc != EOK) {
 			printf(NAME ": Failed reading EBR block at %"
 			    PRIu32 ".\n", ba);
@@ -380,18 +379,18 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 
 	part->present = (pte->ptype != PT_UNUSED) ? true : false;
 
-	part->dev = 0;
+	part->dsid = 0;
 	part->next = NULL;
 }
 
-static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	size_t comm_size;
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	devmap_handle_t dh;
+	service_id_t dh;
 	unsigned int flags;
 	int retval;
 	uint64_t ba;
@@ -407,7 +406,7 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * once for each connection.
 	 */
 	part = plist_head.next;
-	while (part != NULL && part->dev != dh)
+	while (part != NULL && part->dsid != dh)
 		part = part->next;
 
 	if (part == NULL) {
@@ -436,11 +435,14 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
@@ -484,7 +486,7 @@ static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf)
 	if (mbr_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
-	return block_read_direct(indev_handle, gba, cnt, buf);
+	return block_read_direct(indef_sid, gba, cnt, buf);
 }
 
 /** Write blocks to partition. */
@@ -495,7 +497,7 @@ static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf)
 	if (mbr_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
-	return block_write_direct(indev_handle, gba, cnt, buf);
+	return block_write_direct(indef_sid, gba, cnt, buf);
 }
 
 /** Translate block segment address with range checking. */

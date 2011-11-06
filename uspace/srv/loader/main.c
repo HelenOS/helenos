@@ -51,17 +51,16 @@
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ipc/loader.h>
-#include <ipc/ns.h>
-#include <macros.h>
+#include <ns.h>
 #include <loader/pcb.h>
 #include <entry_point.h>
 #include <errno.h>
 #include <async.h>
 #include <str.h>
 #include <as.h>
-
-#include <elf.h>
-#include <elf_load.h>
+#include <elf/elf.h>
+#include <elf/elf_load.h>
+#include <vfs/vfs.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -90,11 +89,7 @@ static char **argv = NULL;
 static char *arg_buf = NULL;
 
 /** Number of preset files */
-static int filc = 0;
-/** Preset files vector */
-static fdi_node_t **filv = NULL;
-/** Buffer holding all preset files */
-static fdi_node_t *fil_buf = NULL;
+static unsigned int filc = 0;
 
 static elf_info_t prog_info;
 
@@ -240,47 +235,25 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
-	fdi_node_t *buf;
-	size_t buf_size;
-	int rc = async_data_write_accept((void **) &buf, false, 0, 0,
-	    sizeof(fdi_node_t), &buf_size);
-	
-	if (rc == EOK) {
-		int count = buf_size / sizeof(fdi_node_t);
-		
-		/*
-		 * Allocate new filv
-		 */
-		fdi_node_t **_filv = (fdi_node_t **) calloc(count + 1, sizeof(fdi_node_t *));
-		if (_filv == NULL) {
-			free(buf);
-			async_answer_0(rid, ENOMEM);
-			return;
+	size_t count = IPC_GET_ARG1(*request);
+
+	async_exch_t *vfs_exch = vfs_exchange_begin();
+
+	for (filc = 0; filc < count; filc++) {
+		ipc_callid_t callid;
+		int fd;
+
+		if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
+			async_answer_0(callid, EINVAL);
+			break;
 		}
-		
-		/*
-		 * Fill the new filv with argument pointers
-		 */
-		int i;
-		for (i = 0; i < count; i++)
-			_filv[i] = &buf[i];
-		
-		_filv[count] = NULL;
-		
-		/*
-		 * Copy temporary data to global variables
-		 */
-		if (fil_buf != NULL)
-			free(fil_buf);
-		
-		if (filv != NULL)
-			free(filv);
-		
-		filc = count;
-		fil_buf = buf;
-		filv = _filv;
+		async_state_change_finalize(callid, vfs_exch);
+		fd = fd_wait();
+		assert(fd == (int) filc);
 	}
-	
+
+	vfs_exchange_end(vfs_exch);
+
 	async_answer_0(rid, EOK);
 }
 
@@ -309,7 +282,6 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	pcb.argv = argv;
 	
 	pcb.filc = filc;
-	pcb.filv = filv;
 	
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
@@ -349,8 +321,8 @@ static int ldr_load_dyn_linked(elf_info_t *p_info)
 	prog_mod.dyn.soname = "[program]";
 
 	/* Initialize list of loaded modules */
-	list_initialize(&runtime_env->modules_head);
-	list_append(&prog_mod.modules_link, &runtime_env->modules_head);
+	list_initialize(&runtime_env->modules);
+	list_append(&prog_mod.modules_link, &runtime_env->modules);
 
 	/* Pointer to program module. Used as root of the module graph. */
 	runtime_env->program = &prog_mod;
@@ -411,12 +383,8 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
  * Receive and carry out commands (of which the last one should be
  * to execute the loaded program).
  */
-static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-	
 	/* Already have a connection? */
 	if (connected) {
 		async_answer_0(iid, ELIMIT);
@@ -429,15 +397,17 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 	
 	/* Ignore parameters, the connection is already open */
-	(void) iid;
 	(void) icall;
 	
-	while (1) {
-		callid = async_get_call(&call);
+	while (true) {
+		int retval;
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			exit(0);
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			exit(0);
 		case LOADER_GET_TASKID:
 			ldr_get_taskid(callid, &call);
 			continue;
@@ -464,8 +434,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		}
 		
-		if (IPC_GET_IMETHOD(call) != IPC_M_PHONE_HUNGUP)
-			async_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -478,7 +447,7 @@ int main(int argc, char *argv[])
 	
 	/* Introduce this task to the NS (give it our task ID). */
 	task_id_t id = task_get_id();
-	int rc = async_req_2_0(PHONE_NS, NS_ID_INTRO, LOWER32(id), UPPER32(id));
+	int rc = ns_intro(id);
 	if (rc != EOK)
 		return -1;
 	

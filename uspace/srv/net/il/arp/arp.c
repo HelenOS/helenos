@@ -163,7 +163,7 @@ static void arp_clear_device(arp_device_t *device)
 	arp_protos_clear(&device->protos, free);
 }
 
-static int arp_clean_cache_req(int arp_phone)
+static int arp_clean_cache_req(void)
 {
 	int count;
 	
@@ -173,14 +173,8 @@ static int arp_clean_cache_req(int arp_phone)
 		arp_device_t *device = arp_cache_get_index(&arp_globals.cache,
 		    count);
 		
-		if (device) {
+		if (device)
 			arp_clear_device(device);
-			if (device->addr_data)
-				free(device->addr_data);
-			
-			if (device->broadcast_data)
-				free(device->broadcast_data);
-		}
 	}
 	
 	arp_cache_clear(&arp_globals.cache, free);
@@ -189,7 +183,7 @@ static int arp_clean_cache_req(int arp_phone)
 	return EOK;
 }
 
-static int arp_clear_address_req(int arp_phone, device_id_t device_id,
+static int arp_clear_address_req(nic_device_id_t device_id,
     services_t protocol, measured_string_t *address)
 {
 	fibril_mutex_lock(&arp_globals.lock);
@@ -217,7 +211,7 @@ static int arp_clear_address_req(int arp_phone, device_id_t device_id,
 	return EOK;
 }
 
-static int arp_clear_device_req(int arp_phone, device_id_t device_id)
+static int arp_clear_device_req(nic_device_id_t device_id)
 {
 	fibril_mutex_lock(&arp_globals.lock);
 	
@@ -288,7 +282,7 @@ static int arp_proto_create(arp_proto_t **proto, services_t service,
  * @return ENOMEM if there is not enough memory left.
  *
  */
-static int arp_receive_message(device_id_t device_id, packet_t *packet)
+static int arp_receive_message(nic_device_id_t device_id, packet_t *packet)
 {
 	int rc;
 	
@@ -364,7 +358,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 			memcpy(des_proto, src_proto, header->protocol_length);
 			memcpy(src_proto, proto->addr->value,
 			    header->protocol_length);
-			memcpy(src_hw, device->addr->value,
+			memcpy(src_hw, device->addr,
 			    device->packet_dimension.addr_len);
 			memcpy(des_hw, trans->hw_addr->value,
 			    header->hardware_length);
@@ -374,7 +368,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 			if (rc != EOK)
 				return rc;
 			
-			nil_send_msg(device->phone, device_id, packet,
+			nil_send_msg(device->sess, device_id, packet,
 			    SERVICE_ARP);
 			return 1;
 		}
@@ -392,7 +386,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
  * @return EOK on success.
  *
  */
-static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
+static int arp_mtu_changed_message(nic_device_id_t device_id, size_t mtu)
 {
 	fibril_mutex_lock(&arp_globals.lock);
 	
@@ -411,13 +405,46 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
 	return EOK;
 }
 
+static int arp_addr_changed_message(nic_device_id_t device_id)
+{
+	uint8_t addr_buffer[NIC_MAX_ADDRESS_LENGTH];
+	size_t length;
+	ipc_callid_t data_callid;
+	if (!async_data_write_receive(&data_callid, &length)) {
+		async_answer_0(data_callid, EINVAL);
+		return EINVAL;
+	}
+	if (length > NIC_MAX_ADDRESS_LENGTH) {
+		async_answer_0(data_callid, ELIMIT);
+		return ELIMIT;
+	}
+	if (async_data_write_finalize(data_callid, addr_buffer, length) != EOK) {
+		return EINVAL;
+	}
+
+	fibril_mutex_lock(&arp_globals.lock);
+
+	arp_device_t *device = arp_cache_find(&arp_globals.cache, device_id);
+	if (!device) {
+		fibril_mutex_unlock(&arp_globals.lock);
+		return ENOENT;
+	}
+
+	memcpy(device->addr, addr_buffer, length);
+	device->addr_len = length;
+
+	fibril_mutex_unlock(&arp_globals.lock);
+	return EOK;
+}
+
 /** Process IPC messages from the registered device driver modules
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
+ * @param[in]     arg   Local argument.
  *
  */
-static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;
@@ -430,7 +457,7 @@ static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		
 		case NET_IL_RECEIVED:
-			rc = packet_translate_remote(arp_globals.net_phone, &packet,
+			rc = packet_translate_remote(arp_globals.net_sess, &packet,
 			    IPC_GET_PACKET(*icall));
 			if (rc == EOK) {
 				fibril_mutex_lock(&arp_globals.lock);
@@ -438,7 +465,7 @@ static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 					packet_t *next = pq_detach(packet);
 					rc = arp_receive_message(IPC_GET_DEVICE(*icall), packet);
 					if (rc != 1) {
-						pq_release_remote(arp_globals.net_phone,
+						pq_release_remote(arp_globals.net_sess,
 						    packet_get_id(packet));
 					}
 					
@@ -454,6 +481,9 @@ static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 			    IPC_GET_MTU(*icall));
 			async_answer_0(iid, (sysarg_t) rc);
 			break;
+		case NET_IL_ADDR_CHANGED:
+			rc = arp_addr_changed_message(IPC_GET_DEVICE(*icall));
+			async_answer_0(iid, (sysarg_t) rc);
 		
 		default:
 			async_answer_0(iid, (sysarg_t) ENOTSUP);
@@ -481,7 +511,7 @@ static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
  *         measured_strings_return() function.
  *
  */
-static int arp_device_message(device_id_t device_id, services_t service,
+static int arp_device_message(nic_device_id_t device_id, services_t service,
     services_t protocol, measured_string_t *address)
 {
 	int index;
@@ -563,10 +593,10 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		device->service = service;
 		
 		/* Bind */
-		device->phone = nil_bind_service(device->service,
+		device->sess = nil_bind_service(device->service,
 		    (sysarg_t) device->device_id, SERVICE_ARP,
 		    arp_receiver);
-		if (device->phone < 0) {
+		if (device->sess == NULL) {
 			fibril_mutex_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos, free);
 			free(device);
@@ -574,7 +604,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		}
 		
 		/* Get packet dimensions */
-		rc = nil_packet_size_req(device->phone, device_id,
+		rc = nil_packet_size_req(device->sess, device_id,
 		    &device->packet_dimension);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&arp_globals.lock);
@@ -584,35 +614,33 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		}
 		
 		/* Get hardware address */
-		rc = nil_get_addr_req(device->phone, device_id, &device->addr,
-		    &device->addr_data);
-		if (rc != EOK) {
+		int len = nil_get_addr_req(device->sess, device_id, device->addr,
+		    NIC_MAX_ADDRESS_LENGTH);
+		if (len < 0) {
 			fibril_mutex_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos, free);
 			free(device);
-			return rc;
+			return len;
 		}
 		
+		device->addr_len = len;
+		
 		/* Get broadcast address */
-		rc = nil_get_broadcast_addr_req(device->phone, device_id,
-		    &device->broadcast_addr, &device->broadcast_data);
-		if (rc != EOK) {
+		len = nil_get_broadcast_addr_req(device->sess, device_id,
+		    device->broadcast_addr, NIC_MAX_ADDRESS_LENGTH);
+		if (len < 0) {
 			fibril_mutex_unlock(&arp_globals.lock);
-			free(device->addr);
-			free(device->addr_data);
 			arp_protos_destroy(&device->protos, free);
 			free(device);
-			return rc;
+			return len;
 		}
+		
+		device->broadcast_addr_len = len;
 		
 		rc = arp_cache_add(&arp_globals.cache, device->device_id,
 		    device);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&arp_globals.lock);
-			free(device->addr);
-			free(device->addr_data);
-			free(device->broadcast_addr);
-			free(device->broadcast_data);
 			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return rc;
@@ -626,27 +654,27 @@ static int arp_device_message(device_id_t device_id, services_t service,
 	return EOK;
 }
 
-int il_initialize(int net_phone)
+int il_initialize(async_sess_t *net_sess)
 {
 	fibril_mutex_initialize(&arp_globals.lock);
 	
 	fibril_mutex_lock(&arp_globals.lock);
-	arp_globals.net_phone = net_phone;
+	arp_globals.net_sess = net_sess;
 	int rc = arp_cache_initialize(&arp_globals.cache);
 	fibril_mutex_unlock(&arp_globals.lock);
 	
 	return rc;
 }
 
-static int arp_send_request(device_id_t device_id, services_t protocol,
+static int arp_send_request(nic_device_id_t device_id, services_t protocol,
     measured_string_t *target, arp_device_t *device, arp_proto_t *proto)
 {
 	/* ARP packet content size = header + (address + translation) * 2 */
-	size_t length = 8 + 2 * (proto->addr->length + device->addr->length);
+	size_t length = 8 + 2 * (proto->addr->length + device->addr_len);
 	if (length > device->packet_dimension.content)
 		return ELIMIT;
 	
-	packet_t *packet = packet_get_4_remote(arp_globals.net_phone,
+	packet_t *packet = packet_get_4_remote(arp_globals.net_sess,
 	    device->packet_dimension.addr_len, device->packet_dimension.prefix,
 	    length, device->packet_dimension.suffix);
 	if (!packet)
@@ -654,36 +682,35 @@ static int arp_send_request(device_id_t device_id, services_t protocol,
 	
 	arp_header_t *header = (arp_header_t *) packet_suffix(packet, length);
 	if (!header) {
-		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(arp_globals.net_sess, packet_get_id(packet));
 		return ENOMEM;
 	}
 	
 	header->hardware = htons(device->hardware);
-	header->hardware_length = (uint8_t) device->addr->length;
+	header->hardware_length = (uint8_t) device->addr_len;
 	header->protocol = htons(protocol_map(device->service, protocol));
 	header->protocol_length = (uint8_t) proto->addr->length;
 	header->operation = htons(ARPOP_REQUEST);
 	
 	length = sizeof(arp_header_t);
-	
-	memcpy(((uint8_t *) header) + length, device->addr->value,
-	    device->addr->length);
-	length += device->addr->length;
+	memcpy(((uint8_t *) header) + length, device->addr,
+	    device->addr_len);
+	length += device->addr_len;
 	memcpy(((uint8_t *) header) + length, proto->addr->value,
 	    proto->addr->length);
 	length += proto->addr->length;
-	bzero(((uint8_t *) header) + length, device->addr->length);
-	length += device->addr->length;
+	bzero(((uint8_t *) header) + length, device->addr_len);
+	length += device->addr_len;
 	memcpy(((uint8_t *) header) + length, target->value, target->length);
-	
-	int rc = packet_set_addr(packet, (uint8_t *) device->addr->value,
-	    (uint8_t *) device->broadcast_addr->value, device->addr->length);
+
+	int rc = packet_set_addr(packet, device->addr, device->broadcast_addr,
+	    device->addr_len);
 	if (rc != EOK) {
-		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(arp_globals.net_sess, packet_get_id(packet));
 		return rc;
 	}
 	
-	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
+	nil_send_msg(device->sess, device_id, packet, SERVICE_ARP);
 	return EOK;
 }
 
@@ -702,7 +729,7 @@ static int arp_send_request(device_id_t device_id, services_t protocol,
  * @return Other error codes in case of error.
  *
  */
-static int arp_translate_message(device_id_t device_id, services_t protocol,
+static int arp_translate_message(nic_device_id_t device_id, services_t protocol,
     measured_string_t *target, measured_string_t **translation)
 {
 	bool retry = false;
@@ -844,10 +871,11 @@ int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*count = 0;
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_PHONE_HUNGUP:
+	
+	if (!IPC_GET_IMETHOD(*call))
 		return EOK;
 	
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_ARP_DEVICE:
 		rc = measured_strings_receive(&address, &data, 1);
 		if (rc != EOK)
@@ -888,21 +916,21 @@ int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return rc;
 	
 	case NET_ARP_CLEAR_DEVICE:
-		return arp_clear_device_req(0, IPC_GET_DEVICE(*call));
+		return arp_clear_device_req(IPC_GET_DEVICE(*call));
 	
 	case NET_ARP_CLEAR_ADDRESS:
 		rc = measured_strings_receive(&address, &data, 1);
 		if (rc != EOK)
 			return rc;
 		
-		arp_clear_address_req(0, IPC_GET_DEVICE(*call),
+		arp_clear_address_req(IPC_GET_DEVICE(*call),
 		    IPC_GET_SERVICE(*call), address);
 		free(address);
 		free(data);
 		return EOK;
 	
 	case NET_ARP_CLEAN_CACHE:
-		return arp_clean_cache_req(0);
+		return arp_clean_cache_req();
 	}
 	
 	return ENOTSUP;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
 
-#define min(a, b)		((a) < (b) ? (a) : (b))
+#define min(a, b)	((a) < (b) ? (a) : (b))
 
 /*
  * Convenience macros for accessing some frequently used boot sector members.
@@ -54,14 +55,19 @@
 #define SPC(bs)		(bs)->spc
 #define RSCNT(bs)	uint16_t_le2host((bs)->rscnt)
 #define FATCNT(bs)	(bs)->fatcnt
-#define SF(bs)		uint16_t_le2host((bs)->sec_per_fat)
-#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
-#define TS(bs)		(uint16_t_le2host((bs)->totsec16) != 0 ? \
-			uint16_t_le2host((bs)->totsec16) : \
-			uint32_t_le2host(bs->totsec32))
 
-#define BS_BLOCK		0
-#define BS_SIZE			512
+#define SF(bs)		(uint16_t_le2host((bs)->sec_per_fat) ? \
+    uint16_t_le2host((bs)->sec_per_fat) : \
+    uint32_t_le2host(bs->fat32.sectors_per_fat))
+
+#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
+
+#define TS(bs)		(uint16_t_le2host((bs)->totsec16) ? \
+    uint16_t_le2host((bs)->totsec16) : \
+    uint32_t_le2host(bs->totsec32))
+
+#define BS_BLOCK	0
+#define BS_SIZE		512
 
 typedef struct fat_bs {
 	uint8_t		ji[3];		/**< Jump instruction. */
@@ -134,6 +140,20 @@ typedef struct fat_bs {
 	};
 } __attribute__ ((packed)) fat_bs_t;
 
+#define FAT32_FSINFO_SIG1	"RRaA"
+#define FAT32_FSINFO_SIG2	"rrAa"
+#define FAT32_FSINFO_SIG3	"\x00\x00\x55\xaa"
+
+typedef struct {
+	uint8_t	sig1[4];
+	uint8_t res1[480];
+	uint8_t sig2[4];
+	uint32_t free_clusters;
+	uint32_t last_allocated_cluster;
+	uint8_t res2[12];
+	uint8_t sig3[4];
+} __attribute__ ((packed)) fat32_fsinfo_t;
+
 typedef enum {
 	FAT_INVALID,
 	FAT_DIRECTORY,
@@ -174,7 +194,7 @@ typedef struct {
 	link_t		uih_link;
 
 	fibril_mutex_t	lock;
-	devmap_handle_t	devmap_handle;
+	service_id_t	service_id;
 	fs_index_t	index;
 	/**
 	 * Parent node's first cluster.
@@ -223,34 +243,24 @@ typedef struct fat_node {
 	fat_cluster_t	currc_cached_value;
 } fat_node_t;
 
-extern fs_reg_t fat_reg;
+typedef struct {
+	bool lfn_enabled;
+} fat_instance_t;
 
-extern void fat_mounted(ipc_callid_t, ipc_call_t *);
-extern void fat_mount(ipc_callid_t, ipc_call_t *);
-extern void fat_unmounted(ipc_callid_t, ipc_call_t *);
-extern void fat_unmount(ipc_callid_t, ipc_call_t *);
-extern void fat_lookup(ipc_callid_t, ipc_call_t *);
-extern void fat_read(ipc_callid_t, ipc_call_t *);
-extern void fat_write(ipc_callid_t, ipc_call_t *);
-extern void fat_truncate(ipc_callid_t, ipc_call_t *);
-extern void fat_stat(ipc_callid_t, ipc_call_t *);
-extern void fat_close(ipc_callid_t, ipc_call_t *);
-extern void fat_destroy(ipc_callid_t, ipc_call_t *);
-extern void fat_open_node(ipc_callid_t, ipc_call_t *);
-extern void fat_stat(ipc_callid_t, ipc_call_t *);
-extern void fat_sync(ipc_callid_t, ipc_call_t *);
+extern vfs_out_ops_t fat_ops;
+extern libfs_ops_t fat_libfs_ops;
 
-extern int fat_idx_get_new(fat_idx_t **, devmap_handle_t);
-extern fat_idx_t *fat_idx_get_by_pos(devmap_handle_t, fat_cluster_t, unsigned);
-extern fat_idx_t *fat_idx_get_by_index(devmap_handle_t, fs_index_t);
+extern int fat_idx_get_new(fat_idx_t **, service_id_t);
+extern fat_idx_t *fat_idx_get_by_pos(service_id_t, fat_cluster_t, unsigned);
+extern fat_idx_t *fat_idx_get_by_index(service_id_t, fs_index_t);
 extern void fat_idx_destroy(fat_idx_t *);
 extern void fat_idx_hashin(fat_idx_t *);
 extern void fat_idx_hashout(fat_idx_t *);
 
 extern int fat_idx_init(void);
 extern void fat_idx_fini(void);
-extern int fat_idx_init_by_devmap_handle(devmap_handle_t);
-extern void fat_idx_fini_by_devmap_handle(devmap_handle_t);
+extern int fat_idx_init_by_service_id(service_id_t);
+extern void fat_idx_fini_by_service_id(service_id_t);
 
 #endif
 

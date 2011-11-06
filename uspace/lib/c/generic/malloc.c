@@ -78,6 +78,10 @@
 #define STRUCT_OVERHEAD \
 	(sizeof(heap_block_head_t) + sizeof(heap_block_foot_t))
 
+/** Overhead of each area. */
+#define AREA_OVERHEAD(size) \
+	(ALIGN_UP(size + sizeof(heap_area_t), BASE_ALIGN))
+
 /** Calculate real size of a heap block.
  *
  * Add header and footer size.
@@ -182,7 +186,7 @@ static heap_area_t *first_heap_area = NULL;
 static heap_area_t *last_heap_area = NULL;
 
 /** Next heap block to examine (next fit algorithm) */
-static heap_block_head_t *next = NULL;
+static heap_block_head_t *next_fit = NULL;
 
 /** Futex for thread-safe heap manipulation */
 static futex_t malloc_futex = FUTEX_INITIALIZER;
@@ -193,7 +197,7 @@ static futex_t malloc_futex = FUTEX_INITIALIZER;
 	do { \
 		if (!(expr)) {\
 			futex_up(&malloc_futex); \
-			assert_abort(#expr, __FILE__, STR2(__LINE__)); \
+			assert_abort(#expr, __FILE__, __LINE__); \
 		} \
 	} while (0)
 
@@ -377,7 +381,7 @@ static bool heap_grow(size_t size)
 	}
 	
 	/* Eventually try to create a new area */
-	return area_create(AREA_FIRST_BLOCK_HEAD(size));
+	return area_create(AREA_OVERHEAD(size));
 }
 
 /** Try to shrink heap
@@ -454,10 +458,7 @@ static void heap_shrink(heap_area_t *area)
 			
 			/* Update heap area parameters */
 			area->end = end;
-			
-			/* Update block layout */
-			void *last = (void *) last_head;
-			size_t excess = (size_t) (area->end - last);
+			size_t excess = ((size_t) area->end) - ((size_t) last_head);
 			
 			if (excess > 0) {
 				if (excess >= STRUCT_OVERHEAD) {
@@ -466,7 +467,7 @@ static void heap_shrink(heap_area_t *area)
 					 * is enough free space left in the area to
 					 * create a new free block.
 					 */
-					block_init(last, excess, true, area);
+					block_init((void *) last_head, excess, true, area);
 				} else {
 					/*
 					 * The excess is small. Therefore just enlarge
@@ -485,7 +486,7 @@ static void heap_shrink(heap_area_t *area)
 		}
 	}
 	
-	next = NULL;
+	next_fit = NULL;
 }
 
 /** Initialize the heap allocator
@@ -574,7 +575,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 				/* Exact block start including alignment. */
 				split_mark(cur, real_size);
 				
-				next = cur;
+				next_fit = cur;
 				return addr;
 			} else {
 				/* Block start has to be aligned */
@@ -626,7 +627,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 						block_init(next_head, reduced_size, true, area);
 						split_mark(next_head, real_size);
 						
-						next = next_head;
+						next_fit = next_head;
 						return aligned;
 					} else {
 						/*
@@ -652,7 +653,7 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 							block_init(cur, reduced_size, true, area);
 							split_mark(cur, real_size);
 							
-							next = cur;
+							next_fit = cur;
 							return aligned;
 						}
 					}
@@ -690,7 +691,7 @@ static void *malloc_internal(const size_t size, const size_t align)
 loop:
 	
 	/* Try the next fit approach */
-	split = next;
+	split = next_fit;
 	
 	if (split != NULL) {
 		void *addr = malloc_area(split->area, split, NULL, real_size,
@@ -846,7 +847,7 @@ void *realloc(const void *addr, const size_t size)
 			split_mark(head, real_size);
 			
 			ptr = ((void *) head) + sizeof(heap_block_head_t);
-			next = NULL;
+			next_fit = NULL;
 		} else
 			reloc = true;
 	}
@@ -871,6 +872,9 @@ void *realloc(const void *addr, const size_t size)
  */
 void free(const void *addr)
 {
+	if (addr == NULL)
+		return;
+
 	futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */

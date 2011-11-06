@@ -38,68 +38,85 @@
 #include <il_remote.h>
 #include <generic.h>
 #include <packet_client.h>
-
 #include <ipc/services.h>
 #include <ipc/il.h>
-
 #include <net/device.h>
 #include <net/packet.h>
 
 /** Notify the internetwork layer modules about the device state change.
  *
- * @param[in] il_phone  The internetwork layer module phone used for
- *                      (semi)remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] state     The new device state.
- * @param[in] target    The target internetwork module service to be
+ * @param[in] sess      Internetwork layer module session.
+ * @param[in] device_id Device identifier.
+ * @param[in] state     New device state.
+ * @param[in] target    Target internetwork module service to be
  *                      delivered to.
  *
  * @return EOK on success.
  *
  */
-int il_device_state_msg(int il_phone, device_id_t device_id,
-    device_state_t state, services_t target)
+int il_device_state_msg(async_sess_t *sess, nic_device_id_t device_id,
+    nic_device_state_t state, services_t target)
 {
-	return generic_device_state_msg_remote(il_phone, NET_IL_DEVICE_STATE,
+	return generic_device_state_msg_remote(sess, NET_IL_DEVICE_STATE,
 	    device_id, state, target);
 }
 
 /** Notify the internetwork layer modules about the received packet/s.
  *
- * @param[in] il_phone  The internetwork layer module phone used for
- *                      (semi)remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] packet    The received packet or the received packet queue.
- * @param[in] target    The target internetwork module service to be
+ * @param[in] sess      Internetwork layer module session.
+ * @param[in] device_id Device identifier.
+ * @param[in] packet    Received packet or the received packet queue.
+ * @param[in] target    Target internetwork module service to be
  *                      delivered to.
  *
  * @return EOK on success.
  *
  */
-int il_received_msg(int il_phone, device_id_t device_id, packet_t *packet,
-    services_t target)
+int il_received_msg(async_sess_t *sess, nic_device_id_t device_id,
+    packet_t *packet, services_t target)
 {
-	return generic_received_msg_remote(il_phone, NET_IL_RECEIVED, device_id,
+	return generic_received_msg_remote(sess, NET_IL_RECEIVED, device_id,
 	    packet_get_id(packet), target, 0);
 }
 
 /** Notify the internetwork layer modules about the mtu change.
  *
- * @param[in] il_phone  The internetwork layer module phone used for
- *                      (semi)remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] mtu       The new mtu value.
- * @param[in] target    The target internetwork module service to be
+ * @param[in] sess      Internetwork layer module session.
+ * @param[in] device_id Device identifier.
+ * @param[in] mtu       New MTU value.
+ * @param[in] target    Target internetwork module service to be
  *                      delivered to.
  *
  * @return EOK on success.
  *
  */
-int il_mtu_changed_msg(int il_phone, device_id_t device_id, size_t mtu,
+int il_mtu_changed_msg(async_sess_t *sess, nic_device_id_t device_id, size_t mtu,
     services_t target)
 {
-	return generic_device_state_msg_remote(il_phone, NET_IL_MTU_CHANGED,
-	    device_id, (int) mtu, target);
+	return generic_device_state_msg_remote(sess, NET_IL_MTU_CHANGED,
+	    device_id, mtu, target);
+}
+
+/** Notify IL layer modules about address change (implemented by ARP)
+ *
+ */
+int il_addr_changed_msg(async_sess_t *sess, nic_device_id_t device_id,
+    size_t addr_len, const uint8_t *address)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	aid_t message_id = async_send_1(exch, NET_IL_ADDR_CHANGED,
+			(sysarg_t) device_id, NULL);
+	int rc = async_data_write_start(exch, address, addr_len);
+	
+	async_exchange_end(exch);
+	
+	sysarg_t res;
+    async_wait_for(message_id, &res);
+    if (rc != EOK)
+		return rc;
+	
+    return (int) res;
 }
 
 /** @}

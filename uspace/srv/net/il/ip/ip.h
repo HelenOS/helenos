@@ -37,6 +37,7 @@
 #ifndef NET_IP_H_
 #define NET_IP_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <net/device.h>
@@ -90,15 +91,15 @@ struct ip_netif {
 	/** Broadcast address. */
 	in_addr_t broadcast;
 	/** Device identifier. */
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	/** Indicates whether using DHCP. */
 	int dhcp;
 	/** IP version. */
 	int ipv;
 	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Netif module phone. */
-	int phone;
+	/** Netif module session. */
+	async_sess_t *sess;
 	/** Routing table. */
 	ip_routes_t routes;
 	/** Indicates whether IP routing is enabled. */
@@ -106,13 +107,13 @@ struct ip_netif {
 	/** Netif module service. */
 	services_t service;
 	/** Device state. */
-	device_state_t state;
+	nic_device_state_t state;
 };
 
 /** IP protocol specific data. */
 struct ip_proto {
-	/** Protocol module phone. */
-	int phone;
+	/** Protocol module session. */
+	async_sess_t *sess;
 	/** Protocol number. */
 	int protocol;
 	/** Protocol packet receiving function. */
@@ -141,8 +142,8 @@ struct ip_globals {
 	fibril_rwlock_t lock;
 	/** Known support modules. */
 	modules_t modules;
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
 	/** Registered network interfaces. */
 	ip_netifs_t netifs;
 	/** Netifs safeyt lock. */

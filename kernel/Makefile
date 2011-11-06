@@ -58,6 +58,7 @@ DISASM = kernel.disasm
 DUMP = kernel.dump
 REAL_MAP = generic/src/debug/real_map
 
+ABI_INCLUDE = generic/include/abi
 ARCH_INCLUDE = generic/include/arch
 GENARCH_INCLUDE = generic/include/genarch
 
@@ -74,7 +75,7 @@ all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CON
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ARCH_INCLUDE) $(GENARCH_INCLUDE) arch/*/_link.ld arch/*/include/common.h
+	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ABI_INCLUDE) $(ARCH_INCLUDE) $(GENARCH_INCLUDE) arch/*/_link.ld arch/*/include/common.h
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 
 ## Common compiler flags
@@ -328,45 +329,6 @@ ifeq ($(CONFIG_TEST),y)
 		GENERIC_SOURCES += test/mm/purge1_skip.c
 	endif
 	
-	ifeq ($(CONFIG_FPU),y)
-		ifeq ($(KARCH),ia32)
-			TEST_FPU1 = y
-			TEST_SSE1 = y
-			GENERIC_SOURCES += test/fpu/fpu1_x86.c
-		endif
-		
-		ifeq ($(KARCH),amd64)
-			TEST_FPU1 = y
-			TEST_SSE1 = y
-			GENERIC_SOURCES += test/fpu/fpu1_x86.c
-		endif
-		
-		ifeq ($(KARCH),ia64)
-			TEST_FPU1 = y
-			GENERIC_SOURCES += test/fpu/fpu1_ia64.c
-		endif
-		
-		ifeq ($(KARCH),mips32)
-			TEST_MIPS2 = y
-		endif
-	endif
-	
-	ifneq ($(TEST_FPU1),y)
-		GENERIC_SOURCES += test/fpu/fpu1_skip.c
-	endif
-	
-	ifeq ($(TEST_SSE1),y)
-		GENERIC_SOURCES += test/fpu/sse1.c
-	else
-		GENERIC_SOURCES += test/fpu/sse1_skip.c
-	endif
-	
-	ifeq ($(TEST_MIPS2),y)
-		GENERIC_SOURCES += test/fpu/mips2.c
-	else
-		GENERIC_SOURCES += test/fpu/mips2_skip.c
-	endif
-	
 endif
 
 ## Sources where instrumentation is enabled
@@ -439,21 +401,6 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
 
-#
-# The FPU tests are the only objects for which we allow the compiler to generate
-# FPU instructions.
-#
-
-test/fpu/%.o: test/fpu/%.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc test $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
-endif
-
-#
-# Ordinary objects.
-#
-
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
 ifeq ($(PRECHECK),y)
@@ -485,9 +432,12 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
+$(DEPEND): $(ABI_INCLUDE) $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+
+$(ABI_INCLUDE): ../abi/include/
+	ln -sfn ../../$< $@
 
 $(ARCH_INCLUDE): arch/$(KARCH)/include/
 	ln -sfn ../../$< $@

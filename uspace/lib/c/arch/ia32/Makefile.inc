@@ -27,7 +27,7 @@
 #
 
 ARCH_SOURCES = \
-	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/entry.S \
 	arch/$(UARCH)/src/entryjmp.s \
 	arch/$(UARCH)/src/thread_entry.s \
 	arch/$(UARCH)/src/syscall.S \

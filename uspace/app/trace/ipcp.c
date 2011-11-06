@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <adt/hash_table.h>
 #include <sys/typefmt.h>
-
+#include <abi/ipc/methods.h>
 #include "ipc_desc.h"
 #include "proto.h"
 #include "trace.h"
@@ -267,19 +267,17 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	sysarg_t retval;
 	proto_t *proto;
 	int cphone;
-
+	
 	sysarg_t *resp;
 	oper_t *oper;
 	int i;
-
-//	printf("parse_answer\n");
-
+	
 	phone = pcall->phone_hash;
 	method = IPC_GET_IMETHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
-
+	
 	resp = answer->args;
-
+	
 	if ((display_mask & DM_IPC) != 0) {
 		printf("Response to %p: retval=%" PRIdn ", args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
@@ -287,13 +285,14 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
-
+	
 	if ((display_mask & DM_USER) != 0) {
 		oper = pcall->oper;
-
-		if (oper != NULL && (oper->rv_type != V_VOID || oper->respc > 0)) {
+		
+		if ((oper != NULL) &&
+		    ((oper->rv_type != V_VOID) || (oper->respc > 0))) {
 			printf("->");
-
+			
 			if (oper->rv_type != V_VOID) {
 				putchar(' ');
 				val_print(retval, oper->rv_type);
@@ -303,27 +302,31 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 				putchar(' ');
 				putchar('(');
 				for (i = 1; i <= oper->respc; ++i) {
-					if (i > 1) printf(", ");
+					if (i > 1)
+						printf(", ");
 					val_print(resp[i], oper->resp_type[i - 1]);
 				}
 				putchar(')');
 			}
-
+			
 			putchar('\n');
 		}
 	}
-
-	if (phone == 0 && method == IPC_M_CONNECT_ME_TO && retval == 0) {
+	
+	if ((phone == PHONE_NS) && (method == IPC_M_CONNECT_ME_TO) &&
+	    (retval == 0)) {
 		/* Connected to a service (through NS) */
 		service = IPC_GET_ARG1(pcall->question);
 		proto = proto_get_by_srv(service);
-		if (proto == NULL) proto = proto_unknown;
-
+		if (proto == NULL)
+			proto = proto_unknown;
+		
 		cphone = IPC_GET_ARG5(*answer);
 		if ((display_mask & DM_SYSTEM) != 0) {
 			printf("Registering connection (phone %d, protocol: %s)\n", cphone,
-		    		proto->name);
+		    proto->name);
 		}
+		
 		ipcp_connection_set(cphone, 0, proto);
 	}
 }
@@ -333,9 +336,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	link_t *item;
 	pending_call_t *pcall;
 	unsigned long key[1];
-
-//	printf("ipcp_call_in()\n");
-
+	
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
@@ -343,20 +344,21 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 		}
 		return;
 	}
-
+	
 	hash = hash & ~IPC_CALLID_ANSWERED;
 	key[0] = hash;
-
+	
 	item = hash_table_find(&pending_calls, key);
-	if (item == NULL) return; // No matching question found
-
+	if (item == NULL)
+		return; /* No matching question found */
+	
 	/*
 	 * Response matched to question.
 	 */
 	
 	pcall = hash_table_get_instance(item, pending_call_t, link);
 	hash_table_remove(&pending_calls, key, 1);
-
+	
 	parse_answer(hash, pcall, call);
 	free(pcall);
 }

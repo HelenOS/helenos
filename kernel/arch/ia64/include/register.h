@@ -60,6 +60,9 @@
 #define PSR_CPL_SHIFT         32
 #define PSR_CPL_MASK_SHIFTED  3
 
+#define PSR_RI_SHIFT  41
+#define PSR_RI_LEN    2
+
 #define PFM_MASK  (~0x3fffffffff)
 
 #define RSC_MODE_MASK   3
@@ -140,12 +143,6 @@
 /* CR82-CR127 are reserved */
 
 #ifndef __ASM__
-
-#ifdef KERNEL
-#include <typedefs.h>
-#else
-#include <sys/types.h>
-#endif
 
 /** Processor Status Register. */
 typedef union {

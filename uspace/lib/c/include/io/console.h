@@ -35,51 +35,83 @@
 #ifndef LIBC_IO_CONSOLE_H_
 #define LIBC_IO_CONSOLE_H_
 
+#include <sys/time.h>
+#include <io/keycode.h>
+#include <async.h>
 #include <bool.h>
+#include <stdio.h>
+
+typedef enum {
+	CONSOLE_CAP_NONE = 0,
+	CONSOLE_CAP_STYLE = 1,
+	CONSOLE_CAP_INDEXED = 2,
+	CONSOLE_CAP_RGB = 4
+} console_caps_t;
+
+/** Console control structure. */
+typedef struct {
+	/** Console input file */
+	FILE *input;
+	
+	/** Console output file */
+	FILE *output;
+	
+	/** Console input session */
+	async_sess_t *input_sess;
+	
+	/** Console output session */
+	async_sess_t *output_sess;
+	
+	/** Input request call with timeout */
+	ipc_call_t input_call;
+	
+	/** Input response with timeout */
+	aid_t input_aid;
+} console_ctrl_t;
 
 typedef enum {
 	KEY_PRESS,
 	KEY_RELEASE
-} console_ev_type_t;
-
-typedef enum {
-	CONSOLE_CCAP_NONE = 0,
-	CONSOLE_CCAP_STYLE,
-	CONSOLE_CCAP_INDEXED,
-	CONSOLE_CCAP_RGB
-} console_caps_t;
+} kbd_event_type_t;
 
 /** Console event structure. */
 typedef struct {
+	/** List handle */
+	link_t link;
+	
 	/** Press or release event. */
-	console_ev_type_t type;
+	kbd_event_type_t type;
 	
 	/** Keycode of the key that was pressed or released. */
-	unsigned int key;
+	keycode_t key;
 	
 	/** Bitmask of modifiers held. */
-	unsigned int mods;
+	keymod_t mods;
 	
 	/** The character that was generated or '\0' for none. */
 	wchar_t c;
-} console_event_t;
+} kbd_event_t;
 
-extern void console_clear(int phone);
+extern console_ctrl_t *console_init(FILE *, FILE *);
+extern void console_done(console_ctrl_t *);
+extern bool console_kcon(void);
 
-extern int console_get_size(int phone, sysarg_t *cols, sysarg_t *rows);
-extern int console_get_pos(int phone, sysarg_t *col, sysarg_t *row);
-extern void console_set_pos(int phone, sysarg_t col, sysarg_t row);
+extern void console_flush(console_ctrl_t *);
+extern void console_clear(console_ctrl_t *);
 
-extern void console_set_style(int phone, uint8_t style);
-extern void console_set_color(int phone, uint8_t fg_color, uint8_t bg_color,
-    uint8_t flags);
-extern void console_set_rgb_color(int phone, uint32_t fg_color, uint32_t bg_color);
+extern int console_get_size(console_ctrl_t *, sysarg_t *, sysarg_t *);
+extern int console_get_pos(console_ctrl_t *, sysarg_t *, sysarg_t *);
+extern void console_set_pos(console_ctrl_t *, sysarg_t, sysarg_t);
 
-extern void console_cursor_visibility(int phone, bool show);
-extern int console_get_color_cap(int phone, sysarg_t *ccap);
-extern void console_kcon_enable(int phone);
+extern void console_set_style(console_ctrl_t *, uint8_t);
+extern void console_set_color(console_ctrl_t *, uint8_t, uint8_t, uint8_t);
+extern void console_set_rgb_color(console_ctrl_t *, uint32_t, uint32_t);
 
-extern bool console_get_event(int phone, console_event_t *event);
+extern void console_cursor_visibility(console_ctrl_t *, bool);
+extern int console_get_color_cap(console_ctrl_t *, sysarg_t *);
+extern bool console_get_kbd_event(console_ctrl_t *, kbd_event_t *);
+extern bool console_get_kbd_event_timeout(console_ctrl_t *, kbd_event_t *,
+    suseconds_t *);
 
 #endif
 

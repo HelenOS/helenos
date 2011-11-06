@@ -28,10 +28,13 @@
 #
 
 USPACE_PREFIX = ../..
+LIBS = $(LIBEXT2_PREFIX)/libext2.a $(LIBBLOCK_PREFIX)/libblock.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBEXT2_PREFIX)
 BINARY = tester
 
 SOURCES = \
 	tester.c \
+	util.c \
 	thread/thread1.c \
 	print/print1.c \
 	print/print2.c \
@@ -51,8 +54,9 @@ SOURCES = \
 	mm/malloc1.c \
 	mm/malloc2.c \
 	mm/malloc3.c \
-	devs/devman1.c \
+	mm/mapping1.c \
 	hw/misc/virtchar1.c \
-	hw/serial/serial1.c
+	hw/serial/serial1.c \
+	libext2/libext2_1.c
 
 include $(USPACE_PREFIX)/Makefile.common

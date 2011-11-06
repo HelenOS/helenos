@@ -37,8 +37,8 @@
 #ifndef NET_TCP_H_
 #define NET_TCP_H_
 
+#include <async.h>
 #include <fibril_synch.h>
-
 #include <net/packet.h>
 #include <net/device.h>
 #include <socket_core.h>
@@ -181,7 +181,7 @@ struct tcp_socket_data {
 	size_t data_fragment_size;
 	
 	/** Device identifier. */
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	
 	/**
 	 * Listening backlog.
@@ -283,12 +283,12 @@ struct tcp_socket_data {
 
 /** TCP global data. */
 struct tcp_globals {
-	/** Networking module phone. */
-	int net_phone;
-	/** IP module phone. */
-	int ip_phone;
-	/** ICMP module phone. */
-	int icmp_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
+	/** IP module session. */
+	async_sess_t *ip_sess;
+	/** ICMP module session. */
+	async_sess_t *icmp_sess;
 	/** Last used free port. */
 	int last_used_port;
 	/** Active sockets. */

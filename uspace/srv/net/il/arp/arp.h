@@ -37,6 +37,7 @@
 #ifndef NET_ARP_H_
 #define NET_ARP_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <net/device.h>
@@ -90,21 +91,21 @@ INT_MAP_DECLARE(arp_protos, arp_proto_t);
 /** ARP device specific data. */
 struct arp_device {
 	/** Actual device hardware address. */
-	measured_string_t *addr;
-	/** Actual device hardware address data. */
-	uint8_t *addr_data;
+	uint8_t addr[NIC_MAX_ADDRESS_LENGTH];
+	/** Actual device hardware address length. */
+	size_t addr_len;
 	/** Broadcast device hardware address. */
-	measured_string_t *broadcast_addr;
-	/** Broadcast device hardware address data. */
-	uint8_t *broadcast_data;
+	uint8_t broadcast_addr[NIC_MAX_ADDRESS_LENGTH];
+	/** Broadcast device hardware address length. */
+	size_t broadcast_addr_len;
 	/** Device identifier. */
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	/** Hardware type. */
 	hw_type_t hardware;
 	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Device module phone. */
-	int phone;
+	/** Device module session. */
+	async_sess_t *sess;
 	
 	/**
 	 * Protocol map.
@@ -121,8 +122,9 @@ struct arp_globals {
 	/** ARP address cache. */
 	arp_cache_t cache;
 	
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
+	
 	/** Safety lock. */
 	fibril_mutex_t lock;
 };

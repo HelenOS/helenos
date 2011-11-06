@@ -34,104 +34,110 @@
 
 #include <udebug.h>
 #include <sys/types.h>
+#include <abi/ipc/methods.h>
 #include <async.h>
 
-int udebug_begin(int phoneid)
+int udebug_begin(async_sess_t *sess)
 {
-	return async_req_1_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_BEGIN);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_1_0(exch, IPC_M_DEBUG, UDEBUG_M_BEGIN);
 }
 
-int udebug_end(int phoneid)
+int udebug_end(async_sess_t *sess)
 {
-	return async_req_1_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_END);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_1_0(exch, IPC_M_DEBUG, UDEBUG_M_END);
 }
 
-int udebug_set_evmask(int phoneid, udebug_evmask_t mask)
+int udebug_set_evmask(async_sess_t *sess, udebug_evmask_t mask)
 {
-	return async_req_2_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_SET_EVMASK,
-		mask);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_2_0(exch, IPC_M_DEBUG, UDEBUG_M_SET_EVMASK, mask);
 }
 
-int udebug_thread_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed)
+int udebug_thread_read(async_sess_t *sess, void *buffer, size_t n,
+    size_t *copied, size_t *needed)
 {
 	sysarg_t a_copied, a_needed;
-	int rc;
-
-	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_THREAD_READ,
-		(sysarg_t)buffer, n, NULL, &a_copied, &a_needed);
-
-	*copied = (size_t)a_copied;
-	*needed = (size_t)a_needed;
-
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_3(exch, IPC_M_DEBUG, UDEBUG_M_THREAD_READ,
+	    (sysarg_t) buffer, n, NULL, &a_copied, &a_needed);
+	
+	*copied = (size_t) a_copied;
+	*needed = (size_t) a_needed;
+	
 	return rc;
 }
 
-int udebug_name_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed)
+int udebug_name_read(async_sess_t *sess, void *buffer, size_t n,
+    size_t *copied, size_t *needed)
 {
 	sysarg_t a_copied, a_needed;
-	int rc;
-
-	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_NAME_READ,
-		(sysarg_t)buffer, n, NULL, &a_copied, &a_needed);
-
-	*copied = (size_t)a_copied;
-	*needed = (size_t)a_needed;
-
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_3(exch, IPC_M_DEBUG, UDEBUG_M_NAME_READ,
+	    (sysarg_t) buffer, n, NULL, &a_copied, &a_needed);
+	
+	*copied = (size_t) a_copied;
+	*needed = (size_t) a_needed;
+	
 	return rc;
 }
 
-int udebug_areas_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed)
+int udebug_areas_read(async_sess_t *sess, void *buffer, size_t n,
+    size_t *copied, size_t *needed)
 {
 	sysarg_t a_copied, a_needed;
-	int rc;
-
-	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_AREAS_READ,
-		(sysarg_t)buffer, n, NULL, &a_copied, &a_needed);
-
-	*copied = (size_t)a_copied;
-	*needed = (size_t)a_needed;
-
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_3(exch, IPC_M_DEBUG, UDEBUG_M_AREAS_READ,
+	    (sysarg_t) buffer, n, NULL, &a_copied, &a_needed);
+	
+	*copied = (size_t) a_copied;
+	*needed = (size_t) a_needed;
+	
 	return rc;
 }
 
-int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n)
+int udebug_mem_read(async_sess_t *sess, void *buffer, uintptr_t addr, size_t n)
 {
-	return async_req_4_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_MEM_READ,
-	    (sysarg_t)buffer, addr, n);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_4_0(exch, IPC_M_DEBUG, UDEBUG_M_MEM_READ,
+	    (sysarg_t) buffer, addr, n);
 }
 
-int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer)
+int udebug_args_read(async_sess_t *sess, thash_t tid, sysarg_t *buffer)
 {
-	return async_req_3_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_ARGS_READ,
-	    tid, (sysarg_t)buffer);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_3_0(exch, IPC_M_DEBUG, UDEBUG_M_ARGS_READ,
+	    tid, (sysarg_t) buffer);
 }
 
-int udebug_regs_read(int phoneid, thash_t tid, void *buffer)
+int udebug_regs_read(async_sess_t *sess, thash_t tid, void *buffer)
 {
-	return async_req_3_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_REGS_READ,
-	    tid, (sysarg_t)buffer);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_3_0(exch, IPC_M_DEBUG, UDEBUG_M_REGS_READ,
+	    tid, (sysarg_t) buffer);
 }
 
-int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
+int udebug_go(async_sess_t *sess, thash_t tid, udebug_event_t *ev_type,
     sysarg_t *val0, sysarg_t *val1)
 {
 	sysarg_t a_ev_type;
-	int rc;
-
-	rc =  async_req_2_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_GO,
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_2_3(exch, IPC_M_DEBUG, UDEBUG_M_GO,
 	    tid, &a_ev_type, val0, val1);
-
+	
 	*ev_type = a_ev_type;
 	return rc;
 }
 
-int udebug_stop(int phoneid, thash_t tid)
+int udebug_stop(async_sess_t *sess, thash_t tid)
 {
-	return async_req_2_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_STOP,
-	    tid);
+	async_exch_t *exch = async_exchange_begin(sess);
+	return async_req_2_0(exch, IPC_M_DEBUG, UDEBUG_M_STOP, tid);
 }
 
 /** @}

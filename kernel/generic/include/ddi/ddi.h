@@ -35,8 +35,8 @@
 #ifndef KERN_DDI_H_
 #define KERN_DDI_H_
 
-#include <ddi/ddi_arg.h>
 #include <typedefs.h>
+#include <abi/ddi/arg.h>
 #include <proc/task.h>
 #include <adt/list.h>
 
@@ -47,6 +47,8 @@ typedef struct {
 	uintptr_t pbase;  /**< Physical base of the area. */
 	pfn_t frames;     /**< Number of frames in the area. */
 	bool unpriv;      /**< Allow mapping by unprivileged tasks. */
+	bool mapped;      /**< Indicate whether the area is actually
+	                       mapped. */
 } parea_t;
 
 extern void ddi_init(void);

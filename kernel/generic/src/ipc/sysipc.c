@@ -39,9 +39,11 @@
 #include <memstr.h>
 #include <debug.h>
 #include <ipc/ipc.h>
+#include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
+#include <ipc/event.h>
 #include <ipc/kbox.h>
 #include <synch/waitq.h>
 #include <udebug/udebug_ipc.h>
@@ -51,6 +53,7 @@
 #include <console/console.h>
 #include <mm/as.h>
 #include <print.h>
+#include <macros.h>
 
 /**
  * Maximum buffer size allowed for IPC_M_DATA_WRITE and IPC_M_DATA_READ
@@ -132,6 +135,7 @@ static inline bool method_is_immutable(sysarg_t imethod)
 	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:
 	case IPC_M_DATA_READ:
+	case IPC_M_STATE_CHANGE_AUTHORIZE:
 		return true;
 	default:
 		return false;
@@ -162,6 +166,7 @@ static inline bool answer_need_old(call_t *call)
 	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:
 	case IPC_M_DATA_READ:
+	case IPC_M_STATE_CHANGE_AUTHORIZE:
 		return true;
 	default:
 		return false;
@@ -247,8 +252,6 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
-			/* Set 'task hash' as arg4 of response */
-			IPC_SET_ARG4(answer->data, (sysarg_t) TASK);
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
 			    (sysarg_t) &TASK->phones[phoneid]);
@@ -332,6 +335,52 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		}
 		free(answer->buffer);
 		answer->buffer = NULL;
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_STATE_CHANGE_AUTHORIZE) {
+		if (!IPC_GET_RETVAL(answer->data)) {
+			/* The recipient authorized the change of state. */
+			phone_t *recipient_phone;
+			task_t *other_task_s;
+			task_t *other_task_r;
+			int rc;
+
+			rc = phone_get(IPC_GET_ARG1(answer->data),
+			    &recipient_phone);
+			if (rc != EOK) {
+				IPC_SET_RETVAL(answer->data, ENOENT);
+				return ENOENT;
+			}
+
+			mutex_lock(&recipient_phone->lock);
+			if (recipient_phone->state != IPC_PHONE_CONNECTED) {
+				mutex_unlock(&recipient_phone->lock);
+				IPC_SET_RETVAL(answer->data, EINVAL);
+				return EINVAL;
+			}
+
+			other_task_r = recipient_phone->callee->task;
+			other_task_s = (task_t *) IPC_GET_ARG5(*olddata);
+
+			/*
+			 * See if both the sender and the recipient meant the
+			 * same third party task.
+			 */
+			if (other_task_r != other_task_s) {
+				IPC_SET_RETVAL(answer->data, EINVAL);
+				rc = EINVAL;
+			} else {
+				rc = event_task_notify_5(other_task_r,
+				    EVENT_TASK_STATE_CHANGE, false,
+				    IPC_GET_ARG1(*olddata),
+				    IPC_GET_ARG2(*olddata),
+				    IPC_GET_ARG3(*olddata),
+				    LOWER32(olddata->task_id),
+				    UPPER32(olddata->task_id));
+				IPC_SET_RETVAL(answer->data, rc);
+			}
+
+			mutex_unlock(&recipient_phone->lock);
+			return rc;
+		}
 	}
 	
 	return 0;
@@ -425,8 +474,6 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	}
 	case IPC_M_DATA_READ: {
 		size_t size = IPC_GET_ARG2(call->data);
-		if (size <= 0)
-			return ELIMIT;
 		if (size > DATA_XFER_LIMIT) {
 			int flags = IPC_GET_ARG3(call->data);
 			if (flags & IPC_XF_RESTRICT)
@@ -458,8 +505,29 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		
 		break;
 	}
+	case IPC_M_STATE_CHANGE_AUTHORIZE: {
+		phone_t *sender_phone;
+		task_t *other_task_s;
+
+		if (phone_get(IPC_GET_ARG5(call->data), &sender_phone) != EOK)
+			return ENOENT;
+
+		mutex_lock(&sender_phone->lock);
+		if (sender_phone->state != IPC_PHONE_CONNECTED) {
+			mutex_unlock(&sender_phone->lock);
+			return EINVAL;
+		}
+
+		other_task_s = sender_phone->callee->task;
+
+		mutex_unlock(&sender_phone->lock);
+
+		/* Remember the third party task hash. */
+		IPC_SET_ARG5(call->data, (sysarg_t) other_task_s);
+		break;
+	}
 #ifdef CONFIG_UDEBUG
-	case IPC_M_DEBUG_ALL:
+	case IPC_M_DEBUG:
 		return udebug_request_preprocess(call, phone);
 #endif
 	default:
@@ -494,7 +562,7 @@ static void process_answer(call_t *call)
 	if (call->buffer) {
 		/*
 		 * This must be an affirmative answer to IPC_M_DATA_READ
-		 * or IPC_M_DEBUG_ALL/UDEBUG_M_MEM_READ...
+		 * or IPC_M_DEBUG/UDEBUG_M_MEM_READ...
 		 *
 		 */
 		uintptr_t dst = IPC_GET_ARG1(call->data);
@@ -530,7 +598,7 @@ static int process_request(answerbox_t *box, call_t *call)
 	}
 	
 	switch (IPC_GET_IMETHOD(call->data)) {
-	case IPC_M_DEBUG_ALL:
+	case IPC_M_DEBUG:
 		return -1;
 	default:
 		break;

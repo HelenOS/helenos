@@ -33,35 +33,36 @@
 #ifndef __NET_NIL_REMOTE_H__
 #define __NET_NIL_REMOTE_H__
 
-#include <ipc/services.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <devman.h>
 #include <generic.h>
+#include <async.h>
 
 #define nil_bind_service(service, device_id, me, receiver) \
 	bind_service(service, device_id, me, 0, receiver)
 
-#define nil_packet_size_req(nil_phone, device_id, packet_dimension) \
-	generic_packet_size_req_remote(nil_phone, NET_NIL_PACKET_SPACE, \
+#define nil_packet_size_req(sess, device_id, packet_dimension) \
+	generic_packet_size_req_remote(sess, NET_NIL_PACKET_SPACE, \
 	    device_id, packet_dimension)
 
-#define nil_get_addr_req(nil_phone, device_id, address, data) \
-	generic_get_addr_req(nil_phone, NET_NIL_ADDR, device_id, address, data)
+#define nil_get_addr_req(sess, device_id, address, data) \
+	generic_get_addr_req(sess, NET_NIL_ADDR, device_id, address, data)
 
-#define nil_get_broadcast_addr_req(nil_phone, device_id, address, data) \
-	generic_get_addr_req(nil_phone, NET_NIL_BROADCAST_ADDR, device_id, \
+#define nil_get_broadcast_addr_req(sess, device_id, address, data) \
+	generic_get_addr_req(sess, NET_NIL_BROADCAST_ADDR, device_id, \
 	    address, data)
 
-#define nil_send_msg(nil_phone, device_id, packet, sender) \
-	generic_send_msg_remote(nil_phone, NET_NIL_SEND, device_id, \
+#define nil_send_msg(sess, device_id, packet, sender) \
+	generic_send_msg_remote(sess, NET_NIL_SEND, device_id, \
 	    packet_get_id(packet), sender, 0)
 
-#define nil_device_req(nil_phone, device_id, mtu, netif_service) \
-	generic_device_req_remote(nil_phone, NET_NIL_DEVICE, device_id, mtu, \
-	    netif_service)
-
-extern int nil_device_state_msg(int, device_id_t, int);
-extern int nil_received_msg(int, device_id_t, packet_t *, services_t);
+extern int nil_device_req(async_sess_t *, nic_device_id_t, devman_handle_t,
+    size_t);
+extern int nil_device_state_msg(async_sess_t *, nic_device_id_t, sysarg_t);
+extern int nil_received_msg(async_sess_t *, nic_device_id_t, packet_id_t);
+extern int nil_addr_changed_msg(async_sess_t *, nic_device_id_t,
+    const nic_address_t *);
 
 #endif
 

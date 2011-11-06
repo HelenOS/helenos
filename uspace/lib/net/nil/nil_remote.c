@@ -44,7 +44,7 @@
 
 /** Notify the network interface layer about the device state change.
  *
- * @param[in] nil_phone Network interface layer phone.
+ * @param[in] sess      Network interface layer session.
  * @param[in] device_id Device identifier.
  * @param[in] state     New device state.
  *
@@ -53,9 +53,10 @@
  *         device state function.
  *
  */
-int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
+int nil_device_state_msg(async_sess_t *sess, nic_device_id_t device_id,
+    sysarg_t state)
 {
-	return generic_device_state_msg_remote(nil_phone, NET_NIL_DEVICE_STATE,
+	return generic_device_state_msg_remote(sess, NET_NIL_DEVICE_STATE,
 	    device_id, state, 0);
 }
 
@@ -64,7 +65,7 @@ int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
  * Process and redistribute the received packet queue to the registered
  * upper layers.
  *
- * @param[in] nil_phone Network interface layer phone.
+ * @param[in] sess      Network interface layer session.
  * @param[in] device_id Source device identifier.
  * @param[in] packet    Received packet or the received packet queue.
  * @param[in] target    Target service. Ignored parameter.
@@ -74,11 +75,46 @@ int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
  *         received function.
  *
  */
-int nil_received_msg(int nil_phone, device_id_t device_id,
-    packet_t *packet, services_t target)
+int nil_received_msg(async_sess_t *sess, nic_device_id_t device_id,
+    packet_id_t packet_id)
 {
-	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED,
-	    device_id, packet_get_id(packet), target, 0);
+	return generic_received_msg_remote(sess, NET_NIL_RECEIVED,
+	    device_id, packet_id, 0, 0);
+}
+
+/** Notify upper layers that device address has changed
+ *
+ */
+int nil_addr_changed_msg(async_sess_t *sess, nic_device_id_t device_id,
+    const nic_address_t *address)
+{
+	assert(sess);
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	aid_t message_id = async_send_1(exch, NET_NIL_ADDR_CHANGED,
+	    (sysarg_t) device_id, NULL);
+	int rc = async_data_write_start(exch, address, sizeof (nic_address_t));
+	
+	async_exchange_end(exch);
+	
+	sysarg_t res;
+    async_wait_for(message_id, &res);
+	
+    if (rc != EOK)
+		return rc;
+	
+    return (int) res;
+}
+
+int nil_device_req(async_sess_t *sess, nic_device_id_t device_id,
+    devman_handle_t handle, size_t mtu)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_0(exch, NET_NIL_DEVICE, (sysarg_t) device_id,
+	    (sysarg_t) handle, (sysarg_t) mtu);
+	async_exchange_end(exch);
+	return rc;
 }
 
 /** @}

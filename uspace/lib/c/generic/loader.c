@@ -34,7 +34,7 @@
 
 #include <ipc/loader.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <libc.h>
 #include <task.h>
 #include <str.h>
@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <vfs/vfs.h>
 #include <loader/loader.h>
+#include "private/loader.h"
 
 /** Connect to a new program loader.
  *
@@ -62,15 +63,18 @@ int loader_spawn(const char *name)
 
 loader_t *loader_connect(void)
 {
-	int phone_id = service_connect_blocking(SERVICE_LOAD, 0, 0);
-	if (phone_id < 0)
-		return NULL;
-	
 	loader_t *ldr = malloc(sizeof(loader_t));
 	if (ldr == NULL)
 		return NULL;
 	
-	ldr->phone_id = phone_id;
+	async_sess_t *sess =
+	    service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOAD, 0, 0);
+	if (sess == NULL) {
+		free(ldr);
+		return NULL;
+	}
+	
+	ldr->sess = sess;
 	return ldr;
 }
 
@@ -87,17 +91,21 @@ loader_t *loader_connect(void)
 int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 {
 	/* Get task ID. */
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	
 	ipc_call_t answer;
-	aid_t req = async_send_0(ldr->phone_id, LOADER_GET_TASKID, &answer);
-	int rc = async_data_read_start(ldr->phone_id, task_id, sizeof(task_id_t));
+	aid_t req = async_send_0(exch, LOADER_GET_TASKID, &answer);
+	sysarg_t rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
+	
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
-		return rc;
+		return (int) rc;
 	}
 	
-	sysarg_t retval;
-	async_wait_for(req, &retval);
-	return (int) retval;
+	async_wait_for(req, &rc);
+	return (int) rc;
 }
 
 /** Set current working directory for the loaded task.
@@ -111,28 +119,31 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
  */
 int loader_set_cwd(loader_t *ldr)
 {
-	char *cwd;
-	size_t len;
-
-	cwd = (char *) malloc(MAX_PATH_LEN + 1);
+	char *cwd = (char *) malloc(MAX_PATH_LEN + 1);
 	if (!cwd)
 		return ENOMEM;
+	
 	if (!getcwd(cwd, MAX_PATH_LEN + 1))
-		str_cpy(cwd, MAX_PATH_LEN + 1, "/"); 
-	len = str_length(cwd);
+		str_cpy(cwd, MAX_PATH_LEN + 1, "/");
+	
+	size_t len = str_length(cwd);
+	
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_CWD, &answer);
-	int rc = async_data_write_start(ldr->phone_id, cwd, len);
+	aid_t req = async_send_0(exch, LOADER_SET_CWD, &answer);
+	sysarg_t rc = async_data_write_start(exch, cwd, len);
+	
+	async_exchange_end(exch);
 	free(cwd);
+	
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
-		return rc;
+		return (int) rc;
 	}
 	
-	sysarg_t retval;
-	async_wait_for(req, &retval);
-	return (int) retval;
+	async_wait_for(req, &rc);
+	return (int) rc;
 }
 
 /** Set pathname of the program to load.
@@ -152,23 +163,25 @@ int loader_set_pathname(loader_t *ldr, const char *path)
 	size_t pa_len;
 	char *pa = absolutize(path, &pa_len);
 	if (!pa)
-		return 0;
+		return ENOMEM;
 	
 	/* Send program pathname */
-	ipc_call_t answer;
-	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_PATHNAME, &answer);
-	int rc = async_data_write_start(ldr->phone_id, (void *) pa, pa_len);
-	if (rc != EOK) {
-		free(pa);
-		async_wait_for(req, NULL);
-		return rc;
-	}
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, LOADER_SET_PATHNAME, &answer);
+	sysarg_t rc = async_data_write_start(exch, (void *) pa, pa_len);
+	
+	async_exchange_end(exch);
 	free(pa);
 	
-	sysarg_t retval;
-	async_wait_for(req, &retval);
-	return (int) retval;
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return (int) rc;
+	}
+	
+	async_wait_for(req, &rc);
+	return (int) rc;
 }
 
 /** Set command-line arguments for the program.
@@ -211,22 +224,23 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	}
 	
 	/* Send serialized arguments to the loader */
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	
 	ipc_call_t answer;
-	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_ARGS, &answer);
-	sysarg_t rc = async_data_write_start(ldr->phone_id, (void *) arg_buf, buffer_size);
+	aid_t req = async_send_0(exch, LOADER_SET_ARGS, &answer);
+	sysarg_t rc = async_data_write_start(exch, (void *) arg_buf,
+	    buffer_size);
+	
+	async_exchange_end(exch);
+	free(arg_buf);
+	
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
-		return rc;
+		return (int) rc;
 	}
 	
 	async_wait_for(req, &rc);
-	if (rc != EOK)
-		return rc;
-	
-	/* Free temporary buffer */
-	free(arg_buf);
-	
-	return EOK;
+	return (int) rc;
 }
 
 /** Set preset files for the program.
@@ -241,47 +255,37 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
  * @return Zero on success or negative error code.
  *
  */
-int loader_set_files(loader_t *ldr, fdi_node_t *const files[])
+int loader_set_files(loader_t *ldr, int * const files[])
 {
-	/*
-	 * Serialize the arguments into a single array. First
-	 * compute size of the buffer needed.
-	 */
-	fdi_node_t *const *ap = files;
-	size_t count = 0;
-	while (*ap != NULL) {
-		count++;
-		ap++;
+	/* Send serialized files to the loader */
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	async_exch_t *vfs_exch = vfs_exchange_begin();
+	
+	int i;
+	for (i = 0; files[i]; i++);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, LOADER_SET_FILES, i, &answer);
+
+	sysarg_t rc = EOK;
+	
+	for (i = 0; files[i]; i++) {
+		rc = async_state_change_start(exch, VFS_PASS_HANDLE, *files[i],
+		    0, vfs_exch); 
+		if (rc != EOK)
+			break;
 	}
 	
-	fdi_node_t *files_buf;
-	files_buf = (fdi_node_t *) malloc(count * sizeof(fdi_node_t));
-	if (files_buf == NULL)
-		return ENOMEM;
-	
-	/* Fill the buffer */
-	size_t i;
-	for (i = 0; i < count; i++)
-		files_buf[i] = *files[i];
-	
-	/* Send serialized files to the loader */
-	ipc_call_t answer;
-	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_FILES, &answer);
-	sysarg_t rc = async_data_write_start(ldr->phone_id, (void *) files_buf,
-	    count * sizeof(fdi_node_t));
+	vfs_exchange_end(vfs_exch);
+	async_exchange_end(exch);
+
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
-		return rc;
+		return (int) rc;
 	}
 	
 	async_wait_for(req, &rc);
-	if (rc != EOK)
-		return rc;
-	
-	/* Free temporary buffer */
-	free(files_buf);
-	
-	return EOK;
+	return (int) rc;
 }
 
 /** Instruct loader to load the program.
@@ -296,7 +300,11 @@ int loader_set_files(loader_t *ldr, fdi_node_t *const files[])
  */
 int loader_load_program(loader_t *ldr)
 {
-	return (int) async_req_0_0(ldr->phone_id, LOADER_LOAD);
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	int rc = async_req_0_0(exch, LOADER_LOAD);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
 /** Instruct loader to execute the program.
@@ -305,8 +313,8 @@ int loader_load_program(loader_t *ldr)
  * so you cannot expect this function to return if you are debugging
  * the task and its thread is stopped.
  *
- * After using this function, no further operations must be performed
- * on the loader structure. It should be de-allocated using free().
+ * After using this function, no further operations can be performed
+ * on the loader structure and it is deallocated.
  *
  * @param ldr Loader connection structure.
  *
@@ -315,20 +323,24 @@ int loader_load_program(loader_t *ldr)
  */
 int loader_run(loader_t *ldr)
 {
-	int rc = async_req_0_0(ldr->phone_id, LOADER_RUN);
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	int rc = async_req_0_0(exch, LOADER_RUN);
+	async_exchange_end(exch);
+	
 	if (rc != EOK)
 		return rc;
 	
-	async_hangup(ldr->phone_id);
-	ldr->phone_id = 0;
+	async_hangup(ldr->sess);
+	free(ldr);
+	
 	return EOK;
 }
 
 /** Cancel the loader session.
  *
- * Tells the loader not to load any program and terminate.
- * After using this function, no further operations must be performed
- * on the loader structure. It should be de-allocated using free().
+ * Tell the loader not to load any program and terminate.
+ * After using this function, no further operations can be performed
+ * on the loader structure and it is deallocated.
  *
  * @param ldr Loader connection structure.
  *
@@ -337,8 +349,8 @@ int loader_run(loader_t *ldr)
  */
 void loader_abort(loader_t *ldr)
 {
-	async_hangup(ldr->phone_id);
-	ldr->phone_id = 0;
+	async_hangup(ldr->sess);
+	free(ldr);
 }
 
 /** @}

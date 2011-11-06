@@ -32,8 +32,9 @@
 /** @file
  */
 
-#include <vfs/vfs.h>
 #include <vfs/canonify.h>
+#include <vfs/vfs.h>
+#include <vfs/vfs_sess.h>
 #include <macros.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -43,20 +44,18 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <ipc/services.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <errno.h>
 #include <assert.h>
 #include <str.h>
-#include <devmap.h>
+#include <loc.h>
 #include <ipc/vfs.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
-static async_sess_t vfs_session;
-
-static FIBRIL_MUTEX_INITIALIZE(vfs_phone_mutex);
-static int vfs_phone = -1;
+static FIBRIL_MUTEX_INITIALIZE(vfs_mutex);
+static async_sess_t *vfs_sess = NULL;
 
 static FIBRIL_MUTEX_INITIALIZE(cwd_mutex);
 
@@ -64,11 +63,38 @@ static int cwd_fd = -1;
 static char *cwd_path = NULL;
 static size_t cwd_size = 0;
 
+/** Start an async exchange on the VFS session.
+ *
+ * @return New exchange.
+ *
+ */
+async_exch_t *vfs_exchange_begin(void)
+{
+	fibril_mutex_lock(&vfs_mutex);
+	
+	while (vfs_sess == NULL)
+		vfs_sess = service_connect_blocking(EXCHANGE_PARALLEL, SERVICE_VFS,
+		    0, 0);
+	
+	fibril_mutex_unlock(&vfs_mutex);
+	
+	return async_exchange_begin(vfs_sess);
+}
+
+/** Finish an async exchange on the VFS session.
+ *
+ * @param exch Exchange to be finished.
+ *
+ */
+void vfs_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
+}
+
 char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
 	char *ncwd_path_nc;
-	size_t total_size; 
 
 	fibril_mutex_lock(&cwd_mutex);
 	size_t size = str_size(path);
@@ -77,25 +103,23 @@ char *absolutize(const char *path, size_t *retlen)
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
-		total_size = cwd_size + 1 + size + 1;
-		ncwd_path_nc = malloc(total_size);
+		ncwd_path_nc = malloc(cwd_size + 1 + size + 1);
 		if (!ncwd_path_nc) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
-		str_cpy(ncwd_path_nc, total_size, cwd_path);
+		str_cpy(ncwd_path_nc, cwd_size + 1 + size + 1, cwd_path);
 		ncwd_path_nc[cwd_size] = '/';
 		ncwd_path_nc[cwd_size + 1] = '\0';
 	} else {
-		total_size = size + 1;
-		ncwd_path_nc = malloc(total_size);
+		ncwd_path_nc = malloc(size + 1);
 		if (!ncwd_path_nc) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
 		ncwd_path_nc[0] = '\0';
 	}
-	str_append(ncwd_path_nc, total_size, path);
+	str_append(ncwd_path_nc, cwd_size + 1 + size + 1, path);
 	ncwd_path = canonify(ncwd_path_nc, retlen);
 	if (!ncwd_path) {
 		fibril_mutex_unlock(&cwd_mutex);
@@ -117,61 +141,29 @@ char *absolutize(const char *path, size_t *retlen)
 	return ncwd_path;
 }
 
-/** Connect to VFS service and create session. */
-static void vfs_connect(void)
-{
-	while (vfs_phone < 0)
-		vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
-	
-	async_session_create(&vfs_session, vfs_phone, 0);
-}
-
-/** Start an async exchange on the VFS session.
- *
- * @return		New phone to be used during the exchange.
- */
-static int vfs_exchange_begin(void)
-{
-	fibril_mutex_lock(&vfs_phone_mutex);
-	if (vfs_phone < 0)
-		vfs_connect();
-	fibril_mutex_unlock(&vfs_phone_mutex);
-
-	return async_exchange_begin(&vfs_session);
-}
-
-/** End an async exchange on the VFS session.
- *
- * @param phone		Phone used during the exchange.
- */
-static void vfs_exchange_end(int phone)
-{
-	async_exchange_end(&vfs_session, phone);
-}
-
-int mount(const char *fs_name, const char *mp, const char *fqdn,
-    const char *opts, unsigned int flags)
+int mount(const char *fs_name, const char *mp, const char *fqsn,
+    const char *opts, unsigned int flags, unsigned int instance)
 {
 	int null_id = -1;
-	char null[DEVMAP_NAME_MAXLEN];
+	char null[LOC_NAME_MAXLEN];
 	
-	if (str_cmp(fqdn, "") == 0) {
+	if (str_cmp(fqsn, "") == 0) {
 		/* No device specified, create a fresh
 		   null/%d device instead */
-		null_id = devmap_null_create();
+		null_id = loc_null_create();
 		
 		if (null_id == -1)
 			return ENOMEM;
 		
-		snprintf(null, DEVMAP_NAME_MAXLEN, "null/%d", null_id);
-		fqdn = null;
+		snprintf(null, LOC_NAME_MAXLEN, "null/%d", null_id);
+		fqsn = null;
 	}
 	
-	devmap_handle_t devmap_handle;
-	int res = devmap_device_get_handle(fqdn, &devmap_handle, flags);
+	service_id_t service_id;
+	int res = loc_service_get_id(fqsn, &service_id, flags);
 	if (res != EOK) {
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		return res;
 	}
@@ -180,23 +172,24 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	char *mpa = absolutize(mp, &mpa_size);
 	if (!mpa) {
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		return ENOMEM;
 	}
 	
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 
 	sysarg_t rc_orig;
-	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, devmap_handle, flags, NULL);
-	sysarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	aid_t req = async_send_3(exch, VFS_IN_MOUNT, service_id, flags,
+	    instance, NULL);
+	sysarg_t rc = async_data_write_start(exch, (void *) mpa, mpa_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(mpa);
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -204,14 +197,14 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 			return (int) rc_orig;
 	}
 	
-	rc = async_data_write_start(vfs_phone, (void *) opts, str_size(opts));
+	rc = async_data_write_start(exch, (void *) opts, str_size(opts));
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(mpa);
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -219,14 +212,14 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 			return (int) rc_orig;
 	}
 	
-	rc = async_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
+	rc = async_data_write_start(exch, (void *) fs_name, str_size(fs_name));
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(mpa);
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -235,14 +228,14 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	}
 	
 	/* Ask VFS whether it likes fs_name. */
-	rc = async_req_0_0(vfs_phone, IPC_M_PING);
+	rc = async_req_0_0(exch, VFS_IN_PING);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(mpa);
 		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
-			devmap_null_destroy(null_id);
+			loc_null_destroy(null_id);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -250,12 +243,12 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 			return (int) rc_orig;
 	}
 	
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	free(mpa);
 	async_wait_for(req, &rc);
 	
 	if ((rc != EOK) && (null_id != -1))
-		devmap_null_destroy(null_id);
+		loc_null_destroy(null_id);
 	
 	return (int) rc;
 }
@@ -272,12 +265,12 @@ int unmount(const char *mp)
 	if (!mpa)
 		return ENOMEM;
 	
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_0(vfs_phone, VFS_IN_UNMOUNT, NULL);
-	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	req = async_send_0(exch, VFS_IN_UNMOUNT, NULL);
+	rc = async_data_write_start(exch, (void *) mpa, mpa_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(mpa);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
@@ -287,7 +280,7 @@ int unmount(const char *mp)
 	}
 	
 
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	free(mpa);
 	async_wait_for(req, &rc);
 	
@@ -296,14 +289,14 @@ int unmount(const char *mp)
 
 static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 {
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 	
 	ipc_call_t answer;
-	aid_t req = async_send_3(vfs_phone, VFS_IN_OPEN, lflag, oflag, 0, &answer);
-	sysarg_t rc = async_data_write_start(vfs_phone, abs, abs_size);
+	aid_t req = async_send_3(exch, VFS_IN_OPEN, lflag, oflag, 0, &answer);
+	sysarg_t rc = async_data_write_start(exch, abs, abs_size);
 	
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
@@ -314,7 +307,7 @@ static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 			return (int) rc_orig;
 	}
 	
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
 	
 	if (rc != EOK)
@@ -336,36 +329,15 @@ int open(const char *path, int oflag, ...)
 	return ret;
 }
 
-int open_node(fdi_node_t *node, int oflag)
-{
-	int vfs_phone = vfs_exchange_begin();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_4(vfs_phone, VFS_IN_OPEN_NODE, node->fs_handle,
-	    node->devmap_handle, node->index, oflag, &answer);
-	
-	vfs_exchange_end(vfs_phone);
-
-	sysarg_t rc;
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK)
-		return (int) rc;
-	
-	return (int) IPC_GET_ARG1(answer);
-}
-
 int close(int fildes)
 {
 	sysarg_t rc;
 	
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
+	rc = async_req_1_0(exch, VFS_IN_CLOSE, fildes);
+	vfs_exchange_end(exch);
 	
-	rc = async_req_1_0(vfs_phone, VFS_IN_CLOSE, fildes);
-	
-	vfs_exchange_end(vfs_phone);
-	
-	return (int)rc;
+	return (int) rc;
 }
 
 ssize_t read(int fildes, void *buf, size_t nbyte) 
@@ -373,14 +345,13 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	sysarg_t rc;
 	ipc_call_t answer;
 	aid_t req;
-
-	int vfs_phone = vfs_exchange_begin();
 	
-	req = async_send_1(vfs_phone, VFS_IN_READ, fildes, &answer);
-	rc = async_data_read_start_generic(vfs_phone, (void *) buf, nbyte,
-	    IPC_XF_RESTRICT);
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	req = async_send_1(exch, VFS_IN_READ, fildes, &answer);
+	rc = async_data_read_start(exch, (void *)buf, nbyte);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
@@ -390,7 +361,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 		else
 			return (ssize_t) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
 	if (rc == EOK)
 		return (ssize_t) IPC_GET_ARG1(answer);
@@ -403,14 +374,13 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	sysarg_t rc;
 	ipc_call_t answer;
 	aid_t req;
-
-	int vfs_phone = vfs_exchange_begin();
 	
-	req = async_send_1(vfs_phone, VFS_IN_WRITE, fildes, &answer);
-	rc = async_data_write_start_generic(vfs_phone, (void *) buf, nbyte,
-	    IPC_XF_RESTRICT);
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	req = async_send_1(exch, VFS_IN_WRITE, fildes, &answer);
+	rc = async_data_write_start(exch, (void *)buf, nbyte);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
@@ -420,7 +390,7 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		else
 			return (ssize_t) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
 	if (rc == EOK)
 		return (ssize_t) IPC_GET_ARG1(answer);
@@ -428,28 +398,88 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		return -1;
 }
 
+/** Read entire buffer.
+ *
+ * In face of short reads this function continues reading until either
+ * the entire buffer is read or no more data is available (at end of file).
+ *
+ * @param fildes	File descriptor
+ * @param buf		Buffer, @a nbytes bytes long
+ * @param nbytes	Number of bytes to read
+ *
+ * @return		On success, positive number of bytes read.
+ *			On failure, negative error code from read().
+ */
+ssize_t read_all(int fildes, void *buf, size_t nbyte)
+{
+	ssize_t cnt = 0;
+	size_t nread = 0;
+	uint8_t *bp = (uint8_t *) buf;
+
+	do {
+		bp += cnt;
+		nread += cnt;
+		cnt = read(fildes, bp, nbyte - nread);
+	} while (cnt > 0 && (nbyte - nread - cnt) > 0);
+
+	if (cnt < 0)
+		return cnt;
+
+	return nread + cnt;
+}
+
+/** Write entire buffer.
+ *
+ * This function fails if it cannot write exactly @a len bytes to the file.
+ *
+ * @param fildes	File descriptor
+ * @param buf		Data, @a nbytes bytes long
+ * @param nbytes	Number of bytes to write
+ *
+ * @return		EOK on error, return value from write() if writing
+ *			failed.
+ */
+ssize_t write_all(int fildes, const void *buf, size_t nbyte)
+{
+	ssize_t cnt = 0;
+	ssize_t nwritten = 0;
+	const uint8_t *bp = (uint8_t *) buf;
+
+	do {
+		bp += cnt;
+		nwritten += cnt;
+		cnt = write(fildes, bp, nbyte - nwritten);
+	} while (cnt > 0 && ((ssize_t )nbyte - nwritten - cnt) > 0);
+
+	if (cnt < 0)
+		return cnt;
+
+	if ((ssize_t)nbyte - nwritten - cnt > 0)
+		return EIO;
+
+	return nbyte;
+}
+
 int fsync(int fildes)
 {
-	int vfs_phone = vfs_exchange_begin();
-	
-	sysarg_t rc = async_req_1_0(vfs_phone, VFS_IN_SYNC, fildes);
-	
-	vfs_exchange_end(vfs_phone);
+	async_exch_t *exch = vfs_exchange_begin();
+	sysarg_t rc = async_req_1_0(exch, VFS_IN_SYNC, fildes);
+	vfs_exchange_end(exch);
 	
 	return (int) rc;
 }
 
 off64_t lseek(int fildes, off64_t offset, int whence)
 {
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 	
 	sysarg_t newoff_lo;
 	sysarg_t newoff_hi;
-	sysarg_t rc = async_req_4_2(vfs_phone, VFS_IN_SEEK, fildes,
+	sysarg_t rc = async_req_4_2(exch, VFS_IN_SEEK, fildes,
 	    LOWER32(offset), UPPER32(offset), whence,
 	    &newoff_lo, &newoff_hi);
 	
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	
 	if (rc != EOK)
 		return (off64_t) -1;
@@ -461,11 +491,10 @@ int ftruncate(int fildes, aoff64_t length)
 {
 	sysarg_t rc;
 	
-	int vfs_phone = vfs_exchange_begin();
-	
-	rc = async_req_3_0(vfs_phone, VFS_IN_TRUNCATE, fildes,
+	async_exch_t *exch = vfs_exchange_begin();
+	rc = async_req_3_0(exch, VFS_IN_TRUNCATE, fildes,
 	    LOWER32(length), UPPER32(length));
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	
 	return (int) rc;
 }
@@ -474,13 +503,13 @@ int fstat(int fildes, struct stat *stat)
 {
 	sysarg_t rc;
 	aid_t req;
-
-	int vfs_phone = vfs_exchange_begin();
 	
-	req = async_send_1(vfs_phone, VFS_IN_FSTAT, fildes, NULL);
-	rc = async_data_read_start(vfs_phone, (void *) stat, sizeof(struct stat));
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	req = async_send_1(exch, VFS_IN_FSTAT, fildes, NULL);
+	rc = async_data_read_start(exch, (void *) stat, sizeof(struct stat));
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
@@ -490,7 +519,7 @@ int fstat(int fildes, struct stat *stat)
 		else
 			return (ssize_t) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
 
 	return rc;
@@ -507,12 +536,12 @@ int stat(const char *path, struct stat *stat)
 	if (!pa)
 		return ENOMEM;
 	
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_0(vfs_phone, VFS_IN_STAT, NULL);
-	rc = async_data_write_start(vfs_phone, pa, pa_size);
+	req = async_send_0(exch, VFS_IN_STAT, NULL);
+	rc = async_data_write_start(exch, pa, pa_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(pa);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
@@ -520,9 +549,9 @@ int stat(const char *path, struct stat *stat)
 		else
 			return (int) rc_orig;
 	}
-	rc = async_data_read_start(vfs_phone, stat, sizeof(struct stat));
+	rc = async_data_read_start(exch, stat, sizeof(struct stat));
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(pa);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
@@ -530,7 +559,7 @@ int stat(const char *path, struct stat *stat)
 		else
 			return (int) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	free(pa);
 	async_wait_for(req, &rc);
 	return rc;
@@ -591,12 +620,12 @@ int mkdir(const char *path, mode_t mode)
 	if (!pa)
 		return ENOMEM;
 	
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(vfs_phone, VFS_IN_MKDIR, mode, NULL);
-	rc = async_data_write_start(vfs_phone, pa, pa_size);
+	req = async_send_1(exch, VFS_IN_MKDIR, mode, NULL);
+	rc = async_data_write_start(exch, pa, pa_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(pa);
 
 		sysarg_t rc_orig;
@@ -607,7 +636,7 @@ int mkdir(const char *path, mode_t mode)
 		else
 			return (int) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	free(pa);
 	async_wait_for(req, &rc);
 	return rc;
@@ -622,13 +651,13 @@ static int _unlink(const char *path, int lflag)
 	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
-
-	int vfs_phone = vfs_exchange_begin();
 	
-	req = async_send_0(vfs_phone, VFS_IN_UNLINK, NULL);
-	rc = async_data_write_start(vfs_phone, pa, pa_size);
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	req = async_send_1(exch, VFS_IN_UNLINK, lflag, NULL);
+	rc = async_data_write_start(exch, pa, pa_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(pa);
 
 		sysarg_t rc_orig;
@@ -639,7 +668,7 @@ static int _unlink(const char *path, int lflag)
 		else
 			return (int) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	free(pa);
 	async_wait_for(req, &rc);
 	return rc;
@@ -672,13 +701,13 @@ int rename(const char *old, const char *new)
 		free(olda);
 		return ENOMEM;
 	}
-
-	int vfs_phone = vfs_exchange_begin();
 	
-	req = async_send_0(vfs_phone, VFS_IN_RENAME, NULL);
-	rc = async_data_write_start(vfs_phone, olda, olda_size);
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	req = async_send_0(exch, VFS_IN_RENAME, NULL);
+	rc = async_data_write_start(exch, olda, olda_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(olda);
 		free(newa);
 		async_wait_for(req, &rc_orig);
@@ -687,9 +716,9 @@ int rename(const char *old, const char *new)
 		else
 			return (int) rc_orig;
 	}
-	rc = async_data_write_start(vfs_phone, newa, newa_size);
+	rc = async_data_write_start(exch, newa, newa_size);
 	if (rc != EOK) {
-		vfs_exchange_end(vfs_phone);
+		vfs_exchange_end(exch);
 		free(olda);
 		free(newa);
 		async_wait_for(req, &rc_orig);
@@ -698,7 +727,7 @@ int rename(const char *old, const char *new)
 		else
 			return (int) rc_orig;
 	}
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	free(olda);
 	free(newa);
 	async_wait_for(req, &rc);
@@ -754,49 +783,112 @@ char *getcwd(char *buf, size_t size)
 	return buf;
 }
 
-int fd_phone(int fildes)
+async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
 {
 	struct stat stat;
-	
 	int rc = fstat(fildes, &stat);
-	if (rc != 0)
-		return rc;
-	
-	if (!stat.device)
-		return -1;
-	
-	return devmap_device_connect(stat.device, 0);
-}
-
-int fd_node(int fildes, fdi_node_t *node)
-{
-	struct stat stat;
-	int rc;
-
-	rc = fstat(fildes, &stat);
-	
-	if (rc == EOK) {
-		node->fs_handle = stat.fs_handle;
-		node->devmap_handle = stat.devmap_handle;
-		node->index = stat.index;
+	if (rc != 0) {
+		errno = rc;
+		return NULL;
 	}
 	
-	return rc;
+	if (!stat.service) {
+		errno = ENOENT;
+		return NULL;
+	}
+	
+	return loc_service_connect(mgmt, stat.service, 0);
 }
 
 int dup2(int oldfd, int newfd)
 {
-	int vfs_phone = vfs_exchange_begin();
+	async_exch_t *exch = vfs_exchange_begin();
 	
 	sysarg_t ret;
-	sysarg_t rc = async_req_2_1(vfs_phone, VFS_IN_DUP, oldfd, newfd, &ret);
+	sysarg_t rc = async_req_2_1(exch, VFS_IN_DUP, oldfd, newfd, &ret);
 	
-	vfs_exchange_end(vfs_phone);
+	vfs_exchange_end(exch);
 	
 	if (rc == EOK)
 		return (int) ret;
 	
 	return (int) rc;
+}
+
+int fd_wait(void)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	sysarg_t ret;
+	sysarg_t rc = async_req_0_1(exch, VFS_IN_WAIT_HANDLE, &ret);
+	
+	vfs_exchange_end(exch);
+	
+	if (rc == EOK)
+		return (int) ret;
+	
+	return (int) rc;
+}
+
+int get_mtab_list(list_t *mtab_list)
+{
+	sysarg_t rc;
+	aid_t req;
+	size_t i;
+	sysarg_t num_mounted_fs;
+	
+	async_exch_t *exch = vfs_exchange_begin();
+
+	req = async_send_0(exch, VFS_IN_MTAB_GET, NULL);
+
+	/* Ask VFS how many filesystems are mounted */
+	rc = async_req_0_1(exch, VFS_IN_PING, &num_mounted_fs);
+	if (rc != EOK)
+		goto exit;
+
+	for (i = 0; i < num_mounted_fs; ++i) {
+		mtab_ent_t *mtab_ent;
+
+		mtab_ent = malloc(sizeof(mtab_ent_t));
+		if (!mtab_ent) {
+			rc = ENOMEM;
+			goto exit;
+		}
+
+		memset(mtab_ent, 0, sizeof(mtab_ent_t));
+
+		rc = async_data_read_start(exch, (void *) mtab_ent->mp,
+		    MAX_PATH_LEN);
+		if (rc != EOK)
+			goto exit;
+
+		rc = async_data_read_start(exch, (void *) mtab_ent->opts,
+			MAX_MNTOPTS_LEN);
+		if (rc != EOK)
+			goto exit;
+
+		rc = async_data_read_start(exch, (void *) mtab_ent->fs_name,
+			FS_NAME_MAXLEN);
+		if (rc != EOK)
+			goto exit;
+
+		sysarg_t p[2];
+
+		rc = async_req_0_2(exch, VFS_IN_PING, &p[0], &p[1]);
+		if (rc != EOK)
+			goto exit;
+
+		mtab_ent->instance = p[0];
+		mtab_ent->service_id = p[1];
+
+		link_initialize(&mtab_ent->link);
+		list_append(&mtab_ent->link, mtab_list);
+	}
+
+exit:
+	async_wait_for(req, &rc);
+	vfs_exchange_end(exch);
+	return rc;
 }
 
 /** @}

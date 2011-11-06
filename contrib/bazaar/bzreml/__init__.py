@@ -133,44 +133,12 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				body.write("Date: %s\n" % date)
 				body.write("New Revision: %s%s\n" % (revision_ac_no, merge_marker(revision_ac)))
 				body.write("New Id: %s\n" % revision_ac_id)
+				for parent_id in revision_ac.parent_ids:
+					body.write("Parent: %s\n" % parent_id)
 				
 				body.write("\n")
 				
-				for parent_id in revision_ac.parent_ids:
-					body.write("Parent: %s\n" % parent_id)
-					
-					tree_old = branch.repository.revision_tree(parent_id)
-					tree_ac = branch.repository.revision_tree(revision_ac_id)
-					
-					delta = tree_ac.changes_from(tree_old)
-					
-					if (len(delta.added) > 0):
-						body.write("Added:\n")
-						for item in delta.added:
-							body.write("    %s\n" % item[0])
-					
-					if (len(delta.removed) > 0):
-						body.write("Removed:\n")
-						for item in delta.removed:
-							body.write("    %s\n" % item[0])
-					
-					if (len(delta.renamed) > 0):
-						body.write("Renamed:\n")
-						for item in delta.renamed:
-							body.write("    %s -> %s\n" % (item[0], item[1]))
-					
-					if (len(delta.kind_changed) > 0):
-						body.write("Changed:\n")
-						for item in delta.kind_changed:
-							body.write("    %s\n" % item[0])
-						
-					if (len(delta.modified) > 0):
-						body.write("Modified:\n")
-						for item in delta.modified:
-							body.write("    %s\n" % item[0])
-					
-					body.write("\n")
-				
+				commit_message = ""
 				body.write("Log:\n")
 				if (not revision_ac.message):
 					body.write("(empty)\n")
@@ -178,11 +146,46 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 					log = revision_ac.message.rstrip("\n\r")
 					for line in log.split("\n"):
 						body.write("%s\n" % line)
+						if (commit_message == ""):
+							commit_message = line
+				
+				if (commit_message == ""):
+					commit_message = "(empty)"
 				
 				body.write("\n")
 			
 			tree_old = branch.repository.revision_tree(revision_old_id)
 			tree_new = branch.repository.revision_tree(revision_new_id)
+			
+			revision_new_no = branch.revision_id_to_revno(revision_new_id)
+			delta = tree_new.changes_from(tree_old)
+			
+			if (len(delta.added) > 0):
+				body.write("Added:\n")
+				for item in delta.added:
+					body.write("    %s\n" % item[0])
+			
+			if (len(delta.removed) > 0):
+				body.write("Removed:\n")
+				for item in delta.removed:
+					body.write("    %s\n" % item[0])
+			
+			if (len(delta.renamed) > 0):
+				body.write("Renamed:\n")
+				for item in delta.renamed:
+					body.write("    %s -> %s\n" % (item[0], item[1]))
+			
+			if (len(delta.kind_changed) > 0):
+				body.write("Changed:\n")
+				for item in delta.kind_changed:
+					body.write("    %s\n" % item[0])
+			
+			if (len(delta.modified) > 0):
+				body.write("Modified:\n")
+				for item in delta.modified:
+					body.write("    %s\n" % item[0])
+			
+			body.write("\n")
 			
 			tree_old.lock_read()
 			try:
@@ -195,27 +198,7 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 			finally:
 				tree_old.unlock()
 			
-			revision_new_no = branch.revision_id_to_revno(revision_new_id)
-			
-			delta = tree_new.changes_from(tree_old)
-			files = []
-			
-			for item in delta.added:
-				files.append(item[0])
-			
-			for item in delta.removed:
-				files.append(item[0])
-			
-			for item in delta.renamed:
-				files.append(item[0])
-			
-			for item in delta.kind_changed:
-				files.append(item[0])
-			
-			for item in delta.modified:
-				files.append(item[0])
-			
-			subject = "r%d - %s" % (revision_new_no, " ".join(files))
+			subject = "r%d - %s" % (revision_new_no, commit_message)
 			
 			send_smtp("localhost", config_sender(config), config_to(config), subject, body.getvalue())
 		finally:

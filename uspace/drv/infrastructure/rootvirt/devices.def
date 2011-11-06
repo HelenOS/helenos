@@ -1,0 +1,46 @@
+/*
+ * Add list of virtual devices you want to launch driver for here.
+ *
+ * Unless the list is empty, the last item shall be followed by a comma.
+ */
+
+/* Loopback network interface */
+{
+    .name = "lo",
+    .match_id = "virtual&loopback"
+},
+
+#ifdef CONFIG_TEST_DRIVERS
+
+{
+	.name = "test1",
+	.match_id = "virtual&test1"
+},
+{
+	.name = "test2alpha",
+	.match_id = "virtual&test2"
+},
+{
+	.name = "test2bravo",
+	.match_id = "virtual&test2"
+},
+{
+	.name = "null",
+	.match_id = "virtual&test1"
+},
+{
+	.name = "test3",
+	.match_id = "virtual&test3"
+},
+
+#endif
+
+#ifdef CONFIG_RUN_VIRTUAL_USB_HC
+
+/* Virtual USB host controller. */
+{
+	.name = "usbhc",
+	.match_id = "usb&hc=vhc"
+},
+
+#endif

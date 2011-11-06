@@ -30,8 +30,7 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-INCLUDE_KERNEL = include/kernel
-INCLUDE_ARCH = include/arch
+INCLUDE_ABI = include/abi
 INCLUDE_LIBARCH = include/libarch
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
@@ -46,9 +45,9 @@ LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
-PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
+PRE_DEPEND = $(INCLUDE_ABI) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
-EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(INCLUDE_ABI) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
 LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
@@ -58,23 +57,26 @@ LSONAME = libc.so0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-EXTRA_CFLAGS += -I../../srv/loader/include
-
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
+	generic/cfg.c \
 	generic/clipboard.c \
-	generic/devmap.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
+	generic/device/hw_res_parsed.c \
 	generic/device/char_dev.c \
+	generic/device/nic.c \
+	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \
+	generic/loc.c \
 	generic/mem.c \
 	generic/str.c \
 	generic/str_error.c \
+	generic/l18n/langs.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \
 	generic/pcb.c \
@@ -93,17 +95,16 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
-	generic/io/screenbuffer.c \
-	generic/ipc/ns.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
+	generic/ns.c \
 	generic/async.c \
-	generic/async_sess.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
+	generic/adt/hash_set.c \
 	generic/adt/dynamic_fifo.c \
 	generic/adt/measured_strings.c \
 	generic/adt/char_map.c \
@@ -127,11 +128,10 @@ GENERIC_SOURCES = \
 	generic/stats.c \
 	generic/assert.c
 
-ifeq ($(CONFIG_RTLD), y)
+ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
 		generic/dlfcn.c \
 		generic/rtld/rtld.c \
-		generic/rtld/elf_load.c \
 		generic/rtld/dynamic.c \
 		generic/rtld/module.c \
 		generic/rtld/symbol.c
@@ -143,15 +143,10 @@ SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-$(INCLUDE_ARCH): $(INCLUDE_KERNEL) $(INCLUDE_KERNEL)/arch
-	ln -sfn kernel/arch $@
-
 $(INCLUDE_LIBARCH): arch/$(UARCH)/include
 	ln -sfn ../$< $@
 
-$(INCLUDE_KERNEL)/arch: ../../../kernel/generic/include/arch $(INCLUDE_KERNEL)
-
-$(INCLUDE_KERNEL): ../../../kernel/generic/include/
+$(INCLUDE_ABI): ../../../abi/include/
 	ln -sfn ../$< $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in

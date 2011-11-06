@@ -35,10 +35,8 @@
 #ifndef LIBC_RTLD_ELF_DYN_H_
 #define LIBC_RTLD_ELF_DYN_H_
 
-#include <arch/elf.h>
 #include <sys/types.h>
-
-#include <elf.h>
+#include <elf/elf.h>
 #include <libarch/rtld/elf_dyn.h>
 
 #define ELF32_R_SYM(i) ((i)>>8)

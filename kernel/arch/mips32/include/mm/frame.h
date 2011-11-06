@@ -38,16 +38,12 @@
 #define FRAME_WIDTH  14  /* 16K */
 #define FRAME_SIZE   (1 << FRAME_WIDTH)
 
-#ifdef KERNEL
 #ifndef __ASM__
-
-#include <typedefs.h>
 
 extern void frame_arch_init(void);
 extern void physmem_print(void);
 
 #endif /* __ASM__ */
-#endif /* KERNEL */
 
 #endif
 

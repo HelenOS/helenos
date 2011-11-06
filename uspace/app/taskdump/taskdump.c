@@ -33,6 +33,7 @@
  */
 
 #include <async.h>
+#include <elf/elf_linux.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -53,7 +54,7 @@
 
 #define LINE_BYTES 16
 
-static int phoneid;
+static async_sess_t *sess;
 static task_id_t task_id;
 static bool write_core_file;
 static char *core_file_name;
@@ -71,6 +72,8 @@ static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
 static void autoload_syms(void);
 static char *get_app_task_name(void);
 static char *fmt_sym_address(uintptr_t addr);
+
+static istate_t reg_state;
 
 int main(int argc, char *argv[])
 {
@@ -103,40 +106,37 @@ int main(int argc, char *argv[])
 	if (rc < 0)
 		printf("Failed dumping address space areas.\n");
 
-	udebug_end(phoneid);
-	async_hangup(phoneid);
+	udebug_end(sess);
+	async_hangup(sess);
 
 	return 0;
 }
 
 static int connect_task(task_id_t task_id)
 {
-	int rc;
-
-	rc = async_connect_kbox(task_id);
-
-	if (rc == ENOTSUP) {
-		printf("You do not have userspace debugging support "
-		    "compiled in the kernel.\n");
-		printf("Compile kernel with 'Support for userspace debuggers' "
-		    "(CONFIG_UDEBUG) enabled.\n");
-		return rc;
-	}
-
-	if (rc < 0) {
+	async_sess_t *ksess = async_connect_kbox(task_id);
+	
+	if (!ksess) {
+		if (errno == ENOTSUP) {
+			printf("You do not have userspace debugging support "
+			    "compiled in the kernel.\n");
+			printf("Compile kernel with 'Support for userspace debuggers' "
+			    "(CONFIG_UDEBUG) enabled.\n");
+			return errno;
+		}
+		
 		printf("Error connecting\n");
-		printf("async_connect_kbox(%" PRIu64 ") -> %d ", task_id, rc);
-		return rc;
+		printf("async_connect_kbox(%" PRIu64 ") -> %d ", task_id, errno);
+		return errno;
 	}
-
-	phoneid = rc;
-
-	rc = udebug_begin(phoneid);
+	
+	int rc = udebug_begin(ksess);
 	if (rc < 0) {
 		printf("udebug_begin() -> %d\n", rc);
 		return rc;
 	}
-
+	
+	sess = ksess;
 	return 0;
 }
 
@@ -212,7 +212,7 @@ static int threads_dump(void)
 	int rc;
 
 	/* TODO: See why NULL does not work. */
-	rc = udebug_thread_read(phoneid, &dummy_buf, 0, &copied, &needed);
+	rc = udebug_thread_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc < 0) {
 		printf("udebug_thread_read() -> %d\n", rc);
 		return rc;
@@ -226,7 +226,7 @@ static int threads_dump(void)
 	buf_size = needed;
 	thash_buf = malloc(buf_size);
 
-	rc = udebug_thread_read(phoneid, thash_buf, buf_size, &copied, &needed);
+	rc = udebug_thread_read(sess, thash_buf, buf_size, &copied, &needed);
 	if (rc < 0) {
 		printf("udebug_thread_read() -> %d\n", rc);
 		return rc;
@@ -261,7 +261,7 @@ static int areas_dump(void)
 	size_t i;
 	int rc;
 
-	rc = udebug_areas_read(phoneid, &dummy_buf, 0, &copied, &needed);
+	rc = udebug_areas_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc < 0) {
 		printf("udebug_areas_read() -> %d\n", rc);
 		return rc;
@@ -270,7 +270,7 @@ static int areas_dump(void)
 	buf_size = needed;
 	ainfo_buf = malloc(buf_size);
 
-	rc = udebug_areas_read(phoneid, ainfo_buf, buf_size, &copied, &needed);
+	rc = udebug_areas_read(sess, ainfo_buf, buf_size, &copied, &needed);
 	if (rc < 0) {
 		printf("udebug_areas_read() -> %d\n", rc);
 		return rc;
@@ -295,7 +295,10 @@ static int areas_dump(void)
 
 	if (write_core_file) {
 		printf("Writing core file '%s'\n", core_file_name);
-		rc = elf_core_save(core_file_name, ainfo_buf, n_areas, phoneid);
+
+		rc = elf_core_save(core_file_name, ainfo_buf, n_areas, sess,
+		    &reg_state);
+
 		if (rc != EOK) {
 			printf("Failed writing core file.\n");
 			return EIO;
@@ -315,7 +318,7 @@ static int thread_dump(uintptr_t thash)
 	char *sym_pc;
 	int rc;
 
-	rc = udebug_regs_read(phoneid, thash, &istate);
+	rc = udebug_regs_read(sess, thash, &istate);
 	if (rc < 0) {
 		printf("Failed reading registers (%d).\n", rc);
 		return EIO;
@@ -323,6 +326,9 @@ static int thread_dump(uintptr_t thash)
 
 	pc = istate_get_pc(&istate);
 	fp = istate_get_fp(&istate);
+
+	/* Save register state for dumping to core file later. */
+	reg_state = istate;
 
 	sym_pc = fmt_sym_address(pc);
 	printf("Thread %p: PC = %s. FP = %p\n", (void *) thash,
@@ -358,7 +364,7 @@ static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
 
 	(void) arg;
 
-	rc = udebug_mem_read(phoneid, &data, addr, sizeof(data));
+	rc = udebug_mem_read(sess, &data, addr, sizeof(data));
 	if (rc < 0) {
 		printf("Warning: udebug_mem_read() failed.\n");
 		return rc;
@@ -429,13 +435,13 @@ static char *get_app_task_name(void)
 	char *name;
 	int rc;
 
-	rc = udebug_name_read(phoneid, &dummy_buf, 0, &copied, &needed);
+	rc = udebug_name_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc < 0)
 		return NULL;
 
 	name_size = needed;
 	name = malloc(name_size + 1);
-	rc = udebug_name_read(phoneid, name, name_size, &copied, &needed);
+	rc = udebug_name_read(sess, name, name_size, &copied, &needed);
 	if (rc < 0) {
 		free(name);
 		return NULL;

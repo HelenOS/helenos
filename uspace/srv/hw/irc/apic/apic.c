@@ -37,35 +37,131 @@
 
 #include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
-#include <align.h>
 #include <bool.h>
 #include <errno.h>
 #include <async.h>
-#include <align.h>
-#include <async.h>
 #include <stdio.h>
-#include <ipc/devmap.h>
 
 #define NAME  "apic"
 
+#define APIC_MAX_IRQ	15
+
+#define IOREGSEL  (0x00U / sizeof(uint32_t))
+#define IOWIN     (0x10U / sizeof(uint32_t))
+
+#define IOREDTBL   0x10U
+
+/** I/O Register Select Register. */
+typedef union {
+	uint32_t value;
+	struct {
+		uint8_t reg_addr;	/**< APIC Register Address. */
+		unsigned int : 24;	/**< Reserved. */
+	} __attribute__ ((packed));
+} io_regsel_t;
+
+/** I/O Redirection Register. */
+typedef struct io_redirection_reg {
+	union {
+		uint32_t lo;
+		struct {
+			uint8_t intvec;			/**< Interrupt Vector. */
+			unsigned int delmod : 3;	/**< Delivery Mode. */
+			unsigned int destmod : 1;	/**< Destination mode. */
+			unsigned int delivs : 1;	/**< Delivery status (RO). */
+			unsigned int intpol : 1;	/**< Interrupt Input Pin Polarity. */
+			unsigned int irr : 1;		/**< Remote IRR (RO). */
+			unsigned int trigger_mode : 1;	/**< Trigger Mode. */
+			unsigned int masked : 1;	/**< Interrupt Mask. */
+			unsigned int : 15;		/**< Reserved. */
+		} __attribute__ ((packed));
+	};
+	union {
+		uint32_t hi;
+		struct {
+			unsigned int : 24;	/**< Reserved. */
+			uint8_t dest : 8;  	/**< Destination Field. */
+		} __attribute__ ((packed));
+	};
+} __attribute__ ((packed)) io_redirection_reg_t;
+
+// FIXME: get the address from the kernel
+#define IO_APIC_BASE	0xfec00000UL
+#define IO_APIC_SIZE	20
+
+ioport32_t *io_apic = NULL;
+
+/** Read from IO APIC register.
+ *
+ * @param address IO APIC register address.
+ *
+ * @return Content of the addressed IO APIC register.
+ *
+ */
+static uint32_t io_apic_read(uint8_t address)
+{
+	io_regsel_t regsel;
+
+	regsel.value = io_apic[IOREGSEL];
+	regsel.reg_addr = address;
+	io_apic[IOREGSEL] = regsel.value;
+	return io_apic[IOWIN];
+}
+
+/** Write to IO APIC register.
+ *
+ * @param address IO APIC register address.
+ * @param val     Content to be written to the addressed IO APIC register.
+ *
+ */
+static void io_apic_write(uint8_t address, uint32_t val)
+{
+	io_regsel_t regsel;
+
+	regsel.value = io_apic[IOREGSEL];
+	regsel.reg_addr = address;
+	io_apic[IOREGSEL] = regsel.value;
+	io_apic[IOWIN] = val;
+}
+
+static int irq_to_pin(int irq)
+{
+	// FIXME: get the map from the kernel, even though this may work
+	//	  for simple cases
+	if (irq == 0)
+		return 2;
+	return irq;
+}
+
 static int apic_enable_irq(sysarg_t irq)
 {
-	// FIXME: TODO
-	return ENOTSUP;
+	io_redirection_reg_t reg;
+
+	if (irq > APIC_MAX_IRQ)
+		return ELIMIT;
+
+	int pin = irq_to_pin(irq);
+ 	if (pin == -1)
+		return ENOENT;
+
+	reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
+	reg.masked = false;
+	io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
+
+	return EOK;
 }
 
 /** Handle one connection to APIC.
  *
  * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
- *
+ * @param arg	Local argument.
  */
-static void apic_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -77,6 +173,12 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			/* The other side has hung up. */
+			async_answer_0(callid, EOK);
+			return;
+		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
@@ -101,8 +203,15 @@ static bool apic_init(void)
 	sysarg_t apic;
 	
 	if ((sysinfo_get_value("apic", &apic) != EOK) || (!apic)) {
-		printf(NAME ": No APIC found\n");
+		printf("%s: No APIC found\n", NAME);
 		return false;
+	}
+
+	int rc = pio_enable((void *) IO_APIC_BASE, IO_APIC_SIZE,
+		(void **) &io_apic);
+	if (rc != EOK) {
+		printf("%s: Failed to enable PIO for APIC: %d\n", NAME, rc);
+		return false;	
 	}
 	
 	async_set_client_connection(apic_connection);
@@ -113,12 +222,13 @@ static bool apic_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS APIC driver\n");
+	printf("%s: HelenOS APIC driver\n", NAME);
 	
 	if (!apic_init())
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	
 	/* Never reached */

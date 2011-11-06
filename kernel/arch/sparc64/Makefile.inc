@@ -30,7 +30,7 @@ BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
 
-GCC_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow
+GCC_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
 SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
 LFLAGS += -no-check-sections
@@ -83,9 +83,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/tick.c \
 	arch/$(KARCH)/src/drivers/kbd.c \
-	arch/$(KARCH)/src/drivers/sgcn.c \
 	arch/$(KARCH)/src/drivers/pci.c \
-	arch/$(KARCH)/src/drivers/fhc.c \
 	arch/$(KARCH)/src/trap/$(USARCH)/interrupt.c
 
 ifeq ($(USARCH),sun4v)

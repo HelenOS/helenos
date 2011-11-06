@@ -46,15 +46,12 @@
  *
  */
 
-#define STR(l)	#l
-#define STR2(l)	STR(l)
-
 #ifndef NDEBUG
 
 #define assert(expr) \
 	do { \
 		if (!(expr)) \
-			assert_abort(#expr, __FILE__, STR2(__LINE__)); \
+			assert_abort(#expr, __FILE__, __LINE__); \
 	} while (0)
 
 #else /* NDEBUG */
@@ -63,9 +60,8 @@
 
 #endif /* NDEBUG */
 
-extern void assert_abort(const char *, const char *, const char *)
+extern void assert_abort(const char *, const char *, unsigned int)
     __attribute__((noreturn));
-
 
 #endif
 

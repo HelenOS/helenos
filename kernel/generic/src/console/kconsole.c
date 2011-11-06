@@ -83,7 +83,7 @@
  */
 
 SPINLOCK_INITIALIZE(cmd_lock);  /**< Lock protecting command list. */
-LIST_INITIALIZE(cmd_head);      /**< Command list. */
+LIST_INITIALIZE(cmd_list);      /**< Command list. */
 
 static wchar_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
 static size_t history_pos = 0;
@@ -112,14 +112,12 @@ void kconsole_init(void)
  */
 bool cmd_register(cmd_info_t *cmd)
 {
-	link_t *cur;
-	
 	spinlock_lock(&cmd_lock);
 	
 	/*
 	 * Make sure the command is not already listed.
 	 */
-	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+	list_foreach(cmd_list, cur) {
 		cmd_info_t *hlp = list_get_instance(cur, cmd_info_t, link);
 		
 		if (hlp == cmd) {
@@ -152,7 +150,7 @@ bool cmd_register(cmd_info_t *cmd)
 	/*
 	 * Now the command can be added.
 	 */
-	list_append(&cmd->link, &cmd_head);
+	list_append(&cmd->link, &cmd_list);
 	
 	spinlock_unlock(&cmd_lock);
 	return true;
@@ -175,9 +173,9 @@ NO_TRACE static const char *cmdtab_search_one(const char *name,
 	spinlock_lock(&cmd_lock);
 	
 	if (*startpos == NULL)
-		*startpos = cmd_head.next;
+		*startpos = cmd_list.head.next;
 	
-	for (; *startpos != &cmd_head; *startpos = (*startpos)->next) {
+	for (; *startpos != &cmd_list.head; *startpos = (*startpos)->next) {
 		cmd_info_t *hlp = list_get_instance(*startpos, cmd_info_t, link);
 		
 		const char *curname = hlp->name;
@@ -558,9 +556,8 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 	spinlock_lock(&cmd_lock);
 	
 	cmd_info_t *cmd = NULL;
-	link_t *cur;
 	
-	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+	list_foreach(cmd_list, cur) {
 		cmd_info_t *hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 		

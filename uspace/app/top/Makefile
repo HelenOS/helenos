@@ -32,7 +32,6 @@ BINARY = top
 
 SOURCES = \
 	top.c \
-	screen.c \
-	input.c
+	screen.c
 
 include $(USPACE_PREFIX)/Makefile.common

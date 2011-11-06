@@ -35,70 +35,8 @@
 #ifndef KERN_SYSCALL_H_
 #define KERN_SYSCALL_H_
 
-typedef enum {
-	SYS_KLOG = 0,
-	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
-	
-	SYS_THREAD_CREATE,
-	SYS_THREAD_EXIT,
-	SYS_THREAD_GET_ID,
-	SYS_THREAD_USLEEP,
-	
-	SYS_TASK_GET_ID,
-	SYS_TASK_SET_NAME,
-	SYS_TASK_KILL,
-	SYS_TASK_EXIT,
-	SYS_PROGRAM_SPAWN_LOADER,
-	
-	SYS_FUTEX_SLEEP,
-	SYS_FUTEX_WAKEUP,
-	SYS_SMC_COHERENCE,
-	
-	SYS_AS_AREA_CREATE,
-	SYS_AS_AREA_RESIZE,
-	SYS_AS_AREA_CHANGE_FLAGS,
-	SYS_AS_AREA_DESTROY,
-	SYS_AS_GET_UNMAPPED_AREA,
-	
-	SYS_IPC_CALL_SYNC_FAST,
-	SYS_IPC_CALL_SYNC_SLOW,
-	SYS_IPC_CALL_ASYNC_FAST,
-	SYS_IPC_CALL_ASYNC_SLOW,
-	SYS_IPC_ANSWER_FAST,
-	SYS_IPC_ANSWER_SLOW,
-	SYS_IPC_FORWARD_FAST,
-	SYS_IPC_FORWARD_SLOW,
-	SYS_IPC_WAIT,
-	SYS_IPC_POKE,
-	SYS_IPC_HANGUP,
-	SYS_IPC_CONNECT_KBOX,
-	
-	SYS_EVENT_SUBSCRIBE,
-	SYS_EVENT_UNMASK,
-	
-	SYS_CAP_GRANT,
-	SYS_CAP_REVOKE,
-	
-	SYS_DEVICE_ASSIGN_DEVNO,
-	SYS_PHYSMEM_MAP,
-	SYS_IOSPACE_ENABLE,
-	SYS_REGISTER_IRQ,
-	SYS_UNREGISTER_IRQ,
-	
-	SYS_SYSINFO_GET_TAG,
-	SYS_SYSINFO_GET_VALUE,
-	SYS_SYSINFO_GET_DATA_SIZE,
-	SYS_SYSINFO_GET_DATA,
-	
-	SYS_DEBUG_ENABLE_CONSOLE,
-	SYS_DEBUG_DISABLE_CONSOLE,
-	
-	SYSCALL_END
-} syscall_t;
-
-#ifdef KERNEL
-
 #include <typedefs.h>
+#include <abi/syscall.h>
 
 typedef sysarg_t (*syshandler_t)(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
@@ -107,8 +45,6 @@ extern syshandler_t syscall_table[SYSCALL_END];
 extern sysarg_t syscall_handler(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 extern sysarg_t sys_tls_set(sysarg_t);
-
-#endif
 
 #endif
 

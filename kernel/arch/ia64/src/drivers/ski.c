@@ -56,7 +56,7 @@ enum {
 	SKI_PUTCHAR      = 31
 };
 
-static void ski_putchar(outdev_t *, const wchar_t, bool);
+static void ski_putchar(outdev_t *, const wchar_t);
 
 static outdev_operations_t skidev_ops = {
 	.write = ski_putchar,
@@ -98,9 +98,6 @@ static wchar_t ski_getchar(void)
  */
 static void poll_keyboard(ski_instance_t *instance)
 {
-	if (silent)
-		return;
-	
 	int count = POLL_LIMIT;
 	
 	while (count > 0) {
@@ -120,7 +117,10 @@ static void kskipoll(void *arg)
 	ski_instance_t *instance = (ski_instance_t *) arg;
 	
 	while (true) {
-		if (!silent)
+		// TODO FIXME:
+		// This currently breaks the kernel console
+		// before we get the override from uspace.
+		if (console_override)
 			poll_keyboard(instance);
 		
 		thread_usleep(POLL_INTERVAL);
@@ -181,12 +181,14 @@ static void ski_do_putchar(const wchar_t ch)
  *
  * @param dev    Character device.
  * @param ch     Character to be printed.
- * @param silent Whether the output should be silenced.
  *
  */
-static void ski_putchar(outdev_t *dev, const wchar_t ch, bool silent)
+static void ski_putchar(outdev_t *dev, const wchar_t ch)
 {
-	if (!silent) {
+	// TODO FIXME:
+	// This currently breaks the kernel console
+	// before we get the override from uspace.
+	if (console_override) {
 		if (ascii_check(ch)) {
 			if (ch == '\n')
 				ski_do_putchar('\r');
@@ -212,9 +214,11 @@ outdev_t *skiout_init(void)
 	
 	if (!fb_exported) {
 		/*
-		 * This is the necessary evil until the userspace driver is entirely
+		 * This is the necessary evil until
+		 * the userspace driver is entirely
 		 * self-sufficient.
 		 */
+		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 6);
 		
 		fb_exported = true;

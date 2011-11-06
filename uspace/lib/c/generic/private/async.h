@@ -35,8 +35,10 @@
 #ifndef LIBC_PRIVATE_ASYNC_H_
 #define LIBC_PRIVATE_ASYNC_H_
 
+#include <async.h>
 #include <adt/list.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <sys/time.h>
 #include <bool.h>
 
@@ -80,6 +82,7 @@ typedef struct {
 
 extern void __async_init(void);
 extern void async_insert_timeout(awaiter_t *);
+extern void reply_received(void *, int, ipc_call_t *);
 
 #endif
 

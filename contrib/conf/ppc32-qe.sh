@@ -1,3 +1,3 @@
 #!/bin/sh
 
-qemu-system-ppc -M mac99 -boot d -cdrom image.iso
+qemu-system-ppc $@ -M g3beige -boot d -cdrom image.iso

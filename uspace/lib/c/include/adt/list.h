@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,13 +36,19 @@
 #ifndef LIBC_LIST_H_
 #define LIBC_LIST_H_
 
+#include <assert.h>
 #include <unistd.h>
 
-/** Doubly linked list head and link type. */
+/** Doubly linked list link. */
 typedef struct link {
 	struct link *prev;  /**< Pointer to the previous item in the list. */
 	struct link *next;  /**< Pointer to the next item in the list. */
 } link_t;
+
+/** Doubly linked list. */
+typedef struct list {
+	link_t head;  /**< List head. Does not have any data. */
+} list_t;
 
 /** Declare and initialize statically allocated list.
  *
@@ -49,17 +56,22 @@ typedef struct link {
  *
  */
 #define LIST_INITIALIZE(name) \
-	link_t name = { \
-		.prev = &name, \
-		.next = &name \
+	list_t name = { \
+		.head = { \
+			.prev = &(name).head, \
+			.next = &(name).head \
+		} \
 	}
 
 #define list_get_instance(link, type, member) \
 	((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
 
 #define list_foreach(list, iterator) \
-	for (link_t *iterator = (list).next; \
-	    iterator != &(list); iterator = iterator->next)
+	for (link_t *iterator = (list).head.next; \
+	    iterator != &(list).head; iterator = iterator->next)
+
+#define assert_link_not_used(link) \
+	assert(((link)->prev == NULL) && ((link)->next == NULL))
 
 /** Initialize doubly-linked circular list link
  *
@@ -78,13 +90,35 @@ static inline void link_initialize(link_t *link)
  *
  * Initialize doubly-linked circular list.
  *
- * @param list Pointer to link_t structure representing the list.
+ * @param list Pointer to list_t structure.
  *
  */
-static inline void list_initialize(link_t *list)
+static inline void list_initialize(list_t *list)
 {
-	list->prev = list;
-	list->next = list;
+	list->head.prev = &list->head;
+	list->head.next = &list->head;
+}
+
+/** Insert item before another item in doubly-linked circular list.
+ *
+ */
+static inline void list_insert_before(link_t *lnew, link_t *lold)
+{
+	lnew->next = lold;
+	lnew->prev = lold->prev;
+	lold->prev->next = lnew;
+	lold->prev = lnew;
+}
+
+/** Insert item after another item in doubly-linked circular list.
+ *
+ */
+static inline void list_insert_after(link_t *lnew, link_t *lold)
+{
+	lnew->prev = lold;
+	lnew->next = lold->next;
+	lold->next->prev = lnew;
+	lold->next = lnew;
 }
 
 /** Add item to the beginning of doubly-linked circular list
@@ -92,15 +126,12 @@ static inline void list_initialize(link_t *list)
  * Add item to the beginning of doubly-linked circular list.
  *
  * @param link Pointer to link_t structure to be added.
- * @param list Pointer to link_t structure representing the list.
+ * @param list Pointer to list_t structure.
  *
  */
-static inline void list_prepend(link_t *link, link_t *list)
+static inline void list_prepend(link_t *link, list_t *list)
 {
-	link->next = list->next;
-	link->prev = list;
-	list->next->prev = link;
-	list->next = link;
+	list_insert_after(link, &list->head);
 }
 
 /** Add item to the end of doubly-linked circular list
@@ -108,31 +139,12 @@ static inline void list_prepend(link_t *link, link_t *list)
  * Add item to the end of doubly-linked circular list.
  *
  * @param link Pointer to link_t structure to be added.
- * @param list Pointer to link_t structure representing the list.
+ * @param list Pointer to list_t structure.
  *
  */
-static inline void list_append(link_t *link, link_t *list)
+static inline void list_append(link_t *link, list_t *list)
 {
-	link->prev = list->prev;
-	link->next = list;
-	list->prev->next = link;
-	list->prev = link;
-}
-
-/** Insert item before another item in doubly-linked circular list.
- *
- */
-static inline void list_insert_before(link_t *link, link_t *list)
-{
-	list_append(link, list);
-}
-
-/** Insert item after another item in doubly-linked circular list.
- *
- */
-static inline void list_insert_after(link_t *link, link_t *list)
-{
-	list_prepend(list, link);
+	list_insert_before(link, &list->head);
 }
 
 /** Remove item from doubly-linked circular list
@@ -145,8 +157,11 @@ static inline void list_insert_after(link_t *link, link_t *list)
  */
 static inline void list_remove(link_t *link)
 {
-	link->next->prev = link->prev;
-	link->prev->next = link->next;
+	if ((link->prev != NULL) && (link->next != NULL)) {
+		link->next->prev = link->prev;
+		link->prev->next = link->next;
+	}
+	
 	link_initialize(link);
 }
 
@@ -154,25 +169,38 @@ static inline void list_remove(link_t *link)
  *
  * Query emptiness of doubly-linked circular list.
  *
- * @param list Pointer to link_t structure representing the list.
+ * @param list Pointer to lins_t structure.
  *
  */
-static inline int list_empty(link_t *list)
+static inline int list_empty(const list_t *list)
 {
-	return (list->next == list);
+	return (list->head.next == &list->head);
 }
 
-/** Get head item of a list.
+/** Get first item in list.
  *
- * @param list Pointer to link_t structure representing the list.
+ * @param list Pointer to list_t structure.
  *
  * @return Head item of the list.
  * @return NULL if the list is empty.
  *
  */
-static inline link_t *list_head(link_t *list)
+static inline link_t *list_first(const list_t *list)
 {
-	return ((list->next == list) ? NULL : list->next);
+	return ((list->head.next == &list->head) ? NULL : list->head.next);
+}
+
+/** Get last item in list.
+ *
+ * @param list Pointer to list_t structure.
+ *
+ * @return Head item of the list.
+ * @return NULL if the list is empty.
+ *
+ */
+static inline link_t *list_last(list_t *list)
+{
+	return ((list->head.prev == &list->head) ? NULL : list->head.prev);
 }
 
 /** Split or concatenate headless doubly-linked circular list
@@ -229,7 +257,7 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
-/** Get n-th item of a list.
+/** Get n-th item in a list.
  *
  * @param list Pointer to link_t structure representing the list.
  * @param n    Item number (indexed from zero).
@@ -238,7 +266,7 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(link_t *list, unsigned int n)
+static inline link_t *list_nth(list_t *list, unsigned int n)
 {
 	unsigned int cnt = 0;
 	
@@ -252,9 +280,9 @@ static inline link_t *list_nth(link_t *list, unsigned int n)
 	return NULL;
 }
 
-extern int list_member(const link_t *, const link_t *);
-extern void list_concat(link_t *, link_t *);
-extern unsigned int list_count(const link_t *);
+extern int list_member(const link_t *, const list_t *);
+extern void list_concat(list_t *, list_t *);
+extern unsigned int list_count(const list_t *);
 
 #endif
 

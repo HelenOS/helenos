@@ -37,6 +37,7 @@
 
 #include <adt/list.h>
 #include <unistd.h>
+#include <bool.h>
 
 typedef unsigned long hash_count_t;
 typedef unsigned long hash_index_t;
@@ -73,7 +74,7 @@ typedef struct {
 
 /** Hash table structure. */
 typedef struct {
-	link_t *entry;
+	list_t *entry;
 	hash_count_t entries;
 	hash_count_t max_keys;
 	hash_table_operations_t *op;
@@ -82,8 +83,9 @@ typedef struct {
 #define hash_table_get_instance(item, type, member) \
     list_get_instance((item), type, member)
 
-extern int hash_table_create(hash_table_t *, hash_count_t, hash_count_t,
+extern bool hash_table_create(hash_table_t *, hash_count_t, hash_count_t,
     hash_table_operations_t *);
+extern void hash_table_clear(hash_table_t *);
 extern void hash_table_insert(hash_table_t *, unsigned long [], link_t *);
 extern link_t *hash_table_find(hash_table_t *, unsigned long []);
 extern void hash_table_remove(hash_table_t *, unsigned long [], hash_count_t);

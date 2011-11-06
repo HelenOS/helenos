@@ -32,86 +32,16 @@
 /** @file
  */
 
-#ifndef KERN_IRQ_H_
-#define KERN_IRQ_H_
-
-#ifdef KERNEL
+#ifndef KERN_DDI_IRQ_H_
+#define KERN_DDI_IRQ_H_
 
 #include <typedefs.h>
+#include <abi/ddi/irq.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <synch/spinlock.h>
 #include <proc/task.h>
 #include <ipc/ipc.h>
-
-#endif /* KERNEL */
-
-typedef enum {
-	/** Read 1 byte from the I/O space. */
-	CMD_PIO_READ_8 = 1,
-	/** Read 2 bytes from the I/O space. */
-	CMD_PIO_READ_16,
-	/** Read 4 bytes from the I/O space. */
-	CMD_PIO_READ_32,
-	
-	/** Write 1 byte to the I/O space. */
-	CMD_PIO_WRITE_8,
-	/** Write 2 bytes to the I/O space. */
-	CMD_PIO_WRITE_16,
-	/** Write 4 bytes to the I/O space. */
-	CMD_PIO_WRITE_32,
-	
-	/**
-	 * Write 1 byte from the source argument
-	 * to the I/O space.
-	 */
-	CMD_PIO_WRITE_A_8,
-	/**
-	 * Write 2 bytes from the source argument
-	 * to the I/O space.
-	 */
-	CMD_PIO_WRITE_A_16,
-	/**
-	 * Write 4 bytes from the source argument
-	 * to the I/O space.
-	 */
-	CMD_PIO_WRITE_A_32,
-	
-	/**
-	 * Perform a bit masking on the source argument
-	 * and store the result into the destination argument.
-	 */
-	CMD_BTEST,
-	
-	/**
-	 * Predicate the execution of the following
-	 * N commands by the boolean value of the source
-	 * argument.
-	 */
-	CMD_PREDICATE,
-	
-	/** Accept the interrupt. */
-	CMD_ACCEPT,
-	
-	/** Decline the interrupt. */
-	CMD_DECLINE,
-	CMD_LAST
-} irq_cmd_type;
-
-typedef struct {
-	irq_cmd_type cmd;
-	void *addr;
-	uint32_t value;
-	uintptr_t srcarg;
-	uintptr_t dstarg;
-} irq_cmd_t;
-
-typedef struct {
-	size_t cmdcount;
-	irq_cmd_t *cmds;
-} irq_code_t;
-
-#ifdef KERNEL
 
 typedef enum {
 	IRQ_DECLINE,  /**< Decline to service. */
@@ -124,6 +54,7 @@ typedef enum {
 } irq_trigger_t;
 
 struct irq;
+
 typedef void (* irq_handler_t)(struct irq *);
 
 /** Type for function used to clear the interrupt. */
@@ -202,6 +133,8 @@ typedef struct irq {
 	
 	/** Notification configuration structure. */
 	ipc_notif_cfg_t notif_cfg; 
+	
+	as_t *driver_as;
 } irq_t;
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
@@ -213,8 +146,6 @@ extern void irq_init(size_t, size_t);
 extern void irq_initialize(irq_t *);
 extern void irq_register(irq_t *);
 extern irq_t *irq_dispatch_and_lock(inr_t);
-
-#endif /* KERNEL */
 
 #endif
 

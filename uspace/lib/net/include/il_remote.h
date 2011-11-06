@@ -40,18 +40,23 @@
 
 #include <ipc/services.h>
 #include <sys/types.h>
-
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
 /** @name Internetwork layer module interface
  * This interface is used by other modules.
  */
 /*@{*/
 
-extern int il_device_state_msg(int, device_id_t, device_state_t, services_t);
-extern int il_received_msg(int, device_id_t, packet_t *, services_t);
-extern int il_mtu_changed_msg(int, device_id_t, size_t, services_t);
+extern int il_device_state_msg(async_sess_t *, nic_device_id_t,
+    nic_device_state_t, services_t);
+extern int il_received_msg(async_sess_t *, nic_device_id_t, packet_t *,
+    services_t);
+extern int il_mtu_changed_msg(async_sess_t *, nic_device_id_t, size_t,
+    services_t);
+extern int il_addr_changed_msg(async_sess_t *, nic_device_id_t, size_t,
+    const uint8_t *);
 
 /*@}*/
 

@@ -1,31 +1,29 @@
-/* Copyright (c) 2008, Tim Post <tinkertim@gmail.com>
+/*
+ * Copyright (c) 2008 Tim Post
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- * Redistributions of source code must retain the above copyright notice, this
- * list of conditions and the following disclaimer.
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
  *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the original program's authors nor the names of its
- * contributors may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
@@ -34,6 +32,8 @@
 #include <getopt.h>
 #include <str.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -56,6 +56,39 @@ static struct option const long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
+typedef enum {
+	TYPE_NONE,
+	TYPE_FILE,
+	TYPE_DIR
+} dentry_type_t;
+
+static int64_t copy_file(const char *src, const char *dest,
+    size_t blen, int vb);
+
+/** Get the type of a directory entry.
+ *
+ * @param path	Path of the directory entry.
+ *
+ * @return TYPE_DIR if the dentry is a directory.
+ * @return TYPE_FILE if the dentry is a file.
+ * @return TYPE_NONE if the dentry does not exists.
+ */
+static dentry_type_t get_type(const char *path)
+{
+	struct stat s;
+
+	int r = stat(path, &s);
+
+	if (r)
+		return TYPE_NONE;
+	else if (s.is_directory)
+		return TYPE_DIR;
+	else if (s.is_file)
+		return TYPE_FILE;
+
+	return TYPE_NONE;
+}
+
 static int strtoint(const char *s1)
 {
 	long t1;
@@ -69,11 +102,225 @@ static int strtoint(const char *s1)
 	return (int) t1;
 }
 
+/** Get the last component of a path.
+ *
+ * e.g. /data/a  ---> a
+ *
+ * @param path	Pointer to the path.
+ *
+ * @return	Pointer to the last component or to the path itself.
+ */
+static char *get_last_path_component(char *path)
+{
+	char *ptr;
+
+	ptr = str_rchr(path, '/');
+	if (!ptr)
+		return path;
+	else
+		return ptr + 1;
+}
+
+/** Merge two paths together.
+ *
+ * e.g. (path1 = /data/dir, path2 = a/b) --> /data/dir/a/b
+ *
+ * @param path1		Path to which path2 will be appended.
+ * @param path1_size	Size of the path1 buffer.
+ * @param path2		Path that will be appended to path1.
+ */
+static void merge_paths(char *path1, size_t path1_size, char *path2)
+{
+	const char *delim = "/";
+
+	str_rtrim(path1, '/');
+	str_append(path1, path1_size, delim);
+	str_append(path1, path1_size, path2);
+}
+
+static int64_t do_copy(const char *src, const char *dest,
+    size_t blen, int vb, int recursive, int force)
+{
+	int r = -1;
+	char dest_path[PATH_MAX];
+	char src_path[PATH_MAX];
+	DIR *dir = NULL;
+	struct dirent *dp;
+
+	dentry_type_t src_type = get_type(src);
+	dentry_type_t dest_type = get_type(dest);
+
+	const size_t src_len = str_size(src);
+
+	if (src_type == TYPE_FILE) {
+		char *src_fname;
+
+		/* Initialize the src_path with the src argument */
+		str_cpy(src_path, src_len + 1, src);
+		str_rtrim(src_path, '/');
+		
+		/* Get the last component name from the src path */
+		src_fname = get_last_path_component(src_path);
+		
+		/* Initialize dest_path with the dest argument */
+		str_cpy(dest_path, PATH_MAX, dest);
+
+		if (dest_type == TYPE_DIR) {
+			/* e.g. cp file_name /data */
+			/* e.g. cp file_name /data/ */
+			
+			/* dest is a directory,
+			 * append the src filename to it.
+			 */
+			merge_paths(dest_path, PATH_MAX, src_fname);
+			dest_type = get_type(dest_path);
+		} else if (dest_type == TYPE_NONE) {
+			if (dest_path[str_size(dest_path) - 1] == '/') {
+				/* e.g. cp /textdemo /data/dirnotexists/ */
+
+				printf("The dest directory %s does not exists",
+				    dest_path);
+				goto exit;
+			}
+		}
+
+		if (dest_type == TYPE_DIR) {
+			printf("Cannot overwrite existing directory %s\n",
+			    dest_path);
+			goto exit;
+		} else if (dest_type == TYPE_FILE) {
+			/* e.g. cp file_name existing_file */
+
+			/* dest already exists, if force is set we will
+			 * try to remove it.
+			 */
+			if (force) {
+				if (unlink(dest_path)) {
+					printf("Unable to remove %s\n",
+					    dest_path);
+					goto exit;
+				}
+			} else {
+				printf("file already exists: %s\n", dest_path);
+				goto exit;
+			}
+		}
+
+		/* call copy_file and exit */
+		r = (copy_file(src, dest_path, blen, vb) < 0);
+
+	} else if (src_type == TYPE_DIR) {
+		/* e.g. cp -r /x/srcdir /y/destdir/ */
+
+		if (!recursive) {
+			printf("Cannot copy the %s directory without the "
+			    "-r option\n", src);
+			goto exit;
+		} else if (dest_type == TYPE_FILE) {
+			printf("Cannot overwrite a file with a directory\n");
+			goto exit;
+		}
+
+		char *src_dirname;
+
+		/* Initialize src_path with the content of src */
+		str_cpy(src_path, src_len + 1, src);
+		str_rtrim(src_path, '/');
+
+		src_dirname = get_last_path_component(src_path);
+
+		str_cpy(dest_path, PATH_MAX, dest);
+
+		switch (dest_type) {
+		case TYPE_DIR:
+			if (str_cmp(src_dirname, "..") &&
+			    str_cmp(src_dirname, ".")) {
+				/* The last component of src_path is
+				 * not '.' or '..'
+				 */
+				merge_paths(dest_path, PATH_MAX, src_dirname);
+
+				if (mkdir(dest_path, 0) == -1) {
+					printf("Unable to create "
+					    "dest directory %s\n", dest_path);
+					goto exit;
+				}
+			}
+			break;
+		default:
+		case TYPE_NONE:
+			/* dest does not exists, this means the user wants
+			 * to specify the name of the destination directory
+			 *
+			 * e.g. cp -r /src /data/new_dir_src
+			 */
+			if (mkdir(dest_path, 0)) {
+				printf("Unable to create "
+				    "dest directory %s\n", dest_path);
+				goto exit;
+			}
+			break;
+		}
+
+		dir = opendir(src);
+		if (!dir) {
+			/* Something strange is happening... */
+			printf("Unable to open src %s directory\n", src);
+			goto exit;
+		}
+
+		/* Copy every single directory entry of src into the
+		 * destination directory.
+		 */
+		while ((dp = readdir(dir))) {
+			struct stat src_s;
+			struct stat dest_s;
+
+			char src_dent[PATH_MAX];
+			char dest_dent[PATH_MAX];
+
+			str_cpy(src_dent, PATH_MAX, src);
+			merge_paths(src_dent, PATH_MAX, dp->d_name);
+
+			str_cpy(dest_dent, PATH_MAX, dest_path);
+			merge_paths(dest_dent, PATH_MAX, dp->d_name);
+
+			/* Check if we are copying a directory into itself */
+			stat(src_dent, &src_s);
+			stat(dest_path, &dest_s);
+
+			if (dest_s.index == src_s.index &&
+			    dest_s.fs_handle == src_s.fs_handle) {
+				printf("Cannot copy a directory "
+				    "into itself\n");
+				goto exit;
+			}
+
+			if (vb)
+				printf("copy %s %s\n", src_dent, dest_dent);
+
+			/* Recursively call do_copy() */
+			r = do_copy(src_dent, dest_dent, blen, vb, recursive,
+			    force);
+			if (r)
+				goto exit;
+
+		}
+	} else
+		printf("Unable to open source file %s\n", src);
+
+exit:
+	if (dir)
+		closedir(dir);
+	return r;
+}
+
+
 static int64_t copy_file(const char *src, const char *dest,
 	size_t blen, int vb)
 {
-	int fd1, fd2, bytes = 0;
-	off64_t total = 0;
+	int fd1, fd2, bytes;
+	off64_t total;
 	int64_t copied = 0;
 	char *buff = NULL;
 
@@ -105,39 +352,13 @@ static int64_t copy_file(const char *src, const char *dest,
 		goto out;
 	}
 
-	for (;;) {
-		ssize_t res;
-		size_t written = 0;
-
-		bytes = read(fd1, buff, blen);
-		if (bytes <= 0)
+	while ((bytes = read_all(fd1, buff, blen)) > 0) {
+		if ((bytes = write_all(fd2, buff, bytes)) < 0)
 			break;
 		copied += bytes;
-		res = bytes;
-		do {
-			/*
-			 * Theoretically, it may not be enough to call write()
-			 * only once. Also the previous read() may have
-			 * returned less data than requested.
-			 */
-			bytes = write(fd2, buff + written, res);
-			if (bytes < 0)
-				goto err;
-			written += bytes;
-			res -= bytes;
-		} while (res > 0);
-
-		/* TODO: re-insert assert() once this is stand alone,
-		 * removed as abort() exits the entire shell
-		 */
-		if (res != 0) {
-			printf("\n%zd more bytes than actually exist were copied\n", res);
-			goto err;
-		}
 	}
 
 	if (bytes < 0) {
-err:
 		printf("\nError copying %s, (%d)\n", src, bytes);
 		copied = bytes;
 	}
@@ -154,19 +375,18 @@ void help_cmd_cp(unsigned int level)
 {
 	static char helpfmt[] =
 	    "Usage:  %s [options] <source> <dest>\n"
-	    "Options: (* indicates not yet implemented)\n"
+	    "Options:\n"
 	    "  -h, --help       A short option summary\n"
 	    "  -v, --version    Print version information and exit\n"
-	    "* -V, --verbose    Be annoyingly noisy about what's being done\n"
-	    "* -f, --force      Do not complain when <dest> exists\n"
-	    "* -r, --recursive  Copy entire directories\n"
-	    "  -b, --buffer ## Set the read buffer size to ##\n"
-	    "Currently, %s is under development, some options may not work.\n";
+	    "  -V, --verbose    Be annoyingly noisy about what's being done\n"
+	    "  -f, --force      Do not complain when <dest> exists\n"
+	    "  -r, --recursive  Copy entire directories\n"
+	    "  -b, --buffer ## Set the read buffer size to ##\n";
 	if (level == HELP_SHORT) {
 		printf("`%s' copies files and directories\n", cmdname);
 	} else {
 		help_cmd_cp(HELP_SHORT);
-		printf(helpfmt, cmdname, cmdname);
+		printf(helpfmt, cmdname);
 	}
 
 	return;
@@ -175,7 +395,8 @@ void help_cmd_cp(unsigned int level)
 int cmd_cp(char **argv)
 {
 	unsigned int argc, verbose = 0;
-	int buffer = 0;
+	int buffer = 0, recursive = 0;
+	int force = 0;
 	int c, opt_ind;
 	int64_t ret;
 
@@ -194,8 +415,10 @@ int cmd_cp(char **argv)
 			verbose = 1;
 			break;
 		case 'f':
+			force = 1;
 			break;
 		case 'r':
+			recursive = 1;
 			break;
 		case 'b':
 			if (-1 == (buffer = strtoint(optarg))) {
@@ -221,12 +444,10 @@ int cmd_cp(char **argv)
 		return CMD_FAILURE;
 	}
 
-	ret = copy_file(argv[optind], argv[optind + 1], buffer, verbose);
+	ret = do_copy(argv[optind], argv[optind + 1], buffer, verbose,
+	    recursive, force);
 
-	if (verbose)
-		printf("%" PRId64 " bytes copied\n", ret);
-
-	if (ret >= 0)
+	if (ret == 0)
 		return CMD_SUCCESS;
 	else
 		return CMD_FAILURE;

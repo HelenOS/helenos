@@ -42,12 +42,12 @@
 #include <device/char_dev.h>
 #include <str.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_sess.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "../../tester.h"
 
-#define DEVICE_PATH_NORMAL "/dev/devices/\\virt\\null\\a"
-#define DEVICE_PATH_CLASSES "/dev/class/virt-null\\1"
+#define DEVICE_PATH_NORMAL "/loc/devices/\\virt\\null\\a"
 #define BUFFER_SIZE 64
 
 static const char *test_virtchar1_internal(const char *path)
@@ -65,19 +65,19 @@ static const char *test_virtchar1_internal(const char *path)
 	
 	TPRINTF("   ...file handle %d\n", fd);
 
-	TPRINTF(" Asking for phone...\n");
-	int phone = fd_phone(fd);
-	if (phone < 0) {
+	TPRINTF(" Asking for session...\n");
+	async_sess_t *sess = fd_session(EXCHANGE_SERIALIZE, fd);
+	if (!sess) {
 		close(fd);
-		TPRINTF("   ...error: %s\n", str_error(phone));
-		return "Failed to get phone to device";
+		TPRINTF("   ...error: %s\n", str_error(errno));
+		return "Failed to get session to device";
 	}
-	TPRINTF("   ...phone is %d\n", phone);
+	TPRINTF("   ...session is %p\n", sess);
 	
 	TPRINTF(" Will try to read...\n");
 	size_t i;
 	char buffer[BUFFER_SIZE];
-	char_dev_read(phone, buffer, BUFFER_SIZE);
+	char_dev_read(sess, buffer, BUFFER_SIZE);
 	TPRINTF(" ...verifying that we read zeroes only...\n");
 	for (i = 0; i < BUFFER_SIZE; i++) {
 		if (buffer[i] != 0) {
@@ -87,8 +87,8 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF("   ...data read okay\n");
 	
 	/* Clean-up. */
-	TPRINTF(" Closing phones and file descriptors\n");
-	async_hangup(phone);
+	TPRINTF(" Closing session and file descriptor\n");
+	async_hangup(sess);
 	close(fd);
 	
 	return NULL;
@@ -99,11 +99,6 @@ const char *test_virtchar1(void)
 	const char *res;
 
 	res = test_virtchar1_internal(DEVICE_PATH_NORMAL);
-	if (res != NULL) {
-		return res;
-	}
-
-	res = test_virtchar1_internal(DEVICE_PATH_CLASSES);
 	if (res != NULL) {
 		return res;
 	}

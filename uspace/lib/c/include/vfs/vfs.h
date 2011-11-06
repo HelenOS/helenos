@@ -37,32 +37,29 @@
 
 #include <sys/types.h>
 #include <ipc/vfs.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
+#include <adt/list.h>
 #include <stdio.h>
+#include <async.h>
+#include "vfs_mtab.h"
 
-/**
- * This type is a libc version of the VFS triplet.
- * It uniquely identifies a file system node within a file system instance.
- */
-typedef struct {
-	fs_handle_t fs_handle;
-	devmap_handle_t devmap_handle;
-	fs_index_t index;
-} fdi_node_t;
+enum vfs_change_state_type {
+	VFS_PASS_HANDLE
+};
 
 extern char *absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int);
+    unsigned int, unsigned int);
 extern int unmount(const char *);
 
-extern int open_node(fdi_node_t *, int);
-extern int fd_phone(int);
-extern int fd_node(int, fdi_node_t *);
+extern int fhandle(FILE *, int *);
 
-extern FILE *fopen_node(fdi_node_t *, const char *);
-extern int fphone(FILE *);
-extern int fnode(FILE *, fdi_node_t *);
+extern int fd_wait(void);
+extern int get_mtab_list(list_t *mtab_list);
+
+extern async_exch_t *vfs_exchange_begin(void);
+extern void vfs_exchange_end(async_exch_t *);
 
 #endif
 

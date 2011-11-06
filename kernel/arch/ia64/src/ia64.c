@@ -49,7 +49,7 @@
 #include <macros.h>
 #include <userspace.h>
 #include <console/console.h>
-#include <proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
 #include <arch/bootinfo.h>
@@ -92,13 +92,6 @@ void arch_pre_main(void)
 
 void arch_pre_mm_init(void)
 {
-	/*
-	 * Set Interruption Vector Address (i.e. location of interruption vector
-	 * table).
-	 */
-	iva_write((uintptr_t) &ivt);
-	srlz_d();
-	
 }
 
 static void iosapic_init(void)
@@ -150,7 +143,7 @@ void arch_post_smp_init(void)
 
 	/* Set platform name. */
 #ifdef MACHINE_ski
-	platform = "pc";
+	platform = "ski";
 #endif
 #ifdef MACHINE_i460GX
 	platform = "i460GX";

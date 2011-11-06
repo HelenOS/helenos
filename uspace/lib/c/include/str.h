@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,12 @@
 /** Maximum size of a string containing @c length characters */
 #define STR_BOUNDS(length)  ((length) << 2)
 
+/**
+ * Maximum size of a buffer needed to a string converted from space-padded
+ * ASCII of size @a spa_size using spascii_to_str().
+ */
+#define SPASCII_STR_BUFSIZE(spa_size) ((spa_size) + 1)
+
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 
@@ -72,12 +79,19 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);
 
+extern int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
 extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern char *wstr_to_astr(const wchar_t *src);
 extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
+extern wchar_t *str_to_awstr(const char *src);
+extern int utf16_to_str(char *dest, size_t size, const uint16_t *src);
+extern int str_to_utf16(uint16_t *dest, size_t size, const char *src);
 
 extern char *str_chr(const char *str, wchar_t ch);
 extern char *str_rchr(const char *str, wchar_t ch);
+
+extern void str_rtrim(char *str, wchar_t ch);
+extern void str_ltrim(char *str, wchar_t ch);
 
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
@@ -85,6 +99,9 @@ extern bool wstr_remove(wchar_t *str, size_t pos);
 extern char *str_dup(const char *);
 extern char *str_ndup(const char *, size_t max_size);
 
+extern int str_uint8_t(const char *, char **, unsigned int, bool, uint8_t *);
+extern int str_uint16_t(const char *, char **, unsigned int, bool, uint16_t *);
+extern int str_uint32_t(const char *, char **, unsigned int, bool, uint32_t *);
 extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
 extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,545 +32,643 @@
 /** @file
  */
 
-#include <libc.h>
-#include <ipc/kbd.h>
-#include <io/keycode.h>
-#include <ipc/mouse.h>
-#include <ipc/fb.h>
-#include <ipc/services.h>
-#include <ipc/ns.h>
-#include <errno.h>
-#include <ipc/console.h>
-#include <unistd.h>
 #include <async.h>
-#include <adt/fifo.h>
-#include <sys/mman.h>
 #include <stdio.h>
-#include <str.h>
-#include <sysinfo.h>
+#include <adt/prodcons.h>
+#include <ipc/input.h>
+#include <ipc/console.h>
+#include <ipc/vfs.h>
+#include <errno.h>
+#include <str_error.h>
+#include <loc.h>
 #include <event.h>
-#include <devmap.h>
-#include <fcntl.h>
-#include <vfs/vfs.h>
+#include <io/keycode.h>
+#include <screenbuffer.h>
+#include <fb.h>
+#include <imgmap.h>
+#include <align.h>
+#include <malloc.h>
+#include <as.h>
 #include <fibril_synch.h>
-#include <io/style.h>
-#include <io/screenbuffer.h>
-
+#include "images.h"
 #include "console.h"
-#include "gcons.h"
-#include "keybuffer.h"
-
 
 #define NAME       "console"
 #define NAMESPACE  "term"
 
-/** Phone to the keyboard driver. */
-static int kbd_phone;
+#define CONSOLE_TOP     66
+#define CONSOLE_MARGIN  12
 
-/** Phone to the mouse driver. */
-static int mouse_phone;
+#define STATE_START   100
+#define STATE_TOP     8
+#define STATE_SPACE   4
+#define STATE_WIDTH   48
+#define STATE_HEIGHT  48
 
-/** Information about framebuffer */
-struct {
-	int phone;           /**< Framebuffer phone */
-	sysarg_t cols;       /**< Framebuffer columns */
-	sysarg_t rows;       /**< Framebuffer rows */
-	sysarg_t color_cap;  /**< Color capabilities (FB_CCAP_xxx) */
-} fb_info;
+typedef enum {
+	CONS_DISCONNECTED = 0,
+	CONS_DISCONNECTED_SELECTED,
+	CONS_SELECTED,
+	CONS_IDLE,
+	CONS_DATA,
+	CONS_KERNEL,
+	CONS_LAST
+} console_state_t;
 
 typedef struct {
-	size_t index;             /**< Console index */
-	size_t refcount;          /**< Connection reference count */
-	devmap_handle_t devmap_handle;  /**< Device handle */
-	keybuffer_t keybuffer;    /**< Buffer for incoming keys. */
-	screenbuffer_t scr;       /**< Screenbuffer for saving screen
-	                               contents and related settings. */
+	atomic_t refcnt;           /**< Connection reference count */
+	prodcons_t input_pc;       /**< Incoming keyboard events */
+	
+	fibril_mutex_t mtx;        /**< Lock protecting mutable fields */
+	
+	size_t index;              /**< Console index */
+	console_state_t state;     /**< Console state */
+	service_id_t dsid;         /**< Service handle */
+	
+	vp_handle_t state_vp;      /**< State icon viewport */
+	sysarg_t cols;             /**< Number of columns */
+	sysarg_t rows;             /**< Number of rows */
+	console_caps_t ccaps;      /**< Console capabilities */
+	
+	screenbuffer_t *frontbuf;  /**< Front buffer */
+	frontbuf_handle_t fbid;    /**< Front buffer handle */
 } console_t;
+
+typedef enum {
+	GRAPHICS_NONE = 0,
+	GRAPHICS_BASIC = 1,
+	GRAPHICS_FULL = 2
+} graphics_state_t;
+
+/** Current console state */
+static graphics_state_t graphics_state = GRAPHICS_NONE;
+
+/** State icons */
+static imagemap_handle_t state_icons[CONS_LAST];
+
+/** Session to the input server */
+static async_sess_t *input_sess;
+
+/** Session to the framebuffer server */
+static async_sess_t *fb_sess;
+
+/** Framebuffer resolution */
+static sysarg_t xres;
+static sysarg_t yres;
 
 /** Array of data for virtual consoles */
 static console_t consoles[CONSOLE_COUNT];
 
-static console_t *active_console = &consoles[0];
+/** Mutex for console switching */
+static FIBRIL_MUTEX_INITIALIZE(switch_mtx);
+
 static console_t *prev_console = &consoles[0];
+static console_t *active_console = &consoles[0];
 static console_t *kernel_console = &consoles[KERNEL_CONSOLE];
 
-/** Pointer to memory shared with framebufer used for
-    faster virtual console switching */
-static keyfield_t *interbuffer = NULL;
+static imgmap_t *logo_img;
+static imgmap_t *nameic_img;
 
-/** Information on row-span yet unsent to FB driver. */
+static imgmap_t *anim_1_img;
+static imgmap_t *anim_2_img;
+static imgmap_t *anim_3_img;
+static imgmap_t *anim_4_img;
+
+static imagemap_handle_t anim_1;
+static imagemap_handle_t anim_2;
+static imagemap_handle_t anim_3;
+static imagemap_handle_t anim_4;
+
+static sequence_handle_t anim_seq;
+
+static imgmap_t *cons_data_img;
+static imgmap_t *cons_dis_img;
+static imgmap_t *cons_dis_sel_img;
+static imgmap_t *cons_idle_img;
+static imgmap_t *cons_kernel_img;
+static imgmap_t *cons_sel_img;
+
+static vp_handle_t logo_vp;
+static imagemap_handle_t logo_handle;
+
+static vp_handle_t nameic_vp;
+static imagemap_handle_t nameic_handle;
+
+static vp_handle_t screen_vp;
+static vp_handle_t console_vp;
+
 struct {
-	sysarg_t col;  /**< Leftmost column of the span. */
-	sysarg_t row;  /**< Row where the span lies. */
-	sysarg_t cnt;  /**< Width of the span. */
-} fb_pending;
-
-static FIBRIL_MUTEX_INITIALIZE(input_mutex);
-static FIBRIL_CONDVAR_INITIALIZE(input_cv);
-
-static void curs_visibility(bool visible)
-{
-	async_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, visible); 
-}
-
-static void curs_hide_sync(void)
-{
-	async_req_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
-}
-
-static void curs_goto(sysarg_t x, sysarg_t y)
-{
-	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, x, y);
-}
-
-static void screen_clear(void)
-{
-	async_msg_0(fb_info.phone, FB_CLEAR);
-}
-
-static void screen_yield(void)
-{
-	async_req_0_0(fb_info.phone, FB_SCREEN_YIELD);
-}
-
-static void screen_reclaim(void)
-{
-	async_req_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
-}
-
-static void kbd_yield(void)
-{
-	async_req_0_0(kbd_phone, KBD_YIELD);
-}
-
-static void kbd_reclaim(void)
-{
-	async_req_0_0(kbd_phone, KBD_RECLAIM);
-}
-
-static void set_style(uint8_t style)
-{
-	async_msg_1(fb_info.phone, FB_SET_STYLE, style);
-}
-
-static void set_color(uint8_t fgcolor, uint8_t bgcolor, uint8_t flags)
-{
-	async_msg_3(fb_info.phone, FB_SET_COLOR, fgcolor, bgcolor, flags);
-}
-
-static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
-{
-	async_msg_2(fb_info.phone, FB_SET_RGB_COLOR, fgcolor, bgcolor); 
-}
-
-static void set_attrs(attrs_t *attrs)
-{
-	switch (attrs->t) {
-	case at_style:
-		set_style(attrs->a.s.style);
-		break;
-	case at_idx:
-		set_color(attrs->a.i.fg_color, attrs->a.i.bg_color,
-		    attrs->a.i.flags);
-		break;
-	case at_rgb:
-		set_rgb_color(attrs->a.r.fg_color, attrs->a.r.bg_color);
-		break;
-	}
-}
-
-static int ccap_fb_to_con(sysarg_t ccap_fb, sysarg_t *ccap_con)
-{
-	switch (ccap_fb) {
-	case FB_CCAP_NONE:
-		*ccap_con = CONSOLE_CCAP_NONE;
-		break;
-	case FB_CCAP_STYLE:
-		*ccap_con = CONSOLE_CCAP_STYLE;
-		break;
-	case FB_CCAP_INDEXED:
-		*ccap_con = CONSOLE_CCAP_INDEXED;
-		break;
-	case FB_CCAP_RGB:
-		*ccap_con = CONSOLE_CCAP_RGB;
-		break;
-	default:
-		return EINVAL;
-	}
+	sysarg_t x;
+	sysarg_t y;
 	
-	return EOK;
-}
+	sysarg_t btn_x;
+	sysarg_t btn_y;
+	
+	bool pressed;
+} mouse;
 
-/** Send an area of screenbuffer to the FB driver. */
-static void fb_update_area(console_t *cons, sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height)
+static void cons_redraw_state(console_t *cons)
 {
-	if (interbuffer) {
-		sysarg_t x;
-		sysarg_t y;
+	if (graphics_state == GRAPHICS_FULL) {
+		fibril_mutex_lock(&cons->mtx);
 		
-		for (y = 0; y < height; y++) {
-			for (x = 0; x < width; x++) {
-				interbuffer[y * width + x] =
-				    *get_field_at(&cons->scr, x0 + x, y0 + y);
-			}
+		fb_vp_imagemap_damage(fb_sess, cons->state_vp,
+		    state_icons[cons->state], 0, 0, STATE_WIDTH, STATE_HEIGHT);
+		
+		if ((cons->state != CONS_DISCONNECTED) &&
+		    (cons->state != CONS_KERNEL) &&
+		    (cons->state != CONS_DISCONNECTED_SELECTED)) {
+			char data[5];
+			snprintf(data, 5, "%zu", cons->index + 1);
+			
+			for (size_t i = 0; data[i] != 0; i++)
+				fb_vp_putchar(fb_sess, cons->state_vp, i + 2, 1, data[i]);
 		}
 		
-		async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
-		    x0, y0, width, height);
+		fibril_mutex_unlock(&cons->mtx);
 	}
 }
 
-/** Flush pending cells to FB. */
-static void fb_pending_flush(void)
+static void cons_kernel_sequence_start(console_t *cons)
 {
-	if (fb_pending.cnt > 0) {
-		fb_update_area(active_console, fb_pending.col,
-		    fb_pending.row, fb_pending.cnt, 1);
-		fb_pending.cnt = 0;
+	if (graphics_state == GRAPHICS_FULL) {
+		fibril_mutex_lock(&cons->mtx);
+		
+		fb_vp_sequence_start(fb_sess, cons->state_vp, anim_seq);
+		fb_vp_imagemap_damage(fb_sess, cons->state_vp,
+		    state_icons[cons->state], 0, 0, STATE_WIDTH, STATE_HEIGHT);
+		
+		fibril_mutex_unlock(&cons->mtx);
 	}
 }
 
-/** Mark a character cell as changed.
+static void cons_update_state(console_t *cons, console_state_t state)
+{
+	bool update = false;
+	
+	fibril_mutex_lock(&cons->mtx);
+	
+	if (cons->state != state) {
+		cons->state = state;
+		update = true;
+	}
+	
+	fibril_mutex_unlock(&cons->mtx);
+	
+	if (update)
+		cons_redraw_state(cons);
+}
+
+static void cons_notify_data(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	
+	if (cons != active_console)
+		cons_update_state(cons, CONS_DATA);
+	
+	fibril_mutex_unlock(&switch_mtx);
+}
+
+static void cons_notify_connect(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	
+	if (cons == active_console)
+		cons_update_state(cons, CONS_SELECTED);
+	else
+		cons_update_state(cons, CONS_IDLE);
+	
+	fibril_mutex_unlock(&switch_mtx);
+}
+
+static void cons_notify_disconnect(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	
+	if (cons == active_console)
+		cons_update_state(cons, CONS_DISCONNECTED_SELECTED);
+	else
+		cons_update_state(cons, CONS_DISCONNECTED);
+	
+	fibril_mutex_unlock(&switch_mtx);
+}
+
+static void cons_update(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	fibril_mutex_lock(&cons->mtx);
+	
+	if ((cons == active_console) && (active_console != kernel_console)) {
+		fb_vp_update(fb_sess, console_vp, cons->fbid);
+		fb_vp_cursor_update(fb_sess, console_vp, cons->fbid);
+	}
+	
+	fibril_mutex_unlock(&cons->mtx);
+	fibril_mutex_unlock(&switch_mtx);
+}
+
+static void cons_update_cursor(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	fibril_mutex_lock(&cons->mtx);
+	
+	if ((cons == active_console) && (active_console != kernel_console))
+		fb_vp_cursor_update(fb_sess, console_vp, cons->fbid);
+	
+	fibril_mutex_unlock(&cons->mtx);
+	fibril_mutex_unlock(&switch_mtx);
+}
+
+static void cons_clear(console_t *cons)
+{
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_clear(cons->frontbuf);
+	fibril_mutex_unlock(&cons->mtx);
+	
+	cons_update(cons);
+}
+
+static void cons_damage_all(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	fibril_mutex_lock(&cons->mtx);
+	
+	if ((cons == active_console) && (active_console != kernel_console)) {
+		fb_vp_damage(fb_sess, console_vp, cons->fbid, 0, 0, cons->cols,
+		    cons->rows);
+		fb_vp_cursor_update(fb_sess, console_vp, cons->fbid);
+	}
+	
+	fibril_mutex_unlock(&cons->mtx);
+	fibril_mutex_unlock(&switch_mtx);
+}
+
+static void cons_switch(console_t *cons)
+{
+	fibril_mutex_lock(&switch_mtx);
+	
+	if (cons == active_console) {
+		fibril_mutex_unlock(&switch_mtx);
+		return;
+	}
+	
+	if (cons == kernel_console) {
+		fb_yield(fb_sess);
+		if (!console_kcon()) {
+			fb_claim(fb_sess);
+			fibril_mutex_unlock(&switch_mtx);
+			return;
+		}
+	}
+	
+	if (active_console == kernel_console)
+		fb_claim(fb_sess);
+	
+	prev_console = active_console;
+	active_console = cons;
+	
+	if (prev_console->state == CONS_DISCONNECTED_SELECTED)
+		cons_update_state(prev_console, CONS_DISCONNECTED);
+	else
+		cons_update_state(prev_console, CONS_IDLE);
+	
+	if ((cons->state == CONS_DISCONNECTED) ||
+	    (cons->state == CONS_DISCONNECTED_SELECTED))
+		cons_update_state(cons, CONS_DISCONNECTED_SELECTED);
+	else
+		cons_update_state(cons, CONS_SELECTED);
+	
+	fibril_mutex_unlock(&switch_mtx);
+	
+	cons_damage_all(cons);
+}
+
+static console_t *cons_get_active_uspace(void)
+{
+	fibril_mutex_lock(&switch_mtx);
+
+	console_t *active_uspace = active_console;
+	if (active_uspace == kernel_console) {
+		active_uspace = prev_console;
+	}
+	assert(active_uspace != kernel_console);
+
+	fibril_mutex_unlock(&switch_mtx);
+
+	return active_uspace;
+}
+
+static ssize_t limit(ssize_t val, ssize_t lo, ssize_t hi)
+{
+	if (val > hi)
+		return hi;
+	
+	if (val < lo)
+		return lo;
+	
+	return val;
+}
+
+static void cons_mouse_move(sysarg_t dx, sysarg_t dy)
+{
+	ssize_t sx = (ssize_t) dx;
+	ssize_t sy = (ssize_t) dy;
+	
+	mouse.x = limit(mouse.x + sx, 0, xres);
+	mouse.y = limit(mouse.y + sy, 0, yres);
+	
+	fb_pointer_update(fb_sess, mouse.x, mouse.y, true);
+}
+
+static console_t *cons_find_icon(sysarg_t x, sysarg_t y)
+{
+	sysarg_t status_start =
+	    STATE_START + (xres - 800) / 2 + CONSOLE_MARGIN;
+	
+	if ((y < STATE_TOP) || (y >= STATE_TOP + STATE_HEIGHT))
+		return NULL;
+	
+	if (x < status_start)
+		return NULL;
+	
+	if (x >= status_start + (STATE_WIDTH + STATE_SPACE) * CONSOLE_COUNT)
+		return NULL;
+	
+	if (((x - status_start) % (STATE_WIDTH + STATE_SPACE)) >= STATE_WIDTH)
+		return NULL;
+	
+	sysarg_t btn = (x - status_start) / (STATE_WIDTH + STATE_SPACE);
+	
+	if (btn < CONSOLE_COUNT)
+		return consoles + btn;
+	
+	return NULL;
+}
+
+/** Handle mouse click
  *
- * This adds the cell to the pending rowspan if possible. Otherwise
- * the old span is flushed first.
+ * @param state Button state (true - pressed, false - depressed)
  *
  */
-static void cell_mark_changed(sysarg_t col, sysarg_t row)
+static console_t *cons_mouse_button(bool state)
 {
-	if (fb_pending.cnt != 0) {
-		if ((col != fb_pending.col + fb_pending.cnt)
-		    || (row != fb_pending.row)) {
-			fb_pending_flush();
+	if (graphics_state != GRAPHICS_FULL)
+		return NULL;
+	
+	if (state) {
+		console_t *cons = cons_find_icon(mouse.x, mouse.y);
+		if (cons != NULL) {
+			mouse.btn_x = mouse.x;
+			mouse.btn_y = mouse.y;
+			mouse.pressed = true;
 		}
+		
+		return NULL;
 	}
 	
-	if (fb_pending.cnt == 0) {
-		fb_pending.col = col;
-		fb_pending.row = row;
-	}
+	if ((!state) && (!mouse.pressed))
+		return NULL;
 	
-	fb_pending.cnt++;
+	console_t *cons = cons_find_icon(mouse.x, mouse.y);
+	if (cons == cons_find_icon(mouse.btn_x, mouse.btn_y))
+		return cons;
+	
+	mouse.pressed = false;
+	return NULL;
 }
 
-/** Print a character to the active VC with buffering. */
-static void fb_putchar(wchar_t c, sysarg_t col, sysarg_t row)
+static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	async_msg_3(fb_info.phone, FB_PUTCHAR, c, col, row);
+	/* Ignore parameters, the connection is already opened */
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			/* TODO: Handle hangup */
+			async_hangup(input_sess);
+			return;
+		}
+		
+		kbd_event_type_t type;
+		keycode_t key;
+		keymod_t mods;
+		wchar_t c;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case INPUT_EVENT_KEY:
+			type = IPC_GET_ARG1(call);
+			key = IPC_GET_ARG2(call);
+			mods = IPC_GET_ARG3(call);
+			c = IPC_GET_ARG4(call);
+			
+			if ((key >= KC_F1) && (key < KC_F1 + CONSOLE_COUNT) &&
+			    ((mods & KM_CTRL) == 0))
+				cons_switch(&consoles[key - KC_F1]);
+			else {
+				/* Got key press/release event */
+				kbd_event_t *event =
+				    (kbd_event_t *) malloc(sizeof(kbd_event_t));
+				if (event == NULL) {
+					async_answer_0(callid, ENOMEM);
+					break;
+				}
+				
+				link_initialize(&event->link);
+				event->type = type;
+				event->key = key;
+				event->mods = mods;
+				event->c = c;
+				
+				/* Kernel console does not read events
+				 * from us, so we will redirect them
+				 * to the (last) active userspace console
+				 * if necessary.
+				 */
+				console_t *target_console = cons_get_active_uspace();
+
+				prodcons_produce(&target_console->input_pc,
+				    &event->link);
+			}
+			
+			async_answer_0(callid, EOK);
+			break;
+		case INPUT_EVENT_MOVE:
+			cons_mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			async_answer_0(callid, EOK);
+			break;
+		case INPUT_EVENT_BUTTON:
+			/* Got pointer button press/release event */
+			if (IPC_GET_ARG1(call) == 1) {
+				console_t *cons =
+				    cons_mouse_button((bool) IPC_GET_ARG2(call));
+				if (cons != NULL)
+					cons_switch(cons);
+			}
+			async_answer_0(callid, EOK);
+			break;
+		default:
+			async_answer_0(callid, EINVAL);
+		}
+	}
 }
 
 /** Process a character from the client (TTY emulation). */
-static void write_char(console_t *cons, wchar_t ch)
+static void cons_write_char(console_t *cons, wchar_t ch)
 {
-	bool flush_cursor = false;
+	sysarg_t updated = 0;
+	
+	fibril_mutex_lock(&cons->mtx);
 	
 	switch (ch) {
 	case '\n':
-		fb_pending_flush();
-		flush_cursor = true;
-		cons->scr.position_y++;
-		cons->scr.position_x = 0;
+		updated = screenbuffer_newline(cons->frontbuf);
 		break;
 	case '\r':
 		break;
 	case '\t':
-		cons->scr.position_x += 8;
-		cons->scr.position_x -= cons->scr.position_x % 8;
+		updated = screenbuffer_tabstop(cons->frontbuf, 8);
 		break;
 	case '\b':
-		if (cons->scr.position_x == 0)
-			break;
-		cons->scr.position_x--;
-		if (cons == active_console)
-			cell_mark_changed(cons->scr.position_x, cons->scr.position_y);
-		screenbuffer_putchar(&cons->scr, ' ');
+		updated = screenbuffer_backspace(cons->frontbuf);
 		break;
 	default:
-		if (cons == active_console)
-			cell_mark_changed(cons->scr.position_x, cons->scr.position_y);
-		
-		screenbuffer_putchar(&cons->scr, ch);
-		cons->scr.position_x++;
+		updated = screenbuffer_putchar(cons->frontbuf, ch, true);
 	}
 	
-	if (cons->scr.position_x >= cons->scr.size_x) {
-		flush_cursor = true;
-		cons->scr.position_y++;
-	}
+	fibril_mutex_unlock(&cons->mtx);
 	
-	if (cons->scr.position_y >= cons->scr.size_y) {
-		fb_pending_flush();
-		cons->scr.position_y = cons->scr.size_y - 1;
-		screenbuffer_clear_line(&cons->scr, cons->scr.top_line);
-		cons->scr.top_line = (cons->scr.top_line + 1) % cons->scr.size_y;
-		
-		if (cons == active_console)
-			async_msg_1(fb_info.phone, FB_SCROLL, 1);
-	}
-	
-	if (cons == active_console && flush_cursor)
-		curs_goto(cons->scr.position_x, cons->scr.position_y);
-	cons->scr.position_x = cons->scr.position_x % cons->scr.size_x;
+	if (updated > 1)
+		cons_update(cons);
 }
 
-/** Switch to new console */
-static void change_console(console_t *cons)
+static void cons_set_cursor(console_t *cons, sysarg_t col, sysarg_t row)
 {
-	if (cons == active_console)
-		return;
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_set_cursor(cons->frontbuf, col, row);
+	fibril_mutex_unlock(&cons->mtx);
 	
-	fb_pending_flush();
-	
-	if (cons == kernel_console) {
-		async_serialize_start();
-		curs_hide_sync();
-		gcons_in_kernel();
-		screen_yield();
-		kbd_yield();
-		async_serialize_end();
-		
-		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
-			prev_console = active_console;
-			active_console = kernel_console;
-		} else
-			cons = active_console;
-	}
-	
-	if (cons != kernel_console) {
-		async_serialize_start();
-		
-		if (active_console == kernel_console) {
-			screen_reclaim();
-			kbd_reclaim();
-			gcons_redraw_console();
-		}
-		
-		active_console = cons;
-		gcons_change_console(cons->index);
-		
-		set_attrs(&cons->scr.attrs);
-		curs_visibility(false);
-		
-		sysarg_t x;
-		sysarg_t y;
-		int rc = 0;
-		
-		if (interbuffer) {
-			for (y = 0; y < cons->scr.size_y; y++) {
-				for (x = 0; x < cons->scr.size_x; x++) {
-					interbuffer[y * cons->scr.size_x + x] =
-					    *get_field_at(&cons->scr, x, y);
-				}
-			}
-			
-			/* This call can preempt, but we are already at the end */
-			rc = async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
-			    0, 0, cons->scr.size_x,
-			    cons->scr.size_y);
-		}
-		
-		if ((!interbuffer) || (rc != 0)) {
-			set_attrs(&cons->scr.attrs);
-			screen_clear();
-			
-			for (y = 0; y < cons->scr.size_y; y++)
-				for (x = 0; x < cons->scr.size_x; x++) {
-					keyfield_t *field = get_field_at(&cons->scr, x, y);
-					
-					if (!attrs_same(cons->scr.attrs, field->attrs))
-						set_attrs(&field->attrs);
-					
-					cons->scr.attrs = field->attrs;
-					if ((field->character == ' ') &&
-					    (attrs_same(field->attrs, cons->scr.attrs)))
-						continue;
-					
-					fb_putchar(field->character, x, y);
-				}
-		}
-		
-		curs_goto(cons->scr.position_x, cons->scr.position_y);
-		curs_visibility(cons->scr.is_cursor_visible);
-		
-		async_serialize_end();
-	}
+	cons_update_cursor(cons);
 }
 
-/** Handler for keyboard */
-static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
+static void cons_set_cursor_visibility(console_t *cons, bool visible)
 {
-	/* Ignore parameters, the connection is already opened */
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		int retval;
-		console_event_t ev;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			/* TODO: Handle hangup */
-			return;
-		case KBD_EVENT:
-			/* Got event from keyboard driver. */
-			retval = 0;
-			ev.type = IPC_GET_ARG1(call);
-			ev.key = IPC_GET_ARG2(call);
-			ev.mods = IPC_GET_ARG3(call);
-			ev.c = IPC_GET_ARG4(call);
-			
-			if ((ev.key >= KC_F1) && (ev.key < KC_F1 +
-			    CONSOLE_COUNT) && ((ev.mods & KM_CTRL) == 0)) {
-				if (ev.key == KC_F1 + KERNEL_CONSOLE)
-					change_console(kernel_console);
-				else
-					change_console(&consoles[ev.key - KC_F1]);
-				break;
-			}
-			
-			fibril_mutex_lock(&input_mutex);
-			keybuffer_push(&active_console->keybuffer, &ev);
-			fibril_condvar_broadcast(&input_cv);
-			fibril_mutex_unlock(&input_mutex);
-			break;
-		default:
-			retval = ENOENT;
-		}
-		async_answer_0(callid, retval);
-	}
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_set_cursor_visibility(cons->frontbuf, visible);
+	fibril_mutex_unlock(&cons->mtx);
+	
+	cons_update_cursor(cons);
 }
 
-/** Handler for mouse events */
-static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
+static void cons_get_cursor(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 {
-	/* Ignore parameters, the connection is already opened */
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		int retval;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			/* TODO: Handle hangup */
-			return;
-		case MEVENT_BUTTON:
-			if (IPC_GET_ARG1(call) == 1) {
-				int newcon = gcons_mouse_btn((bool) IPC_GET_ARG2(call));
-				if (newcon != -1)
-					change_console(&consoles[newcon]);
-			}
-			retval = 0;
-			break;
-		case MEVENT_MOVE:
-			gcons_mouse_move((int) IPC_GET_ARG1(call),
-			    (int) IPC_GET_ARG2(call));
-			retval = 0;
-			break;
-		default:
-			retval = ENOENT;
-		}
-
-		async_answer_0(callid, retval);
-	}
+	sysarg_t col;
+	sysarg_t row;
+	
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_get_cursor(cons->frontbuf, &col, &row);
+	fibril_mutex_unlock(&cons->mtx);
+	
+	async_answer_2(iid, EOK, col, row);
 }
 
-static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
+static void cons_write(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 {
 	void *buf;
 	size_t size;
 	int rc = async_data_write_accept(&buf, false, 0, 0, 0, &size);
 	
 	if (rc != EOK) {
-		async_answer_0(rid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
 	
-	async_serialize_start();
-	
 	size_t off = 0;
-	while (off < size) {
-		wchar_t ch = str_decode(buf, &off, size);
-		write_char(cons, ch);
-	}
+	while (off < size)
+		cons_write_char(cons, str_decode(buf, &off, size));
 	
-	async_serialize_end();
-	
-	gcons_notify_char(cons->index);
-	async_answer_1(rid, EOK, size);
-	
+	async_answer_1(iid, EOK, size);
 	free(buf);
+	
+	cons_notify_data(cons);
 }
 
-static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
+static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
 	char *buf = (char *) malloc(size);
 	if (buf == NULL) {
 		async_answer_0(callid, ENOMEM);
-		async_answer_0(rid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
 		return;
 	}
 	
 	size_t pos = 0;
-	console_event_t ev;
-	fibril_mutex_lock(&input_mutex);
-	
-recheck:
-	while ((keybuffer_pop(&cons->keybuffer, &ev)) && (pos < size)) {
-		if (ev.type == KEY_PRESS) {
-			buf[pos] = ev.c;
+	while (pos < size) {
+		link_t *link = prodcons_consume(&cons->input_pc);
+		kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+		
+		if (event->type == KEY_PRESS) {
+			buf[pos] = event->c;
 			pos++;
 		}
+		
+		free(event);
 	}
 	
-	if (pos == size) {
-		(void) async_data_read_finalize(callid, buf, size);
-		async_answer_1(rid, EOK, size);
-		free(buf);
-	} else {
-		fibril_condvar_wait(&input_cv, &input_mutex);
-		goto recheck;
-	}
-	
-	fibril_mutex_unlock(&input_mutex);
+	(void) async_data_read_finalize(callid, buf, size);
+	async_answer_1(iid, EOK, size);
+	free(buf);
 }
 
-static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
+static void cons_set_style(console_t *cons, console_style_t style)
 {
-	console_event_t ev;
-	
-	fibril_mutex_lock(&input_mutex);
-	
-recheck:
-	if (keybuffer_pop(&cons->keybuffer, &ev)) {
-		async_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
-	} else {
-		fibril_condvar_wait(&input_cv, &input_mutex);
-		goto recheck;
-	}
-	
-	fibril_mutex_unlock(&input_mutex);
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_set_style(cons->frontbuf, style);
+	fibril_mutex_unlock(&cons->mtx);
 }
 
-/** Default thread for new connections */
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void cons_set_color(console_t *cons, console_color_t bgcolor,
+    console_color_t fgcolor, console_color_attr_t attr)
+{
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_set_color(cons->frontbuf, bgcolor, fgcolor, attr);
+	fibril_mutex_unlock(&cons->mtx);
+}
+
+static void cons_set_rgb_color(console_t *cons, pixel_t bgcolor,
+    pixel_t fgcolor)
+{
+	fibril_mutex_lock(&cons->mtx);
+	screenbuffer_set_rgb_color(cons->frontbuf, bgcolor, fgcolor);
+	fibril_mutex_unlock(&cons->mtx);
+}
+
+static void cons_get_event(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
+{
+	link_t *link = prodcons_consume(&cons->input_pc);
+	kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+	
+	async_answer_4(iid, EOK, event->type, event->key, event->mods, event->c);
+	free(event);
+}
+
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	console_t *cons = NULL;
 	
-	size_t i;
-	for (i = 0; i < CONSOLE_COUNT; i++) {
+	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
 		if (i == KERNEL_CONSOLE)
 			continue;
 		
-		if (consoles[i].devmap_handle == (devmap_handle_t) IPC_GET_ARG1(*icall)) {
+		if (consoles[i].dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
 			cons = &consoles[i];
 			break;
 		}
@@ -581,282 +679,332 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t arg1;
-	sysarg_t arg2;
-	sysarg_t arg3;
-	
-	int rc;
-	
-	async_serialize_start();
-	if (cons->refcount == 0)
-		gcons_notify_connect(cons->index);
-	
-	cons->refcount++;
+	if (atomic_postinc(&cons->refcnt) == 0) {
+		cons_set_cursor_visibility(cons, true);
+		cons_notify_connect(cons);
+	}
 	
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
 	
 	while (true) {
-		async_serialize_end();
-		callid = async_get_call(&call);
-		async_serialize_start();
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
 		
-		arg1 = 0;
-		arg2 = 0;
-		arg3 = 0;
+		if (!IPC_GET_IMETHOD(call)) {
+			if (atomic_postdec(&cons->refcnt) == 1)
+				cons_notify_disconnect(cons);
+			
+			return;
+		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			cons->refcount--;
-			if (cons->refcount == 0)
-				gcons_notify_disconnect(cons->index);
-			return;
 		case VFS_OUT_READ:
-			async_serialize_end();
 			cons_read(cons, callid, &call);
-			async_serialize_start();
-			continue;
+			break;
 		case VFS_OUT_WRITE:
-			async_serialize_end();
 			cons_write(cons, callid, &call);
-			async_serialize_start();
-			continue;
+			break;
 		case VFS_OUT_SYNC:
-			fb_pending_flush();
-			if (cons == active_console) {
-				async_req_0_0(fb_info.phone, FB_FLUSH);
-				curs_goto(cons->scr.position_x, cons->scr.position_y);
-			}
+			cons_update(cons);
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_CLEAR:
-			/* Send message to fb */
-			if (cons == active_console)
-				async_msg_0(fb_info.phone, FB_CLEAR);
-			
-			screenbuffer_clear(&cons->scr);
-			
+			cons_clear(cons);
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_GOTO:
-			screenbuffer_goto(&cons->scr,
-			    IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			if (cons == active_console)
-				curs_goto(IPC_GET_ARG1(call),
-				    IPC_GET_ARG2(call));
+			cons_set_cursor(cons, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_GET_POS:
-			arg1 = cons->scr.position_x;
-			arg2 = cons->scr.position_y;
+			cons_get_cursor(cons, callid, &call);
 			break;
 		case CONSOLE_GET_SIZE:
-			arg1 = fb_info.cols;
-			arg2 = fb_info.rows;
+			async_answer_2(callid, EOK, cons->cols, cons->rows);
 			break;
 		case CONSOLE_GET_COLOR_CAP:
-			rc = ccap_fb_to_con(fb_info.color_cap, &arg1);
-			if (rc != EOK) {
-				async_answer_0(callid, rc);
-				continue;
-			}
+			async_answer_1(callid, EOK, cons->ccaps);
 			break;
 		case CONSOLE_SET_STYLE:
-			fb_pending_flush();
-			arg1 = IPC_GET_ARG1(call);
-			screenbuffer_set_style(&cons->scr, arg1);
-			if (cons == active_console)
-				set_style(arg1);
+			cons_set_style(cons, IPC_GET_ARG1(call));
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_SET_COLOR:
-			fb_pending_flush();
-			arg1 = IPC_GET_ARG1(call);
-			arg2 = IPC_GET_ARG2(call);
-			arg3 = IPC_GET_ARG3(call);
-			screenbuffer_set_color(&cons->scr, arg1, arg2, arg3);
-			if (cons == active_console)
-				set_color(arg1, arg2, arg3);
+			cons_set_color(cons, IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+			    IPC_GET_ARG3(call));
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_SET_RGB_COLOR:
-			fb_pending_flush();
-			arg1 = IPC_GET_ARG1(call);
-			arg2 = IPC_GET_ARG2(call);
-			screenbuffer_set_rgb_color(&cons->scr, arg1, arg2);
-			if (cons == active_console)
-				set_rgb_color(arg1, arg2);
+			cons_set_rgb_color(cons, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_CURSOR_VISIBILITY:
-			fb_pending_flush();
-			arg1 = IPC_GET_ARG1(call);
-			cons->scr.is_cursor_visible = arg1;
-			if (cons == active_console)
-				curs_visibility(arg1);
+			cons_set_cursor_visibility(cons, IPC_GET_ARG1(call));
+			async_answer_0(callid, EOK);
 			break;
 		case CONSOLE_GET_EVENT:
-			async_serialize_end();
 			cons_get_event(cons, callid, &call);
-			async_serialize_start();
-			continue;
-		case CONSOLE_KCON_ENABLE:
-			change_console(kernel_console);
 			break;
+		default:
+			async_answer_0(callid, EINVAL);
 		}
-		async_answer_3(callid, EOK, arg1, arg2, arg3);
 	}
+}
+
+static async_sess_t *input_connect(const char *svc)
+{
+	async_sess_t *sess;
+	service_id_t dsid;
+	
+	int rc = loc_service_get_id(svc, &dsid, 0);
+	if (rc == EOK) {
+		sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
+		if (sess == NULL) {
+			printf("%s: Unable to connect to input service %s\n", NAME,
+			    svc);
+			return NULL;
+		}
+	} else
+		return NULL;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	rc = async_connect_to_me(exch, 0, 0, 0, input_events, NULL);
+	async_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_hangup(sess);
+		printf("%s: Unable to create callback connection to service %s (%s)\n",
+		    NAME, svc, str_error(rc));
+		return NULL;
+	}
+	
+	return sess;
 }
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
-	change_console(prev_console);
+	cons_switch(prev_console);
 }
 
-static bool console_init(char *input)
+static async_sess_t *fb_connect(const char *svc)
 {
-	/* Connect to input device */
-	int input_fd = open(input, O_RDONLY);
-	if (input_fd < 0) {
-		printf(NAME ": Failed opening %s\n", input);
+	async_sess_t *sess;
+	service_id_t dsid;
+	
+	int rc = loc_service_get_id(svc, &dsid, 0);
+	if (rc == EOK) {
+		sess = loc_service_connect(EXCHANGE_SERIALIZE, dsid, 0);
+		if (sess == NULL) {
+			printf("%s: Unable to connect to framebuffer service %s\n",
+			    NAME, svc);
+			return NULL;
+		}
+	} else
+		return NULL;
+	
+	return sess;
+}
+
+static bool console_srv_init(char *input_svc, char *fb_svc)
+{
+	/* Avoid double initialization */
+	if (graphics_state != GRAPHICS_NONE)
 		return false;
-	}
 	
-	kbd_phone = fd_phone(input_fd);
-	if (kbd_phone < 0) {
-		printf(NAME ": Failed to connect to input device\n");
+	/* Connect to input service */
+	input_sess = input_connect(input_svc);
+	if (input_sess == NULL)
 		return false;
-	}
 	
-	/* NB: The callback connection is slotted for removal */
-	if (async_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, keyboard_events)
-	    != 0) {
-		printf(NAME ": Failed to create callback from input device\n");
+	/* Connect to framebuffer service */
+	fb_sess = fb_connect(fb_svc);
+	if (fb_sess == NULL)
 		return false;
-	}
 	
-	/* Connect to mouse device */
-	mouse_phone = -1;
-	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
-	
-	if (mouse_fd < 0) {
-		printf(NAME ": Notice - failed opening %s\n", "/dev/hid_in/mouse");
-		goto skip_mouse;
-	}
-	
-	mouse_phone = fd_phone(mouse_fd);
-	if (mouse_phone < 0) {
-		printf(NAME ": Failed to connect to mouse device\n");
-		goto skip_mouse;
-	}
-	
-	if (async_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, mouse_events)
-	    != 0) {
-		printf(NAME ": Failed to create callback from mouse device\n");
-		mouse_phone = -1;
-		goto skip_mouse;
-	}
-	
-skip_mouse:
-	
-	/* Connect to framebuffer driver */
-	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
-	if (fb_info.phone < 0) {
-		printf(NAME ": Failed to connect to video service\n");
-		return -1;
-	}
-	
-	/* Register driver */
-	int rc = devmap_driver_register(NAME, client_connection);
+	/* Register server */
+	int rc = loc_server_register(NAME, client_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver (%d)\n", rc);
+		printf("%s: Unable to register server (%s)\n", NAME,
+		    str_error(rc));
 		return false;
 	}
 	
-	/* Initialize gcons */
-	gcons_init(fb_info.phone);
-	
-	/* Synchronize, the gcons could put something in queue */
-	async_req_0_0(fb_info.phone, FB_FLUSH);
-	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
-	async_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &fb_info.color_cap);
-	
-	/* Set up shared memory buffer. */
-	size_t ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;
-	interbuffer = as_get_mappable_page(ib_size);
-	
-	if (as_area_create(interbuffer, ib_size, AS_AREA_READ |
-	    AS_AREA_WRITE | AS_AREA_CACHEABLE) != interbuffer)
-		interbuffer = NULL;
-	
-	if (interbuffer) {
-		if (async_share_out_start(fb_info.phone, interbuffer,
-		    AS_AREA_READ) != EOK) {
-			as_area_destroy(interbuffer);
-			interbuffer = NULL;
-		}
-	}
-	
-	fb_pending.cnt = 0;
-	
-	/* Inititalize consoles */
-	size_t i;
-	for (i = 0; i < CONSOLE_COUNT; i++) {
-		if (i != KERNEL_CONSOLE) {
-			if (screenbuffer_init(&consoles[i].scr,
-			    fb_info.cols, fb_info.rows) == NULL) {
-				printf(NAME ": Unable to allocate screen buffer %zu\n", i);
-				return false;
-			}
-			screenbuffer_clear(&consoles[i].scr);
-			keybuffer_init(&consoles[i].keybuffer);
-			consoles[i].index = i;
-			consoles[i].refcount = 0;
-			
-			char vc[DEVMAP_NAME_MAXLEN + 1];
-			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
-			
-			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
-				printf(NAME ": Unable to register device %s\n", vc);
-				return false;
-			}
-		}
-	}
-	
-	/* Disable kernel output to the console */
-	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
+	fb_get_resolution(fb_sess, &xres, &yres);
 	
 	/* Initialize the screen */
-	async_serialize_start();
-	gcons_redraw_console();
-	set_style(STYLE_NORMAL);
-	screen_clear();
-	curs_goto(0, 0);
-	curs_visibility(active_console->scr.is_cursor_visible);
-	async_serialize_end();
+	screen_vp = fb_vp_create(fb_sess, 0, 0, xres, yres);
+	
+	if ((xres >= 800) && (yres >= 600)) {
+		logo_vp = fb_vp_create(fb_sess, xres - 66, 2, 64, 60);
+		logo_img = imgmap_decode_tga((void *) helenos_tga,
+		    helenos_tga_size, IMGMAP_FLAG_SHARED);
+		logo_handle = fb_imagemap_create(fb_sess, logo_img);
+		
+		nameic_vp = fb_vp_create(fb_sess, 5, 17, 100, 26);
+		nameic_img = imgmap_decode_tga((void *) nameic_tga,
+		    nameic_tga_size, IMGMAP_FLAG_SHARED);
+		nameic_handle = fb_imagemap_create(fb_sess, nameic_img);
+		
+		cons_data_img = imgmap_decode_tga((void *) cons_data_tga,
+		    cons_data_tga_size, IMGMAP_FLAG_SHARED);
+		cons_dis_img = imgmap_decode_tga((void *) cons_dis_tga,
+		    cons_dis_tga_size, IMGMAP_FLAG_SHARED);
+		cons_dis_sel_img = imgmap_decode_tga((void *) cons_dis_sel_tga,
+		    cons_dis_sel_tga_size, IMGMAP_FLAG_SHARED);
+		cons_idle_img = imgmap_decode_tga((void *) cons_idle_tga,
+		    cons_idle_tga_size, IMGMAP_FLAG_SHARED);
+		cons_kernel_img = imgmap_decode_tga((void *) cons_kernel_tga,
+		    cons_kernel_tga_size, IMGMAP_FLAG_SHARED);
+		cons_sel_img = imgmap_decode_tga((void *) cons_sel_tga,
+		    cons_sel_tga_size, IMGMAP_FLAG_SHARED);
+		
+		state_icons[CONS_DISCONNECTED] =
+		    fb_imagemap_create(fb_sess, cons_dis_img);
+		state_icons[CONS_DISCONNECTED_SELECTED] =
+		    fb_imagemap_create(fb_sess, cons_dis_sel_img);
+		state_icons[CONS_SELECTED] =
+		    fb_imagemap_create(fb_sess, cons_sel_img);
+		state_icons[CONS_IDLE] =
+		    fb_imagemap_create(fb_sess, cons_idle_img);
+		state_icons[CONS_DATA] =
+		    fb_imagemap_create(fb_sess, cons_data_img);
+		state_icons[CONS_KERNEL] =
+		    fb_imagemap_create(fb_sess, cons_kernel_img);
+		
+		anim_1_img = imgmap_decode_tga((void *) anim_1_tga,
+		    anim_1_tga_size, IMGMAP_FLAG_SHARED);
+		anim_2_img = imgmap_decode_tga((void *) anim_2_tga,
+		    anim_2_tga_size, IMGMAP_FLAG_SHARED);
+		anim_3_img = imgmap_decode_tga((void *) anim_3_tga,
+		    anim_3_tga_size, IMGMAP_FLAG_SHARED);
+		anim_4_img = imgmap_decode_tga((void *) anim_4_tga,
+		    anim_4_tga_size, IMGMAP_FLAG_SHARED);
+		
+		anim_1 = fb_imagemap_create(fb_sess, anim_1_img);
+		anim_2 = fb_imagemap_create(fb_sess, anim_2_img);
+		anim_3 = fb_imagemap_create(fb_sess, anim_3_img);
+		anim_4 = fb_imagemap_create(fb_sess, anim_4_img);
+		
+		anim_seq = fb_sequence_create(fb_sess);
+		fb_sequence_add_imagemap(fb_sess, anim_seq, anim_1);
+		fb_sequence_add_imagemap(fb_sess, anim_seq, anim_2);
+		fb_sequence_add_imagemap(fb_sess, anim_seq, anim_3);
+		fb_sequence_add_imagemap(fb_sess, anim_seq, anim_4);
+		
+		console_vp = fb_vp_create(fb_sess, CONSOLE_MARGIN, CONSOLE_TOP,
+		    xres - 2 * CONSOLE_MARGIN, yres - (CONSOLE_TOP + CONSOLE_MARGIN));
+		
+		fb_vp_clear(fb_sess, screen_vp);
+		fb_vp_imagemap_damage(fb_sess, logo_vp, logo_handle,
+		    0, 0, 64, 60);
+		fb_vp_imagemap_damage(fb_sess, nameic_vp, nameic_handle,
+		    0, 0, 100, 26);
+		
+		graphics_state = GRAPHICS_FULL;
+	} else {
+		console_vp = screen_vp;
+		graphics_state = GRAPHICS_BASIC;
+	}
+	
+	fb_vp_set_style(fb_sess, console_vp, STYLE_NORMAL);
+	fb_vp_clear(fb_sess, console_vp);
+	
+	sysarg_t cols;
+	sysarg_t rows;
+	fb_vp_get_dimensions(fb_sess, console_vp, &cols, &rows);
+	
+	console_caps_t ccaps;
+	fb_vp_get_caps(fb_sess, console_vp, &ccaps);
+	
+	mouse.x = xres / 2;
+	mouse.y = yres / 2;
+	mouse.pressed = false;
+	
+	/* Inititalize consoles */
+	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
+		consoles[i].index = i;
+		atomic_set(&consoles[i].refcnt, 0);
+		fibril_mutex_initialize(&consoles[i].mtx);
+		prodcons_initialize(&consoles[i].input_pc);
+		
+		if (graphics_state == GRAPHICS_FULL) {
+			/* Create state buttons */
+			consoles[i].state_vp =
+			    fb_vp_create(fb_sess, STATE_START + (xres - 800) / 2 +
+			    CONSOLE_MARGIN + i * (STATE_WIDTH + STATE_SPACE),
+			    STATE_TOP, STATE_WIDTH, STATE_HEIGHT);
+		}
+		
+		if (i == KERNEL_CONSOLE) {
+			consoles[i].state = CONS_KERNEL;
+			cons_redraw_state(&consoles[i]);
+			cons_kernel_sequence_start(&consoles[i]);
+			continue;
+		}
+		
+		if (i == 0)
+			consoles[i].state = CONS_DISCONNECTED_SELECTED;
+		else
+			consoles[i].state = CONS_DISCONNECTED;
+		
+		consoles[i].cols = cols;
+		consoles[i].rows = rows;
+		consoles[i].ccaps = ccaps;
+		consoles[i].frontbuf =
+		    screenbuffer_create(cols, rows, SCREENBUFFER_FLAG_SHARED);
+		
+		if (consoles[i].frontbuf == NULL) {
+			printf("%s: Unable to allocate frontbuffer %zu\n", NAME, i);
+			return false;
+		}
+		
+		consoles[i].fbid = fb_frontbuf_create(fb_sess, consoles[i].frontbuf);
+		if (consoles[i].fbid == 0) {
+			printf("%s: Unable to create frontbuffer %zu\n", NAME, i);
+			return false;
+		}
+		
+		cons_redraw_state(&consoles[i]);
+		
+		char vc[LOC_NAME_MAXLEN + 1];
+		snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
+		
+		if (loc_service_register(vc, &consoles[i].dsid) != EOK) {
+			printf("%s: Unable to register device %s\n", NAME, vc);
+			return false;
+		}
+	}
 	
 	/* Receive kernel notifications */
 	async_set_interrupt_received(interrupt_received);
-	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
-		printf(NAME ": Error registering kconsole notifications\n");
+	rc = event_subscribe(EVENT_KCONSOLE, 0);
+	if (rc != EOK)
+		printf("%s: Failed to register kconsole notifications (%s)\n",
+		    NAME, str_error(rc));
 	
 	return true;
 }
 
 static void usage(void)
 {
-	printf("Usage: console <input>\n");
+	printf("Usage: console <input_dev> <framebuffer_dev>\n");
 }
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
+	if (argc < 3) {
 		usage();
 		return -1;
 	}
 	
-	printf(NAME ": HelenOS Console service\n");
+	printf("%s: HelenOS Console service\n", NAME);
 	
-	if (!console_init(argv[1]))
+	if (!console_srv_init(argv[1], argv[2]))
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	
 	return 0;

@@ -93,7 +93,7 @@ static slab_cache_t *as_slab;
 /** ASID subsystem lock.
  *
  * This lock protects:
- * - inactive_as_with_asid_head list
+ * - inactive_as_with_asid_list
  * - as->asid for each as of the as_t type
  * - asids_allocated counter
  *
@@ -104,7 +104,7 @@ SPINLOCK_INITIALIZE(asidlock);
  * Inactive address spaces (on all processors)
  * that have valid ASID.
  */
-LIST_INITIALIZE(inactive_as_with_asid_head);
+LIST_INITIALIZE(inactive_as_with_asid_list);
 
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
@@ -234,10 +234,10 @@ retry:
 	 */
 	bool cond = true;
 	while (cond) {
-		ASSERT(!list_empty(&as->as_area_btree.leaf_head));
+		ASSERT(!list_empty(&as->as_area_btree.leaf_list));
 		
 		btree_node_t *node =
-		    list_get_instance(as->as_area_btree.leaf_head.next,
+		    list_get_instance(list_first(&as->as_area_btree.leaf_list),
 		    btree_node_t, leaf_link);
 		
 		if ((cond = node->keys))
@@ -601,10 +601,10 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 */
 		bool cond = true;
 		while (cond) {
-			ASSERT(!list_empty(&area->used_space.leaf_head));
+			ASSERT(!list_empty(&area->used_space.leaf_list));
 			
 			btree_node_t *node =
-			    list_get_instance(area->used_space.leaf_head.prev,
+			    list_get_instance(list_last(&area->used_space.leaf_list),
 			    btree_node_t, leaf_link);
 			
 			if ((cond = (bool) node->keys)) {
@@ -674,7 +674,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		    area->pages - pages);
 		
 		/*
-		 * Invalidate software translation caches (e.g. TSB on sparc64).
+		 * Invalidate software translation caches
+		 * (e.g. TSB on sparc64, PHT on ppc32).
 		 */
 		as_invalidate_translation_cache(as, area->base + P2SZ(pages),
 		    area->pages - pages);
@@ -725,14 +726,12 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 	
 	if (--sh_info->refcount == 0) {
 		dealloc = true;
-		link_t *cur;
 		
 		/*
 		 * Now walk carefully the pagemap B+tree and free/remove
 		 * reference from all frames found there.
 		 */
-		for (cur = sh_info->pagemap.leaf_head.next;
-		    cur != &sh_info->pagemap.leaf_head; cur = cur->next) {
+		list_foreach(sh_info->pagemap.leaf_list, cur) {
 			btree_node_t *node
 			    = list_get_instance(cur, btree_node_t, leaf_link);
 			btree_key_t i;
@@ -784,9 +783,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Visit only the pages mapped by used_space B+tree.
 	 */
-	link_t *cur;
-	for (cur = area->used_space.leaf_head.next;
-	    cur != &area->used_space.leaf_head; cur = cur->next) {
+	list_foreach(area->used_space.leaf_list, cur) {
 		btree_node_t *node;
 		btree_key_t i;
 		
@@ -822,8 +819,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
 	
 	/*
-	 * Invalidate potential software translation caches (e.g. TSB on
-	 * sparc64).
+	 * Invalidate potential software translation caches
+	 * (e.g. TSB on sparc64, PHT on ppc32).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize(ipl);
@@ -1063,10 +1060,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 * Compute total number of used pages in the used_space B+tree
 	 */
 	size_t used_pages = 0;
-	link_t *cur;
 	
-	for (cur = area->used_space.leaf_head.next;
-	    cur != &area->used_space.leaf_head; cur = cur->next) {
+	list_foreach(area->used_space.leaf_list, cur) {
 		btree_node_t *node
 		    = list_get_instance(cur, btree_node_t, leaf_link);
 		btree_key_t i;
@@ -1092,8 +1087,7 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	size_t frame_idx = 0;
 	
-	for (cur = area->used_space.leaf_head.next;
-	    cur != &area->used_space.leaf_head; cur = cur->next) {
+	list_foreach(area->used_space.leaf_list, cur) {
 		btree_node_t *node = list_get_instance(cur, btree_node_t,
 		    leaf_link);
 		btree_key_t i;
@@ -1125,8 +1119,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
 	
 	/*
-	 * Invalidate potential software translation caches (e.g. TSB on
-	 * sparc64).
+	 * Invalidate potential software translation caches
+	 * (e.g. TSB on sparc64, PHT on ppc32).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize(ipl);
@@ -1145,8 +1139,7 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	frame_idx = 0;
 	
-	for (cur = area->used_space.leaf_head.next;
-	    cur != &area->used_space.leaf_head; cur = cur->next) {
+	list_foreach(area->used_space.leaf_list, cur) {
 		btree_node_t *node
 		    = list_get_instance(cur, btree_node_t, leaf_link);
 		btree_key_t i;
@@ -1290,7 +1283,7 @@ page_fault:
  * scheduling. Sleeping here would lead to deadlock on wakeup. Another
  * thing which is forbidden in this context is locking the address space.
  *
- * When this function is enetered, no spinlocks may be held.
+ * When this function is entered, no spinlocks may be held.
  *
  * @param old Old address space or NULL.
  * @param new New address space.
@@ -1332,7 +1325,7 @@ retry:
 			ASSERT(old_as->asid != ASID_INVALID);
 			
 			list_append(&old_as->inactive_as_with_asid_link,
-			    &inactive_as_with_asid_head);
+			    &inactive_as_with_asid_list);
 		}
 		
 		/*
@@ -2025,10 +2018,10 @@ sysarg_t sys_as_get_unmapped_area(uintptr_t base, size_t size)
 		ret = addr;
 	
 	/* Eventually check the addresses behind each area */
-	link_t *cur;
-	for (cur = AS->as_area_btree.leaf_head.next;
-	    (ret == 0) && (cur != &AS->as_area_btree.leaf_head);
-	    cur = cur->next) {
+	list_foreach(AS->as_area_btree.leaf_list, cur) {
+		if (ret != 0)
+			break;
+
 		btree_node_t *node =
 		    list_get_instance(cur, btree_node_t, leaf_link);
 		
@@ -2070,10 +2063,8 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	/* First pass, count number of areas. */
 	
 	size_t area_cnt = 0;
-	link_t *cur;
 	
-	for (cur = as->as_area_btree.leaf_head.next;
-	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+	list_foreach(as->as_area_btree.leaf_list, cur) {
 		btree_node_t *node =
 		    list_get_instance(cur, btree_node_t, leaf_link);
 		area_cnt += node->keys;
@@ -2086,8 +2077,7 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	
 	size_t area_idx = 0;
 	
-	for (cur = as->as_area_btree.leaf_head.next;
-	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+	list_foreach(as->as_area_btree.leaf_list, cur) {
 		btree_node_t *node =
 		    list_get_instance(cur, btree_node_t, leaf_link);
 		btree_key_t i;
@@ -2123,9 +2113,7 @@ void as_print(as_t *as)
 	mutex_lock(&as->lock);
 	
 	/* Print out info about address space areas */
-	link_t *cur;
-	for (cur = as->as_area_btree.leaf_head.next;
-	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+	list_foreach(as->as_area_btree.leaf_list, cur) {
 		btree_node_t *node
 		    = list_get_instance(cur, btree_node_t, leaf_link);
 		btree_key_t i;

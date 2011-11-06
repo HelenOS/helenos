@@ -36,7 +36,7 @@
 #define LIBC_LIBC_H_
 
 #include <sys/types.h>
-#include <kernel/syscall/syscall.h>
+#include <abi/syscall.h>
 #include <libarch/syscall.h>
 
 #ifdef __32_BITS__

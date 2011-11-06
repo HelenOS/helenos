@@ -38,32 +38,29 @@
 #ifndef LIBNET_NIL_SKEL_H_
 #define LIBNET_NIL_SKEL_H_
 
-#include <async.h>
-#include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <adt/measured_strings.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <async.h>
 
 /** Module initialization.
  *
  * This has to be implemented in user code.
  *
- * @param[in] net_phone Networking module phone.
+ * @param[in] sess Networking module session.
  *
  * @return EOK on success.
  * @return Other error codes as defined for each specific module
  *         initialize function.
  *
  */
-extern int nil_initialize(int net_phone);
+extern int nil_initialize(async_sess_t *sess);
 
 /** Notify the network interface layer about the device state change.
  *
  * This has to be implemented in user code.
  *
- * @param[in] nil_phone Network interface layer phone.
  * @param[in] device_id Device identifier.
  * @param[in] state     New device state.
  *
@@ -72,7 +69,7 @@ extern int nil_initialize(int net_phone);
  *         device state function.
  *
  */
-extern int nil_device_state_msg_local(int, device_id_t, int);
+extern int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state);
 
 /** Pass the packet queue to the network interface layer.
  *
@@ -81,23 +78,20 @@ extern int nil_device_state_msg_local(int, device_id_t, int);
  *
  * This has to be implemented in user code.
  *
- * @param[in] nil_phone Network interface layer phone.
  * @param[in] device_id Source device identifier.
  * @param[in] packet    Received packet or the received packet queue.
- * @param[in] target    Target service. Ignored parameter.
  *
  * @return EOK on success.
  * @return Other error codes as defined for each specific module
  *         received function.
  *
  */
-extern int nil_received_msg_local(int, device_id_t, packet_t *, services_t);
+extern int nil_received_msg_local(nic_device_id_t device_id, packet_t *packet);
 
 /** Message processing function.
  *
  * This has to be implemented in user code.
  *
- * @param[in]  name   Module name.
  * @param[in]  callid Message identifier.
  * @param[in]  call   Message parameters.
  * @param[out] answer Message answer parameters.
@@ -111,10 +105,10 @@ extern int nil_received_msg_local(int, device_id_t, packet_t *, services_t);
  * @see IS_NET_NIL_MESSAGE()
  *
  */
-extern int nil_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+extern int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *count);
 
-extern int nil_module_start(int);
+extern int nil_module_start(sysarg_t);
 
 #endif
 

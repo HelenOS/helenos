@@ -71,7 +71,7 @@ typedef struct match_id {
  * according to match scores in descending order.
  */
 typedef struct match_id_list {
-	link_t ids;
+	list_t ids;
 } match_id_list_t;
 
 static inline match_id_t *create_match_id(void)
@@ -94,13 +94,13 @@ static inline void delete_match_id(match_id_t *id)
 static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 {
 	match_id_t *mid = NULL;
-	link_t *link = ids->ids.next;
+	link_t *link = ids->ids.head.next;
 	
-	while (link != &ids->ids) {
+	while (link != &ids->ids.head) {
 		mid = list_get_instance(link, match_id_t,link);
 		if (mid->score < id->score) {
 			break;
-		}	
+		}
 		link = link->next;
 	}
 	
@@ -117,19 +117,19 @@ static inline void clean_match_ids(match_id_list_t *ids)
 	link_t *link = NULL;
 	match_id_t *id;
 	
-	while(!list_empty(&ids->ids)) {
-		link = ids->ids.next;
-		list_remove(link);		
+	while (!list_empty(&ids->ids)) {
+		link = list_first(&ids->ids);
+		list_remove(link);
 		id = list_get_instance(link, match_id_t, link);
-		delete_match_id(id);		
-	}	
+		delete_match_id(id);
+	}
 }
 
 typedef enum {
 	DEVMAN_DRIVER = 1,
 	DEVMAN_CLIENT,
 	DEVMAN_CONNECT_TO_DEVICE,
-	DEVMAN_CONNECT_FROM_DEVMAP,
+	DEVMAN_CONNECT_FROM_LOC,
 	DEVMAN_CONNECT_TO_PARENTS_DEVICE
 } devman_interface_t;
 
@@ -137,18 +137,30 @@ typedef enum {
 	DEVMAN_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
 	DEVMAN_ADD_FUNCTION,
 	DEVMAN_ADD_MATCH_ID,
-	DEVMAN_ADD_DEVICE_TO_CLASS
-
+	DEVMAN_ADD_DEVICE_TO_CATEGORY,
+	DEVMAN_DRV_FUN_ONLINE,
+	DEVMAN_DRV_FUN_OFFLINE,
+	DEVMAN_REMOVE_FUNCTION
 } driver_to_devman_t;
 
 typedef enum {
-	DRIVER_ADD_DEVICE = IPC_FIRST_USER_METHOD
-
+	DRIVER_DEV_ADD = IPC_FIRST_USER_METHOD,
+	DRIVER_DEV_ADDED,
+	DRIVER_DEV_REMOVE,
+	DRIVER_DEV_GONE,
+	DRIVER_FUN_ONLINE,
+	DRIVER_FUN_OFFLINE,
 } devman_to_driver_t;
 
 typedef enum {
 	DEVMAN_DEVICE_GET_HANDLE = IPC_FIRST_USER_METHOD,
-	DEVMAN_DEVICE_GET_HANDLE_BY_CLASS
+	DEVMAN_DEV_GET_FUNCTIONS,
+	DEVMAN_FUN_GET_CHILD,
+	DEVMAN_FUN_GET_NAME,
+	DEVMAN_FUN_ONLINE,
+	DEVMAN_FUN_OFFLINE,
+	DEVMAN_FUN_GET_PATH,
+	DEVMAN_FUN_SID_TO_HANDLE
 } client_to_devman_t;
 
 #endif

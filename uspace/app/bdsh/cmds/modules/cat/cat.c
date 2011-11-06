@@ -1,32 +1,30 @@
-/* Copyright (c) 2008, Tim Post <tinkertim@gmail.com>
+/*
+ * Copyright (c) 2008 Tim Post
  * Copyright (c) 2011, Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- * Redistributions of source code must retain the above copyright notice, this
- * list of conditions and the following disclaimer.
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
  *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the original program's authors nor the names of its
- * contributors may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
@@ -63,6 +61,8 @@ static size_t lines_remaining = 0;
 static sysarg_t console_cols = 0;
 static sysarg_t console_rows = 0;
 static bool should_quit = false;
+
+static console_ctrl_t *console = NULL;
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -101,20 +101,22 @@ void help_cmd_cat(unsigned int level)
 
 static void waitprompt()
 {
-	console_set_pos(fphone(stdout), 0, console_rows-1);
-	console_set_color(fphone(stdout), COLOR_BLUE, COLOR_WHITE, 0);
+	console_set_pos(console, 0, console_rows-1);
+	console_set_color(console, COLOR_WHITE, COLOR_BLUE, 0);
+	
 	printf("ENTER/SPACE/PAGE DOWN - next page, "
 	       "ESC/Q - quit, C - continue unpaged");
 	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
+	
+	console_set_style(console, STYLE_NORMAL);
 }
 
 static void waitkey()
 {
-	console_event_t ev;
+	kbd_event_t ev;
 	
 	while (true) {
-		if (!console_get_event(fphone(stdin), &ev)) {
+		if (!console_get_kbd_event(console, &ev)) {
 			return;
 		}
 		if (ev.type == KEY_PRESS) {
@@ -137,9 +139,9 @@ static void waitkey()
 
 static void newpage()
 {
-	console_clear(fphone(stdout));
+	console_clear(console);
 	chars_remaining = console_cols;
-	lines_remaining = console_rows-1;
+	lines_remaining = console_rows - 1;
 }
 
 static void paged_char(wchar_t c)
@@ -237,6 +239,7 @@ int cmd_cat(char **argv)
 	console_cols = 0;
 	console_rows = 0;
 	should_quit = false;
+	console = console_init(stdin, stdout);
 
 	argc = cli_count_args(argv);
 
@@ -279,7 +282,7 @@ int cmd_cat(char **argv)
 		buffer = CAT_DEFAULT_BUFLEN;
 	
 	if (more) {
-		rc = console_get_size(fphone(stdout), &cols, &rows);
+		rc = console_get_size(console, &cols, &rows);
 		if (rc != EOK) {
 			printf("%s - cannot get console size\n", cmdname);
 			return CMD_FAILURE;

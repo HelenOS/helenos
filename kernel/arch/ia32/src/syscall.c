@@ -38,6 +38,8 @@
 #include <typedefs.h>
 #include <arch/pm.h>
 
+#ifndef PROCESSOR_i486
+
 /** Enable & setup support for SYSENTER/SYSEXIT */
 void syscall_setup_cpu(void)
 {
@@ -48,6 +50,8 @@ void syscall_setup_cpu(void)
 	/* set kernel mode entry point */
 	write_msr(IA32_MSR_SYSENTER_EIP, (uint32_t) sysenter_handler);
 }
+
+#endif /* PROCESSOR_i486 */
 
 /** @}
  */

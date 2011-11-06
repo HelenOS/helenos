@@ -1,0 +1,4 @@
+ASSERT_EQ_FN_DEF(uint8_t, "hhu", "hhx")
+ASSERT_EQ_FN_DEF(uint16_t, "hu", "hx")
+ASSERT_EQ_FN_DEF(uint32_t, "u", "x")
+ASSERT_EQ_FN_DEF(uint64_t, PRIu64, PRIx64)

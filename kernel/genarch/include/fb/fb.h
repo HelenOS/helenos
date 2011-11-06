@@ -36,8 +36,8 @@
 #define KERN_FB_H_
 
 #include <typedefs.h>
+#include <abi/fb/visuals.h>
 #include <console/chardev.h>
-#include <genarch/fb/visuals.h>
 
 /**
  * Properties of the framebuffer device.

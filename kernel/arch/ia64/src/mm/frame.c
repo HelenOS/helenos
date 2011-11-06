@@ -57,7 +57,7 @@ void frame_arch_init(void)
 	if (config.cpu_active == 1) {
 		unsigned int i;
 		for (i = 0; i < bootinfo->memmap_items; i++) {
-			if (bootinfo->memmap[i].type == EFI_MEMMAP_FREE_MEM) {
+			if (bootinfo->memmap[i].type == MEMMAP_FREE_MEM) {
 				uint64_t base = bootinfo->memmap[i].base;
 				uint64_t size = bootinfo->memmap[i].size;
 				uint64_t abase = ALIGN_UP(base, FRAME_SIZE);

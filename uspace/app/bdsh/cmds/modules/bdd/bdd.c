@@ -38,7 +38,7 @@
 #include "cmds.h"
 
 #include <libblock.h>
-#include <devmap.h>
+#include <loc.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -68,7 +68,7 @@ int cmd_bdd(char **argv)
 {
 	unsigned int argc;
 	unsigned int i, j;
-	devmap_handle_t handle;
+	service_id_t service_id;
 	aoff64_t offset;
 	uint8_t *blk;
 	size_t size, bytes, rows;
@@ -95,19 +95,19 @@ int cmd_bdd(char **argv)
 	else
 		size = 256;
 
-	rc = devmap_device_get_handle(argv[1], &handle, 0);
+	rc = loc_service_get_id(argv[1], &service_id, 0);
 	if (rc != EOK) {
 		printf("%s: Error resolving device `%s'.\n", cmdname, argv[1]);
 		return CMD_FAILURE;
 	}
 
-	rc = block_init(handle, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
 	if (rc != EOK)  {
 		printf("%s: Error initializing libblock.\n", cmdname);
 		return CMD_FAILURE;
 	}
 
-	rc = block_get_bsize(handle, &block_size);
+	rc = block_get_bsize(service_id, &block_size);
 	if (rc != EOK) {
 		printf("%s: Error determining device block size.\n", cmdname);
 		return CMD_FAILURE;
@@ -116,18 +116,18 @@ int cmd_bdd(char **argv)
 	blk = malloc(block_size);
 	if (blk == NULL) {
 		printf("%s: Error allocating memory.\n", cmdname);
-		block_fini(handle);
+		block_fini(service_id);
 		return CMD_FAILURE;
 	}
 
 	offset = ba * block_size;
 
 	while (size > 0) {
-		rc = block_read_direct(handle, ba, 1, blk);
+		rc = block_read_direct(service_id, ba, 1, blk);
 		if (rc != EOK) {
 			printf("%s: Error reading block %" PRIuOFF64 "\n", cmdname, ba);
 			free(blk);
-			block_fini(handle);
+			block_fini(service_id);
 			return CMD_FAILURE;
 		}
 
@@ -169,7 +169,7 @@ int cmd_bdd(char **argv)
 	}
 
 	free(blk);
-	block_fini(handle);
+	block_fini(service_id);
 
 	return CMD_SUCCESS;
 }

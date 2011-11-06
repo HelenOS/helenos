@@ -1,31 +1,29 @@
-/* Copyright (c) 2008, Tim Post <tinkertim@gmail.com>
+/*
+ * Copyright (c) 2008 Tim Post
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- * Redistributions of source code must retain the above copyright notice, this
- * list of conditions and the following disclaimer.
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
  *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the original program's authors nor the names of its
- * contributors may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /* The VERY basics of execute in place support. These are buggy, leaky
@@ -41,6 +39,7 @@
 #include <fcntl.h>
 #include <str_error.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "util.h"
@@ -52,6 +51,8 @@ static char *found;
 
 static char *find_command(char *);
 static int try_access(const char *);
+
+const char *search_dir[] = { "/app", "/srv", NULL };
 
 /* work-around for access() */
 static int try_access(const char *f)
@@ -70,10 +71,7 @@ static int try_access(const char *f)
  * cmd as it was presented */
 static char *find_command(char *cmd)
 {
-	char *path_tok;
-	char *path[PATH_MAX];
-	int n = 0, i = 0;
-	size_t x = str_size(cmd) + 2;
+	size_t i;
 
 	found = (char *)malloc(PATH_MAX);
 
@@ -82,46 +80,47 @@ static char *find_command(char *cmd)
 		return (char *) cmd;
 	}
 
-	path_tok = str_dup(PATH);
-
-	/* Extract the PATH env to a path[] array */
-	path[n] = strtok(path_tok, PATH_DELIM);
-	while (NULL != path[n]) {
-		if ((str_size(path[n]) + x ) > PATH_MAX) {
-			cli_error(CL_ENOTSUP,
-				"Segment %d of path is too large, search ends at segment %d",
-				n, n-1);
-			break;
-		}
-		path[++n] = strtok(NULL, PATH_DELIM);
-	}
-
 	/* We now have n places to look for the command */
-	for (i=0; path[i]; i++) {
+	for (i = 0; search_dir[i] != NULL; i++) {
 		memset(found, 0, sizeof(found));
-		snprintf(found, PATH_MAX, "%s/%s", path[i], cmd);
+		snprintf(found, PATH_MAX, "%s/%s", search_dir[i], cmd);
 		if (-1 != try_access(found)) {
-			free(path_tok);
 			return (char *) found;
 		}
 	}
 
 	/* We didn't find it, just give it back as-is. */
-	free(path_tok);
 	return (char *) cmd;
 }
 
-unsigned int try_exec(char *cmd, char **argv)
+unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 {
 	task_id_t tid;
 	task_exit_t texit;
 	char *tmp;
-	int rc, retval;
+	int rc, retval, i;
+	int file_handles[3];
+	int *file_handles_p[4];
+	FILE *files[3];
 
 	tmp = str_dup(find_command(cmd));
 	free(found);
+	
+	files[0] = io->stdin;
+	files[1] = io->stdout;
+	files[2] = io->stderr;
+	
+	for (i = 0; i < 3 && files[i] != NULL; i++) {
+		if (fhandle(files[i], &file_handles[i]) == EOK) {
+			file_handles_p[i] = &file_handles[i];
+		}
+		else {
+			file_handles_p[i] = NULL;
+		}
+	}
+	file_handles_p[i] = NULL;
 
-	rc = task_spawnv(&tid, tmp, (const char **) argv);
+	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_handles_p);
 	free(tmp);
 
 	if (rc != 0) {
@@ -134,11 +133,14 @@ unsigned int try_exec(char *cmd, char **argv)
 	if (rc != EOK) {
 		printf("%s: Failed waiting for command (%s)\n", progname,
 		    str_error(rc));
+		return 1;
 	} else if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Command failed (unexpectedly terminated)\n", progname);
+		return 1;
 	} else if (retval != 0) {
 		printf("%s: Command failed (exit code %d)\n",
 		    progname, retval);
+		return 1;
 	}
 
 	return 0;

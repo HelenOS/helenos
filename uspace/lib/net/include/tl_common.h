@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet 
+/** @addtogroup libnet
  * @{
  */
 
@@ -38,11 +38,11 @@
 #define LIBNET_TL_COMMON_H_
 
 #include <ipc/services.h>
-
 #include <net/socket_codes.h>
 #include <net/packet.h>
 #include <net/device.h>
 #include <net/inet.h>
+#include <async.h>
 
 /** Device packet dimensions.
  * Maps devices to the packet dimensions.
@@ -50,18 +50,18 @@
  */
 DEVICE_MAP_DECLARE(packet_dimensions, packet_dimension_t);
 
-extern int tl_get_ip_packet_dimension(int, packet_dimensions_t *,
-    device_id_t, packet_dimension_t **);
+extern int tl_get_ip_packet_dimension(async_sess_t *, packet_dimensions_t *,
+    nic_device_id_t, packet_dimension_t **);
 extern int tl_get_address_port(const struct sockaddr *, int, uint16_t *);
-extern int tl_update_ip_packet_dimension(packet_dimensions_t *, device_id_t,
+extern int tl_update_ip_packet_dimension(packet_dimensions_t *, nic_device_id_t,
     size_t);
 extern int tl_set_address_port(struct sockaddr *, int, uint16_t);
-extern int tl_prepare_icmp_packet(int, int, packet_t *, services_t);
-extern int tl_socket_read_packet_data(int, packet_t **, size_t,
+extern int tl_prepare_icmp_packet(async_sess_t *, async_sess_t *, packet_t *,
+    services_t);
+extern int tl_socket_read_packet_data(async_sess_t *, packet_t **, size_t,
     const packet_dimension_t *, const struct sockaddr *, socklen_t);
 
 #endif
 
 /** @}
  */
-

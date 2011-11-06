@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,11 +38,12 @@
 #ifndef NET_ETH_H_
 #define NET_ETH_H_
 
+#include <async.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <adt/measured_strings.h>
+#include <devman.h>
 
 /** Ethernet address length. */
 #define ETH_ADDR  6
@@ -219,11 +221,11 @@ INT_MAP_DECLARE(eth_protos, eth_proto_t);
 /** Ethernet device specific data. */
 struct eth_device {
 	/** Device identifier. */
-	device_id_t device_id;
-	/** Device driver service. */
-	services_t service;
-	/** Driver phone. */
-	int phone;
+	nic_device_id_t device_id;
+	/** Device handle */
+	devman_handle_t handle;
+	/** Driver session. */
+	async_sess_t *sess;
 	/** Maximal transmission unit. */
 	size_t mtu;
 	
@@ -235,10 +237,7 @@ struct eth_device {
 	int flags;
 	
 	/** Actual device hardware address. */
-	measured_string_t *addr;
-	
-	/** Actual device hardware address data. */
-	uint8_t *addr_data;
+	nic_address_t addr;
 };
 
 /** Ethernet protocol specific data. */
@@ -247,14 +246,14 @@ struct eth_proto {
 	services_t service;
 	/** Protocol identifier. */
 	int protocol;
-	/** Protocol module phone. */
-	int phone;
+	/** Protocol module session. */
+	async_sess_t *sess;
 };
 
 /** Ethernet global data. */
 struct eth_globals {
-	/** Networking module phone. */
-	int net_phone;
+	/** Networking module session. */
+	async_sess_t *net_sess;
 	/** Safety lock for devices. */
 	fibril_rwlock_t devices_lock;
 	/** All known Ethernet devices. */
@@ -264,12 +263,12 @@ struct eth_globals {
 	
 	/**
 	 * Protocol map.
-	 * Service phone map for each protocol.
+	 * Service map for each protocol.
 	 */
 	eth_protos_t protos;
 	
 	/** Broadcast device hardware address. */
-	measured_string_t *broadcast_addr;
+	uint8_t broadcast_addr[ETH_ADDR];
 };
 
 #endif

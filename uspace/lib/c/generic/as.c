@@ -34,6 +34,7 @@
 
 #include <as.h>
 #include <libc.h>
+#include <errno.h>
 #include <unistd.h>
 #include <align.h>
 #include <sys/types.h>
@@ -111,6 +112,32 @@ void *as_get_mappable_page(size_t size)
 {
 	return (void *) __SYSCALL2(SYS_AS_GET_UNMAPPED_AREA,
 	    (sysarg_t) __entry, (sysarg_t) size);
+}
+
+/** Find mapping to physical address.
+ *
+ * @param address Virtual address in question (virtual).
+ * @param[out] frame Frame address (physical).
+ * @return Error code.
+ * @retval EOK No error, @p frame holds the translation.
+ * @retval ENOENT Mapping not found.
+ */
+int as_get_physical_mapping(const void *address, uintptr_t *frame)
+{
+	uintptr_t tmp_frame;
+	uintptr_t virt = (uintptr_t) address;
+	
+	int rc = (int) __SYSCALL2(SYS_PAGE_FIND_MAPPING,
+	    (sysarg_t) virt, (sysarg_t) &tmp_frame);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	if (frame != NULL) {
+		*frame = tmp_frame;
+	}
+	
+	return EOK;
 }
 
 /** @}

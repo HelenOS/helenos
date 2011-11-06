@@ -36,75 +36,202 @@
 
 #include <libc.h>
 #include <async.h>
+#include <errno.h>
+#include <stdio.h>
+#include <malloc.h>
+#include <vfs/vfs_sess.h>
 #include <io/console.h>
 #include <ipc/console.h>
 
-void console_clear(int phone)
+console_ctrl_t *console_init(FILE *ifile, FILE *ofile)
 {
-	async_msg_0(phone, CONSOLE_CLEAR);
+	console_ctrl_t *ctrl = malloc(sizeof(console_ctrl_t));
+	if (!ctrl)
+		return NULL;
+	
+	ctrl->input_sess = fsession(EXCHANGE_SERIALIZE, ifile);
+	if (!ctrl->input_sess) {
+		free(ctrl);
+		return NULL;
+	}
+	
+	ctrl->output_sess = fsession(EXCHANGE_SERIALIZE, ofile);
+	if (!ctrl->output_sess) {
+		free(ctrl);
+		return NULL;
+	}
+	
+	ctrl->input = ifile;
+	ctrl->output = ofile;
+	ctrl->input_aid = 0;
+	
+	return ctrl;
 }
 
-int console_get_size(int phone, sysarg_t *cols, sysarg_t *rows)
+void console_done(console_ctrl_t *ctrl)
 {
-	return async_req_0_2(phone, CONSOLE_GET_SIZE, cols, rows);
+	free(ctrl);
 }
 
-void console_set_style(int phone, uint8_t style)
+bool console_kcon(void)
 {
-	async_msg_1(phone, CONSOLE_SET_STYLE, style);
+	return __SYSCALL0(SYS_DEBUG_ACTIVATE_CONSOLE);
 }
 
-void console_set_color(int phone, uint8_t fg_color, uint8_t bg_color,
+void console_flush(console_ctrl_t *ctrl)
+{
+	fflush(ctrl->output);
+}
+
+void console_clear(console_ctrl_t *ctrl)
+{
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	async_req_0_0(exch, CONSOLE_CLEAR);
+	async_exchange_end(exch);
+}
+
+int console_get_size(console_ctrl_t *ctrl, sysarg_t *cols, sysarg_t *rows)
+{
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	int rc = async_req_0_2(exch, CONSOLE_GET_SIZE, cols, rows);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
+void console_set_style(console_ctrl_t *ctrl, uint8_t style)
+{
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	async_req_1_0(exch, CONSOLE_SET_STYLE, style);
+	async_exchange_end(exch);
+}
+
+void console_set_color(console_ctrl_t *ctrl, uint8_t bgcolor, uint8_t fgcolor,
     uint8_t flags)
 {
-	async_msg_3(phone, CONSOLE_SET_COLOR, fg_color, bg_color, flags);
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	async_req_3_0(exch, CONSOLE_SET_COLOR, bgcolor, fgcolor, flags);
+	async_exchange_end(exch);
 }
 
-void console_set_rgb_color(int phone, uint32_t fg_color, uint32_t bg_color)
+void console_set_rgb_color(console_ctrl_t *ctrl, uint32_t bgcolor,
+    uint32_t fgcolor)
 {
-	async_msg_2(phone, CONSOLE_SET_RGB_COLOR, fg_color, bg_color);
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	async_req_2_0(exch, CONSOLE_SET_RGB_COLOR, bgcolor, fgcolor);
+	async_exchange_end(exch);
 }
 
-void console_cursor_visibility(int phone, bool show)
+void console_cursor_visibility(console_ctrl_t *ctrl, bool show)
 {
-	async_msg_1(phone, CONSOLE_CURSOR_VISIBILITY, (show != false));
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	async_req_1_0(exch, CONSOLE_CURSOR_VISIBILITY, (show != false));
+	async_exchange_end(exch);
 }
 
-int console_get_color_cap(int phone, sysarg_t *ccap)
+int console_get_color_cap(console_ctrl_t *ctrl, sysarg_t *ccap)
 {
-	return async_req_0_1(phone, CONSOLE_GET_COLOR_CAP, ccap);
-}
-
-void console_kcon_enable(int phone)
-{
-	async_msg_0(phone, CONSOLE_KCON_ENABLE);
-}
-
-int console_get_pos(int phone, sysarg_t *col, sysarg_t *row)
-{
-	return async_req_0_2(phone, CONSOLE_GET_POS, col, row);
-}
-
-void console_set_pos(int phone, sysarg_t col, sysarg_t row)
-{
-	async_msg_2(phone, CONSOLE_GOTO, col, row);
-}
-
-bool console_get_event(int phone, console_event_t *event)
-{
-	sysarg_t type;
-	sysarg_t key;
-	sysarg_t mods;
-	sysarg_t c;
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	int rc = async_req_0_1(exch, CONSOLE_GET_COLOR_CAP, ccap);
+	async_exchange_end(exch);
 	
-	int rc = async_req_0_4(phone, CONSOLE_GET_EVENT, &type, &key, &mods, &c);
-	if (rc < 0)
+	return rc;
+}
+
+int console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
+{
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	int rc = async_req_0_2(exch, CONSOLE_GET_POS, col, row);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
+void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
+{
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	async_req_2_0(exch, CONSOLE_GOTO, col, row);
+	async_exchange_end(exch);
+}
+
+bool console_get_kbd_event(console_ctrl_t *ctrl, kbd_event_t *event)
+{
+	if (ctrl->input_aid == 0) {
+		sysarg_t type;
+		sysarg_t key;
+		sysarg_t mods;
+		sysarg_t c;
+		
+		async_exch_t *exch = async_exchange_begin(ctrl->input_sess);
+		int rc = async_req_0_4(exch, CONSOLE_GET_EVENT, &type, &key, &mods, &c);
+		async_exchange_end(exch);
+		
+		if (rc != EOK) {
+			errno = rc;
+			return false;
+		}
+		
+		event->type = type;
+		event->key = key;
+		event->mods = mods;
+		event->c = c;
+	} else {
+		sysarg_t retval;
+		async_wait_for(ctrl->input_aid, &retval);
+		
+		ctrl->input_aid = 0;
+		
+		if (retval != EOK) {
+			errno = (int) retval;
+			return false;
+		}
+		
+		event->type = IPC_GET_ARG1(ctrl->input_call);
+		event->key = IPC_GET_ARG2(ctrl->input_call);
+		event->mods = IPC_GET_ARG3(ctrl->input_call);
+		event->c = IPC_GET_ARG4(ctrl->input_call);
+	}
+	
+	return true;
+}
+
+bool console_get_kbd_event_timeout(console_ctrl_t *ctrl, kbd_event_t *event,
+    suseconds_t *timeout)
+{
+	struct timeval t0;
+	gettimeofday(&t0, NULL);
+	
+	if (ctrl->input_aid == 0) {
+		async_exch_t *exch = async_exchange_begin(ctrl->input_sess);
+		ctrl->input_aid = async_send_0(exch, CONSOLE_GET_EVENT,
+		    &ctrl->input_call);
+		async_exchange_end(exch);
+	}
+	
+	sysarg_t retval;
+	int rc = async_wait_timeout(ctrl->input_aid, &retval, *timeout);
+	if (rc != EOK) {
+		*timeout = 0;
+		errno = rc;
 		return false;
+	}
 	
-	event->type = type;
-	event->key = key;
-	event->mods = mods;
-	event->c = c;
+	ctrl->input_aid = 0;
+	
+	if (retval != EOK) {
+		errno = (int) retval;
+		return false;
+	}
+	
+	event->type = IPC_GET_ARG1(ctrl->input_call);
+	event->key = IPC_GET_ARG2(ctrl->input_call);
+	event->mods = IPC_GET_ARG3(ctrl->input_call);
+	event->c = IPC_GET_ARG4(ctrl->input_call);
+	
+	/* Update timeout */
+	struct timeval t1;
+	gettimeofday(&t1, NULL);
+	*timeout -= tv_sub(&t1, &t0);
 	
 	return true;
 }

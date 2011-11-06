@@ -41,7 +41,6 @@
 #include <genarch/acpi/madt.h>
 #include <config.h>
 #include <synch/waitq.h>
-#include <synch/synch.h>
 #include <arch/pm.h>
 #include <func.h>
 #include <panic.h>

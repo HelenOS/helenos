@@ -57,6 +57,52 @@
 	sync
 .endm
 
+.macro BAT_COMPUTE base size mask lower upper
+	# less than 128 KB -> no BAT
+	
+	lis \upper, 0x0002
+	cmpw \size, \upper
+	blt no_bat
+	
+	# mask = total >> 18
+	
+	li \upper, 18
+	srw \mask, \size, \upper
+	
+	# create Block Length mask by replicating
+	# the leading logical one 14 times
+	
+	li \upper, 14
+	mtctr \mask
+	li \upper, 1
+	
+	0:
+		# mask = (mask >> 1) | mask
+		
+		srw \lower, \mask, \upper
+		or \mask, \mask, \lower
+		
+		bdnz 0b
+	
+	# mask = mask & 0x07ff
+	# (BAT can map up to 256 MB)
+	
+	andi. \mask, \mask, 0x07ff
+	
+	# mask = (mask << 2) | 0x0002
+	# (priviledged access only)
+	
+	li \upper, 2
+	slw \mask, \mask, \upper
+	ori \mask, \mask, 0x0002
+	
+	lis \upper, (0x8000 + \base)
+	or \upper, \upper, \mask
+	
+	lis \lower, \base
+	ori \lower, \lower, 0x0002
+.endm
+
 .global start
 .global halt
 .global jump_to_kernel
@@ -246,43 +292,106 @@ real_mode:
 	
 	lwz r31, 4(r3)                # r31 = memory size
 	
-	lis r29, 0x0002
-	cmpw r31, r29
-	blt no_bat                    # less than 128 KB -> no BAT
+	lis r30, 268435456@h
+	ori r30, r30, 268435456@l     # r30 = 256 MB
 	
-	li r29, 18
-	srw r31, r31, r29             # r31 = total >> 18
+	# BAT0
 	
-	# create Block Length mask by replicating
-	# the leading logical one 14 times
+	# r29 = min(r31, r30)
 	
-	li r29, 14
-	mtctr r31
-	li r29, 1
+	cmpw r31, r30
+	blt bat0_r31
 	
-	bat_mask:
-		srw r30, r31, r29         # r30 = mask >> 1
-		or r31, r31, r30          # mask = mask | r30
-		
-		bdnz bat_mask
+		mr r29, r30
+		b bat0_r30
 	
-	andi. r31, r31, 0x07ff        # mask = mask & 0x07ff (BAT can map up to 256 MB)
+	bat0_r31:
 	
-	li r29, 2
-	slw r31, r31, r29             # mask = mask << 2
-	ori r31, r31, 0x0002          # mask = mask | 0x0002 (priviledged access only)
+		mr r29, r31
 	
-	lis r29, 0x8000
-	or r29, r29, r31
+	bat0_r30:
 	
-	lis r30, 0x0000
-	ori r30, r30, 0x0002
+	BAT_COMPUTE 0x0000 r29 r28 r27 r26
+	mtspr ibat0u, r26
+	mtspr ibat0l, r27
 	
-	mtspr ibat0u, r29
-	mtspr ibat0l, r30
+	mtspr dbat0u, r26
+	mtspr dbat0l, r27
 	
-	mtspr dbat0u, r29
-	mtspr dbat0l, r30
+	# BAT1
+	
+	sub r31, r31, r29             # r31 = r31 - r29
+	
+	# r29 = min(r31, r30)
+	
+	cmpw r31, r30
+	blt bat1_r31
+	
+		mr r29, r30
+		b bat1_r30
+	
+	bat1_r31:
+	
+		mr r29, r31
+	
+	bat1_r30:
+	
+	BAT_COMPUTE 0x1000 r29 r28 r27 r26
+	mtspr ibat1u, r26
+	mtspr ibat1l, r27
+	
+	mtspr dbat1u, r26
+	mtspr dbat1l, r27
+	
+	# BAT2
+	
+	sub r31, r31, r29             # r31 = r31 - r29
+	
+	# r29 = min(r31, r30)
+	
+	cmpw r31, r30
+	blt bat2_r31
+	
+		mr r29, r30
+		b bat2_r30
+	
+	bat2_r31:
+	
+		mr r29, r31
+	
+	bat2_r30:
+	
+	BAT_COMPUTE 0x2000 r29 r28 r27 r26
+	mtspr ibat2u, r26
+	mtspr ibat2l, r27
+	
+	mtspr dbat2u, r26
+	mtspr dbat2l, r27
+	
+	# BAT3
+	
+	sub r31, r31, r29             # r31 = r31 - r29
+	
+	# r29 = min(r31, r30)
+	
+	cmpw r31, r30
+	blt bat3_r31
+	
+		mr r29, r30
+		b bat3_r30
+	
+	bat3_r31:
+	
+		mr r29, r31
+	
+	bat3_r30:
+	
+	BAT_COMPUTE 0x3000 r29 r28 r27 r26
+	mtspr ibat3u, r26
+	mtspr ibat3l, r27
+	
+	mtspr dbat3u, r26
+	mtspr dbat3l, r27
 	
 	no_bat:
 	

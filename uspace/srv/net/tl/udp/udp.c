@@ -98,7 +98,7 @@ udp_globals_t udp_globals;
  */
 static int udp_release_and_return(packet_t *packet, int result)
 {
-	pq_release_remote(udp_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(udp_globals.net_sess, packet_get_id(packet));
 	return result;
 }
 
@@ -123,7 +123,7 @@ static int udp_release_and_return(packet_t *packet, int result)
  * @return		Other error codes as defined for the
  *			ip_client_process_packet() function.
  */
-static int udp_process_packet(device_id_t device_id, packet_t *packet,
+static int udp_process_packet(nic_device_id_t device_id, packet_t *packet,
     services_t error)
 {
 	size_t length;
@@ -191,9 +191,9 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 	socket = socket_port_find(&udp_globals.sockets,
 	    ntohs(header->destination_port), (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!socket) {
-		if (tl_prepare_icmp_packet(udp_globals.net_phone,
-		    udp_globals.icmp_phone, packet, error) == EOK) {
-			icmp_destination_unreachable_msg(udp_globals.icmp_phone,
+		if (tl_prepare_icmp_packet(udp_globals.net_sess,
+		    udp_globals.icmp_sess, packet, error) == EOK) {
+			icmp_destination_unreachable_msg(udp_globals.icmp_sess,
 			    ICMP_PORT_UNREACH, 0, packet);
 		}
 		return EADDRNOTAVAIL;
@@ -250,7 +250,7 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 			tmp_packet = pq_next(next_packet);
 			while (tmp_packet) {
 				next_packet = pq_detach(tmp_packet);
-				pq_release_remote(udp_globals.net_phone,
+				pq_release_remote(udp_globals.net_sess,
 				    packet_get_id(tmp_packet));
 				tmp_packet = next_packet;
 			}
@@ -273,11 +273,11 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 	if (header->checksum) {
 		if (flip_checksum(compact_checksum(checksum)) !=
 		    IP_CHECKSUM_ZERO) {
-			if (tl_prepare_icmp_packet(udp_globals.net_phone,
-			    udp_globals.icmp_phone, packet, error) == EOK) {
+			if (tl_prepare_icmp_packet(udp_globals.net_sess,
+			    udp_globals.icmp_sess, packet, error) == EOK) {
 				/* Checksum error ICMP */
 				icmp_parameter_problem_msg(
-				    udp_globals.icmp_phone, ICMP_PARAM_POINTER,
+				    udp_globals.icmp_sess, ICMP_PARAM_POINTER,
 				    ((size_t) ((void *) &header->checksum)) -
 				    ((size_t) ((void *) header)), packet);
 			}
@@ -291,16 +291,18 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 	if (rc != EOK)
 		return udp_release_and_return(packet, rc);
 		
-	rc = tl_get_ip_packet_dimension(udp_globals.ip_phone,
+	rc = tl_get_ip_packet_dimension(udp_globals.ip_sess,
 	    &udp_globals.dimensions, device_id, &packet_dimension);
 	if (rc != EOK)
 		return udp_release_and_return(packet, rc);
 
 	/* Notify the destination socket */
 	fibril_rwlock_write_unlock(&udp_globals.lock);
-	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (sysarg_t) socket->socket_id, packet_dimension->content, 0, 0,
-	    (sysarg_t) fragments);
+	
+	async_exch_t *exch = async_exchange_begin(socket->sess);
+	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t) socket->socket_id,
+	    packet_dimension->content, 0, 0, (sysarg_t) fragments);
+	async_exchange_end(exch);
 
 	return EOK;
 }
@@ -319,7 +321,7 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
  * @return		Other error codes as defined for the
  *			udp_process_packet() function.
  */
-static int udp_received_msg(device_id_t device_id, packet_t *packet,
+static int udp_received_msg(nic_device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
 {
 	int result;
@@ -336,9 +338,10 @@ static int udp_received_msg(device_id_t device_id, packet_t *packet,
  *
  * @param[in]     iid   Message identifier.
  * @param[in,out] icall Message parameters.
+ * @param[in]     arg   Local argument.
  *
  */
-static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	packet_t *packet;
 	int rc;
@@ -346,7 +349,7 @@ static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_TL_RECEIVED:
-			rc = packet_translate_remote(udp_globals.net_phone, &packet,
+			rc = packet_translate_remote(udp_globals.net_sess, &packet,
 			    IPC_GET_PACKET(*icall));
 			if (rc == EOK)
 				rc = udp_received_msg(IPC_GET_DEVICE(*icall), packet,
@@ -364,13 +367,13 @@ static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Initialize the UDP module.
  *
- * @param[in] net_phone Network module phone.
+ * @param[in] sess Network module session.
  *
  * @return EOK on success.
  * @return ENOMEM if there is not enough memory left.
  *
  */
-int tl_initialize(int net_phone)
+int tl_initialize(async_sess_t *sess)
 {
 	measured_string_t names[] = {
 		{
@@ -389,19 +392,18 @@ int tl_initialize(int net_phone)
 	fibril_rwlock_initialize(&udp_globals.lock);
 	fibril_rwlock_write_lock(&udp_globals.lock);
 	
-	udp_globals.net_phone = net_phone;
+	udp_globals.net_sess = sess;
+	udp_globals.icmp_sess = icmp_connect_module();
 	
-	udp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
-	
-	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
-	    SERVICE_UDP, udp_receiver);
-	if (udp_globals.ip_phone < 0) {
-		fibril_rwlock_write_unlock(&udp_globals.lock);
-		return udp_globals.ip_phone;
+	udp_globals.ip_sess = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
+	     SERVICE_UDP, udp_receiver);
+	if (udp_globals.ip_sess == NULL) {
+	    fibril_rwlock_write_unlock(&udp_globals.lock);
+	    return ENOENT;
 	}
 	
 	/* Read default packet dimensions */
-	int rc = ip_packet_size_req(udp_globals.ip_phone, -1,
+	int rc = ip_packet_size_req(udp_globals.ip_sess, -1,
 	    &udp_globals.packet_dimension);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&udp_globals.lock);
@@ -430,7 +432,7 @@ int tl_initialize(int net_phone)
 
 	/* Get configuration */
 	configuration = &names[0];
-	rc = net_get_conf_req(udp_globals.net_phone, &configuration, count,
+	rc = net_get_conf_req(udp_globals.net_sess, &configuration, count,
 	    &data);
 	if (rc != EOK) {
 		socket_ports_destroy(&udp_globals.sockets, free);
@@ -496,7 +498,7 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	uint32_t checksum;
 	void *ip_header;
 	size_t headerlen;
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	packet_dimension_t *packet_dimension;
 	size_t size;
 	int rc;
@@ -524,19 +526,19 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	}
 
 	if (udp_globals.checksum_computing) {
-		rc = ip_get_route_req(udp_globals.ip_phone, IPPROTO_UDP, addr,
+		rc = ip_get_route_req(udp_globals.ip_sess, IPPROTO_UDP, addr,
 		    addrlen, &device_id, &ip_header, &headerlen);
 		if (rc != EOK)
 			return rc;
 		/* Get the device packet dimension */
-//		rc = tl_get_ip_packet_dimension(udp_globals.ip_phone,
+//		rc = tl_get_ip_packet_dimension(udp_globals.ip_sess,
 //		    &udp_globals.dimensions, device_id, &packet_dimension);
 //		if (rc != EOK)
 //			return rc;
 	}
 //	} else {
 		/* Do not ask all the time */
-		rc = ip_packet_size_req(udp_globals.ip_phone, -1,
+		rc = ip_packet_size_req(udp_globals.ip_sess, -1,
 		    &udp_globals.packet_dimension);
 		if (rc != EOK)
 			return rc;
@@ -554,7 +556,7 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	*data_fragment_size = size;
 
 	/* Read the first packet fragment */
-	result = tl_socket_read_packet_data(udp_globals.net_phone, &packet,
+	result = tl_socket_read_packet_data(udp_globals.net_sess, &packet,
 	    UDP_HEADER_SIZE, packet_dimension, addr, addrlen);
 	if (result < 0)
 		return result;
@@ -575,7 +577,7 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 
 	/* Read the rest of the packet fragments */
 	for (index = 1; index < fragments; index++) {
-		result = tl_socket_read_packet_data(udp_globals.net_phone,
+		result = tl_socket_read_packet_data(udp_globals.net_sess,
 		    &next_packet, 0, packet_dimension, addr, addrlen);
 		if (result < 0)
 			return udp_release_and_return(packet, result);
@@ -614,9 +616,8 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 		header->checksum =
 		    htons(flip_checksum(compact_checksum(checksum)));
 		free(ip_header);
-	} else {
-		device_id = DEVICE_INVALID_ID;
-	}
+	} else
+		device_id = NIC_DEVICE_INVALID_ID;
 
 	/* Prepare the first packet fragment */
 	rc = ip_client_prepare_packet(packet, IPPROTO_UDP, 0, 0, 0, 0);
@@ -627,7 +628,7 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	fibril_rwlock_write_unlock(&udp_globals.lock);
 
 	/* Send the packet */
-	ip_send_msg(udp_globals.ip_phone, device_id, packet, SERVICE_UDP, 0);
+	ip_send_msg(udp_globals.ip_sess, device_id, packet, SERVICE_UDP, 0);
 
 	return EOK;
 }
@@ -674,7 +675,7 @@ static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 	if (packet_id < 0)
 		return NO_DATA;
 	
-	rc = packet_translate_remote(udp_globals.net_phone, &packet, packet_id);
+	rc = packet_translate_remote(udp_globals.net_sess, &packet, packet_id);
 	if (rc != EOK) {
 		(void) dyn_fifo_pop(&socket->received);
 		return rc;
@@ -734,22 +735,24 @@ static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 	return udp_release_and_return(packet, (int) length);
 }
 
-/** Processes the socket client messages.
+/** Process the socket client messages.
  *
- * Runs until the client module disconnects.
+ * Run until the client module disconnects.
  *
- * @param[in] callid 	The message identifier.
- * @param[in] call	The message parameters.
- * @return		EOK on success.
+ * @see socket.h
  *
- * @see	socket.h
+ * @param[in] sess   Callback session.
+ * @param[in] callid Message identifier.
+ * @param[in] call   Message parameters.
+ *
+ * @return EOK on success.
+ *
  */
-static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
+static int udp_process_client_messages(async_sess_t *sess, ipc_callid_t callid,
+    ipc_call_t call)
 {
 	int res;
-	bool keep_on_going = true;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
@@ -772,7 +775,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 
 	socket_cores_initialize(&local_sockets);
 
-	while (keep_on_going) {
+	while (true) {
 
 		/* Answer the call */
 		answer_call(callid, res, &answer, answer_count);
@@ -784,15 +787,15 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		callid = async_get_call(&call);
 
 		/* Process the call */
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			keep_on_going = false;
+		if (!IPC_GET_IMETHOD(call)) {
 			res = EHANGUP;
 			break;
-
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case NET_SOCKET:
 			socket_id = SOCKET_GET_SOCKET_ID(call);
-			res = socket_create(&local_sockets, app_phone, NULL,
+			res = socket_create(&local_sockets, sess, NULL,
 			    &socket_id);
 			SOCKET_SET_SOCKET_ID(answer, socket_id);
 
@@ -800,8 +803,8 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 				break;
 			
 			size = MAX_UDP_FRAGMENT_SIZE;
-			if (tl_get_ip_packet_dimension(udp_globals.ip_phone,
-			    &udp_globals.dimensions, DEVICE_INVALID_ID,
+			if (tl_get_ip_packet_dimension(udp_globals.ip_sess,
+			    &udp_globals.dimensions, NIC_DEVICE_INVALID_ID,
 			    &packet_dimension) == EOK) {
 				if (packet_dimension->content < size)
 					size = packet_dimension->content;
@@ -864,7 +867,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			
 		case NET_SOCKET_CLOSE:
 			fibril_rwlock_write_lock(&udp_globals.lock);
-			res = socket_destroy(udp_globals.net_phone,
+			res = socket_destroy(udp_globals.net_sess,
 			    SOCKET_GET_SOCKET_ID(call), &local_sockets,
 			    &udp_globals.sockets, NULL);
 			fibril_rwlock_write_unlock(&udp_globals.lock);
@@ -878,11 +881,11 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		}
 	}
 
-	/* Release the application phone */
-	async_hangup(app_phone);
+	/* Release the application session */
+	async_hangup(sess);
 
 	/* Release all local sockets */
-	socket_cores_release(udp_globals.net_phone, &local_sockets,
+	socket_cores_release(udp_globals.net_sess, &local_sockets,
 	    &udp_globals.sockets, NULL);
 
 	return res;
@@ -912,12 +915,12 @@ int tl_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
 	*answer_count = 0;
-
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_CONNECT_TO_ME:
-		return udp_process_client_messages(callid, *call);
-	}
-
+	
+	async_sess_t *callback =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return udp_process_client_messages(callback, callid, *call);
+	
 	return ENOTSUP;
 }
 

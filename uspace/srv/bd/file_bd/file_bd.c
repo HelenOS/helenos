@@ -44,7 +44,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <devmap.h>
+#include <loc.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <errno.h>
@@ -60,12 +60,12 @@ static size_t block_size;
 static aoff64_t num_blocks;
 static FILE *img;
 
-static devmap_handle_t devmap_handle;
+static service_id_t service_id;
 static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
 static int file_bd_init(const char *fname);
-static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf);
 static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
 
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	if (file_bd_init(image_name) != EOK)
 		return -1;
 
-	rc = devmap_device_register(device_name, &devmap_handle);
+	rc = loc_service_register(device_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register device '%s'.\n",
 			device_name);
@@ -141,7 +141,7 @@ static int file_bd_init(const char *fname)
 	int rc;
 	long img_size;
 
-	rc = devmap_driver_register(NAME, file_bd_connection);
+	rc = loc_server_register(NAME, file_bd_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
@@ -169,7 +169,7 @@ static int file_bd_init(const char *fname)
 	return EOK;
 }
 
-static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	void *fs_va = NULL;
 	ipc_callid_t callid;
@@ -197,14 +197,17 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	(void) async_share_out_finalize(callid, fs_va);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
-		switch (method) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!method) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (method) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));

@@ -40,6 +40,7 @@
 #include <proc/task.h>
 #include <proc/program.h>
 #include <mm/as.h>
+#include <mm/page.h>
 #include <print.h>
 #include <arch.h>
 #include <debug.h>
@@ -117,6 +118,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
+	/* System management syscalls. */
 	(syshandler_t) sys_klog,
 	(syshandler_t) sys_tls_set,
 	
@@ -125,6 +127,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_exit,
 	(syshandler_t) sys_thread_get_id,
 	(syshandler_t) sys_thread_usleep,
+	(syshandler_t) sys_thread_udelay,
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
@@ -143,6 +146,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_as_area_change_flags,
 	(syshandler_t) sys_as_area_destroy,
 	(syshandler_t) sys_as_get_unmapped_area,
+	
+	/* Page mapping related syscalls. */
+	(syshandler_t) sys_page_find_mapping,
 	
 	/* IPC related syscalls. */
 	(syshandler_t) sys_ipc_call_sync_fast,
@@ -173,15 +179,14 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_register_irq,
 	(syshandler_t) sys_unregister_irq,
 	
-	/* Sysinfo syscalls */
-	(syshandler_t) sys_sysinfo_get_tag,
+	/* Sysinfo syscalls. */
+	(syshandler_t) sys_sysinfo_get_val_type,
 	(syshandler_t) sys_sysinfo_get_value,
 	(syshandler_t) sys_sysinfo_get_data_size,
 	(syshandler_t) sys_sysinfo_get_data,
 	
-	/* Debug calls */
-	(syshandler_t) sys_debug_enable_console,
-	(syshandler_t) sys_debug_disable_console
+	/* Kernel console syscalls. */
+	(syshandler_t) sys_debug_activate_console
 };
 
 /** @}

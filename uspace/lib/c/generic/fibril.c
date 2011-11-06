@@ -40,7 +40,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <arch/barrier.h>
+#include <libarch/barrier.h>
 #include <libarch/faddr.h>
 #include <futex.h>
 #include <assert.h>
@@ -221,7 +221,8 @@ int fibril_switch(fibril_switch_type_t stype)
 	/* Choose a new fibril to run */
 	fibril_t *dstf;
 	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
-		dstf = list_get_instance(manager_list.next, fibril_t, link);
+		dstf = list_get_instance(list_first(&manager_list), fibril_t,
+		    link);
 		if (serialization_count && stype == FIBRIL_TO_MANAGER) {
 			serialized_threads++;
 			srcf->flags |= FIBRIL_SERIALIZED;
@@ -232,12 +233,12 @@ int fibril_switch(fibril_switch_type_t stype)
 			dstf->clean_after_me = srcf;
 	} else {
 		if (!list_empty(&serialized_list)) {
-			dstf = list_get_instance(serialized_list.next, fibril_t,
-			    link);
+			dstf = list_get_instance(list_first(&serialized_list),
+			    fibril_t, link);
 			serialized_threads--;
 		} else {
-			dstf = list_get_instance(ready_list.next, fibril_t,
-			    link);
+			dstf = list_get_instance(list_first(&ready_list),
+			    fibril_t, link);
 		}
 	}
 	list_remove(&dstf->link);
@@ -325,7 +326,7 @@ void fibril_remove_manager(void)
 	futex_down(&fibril_futex);
 	
 	if (!list_empty(&manager_list))
-		list_remove(manager_list.next);
+		list_remove(list_first(&manager_list));
 	
 	futex_up(&fibril_futex);
 }

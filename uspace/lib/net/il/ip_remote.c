@@ -43,11 +43,9 @@
 #include <ip_interface.h>
 #include <packet_client.h>
 #include <generic.h>
-
 #include <ipc/services.h>
 #include <ipc/il.h>
 #include <ipc/ip.h>
-
 #include <net/modules.h>
 #include <net/device.h>
 #include <net/inet.h>
@@ -56,46 +54,52 @@
  *
  * The target network is routed using this device.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] device_id	The device identifier.
- * @param[in] address	The target network address.
- * @param[in] netmask	The target network mask.
- * @param[in] gateway	The target network gateway. Not used if zero.
+ * @param[in] sess      IP module sessions.
+ * @param[in] device_id Device identifier.
+ * @param[in] address   Target network address.
+ * @param[in] netmask   Target network mask.
+ * @param[in] gateway   Target network gateway. Not used if zero.
+ *
  */
-int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
+int ip_add_route_req_remote(async_sess_t *sess, nic_device_id_t device_id,
     in_addr_t address, in_addr_t netmask, in_addr_t gateway)
 {
-	return (int) async_req_4_0(ip_phone, NET_IP_ADD_ROUTE,
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_4_0(exch, NET_IP_ADD_ROUTE,
 	    (sysarg_t) device_id, (sysarg_t) gateway.s_addr,
 	    (sysarg_t) address.s_addr, (sysarg_t) netmask.s_addr);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
-/** Creates bidirectional connection with the ip module service and registers
+/** Create bidirectional connection with the ip module service and register
  * the message receiver.
  *
- * @param[in] service	The IP module service.
- * @param[in] protocol	The transport layer protocol.
- * @param[in] me	The requesting module service.
- * @param[in] receiver	The message receiver. Used for remote connection.
- * @return		The phone of the needed service.
- * @return		EOK on success.
- * @return		Other error codes as defined for the bind_service()
- *			function.
+ * @param[in] service  IP module service.
+ * @param[in] protocol Transport layer protocol.
+ * @param[in] me       Rquesting module service.
+ * @param[in] receiver Message receiver. Used for remote connection.
+ *
+ * @return Session to the needed service.
+ * @return NULL on failure.
+ *
  */
-int ip_bind_service(services_t service, int protocol, services_t me,
+async_sess_t *ip_bind_service(services_t service, int protocol, services_t me,
     async_client_conn_t receiver)
 {
-	return (int) bind_service(service, (sysarg_t) protocol, me, service,
+	return bind_service(service, (sysarg_t) protocol, me, service,
 	    receiver);
 }
 
-/** Connects to the IP module.
+/** Connect to the IP module.
  *
- * @param service	The IP module service. Ignored parameter.
- * @return		The IP module phone on success.
+ * @return The IP module session.
+ *
  */
-int ip_connect_module(services_t service)
+async_sess_t *ip_connect_module(services_t service)
 {
+	// FIXME: Get rid of the useless argument
 	return connect_to_service(SERVICE_IP);
 }
 
@@ -104,64 +108,69 @@ int ip_connect_module(services_t service)
  * Register itself as the ip packet receiver.
  * If the device uses ARP registers also the new ARP device.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] device_id	The new device identifier.
- * @param[in] netif	The underlying device network interface layer service.
- * @return		EOK on success.
- * @return		ENOMEM if there is not enough memory left.
- * @return		EINVAL if the device configuration is invalid.
- * @return		ENOTSUP if the device uses IPv6.
- * @return		ENOTSUP if the device uses DHCP.
- * @return		Other error codes as defined for the
- *			net_get_device_conf_req() function.
- * @return		Other error codes as defined for the arp_device_req()
- *			function.
+ * @param[in] sess      IP module session.
+ * @param[in] device_id New device identifier.
+ *
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
+ * @return EINVAL if the device configuration is invalid.
+ * @return ENOTSUP if the device uses IPv6.
+ * @return ENOTSUP if the device uses DHCP.
+ * @return Other error codes as defined for the
+ *         net_get_device_conf_req() function.
+ * @return Other error codes as defined for the arp_device_req()
+ *         function.
+ *
  */
-int ip_device_req_remote(int ip_phone, device_id_t device_id,
+int ip_device_req(async_sess_t *sess, nic_device_id_t device_id,
     services_t service)
 {
-	return generic_device_req_remote(ip_phone, NET_IP_DEVICE, device_id, 0,
+	return generic_device_req_remote(sess, NET_IP_DEVICE, device_id,
 	    service);
 }
 
 /** Return the device identifier and the IP pseudo header based on the
  * destination address.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] protocol	The transport protocol.
- * @param[in] destination The destination address.
- * @param[in] addrlen	The destination address length.
- * @param[out] device_id The device identifier.
- * @param[out] header	The constructed IP pseudo header.
- * @param[out] headerlen The IP pseudo header length.
+ * @param[in] sess        IP module session.
+ * @param[in] protocol    Transport protocol.
+ * @param[in] destination Destination address.
+ * @param[in] addrlen     Destination address length.
+ * @param[out] device_id  Device identifier.
+ * @param[out] header     Constructed IP pseudo header.
+ * @param[out] headerlen  IP pseudo header length.
  *
  */
-int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
+int ip_get_route_req_remote(async_sess_t *sess, ip_protocol_t protocol,
     const struct sockaddr *destination, socklen_t addrlen,
-    device_id_t *device_id, void **header, size_t *headerlen)
+    nic_device_id_t *device_id, void **header, size_t *headerlen)
 {
-	if (!destination || (addrlen == 0))
+	if ((!destination) || (addrlen == 0))
 		return EINVAL;
 	
-	if (!device_id || !header || !headerlen)
+	if ((!device_id) || (!header) || (!headerlen))
 		return EBADMEM;
 	
 	*header = NULL;
 	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
 	ipc_call_t answer;
-	aid_t message_id = async_send_1(ip_phone, NET_IP_GET_ROUTE,
+	aid_t message_id = async_send_1(exch, NET_IP_GET_ROUTE,
 	    (sysarg_t) protocol, &answer);
 	
-	if ((async_data_write_start(ip_phone, destination, addrlen) == EOK) &&
-	    (async_data_read_start(ip_phone, headerlen,
-	    sizeof(*headerlen)) == EOK) && (*headerlen > 0)) {
+	if ((async_data_write_start(exch, destination, addrlen) == EOK) &&
+	    (async_data_read_start(exch, headerlen, sizeof(*headerlen)) == EOK) &&
+	    (*headerlen > 0)) {
 		*header = malloc(*headerlen);
 		if (*header) {
-			if (async_data_read_start(ip_phone, *header,
+			if (async_data_read_start(exch, *header,
 			    *headerlen) != EOK)
 				free(*header);
 		}
 	}
+	
+	async_exchange_end(exch);
 	
 	sysarg_t result;
 	async_wait_for(message_id, &result);
@@ -176,36 +185,40 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 
 /** Return the device packet dimension for sending.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] device_id	The device identifier.
- * @param[out] packet_dimension The packet dimension.
- * @return		EOK on success.
- * @return		ENOENT if there is no such device.
- * @return		Other error codes as defined for the
- *			generic_packet_size_req_remote() function.
+ * @param[in] sess              IP module session.
+ * @param[in] device_id         Device identifier.
+ * @param[out] packet_dimension Packet dimension.
+ *
+ * @return EOK on success.
+ * @return ENOENT if there is no such device.
+ * @return Other error codes as defined for the
+ *         generic_packet_size_req_remote() function.
+ *
  */
-int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
+int ip_packet_size_req_remote(async_sess_t *sess, nic_device_id_t device_id,
     packet_dimension_t *packet_dimension)
 {
-	return generic_packet_size_req_remote(ip_phone, NET_IP_PACKET_SPACE,
+	return generic_packet_size_req_remote(sess, NET_IP_PACKET_SPACE,
 	    device_id, packet_dimension);
 }
 
 /** Notify the IP module about the received error notification packet.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] device_id	The device identifier.
- * @param[in] packet	The received packet or the received packet queue.
- * @param[in] target	The target internetwork module service to be
- *			delivered to.
- * @param[in] error	The packet error reporting service. Prefixes the
- *			received packet.
- * @return		EOK on success.
+ * @param[in] sess      IP module session.
+ * @param[in] device_id Device identifier.
+ * @param[in] packet    Received packet or the received packet queue.
+ * @param[in] target    Target internetwork module service to be
+ *                      delivered to.
+ * @param[in] error     Packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ *
  */
-int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
+int ip_received_error_msg_remote(async_sess_t *sess, nic_device_id_t device_id,
     packet_t *packet, services_t target, services_t error)
 {
-	return generic_received_msg_remote(ip_phone, NET_IP_RECEIVED_ERROR,
+	return generic_received_msg_remote(sess, NET_IP_RECEIVED_ERROR,
 	    device_id, packet_get_id(packet), target, error);
 }
 
@@ -213,21 +226,23 @@ int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
  *
  * The packets may get fragmented if needed.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] device_id	The device identifier.
- * @param[in] packet	The packet fragments as a packet queue. All the
- *			packets have to have the same destination address.
- * @param[in] sender	The sending module service.
- * @param[in] error	The packet error reporting service. Prefixes the
- *			received packet.
- * @return		EOK on success.
- * @return		Other error codes as defined for the generic_send_msg()
- *			function.
+ * @param[in] sess      IP module session.
+ * @param[in] device_id Device identifier.
+ * @param[in] packet    Packet fragments as a packet queue. All the
+ *                      packets have to have the same destination address.
+ * @param[in] sender    Sending module service.
+ * @param[in] error     Packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for the generic_send_msg()
+ *         function.
+ *
  */
-int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t *packet,
-    services_t sender, services_t error)
+int ip_send_msg_remote(async_sess_t *sess, nic_device_id_t device_id,
+    packet_t *packet, services_t sender, services_t error)
 {
-	return generic_send_msg_remote(ip_phone, NET_IP_SEND, device_id,
+	return generic_send_msg_remote(sess, NET_IP_SEND, device_id,
 	    packet_get_id(packet), sender, error);
 }
 
@@ -235,15 +250,20 @@ int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t *packet,
  *
  * This gateway is used if no other route is found.
  *
- * @param[in] ip_phone	The IP module phone used for (semi)remote calls.
- * @param[in] device_id	The device identifier.
- * @param[in] gateway	The default gateway.
+ * @param[in] sess      IP module session.
+ * @param[in] device_id Device identifier.
+ * @param[in] gateway   Default gateway.
+ *
  */
-int ip_set_gateway_req_remote(int ip_phone, device_id_t device_id,
+int ip_set_gateway_req_remote(async_sess_t *sess, nic_device_id_t device_id,
     in_addr_t gateway)
 {
-	return (int) async_req_2_0(ip_phone, NET_IP_SET_GATEWAY,
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_2_0(exch, NET_IP_SET_GATEWAY,
 	    (sysarg_t) device_id, (sysarg_t) gateway.s_addr);
+	async_exchange_end(exch);
+	
+	return rc;
 }
 
 /** @}

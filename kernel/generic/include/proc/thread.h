@@ -44,9 +44,9 @@
 #include <mm/slab.h>
 #include <arch/cpu.h>
 #include <mm/tlb.h>
-#include <proc/uarg.h>
+#include <abi/proc/uarg.h>
 #include <udebug/udebug.h>
-#include <sysinfo/abi.h>
+#include <abi/sysinfo.h>
 
 #define THREAD_NAME_BUFLEN  20
 
@@ -155,6 +155,9 @@ typedef struct thread {
 	 */
 	int fpu_context_engaged;
 	
+	/* The thread will not be migrated if nomigrate is non-zero. */
+	int nomigrate;
+	
 	/** Thread's state. */
 	state_t state;
 	/** Thread's flags. */
@@ -244,6 +247,9 @@ extern thread_t *thread_find_by_id(thread_id_t);
 extern void thread_update_accounting(bool);
 extern bool thread_exists(thread_t *);
 
+extern void thread_migration_disable(void);
+extern void thread_migration_enable(void);
+
 #ifdef CONFIG_UDEBUG
 extern void thread_stack_trace(thread_id_t);
 #endif
@@ -257,6 +263,7 @@ extern sysarg_t sys_thread_create(uspace_arg_t *, char *, size_t,
 extern sysarg_t sys_thread_exit(int);
 extern sysarg_t sys_thread_get_id(thread_id_t *);
 extern sysarg_t sys_thread_usleep(uint32_t);
+extern sysarg_t sys_thread_udelay(uint32_t);
 
 #endif
 

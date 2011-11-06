@@ -34,17 +34,26 @@ RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
 RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd
 
 RD_DRVS += \
-	rootpc \
-	pciintel \
-	isa \
-	ns8250
+	infrastructure/rootpc \
+	bus/pci/pciintel \
+	bus/isa \
+	char/ns8250 \
+	bus/usb/ehci\
+	bus/usb/ohci \
+	bus/usb/uhci \
+	bus/usb/uhcirh \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid \
+	bus/usb/vhc
 
 RD_DRV_CFG += \
-	isa/isa.dev
+	bus/isa
 
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img

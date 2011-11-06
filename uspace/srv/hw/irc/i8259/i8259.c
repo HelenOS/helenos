@@ -37,7 +37,7 @@
 
 #include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ipc/ns.h>
+#include <ns.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
@@ -49,7 +49,7 @@
 #include <align.h>
 #include <async.h>
 #include <stdio.h>
-#include <ipc/devmap.h>
+#include <ipc/loc.h>
 
 #define NAME  "i8259"
 
@@ -97,9 +97,9 @@ static int pic_enable_irq(sysarg_t irq)
  *
  * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
- *
+ * @param arg	Local argument.
  */
-static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -111,6 +111,12 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			/* The other side has hung up. */
+			async_answer_0(callid, EOK);
+			return;
+		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
@@ -135,7 +141,7 @@ static bool i8259_init(void)
 	sysarg_t i8259;
 	
 	if ((sysinfo_get_value("i8259", &i8259) != EOK) || (!i8259)) {
-		printf(NAME ": No i8259 found\n");
+		printf("%s: No i8259 found\n", NAME);
 		return false;
 	}
 	
@@ -143,7 +149,7 @@ static bool i8259_init(void)
 	    (void **) &io_range0) != EOK) ||
 	    (pio_enable((void *) IO_RANGE1_START, IO_RANGE1_SIZE,
 	    (void **) &io_range1) != EOK)) {
-		printf(NAME ": i8259 not accessible\n");
+		printf("%s: i8259 not accessible\n", NAME);
 		return false;
 	}
 	
@@ -155,12 +161,13 @@ static bool i8259_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS i8259 driver\n");
+	printf("%s: HelenOS i8259 driver\n", NAME);
 	
 	if (!i8259_init())
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	
 	/* Never reached */

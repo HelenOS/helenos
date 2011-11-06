@@ -51,7 +51,7 @@
 #include <async.h>
 #include <fibril_synch.h>
 #include <stdio.h>
-#include <devmap.h>
+#include <loc.h>
 #include <ipc/bd.h>
 #include <macros.h>
 
@@ -83,7 +83,7 @@ fibril_rwlock_t rd_lock;
  * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
  */
-static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void rd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -122,14 +122,17 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
+		
+		if (!IPC_GET_IMETHOD(call)) {
 			/*
 			 * The other side has hung up.
-			 * Answer the message and exit the fibril.
+			 * Exit the fibril.
 			 */
 			async_answer_0(callid, EOK);
 			return;
+		}
+		
+		switch (IPC_GET_IMETHOD(call)) {
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
@@ -231,18 +234,18 @@ static bool rd_init(void)
 	printf("%s: Found RAM disk at %p, %zu bytes\n", NAME,
 	    (void *) rd_ph_addr, rd_size);
 	
-	int rc = devmap_driver_register(NAME, rd_connection);
+	int rc = loc_server_register(NAME, rd_connection);
 	if (rc < 0) {
 		printf("%s: Unable to register driver (%d)\n", NAME, rc);
 		return false;
 	}
 	
-	devmap_handle_t devmap_handle;
-	if (devmap_device_register("bd/initrd", &devmap_handle) != EOK) {
-		printf("%s: Unable to register device\n", NAME);
+	service_id_t service_id;
+	if (loc_service_register("bd/initrd", &service_id) != EOK) {
+		printf("%s: Unable to register device service\n", NAME);
 		return false;
 	}
-
+	
 	fibril_rwlock_initialize(&rd_lock);
 	
 	return true;
@@ -257,7 +260,7 @@ int main(int argc, char **argv)
 	
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();
-
+	
 	/* Never reached */
 	return 0;
 }

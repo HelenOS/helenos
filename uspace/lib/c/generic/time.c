@@ -35,7 +35,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <bool.h>
-#include <arch/barrier.h>
+#include <libarch/barrier.h>
 #include <macros.h>
 #include <errno.h>
 #include <sysinfo.h>
@@ -205,6 +205,12 @@ int usleep(useconds_t usec)
 	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);
 	return 0;
 }
+
+void udelay(useconds_t time)
+{
+	(void) __SYSCALL1(SYS_THREAD_UDELAY, (sysarg_t) time);
+}
+
 
 /** Wait unconditionally for specified number of seconds
  *

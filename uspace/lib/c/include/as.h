@@ -36,8 +36,8 @@
 #define LIBC_AS_H_
 
 #include <sys/types.h>
+#include <abi/mm/as.h>
 #include <task.h>
-#include <kernel/mm/as.h>
 #include <libarch/config.h>
 
 static inline size_t SIZE2PAGES(size_t size)
@@ -59,6 +59,7 @@ extern int as_area_change_flags(void *, unsigned int);
 extern int as_area_destroy(void *);
 extern void *set_maxheapsize(size_t);
 extern void *as_get_mappable_page(size_t);
+extern int as_get_physical_mapping(const void *, uintptr_t *);
 
 #endif
 

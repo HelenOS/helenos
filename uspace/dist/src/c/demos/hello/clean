@@ -1,0 +1,4 @@
+rm hello
+rm hello.o
+rm hello.s
+rm hello.i

@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -54,6 +53,7 @@ static const char *cmdname = "mkfile";
 
 static struct option const long_options[] = {
 	{"size", required_argument, 0, 's'},
+	{"sparse", no_argument, 0, 'p'},
 	{"help", no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -69,6 +69,7 @@ void help_cmd_mkfile(unsigned int level)
 		"Options:\n"
 		"  -h, --help       A short option summary\n"
 		"  -s, --size sz    Size of the file\n"
+		"  -p, --sparse     Create a sparse file\n"
 		"\n"
 		"Size is a number followed by 'k', 'm' or 'g' for kB, MB, GB.\n"
 		"E.g. 100k, 2m, 1g.\n",
@@ -115,20 +116,24 @@ int cmd_mkfile(char **argv)
 	int fd;
 	ssize_t file_size;
 	ssize_t total_written;
-	ssize_t to_write, rc;
+	ssize_t to_write, rc, rc2 = 0;
 	char *file_name;
 	void *buffer;
+	bool create_sparse = false;
 
 	file_size = 0;
 
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "s:h", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "ps:h", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mkfile(HELP_LONG);
 			return CMD_SUCCESS;
+		case 'p':
+			create_sparse = true;
+			break;
 		case 's':
 			file_size = read_size(optarg);
 			if (file_size < 0) {
@@ -156,6 +161,16 @@ int cmd_mkfile(char **argv)
 		return CMD_FAILURE;
 	}
 
+	if (create_sparse && file_size > 0) {
+		const char byte = 0x00;
+
+		if ((rc2 = lseek(fd, file_size - 1, SEEK_SET)) < 0)
+			goto exit;
+
+		rc2 = write(fd, &byte, sizeof(char));
+		goto exit;
+	}
+
 	buffer = calloc(BUFFER_SIZE, 1);
 	if (buffer == NULL) {
 		printf("%s: Error, out of memory.\n", cmdname);
@@ -174,13 +189,14 @@ int cmd_mkfile(char **argv)
 		total_written += rc;
 	}
 
+	free(buffer);
+exit:
 	rc = close(fd);
-	if (rc != 0) {
+
+	if (rc != 0 || rc2 < 0) {
 		printf("%s: Error writing file (%zd).\n", cmdname, rc);
 		return CMD_FAILURE;
 	}
-
-	free(buffer);
 
 	return CMD_SUCCESS;
 }
