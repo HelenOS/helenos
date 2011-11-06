@@ -830,5 +830,66 @@ int fd_wait(void)
 	return (int) rc;
 }
 
+int get_mtab_list(list_t *mtab_list)
+{
+	sysarg_t rc;
+	aid_t req;
+	size_t i;
+	sysarg_t num_mounted_fs;
+	
+	async_exch_t *exch = vfs_exchange_begin();
+
+	req = async_send_0(exch, VFS_IN_MTAB_GET, NULL);
+
+	/* Ask VFS how many filesystems are mounted */
+	rc = async_req_0_1(exch, VFS_IN_PING, &num_mounted_fs);
+	if (rc != EOK)
+		goto exit;
+
+	for (i = 0; i < num_mounted_fs; ++i) {
+		mtab_ent_t *mtab_ent;
+
+		mtab_ent = malloc(sizeof(mtab_ent_t));
+		if (!mtab_ent) {
+			rc = ENOMEM;
+			goto exit;
+		}
+
+		memset(mtab_ent, 0, sizeof(mtab_ent_t));
+
+		rc = async_data_read_start(exch, (void *) mtab_ent->mp,
+		    MAX_PATH_LEN);
+		if (rc != EOK)
+			goto exit;
+
+		rc = async_data_read_start(exch, (void *) mtab_ent->opts,
+			MAX_MNTOPTS_LEN);
+		if (rc != EOK)
+			goto exit;
+
+		rc = async_data_read_start(exch, (void *) mtab_ent->fs_name,
+			FS_NAME_MAXLEN);
+		if (rc != EOK)
+			goto exit;
+
+		sysarg_t p[2];
+
+		rc = async_req_0_2(exch, VFS_IN_PING, &p[0], &p[1]);
+		if (rc != EOK)
+			goto exit;
+
+		mtab_ent->instance = p[0];
+		mtab_ent->service_id = p[1];
+
+		link_initialize(&mtab_ent->link);
+		list_append(&mtab_ent->link, mtab_list);
+	}
+
+exit:
+	async_wait_for(req, &rc);
+	vfs_exchange_end(exch);
+	return rc;
+}
+
 /** @}
  */

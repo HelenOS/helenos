@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
+#include <adt/list.h>
 #include <errno.h>
 #include <getopt.h>
 #include "config.h"
@@ -59,6 +60,35 @@ void help_cmd_mount(unsigned int level)
 		printf(helpfmt, cmdname);
 	}
 	return;
+}
+
+static void print_mtab_list(void)
+{
+	LIST_INITIALIZE(mtab_list);
+	get_mtab_list(&mtab_list);
+
+	mtab_ent_t *old_ent = NULL;
+
+	list_foreach(mtab_list, cur) {
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
+		    link);
+
+		if (old_ent)
+			free(old_ent);
+
+		old_ent = mtab_ent;
+
+		printf("%s on %s ", mtab_ent->fs_name, mtab_ent->mp);
+
+		if (str_size(mtab_ent->opts) > 0)
+			printf("opts=%s ", mtab_ent->opts);
+
+		printf("(instance=%d, service_id=%" PRIu64 ")\n",
+		    mtab_ent->instance, mtab_ent->service_id);
+	}
+
+	if (old_ent)
+		free(old_ent);
 }
 
 /* Main entry point for mount, accepts an array of arguments */
@@ -93,10 +123,14 @@ int cmd_mount(char **argv)
 	} else
 		t_argv = &argv[0];
 
-	if ((argc < 3) || (argc > 5)) {
+	if ((argc == 2) || (argc > 5)) {
 		printf("%s: invalid number of arguments. Try `mount --help'\n",
 		    cmdname);
 		return CMD_FAILURE;
+	}
+	if (argc == 1) {
+		print_mtab_list();
+		return CMD_SUCCESS;
 	}
 	if (argc > 3)
 		dev = t_argv[3];
