@@ -358,17 +358,6 @@ recheck:
 	}
 	fibril_mutex_unlock(&fs_list_lock);
 
-	/* Do the mount */
-	rc = vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
-	if (rc != EOK) {
-		async_answer_0(callid, ENOTSUP);
-		async_answer_0(rid, ENOTSUP);
-		free(mp);
-		free(opts);
-		free(fs_name);
-		return;
-	}
-
 	/* Add the filesystem info to the list of mounted filesystems */
 	mtab_ent_t *mtab_ent = malloc(sizeof(mtab_ent_t));
 	if (!mtab_ent) {
@@ -379,6 +368,20 @@ recheck:
 		free(opts);
 		return;
 	}
+
+	/* Do the mount */
+	rc = vfs_mount_internal(rid, service_id, fs_handle, mp, opts);
+	if (rc != EOK) {
+		async_answer_0(callid, ENOTSUP);
+		async_answer_0(rid, ENOTSUP);
+		free(mtab_ent);
+		free(mp);
+		free(opts);
+		free(fs_name);
+		return;
+	}
+
+	/* Add the filesystem info to the list of mounted filesystems */
 
 	str_cpy(mtab_ent->mp, MAX_PATH_LEN, mp);
 	str_cpy(mtab_ent->fs_name, FS_NAME_MAXLEN, fs_name);
