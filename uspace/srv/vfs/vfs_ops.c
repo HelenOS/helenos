@@ -1376,20 +1376,26 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 
 		rc = ENOTSUP;
 
-		if (!async_data_read_receive(&callid, &len))
+		if (!async_data_read_receive(&callid, &len)) {
+			async_answer_0(callid, rc);
 			goto exit;
+		}
 
 		(void) async_data_read_finalize(callid, mtab_ent->mp,
 		    str_size(mtab_ent->mp));
 
-		if (!async_data_read_receive(&callid, &len))
+		if (!async_data_read_receive(&callid, &len)) {
+			async_answer_0(callid, rc);
 			goto exit;
+		}
 
 		(void) async_data_read_finalize(callid, mtab_ent->opts,
 		    str_size(mtab_ent->opts));
 
-		if (!async_data_read_receive(&callid, &len))
+		if (!async_data_read_receive(&callid, &len)) {
+			async_answer_0(callid, rc);
 			goto exit;
+		}
 
 		(void) async_data_read_finalize(callid, mtab_ent->fs_name,
 		    str_size(mtab_ent->fs_name));
@@ -1397,7 +1403,6 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 		callid = async_get_call(&data);
 
 		if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
-			rc = ENOTSUP;
 			async_answer_0(callid, rc);
 			goto exit;
 		}
