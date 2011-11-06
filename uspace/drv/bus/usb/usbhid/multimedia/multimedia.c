@@ -126,25 +126,24 @@ static ddf_dev_ops_t multimedia_ops = {
  *       in the driver. It may, however, be required later that the driver
  *       sends also these keys to application (otherwise it cannot use those
  *       keys at all).
- * 
- * @param hid_dev 
- * @param lgtch_dev 
- * @param type Type of the event (press / release). Recognized values: 
+ *
+ * @param hid_dev
+ * @param multim_dev
+ * @param type Type of the event (press / release). Recognized values:
  *             KEY_PRESS, KEY_RELEASE
  * @param key Key code of the key according to HID Usage Tables.
  */
-static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev, 
+static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
     usb_multimedia_t *multim_dev, int type, unsigned int key)
 {
-	assert(hid_dev != NULL);
 	assert(multim_dev != NULL);
 
-	kbd_event_t ev;
-
-	ev.type = type;
-	ev.key = key;
-	ev.mods = 0;
-	ev.c = 0;
+	const kbd_event_t ev = {
+		.type = type,
+		.key = key,
+		.mods = 0,
+		.c = 0,
+	};
 
 	usb_log_debug2(NAME " Sending key %d to the console\n", ev.key);
 	if (multim_dev->console_sess == NULL) {
@@ -163,7 +162,7 @@ static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev,
 int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 {
 	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
-		return EINVAL; /*! @todo Other return code? */
+		return EINVAL;
 	}
 
 	usb_log_debug(NAME " Initializing HID/multimedia structure...\n");
@@ -198,8 +197,8 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		return rc;
 	}
 
-	usb_log_debug("%s function created (handle: %" PRIun ").\n",
-	    NAME, fun->handle);
+	usb_log_debug(NAME " function created (handle: %" PRIun ").\n",
+	    fun->handle);
 
 	rc = ddf_fun_add_to_category(fun, "keyboard");
 	if (rc != EOK) {
@@ -221,19 +220,19 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 
 void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 {
-	if (hid_dev == NULL) {
-		return;
-	}
-
 	if (data != NULL) {
-		usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
-		// hangup session to the console
-		async_hangup(multim_dev->console_sess);
+		usb_multimedia_t *multim_dev = data;
+		/* Hangup session to the console */
+		if (multim_dev->console_sess)
+			async_hangup(multim_dev->console_sess);
 		const int ret = ddf_fun_unbind(multim_dev->fun);
 		if (ret != EOK) {
-			usb_log_error("Failed to unbind multim function.\n");
+			usb_log_error("Failed to unbind %s function.\n",
+			    multim_dev->fun->name);
 		} else {
 			usb_log_debug2("%s unbound.\n", multim_dev->fun->name);
+			/* This frees multim_dev too as it was stored in
+			 * fun->data */
 			ddf_fun_destroy(multim_dev->fun);
 		}
 	}
@@ -248,10 +247,13 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 		return false;
 	}
 
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
+	usb_multimedia_t *multim_dev = data;
 
 	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+	int ret =
+	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+	if (ret != EOK)
+		return true; /* This might be a temporary failure. */
 
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
@@ -267,18 +269,18 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 		if(field->value != 0) {
 			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", 
 			    field->value, field->usage);
-			unsigned int key = 
+			const unsigned key =
 			    usb_multimedia_map_usage(field->usage);
-			const char *key_str = 
+			const char *key_str =
 			    usbhid_multimedia_usage_to_str(field->usage);
 			usb_log_info("Pressed key: %s\n", key_str);
-			usb_multimedia_push_ev(hid_dev, multim_dev, KEY_PRESS, 
+			usb_multimedia_push_ev(hid_dev, multim_dev, KEY_PRESS,
 			                       key);
 		}
 
 		field = usb_hid_report_get_sibling(
 		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
 
