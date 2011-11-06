@@ -158,61 +158,6 @@ static void default_connection_handler(ddf_fun_t *fun,
 
 /*----------------------------------------------------------------------------*/
 
-static usb_mouse_t *usb_mouse_new(void)
-{
-	usb_mouse_t *mouse = calloc(1, sizeof(usb_mouse_t));
-	if (mouse == NULL) {
-		return NULL;
-	}
-	mouse->mouse_sess = NULL;
-	mouse->wheel_sess = NULL;
-	mouse->buttons = NULL;
-	mouse->buttons_count = 0;
-
-	return mouse;
-}
-
-/*----------------------------------------------------------------------------*/
-
-static void usb_mouse_destroy(usb_mouse_t *mouse_dev)
-{
-	assert(mouse_dev != NULL);
-
-	/* Hangup session to the console */
-	if (mouse_dev->mouse_sess != NULL) {
-		const int ret = async_hangup(mouse_dev->mouse_sess);
-		if (ret != EOK)
-			usb_log_warning("Failed to hang up mouse session: "
-			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
-	}
-
-	if (mouse_dev->wheel_sess != NULL) {
-		const int ret = async_hangup(mouse_dev->wheel_sess);
-		if (ret != EOK)
-			usb_log_warning("Failed to hang up wheel session: "
-			    "%p, %s.\n", mouse_dev->wheel_sess, str_error(ret));
-	}
-
-	int ret = ddf_fun_unbind(mouse_dev->mouse_fun);
-	if (ret != EOK) {
-		usb_log_error("Failed to unbind mouse function.\n");
-	} else {
-		ddf_fun_destroy(mouse_dev->mouse_fun);
-		/* Prevent double free, these two functions share driver data */
-		mouse_dev->wheel_fun->driver_data = NULL;
-	}
-
-	ret = ddf_fun_unbind(mouse_dev->wheel_fun);
-	if (ret != EOK) {
-		usb_log_error("Failed to unbind wheel function.\n");
-	} else {
-		ddf_fun_destroy(mouse_dev->wheel_fun);
-	}
-
-}
-
-/*----------------------------------------------------------------------------*/
-
 static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 {
 	unsigned int key = (wheel > 0) ? KC_UP : KC_DOWN;
@@ -305,25 +250,24 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	while (field != NULL) {
 		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
 		    field->usage);
+		assert(field->usage > field->usage_minimum);
+		const unsigned index = field->usage - field->usage_minimum;
+		assert(index < mouse_dev->buttons_count);
 		
-		if (mouse_dev->buttons[field->usage - field->usage_minimum] == 0
-		    && field->value != 0) {
+		if (mouse_dev->buttons[index] == 0 && field->value != 0) {
 			async_exch_t *exch =
 			    async_exchange_begin(mouse_dev->mouse_sess);
 			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 1);
 			async_exchange_end(exch);
 			
-			mouse_dev->buttons[field->usage - field->usage_minimum]
-			    = field->value;
-		} else if (mouse_dev->buttons[field->usage - field->usage_minimum] != 0
-		    && field->value == 0) {
+			mouse_dev->buttons[index] = field->value;
+		} else if (mouse_dev->buttons[index] != 0 && field->value == 0) {
 			async_exch_t *exch =
 			    async_exchange_begin(mouse_dev->mouse_sess);
 			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 0);
 			async_exchange_end(exch);
 
-			mouse_dev->buttons[field->usage - field->usage_minimum] =
-			   field->value;
+			mouse_dev->buttons[index] = field->value;
 		}
 
 		field = usb_hid_report_get_sibling(
@@ -360,6 +304,8 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
+		fun->driver_data = NULL;
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 
@@ -370,6 +316,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_CATEGORY, str_error(rc));
+		ddf_fun_unbind(fun);
+		fun->driver_data = NULL;
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 	mouse->mouse_fun = fun;
@@ -377,12 +326,15 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	/*
 	 * Special function for acting as keyboard (wheel)
 	 */
-	usb_log_debug("Creating DDF function %s...\n", 
+	usb_log_debug("Creating DDF function %s...\n",
 	              HID_MOUSE_WHEEL_FUN_NAME);
-	fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
+	fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
 	    HID_MOUSE_WHEEL_FUN_NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
+		ddf_fun_unbind(mouse->mouse_fun);
+		mouse->mouse_fun->driver_data = NULL;
+		ddf_fun_destroy(mouse->mouse_fun);
 		return ENOMEM;
 	}
 
@@ -397,6 +349,11 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
+		ddf_fun_unbind(mouse->mouse_fun);
+		mouse->mouse_fun->driver_data = NULL;
+		ddf_fun_destroy(mouse->mouse_fun);
+		fun->driver_data = NULL;
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 
@@ -407,6 +364,12 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
+		ddf_fun_unbind(mouse->mouse_fun);
+		mouse->mouse_fun->driver_data = NULL;
+		ddf_fun_destroy(mouse->mouse_fun);
+		ddf_fun_unbind(fun);
+		fun->driver_data = NULL;
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 	mouse->wheel_fun = fun;
@@ -468,12 +431,16 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 		return EINVAL;
 	}
 
-	usb_mouse_t *mouse_dev = usb_mouse_new();
+	usb_mouse_t *mouse_dev = calloc(1, sizeof(usb_mouse_t));
 	if (mouse_dev == NULL) {
 		usb_log_error("Error while creating USB/HID Mouse device "
 		    "structure.\n");
 		return ENOMEM;
 	}
+	mouse_dev->mouse_sess = NULL;
+	mouse_dev->wheel_sess = NULL;
+	mouse_dev->buttons = NULL;
+	mouse_dev->buttons_count = 0;
 
 	// FIXME: This may not be optimal since stupid hardware vendor may
 	// use buttons 1, 2, 3 and 6000 and we would allocate array of
@@ -491,22 +458,22 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 
-
-	// save the Mouse device structure into the HID device structure
-	*data = mouse_dev;
-
 	// set handler for incoming calls
 	mouse_dev->ops.default_handler = default_connection_handler;
 
 	// TODO: how to know if the device supports the request???
-	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
+	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,
 	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 
 	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
 	if (rc != EOK) {
-		usb_mouse_destroy(mouse_dev);
+		free(mouse_dev->buttons);
+		free(mouse_dev);
 		return rc;
 	}
+
+	/* Save the Mouse device structure into the HID device structure. */
+	*data = mouse_dev;
 
 	return EOK;
 }
@@ -521,8 +488,8 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 		return false;
 	}
 
-	usb_mouse_t *mouse_dev = (usb_mouse_t *)data;
-		
+	usb_mouse_t *mouse_dev = data;
+
 	return usb_mouse_process_report(hid_dev, mouse_dev);
 }
 
@@ -530,9 +497,51 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
-	if (data != NULL) {
-		usb_mouse_destroy(data);
+	if (data == NULL)
+		return;
+
+	usb_mouse_t *mouse_dev = data;
+
+	/* Hangup session to the console */
+	if (mouse_dev->mouse_sess != NULL) {
+		const int ret = async_hangup(mouse_dev->mouse_sess);
+		if (ret != EOK)
+			usb_log_warning("Failed to hang up mouse session: "
+			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
 	}
+
+	if (mouse_dev->wheel_sess != NULL) {
+		const int ret = async_hangup(mouse_dev->wheel_sess);
+		if (ret != EOK)
+			usb_log_warning("Failed to hang up wheel session: "
+			    "%p, %s.\n", mouse_dev->wheel_sess, str_error(ret));
+	}
+
+	/* We might be called before being completely initialized */
+	if (mouse_dev->mouse_fun) {
+		const int ret = ddf_fun_unbind(mouse_dev->mouse_fun);
+		if (ret != EOK) {
+			usb_log_error("Failed to unbind mouse function.\n");
+		} else {
+			/* driver_data(mouse_dev) will be freed explicitly */
+			mouse_dev->mouse_fun->driver_data = NULL;
+			ddf_fun_destroy(mouse_dev->mouse_fun);
+		}
+	}
+
+	/* We might be called before being completely initialized */
+	if (mouse_dev->mouse_fun) {
+		const int ret = ddf_fun_unbind(mouse_dev->wheel_fun);
+		if (ret != EOK) {
+			usb_log_error("Failed to unbind wheel function.\n");
+		} else {
+			/* driver_data(mouse_dev) will be freed explicitly */
+			mouse_dev->wheel_fun->driver_data = NULL;
+			ddf_fun_destroy(mouse_dev->wheel_fun);
+		}
+	}
+	free(mouse_dev->buttons);
+	free(mouse_dev);
 }
 
 /*----------------------------------------------------------------------------*/
