@@ -557,10 +557,10 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		}
 	}
 	assert(found);
+	fibril_mutex_unlock(&mtab_list_lock);
 
 	free(mp);
 
-	fibril_mutex_unlock(&mtab_list_lock);
 	async_answer_0(rid, EOK);
 }
 
