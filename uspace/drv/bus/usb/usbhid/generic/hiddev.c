@@ -60,35 +60,26 @@ const char *HID_GENERIC_FUN_NAME = "hid";
 const char *HID_GENERIC_CLASS_NAME = "hid";
 
 /*----------------------------------------------------------------------------*/
-
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
-
-static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer, 
+static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
     size_t size, size_t *act_size, int *event_nr, unsigned int flags);
-
 static int usb_generic_hid_client_connected(ddf_fun_t *fun);
-
 static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun);
-
-static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc, 
+static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
     size_t size, size_t *actual_size);
-
 /*----------------------------------------------------------------------------*/
-
 static usbhid_iface_t usb_generic_iface = {
 	.get_event = usb_generic_hid_get_event,
 	.get_event_length = usb_generic_hid_get_event_length,
 	.get_report_descriptor_length = usb_generic_get_report_descriptor_length,
 	.get_report_descriptor = usb_generic_get_report_descriptor
 };
-
+/*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t usb_generic_hid_ops = {
 	.interfaces[USBHID_DEV_IFACE] = &usb_generic_iface,
 	.open = usb_generic_hid_client_connected
 };
-
 /*----------------------------------------------------------------------------*/
-
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 {
 	usb_log_debug2("Generic HID: Get event length (fun: %p, "
@@ -98,17 +89,15 @@ static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 		return 0;
 	}
 
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	const usb_hid_dev_t *hid_dev = fun->driver_data;
 
 	usb_log_debug2("hid_dev: %p, Max input report size (%zu).\n",
 	    hid_dev, hid_dev->max_input_report_size);
 
 	return hid_dev->max_input_report_size;
 }
-
 /*----------------------------------------------------------------------------*/
-
-static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer, 
+static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
     size_t size, size_t *act_size, int *event_nr, unsigned int flags)
 {
 	usb_log_debug2("Generic HID: Get event.\n");
@@ -119,16 +108,16 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
 		return EINVAL;
 	}
 
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	const usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
 
 	if (hid_dev->input_report_size > size) {
-		usb_log_debug("input_report_size > size (%zu, %zu)\n", 
+		usb_log_debug("input_report_size > size (%zu, %zu)\n",
 		    hid_dev->input_report_size, size);
 		return EINVAL;	// TODO: other error code
 	}
 
 	/*! @todo This should probably be somehow atomic. */
-	memcpy(buffer, hid_dev->input_report, 
+	memcpy(buffer, hid_dev->input_report,
 	    hid_dev->input_report_size);
 	*act_size = hid_dev->input_report_size;
 	*event_nr = usb_hid_report_number(hid_dev);
@@ -137,9 +126,7 @@ static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun)
 {
 	usb_log_debug("Generic HID: Get report descriptor length.\n");
@@ -149,17 +136,15 @@ static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun)
 		return EINVAL;
 	}
 
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	const usb_hid_dev_t *hid_dev = fun->driver_data;
 
-	usb_log_debug2("hid_dev->report_desc_size = %zu\n", 
+	usb_log_debug2("hid_dev->report_desc_size = %zu\n",
 	    hid_dev->report_desc_size);
 
 	return hid_dev->report_desc_size;
 }
-
 /*----------------------------------------------------------------------------*/
-
-static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc, 
+static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
     size_t size, size_t *actual_size)
 {
 	usb_log_debug2("Generic HID: Get report descriptor.\n");
@@ -169,7 +154,7 @@ static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
 		return EINVAL;
 	}
 
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	const usb_hid_dev_t *hid_dev = fun->driver_data;
 
 	if (hid_dev->report_desc_size > size) {
 		return EINVAL;
@@ -180,20 +165,19 @@ static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 static int usb_generic_hid_client_connected(ddf_fun_t *fun)
 {
 	usb_log_debug("Generic HID: Client connected.\n");
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 void usb_generic_hid_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	ddf_fun_t *fun = data;
+	if (fun == NULL)
+		return;
+
 	const int ret = ddf_fun_unbind(fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind generic hid fun.\n");
@@ -205,9 +189,7 @@ void usb_generic_hid_deinit(usb_hid_dev_t *hid_dev, void *data)
 	fun->driver_data = NULL;
 	ddf_fun_destroy(fun);
 }
-
 /*----------------------------------------------------------------------------*/
-
 int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	if (hid_dev == NULL) {
@@ -215,7 +197,6 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 	}
 
 	/* Create the exposed function. */
-	/** @todo Generate numbers for the devices? */
 	usb_log_debug("Creating DDF function %s...\n", HID_GENERIC_FUN_NAME);
 	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
 	    HID_GENERIC_FUN_NAME);
@@ -224,32 +205,30 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 
+	/* This is nasty, both device and this function have the same
+	 * driver data, thus destruction causes to double free */
+	fun->driver_data = hid_dev;
 	fun->ops = &usb_generic_hid_ops;
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
+		fun->driver_data = NULL;
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	/* This is nasty both device and this function have the same
-	 * driver data, thus destruction would lead to double free */
-	fun->driver_data = hid_dev;
 
 	usb_log_debug("HID function created. Handle: %" PRIun "\n", fun->handle);
 	*data = fun;
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	return true;
 }
-
 /**
  * @}
  */
