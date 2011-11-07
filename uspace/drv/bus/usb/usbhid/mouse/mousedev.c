@@ -295,9 +295,18 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 
 	return true;
 }
-
 /*----------------------------------------------------------------------------*/
-
+#define FUN_UNBIND_DESTROY(fun) \
+if (fun) { \
+	if (ddf_fun_unbind((fun)) == EOK) { \
+		(fun)->driver_data = NULL; \
+		ddf_fun_destroy((fun)); \
+	} else { \
+		usb_log_error("Could not unbind function `%s', it " \
+		    "will not be destroyed.\n", (fun)->name); \
+	} \
+} else (void)0
+/*----------------------------------------------------------------------------*/
 static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 {
 	assert(hid_dev != NULL);
@@ -305,10 +314,11 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 
 	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
+	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
 	    HID_MOUSE_FUN_NAME);
 	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
+		usb_log_error("Could not create DDF function node `%s'.\n",
+		    HID_MOUSE_FUN_NAME);
 		return ENOMEM;
 	}
 
@@ -317,23 +327,21 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
-		    str_error(rc));
+		usb_log_error("Could not bind DDF function `%s': %s.\n",
+		    fun->name, str_error(rc));
 		fun->driver_data = NULL;
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
-	usb_log_debug("Adding DDF function to category %s...\n", 
-	    HID_MOUSE_CATEGORY);
+	usb_log_debug("Adding DDF function `%s' to category %s...\n",
+	    fun->name, HID_MOUSE_CATEGORY);
 	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_CATEGORY, str_error(rc));
-		ddf_fun_unbind(fun);
-		fun->driver_data = NULL;
-		ddf_fun_destroy(fun);
+		FUN_UNBIND_DESTROY(fun);
 		return rc;
 	}
 	mouse->mouse_fun = fun;
@@ -346,10 +354,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
 	    HID_MOUSE_WHEEL_FUN_NAME);
 	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
-		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
-		ddf_fun_destroy(mouse->mouse_fun);
+		usb_log_error("Could not create DDF function node `%s'.\n",
+		    HID_MOUSE_WHEEL_FUN_NAME);
+		FUN_UNBIND_DESTROY(mouse->mouse_fun);
 		mouse->mouse_fun = NULL;
 		return ENOMEM;
 	}
@@ -363,12 +370,11 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
-		    str_error(rc));
-		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
-		ddf_fun_destroy(mouse->mouse_fun);
+		usb_log_error("Could not bind DDF function `%s': %s.\n",
+		    fun->name, str_error(rc));
+		FUN_UNBIND_DESTROY(mouse->mouse_fun);
 		mouse->mouse_fun = NULL;
+
 		fun->driver_data = NULL;
 		ddf_fun_destroy(fun);
 		return rc;
@@ -381,13 +387,10 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
-		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
-		ddf_fun_destroy(mouse->mouse_fun);
+
+		FUN_UNBIND_DESTROY(mouse->mouse_fun);
 		mouse->mouse_fun = NULL;
-		ddf_fun_unbind(fun);
-		fun->driver_data = NULL;
-		ddf_fun_destroy(fun);
+		FUN_UNBIND_DESTROY(fun);
 		return rc;
 	}
 	mouse->wheel_fun = fun;
@@ -436,9 +439,7 @@ static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t rep
 
 	return highest_button;
 }
-
 /*----------------------------------------------------------------------------*/
-
 int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
@@ -491,9 +492,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (hid_dev == NULL || data == NULL) {
@@ -506,9 +505,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 
 	return usb_mouse_process_report(hid_dev, mouse_dev);
 }
-
 /*----------------------------------------------------------------------------*/
-
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data == NULL)
@@ -531,35 +528,13 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 			    "%p, %s.\n", mouse_dev->wheel_sess, str_error(ret));
 	}
 
-	/* We might be called before being completely initialized */
-	if (mouse_dev->mouse_fun) {
-		const int ret = ddf_fun_unbind(mouse_dev->mouse_fun);
-		if (ret != EOK) {
-			usb_log_error("Failed to unbind mouse function.\n");
-		} else {
-			/* driver_data(mouse_dev) will be freed explicitly */
-			mouse_dev->mouse_fun->driver_data = NULL;
-			ddf_fun_destroy(mouse_dev->mouse_fun);
-		}
-	}
+	FUN_UNBIND_DESTROY(mouse_dev->mouse_fun);
+	FUN_UNBIND_DESTROY(mouse_dev->wheel_fun);
 
-	/* We might be called before being completely initialized */
-	if (mouse_dev->mouse_fun) {
-		const int ret = ddf_fun_unbind(mouse_dev->wheel_fun);
-		if (ret != EOK) {
-			usb_log_error("Failed to unbind wheel function.\n");
-		} else {
-			/* driver_data(mouse_dev) will be freed explicitly */
-			mouse_dev->wheel_fun->driver_data = NULL;
-			ddf_fun_destroy(mouse_dev->wheel_fun);
-		}
-	}
 	free(mouse_dev->buttons);
 	free(mouse_dev);
 }
-
 /*----------------------------------------------------------------------------*/
-
 int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
 	int rc = usb_hid_parse_report_descriptor(
