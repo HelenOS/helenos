@@ -33,6 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_H_
 #define LIBEXT4_LIBEXT4_H_
 
+#include "libext4_bitmap.h"
 #include "libext4_block_group.h"
 #include "libext4_directory.h"
 #include "libext4_directory_index.h"

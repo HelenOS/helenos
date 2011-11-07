@@ -30,41 +30,77 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_FILESYSTEM_H_
-#define LIBEXT4_LIBEXT4_FILESYSTEM_H_
+/**
+ * @file	libext4_bitmap.c
+ * @brief	TODO
+ */
 
+#include <errno.h>
 #include <libblock.h>
-#include "libext4_block_group.h"
-#include "libext4_inode.h"
-#include "libext4_superblock.h"
+#include <sys/types.h>
+#include "libext4.h"
 
-typedef struct ext4_filesystem {
-	service_id_t device;
-	ext4_superblock_t *	superblock;
-	aoff64_t inode_block_limits[4];
-	aoff64_t inode_blocks_per_level[4];
-} ext4_filesystem_t;
+static void ext4_bitmap_free_bit(uint8_t *bitmap, uint32_t index)
+{
+	uint32_t byte_index = index / 8;
+	uint32_t bit_index = index % 8;
 
-#define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
-#define EXT4_REV0_INODE_SIZE	128
+	uint8_t *target = bitmap + byte_index;
+	uint8_t old_value = *target;
 
+	uint8_t new_value = old_value & (~ (1 << bit_index));
 
-extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
-extern void ext4_filesystem_fini(ext4_filesystem_t *fs);
-extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
-extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
-extern int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *, uint32_t,
-    ext4_block_group_ref_t **);
-extern int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *);
-extern int ext4_filesystem_get_inode_ref(ext4_filesystem_t *, uint32_t,
-		ext4_inode_ref_t **);
-extern int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *);
-extern int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *,
-	ext4_inode_t *, aoff64_t iblock, uint32_t *);
-extern int ext4_filesystem_release_inode_block(ext4_filesystem_t *,
-		ext4_inode_ref_t *, uint32_t);
-#endif
+	*target = new_value;
+}
+
+int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
+{
+	int rc;
+	uint32_t blocks_per_group;
+	uint32_t block_group;
+	uint32_t index_in_group;
+	uint32_t bitmap_block;
+	ext4_block_group_ref_t *bg_ref;
+	block_t *block;
+
+	blocks_per_group = ext4_superblock_get_blocks_per_group(fs->superblock);
+	block_group = block_index / blocks_per_group;
+	index_in_group = block_index % blocks_per_group;
+
+	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	bitmap_block = ext4_block_group_get_block_bitmap(bg_ref->block_group);
+
+	rc = block_get(&block, fs->device, bitmap_block, 0);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	ext4_bitmap_free_bit(block->data, index_in_group);
+
+	block->dirty = true;
+	rc = block_put(block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	uint32_t free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
+	free_blocks++;
+	ext4_block_group_set_free_blocks_count(bg_ref->block_group, free_blocks);
+
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
+	if (rc != EOK) {
+		// TODO error
+		return rc;
+	}
+
+	return EOK;
+}
+
 
 /**
  * @}
- */
+ */ 

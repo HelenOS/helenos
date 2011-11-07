@@ -143,6 +143,7 @@ typedef struct ext4_inode_ref {
 	block_t *block; // Reference to a block containing this inode
 	ext4_inode_t *inode;
 	uint32_t index; // Index number of this inode
+	bool dirty;
 } ext4_inode_ref_t;
 
 
@@ -152,6 +153,7 @@ extern bool ext4_inode_is_type(ext4_superblock_t *, ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_uid(ext4_inode_t *);
 */
 extern uint64_t ext4_inode_get_size(ext4_superblock_t *, ext4_inode_t *);
+extern void ext4_inode_set_size(ext4_inode_t *, uint64_t);
 /*
 extern uint32_t ext4_inode_get_access_time(ext4_inode_t *);
 extern uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *);

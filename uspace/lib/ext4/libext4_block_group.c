@@ -62,6 +62,11 @@ uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *bg)
 		uint16_t_le2host(bg->free_blocks_count_lo);
 }
 
+void ext4_block_group_set_free_blocks_count(ext4_block_group_t *bg, uint32_t value) {
+	bg->free_blocks_count_lo = host2uint16_t_le((value << 16) >> 16);
+	bg->free_blocks_count_hi = host2uint16_t_le(value >> 16);
+}
+
 uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *bg)
 {
 	return ((uint32_t)uint16_t_le2host(bg->free_inodes_count_hi) << 16) |

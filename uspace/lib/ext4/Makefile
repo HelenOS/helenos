@@ -32,6 +32,7 @@ EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 
 SOURCES = \
+	libext4_bitmap.c \
 	libext4_block_group.c \
 	libext4_directory.c \
 	libext4_directory_index.c \

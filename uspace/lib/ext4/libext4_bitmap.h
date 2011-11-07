@@ -30,39 +30,14 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_FILESYSTEM_H_
-#define LIBEXT4_LIBEXT4_FILESYSTEM_H_
+#ifndef LIBEXT4_LIBEXT4_BITMAP_H_
+#define LIBEXT4_LIBEXT4_BITMAP_H_
 
-#include <libblock.h>
-#include "libext4_block_group.h"
-#include "libext4_inode.h"
-#include "libext4_superblock.h"
+#include <sys/types.h>
+#include "libext4_filesystem.h"
 
-typedef struct ext4_filesystem {
-	service_id_t device;
-	ext4_superblock_t *	superblock;
-	aoff64_t inode_block_limits[4];
-	aoff64_t inode_blocks_per_level[4];
-} ext4_filesystem_t;
+extern int ext4_bitmap_free_block(ext4_filesystem_t *, uint32_t);
 
-#define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
-#define EXT4_REV0_INODE_SIZE	128
-
-
-extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
-extern void ext4_filesystem_fini(ext4_filesystem_t *fs);
-extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
-extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
-extern int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *, uint32_t,
-    ext4_block_group_ref_t **);
-extern int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *);
-extern int ext4_filesystem_get_inode_ref(ext4_filesystem_t *, uint32_t,
-		ext4_inode_ref_t **);
-extern int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *);
-extern int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *,
-	ext4_inode_t *, aoff64_t iblock, uint32_t *);
-extern int ext4_filesystem_release_inode_block(ext4_filesystem_t *,
-		ext4_inode_ref_t *, uint32_t);
 #endif
 
 /**

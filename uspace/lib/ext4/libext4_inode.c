@@ -66,8 +66,13 @@ uint64_t ext4_inode_get_size(ext4_superblock_t *sb, ext4_inode_t *inode)
 	if ((major_rev > 0) && ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)) {
 		return ((uint64_t)uint32_t_le2host(inode->size_hi)) << 32 |
 			    ((uint64_t)uint32_t_le2host(inode->size_lo));
-		}
+	}
 	return uint32_t_le2host(inode->size_lo);
+}
+
+void ext4_inode_set_size(ext4_inode_t *inode, uint64_t value) {
+	inode->size_lo = host2uint32_t_le((value << 32) >> 32);
+	inode->size_hi = host2uint32_t_le(value >> 32);
 }
 
 /*

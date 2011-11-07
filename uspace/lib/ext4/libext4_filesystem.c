@@ -250,6 +250,7 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	 * in the reference
 	 */
 	newref->index = index+1;
+	newref->dirty = false;
 
 	*ref = newref;
 
@@ -260,6 +261,10 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 {
 	int rc;
+
+	if (ref->dirty) {
+		ref->block->dirty = true;
+	}
 
 	rc = block_put(ref->block);
 	free(ref);
@@ -354,36 +359,97 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 }
 
 
-int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs, ext4_inode_t *inode, uint32_t iblock)
+int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, uint32_t iblock)
 {
 	int rc;
 	uint32_t fblock;
+	int i;
+	int level;
+	aoff64_t block_offset_in_level;
+	uint32_t current_block;
+	uint32_t offset_in_block;
+	block_t *block;
+	ext4_inode_t *inode = inode_ref->inode;
 
-	// TODO handle with extents
+	/* TODO handle extents */
 
-	rc = ext4_filesystem_get_inode_data_block_index(fs, inode, iblock, &fblock);
-	if (rc != EOK) {
-		// TODO error
-		return rc;
+	/* Handle simple case when we are dealing with direct reference */
+	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
+		EXT4FS_DBG("direct block");
+		fblock = ext4_inode_get_direct_block(inode, (uint32_t)iblock);
+		// Sparse file
+		if (fblock == 0) {
+			return EOK;
+		}
+
+		ext4_inode_set_direct_block(inode, iblock, 0);
+		return ext4_bitmap_free_block(fs, fblock);
+	} else {
+
+		/* Determine the indirection level needed to get the desired block */
+		level = -1;
+		for (i = 1; i < 4; i++) {
+			if (iblock < fs->inode_block_limits[i]) {
+				level = i;
+				break;
+			}
+		}
+
+		if (level == -1) {
+			return EIO;
+		}
+
+		/* Compute offsets for the topmost level */
+		block_offset_in_level = iblock - fs->inode_block_limits[level-1];
+		current_block = ext4_inode_get_indirect_block(inode, level-1);
+		offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
+
+		/* Navigate through other levels, until we find the block number
+		 * or find null reference meaning we are dealing with sparse file
+		 */
+		while (level > 0) {
+			rc = block_get(&block, fs->device, current_block, 0);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
+
+			// Set zero
+			if (level == 1) {
+				((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(0);
+				block->dirty = true;
+			}
+
+			rc = block_put(block);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			level -= 1;
+
+			/* If we are on the last level, break here as
+			 * there is no next level to visit
+			 */
+			if (level == 0) {
+				break;
+			}
+
+			/* Visit the next level */
+			block_offset_in_level %= fs->inode_blocks_per_level[level];
+			offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
+		}
+
+		fblock = current_block;
+
+		if (fblock == 0) {
+			return EOK;
+		}
 	}
 
-	// Sparse file
-	if (fblock == 0) {
+	return ext4_bitmap_free_block(fs, fblock);
 
-		//
-		return EOK;
-	}
-
-
-	// TODO vyhledat policko s ukazatelem a nastavit nulu
-
-
-	// TODO uvolnit blok v bitmape
-
-	// TODO return
-
-
-	return EOK;
 }
 
 

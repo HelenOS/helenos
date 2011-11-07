@@ -72,6 +72,7 @@ extern uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *);
 extern uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *);
 extern uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *);
 extern uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *);
+extern void ext4_block_group_set_free_blocks_count(ext4_block_group_t *, uint32_t);
 extern uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *);
 extern uint32_t ext4_block_group_get_used_dirs_count(ext4_block_group_t *);
 extern uint16_t ext4_block_group_get_flags(ext4_block_group_t *);
