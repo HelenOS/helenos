@@ -530,9 +530,14 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
-		ddf_fun_unbind(fun);
-		fun->driver_data = NULL; /* We need this later */
-		ddf_fun_destroy(fun);
+		if (ddf_fun_unbind(fun) == EOK) {
+			fun->driver_data = NULL; /* We need this later */
+			ddf_fun_destroy(fun);
+		} else {
+			usb_log_error(
+			    "Failed to unbind `%s', will not destroy.\n",
+			    fun->name);
+		}
 		return rc;
 	}
 	kbd_dev->fun = fun;
