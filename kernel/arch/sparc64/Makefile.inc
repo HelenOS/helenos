@@ -67,6 +67,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.s \
+	arch/$(KARCH)/src/mm/$(USARCH)/km.c \
 	arch/$(KARCH)/src/mm/$(USARCH)/as.c \
 	arch/$(KARCH)/src/mm/$(USARCH)/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

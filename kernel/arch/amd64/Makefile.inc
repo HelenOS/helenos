@@ -85,6 +85,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/amd64.c \
 	arch/$(KARCH)/src/bios/bios.c \
 	arch/$(KARCH)/src/interrupt.c \
+	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

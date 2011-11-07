@@ -26,33 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericmm
+/** @addtogroup mips64mm
  * @{
  */
 
-/**
- * @file
- * @brief Kernel virtual memory setup.
- */
-
-#include <mm/km.h>
 #include <arch/mm/km.h>
-#include <config.h>
 
-/** Architecture dependent setup of identity-mapped kernel memory. */
-void km_identity_init(void)
+void km_identity_arch_init(void)
 {
-	km_identity_arch_init();
-	config.identity_configured = true;
 }
 
-/** Architecture dependent setup of non-identity-mapped kernel memory. */
-void km_non_identity_init(void)
+void km_non_identity_arch_init(void)
 {
-	km_non_identity_arch_init();
-	config.non_identity_configured = true;
 }
 
 /** @}
  */
-

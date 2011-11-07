@@ -87,10 +87,13 @@ typedef struct {
 	/** Size of initial stack. */
 	size_t stack_size;
 
+	bool identity_configured;
 	/** Base address of the kernel identity mapped memory. */
 	uintptr_t identity_base;
 	/** Size of the kernel identity mapped memory. */
-	size_t identity_size;	    
+	size_t identity_size;
+
+	bool non_identity_configured;   
 } config_t;
 
 extern config_t config;

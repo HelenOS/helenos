@@ -26,33 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericmm
+/** @addtogroup sparc64mm	
  * @{
  */
-
-/**
- * @file
- * @brief Kernel virtual memory setup.
+/** @file
  */
 
-#include <mm/km.h>
-#include <arch/mm/km.h>
-#include <config.h>
+#ifndef KERN_sparc64_KM_H_
+#define KERN_sparc64_KM_H_
 
-/** Architecture dependent setup of identity-mapped kernel memory. */
-void km_identity_init(void)
-{
-	km_identity_arch_init();
-	config.identity_configured = true;
-}
+#if defined (SUN4U)
+#include <arch/mm/sun4u/km.h>
+#elif defined (SUN4V)
+#include <arch/mm/sun4v/km.h>
+#endif
 
-/** Architecture dependent setup of non-identity-mapped kernel memory. */
-void km_non_identity_init(void)
-{
-	km_non_identity_arch_init();
-	config.non_identity_configured = true;
-}
+
+#endif
 
 /** @}
  */
-

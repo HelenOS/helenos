@@ -88,7 +88,10 @@
 #include <sysinfo/stats.h>
 
 /** Global configuration structure. */
-config_t config;
+config_t config = {
+	.identity_configured = false,
+	.non_identity_configured = false
+};
 
 /** Initial user-space tasks */
 init_t init = {
