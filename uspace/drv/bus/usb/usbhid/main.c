@@ -192,17 +192,19 @@ static int usb_hid_device_rem(usb_device_t *dev)
  */
 static int usb_hid_device_gone(usb_device_t *dev)
 {
+	assert(dev);
+	assert(dev->driver_data);
 	usb_hid_dev_t *hid_dev = dev->driver_data;
-	unsigned tries = 10;
-	while (hid_dev->running) {
+	unsigned tries = 100;
+	/* Wait for fail. */
+	while (hid_dev->running && tries--) {
 		async_usleep(100000);
-		if (!tries--) {
-			usb_log_error("Can't remove hid, still running.\n");
-			return EBUSY;
-		}
+	}
+	if (hid_dev->running) {
+		usb_log_error("Can't remove hid, still running.\n");
+		return EBUSY;
 	}
 
-	assert(!hid_dev->running);
 	usb_hid_deinit(hid_dev);
 	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
 	return EOK;
