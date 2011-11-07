@@ -178,8 +178,7 @@ void usb_generic_hid_deinit(usb_hid_dev_t *hid_dev, void *data)
 	if (fun == NULL)
 		return;
 
-	const int ret = ddf_fun_unbind(fun);
-	if (ret != EOK) {
+	if (ddf_fun_unbind(fun) != EOK) {
 		usb_log_error("Failed to unbind generic hid fun.\n");
 		return;
 	}

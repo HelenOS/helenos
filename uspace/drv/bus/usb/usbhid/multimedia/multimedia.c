@@ -200,7 +200,12 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		usb_log_error(
 		    "Could not add DDF function to category 'keyboard': %s.\n",
 		    str_error(rc));
-		ddf_fun_destroy(fun);
+		if (ddf_fun_unbind(fun) != EOK) {
+			usb_log_error("Failed to unbind %s, won't destroy.\n",
+			    fun->name);
+		} else {
+			ddf_fun_destroy(fun);
+		}
 		return rc;
 	}
 
@@ -219,9 +224,8 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 		/* Hangup session to the console */
 		if (multim_dev->console_sess)
 			async_hangup(multim_dev->console_sess);
-		const int ret = ddf_fun_unbind(fun);
-		if (ret != EOK) {
-			usb_log_error("Failed to unbind %s function.\n",
+		if (ddf_fun_unbind(fun) != EOK) {
+			usb_log_error("Failed to unbind %s, won't destroy.\n",
 			    fun->name);
 		} else {
 			usb_log_debug2("%s unbound.\n", fun->name);
