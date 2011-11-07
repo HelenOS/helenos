@@ -383,11 +383,9 @@ mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 	if (flags & L_DIRECTORY) {
 		ino_i->i_mode = S_IFDIR;
-		ino_i->i_nlinks = 2; /* This accounts for the '.' dentry */
-	} else {
+		ino_i->i_nlinks = 1; /* This accounts for the '.' dentry */
+	} else
 		ino_i->i_mode = S_IFREG;
-		ino_i->i_nlinks = 1;
-	}
 
 	ino_i->i_uid = 0;
 	ino_i->i_gid = 0;
@@ -674,6 +672,9 @@ mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	int r = mfs_insert_dentry(parent, name, child->ino_i->index);
 	if (r != EOK)
 		goto exit_error;
+
+	child->ino_i->i_nlinks++;
+	child->ino_i->dirty = true;
 
 	if (S_ISDIR(child->ino_i->i_mode)) {
 		r = mfs_insert_dentry(child, ".", child->ino_i->index);

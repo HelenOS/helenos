@@ -115,7 +115,8 @@ static bool madt_cpu_bootstrap(size_t i)
 
 static int madt_irq_to_pin(unsigned int irq)
 {
-	ASSERT(irq < sizeof(isa_irq_map) / sizeof(int));
+	if (irq >= sizeof(isa_irq_map) / sizeof(int))
+		return (int) irq;
 	
 	return isa_irq_map[irq];
 }
@@ -177,10 +178,7 @@ static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override,
 {
 	ASSERT(override->source < sizeof(isa_irq_map) / sizeof(int));
 	
-	printf("MADT: Ignoring %s entry: bus=%" PRIu8 ", source=%" PRIu8
-	    ", global_int=%" PRIu32 ", flags=%#" PRIx16 "\n",
-	    entry[override->header.type], override->bus, override->source,
-	    override->global_int, override->flags);
+	isa_irq_map[override->source] = override->global_int;
 }
 
 void acpi_madt_parse(void)

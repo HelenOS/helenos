@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,34 +32,21 @@
 /** @file
  */
 
-#ifndef LIBC_VFS_H_
-#define LIBC_VFS_H_
+#ifndef LIBC_VFS_MTAB_H_
+#define LIBC_VFS_MTAB_H_
 
 #include <sys/types.h>
 #include <ipc/vfs.h>
-#include <ipc/loc.h>
 #include <adt/list.h>
-#include <stdio.h>
-#include <async.h>
-#include "vfs_mtab.h"
 
-enum vfs_change_state_type {
-	VFS_PASS_HANDLE
-};
-
-extern char *absolutize(const char *, size_t *);
-
-extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int, unsigned int);
-extern int unmount(const char *);
-
-extern int fhandle(FILE *, int *);
-
-extern int fd_wait(void);
-extern int get_mtab_list(list_t *mtab_list);
-
-extern async_exch_t *vfs_exchange_begin(void);
-extern void vfs_exchange_end(async_exch_t *);
+typedef struct mtab_ent {
+	link_t link;
+	char mp[MAX_PATH_LEN];
+	char opts[MAX_MNTOPTS_LEN];
+	char fs_name[FS_NAME_MAXLEN];
+	unsigned int instance;
+	service_id_t service_id;
+} mtab_ent_t;
 
 #endif
 
