@@ -186,6 +186,7 @@ uint32_t version_hi;   // High 32 bits for 64-bit version
 
 extern ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *);
 extern bool ext4_inode_has_flag(ext4_inode_t *, uint32_t);
+extern bool ext4_inode_can_truncate(ext4_inode_t *);
 
 #endif
 

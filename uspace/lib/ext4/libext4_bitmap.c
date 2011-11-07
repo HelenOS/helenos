@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_bitmap.c
- * @brief	TODO
+ * @brief	Ext4 bitmap (block & inode) operations.
  */
 
 #include <errno.h>
@@ -90,6 +90,7 @@ int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
 	uint32_t free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
 	free_blocks++;
 	ext4_block_group_set_free_blocks_count(bg_ref->block_group, free_blocks);
+	bg_ref->dirty = true;
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {

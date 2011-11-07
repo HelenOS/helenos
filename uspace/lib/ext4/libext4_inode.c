@@ -192,6 +192,22 @@ bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag)
 	return false;
 }
 
+bool ext4_inode_can_truncate(ext4_inode_t *inode)
+{
+	 if (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_APPEND)
+			 || ext4_inode_has_flag(inode, EXT4_INODE_FLAG_IMMUTABLE)) {
+		 return false;
+	 }
+
+
+	 if (ext4_inode_get_mode(inode) == EXT4_INODE_MODE_FILE
+			 || ext4_inode_get_mode(inode) == EXT4_INODE_MODE_DIRECTORY) {
+		 return true;
+	 }
+
+	 return false;
+}
+
 /**
  * @}
  */ 

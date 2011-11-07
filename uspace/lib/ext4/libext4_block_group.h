@@ -64,6 +64,7 @@ typedef struct ext4_block_group {
 typedef struct ext4_block_group_ref {
 	block_t *block; // Reference to a block containing this block group descr
 	ext4_block_group_t *block_group;
+	bool dirty;
 } ext4_block_group_ref_t;
 
 #define EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE 32

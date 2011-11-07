@@ -953,15 +953,18 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 	inode_ref = enode->inode_ref;
 	fs = enode->instance->filesystem;
 
-	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 
-	printf("old size = \%llu, new size = \%llu\n", old_size, new_size);
+	if (! ext4_inode_can_truncate(inode_ref->inode)) {
+		// Unable to truncate
+		return EINVAL;
+	}
+
+	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 
 	if (old_size == new_size) {
 		rc = EOK;
 	} else {
 
-		//int rc;
 		uint32_t block_size;
 		uint32_t blocks_count, total_blocks;
 		uint32_t i;
@@ -969,12 +972,11 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 		block_size  = ext4_superblock_get_block_size(fs->superblock);
 
 		if (old_size < new_size) {
-			// TODO don't return immediately
-			EXT4FS_DBG("expand the file");
+			// Currently not supported to expand the file
+			// TODO
+			EXT4FS_DBG("trying to expand the file");
 			return EINVAL;
 		}
-
-		EXT4FS_DBG("cut the end of the file !");
 
 		size_diff = old_size - new_size;
 		blocks_count = size_diff / block_size;
@@ -989,8 +991,11 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 
 		inode_ref->dirty = true;
 
-		for (i = 0; i< blocks_count; ++i) {
+		// starting from 1 because of logical blocks are numbered from 0
+		for (i = 1; i <= blocks_count; ++i) {
 			// TODO check retval
+			// TODO decrement inode->blocks_count
+
 			ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
 		}
 
