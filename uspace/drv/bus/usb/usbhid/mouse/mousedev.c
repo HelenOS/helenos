@@ -219,28 +219,38 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		return true;
 	}
 
-	int shift_x = get_mouse_axis_move_value(hid_dev->report_id,
+	const int shift_x = get_mouse_axis_move_value(hid_dev->report_id,
 	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
-	int shift_y = get_mouse_axis_move_value(hid_dev->report_id,
+	const int shift_y = get_mouse_axis_move_value(hid_dev->report_id,
 	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
-	int wheel = get_mouse_axis_move_value(hid_dev->report_id,
+	const int wheel = get_mouse_axis_move_value(hid_dev->report_id,
 	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
 	if ((shift_x != 0) || (shift_y != 0)) {
 		async_exch_t *exch =
 		    async_exchange_begin(mouse_dev->mouse_sess);
-		async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
-		async_exchange_end(exch);
+		if (exch != NULL) {
+			async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
+			async_exchange_end(exch);
+		}
 	}
 
 	if (wheel != 0)
 		usb_mouse_send_wheel(mouse_dev, wheel);
 
-	/*
-	 * Buttons
-	 */
+	/* Buttons */
 	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
+	if (path == NULL) {
+		usb_log_warning("Failed to create USB HID report path.\n");
+		return true;
+	}
+	int ret =
+	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
+	if (ret != EOK) {
+		usb_hid_report_path_free(path);
+		usb_log_warning("Failed to add buttons to report path.\n");
+		return true;
+	}
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
@@ -253,21 +263,26 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		assert(field->usage > field->usage_minimum);
 		const unsigned index = field->usage - field->usage_minimum;
 		assert(index < mouse_dev->buttons_count);
-		
+
 		if (mouse_dev->buttons[index] == 0 && field->value != 0) {
 			async_exch_t *exch =
 			    async_exchange_begin(mouse_dev->mouse_sess);
-			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 1);
-			async_exchange_end(exch);
-			
-			mouse_dev->buttons[index] = field->value;
+			if (exch != NULL) {
+				async_req_2_0(exch, MOUSEEV_BUTTON_EVENT,
+				    field->usage, 1);
+				async_exchange_end(exch);
+				mouse_dev->buttons[index] = field->value;
+			}
+
 		} else if (mouse_dev->buttons[index] != 0 && field->value == 0) {
 			async_exch_t *exch =
 			    async_exchange_begin(mouse_dev->mouse_sess);
-			async_req_2_0(exch, MOUSEEV_BUTTON_EVENT, field->usage, 0);
-			async_exchange_end(exch);
-
-			mouse_dev->buttons[index] = field->value;
+			if (exch != NULL) {
+				async_req_2_0(exch, MOUSEEV_BUTTON_EVENT,
+				    field->usage, 0);
+				async_exchange_end(exch);
+				mouse_dev->buttons[index] = field->value;
+			}
 		}
 
 		field = usb_hid_report_get_sibling(
@@ -335,6 +350,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		ddf_fun_unbind(mouse->mouse_fun);
 		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
+		mouse->mouse_fun = NULL;
 		return ENOMEM;
 	}
 
@@ -352,6 +368,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		ddf_fun_unbind(mouse->mouse_fun);
 		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
+		mouse->mouse_fun = NULL;
 		fun->driver_data = NULL;
 		ddf_fun_destroy(fun);
 		return rc;
@@ -367,6 +384,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		ddf_fun_unbind(mouse->mouse_fun);
 		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
+		mouse->mouse_fun = NULL;
 		ddf_fun_unbind(fun);
 		fun->driver_data = NULL;
 		ddf_fun_destroy(fun);
@@ -437,10 +455,6 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 		    "structure.\n");
 		return ENOMEM;
 	}
-	mouse_dev->mouse_sess = NULL;
-	mouse_dev->wheel_sess = NULL;
-	mouse_dev->buttons = NULL;
-	mouse_dev->buttons_count = 0;
 
 	// FIXME: This may not be optimal since stupid hardware vendor may
 	// use buttons 1, 2, 3 and 6000 and we would allocate array of
@@ -483,8 +497,8 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (hid_dev == NULL || data == NULL) {
-		usb_log_error("Missing argument to the mouse polling callback."
-		    "\n");
+		usb_log_error(
+		    "Missing argument to the mouse polling callback.\n");
 		return false;
 	}
 
