@@ -36,7 +36,7 @@
 #ifndef LIBUSBHID_CONSUMER_H_
 #define LIBUSBHID_CONSUMER_H_
 
-const char *usbhid_multimedia_usage_to_str(int usage);
+const char *usbhid_multimedia_usage_to_str(unsigned usage);
 
 #endif /* LIBUSBHID_CONSUMER_H_ */
 
