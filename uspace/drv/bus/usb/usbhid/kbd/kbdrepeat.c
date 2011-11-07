@@ -84,10 +84,9 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 
 		if (kbd->repeat.key_new > 0) {
 			if (kbd->repeat.key_new == kbd->repeat.key_repeated) {
-				usb_log_debug2("Repeating key: %u.\n", 
+				usb_log_debug2("Repeating key: %u.\n",
 				    kbd->repeat.key_repeated);
-				// ugly hack with the NULL
-				usb_kbd_push_ev(NULL, kbd, KEY_PRESS, 
+				usb_kbd_push_ev(kbd, KEY_PRESS,
 				    kbd->repeat.key_repeated);
 				delay = kbd->repeat.delay_between;
 			} else {
