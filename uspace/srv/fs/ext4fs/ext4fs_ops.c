@@ -925,10 +925,85 @@ static int
 ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
-	EXT4FS_DBG("not supported");
+	EXT4FS_DBG("");
 
-	// TODO
-	return ENOTSUP;
+	int rc;
+	fs_node_t *fn;
+	ext4fs_node_t *enode;
+	ext4_filesystem_t *fs;
+	ext4_inode_ref_t *inode_ref;
+	ipc_callid_t callid;
+	size_t len, bytes, block_size;
+	block_t *write_block;
+	uint32_t fblock, iblock;
+
+	rc = ext4fs_node_get(&fn, service_id, index);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (!async_data_write_receive(&callid, &len)) {
+		rc = EINVAL;
+		ext4fs_node_put(fn);
+		async_answer_0(callid, rc);
+		return rc;
+	}
+
+
+	enode = EXT4FS_NODE(fn);
+	inode_ref = enode->inode_ref;
+	fs = enode->instance->filesystem;
+
+	block_size = ext4_superblock_get_block_size(fs->superblock);
+
+	// Prevent writing to more than one block
+	bytes = min(len, block_size - (pos % block_size));
+
+	EXT4FS_DBG("bytes == \%u", bytes);
+
+	iblock =  pos / block_size;
+
+	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
+
+
+	// TODO allocation if fblock == 0
+	if (fblock == 0) {
+		EXT4FS_DBG("Allocate block !!!");
+
+		return ENOTSUP;
+	}
+
+	// TODO flags
+	rc = block_get(&write_block, service_id, fblock, 0);
+	if (rc != EOK) {
+		ext4fs_node_put(fn);
+		async_answer_0(callid, rc);
+		return rc;
+	}
+
+	/*
+	if (flags == BLOCK_FLAGS_NOREAD)
+		memset(b->data, 0, sbi->block_size);
+	*/
+
+	async_data_write_finalize(callid, write_block->data + (pos % block_size), bytes);
+	write_block->dirty = true;
+
+	rc = block_put(write_block);
+	if (rc != EOK) {
+		ext4fs_node_put(fn);
+		return rc;
+	}
+
+	/*
+	if (pos + bytes > ino_i->i_size) {
+		ino_i->i_size = pos + bytes;
+		ino_i->dirty = true;
+	}
+	*nsize = ino_i->i_size;
+	*wbytes = bytes;
+	*/
+	return ext4fs_node_put(fn);
 }
 
 
@@ -956,13 +1031,15 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 
 	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
 		// Unable to truncate
+		ext4fs_node_put(fn);
 		return EINVAL;
 	}
 
 	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 
 	if (old_size == new_size) {
-		rc = EOK;
+		ext4fs_node_put(fn);
+		return EOK;
 	} else {
 
 		uint32_t block_size;
@@ -1004,7 +1081,8 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 	}
 
 	ext4fs_node_put(fn);
-	return rc;
+
+	return EOK;
 }
 
 

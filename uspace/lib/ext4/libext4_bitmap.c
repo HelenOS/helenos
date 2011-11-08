@@ -53,6 +53,39 @@ static void ext4_bitmap_free_bit(uint8_t *bitmap, uint32_t index)
 	*target = new_value;
 }
 
+static int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t *index, uint32_t size)
+{
+	uint8_t *pos = bitmap;
+	int i;
+	uint32_t idx = 0;
+
+	while (pos < bitmap + size) {
+		if ((*pos & 255) != 255) {
+			// free bit found
+			break;
+		}
+
+		++pos;
+		idx += 8;
+	}
+
+	if (pos < bitmap + size) {
+
+		for(i = 0; i < 8; ++i) {
+			if ((*pos & (1 << i)) == 0) {
+				// free bit found
+				*pos |= (1 << i);
+				*index = idx;
+				return EOK;
+			}
+
+			idx++;
+		}
+	}
+
+	return ENOSPC;
+}
+
 int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
 {
 	int rc;
@@ -92,6 +125,8 @@ int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
 	ext4_block_group_set_free_blocks_count(bg_ref->block_group, free_blocks);
 	bg_ref->dirty = true;
 
+	// TODO change free blocks count in superblock
+
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
 		// TODO error
@@ -101,6 +136,49 @@ int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
 	return EOK;
 }
 
+int ext4_bitmap_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, uint32_t *fblock)
+{
+	int rc;
+	uint32_t inodes_per_group, block_group, blocks_per_group;
+	ext4_block_group_ref_t *bg_ref;
+	uint32_t bitmap_block;
+	block_t *block;
+	uint32_t rel_block_idx = 0;
+	uint32_t block_size;
+
+	inodes_per_group = ext4_superblock_get_inodes_per_group(fs->superblock);
+	block_group = inode_ref->index / inodes_per_group;
+
+	block_size = ext4_superblock_get_block_size(fs->superblock);
+
+	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	bitmap_block = ext4_block_group_get_block_bitmap(bg_ref->block_group);
+
+	rc = block_get(&block, fs->device, bitmap_block, 0);
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		return rc;
+	}
+
+	rc = ext4_bitmap_find_free_bit_and_set(block->data, &rel_block_idx, block_size);
+
+	// if ENOSPC - try next block group - try next block groups
+
+
+
+
+	// TODO decrement superblock & block group free blocks count
+
+	// return
+	blocks_per_group = ext4_superblock_get_blocks_per_group(fs->superblock);
+	*fblock = blocks_per_group * block_group + rel_block_idx;
+	return EOK;
+
+}
 
 /**
  * @}
