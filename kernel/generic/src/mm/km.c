@@ -38,6 +38,7 @@
 #include <mm/km.h>
 #include <arch/mm/km.h>
 #include <config.h>
+#include <typedefs.h>
 
 /** Architecture dependent setup of identity-mapped kernel memory. */
 void km_identity_init(void)
@@ -51,6 +52,10 @@ void km_non_identity_init(void)
 {
 	km_non_identity_arch_init();
 	config.non_identity_configured = true;
+}
+
+void km_non_identity_span_add(uintptr_t base, size_t size)
+{
 }
 
 /** @}

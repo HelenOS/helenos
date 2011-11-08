@@ -35,8 +35,12 @@
 #ifndef KERN_KM_H_
 #define KERN_KM_H_
 
+#include <typedefs.h>
+
 extern void km_identity_init(void);
 extern void km_non_identity_init(void);
+
+extern void km_non_identity_span_add(uintptr_t, size_t);
 
 #endif
 
