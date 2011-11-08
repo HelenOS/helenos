@@ -199,9 +199,8 @@ bool ext4_inode_can_truncate(ext4_superblock_t *sb, ext4_inode_t *inode)
 		 return false;
 	 }
 
-
-	 if (ext4_inode_get_mode(sb, inode) == EXT4_INODE_MODE_FILE
-			 || ext4_inode_get_mode(sb, inode) == EXT4_INODE_MODE_DIRECTORY) {
+	 if (ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)
+			 || ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_DIRECTORY)) {
 		 return true;
 	 }
 
