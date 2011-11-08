@@ -954,7 +954,7 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 	fs = enode->instance->filesystem;
 
 
-	if (! ext4_inode_can_truncate(inode_ref->inode)) {
+	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
 		// Unable to truncate
 		return EINVAL;
 	}
