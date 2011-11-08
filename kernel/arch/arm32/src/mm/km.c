@@ -31,13 +31,19 @@
  */
 
 #include <arch/mm/km.h>
+#include <mm/km.h>
+#include <config.h>
 
 void km_identity_arch_init(void)
 {
+	config.identity_base = KM_ARM32_IDENTITY_START;
+	config.identity_size = KM_ARM32_IDENTITY_SIZE;
 }
 
 void km_non_identity_arch_init(void)
 {
+	km_non_identity_span_add(KM_ARM32_NON_IDENTITY_START,
+	    KM_ARM32_NON_IDENTITY_SIZE);
 }
 
 /** @}

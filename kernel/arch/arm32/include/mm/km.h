@@ -35,6 +35,12 @@
 #ifndef KERN_arm32_KM_H_
 #define KERN_arm32_KM_H_
 
+#define KM_ARM32_IDENTITY_START		UINT32_C(0x80000000)
+#define KM_ARM32_IDENTITY_SIZE		UINT32_C(0x40000000)
+
+#define KM_ARM32_NON_IDENTITY_START	UINT32_C(0xc0000000)
+#define KM_ARM32_NON_IDENTITY_SIZE	UINT32_C(0x40000000)
+
 extern void km_identity_arch_init(void);
 extern void km_non_identity_arch_init(void);
 
