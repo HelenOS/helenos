@@ -96,23 +96,28 @@ uint32_t ext4_inode_get_flags(ext4_inode_t *inode) {
 	return uint32_t_le2host(inode->flags);
 }
 
-uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint8_t idx)
+uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint32_t idx)
 {
 	assert(idx < EXT4_INODE_DIRECT_BLOCK_COUNT);
 	return uint32_t_le2host(inode->blocks[idx]);
 }
 
-void ext4_inode_set_direct_block(ext4_inode_t *inode, uint8_t idx, uint32_t fblock)
+void ext4_inode_set_direct_block(ext4_inode_t *inode, uint32_t idx, uint32_t fblock)
 {
 	assert(idx < EXT4_INODE_DIRECT_BLOCK_COUNT);
 	inode->blocks[idx] = host2uint32_t_le(fblock);
 }
 
-uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint8_t idx)
+uint32_t ext4_inode_get_indirect_block(ext4_inode_t *inode, uint32_t idx)
 {
-	assert(idx < EXT4_INODE_INDIRECT_BLOCK_COUNT);
 	return uint32_t_le2host(inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK]);
 }
+
+void ext4_inode_set_indirect_block(ext4_inode_t *inode, uint32_t idx, uint32_t fblock)
+{
+	inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK] = host2uint32_t_le(fblock);
+}
+
 
 uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx, service_id_t service_id)
 {

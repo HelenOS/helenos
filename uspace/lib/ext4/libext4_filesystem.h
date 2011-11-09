@@ -62,7 +62,7 @@ extern int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *);
 extern int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *,
 	ext4_inode_t *, aoff64_t iblock, uint32_t *);
 extern int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *,
-		ext4_inode_t *, aoff64_t, uint32_t);
+		ext4_inode_ref_t *, aoff64_t, uint32_t);
 extern int ext4_filesystem_release_inode_block(ext4_filesystem_t *,
 		ext4_inode_ref_t *, uint32_t);
 #endif

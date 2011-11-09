@@ -925,8 +925,6 @@ static int
 ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	int flags = BLOCK_FLAGS_NONE;
 	fs_node_t *fn;
@@ -965,14 +963,14 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		flags = BLOCK_FLAGS_NOREAD;
 	}
 
-	EXT4FS_DBG("bytes == \%u", bytes);
+//	EXT4FS_DBG("bytes == \%u", bytes);
 
 	iblock =  pos / block_size;
 
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
 
 	if (fblock == 0) {
-		EXT4FS_DBG("Allocate block !!!");
+//		EXT4FS_DBG("Allocate block !!!");
 		rc =  ext4_bitmap_alloc_block(fs, inode_ref, &fblock);
 		if (rc != EOK) {
 			ext4fs_node_put(fn);
@@ -980,12 +978,12 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			return rc;
 		}
 
-		ext4_filesystem_set_inode_data_block_index(fs, inode_ref->inode, iblock, fblock);
+		ext4_filesystem_set_inode_data_block_index(fs, inode_ref, iblock, fblock);
 		inode_ref->dirty = true;
 
 		flags = BLOCK_FLAGS_NOREAD;
 
-		EXT4FS_DBG("block \%u allocated", fblock);
+//		EXT4FS_DBG("block \%u allocated", fblock);
 	}
 
 	rc = block_get(&write_block, service_id, fblock, flags);
@@ -995,23 +993,16 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 	}
 
-	EXT4FS_DBG("block loaded");
-
 	if (flags == BLOCK_FLAGS_NOREAD) {
-		EXT4FS_DBG("fill block with zeros");
+//		EXT4FS_DBG("fill block with zeros");
 		memset(write_block->data, 0, block_size);
 	}
 
 	rc = async_data_write_finalize(callid, write_block->data + (pos % block_size), bytes);
 	if (rc != EOK) {
+		// TODO error
 		EXT4FS_DBG("error in write finalize \%d", rc);
 	}
-
-	char *data = write_block->data + (pos % block_size);
-	for (uint32_t x = 0; x < bytes; ++x) {
-		printf("%c", data[x]);
-	}
-	printf("\n");
 
 	write_block->dirty = true;
 
@@ -1021,7 +1012,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 	}
 
-	EXT4FS_DBG("writing finished");
+//	EXT4FS_DBG("writing finished");
 
 	old_inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	if (pos + bytes > old_inode_size) {
