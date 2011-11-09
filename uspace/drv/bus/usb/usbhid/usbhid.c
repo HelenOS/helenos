@@ -300,7 +300,6 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, const usb_device_t *dev)
 	assert(hid_dev);
 	assert(dev);
 
-
 	if (dev->pipes[USB_HID_KBD_POLL_EP_NO].present) {
 		usb_log_debug("Found keyboard endpoint.\n");
 		// save the pipe index

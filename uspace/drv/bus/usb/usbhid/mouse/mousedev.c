@@ -76,13 +76,7 @@ const char *HID_MOUSE_WHEEL_CATEGORY = "keyboard";
 static const uint8_t IDLE_RATE = 0;
 
 /*----------------------------------------------------------------------------*/
-
-enum {
-	USB_MOUSE_BOOT_REPORT_DESCRIPTOR_SIZE = 63
-};
-
-static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[
-    USB_MOUSE_BOOT_REPORT_DESCRIPTOR_SIZE] = {
+static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 	0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
 	0x09, 0x02,                    // USAGE (Mouse)
 	0xa1, 0x01,                    // COLLECTION (Application)
@@ -539,7 +533,7 @@ int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
 	int rc = usb_hid_parse_report_descriptor(
 	    &hid_dev->report, USB_MOUSE_BOOT_REPORT_DESCRIPTOR,
-	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR_SIZE);
+	    sizeof(USB_MOUSE_BOOT_REPORT_DESCRIPTOR));
 
 	if (rc != EOK) {
 		usb_log_error("Failed to parse boot report descriptor: %s\n",

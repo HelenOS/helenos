@@ -101,17 +101,12 @@ const char *HID_KBD_CATEGORY_NAME = "keyboard";
 
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 /*----------------------------------------------------------------------------*/
-enum {
-	USB_KBD_BOOT_REPORT_DESCRIPTOR_SIZE = 63
-};
-
-static const uint8_t USB_KBD_BOOT_REPORT_DESCRIPTOR[
-    USB_KBD_BOOT_REPORT_DESCRIPTOR_SIZE] = {
+static const uint8_t USB_KBD_BOOT_REPORT_DESCRIPTOR[] = {
         0x05, 0x01,  // Usage Page (Generic Desktop),
         0x09, 0x06,  // Usage (Keyboard),
         0xA1, 0x01,  // Collection (Application),
         0x75, 0x01,  //   Report Size (1),
-        0x95, 0x08,  //   Report Count (8),       
+        0x95, 0x08,  //   Report Count (8),
         0x05, 0x07,  //   Usage Page (Key Codes);
         0x19, 0xE0,  //   Usage Minimum (224),
         0x29, 0xE7,  //   Usage Maximum (231),
@@ -795,7 +790,7 @@ int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 	assert(hid_dev);
 	int rc = usb_hid_parse_report_descriptor(
 	    &hid_dev->report, USB_KBD_BOOT_REPORT_DESCRIPTOR,
-	    USB_KBD_BOOT_REPORT_DESCRIPTOR_SIZE);
+	    sizeof(USB_KBD_BOOT_REPORT_DESCRIPTOR));
 
 	if (rc != EOK) {
 		usb_log_error("Failed to parse boot report descriptor: %s\n",
