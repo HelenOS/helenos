@@ -91,7 +91,7 @@ static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 	}
 	hid_dev->subdriver_count = 1;
 	// TODO 2 should be mouse, but find a better way
-	hid_dev->subdrivers[2] = usb_hid_subdrivers[0].subdriver;
+	hid_dev->subdrivers[0] = usb_hid_subdrivers[2].subdriver;
 
 	return EOK;
 }
