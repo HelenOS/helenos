@@ -928,6 +928,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	EXT4FS_DBG("");
 
 	int rc;
+	int flags = BLOCK_FLAGS_NONE;
 	fs_node_t *fn;
 	ext4fs_node_t *enode;
 	ext4_filesystem_t *fs;
@@ -936,6 +937,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	size_t len, bytes, block_size;
 	block_t *write_block;
 	uint32_t fblock, iblock;
+	uint32_t old_inode_size;
 
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
@@ -959,34 +961,58 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	// Prevent writing to more than one block
 	bytes = min(len, block_size - (pos % block_size));
 
+	if (bytes == block_size) {
+		flags = BLOCK_FLAGS_NOREAD;
+	}
+
 	EXT4FS_DBG("bytes == \%u", bytes);
 
 	iblock =  pos / block_size;
 
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
 
-
-	// TODO allocation if fblock == 0
 	if (fblock == 0) {
 		EXT4FS_DBG("Allocate block !!!");
+		rc =  ext4_bitmap_alloc_block(fs, inode_ref, &fblock);
+		if (rc != EOK) {
+			ext4fs_node_put(fn);
+			async_answer_0(callid, rc);
+			return rc;
+		}
 
-		return ENOTSUP;
+		ext4_filesystem_set_inode_data_block_index(fs, inode_ref->inode, iblock, fblock);
+		inode_ref->dirty = true;
+
+		flags = BLOCK_FLAGS_NOREAD;
+
+		EXT4FS_DBG("block \%u allocated", fblock);
 	}
 
-	// TODO flags
-	rc = block_get(&write_block, service_id, fblock, 0);
+	rc = block_get(&write_block, service_id, fblock, flags);
 	if (rc != EOK) {
 		ext4fs_node_put(fn);
 		async_answer_0(callid, rc);
 		return rc;
 	}
 
-	/*
-	if (flags == BLOCK_FLAGS_NOREAD)
-		memset(b->data, 0, sbi->block_size);
-	*/
+	EXT4FS_DBG("block loaded");
 
-	async_data_write_finalize(callid, write_block->data + (pos % block_size), bytes);
+	if (flags == BLOCK_FLAGS_NOREAD) {
+		EXT4FS_DBG("fill block with zeros");
+		memset(write_block->data, 0, block_size);
+	}
+
+	rc = async_data_write_finalize(callid, write_block->data + (pos % block_size), bytes);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in write finalize \%d", rc);
+	}
+
+	char *data = write_block->data + (pos % block_size);
+	for (uint32_t x = 0; x < bytes; ++x) {
+		printf("%c", data[x]);
+	}
+	printf("\n");
+
 	write_block->dirty = true;
 
 	rc = block_put(write_block);
@@ -995,14 +1021,17 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 	}
 
-	/*
-	if (pos + bytes > ino_i->i_size) {
-		ino_i->i_size = pos + bytes;
-		ino_i->dirty = true;
+	EXT4FS_DBG("writing finished");
+
+	old_inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+	if (pos + bytes > old_inode_size) {
+		ext4_inode_set_size(inode_ref->inode, pos + bytes);
+		inode_ref->dirty = true;
 	}
-	*nsize = ino_i->i_size;
+
+	*nsize = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	*wbytes = bytes;
-	*/
+
 	return ext4fs_node_put(fn);
 }
 
@@ -1104,10 +1133,21 @@ static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 
 static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 {
-	EXT4FS_DBG("not supported");
+	EXT4FS_DBG("");
 
-	// TODO
-	return ENOTSUP;
+	int rc;
+	fs_node_t *fn;
+	ext4fs_node_t *enode;
+
+	rc = ext4fs_node_get(&fn, service_id, index);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	enode = EXT4FS_NODE(fn);
+	enode->inode_ref->dirty = true;
+
+	return ext4fs_node_put(fn);
 }
 
 vfs_out_ops_t ext4fs_ops = {

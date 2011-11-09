@@ -166,12 +166,21 @@ int ext4_bitmap_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 	rc = ext4_bitmap_find_free_bit_and_set(block->data, &rel_block_idx, block_size);
 
-	// if ENOSPC - try next block group - try next block groups
 
+	if (rc != EOK) {
+		EXT4FS_DBG("no block found");
+		// TODO if ENOSPC - try next block group - try next block groups
+	}
 
+	// TODO decrement superblock free blocks count
+	//uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
+	//sb_free_blocks--;
+	//ext4_superblock_set_free_blocks_count(sb, sb_free_blocks);
 
-
-	// TODO decrement superblock & block group free blocks count
+	uint32_t bg_free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
+	bg_free_blocks++;
+	ext4_block_group_set_free_blocks_count(bg_ref->block_group, bg_free_blocks);
+	bg_ref->dirty = true;
 
 	// return
 	blocks_per_group = ext4_superblock_get_blocks_per_group(fs->superblock);
