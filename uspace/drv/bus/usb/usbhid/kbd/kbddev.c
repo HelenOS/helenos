@@ -102,39 +102,38 @@ const char *HID_KBD_CATEGORY_NAME = "keyboard";
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 /*----------------------------------------------------------------------------*/
 static const uint8_t USB_KBD_BOOT_REPORT_DESCRIPTOR[] = {
-        0x05, 0x01,  // Usage Page (Generic Desktop),
-        0x09, 0x06,  // Usage (Keyboard),
-        0xA1, 0x01,  // Collection (Application),
-        0x75, 0x01,  //   Report Size (1),
-        0x95, 0x08,  //   Report Count (8),
-        0x05, 0x07,  //   Usage Page (Key Codes);
-        0x19, 0xE0,  //   Usage Minimum (224),
-        0x29, 0xE7,  //   Usage Maximum (231),
-        0x15, 0x00,  //   Logical Minimum (0),
-        0x25, 0x01,  //   Logical Maximum (1),
-        0x81, 0x02,  //   Input (Data, Variable, Absolute),   ; Modifier byte
-	0x95, 0x01,  //   Report Count (1),
-        0x75, 0x08,  //   Report Size (8),
-        0x81, 0x01,  //   Input (Constant),                   ; Reserved byte
-        0x95, 0x05,  //   Report Count (5),
-        0x75, 0x01,  //   Report Size (1),
-        0x05, 0x08,  //   Usage Page (Page# for LEDs),
-        0x19, 0x01,  //   Usage Minimum (1),
-        0x29, 0x05,  //   Usage Maxmimum (5),
-        0x91, 0x02,  //   Output (Data, Variable, Absolute),  ; LED report
-        0x95, 0x01,  //   Report Count (1),
-        0x75, 0x03,  //   Report Size (3),
-        0x91, 0x01,  //   Output (Constant),              ; LED report padding
-        0x95, 0x06,  //   Report Count (6),
-        0x75, 0x08,  //   Report Size (8),
-        0x15, 0x00,  //   Logical Minimum (0),
-        0x25, 0xff,  //   Logical Maximum (255),
-        0x05, 0x07,  //   Usage Page (Key Codes),
-        0x19, 0x00,  //   Usage Minimum (0),
-        0x29, 0xff,  //   Usage Maximum (255),
-        0x81, 0x00,  //   Input (Data, Array),            ; Key arrays (6 bytes)
-        0xC0           // End Collection
-
+	0x05, 0x01,  /* Usage Page (Generic Desktop), */
+	0x09, 0x06,  /* Usage (Keyboard), */
+	0xA1, 0x01,  /* Collection (Application), */
+	0x75, 0x01,  /*   Report Size (1), */
+	0x95, 0x08,  /*   Report Count (8), */
+	0x05, 0x07,  /*   Usage Page (Key Codes); */
+	0x19, 0xE0,  /*   Usage Minimum (224), */
+	0x29, 0xE7,  /*   Usage Maximum (231), */
+	0x15, 0x00,  /*   Logical Minimum (0), */
+	0x25, 0x01,  /*   Logical Maximum (1), */
+	0x81, 0x02,  /*   Input (Data, Variable, Absolute),  ; Modifier byte */
+	0x95, 0x01,  /*   Report Count (1), */
+	0x75, 0x08,  /*   Report Size (8), */
+	0x81, 0x01,  /*   Input (Constant),                  ; Reserved byte */
+	0x95, 0x05,  /*   Report Count (5), */
+	0x75, 0x01,  /*   Report Size (1), */
+	0x05, 0x08,  /*   Usage Page (Page# for LEDs), */
+	0x19, 0x01,  /*   Usage Minimum (1), */
+	0x29, 0x05,  /*   Usage Maxmimum (5), */
+	0x91, 0x02,  /*   Output (Data, Variable, Absolute),  ; LED report */
+	0x95, 0x01,  /*   Report Count (1), */
+	0x75, 0x03,  /*   Report Size (3), */
+	0x91, 0x01,  /*   Output (Constant),            ; LED report padding */
+	0x95, 0x06,  /*   Report Count (6), */
+	0x75, 0x08,  /*   Report Size (8), */
+	0x15, 0x00,  /*   Logical Minimum (0), */
+	0x25, 0xff,  /*   Logical Maximum (255), */
+	0x05, 0x07,  /*   Usage Page (Key Codes), */
+	0x19, 0x00,  /*   Usage Minimum (0), */
+	0x29, 0xff,  /*   Usage Maximum (255), */
+	0x81, 0x00,  /*   Input (Data, Array),   ; Key arrays (6 bytes) */
+	0xC0         /* End Collection */
 };
 /*----------------------------------------------------------------------------*/
 typedef enum usb_kbd_flags {
@@ -206,7 +205,6 @@ static void default_connection_handler(ddf_fun_t *fun,
 	}
 
 }
-
 /*----------------------------------------------------------------------------*/
 /* Key processing functions                                                   */
 /*----------------------------------------------------------------------------*/
@@ -447,8 +445,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
-	// fill in the currently pressed keys
-
+	/* Fill in the currently pressed keys. */
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    &hid_dev->report, NULL, path,
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
@@ -461,7 +458,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 		assert(i < kbd_dev->key_count);
 
-		// save the key usage
+		/* Save the key usage. */
 		if (field->value != 0) {
 			kbd_dev->keys[i] = field->usage;
 		}
@@ -499,10 +496,8 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 		return ENOMEM;
 	}
 
-	/*
-	 * Store the initialized HID device and HID ops
-	 * to the DDF function.
-	 */
+	/* Store the initialized HID device and HID ops
+	 * to the DDF function. */
 	fun->ops = &kbd_dev->ops;
 	fun->driver_data = kbd_dev;
 
@@ -510,7 +505,7 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		fun->driver_data = NULL; /* We need this later */
+		fun->driver_data = NULL; /* We did not allocate this. */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -526,7 +521,7 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
 		if (ddf_fun_unbind(fun) == EOK) {
-			fun->driver_data = NULL; /* We need this later */
+			fun->driver_data = NULL; /* We did not allocate this. */
 			ddf_fun_destroy(fun);
 		} else {
 			usb_log_error(
@@ -673,10 +668,8 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 
-	/*
-	 * Set LEDs according to initial setup.
-	 * Set Idle rate
-	 */
+	/* Set LEDs according to initial setup.
+	 * Set Idle rate */
 	usb_kbd_set_led(hid_dev, kbd_dev);
 
 	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,
@@ -778,7 +771,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 		usb_kbd_t *kbd_dev = data;
 		if (usb_kbd_is_initialized(kbd_dev)) {
 			kbd_dev->initialized = USB_KBD_STATUS_TO_DESTROY;
-			/* wait for autorepeat */
+			/* Wait for autorepeat */
 			async_usleep(CHECK_DELAY);
 		}
 		usb_kbd_destroy(kbd_dev);

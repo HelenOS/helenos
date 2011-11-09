@@ -248,7 +248,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		if (mapping->usage_path != NULL) {
 			usb_log_debug("Comparing device against usage path.\n");
 			if (usb_hid_path_matches(hid_dev, mapping)) {
-				// does not matter if IDs were matched
+				/* Does not matter if IDs were matched. */
 				matched = true;
 			}
 		}
