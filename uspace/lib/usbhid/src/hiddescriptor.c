@@ -134,7 +134,7 @@ usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report,
  */
 int usb_hid_report_init(usb_hid_report_t *report)
 {
-	if(report == NULL) {
+	if (report == NULL) {
 		return EINVAL;
 	}
 
@@ -143,7 +143,7 @@ int usb_hid_report_init(usb_hid_report_t *report)
 	list_initialize(&report->collection_paths);
 
 	report->use_report_ids = 0;
-    return EOK;   
+    return EOK;
 }
 
 /*---------------------------------------------------------------------------*/
