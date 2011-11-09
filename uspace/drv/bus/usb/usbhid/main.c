@@ -48,31 +48,27 @@
 #define NAME "usbhid"
 
 /**
- * Function for adding a new device of type USB/HID/keyboard.
+ * Callback for passing a new device to the driver.
  *
- * This functions initializes required structures from the device's descriptors
- * and starts new fibril for polling the keyboard for events and another one for
- * handling auto-repeat of keys.
+ * @note Currently, only boot-protocol keyboards are supported by this driver.
  *
- * During initialization, the keyboard is switched into boot protocol, the idle
- * rate is set to 0 (infinity), resulting in the keyboard only reporting event
- * when a key is pressed or released. Finally, the LED lights are turned on 
- * according to the default setup of lock keys.
- *
- * @note By default, the keyboards is initialized with Num Lock turned on and 
- *       other locks turned off.
- * @note Currently supports only boot-protocol keyboards.
- *
- * @param dev Device to add.
+ * @param dev Structure representing the new device.
  * @return Error code.
  */
-static int usb_hid_try_add_device(usb_device_t *dev)
+static int usb_hid_device_add(usb_device_t *dev)
 {
-	assert(dev != NULL);
+	usb_log_debug("%s\n", __FUNCTION__);
 
-	/* Initialize device (get and process descriptors, get address, etc.) */
-	usb_log_debug("Initializing USB/HID device...\n");
+	if (dev == NULL) {
+		usb_log_error("Wrong parameter given for add_device().\n");
+		return EINVAL;
+	}
 
+	if (dev->interface_no < 0) {
+		usb_log_error("Failed to add HID device: endpoints not found."
+		    "\n");
+		return ENOTSUP;
+	}
 	usb_hid_dev_t *hid_dev =
 	    usb_device_data_alloc(dev, sizeof(usb_hid_dev_t));
 	if (hid_dev == NULL) {
@@ -82,7 +78,6 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	}
 
 	int rc = usb_hid_init(hid_dev, dev);
-
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize USB/HID device.\n");
 		usb_hid_deinit(hid_dev);
@@ -104,7 +99,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
-	 * for the data continuously 
+	 * for the data continuously.
 	 */
        rc = usb_device_auto_poll(dev,
 	   /* Index of the polling pipe. */
@@ -125,45 +120,6 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 		return rc;
 	}
 	hid_dev->running = true;
-
-	/*
-	 * Hurrah, device is initialized.
-	 */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/**
- * Callback for passing a new device to the driver.
- *
- * @note Currently, only boot-protocol keyboards are supported by this driver.
- *
- * @param dev Structure representing the new device.
- * @return Error code.
- */
-static int usb_hid_device_add(usb_device_t *dev)
-{
-	usb_log_debug("usb_hid_device_add()\n");
-
-	if (dev == NULL) {
-		usb_log_warning("Wrong parameter given for add_device().\n");
-		return EINVAL;
-	}
-
-	if (dev->interface_no < 0) {
-		usb_log_warning("Device is not a supported HID device.\n");
-		usb_log_error("Failed to add HID device: endpoints not found."
-		    "\n");
-		return ENOTSUP;
-	}
-
-	int rc = usb_hid_try_add_device(dev);
-
-	if (rc != EOK) {
-		usb_log_warning("Device is not a supported HID device.\n");
-		usb_log_error("Failed to add HID device: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
 
 	usb_log_info("HID device `%s' ready to use.\n", dev->ddf_dev->name);
 

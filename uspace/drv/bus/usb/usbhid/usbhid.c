@@ -290,17 +290,16 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	}
 
 	/* We have all subdrivers determined, save them into the hid device */
-	// TODO Dowe really need this complicated stuff if there is
+	// TODO Do we really need this complicated stuff if there is
 	// max_subdrivers limitation?
 	return usb_hid_save_subdrivers(hid_dev, subdrivers, count);
 }
-
 /*----------------------------------------------------------------------------*/
-
 static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, const usb_device_t *dev)
 {
 	assert(hid_dev);
 	assert(dev);
+
 
 	if (dev->pipes[USB_HID_KBD_POLL_EP_NO].present) {
 		usb_log_debug("Found keyboard endpoint.\n");
@@ -358,24 +357,29 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/*
+ * This functions initializes required structures from the device's descriptors
+ * and starts new fibril for polling the keyboard for events and another one for
+ * handling auto-repeat of keys.
+ *
+ * During initialization, the keyboard is switched into boot protocol, the idle
+ * rate is set to 0 (infinity), resulting in the keyboard only reporting event
+ * when a key is pressed or released. Finally, the LED lights are turned on 
+ * according to the default setup of lock keys.
+ *
+ * @note By default, the keyboards is initialized with Num Lock turned on and 
+ *       other locks turned off.
+ *
+ * @param hid_dev Device to initialize, non-NULL.
+ * @param dev USB device, non-NULL.
+ * @return Error code.
+ */
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
-	int rc, i;
+	assert(hid_dev);
+	assert(dev);
 
 	usb_log_debug("Initializing HID structure...\n");
-
-	if (hid_dev == NULL) {
-		usb_log_error("Failed to init HID structure: no structure given"
-		    ".\n");
-		return EINVAL;
-	}
-
-	if (dev == NULL) {
-		usb_log_error("Failed to init HID structure: no USB device"
-		    " given.\n");
-		return EINVAL;
-	}
 
 	usb_hid_report_init(&hid_dev->report);
 
@@ -383,7 +387,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	hid_dev->usb_dev = dev;
 	hid_dev->poll_pipe_index = -1;
 
-	rc = usb_hid_check_pipes(hid_dev, dev);
+	int rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -448,7 +452,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		usb_log_debug("Subdriver count: %d\n",
 		    hid_dev->subdriver_count);
 
-		for (i = 0; i < hid_dev->subdriver_count; ++i) {
+		for (int i = 0; i < hid_dev->subdriver_count; ++i) {
 			if (hid_dev->subdrivers[i].init != NULL) {
 				usb_log_debug("Initializing subdriver %d.\n",i);
 				rc = hid_dev->subdrivers[i].init(hid_dev,
@@ -559,7 +563,6 @@ int usb_hid_report_number(const usb_hid_dev_t *hid_dev)
 }
 
 /*----------------------------------------------------------------------------*/
-
 void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);
