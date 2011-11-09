@@ -127,7 +127,7 @@ static bool usb_hid_ids_match(const usb_hid_dev_t *hid_dev,
 
 	return (hid_dev->usb_dev->descriptors.device.vendor_id
 	    == mapping->vendor_id
-	    && hid_dev->usb_dev->descriptors.device.product_id 
+	    && hid_dev->usb_dev->descriptors.device.product_id
 	    == mapping->product_id);
 }
 
@@ -300,25 +300,26 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, const usb_device_t *dev)
 	assert(hid_dev);
 	assert(dev);
 
-	if (dev->pipes[USB_HID_KBD_POLL_EP_NO].present) {
-		usb_log_debug("Found keyboard endpoint.\n");
-		// save the pipe index
-		hid_dev->poll_pipe_index = USB_HID_KBD_POLL_EP_NO;
-	} else if (dev->pipes[USB_HID_MOUSE_POLL_EP_NO].present) {
-		usb_log_debug("Found mouse endpoint.\n");
-		// save the pipe index
-		hid_dev->poll_pipe_index = USB_HID_MOUSE_POLL_EP_NO;
-	} else if (dev->pipes[USB_HID_GENERIC_POLL_EP_NO].present) {
-		usb_log_debug("Found generic HID endpoint.\n");
-		// save the pipe index
-		hid_dev->poll_pipe_index = USB_HID_GENERIC_POLL_EP_NO;
-	} else {
-		usb_log_error("None of supported endpoints found - probably"
-		    " not a supported device.\n");
-		return ENOTSUP;
-	}
+	static const struct {
+		unsigned ep_number;
+		const char* description;
+	} endpoints[] = {
+		{USB_HID_KBD_POLL_EP_NO, "Keyboard endpoint"},
+		{USB_HID_MOUSE_POLL_EP_NO, "Mouse endpoint"},
+		{USB_HID_GENERIC_POLL_EP_NO, "Generic HID endpoint"},
+	};
 
-	return EOK;
+	for (unsigned i = 0; i < sizeof(endpoints)/sizeof(endpoints[0]); ++i) {
+		if (endpoints[i].ep_number >= dev->pipes_count) {
+			return EINVAL;
+		}
+		if (dev->pipes[endpoints[i].ep_number].present) {
+			usb_log_debug("Found: %s.\n", endpoints[i].description);
+			hid_dev->poll_pipe_index = endpoints[i].ep_number;
+			return EOK;
+		}
+	}
+	return ENOTSUP;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -394,6 +395,17 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev,
 	    &hid_dev->report, &hid_dev->report_desc, &hid_dev->report_desc_size);
+
+	/*
+	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
+	 *    do nej.
+	 * 2) do tych ops do .interfaces[DEV_IFACE_USBHID (asi)] priradi 
+	 *    vyplnenu strukturu usbhid_iface_t.
+	 * 3) klientska aplikacia - musi si rucne vytvorit telefon
+	 *    (devman_device_connect() - cesta k zariadeniu (/hw/pci0/...) az 
+	 *    k tej fcii.
+	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
+	 */
 
 	bool fallback = false;
 
