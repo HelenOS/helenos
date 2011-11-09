@@ -50,8 +50,6 @@
 #include "mouse/mousedev.h"
 #include "subdrivers.h"
 
-/*----------------------------------------------------------------------------*/
-
 /* Array of endpoints expected on the device, NULL terminated. */
 const usb_endpoint_description_t *usb_hid_endpoints[] = {
 	&usb_hid_kbd_poll_endpoint_description,
@@ -323,7 +321,6 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
 /*
  * This functions initializes required structures from the device's descriptors
@@ -428,7 +425,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
 	 */
 	bool ok = false;
-	for (int i = 0; i < hid_dev->subdriver_count; ++i) {
+	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].init != NULL) {
 			usb_log_debug("Initializing subdriver %d.\n",i);
 			const int pret = hid_dev->subdrivers[i].init(hid_dev,
@@ -493,7 +490,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 
 	bool cont = false;
 	/* Continue if at least one of the subdrivers want to continue */
-	for (int i = 0; i < hid_dev->subdriver_count; ++i) {
+	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].poll != NULL) {
 			cont = cont || hid_dev->subdrivers[i].poll(
 			    hid_dev, hid_dev->subdrivers[i].data);
@@ -502,9 +499,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 
 	return cont;
 }
-
 /*----------------------------------------------------------------------------*/
-
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 {
 	assert(dev);
@@ -512,7 +507,7 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 
 	usb_hid_dev_t *hid_dev = arg;
 
-	for (int i = 0; i < hid_dev->subdriver_count; ++i) {
+	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].poll_end != NULL) {
 			hid_dev->subdrivers[i].poll_end(
 			    hid_dev, hid_dev->subdrivers[i].data, reason);
@@ -521,21 +516,16 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 
 	hid_dev->running = false;
 }
-
 /*----------------------------------------------------------------------------*/
-
 void usb_hid_new_report(usb_hid_dev_t *hid_dev)
 {
 	++hid_dev->report_nr;
 }
-
 /*----------------------------------------------------------------------------*/
-
 int usb_hid_report_number(const usb_hid_dev_t *hid_dev)
 {
 	return hid_dev->report_nr;
 }
-
 /*----------------------------------------------------------------------------*/
 void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 {
@@ -546,7 +536,7 @@ void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 	usb_log_debug("Subdrivers: %p, subdriver count: %d\n", 
 	    hid_dev->subdrivers, hid_dev->subdriver_count);
 
-	for (int i = 0; i < hid_dev->subdriver_count; ++i) {
+	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].deinit != NULL) {
 			hid_dev->subdrivers[i].deinit(hid_dev,
 			    hid_dev->subdrivers[i].data);
