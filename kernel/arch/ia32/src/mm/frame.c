@@ -178,7 +178,7 @@ void physmem_print(void)
 }
 
 
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	pfn_t minconf;
 	
@@ -203,6 +203,10 @@ void frame_arch_init(void)
 		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 #endif
 	}
+}
+
+void frame_high_arch_init(void)
+{
 }
 
 /** @}

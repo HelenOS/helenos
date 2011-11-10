@@ -74,7 +74,8 @@ typedef union frame_address frame_address_t;
 extern uintptr_t last_frame;
 extern uintptr_t end_of_identity;
 
-extern void frame_arch_init(void);
+extern void frame_low_arch_init(void);
+extern void frame_high_arch_init(void);
 #define physmem_print()
 
 #endif

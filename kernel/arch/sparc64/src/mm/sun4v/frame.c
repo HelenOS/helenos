@@ -44,7 +44,7 @@
  *
  * Walk the memory map and create frame zones according to it.
  */
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	if (config.cpu_active == 1) {
 		unsigned int i;
@@ -78,6 +78,10 @@ void frame_arch_init(void)
 		 */
 		frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
 	}
+}
+
+void frame_high_arch_init(void)
+{
 }
 
 /** @}

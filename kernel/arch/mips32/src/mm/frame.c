@@ -164,7 +164,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
  * used in any way, thus there is no interference.
  *
  */
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	ipl_t ipl = interrupts_disable();
 	
@@ -245,6 +245,9 @@ void frame_arch_init(void)
 	interrupts_restore(ipl);
 }
 
+void frame_high_arch_init(void)
+{
+}
 
 void physmem_print(void)
 {

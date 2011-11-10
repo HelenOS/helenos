@@ -38,12 +38,13 @@
 #include <arch/machine_func.h>
 #include <config.h>
 #include <align.h>
+#include <macros.h>
 
 /** Address of the last frame in the memory. */
 uintptr_t last_frame = 0;
 
 /** Creates memory zones. */
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	uintptr_t mem_start, mem_size;
 	uintptr_t first_frame;
@@ -63,6 +64,10 @@ void frame_arch_init(void)
 	    BOOT_PAGE_TABLE_SIZE_IN_FRAMES);
 
 	machine_frame_init();
+}
+
+void frame_high_arch_init(void)
+{
 }
 
 /** Frees the boot page table. */

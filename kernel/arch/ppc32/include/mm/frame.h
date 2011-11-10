@@ -57,7 +57,8 @@ NO_TRACE static inline uint32_t physmem_top(void)
 	return physmem;
 }
 
-extern void frame_arch_init(void);
+extern void frame_low_arch_init(void);
+extern void frame_high_arch_init(void);
 extern void physmem_print(void);
 
 #endif /* __ASM__ */

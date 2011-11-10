@@ -53,7 +53,7 @@ void physmem_print(void)
 	}
 }
 
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	pfn_t minconf = 2;
 	size_t i;
@@ -89,6 +89,10 @@ void frame_arch_init(void)
 	
 	// FIXME: compute size of PHT exactly
 	frame_mark_unavailable(ADDR2PFN(sdr1 & 0xffff000), 16);
+}
+
+void frame_high_arch_init(void)
+{
 }
 
 /** @}

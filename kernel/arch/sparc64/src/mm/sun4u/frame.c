@@ -46,7 +46,7 @@ uintptr_t last_frame = (uintptr_t) NULL;
  *
  * Walk the memory map and create frame zones according to it.
  */
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	if (config.cpu_active == 1) {
 		unsigned int i;
@@ -84,6 +84,10 @@ void frame_arch_init(void)
 	}
 	
 	end_of_identity = PA2KA(last_frame);
+}
+
+void frame_high_arch_init(void)
+{
 }
 
 /** @}

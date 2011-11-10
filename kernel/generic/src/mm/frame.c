@@ -1231,7 +1231,7 @@ void frame_init(void)
 	}
 	
 	/* Tell the architecture to create some memory */
-	frame_arch_init();
+	frame_low_arch_init();
 	if (config.cpu_active == 1) {
 		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)),
 		    SIZE2FRAMES(config.kernel_size));
@@ -1254,6 +1254,7 @@ void frame_init(void)
 		 */
 		frame_mark_unavailable(0, 1);
 	}
+	frame_high_arch_init();
 }
 
 /** Return total size of all zones.

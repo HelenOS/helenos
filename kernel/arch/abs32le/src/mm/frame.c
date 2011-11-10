@@ -49,7 +49,11 @@ void physmem_print(void)
 }
 
 
-void frame_arch_init(void)
+void frame_low_arch_init(void)
+{
+}
+
+void frame_high_arch_init(void)
 {
 }
 
