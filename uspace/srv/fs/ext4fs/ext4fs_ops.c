@@ -41,6 +41,7 @@
 #include <libfs.h>
 #include <macros.h>
 #include <malloc.h>
+#include <string.h>
 #include <adt/hash_table.h>
 #include <ipc/loc.h>
 #include "ext4fs.h"
@@ -215,13 +216,7 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 
-	/* Find length of component in bytes
-	 * TODO: check for library function call that does this
-	 */
-	component_size = 0;
-	while (*(component+component_size) != 0) {
-		component_size++;
-	}
+	component_size = strlen(component);
 
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
 			ext4_inode_has_flag(eparent->inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
@@ -394,7 +389,7 @@ int ext4fs_node_put_core(ext4fs_node_t *enode)
 
 int ext4fs_node_open(fs_node_t *fn)
 {
-	// TODO stateless operation
+	// Stateless operation
 	return EOK;
 }
 
@@ -881,7 +876,7 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	}
 
 	/* Check for sparse file
-	 * If ext2_filesystem_get_inode_data_block_index returned
+	 * If ext4_filesystem_get_inode_data_block_index returned
 	 * fs_block == 0, it means that the given block is not allocated for the
 	 * file and we need to return a buffer of zeros
 	 */
@@ -963,14 +958,11 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		flags = BLOCK_FLAGS_NOREAD;
 	}
 
-//	EXT4FS_DBG("bytes == \%u", bytes);
-
 	iblock =  pos / block_size;
 
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
 
 	if (fblock == 0) {
-//		EXT4FS_DBG("Allocate block !!!");
 		rc =  ext4_bitmap_alloc_block(fs, inode_ref, &fblock);
 		if (rc != EOK) {
 			ext4fs_node_put(fn);
@@ -983,7 +975,6 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 		flags = BLOCK_FLAGS_NOREAD;
 
-//		EXT4FS_DBG("block \%u allocated", fblock);
 	}
 
 	rc = block_get(&write_block, service_id, fblock, flags);
@@ -994,7 +985,6 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	}
 
 	if (flags == BLOCK_FLAGS_NOREAD) {
-//		EXT4FS_DBG("fill block with zeros");
 		memset(write_block->data, 0, block_size);
 	}
 
@@ -1011,8 +1001,6 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		ext4fs_node_put(fn);
 		return rc;
 	}
-
-//	EXT4FS_DBG("writing finished");
 
 	old_inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	if (pos + bytes > old_inode_size) {
@@ -1108,7 +1096,6 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 
 static int ext4fs_close(service_id_t service_id, fs_index_t index)
 {
-	// TODO
 	return EOK;
 }
 
@@ -1154,4 +1141,4 @@ vfs_out_ops_t ext4fs_ops = {
 
 /**
  * @}
- */ 
+ */
