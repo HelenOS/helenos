@@ -38,18 +38,14 @@
 #include <sys/types.h>
 #include <usb_iface.h>
 
-int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *, devman_handle_t *);
-int usb_iface_get_address_hub_impl(ddf_fun_t *, devman_handle_t,
-    usb_address_t *);
+int usb_iface_get_hc_handle_device_impl(ddf_fun_t *, devman_handle_t *);
+int usb_iface_get_my_address_forward_impl(ddf_fun_t *, usb_address_t *);
 extern usb_iface_t usb_iface_hub_impl;
 
-int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *, devman_handle_t *);
-int usb_iface_get_address_hub_child_impl(ddf_fun_t *, devman_handle_t,
-    usb_address_t *);
+int usb_iface_get_my_address_from_device_data(ddf_fun_t *, usb_address_t *);
 extern usb_iface_t usb_iface_hub_child_impl;
 
 int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *, devman_handle_t *);
-
 
 #endif
 /**

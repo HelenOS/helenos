@@ -61,9 +61,9 @@ static int usb_iface_get_interface_impl(ddf_fun_t *fun, devman_handle_t handle,
 
 /** DDF interface of the child - interface function. */
 static usb_iface_t child_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle_hub_child_impl,
-	.get_address = usb_iface_get_address_hub_impl,
-	.get_interface = usb_iface_get_interface_impl
+	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
+	.get_my_address = usb_iface_get_my_address_forward_impl,
+	.get_interface = usb_iface_get_interface_impl,
 };
 
 /** Operations for children - interface functions. */
@@ -109,9 +109,9 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	 * The interface number shall provide uniqueness while the
 	 * class name something humanly understandable.
 	 */
-	rc = asprintf(&child_name, "%s%d",
+	rc = asprintf(&child_name, "%s%hhu",
 	    usb_str_class(interface_descriptor->interface_class),
-	    (int) interface_descriptor->interface_number);
+	    interface_descriptor->interface_number);
 	if (rc < 0) {
 		return ENOMEM;
 	}
@@ -122,11 +122,6 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	if (child == NULL) {
 		return ENOMEM;
 	}
-
-	iface->fun = child;
-
-	child->driver_data = iface;
-	child->ops = &child_device_ops;
 
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
 	    interface_descriptor, &child->match_ids);
@@ -141,6 +136,10 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		ddf_fun_destroy(child);
 		return rc;
 	}
+
+	iface->fun = child;
+	child->driver_data = iface;
+	child->ops = &child_device_ops;
 
 	return EOK;
 }

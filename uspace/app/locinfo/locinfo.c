@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			printf("\t%s (%" PRIun ")\n", svc_name, svc_ids[j]);
+			free(svc_name);
 		}
 
 		free(svc_ids);

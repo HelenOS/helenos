@@ -44,9 +44,6 @@
 #include "kbdrepeat.h"
 #include "kbddev.h"
 
-
-
-/*----------------------------------------------------------------------------*/
 /**
  * Main loop handling the auto-repeat of keys.
  *
@@ -57,14 +54,14 @@
  *
  * If the same key is still pressed, it uses the delay between repeats stored
  * in the keyboard structure to wait until the key should be repeated.
- * 
+ *
  * If the currently repeated key is not pressed any more (
- * usb_kbd_repeat_stop() was called), it stops repeating it and starts 
+ * usb_kbd_repeat_stop() was called), it stops repeating it and starts
  * checking again.
  *
  * @note For accessing the keyboard device auto-repeat information a fibril
  *       mutex (repeat_mtx) from the @a kbd structure is used.
- * 
+ *
  * @param kbd Keyboard device structure.
  */
 static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
@@ -74,20 +71,19 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 	usb_log_debug("Starting autorepeat loop.\n");
 
 	while (true) {
-		// check if the kbd structure is usable
+		/* Check if the kbd structure is usable. */
 		if (!usb_kbd_is_initialized(kbd)) {
 			usb_log_warning("kbd not ready, exiting autorepeat.\n");
 			return;
 		}
-		
+
 		fibril_mutex_lock(&kbd->repeat_mtx);
 
 		if (kbd->repeat.key_new > 0) {
 			if (kbd->repeat.key_new == kbd->repeat.key_repeated) {
-				usb_log_debug2("Repeating key: %u.\n", 
+				usb_log_debug2("Repeating key: %u.\n",
 				    kbd->repeat.key_repeated);
-				// ugly hack with the NULL
-				usb_kbd_push_ev(NULL, kbd, KEY_PRESS, 
+				usb_kbd_push_ev(kbd, KEY_PRESS,
 				    kbd->repeat.key_repeated);
 				delay = kbd->repeat.delay_between;
 			} else {
@@ -105,17 +101,15 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 			delay = CHECK_DELAY;
 		}
 		fibril_mutex_unlock(&kbd->repeat_mtx);
-		
 		async_usleep(delay);
 	}
 }
-
 /*----------------------------------------------------------------------------*/
 /**
  * Main routine to be executed by a fibril for handling auto-repeat.
  *
  * Starts the loop for checking changes in auto-repeat.
- * 
+ *
  * @param arg User-specified argument. Expects pointer to the keyboard device
  *            structure representing the keyboard.
  *
@@ -131,13 +125,12 @@ int usb_kbd_repeat_fibril(void *arg)
 		return EINVAL;
 	}
 
-	usb_kbd_t *kbd = (usb_kbd_t *)arg;
+	usb_kbd_t *kbd = arg;
 
 	usb_kbd_repeat_loop(kbd);
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
 /**
  * Start repeating particular key.
@@ -155,13 +148,12 @@ void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
 	kbd->repeat.key_new = key;
 	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
-
 /*----------------------------------------------------------------------------*/
 /**
  * Stop repeating particular key.
  *
  * @note Only one key is repeated at any time, but this function may be called
- *       even with key that is not currently repeated (in that case nothing 
+ *       even with key that is not currently repeated (in that case nothing
  *       happens).
  *
  * @param kbd Keyboard device structure.
@@ -175,7 +167,6 @@ void usb_kbd_repeat_stop(usb_kbd_t *kbd, unsigned int key)
 	}
 	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
-
 /**
  * @}
  */

@@ -88,32 +88,6 @@ static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
-/** Get address of the device identified by handle.
- *
- * @param[in] fun DDF instance of the function to use.
- * @param[in] handle DDF handle of the driver seeking its USB address.
- * @param[out] address Found address.
- */
-static int usb_iface_get_address(
-    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
-{
-	assert(fun);
-	usb_device_manager_t *manager =
-	    &dev_to_uhci(fun->dev)->hc.generic.dev_manager;
-	const usb_address_t addr =
-	    usb_device_manager_find_address(manager, handle);
-
-	if (addr < 0) {
-		return addr;
-	}
-
-	if (address != NULL) {
-		*address = addr;
-	}
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
 /** Gets handle of the respective hc.
  *
  * @param[in] fun DDF function of uhci device.
@@ -134,7 +108,6 @@ static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 /** USB interface implementation used by RH */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
-	.get_address = usb_iface_get_address
 };
 /*----------------------------------------------------------------------------*/
 /** Get root hub hw resources (I/O registers).

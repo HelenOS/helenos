@@ -89,6 +89,9 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
 int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     void (*callback)(endpoint_t *, void *), void *arg);
+
+void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
+    usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg);
 #endif
 /**
  * @}

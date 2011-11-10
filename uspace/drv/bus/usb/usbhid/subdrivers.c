@@ -97,10 +97,9 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 			.poll_end = NULL
 		}
 	},
-	{NULL, -1, 0, -1, -1, {NULL, NULL, NULL, NULL, NULL}}
 };
 
-const int USB_HID_MAX_SUBDRIVERS =
+const size_t USB_HID_MAX_SUBDRIVERS =
     sizeof(usb_hid_subdrivers) / sizeof(usb_hid_subdrivers[0]);
 
 /**

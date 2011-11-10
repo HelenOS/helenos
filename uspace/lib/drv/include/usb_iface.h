@@ -64,7 +64,7 @@ typedef enum {
 	 * passes this initial zero without any modification because the
 	 * handle must be resolved by its parent.
 	 */
-	IPC_M_USB_GET_ADDRESS,
+	IPC_M_USB_GET_MY_ADDRESS,
 
 	/** Tell interface number given device can use.
 	 * Parameters
@@ -89,7 +89,7 @@ typedef enum {
 
 /** USB device communication interface. */
 typedef struct {
-	int (*get_address)(ddf_fun_t *, devman_handle_t, usb_address_t *);
+	int (*get_my_address)(ddf_fun_t *, usb_address_t *);
 	int (*get_interface)(ddf_fun_t *, devman_handle_t, int *);
 	int (*get_hc_handle)(ddf_fun_t *, devman_handle_t *);
 } usb_iface_t;

@@ -88,6 +88,36 @@ static inline int send_batch(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
+static int register_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_add_hook)
+		return hcd->ep_add_hook(hcd, ep);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static void unregister_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+/*----------------------------------------------------------------------------*/
+static void unregister_helper_warn(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
+	    ep->address, ep->endpoint, usb_str_direction(ep->direction));
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+/*----------------------------------------------------------------------------*/
 /** Request address interface function
  *
  * @param[in] fun DDF function that was called.
@@ -96,20 +126,17 @@ static inline int send_batch(
  * @return Error code.
  */
 static int request_address(
-    ddf_fun_t *fun, usb_speed_t speed, usb_address_t *address)
+    ddf_fun_t *fun, usb_address_t *address, bool strict, usb_speed_t speed)
 {
 	assert(fun);
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	assert(address);
 
-	usb_log_debug("Address request speed: %s.\n", usb_str_speed(speed));
-	*address =
-	    usb_device_manager_get_free_address(&hcd->dev_manager, speed);
-	usb_log_debug("Address request with result: %d.\n", *address);
-	if (*address <= 0)
-		return *address;
-	return EOK;
+	usb_log_debug("Address request: speed: %s, address: %d, strict: %s.\n",
+	    usb_str_speed(speed), *address, strict ? "YES" : "NO");
+	return usb_device_manager_request_address(
+	    &hcd->dev_manager, address, strict, speed);
 }
 /*----------------------------------------------------------------------------*/
 /** Bind address interface function
@@ -127,7 +154,8 @@ static int bind_address(
 	assert(hcd);
 
 	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
-	return usb_device_manager_bind(&hcd->dev_manager, address, handle);
+	return usb_device_manager_bind_address(
+	    &hcd->dev_manager, address, handle);
 }
 /*----------------------------------------------------------------------------*/
 /** Find device handle by address interface function.
@@ -159,32 +187,14 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
-	usb_device_manager_release(&hcd->dev_manager, address);
+	usb_device_manager_release_address(&hcd->dev_manager, address);
+	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
+	    unregister_helper_warn, hcd);
 	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int register_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ep_add_hook)
-		return hcd->ep_add_hook(hcd, ep);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static void unregister_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ep_remove_hook)
-		hcd->ep_remove_hook(hcd, ep);
 }
 /*----------------------------------------------------------------------------*/
 static int register_endpoint(
-    ddf_fun_t *fun, usb_address_t address, usb_speed_t ep_speed,
-    usb_endpoint_t endpoint,
+    ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
@@ -192,13 +202,12 @@ static int register_endpoint(
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	const size_t size = max_packet_size;
-	/* Default address is not bound or registered,
-	 * thus it does not provide speed info. */
-	usb_speed_t speed = ep_speed;
-	/* NOTE The function will return EINVAL and won't
-	 * touch speed variable for default address */
-	usb_device_manager_get_info_by_address(
+	usb_speed_t speed = USB_SPEED_MAX;
+	const int ret = usb_device_manager_get_info_by_address(
 	    &hcd->dev_manager, address, NULL, &speed);
+	if (ret != EOK) {
+		return ret;
+	}
 
 	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
