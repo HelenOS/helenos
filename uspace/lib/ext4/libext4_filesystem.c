@@ -81,7 +81,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	fs->inode_block_limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
 	fs->inode_blocks_per_level[0] = 1;
 	for (i = 1; i < 4; i++) {
-		fs->inode_blocks_per_level[i]  = fs->inode_blocks_per_level[i-1] *
+		fs->inode_blocks_per_level[i] = fs->inode_blocks_per_level[i-1] *
 		    block_ids_per_block;
 		fs->inode_block_limits[i] = fs->inode_block_limits[i-1] +
 				fs->inode_blocks_per_level[i];
@@ -320,6 +320,11 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	current_block = ext4_inode_get_indirect_block(inode, level-1);
 	offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 
+	if (current_block == 0) {
+		*fblock = 0;
+		return EOK;
+	}
+
 	/* Navigate through other levels, until we find the block number
 	 * or find null reference meaning we are dealing with sparse file
 	 */
@@ -414,8 +419,9 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		rc = ext4_bitmap_alloc_block(fs, inode_ref, &new_block_addr);
 		if (rc != EOK) {
 			// TODO error
+			EXT4FS_DBG("error in allocation");
 		}
-		EXT4FS_DBG("AAA: new addr \%u, level = \%u", new_block_addr, level);
+//		EXT4FS_DBG("AAA: new addr \%u, level = \%u", new_block_addr, level);
 
 		ext4_inode_set_indirect_block(inode_ref->inode, level - 1, new_block_addr);
 
@@ -434,6 +440,8 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		if (rc != EOK) {
 			EXT4FS_DBG("block put error");
 		}
+
+//		EXT4FS_DBG("allocated indirect block for level \%u, during setting iblock \%u", level, (uint32_t)iblock);
 
 		current_block = new_block_addr;
 	}
@@ -461,6 +469,9 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 				rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 				if (rc != EOK) {
 					// TODO error
+
+					EXT4FS_DBG("BBB: error block loading");
+
 				}
 				memset(new_block->data, 0, block_size);
 				new_block->dirty = true;
@@ -523,7 +534,7 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		}
 
 		ext4_inode_set_direct_block(inode, iblock, 0);
-		return ext4_bitmap_free_block(fs, fblock);
+		return ext4_bitmap_free_block(fs, inode_ref, fblock);
 	}
 
 
@@ -587,7 +598,7 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		return EOK;
 	}
 
-	return ext4_bitmap_free_block(fs, fblock);
+	return ext4_bitmap_free_block(fs, inode_ref, fblock);
 
 }
 

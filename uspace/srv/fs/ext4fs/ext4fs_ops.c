@@ -934,6 +934,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
+		EXT4FS_DBG("node get error");
 		return rc;
 	}
 
@@ -941,6 +942,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		rc = EINVAL;
 		ext4fs_node_put(fn);
 		async_answer_0(callid, rc);
+		EXT4FS_DBG("data write recv");
 		return rc;
 	}
 
@@ -961,10 +963,18 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	iblock =  pos / block_size;
 
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
+	if (rc != EOK) {
+		// TODO error
+		ext4fs_node_put(fn);
+		EXT4FS_DBG("error loading block addr");
+		return rc;
+	}
 
 	if (fblock == 0) {
+
 		rc =  ext4_bitmap_alloc_block(fs, inode_ref, &fblock);
 		if (rc != EOK) {
+			EXT4FS_DBG("allocation failed");
 			ext4fs_node_put(fn);
 			async_answer_0(callid, rc);
 			return rc;
@@ -979,6 +989,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	rc = block_get(&write_block, service_id, fblock, flags);
 	if (rc != EOK) {
+		EXT4FS_DBG("error in loading block \%d", rc);
 		ext4fs_node_put(fn);
 		async_answer_0(callid, rc);
 		return rc;
@@ -998,6 +1009,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	rc = block_put(write_block);
 	if (rc != EOK) {
+		EXT4FS_DBG("error in writing block \%d", rc);
 		ext4fs_node_put(fn);
 		return rc;
 	}
@@ -1018,7 +1030,6 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 static int
 ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 {
-	EXT4FS_DBG("");
 	fs_node_t *fn;
 	ext4fs_node_t *enode;
 	ext4_inode_ref_t *inode_ref;
@@ -1111,8 +1122,6 @@ static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 
 static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 	fs_node_t *fn;
 	ext4fs_node_t *enode;

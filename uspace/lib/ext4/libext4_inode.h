@@ -38,6 +38,7 @@
 #include "libext4_extent.h"
 #include "libext4_superblock.h"
 
+#define EXT4_INODE_BLOCK_SIZE				512
 
 #define EXT4_INODE_DIRECT_BLOCK_COUNT		12
 #define EXT4_INODE_INDIRECT_BLOCK 			EXT4_INODE_DIRECT_BLOCK_COUNT

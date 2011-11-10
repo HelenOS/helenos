@@ -94,15 +94,18 @@ static int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t *index, u
 	return ENOSPC;
 }
 
-int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
+int ext4_bitmap_free_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, uint32_t block_index)
 {
 	int rc;
 	uint32_t blocks_per_group;
 	uint32_t block_group;
 	uint32_t index_in_group;
 	uint32_t bitmap_block;
+	uint32_t block_size;
 	ext4_block_group_ref_t *bg_ref;
 	block_t *block;
+
+	block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	blocks_per_group = ext4_superblock_get_blocks_per_group(fs->superblock);
 	block_group = ((block_index - 1) / blocks_per_group);
@@ -128,6 +131,11 @@ int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
 		return rc;
 	}
 
+	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
+	ino_blocks -= block_size / EXT4_INODE_BLOCK_SIZE;
+	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
+	inode_ref->dirty = true;
+
 	uint32_t free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
 	free_blocks++;
 	ext4_block_group_set_free_blocks_count(bg_ref->block_group, free_blocks);
@@ -137,11 +145,12 @@ int ext4_bitmap_free_block(ext4_filesystem_t *fs, uint32_t block_index)
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
+		EXT4FS_DBG("error in saving bg_ref \%d", rc);
 		// TODO error
 		return rc;
 	}
 
-	EXT4FS_DBG("block \%u released", block_index);
+//	EXT4FS_DBG("block \%u released", block_index);
 
 	return EOK;
 }
@@ -176,19 +185,27 @@ int ext4_bitmap_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 	rc = ext4_bitmap_find_free_bit_and_set(block->data, &rel_block_idx, block_size);
 	if (rc != EOK) {
-		EXT4FS_DBG("no block found");
-		// TODO if ENOSPC - try next block group - try next block groups
+		EXT4FS_DBG("no free block found");
+		// TODO if ENOSPC - try next block groups
 	}
 
 	block->dirty = true;
 
-	// TODO check retval
-	block_put(block);
+	rc = block_put(block);
+	if (rc != EOK) {
+		// TODO error
+		EXT4FS_DBG("error in saving bitmap \%d", rc);
+	}
 
 	// TODO decrement superblock free blocks count
 	//uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
 	//sb_free_blocks--;
 	//ext4_superblock_set_free_blocks_count(sb, sb_free_blocks);
+
+	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
+	ino_blocks += block_size / EXT4_INODE_BLOCK_SIZE;
+	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
+	inode_ref->dirty = true;
 
 	uint32_t bg_free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
 	bg_free_blocks--;
@@ -199,7 +216,7 @@ int ext4_bitmap_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 	blocks_per_group = ext4_superblock_get_blocks_per_group(fs->superblock);
 
-	EXT4FS_DBG("block \%u allocated", blocks_per_group * block_group + rel_block_idx + 1);
+//	EXT4FS_DBG("block \%u allocated", blocks_per_group * block_group + rel_block_idx + 1);
 
 	*fblock = blocks_per_group * block_group + rel_block_idx + 1;
 	return EOK;
