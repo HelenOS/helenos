@@ -40,6 +40,19 @@
 #include <libblock.h>
 #include "libext4.h"
 
+static uint32_t ext4_inode_block_bits_count(uint32_t block_size)
+{
+	uint32_t bits = 8;
+	uint32_t size = block_size;
+
+	do {
+		bits++;
+		size = size >> 1;
+	} while (size > 256);
+
+	return bits;
+}
+
 uint32_t ext4_inode_get_mode(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
 	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_HURD) {
@@ -88,12 +101,75 @@ uint16_t ext4_inode_get_links_count(ext4_inode_t *inode)
 	return uint16_t_le2host(inode->links_count);
 }
 
-/*
-extern uint64_t ext4_inode_get_blocks_count(ext4_inode_t *);
-*/
+
+uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
+{
+	uint64_t count;
+
+	if (ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_HUGE_FILE)) {
+
+		/* 48-bit field */
+		count = ((uint64_t)uint16_t_le2host(inode->osd2.linux2.blocks_high)) << 32 |
+				uint32_t_le2host(inode->blocks_count_lo);
+
+		if (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_HUGE_FILE)) {
+	    	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	    	uint32_t block_bits = ext4_inode_block_bits_count(block_size);
+			return count  << (block_bits - 9);
+		} else {
+			return count;
+		}
+	} else {
+		return uint32_t_le2host(inode->blocks_count_lo);
+    }
+
+}
+
+int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
+		uint64_t count)
+{
+    // 32-bit maximum
+    uint64_t max = 0;
+    max = ~max >> 32;
+
+    if (count <= max) {
+    	inode->blocks_count_lo = host2uint32_t_le(count);
+    	inode->osd2.linux2.blocks_high = 0;
+    	ext4_inode_clear_flag(inode, EXT4_INODE_FLAG_HUGE_FILE);
+    	return EOK;
+    }
+
+    if (!ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_HUGE_FILE)) {
+    	return EINVAL;
+    }
+
+    // 48-bit maximum
+    max = 0;
+    max = ~max >> 16;
+
+    if (count <= max) {
+    	inode->blocks_count_lo = host2uint32_t_le(count);
+    	inode->osd2.linux2.blocks_high = host2uint16_t_le(count >> 32);
+    	ext4_inode_clear_flag(inode, EXT4_INODE_FLAG_HUGE_FILE);
+    } else {
+    	uint32_t block_size = ext4_superblock_get_block_size(sb);
+    	uint32_t block_bits = ext4_inode_block_bits_count(block_size);
+    	ext4_inode_set_flag(inode, EXT4_INODE_FLAG_HUGE_FILE);
+    	count = count >> (block_bits - 9);
+    	inode->blocks_count_lo = host2uint32_t_le(count);
+    	inode->osd2.linux2.blocks_high = host2uint16_t_le(count >> 32);
+    }
+    return EOK;
+
+
+}
 
 uint32_t ext4_inode_get_flags(ext4_inode_t *inode) {
 	return uint32_t_le2host(inode->flags);
+}
+
+void ext4_inode_set_flags(ext4_inode_t *inode, uint32_t flags) {
+	inode->flags = host2uint32_t_le(flags);
 }
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint32_t idx)
@@ -188,13 +264,27 @@ ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *inode)
 	return (ext4_extent_header_t *)inode->blocks;
 }
 
-// Flags checker
+// Flags operations
 bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag)
 {
 	if (ext4_inode_get_flags(inode) & flag) {
 		return true;
 	}
 	return false;
+}
+
+void ext4_inode_clear_flag(ext4_inode_t *inode, uint32_t clear_flag)
+{
+	uint32_t flags = ext4_inode_get_flags(inode);
+	flags = flags & (~clear_flag);
+	ext4_inode_set_flags(inode, flags);
+}
+
+void ext4_inode_set_flag(ext4_inode_t *inode, uint32_t set_flag)
+{
+	uint32_t flags = ext4_inode_get_flags(inode);
+	flags = flags | set_flag;
+	ext4_inode_set_flags(inode, flags);
 }
 
 bool ext4_inode_can_truncate(ext4_superblock_t *sb, ext4_inode_t *inode)
