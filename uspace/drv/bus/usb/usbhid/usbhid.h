@@ -103,13 +103,13 @@ struct usb_hid_dev {
 	usb_device_t *usb_dev;
 
 	/** Index of the polling pipe in usb_hid_endpoints array. */
-	int poll_pipe_index;
+	unsigned poll_pipe_index;
 
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;
 
 	/** Number of subdrivers. */
-	int subdriver_count;
+	unsigned subdriver_count;
 
 	/** Report descriptor. */
 	uint8_t *report_desc;
