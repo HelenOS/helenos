@@ -143,24 +143,22 @@ static void sb_mixer_max_master_levels(sb_mixer_t *mixer)
 	/* Set Master to maximum */
 	if (!sb_mixer_get_control_item_count(mixer))
 		return;
-	unsigned levels = 0, channels = 0, current_level;
+	const unsigned item = 0; /* 0 is Master. */
+	unsigned levels = 0, channels = 0, level;
 	const char *name = NULL;
-	sb_mixer_get_control_item_info(mixer, 0, &name, &channels, &levels);
-	unsigned channel = 0;
-	for (;channel < channels; ++channel) {
-		current_level =
-		    sb_mixer_get_volume_level(mixer, 0, channel);
+
+	sb_mixer_get_control_item_info(mixer, item, &name, &channels, &levels);
+	for (unsigned channel = 0; channel < channels; ++channel) {
+		level = sb_mixer_get_volume_level(mixer, item, channel);
 		ddf_log_note("Setting %s channel %d to %d (%d).\n",
-		    name, channel, levels - 1, current_level);
+		    name, channel, levels - 1, level);
 
-		sb_mixer_set_volume_level(mixer, 0, channel, levels - 1);
+		sb_mixer_set_volume_level(mixer, item, channel, levels - 1);
 
-		current_level =
-		    sb_mixer_get_volume_level(mixer, 0, channel);
+		level = sb_mixer_get_volume_level(mixer, item, channel);
 		ddf_log_note("%s channel %d set to %d.\n",
-		    name, channel, current_level);
+		    name, channel, level);
 	}
-
 }
 /*----------------------------------------------------------------------------*/
 const char * sb_mixer_type_str(sb_mixer_type_t type)
