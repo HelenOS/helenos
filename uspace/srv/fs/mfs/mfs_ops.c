@@ -663,6 +663,7 @@ mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *parent = pfn->data;
 	struct mfs_node *child = cfn->data;
 	struct mfs_sb_info *sbi = parent->instance->sbi;
+	bool destroy_dentry = false;
 
 	mfsdebug("%s()\n", __FUNCTION__);
 
@@ -671,25 +672,40 @@ mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	int r = mfs_insert_dentry(parent, name, child->ino_i->index);
 	if (r != EOK)
-		goto exit_error;
-
-	child->ino_i->i_nlinks++;
-	child->ino_i->dirty = true;
+		return r;
 
 	if (S_ISDIR(child->ino_i->i_mode)) {
+		if (child->ino_i->i_nlinks != 1) {
+			/* It's not possible to hardlink directories in MFS */
+			destroy_dentry = true;
+			r = EMLINK;
+			goto exit;
+		}
 		r = mfs_insert_dentry(child, ".", child->ino_i->index);
-		if (r != EOK)
-			goto exit_error;
+		if (r != EOK) {
+			destroy_dentry = true;
+			goto exit;
+		}
 
 		r = mfs_insert_dentry(child, "..", parent->ino_i->index);
-		if (r != EOK)
-			goto exit_error;
+		if (r != EOK) {
+			destroy_dentry = true;
+			goto exit;
+		}
 
 		parent->ino_i->i_nlinks++;
 		parent->ino_i->dirty = true;
 	}
 
-exit_error:
+exit:
+	if (destroy_dentry) {
+		int r2 = mfs_remove_dentry(parent, name);
+		if (r2 != EOK)
+			r = r2;
+	} else {
+		child->ino_i->i_nlinks++;
+		child->ino_i->dirty = true;
+	}
 	return r;
 }
 
