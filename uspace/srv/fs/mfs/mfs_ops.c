@@ -836,7 +836,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 found:
 		async_data_read_finalize(callid, d_info.d_name,
-					 str_size(d_info.d_name) + 1);
+		    str_size(d_info.d_name) + 1);
 		bytes = ((pos - spos) + 1);
 	} else {
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
