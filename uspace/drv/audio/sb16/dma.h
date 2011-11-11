@@ -64,24 +64,29 @@ static inline uintptr_t addr_to_phys(const void *addr)
  * @param[in] size Size of the required memory space
  * @return Address of the aligned and big enough memory place, NULL on failure.
  */
-static inline void * malloc24(size_t size)
+static inline void *dma_create_buffer24(size_t size)
 {
-	/* This works only reliably when the host has less than 16MB of memory
-	 * as physical address needs to fit into 24 bits */
-
-	/* If we need more than one page there is no guarantee that the
-	 * memory will be continuous */
-	if (size > PAGE_SIZE)
+	void *free_address = as_get_mappable_page(size);
+	if (free_address == 0)
 		return NULL;
-	return memalign(DMA_ALIGNENT, size);
+	void *address =
+	    as_area_create(free_address, size, AS_AREA_READ | AS_AREA_WRITE);
+	if (address != free_address)
+		return NULL;
+	bzero(address, size);
+	return address;
 }
 /*----------------------------------------------------------------------------*/
 /** DMA mallocator simulator
  *
- * @param[in] addr Address of the place allocated by malloc24
+ * @param[in] addr Address of the place allocated by dma_create_buffer24
  */
-static inline void free24(void *addr)
-	{ free(addr); }
+static inline void dma_destroy_buffer(void *page)
+{
+        if (page)
+		as_area_destroy(page);
+}
+
 
 #endif
 /**

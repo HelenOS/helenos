@@ -42,7 +42,7 @@
 #include "dsp_commands.h"
 #include "dsp.h"
 
-#define BUFFER_SIZE (PAGE_SIZE / 4)
+#define BUFFER_SIZE (PAGE_SIZE)
 #define PLAY_BLOCK_SIZE (BUFFER_SIZE / 2)
 
 #ifndef DSP_RETRY_COUNT
@@ -107,7 +107,7 @@ static inline void sb_dsp_reset(sb_dsp_t *dsp)
 static inline int sb_setup_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	uint8_t *buffer = malloc24(BUFFER_SIZE);
+	uint8_t *buffer = dma_create_buffer24(BUFFER_SIZE);
 	if (buffer == NULL) {
 		ddf_log_error("Failed to allocate buffer.\n");
 		return ENOMEM;
@@ -117,7 +117,7 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 	assert(pa < (1 << 25));
 	/* Set 16 bit channel */
 	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, BUFFER_SIZE,
-	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_SINGLE);
+	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
 	if (ret == EOK) {
 		dsp->buffer.data = buffer;
 		dsp->buffer.position = buffer;
@@ -126,14 +126,14 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 	} else {
 		ddf_log_error("Failed to setup DMA16 channel %s.\n",
 		    str_error(ret));
-		free24(buffer);
+		dma_destroy_buffer(buffer);
 	}
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
 static inline void sb_clear_buffer(sb_dsp_t *dsp)
 {
-	free24(dsp->buffer.data);
+	dma_destroy_buffer(dsp->buffer.data);
 	dsp->buffer.data = NULL;
 	dsp->buffer.position = NULL;
 	dsp->buffer.size = 0;
