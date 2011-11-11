@@ -184,13 +184,9 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	/* ACK dma8 transfer interrupt */
 	pio_read_8(&dsp->regs->dsp_read_status);
 
-	static size_t interrupt_count = 0;
-
 	const size_t remain_size = dsp->playing.size -
 	    (dsp->playing.position - dsp->playing.data);
 
-	ddf_log_note("Interrupt count %zu, remaining: %zu.\n",
-	    ++interrupt_count, remain_size);
 	if (remain_size == 0) {
 		ddf_log_note("Nothing more to play");
 		if (AUTO_DMA_MODE) {
@@ -214,7 +210,6 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		sb_dsp_write(dsp, (samples - 1) >> 8);
 		return;
 	}
-	ddf_log_note("Playing full block.\n");
 	memcpy(dsp->buffer.position, dsp->playing.position, PLAY_BLOCK_SIZE);
 	write_barrier();
 	dsp->playing.position += PLAY_BLOCK_SIZE;

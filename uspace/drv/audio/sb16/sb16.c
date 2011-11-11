@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <str_error.h>
 
+#include "beep.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
@@ -90,6 +91,9 @@ int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
 	ddf_log_note("Initialized mixer: %s.\n",
 	    sb_mixer_type_str(drv->mixer.type));
 
+	ddf_log_note("Playing startup sound.\n");
+	sb_dsp_play(&drv->dsp, beep, beep_size, 44100, 1, 8);
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -108,7 +112,6 @@ void sb16_interrupt(sb16_drv_t *drv)
 	if (drv->dsp.version.major >= 4) {
 		pio_write_8(&drv->regs->mixer_address, MIXER_IRQ_STATUS_ADDRESS);
 		const uint8_t irq_mask = pio_read_8(&drv->regs->mixer_data);
-		ddf_log_debug("SB16 IRQ mask %hhx.\n", irq_mask);
 		/* Third bit is MPU-401 interrupt */
 		if (irq_mask & 0x4) {
 			return;
