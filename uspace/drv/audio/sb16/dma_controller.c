@@ -84,9 +84,10 @@ typedef struct dma_controller_regs_first {
 #define DMA_MODE_CHAN_MODE_CASCADE (3)
 
 	uint8_t flip_flop;
+	/* Master reset sets Flip-Flop low, clears status,
+	 * sets all mask bits on */
 	uint8_t master_reset; /* Intermediate is not implemented on PCs */
 	uint8_t mask_reset;
-/* Master reset sets Flip-Flop low, clears status,sets all mask bits on */
 
 	uint8_t multi_mask;
 #define DMA_MULTI_MASK_CHAN(x) (1 << (x % 4))
@@ -122,7 +123,7 @@ typedef struct dma_controller_regs_second {
 	uint8_t reservedb;
 	uint8_t flip_flop;
 	uint8_t reservedc;
-	uint8_t master_reset_intermediate;
+	uint8_t master_reset;
 	uint8_t reservedd;
 	uint8_t multi_mask;
 } dma_controller_regs_second_t;
@@ -213,6 +214,11 @@ static inline int dma_controller_init(dma_controller_t *controller)
 	if (ret != EOK)
 		return EIO;
 	controller->initialized = true;
+
+	pio_write_8(&controller->second->master_reset, 0xff);
+	pio_write_8(&controller->first->master_reset, 0xff);
+
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -231,7 +237,7 @@ int dma_setup_channel(
 		return EIO;
 
 	/* 16 bit transfers are a bit special */
-	ddf_log_debug("Unspoiled address and size: %p(%zu).\n", pa, size);
+	ddf_log_debug("Unspoiled address: %p and size: %zu.\n", pa, size);
 	if (channel > 4) {
 		/* Size is the count of 16bit words */
 		assert(size % 2 == 0);
@@ -252,6 +258,8 @@ int dma_setup_channel(
 
 	/* Set mode */
 	value = DMA_MODE_CHAN_TO_REG(channel) | mode;
+	ddf_log_verbose("Writing mode byte: %p:%hhx.\n",
+	    dma_channel.mode_address, value);
 	pio_write_8(dma_channel.mode_address, value);
 
 	/* Set address -- reset flip-flop*/
@@ -259,31 +267,36 @@ int dma_setup_channel(
 
 	/* Low byte */
 	value = pa & 0xff;
-	ddf_log_verbose("Writing address low byte: %hhx.\n", value);
+	ddf_log_verbose("Writing address low byte: %p:%hhx.\n",
+	    dma_channel.offset_reg_address, value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* High byte */
 	value = (pa >> 8) & 0xff;
-	ddf_log_verbose("Writing address high byte: %hhx.\n", value);
+	ddf_log_verbose("Writing address high byte: %p:%hhx.\n",
+	    dma_channel.offset_reg_address, value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* Page address - third byte */
 	value = (pa >> 16) & 0xff;
-	ddf_log_verbose("Writing address page byte: %hhx.\n", value);
-	pio_write_8(dma_channel.offset_reg_address, value);
+	ddf_log_verbose("Writing address page byte: %p:%hhx.\n",
+	    dma_channel.page_reg_address, value);
+	pio_write_8(dma_channel.page_reg_address, value);
 
 	/* Set size -- reset flip-flop */
 	pio_write_8(dma_channel.flip_flop_address, 0);
 
 	/* Low byte */
 	value = (size - 1) & 0xff;
-	ddf_log_verbose("Writing size low byte: %hhx.\n", value);
-	pio_write_8(dma_channel.offset_reg_address, value);
+	ddf_log_verbose("Writing size low byte: %p:%hhx.\n",
+	    dma_channel.size_reg_address, value);
+	pio_write_8(dma_channel.size_reg_address, value);
 
 	/* High byte */
 	value = ((size - 1) >> 8) & 0xff;
-	ddf_log_verbose("Writing size high byte: %hhx.\n", value);
-	pio_write_8(dma_channel.offset_reg_address, value);
+	ddf_log_verbose("Writing size high byte: %p:%hhx.\n",
+	    dma_channel.size_reg_address, value);
+	pio_write_8(dma_channel.size_reg_address, value);
 
 	/* Unmask DMA request */
 	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
