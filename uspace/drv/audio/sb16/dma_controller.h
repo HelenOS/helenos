@@ -36,18 +36,13 @@
 
 #include <bool.h>
 
-typedef enum {
-	ON_DEMAND = 0x0,
-	SINGLE_DMA = 0x1,
-	BLOCK_DMA = 0x2,
-} transfer_mode_t;
-
 #define DMA_MODE_WRITE (1 << 2)
 #define DMA_MODE_READ (1 << 3)
 #define DMA_MODE_AUTO (1 << 4)
 #define DMA_MODE_DOWN (1 << 5)
 #define DMA_MODE_SINGLE (1 << 6)
 #define DMA_MODE_BLOCK (1 << 7)
+#define DMA_MODE_ON_DEMAND (0)
 
 int dma_setup_channel(
     unsigned channel, uintptr_t pa, uint16_t size, uint8_t mode);
