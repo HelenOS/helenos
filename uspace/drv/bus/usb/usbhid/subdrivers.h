@@ -83,7 +83,7 @@ typedef struct usb_hid_subdriver_mapping {
 /*----------------------------------------------------------------------------*/
 
 extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
-extern const int USB_HID_MAX_SUBDRIVERS;
+extern const size_t USB_HID_MAX_SUBDRIVERS;
 
 /*----------------------------------------------------------------------------*/
 

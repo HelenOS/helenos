@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <usb/hid/usages/consumer.h>
 
-static const char *usbhid_consumer_usage_str[0x29d] = {
+static const char *usbhid_consumer_usage_str[] = {
 	[0x01] = "Consumer Control",
 	[0x02] = "Numeric Key Pad",
 	[0x03] = "Programmable Buttons",
@@ -357,7 +357,7 @@ static const char *usbhid_consumer_usage_str[0x29d] = {
 	[0x13d] = "Reserved",
 	[0x13e] = "Reserved",
 	[0x13f] = "Reserved",
-	[0x140] = "Reserved", 
+	[0x140] = "Reserved",
 	[0x141] = "Reserved",
 	[0x142] = "Reserved",
 	[0x143] = "Reserved",
@@ -716,14 +716,14 @@ static const char *usbhid_consumer_usage_str[0x29d] = {
  * 
  * @retval HelenOS key code corresponding to the given USB Consumer Page Usage.
  */
-const char *usbhid_multimedia_usage_to_str(int usage)
+const char *usbhid_multimedia_usage_to_str(unsigned usage)
 {
-	size_t map_length = sizeof(usbhid_consumer_usage_str) / sizeof(char *);
+	static const size_t map_length =
+	    sizeof(usbhid_consumer_usage_str) / sizeof(char *);
 
-	if ((usage < 0) || ((size_t)usage >= map_length))
+	if (usage >= map_length)
 		return "Unknown usage";
 
-	/*! @todo What if the usage is not in the table? */
 	return usbhid_consumer_usage_str[usage];
 }
 

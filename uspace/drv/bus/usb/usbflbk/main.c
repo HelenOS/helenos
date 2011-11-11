@@ -73,16 +73,6 @@ static int usbfallback_device_add(usb_device_t *dev)
 	return EOK;
 }
 
-/** Callback when new device is about to be removed.
- *
- * @param dev Representation of a generic DDF device.
- * @return Error code.
- */
-static int usbfallback_device_remove(usb_device_t *dev)
-{
-	return EOK;
-}
-
 /** Callback when new device is removed and recognized as gone by DDF.
  *
  * @param dev Representation of a generic DDF device.
@@ -106,7 +96,7 @@ static int usbfallback_device_gone(usb_device_t *dev)
 /** USB fallback driver ops. */
 static const usb_driver_ops_t usbfallback_driver_ops = {
 	.device_add = usbfallback_device_add,
-	.device_rem = usbfallback_device_remove,
+	.device_rem = usbfallback_device_gone,
 	.device_gone = usbfallback_device_gone,
 };
 

@@ -39,16 +39,16 @@
 #include "ddf/driver.h"
 
 
-static void remote_usb_get_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_my_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
-	remote_usb_get_address,
-	remote_usb_get_interface,
-	remote_usb_get_hc_handle
+	[IPC_M_USB_GET_MY_ADDRESS] = remote_usb_get_my_address,
+	[IPC_M_USB_GET_INTERFACE] = remote_usb_get_interface,
+	[IPC_M_USB_GET_HOST_CONTROLLER_HANDLE] = remote_usb_get_hc_handle,
 };
 
 /** Remote USB interface structure.
@@ -60,20 +60,18 @@ remote_iface_t remote_usb_iface = {
 };
 
 
-void remote_usb_get_address(ddf_fun_t *fun, void *iface,
+void remote_usb_get_my_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
-	if (usb_iface->get_address == NULL) {
+	if (usb_iface->get_my_address == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	devman_handle_t handle = DEV_IPC_GET_ARG1(*call);
-
 	usb_address_t address;
-	int rc = usb_iface->get_address(fun, handle, &address);
+	int rc = usb_iface->get_my_address(fun, &address);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {

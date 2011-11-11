@@ -79,7 +79,7 @@ static int vhc_add_device(ddf_dev_t *dev)
 		free(data);
 		return rc;
 	}
-	usb_device_manager_init(&data->dev_manager);
+	usb_device_manager_init(&data->dev_manager, USB_SPEED_MAX);
 
 	ddf_fun_t *hc = ddf_fun_create(dev, fun_exposed, "hc");
 	if (hc == NULL) {

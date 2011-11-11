@@ -89,23 +89,19 @@ size_t usb_interface_count_alternates(const uint8_t *config_descr,
  * @param[out] alternates_ptr Where to store pointer to allocated structure.
  * @return Error code.
  */
-int usb_alternate_interfaces_create(const uint8_t *config_descr,
-    size_t config_descr_size, int interface_number,
-    usb_alternate_interfaces_t **alternates_ptr)
+int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
+    const uint8_t *config_descr, size_t config_descr_size, int interface_number)
 {
-	assert(alternates_ptr != NULL);
+	assert(alternates != NULL);
 	assert(config_descr != NULL);
 	assert(config_descr_size > 0);
 
-	*alternates_ptr = NULL;
+	alternates->alternatives = NULL;
+	alternates->alternative_count = 0;
+	alternates->current = 0;
+
 	if (interface_number < 0) {
 		return EOK;
-	}
-
-	usb_alternate_interfaces_t *alternates
-	    = malloc(sizeof(usb_alternate_interfaces_t));
-	if (alternates == NULL) {
-		return ENOMEM;
 	}
 
 	alternates->alternative_count
@@ -113,23 +109,19 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 	    interface_number);
 
 	if (alternates->alternative_count == 0) {
-		free(alternates);
 		return ENOENT;
 	}
 
 	alternates->alternatives = calloc(alternates->alternative_count,
 	    sizeof(usb_alternate_interface_descriptors_t));
 	if (alternates->alternatives == NULL) {
-		free(alternates);
 		return ENOMEM;
 	}
 
-	alternates->current = 0;
-
-	usb_dp_parser_t dp_parser = {
+	const usb_dp_parser_t dp_parser = {
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
-	usb_dp_parser_data_t dp_data = {
+	const usb_dp_parser_data_t dp_data = {
 		.data = config_descr,
 		.size = config_descr_size,
 		.arg = NULL
@@ -146,8 +138,7 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
 		    || (iface->interface_number != interface_number)) {
 			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,
-			    &dp_data,
-			    dp_data.data, iface_ptr);
+			    &dp_data, dp_data.data, iface_ptr);
 			continue;
 		}
 
@@ -169,17 +160,14 @@ int usb_alternate_interfaces_create(const uint8_t *config_descr,
 		cur_alt_iface++;
 	}
 
-	*alternates_ptr = alternates;
-
 	return EOK;
 }
 
-void usb_alternate_interfaces_destroy(usb_alternate_interfaces_t *alternate)
+void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *alternate)
 {
 	if (!alternate)
 		return;
 	free(alternate->alternatives);
-	free(alternate);
 }
 /**
  * @}

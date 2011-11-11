@@ -173,7 +173,7 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
  * @param dev_handle Devman handle of the USB device in question.
  * @return USB address or negative error code.
  */
-usb_address_t usb_hc_get_address_by_handle(devman_handle_t dev_handle)
+usb_address_t usb_get_address_by_handle(devman_handle_t dev_handle)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, dev_handle,
@@ -184,9 +184,8 @@ usb_address_t usb_hc_get_address_by_handle(devman_handle_t dev_handle)
 	async_exch_t *exch = async_exchange_begin(parent_sess);
 	
 	sysarg_t address;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_ADDRESS,
-	    dev_handle, &address);
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_MY_ADDRESS, &address);
 	
 	async_exchange_end(exch);
 	async_hangup(parent_sess);

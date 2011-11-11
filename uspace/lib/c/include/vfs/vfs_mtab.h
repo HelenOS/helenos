@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbdev
+/** @addtogroup libc
  * @{
  */
 /** @file
- * USB device recognition.
  */
-#ifndef LIBUSBDEV_RECOGNISE_H_
-#define LIBUSBDEV_RECOGNISE_H_
+
+#ifndef LIBC_VFS_MTAB_H_
+#define LIBC_VFS_MTAB_H_
 
 #include <sys/types.h>
-#include <usb/usb.h>
-#include <usb/dev/pipes.h>
-#include <ipc/devman.h>
+#include <ipc/vfs.h>
+#include <adt/list.h>
 
-int usb_device_create_match_ids_from_device_descriptor(
-    const usb_standard_device_descriptor_t *, match_id_list_t *);
-
-int usb_device_create_match_ids_from_interface(
-    const usb_standard_device_descriptor_t *,
-    const usb_standard_interface_descriptor_t *, match_id_list_t *);
-
-int usb_device_create_match_ids(usb_pipe_t *, match_id_list_t *);
-
-int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
-    ddf_dev_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);
+typedef struct mtab_ent {
+	link_t link;
+	char mp[MAX_PATH_LEN];
+	char opts[MAX_MNTOPTS_LEN];
+	char fs_name[FS_NAME_MAXLEN];
+	unsigned int instance;
+	service_id_t service_id;
+} mtab_ent_t;
 
 #endif
-/**
- * @}
+
+/** @}
  */

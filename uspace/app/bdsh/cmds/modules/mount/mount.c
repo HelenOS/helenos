@@ -26,11 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
+#include <adt/list.h>
 #include <errno.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -59,6 +62,48 @@ void help_cmd_mount(unsigned int level)
 		printf(helpfmt, cmdname);
 	}
 	return;
+}
+
+static void print_mtab_list(void)
+{
+	LIST_INITIALIZE(mtab_list);
+	mtab_ent_t *old_ent = NULL;
+	char *svc_name;
+	int rc;
+
+	get_mtab_list(&mtab_list);
+
+	list_foreach(mtab_list, cur) {
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
+		    link);
+
+		if (old_ent)
+			free(old_ent);
+
+		old_ent = mtab_ent;
+
+		printf("%s", mtab_ent->fs_name);
+		if (mtab_ent->instance)
+			printf("/%d", mtab_ent->instance);
+
+		printf(" %s", mtab_ent->mp);
+
+		rc = loc_service_get_name(mtab_ent->service_id, &svc_name);
+		if (rc == EOK) {
+			printf(" %s", svc_name);
+			free(svc_name);
+		} else {
+			printf(" (%" PRIun ")", mtab_ent->service_id);
+		}
+
+		if (str_size(mtab_ent->opts) > 0)
+			printf(" (%s)", mtab_ent->opts);
+
+		putchar('\n');
+	}
+
+	if (old_ent)
+		free(old_ent);
 }
 
 /* Main entry point for mount, accepts an array of arguments */
@@ -93,10 +138,14 @@ int cmd_mount(char **argv)
 	} else
 		t_argv = &argv[0];
 
-	if ((argc < 3) || (argc > 5)) {
+	if ((argc == 2) || (argc > 5)) {
 		printf("%s: invalid number of arguments. Try `mount --help'\n",
 		    cmdname);
 		return CMD_FAILURE;
+	}
+	if (argc == 1) {
+		print_mtab_list();
+		return CMD_SUCCESS;
 	}
 	if (argc > 3)
 		dev = t_argv[3];

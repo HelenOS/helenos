@@ -77,6 +77,9 @@
 /** Obtain PCI bus soft-state from function soft-state */
 #define PCI_BUS_FROM_FUN(fun) ((fun)->busptr)
 
+/** Max is 47, align to something nice. */
+#define ID_MAX_STR_LEN 50
+
 static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 {
 	pci_fun_t *fun = PCI_FUN(fnode);
@@ -224,8 +227,7 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 	
-	uint32_t conf_addr;
-	conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
+	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	void *addr = bus->conf_data_port + (reg & 3);
 	
 	pio_write_32(bus->conf_addr_port, conf_addr);
@@ -310,26 +312,78 @@ void pci_conf_write_32(pci_fun_t *fun, int reg, uint32_t val)
 
 void pci_fun_create_match_ids(pci_fun_t *fun)
 {
-	char *match_id_str;
 	int rc;
-	
-	asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
-	    fun->vendor_id, fun->device_id);
+	char match_id_str[ID_MAX_STR_LEN];
 
-	if (match_id_str == NULL) {
-		ddf_msg(LVL_ERROR, "Out of memory creating match ID.");
-		return;
+	/* Vendor ID & Device ID, length(incl \0) 22 */
+	rc = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/ven=%04x&dev=%04x",
+	    fun->vendor_id, fun->device_id);
+	if (rc < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
+		    str_error(rc));
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 90);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match ID: %s",
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s", str_error(rc));
+	}
+
+	/* Class, subclass, prog IF, revision, length(incl \0) 47 */
+	rc = snprintf(match_id_str, ID_MAX_STR_LEN,
+	    "pci/class=%02x&subclass=%02x&progif=%02x&revision=%02x",
+	    fun->class_code, fun->subclass_code, fun->prog_if, fun->revision);
+	if (rc < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
 		    str_error(rc));
 	}
-	
-	free(match_id_str);
-	
-	/* TODO add more ids (with subsys ids, using class id etc.) */
+
+	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 70);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s", str_error(rc));
+	}
+
+	/* Class, subclass, prog IF, length(incl \0) 35 */
+	rc = snprintf(match_id_str, ID_MAX_STR_LEN,
+	    "pci/class=%02x&subclass=%02x&progif=%02x",
+	    fun->class_code, fun->subclass_code, fun->prog_if);
+	if (rc < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
+		    str_error(rc));
+	}
+
+	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 60);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s", str_error(rc));
+	}
+
+	/* Class, subclass, length(incl \0) 25 */
+	rc = snprintf(match_id_str, ID_MAX_STR_LEN,
+	    "pci/class=%02x&subclass=%02x",
+	    fun->class_code, fun->subclass_code);
+	if (rc < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
+		    str_error(rc));
+	}
+
+	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 50);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s", str_error(rc));
+	}
+
+	/* Class, length(incl \0) 13 */
+	rc = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/class=%02x",
+	    fun->class_code);
+	if (rc < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
+		    str_error(rc));
+	}
+
+	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 40);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s", str_error(rc));
+	}
+
+	/* TODO add subsys ids, but those exist only in header type 0 */
 }
 
 void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
@@ -480,10 +534,6 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 		multi = true;
 		for (fnum = 0; multi && fnum < 8; fnum++) {
 			pci_fun_init(fun, bus_num, dnum, fnum);
-			fun->vendor_id = pci_conf_read_16(fun,
-			    PCI_VENDOR_ID);
-			fun->device_id = pci_conf_read_16(fun,
-			    PCI_DEVICE_ID);
 			if (fun->vendor_id == 0xffff) {
 				/*
 				 * The device is not present, go on scanning the
@@ -510,12 +560,12 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			}
 			
 			fnode = ddf_fun_create(bus->dnode, fun_inner, fun_name);
+			free(fun_name);
 			if (fnode == NULL) {
 				ddf_msg(LVL_ERROR, "Failed creating function.");
 				return;
 			}
 			
-			free(fun_name);
 			fun->fnode = fnode;
 			
 			pci_alloc_resource_list(fun);
@@ -690,6 +740,12 @@ void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
 	fun->bus = bus;
 	fun->dev = dev;
 	fun->fn = fn;
+	fun->vendor_id = pci_conf_read_16(fun, PCI_VENDOR_ID);
+	fun->device_id = pci_conf_read_16(fun, PCI_DEVICE_ID);
+	fun->class_code = pci_conf_read_8(fun, PCI_BASE_CLASS);
+	fun->subclass_code = pci_conf_read_8(fun, PCI_SUB_CLASS);
+	fun->prog_if = pci_conf_read_8(fun, PCI_PROG_IF);
+	fun->revision = pci_conf_read_8(fun, PCI_REVISION_ID);
 }
 
 void pci_fun_delete(pci_fun_t *fun)
@@ -710,17 +766,13 @@ char *pci_fun_create_name(pci_fun_t *fun)
 
 bool pci_alloc_resource_list(pci_fun_t *fun)
 {
-	fun->hw_resources.resources =
-	    (hw_resource_t *) malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
-	return fun->hw_resources.resources != NULL;
+	fun->hw_resources.resources = fun->resources;
+	return true;
 }
 
 void pci_clean_resource_list(pci_fun_t *fun)
 {
-	if (fun->hw_resources.resources != NULL) {
-		free(fun->hw_resources.resources);
-		fun->hw_resources.resources = NULL;
-	}
+	fun->hw_resources.resources = NULL;
 }
 
 /** Read the base address registers (BARs) of the function and add the addresses

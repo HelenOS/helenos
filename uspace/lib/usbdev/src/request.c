@@ -249,40 +249,6 @@ int usb_request_set_feature(usb_pipe_t *pipe,
 	return rc;
 }
 
-/** Change address of connected device.
- * This function automatically updates the backing connection to point to
- * the new address.
- *
- * @param pipe Control endpoint pipe (session must be already started).
- * @param new_address New USB address to be set (in native endianness).
- * @return Error code.
- */
-int usb_request_set_address(usb_pipe_t *pipe,
-    usb_address_t new_address)
-{
-	if ((new_address < 0) || (new_address >= USB11_ADDRESS_MAX)) {
-		return EINVAL;
-	}
-
-	uint16_t addr = uint16_host2usb((uint16_t)new_address);
-
-	int rc = usb_control_request_set(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DEVREQ_SET_ADDRESS,
-	    addr, 0,
-	    NULL, 0);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	assert(pipe->wire != NULL);
-	/* TODO: prevent other from accessing wire now. */
-	pipe->wire->address = new_address;
-
-	return EOK;
-}
-
 /** Retrieve USB descriptor of a USB device.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
