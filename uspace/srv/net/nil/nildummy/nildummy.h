@@ -43,7 +43,6 @@
 #include <ipc/services.h>
 #include <ipc/devman.h>
 #include <net/device.h>
-#include <adt/measured_strings.h>
 
 /** Type definition of the dummy nil global data.
  *
