@@ -141,8 +141,8 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 }
 
 static hw_res_ops_t isa_fun_hw_res_ops = {
-	&isa_get_fun_resources,
-	&isa_enable_fun_interrupt
+	.get_resource_list = &isa_get_fun_resources,
+	.enable_interrupt = &isa_enable_fun_interrupt,
 };
 
 static ddf_dev_ops_t isa_fun_ops;

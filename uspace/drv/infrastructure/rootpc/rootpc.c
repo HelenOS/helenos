@@ -108,8 +108,8 @@ static bool rootpc_enable_interrupt(ddf_fun_t *fun)
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	&rootpc_get_resources,
-	&rootpc_enable_interrupt
+	.get_resource_list = &rootpc_get_resources,
+	.enable_interrupt = &rootpc_enable_interrupt,
 };
 
 /* Initialized in root_pc_init() function. */
