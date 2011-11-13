@@ -47,7 +47,7 @@
 
 #define NAME		"mfs"
 
-//#define DEBUG_MODE
+/* #define DEBUG_MODE */
 
 #define min(a, b)	((a) < (b) ? (a) : (b))
 
@@ -70,7 +70,7 @@ typedef enum {
 	MFS_VERSION_V3
 } mfs_version_t;
 
-/*Generic MinixFS superblock*/
+/* Generic MinixFS superblock */
 struct mfs_sb_info {
 	uint32_t ninodes;
 	uint32_t nzones;
@@ -83,7 +83,7 @@ struct mfs_sb_info {
 	uint16_t magic;
 	uint16_t state;
 
-	/*The following fields do not exist on disk but only in memory*/
+	/* The following fields do not exist on disk but only in memory */
 	unsigned long itable_size;
 	mfs_version_t fs_version;
 	int ino_per_block;
@@ -96,7 +96,7 @@ struct mfs_sb_info {
 	unsigned zsearch;
 };
 
-/*Generic MinixFS inode*/
+/* Generic MinixFS inode */
 struct mfs_ino_info {
 	uint16_t	i_mode;
 	uint16_t	i_nlinks;
@@ -106,26 +106,26 @@ struct mfs_ino_info {
 	int32_t		i_atime;
 	int32_t		i_mtime;
 	int32_t		i_ctime;
-	/*Block numbers for direct zones*/
+	/* Block numbers for direct zones */
 	uint32_t	i_dzone[V2_NR_DIRECT_ZONES];
-	/*Block numbers for indirect zones*/
+	/* Block numbers for indirect zones */
 	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
 
-	/*The following fields do not exist on disk but only in memory*/
+	/* The following fields do not exist on disk but only in memory */
 	bool dirty;
 	fs_index_t index;
 };
 
-/*Generic MFS directory entry*/
+/* Generic MFS directory entry */
 struct mfs_dentry_info {
 	uint32_t d_inum;
 	char d_name[MFS3_MAX_NAME_LEN + 1];
 
-	/*The following fields do not exist on disk but only in memory*/
+	/* The following fields do not exist on disk but only in memory */
 
-	/*Index of the dentry in the list*/
+	/* Index of the dentry in the list */
 	unsigned index;
-	/*Pointer to the node at witch the dentry belongs*/
+	/* Pointer to the node at witch the dentry belongs */
 	struct mfs_node *node;
 };
 
@@ -135,7 +135,7 @@ struct mfs_instance {
 	unsigned open_nodes_cnt;
 };
 
-/*MinixFS node in core*/
+/* MinixFS node in core */
 struct mfs_node {
 	struct mfs_ino_info *ino_i;
 	struct mfs_instance *instance;
@@ -144,14 +144,14 @@ struct mfs_node {
 	link_t link;
 };
 
-/*mfs_ops.c*/
+/* mfs_ops.c */
 extern vfs_out_ops_t mfs_ops;
 extern libfs_ops_t mfs_libfs_ops;
 
 extern int
 mfs_global_init(void);
 
-/*mfs_inode.c*/
+/* mfs_inode.c */
 extern int
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	  fs_index_t index);
@@ -162,7 +162,7 @@ mfs_put_inode(struct mfs_node *mnode);
 extern int
 mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink);
 
-/*mfs_rw.c*/
+/* mfs_rw.c */
 extern int
 mfs_read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 
@@ -173,7 +173,7 @@ mfs_write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
 extern int
 mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size);
 
-/*mfs_dentry.c*/
+/* mfs_dentry.c */
 extern int
 mfs_read_dentry(struct mfs_node *mnode,
 		     struct mfs_dentry_info *d_info, unsigned index);
@@ -187,7 +187,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name);
 extern int
 mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
 
-/*mfs_balloc.c*/
+/* mfs_balloc.c */
 extern int
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum);
 
@@ -200,7 +200,7 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone);
 extern int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone);
 
-/*mfs_utils.c*/
+/* mfs_utils.c */
 extern uint16_t
 conv16(bool native, uint16_t n);
 
