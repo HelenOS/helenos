@@ -73,7 +73,7 @@
 /** Obtain soft-state from function node */
 #define ISA_FUN(fun) ((isa_fun_t *) ((fun)->driver_data))
 
-#define ISA_MAX_HW_RES 4
+#define ISA_MAX_HW_RES 5
 
 typedef struct {
 	fibril_mutex_t mutex;
@@ -313,6 +313,37 @@ static void isa_fun_set_irq(isa_fun_t *fun, int irq)
 	}
 }
 
+static void isa_fun_set_dma(isa_fun_t *fun, int dma)
+{
+	size_t count = fun->hw_resources.count;
+	hw_resource_t *resources = fun->hw_resources.resources;
+
+	if (count < ISA_MAX_HW_RES) {
+		if (dma > 0 && dma < 4) {
+			resources[count].type = DMA_CHANNEL_8;
+			resources[count].res.dma_channel.dma8 = dma;
+
+			fun->hw_resources.count++;
+			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
+			    fun->fnode->name);
+			return;
+		}
+
+		if (dma > 4 && dma < 8) {
+			resources[count].type = DMA_CHANNEL_16;
+			resources[count].res.dma_channel.dma16 = dma;
+
+			fun->hw_resources.count++;
+			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
+			    fun->fnode->name);
+			return;
+		}
+
+		ddf_msg(LVL_WARN, "Skipped dma 0x%x for function %s", dma,
+		    fun->fnode->name);
+	}
+}
+
 static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
 {
 	size_t count = fun->hw_resources.count;
@@ -342,6 +373,18 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 
 	if (val != end)
 		isa_fun_set_irq(fun, irq);
+}
+
+static void fun_parse_dma(isa_fun_t *fun, char *val)
+{
+	int dma = 0;
+	char *end = NULL;
+
+	val = skip_spaces(val);
+	dma = (int)strtol(val, &end, 10);
+
+	if (val != end)
+		isa_fun_set_dma(fun, dma);
 }
 
 static void fun_parse_io_range(isa_fun_t *fun, char *val)
@@ -435,6 +478,7 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 
 	if (!prop_parse(fun, line, "io_range", &fun_parse_io_range) &&
 	    !prop_parse(fun, line, "irq", &fun_parse_irq) &&
+	    !prop_parse(fun, line, "dma", &fun_parse_dma) &&
 	    !prop_parse(fun, line, "match", &fun_parse_match_id)) {
 
 		ddf_msg(LVL_ERROR, "Undefined device property at line '%s'",
