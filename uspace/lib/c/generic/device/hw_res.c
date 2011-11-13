@@ -83,5 +83,19 @@ bool hw_res_enable_interrupt(async_sess_t *sess)
 	return (rc == EOK);
 }
 
+int hw_res_dma_channel_setup(async_sess_t *sess,
+    unsigned channel, uint32_t pa, uint16_t size, uint8_t mode)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (exch == NULL)
+		return ENOMEM;
+	uint32_t packed = size | (mode << 16);
+	int ret = async_req_4_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_DMA_CHANNEL_SETUP, channel, pa, packed);
+	async_exchange_end(exch);
+	
+	return ret;
+}
+
 /** @}
  */

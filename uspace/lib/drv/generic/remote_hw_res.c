@@ -42,10 +42,13 @@ static void remote_hw_res_get_resource_list(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 static void remote_hw_res_enable_interrupt(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
+static void remote_hw_res_dma_channel_setup(ddf_fun_t *, void *, ipc_callid_t,
+    ipc_call_t *);
 
 static remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
-	&remote_hw_res_get_resource_list,
-	&remote_hw_res_enable_interrupt
+	[HW_RES_GET_RESOURCE_LIST] = &remote_hw_res_get_resource_list,
+	[HW_RES_ENABLE_INTERRUPT] = &remote_hw_res_enable_interrupt,
+	[HW_RES_DMA_CHANNEL_SETUP] = &remote_hw_res_dma_channel_setup,
 };
 
 remote_iface_t remote_hw_res_iface = {
@@ -91,6 +94,25 @@ static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,
 		return;
 	}
 	async_data_read_finalize(callid, hw_resources->resources, len);
+}
+
+static void remote_hw_res_dma_channel_setup(ddf_fun_t *fun, void *ops,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	hw_res_ops_t *hw_res_ops = ops;
+
+	if (hw_res_ops->dma_channel_setup == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+	const unsigned channel = DEV_IPC_GET_ARG1(*call);
+	const uint32_t address = DEV_IPC_GET_ARG2(*call);
+	const uint16_t size = DEV_IPC_GET_ARG3(*call) & 0xffff;
+	const uint8_t mode = DEV_IPC_GET_ARG3(*call) >> 16;
+
+	const int ret = hw_res_ops->dma_channel_setup(
+	    channel, address, size, mode);
+	async_answer_0(callid, ret);
 }
 
 /**

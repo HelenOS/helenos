@@ -42,7 +42,8 @@
 /** HW resource provider interface */
 typedef enum {
 	HW_RES_GET_RESOURCE_LIST = 0,
-	HW_RES_ENABLE_INTERRUPT
+	HW_RES_ENABLE_INTERRUPT,
+	HW_RES_DMA_CHANNEL_SETUP,
 } hw_res_method_t;
 
 /** HW resource types */
@@ -103,6 +104,17 @@ static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 
 extern int hw_res_get_resource_list(async_sess_t *, hw_resource_list_t *);
 extern bool hw_res_enable_interrupt(async_sess_t *);
+
+#define DMA_MODE_WRITE (1 << 2)
+#define DMA_MODE_READ (1 << 3)
+#define DMA_MODE_AUTO (1 << 4)
+#define DMA_MODE_DOWN (1 << 5)
+#define DMA_MODE_SINGLE (1 << 6)
+#define DMA_MODE_BLOCK (1 << 7)
+#define DMA_MODE_ON_DEMAND (0)
+
+extern int hw_res_dma_channel_setup(async_sess_t *,
+    unsigned, uint32_t, uint16_t, uint8_t);
 
 #endif
 
