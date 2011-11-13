@@ -57,6 +57,8 @@ typedef uint8_t frame_flags_t;
 #define FRAME_NO_RECLAIM  0x4
 /** Do not reserve / unreserve memory. */
 #define FRAME_NO_RESERVE  0x8
+/** Allocate a frame which can be identity-mapped. */
+#define FRAME_LOWMEM	  0x10
 
 typedef uint8_t zone_flags_t;
 
@@ -66,10 +68,10 @@ typedef uint8_t zone_flags_t;
 #define ZONE_RESERVED   0x8
 /** Zone is used by firmware (not available for allocation) */
 #define ZONE_FIRMWARE   0x10
+/** Zone contains memory that can be identity-mapped */
+#define ZONE_LOWMEM	0x20
 
-/** Currently there is no equivalent zone flags
-    for frame flags */
-#define FRAME_TO_ZONE_FLAGS(frame_flags)  0
+#define FRAME_TO_ZONE_FLAGS(ff)	(((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : 0) 
 
 typedef struct {
 	size_t refcount;      /**< Tracking of shared frames */
