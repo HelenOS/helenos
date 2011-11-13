@@ -49,7 +49,9 @@ typedef enum {
 typedef enum {
 	INTERRUPT,
 	IO_RANGE,
-	MEM_RANGE
+	MEM_RANGE,
+	DMA_CHANNEL_8,
+	DMA_CHANNEL_16,
 } hw_res_type_t;
 
 typedef enum {
@@ -76,6 +78,11 @@ typedef struct {
 		struct {
 			int irq;
 		} interrupt;
+
+		union {
+			int dma8;
+			int dma16;
+		} dma_channel;
 	} res;
 } hw_resource_t;
 
