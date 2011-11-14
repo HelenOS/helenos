@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,7 +112,7 @@ static void remote_hw_res_dma_channel_setup(ddf_fun_t *fun, void *ops,
 	const uint8_t mode = DEV_IPC_GET_ARG3(*call) >> 16;
 
 	const int ret = hw_res_ops->dma_channel_setup(
-	    channel, address, size, mode);
+	    fun, channel, address, size, mode);
 	async_answer_0(callid, ret);
 }
 
