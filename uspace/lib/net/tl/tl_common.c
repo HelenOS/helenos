@@ -157,8 +157,7 @@ int tl_get_ip_packet_dimension(async_sess_t *sess,
  * @return		EOK on success.
  * @return		ENOENT if the packet dimension is not cached.
  */
-int
-tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
+int tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
     nic_device_id_t device_id, size_t content)
 {
 	packet_dimension_t *packet_dimension;
