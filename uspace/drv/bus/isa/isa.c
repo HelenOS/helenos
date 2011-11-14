@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +65,8 @@
 #include <ipc/devman.h>
 #include <device/hw_res.h>
 
+#include "dma_controller.h"
+
 #define NAME "isa"
 #define CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
 
@@ -118,9 +121,9 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 		return false;
 
 	assert(isa_fun);
-	hw_resource_list_t *res = &isa_fun->hw_resources;
+	const hw_resource_list_t *res = &isa_fun->hw_resources;
 	assert(res);
-	for (size_t i = 0; i < res->count; i++) {
+	for (size_t i = 0; i < res->count; ++i) {
 		if (res->resources[i].type == INTERRUPT) {
 			const int irq = res->resources[i].res.interrupt.irq;
 
@@ -140,9 +143,29 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
+static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
+    unsigned channel, uint32_t pa, uint16_t size, uint8_t mode)
+{
+	assert(fnode);
+	isa_fun_t *isa_fun = fnode->driver_data;
+	const hw_resource_list_t *res = &isa_fun->hw_resources;
+	assert(res);
+	const int ch = channel;
+	for (size_t i = 0; i < res->count; ++i) {
+		if ((res->resources[i].type == DMA_CHANNEL_16 &&
+		    res->resources[i].res.dma_channel.dma16 == ch) ||
+		    (res->resources[i].type == DMA_CHANNEL_8 &&
+		    res->resources[i].res.dma_channel.dma8 == ch)) {
+			return dma_setup_channel(channel, pa, size, mode);
+		}
+	}
+	return EINVAL;
+}
+
 static hw_res_ops_t isa_fun_hw_res_ops = {
-	.get_resource_list = &isa_get_fun_resources,
-	.enable_interrupt = &isa_enable_fun_interrupt,
+	.get_resource_list = isa_get_fun_resources,
+	.enable_interrupt = isa_enable_fun_interrupt,
+	.dma_channel_setup = isa_dma_channel_fun_setup,
 };
 
 static ddf_dev_ops_t isa_fun_ops;
