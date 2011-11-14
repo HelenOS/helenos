@@ -38,7 +38,7 @@
 int main(int argc, char **argv)
 {
 
-	uint32_t buffer[BUF_SIZE];
+	char buffer[BUF_SIZE];
 	uint64_t iterations, i;
 	FILE *file;
 	char *file_name;
@@ -47,6 +47,16 @@ int main(int argc, char **argv)
 		printf("syntax: testwrit <iterations> <target file>\n");
 		return 1;
 	}
+
+	for (i = 0; i < BUF_SIZE; ++i) {
+		if ((i % 80) == 0) {
+			buffer[i] = '\n';
+		} else {
+			buffer[i] = '.';
+		}
+	}
+
+	buffer[BUF_SIZE - 1] = '\n';
 
 	char *end;
 	iterations = strtoul(argv[1], &end, 10);
