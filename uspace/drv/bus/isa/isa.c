@@ -88,6 +88,7 @@ typedef struct {
 typedef struct isa_fun {
 	fibril_mutex_t mutex;
 	ddf_fun_t *fnode;
+	hw_resource_t resources[ISA_MAX_HW_RES];
 	hw_resource_list_t hw_resources;
 	link_t bus_link;
 } isa_fun_t;
@@ -200,6 +201,8 @@ static isa_fun_t *isa_fun_create(isa_bus_t *isa, const char *name)
 		return NULL;
 
 	fibril_mutex_initialize(&fun->mutex);
+	fun->hw_resources.resources = fun->resources;
+
 	fun->fnode = fnode;
 	return fun;
 }
@@ -509,18 +512,6 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 	}
 }
 
-static void fun_hw_res_alloc(isa_fun_t *fun)
-{
-	fun->hw_resources.resources =
-	    (hw_resource_t *)malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
-}
-
-static void fun_hw_res_free(isa_fun_t *fun)
-{
-	free(fun->hw_resources.resources);
-	fun->hw_resources.resources = NULL;
-}
-
 static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 {
 	char *line;
@@ -545,13 +536,10 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 		return NULL;
 
 	isa_fun_t *fun = isa_fun_create(isa, fun_name);
+	free(fun_name);
 	if (fun == NULL) {
-		free(fun_name);
 		return NULL;
 	}
-
-	/* Allocate buffer for the list of hardware resources of the device. */
-	fun_hw_res_alloc(fun);
 
 	/* Get properties of the device (match ids, irq and io range). */
 	while (true) {
@@ -668,7 +656,6 @@ static int isa_dev_remove(ddf_dev_t *dev)
 
 		list_remove(&fun->bus_link);
 
-		fun_hw_res_free(fun);
 		ddf_fun_destroy(fun->fnode);
 	}
 
