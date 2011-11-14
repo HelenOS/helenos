@@ -49,7 +49,8 @@
 
 static int sb_add_device(ddf_dev_t *device);
 static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
-    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size, int *irq);
+    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
+    int *irq, int *dma8, int *dma16);
 static int sb_enable_interrupts(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t sb_driver_ops = {
@@ -80,9 +81,8 @@ int main(int argc, char *argv[])
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	sb16_drv_t *sb = dev->driver_data;
-	assert(sb);
-	sb16_interrupt(sb);
+	assert(dev->driver_data);
+	sb16_interrupt(dev->driver_data);
 }
 /*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of SB16.
@@ -100,16 +100,16 @@ if (ret != EOK) { \
 
 	assert(device);
 
-	sb16_drv_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_drv_t));
+	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
 	int ret = soft_state ? EOK : ENOMEM;
 	CHECK_RET_RETURN(ret, "Failed to allocate sb16 structure.\n");
 
 	uintptr_t sb_regs = 0, mpu_regs = 0;
 	size_t sb_regs_size = 0, mpu_regs_size = 0;
-	int irq = 0;
+	int irq = 0, dma8 = 0, dma16 = 0;
 
 	ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
-	    &mpu_regs_size, &irq);
+	    &mpu_regs_size, &irq, &dma8, &dma16);
 	CHECK_RET_RETURN(ret,
 	    "Failed to get resources: %s.\n", str_error(ret));
 
@@ -144,7 +144,8 @@ if (ret != EOK) { \
 	ret = dsp_fun ? EOK : ENOMEM;
 	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create mixer function.");
 
-	ret = sb16_init_sb16(soft_state, (void*)sb_regs, sb_regs_size);
+	ret = sb16_init_sb16(
+	    soft_state, (void*)sb_regs, sb_regs_size, device, dma8, dma16);
 	CHECK_RET_UNREG_DEST_RETURN(ret,
 	    "Failed to init sb16 driver: %s.\n", str_error(ret));
 
@@ -182,7 +183,8 @@ if (ret != EOK) { \
 }
 /*----------------------------------------------------------------------------*/
 static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
-    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size, int *irq)
+    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
+    int *irq, int *dma8, int *dma16)
 {
 	assert(device);
 	assert(sb_regs);
@@ -190,6 +192,8 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 	assert(mpu_regs);
 	assert(mpu_regs_size);
 	assert(irq);
+	assert(dma8);
+	assert(dma16);
 
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
@@ -223,6 +227,13 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 				*mpu_regs_size = res->res.io_range.size;
 			}
 			break;
+		case DMA_CHANNEL_16:
+			*dma16 = res->res.dma_channel.dma16;
+			ddf_log_debug("Found DMA16 channel: %d.\n", *dma16);
+			break;
+		case DMA_CHANNEL_8:
+			*dma8 = res->res.dma_channel.dma8;
+			ddf_log_debug("Found DMA8 channel: %d.\n", *dma8);
 		default:
 			break;
 		}

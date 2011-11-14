@@ -42,17 +42,18 @@
 #include "mixer.h"
 #include "registers.h"
 
-typedef struct sb16_drv {
+typedef struct sb16 {
 	sb16_regs_t *regs;
 	mpu_regs_t *mpu_regs;
 	sb_dsp_t dsp;
 	sb_mixer_t mixer;
-} sb16_drv_t;
+} sb16_t;
 
 irq_code_t * sb16_irq_code(void);
-int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size);
-int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size);
-void sb16_interrupt(sb16_drv_t *drv);
+int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
+    ddf_dev_t *dev, int dma8, int dma16);
+int sb16_init_mpu(sb16_t *sb, void *regs, size_t size);
+void sb16_interrupt(sb16_t *sb);
 
 #endif
 /**

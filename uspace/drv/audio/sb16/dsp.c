@@ -32,12 +32,14 @@
  * @brief DSP helper functions implementation
  */
 
+#include <devman.h>
+#include <device/hw_res.h>
 #include <libarch/ddi.h>
 #include <libarch/barrier.h>
 #include <str_error.h>
+#include <bool.h>
 
 #include "dma.h"
-#include "dma_controller.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
@@ -50,8 +52,6 @@
 #endif
 
 #define DSP_RESET_RESPONSE 0xaa
-#define SB_DMA_CHAN_16 5
-#define SB_DMA_CHAN_8 1
 
 #define AUTO_DMA_MODE
 
@@ -104,6 +104,20 @@ static inline void sb_dsp_reset(sb_dsp_t *dsp)
 	pio_write_8(&dsp->regs->dsp_reset, 0);
 }
 /*----------------------------------------------------------------------------*/
+static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
+{
+	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
+	    dsp->sb_dev->handle, IPC_FLAG_BLOCKING);
+	if (!sess)
+		return ENOMEM;
+
+	const int ret = hw_res_dma_channel_setup(sess,
+	    dsp->dma16_channel, pa, size,
+	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
+	async_hangup(sess);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
 static inline int sb_setup_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
@@ -116,8 +130,7 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 	const uintptr_t pa = addr_to_phys(buffer);
 	assert(pa < (1 << 25));
 	/* Set 16 bit channel */
-	const int ret = dma_setup_channel(SB_DMA_CHAN_16, pa, BUFFER_SIZE,
-	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
+	const int ret = sb_setup_dma(dsp, pa, BUFFER_SIZE);
 	if (ret == EOK) {
 		dsp->buffer.data = buffer;
 		dsp->buffer.position = buffer;
@@ -147,10 +160,14 @@ static inline size_t sample_count(uint8_t mode, size_t byte_count)
 	return byte_count;
 }
 /*----------------------------------------------------------------------------*/
-int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs)
+int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
+    int dma8, int dma16)
 {
 	assert(dsp);
 	dsp->regs = regs;
+	dsp->dma8_channel = dma8;
+	dsp->dma16_channel = dma16;
+	dsp->sb_dev = dev;
 	sb_dsp_reset(dsp);
 	/* "DSP takes about 100 microseconds to initialize itself" */
 	udelay(100);

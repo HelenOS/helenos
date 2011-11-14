@@ -39,7 +39,7 @@
  * irq code magic */
 static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
 static const irq_code_t irq_code =
-    { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds };
+    { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds }; // FIXME: Remove cast
 
 static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
     unsigned major, unsigned minor)
@@ -56,62 +56,64 @@ static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
 /*----------------------------------------------------------------------------*/
 irq_code_t * sb16_irq_code(void)
 {
+	// FIXME: Remove this cast
 	return (irq_code_t*)&irq_code;
 }
 /*----------------------------------------------------------------------------*/
-int sb16_init_sb16(sb16_drv_t *drv, void *regs, size_t size)
+int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
+    ddf_dev_t *dev, int dma8, int dma16)
 {
-	assert(drv);
+	assert(sb);
 	/* Setup registers */
-	int ret = pio_enable(regs, size, (void**)&drv->regs);
+	int ret = pio_enable(regs, size, (void**)&sb->regs);
 	if (ret != EOK)
 		return ret;
-	ddf_log_debug("PIO registers at %p accessible.\n", drv->regs);
+	ddf_log_debug("PIO registers at %p accessible.\n", sb->regs);
 
 	/* Initialize DSP */
-	ret = sb_dsp_init(&drv->dsp, drv->regs);
+	ret = sb_dsp_init(&sb->dsp, sb->regs, dev, dma8, dma16);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB DSP: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
 	ddf_log_note("Sound blaster DSP (%x.%x) initialized.\n",
-	    drv->dsp.version.major, drv->dsp.version.minor);
+	    sb->dsp.version.major, sb->dsp.version.minor);
 
 	/* Initialize mixer */
 	const sb_mixer_type_t mixer_type = sb_mixer_type_by_dsp_version(
-	    drv->dsp.version.major, drv->dsp.version.minor);
+	    sb->dsp.version.major, sb->dsp.version.minor);
 
-	ret = sb_mixer_init(&drv->mixer, drv->regs, mixer_type);
+	ret = sb_mixer_init(&sb->mixer, sb->regs, mixer_type);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB mixer: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
 	ddf_log_note("Initialized mixer: %s.\n",
-	    sb_mixer_type_str(drv->mixer.type));
+	    sb_mixer_type_str(sb->mixer.type));
 
 	ddf_log_note("Playing startup sound.\n");
-	sb_dsp_play(&drv->dsp, beep, beep_size, 44100, 1, 8);
+	sb_dsp_play(&sb->dsp, beep, beep_size, 44100, 1, 8);
 
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int sb16_init_mpu(sb16_drv_t *drv, void *regs, size_t size)
+int sb16_init_mpu(sb16_t *sb, void *regs, size_t size)
 {
-	drv->mpu_regs = NULL;
+	sb->mpu_regs = NULL;
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
-void sb16_interrupt(sb16_drv_t *drv)
+void sb16_interrupt(sb16_t *sb)
 {
-	assert(drv);
+	assert(sb);
 	/* The acknowledgment of interrupts on DSP version 4.xx is different;
 	 * It can contain MPU-401 indicator and DMA16 transfers are acked
 	 * differently */
-	if (drv->dsp.version.major >= 4) {
-		pio_write_8(&drv->regs->mixer_address, MIXER_IRQ_STATUS_ADDRESS);
-		const uint8_t irq_mask = pio_read_8(&drv->regs->mixer_data);
+	if (sb->dsp.version.major >= 4) {
+		pio_write_8(&sb->regs->mixer_address, MIXER_IRQ_STATUS_ADDRESS);
+		const uint8_t irq_mask = pio_read_8(&sb->regs->mixer_data);
 		/* Third bit is MPU-401 interrupt */
 		if (irq_mask & 0x4) {
 			return;
@@ -119,5 +121,5 @@ void sb16_interrupt(sb16_drv_t *drv)
 	} else {
 		ddf_log_debug("SB16 interrupt.\n");
 	}
-	sb_dsp_interrupt(&drv->dsp);
+	sb_dsp_interrupt(&sb->dsp);
 }

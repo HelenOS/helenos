@@ -34,6 +34,7 @@
 #ifndef DRV_AUDIO_SB16_DSP_H
 #define DRV_AUDIO_SB16_DSP_H
 
+#include <ddf/driver.h>
 #include <libarch/ddi.h>
 #include <errno.h>
 
@@ -41,6 +42,8 @@
 
 typedef struct sb_dsp_t {
 	sb16_regs_t *regs;
+	int dma8_channel;
+	int dma16_channel;
 	struct {
 		uint8_t major;
 		uint8_t minor;
@@ -56,9 +59,11 @@ typedef struct sb_dsp_t {
 		size_t size;
 		uint8_t mode;
 	} playing;
+	ddf_dev_t *sb_dev;
 } sb_dsp_t;
 
-int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs);
+int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
+    int dma8, int dma16);
 void sb_dsp_interrupt(sb_dsp_t *dsp);
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
     unsigned sample_rate, unsigned channels, unsigned bit_depth);
