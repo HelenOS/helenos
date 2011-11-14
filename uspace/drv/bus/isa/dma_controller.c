@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <bool.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <ddi.h> /* pio_enable */
 #include <libarch/ddi.h> /* pio_write */
 #include <ddf/log.h>
@@ -264,18 +265,26 @@ int dma_setup_channel(
 	if (channel > 0 && channel < 4 && pa >= (1 << 20))
 		return EINVAL;
 
+	static fibril_mutex_t guard = FIBRIL_MUTEX_INITIALIZER(guard);
+
+	fibril_mutex_lock(&guard);
+
 	if (!controller_8237.initialized)
 		dma_controller_init(&controller_8237);
 
-	if (!controller_8237.initialized)
+	if (!controller_8237.initialized) {
+		fibril_mutex_unlock(&guard);
 		return EIO;
+	}
 
 	/* 16 bit transfers are a bit special */
 	ddf_msg(LVL_DEBUG, "Unspoiled address: %p and size: %zu.", pa, size);
 	if (channel > 4) {
 		/* Size must be aligned to 16 bits */
-		if ((size & 1) != 0)
+		if ((size & 1) != 0) {
+			fibril_mutex_unlock(&guard);
 			return EINVAL;
+		}
 		size >>= 1;
 		/* Address is fun: lower 16bits need to be shifted by 1 */
 		pa = ((pa & 0xffff) >> 1) | (pa & 0xff0000);
@@ -337,6 +346,8 @@ int dma_setup_channel(
 	/* Unmask DMA request */
 	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
 	pio_write_8(dma_channel.single_mask_address, value);
+
+	fibril_mutex_unlock(&guard);
 
 	return EOK;
 }
