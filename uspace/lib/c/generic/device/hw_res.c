@@ -41,16 +41,18 @@ int hw_res_get_resource_list(async_sess_t *sess,
     hw_resource_list_t *hw_resources)
 {
 	sysarg_t count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
+	if (exch == NULL)
+		return ENOMEM;
 	int rc = async_req_1_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_GET_RESOURCE_LIST, &count);
-	
+
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	size_t size = count * sizeof(hw_resource_t);
 	hw_resource_t *resources = (hw_resource_t *) malloc(size);
 	if (resources == NULL) {
@@ -58,42 +60,57 @@ int hw_res_get_resource_list(async_sess_t *sess,
 		async_exchange_end(exch);
 		return ENOMEM;
 	}
-	
+
 	rc = async_data_read_start(exch, resources, size);
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		free(resources);
 		return rc;
 	}
-	
+
 	hw_resources->resources = resources;
 	hw_resources->count = count;
-	
+
 	return EOK;
 }
 
 bool hw_res_enable_interrupt(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
+	if (exch == NULL)
+		return false;
 	int rc = async_req_1_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_ENABLE_INTERRUPT);
 	async_exchange_end(exch);
-	
+
 	return (rc == EOK);
 }
 
+/**
+ * Setup DMA channel to specified place and mode.
+ * @param channel DMA Channel 1,2,3 for 8 bit transfers, 5,6,7 for 16 bit.
+ * @param pa Physical address of the buffer. Must be < 16MB for 16 bit and < 1MB
+ *           for 8 bit transfers.
+ * @param size DMA buffer size, limited to 64K.
+ * @param mode Mode of the DMA channel:
+ *              - Read or Write
+ *              - Allow automatic reset
+ *              - Use address decrement instead of increment
+ *              - Use SINGLE/BLOCK/ON DEMAND transfer mode
+ * @return Error code.
+ */
 int hw_res_dma_channel_setup(async_sess_t *sess,
     unsigned channel, uint32_t pa, uint16_t size, uint8_t mode)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL)
 		return ENOMEM;
-	uint32_t packed = size | (mode << 16);
-	int ret = async_req_4_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	const uint32_t packed = size | (mode << 16);
+	const int ret = async_req_4_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_DMA_CHANNEL_SETUP, channel, pa, packed);
 	async_exchange_end(exch);
-	
+
 	return ret;
 }
 
