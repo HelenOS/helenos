@@ -71,7 +71,8 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	}
 
 	/* Initialize block caching */
-	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
+	// TODO set cache MODE to write through (now writeback for faster testing)
+	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WB);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
@@ -464,6 +465,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 				rc = ext4_bitmap_alloc_block(fs, inode_ref, &new_block_addr);
 				if (rc != EOK) {
 					// TODO error
+					EXT4FS_DBG("allocation error");
 				}
 
 				rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);

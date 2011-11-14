@@ -30,18 +30,16 @@
  * @{
  */ 
 
-#ifndef LIBEXT4_LIBEXT4_BITMAP_H_
-#define LIBEXT4_LIBEXT4_BITMAP_H_
+#ifndef LIBEXT4_LIBEXT4_BALLOC_H_
+#define LIBEXT4_LIBEXT4_BALLOC_H_
 
 #include <sys/types.h>
+#include "libext4_filesystem.h"
 
-extern void ext4_bitmap_free_bit(uint8_t *, uint32_t);
-extern void ext4_bitmap_set_bit(uint8_t *, uint32_t);
-extern bool ext4_bitmap_is_free_bit(uint8_t *, uint32_t);
-extern int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *, uint32_t,
-		uint32_t *, uint32_t);
-extern int ext4_bitmap_find_free_bit_and_set(uint8_t *, uint32_t,
-		uint32_t *, uint32_t);
+extern int ext4_bitmap_free_block(ext4_filesystem_t *,
+		ext4_inode_ref_t *, uint32_t);
+extern int ext4_bitmap_alloc_block(ext4_filesystem_t *,
+		ext4_inode_ref_t *, uint32_t *);
 
 #endif
 
