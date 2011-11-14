@@ -40,13 +40,13 @@
 
 #define NUM_FUNCS 20
 
-static int test3_add_device(ddf_dev_t *dev);
+static int test3_dev_add(ddf_dev_t *dev);
 static int test3_dev_remove(ddf_dev_t *dev);
 static int test3_fun_online(ddf_fun_t *fun);
 static int test3_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.add_device = &test3_add_device,
+	.dev_add = &test3_dev_add,
 	.dev_remove = &test3_dev_remove,
 	.fun_online = &test3_fun_online,
 	.fun_offline = &test3_fun_offline,
@@ -126,12 +126,12 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 	return EOK;
 }
 
-static int test3_add_device(ddf_dev_t *dev)
+static int test3_dev_add(ddf_dev_t *dev)
 {
 	int rc = EOK;
 	test3_t *test3;
 
-	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)",
+	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
 	test3 = ddf_dev_data_alloc(dev, sizeof(test3_t));

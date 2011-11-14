@@ -45,10 +45,10 @@
 #include "pci.h"
 #include "ehci.h"
 
-static int ehci_add_device(ddf_dev_t *device);
+static int ehci_dev_add(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t ehci_driver_ops = {
-	.add_device = ehci_add_device,
+	.dev_add = ehci_dev_add,
 };
 /*----------------------------------------------------------------------------*/
 static driver_t ehci_driver = {
@@ -65,7 +65,7 @@ static ddf_dev_ops_t hc_ops = {
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int ehci_add_device(ddf_dev_t *device)
+static int ehci_dev_add(ddf_dev_t *device)
 {
 	assert(device);
 #define CHECK_RET_RETURN(ret, message...) \

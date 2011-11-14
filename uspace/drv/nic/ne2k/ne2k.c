@@ -335,7 +335,7 @@ static int ne2k_on_broadcast_mode_change(nic_t *nic_data,
 	}
 }
 
-static int ne2k_add_device(ddf_dev_t *dev)
+static int ne2k_dev_add(ddf_dev_t *dev)
 {
 	/* Allocate driver data for the device. */
 	nic_t *nic_data = nic_create_and_bind(dev);
@@ -390,7 +390,7 @@ static nic_iface_t ne2k_nic_iface = {
 };
 
 static driver_ops_t ne2k_driver_ops = {
-	.add_device = ne2k_add_device
+	.dev_add = ne2k_dev_add
 };
 
 static driver_t ne2k_driver = {
