@@ -271,7 +271,7 @@ int dma_setup_channel(
 		return EIO;
 
 	/* 16 bit transfers are a bit special */
-	ddf_msg(LVL_DEBUG, "Unspoiled address: %p and size: %zu.\n", pa, size);
+	ddf_msg(LVL_DEBUG, "Unspoiled address: %p and size: %zu.", pa, size);
 	if (channel > 4) {
 		/* Size must be aligned to 16 bits */
 		if ((size & 1) != 0)
@@ -284,7 +284,7 @@ int dma_setup_channel(
 	const dma_channel_t dma_channel = controller_8237.channels[channel];
 
 	ddf_msg(LVL_DEBUG,
-	    "Setting channel %u, to address %p(%zu), mode %hhx.\n",
+	    "Setting channel %u, to address %p(%zu), mode %hhx.",
 	    channel, pa, size, mode);
 
 	/* Mask DMA request */
@@ -294,7 +294,7 @@ int dma_setup_channel(
 
 	/* Set mode */
 	value = DMA_MODE_CHAN_TO_REG(channel) | mode;
-	ddf_msg(LVL_DEBUG2, "Writing mode byte: %p:%hhx.\n",
+	ddf_msg(LVL_DEBUG2, "Writing mode byte: %p:%hhx.",
 	    dma_channel.mode_address, value);
 	pio_write_8(dma_channel.mode_address, value);
 
@@ -303,19 +303,19 @@ int dma_setup_channel(
 
 	/* Low byte */
 	value = pa & 0xff;
-	ddf_msg(LVL_DEBUG2, "Writing address low byte: %p:%hhx.\n",
+	ddf_msg(LVL_DEBUG2, "Writing address low byte: %p:%hhx.",
 	    dma_channel.offset_reg_address, value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* High byte */
 	value = (pa >> 8) & 0xff;
-	ddf_msg(LVL_DEBUG2, "Writing address high byte: %p:%hhx.\n",
+	ddf_msg(LVL_DEBUG2, "Writing address high byte: %p:%hhx.",
 	    dma_channel.offset_reg_address, value);
 	pio_write_8(dma_channel.offset_reg_address, value);
 
 	/* Page address - third byte */
 	value = (pa >> 16) & 0xff;
-	ddf_msg(LVL_DEBUG2, "Writing address page byte: %p:%hhx.\n",
+	ddf_msg(LVL_DEBUG2, "Writing address page byte: %p:%hhx.",
 	    dma_channel.page_reg_address, value);
 	pio_write_8(dma_channel.page_reg_address, value);
 
@@ -324,13 +324,13 @@ int dma_setup_channel(
 
 	/* Low byte */
 	value = (size - 1) & 0xff;
-	ddf_msg(LVL_DEBUG2, "Writing size low byte: %p:%hhx.\n",
+	ddf_msg(LVL_DEBUG2, "Writing size low byte: %p:%hhx.",
 	    dma_channel.size_reg_address, value);
 	pio_write_8(dma_channel.size_reg_address, value);
 
 	/* High byte */
 	value = ((size - 1) >> 8) & 0xff;
-	ddf_msg(LVL_DEBUG2, "Writing size high byte: %p:%hhx.\n",
+	ddf_msg(LVL_DEBUG2, "Writing size high byte: %p:%hhx.",
 	    dma_channel.size_reg_address, value);
 	pio_write_8(dma_channel.size_reg_address, value);
 
