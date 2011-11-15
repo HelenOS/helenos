@@ -473,8 +473,10 @@ static int fibril_timer_func(void *arg)
 		rc = fibril_condvar_wait_timeout(&timer->cv, &timer->lock,
 		    timer->delay);
 		if (rc == ETIMEOUT) {
-			timer->fun(timer->arg);
 			timer->state = fts_fired;
+			fibril_mutex_unlock(&timer->lock);
+			timer->fun(timer->arg);
+			fibril_mutex_lock(&timer->lock);
 		}
 	}
 

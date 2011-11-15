@@ -35,6 +35,8 @@
  */
 
 #include <adt/list.h>
+#include <errno.h>
+#include <fibril_synch.h>
 #include <byteorder.h>
 #include <io/log.h>
 #include <macros.h>
@@ -49,10 +51,30 @@
 #include "tqueue.h"
 #include "tcp_type.h"
 
-void tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn)
+#define RETRANSMIT_TIMEOUT	(2*1000*1000)
+
+static void retransmit_timeout_func(void *arg);
+static void tcp_tqueue_timer_set(tcp_conn_t *conn);
+static void tcp_tqueue_timer_clear(tcp_conn_t *conn);
+
+int tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn)
 {
 	tqueue->conn = conn;
+	tqueue->timer = fibril_timer_create();
+	if (tqueue->timer == NULL)
+		return ENOMEM;
+
 	list_initialize(&tqueue->list);
+
+	return EOK;
+}
+
+void tcp_tqueue_fini(tcp_tqueue_t *tqueue)
+{
+	if (tqueue->timer != NULL) {
+		fibril_timer_destroy(tqueue->timer);
+		tqueue->timer = NULL;
+	}
 }
 
 void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
@@ -91,10 +113,19 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 			return;
 		}
 
+		tqe->conn = conn;
 		tqe->seg = rt_seg;
 		list_append(&tqe->link, &conn->retransmit.list);
+
+		/* Set retransmission timer */
+		tcp_tqueue_timer_set(conn);
 	}
 
+	tcp_prepare_transmit_segment(conn, seg);
+}
+
+void tcp_prepare_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
+{
 	/*
 	 * Always send ACK once we have received SYN, except for RST segments.
 	 * (Spec says we should always send ACK once connection has been
@@ -104,16 +135,6 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 		seg->ctrl |= CTL_ACK;
 
 	seg->seq = conn->snd_nxt;
-	seg->wnd = conn->rcv_wnd;
-
-	log_msg(LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
-	    seg->seq, seg->wnd);
-
-	if ((seg->ctrl & CTL_ACK) != 0)
-		seg->ack = conn->rcv_nxt;
-	else
-		seg->ack = 0;
-
 	conn->snd_nxt += seg->len;
 
 	tcp_transmit_segment(&conn->ident, seg);
@@ -203,24 +224,96 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 
 			tcp_segment_delete(tqe->seg);
 			free(tqe);
+
+			/* Reset retransmission timer */
+			tcp_tqueue_timer_set(conn);
 		}
 
 		cur = next;
 	}
 
+	/* Clear retransmission timer if the queue is empty. */
+	if (list_empty(&conn->retransmit.list))
+		tcp_tqueue_timer_clear(conn);
+
 	/* Possibly transmit more data */
 	tcp_tqueue_new_data(conn);
+}
+
+void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "tcp_conn_transmit_segment(%p, %p)", conn, seg);
+
+	seg->wnd = conn->rcv_wnd;
+
+	if ((seg->ctrl & CTL_ACK) != 0)
+		seg->ack = conn->rcv_nxt;
+	else
+		seg->ack = 0;
+
+	tcp_transmit_segment(&conn->ident, seg);
 }
 
 void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_transmit_segment(%p, %p)", sp, seg);
+
+	log_msg(LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
+	    seg->seq, seg->wnd);
 /*
 	tcp_pdu_prepare(conn, seg, &data, &len);
 	tcp_pdu_transmit(data, len);
 */
-	//tcp_rqueue_bounce_seg(sp, seg);
-	tcp_ncsim_bounce_seg(sp, seg);
+	tcp_rqueue_bounce_seg(sp, seg);
+//	tcp_ncsim_bounce_seg(sp, seg);
+}
+
+static void retransmit_timeout_func(void *arg)
+{
+	tcp_conn_t *conn = (tcp_conn_t *) arg;
+	tcp_tqueue_entry_t *tqe;
+	tcp_segment_t *rt_seg;
+	link_t *link;
+
+	log_msg(LVL_DEBUG, "### %s: retransmit_timeout_func(%p)", conn->name, conn);
+	link = list_first(&conn->retransmit.list);
+	if (link == NULL) {
+		log_msg(LVL_DEBUG, "Nothing to retransmit");
+		return;
+	}
+
+	tqe = list_get_instance(link, tcp_tqueue_entry_t, link);
+
+	rt_seg = tcp_segment_dup(tqe->seg);
+	if (rt_seg == NULL) {
+		log_msg(LVL_ERROR, "Memory allocation failed.");
+		/* XXX Handle properly */
+		return;
+	}
+
+	log_msg(LVL_DEBUG, "### %s: retransmitting segment", conn->name);
+	tcp_conn_transmit_segment(tqe->conn, rt_seg);
+
+	/* Reset retransmission timer */
+	tcp_tqueue_timer_set(tqe->conn);
+}
+
+/** Set or re-set retransmission timer */
+static void tcp_tqueue_timer_set(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "### %s: tcp_tqueue_timer_set()", conn->name);
+
+	(void) retransmit_timeout_func;
+	fibril_timer_set(conn->retransmit.timer, RETRANSMIT_TIMEOUT,
+	    retransmit_timeout_func, (void *) conn);
+}
+
+/** Clear retransmission timer */
+static void tcp_tqueue_timer_clear(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "### %s: tcp_tqueue_timer_clear()", conn->name);
+
+	fibril_timer_clear(conn->retransmit.timer);
 }
 
 /**

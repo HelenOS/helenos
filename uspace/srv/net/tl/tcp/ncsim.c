@@ -47,6 +47,7 @@
 #include "conn.h"
 #include "ncsim.h"
 #include "rqueue.h"
+#include "segment.h"
 #include "tcp_type.h"
 
 static list_t sim_queue;
@@ -72,7 +73,16 @@ void tcp_ncsim_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_squeue_entry_t *old_qe;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_insert_seg()");
+	log_msg(LVL_DEBUG, "tcp_ncsim_bounce_seg()");
+	tcp_rqueue_bounce_seg(sp, seg);
+	return;
+
+	if (0 /*random() % 4 == 3*/) {
+		/* Drop segment */
+		log_msg(LVL_ERROR, "NCSim dropping segment");
+		tcp_segment_delete(seg);
+		return;
+	}
 
 	sqe = calloc(1, sizeof(tcp_squeue_entry_t));
 	if (sqe == NULL) {

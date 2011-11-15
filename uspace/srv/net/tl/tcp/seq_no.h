@@ -40,6 +40,7 @@
 
 extern bool seq_no_ack_acceptable(tcp_conn_t *, uint32_t);
 extern bool seq_no_ack_duplicate(tcp_conn_t *, uint32_t);
+extern bool seq_no_in_rcv_wnd(tcp_conn_t *, uint32_t);
 extern bool seq_no_new_wnd_update(tcp_conn_t *, tcp_segment_t *);
 extern bool seq_no_segment_acked(tcp_conn_t *, tcp_segment_t *, uint32_t);
 extern bool seq_no_syn_acked(tcp_conn_t *);

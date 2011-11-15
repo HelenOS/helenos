@@ -87,6 +87,12 @@ bool seq_no_ack_duplicate(tcp_conn_t *conn, uint32_t seg_ack)
 	return diff == 0 || (diff & (0x1 << 31)) != 0;
 }
 
+/** Determine if sequence number is in receive window. */
+bool seq_no_in_rcv_wnd(tcp_conn_t *conn, uint32_t sn)
+{
+	return seq_no_le_lt(conn->rcv_nxt, sn, conn->rcv_nxt + conn->rcv_wnd);
+}
+
 /** Determine segment has new window update.
  *
  * Window update is new if either SND.WL1 < SEG.SEQ or

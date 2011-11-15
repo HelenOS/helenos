@@ -111,6 +111,14 @@ void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
 
 	log_msg(LVL_DEBUG, "tcp_uc_receive()");
 
+	/*
+	 * XXX Handle all states for all user calls properly, return
+	 * errors as appropriate.
+	 */
+	if (conn->cstate == st_closed)
+		return;
+
+
 	fibril_mutex_lock(&conn->rcv_buf_lock);
 
 	/* Wait for data to become available */
@@ -185,7 +193,7 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	log_msg(LVL_DEBUG, "tcp_as_segment_arrived()");
 
 	conn = tcp_conn_find(sp);
-	if (conn != NULL) {
+	if (conn != NULL && conn->cstate != st_closed) {
 		tcp_conn_segment_arrived(conn, seg);
 	} else {
 		tcp_unexpected_segment(sp, seg);

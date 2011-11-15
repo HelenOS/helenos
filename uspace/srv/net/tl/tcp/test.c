@@ -58,6 +58,7 @@ static void test_srv(void *arg)
 	sock.port = 1024;
 	sock.addr.ipv4 = 0x7f000001;
 	tcp_uc_open(80, &sock, ap_passive, &conn);
+	conn->name = (char *) "S";
 
 	while (true) {
 		printf("User receive...\n");
@@ -72,7 +73,7 @@ static void test_srv(void *arg)
 		async_usleep(1000*1000*2);
 	}
 
-	async_usleep(1000*1000);
+	async_usleep(/*10**/1000*1000);
 
 	printf("test_srv() close connection\n");
 	tcp_uc_close(conn);
@@ -93,11 +94,12 @@ static void test_cli(void *arg)
 
 	async_usleep(1000*1000*3);
 	tcp_uc_open(1024, &sock, ap_active, &conn);
+	conn->name = (char *) "C";
 
 	async_usleep(1000*1000*10);
 	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
 
-	async_usleep(1000*1000*3);
+	async_usleep(1000*1000*3/**20*2*/);
 	tcp_uc_close(conn);
 }
 

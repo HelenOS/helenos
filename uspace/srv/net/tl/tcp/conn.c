@@ -68,6 +68,7 @@ static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
 tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 {
 	tcp_conn_t *conn = NULL;
+	bool tqueue_inited = false;
 
 	/* Allocate connection structure */
 	conn = calloc(1, sizeof(tcp_conn_t));
@@ -104,7 +105,10 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	tcp_iqueue_init(&conn->incoming, conn);
 
 	/* Initialize retransmission queue */
-	tcp_tqueue_init(&conn->retransmit, conn);
+	if (tcp_tqueue_init(&conn->retransmit, conn) != EOK)
+		goto error;
+
+	tqueue_inited = true;
 
 	conn->cstate = st_listen;
 	conn->fin_is_acked = false;
@@ -115,6 +119,8 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	return conn;
 
 error:
+	if (tqueue_inited)
+		tcp_tqueue_fini(&conn->retransmit);
 	if (conn != NULL && conn->rcv_buf != NULL)
 		free(conn->rcv_buf);
 	if (conn != NULL && conn->snd_buf != NULL)
@@ -179,6 +185,7 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 		conn->cstate = st_last_ack;
 		break;
 	default:
+		log_msg(LVL_ERROR, "Connection state %d", conn->cstate);
 		assert(false);
 	}
 
@@ -263,6 +270,7 @@ bool tcp_conn_got_syn(tcp_conn_t *conn)
 	case st_time_wait:
 		return true;
 	case st_closed:
+		log_msg(LVL_WARN, "state=%d", (int) conn->cstate);
 		assert(false);
 	}
 
@@ -346,7 +354,7 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	}
 
 	if ((seg->ctrl & CTL_RST) != 0) {
-		log_msg(LVL_DEBUG, "Connection reset.");
+		log_msg(LVL_DEBUG, "Connection reset. -> Closed");
 		/* XXX Signal user error */
 		conn->cstate = st_closed;
 		/* XXX delete connection */
@@ -412,7 +420,13 @@ static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	log_msg(LVL_DEBUG, "tcp_conn_sa_seq(%p, %p)", conn, seg);
 
-	/* XXX Discard old duplicates */
+	/* Discard unacceptable segments ("old duplicates") */
+	if (!seq_no_segment_acceptable(conn, seg)) {
+		log_msg(LVL_DEBUG, "Replying ACK to unacceptable segment.");
+		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
+		tcp_segment_delete(seg);
+		return;
+	}
 
 	/* Queue for processing */
 	tcp_iqueue_insert_seg(&conn->incoming, seg);
@@ -462,8 +476,25 @@ static cproc_t tcp_conn_seg_proc_sp(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_syn(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	/* TODO */
-	return cp_continue;
+	if ((seg->ctrl & CTL_SYN) == 0)
+		return cp_continue;
+
+	/*
+	 * Assert SYN is in receive window, otherwise this step should not
+	 * be reached.
+	 */
+	assert(seq_no_in_rcv_wnd(conn, seg->seq));
+
+	log_msg(LVL_WARN, "SYN is in receive window, should send reset. XXX");
+
+	/*
+	 * TODO
+	 *
+	 * Send a reset, resond "reset" to all outstanding RECEIVEs and SEND,
+	 * flush segment queues. Send unsolicited "connection reset" signal
+	 * to user, connection -> closed state, delete TCB, return.
+	 */
+	return cp_done;
 }
 
 /** Process segment ACK field in Syn-Received state.
@@ -789,6 +820,8 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_fin(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, " seg->len=%zu, seg->ctl=%u", (size_t) seg->len,
+	    (unsigned) seg->ctrl);
 
 	/* Only process FIN if no text is left in segment. */
 	if (tcp_segment_text_size(seg) == 0 && (seg->ctrl & CTL_FIN) != 0) {
@@ -895,10 +928,13 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 	 * If anything is left from the segment, insert it back into the
 	 * incoming segments queue.
 	 */
-	if (seg->len > 0)
+	if (seg->len > 0) {
+		log_msg(LVL_DEBUG, "Re-insert segment %p. seg->len=%zu",
+		    seg, (size_t) seg->len);
 		tcp_iqueue_insert_seg(&conn->incoming, seg);
-	else
+	} else {
 		tcp_segment_delete(seg);
+	}
 }
 
 /** Segment arrived on a connection.
@@ -926,6 +962,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* Process segments in order of sequence number */
 		tcp_conn_sa_queue(conn, seg); break;
 	case st_closed:
+		log_msg(LVL_DEBUG, "state=%d", (int) conn->cstate);
 		assert(false);
 	}
 }

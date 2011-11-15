@@ -93,17 +93,23 @@ typedef struct {
 	tcp_sock_t foreign;
 } tcp_sockpair_t;
 
+/** Connection incoming segments queue */
 typedef struct {
 	struct tcp_conn *conn;
 	list_t list;
 } tcp_iqueue_t;
 
+/** Retransmission queue */
 typedef struct {
 	struct tcp_conn *conn;
 	list_t list;
+
+	/** Retransmission timer */
+	fibril_timer_t *timer;
 } tcp_tqueue_t;
 
 typedef struct tcp_conn {
+	char *name;
 	link_t link;
 
 	/** Connection identification (local and foreign socket) */
@@ -220,8 +226,10 @@ typedef struct {
 	tcp_segment_t *seg;
 } tcp_iqueue_entry_t;
 
+/** Retransmission queue entry */
 typedef struct {
 	link_t link;
+	tcp_conn_t *conn;
 	tcp_segment_t *seg;
 } tcp_tqueue_entry_t;
 
