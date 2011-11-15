@@ -866,6 +866,15 @@ size_t zone_conf_size(size_t count)
 	return (count * sizeof(frame_t) + buddy_conf_size(fnzb(count)));
 }
 
+/** Allocate external configuration frames from low memory. */
+pfn_t zone_external_conf_alloc(size_t count)
+{
+	size_t size = zone_conf_size(count);
+	size_t order = ispwr2(size) ? fnzb(size) : (fnzb(size) + 1);
+
+	return ADDR2PFN((uintptr_t) frame_alloc(order, FRAME_LOWMEM));
+}
+
 /** Create and add zone to system.
  *
  * @param start     First frame number (absolute).

@@ -162,6 +162,7 @@ extern void *frame_get_parent(pfn_t, size_t);
 extern void frame_set_parent(pfn_t, void *, size_t);
 extern void frame_mark_unavailable(pfn_t, size_t);
 extern size_t zone_conf_size(size_t);
+extern pfn_t zone_external_conf_alloc(size_t);
 extern bool zone_merge(size_t, size_t);
 extern void zone_merge_all(void);
 extern uint64_t zones_total_size(void);
