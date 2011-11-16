@@ -87,7 +87,7 @@ void frame_high_arch_init(void)
 	conf = zone_external_conf_alloc(frames);
 
 	zone_create(ADDR2PFN(config.identity_size), frames, conf,
-	    ZONE_AVAILABLE);
+	    ZONE_AVAILABLE | ZONE_HIGHMEM);
 }
 
 /** Frees the boot page table. */

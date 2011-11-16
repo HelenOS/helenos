@@ -239,8 +239,8 @@ NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
 /** @return True if zone can allocate specified order */
 NO_TRACE static bool zone_can_alloc(zone_t *zone, uint8_t order)
 {
-	return (zone_flags_available(zone->flags)
-	    && buddy_system_can_alloc(zone->buddy_system, order));
+	return ((zone->flags & ZONE_AVAILABLE) &&
+	    buddy_system_can_alloc(zone->buddy_system, order));
 }
 
 /** Find a zone that can allocate order frames.
@@ -264,7 +264,7 @@ NO_TRACE static size_t find_free_zone(uint8_t order, zone_flags_t flags,
 		/*
 		 * Check whether the zone meets the search criteria.
 		 */
-		if ((zones.info[i].flags & flags) == flags) {
+		if (ZONE_FLAGS_MATCH(zones.info[i].flags, flags)) {
 			/*
 			 * Check if the zone has 2^order frames area available.
 			 */
@@ -459,7 +459,7 @@ static buddy_system_operations_t zone_buddy_system_operations = {
  */
 NO_TRACE static pfn_t zone_frame_alloc(zone_t *zone, uint8_t order)
 {
-	ASSERT(zone_flags_available(zone->flags));
+	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	/* Allocate frames from zone buddy system */
 	link_t *link = buddy_system_alloc(zone->buddy_system, order);
@@ -489,7 +489,7 @@ NO_TRACE static pfn_t zone_frame_alloc(zone_t *zone, uint8_t order)
  */
 NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t frame_idx)
 {
-	ASSERT(zone_flags_available(zone->flags));
+	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = &zone->frames[frame_idx];
 	size_t size = 0;
@@ -517,7 +517,7 @@ NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t frame_idx)
 /** Mark frame in zone unavailable to allocation. */
 NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t frame_idx)
 {
-	ASSERT(zone_flags_available(zone->flags));
+	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, frame_idx);
 	if (frame->refcount)
@@ -548,8 +548,8 @@ NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t frame_idx)
 NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
     buddy_system_t *buddy)
 {
-	ASSERT(zone_flags_available(zones.info[z1].flags));
-	ASSERT(zone_flags_available(zones.info[z2].flags));
+	ASSERT(zones.info[z1].flags & ZONE_AVAILABLE);
+	ASSERT(zones.info[z2].flags & ZONE_AVAILABLE);
 	ASSERT(zones.info[z1].flags == zones.info[z2].flags);
 	ASSERT(zones.info[z1].base < zones.info[z2].base);
 	ASSERT(!overlaps(zones.info[z1].base, zones.info[z1].count,
@@ -644,7 +644,7 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
  */
 NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 {
-	ASSERT(zone_flags_available(zones.info[znum].flags));
+	ASSERT(zones.info[znum].flags & ZONE_AVAILABLE);
 	
 	size_t cframes = SIZE2FRAMES(zone_conf_size(count));
 	
@@ -680,7 +680,7 @@ NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 NO_TRACE static void zone_reduce_region(size_t znum, pfn_t frame_idx,
     size_t count)
 {
-	ASSERT(zone_flags_available(zones.info[znum].flags));
+	ASSERT(zones.info[znum].flags & ZONE_AVAILABLE);
 	ASSERT(frame_idx + count < zones.info[znum].count);
 	
 	uint8_t order = zones.info[znum].frames[frame_idx].buddy_order;
@@ -722,11 +722,8 @@ bool zone_merge(size_t z1, size_t z2)
 	 * the zones have to be available and with the same
 	 * set of flags
 	 */
-	if ((z1 >= zones.count) || (z2 >= zones.count)
-	    || (z2 - z1 != 1)
-	    || (!zone_flags_available(zones.info[z1].flags))
-	    || (!zone_flags_available(zones.info[z2].flags))
-	    || (zones.info[z1].flags != zones.info[z2].flags)) {
+	if ((z1 >= zones.count) || (z2 >= zones.count) || (z2 - z1 != 1) ||
+	    (zones.info[z1].flags != zones.info[z2].flags)) {
 		ret = false;
 		goto errout;
 	}
@@ -827,7 +824,7 @@ NO_TRACE static void zone_construct(zone_t *zone, buddy_system_t *buddy,
 	zone->busy_count = 0;
 	zone->buddy_system = buddy;
 	
-	if (zone_flags_available(flags)) {
+	if (flags & ZONE_AVAILABLE) {
 		/*
 		 * Compute order for buddy system and initialize
 		 */
@@ -896,7 +893,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 {
 	irq_spinlock_lock(&zones.lock, true);
 	
-	if (zone_flags_available(flags)) {  /* Create available zone */
+	if (flags & ZONE_AVAILABLE) {  /* Create available zone */
 		/* Theoretically we could have NULL here, practically make sure
 		 * nobody tries to do that. If some platform requires, remove
 		 * the assert
@@ -1302,7 +1299,7 @@ void zones_stats(uint64_t *total, uint64_t *unavail, uint64_t *busy,
 	for (i = 0; i < zones.count; i++) {
 		*total += (uint64_t) FRAMES2SIZE(zones.info[i].count);
 		
-		if (zone_flags_available(zones.info[i].flags)) {
+		if (zones.info[i].flags & ZONE_AVAILABLE) {
 			*busy += (uint64_t) FRAMES2SIZE(zones.info[i].busy_count);
 			*free += (uint64_t) FRAMES2SIZE(zones.info[i].free_count);
 		} else
@@ -1353,7 +1350,7 @@ void zones_print_list(void)
 		
 		irq_spinlock_unlock(&zones.lock, true);
 		
-		bool available = zone_flags_available(flags);
+		bool available = ((flags & ZONE_AVAILABLE) != 0);
 		
 		printf("%-4zu", i);
 		
@@ -1365,10 +1362,12 @@ void zones_print_list(void)
 		printf(" %p", (void *) base);
 #endif
 		
-		printf(" %12zu %c%c%c      ", count,
-		    available ? 'A' : ' ',
-		    (flags & ZONE_RESERVED) ? 'R' : ' ',
-		    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
+		printf(" %12zu %c%c%c%c%c    ", count,
+		    available ? 'A' : '-',
+		    (flags & ZONE_RESERVED) ? 'R' : '-',
+		    (flags & ZONE_FIRMWARE) ? 'F' : '-',
+		    (flags & ZONE_LOWMEM) ? 'L' : '-',
+		    (flags & ZONE_HIGHMEM) ? 'H' : '-');
 		
 		if (available)
 			printf("%14zu %14zu",
@@ -1410,7 +1409,7 @@ void zone_print_one(size_t num)
 	
 	irq_spinlock_unlock(&zones.lock, true);
 	
-	bool available = zone_flags_available(flags);
+	bool available = ((flags & ZONE_AVAILABLE) != 0);
 	
 	uint64_t size;
 	const char *size_suffix;
@@ -1420,10 +1419,12 @@ void zone_print_one(size_t num)
 	printf("Zone base address: %p\n", (void *) base);
 	printf("Zone size:         %zu frames (%" PRIu64 " %s)\n", count,
 	    size, size_suffix);
-	printf("Zone flags:        %c%c%c\n",
-	    available ? 'A' : ' ',
-	    (flags & ZONE_RESERVED) ? 'R' : ' ',
-	    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
+	printf("Zone flags:        %c%c%c%c%c\n",
+	    available ? 'A' : '-',
+	    (flags & ZONE_RESERVED) ? 'R' : '-',
+	    (flags & ZONE_FIRMWARE) ? 'F' : '-',
+	    (flags & ZONE_LOWMEM) ? 'L' : '-',
+	    (flags & ZONE_HIGHMEM) ? 'H' : '-');
 	
 	if (available) {
 		bin_order_suffix(FRAMES2SIZE(busy_count), &size, &size_suffix,

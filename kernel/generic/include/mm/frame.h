@@ -49,6 +49,7 @@
 
 typedef uint8_t frame_flags_t;
 
+#define FRAME_NONE        0x0
 /** Convert the frame address to kernel VA. */
 #define FRAME_KA          0x1
 /** Do not panic and do not sleep on failure. */
@@ -59,19 +60,34 @@ typedef uint8_t frame_flags_t;
 #define FRAME_NO_RESERVE  0x8
 /** Allocate a frame which can be identity-mapped. */
 #define FRAME_LOWMEM	  0x10
+/** Allocate a frame which cannot be identity-mapped. */
+#define FRAME_HIGHMEM	  0x20
 
 typedef uint8_t zone_flags_t;
 
+#define ZONE_NONE	0x0
 /** Available zone (free for allocation) */
-#define ZONE_AVAILABLE  0x0
+#define ZONE_AVAILABLE  0x1
 /** Zone is reserved (not available for allocation) */
-#define ZONE_RESERVED   0x8
+#define ZONE_RESERVED   0x2
 /** Zone is used by firmware (not available for allocation) */
-#define ZONE_FIRMWARE   0x10
+#define ZONE_FIRMWARE   0x4
 /** Zone contains memory that can be identity-mapped */
-#define ZONE_LOWMEM	0x20
+#define ZONE_LOWMEM	0x8
+/** Zone contains memory that cannot be identity-mapped */
+#define ZONE_HIGHMEM	0x10
 
-#define FRAME_TO_ZONE_FLAGS(ff)	(((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : 0) 
+/** Mask of zone bits that must be matched exactly. */
+#define ZONE_EF_MASK	0x7
+
+#define FRAME_TO_ZONE_FLAGS(ff)	\
+	((((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : \
+	    (((ff) & FRAME_HIGHMEM) ? ZONE_HIGHMEM : ZONE_NONE)) | \
+	    (ZONE_AVAILABLE | ZONE_LOWMEM | ZONE_HIGHMEM)) 
+
+#define ZONE_FLAGS_MATCH(zf, f) \
+	(((((zf) & ZONE_EF_MASK)) == ((f) & ZONE_EF_MASK)) && \
+	    (((zf) & ~ZONE_EF_MASK) & (f)))
 
 typedef struct {
 	size_t refcount;      /**< Tracking of shared frames */
@@ -128,11 +144,6 @@ NO_TRACE static inline size_t SIZE2FRAMES(size_t size)
 NO_TRACE static inline size_t FRAMES2SIZE(size_t frames)
 {
 	return (size_t) (frames << FRAME_WIDTH);
-}
-
-NO_TRACE static inline bool zone_flags_available(zone_flags_t flags)
-{
-	return ((flags & (ZONE_RESERVED | ZONE_FIRMWARE)) == 0);
 }
 
 #define IS_BUDDY_ORDER_OK(index, order) \
