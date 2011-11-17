@@ -42,9 +42,9 @@
  * User calls
  */
 extern void tcp_uc_open(uint16_t, tcp_sock_t *, acpass_t, tcp_conn_t **);
-extern void tcp_uc_send(tcp_conn_t *, void *, size_t, xflags_t);
-extern void tcp_uc_receive(tcp_conn_t *, void *, size_t, size_t *, xflags_t *);
-extern void tcp_uc_close(tcp_conn_t *);
+extern tcp_error_t tcp_uc_send(tcp_conn_t *, void *, size_t, xflags_t);
+extern tcp_error_t tcp_uc_receive(tcp_conn_t *, void *, size_t, size_t *, xflags_t *);
+extern tcp_error_t tcp_uc_close(tcp_conn_t *);
 extern void tcp_uc_abort(tcp_conn_t *);
 extern void tcp_uc_status(tcp_conn_t *, tcp_conn_status_t *);
 
@@ -57,7 +57,6 @@ extern void tcp_as_segment_arrived(tcp_sockpair_t *, tcp_segment_t *);
  * Timeouts
  */
 extern void tcp_to_user(void);
-extern void tcp_to_retransmit(void);
 
 #endif
 

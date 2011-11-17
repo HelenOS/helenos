@@ -67,6 +67,34 @@ typedef enum {
 	st_closed
 } tcp_cstate_t;
 
+/** Error codes returned by TCP user calls (per the spec). */
+typedef enum {
+	/* OK */
+	TCP_EOK,
+	/* Connection aborted due to user timeout */
+	TCP_EABORTED,
+	/* Connection already exists */
+	TCP_EEXISTS,
+	/* Connection closing */
+	TCP_ECLOSING,
+	/* Connection does not exist */
+	TCP_ENOTEXIST,
+	/* Connection illegal for this process */
+	TCP_EILLEGAL,
+	/* Connection not open */
+	TCP_ENOTOPEN,
+	/* Connection reset */
+	TCP_ERESET,
+	/* Foreign socket unspecified */
+	TCP_EUNSPEC,
+	/* Insufficient resources */
+	TCP_ENORES,
+	/* Precedence not allowed */
+	TCP_EINVPREC,
+	/* Security/compartment not allowed */
+	TCP_EINVCOMP
+} tcp_error_t;
+
 typedef enum {
 	XF_PUSH		= 0x1,
 	XF_URGENT	= 0x2

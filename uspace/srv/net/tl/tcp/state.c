@@ -53,6 +53,9 @@
  * @param fsock		Foreign socket
  * @param acpass	Active/passive
  * @param conn		Connection
+ *
+ * XXX We should be able to call active open on an existing listening
+ * connection.
  */
 void tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
     tcp_conn_t **conn)
@@ -79,12 +82,24 @@ void tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
 }
 
 /** SEND user call */
-void tcp_uc_send(tcp_conn_t *conn, void *data, size_t size, xflags_t flags)
+tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
+    xflags_t flags)
 {
 	size_t buf_free;
 	size_t xfer_size;
 
 	log_msg(LVL_DEBUG, "tcp_uc_send()");
+
+	if (conn->cstate == st_closed)
+		return TCP_ENOTEXIST;
+
+	if (conn->cstate == st_listen) {
+		/* Change connection to active */
+		tcp_conn_sync(conn);
+	}
+
+	if (conn->snd_buf_fin)
+		return TCP_ECLOSING;
 
 	while (size > 0) {
 		buf_free = conn->snd_buf_size - conn->snd_buf_used;
@@ -101,23 +116,20 @@ void tcp_uc_send(tcp_conn_t *conn, void *data, size_t size, xflags_t flags)
 	}
 
 	tcp_tqueue_new_data(conn);
+
+	return TCP_EOK;
 }
 
 /** RECEIVE user call */
-void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
-    xflags_t *xflags)
+tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
+    size_t *rcvd, xflags_t *xflags)
 {
 	size_t xfer_size;
 
 	log_msg(LVL_DEBUG, "tcp_uc_receive()");
 
-	/*
-	 * XXX Handle all states for all user calls properly, return
-	 * errors as appropriate.
-	 */
 	if (conn->cstate == st_closed)
-		return;
-
+		return TCP_ENOTEXIST;
 
 	fibril_mutex_lock(&conn->rcv_buf_lock);
 
@@ -129,11 +141,10 @@ void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
 
 	if (conn->rcv_buf_used == 0) {
 		/* End of data, peer closed connection. */
-		/* XXX How should RECEIVE signal end of data? */
 		assert(conn->rcv_buf_fin);
 		*rcvd = 0;
 		*xflags = 0;
-		return;
+		return TCP_ECLOSING;
 	}
 
 	/* Copy data from receive buffer to user buffer */
@@ -157,15 +168,25 @@ void tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size, size_t *rcvd,
 
 	log_msg(LVL_DEBUG, "tcp_uc_receive() - returning %zu bytes",
 	    xfer_size);
+
+	return TCP_EOK;
 }
 
 /** CLOSE user call */
-void tcp_uc_close(tcp_conn_t *conn)
+tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "tcp_uc_close()");
 
+	if (conn->cstate == st_closed)
+		return TCP_ENOTEXIST;
+
+	if (conn->snd_buf_fin)
+		return TCP_ECLOSING;
+
 	conn->snd_buf_fin = true;
 	tcp_tqueue_new_data(conn);
+
+	return TCP_EOK;
 }
 
 /** ABORT user call */
@@ -208,12 +229,6 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 void tcp_to_user(void)
 {
 	log_msg(LVL_DEBUG, "tcp_to_user()");
-}
-
-/** Retransmission timeout */
-void tcp_to_retransmit(void)
-{
-	log_msg(LVL_DEBUG, "tcp_to_retransmit()");
 }
 
 /**
