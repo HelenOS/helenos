@@ -137,7 +137,7 @@ void tcp_prepare_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 	seg->seq = conn->snd_nxt;
 	conn->snd_nxt += seg->len;
 
-	tcp_transmit_segment(&conn->ident, seg);
+	tcp_conn_transmit_segment(conn, seg);
 }
 
 /** Transmit data from the send buffer.
