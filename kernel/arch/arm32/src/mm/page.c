@@ -36,12 +36,13 @@
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
+#include <arch/mm/frame.h>
 #include <align.h>
 #include <config.h>
 #include <arch/exception.h>
 #include <typedefs.h>
 #include <interrupt.h>
-#include <arch/mm/frame.h>
+#include <macros.h>
 
 /** Initializes page tables.
  *
@@ -57,13 +58,16 @@ void page_arch_init(void)
 	
 	uintptr_t cur;
 	/* Kernel identity mapping */
-	for (cur = PHYSMEM_START_ADDR; cur < last_frame; cur += FRAME_SIZE)
+	for (cur = PHYSMEM_START_ADDR;
+	    cur < min(config.identity_base, last_frame); cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
 	/* Create mapping for exception table at high offset */
 #ifdef HIGH_EXCEPTION_VECTORS
+	// XXX: fixme to use proper non-identity page
 	void *virtaddr = frame_alloc(ONE_FRAME, FRAME_KA);
-	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, KA2PA(virtaddr), flags);
+	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, KA2PA(virtaddr),
+	    flags);
 #else
 #error "Only high exception vector supported now"
 #endif
