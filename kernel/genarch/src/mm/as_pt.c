@@ -72,7 +72,8 @@ as_operations_t as_pt_operations = {
  */
 pte_t *ptl0_create(unsigned int flags)
 {
-	pte_t *dst_ptl0 = (pte_t *) frame_alloc(PTL0_SIZE, FRAME_KA);
+	pte_t *dst_ptl0 = (pte_t *) frame_alloc(PTL0_SIZE,
+	    FRAME_LOWMEM | FRAME_KA);
 	size_t table_size = FRAME_SIZE << PTL0_SIZE;
 	
 	if (flags & FLAG_AS_KERNEL)
@@ -88,10 +89,10 @@ pte_t *ptl0_create(unsigned int flags)
 		pte_t *src_ptl0 =
 		    (pte_t *) PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
 		
-		uintptr_t src =
-		    (uintptr_t) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
-		uintptr_t dst =
-		    (uintptr_t) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		uintptr_t src = (uintptr_t)
+		    &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		uintptr_t dst = (uintptr_t)
+		    &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 		
 		memsetb(dst_ptl0, table_size, 0);
 		memcpy((void *) dst, (void *) src,

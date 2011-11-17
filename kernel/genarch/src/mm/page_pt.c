@@ -74,28 +74,37 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	ASSERT(page_table_locked(as));
 	
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-		pte_t *newpt = (pte_t *) frame_alloc(PTL1_SIZE, FRAME_KA);
+		pte_t *newpt = (pte_t *) frame_alloc(PTL1_SIZE,
+		    FRAME_LOWMEM | FRAME_KA);
 		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
-		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
+		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
+		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_WRITE);
 	}
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-		pte_t *newpt = (pte_t *) frame_alloc(PTL2_SIZE, FRAME_KA);
+		pte_t *newpt = (pte_t *) frame_alloc(PTL2_SIZE,
+		    FRAME_LOWMEM | FRAME_KA);
 		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
-		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
+		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
+		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_WRITE);
 	}
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-		pte_t *newpt = (pte_t *) frame_alloc(PTL3_SIZE, FRAME_KA);
+		pte_t *newpt = (pte_t *) frame_alloc(PTL3_SIZE,
+		    FRAME_LOWMEM | FRAME_KA);
 		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
-		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
+		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
+		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_WRITE);
 	}
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
