@@ -48,31 +48,38 @@
 #include <memstr.h>
 #include <print.h>
 #include <interrupt.h>
+#include <macros.h>
 
 void page_arch_init(void)
 {
 	uintptr_t cur;
 	int flags;
 	
-	if (config.cpu_active == 1) {
-		page_mapping_operations = &pt_mapping_operations;
+	if (config.cpu_active > 1) {
+		/* Fast path for non-boot CPUs */
+		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
+		paging_on();
+		return;
+	}
+
+	page_mapping_operations = &pt_mapping_operations;
 	
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		page_table_lock(AS_KERNEL, true);
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			flags = PAGE_CACHEABLE | PAGE_WRITE;
-			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
-				flags |= PAGE_GLOBAL;
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-		}
-		page_table_unlock(AS_KERNEL, true);
+	/*
+	 * PA2KA(identity) mapping for all frames until last_frame.
+	 */
+	page_table_lock(AS_KERNEL, true);
+	for (cur = 0; cur < min(config.identity_size, last_frame);
+	    cur += FRAME_SIZE) {
+		flags = PAGE_CACHEABLE | PAGE_WRITE;
+		if ((PA2KA(cur) >= config.base) && (PA2KA(cur) <
+		    config.base + config.kernel_size))
+			flags |= PAGE_GLOBAL;
+		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
+	}
+	page_table_unlock(AS_KERNEL, true);
 		
-		exc_register(14, "page_fault", true, (iroutine_t) page_fault);
-		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	} else
-		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
+	exc_register(14, "page_fault", true, (iroutine_t) page_fault);
+	write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 	
 	paging_on();
 }
