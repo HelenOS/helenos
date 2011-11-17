@@ -91,10 +91,10 @@ typedef uint8_t zone_flags_t;
 
 typedef struct {
 	size_t refcount;      /**< Tracking of shared frames */
-	uint8_t buddy_order;  /**< Buddy system block order */
 	link_t buddy_link;    /**< Link to the next free block inside
                                    one order */
 	void *parent;         /**< If allocated by slab, this points there */
+	uint8_t buddy_order;  /**< Buddy system block order */
 } frame_t;
 
 typedef struct {
