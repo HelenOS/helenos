@@ -59,6 +59,8 @@ static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
 static pte_t *ht_mapping_find(as_t *, uintptr_t, bool);
 
+slab_cache_t *pte_cache = NULL;
+
 /**
  * This lock protects the page hash table. It must be acquired
  * after address space lock and after any address space area
@@ -162,7 +164,7 @@ void remove_callback(link_t *item)
 	 */
 	pte_t *pte = hash_table_get_instance(item, pte_t, link);
 	
-	free(pte);
+	slab_free(pte_cache, pte);
 }
 
 /** Map page to frame using page hash table.
@@ -187,7 +189,7 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	ASSERT(page_table_locked(as));
 	
 	if (!hash_table_find(&page_ht, key)) {
-		pte_t *pte = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
+		pte_t *pte = slab_alloc(pte_cache, FRAME_LOWMEM | FRAME_ATOMIC);
 		ASSERT(pte != NULL);
 		
 		pte->g = (flags & PAGE_GLOBAL) != 0;
