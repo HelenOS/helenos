@@ -222,12 +222,12 @@ static char_dev_ops_t ns8250_char_dev_ops = {
 	.write = &ns8250_write
 };
 
-static int ns8250_add_device(ddf_dev_t *dev);
+static int ns8250_dev_add(ddf_dev_t *dev);
 static int ns8250_dev_remove(ddf_dev_t *dev);
 
 /** The serial port device driver's standard operations. */
 static driver_ops_t ns8250_ops = {
-	.add_device = &ns8250_add_device,
+	.dev_add = &ns8250_dev_add,
 	.dev_remove = &ns8250_dev_remove
 };
 
@@ -716,20 +716,20 @@ static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
 	return unregister_interrupt_handler(ns->dev, ns->irq);
 }
 
-/** The add_device callback method of the serial port driver.
+/** The dev_add callback method of the serial port driver.
  *
  * Probe and initialize the newly added device.
  *
  * @param dev		The serial port device.
  */
-static int ns8250_add_device(ddf_dev_t *dev)
+static int ns8250_dev_add(ddf_dev_t *dev)
 {
 	ns8250_t *ns = NULL;
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
 	int rc;
 	
-	ddf_msg(LVL_DEBUG, "ns8250_add_device %s (handle = %d)",
+	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
 	    dev->name, (int) dev->handle);
 	
 	/* Allocate soft-state for the device */

@@ -47,9 +47,9 @@
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int ohci_add_device(ddf_dev_t *device)
+static int ohci_dev_add(ddf_dev_t *device)
 {
-	usb_log_debug("ohci_add_device() called\n");
+	usb_log_debug("ohci_dev_add() called\n");
 	assert(device);
 
 	int ret = device_setup_ohci(device);
@@ -64,7 +64,7 @@ static int ohci_add_device(ddf_dev_t *device)
 }
 /*----------------------------------------------------------------------------*/
 static driver_ops_t ohci_driver_ops = {
-	.add_device = ohci_add_device,
+	.dev_add = ohci_dev_add,
 };
 /*----------------------------------------------------------------------------*/
 static driver_t ohci_driver = {

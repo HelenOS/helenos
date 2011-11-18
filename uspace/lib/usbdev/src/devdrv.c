@@ -45,7 +45,7 @@ static int generic_device_remove(ddf_dev_t *);
 static int generic_device_gone(ddf_dev_t *);
 
 static driver_ops_t generic_driver_ops = {
-	.add_device = generic_device_add,
+	.dev_add = generic_device_add,
 	.dev_remove = generic_device_remove,
 	.dev_gone = generic_device_gone,
 };

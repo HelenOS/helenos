@@ -287,7 +287,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	(void) parent_fun_handle;
 	
-	res = driver->driver_ops->add_device(dev);
+	res = driver->driver_ops->dev_add(dev);
 	
 	if (res != EOK) {
 		dev_del_ref(dev);

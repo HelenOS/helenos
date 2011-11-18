@@ -50,10 +50,10 @@
 static int hc_get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
 
-static int uhci_rh_add_device(ddf_dev_t *device);
+static int uhci_rh_dev_add(ddf_dev_t *device);
 
 static driver_ops_t uhci_rh_driver_ops = {
-	.add_device = uhci_rh_add_device,
+	.dev_add = uhci_rh_dev_add,
 };
 
 static driver_t uhci_rh_driver = {
@@ -81,12 +81,12 @@ int main(int argc, char *argv[])
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int uhci_rh_add_device(ddf_dev_t *device)
+static int uhci_rh_dev_add(ddf_dev_t *device)
 {
 	if (!device)
 		return EINVAL;
 
-	usb_log_debug2("uhci_rh_add_device(handle=%" PRIun ")\n",
+	usb_log_debug2("uhci_rh_dev_add(handle=%" PRIun ")\n",
 	    device->handle);
 
 	uintptr_t io_regs = 0;

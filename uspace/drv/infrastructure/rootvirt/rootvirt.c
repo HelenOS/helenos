@@ -61,13 +61,13 @@ virtual_function_t virtual_functions[] = {
 	}
 };
 
-static int rootvirt_add_device(ddf_dev_t *dev);
+static int rootvirt_dev_add(ddf_dev_t *dev);
 static int rootvirt_dev_remove(ddf_dev_t *dev);
 static int rootvirt_fun_online(ddf_fun_t *fun);
 static int rootvirt_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t rootvirt_ops = {
-	.add_device = &rootvirt_add_device,
+	.dev_add = &rootvirt_dev_add,
 	.dev_remove = &rootvirt_dev_remove,
 	.fun_online = &rootvirt_fun_online,
 	.fun_offline = &rootvirt_fun_offline
@@ -171,7 +171,7 @@ static int rootvirt_fun_remove(rootvirt_fun_t *rvfun)
 }
 
 
-static int rootvirt_add_device(ddf_dev_t *dev)
+static int rootvirt_dev_add(ddf_dev_t *dev)
 {
 	rootvirt_t *rootvirt;
 
@@ -182,7 +182,7 @@ static int rootvirt_add_device(ddf_dev_t *dev)
 		return ELIMIT;
 	}
 
-	ddf_msg(LVL_DEBUG, "add_device(handle=%d)", (int)dev->handle);
+	ddf_msg(LVL_DEBUG, "dev_add(handle=%d)", (int)dev->handle);
 
 	rootvirt = ddf_dev_data_alloc(dev, sizeof(rootvirt_t));
 	if (rootvirt == NULL)
