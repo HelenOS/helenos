@@ -971,10 +971,8 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	}
 
 	if (fblock == 0) {
-
 		rc =  ext4_balloc_alloc_block(fs, inode_ref, &fblock);
 		if (rc != EOK) {
-			EXT4FS_DBG("allocation failed");
 			ext4fs_node_put(fn);
 			async_answer_0(callid, rc);
 			return rc;

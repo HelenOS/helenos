@@ -135,7 +135,6 @@ int ext4_balloc_free_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, u
 		return rc;
 	}
 
-//	EXT4FS_DBG("released block \%u (idx = \%u)", block_addr, index_in_group);
 	return EOK;
 }
 
@@ -190,13 +189,8 @@ static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *i
 		// If goal == 0 -> SPARSE file !!!
 
 		goal++;
-
-//		EXT4FS_DBG("goal = \%u, inode_block_count == \%u", goal, inode_block_count);
-
 		return goal;
 	}
-
-//	EXT4FS_DBG("Inode has no blocks");
 
 	// Identify block group of inode
 	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(fs->superblock);
@@ -242,8 +236,8 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 	int rc;
 	uint32_t allocated_block = 0;
 
-	uint32_t bitmap_block;
-	block_t *block;
+	uint32_t bitmap_block_addr;
+	block_t *bitmap_block;
 	uint32_t rel_block_idx = 0;
 
 	// Find GOAL
@@ -257,8 +251,6 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 	// Load block group number for goal and relative index
 	uint32_t block_group = ext4_balloc_get_bgid_of_block(fs->superblock, goal);
 	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(fs->superblock, goal);
-//	EXT4FS_DBG("block_group = \%u, index_in_group = \%u", block_group, index_in_group);
-
 
 
 	ext4_block_group_ref_t *bg_ref;
@@ -272,27 +264,28 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 			ext4_balloc_get_first_data_block_in_group(fs->superblock,
 					bg_ref->block_group, block_group);
 
-	if (index_in_group < first_in_group) {
-		index_in_group = first_in_group;
+	uint32_t first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
+			fs->superblock, first_in_group);
+
+	if (index_in_group < first_in_group_index) {
+		index_in_group = first_in_group_index;
 	}
 
 	// Load bitmap
-	bitmap_block = ext4_block_group_get_block_bitmap(bg_ref->block_group);
+	bitmap_block_addr = ext4_block_group_get_block_bitmap(bg_ref->block_group);
 
-	rc = block_get(&block, fs->device, bitmap_block, 0);
+	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
 	if (rc != EOK) {
 		ext4_filesystem_put_block_group_ref(bg_ref);
 		EXT4FS_DBG("initial bitmap not loaded");
 		return rc;
 	}
 
-//	EXT4FS_DBG("bitmap loaded");
-
 	// Check if goal is free
-	if (ext4_bitmap_is_free_bit(block->data, index_in_group)) {
-		ext4_bitmap_set_bit(block->data, index_in_group);
-		block->dirty = true;
-		rc = block_put(block);
+	if (ext4_bitmap_is_free_bit(bitmap_block->data, index_in_group)) {
+		ext4_bitmap_set_bit(bitmap_block->data, index_in_group);
+		bitmap_block->dirty = true;
+		rc = block_put(bitmap_block);
 		if (rc != EOK) {
 			// TODO error
 			EXT4FS_DBG("goal check: error in saving initial bitmap \%d", rc);
@@ -307,8 +300,6 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 	uint32_t blocks_in_group = ext4_superblock_get_blocks_in_group(fs->superblock, block_group);
 
-//	EXT4FS_DBG("index = \%u (goal = \%u), blocks_in_group = \%u", index_in_group, goal, blocks_in_group);
-
 	uint32_t end_idx = (index_in_group + 63) & ~63;
 	if (end_idx > blocks_in_group) {
 		end_idx = blocks_in_group;
@@ -316,11 +307,11 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 	// Try to find free block near to goal
 	for (uint32_t tmp_idx = index_in_group + 1; tmp_idx < end_idx; ++tmp_idx) {
-		if (ext4_bitmap_is_free_bit(block->data, tmp_idx)) {
+		if (ext4_bitmap_is_free_bit(bitmap_block->data, tmp_idx)) {
 
-			ext4_bitmap_set_bit(block->data, tmp_idx);
-			block->dirty = true;
-			rc = block_put(block);
+			ext4_bitmap_set_bit(bitmap_block->data, tmp_idx);
+			bitmap_block->dirty = true;
+			rc = block_put(bitmap_block);
 			if (rc != EOK) {
 				// TODO error
 				EXT4FS_DBG("near blocks: error in saving initial bitmap \%d", rc);
@@ -329,20 +320,16 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
 					fs->superblock, tmp_idx, block_group);
 
-
-//			EXT4FS_DBG("block \%u (idx = \%u) allocated, goal = \%u", allocated_block, tmp_idx, goal);
-
 			goto success;
 		}
 
 	}
 
 	// Find free BYTE in bitmap
-//	EXT4FS_DBG("try find free byte in own BG");
-	rc = ext4_bitmap_find_free_byte_and_set_bit(block->data, index_in_group, &rel_block_idx, blocks_in_group);
+	rc = ext4_bitmap_find_free_byte_and_set_bit(bitmap_block->data, index_in_group, &rel_block_idx, blocks_in_group);
 	if (rc == EOK) {
-		block->dirty = true;
-		rc = block_put(block);
+		bitmap_block->dirty = true;
+		rc = block_put(bitmap_block);
 		if (rc != EOK) {
 			// TODO error
 			EXT4FS_DBG("free byte: error in saving initial bitmap \%d", rc);
@@ -351,17 +338,14 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 		allocated_block = ext4_balloc_index_in_group2blockaddr(
 				fs->superblock, rel_block_idx, block_group);
 
-//		EXT4FS_DBG("block \%u allocated, index = \%u, goal = \%u", allocated_block, rel_block_idx, goal);
-
 		goto success;
 	}
 
 	// Find free bit in bitmap
-	EXT4FS_DBG("find free bit");
-	rc = ext4_bitmap_find_free_bit_and_set(block->data, index_in_group, &rel_block_idx, blocks_in_group);
+	rc = ext4_bitmap_find_free_bit_and_set(bitmap_block->data, index_in_group, &rel_block_idx, blocks_in_group);
 	if (rc == EOK) {
-		block->dirty = true;
-		rc = block_put(block);
+		bitmap_block->dirty = true;
+		rc = block_put(bitmap_block);
 		if (rc != EOK) {
 			// TODO error
 			EXT4FS_DBG("free bit: error in saving initial bitmap \%d", rc);
@@ -370,12 +354,10 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 		allocated_block = ext4_balloc_index_in_group2blockaddr(
 				fs->superblock, rel_block_idx, block_group);
 
-		EXT4FS_DBG("find free bit: block \%u allocated, index = \%u, goal = \%u", allocated_block, rel_block_idx, goal);
-
 		goto success;
 	}
 
-	block_put(block);
+	block_put(bitmap_block);
 	ext4_filesystem_put_block_group_ref(bg_ref);
 
 	// Try other block groups
@@ -385,8 +367,6 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 	uint32_t count = block_group_count;
 
 	while (count > 0) {
-		EXT4FS_DBG("trying group \%u", bgid);
-
 		rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
 		if (rc != EOK) {
 			EXT4FS_DBG("errrrrrrrrrrr");
@@ -394,9 +374,9 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 		}
 
 		// Load bitmap
-		bitmap_block = ext4_block_group_get_block_bitmap(bg_ref->block_group);
+		bitmap_block_addr = ext4_block_group_get_block_bitmap(bg_ref->block_group);
 
-		rc = block_get(&block, fs->device, bitmap_block, 0);
+		rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
 		if (rc != EOK) {
 			ext4_filesystem_put_block_group_ref(bg_ref);
 			EXT4FS_DBG("errrrrrrrrrr");
@@ -409,15 +389,18 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 						first_in_group);
 		blocks_in_group = ext4_superblock_get_blocks_in_group(fs->superblock, bgid);
 
-		if (index_in_group < first_in_group) {
-			index_in_group = first_in_group;
+		first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
+			fs->superblock, first_in_group);
+
+		if (index_in_group < first_in_group_index) {
+			index_in_group = first_in_group_index;
 		}
 
-//		EXT4FS_DBG("trying free byte in bg \%u", bgid);
-		rc = ext4_bitmap_find_free_byte_and_set_bit(block->data, index_in_group, &rel_block_idx, blocks_in_group);
+
+		rc = ext4_bitmap_find_free_byte_and_set_bit(bitmap_block->data, index_in_group, &rel_block_idx, blocks_in_group);
 		if (rc == EOK) {
-			block->dirty = true;
-			rc = block_put(block);
+			bitmap_block->dirty = true;
+			rc = block_put(bitmap_block);
 			if (rc != EOK) {
 				// TODO error
 				EXT4FS_DBG("error in saving bitmap \%d", rc);
@@ -425,18 +408,15 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
 					fs->superblock, rel_block_idx, bgid);
-
-			EXT4FS_DBG("byte: block \%u allocated, index = \%u, goal = \%u", allocated_block, rel_block_idx, goal);
 
 			goto success;
 		}
 
 		// Find free bit in bitmap
-		rc = ext4_bitmap_find_free_bit_and_set(block->data, index_in_group, &rel_block_idx, blocks_in_group);
-//		EXT4FS_DBG("trying free bit in bg \%u", bgid);
+		rc = ext4_bitmap_find_free_bit_and_set(bitmap_block->data, index_in_group, &rel_block_idx, blocks_in_group);
 		if (rc == EOK) {
-			block->dirty = true;
-			rc = block_put(block);
+			bitmap_block->dirty = true;
+			rc = block_put(bitmap_block);
 			if (rc != EOK) {
 				// TODO error
 				EXT4FS_DBG("error in saving bitmap \%d", rc);
@@ -444,28 +424,23 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, 
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
 					fs->superblock, rel_block_idx, bgid);
-
-			EXT4FS_DBG("bit: block \%u allocated, index = \%u, goal = \%u", allocated_block, rel_block_idx, goal);
 
 			goto success;
 		}
 
 
 		// Next group
-		block_put(block);
+		block_put(bitmap_block);
 		ext4_filesystem_put_block_group_ref(bg_ref);
 		bgid = (bgid + 1) % block_group_count;
 		count--;
 	}
 
-	EXT4FS_DBG("No free block found");
 	return ENOSPC;
 
 success:
-
-	;
-//	EXT4FS_DBG("returning block \%u", allocated_block);
-
+	; 	// Empty command - because of syntax
+	
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	// TODO decrement superblock free blocks count
@@ -484,9 +459,6 @@ success:
 	bg_ref->dirty = true;
 
 	ext4_filesystem_put_block_group_ref(bg_ref);
-
-//	if (goal > 1980)
-//		EXT4FS_DBG("block \%u allocated", allocated_block);
 
 	*fblock = allocated_block;
 	return EOK;

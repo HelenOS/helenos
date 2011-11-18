@@ -113,7 +113,7 @@ int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
 	while ((idx % 8) != 0) {
 		byte_part = true;
 
-		if (*pos & (1 << (idx % 8))) {
+		if ((*pos & (1 << (idx % 8))) == 0) {
 			*pos |= (1 << (idx % 8));
 			*index = idx;
 			return EOK;
