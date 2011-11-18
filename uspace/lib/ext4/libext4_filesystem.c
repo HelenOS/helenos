@@ -71,8 +71,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	}
 
 	/* Initialize block caching */
-	// TODO set cache MODE to write through (now writeback for faster testing)
-	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WB);
+	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
@@ -386,7 +385,6 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 		// TODO
 		return ENOTSUP;
-
 	}
 
 	/* Handle simple case when we are dealing with direct reference */
@@ -417,7 +415,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 	offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 
 	if (current_block == 0) {
-		rc = ext4_bitmap_alloc_block(fs, inode_ref, &new_block_addr);
+		rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
 		if (rc != EOK) {
 			// TODO error
 			EXT4FS_DBG("error in allocation");
@@ -459,34 +457,37 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 
 		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 
-		if (current_block == 0) {
-			if (level > 1) {
-
-				rc = ext4_bitmap_alloc_block(fs, inode_ref, &new_block_addr);
-				if (rc != EOK) {
-					// TODO error
-					EXT4FS_DBG("allocation error");
-				}
-
-				rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
-				if (rc != EOK) {
-					// TODO error
-
-					EXT4FS_DBG("BBB: error block loading");
-
-				}
-				memset(new_block->data, 0, block_size);
-				new_block->dirty = true;
-
-				block_put(new_block);
-
-				((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(new_block_addr);
-				block->dirty = true;
-				current_block = new_block_addr;
-			} else {
-				((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(fblock);
-				block->dirty = true;
+		if ((level > 1) && (current_block == 0)) {
+			rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
+			if (rc != EOK) {
+				// TODO error
+				EXT4FS_DBG("allocation error");
 			}
+			EXT4FS_DBG("BBB: new addr \%u, offset = \%u, level = \%u", new_block_addr, offset_in_block, level);
+
+			rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
+			if (rc != EOK) {
+				// TODO error
+
+				EXT4FS_DBG("BBB: error block loading");
+
+			}
+			memset(new_block->data, 0, block_size);
+			new_block->dirty = true;
+
+			rc = block_put(new_block);
+			if (rc != EOK) {
+				EXT4FS_DBG("BBB: error indirect block saving");
+			}
+
+			((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(new_block_addr);
+			block->dirty = true;
+			current_block = new_block_addr;
+		}
+
+		if (level == 1) {
+			((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(fblock);
+			block->dirty = true;
 		}
 
 		rc = block_put(block);
@@ -536,7 +537,7 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		}
 
 		ext4_inode_set_direct_block(inode, iblock, 0);
-		return ext4_bitmap_free_block(fs, inode_ref, fblock);
+		return ext4_balloc_free_block(fs, inode_ref, fblock);
 	}
 
 
@@ -600,10 +601,9 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		return EOK;
 	}
 
-	return ext4_bitmap_free_block(fs, inode_ref, fblock);
+	return ext4_balloc_free_block(fs, inode_ref, fblock);
 
 }
-
 
 /**
  * @}

@@ -279,6 +279,49 @@ int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 	return EOK;
 }
 
+uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *sb)
+{
+	uint64_t blocks_count = ext4_superblock_get_blocks_count(sb);
+	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+
+	uint32_t block_groups_count = blocks_count / blocks_per_group;
+
+	if (blocks_count % blocks_per_group) {
+		block_groups_count++;
+	}
+
+	return block_groups_count;
+
+}
+
+uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgid)
+{
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
+	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+	uint64_t total_blocks = ext4_superblock_get_blocks_count(sb);
+
+	if (bgid < block_group_count - 1) {
+		return blocks_per_group;
+	} else {
+		return (total_blocks - ((block_group_count - 1) * blocks_per_group));
+	}
+
+}
+
+uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *sb, uint32_t bgid)
+{
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
+	uint32_t total_inodes = ext4_superblock_get_inodes_count(sb);
+
+	if (bgid < block_group_count - 1) {
+		return inodes_per_group;
+	} else {
+		return (total_inodes - ((block_group_count - 1) * inodes_per_group));
+	}
+
+}
+
 /**
  * @}
  */ 

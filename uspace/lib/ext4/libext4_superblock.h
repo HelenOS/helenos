@@ -301,6 +301,10 @@ extern bool ext4_superblock_has_feature_read_only(ext4_superblock_t *, uint32_t)
 extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
 extern int ext4_superblock_check_sanity(ext4_superblock_t *);
 
+extern uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *);
+extern uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *, uint32_t);
+extern uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *, uint32_t);
+
 #endif
 
 /**

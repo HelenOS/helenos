@@ -972,7 +972,7 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	if (fblock == 0) {
 
-		rc =  ext4_bitmap_alloc_block(fs, inode_ref, &fblock);
+		rc =  ext4_balloc_alloc_block(fs, inode_ref, &fblock);
 		if (rc != EOK) {
 			EXT4FS_DBG("allocation failed");
 			ext4fs_node_put(fn);
@@ -980,11 +980,13 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			return rc;
 		}
 
-		ext4_filesystem_set_inode_data_block_index(fs, inode_ref, iblock, fblock);
+		rc = ext4_filesystem_set_inode_data_block_index(fs, inode_ref, iblock, fblock);
+		if (rc != EOK) {
+			EXT4FS_DBG("ERROR: setting index failed");
+		}
 		inode_ref->dirty = true;
 
 		flags = BLOCK_FLAGS_NOREAD;
-
 	}
 
 	rc = block_get(&write_block, service_id, fblock, flags);

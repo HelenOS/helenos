@@ -75,66 +75,78 @@ bool ext4_bitmap_is_free_bit(uint8_t *bitmap, uint32_t index)
 
 }
 
-int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start, uint32_t *index, uint32_t size)
+int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start, uint32_t *index, uint32_t max)
 {
-	uint8_t *pos = bitmap + (start / 8) + 1;
+	uint32_t idx;
+	if (start % 8) {
+		idx = start + (8 - (start % 8));
+	} else {
+		idx = start;
+	}
 
-	while (pos < bitmap + size) {
+	uint8_t *pos = bitmap + (idx / 8);
+
+	while (idx < max) {
+
 		if (*pos == 0) {
 			*pos |= 1;
 
-			*index = (pos - bitmap) * 8;
+			*index = idx;
 			return EOK;
 		}
 
+		idx += 8;
 		++pos;
 	}
 
 	return ENOSPC;
-
 }
 
-int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start, uint32_t *index, uint32_t size)
+int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
+		uint32_t *index, uint32_t max)
 {
-	uint8_t *pos = bitmap + (start / 8);
-	int i;
-	uint8_t value, new_value;
+	uint8_t *pos = bitmap + (start_idx / 8);
+	uint32_t idx = start_idx;
+	bool byte_part = false;
 
-	while (pos < bitmap + size) {
+	// Check the rest of byte
+	while ((idx % 8) != 0) {
+		byte_part = true;
+
+		if (*pos & (1 << (idx % 8))) {
+			*pos |= (1 << (idx % 8));
+			*index = idx;
+			return EOK;
+		}
+
+		++idx;
+	}
+
+	if (byte_part) {
+		++pos;
+	}
+
+	while (idx < max) {
+
 		if ((*pos & 255) != 255) {
 			// free bit found
 			break;
 		}
 
+		idx += 8;
 		++pos;
 	}
 
-	// Check the byte containing start
-	if (pos == bitmap + (start / 8)) {
-		for (i = start % 8; i < 8; ++i) {
-			value = *pos;
-			if ((value & (1 << i)) == 0) {
+
+	if (idx < max) {
+		for (uint8_t i = 0; i < 8; ++i) {
+			if ((*pos & (1 << i)) == 0) {
 				// free bit found
-				new_value = value | (1 << i);
-				*pos = new_value;
-				*index = (pos - bitmap) * 8 + i;
+				*pos |=  (1 << i);
+				*index = idx;
 				return EOK;
 			}
-		}
-	}
-
-	if (pos < bitmap + size) {
-
-		for(i = 0; i < 8; ++i) {
-			value = *pos;
-
-			if ((value & (1 << i)) == 0) {
-				// free bit found
-				new_value = value | (1 << i);
-				*pos = new_value;
-				*index = (pos - bitmap) * 8 + i;
-				return EOK;
-			}
+			idx++;
 		}
 	}
 
