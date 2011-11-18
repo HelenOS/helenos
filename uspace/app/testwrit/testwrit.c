@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	iterations = strtoul(argv[1], &end, 10);
 	file_name = argv[2];
 
-	file = fopen(file_name, "w");
+	file = fopen(file_name, "a");
 	if (file == NULL) {
 		printf("Failed opening file\n");
 		return 1;
