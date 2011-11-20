@@ -56,23 +56,11 @@ static void init_e820_memory(pfn_t minconf, bool low)
 	unsigned int i;
 	
 	for (i = 0; i < e820counter; i++) {
-		uint64_t base = e820table[i].base_address;
-		uint64_t size = e820table[i].size;
-		uintptr_t limit = config.identity_size;
+		uintptr_t base = (uintptr_t) e820table[i].base_address;
+		size_t size = (size_t) e820table[i].size;
 		
-		if (low) {
-			if (base > limit)
-				continue;
-			if (base + size > limit)
-				size = limit - base;
-		} else {
-			if (base + size <= limit)
-				continue;
-			if (base <= limit) {
-				size -= limit - base;
-				base = limit;
-			}
-		}
+		if (!frame_adjust_zone_bounds(low, &base, &size))
+			continue;
 		
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 			/* To be safe, make the available zone possibly smaller */
@@ -92,7 +80,6 @@ static void init_e820_memory(pfn_t minconf, bool low)
 				zone_create(pfn, count, conf,
 				    ZONE_AVAILABLE | ZONE_LOWMEM);
 			} else {
-				printf("count=%lld\n", (long long int) count);
 				conf = zone_external_conf_alloc(count);
 				zone_create(pfn, count, conf,
 				    ZONE_AVAILABLE | ZONE_HIGHMEM);

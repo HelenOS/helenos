@@ -1263,6 +1263,38 @@ void frame_init(void)
 	frame_high_arch_init();
 }
 
+/** Adjust bounds of physical memory region according to low/high memory split.
+ *
+ * @param low[in]	If true, the adujstment is performed to make the region
+ *			fit in the low memory. Otherwise the adjustment is
+ *			performed to make the region fit in the high memory.
+ * @param basep[inout]	Pointer to a variable which contains the region's base
+ *			address and which may receive the adjusted base address.
+ * @param sizep[inout]	Pointer to a variable which contains the region's size
+ *			and which may receive the adjusted size.
+ * @retun		True if the region still exists even after the
+ *			adjustment, false otherwise.
+ */
+bool frame_adjust_zone_bounds(bool low, uintptr_t *basep, size_t *sizep)
+{
+	uintptr_t limit = config.identity_size;
+
+	if (low) {
+		if (*basep > limit)
+			return false;
+		if (*basep + *sizep > limit)
+			*sizep = limit - *basep;
+	} else {
+		if (*basep + *sizep <= limit)
+			return false;
+		if (*basep <= limit) {
+			*sizep -= limit - *basep;
+			*basep = limit;
+		}
+	}
+	return true;
+}
+
 /** Return total size of all zones.
  *
  */

@@ -158,6 +158,7 @@ NO_TRACE static inline size_t FRAMES2SIZE(size_t frames)
     (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
 extern void frame_init(void);
+extern bool frame_adjust_zone_bounds(bool, uintptr_t *, size_t *);
 extern void *frame_alloc_generic(uint8_t, frame_flags_t, size_t *);
 extern void *frame_alloc(uint8_t, frame_flags_t);
 extern void *frame_alloc_noreserve(uint8_t, frame_flags_t);
