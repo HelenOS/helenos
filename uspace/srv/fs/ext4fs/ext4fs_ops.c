@@ -610,7 +610,7 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	/* Do some sanity checking */
 	rc = ext4_filesystem_check_sanity(fs);
 	if (rc != EOK) {
-		ext4_filesystem_fini(fs);
+		ext4_filesystem_fini(fs, false);
 		free(fs);
 		free(inst);
 		return rc;
@@ -619,7 +619,7 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	/* Check flags */
 	rc = ext4_filesystem_check_features(fs, &read_only);
 	if (rc != EOK) {
-		ext4_filesystem_fini(fs);
+		ext4_filesystem_fini(fs, false);
 		free(fs);
 		free(inst);
 		return rc;
@@ -635,7 +635,7 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	fs_node_t *root_node;
 	rc = ext4fs_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
 	if (rc != EOK) {
-		ext4_filesystem_fini(fs);
+		ext4_filesystem_fini(fs, false);
 		free(fs);
 		free(inst);
 		return rc;
@@ -682,9 +682,7 @@ static int ext4fs_unmounted(service_id_t service_id)
 
 	fibril_mutex_unlock(&open_nodes_lock);
 
-	ext4_filesystem_fini(inst->filesystem);
-
-	return EOK;
+	return ext4_filesystem_fini(inst->filesystem, true);
 }
 
 

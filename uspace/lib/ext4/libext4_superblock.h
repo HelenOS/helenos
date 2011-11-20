@@ -204,6 +204,7 @@ extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_blocks_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_reserved_blocks_count(ext4_superblock_t *);
 extern uint64_t ext4_superblock_get_free_blocks_count(ext4_superblock_t *);
+extern void ext4_superblock_set_free_blocks_count(ext4_superblock_t *, uint64_t);
 extern uint32_t ext4_superblock_get_free_inodes_count(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_first_data_block(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_log_block_size(ext4_superblock_t *);
@@ -299,6 +300,7 @@ extern bool ext4_superblock_has_feature_compatible(ext4_superblock_t *, uint32_t
 extern bool ext4_superblock_has_feature_incompatible(ext4_superblock_t *, uint32_t);
 extern bool ext4_superblock_has_feature_read_only(ext4_superblock_t *, uint32_t);
 extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
+extern int ext4_superblock_write_direct(service_id_t, ext4_superblock_t *);
 extern int ext4_superblock_check_sanity(ext4_superblock_t *);
 
 extern uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *);

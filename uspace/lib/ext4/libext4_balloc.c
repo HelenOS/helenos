@@ -116,17 +116,22 @@ int ext4_balloc_free_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, u
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
+	// Update superblock free blocks count
+	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(fs->superblock);
+	sb_free_blocks--;
+	ext4_superblock_set_free_blocks_count(fs->superblock, sb_free_blocks);
+
+	// Update inode blocks count
 	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
 	ino_blocks -= block_size / EXT4_INODE_BLOCK_SIZE;
 	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
 	inode_ref->dirty = true;
 
+	// Update block group free blocks count
 	uint32_t free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
 	free_blocks++;
 	ext4_block_group_set_free_blocks_count(bg_ref->block_group, free_blocks);
 	bg_ref->dirty = true;
-
-	// TODO change free blocks count in superblock
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
@@ -443,16 +448,18 @@ success:
 	
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
-	// TODO decrement superblock free blocks count
-	//uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
-	//sb_free_blocks--;
-	//ext4_superblock_set_free_blocks_count(sb, sb_free_blocks);
+	// Update superblock free blocks count
+	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(fs->superblock);
+	sb_free_blocks--;
+	ext4_superblock_set_free_blocks_count(fs->superblock, sb_free_blocks);
 
+	// Update inode blocks (different block size!) count
 	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
 	ino_blocks += block_size / EXT4_INODE_BLOCK_SIZE;
 	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
 	inode_ref->dirty = true;
 
+	// Update block group free blocks count
 	uint32_t bg_free_blocks = ext4_block_group_get_free_blocks_count(bg_ref->block_group);
 	bg_free_blocks--;
 	ext4_block_group_set_free_blocks_count(bg_ref->block_group, bg_free_blocks);

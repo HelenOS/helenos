@@ -93,10 +93,17 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	return EOK;
 }
 
-void ext4_filesystem_fini(ext4_filesystem_t *fs)
+int ext4_filesystem_fini(ext4_filesystem_t *fs, bool write_sb)
 {
+	int rc = EOK;
+	if (write_sb) {
+		rc = ext4_superblock_write_direct(fs->device, fs->superblock);
+	}
+
 	free(fs->superblock);
 	block_fini(fs->device);
+
+	return rc;
 }
 
 int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
@@ -463,7 +470,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 				// TODO error
 				EXT4FS_DBG("allocation error");
 			}
-			EXT4FS_DBG("BBB: new addr \%u, offset = \%u, level = \%u", new_block_addr, offset_in_block, level);
+//			EXT4FS_DBG("BBB: new addr \%u, offset = \%u, level = \%u", new_block_addr, offset_in_block, level);
 
 			rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 			if (rc != EOK) {

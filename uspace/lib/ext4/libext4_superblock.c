@@ -64,6 +64,12 @@ uint64_t ext4_superblock_get_free_blocks_count(ext4_superblock_t *sb)
 			uint32_t_le2host(sb->free_blocks_count_lo);
 }
 
+void ext4_superblock_set_free_blocks_count(ext4_superblock_t *sb, uint64_t count)
+{
+	sb->free_blocks_count_lo = host2uint32_t_le((count << 32) >> 32);
+	sb->free_blocks_count_hi = host2uint32_t_le(count >> 32);
+}
+
 uint32_t ext4_superblock_get_free_inodes_count(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->free_inodes_count);
@@ -267,6 +273,32 @@ int ext4_superblock_read_direct(service_id_t service_id,
 
 	return EOK;
 }
+
+int ext4_superblock_write_direct(service_id_t service_id,
+		ext4_superblock_t *sb)
+{
+	int rc;
+	uint32_t phys_block_size;
+	uint64_t first_block;
+	uint32_t block_count;
+
+	rc = block_get_bsize(service_id, &phys_block_size);
+	if (rc != EOK) {
+		// TODO error
+		return rc;
+	}
+
+	first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
+	block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
+
+	if (EXT4_SUPERBLOCK_SIZE % phys_block_size) {
+		block_count++;
+	}
+
+	return block_write_direct(service_id, first_block, block_count, sb);
+
+}
+
 
 int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 {
