@@ -235,6 +235,26 @@ void ext4_inode_set_generation(ext4_inode_t *inode, uint32_t generation)
 	inode->generation = host2uint32_t_le(generation);
 }
 
+uint64_t ext4_get_inode_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb)
+{
+	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_LINUX) {
+		return ((uint32_t)uint16_t_le2host(inode->osd2.linux2.file_acl_high)) << 16 |
+		    (uint32_t_le2host(inode->file_acl_lo));
+	}
+
+	return uint32_t_le2host(inode->file_acl_lo);
+}
+
+void ext4_set_inode_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb,
+		uint64_t file_acl)
+{
+	inode->file_acl_lo = host2uint32_t_le((file_acl << 32) >> 32);
+
+	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_LINUX) {
+		inode->osd2.linux2.file_acl_high = host2uint16_t_le(file_acl >> 32);
+	}
+}
+
 /***********************************************************************/
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint32_t idx)

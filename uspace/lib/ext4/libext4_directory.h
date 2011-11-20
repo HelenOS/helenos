@@ -62,10 +62,16 @@ typedef struct ext4_directory_iterator {
 
 
 extern uint32_t	ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *);
+extern void ext4_directory_entry_ll_set_inode(ext4_directory_entry_ll_t *,
+		uint32_t);
 extern uint16_t	ext4_directory_entry_ll_get_entry_length(
     ext4_directory_entry_ll_t *);
+extern void ext4_directory_entry_ll_set_entry_length(
+		ext4_directory_entry_ll_t *, uint16_t);
 extern uint16_t	ext4_directory_entry_ll_get_name_length(
     ext4_superblock_t *, ext4_directory_entry_ll_t *);
+extern void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *,
+		ext4_directory_entry_ll_t *, uint16_t);
 
 extern int ext4_directory_iterator_init(ext4_directory_iterator_t *,
 		ext4_filesystem_t *, ext4_inode_ref_t *, aoff64_t);

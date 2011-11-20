@@ -48,10 +48,22 @@ uint32_t ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *de)
 	return uint32_t_le2host(de->inode);
 }
 
+void ext4_directory_entry_ll_set_inode(ext4_directory_entry_ll_t *de,
+		uint32_t inode)
+{
+	de->inode = host2uint32_t_le(inode);
+}
+
 uint16_t ext4_directory_entry_ll_get_entry_length(
-    ext4_directory_entry_ll_t *de)
+		ext4_directory_entry_ll_t *de)
 {
 	return uint16_t_le2host(de->entry_length);
+}
+
+void ext4_directory_entry_ll_set_entry_length(ext4_directory_entry_ll_t *de,
+		uint16_t length)
+{
+	de->entry_length = host2uint16_t_le(length);
 }
 
 uint16_t ext4_directory_entry_ll_get_name_length(
@@ -59,46 +71,29 @@ uint16_t ext4_directory_entry_ll_get_name_length(
 {
 	if (ext4_superblock_get_rev_level(sb) == 0 &&
 	    ext4_superblock_get_minor_rev_level(sb) < 5) {
-		return ((uint16_t)de->name_length_high) << 8 |
-		    ((uint16_t)de->name_length);
+
+		return de->name_length;
 	}
-	return de->name_length;
+
+	return ((uint16_t)de->name_length_high) << 8 |
+	    ((uint16_t)de->name_length);
+
+
 }
 
-uint8_t ext4_directory_dx_root_info_get_hash_version(ext4_directory_dx_root_info_t *root_info)
+void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *sb,
+		ext4_directory_entry_ll_t *de, uint16_t length)
 {
-	return root_info->hash_version;
-}
 
-uint8_t ext4_directory_dx_root_info_get_info_length(ext4_directory_dx_root_info_t *root_info)
-{
-	return root_info->info_length;
-}
+	de->name_length = (length << 8) >> 8;
 
-uint8_t ext4_directory_dx_root_info_get_indirect_levels(ext4_directory_dx_root_info_t *root_info)
-{
-	return root_info->indirect_levels;
-}
+	if (ext4_superblock_get_rev_level(sb) > 0 ||
+		    ext4_superblock_get_minor_rev_level(sb) >= 5) {
 
-uint16_t ext4_directory_dx_countlimit_get_limit(ext4_directory_dx_countlimit_t *countlimit)
-{
-	return uint16_t_le2host(countlimit->limit);
-}
-uint16_t ext4_directory_dx_countlimit_get_count(ext4_directory_dx_countlimit_t *countlimit)
-{
-	return uint16_t_le2host(countlimit->count);
-}
+		de->name_length_high = length >> 8;
+	}
 
-uint32_t ext4_directory_dx_entry_get_hash(ext4_directory_dx_entry_t *entry)
-{
-	return uint32_t_le2host(entry->hash);
 }
-
-uint32_t ext4_directory_dx_entry_get_block(ext4_directory_dx_entry_t *entry)
-{
-	return uint32_t_le2host(entry->block);
-}
-
 
 
 int ext4_directory_iterator_init(ext4_directory_iterator_t *it,

@@ -35,8 +35,96 @@
  * @brief	Ext4 directory index operations.
  */
 
+#include <byteorder.h>
 #include <errno.h>
 #include "libext4.h"
+
+
+uint8_t ext4_directory_dx_root_info_get_hash_version(
+		ext4_directory_dx_root_info_t *root_info)
+{
+	return root_info->hash_version;
+}
+
+void ext4_directory_dx_root_info_set_hash_version(
+		ext4_directory_dx_root_info_t *root_info, uint8_t version)
+{
+	root_info->hash_version = version;
+}
+
+uint8_t ext4_directory_dx_root_info_get_info_length(
+		ext4_directory_dx_root_info_t *root_info)
+{
+	return root_info->info_length;
+}
+
+void ext4_directory_dx_root_info_set_info_length(
+		ext4_directory_dx_root_info_t *root_info, uint8_t info_length)
+{
+	root_info->info_length = info_length;
+}
+
+uint8_t ext4_directory_dx_root_info_get_indirect_levels(
+		ext4_directory_dx_root_info_t *root_info)
+{
+	return root_info->indirect_levels;
+}
+
+void ext4_directory_dx_root_info_set_indirect_levels(
+		ext4_directory_dx_root_info_t *root_info, uint8_t levels)
+{
+	root_info->indirect_levels = levels;
+}
+
+uint16_t ext4_directory_dx_countlimit_get_limit(
+		ext4_directory_dx_countlimit_t *countlimit)
+{
+	return uint16_t_le2host(countlimit->limit);
+}
+
+void ext4_directory_dx_countlimit_set_limit(
+		ext4_directory_dx_countlimit_t *countlimit, uint16_t limit)
+{
+	countlimit->limit = host2uint16_t_le(limit);
+}
+
+uint16_t ext4_directory_dx_countlimit_get_count(
+		ext4_directory_dx_countlimit_t *countlimit)
+{
+	return uint16_t_le2host(countlimit->count);
+}
+
+void ext4_directory_dx_countlimit_set_count(
+		ext4_directory_dx_countlimit_t *countlimit, uint16_t count)
+{
+	countlimit->count = host2uint16_t_le(count);
+}
+
+uint32_t ext4_directory_dx_entry_get_hash(ext4_directory_dx_entry_t *entry)
+{
+	return uint32_t_le2host(entry->hash);
+}
+
+void ext4_directory_dx_entry_set_hash(ext4_directory_dx_entry_t *entry,
+		uint32_t hash)
+{
+	entry->hash = host2uint32_t_le(hash);
+}
+
+uint32_t ext4_directory_dx_entry_get_block(ext4_directory_dx_entry_t *entry)
+{
+	return uint32_t_le2host(entry->block);
+}
+
+void ext4_directory_dx_entry_set_block(ext4_directory_dx_entry_t *entry,
+		uint32_t block)
+{
+	entry->block = host2uint32_t_le(block);
+}
+
+
+/**************************************************************************/
+
 
 static int ext4_directory_hinfo_init(ext4_hash_info_t *hinfo, block_t *root_block,
 		ext4_superblock_t *sb, size_t name_len, const char *name)

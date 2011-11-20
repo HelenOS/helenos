@@ -83,11 +83,6 @@ typedef struct ext4_inode {
     		uint16_t gid_high;
     		uint32_t author;
     	} hurd2;
-    	struct {
-    		uint16_t reserved1;  /* Obsoleted fragment number/size which are removed in ext4 */
-    		uint16_t file_acl_high;
-    		uint32_t reserved2[2];
-    	} masix2;
     } __attribute__ ((packed)) osd2;
 
     uint16_t extra_isize;
@@ -172,8 +167,9 @@ extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 extern void ext4_inode_set_flags(ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_generation(ext4_inode_t *);
 extern void ext4_inode_set_generation(ext4_inode_t *, uint32_t);
+extern uint64_t ext4_get_inode_file_acl(ext4_inode_t *, ext4_superblock_t *);
+extern void ext4_set_inode_file_acl(ext4_inode_t *, ext4_superblock_t *, uint64_t);
 /*
-uint32_t file_acl_lo; // File ACL
 uint16_t extra_isize;
 uint32_t ctime_extra; // Extra change time (nsec << 2 | epoch)
 uint32_t mtime_extra; // Extra Modification time (nsec << 2 | epoch)
