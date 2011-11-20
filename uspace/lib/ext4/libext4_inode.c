@@ -62,15 +62,24 @@ uint32_t ext4_inode_get_mode(ext4_superblock_t *sb, ext4_inode_t *inode)
 	return uint16_t_le2host(inode->mode);
 }
 
-bool ext4_inode_is_type(ext4_superblock_t *sb, ext4_inode_t *inode, uint32_t type)
+void ext4_inode_set_mode(ext4_superblock_t *sb, ext4_inode_t *inode, uint32_t mode)
 {
-	uint32_t mode = ext4_inode_get_mode(sb, inode);
-	return (mode & EXT4_INODE_MODE_TYPE_MASK) == type;
+	inode->mode = host2uint16_t_le((mode << 16) >> 16);
+
+	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_HURD) {
+		inode->osd2.hurd2.mode_high = host2uint16_t_le(mode >> 16);
+	}
 }
 
-/*
 uint32_t ext4_inode_get_uid(ext4_inode_t *inode)
-*/
+{
+	return uint32_t_le2host(inode->uid);
+}
+
+void ext4_inode_set_uid(ext4_inode_t *inode, uint32_t uid)
+{
+	inode->uid = host2uint32_t_le(uid);
+}
 
 uint64_t ext4_inode_get_size(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
@@ -88,19 +97,65 @@ void ext4_inode_set_size(ext4_inode_t *inode, uint64_t value) {
 	inode->size_hi = host2uint32_t_le(value >> 32);
 }
 
-/*
-extern uint32_t ext4_inode_get_access_time(ext4_inode_t *);
-extern uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *);
-extern uint32_t ext4_inode_get_modification_time(ext4_inode_t *);
-extern uint32_t ext4_inode_get_deletion_time(ext4_inode_t *);
-extern uint32_t ext4_inode_get_gid(ext4_inode_t *);
-*/
+uint32_t ext4_inode_get_access_time(ext4_inode_t *inode)
+{
+	return uint32_t_le2host(inode->access_time);
+}
+
+void ext4_inode_set_access_time(ext4_inode_t *inode, uint32_t time)
+{
+	inode->access_time = host2uint32_t_le(time);
+}
+
+uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *inode)
+{
+	return uint32_t_le2host(inode->change_inode_time);
+}
+
+void ext4_inode_set_change_inode_time(ext4_inode_t *inode, uint32_t time)
+{
+	inode->change_inode_time = host2uint32_t_le(time);
+}
+
+uint32_t ext4_inode_get_modification_time(ext4_inode_t *inode)
+{
+	return uint32_t_le2host(inode->modification_time);
+}
+
+void ext4_inode_set_modification_time(ext4_inode_t *inode, uint32_t time)
+{
+	inode->modification_time = host2uint32_t_le(time);
+}
+
+uint32_t ext4_inode_get_deletion_time(ext4_inode_t *inode)
+{
+	return uint32_t_le2host(inode->deletion_time);
+}
+
+void ext4_inode_set_deletion_time(ext4_inode_t *inode, uint32_t time)
+{
+	inode->deletion_time = host2uint32_t_le(time);
+}
+
+uint32_t ext4_inode_get_gid(ext4_inode_t *inode)
+{
+	return uint32_t_le2host(inode->gid);
+}
+
+void ext4_inode_set_gid(ext4_inode_t *inode, uint32_t gid)
+{
+	inode->gid = host2uint32_t_le(gid);
+}
 
 uint16_t ext4_inode_get_links_count(ext4_inode_t *inode)
 {
 	return uint16_t_le2host(inode->links_count);
 }
 
+void ext4_inode_set_links_count(ext4_inode_t *inode, uint16_t count)
+{
+	inode->links_count = host2uint16_t_le(count);
+}
 
 uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
@@ -160,8 +215,6 @@ int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
     	inode->osd2.linux2.blocks_high = host2uint16_t_le(count >> 32);
     }
     return EOK;
-
-
 }
 
 uint32_t ext4_inode_get_flags(ext4_inode_t *inode) {
@@ -171,6 +224,18 @@ uint32_t ext4_inode_get_flags(ext4_inode_t *inode) {
 void ext4_inode_set_flags(ext4_inode_t *inode, uint32_t flags) {
 	inode->flags = host2uint32_t_le(flags);
 }
+
+uint32_t ext4_inode_get_generation(ext4_inode_t *inode)
+{
+	return uint32_t_le2host(inode->generation);
+}
+
+void ext4_inode_set_generation(ext4_inode_t *inode, uint32_t generation)
+{
+	inode->generation = host2uint32_t_le(generation);
+}
+
+/***********************************************************************/
 
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint32_t idx)
 {
@@ -258,6 +323,13 @@ uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx, service_
 	EXT4FS_DBG("ERROR - reached function end");
 	return phys_block;
 }
+
+bool ext4_inode_is_type(ext4_superblock_t *sb, ext4_inode_t *inode, uint32_t type)
+{
+	uint32_t mode = ext4_inode_get_mode(sb, inode);
+	return (mode & EXT4_INODE_MODE_TYPE_MASK) == type;
+}
+
 
 ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *inode)
 {

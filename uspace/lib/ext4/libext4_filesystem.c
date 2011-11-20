@@ -233,7 +233,7 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	}
 
 	inode_table_start = ext4_block_group_get_inode_table_first_block(
-	    bg_ref->block_group);
+	    bg_ref->block_group, fs->superblock);
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {

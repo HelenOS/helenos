@@ -54,7 +54,7 @@ typedef struct ext4_inode {
 	uint16_t mode; // File mode
 	uint16_t uid; // Low 16 bits of owner uid
 	uint32_t size_lo; // Size in bytes
-	uint32_t acess_time; // Access time
+	uint32_t access_time; // Access time
 	uint32_t change_inode_time; // Inode change time
 	uint32_t modification_time; // Modification time
 	uint32_t deletion_time; // Deletion time
@@ -149,32 +149,30 @@ typedef struct ext4_inode_ref {
 
 
 extern uint32_t ext4_inode_get_mode(ext4_superblock_t *, ext4_inode_t *);
-extern bool ext4_inode_is_type(ext4_superblock_t *, ext4_inode_t *, uint32_t);
-/*
+extern void ext4_inode_set_mode(ext4_superblock_t *, ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_uid(ext4_inode_t *);
-*/
+extern void ext4_inode_set_uid(ext4_inode_t *, uint32_t);
 extern uint64_t ext4_inode_get_size(ext4_superblock_t *, ext4_inode_t *);
 extern void ext4_inode_set_size(ext4_inode_t *, uint64_t);
-/*
 extern uint32_t ext4_inode_get_access_time(ext4_inode_t *);
+extern void ext4_inode_set_access_time(ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *);
+extern void ext4_inode_set_change_inode_time(ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_modification_time(ext4_inode_t *);
+extern void ext4_inode_set_modification_time(ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_deletion_time(ext4_inode_t *);
+extern void ext4_inode_set_deletion_time(ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_gid(ext4_inode_t *);
-*/
+extern void ext4_inode_set_gid(ext4_inode_t *, uint32_t);
 extern uint16_t ext4_inode_get_links_count(ext4_inode_t *);
+extern void ext4_inode_set_links_count(ext4_inode_t *, uint16_t);
 extern uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *, ext4_inode_t *);
 extern int ext4_inode_set_blocks_count(ext4_superblock_t *, ext4_inode_t *, uint64_t);
 extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
-void ext4_inode_set_flags(ext4_inode_t *, uint32_t);
-extern uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint32_t);
-extern void ext4_inode_set_direct_block(ext4_inode_t *, uint32_t, uint32_t);
-extern uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint32_t);
-extern void ext4_inode_set_indirect_block(ext4_inode_t *, uint32_t, uint32_t);
-extern uint32_t ext4_inode_get_extent_block(ext4_inode_t *, uint64_t, service_id_t);
+extern void ext4_inode_set_flags(ext4_inode_t *, uint32_t);
+extern uint32_t ext4_inode_get_generation(ext4_inode_t *);
+extern void ext4_inode_set_generation(ext4_inode_t *, uint32_t);
 /*
-uint32_t blocks[EXT4_INODE_BLOCKS]; // Pointers to blocks
-uint32_t generation;
 uint32_t file_acl_lo; // File ACL
 uint16_t extra_isize;
 uint32_t ctime_extra; // Extra change time (nsec << 2 | epoch)
@@ -185,7 +183,15 @@ uint32_t crtime_extra; // Extra file creation time (nsec << 2 | epoch)
 uint32_t version_hi;   // High 32 bits for 64-bit version
 */
 
+/******************************************/
+
+extern uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint32_t);
+extern void ext4_inode_set_direct_block(ext4_inode_t *, uint32_t, uint32_t);
+extern uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint32_t);
+extern void ext4_inode_set_indirect_block(ext4_inode_t *, uint32_t, uint32_t);
+extern uint32_t ext4_inode_get_extent_block(ext4_inode_t *, uint64_t, service_id_t);
 extern ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *);
+extern bool ext4_inode_is_type(ext4_superblock_t *, ext4_inode_t *, uint32_t);
 extern bool ext4_inode_has_flag(ext4_inode_t *, uint32_t);
 extern void ext4_inode_clear_flag(ext4_inode_t *, uint32_t);
 extern void ext4_inode_set_flag(ext4_inode_t *, uint32_t);

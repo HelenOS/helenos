@@ -45,6 +45,7 @@ typedef struct ext4_filesystem {
 	aoff64_t inode_blocks_per_level[4];
 } ext4_filesystem_t;
 
+#define EXT4_MIN_BLOCK_SIZE		1024  //1 KiB
 #define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
 #define EXT4_REV0_INODE_SIZE	128
 
