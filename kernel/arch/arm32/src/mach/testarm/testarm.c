@@ -201,10 +201,10 @@ void gxemul_timer_irq_start(void)
  * @param start		Place to store memory start address.
  * @param size		Place to store memory size.
  */
-void gxemul_get_memory_extents(uintptr_t *start, uintptr_t *size)
+void gxemul_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	*start = 0;
-        *size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	*size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
 }
 
 /** Returns the mask of active interrupts. */

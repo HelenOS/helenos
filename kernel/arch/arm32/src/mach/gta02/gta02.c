@@ -64,7 +64,7 @@
 static void gta02_init(void);
 static void gta02_timer_irq_start(void);
 static void gta02_cpu_halt(void);
-static void gta02_get_memory_extents(uintptr_t *start, uintptr_t *size);
+static void gta02_get_memory_extents(uintptr_t *start, size_t *size);
 static void gta02_irq_exception(unsigned int exc_no, istate_t *istate);
 static void gta02_frame_init(void);
 static void gta02_output_init(void);
@@ -122,7 +122,7 @@ static void gta02_cpu_halt(void)
  * @param start		Place to store memory start address (physical).
  * @param size		Place to store memory size.
  */
-static void gta02_get_memory_extents(uintptr_t *start, uintptr_t *size)
+static void gta02_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	*start = GTA02_MEMORY_START + GTA02_MEMORY_SKIP;
 	*size  = GTA02_MEMORY_SIZE - GTA02_MEMORY_SKIP;

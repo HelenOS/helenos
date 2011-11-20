@@ -84,7 +84,7 @@ void machine_cpu_halt(void)
  * @param start		Place to store memory start address.
  * @param size		Place to store memory size.
  */
-void machine_get_memory_extents(uintptr_t *start, uintptr_t *size)
+void machine_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	(machine_ops->machine_get_memory_extents)(start, size);
 }
