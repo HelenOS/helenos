@@ -145,6 +145,10 @@ typedef struct tcp_conn {
 
 	/** Connection state */
 	tcp_cstate_t cstate;
+	/** Protects @c cstate */
+	fibril_mutex_t cstate_lock;
+	/** Signalled when @c cstate changes */
+	fibril_condvar_t cstate_cv;
 
 	/** Set when FIN is removed from the retransmission queue */
 	bool fin_is_acked;

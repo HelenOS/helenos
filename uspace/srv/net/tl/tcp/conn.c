@@ -110,6 +110,10 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 
 	tqueue_inited = true;
 
+	/* Connection state change signalling */
+	fibril_mutex_initialize(&conn->cstate_lock);
+	fibril_condvar_initialize(&conn->cstate_cv);
+
 	conn->cstate = st_listen;
 	conn->fin_is_acked = false;
 	conn->ident.local = *lsock;
@@ -151,6 +155,14 @@ void tcp_conn_remove(tcp_conn_t *conn)
 	list_remove(&conn->link);
 }
 
+static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
+{
+	fibril_mutex_lock(&conn->cstate_lock);
+	conn->cstate = nstate;
+	fibril_condvar_broadcast(&conn->cstate_cv);
+	fibril_mutex_unlock(&conn->cstate_lock);
+}
+
 /** Synchronize connection.
  *
  * This is the first step of an active connection attempt,
@@ -164,7 +176,7 @@ void tcp_conn_sync(tcp_conn_t *conn)
 	conn->snd_una = conn->iss;
 
 	tcp_tqueue_ctrl_seg(conn, CTL_SYN);
-	conn->cstate = st_syn_sent;
+	tcp_conn_state_set(conn, st_syn_sent);
 }
 
 /** FIN has been sent.
@@ -178,11 +190,11 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	case st_syn_received:
 	case st_established:
 		log_msg(LVL_DEBUG, "FIN sent -> Fin-Wait-1");
-		conn->cstate = st_fin_wait_1;
+		tcp_conn_state_set(conn, st_fin_wait_1);
 		break;
 	case st_close_wait:
 		log_msg(LVL_DEBUG, "FIN sent -> Last-Ack");
-		conn->cstate = st_last_ack;
+		tcp_conn_state_set(conn, st_last_ack);
 		break;
 	default:
 		log_msg(LVL_ERROR, "Connection state %d", conn->cstate);
@@ -327,7 +339,7 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->snd_wl1 = seg->seq;
 	conn->snd_wl2 = seg->seq;
 
-	conn->cstate = st_syn_received;
+	tcp_conn_state_set(conn, st_syn_received);
 
 	tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
 
@@ -356,7 +368,7 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	if ((seg->ctrl & CTL_RST) != 0) {
 		log_msg(LVL_DEBUG, "Connection reset. -> Closed");
 		/* XXX Signal user error */
-		conn->cstate = st_closed;
+		tcp_conn_state_set(conn, st_closed);
 		/* XXX delete connection */
 		return;
 	}
@@ -396,11 +408,11 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if (seq_no_syn_acked(conn)) {
 		log_msg(LVL_DEBUG, " syn acked -> Established");
-		conn->cstate = st_established;
+		tcp_conn_state_set(conn, st_established);
 		tcp_tqueue_ctrl_seg(conn, CTL_ACK /* XXX */);
 	} else {
 		log_msg(LVL_DEBUG, " syn not acked -> Syn-Received");
-		conn->cstate = st_syn_received;
+		tcp_conn_state_set(conn, st_syn_received);
 		tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
 	}
 
@@ -516,7 +528,7 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	log_msg(LVL_DEBUG, "SYN ACKed -> Established");
 
-	conn->cstate = st_established;
+	tcp_conn_state_set(conn, st_established);
 
 	/* XXX Not mentioned in spec?! */
 	conn->snd_una = seg->ack;
@@ -589,7 +601,7 @@ static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if (conn->fin_is_acked) {
 		log_msg(LVL_DEBUG, " FIN acked -> Fin-Wait-2");
-		conn->cstate = st_fin_wait_2;
+		tcp_conn_state_set(conn, st_fin_wait_2);
 	}
 
 	return cp_continue;
@@ -655,7 +667,7 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (conn->fin_is_acked) {
 		log_msg(LVL_DEBUG, " FIN acked -> Closed");
 		tcp_conn_remove(conn);
-		conn->cstate = st_closed;
+		tcp_conn_state_set(conn, st_closed);
 		return cp_done;
 	}
 
@@ -843,15 +855,15 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		case st_syn_received:
 		case st_established:
 			log_msg(LVL_DEBUG, "FIN received -> Close-Wait");
-			conn->cstate = st_close_wait;
+			tcp_conn_state_set(conn, st_close_wait);
 			break;
 		case st_fin_wait_1:
 			log_msg(LVL_DEBUG, "FIN received -> Closing");
-			conn->cstate = st_closing;
+			tcp_conn_state_set(conn, st_closing);
 			break;
 		case st_fin_wait_2:
 			log_msg(LVL_DEBUG, "FIN received -> Time-Wait");
-			conn->cstate = st_time_wait;
+			tcp_conn_state_set(conn, st_time_wait);
 			/* Start the Time-Wait timer */
 			tcp_conn_tw_timer_set(conn);
 			break;
@@ -979,7 +991,7 @@ static void tw_timeout_func(void *arg)
 	log_msg(LVL_DEBUG, " TW Timeout -> Closed");
 
 	tcp_conn_remove(conn);
-	conn->cstate = st_closed;
+	tcp_conn_state_set(conn, st_closed);
 }
 
 /** Start or restart the Time-Wait timeout.
