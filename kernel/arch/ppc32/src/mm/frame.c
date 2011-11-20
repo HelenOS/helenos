@@ -39,7 +39,9 @@
 #include <macros.h>
 #include <print.h>
 
+// XXX: remove me
 uintptr_t last_frame = 0;
+
 memmap_t memmap;
 
 void physmem_print(void)
@@ -53,32 +55,48 @@ void physmem_print(void)
 	}
 }
 
-void frame_low_arch_init(void)
+static void frame_common_arch_init(bool low)
 {
 	pfn_t minconf = 2;
 	size_t i;
 	
 	for (i = 0; i < memmap.cnt; i++) {
 		/* To be safe, make the available zone possibly smaller */
-		uintptr_t new_start = ALIGN_UP((uintptr_t) memmap.zones[i].start,
+		uintptr_t base = ALIGN_UP((uintptr_t) memmap.zones[i].start,
 		    FRAME_SIZE);
-		size_t new_size = ALIGN_DOWN(memmap.zones[i].size -
-		    (new_start - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
+		size_t size = ALIGN_DOWN(memmap.zones[i].size -
+		    (base - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
 		
-		pfn_t pfn = ADDR2PFN(new_start);
-		size_t count = SIZE2FRAMES(new_size);
+		// XXX: remove me
+		if (last_frame < ALIGN_UP(base + size, FRAME_SIZE))
+			last_frame = ALIGN_UP(base + size, FRAME_SIZE);
 		
+		if (!frame_adjust_zone_bounds(low, &base, &size))
+			return;
+
+		pfn_t pfn = ADDR2PFN(base);
+		size_t count = SIZE2FRAMES(size);
 		pfn_t conf;
-		if ((minconf < pfn) || (minconf >= pfn + count))
-			conf = pfn;
-		else
-			conf = minconf;
-		
-		zone_create(pfn, count, conf, 0);
-		
-		if (last_frame < ALIGN_UP(new_start + new_size, FRAME_SIZE))
-			last_frame = ALIGN_UP(new_start + new_size, FRAME_SIZE);
+
+		if (low) {
+			if ((minconf < pfn) || (minconf >= pfn + count))
+				conf = pfn;
+			else
+				conf = minconf;
+			zone_create(pfn, count, conf,
+			    ZONE_AVAILABLE | ZONE_LOWMEM);
+		} else {
+			conf = zone_external_conf_alloc(count);
+			zone_create(pfn, count, conf,
+			    ZONE_AVAILABLE | ZONE_HIGHMEM);
+		}
 	}
+	
+}
+
+void frame_low_arch_init(void)
+{
+	frame_common_arch_init(true);
 	
 	/* First is exception vector, second is 'implementation specific',
 	   third and fourth is reserved, other contain real mode code */
@@ -93,6 +111,7 @@ void frame_low_arch_init(void)
 
 void frame_high_arch_init(void)
 {
+	frame_common_arch_init(false);
 }
 
 /** @}
