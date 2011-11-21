@@ -443,12 +443,54 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 }
 
 
-int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-	EXT4FS_DBG("not supported");
 
-	// TODO
 	return ENOTSUP;
+
+	int rc;
+
+	bool has_children;
+	rc = ext4fs_has_children(&has_children, cfn);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	// Cannot unlink non-empty node
+	if (has_children) {
+		return ENOTEMPTY;
+	}
+
+	// Remove entry from parent directory
+	// TODO
+//	rc = ext4_directory_remove_entry(EXT4FS_NODE(pfn), name);
+//	if (rc != EOK) {
+//		return rc;
+//	}
+
+	// Decrement links count
+	ext4_inode_ref_t * child_inode_ref = EXT4FS_NODE(cfn)->inode_ref;
+
+	uint32_t lnk_count = ext4_inode_get_links_count(child_inode_ref->inode);
+	lnk_count--;
+	ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
+
+	child_inode_ref->dirty = true;
+
+	// If directory - handle links from parent
+	if (lnk_count <= 1 && ext4fs_is_directory(cfn)) {
+
+		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
+		uint32_t parent_lnk_count = ext4_inode_get_links_count(
+				parent_inode_ref->inode);
+		parent_lnk_count--;
+		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
+
+		parent_inode_ref->dirty = true;
+	}
+
+
+	return EOK;
 }
 
 
