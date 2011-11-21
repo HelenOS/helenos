@@ -38,8 +38,10 @@
 #include "std.h"
 #include "tcp_type.h"
 
-extern void tcp_header_setup(tcp_conn_t *, tcp_segment_t *, tcp_header_t *);
-extern void tcp_phdr_setup(tcp_conn_t *, tcp_segment_t *, tcp_phdr_t *);
+extern void tcp_pdu_delete(tcp_pdu_t *);
+extern int tcp_pdu_decode(tcp_pdu_t *, tcp_sockpair_t *, tcp_segment_t **);
+extern int tcp_pdu_encode(tcp_sockpair_t *, tcp_segment_t *, tcp_pdu_t **);
+
 
 #endif
 

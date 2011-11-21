@@ -270,6 +270,23 @@ typedef enum {
 	cp_done
 } cproc_t;
 
+/** Encoded PDU */
+typedef struct {
+	/** Source address */
+	netaddr_t src_addr;
+	/** Destination address */
+	netaddr_t dest_addr;
+
+	/** Encoded header */
+	void *header;
+	/** Encoded header size */
+	size_t header_size;
+	/** Text */
+	void *text;
+	/** Text size */
+	size_t text_size;
+} tcp_pdu_t;
+
 #endif
 
 /** @}

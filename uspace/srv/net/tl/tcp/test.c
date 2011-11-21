@@ -57,25 +57,26 @@ static void test_srv(void *arg)
 	printf("test_srv()\n");
 	sock.port = 1024;
 	sock.addr.ipv4 = 0x7f000001;
+	printf("S: User open...\n");
 	tcp_uc_open(80, &sock, ap_passive, &conn);
 	conn->name = (char *) "S";
 
 	while (true) {
-		printf("User receive...\n");
+		printf("S: User receive...\n");
 		tcp_uc_receive(conn, rcv_buf, RCV_BUF_SIZE, &rcvd, &xflags);
 		if (rcvd == 0) {
 			printf("End of data reached.\n");
 			break;
 		}
 		rcv_buf[rcvd] = '\0';
-		printf("User received %zu bytes '%s'.\n", rcvd, rcv_buf);
+		printf("S: User received %zu bytes '%s'.\n", rcvd, rcv_buf);
 
 		async_usleep(1000*1000*2);
 	}
 
 	async_usleep(/*10**/1000*1000);
 
-	printf("test_srv() close connection\n");
+	printf("S: User close...\n");
 	tcp_uc_close(conn);
 
 	printf("test_srv() terminating\n");
@@ -93,13 +94,16 @@ static void test_cli(void *arg)
 	sock.addr.ipv4 = 0x7f000001;
 
 	async_usleep(1000*1000*3);
+	printf("C: User open...\n");
 	tcp_uc_open(1024, &sock, ap_active, &conn);
 	conn->name = (char *) "C";
 
 	async_usleep(1000*1000*10);
+	printf("C: User send...\n");
 	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
 
 	async_usleep(1000*1000*3/**20*2*/);
+	printf("C: User close...\n");
 	tcp_uc_close(conn);
 }
 

@@ -35,32 +35,214 @@
  */
 
 #include <byteorder.h>
+#include <errno.h>
+#include <mem.h>
+#include <stdlib.h>
 #include "header.h"
 #include "segment.h"
 #include "std.h"
 #include "tcp_type.h"
 
-void tcp_header_setup(tcp_conn_t *conn, tcp_segment_t *seg, tcp_header_t *hdr)
+#define TCP_CHECKSUM_INIT 0xffff
+
+static uint16_t tcp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 {
-	hdr->src_port = host2uint16_t_be(conn->ident.local.port);
-	hdr->dest_port = host2uint16_t_be(conn->ident.foreign.port);
-	hdr->seq = 0;
-	hdr->ack = 0;
-	hdr->doff_flags = 0;
-	hdr->window = 0;
-	hdr->checksum = 0;
-	hdr->urg_ptr = 0;
+	uint16_t sum;
+	size_t words, i;
+	uint8_t *bdata;
+
+	sum = ~ivalue;
+	words = size / 2;
+	bdata = (uint8_t *)data;
+
+	for (i = 0; i < words; i++) {
+		sum += ~(((uint16_t)bdata[2*i] << 8) + bdata[2*i + 1]);
+	}
+
+	if (size % 2 != 0) {
+		sum += ~((uint16_t)bdata[2*words] << 8);
+	}
+
+	return ~sum;
 }
 
-void tcp_phdr_setup(tcp_conn_t *conn, tcp_segment_t *seg, tcp_phdr_t *phdr)
+static void tcp_header_decode_flags(uint16_t doff_flags, tcp_control_t *rctl)
 {
-	phdr->src_addr = conn->ident.local.addr.ipv4;
-	phdr->dest_addr = conn->ident.foreign.addr.ipv4;
-	phdr->zero = 0;
-	phdr->protocol = 0; /* XXX */
+	tcp_control_t ctl;
 
-	/* XXX This will only work as long as we don't have any header options */
-	phdr->tcp_length = sizeof(tcp_header_t) + tcp_segment_text_size(seg);
+	ctl = 0;
+
+	if ((doff_flags & DF_URG) != 0)
+		ctl |= 0 /* XXX */;
+	if ((doff_flags & DF_ACK) != 0)
+		ctl |= CTL_ACK;
+	if ((doff_flags & DF_PSH) != 0)
+		ctl |= 0 /* XXX */;
+	if ((doff_flags & DF_RST) != 0)
+		ctl |= CTL_RST;
+	if ((doff_flags & DF_SYN) != 0)
+		ctl |= CTL_SYN;
+	if ((doff_flags & DF_FIN) != 0)
+		ctl |= CTL_FIN;
+
+	*rctl = ctl;
+}
+
+static void tcp_header_encode_flags(tcp_control_t ctl, uint16_t doff_flags0,
+    uint16_t *rdoff_flags)
+{
+	uint16_t doff_flags;
+
+	doff_flags = doff_flags0;
+
+	if ((ctl & CTL_ACK) != 0)
+		doff_flags |= DF_ACK;
+	if ((ctl & CTL_RST) != 0)
+		doff_flags |= DF_RST;
+	if ((ctl & CTL_SYN) != 0)
+		doff_flags |= DF_SYN;
+	if ((ctl & CTL_FIN) != 0)
+		doff_flags |= DF_FIN;
+
+	*rdoff_flags = doff_flags;
+}
+
+static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_t *hdr)
+{
+	uint16_t doff_flags;
+
+	hdr->src_port = host2uint16_t_be(sp->local.port);
+	hdr->dest_port = host2uint16_t_be(sp->foreign.port);
+	hdr->seq = host2uint32_t_be(seg->seq);
+	hdr->ack = host2uint32_t_be(seg->ack);
+	tcp_header_encode_flags(seg->ctrl, 0, &doff_flags);
+	hdr->doff_flags = host2uint16_t_be(doff_flags);
+	hdr->window = host2uint16_t_be(seg->wnd);
+	hdr->checksum = 0;
+	hdr->urg_ptr = host2uint16_t_be(seg->up);
+}
+
+static void tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
+{
+	phdr->src_addr = host2uint32_t_be(pdu->src_addr.ipv4);
+	phdr->dest_addr = host2uint32_t_be(pdu->dest_addr.ipv4);
+	phdr->zero = 0;
+	phdr->protocol = 6; /* XXX Magic number */
+	phdr->tcp_length = host2uint16_t_be(pdu->header_size + pdu->text_size);
+}
+
+static void tcp_header_decode(tcp_header_t *hdr, tcp_segment_t *seg)
+{
+	tcp_header_decode_flags(uint16_t_be2host(hdr->doff_flags), &seg->ctrl);
+	seg->seq = uint32_t_be2host(hdr->seq);
+	seg->ack = uint32_t_be2host(hdr->ack);
+	seg->wnd = uint16_t_be2host(hdr->window);
+	seg->up = uint16_t_be2host(hdr->urg_ptr);
+}
+
+static int tcp_header_encode(tcp_sockpair_t *sp, tcp_segment_t *seg,
+    void **header, size_t *size)
+{
+	tcp_header_t *hdr;
+
+	hdr = calloc(1, sizeof(tcp_header_t));
+	if (hdr == NULL)
+		return ENOMEM;
+
+	tcp_header_setup(sp, seg, hdr);
+	*header = hdr;
+	*size = sizeof(tcp_header_t);
+
+	return EOK;
+}
+
+static tcp_pdu_t *tcp_pdu_new(void)
+{
+	return calloc(1, sizeof(tcp_pdu_t));
+}
+
+void tcp_pdu_delete(tcp_pdu_t *pdu)
+{
+	free(pdu->text);
+	free(pdu);
+}
+
+static uint16_t tcp_pdu_checksum_calc(tcp_pdu_t *pdu)
+{
+	uint16_t cs_phdr;
+	uint16_t cs_headers;
+	uint16_t cs_all;
+	tcp_phdr_t phdr;
+
+	tcp_phdr_setup(pdu, &phdr);
+	cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *)&phdr,
+	    sizeof(tcp_phdr_t));
+	cs_headers = tcp_checksum_calc(cs_phdr, pdu->header, pdu->header_size);
+	cs_all = tcp_checksum_calc(cs_headers, pdu->text, pdu->text_size);
+
+	return cs_all;
+}
+
+static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
+{
+	tcp_header_t *hdr;
+
+	hdr = (tcp_header_t *)pdu->header;
+	hdr->checksum = host2uint16_t_le(checksum);
+}
+
+/** Encode outgoing PDU */
+int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
+{
+	tcp_segment_t *nseg;
+	tcp_header_t *hdr;
+
+	nseg = tcp_segment_make_data(0, pdu->text, pdu->text_size);
+	if (nseg == NULL)
+		return ENOMEM;
+
+	tcp_header_decode(pdu->header, nseg);
+
+	hdr = (tcp_header_t *)pdu->header;
+
+	sp->local.port = uint16_t_be2host(hdr->dest_port);
+	sp->local.addr = pdu->dest_addr;
+	sp->foreign.port = uint16_t_be2host(hdr->src_port);
+	sp->foreign.addr = pdu->src_addr;
+
+	*seg = nseg;
+	return EOK;
+}
+
+/** Decode incoming PDU */
+int tcp_pdu_encode(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_pdu_t **pdu)
+{
+	tcp_pdu_t *npdu;
+	size_t text_size;
+	uint16_t checksum;
+
+	npdu = tcp_pdu_new();
+	if (npdu == NULL)
+		return ENOMEM;
+
+	npdu->src_addr = sp->local.addr;
+	npdu->dest_addr = sp->foreign.addr;
+	tcp_header_encode(sp, seg, &npdu->header, &npdu->header_size);
+
+	text_size = tcp_segment_text_size(seg);
+	npdu->text = calloc(1, text_size);
+	if (npdu->text == NULL)
+		return ENOMEM;
+
+	npdu->text_size = text_size;
+	memcpy(npdu->text, seg->data, text_size);
+
+	/* Checksum calculation */
+	checksum = tcp_pdu_checksum_calc(npdu);
+	tcp_pdu_set_checksum(npdu, checksum);
+
+	*pdu = npdu;
+	return EOK;
 }
 
 /**

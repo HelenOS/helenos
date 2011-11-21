@@ -40,9 +40,19 @@
 #include <stdlib.h>
 #include <thread.h>
 #include "conn.h"
+#include "header.h"
 #include "rqueue.h"
+#include "segment.h"
 #include "state.h"
 #include "tcp_type.h"
+
+/** Transcode bounced segments.
+ *
+ * If defined, segments bounced via the internal debugging loopback will
+ * be encoded to a PDU and the decoded. Otherwise they will be bounced back
+ * directly without passing the encoder-decoder.
+ */
+#define BOUNCE_TRANSCODE
 
 static prodcons_t rqueue;
 
@@ -65,10 +75,32 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 	log_msg(LVL_DEBUG, "tcp_rqueue_bounce_seg()");
 
+#ifdef BOUNCE_TRANSCODE
+	tcp_pdu_t *pdu;
+	tcp_segment_t *dseg;
+
+	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
+		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		return;
+	}
+
+	if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
+		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		return;
+	}
+
+	tcp_pdu_delete(pdu);
+
+	/** Insert decoded segment into rqueue */
+	tcp_rqueue_insert_seg(&rident, dseg);
+	tcp_segment_delete(seg);
+#else
 	/* Reverse the identification */
 	tcp_sockpair_flipped(sp, &rident);
 
+	/* Insert segment back into rqueue */
 	tcp_rqueue_insert_seg(&rident, seg);
+#endif
 }
 
 /** Insert segment into receive queue.
