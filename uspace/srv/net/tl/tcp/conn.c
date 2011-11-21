@@ -189,15 +189,16 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	switch (conn->cstate) {
 	case st_syn_received:
 	case st_established:
-		log_msg(LVL_DEBUG, "FIN sent -> Fin-Wait-1");
+		log_msg(LVL_DEBUG, "%s: FIN sent -> Fin-Wait-1", conn->name);
 		tcp_conn_state_set(conn, st_fin_wait_1);
 		break;
 	case st_close_wait:
-		log_msg(LVL_DEBUG, "FIN sent -> Last-Ack");
+		log_msg(LVL_DEBUG, "%s: FIN sent -> Last-Ack", conn->name);
 		tcp_conn_state_set(conn, st_last_ack);
 		break;
 	default:
-		log_msg(LVL_ERROR, "Connection state %d", conn->cstate);
+		log_msg(LVL_ERROR, "%s: Connection state %d", conn->name,
+		    conn->cstate);
 		assert(false);
 	}
 
@@ -366,7 +367,8 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	}
 
 	if ((seg->ctrl & CTL_RST) != 0) {
-		log_msg(LVL_DEBUG, "Connection reset. -> Closed");
+		log_msg(LVL_DEBUG, "%s: Connection reset. -> Closed",
+		    conn->name);
 		/* XXX Signal user error */
 		tcp_conn_state_set(conn, st_closed);
 		/* XXX delete connection */
@@ -407,11 +409,12 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->snd_wl2 = seg->seq;
 
 	if (seq_no_syn_acked(conn)) {
-		log_msg(LVL_DEBUG, " syn acked -> Established");
+		log_msg(LVL_DEBUG, "%s: syn acked -> Established", conn->name);
 		tcp_conn_state_set(conn, st_established);
 		tcp_tqueue_ctrl_seg(conn, CTL_ACK /* XXX */);
 	} else {
-		log_msg(LVL_DEBUG, " syn not acked -> Syn-Received");
+		log_msg(LVL_DEBUG, "%s: syn not acked -> Syn-Received",
+		    conn->name);
 		tcp_conn_state_set(conn, st_syn_received);
 		tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
 	}
@@ -526,7 +529,7 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 		return cp_done;
 	}
 
-	log_msg(LVL_DEBUG, "SYN ACKed -> Established");
+	log_msg(LVL_DEBUG, "%s: SYN ACKed -> Established", conn->name);
 
 	tcp_conn_state_set(conn, st_established);
 
@@ -600,7 +603,7 @@ static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 		return cp_done;
 
 	if (conn->fin_is_acked) {
-		log_msg(LVL_DEBUG, " FIN acked -> Fin-Wait-2");
+		log_msg(LVL_DEBUG, "%s: FIN acked -> Fin-Wait-2", conn->name);
 		tcp_conn_state_set(conn, st_fin_wait_2);
 	}
 
@@ -665,7 +668,7 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 		return cp_done;
 
 	if (conn->fin_is_acked) {
-		log_msg(LVL_DEBUG, " FIN acked -> Closed");
+		log_msg(LVL_DEBUG, "%s: FIN acked -> Closed", conn->name);
 		tcp_conn_remove(conn);
 		tcp_conn_state_set(conn, st_closed);
 		return cp_done;
@@ -814,6 +817,9 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* Trim part of segment which we just received */
 		tcp_conn_trim_seg_to_wnd(conn, seg);
 	} else {
+		log_msg(LVL_DEBUG, "%s: Nothing left in segment, dropping "
+		    "(xfer_size=%zu, SEG.LEN=%zu, seg->ctrl=%u)",
+		    conn->name, xfer_size, seg->len, (unsigned)seg->ctrl);
 		/* Nothing left in segment */
 		tcp_segment_delete(seg);
 		return cp_done;
@@ -854,15 +860,18 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 			assert(false);
 		case st_syn_received:
 		case st_established:
-			log_msg(LVL_DEBUG, "FIN received -> Close-Wait");
+			log_msg(LVL_DEBUG, "%s: FIN received -> Close-Wait",
+			    conn->name);
 			tcp_conn_state_set(conn, st_close_wait);
 			break;
 		case st_fin_wait_1:
-			log_msg(LVL_DEBUG, "FIN received -> Closing");
+			log_msg(LVL_DEBUG, "%s: FIN received -> Closing",
+			    conn->name);
 			tcp_conn_state_set(conn, st_closing);
 			break;
 		case st_fin_wait_2:
-			log_msg(LVL_DEBUG, "FIN received -> Time-Wait");
+			log_msg(LVL_DEBUG, "%s: FIN received -> Time-Wait",
+			    conn->name);
 			tcp_conn_state_set(conn, st_time_wait);
 			/* Start the Time-Wait timer */
 			tcp_conn_tw_timer_set(conn);
@@ -903,6 +912,7 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_seg_process(%p, %p)", conn, seg);
+	tcp_segment_dump(seg);
 
 	/* Check whether segment is acceptable */
 	/* XXX Permit valid ACKs, URGs and RSTs */
@@ -988,7 +998,7 @@ static void tw_timeout_func(void *arg)
 	tcp_conn_t *conn = (tcp_conn_t *) arg;
 
 	log_msg(LVL_DEBUG, "tw_timeout_func(%p)", conn);
-	log_msg(LVL_DEBUG, " TW Timeout -> Closed");
+	log_msg(LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
 
 	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);

@@ -113,6 +113,8 @@ void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_rqueue_entry_t *rqe;
 	log_msg(LVL_DEBUG, "tcp_rqueue_insert_seg()");
 
+	tcp_segment_dump(seg);
+
 	rqe = calloc(1, sizeof(tcp_rqueue_entry_t));
 	if (rqe == NULL) {
 		log_msg(LVL_ERROR, "Failed allocating RQE.");

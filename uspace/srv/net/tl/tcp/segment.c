@@ -34,6 +34,7 @@
  * @file Segment processing
  */
 
+#include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
 #include "segment.h"
@@ -232,6 +233,21 @@ void tcp_segment_text_copy(tcp_segment_t *seg, void *buf, size_t size)
 size_t tcp_segment_text_size(tcp_segment_t *seg)
 {
 	return seg->len - seq_no_control_len(seg->ctrl);
+}
+
+/** Dump segment contents to log.
+ *
+ * @param seg	Segment
+ */
+void tcp_segment_dump(tcp_segment_t *seg)
+{
+	log_msg(LVL_DEBUG, "Segment dump:");
+	log_msg(LVL_DEBUG, " - ctrl = %u", (unsigned)seg->ctrl);
+	log_msg(LVL_DEBUG, " - seq = % " PRIu32, seg->seq);
+	log_msg(LVL_DEBUG, " - ack = % " PRIu32, seg->ack);
+	log_msg(LVL_DEBUG, " - len = % " PRIu32, seg->len);
+	log_msg(LVL_DEBUG, " - wnd = % " PRIu32, seg->wnd);
+	log_msg(LVL_DEBUG, " - up = % " PRIu32, seg->up);
 }
 
 /**

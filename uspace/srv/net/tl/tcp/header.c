@@ -34,12 +34,14 @@
  * @file TCP header encoding and decoding
  */
 
+#include <bitops.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
 #include "header.h"
 #include "segment.h"
+#include "seq_no.h"
 #include "std.h"
 #include "tcp_type.h"
 
@@ -72,17 +74,17 @@ static void tcp_header_decode_flags(uint16_t doff_flags, tcp_control_t *rctl)
 
 	ctl = 0;
 
-	if ((doff_flags & DF_URG) != 0)
+	if ((doff_flags & BIT_V(uint16_t, DF_URG)) != 0)
 		ctl |= 0 /* XXX */;
-	if ((doff_flags & DF_ACK) != 0)
+	if ((doff_flags & BIT_V(uint16_t, DF_ACK)) != 0)
 		ctl |= CTL_ACK;
-	if ((doff_flags & DF_PSH) != 0)
+	if ((doff_flags & BIT_V(uint16_t, DF_PSH)) != 0)
 		ctl |= 0 /* XXX */;
-	if ((doff_flags & DF_RST) != 0)
+	if ((doff_flags & BIT_V(uint16_t, DF_RST)) != 0)
 		ctl |= CTL_RST;
-	if ((doff_flags & DF_SYN) != 0)
+	if ((doff_flags & BIT_V(uint16_t, DF_SYN)) != 0)
 		ctl |= CTL_SYN;
-	if ((doff_flags & DF_FIN) != 0)
+	if ((doff_flags & BIT_V(uint16_t, DF_FIN)) != 0)
 		ctl |= CTL_FIN;
 
 	*rctl = ctl;
@@ -96,13 +98,13 @@ static void tcp_header_encode_flags(tcp_control_t ctl, uint16_t doff_flags0,
 	doff_flags = doff_flags0;
 
 	if ((ctl & CTL_ACK) != 0)
-		doff_flags |= DF_ACK;
+		doff_flags |= BIT_V(uint16_t, DF_ACK);
 	if ((ctl & CTL_RST) != 0)
-		doff_flags |= DF_RST;
+		doff_flags |= BIT_V(uint16_t, DF_RST);
 	if ((ctl & CTL_SYN) != 0)
-		doff_flags |= DF_SYN;
+		doff_flags |= BIT_V(uint16_t, DF_SYN);
 	if ((ctl & CTL_FIN) != 0)
-		doff_flags |= DF_FIN;
+		doff_flags |= BIT_V(uint16_t, DF_FIN);
 
 	*rdoff_flags = doff_flags;
 }
@@ -202,6 +204,7 @@ int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
 		return ENOMEM;
 
 	tcp_header_decode(pdu->header, nseg);
+	nseg->len += seq_no_control_len(nseg->ctrl);
 
 	hdr = (tcp_header_t *)pdu->header;
 

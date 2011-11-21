@@ -151,18 +151,19 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	size_t snd_buf_seqlen;
 	size_t data_size;
 	tcp_control_t ctrl;
+	bool send_fin;
 
 	tcp_segment_t *seg;
 
-	log_msg(LVL_DEBUG, "tcp_tqueue_new_data()");
+	log_msg(LVL_DEBUG, "%s: tcp_tqueue_new_data()", conn->name);
 
 	/* Number of free sequence numbers in send window */
 	avail_wnd = (conn->snd_una + conn->snd_wnd) - conn->snd_nxt;
 	snd_buf_seqlen = conn->snd_buf_used + (conn->snd_buf_fin ? 1 : 0);
 
 	xfer_seqlen = min(snd_buf_seqlen, avail_wnd);
-	log_msg(LVL_DEBUG, "snd_buf_seqlen = %zu, SND.WND = %zu, "
-	    "xfer_seqlen = %zu", snd_buf_seqlen, conn->snd_wnd,
+	log_msg(LVL_DEBUG, "%s: snd_buf_seqlen = %zu, SND.WND = %zu, "
+	    "xfer_seqlen = %zu", conn->name, snd_buf_seqlen, conn->snd_wnd,
 	    xfer_seqlen);
 
 	if (xfer_seqlen == 0)
@@ -170,8 +171,11 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	/* XXX Do not always send immediately */
 
-	data_size = xfer_seqlen - (conn->snd_buf_fin ? 1 : 0);
-	if (conn->snd_buf_fin && data_size + 1 == xfer_seqlen) {
+	send_fin = conn->snd_buf_fin && xfer_seqlen == snd_buf_seqlen;
+	data_size = xfer_seqlen - (send_fin ? 1 : 0);
+
+	if (send_fin) {
+		log_msg(LVL_DEBUG, "%s: Sending out FIN.", conn->name);
 		/* We are sending out FIN */
 		ctrl = CTL_FIN;
 		tcp_conn_fin_sent(conn);
@@ -189,7 +193,9 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	memmove(conn->snd_buf, conn->snd_buf + data_size,
 	    conn->snd_buf_used - data_size);
 	conn->snd_buf_used -= data_size;
-	conn->snd_buf_fin = false;
+
+	if (send_fin)
+		conn->snd_buf_fin = false;
 
 	tcp_tqueue_seg(conn, seg);
 }
@@ -260,6 +266,8 @@ void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 	log_msg(LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
 	    seg->seq, seg->wnd);
+
+	tcp_segment_dump(seg);
 /*
 	tcp_pdu_prepare(conn, seg, &data, &len);
 	tcp_pdu_transmit(data, len);

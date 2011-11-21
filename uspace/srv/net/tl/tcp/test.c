@@ -65,7 +65,7 @@ static void test_srv(void *arg)
 		printf("S: User receive...\n");
 		tcp_uc_receive(conn, rcv_buf, RCV_BUF_SIZE, &rcvd, &xflags);
 		if (rcvd == 0) {
-			printf("End of data reached.\n");
+			printf("S: End of data reached.\n");
 			break;
 		}
 		rcv_buf[rcvd] = '\0';
