@@ -74,27 +74,24 @@ uint16_t ext4_directory_entry_ll_get_name_length(
 	if (ext4_superblock_get_rev_level(sb) == 0 &&
 	    ext4_superblock_get_minor_rev_level(sb) < 5) {
 
-		return de->name_length;
+		return ((uint16_t)de->name_length_high) << 8 |
+			    ((uint16_t)de->name_length);
+
 	}
-
-	return ((uint16_t)de->name_length_high) << 8 |
-	    ((uint16_t)de->name_length);
-
+	return de->name_length;
 
 }
 
 void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *sb,
 		ext4_directory_entry_ll_t *de, uint16_t length)
 {
-
 	de->name_length = (length << 8) >> 8;
 
-	if (ext4_superblock_get_rev_level(sb) > 0 ||
-		    ext4_superblock_get_minor_rev_level(sb) >= 5) {
+	if (ext4_superblock_get_rev_level(sb) == 0 &&
+		    ext4_superblock_get_minor_rev_level(sb) < 5) {
 
 		de->name_length_high = length >> 8;
 	}
-
 }
 
 
@@ -242,64 +239,89 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 }
 
 
-int ext4_directory_remove_entry(ext4_filesystem_t* fs,
-		ext4_inode_ref_t *inode_ref, const char *name)
+int ext4_directory_find_entry(ext4_directory_iterator_t *it,
+		ext4_inode_ref_t *parent, const char *name)
 {
+	int rc;
+	uint32_t name_size = strlen(name);
 
-	// TODO modify HTREE index if exists
+	// Index search
+	if (ext4_superblock_has_feature_compatible(it->fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
+			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
 
+		rc = ext4_directory_dx_find_entry(it, it->fs, parent, name_size, name);
+
+		// Check if index is not corrupted
+		if (rc != EXT4_ERR_BAD_DX_DIR) {
+
+			if (rc != EOK) {
+				return rc;
+			}
+			return EOK;
+		}
+
+		EXT4FS_DBG("index is corrupted - doing linear search");
+	}
+
+	bool found = false;
+	// Linear search
+	while (it->current != NULL) {
+		uint32_t inode = ext4_directory_entry_ll_get_inode(it->current);
+
+		/* ignore empty directory entries */
+		if (inode != 0) {
+			uint16_t entry_name_size = ext4_directory_entry_ll_get_name_length(
+					it->fs->superblock, it->current);
+
+			if (entry_name_size == name_size && bcmp(name, it->current->name,
+				    name_size) == 0) {
+				found = true;
+				break;
+			}
+		}
+
+		rc = ext4_directory_iterator_next(it);
+		if (rc != EOK) {
+			return rc;
+		}
+	}
+
+	if (!found) {
+		return ENOENT;
+	}
+
+	return EOK;
+}
+
+
+int ext4_directory_remove_entry(ext4_filesystem_t* fs,
+		ext4_inode_ref_t *parent, const char *name)
+{
 	int rc;
 	ext4_directory_iterator_t it;
 
-	rc = ext4_directory_iterator_init(&it, fs, inode_ref, 0);
+	if (!ext4_inode_is_type(fs->superblock, parent->inode,
+	    EXT4_INODE_MODE_DIRECTORY)) {
+		return ENOTDIR;
+	}
+
+	rc = ext4_directory_iterator_init(&it, fs, parent, 0);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	uint16_t name_size = strlen(name);
-	bool found = false;
-
-	while (it.current != NULL) {
-
-		if (it.current->inode == 0) {
-			goto skip;
-		}
-
-		uint16_t entry_name_size = ext4_directory_entry_ll_get_name_length(
-		    fs->superblock, it.current);
-
-		/* skip . and .. */
-		if (entry_name_size == 1 && name[0] == '.') {
-			goto skip;
-		}
-
-		if (entry_name_size == 2 && name[0] == '.' && name[1] == '.') {
-			goto skip;
-		}
-
-		if (name_size == entry_name_size &&
-				bcmp(name, &it.current->name, name_size) == 0) {
-
-			found = true;
-			break;
-		}
-
-skip:
-		rc = ext4_directory_iterator_next(&it);
-		if (rc != EOK) {
-			ext4_directory_iterator_fini(&it);
-			return rc;
-		}
+	rc = ext4_directory_find_entry(&it, parent, name);
+	if (rc != EOK) {
+		ext4_directory_iterator_fini(&it);
+		return rc;
 	}
 
-	if (! found) {
-		rc = ext4_directory_iterator_fini(&it);
-		if (rc != EOK) {
-			return rc;
-		}
-		return ENOENT;
+	if (rc != EOK) {
+		ext4_directory_iterator_fini(&it);
+		return rc;
 	}
 
+	// TODO modify HTREE index if exists
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t pos = it.current_offset % block_size;

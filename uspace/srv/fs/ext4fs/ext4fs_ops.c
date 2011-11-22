@@ -204,10 +204,6 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	ext4_filesystem_t *fs;
 	ext4_directory_iterator_t it;
 	int rc;
-	size_t name_size;
-	size_t component_size;
-	bool found = false;
-	uint32_t inode;
 
 	fs = eparent->instance->filesystem;
 
@@ -216,68 +212,26 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 
-	component_size = strlen(component);
-
-	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
-			ext4_inode_has_flag(eparent->inode_ref->inode, EXT4_INODE_FLAG_INDEX)) {
-
-		rc = ext4_directory_dx_find_entry(&it, fs, eparent->inode_ref, component_size, component);
-
-		// Index isn't corrupted
-		if (rc != EXT4_ERR_BAD_DX_DIR) {
-
-			if (rc != EOK) {
-				return rc;
-			}
-
-			inode = ext4_directory_entry_ll_get_inode(it.current);
-
-			rc = ext4fs_node_get_core(rfn, eparent->instance, inode);
-			ext4_directory_iterator_fini(&it);
-			return rc;
-		}
-
-	}
-
 	rc = ext4_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	while (it.current != NULL) {
-		inode = ext4_directory_entry_ll_get_inode(it.current);
+	rc = ext4_directory_find_entry(&it, eparent->inode_ref, component);
+	if (rc != EOK) {
+		ext4_directory_iterator_fini(&it);
+		return rc;
+	}
 
-		/* ignore empty directory entries */
-		if (inode != 0) {
-			name_size = ext4_directory_entry_ll_get_name_length(fs->superblock,
-				it.current);
+	uint32_t inode = ext4_directory_entry_ll_get_inode(it.current);
 
-			if (name_size == component_size && bcmp(component, &it.current->name,
-				    name_size) == 0) {
-				rc = ext4fs_node_get_core(rfn, eparent->instance,
-					inode);
-				if (rc != EOK) {
-					ext4_directory_iterator_fini(&it);
-					return rc;
-				}
-				found = true;
-				break;
-			}
-		}
-
-		rc = ext4_directory_iterator_next(&it);
-		if (rc != EOK) {
-			ext4_directory_iterator_fini(&it);
-			return rc;
-		}
+	rc = ext4fs_node_get_core(rfn, eparent->instance, inode);
+	if (rc != EOK) {
+		ext4_directory_iterator_fini(&it);
+		return rc;
 	}
 
 	ext4_directory_iterator_fini(&it);
-
-	if (!found) {
-		return ENOENT;
-	}
-
 	return EOK;
 }
 
@@ -790,7 +744,6 @@ bool ext4fs_is_dots(const uint8_t *name, size_t name_size)
 int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
-
 	ext4_directory_iterator_t it;
 	aoff64_t next;
 	uint8_t *buf;
@@ -1150,10 +1103,16 @@ static int ext4fs_close(service_id_t service_id, fs_index_t index)
 
 static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 {
-	EXT4FS_DBG("not supported");
+	int rc;
+	fs_node_t *fn;
 
-	//TODO
-	return ENOTSUP;
+	rc = ext4fs_node_get(&fn, service_id, index);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Destroy the inode */
+	return ext4fs_destroy_node(fn);
 }
 
 
