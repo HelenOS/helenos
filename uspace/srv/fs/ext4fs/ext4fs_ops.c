@@ -381,10 +381,46 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 int ext4fs_destroy_node(fs_node_t *fn)
 {
-	EXT4FS_DBG("not supported");
+	int rc;
 
-	// TODO
-	return ENOTSUP;
+	bool has_children;
+	rc = ext4fs_has_children(&has_children, fn);
+	if (rc != EOK) {
+		ext4fs_node_put(fn);
+		return rc;
+	}
+
+	if (has_children) {
+		EXT4FS_DBG("destroying non-empty node");
+		ext4fs_node_put(fn);
+		return EINVAL;
+	}
+
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	ext4_filesystem_t *fs = enode->instance->filesystem;
+	ext4_inode_ref_t *inode_ref = enode->inode_ref;
+
+	EXT4FS_DBG("destroying \%u", inode_ref->index);
+
+	rc = ext4_filesystem_truncate_inode(fs, inode_ref, 0);
+	if (rc != EOK) {
+		ext4fs_node_put(fn);
+		return rc;
+	}
+
+	rc = ext4_filesystem_free_inode(fs, inode_ref);
+	if (rc != EOK) {
+		ext4fs_node_put(fn);
+		return rc;
+	}
+
+	ext4fs_node_put(fn);
+	return EOK;
+
+//	EXT4FS_DBG("not supported");
+//
+//	// TODO
+//	return ENOTSUP;
 }
 
 
@@ -399,6 +435,8 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
+	EXT4FS_DBG("unlinking \%s", name);
+
 	int rc;
 
 	bool has_children;
@@ -429,16 +467,29 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	child_inode_ref->dirty = true;
 
+//	EXT4FS_DBG("links count = \%u", lnk_count);
+
 	// If directory - handle links from parent
 	if (lnk_count <= 1 && ext4fs_is_directory(cfn)) {
 
-		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
-		uint32_t parent_lnk_count = ext4_inode_get_links_count(
-				parent_inode_ref->inode);
-		parent_lnk_count--;
-		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
+//		EXT4FS_DBG("directory will be removed, lnlk_count = \%u", lnk_count);
 
-		parent_inode_ref->dirty = true;
+		if (lnk_count) {
+			lnk_count = ext4_inode_get_links_count(child_inode_ref->inode);
+			lnk_count--;
+			ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
+		}
+
+//		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
+//		uint32_t parent_lnk_count = ext4_inode_get_links_count(
+//				parent_inode_ref->inode);
+//
+//		EXT4FS_DBG("directory will be removed, parent link count = \%u", parent_lnk_count);
+//
+//		parent_lnk_count--;
+//		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
+//
+//		parent_inode_ref->dirty = true;
 	}
 
 	return EOK;
@@ -1020,78 +1071,80 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 static int
 ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 {
-	fs_node_t *fn;
-	ext4fs_node_t *enode;
-	ext4_inode_ref_t *inode_ref;
-	ext4_filesystem_t* fs;
-	aoff64_t old_size;
-	aoff64_t size_diff;
 	int rc;
+	fs_node_t *fn;
+//	aoff64_t old_size;
+//	aoff64_t size_diff;
 
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	enode = EXT4FS_NODE(fn);
-	inode_ref = enode->inode_ref;
-	fs = enode->instance->filesystem;
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	ext4_inode_ref_t *inode_ref = enode->inode_ref;
+	ext4_filesystem_t *fs = enode->instance->filesystem;
 
-
-	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
-		// Unable to truncate
-		ext4fs_node_put(fn);
-		return EINVAL;
-	}
-
-	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
-
-	if (old_size == new_size) {
-		ext4fs_node_put(fn);
-		return EOK;
-	} else {
-
-		uint32_t block_size;
-		uint32_t blocks_count, total_blocks;
-		uint32_t i;
-
-		block_size  = ext4_superblock_get_block_size(fs->superblock);
-
-		if (old_size < new_size) {
-			// Currently not supported to expand the file
-			// TODO
-			EXT4FS_DBG("trying to expand the file");
-			return EINVAL;
-		}
-
-		size_diff = old_size - new_size;
-		blocks_count = size_diff / block_size;
-		if (size_diff % block_size != 0) {
-			blocks_count++;
-		}
-
-		total_blocks = old_size / block_size;
-		if (old_size % block_size != 0) {
-			total_blocks++;
-		}
-
-		inode_ref->dirty = true;
-
-		// starting from 1 because of logical blocks are numbered from 0
-		for (i = 1; i <= blocks_count; ++i) {
-			// TODO check retval
-			// TODO decrement inode->blocks_count
-
-			ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
-		}
-
-		ext4_inode_set_size(inode_ref->inode, new_size);
-
-	}
-
+	rc = ext4_filesystem_truncate_inode(fs, inode_ref, new_size);
 	ext4fs_node_put(fn);
 
-	return EOK;
+	return rc;
+
+//	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
+//		// Unable to truncate
+//		ext4fs_node_put(fn);
+//		return EINVAL;
+//	}
+//
+//	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+//
+//	if (old_size == new_size) {
+//		ext4fs_node_put(fn);
+//		return EOK;
+//	} else {
+//
+//		uint32_t block_size;
+//		uint32_t blocks_count, total_blocks;
+//		uint32_t i;
+//
+//		block_size  = ext4_superblock_get_block_size(fs->superblock);
+//
+//		if (old_size < new_size) {
+//			// Currently not supported to expand the file
+//			// TODO
+//			EXT4FS_DBG("trying to expand the file");
+//			ext4fs_node_put(fn);
+//			return EINVAL;
+//		}
+//
+//		size_diff = old_size - new_size;
+//		blocks_count = size_diff / block_size;
+//		if (size_diff % block_size != 0) {
+//			blocks_count++;
+//		}
+//
+//		total_blocks = old_size / block_size;
+//		if (old_size % block_size != 0) {
+//			total_blocks++;
+//		}
+//
+//		// starting from 1 because of logical blocks are numbered from 0
+//		for (i = 1; i <= blocks_count; ++i) {
+//			// TODO check retval
+//			// TODO decrement inode->blocks_count
+//
+//			ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
+//		}
+//
+//		ext4_inode_set_size(inode_ref->inode, new_size);
+//
+//		inode_ref->dirty = true;
+//
+//	}
+//
+//	ext4fs_node_put(fn);
+//
+//	return EOK;
 }
 
 

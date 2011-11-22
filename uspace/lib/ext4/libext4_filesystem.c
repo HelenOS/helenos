@@ -282,6 +282,176 @@ int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 	return rc;
 }
 
+int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
+{
+	int rc;
+	// release all indirect blocks
+
+	uint32_t fblock;
+
+	// 1) Single indirect
+	fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
+	if (fblock != 0) {
+		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		ext4_inode_set_indirect_block(inode_ref->inode, 0, 0);
+	}
+
+	block_t *block;
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t count = block_size / sizeof(uint32_t);
+
+	// 2) Double indirect
+	fblock = ext4_inode_get_indirect_block(inode_ref->inode, 1);
+	if (fblock != 0) {
+		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		uint32_t ind_block;
+		for (uint32_t offset = 0; offset < count; ++offset) {
+			ind_block = uint32_t_le2host(((uint32_t*)block->data)[offset]);
+
+			if (ind_block != 0) {
+				rc = ext4_balloc_free_block(fs, inode_ref, ind_block);
+				if (rc != EOK) {
+					// TODO error
+				}
+			}
+		}
+
+		block_put(block);
+		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		ext4_inode_set_indirect_block(inode_ref->inode, 1, 0);
+	}
+
+
+	// 3) Tripple indirect
+	block_t *subblock;
+	fblock = ext4_inode_get_indirect_block(inode_ref->inode, 2);
+	if (fblock != 0) {
+		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		uint32_t ind_block;
+		for (uint32_t offset = 0; offset < count; ++offset) {
+			ind_block = uint32_t_le2host(((uint32_t*)block->data)[offset]);
+
+			if (ind_block != 0) {
+				rc = block_get(&subblock, fs->device, ind_block, BLOCK_FLAGS_NONE);
+				if (rc != EOK) {
+					// TODO error
+				}
+
+				uint32_t ind_subblock;
+				for (uint32_t suboffset = 0; suboffset < count; ++suboffset) {
+					ind_subblock = uint32_t_le2host(((uint32_t*)subblock->data)[suboffset]);
+
+					if (ind_subblock != 0) {
+						rc = ext4_balloc_free_block(fs, inode_ref, ind_subblock);
+						if (rc != EOK) {
+							// TODO error
+						}
+					}
+
+				}
+				block_put(subblock);
+
+			}
+
+			rc = ext4_balloc_free_block(fs, inode_ref, ind_block);
+			if (rc != EOK) {
+				// TODO error
+			}
+
+
+		}
+
+		block_put(block);
+		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		ext4_inode_set_indirect_block(inode_ref->inode, 2, 0);
+	}
+
+	// Free inode
+	rc = ext4_ialloc_free_inode(fs, inode_ref);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return EOK;
+}
+
+int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, aoff64_t new_size)
+{
+	aoff64_t old_size;
+	aoff64_t size_diff;
+
+	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
+		// Unable to truncate
+		return EINVAL;
+	}
+
+	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+
+	if (old_size == new_size) {
+		// Nothing to do
+		return EOK;
+	}
+
+	uint32_t block_size;
+	uint32_t blocks_count, total_blocks;
+	uint32_t i;
+
+	block_size  = ext4_superblock_get_block_size(fs->superblock);
+
+	if (old_size < new_size) {
+		// Currently not supported to expand the file
+		// TODO
+		EXT4FS_DBG("trying to expand the file");
+		return EINVAL;
+	}
+
+	size_diff = old_size - new_size;
+	blocks_count = size_diff / block_size;
+	if (size_diff % block_size != 0) {
+		blocks_count++;
+	}
+
+	total_blocks = old_size / block_size;
+	if (old_size % block_size != 0) {
+		total_blocks++;
+	}
+
+	// starting from 1 because of logical blocks are numbered from 0
+	for (i = 1; i <= blocks_count; ++i) {
+		// TODO check retval
+		// TODO decrement inode->blocks_count
+
+		ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
+	}
+
+	ext4_inode_set_size(inode_ref->inode, new_size);
+
+	inode_ref->dirty = true;
+
+	return EOK;
+}
+
 int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode_t* inode,
     aoff64_t iblock, uint32_t* fblock)
 {

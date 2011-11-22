@@ -41,6 +41,7 @@
 #include "libext4_extent.h"
 #include "libext4_filesystem.h"
 #include "libext4_hash.h"
+#include "libext4_ialloc.h"
 #include "libext4_inode.h"
 #include "libext4_superblock.h"
 

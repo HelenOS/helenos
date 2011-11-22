@@ -35,7 +35,82 @@
  * @brief	Inode (de)allocation operations.
  */
 
+#include <errno.h>
 #include "libext4.h"
+
+static uint32_t ext4_ialloc_inode2index_in_group(ext4_superblock_t *sb,
+		uint32_t inode)
+{
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
+	return (inode - 1) % inodes_per_group;
+}
+
+static uint32_t ext4_ialloc_get_bgid_of_inode(ext4_superblock_t *sb,
+		uint32_t inode)
+{
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
+	return (inode - 1) / inodes_per_group;
+
+}
+
+
+int ext4_ialloc_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
+{
+	int rc;
+	uint32_t block_group = ext4_ialloc_get_bgid_of_inode(
+			fs->superblock, inode_ref->index);
+	uint32_t index_in_group = ext4_ialloc_inode2index_in_group(
+			fs->superblock, inode_ref->index);
+
+	ext4_block_group_ref_t *bg_ref;
+	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in loading bg_ref \%d", rc);
+		return rc;
+	}
+
+	uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
+			bg_ref->block_group, fs->superblock);
+	block_t *bitmap_block;
+	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in loading bitmap \%d", rc);
+		return rc;
+	}
+
+	ext4_bitmap_free_bit(bitmap_block->data, index_in_group);
+	bitmap_block->dirty = true;
+
+	rc = block_put(bitmap_block);
+	if (rc != EOK) {
+		// Error in saving bitmap
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		EXT4FS_DBG("error in saving bitmap \%d", rc);
+		return rc;
+	}
+
+	// Update superblock free inodes count
+	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(fs->superblock);
+	sb_free_inodes--;
+	ext4_superblock_set_free_inodes_count(fs->superblock, sb_free_inodes);
+
+	// Update block group free inodes count
+	uint32_t free_inodes = ext4_block_group_get_free_inodes_count(
+			bg_ref->block_group, fs->superblock);
+	free_inodes++;
+	ext4_block_group_set_free_inodes_count(bg_ref->block_group,
+			fs->superblock, free_inodes);
+	bg_ref->dirty = true;
+
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in saving bg_ref \%d", rc);
+		// TODO error
+		return rc;
+	}
+
+	return EOK;
+}
 
 
 /**

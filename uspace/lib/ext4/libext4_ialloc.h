@@ -33,6 +33,10 @@
 #ifndef LIBEXT4_LIBEXT4_IALLOC_H_
 #define LIBEXT4_LIBEXT4_IALLOC_H_
 
+#include "libext4_filesystem.h"
+#include "libext4_inode.h"
+
+extern int ext4_ialloc_free_inode(ext4_filesystem_t *, ext4_inode_ref_t *);
 
 #endif
 
