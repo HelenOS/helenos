@@ -445,9 +445,6 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-
-	return ENOTSUP;
-
 	int rc;
 
 	bool has_children;
@@ -462,11 +459,12 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	}
 
 	// Remove entry from parent directory
-	// TODO
-//	rc = ext4_directory_remove_entry(EXT4FS_NODE(pfn), name);
-//	if (rc != EOK) {
-//		return rc;
-//	}
+	ext4_inode_ref_t *parent = EXT4FS_NODE(pfn)->inode_ref;
+	ext4_filesystem_t *fs = EXT4FS_NODE(pfn)->instance->filesystem;
+	rc = ext4_directory_remove_entry(fs, parent, name);
+	if (rc != EOK) {
+		return rc;
+	}
 
 	// Decrement links count
 	ext4_inode_ref_t * child_inode_ref = EXT4FS_NODE(cfn)->inode_ref;
@@ -488,7 +486,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 		parent_inode_ref->dirty = true;
 	}
-
 
 	return EOK;
 }

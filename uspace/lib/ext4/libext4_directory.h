@@ -79,6 +79,9 @@ extern int ext4_directory_iterator_next(ext4_directory_iterator_t *);
 extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t pos);
 extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
 
+extern int ext4_directory_remove_entry(ext4_filesystem_t* ,
+		ext4_inode_ref_t *, const char *name);
+
 #endif
 
 /**

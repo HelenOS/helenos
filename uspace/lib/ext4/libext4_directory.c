@@ -37,6 +37,8 @@
 
 #include <byteorder.h>
 #include <errno.h>
+#include <malloc.h>
+#include <string.h>
 #include "libext4.h"
 
 static int ext4_directory_iterator_set(ext4_directory_iterator_t *,
@@ -240,6 +242,99 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 }
 
 
+int ext4_directory_remove_entry(ext4_filesystem_t* fs,
+		ext4_inode_ref_t *inode_ref, const char *name)
+{
+
+	// TODO modify HTREE index if exists
+
+	int rc;
+	ext4_directory_iterator_t it;
+
+	rc = ext4_directory_iterator_init(&it, fs, inode_ref, 0);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	uint16_t name_size = strlen(name);
+	bool found = false;
+
+	while (it.current != NULL) {
+
+		if (it.current->inode == 0) {
+			goto skip;
+		}
+
+		uint16_t entry_name_size = ext4_directory_entry_ll_get_name_length(
+		    fs->superblock, it.current);
+
+		/* skip . and .. */
+		if (entry_name_size == 1 && name[0] == '.') {
+			goto skip;
+		}
+
+		if (entry_name_size == 2 && name[0] == '.' && name[1] == '.') {
+			goto skip;
+		}
+
+		if (name_size == entry_name_size &&
+				bcmp(name, &it.current->name, name_size) == 0) {
+
+			found = true;
+			break;
+		}
+
+skip:
+		rc = ext4_directory_iterator_next(&it);
+		if (rc != EOK) {
+			ext4_directory_iterator_fini(&it);
+			return rc;
+		}
+	}
+
+	if (! found) {
+		rc = ext4_directory_iterator_fini(&it);
+		if (rc != EOK) {
+			return rc;
+		}
+		return ENOENT;
+	}
+
+
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t pos = it.current_offset % block_size;
+
+	ext4_directory_entry_ll_set_inode(it.current, 0);
+
+	if (pos != 0) {
+		uint32_t offset = 0;
+
+		ext4_directory_entry_ll_t *tmp_dentry = it.current_block->data;
+		uint16_t tmp_dentry_length =
+				ext4_directory_entry_ll_get_entry_length(tmp_dentry);
+
+		while ((offset + tmp_dentry_length) < pos) {
+			offset += ext4_directory_entry_ll_get_entry_length(tmp_dentry);
+			tmp_dentry = it.current_block->data + offset;
+			tmp_dentry_length =
+					ext4_directory_entry_ll_get_entry_length(tmp_dentry);
+		}
+
+		assert(tmp_dentry_length + offset == pos);
+
+		uint16_t del_entry_length =
+				ext4_directory_entry_ll_get_entry_length(it.current);
+		ext4_directory_entry_ll_set_entry_length(tmp_dentry,
+				tmp_dentry_length + del_entry_length);
+
+	}
+
+
+	it.current_block->dirty = true;
+
+	ext4_directory_iterator_fini(&it);
+	return EOK;
+}
 
 
 /**
