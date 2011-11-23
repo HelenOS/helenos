@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
-#include "header.h"
+#include "pdu.h"
 #include "segment.h"
 #include "seq_no.h"
 #include "std.h"

@@ -39,9 +39,9 @@
 #include <macros.h>
 #include <mem.h>
 #include "conn.h"
-#include "state.h"
 #include "tcp_type.h"
 #include "tqueue.h"
+#include "ucall.h"
 
 /*
  * User calls

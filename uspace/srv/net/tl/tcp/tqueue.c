@@ -43,8 +43,8 @@
 #include <mem.h>
 #include <stdlib.h>
 #include "conn.h"
-#include "header.h"
 #include "ncsim.h"
+#include "pdu.h"
 #include "rqueue.h"
 #include "segment.h"
 #include "seq_no.h"

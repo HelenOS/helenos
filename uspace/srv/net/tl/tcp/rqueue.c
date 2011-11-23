@@ -40,11 +40,11 @@
 #include <stdlib.h>
 #include <thread.h>
 #include "conn.h"
-#include "header.h"
+#include "pdu.h"
 #include "rqueue.h"
 #include "segment.h"
-#include "state.h"
 #include "tcp_type.h"
+#include "ucall.h"
 
 /** Transcode bounced segments.
  *

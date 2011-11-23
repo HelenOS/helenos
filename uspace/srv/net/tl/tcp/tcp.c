@@ -51,8 +51,8 @@
 #include <packet_client.h>
 #include <packet_remote.h>
 
-#include "header.h"
 #include "ncsim.h"
+#include "pdu.h"
 #include "rqueue.h"
 #include "std.h"
 #include "tcp.h"

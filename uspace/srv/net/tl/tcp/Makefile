@@ -33,15 +33,15 @@ BINARY = tcp
 
 SOURCES = \
 	conn.c \
-	header.c \
 	iqueue.c \
 	ncsim.c \
+	pdu.c \
 	rqueue.c \
 	segment.c \
 	seq_no.c \
-	state.c \
 	tcp.c \
 	test.c \
-	tqueue.c 
+	tqueue.c \
+	ucall.c
 
 include $(USPACE_PREFIX)/Makefile.common

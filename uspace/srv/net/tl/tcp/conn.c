@@ -44,9 +44,9 @@
 #include "iqueue.h"
 #include "segment.h"
 #include "seq_no.h"
-#include "state.h"
 #include "tcp_type.h"
 #include "tqueue.h"
+#include "ucall.h"
 
 #define RCV_BUF_SIZE 2/*4096*/
 #define SND_BUF_SIZE 4096
