@@ -29,20 +29,15 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP header encoding and decoding
+/** @file TCP (Transmission Control Protocol) network module
  */
 
-#ifndef HEADER_H
-#define HEADER_H
+#ifndef TCP_H
+#define TCP_H
 
-#include <sys/types.h>
-#include "std.h"
 #include "tcp_type.h"
 
-extern tcp_pdu_t *tcp_pdu_create(void *, size_t, void *, size_t);
-extern void tcp_pdu_delete(tcp_pdu_t *);
-extern int tcp_pdu_decode(tcp_pdu_t *, tcp_sockpair_t *, tcp_segment_t **);
-extern int tcp_pdu_encode(tcp_sockpair_t *, tcp_segment_t *, tcp_pdu_t **);
+extern void tcp_transmit_pdu(tcp_pdu_t *);
 
 #endif
 

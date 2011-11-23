@@ -102,7 +102,7 @@ static void test_cli(void *arg)
 	printf("C: User send...\n");
 	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
 
-	async_usleep(1000*1000*3/**20*2*/);
+	async_usleep(1000*1000*20/**20*2*/);
 	printf("C: User close...\n");
 	tcp_uc_close(conn);
 }
@@ -114,6 +114,8 @@ void tcp_test(void)
 	int rc;
 
 	printf("tcp_test()\n");
+
+	async_usleep(1000*1000);
 
 	rc = thread_create(test_srv, NULL, "test_srv", &srv_tid);
 	if (rc != EOK) {

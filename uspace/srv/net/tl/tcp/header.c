@@ -163,8 +163,50 @@ static tcp_pdu_t *tcp_pdu_new(void)
 	return calloc(1, sizeof(tcp_pdu_t));
 }
 
+/** Create PDU with the specified header and text data.
+ *
+ * Note that you still need to set addresses in the returned PDU.
+ *
+ * @param hdr		Header data
+ * @param hdr_size      Header size in bytes
+ * @param text		Text data
+ * @param text_size	Text size in bytes
+ * @return		New PDU
+ */
+tcp_pdu_t *tcp_pdu_create(void *hdr, size_t hdr_size, void *text,
+    size_t text_size)
+{
+	tcp_pdu_t *pdu;
+
+	pdu = tcp_pdu_new();
+	if (pdu == NULL)
+		return NULL;
+
+	pdu->header = malloc(hdr_size);
+	pdu->text = malloc(text_size);
+	if (pdu->header == NULL || pdu->text == NULL)
+		goto error;
+
+	memcpy(pdu->header, hdr, hdr_size);
+	memcpy(pdu->text, text, text_size);
+
+	pdu->header_size = hdr_size;
+	pdu->text_size = text_size;
+
+	return pdu;
+
+error:
+	if (pdu->header != NULL)
+		free(pdu->header);
+	if (pdu->text != NULL)
+		free(pdu->text);
+
+	return NULL;
+}
+
 void tcp_pdu_delete(tcp_pdu_t *pdu)
 {
+	free(pdu->header);
 	free(pdu->text);
 	free(pdu);
 }

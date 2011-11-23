@@ -49,6 +49,7 @@
 #include "segment.h"
 #include "seq_no.h"
 #include "tqueue.h"
+#include "tcp.h"
 #include "tcp_type.h"
 
 #define RETRANSMIT_TIMEOUT	(2*1000*1000)
@@ -272,8 +273,18 @@ void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_pdu_prepare(conn, seg, &data, &len);
 	tcp_pdu_transmit(data, len);
 */
-	tcp_rqueue_bounce_seg(sp, seg);
+//	tcp_rqueue_bounce_seg(sp, seg);
 //	tcp_ncsim_bounce_seg(sp, seg);
+
+	tcp_pdu_t *pdu;
+
+	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
+		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		return;
+	}
+
+	tcp_transmit_pdu(pdu);
+	tcp_pdu_delete(pdu);
 }
 
 static void retransmit_timeout_func(void *arg)
