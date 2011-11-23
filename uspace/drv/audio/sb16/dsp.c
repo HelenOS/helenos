@@ -194,6 +194,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	/* We don't really care about the mode of transport, so ack both */
+	// TODO: Move irq ACK to irq_code
 	if (dsp->version.major >= 4) {
 		/* ACK dma16 transfer interrupt */
 		pio_read_8(&dsp->regs->dma16_ack);
