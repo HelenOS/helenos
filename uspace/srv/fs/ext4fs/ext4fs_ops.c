@@ -381,6 +381,8 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 int ext4fs_destroy_node(fs_node_t *fn)
 {
+	EXT4FS_DBG("");
+
 	int rc;
 
 	bool has_children;
@@ -442,11 +444,13 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	bool has_children;
 	rc = ext4fs_has_children(&has_children, cfn);
 	if (rc != EOK) {
+		EXT4FS_DBG("\%s error: \%u", name, rc);
 		return rc;
 	}
 
 	// Cannot unlink non-empty node
 	if (has_children) {
+		EXT4FS_DBG("\%s is not empty", name);
 		return ENOTEMPTY;
 	}
 
@@ -455,6 +459,7 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	ext4_filesystem_t *fs = EXT4FS_NODE(pfn)->instance->filesystem;
 	rc = ext4_directory_remove_entry(fs, parent, name);
 	if (rc != EOK) {
+		EXT4FS_DBG("\%s removing entry failed: \%u", name, rc);
 		return rc;
 	}
 
@@ -462,35 +467,36 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	ext4_inode_ref_t * child_inode_ref = EXT4FS_NODE(cfn)->inode_ref;
 
 	uint32_t lnk_count = ext4_inode_get_links_count(child_inode_ref->inode);
+	EXT4FS_DBG("link count before == \%u", lnk_count);
 	lnk_count--;
-	ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
 
-	child_inode_ref->dirty = true;
-
-//	EXT4FS_DBG("links count = \%u", lnk_count);
 
 	// If directory - handle links from parent
 	if (lnk_count <= 1 && ext4fs_is_directory(cfn)) {
 
-//		EXT4FS_DBG("directory will be removed, lnlk_count = \%u", lnk_count);
-
 		if (lnk_count) {
-			lnk_count = ext4_inode_get_links_count(child_inode_ref->inode);
 			lnk_count--;
-			ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
 		}
 
-//		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
-//		uint32_t parent_lnk_count = ext4_inode_get_links_count(
-//				parent_inode_ref->inode);
-//
-//		EXT4FS_DBG("directory will be removed, parent link count = \%u", parent_lnk_count);
-//
-//		parent_lnk_count--;
-//		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
-//
-//		parent_inode_ref->dirty = true;
+		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
+
+		EXT4FS_DBG("parent index = \%u", parent_inode_ref->index);
+
+		uint32_t parent_lnk_count = ext4_inode_get_links_count(
+				parent_inode_ref->inode);
+
+		EXT4FS_DBG("directory will be removed, parent link count = \%u", parent_lnk_count);
+
+		parent_lnk_count--;
+		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
+
+		parent_inode_ref->dirty = true;
 	}
+
+	ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
+	child_inode_ref->dirty = true;
+
+	EXT4FS_DBG("link count after == \%u", lnk_count);
 
 	return EOK;
 }
@@ -566,8 +572,7 @@ aoff64_t ext4fs_size_get(fs_node_t *fn)
 unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	unsigned count = ext4_inode_get_links_count(enode->inode_ref->inode);
-	return count;
+	return ext4_inode_get_links_count(enode->inode_ref->inode);
 }
 
 
@@ -1073,8 +1078,6 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 {
 	int rc;
 	fs_node_t *fn;
-//	aoff64_t old_size;
-//	aoff64_t size_diff;
 
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
@@ -1089,62 +1092,6 @@ ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
 	ext4fs_node_put(fn);
 
 	return rc;
-
-//	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
-//		// Unable to truncate
-//		ext4fs_node_put(fn);
-//		return EINVAL;
-//	}
-//
-//	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
-//
-//	if (old_size == new_size) {
-//		ext4fs_node_put(fn);
-//		return EOK;
-//	} else {
-//
-//		uint32_t block_size;
-//		uint32_t blocks_count, total_blocks;
-//		uint32_t i;
-//
-//		block_size  = ext4_superblock_get_block_size(fs->superblock);
-//
-//		if (old_size < new_size) {
-//			// Currently not supported to expand the file
-//			// TODO
-//			EXT4FS_DBG("trying to expand the file");
-//			ext4fs_node_put(fn);
-//			return EINVAL;
-//		}
-//
-//		size_diff = old_size - new_size;
-//		blocks_count = size_diff / block_size;
-//		if (size_diff % block_size != 0) {
-//			blocks_count++;
-//		}
-//
-//		total_blocks = old_size / block_size;
-//		if (old_size % block_size != 0) {
-//			total_blocks++;
-//		}
-//
-//		// starting from 1 because of logical blocks are numbered from 0
-//		for (i = 1; i <= blocks_count; ++i) {
-//			// TODO check retval
-//			// TODO decrement inode->blocks_count
-//
-//			ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
-//		}
-//
-//		ext4_inode_set_size(inode_ref->inode, new_size);
-//
-//		inode_ref->dirty = true;
-//
-//	}
-//
-//	ext4fs_node_put(fn);
-//
-//	return EOK;
 }
 
 
