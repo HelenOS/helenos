@@ -222,8 +222,8 @@ int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
 	const channel_t *chan =
 	    &volume_table[mixer->type].table[index].channel_table[channel];
 
-	if (level > chan->volume_levels)
-		level = chan->volume_levels;
+	if (level >= chan->volume_levels)
+		level = chan->volume_levels - 1;
 
 	pio_write_8(&mixer->regs->mixer_address, chan->address);
 
