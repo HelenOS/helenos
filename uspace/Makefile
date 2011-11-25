@@ -46,6 +46,7 @@ DIRS = \
 	app/klog \
 	app/locinfo \
 	app/lsusb \
+	app/mixerctl \
 	app/mkfat \
 	app/mkmfs \
 	app/redir \
