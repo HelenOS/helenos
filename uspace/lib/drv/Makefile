@@ -36,6 +36,7 @@ SOURCES = \
 	generic/dev_iface.c \
 	generic/log.c \
 	generic/logbuf.c \
+	generic/remote_audio_mixer.c \
 	generic/remote_hw_res.c \
 	generic/remote_char_dev.c \
 	generic/remote_nic.c \

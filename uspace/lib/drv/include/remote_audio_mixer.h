@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libdrv
  * @{
  */
-
 /** @file
  */
 
-#include <assert.h>
+#ifndef LIBDRV_REMOTE_AUDIO_MIXER_H_
+#define LIBDRV_REMOTE_AUDIO_MIXER_H_
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_audio_mixer.h"
+extern remote_iface_t remote_audio_mixer_iface;
 
-static const iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		[AUDIO_MIXER_IFACE] = &remote_audio_mixer_iface,
-		[HW_RES_DEV_IFACE] = &remote_hw_res_iface,
-		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
-		[NIC_DEV_IFACE] = &remote_nic_iface,
-		[PCI_DEV_IFACE] = &remote_pci_iface,
-		[USB_DEV_IFACE] = &remote_usb_iface,
-		[USBHC_DEV_IFACE] = &remote_usbhc_iface,
-		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
-	}
-};
-
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
-
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
-
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
+#endif
 
 /**
  * @}
  */
+

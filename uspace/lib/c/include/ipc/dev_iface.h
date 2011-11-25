@@ -35,6 +35,10 @@
 
 typedef enum {
 	HW_RES_DEV_IFACE = 0,
+
+	/** Audio device mixer interface */
+	AUDIO_MIXER_IFACE,
+
 	/** Character device interface */
 	CHAR_DEV_IFACE,
 	
