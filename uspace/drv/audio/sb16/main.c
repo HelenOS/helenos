@@ -119,14 +119,12 @@ if (ret != EOK) { \
 	    "Failed to register irq handler: %s.\n", str_error(ret));
 
 
-	ddf_fun_t *dsp_fun = NULL, *mixer_fun = NULL;
+	ddf_fun_t *dsp_fun = NULL;
 #define CHECK_RET_UNREG_DEST_RETURN(ret, msg...) \
 if (ret != EOK) { \
 	ddf_log_error(msg); \
 	if (dsp_fun) \
 		ddf_fun_destroy(dsp_fun); \
-	if (mixer_fun) \
-		ddf_fun_destroy(mixer_fun); \
 	unregister_interrupt_handler(device, irq); \
 	return ret; \
 } else (void)0
@@ -139,11 +137,6 @@ if (ret != EOK) { \
 	ret = dsp_fun ? EOK : ENOMEM;
 	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create dsp function.");
 
-
-	mixer_fun = ddf_fun_create(device, fun_exposed, "mixer");
-	ret = dsp_fun ? EOK : ENOMEM;
-	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to create mixer function.");
-
 	ret = sb16_init_sb16(
 	    soft_state, (void*)sb_regs, sb_regs_size, device, dma8, dma16);
 	CHECK_RET_UNREG_DEST_RETURN(ret,
@@ -153,12 +146,7 @@ if (ret != EOK) { \
 	CHECK_RET_UNREG_DEST_RETURN(ret,
 	    "Failed to bind dsp function: %s.\n", str_error(ret));
 
-	ret = ddf_fun_bind(mixer_fun);
-	CHECK_RET_UNREG_DEST_RETURN(ret,
-	    "Failed to bind mixer function: %s.\n", str_error(ret));
-
 	/* Everything's OK assign driver_data. */
-	mixer_fun->driver_data = soft_state;
 	dsp_fun->driver_data = soft_state;
 
 	ret = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);

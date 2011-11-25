@@ -41,6 +41,7 @@ SOURCES = \
 	dsp.c \
 	main.c \
 	mixer.c \
+	mixer_iface.c \
 	sb16.c
 
 include $(USPACE_PREFIX)/Makefile.common

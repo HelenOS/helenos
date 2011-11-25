@@ -28,12 +28,19 @@
 
 #include <errno.h>
 #include <str_error.h>
+#include <audio_mixer_iface.h>
 
 #include "beep.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
 #include "sb16.h"
+
+extern audio_mixer_iface_t sb_mixer_iface;
+
+static ddf_dev_ops_t sb_mixer_ops = {
+	.interfaces[AUDIO_MIXER_IFACE] = &sb_mixer_iface,
+};
 
 /* ISA interrupts should be edge-triggered so there should be no need for
  * irq code magic */
@@ -84,14 +91,31 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	const sb_mixer_type_t mixer_type = sb_mixer_type_by_dsp_version(
 	    sb->dsp.version.major, sb->dsp.version.minor);
 
+	ddf_fun_t *mixer_fun = ddf_fun_create(dev, fun_exposed, "mixer");
+	if (!mixer_fun) {
+		ddf_log_error("Failed to create mixer function.\n");
+		return ENOMEM;
+	}
 	ret = sb_mixer_init(&sb->mixer, sb->regs, mixer_type);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB mixer: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
+
 	ddf_log_note("Initialized mixer: %s.\n",
 	    sb_mixer_type_str(sb->mixer.type));
+	mixer_fun->driver_data = &sb->mixer;
+	mixer_fun->ops = &sb_mixer_ops;
+
+	ret = ddf_fun_bind(mixer_fun);
+	if (ret != EOK) {
+		ddf_log_error(
+		    "Failed to bind mixer function: %s.\n", str_error(ret));
+		mixer_fun->driver_data = NULL;
+		ddf_fun_destroy(mixer_fun);
+		return ret;
+	}
 
 	ddf_log_note("Playing startup sound.\n");
 	sb_dsp_play(&sb->dsp, beep, beep_size, 44100, 1, 8);
