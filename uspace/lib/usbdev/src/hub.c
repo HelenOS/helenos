@@ -75,19 +75,16 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
     usb_address_t preferred, bool strict, usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
-	
+
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	
-	sysarg_t address;
-	int rc = async_req_4_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, preferred, strict, speed, &address);
-	
+	if (!exch)
+		return (usb_address_t)ENOMEM;
+
+	usb_address_t address = preferred;
+	const int ret = usbhc_request_address(exch, &address, strict, speed);
+
 	async_exchange_end(exch);
-	
-	if (rc != EOK)
-		return (usb_address_t) rc;
-	
-	return (usb_address_t) address;
+	return ret == EOK ? address : ret;
 }
 
 /** Inform host controller about new device.
@@ -96,21 +93,21 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
  * @param attached_device Information about the new device.
  * @return Error code.
  */
-int usb_hc_register_device(usb_hc_connection_t * connection,
+int usb_hc_register_device(usb_hc_connection_t *connection,
     const usb_hub_attached_device_t *attached_device)
 {
 	CHECK_CONNECTION(connection);
-	
-	if (attached_device == NULL)
-		return EBADMEM;
-	
+	if (attached_device == NULL || attached_device->fun == NULL)
+		return EINVAL;
+
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	int rc = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_BIND_ADDRESS,
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_bind_address(exch,
 	    attached_device->address, attached_device->fun->handle);
 	async_exchange_end(exch);
-	
-	return rc;
+
+	return ret;
 }
 
 /** Inform host controller about device removal.
@@ -123,13 +120,14 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
     usb_address_t address)
 {
 	CHECK_CONNECTION(connection);
-	
+
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_ADDRESS, address);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_release_address(exch, address);
 	async_exchange_end(exch);
-	
-	return rc;
+
+	return ret;
 }
 
 /** Change address of connected device.

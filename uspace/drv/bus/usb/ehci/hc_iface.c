@@ -148,7 +148,7 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
 usbhc_iface_t ehci_hc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
-	.find_by_address = find_by_address,
+	.get_handle = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,

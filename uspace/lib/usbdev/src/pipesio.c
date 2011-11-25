@@ -69,71 +69,19 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
-	
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	
-	/*
-	 * Make call identifying target USB device and type of transfer.
-	 */
-	aid_t opening_request = async_send_2(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_READ, target.packed, NULL);
-	
-	if (opening_request == 0) {
-		async_exchange_end(exch);
+	if (!exch) {
 		pipe_end_transaction(pipe);
 		return ENOMEM;
 	}
-	
-	/*
-	 * Retrieve the data.
-	 */
-	ipc_call_t data_request_call;
-	aid_t data_request = async_data_read(exch, buffer, size,
-	    &data_request_call);
-	
-	/*
-	 * Since now on, someone else might access the backing phone
-	 * without breaking the transfer IPC protocol.
-	 */
+
+	const int ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
+	    0, buffer, size, size_transfered);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
-	
-	if (data_request == 0) {
-		/*
-		 * FIXME:
-		 * How to let the other side know that we want to abort?
-		 */
-		async_wait_for(opening_request, NULL);
-		return ENOMEM;
-	}
-	
-	/*
-	 * Wait for the answer.
-	 */
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
-	async_wait_for(data_request, &data_request_rc);
-	async_wait_for(opening_request, &opening_request_rc);
-	
-	if (data_request_rc != EOK) {
-		/* Prefer the return code of the opening request. */
-		if (opening_request_rc != EOK) {
-			return (int) opening_request_rc;
-		} else {
-			return (int) data_request_rc;
-		}
-	}
-	if (opening_request_rc != EOK) {
-		return (int) opening_request_rc;
-	}
-	
-	*size_transfered = IPC_GET_ARG2(data_request_call);
-	
-	return EOK;
+	return ret;
 }
 
 
@@ -208,49 +156,19 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
-
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	
-	/*
-	 * Make call identifying target USB device and type of transfer.
-	 */
-	aid_t opening_request = async_send_3(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_WRITE, target.packed, size, NULL);
-	
-	if (opening_request == 0) {
-		async_exchange_end(exch);
+	if (!exch) {
 		pipe_end_transaction(pipe);
 		return ENOMEM;
 	}
-	
-	/*
-	 * Send the data.
-	 */
-	int rc = async_data_write_start(exch, buffer, size);
-	
-	/*
-	 * Since now on, someone else might access the backing phone
-	 * without breaking the transfer IPC protocol.
-	 */
+	const int ret =
+	    usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
+	    0, buffer, size);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
-	
-	if (rc != EOK) {
-		async_wait_for(opening_request, NULL);
-		return rc;
-	}
-	
-	/*
-	 * Wait for the answer.
-	 */
-	sysarg_t opening_request_rc;
-	async_wait_for(opening_request, &opening_request_rc);
-	
-	return (int) opening_request_rc;
+	return ret;
 }
 
 /** Request a write (out) transfer on an endpoint pipe.
@@ -333,67 +251,21 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
-
 	assert(setup_buffer_size == 8);
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
-	/*
-	 * Make call identifying target USB device and control transfer type.
-	 */
-	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	aid_t opening_request = async_send_4(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_READ, target.packed,
-	    (setup_packet & UINT32_MAX), (setup_packet >> 32), NULL);
 
-	if (opening_request == 0) {
-		async_exchange_end(exch);
+	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
+	if (!exch) {
+		pipe_end_transaction(pipe);
 		return ENOMEM;
 	}
 
-	/*
-	 * Retrieve the data.
-	 */
-	ipc_call_t data_request_call;
-	aid_t data_request = async_data_read(exch, data_buffer,
-	    data_buffer_size, &data_request_call);
-	
-	/*
-	 * Since now on, someone else might access the backing phone
-	 * without breaking the transfer IPC protocol.
-	 */
+	const int ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
+	    setup_packet, data_buffer, data_buffer_size, data_transfered_size);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
-	
-	if (data_request == 0) {
-		async_wait_for(opening_request, NULL);
-		return ENOMEM;
-	}
-
-	/*
-	 * Wait for the answer.
-	 */
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
-	async_wait_for(data_request, &data_request_rc);
-	async_wait_for(opening_request, &opening_request_rc);
-
-	if (data_request_rc != EOK) {
-		/* Prefer the return code of the opening request. */
-		if (opening_request_rc != EOK) {
-			return (int) opening_request_rc;
-		} else {
-			return (int) data_request_rc;
-		}
-	}
-	if (opening_request_rc != EOK) {
-		return (int) opening_request_rc;
-	}
-
-	*data_transfered_size = IPC_GET_ARG2(data_request_call);
-
-	return EOK;
+	return ret;
 }
 
 /** Request a control read transfer on an endpoint pipe.
@@ -474,53 +346,22 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
 	assert(setup_buffer_size == 8);
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
-	/*
-	 * Make call identifying target USB device and control transfer type.
-	 */
+	/* Make call identifying target USB device and control transfer type. */
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	aid_t opening_request = async_send_5(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_WRITE, target.packed, data_buffer_size,
-	    (setup_packet & UINT32_MAX), (setup_packet >> 32), NULL);
-	
-	if (opening_request == 0) {
-		async_exchange_end(exch);
+	if (!exch) {
 		pipe_end_transaction(pipe);
 		return ENOMEM;
 	}
-
-	/*
-	 * Send the data (if any).
-	 */
-	if (data_buffer_size > 0) {
-		int rc = async_data_write_start(exch, data_buffer, data_buffer_size);
-		
-		/* All data sent, pipe can be released. */
-		async_exchange_end(exch);
-		pipe_end_transaction(pipe);
-	
-		if (rc != EOK) {
-			async_wait_for(opening_request, NULL);
-			return rc;
-		}
-	} else {
-		/* No data to send, we can release the pipe for others. */
-		async_exchange_end(exch);
-		pipe_end_transaction(pipe);
-	}
-	
-	/*
-	 * Wait for the answer.
-	 */
-	sysarg_t opening_request_rc;
-	async_wait_for(opening_request, &opening_request_rc);
-
-	return (int) opening_request_rc;
+	const int ret =
+	    usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
+	    setup_packet, data_buffer, data_buffer_size);
+	async_exchange_end(exch);
+	pipe_end_transaction(pipe);
+	return ret;
 }
 
 /** Request a control write transfer on an endpoint pipe.

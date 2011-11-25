@@ -152,20 +152,13 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
 {
 	if (!usb_hc_connection_is_opened(connection))
 		return ENOENT;
-	
+
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	
-	sysarg_t tmp;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
-	    address, &tmp);
-	
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_get_handle(exch, address, handle);
 	async_exchange_end(exch);
-	
-	if ((rc == EOK) && (handle != NULL))
-		*handle = tmp;
-	
-	return rc;
+	return ret;
 }
 
 /** Tell USB address assigned to device with given handle.

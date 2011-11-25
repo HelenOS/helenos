@@ -404,17 +404,13 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 		return EINVAL;
 	}
 
-#define TRY_LOOP(attempt_var) \
-	for (attempt_var = 0; attempt_var < 3; attempt_var++)
-
-	size_t failed_attempts;
-	int rc;
 
 	usb_pipe_start_long_transfer(pipe);
 
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;
-	TRY_LOOP(failed_attempts) {
+	int rc;
+	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
 		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
 		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
 		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
@@ -449,24 +445,20 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval,
     usb_hc_connection_t *hc_connection)
 {
 	assert(pipe);
+	assert(pipe->wire);
 	assert(hc_connection);
 
 	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
-
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
-#define _PACK2(high, low) (((high & 0xffff) << 16) | (low & 0xffff))
-
 	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REGISTER_ENDPOINT, target.packed,
-	    _PACK2(pipe->transfer_type, pipe->direction),
-	    _PACK2(pipe->max_packet_size, interval));
-	async_exchange_end(exch);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_register_endpoint(exch,
+	    pipe->wire->address, pipe->endpoint_no, pipe->transfer_type,
+	    pipe->direction, pipe->max_packet_size, interval);
 
-#undef _PACK2
-	return rc;
+	async_exchange_end(exch);
+	return ret;
 }
 
 /** Revert endpoint registration with the host controller.
@@ -481,17 +473,18 @@ int usb_pipe_unregister(usb_pipe_t *pipe,
 	assert(pipe);
 	assert(pipe->wire);
 	assert(hc_connection);
-	
+
 	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
-	
+
 	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_UNREGISTER_ENDPOINT,
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_unregister_endpoint(exch,
 	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
 	async_exchange_end(exch);
-	
-	return rc;
+
+	return ret;
 }
 
 /**
