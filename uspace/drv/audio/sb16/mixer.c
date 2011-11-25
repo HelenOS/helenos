@@ -137,37 +137,6 @@ static const struct {
 	[SB_MIXER_CT1745] = {
 	    sizeof(volume_ct1745) / sizeof(volume_item_t), volume_ct1745 },
 };
-
-static void sb_mixer_max_master_levels(sb_mixer_t *mixer)
-{
-	assert(mixer);
-	/* Set Master to maximum */
-	if (!sb_mixer_get_control_item_count(mixer))
-		return;
-	const unsigned item = 0; /* 0 is Master. */
-	unsigned  channels = 0;
-	const char *name = NULL;
-
-	sb_mixer_get_control_item_info(mixer, item, &name, &channels);
-	for (unsigned channel = 0; channel < channels; ++channel) {
-		unsigned levels = 0;
-		const int ret = sb_mixer_get_channel_info(mixer, item, channel,
-		    NULL, &levels);
-		if (ret != EOK)
-			continue;
-
-		unsigned level =
-		    sb_mixer_get_volume_level(mixer, item, channel);
-		ddf_log_note("Setting %s channel %d to %d (%d).\n",
-		    name, channel, levels - 1, level);
-
-		sb_mixer_set_volume_level(mixer, item, channel, levels - 1);
-
-		level = sb_mixer_get_volume_level(mixer, item, channel);
-		ddf_log_note("%s channel %d set to %d.\n",
-		    name, channel, level);
-	}
-}
 /*----------------------------------------------------------------------------*/
 const char * sb_mixer_type_str(sb_mixer_type_t type)
 {
@@ -191,7 +160,6 @@ int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 	if (type != SB_MIXER_NONE) {
 		pio_write_8(&regs->mixer_address, MIXER_RESET_ADDRESS);
 		pio_write_8(&regs->mixer_data, 1);
-		sb_mixer_max_master_levels(mixer);
 	}
 	pio_write_8(&regs->mixer_address, MIXER_PNP_IRQ_ADDRESS);
 	const uint8_t irq = pio_read_8(&regs->mixer_data);
@@ -267,6 +235,9 @@ int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
 
 	value |= level << chan->shift;
 	pio_write_8(&mixer->regs->mixer_data, value);
+	ddf_log_note("Channel %s %s volume set to: %u.\n",
+	    volume_table[mixer->type].table[index].description,
+	    chan->name, level);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
