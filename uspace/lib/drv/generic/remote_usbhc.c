@@ -356,7 +356,6 @@ typedef struct {
 	ipc_callid_t caller;
 	ipc_callid_t data_caller;
 	void *buffer;
-	size_t size;
 } async_transaction_t;
 
 static void async_transaction_destroy(async_transaction_t *trans)
@@ -381,7 +380,6 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	trans->caller = caller;
 	trans->data_caller = 0;
 	trans->buffer = NULL;
-	trans->size = 0;
 
 	return trans;
 }
@@ -465,13 +463,13 @@ void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,
 static void callback_out(ddf_fun_t *fun,
     int outcome, void *arg)
 {
-	async_transaction_t *trans = (async_transaction_t *)arg;
+	async_transaction_t *trans = arg;
 
 	async_answer_0(trans->caller, outcome);
 
 	async_transaction_destroy(trans);
 }
-
+/*----------------------------------------------------------------------------*/
 static void callback_in(ddf_fun_t *fun,
     int outcome, size_t actual_size, void *arg)
 {
@@ -486,8 +484,6 @@ static void callback_in(ddf_fun_t *fun,
 		return;
 	}
 
-	trans->size = actual_size;
-
 	if (trans->data_caller) {
 		async_data_read_finalize(trans->data_caller,
 		    trans->buffer, actual_size);
@@ -497,7 +493,7 @@ static void callback_in(ddf_fun_t *fun,
 
 	async_transaction_destroy(trans);
 }
-
+/*----------------------------------------------------------------------------*/
 void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -575,12 +571,13 @@ void remote_usbhc_read(
 		return;
 	}
 
-	if (!async_data_read_receive(&trans->data_caller, &trans->size)) {
+	size_t size = 0;
+	if (!async_data_read_receive(&trans->data_caller, &size)) {
 		async_answer_0(callid, EPARTY);
 		return;
 	}
 
-	trans->buffer = malloc(trans->size);
+	trans->buffer = malloc(size);
 	if (trans->buffer == NULL) {
 		async_answer_0(trans->data_caller, ENOMEM);
 		async_answer_0(callid, ENOMEM);
@@ -588,7 +585,7 @@ void remote_usbhc_read(
 	}
 
 	const int rc = hc_iface->read(
-	    fun, target, setup, trans->buffer, trans->size, callback_in, trans);
+	    fun, target, setup, trans->buffer, size, callback_in, trans);
 
 	if (rc != EOK) {
 		async_answer_0(trans->data_caller, rc);
@@ -596,7 +593,7 @@ void remote_usbhc_read(
 		async_transaction_destroy(trans);
 	}
 }
-
+/*----------------------------------------------------------------------------*/
 void remote_usbhc_write(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -623,10 +620,11 @@ void remote_usbhc_write(
 		return;
 	}
 
+	size_t size = 0;
 	if (data_buffer_len > 0) {
-		int rc = async_data_write_accept(&trans->buffer, false,
+		const int rc = async_data_write_accept(&trans->buffer, false,
 		    1, USB_MAX_PAYLOAD_SIZE,
-		    0, &trans->size);
+		    0, &size);
 
 		if (rc != EOK) {
 			async_answer_0(callid, rc);
@@ -635,16 +633,14 @@ void remote_usbhc_write(
 		}
 	}
 
-	int rc = hc_iface->write(
-	    fun, target, setup, trans->buffer, trans->size, callback_out, trans);
+	const int rc = hc_iface->write(
+	    fun, target, setup, trans->buffer, size, callback_out, trans);
 
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
 }
-
-
 /**
  * @}
  */
