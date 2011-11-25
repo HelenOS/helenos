@@ -30,33 +30,40 @@
 
 include Makefile.common
 
-STAGE2 = grub/stage2_eltorito
+GRUB2 = grub
+STAGE2 = $(GRUB2)/i386-pc/eltorito.img
 STAGE2_IN = boot/$(STAGE2)
 
 all: $(BOOT_OUTPUT)
 
 $(BOOT_OUTPUT): build_dist
-	mkisofs -J -r -b $(STAGE2_IN) -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(DISTROOT)/
+	mkisofs -J -r -input-charset utf-8 -b $(STAGE2_IN) -no-emul-boot -boot-load-size 64 -boot-info-table -o $@ $(DISTROOT)/
 
 build_dist: clean
-	mkdir -p $(DISTROOT)/boot/grub
-	cp $(STAGE2) $(DISTROOT)/boot/grub/
+	mkdir -p $(DISTROOT)/boot
+	cp -r $(GRUB2) $(DISTROOT)/boot
 	for module in $(COMPONENTS) ; do \
 		cp "$$module" $(DISTROOT)/boot/ ; \
 	done
 	
-	echo "default 0" > $(DISTROOT)/boot/grub/menu.lst
-	echo "timeout 10" >> $(DISTROOT)/boot/grub/menu.lst
-	echo "" >> $(DISTROOT)/boot/grub/menu.lst
-	echo "title=HelenOS" >> $(DISTROOT)/boot/grub/menu.lst
-	echo "	root (cd)" >> $(DISTROOT)/boot/grub/menu.lst
+	echo "set default=0" > $(DISTROOT)/boot/grub/i386-pc/grub.cfg
+	echo "set timeout=10" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg
+	echo "" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg
+	
+	echo "menuentry 'HelenOS $(RELEASE)' --class helenos --class os {" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg
+	echo "	set root='(cd)'" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg
+	
 	for module in $(MODULES) ; do \
+		echo "" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg ; \
+		echo "	echo 'Loading $$module'" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg ; \
 		if [ "$$module" = "kernel.bin" ] ; then \
-			echo "	kernel /boot/$$module" >> $(DISTROOT)/boot/grub/menu.lst ; \
+			echo "	multiboot /boot/$$module" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg ; \
 		else \
-			echo "	module /boot/$$module" >> $(DISTROOT)/boot/grub/menu.lst ; \
+			echo "	module /boot/$$module" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg ; \
 		fi \
 	done
+	
+	echo "}" >> $(DISTROOT)/boot/grub/i386-pc/grub.cfg
 
 clean:
 	rm -fr $(DISTROOT)
