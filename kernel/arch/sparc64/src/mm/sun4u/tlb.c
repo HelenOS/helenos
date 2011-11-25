@@ -205,7 +205,6 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
 
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, page_16k, true);
 	if (t && PTE_EXECUTABLE(t)) {
 		/*
@@ -217,13 +216,11 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 #ifdef CONFIG_TSB
 		itsb_pte_copy(t, index);
 #endif
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		page_table_unlock(AS, true);
 		if (as_page_fault(page_16k, PF_ACCESS_EXEC, istate) ==
 		    AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
@@ -273,7 +270,6 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		    "kernel page fault.");
 	}
 
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, page_16k, true);
 	if (t) {
 		/*
@@ -285,13 +281,11 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(t, index, true);
 #endif
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		page_table_unlock(AS, true);
 		if (as_page_fault(page_16k, PF_ACCESS_READ, istate) ==
 		    AS_PF_FAULT) {
 			do_fast_data_access_mmu_miss_fault(istate, tag,
@@ -317,7 +311,6 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 	page_16k = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;	/* 16K-page emulation */
 
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, page_16k, true);
 	if (t && PTE_WRITABLE(t)) {
 		/*
@@ -333,13 +326,11 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(t, index, false);
 #endif
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		page_table_unlock(AS, true);
 		if (as_page_fault(page_16k, PF_ACCESS_WRITE, istate) ==
 		    AS_PF_FAULT) {
 			do_fast_data_access_protection_fault(istate, tag,

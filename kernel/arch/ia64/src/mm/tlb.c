@@ -479,7 +479,6 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa; /* faulting address */
 	
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	if (t) {
 		/*
@@ -487,12 +486,10 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 		 * Insert it into data translation cache.
 		 */
 		itc_pte_copy(t);
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to address space page fault handler.
 		 */
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate, "Page fault at %p.",
 			    (void *) va);
@@ -597,7 +594,6 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 	}
 	
 	
-	page_table_lock(AS, true);
 	pte_t *entry = page_mapping_find(AS, va, true);
 	if (entry) {
 		/*
@@ -605,9 +601,7 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 		 * Insert it into data translation cache.
 		 */
 		dtc_pte_copy(entry);
-		page_table_unlock(AS, true);
 	} else {
-		page_table_unlock(AS, true);
 		if (try_memmap_io_insertion(va, istate))
 			return;
 		
@@ -649,7 +643,6 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->w)) {
@@ -666,7 +659,6 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 			panic_memtrap(istate, PF_ACCESS_WRITE, va, NULL);
 		}
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Instruction access bit fault handler.
@@ -682,7 +674,6 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->x)) {
@@ -699,7 +690,6 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 			panic_memtrap(istate, PF_ACCESS_EXEC, va, NULL);
 		}
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Data access bit fault handler.
@@ -715,7 +705,6 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p)) {
@@ -732,7 +721,6 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 			panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, NULL);
 		}
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Data access rights fault handler.
@@ -751,7 +739,6 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 	/*
 	 * Assume a write to a read-only page.
 	 */
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	ASSERT(!t->w);
@@ -760,7 +747,6 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 		    (void *) va);
 		panic_memtrap(istate, PF_ACCESS_WRITE, va, NULL);
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Page not present fault handler.
@@ -776,7 +762,6 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT(t);
 	
@@ -789,9 +774,7 @@ void page_not_present(uint64_t vector, istate_t *istate)
 			itc_pte_copy(t);
 		else
 			dtc_pte_copy(t);
-		page_table_unlock(AS, true);
 	} else {
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate, "Page fault at %p.",
 			    (void *) va);
