@@ -86,7 +86,10 @@ static int sb_channel_mute_get(ddf_fun_t *fun, unsigned item, unsigned channel,
 static int sb_channel_volume_set(ddf_fun_t *fun, unsigned item, unsigned channel,
     unsigned volume)
 {
-	return ENOTSUP;
+	assert(fun);
+	assert(fun->driver_data);
+	const sb_mixer_t *mixer = fun->driver_data;
+	return sb_mixer_set_volume_level(mixer, item, channel, volume);
 }
 /*----------------------------------------------------------------------------*/
 static int sb_channel_volume_get(ddf_fun_t *fun, unsigned item, unsigned channel,
