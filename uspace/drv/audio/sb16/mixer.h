@@ -53,7 +53,9 @@ const char * sb_mixer_type_str(sb_mixer_type_t type);
 int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type);
 int sb_mixer_get_control_item_count(const sb_mixer_t *mixer);
 int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
-    const char** name, unsigned *channels, unsigned *levels);
+    const char **name, unsigned *channels);
+int sb_mixer_get_channel_info(const sb_mixer_t *mixer, unsigned index,
+    unsigned channel, const char **name, unsigned *levels);
 int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
     unsigned item, unsigned channel, unsigned level);
 unsigned sb_mixer_get_volume_level(const sb_mixer_t *mixer,
