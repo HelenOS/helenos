@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <str_error.h>
+#include <str.h>
 #include <devman.h>
 #include <audio_mixer_iface.h>
 #include <stdio.h>
@@ -94,12 +95,70 @@ static void print_levels(async_exch_t *exch)
 
 	}
 }
+/*----------------------------------------------------------------------------*/
+static unsigned get_number(const char* str)
+{
+	uint16_t num;
+	str_uint16_t(str, NULL, 10, false, &num);
+	return num;
+}
+/*----------------------------------------------------------------------------*/
+static void set_volume(async_exch_t *exch, int argc, char *argv[])
+{
+	assert(exch);
+	if (argc != 5 && argc != 6) {
+		printf("%s [device] setvolume item channel value\n", argv[0]);
+	}
+	unsigned params = argc == 6 ? 3 : 2;
+	const unsigned item = get_number(argv[params++]);
+	const unsigned channel = get_number(argv[params++]);
+	const unsigned value = get_number(argv[params]);
+	int ret = audio_mixer_channel_volume_set(exch, item, channel, value);
+	if (ret != EOK) {
+		printf("Failed to set mixer volume: %s.\n", str_error(ret));
+		return;
+	}
+	printf("Channel %u-%u volume set to %u.\n", item, channel, value);
+}
+/*----------------------------------------------------------------------------*/
+static void get_volume(async_exch_t *exch, int argc, char *argv[])
+{
+	assert(exch);
+	if (argc != 4 && argc != 5) {
+		printf("%s [device] getvolume item channel\n", argv[0]);
+	}
+	unsigned params = argc == 5 ? 3 : 2;
+	const unsigned item = get_number(argv[params++]);
+	const unsigned channel = get_number(argv[params++]);
+	unsigned value = 0, max = 0;
 
+	int ret = audio_mixer_channel_volume_get(
+	    exch, item, channel, &value, &max);
+	if (ret != EOK) {
+		printf("Failed to get mixer volume: %s.\n", str_error(ret));
+		return;
+	}
+	printf("Channel %u-%u volume: %u/%u.\n", item, channel, value, max);
+}
+/*----------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-
 	const char *device = DEFAULT_DEVICE;
-	if (argc == 2)
+	void (*command)(async_exch_t *, int, char*[]) = NULL;
+
+	if (argc >= 2 && str_cmp(argv[1], "setvolume") == 0) {
+		command = set_volume;
+		if (argc == 6)
+			device = argv[1];
+	}
+
+	if (argc >= 2 && str_cmp(argv[1], "getvolume") == 0) {
+		command = get_volume;
+		if (argc == 5)
+			device = argv[1];
+	}
+
+	if ((argc == 2 && command == NULL))
 		device = argv[1];
 
 
@@ -107,7 +166,7 @@ int main(int argc, char *argv[])
 	int ret = devman_fun_get_handle(device, &mixer_handle, 0);
 	if (ret != EOK) {
 		printf("Failed to get device(%s) handle: %s.\n",
-		    DEFAULT_DEVICE, str_error(ret));
+		    device, str_error(ret));
 		return 1;
 	}
 
@@ -125,7 +184,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	print_levels(exch);
+	if (command) {
+		command(exch, argc, argv);
+	} else {
+		print_levels(exch);
+	}
 
 	async_exchange_end(exch);
 	async_hangup(session);
