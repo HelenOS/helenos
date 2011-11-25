@@ -32,6 +32,7 @@
 /** @file Mixer control for audio devices
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <str_error.h>
 #include <devman.h>
@@ -40,38 +41,16 @@
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/mixer"
 
-int main(int argc, char *argv[])
+static void print_levels(async_exch_t *exch)
 {
-	devman_handle_t mixer_handle;
-	int ret = devman_fun_get_handle(DEFAULT_DEVICE, &mixer_handle, 0);
-	if (ret != EOK) {
-		printf("Failed to get device(%s) handle: %s.\n",
-		    DEFAULT_DEVICE, str_error(ret));
-		return 1;
-	}
-
-	async_sess_t *session = devman_device_connect(
-	    EXCHANGE_ATOMIC, mixer_handle, IPC_FLAG_BLOCKING);
-	if (!session) {
-		printf("Failed to connect to device.\n");
-		return 1;
-	}
-
-	async_exch_t *exch = async_exchange_begin(session);
-	if (!exch) {
-		printf("Failed to start session exchange.\n");
-		async_hangup(session);
-		return 1;
-	}
-
 	const char* name = NULL;
 	unsigned count = 0;
-	ret = audio_mixer_get_info(exch, &name, &count);
+	int ret = audio_mixer_get_info(exch, &name, &count);
 	if (ret != EOK) {
 		printf("Failed to get mixer info: %s.\n", str_error(ret));
-		return 1;
+		return;
 	}
-	printf("MIXER: %s.\n", name);
+	printf("MIXER %s:\n", name);
 
 	for (unsigned i = 0; i < count; ++i) {
 		const char *name = NULL;
@@ -107,12 +86,46 @@ int main(int argc, char *argv[])
 				    " status: %s.\n", i, j, str_error(ret));
 			}
 
-			printf("Channel(%u/%u) %s %s volume: %u/%u%s.\n",
+			printf("\tChannel(%u/%u) %s %s volume: %u/%u%s.\n",
 			    i, j, name, chan, level, max, mute ? " (M)":"");
+			free(chan);
 		}
+		free(name);
 
 	}
+}
 
+int main(int argc, char *argv[])
+{
+
+	const char *device = DEFAULT_DEVICE;
+	if (argc == 2)
+		device = argv[1];
+
+
+	devman_handle_t mixer_handle;
+	int ret = devman_fun_get_handle(device, &mixer_handle, 0);
+	if (ret != EOK) {
+		printf("Failed to get device(%s) handle: %s.\n",
+		    DEFAULT_DEVICE, str_error(ret));
+		return 1;
+	}
+
+	async_sess_t *session = devman_device_connect(
+	    EXCHANGE_ATOMIC, mixer_handle, IPC_FLAG_BLOCKING);
+	if (!session) {
+		printf("Failed to connect to device.\n");
+		return 1;
+	}
+
+	async_exch_t *exch = async_exchange_begin(session);
+	if (!exch) {
+		printf("Failed to start session exchange.\n");
+		async_hangup(session);
+		return 1;
+	}
+
+	print_levels(exch);
 
 	async_exchange_end(exch);
 	async_hangup(session);
