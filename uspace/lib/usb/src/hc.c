@@ -180,20 +180,22 @@ usb_address_t usb_get_address_by_handle(devman_handle_t dev_handle)
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
-	sysarg_t address;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_MY_ADDRESS, &address);
-	
+	if (!exch) {
+		async_hangup(parent_sess);
+		return ENOMEM;
+	}
+	usb_address_t address;
+	const int ret = usb_get_my_address(exch, &address);
+
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
-	
-	if (rc != EOK)
-		return rc;
-	
-	return (usb_address_t) address;
+
+	if (ret != EOK)
+		return ret;
+
+	return address;
 }
 
 
@@ -230,23 +232,18 @@ int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
+
 	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
-	devman_handle_t h;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
-	
+	if (!exch) {
+		async_hangup(parent_sess);
+		return ENOMEM;
+	}
+	const int ret = usb_get_hc_handle(exch, hc_handle);
+
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
-	
-	if (rc != EOK)
-		return rc;
-	
-	if (hc_handle != NULL)
-		*hc_handle = h;
-	
-	return EOK;
+
+	return ret;
 }
 
 /**

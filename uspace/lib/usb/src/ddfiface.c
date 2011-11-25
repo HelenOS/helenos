@@ -35,6 +35,7 @@
 #include <ipc/devman.h>
 #include <devman.h>
 #include <async.h>
+#include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/hc.h>
 #include <usb/debug.h>
@@ -103,21 +104,17 @@ int usb_iface_get_my_address_forward_impl(ddf_fun_t *fun,
 		return ENOMEM;
 
 	async_exch_t *exch = async_exchange_begin(parent_sess);
+	if (!exch) {
+		async_hangup(parent_sess);
+		return ENOMEM;
+	}
 
-	sysarg_t addr;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_MY_ADDRESS, &addr);
+	const int ret = usb_get_my_address(exch, address);
 
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
 
-	if (rc != EOK)
-		return rc;
-
-	if (address != NULL)
-		*address = (usb_address_t) addr;
-
-	return EOK;
+	return ret;
 }
 
 /** Get USB device address, interface implementation for child of
