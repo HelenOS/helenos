@@ -73,7 +73,7 @@ typedef enum {
 	 * - ENOTSUP - operation not supported (can also mean any interface)
 	 * - EOK - operation okay, first parameter contains interface number
 	 */
-	IPC_M_USB_GET_INTERFACE,
+	IPC_M_USB_GET_MY_INTERFACE,
 
 	/** Tell devman handle of device host controller.
 	 * Parameters:
@@ -90,7 +90,7 @@ typedef enum {
 /** USB device communication interface. */
 typedef struct {
 	int (*get_my_address)(ddf_fun_t *, usb_address_t *);
-	int (*get_interface)(ddf_fun_t *, devman_handle_t, int *);
+	int (*get_my_interface)(ddf_fun_t *, int *);
 	int (*get_hc_handle)(ddf_fun_t *, devman_handle_t *);
 } usb_iface_t;
 

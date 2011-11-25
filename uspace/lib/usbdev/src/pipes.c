@@ -84,8 +84,8 @@ int usb_device_get_assigned_interface(const ddf_dev_t *device)
 	async_exch_t *exch = async_exchange_begin(parent_sess);
 	
 	sysarg_t iface_no;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_INTERFACE, device->handle, &iface_no);
+	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_MY_INTERFACE, &iface_no);
 	
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
