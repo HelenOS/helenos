@@ -64,24 +64,31 @@
 static int usb_pipe_read_no_check(usb_pipe_t *pipe, uint64_t setup,
     void *buffer, size_t size, size_t *size_transfered)
 {
-	/* Only interrupt and bulk transfers are supported */
+	/* Isochronous transfer are not supported (yet) */
 	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
 	    pipe->transfer_type != USB_TRANSFER_BULK &&
 	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
+
+	int ret = pipe_add_ref(pipe, false);
+	if (ret != EOK) {
+		return ret;
+	}
 
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
 	if (!exch) {
 		pipe_end_transaction(pipe);
+		pipe_drop_ref(pipe);
 		return ENOMEM;
 	}
 
-	const int ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
+	ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
 	    setup, buffer, size, size_transfered);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
+	pipe_drop_ref(pipe);
 	return ret;
 }
 
@@ -114,28 +121,15 @@ int usb_pipe_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc;
-	rc = pipe_add_ref(pipe, false);
-	if (rc != EOK) {
-		return rc;
-	}
-
-
 	size_t act_size = 0;
+	const int rc = usb_pipe_read_no_check(pipe, 0, buffer, size, &act_size);
 
-	rc = usb_pipe_read_no_check(pipe, 0, buffer, size, &act_size);
 
-	pipe_drop_ref(pipe);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (size_transfered != NULL) {
+	if (rc == EOK && size_transfered != NULL) {
 		*size_transfered = act_size;
 	}
 
-	return EOK;
+	return rc;
 }
 
 /** Request an out transfer, no checking of input parameters.
@@ -154,18 +148,24 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe, uint64_t setup,
 	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
+	int ret = pipe_add_ref(pipe, false);
+	if (ret != EOK) {
+		return ret;
+	}
+
 	/* Ensure serialization over the phone. */
 	pipe_start_transaction(pipe);
 	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
 	if (!exch) {
 		pipe_end_transaction(pipe);
+		pipe_drop_ref(pipe);
 		return ENOMEM;
 	}
-	const int ret =
-	    usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
+	ret = usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
 	    setup, buffer, size);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
+	pipe_drop_ref(pipe);
 	return ret;
 }
 
@@ -192,17 +192,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 		return EBADF;
 	}
 
-	int rc;
-	rc = pipe_add_ref(pipe, false);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_pipe_write_no_check(pipe, 0, buffer, size);
-
-	pipe_drop_ref(pipe);
-
-	return rc;
+	return usb_pipe_write_no_check(pipe, 0, buffer, size);
 }
 
 /** Try to clear endpoint halt of default control pipe.
@@ -259,32 +249,19 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
-	int rc;
-
-	rc = pipe_add_ref(pipe, false);
-	if (rc != EOK) {
-		return rc;
-	}
-
 	size_t act_size = 0;
-	rc = usb_pipe_read_no_check(pipe, setup_packet,
+	const int rc = usb_pipe_read_no_check(pipe, setup_packet,
 	    data_buffer, data_buffer_size, &act_size);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
 	}
 
-	pipe_drop_ref(pipe);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (data_transfered_size != NULL) {
+	if (rc == EOK && data_transfered_size != NULL) {
 		*data_transfered_size = act_size;
 	}
 
-	return EOK;
+	return rc;
 }
 
 /** Request a control write transfer on an endpoint pipe.
@@ -324,25 +301,15 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
-	int rc;
-	rc = pipe_add_ref(pipe, false);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_pipe_write_no_check(pipe, setup_packet,
+	const int rc = usb_pipe_write_no_check(pipe, setup_packet,
 	    data_buffer, data_buffer_size);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
 	}
 
-	pipe_drop_ref(pipe);
-
 	return rc;
 }
-
-
 /**
  * @}
  */
