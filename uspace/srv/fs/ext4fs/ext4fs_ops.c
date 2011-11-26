@@ -418,11 +418,6 @@ int ext4fs_destroy_node(fs_node_t *fn)
 
 	ext4fs_node_put(fn);
 	return EOK;
-
-//	EXT4FS_DBG("not supported");
-//
-//	// TODO
-//	return ENOTSUP;
 }
 
 
@@ -563,8 +558,8 @@ fs_index_t ext4fs_index_get(fs_node_t *fn)
 aoff64_t ext4fs_size_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	aoff64_t size = ext4_inode_get_size(enode->instance->filesystem->superblock,
-	    enode->inode_ref->inode);
+	aoff64_t size = ext4_inode_get_size(
+			enode->instance->filesystem->superblock, enode->inode_ref->inode);
 	return size;
 }
 
@@ -735,9 +730,8 @@ static int ext4fs_unmounted(service_id_t service_id)
 }
 
 
-static int
-ext4fs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
-    size_t *rbytes)
+static int ext4fs_read(service_id_t service_id, fs_index_t index,
+		aoff64_t pos, size_t *rbytes)
 {
 	ext4fs_instance_t *inst;
 	ext4_inode_ref_t *inode_ref;
@@ -962,9 +956,8 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	return EOK;
 }
 
-static int
-ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
-    size_t *wbytes, aoff64_t *nsize)
+static int ext4fs_write(service_id_t service_id, fs_index_t index,
+		aoff64_t pos, size_t *wbytes, aoff64_t *nsize)
 {
 	int rc;
 	int flags = BLOCK_FLAGS_NONE;
@@ -1073,8 +1066,8 @@ ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 }
 
 
-static int
-ext4fs_truncate(service_id_t service_id, fs_index_t index, aoff64_t new_size)
+static int ext4fs_truncate(service_id_t service_id, fs_index_t index,
+		aoff64_t new_size)
 {
 	int rc;
 	fs_node_t *fn;
