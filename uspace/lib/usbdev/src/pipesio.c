@@ -92,46 +92,6 @@ static int usb_pipe_read_no_check(usb_pipe_t *pipe, uint64_t setup,
 	return ret;
 }
 
-/** Request a read (in) transfer on an endpoint pipe.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[out] buffer Buffer where to store the data.
- * @param[in] size Size of the buffer (in bytes).
- * @param[out] size_transfered Number of bytes that were actually transfered.
- * @return Error code.
- */
-int usb_pipe_read(usb_pipe_t *pipe,
-    void *buffer, size_t size, size_t *size_transfered)
-{
-	assert(pipe);
-
-	if (buffer == NULL) {
-		return EINVAL;
-	}
-
-	if (size == 0) {
-		return EINVAL;
-	}
-
-	if (pipe->direction != USB_DIRECTION_IN) {
-		return EBADF;
-	}
-
-	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
-		return EBADF;
-	}
-
-	size_t act_size = 0;
-	const int rc = usb_pipe_read_no_check(pipe, 0, buffer, size, &act_size);
-
-
-	if (rc == EOK && size_transfered != NULL) {
-		*size_transfered = act_size;
-	}
-
-	return rc;
-}
-
 /** Request an out transfer, no checking of input parameters.
  *
  * @param[in] pipe Pipe used for the transfer.
@@ -167,32 +127,6 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe, uint64_t setup,
 	pipe_end_transaction(pipe);
 	pipe_drop_ref(pipe);
 	return ret;
-}
-
-/** Request a write (out) transfer on an endpoint pipe.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] buffer Buffer with data to transfer.
- * @param[in] size Size of the buffer (in bytes).
- * @return Error code.
- */
-int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
-{
-	assert(pipe);
-
-	if (buffer == NULL || size == 0) {
-		return EINVAL;
-	}
-
-	if (pipe->direction != USB_DIRECTION_OUT) {
-		return EBADF;
-	}
-
-	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
-		return EBADF;
-	}
-
-	return usb_pipe_write_no_check(pipe, 0, buffer, size);
 }
 
 /** Try to clear endpoint halt of default control pipe.
@@ -310,6 +244,73 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 
 	return rc;
 }
+
+/** Request a read (in) transfer on an endpoint pipe.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[out] buffer Buffer where to store the data.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] size_transfered Number of bytes that were actually transfered.
+ * @return Error code.
+ */
+int usb_pipe_read(usb_pipe_t *pipe,
+    void *buffer, size_t size, size_t *size_transfered)
+{
+	assert(pipe);
+
+	if (buffer == NULL) {
+		return EINVAL;
+	}
+
+	if (size == 0) {
+		return EINVAL;
+	}
+
+	if (pipe->direction != USB_DIRECTION_IN) {
+		return EBADF;
+	}
+
+	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+		return EBADF;
+	}
+
+	size_t act_size = 0;
+	const int rc = usb_pipe_read_no_check(pipe, 0, buffer, size, &act_size);
+
+
+	if (rc == EOK && size_transfered != NULL) {
+		*size_transfered = act_size;
+	}
+
+	return rc;
+}
+
+/** Request a write (out) transfer on an endpoint pipe.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer with data to transfer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @return Error code.
+ */
+int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
+{
+	assert(pipe);
+
+	if (buffer == NULL || size == 0) {
+		return EINVAL;
+	}
+
+	if (pipe->direction != USB_DIRECTION_OUT) {
+		return EBADF;
+	}
+
+	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+		return EBADF;
+	}
+
+	return usb_pipe_write_no_check(pipe, 0, buffer, size);
+}
+
 /**
  * @}
  */
