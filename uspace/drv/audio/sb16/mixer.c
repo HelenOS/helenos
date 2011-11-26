@@ -121,7 +121,7 @@ static const volume_item_t volume_ct1745[] = {
 	{ "Input Gain", 2, &channels_table_ct1745[12] },
 	{ "Output Gain", 2, &channels_table_ct1745[14] },
 	{ "Treble", 2, &channels_table_ct1745[16] },
-	{ "Bass", 2, &channels_table_ct1745[0] },
+	{ "Bass", 2, &channels_table_ct1745[18] },
 };
 
 static const struct {
