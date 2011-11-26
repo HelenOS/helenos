@@ -254,11 +254,5 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->present.tag.tag_word = tag;
 }
 
-uintptr_t hw_map(uintptr_t physaddr, size_t size __attribute__ ((unused)))
-{
-	/* THIS is a dirty hack. */
-	return (uintptr_t)((uint64_t)(PA2KA(physaddr)) + VIO_OFFSET);
-}
-
 /** @}
  */

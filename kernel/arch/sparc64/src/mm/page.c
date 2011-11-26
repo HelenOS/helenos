@@ -50,21 +50,5 @@ void page_arch_init(void)
 		page_mapping_operations = &ht_mapping_operations;
 }
 
-/** Map memory-mapped device into virtual memory.
- *
- * We are currently using identity mapping for mapping device registers.
- *
- * @param physaddr Physical address of the page where the device is
- *                 located.
- * @param size     Size of the device's registers.
- *
- * @return Virtual address of the page where the device is mapped.
- *
- */
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	return PA2KA(physaddr);
-}
-
 /** @}
  */

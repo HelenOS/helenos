@@ -45,25 +45,5 @@ void page_arch_init(void)
 	as_switch(NULL, AS_KERNEL);
 }
 
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
-	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%zu bytes).",
-		    (void *) physaddr, size);
-	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
-	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i),
-		    physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	page_table_unlock(AS_KERNEL, true);
-	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	
-	return virtaddr;
-}
-
 /** @}
  */

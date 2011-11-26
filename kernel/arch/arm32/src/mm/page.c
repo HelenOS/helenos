@@ -81,38 +81,5 @@ void page_arch_init(void)
 	boot_page_table_free();
 }
 
-/** Maps device into the kernel space.
- *
- * Maps physical address of device into kernel virtual address space (so it can
- * be accessed only by kernel through virtual address).
- *
- * @param physaddr Physical address where device is connected.
- * @param size Length of area where device is present.
- *
- * @return Virtual address where device will be accessible.
- */
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
-	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH)) {
-		panic("Unable to map physical memory %p (%d bytes).",
-		    (void *) physaddr, size);
-	}
-	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
-
-	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i),
-		    physaddr + PFN2ADDR(i),
-		    PAGE_NOT_CACHEABLE | PAGE_READ | PAGE_WRITE | PAGE_KERNEL);
-	}
-	page_table_unlock(AS_KERNEL, true);
-	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	return virtaddr;
-}
-
 /** @}
  */

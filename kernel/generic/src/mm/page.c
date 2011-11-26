@@ -73,6 +73,7 @@
 #include <arch.h>
 #include <syscall/copy.h>
 #include <errno.h>
+#include <align.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -174,6 +175,23 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	
 	return page_mapping_operations->mapping_find(as, page, nolock);
 }
+
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
+{
+	uintptr_t virtaddr = (uintptr_t) NULL;	// FIXME
+	pfn_t i;
+
+	page_table_lock(AS_KERNEL, true);
+	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
+		uintptr_t addr = PFN2ADDR(i);
+		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
+		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
+	}
+	page_table_unlock(AS_KERNEL, true);
+	
+	return virtaddr;
+}
+
 
 /** Syscall wrapper for getting mapping of a virtual page.
  * 
