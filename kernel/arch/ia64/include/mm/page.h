@@ -56,11 +56,11 @@
  */
 
 /* Firmware area (bellow 4GB in phys mem) */
-#define FW_OFFSET   0x00000000F0000000
+#define FW_OFFSET   0x00000000F0000000	// FIXME: [non-ident]
 /* Legacy IO space */
-#define IO_OFFSET   0x0001000000000000
+#define IO_OFFSET   0x0001000000000000	// FIXME: [non-ident]
 /* Videoram - now mapped to 0 as VGA text mode vram on 0xb8000 */
-#define VIO_OFFSET  0x0002000000000000
+#define VIO_OFFSET  0x0002000000000000	// FIXME: [non-ident]
 
 
 #define PPN_SHIFT  12
