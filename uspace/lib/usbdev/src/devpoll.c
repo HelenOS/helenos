@@ -69,7 +69,7 @@ static int polling_fibril(void *arg)
 	    = &polling_data->dev->pipes[polling_data->pipe_index].pipe;
 	
 	if (polling_data->auto_polling.debug > 0) {
-		usb_endpoint_mapping_t *mapping
+		const usb_endpoint_mapping_t *mapping
 		    = &polling_data->dev->pipes[polling_data->pipe_index];
 		usb_log_debug("Poll%p: started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
@@ -84,10 +84,8 @@ static int polling_fibril(void *arg)
 
 	size_t failed_attempts = 0;
 	while (failed_attempts <= polling_data->auto_polling.max_failures) {
-		int rc;
-
 		size_t actual_size;
-		rc = usb_pipe_read(pipe, polling_data->buffer,
+		const int rc = usb_pipe_read(pipe, polling_data->buffer,
 		    polling_data->request_size, &actual_size);
 
 		if (polling_data->auto_polling.debug > 1) {
@@ -112,8 +110,7 @@ static int polling_fibril(void *arg)
 			 * attempt anyway.
 			 */
 			usb_request_clear_endpoint_halt(
-			    &polling_data->dev->ctrl_pipe,
-			    pipe->endpoint_no);
+			    &polling_data->dev->ctrl_pipe, pipe->endpoint_no);
 		}
 
 		if (rc != EOK) {
@@ -195,17 +192,6 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
     usb_polling_callback_t callback, size_t request_size,
     usb_polling_terminted_callback_t terminated_callback, void *arg)
 {
-	if ((dev == NULL) || (callback == NULL)) {
-		return EBADMEM;
-	}
-	if (request_size == 0) {
-		return EINVAL;
-	}
-	if ((dev->pipes[pipe_index].pipe.transfer_type != USB_TRANSFER_INTERRUPT)
-	    || (dev->pipes[pipe_index].pipe.direction != USB_DIRECTION_IN)) {
-		return EINVAL;
-	}
-
 	const usb_device_auto_polling_t auto_polling = {
 		.debug = 1,
 		.auto_clear_halt = true,
@@ -241,18 +227,16 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
     const usb_device_auto_polling_t *polling,
     size_t request_size, void *arg)
 {
-	if (dev == NULL) {
+	if ((dev == NULL) || (polling == NULL) || (polling->on_data == NULL)) {
 		return EBADMEM;
 	}
-	if (pipe_index >= dev->pipes_count) {
+
+	if (pipe_index >= dev->pipes_count || request_size == 0) {
 		return EINVAL;
 	}
 	if ((dev->pipes[pipe_index].pipe.transfer_type != USB_TRANSFER_INTERRUPT)
 	    || (dev->pipes[pipe_index].pipe.direction != USB_DIRECTION_IN)) {
 		return EINVAL;
-	}
-	if ((polling == NULL) || (polling->on_data == NULL)) {
-		return EBADMEM;
 	}
 
 	polling_data_t *polling_data = malloc(sizeof(polling_data_t));
