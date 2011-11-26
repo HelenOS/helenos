@@ -61,12 +61,13 @@
  * @param[out] size_transfered Number of bytes that were actually transfered.
  * @return Error code.
  */
-static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
+static int usb_pipe_read_no_check(usb_pipe_t *pipe, uint64_t setup,
     void *buffer, size_t size, size_t *size_transfered)
 {
 	/* Only interrupt and bulk transfers are supported */
 	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    pipe->transfer_type != USB_TRANSFER_BULK &&
+	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
 	/* Ensure serialization over the phone. */
@@ -78,12 +79,11 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	}
 
 	const int ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
-	    0, buffer, size, size_transfered);
+	    setup, buffer, size, size_transfered);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
 	return ret;
 }
-
 
 /** Request a read (in) transfer on an endpoint pipe.
  *
@@ -123,7 +123,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 
 	size_t act_size = 0;
 
-	rc = usb_pipe_read_no_checks(pipe, buffer, size, &act_size);
+	rc = usb_pipe_read_no_check(pipe, 0, buffer, size, &act_size);
 
 	pipe_drop_ref(pipe);
 
@@ -138,9 +138,6 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	return EOK;
 }
 
-
-
-
 /** Request an out transfer, no checking of input parameters.
  *
  * @param[in] pipe Pipe used for the transfer.
@@ -148,12 +145,13 @@ int usb_pipe_read(usb_pipe_t *pipe,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-static int usb_pipe_write_no_check(usb_pipe_t *pipe,
-    void *buffer, size_t size)
+static int usb_pipe_write_no_check(usb_pipe_t *pipe, uint64_t setup,
+    const void *buffer, size_t size)
 {
 	/* Only interrupt and bulk transfers are supported */
 	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    pipe->transfer_type != USB_TRANSFER_BULK &&
+	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
 	/* Ensure serialization over the phone. */
@@ -165,7 +163,7 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	}
 	const int ret =
 	    usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
-	    0, buffer, size);
+	    setup, buffer, size);
 	async_exchange_end(exch);
 	pipe_end_transaction(pipe);
 	return ret;
@@ -178,16 +176,11 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-int usb_pipe_write(usb_pipe_t *pipe,
-    void *buffer, size_t size)
+int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 {
 	assert(pipe);
 
-	if (buffer == NULL) {
-		return EINVAL;
-	}
-
-	if (size == 0) {
+	if (buffer == NULL || size == 0) {
 		return EINVAL;
 	}
 
@@ -200,13 +193,12 @@ int usb_pipe_write(usb_pipe_t *pipe,
 	}
 
 	int rc;
-
 	rc = pipe_add_ref(pipe, false);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	rc = usb_pipe_write_no_check(pipe, buffer, size);
+	rc = usb_pipe_write_no_check(pipe, 0, buffer, size);
 
 	pipe_drop_ref(pipe);
 
@@ -226,46 +218,10 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 	}
 
 
-	/* Prevent indefinite recursion. */
+	/* Prevent infinite recursion. */
 	pipe->auto_reset_halt = false;
 	usb_request_clear_endpoint_halt(pipe, 0);
 	pipe->auto_reset_halt = true;
-}
-
-
-/** Request a control read transfer, no checking of input parameters.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] setup_buffer Buffer with the setup packet.
- * @param[in] setup_buffer_size Size of the setup packet (in bytes).
- * @param[out] data_buffer Buffer for incoming data.
- * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
- * @param[out] data_transfered_size Number of bytes that were actually
- *                                  transfered during the DATA stage.
- * @return Error code.
- */
-static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
-    const void *setup_buffer, size_t setup_buffer_size,
-    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
-{
-	/* Ensure serialization over the phone. */
-	pipe_start_transaction(pipe);
-
-	assert(setup_buffer_size == 8);
-	uint64_t setup_packet;
-	memcpy(&setup_packet, setup_buffer, 8);
-
-	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	if (!exch) {
-		pipe_end_transaction(pipe);
-		return ENOMEM;
-	}
-
-	const int ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
-	    setup_packet, data_buffer, data_buffer_size, data_transfered_size);
-	async_exchange_end(exch);
-	pipe_end_transaction(pipe);
-	return ret;
 }
 
 /** Request a control read transfer on an endpoint pipe.
@@ -287,7 +243,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 {
 	assert(pipe);
 
-	if ((setup_buffer == NULL) || (setup_buffer_size == 0)) {
+	if ((setup_buffer == NULL) || (setup_buffer_size != 8)) {
 		return EINVAL;
 	}
 
@@ -300,6 +256,9 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
+	uint64_t setup_packet;
+	memcpy(&setup_packet, setup_buffer, 8);
+
 	int rc;
 
 	rc = pipe_add_ref(pipe, false);
@@ -308,8 +267,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 	}
 
 	size_t act_size = 0;
-	rc = usb_pipe_control_read_no_check(pipe,
-	    setup_buffer, setup_buffer_size,
+	rc = usb_pipe_read_no_check(pipe, setup_packet,
 	    data_buffer, data_buffer_size, &act_size);
 
 	if (rc == ESTALL) {
@@ -329,41 +287,6 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 	return EOK;
 }
 
-
-/** Request a control write transfer, no checking of input parameters.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] setup_buffer Buffer with the setup packet.
- * @param[in] setup_buffer_size Size of the setup packet (in bytes).
- * @param[in] data_buffer Buffer with data to be sent.
- * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
- * @return Error code.
- */
-static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
-    const void *setup_buffer, size_t setup_buffer_size,
-    const void *data_buffer, size_t data_buffer_size)
-{
-	/* Ensure serialization over the phone. */
-	pipe_start_transaction(pipe);
-
-	assert(setup_buffer_size == 8);
-	uint64_t setup_packet;
-	memcpy(&setup_packet, setup_buffer, 8);
-
-	/* Make call identifying target USB device and control transfer type. */
-	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	if (!exch) {
-		pipe_end_transaction(pipe);
-		return ENOMEM;
-	}
-	const int ret =
-	    usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
-	    setup_packet, data_buffer, data_buffer_size);
-	async_exchange_end(exch);
-	pipe_end_transaction(pipe);
-	return ret;
-}
-
 /** Request a control write transfer on an endpoint pipe.
  *
  * This function encapsulates all three stages of a control transfer.
@@ -381,7 +304,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 {
 	assert(pipe);
 
-	if ((setup_buffer == NULL) || (setup_buffer_size == 0)) {
+	if ((setup_buffer == NULL) || (setup_buffer_size != 8)) {
 		return EINVAL;
 	}
 
@@ -398,15 +321,17 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc;
+	uint64_t setup_packet;
+	memcpy(&setup_packet, setup_buffer, 8);
 
+	int rc;
 	rc = pipe_add_ref(pipe, false);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	rc = usb_pipe_control_write_no_check(pipe,
-	    setup_buffer, setup_buffer_size, data_buffer, data_buffer_size);
+	rc = usb_pipe_write_no_check(pipe, setup_packet,
+	    data_buffer, data_buffer_size);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
