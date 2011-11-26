@@ -45,13 +45,7 @@
 
 /** Data needed for polling. */
 typedef struct {
-	int debug;
-	size_t max_failures;
-	useconds_t delay;
-	bool auto_clear_halt;
-	bool (*on_data)(usb_device_t *, uint8_t *, size_t, void *);
-	void (*on_polling_end)(usb_device_t *, bool, void *);
-	bool (*on_error)(usb_device_t *, int, void *);
+	usb_device_auto_polling_t auto_polling;
 
 	usb_device_t *dev;
 	size_t pipe_index;
@@ -74,7 +68,7 @@ static int polling_fibril(void *arg)
 	usb_pipe_t *pipe
 	    = &polling_data->dev->pipes[polling_data->pipe_index].pipe;
 	
-	if (polling_data->debug > 0) {
+	if (polling_data->auto_polling.debug > 0) {
 		usb_endpoint_mapping_t *mapping
 		    = &polling_data->dev->pipes[polling_data->pipe_index];
 		usb_log_debug("Poll%p: started polling of `%s' - " \
@@ -89,14 +83,14 @@ static int polling_fibril(void *arg)
 	}
 
 	size_t failed_attempts = 0;
-	while (failed_attempts <= polling_data->max_failures) {
+	while (failed_attempts <= polling_data->auto_polling.max_failures) {
 		int rc;
 
 		size_t actual_size;
 		rc = usb_pipe_read(pipe, polling_data->buffer,
 		    polling_data->request_size, &actual_size);
 
-		if (polling_data->debug > 1) {
+		if (polling_data->auto_polling.debug > 1) {
 			if (rc == EOK) {
 				usb_log_debug(
 				    "Poll%p: received: '%s' (%zuB).\n",
@@ -112,7 +106,7 @@ static int polling_fibril(void *arg)
 		}
 
 		/* If the pipe stalled, we can try to reset the stall. */
-		if ((rc == ESTALL) && (polling_data->auto_clear_halt)) {
+		if ((rc == ESTALL) && (polling_data->auto_polling.auto_clear_halt)) {
 			/*
 			 * We ignore error here as this is usually a futile
 			 * attempt anyway.
@@ -123,13 +117,13 @@ static int polling_fibril(void *arg)
 		}
 
 		if (rc != EOK) {
-			if (polling_data->on_error != NULL) {
-				bool cont = polling_data->on_error(
+			if (polling_data->auto_polling.on_error != NULL) {
+				bool cont = polling_data->auto_polling.on_error(
 				    polling_data->dev, rc,
 				    polling_data->custom_arg);
 				if (!cont) {
 					failed_attempts
-					    = polling_data->max_failures;
+					    = polling_data->auto_polling.max_failures;
 				}
 			}
 			failed_attempts++;
@@ -137,8 +131,8 @@ static int polling_fibril(void *arg)
 		}
 
 		/* We have the data, execute the callback now. */
-		bool carry_on = polling_data->on_data(polling_data->dev,
-		    polling_data->buffer, actual_size,
+		const bool carry_on = polling_data->auto_polling.on_data(
+		    polling_data->dev, polling_data->buffer, actual_size,
 		    polling_data->custom_arg);
 
 		if (!carry_on) {
@@ -150,15 +144,15 @@ static int polling_fibril(void *arg)
 		failed_attempts = 0;
 
 		/* Take a rest before next request. */
-		async_usleep(polling_data->delay);
+		async_usleep(polling_data->auto_polling.delay);
 	}
 
-	if (polling_data->on_polling_end != NULL) {
-		polling_data->on_polling_end(polling_data->dev,
+	if (polling_data->auto_polling.on_polling_end != NULL) {
+		polling_data->auto_polling.on_polling_end(polling_data->dev,
 		    failed_attempts > 0, polling_data->custom_arg);
 	}
 
-	if (polling_data->debug > 0) {
+	if (polling_data->auto_polling.debug > 0) {
 		if (failed_attempts > 0) {
 			usb_log_error(
 			    "Polling of device `%s' terminated: %s.\n",
@@ -277,19 +271,14 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	polling_data->pipe_index = pipe_index;
 	polling_data->custom_arg = arg;
 
-	polling_data->debug = polling->debug;
-	polling_data->max_failures = polling->max_failures;
-	if (polling->delay >= 0) {
-		polling_data->delay = (useconds_t) polling->delay;
-	} else {
-		polling_data->delay = (useconds_t) dev->pipes[pipe_index]
-		    .descriptor->poll_interval;
-	}
-	polling_data->auto_clear_halt = polling->auto_clear_halt;
+	/* Copy provided settings. */
+	polling_data->auto_polling = *polling;
 
-	polling_data->on_data = polling->on_data;
-	polling_data->on_polling_end = polling->on_polling_end;
-	polling_data->on_error = polling->on_error;
+	/* Negative value means use descriptor provided value. */
+	if (polling->delay < 0) {
+		polling_data->auto_polling.delay =
+		    (int) dev->pipes[pipe_index].descriptor->poll_interval;
+	}
 
 	fid_t fibril = fibril_create(polling_fibril, polling_data);
 	if (fibril == 0) {
