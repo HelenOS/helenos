@@ -57,9 +57,11 @@ void page_arch_init(void)
 	page_table_lock(AS_KERNEL, true);
 	
 	uintptr_t cur;
+
 	/* Kernel identity mapping */
 	for (cur = PHYSMEM_START_ADDR;
-	    cur < min(config.identity_base, last_frame); cur += FRAME_SIZE)
+	    cur < min(config.identity_size, config.physmem_end);
+	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
 	/* Create mapping for exception table at high offset */

@@ -899,6 +899,9 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * the assert
 		 */
 		ASSERT(confframe != ADDR2PFN((uintptr_t ) NULL));
+
+		/* Update the known end of physical memory. */
+		config.physmem_end = max(config.physmem_end, PFN2ADDR(start + count));
 		
 		/* If confframe is supposed to be inside our zone, then make sure
 		 * it does not span kernel & init

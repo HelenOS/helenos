@@ -48,9 +48,6 @@
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
-// XXX: remove me
-uintptr_t last_frame = 0;
-
 static void init_e820_memory(pfn_t minconf, bool low)
 {
 	unsigned int i;
@@ -84,10 +81,6 @@ static void init_e820_memory(pfn_t minconf, bool low)
 				zone_create(pfn, count, conf,
 				    ZONE_AVAILABLE | ZONE_HIGHMEM);
 			}
-			
-			// XXX: remove me
-			if (last_frame < new_base + new_size)
-				last_frame = new_base + new_size;
 		} else if ((e820table[i].type == MEMMAP_MEMORY_ACPI) ||
 		    (e820table[i].type == MEMMAP_MEMORY_NVS)) {
 			/* To be safe, make the firmware zone possibly larger */

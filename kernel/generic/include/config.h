@@ -94,6 +94,9 @@ typedef struct {
 	size_t identity_size;
 
 	bool non_identity_configured;   
+
+	/** End of physical memory. */
+	uint64_t physmem_end;
 } config_t;
 
 extern config_t config;

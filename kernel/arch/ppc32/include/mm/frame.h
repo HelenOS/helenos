@@ -43,8 +43,6 @@
 #include <typedefs.h>
 #include <trace.h>
 
-extern uintptr_t last_frame;
-
 NO_TRACE static inline uint32_t physmem_top(void)
 {
 	uint32_t physmem;

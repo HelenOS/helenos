@@ -40,9 +40,6 @@
 #include <align.h>
 #include <macros.h>
 
-// TODO: remove me
-uintptr_t last_frame = (uintptr_t) NULL;
-
 /** Create memory zones according to information stored in memmap.
  *
  * Walk the memory map and create frame zones according to it.
@@ -65,9 +62,6 @@ static void frame_common_arch_init(bool low)
 		size = ALIGN_DOWN(memmap.zones[i].size -
 		    (base - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
 		
-		// TODO: remove me
-		last_frame = max(last_frame, base + size);
-
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			continue;
  
@@ -105,8 +99,9 @@ void frame_low_arch_init(void)
 	 * here, no matter what is its address.
 	 */
 	frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
-	
-	end_of_identity = PA2KA(last_frame);
+
+	/* PA2KA will work only on low-memory. */
+	end_of_identity = PA2KA(config.physmem_end - FRAME_SIZE) + PAGE_SIZE;
 }
 
 void frame_high_arch_init(void)

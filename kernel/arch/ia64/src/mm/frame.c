@@ -50,9 +50,6 @@
 
 #define MINCONF 1
 
-// XXX: remove me
-uintptr_t last_frame = 0;
-
 static void frame_common_arch_init(bool low)
 {
 	unsigned int i;
@@ -67,10 +64,6 @@ static void frame_common_arch_init(bool low)
 
 		if (size > FRAME_SIZE)
 			size -= abase - base;
-
-		// FIXME: remove me
-		if (abase + size > last_frame)
-			last_frame = abase + size;
 
 		if (!frame_adjust_zone_bounds(low, &abase, &size))
 			continue;

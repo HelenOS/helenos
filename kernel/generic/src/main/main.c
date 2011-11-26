@@ -90,7 +90,8 @@
 /** Global configuration structure. */
 config_t config = {
 	.identity_configured = false,
-	.non_identity_configured = false
+	.non_identity_configured = false,
+	.physmem_end = 0
 };
 
 /** Initial user-space tasks */

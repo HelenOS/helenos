@@ -40,10 +40,6 @@
 #include <align.h>
 #include <macros.h>
 
-// TODO: remove me
-/** Address of the last frame in the memory. */
-uintptr_t last_frame = 0;
-
 static void frame_common_arch_init(bool low)
 {
 	uintptr_t base;
@@ -73,13 +69,6 @@ static void frame_common_arch_init(bool low)
 /** Create low memory zones. */
 void frame_low_arch_init(void)
 {
-	uintptr_t mem_start;
-	size_t mem_size;
-
-	machine_get_memory_extents(&mem_start, &mem_size);
-	// TODO: remove me
-	last_frame = ALIGN_DOWN(mem_start + mem_size, FRAME_SIZE);
-	
 	frame_common_arch_init(true);
 
 	/* blacklist boot page table */

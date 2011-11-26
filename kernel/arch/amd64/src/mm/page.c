@@ -63,9 +63,9 @@ void page_arch_init(void)
 	page_table_lock(AS_KERNEL, true);
 		
 	/*
-	 * PA2KA(identity) mapping for all frames.
+	 * PA2KA(identity) mapping for all low-memory frames.
 	 */
-	for (cur = 0; cur < min(config.identity_size, last_frame);
+	for (cur = 0; cur < min(config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, identity_flags);
 		

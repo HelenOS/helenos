@@ -39,9 +39,6 @@
 #include <macros.h>
 #include <print.h>
 
-// XXX: remove me
-uintptr_t last_frame = 0;
-
 memmap_t memmap;
 
 void physmem_print(void)
@@ -66,10 +63,6 @@ static void frame_common_arch_init(bool low)
 		    FRAME_SIZE);
 		size_t size = ALIGN_DOWN(memmap.zones[i].size -
 		    (base - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
-		
-		// XXX: remove me
-		if (last_frame < ALIGN_UP(base + size, FRAME_SIZE))
-			last_frame = ALIGN_UP(base + size, FRAME_SIZE);
 		
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			return;
