@@ -386,6 +386,8 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 		ext4_inode_set_indirect_block(inode_ref->inode, 2, 0);
 	}
 
+	inode_ref->dirty = true;
+
 	// Free inode
 	rc = ext4_ialloc_free_inode(fs, inode_ref);
 	if (rc != EOK) {
@@ -440,8 +442,6 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 	// starting from 1 because of logical blocks are numbered from 0
 	for (i = 1; i <= blocks_count; ++i) {
 		// TODO check retval
-		// TODO decrement inode->blocks_count
-
 		ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
 	}
 

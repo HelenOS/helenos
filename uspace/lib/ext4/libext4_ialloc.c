@@ -36,6 +36,7 @@
  */
 
 #include <errno.h>
+#include <time.h>
 #include "libext4.h"
 
 static uint32_t ext4_ialloc_inode2index_in_group(ext4_superblock_t *sb,
@@ -89,9 +90,22 @@ int ext4_ialloc_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
 		return rc;
 	}
 
+	time_t now = time(NULL);
+	ext4_inode_set_deletion_time(inode_ref->inode, (uint32_t)now);
+	inode_ref->dirty = true;
+
+	// if inode is directory, decrement directories count
+	if (ext4_inode_is_type(fs->superblock, inode_ref->inode, EXT4_INODE_MODE_DIRECTORY)) {
+		uint32_t bg_used_dirs = ext4_block_group_get_used_dirs_count(
+			bg_ref->block_group, fs->superblock);
+		bg_used_dirs--;
+		ext4_block_group_set_used_dirs_count(
+				bg_ref->block_group, fs->superblock, bg_used_dirs);
+	}
+
 	// Update superblock free inodes count
 	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(fs->superblock);
-	sb_free_inodes--;
+	sb_free_inodes++;
 	ext4_superblock_set_free_inodes_count(fs->superblock, sb_free_inodes);
 
 	// Update block group free inodes count

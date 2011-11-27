@@ -468,11 +468,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	// If directory - handle links from parent
 	if (lnk_count <= 1 && ext4fs_is_directory(cfn)) {
-
-		if (lnk_count) {
-			lnk_count--;
-		}
-
 		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
 
 		EXT4FS_DBG("parent index = \%u", parent_inode_ref->index);
@@ -566,6 +561,17 @@ aoff64_t ext4fs_size_get(fs_node_t *fn)
 
 unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 {
+	if (ext4fs_is_directory(fn)) {
+		if (lnkcnt > 1) {
+			EXT4FS_DBG("dir: returning \%u", 1);
+			return 1;
+		} else {
+			EXT4FS_DBG("dir: returning \%u", 0);
+			return 0;
+		}
+	}
+
+	// For regular files return real links count
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
 	return ext4_inode_get_links_count(enode->inode_ref->inode);
 }
@@ -684,7 +690,6 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 		free(inst);
 		return rc;
 	}
-	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
 
 	/* Add instance to the list */
 	fibril_mutex_lock(&instance_list_mutex);
@@ -693,7 +698,7 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 
 	*index = EXT4_INODE_ROOT_INDEX;
 	*size = 0;
-	*lnkcnt = ext4_inode_get_links_count(enode->inode_ref->inode);
+	*lnkcnt = 1;
 
 	ext4fs_node_put(root_node);
 

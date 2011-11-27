@@ -316,11 +316,6 @@ int ext4_directory_remove_entry(ext4_filesystem_t* fs,
 		return rc;
 	}
 
-	if (rc != EOK) {
-		ext4_directory_iterator_fini(&it);
-		return rc;
-	}
-
 	// TODO modify HTREE index if exists
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
