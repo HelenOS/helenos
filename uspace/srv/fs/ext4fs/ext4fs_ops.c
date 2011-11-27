@@ -462,12 +462,15 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	uint32_t lnk_count = ext4_inode_get_links_count(child_inode_ref->inode);
 	lnk_count--;
 
-
 	// If directory - handle links from parent
 	if (lnk_count <= 1 && ext4fs_is_directory(cfn)) {
+
+		assert(lnk_count == 1);
+		lnk_count--;
+
 		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
 
-		EXT4FS_DBG("parent index = \%u", parent_inode_ref->index);
+//		EXT4FS_DBG("parent index = \%u", parent_inode_ref->index);
 
 		uint32_t parent_lnk_count = ext4_inode_get_links_count(
 				parent_inode_ref->inode);
