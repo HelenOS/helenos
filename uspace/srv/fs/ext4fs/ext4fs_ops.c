@@ -381,8 +381,6 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 int ext4fs_destroy_node(fs_node_t *fn)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 
 	bool has_children;
@@ -402,7 +400,7 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	ext4_filesystem_t *fs = enode->instance->filesystem;
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 
-	EXT4FS_DBG("destroying \%u", inode_ref->index);
+//	EXT4FS_DBG("destroying \%u", inode_ref->index);
 
 	rc = ext4_filesystem_truncate_inode(fs, inode_ref, 0);
 	if (rc != EOK) {
@@ -432,7 +430,7 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-	EXT4FS_DBG("unlinking \%s", name);
+//	EXT4FS_DBG("unlinking \%s", name);
 
 	int rc;
 
@@ -462,7 +460,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	ext4_inode_ref_t * child_inode_ref = EXT4FS_NODE(cfn)->inode_ref;
 
 	uint32_t lnk_count = ext4_inode_get_links_count(child_inode_ref->inode);
-	EXT4FS_DBG("link count before == \%u", lnk_count);
 	lnk_count--;
 
 
@@ -475,8 +472,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		uint32_t parent_lnk_count = ext4_inode_get_links_count(
 				parent_inode_ref->inode);
 
-		EXT4FS_DBG("directory will be removed, parent link count = \%u", parent_lnk_count);
-
 		parent_lnk_count--;
 		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
 
@@ -485,8 +480,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
 	child_inode_ref->dirty = true;
-
-	EXT4FS_DBG("link count after == \%u", lnk_count);
 
 	return EOK;
 }
@@ -561,19 +554,19 @@ aoff64_t ext4fs_size_get(fs_node_t *fn)
 
 unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 {
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	uint32_t lnkcnt = ext4_inode_get_links_count(enode->inode_ref->inode);
+
 	if (ext4fs_is_directory(fn)) {
 		if (lnkcnt > 1) {
-			EXT4FS_DBG("dir: returning \%u", 1);
 			return 1;
 		} else {
-			EXT4FS_DBG("dir: returning \%u", 0);
 			return 0;
 		}
 	}
 
 	// For regular files return real links count
-	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	return ext4_inode_get_links_count(enode->inode_ref->inode);
+	return lnkcnt;
 }
 
 
