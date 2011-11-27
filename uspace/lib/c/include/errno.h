@@ -95,6 +95,8 @@ extern int *__errno(void) __attribute__((const));
 /** The socket is not connected or bound. */
 #define ENOTCONN  (-10057)
 
+#define ECONNREFUSED  (-10058)
+
 /** The requested operation was not performed. Try again later. */
 #define EAGAIN  (-11002)
 

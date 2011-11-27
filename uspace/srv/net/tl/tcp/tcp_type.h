@@ -36,8 +36,10 @@
 #define TCP_TYPE_H
 
 #include <adt/list.h>
+#include <async.h>
 #include <bool.h>
 #include <fibril_synch.h>
+#include <socket_core.h>
 #include <sys/types.h>
 
 struct tcp_conn;
@@ -286,6 +288,16 @@ typedef struct {
 	/** Text size */
 	size_t text_size;
 } tcp_pdu_t;
+
+typedef struct {
+	async_sess_t *sess;
+	socket_cores_t sockets;
+} tcp_client_t;
+
+typedef struct {
+	tcp_client_t *client;
+	tcp_conn_t *conn;
+} tcp_sockdata_t;
 
 #endif
 

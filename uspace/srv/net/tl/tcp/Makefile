@@ -39,6 +39,7 @@ SOURCES = \
 	rqueue.c \
 	segment.c \
 	seq_no.c \
+	sock.c \
 	tcp.c \
 	test.c \
 	tqueue.c \

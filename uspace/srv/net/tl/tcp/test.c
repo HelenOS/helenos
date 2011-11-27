@@ -123,10 +123,12 @@ void tcp_test(void)
 		return;
 	}
 
-	rc = thread_create(test_cli, NULL, "test_cli", &cli_tid);
-	if (rc != EOK) {
-		printf("Failed to create client thread.\n");
-		return;
+	if (0) {
+		rc = thread_create(test_cli, NULL, "test_cli", &cli_tid);
+		if (rc != EOK) {
+			printf("Failed to create client thread.\n");
+			return;
+		}
 	}
 }
 

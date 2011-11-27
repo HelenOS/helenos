@@ -54,16 +54,17 @@
 #include "ncsim.h"
 #include "pdu.h"
 #include "rqueue.h"
+#include "sock.h"
 #include "std.h"
 #include "tcp.h"
 #include "test.h"
 
 #define NAME       "tcp"
 
-static async_sess_t *net_sess;
+async_sess_t *net_sess;
 static async_sess_t *icmp_sess;
 static async_sess_t *ip_sess;
-static packet_dimensions_t pkt_dims;
+packet_dimensions_t pkt_dims;
 
 static void tcp_received_pdu(tcp_pdu_t *pdu);
 
@@ -353,7 +354,15 @@ void tl_connection(void)
 int tl_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     size_t *answer_count)
 {
+	async_sess_t *callback;
+
 	log_msg(LVL_DEBUG, "tl_message()");
+
+	*answer_count = 0;
+	callback = async_callback_receive_start(EXCHANGE_SERIALIZE, call);
+	if (callback)
+		return tcp_sock_connection(callback, callid, *call);
+
 	return ENOTSUP;
 }
 
