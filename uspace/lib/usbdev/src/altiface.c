@@ -64,15 +64,13 @@ size_t usb_interface_count_alternates(const uint8_t *config_descr,
 
 	size_t alternate_count = 0;
 
-	const uint8_t *iface_ptr = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, config_descr);
+	const void *iface_ptr =
+	    usb_dp_get_nested_descriptor(&dp_parser, &dp_data, config_descr);
 	while (iface_ptr != NULL) {
-		usb_standard_interface_descriptor_t *iface
-		    = (usb_standard_interface_descriptor_t *) iface_ptr;
-		if (iface->descriptor_type == USB_DESCTYPE_INTERFACE) {
-			if (iface->interface_number == interface_no) {
-				alternate_count++;
-			}
+		const usb_standard_interface_descriptor_t *iface = iface_ptr;
+		if (iface->descriptor_type == USB_DESCTYPE_INTERFACE
+		    && iface->interface_number == interface_no) {
+			++alternate_count;
 		}
 		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
 		    config_descr, iface_ptr);
@@ -81,12 +79,12 @@ size_t usb_interface_count_alternates(const uint8_t *config_descr,
 	return alternate_count;
 }
 
-/** Create alternate interface representation structure.
+/** Initialize alternate interface representation structure.
  *
+ * @param[in] alternates Pointer to allocated structure.
  * @param[in] config_descr Configuration descriptor.
  * @param[in] config_descr_size Size of configuration descriptor.
  * @param[in] interface_number Interface number.
- * @param[out] alternates_ptr Where to store pointer to allocated structure.
  * @return Error code.
  */
 int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
@@ -100,13 +98,14 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 	alternates->alternative_count = 0;
 	alternates->current = 0;
 
+	/* No interfaces. */
 	if (interface_number < 0) {
 		return EOK;
 	}
 
 	alternates->alternative_count
 	    = usb_interface_count_alternates(config_descr, config_descr_size,
-	    interface_number);
+	        interface_number);
 
 	if (alternates->alternative_count == 0) {
 		return ENOENT;
@@ -130,13 +129,16 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 	usb_alternate_interface_descriptors_t *cur_alt_iface
 	    = &alternates->alternatives[0];
 
-	const uint8_t *iface_ptr = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, dp_data.data);
+	const void *iface_ptr =
+	    usb_dp_get_nested_descriptor(&dp_parser, &dp_data, dp_data.data);
+
 	while (iface_ptr != NULL) {
-		usb_standard_interface_descriptor_t *iface
-		    = (usb_standard_interface_descriptor_t *) iface_ptr;
+		const usb_standard_interface_descriptor_t *iface = iface_ptr;
+
 		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
 		    || (iface->interface_number != interface_number)) {
+			/* This is not a valid alternate interface descriptor
+			 * for interface with number == interface_number. */
 			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,
 			    &dp_data, dp_data.data, iface_ptr);
 			continue;
@@ -148,16 +150,14 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		/* Find next interface to count size of nested descriptors. */
 		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
 		    dp_data.data, iface_ptr);
-		if (iface_ptr == NULL) {
-			const uint8_t *next = dp_data.data + dp_data.size;
-			cur_alt_iface->nested_descriptors_size
-			    = next - cur_alt_iface->nested_descriptors;
-		} else {
-			cur_alt_iface->nested_descriptors_size
-			    = iface_ptr - cur_alt_iface->nested_descriptors;
-		}
 
-		cur_alt_iface++;
+		const uint8_t *next = (iface_ptr == NULL) ?
+		    dp_data.data + dp_data.size : iface_ptr;
+
+		cur_alt_iface->nested_descriptors_size
+		    = next - cur_alt_iface->nested_descriptors;
+
+		++cur_alt_iface;
 	}
 
 	return EOK;
