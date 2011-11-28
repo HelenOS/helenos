@@ -218,8 +218,8 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address,
  * @retval ESTALL Problem communication with device (either SET_ADDRESS
  *	request or requests for descriptors when creating match ids).
  */
-int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection,
-    usb_speed_t dev_speed,
+int usb_hc_new_device_wrapper(ddf_dev_t *parent,
+    usb_hc_connection_t *connection, usb_speed_t dev_speed,
     int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {

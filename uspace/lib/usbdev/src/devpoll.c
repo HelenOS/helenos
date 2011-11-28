@@ -62,78 +62,76 @@ typedef struct {
  */
 static int polling_fibril(void *arg)
 {
-	polling_data_t *polling_data = (polling_data_t *) arg;
-	assert(polling_data);
+	assert(arg);
+	const polling_data_t *data = arg;
+	/* Helper to reduce typing. */
+	const usb_device_auto_polling_t *params = &data->auto_polling;
 
 	usb_pipe_t *pipe
-	    = &polling_data->dev->pipes[polling_data->pipe_index].pipe;
-	
-	if (polling_data->auto_polling.debug > 0) {
+	    = &data->dev->pipes[data->pipe_index].pipe;
+
+	if (params->debug > 0) {
 		const usb_endpoint_mapping_t *mapping
-		    = &polling_data->dev->pipes[polling_data->pipe_index];
+		    = &data->dev->pipes[data->pipe_index];
 		usb_log_debug("Poll%p: started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
-		    polling_data,
-		    polling_data->dev->ddf_dev->name,
+		    data, data->dev->ddf_dev->name,
 		    (int) mapping->interface->interface_number,
 		    usb_str_class(mapping->interface->interface_class),
 		    (int) mapping->interface->interface_subclass,
 		    (int) mapping->interface->interface_protocol,
-		    polling_data->request_size, pipe->max_packet_size);
+		    data->request_size, pipe->max_packet_size);
 	}
 
 	usb_pipe_start_long_transfer(pipe);
 	size_t failed_attempts = 0;
-	while (failed_attempts <= polling_data->auto_polling.max_failures) {
+	while (failed_attempts <= params->max_failures) {
 		size_t actual_size;
-		const int rc = usb_pipe_read(pipe, polling_data->buffer,
-		    polling_data->request_size, &actual_size);
+		const int rc = usb_pipe_read(pipe, data->buffer,
+		    data->request_size, &actual_size);
 
-		if (polling_data->auto_polling.debug > 1) {
+		if (params->debug > 1) {
 			if (rc == EOK) {
 				usb_log_debug(
 				    "Poll%p: received: '%s' (%zuB).\n",
-				    polling_data,
-				    usb_debug_str_buffer(polling_data->buffer,
+				    data,
+				    usb_debug_str_buffer(data->buffer,
 				        actual_size, 16),
 				    actual_size);
 			} else {
 				usb_log_debug(
 				    "Poll%p: polling failed: %s.\n",
-				    polling_data, str_error(rc));
+				    data, str_error(rc));
 			}
 		}
 
 		/* If the pipe stalled, we can try to reset the stall. */
-		if ((rc == ESTALL) && (polling_data->auto_polling.auto_clear_halt)) {
+		if ((rc == ESTALL) && (params->auto_clear_halt)) {
 			/*
 			 * We ignore error here as this is usually a futile
 			 * attempt anyway.
 			 */
 			usb_request_clear_endpoint_halt(
-			    &polling_data->dev->ctrl_pipe, pipe->endpoint_no);
+			    &data->dev->ctrl_pipe, pipe->endpoint_no);
 		}
 
 		if (rc != EOK) {
-			if (polling_data->auto_polling.on_error != NULL) {
-				bool cont = polling_data->auto_polling.on_error(
-				    polling_data->dev, rc,
-				    polling_data->custom_arg);
-				if (!cont) {
-					failed_attempts
-					    = polling_data->auto_polling.max_failures;
-				}
+			++failed_attempts;
+			const bool cont = (params->on_error == NULL) ? true :
+			    params->on_error(data->dev, rc, data->custom_arg);
+			if (!cont) {
+				failed_attempts = params->max_failures;
 			}
-			failed_attempts++;
 			continue;
 		}
 
 		/* We have the data, execute the callback now. */
-		const bool carry_on = polling_data->auto_polling.on_data(
-		    polling_data->dev, polling_data->buffer, actual_size,
-		    polling_data->custom_arg);
+		assert(params->on_data);
+		const bool carry_on = params->on_data(
+		    data->dev, data->buffer, actual_size, data->custom_arg);
 
 		if (!carry_on) {
+			/* This is user requested abort, erases failures. */
 			failed_attempts = 0;
 			break;
 		}
@@ -142,32 +140,30 @@ static int polling_fibril(void *arg)
 		failed_attempts = 0;
 
 		/* Take a rest before next request. */
-		async_usleep(polling_data->auto_polling.delay);
+		async_usleep(params->delay);
 	}
 
 	usb_pipe_end_long_transfer(pipe);
-	if (polling_data->auto_polling.on_polling_end != NULL) {
-		polling_data->auto_polling.on_polling_end(polling_data->dev,
-		    failed_attempts > 0, polling_data->custom_arg);
+
+	const bool failed = failed_attempts > 0;
+
+	if (params->on_polling_end != NULL) {
+		params->on_polling_end(data->dev, failed, data->custom_arg);
 	}
 
-	if (polling_data->auto_polling.debug > 0) {
-		if (failed_attempts > 0) {
-			usb_log_error(
-			    "Polling of device `%s' terminated: %s.\n",
-			    polling_data->dev->ddf_dev->name,
-			    "recurring failures");
+	if (params->debug > 0) {
+		if (failed) {
+			usb_log_error("Polling of device `%s' terminated: "
+			    "recurring failures.\n", data->dev->ddf_dev->name);
 		} else {
-			usb_log_debug(
-			    "Polling of device `%s' terminated by user.\n",
-			    polling_data->dev->ddf_dev->name
-			);
+			usb_log_debug("Polling of device `%s' terminated: "
+			    "driver request.\n", data->dev->ddf_dev->name);
 		}
 	}
 
 	/* Free the allocated memory. */
-	free(polling_data->buffer);
-	free(polling_data);
+	free(data->buffer);
+	free(data);
 
 	return EOK;
 }
