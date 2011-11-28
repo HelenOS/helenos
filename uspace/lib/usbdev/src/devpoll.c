@@ -82,6 +82,7 @@ static int polling_fibril(void *arg)
 		    polling_data->request_size, pipe->max_packet_size);
 	}
 
+	usb_pipe_start_long_transfer(pipe);
 	size_t failed_attempts = 0;
 	while (failed_attempts <= polling_data->auto_polling.max_failures) {
 		size_t actual_size;
@@ -144,6 +145,7 @@ static int polling_fibril(void *arg)
 		async_usleep(polling_data->auto_polling.delay);
 	}
 
+	usb_pipe_end_long_transfer(pipe);
 	if (polling_data->auto_polling.on_polling_end != NULL) {
 		polling_data->auto_polling.on_polling_end(polling_data->dev,
 		    failed_attempts > 0, polling_data->custom_arg);
