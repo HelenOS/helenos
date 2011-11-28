@@ -126,13 +126,16 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		.arg = NULL
 	};
 
-	usb_alternate_interface_descriptors_t *cur_alt_iface
+	usb_alternate_interface_descriptors_t *iterator
 	    = &alternates->alternatives[0];
+
+	const usb_alternate_interface_descriptors_t *end
+	    = &alternates->alternatives[alternates->alternative_count];
 
 	const void *iface_ptr =
 	    usb_dp_get_nested_descriptor(&dp_parser, &dp_data, dp_data.data);
 
-	while (iface_ptr != NULL) {
+	while (iface_ptr != NULL && iterator < end) {
 		const usb_standard_interface_descriptor_t *iface = iface_ptr;
 
 		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
@@ -144,8 +147,8 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 			continue;
 		}
 
-		cur_alt_iface->interface = iface;
-		cur_alt_iface->nested_descriptors = iface_ptr + sizeof(*iface);
+		iterator->interface = iface;
+		iterator->nested_descriptors = iface_ptr + sizeof(*iface);
 
 		/* Find next interface to count size of nested descriptors. */
 		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
@@ -154,10 +157,10 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		const uint8_t *next = (iface_ptr == NULL) ?
 		    dp_data.data + dp_data.size : iface_ptr;
 
-		cur_alt_iface->nested_descriptors_size
-		    = next - cur_alt_iface->nested_descriptors;
+		iterator->nested_descriptors_size
+		    = next - iterator->nested_descriptors;
 
-		++cur_alt_iface;
+		++iterator;
 	}
 
 	return EOK;
