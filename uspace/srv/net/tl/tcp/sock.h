@@ -37,6 +37,7 @@
 
 #include <async.h>
 
+extern void tcp_sock_init(void);
 extern int tcp_sock_connection(async_sess_t *, ipc_callid_t, ipc_call_t);
 
 #endif

@@ -97,6 +97,8 @@ extern int *__errno(void) __attribute__((const));
 
 #define ECONNREFUSED  (-10058)
 
+#define ECONNABORTED  (-10059)
+
 /** The requested operation was not performed. Try again later. */
 #define EAGAIN  (-11002)
 

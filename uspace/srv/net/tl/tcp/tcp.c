@@ -376,6 +376,8 @@ int tl_initialize(async_sess_t *sess)
 
 	log_msg(LVL_DEBUG, "tl_initialize()");
 
+	tcp_sock_init();
+
 	ip_sess = ip_bind_service(SERVICE_IP, IPPROTO_TCP, SERVICE_TCP,
 	    tcp_receiver);
 	if (ip_sess == NULL)

@@ -117,10 +117,12 @@ void tcp_test(void)
 
 	async_usleep(1000*1000);
 
-	rc = thread_create(test_srv, NULL, "test_srv", &srv_tid);
-	if (rc != EOK) {
-		printf("Failed to create server thread.\n");
-		return;
+	if (0) {
+		rc = thread_create(test_srv, NULL, "test_srv", &srv_tid);
+		if (rc != EOK) {
+			printf("Failed to create server thread.\n");
+			return;
+		}
 	}
 
 	if (0) {

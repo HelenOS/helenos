@@ -56,6 +56,8 @@
  *
  * XXX We should be able to call active open on an existing listening
  * connection.
+ * XXX We should be able to get connection structure immediately, before
+ * establishment.
  */
 tcp_error_t tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
     tcp_conn_t **conn)
@@ -76,23 +78,26 @@ tcp_error_t tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
 	if (acpass == ap_active) {
 		/* Synchronize (initiate) connection */
 		tcp_conn_sync(nconn);
-
-		/* Wait for connection to be established or reset */
-		log_msg(LVL_DEBUG, "tcp_uc_open: Wait for connection.");
-		fibril_mutex_lock(&nconn->cstate_lock);
-		while (nconn->cstate == st_syn_sent ||
-		    nconn->cstate == st_syn_received) {
-			fibril_condvar_wait(&nconn->cstate_cv, &nconn->cstate_lock);
-		}
-		if (nconn->cstate != st_established) {
-			log_msg(LVL_DEBUG, "tcp_uc_open: Connection was reset.");
-			assert(nconn->cstate == st_closed);
-			fibril_mutex_unlock(&nconn->cstate_lock);
-			return TCP_ERESET;
-		}
-		fibril_mutex_unlock(&nconn->cstate_lock);
-		log_msg(LVL_DEBUG, "tcp_uc_open: Connection was established.");
 	}
+
+	/* Wait for connection to be established or reset */
+	log_msg(LVL_DEBUG, "tcp_uc_open: Wait for connection.");
+	fibril_mutex_lock(&nconn->cstate_lock);
+	while (nconn->cstate == st_listen ||
+	    nconn->cstate == st_syn_sent ||
+	    nconn->cstate == st_syn_received) {
+		fibril_condvar_wait(&nconn->cstate_cv, &nconn->cstate_lock);
+	}
+
+	if (nconn->cstate != st_established) {
+		log_msg(LVL_DEBUG, "tcp_uc_open: Connection was reset.");
+		assert(nconn->cstate == st_closed);
+		fibril_mutex_unlock(&nconn->cstate_lock);
+		return TCP_ERESET;
+	}
+
+	fibril_mutex_unlock(&nconn->cstate_lock);
+	log_msg(LVL_DEBUG, "tcp_uc_open: Connection was established.");
 
 	*conn = nconn;
 	return TCP_EOK;

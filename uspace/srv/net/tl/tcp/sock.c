@@ -40,6 +40,7 @@
 #include <io/log.h>
 #include <ipc/socket.h>
 #include <net/modules.h>
+#include <net/socket.h>
 
 #include "sock.h"
 #include "std.h"
@@ -55,8 +56,13 @@
 /** Free ports pool end. */
 #define TCP_FREE_PORTS_END		65535
 
-static int last_used_port;
+static int last_used_port = TCP_FREE_PORTS_START - 1;
 static socket_ports_t gsock;
+
+void tcp_sock_init(void)
+{
+	socket_ports_initialize(&gsock);
+}
 
 static void tcp_free_sock_data(socket_core_t *sock_core)
 {
@@ -68,9 +74,19 @@ static void tcp_free_sock_data(socket_core_t *sock_core)
 
 static void tcp_sock_notify_data(socket_core_t *sock_core)
 {
+	log_msg(LVL_DEBUG, "tcp_sock_notify_data(%d)", sock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(sock_core->sess);
 	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t)sock_core->socket_id,
 	    FRAGMENT_SIZE, 0, 0, 1);
+	async_exchange_end(exch);
+}
+
+static void tcp_sock_notify_aconn(socket_core_t *lsock_core)
+{
+	log_msg(LVL_DEBUG, "tcp_sock_notify_aconn(%d)", lsock_core->socket_id);
+	async_exch_t *exch = async_exchange_begin(lsock_core->sess);
+	async_msg_5(exch, NET_SOCKET_ACCEPTED, (sysarg_t)lsock_core->socket_id,
+	    FRAGMENT_SIZE, 0, 0, 0);
 	async_exchange_end(exch);
 }
 
@@ -114,12 +130,14 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	tcp_sockdata_t *socket;
 
 	log_msg(LVL_DEBUG, "tcp_sock_bind()");
+	log_msg(LVL_DEBUG, " - async_data_write_accept");
 	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &addr_len);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
 
+	log_msg(LVL_DEBUG, " - call socket_bind");
 	rc = socket_bind(&client->sockets, &gsock, SOCKET_GET_SOCKET_ID(call),
 	    addr, addr_len, TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
 	    last_used_port);
@@ -128,6 +146,7 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		return;
 	}
 
+	log_msg(LVL_DEBUG, " - call socket_cores_find");
 	sock_core = socket_cores_find(&client->sockets, SOCKET_GET_SOCKET_ID(call));
 	if (sock_core != NULL) {
 		socket = (tcp_sockdata_t *)sock_core->specific_data;
@@ -135,7 +154,8 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		(void) socket;
 	}
 
-	async_answer_0(callid, ENOTSUP);
+	log_msg(LVL_DEBUG, " - success");
+	async_answer_0(callid, EOK);
 
 	/* Push one fragment notification to client's queue */
 	tcp_sock_notify_data(sock_core);
@@ -165,14 +185,23 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
-	/* XXX Listen */
+
+	/*
+	 * XXX We do not do anything and defer action to accept().
+	 * This is a slight difference in semantics, but most servers
+	 * would just listen() and immediately accept() in a loop.
+	 *
+	 * The only difference is that there is a window between
+	 * listen() and accept() or two accept()s where we refuse
+	 * connections.
+	 */
 	(void)backlog;
 	(void)socket;
 
-	async_answer_0(callid, ENOTSUP);
-
-	/* Push one fragment notification to client's queue */
-	tcp_sock_notify_data(sock_core);
+	async_answer_0(callid, EOK);
+	log_msg(LVL_DEBUG, "tcp_sock_listen(): notify data\n");
+	/* Push one accept notification to client's queue */
+	tcp_sock_notify_aconn(sock_core);
 }
 
 static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -204,8 +233,19 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
+	if (sock_core->port <= 0) {
+		rc = socket_bind_free_port(&gsock, sock_core,
+		    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
+		    last_used_port);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			return;
+		}
 
-	lport = 1024; /* XXX */
+		last_used_port = sock_core->port;
+	}
+
+	lport = sock_core->port;
 	fsocket.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
 	fsocket.port = uint16_t_be2host(addr->sin_port);
 
@@ -229,14 +269,20 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 {
 	ipc_call_t answer;
 	int socket_id;
-	int nsocket_id;
+	int asock_id;
 	socket_core_t *sock_core;
+	socket_core_t *asock_core;
 	tcp_sockdata_t *socket;
+	tcp_sockdata_t *asocket;
+	tcp_error_t trc;
+	tcp_sock_t fsocket;
+	tcp_conn_t *conn;
+	int rc;
 
 	log_msg(LVL_DEBUG, "tcp_sock_accept()");
 
 	socket_id = SOCKET_GET_SOCKET_ID(call);
-	nsocket_id = SOCKET_GET_NEW_SOCKET_ID(call);
+	asock_id = SOCKET_GET_NEW_SOCKET_ID(call);
 
 	sock_core = socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
@@ -245,17 +291,75 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
-	/* XXX Accept */
-	(void) socket;
-	(void) nsocket_id;
-/*
-	refresh_answer(&answer, NULL);
-	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size)
-	...
-	async_answer_0(callid, ENOTSUP);*/
 
-	/* TODO */
-	answer_call(callid, ENOTSUP, &answer, 3);
+	log_msg(LVL_DEBUG, " - verify socket->conn");
+	if (socket->conn != NULL) {
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+
+	log_msg(LVL_DEBUG, " - open connection");
+
+	fsocket.addr.ipv4 = 0x7f000001; /* XXX */
+	fsocket.port = 1025; /* XXX */
+
+	trc = tcp_uc_open(sock_core->port, &fsocket, ap_passive, &conn);
+
+	log_msg(LVL_DEBUG, " - decode TCP return code");
+
+	switch (trc) {
+	case TCP_EOK:
+		rc = EOK;
+		break;
+	case TCP_ERESET:
+		rc = ECONNABORTED;
+		break;
+	default:
+		assert(false);
+	}
+
+	log_msg(LVL_DEBUG, " - check TCP return code");
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	log_msg(LVL_DEBUG, "tcp_sock_accept(): allocate asocket\n");
+	asocket = calloc(sizeof(tcp_sockdata_t), 1);
+	if (asocket == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
+
+	asocket->client = client;
+	asocket->conn = conn;
+	log_msg(LVL_DEBUG, "tcp_sock_accept():create asocket\n");
+
+	rc = socket_create(&client->sockets, client->sess, asocket, &asock_id);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+	log_msg(LVL_DEBUG, "tcp_sock_accept(): find acore\n");
+
+	asock_core = socket_cores_find(&client->sockets, asock_id);
+	assert(asock_core != NULL);
+
+	refresh_answer(&answer, NULL);
+
+	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
+	SOCKET_SET_SOCKET_ID(answer, asock_id);
+	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(struct sockaddr_in));
+
+	answer_call(callid, asock_core->socket_id, &answer, 3);
+
+	/* Push one accept notification to client's queue */
+	tcp_sock_notify_aconn(sock_core);
+
+	/* Push one fragment notification to client's queue */
+	tcp_sock_notify_data(asock_core);
+	log_msg(LVL_DEBUG, "tcp_sock_listen(): notify aconn\n");
+
 }
 
 static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -272,7 +376,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	tcp_error_t trc;
 	int rc;
 
-	log_msg(LVL_DEBUG, "******** tcp_sock_send() *******************");
+	log_msg(LVL_DEBUG, "tcp_sock_send()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 	fragments = SOCKET_GET_DATA_FRAGMENTS(call);
 	SOCKET_GET_FLAGS(call);
@@ -337,11 +441,11 @@ static void tcp_sock_sendto(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	async_answer_0(callid, ENOTSUP);
 }
 
-static void tcp_sock_recv(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
+static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
 	int socket_id;
 	int flags;
-	size_t length;
+	size_t addr_length, length;
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
 	ipc_call_t answer;
@@ -350,9 +454,11 @@ static void tcp_sock_recv(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	size_t data_len;
 	xflags_t xflags;
 	tcp_error_t trc;
+	struct sockaddr_in addr;
+	tcp_sock_t *rsock;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_sock_recv()");
+	log_msg(LVL_DEBUG, "tcp_sock_recv[from]()");
 
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 	flags = SOCKET_GET_FLAGS(call);
@@ -364,11 +470,16 @@ static void tcp_sock_recv(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
+	if (socket->conn == NULL) {
+		async_answer_0(callid, ENOTCONN);
+		return;
+	}
 
 	(void)flags;
 
 	trc = tcp_uc_receive(socket->conn, buffer, FRAGMENT_SIZE, &data_len,
 	    &xflags);
+	log_msg(LVL_DEBUG, "**** tcp_uc_receive done");
 
 	switch (trc) {
 	case TCP_EOK:
@@ -382,38 +493,56 @@ static void tcp_sock_recv(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		assert(false);
 	}
 
+	log_msg(LVL_DEBUG, "**** tcp_uc_receive -> %d", rc);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
 
+	if (IPC_GET_IMETHOD(call) == NET_SOCKET_RECVFROM) {
+		/* Fill addr */
+		rsock = &socket->conn->ident.foreign;
+		addr.sin_family = AF_INET;
+		addr.sin_addr.s_addr = host2uint32_t_be(rsock->addr.ipv4);
+		addr.sin_port = host2uint16_t_be(rsock->port);
+
+		log_msg(LVL_DEBUG, "addr read receive");
+		if (!async_data_read_receive(&rcallid, &addr_length)) {
+			async_answer_0(callid, EINVAL);
+			return;
+		}
+
+		if (addr_length > sizeof(addr))
+			addr_length = sizeof(addr);
+
+		log_msg(LVL_DEBUG, "addr read finalize");
+		rc = async_data_read_finalize(rcallid, &addr, addr_length);
+		if (rc != EOK) {
+			async_answer_0(callid, EINVAL);
+			return;
+		}
+	}
+
+	log_msg(LVL_DEBUG, "data read receive");
 	if (!async_data_read_receive(&rcallid, &length)) {
 		async_answer_0(callid, EINVAL);
 		return;
 	}
 
-	if (length < data_len) {
-		async_data_read_finalize(rcallid, buffer, length);
-		if (rc == EOK)
-			rc = EOVERFLOW;
-	} else {
+	if (length > data_len)
 		length = data_len;
-	}
 
+	log_msg(LVL_DEBUG, "data read finalize");
 	rc = async_data_read_finalize(rcallid, buffer, length);
-	length = 0;
+
+	if (length < data_len && rc == EOK)
+		rc = EOVERFLOW;
 
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
 	answer_call(callid, EOK, &answer, 1);
 
 	/* Push one fragment notification to client's queue */
 	tcp_sock_notify_data(sock_core);
-}
-
-static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
-{
-	log_msg(LVL_DEBUG, "tcp_sock_recvfrom()");
-	async_answer_0(callid, ENOTSUP);
 }
 
 static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -501,8 +630,6 @@ int tcp_sock_connection(async_sess_t *sess, ipc_callid_t iid, ipc_call_t icall)
 			tcp_sock_sendto(&client, callid, call);
 			break;
 		case NET_SOCKET_RECV:
-			tcp_sock_recv(&client, callid, call);
-			break;
 		case NET_SOCKET_RECVFROM:
 			tcp_sock_recvfrom(&client, callid, call);
 			break;
