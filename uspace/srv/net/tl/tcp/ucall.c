@@ -110,7 +110,7 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 	size_t buf_free;
 	size_t xfer_size;
 
-	log_msg(LVL_DEBUG, "tcp_uc_send()");
+	log_msg(LVL_DEBUG, "%s: tcp_uc_send()", conn->name);
 
 	if (conn->cstate == st_closed)
 		return TCP_ENOTEXIST;
@@ -148,7 +148,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 {
 	size_t xfer_size;
 
-	log_msg(LVL_DEBUG, "tcp_uc_receive()");
+	log_msg(LVL_DEBUG, "%s: tcp_uc_receive()", conn->name);
 
 	if (conn->cstate == st_closed)
 		return TCP_ENOTEXIST;
@@ -188,8 +188,8 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	/* Send new size of receive window */
 	tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 
-	log_msg(LVL_DEBUG, "tcp_uc_receive() - returning %zu bytes",
-	    xfer_size);
+	log_msg(LVL_DEBUG, "%s: tcp_uc_receive() - returning %zu bytes",
+	    conn->name, xfer_size);
 
 	return TCP_EOK;
 }
@@ -197,7 +197,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 /** CLOSE user call */
 tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "tcp_uc_close()");
+	log_msg(LVL_DEBUG, "%s: tcp_uc_close()", conn->name);
 
 	if (conn->cstate == st_closed)
 		return TCP_ENOTEXIST;

@@ -93,7 +93,8 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_t *rt_seg;
 	tcp_tqueue_entry_t *tqe;
 
-	log_msg(LVL_DEBUG, "tcp_tqueue_seg(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, "%s: tcp_tqueue_seg(%p, %p)", conn->name, conn,
+	    seg);
 
 	/*
 	 * Add segment to retransmission queue
@@ -210,7 +211,8 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 {
 	link_t *cur, *next;
 
-	log_msg(LVL_DEBUG, "tcp_tqueue_ack_received(%p)", conn);
+	log_msg(LVL_DEBUG, "%s: tcp_tqueue_ack_received(%p)", conn->name,
+	    conn);
 
 	cur = conn->retransmit.list.head.next;
 
@@ -249,7 +251,8 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 
 void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_transmit_segment(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, "%s: tcp_conn_transmit_segment(%p, %p)",
+	    conn->name, conn, seg);
 
 	seg->wnd = conn->rcv_wnd;
 

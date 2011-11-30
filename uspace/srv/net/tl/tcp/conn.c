@@ -699,7 +699,8 @@ static cproc_t tcp_conn_seg_proc_ack_tw(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_ack(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_ack(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, "%s: tcp_conn_seg_proc_ack(%p, %p)",
+	    conn->name, conn, seg);
 
 	if ((seg->ctrl & CTL_ACK) == 0) {
 		log_msg(LVL_WARN, "Segment has no ACK. Dropping.");
@@ -757,7 +758,8 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	size_t text_size;
 	size_t xfer_size;
 
-	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_text(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, "%s: tcp_conn_seg_proc_text(%p, %p)",
+	    conn->name, conn, seg);
 
 	switch (conn->cstate) {
 	case st_established:
@@ -837,7 +839,8 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_fin(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, "%s: tcp_conn_seg_proc_fin(%p, %p)",
+	    conn->name, conn, seg);
 	log_msg(LVL_DEBUG, " seg->len=%zu, seg->ctl=%u", (size_t) seg->len,
 	    (unsigned) seg->ctrl);
 
@@ -966,7 +969,8 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_segment_arrived(%p, %p)", conn, seg);
+	log_msg(LVL_DEBUG, "%c: tcp_conn_segment_arrived(%p)",
+	    conn->name, seg);
 
 	switch (conn->cstate) {
 	case st_listen:
