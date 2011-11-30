@@ -296,9 +296,15 @@ static int netecho_socket_process_message(int listening_id)
 			}
 
 			/* Answer the request either with the static reply or the original data */
-			rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
-			if (rc != EOK)
-				socket_print_error(stderr, rc, "Socket send: ", "\n");
+			if (type == SOCK_STREAM) {
+				rc = send(socket_id, reply ? reply : data, reply ? reply_length : length, 0);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Socket send: ", "\n");
+			} else {
+				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Socket send: ", "\n");
+			}
 		}
 
 		/* Close accepted stream socket */
