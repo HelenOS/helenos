@@ -245,6 +245,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/sort.c \
 	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
+	generic/src/lib/ra.c \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
 	generic/src/printf/printf.c \
