@@ -154,7 +154,7 @@ mfs_global_init(void);
 /* mfs_inode.c */
 extern int
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
-	  fs_index_t index);
+    fs_index_t index);
 
 extern int
 mfs_put_inode(struct mfs_node *mnode);
@@ -168,7 +168,7 @@ mfs_read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 
 extern int
 mfs_write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
-	  uint32_t *old_zone);
+    uint32_t *old_zone);
 
 extern int
 mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size);
@@ -176,7 +176,7 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size);
 /* mfs_dentry.c */
 extern int
 mfs_read_dentry(struct mfs_node *mnode,
-		     struct mfs_dentry_info *d_info, unsigned index);
+    struct mfs_dentry_info *d_info, unsigned index);
 
 extern int
 mfs_write_dentry(struct mfs_dentry_info *d_info);
