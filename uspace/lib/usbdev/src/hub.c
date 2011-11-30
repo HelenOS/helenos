@@ -226,12 +226,9 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	if (new_fun == NULL || connection == NULL)
 		return EINVAL;
 
-	// FIXME: this is awful, we are accessing directly the structure.
 	// TODO: Why not use provided connection?
-	usb_hc_connection_t hc_conn = {
-		.hc_handle = connection->hc_handle,
-		.hc_sess = NULL
-	};
+	usb_hc_connection_t hc_conn;
+	usb_hc_connection_initialize(&hc_conn, connection->hc_handle);
 
 	int rc;
 	struct timeval start_time;
