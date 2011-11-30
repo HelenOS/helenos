@@ -156,9 +156,6 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 
 	log_msg(LVL_DEBUG, " - success");
 	async_answer_0(callid, EOK);
-
-	/* Push one fragment notification to client's queue */
-	tcp_sock_notify_data(sock_core);
 }
 
 static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -263,6 +260,10 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	}
 
 	async_answer_0(callid, rc);
+
+	/* Push one fragment notification to client's queue */
+	tcp_sock_notify_data(sock_core);
+	log_msg(LVL_DEBUG, "tcp_sock_listen(): notify conn\n");
 }
 
 static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -359,7 +360,6 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	/* Push one fragment notification to client's queue */
 	tcp_sock_notify_data(asock_core);
 	log_msg(LVL_DEBUG, "tcp_sock_listen(): notify aconn\n");
-
 }
 
 static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
