@@ -113,8 +113,12 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret,
 	    "Failed to get resources: %s.\n", str_error(ret));
 
-	irq_code_t *irq_code = sb16_irq_code();
-	ret = register_interrupt_handler(device, irq, irq_handler, irq_code);
+	const size_t irq_cmd_count = sb16_irq_code_size();
+	irq_cmd_t irq_cmds[irq_cmd_count];
+	sb16_irq_code((void*)sb_regs, dma8, dma16, irq_cmds);
+	irq_code_t irq_code = { .cmdcount = irq_cmd_count, .cmds = irq_cmds };
+
+	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
 	CHECK_RET_RETURN(ret,
 	    "Failed to register irq handler: %s.\n", str_error(ret));
 

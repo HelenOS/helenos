@@ -43,10 +43,12 @@ static ddf_dev_ops_t sb_mixer_ops = {
 };
 
 /* ISA interrupts should be edge-triggered so there should be no need for
- * irq code magic */
-static const irq_cmd_t irq_cmds[] = {{ .cmd = CMD_ACCEPT }};
-static const irq_code_t irq_code =
-    { .cmdcount = 1, .cmds = (irq_cmd_t*)irq_cmds }; // FIXME: Remove cast
+ * irq code magic, but we still need to ack those interrupts ASAP. */
+static const irq_cmd_t irq_cmds[] = {
+	{ .cmd = CMD_PIO_READ_8, .dstarg = 1 }, /* Address patched at runtime */
+	{ .cmd = CMD_PIO_READ_8, .dstarg = 1 }, /* Address patched at runtime */
+	{ .cmd = CMD_ACCEPT },
+};
 
 static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
     unsigned major, unsigned minor)
@@ -61,10 +63,24 @@ static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
 	}
 }
 /*----------------------------------------------------------------------------*/
-irq_code_t * sb16_irq_code(void)
+size_t sb16_irq_code_size(void)
 {
-	// FIXME: Remove this cast
-	return (irq_code_t*)&irq_code;
+	return sizeof(irq_cmds) / sizeof(irq_cmds[0]);
+}
+/*----------------------------------------------------------------------------*/
+void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[])
+{
+	assert(regs);
+	assert(dma8 > 0 && dma8 < 4);
+	sb16_regs_t *registers = regs;
+	memcpy(cmds, irq_cmds, sizeof(irq_cmds));
+	cmds[0].addr = (void*)&registers->dsp_read_status;
+	if (dma16 > 4 && dma16 < 8) {
+		/* Valid dma16 */
+		cmds[1].addr = (void*)&registers->dma16_ack;
+	} else {
+		cmds[1].cmd = CMD_ACCEPT;
+	}
 }
 /*----------------------------------------------------------------------------*/
 int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,

@@ -193,17 +193,8 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	/* We don't really care about the mode of transport, so ack both */
-	// TODO: Move irq ACK to irq_code
-	if (dsp->version.major >= 4) {
-		/* ACK dma16 transfer interrupt */
-		pio_read_8(&dsp->regs->dma16_ack);
-	}
-	/* ACK dma8 transfer interrupt */
-	pio_read_8(&dsp->regs->dsp_read_status);
-
-	const size_t remain_size = dsp->playing.size -
-	    (dsp->playing.position - dsp->playing.data);
+	const size_t remain_size =
+	    dsp->playing.size - (dsp->playing.position - dsp->playing.data);
 
 	if (remain_size == 0) {
 		ddf_log_note("Nothing more to play");

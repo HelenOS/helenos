@@ -49,7 +49,8 @@ typedef struct sb16 {
 	sb_mixer_t mixer;
 } sb16_t;
 
-irq_code_t * sb16_irq_code(void);
+size_t sb16_irq_code_size(void);
+void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[]);
 int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
     ddf_dev_t *dev, int dma8, int dma16);
 int sb16_init_mpu(sb16_t *sb, void *regs, size_t size);
