@@ -28,7 +28,6 @@
 
 BFD_ARCH = mips:4000
 BITS = 64
-PAGE_SIZE = 16384
 EXTRA_CFLAGS = -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=64
 
 ifeq ($(MACHINE),msim)
