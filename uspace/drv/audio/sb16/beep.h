@@ -28,5 +28,5 @@
 
 #include <stdint.h>
 
-extern const uint8_t beep[];
+extern const void *beep;
 extern const size_t beep_size;

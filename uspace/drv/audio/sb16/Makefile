@@ -37,7 +37,7 @@ EXTRA_CFLAGS += \
 BINARY = sb16
 
 SOURCES = \
-	beep.c \
+	beep16.c \
 	dsp.c \
 	main.c \
 	mixer.c \

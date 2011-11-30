@@ -134,7 +134,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	}
 
 	ddf_log_note("Playing startup sound.\n");
-	sb_dsp_play(&sb->dsp, beep, beep_size, 44100, 1, 8);
+	sb_dsp_play(&sb->dsp, beep, beep_size, 44100, 1, 16);
 
 	return EOK;
 }
