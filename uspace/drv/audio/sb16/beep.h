@@ -30,3 +30,4 @@
 
 extern const void *beep;
 extern const size_t beep_size;
+extern const unsigned channels;
