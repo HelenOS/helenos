@@ -247,7 +247,7 @@ int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int sb_dsp_play(sb_dsp_t *dsp, const uint8_t *data, size_t size,
+int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
     uint16_t sampling_rate, unsigned channels, unsigned sample_size)
 {
 	assert(dsp);
