@@ -133,7 +133,7 @@ typedef enum dsp_command {
 	SINGLE_DMA_8B_HIGH_INPUT = 0x99, /* Same as SINGLE_DMA_8B_HIGH_OUTPUT */
 
 	SET_MONO_INPUT = 0xa0, /* Mono mode is the default, only on 3.xx */
-	SET_STEREO_INPUT = 0xa8, /* switch to stereo recording, only on 3.xx */
+	SET_STEREO_INPUT = 0xa8, /* Switch to stereo recording, only on 3.xx */
 
 	SET_SAMPLING_RATE_OUTPUT = 0x41, /* Followed by sapling rate
 	                                  * 5000 to 45000 Hz, inclusive */
