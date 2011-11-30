@@ -147,7 +147,10 @@ static inline void sb_clear_buffer(sb_dsp_t *dsp)
 /*----------------------------------------------------------------------------*/
 static inline size_t sample_count(uint8_t mode, size_t byte_count)
 {
-	if (mode & DSP_MODE_16BIT) {
+	// FIXME we only support 16 bit playback for now.
+	return byte_count / 2;
+
+	if (mode & DSP_MODE_SIGNED) {
 		return byte_count / 2;
 	}
 	return byte_count;
@@ -255,7 +258,7 @@ int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
 		return EOK;
 
 	/* Check supported parameters */
-	if (sample_size != 8 && sample_size != 16)
+	if (sample_size != 16) // FIXME We only support 16 bit playback
 		return ENOTSUP;
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
@@ -274,8 +277,7 @@ int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
 	dsp->playing.size = size;
 	dsp->playing.mode = 0;
 
-	if (sample_size == 16)
-		dsp->playing.mode |= DSP_MODE_16BIT;
+		dsp->playing.mode |= DSP_MODE_SIGNED;
 	if (channels == 2)
 		dsp->playing.mode |= DSP_MODE_STEREO;
 

@@ -141,19 +141,19 @@ typedef enum dsp_command {
 
 	SINGLE_DMA_16B_DA = 0xb0,     /* Followed by mode, size.low, size.high*/
 	SINGLE_DMA_16B_DA_FIFO = 0xb2,/* mode format is:                      */
-	AUTO_DMA_16B_DA = 0xb4,       /*    0x00 - unsigned mono 8bit         */
-	AUTO_DMA_16B_DA_FIFO = 0xb6,  /*    0x10 - signed mono 16bit          */
-	SINGLE_DMA_16B_AD = 0xb8,     /*    0x20 - unsigned stereo 8bit       */
-	SINGLE_DMA_16B_AD_FIFO = 0xba,/*    0x30 - signed stereo 16bit        */
+	AUTO_DMA_16B_DA = 0xb4,       /*    0x00 - unsigned mono              */
+	AUTO_DMA_16B_DA_FIFO = 0xb6,  /*    0x10 - signed mono                */
+	SINGLE_DMA_16B_AD = 0xb8,     /*    0x20 - unsigned stereo            */
+	SINGLE_DMA_16B_AD_FIFO = 0xba,/*    0x30 - signed stereo              */
 	AUTO_DMA_16B_AD = 0xbc,       /* Size is -1. Terminate by EXIT        */
 	AUTO_DMA_16B_AD_FIFO = 0xbe,  /* or switch to SINGLE_DMA              */
 
 	SINGLE_DMA_8B_DA = 0xc0,     /* Followed by mode, size.low, size.high */
 	SINGLE_DMA_8B_DA_FIFO = 0xc2,/* mode format is:                       */
-	AUTO_DMA_8B_DA = 0xc4,       /*    0x00 - unsigned mono 8bit          */
-	AUTO_DMA_8B_DA_FIFO = 0xc6,  /*    0x10 - signed mono 16bit           */
-	SINGLE_DMA_8B_AD = 0xc8,     /*    0x20 - unsigned stereo 8bit        */
-	SINGLE_DMA_8B_AD_FIFO = 0xca,/*    0x30 - signed stereo 16bit         */
+	AUTO_DMA_8B_DA = 0xc4,       /*    0x00 - unsigned mono               */
+	AUTO_DMA_8B_DA_FIFO = 0xc6,  /*    0x10 - signed mono                 */
+	SINGLE_DMA_8B_AD = 0xc8,     /*    0x20 - unsigned stereo             */
+	SINGLE_DMA_8B_AD_FIFO = 0xca,/*    0x30 - signed stereo               */
 	AUTO_DMA_8B_AD = 0xcc,       /* Size is -1. Terminate by EXIT         */
 	AUTO_DMA_8B_AD_FIFO = 0xce,  /* or switch to SINGLE_DMA               */
 
@@ -162,7 +162,7 @@ typedef enum dsp_command {
 	DMA_16B_EXIT = 0xd9, /* Ends DMA transfer and terminates I/O process */
 } dsp_command_t;
 /*----------------------------------------------------------------------------*/
-#define DSP_MODE_16BIT 0x10
+#define DSP_MODE_SIGNED 0x10
 #define DSP_MODE_STEREO 0x20
 
 static inline const char * mode_to_str(uint8_t mode)
