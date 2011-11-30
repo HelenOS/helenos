@@ -142,18 +142,17 @@ int usb_control_request_get(usb_pipe_t *pipe,
 	 * within ranges.
 	 */
 
-	usb_device_request_setup_packet_t setup_packet;
-	setup_packet.request_type = 128 | (request_type << 5) | recipient;
-	setup_packet.request = request;
-	setup_packet.value = value;
-	setup_packet.index = index;
-	setup_packet.length = (uint16_t) data_size;
+	const usb_device_request_setup_packet_t setup_packet = {
+		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
+		    | (request_type << 5) | recipient,
+		.request = request,
+		.value = value,
+		.index = index,
+		.length = (uint16_t) data_size,
+	};
 
-	int rc = usb_pipe_control_read(pipe,
-	    &setup_packet, sizeof(setup_packet),
+	return usb_pipe_control_read(pipe, &setup_packet, sizeof(setup_packet),
 	    data, data_size, actual_data_size);
-
-	return rc;
 }
 
 /** Retrieve status of a USB device.
@@ -275,7 +274,7 @@ int usb_request_get_descriptor(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	uint16_t wValue = descriptor_index | (descriptor_type << 8);
+	const uint16_t wValue = descriptor_index | (descriptor_type << 8);
 
 	return usb_control_request_get(pipe,
 	    request_type, recipient,

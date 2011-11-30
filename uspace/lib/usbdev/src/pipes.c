@@ -53,24 +53,23 @@
  */
 static usb_address_t get_my_address(async_sess_t *sess, const ddf_dev_t *dev)
 {
+	assert(sess);
 	async_exch_t *exch = async_exchange_begin(sess);
-	
-	sysarg_t address;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_MY_ADDRESS, &address);
-	
+	if (!exch)
+		return ENOMEM;
+
+	usb_address_t address;
+	const int ret = usb_get_my_address(exch, &address);
+
 	async_exchange_end(exch);
-	
-	if (rc != EOK)
-		return rc;
-	
-	return (usb_address_t) address;
+
+	return (ret == EOK) ? address : ret;
 }
 
 /** Tell USB interface assigned to given device.
  *
  * @param device Device in question.
- * @return Interface number (negative code means any).
+ * @return Error code (ENOTSUP means any).
  */
 int usb_device_get_assigned_interface(const ddf_dev_t *device)
 {
@@ -79,21 +78,18 @@ int usb_device_get_assigned_interface(const ddf_dev_t *device)
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, device->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
-		return -1;
-	
+		return ENOMEM;
+
 	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
-	sysarg_t iface_no;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_INTERFACE, device->handle, &iface_no);
-	
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-	
-	if (rc != EOK)
-		return -1;
-	
-	return (int) iface_no;
+	if (!exch) {
+		async_hangup(parent_sess);
+		return ENOMEM;
+	}
+
+	int iface_no;
+	const int ret = usb_get_my_interface(exch, &iface_no);
+
+	return ret == EOK ? iface_no : ret;
 }
 
 /** Initialize connection to USB device.

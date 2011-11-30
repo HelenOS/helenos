@@ -53,7 +53,7 @@ static ddf_dev_ops_t mid_device_ops = {
  * @param interface_no Interface number caller is looking for.
  * @return Interface @p interface_no is already present in the list.
  */
-static bool interface_in_list(list_t *list, int interface_no)
+static bool interface_in_list(const list_t *list, int interface_no)
 {
 	list_foreach(*list, l) {
 		usbmid_interface_t *iface = usbmid_interface_from_link(l);
