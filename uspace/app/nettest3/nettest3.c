@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 		printf(" -> %d\n", rc);
 	} while (rc > 0);
 
-	async_usleep(15*1000*1000);
+	async_usleep(1000*1000);
 
 	printf("closesocket()\n");
 	rc = closesocket(fd);

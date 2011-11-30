@@ -90,6 +90,8 @@ tcp_error_t tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
 	}
 
 	if (nconn->cstate != st_established) {
+		fibril_mutex_unlock(&nconn->cstate_lock);
+
 		log_msg(LVL_DEBUG, "tcp_uc_open: Connection was reset.");
 		assert(nconn->cstate == st_closed);
 		fibril_mutex_unlock(&nconn->cstate_lock);
@@ -162,6 +164,8 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	}
 
 	if (conn->rcv_buf_used == 0) {
+		fibril_mutex_unlock(&conn->rcv_buf_lock);
+
 		/* End of data, peer closed connection. */
 		assert(conn->rcv_buf_fin);
 		*rcvd = 0;

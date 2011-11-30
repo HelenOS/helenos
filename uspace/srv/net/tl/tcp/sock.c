@@ -552,7 +552,11 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	int socket_id;
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
+	tcp_error_t trc;
 	int rc;
+	uint8_t buffer[FRAGMENT_SIZE];
+	size_t data_len;
+	xflags_t xflags;
 
 	log_msg(LVL_DEBUG, "tcp_sock_close()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
@@ -564,8 +568,17 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
-	(void) socket;
-	/* XXX Close */
+	rc = tcp_uc_close(socket->conn);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	/* Drain incoming data. This should really be done in the background. */
+	do {
+		trc = tcp_uc_receive(socket->conn, buffer, FRAGMENT_SIZE,
+		    &data_len, &xflags);
+	} while (trc == TCP_EOK);
 
 	rc = socket_destroy(net_sess, socket_id, &client->sockets, &gsock,
 	    tcp_free_sock_data);
