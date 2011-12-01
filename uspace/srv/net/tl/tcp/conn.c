@@ -58,6 +58,7 @@ LIST_INITIALIZE(conn_list);
 
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
 static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
+static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
 
 /** Create new segment structure.
  *
@@ -254,12 +255,28 @@ tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
 
 	list_foreach(conn_list, link) {
 		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
-		if (tcp_sockpair_match(sp, &conn->ident)) {
+		tcp_sockpair_t *csp = &conn->ident;
+		log_msg(LVL_DEBUG, "compare with conn (f:(%x,%u), l:(%x,%u))",
+		    csp->foreign.addr.ipv4, csp->foreign.port,
+		    csp->local.addr.ipv4, csp->local.port);
+		if (tcp_sockpair_match(sp, csp)) {
 			return conn;
 		}
 	}
 
 	return NULL;
+}
+
+/** Reset connection.
+ *
+ * @param conn	Connection
+ */
+static void tcp_conn_reset(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
+	tcp_conn_state_set(conn, st_closed);
+	tcp_conn_tw_timer_clear(conn);
+	tcp_tqueue_clear(&conn->retransmit);
 }
 
 /** Determine if SYN has been received.
@@ -369,8 +386,8 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	if ((seg->ctrl & CTL_RST) != 0) {
 		log_msg(LVL_DEBUG, "%s: Connection reset. -> Closed",
 		    conn->name);
-		/* XXX Signal user error */
-		tcp_conn_state_set(conn, st_closed);
+		/* Reset connection */
+		tcp_conn_reset(conn);
 		/* XXX delete connection */
 		return;
 	}
@@ -1002,8 +1019,13 @@ static void tw_timeout_func(void *arg)
 	tcp_conn_t *conn = (tcp_conn_t *) arg;
 
 	log_msg(LVL_DEBUG, "tw_timeout_func(%p)", conn);
-	log_msg(LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
 
+	if (conn->cstate == st_closed) {
+		log_msg(LVL_DEBUG, "Connection already closed.");
+		return;
+	}
+
+	log_msg(LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
 	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);
 }
@@ -1016,6 +1038,15 @@ void tcp_conn_tw_timer_set(tcp_conn_t *conn)
 {
 	fibril_timer_set(conn->tw_timer, TIME_WAIT_TIMEOUT, tw_timeout_func,
 	    (void *)conn);
+}
+
+/** Clear the Time-Wait timeout.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_tw_timer_clear(tcp_conn_t *conn)
+{
+	fibril_timer_clear(conn->tw_timer);
 }
 
 /** Trim segment to the receive window.
@@ -1066,14 +1097,12 @@ void tcp_sockpair_flipped(tcp_sockpair_t *sp, tcp_sockpair_t *fsp)
  */
 void tcp_reply_rst(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
-	tcp_sockpair_t rsp;
 	tcp_segment_t *rseg;
 
 	log_msg(LVL_DEBUG, "tcp_reply_rst(%p, %p)", sp, seg);
 
-	tcp_sockpair_flipped(sp, &rsp);
 	rseg = tcp_segment_make_rst(seg);
-	tcp_transmit_segment(&rsp, rseg);
+	tcp_transmit_segment(sp, rseg);
 }
 
 /**

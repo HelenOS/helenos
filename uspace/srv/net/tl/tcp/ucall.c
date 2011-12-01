@@ -90,8 +90,6 @@ tcp_error_t tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
 	}
 
 	if (nconn->cstate != st_established) {
-		fibril_mutex_unlock(&nconn->cstate_lock);
-
 		log_msg(LVL_DEBUG, "tcp_uc_open: Connection was reset.");
 		assert(nconn->cstate == st_closed);
 		fibril_mutex_unlock(&nconn->cstate_lock);
@@ -237,7 +235,9 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
-	log_msg(LVL_DEBUG, "tcp_as_segment_arrived()");
+	log_msg(LVL_DEBUG, "tcp_as_segment_arrived(f:(%x,%u), l:(%x,%u))",
+	    sp->foreign.addr.ipv4, sp->foreign.port,
+	    sp->local.addr.ipv4, sp->local.port);
 
 	conn = tcp_conn_find(sp);
 	if (conn != NULL && conn->cstate != st_closed) {

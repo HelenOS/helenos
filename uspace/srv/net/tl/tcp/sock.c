@@ -247,7 +247,9 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	fsocket.port = uint16_t_be2host(addr->sin_port);
 
 	trc = tcp_uc_open(lport, &fsocket, ap_active, &socket->conn);
-	socket->conn->name = (char *)"C";
+
+	if (socket->conn != NULL)
+		socket->conn->name = (char *)"C";
 
 	switch (trc) {
 	case TCP_EOK:
@@ -306,7 +308,8 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	fsocket.port = 1025; /* XXX */
 
 	trc = tcp_uc_open(sock_core->port, &fsocket, ap_passive, &conn);
-	conn->name = (char *)"S";
+	if (conn != NULL)
+		conn->name = (char *)"S";
 
 	log_msg(LVL_DEBUG, " - decode TCP return code");
 

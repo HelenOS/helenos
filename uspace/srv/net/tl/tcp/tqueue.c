@@ -70,6 +70,11 @@ int tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn)
 	return EOK;
 }
 
+void tcp_tqueue_clear(tcp_tqueue_t *tqueue)
+{
+	tcp_tqueue_timer_clear(tqueue->conn);
+}
+
 void tcp_tqueue_fini(tcp_tqueue_t *tqueue)
 {
 	if (tqueue->timer != NULL) {
@@ -266,7 +271,9 @@ void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 
 void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_transmit_segment(%p, %p)", sp, seg);
+	log_msg(LVL_DEBUG, "tcp_transmit_segment(f:(%x,%u),l:(%x,%u), %p)",
+	    sp->foreign.addr.ipv4, sp->foreign.port,
+	    sp->local.addr.ipv4, sp->local.port, seg);
 
 	log_msg(LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
 	    seg->seq, seg->wnd);
@@ -298,6 +305,12 @@ static void retransmit_timeout_func(void *arg)
 	link_t *link;
 
 	log_msg(LVL_DEBUG, "### %s: retransmit_timeout_func(%p)", conn->name, conn);
+
+	if (conn->cstate == st_closed) {
+		log_msg(LVL_DEBUG, "Connection already closed.");
+		return;
+	}
+
 	link = list_first(&conn->retransmit.list);
 	if (link == NULL) {
 		log_msg(LVL_DEBUG, "Nothing to retransmit");
