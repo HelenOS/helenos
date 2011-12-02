@@ -26,18 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
+/** @addtogroup genarch
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia32_VESA_H_
-#define KERN_ia32_VESA_H_
+#ifndef KERN_BFB_H_
+#define KERN_BFB_H_
 
 #include <typedefs.h>
 
-extern bool vesa_init(void);
+extern uintptr_t bfb_addr;
+extern uint32_t bfb_width;
+extern uint32_t bfb_height;
+extern uint16_t bfb_bpp;
+extern uint32_t bfb_scanline;
+
+extern uint8_t bfb_red_pos;
+extern uint8_t bfb_red_size;
+
+extern uint8_t bfb_green_pos;
+extern uint8_t bfb_green_size;
+
+extern uint8_t bfb_blue_pos;
+extern uint8_t bfb_blue_size;
+
+extern bool bfb_init(void);
 
 #endif
 

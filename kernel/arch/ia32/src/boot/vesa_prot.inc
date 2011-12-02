@@ -1,6 +1,5 @@
 #ifdef CONFIG_FB
 
-#define MULTIBOOT_LOADER_MAGIC  0x2BADB002
 #define MBINFO_BIT_CMDLINE      2
 #define MBINFO_OFFSET_CMDLINE   16
 
@@ -13,15 +12,15 @@
 	mov $e_vesa_init - vesa_init, %ecx
 	rep movsb
 	
-	/* Check for GRUB command line */
+	/* Check for multiboot command line */
 	
-	pm_status $status_grub_cmdline
+	pm_status $status_multiboot_cmdline
 	
-	mov grub_eax, %eax
+	mov multiboot_eax, %eax
 	cmp $MULTIBOOT_LOADER_MAGIC, %eax
 	jne no_cmdline
 	
-	mov grub_ebx, %ebx
+	mov multiboot_ebx, %ebx
 	mov (%ebx), %eax
 	bt $MBINFO_BIT_CMDLINE, %eax
 	jnc no_cmdline
@@ -88,26 +87,34 @@
 	vesa_meeting_point:
 		/* Returned back to protected mode */
 		
-		mov %ax, KA2PA(vesa_scanline)
+		movzx %ax, %ecx
+		mov %ecx, KA2PA(bfb_scanline)
+		
 		shr $16, %eax
-		mov %ax, KA2PA(vesa_bpp)
+		mov %ax, KA2PA(bfb_bpp)
 		
-		mov %bx, KA2PA(vesa_height)
+		movzx %bx, %ecx
+		mov %ecx, KA2PA(bfb_height)
+		
 		shr $16, %ebx
-		mov %bx, KA2PA(vesa_width)
+		mov %ebx, KA2PA(bfb_width)
 		
-		mov %dl, KA2PA(vesa_green_pos)
+		mov %dl, KA2PA(bfb_green_pos)
+		
 		shr $8, %edx
-		mov %dl, KA2PA(vesa_green_mask)
+		mov %dl, KA2PA(bfb_green_size)
+		
 		shr $8, %edx
-		mov %dl, KA2PA(vesa_red_pos)
+		mov %dl, KA2PA(bfb_red_pos)
+		
 		shr $8, %edx
-		mov %dl, KA2PA(vesa_red_mask)
+		mov %dl, KA2PA(bfb_red_size)
 		
 		mov %esi, %edx
-		mov %dl, KA2PA(vesa_blue_pos)
-		shr $8, %edx
-		mov %dl, KA2PA(vesa_blue_mask)
+		mov %dl, KA2PA(bfb_blue_pos)
 		
-		mov %edi, KA2PA(vesa_ph_addr)
+		shr $8, %edx
+		mov %dl, KA2PA(bfb_blue_size)
+		
+		mov %edi, KA2PA(bfb_addr)
 #endif

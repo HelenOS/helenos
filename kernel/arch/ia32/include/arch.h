@@ -35,9 +35,9 @@
 #ifndef KERN_ia32_ARCH_H_
 #define KERN_ia32_ARCH_H_
 
-#include <genarch/multiboot/multiboot.h>
+#include <typedefs.h>
 
-extern void arch_pre_main(uint32_t, const multiboot_info_t *);
+extern void arch_pre_main(uint32_t, void *);
 
 #endif
 

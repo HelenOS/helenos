@@ -37,7 +37,7 @@
 
 #include <genarch/multiboot/multiboot.h>
 
-extern void arch_pre_main(uint32_t, const multiboot_info_t *);
+extern void arch_pre_main(uint32_t, void *);
 
 #endif
 

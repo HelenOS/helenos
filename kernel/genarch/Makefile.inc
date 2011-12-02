@@ -66,7 +66,8 @@ ifeq ($(CONFIG_FB),y)
 	GENARCH_SOURCES += \
 		genarch/src/fb/font-8x16.c \
 		genarch/src/fb/logo-196x66.c \
-		genarch/src/fb/fb.c
+		genarch/src/fb/fb.c \
+		genarch/src/fb/bfb.c
 endif
 
 ifeq ($(CONFIG_DSRLNIN),y)
@@ -142,7 +143,8 @@ endif
 
 ifeq ($(CONFIG_MULTIBOOT), y)
 	GENARCH_SOURCES += \
-		genarch/src/multiboot/multiboot.c
+		genarch/src/multiboot/multiboot.c \
+		genarch/src/multiboot/multiboot2.c
 endif
 
 ifeq ($(CONFIG_EGA), y)

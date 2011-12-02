@@ -38,9 +38,13 @@ IMAGE = $(DISTROOT)/$(ELTORITO)
 
 ifeq ($(GRUB_ARCH),pc)
 	BOOT_CONFIG = $(BOOT)/grub/i386-pc/grub.cfg
+	MULTIBOOT_CMD = multiboot
+	MODULE_CMD = module
 endif
 ifeq ($(GRUB_ARCH),efi)
 	BOOT_CONFIG = $(BOOT)/grub/grub.cfg
+	MULTIBOOT_CMD = multiboot2
+	MODULE_CMD = module2
 endif
 
 all: $(BOOT_OUTPUT)
@@ -68,13 +72,23 @@ endif
 	echo "set timeout=10" >> $(BOOT_CONFIG)
 	echo "" >> $(BOOT_CONFIG)
 	
+ifeq ($(GRUB_ARCH),pc)
+	echo "insmod vbe" >> $(BOOT_CONFIG)
+	echo "insmod vga" >> $(BOOT_CONFIG)
+endif
+ifeq ($(GRUB_ARCH),efi)
+	echo "insmod efi_gop" >> $(BOOT_CONFIG)
+	echo "insmod efi_uga" >> $(BOOT_CONFIG)
+endif
+	echo "" >> $(BOOT_CONFIG)
+	
 	echo "menuentry 'HelenOS $(RELEASE)' --class helenos --class os {" >> $(BOOT_CONFIG)
 	for module in $(MODULES) ; do \
 		echo "	echo 'Loading $$module'" >> $(BOOT_CONFIG) ; \
 		if [ "$$module" = "kernel.bin" ] ; then \
-			echo "	multiboot /boot/$$module" >> $(BOOT_CONFIG) ; \
+			echo "	$(MULTIBOOT_CMD) /boot/$$module" >> $(BOOT_CONFIG) ; \
 		else \
-			echo "	module /boot/$$module" >> $(BOOT_CONFIG) ; \
+			echo "	$(MODULE_CMD) /boot/$$module" >> $(BOOT_CONFIG) ; \
 		fi \
 	done
 	echo "}" >> $(BOOT_CONFIG)

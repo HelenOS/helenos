@@ -41,9 +41,10 @@
 #include <arch/pm.h>
 
 #include <genarch/multiboot/multiboot.h>
+#include <genarch/multiboot/multiboot2.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
-#include <arch/drivers/vesa.h>
+#include <genarch/fb/bfb.h>
 #include <genarch/drivers/i8042/i8042.h>
 #include <genarch/kbrd/kbrd.h>
 #include <arch/drivers/i8254.h>
@@ -75,13 +76,15 @@
 
 /** Perform ia32-specific initialization before main_bsp() is called.
  *
- * @param signature Should contain the multiboot signature.
- * @param mi        Pointer to the multiboot information structure.
+ * @param signature Multiboot signature.
+ * @param info      Multiboot information structure.
+ *
  */
-void arch_pre_main(uint32_t signature, const multiboot_info_t *mi)
+void arch_pre_main(uint32_t signature, void *info)
 {
 	/* Parse multiboot information obtained from the bootloader. */
-	multiboot_info_parse(signature, mi);
+	multiboot_info_parse(signature, (multiboot_info_t *) info);
+	multiboot2_info_parse(signature, (multiboot2_info_t *) info);
 	
 #ifdef CONFIG_SMP
 	/* Copy AP bootstrap routines below 1 MB. */
@@ -113,15 +116,15 @@ void arch_post_mm_init(void)
 		i8254_init();
 		
 #if (defined(CONFIG_FB) || defined(CONFIG_EGA))
-		bool vesa = false;
+		bool bfb = false;
 #endif
 		
 #ifdef CONFIG_FB
-		vesa = vesa_init();
+		bfb = bfb_init();
 #endif
 		
 #ifdef CONFIG_EGA
-		if (!vesa) {
+		if (!bfb) {
 			outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
 			if (egadev)
 				stdout_wire(egadev);

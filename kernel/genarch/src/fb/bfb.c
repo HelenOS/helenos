@@ -26,94 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief VESA frame buffer driver.
+ * @brief Boot framebuffer driver.
  */
 
-#ifdef CONFIG_FB
-
-#include <genarch/fb/fb.h>
-#include <arch/drivers/vesa.h>
-#include <console/chardev.h>
-#include <console/console.h>
-#include <putchar.h>
-#include <mm/page.h>
-#include <mm/frame.h>
-#include <mm/as.h>
-#include <arch/mm/page.h>
-#include <synch/spinlock.h>
-#include <arch/asm.h>
 #include <typedefs.h>
-#include <memstr.h>
-#include <bitops.h>
+#include <genarch/fb/fb.h>
+#include <genarch/fb/bfb.h>
+#include <console/console.h>
 
-uint32_t vesa_ph_addr;
-uint16_t vesa_width;
-uint16_t vesa_height;
-uint16_t vesa_bpp;
-uint16_t vesa_scanline;
+uintptr_t bfb_addr = (uintptr_t) -1;
+uint32_t bfb_width = 0;
+uint32_t bfb_height = 0;
+uint16_t bfb_bpp = 0;
+uint32_t bfb_scanline = 0;
 
-uint8_t vesa_red_mask;
-uint8_t vesa_red_pos;
+uint8_t bfb_red_pos = 0;
+uint8_t bfb_red_size = 0;
 
-uint8_t vesa_green_mask;
-uint8_t vesa_green_pos;
+uint8_t bfb_green_pos = 0;
+uint8_t bfb_green_size = 0;
 
-uint8_t vesa_blue_mask;
-uint8_t vesa_blue_pos;
+uint8_t bfb_blue_pos = 0;
+uint8_t bfb_blue_size = 0;
 
-bool vesa_init(void)
+bool bfb_init(void)
 {
-	if ((vesa_width == 0xffffU) || (vesa_height == 0xffffU))
+	if ((bfb_width == 0) || (bfb_height == 0))
 		return false;
 	
-	visual_t visual;
+	fb_properties_t bfb_props = {
+		.addr = bfb_addr,
+		.offset = 0,
+		.x = bfb_width,
+		.y = bfb_height,
+		.scan = bfb_scanline
+	};
 	
-	switch (vesa_bpp) {
+	switch (bfb_bpp) {
 	case 8:
-		visual = VISUAL_INDIRECT_8;
+		bfb_props.visual = VISUAL_INDIRECT_8;
 		break;
 	case 16:
-		if ((vesa_red_mask == 5) && (vesa_red_pos == 10)
-		    && (vesa_green_mask == 5) && (vesa_green_pos == 5)
-		    && (vesa_blue_mask == 5) && (vesa_blue_pos == 0))
-			visual = VISUAL_RGB_5_5_5_LE;
+		if ((bfb_red_pos == 10) && (bfb_red_size == 5) &&
+		    (bfb_green_pos == 5) && (bfb_green_size == 5) &&
+		    (bfb_blue_pos == 0) && (bfb_blue_size == 5))
+			bfb_props.visual = VISUAL_RGB_5_5_5_LE;
 		else
-			visual = VISUAL_RGB_5_6_5_LE;
+			bfb_props.visual = VISUAL_RGB_5_6_5_LE;
 		break;
 	case 24:
-		visual = VISUAL_BGR_8_8_8;
+		bfb_props.visual = VISUAL_BGR_8_8_8;
 		break;
 	case 32:
-		visual = VISUAL_BGR_8_8_8_0;
+		bfb_props.visual = VISUAL_BGR_8_8_8_0;
 		break;
 	default:
 		LOG("Unsupported bits per pixel.");
 		return false;
 	}
 	
-	fb_properties_t vesa_props = {
-		.addr = vesa_ph_addr,
-		.offset = 0,
-		.x = vesa_width,
-		.y = vesa_height,
-		.scan = vesa_scanline,
-		.visual = visual,
-	};
-	
-	outdev_t *fbdev = fb_init(&vesa_props);
+	outdev_t *fbdev = fb_init(&bfb_props);
 	if (!fbdev)
 		return false;
 	
 	stdout_wire(fbdev);
 	return true;
 }
-
-#endif
 
 /** @}
  */

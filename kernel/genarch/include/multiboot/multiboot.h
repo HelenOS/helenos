@@ -35,25 +35,35 @@
 #ifndef KERN_MULTIBOOT_H_
 #define KERN_MULTIBOOT_H_
 
+#define MULTIBOOT_HEADER_MAGIC  0x1badb002
+#define MULTIBOOT_HEADER_FLAGS  0x00010003
+
+#define MULTIBOOT_LOADER_MAGIC  0x2badb002
+
+#ifndef __ASM__
+
 #include <typedefs.h>
 #include <arch/boot/memmap.h>
+
+/** Convert 32-bit multiboot address to a pointer. */
+#define MULTIBOOT_PTR(mba)  ((void *) (uintptr_t) (mba))
 
 /** Multiboot 32-bit address. */
 typedef uint32_t mbaddr_t;
 
-/** Multiboot mod structure */
+/** Multiboot module structure */
 typedef struct {
 	mbaddr_t start;
 	mbaddr_t end;
 	mbaddr_t string;
 	uint32_t reserved;
-} __attribute__ ((packed)) multiboot_mod_t;
+} __attribute__((packed)) multiboot_module_t;
 
 /** Multiboot mmap structure */
 typedef struct {
 	uint32_t size;
 	e820memmap_t mm_info;
-} __attribute__ ((packed)) multiboot_mmap_t;
+} __attribute__((packed)) multiboot_memmap_t;
 
 /** Multiboot information structure */
 typedef struct {
@@ -73,26 +83,24 @@ typedef struct {
 	mbaddr_t mmap_addr;
 	
 	/* ... */
-} __attribute__ ((packed)) multiboot_info_t;
+} __attribute__((packed)) multiboot_info_t;
 
 enum multiboot_info_flags {
-	MBINFO_FLAGS_MEM     = 0x01,
-	MBINFO_FLAGS_BOOT    = 0x02,
-	MBINFO_FLAGS_CMDLINE = 0x04,
-	MBINFO_FLAGS_MODS    = 0x08,
-	MBINFO_FLAGS_SYMS1   = 0x10,
-	MBINFO_FLAGS_SYMS2   = 0x20,
-	MBINFO_FLAGS_MMAP    = 0x40
+	MULTIBOOT_INFO_FLAGS_MEM     = 0x01,
+	MULTIBOOT_INFO_FLAGS_BOOT    = 0x02,
+	MULTIBOOT_INFO_FLAGS_CMDLINE = 0x04,
+	MULTIBOOT_INFO_FLAGS_MODS    = 0x08,
+	MULTIBOOT_INFO_FLAGS_SYMS1   = 0x10,
+	MULTIBOOT_INFO_FLAGS_SYMS2   = 0x20,
+	MULTIBOOT_INFO_FLAGS_MMAP    = 0x40
 	
 	/* ... */
 };
 
-#define MULTIBOOT_LOADER_MAGIC  0x2BADB002
-
-/** Convert 32-bit multiboot address to a pointer. */
-#define MULTIBOOT_PTR(mba) ((void *)(uintptr_t) (mba))
-
+extern void multiboot_extract_command(char *, size_t, const char *);
 extern void multiboot_info_parse(uint32_t, const multiboot_info_t *);
+
+#endif /* __ASM__ */
 
 #endif
 

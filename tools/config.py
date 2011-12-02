@@ -84,6 +84,7 @@ def check_condition(text, config, rules):
 	
 	if ctype == 'cnf':
 		return True
+	
 	return False
 
 def check_inside(text, config, ctype):
@@ -241,7 +242,7 @@ def infer_verify_choices(config, rules):
 			value = None
 		
 		default = get_default_rule(rule)
-
+		
 		#
 		# If we don't have a value but we do have
 		# a default, use it.
@@ -342,6 +343,22 @@ def validate_rule_value(rule, value):
 		raise RuntimeError("Unknown variable type: %s" % vartype)
 	
 	return True
+
+def preprocess_config(config, rules):
+	"Preprocess configuration"
+	
+	varname_mode = 'CONFIG_BFB_MODE'
+	varname_width = 'CONFIG_BFB_WIDTH'
+	varname_height = 'CONFIG_BFB_HEIGHT'
+	
+	if varname_mode in config:
+		mode = config[varname_mode].partition('x')
+		
+		config[varname_width] = mode[0]
+		rules.append((varname_width, 'choice', 'Default framebuffer width', None, None))
+		
+		config[varname_height] = mode[2]
+		rules.append((varname_height, 'choice', 'Default framebuffer height', None, None))
 
 def create_output(mkname, mcname, config, rules):
 	"Create output configuration"
@@ -503,6 +520,7 @@ def main():
 	# Default mode: check values and regenerate configuration files
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
 		if (infer_verify_choices(config, rules)):
+			preprocess_config(config, rules)
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
 	
@@ -516,6 +534,7 @@ def main():
 			return 2
 		
 		if (infer_verify_choices(config, rules)):
+			preprocess_config(config, rules)
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
 		
@@ -563,7 +582,7 @@ def main():
 					value = None
 				
 				default = get_default_rule(rule)
-
+				
 				#
 				# If we don't have a value but we do have
 				# a default, use it.
@@ -625,6 +644,7 @@ def main():
 	finally:
 		xtui.screen_done(screen)
 	
+	preprocess_config(config, rules)
 	create_output(MAKEFILE, MACROS, config, rules)
 	return 0
 

@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2001 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,11 +29,9 @@
  */
 
 #include <arch/boot/boot.h>
-#include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
-#include <arch/mm/ptl.h>
 #include <arch/pm.h>
-#include <arch/cpu.h>
+#include <genarch/multiboot/multiboot.h>
 #include <arch/cpuid.h>
 
 #define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
@@ -57,9 +55,8 @@
 .endm
 
 .macro pm2_status msg
-#ifndef CONFIG_FB
-	pm_status \msg
-#endif
+	pushl \msg
+	call early_puts
 .endm
 
 .align 4
@@ -86,102 +83,286 @@ multiboot_image_start:
 	/* Kernel data + stack */
 	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
+	movw %cx, %fs
+	movw %cx, %gs
 	movw %cx, %ds
 	movw %cx, %ss
 	
-	/*
-	 * Simics seems to remove hidden part of GS on entering user mode
-	 * when _visible_ part of GS does not point to user-mode segment.
-	 */
-	movw $GDT_SELECTOR(UDATA_DES), %cx
-	movw %cx, %fs
-	movw %cx, %gs
-	
-	jmpl $GDT_SELECTOR(KTEXT32_DES), $multiboot_meeting_point
+	jmpl $GDT_SELECTOR(KTEXT_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
-	/* Save GRUB arguments */
-	movl %eax, grub_eax
-	movl %ebx, grub_ebx
+	/* Save multiboot arguments */
+	movl %eax, multiboot_eax
+	movl %ebx, multiboot_ebx
 	
 	pm_status $status_prot
 	
-	movl $(INTEL_CPUID_EXTENDED), %eax
+#include "vesa_prot.inc"
+	
+#ifndef PROCESSOR_i486
+	
+	pm_status $status_prot2
+	
+	movl $(INTEL_CPUID_LEVEL), %eax
 	cpuid
-	cmp $(INTEL_CPUID_EXTENDED), %eax
-	ja extended_cpuid_supported
-	
-		pm_error $err_extended_cpuid
-	
-	extended_cpuid_supported:
-	
-	movl $(AMD_CPUID_EXTENDED), %eax
-	cpuid
-	bt $(AMD_EXT_LONG_MODE), %edx
-	jc long_mode_supported
-	
-		pm_error $err_long_mode
-	
-	long_mode_supported:
-	
-	bt $(AMD_EXT_NOEXECUTE), %edx
-	jc noexecute_supported
-	
-		pm_error $err_noexecute
-	
-	noexecute_supported:
+	cmp $0x0, %eax  /* any function > 0? */
+	jbe pse_unsupported
 	
 	movl $(INTEL_CPUID_STANDARD), %eax
 	cpuid
-	bt $(INTEL_FXSAVE), %edx
-	jc fx_supported
+	bt $(INTEL_PSE), %edx
+	jnc pse_unsupported
+		
+		/* Map kernel and turn paging on */
+		pm_status $status_pse
+		call map_kernel_pse
+		jmp stack_init
 	
-		pm_error $err_fx
+#endif /* PROCESSOR_i486 */
 	
-	fx_supported:
+	pse_unsupported:
+		
+		/* Map kernel and turn paging on */
+		pm_status $status_non_pse
+		call map_kernel_non_pse
 	
-	bt $(INTEL_SSE2), %edx
-	jc sse2_supported
+	stack_init:
 	
-		pm_error $err_sse2
+	/* Create the first stack frame */
+	pushl $0
+	movl %esp, %ebp
 	
-	sse2_supported:
+	pm2_status $status_prot3
 	
-#include "vesa_prot.inc"
+	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
+	pushl multiboot_ebx
+	pushl multiboot_eax
+	call arch_pre_main
 	
-	/*
-	 * Protected 32-bit. We want to reuse the code-seg descriptor,
-	 * the Default operand size must not be 1 when entering long mode.
-	 */
+	pm2_status $status_main
 	
-	pm2_status $status_prot2
+	/* Call main_bsp() */
+	call main_bsp
 	
-	/*
-	 * Enable 64-bit page translation entries - CR4.PAE = 1.
-	 * Paging is not enabled until after long mode is enabled.
-	 */
+	/* Not reached */
+	cli
+	hlt0:
+		hlt
+		jmp hlt0
+
+/** Setup mapping for the kernel (PSE variant)
+ *
+ * Setup mapping for both the unmapped and mapped sections
+ * of the kernel. For simplicity, we map the entire 4G space.
+ *
+ */
+.global map_kernel_pse
+map_kernel_pse:
+	/* Paging features */
+	movl %cr4, %ecx
+	orl $(1 << 4), %ecx      /* PSE on */
+	andl $(~(1 << 5)), %ecx  /* PAE off */
+	movl %ecx, %cr4
 	
-	movl %cr4, %eax
-	btsl $5, %eax
-	movl %eax, %cr4
+	movl $(page_directory + 0), %esi
+	movl $(page_directory + 2048), %edi
+	xorl %ecx, %ecx
+	xorl %ebx, %ebx
 	
-	/* Set up paging tables */
-	leal ptl_0, %eax
-	movl %eax, %cr3
+	floop_pse:
+		movl $((1 << 7) | (1 << 1) | (1 << 0)), %eax
+		orl %ebx, %eax
+		/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
+		movl %eax, (%esi, %ecx, 4)
+		/* Mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
+		movl %eax, (%edi, %ecx, 4)
+		addl $(4 * 1024 * 1024), %ebx
+		
+		incl %ecx
+		cmpl $512, %ecx
+		jl floop_pse
 	
-	/* Enable long mode */
-	movl $EFER_MSR_NUM, %ecx
-	rdmsr                     /* read EFER */
-	btsl $AMD_LME_FLAG, %eax  /* set LME = 1 */
-	wrmsr
+	movl %esi, %cr3
 	
-	/* Enable paging to activate long mode (set CR0.PG = 1) */
-	movl %cr0, %eax
-	btsl $31, %eax
-	movl %eax, %cr0
+	movl %cr0, %ebx
+	orl $(1 << 31), %ebx  /* paging on */
+	movl %ebx, %cr0
+	ret
+
+/** Setup mapping for the kernel (non-PSE variant).
+ *
+ * Setup mapping for both the unmapped and mapped sections
+ * of the kernel. For simplicity, we map the entire 4G space.
+ *
+ */
+.global map_kernel_non_pse
+map_kernel_non_pse:
+	/* Paging features */
+	movl %cr4, %ecx
+	andl $(~(1 << 5)), %ecx  /* PAE off */
+	movl %ecx, %cr4
 	
-	/* At this point we are in compatibility mode */
-	jmpl $GDT_SELECTOR(KTEXT_DES), $start64
+	call calc_kernel_end
+	call find_mem_for_pt
+	
+	mov kernel_end, %esi
+	mov free_area, %ecx
+	
+	cmpl %esi, %ecx
+	jbe use_kernel_end
+		
+		mov %ecx, %esi
+		
+		/* Align address down to 4k */
+		andl $(~4095), %esi
+		
+	use_kernel_end:
+		
+		/* Align address to 4k */
+		addl $4095, %esi
+		andl $(~4095), %esi
+		
+		/* Allocate space for page tables */
+		movl %esi, pt_loc
+		movl $ballocs, %edi
+		andl $0x7fffffff, %edi
+		
+		movl %esi, (%edi)
+		addl $4, %edi
+		movl $(2 * 1024 * 1024), (%edi)
+		
+		/* Fill page tables */
+		xorl %ecx, %ecx
+		xorl %ebx, %ebx
+		
+		floop_pt:
+			movl $((1 << 1) | (1 << 0)), %eax
+			orl %ebx, %eax
+			movl %eax, (%esi, %ecx, 4)
+			addl $(4 * 1024), %ebx
+			
+			incl %ecx
+			cmpl $(512 * 1024), %ecx
+			
+			jl floop_pt
+		
+		/* Fill page directory */
+		movl $(page_directory + 0), %esi
+		movl $(page_directory + 2048), %edi
+		xorl %ecx, %ecx
+		movl pt_loc, %ebx
+		
+		floop:
+			movl $((1 << 1) | (1 << 0)), %eax
+			orl %ebx, %eax
+			
+			/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
+			movl %eax, (%esi, %ecx, 4)
+			
+			/* Mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
+			movl %eax, (%edi, %ecx, 4)
+			addl $(4 * 1024), %ebx
+			
+			incl %ecx
+			cmpl $512, %ecx
+			
+			jl floop
+		
+		movl %esi, %cr3
+		
+		movl %cr0, %ebx
+		orl $(1 << 31), %ebx  /* paging on */
+		movl %ebx, %cr0
+		
+		ret
+
+/** Calculate unmapped address of the end of the kernel. */
+calc_kernel_end:
+	movl $hardcoded_load_address, %edi
+	andl $0x7fffffff, %edi
+	movl (%edi), %esi
+	andl $0x7fffffff, %esi
+	
+	movl $hardcoded_ktext_size, %edi
+	andl $0x7fffffff, %edi
+	addl (%edi), %esi
+	andl $0x7fffffff, %esi
+	
+	movl $hardcoded_kdata_size, %edi
+	andl $0x7fffffff, %edi
+	addl (%edi), %esi
+	andl $0x7fffffff, %esi
+	movl %esi, kernel_end
+	
+	ret
+
+/** Find free 2M (+4k for alignment) region where to store page tables */
+find_mem_for_pt:
+	/* Check if multiboot info is present */
+	cmpl $MULTIBOOT_LOADER_MAGIC, multiboot_eax
+	je check_multiboot_map
+		
+		ret
+	
+	check_multiboot_map:
+		
+		/* Copy address of the multiboot info to ebx */
+		movl multiboot_ebx, %ebx
+		
+		/* Check if memory map flag is present */
+		movl (%ebx), %edx
+		andl $(1 << 6), %edx
+		jnz use_multiboot_map
+			
+			ret
+		
+	use_multiboot_map:
+		
+		/* Copy address of the memory map to edx */
+		movl 48(%ebx), %edx
+		movl %edx, %ecx
+		
+		addl 44(%ebx), %ecx
+		
+		/* Find a free region at least 2M in size */
+		check_memmap_loop:
+			
+			/* Is this a free region? */
+			cmp $1, 20(%edx)
+			jnz next_region
+			
+			/* Check size */
+			cmp $0, 16(%edx)
+			jnz next_region
+			
+			cmpl $(2 * 1024 * 1024 + 4 * 1024), 12(%edx)
+			jbe next_region
+			
+			cmp $0, 8(%edx)
+			jz found_region
+		
+		next_region:
+			
+			cmp %ecx, %edx
+			jbe next_region_do
+			
+				ret
+		
+		next_region_do:
+			
+			addl (%edx), %edx
+			addl $4, %edx
+			jmp check_memmap_loop
+			
+		found_region:
+			
+			/* Use end of the found region */
+			mov 4(%edx), %ecx
+			add 12(%edx), %ecx
+			sub $(2 * 1024 * 1024), %ecx
+			mov %ecx, free_area
+			
+			ret
 
 /** Print string to EGA display (in light red) and halt.
  *
@@ -191,8 +372,7 @@ multiboot_image_start:
  * CPU anyway, it is always better to at least try to print
  * some hints.
  *
- * @param %esi Pointer to the NULL-terminated string
- *             to be print.
+ * @param %esi NULL-terminated string to print.
  *
  */
 pm_error_halt:
@@ -291,12 +471,10 @@ pm_error_halt:
  * turned off. A stack space of at least 24 bytes is required,
  * but the function does not establish a stack frame.
  *
- * Macros such as pm_status and pm2_status take care that
- * this function is used only when CONFIG_EGA is enabled
- * and CONFIG_FB is disabled.
+ * Macros such as pm_status take care that this function
+ * is used only when CONFIG_EGA is enabled.
  *
- * @param %esi Pointer to the NULL-terminated string
- *             to be print.
+ * @param %esi NULL-terminated string to print.
  *
  */
 pm_early_puts:
@@ -398,61 +576,15 @@ pm_early_puts:
 	
 	ret
 
-.code64
-
-.macro long_status msg
-	pushq %rdi
-	movq \msg, %rdi
-	call early_puts
-	popq %rdi
-.endm
-
-start64:
-	
-	/*
-	 * Long mode.
-	 */
-	
-	movq $(PA2KA(START_STACK)), %rsp
-	
-	/* Create the first stack frame */
-	pushq $0
-	movq %rsp, %rbp
-	
-	long_status $status_long
-	
-	/* Call arch_pre_main(grub_eax, grub_ebx) */
-	xorq %rdi, %rdi
-	movl grub_eax, %edi
-	xorq %rsi, %rsi
-	movl grub_ebx, %esi
-	
-	movabsq $arch_pre_main, %rax
-	callq *%rax
-	
-	long_status $status_main
-	
-	/* Call main_bsp() */
-	movabsq $main_bsp, %rax
-	call *%rax
-	
-	/* Not reached */
-	cli
-	hlt0:
-		hlt
-		jmp hlt0
-
 /** Print string to EGA display.
  *
- * Should be called from long mode (with paging enabled
- * and stack established). This function is ABI compliant
- * (without red-zone).
+ * Should be called from 32 bit protected mode (with paging
+ * enabled and stack established). This function is ABI compliant.
  *
  * If CONFIG_EGA is undefined or CONFIG_FB is defined
  * then this function does nothing.
  *
- * @param %rdi Pointer to the NULL-terminated string
- *             to be printed.
+ * @param %ebp+0x08 NULL-terminated string to print.
  *
  */
 early_puts:
@@ -460,13 +592,15 @@ early_puts:
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
 	
 	/* Prologue, save preserved registers */
-	pushq %rbp
-	movq %rsp, %rbp
-	pushq %rbx
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	pushl %esi
+	pushl %edi
 	
-	movq %rdi, %rsi
-	movq $(PA2KA(0xb8000)), %rdi  /* base of EGA text mode memory */
-	xorq %rax, %rax
+	movl 0x08(%ebp), %esi
+	movl $(PA2KA(0xb8000)), %edi  /* base of EGA text mode memory */
+	xorl %eax, %eax
 	
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
@@ -494,8 +628,8 @@ early_puts:
 	early_puts_cursor_ok:
 	
 	movw %ax, %bx
-	shl $1, %rax
-	addq %rax, %rdi
+	shl $1, %eax
+	addl %eax, %edi
 	
 	early_puts_ploop:
 		lodsb
@@ -512,20 +646,20 @@ early_puts:
 		jb early_puts_ploop
 		
 		/* Scroll the screen (24 rows) */
-		movq %rsi, %rdx
-		movq $(PA2KA(0xb80a0)), %rsi
-		movq $(PA2KA(0xb8000)), %rdi
-		movl $480, %ecx
-		rep movsq
+		movl %esi, %edx
+		movl $(PA2KA(0xb80a0)), %esi
+		movl $(PA2KA(0xb8000)), %edi
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $20, %ecx
-		rep stosq
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
-		movq %rdx, %rsi
-		movq $(PA2KA(0xb8f00)), %rdi
+		movl %edx, %esi
+		movl $(PA2KA(0xb8f00)), %edi
 		movw $1920, %bx
 		
 		jmp early_puts_ploop
@@ -550,7 +684,9 @@ early_puts:
 	outb %al, %dx
 	
 	/* Epilogue, restore preserved registers */
-	popq %rbx
+	popl %edi
+	popl %esi
+	popl %ebx
 	leave
 	
 #endif
@@ -559,123 +695,47 @@ early_puts:
 
 #include "vesa_real.inc"
 
-.section K_INI_PTLS, "aw", @progbits
-
-/** Generate initial page table contents.
- *
- * @param cnt Number of entries to generate. Must be multiple of 8.
- * @param g   Number of GB that will be added to the mapping.
- *
- */
-.macro ptl2gen cnt g
-	.if \cnt
-		ptl2gen "\cnt - 8" \g
-		.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 5) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 4) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 3) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 2) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-		.quad ((\cnt - 1) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.endif
-.endm
-
-/* Page table for pages in the 1st gigabyte. */
-.align 4096
-ptl_2_0g:
-	ptl2gen 512 0
-
-/* Page table for pages in the 2nd gigabyte. */
-.align 4096
-ptl_2_1g:
-	ptl2gen 512 1
-
-/* Page table for pages in the 3rd gigabyte. */
-.align 4096
-ptl_2_2g:
-	ptl2gen 512 2
-
-/* Page table for pages in the 4th gigabyte. */
-.align 4096
-ptl_2_3g:
-	ptl2gen 512 3
-
-/* Page table for pages in the 5th gigabyte. */
-.align 4096
-ptl_2_4g:
-	ptl2gen 512 4
-
-/* Page table for pages in the 6th gigabyte. */
-.align 4096
-ptl_2_5g:
-	ptl2gen 512 5
-
-/* Page table for pages in the 7th gigabyte. */
-.align 4096
-ptl_2_6g:
-	ptl2gen 512 6
-
-/* Page table for pages in the 8th gigabyte. */
-.align 4096
-ptl_2_7g:
-	ptl2gen 512 7
-
-.align 4096
-ptl_1:
-	/* Identity mapping for [0; 8G) */
-	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_2g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_3g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_4g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_5g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_6g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_7g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 504, 8, 0
-
-.align 4096
-.global ptl_0
-ptl_0:
-	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 255, 8, 0
-	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 255, 8, 0
-
 .section K_DATA_START, "aw", @progbits
 
+.align 4096
+page_directory:
+	.space 4096, 0
+
+.global bootstrap_gdtr
 bootstrap_gdtr:
 	.word GDT_SELECTOR(GDT_ITEMS)
 	.long KA2PA(gdt)
 
-grub_eax:
+.global multiboot_eax
+multiboot_eax:
 	.long 0
 
-grub_ebx:
+.global multiboot_ebx
+multiboot_ebx:
 	.long 0
 
-err_extended_cpuid:
-	.asciz "Error: Extended CPUID not supported -- CPU is not 64-bit. System halted."
-err_long_mode:
-	.asciz "Error: 64-bit long mode not supported. System halted."
-err_noexecute:
-	.asciz "Error: No-execute pages not supported. System halted."
-err_fx:
-	.asciz "Error: FXSAVE/FXRESTORE instructions not supported. System halted."
-err_sse2:
-	.asciz "Error: SSE2 instructions not supported. System halted."
+pt_loc:
+	.long 0
+kernel_end:
+	.long 0
+free_area:
+	.long 0
 
 status_prot:
 	.asciz "[prot] "
+status_pse:
+	.asciz "[pse] "
+status_non_pse:
+	.asciz "[non_pse] "
 status_vesa_copy:
 	.asciz "[vesa_copy] "
-status_grub_cmdline:
-	.asciz "[grub_cmdline] "
+status_multiboot_cmdline:
+	.asciz "[multiboot_cmdline] "
 status_vesa_real:
 	.asciz "[vesa_real] "
 status_prot2:
 	.asciz "[prot2] "
-status_long:
-	.asciz "[long] "
+status_prot3:
+	.asciz "[prot3] "
 status_main:
 	.asciz "[main] "
