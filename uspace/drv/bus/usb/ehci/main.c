@@ -41,9 +41,11 @@
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
+#include <usb/host/hcd.h>
 
 #include "pci.h"
-#include "ehci.h"
+
+#define NAME "ehci"
 
 static int ehci_dev_add(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
@@ -56,7 +58,7 @@ static driver_t ehci_driver = {
 	.driver_ops = &ehci_driver_ops
 };
 static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &ehci_hc_iface,
+	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
 
 /*----------------------------------------------------------------------------*/
@@ -94,6 +96,13 @@ if (ret != EOK) { \
 		usb_log_error("Failed to create EHCI function.\n");
 		return ENOMEM;
 	}
+	hcd_t *ehci_hc = ddf_fun_data_alloc(hc_fun, sizeof(hcd_t));
+	if (ehci_hc == NULL) {
+		usb_log_error("Failed to alloc generic HC driver.\n");
+		return ENOMEM;
+	}
+	/* High Speed, no bandwidth */
+	hcd_init(ehci_hc, USB_SPEED_HIGH, 0, NULL);
 	hc_fun->ops = &hc_ops;
 
 	ret = ddf_fun_bind(hc_fun);

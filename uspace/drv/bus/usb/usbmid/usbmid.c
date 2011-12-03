@@ -44,8 +44,7 @@
 #include "usbmid.h"
 
 /** Callback for DDF USB interface. */
-static int usb_iface_get_interface_impl(ddf_fun_t *fun, devman_handle_t handle,
-    int *iface_no)
+static int usb_iface_get_interface_impl(ddf_fun_t *fun, int *iface_no)
 {
 	assert(fun);
 
@@ -63,7 +62,7 @@ static int usb_iface_get_interface_impl(ddf_fun_t *fun, devman_handle_t handle,
 static usb_iface_t child_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
 	.get_my_address = usb_iface_get_my_address_forward_impl,
-	.get_interface = usb_iface_get_interface_impl,
+	.get_my_interface = usb_iface_get_interface_impl,
 };
 
 /** Operations for children - interface functions. */

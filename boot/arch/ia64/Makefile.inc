@@ -32,7 +32,6 @@ BFD_ARCH = ia64
 
 BITS = 64
 ENDIANESS = LE
-PAGE_SIZE = 16384
 EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
 
 RD_SRVS_NON_ESSENTIAL +=

@@ -36,7 +36,6 @@ BFD_ARCH = powerpc:common
 
 BITS = 32
 ENDIANESS = BE
-PAGE_SIZE = 4096
 EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
 
 RD_SRVS_ESSENTIAL += \

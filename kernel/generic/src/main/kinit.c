@@ -178,7 +178,7 @@ void kinit(void *arg)
 	
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%zu].addr is not frame aligned\n", i);
+			printf("init[%zu]: Address is not frame aligned\n", i);
 			programs[i].task = NULL;
 			continue;
 		}
@@ -202,24 +202,30 @@ void kinit(void *arg)
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
 		    namebuf, &programs[i]);
 		
-		if ((rc == 0) && (programs[i].task != NULL)) {
+		if (rc == 0) {
+			if (programs[i].task != NULL) {
+				/*
+				 * Set capabilities to init userspace tasks.
+				 */
+				cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
+				    CAP_IO_MANAGER | CAP_IRQ_REG);
+				
+				if (!ipc_phone_0)
+					ipc_phone_0 = &programs[i].task->answerbox;
+			}
+			
 			/*
-			 * Set capabilities to init userspace tasks.
+			 * If programs[i].task == NULL then it is
+			 * the program loader and it was registered
+			 * successfully.
 			 */
-			cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
-			    CAP_IO_MANAGER | CAP_IRQ_REG);
-			
-			if (!ipc_phone_0)
-				ipc_phone_0 = &programs[i].task->answerbox;
-		} else if (rc == 0) {
-			/* It was the program loader and was registered */
-		} else {
-			/* RAM disk image */
-			int rd = init_rd((rd_header_t *) init.tasks[i].addr, init.tasks[i].size);
-			
-			if (rd != RE_OK)
-				printf("Init binary %zu not used (error %d)\n", i, rd);
-		}
+		} else if (i == init.cnt - 1) {
+			/*
+			 * Assume the last task is the RAM disk.
+			 */
+			init_rd((void *) init.tasks[i].addr, init.tasks[i].size);
+		} else
+			printf("init[%zu]: Init binary load failed (error %d)\n", i, rc);
 	}
 	
 	/*

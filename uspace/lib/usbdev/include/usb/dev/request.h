@@ -81,6 +81,8 @@ typedef struct {
 	 * intended recipient.
 	 */
 	uint8_t request_type;
+#define SETUP_REQUEST_TYPE_DEVICE_TO_HOST (1 << 7)
+
 	/** Request identification. */
 	uint8_t request;
 	/** Main parameter to the request. */

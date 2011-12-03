@@ -178,7 +178,7 @@ void usb_pipe_start_long_transfer(usb_pipe_t *);
 void usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
-int usb_pipe_write(usb_pipe_t *, void *, size_t);
+int usb_pipe_write(usb_pipe_t *, const void *, size_t);
 
 int usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
     void *, size_t, size_t *);
