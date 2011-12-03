@@ -400,13 +400,23 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	ext4_filesystem_t *fs = enode->instance->filesystem;
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 
-//	EXT4FS_DBG("destroying \%u", inode_ref->index);
-
 	rc = ext4_filesystem_truncate_inode(fs, inode_ref, 0);
 	if (rc != EOK) {
 		ext4fs_node_put(fn);
 		return rc;
 	}
+
+	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
+	if (rev_level > 0) {
+		ext4_filesystem_delete_orphan(fs, inode_ref);
+	}
+
+
+	// TODO set real deletion time
+//	time_t now = time(NULL);
+	time_t now = ext4_inode_get_change_inode_time(inode_ref->inode);
+	ext4_inode_set_deletion_time(inode_ref->inode, (uint32_t)now);
+	inode_ref->dirty = true;
 
 	rc = ext4_filesystem_free_inode(fs, inode_ref);
 	if (rc != EOK) {
@@ -443,7 +453,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	// Cannot unlink non-empty node
 	if (has_children) {
-		EXT4FS_DBG("\%s is not empty", name);
 		return ENOTEMPTY;
 	}
 
@@ -470,17 +479,28 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 		ext4_inode_ref_t *parent_inode_ref = EXT4FS_NODE(pfn)->inode_ref;
 
-//		EXT4FS_DBG("parent index = \%u", parent_inode_ref->index);
-
 		uint32_t parent_lnk_count = ext4_inode_get_links_count(
 				parent_inode_ref->inode);
 
 		parent_lnk_count--;
 		ext4_inode_set_links_count(parent_inode_ref->inode, parent_lnk_count);
 
-		parent_inode_ref->dirty = true;
+		parent->dirty = true;
 	}
 
+	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
+	if ((rev_level > 0) && (lnk_count == 0)) {
+		ext4_filesystem_add_orphan(fs, child_inode_ref);
+	}
+
+	// TODO set timestamps for parent (when we have wall-clock time)
+//	time_t now = time(NULL);
+//	ext4_inode_set_change_inode_time(parent->inode, (uint32_t)now);
+//	ext4_inode_set_modification_time(parent->inode, (uint32_t)now);
+//	parent->dirty = true;
+
+	// TODO set timestamp for inode
+//	ext4_inode_set_change_inode_time(child_inode_ref->inode, (uint32_t)now);
 	ext4_inode_set_links_count(child_inode_ref->inode, lnk_count);
 	child_inode_ref->dirty = true;
 
