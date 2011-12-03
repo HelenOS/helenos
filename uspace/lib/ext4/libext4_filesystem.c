@@ -782,6 +782,76 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 
 }
 
+int ext4_filesystem_add_orphan(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref)
+{
+	uint32_t next_orphan = ext4_superblock_get_last_orphan(fs->superblock);
+	ext4_inode_set_deletion_time(inode_ref->inode, next_orphan);
+	ext4_superblock_set_last_orphan(fs->superblock, inode_ref->index);
+	inode_ref->dirty = true;
+
+	return EOK;
+}
+
+int ext4_filesystem_delete_orphan(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref)
+{
+	int rc;
+
+	uint32_t last_orphan = ext4_superblock_get_last_orphan(fs->superblock);
+	assert(last_orphan > 0);
+
+	uint32_t next_orphan = ext4_inode_get_deletion_time(inode_ref->inode);
+
+	if (last_orphan == inode_ref->index) {
+		ext4_superblock_set_last_orphan(fs->superblock, next_orphan);
+		ext4_inode_set_deletion_time(inode_ref->inode, 0);
+		inode_ref->dirty = true;
+		return EOK;
+	}
+
+	ext4_inode_ref_t *current;
+	rc = ext4_filesystem_get_inode_ref(fs, last_orphan, &current);
+	if (rc != EOK) {
+		return rc;
+	}
+	next_orphan = ext4_inode_get_deletion_time(current->inode);
+
+	bool found;
+
+	while (next_orphan != 0) {
+		if (next_orphan == inode_ref->index) {
+			next_orphan = ext4_inode_get_deletion_time(inode_ref->inode);
+			ext4_inode_set_deletion_time(current->inode, next_orphan);
+			current->dirty = true;
+			found = true;
+			break;
+		}
+
+		ext4_filesystem_put_inode_ref(current);
+
+		rc = ext4_filesystem_get_inode_ref(fs, next_orphan, &current);
+		if (rc != EOK) {
+			return rc;
+		}
+		next_orphan = ext4_inode_get_deletion_time(current->inode);
+
+	}
+
+	ext4_inode_set_deletion_time(inode_ref->inode, 0);
+
+	rc = ext4_filesystem_put_inode_ref(current);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (!found) {
+		return ENOENT;
+	}
+
+	return EOK;
+}
+
 /**
  * @}
  */ 

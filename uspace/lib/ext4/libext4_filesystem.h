@@ -69,6 +69,10 @@ extern int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *,
 		ext4_inode_ref_t *, aoff64_t, uint32_t);
 extern int ext4_filesystem_release_inode_block(ext4_filesystem_t *,
 		ext4_inode_ref_t *, uint32_t);
+extern int ext4_filesystem_add_orphan(ext4_filesystem_t *,
+		ext4_inode_ref_t *);
+extern int ext4_filesystem_delete_orphan(ext4_filesystem_t *,
+		ext4_inode_ref_t *);
 #endif
 
 /**

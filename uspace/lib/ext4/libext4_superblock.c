@@ -353,6 +353,16 @@ void ext4_superblock_set_features_read_only(ext4_superblock_t *sb, uint32_t feat
 	sb->features_read_only = host2uint32_t_le(features);
 }
 
+uint32_t ext4_superblock_get_last_orphan(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->last_orphan);
+}
+
+void ext4_superblock_set_last_orphan(ext4_superblock_t *sb, uint32_t last_orphan)
+{
+	sb->last_orphan = host2uint32_t_le(last_orphan);
+}
+
 uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *sb)
 {
 	return sb->hash_seed;

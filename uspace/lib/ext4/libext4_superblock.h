@@ -271,8 +271,9 @@ uint16_t s_reserved_gdt_blocks; // Per group desc for online growth
 uint8_t s_journal_uuid[16]; // UUID of journal superblock
 uint32_t s_journal_inum; // Inode number of journal file
 uint32_t s_journal_dev; // Device number of journal file
-uint32_t s_last_orphan; // Head of list of inodes to delete
 */
+extern uint32_t ext4_superblock_get_last_orphan(ext4_superblock_t *);
+extern void ext4_superblock_set_last_orphan(ext4_superblock_t *, uint32_t);
 extern uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *);
 /*
 uint8_t s_def_hash_version; // Default hash version to use
