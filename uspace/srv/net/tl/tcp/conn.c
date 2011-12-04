@@ -211,15 +211,17 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
  * Two sockets are equal if the address is equal and the port number
  * is equal.
  */
-static bool tcp_socket_equal(tcp_sock_t *a, tcp_sock_t *b)
+static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 {
-	log_msg(LVL_DEBUG, "tcp_socket_equal((%x,%u), (%x,%u))",
-	    a->addr.ipv4, a->port, b->addr.ipv4, b->port);
+	log_msg(LVL_DEBUG, "tcp_socket_match(sock=(%x,%u), pat=(%x,%u))",
+	    sock->addr.ipv4, sock->port, patt->addr.ipv4, patt->port);
 
-	if (a->addr.ipv4 != b->addr.ipv4)
+	if (patt->addr.ipv4 != TCP_IPV4_ANY &&
+	    patt->addr.ipv4 != sock->addr.ipv4)
 		return false;
 
-	if (a->port != b->port)
+	if (patt->port != TCP_PORT_ANY &&
+	    patt->port != sock->port)
 		return false;
 
 	log_msg(LVL_DEBUG, " -> match");
@@ -232,10 +234,10 @@ static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 {
 	log_msg(LVL_DEBUG, "tcp_sockpair_match(%p, %p)", sp, pattern);
 
-	if (!tcp_socket_equal(&sp->local, &pattern->local))
+	if (!tcp_socket_match(&sp->local, &pattern->local))
 		return false;
 
-	if (!tcp_socket_equal(&sp->foreign, &pattern->foreign))
+	if (!tcp_socket_match(&sp->foreign, &pattern->foreign))
 		return false;
 
 	return true;

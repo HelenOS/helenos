@@ -241,6 +241,11 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 	conn = tcp_conn_find(sp);
 	if (conn != NULL && conn->cstate != st_closed) {
+		if (conn->ident.foreign.addr.ipv4 == TCP_IPV4_ANY)
+			conn->ident.foreign.addr.ipv4 = sp->foreign.addr.ipv4;
+		if (conn->ident.foreign.port == TCP_PORT_ANY)
+			conn->ident.foreign.port = sp->foreign.port;
+
 		tcp_conn_segment_arrived(conn, seg);
 	} else {
 		tcp_unexpected_segment(sp, seg);

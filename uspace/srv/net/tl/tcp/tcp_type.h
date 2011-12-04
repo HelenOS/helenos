@@ -118,6 +118,14 @@ typedef struct {
 	uint16_t port;
 } tcp_sock_t;
 
+enum netaddr {
+	TCP_IPV4_ANY = 0
+};
+
+enum tcp_port {
+	TCP_PORT_ANY = 0
+};
+
 typedef struct {
 	tcp_sock_t local;
 	tcp_sock_t foreign;

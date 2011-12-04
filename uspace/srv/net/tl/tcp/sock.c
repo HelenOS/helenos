@@ -304,8 +304,8 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	log_msg(LVL_DEBUG, " - open connection");
 
-	fsocket.addr.ipv4 = 0x7f000001; /* XXX */
-	fsocket.port = 1025; /* XXX */
+	fsocket.addr.ipv4 = TCP_IPV4_ANY;
+	fsocket.port = TCP_PORT_ANY;
 
 	trc = tcp_uc_open(sock_core->port, &fsocket, ap_passive, &conn);
 	if (conn != NULL)
