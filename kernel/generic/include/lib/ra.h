@@ -44,7 +44,7 @@ typedef struct {
 } ra_arena_t;
 
 typedef struct {
-	link_t span_link;	/**< Link for the arena's list of spans. */
+	link_t span_link;	/**< Arena's list of spans link. */
 
 	list_t segments;	/**< List of span's segments. */
 
@@ -52,20 +52,27 @@ typedef struct {
 	list_t *free;		/**< max_order segment free lists. */
 
 	hash_table_t used;
+
+	uintptr_t base;		/**< Span base. */
+	size_t size;		/**< Span size. */
 } ra_span_t;
 
+/*
+ * We would like to achieve a good ratio of the size of one unit of the
+ * represented resource (e.g. a page) and sizeof(ra_segment_t).  We therefore
+ * attempt to have as few redundant information in the segment as possible. For
+ * example, the size of the segment needs to be calculated from the segment
+ * base and the base of the following segment.
+ */
 typedef struct {
-	link_t segment_link;	/**< Link for the span's list of segments. */
-	link_t free_link;	/**< Link for the span's free list. */
-	link_t used_link;	/**< Link for the span's used hash table. */
+	link_t segment_link;	/**< Span's segment list link. */
+	link_t fu_link;		/**< Span's free list or used hash link. */
 
 	uintptr_t base;		/**< Segment base. */
-	uintptr_t size;		/**< Segment size. */
-	
 } ra_segment_t;
 
 extern ra_arena_t *ra_arena_create(uintptr_t, size_t);
-extern void ra_span_add(ra_arena_t *, uintptr_t, size_t);
+extern bool ra_span_add(ra_arena_t *, uintptr_t, size_t);
 extern uintptr_t ra_alloc(ra_arena_t *, size_t, size_t);
 extern void ra_free(ra_arena_t *, uintptr_t, size_t);
 
