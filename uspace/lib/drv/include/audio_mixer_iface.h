@@ -31,7 +31,7 @@
  * @{
  */
 /** @file
- * @brief USB host controller interface definition.
+ * @brief Audio mixer control interface.
  */
 
 #ifndef LIBDRV_AUDIO_MIXER_IFACE_H_
@@ -72,4 +72,3 @@ typedef struct {
 /**
  * @}
  */
-
