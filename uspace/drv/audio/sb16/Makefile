@@ -37,11 +37,11 @@ EXTRA_CFLAGS += \
 BINARY = sb16
 
 SOURCES = \
-	beep16.c \
 	dsp.c \
 	main.c \
 	mixer.c \
 	mixer_iface.c \
+	pcm_iface.c \
 	sb16.c
 
 include $(USPACE_PREFIX)/Makefile.common

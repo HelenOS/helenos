@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <audio_mixer_iface.h>
+#include <audio_pcm_buffer_iface.h>
 
 #include "beep.h"
 #include "ddf_log.h"
@@ -37,9 +38,14 @@
 #include "sb16.h"
 
 extern audio_mixer_iface_t sb_mixer_iface;
+extern audio_pcm_buffer_iface_t sb_pcm_iface;
 
 static ddf_dev_ops_t sb_mixer_ops = {
 	.interfaces[AUDIO_MIXER_IFACE] = &sb_mixer_iface,
+};
+
+static ddf_dev_ops_t sb_pcm_ops = {
+	.interfaces[AUDIO_PCM_BUFFER_IFACE] = &sb_pcm_iface,
 };
 
 /* ISA interrupts should be edge-triggered so there should be no need for
@@ -94,14 +100,31 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	ddf_log_debug("PIO registers at %p accessible.\n", sb->regs);
 
 	/* Initialize DSP */
+	ddf_fun_t *dsp_fun = ddf_fun_create(dev, fun_exposed, "dsp");
+	if (!dsp_fun) {
+		ddf_log_error("Failed to create dsp function.\n");
+		return ENOMEM;
+	}
+
 	ret = sb_dsp_init(&sb->dsp, sb->regs, dev, dma8, dma16);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB DSP: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
+	dsp_fun->driver_data = &sb->dsp;
+	dsp_fun->ops = &sb_pcm_ops;
 	ddf_log_note("Sound blaster DSP (%x.%x) initialized.\n",
 	    sb->dsp.version.major, sb->dsp.version.minor);
+
+	ret = ddf_fun_bind(dsp_fun);
+	if (ret != EOK) {
+		ddf_log_error(
+		    "Failed to bind DSP function: %s.\n", str_error(ret));
+		dsp_fun->driver_data = NULL;
+		ddf_fun_destroy(dsp_fun);
+		return ret;
+	}
 
 	/* Initialize mixer */
 	const sb_mixer_type_t mixer_type = sb_mixer_type_by_dsp_version(
@@ -110,12 +133,19 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	ddf_fun_t *mixer_fun = ddf_fun_create(dev, fun_exposed, "mixer");
 	if (!mixer_fun) {
 		ddf_log_error("Failed to create mixer function.\n");
+		ddf_fun_unbind(dsp_fun);
+		dsp_fun->driver_data = NULL;
+		ddf_fun_destroy(dsp_fun);
 		return ENOMEM;
 	}
 	ret = sb_mixer_init(&sb->mixer, sb->regs, mixer_type);
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB mixer: %s.\n",
 		    str_error(ret));
+		ddf_fun_unbind(dsp_fun);
+		dsp_fun->driver_data = NULL;
+		ddf_fun_destroy(dsp_fun);
+		ddf_fun_destroy(mixer_fun);
 		return ret;
 	}
 
@@ -130,11 +160,12 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 		    "Failed to bind mixer function: %s.\n", str_error(ret));
 		mixer_fun->driver_data = NULL;
 		ddf_fun_destroy(mixer_fun);
+
+		ddf_fun_unbind(dsp_fun);
+		dsp_fun->driver_data = NULL;
+		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}
-
-	ddf_log_note("Playing startup sound.\n");
-	sb_dsp_play(&sb->dsp, beep, beep_size, 44100, channels, 16);
 
 	return EOK;
 }
