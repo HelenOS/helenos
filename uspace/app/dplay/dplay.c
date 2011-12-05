@@ -57,9 +57,9 @@ static void play(async_exch_t *device, unsigned buffer_id,
 	const size_t half_buf = size / 2;
 
 	/* Time to play half the buffer. */
-	const unsigned interval = 1000000 /
+	const suseconds_t interval = 1000000 /
 	    (sampling_rate /  (half_buf / (channels * (sample_size / 8))));
-	printf("Time to play half buffer: %zu us.\n", interval);
+	printf("Time to play half buffer: %ld us.\n", interval);
 	/* Initialize buffer. */
 	const size_t bytes = fread(buffer, sizeof(uint8_t), size, source);
 	if (bytes != size)
@@ -84,7 +84,7 @@ static void play(async_exch_t *device, unsigned buffer_id,
 		if (delay > 0)
 			usleep(delay);
 		const size_t bytes =
-		    fread(buffer, sizeof(uint8_t), half_buf, source);
+		    fread(buffer_place, sizeof(uint8_t), half_buf, source);
 		if (bytes == 0)
 			break;
 		if (bytes < half_buf) {
