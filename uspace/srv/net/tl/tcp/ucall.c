@@ -70,7 +70,7 @@ tcp_error_t tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
 	    conn);
 
 	lsock.port = lport;
-	lsock.addr.ipv4 = 0x7f000001;
+	lsock.addr.ipv4 = TCP_IPV4_ANY;
 
 	nconn = tcp_conn_new(&lsock, fsock);
 	tcp_conn_add(nconn);
