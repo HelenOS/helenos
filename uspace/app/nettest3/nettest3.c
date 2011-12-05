@@ -58,15 +58,37 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	int fd;
+	char *endptr;
 
-	port = 80;
+	port = 7;
 
 	data = (char *)"Hello World!";
 	size = str_size(data);
 
+	/* Connect to local IP address by default */
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = htonl(0x7f000001);
+
+	if (argc >= 2) {
+		printf("parsing address '%s'\n", argv[1]);
+		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
+		if (rc != EOK) {
+			fprintf(stderr, "Error parsing address\n");
+			return 1;
+		}
+		printf("result: rc=%d, family=%d, addr=%x\n", rc,
+		    addr.sin_family, addr.sin_addr.s_addr);
+	}
+
+	if (argc >= 3) {
+		printf("parsing port '%s'\n", argv[2]);
+		addr.sin_port = htons(strtoul(argv[2], &endptr, 10));
+		if (*endptr != '\0') {
+			fprintf(stderr, "Error parsing port\n");
+			return 1;
+		}
+	}
 
 	printf("socket()\n");
 	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
