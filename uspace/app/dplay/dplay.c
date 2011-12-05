@@ -44,6 +44,7 @@
 #include <sys/time.h>
 
 #include <stdio.h>
+#include <macros.h>
 
 #include "wave.h"
 
@@ -77,12 +78,14 @@ static void play(async_exch_t *device, unsigned buffer_id,
 	void *buffer_place = buffer;
 	while (true) {
 		tv_add(&time, interval); /* Next update point */
+
 		struct timeval current;
 		gettimeofday(&current, NULL);
 
-		const suseconds_t delay = tv_sub(&time, &current);
+		const suseconds_t delay = min(tv_sub(&time, &current), interval);
 		if (delay > 0)
 			usleep(delay);
+
 		const size_t bytes =
 		    fread(buffer_place, sizeof(uint8_t), half_buf, source);
 		if (bytes == 0)
