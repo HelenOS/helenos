@@ -43,16 +43,17 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 
-#include "beep.h"
+#include <stdio.h>
+
+#include "wave.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/dsp"
 
 static void play(async_exch_t *device, unsigned buffer_id,
-    void *buffer, size_t size, const void *data, size_t data_size,
+    void *buffer, size_t size, FILE *source,
     unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
 {
 	assert(device);
-	const void* data_end = data + data_size;
 	const size_t half_buf = size / 2;
 
 	/* Time to play half the buffer. */
@@ -60,8 +61,9 @@ static void play(async_exch_t *device, unsigned buffer_id,
 	    (sampling_rate /  (half_buf / (channels * (sample_size / 8))));
 	printf("Time to play half buffer: %zu us.\n", interval);
 	/* Initialize buffer. */
-	memcpy(buffer, data, size);
-	data += size;
+	const size_t bytes = fread(buffer, sizeof(uint8_t), size, source);
+	if (bytes != size)
+		return;
 
 	struct timeval time;
 	gettimeofday(&time, NULL);
@@ -73,7 +75,7 @@ static void play(async_exch_t *device, unsigned buffer_id,
 		return;
 	}
 	void *buffer_place = buffer;
-	while (data < data_end) {
+	while (true) {
 		tv_add(&time, interval); /* Next update point */
 		struct timeval current;
 		gettimeofday(&current, NULL);
@@ -81,14 +83,12 @@ static void play(async_exch_t *device, unsigned buffer_id,
 		const suseconds_t delay = tv_sub(&time, &current);
 		if (delay > 0)
 			usleep(delay);
-		const size_t remain = data_end - data;
-		if (remain < half_buf) {
-			memcpy(buffer_place, data, remain);
-			bzero(buffer_place + remain, half_buf - remain);
-			data += remain;
-		} else {
-			memcpy(buffer_place, data, half_buf);
-			data += half_buf;
+		const size_t bytes =
+		    fread(buffer, sizeof(uint8_t), half_buf, source);
+		if (bytes == 0)
+			break;
+		if (bytes < half_buf) {
+			bzero(buffer_place + bytes, half_buf - bytes);
 		}
 		if (buffer_place == buffer) {
 			buffer_place = buffer + half_buf;
@@ -107,9 +107,19 @@ static void play(async_exch_t *device, unsigned buffer_id,
 int main(int argc, char *argv[])
 {
 	const char *device = DEFAULT_DEVICE;
-	if (argc == 2)
+	const char *file;
+	switch (argc) {
+	case 2:
+		file = argv[1];
+		break;
+	case 3:
 		device = argv[1];
-
+		file = argv[2];
+		break;
+	default:
+		printf("Usage: %s [device] file.\n", argv[0]);
+		return 1;
+	}
 
 	devman_handle_t pcm_handle;
 	int ret = devman_fun_get_handle(device, &pcm_handle, 0);
@@ -155,8 +165,33 @@ int main(int argc, char *argv[])
 	}
 	printf("Buffer (%u): %p %zu.\n", id, buffer, size);
 
-	play(exch, id, buffer, size, beep, beep_size,
-	    rate, sample_size, channels, sign);
+	FILE *source = fopen(file, "rb");
+	if (source == NULL) {
+		printf("Failed to open %s.\n", file);
+		munmap(buffer, size);
+		audio_pcm_buffer_release_buffer(exch, id);
+		async_exchange_end(exch);
+		async_hangup(session);
+		return 1;
+	}
+	wave_header_t header;
+	fread(&header, sizeof(header), 1, source);
+	unsigned rate, sample_size, channels;
+	bool sign;
+	const char *error;
+	ret = wav_parse_header(&header, NULL, NULL, &rate, &sample_size,
+	    &channels, &sign, &error);
+	if (ret != EOK) {
+		printf("Error parsing wav header: %s.\n", error);
+		fclose(source);
+		munmap(buffer, size);
+		audio_pcm_buffer_release_buffer(exch, id);
+		async_exchange_end(exch);
+		async_hangup(session);
+		return 1;
+	}
+
+	play(exch, id, buffer, size, source, rate, sample_size, channels, sign);
 
 	munmap(buffer, size);
 	audio_pcm_buffer_release_buffer(exch, id);

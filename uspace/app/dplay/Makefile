@@ -36,7 +36,6 @@ EXTRA_CFLAGS = \
 	-I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
-	beep.c \
 	dplay.c \
 	wave.c
 
