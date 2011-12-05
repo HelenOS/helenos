@@ -42,9 +42,9 @@ int wav_parse_header(void *file, void ** data, size_t *data_size,
     unsigned *sampling_rate, unsigned *sample_size, unsigned *channels,
     bool *sign, const char **error)
 {
-	if (!file || !data || !data_size) {
+	if (!file) {
 		if (error)
-			*error = "file, data and data_size must be specified";
+			*error = "file not present";
 		return EINVAL;
 	}
 
@@ -85,8 +85,10 @@ int wav_parse_header(void *file, void ** data, size_t *data_size,
 		return EINVAL;
 	}
 
-	*data = header->data;
-	*data_size = uint32_t_le2host(header->subchunk2_size);
+	if (data)
+		*data = header->data;
+	if (data_size)
+		*data_size = uint32_t_le2host(header->subchunk2_size);
 
 	if (sampling_rate)
 		*sampling_rate = uint32_t_le2host(header->sampling_rate);
