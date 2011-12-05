@@ -41,10 +41,68 @@
 #include <audio_pcm_buffer_iface.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <sys/time.h>
 
 #include "beep.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/dsp"
+
+static void play(async_exch_t *device, unsigned buffer_id,
+    void *buffer, size_t size, const void *data, size_t data_size,
+    unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
+{
+	assert(device);
+	const void* data_end = data + data_size;
+	const size_t half_buf = size / 2;
+
+	/* Time to play half the buffer. */
+	const unsigned interval = 1000000 /
+	    (sampling_rate /  (half_buf / (channels * (sample_size / 8))));
+	printf("Time to play half buffer: %zu us.\n", interval);
+	/* Initialize buffer. */
+	memcpy(buffer, data, size);
+	data += size;
+
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	printf("Starting playback.\n");
+	int ret = audio_pcm_buffer_start_playback(device, buffer_id,
+	    sampling_rate, sample_size, channels, sign);
+	if (ret != EOK) {
+		printf("Failed to start playback: %s.\n", str_error(ret));
+		return;
+	}
+	void *buffer_place = buffer;
+	while (data < data_end) {
+		tv_add(&time, interval); /* Next update point */
+		struct timeval current;
+		gettimeofday(&current, NULL);
+
+		const suseconds_t delay = tv_sub(&time, &current);
+		if (delay > 0)
+			usleep(delay);
+		const size_t remain = data_end - data;
+		if (remain < half_buf) {
+			memcpy(buffer_place, data, remain);
+			bzero(buffer_place + remain, half_buf - remain);
+			data += remain;
+		} else {
+			memcpy(buffer_place, data, half_buf);
+			data += half_buf;
+		}
+		if (buffer_place == buffer) {
+			buffer_place = buffer + half_buf;
+		} else {
+			buffer_place = buffer;
+		}
+	}
+
+	printf("Stopping playback.\n");
+	ret = audio_pcm_buffer_stop_playback(device, buffer_id);
+	if (ret != EOK) {
+		printf("Failed to stop playback: %s.\n", str_error(ret));
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -96,27 +154,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	printf("Buffer (%u): %p %zu.\n", id, buffer, size);
-	memcpy(buffer, beep, size);
 
-	printf("Starting playback.\n");
-	ret = audio_pcm_buffer_start_playback(exch, id, 44100, 16, 1, true);
-	if (ret != EOK) {
-		printf("Failed to start playback: %s.\n", str_error(ret));
-		munmap(buffer, size);
-		audio_pcm_buffer_release_buffer(exch, id);
-		async_exchange_end(exch);
-		async_hangup(session);
-		return 1;
-	} else {
-		sleep(2);
-	}
-
-	printf("Stopping playback.\n");
-	ret = audio_pcm_buffer_stop_playback(exch, id);
-	if (ret != EOK) {
-		printf("Failed to start playback: %s.\n", str_error(ret));
-	}
-
+	play(exch, id, buffer, size, beep, beep_size,
+	    rate, sample_size, channels, sign);
 
 	munmap(buffer, size);
 	audio_pcm_buffer_release_buffer(exch, id);
@@ -124,6 +164,6 @@ int main(int argc, char *argv[])
 	async_hangup(session);
 	return 0;
 }
-
-/** @}
+/**
+ * @}
  */
