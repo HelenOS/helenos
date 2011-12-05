@@ -112,12 +112,16 @@ static void tcp_header_encode_flags(tcp_control_t ctl, uint16_t doff_flags0,
 static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_t *hdr)
 {
 	uint16_t doff_flags;
+	uint16_t doff;
 
 	hdr->src_port = host2uint16_t_be(sp->local.port);
 	hdr->dest_port = host2uint16_t_be(sp->foreign.port);
 	hdr->seq = host2uint32_t_be(seg->seq);
 	hdr->ack = host2uint32_t_be(seg->ack);
-	tcp_header_encode_flags(seg->ctrl, 0, &doff_flags);
+
+	doff = (sizeof(tcp_header_t) / sizeof(uint32_t)) << DF_DATA_OFFSET_l;
+	tcp_header_encode_flags(seg->ctrl, doff, &doff_flags);
+
 	hdr->doff_flags = host2uint16_t_be(doff_flags);
 	hdr->window = host2uint16_t_be(seg->wnd);
 	hdr->checksum = 0;
