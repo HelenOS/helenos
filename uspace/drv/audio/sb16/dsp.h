@@ -50,14 +50,11 @@ typedef struct sb_dsp_t {
 	} version;
 	struct {
 		uint8_t *data;
-		uint8_t *position;
 		size_t size;
 	} buffer;
 	struct {
-		const uint8_t *data;
-		const uint8_t *position;
-		size_t size;
 		uint8_t mode;
+		uint16_t samples;
 	} playing;
 	ddf_dev_t *sb_dev;
 } sb_dsp_t;
@@ -65,10 +62,6 @@ typedef struct sb_dsp_t {
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16);
 void sb_dsp_interrupt(sb_dsp_t *dsp);
-int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
-    unsigned sample_rate, unsigned channels, unsigned bit_depth);
-int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
-    uint16_t sample_rate, unsigned channels, unsigned bit_depth);
 
 int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id);
 int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id);
