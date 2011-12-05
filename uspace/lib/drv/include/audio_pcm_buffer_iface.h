@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,63 +25,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libdrv
+ * @addtogroup usb
  * @{
  */
-
 /** @file
+ * @brief Audio PCM buffer interface.
  */
 
-#include <assert.h>
+#ifndef LIBDRV_AUDIO_PCM_BUFFER_IFACE_H_
+#define LIBDRV_AUDIO_PCM_BUFFER_IFACE_H_
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_audio_mixer.h"
-#include "remote_audio_pcm_buffer.h"
+#include <async.h>
+#include <bool.h>
 
-static const iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		[AUDIO_MIXER_IFACE] = &remote_audio_mixer_iface,
-		[AUDIO_PCM_BUFFER_IFACE] = &remote_audio_pcm_buffer_iface,
-		[HW_RES_DEV_IFACE] = &remote_hw_res_iface,
-		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
-		[NIC_DEV_IFACE] = &remote_nic_iface,
-		[PCI_DEV_IFACE] = &remote_pci_iface,
-		[USB_DEV_IFACE] = &remote_usb_iface,
-		[USBHC_DEV_IFACE] = &remote_usbhc_iface,
-		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
-	}
-};
+#include "ddf/driver.h"
 
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+int audio_pcm_buffer_get_info_str(async_exch_t *, const char **);
+int audio_pcm_buffer_get_buffer(async_exch_t *, void **, size_t *, unsigned *);
+int audio_pcm_buffer_release_buffer(async_exch_t *, unsigned);
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
+int audio_pcm_buffer_start_playback(async_exch_t *, unsigned,
+    unsigned, uint16_t, uint8_t, bool);
+int audio_pcm_buffer_stop_playback(async_exch_t *, unsigned);
 
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
+int audio_pcm_buffer_start_record(async_exch_t *, unsigned,
+    unsigned, unsigned, unsigned, bool);
+int audio_pcm_buffer_stop_record(async_exch_t *, unsigned);
 
+/** Audio pcm communication interface. */
+typedef struct {
+	int (*get_info_str)(ddf_fun_t *, const char **);
+	int (*get_buffer)(ddf_fun_t *, void **, size_t *, unsigned *);
+	int (*release_buffer)(ddf_fun_t *, unsigned);
+	int (*start_playback)(ddf_fun_t *, unsigned,
+	    unsigned, unsigned, unsigned, bool);
+	int (*stop_playback)(ddf_fun_t *, unsigned);
+	int (*start_record)(ddf_fun_t *, unsigned,
+	    unsigned, unsigned, unsigned, bool);
+	int (*stop_record)(ddf_fun_t *, unsigned);
+} audio_pcm_buffer_iface_t;
+
+#endif
 /**
  * @}
  */
