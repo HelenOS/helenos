@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <str_error.h>
+#include <macros.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
@@ -294,8 +295,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	size_t remain_size = ohci_batch->usb_batch->buffer_size;
 	while (remain_size > 0) {
 		const size_t transfer_size =
-		    remain_size > OHCI_TD_MAX_TRANSFER ?
-		    OHCI_TD_MAX_TRANSFER : remain_size;
+		    min(remain_size, OHCI_TD_MAX_TRANSFER);
 		toggle = 1 - toggle;
 
 		td_init(ohci_batch->tds[td_current],

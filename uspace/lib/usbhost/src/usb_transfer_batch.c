@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <str_error.h>
+#include <macros.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
@@ -145,9 +146,8 @@ void usb_transfer_batch_finish(
         if (instance->callback_in) {
 		/* We care about the data and there are some to copy */
 		if (data) {
-			const size_t min_size = size < instance->buffer_size
-			    ? size : instance->buffer_size;
-	                memcpy(instance->buffer, data, min_size);
+			const size_t minsize = min(size, instance->buffer_size);
+	                memcpy(instance->buffer, data, minsize);
 		}
 		instance->callback_in(instance->fun, instance->error,
 		    instance->transfered_size, instance->arg);

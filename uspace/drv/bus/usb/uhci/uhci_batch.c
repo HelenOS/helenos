@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <str_error.h>
+#include <macros.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
@@ -236,8 +237,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir)
 	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
 
 	while (remain_size > 0) {
-		const size_t packet_size =
-		    (remain_size < mps) ? remain_size : mps;
+		const size_t packet_size = min(remain_size, mps);
 
 		const td_t *next_td = (td + 1 < uhci_batch->td_count)
 		    ? &uhci_batch->tds[td + 1] : NULL;
@@ -308,8 +308,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir
 	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
 
 	while (remain_size > 0) {
-		const size_t packet_size =
-		    (remain_size < mps) ? remain_size : mps;
+		const size_t packet_size = min(remain_size, mps);
 
 		td_init(
 		    &uhci_batch->tds[td], DEFAULT_ERROR_COUNT, packet_size,
