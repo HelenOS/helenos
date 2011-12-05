@@ -70,6 +70,15 @@ int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
 int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
     uint16_t sample_rate, unsigned channels, unsigned bit_depth);
 
+int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id);
+int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id);
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
+    unsigned sample_size, unsigned channels, bool sign);
+int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id);
+int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
+    unsigned sample_size, unsigned channels, bool sign);
+int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id);
+
 #endif
 /**
  * @}

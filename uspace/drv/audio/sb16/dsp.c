@@ -44,6 +44,7 @@
 #include "dsp_commands.h"
 #include "dsp.h"
 
+#define BUFFER_ID 1
 #define BUFFER_SIZE (PAGE_SIZE)
 #define PLAY_BLOCK_SIZE (BUFFER_SIZE / 2)
 
@@ -145,12 +146,9 @@ static inline void sb_clear_buffer(sb_dsp_t *dsp)
 	dsp->buffer.size = 0;
 }
 /*----------------------------------------------------------------------------*/
-static inline size_t sample_count(uint8_t mode, size_t byte_count)
+static inline size_t sample_count(unsigned sample_size, size_t byte_count)
 {
-	// FIXME we only support 16 bit playback for now.
-	return byte_count / 2;
-
-	if (mode & DSP_MODE_SIGNED) {
+	if (sample_size == 16) {
 		return byte_count / 2;
 	}
 	return byte_count;
@@ -188,6 +186,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 /*----------------------------------------------------------------------------*/
 void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
+#if 0
 	assert(dsp);
 	const size_t remain_size =
 	    dsp->playing.size - (dsp->playing.position - dsp->playing.data);
@@ -231,7 +230,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	sb_dsp_write(dsp, (samples - 1) & 0xff);
 	sb_dsp_write(dsp, (samples - 1) >> 8);
 #endif
-
+#endif
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_play_direct(sb_dsp_t *dsp, const uint8_t *data, size_t size,
@@ -281,7 +280,7 @@ int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
 	if (channels == 2)
 		dsp->playing.mode |= DSP_MODE_STEREO;
 
-	const size_t samples = sample_count(dsp->playing.mode, play_size);
+	const size_t samples = sample_count(sample_size, play_size);
 
 	ddf_log_debug("Playing %s sound: %zu(%zu) bytes => %zu samples.\n",
 	    mode_to_str(dsp->playing.mode), play_size, size, samples);
@@ -311,6 +310,94 @@ int sb_dsp_play(sb_dsp_t *dsp, const void *data, size_t size,
 	sb_dsp_write(dsp, (samples - 1) >> 8);
 
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
+{
+	assert(dsp);
+	const int ret = sb_setup_buffer(dsp);
+	ddf_log_debug("Providing buffer(%u): %p, %zu.\n",
+	    BUFFER_ID, dsp->buffer.data, dsp->buffer.size);
+	if (ret == EOK && buffer)
+		*buffer = dsp->buffer.data;
+	if (ret == EOK && size)
+		*size = dsp->buffer.size;
+	if (ret == EOK && id)
+		*id = BUFFER_ID;
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
+{
+	assert(dsp);
+	if (id != BUFFER_ID)
+		return ENOENT;
+	sb_clear_buffer(dsp);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned sampling_rate,
+    unsigned sample_size, unsigned channels, bool sign)
+{
+	assert(dsp);
+
+	/* Check supported parameters */
+	ddf_log_debug("Starting playback on buffer(%u): rate: %u, size: %u, "
+	    " channels: %u, signed: %s.\n", id, sampling_rate, sample_size,
+	    channels, sign ? "YES" : "NO" );
+	if (id != BUFFER_ID)
+		return ENOENT;
+	if (sample_size != 16) // FIXME We only support 16 bit playback
+		return ENOTSUP;
+	if (channels != 1 && channels != 2)
+		return ENOTSUP;
+	if (sampling_rate > 44100)
+		return ENOTSUP;
+
+
+	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
+	sb_dsp_write(dsp, sampling_rate >> 8);
+	sb_dsp_write(dsp, sampling_rate & 0xff);
+
+	ddf_log_debug("Sampling rate: %hhx:%hhx.\n",
+	    sampling_rate >> 8, sampling_rate & 0xff);
+
+#ifdef AUTO_DMA_MODE
+	sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
+#else
+	sb_dsp_write(dsp, SINGLE_DMA_16B_DA_FIFO);
+#endif
+
+	const uint8_t mode =
+	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
+	sb_dsp_write(dsp, mode);
+
+	const uint16_t samples = sample_count(sample_size, PLAY_BLOCK_SIZE);
+	sb_dsp_write(dsp, (samples - 1) & 0xff);
+	sb_dsp_write(dsp, (samples - 1) >> 8);
+
+	return EOK;
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
+{
+	assert(dsp);
+	if (id != BUFFER_ID)
+		return ENOENT;
+	sb_dsp_write(dsp, DMA_16B_EXIT);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
+    unsigned sample_size, unsigned channels, bool sign)
+{
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id)
+{
+	return ENOTSUP;
 }
 /**
  * @}
