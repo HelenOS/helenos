@@ -31,7 +31,6 @@
 #include <audio_mixer_iface.h>
 #include <audio_pcm_buffer_iface.h>
 
-#include "beep.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
