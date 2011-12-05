@@ -57,6 +57,8 @@ typedef struct {
 	size_t size;		/**< Span size. */
 } ra_span_t;
 
+#define RA_SEGMENT_FREE		1
+
 /*
  * We would like to achieve a good ratio of the size of one unit of the
  * represented resource (e.g. a page) and sizeof(ra_segment_t).  We therefore
@@ -69,6 +71,7 @@ typedef struct {
 	link_t fu_link;		/**< Span's free list or used hash link. */
 
 	uintptr_t base;		/**< Segment base. */
+	uint8_t flags;		/**< Segment flags. */
 } ra_segment_t;
 
 extern ra_arena_t *ra_arena_create(uintptr_t, size_t);

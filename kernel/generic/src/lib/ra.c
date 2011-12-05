@@ -53,12 +53,6 @@
 #include <align.h>
 #include <macros.h>
 
-/*
- * The last segment on the segment list will be a special sentinel segment which
- * is neither in any free list nor in the used segment hash.
- */
-#define IS_LAST_SEG(seg)	(!(seg)->fu_link.next)
-
 static hash_table_operations_t used_ops = {
 	.hash = NULL,
 	.compare = NULL,
@@ -69,8 +63,6 @@ static hash_table_operations_t used_ops = {
 static size_t ra_segment_size_get(ra_segment_t *seg)
 {
 	ra_segment_t *nextseg;
-
-	ASSERT(!IS_LAST_SEG(seg));
 
 	nextseg = list_get_instance(seg->segment_link.next, ra_segment_t,
 	    segment_link);
@@ -89,6 +81,7 @@ static ra_segment_t *ra_segment_create(uintptr_t base)
 	link_initialize(&seg->fu_link);
 
 	seg->base = base;
+	seg->flags = 0;
 
 	return seg;
 }
@@ -128,6 +121,7 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 		free(span);
 		return NULL;
 	}
+	seg->flags = RA_SEGMENT_FREE;
 
 	/*
 	 * The last segment will be used as a sentinel at the end of the
@@ -143,8 +137,6 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 		free(span);
 		return NULL;
 	}
-	/* Make sure we have NULL here so that we can recognize the sentinel. */
-	lastseg->fu_link.next = NULL;
 
 	link_initialize(&span->span_link);
 	list_initialize(&span->segments);
@@ -238,6 +230,8 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		seg = list_get_instance(list_first(&span->free[order]),
 		    ra_segment_t, fu_link);
 
+		ASSERT(seg->flags & RA_SEGMENT_FREE);
+
 		/*
 		 * See if we need to allocate new segments for the chopped-off
 		 * parts of this segment.
@@ -250,6 +244,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 				 */
 				break;
 			}
+			pred->flags |= RA_SEGMENT_FREE;
 		}
 		newbase = ALIGN_UP(seg->base, align);
 		if (newbase + size != seg->base + ra_segment_size_get(seg)) {
@@ -264,6 +259,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 				 */
 				break;
 			}
+			succ->flags |= RA_SEGMENT_FREE;
 		}
 		
 	
@@ -288,6 +284,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		/* Now remove the found segment from the free list. */
 		list_remove(&seg->fu_link);
 		seg->base = newbase;
+		seg->flags &= ~RA_SEGMENT_FREE;
 
 		/* Hash-in the segment into the used hash. */
 		sysarg_t key = seg->base;
@@ -301,6 +298,76 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 
 static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 {
+	sysarg_t key = base;
+	link_t *link;
+	ra_segment_t *seg;
+	ra_segment_t *pred;
+	ra_segment_t *succ;
+	size_t order;
+
+	/*
+	 * Locate the segment in the used hash table.
+	 */
+	link = hash_table_find(&span->used, &key);
+	if (!link) {
+		panic("Freeing segment which is not known to be used (base=%"
+		    PRIxn ", size=%" PRIdn ").", base, size);
+	}
+	seg = hash_table_get_instance(link, ra_segment_t, fu_link);
+
+	/*
+	 * Hash out the segment.
+	 */
+	hash_table_remove(&span->used, &key, 1);
+
+	ASSERT(!(seg->flags & RA_SEGMENT_FREE));
+	ASSERT(seg->base == base);
+	ASSERT(ra_segment_size_get(seg) == size);
+
+	/*
+	 * Check whether the segment can be coalesced with its left neighbor.
+	 */
+	if (list_first(&span->segments) != &seg->segment_link) {
+		pred = hash_table_get_instance(seg->segment_link.prev,
+		    ra_segment_t, segment_link);
+
+		ASSERT(pred->base < seg->base);
+
+		if (pred->flags & RA_SEGMENT_FREE) {
+			/*
+			 * The segment can be coalesced with its predecessor.
+			 * Remove the predecessor from the free and segment
+			 * lists, rebase the segment and throw the predecessor
+			 * away.
+			 */
+			list_remove(&pred->fu_link);
+			list_remove(&pred->segment_link);
+			seg->base = pred->base;
+			ra_segment_destroy(pred);
+		}
+	}
+
+	/*
+	 * Check whether the segment can be coalesced with its right neighbor.
+	 */
+	succ = hash_table_get_instance(seg->segment_link.next, ra_segment_t,
+	    segment_link);
+	ASSERT(succ->base > seg->base);
+	if (succ->flags & RA_SEGMENT_FREE) {
+		/*
+		 * The segment can be coalesced with its successor.
+		 * Remove the successor from the free and segment lists
+		 * and throw it away.
+		 */
+		list_remove(&succ->fu_link);
+		list_remove(&succ->segment_link);
+		ra_segment_destroy(succ);
+	}
+
+	/* Put the segment on the appropriate free list. */
+	seg->flags |= RA_SEGMENT_FREE;
+	order = fnzb(ra_segment_size_get(seg));
+	list_append(&seg->fu_link, &span->free[order]);
 }
 
 /** Allocate resources from arena. */
