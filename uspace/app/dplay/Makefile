@@ -37,6 +37,7 @@ EXTRA_CFLAGS = \
 
 SOURCES = \
 	beep.c \
-	dplay.c
+	dplay.c \
+	wave.c
 
 include $(USPACE_PREFIX)/Makefile.common
