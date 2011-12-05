@@ -27,7 +27,11 @@
  */
 
 #include <stdint.h>
+#include <bool.h>
 
 extern const void *beep;
 extern const size_t beep_size;
 extern const unsigned channels;
+extern const unsigned rate;
+extern const unsigned sample_size;
+extern const bool sign;

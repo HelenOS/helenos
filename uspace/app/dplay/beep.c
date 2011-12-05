@@ -4443,3 +4443,6 @@ const uint16_t beep16[] = {
 const size_t beep_size = sizeof(beep16);
 const void *beep = beep16;
 const unsigned channels = 1;
+const unsigned rate = 44100;
+const unsigned sample_size = 16;
+const bool sign = true;
