@@ -156,6 +156,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
+	$(USPACE_PATH)/app/dplay/dplay \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/kill/kill \

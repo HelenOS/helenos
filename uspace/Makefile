@@ -37,6 +37,7 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
+	app/dplay \
 	app/edit \
 	app/ext2info \
 	app/getterm \
