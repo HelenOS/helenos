@@ -450,48 +450,41 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 
 	const usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
-	size_t size;
-	const void *descriptor = NULL;
 	const uint16_t setup_request_value = setup_request->value_high;
 	switch (setup_request_value)
 	{
 	case USB_DESCTYPE_HUB:
 		usb_log_debug2("USB_DESCTYPE_HUB\n");
 		/* Hub descriptor was generated locally */
-		descriptor = instance->descriptors.hub;
-		size = instance->hub_descriptor_size;
-		break;
+		TRANSFER_END_DATA(request, instance->descriptors.hub,
+		    instance->hub_descriptor_size);
 
 	case USB_DESCTYPE_DEVICE:
 		usb_log_debug2("USB_DESCTYPE_DEVICE\n");
-		/* Device descriptor is shared (No one should ask for it)*/
-		descriptor = &ohci_rh_device_descriptor;
-		size = sizeof(ohci_rh_device_descriptor);
-		break;
+		/* Device descriptor is shared (No one should ask for it) */
+		TRANSFER_END_DATA(request, &ohci_rh_device_descriptor,
+		    sizeof(ohci_rh_device_descriptor));
 
 	case USB_DESCTYPE_CONFIGURATION:
 		usb_log_debug2("USB_DESCTYPE_CONFIGURATION\n");
 		/* Start with configuration and add others depending on
 		 * request size */
-		descriptor = &instance->descriptors;
-		size = instance->descriptors.configuration.total_length;
-		break;
+		TRANSFER_END_DATA(request, &instance->descriptors,
+		    instance->descriptors.configuration.total_length);
 
 	case USB_DESCTYPE_INTERFACE:
 		usb_log_debug2("USB_DESCTYPE_INTERFACE\n");
 		/* Use local interface descriptor. There is one and it
 		 * might be modified */
-		descriptor = &instance->descriptors.interface;
-		size = sizeof(instance->descriptors.interface);
-		break;
+		TRANSFER_END_DATA(request, &instance->descriptors.interface,
+		    sizeof(instance->descriptors.interface));
 
 	case USB_DESCTYPE_ENDPOINT:
 		/* Use local endpoint descriptor. There is one
 		 * it might have max_packet_size field modified*/
 		usb_log_debug2("USB_DESCTYPE_ENDPOINT\n");
-		descriptor = &instance->descriptors.endpoint;
-		size = sizeof(instance->descriptors.endpoint);
-		break;
+		TRANSFER_END_DATA(request, &instance->descriptors.endpoint,
+		    sizeof(instance->descriptors.endpoint));
 
 	default:
 		usb_log_debug2("USB_DESCTYPE_EINVAL %d \n"
@@ -503,11 +496,8 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 		    setup_request->length);
 		TRANSFER_END(request, EINVAL);
 	}
-	if (request->buffer_size < size) {
-		size = request->buffer_size;
-	}
 
-	TRANSFER_END_DATA(request, descriptor, size);
+	TRANSFER_END(request, ENOTSUP);
 }
 /*----------------------------------------------------------------------------*/
 /**
