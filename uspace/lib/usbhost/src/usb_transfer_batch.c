@@ -144,12 +144,12 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
 
         if (instance->callback_in) {
 		/* We care about the data and there are some to copy */
+		const size_t safe_size = min(size, instance->buffer_size);
 		if (data) {
-			const size_t minsize = min(size, instance->buffer_size);
-	                memcpy(instance->buffer, data, minsize);
+	                memcpy(instance->buffer, data, safe_size);
 		}
 		instance->callback_in(instance->fun, error,
-		    instance->transfered_size, instance->arg);
+		    safe_size, instance->arg);
 	}
 }
 /**
