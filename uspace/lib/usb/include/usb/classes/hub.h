@@ -83,9 +83,10 @@ typedef struct {
 } __attribute__ ((packed)) usb_hub_descriptor_header_t;
 
 /**
- *	@brief usb hub descriptor
+ * @brief usb hub descriptor
  *
- *	For more information see Universal Serial Bus Specification Revision 1.1 chapter 11.16.2
+ * For more information see Universal Serial Bus Specification Revision 1.1
+ * chapter 11.16.2
  */
 typedef struct usb_hub_descriptor_type {
     /** Number of bytes in this descriptor, including this byte */

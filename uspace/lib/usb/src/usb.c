@@ -38,29 +38,29 @@
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 static const char *str_speed[] = {
-	"low",
-	"full",
-	"high"
+	[USB_SPEED_LOW] = "low",
+	[USB_SPEED_FULL] = "full",
+	[USB_SPEED_HIGH] = "high",
 };
 
 static const char *str_transfer_type[] = {
-	"control",
-	"isochronous",
-	"bulk",
-	"interrupt"
+	[USB_TRANSFER_CONTROL] = "control",
+	[USB_TRANSFER_ISOCHRONOUS] = "isochronous",
+	[USB_TRANSFER_BULK] = "bulk",
+	[USB_TRANSFER_INTERRUPT] = "interrupt",
 };
 
 static const char *str_transfer_type_short[] = {
-	"ctrl",
-	"iso",
-	"bulk",
-	"intr"
+	[USB_TRANSFER_CONTROL] = "ctrl",
+	[USB_TRANSFER_ISOCHRONOUS] = "iso",
+	[USB_TRANSFER_BULK] = "bulk",
+	[USB_TRANSFER_INTERRUPT] = "intr",
 };
 
 static const char *str_direction[] = {
-	"in",
-	"out",
-	"both"
+	[USB_DIRECTION_IN] = "in",
+	[USB_DIRECTION_OUT] = "out",
+	[USB_DIRECTION_BOTH] = "both",
 };
 
 /** String representation for USB transfer type.
