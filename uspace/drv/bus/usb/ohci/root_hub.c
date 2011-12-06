@@ -99,7 +99,7 @@ static const usb_standard_interface_descriptor_t ohci_rh_iface_descriptor = {
 static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 	.attributes = USB_TRANSFER_INTERRUPT,
 	.descriptor_type = USB_DESCTYPE_ENDPOINT,
-	.endpoint_address = 1 + (1 << 7),
+	.endpoint_address = 1 | (1 << 7),
 	.length = sizeof(usb_standard_endpoint_descriptor_t),
 	.max_packet_size = 2,
 	.poll_interval = 255,
@@ -427,6 +427,37 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    instance->registers->rh_port_status[port - 1];
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
+	case SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE):
+		if (request->buffer_size < 2) {
+			usb_log_error("Buffer(%zu) too small for hub generic "
+			    "get status request.\n", request->buffer_size);
+			TRANSFER_END(request, EOVERFLOW);
+		} else {
+			static const uint16_t data =
+			    uint16_host2usb(USB_DEVICE_STATUS_SELF_POWERED);
+			TRANSFER_END_DATA(request, &data, sizeof(data));
+		}
+
+	case SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE):
+		/* Hubs are allowed to have only one interface */
+		if (request_packet->index != 0)
+			TRANSFER_END(request, EINVAL);
+		/* Fall through, as the answer will be the same: 0x0000 */
+	case SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_ENDPOINT):
+		/* Endpoint 0 (default control) and 1 (interrupt) */
+		if (request_packet->index >= 2)
+			TRANSFER_END(request, EINVAL);
+
+		if (request->buffer_size < 2) {
+			usb_log_error("Buffer(%zu) too small for hub generic "
+			    "get status request.\n", request->buffer_size);
+			TRANSFER_END(request, EOVERFLOW);
+		} else {
+			/* Endpoints are OK. (We don't halt) */
+			static const uint16_t data = 0;
+			TRANSFER_END_DATA(request, &data, sizeof(data));
+		}
+
 	default:
 		usb_log_error("Unsupported GET_STATUS request.\n");
 		TRANSFER_END(request, ENOTSUP);
