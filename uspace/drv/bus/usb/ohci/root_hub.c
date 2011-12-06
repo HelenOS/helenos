@@ -392,34 +392,46 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 	assert(instance);
 	assert(request);
 
-	if (request->buffer_size < 4) {
-		usb_log_error("Buffer too small for get status request.\n");
-		TRANSFER_END(request, EOVERFLOW);
-	}
 
 	const usb_device_request_setup_packet_t *request_packet =
 	    (usb_device_request_setup_packet_t*)request->setup_buffer;
 
+	switch (request_packet->request_type)
+	{
+	case USB_HUB_REQ_TYPE_GET_HUB_STATUS:
 	/* Hub status: just filter relevant info from rh_status reg */
-	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS) {
-		const uint32_t data = instance->registers->rh_status &
-		    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
-		TRANSFER_END_DATA(request, &data, sizeof(data));
-	}
+		if (request->buffer_size < 4) {
+			usb_log_error("Buffer(%zu) too small for hub get "
+			    "status request.\n", request->buffer_size);
+			TRANSFER_END(request, EOVERFLOW);
+		} else {
+			const uint32_t data = instance->registers->rh_status &
+			    (RHS_LPS_FLAG | RHS_LPSC_FLAG
+			        | RHS_OCI_FLAG | RHS_OCIC_FLAG);
+			TRANSFER_END_DATA(request, &data, sizeof(data));
+		}
 
 	/* Copy appropriate rh_port_status register, OHCI designers were
 	 * kind enough to make those bit values match USB specification */
-	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS) {
-		const unsigned port = request_packet->index;
-		if (port < 1 || port > instance->port_count)
-			TRANSFER_END(request, EINVAL);
+	case USB_HUB_REQ_TYPE_GET_PORT_STATUS:
+		if (request->buffer_size < 4) {
+			usb_log_error("Buffer(%zu) too small for hub get "
+			    "status request.\n", request->buffer_size);
+			TRANSFER_END(request, EOVERFLOW);
+		} else {
+			const unsigned port = request_packet->index;
+			if (port < 1 || port > instance->port_count)
+				TRANSFER_END(request, EINVAL);
 
-		const uint32_t data =
-		    instance->registers->rh_port_status[port - 1];
-		TRANSFER_END_DATA(request, &data, sizeof(data));
+			const uint32_t data =
+			    instance->registers->rh_port_status[port - 1];
+			TRANSFER_END_DATA(request, &data, sizeof(data));
+		}
+	default:
+		usb_log_error("Unsupported GET_STATUS request.\n");
+		TRANSFER_END(request, ENOTSUP);
 	}
 
-	TRANSFER_END(request, ENOTSUP);
 }
 /*----------------------------------------------------------------------------*/
 /**
