@@ -105,22 +105,20 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 );
 void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 
-void usb_transfer_batch_finish(const usb_transfer_batch_t *instance,
-    const void* data, size_t size);
+void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
+    const void* data, size_t size, int error);
 /*----------------------------------------------------------------------------*/
-/** Override error value and finishes transfer.
+/** Finish batch using stored error value.
  *
  * @param[in] instance Batch structure to use.
  * @param[in] data Data to copy to the output buffer.
  * @param[in] size Size of @p data.
- * @param[in] error Set batch status to this error value.
  */
-static inline void usb_transfer_batch_finish_error(
-    usb_transfer_batch_t *instance, const void* data, size_t size, int error)
+static inline void usb_transfer_batch_finish(
+    const usb_transfer_batch_t *instance, const void* data, size_t size)
 {
 	assert(instance);
-	instance->error = error;
-	usb_transfer_batch_finish(instance, data, size);
+	usb_transfer_batch_finish_error(instance, data, size, instance->error);
 }
 /*----------------------------------------------------------------------------*/
 /** Determine batch direction based on the callbacks present
