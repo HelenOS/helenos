@@ -155,7 +155,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
  * processed). Stop with true if an error is found. Return true if the last TD
  * is reached.
  */
-bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch)
+bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);

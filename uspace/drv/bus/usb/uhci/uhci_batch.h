@@ -61,7 +61,7 @@ typedef struct uhci_transfer_batch {
 
 uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *batch);
 void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch);
-bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch);
+bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch);
 
 static inline void * uhci_transfer_batch_setup_buffer(
     const uhci_transfer_batch_t *uhci_batch)
