@@ -45,6 +45,10 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
+/** Safely destructs uhci_transfer_batch_t structure.
+ *
+ * @param[in] uhci_batch Instance to destroy.
+ */
 static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	if (uhci_batch) {
@@ -54,9 +58,9 @@ static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 	}
 }
 /*----------------------------------------------------------------------------*/
-/** Safely destructs uhci_transfer_batch_t structure
+/** Finishes usb_transfer_batch and destroys the structure.
  *
- * @param[in] uhci_batch Instance to destroy.
+ * @param[in] uhci_batch Instance to finish and destroy.
  */
 void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch)
 {
@@ -67,19 +71,12 @@ void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch)
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
+/** Transfer batch setup table. */
 static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t);
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.
  *
- * @param[in] fun DDF function to pass to callback.
- * @param[in] ep Communication target
- * @param[in] buffer Data source/destination.
- * @param[in] buffer_size Size of the buffer.
- * @param[in] setup_buffer Setup data source (if not NULL)
- * @param[in] setup_size Size of setup_buffer (should be always 8)
- * @param[in] func_in function to call on inbound transfer completion
- * @param[in] func_out function to call on outbound transfer completion
- * @param[in] arg additional parameter to func_in or func_out
+ * @param[in] usb_batch Pointer to generic USB batch structure.
  * @return Valid pointer if all structures were successfully created,
  * NULL otherwise.
  *
@@ -199,6 +196,7 @@ substract_ret:
 	return true;
 }
 /*----------------------------------------------------------------------------*/
+/** Direction to pid conversion table */
 static const usb_packet_id direction_pids[] = {
 	[USB_DIRECTION_IN] = USB_PID_IN,
 	[USB_DIRECTION_OUT] = USB_PID_OUT,

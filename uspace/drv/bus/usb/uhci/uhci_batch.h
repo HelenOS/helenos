@@ -63,6 +63,10 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *batch);
 void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch);
 bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch);
 
+/** Get offset to setup buffer accessible to the HC hw.
+ * @param uhci_batch UHCI batch structure.
+ * @return Pointer to the setup buffer.
+ */
 static inline void * uhci_transfer_batch_setup_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
@@ -72,6 +76,10 @@ static inline void * uhci_transfer_batch_setup_buffer(
 	    uhci_batch->td_count * sizeof(td_t);
 }
 /*----------------------------------------------------------------------------*/
+/** Get offset to data buffer accessible to the HC hw.
+ * @param uhci_batch UHCI batch structure.
+ * @return Pointer to the data buffer.
+ */
 static inline void * uhci_transfer_batch_data_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
@@ -81,8 +89,12 @@ static inline void * uhci_transfer_batch_data_buffer(
 	    uhci_batch->usb_batch->setup_size;
 }
 /*----------------------------------------------------------------------------*/
-static inline void uhci_transfer_batch_abort(
-    uhci_transfer_batch_t *uhci_batch)
+/** Aborts the batch.
+ * Sets error to EINTR and size off transferd data to 0, before finishing the
+ * batch.
+ * @param uhci_batch Batch to abort.
+ */
+static inline void uhci_transfer_batch_abort(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
@@ -91,6 +103,10 @@ static inline void uhci_transfer_batch_abort(
 	uhci_transfer_batch_finish_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
+/** Linked list conversion wrapper.
+ * @param l Linked list link.
+ * @return Pointer to the uhci batch structure.
+ */
 static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)
 {
 	assert(l);
