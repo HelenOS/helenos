@@ -136,8 +136,6 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 		    str_error(ret));
 		return ret;
 	}
-	usb_device_manager_bind_address(&instance->generic.dev_manager,
-	    instance->rh.address, hub_fun->handle);
 
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -164,6 +162,12 @@ if (ret != EOK) { \
 	ret = ddf_fun_bind(hub_fun);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
+
+	ret = usb_device_manager_bind_address(&instance->generic.dev_manager,
+	    instance->rh.address, hub_fun->handle);
+	if (ret != EOK)
+		usb_log_warning("Failed to bind root hub address: %s.\n",
+		    str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_RELEASE
