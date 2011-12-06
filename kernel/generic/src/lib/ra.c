@@ -53,9 +53,24 @@
 #include <align.h>
 #include <macros.h>
 
+#define USED_BUCKETS	1024
+
+static size_t used_hash(sysarg_t *key)
+{
+	return ((*key >> 2) & (USED_BUCKETS - 1));
+}
+
+static bool used_compare(sysarg_t *key, size_t keys, link_t *item)
+{
+	ra_segment_t *seg;
+
+	seg = hash_table_get_instance(item, ra_segment_t, fu_link);
+	return seg->base == *key;
+}
+
 static hash_table_operations_t used_ops = {
-	.hash = NULL,
-	.compare = NULL,
+	.hash = used_hash,
+	.compare = used_compare,
 	.remove_callback = NULL,
 };
 
@@ -141,7 +156,7 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	link_initialize(&span->span_link);
 	list_initialize(&span->segments);
 
-	hash_table_create(&span->used, span->max_order + 1, 1, &used_ops);
+	hash_table_create(&span->used, USED_BUCKETS, 1, &used_ops);
 
 	for (i = 0; i < span->max_order; i++)
 		list_initialize(&span->free[i]);
