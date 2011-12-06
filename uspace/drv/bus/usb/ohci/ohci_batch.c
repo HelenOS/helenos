@@ -64,6 +64,10 @@ static void ohci_transfer_batch_dispose(ohci_transfer_batch_t *ohci_batch)
 	free(ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
+/** Finishes usb_transfer_batch and destroys the structure.
+ *
+ * @param[in] uhci_batch Instance to finish and destroy.
+ */
 void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *ohci_batch)
 {
 	assert(ohci_batch);
@@ -73,6 +77,16 @@ void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *ohci_batch)
 	ohci_transfer_batch_dispose(ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
+/** Allocate memory and initialize internal data structure.
+ *
+ * @param[in] usb_batch Pointer to generic USB batch structure.
+ * @return Valid pointer if all structures were successfully created,
+ * NULL otherwise.
+ *
+ * Determines the number of needed transfer descriptors (TDs).
+ * Prepares a transport buffer (that is accessible by the hardware).
+ * Initializes parameters needed for the transfer and callback.
+ */
 ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 {
 	assert(usb_batch);
@@ -376,6 +390,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
 /*----------------------------------------------------------------------------*/
+/** Transfer setup table. */
 static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t) =
 {
 	[USB_TRANSFER_CONTROL] = batch_control,
