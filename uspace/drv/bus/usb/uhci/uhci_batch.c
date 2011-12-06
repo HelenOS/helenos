@@ -63,8 +63,7 @@ void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
 	usb_transfer_batch_finish(uhci_batch->usb_batch,
-	    uhci_transfer_batch_data_buffer(uhci_batch),
-	    uhci_batch->usb_batch->buffer_size);
+	    uhci_transfer_batch_data_buffer(uhci_batch));
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/

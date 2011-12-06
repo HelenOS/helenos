@@ -115,10 +115,11 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
  * @param[in] size Size of @p data.
  */
 static inline void usb_transfer_batch_finish(
-    const usb_transfer_batch_t *instance, const void* data, size_t size)
+    const usb_transfer_batch_t *instance, const void* data)
 {
 	assert(instance);
-	usb_transfer_batch_finish_error(instance, data, size, instance->error);
+	usb_transfer_batch_finish_error(
+	    instance, data, instance->transfered_size, instance->error);
 }
 /*----------------------------------------------------------------------------*/
 /** Determine batch direction based on the callbacks present

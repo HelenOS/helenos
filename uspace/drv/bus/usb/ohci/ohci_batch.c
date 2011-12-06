@@ -69,8 +69,7 @@ void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *ohci_batch)
 	assert(ohci_batch);
 	assert(ohci_batch->usb_batch);
 	usb_transfer_batch_finish(ohci_batch->usb_batch,
-	    ohci_batch->device_buffer + ohci_batch->usb_batch->setup_size,
-	    ohci_batch->usb_batch->buffer_size);
+	    ohci_batch->device_buffer + ohci_batch->usb_batch->setup_size);
 	ohci_transfer_batch_dispose(ohci_batch);
 }
 /*----------------------------------------------------------------------------*/
