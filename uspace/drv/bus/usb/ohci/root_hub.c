@@ -108,28 +108,35 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 static void create_serialized_hub_descriptor(rh_t *instance);
 static void rh_init_descriptors(rh_t *instance);
 static uint16_t create_interrupt_mask(const rh_t *instance);
-static int get_status(const rh_t *instance, usb_transfer_batch_t *request);
-static int get_descriptor(const rh_t *instance, usb_transfer_batch_t *request);
-static int set_feature(const rh_t *instance, usb_transfer_batch_t *request);
-static int clear_feature(const rh_t *instance, usb_transfer_batch_t *request);
+static void get_status(const rh_t *instance, usb_transfer_batch_t *request);
+static void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request);
+static void set_feature(const rh_t *instance, usb_transfer_batch_t *request);
+static void clear_feature(const rh_t *instance, usb_transfer_batch_t *request);
 static int set_feature_port(
     const rh_t *instance, uint16_t feature, uint16_t port);
 static int clear_feature_port(
     const rh_t *instance, uint16_t feature, uint16_t port);
-static int control_request(rh_t *instance, usb_transfer_batch_t *request);
+static void control_request(rh_t *instance, usb_transfer_batch_t *request);
 static inline void interrupt_request(
     usb_transfer_batch_t *request, uint16_t mask, size_t size)
 {
 	assert(request);
-
-	request->transfered_size = size;
 	usb_transfer_batch_finish_error(request, &mask, size, EOK);
+	usb_transfer_batch_destroy(request);
 }
 
-#define TRANSFER_OK(bytes) \
+#define TRANSFER_END_DATA(request, data, bytes) \
 do { \
-	request->transfered_size = bytes; \
-	return EOK; \
+	usb_transfer_batch_finish_error(request, data, bytes, EOK); \
+	usb_transfer_batch_destroy(request); \
+	return; \
+} while (0)
+
+#define TRANSFER_END(request, error) \
+do { \
+	usb_transfer_batch_finish_error(request, NULL, 0, error); \
+	usb_transfer_batch_destroy(request); \
+	return; \
 } while (0)
 
 /** Root Hub driver structure initialization.
@@ -211,30 +218,29 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_TRANSFER_CONTROL:
 		usb_log_debug("Root hub got CONTROL packet\n");
-		const int ret = control_request(instance, request);
-		usb_transfer_batch_finish_error(request, NULL, 0, ret);
+		control_request(instance, request);
 		break;
+
 	case USB_TRANSFER_INTERRUPT:
 		usb_log_debug("Root hub got INTERRUPT packet\n");
 		fibril_mutex_lock(&instance->guard);
 		assert(instance->unfinished_interrupt_transfer == NULL);
 		const uint16_t mask = create_interrupt_mask(instance);
 		if (mask == 0) {
-			usb_log_debug("No changes..\n");
+			usb_log_debug("No changes...\n");
 			instance->unfinished_interrupt_transfer = request;
-			fibril_mutex_unlock(&instance->guard);
-			return;
+		} else {
+			usb_log_debug("Processing changes...\n");
+			interrupt_request(
+			    request, mask, instance->interrupt_mask_size);
 		}
-		usb_log_debug("Processing changes...\n");
-		interrupt_request(request, mask, instance->interrupt_mask_size);
 		fibril_mutex_unlock(&instance->guard);
 		break;
 
 	default:
 		usb_log_error("Root hub got unsupported request.\n");
-		usb_transfer_batch_finish_error(request, NULL, 0, EINVAL);
+		TRANSFER_END(request, ENOTSUP);
 	}
-	usb_transfer_batch_destroy(request);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -253,8 +259,6 @@ void rh_interrupt(rh_t *instance)
 		const uint16_t mask = create_interrupt_mask(instance);
 		interrupt_request(instance->unfinished_interrupt_transfer,
 		    mask, instance->interrupt_mask_size);
-		usb_transfer_batch_destroy(
-		    instance->unfinished_interrupt_transfer);
 		instance->unfinished_interrupt_transfer = NULL;
 	}
 	fibril_mutex_unlock(&instance->guard);
@@ -383,25 +387,24 @@ uint16_t create_interrupt_mask(const rh_t *instance)
  * @param request structure containing both request and response information
  * @return error code
  */
-int get_status(const rh_t *instance, usb_transfer_batch_t *request)
+void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
 
-	const usb_device_request_setup_packet_t *request_packet =
-	    (usb_device_request_setup_packet_t*)request->setup_buffer;
-
 	if (request->buffer_size < 4) {
 		usb_log_error("Buffer too small for get status request.\n");
-		return EOVERFLOW;
+		TRANSFER_END(request, EOVERFLOW);
 	}
+
+	const usb_device_request_setup_packet_t *request_packet =
+	    (usb_device_request_setup_packet_t*)request->setup_buffer;
 
 	/* Hub status: just filter relevant info from rh_status reg */
 	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_HUB_STATUS) {
 		const uint32_t data = instance->registers->rh_status &
 		    (RHS_LPS_FLAG | RHS_LPSC_FLAG | RHS_OCI_FLAG | RHS_OCIC_FLAG);
-		memcpy(request->buffer, &data, sizeof(data));
-		TRANSFER_OK(sizeof(data));
+		TRANSFER_END_DATA(request, &data, sizeof(data));
 	}
 
 	/* Copy appropriate rh_port_status register, OHCI designers were
@@ -409,15 +412,14 @@ int get_status(const rh_t *instance, usb_transfer_batch_t *request)
 	if (request_packet->request_type == USB_HUB_REQ_TYPE_GET_PORT_STATUS) {
 		const unsigned port = request_packet->index;
 		if (port < 1 || port > instance->port_count)
-			return EINVAL;
+			TRANSFER_END(request, EINVAL);
 
 		const uint32_t data =
 		    instance->registers->rh_port_status[port - 1];
-		memcpy(request->buffer, &data, sizeof(data));
-		TRANSFER_OK(sizeof(data));
+		TRANSFER_END_DATA(request, &data, sizeof(data));
 	}
 
-	return ENOTSUP;
+	TRANSFER_END(request, ENOTSUP);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -429,7 +431,7 @@ int get_status(const rh_t *instance, usb_transfer_batch_t *request)
  * @param request Structure containing both request and response information
  * @return Error code
  */
-int get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
+void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -439,7 +441,6 @@ int get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 	size_t size;
 	const void *descriptor = NULL;
 	const uint16_t setup_request_value = setup_request->value_high;
-	//(setup_request->value_low << 8);
 	switch (setup_request_value)
 	{
 	case USB_DESCTYPE_HUB:
@@ -488,14 +489,13 @@ int get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 		    setup_request->request_type, setup_request->request,
 		    setup_request_value, setup_request->index,
 		    setup_request->length);
-		return EINVAL;
+		TRANSFER_END(request, EINVAL);
 	}
 	if (request->buffer_size < size) {
 		size = request->buffer_size;
 	}
 
-	memcpy(request->buffer, descriptor, size);
-	TRANSFER_OK(size);
+	TRANSFER_END_DATA(request, descriptor, size);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -603,7 +603,7 @@ int clear_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
  * @param request structure containing both request and response information
  * @return error code
  */
-int set_feature(const rh_t *instance, usb_transfer_batch_t *request)
+void set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -614,19 +614,20 @@ int set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_HUB_REQ_TYPE_SET_PORT_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-		return set_feature_port(instance,
+		const int ret = set_feature_port(instance,
 		    setup_request->value, setup_request->index);
+		TRANSFER_END(request, ret);
 
 	case USB_HUB_REQ_TYPE_SET_HUB_FEATURE:
 		/* Chapter 11.16.2 specifies that hub can be recipient
 		 * only for C_HUB_LOCAL_POWER and C_HUB_OVER_CURRENT
 		 * features. It makes no sense to SET either. */
 		usb_log_error("Invalid HUB set feature request.\n");
-		return ENOTSUP;
+		TRANSFER_END(request, ENOTSUP);
 	default:
 		usb_log_error("Invalid set feature request type: %d\n",
 		    setup_request->request_type);
-		return EINVAL;
+		TRANSFER_END(request, EINVAL);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -639,7 +640,7 @@ int set_feature(const rh_t *instance, usb_transfer_batch_t *request)
  * @param request structure containing both request and response information
  * @return error code
  */
-int clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
+void clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -647,14 +648,13 @@ int clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 	const usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 
-	request->transfered_size = 0;
-
 	switch (setup_request->request_type)
 	{
 	case USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE\n");
-		return clear_feature_port(instance,
+		const int ret = clear_feature_port(instance,
 		    setup_request->value, setup_request->index);
+		TRANSFER_END(request, ret);
 
 	case USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE\n");
@@ -667,12 +667,12 @@ int clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 		 * (OHCI pg. 127) */
 		if (setup_request->value == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
 			instance->registers->rh_status = RHS_OCIC_FLAG;
-			TRANSFER_OK(0);
+			TRANSFER_END(request, EOK);
 		}
 	default:
 		usb_log_error("Invalid clear feature request type: %d\n",
 		    setup_request->request_type);
-		return EINVAL;
+		TRANSFER_END(request, EINVAL);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -694,19 +694,19 @@ int clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
  * @param request structure containing both request and response information
  * @return error code
  */
-int control_request(rh_t *instance, usb_transfer_batch_t *request)
+void control_request(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
 
 	if (!request->setup_buffer) {
 		usb_log_error("Root hub received empty transaction!");
-		return EINVAL;
+		TRANSFER_END(request, EBADMEM);
 	}
 
 	if (sizeof(usb_device_request_setup_packet_t) > request->setup_size) {
 		usb_log_error("Setup packet too small\n");
-		return EOVERFLOW;
+		TRANSFER_END(request, EOVERFLOW);
 	}
 
 	usb_log_debug2("CTRL packet: %s.\n",
@@ -717,47 +717,48 @@ int control_request(rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_DEVREQ_GET_STATUS:
 		usb_log_debug("USB_DEVREQ_GET_STATUS\n");
-		return get_status(instance, request);
+		get_status(instance, request);
+		break;
 
 	case USB_DEVREQ_GET_DESCRIPTOR:
 		usb_log_debug("USB_DEVREQ_GET_DESCRIPTOR\n");
-		return get_descriptor(instance, request);
+		get_descriptor(instance, request);
+		break;
 
 	case USB_DEVREQ_GET_CONFIGURATION:
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
-		if (request->buffer_size != 1)
-			return EINVAL;
-		request->buffer[0] = 1;
-		TRANSFER_OK(1);
+		if (request->buffer_size == 0)
+			TRANSFER_END(request, EOVERFLOW);
+		static const uint8_t config = 1;
+		TRANSFER_END_DATA(request, &config, sizeof(config));
 
 	case USB_DEVREQ_CLEAR_FEATURE:
-		usb_log_debug2("Processing request without "
-		    "additional data\n");
-		return clear_feature(instance, request);
+		usb_log_debug2("USB_DEVREQ_CLEAR_FEATURE\n");
+		clear_feature(instance, request);
+		break;
 
 	case USB_DEVREQ_SET_FEATURE:
-		usb_log_debug2("Processing request without "
-		    "additional data\n");
-		return set_feature(instance, request);
+		usb_log_debug2("USB_DEVREQ_SET_FEATURE\n");
+		set_feature(instance, request);
+		break;
 
 	case USB_DEVREQ_SET_ADDRESS:
 		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
 		instance->address = setup_request->value;
-		TRANSFER_OK(0);
+		TRANSFER_END(request, EOK);
 
 	case USB_DEVREQ_SET_CONFIGURATION:
 		usb_log_debug("USB_DEVREQ_SET_CONFIGURATION\n");
 		/* We don't need to do anything */
-		TRANSFER_OK(0);
+		TRANSFER_END(request, EOK);
 
 	case USB_DEVREQ_SET_DESCRIPTOR: /* Not supported by OHCI RH */
 	default:
 		usb_log_error("Received unsupported request: %d.\n",
 		    setup_request->request);
-		return ENOTSUP;
+		TRANSFER_END(request, ENOTSUP);
 	}
 }
-
 /**
  * @}
  */
