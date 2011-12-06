@@ -60,7 +60,7 @@ typedef struct uhci_transfer_batch {
 } uhci_transfer_batch_t;
 
 uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *batch);
-void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch);
+void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch);
 bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch);
 
 static inline void * uhci_transfer_batch_setup_buffer(
@@ -79,6 +79,16 @@ static inline void * uhci_transfer_batch_data_buffer(
 	assert(uhci_batch->usb_batch);
 	return uhci_transfer_batch_setup_buffer(uhci_batch) +
 	    uhci_batch->usb_batch->setup_size;
+}
+/*----------------------------------------------------------------------------*/
+static inline void uhci_transfer_batch_abort(
+    uhci_transfer_batch_t *uhci_batch)
+{
+	assert(uhci_batch);
+	assert(uhci_batch->usb_batch);
+	uhci_batch->usb_batch->error = EINTR;
+	uhci_batch->usb_batch->transfered_size = 0;
+	uhci_transfer_batch_finish_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
 static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)

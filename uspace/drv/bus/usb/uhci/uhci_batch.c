@@ -58,7 +58,7 @@ static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
  *
  * @param[in] uhci_batch Instance to destroy.
  */
-void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
+void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);

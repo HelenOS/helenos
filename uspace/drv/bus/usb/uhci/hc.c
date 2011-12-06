@@ -129,7 +129,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			list_remove(item);
 			uhci_transfer_batch_t *batch =
 			    uhci_transfer_batch_from_link(item);
-			uhci_transfer_batch_call_dispose(batch);
+			uhci_transfer_batch_finish_dispose(batch);
 		}
 	}
 	/* Resume interrupts are not supported */
