@@ -486,33 +486,39 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_DESCTYPE_HUB:
 		usb_log_debug2("USB_DESCTYPE_HUB\n");
-		/* Hub descriptor was generated locally */
+		/* Hub descriptor was generated locally.
+		 * Class specific request. */
 		TRANSFER_END_DATA(request, instance->descriptors.hub,
 		    instance->hub_descriptor_size);
 
 	case USB_DESCTYPE_DEVICE:
 		usb_log_debug2("USB_DESCTYPE_DEVICE\n");
-		/* Device descriptor is shared (No one should ask for it) */
+		/* Device descriptor is shared
+		 * (No one should ask for it, as the device is already setup)
+		 * Standard USB device request. */
 		TRANSFER_END_DATA(request, &ohci_rh_device_descriptor,
 		    sizeof(ohci_rh_device_descriptor));
 
 	case USB_DESCTYPE_CONFIGURATION:
 		usb_log_debug2("USB_DESCTYPE_CONFIGURATION\n");
 		/* Start with configuration and add others depending on
-		 * request size */
+		 * request size. Standard USB request. */
 		TRANSFER_END_DATA(request, &instance->descriptors,
 		    instance->descriptors.configuration.total_length);
 
 	case USB_DESCTYPE_INTERFACE:
 		usb_log_debug2("USB_DESCTYPE_INTERFACE\n");
 		/* Use local interface descriptor. There is one and it
-		 * might be modified */
+		 * might be modified. Hub driver should not ask or this
+		 * descriptor as it is not part of standard requests set. */
 		TRANSFER_END_DATA(request, &instance->descriptors.interface,
 		    sizeof(instance->descriptors.interface));
 
 	case USB_DESCTYPE_ENDPOINT:
 		/* Use local endpoint descriptor. There is one
-		 * it might have max_packet_size field modified*/
+		 * it might have max_packet_size field modified. Hub driver
+		 * should not ask for this descriptor as it is not part
+		 * of standard requests set. */
 		usb_log_debug2("USB_DESCTYPE_ENDPOINT\n");
 		TRANSFER_END_DATA(request, &instance->descriptors.endpoint,
 		    sizeof(instance->descriptors.endpoint));
@@ -657,10 +663,11 @@ void set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 		 * features. It makes no sense to SET either. */
 		usb_log_error("Invalid HUB set feature request.\n");
 		TRANSFER_END(request, ENOTSUP);
+	//TODO: Consider standard USB requests: REMOTE WAKEUP, ENDPOINT STALL
 	default:
 		usb_log_error("Invalid set feature request type: %d\n",
 		    setup_request->request_type);
-		TRANSFER_END(request, EINVAL);
+		TRANSFER_END(request, ENOTSUP);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -702,10 +709,11 @@ void clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 			instance->registers->rh_status = RHS_OCIC_FLAG;
 			TRANSFER_END(request, EOK);
 		}
+	//TODO: Consider standard USB requests: REMOTE WAKEUP, ENDPOINT STALL
 	default:
 		usb_log_error("Invalid clear feature request type: %d\n",
 		    setup_request->request_type);
-		TRANSFER_END(request, EINVAL);
+		TRANSFER_END(request, ENOTSUP);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -776,17 +784,29 @@ void control_request(rh_t *instance, usb_transfer_batch_t *request)
 		break;
 
 	case USB_DEVREQ_SET_ADDRESS:
-		usb_log_debug("USB_DEVREQ_SET_ADDRESS\n");
+		usb_log_debug("USB_DEVREQ_SET_ADDRESS: %u\n",
+		    setup_request->value);
+		if (uint16_usb2host(setup_request->value) > 127)
+			TRANSFER_END(request, EINVAL);
+
 		instance->address = setup_request->value;
 		TRANSFER_END(request, EOK);
 
 	case USB_DEVREQ_SET_CONFIGURATION:
-		usb_log_debug("USB_DEVREQ_SET_CONFIGURATION\n");
-		/* We don't need to do anything */
+		usb_log_debug("USB_DEVREQ_SET_CONFIGURATION: %u\n",
+		    setup_request->value);
+		/* We have only one configuration, it's number is 1 */
+		if (uint16_usb2host(setup_request->value) != 1)
+			TRANSFER_END(request, EINVAL);
 		TRANSFER_END(request, EOK);
 
-	case USB_DEVREQ_SET_DESCRIPTOR: /* Not supported by OHCI RH */
+	/* Both class specific and std is optional for hubs */
+	case USB_DEVREQ_SET_DESCRIPTOR:
+	/* Hubs have only one interface GET/SET is not supported */
+	case USB_DEVREQ_GET_INTERFACE:
+	case USB_DEVREQ_SET_INTERFACE:
 	default:
+		/* Hub class GET_STATE(2) falls in here too. */
 		usb_log_error("Received unsupported request: %d.\n",
 		    setup_request->request);
 		TRANSFER_END(request, ENOTSUP);
