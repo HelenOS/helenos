@@ -286,6 +286,21 @@ static void find_string_indexes_callback(
 
 void dump_strings(usbinfo_device_t *dev)
 {
+	/* Find used indexes. Devices with more than 64 strings are very rare.*/
+	uint64_t str_mask = 0;
+	find_string_indexes_callback((uint8_t *)&dev->device_descriptor, 0,
+	    &str_mask);
+	usb_dp_walk_simple(dev->full_configuration_descriptor,
+	    dev->full_configuration_descriptor_size,
+	    usb_dp_standard_descriptor_nesting,
+	    find_string_indexes_callback,
+	    &str_mask);
+
+	if (str_mask == 0) {
+		printf("Device does not support string descriptors.\n");
+		return;
+	}
+
 	/* Get supported languages. */
 	l18_win_locales_t *langs;
 	size_t langs_count;
@@ -304,17 +319,6 @@ void dump_strings(usbinfo_device_t *dev)
 		printf(" 0x%04x", (int) langs[i]);
 	}
 	printf(".\n");
-
-	/* Find used indexes. Device with more than 64 strings are very rare.
-	 */
-	uint64_t str_mask = 0;
-	find_string_indexes_callback((uint8_t *)&dev->device_descriptor, 0,
-	    &str_mask);
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
-	    find_string_indexes_callback,
-	    &str_mask);
 
 	/* Get all strings and dump them. */
 	for (i = 0; i < langs_count; i++) {
