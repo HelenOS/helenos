@@ -434,6 +434,8 @@ int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 	int rc, count;
 	exfat_dentry_t *de;
 
+	di->pos = pos;
+
 	rc = exfat_directory_get(di, &de);
 	if (rc != EOK)
 		return rc;
