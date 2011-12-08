@@ -284,8 +284,10 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 		return ENOMEM;
 	for (i = 0; i < count; i++) {
 		rc = exfat_directory_get(di, &de);
-		if (rc != EOK)
+		if (rc != EOK) {
+			free(array);
 			return rc;
+		}
 		array[i] = *de;
 		rc = exfat_directory_next(di);
 		if (rc != EOK) {
@@ -311,8 +313,10 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	/* Store */
 	for (i = 0; i < count; i++) {
 		rc = exfat_directory_get(di, &de);
-		if (rc != EOK)
+		if (rc != EOK) {
+			free(array);
 			return rc;
+		}
 		*de = array[i];
 		di->b->dirty = true;
 		rc = exfat_directory_next(di);
