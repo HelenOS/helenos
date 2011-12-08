@@ -39,7 +39,7 @@
 #include <genarch/fb/bfb.h>
 #include <console/console.h>
 
-uintptr_t bfb_addr = (uintptr_t) -1;
+uintptr_t bfb_addr = 0;
 uint32_t bfb_width = 0;
 uint32_t bfb_height = 0;
 uint16_t bfb_bpp = 0;
@@ -56,7 +56,8 @@ uint8_t bfb_blue_size = 0;
 
 bool bfb_init(void)
 {
-	if ((bfb_width == 0) || (bfb_height == 0))
+	if ((bfb_addr == 0) || (bfb_width == 0) || (bfb_height == 0) ||
+	    (bfb_bpp == 0) || (bfb_scanline == 0))
 		return false;
 	
 	fb_properties_t bfb_props = {
