@@ -49,30 +49,30 @@
 
 /** OPEN user call
  *
- * @param lport		Local port
+ * @param lsock		Local socket
  * @param fsock		Foreign socket
  * @param acpass	Active/passive
  * @param conn		Connection
+ *
+ * Unlike in the spec we allow specifying the local address. This means
+ * the implementation does not need to magically guess it, especially
+ * considering there can be more than one local address.
  *
  * XXX We should be able to call active open on an existing listening
  * connection.
  * XXX We should be able to get connection structure immediately, before
  * establishment.
  */
-tcp_error_t tcp_uc_open(uint16_t lport, tcp_sock_t *fsock, acpass_t acpass,
+tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
     tcp_conn_t **conn)
 {
 	tcp_conn_t *nconn;
-	tcp_sock_t lsock;
 
-	log_msg(LVL_DEBUG, "tcp_uc_open(%" PRIu16 ", %p, %s, %p)",
-	    lport, fsock, acpass == ap_active ? "active" : "passive",
+	log_msg(LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %p)",
+	    lsock, fsock, acpass == ap_active ? "active" : "passive",
 	    conn);
 
-	lsock.port = lport;
-	lsock.addr.ipv4 = TCP_IPV4_ANY;
-
-	nconn = tcp_conn_new(&lsock, fsock);
+	nconn = tcp_conn_new(lsock, fsock);
 	tcp_conn_add(nconn);
 
 	if (acpass == ap_active) {
@@ -245,6 +245,8 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 			conn->ident.foreign.addr.ipv4 = sp->foreign.addr.ipv4;
 		if (conn->ident.foreign.port == TCP_PORT_ANY)
 			conn->ident.foreign.port = sp->foreign.port;
+		if (conn->ident.local.addr.ipv4 == TCP_IPV4_ANY)
+			conn->ident.local.addr.ipv4 = sp->local.addr.ipv4;
 
 		tcp_conn_segment_arrived(conn, seg);
 	} else {

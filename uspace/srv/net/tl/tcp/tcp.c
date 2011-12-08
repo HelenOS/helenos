@@ -63,7 +63,7 @@
 
 async_sess_t *net_sess;
 static async_sess_t *icmp_sess;
-static async_sess_t *ip_sess;
+async_sess_t *ip_sess;
 packet_dimensions_t pkt_dims;
 
 static void tcp_received_pdu(tcp_pdu_t *pdu);

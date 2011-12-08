@@ -47,9 +47,22 @@
 
 #define TCP_CHECKSUM_INIT 0xffff
 
+/** One's complement addition.
+ *
+ * Result is a + b + carry.
+ */
+static uint16_t tcp_ocadd16(uint16_t a, uint16_t b)
+{
+	uint32_t s;
+
+	s = (uint32_t)a + (uint32_t)b;
+	return (s & 0xffff) + (s >> 16);
+}
+
 static uint16_t tcp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 {
 	uint16_t sum;
+	uint16_t w;
 	size_t words, i;
 	uint8_t *bdata;
 
@@ -58,11 +71,13 @@ static uint16_t tcp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 	bdata = (uint8_t *)data;
 
 	for (i = 0; i < words; i++) {
-		sum += ~(((uint16_t)bdata[2*i] << 8) + bdata[2*i + 1]);
+		w = ((uint16_t)bdata[2*i] << 8) | bdata[2*i + 1];
+		sum = tcp_ocadd16(sum, w);
 	}
 
 	if (size % 2 != 0) {
-		sum += ~((uint16_t)bdata[2*words] << 8);
+		w = ((uint16_t)bdata[2*words] << 8);
+		sum = tcp_ocadd16(sum, w);
 	}
 
 	return ~sum;
@@ -236,7 +251,7 @@ static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
 	tcp_header_t *hdr;
 
 	hdr = (tcp_header_t *)pdu->header;
-	hdr->checksum = host2uint16_t_le(checksum);
+	hdr->checksum = host2uint16_t_be(checksum);
 }
 
 /** Encode outgoing PDU */

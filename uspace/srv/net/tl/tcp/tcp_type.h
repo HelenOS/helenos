@@ -303,8 +303,12 @@ typedef struct {
 } tcp_client_t;
 
 typedef struct {
+	/** Client */
 	tcp_client_t *client;
+	/** Connection */
 	tcp_conn_t *conn;
+	/** Local address */
+	netaddr_t laddr;
 } tcp_sockdata_t;
 
 #endif

@@ -41,7 +41,7 @@
 /*
  * User calls
  */
-extern tcp_error_t tcp_uc_open(uint16_t, tcp_sock_t *, acpass_t, tcp_conn_t **);
+extern tcp_error_t tcp_uc_open(tcp_sock_t *, tcp_sock_t *, acpass_t, tcp_conn_t **);
 extern tcp_error_t tcp_uc_send(tcp_conn_t *, void *, size_t, xflags_t);
 extern tcp_error_t tcp_uc_receive(tcp_conn_t *, void *, size_t, size_t *, xflags_t *);
 extern tcp_error_t tcp_uc_close(tcp_conn_t *);

@@ -49,16 +49,19 @@
 static void test_srv(void *arg)
 {
 	tcp_conn_t *conn;
-	tcp_sock_t sock;
+	tcp_sock_t lsock;
+	tcp_sock_t fsock;
 	char rcv_buf[RCV_BUF_SIZE + 1];
 	size_t rcvd;
 	xflags_t xflags;
 
 	printf("test_srv()\n");
-	sock.port = 1024;
-	sock.addr.ipv4 = 0x7f000001;
+	lsock.port = 80;
+	lsock.addr.ipv4 = 0x7f000001;
+	fsock.port = 1024;
+	fsock.addr.ipv4 = 0x7f000001;
 	printf("S: User open...\n");
-	tcp_uc_open(80, &sock, ap_passive, &conn);
+	tcp_uc_open(&lsock, &fsock, ap_passive, &conn);
 	conn->name = (char *) "S";
 
 	while (true) {
@@ -85,17 +88,20 @@ static void test_srv(void *arg)
 static void test_cli(void *arg)
 {
 	tcp_conn_t *conn;
-	tcp_sock_t sock;
+	tcp_sock_t lsock;
+	tcp_sock_t fsock;
 	const char *msg = "Hello World!";
 
 	printf("test_cli()\n");
 
-	sock.port = 80;
-	sock.addr.ipv4 = 0x7f000001;
+	lsock.port = 1024;
+	lsock.addr.ipv4 = 0x7f000001;
+	fsock.port = 80;
+	fsock.addr.ipv4 = 0x7f000001;
 
 	async_usleep(1000*1000*3);
 	printf("C: User open...\n");
-	tcp_uc_open(1024, &sock, ap_active, &conn);
+	tcp_uc_open(&lsock, &fsock, ap_active, &conn);
 	conn->name = (char *) "C";
 
 	async_usleep(1000*1000*10);

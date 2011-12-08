@@ -38,6 +38,7 @@
 #include <async.h>
 #include <errno.h>
 #include <io/log.h>
+#include <ip_client.h>
 #include <ipc/socket.h>
 #include <net/modules.h>
 #include <net/socket.h>
@@ -105,6 +106,7 @@ static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	}
 
 	sock->client = client;
+	sock->laddr.ipv4 = TCP_IPV4_ANY;
 
 	sock_id = SOCKET_GET_SOCKET_ID(call);
 	rc = socket_create(&client->sockets, client->sess, sock, &sock_id);
@@ -210,8 +212,11 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
 	tcp_error_t trc;
+	tcp_sock_t lsocket;
 	tcp_sock_t fsocket;
-	uint16_t lport;
+	device_id_t dev_id;
+	tcp_phdr_t *phdr;
+	size_t phdr_len;
 
 	log_msg(LVL_DEBUG, "tcp_sock_connect()");
 
@@ -242,11 +247,28 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 		last_used_port = sock_core->port;
 	}
 
-	lport = sock_core->port;
+	if (socket->laddr.ipv4 == TCP_IPV4_ANY) {
+		/* Find route to determine local IP address. */
+		rc = ip_get_route_req(ip_sess, IPPROTO_TCP,
+		    (struct sockaddr *)addr, sizeof(*addr), &dev_id,
+		    (void **)&phdr, &phdr_len);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			log_msg(LVL_DEBUG, "tcp_transmit_connect: Failed to find route.");
+			return;
+		}
+
+		socket->laddr.ipv4 = uint32_t_be2host(phdr->src_addr);
+		log_msg(LVL_DEBUG, "Local IP address is %x", socket->laddr.ipv4);
+		free(phdr);
+	}
+
+	lsocket.addr.ipv4 = socket->laddr.ipv4;
+	lsocket.port = sock_core->port;
 	fsocket.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
 	fsocket.port = uint16_t_be2host(addr->sin_port);
 
-	trc = tcp_uc_open(lport, &fsocket, ap_active, &socket->conn);
+	trc = tcp_uc_open(&lsocket, &fsocket, ap_active, &socket->conn);
 
 	if (socket->conn != NULL)
 		socket->conn->name = (char *)"C";
@@ -279,6 +301,7 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	tcp_sockdata_t *socket;
 	tcp_sockdata_t *asocket;
 	tcp_error_t trc;
+	tcp_sock_t lsocket;
 	tcp_sock_t fsocket;
 	tcp_conn_t *conn;
 	int rc;
@@ -304,10 +327,12 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	log_msg(LVL_DEBUG, " - open connection");
 
+	lsocket.addr.ipv4 = TCP_IPV4_ANY;
+	lsocket.port = sock_core->port;
 	fsocket.addr.ipv4 = TCP_IPV4_ANY;
 	fsocket.port = TCP_PORT_ANY;
 
-	trc = tcp_uc_open(sock_core->port, &fsocket, ap_passive, &conn);
+	trc = tcp_uc_open(&lsocket, &fsocket, ap_passive, &conn);
 	if (conn != NULL)
 		conn->name = (char *)"S";
 
