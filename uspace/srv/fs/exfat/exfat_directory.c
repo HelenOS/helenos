@@ -100,14 +100,14 @@ int exfat_directory_close(exfat_directory_t *di)
 static int exfat_directory_block_load(exfat_directory_t *di)
 {
 	uint32_t i;
-	int rc;
+	int rc = EOK;
 
 	i = (di->pos * sizeof(exfat_dentry_t)) / BPS(di->bs);
 	if (di->nodep && (i >= di->blocks))
 		return ENOENT;
 
 	if (di->b && di->bnum != i) {
-		block_put(di->b);
+		rc = block_put(di->b);
 		di->b = NULL;
 	}
 	if (!di->b) {
@@ -125,7 +125,7 @@ static int exfat_directory_block_load(exfat_directory_t *di)
 		}
 		di->bnum = i;
 	}
-	return EOK;
+	return rc;
 }
 
 int exfat_directory_next(exfat_directory_t *di)
@@ -433,6 +433,8 @@ int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 {
 	int rc, count;
 	exfat_dentry_t *de;
+
+	di->pos = pos;
 
 	rc = exfat_directory_get(di, &de);
 	if (rc != EOK)
