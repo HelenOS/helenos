@@ -88,7 +88,7 @@ endif
 		if [ "$$module" = "kernel.bin" ] ; then \
 			echo "	$(MULTIBOOT_CMD) /boot/$$module" >> $(BOOT_CONFIG) ; \
 		else \
-			echo "	$(MODULE_CMD) /boot/$$module" >> $(BOOT_CONFIG) ; \
+			echo "	$(MODULE_CMD) /boot/$$module /boot/$$module" >> $(BOOT_CONFIG) ; \
 		fi \
 	done
 	echo "}" >> $(BOOT_CONFIG)
