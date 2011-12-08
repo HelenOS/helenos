@@ -429,7 +429,6 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 		}
 
 		di->b->dirty = true;
-		sname += chars;
 	}
 	
 	return exfat_directory_seek(di, pos);
