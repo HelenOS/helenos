@@ -197,7 +197,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 		nblocks = sbi->zbmap_blocks;
 		limit = sbi->nzones - sbi->firstdatazone - 1;
 	} else {
-		/*bid == BMAP_INODE*/
+		/* bid == BMAP_INODE */
 		search = &sbi->isearch;
 		start_block = 2;
 		nblocks = sbi->ibmap_blocks;
@@ -211,7 +211,7 @@ retry:
 
 	for (i = *search / bits_per_block; i < nblocks; ++i) {
 		r = block_get(&b, inst->service_id, i + start_block,
-			      BLOCK_FLAGS_NONE);
+		    BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
 			goto out;
