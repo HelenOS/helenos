@@ -91,8 +91,10 @@ int exfat_directory_close(exfat_directory_t *di)
 {
 	int rc = EOK;
 	
-	if (di->b)
+	if (di->b) {
 		rc = block_put(di->b);
+		di->b = NULL;
+	}
 	
 	return rc;
 }
