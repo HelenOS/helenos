@@ -43,12 +43,11 @@
 #include <async.h>
 
 /** i8042 HW I/O interface */
-struct i8042 {
+typedef struct {
 	ioport8_t data;
 	uint8_t pad[3];
 	ioport8_t status;
-} __attribute__ ((packed));
-typedef struct i8042 i8042_t;
+} __attribute__ ((packed)) i8042_regs_t;
 
 /** Softstate structure, one for each serial port (primary and aux). */
 typedef struct {

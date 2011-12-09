@@ -107,7 +107,7 @@ static irq_code_t i8042_kbd = {
 
 static uintptr_t i8042_physical;
 static uintptr_t i8042_kernel;
-static i8042_t * i8042;
+static i8042_regs_t * i8042;
 
 static i8042_port_t i8042_port[MAX_DEVS];
 
@@ -168,7 +168,7 @@ static int i8042_init(void)
 		return -1;
 	
 	void *vaddr;
-	if (pio_enable((void *) i8042_physical, sizeof(i8042_t), &vaddr) != 0)
+	if (pio_enable((void *) i8042_physical, sizeof(i8042_regs_t), &vaddr) != 0)
 		return -1;
 	
 	i8042 = vaddr;
@@ -194,8 +194,8 @@ static int i8042_init(void)
 	while (pio_read_8(&i8042->status) & i8042_OUTPUT_FULL)
 		(void) pio_read_8(&i8042->data);
 
-	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
-	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
+	i8042_kbd.cmds[0].addr = (void *) &((i8042_regs_t *) i8042_kernel)->status;
+	i8042_kbd.cmds[3].addr = (void *) &((i8042_regs_t *) i8042_kernel)->data;
 	register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
 	register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
 	printf("%s: registered for interrupts %" PRIun " and %" PRIun "\n",
