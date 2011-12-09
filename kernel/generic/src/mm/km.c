@@ -39,6 +39,10 @@
 #include <arch/mm/km.h>
 #include <config.h>
 #include <typedefs.h>
+#include <lib/ra.h>
+#include <debug.h>
+
+static ra_arena_t *km_ni_arena;
 
 /** Architecture dependent setup of identity-mapped kernel memory. */
 void km_identity_init(void)
@@ -50,13 +54,30 @@ void km_identity_init(void)
 /** Architecture dependent setup of non-identity-mapped kernel memory. */
 void km_non_identity_init(void)
 {
+	km_ni_arena = ra_arena_create();
+	ASSERT(km_ni_arena != NULL);
 	km_non_identity_arch_init();
 	config.non_identity_configured = true;
 }
 
 void km_non_identity_span_add(uintptr_t base, size_t size)
 {
+	bool span_added;
+
+	span_added = ra_span_add(km_ni_arena, base, size);
+	ASSERT(span_added);
 }
+
+uintptr_t km_page_alloc(size_t size, size_t align)
+{
+	return ra_alloc(km_ni_arena, size, align);
+}
+
+void km_page_free(uintptr_t page, size_t size)
+{
+	ra_free(km_ni_arena, page, size);
+}
+
 
 /** @}
  */
