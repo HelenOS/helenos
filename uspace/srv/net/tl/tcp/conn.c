@@ -48,7 +48,7 @@
 #include "tqueue.h"
 #include "ucall.h"
 
-#define RCV_BUF_SIZE 2/*4096*/
+#define RCV_BUF_SIZE 4096/*2*/
 #define SND_BUF_SIZE 4096
 
 #define MAX_SEGMENT_LIFETIME	(15*1000*1000) //(2*60*1000*1000)

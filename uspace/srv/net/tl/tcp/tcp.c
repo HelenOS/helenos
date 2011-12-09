@@ -396,7 +396,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
 
-	rc = log_init(NAME, LVL_DEBUG);
+	rc = log_init(NAME, LVL_ERROR);
 	if (rc != EOK) {
 		printf(NAME ": Failed to initialize log.\n");
 		return 1;
