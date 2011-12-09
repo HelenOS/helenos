@@ -115,13 +115,9 @@ static void i8042_port_write(i8042_dev_t *dev, int devid, uint8_t data);
 
 int main(int argc, char *argv[])
 {
-	char name[16];
-	int i, rc;
-	const char dchar[MAX_DEVS] = { 'a', 'b' };
-
 	printf(NAME ": i8042 PS/2 port driver\n");
 
-	rc = loc_server_register(NAME, i8042_connection);
+	int rc = loc_server_register(NAME, i8042_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register server.\n");
 		return rc;
@@ -130,16 +126,18 @@ int main(int argc, char *argv[])
 	if (i8042_init(&device) != EOK)
 		return -1;
 
-	for (i = 0; i < MAX_DEVS; i++) {
+	for (int i = 0; i < MAX_DEVS; i++) {
 		device.port[i].client_sess = NULL;
 
-		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
-		rc = loc_service_register(name, &device.port[i].service_id);
+		static const char *names[MAX_DEVS] = {
+		    NAMESPACE "/ps2a", NAMESPACE "/ps2b"};
+		rc = loc_service_register(names[i], &device.port[i].service_id);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
+			printf(NAME ": Unable to register device %s.\n",
+			    names[i]);
 			return rc;
 		}
-		printf(NAME ": Registered device %s\n", name);
+		printf(NAME ": Registered device %s\n", names[i]);
 	}
 
 	printf(NAME ": Accepting connections\n");
