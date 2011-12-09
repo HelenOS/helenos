@@ -67,12 +67,6 @@
 #define i8042_KBD_TRANSLATE	0x40
 
 
-enum {
-	DEVID_PRI = 0, /**< primary device */
-        DEVID_AUX = 1, /**< AUX device */
-	MAX_DEVS  = 2
-};
-
 static irq_cmd_t i8042_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
@@ -105,20 +99,16 @@ static irq_code_t i8042_kbd = {
 	i8042_cmds
 };
 
-static uintptr_t i8042_physical;
-static uintptr_t i8042_kernel;
-static i8042_regs_t * i8042;
-
-static i8042_port_t i8042_port[MAX_DEVS];
+static i8042_dev_t device;
 
 static void wait_ready(void)
 {
-	while (pio_read_8(&i8042->status) & i8042_INPUT_FULL);
+	while (pio_read_8(&device.regs->status) & i8042_INPUT_FULL);
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-static int i8042_init(void);
+static int i8042_init(i8042_dev_t *dev);
 static void i8042_port_write(int devid, uint8_t data);
 
 
@@ -126,7 +116,7 @@ int main(int argc, char *argv[])
 {
 	char name[16];
 	int i, rc;
-	char dchar[MAX_DEVS] = { 'a', 'b' };
+	const char dchar[MAX_DEVS] = { 'a', 'b' };
 
 	printf(NAME ": i8042 PS/2 port driver\n");
 
@@ -136,14 +126,14 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	if (i8042_init() != EOK)
+	if (i8042_init(&device) != EOK)
 		return -1;
 
 	for (i = 0; i < MAX_DEVS; i++) {
-		i8042_port[i].client_sess = NULL;
+		device.port[i].client_sess = NULL;
 
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
-		rc = loc_service_register(name, &i8042_port[i].service_id);
+		rc = loc_service_register(name, &device.port[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -159,8 +149,11 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-static int i8042_init(void)
+static int i8042_init(i8042_dev_t *dev)
 {
+	static uintptr_t i8042_physical;
+	static uintptr_t i8042_kernel;
+	assert(dev);
 	if (sysinfo_get_value("i8042.address.physical", &i8042_physical) != EOK)
 		return -1;
 	
@@ -171,7 +164,7 @@ static int i8042_init(void)
 	if (pio_enable((void *) i8042_physical, sizeof(i8042_regs_t), &vaddr) != 0)
 		return -1;
 	
-	i8042 = vaddr;
+	dev->regs = vaddr;
 	
 	sysarg_t inr_a;
 	sysarg_t inr_b;
@@ -186,13 +179,13 @@ static int i8042_init(void)
 	
 	/* Disable kbd and aux */
 	wait_ready();
-	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
+	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
-	pio_write_8(&i8042->data, i8042_KBD_DISABLE | i8042_AUX_DISABLE);
+	pio_write_8(&dev->regs->data, i8042_KBD_DISABLE | i8042_AUX_DISABLE);
 
 	/* Flush all current IO */
-	while (pio_read_8(&i8042->status) & i8042_OUTPUT_FULL)
-		(void) pio_read_8(&i8042->data);
+	while (pio_read_8(&dev->regs->status) & i8042_OUTPUT_FULL)
+		(void) pio_read_8(&dev->regs->data);
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_regs_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_regs_t *) i8042_kernel)->data;
@@ -202,9 +195,9 @@ static int i8042_init(void)
 	    NAME, inr_a, inr_b);
 
 	wait_ready();
-	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
+	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
-	pio_write_8(&i8042->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
+	pio_write_8(&dev->regs->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
 	    i8042_AUX_IE);
 
 	return 0;
@@ -228,7 +221,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
 	for (i = 0; i < MAX_DEVS; i++) {
-		if (i8042_port[i].service_id == dsid)
+		if (device.port[i].service_id == dsid)
 			dev_id = i;
 	}
 
@@ -255,8 +248,8 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
-			if (i8042_port[dev_id].client_sess == NULL) {
-				i8042_port[dev_id].client_sess = sess;
+			if (device.port[dev_id].client_sess == NULL) {
+				device.port[dev_id].client_sess = sess;
 				retval = EOK;
 			} else
 				retval = ELIMIT;
@@ -282,10 +275,10 @@ void i8042_port_write(int devid, uint8_t data)
 {
 	if (devid == DEVID_AUX) {
 		wait_ready();
-		pio_write_8(&i8042->status, i8042_CMD_WRITE_AUX);
+		pio_write_8(&device.regs->status, i8042_CMD_WRITE_AUX);
 	}
 	wait_ready();
-	pio_write_8(&i8042->data, data);
+	pio_write_8(&device.regs->data, data);
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
@@ -302,9 +295,9 @@ static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 		devid = DEVID_PRI;
 	}
 
-	if (i8042_port[devid].client_sess != NULL) {
+	if (device.port[devid].client_sess != NULL) {
 		async_exch_t *exch =
-		    async_exchange_begin(i8042_port[devid].client_sess);
+		    async_exchange_begin(device.port[devid].client_sess);
 		async_msg_1(exch, IPC_FIRST_USER_METHOD, data);
 		async_exchange_end(exch);
 	}

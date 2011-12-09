@@ -55,6 +55,17 @@ typedef struct {
 	async_sess_t *client_sess;
 } i8042_port_t;
 
+enum {
+	DEVID_PRI = 0, /**< primary device */
+        DEVID_AUX = 1, /**< AUX device */
+	MAX_DEVS  = 2
+};
+
+typedef struct {
+	i8042_regs_t *regs;
+	i8042_port_t port[MAX_DEVS];
+} i8042_dev_t;
+
 #endif
 
 /**
