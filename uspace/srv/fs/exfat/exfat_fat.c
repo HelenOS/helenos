@@ -321,11 +321,11 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 			rc = exfat_set_cluster(bs, service_id, clst,
 			    (found == 0) ?  EXFAT_CLST_EOF : lifo[found - 1]);
 			if (rc != EOK)
-				break;
+				goto exit_error;
 			found++;
 			rc = bitmap_set_cluster(bs, service_id, clst);
 			if (rc != EOK)
-				break;
+				goto exit_error;
 
 		}
 	}
@@ -338,6 +338,10 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 		return EOK;
 	}
 
+	rc = ENOSPC;
+
+exit_error:
+
 	/* If something wrong - free the clusters */
 	while (found--) {
 		(void) bitmap_clear_cluster(bs, service_id, lifo[found]);
@@ -346,7 +350,7 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 
 	free(lifo);
 	fibril_mutex_unlock(&exfat_alloc_lock);
-	return ENOSPC;
+	return rc;
 }
 
 /** Free clusters forming a cluster chain in FAT.
