@@ -116,6 +116,8 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	fibril_condvar_initialize(&conn->cstate_cv);
 
 	conn->cstate = st_listen;
+	conn->reset = false;
+	conn->ap = ap_passive;
 	conn->fin_is_acked = false;
 	conn->ident.local = *lsock;
 	if (fsock != NULL)
@@ -175,6 +177,7 @@ void tcp_conn_sync(tcp_conn_t *conn)
 	conn->iss = 1;
 	conn->snd_nxt = conn->iss;
 	conn->snd_una = conn->iss;
+	conn->ap = ap_active;
 
 	tcp_tqueue_ctrl_seg(conn, CTL_SYN);
 	tcp_conn_state_set(conn, st_syn_sent);
@@ -277,8 +280,22 @@ static void tcp_conn_reset(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
 	tcp_conn_state_set(conn, st_closed);
+	conn->reset = true;
+
 	tcp_conn_tw_timer_clear(conn);
 	tcp_tqueue_clear(&conn->retransmit);
+
+	fibril_condvar_broadcast(&conn->rcv_buf_cv);
+}
+
+/** Signal to the user that connection has been reset.
+ *
+ * Send an out-of-band signal to the user.
+ */
+static void tcp_reset_signal(tcp_conn_t *conn)
+{
+	/* TODO */
+	log_msg(LVL_DEBUG, "%s: tcp_reset_signal()", conn->name);
 }
 
 /** Determine if SYN has been received.
@@ -484,8 +501,38 @@ static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_rst(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	/* TODO */
-	return cp_continue;
+	switch (conn->cstate) {
+	case st_syn_received:
+		/* XXX In case of passive open, revert to Listen state */
+		if (conn->ap == ap_passive) {
+			tcp_conn_state_set(conn, st_listen);
+			/* XXX Revert conn->ident */
+			tcp_conn_tw_timer_clear(conn);
+			tcp_tqueue_clear(&conn->retransmit);
+		} else {
+			tcp_conn_reset(conn);
+		}
+		break;
+	case st_established:
+	case st_fin_wait_1:
+	case st_fin_wait_2:
+	case st_close_wait:
+		/* General "connection reset" signal */
+		tcp_reset_signal(conn);
+		tcp_conn_reset(conn);
+		break;
+	case st_closing:
+	case st_last_ack:
+	case st_time_wait:
+		tcp_conn_reset(conn);
+		break;
+	case st_listen:
+	case st_syn_sent:
+	case st_closed:
+		assert(false);
+	}
+
+	return cp_done;
 }
 
 /** Process segment security and precedence fields.

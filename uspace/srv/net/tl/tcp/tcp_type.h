@@ -146,6 +146,11 @@ typedef struct {
 	fibril_timer_t *timer;
 } tcp_tqueue_t;
 
+typedef enum {
+	ap_active,
+	ap_passive
+} acpass_t;
+
 typedef struct tcp_conn {
 	char *name;
 	link_t link;
@@ -153,8 +158,13 @@ typedef struct tcp_conn {
 	/** Connection identification (local and foreign socket) */
 	tcp_sockpair_t ident;
 
+	/** Active or passive connection */
+	acpass_t ap;
+
 	/** Connection state */
 	tcp_cstate_t cstate;
+	/** True if connection was reset */
+	bool reset;
 	/** Protects @c cstate */
 	fibril_mutex_t cstate_lock;
 	/** Signalled when @c cstate changes */
@@ -244,10 +254,6 @@ typedef struct {
 	void *dfptr;
 } tcp_segment_t;
 
-typedef enum {
-	ap_active,
-	ap_passive
-} acpass_t;
 
 typedef struct {
 	link_t link;

@@ -125,8 +125,11 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 
 	while (size > 0) {
 		buf_free = conn->snd_buf_size - conn->snd_buf_used;
-		while (buf_free == 0)
+		while (buf_free == 0 && !conn->reset)
 			tcp_tqueue_new_data(conn);
+
+		if (conn->reset)
+			return TCP_ERESET;
 
 		xfer_size = min(size, buf_free);
 
@@ -156,7 +159,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	fibril_mutex_lock(&conn->rcv_buf_lock);
 
 	/* Wait for data to become available */
-	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin) {
+	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin && !conn->reset) {
 		log_msg(LVL_DEBUG, "tcp_uc_receive() - wait for data");
 		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->rcv_buf_lock);
 	}
@@ -164,11 +167,17 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	if (conn->rcv_buf_used == 0) {
 		fibril_mutex_unlock(&conn->rcv_buf_lock);
 
-		/* End of data, peer closed connection. */
-		assert(conn->rcv_buf_fin);
 		*rcvd = 0;
 		*xflags = 0;
-		return TCP_ECLOSING;
+
+		if (conn->rcv_buf_fin) {
+			/* End of data, peer closed connection */
+			return TCP_ECLOSING;
+		} else {
+			/* Connection was reset */
+			assert(conn->reset);
+			return TCP_ERESET;
+		}
 	}
 
 	/* Copy data from receive buffer to user buffer */

@@ -450,6 +450,9 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		case TCP_ECLOSING:
 			rc = ENOTCONN;
 			break;
+		case TCP_ERESET:
+			rc = ECONNABORTED;
+			break;
 		default:
 			assert(false);
 		}
@@ -518,6 +521,9 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	case TCP_ENOTEXIST:
 	case TCP_ECLOSING:
 		rc = ENOTCONN;
+		break;
+	case TCP_ERESET:
+		rc = ECONNABORTED;
 		break;
 	default:
 		assert(false);
