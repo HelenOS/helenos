@@ -501,6 +501,9 @@ static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_rst(tcp_conn_t *conn, tcp_segment_t *seg)
 {
+	if ((seg->ctrl & CTL_RST) == 0)
+		return cp_continue;
+
 	switch (conn->cstate) {
 	case st_syn_received:
 		/* XXX In case of passive open, revert to Listen state */
