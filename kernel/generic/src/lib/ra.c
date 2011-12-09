@@ -173,10 +173,24 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	return span;
 }
 
-/** Create arena with initial span. */
-ra_arena_t *ra_arena_create(uintptr_t base, size_t size)
+/** Create an empty arena. */
+ra_arena_t *ra_arena_create(void)
 {
 	ra_arena_t *arena;
+
+	arena = (ra_arena_t *) malloc(sizeof(ra_arena_t), FRAME_ATOMIC);
+	if (!arena)
+		return NULL;
+
+	spinlock_initialize(&arena->lock, "arena_lock");
+	list_initialize(&arena->spans);
+
+	return arena;
+}
+
+/** Add a span to arena. */
+bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
+{
 	ra_span_t *span;
 
 	/*
@@ -184,31 +198,6 @@ ra_arena_t *ra_arena_create(uintptr_t base, size_t size)
 	 * If 0 needs to be considered as a valid resource, we would need to
 	 * slightly change the API of the resource allocator.
 	 */
-	if (base == 0)
-		return NULL;
-
-	arena = (ra_arena_t *) malloc(sizeof(ra_arena_t), FRAME_ATOMIC);
-	if (!arena)
-		return NULL;
-
-	span = ra_span_create(base, size);
-	if (!span) {
-		free(arena);
-		return NULL;
-	}
-
-	spinlock_initialize(&arena->lock, "arena_lock");
-	list_initialize(&arena->spans);
-	list_append(&span->span_link, &arena->spans);
-
-	return arena;
-}
-
-/** Add additional span to arena. */
-bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
-{
-	ra_span_t *span;
-
 	if (base == 0)
 		return false;
 
