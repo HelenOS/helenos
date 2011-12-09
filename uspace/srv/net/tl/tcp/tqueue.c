@@ -122,6 +122,8 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 
 		tqe->conn = conn;
 		tqe->seg = rt_seg;
+		rt_seg->seq = conn->snd_nxt;
+
 		list_append(&tqe->link, &conn->retransmit.list);
 
 		/* Set retransmission timer */
@@ -232,6 +234,10 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 			list_remove(cur);
 
 			if ((tqe->seg->ctrl & CTL_FIN) != 0) {
+				log_msg(LVL_DEBUG, "Fin has been acked");
+				log_msg(LVL_DEBUG, "SND.UNA=%" PRIu32
+				    " SEG.SEQ=%" PRIu32 " SEG.LEN=%" PRIu32,
+				    conn->snd_una, tqe->seg->seq, tqe->seg->len);
 				/* Our FIN has been acked */
 				conn->fin_is_acked = true;
 			}

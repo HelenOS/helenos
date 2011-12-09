@@ -259,6 +259,10 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 		tcp_conn_segment_arrived(conn, seg);
 	} else {
+		if (conn == NULL)
+			log_msg(LVL_WARN, "No connection found.");
+		else
+			log_msg(LVL_WARN, "Connection is closed.");
 		tcp_unexpected_segment(sp, seg);
 	}
 }
