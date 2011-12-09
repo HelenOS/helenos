@@ -52,6 +52,7 @@
 #include <adt/hash_table.h>
 #include <align.h>
 #include <macros.h>
+#include <synch/spinlock.h>
 
 #define USED_BUCKETS	1024
 
@@ -196,6 +197,7 @@ ra_arena_t *ra_arena_create(uintptr_t base, size_t size)
 		return NULL;
 	}
 
+	spinlock_initialize(&arena->lock, "arena_lock");
 	list_initialize(&arena->spans);
 	list_append(&span->span_link, &arena->spans);
 
@@ -215,7 +217,9 @@ bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
 		return false;
 
 	/* TODO: check for overlaps */
+	spinlock_lock(&arena->lock);
 	list_append(&span->span_link, &arena->spans);
+	spinlock_unlock(&arena->lock);
 	return true;
 }
 
@@ -394,6 +398,7 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 	ASSERT(alignment >= 1);
 	ASSERT(ispwr2(alignment));
 
+	spinlock_lock(&arena->lock);
 	list_foreach(arena->spans, cur) {
 		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
 
@@ -401,6 +406,7 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 		if (base)
 			break;
 	}
+	spinlock_unlock(&arena->lock);
 
 	return base;
 }
@@ -408,14 +414,17 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 /* Return resources to arena. */
 void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 {
+	spinlock_lock(&arena->lock);
 	list_foreach(arena->spans, cur) {
 		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
 
 		if (iswithin(span->base, span->size, base, size)) {
 			ra_span_free(span, base, size);
+			spinlock_unlock(&arena->lock);
 			return;
 		}
 	}
+	spinlock_unlock(&arena->lock);
 
 	panic("Freeing to wrong arena (base=%" PRIxn ", size=%" PRIdn ").",
 	    base, size);

@@ -38,8 +38,10 @@
 #include <typedefs.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
+#include <synch/spinlock.h>
 
 typedef struct {
+	SPINLOCK_DECLARE(lock);
 	list_t spans;		/**< List of arena's spans. */
 } ra_arena_t;
 
