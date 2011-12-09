@@ -25,7 +25,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /**
  * @addtogroup drvusbuhcihc
  * @{
@@ -38,7 +37,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <devman.h>
-#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 
 #include <usb/debug.h>
 #include <pci_dev_iface.h>
@@ -67,48 +66,28 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	if (!parent_sess)
 		return ENOMEM;
 
-	hw_resource_list_t hw_resources;
-	const int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
+	hw_res_list_parsed_t hw_res;
+	hw_res_list_parsed_init(&hw_res);
+	const int ret =  hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	async_hangup(parent_sess);
-	if (rc != EOK) {
-		return rc;
+	if (ret != EOK) {
+		return ret;
 	}
 
-	uintptr_t io_address = 0;
-	size_t io_size = 0;
-	bool io_found = false;
-
-	int irq = 0;
-	bool irq_found = false;
-
-	for (size_t i = 0; i < hw_resources.count; i++) {
-		const hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-		case INTERRUPT:
-			irq = res->res.interrupt.irq;
-			irq_found = true;
-			usb_log_debug2("Found interrupt: %d.\n", irq);
-			break;
-		case IO_RANGE:
-			io_address = res->res.io_range.address;
-			io_size = res->res.io_range.size;
-			usb_log_debug2("Found io: %" PRIx64" %zu.\n",
-			    res->res.io_range.address, res->res.io_range.size);
-			io_found = true;
-			break;
-		default:
-			break;
-		}
+	/* We want one irq and one io range. */
+	if (hw_res.irqs.count != 1 || hw_res.io_ranges.count != 1) {
+		hw_res_list_parsed_clean(&hw_res);
+		return EINVAL;
 	}
-	free(hw_resources.resources);
 
-	if (!io_found || !irq_found)
-		return ENOENT;
+	if (io_reg_address)
+		*io_reg_address = hw_res.io_ranges.ranges[0].address;
+	if (io_reg_size)
+		*io_reg_size = hw_res.io_ranges.ranges[0].size;
+	if (irq_no)
+		*irq_no = hw_res.irqs.irqs[0];
 
-	*io_reg_address = io_address;
-	*io_reg_size = io_size;
-	*irq_no = irq;
-
+	hw_res_list_parsed_clean(&hw_res);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
