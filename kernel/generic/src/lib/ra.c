@@ -159,7 +159,7 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 
 	hash_table_create(&span->used, USED_BUCKETS, 1, &used_ops);
 
-	for (i = 0; i < span->max_order; i++)
+	for (i = 0; i <= span->max_order; i++)
 		list_initialize(&span->free[i]);
 
 	/* Insert the first segment into the list of segments. */
@@ -256,8 +256,8 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		}
 		newbase = ALIGN_UP(seg->base, align);
 		if (newbase + size != seg->base + ra_segment_size_get(seg)) {
-			ASSERT(newbase + size < seg->base +
-			    ra_segment_size_get(seg));
+			ASSERT(newbase + (size - 1) < seg->base +
+			    (ra_segment_size_get(seg) - 1));
 			succ = ra_segment_create(newbase + size);
 			if (!succ) {
 				if (pred)
