@@ -139,25 +139,25 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_ohci(ddf_dev_t *device)
 {
-	assert(device);
+	if (device == NULL)
+		return EBADMEM;
 
-	ohci_t *instance = malloc(sizeof(ohci_t));
+	ohci_t *instance = ddf_dev_data_alloc(device,sizeof(ohci_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
 	}
-	instance->rh_fun = NULL;
-	instance->hc_fun = NULL;
 
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) { \
+		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	} \
 	if (instance->rh_fun) { \
+		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
-	free(instance); \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -217,8 +217,6 @@ if (ret != EOK) { \
 	ret = hc_init(&instance->hc, reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
-
-	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \

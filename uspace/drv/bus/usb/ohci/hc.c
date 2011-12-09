@@ -147,6 +147,7 @@ if (ret != EOK) { \
 	    &instance->generic.dev_manager, instance->rh.address); \
 	return ret; \
 } else (void)0
+
 	ret = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, instance->rh.address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
