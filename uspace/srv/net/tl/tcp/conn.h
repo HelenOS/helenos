@@ -29,19 +29,28 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file TCP connection processing and state machine
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef CONN_H
+#define CONN_H
 
-#include <async.h>
-#include <packet_remote.h>
+#include <bool.h>
 #include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);
+extern void tcp_conn_add(tcp_conn_t *);
+extern void tcp_conn_remove(tcp_conn_t *);
+extern void tcp_conn_sync(tcp_conn_t *);
+extern void tcp_conn_fin_sent(tcp_conn_t *);
+extern void tcp_conn_ack_of_fin_rcvd(tcp_conn_t *);
+extern tcp_conn_t *tcp_conn_find(tcp_sockpair_t *);
+extern bool tcp_conn_got_syn(tcp_conn_t *);
+extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
+extern void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);
+extern void tcp_unexpected_segment(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_sockpair_flipped(tcp_sockpair_t *, tcp_sockpair_t *);
+extern void tcp_reply_rst(tcp_sockpair_t *, tcp_segment_t *);
 
 #endif
 

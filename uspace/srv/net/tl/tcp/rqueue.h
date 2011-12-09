@@ -29,19 +29,20 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file Global segment receive queue
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef RQUEUE_H
+#define RQUEUE_H
 
-#include <async.h>
-#include <packet_remote.h>
 #include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern void tcp_rqueue_init(void);
+extern void tcp_rqueue_bounce_seg(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_rqueue_insert_seg(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_rqueue_handler(void *);
+extern void tcp_rqueue_thread_start(void);
+
 
 #endif
 

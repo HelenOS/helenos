@@ -29,19 +29,17 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file Connection incoming segments queue
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef IQUEUE_H
+#define IQUEUE_H
 
-#include <async.h>
-#include <packet_remote.h>
 #include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern void tcp_iqueue_init(tcp_iqueue_t *, tcp_conn_t *);
+extern void tcp_iqueue_insert_seg(tcp_iqueue_t *, tcp_segment_t *);
+extern int tcp_iqueue_get_ready_seg(tcp_iqueue_t *, tcp_segment_t **);
 
 #endif
 

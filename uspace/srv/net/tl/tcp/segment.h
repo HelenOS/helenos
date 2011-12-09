@@ -29,19 +29,27 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file Segment processing
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef SEGMENT_H
+#define SEGMENT_H
 
-#include <async.h>
-#include <packet_remote.h>
+#include <sys/types.h>
 #include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern tcp_segment_t *tcp_segment_new(void);
+extern void tcp_segment_delete(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_dup(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
+extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_make_data(tcp_control_t, void *, size_t);
+extern void tcp_segment_trim(tcp_segment_t *, uint32_t, uint32_t);
+extern void tcp_segment_text_copy(tcp_segment_t *, void *, size_t);
+extern size_t tcp_segment_text_size(tcp_segment_t *);
+extern void tcp_segment_dump(tcp_segment_t *);
+
+
 
 #endif
 

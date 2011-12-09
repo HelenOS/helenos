@@ -141,10 +141,11 @@ static void ne2k_download(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 
 static void ne2k_upload(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 {
+	size_t esize_ru = (size + 1) & ~1;
 	size_t esize = size & ~1;
 	
-	pio_write_8(ne2k->port + DP_RBCR0, esize & 0xff);
-	pio_write_8(ne2k->port + DP_RBCR1, (esize >> 8) & 0xff);
+	pio_write_8(ne2k->port + DP_RBCR0, esize_ru & 0xff);
+	pio_write_8(ne2k->port + DP_RBCR1, (esize_ru >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_RSAR0, addr & 0xff);
 	pio_write_8(ne2k->port + DP_RSAR1, (addr >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);

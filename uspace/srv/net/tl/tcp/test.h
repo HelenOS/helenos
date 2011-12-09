@@ -29,19 +29,13 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file Internal TCP test
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef TEST_H
+#define TEST_H
 
-#include <async.h>
-#include <packet_remote.h>
-#include "tcp_type.h"
-
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern void tcp_test(void);
 
 #endif
 
