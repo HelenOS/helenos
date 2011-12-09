@@ -101,15 +101,16 @@ static irq_code_t i8042_kbd = {
 
 static i8042_dev_t device;
 
-static void wait_ready(void)
+static void wait_ready(i8042_dev_t *dev)
 {
-	while (pio_read_8(&device.regs->status) & i8042_INPUT_FULL);
+	assert(dev);
+	while (pio_read_8(&dev->regs->status) & i8042_INPUT_FULL);
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int i8042_init(i8042_dev_t *dev);
-static void i8042_port_write(int devid, uint8_t data);
+static void i8042_port_write(i8042_dev_t *dev, int devid, uint8_t data);
 
 
 int main(int argc, char *argv[])
@@ -178,9 +179,9 @@ static int i8042_init(i8042_dev_t *dev)
 	async_set_interrupt_received(i8042_irq_handler);
 	
 	/* Disable kbd and aux */
-	wait_ready();
+	wait_ready(dev);
 	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
-	wait_ready();
+	wait_ready(dev);
 	pio_write_8(&dev->regs->data, i8042_KBD_DISABLE | i8042_AUX_DISABLE);
 
 	/* Flush all current IO */
@@ -194,9 +195,9 @@ static int i8042_init(i8042_dev_t *dev)
 	printf("%s: registered for interrupts %" PRIun " and %" PRIun "\n",
 	    NAME, inr_a, inr_b);
 
-	wait_ready();
+	wait_ready(dev);
 	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
-	wait_ready();
+	wait_ready(dev);
 	pio_write_8(&dev->regs->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
 	    i8042_AUX_IE);
 
@@ -258,7 +259,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			case IPC_FIRST_USER_METHOD:
 				printf(NAME ": write %" PRIun " to devid %d\n",
 				    IPC_GET_ARG1(call), dev_id);
-				i8042_port_write(dev_id, IPC_GET_ARG1(call));
+				i8042_port_write(&device, dev_id, IPC_GET_ARG1(call));
 				retval = 0;
 				break;
 			default:
@@ -271,14 +272,15 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-void i8042_port_write(int devid, uint8_t data)
+void i8042_port_write(i8042_dev_t *dev, int devid, uint8_t data)
 {
+	assert(dev);
 	if (devid == DEVID_AUX) {
-		wait_ready();
-		pio_write_8(&device.regs->status, i8042_CMD_WRITE_AUX);
+		wait_ready(dev);
+		pio_write_8(&dev->regs->status, i8042_CMD_WRITE_AUX);
 	}
-	wait_ready();
-	pio_write_8(&device.regs->data, data);
+	wait_ready(dev);
+	pio_write_8(&dev->regs->data, data);
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
