@@ -43,7 +43,7 @@ void km_identity_arch_init(void)
 void km_non_identity_arch_init(void)
 {
 	km_non_identity_span_add(KM_MIPS32_KSSEG_START, KM_MIPS32_KSSEG_SIZE);
-	km_non_identity_span_add(KM_MIPS32_KSEG0_START, KM_MIPS32_KSEG0_SIZE);
+	km_non_identity_span_add(KM_MIPS32_KSEG3_START, KM_MIPS32_KSEG3_SIZE);
 }
 
 /** @}
