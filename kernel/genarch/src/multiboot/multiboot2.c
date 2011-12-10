@@ -75,6 +75,7 @@ static void multiboot2_memmap(uint32_t length, const multiboot2_memmap_t *memmap
 
 static void multiboot2_fbinfo(const multiboot2_fbinfo_t *fbinfo)
 {
+#ifdef CONFIG_FB
 	if (fbinfo->visual == MULTIBOOT2_VISUAL_RGB) {
 		bfb_addr = fbinfo->addr;
 		bfb_width = fbinfo->width;
@@ -91,6 +92,7 @@ static void multiboot2_fbinfo(const multiboot2_fbinfo_t *fbinfo)
 		bfb_blue_pos = fbinfo->rgb.blue_pos;
 		bfb_blue_size = fbinfo->rgb.blue_size;
 	}
+#endif
 }
 
 /** Parse multiboot2 information structure.

@@ -167,7 +167,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 	if (name_len > sbi->max_name_len)
 		return ENAMETOOLONG;
 
-	/*Search the directory entry to be removed*/
+	/* Search the directory entry to be removed */
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize ; ++i) {
 		r = mfs_read_dentry(mnode, &d_info, i);

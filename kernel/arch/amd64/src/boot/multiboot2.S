@@ -54,7 +54,9 @@ multiboot2_header_start:
 		.long tag_info_req_end - tag_info_req_start
 		.long MULTIBOOT2_TAG_MODULE
 		.long MULTIBOOT2_TAG_MEMMAP
+#ifdef CONFIG_FB
 		.long MULTIBOOT2_TAG_FBINFO
+#endif
 	tag_info_req_end:
 	
 	/* Address tag */
@@ -84,6 +86,7 @@ multiboot2_header_start:
 		.long MULTIBOOT2_FLAGS_CONSOLE
 	tag_flags_end:
 	
+#ifdef CONFIG_FB
 	/* Framebuffer tag */
 	tag_framebuffer_start:
 		.word MULTIBOOT2_TAG_FRAMEBUFFER
@@ -93,6 +96,7 @@ multiboot2_header_start:
 		.long CONFIG_BFB_HEIGHT
 		.long CONFIG_BFB_BPP
 	tag_framebuffer_end:
+#endif
 	
 	/* Module alignment tag */
 	tag_module_align_start:

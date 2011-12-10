@@ -52,24 +52,26 @@ int device_assign_devno(void)
 	return __SYSCALL0(SYS_DEVICE_ASSIGN_DEVNO);
 }
 
-/** Map piece of physical memory to task.
+/** Map a piece of physical memory to task.
  *
  * Caller of this function must have the CAP_MEM_MANAGER capability.
  *
- * @param pf		Physical address of the starting frame.
- * @param vp		Virtual address of the starting page.
- * @param pages		Number of pages to map.
- * @param flags		Flags for the new address space area.
+ * @param pf    Physical address of the starting frame.
+ * @param vp    Virtual address of the starting page.
+ * @param pages Number of pages to map.
+ * @param flags Flags for the new address space area.
  *
- * @return 		0 on success, EPERM if the caller lacks the
- *			CAP_MEM_MANAGER capability, ENOENT if there is no task
- *			with specified ID and ENOMEM if there was some problem
- *			in creating address space area.
+ * @return EOK on success
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability
+ * @return ENOENT if there is no task with specified ID
+ * @return ENOMEM if there was some problem in creating
+ *         the address space area.
+ *
  */
-int physmem_map(void *pf, void *vp, unsigned long pages, int flags)
+int physmem_map(void *pf, void *vp, size_t pages, unsigned int flags)
 {
-	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) pf, (sysarg_t) vp, pages,
-	    flags);
+	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) pf, (sysarg_t) vp,
+	    pages, flags);
 }
 
 /** Enable I/O space range to task.

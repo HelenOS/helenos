@@ -40,7 +40,7 @@
 #include <task.h>
 
 extern int device_assign_devno(void);
-extern int physmem_map(void *, void *, unsigned long, int);
+extern int physmem_map(void *, void *, size_t, unsigned int);
 extern int iospace_enable(task_id_t, void *, unsigned long);
 extern int pio_enable(void *, size_t, void **);
 extern int register_irq(int, int, int, irq_code_t *);
