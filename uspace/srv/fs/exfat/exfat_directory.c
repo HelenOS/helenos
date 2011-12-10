@@ -111,6 +111,8 @@ static int exfat_directory_block_load(exfat_directory_t *di)
 	if (di->b && di->bnum != i) {
 		rc = block_put(di->b);
 		di->b = NULL;
+		if (rc != EOK)
+			return rc;
 	}
 	if (!di->b) {
 		if (di->nodep) {
