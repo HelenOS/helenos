@@ -1275,8 +1275,10 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    &df, &ds);
 		if (rc == EOK)
 			goto hit;
-		if (rc == ENOENT)
+		else if (rc == ENOENT)
 			goto miss;
+
+		(void) exfat_directory_close(&di);
 
 err:
 		(void) exfat_node_put(fn);
