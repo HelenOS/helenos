@@ -33,6 +33,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = i8042
 
 SOURCES = \
-	i8042.c
+	i8042.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

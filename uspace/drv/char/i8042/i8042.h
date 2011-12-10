@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <libarch/ddi.h>
 #include <async.h>
+#include <ddf/driver.h>
 
 /** i8042 HW I/O interface */
 typedef struct {
@@ -64,10 +65,13 @@ enum {
 typedef struct {
 	i8042_regs_t *regs;
 	i8042_port_t port[MAX_DEVS];
-} i8042_dev_t;
+	ddf_fun_t *kbd_fun;
+	ddf_fun_t *mouse_fun;
+} i8042_t;
+
+int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
 
 #endif
-
 /**
  * @}
  */
