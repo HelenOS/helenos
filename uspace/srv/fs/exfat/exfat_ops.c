@@ -738,11 +738,16 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 * dentry data is kept in the child node structure.
 	 */
 	rc = exfat_directory_write_file(&di, name);
-	if (rc != EOK)
+	if (rc != EOK) {
+		(void) exfat_directory_close(&di);
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 	rc = exfat_directory_close(&di);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
 	if (rc != EOK)
