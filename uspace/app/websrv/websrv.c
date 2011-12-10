@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 #include <fcntl.h>
 
 #include <net/in.h>
@@ -170,8 +171,11 @@ static int uri_get(const char *uri, int conn_sd)
 	fd = open(fname, O_RDONLY);
 	if (fd < 0) {
 		printf("File '%s' not found.\n", fname);
+		free(fname);
 		return ENOENT;
 	}
+
+	free(fname);
 
 	rc = send_response(conn_sd, ok_msg);
 	if (rc != EOK)
