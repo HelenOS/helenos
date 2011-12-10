@@ -35,7 +35,7 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
-#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 #include <devman.h>
 #include <assert.h>
 #include <stdio.h>
@@ -164,13 +164,6 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
     int *irq, int *dma8, int *dma16)
 {
 	assert(device);
-	assert(sb_regs);
-	assert(sb_regs_size);
-	assert(mpu_regs);
-	assert(mpu_regs_size);
-	assert(irq);
-	assert(dma8);
-	assert(dma16);
 
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
@@ -178,46 +171,68 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 	if (!parent_sess)
 		return ENOMEM;
 
-	hw_resource_list_t hw_resources;
-	const int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
-	if (rc != EOK) {
-		async_hangup(parent_sess);
-		return rc;
+	hw_res_list_parsed_t hw_res;
+	hw_res_list_parsed_init(&hw_res);
+	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	async_hangup(parent_sess);
+	if (ret != EOK) {
+		return ret;
 	}
 
-	size_t i;
-	for (i = 0; i < hw_resources.count; i++) {
-		const hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-		case INTERRUPT:
-			*irq = res->res.interrupt.irq;
-			ddf_log_debug("Found interrupt: %d.\n", *irq);
-			break;
-		case IO_RANGE:
-			ddf_log_debug("Found io: %" PRIx64" %zu.\n",
-			    res->res.io_range.address, res->res.io_range.size);
-			if (res->res.io_range.size >= sizeof(sb16_regs_t)) {
-	                        *sb_regs = res->res.io_range.address;
-		                *sb_regs_size = res->res.io_range.size;
-			} else {
-				*mpu_regs = res->res.io_range.address;
-				*mpu_regs_size = res->res.io_range.size;
+	/* 1x IRQ, 1-2x DMA(8,16), 1-2x IO (MPU is separate). */
+	if (hw_res.irqs.count != 1 ||
+	   (hw_res.io_ranges.count != 1 && hw_res.io_ranges.count != 2) ||
+	   (hw_res.dma_channels.count != 1 && hw_res.dma_channels.count != 2)) {
+		hw_res_list_parsed_clean(&hw_res);
+		return EINVAL;
+	}
+
+	if (irq)
+		*irq = hw_res.irqs.irqs[0];
+
+	if (dma8) {
+		if (hw_res.dma_channels.channels[0] < 4) {
+			*dma8 = hw_res.dma_channels.channels[0];
+		} else {
+			if (hw_res.dma_channels.count == 2 &&
+			    hw_res.dma_channels.channels[1] < 4) {
+				*dma8 = hw_res.dma_channels.channels[1];
 			}
-			break;
-		case DMA_CHANNEL_16:
-			*dma16 = res->res.dma_channel.dma16;
-			ddf_log_debug("Found DMA16 channel: %d.\n", *dma16);
-			break;
-		case DMA_CHANNEL_8:
-			*dma8 = res->res.dma_channel.dma8;
-			ddf_log_debug("Found DMA8 channel: %d.\n", *dma8);
-		default:
-			break;
 		}
 	}
 
-	async_hangup(parent_sess);
-	free(hw_resources.resources);
+	if (dma16) {
+		if (hw_res.dma_channels.channels[0] > 4) {
+			*dma16 = hw_res.dma_channels.channels[0];
+		} else {
+			if (hw_res.dma_channels.count == 2 &&
+			    hw_res.dma_channels.channels[1] > 4) {
+				*dma16 = hw_res.dma_channels.channels[1];
+			}
+		}
+	}
+
+
+	if (hw_res.io_ranges.count == 1) {
+		if (sb_regs)
+			*sb_regs = hw_res.io_ranges.ranges[0].address;
+		if (sb_regs_size)
+			*sb_regs_size = hw_res.io_ranges.ranges[0].size;
+	} else {
+		const int sb =
+		    (hw_res.io_ranges.ranges[0].size >= sizeof(sb16_regs_t))
+		        ? 1 : 0;
+		const int mpu = 1 - sb;
+		if (sb_regs)
+			*sb_regs = hw_res.io_ranges.ranges[sb].address;
+		if (sb_regs_size)
+			*sb_regs_size = hw_res.io_ranges.ranges[sb].size;
+		if (mpu_regs)
+			*sb_regs = hw_res.io_ranges.ranges[mpu].address;
+		if (mpu_regs_size)
+			*sb_regs_size = hw_res.io_ranges.ranges[mpu].size;
+	}
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
