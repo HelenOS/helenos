@@ -64,6 +64,7 @@
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <mm/as.h>
+#include <mm/km.h>
 #include <mm/frame.h>
 #include <arch/barrier.h>
 #include <typedefs.h>
@@ -178,11 +179,15 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
-	uintptr_t virtaddr = (uintptr_t) NULL;	// FIXME
+	uintptr_t virtaddr;
+	size_t asize;
 	pfn_t i;
 
+	asize = ALIGN_UP(size, PAGE_SIZE);
+	virtaddr = km_page_alloc(asize, PAGE_SIZE);
+
 	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
+	for (i = 0; i < ADDR2PFN(asize); i++) {
 		uintptr_t addr = PFN2ADDR(i);
 		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
 		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
