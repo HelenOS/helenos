@@ -71,6 +71,15 @@ typedef struct irq_list {
 	int *irqs;
 } irq_list_t;
 
+/** List of ISA DMA channels */
+typedef struct dma_list {
+	/** Channel count */
+	size_t count;
+
+	/** Array of channels */
+	int *channels;
+} dma_list_t;
+
 /** List of memory areas */
 typedef struct addr_range_list {
 	/** Areas count */
@@ -90,6 +99,9 @@ typedef addr_range_list_t mem_range_list_t;
 typedef struct hw_resource_list_parsed {
 	/** List of IRQs */
 	irq_list_t irqs;
+
+	/** List of DMA channels */
+	dma_list_t dma_channels;
 	
 	/** List of memory areas */
 	mem_range_list_t mem_ranges;
@@ -112,6 +124,7 @@ static inline void hw_res_list_parsed_clean(hw_res_list_parsed_t *list)
 	free(list->irqs.irqs);
 	free(list->io_ranges.ranges);
 	free(list->mem_ranges.ranges);
+	free(list->dma_channels.channels);
 	
 	bzero(list, sizeof(hw_res_list_parsed_t));
 }
@@ -125,7 +138,8 @@ static inline void hw_res_list_parsed_init(hw_res_list_parsed_t *list)
 	bzero(list, sizeof(hw_res_list_parsed_t));
 }
 
-extern int hw_res_list_parse(hw_resource_list_t *, hw_res_list_parsed_t *, int);
+extern int hw_res_list_parse(
+    const hw_resource_list_t *, hw_res_list_parsed_t *, int);
 extern int hw_res_get_list_parsed(async_sess_t *, hw_res_list_parsed_t *, int);
 
 #endif

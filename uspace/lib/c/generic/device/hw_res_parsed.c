@@ -37,8 +37,30 @@
 #include <assert.h>
 #include <errno.h>
 
-static void hw_res_parse_add_irq(hw_res_list_parsed_t *out, hw_resource_t *res,
-    int flags)
+static void hw_res_parse_add_dma_channel(hw_res_list_parsed_t *out,
+    const hw_resource_t *res, int flags)
+{
+	assert(res);
+	assert((res->type == DMA_CHANNEL_8) || (res->type == DMA_CHANNEL_16));
+	
+	const int channel = (res->type == DMA_CHANNEL_8) ?
+	    res->res.dma_channel.dma8 : res->res.dma_channel.dma16;
+	const size_t count = out->dma_channels.count;
+	const int keep_duplicit = flags & HW_RES_KEEP_DUPLICIT;
+	
+	if (!keep_duplicit) {
+		for (size_t i = 0; i < count; ++i) {
+			if (out->dma_channels.channels[i] == channel)
+				return;
+		}
+	}
+	
+	out->dma_channels.channels[count] = channel;
+	++out->dma_channels.count;
+}
+
+static void hw_res_parse_add_irq(hw_res_list_parsed_t *out,
+    const hw_resource_t *res, int flags)
 {
 	assert(res && (res->type == INTERRUPT));
 	
@@ -58,7 +80,7 @@ static void hw_res_parse_add_irq(hw_res_list_parsed_t *out, hw_resource_t *res,
 }
 
 static void hw_res_parse_add_io_range(hw_res_list_parsed_t *out,
-    hw_resource_t *res, int flags)
+    const hw_resource_t *res, int flags)
 {
 	assert(res && (res->type == IO_RANGE));
 	
@@ -89,7 +111,7 @@ static void hw_res_parse_add_io_range(hw_res_list_parsed_t *out,
 }
 
 static void hw_res_parse_add_mem_range(hw_res_list_parsed_t *out,
-    hw_resource_t *res, int flags)
+    const hw_resource_t *res, int flags)
 {
 	assert(res && (res->type == MEM_RANGE));
 	
@@ -131,7 +153,7 @@ static void hw_res_parse_add_mem_range(hw_res_list_parsed_t *out,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int hw_res_list_parse(hw_resource_list_t *hw_resources,
+int hw_res_list_parse(const hw_resource_list_t *hw_resources,
     hw_res_list_parsed_t *out, int flags)
 {
 	if ((!hw_resources) || (!out))
@@ -140,13 +162,19 @@ int hw_res_list_parse(hw_resource_list_t *hw_resources,
 	size_t res_count = hw_resources->count;
 	hw_res_list_parsed_clean(out);
 	
-	out->irqs.irqs = malloc(res_count * sizeof(int));
-	out->io_ranges.ranges = malloc(res_count * sizeof(io_range_t));
-	out->mem_ranges.ranges = malloc(res_count * sizeof(mem_range_t));
+	out->irqs.irqs = calloc(res_count, sizeof(int));
+	out->dma_channels.channels = calloc(res_count, sizeof(int));
+	out->io_ranges.ranges = calloc(res_count, sizeof(io_range_t));
+	out->mem_ranges.ranges = calloc(res_count, sizeof(mem_range_t));
+	if (!out->irqs.irqs || !out->dma_channels.channels ||
+	    !out->io_ranges.ranges || !out->mem_ranges.ranges) {
+		hw_res_list_parsed_clean(out);
+		return ENOMEM;
+	}
 	
 	for (size_t i = 0; i < res_count; ++i) {
-		hw_resource_t *resource = &(hw_resources->resources[i]);
-		
+		const hw_resource_t *resource = &(hw_resources->resources[i]);
+
 		switch (resource->type) {
 		case INTERRUPT:
 			hw_res_parse_add_irq(out, resource, flags);
@@ -157,11 +185,16 @@ int hw_res_list_parse(hw_resource_list_t *hw_resources,
 		case MEM_RANGE:
 			hw_res_parse_add_mem_range(out, resource, flags);
 			break;
+		case DMA_CHANNEL_8:
+		case DMA_CHANNEL_16:
+			hw_res_parse_add_dma_channel(out, resource, flags);
+			break;
 		default:
+			hw_res_list_parsed_clean(out);
 			return EINVAL;
 		}
 	}
-	
+
 	return EOK;
 };
 
