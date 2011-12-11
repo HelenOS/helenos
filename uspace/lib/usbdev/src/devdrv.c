@@ -169,7 +169,10 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	if (driver->ops->device_rem == NULL)
 		return ENOTSUP;
 	/* Just tell the driver to stop whatever it is doing, keep structures */
-	return driver->ops->device_rem(gen_dev->driver_data);
+	const int ret = driver->ops->device_rem(gen_dev->driver_data);
+	if (ret != EOK)
+		return ret;
+	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 /** Callback when a device was removed from the system.
@@ -480,9 +483,11 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
+	/* Initialize hc connection. */
 	usb_hc_connection_initialize_from_device(&usb_dev->hc_conn, ddf_dev);
 	const usb_address_t address =
 	    usb_get_address_by_handle(ddf_dev->handle);
+
 	/* Initialize backing wire and control pipe. */
 	int rc = usb_device_connection_initialize(
 	    &usb_dev->wire, &usb_dev->hc_conn, address);
@@ -493,21 +498,27 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 
 	/* This pipe was registered by the hub driver,
 	 * during device initialization. */
-	rc = usb_pipe_initialize_default_control(&usb_dev->ctrl_pipe,
-	    &usb_dev->wire);
+	rc = usb_pipe_initialize_default_control(
+	    &usb_dev->ctrl_pipe, &usb_dev->wire);
 	if (rc != EOK) {
 		*errstr_ptr = "default control pipe initialization";
 		return rc;
 	}
 
+	rc = usb_hc_connection_open(&usb_dev->hc_conn);
+	if (rc != EOK) {
+		*errstr_ptr = "hc connection open";
+		return rc;
+	}
+
 	/* Get our interface. */
 	usb_dev->interface_no = usb_device_get_assigned_interface(ddf_dev);
-
 	/* Retrieve standard descriptors. */
-	rc = usb_device_retrieve_descriptors(&usb_dev->ctrl_pipe,
-	    &usb_dev->descriptors);
+	rc = usb_device_retrieve_descriptors(
+	    &usb_dev->ctrl_pipe, &usb_dev->descriptors);
 	if (rc != EOK) {
 		*errstr_ptr = "descriptor retrieval";
+		usb_hc_connection_close(&usb_dev->hc_conn);
 		return rc;
 	}
 
@@ -524,6 +535,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	/* TODO Add comment here. */
 	rc = initialize_other_pipes(endpoints, usb_dev, alternate_iface);
 	if (rc != EOK) {
+		usb_hc_connection_close(&usb_dev->hc_conn);
 		/* Full configuration descriptor is allocated. */
 		usb_device_release_descriptors(&usb_dev->descriptors);
 		/* Alternate interfaces may be allocated */
@@ -532,6 +544,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		return rc;
 	}
 
+	usb_hc_connection_close(&usb_dev->hc_conn);
 	return EOK;
 }
 
