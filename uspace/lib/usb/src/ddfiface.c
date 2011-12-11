@@ -43,6 +43,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <usb/dev.h>
+
 /** DDF interface for USB device, implementation for typical hub. */
 usb_iface_t usb_iface_hub_impl = {
 	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
@@ -133,7 +135,7 @@ int usb_iface_get_my_address_from_device_data(ddf_fun_t *fun,
 {
 	assert(fun);
 	assert(fun->driver_data);
-	usb_hub_attached_device_t *device = fun->driver_data;
+	const usb_hub_attached_device_t *device = fun->driver_data;
 	assert(device->fun == fun);
 	if (address)
 		*address = device->address;

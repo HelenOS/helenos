@@ -36,10 +36,10 @@
 #include <devman.h>
 #include <async.h>
 #include <dev_iface.h>
-#include <usb_iface.h>
 #include <usbhc_iface.h>
 #include <usb/hc.h>
 #include <usb/debug.h>
+#include <usb/dev.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -284,64 +284,6 @@ int usb_ddf_get_hc_handle_by_sid(service_id_t sid, devman_handle_t *hc_handle)
 	const int ret = devman_fun_sid_to_handle(sid, &handle);
 	if (ret == EOK && hc_handle != NULL)
 		*hc_handle = handle;
-
-	return ret;
-}
-/*----------------------------------------------------------------------------*/
-/** Tell USB address assigned to device with given handle.
- *
- * @param dev_handle Devman handle of the USB device in question.
- * @return USB address or negative error code.
- */
-usb_address_t usb_get_address_by_handle(devman_handle_t dev_handle)
-{
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, dev_handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	if (!exch) {
-		async_hangup(parent_sess);
-		return ENOMEM;
-	}
-	usb_address_t address;
-	const int ret = usb_get_my_address(exch, &address);
-
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-
-	if (ret != EOK)
-		return ret;
-
-	return address;
-}
-
-/** Find host controller handle for the device.
- *
- * @param[in] device_handle Device devman handle.
- * @param[out] hc_handle Where to store handle of host controller
- *	controlling device with @p device_handle handle.
- * @return Error code.
- */
-int usb_find_hc(devman_handle_t device_handle, devman_handle_t *hc_handle)
-{
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	if (!exch) {
-		async_hangup(parent_sess);
-		return ENOMEM;
-	}
-	const int ret = usb_get_hc_handle(exch, hc_handle);
-
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
 
 	return ret;
 }

@@ -113,13 +113,6 @@ static inline int usb_hc_write(usb_hc_connection_t *connection,
 	     connection, address, endpoint, 0, data, size);
 }
 
-usb_address_t usb_get_address_by_handle(devman_handle_t);
-
-int usb_find_hc(devman_handle_t, devman_handle_t *);
-
-int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
-    devman_handle_t *);
-
 int usb_ddf_get_hc_handle_by_sid(service_id_t, devman_handle_t *);
 
 #endif

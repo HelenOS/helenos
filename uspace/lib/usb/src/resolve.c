@@ -33,6 +33,7 @@
  *
  */
 #include <inttypes.h>
+#include <usb/dev.h>
 #include <usb/hc.h>
 #include <devman.h>
 #include <errno.h>
@@ -76,18 +77,10 @@ static bool try_parse_bus_and_address(const char *path,
 static int get_device_handle_by_address(devman_handle_t hc_handle, int addr,
     devman_handle_t *dev_handle)
 {
-	int rc;
 	usb_hc_connection_t conn;
-
 	usb_hc_connection_initialize(&conn, hc_handle);
-	rc = usb_hc_connection_open(&conn);
-	if (rc != EOK) {
-		return rc;
-	}
 
-	rc = usb_hc_get_handle_by_address(&conn, addr, dev_handle);
-
-	usb_hc_connection_close(&conn);
+	const int rc = usb_hc_get_handle_by_address(&conn, addr, dev_handle);
 
 	return rc;
 }
