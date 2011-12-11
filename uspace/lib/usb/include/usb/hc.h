@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libusb
  * @{
  */
@@ -35,12 +35,9 @@
 #ifndef LIBUSB_HC_H_
 #define LIBUSB_HC_H_
 
-#include <sys/types.h>
-#include <ipc/devman.h>
-#include <ipc/loc.h>
+#include <devman.h>
 #include <ddf/driver.h>
 #include <bool.h>
-#include <async.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
 
@@ -76,7 +73,6 @@ int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
     const ddf_dev_t *);
 
 int usb_hc_connection_open(usb_hc_connection_t *);
-bool usb_hc_connection_is_open(const usb_hc_connection_t *);
 int usb_hc_connection_close(usb_hc_connection_t *);
 
 usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_address_t, bool,

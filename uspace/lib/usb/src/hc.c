@@ -26,22 +26,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libusb
  * @{
  */
 /** @file
  * General communication with host controller driver (implementation).
  */
-#include <devman.h>
-#include <async.h>
-#include <dev_iface.h>
-#include <usbhc_iface.h>
-#include <usb/hc.h>
 #include <usb/debug.h>
-#include <usb/dev.h>
-#include <errno.h>
+
 #include <assert.h>
+#include <errno.h>
+#include <usbhc_iface.h>
+#include <usb/dev.h>
+#include <usb/hc.h>
 
 static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
 {
@@ -130,17 +127,6 @@ int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
 int usb_hc_connection_open(usb_hc_connection_t *connection)
 {
 	return usb_hc_connection_add_ref(connection);
-}
-/*----------------------------------------------------------------------------*/
-/** Tells whether connection to host controller is opened.
- *
- * @param connection Connection to the host controller.
- * @return Whether connection is opened.
- */
-bool usb_hc_connection_is_open(const usb_hc_connection_t *connection)
-{
-	assert(connection);
-	return (connection->hc_sess != NULL);
 }
 /*----------------------------------------------------------------------------*/
 /** Close connection to the host controller.
