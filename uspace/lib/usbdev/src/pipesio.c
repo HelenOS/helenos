@@ -44,14 +44,10 @@
  * obviously).
  */
 
-#include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <errno.h>
 #include <assert.h>
-#include <usbhc_iface.h>
 #include <usb/dev/request.h>
-#include <async.h>
-#include "pipepriv.h"
 
 /** Request an in transfer, no checking of input parameters.
  *

@@ -34,10 +34,8 @@
  */
 #include <usb_iface.h>
 #include <usb/dev/pipes.h>
-#include <usb/dev.h>
 #include <errno.h>
 #include <assert.h>
-#include "pipepriv.h"
 
 /** Tell USB interface assigned to given device.
  *
@@ -77,7 +75,6 @@ int usb_device_get_assigned_interface(const ddf_dev_t *device)
  */
 void usb_pipe_start_long_transfer(usb_pipe_t *pipe)
 {
-	(void) pipe_add_ref(pipe, true);
 }
 
 /** Terminate a long transfer on a pipe.
@@ -88,7 +85,6 @@ void usb_pipe_start_long_transfer(usb_pipe_t *pipe)
  */
 void usb_pipe_end_long_transfer(usb_pipe_t *pipe)
 {
-	pipe_drop_ref(pipe);
 }
 
 /**

@@ -370,9 +370,8 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 	assert(pipe);
 	assert(connection);
 
-	int rc = usb_pipe_initialize(pipe, connection,
-	    0, USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE,
-	    USB_DIRECTION_BOTH);
+	int rc = usb_pipe_initialize(pipe, connection, 0, USB_TRANSFER_CONTROL,
+	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH);
 
 	pipe->auto_reset_halt = true;
 
