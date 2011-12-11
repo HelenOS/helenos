@@ -259,7 +259,6 @@ int uhci_port_reset_enable(void *arg)
 int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 {
 	assert(port);
-	assert(usb_hc_connection_is_opened(&port->hc_connection));
 
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
