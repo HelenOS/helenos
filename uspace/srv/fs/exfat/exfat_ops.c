@@ -656,6 +656,13 @@ int exfat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 			(void) exfat_node_put(FS_NODE(nodep));
 			return rc;
 		}
+
+		rc = exfat_zero_cluster(bs, service_id, nodep->firstc);
+		if (rc != EOK) {
+			(void) exfat_node_put(FS_NODE(nodep));
+			return rc;
+		}
+
 		nodep->size = BPC(bs);
 	} else {
 		nodep->type = EXFAT_FILE;
