@@ -128,8 +128,8 @@ int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
 int usb_pipe_register(usb_pipe_t *, unsigned);
 int usb_pipe_unregister(usb_pipe_t *);
 
-void usb_pipe_start_long_transfer(usb_pipe_t *);
-void usb_pipe_end_long_transfer(usb_pipe_t *);
+int usb_pipe_start_long_transfer(usb_pipe_t *);
+int usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
 int usb_pipe_write(usb_pipe_t *, const void *, size_t);

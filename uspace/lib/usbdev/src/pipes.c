@@ -74,8 +74,12 @@ int usb_device_get_assigned_interface(const ddf_dev_t *device)
  * @param pipe Pipe over which the transfer will happen.
  * @return Error code.
  */
-void usb_pipe_start_long_transfer(usb_pipe_t *pipe)
+int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
 {
+	assert(pipe);
+	assert(pipe->wire);
+	assert(pipe->wire->hc_connection);
+	return usb_hc_connection_open(pipe->wire->hc_connection);
 }
 /*----------------------------------------------------------------------------*/
 /** Terminate a long transfer on a pipe.
@@ -84,8 +88,12 @@ void usb_pipe_start_long_transfer(usb_pipe_t *pipe)
  *
  * @param pipe Pipe where to end the long transfer.
  */
-void usb_pipe_end_long_transfer(usb_pipe_t *pipe)
+int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
 {
+	assert(pipe);
+	assert(pipe->wire);
+	assert(pipe->wire->hc_connection);
+	return usb_hc_connection_close(pipe->wire->hc_connection);
 }
 /*----------------------------------------------------------------------------*/
 /** Request an in transfer, no checking of input parameters.
