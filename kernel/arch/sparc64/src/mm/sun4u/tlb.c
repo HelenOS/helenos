@@ -246,6 +246,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 	uintptr_t page_16k;
 	size_t index;
 	pte_t *t;
+	as_t *as = AS;
 
 	page_8k = (uint64_t) tag.vpn << MMU_PAGE_WIDTH;
 	page_16k = ALIGN_DOWN(page_8k, PAGE_SIZE);
@@ -257,14 +258,15 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 			do_fast_data_access_mmu_miss_fault(istate, tag,
 			    "Dereferencing NULL pointer.");
 		} else if (page_8k >= end_of_identity) {
-			/* Kernel non-identity, fall through. */
+			/* Kernel non-identity. */
+			as = AS_KERNEL;
 		} else {
 			do_fast_data_access_mmu_miss_fault(istate, tag,
 		    "Unexpected kernel page fault.");
 		}
 	}
 
-	t = page_mapping_find(AS, page_16k, true);
+	t = page_mapping_find(as, page_16k, true);
 	if (t) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -279,7 +281,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
-		 */		
+		 */
 		if (as_page_fault(page_16k, PF_ACCESS_READ, istate) ==
 		    AS_PF_FAULT) {
 			do_fast_data_access_mmu_miss_fault(istate, tag,
@@ -301,11 +303,15 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 	uintptr_t page_16k;
 	size_t index;
 	pte_t *t;
+	as_t *as = AS;
 
 	page_16k = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;	/* 16K-page emulation */
 
-	t = page_mapping_find(AS, page_16k, true);
+	if (tag.context == ASID_KERNEL)
+		as = AS_KERNEL;
+
+	t = page_mapping_find(as, page_16k, true);
 	if (t && PTE_WRITABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table and is
