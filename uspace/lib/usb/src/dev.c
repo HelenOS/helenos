@@ -67,7 +67,8 @@ usb_address_t usb_get_address_by_handle(devman_handle_t dev_handle)
  *	controlling device with @p device_handle handle.
  * @return Error code.
  */
-int usb_find_hc(devman_handle_t device_handle, devman_handle_t *hc_handle)
+int usb_get_hc_by_handle(devman_handle_t device_handle,
+    devman_handle_t *hc_handle)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
@@ -86,4 +87,22 @@ int usb_find_hc(devman_handle_t device_handle, devman_handle_t *hc_handle)
 	async_hangup(parent_sess);
 
 	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_device_connection_initialize(usb_device_connection_t *connection,
+    usb_hc_connection_t *hc_connection, usb_address_t address)
+{
+	assert(connection);
+
+	if (hc_connection == NULL) {
+		return EBADMEM;
+	}
+
+	if ((address < 0) || (address >= USB11_ADDRESS_MAX)) {
+		return EINVAL;
+	}
+
+	connection->hc_connection = hc_connection;
+	connection->address = address;
+	return EOK;
 }

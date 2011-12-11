@@ -34,12 +34,40 @@
 #ifndef LIBUSB_DEV_H_
 #define LIBUSB_DEV_H_
 
-#include <usb/usb.h>
 #include <devman.h>
+#include <usb/usb.h>
+#include <usb/hc.h>
+
+
+/** Abstraction of a physical connection to the device.
+ * This type is an abstraction of the USB wire that connects the host and
+ * the function (device).
+ */
+typedef struct {
+	/** Connection to the host controller device is connected to. */
+	usb_hc_connection_t *hc_connection;
+	/** Address of the device. */
+	usb_address_t address;
+} usb_device_connection_t;
+
+int usb_device_connection_initialize(usb_device_connection_t *,
+    usb_hc_connection_t *, usb_address_t);
+
+/** Initialize connection to USB device on default address.
+ *
+ * @param dev_connection Device connection structure to be initialized.
+ * @param hc_connection Initialized connection to host controller.
+ * @return Error code.
+ */
+static inline int usb_device_connection_initialize_on_default_address(
+    usb_device_connection_t *connection, usb_hc_connection_t *hc_conn)
+{
+	return usb_device_connection_initialize(connection, hc_conn, 0);
+}
 
 usb_address_t usb_get_address_by_handle(devman_handle_t);
 
-int usb_find_hc(devman_handle_t, devman_handle_t *);
+int usb_get_hc_by_handle(devman_handle_t, devman_handle_t *);
 
 int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
     devman_handle_t *);

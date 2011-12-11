@@ -70,7 +70,6 @@ static inline void usb_hc_connection_initialize(usb_hc_connection_t *connection,
 	connection->hc_sess = NULL;
 	connection->ref_count = 0;
 	fibril_mutex_initialize(&connection->guard);
-
 }
 
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,

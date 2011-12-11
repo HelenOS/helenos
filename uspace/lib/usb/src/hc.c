@@ -113,7 +113,7 @@ int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
 	}
 
 	devman_handle_t hc_handle;
-	const int rc = usb_find_hc(device->handle, &hc_handle);
+	const int rc = usb_get_hc_by_handle(device->handle, &hc_handle);
 	if (rc == EOK) {
 		usb_hc_connection_initialize(connection, hc_handle);
 	}
