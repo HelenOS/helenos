@@ -348,14 +348,10 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 
 	fibril_mutex_initialize(&pipe->guard);
 	pipe->wire = connection;
-	pipe->hc_sess = NULL;
-	fibril_mutex_initialize(&pipe->hc_sess_mutex);
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
-	pipe->refcount = 0;
-	pipe->refcount_soft = 0;
 	pipe->auto_reset_halt = false;
 
 	return EOK;
@@ -441,24 +437,15 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_pipe_register(usb_pipe_t *pipe, unsigned interval,
-    usb_hc_connection_t *hc_connection)
+int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 {
 	assert(pipe);
 	assert(pipe->wire);
-	assert(hc_connection);
+	assert(pipe->wire->hc_connection);
 
-	if (!usb_hc_connection_is_opened(hc_connection))
-		return EBADF;
-	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	if (!exch)
-		return ENOMEM;
-	const int ret = usbhc_register_endpoint(exch,
-	    pipe->wire->address, pipe->endpoint_no, pipe->transfer_type,
-	    pipe->direction, pipe->max_packet_size, interval);
-
-	async_exchange_end(exch);
-	return ret;
+	return usb_hc_register_endpoint(pipe->wire->hc_connection,
+	   pipe->wire->address, pipe->endpoint_no, pipe->transfer_type,
+	   pipe->direction, pipe->max_packet_size, interval);
 }
 
 /** Revert endpoint registration with the host controller.
@@ -467,24 +454,14 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval,
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_pipe_unregister(usb_pipe_t *pipe,
-    usb_hc_connection_t *hc_connection)
+int usb_pipe_unregister(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	assert(pipe->wire);
-	assert(hc_connection);
+	assert(pipe->wire->hc_connection);
 
-	if (!usb_hc_connection_is_opened(hc_connection))
-		return EBADF;
-
-	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	if (!exch)
-		return ENOMEM;
-	const int ret = usbhc_unregister_endpoint(exch,
+	return usb_hc_unregister_endpoint(pipe->wire->hc_connection,
 	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
-	async_exchange_end(exch);
-
-	return ret;
 }
 
 /**

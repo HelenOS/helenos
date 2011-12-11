@@ -89,7 +89,7 @@ int pipe_add_ref(usb_pipe_t *pipe, bool hide_failure)
 		assert(pipe->hc_sess == NULL);
 		/* Need to open the phone by ourselves. */
 		async_sess_t *sess =
-		    devman_device_connect(EXCHANGE_SERIALIZE, pipe->wire->hc_handle, 0);
+		    devman_device_connect(EXCHANGE_SERIALIZE, pipe->wire->hc_connection->hc_handle, 0);
 		if (!sess) {
 			if (hide_failure) {
 				pipe->refcount_soft++;

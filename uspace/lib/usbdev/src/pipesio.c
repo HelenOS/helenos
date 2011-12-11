@@ -70,26 +70,9 @@ static int usb_pipe_read_no_check(usb_pipe_t *pipe, uint64_t setup,
 	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
-	int ret = pipe_add_ref(pipe, false);
-	if (ret != EOK) {
-		return ret;
-	}
-
-	/* Ensure serialization over the phone. */
-	pipe_start_transaction(pipe);
-	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	if (!exch) {
-		pipe_end_transaction(pipe);
-		pipe_drop_ref(pipe);
-		return ENOMEM;
-	}
-
-	ret = usbhc_read(exch, pipe->wire->address, pipe->endpoint_no,
-	    setup, buffer, size, size_transfered);
-	async_exchange_end(exch);
-	pipe_end_transaction(pipe);
-	pipe_drop_ref(pipe);
-	return ret;
+	return usb_hc_control_read(pipe->wire->hc_connection,
+	    pipe->wire->address, pipe->endpoint_no, setup, buffer, size,
+	    size_transfered);
 }
 
 /** Request an out transfer, no checking of input parameters.
@@ -108,25 +91,8 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe, uint64_t setup,
 	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
-	int ret = pipe_add_ref(pipe, false);
-	if (ret != EOK) {
-		return ret;
-	}
-
-	/* Ensure serialization over the phone. */
-	pipe_start_transaction(pipe);
-	async_exch_t *exch = async_exchange_begin(pipe->hc_sess);
-	if (!exch) {
-		pipe_end_transaction(pipe);
-		pipe_drop_ref(pipe);
-		return ENOMEM;
-	}
-	ret = usbhc_write(exch, pipe->wire->address, pipe->endpoint_no,
-	    setup, buffer, size);
-	async_exchange_end(exch);
-	pipe_end_transaction(pipe);
-	pipe_drop_ref(pipe);
-	return ret;
+	return usb_hc_control_write(pipe->wire->hc_connection,
+	    pipe->wire->address, pipe->endpoint_no, setup, buffer, size);
 }
 
 /** Try to clear endpoint halt of default control pipe.

@@ -62,30 +62,6 @@
 		} \
 	} while (false)
 
-/** Ask host controller for free address assignment.
- *
- * @param connection Opened connection to host controller.
- * @param preferred Preferred SUB address.
- * @param strict Fail if the preferred address is not avialable.
- * @param speed Speed of the new device (device that will be assigned
- *    the returned address).
- * @return Assigned USB address or negative error code.
- */
-usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
-    usb_address_t preferred, bool strict, usb_speed_t speed)
-{
-	CHECK_CONNECTION(connection);
-
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	if (!exch)
-		return (usb_address_t)ENOMEM;
-
-	usb_address_t address = preferred;
-	const int ret = usbhc_request_address(exch, &address, strict, speed);
-
-	async_exchange_end(exch);
-	return ret == EOK ? address : ret;
-}
 
 /** Inform host controller about new device.
  *
@@ -96,7 +72,7 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
 int usb_hc_register_device(usb_hc_connection_t *connection,
     const usb_hub_attached_device_t *attached_device)
 {
-	CHECK_CONNECTION(connection);
+//	CHECK_CONNECTION(connection);
 	if (attached_device == NULL || attached_device->fun == NULL)
 		return EINVAL;
 
@@ -119,7 +95,7 @@ int usb_hc_register_device(usb_hc_connection_t *connection,
 int usb_hc_unregister_device(usb_hc_connection_t *connection,
     usb_address_t address)
 {
-	CHECK_CONNECTION(connection);
+//	CHECK_CONNECTION(connection);
 
 	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
 	if (!exch)
@@ -165,13 +141,13 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address,
 	}
 
 	/* TODO: prevent others from accessing the wire now. */
-	if (usb_pipe_unregister(pipe, hc_conn) != EOK) {
+	if (usb_pipe_unregister(pipe) != EOK) {
 		usb_log_warning(
 		    "Failed to unregister the old pipe on address change.\n");
 	}
 	/* The address is already changed so set it in the wire */
 	pipe->wire->address = new_address;
-	rc = usb_pipe_register(pipe, 0, hc_conn);
+	rc = usb_pipe_register(pipe, 0);
 	if (rc != EOK)
 		return EADDRNOTAVAIL;
 
@@ -287,7 +263,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	}
 
 	/* Register control pipe on default address. */
-	rc = usb_pipe_register(&ctrl_pipe, 0, &hc_conn);
+	rc = usb_pipe_register(&ctrl_pipe, 0);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_default_address;
@@ -384,7 +360,7 @@ leave_release_default_address:
 
 leave_release_free_address:
 	/* This might be either 0:0 or dev_addr:0 */
-	if (usb_pipe_unregister(&ctrl_pipe, &hc_conn) != EOK)
+	if (usb_pipe_unregister(&ctrl_pipe) != EOK)
 		usb_log_warning("%s: Failed to unregister default pipe.\n",
 		    __FUNCTION__);
 

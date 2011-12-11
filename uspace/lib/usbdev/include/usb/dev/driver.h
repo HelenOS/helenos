@@ -71,6 +71,7 @@ typedef struct {
 
 /** USB device structure. */
 typedef struct {
+	usb_hc_connection_t hc_conn;
 	/** Connection backing the pipes.
 	 * Typically, you will not need to use this attribute at all.
 	 */

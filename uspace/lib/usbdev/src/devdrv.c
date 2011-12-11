@@ -372,31 +372,15 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 		goto rollback_free_only;
 	}
 
-	/* Register the endpoints with HC. */
-	usb_hc_connection_t hc_conn;
-	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev);
-	if (rc != EOK) {
-		goto rollback_free_only;
-	}
-
-	rc = usb_hc_connection_open(&hc_conn);
-	if (rc != EOK) {
-		goto rollback_free_only;
-	}
-
 	for (i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
 			rc = usb_pipe_register(&pipes[i].pipe,
-			    pipes[i].descriptor->poll_interval, &hc_conn);
+			    pipes[i].descriptor->poll_interval);
 			if (rc != EOK) {
 				goto rollback_unregister_endpoints;
 			}
 		}
 	}
-
-	if (usb_hc_connection_close(&hc_conn) != EOK)
-		usb_log_warning("%s: Failed to close connection.\n",
-		    __FUNCTION__);
 
 	*pipes_ptr = pipes;
 	if (pipes_count_ptr != NULL) {
@@ -414,13 +398,9 @@ int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
 rollback_unregister_endpoints:
 	for (i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
-			usb_pipe_unregister(&pipes[i].pipe, &hc_conn);
+			usb_pipe_unregister(&pipes[i].pipe);
 		}
 	}
-
-	if (usb_hc_connection_close(&hc_conn) != EOK)
-		usb_log_warning("usb_device_create_pipes(): "
-		    "Failed to close connection.\n");
 
 	/*
 	 * Jump here if something went wrong before some actual communication
@@ -469,12 +449,8 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 		usb_log_debug2("Unregistering pipe %zu (%spresent).\n",
 		    i, pipes[i].present ? "" : "not ");
 		if (pipes[i].present)
-			usb_pipe_unregister(&pipes[i].pipe, &hc_conn);
+			usb_pipe_unregister(&pipes[i].pipe);
 	}
-
-	if (usb_hc_connection_close(&hc_conn) != EOK)
-		usb_log_warning("usb_device_destroy_pipes(): "
-		    "Failed to close connection.\n");
 
 	free(pipes);
 
@@ -504,9 +480,12 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
+	usb_hc_connection_initialize_from_device(&usb_dev->hc_conn, ddf_dev);
+	const usb_address_t address =
+	    usb_get_address_by_handle(ddf_dev->handle);
 	/* Initialize backing wire and control pipe. */
-	int rc = usb_device_connection_initialize_from_device(
-	    &usb_dev->wire, ddf_dev);
+	int rc = usb_device_connection_initialize(
+	    &usb_dev->wire, &usb_dev->hc_conn, address);
 	if (rc != EOK) {
 		*errstr_ptr = "device connection initialization";
 		return rc;
