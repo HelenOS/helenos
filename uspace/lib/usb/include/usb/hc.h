@@ -41,6 +41,7 @@
 #include <ddf/driver.h>
 #include <bool.h>
 #include <async.h>
+#include <fibril_synch.h>
 #include <usb/usb.h>
 
 /** Connection to the host controller driver. */
@@ -49,27 +50,77 @@ typedef struct {
 	devman_handle_t hc_handle;
 	/** Session to the host controller. */
 	async_sess_t *hc_sess;
+	/** Session guard. */
+	fibril_mutex_t guard;
+	/** Use counter. */
+	unsigned ref_count;
 } usb_hc_connection_t;
+
+/** Initialize connection to USB host controller.
+ *
+ * @param connection Connection to be initialized.
+ * @param hc_handle Devman handle of the host controller.
+ * @return Error code.
+ */
+static inline void usb_hc_connection_initialize(usb_hc_connection_t *connection,
+    devman_handle_t hc_handle)
+{
+	assert(connection);
+	connection->hc_handle = hc_handle;
+	connection->hc_sess = NULL;
+	connection->ref_count = 0;
+	fibril_mutex_initialize(&connection->guard);
+
+}
 
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
     const ddf_dev_t *);
-int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
 
 int usb_hc_connection_open(usb_hc_connection_t *);
-bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+bool usb_hc_connection_is_open(const usb_hc_connection_t *);
 int usb_hc_connection_close(usb_hc_connection_t *);
+
+usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_address_t, bool,
+    usb_speed_t);
+int usb_hc_bind_address(usb_hc_connection_t *, usb_address_t, devman_handle_t);
 int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
     devman_handle_t *);
+int usb_hc_release_address(usb_hc_connection_t *, usb_address_t);
+
+int usb_hc_register_endpoint(usb_hc_connection_t *, usb_address_t,
+    usb_endpoint_t, usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
+int usb_hc_unregister_endpoint(usb_hc_connection_t *, usb_address_t,
+    usb_endpoint_t, usb_direction_t);
+
+int usb_hc_control_read(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
+    uint64_t, void *, size_t, size_t *);
+int usb_hc_control_write(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
+    uint64_t, const void *, size_t);
+
+static inline int usb_hc_read(usb_hc_connection_t *connection,
+    usb_address_t address, usb_endpoint_t endpoint, void *data, size_t size,
+    size_t *real_size)
+{
+	return usb_hc_control_read(
+	    connection, address, endpoint, 0, data, size, real_size);
+}
+
+static inline int usb_hc_write(usb_hc_connection_t *connection,
+    usb_address_t address, usb_endpoint_t endpoint, const void *data,
+    size_t size)
+{
+	return usb_hc_control_write(
+	     connection, address, endpoint, 0, data, size);
+}
 
 usb_address_t usb_get_address_by_handle(devman_handle_t);
 
-int usb_hc_find(devman_handle_t, devman_handle_t *);
+int usb_find_hc(devman_handle_t, devman_handle_t *);
 
 int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
     devman_handle_t *);
 
 int usb_ddf_get_hc_handle_by_sid(service_id_t, devman_handle_t *);
-
 
 #endif
 /**

@@ -191,7 +191,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 
 		/* Try to find its host controller. */
 		if (!found_hc) {
-			rc = usb_hc_find(tmp_handle, &hc_handle);
+			rc = usb_find_hc(tmp_handle, &hc_handle);
 			if (rc == EOK) {
 				found_hc = true;
 			}

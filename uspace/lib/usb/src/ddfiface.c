@@ -65,7 +65,7 @@ usb_iface_t usb_iface_hub_child_impl = {
 int usb_iface_get_hc_handle_device_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
-	return usb_hc_find(fun->handle, handle);
+	return usb_find_hc(fun->handle, handle);
 }
 
 /** Get host controller handle, interface implementation for HC driver.

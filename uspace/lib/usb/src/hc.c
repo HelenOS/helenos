@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,60 @@
 #include <errno.h>
 #include <assert.h>
 
+static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
+{
+	assert(connection);
+	fibril_mutex_lock(&connection->guard);
+	if (connection->ref_count == 0) {
+		assert(connection->hc_sess == NULL);
+		/* Parallel exchange for us */
+		connection->hc_sess = devman_device_connect(EXCHANGE_PARALLEL,
+		        connection->hc_handle, 0);
+		if (!connection->hc_sess) {
+			fibril_mutex_unlock(&connection->guard);
+			return ENOMEM;
+		}
+	}
+	++connection->ref_count;
+	fibril_mutex_unlock(&connection->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int usb_hc_connection_del_ref(usb_hc_connection_t *connection)
+{
+	assert(connection);
+	fibril_mutex_lock(&connection->guard);
+	--connection->ref_count;
+	int ret = EOK;
+	if (connection->ref_count == 0) {
+		assert(connection->hc_sess);
+		ret = async_hangup(connection->hc_sess);
+	}
+	fibril_mutex_unlock(&connection->guard);
+	return ret;
+}
+
+#define EXCH_INIT(connection, exch) \
+do { \
+	exch = NULL; \
+	if (!connection) \
+		return EBADMEM; \
+	const int ret = usb_hc_connection_add_ref(connection); \
+	if (ret != EOK) \
+		return ret; \
+	exch = async_exchange_begin(connection->hc_sess); \
+	if (exch == NULL) { \
+		usb_hc_connection_del_ref(connection); \
+		return ENOMEM; \
+	} \
+} while (0)
+
+#define EXCH_FINI(connection, exch) \
+if (exch) { \
+	async_exchange_end(exch); \
+	usb_hc_connection_del_ref(connection); \
+} else (void)0
+
 /** Initialize connection to USB host controller.
  *
  * @param connection Connection to be initialized.
@@ -58,33 +113,14 @@ int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
 	}
 
 	devman_handle_t hc_handle;
-	int rc = usb_hc_find(device->handle, &hc_handle);
-	if (rc != EOK) {
-		return rc;
+	const int rc = usb_find_hc(device->handle, &hc_handle);
+	if (rc == EOK) {
+		usb_hc_connection_initialize(connection, hc_handle);
 	}
-
-	rc = usb_hc_connection_initialize(connection, hc_handle);
 
 	return rc;
 }
-
-/** Manually initialize connection to USB host controller.
- *
- * @param connection Connection to be initialized.
- * @param hc_handle Devman handle of the host controller.
- * @return Error code.
- */
-int usb_hc_connection_initialize(usb_hc_connection_t *connection,
-    devman_handle_t hc_handle)
-{
-	assert(connection);
-
-	connection->hc_handle = hc_handle;
-	connection->hc_sess = NULL;
-
-	return EOK;
-}
-
+/*----------------------------------------------------------------------------*/
 /** Open connection to host controller.
  *
  * @param connection Connection to the host controller.
@@ -92,31 +128,20 @@ int usb_hc_connection_initialize(usb_hc_connection_t *connection,
  */
 int usb_hc_connection_open(usb_hc_connection_t *connection)
 {
-	assert(connection);
-	
-	if (usb_hc_connection_is_opened(connection))
-		return EBUSY;
-	
-	async_sess_t *sess = devman_device_connect(EXCHANGE_ATOMIC,
-	    connection->hc_handle, 0);
-	if (!sess)
-		return ENOMEM;
-	
-	connection->hc_sess = sess;
-	return EOK;
+	return usb_hc_connection_add_ref(connection);
 }
-
+/*----------------------------------------------------------------------------*/
 /** Tells whether connection to host controller is opened.
  *
  * @param connection Connection to the host controller.
  * @return Whether connection is opened.
  */
-bool usb_hc_connection_is_opened(const usb_hc_connection_t *connection)
+bool usb_hc_connection_is_open(const usb_hc_connection_t *connection)
 {
 	assert(connection);
 	return (connection->hc_sess != NULL);
 }
-
+/*----------------------------------------------------------------------------*/
 /** Close connection to the host controller.
  *
  * @param connection Connection to the host controller.
@@ -124,22 +149,43 @@ bool usb_hc_connection_is_opened(const usb_hc_connection_t *connection)
  */
 int usb_hc_connection_close(usb_hc_connection_t *connection)
 {
-	assert(connection);
-
-	if (!usb_hc_connection_is_opened(connection)) {
-		return ENOENT;
-	}
-
-	int rc = async_hangup(connection->hc_sess);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	connection->hc_sess = NULL;
-
-	return EOK;
+	return usb_hc_connection_del_ref(connection);
 }
+/*----------------------------------------------------------------------------*/
+/** Ask host controller for free address assignment.
+ *
+ * @param connection Opened connection to host controller.
+ * @param preferred Preferred SUB address.
+ * @param strict Fail if the preferred address is not avialable.
+ * @param speed Speed of the new device (device that will be assigned
+ *    the returned address).
+ * @return Assigned USB address or negative error code.
+ */
+usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
+    usb_address_t preferred, bool strict, usb_speed_t speed)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
 
+	usb_address_t address = preferred;
+	const int ret = usbhc_request_address(exch, &address, strict, speed);
+
+	EXCH_FINI(connection, exch);
+	return ret == EOK ? address : ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_hc_bind_address(usb_hc_connection_t * connection,
+    usb_address_t address, devman_handle_t handle)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
+
+	const int ret = usbhc_bind_address(exch, address, handle);
+
+	EXCH_FINI(connection, exch);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
 /** Get handle of USB device with given address.
  *
  * @param[in] connection Opened connection to host controller.
@@ -150,17 +196,98 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
     usb_address_t address, devman_handle_t *handle)
 {
-	if (!usb_hc_connection_is_opened(connection))
-		return ENOENT;
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
 
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	if (!exch)
-		return ENOMEM;
 	const int ret = usbhc_get_handle(exch, address, handle);
-	async_exchange_end(exch);
+
+	EXCH_FINI(connection, exch);
 	return ret;
 }
+/*----------------------------------------------------------------------------*/
+int usb_hc_release_address(usb_hc_connection_t *connection,
+    usb_address_t address)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
 
+	const int ret = usbhc_release_address(exch, address);
+
+	EXCH_FINI(connection, exch);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_hc_register_endpoint(usb_hc_connection_t *connection,
+    usb_address_t address, usb_endpoint_t endpoint, usb_transfer_type_t type,
+    usb_direction_t direction, size_t packet_size, unsigned interval)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
+
+	const int ret = usbhc_register_endpoint(exch, address, endpoint,
+	    type, direction, packet_size, interval);
+
+	EXCH_FINI(connection, exch);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_hc_unregister_endpoint(usb_hc_connection_t *connection,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
+
+	const int ret =
+	    usbhc_unregister_endpoint(exch, address, endpoint, direction);
+
+	EXCH_FINI(connection, exch);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_hc_control_read(usb_hc_connection_t *connection, usb_address_t address,
+    usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
+    size_t *real_size)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
+
+	const int ret =
+	    usbhc_read(exch, address, endpoint, setup, data, size, real_size);
+
+	EXCH_FINI(connection, exch);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int usb_hc_control_write(usb_hc_connection_t *connection, usb_address_t address,
+    usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
+{
+	async_exch_t *exch;
+	EXCH_INIT(connection, exch);
+
+	const int ret = usbhc_write(exch, address, endpoint, setup, data, size);
+
+	EXCH_FINI(connection, exch);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+/** Get host controller handle by its class index.
+ *
+ * @param sid Service ID of the HC function.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+int usb_ddf_get_hc_handle_by_sid(service_id_t sid, devman_handle_t *hc_handle)
+{
+	devman_handle_t handle;
+
+	const int ret = devman_fun_sid_to_handle(sid, &handle);
+	if (ret == EOK && hc_handle != NULL)
+		*hc_handle = handle;
+
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
 /** Tell USB address assigned to device with given handle.
  *
  * @param dev_handle Devman handle of the USB device in question.
@@ -191,34 +318,14 @@ usb_address_t usb_get_address_by_handle(devman_handle_t dev_handle)
 	return address;
 }
 
-
-/** Get host controller handle by its class index.
- *
- * @param sid Service ID of the HC function.
- * @param hc_handle Where to store the HC handle
- *	(can be NULL for existence test only).
- * @return Error code.
- */
-int usb_ddf_get_hc_handle_by_sid(service_id_t sid, devman_handle_t *hc_handle)
-{
-	devman_handle_t handle;
-	int rc;
-	
-	rc = devman_fun_sid_to_handle(sid, &handle);
-	if (hc_handle != NULL)
-		*hc_handle = handle;
-	
-	return rc;
-}
-
-/** Find host controller handle that is ancestor of given device.
+/** Find host controller handle for the device.
  *
  * @param[in] device_handle Device devman handle.
  * @param[out] hc_handle Where to store handle of host controller
  *	controlling device with @p device_handle handle.
  * @return Error code.
  */
-int usb_hc_find(devman_handle_t device_handle, devman_handle_t *hc_handle)
+int usb_find_hc(devman_handle_t device_handle, devman_handle_t *hc_handle)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
