@@ -41,7 +41,6 @@ SOURCES = \
 	src/hub.c \
 	src/pipes.c \
 	src/pipesinit.c \
-	src/pipesio.c \
 	src/recognise.c \
 	src/request.c
 
