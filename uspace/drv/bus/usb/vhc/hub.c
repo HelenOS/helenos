@@ -106,8 +106,7 @@ int hub_register_in_devman_fibril(void *arg)
 	int rc;
 
 	usb_hc_connection_t hc_conn;
-	rc = usb_hc_connection_initialize(&hc_conn, hc_dev->handle);
-	assert(rc == EOK);
+	usb_hc_connection_initialize(&hc_conn, hc_dev->handle);
 
 	rc = usb_hc_connection_open(&hc_conn);
 	assert(rc == EOK);
