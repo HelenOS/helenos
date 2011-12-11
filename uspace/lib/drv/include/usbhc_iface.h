@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libdrv
  * @addtogroup usb
  * @{
@@ -45,7 +45,7 @@ int usbhc_request_address(async_exch_t *, usb_address_t *, bool, usb_speed_t);
 int usbhc_bind_address(async_exch_t *, usb_address_t, devman_handle_t);
 int usbhc_get_handle(async_exch_t *, usb_address_t, devman_handle_t *);
 int usbhc_release_address(async_exch_t *, usb_address_t);
-int usbhc_register_endpoint(async_exch_t *, usb_address_t,  usb_endpoint_t,
+int usbhc_register_endpoint(async_exch_t *, usb_address_t, usb_endpoint_t,
     usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
 int usbhc_unregister_endpoint(async_exch_t *, usb_address_t, usb_endpoint_t,
     usb_direction_t);
