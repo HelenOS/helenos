@@ -257,17 +257,11 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 			do_fast_data_access_mmu_miss_fault(istate, tag,
 			    "Dereferencing NULL pointer.");
 		} else if (page_8k >= end_of_identity) {
-			/*
-			 * The kernel is accessing the I/O space.
-			 * We still do identity mapping for I/O,
-			 * but without caching.
-			 */
-			dtlb_insert_mapping(page_8k, KA2PA(page_8k),
-			    PAGESIZE_8K, false, false);
-			return;
+			/* Kernel non-identity, fall through. */
+		} else {
+			do_fast_data_access_mmu_miss_fault(istate, tag,
+		    "Unexpected kernel page fault.");
 		}
-		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected "
-		    "kernel page fault.");
 	}
 
 	t = page_mapping_find(AS, page_16k, true);
