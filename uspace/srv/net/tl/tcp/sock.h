@@ -29,19 +29,16 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file Socket provider
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef SOCK_H
+#define SOCK_H
 
 #include <async.h>
-#include <packet_remote.h>
-#include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern void tcp_sock_init(void);
+extern int tcp_sock_connection(async_sess_t *, ipc_callid_t, ipc_call_t);
 
 #endif
 

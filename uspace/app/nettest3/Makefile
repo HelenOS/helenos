@@ -26,23 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
-BINARY = tcp
+USPACE_PREFIX = ../..
+LIBS =
+EXTRA_CFLAGS =
+BINARY = nettest3
 
 SOURCES = \
-	conn.c \
-	iqueue.c \
-	ncsim.c \
-	pdu.c \
-	rqueue.c \
-	segment.c \
-	seq_no.c \
-	sock.c \
-	tcp.c \
-	test.c \
-	tqueue.c \
-	ucall.c
+	nettest3.c
 
 include $(USPACE_PREFIX)/Makefile.common

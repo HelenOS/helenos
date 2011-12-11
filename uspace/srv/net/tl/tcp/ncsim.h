@@ -29,19 +29,18 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file Network condition simulator
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef NCSIM_H
+#define NCSIM_H
 
-#include <async.h>
-#include <packet_remote.h>
 #include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
-extern void tcp_transmit_pdu(tcp_pdu_t *);
+extern void tcp_ncsim_init(void);
+extern void tcp_ncsim_bounce_seg(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_ncsim_thread_start(void);
+
 
 #endif
 
