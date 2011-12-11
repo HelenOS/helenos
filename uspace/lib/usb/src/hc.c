@@ -71,6 +71,7 @@ static int usb_hc_connection_del_ref(usb_hc_connection_t *connection)
 	if (connection->ref_count == 0) {
 		assert(connection->hc_sess);
 		ret = async_hangup(connection->hc_sess);
+		connection->hc_sess = NULL;
 	}
 	fibril_mutex_unlock(&connection->guard);
 	return ret;
