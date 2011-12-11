@@ -125,8 +125,10 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 
 	while (size > 0) {
 		buf_free = conn->snd_buf_size - conn->snd_buf_used;
-		while (buf_free == 0 && !conn->reset)
+		while (buf_free == 0 && !conn->reset) {
 			tcp_tqueue_new_data(conn);
+			buf_free = conn->snd_buf_size - conn->snd_buf_used;
+		}
 
 		if (conn->reset)
 			return TCP_ERESET;
