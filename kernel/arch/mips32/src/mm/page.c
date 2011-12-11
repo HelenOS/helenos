@@ -40,6 +40,7 @@
 void page_arch_init(void)
 {
 	page_mapping_operations = &pt_mapping_operations;
+	as_switch(NULL, AS_KERNEL);
 }
 
 /** @}
