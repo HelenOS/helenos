@@ -33,7 +33,8 @@
  * @file
  * Representation of queried device.
  */
-#include <usb/dev/pipes.h>
+#include <usb/dev.h>
+#include <usb/hc.h>
 #include <errno.h>
 #include <str_error.h>
 #include <usb/dev/request.h>
@@ -51,7 +52,10 @@ usbinfo_device_t *prepare_device(const char *name,
 	int rc;
 	bool transfer_started = false;
 
-	rc = usb_device_connection_initialize(&dev->wire, hc_handle, dev_addr);
+	usb_hc_connection_initialize(&dev->hc_conn, hc_handle);
+
+	rc = usb_device_connection_initialize(
+	    &dev->wire, &dev->hc_conn, dev_addr);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to create connection to device %s: %s.\n",
