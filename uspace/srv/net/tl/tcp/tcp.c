@@ -411,7 +411,7 @@ int main(int argc, char **argv)
 	tcp_ncsim_init();
 	tcp_ncsim_thread_start();
 
-	tcp_test();
+	if (0) tcp_test();
 /*
 	async_manager();
 */
