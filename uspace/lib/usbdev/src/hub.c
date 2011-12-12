@@ -229,19 +229,14 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 
 	/* Initialize connection to device. */
 	usb_device_connection_t dev_conn;
-	rc = usb_device_connection_initialize_on_default_address(
-	    &dev_conn, hc_conn);
+	rc = usb_device_connection_initialize(
+	    &dev_conn, hc_conn, USB_ADDRESS_DEFAULT);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_free_address;
 	}
 
-	/*
-	 * We will not register control pipe on default address.
-	 * The registration might fail. That means that someone else already
-	 * registered that endpoint. We will simply wait and try again.
-	 * (Someone else already wants to add a new device.)
-	 */
+	/* Initialize control pipe on default address. Don't register yet. */
 	usb_pipe_t ctrl_pipe;
 	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_conn);
 	if (rc != EOK) {
@@ -249,6 +244,12 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 		goto leave_release_free_address;
 	}
 
+	/*
+	 * The default address request might fail.
+	 * That means that someone else is already using that address.
+	 * We will simply wait and try again.
+	 * (Someone else already wants to add a new device.)
+	 */
 	do {
 		rc = usb_hc_request_address(hc_conn, USB_ADDRESS_DEFAULT,
 		    true, dev_speed);
@@ -261,7 +262,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 		goto leave_release_free_address;
 	}
 
-	/* Register control pipe on default address. */
+	/* Register control pipe on default address. 0 means no interval. */
 	rc = usb_pipe_register(&ctrl_pipe, 0);
 	if (rc != EOK) {
 		rc = ENOTCONN;
@@ -269,7 +270,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	}
 
 	struct timeval end_time;
-
 	rc = gettimeofday(&end_time, NULL);
 	if (rc != EOK) {
 		goto leave_release_default_address;
@@ -352,7 +352,9 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	 * Completely ignoring errors here.
 	 */
 leave_release_default_address:
-	usb_hc_unregister_device(hc_conn, USB_ADDRESS_DEFAULT);
+	if (usb_hc_unregister_device(hc_conn, USB_ADDRESS_DEFAULT) != EOK)
+		usb_log_warning("%s: Failed to unregister defaut device.\n",
+		    __FUNCTION__);
 
 leave_release_free_address:
 	/* This might be either 0:0 or dev_addr:0 */

@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * USB endpoint pipes miscellaneous functions.
+ * USB endpoint pipes functions.
  */
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>

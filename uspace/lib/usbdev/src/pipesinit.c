@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * Initialization of endpoint pipes.
+ * Non trivial initialization of endpoint pipes.
  *
  */
 #include <usb/usb.h>

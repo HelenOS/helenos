@@ -56,32 +56,15 @@ static inline int usb_device_connection_initialize(
     usb_address_t address)
 {
 	assert(connection);
-
-	if (hc_connection == NULL) {
+	if (hc_connection == NULL)
 		return EBADMEM;
-	}
-
-	if ((address < 0) || (address >= USB11_ADDRESS_MAX)) {
+	if ((address < 0) || (address >= USB11_ADDRESS_MAX))
 		return EINVAL;
-	}
 
 	connection->hc_connection = hc_connection;
 	connection->address = address;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
-/** Initialize connection to USB device on default address.
- *
- * @param dev_connection Device connection structure to be initialized.
- * @param hc_connection Initialized connection to host controller.
- * @return Error code.
- */
-static inline int usb_device_connection_initialize_on_default_address(
-    usb_device_connection_t *connection, usb_hc_connection_t *hc_conn)
-{
-	return usb_device_connection_initialize(connection, hc_conn, 0);
-}
-
 /*----------------------------------------------------------------------------*/
 static inline int usb_device_register_endpoint(usb_device_connection_t *conn,
     usb_endpoint_t ep, usb_transfer_type_t type, usb_direction_t direction,
