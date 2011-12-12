@@ -35,13 +35,13 @@
 #define LIBUSBDEV_PIPES_H_
 
 #include <sys/types.h>
-#include <usb/usb.h>
-#include <usb/dev.h>
-#include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 #include <fibril_synch.h>
 #include <async.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
+#include <usb/dev/usb_device_connection.h>
 
 /** Abstraction of a logical connection to USB device endpoint.
  * It encapsulates endpoint attributes (transfer type etc.) as well

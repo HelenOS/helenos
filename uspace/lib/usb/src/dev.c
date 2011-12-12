@@ -105,21 +105,3 @@ int usb_get_info_by_handle(devman_handle_t device_handle,
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
-int usb_device_connection_initialize(usb_device_connection_t *connection,
-    usb_hc_connection_t *hc_connection, usb_address_t address)
-{
-	assert(connection);
-
-	if (hc_connection == NULL) {
-		return EBADMEM;
-	}
-
-	if ((address < 0) || (address >= USB11_ADDRESS_MAX)) {
-		return EINVAL;
-	}
-
-	connection->hc_connection = hc_connection;
-	connection->address = address;
-	return EOK;
-}

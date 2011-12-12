@@ -25,39 +25,62 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup libusb
+/** @addtogroup libusbdev
  * @{
  */
 /** @file
  * Common USB types and functions.
  */
-#ifndef LIBUSB_DEV_H_
-#define LIBUSB_DEV_H_
+#ifndef LIBUSBDEV_DEVICE_CONNECTION_H_
+#define LIBUSBDEV_DEVICE_CONNECTION_H_
 
+#include <errno.h>
 #include <devman.h>
 #include <usb/usb.h>
+#include <usb/hc.h>
 
-int usb_get_info_by_handle(devman_handle_t,
-    devman_handle_t *, usb_address_t *, int *);
 
-static inline int usb_get_hc_by_handle(devman_handle_t dev, devman_handle_t *hc)
+/** Abstraction of a physical connection to the device.
+ * This type is an abstraction of the USB wire that connects the host and
+ * the function (device).
+ */
+typedef struct {
+	/** Connection to the host controller device is connected to. */
+	usb_hc_connection_t *hc_connection;
+	/** Address of the device. */
+	usb_address_t address;
+} usb_device_connection_t;
+
+static inline int usb_device_connection_initialize(
+    usb_device_connection_t *connection, usb_hc_connection_t *hc_connection,
+    usb_address_t address)
 {
-	return usb_get_info_by_handle(dev, hc, NULL, NULL);
-}
+	assert(connection);
 
-static inline int usb_get_address_by_handle(
-    devman_handle_t dev, usb_address_t *address)
+	if (hc_connection == NULL) {
+		return EBADMEM;
+	}
+
+	if ((address < 0) || (address >= USB11_ADDRESS_MAX)) {
+		return EINVAL;
+	}
+
+	connection->hc_connection = hc_connection;
+	connection->address = address;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** Initialize connection to USB device on default address.
+ *
+ * @param dev_connection Device connection structure to be initialized.
+ * @param hc_connection Initialized connection to host controller.
+ * @return Error code.
+ */
+static inline int usb_device_connection_initialize_on_default_address(
+    usb_device_connection_t *connection, usb_hc_connection_t *hc_conn)
 {
-	return usb_get_info_by_handle(dev, NULL, address, NULL);
+	return usb_device_connection_initialize(connection, hc_conn, 0);
 }
-
-static inline int usb_get_iface_by_handle(devman_handle_t dev, int *iface)
-{
-	return usb_get_info_by_handle(dev, NULL, NULL, iface);
-}
-
-int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
-    devman_handle_t *);
 #endif
 /**
  * @}

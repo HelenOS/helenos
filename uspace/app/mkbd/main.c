@@ -47,6 +47,7 @@
 #include <usb/hid/iface.h>
 #include <usb/dev/pipes.h>
 #include <async.h>
+#include <usb/dev.h>
 #include <usb/hid/usages/core.h>
 #include <usb/hid/hidparser.h>
 #include <usb/hid/hiddescriptor.h>

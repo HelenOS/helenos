@@ -35,6 +35,7 @@
 #include <usb/dev/driver.h>
 #include <usb/dev/request.h>
 #include <usb/debug.h>
+#include <usb/dev.h>
 #include <usb/dev/dp.h>
 #include <errno.h>
 #include <str_error.h>
