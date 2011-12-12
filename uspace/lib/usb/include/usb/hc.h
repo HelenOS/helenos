@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * General communication with host controller driver.
+ * General communication with host controller.
  */
 #ifndef LIBUSB_HC_H_
 #define LIBUSB_HC_H_
@@ -41,7 +41,13 @@
 #include <fibril_synch.h>
 #include <usb/usb.h>
 
-/** Connection to the host controller driver. */
+/** Connection to the host controller driver.
+ *
+ * This is a high level IPC communication wrapper. After the structure has been
+ * initialized using devman handle of an USB host controller, it
+ * will manage all communication to that host controller, including session
+ * creation/destruction and proper IPC protocol.
+ */
 typedef struct {
 	/** Devman handle of the host controller. */
 	devman_handle_t hc_handle;
@@ -87,9 +93,9 @@ int usb_hc_register_endpoint(usb_hc_connection_t *, usb_address_t,
 int usb_hc_unregister_endpoint(usb_hc_connection_t *, usb_address_t,
     usb_endpoint_t, usb_direction_t);
 
-int usb_hc_control_read(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
+int usb_hc_read(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
     uint64_t, void *, size_t, size_t *);
-int usb_hc_control_write(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
+int usb_hc_write(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
     uint64_t, const void *, size_t);
 
 /** Get host controller handle by its class index.

@@ -63,6 +63,12 @@ static int usb_hc_connection_del_ref(usb_hc_connection_t *connection)
 {
 	assert(connection);
 	fibril_mutex_lock(&connection->guard);
+	if (connection->ref_count == 0) {
+		/* Closing already closed connection... */
+		assert(connection->hc_sess = NULL);
+		fibril_mutex_unlock(&connection->guard);
+		return EOK;
+	}
 	--connection->ref_count;
 	int ret = EOK;
 	if (connection->ref_count == 0) {
@@ -231,7 +237,7 @@ int usb_hc_unregister_endpoint(usb_hc_connection_t *connection,
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-int usb_hc_control_read(usb_hc_connection_t *connection, usb_address_t address,
+int usb_hc_read(usb_hc_connection_t *connection, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *real_size)
 {
@@ -245,7 +251,7 @@ int usb_hc_control_read(usb_hc_connection_t *connection, usb_address_t address,
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-int usb_hc_control_write(usb_hc_connection_t *connection, usb_address_t address,
+int usb_hc_write(usb_hc_connection_t *connection, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
 {
 	async_exch_t *exch;
