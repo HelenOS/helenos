@@ -39,7 +39,7 @@
 
 /** Mask with bit @a n set. */
 #define BIT_V(type, n) \
-    ((type)1 << (n))
+    ((type) 1 << (n))
 
 /** Mask with rightmost @a n bits set. */
 #define BIT_RRANGE(type, n) \
