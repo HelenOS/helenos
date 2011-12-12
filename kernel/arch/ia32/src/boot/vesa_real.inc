@@ -373,7 +373,7 @@ vesa_init_real2:
 		xor %eax, %eax
 		xor %ebx, %ebx
 		xor %edx, %edx
-		mov $0xffffffff, %edi
+		xor %edi, %edi
 		
 		jz vesa_leave_real  /* force relative jump */
 
