@@ -92,22 +92,6 @@ int usb_hc_control_read(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
 int usb_hc_control_write(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
     uint64_t, const void *, size_t);
 
-static inline int usb_hc_read(usb_hc_connection_t *connection,
-    usb_address_t address, usb_endpoint_t endpoint, void *data, size_t size,
-    size_t *real_size)
-{
-	return usb_hc_control_read(
-	    connection, address, endpoint, 0, data, size, real_size);
-}
-
-static inline int usb_hc_write(usb_hc_connection_t *connection,
-    usb_address_t address, usb_endpoint_t endpoint, const void *data,
-    size_t size)
-{
-	return usb_hc_control_write(
-	     connection, address, endpoint, 0, data, size);
-}
-
 /** Get host controller handle by its class index.
  *
  * @param sid Service ID of the HC function.
