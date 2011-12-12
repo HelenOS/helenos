@@ -192,8 +192,8 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 
 		/* Try to get its address. */
 		if (!found_addr) {
-			dev_addr = usb_get_address_by_handle(tmp_handle);
-			if (dev_addr >= 0) {
+			rc = usb_get_address_by_handle(tmp_handle, &dev_addr);
+			if (rc == 0) {
 				found_addr = true;
 			}
 		}

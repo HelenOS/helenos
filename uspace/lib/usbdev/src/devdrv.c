@@ -483,13 +483,22 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
+	/* Get assigned params */
+	devman_handle_t hc_handle;
+	usb_address_t address;
+
+	int rc = usb_get_info_by_handle(ddf_dev->handle,
+	    &hc_handle, &address, &usb_dev->interface_no);
+	if (rc != EOK) {
+		*errstr_ptr = "device parameters retrieval";
+		return rc;
+	}
+
 	/* Initialize hc connection. */
-	usb_hc_connection_initialize_from_device(&usb_dev->hc_conn, ddf_dev);
-	const usb_address_t address =
-	    usb_get_address_by_handle(ddf_dev->handle);
+	usb_hc_connection_initialize(&usb_dev->hc_conn, hc_handle);
 
 	/* Initialize backing wire and control pipe. */
-	int rc = usb_device_connection_initialize(
+	rc = usb_device_connection_initialize(
 	    &usb_dev->wire, &usb_dev->hc_conn, address);
 	if (rc != EOK) {
 		*errstr_ptr = "device connection initialization";
@@ -511,8 +520,6 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		return rc;
 	}
 
-	/* Get our interface. */
-	usb_dev->interface_no = usb_device_get_assigned_interface(ddf_dev);
 	/* Retrieve standard descriptors. */
 	rc = usb_device_retrieve_descriptors(
 	    &usb_dev->ctrl_pipe, &usb_dev->descriptors);

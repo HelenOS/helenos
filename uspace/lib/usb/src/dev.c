@@ -30,49 +30,21 @@
 #include <errno.h>
 #include <usb_iface.h>
 
-/** Tell USB address assigned to device with given handle.
- *
- * @param dev_handle Devman handle of the USB device in question.
- * @return USB address or negative error code.
- */
-usb_address_t usb_get_address_by_handle(devman_handle_t dev_handle)
-{
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, dev_handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	if (!exch) {
-		async_hangup(parent_sess);
-		return ENOMEM;
-	}
-	usb_address_t address;
-	const int ret = usb_get_my_address(exch, &address);
-
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-
-	if (ret != EOK)
-		return ret;
-
-	return address;
-}
-/*----------------------------------------------------------------------------*/
-/** Find host controller handle for the device.
+/** Find host controller handle, address and iface number for the device.
  *
  * @param[in] device_handle Device devman handle.
  * @param[out] hc_handle Where to store handle of host controller
  *	controlling device with @p device_handle handle.
+ * @param[out] address Place to store the device's address
+ * @param[out] iface Place to stoer the assigned USB interface number.
  * @return Error code.
  */
-int usb_get_hc_by_handle(devman_handle_t device_handle,
-    devman_handle_t *hc_handle)
+int usb_get_info_by_handle(devman_handle_t device_handle,
+    devman_handle_t *hc_handle, usb_address_t *address, int *iface)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
-	    IPC_FLAG_BLOCKING);
+	        IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 
@@ -81,12 +53,57 @@ int usb_get_hc_by_handle(devman_handle_t device_handle,
 		async_hangup(parent_sess);
 		return ENOMEM;
 	}
-	const int ret = usb_get_hc_handle(exch, hc_handle);
+
+	usb_address_t tmp_address;
+	devman_handle_t tmp_handle;
+	int tmp_iface;
+
+	if (address) {
+		const int ret = usb_get_my_address(exch, &tmp_address);
+		if (ret != EOK) {
+			async_exchange_end(exch);
+			async_hangup(parent_sess);
+			return ret;
+		}
+	}
+
+	if (hc_handle) {
+		const int ret = usb_get_hc_handle(exch, &tmp_handle);
+		if (ret != EOK) {
+			async_exchange_end(exch);
+			async_hangup(parent_sess);
+			return ret;
+		}
+	}
+
+	if (iface) {
+		const int ret = usb_get_my_interface(exch, &tmp_iface);
+		switch (ret) {
+		case ENOTSUP:
+			/* Implementing GET_MY_INTERFACE is voluntary. */
+			tmp_iface = -1;
+		case EOK:
+			break;
+		default:
+			async_exchange_end(exch);
+			async_hangup(parent_sess);
+			return ret;
+		}
+	}
+
+	if (hc_handle)
+		*hc_handle = tmp_handle;
+
+	if (address)
+		*address = tmp_address;
+
+	if (iface)
+		*iface = tmp_iface;
 
 	async_exchange_end(exch);
 	async_hangup(parent_sess);
 
-	return ret;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int usb_device_connection_initialize(usb_device_connection_t *connection,

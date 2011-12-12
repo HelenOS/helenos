@@ -65,9 +65,24 @@ static inline int usb_device_connection_initialize_on_default_address(
 	return usb_device_connection_initialize(connection, hc_conn, 0);
 }
 
-usb_address_t usb_get_address_by_handle(devman_handle_t);
+int usb_get_info_by_handle(devman_handle_t,
+    devman_handle_t *, usb_address_t *, int *);
 
-int usb_get_hc_by_handle(devman_handle_t, devman_handle_t *);
+static inline int usb_get_hc_by_handle(devman_handle_t dev, devman_handle_t *hc)
+{
+	return usb_get_info_by_handle(dev, hc, NULL, NULL);
+}
+
+static inline int usb_get_address_by_handle(
+    devman_handle_t dev, usb_address_t *address)
+{
+	return usb_get_info_by_handle(dev, NULL, address, NULL);
+}
+
+static inline int usb_get_iface_by_handle(devman_handle_t dev, int *iface)
+{
+	return usb_get_info_by_handle(dev, NULL, NULL, iface);
+}
 
 int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
     devman_handle_t *);
