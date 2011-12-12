@@ -37,7 +37,6 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
-#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -357,7 +356,6 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 	return EOK;
 }
 
-
 /** Initialize USB endpoint pipe as the default zero control pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
@@ -433,34 +431,30 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
  *
  * @param pipe Pipe to be registered.
  * @param interval Polling interval.
- * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
 int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 {
 	assert(pipe);
 	assert(pipe->wire);
-	assert(pipe->wire->hc_connection);
 
-	return usb_hc_register_endpoint(pipe->wire->hc_connection,
-	   pipe->wire->address, pipe->endpoint_no, pipe->transfer_type,
+	return usb_device_register_endpoint(pipe->wire,
+	   pipe->endpoint_no, pipe->transfer_type,
 	   pipe->direction, pipe->max_packet_size, interval);
 }
 
 /** Revert endpoint registration with the host controller.
  *
  * @param pipe Pipe to be unregistered.
- * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
 int usb_pipe_unregister(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	assert(pipe->wire);
-	assert(pipe->wire->hc_connection);
 
-	return usb_hc_unregister_endpoint(pipe->wire->hc_connection,
-	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
+	return usb_device_unregister_endpoint(pipe->wire,
+	    pipe->endpoint_no, pipe->direction);
 }
 
 /**

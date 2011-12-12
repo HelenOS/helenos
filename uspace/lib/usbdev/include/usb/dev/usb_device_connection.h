@@ -104,7 +104,7 @@ static inline int usb_device_control_read(usb_device_connection_t *conn,
     usb_endpoint_t ep, uint64_t setup, void *data, size_t size, size_t *rsize)
 {
 	assert(conn);
-	return usb_hc_control_read(conn->hc_connection,
+	return usb_hc_read(conn->hc_connection,
 	    conn->address, ep, setup, data, size, rsize);
 }
 /*----------------------------------------------------------------------------*/
@@ -112,7 +112,7 @@ static inline int usb_device_control_write(usb_device_connection_t *conn,
     usb_endpoint_t ep, uint64_t setup, const void *data, size_t size)
 {
 	assert(conn);
-	return usb_hc_control_write(conn->hc_connection,
+	return usb_hc_write(conn->hc_connection,
 	    conn->address, ep, setup, data, size);
 }
 /*----------------------------------------------------------------------------*/

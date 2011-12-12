@@ -86,9 +86,8 @@ static int usb_pipe_read_no_check(usb_pipe_t *pipe, uint64_t setup,
 	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
-	return usb_hc_control_read(pipe->wire->hc_connection,
-	    pipe->wire->address, pipe->endpoint_no, setup, buffer, size,
-	    size_transfered);
+	return usb_device_control_read(pipe->wire,
+	    pipe->endpoint_no, setup, buffer, size, size_transfered);
 }
 /*----------------------------------------------------------------------------*/
 /** Request an out transfer, no checking of input parameters.
@@ -107,8 +106,8 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe, uint64_t setup,
 	    pipe->transfer_type != USB_TRANSFER_CONTROL)
 	    return ENOTSUP;
 
-	return usb_hc_control_write(pipe->wire->hc_connection,
-	    pipe->wire->address, pipe->endpoint_no, setup, buffer, size);
+	return usb_device_control_write(pipe->wire,
+	    pipe->endpoint_no, setup, buffer, size);
 }
 /*----------------------------------------------------------------------------*/
 /** Try to clear endpoint halt of default control pipe.
