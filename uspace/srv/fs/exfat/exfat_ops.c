@@ -656,6 +656,13 @@ int exfat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 			(void) exfat_node_put(FS_NODE(nodep));
 			return rc;
 		}
+
+		rc = exfat_zero_cluster(bs, service_id, nodep->firstc);
+		if (rc != EOK) {
+			(void) exfat_node_put(FS_NODE(nodep));
+			return rc;
+		}
+
 		nodep->size = BPC(bs);
 	} else {
 		nodep->type = EXFAT_FILE;
@@ -738,11 +745,16 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 * dentry data is kept in the child node structure.
 	 */
 	rc = exfat_directory_write_file(&di, name);
-	if (rc != EOK)
+	if (rc != EOK) {
+		(void) exfat_directory_close(&di);
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 	rc = exfat_directory_close(&di);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
 	if (rc != EOK)
@@ -1257,7 +1269,9 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 		exfat_directory_t di;
 		rc = exfat_directory_open(nodep, &di);
-		if (rc != EOK) goto err;
+		if (rc != EOK)
+			goto err;
+
 		rc = exfat_directory_seek(&di, pos);
 		if (rc != EOK) {
 			(void) exfat_directory_close(&di);
@@ -1267,9 +1281,11 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		rc = exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN,
 		    &df, &ds);
 		if (rc == EOK)
-		    goto hit;
-		if (rc == ENOENT)
-		    goto miss;
+			goto hit;
+		else if (rc == ENOENT)
+			goto miss;
+
+		(void) exfat_directory_close(&di);
 
 err:
 		(void) exfat_node_put(fn);
@@ -1278,7 +1294,7 @@ err:
 
 miss:
 		rc = exfat_directory_close(&di);
-		if (rc!=EOK)
+		if (rc != EOK)
 			goto err;
 		rc = exfat_node_put(fn);
 		async_answer_0(callid, rc != EOK ? rc : ENOENT);
@@ -1396,7 +1412,7 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	}
 
 	(void) async_data_write_finalize(callid,
-		b->data + pos % BPS(bs), bytes);
+	    b->data + pos % BPS(bs), bytes);
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
 	if (rc != EOK) {
