@@ -32,38 +32,11 @@
 /** @file
  * USB endpoint pipes miscellaneous functions.
  */
-#include <usb_iface.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <errno.h>
 #include <assert.h>
 
-/** Tell USB interface assigned to given device.
- *
- * @param device Device in question.
- * @return Error code (ENOTSUP means any).
- */
-int usb_device_get_assigned_interface(const ddf_dev_t *device)
-{
-	assert(device);
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, device->handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	if (!exch) {
-		async_hangup(parent_sess);
-		return ENOMEM;
-	}
-
-	int iface_no;
-	const int ret = usb_get_my_interface(exch, &iface_no);
-
-	return ret == EOK ? iface_no : ret;
-}
-/*----------------------------------------------------------------------------*/
 /** Prepare pipe for a long transfer.
  *
  * By a long transfer is mean transfer consisting of several
