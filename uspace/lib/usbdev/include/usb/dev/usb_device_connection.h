@@ -81,6 +81,69 @@ static inline int usb_device_connection_initialize_on_default_address(
 {
 	return usb_device_connection_initialize(connection, hc_conn, 0);
 }
+
+/*----------------------------------------------------------------------------*/
+static inline int usb_device_register_endpoint(usb_device_connection_t *conn,
+    usb_endpoint_t ep, usb_transfer_type_t type, usb_direction_t direction,
+    size_t packet_size, unsigned interval)
+{
+	assert(conn);
+	return usb_hc_register_endpoint(conn->hc_connection,
+	    conn->address, ep, type, direction, packet_size, interval);
+}
+/*----------------------------------------------------------------------------*/
+static inline int usb_device_unregister_endpoint(usb_device_connection_t *conn,
+    usb_endpoint_t ep, usb_direction_t direction)
+{
+	assert(conn);
+	return usb_hc_unregister_endpoint(conn->hc_connection,
+	    conn->address, ep, direction);
+}
+/*----------------------------------------------------------------------------*/
+static inline int usb_device_control_read(usb_device_connection_t *conn,
+    usb_endpoint_t ep, uint64_t setup, void *data, size_t size, size_t *rsize)
+{
+	assert(conn);
+	return usb_hc_control_read(conn->hc_connection,
+	    conn->address, ep, setup, data, size, rsize);
+}
+/*----------------------------------------------------------------------------*/
+static inline int usb_device_control_write(usb_device_connection_t *conn,
+    usb_endpoint_t ep, uint64_t setup, const void *data, size_t size)
+{
+	assert(conn);
+	return usb_hc_control_write(conn->hc_connection,
+	    conn->address, ep, setup, data, size);
+}
+/*----------------------------------------------------------------------------*/
+/** Wrapper for read calls with no setup stage.
+ * @param[in] connection hc connection to use.
+ * @param[in] address USB device address.
+ * @param[in] endpoint USB device endpoint.
+ * @param[in] data Data buffer.
+ * @param[in] size Size of the buffer.
+ * @param[out] real_size Size of the transferred data.
+ * @return Error code.
+ */
+static inline int usb_device_read(usb_device_connection_t *conn,
+    usb_endpoint_t ep, void *data, size_t size, size_t *real_size)
+{
+	return usb_device_control_read(conn, ep, 0, data, size, real_size);
+}
+/*----------------------------------------------------------------------------*/
+/** Wrapper for write calls with no setup stage.
+ * @param connection hc connection to use.
+ * @param address USB device address.
+ * @param endpoint USB device endpoint.
+ * @param data Data buffer.
+ * @param size Size of the buffer.
+ * @return Error code.
+ */
+static inline int usb_device_write(usb_device_connection_t *conn,
+    usb_endpoint_t ep, const void *data, size_t size)
+{
+	return usb_device_control_write(conn, ep, 0, data, size);
+}
 #endif
 /**
  * @}
