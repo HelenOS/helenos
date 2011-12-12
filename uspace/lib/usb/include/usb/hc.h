@@ -108,7 +108,19 @@ static inline int usb_hc_write(usb_hc_connection_t *connection,
 	     connection, address, endpoint, 0, data, size);
 }
 
-int usb_ddf_get_hc_handle_by_sid(service_id_t, devman_handle_t *);
+/** Get host controller handle by its class index.
+ *
+ * @param sid Service ID of the HC function.
+ * @param hc_handle Where to store the HC handle
+ *	(can be NULL for existence test only).
+ * @return Error code.
+ */
+static inline int usb_ddf_get_hc_handle_by_sid(
+    service_id_t sid, devman_handle_t *handle)
+{
+	devman_handle_t h;
+	return devman_fun_sid_to_handle(sid, handle ? handle : &h);
+}
 
 #endif
 /**

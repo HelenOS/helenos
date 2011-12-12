@@ -256,24 +256,6 @@ int usb_hc_control_write(usb_hc_connection_t *connection, usb_address_t address,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
-/** Get host controller handle by its class index.
- *
- * @param sid Service ID of the HC function.
- * @param hc_handle Where to store the HC handle
- *	(can be NULL for existence test only).
- * @return Error code.
- */
-int usb_ddf_get_hc_handle_by_sid(service_id_t sid, devman_handle_t *hc_handle)
-{
-	devman_handle_t handle;
-
-	const int ret = devman_fun_sid_to_handle(sid, &handle);
-	if (ret == EOK && hc_handle != NULL)
-		*hc_handle = handle;
-
-	return ret;
-}
 
 /**
  * @}
