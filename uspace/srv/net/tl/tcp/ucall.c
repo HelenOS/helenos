@@ -120,18 +120,27 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 		tcp_conn_sync(conn);
 	}
 
-	if (conn->snd_buf_fin)
+	fibril_mutex_lock(&conn->snd_buf_lock);
+
+	if (conn->snd_buf_fin) {
+		fibril_mutex_unlock(&conn->snd_buf_lock);
 		return TCP_ECLOSING;
+	}
 
 	while (size > 0) {
 		buf_free = conn->snd_buf_size - conn->snd_buf_used;
 		while (buf_free == 0 && !conn->reset) {
-			tcp_tqueue_new_data(conn);
+			log_msg(LVL_DEBUG, "%s: buf_free == 0, waiting.",
+			    conn->name);
+			fibril_condvar_wait(&conn->snd_buf_cv,
+			    &conn->snd_buf_lock);
 			buf_free = conn->snd_buf_size - conn->snd_buf_used;
 		}
 
-		if (conn->reset)
+		if (conn->reset) {
+			fibril_mutex_unlock(&conn->snd_buf_lock);
 			return TCP_ERESET;
+		}
 
 		xfer_size = min(size, buf_free);
 
@@ -140,8 +149,13 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 		data += xfer_size;
 		conn->snd_buf_used += xfer_size;
 		size -= xfer_size;
+
+		fibril_mutex_unlock(&conn->snd_buf_lock);
+		tcp_tqueue_new_data(conn);
+		fibril_mutex_lock(&conn->snd_buf_lock);
 	}
 
+	fibril_mutex_unlock(&conn->snd_buf_lock);
 	tcp_tqueue_new_data(conn);
 
 	return TCP_EOK;

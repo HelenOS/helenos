@@ -92,6 +92,8 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 		goto error;
 
 	/** Allocate send buffer */
+	fibril_mutex_initialize(&conn->snd_buf_lock);
+	fibril_condvar_initialize(&conn->snd_buf_cv);
 	conn->snd_buf_size = SND_BUF_SIZE;
 	conn->snd_buf_used = 0;
 	conn->snd_buf_fin = false;
@@ -286,6 +288,7 @@ static void tcp_conn_reset(tcp_conn_t *conn)
 	tcp_tqueue_clear(&conn->retransmit);
 
 	fibril_condvar_broadcast(&conn->rcv_buf_cv);
+	fibril_condvar_broadcast(&conn->snd_buf_cv);
 }
 
 /** Signal to the user that connection has been reset.

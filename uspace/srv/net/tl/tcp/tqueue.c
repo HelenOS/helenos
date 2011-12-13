@@ -166,6 +166,8 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	log_msg(LVL_DEBUG, "%s: tcp_tqueue_new_data()", conn->name);
 
+	fibril_mutex_lock(&conn->snd_buf_lock);
+
 	/* Number of free sequence numbers in send window */
 	avail_wnd = (conn->snd_una + conn->snd_wnd) - conn->snd_nxt;
 	snd_buf_seqlen = conn->snd_buf_used + (conn->snd_buf_fin ? 1 : 0);
@@ -175,8 +177,10 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	    "xfer_seqlen = %zu", conn->name, snd_buf_seqlen, conn->snd_wnd,
 	    xfer_seqlen);
 
-	if (xfer_seqlen == 0)
+	if (xfer_seqlen == 0) {
+		fibril_mutex_unlock(&conn->snd_buf_lock);
 		return;
+	}
 
 	/* XXX Do not always send immediately */
 
@@ -187,13 +191,13 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 		log_msg(LVL_DEBUG, "%s: Sending out FIN.", conn->name);
 		/* We are sending out FIN */
 		ctrl = CTL_FIN;
-		tcp_conn_fin_sent(conn);
 	} else {
 		ctrl = 0;
 	}
 
 	seg = tcp_segment_make_data(ctrl, conn->snd_buf, data_size);
 	if (seg == NULL) {
+		fibril_mutex_unlock(&conn->snd_buf_lock);
 		log_msg(LVL_ERROR, "Memory allocation failure.");
 		return;
 	}
@@ -205,6 +209,12 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	if (send_fin)
 		conn->snd_buf_fin = false;
+
+	fibril_condvar_broadcast(&conn->snd_buf_cv);
+	fibril_mutex_unlock(&conn->snd_buf_lock);
+
+	if (send_fin)
+		tcp_conn_fin_sent(conn);
 
 	tcp_tqueue_seg(conn, seg);
 }

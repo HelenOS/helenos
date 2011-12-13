@@ -203,6 +203,10 @@ typedef struct tcp_conn {
 	size_t snd_buf_used;
 	/** Send buffer contains FIN */
 	bool snd_buf_fin;
+	/** Send buffer lock */
+	fibril_mutex_t snd_buf_lock;
+	/** Send buffer CV. Broadcast when space is made available in buffer */
+	fibril_condvar_t snd_buf_cv;
 
 	/** Send unacknowledged */
 	uint32_t snd_una;
