@@ -204,8 +204,7 @@ int generic_device_gone(ddf_dev_t *gen_dev)
  */
 static int destroy_current_pipes(usb_device_t *dev)
 {
-	int rc = usb_device_destroy_pipes(dev->ddf_dev,
-	    dev->pipes, dev->pipes_count);
+	const int rc = usb_device_destroy_pipes(dev->pipes, dev->pipes_count);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -422,41 +421,22 @@ rollback_free_only:
  * @param[in] pipes Endpoint mapping to be destroyed.
  * @param[in] pipes_count Number of endpoints.
  */
-int usb_device_destroy_pipes(const ddf_dev_t *dev,
-    usb_endpoint_mapping_t *pipes, size_t pipes_count)
+int usb_device_destroy_pipes(usb_endpoint_mapping_t *pipes, size_t pipes_count)
 {
-	assert(dev != NULL);
-
 	if (pipes_count == 0) {
 		assert(pipes == NULL);
 		return EOK;
 	}
 	assert(pipes != NULL);
 
-	int rc;
-
-	/* Prepare connection to HC to allow endpoint unregistering. */
-	usb_hc_connection_t hc_conn;
-	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev);
-	if (rc != EOK) {
-		return rc;
-	}
-	/* Open connection to hc for pipe unregister. */
-	rc = usb_hc_connection_open(&hc_conn);
-	if (rc != EOK) {
-		return rc;
-	}
-
 	/* Destroy the pipes. */
-	size_t i;
-	for (i = 0; i < pipes_count; i++) {
-		usb_log_debug2("Unregistering pipe %zu (%spresent).\n",
+	for (size_t i = 0; i < pipes_count; ++i) {
+		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
 		    i, pipes[i].present ? "" : "not ");
 		if (pipes[i].present)
 			usb_pipe_unregister(&pipes[i].pipe);
 	}
 
-	usb_hc_connection_close(&hc_conn);
 	free(pipes);
 
 	return EOK;
