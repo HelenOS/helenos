@@ -47,6 +47,7 @@
  * @param setup_buffer Data to send in SETUP stage of control transfer.
  * @param func_in callback on IN transfer completion.
  * @param func_out callback on OUT transfer completion.
+ * @param fun DDF function (passed to callback function).
  * @param arg Argument to pass to the callback function.
  * @param private_data driver specific per batch data.
  * @param private_data_dtor Function to properly destroy private_data.
