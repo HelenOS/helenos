@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libusbdev
  * @{
  */
@@ -36,7 +36,6 @@
 #include <usb/dev/request.h>
 #include <usb/debug.h>
 #include <usb/dev.h>
-#include <usb/dev/dp.h>
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>
