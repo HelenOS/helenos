@@ -491,12 +491,14 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 void usb_device_deinit(usb_device_t *dev)
 {
 	if (dev) {
-		/* Ignore errors and hope for the best. */
+		/* Destroy existing pipes. */
 		destroy_current_pipes(dev);
-
+		/* Ignore errors and hope for the best. */
+		usb_hc_connection_deinitialize(&dev->hc_conn);
 		usb_alternate_interfaces_deinit(&dev->alternate_interfaces);
 		usb_device_release_descriptors(&dev->descriptors);
 		free(dev->driver_data);
+		dev->driver_data = NULL;
 	}
 }
 
