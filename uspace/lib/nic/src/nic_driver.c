@@ -1328,9 +1328,6 @@ void nic_sw_period_stop(nic_t *nic_data)
 	nic_data->sw_poll_info.running = 0;
 }
 
-// FIXME: Later
-#if 0
-
 /** Lock packet for DMA usage
  *
  * @param packet
@@ -1339,12 +1336,10 @@ void nic_sw_period_stop(nic_t *nic_data)
 void *nic_dma_lock_packet(packet_t *packet)
 {
 	void *phys_addr;
-	size_t locked;
-	int rc = dma_lock(packet, &phys_addr, 1, &locked);
+	int rc = dmamem_lock(packet, &phys_addr, 1);
 	if (rc != EOK)
 		return NULL;
 	
-	assert(locked == 1);
 	return phys_addr;
 }
 
@@ -1352,17 +1347,10 @@ void *nic_dma_lock_packet(packet_t *packet)
  *
  * @param packet
  */
-void nic_dma_unlock_packet(packet_t *packet)
+int nic_dma_unlock_packet(packet_t *packet)
 {
-	size_t unlocked;
-	int rc = dma_unlock(packet, 1, &unlocked);
-	if (rc != EOK)
-		return;
-	
-	assert(unlocked == 1);
+	return dmamem_unlock(packet, 1);
 }
-
-#endif
 
 /** @}
  */
