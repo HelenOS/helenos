@@ -35,6 +35,7 @@
 #ifndef LIBUSB_HC_H_
 #define LIBUSB_HC_H_
 
+#include <async.h>
 #include <devman.h>
 #include <ddf/driver.h>
 #include <bool.h>

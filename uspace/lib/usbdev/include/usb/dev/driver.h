@@ -35,6 +35,8 @@
 #ifndef LIBUSBDEV_DRIVER_H_
 #define LIBUSBDEV_DRIVER_H_
 
+#include <usb/hc.h>
+#include <usb/dev/usb_device_connection.h>
 #include <usb/dev/pipes.h>
 
 /** Descriptors for USB device. */
