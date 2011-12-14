@@ -125,6 +125,21 @@ int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
+void usb_hc_connection_deinitialize(usb_hc_connection_t *connection)
+{
+	assert(connection);
+	fibril_mutex_lock(&connection->guard);
+	if (connection->ref_count != 0) {
+		usb_log_warning("%u stale reference(s) to HC connection.\n",
+		    connection->ref_count);
+		assert(connection->hc_sess);
+		async_hangup(connection->hc_sess);
+		connection->hc_sess = NULL;
+		connection->ref_count = 0;
+	}
+	fibril_mutex_unlock(&connection->guard);
+}
+/*----------------------------------------------------------------------------*/
 /** Open connection to host controller.
  *
  * @param connection Connection to the host controller.
