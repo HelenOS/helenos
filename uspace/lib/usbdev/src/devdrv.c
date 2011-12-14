@@ -200,21 +200,14 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 /** Destroy existing pipes of a USB device.
  *
  * @param dev Device where to destroy the pipes.
- * @return Error code.
  */
-static int destroy_current_pipes(usb_device_t *dev)
+static void destroy_current_pipes(usb_device_t *dev)
 {
-	const int rc = usb_device_destroy_pipes(dev->pipes, dev->pipes_count);
-	if (rc != EOK) {
-		return rc;
-	}
-
+	usb_device_destroy_pipes(dev->pipes, dev->pipes_count);
 	dev->pipes = NULL;
 	dev->pipes_count = 0;
-
-	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Change interface setting of a device.
  * This function selects new alternate setting of an interface by issuing
  * proper USB command to the device and also creates new USB pipes
@@ -247,10 +240,7 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 	int rc;
 
 	/* Destroy existing pipes. */
-	rc = destroy_current_pipes(dev);
-	if (rc != EOK) {
-		return rc;
-	}
+	destroy_current_pipes(dev);
 
 	/* Change the interface itself. */
 	rc = usb_request_set_interface(&dev->ctrl_pipe, dev->interface_no,
@@ -421,25 +411,17 @@ rollback_free_only:
  * @param[in] pipes Endpoint mapping to be destroyed.
  * @param[in] pipes_count Number of endpoints.
  */
-int usb_device_destroy_pipes(usb_endpoint_mapping_t *pipes, size_t pipes_count)
+void usb_device_destroy_pipes(usb_endpoint_mapping_t *pipes, size_t pipes_count)
 {
-	if (pipes_count == 0) {
-		assert(pipes == NULL);
-		return EOK;
-	}
-	assert(pipes != NULL);
-
 	/* Destroy the pipes. */
 	for (size_t i = 0; i < pipes_count; ++i) {
+		assert(pipes);
 		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
 		    i, pipes[i].present ? "" : "not ");
 		if (pipes[i].present)
 			usb_pipe_unregister(&pipes[i].pipe);
 	}
-
 	free(pipes);
-
-	return EOK;
 }
 
 /** Initialize new instance of USB device.

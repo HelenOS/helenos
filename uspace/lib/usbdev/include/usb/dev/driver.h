@@ -175,7 +175,7 @@ void usb_device_release_descriptors(usb_device_descriptors_t *);
 int usb_device_create_pipes(usb_device_connection_t *,
     const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
-int usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
+void usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
 
 void * usb_device_data_alloc(usb_device_t *, size_t);
 
