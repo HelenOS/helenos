@@ -38,27 +38,17 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 #include <fibril_synch.h>
-#include <async.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>
 #include <usb/dev/usb_device_connection.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 /** Abstraction of a logical connection to USB device endpoint.
- * It encapsulates endpoint attributes (transfer type etc.) as well
- * as information about currently running sessions.
+ * It encapsulates endpoint attributes (transfer type etc.).
  * This endpoint must be bound with existing usb_device_connection_t
  * (i.e. the wire to send data over).
- *
- * Locking order: if you want to lock both mutexes
- * (@c guard and @c hc_sess_mutex), lock @c guard first.
- * It is not necessary to lock @c guard if you want to lock @c hc_sess_mutex
- * only.
  */
 typedef struct {
-	/** Guard of the whole pipe. */
-	fibril_mutex_t guard;
-
 	/** The connection used for sending the data. */
 	usb_device_connection_t *wire;
 
