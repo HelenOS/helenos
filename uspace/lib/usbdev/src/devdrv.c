@@ -101,12 +101,15 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	assert(driver->ops->device_add);
 
+	/* Get place for driver data. */
 	usb_device_t *dev = ddf_dev_data_alloc(gen_dev, sizeof(usb_device_t));
 	if (dev == NULL) {
 		usb_log_error("USB device `%s' structure allocation failed.\n",
 		    gen_dev->name);
 		return ENOMEM;
 	}
+
+	/* Initialize generic USB driver data. */
 	const char *err_msg = NULL;
 	int rc = usb_device_init(dev, gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
@@ -115,6 +118,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 		return rc;
 	}
 
+	/* Start USB driver specific initialization. */
 	rc = driver->ops->device_add(dev);
 	if (rc != EOK)
 		usb_device_deinit(dev);
@@ -134,11 +138,13 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	if (driver->ops->device_rem == NULL)
 		return ENOTSUP;
-	/* Just tell the driver to stop whatever it is doing, keep structures */
-	const int ret = driver->ops->device_rem(gen_dev->driver_data);
+	/* Just tell the driver to stop whatever it is doing */
+	usb_device_t *usb_dev = gen_dev->driver_data;
+	const int ret = driver->ops->device_rem(usb_dev);
 	if (ret != EOK)
 		return ret;
-	return ENOTSUP;
+	usb_device_deinit(usb_dev);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Callback when a device was removed from the system.
