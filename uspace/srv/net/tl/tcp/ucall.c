@@ -250,6 +250,17 @@ void tcp_uc_status(tcp_conn_t *conn, tcp_conn_status_t *cstatus)
 	log_msg(LVL_DEBUG, "tcp_uc_status()");
 }
 
+/** Delete connection user call.
+ *
+ * (Not in spec.) Inform TCP that the user is done with this connection
+ * and will not make any further calls/references to it. TCP can deallocate
+ * the connection from now on.
+ */
+void tcp_uc_delete(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "tcp_uc_delete()");
+	tcp_conn_delete(conn);
+}
 
 /*
  * Arriving segments

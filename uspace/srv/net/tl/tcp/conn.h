@@ -39,6 +39,7 @@
 #include "tcp_type.h"
 
 extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);
+extern void tcp_conn_delete(tcp_conn_t *);
 extern void tcp_conn_add(tcp_conn_t *);
 extern void tcp_conn_remove(tcp_conn_t *);
 extern void tcp_conn_sync(tcp_conn_t *);

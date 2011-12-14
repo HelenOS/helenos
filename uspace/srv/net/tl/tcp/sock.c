@@ -614,6 +614,8 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 		    &data_len, &xflags);
 	} while (trc == TCP_EOK);
 
+	tcp_uc_delete(socket->conn);
+
 	rc = socket_destroy(net_sess, socket_id, &client->sockets, &gsock,
 	    tcp_free_sock_data);
 	if (rc != EOK) {

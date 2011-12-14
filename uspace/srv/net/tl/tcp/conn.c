@@ -60,11 +60,11 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
 static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
 static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
 
-/** Create new segment structure.
+/** Create new connection structure.
  *
  * @param lsock		Local socket (will be deeply copied)
  * @param fsock		Foreign socket (will be deeply copied)
- * @return		New segment or NULL
+ * @return		New connection or NULL
  */
 tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 {
@@ -119,6 +119,7 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 
 	conn->cstate = st_listen;
 	conn->reset = false;
+	conn->deleted = false;
 	conn->ap = ap_passive;
 	conn->fin_is_acked = false;
 	conn->ident.local = *lsock;
@@ -140,6 +141,48 @@ error:
 		free(conn);
 
 	return NULL;
+}
+
+/** Destroy connection structure.
+ *
+ * Connection structure should be destroyed when both of two conditions are
+ * met: (1) user has deleted the connection and (2) the connection has entered
+ * closed state.
+ *
+ * @param conn		Connection
+ */
+static void tcp_conn_free(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "%s: tcp_conn_free(%p)", conn->name, conn);
+	tcp_tqueue_fini(&conn->retransmit);
+
+	if (conn->rcv_buf != NULL)
+		free(conn->rcv_buf);
+	if (conn->snd_buf != NULL)
+		free(conn->snd_buf);
+	if (conn->tw_timer != NULL)
+		fibril_timer_destroy(conn->tw_timer);
+	free(conn);
+}
+
+/** Delete connection.
+ *
+ * The caller promises not make no further references to @a conn.
+ * TCP will free @a conn eventually.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_delete(tcp_conn_t *conn)
+{
+	fibril_mutex_lock(&conn->cstate_lock);
+	conn->deleted = true;
+
+	if (conn->cstate == st_closed) {
+		fibril_mutex_unlock(&conn->cstate_lock);
+		tcp_conn_free(conn);
+	} else {
+		fibril_mutex_unlock(&conn->cstate_lock);
+	}
 }
 
 /** Enlist connection.
@@ -165,7 +208,13 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 	fibril_mutex_lock(&conn->cstate_lock);
 	conn->cstate = nstate;
 	fibril_condvar_broadcast(&conn->cstate_cv);
-	fibril_mutex_unlock(&conn->cstate_lock);
+
+	if (nstate == st_closed && conn->deleted) {
+		fibril_mutex_unlock(&conn->cstate_lock);
+		tcp_conn_free(conn);
+	} else {
+		fibril_mutex_unlock(&conn->cstate_lock);
+	}
 }
 
 /** Synchronize connection.

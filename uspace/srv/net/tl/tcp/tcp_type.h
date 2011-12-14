@@ -165,6 +165,8 @@ typedef struct tcp_conn {
 	tcp_cstate_t cstate;
 	/** True if connection was reset */
 	bool reset;
+	/** True if connection was deleted by user */
+	bool deleted;
 	/** Protects @c cstate */
 	fibril_mutex_t cstate_lock;
 	/** Signalled when @c cstate changes */
