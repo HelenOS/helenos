@@ -56,7 +56,6 @@ static driver_t generic_driver = {
 
 static const usb_driver_t *driver = NULL;
 
-
 /** Main routine of USB device driver.
  *
  * Under normal conditions, this function never returns.
@@ -75,7 +74,7 @@ int usb_driver_main(const usb_driver_t *drv)
 
 	return ddf_driver_main(&generic_driver);
 }
-
+/*----------------------------------------------------------------------------*/
 /** Count number of pipes the driver expects.
  *
  * @param drv USB driver.
@@ -87,32 +86,6 @@ static inline size_t count_other_pipes(
 	size_t count;
 	for (count = 0; endpoints != NULL && endpoints[count] != NULL; ++count);
 	return count;
-}
-
-/** Initialize endpoint pipes, excluding default control one.
- *
- * @param drv The device driver.
- * @param dev Device to be initialized.
- * @return Error code.
- */
-static int initialize_other_pipes(const usb_endpoint_description_t **endpoints,
-    usb_device_t *dev, int alternate_setting)
-{
-	assert(dev);
-
-	usb_endpoint_mapping_t *pipes = NULL;
-	size_t pipes_count = 0;
-
-	const int rc = usb_device_create_pipes(&dev->wire, endpoints,
-	    dev->descriptors.configuration, dev->descriptors.configuration_size,
-	    dev->interface_no, alternate_setting, &pipes, &pipes_count);
-
-	if (rc == EOK) {
-		dev->pipes = pipes;
-		dev->pipes_count = pipes_count;
-	}
-
-	return rc;
 }
 /*----------------------------------------------------------------------------*/
 /** Callback when a new device is supposed to be controlled by this driver.
@@ -240,7 +213,10 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 	}
 
 	/* Create new pipes. */
-	rc = initialize_other_pipes(endpoints, dev, (int) alternate_setting);
+	rc = usb_device_create_pipes(&dev->wire, endpoints,
+	    dev->descriptors.configuration, dev->descriptors.configuration_size,
+	    dev->interface_no, (int)alternate_setting,
+	    &dev->pipes, &dev->pipes_count);
 
 	return rc;
 }
@@ -486,8 +462,12 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	const int alternate_iface =
 	    (rc == EOK) ? usb_dev->alternate_interfaces.current : 0;
 
-	/* TODO Add comment here. */
-	rc = initialize_other_pipes(endpoints, usb_dev, alternate_iface);
+	/* Create and register other pipes than default control (EP 0) */
+	rc = usb_device_create_pipes(&usb_dev->wire, endpoints,
+	    usb_dev->descriptors.configuration,
+	    usb_dev->descriptors.configuration_size,
+	    usb_dev->interface_no, (int)alternate_iface,
+	    &usb_dev->pipes, &usb_dev->pipes_count);
 	if (rc != EOK) {
 		usb_hc_connection_close(&usb_dev->hc_conn);
 		/* Full configuration descriptor is allocated. */
