@@ -36,6 +36,8 @@
 #ifndef E1K_H_
 #define E1K_H_
 
+#include <stdint.h>
+
 /** Ethernet CRC size after packet received in rx_descriptor */
 #define E1000_CRC_SIZE  4
 

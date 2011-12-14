@@ -57,7 +57,7 @@
 
 #define NAME  "e1k"
 
-#define E1000_DEFAULT_INTERRUPT_INTEVAL_USEC  250
+#define E1000_DEFAULT_INTERRUPT_INTERVAL_USEC  250
 
 /* Must be power of 8 */
 #define E1000_RX_PACKETS_COUNT  128
@@ -115,11 +115,11 @@ typedef struct e1000_data {
 	/** Virtual registers base address */
 	void *virt_reg_base;
 	/** Tx ring */
-	dma_mem_t tx_ring;
+	dmamem_t tx_ring;
 	/** Packets in tx ring  */
 	packet_t **tx_ring_packets;
 	/** Rx ring */
-	dma_mem_t rx_ring;
+	dmamem_t rx_ring;
 	/** Packets in rx ring  */
 	packet_t **rx_ring_packets;
 	/** VLAN tag */
@@ -187,11 +187,11 @@ static nic_iface_t e1000_nic_iface = {
 /** Basic device operations for E1000 driver */
 static ddf_dev_ops_t e1000_dev_ops;
 
-static int e1000_add_device(ddf_dev_t *);
+static int e1000_dev_add(ddf_dev_t *);
 
 /** Basic driver operations for E1000 driver */
 static driver_ops_t e1000_driver_ops = {
-	.add_device = e1000_add_device
+	.dev_add = e1000_dev_add
 };
 
 /** Driver structure for E1000 driver */
@@ -653,7 +653,7 @@ static void e1000_add_multicast_receive_addresses(e1000_t *e1000_data,
 	unsigned int first_multicast_ra_num = E1000_RECEIVE_ADDRESS - addr_cnt;
 	for (unsigned int ra_num = E1000_RECEIVE_ADDRESS - 1;
 	    ra_num >= first_multicast_ra_num;
-	    ra_num-- {
+	    ra_num--) {
 		e1000_write_receive_address(e1000_data, ra_num, addr_iterator, true);
 		addr_iterator++;
 	}
@@ -1061,7 +1061,7 @@ static void e1000_fill_new_rx_descriptor(nic_t *nic_data, unsigned int offset)
 	
 	*(e1000_data->rx_ring_packets + offset) = packet;
 	e1000_rx_descriptor_t * rx_descriptor = (e1000_rx_descriptor_t *)
-	    (e1000_data->rx_ring.virtual +
+	    (e1000_data->rx_ring.virt +
 	    offset * sizeof(e1000_rx_descriptor_t));
 	
 	void *phys_addr = nic_dma_lock_packet(packet);
@@ -1088,7 +1088,7 @@ static void e1000_fill_new_rx_descriptor(nic_t *nic_data, unsigned int offset)
 static void e1000_clear_rx_descriptor(e1000_t *e1000_data, unsigned int offset)
 {
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
-	    (e1000_data->rx_ring.virtual +
+	    (e1000_data->rx_ring.virt +
 	    offset * sizeof(e1000_rx_descriptor_t));
 	
 	rx_descriptor->length = 0;
@@ -1109,7 +1109,7 @@ static void e1000_clear_tx_descriptor(nic_t *nic_data, unsigned int offset)
 	e1000_t *e1000_data = DRIVER_DATA_NIC(nic_data);
 	
 	e1000_tx_descriptor_t * tx_descriptor = (e1000_tx_descriptor_t *)
-	    (e1000_data->tx_ring.virtual + 
+	    (e1000_data->tx_ring.virt +
 	    offset * sizeof(e1000_tx_descriptor_t));
 	
 	if (tx_descriptor->length) {
@@ -1158,7 +1158,7 @@ static void e1000_receive_packets(nic_t *nic_data)
 	uint32_t next_tail = e1000_inc_tail(*tail_addr, E1000_RX_PACKETS_COUNT);
 	
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
-	    (e1000_data->rx_ring.virtual +
+	    (e1000_data->rx_ring.virt +
 	    next_tail * sizeof(e1000_rx_descriptor_t));
 	
 	while (rx_descriptor->status & 0x01) {
@@ -1176,7 +1176,7 @@ static void e1000_receive_packets(nic_t *nic_data)
 		next_tail = e1000_inc_tail(*tail_addr, E1000_RX_PACKETS_COUNT);
 		
 		rx_descriptor = (e1000_rx_descriptor_t *)
-		    (e1000_data->rx_ring.virtual +
+		    (e1000_data->rx_ring.virt +
 		    next_tail * sizeof(e1000_rx_descriptor_t));
 	}
 	
@@ -1363,19 +1363,16 @@ static int e1000_initialize_rx_structure(nic_t *nic_data)
 	e1000_t *e1000_data = DRIVER_DATA_NIC(nic_data);
 	fibril_mutex_lock(&e1000_data->rx_lock);
 	
-	e1000_data->rx_ring.size =
-	    ALIGN_UP(E1000_RX_PACKETS_COUNT * sizeof(e1000_rx_descriptor_t),
-	    PAGE_SIZE) / PAGE_SIZE;
-	e1000_data->rx_ring.mapping_flags = AS_AREA_READ | AS_AREA_WRITE;
-	
-	int rc = dma_allocate_anonymous(&e1000_data->rx_ring, 0);
+	int rc = dmamem_map(&e1000_data->rx_ring,
+	    SIZE2PAGES(E1000_RX_PACKETS_COUNT * sizeof(e1000_rx_descriptor_t)),
+	    AS_AREA_READ | AS_AREA_WRITE, 0);
 	if (rc != EOK)
 		return rc;
 	
 	E1000_REG_WRITE(e1000_data, E1000_RDBAH,
-	    (uint32_t) (PTR_TO_U64(e1000_data->rx_ring.physical) >> 32));
+	    (uint32_t) (PTR_TO_U64(e1000_data->rx_ring.phys) >> 32));
 	E1000_REG_WRITE(e1000_data, E1000_RDBAL,
-	    (uint32_t) PTR_TO_U64(e1000_data->rx_ring.physical));
+	    (uint32_t) PTR_TO_U64(e1000_data->rx_ring.phys));
 	
 	e1000_data->rx_ring_packets =
 	    malloc(E1000_RX_PACKETS_COUNT * sizeof(packet_t *));
@@ -1412,7 +1409,7 @@ static void e1000_uninitialize_rx_structure(nic_t *nic_data)
 	}
 	
 	free(e1000_data->rx_ring_packets);
-	dma_free(&e1000_data->rx_ring);
+	dmamem_unmap(&e1000_data->rx_ring);
 }
 
 /** Clear receive descriptor ring
@@ -1477,7 +1474,7 @@ static void e1000_initialize_registers(e1000_t *e1000_data)
 {
 	E1000_REG_WRITE(e1000_data, E1000_ITR,
 	    e1000_calculate_itr_interval_from_usecs(
-	    E1000_DEFAULT_INTERRUPT_INTEVAL_USEC));
+	    E1000_DEFAULT_INTERRUPT_INTERVAL_USEC));
 	E1000_REG_WRITE(e1000_data, E1000_FCAH, 0);
 	E1000_REG_WRITE(e1000_data, E1000_FCAL, 0);
 	E1000_REG_WRITE(e1000_data, E1000_FCT, 0);
@@ -1517,22 +1514,19 @@ static int e1000_initialize_tx_structure(e1000_t *e1000_data)
 {
 	fibril_mutex_lock(&e1000_data->tx_lock);
 	
-	e1000_data->tx_ring.size =
-	    ALIGN_UP(E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t),
-	    PAGE_SIZE) / PAGE_SIZE;
-	e1000_data->tx_ring.mapping_flags = AS_AREA_READ | AS_AREA_WRITE;
-	
-	int rc = dma_allocate_anonymous(&e1000_data->tx_ring, 0);
+	int rc = dmamem_map(&e1000_data->tx_ring,
+	    SIZE2PAGES(E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t)),
+	    AS_AREA_READ | AS_AREA_WRITE, 0);
 	if (rc != EOK)
 		return rc;
 	
-	bzero(e1000_data->tx_ring.virtual,
+	bzero(e1000_data->tx_ring.virt,
 	    E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t));
 	
 	E1000_REG_WRITE(e1000_data, E1000_TDBAH,
-	    (uint32_t) (PTR_TO_U64(e1000_data->tx_ring.physical) >> 32));
+	    (uint32_t) (PTR_TO_U64(e1000_data->tx_ring.phys) >> 32));
 	E1000_REG_WRITE(e1000_data, E1000_TDBAL,
-	    (uint32_t) PTR_TO_U64(e1000_data->tx_ring.physical));
+	    (uint32_t) PTR_TO_U64(e1000_data->tx_ring.phys));
 	
 	e1000_data->tx_ring_packets =
 	    malloc(E1000_TX_PACKETS_COUNT * sizeof(packet_t *));
@@ -1552,7 +1546,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000_data)
 static void e1000_uninitialize_tx_structure(e1000_t *e1000_data)
 {
 	free(e1000_data->tx_ring_packets);
-	dma_free(&e1000_data->tx_ring);
+	dmamem_unmap(&e1000_data->tx_ring);
 }
 
 /** Clear transmit descriptor ring
@@ -1888,7 +1882,7 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 		return ENOMEM;
 	
 	/* Obtain and fill hardware resources info */
-	rc = e1000_get_resource_info(dev);
+	int rc = e1000_get_resource_info(dev);
 	if (rc != EOK) {
 		e1000_dev_cleanup(dev);
 		return rc;
@@ -1924,14 +1918,12 @@ static int e1000_pio_enable(ddf_dev_t *dev)
 	return EOK;
 }
 
-/** The add_device callback of E1000 callback
- *
- * Probe and initialize the newly added device.
+/** Probe and initialize the newly added device.
  *
  * @param dev E1000 device.
  *
  */
-int e1000_add_device(ddf_dev_t *dev)
+int e1000_dev_add(ddf_dev_t *dev)
 {
 	assert(dev);
 	
@@ -2113,7 +2105,7 @@ static int e1000_set_addr(ddf_fun_t *dev, const nic_address_t *addr)
 	
 	int rc = nic_report_address(nic_data, addr);
 	if (rc == EOK)
-		e1000_write_receive_address(e1000_data, 0, addr, false)
+		e1000_write_receive_address(e1000_data, 0, addr, false);
 	
 	fibril_mutex_unlock(&e1000_data->tx_lock);
 	fibril_mutex_unlock(&e1000_data->rx_lock);
@@ -2151,7 +2143,7 @@ static void e1000_write_packet(nic_t *nic_data, packet_t *packet)
 	
 	uint32_t tdt = E1000_REG_READ(e1000_data, E1000_TDT);
 	e1000_tx_descriptor_t *tx_descriptor_addr = (e1000_tx_descriptor_t *)
-	    (e1000_data->tx_ring.virtual + tdt * sizeof(e1000_tx_descriptor_t));
+	    (e1000_data->tx_ring.virt + tdt * sizeof(e1000_tx_descriptor_t));
 	
 	bool descriptor_available = false;
 	
@@ -2218,11 +2210,10 @@ static void e1000_write_packet(nic_t *nic_data, packet_t *packet)
 
 int main(void)
 {
-	int rc = dma_allocator_init();
+	int rc = nic_driver_init(NAME);
 	if (rc != EOK)
 		return rc;
 	
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops, &e1000_nic_iface);
-	e1000_driver_init();
 	return ddf_driver_main(&e1000_driver);
 }
