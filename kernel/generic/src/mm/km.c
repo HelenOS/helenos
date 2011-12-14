@@ -60,6 +60,11 @@ void km_non_identity_init(void)
 	config.non_identity_configured = true;
 }
 
+bool km_is_non_identity(uintptr_t addr)
+{
+	return km_is_non_identity_arch(addr);
+}
+
 void km_non_identity_span_add(uintptr_t base, size_t size)
 {
 	bool span_added;

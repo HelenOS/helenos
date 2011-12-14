@@ -35,6 +35,8 @@
 #ifndef KERN_sparc64_sun4v_KM_H_
 #define KERN_sparc64_sun4v_KM_H_
 
+#include <typedefs.h>
+
 /*
  * Do not use the 4 GiB area on either side of the VA hole to meet the
  * limitations of the UltraSPARC T1 CPU.
@@ -48,6 +50,7 @@
 
 extern void km_identity_arch_init(void);
 extern void km_non_identity_arch_init(void);
+extern bool km_is_non_identity_arch(uintptr_t);
 
 #endif
 

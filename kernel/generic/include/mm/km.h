@@ -45,6 +45,8 @@ extern void km_non_identity_span_add(uintptr_t, size_t);
 extern uintptr_t km_page_alloc(size_t, size_t);
 extern void km_page_free(uintptr_t, size_t);
 
+extern bool km_is_non_identity(uintptr_t);
+
 #endif
 
 /** @}

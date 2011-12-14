@@ -33,6 +33,8 @@
 #include <arch/mm/km.h>
 #include <mm/km.h>
 #include <config.h>
+#include <typedefs.h>
+#include <macros.h>
 
 void km_identity_arch_init(void)
 {
@@ -44,6 +46,12 @@ void km_non_identity_arch_init(void)
 {
 	km_non_identity_span_add(KM_SPARC64_US_NON_IDENTITY_START,
 	    KM_SPARC64_US_NON_IDENTITY_SIZE);
+}
+
+bool km_is_non_identity_arch(uintptr_t addr)
+{
+	return iswithin(KM_SPARC64_US_NON_IDENTITY_START,
+	    KM_SPARC64_US_NON_IDENTITY_SIZE, addr, 1);
 }
 
 /** @}
