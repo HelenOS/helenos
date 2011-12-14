@@ -39,9 +39,8 @@
 
 /** Prepare pipe for a long transfer.
  *
- * By a long transfer is mean transfer consisting of several
- * requests to the HC.
- * Calling such function is optional and it has positive effect of
+ * Long transfer is transfer consisting of several requests to the HC.
+ * Calling this function is optional and it has positive effect of
  * improved performance because IPC session is initiated only once.
  *
  * @param pipe Pipe over which the transfer will happen.
@@ -56,10 +55,9 @@ int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
 }
 /*----------------------------------------------------------------------------*/
 /** Terminate a long transfer on a pipe.
- *
- * @see usb_pipe_start_long_transfer
- *
  * @param pipe Pipe where to end the long transfer.
+ * @return Error code.
+ * @see usb_pipe_start_long_transfer
  */
 int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
 {
@@ -67,47 +65,6 @@ int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
 	assert(pipe->wire);
 	assert(pipe->wire->hc_connection);
 	return usb_hc_connection_close(pipe->wire->hc_connection);
-}
-/*----------------------------------------------------------------------------*/
-/** Request an in transfer, no checking of input parameters.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[out] buffer Buffer where to store the data.
- * @param[in] size Size of the buffer (in bytes).
- * @param[out] size_transfered Number of bytes that were actually transfered.
- * @return Error code.
- */
-static int usb_pipe_read_no_check(usb_pipe_t *pipe, uint64_t setup,
-    void *buffer, size_t size, size_t *size_transfered)
-{
-	/* Isochronous transfer are not supported (yet) */
-	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK &&
-	    pipe->transfer_type != USB_TRANSFER_CONTROL)
-	    return ENOTSUP;
-
-	return usb_device_control_read(pipe->wire,
-	    pipe->endpoint_no, setup, buffer, size, size_transfered);
-}
-/*----------------------------------------------------------------------------*/
-/** Request an out transfer, no checking of input parameters.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] buffer Buffer with data to transfer.
- * @param[in] size Size of the buffer (in bytes).
- * @return Error code.
- */
-static int usb_pipe_write_no_check(usb_pipe_t *pipe, uint64_t setup,
-    const void *buffer, size_t size)
-{
-	/* Only interrupt and bulk transfers are supported */
-	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK &&
-	    pipe->transfer_type != USB_TRANSFER_CONTROL)
-	    return ENOTSUP;
-
-	return usb_device_control_write(pipe->wire,
-	    pipe->endpoint_no, setup, buffer, size);
 }
 /*----------------------------------------------------------------------------*/
 /** Try to clear endpoint halt of default control pipe.
@@ -121,7 +78,6 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 	if (!pipe->auto_reset_halt || (pipe->endpoint_no != 0)) {
 		return;
 	}
-
 
 	/* Prevent infinite recursion. */
 	pipe->auto_reset_halt = false;
@@ -144,7 +100,7 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
  */
 int usb_pipe_control_read(usb_pipe_t *pipe,
     const void *setup_buffer, size_t setup_buffer_size,
-    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
+    void *buffer, size_t buffer_size, size_t *transfered_size)
 {
 	assert(pipe);
 
@@ -152,7 +108,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if ((data_buffer == NULL) || (data_buffer_size == 0)) {
+	if ((buffer == NULL) || (buffer_size == 0)) {
 		return EINVAL;
 	}
 
@@ -161,19 +117,25 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
+	/* Isochronous transfer are not supported (yet) */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK &&
+	    pipe->transfer_type != USB_TRANSFER_CONTROL)
+	    return ENOTSUP;
+
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
 	size_t act_size = 0;
-	const int rc = usb_pipe_read_no_check(pipe, setup_packet,
-	    data_buffer, data_buffer_size, &act_size);
+	const int rc = usb_device_control_read(pipe->wire,
+	    pipe->endpoint_no, setup_packet, buffer, buffer_size, &act_size);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
 	}
 
-	if (rc == EOK && data_transfered_size != NULL) {
-		*data_transfered_size = act_size;
+	if (rc == EOK && transfered_size != NULL) {
+		*transfered_size = act_size;
 	}
 
 	return rc;
@@ -192,7 +154,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
  */
 int usb_pipe_control_write(usb_pipe_t *pipe,
     const void *setup_buffer, size_t setup_buffer_size,
-    const void *data_buffer, size_t data_buffer_size)
+    const void *buffer, size_t buffer_size)
 {
 	assert(pipe);
 
@@ -200,11 +162,11 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if ((data_buffer == NULL) && (data_buffer_size > 0)) {
+	if ((buffer == NULL) && (buffer_size > 0)) {
 		return EINVAL;
 	}
 
-	if ((data_buffer != NULL) && (data_buffer_size == 0)) {
+	if ((buffer != NULL) && (buffer_size == 0)) {
 		return EINVAL;
 	}
 
@@ -213,11 +175,17 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
+	/* Isochronous transfer are not supported (yet) */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK &&
+	    pipe->transfer_type != USB_TRANSFER_CONTROL)
+	    return ENOTSUP;
+
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
-	const int rc = usb_pipe_write_no_check(pipe, setup_packet,
-	    data_buffer, data_buffer_size);
+	const int rc = usb_device_control_write(pipe->wire,
+	    pipe->endpoint_no, setup_packet, buffer, buffer_size);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
@@ -255,9 +223,15 @@ int usb_pipe_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	size_t act_size = 0;
-	const int rc = usb_pipe_read_no_check(pipe, 0, buffer, size, &act_size);
+	/* Isochronous transfer are not supported (yet) */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK &&
+	    pipe->transfer_type != USB_TRANSFER_CONTROL)
+	    return ENOTSUP;
 
+	size_t act_size = 0;
+	const int rc = usb_device_read(pipe->wire,
+	    pipe->endpoint_no, buffer, size, &act_size);
 
 	if (rc == EOK && size_transfered != NULL) {
 		*size_transfered = act_size;
@@ -289,7 +263,14 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 		return EBADF;
 	}
 
-	return usb_pipe_write_no_check(pipe, 0, buffer, size);
+	/* Isochronous transfer are not supported (yet) */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK &&
+	    pipe->transfer_type != USB_TRANSFER_CONTROL)
+	    return ENOTSUP;
+
+	return usb_device_write(pipe->wire,
+	    pipe->endpoint_no, buffer, size);
 }
 /*----------------------------------------------------------------------------*/
 /** Initialize USB endpoint pipe.
