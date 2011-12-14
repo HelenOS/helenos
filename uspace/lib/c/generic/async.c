@@ -1845,7 +1845,7 @@ int async_hangup(async_sess_t *sess)
 		return EBUSY;
 	
 	fibril_mutex_lock(&async_sess_mutex);
-
+	
 	int rc = async_hangup_internal(sess->phone);
 	
 	while (!list_empty(&sess->exch_list)) {

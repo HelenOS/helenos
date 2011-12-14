@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Jiri Michalec
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,87 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
- * @{
- */
 /** @file
- */
-
-#ifndef LIBC_BITOPS_H_
-#define LIBC_BITOPS_H_
-
-#include <sys/types.h>
-
-/** Mask with bit @a n set. */
-#define BIT_V(type, n) \
-    ((type) 1 << (n))
-
-/** Mask with rightmost @a n bits set. */
-#define BIT_RRANGE(type, n) \
-    (BIT_V(type, (n)) - 1)
-
-/** Mask with bits @a hi .. @a lo set. @a hi >= @a lo. */
-#define BIT_RANGE(type, hi, lo) \
-    (BIT_RRANGE(type, (hi) - (lo) + 1) << (lo))
-
-/** Extract range of bits @a hi .. @a lo from @a value. */
-#define BIT_RANGE_EXTRACT(type, hi, lo, value) \
-    (((value) >> (lo)) & BIT_RRANGE(type, (hi) - (lo) + 1))
-
-/** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
  *
- * If number is zero, it returns 0
+ *  General functions and structures used in rtl8139 driver
  */
-static inline unsigned int fnzb32(uint32_t arg)
-{
-	unsigned int n = 0;
-	
-	if (arg >> 16) {
-		arg >>= 16;
-		n += 16;
-	}
-	
-	if (arg >> 8) {
-		arg >>= 8;
-		n += 8;
-	}
-	
-	if (arg >> 4) {
-		arg >>= 4;
-		n += 4;
-	}
-	
-	if (arg >> 2) {
-		arg >>= 2;
-		n += 2;
-	}
-	
-	if (arg >> 1) {
-		arg >>= 1;
-		n += 1;
-	}
-	
-	return n;
-}
 
-static inline unsigned int fnzb64(uint64_t arg)
-{
-	unsigned int n = 0;
-	
-	if (arg >> 32) {
-		arg >>= 32;
-		n += 32;
-	}
-	
-	return (n + fnzb32((uint32_t) arg));
-}
+#ifndef RTL8139_GENERAL_H_
+#define RTL8139_GENERAL_H_
 
-static inline unsigned int fnzb(size_t arg)
-{
-	return fnzb64(arg);
-}
+#include <unistd.h>
+
+extern void* rtl8139_memcpy_wrapped(void *dest, const void *src_buf,
+    size_t src_offset, size_t src_size, size_t data_size);
+
+
+/** Structure for HW timer control */
+typedef struct rtl8139_timer_act {
+	/** Register value set in the last timer period */
+	uint32_t last_val;
+	/** Register value set in the common timer period */
+	uint32_t full_val;
+
+	/** Amount of full register periods in timer period */
+	size_t full_skips;
+	/** Remaining full register periods to the next period end */
+	size_t full_skips_remains;
+	/** Mark if there is a last run */
+	int last_run;
+} rtl8139_timer_act_t;
+
+/** Count of microseconds in second */
+#define RTL8139_USEC_IN_SEC 1000000
+
+extern int rtl8139_timer_act_init(rtl8139_timer_act_t *ta, uint32_t timer_freq,
+    const struct timeval *time);
+extern int rtl8139_timer_act_step(rtl8139_timer_act_t *ta, uint32_t *new_reg);
+
 
 #endif
-
-/** @}
- */

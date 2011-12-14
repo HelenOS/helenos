@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Jiri Michalec
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,85 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_BITOPS_H_
-#define LIBC_BITOPS_H_
+#ifndef LIBC_DEVICE_PCI_H_
+#define LIBC_DEVICE_PCI_H_
 
-#include <sys/types.h>
+#include <async.h>
 
-/** Mask with bit @a n set. */
-#define BIT_V(type, n) \
-    ((type) 1 << (n))
+#define PCI_DEVICE_ID  0x02
 
-/** Mask with rightmost @a n bits set. */
-#define BIT_RRANGE(type, n) \
-    (BIT_V(type, (n)) - 1)
+typedef enum {
+	IPC_M_CONFIG_SPACE_READ_8,
+	IPC_M_CONFIG_SPACE_READ_16,
+	IPC_M_CONFIG_SPACE_READ_32,
+	
+	IPC_M_CONFIG_SPACE_WRITE_8,
+	IPC_M_CONFIG_SPACE_WRITE_16,
+	IPC_M_CONFIG_SPACE_WRITE_32
+} pci_dev_iface_funcs_t;
 
-/** Mask with bits @a hi .. @a lo set. @a hi >= @a lo. */
-#define BIT_RANGE(type, hi, lo) \
-    (BIT_RRANGE(type, (hi) - (lo) + 1) << (lo))
+extern int pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
+extern int pci_config_space_read_16(async_sess_t *, uint32_t, uint16_t *);
+extern int pci_config_space_read_32(async_sess_t *, uint32_t, uint32_t *);
 
-/** Extract range of bits @a hi .. @a lo from @a value. */
-#define BIT_RANGE_EXTRACT(type, hi, lo, value) \
-    (((value) >> (lo)) & BIT_RRANGE(type, (hi) - (lo) + 1))
-
-/** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
- *
- * If number is zero, it returns 0
- */
-static inline unsigned int fnzb32(uint32_t arg)
-{
-	unsigned int n = 0;
-	
-	if (arg >> 16) {
-		arg >>= 16;
-		n += 16;
-	}
-	
-	if (arg >> 8) {
-		arg >>= 8;
-		n += 8;
-	}
-	
-	if (arg >> 4) {
-		arg >>= 4;
-		n += 4;
-	}
-	
-	if (arg >> 2) {
-		arg >>= 2;
-		n += 2;
-	}
-	
-	if (arg >> 1) {
-		arg >>= 1;
-		n += 1;
-	}
-	
-	return n;
-}
-
-static inline unsigned int fnzb64(uint64_t arg)
-{
-	unsigned int n = 0;
-	
-	if (arg >> 32) {
-		arg >>= 32;
-		n += 32;
-	}
-	
-	return (n + fnzb32((uint32_t) arg));
-}
-
-static inline unsigned int fnzb(size_t arg)
-{
-	return fnzb64(arg);
-}
+extern int pci_config_space_write_8(async_sess_t *, uint32_t, uint8_t);
+extern int pci_config_space_write_16(async_sess_t *, uint32_t, uint16_t);
+extern int pci_config_space_write_32(async_sess_t *, uint32_t, uint32_t);
 
 #endif
 
