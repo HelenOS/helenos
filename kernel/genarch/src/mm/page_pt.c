@@ -38,6 +38,7 @@
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/km.h>
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
@@ -152,8 +153,8 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	memsetb(&ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
 	
 	/*
-	 * Second, free all empty tables along the way from PTL3 down to PTL0.
-	 *
+	 * Second, free all empty tables along the way from PTL3 down to PTL0
+	 * except those needed for sharing the kernel non-identity mappings.
 	 */
 	
 	/* Check PTL3 */
@@ -170,17 +171,20 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	if (empty) {
 		/*
 		 * PTL3 is empty.
-		 * Release the frame and remove PTL3 pointer from preceding table.
-		 *
+		 * Release the frame and remove PTL3 pointer from the parent
+		 * table.
 		 */
-		frame_free(KA2PA((uintptr_t) ptl3));
 #if (PTL2_ENTRIES != 0)
 		memsetb(&ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
 #elif (PTL1_ENTRIES != 0)
 		memsetb(&ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
 #else
+		if (km_is_non_identity(page))
+			return;
+
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 #endif
+		frame_free(KA2PA((uintptr_t) ptl3));
 	} else {
 		/*
 		 * PTL3 is not empty.
@@ -203,15 +207,18 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	if (empty) {
 		/*
 		 * PTL2 is empty.
-		 * Release the frame and remove PTL2 pointer from preceding table.
-		 *
+		 * Release the frame and remove PTL2 pointer from the parent
+		 * table.
 		 */
-		frame_free(KA2PA((uintptr_t) ptl2));
 #if (PTL1_ENTRIES != 0)
 		memsetb(&ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
 #else
+		if (km_is_non_identity(page))
+			return;
+
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 #endif
+		frame_free(KA2PA((uintptr_t) ptl2));
 	} else {
 		/*
 		 * PTL2 is not empty.
@@ -235,11 +242,14 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	if (empty) {
 		/*
 		 * PTL1 is empty.
-		 * Release the frame and remove PTL1 pointer from preceding table.
-		 *
+		 * Release the frame and remove PTL1 pointer from the parent
+		 * table.
 		 */
-		frame_free(KA2PA((uintptr_t) ptl1));
+		if (km_is_non_identity(page))
+			return;
+
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+		frame_free(KA2PA((uintptr_t) ptl1));
 	}
 #endif /* PTL1_ENTRIES != 0 */
 }
