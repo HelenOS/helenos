@@ -117,12 +117,6 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	/* Isochronous transfer are not supported (yet) */
-	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK &&
-	    pipe->transfer_type != USB_TRANSFER_CONTROL)
-	    return ENOTSUP;
-
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
@@ -175,12 +169,6 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	/* Isochronous transfer are not supported (yet) */
-	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK &&
-	    pipe->transfer_type != USB_TRANSFER_CONTROL)
-	    return ENOTSUP;
-
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
@@ -225,8 +213,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 
 	/* Isochronous transfer are not supported (yet) */
 	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK &&
-	    pipe->transfer_type != USB_TRANSFER_CONTROL)
+	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
 	size_t act_size = 0;
@@ -265,8 +252,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 
 	/* Isochronous transfer are not supported (yet) */
 	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK &&
-	    pipe->transfer_type != USB_TRANSFER_CONTROL)
+	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
 	return usb_device_write(pipe->wire,
