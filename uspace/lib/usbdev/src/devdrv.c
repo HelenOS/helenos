@@ -515,6 +515,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		return rc;
 	}
 
+	/* Open hc connection for pipe registration. */
 	rc = usb_hc_connection_open(&usb_dev->hc_conn);
 	if (rc != EOK) {
 		*errstr_ptr = "hc connection open";
@@ -574,6 +575,11 @@ void usb_device_deinit(usb_device_t *dev)
 	}
 }
 
+/** Allocate driver specific data.
+ * @param usb_dev usb_device structure.
+ * @param size requested data size.
+ * @return Pointer to the newly allocated space, NULL on failure.
+ */
 void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
 {
 	assert(usb_dev);

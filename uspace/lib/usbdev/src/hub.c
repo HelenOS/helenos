@@ -37,31 +37,16 @@
 #include <usb/dev/request.h>
 #include <usb/dev/recognise.h>
 #include <usb/debug.h>
-#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
 #include <usb/debug.h>
 #include <time.h>
 #include <async.h>
 
-/** How much time to wait between attempts to register endpoint 0:0.
+/** How much time to wait between attempts to get the default address.
  * The value is based on typical value for port reset + some overhead.
  */
-#define ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC (1000 * (10 + 2))
-
-/** Check that HC connection is alright.
- *
- * @param conn Connection to be checked.
- */
-#define CHECK_CONNECTION(conn) \
-	do { \
-		assert((conn)); \
-		if (!usb_hc_connection_is_opened((conn))) { \
-			usb_log_error("Connection not open.\n"); \
-			return ENOTCONN; \
-		} \
-	} while (false)
-
+#define DEFAULT_ADDRESS_ATTEMPT_DELAY_USEC (1000 * (10 + 2))
 
 /** Inform host controller about new device.
  *
@@ -69,41 +54,14 @@
  * @param attached_device Information about the new device.
  * @return Error code.
  */
-int usb_hc_register_device(usb_hc_connection_t *connection,
+int usb_hub_register_device(usb_hc_connection_t *connection,
     const usb_hub_attached_device_t *attached_device)
 {
-//	CHECK_CONNECTION(connection);
+	assert(connection);
 	if (attached_device == NULL || attached_device->fun == NULL)
-		return EINVAL;
-
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	if (!exch)
-		return ENOMEM;
-	const int ret = usbhc_bind_address(exch,
+		return EBADMEM;
+	return usb_hc_bind_address(connection,
 	    attached_device->address, attached_device->fun->handle);
-	async_exchange_end(exch);
-
-	return ret;
-}
-
-/** Inform host controller about device removal.
- *
- * @param connection Opened connection to host controller.
- * @param address Address of the device that is being removed.
- * @return Error code.
- */
-int usb_hc_unregister_device(usb_hc_connection_t *connection,
-    usb_address_t address)
-{
-//	CHECK_CONNECTION(connection);
-
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	if (!exch)
-		return ENOMEM;
-	const int ret = usbhc_release_address(exch, address);
-	async_exchange_end(exch);
-
-	return ret;
 }
 
 /** Change address of connected device.
@@ -143,10 +101,9 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address)
 		usb_log_warning(
 		    "Failed to unregister the old pipe on address change.\n");
 	}
-	/* Address changed. We can release the default, thus
-	 * allowing other to access the default address. */
-	usb_hc_unregister_device(pipe->wire->hc_connection,
-	    pipe->wire->address);
+	/* Address changed. We can release the old one, thus
+	 * allowing other to us it. */
+	usb_hc_release_address(pipe->wire->hc_connection, pipe->wire->address);
 
 	/* The address is already changed so set it in the wire */
 	pipe->wire->address = new_address;
@@ -255,7 +212,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 		    true, dev_speed);
 		if (rc == ENOENT) {
 			/* Do not overheat the CPU ;-). */
-			async_usleep(ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC);
+			async_usleep(DEFAULT_ADDRESS_ATTEMPT_DELAY_USEC);
 		}
 	} while (rc == ENOENT);
 	if (rc < 0) {
@@ -327,7 +284,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 
 
 	/* Inform the host controller about the handle. */
-	rc = usb_hc_register_device(hc_conn, &new_device);
+	rc = usb_hub_register_device(hc_conn, &new_device);
 	if (rc != EOK) {
 		/* We know nothing about that data. */
 		if (new_dev_data)
@@ -352,8 +309,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	 * Completely ignoring errors here.
 	 */
 leave_release_default_address:
-	if (usb_hc_unregister_device(hc_conn, USB_ADDRESS_DEFAULT) != EOK)
-		usb_log_warning("%s: Failed to unregister defaut device.\n",
+	if (usb_hc_release_address(hc_conn, USB_ADDRESS_DEFAULT) != EOK)
+		usb_log_warning("%s: Failed to release defaut address.\n",
 		    __FUNCTION__);
 
 leave_release_free_address:
@@ -362,9 +319,9 @@ leave_release_free_address:
 		usb_log_warning("%s: Failed to unregister default pipe.\n",
 		    __FUNCTION__);
 
-	if (usb_hc_unregister_device(hc_conn, dev_addr) != EOK)
-		usb_log_warning("%s: Failed to unregister device.\n",
-		    __FUNCTION__);
+	if (usb_hc_release_address(hc_conn, dev_addr) != EOK)
+		usb_log_warning("%s: Failed to release address: %d.\n",
+		    __FUNCTION__, dev_addr);
 
 close_connection:
 	if (usb_hc_connection_close(hc_conn) != EOK)

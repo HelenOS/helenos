@@ -38,6 +38,7 @@
 #include <usb/dev/driver.h>
 #include <time.h>
 
+/** Parameters and callbacks for automated polling. */
 typedef struct {
 	/** Level of debugging messages from auto polling.
 	 * 0 - nothing

@@ -323,7 +323,6 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 		    "driver data. This does not have to work.\n");
 	}
 
-
 	/** Index to append after device name for uniqueness. */
 	static atomic_t device_name_index = {0};
 	const size_t this_device_name_index =

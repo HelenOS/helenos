@@ -287,8 +287,8 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	ddf_fun_destroy(port->attached_device.fun);
 	port->attached_device.fun = NULL;
 
-	ret = usb_hc_unregister_device(&hub->usb_device->hc_conn,
-	    port->attached_device.address);
+	ret = usb_hub_unregister_device(&hub->usb_device->hc_conn,
+	    &port->attached_device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to unregister address of the "
 		    "removed device: %s.\n", str_error(ret));

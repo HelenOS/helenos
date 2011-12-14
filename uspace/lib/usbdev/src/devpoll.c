@@ -45,12 +45,18 @@
 
 /** Data needed for polling. */
 typedef struct {
+	/** Parameters for automated polling. */
 	usb_device_auto_polling_t auto_polling;
 
+	/** USB device to poll. */
 	usb_device_t *dev;
+	/** Device pipe to use for polling. */
 	size_t pipe_index;
+	/** Size of the recieved data. */
 	size_t request_size;
+	/** Data buffer. */
 	uint8_t *buffer;
+	/** Argument to pass to callbacks. */
 	void *custom_arg;
 } polling_data_t;
 

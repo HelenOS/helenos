@@ -312,8 +312,8 @@ int uhci_port_remove_device(uhci_port_t *port)
 	port->attached_device.fun = NULL;
 
 	/* Driver stopped, free used address */
-	ret = usb_hc_unregister_device(&port->hc_connection,
-	    port->attached_device.address);
+	ret = usb_hub_unregister_device(&port->hc_connection,
+	    &port->attached_device);
 	if (ret != EOK) {
 		usb_log_error("%s: Failed to unregister address of removed "
 		    "device: %s.\n", port->id_string, str_error(ret));
