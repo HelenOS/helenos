@@ -442,6 +442,7 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 	if (rc != EOK) {
 		return rc;
 	}
+	/* Open connection to hc for pipe unregister. */
 	rc = usb_hc_connection_open(&hc_conn);
 	if (rc != EOK) {
 		return rc;
@@ -456,6 +457,7 @@ int usb_device_destroy_pipes(const ddf_dev_t *dev,
 			usb_pipe_unregister(&pipes[i].pipe);
 	}
 
+	usb_hc_connection_close(&hc_conn);
 	free(pipes);
 
 	return EOK;
