@@ -85,7 +85,7 @@ static inline size_t count_other_pipes(
     const usb_endpoint_description_t **endpoints)
 {
 	size_t count;
-	for (count = 0; endpoints && endpoints[count] != NULL; ++count);
+	for (count = 0; endpoints != NULL && endpoints[count] != NULL; ++count);
 	return count;
 }
 
@@ -99,12 +99,6 @@ static int initialize_other_pipes(const usb_endpoint_description_t **endpoints,
     usb_device_t *dev, int alternate_setting)
 {
 	assert(dev);
-
-	if (endpoints == NULL) {
-		dev->pipes = NULL;
-		dev->pipes_count = 0;
-		return EOK;
-	}
 
 	usb_endpoint_mapping_t *pipes = NULL;
 	size_t pipes_count = 0;
@@ -323,7 +317,6 @@ int usb_device_create_pipes(usb_device_connection_t *wire,
     usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
 {
 	assert(wire != NULL);
-	assert(endpoints != NULL);
 	assert(config_descr != NULL);
 	assert(config_descr_size > 0);
 	assert(pipes_ptr != NULL);
