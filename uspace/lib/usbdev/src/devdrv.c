@@ -109,7 +109,7 @@ static int initialize_other_pipes(const usb_endpoint_description_t **endpoints,
 	usb_endpoint_mapping_t *pipes;
 	size_t pipes_count;
 
-	int rc = usb_device_create_pipes(dev->ddf_dev, &dev->wire, endpoints,
+	int rc = usb_device_create_pipes(&dev->wire, endpoints,
 	    dev->descriptors.configuration, dev->descriptors.configuration_size,
 	    dev->interface_no, alternate_setting, &pipes, &pipes_count);
 
@@ -332,13 +332,12 @@ void usb_device_release_descriptors(usb_device_descriptors_t *descriptors)
  *	(set to NULL if you wish to ignore the count).
  * @return Error code.
  */
-int usb_device_create_pipes(const ddf_dev_t *dev, usb_device_connection_t *wire,
+int usb_device_create_pipes(usb_device_connection_t *wire,
     const usb_endpoint_description_t **endpoints,
     const uint8_t *config_descr, size_t config_descr_size,
     int interface_no, int interface_setting,
     usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
 {
-	assert(dev != NULL);
 	assert(wire != NULL);
 	assert(endpoints != NULL);
 	assert(config_descr != NULL);
