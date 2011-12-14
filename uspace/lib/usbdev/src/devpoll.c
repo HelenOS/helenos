@@ -56,8 +56,6 @@ typedef struct {
 	size_t request_size;
 	/** Data buffer. */
 	uint8_t *buffer;
-	/** Argument to pass to callbacks. */
-	void *custom_arg;
 } polling_data_t;
 
 
@@ -124,7 +122,7 @@ static int polling_fibril(void *arg)
 		if (rc != EOK) {
 			++failed_attempts;
 			const bool cont = (params->on_error == NULL) ? true :
-			    params->on_error(data->dev, rc, data->custom_arg);
+			    params->on_error(data->dev, rc, params->arg);
 			if (!cont) {
 				failed_attempts = params->max_failures;
 			}
@@ -134,7 +132,7 @@ static int polling_fibril(void *arg)
 		/* We have the data, execute the callback now. */
 		assert(params->on_data);
 		const bool carry_on = params->on_data(
-		    data->dev, data->buffer, actual_size, data->custom_arg);
+		    data->dev, data->buffer, actual_size, params->arg);
 
 		if (!carry_on) {
 			/* This is user requested abort, erases failures. */
@@ -154,7 +152,7 @@ static int polling_fibril(void *arg)
 	const bool failed = failed_attempts > 0;
 
 	if (params->on_polling_end != NULL) {
-		params->on_polling_end(data->dev, failed, data->custom_arg);
+		params->on_polling_end(data->dev, failed, params->arg);
 	}
 
 	if (params->debug > 0) {
@@ -204,10 +202,11 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
 		.on_data = callback,
 		.on_polling_end = terminated_callback,
 		.on_error = NULL,
+		.arg = arg,
 	};
 
 	return usb_device_auto_polling(dev, pipe_index, &auto_polling,
-	   request_size, arg);
+	   request_size);
 }
 
 /** Start automatic device polling over interrupt in pipe.
@@ -229,7 +228,7 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
  */
 int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
     const usb_device_auto_polling_t *polling,
-    size_t request_size, void *arg)
+    size_t request_size)
 {
 	if ((dev == NULL) || (polling == NULL) || (polling->on_data == NULL)) {
 		return EBADMEM;
@@ -257,7 +256,6 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	polling_data->request_size = request_size;
 	polling_data->dev = dev;
 	polling_data->pipe_index = pipe_index;
-	polling_data->custom_arg = arg;
 
 	/* Copy provided settings. */
 	polling_data->auto_polling = *polling;
