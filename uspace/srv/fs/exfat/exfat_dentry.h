@@ -159,7 +159,7 @@ extern void exfat_dentry_get_name(const exfat_name_dentry_t *, size_t,
 extern bool exfat_valid_char(wchar_t);
 extern bool exfat_valid_name(const char *);
 
-extern size_t utf16_length(const uint16_t *);
+extern size_t exfat_utf16_length(const uint16_t *);
 
 
 #endif
