@@ -757,11 +757,7 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
-	if (rc != EOK)
-		return rc;
-
 	fibril_mutex_lock(&childp->idx->lock);
-
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->parent_fragmented = parentp->fragmented;
