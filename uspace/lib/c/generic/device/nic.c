@@ -894,7 +894,7 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, int add, int strip)
+int nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, bool add, bool strip)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	int rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),

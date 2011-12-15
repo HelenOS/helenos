@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Jiri Michalec
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,87 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
- * @{
- */
-/** @file
- */
+#include "rtl8139_defs.h"
 
-#ifndef LIBC_BITOPS_H_
-#define LIBC_BITOPS_H_
+const char* model_names[RTL8139_VER_COUNT] = {
+	"RTL8139",
+	"RTL8139A",
+	"RTL8139A_G",
+	"RTL8139B",
+	"RTL8130",
+	"RTL8139C",
+	"RTL8100",
+	"RTL8139C+",
+	"RTL8139D",
+	"RTL8101"
+};
 
-#include <sys/types.h>
+#define HWVER(b1, b2, b3, b4, b5, b6, b7) ((b1 << 6) | (b2 << 5) | (b3 << 4) \
+    | (b4 << 3) | (b5 << 2) | (b6 << 1) | (b7))
 
-/** Mask with bit @a n set. */
-#define BIT_V(type, n) \
-    ((type) 1 << (n))
+const struct rtl8139_hwver_map rtl8139_versions[RTL8139_VER_COUNT + 1] = {
+	{ HWVER(1,1,0,0,0,0,0), RTL8139 },
+	{ HWVER(1,1,1,0,0,0,0), RTL8139A },
+	{ HWVER(1,1,1,0,0,1,0), RTL8139A_G },
+	{ HWVER(1,1,1,1,0,0,0), RTL8139B },
+	{ HWVER(1,1,1,1,1,0,0), RTL8130 },
+	{ HWVER(1,1,1,0,1,0,0), RTL8139C },
+	{ HWVER(1,1,1,1,0,1,0), RTL8100 },
+	{ HWVER(1,1,1,0,1,0,1), RTL8139D },
+	{ HWVER(1,1,1,0,1,1,0), RTL8139Cp },
+	{ HWVER(1,1,1,0,1,1,1), RTL8101 },
+	/* End value */
+	{ 0, RTL8139_VER_COUNT}
+};
 
-/** Mask with rightmost @a n bits set. */
-#define BIT_RRANGE(type, n) \
-    (BIT_V(type, (n)) - 1)
-
-/** Mask with bits @a hi .. @a lo set. @a hi >= @a lo. */
-#define BIT_RANGE(type, hi, lo) \
-    (BIT_RRANGE(type, (hi) - (lo) + 1) << (lo))
-
-/** Extract range of bits @a hi .. @a lo from @a value. */
-#define BIT_RANGE_EXTRACT(type, hi, lo, value) \
-    (((value) >> (lo)) & BIT_RRANGE(type, (hi) - (lo) + 1))
-
-/** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
- *
- * If number is zero, it returns 0
- */
-static inline unsigned int fnzb32(uint32_t arg)
-{
-	unsigned int n = 0;
-	
-	if (arg >> 16) {
-		arg >>= 16;
-		n += 16;
-	}
-	
-	if (arg >> 8) {
-		arg >>= 8;
-		n += 8;
-	}
-	
-	if (arg >> 4) {
-		arg >>= 4;
-		n += 4;
-	}
-	
-	if (arg >> 2) {
-		arg >>= 2;
-		n += 2;
-	}
-	
-	if (arg >> 1) {
-		arg >>= 1;
-		n += 1;
-	}
-	
-	return n;
-}
-
-static inline unsigned int fnzb64(uint64_t arg)
-{
-	unsigned int n = 0;
-	
-	if (arg >> 32) {
-		arg >>= 32;
-		n += 32;
-	}
-	
-	return (n + fnzb32((uint32_t) arg));
-}
-
-static inline unsigned int fnzb(size_t arg)
-{
-	return fnzb64(arg);
-}
-
-#endif
-
-/** @}
- */

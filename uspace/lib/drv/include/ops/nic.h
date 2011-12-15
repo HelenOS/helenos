@@ -88,7 +88,7 @@ typedef struct nic_iface {
 	
 	int (*vlan_get_mask)(ddf_fun_t *, nic_vlan_mask_t *);
 	int (*vlan_set_mask)(ddf_fun_t *, const nic_vlan_mask_t *);
-	int (*vlan_set_tag)(ddf_fun_t *, uint16_t, int, int);
+	int (*vlan_set_tag)(ddf_fun_t *, uint16_t, bool, bool);
 	
 	int (*wol_virtue_add)(ddf_fun_t *, nic_wv_type_t, const void *,
 	    size_t, nic_wv_id_t *);

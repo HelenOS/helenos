@@ -111,6 +111,8 @@ static int exfat_directory_block_load(exfat_directory_t *di)
 	if (di->b && di->bnum != i) {
 		rc = block_put(di->b);
 		di->b = NULL;
+		if (rc != EOK)
+			return rc;
 	}
 	if (!di->b) {
 		if (di->nodep) {
@@ -265,7 +267,8 @@ static uint16_t exfat_directory_set_checksum(const uint8_t *bytes, size_t count)
 	for (idx = 0; idx < count; idx++) {
 		if (idx == 2 || idx == 3)
 			continue;
-		checksum = ((checksum << 15) | (checksum >> 1)) + (uint16_t)bytes[idx];
+		checksum = ((checksum << 15) | (checksum >> 1)) +
+		    (uint16_t)bytes[idx];
 	}
 	return checksum;
 }
@@ -309,7 +312,8 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	array[1].stream.flags = ds->flags;
 	array[1].stream.valid_data_size = host2uint64_t_le(ds->valid_data_size);
 	array[1].stream.data_size = host2uint64_t_le(ds->data_size);
-	array[0].file.checksum = host2uint16_t_le(exfat_directory_set_checksum((uint8_t *)array,
+	array[0].file.checksum =
+	    host2uint16_t_le(exfat_directory_set_checksum((uint8_t *)array,
 	    count * sizeof(exfat_dentry_t)));
 
 	/* Store */
@@ -351,7 +355,8 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 		return rc;
 	uctablep = EXFAT_NODE(fn);
 
-	uctable_chars = ALIGN_DOWN(uctablep->size, sizeof(uint16_t)) / sizeof(uint16_t); 
+	uctable_chars = ALIGN_DOWN(uctablep->size,
+	    sizeof(uint16_t)) / sizeof(uint16_t); 
 	uctable = (uint16_t *) malloc(uctable_chars * sizeof(uint16_t));
 	rc = exfat_read_uctable(di->bs, uctablep, (uint8_t *)uctable);
 	if (rc != EOK) {
@@ -416,8 +421,11 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 		if (rc != EOK)
 			return rc;
 
-		if (i == df.file.count - 2)
-			chars = ds.stream.name_size - EXFAT_NAME_PART_LEN*(df.file.count - 2);
+		if (i == df.file.count - 2) {
+			chars = ds.stream.name_size -
+			    EXFAT_NAME_PART_LEN*(df.file.count - 2);
+		}
+
 		rc = exfat_directory_get(di, &de);
 		if (rc != EOK)
 			return rc;

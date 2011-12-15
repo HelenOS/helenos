@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Vojtech Horky
+# Copyright (c) 2011 Radim Vansa
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-LIBRARY = libusbhost
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include \
-	-Iinclude
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNET_PREFIX)/libnet.a $(LIBNIC_PREFIX)/libnic.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNET_PREFIX)/include -I$(LIBNIC_PREFIX)/include
+BINARY = rtl8139
 
 SOURCES = \
-	src/endpoint.c \
-	src/iface.c \
-	src/usb_device_manager.c \
-	src/usb_endpoint_manager.c \
-	src/usb_transfer_batch.c
+	driver.c \
+	general.c \
+	defs.c
 
 include $(USPACE_PREFIX)/Makefile.common

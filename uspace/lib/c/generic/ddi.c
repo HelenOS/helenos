@@ -74,38 +74,65 @@ int physmem_map(void *pf, void *vp, size_t pages, unsigned int flags)
 	    pages, flags);
 }
 
+int dmamem_map(dmamem_t *dmamem, size_t pages, unsigned int map_flags,
+    unsigned int dma_flags)
+{
+	// FIXME TODO
+	return -1;
+}
+
+int dmamem_unmap(dmamem_t *dmamem)
+{
+	// FIXME TODO
+	return -1;
+}
+
+int dmamem_lock(void *virt, void **phys, size_t pages)
+{
+	// FIXME TODO
+	return -1;
+}
+
+int dmamem_unlock(void *virt, size_t pages)
+{
+	// FIXME TODO
+	return -1;
+}
+
 /** Enable I/O space range to task.
  *
  * Caller of this function must have the IO_MEM_MANAGER capability.
  *
- * @param id		Task ID.
- * @param ioaddr	Starting address of the I/O range.
- * @param size		Size of the range.
+ * @param id     Task ID.
+ * @param ioaddr Starting address of the I/O range.
+ * @param size   Size of the range.
  *
- * @return		0 on success, EPERM if the caller lacks the
- *			CAP_IO_MANAGER capability, ENOENT if there is no task
- *			with specified ID and ENOMEM if there was some problem
- *			in allocating memory.
+ * @return EOK on success
+ * @return EPERM if the caller lacks the CAP_IO_MANAGER capability
+ * @return ENOENT if there is no task with specified ID
+ * @return ENOMEM if there was some problem in allocating memory.
+ *
  */
 int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 {
 	ddi_ioarg_t arg;
-
+	
 	arg.task_id = id;
 	arg.ioaddr = ioaddr;
 	arg.size = size;
-
+	
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
 /** Enable PIO for specified I/O range.
  *
- * @param pio_addr	I/O start address.
- * @param size		Size of the I/O region.
- * @param use_addr	Address where the final address for application's PIO
- * 			will be stored.
+ * @param pio_addr I/O start address.
+ * @param size     Size of the I/O region.
+ * @param use_addr Address where the final address for
+ *                 application's PIO will be stored.
  *
- * @return		Zero on success or negative error code.
+ * @return Zero on success or negative error code.
+ *
  */
 int pio_enable(void *pio_addr, size_t size, void **use_addr)
 {
@@ -113,14 +140,14 @@ int pio_enable(void *pio_addr, size_t size, void **use_addr)
 	void *virt;
 	size_t offset;
 	unsigned int pages;
-
+	
 #ifdef IO_SPACE_BOUNDARY
 	if (pio_addr < IO_SPACE_BOUNDARY) {
 		*use_addr = pio_addr;
 		return iospace_enable(task_get_id(), pio_addr, size);
 	}
 #endif
-
+	
 	phys = (void *) ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
 	offset = pio_addr - phys;
 	pages = ALIGN_UP(offset + size, PAGE_SIZE) >> PAGE_WIDTH;
