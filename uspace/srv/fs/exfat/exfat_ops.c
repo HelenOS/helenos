@@ -1458,7 +1458,10 @@ exfat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 		rc = exfat_node_shrink(service_id, nodep, size);
 	}
 
-	(void) exfat_node_put(fn);
+	int rc2 = exfat_node_put(fn);
+	if (rc == EOK && rc2 != EOK)
+		rc = rc2;
+
 	return rc;
 }
 
