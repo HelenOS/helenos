@@ -602,19 +602,22 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
-	rc = tcp_uc_close(socket->conn);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		return;
+
+	if (socket->conn != NULL) {
+		rc = tcp_uc_close(socket->conn);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			return;
+		}
+
+		/* Drain incoming data. This should really be done in the background. */
+		do {
+			trc = tcp_uc_receive(socket->conn, buffer,
+			    FRAGMENT_SIZE, &data_len, &xflags);
+		} while (trc == TCP_EOK);
+
+		tcp_uc_delete(socket->conn);
 	}
-
-	/* Drain incoming data. This should really be done in the background. */
-	do {
-		trc = tcp_uc_receive(socket->conn, buffer, FRAGMENT_SIZE,
-		    &data_len, &xflags);
-	} while (trc == TCP_EOK);
-
-	tcp_uc_delete(socket->conn);
 
 	rc = socket_destroy(net_sess, socket_id, &client->sockets, &gsock,
 	    tcp_free_sock_data);
