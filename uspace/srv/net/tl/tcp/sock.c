@@ -604,9 +604,9 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
 
 	if (socket->conn != NULL) {
-		rc = tcp_uc_close(socket->conn);
-		if (rc != EOK) {
-			async_answer_0(callid, rc);
+		trc = tcp_uc_close(socket->conn);
+		if (trc != TCP_EOK && trc != TCP_ENOTEXIST) {
+			async_answer_0(callid, EBADF);
 			return;
 		}
 
