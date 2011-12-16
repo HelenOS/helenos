@@ -220,6 +220,7 @@ void tcp_conn_delete(tcp_conn_t *conn)
  */
 void tcp_conn_add(tcp_conn_t *conn)
 {
+	tcp_conn_addref(conn);
 	fibril_mutex_lock(&conn_list_lock);
 	list_append(&conn->link, &conn_list);
 	fibril_mutex_unlock(&conn_list_lock);
@@ -234,6 +235,7 @@ void tcp_conn_remove(tcp_conn_t *conn)
 	fibril_mutex_lock(&conn_list_lock);
 	list_remove(&conn->link);
 	fibril_mutex_unlock(&conn_list_lock);
+	tcp_conn_delref(conn);
 }
 
 static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
