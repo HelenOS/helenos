@@ -82,21 +82,21 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 
 	/* Wait for connection to be established or reset */
 	log_msg(LVL_DEBUG, "tcp_uc_open: Wait for connection.");
-	fibril_mutex_lock(&nconn->cstate_lock);
+	fibril_mutex_lock(&nconn->lock);
 	while (nconn->cstate == st_listen ||
 	    nconn->cstate == st_syn_sent ||
 	    nconn->cstate == st_syn_received) {
-		fibril_condvar_wait(&nconn->cstate_cv, &nconn->cstate_lock);
+		fibril_condvar_wait(&nconn->cstate_cv, &nconn->lock);
 	}
 
 	if (nconn->cstate != st_established) {
 		log_msg(LVL_DEBUG, "tcp_uc_open: Connection was reset.");
 		assert(nconn->cstate == st_closed);
-		fibril_mutex_unlock(&nconn->cstate_lock);
+		fibril_mutex_unlock(&nconn->lock);
 		return TCP_ERESET;
 	}
 
-	fibril_mutex_unlock(&nconn->cstate_lock);
+	fibril_mutex_unlock(&nconn->lock);
 	log_msg(LVL_DEBUG, "tcp_uc_open: Connection was established.");
 
 	*conn = nconn;
@@ -112,18 +112,21 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 
 	log_msg(LVL_DEBUG, "%s: tcp_uc_send()", conn->name);
 
-	if (conn->cstate == st_closed)
+	fibril_mutex_lock(&conn->lock);
+
+	if (conn->cstate == st_closed) {
+		fibril_mutex_unlock(&conn->lock);
 		return TCP_ENOTEXIST;
+	}
 
 	if (conn->cstate == st_listen) {
 		/* Change connection to active */
 		tcp_conn_sync(conn);
 	}
 
-	fibril_mutex_lock(&conn->snd_buf_lock);
 
 	if (conn->snd_buf_fin) {
-		fibril_mutex_unlock(&conn->snd_buf_lock);
+		fibril_mutex_unlock(&conn->lock);
 		return TCP_ECLOSING;
 	}
 
@@ -132,13 +135,12 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 		while (buf_free == 0 && !conn->reset) {
 			log_msg(LVL_DEBUG, "%s: buf_free == 0, waiting.",
 			    conn->name);
-			fibril_condvar_wait(&conn->snd_buf_cv,
-			    &conn->snd_buf_lock);
+			fibril_condvar_wait(&conn->snd_buf_cv, &conn->lock);
 			buf_free = conn->snd_buf_size - conn->snd_buf_used;
 		}
 
 		if (conn->reset) {
-			fibril_mutex_unlock(&conn->snd_buf_lock);
+			fibril_mutex_unlock(&conn->lock);
 			return TCP_ERESET;
 		}
 
@@ -150,13 +152,11 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 		conn->snd_buf_used += xfer_size;
 		size -= xfer_size;
 
-		fibril_mutex_unlock(&conn->snd_buf_lock);
 		tcp_tqueue_new_data(conn);
-		fibril_mutex_lock(&conn->snd_buf_lock);
 	}
 
-	fibril_mutex_unlock(&conn->snd_buf_lock);
 	tcp_tqueue_new_data(conn);
+	fibril_mutex_unlock(&conn->lock);
 
 	return TCP_EOK;
 }
@@ -169,29 +169,31 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 
 	log_msg(LVL_DEBUG, "%s: tcp_uc_receive()", conn->name);
 
-	if (conn->cstate == st_closed)
-		return TCP_ENOTEXIST;
+	fibril_mutex_lock(&conn->lock);
 
-	fibril_mutex_lock(&conn->rcv_buf_lock);
+	if (conn->cstate == st_closed) {
+		fibril_mutex_unlock(&conn->lock);
+		return TCP_ENOTEXIST;
+	}
 
 	/* Wait for data to become available */
 	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin && !conn->reset) {
 		log_msg(LVL_DEBUG, "tcp_uc_receive() - wait for data");
-		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->rcv_buf_lock);
+		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->lock);
 	}
 
 	if (conn->rcv_buf_used == 0) {
-		fibril_mutex_unlock(&conn->rcv_buf_lock);
-
 		*rcvd = 0;
 		*xflags = 0;
 
 		if (conn->rcv_buf_fin) {
 			/* End of data, peer closed connection */
+			fibril_mutex_unlock(&conn->lock);
 			return TCP_ECLOSING;
 		} else {
 			/* Connection was reset */
 			assert(conn->reset);
+			fibril_mutex_unlock(&conn->lock);
 			return TCP_ERESET;
 		}
 	}
@@ -207,8 +209,6 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	conn->rcv_buf_used -= xfer_size;
 	conn->rcv_wnd += xfer_size;
 
-	fibril_mutex_unlock(&conn->rcv_buf_lock);
-
 	/* TODO */
 	*xflags = 0;
 
@@ -218,6 +218,8 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	log_msg(LVL_DEBUG, "%s: tcp_uc_receive() - returning %zu bytes",
 	    conn->name, xfer_size);
 
+	fibril_mutex_unlock(&conn->lock);
+
 	return TCP_EOK;
 }
 
@@ -226,15 +228,22 @@ tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "%s: tcp_uc_close()", conn->name);
 
-	if (conn->cstate == st_closed)
-		return TCP_ENOTEXIST;
+	fibril_mutex_lock(&conn->lock);
 
-	if (conn->snd_buf_fin)
+	if (conn->cstate == st_closed) {
+		fibril_mutex_unlock(&conn->lock);
+		return TCP_ENOTEXIST;
+	}
+
+	if (conn->snd_buf_fin) {
+		fibril_mutex_unlock(&conn->lock);
 		return TCP_ECLOSING;
+	}
 
 	conn->snd_buf_fin = true;
 	tcp_tqueue_new_data(conn);
 
+	fibril_mutex_unlock(&conn->lock);
 	return TCP_EOK;
 }
 
@@ -275,23 +284,34 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	    sp->foreign.addr.ipv4, sp->foreign.port,
 	    sp->local.addr.ipv4, sp->local.port);
 
-	conn = tcp_conn_find(sp);
-	if (conn != NULL && conn->cstate != st_closed) {
-		if (conn->ident.foreign.addr.ipv4 == TCP_IPV4_ANY)
-			conn->ident.foreign.addr.ipv4 = sp->foreign.addr.ipv4;
-		if (conn->ident.foreign.port == TCP_PORT_ANY)
-			conn->ident.foreign.port = sp->foreign.port;
-		if (conn->ident.local.addr.ipv4 == TCP_IPV4_ANY)
-			conn->ident.local.addr.ipv4 = sp->local.addr.ipv4;
-
-		tcp_conn_segment_arrived(conn, seg);
-	} else {
-		if (conn == NULL)
-			log_msg(LVL_WARN, "No connection found.");
-		else
-			log_msg(LVL_WARN, "Connection is closed.");
+	conn = tcp_conn_find_ref(sp);
+	if (conn == NULL) {
+		log_msg(LVL_WARN, "No connection found.");
 		tcp_unexpected_segment(sp, seg);
+		return;
 	}
+
+	fibril_mutex_lock(&conn->lock);
+
+	if (conn->cstate == st_closed) {
+		log_msg(LVL_WARN, "Connection is closed.");
+		tcp_unexpected_segment(sp, seg);
+		fibril_mutex_unlock(&conn->lock);
+		tcp_conn_delref(conn);
+		return;
+	}
+
+	if (conn->ident.foreign.addr.ipv4 == TCP_IPV4_ANY)
+		conn->ident.foreign.addr.ipv4 = sp->foreign.addr.ipv4;
+	if (conn->ident.foreign.port == TCP_PORT_ANY)
+		conn->ident.foreign.port = sp->foreign.port;
+	if (conn->ident.local.addr.ipv4 == TCP_IPV4_ANY)
+		conn->ident.local.addr.ipv4 = sp->local.addr.ipv4;
+
+	tcp_conn_segment_arrived(conn, seg);
+
+	fibril_mutex_unlock(&conn->lock);
+	tcp_conn_delref(conn);
 }
 
 /*

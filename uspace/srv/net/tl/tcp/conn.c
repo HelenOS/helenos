@@ -55,6 +55,7 @@
 #define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
 
 LIST_INITIALIZE(conn_list);
+FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
 
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
 static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
@@ -80,8 +81,12 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	if (conn->tw_timer == NULL)
 		goto error;
 
+	fibril_mutex_initialize(&conn->lock);
+
+	/* One for the user, one for not being in closed state */
+	atomic_set(&conn->refcnt, 2);
+
 	/* Allocate receive buffer */
-	fibril_mutex_initialize(&conn->rcv_buf_lock);
 	fibril_condvar_initialize(&conn->rcv_buf_cv);
 	conn->rcv_buf_size = RCV_BUF_SIZE;
 	conn->rcv_buf_used = 0;
@@ -92,7 +97,6 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 		goto error;
 
 	/** Allocate send buffer */
-	fibril_mutex_initialize(&conn->snd_buf_lock);
 	fibril_condvar_initialize(&conn->snd_buf_cv);
 	conn->snd_buf_size = SND_BUF_SIZE;
 	conn->snd_buf_used = 0;
@@ -114,7 +118,6 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	tqueue_inited = true;
 
 	/* Connection state change signalling */
-	fibril_mutex_initialize(&conn->cstate_lock);
 	fibril_condvar_initialize(&conn->cstate_cv);
 
 	conn->cstate = st_listen;
@@ -145,9 +148,14 @@ error:
 
 /** Destroy connection structure.
  *
- * Connection structure should be destroyed when both of two conditions are
- * met: (1) user has deleted the connection and (2) the connection has entered
- * closed state.
+ * Connection structure should be destroyed when the folowing condtitions
+ * are met:
+ * (1) user has deleted the connection
+ * (2) the connection has entered closed state
+ * (3) nobody is holding references to the connection
+ *
+ * This happens when @a conn->refcnt is zero as we count (1) and (2)
+ * as special references.
  *
  * @param conn		Connection
  */
@@ -165,6 +173,32 @@ static void tcp_conn_free(tcp_conn_t *conn)
 	free(conn);
 }
 
+/** Add reference to connection.
+ *
+ * Increase connection reference count by one.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_addref(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "%s: tcp_conn_addref(%p)", conn->name, conn);
+	atomic_inc(&conn->refcnt);
+}
+
+/** Remove reference from connection.
+ *
+ * Decrease connection reference count by one.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_delref(tcp_conn_t *conn)
+{
+	log_msg(LVL_DEBUG, "%s: tcp_conn_delref(%p)", conn->name, conn);
+
+	if (atomic_predec(&conn->refcnt) == 0)
+		tcp_conn_free(conn);
+}
+
 /** Delete connection.
  *
  * The caller promises not make no further references to @a conn.
@@ -174,15 +208,10 @@ static void tcp_conn_free(tcp_conn_t *conn)
  */
 void tcp_conn_delete(tcp_conn_t *conn)
 {
-	fibril_mutex_lock(&conn->cstate_lock);
-	conn->deleted = true;
+	log_msg(LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
 
-	if (conn->cstate == st_closed) {
-		fibril_mutex_unlock(&conn->cstate_lock);
-		tcp_conn_free(conn);
-	} else {
-		fibril_mutex_unlock(&conn->cstate_lock);
-	}
+	assert(conn->deleted == false);
+	tcp_conn_delref(conn);
 }
 
 /** Enlist connection.
@@ -191,7 +220,9 @@ void tcp_conn_delete(tcp_conn_t *conn)
  */
 void tcp_conn_add(tcp_conn_t *conn)
 {
+	fibril_mutex_lock(&conn_list_lock);
 	list_append(&conn->link, &conn_list);
+	fibril_mutex_unlock(&conn_list_lock);
 }
 
 /** Delist connection.
@@ -200,20 +231,23 @@ void tcp_conn_add(tcp_conn_t *conn)
  */
 void tcp_conn_remove(tcp_conn_t *conn)
 {
+	fibril_mutex_lock(&conn_list_lock);
 	list_remove(&conn->link);
+	fibril_mutex_unlock(&conn_list_lock);
 }
 
 static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 {
-	fibril_mutex_lock(&conn->cstate_lock);
+	tcp_cstate_t old_state;
+
+	old_state = conn->cstate;
 	conn->cstate = nstate;
 	fibril_condvar_broadcast(&conn->cstate_cv);
 
-	if (nstate == st_closed && conn->deleted) {
-		fibril_mutex_unlock(&conn->cstate_lock);
-		tcp_conn_free(conn);
-	} else {
-		fibril_mutex_unlock(&conn->cstate_lock);
+	assert(old_state != st_closed);
+	if (nstate == st_closed) {
+		/* Drop one reference for now being in closed state */
+		tcp_conn_delref(conn);
 	}
 }
 
@@ -301,13 +335,16 @@ static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
  *
  * A connection is uniquely identified by a socket pair. Look up our
  * connection map and return connection structure based on socket pair.
+ * The connection reference count is bumped by one.
  *
  * @param sp	Socket pair
  * @return	Connection structure or NULL if not found.
  */
-tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
+tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 {
 	log_msg(LVL_DEBUG, "tcp_conn_find(%p)", sp);
+
+	fibril_mutex_lock(&conn_list_lock);
 
 	list_foreach(conn_list, link) {
 		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
@@ -316,10 +353,13 @@ tcp_conn_t *tcp_conn_find(tcp_sockpair_t *sp)
 		    csp->foreign.addr.ipv4, csp->foreign.port,
 		    csp->local.addr.ipv4, csp->local.port);
 		if (tcp_sockpair_match(sp, csp)) {
+			tcp_conn_addref(conn);
+			fibril_mutex_unlock(&conn_list_lock);
 			return conn;
 		}
 	}
 
+	fibril_mutex_unlock(&conn_list_lock);
 	return NULL;
 }
 
@@ -909,8 +949,6 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* Trim anything outside our receive window */
 	tcp_conn_trim_seg_to_wnd(conn, seg);
 
-	fibril_mutex_lock(&conn->rcv_buf_lock);
-
 	/* Determine how many bytes to copy */
 	text_size = tcp_segment_text_size(seg);
 	xfer_size = min(text_size, conn->rcv_buf_size - conn->rcv_buf_used);
@@ -922,7 +960,6 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	/* Signal to the receive function that new data has arrived */
 	fibril_condvar_broadcast(&conn->rcv_buf_cv);
-	fibril_mutex_unlock(&conn->rcv_buf_lock);
 
 	log_msg(LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
 
@@ -1012,10 +1049,8 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		}
 
 		/* Add FIN to the receive buffer */
-		fibril_mutex_lock(&conn->rcv_buf_lock);
 		conn->rcv_buf_fin = true;
 		fibril_condvar_broadcast(&conn->rcv_buf_cv);
-		fibril_mutex_unlock(&conn->rcv_buf_lock);
 
 		tcp_segment_delete(seg);
 		return cp_done;
@@ -1124,14 +1159,21 @@ static void tw_timeout_func(void *arg)
 
 	log_msg(LVL_DEBUG, "tw_timeout_func(%p)", conn);
 
+	fibril_mutex_lock(&conn->lock);
+
 	if (conn->cstate == st_closed) {
 		log_msg(LVL_DEBUG, "Connection already closed.");
+		fibril_mutex_unlock(&conn->lock);
+		tcp_conn_delref(conn);
 		return;
 	}
 
 	log_msg(LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
 	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);
+
+	fibril_mutex_unlock(&conn->lock);
+	tcp_conn_delref(conn);
 }
 
 /** Start or restart the Time-Wait timeout.
@@ -1140,6 +1182,7 @@ static void tw_timeout_func(void *arg)
  */
 void tcp_conn_tw_timer_set(tcp_conn_t *conn)
 {
+	tcp_conn_addref(conn);
 	fibril_timer_set(conn->tw_timer, TIME_WAIT_TIMEOUT, tw_timeout_func,
 	    (void *)conn);
 }
@@ -1150,7 +1193,8 @@ void tcp_conn_tw_timer_set(tcp_conn_t *conn)
  */
 void tcp_conn_tw_timer_clear(tcp_conn_t *conn)
 {
-	fibril_timer_clear(conn->tw_timer);
+	if (fibril_timer_clear(conn->tw_timer) == fts_active)
+		tcp_conn_delref(conn);
 }
 
 /** Trim segment to the receive window.

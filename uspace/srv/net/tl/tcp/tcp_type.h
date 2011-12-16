@@ -161,14 +161,17 @@ typedef struct tcp_conn {
 	/** Active or passive connection */
 	acpass_t ap;
 
+	/** Protects access to connection structure */
+	fibril_mutex_t lock;
+	/** Reference count */
+	atomic_t refcnt;
+
 	/** Connection state */
 	tcp_cstate_t cstate;
 	/** True if connection was reset */
 	bool reset;
 	/** True if connection was deleted by user */
 	bool deleted;
-	/** Protects @c cstate */
-	fibril_mutex_t cstate_lock;
 	/** Signalled when @c cstate changes */
 	fibril_condvar_t cstate_cv;
 
@@ -192,8 +195,6 @@ typedef struct tcp_conn {
 	size_t rcv_buf_used;
 	/** Receive buffer contains FIN */
 	bool rcv_buf_fin;
-	/** Receive buffer lock */
-	fibril_mutex_t rcv_buf_lock;
 	/** Receive buffer CV. Broadcast when new data is inserted */
 	fibril_condvar_t rcv_buf_cv;
 
@@ -205,8 +206,6 @@ typedef struct tcp_conn {
 	size_t snd_buf_used;
 	/** Send buffer contains FIN */
 	bool snd_buf_fin;
-	/** Send buffer lock */
-	fibril_mutex_t snd_buf_lock;
 	/** Send buffer CV. Broadcast when space is made available in buffer */
 	fibril_condvar_t snd_buf_cv;
 

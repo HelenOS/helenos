@@ -166,8 +166,6 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	log_msg(LVL_DEBUG, "%s: tcp_tqueue_new_data()", conn->name);
 
-	fibril_mutex_lock(&conn->snd_buf_lock);
-
 	/* Number of free sequence numbers in send window */
 	avail_wnd = (conn->snd_una + conn->snd_wnd) - conn->snd_nxt;
 	snd_buf_seqlen = conn->snd_buf_used + (conn->snd_buf_fin ? 1 : 0);
@@ -177,10 +175,8 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	    "xfer_seqlen = %zu", conn->name, snd_buf_seqlen, conn->snd_wnd,
 	    xfer_seqlen);
 
-	if (xfer_seqlen == 0) {
-		fibril_mutex_unlock(&conn->snd_buf_lock);
+	if (xfer_seqlen == 0)
 		return;
-	}
 
 	/* XXX Do not always send immediately */
 
@@ -197,7 +193,6 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	seg = tcp_segment_make_data(ctrl, conn->snd_buf, data_size);
 	if (seg == NULL) {
-		fibril_mutex_unlock(&conn->snd_buf_lock);
 		log_msg(LVL_ERROR, "Memory allocation failure.");
 		return;
 	}
@@ -211,7 +206,6 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 		conn->snd_buf_fin = false;
 
 	fibril_condvar_broadcast(&conn->snd_buf_cv);
-	fibril_mutex_unlock(&conn->snd_buf_lock);
 
 	if (send_fin)
 		tcp_conn_fin_sent(conn);
@@ -322,14 +316,20 @@ static void retransmit_timeout_func(void *arg)
 
 	log_msg(LVL_DEBUG, "### %s: retransmit_timeout_func(%p)", conn->name, conn);
 
+	fibril_mutex_lock(&conn->lock);
+
 	if (conn->cstate == st_closed) {
 		log_msg(LVL_DEBUG, "Connection already closed.");
+		fibril_mutex_unlock(&conn->lock);
+		tcp_conn_delref(conn);
 		return;
 	}
 
 	link = list_first(&conn->retransmit.list);
 	if (link == NULL) {
 		log_msg(LVL_DEBUG, "Nothing to retransmit");
+		fibril_mutex_unlock(&conn->lock);
+		tcp_conn_delref(conn);
 		return;
 	}
 
@@ -338,6 +338,8 @@ static void retransmit_timeout_func(void *arg)
 	rt_seg = tcp_segment_dup(tqe->seg);
 	if (rt_seg == NULL) {
 		log_msg(LVL_ERROR, "Memory allocation failed.");
+		fibril_mutex_unlock(&conn->lock);
+		tcp_conn_delref(conn);
 		/* XXX Handle properly */
 		return;
 	}
@@ -347,6 +349,9 @@ static void retransmit_timeout_func(void *arg)
 
 	/* Reset retransmission timer */
 	tcp_tqueue_timer_set(tqe->conn);
+
+	fibril_mutex_unlock(&conn->lock);
+	tcp_conn_delref(conn);
 }
 
 /** Set or re-set retransmission timer */
@@ -354,7 +359,10 @@ static void tcp_tqueue_timer_set(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "### %s: tcp_tqueue_timer_set()", conn->name);
 
-	(void) retransmit_timeout_func;
+	/* Clear first to make sure we update refcnt correctly */
+	tcp_tqueue_timer_clear(conn);
+
+	tcp_conn_addref(conn);
 	fibril_timer_set(conn->retransmit.timer, RETRANSMIT_TIMEOUT,
 	    retransmit_timeout_func, (void *) conn);
 }
@@ -364,7 +372,8 @@ static void tcp_tqueue_timer_clear(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "### %s: tcp_tqueue_timer_clear()", conn->name);
 
-	fibril_timer_clear(conn->retransmit.timer);
+	if (fibril_timer_clear(conn->retransmit.timer) == fts_active)
+		tcp_conn_delref(conn);
 }
 
 /**
