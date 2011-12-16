@@ -52,7 +52,7 @@
  *
  * We assume that the other processors are either not using the mapping yet
  * (i.e. during the bootstrap) or are executing the TLB shootdown code.  While
- * we don't care much about the former case, the processors in the latter case 
+ * we don't care much about the former case, the processors in the latter case
  * will do an implicit serialization by virtue of running the TLB shootdown
  * interrupt handler.
  *
@@ -73,6 +73,7 @@
 #include <arch.h>
 #include <syscall/copy.h>
 #include <errno.h>
+#include <align.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -175,35 +176,39 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	return page_mapping_operations->mapping_find(as, page, nolock);
 }
 
-/** Syscall wrapper for getting mapping of a virtual page.
- * 
- * @retval EOK Everything went find, @p uspace_frame and @p uspace_node
- *             contains correct values.
- * @retval ENOENT Virtual address has no mapping.
- */
-sysarg_t sys_page_find_mapping(uintptr_t virt_address,
-    uintptr_t *uspace_frame)
+int page_find_mapping(uintptr_t virt, void **phys)
 {
 	mutex_lock(&AS->lock);
 	
-	pte_t *pte = page_mapping_find(AS, virt_address, false);
-	if (!PTE_VALID(pte) || !PTE_PRESENT(pte)) {
+	pte_t *pte = page_mapping_find(AS, virt, false);
+	if ((!PTE_VALID(pte)) || (!PTE_PRESENT(pte))) {
 		mutex_unlock(&AS->lock);
-		
-		return (sysarg_t) ENOENT;
+		return ENOENT;
 	}
 	
-	uintptr_t phys_address = PTE_GET_FRAME(pte);
+	*phys = (void *) PTE_GET_FRAME(pte) +
+	    (virt - ALIGN_DOWN(virt, PAGE_SIZE));
 	
 	mutex_unlock(&AS->lock);
 	
-	int rc = copy_to_uspace(uspace_frame,
-	    &phys_address, sizeof(phys_address));
-	if (rc != EOK) {
-		return (sysarg_t) rc;
-	}
-	
 	return EOK;
+}
+
+/** Syscall wrapper for getting mapping of a virtual page.
+ *
+ * @return EOK on success.
+ * @return ENOENT if no virtual address mapping found.
+ *
+ */
+sysarg_t sys_page_find_mapping(uintptr_t virt, void *phys_ptr)
+{
+	void *phys;
+	int rc = page_find_mapping(virt, &phys);
+	if (rc != EOK)
+		return rc;
+	
+	rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
+	return (sysarg_t) rc;
 }
 
 /** @}
