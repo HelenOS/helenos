@@ -39,28 +39,19 @@
 #include <abi/ddi/irq.h>
 #include <task.h>
 
-typedef struct {
-	/** Physical memory */
-	void *phys;
-	
-	/** Virtual memory */
-	void *virt;
-	
-	/** Size in pages */
-	size_t size;
-	
-	/** Mapping flags */
-	unsigned int flags;
-} dmamem_t;
-
 extern int device_assign_devno(void);
+
 extern int physmem_map(void *, void *, size_t, unsigned int);
-extern int dmamem_map(dmamem_t *, size_t, unsigned int, unsigned int);
-extern int dmamem_unmap(dmamem_t *);
-extern int dmamem_lock(void *, void **, size_t);
-extern int dmamem_unlock(void *, size_t);
+
+extern int dmamem_map(void *, size_t, unsigned int, unsigned int, void **);
+extern int dmamem_map_anonymous(size_t, unsigned int, unsigned int, void **,
+    void **);
+extern int dmamem_unmap(void *, size_t, unsigned int);
+extern int dmamem_unmap_anonymous(void *);
+
 extern int iospace_enable(task_id_t, void *, unsigned long);
 extern int pio_enable(void *, size_t, void **);
+
 extern int register_irq(int, int, int, irq_code_t *);
 extern int unregister_irq(int, int);
 

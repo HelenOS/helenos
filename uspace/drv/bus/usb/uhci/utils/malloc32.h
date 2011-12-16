@@ -53,12 +53,13 @@ static inline uintptr_t addr_to_phys(const void *addr)
 {
 	if (addr == NULL)
 		return 0;
-
+	
 	uintptr_t result;
 	const int ret = as_get_physical_mapping(addr, &result);
 	if (ret != EOK)
 		return 0;
-	return (result | ((uintptr_t)addr & 0xfff));
+	
+	return result;
 }
 /*----------------------------------------------------------------------------*/
 /** DMA malloc simulator

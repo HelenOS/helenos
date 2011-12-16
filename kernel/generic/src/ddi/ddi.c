@@ -44,6 +44,7 @@
 #include <security/cap.h>
 #include <mm/frame.h>
 #include <mm/as.h>
+#include <mm/page.h>
 #include <synch/mutex.h>
 #include <syscall/copy.h>
 #include <adt/btree.h>
@@ -51,6 +52,7 @@
 #include <align.h>
 #include <errno.h>
 #include <trace.h>
+#include <bitops.h>
 
 /** This lock protects the parea_btree. */
 static mutex_t parea_lock;
@@ -86,27 +88,28 @@ void ddi_parea_register(parea_t *parea)
 
 /** Map piece of physical memory into virtual address space of current task.
  *
- * @param pf    Physical address of the starting frame.
- * @param vp    Virtual address of the starting page.
+ * @param phys  Physical address of the starting frame.
+ * @param virt  Virtual address of the starting page.
  * @param pages Number of pages to map.
  * @param flags Address space area flags for the mapping.
  *
- * @return 0 on success, EPERM if the caller lacks capabilities to use this
- *         syscall, EBADMEM if pf or vf is not page aligned, ENOENT if there
- *         is no task matching the specified ID or the physical address space
- *         is not enabled for mapping and ENOMEM if there was a problem in
- *         creating address space area.
+ * @return EOK on success.
+ * @return EPERM if the caller lacks capabilities to use this syscall.
+ * @return EBADMEM if phys or virt is not page aligned.
+ * @return ENOENT if there is no task matching the specified ID or
+ *         the physical address space is not enabled for mapping.
+ * @return ENOMEM if there was a problem in creating address space area.
  *
  */
-NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
+NO_TRACE static int ddi_physmem_map(uintptr_t phys, uintptr_t virt, size_t pages,
     unsigned int flags)
 {
 	ASSERT(TASK);
 	
-	if ((pf % FRAME_SIZE) != 0)
+	if ((phys % FRAME_SIZE) != 0)
 		return EBADMEM;
 	
-	if ((vp % PAGE_SIZE) != 0)
+	if ((virt % PAGE_SIZE) != 0)
 		return EBADMEM;
 	
 	/*
@@ -117,7 +120,7 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	    ((cap_get(TASK) & CAP_MEM_MANAGER) == CAP_MEM_MANAGER);
 	
 	mem_backend_data_t backend_data;
-	backend_data.base = pf;
+	backend_data.base = phys;
 	backend_data.frames = pages;
 	
 	/*
@@ -128,7 +131,7 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	mutex_lock(&parea_lock);
 	btree_node_t *nodep;
 	parea_t *parea = (parea_t *) btree_search(&parea_btree,
-	    (btree_key_t) pf, &nodep);
+	    (btree_key_t) phys, &nodep);
 	
 	if ((parea != NULL) && (parea->frames >= pages)) {
 		if ((!priv) && (!parea->unpriv)) {
@@ -148,7 +151,7 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	 */
 	
 	irq_spinlock_lock(&zones.lock, true);
-	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
+	size_t znum = find_zone(ADDR2PFN(phys), pages, 0);
 	
 	if (znum == (size_t) -1) {
 		/*
@@ -181,7 +184,7 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	return ENOENT;
 	
 map:
-	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp,
+	if (!as_area_create(TASK->as, flags, FRAMES2SIZE(pages), virt,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
 		/*
 		 * The address space area was not created.
@@ -252,20 +255,20 @@ NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
 
 /** Wrapper for SYS_PHYSMEM_MAP syscall.
  *
- * @param phys_base Physical base address to map
- * @param virt_base Destination virtual address
+ * @param phys  Physical base address to map
+ * @param virt  Destination virtual address
  * @param pages Number of pages
  * @param flags Flags of newly mapped pages
  *
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-sysarg_t sys_physmem_map(sysarg_t phys_base, sysarg_t virt_base,
-    sysarg_t pages, sysarg_t flags)
+sysarg_t sys_physmem_map(uintptr_t phys, uintptr_t virt,
+    size_t pages, unsigned int flags)
 {
-	return (sysarg_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
-	    FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
-	    (size_t) pages, (int) flags);
+	return (sysarg_t)
+	    ddi_physmem_map(ALIGN_DOWN(phys, FRAME_SIZE),
+	    ALIGN_DOWN(virt, PAGE_SIZE), pages, flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
@@ -284,6 +287,76 @@ sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	
 	return (sysarg_t) ddi_iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
+}
+
+NO_TRACE static int dmamem_map(uintptr_t virt, size_t size,
+    unsigned int map_flags, unsigned int flags, void **phys)
+{
+	ASSERT(TASK);
+	
+	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0) {
+		// TODO: implement locking of non-anonymous mapping
+		return page_find_mapping(virt, phys);
+	} else {
+		// TODO: implement locking
+		
+		if ((virt % PAGE_SIZE) != 0)
+			return EBADMEM;
+		
+		size_t pages = SIZE2FRAMES(size);
+		uint8_t order;
+		
+		/* We need the 2^order >= pages */
+		if (pages == 1)
+			order = 0;
+		else
+			order = fnzb(pages - 1) + 1;
+		
+		*phys = frame_alloc_noreserve(order, 0);
+		if (*phys == NULL)
+			return ENOMEM;
+		
+		mem_backend_data_t backend_data;
+		backend_data.base = (uintptr_t) *phys;
+		backend_data.frames = pages;
+		
+		if (!as_area_create(TASK->as, map_flags, size, virt,
+		    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
+			frame_free_noreserve((uintptr_t) *phys);
+			return ENOMEM;
+		}
+		
+		return EOK;
+	}
+}
+
+NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size,
+    unsigned int flags)
+{
+	// TODO: implement unlocking & unmap
+	return EOK;
+}
+
+sysarg_t sys_dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
+    unsigned int flags, void *phys_ptr)
+{
+	void *phys;
+	int rc = dmamem_map(virt, size, map_flags, flags, &phys);
+	if (rc != EOK)
+		return rc;
+	
+	rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
+	if (rc != EOK) {
+		dmamem_unmap(virt, size, flags);
+		return rc;
+	}
+	
+	return EOK;
+}
+
+sysarg_t sys_dmamem_unmap(uintptr_t virt, size_t size, unsigned int flags)
+{
+	return dmamem_unmap(virt, size, flags);
 }
 
 /** @}
