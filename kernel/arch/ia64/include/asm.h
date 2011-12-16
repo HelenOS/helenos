@@ -37,7 +37,6 @@
 
 #include <config.h>
 #include <typedefs.h>
-#include <typedefs.h>
 #include <arch/register.h>
 #include <trace.h>
 

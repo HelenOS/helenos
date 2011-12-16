@@ -35,40 +35,26 @@
  */
 
 #include <arch.h>
-
 #include <typedefs.h>
-
-#include <arch/pm.h>
-
-#include <genarch/multiboot/multiboot.h>
-#include <genarch/multiboot/multiboot2.h>
-#include <genarch/drivers/legacy/ia32/io.h>
-#include <genarch/drivers/ega/ega.h>
-#include <genarch/fb/bfb.h>
-#include <genarch/drivers/i8042/i8042.h>
-#include <genarch/kbrd/kbrd.h>
+#include <errno.h>
+#include <memstr.h>
+#include <interrupt.h>
+#include <console/console.h>
+#include <syscall/syscall.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/bios/bios.h>
+#include <arch/boot/boot.h>
+#include <arch/debugger.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
-
-#include <arch/context.h>
-
-#include <config.h>
-
-#include <arch/interrupt.h>
-#include <arch/asm.h>
 #include <genarch/acpi/acpi.h>
-
-#include <arch/bios/bios.h>
-
-#include <interrupt.h>
-#include <ddi/irq.h>
-#include <arch/debugger.h>
-#include <proc/thread.h>
-#include <syscall/syscall.h>
-#include <console/console.h>
-#include <sysinfo/sysinfo.h>
-#include <arch/boot/boot.h>
-#include <memstr.h>
+#include <genarch/drivers/ega/ega.h>
+#include <genarch/drivers/i8042/i8042.h>
+#include <genarch/drivers/legacy/ia32/io.h>
+#include <genarch/fb/bfb.h>
+#include <genarch/kbrd/kbrd.h>
+#include <genarch/multiboot/multiboot.h>
+#include <genarch/multiboot/multiboot2.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -218,12 +204,12 @@ void calibrate_delay_loop(void)
  * TLS pointer is set in GS register. That means, the GS contains
  * selector, and the descriptor->base is the correct address.
  */
-sysarg_t sys_tls_set(sysarg_t addr)
+sysarg_t sys_tls_set(uintptr_t addr)
 {
 	THREAD->arch.tls = addr;
 	set_tls_desc(addr);
 	
-	return 0;
+	return EOK;
 }
 
 /** Construct function pointer
