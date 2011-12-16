@@ -274,8 +274,8 @@ extern void nic_sw_period_start(nic_t *);
 extern void nic_sw_period_stop(nic_t *);
 
 /* Packet DMA lock */
-extern void *nic_dma_lock_packet(packet_t *);
-extern int nic_dma_unlock_packet(packet_t *);
+extern int nic_dma_lock_packet(packet_t *, size_t, void **);
+extern int nic_dma_unlock_packet(packet_t *, size_t);
 
 #endif // __NIC_H__
 

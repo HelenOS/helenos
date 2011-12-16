@@ -32,6 +32,9 @@
 /** @file
  */
 
+#include <assert.h>
+#include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <abi/ddi/arg.h>
 #include <ddi.h>
@@ -56,8 +59,8 @@ int device_assign_devno(void)
  *
  * Caller of this function must have the CAP_MEM_MANAGER capability.
  *
- * @param pf    Physical address of the starting frame.
- * @param vp    Virtual address of the starting page.
+ * @param phys  Physical address of the starting frame.
+ * @param virt  Virtual address of the starting page.
  * @param pages Number of pages to map.
  * @param flags Flags for the new address space area.
  *
@@ -68,35 +71,41 @@ int device_assign_devno(void)
  *         the address space area.
  *
  */
-int physmem_map(void *pf, void *vp, size_t pages, unsigned int flags)
+int physmem_map(void *phys, void *virt, size_t pages, unsigned int flags)
 {
-	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) pf, (sysarg_t) vp,
-	    pages, flags);
+	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) phys,
+	    (sysarg_t) virt, pages, flags);
 }
 
-int dmamem_map(dmamem_t *dmamem, size_t pages, unsigned int map_flags,
-    unsigned int dma_flags)
+int dmamem_map(void *virt, size_t size, unsigned int map_flags,
+    unsigned int flags, void **phys)
 {
-	// FIXME TODO
-	return -1;
+	return (int) __SYSCALL5(SYS_DMAMEM_MAP, (sysarg_t) virt,
+	    (sysarg_t) size, (sysarg_t) map_flags, (sysarg_t) flags,
+	    (sysarg_t) phys);
 }
 
-int dmamem_unmap(dmamem_t *dmamem)
+int dmamem_map_anonymous(size_t size, unsigned int map_flags,
+    unsigned int flags, void **phys, void **virt)
 {
-	// FIXME TODO
-	return -1;
+	*virt = as_get_mappable_page(size);
+	if (*virt == NULL)
+		return ENOMEM;
+	
+	return dmamem_map(*virt, size, map_flags,
+	    flags | DMAMEM_FLAGS_ANONYMOUS, phys);
 }
 
-int dmamem_lock(void *virt, void **phys, size_t pages)
+int dmamem_unmap(void *virt, size_t size, unsigned int flags)
 {
-	// FIXME TODO
-	return -1;
+	return __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, (sysarg_t) size,
+	    (sysarg_t) flags);
 }
 
-int dmamem_unlock(void *virt, size_t pages)
+int dmamem_unmap_anonymous(void *virt)
 {
-	// FIXME TODO
-	return -1;
+	return __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, 0,
+	    DMAMEM_FLAGS_ANONYMOUS);
 }
 
 /** Enable I/O space range to task.
