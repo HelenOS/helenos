@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <ipc/packet.h>
 #include <sys/mman.h>
 
@@ -45,6 +46,8 @@
 
 #include <net/packet.h>
 #include <net/packet_header.h>
+
+static FIBRIL_MUTEX_INITIALIZE(packet_return_lock);
 
 /** Obtain the packet from the packet server as the shared memory block.
  *
@@ -65,6 +68,14 @@
 static int packet_return(async_sess_t *sess, packet_t **packet,
     packet_id_t packet_id, size_t size)
 {
+	/*
+	 * Prevent racing for address space with other invocations
+	 * of packet_return().
+	 *
+	 * XXX This of course does not prevent us racing with other
+	 * competitors for address space mapping.
+	 */
+	fibril_mutex_lock(&packet_return_lock);
 	*packet = (packet_t *) as_get_mappable_page(size);
 	
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -78,15 +89,18 @@ static int packet_return(async_sess_t *sess, packet_t **packet,
 	
 	if (rc != EOK) {
 		munmap(*packet, size);
+		fibril_mutex_unlock(&packet_return_lock);
 		return rc;
 	}
 	
 	rc = pm_add(*packet);
 	if (rc != EOK) {
 		munmap(*packet, size);
+		fibril_mutex_unlock(&packet_return_lock);
 		return rc;
 	}
 	
+	fibril_mutex_unlock(&packet_return_lock);
 	return result;
 }
 
