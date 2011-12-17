@@ -76,10 +76,8 @@ static int packet_return(async_sess_t *sess, packet_t **packet,
 	sysarg_t result;
 	async_wait_for(message, &result);
 	
-	if (rc != EOK) {
-		munmap(*packet, size);
+	if (rc != EOK)
 		return rc;
-	}
 	
 	rc = pm_add(*packet);
 	if (rc != EOK) {
