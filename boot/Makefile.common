@@ -126,7 +126,8 @@ RD_DRVS = \
 	test/test2 \
 	test/test3 \
 	nic/lo \
-	nic/ne2k
+	nic/ne2k \
+	nic/e1k
 
 RD_DRV_CFG =
 
@@ -207,7 +208,8 @@ ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
 	$(USPACE_PATH)/srv/net/cfg/lo.nic \
-	$(USPACE_PATH)/srv/net/cfg/ne2k.nic
+	$(USPACE_PATH)/srv/net/cfg/ne2k.nic \
+	$(USPACE_PATH)/srv/net/cfg/e1k.nic
 endif
 
 COMPONENTS = \

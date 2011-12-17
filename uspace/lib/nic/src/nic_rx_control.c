@@ -437,11 +437,13 @@ int nic_rxc_check(const nic_rxc_t *rxc, const packet_t *packet,
 			}
 		}
 	}
+	
 	/* Blocked source addresses */
 	if (rxc->block_sources) {
 		if (nic_addr_db_contains(&rxc->blocked_sources, src_addr))
 			return false;
 	}
+	
 	/* VLAN filtering */
 	if (!rxc->vlan_exact && rxc->vlan_mask != NULL) {
 		vlan_header_t *vlan_header = (vlan_header_t *)

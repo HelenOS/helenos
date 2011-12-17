@@ -45,7 +45,7 @@
 #include <ipc/ns.h>
 #include <ipc/irc.h>
 #include <sysinfo.h>
-
+#include <as.h>
 #include <devman.h>
 #include <ddf/interrupt.h>
 #include <net_interface.h>
@@ -1333,23 +1333,18 @@ void nic_sw_period_stop(nic_t *nic_data)
  * @param packet
  * @return physical address of packet
  */
-void *nic_dma_lock_packet(packet_t *packet)
+int nic_dma_lock_packet(packet_t *packet, size_t size, void **phys)
 {
-	void *phys_addr;
-	int rc = dmamem_lock(packet, &phys_addr, 1);
-	if (rc != EOK)
-		return NULL;
-	
-	return phys_addr;
+	return dmamem_map(packet, SIZE2PAGES(size), 0, 0, phys);
 }
 
 /** Unlock packet after DMA usage
  *
  * @param packet
  */
-int nic_dma_unlock_packet(packet_t *packet)
+int nic_dma_unlock_packet(packet_t *packet, size_t size)
 {
-	return dmamem_unlock(packet, 1);
+	return dmamem_unmap(packet, size, 0);
 }
 
 /** @}

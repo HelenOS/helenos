@@ -175,6 +175,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	/* DDI related syscalls. */
 	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
+	(syshandler_t) sys_dmamem_map,
+	(syshandler_t) sys_dmamem_unmap,
 	(syshandler_t) sys_iospace_enable,
 	(syshandler_t) sys_register_irq,
 	(syshandler_t) sys_unregister_irq,
