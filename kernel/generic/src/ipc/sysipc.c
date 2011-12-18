@@ -277,7 +277,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			return rc;
 		}
 	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_SHARE_IN) {
-		if (!IPC_GET_RETVAL(answer->data)) { 
+		if (!IPC_GET_RETVAL(answer->data)) {
 			irq_spinlock_lock(&answer->sender->lock, true);
 			as_t *as = answer->sender->as;
 			irq_spinlock_unlock(&answer->sender->lock, true);
