@@ -77,6 +77,14 @@
 #define NIC_PART_NUMBER_MAX_LENGTH    64
 #define NIC_SERIAL_NUMBER_MAX_LENGTH  64
 
+#define NIC_DEFECTIVE_LONG               0x0001
+#define NIC_DEFECTIVE_SHORT              0x0002
+#define NIC_DEFECTIVE_BAD_CRC            0x0010
+#define NIC_DEFECTIVE_BAD_IPV4_CHECKSUM  0x0020
+#define NIC_DEFECTIVE_BAD_IPV6_CHECKSUM  0x0040
+#define NIC_DEFECTIVE_BAD_TCP_CHECKSUM   0x0080
+#define NIC_DEFECTIVE_BAD_UDP_CHECKSUM   0x0100
+
 /**
  * The bitmap uses single bit for each of the 2^12 = 4096 possible VLAN tags.
  * This means its size is 4096/8 = 512 bytes.

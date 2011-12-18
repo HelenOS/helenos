@@ -39,14 +39,14 @@
 
 #define NAME "test2"
 
-static int test2_add_device(ddf_dev_t *dev);
+static int test2_dev_add(ddf_dev_t *dev);
 static int test2_dev_remove(ddf_dev_t *dev);
 static int test2_dev_gone(ddf_dev_t *dev);
 static int test2_fun_online(ddf_fun_t *fun);
 static int test2_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.add_device = &test2_add_device,
+	.dev_add = &test2_dev_add,
 	.dev_remove = &test2_dev_remove,
 	.dev_gone = &test2_dev_gone,
 	.fun_online = &test2_fun_online,
@@ -192,11 +192,11 @@ static int fun_unbind(ddf_fun_t *fun, const char *name)
 	return EOK;
 }
 
-static int test2_add_device(ddf_dev_t *dev)
+static int test2_dev_add(ddf_dev_t *dev)
 {
 	test2_t *test2;
 
-	ddf_msg(LVL_DEBUG, "test2_add_device(name=\"%s\", handle=%d)",
+	ddf_msg(LVL_DEBUG, "test2_dev_add(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
 	test2 = ddf_dev_data_alloc(dev, sizeof(test2_t));

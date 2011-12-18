@@ -126,7 +126,7 @@ extern int nic_blocked_sources_set(async_sess_t *, const nic_address_t *,
 
 extern int nic_vlan_get_mask(async_sess_t *, nic_vlan_mask_t *);
 extern int nic_vlan_set_mask(async_sess_t *, const nic_vlan_mask_t *);
-extern int nic_vlan_set_tag(async_sess_t *, uint16_t, int, int);
+extern int nic_vlan_set_tag(async_sess_t *, uint16_t, bool, bool);
 
 extern int nic_wol_virtue_add(async_sess_t *, nic_wv_type_t, const void *,
     size_t, nic_wv_id_t *);

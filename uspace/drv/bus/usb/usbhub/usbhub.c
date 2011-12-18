@@ -169,35 +169,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
  */
 int usb_hub_device_remove(usb_device_t *usb_dev)
 {
-	assert(usb_dev);
-	usb_hub_dev_t *hub_dev = usb_dev->driver_data;
-	assert(hub_dev);
-	//TODO: Cascade the call here.
-	//TODO: Enable after cascading is implemented.
 	return ENOTSUP;
-	if (!hub_dev->power_switched) {
-		/* That is all we can do. */
-		return EOK;
-	}
-	int ret = EOK;
-	usb_log_info("Hub is about to be removed, powering down all ports.\n");
-	for (size_t port = 0; port < hub_dev->port_count; ++port) {
-		usb_log_debug("Powering down port %zu.\n", port);
-		int pret = usb_hub_port_clear_feature(
-		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
-		if (pret != EOK) {
-			usb_log_error("Cannot power down port %zu: %s.\n",
-			    hub_dev->ports[port].port_number, str_error(pret));
-			ret = pret;
-		} else {
-			if (!hub_dev->per_port_power) {
-				usb_log_debug("Ganged power switching mode, "
-				   "one port is enough.\n");
-				break;
-			}
-		}
-	}
-	return ret;
 }
 /*----------------------------------------------------------------------------*/
 /**

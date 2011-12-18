@@ -63,6 +63,7 @@ DIRS = \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
+	app/nettest3 \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
@@ -117,7 +118,8 @@ DIRS = \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
 	drv/nic/lo \
-	drv/nic/ne2k
+	drv/nic/ne2k \
+	drv/nic/e1k
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \

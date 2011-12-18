@@ -126,31 +126,33 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	assert(instance);
 	assert(hub_fun);
 
-	const usb_address_t hub_address =
-	    usb_device_manager_get_free_address(
-	        &instance->generic.dev_manager, USB_SPEED_FULL);
-	if (hub_address <= 0) {
+	/* Try to get address 1 for root hub. */
+	instance->rh.address = 1;
+	int ret = usb_device_manager_request_address(
+	    &instance->generic.dev_manager, &instance->rh.address, false,
+	    USB_SPEED_FULL);
+	if (ret != EOK) {
 		usb_log_error("Failed to get OHCI root hub address: %s\n",
-		    str_error(hub_address));
-		return hub_address;
+		    str_error(ret));
+		return ret;
 	}
-	instance->rh.address = hub_address;
-	usb_device_manager_bind(
-	    &instance->generic.dev_manager, hub_address, hub_fun->handle);
+	usb_device_manager_bind_address(&instance->generic.dev_manager,
+	    instance->rh.address, hub_fun->handle);
 
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
 	usb_endpoint_manager_remove_ep( \
-	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH, \
-	    NULL, NULL);\
-	usb_device_manager_release( \
-	    &instance->generic.dev_manager, hub_address); \
+	    &instance->generic.ep_manager, instance->rh.address, 0, \
+	    USB_DIRECTION_BOTH, NULL, NULL); \
+	usb_device_manager_release_address( \
+	    &instance->generic.dev_manager, instance->rh.address); \
 	return ret; \
 } else (void)0
-	int ret = usb_endpoint_manager_add_ep(
-	    &instance->generic.ep_manager, hub_address, 0, USB_DIRECTION_BOTH,
-	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64, 0, NULL, NULL);
+	ret = usb_endpoint_manager_add_ep(
+	    &instance->generic.ep_manager, instance->rh.address, 0,
+	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
+	    0, NULL, NULL);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to register root hub control endpoint: %s.\n",
 	    str_error(ret));
@@ -192,8 +194,8 @@ if (ret != EOK) { \
 
 	list_initialize(&instance->pending_batches);
 
-	hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
+	hcd_init(&instance->generic, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;
 	instance->generic.ep_add_hook = ohci_endpoint_init;

@@ -303,17 +303,16 @@ static int packet_release_wrapper(packet_id_t packet_id)
  */
 static int packet_reply(packet_t *packet)
 {
-	ipc_callid_t callid;
-	size_t size;
-
 	if (!packet_is_valid(packet))
 		return EINVAL;
-
+	
+	ipc_callid_t callid;
+	size_t size;
 	if (!async_share_in_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
-
+	
 	if (size != packet->length) {
 		async_answer_0(callid, ENOMEM);
 		return ENOMEM;
@@ -374,9 +373,9 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *ans
 	
 	case NET_PACKET_GET:
 		packet = pm_find(IPC_GET_ID(*call));
-		if (!packet_is_valid(packet)) {
+		if (!packet_is_valid(packet))
 			return ENOENT;
-		}
+		
 		return packet_reply(packet);
 	
 	case NET_PACKET_GET_SIZE:

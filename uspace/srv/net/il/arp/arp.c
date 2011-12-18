@@ -702,7 +702,7 @@ static int arp_send_request(nic_device_id_t device_id, services_t protocol,
 	bzero(((uint8_t *) header) + length, device->addr_len);
 	length += device->addr_len;
 	memcpy(((uint8_t *) header) + length, target->value, target->length);
-
+	
 	int rc = packet_set_addr(packet, device->addr, device->broadcast_addr,
 	    device->addr_len);
 	if (rc != EOK) {

@@ -32,74 +32,39 @@
 
 /**
  * @file
- * @brief	RAM disk support.
+ * @brief RAM disk support.
  *
  * Support for RAM disk images.
  */
 
 #include <lib/rd.h>
-#include <byteorder.h>
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/ddi.h>
-#include <align.h>
 
-static parea_t rd_parea;		/**< Physical memory area for rd. */
+/** Physical memory area for RAM disk. */
+static parea_t rd_parea;
 
-/**
- * RAM disk initialization routine. At this point, the RAM disk memory is shared
- * and information about the share is provided as sysinfo values to the
- * userspace tasks.
- */  
-int init_rd(rd_header_t *header, size_t size)
+/** RAM disk initialization routine
+ *
+ * The information about the RAM disk is provided as sysinfo
+ * values to the uspace tasks.
+ *
+ */
+void init_rd(void *data, size_t size)
 {
-	/* Identify RAM disk */
-	if ((header->magic[0] != RD_MAG0) || (header->magic[1] != RD_MAG1) ||
-	    (header->magic[2] != RD_MAG2) || (header->magic[3] != RD_MAG3))
-		return RE_INVALID;
+	uintptr_t base = KA2PA((uintptr_t) data);
+	ASSERT((base % FRAME_SIZE) == 0);
 	
-	/* Identify version */	
-	if (header->version != RD_VERSION)
-		return RE_UNSUPPORTED;
-	
-	uint32_t hsize;
-	uint64_t dsize;
-	switch (header->data_type) {
-	case RD_DATA_LSB:
-		hsize = uint32_t_le2host(header->header_size);
-		dsize = uint64_t_le2host(header->data_size);
-		break;
-	case RD_DATA_MSB:
-		hsize = uint32_t_be2host(header->header_size);
-		dsize = uint64_t_be2host(header->data_size);
-		break;
-	default:
-		return RE_UNSUPPORTED;
-	}
-	
-	if ((hsize % FRAME_SIZE) || (dsize % FRAME_SIZE))
-		return RE_UNSUPPORTED;
-		
-	if (hsize > size)
-		return RE_INVALID;
-	
-	if ((uint64_t) hsize + dsize > size)
-		dsize = size - hsize;
-	
-	rd_parea.pbase = ALIGN_DOWN((uintptr_t) KA2PA((void *) header + hsize),
-	    FRAME_SIZE);
-	rd_parea.frames = SIZE2FRAMES(dsize);
+	rd_parea.pbase = base;
+	rd_parea.frames = SIZE2FRAMES(size);
 	rd_parea.unpriv = false;
 	rd_parea.mapped = false;
 	ddi_parea_register(&rd_parea);
-
+	
 	sysinfo_set_item_val("rd", NULL, true);
-	sysinfo_set_item_val("rd.header_size", NULL, hsize);	
-	sysinfo_set_item_val("rd.size", NULL, dsize);
-	sysinfo_set_item_val("rd.address.physical", NULL,
-	    (sysarg_t) KA2PA((void *) header + hsize));
-
-	return RE_OK;
+	sysinfo_set_item_val("rd.size", NULL, size);
+	sysinfo_set_item_val("rd.address.physical", NULL, (sysarg_t) base);
 }
 
 /** @}

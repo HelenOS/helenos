@@ -198,8 +198,8 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 
 #undef CHECK_RET_RETURN
 
-	hcd_init(&instance->generic, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
+	hcd_init(&instance->generic, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 
 	instance->generic.private_data = instance;
 	instance->generic.schedule = hc_schedule;

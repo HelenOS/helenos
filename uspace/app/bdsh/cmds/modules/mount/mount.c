@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
@@ -66,9 +67,11 @@ void help_cmd_mount(unsigned int level)
 static void print_mtab_list(void)
 {
 	LIST_INITIALIZE(mtab_list);
-	get_mtab_list(&mtab_list);
-
 	mtab_ent_t *old_ent = NULL;
+	char *svc_name;
+	int rc;
+
+	get_mtab_list(&mtab_list);
 
 	list_foreach(mtab_list, cur) {
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
@@ -82,12 +85,21 @@ static void print_mtab_list(void)
 		printf("%s", mtab_ent->fs_name);
 		if (mtab_ent->instance)
 			printf("/%d", mtab_ent->instance);
-		printf(" on %s ", mtab_ent->mp);
+
+		printf(" %s", mtab_ent->mp);
+
+		rc = loc_service_get_name(mtab_ent->service_id, &svc_name);
+		if (rc == EOK) {
+			printf(" %s", svc_name);
+			free(svc_name);
+		} else {
+			printf(" (%" PRIun ")", mtab_ent->service_id);
+		}
 
 		if (str_size(mtab_ent->opts) > 0)
-			printf("opts=%s ", mtab_ent->opts);
+			printf(" (%s)", mtab_ent->opts);
 
-		printf("(service=%" PRIun ")\n", mtab_ent->service_id);
+		putchar('\n');
 	}
 
 	if (old_ent)

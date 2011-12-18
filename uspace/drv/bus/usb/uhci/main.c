@@ -42,10 +42,10 @@
 
 #define NAME "uhci"
 
-static int uhci_add_device(ddf_dev_t *device);
+static int uhci_dev_add(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
+	.dev_add = uhci_dev_add,
 };
 /*----------------------------------------------------------------------------*/
 static driver_t uhci_driver = {
@@ -58,9 +58,9 @@ static driver_t uhci_driver = {
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-int uhci_add_device(ddf_dev_t *device)
+int uhci_dev_add(ddf_dev_t *device)
 {
-	usb_log_debug2("uhci_add_device() called\n");
+	usb_log_debug2("uhci_dev_add() called\n");
 	assert(device);
 
 	const int ret = device_setup_uhci(device);

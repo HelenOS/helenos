@@ -58,7 +58,8 @@ typedef struct {
 	ddf_fun_t *fun;
 } usb_hub_attached_device_t;
 
-usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
+usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_address_t,
+    bool, usb_speed_t);
 int usb_hc_register_device(usb_hc_connection_t *,
     const usb_hub_attached_device_t *);
 int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);

@@ -383,3 +383,22 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
 	endpoint_destroy(ep);
 	return EOK;
 }
+/*----------------------------------------------------------------------------*/
+void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
+    usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg)
+{
+	assert(address >= 0);
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	list_foreach(*get_list(instance, address), iterator) {
+		endpoint_t *ep = endpoint_get_instance(iterator);
+		if (ep->address == address) {
+			iterator = iterator->next;
+			list_remove(&ep->link);
+			if (callback)
+				callback(ep, arg);
+			endpoint_destroy(ep);
+		}
+	}
+	fibril_mutex_unlock(&instance->guard);
+}

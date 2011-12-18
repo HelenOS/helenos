@@ -53,7 +53,7 @@
 #define LAST_NESTING { -1, -1 }
 
 /** Nesting pairs of standard descriptors. */
-static usb_dp_descriptor_nesting_t descriptor_nesting[] = {
+static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 	NESTING(CONFIGURATION, INTERFACE),
 	NESTING(INTERFACE, ENDPOINT),
 	NESTING(INTERFACE, HUB),
@@ -191,14 +191,11 @@ static int process_endpoint(
 		return ENOENT;
 	}
 
-	if (ep_mapping->pipe == NULL) {
-		return EBADMEM;
-	}
 	if (ep_mapping->present) {
 		return EEXISTS;
 	}
 
-	int rc = usb_pipe_initialize(ep_mapping->pipe, wire,
+	int rc = usb_pipe_initialize(&ep_mapping->pipe, wire,
 	    ep_no, description.transfer_type, endpoint->max_packet_size,
 	    description.direction);
 	if (rc != EOK) {
@@ -253,7 +250,7 @@ static int process_interface(
 /** Initialize endpoint pipes from configuration descriptor.
  *
  * The mapping array is expected to conform to following rules:
- * - @c pipe must point to already allocated structure with uninitialized pipe
+ * - @c pipe must be uninitialized pipe
  * - @c description must point to prepared endpoint description
  * - @c descriptor does not need to be initialized (will be overwritten)
  * - @c interface does not need to be initialized (will be overwritten)
@@ -296,19 +293,14 @@ int usb_pipe_initialize_from_configuration(
 		return ERANGE;
 	}
 
-	/*
-	 * Go through the mapping and set all endpoints to not present.
-	 */
-	size_t i;
-	for (i = 0; i < mapping_count; i++) {
+	/* Go through the mapping and set all endpoints to not present. */
+	for (size_t i = 0; i < mapping_count; i++) {
 		mapping[i].present = false;
 		mapping[i].descriptor = NULL;
 		mapping[i].interface = NULL;
 	}
 
-	/*
-	 * Prepare the descriptor parser.
-	 */
+	/* Prepare the descriptor parser. */
 	const usb_dp_parser_t dp_parser = {
 		.nesting = descriptor_nesting
 	};
@@ -412,17 +404,13 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 		return EINVAL;
 	}
 
-#define TRY_LOOP(attempt_var) \
-	for (attempt_var = 0; attempt_var < 3; attempt_var++)
-
-	size_t failed_attempts;
-	int rc;
 
 	usb_pipe_start_long_transfer(pipe);
 
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;
-	TRY_LOOP(failed_attempts) {
+	int rc;
+	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
 		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
 		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
 		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
@@ -453,53 +441,24 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_pipe_register(usb_pipe_t *pipe,
-    unsigned int interval,
-    usb_hc_connection_t *hc_connection)
-{
-	return usb_pipe_register_with_speed(pipe, USB_SPEED_MAX + 1,
-	    interval, hc_connection);
-}
-
-/** Register endpoint with a speed at the host controller.
- *
- * You will rarely need to use this function because it is needed only
- * if the registered endpoint is of address 0 and there is no other way
- * to tell speed of the device at address 0.
- *
- * @param pipe Pipe to be registered.
- * @param speed Speed of the device
- *	(invalid speed means use previously specified one).
- * @param interval Polling interval.
- * @param hc_connection Connection to the host controller (must be opened).
- * @return Error code.
- */
-int usb_pipe_register_with_speed(usb_pipe_t *pipe, usb_speed_t speed,
-    unsigned int interval,
+int usb_pipe_register(usb_pipe_t *pipe, unsigned interval,
     usb_hc_connection_t *hc_connection)
 {
 	assert(pipe);
+	assert(pipe->wire);
 	assert(hc_connection);
-	
+
 	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
-	
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
-#define _PACK2(high, low) (((high) << 16) + (low))
-#define _PACK3(high, middle, low) (((((high) << 8) + (middle)) << 8) + (low))
-	
 	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REGISTER_ENDPOINT, target.packed,
-	    _PACK3(speed, pipe->transfer_type, pipe->direction),
-	    _PACK2(pipe->max_packet_size, interval));
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_register_endpoint(exch,
+	    pipe->wire->address, pipe->endpoint_no, pipe->transfer_type,
+	    pipe->direction, pipe->max_packet_size, interval);
+
 	async_exchange_end(exch);
-	
-#undef _PACK2
-#undef _PACK3
-	
-	return rc;
+	return ret;
 }
 
 /** Revert endpoint registration with the host controller.
@@ -514,17 +473,18 @@ int usb_pipe_unregister(usb_pipe_t *pipe,
 	assert(pipe);
 	assert(pipe->wire);
 	assert(hc_connection);
-	
+
 	if (!usb_hc_connection_is_opened(hc_connection))
 		return EBADF;
-	
+
 	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_UNREGISTER_ENDPOINT,
+	if (!exch)
+		return ENOMEM;
+	const int ret = usbhc_unregister_endpoint(exch,
 	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
 	async_exchange_end(exch);
-	
-	return rc;
+
+	return ret;
 }
 
 /**

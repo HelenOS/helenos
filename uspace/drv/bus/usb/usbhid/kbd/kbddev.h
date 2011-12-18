@@ -134,7 +134,7 @@ int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev);
 
 void usb_kbd_destroy(usb_kbd_t *kbd_dev);
 
-void usb_kbd_push_ev(struct usb_hid_dev *hid_dev, usb_kbd_t *kbd_dev,
+void usb_kbd_push_ev(usb_kbd_t *kbd_dev,
     int type, unsigned int key);
 
 void usb_kbd_deinit(struct usb_hid_dev *hid_dev, void *data);

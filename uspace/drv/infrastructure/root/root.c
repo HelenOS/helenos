@@ -65,13 +65,13 @@
 #define VIRTUAL_FUN_MATCH_ID "rootvirt"
 #define VIRTUAL_FUN_MATCH_SCORE 100
 
-static int root_add_device(ddf_dev_t *dev);
+static int root_dev_add(ddf_dev_t *dev);
 static int root_fun_online(ddf_fun_t *fun);
 static int root_fun_offline(ddf_fun_t *fun);
 
 /** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
-	.add_device = &root_add_device,
+	.dev_add = &root_dev_add,
 	.fun_online = &root_fun_online,
 	.fun_offline = &root_fun_offline
 };
@@ -197,9 +197,9 @@ static int add_platform_fun(ddf_dev_t *dev)
  * @param dev		The device which is root of the whole device tree (both
  *			of HW and pseudo devices).
  */
-static int root_add_device(ddf_dev_t *dev)
+static int root_dev_add(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "root_add_device, device handle=%" PRIun,
+	ddf_msg(LVL_DEBUG, "root_dev_add, device handle=%" PRIun,
 	    dev->handle);
 
 	/*

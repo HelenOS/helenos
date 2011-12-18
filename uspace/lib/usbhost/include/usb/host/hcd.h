@@ -62,16 +62,16 @@ struct hcd {
 };
 /*----------------------------------------------------------------------------*/
 /** Initialize hcd_t structure.
- * Initializes device and endpoint managers. Sets data nd hook pointer to NULL.
+ * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
  * @param hcd hcd_t structure to initialize, non-null.
  * @param bandwidth Available bandwidth, passed to endpoint manager.
  * @param bw_count Bandwidth compute function, passed to endpoint manager.
  */
-static inline void hcd_init(hcd_t *hcd, size_t bandwidth,
+static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(hcd);
-	usb_device_manager_init(&hcd->dev_manager);
+	usb_device_manager_init(&hcd->dev_manager, max_speed);
 	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
 	hcd->private_data = NULL;
 	hcd->schedule = NULL;

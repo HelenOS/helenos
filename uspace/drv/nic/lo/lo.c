@@ -78,7 +78,7 @@ static int lo_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 	return EOK;
 }
 
-static int lo_add_device(ddf_dev_t *dev)
+static int lo_dev_add(ddf_dev_t *dev)
 {
 	nic_t *nic_data = nic_create_and_bind(dev);
 	if (nic_data == NULL) {
@@ -117,7 +117,7 @@ static int lo_add_device(ddf_dev_t *dev)
 static nic_iface_t lo_nic_iface;
 
 static driver_ops_t lo_driver_ops = {
-	.add_device = lo_add_device,
+	.dev_add = lo_dev_add,
 };
 
 static driver_t lo_driver = {

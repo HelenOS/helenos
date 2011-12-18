@@ -33,40 +33,31 @@
  */
 
 #include <arch.h>
-
 #include <typedefs.h>
-
-#include <config.h>
-
-#include <proc/thread.h>
-#include <genarch/multiboot/multiboot.h>
-#include <genarch/drivers/legacy/ia32/io.h>
-#include <genarch/drivers/ega/ega.h>
-#include <arch/drivers/vesa.h>
-#include <genarch/drivers/i8042/i8042.h>
-#include <genarch/kbrd/kbrd.h>
+#include <errno.h>
+#include <memstr.h>
+#include <interrupt.h>
+#include <console/console.h>
+#include <syscall/syscall.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/bios/bios.h>
+#include <arch/boot/boot.h>
+#include <arch/debugger.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
-#include <arch/boot/boot.h>
+#include <arch/syscall.h>
+#include <genarch/acpi/acpi.h>
+#include <genarch/drivers/ega/ega.h>
+#include <genarch/drivers/i8042/i8042.h>
+#include <genarch/drivers/legacy/ia32/io.h>
+#include <genarch/fb/bfb.h>
+#include <genarch/kbrd/kbrd.h>
+#include <genarch/multiboot/multiboot.h>
+#include <genarch/multiboot/multiboot2.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
 #endif
-
-#include <arch/bios/bios.h>
-#include <arch/cpu.h>
-#include <print.h>
-#include <arch/cpuid.h>
-#include <genarch/acpi/acpi.h>
-#include <panic.h>
-#include <interrupt.h>
-#include <arch/syscall.h>
-#include <arch/debugger.h>
-#include <syscall/syscall.h>
-#include <console/console.h>
-#include <ddi/irq.h>
-#include <sysinfo/sysinfo.h>
-#include <memstr.h>
 
 /** Disable I/O on non-privileged levels
  *
@@ -100,13 +91,15 @@ static void clean_AM_flag(void)
 
 /** Perform amd64-specific initialization before main_bsp() is called.
  *
- * @param signature Should contain the multiboot signature.
- * @param mi        Pointer to the multiboot information structure.
+ * @param signature Multiboot signature.
+ * @param info      Multiboot information structure.
+ *
  */
-void arch_pre_main(uint32_t signature, const multiboot_info_t *mi)
+void arch_pre_main(uint32_t signature, void *info)
 {
 	/* Parse multiboot information obtained from the bootloader. */
-	multiboot_info_parse(signature, mi);
+	multiboot_info_parse(signature, (multiboot_info_t *) info);
+	multiboot2_info_parse(signature, (multiboot2_info_t *) info);
 	
 #ifdef CONFIG_SMP
 	/* Copy AP bootstrap routines below 1 MB. */
@@ -152,15 +145,15 @@ void arch_post_mm_init(void)
 		i8254_init();
 		
 #if (defined(CONFIG_FB) || defined(CONFIG_EGA))
-		bool vesa = false;
+		bool bfb = false;
 #endif
 		
 #ifdef CONFIG_FB
-		vesa = vesa_init();
+		bfb = bfb_init();
 #endif
 		
 #ifdef CONFIG_EGA
-		if (!vesa) {
+		if (!bfb) {
 			outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
 			if (egadev)
 				stdout_wire(egadev);
@@ -260,12 +253,12 @@ void calibrate_delay_loop(void)
  * The specs say, that on %fs:0 there is stored contents of %fs register,
  * we need not to go to CPL0 to read it.
  */
-sysarg_t sys_tls_set(sysarg_t addr)
+sysarg_t sys_tls_set(uintptr_t addr)
 {
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
 	
-	return 0;
+	return EOK;
 }
 
 /** Construct function pointer

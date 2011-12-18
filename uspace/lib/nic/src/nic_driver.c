@@ -45,7 +45,7 @@
 #include <ipc/ns.h>
 #include <ipc/irc.h>
 #include <sysinfo.h>
-
+#include <as.h>
 #include <devman.h>
 #include <ddf/interrupt.h>
 #include <net_interface.h>
@@ -1328,41 +1328,24 @@ void nic_sw_period_stop(nic_t *nic_data)
 	nic_data->sw_poll_info.running = 0;
 }
 
-// FIXME: Later
-#if 0
-
 /** Lock packet for DMA usage
  *
  * @param packet
  * @return physical address of packet
  */
-void *nic_dma_lock_packet(packet_t *packet)
+int nic_dma_lock_packet(packet_t *packet, size_t size, void **phys)
 {
-	void *phys_addr;
-	size_t locked;
-	int rc = dma_lock(packet, &phys_addr, 1, &locked);
-	if (rc != EOK)
-		return NULL;
-	
-	assert(locked == 1);
-	return phys_addr;
+	return dmamem_map(packet, SIZE2PAGES(size), 0, 0, phys);
 }
 
 /** Unlock packet after DMA usage
  *
  * @param packet
  */
-void nic_dma_unlock_packet(packet_t *packet)
+int nic_dma_unlock_packet(packet_t *packet, size_t size)
 {
-	size_t unlocked;
-	int rc = dma_unlock(packet, 1, &unlocked);
-	if (rc != EOK)
-		return;
-	
-	assert(unlocked == 1);
+	return dmamem_unmap(packet, size, 0);
 }
-
-#endif
 
 /** @}
  */

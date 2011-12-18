@@ -204,13 +204,13 @@ static ddf_dev_ops_t pci_fun_ops = {
 	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
 };
 
-static int pci_add_device(ddf_dev_t *);
+static int pci_dev_add(ddf_dev_t *);
 static int pci_fun_online(ddf_fun_t *);
 static int pci_fun_offline(ddf_fun_t *);
 
 /** PCI bus driver standard operations */
 static driver_ops_t pci_ops = {
-	.add_device = &pci_add_device,
+	.dev_add = &pci_dev_add,
 	.fun_online = &pci_fun_online,
 	.fun_offline = &pci_fun_offline,
 };
@@ -609,19 +609,19 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 	}
 }
 
-static int pci_add_device(ddf_dev_t *dnode)
+static int pci_dev_add(ddf_dev_t *dnode)
 {
 	pci_bus_t *bus = NULL;
 	ddf_fun_t *ctl = NULL;
 	bool got_res = false;
 	int rc;
 	
-	ddf_msg(LVL_DEBUG, "pci_add_device");
+	ddf_msg(LVL_DEBUG, "pci_dev_add");
 	dnode->parent_sess = NULL;
 	
 	bus = ddf_dev_data_alloc(dnode, sizeof(pci_bus_t));
 	if (bus == NULL) {
-		ddf_msg(LVL_ERROR, "pci_add_device allocation failed.");
+		ddf_msg(LVL_ERROR, "pci_dev_add allocation failed.");
 		rc = ENOMEM;
 		goto fail;
 	}
@@ -633,7 +633,7 @@ static int pci_add_device(ddf_dev_t *dnode)
 	dnode->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
 	    dnode->handle, IPC_FLAG_BLOCKING);
 	if (!dnode->parent_sess) {
-		ddf_msg(LVL_ERROR, "pci_add_device failed to connect to the "
+		ddf_msg(LVL_ERROR, "pci_dev_add failed to connect to the "
 		    "parent driver.");
 		rc = ENOENT;
 		goto fail;
@@ -643,7 +643,7 @@ static int pci_add_device(ddf_dev_t *dnode)
 	
 	rc = hw_res_get_resource_list(dnode->parent_sess, &hw_resources);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "pci_add_device failed to get hw resources "
+		ddf_msg(LVL_ERROR, "pci_dev_add failed to get hw resources "
 		    "for the device.");
 		goto fail;
 	}

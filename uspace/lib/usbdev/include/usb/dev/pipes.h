@@ -140,7 +140,7 @@ typedef struct {
 /** Mapping of endpoint pipes and endpoint descriptions. */
 typedef struct {
 	/** Endpoint pipe. */
-	usb_pipe_t *pipe;
+	usb_pipe_t pipe;
 	/** Endpoint description. */
 	const usb_endpoint_description_t *description;
 	/** Interface number the endpoint must belong to (-1 for any). */
@@ -148,9 +148,9 @@ typedef struct {
 	/** Alternate interface setting to choose. */
 	int interface_setting;
 	/** Found descriptor fitting the description. */
-	usb_standard_endpoint_descriptor_t *descriptor;
+	const usb_standard_endpoint_descriptor_t *descriptor;
 	/** Interface descriptor the endpoint belongs to. */
-	usb_standard_interface_descriptor_t *interface;
+	const usb_standard_interface_descriptor_t *interface;
 	/** Whether the endpoint was actually found. */
 	bool present;
 } usb_endpoint_mapping_t;
@@ -171,8 +171,6 @@ int usb_pipe_initialize_default_control(usb_pipe_t *,
 int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, const uint8_t *, size_t, usb_device_connection_t *);
-int usb_pipe_register_with_speed(usb_pipe_t *, usb_speed_t,
-    unsigned int, usb_hc_connection_t *);
 int usb_pipe_register(usb_pipe_t *, unsigned int, usb_hc_connection_t *);
 int usb_pipe_unregister(usb_pipe_t *, usb_hc_connection_t *);
 
@@ -180,7 +178,7 @@ void usb_pipe_start_long_transfer(usb_pipe_t *);
 void usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
-int usb_pipe_write(usb_pipe_t *, void *, size_t);
+int usb_pipe_write(usb_pipe_t *, const void *, size_t);
 
 int usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
     void *, size_t, size_t *);

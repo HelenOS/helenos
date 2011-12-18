@@ -103,23 +103,30 @@ int generic_device_req_remote(async_sess_t *sess, sysarg_t message,
 int generic_get_addr_req(async_sess_t *sess, sysarg_t message,
     nic_device_id_t device_id, uint8_t *address, size_t max_len)
 {
-	if (!address)
-		return EBADMEM;
+	aid_t aid;
+	ipc_call_t result;
+	
+	assert(address != NULL);
 	
 	/* Request the address */
 	async_exch_t *exch = async_exchange_begin(sess);
-	aid_t aid = async_send_1(exch, message, (sysarg_t) device_id,
-	    NULL);
+	aid = async_send_1(exch, message, (sysarg_t) device_id, &result);
+	
+	sysarg_t ipcrc;
 	int rc = async_data_read_start(exch, address, max_len);
 	async_exchange_end(exch);
 	
-	sysarg_t result;
-	async_wait_for(aid, &result);
-	
-	if (rc != EOK)
+	if (rc != EOK) {
+		async_wait_for(aid, &ipcrc);
 		return rc;
+	}
 	
-	return (int) result;
+	async_wait_for(aid, &ipcrc);
+	if (ipcrc == EOK) {
+		return IPC_GET_ARG1(result);
+	} else {
+		return (int) ipcrc;
+	}
 }
 
 /** Return the device packet dimension for sending.

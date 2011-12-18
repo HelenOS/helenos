@@ -12,4 +12,8 @@ keyboard:
 	match 100 isa/keyboard
 	irq 1
 	io_range 060 10
-	
+
+ne2k:
+	match 100 isa/ne2k
+	irq 5
+	io_range 300 20

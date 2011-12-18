@@ -110,6 +110,7 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 	if (kbdev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
 		    NAME, kdev->svc_name);
+		async_hangup(sess);
 		return -1;
 	}
 
@@ -168,7 +169,7 @@ static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		callid = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call)) {
-			/* XXX Handle hangup */
+			kbdev_destroy(kbdev);
 			return;
 		}
 

@@ -107,14 +107,14 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 
 static ddf_dev_ops_t isa_fun_ops;
 
-static int isa_add_device(ddf_dev_t *dev);
+static int isa_dev_add(ddf_dev_t *dev);
 static int isa_dev_remove(ddf_dev_t *dev);
 static int isa_fun_online(ddf_fun_t *fun);
 static int isa_fun_offline(ddf_fun_t *fun);
 
 /** The isa device driver's standard operations */
 static driver_ops_t isa_ops = {
-	.add_device = &isa_add_device,
+	.dev_add = &isa_dev_add,
 	.dev_remove = &isa_dev_remove,
 	.fun_online = &isa_fun_online,
 	.fun_offline = &isa_fun_offline
@@ -493,11 +493,11 @@ static void isa_functions_add(isa_bus_t *isa)
 	}
 }
 
-static int isa_add_device(ddf_dev_t *dev)
+static int isa_dev_add(ddf_dev_t *dev)
 {
 	isa_bus_t *isa;
 
-	ddf_msg(LVL_DEBUG, "isa_add_device, device handle = %d",
+	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) dev->handle);
 
 	isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));
