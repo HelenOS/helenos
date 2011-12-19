@@ -116,7 +116,7 @@ static int pl050_port_init(kbd_dev_t *kdev)
 		return -1;
 	
 	async_set_interrupt_received(pl050_irq_handler);
-	register_irq(inr, device_assign_devno(), 0, &pl050_kbd);
+	irq_register(inr, device_assign_devno(), 0, &pl050_kbd);
 	
 	return 0;
 }

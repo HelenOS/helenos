@@ -52,8 +52,8 @@ extern int dmamem_unmap_anonymous(void *);
 extern int iospace_enable(task_id_t, void *, unsigned long);
 extern int pio_enable(void *, size_t, void **);
 
-extern int register_irq(int, int, int, irq_code_t *);
-extern int unregister_irq(int, int);
+extern int irq_register(int, int, int, irq_code_t *);
+extern int irq_unregister(int, int);
 
 #endif
 

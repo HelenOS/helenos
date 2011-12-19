@@ -178,8 +178,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_dmamem_map,
 	(syshandler_t) sys_dmamem_unmap,
 	(syshandler_t) sys_iospace_enable,
-	(syshandler_t) sys_register_irq,
-	(syshandler_t) sys_unregister_irq,
+	(syshandler_t) sys_irq_register,
+	(syshandler_t) sys_irq_unregister,
 	
 	/* Sysinfo syscalls. */
 	(syshandler_t) sys_sysinfo_get_val_type,
