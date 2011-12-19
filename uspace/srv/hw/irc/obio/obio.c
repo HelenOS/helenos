@@ -123,11 +123,10 @@ static bool obio_init(void)
 	}
 	
 	base_phys = (void *) paddr;
-	base_virt = as_get_mappable_page(OBIO_SIZE);
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
-	int retval = physmem_map(base_phys, (void *) base_virt,
-	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags);
+	int retval = physmem_map(base_phys,
+	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags, &base_virt);
 	
 	if (retval < 0) {
 		printf("%s: Error mapping OBIO registers\n", NAME);

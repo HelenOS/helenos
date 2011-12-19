@@ -34,17 +34,18 @@
 #include <errno.h>
 #include "../tester.h"
 
-#define BUFFER1_PAGES 4
-#define BUFFER2_PAGES 2
+#define BUFFER1_PAGES  4
+#define BUFFER2_PAGES  2
 
 static void *create_as_area(size_t size)
 {
-	void *result = as_get_mappable_page(size);
 	TPRINTF("Creating AS area...\n");
-	if (as_area_create(result, size,
-	    AS_AREA_READ | AS_AREA_WRITE) != result) {
+	
+	void *result = as_area_create((void *) -1, size,
+	    AS_AREA_READ | AS_AREA_WRITE);
+	if (result == (void *) -1)
 		return NULL;
-	}
+	
 	return result;
 }
 

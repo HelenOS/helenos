@@ -54,13 +54,16 @@ typedef struct {
 extern void ddi_init(void);
 extern void ddi_parea_register(parea_t *);
 
-extern sysarg_t sys_physmem_map(uintptr_t, uintptr_t, size_t, unsigned int);
+extern sysarg_t sys_physmem_map(uintptr_t, size_t, unsigned int, void *,
+    uintptr_t);
+extern sysarg_t sys_physmem_unmap(uintptr_t);
 
-extern sysarg_t sys_dmamem_map(uintptr_t, size_t, unsigned int, unsigned int,
-    void *);
+extern sysarg_t sys_dmamem_map(size_t, unsigned int, unsigned int, void *,
+    void *, uintptr_t);
 extern sysarg_t sys_dmamem_unmap(uintptr_t, size_t, unsigned int);
 
 extern sysarg_t sys_iospace_enable(ddi_ioarg_t *);
+extern sysarg_t sys_iospace_disable(ddi_ioarg_t *);
 
 /*
  * Interface to be implemented by all architectures.

@@ -303,9 +303,8 @@ static void fbsrv_frontbuf_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *ic
 		return;
 	}
 	
-	frontbuf->data = as_get_mappable_page(frontbuf->size);
-	int rc = async_answer_1(callid, EOK, (sysarg_t) frontbuf->data);
-	if (rc != EOK) {
+	int rc = async_share_out_finalize(callid, &frontbuf->data);
+	if ((rc != EOK) || (frontbuf->data == (void *) -1)) {
 		free(frontbuf);
 		async_answer_0(iid, ENOMEM);
 		return;
@@ -347,9 +346,8 @@ static void fbsrv_imagemap_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *ic
 		return;
 	}
 	
-	imagemap->data = as_get_mappable_page(imagemap->size);
-	int rc = async_answer_1(callid, EOK, (sysarg_t) imagemap->data);
-	if (rc != EOK) {
+	int rc = async_share_out_finalize(callid, &imagemap->data);
+	if ((rc != EOK) || (imagemap->data == (void *) -1)) {
 		free(imagemap);
 		async_answer_0(iid, ENOMEM);
 		return;

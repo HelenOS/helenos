@@ -86,10 +86,10 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	/*
 	 * Create the stack address space area.
 	 */
+	uintptr_t virt = USTACK_ADDRESS;
 	as_area_t *area = as_area_create(as,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
-	    STACK_SIZE, USTACK_ADDRESS, AS_AREA_ATTR_NONE,
-	    &anon_backend, NULL);
+	    STACK_SIZE, AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, 0);
 	if (!area)
 		return ENOMEM;
 	

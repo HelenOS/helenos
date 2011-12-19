@@ -270,9 +270,15 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			as_t *as = answer->sender->as;
 			irq_spinlock_unlock(&answer->sender->lock, true);
 			
+			uintptr_t dst_base = (uintptr_t) -1;
 			int rc = as_area_share(as, IPC_GET_ARG1(*olddata),
-			    IPC_GET_ARG2(*olddata), AS,
-			    IPC_GET_ARG1(answer->data), IPC_GET_ARG3(*olddata));
+			    IPC_GET_ARG2(*olddata), AS, IPC_GET_ARG3(*olddata),
+			    &dst_base, IPC_GET_ARG1(answer->data));
+			
+			if (rc == EOK)
+				rc = copy_to_uspace((void *) IPC_GET_ARG2(answer->data),
+				    &dst_base, sizeof(dst_base));
+			
 			IPC_SET_RETVAL(answer->data, rc);
 			return rc;
 		}
@@ -282,9 +288,11 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			as_t *as = answer->sender->as;
 			irq_spinlock_unlock(&answer->sender->lock, true);
 			
+			uintptr_t dst_base = (uintptr_t) -1;
 			int rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
-			    IPC_GET_ARG2(*olddata), as, IPC_GET_ARG1(*olddata),
-			    IPC_GET_ARG2(answer->data));
+			    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
+			    &dst_base, IPC_GET_ARG3(answer->data));
+			IPC_SET_ARG4(answer->data, dst_base);
 			IPC_SET_RETVAL(answer->data, rc);
 		}
 	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_DATA_READ) {

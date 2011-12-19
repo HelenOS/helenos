@@ -41,12 +41,12 @@
 
 extern int device_assign_devno(void);
 
-extern int physmem_map(void *, void *, size_t, unsigned int);
+extern int physmem_map(void *, size_t, unsigned int, void **);
 
 extern int dmamem_map(void *, size_t, unsigned int, unsigned int, void **);
 extern int dmamem_map_anonymous(size_t, unsigned int, unsigned int, void **,
     void **);
-extern int dmamem_unmap(void *, size_t, unsigned int);
+extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 
 extern int iospace_enable(task_id_t, void *, unsigned long);

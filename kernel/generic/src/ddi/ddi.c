@@ -89,27 +89,25 @@ void ddi_parea_register(parea_t *parea)
 /** Map piece of physical memory into virtual address space of current task.
  *
  * @param phys  Physical address of the starting frame.
- * @param virt  Virtual address of the starting page.
  * @param pages Number of pages to map.
  * @param flags Address space area flags for the mapping.
+ * @param virt  Virtual address of the starting page.
+ * @param bound Lowest virtual address bound.
  *
  * @return EOK on success.
  * @return EPERM if the caller lacks capabilities to use this syscall.
- * @return EBADMEM if phys or virt is not page aligned.
+ * @return EBADMEM if phys is not page aligned.
  * @return ENOENT if there is no task matching the specified ID or
  *         the physical address space is not enabled for mapping.
  * @return ENOMEM if there was a problem in creating address space area.
  *
  */
-NO_TRACE static int ddi_physmem_map(uintptr_t phys, uintptr_t virt, size_t pages,
-    unsigned int flags)
+NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
+    unsigned int flags, uintptr_t *virt, uintptr_t bound)
 {
 	ASSERT(TASK);
 	
 	if ((phys % FRAME_SIZE) != 0)
-		return EBADMEM;
-	
-	if ((virt % PAGE_SIZE) != 0)
 		return EBADMEM;
 	
 	/*
@@ -184,8 +182,8 @@ NO_TRACE static int ddi_physmem_map(uintptr_t phys, uintptr_t virt, size_t pages
 	return ENOENT;
 	
 map:
-	if (!as_area_create(TASK->as, flags, FRAMES2SIZE(pages), virt,
-	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
+	if (!as_area_create(TASK->as, flags, FRAMES2SIZE(pages),
+	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
 		/*
 		 * The address space area was not created.
 		 * We report it using ENOMEM.
@@ -209,6 +207,46 @@ map:
 	return EOK;
 }
 
+NO_TRACE static int physmem_unmap(uintptr_t virt)
+{
+	// TODO: implement unmap
+	return EOK;
+}
+
+/** Wrapper for SYS_PHYSMEM_MAP syscall.
+ *
+ * @param phys     Physical base address to map
+ * @param pages    Number of pages
+ * @param flags    Flags of newly mapped pages
+ * @param virt_ptr Destination virtual address
+ * @param bound    Lowest virtual address bound.
+ *
+ * @return 0 on success, otherwise it returns error code found in errno.h
+ *
+ */
+sysarg_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
+    void *virt_ptr, uintptr_t bound)
+{
+	uintptr_t virt = (uintptr_t) -1;
+	int rc = physmem_map(ALIGN_DOWN(phys, FRAME_SIZE), pages, flags,
+	    &virt, bound);
+	if (rc != EOK)
+		return rc;
+	
+	rc = copy_to_uspace(virt_ptr, &virt, sizeof(virt));
+	if (rc != EOK) {
+		physmem_unmap((uintptr_t) virt);
+		return rc;
+	}
+	
+	return EOK;
+}
+
+sysarg_t sys_physmem_unmap(uintptr_t virt)
+{
+	return physmem_unmap(virt);
+}
+
 /** Enable range of I/O space for task.
  *
  * @param id Task ID of the destination task.
@@ -219,8 +257,7 @@ map:
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
-NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
-    size_t size)
+NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 {
 	/*
 	 * Make sure the caller is authorised to make this syscall.
@@ -245,30 +282,10 @@ NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
 	
 	/* Lock the task and release the lock protecting tasks_btree. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
-	
 	int rc = ddi_iospace_enable_arch(task, ioaddr, size);
-	
 	irq_spinlock_unlock(&task->lock, true);
 	
 	return rc;
-}
-
-/** Wrapper for SYS_PHYSMEM_MAP syscall.
- *
- * @param phys  Physical base address to map
- * @param virt  Destination virtual address
- * @param pages Number of pages
- * @param flags Flags of newly mapped pages
- *
- * @return 0 on success, otherwise it returns error code found in errno.h
- *
- */
-sysarg_t sys_physmem_map(uintptr_t phys, uintptr_t virt,
-    size_t pages, unsigned int flags)
-{
-	return (sysarg_t)
-	    ddi_physmem_map(ALIGN_DOWN(phys, FRAME_SIZE),
-	    ALIGN_DOWN(virt, PAGE_SIZE), pages, flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
@@ -285,70 +302,111 @@ sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
-	return (sysarg_t) ddi_iospace_enable((task_id_t) arg.task_id,
+	return (sysarg_t) iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-NO_TRACE static int dmamem_map(uintptr_t virt, size_t size,
-    unsigned int map_flags, unsigned int flags, void **phys)
+sysarg_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
+{
+	// TODO: implement
+	return ENOTSUP;
+}
+
+NO_TRACE static int dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
+    unsigned int flags, void **phys)
 {
 	ASSERT(TASK);
 	
-	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0) {
-		// TODO: implement locking of non-anonymous mapping
-		return page_find_mapping(virt, phys);
-	} else {
-		// TODO: implement locking
-		
-		if ((virt % PAGE_SIZE) != 0)
-			return EBADMEM;
-		
-		size_t pages = SIZE2FRAMES(size);
-		uint8_t order;
-		
-		/* We need the 2^order >= pages */
-		if (pages == 1)
-			order = 0;
-		else
-			order = fnzb(pages - 1) + 1;
-		
-		*phys = frame_alloc_noreserve(order, 0);
-		if (*phys == NULL)
-			return ENOMEM;
-		
-		mem_backend_data_t backend_data;
-		backend_data.base = (uintptr_t) *phys;
-		backend_data.frames = pages;
-		
-		if (!as_area_create(TASK->as, map_flags, size, virt,
-		    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
-			frame_free_noreserve((uintptr_t) *phys);
-			return ENOMEM;
-		}
-		
-		return EOK;
-	}
+	// TODO: implement locking of non-anonymous mapping
+	return page_find_mapping(virt, phys);
 }
 
-NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size,
-    unsigned int flags)
+NO_TRACE static int dmamem_map_anonymous(size_t size, unsigned int map_flags,
+    unsigned int flags, void **phys, uintptr_t *virt, uintptr_t bound)
+{
+	ASSERT(TASK);
+	
+	size_t pages = SIZE2FRAMES(size);
+	uint8_t order;
+	
+	/* We need the 2^order >= pages */
+	if (pages == 1)
+		order = 0;
+	else
+		order = fnzb(pages - 1) + 1;
+	
+	*phys = frame_alloc_noreserve(order, 0);
+	if (*phys == NULL)
+		return ENOMEM;
+	
+	mem_backend_data_t backend_data;
+	backend_data.base = (uintptr_t) *phys;
+	backend_data.frames = pages;
+	
+	if (!as_area_create(TASK->as, map_flags, size,
+	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
+		frame_free_noreserve((uintptr_t) *phys);
+		return ENOMEM;
+	}
+	
+	return EOK;
+}
+
+NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size)
 {
 	// TODO: implement unlocking & unmap
 	return EOK;
 }
 
-sysarg_t sys_dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
-    unsigned int flags, void *phys_ptr)
+NO_TRACE static int dmamem_unmap_anonymous(uintptr_t virt)
 {
-	void *phys;
-	int rc = dmamem_map(virt, size, map_flags, flags, &phys);
-	if (rc != EOK)
-		return rc;
-	
-	rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
-	if (rc != EOK) {
-		dmamem_unmap(virt, size, flags);
-		return rc;
+	// TODO: implement unlocking & unmap
+	return EOK;
+}
+
+sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
+    void *phys_ptr, void *virt_ptr, uintptr_t bound)
+{
+	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0) {
+		/*
+		 * Non-anonymous DMA mapping
+		 */
+		
+		void *phys;
+		int rc = dmamem_map((uintptr_t) virt_ptr, size, map_flags,
+		    flags, &phys);
+		
+		if (rc != EOK)
+			return rc;
+		
+		rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
+		if (rc != EOK) {
+			dmamem_unmap((uintptr_t) virt_ptr, size);
+			return rc;
+		}
+	} else {
+		/*
+		 * Anonymous DMA mapping
+		 */
+		
+		void *phys;
+		uintptr_t virt = (uintptr_t) -1;
+		int rc = dmamem_map_anonymous(size, map_flags, flags,
+		    &phys, &virt, bound);
+		if (rc != EOK)
+			return rc;
+		
+		rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
+		if (rc != EOK) {
+			dmamem_unmap_anonymous((uintptr_t) virt);
+			return rc;
+		}
+		
+		rc = copy_to_uspace(virt_ptr, &virt, sizeof(virt));
+		if (rc != EOK) {
+			dmamem_unmap_anonymous((uintptr_t) virt);
+			return rc;
+		}
 	}
 	
 	return EOK;
@@ -356,7 +414,10 @@ sysarg_t sys_dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
 
 sysarg_t sys_dmamem_unmap(uintptr_t virt, size_t size, unsigned int flags)
 {
-	return dmamem_unmap(virt, size, flags);
+	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0)
+		return dmamem_unmap(virt, size);
+	else
+		return dmamem_unmap_anonymous(virt);
 }
 
 /** @}
