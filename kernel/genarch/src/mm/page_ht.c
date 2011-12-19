@@ -58,6 +58,7 @@ static void remove_callback(link_t *);
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
 static pte_t *ht_mapping_find(as_t *, uintptr_t, bool);
+static void ht_mapping_make_global(uintptr_t, size_t);
 
 slab_cache_t *pte_cache = NULL;
 
@@ -87,7 +88,8 @@ hash_table_operations_t ht_operations = {
 page_mapping_operations_t ht_mapping_operations = {
 	.mapping_insert = ht_mapping_insert,
 	.mapping_remove = ht_mapping_remove,
-	.mapping_find = ht_mapping_find
+	.mapping_find = ht_mapping_find,
+	.mapping_make_global = ht_mapping_make_global
 };
 
 /** Compute page hash table index.
@@ -259,6 +261,11 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page, bool nolock)
 		return hash_table_get_instance(cur, pte_t, link);
 	
 	return NULL;
+}
+
+void ht_mapping_make_global(uintptr_t base, size_t size)
+{
+	/* nothing to do */
 }
 
 /** @}

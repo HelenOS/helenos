@@ -37,6 +37,7 @@
 
 #include <mm/km.h>
 #include <arch/mm/km.h>
+#include <mm/page.h>
 #include <config.h>
 #include <typedefs.h>
 #include <lib/ra.h>
@@ -68,6 +69,8 @@ bool km_is_non_identity(uintptr_t addr)
 void km_non_identity_span_add(uintptr_t base, size_t size)
 {
 	bool span_added;
+
+	page_mapping_make_global(base, size);
 
 	span_added = ra_span_add(km_ni_arena, base, size);
 	ASSERT(span_added);

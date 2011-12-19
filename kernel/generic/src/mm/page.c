@@ -177,6 +177,19 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	return page_mapping_operations->mapping_find(as, page, nolock);
 }
 
+/** Make the mapping shared by all page tables (not address spaces).
+ * 
+ * @param base Starting virtual address of the range that is made global.
+ * @param size Size of the address range that is made global.
+ */
+void page_mapping_make_global(uintptr_t base, size_t size)
+{
+	ASSERT(page_mapping_operations);
+	ASSERT(page_mapping_operations->mapping_make_global);
+	
+	return page_mapping_operations->mapping_make_global(base, size);
+}
+
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	uintptr_t virtaddr;
