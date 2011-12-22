@@ -39,12 +39,15 @@
 #include "tcp_type.h"
 
 extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);
+extern void tcp_conn_delete(tcp_conn_t *);
 extern void tcp_conn_add(tcp_conn_t *);
 extern void tcp_conn_remove(tcp_conn_t *);
 extern void tcp_conn_sync(tcp_conn_t *);
 extern void tcp_conn_fin_sent(tcp_conn_t *);
 extern void tcp_conn_ack_of_fin_rcvd(tcp_conn_t *);
-extern tcp_conn_t *tcp_conn_find(tcp_sockpair_t *);
+extern tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *);
+extern void tcp_conn_addref(tcp_conn_t *);
+extern void tcp_conn_delref(tcp_conn_t *);
 extern bool tcp_conn_got_syn(tcp_conn_t *);
 extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
 extern void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);

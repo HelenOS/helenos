@@ -1344,7 +1344,7 @@ int nic_dma_lock_packet(packet_t *packet, size_t size, void **phys)
  */
 int nic_dma_unlock_packet(packet_t *packet, size_t size)
 {
-	return dmamem_unmap(packet, size, 0);
+	return dmamem_unmap(packet, size);
 }
 
 /** @}

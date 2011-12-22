@@ -303,6 +303,7 @@ int main(int argc, char *argv[])
 		rc = closesocket(conn_sd);
 		if (rc != EOK) {
 			printf("Error closing connection socket: %d\n", rc);
+			closesocket(listen_sd);
 			return 1;
 		}
 

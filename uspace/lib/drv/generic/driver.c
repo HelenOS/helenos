@@ -197,7 +197,7 @@ register_interrupt_handler(ddf_dev_t *dev, int irq, interrupt_handler_t *handler
 	if (pseudocode == NULL)
 		pseudocode = &default_pseudocode;
 	
-	int res = register_irq(irq, dev->handle, ctx->id, pseudocode);
+	int res = irq_register(irq, dev->handle, ctx->id, pseudocode);
 	if (res != EOK) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
 		delete_interrupt_context(ctx);
@@ -210,7 +210,7 @@ int unregister_interrupt_handler(ddf_dev_t *dev, int irq)
 {
 	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts,
 	    dev, irq);
-	int res = unregister_irq(irq, dev->handle);
+	int res = irq_unregister(irq, dev->handle);
 	
 	if (ctx != NULL) {
 		remove_interrupt_context(&interrupt_contexts, ctx);

@@ -47,6 +47,7 @@ extern tcp_error_t tcp_uc_receive(tcp_conn_t *, void *, size_t, size_t *, xflags
 extern tcp_error_t tcp_uc_close(tcp_conn_t *);
 extern void tcp_uc_abort(tcp_conn_t *);
 extern void tcp_uc_status(tcp_conn_t *, tcp_conn_status_t *);
+extern void tcp_uc_delete(tcp_conn_t *);
 
 /*
  * Arriving segments

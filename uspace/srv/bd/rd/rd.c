@@ -104,10 +104,8 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	 */
 	unsigned int flags;
 	if (async_share_out_receive(&callid, &comm_size, &flags)) {
-		fs_va = as_get_mappable_page(comm_size);
-		if (fs_va) {
-			(void) async_share_out_finalize(callid, fs_va);
-		} else {
+		(void) async_share_out_finalize(callid, &fs_va);
+		if (fs_va == (void *) -1) {
 			async_answer_0(callid, EHANGUP);
 			return;
 		}
@@ -223,13 +221,12 @@ static bool rd_init(void)
 	}
 	
 	rd_size = ALIGN_UP(size, block_size);
-	rd_addr = as_get_mappable_page(rd_size);
-	
 	unsigned int flags =
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
-	ret = physmem_map((void *) addr_phys, rd_addr,
-	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
-	if (ret < 0) {
+	
+	ret = physmem_map((void *) addr_phys,
+	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags, &rd_addr);
+	if (ret != EOK) {
 		printf("%s: Error mapping RAM disk\n", NAME);
 		return false;
 	}

@@ -126,20 +126,24 @@
  * - ARG3 - flags of the as_area being sent
  *
  * on answer, the recipient must set:
- * - ARG1 - dst as_area base adress
+ *
+ * - ARG1 - dst as_area lower bound
+ * - ARG2 - dst as_area base adress pointer
+ *          (filled automatically by the kernel)
  *
  */
 #define IPC_M_SHARE_OUT  5
 
 /** Receive as_area over IPC.
- * - ARG1 - destination as_area base address
- * - ARG2 - destination as_area size
- * - ARG3 - user defined argument
+ * - ARG1 - destination as_area size
+ * - ARG2 - user defined argument
  *
  * on answer, the recipient must set:
  *
  * - ARG1 - source as_area base address
  * - ARG2 - flags that will be used for sharing
+ * - ARG3 - dst as_area lower bound
+ * - ARG4 - dst as_area base address (filled automatically by kernel)
  *
  */
 #define IPC_M_SHARE_IN  6
