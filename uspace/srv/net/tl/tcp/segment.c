@@ -118,8 +118,14 @@ tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
 	if (rseg == NULL)
 		return NULL;
 
-	rseg->ctrl = CTL_RST;
-	rseg->seq = seg->ack;
+	if ((seg->ctrl & CTL_ACK) == 0) {
+		rseg->ctrl = CTL_RST | CTL_ACK;
+		rseg->seq = 0;
+		rseg->ack = seg->seq + seg->len;
+	} else {
+		rseg->ctrl = CTL_RST;
+		rseg->seq = seg->ack;
+	}
 
 	return rseg;
 }
