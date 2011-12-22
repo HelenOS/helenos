@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -27,25 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup isa
  * @{
  */
+
 /** @file
+ * @brief DMA memory management
  */
 
-#ifndef LIBDRV_OPS_HW_RES_H_
-#define LIBDRV_OPS_HW_RES_H_
+#ifndef DRV_BUS_ISA_I8237_H
+#define DRV_BUS_ISA_I8237_H
 
-#include <device/hw_res.h>
-#include <sys/types.h>
-
-#include "../ddf/driver.h"
-
-typedef struct {
-	hw_resource_list_t *(*get_resource_list)(ddf_fun_t *);
-	bool (*enable_interrupt)(ddf_fun_t *);
-	int (*dma_channel_setup)(ddf_fun_t *, unsigned, uint32_t, uint16_t, uint8_t);
-} hw_res_ops_t;
+extern int dma_setup_channel(unsigned int, uint32_t, uint16_t, uint8_t);
 
 #endif
 
