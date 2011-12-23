@@ -64,12 +64,19 @@ typedef struct usb_transfer_batch {
 	 * unused for all other transfers. Thus, this field is either 0 or 8.
 	 */
 	size_t setup_size;
-	/** Actually used portion of the buffer */
-	size_t transfered_size;
-	/** Indicates success/failure of the communication */
-	int error;
 	/** Host controller function, passed to callback function */
 	ddf_fun_t *fun;
+
+	/** Actually used portion of the buffer
+	 * This member is never accessed by functions provided in this header,
+	 * with the exception of usb_transfer_batch_finish. For external use.
+	 */
+	size_t transfered_size;
+	/** Indicates success/failure of the communication
+	 * This member is never accessed by functions provided in this header,
+	 * with the exception of usb_transfer_batch_finish. For external use.
+	 */
+	int error;
 
 	/** Driver specific data */
 	void *private_data;
@@ -105,22 +112,20 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 );
 void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 
-void usb_transfer_batch_finish(const usb_transfer_batch_t *instance,
-    const void* data, size_t size);
+void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
+    const void* data, size_t size, int error);
 /*----------------------------------------------------------------------------*/
-/** Override error value and finishes transfer.
+/** Finish batch using stored error value and transferred size.
  *
  * @param[in] instance Batch structure to use.
  * @param[in] data Data to copy to the output buffer.
- * @param[in] size Size of @p data.
- * @param[in] error Set batch status to this error value.
  */
-static inline void usb_transfer_batch_finish_error(
-    usb_transfer_batch_t *instance, const void* data, size_t size, int error)
+static inline void usb_transfer_batch_finish(
+    const usb_transfer_batch_t *instance, const void* data)
 {
 	assert(instance);
-	instance->error = error;
-	usb_transfer_batch_finish(instance, data, size);
+	usb_transfer_batch_finish_error(
+	    instance, data, instance->transfered_size, instance->error);
 }
 /*----------------------------------------------------------------------------*/
 /** Determine batch direction based on the callbacks present

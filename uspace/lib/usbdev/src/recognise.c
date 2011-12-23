@@ -45,11 +45,6 @@
 #include <errno.h>
 #include <assert.h>
 
-/** Index to append after device name for uniqueness. */
-static size_t device_name_index = 0;
-/** Mutex guard for device_name_index. */
-static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
-
 /** DDF operations of child devices. */
 static ddf_dev_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
@@ -328,9 +323,10 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 		    "driver data. This does not have to work.\n");
 	}
 
-	fibril_mutex_lock(&device_name_index_mutex);
-	const size_t this_device_name_index = device_name_index++;
-	fibril_mutex_unlock(&device_name_index_mutex);
+	/** Index to append after device name for uniqueness. */
+	static atomic_t device_name_index = {0};
+	const size_t this_device_name_index =
+	    (size_t) atomic_preinc(&device_name_index);
 
 	ddf_fun_t *child = NULL;
 	int rc;

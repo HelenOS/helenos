@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,29 +25,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusbdev
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * Library internal functions on USB pipes.
+ * Common USB types and functions.
  */
-#ifndef LIBUSBDEV_PIPEPRIV_H_
-#define LIBUSBDEV_PIPEPRIV_H_
+#ifndef LIBUSB_DEV_H_
+#define LIBUSB_DEV_H_
 
-#include <usb/dev/pipes.h>
-#include <bool.h>
+#include <devman.h>
+#include <usb/usb.h>
 
-void pipe_acquire(usb_pipe_t *);
-void pipe_release(usb_pipe_t *);
+int usb_get_info_by_handle(devman_handle_t,
+    devman_handle_t *, usb_address_t *, int *);
 
-void pipe_start_transaction(usb_pipe_t *);
-void pipe_end_transaction(usb_pipe_t *);
+static inline int usb_get_hc_by_handle(devman_handle_t dev, devman_handle_t *hc)
+{
+	return usb_get_info_by_handle(dev, hc, NULL, NULL);
+}
 
-int pipe_add_ref(usb_pipe_t *, bool);
-void pipe_drop_ref(usb_pipe_t *);
+static inline int usb_get_address_by_handle(
+    devman_handle_t dev, usb_address_t *address)
+{
+	return usb_get_info_by_handle(dev, NULL, address, NULL);
+}
 
+static inline int usb_get_iface_by_handle(devman_handle_t dev, int *iface)
+{
+	return usb_get_info_by_handle(dev, NULL, NULL, iface);
+}
 
+int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
+    devman_handle_t *);
 #endif
 /**
  * @}
