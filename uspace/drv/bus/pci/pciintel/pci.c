@@ -186,8 +186,8 @@ static int pci_config_space_read_8(
 }
 
 static hw_res_ops_t pciintel_hw_res_ops = {
-	&pciintel_get_resources,
-	&pciintel_enable_interrupt
+	.get_resource_list = &pciintel_get_resources,
+	.enable_interrupt = &pciintel_enable_interrupt,
 };
 
 static pci_dev_iface_t pci_dev_ops = {

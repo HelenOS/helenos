@@ -146,14 +146,9 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 			return -1;
 		}
 		
-		void *addr = as_get_mappable_page(PAGE_SIZE);
-		if (addr == NULL) {
-			errno = ENOMEM;
-			return -1;
-		}
-		
-		rc = physmem_map((void *) faddr, addr, 1,
-		    AS_AREA_READ | AS_AREA_CACHEABLE);
+		void *addr;
+		rc = physmem_map((void *) faddr, 1,
+		    AS_AREA_READ | AS_AREA_CACHEABLE, &addr);
 		if (rc != EOK) {
 			as_area_destroy(addr);
 			errno = rc;

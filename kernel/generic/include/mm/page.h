@@ -65,7 +65,8 @@ extern void map_structure(uintptr_t, size_t);
 
 extern uintptr_t hw_map(uintptr_t, size_t);
 
-extern sysarg_t sys_page_find_mapping(uintptr_t, uintptr_t *);
+extern int page_find_mapping(uintptr_t, void **);
+extern sysarg_t sys_page_find_mapping(uintptr_t, void *);
 
 #endif
 

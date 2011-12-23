@@ -65,21 +65,20 @@
 static int packet_return(async_sess_t *sess, packet_t **packet,
     packet_id_t packet_id, size_t size)
 {
-	*packet = (packet_t *) as_get_mappable_page(size);
-	
 	async_exch_t *exch = async_exchange_begin(sess);
 	ipc_call_t answer;
 	aid_t message = async_send_1(exch, NET_PACKET_GET, packet_id, &answer);
-	int rc = async_share_in_start_0_0(exch, *packet, size);
+	int rc = async_share_in_start_0_0(exch, size, (void *) packet);
 	async_exchange_end(exch);
 	
 	sysarg_t result;
 	async_wait_for(message, &result);
 	
-	if (rc != EOK) {
-		munmap(*packet, size);
+	if (rc != EOK)
 		return rc;
-	}
+	
+	if (packet == (void *) -1)
+		return ENOMEM;
 	
 	rc = pm_add(*packet);
 	if (rc != EOK) {

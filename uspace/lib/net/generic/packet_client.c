@@ -38,7 +38,6 @@
 #include <mem.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
 #include <packet_client.h>
 #include <packet_remote.h>
 

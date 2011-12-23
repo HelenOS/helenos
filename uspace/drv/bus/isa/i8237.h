@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup isa
  * @{
  */
+
 /** @file
+ * @brief DMA memory management
  */
 
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <as.h>
-#include <unistd.h>
+#ifndef DRV_BUS_ISA_I8237_H
+#define DRV_BUS_ISA_I8237_H
 
-void *mmap(void *start, size_t length, int prot, int flags, int fd,
-    aoff64_t offset)
-{
-	if (!start)
-		start = (void *) -1;
-	
-//	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
-//		return MAP_FAILED;
-	
-	if (!(flags & MAP_ANONYMOUS))
-		return MAP_FAILED;
-	
-	return as_area_create(start, length, prot);
-}
+extern int dma_setup_channel(unsigned int, uint32_t, uint16_t, uint8_t);
 
-int munmap(void *start, size_t length)
-{
-	return as_area_destroy(start);
-}
+#endif
 
-/** @}
+/**
+ * @}
  */

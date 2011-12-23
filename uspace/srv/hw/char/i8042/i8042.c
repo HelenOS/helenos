@@ -196,8 +196,8 @@ static int i8042_init(void)
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
-	register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
+	irq_register(inr_a, device_assign_devno(), 0, &i8042_kbd);
+	irq_register(inr_b, device_assign_devno(), 0, &i8042_kbd);
 	printf("%s: registered for interrupts %" PRIun " and %" PRIun "\n",
 	    NAME, inr_a, inr_b);
 

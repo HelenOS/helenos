@@ -345,23 +345,23 @@ void async_sess_args_set(async_sess_t *sess, sysarg_t, sysarg_t, sysarg_t);
  * User-friendly wrappers for async_share_in_start().
  */
 
-#define async_share_in_start_0_0(exch, dst, size) \
-	async_share_in_start(exch, dst, size, 0, NULL)
-#define async_share_in_start_0_1(exch, dst, size, flags) \
-	async_share_in_start(exch, dst, size, 0, flags)
-#define async_share_in_start_1_0(exch, dst, size, arg) \
-	async_share_in_start(exch, dst, size, arg, NULL)
-#define async_share_in_start_1_1(exch, dst, size, arg, flags) \
-	async_share_in_start(exch, dst, size, arg, flags)
+#define async_share_in_start_0_0(exch, size, dst) \
+	async_share_in_start(exch, size, 0, NULL, dst)
+#define async_share_in_start_0_1(exch, size, flags, dst) \
+	async_share_in_start(exch, size, 0, flags, dst)
+#define async_share_in_start_1_0(exch, size, arg, dst) \
+	async_share_in_start(exch, size, arg, NULL, dst)
+#define async_share_in_start_1_1(exch, size, arg, flags, dst) \
+	async_share_in_start(exch, size, arg, flags, dst)
 
-extern int async_share_in_start(async_exch_t *, void *, size_t, sysarg_t,
-    unsigned int *);
+extern int async_share_in_start(async_exch_t *, size_t, sysarg_t,
+    unsigned int *, void **);
 extern bool async_share_in_receive(ipc_callid_t *, size_t *);
 extern int async_share_in_finalize(ipc_callid_t, void *, unsigned int);
 
 extern int async_share_out_start(async_exch_t *, void *, unsigned int);
 extern bool async_share_out_receive(ipc_callid_t *, size_t *, unsigned int *);
-extern int async_share_out_finalize(ipc_callid_t, void *);
+extern int async_share_out_finalize(ipc_callid_t, void **);
 
 /*
  * User-friendly wrappers for async_data_read_forward_fast().

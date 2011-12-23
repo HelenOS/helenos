@@ -138,7 +138,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	    (void *) ts->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_ts_irq_handler);
-	register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
+	irq_register(inr, device_assign_devno(), 0, &ts_irq_code);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 

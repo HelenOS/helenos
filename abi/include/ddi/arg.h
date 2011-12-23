@@ -35,6 +35,8 @@
 #ifndef ABI_DDI_ARG_H_
 #define ABI_DDI_ARG_H_
 
+#define DMAMEM_FLAGS_ANONYMOUS  0x01
+
 /** Structure encapsulating arguments for SYS_PHYSMEM_MAP syscall. */
 typedef struct {
 	/** ID of the destination task. */

@@ -48,7 +48,7 @@
 #define E1000_VFTA_ARRAY(n)  (E1000_VFTA + (0x04 * (n)))
 
 /** Receive descriptior */
-typedef struct e1000_rx_descriptor {
+typedef struct {
 	/** Buffer Address - physical */
 	uint64_t phys_addr;
 	/** Length is per segment */
@@ -56,7 +56,7 @@ typedef struct e1000_rx_descriptor {
 	/** Checksum - not all types, on some reseved  */
 	uint16_t checksum;
 	/** Status field */
-	 uint8_t status;
+	uint8_t status;
 	/** Errors field */
 	uint8_t errors;
 	/** Special Field - not all types, on some reseved  */
@@ -64,7 +64,7 @@ typedef struct e1000_rx_descriptor {
 } e1000_rx_descriptor_t;
 
 /** Legacy transmit descriptior */
-typedef struct e1000_tx_descriptor {
+typedef struct {
 	/** Buffer Address - physical */
 	uint64_t phys_addr;
 	/** Length is per segment */
@@ -74,7 +74,7 @@ typedef struct e1000_tx_descriptor {
 	/** Command field */
 	uint8_t command;
 	/** Status field, upper bits are reserved */
-	 uint8_t status;
+	uint8_t status;
 	/** Checksum Start Field */
 	uint8_t checksum_start_field;
 	/** Special Field */
