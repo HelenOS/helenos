@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <libarch/ddi.h>
 #include <async.h>
+#include <fibril_synch.h>
 #include <ddf/driver.h>
 
 /** i8042 HW I/O interface */
@@ -51,10 +52,14 @@ typedef struct {
 } __attribute__ ((packed)) i8042_regs_t;
 
 /** Softstate structure, one for each serial port (primary and aux). */
+/*
 typedef struct {
 	service_id_t service_id;
 	async_sess_t *client_sess;
 } i8042_port_t;
+*/
+
+typedef struct i8042 i8042_t;
 
 enum {
 	DEVID_PRI = 0, /**< primary device */
@@ -62,14 +67,20 @@ enum {
 	MAX_DEVS  = 2
 };
 
-typedef struct {
+struct i8042 {
 	i8042_regs_t *regs;
-	i8042_port_t port[MAX_DEVS];
+//	i8042_port_t port[MAX_DEVS];
 	ddf_fun_t *kbd_fun;
 	ddf_fun_t *mouse_fun;
-} i8042_t;
+	fibril_mutex_t guard;
+	fibril_condvar_t data_avail;
+};
 
 int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
+int i8042_write_kbd(i8042_t *, uint8_t);
+int i8042_read_kbd(i8042_t *, uint8_t *);
+int i8042_write_aux(i8042_t *, uint8_t);
+int i8042_read_aux(i8042_t *, uint8_t *);
 
 #endif
 /**

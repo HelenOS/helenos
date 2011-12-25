@@ -37,6 +37,8 @@
  */
 
 #include <ddi.h>
+#include <devman.h>
+#include <device/hw_res.h>
 #include <libarch/ddi.h>
 #include <loc.h>
 #include <async.h>
@@ -51,7 +53,6 @@
 #include "i8042.h"
 
 #define NAME       "i8042"
-#define NAMESPACE  "char"
 
 /* Interesting bits for status register */
 #define i8042_OUTPUT_FULL	0x01
@@ -96,19 +97,38 @@ static const irq_cmd_t i8042_cmds[] = {
 	}
 };
 
-static i8042_t device;
-
 static void wait_ready(i8042_t *dev)
 {
 	assert(dev);
 	while (pio_read_8(&dev->regs->status) & i8042_INPUT_FULL);
 }
 
-static void i8042_irq_handler(ddf_dev_t *dev,
-    ipc_callid_t iid, ipc_call_t *call);
-static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-static void i8042_port_write(i8042_t *dev, int devid, uint8_t data);
+static void i8042_irq_handler(
+    ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+{
 
+	const int status = IPC_GET_ARG1(*call);
+	const int data = IPC_GET_ARG2(*call);
+	const int devid = (status & i8042_AUX_DATA) ? DEVID_AUX : DEVID_PRI;
+	ddf_msg(LVL_WARN, "Unhandled %s data: %x , status: %x.",
+	    (devid == DEVID_AUX) ? "AUX" : "PRIMARY", data, status);
+#if 0
+	if (!dev || !dev->driver_data)
+		return;
+
+	if (device.port[devid].client_sess != NULL) {
+		async_exch_t *exch =
+		    async_exchange_begin(device.port[devid].client_sess);
+		if (exch) {
+			async_msg_1(exch, IPC_FIRST_USER_METHOD, data);
+			async_exchange_end(exch);
+		}
+	} else {
+		ddf_msg(LVL_WARN, "No client session.\n");
+	}
+#endif
+}
+/*----------------------------------------------------------------------------*/
 int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
     int irq_mouse, ddf_dev_t *ddf_dev)
 {
@@ -176,6 +196,7 @@ if  (ret != EOK) { \
 		ddf_fun_destroy(dev->mouse_fun); \
 	} \
 } else (void)0
+
 	const size_t cmd_count = sizeof(i8042_cmds) / sizeof(irq_cmd_t);
 	irq_cmd_t cmds[cmd_count];
 	memcpy(cmds, i8042_cmds, sizeof(i8042_cmds));
@@ -183,30 +204,35 @@ if  (ret != EOK) { \
 	cmds[3].addr = (void *) &dev->regs->data;
 
 	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = cmds };
-	ddf_msg(LVL_DEBUG,
-	    "Registering interrupt handler for device %s on irq %d.\n",
-	    ddf_dev->name, irq_kbd);
 	ret = register_interrupt_handler(ddf_dev, irq_kbd, i8042_irq_handler,
 	    &irq_code);
 	CHECK_RET_UNBIND_DESTROY(ret,
 	    "Failed set handler for kbd: %s.\n", str_error(ret));
 
-	ddf_msg(LVL_DEBUG,
-	    "Registering interrupt handler for device %s on irq %d.\n",
-	    ddf_dev->name, irq_mouse);
 	ret = register_interrupt_handler(ddf_dev, irq_mouse, i8042_irq_handler,
 	    &irq_code);
 	CHECK_RET_UNBIND_DESTROY(ret,
 	    "Failed set handler for mouse: %s.\n", str_error(ret));
 
+#if 0
 	ret = ddf_fun_add_to_category(dev->kbd_fun, "keyboard");
 	if (ret != EOK)
 		ddf_msg(LVL_WARN, "Failed to register kbd fun to category.\n");
 	ret = ddf_fun_add_to_category(dev->mouse_fun, "mouse");
 	if (ret != EOK)
 		ddf_msg(LVL_WARN, "Failed to register mouse fun to category.\n");
+#endif
+	/* Enable interrupts */
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE, ddf_dev->handle,
+	    IPC_FLAG_BLOCKING);
+	ret = parent_sess ? EOK : ENOMEM;
+	CHECK_RET_UNBIND_DESTROY(ret, "Failed to create parent connection.\n");
+	const bool enabled = hw_res_enable_interrupt(parent_sess);
+	async_hangup(parent_sess);
+	ret = enabled ? EOK : EIO;
+	CHECK_RET_UNBIND_DESTROY(ret, "Failed to enable interrupts: %s.\n");
 
-	// TODO: Don't rely on kernel enabling interrupts do it yourself.
 
 	wait_ready(dev);
 	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
@@ -214,13 +240,11 @@ if  (ret != EOK) { \
 	pio_write_8(&dev->regs->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
 	    i8042_AUX_IE);
 
-	// TODO: Plug in connection.
-
-	return ret;
-	(void)i8042_connection;
+	return EOK;
 }
 
 /** Character device connection handler */
+#if 0
 static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
@@ -287,7 +311,6 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_answer_0(callid, retval);
 	}
 }
-
 void i8042_port_write(i8042_t *dev, int devid, uint8_t data)
 {
 
@@ -299,28 +322,7 @@ void i8042_port_write(i8042_t *dev, int devid, uint8_t data)
 	wait_ready(dev);
 	pio_write_8(&dev->regs->data, data);
 }
-
-void i8042_irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
-{
-	ddf_msg(LVL_FATAL, "IRQ!!!.\n");
-	if (!dev || !dev->driver_data)
-		return;
-
-	const int status = IPC_GET_ARG1(*call);
-	const int data = IPC_GET_ARG2(*call);
-	const int devid = (status & i8042_AUX_DATA) ? DEVID_AUX : DEVID_PRI;
-
-	if (device.port[devid].client_sess != NULL) {
-		async_exch_t *exch =
-		    async_exchange_begin(device.port[devid].client_sess);
-		if (exch) {
-			async_msg_1(exch, IPC_FIRST_USER_METHOD, data);
-			async_exchange_end(exch);
-		}
-	} else {
-		ddf_msg(LVL_WARN, "No client session.\n");
-	}
-}
+#endif
 
 /**
  * @}

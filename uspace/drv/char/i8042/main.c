@@ -113,7 +113,7 @@ if (ret != EOK) { \
 	    device->name, device->handle);
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Get address of I/O registers.
  *
  * @param[in] dev Device asking for the addresses.
@@ -160,7 +160,6 @@ int get_my_registers(const ddf_dev_t *dev, uintptr_t *io_reg_address,
 	hw_res_list_parsed_clean(&hw_resources);
 	return EOK;
 }
-
 /**
  * @}
  */
