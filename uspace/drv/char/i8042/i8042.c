@@ -50,9 +50,34 @@
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 
+#include <ops/char_dev.h>
+
 #include "i8042.h"
 
 #define NAME       "i8042"
+
+static int i8042_write_kbd(ddf_fun_t *, char *, size_t);
+static int i8042_read_kbd(ddf_fun_t *, char *, size_t);
+static int i8042_write_aux(ddf_fun_t *, char *, size_t);
+static int i8042_read_aux(ddf_fun_t *, char *, size_t);
+
+static char_dev_ops_t kbd_iface = {
+    .read = i8042_read_kbd,
+    .write = i8042_write_kbd,
+};
+
+static char_dev_ops_t aux_iface = {
+    .read = i8042_read_aux,
+    .write = i8042_write_aux,
+};
+
+static ddf_dev_ops_t kbd_ops = {
+	.interfaces[CHAR_DEV_IFACE] = &kbd_iface
+};
+
+static ddf_dev_ops_t aux_ops = {
+	.interfaces[CHAR_DEV_IFACE] = &aux_iface
+};
 
 /* Interesting bits for status register */
 #define i8042_OUTPUT_FULL	0x01
@@ -68,7 +93,7 @@
 #define i8042_AUX_IE		0x02
 #define i8042_KBD_DISABLE	0x10
 #define i8042_AUX_DISABLE	0x20
-#define i8042_KBD_TRANSLATE	0x40
+#define i8042_KBD_TRANSLATE	0x40 /* Use this to switch to XT scancodes */
 
 static const irq_cmd_t i8042_cmds[] = {
 	{
@@ -96,37 +121,43 @@ static const irq_cmd_t i8042_cmds[] = {
 		.cmd = CMD_ACCEPT
 	}
 };
-
+/*----------------------------------------------------------------------------*/
 static void wait_ready(i8042_t *dev)
 {
 	assert(dev);
 	while (pio_read_8(&dev->regs->status) & i8042_INPUT_FULL);
 }
-
+/*----------------------------------------------------------------------------*/
+static void wait_ready_write(i8042_t *dev)
+{
+	assert(dev);
+	while (pio_read_8(&dev->regs->status) & i8042_OUTPUT_FULL);
+}
+/*----------------------------------------------------------------------------*/
 static void i8042_irq_handler(
     ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
-
-	const int status = IPC_GET_ARG1(*call);
-	const int data = IPC_GET_ARG2(*call);
-	const int devid = (status & i8042_AUX_DATA) ? DEVID_AUX : DEVID_PRI;
-	ddf_msg(LVL_WARN, "Unhandled %s data: %x , status: %x.",
-	    (devid == DEVID_AUX) ? "AUX" : "PRIMARY", data, status);
-#if 0
 	if (!dev || !dev->driver_data)
 		return;
+	i8042_t *controller = dev->driver_data;
+	fibril_mutex_lock(&controller->guard);
 
-	if (device.port[devid].client_sess != NULL) {
-		async_exch_t *exch =
-		    async_exchange_begin(device.port[devid].client_sess);
-		if (exch) {
-			async_msg_1(exch, IPC_FIRST_USER_METHOD, data);
-			async_exchange_end(exch);
-		}
+	const uint8_t status = IPC_GET_ARG1(*call);
+	const uint8_t data = IPC_GET_ARG2(*call);
+	char ** buffer = (status & i8042_AUX_DATA) ?
+	    &controller->aux_buffer : &controller->kbd_buffer;
+	char * buffer_end = (status & i8042_AUX_DATA) ?
+	    controller->aux_buffer_end : controller->kbd_buffer_end;
+	if (*buffer != NULL && *buffer < buffer_end) {
+		*(*buffer)++ = data;
+		if (*buffer == buffer_end)
+			fibril_condvar_signal(&controller->data_avail);
 	} else {
-		ddf_msg(LVL_WARN, "No client session.\n");
+		ddf_msg(LVL_WARN, "Unhandled %s data: %x , status: %x.",
+		    (status & i8042_AUX_DATA) ? "AUX" : "KBD", data, status);
 	}
-#endif
+
+	fibril_mutex_unlock(&controller->guard);
 }
 /*----------------------------------------------------------------------------*/
 int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
@@ -150,6 +181,18 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 		ddf_fun_destroy(dev->kbd_fun);
 		return ENOMEM;
 	}
+
+	dev->kbd_fun->ops = &kbd_ops;
+	dev->mouse_fun->ops = &aux_ops;
+	dev->kbd_fun->driver_data = dev;
+	dev->mouse_fun->driver_data = dev;
+
+	fibril_mutex_initialize(&dev->guard);
+	fibril_condvar_initialize(&dev->data_avail);
+	dev->kbd_buffer = NULL;
+	dev->kbd_buffer_end = NULL;
+	dev->aux_buffer = NULL;
+	dev->aux_buffer_end = NULL;
 
 #define CHECK_RET_DESTROY(ret, msg...) \
 if  (ret != EOK) { \
@@ -214,20 +257,13 @@ if  (ret != EOK) { \
 	CHECK_RET_UNBIND_DESTROY(ret,
 	    "Failed set handler for mouse: %s.\n", str_error(ret));
 
-#if 0
-	ret = ddf_fun_add_to_category(dev->kbd_fun, "keyboard");
-	if (ret != EOK)
-		ddf_msg(LVL_WARN, "Failed to register kbd fun to category.\n");
-	ret = ddf_fun_add_to_category(dev->mouse_fun, "mouse");
-	if (ret != EOK)
-		ddf_msg(LVL_WARN, "Failed to register mouse fun to category.\n");
-#endif
 	/* Enable interrupts */
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, ddf_dev->handle,
 	    IPC_FLAG_BLOCKING);
 	ret = parent_sess ? EOK : ENOMEM;
 	CHECK_RET_UNBIND_DESTROY(ret, "Failed to create parent connection.\n");
+
 	const bool enabled = hw_res_enable_interrupt(parent_sess);
 	async_hangup(parent_sess);
 	ret = enabled ? EOK : EIO;
@@ -242,6 +278,88 @@ if  (ret != EOK) { \
 
 	return EOK;
 }
+/*----------------------------------------------------------------------------*/
+static int i8042_write_kbd(ddf_fun_t *fun, char *buffer, size_t size)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	i8042_t *controller = fun->driver_data;
+	fibril_mutex_lock(&controller->guard);
+	for (size_t i = 0; i < size; ++i) {
+		wait_ready_write(controller);
+		pio_write_8(&controller->regs->data, buffer[i]);
+	}
+	fibril_mutex_unlock(&controller->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	bzero(buffer, size);
+
+	i8042_t *controller = fun->driver_data;
+	fibril_mutex_lock(&controller->guard);
+	/* There is someone else reading from the device. */
+	if (controller->kbd_buffer) {
+		fibril_mutex_unlock(&controller->guard);
+		return EBUSY;
+	}
+	controller->kbd_buffer = buffer;
+	controller->kbd_buffer_end = buffer + size;
+	/* Wait for buffer to be filled */
+	while (controller->kbd_buffer != controller->kbd_buffer_end)
+		fibril_condvar_wait(
+		    &controller->data_avail, &controller->guard);
+
+	controller->kbd_buffer = NULL;
+	controller->kbd_buffer_end = NULL;
+	fibril_mutex_unlock(&controller->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	i8042_t *controller = fun->driver_data;
+	fibril_mutex_lock(&controller->guard);
+	for (size_t i = 0; i < size; ++i) {
+		wait_ready_write(controller);
+		pio_write_8(&controller->regs->status, i8042_CMD_WRITE_AUX);
+		pio_write_8(&controller->regs->data, buffer[i]);
+	}
+	fibril_mutex_unlock(&controller->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	bzero(buffer, size);
+
+	i8042_t *controller = fun->driver_data;
+	fibril_mutex_lock(&controller->guard);
+	/* There is someone else reading from the device. */
+	if (controller->aux_buffer) {
+		fibril_mutex_unlock(&controller->guard);
+		return EBUSY;
+	}
+	controller->aux_buffer = buffer;
+	controller->aux_buffer_end = buffer + size;
+	/* Wait for buffer to be filled */
+	while (controller->aux_buffer != controller->aux_buffer_end)
+		fibril_condvar_wait(
+		    &controller->data_avail, &controller->guard);
+
+	controller->aux_buffer = NULL;
+	controller->aux_buffer_end = NULL;
+	fibril_mutex_unlock(&controller->guard);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
 
 /** Character device connection handler */
 #if 0

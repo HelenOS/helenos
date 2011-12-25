@@ -72,16 +72,15 @@ struct i8042 {
 //	i8042_port_t port[MAX_DEVS];
 	ddf_fun_t *kbd_fun;
 	ddf_fun_t *mouse_fun;
+	char * kbd_buffer;
+	char * kbd_buffer_end;
+	char * aux_buffer;
+	char * aux_buffer_end;
 	fibril_mutex_t guard;
 	fibril_condvar_t data_avail;
 };
 
 int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
-int i8042_write_kbd(i8042_t *, uint8_t);
-int i8042_read_kbd(i8042_t *, uint8_t *);
-int i8042_write_aux(i8042_t *, uint8_t);
-int i8042_read_aux(i8042_t *, uint8_t *);
-
 #endif
 /**
  * @}
