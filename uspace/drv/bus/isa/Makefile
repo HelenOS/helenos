@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2010 Lenka Trochtova
+# Copyright (c) 2011 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,6 +33,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = isa
 
 SOURCES = \
+	i8237.c \
 	isa.c
 
 include $(USPACE_PREFIX)/Makefile.common

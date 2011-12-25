@@ -17,3 +17,11 @@ ne2k:
 	match 100 isa/ne2k
 	irq 5
 	io_range 300 20
+
+sb16:
+	match 100 isa/sb16
+	io_range 220 20
+	io_range 330 2
+	irq 5
+	dma 1
+	dma 5

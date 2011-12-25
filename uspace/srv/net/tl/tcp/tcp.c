@@ -35,6 +35,7 @@
  */
 
 #include <async.h>
+#include <bitops.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <io/log.h>
@@ -190,13 +191,32 @@ static int tcp_received_msg(nic_device_id_t device_id, packet_t *packet,
 
 	tcp_pdu_t *pdu;
 	size_t hdr_size;
+	tcp_header_t *hdr;
+	uint32_t data_offset;
 
-	/* XXX Header options */
-	hdr_size = sizeof(tcp_header_t);
+	if (pdu_raw_size < sizeof(tcp_header_t)) {
+		log_msg(LVL_WARN, "pdu_raw_size = %zu < sizeof(tcp_header_t) = %zu",
+		    pdu_raw_size, sizeof(tcp_header_t));
+		pq_release_remote(net_sess, packet_get_id(packet));
+		return EINVAL;
+	}
+
+	hdr = (tcp_header_t *)pdu_raw;
+	data_offset = BIT_RANGE_EXTRACT(uint32_t, DF_DATA_OFFSET_h, DF_DATA_OFFSET_l,
+	    uint16_t_be2host(hdr->doff_flags));
+
+	hdr_size = sizeof(uint32_t) * data_offset;
 
 	if (pdu_raw_size < hdr_size) {
 		log_msg(LVL_WARN, "pdu_raw_size = %zu < hdr_size = %zu",
 		    pdu_raw_size, hdr_size);
+		pq_release_remote(net_sess, packet_get_id(packet));
+		return EINVAL;
+	}
+
+	if (hdr_size < sizeof(tcp_header_t)) {
+		log_msg(LVL_WARN, "hdr_size = %zu < sizeof(tcp_header_t) = %zu",
+		    hdr_size, sizeof(tcp_header_t));
 		pq_release_remote(net_sess, packet_get_id(packet));
 		return EINVAL;
 	}

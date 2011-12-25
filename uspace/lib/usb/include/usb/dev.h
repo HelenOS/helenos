@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,52 +25,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusbdev
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * Functions needed by hub drivers.
- *
- * For class specific requests, see usb/classes/hub.h.
+ * Common USB types and functions.
  */
-#ifndef LIBUSBDEV_HUB_H_
-#define LIBUSBDEV_HUB_H_
+#ifndef LIBUSB_DEV_H_
+#define LIBUSB_DEV_H_
 
-#include <ddf/driver.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <usb/hc.h>
+#include <devman.h>
+#include <usb/usb.h>
 
-int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
-    int (*)(void *), void *, usb_address_t *, ddf_dev_ops_t *, void *,
-    ddf_fun_t **);
+int usb_get_info_by_handle(devman_handle_t,
+    devman_handle_t *, usb_address_t *, int *);
 
-/** Info about device attached to host controller.
- *
- * This structure exists only to keep the same signature of
- * usb_hc_register_device() when more properties of the device
- * would have to be passed to the host controller.
- */
-typedef struct {
-	/** Device address. */
-	usb_address_t address;
-	/** DDF function (external) of the device. */
-	ddf_fun_t *fun;
-} usb_hub_attached_device_t;
-
-int usb_hub_register_device(usb_hc_connection_t *,
-    const usb_hub_attached_device_t *);
-
-static inline int usb_hub_unregister_device(usb_hc_connection_t *conn,
-    const usb_hub_attached_device_t *attached_device)
+static inline int usb_get_hc_by_handle(devman_handle_t dev, devman_handle_t *hc)
 {
-	assert(conn);
-	if (attached_device == NULL)
-		return EBADMEM;
-	return usb_hc_release_address(conn, attached_device->address);
+	return usb_get_info_by_handle(dev, hc, NULL, NULL);
 }
 
+static inline int usb_get_address_by_handle(
+    devman_handle_t dev, usb_address_t *address)
+{
+	return usb_get_info_by_handle(dev, NULL, address, NULL);
+}
+
+static inline int usb_get_iface_by_handle(devman_handle_t dev, int *iface)
+{
+	return usb_get_info_by_handle(dev, NULL, NULL, iface);
+}
+
+int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
+    devman_handle_t *);
 #endif
 /**
  * @}

@@ -490,19 +490,29 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 		log_msg(LVL_DEBUG, "snd_una=%u, seg.ack=%u, snd_nxt=%u",
 		    conn->snd_una, seg->ack, conn->snd_nxt);
 		if (!seq_no_ack_acceptable(conn, seg->ack)) {
-			log_msg(LVL_WARN, "ACK not acceptable, send RST.");
-			tcp_reply_rst(&conn->ident, seg);
+			if ((seg->ctrl & CTL_RST) == 0) {
+				log_msg(LVL_WARN, "ACK not acceptable, send RST");
+				tcp_reply_rst(&conn->ident, seg);
+			} else {
+				log_msg(LVL_WARN, "RST,ACK not acceptable, drop");
+			}
 			return;
 		}
 	}
 
 	if ((seg->ctrl & CTL_RST) != 0) {
-		log_msg(LVL_DEBUG, "%s: Connection reset. -> Closed",
-		    conn->name);
-		/* Reset connection */
-		tcp_conn_reset(conn);
-		/* XXX delete connection */
-		return;
+		/* If we get here, we have either an acceptable ACK or no ACK */
+		if ((seg->ctrl & CTL_ACK) != 0) {
+			log_msg(LVL_DEBUG, "%s: Connection reset. -> Closed",
+			    conn->name);
+			/* Reset connection */
+			tcp_conn_reset(conn);
+			return;
+		} else {
+			log_msg(LVL_DEBUG, "%s: RST without ACK, drop",
+			    conn->name);
+			return;
+		}
 	}
 
 	/* XXX precedence */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbdev
+/** @addtogroup isa
  * @{
  */
+
 /** @file
- * Library internal functions on USB pipes.
+ * @brief DMA memory management
  */
-#ifndef LIBUSBDEV_PIPEPRIV_H_
-#define LIBUSBDEV_PIPEPRIV_H_
 
-#include <usb/dev/pipes.h>
-#include <bool.h>
+#ifndef DRV_BUS_ISA_I8237_H
+#define DRV_BUS_ISA_I8237_H
 
-void pipe_acquire(usb_pipe_t *);
-void pipe_release(usb_pipe_t *);
-
-void pipe_start_transaction(usb_pipe_t *);
-void pipe_end_transaction(usb_pipe_t *);
-
-int pipe_add_ref(usb_pipe_t *, bool);
-void pipe_drop_ref(usb_pipe_t *);
-
+extern int dma_setup_channel(unsigned int, uint32_t, uint16_t, uint8_t);
 
 #endif
+
 /**
  * @}
  */
