@@ -38,7 +38,9 @@ RD_DRVS += \
 	infrastructure/rootpc \
 	bus/pci/pciintel \
 	bus/isa \
+	char/i8042 \
 	char/ns8250 \
+	char/xtkbd \
 	bus/usb/ehci\
 	bus/usb/ohci \
 	bus/usb/uhci \
