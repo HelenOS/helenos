@@ -149,11 +149,11 @@ static void i8042_irq_handler(
 	char * buffer_end = (status & i8042_AUX_DATA) ?
 	    controller->aux_buffer_end : controller->kbd_buffer_end;
 	if (*buffer != NULL && *buffer < buffer_end) {
-		*(*buffer)++ = data;
-		if (*buffer == buffer_end)
+		*(*buffer) = data;
+		if (++(*buffer) == buffer_end)
 			fibril_condvar_signal(&controller->data_avail);
 	} else {
-		ddf_msg(LVL_WARN, "Unhandled %s data: %x , status: %x.",
+		ddf_msg(LVL_WARN, "Unhandled %s data: %hhx , status: %hhx.",
 		    (status & i8042_AUX_DATA) ? "AUX" : "KBD", data, status);
 	}
 
@@ -172,9 +172,14 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	if (pio_enable(regs, sizeof(i8042_regs_t), (void**)&dev->regs) != 0)
 		return -1;
 
-	dev->kbd_fun = ddf_fun_create(ddf_dev, fun_exposed, "ps2a");
+	dev->kbd_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2a");
 	if (!dev->kbd_fun)
 		return ENOMEM;
+	int ret = ddf_fun_add_match_id(dev->kbd_fun, "xtkbd", 90);
+	if (ret != EOK) {
+		ddf_fun_destroy(dev->kbd_fun);
+		return ret;
+	}
 
 	dev->mouse_fun = ddf_fun_create(ddf_dev, fun_exposed, "ps2b");
 	if (!dev->mouse_fun) {
@@ -207,7 +212,7 @@ if  (ret != EOK) { \
 	} \
 } else (void)0
 
-	int ret = ddf_fun_bind(dev->kbd_fun);
+	ret = ddf_fun_bind(dev->kbd_fun);
 	CHECK_RET_DESTROY(ret,
 	    "Failed to bind keyboard function: %s.\n", str_error(ret));
 
@@ -290,7 +295,7 @@ static int i8042_write_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
 	fibril_mutex_unlock(&controller->guard);
-	return EOK;
+	return size;
 }
 /*----------------------------------------------------------------------------*/
 static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
@@ -316,7 +321,7 @@ static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	controller->kbd_buffer = NULL;
 	controller->kbd_buffer_end = NULL;
 	fibril_mutex_unlock(&controller->guard);
-	return EOK;
+	return size;
 }
 /*----------------------------------------------------------------------------*/
 static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
@@ -331,7 +336,7 @@ static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
 	fibril_mutex_unlock(&controller->guard);
-	return EOK;
+	return size;
 }
 /*----------------------------------------------------------------------------*/
 static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
@@ -357,7 +362,7 @@ static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	controller->aux_buffer = NULL;
 	controller->aux_buffer_end = NULL;
 	fibril_mutex_unlock(&controller->guard);
-	return EOK;
+	return size;
 }
 /*----------------------------------------------------------------------------*/
 
