@@ -173,9 +173,11 @@ int polling_ps2(void *arg)
 				    buttons[i]);
 			}
 		}
-
-		const int move_x = packet[1] * ((packet[0] & X_SIGN) ? -1 : 1);
-		const int move_y = packet[2] * ((packet[0] & Y_SIGN) ? 1 : -1);
+		/* Movement */
+		const int move_x = ((packet[0] & X_SIGN)
+		    ? (int)(int8_t)packet[1] : (int)packet[1]);
+		const int move_y = -((packet[0] & Y_SIGN)
+		    ? (int)(int8_t)packet[2] : (int)packet[2]);
 		if (move_x != 0 || move_y != 0) {
 			async_msg_2(exch, MOUSEEV_MOVE_EVENT, move_x, move_y);
 		}
