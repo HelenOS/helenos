@@ -1,1 +1,1 @@
-100 ps2mouse
+100 char/ps2mouse

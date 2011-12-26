@@ -141,30 +141,12 @@ static void i8042_irq_handler(
 	if (!dev || !dev->driver_data)
 		return;
 	i8042_t *controller = dev->driver_data;
-//	fibril_mutex_lock(&controller->guard);
 
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
 	buffer_t *buffer = (status & i8042_AUX_DATA) ?
 	    &controller->aux_buffer : &controller->kbd_buffer;
 	buffer_write(buffer, data);
-#if 0
-	char ** buffer =
-	    aux ? &controller->aux_buffer : &controller->kbd_buffer;
-	char * buffer_end =
-	    aux ? controller->aux_buffer_end : controller->kbd_buffer_end;
-
-	if (*buffer != NULL && *buffer < buffer_end) {
-		*(*buffer) = data;
-		if (++(*buffer) == buffer_end)
-			fibril_condvar_broadcast(&controller->data_avail);
-	} else {
-		ddf_msg(LVL_WARN, "Unhandled %s data: %hhx , status: %hhx.",
-		    aux ? "AUX" : "KBD", data, status);
-	}
-
-	fibril_mutex_unlock(&controller->guard);
-#endif
 }
 /*----------------------------------------------------------------------------*/
 int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
@@ -182,7 +164,7 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	dev->kbd_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2a");
 	if (!dev->kbd_fun)
 		return ENOMEM;
-	int ret = ddf_fun_add_match_id(dev->kbd_fun, "xtkbd", 90);
+	int ret = ddf_fun_add_match_id(dev->kbd_fun, "char/xtkbd", 90);
 	if (ret != EOK) {
 		ddf_fun_destroy(dev->kbd_fun);
 		return ret;
@@ -194,7 +176,7 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 		return ENOMEM;
 	}
 
-	ret = ddf_fun_add_match_id(dev->mouse_fun, "ps2mouse", 90);
+	ret = ddf_fun_add_match_id(dev->mouse_fun, "char/ps2mouse", 90);
 	if (ret != EOK) {
 		ddf_fun_destroy(dev->kbd_fun);
 		ddf_fun_destroy(dev->mouse_fun);

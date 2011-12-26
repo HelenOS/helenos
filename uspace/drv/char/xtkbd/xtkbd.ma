@@ -1,1 +1,1 @@
-100 xtkbd
+100 char/xtkbd
