@@ -182,10 +182,17 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 		return ret;
 	}
 
-	dev->mouse_fun = ddf_fun_create(ddf_dev, fun_exposed, "ps2b");
+	dev->mouse_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2b");
 	if (!dev->mouse_fun) {
 		ddf_fun_destroy(dev->kbd_fun);
 		return ENOMEM;
+	}
+
+	ret = ddf_fun_add_match_id(dev->mouse_fun, "ps2mouse", 90);
+	if (ret != EOK) {
+		ddf_fun_destroy(dev->kbd_fun);
+		ddf_fun_destroy(dev->mouse_fun);
+		return ret;
 	}
 
 	dev->kbd_fun->ops = &kbd_ops;
