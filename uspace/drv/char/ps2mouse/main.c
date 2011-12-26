@@ -67,7 +67,7 @@ static driver_t mouse_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS ps/2 mouse driver.\n");
-	ddf_log_init(NAME, LVL_DEBUG2);
+	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&mouse_driver);
 }
 
