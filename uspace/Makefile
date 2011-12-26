@@ -104,6 +104,7 @@ DIRS = \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/char/i8042 \
+	drv/char/ps2mouse \
 	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \

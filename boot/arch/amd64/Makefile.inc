@@ -40,6 +40,7 @@ RD_DRVS += \
 	bus/isa \
 	char/i8042 \
 	char/ns8250 \
+	char/ps2mouse \
 	char/xtkbd \
 	bus/usb/ehci\
 	bus/usb/ohci \
