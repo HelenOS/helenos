@@ -193,7 +193,7 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 
 	async_set_interrupt_received(s3c24xx_uart_irq_handler);
 
-	register_irq(inr, device_assign_devno(), 0, &uart_irq_code);
+	irq_register(inr, device_assign_devno(), 0, &uart_irq_code);
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
 	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |

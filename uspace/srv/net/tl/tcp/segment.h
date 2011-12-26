@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbdev
+/** @addtogroup tcp
  * @{
  */
-/** @file
- * Library internal functions on USB pipes.
+/** @file Segment processing
  */
-#ifndef LIBUSBDEV_PIPEPRIV_H_
-#define LIBUSBDEV_PIPEPRIV_H_
 
-#include <usb/dev/pipes.h>
-#include <bool.h>
+#ifndef SEGMENT_H
+#define SEGMENT_H
 
-void pipe_acquire(usb_pipe_t *);
-void pipe_release(usb_pipe_t *);
+#include <sys/types.h>
+#include "tcp_type.h"
 
-void pipe_start_transaction(usb_pipe_t *);
-void pipe_end_transaction(usb_pipe_t *);
+extern tcp_segment_t *tcp_segment_new(void);
+extern void tcp_segment_delete(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_dup(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
+extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
+extern tcp_segment_t *tcp_segment_make_data(tcp_control_t, void *, size_t);
+extern void tcp_segment_trim(tcp_segment_t *, uint32_t, uint32_t);
+extern void tcp_segment_text_copy(tcp_segment_t *, void *, size_t);
+extern size_t tcp_segment_text_size(tcp_segment_t *);
+extern void tcp_segment_dump(tcp_segment_t *);
 
-int pipe_add_ref(usb_pipe_t *, bool);
-void pipe_drop_ref(usb_pipe_t *);
 
 
 #endif
-/**
- * @}
+
+/** @}
  */

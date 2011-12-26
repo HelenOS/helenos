@@ -33,40 +33,23 @@
  */
 
 #include <arch.h>
-#include <arch/drivers/ski.h>
-#include <arch/drivers/it.h>
-#include <arch/interrupt.h>
-#include <arch/barrier.h>
-#include <arch/asm.h>
-#include <arch/register.h>
 #include <typedefs.h>
-#include <arch/context.h>
-#include <arch/stack.h>
-#include <arch/mm/page.h>
+#include <errno.h>
 #include <interrupt.h>
-#include <mm/as.h>
-#include <config.h>
 #include <macros.h>
+#include <str.h>
 #include <userspace.h>
 #include <console/console.h>
-#include <abi/proc/uarg.h>
 #include <syscall/syscall.h>
-#include <ddi/irq.h>
-#include <arch/bootinfo.h>
-#include <genarch/drivers/legacy/ia32/io.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/drivers/it.h>
+#include <arch/drivers/kbd.h>
 #include <genarch/drivers/ega/ega.h>
-#include <genarch/kbrd/kbrd.h>
-#include <genarch/srln/srln.h>
 #include <genarch/drivers/i8042/i8042.h>
 #include <genarch/drivers/ns16550/ns16550.h>
-#include <arch/drivers/kbd.h>
-#include <smp/smp.h>
-#include <smp/ipi.h>
-#include <arch/atomic.h>
-#include <panic.h>
-#include <print.h>
-#include <sysinfo/sysinfo.h>
-#include <str.h>
+#include <genarch/drivers/legacy/ia32/io.h>
+#include <genarch/kbrd/kbrd.h>
+#include <genarch/srln/srln.h>
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
@@ -261,16 +244,15 @@ void userspace(uspace_arg_t *kernel_uarg)
  *
  * We use r13 (a.k.a. tp) for this purpose.
  */
-sysarg_t sys_tls_set(sysarg_t addr)
+sysarg_t sys_tls_set(uintptr_t addr)
 {
-	return 0;
+	return EOK;
 }
 
 void arch_reboot(void)
 {
 	pio_write_8((ioport8_t *)0x64, 0xfe);
-	while (1)
-		;
+	while (1);
 }
 
 /** Construct function pointer

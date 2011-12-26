@@ -828,8 +828,8 @@ static void remote_nic_vlan_set_tag(ddf_fun_t *dev, void *iface,
 	}
 	
 	uint16_t tag = (uint16_t) IPC_GET_ARG2(*call);
-	int add = (int) IPC_GET_ARG3(*call);
-	int strip = (int) IPC_GET_ARG4(*call);
+	bool add = (int) IPC_GET_ARG3(*call);
+	bool strip = (int) IPC_GET_ARG4(*call);
 	
 	int rc = nic_iface->vlan_set_tag(dev, tag, add, strip);
 	async_answer_0(callid, rc);

@@ -49,6 +49,7 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <mem.h>
+#include <str.h>
 
 
 /**
@@ -321,11 +322,11 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 			rc = exfat_set_cluster(bs, service_id, clst,
 			    (found == 0) ?  EXFAT_CLST_EOF : lifo[found - 1]);
 			if (rc != EOK)
-				break;
+				goto exit_error;
 			found++;
 			rc = bitmap_set_cluster(bs, service_id, clst);
 			if (rc != EOK)
-				break;
+				goto exit_error;
 
 		}
 	}
@@ -338,6 +339,10 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 		return EOK;
 	}
 
+	rc = ENOSPC;
+
+exit_error:
+
 	/* If something wrong - free the clusters */
 	while (found--) {
 		(void) bitmap_clear_cluster(bs, service_id, lifo[found]);
@@ -346,7 +351,7 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 
 	free(lifo);
 	fibril_mutex_unlock(&exfat_alloc_lock);
-	return ENOSPC;
+	return rc;
 }
 
 /** Free clusters forming a cluster chain in FAT.
@@ -536,7 +541,20 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
  */
 int exfat_sanity_check(exfat_bs_t *bs, service_id_t service_id)
 {
-	/* TODO */
+	if (str_cmp((char const *)bs->oem_name, "EXFAT   "))
+		return ENOTSUP;
+	else if (uint16_t_le2host(bs->signature) != 0xAA55)
+		return ENOTSUP;
+	else if (uint32_t_le2host(bs->fat_sector_count) == 0)
+		return ENOTSUP;
+	else if (uint32_t_le2host(bs->data_clusters) == 0)
+		return ENOTSUP;
+	else if (bs->fat_count != 1)
+		return ENOTSUP;
+	else if ((bs->bytes_per_sector + bs->sec_per_cluster) > 25) {
+		/* exFAT does not support cluster size > 32 Mb */
+		return ENOTSUP;
+	}
 	return EOK;
 }
 

@@ -173,7 +173,7 @@ paging_start:
 	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
 	mov ar.bspstore = r8
 	loadrs
-
+	
 	#
 	# Initialize memory stack to some sane value and allocate a scratch area
 	# on it.
@@ -195,7 +195,7 @@ paging_start:
 	ssm (1 << 19) ;; /* Disable f32 - f127 */
 	srlz.i
 	srlz.d ;;
-
+	
 	br.call.sptk.many b0 = arch_pre_main
 0:
 	br.call.sptk.many b0 = main_bsp

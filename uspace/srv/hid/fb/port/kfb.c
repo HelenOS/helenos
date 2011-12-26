@@ -755,14 +755,10 @@ int kfb_init(void)
 	render_glyphs(sz);
 	
 	kfb.size = scanline * height;
-	kfb.addr = as_get_mappable_page(kfb.size);
-	if (kfb.addr == NULL) {
-		free(kfb.glyphs);
-		return ENOMEM;
-	}
 	
-	rc = physmem_map((void *) paddr + offset, kfb.addr,
-	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	rc = physmem_map((void *) paddr + offset,
+	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
 	if (rc != EOK) {
 		free(kfb.glyphs);
 		return rc;

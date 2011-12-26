@@ -25,7 +25,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libusbhost
  * @{
  */
@@ -40,7 +39,6 @@
 /** Get a free USB address
  *
  * @param[in] instance Device manager structure to use.
- * @param[in] speed Speed of the device requiring address.
  * @return Free address, or error code.
  */
 static usb_address_t usb_device_manager_get_free_address(
@@ -132,6 +130,7 @@ int usb_device_manager_request_address(usb_device_manager_t *instance,
  * @param[in] address Device address
  * @param[in] handle Devman handle of the device.
  * @return Error code.
+ * @note Won't accept binding for default address.
  */
 int usb_device_manager_bind_address(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t handle)
@@ -183,7 +182,7 @@ int usb_device_manager_release_address(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Find USB address associated with the device
+/** Find USB address associated with the device.
  *
  * @param[in] instance Device manager structure to use.
  * @param[in] handle Devman handle of the device seeking its address.
@@ -207,7 +206,6 @@ usb_address_t usb_device_manager_find_address(
 }
 /*----------------------------------------------------------------------------*/
 /** Find devman handle and speed assigned to USB address.
- * Intentionally refuse to work on default address.
  *
  * @param[in] instance Device manager structure to use.
  * @param[in] address Address the caller wants to find.

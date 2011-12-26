@@ -419,10 +419,9 @@ imgmap_t *imgmap_create(sysarg_t width, sysarg_t height, visual_t visual,
 	imgmap_t *imgmap;
 	
 	if ((flags & IMGMAP_FLAG_SHARED) == IMGMAP_FLAG_SHARED) {
-		imgmap = (imgmap_t *) as_get_mappable_page(size);
-		
-		if (as_area_create((void *) imgmap, size, AS_AREA_READ |
-		    AS_AREA_WRITE | AS_AREA_CACHEABLE) != (void *) imgmap)
+		imgmap = (imgmap_t *) as_area_create((void *) -1, size,
+		    AS_AREA_READ | AS_AREA_WRITE);
+		if (imgmap == (void *) -1)
 			return NULL;
 	} else {
 		imgmap = (imgmap_t *) malloc(size);

@@ -299,15 +299,13 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	comm_buf = as_get_mappable_page(comm_size);
-	if (comm_buf == NULL) {
+	
+	(void) async_share_out_finalize(callid, &comm_buf);
+	if (comm_buf == (void *) -1) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, comm_buf);
-
+	
 	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
 
 	while (true) {

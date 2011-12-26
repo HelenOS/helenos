@@ -122,7 +122,8 @@ RD_DRVS = \
 	test/test2 \
 	test/test3 \
 	nic/lo \
-	nic/ne2k
+	nic/ne2k \
+	nic/e1k
 
 RD_DRV_CFG =
 
@@ -173,6 +174,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
+	$(USPACE_PATH)/app/nettest3/nettest3 \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
@@ -201,7 +203,8 @@ ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
 	$(USPACE_PATH)/srv/net/cfg/lo.nic \
-	$(USPACE_PATH)/srv/net/cfg/ne2k.nic
+	$(USPACE_PATH)/srv/net/cfg/ne2k.nic \
+	$(USPACE_PATH)/srv/net/cfg/e1k.nic
 endif
 
 COMPONENTS = \

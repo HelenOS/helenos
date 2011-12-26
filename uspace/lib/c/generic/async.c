@@ -1845,7 +1845,7 @@ int async_hangup(async_sess_t *sess)
 		return EBUSY;
 	
 	fibril_mutex_lock(&async_sess_mutex);
-
+	
 	int rc = async_hangup_internal(sess->phone);
 	
 	while (!list_empty(&sess->exch_list)) {
@@ -1997,27 +1997,29 @@ void async_exchange_end(async_exch_t *exch)
 /** Wrapper for IPC_M_SHARE_IN calls using the async framework.
  *
  * @param exch  Exchange for sending the message.
- * @param dst   Destination address space area base.
  * @param size  Size of the destination address space area.
  * @param arg   User defined argument.
  * @param flags Storage for the received flags. Can be NULL.
+ * @param dst   Destination address space area base. Cannot be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_share_in_start(async_exch_t *exch, void *dst, size_t size,
-    sysarg_t arg, unsigned int *flags)
+int async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
+    unsigned int *flags, void **dst)
 {
 	if (exch == NULL)
 		return ENOENT;
 	
-	sysarg_t tmp_flags;
-	int res = async_req_3_2(exch, IPC_M_SHARE_IN, (sysarg_t) dst,
-	    (sysarg_t) size, arg, NULL, &tmp_flags);
+	sysarg_t _flags = 0;
+	sysarg_t _dst = (sysarg_t) -1;
+	int res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
+	    arg, NULL, &_flags, NULL, &_dst);
 	
 	if (flags)
-		*flags = (unsigned int) tmp_flags;
+		*flags = (unsigned int) _flags;
 	
+	*dst = (void *) _dst;
 	return res;
 }
 
@@ -2046,13 +2048,13 @@ bool async_share_in_receive(ipc_callid_t *callid, size_t *size)
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
 		return false;
 	
-	*size = (size_t) IPC_GET_ARG2(data);
+	*size = (size_t) IPC_GET_ARG1(data);
 	return true;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_IN calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_IN
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
@@ -2130,7 +2132,7 @@ bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *f
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_share_out_finalize(ipc_callid_t callid, void *dst)
+int async_share_out_finalize(ipc_callid_t callid, void **dst)
 {
 	return ipc_share_out_finalize(callid, dst);
 }

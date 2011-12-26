@@ -240,6 +240,8 @@ static int netecho_socket_process_message(int listening_id)
 	if (type == SOCK_STREAM) {
 		/* Accept a socket if a stream socket is used */
 		addrlen = sizeof(address_buf);
+		if (verbose)
+			printf("accept()\n");
             	socket_id = accept(listening_id, (void *) address_buf, &addrlen);
 		if (socket_id <= 0) {
 			socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
@@ -257,6 +259,8 @@ static int netecho_socket_process_message(int listening_id)
 	if (socket_id > 0) {
 
 		/* Receive a message to echo */
+		if (verbose)
+			printf("recvfrom()\n");
 		rcv_size = recvfrom(socket_id, data, size, 0, address,
 		    &addrlen);
 		if (rcv_size < 0) {
@@ -296,9 +300,19 @@ static int netecho_socket_process_message(int listening_id)
 			}
 
 			/* Answer the request either with the static reply or the original data */
-			rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
-			if (rc != EOK)
-				socket_print_error(stderr, rc, "Socket send: ", "\n");
+			if (type == SOCK_STREAM) {
+				if (verbose)
+					printf("send()\n");
+				rc = send(socket_id, reply ? reply : data, reply ? reply_length : length, 0);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Socket send: ", "\n");
+			} else {
+				if (verbose)
+					printf("sendto()\n");
+				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Socket send: ", "\n");
+			}
 		}
 
 		/* Close accepted stream socket */
