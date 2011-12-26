@@ -25,12 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup kbd_port
- * @ingroup  kbd
+/**
+ * @addtogroup kbd
  * @{
  */
 /** @file
- * @brief i8042 port driver.
+ * @brief Cyclic buffer structure.
  */
 
 #ifndef BUFFER_H_
@@ -39,15 +39,27 @@
 #include <assert.h>
 #include <fibril_synch.h>
 
+/** Cyclic buffer that blocks on full/empty.
+ *
+ * read_head == write_head means that the buffer is empty.
+ * write_head + 1 == read_head means that the buffer is full.
+ * Attempt to insert byte into the full buffer will block until it can succeed.
+ * Attempt to read from empty buffer will block until it can succeed.
+ */
 typedef struct {
-	uint8_t *buffer;
-	uint8_t *buffer_end;
-	fibril_mutex_t guard;
-	fibril_condvar_t change;
-	uint8_t *read_head;
-	uint8_t *write_head;
+	uint8_t *buffer;         /**< Storage space. */
+	uint8_t *buffer_end;     /**< End of storage place. */
+	fibril_mutex_t guard;    /**< Protects buffer structures. */
+	fibril_condvar_t change; /**< Indicates change (empty/full). */
+	uint8_t *read_head;      /**< Place of the next readable element. */
+	uint8_t *write_head;     /**< Pointer to the next writable place. */
 } buffer_t;
 
+/** Initialize cyclic buffer using provided memory space.
+ * @param buffer Cyclic buffer structure to initialize.
+ * @param data Memory space to use.
+ * @param size Size of the memory place.
+ */
 static inline void buffer_init(buffer_t *buffer, uint8_t *data, size_t size)
 {
 	assert(buffer);
@@ -60,6 +72,10 @@ static inline void buffer_init(buffer_t *buffer, uint8_t *data, size_t size)
 	bzero(buffer->buffer, size);
 }
 
+/** Write byte to cyclic buffer.
+ * @param buffer Cyclic buffer to write to.
+ * @param data Data to write.
+ */
 static inline void buffer_write(buffer_t *buffer, uint8_t data)
 {
 	fibril_mutex_lock(&buffer->guard);
@@ -85,6 +101,10 @@ static inline void buffer_write(buffer_t *buffer, uint8_t data)
 	fibril_mutex_unlock(&buffer->guard);
 }
 
+/** Read byte from cyclic buffer.
+ * @param buffer Cyclic buffer to read from.
+ * @return Byte read.
+ */
 static inline uint8_t buffer_read(buffer_t *buffer)
 {
 	fibril_mutex_lock(&buffer->guard);
@@ -113,8 +133,6 @@ static inline uint8_t buffer_read(buffer_t *buffer)
 	fibril_mutex_unlock(&buffer->guard);
 	return data;
 }
-
-
 #endif
 /**
  * @}
