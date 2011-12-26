@@ -141,11 +141,14 @@ static void i8042_irq_handler(
 	if (!dev || !dev->driver_data)
 		return;
 	i8042_t *controller = dev->driver_data;
-	fibril_mutex_lock(&controller->guard);
+//	fibril_mutex_lock(&controller->guard);
 
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
-	const bool aux = (status & i8042_AUX_DATA);
+	buffer_t *buffer = (status & i8042_AUX_DATA) ?
+	    &controller->aux_buffer : &controller->kbd_buffer;
+	buffer_write(buffer, data);
+#if 0
 	char ** buffer =
 	    aux ? &controller->aux_buffer : &controller->kbd_buffer;
 	char * buffer_end =
@@ -161,6 +164,7 @@ static void i8042_irq_handler(
 	}
 
 	fibril_mutex_unlock(&controller->guard);
+#endif
 }
 /*----------------------------------------------------------------------------*/
 int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
@@ -202,12 +206,9 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	dev->kbd_fun->driver_data = dev;
 	dev->mouse_fun->driver_data = dev;
 
-	fibril_mutex_initialize(&dev->guard);
-	fibril_condvar_initialize(&dev->data_avail);
-	dev->kbd_buffer = NULL;
-	dev->kbd_buffer_end = NULL;
-	dev->aux_buffer = NULL;
-	dev->aux_buffer_end = NULL;
+	buffer_init(&dev->kbd_buffer, dev->kbd_data, BUFFER_SIZE);
+	buffer_init(&dev->aux_buffer, dev->aux_data, BUFFER_SIZE);
+	fibril_mutex_initialize(&dev->write_guard);
 
 #define CHECK_RET_DESTROY(ret, msg...) \
 if  (ret != EOK) { \
@@ -299,12 +300,12 @@ static int i8042_write_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	assert(fun);
 	assert(fun->driver_data);
 	i8042_t *controller = fun->driver_data;
-	fibril_mutex_lock(&controller->guard);
+	fibril_mutex_lock(&controller->write_guard);
 	for (size_t i = 0; i < size; ++i) {
 		wait_ready_write(controller);
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
-	fibril_mutex_unlock(&controller->guard);
+	fibril_mutex_unlock(&controller->write_guard);
 	return size;
 }
 /*----------------------------------------------------------------------------*/
@@ -315,23 +316,10 @@ static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	bzero(buffer, size);
 
 	i8042_t *controller = fun->driver_data;
-	fibril_mutex_lock(&controller->guard);
-	/* There is someone else reading from the device. */
-	if (controller->kbd_buffer) {
-		fibril_mutex_unlock(&controller->guard);
-		return EBUSY;
+
+	for (size_t i = 0; i < size; ++i) {
+		*buffer++ = buffer_read(&controller->kbd_buffer);
 	}
-	controller->kbd_buffer = buffer;
-	controller->kbd_buffer_end = buffer + size;
-
-	/* Wait for buffer to be filled */
-	while (controller->kbd_buffer != controller->kbd_buffer_end)
-		fibril_condvar_wait(
-		    &controller->data_avail, &controller->guard);
-
-	controller->kbd_buffer = NULL;
-	controller->kbd_buffer_end = NULL;
-	fibril_mutex_unlock(&controller->guard);
 	return size;
 }
 /*----------------------------------------------------------------------------*/
@@ -340,13 +328,13 @@ static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	assert(fun);
 	assert(fun->driver_data);
 	i8042_t *controller = fun->driver_data;
-	fibril_mutex_lock(&controller->guard);
+	fibril_mutex_lock(&controller->write_guard);
 	for (size_t i = 0; i < size; ++i) {
 		wait_ready_write(controller);
 		pio_write_8(&controller->regs->status, i8042_CMD_WRITE_AUX);
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
-	fibril_mutex_unlock(&controller->guard);
+	fibril_mutex_unlock(&controller->write_guard);
 	return size;
 }
 /*----------------------------------------------------------------------------*/
@@ -357,23 +345,9 @@ static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	bzero(buffer, size);
 
 	i8042_t *controller = fun->driver_data;
-	fibril_mutex_lock(&controller->guard);
-	/* There is someone else reading from the device. */
-	if (controller->aux_buffer) {
-		fibril_mutex_unlock(&controller->guard);
-		return EBUSY;
+	for (size_t i = 0; i < size; ++i) {
+		*buffer++ = buffer_read(&controller->aux_buffer);
 	}
-	controller->aux_buffer = buffer;
-	controller->aux_buffer_end = buffer + size;
-
-	/* Wait for buffer to be filled */
-	while (controller->aux_buffer != controller->aux_buffer_end)
-		fibril_condvar_wait(
-		    &controller->data_avail, &controller->guard);
-
-	controller->aux_buffer = NULL;
-	controller->aux_buffer_end = NULL;
-	fibril_mutex_unlock(&controller->guard);
 	return size;
 }
 /**

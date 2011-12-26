@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,12 +26,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
  */
-
 /** @file
  * @brief i8042 port driver.
  */
@@ -44,6 +43,10 @@
 #include <fibril_synch.h>
 #include <ddf/driver.h>
 
+#include "buffer.h"
+
+#define BUFFER_SIZE 12
+
 /** i8042 HW I/O interface */
 typedef struct {
 	ioport8_t data;
@@ -51,33 +54,17 @@ typedef struct {
 	ioport8_t status;
 } __attribute__ ((packed)) i8042_regs_t;
 
-/** Softstate structure, one for each serial port (primary and aux). */
-/*
-typedef struct {
-	service_id_t service_id;
-	async_sess_t *client_sess;
-} i8042_port_t;
-*/
-
 typedef struct i8042 i8042_t;
-
-enum {
-	DEVID_PRI = 0, /**< primary device */
-        DEVID_AUX = 1, /**< AUX device */
-	MAX_DEVS  = 2
-};
 
 struct i8042 {
 	i8042_regs_t *regs;
-//	i8042_port_t port[MAX_DEVS];
 	ddf_fun_t *kbd_fun;
 	ddf_fun_t *mouse_fun;
-	char * kbd_buffer;
-	char * kbd_buffer_end;
-	char * aux_buffer;
-	char * aux_buffer_end;
-	fibril_mutex_t guard;
-	fibril_condvar_t data_avail;
+	buffer_t aux_buffer;
+	buffer_t kbd_buffer;
+	uint8_t aux_data[BUFFER_SIZE];
+	uint8_t kbd_data[BUFFER_SIZE];
+	fibril_mutex_t write_guard;
 };
 
 int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
