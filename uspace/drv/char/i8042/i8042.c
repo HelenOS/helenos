@@ -2,6 +2,7 @@
  * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -274,7 +275,7 @@ if  (ret != EOK) { \
 	ret = enabled ? EOK : EIO;
 	CHECK_RET_UNBIND_DESTROY(ret, "Failed to enable interrupts: %s.\n");
 
-
+	/* Enable port interrupts. */
 	wait_ready(dev);
 	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
 	wait_ready(dev);
@@ -364,89 +365,6 @@ static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	fibril_mutex_unlock(&controller->guard);
 	return size;
 }
-/*----------------------------------------------------------------------------*/
-
-/** Character device connection handler */
-#if 0
-static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
-	service_id_t dsid;
-	int retval;
-	int dev_id, i;
-
-	printf(NAME ": connection handler\n");
-
-	/* Get the device handle. */
-	dsid = IPC_GET_ARG1(*icall);
-
-	/* Determine which disk device is the client connecting to. */
-	dev_id = -1;
-	for (i = 0; i < MAX_DEVS; i++) {
-		if (device.port[i].service_id == dsid)
-			dev_id = i;
-	}
-
-	if (dev_id < 0) {
-		async_answer_0(iid, EINVAL);
-		return;
-	}
-
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-
-	printf(NAME ": accepted connection\n");
-
-	while (1) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
-		if (sess != NULL) {
-			if (device.port[dev_id].client_sess == NULL) {
-				device.port[dev_id].client_sess = sess;
-				retval = EOK;
-			} else
-				retval = ELIMIT;
-		} else {
-			switch (method) {
-			case IPC_FIRST_USER_METHOD:
-				printf(NAME ": write %" PRIun " to devid %d\n",
-				    IPC_GET_ARG1(call), dev_id);
-				i8042_port_write(&device, dev_id, IPC_GET_ARG1(call));
-				retval = 0;
-				break;
-			default:
-				retval = EINVAL;
-				break;
-			}
-		}
-		
-		async_answer_0(callid, retval);
-	}
-}
-void i8042_port_write(i8042_t *dev, int devid, uint8_t data)
-{
-
-	assert(dev);
-	if (devid == DEVID_AUX) {
-		wait_ready(dev);
-		pio_write_8(&dev->regs->status, i8042_CMD_WRITE_AUX);
-	}
-	wait_ready(dev);
-	pio_write_8(&dev->regs->data, data);
-}
-#endif
-
 /**
  * @}
  */
