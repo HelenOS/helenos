@@ -63,13 +63,16 @@ static inline void buffer_init(buffer_t *buffer, uint8_t *data, size_t size)
 static inline void buffer_write(buffer_t *buffer, uint8_t data)
 {
 	fibril_mutex_lock(&buffer->guard);
+
 	/* Next position. */
 	uint8_t *new_head = buffer->write_head + 1;
 	if (new_head == buffer->buffer_end)
 		new_head = buffer->buffer;
+
 	/* Buffer full. */
 	while (new_head == buffer->read_head)
 		fibril_condvar_wait(&buffer->change, &buffer->guard);
+
 	/* Write data. */
 	*buffer->write_head = data;
 
@@ -101,8 +104,9 @@ static inline uint8_t buffer_read(buffer_t *buffer)
 	uint8_t *new_write_head = buffer->write_head + 1;
 	if (new_write_head == buffer->buffer_end)
 		new_write_head = buffer->buffer;
-	while (new_write_head == buffer->read_head)
+	if (new_write_head == buffer->read_head)
 		fibril_condvar_broadcast(&buffer->change);
+
 	/* Move head */
 	buffer->read_head = new_head;
 
