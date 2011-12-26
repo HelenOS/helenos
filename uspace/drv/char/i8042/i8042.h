@@ -38,8 +38,6 @@
 #define i8042_H_
 
 #include <sys/types.h>
-#include <libarch/ddi.h>
-#include <async.h>
 #include <fibril_synch.h>
 #include <ddf/driver.h>
 

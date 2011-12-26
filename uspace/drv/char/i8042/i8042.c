@@ -28,7 +28,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup kbd_port
  * @ingroup kbd
  * @{
@@ -37,20 +36,16 @@
  * @brief i8042 PS/2 port driver.
  */
 
-#include <ddi.h>
 #include <devman.h>
 #include <device/hw_res.h>
+#include <ddi.h>
 #include <libarch/ddi.h>
-#include <loc.h>
-#include <async.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
+
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
-
 #include <ops/char_dev.h>
 
 #include "i8042.h"
