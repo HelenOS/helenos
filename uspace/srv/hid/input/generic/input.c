@@ -396,9 +396,6 @@ static void kbd_add_legacy_devs(void)
 	 * Need to add these drivers based on config unless we can probe
 	 * them automatically.
 	 */
-#if defined(UARCH_amd64)
-	kbd_add_dev(&chardev_port, &pc_ctl);
-#endif
 #if defined(UARCH_arm32) && defined(MACHINE_gta02)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
@@ -410,9 +407,6 @@ static void kbd_add_legacy_devs(void)
 #endif
 #if defined(UARCH_arm32) && defined(MACHINE_integratorcp)
 	kbd_add_dev(&pl050_port, &pc_ctl);
-#endif
-#if defined(UARCH_ia32)
-	kbd_add_dev(&chardev_port, &pc_ctl);
 #endif
 #if defined(MACHINE_i460GX)
 	kbd_add_dev(&chardev_port, &pc_ctl);
@@ -449,12 +443,6 @@ static void mouse_add_legacy_devs(void)
 	 * Need to add these drivers based on config unless we can probe
 	 * them automatically.
 	 */
-#if defined(UARCH_amd64)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
-#if defined(UARCH_ia32)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
 #if defined(MACHINE_i460GX)
 	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
 #endif
