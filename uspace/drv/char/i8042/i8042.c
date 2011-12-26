@@ -207,11 +207,11 @@ if  (ret != EOK) { \
 
 	ret = ddf_fun_bind(dev->kbd_fun);
 	CHECK_RET_DESTROY(ret,
-	    "Failed to bind keyboard function: %s.\n", str_error(ret));
+	    "Failed to bind keyboard function: %s.", str_error(ret));
 
 	ret = ddf_fun_bind(dev->mouse_fun);
 	CHECK_RET_DESTROY(ret,
-	    "Failed to bind mouse function: %s.\n", str_error(ret));
+	    "Failed to bind mouse function: %s.", str_error(ret));
 
 	/* Disable kbd and aux */
 	wait_ready(dev);
@@ -248,24 +248,24 @@ if  (ret != EOK) { \
 	ret = register_interrupt_handler(ddf_dev, irq_kbd, i8042_irq_handler,
 	    &irq_code);
 	CHECK_RET_UNBIND_DESTROY(ret,
-	    "Failed set handler for kbd: %s.\n", str_error(ret));
+	    "Failed set handler for kbd: %s.", str_error(ret));
 
 	ret = register_interrupt_handler(ddf_dev, irq_mouse, i8042_irq_handler,
 	    &irq_code);
 	CHECK_RET_UNBIND_DESTROY(ret,
-	    "Failed set handler for mouse: %s.\n", str_error(ret));
+	    "Failed set handler for mouse: %s.", str_error(ret));
 
 	/* Enable interrupts */
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, ddf_dev->handle,
 	    IPC_FLAG_BLOCKING);
 	ret = parent_sess ? EOK : ENOMEM;
-	CHECK_RET_UNBIND_DESTROY(ret, "Failed to create parent connection.\n");
+	CHECK_RET_UNBIND_DESTROY(ret, "Failed to create parent connection.");
 
 	const bool enabled = hw_res_enable_interrupt(parent_sess);
 	async_hangup(parent_sess);
 	ret = enabled ? EOK : EIO;
-	CHECK_RET_UNBIND_DESTROY(ret, "Failed to enable interrupts: %s.\n");
+	CHECK_RET_UNBIND_DESTROY(ret, "Failed to enable interrupts: %s.");
 
 	/* Enable port interrupts. */
 	wait_ready(dev);

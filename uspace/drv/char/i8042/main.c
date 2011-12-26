@@ -96,20 +96,20 @@ if (ret != EOK) { \
 
 	int ret = get_my_registers(device, &io_regs, &io_size, &kbd, &mouse);
 	CHECK_RET_RETURN(ret,
-	    "Failed to get registers: %s.\n", str_error(ret));
+	    "Failed to get registers: %s.", str_error(ret));
 	ddf_msg(LVL_DEBUG,
-	    "I/O regs at %p (size %zuB), IRQ kbd %d, IRQ mouse %d.\n",
+	    "I/O regs at %p (size %zuB), IRQ kbd %d, IRQ mouse %d.",
 	    (void *) io_regs, io_size, kbd, mouse);
 
 	i8042_t *i8042 = ddf_dev_data_alloc(device, sizeof(i8042_t));
 	ret = (i8042 == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate i8042 driver instance.\n");
+	CHECK_RET_RETURN(ret, "Failed to allocate i8042 driver instance.");
 
 	ret = i8042_init(i8042, (void*)io_regs, io_size, kbd, mouse, device);
 	CHECK_RET_RETURN(ret,
-	    "Failed to initialize i8042 driver: %s.\n", str_error(ret));
+	    "Failed to initialize i8042 driver: %s.", str_error(ret));
 
-	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").\n",
+	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    device->name, device->handle);
 	return EOK;
 }

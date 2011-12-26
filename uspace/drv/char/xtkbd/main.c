@@ -89,13 +89,13 @@ if (ret != EOK) { \
 
 	xt_kbd_t *kbd = ddf_dev_data_alloc(device, sizeof(xt_kbd_t));
 	int ret = (kbd == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate XT/KBD driver instance.\n");
+	CHECK_RET_RETURN(ret, "Failed to allocate XT/KBD driver instance.");
 
 	ret = xt_kbd_init(kbd, device);
 	CHECK_RET_RETURN(ret,
-	    "Failed to initialize XT_KBD driver: %s.\n", str_error(ret));
+	    "Failed to initialize XT_KBD driver: %s.", str_error(ret));
 
-	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").\n",
+	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    device->name, device->handle);
 	return EOK;
 }

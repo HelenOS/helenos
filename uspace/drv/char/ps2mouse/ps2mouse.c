@@ -108,7 +108,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	uint8_t report = PS2_MOUSE_OUT_INIT;
 	ssize_t size = char_dev_write(mouse->parent_sess, &report, 1);
 	if (size != 1) {
-		ddf_msg(LVL_ERROR, "Failed to write INIT.\n");
+		ddf_msg(LVL_ERROR, "Failed to write INIT.");
 		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
 		mouse->mouse_fun->driver_data = NULL;
@@ -118,7 +118,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 
 	size = char_dev_read(mouse->parent_sess, &report, 1);
 	if (size != 1 || report != PS2_MOUSE_ACK) {
-		ddf_msg(LVL_ERROR, "MOUSE FAILED TO ACK %hhx.\n", report);
+		ddf_msg(LVL_ERROR, "MOUSE FAILED TO ACK %hhx.", report);
 		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
 		mouse->mouse_fun->driver_data = NULL;
@@ -189,7 +189,7 @@ void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	if (fun == NULL || fun->driver_data == NULL) {
-		ddf_msg(LVL_ERROR, "%s: Missing parameter.\n", __FUNCTION__);
+		ddf_msg(LVL_ERROR, "%s: Missing parameter.", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
@@ -221,7 +221,7 @@ void default_connection_handler(ddf_fun_t *fun,
 		break;
 	}
 	default:
-		ddf_msg(LVL_ERROR, "Unknown method: %d.\n", (int)method);
+		ddf_msg(LVL_ERROR, "Unknown method: %d.", (int)method);
 		async_answer_0(icallid, EINVAL);
 		break;
 	}

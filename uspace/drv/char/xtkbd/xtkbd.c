@@ -282,7 +282,7 @@ void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	if (fun == NULL || fun->driver_data == NULL) {
-		ddf_msg(LVL_ERROR, "%s: Missing parameter.\n", __FUNCTION__);
+		ddf_msg(LVL_ERROR, "%s: Missing parameter.", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
@@ -318,8 +318,7 @@ void default_connection_handler(ddf_fun_t *fun,
 		break;
 	}
 	default:
-			ddf_msg(LVL_ERROR,
-			    "Unknown method: %d.\n", (int)method);
+			ddf_msg(LVL_ERROR, "Unknown method: %d.", (int)method);
 			async_answer_0(icallid, EINVAL);
 			break;
 	}

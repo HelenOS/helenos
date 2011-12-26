@@ -89,13 +89,13 @@ if (ret != EOK) { \
 
 	ps2_mouse_t *mouse = ddf_dev_data_alloc(device, sizeof(ps2_mouse_t));
 	int ret = (mouse == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate mouse driver instance.\n");
+	CHECK_RET_RETURN(ret, "Failed to allocate mouse driver instance.");
 
 	ret = ps2_mouse_init(mouse, device);
 	CHECK_RET_RETURN(ret,
-	    "Failed to initialize mouse driver: %s.\n", str_error(ret));
+	    "Failed to initialize mouse driver: %s.", str_error(ret));
 
-	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").\n",
+	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    device->name, device->handle);
 	return EOK;
 }
