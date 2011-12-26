@@ -258,22 +258,12 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		const unsigned index = field->usage - field->usage_minimum;
 		assert(index < mouse_dev->buttons_count);
 
-		if (mouse_dev->buttons[index] == 0 && field->value != 0) {
+		if (mouse_dev->buttons[index] != field->value) {
 			async_exch_t *exch =
 			    async_exchange_begin(mouse_dev->mouse_sess);
 			if (exch != NULL) {
 				async_req_2_0(exch, MOUSEEV_BUTTON_EVENT,
-				    field->usage, 1);
-				async_exchange_end(exch);
-				mouse_dev->buttons[index] = field->value;
-			}
-
-		} else if (mouse_dev->buttons[index] != 0 && field->value == 0) {
-			async_exch_t *exch =
-			    async_exchange_begin(mouse_dev->mouse_sess);
-			if (exch != NULL) {
-				async_req_2_0(exch, MOUSEEV_BUTTON_EVENT,
-				    field->usage, 0);
+				    field->usage, (field->value != 0) ? 1 : 0);
 				async_exchange_end(exch);
 				mouse_dev->buttons[index] = field->value;
 			}
