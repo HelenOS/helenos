@@ -152,7 +152,7 @@ static void i8042_irq_handler(
 	if (*buffer != NULL && *buffer < buffer_end) {
 		*(*buffer) = data;
 		if (++(*buffer) == buffer_end)
-			fibril_condvar_signal(&controller->data_avail);
+			fibril_condvar_broadcast(&controller->data_avail);
 	} else {
 		ddf_msg(LVL_WARN, "Unhandled %s data: %hhx , status: %hhx.",
 		    (status & i8042_AUX_DATA) ? "AUX" : "KBD", data, status);
