@@ -115,7 +115,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 		ddf_fun_destroy(mouse->mouse_fun);
 		return EIO;
 	}
-#if 0 /* Enable this when we can guarantee that the response won't be lost. */
+
 	size = char_dev_read(mouse->parent_sess, &report, 1);
 	if (size != 1 || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "MOUSE FAILED TO ACK %hhx.\n", report);
@@ -125,7 +125,6 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 		ddf_fun_destroy(mouse->mouse_fun);
 		return EIO;
 	}
-#endif
 
 	mouse->polling_fibril = fibril_create(polling_ps2, mouse);
 	if (!mouse->polling_fibril) {
