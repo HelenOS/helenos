@@ -145,17 +145,19 @@ static void i8042_irq_handler(
 
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
-	char ** buffer = (status & i8042_AUX_DATA) ?
-	    &controller->aux_buffer : &controller->kbd_buffer;
-	char * buffer_end = (status & i8042_AUX_DATA) ?
-	    controller->aux_buffer_end : controller->kbd_buffer_end;
+	const bool aux = (status & i8042_AUX_DATA);
+	char ** buffer =
+	    aux ? &controller->aux_buffer : &controller->kbd_buffer;
+	char * buffer_end =
+	    aux ? controller->aux_buffer_end : controller->kbd_buffer_end;
+
 	if (*buffer != NULL && *buffer < buffer_end) {
 		*(*buffer) = data;
 		if (++(*buffer) == buffer_end)
 			fibril_condvar_broadcast(&controller->data_avail);
 	} else {
 		ddf_msg(LVL_WARN, "Unhandled %s data: %hhx , status: %hhx.",
-		    (status & i8042_AUX_DATA) ? "AUX" : "KBD", data, status);
+		    aux ? "AUX" : "KBD", data, status);
 	}
 
 	fibril_mutex_unlock(&controller->guard);
@@ -321,6 +323,7 @@ static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	}
 	controller->kbd_buffer = buffer;
 	controller->kbd_buffer_end = buffer + size;
+
 	/* Wait for buffer to be filled */
 	while (controller->kbd_buffer != controller->kbd_buffer_end)
 		fibril_condvar_wait(
@@ -362,6 +365,7 @@ static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	}
 	controller->aux_buffer = buffer;
 	controller->aux_buffer_end = buffer + size;
+
 	/* Wait for buffer to be filled */
 	while (controller->aux_buffer != controller->aux_buffer_end)
 		fibril_condvar_wait(
