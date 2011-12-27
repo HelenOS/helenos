@@ -178,8 +178,7 @@ static const int scanmap_e0[] = {
 };
 /*----------------------------------------------------------------------------*/
 static int polling(void *);
-static void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall);
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 /*----------------------------------------------------------------------------*/
 /** Keyboard function ops. */
 static ddf_dev_ops_t kbd_ops = {
@@ -240,7 +239,7 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 int polling(void *arg)
 {
 	assert(arg);
-	xt_kbd_t *kbd = arg;
+	const xt_kbd_t *kbd = arg;
 
 	assert(kbd->parent_sess);
 	while (1) {
@@ -254,24 +253,21 @@ int polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(int);
 			size = char_dev_read(kbd->parent_sess, &code, 1);
+			// TODO handle print screen
 		}
 
-
-		kbd_event_type_t type;
-		if (code & 0x80) {
-			code &= ~0x80;
-			type = KEY_RELEASE;
-		} else {
-			type = KEY_PRESS;
-		}
-
-		if ((size_t) code >= map_size) {
-			ddf_msg(LVL_WARN,
-			    "Unknown scancode: %hhx, size: %zd", code, size);
+		/* Invalid read. */
+		if (size != 1) {
 			continue;
 		}
 
-		const unsigned key = map[code];
+
+		/* Bit 7 indicates press/release */
+		const kbd_event_type_t type =
+		    (code & 0x80) ? KEY_RELEASE : KEY_PRESS;
+		code &= ~0x80;
+
+		const unsigned key = (code < map_size) ? map[code] : 0;
 		if (key != 0) {
 			async_exch_t *exch =
 			    async_exchange_begin(kbd->input_sess);
@@ -282,6 +278,8 @@ int polling(void *arg)
 			}
 			async_msg_4(exch, KBDEV_EVENT, type, key, 0, 0);
 			async_exchange_end(exch);
+		} else {
+			ddf_msg(LVL_WARN, "Unknown scancode: %hhx", code);
 		}
 	}
 }
