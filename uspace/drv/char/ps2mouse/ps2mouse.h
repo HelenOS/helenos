@@ -25,24 +25,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvkbd
+/** @addtogroup drvmouse
  * @{
  */
 /** @file
- * @brief XT keyboard driver;
+ * @brief ps/2 mouse driver.
  */
 
-#ifndef _XT_KBD_H_
-#define _XT_KBD_H_
+#ifndef _PS2MOUSE_H_
+#define _PS2MOUSE_H_
 
 #include <ddf/driver.h>
 #include <fibril.h>
 
+/** PS/2 mouse driver structure. */
 typedef struct {
-	ddf_fun_t *mouse_fun;
-	async_sess_t *parent_sess;
-	async_sess_t *input_sess;
-	fid_t polling_fibril;
+	ddf_fun_t *mouse_fun;      /**< Mouse function. */
+	async_sess_t *parent_sess; /**< Connection to device providing data. */
+	async_sess_t *input_sess;  /**< Callback connection to consumer. */
+	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
 } ps2_mouse_t;
 
 int ps2_mouse_init(ps2_mouse_t *, ddf_dev_t *);

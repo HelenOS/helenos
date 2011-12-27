@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvkbd
+/** @addtogroup drvmouse
  * @{
  */
 /** @file
- * @brief XT keyboard driver;
+ * @brief ps2 mouse driver.
  */
 
 #include <bool.h>
@@ -63,13 +63,19 @@
 
 /*----------------------------------------------------------------------------*/
 static int polling_ps2(void *);
-static void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall);
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 /*----------------------------------------------------------------------------*/
+/** ps/2 mouse driver ops. */
 static ddf_dev_ops_t mouse_ops = {
 	.default_handler = default_connection_handler
 };
 /*----------------------------------------------------------------------------*/
+/** Initialize mouse driver structure.
+ * @param kbd Mouse driver structure to initialize.
+ * @param dev DDF device structure.
+ *
+ * Connects to parent, creates keyboard function, starts polling fibril.
+ */
 int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 {
 	assert(mouse);
@@ -138,10 +144,14 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Get data and parse ps2 protocol packets.
+ * @param arg Pointer to ps2_mouse_t structure.
+ * @return Never.
+ */
 int polling_ps2(void *arg)
 {
 	assert(arg);
-	ps2_mouse_t *mouse = arg;
+	const ps2_mouse_t *mouse = arg;
 
 	assert(mouse->parent_sess);
 	bool buttons[BUTTON_COUNT] = {};
@@ -185,6 +195,12 @@ int polling_ps2(void *arg)
 	}
 }
 /*----------------------------------------------------------------------------*/
+/** Default handler for IPC methods not handled by DDF.
+ *
+ * @param fun Device function handling the call.
+ * @param icallid Call id.
+ * @param icall Call data.
+ */
 void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
