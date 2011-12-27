@@ -46,16 +46,18 @@
 #define NAME "xtkbd"
 
 static int xt_kbd_add(ddf_dev_t *device);
-
+/*----------------------------------------------------------------------------*/
+/** DDF driver ops. */
 static driver_ops_t kbd_driver_ops = {
 	.dev_add = xt_kbd_add,
 };
-
+/*----------------------------------------------------------------------------*/
+/** DDF driver structure. */
 static driver_t kbd_driver = {
 	.name = NAME,
 	.driver_ops = &kbd_driver_ops
 };
-
+/*----------------------------------------------------------------------------*/
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -67,10 +69,10 @@ static driver_t kbd_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS XT keyboard driver.\n");
-	ddf_log_init(NAME, LVL_DEBUG2);
+	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&kbd_driver);
 }
-
+/*----------------------------------------------------------------------------*/
 /** Initialize a new ddf driver instance of the driver
  *
  * @param[in] device DDF instance of the device to initialize.

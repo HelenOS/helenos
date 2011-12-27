@@ -42,6 +42,7 @@
 #include <abi/ipc/methods.h>
 
 #include "xtkbd.h"
+/** Scancode set 1 table. */
 static const int scanmap_simple[] = {
 
 	[0x29] = KC_BACKTICK,
@@ -151,6 +152,8 @@ static const int scanmap_simple[] = {
 	[0x53] = KC_NPERIOD
 };
 /*----------------------------------------------------------------------------*/
+#define SCANCODE_SET_EXTENDED 0xe0
+/** Scancode set 1 extended codes table */
 static const int scanmap_e0[] = {
 	[0x38] = KC_RALT,
 	[0x1d] = KC_RSHIFT,
@@ -178,6 +181,7 @@ static int polling(void *);
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall);
 /*----------------------------------------------------------------------------*/
+/** Keyboard function ops. */
 static ddf_dev_ops_t kbd_ops = {
 	.default_handler = default_connection_handler
 };
@@ -229,6 +233,10 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Get data and parse scancodes.
+ * @param arg Pointter to xt_kbd_t structure.
+ * @return Never.
+ */
 int polling(void *arg)
 {
 	assert(arg);
@@ -242,7 +250,7 @@ int polling(void *arg)
 		uint8_t code = 0;
 		ssize_t size = char_dev_read(kbd->parent_sess, &code, 1);
 
-		if (code == 0xe0) {
+		if (code == SCANCODE_SET_EXTENDED) {
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(int);
 			size = char_dev_read(kbd->parent_sess, &code, 1);
@@ -278,6 +286,12 @@ int polling(void *arg)
 	}
 }
 /*----------------------------------------------------------------------------*/
+/** Default handler for IPC methods not handled by DDF.
+ *
+ * @param fun Device function handling the call.
+ * @param icallid Call id.
+ * @param icall Call data.
+ */
 void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {

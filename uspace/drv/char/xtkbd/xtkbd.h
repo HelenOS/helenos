@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief XT keyboard driver;
+ * @brief XT keyboard driver
  */
 
 #ifndef _XT_KBD_H_
@@ -38,11 +38,12 @@
 #include <ddf/driver.h>
 #include <fibril.h>
 
+/** PC/XT keyboard driver structure. */
 typedef struct {
-	ddf_fun_t *kbd_fun;
-	async_sess_t *parent_sess;
-	async_sess_t *input_sess;
-	fid_t polling_fibril;
+	ddf_fun_t *kbd_fun;        /**< Keyboard function. */
+	async_sess_t *parent_sess; /**< Connection to device providing data. */
+	async_sess_t *input_sess;  /**< Callback connection to consumer. */
+	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
 } xt_kbd_t;
 
 int xt_kbd_init(xt_kbd_t *, ddf_dev_t *);
