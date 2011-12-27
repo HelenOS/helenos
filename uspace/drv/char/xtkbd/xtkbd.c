@@ -185,6 +185,12 @@ static ddf_dev_ops_t kbd_ops = {
 	.default_handler = default_connection_handler
 };
 /*----------------------------------------------------------------------------*/
+/** Initialize keyboard driver structure.
+ * @param kbd Keyboard driver structure to initialize.
+ * @param dev DDF device structure.
+ *
+ * Connects to parent, creates mouse function, starts polling fibril.
+ */
 int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 {
 	assert(kbd);
@@ -233,7 +239,7 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 }
 /*----------------------------------------------------------------------------*/
 /** Get data and parse scancodes.
- * @param arg Pointter to xt_kbd_t structure.
+ * @param arg Pointer to xt_kbd_t structure.
  * @return Never.
  */
 int polling(void *arg)
