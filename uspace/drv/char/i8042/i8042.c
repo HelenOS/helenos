@@ -56,21 +56,25 @@ static int i8042_write_kbd(ddf_fun_t *, char *, size_t);
 static int i8042_read_kbd(ddf_fun_t *, char *, size_t);
 static int i8042_write_aux(ddf_fun_t *, char *, size_t);
 static int i8042_read_aux(ddf_fun_t *, char *, size_t);
-
+/*----------------------------------------------------------------------------*/
+/** Primary port interface structure. */
 static char_dev_ops_t kbd_iface = {
     .read = i8042_read_kbd,
     .write = i8042_write_kbd,
 };
-
+/*----------------------------------------------------------------------------*/
+/** Auxiliary port interface structure. */
 static char_dev_ops_t aux_iface = {
     .read = i8042_read_aux,
     .write = i8042_write_aux,
 };
-
+/*----------------------------------------------------------------------------*/
+/** Primary port function operations. */
 static ddf_dev_ops_t kbd_ops = {
 	.interfaces[CHAR_DEV_IFACE] = &kbd_iface
 };
-
+/*----------------------------------------------------------------------------*/
+/** Auxiliary port function operations. */
 static ddf_dev_ops_t aux_ops = {
 	.interfaces[CHAR_DEV_IFACE] = &aux_iface
 };
@@ -91,6 +95,7 @@ static ddf_dev_ops_t aux_ops = {
 #define i8042_AUX_DISABLE	0x20
 #define i8042_KBD_TRANSLATE	0x40 /* Use this to switch to XT scancodes */
 
+/** i8042 Interrupt pseudo-code. */
 static const irq_cmd_t i8042_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
@@ -118,18 +123,19 @@ static const irq_cmd_t i8042_cmds[] = {
 	}
 };
 /*----------------------------------------------------------------------------*/
+/** Wait until it is safe to write to the device. */
 static void wait_ready(i8042_t *dev)
 {
 	assert(dev);
 	while (pio_read_8(&dev->regs->status) & i8042_INPUT_FULL);
 }
 /*----------------------------------------------------------------------------*/
-static void wait_ready_write(i8042_t *dev)
-{
-	assert(dev);
-	while (pio_read_8(&dev->regs->status) & i8042_OUTPUT_FULL);
-}
-/*----------------------------------------------------------------------------*/
+/** Interrupt handler routine.
+ * Writes new data to the corresponding buffer.
+ * @param dev Device that caued the interrupt.
+ * @param iid Call id.
+ * @param call pointerr to call data.
+ */
 static void i8042_irq_handler(
     ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
@@ -144,6 +150,15 @@ static void i8042_irq_handler(
 	buffer_write(buffer, data);
 }
 /*----------------------------------------------------------------------------*/
+/** Initialize i8042 driver structure.
+ * @param dev Driver structure to initialize.
+ * @param regs I/O address of registers.
+ * @param reg_size size of the reserved I/O address space.
+ * @param irq_kbd IRQ for primary port.
+ * @param irq_mouse IRQ for aux port.
+ * @param ddf_dev DDF device structure of the device.
+ * @return Error code.
+ */
 int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
     int irq_mouse, ddf_dev_t *ddf_dev)
 {
@@ -272,6 +287,12 @@ if  (ret != EOK) { \
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Write data to i8042 primary port.
+ * @param fun DDF function.
+ * @param buffer Data source.
+ * @param size Data size.
+ * @return Bytes written.
+ */
 static int i8042_write_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 {
 	assert(fun);
@@ -279,13 +300,19 @@ static int i8042_write_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	i8042_t *controller = fun->driver_data;
 	fibril_mutex_lock(&controller->write_guard);
 	for (size_t i = 0; i < size; ++i) {
-		wait_ready_write(controller);
+		wait_ready(controller);
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
 	fibril_mutex_unlock(&controller->write_guard);
 	return size;
 }
 /*----------------------------------------------------------------------------*/
+/** Read data from i8042 primary port.
+ * @param fun DDF function.
+ * @param buffer Data place.
+ * @param size Data place size.
+ * @return Bytes read.
+ */
 static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 {
 	assert(fun);
@@ -300,6 +327,12 @@ static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	return size;
 }
 /*----------------------------------------------------------------------------*/
+/** Write data to i8042 auxiliary port.
+ * @param fun DDF function.
+ * @param buffer Data source.
+ * @param size Data size.
+ * @return Bytes written.
+ */
 static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
 {
 	assert(fun);
@@ -307,7 +340,7 @@ static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	i8042_t *controller = fun->driver_data;
 	fibril_mutex_lock(&controller->write_guard);
 	for (size_t i = 0; i < size; ++i) {
-		wait_ready_write(controller);
+		wait_ready(controller);
 		pio_write_8(&controller->regs->status, i8042_CMD_WRITE_AUX);
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
@@ -315,6 +348,12 @@ static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	return size;
 }
 /*----------------------------------------------------------------------------*/
+/** Read data from i8042 auxiliary port.
+ * @param fun DDF function.
+ * @param buffer Data place.
+ * @param size Data place size.
+ * @return Bytes read.
+ */
 static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
 {
 	assert(fun);

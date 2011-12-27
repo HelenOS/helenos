@@ -52,18 +52,17 @@ typedef struct {
 	ioport8_t status;
 } __attribute__ ((packed)) i8042_regs_t;
 
-typedef struct i8042 i8042_t;
-
-struct i8042 {
-	i8042_regs_t *regs;
-	ddf_fun_t *kbd_fun;
-	ddf_fun_t *mouse_fun;
-	buffer_t aux_buffer;
-	buffer_t kbd_buffer;
-	uint8_t aux_data[BUFFER_SIZE];
-	uint8_t kbd_data[BUFFER_SIZE];
-	fibril_mutex_t write_guard;
-};
+/** i8042 driver structure. */
+typedef struct i8042 {
+	i8042_regs_t *regs;    /**< I/O registers. */
+	ddf_fun_t *kbd_fun;    /**< Pirmary port device function. */
+	ddf_fun_t *mouse_fun;  /**< Auxiliary port device function. */
+	buffer_t kbd_buffer;   /**< Primary port buffer. */
+	buffer_t aux_buffer;   /**< Aux. port buffer. */
+	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
+	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
+	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
+} i8042_t;
 
 int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
 #endif

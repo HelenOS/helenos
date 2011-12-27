@@ -47,18 +47,19 @@
 
 static int get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size, int *kbd, int *mouse);
-
 static int i8042_dev_add(ddf_dev_t *device);
-
+/*----------------------------------------------------------------------------*/
+/** DDF driver operations. */
 static driver_ops_t i8042_driver_ops = {
 	.dev_add = i8042_dev_add,
 };
-
+/*----------------------------------------------------------------------------*/
+/** DDF driver. */
 static driver_t i8042_driver = {
 	.name = NAME,
 	.driver_ops = &i8042_driver_ops
 };
-
+/*----------------------------------------------------------------------------*/
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -70,10 +71,10 @@ static driver_t i8042_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS ps/2 driver.\n");
-	ddf_log_init(NAME, LVL_DEBUG2);
+	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&i8042_driver);
 }
-
+/*----------------------------------------------------------------------------*/
 /** Initialize a new ddf driver instance of i8042 driver
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -119,6 +120,8 @@ if (ret != EOK) { \
  * @param[in] dev Device asking for the addresses.
  * @param[out] io_reg_address Base address of the memory range.
  * @param[out] io_reg_size Size of the memory range.
+ * @param[out] kbd_irq Primary port IRQ.
+ * @param[out] mouse_irq Auxiliary port IRQ.
  * @return Error code.
  */
 int get_my_registers(const ddf_dev_t *dev, uintptr_t *io_reg_address,
