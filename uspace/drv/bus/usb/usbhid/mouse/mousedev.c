@@ -151,7 +151,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 }
 
 /*----------------------------------------------------------------------------*/
-
+#if 0
 static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 {
 	unsigned int key = (wheel > 0) ? KC_UP : KC_DOWN;
@@ -176,7 +176,7 @@ static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
 		async_exchange_end(exch);
 	}
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 
 static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
@@ -220,18 +220,19 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	const int wheel = get_mouse_axis_move_value(hid_dev->report_id,
 	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	if ((shift_x != 0) || (shift_y != 0)) {
+	if (shift_x || shift_y || wheel) {
 		async_exch_t *exch =
 		    async_exchange_begin(mouse_dev->mouse_sess);
 		if (exch != NULL) {
-			async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
+			async_msg_3(exch, MOUSEEV_MOVE_EVENT,
+			    shift_x, shift_y, wheel);
 			async_exchange_end(exch);
 		}
 	}
-
+#if 0
 	if (wheel != 0)
-		usb_mouse_send_wheel(mouse_dev, wheel);
-
+		(void)usb_mouse_send_wheel(mouse_dev, wheel);
+#endif
 	/* Buttons */
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {

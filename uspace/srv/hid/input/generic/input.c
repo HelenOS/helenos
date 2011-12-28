@@ -171,10 +171,18 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 }
 
 /** Mouse pointer has moved. */
-void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy)
+void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 {
 	async_exch_t *exch = async_exchange_begin(client_sess);
-	async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+	if (dx || dy)
+		async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+	if (dz) {
+		keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
+		for (int i = 0; i < 3; ++i) {
+			async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
+		}
+		async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
+	}
 	async_exchange_end(exch);
 }
 

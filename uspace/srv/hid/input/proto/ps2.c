@@ -125,7 +125,7 @@ static void ps2_proto_parse(sysarg_t data)
 		y = -bit9toint(buf.u.val.ysign, buf.u.val.y);
 		
 		if (x != 0 || y != 0)
-			mouse_push_event_move(mouse_dev, x, y);
+			mouse_push_event_move(mouse_dev, x, y, 0);
 	}
 }
 
