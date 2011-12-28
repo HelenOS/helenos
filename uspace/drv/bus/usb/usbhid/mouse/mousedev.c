@@ -56,8 +56,11 @@
 
 #define NAME "mouse"
 
-/*----------------------------------------------------------------------------*/
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
+static ddf_dev_ops_t ops = { .default_handler = default_connection_handler };
+
+/*----------------------------------------------------------------------------*/
 const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
@@ -306,7 +309,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		return ENOMEM;
 	}
 
-	fun->ops = &mouse->ops;
+	fun->ops = &ops;
 	fun->driver_data = mouse;
 
 	int rc = ddf_fun_bind(fun);
@@ -349,7 +352,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	 * Store the initialized HID device and HID ops
 	 * to the DDF function.
 	 */
-	fun->ops = &mouse->ops;
+	fun->ops = &ops;
 	fun->driver_data = mouse;
 
 	rc = ddf_fun_bind(fun);
@@ -456,9 +459,6 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 		free(mouse_dev);
 		return ENOMEM;
 	}
-
-	// set handler for incoming calls
-	mouse_dev->ops.default_handler = default_connection_handler;
 
 	// TODO: how to know if the device supports the request???
 	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,

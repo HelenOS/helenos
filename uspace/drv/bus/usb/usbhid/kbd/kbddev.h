@@ -81,11 +81,8 @@ typedef struct usb_kbd_t {
 	/** Currently active lock keys. */
 	unsigned lock_keys;
 
-	/** IPC session to the console device (for sending key events). */
-	async_sess_t *console_sess;
-
-	/** @todo What is this actually? */
-	ddf_dev_ops_t ops;
+	/** IPC session to client (for sending key events). */
+	async_sess_t *client_sess;
 
 	/** Information for auto-repeat of keys. */
 	usb_kbd_repeat_t repeat;

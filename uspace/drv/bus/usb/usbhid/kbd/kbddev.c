@@ -70,6 +70,8 @@
 
 #include "../usbhid.h"
 
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static ddf_dev_ops_t kbdops = { .default_handler = default_connection_handler };
 /*----------------------------------------------------------------------------*/
 
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
@@ -186,8 +188,8 @@ static void default_connection_handler(ddf_fun_t *fun,
 			async_answer_0(icallid, EAGAIN);
 			break;
 		}
-		if (kbd_dev->console_sess == NULL) {
-			kbd_dev->console_sess = sess;
+		if (kbd_dev->client_sess == NULL) {
+			kbd_dev->client_sess = sess;
 			usb_log_debug("%s: OK\n", __FUNCTION__);
 			async_answer_0(icallid, EOK);
 		} else {
@@ -291,13 +293,13 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned key)
 {
 	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
-	if (kbd_dev->console_sess == NULL) {
+	if (kbd_dev->client_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 
-	async_exch_t *exch = async_exchange_begin(kbd_dev->console_sess);
+	async_exch_t *exch = async_exchange_begin(kbd_dev->client_sess);
 	if (exch != NULL) {
 		async_msg_2(exch, KBDEV_EVENT, type, key);
 		async_exchange_end(exch);
@@ -498,7 +500,7 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 
 	/* Store the initialized HID device and HID ops
 	 * to the DDF function. */
-	fun->ops = &kbd_dev->ops;
+	fun->ops = &kbdops;
 	fun->driver_data = kbd_dev;
 
 	int rc = ddf_fun_bind(fun);
@@ -575,7 +577,6 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	/* Default values */
 	fibril_mutex_initialize(&kbd_dev->repeat_mtx);
 	kbd_dev->initialized = USB_KBD_STATUS_UNINITIALIZED;
-	kbd_dev->ops.default_handler = default_connection_handler;
 
 	/* Store link to HID device */
 	kbd_dev->hid_dev = hid_dev;
@@ -736,8 +737,8 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	}
 
 	/* Hangup session to the console. */
-	if (kbd_dev->console_sess)
-		async_hangup(kbd_dev->console_sess);
+	if (kbd_dev->client_sess)
+		async_hangup(kbd_dev->client_sess);
 
 	//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
 	// FIXME - the fibril_mutex_is_locked may not cause

@@ -45,7 +45,7 @@ struct usb_hid_dev;
 
 /** Container for USB mouse device. */
 typedef struct {
-	/** IPC session to console (consumer). */
+	/** IPC session to consumer. */
 	async_sess_t *mouse_sess;
 	async_sess_t *wheel_sess;
 
@@ -53,7 +53,6 @@ typedef struct {
 	int32_t *buttons;
 	size_t buttons_count;
 
-	ddf_dev_ops_t ops;
 	/* DDF mouse function */
 	ddf_fun_t *mouse_fun;
 	/* DDF mouse function */
