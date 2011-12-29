@@ -123,7 +123,8 @@ RD_DRVS = \
 	test/test3 \
 	nic/lo \
 	nic/ne2k \
-	nic/e1k
+	nic/e1k \
+	nic/rtl8139
 
 RD_DRV_CFG =
 
