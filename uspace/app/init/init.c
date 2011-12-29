@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
 	spawn("/srv/i8259");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
-//	srv_start("/srv/i8042");
+	srv_start("/srv/i8042");
 	srv_start("/srv/s3c24ser");
 	srv_start("/srv/s3c24ts");
 	
