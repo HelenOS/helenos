@@ -225,7 +225,7 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug("Root hub got INTERRUPT packet\n");
 		fibril_mutex_lock(&instance->guard);
 		assert(instance->unfinished_interrupt_transfer == NULL);
-		const uint16_t mask = create_interrupt_mask(instance);
+		uint16_t mask = create_interrupt_mask(instance);
 		if (mask == 0) {
 			usb_log_debug("No changes...\n");
 			instance->unfinished_interrupt_transfer = request;
@@ -256,7 +256,7 @@ void rh_interrupt(rh_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	if (instance->unfinished_interrupt_transfer) {
 		usb_log_debug("Finalizing interrupt transfer\n");
-		const uint16_t mask = create_interrupt_mask(instance);
+		uint16_t mask = create_interrupt_mask(instance);
 		interrupt_request(instance->unfinished_interrupt_transfer,
 		    mask, instance->interrupt_mask_size);
 		instance->unfinished_interrupt_transfer = NULL;
@@ -277,12 +277,12 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	assert(instance);
 
 	/* 7 bytes + 2 port bit fields (port count + global bit) */
-	const size_t size = 7 + (instance->interrupt_mask_size * 2);
+	size_t size = 7 + (instance->interrupt_mask_size * 2);
 	assert(size <= HUB_DESCRIPTOR_MAX_SIZE);
 	instance->hub_descriptor_size = size;
 
-	const uint32_t hub_desc = instance->registers->rh_desc_a;
-	const uint32_t port_desc = instance->registers->rh_desc_b;
+	uint32_t hub_desc = instance->registers->rh_desc_a;
+	uint32_t port_desc = instance->registers->rh_desc_b;
 
 	/* bDescLength */
 	instance->descriptors.hub[0] = size;
@@ -393,7 +393,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 	assert(request);
 
 
-	const usb_device_request_setup_packet_t *request_packet =
+	usb_device_request_setup_packet_t *request_packet =
 	    (usb_device_request_setup_packet_t*)request->setup_buffer;
 
 	switch (request_packet->request_type)
@@ -405,7 +405,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    "status request.\n", request->buffer_size);
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
-			const uint32_t data = instance->registers->rh_status &
+			uint32_t data = instance->registers->rh_status &
 			    (RHS_LPS_FLAG | RHS_LPSC_FLAG
 			        | RHS_OCI_FLAG | RHS_OCIC_FLAG);
 			TRANSFER_END_DATA(request, &data, sizeof(data));
@@ -419,11 +419,11 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    "status request.\n", request->buffer_size);
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
-			const unsigned port = request_packet->index;
+			unsigned port = request_packet->index;
 			if (port < 1 || port > instance->port_count)
 				TRANSFER_END(request, EINVAL);
 
-			const uint32_t data =
+			uint32_t data =
 			    instance->registers->rh_port_status[port - 1];
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
@@ -433,7 +433,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    "get status request.\n", request->buffer_size);
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
-			static const uint16_t data =
+			uint16_t data =
 			    uint16_host2usb(USB_DEVICE_STATUS_SELF_POWERED);
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
@@ -454,7 +454,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
 			/* Endpoints are OK. (We don't halt) */
-			static const uint16_t data = 0;
+			uint16_t data = 0;
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
 
@@ -479,9 +479,9 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 	assert(instance);
 	assert(request);
 
-	const usb_device_request_setup_packet_t *setup_request =
+	usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
-	const uint16_t setup_request_value = setup_request->value_high;
+	uint16_t setup_request_value = setup_request->value_high;
 	switch (setup_request_value)
 	{
 	case USB_DESCTYPE_HUB:
@@ -647,13 +647,13 @@ void set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 	assert(instance);
 	assert(request);
 
-	const usb_device_request_setup_packet_t *setup_request =
+	usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 	switch (setup_request->request_type)
 	{
 	case USB_HUB_REQ_TYPE_SET_PORT_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-		const int ret = set_feature_port(instance,
+		int ret = set_feature_port(instance,
 		    setup_request->value, setup_request->index);
 		TRANSFER_END(request, ret);
 
@@ -685,14 +685,14 @@ void clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 	assert(instance);
 	assert(request);
 
-	const usb_device_request_setup_packet_t *setup_request =
+	usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 
 	switch (setup_request->request_type)
 	{
 	case USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE\n");
-		const int ret = clear_feature_port(instance,
+		int ret = clear_feature_port(instance,
 		    setup_request->value, setup_request->index);
 		TRANSFER_END(request, ret);
 
@@ -752,7 +752,7 @@ void control_request(rh_t *instance, usb_transfer_batch_t *request)
 
 	usb_log_debug2("CTRL packet: %s.\n",
 	    usb_debug_str_buffer((uint8_t *) request->setup_buffer, 8, 8));
-	const usb_device_request_setup_packet_t *setup_request =
+	usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
 	switch (setup_request->request)
 	{
@@ -770,7 +770,7 @@ void control_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
 		if (request->buffer_size == 0)
 			TRANSFER_END(request, EOVERFLOW);
-		static const uint8_t config = 1;
+		uint8_t config = 1;
 		TRANSFER_END_DATA(request, &config, sizeof(config));
 
 	case USB_DEVREQ_CLEAR_FEATURE:

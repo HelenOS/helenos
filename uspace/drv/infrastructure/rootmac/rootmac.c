@@ -160,8 +160,8 @@ static bool rootmac_enable_interrupt(ddf_fun_t *fun)
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	&rootmac_get_resources,
-	&rootmac_enable_interrupt
+   	.get_resource_list = &rootmac_get_resources,
+	.enable_interrupt = &rootmac_enable_interrupt
 };
 
 int main(int argc, char *argv[])
