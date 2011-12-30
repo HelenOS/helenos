@@ -54,6 +54,8 @@
 #include <macros.h>
 #include <synch/spinlock.h>
 
+static slab_cache_t *ra_segment_cache;
+
 #define USED_BUCKETS	1024
 
 static size_t used_hash(sysarg_t *key)
@@ -89,7 +91,7 @@ static ra_segment_t *ra_segment_create(uintptr_t base)
 {
 	ra_segment_t *seg;
 
-	seg = (ra_segment_t *) malloc(sizeof(ra_segment_t), FRAME_ATOMIC);
+	seg = slab_alloc(ra_segment_cache, FRAME_ATOMIC);
 	if (!seg)
 		return NULL;
 
@@ -104,7 +106,7 @@ static ra_segment_t *ra_segment_create(uintptr_t base)
 
 static void ra_segment_destroy(ra_segment_t *seg)
 {
-	free(seg);
+	slab_free(ra_segment_cache, seg);
 }
 
 static ra_span_t *ra_span_create(uintptr_t base, size_t size)
@@ -419,6 +421,11 @@ void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 	    base, size);
 }
 
+void ra_init(void)
+{
+	ra_segment_cache = slab_cache_create("segment_cache",
+	    sizeof(ra_segment_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
+}
 
 /** @}
  */

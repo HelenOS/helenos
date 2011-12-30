@@ -76,6 +76,7 @@ typedef struct {
 	uint8_t flags;		/**< Segment flags. */
 } ra_segment_t;
 
+extern void ra_init(void);
 extern ra_arena_t *ra_arena_create(void);
 extern bool ra_span_add(ra_arena_t *, uintptr_t, size_t);
 extern uintptr_t ra_alloc(ra_arena_t *, size_t, size_t);

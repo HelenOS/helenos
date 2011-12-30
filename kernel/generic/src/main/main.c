@@ -86,6 +86,7 @@
 #include <ipc/event.h>
 #include <sysinfo/sysinfo.h>
 #include <sysinfo/stats.h>
+#include <lib/ra.h>
 
 /** Global configuration structure. */
 config_t config = {
@@ -211,8 +212,8 @@ void main_bsp_separated_stack(void)
 	arch_pre_mm_init();
 	km_identity_init();
 	frame_init();
-	/* Initialize at least 1 memory segment big enough for slab to work. */
 	slab_cache_init();
+	ra_init();	
 	sysinfo_init();
 	btree_init();
 	as_init();
