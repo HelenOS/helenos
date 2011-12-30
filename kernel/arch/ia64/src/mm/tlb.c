@@ -466,6 +466,15 @@ void itc_pte_copy(pte_t *t)
 #endif
 }
 
+static bool is_kernel_fault(uintptr_t va)
+{
+	region_register_t rr;
+
+	rr.word = rr_read(VA2VRN(va));
+	rid_t rid = rr.map.rid;
+	return (RID2ASID(rid) == ASID_KERNEL) && (VA2VRN(va) == VRN_KERNEL);
+}
+
 /** Instruction TLB fault handler for faults with VHPT turned off.
  *
  * @param vector Interruption vector.
@@ -479,6 +488,8 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa; /* faulting address */
 	
+	ASSERT(!is_kernel_fault(va));
+
 	t = page_mapping_find(AS, va, true);
 	if (t) {
 		/*
@@ -566,35 +577,34 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 {
 	if (istate->cr_isr.sp) {
-		/* Speculative load. Deffer the exception
-		   until a more clever approach can be used.
-		   
-		   Currently if we try to find the mapping
-		   for the speculative load while in the kernel,
-		   we might introduce a livelock because of
-		   the possibly invalid values of the address. */
+		/*
+		 * Speculative load. Deffer the exception until a more clever
+		 * approach can be used. Currently if we try to find the
+		 * mapping for the speculative load while in the kernel, we
+		 * might introduce a livelock because of the possibly invalid
+		 * values of the address.
+		 */
 		istate->cr_ipsr.ed = true;
 		return;
 	}
 	
 	uintptr_t va = istate->cr_ifa;  /* faulting address */
+	as_t *as = AS;
 	
-	region_register_t rr;
-	rr.word = rr_read(VA2VRN(va));
-	rid_t rid = rr.map.rid;
-	if (RID2ASID(rid) == ASID_KERNEL) {
-		if (VA2VRN(va) == VRN_KERNEL) {
+	if (is_kernel_fault(va)) {
+		if (va < end_of_identity) {
 			/*
-			 * Provide KA2PA(identity) mapping for faulting piece of
-			 * kernel address space.
+			 * Create kernel identity mapping for low memory. 
 			 */
 			dtlb_kernel_mapping_insert(va, KA2PA(va), false, 0);
 			return;
+		} else {
+			as = AS_KERNEL;
 		}
 	}
 	
 	
-	pte_t *entry = page_mapping_find(AS, va, true);
+	pte_t *entry = page_mapping_find(as, va, true);
 	if (entry) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -640,10 +650,14 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
+	as_t *as = AS;
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	t = page_mapping_find(AS, va, true);
+	if (is_kernel_fault(va))
+		as = AS_KERNEL;
+
+	t = page_mapping_find(as, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->w)) {
 		/*
@@ -673,6 +687,8 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 	pte_t *t;
 	
 	va = istate->cr_ifa;  /* faulting address */
+
+	ASSERT(!is_kernel_fault(va));
 	
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
@@ -702,10 +718,14 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
+	as_t *as = AS;
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	t = page_mapping_find(AS, va, true);
+	if (is_kernel_fault(va))
+		as = AS_KERNEL;
+
+	t = page_mapping_find(as, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p)) {
 		/*
@@ -735,6 +755,8 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 	pte_t *t;
 	
 	va = istate->cr_ifa;  /* faulting address */
+
+	ASSERT(!is_kernel_fault(va));
 	
 	/*
 	 * Assume a write to a read-only page.
@@ -762,6 +784,8 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
+	ASSERT(!is_kernel_fault(va));
+
 	t = page_mapping_find(AS, va, true);
 	ASSERT(t);
 	

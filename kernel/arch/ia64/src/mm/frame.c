@@ -50,6 +50,8 @@
 
 #define MINCONF 1
 
+uintptr_t end_of_identity = -1ULL;
+
 static void frame_common_arch_init(bool low)
 {
 	unsigned int i;
@@ -101,6 +103,9 @@ void frame_low_arch_init(void)
 
 	frame_mark_unavailable(ADDR2PFN(KERNEL_RESERVED_AREA_BASE),
 	    SIZE2FRAMES(KERNEL_RESERVED_AREA_SIZE));
+
+	/* PA2KA will work only on low-memory. */
+	end_of_identity = PA2KA(config.physmem_end - FRAME_SIZE) + PAGE_SIZE;
 }
 
 void frame_high_arch_init(void)
