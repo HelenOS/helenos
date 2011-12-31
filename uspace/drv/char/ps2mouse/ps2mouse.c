@@ -52,16 +52,20 @@
 #define PS2_BUFSIZE 3
 #define INTELLIMOUSE_BUFSIZE 4
 
-#define Z_SIGN (1 << 3)
-#define X_SIGN (1 << 4)
-#define Y_SIGN (1 << 5)
-#define X_OVERFLOW (1 << 6)
-#define Y_OVERFLOW (1 << 7)
+#define Z_SIGN (1 << 3) /* 4th byte */
+#define X_SIGN (1 << 4) /* 1st byte */
+#define Y_SIGN (1 << 5) /* 1st byte */
+#define X_OVERFLOW (1 << 6) /* 1st byte */
+#define Y_OVERFLOW (1 << 7) /* 1st byte */
 
 #define BUTTON_LEFT   0
 #define BUTTON_RIGHT   1
 #define BUTTON_MIDDLE   2
 #define PS2_BUTTON_COUNT   3
+
+#define INTELLIMOUSE_ALWAYS_ZERO (0xc0)
+#define INTELLIMOUSE_BUTTON_4 (1 << 4) /* 4th byte */
+#define INTELLIMOUSE_BUTTON_5 (1 << 5) /* 4th byte */
 #define INTELLIMOUSE_BUTTON_COUNT 5
 
 #define PS2_BUTTON_MASK(button) (1 << button)
@@ -74,15 +78,15 @@ do { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %d)", size);\
 		return size < 0 ? size : EIO; \
 	} \
-	if (data != value) { \
+	if (data != (value)) { \
 		ddf_msg(LVL_ERROR, "Failed testing byte: got %hhx vs. %hhx)", \
-		    data, value); \
+		    data, (value)); \
 		return EIO; \
 	} \
 } while (0)
 #define MOUSE_WRITE_BYTE(sess, value) \
 do { \
-	uint8_t data = value; \
+	uint8_t data = (value); \
 	const ssize_t size = char_dev_write(session, &data, 1); \
 	if (size < 0 ) { \
 		ddf_msg(LVL_ERROR, "Failed writing byte: %hhx", value); \
@@ -92,7 +96,7 @@ do { \
 /*----------------------------------------------------------------------------*/
 static int polling_ps2(void *);
 static int polling_intellimouse(void *);
-static int probe_intellimouse(async_sess_t *);
+static int probe_intellimouse(async_sess_t *, bool);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 /*----------------------------------------------------------------------------*/
 /** ps/2 mouse driver ops. */
@@ -142,9 +146,11 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 	/* Probe IntelliMouse extensions. */
 	int (*polling_f)(void*) = polling_ps2;
-	if (probe_intellimouse(mouse->parent_sess) == EOK) {
+	if (probe_intellimouse(mouse->parent_sess, false) == EOK) {
 		ddf_msg(LVL_NOTE, "Enabled IntelliMouse extensions");
 		polling_f = polling_intellimouse;
+		if (probe_intellimouse(mouse->parent_sess, true) == EOK)
+			ddf_msg(LVL_NOTE, "Enabled 4th and 5th button.");
 	}
 	/* Enable mouse data reporting. */
 	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
@@ -236,7 +242,7 @@ int polling_ps2(void *arg)
 	}
 }
 /*----------------------------------------------------------------------------*/
-/** Get data and parse ps2 protocol with intellimouse extension packets.
+/** Get data and parse ps2 protocol with IntelliMouse extension packets.
  * @param arg Pointer to ps2_mouse_t structure.
  * @return Never.
  */
@@ -267,11 +273,26 @@ static int polling_intellimouse(void *arg)
 			    "Failed to create input exchange.");
 			continue;
 		}
-		/* ps/2 Buttons */
-		for (unsigned i = 0; i < PS2_BUTTON_COUNT; ++i) {
-			const bool status = (packet[0] & PS2_BUTTON_MASK(i));
-			if (buttons[i] != status) {
-				buttons[i] = status;
+
+		/* Buttons */
+		/* NOTE: Parsing 4th and 5th button works even if this extension
+		 * is not supported and whole 4th byte should be interpreted
+		 * as Z-axis movement. the upper 4 bits are just a sign
+		 * extension then. + sign is interpreted as "button up"
+		 * (i.e no change since that is the default) and - sign fails
+		 * the "imb" condition. Thus 4th and 5th buttons are never
+		 * down on wheel only extension. */
+		const bool imb = (packet[3] & INTELLIMOUSE_ALWAYS_ZERO) == 0;
+		const bool status[] = {
+			[0] = packet[0] & PS2_BUTTON_MASK(0),
+			[1] = packet[0] & PS2_BUTTON_MASK(1),
+			[2] = packet[0] & PS2_BUTTON_MASK(2),
+			[3] = (packet[3] & INTELLIMOUSE_BUTTON_4) && imb,
+			[4] = (packet[3] & INTELLIMOUSE_BUTTON_5) && imb,
+		};
+		for (unsigned i = 0; i < INTELLIMOUSE_BUTTON_COUNT; ++i) {
+			if (buttons[i] != status[i]) {
+				buttons[i] = status[i];
 				async_msg_2(exch, MOUSEEV_BUTTON_EVENT, i + 1,
 				    buttons[i]);
 			}
@@ -295,7 +316,13 @@ static int polling_intellimouse(void *arg)
 	}
 }
 /*----------------------------------------------------------------------------*/
-static int probe_intellimouse(async_sess_t *session)
+/** Send magic sequence to initialize IntelliMouse extensions.
+ * @param session IPC session to the parent device.
+ * @param buttons True selects magic sequence for 4th and 5th button,
+ * false selects wheel support magic sequence.
+ * See http://www.computer-engineering.org/ps2mouse/ for details.
+ */
+static int probe_intellimouse(async_sess_t *session, bool buttons)
 {
 	assert(session);
 
@@ -306,7 +333,7 @@ static int probe_intellimouse(async_sess_t *session)
 
 	MOUSE_WRITE_BYTE(session, PS2_MOUSE_SET_SAMPLE_RATE);
 	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(session, 100);
+	MOUSE_WRITE_BYTE(session, buttons ? 200 : 100);
 	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
 
 	MOUSE_WRITE_BYTE(session, PS2_MOUSE_SET_SAMPLE_RATE);
@@ -316,7 +343,7 @@ static int probe_intellimouse(async_sess_t *session)
 
 	MOUSE_WRITE_BYTE(session, PS2_MOUSE_GET_DEVICE_ID);
 	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
-	MOUSE_READ_BYTE_TEST(session, 3);
+	MOUSE_READ_BYTE_TEST(session, buttons ? 4 : 3);
 
 	return EOK;
 }
