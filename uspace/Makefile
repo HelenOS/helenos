@@ -121,7 +121,8 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/lo \
 	drv/nic/ne2k \
-	drv/nic/e1k
+	drv/nic/e1k \
+	drv/nic/rtl8139
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \

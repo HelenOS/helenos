@@ -120,6 +120,8 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	/* Connection state change signalling */
 	fibril_condvar_initialize(&conn->cstate_cv);
 
+	conn->cstate_cb = NULL;
+
 	conn->cstate = st_listen;
 	conn->reset = false;
 	conn->deleted = false;
@@ -242,9 +244,19 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 {
 	tcp_cstate_t old_state;
 
+	log_msg(LVL_DEBUG, "tcp_conn_state_set(%p)", conn);
+
 	old_state = conn->cstate;
 	conn->cstate = nstate;
 	fibril_condvar_broadcast(&conn->cstate_cv);
+
+	/* Run user callback function */
+	if (conn->cstate_cb != NULL) {
+		log_msg(LVL_DEBUG, "tcp_conn_state_set() - run user CB");
+		conn->cstate_cb(conn, conn->cstate_cb_arg);
+	} else {
+		log_msg(LVL_DEBUG, "tcp_conn_state_set() - no user CB");
+	}
 
 	assert(old_state != st_closed);
 	if (nstate == st_closed) {

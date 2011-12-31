@@ -29,11 +29,10 @@
 #ifndef RTL8139_DRIVER_H_
 #define RTL8139_DRIVER_H_
 
-#include "rtl8139_defs.h"
-#include "rtl8139_general.h"
+#include "defs.h"
+#include "general.h"
 #include <sys/types.h>
 #include <stdint.h>
-#include <dma.h>
 
 /** The driver name */
 #define NAME "rtl8139"
@@ -96,7 +95,9 @@ typedef struct rtl8139_data {
 	/** The memory allocated for the transmittion buffers
 	 *  Each buffer takes 2kB
 	 */
-	dma_mem_t tx_buff_mem;
+	void *tx_buff_phys;
+	void *tx_buff_virt;
+
 	/** Virtual adresses of the Tx buffers */
 	void *tx_buff[TX_BUFF_COUNT];
 
@@ -111,7 +112,8 @@ typedef struct rtl8139_data {
 	size_t tx_used;
 
 	/** Buffer for receiving packets */
-	dma_mem_t rx_buff;
+	void *rx_buff_phys;
+	void *rx_buff_virt;
 
 	/** Receiver control register data */
 	struct rtl8139_rcr_data rcr_data;

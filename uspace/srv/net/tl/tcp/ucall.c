@@ -52,6 +52,7 @@
  * @param lsock		Local socket
  * @param fsock		Foreign socket
  * @param acpass	Active/passive
+ * @param oflags	Open flags
  * @param conn		Connection
  *
  * Unlike in the spec we allow specifying the local address. This means
@@ -64,13 +65,13 @@
  * establishment.
  */
 tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
-    tcp_conn_t **conn)
+    tcp_open_flags_t oflags, tcp_conn_t **conn)
 {
 	tcp_conn_t *nconn;
 
-	log_msg(LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %p)",
+	log_msg(LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %s, %p)",
 	    lsock, fsock, acpass == ap_active ? "active" : "passive",
-	    conn);
+	    oflags == tcp_open_nonblock ? "nonblock" : "none", conn);
 
 	nconn = tcp_conn_new(lsock, fsock);
 	tcp_conn_add(nconn);
@@ -78,6 +79,11 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 	if (acpass == ap_active) {
 		/* Synchronize (initiate) connection */
 		tcp_conn_sync(nconn);
+	}
+
+	if (oflags == tcp_open_nonblock) {
+		*conn = nconn;
+		return TCP_EOK;
 	}
 
 	/* Wait for connection to be established or reset */
@@ -100,6 +106,7 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 	log_msg(LVL_DEBUG, "tcp_uc_open: Connection was established.");
 
 	*conn = nconn;
+	log_msg(LVL_DEBUG, "tcp_uc_open -> %p", nconn);
 	return TCP_EOK;
 }
 
@@ -257,6 +264,7 @@ void tcp_uc_abort(tcp_conn_t *conn)
 void tcp_uc_status(tcp_conn_t *conn, tcp_conn_status_t *cstatus)
 {
 	log_msg(LVL_DEBUG, "tcp_uc_status()");
+	cstatus->cstate = conn->cstate;
 }
 
 /** Delete connection user call.
@@ -269,6 +277,15 @@ void tcp_uc_delete(tcp_conn_t *conn)
 {
 	log_msg(LVL_DEBUG, "tcp_uc_delete()");
 	tcp_conn_delete(conn);
+}
+
+void tcp_uc_set_cstate_cb(tcp_conn_t *conn, tcp_cstate_cb_t cb, void *arg)
+{
+	log_msg(LVL_DEBUG, "tcp_uc_set_ctate_cb(%p, %p, %p)",
+	    conn, cb, arg);
+
+	conn->cstate_cb = cb;
+	conn->cstate_cb_arg = arg;
 }
 
 /*

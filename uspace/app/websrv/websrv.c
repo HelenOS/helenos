@@ -48,6 +48,7 @@
 #include <str.h>
 
 #define PORT_NUMBER 8080
+#define BACKLOG_SIZE 3
 
 #define WEB_ROOT "/data/web"
 
@@ -274,7 +275,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = listen(listen_sd, 1);
+	rc = listen(listen_sd, BACKLOG_SIZE);
 	if (rc != EOK) {
 		printf("Error calling listen() (%d).\n", rc);
 		return 1;
