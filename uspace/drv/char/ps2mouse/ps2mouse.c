@@ -175,6 +175,7 @@ int polling_ps2(void *arg)
 			    "Failed to create input exchange.");
 			continue;
 		}
+
 		/* Buttons */
 		for (unsigned i = 0; i < BUTTON_COUNT; ++i) {
 			if (buttons[i] != (bool)(packet[0] & BUTTON_MASK(i))) {
@@ -183,13 +184,15 @@ int polling_ps2(void *arg)
 				    buttons[i]);
 			}
 		}
+
 		/* Movement */
-		const int move_x = ((packet[0] & X_SIGN)
-		    ? (int)(int8_t)packet[1] : (int)packet[1]);
-		const int move_y = -((packet[0] & Y_SIGN)
-		    ? (int)(int8_t)packet[2] : (int)packet[2]);
+		const int16_t move_x =
+		    ((packet[0] & X_SIGN) ? 0xff00 : 0) | packet[1];
+		const int16_t move_y =
+		    (((packet[0] & Y_SIGN) ? 0xff00 : 0) | packet[2]);
+		//TODO: Consider overflow bit
 		if (move_x != 0 || move_y != 0) {
-			async_msg_2(exch, MOUSEEV_MOVE_EVENT, move_x, move_y);
+			async_msg_2(exch, MOUSEEV_MOVE_EVENT, move_x, -move_y);
 		}
 		async_exchange_end(exch);
 	}
