@@ -42,26 +42,7 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 
 /** Bit width of the TLB-locked portion of kernel address space. */
-#define KERNEL_PAGE_WIDTH  28  /* 256M */
-#define IO_PAGE_WIDTH      26  /* 64M */
-#define FW_PAGE_WIDTH      28  /* 256M */
-
-#define USPACE_IO_PAGE_WIDTH  12  /* 4K */
-
-
-/*
- * Statically mapped IO spaces - offsets to 0xe...00 of virtual addresses
- * because of "minimal virtual bits implemented is 51" it is possible to
- * have values up to 0x0007000000000000
- */
-
-/* Firmware area (bellow 4GB in phys mem) */
-#define FW_OFFSET   0x00000000F0000000	// FIXME: [non-ident]
-/* Legacy IO space */
-#define IO_OFFSET   0x0001000000000000	// FIXME: [non-ident]
-/* Videoram - now mapped to 0 as VGA text mode vram on 0xb8000 */
-#define VIO_OFFSET  0x0002000000000000	// FIXME: [non-ident]
-
+#define KERNEL_PAGE_WIDTH 	28	/* 256M */
 
 #define PPN_SHIFT  12
 

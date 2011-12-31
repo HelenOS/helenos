@@ -51,8 +51,7 @@
 #include <print.h>
 #include <arch.h>
 #include <interrupt.h>
-
-#define IO_FRAME_BASE 0xFFFFC000000
+#include <arch/legacyio.h>
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
@@ -529,18 +528,18 @@ static int is_io_page_accessible(int page)
  */
 static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 {
-	if ((va >= IO_OFFSET ) && (va < IO_OFFSET + (1 << IO_PAGE_WIDTH))) {
+	if ((va >= LEGACYIO_USER_BASE) && (va < LEGACYIO_USER_BASE + (1 << LEGACYIO_PAGE_WIDTH))) {
 		if (TASK) {
-			uint64_t io_page = (va & ((1 << IO_PAGE_WIDTH) - 1)) >>
-			    USPACE_IO_PAGE_WIDTH;
+			uint64_t io_page = (va & ((1 << LEGACYIO_PAGE_WIDTH) - 1)) >>
+			    LEGACYIO_SINGLE_PAGE_WIDTH;
 			
 			if (is_io_page_accessible(io_page)) {
 				uint64_t page, frame;
 				
-				page = IO_OFFSET +
-				    (1 << USPACE_IO_PAGE_WIDTH) * io_page;
-				frame = IO_FRAME_BASE +
-				    (1 << USPACE_IO_PAGE_WIDTH) * io_page;
+				page = LEGACYIO_USER_BASE +
+				    (1 << LEGACYIO_SINGLE_PAGE_WIDTH) * io_page;
+				frame = LEGACYIO_PHYS_BASE +
+				    (1 << LEGACYIO_SINGLE_PAGE_WIDTH) * io_page;
 				
 				tlb_entry_t entry;
 				
@@ -554,7 +553,7 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 				entry.pl = PL_USER;
 				entry.ar = AR_READ | AR_WRITE;
 				entry.ppn = frame >> PPN_SHIFT;
-				entry.ps = USPACE_IO_PAGE_WIDTH;
+				entry.ps = LEGACYIO_SINGLE_PAGE_WIDTH;
 				
 				dtc_mapping_insert(page, TASK->as->asid, entry);
 				return 1;

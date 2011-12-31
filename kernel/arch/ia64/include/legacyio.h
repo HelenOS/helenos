@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,22 @@
 /** @file
  */
 
-#ifndef KERN_ia64_ARCH_H_
-#define KERN_ia64_ARCH_H_
+#ifndef KERN_ia64_LEGACYIO_H_
+#define KERN_ia64_LEGACYIO_H_
 
-extern void arch_pre_main(void);
+#include <typedefs.h>
+
+#define LEGACYIO_PHYS_BASE	0x00000FFFFC000000ULL
+
+/* Legacy I/O space - static uspace address, FIXME */
+#define LEGACYIO_USER_BASE	0x0001000000000000ULL 
+
+#define LEGACYIO_PAGE_WIDTH		26	/* 64M */
+#define LEGACYIO_SINGLE_PAGE_WIDTH 	12 	/* 4K */
+
+#define LEGACYIO_SIZE	(1ULL << LEGACYIO_PAGE_WIDTH)
+
+extern uintptr_t legacyio_virt_base;
 
 #endif
 

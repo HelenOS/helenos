@@ -37,9 +37,6 @@
 
 #define KERNEL_TRANSLATION_I    0x0010000000000661
 #define KERNEL_TRANSLATION_D    0x0010000000000661
-#define KERNEL_TRANSLATION_VIO  0x0010000000000671	// FIXME: [non-ident]
-#define KERNEL_TRANSLATION_IO   0x00100FFFFC000671	// FIXME: [non-ident]
-#define KERNEL_TRANSLATION_FW   0x00100000F0000671	// FIXME: [non-ident]
 
 .section K_TEXT_START, "ax"
 
@@ -87,41 +84,7 @@ kernel_image_start:
 	movl r10 = (KERNEL_TRANSLATION_D)
 	itr.d dtr[r0] = r10
 	
-	movl r7 = 1
-	movl r8 = (VRN_KERNEL << VRN_SHIFT) | VIO_OFFSET
-	mov cr.ifa = r8
-	movl r10 = (KERNEL_TRANSLATION_VIO)
-	itr.d dtr[r7] = r10
-	
-	mov r11 = cr.itir
-	movl r10 = ~0xfc
-	and r10 = r10, r11
-	movl r11 = (IO_PAGE_WIDTH << PS_SHIFT)
-	or r10 = r10, r11
-	mov cr.itir = r10
-	
-	movl r7 = 2
-	movl r8 = (VRN_KERNEL << VRN_SHIFT) | IO_OFFSET
-	mov cr.ifa = r8
-	movl r10 = (KERNEL_TRANSLATION_IO)
-	itr.d dtr[r7] = r10
-	
-	# Setup mapping for firmware area (also SAPIC)
-	
-	mov r11 = cr.itir
-	movl r10 = ~0xfc
-	and r10 = r10, r11
-	movl r11 = (FW_PAGE_WIDTH << PS_SHIFT)
-	or r10 = r10, r11
-	mov cr.itir = r10
-	
-	movl r7 = 3
-	movl r8 = (VRN_KERNEL << VRN_SHIFT) | FW_OFFSET
-	mov cr.ifa = r8
-	movl r10 = (KERNEL_TRANSLATION_FW)
-	itr.d dtr[r7] = r10
-	
-	# Initialize DSR
+	# Initialize DCR
 	
 	movl r10 = (DCR_DP_MASK | DCR_DK_MASK | DCR_DX_MASK | DCR_DR_MASK | DCR_DA_MASK | DCR_DD_MASK | DCR_LC_MASK)
 	mov r9 = cr.dcr
