@@ -48,6 +48,7 @@ typedef struct {
 	void (* mapping_insert)(as_t *, uintptr_t, uintptr_t, unsigned int);
 	void (* mapping_remove)(as_t *, uintptr_t);
 	pte_t *(* mapping_find)(as_t *, uintptr_t, bool);
+	void (* mapping_make_global)(uintptr_t, size_t);
 } page_mapping_operations_t;
 
 extern page_mapping_operations_t *page_mapping_operations;
@@ -59,6 +60,7 @@ extern bool page_table_locked(as_t *);
 extern void page_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 extern void page_mapping_remove(as_t *, uintptr_t);
 extern pte_t *page_mapping_find(as_t *, uintptr_t, bool);
+extern void page_mapping_make_global(uintptr_t, size_t);
 extern pte_t *page_table_create(unsigned int);
 extern void page_table_destroy(pte_t *);
 extern void map_structure(uintptr_t, size_t);

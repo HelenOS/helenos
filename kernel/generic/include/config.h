@@ -73,14 +73,30 @@ typedef struct {
 } ballocs_t;
 
 typedef struct {
-	unsigned int cpu_count;      /**< Number of processors detected. */
-	volatile size_t cpu_active;  /**< Number of processors that are up and running. */
+	/** Number of processors detected. */
+	unsigned int cpu_count;
+	/** Number of processors that are up and running. */
+	volatile size_t cpu_active;
 	
 	uintptr_t base;
-	size_t kernel_size;          /**< Size of memory in bytes taken by kernel and stack */
+	/** Size of memory in bytes taken by kernel and stack. */
+	size_t kernel_size;
 	
-	uintptr_t stack_base;        /**< Base adddress of initial stack */
-	size_t stack_size;           /**< Size of initial stack */
+	/** Base adddress of initial stack. */
+	uintptr_t stack_base;
+	/** Size of initial stack. */
+	size_t stack_size;
+
+	bool identity_configured;
+	/** Base address of the kernel identity mapped memory. */
+	uintptr_t identity_base;
+	/** Size of the kernel identity mapped memory. */
+	size_t identity_size;
+
+	bool non_identity_configured;   
+
+	/** End of physical memory. */
+	uint64_t physmem_end;
 } config_t;
 
 extern config_t config;

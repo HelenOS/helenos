@@ -228,6 +228,7 @@ GENERIC_SOURCES = \
 	generic/src/proc/the.c \
 	generic/src/syscall/syscall.c \
 	generic/src/syscall/copy.c \
+	generic/src/mm/km.c \
 	generic/src/mm/reserve.c \
 	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
@@ -244,6 +245,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/sort.c \
 	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
+	generic/src/lib/ra.c \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
 	generic/src/printf/printf.c \

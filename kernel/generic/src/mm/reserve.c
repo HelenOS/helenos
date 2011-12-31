@@ -41,6 +41,9 @@
 #include <synch/spinlock.h>
 #include <typedefs.h>
 #include <arch/types.h>
+#include <debug.h>
+
+static bool reserve_initialized = false;
 
 IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(reserve_lock, "reserve_lock");
 static ssize_t reserve = 0;
@@ -53,6 +56,7 @@ static ssize_t reserve = 0;
 void reserve_init(void)
 {
 	reserve = frame_total_free_get();
+	reserve_initialized = true;
 }
 
 /** Try to reserve memory.
@@ -66,6 +70,8 @@ void reserve_init(void)
 bool reserve_try_alloc(size_t size)
 {
 	bool reserved = false;
+
+	ASSERT(reserve_initialized);
 
 	irq_spinlock_lock(&reserve_lock, true);
 	if (reserve >= 0 && (size_t) reserve >= size) {
@@ -110,6 +116,9 @@ bool reserve_try_alloc(size_t size)
  */
 void reserve_force_alloc(size_t size)
 {
+	if (!reserve_initialized)
+		return;
+
 	irq_spinlock_lock(&reserve_lock, true);
 	reserve -= size;
 	irq_spinlock_unlock(&reserve_lock, true);
@@ -121,6 +130,9 @@ void reserve_force_alloc(size_t size)
  */
 void reserve_free(size_t size)
 {
+	if (!reserve_initialized)
+		return;
+
 	irq_spinlock_lock(&reserve_lock, true);
 	reserve += size;
 	irq_spinlock_unlock(&reserve_lock, true);

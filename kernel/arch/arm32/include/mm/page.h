@@ -53,11 +53,11 @@
 #endif
 
 /* Number of entries in each level. */
-#define PTL0_ENTRIES_ARCH 	(2 << 12)	/* 4096 */
+#define PTL0_ENTRIES_ARCH 	(1 << 12)	/* 4096 */
 #define PTL1_ENTRIES_ARCH 	0
 #define PTL2_ENTRIES_ARCH 	0
 /* coarse page tables used (256 * 4 = 1KB per page) */
-#define PTL3_ENTRIES_ARCH 	(2 << 8)	/* 256 */
+#define PTL3_ENTRIES_ARCH 	(1 << 8)	/* 256 */
 
 /* Page table sizes for each level. */
 #define PTL0_SIZE_ARCH 		FOUR_FRAMES

@@ -48,54 +48,40 @@
 #include <memstr.h>
 #include <print.h>
 #include <interrupt.h>
+#include <macros.h>
 
 void page_arch_init(void)
 {
 	uintptr_t cur;
 	int flags;
 	
-	if (config.cpu_active == 1) {
-		page_mapping_operations = &pt_mapping_operations;
-	
-		/*
-		 * PA2KA(identity) mapping for all frames until last_frame.
-		 */
-		page_table_lock(AS_KERNEL, true);
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-			flags = PAGE_CACHEABLE | PAGE_WRITE;
-			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
-				flags |= PAGE_GLOBAL;
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-		}
-		page_table_unlock(AS_KERNEL, true);
-		
-		exc_register(14, "page_fault", true, (iroutine_t) page_fault);
+	if (config.cpu_active > 1) {
+		/* Fast path for non-boot CPUs */
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	} else
-		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	
-	paging_on();
-}
+		paging_on();
+		return;
+	}
 
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%zu bytes).",
-		    (void *) physaddr, size);
+	page_mapping_operations = &pt_mapping_operations;
 	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
+	/*
+	 * PA2KA(identity) mapping for all low-memory frames.
+	 */
 	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
-		uintptr_t addr = PFN2ADDR(i);
-		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr, PAGE_NOT_CACHEABLE | PAGE_WRITE);
+	for (cur = 0; cur < min(config.identity_size, config.physmem_end);
+	    cur += FRAME_SIZE) {
+		flags = PAGE_CACHEABLE | PAGE_WRITE;
+		if ((PA2KA(cur) >= config.base) &&
+		    (PA2KA(cur) < config.base + config.kernel_size))
+			flags |= PAGE_GLOBAL;
+		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	}
 	page_table_unlock(AS_KERNEL, true);
+		
+	exc_register(14, "page_fault", true, (iroutine_t) page_fault);
+	write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	
-	return virtaddr;
+	paging_on();
 }
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)

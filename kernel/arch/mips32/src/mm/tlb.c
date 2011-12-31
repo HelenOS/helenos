@@ -94,10 +94,7 @@ void tlb_refill(istate_t *istate)
 	int pfrc;
 	
 	badvaddr = cp0_badvaddr_read();
-	
-	mutex_lock(&AS->lock);
 	asid = AS->asid;
-	mutex_unlock(&AS->lock);
 	
 	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate, &pfrc);
 	if (!pte) {

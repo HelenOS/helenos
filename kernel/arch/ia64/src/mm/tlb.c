@@ -51,8 +51,7 @@
 #include <print.h>
 #include <arch.h>
 #include <interrupt.h>
-
-#define IO_FRAME_BASE 0xFFFFC000000
+#include <arch/legacyio.h>
 
 /** Invalidate all TLB entries. */
 void tlb_invalidate_all(void)
@@ -466,6 +465,15 @@ void itc_pte_copy(pte_t *t)
 #endif
 }
 
+static bool is_kernel_fault(uintptr_t va)
+{
+	region_register_t rr;
+
+	rr.word = rr_read(VA2VRN(va));
+	rid_t rid = rr.map.rid;
+	return (RID2ASID(rid) == ASID_KERNEL) && (VA2VRN(va) == VRN_KERNEL);
+}
+
 /** Instruction TLB fault handler for faults with VHPT turned off.
  *
  * @param vector Interruption vector.
@@ -479,7 +487,8 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa; /* faulting address */
 	
-	page_table_lock(AS, true);
+	ASSERT(!is_kernel_fault(va));
+
 	t = page_mapping_find(AS, va, true);
 	if (t) {
 		/*
@@ -487,12 +496,10 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 		 * Insert it into data translation cache.
 		 */
 		itc_pte_copy(t);
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to address space page fault handler.
 		 */
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate, "Page fault at %p.",
 			    (void *) va);
@@ -521,18 +528,18 @@ static int is_io_page_accessible(int page)
  */
 static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 {
-	if ((va >= IO_OFFSET ) && (va < IO_OFFSET + (1 << IO_PAGE_WIDTH))) {
+	if ((va >= LEGACYIO_USER_BASE) && (va < LEGACYIO_USER_BASE + (1 << LEGACYIO_PAGE_WIDTH))) {
 		if (TASK) {
-			uint64_t io_page = (va & ((1 << IO_PAGE_WIDTH) - 1)) >>
-			    USPACE_IO_PAGE_WIDTH;
+			uint64_t io_page = (va & ((1 << LEGACYIO_PAGE_WIDTH) - 1)) >>
+			    LEGACYIO_SINGLE_PAGE_WIDTH;
 			
 			if (is_io_page_accessible(io_page)) {
 				uint64_t page, frame;
 				
-				page = IO_OFFSET +
-				    (1 << USPACE_IO_PAGE_WIDTH) * io_page;
-				frame = IO_FRAME_BASE +
-				    (1 << USPACE_IO_PAGE_WIDTH) * io_page;
+				page = LEGACYIO_USER_BASE +
+				    (1 << LEGACYIO_SINGLE_PAGE_WIDTH) * io_page;
+				frame = LEGACYIO_PHYS_BASE +
+				    (1 << LEGACYIO_SINGLE_PAGE_WIDTH) * io_page;
 				
 				tlb_entry_t entry;
 				
@@ -546,7 +553,7 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 				entry.pl = PL_USER;
 				entry.ar = AR_READ | AR_WRITE;
 				entry.ppn = frame >> PPN_SHIFT;
-				entry.ps = USPACE_IO_PAGE_WIDTH;
+				entry.ps = LEGACYIO_SINGLE_PAGE_WIDTH;
 				
 				dtc_mapping_insert(page, TASK->as->asid, entry);
 				return 1;
@@ -569,45 +576,41 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 {
 	if (istate->cr_isr.sp) {
-		/* Speculative load. Deffer the exception
-		   until a more clever approach can be used.
-		   
-		   Currently if we try to find the mapping
-		   for the speculative load while in the kernel,
-		   we might introduce a livelock because of
-		   the possibly invalid values of the address. */
+		/*
+		 * Speculative load. Deffer the exception until a more clever
+		 * approach can be used. Currently if we try to find the
+		 * mapping for the speculative load while in the kernel, we
+		 * might introduce a livelock because of the possibly invalid
+		 * values of the address.
+		 */
 		istate->cr_ipsr.ed = true;
 		return;
 	}
 	
 	uintptr_t va = istate->cr_ifa;  /* faulting address */
+	as_t *as = AS;
 	
-	region_register_t rr;
-	rr.word = rr_read(VA2VRN(va));
-	rid_t rid = rr.map.rid;
-	if (RID2ASID(rid) == ASID_KERNEL) {
-		if (VA2VRN(va) == VRN_KERNEL) {
+	if (is_kernel_fault(va)) {
+		if (va < end_of_identity) {
 			/*
-			 * Provide KA2PA(identity) mapping for faulting piece of
-			 * kernel address space.
+			 * Create kernel identity mapping for low memory. 
 			 */
 			dtlb_kernel_mapping_insert(va, KA2PA(va), false, 0);
 			return;
+		} else {
+			as = AS_KERNEL;
 		}
 	}
 	
 	
-	page_table_lock(AS, true);
-	pte_t *entry = page_mapping_find(AS, va, true);
+	pte_t *entry = page_mapping_find(as, va, true);
 	if (entry) {
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into data translation cache.
 		 */
 		dtc_pte_copy(entry);
-		page_table_unlock(AS, true);
 	} else {
-		page_table_unlock(AS, true);
 		if (try_memmap_io_insertion(va, istate))
 			return;
 		
@@ -646,11 +649,14 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
+	as_t *as = AS;
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va, true);
+	if (is_kernel_fault(va))
+		as = AS_KERNEL;
+
+	t = page_mapping_find(as, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->w)) {
 		/*
@@ -666,7 +672,6 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 			panic_memtrap(istate, PF_ACCESS_WRITE, va, NULL);
 		}
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Instruction access bit fault handler.
@@ -681,8 +686,9 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 	pte_t *t;
 	
 	va = istate->cr_ifa;  /* faulting address */
+
+	ASSERT(!is_kernel_fault(va));
 	
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p) && (t->x)) {
@@ -699,7 +705,6 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 			panic_memtrap(istate, PF_ACCESS_EXEC, va, NULL);
 		}
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Data access bit fault handler.
@@ -712,11 +717,14 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
+	as_t *as = AS;
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va, true);
+	if (is_kernel_fault(va))
+		as = AS_KERNEL;
+
+	t = page_mapping_find(as, va, true);
 	ASSERT((t) && (t->p));
 	if ((t) && (t->p)) {
 		/*
@@ -732,7 +740,6 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 			panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, NULL);
 		}
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Data access rights fault handler.
@@ -747,11 +754,12 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 	pte_t *t;
 	
 	va = istate->cr_ifa;  /* faulting address */
+
+	ASSERT(!is_kernel_fault(va));
 	
 	/*
 	 * Assume a write to a read-only page.
 	 */
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	ASSERT(!t->w);
@@ -760,7 +768,6 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 		    (void *) va);
 		panic_memtrap(istate, PF_ACCESS_WRITE, va, NULL);
 	}
-	page_table_unlock(AS, true);
 }
 
 /** Page not present fault handler.
@@ -776,7 +783,8 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	page_table_lock(AS, true);
+	ASSERT(!is_kernel_fault(va));
+
 	t = page_mapping_find(AS, va, true);
 	ASSERT(t);
 	
@@ -789,9 +797,7 @@ void page_not_present(uint64_t vector, istate_t *istate)
 			itc_pte_copy(t);
 		else
 			dtc_pte_copy(t);
-		page_table_unlock(AS, true);
 	} else {
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate, "Page fault at %p.",
 			    (void *) va);
