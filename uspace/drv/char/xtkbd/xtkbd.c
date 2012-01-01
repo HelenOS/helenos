@@ -151,7 +151,7 @@ static const int scanmap_simple[] = {
 	[0x52] = KC_N0,
 	[0x53] = KC_NPERIOD
 };
-/*----------------------------------------------------------------------------*/
+
 #define SCANCODE_SET_EXTENDED 0xe0
 /** Scancode set 1 extended codes table */
 static const int scanmap_e0[] = {
@@ -176,15 +176,15 @@ static const int scanmap_e0[] = {
 	[0x35] = KC_NSLASH,
 	[0x1c] = KC_NENTER
 };
-/*----------------------------------------------------------------------------*/
+
 static int polling(void *);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
-/*----------------------------------------------------------------------------*/
+
 /** Keyboard function ops. */
 static ddf_dev_ops_t kbd_ops = {
 	.default_handler = default_connection_handler
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize keyboard driver structure.
  * @param kbd Keyboard driver structure to initialize.
  * @param dev DDF device structure.
@@ -237,7 +237,7 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 	fibril_add_ready(kbd->polling_fibril);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get data and parse scancodes.
  * @param arg Pointer to xt_kbd_t structure.
  * @return Never.
@@ -289,7 +289,7 @@ int polling(void *arg)
 		}
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Default handler for IPC methods not handled by DDF.
  *
  * @param fun Device function handling the call.

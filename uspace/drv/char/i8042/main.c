@@ -48,18 +48,18 @@
 static int get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size, int *kbd, int *mouse);
 static int i8042_dev_add(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 /** DDF driver operations. */
 static driver_ops_t i8042_driver_ops = {
 	.dev_add = i8042_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 /** DDF driver. */
 static driver_t i8042_driver = {
 	.name = NAME,
 	.driver_ops = &i8042_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&i8042_driver);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize a new ddf driver instance of i8042 driver
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -114,7 +114,7 @@ if (ret != EOK) { \
 	    device->name, device->handle);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get address of I/O registers.
  *
  * @param[in] dev Device asking for the addresses.

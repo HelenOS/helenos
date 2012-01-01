@@ -46,18 +46,18 @@
 #define NAME "ps2mouse"
 
 static int mouse_add(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 /** DDF driver ops. */
 static driver_ops_t mouse_driver_ops = {
 	.dev_add = mouse_add,
 };
-/*----------------------------------------------------------------------------*/
+
 /** DDF driver structure. */
 static driver_t mouse_driver = {
 	.name = NAME,
 	.driver_ops = &mouse_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&mouse_driver);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize a new ddf driver instance
  *
  * @param[in] device DDF instance of the device to initialize.

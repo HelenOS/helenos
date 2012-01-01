@@ -93,17 +93,17 @@ do { \
 		return size; \
 	} \
 } while (0)
-/*----------------------------------------------------------------------------*/
+
 static int polling_ps2(void *);
 static int polling_intellimouse(void *);
 static int probe_intellimouse(async_sess_t *, bool);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
-/*----------------------------------------------------------------------------*/
+
 /** ps/2 mouse driver ops. */
 static ddf_dev_ops_t mouse_ops = {
 	.default_handler = default_connection_handler
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize mouse driver structure.
  * @param kbd Mouse driver structure to initialize.
  * @param dev DDF device structure.
@@ -186,7 +186,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	fibril_add_ready(mouse->polling_fibril);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get data and parse ps2 protocol packets.
  * @param arg Pointer to ps2_mouse_t structure.
  * @return Never.
@@ -241,7 +241,7 @@ int polling_ps2(void *arg)
 		async_exchange_end(exch);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get data and parse ps2 protocol with IntelliMouse extension packets.
  * @param arg Pointer to ps2_mouse_t structure.
  * @return Never.
@@ -315,7 +315,7 @@ static int polling_intellimouse(void *arg)
 		async_exchange_end(exch);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Send magic sequence to initialize IntelliMouse extensions.
  * @param session IPC session to the parent device.
  * @param buttons True selects magic sequence for 4th and 5th button,
@@ -347,7 +347,7 @@ static int probe_intellimouse(async_sess_t *session, bool buttons)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Default handler for IPC methods not handled by DDF.
  *
  * @param fun Device function handling the call.
