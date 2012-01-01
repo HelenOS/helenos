@@ -177,6 +177,7 @@ void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 	if (dx || dy)
 		async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
 	if (dz) {
+		// TODO: Implement proper wheel support
 		keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
 		for (int i = 0; i < 3; ++i) {
 			async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
