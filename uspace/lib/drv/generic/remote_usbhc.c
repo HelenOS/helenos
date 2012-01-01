@@ -164,7 +164,7 @@ int usbhc_request_address(async_exch_t *exch, usb_address_t *address,
     bool strict, usb_speed_t speed)
 {
 	if (!exch || !address)
-		return EINVAL;
+		return EBADMEM;
 	sysarg_t new_address;
 	const int ret = async_req_4_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_REQUEST_ADDRESS, *address, strict, speed, &new_address);
@@ -177,7 +177,7 @@ int usbhc_bind_address(async_exch_t *exch, usb_address_t address,
     devman_handle_t handle)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	return async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_BIND_ADDRESS, address, handle);
 }
@@ -186,7 +186,7 @@ int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
     devman_handle_t *handle)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	sysarg_t h;
 	const int ret = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS, address, &h);
@@ -198,7 +198,7 @@ int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
 int usbhc_release_address(async_exch_t *exch, usb_address_t address)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
@@ -208,7 +208,7 @@ int usbhc_register_endpoint(async_exch_t *exch, usb_address_t address,
     usb_direction_t direction, size_t mps, unsigned interval)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	const usb_target_t target =
 	    {{ .address = address, .endpoint = endpoint }};
 #define _PACK2(high, low) (((high & 0xffff) << 16) | (low & 0xffff))
@@ -224,7 +224,7 @@ int usbhc_unregister_endpoint(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	return async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_UNREGISTER_ENDPOINT, address, endpoint, direction);
 }
@@ -233,11 +233,12 @@ int usbhc_read(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *rec_size)
 {
+	if (!exch)
+		return EBADMEM;
+
 	if (size == 0 && setup == 0)
 		return EOK;
 
-	if (!exch)
-		return EINVAL;
 	const usb_target_t target =
 	    {{ .address = address, .endpoint = endpoint }};
 
@@ -287,11 +288,12 @@ int usbhc_read(async_exch_t *exch, usb_address_t address,
 int usbhc_write(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
 {
+	if (!exch)
+		return EBADMEM;
+
 	if (size == 0 && setup == 0)
 		return EOK;
 
-	if (!exch)
-		return EINVAL;
 	const usb_target_t target =
 	    {{ .address = address, .endpoint = endpoint }};
 

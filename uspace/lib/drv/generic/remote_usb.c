@@ -55,7 +55,7 @@ typedef enum {
 int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	sysarg_t addr;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_ADDRESS, &addr);
@@ -74,7 +74,7 @@ int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
 int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	sysarg_t iface_no;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_INTERFACE, &iface_no);
@@ -91,7 +91,7 @@ int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
 int usb_get_hc_handle(async_exch_t *exch, devman_handle_t *hc_handle)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	devman_handle_t h;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
