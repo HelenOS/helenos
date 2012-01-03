@@ -42,6 +42,7 @@
 #include <abi/ipc/methods.h>
 
 #include "xtkbd.h"
+
 /** Scancode set 1 table. */
 static const int scanmap_simple[] = {
 
@@ -152,7 +153,9 @@ static const int scanmap_simple[] = {
 	[0x53] = KC_NPERIOD
 };
 
-#define SCANCODE_SET_EXTENDED 0xe0
+#define KBD_ACK   0xfa
+#define KBD_RESEND   0xfe
+#define KBD_SCANCODE_SET_EXTENDED   0xe0
 /** Scancode set 1 extended codes table */
 static const int scanmap_e0[] = {
 	[0x38] = KC_RALT,
@@ -262,7 +265,12 @@ int polling(void *arg)
 		uint8_t code = 0;
 		ssize_t size = char_dev_read(kbd->parent_sess, &code, 1);
 
-		if (code == SCANCODE_SET_EXTENDED) {
+		/** Ignore AT command reply */
+		if (code == KBD_ACK || code == KBD_RESEND) {
+			continue;
+		}
+
+		if (code == KBD_SCANCODE_SET_EXTENDED) {
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(int);
 			size = char_dev_read(kbd->parent_sess, &code, 1);
