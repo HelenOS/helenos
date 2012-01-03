@@ -177,6 +177,13 @@ static const int scanmap_e0[] = {
 	[0x1c] = KC_NENTER
 };
 
+#define KBD_CMD_SET_LEDS 0xed
+enum led_indicators {
+	LI_SCROLL       = 0x01,
+	LI_NUM          = 0x02,
+	LI_CAPS         = 0x04,
+};
+
 static int polling(void *);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
@@ -309,10 +316,20 @@ void default_connection_handler(ddf_fun_t *fun,
 	xt_kbd_t *kbd = fun->driver_data;
 
 	switch (method) {
-	case KBDEV_SET_IND:
-		/* XT keyboards do not support setting mods */
-		async_answer_0(icallid, ENOTSUP);
+	case KBDEV_SET_IND: {
+		/* XT keyboards do not support setting mods,
+		 * assume AT keyboard with Scan Code Set 1 */
+		const unsigned mods = IPC_GET_ARG1(*icall);
+		const uint8_t status = 0 |
+		    ((mods & KM_CAPS_LOCK) ? LI_CAPS : 0) |
+		    ((mods & KM_NUM_LOCK) ? LI_NUM : 0) |
+		    ((mods & KM_SCROLL_LOCK) ? LI_SCROLL : 0);
+		uint8_t cmds[] = { KBD_CMD_SET_LEDS, status };
+		const ssize_t size =
+		     char_dev_write(kbd->parent_sess, cmds, sizeof(cmds));
+		async_answer_0(icallid, size < 0 ? size : EOK);
 		break;
+	}
 	/* This might be ugly but async_callback_receive_start makes no
 	 * difference for incorrect call and malloc failure. */
 	case IPC_M_CONNECT_TO_ME: {
