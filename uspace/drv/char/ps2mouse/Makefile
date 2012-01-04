@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = ps2mouse
 
 SOURCES = \
+	chardev.c \
 	main.c \
 	ps2mouse.c
 

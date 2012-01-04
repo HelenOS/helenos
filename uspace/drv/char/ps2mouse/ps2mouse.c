@@ -35,7 +35,6 @@
 #include <bool.h>
 #include <errno.h>
 #include <devman.h>
-#include <device/char_dev.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/console.h>
@@ -43,6 +42,7 @@
 #include <abi/ipc/methods.h>
 
 #include "ps2mouse.h"
+#include "chardev.h"
 
 #define PS2_MOUSE_GET_DEVICE_ID   0xf2
 #define PS2_MOUSE_SET_SAMPLE_RATE   0xf3
@@ -73,7 +73,7 @@
 #define MOUSE_READ_BYTE_TEST(sess, value) \
 do { \
 	uint8_t data = 0; \
-	const ssize_t size = char_dev_read(session, &data, 1); \
+	const ssize_t size = chardev_read(session, &data, 1); \
 	if (size != 1) { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %d)", size);\
 		return size < 0 ? size : EIO; \
@@ -84,10 +84,11 @@ do { \
 		return EIO; \
 	} \
 } while (0)
+
 #define MOUSE_WRITE_BYTE(sess, value) \
 do { \
 	uint8_t data = (value); \
-	const ssize_t size = char_dev_write(session, &data, 1); \
+	const ssize_t size = chardev_write(session, &data, 1); \
 	if (size < 0 ) { \
 		ddf_msg(LVL_ERROR, "Failed writing byte: %hhx", value); \
 		return size; \
@@ -154,7 +155,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 	/* Enable mouse data reporting. */
 	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
-	ssize_t size = char_dev_write(mouse->parent_sess, &report, 1);
+	ssize_t size = chardev_write(mouse->parent_sess, &report, 1);
 	if (size != 1) {
 		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
 		async_hangup(mouse->parent_sess);
@@ -164,7 +165,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 		return EIO;
 	}
 
-	size = char_dev_read(mouse->parent_sess, &report, 1);
+	size = chardev_read(mouse->parent_sess, &report, 1);
 	if (size != 1 || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
@@ -202,7 +203,7 @@ int polling_ps2(void *arg)
 
 		uint8_t packet[PS2_BUFSIZE] = {};
 		const ssize_t size =
-		    char_dev_read(mouse->parent_sess, packet, PS2_BUFSIZE);
+		    chardev_read(mouse->parent_sess, packet, PS2_BUFSIZE);
 
 		if (size != PS2_BUFSIZE) {
 			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
@@ -256,7 +257,7 @@ static int polling_intellimouse(void *arg)
 	while (1) {
 
 		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
-		const ssize_t size = char_dev_read(
+		const ssize_t size = chardev_read(
 		    mouse->parent_sess, packet, INTELLIMOUSE_BUFSIZE);
 
 		if (size != INTELLIMOUSE_BUFSIZE) {

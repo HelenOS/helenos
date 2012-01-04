@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -26,46 +25,61 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup kbd_port
- * @ingroup  kbd
- * @{
- */
-/** @file
- * @brief i8042 port driver.
- */
 
-#ifndef i8042_H_
-#define i8042_H_
+#include <errno.h>
+#include <mem.h>
+#include <ipc/dev_iface.h>
+#include <ddf/log.h>
 
-#include <sys/types.h>
-#include <fibril_synch.h>
-#include <ddf/driver.h>
+#include "chardev.h"
 
-#include "buffer.h"
+// TODO make this shared
+enum {
+	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
+	IPC_CHAR_WRITE,
+};
 
-#define BUFFER_SIZE 12
+static ssize_t chardev_read_int(async_exch_t *exch, void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 4 * sizeof(sysarg_t))
+		return ELIMIT;
 
-/** i8042 HW I/O interface */
-typedef struct {
-	ioport8_t data;
-	uint8_t pad[3];
-	ioport8_t status;
-} __attribute__ ((packed)) i8042_regs_t;
+	sysarg_t message[4] = { 0 };
+	const ssize_t ret = async_req_1_4(exch, IPC_CHAR_READ, size,
+	    &message[0], &message[1], &message[2], &message[3]);
+	if (ret > 0 && (size_t)ret <= size)
+		memcpy(data, message, size);
+	return ret;
+}
 
-/** i8042 driver structure. */
-typedef struct i8042 {
-	i8042_regs_t *regs;    /**< I/O registers. */
-	ddf_fun_t *kbd_fun;    /**< Pirmary port device function. */
-	ddf_fun_t *aux_fun;  /**< Auxiliary port device function. */
-	buffer_t kbd_buffer;   /**< Primary port buffer. */
-	buffer_t aux_buffer;   /**< Aux. port buffer. */
-	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
-	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
-	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
-} i8042_t;
+static ssize_t chardev_write_int(async_exch_t *exch, const void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 3 * sizeof(sysarg_t))
+		return ELIMIT;
 
-int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
-#endif
-/**
- * @}
- */
+	sysarg_t message[3] = { 0 };
+	memcpy(message, data, size);
+	return async_req_4_0(exch, IPC_CHAR_WRITE, size,
+	    message[0], message[1], message[2]);
+}
+
+
+ssize_t chardev_write(async_sess_t *sess, const void *data, size_t size)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const ssize_t ret = chardev_write_int(exch, data, size);
+	async_exchange_end(exch);
+	return ret;
+}
+
+ssize_t chardev_read(async_sess_t *sess, void *data, size_t size)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const ssize_t ret = chardev_read_int(exch, data, size);
+	async_exchange_end(exch);
+	return ret;
+}

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -26,45 +25,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup kbd_port
- * @ingroup  kbd
+/** @addtogroup drvmouse
  * @{
  */
 /** @file
- * @brief i8042 port driver.
+ * @brief ps/2 mouse driver.
  */
 
-#ifndef i8042_H_
-#define i8042_H_
+#ifndef _CHARDEV_H_
+#define _CHARDEV_H_
 
-#include <sys/types.h>
-#include <fibril_synch.h>
-#include <ddf/driver.h>
+#include <libarch/types.h>
+#include <async.h>
 
-#include "buffer.h"
+ssize_t chardev_read(async_sess_t *, void *, size_t);
+ssize_t chardev_write(async_sess_t *, const void *, size_t);
 
-#define BUFFER_SIZE 12
-
-/** i8042 HW I/O interface */
-typedef struct {
-	ioport8_t data;
-	uint8_t pad[3];
-	ioport8_t status;
-} __attribute__ ((packed)) i8042_regs_t;
-
-/** i8042 driver structure. */
-typedef struct i8042 {
-	i8042_regs_t *regs;    /**< I/O registers. */
-	ddf_fun_t *kbd_fun;    /**< Pirmary port device function. */
-	ddf_fun_t *aux_fun;  /**< Auxiliary port device function. */
-	buffer_t kbd_buffer;   /**< Primary port buffer. */
-	buffer_t aux_buffer;   /**< Aux. port buffer. */
-	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
-	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
-	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
-} i8042_t;
-
-int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
 #endif
 /**
  * @}

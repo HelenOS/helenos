@@ -54,8 +54,6 @@
 
 static int i8042_write_kbd(ddf_fun_t *, char *, size_t);
 static int i8042_read_kbd(ddf_fun_t *, char *, size_t);
-static int i8042_write_aux(ddf_fun_t *, char *, size_t);
-static int i8042_read_aux(ddf_fun_t *, char *, size_t);
 
 /** Primary port interface structure. */
 static char_dev_ops_t kbd_iface = {
@@ -63,20 +61,17 @@ static char_dev_ops_t kbd_iface = {
     .write = i8042_write_kbd,
 };
 
-/** Auxiliary port interface structure. */
-static char_dev_ops_t aux_iface = {
-    .read = i8042_read_aux,
-    .write = i8042_write_aux,
-};
+void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 /** Primary port function operations. */
 static ddf_dev_ops_t kbd_ops = {
-	.interfaces[CHAR_DEV_IFACE] = &kbd_iface
+	.interfaces[CHAR_DEV_IFACE] = &kbd_iface,
+	.default_handler = default_handler,
 };
 
 /** Auxiliary port function operations. */
-static ddf_dev_ops_t aux_ops = {
-	.interfaces[CHAR_DEV_IFACE] = &aux_iface
+static ddf_dev_ops_t ops = {
+	.default_handler = default_handler,
 };
 
 /* Interesting bits for status register */
@@ -180,23 +175,23 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 		return ret;
 	}
 
-	dev->mouse_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2b");
-	if (!dev->mouse_fun) {
+	dev->aux_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2b");
+	if (!dev->aux_fun) {
 		ddf_fun_destroy(dev->kbd_fun);
 		return ENOMEM;
 	}
 
-	ret = ddf_fun_add_match_id(dev->mouse_fun, "char/ps2mouse", 90);
+	ret = ddf_fun_add_match_id(dev->aux_fun, "char/ps2mouse", 90);
 	if (ret != EOK) {
 		ddf_fun_destroy(dev->kbd_fun);
-		ddf_fun_destroy(dev->mouse_fun);
+		ddf_fun_destroy(dev->aux_fun);
 		return ret;
 	}
 
 	dev->kbd_fun->ops = &kbd_ops;
-	dev->mouse_fun->ops = &aux_ops;
+	dev->aux_fun->ops = &ops;
 	dev->kbd_fun->driver_data = dev;
-	dev->mouse_fun->driver_data = dev;
+	dev->aux_fun->driver_data = dev;
 
 	buffer_init(&dev->kbd_buffer, dev->kbd_data, BUFFER_SIZE);
 	buffer_init(&dev->aux_buffer, dev->aux_data, BUFFER_SIZE);
@@ -209,9 +204,9 @@ if  (ret != EOK) { \
 		dev->kbd_fun->driver_data = NULL; \
 		ddf_fun_destroy(dev->kbd_fun); \
 	} \
-	if (dev->mouse_fun) { \
-		dev->mouse_fun->driver_data = NULL; \
-		ddf_fun_destroy(dev->mouse_fun); \
+	if (dev->aux_fun) { \
+		dev->aux_fun->driver_data = NULL; \
+		ddf_fun_destroy(dev->aux_fun); \
 	} \
 } else (void)0
 
@@ -219,7 +214,7 @@ if  (ret != EOK) { \
 	CHECK_RET_DESTROY(ret,
 	    "Failed to bind keyboard function: %s.", str_error(ret));
 
-	ret = ddf_fun_bind(dev->mouse_fun);
+	ret = ddf_fun_bind(dev->aux_fun);
 	CHECK_RET_DESTROY(ret,
 	    "Failed to bind mouse function: %s.", str_error(ret));
 
@@ -241,10 +236,10 @@ if  (ret != EOK) { \
 		dev->kbd_fun->driver_data = NULL; \
 		ddf_fun_destroy(dev->kbd_fun); \
 	} \
-	if (dev->mouse_fun) { \
-		ddf_fun_unbind(dev->mouse_fun); \
-		dev->mouse_fun->driver_data = NULL; \
-		ddf_fun_destroy(dev->mouse_fun); \
+	if (dev->aux_fun) { \
+		ddf_fun_unbind(dev->aux_fun); \
+		dev->aux_fun->driver_data = NULL; \
+		ddf_fun_destroy(dev->aux_fun); \
 	} \
 } else (void)0
 
@@ -327,13 +322,19 @@ static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
 	return size;
 }
 
-/** Write data to i8042 auxiliary port.
+// TODO use shared instead of own copy
+enum {
+	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
+	IPC_CHAR_WRITE,
+};
+
+/** Write data to i8042 port.
  * @param fun DDF function.
  * @param buffer Data source.
  * @param size Data size.
  * @return Bytes written.
  */
-static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
+static int i8042_write(ddf_fun_t *fun, char *buffer, size_t size)
 {
 	assert(fun);
 	assert(fun->driver_data);
@@ -341,30 +342,65 @@ static int i8042_write_aux(ddf_fun_t *fun, char *buffer, size_t size)
 	fibril_mutex_lock(&controller->write_guard);
 	for (size_t i = 0; i < size; ++i) {
 		wait_ready(controller);
-		pio_write_8(&controller->regs->status, i8042_CMD_WRITE_AUX);
+		if (controller->aux_fun == fun)
+			pio_write_8(
+			    &controller->regs->status, i8042_CMD_WRITE_AUX);
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
 	fibril_mutex_unlock(&controller->write_guard);
 	return size;
 }
 
-/** Read data from i8042 auxiliary port.
+/** Read data from i8042 port.
  * @param fun DDF function.
  * @param buffer Data place.
  * @param size Data place size.
  * @return Bytes read.
  */
-static int i8042_read_aux(ddf_fun_t *fun, char *buffer, size_t size)
+static int i8042_read(ddf_fun_t *fun, char *data, size_t size)
 {
 	assert(fun);
 	assert(fun->driver_data);
-	bzero(buffer, size);
 
 	i8042_t *controller = fun->driver_data;
+	buffer_t *buffer = (fun == controller->aux_fun) ?
+	    &controller->aux_buffer : &controller->kbd_buffer;
 	for (size_t i = 0; i < size; ++i) {
-		*buffer++ = buffer_read(&controller->aux_buffer);
+		*data++ = buffer_read(buffer);
 	}
 	return size;
+}
+
+void default_handler(ddf_fun_t *fun, ipc_callid_t id, ipc_call_t *call)
+{
+	const sysarg_t method = IPC_GET_IMETHOD(*call);
+	const size_t size = IPC_GET_ARG1(*call);
+	switch (method) {
+	case IPC_CHAR_READ:
+		if (size <= 4 * sizeof(sysarg_t)) {
+			sysarg_t message[4] = { 0 };
+			i8042_read(fun, (char*)message, size);
+			async_answer_4(id, size, message[0], message[1],
+			    message[2], message[3]);
+		} else {
+			async_answer_0(id, ELIMIT);
+		}
+		break;
+
+	case IPC_CHAR_WRITE:
+		if (size <= 3 * sizeof(sysarg_t)) {
+			const sysarg_t message[3] = {
+				IPC_GET_ARG2(*call), IPC_GET_ARG3(*call),
+				IPC_GET_ARG4(*call) };
+			i8042_write(fun, (char*)message, size);
+			async_answer_0(id, size);
+		} else {
+			async_answer_0(id, ELIMIT);
+		}
+
+	default:
+		async_answer_0(id, EINVAL);
+	}
 }
 /**
  * @}
