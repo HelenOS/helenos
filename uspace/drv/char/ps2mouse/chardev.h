@@ -38,8 +38,8 @@
 #include <libarch/types.h>
 #include <async.h>
 
-ssize_t chardev_read(async_sess_t *, void *, size_t);
-ssize_t chardev_write(async_sess_t *, const void *, size_t);
+ssize_t chardev_read(async_exch_t *, void *, size_t);
+ssize_t chardev_write(async_exch_t *, const void *, size_t);
 
 #endif
 /**

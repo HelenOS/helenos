@@ -73,7 +73,7 @@
 #define MOUSE_READ_BYTE_TEST(sess, value) \
 do { \
 	uint8_t data = 0; \
-	const ssize_t size = chardev_read(session, &data, 1); \
+	const ssize_t size = chardev_read(sess, &data, 1); \
 	if (size != 1) { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %d)", size);\
 		return size < 0 ? size : EIO; \
@@ -88,7 +88,7 @@ do { \
 #define MOUSE_WRITE_BYTE(sess, value) \
 do { \
 	uint8_t data = (value); \
-	const ssize_t size = chardev_write(session, &data, 1); \
+	const ssize_t size = chardev_write(sess, &data, 1); \
 	if (size < 0 ) { \
 		ddf_msg(LVL_ERROR, "Failed writing byte: %hhx", value); \
 		return size; \
@@ -97,7 +97,7 @@ do { \
 
 static int polling_ps2(void *);
 static int polling_intellimouse(void *);
-static int probe_intellimouse(async_sess_t *, bool);
+static int probe_intellimouse(async_exch_t *, bool);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 /** ps/2 mouse driver ops. */
@@ -147,17 +147,19 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 	/* Probe IntelliMouse extensions. */
 	int (*polling_f)(void*) = polling_ps2;
-	if (probe_intellimouse(mouse->parent_sess, false) == EOK) {
+	async_exch_t *exch = async_exchange_begin(mouse->parent_sess);
+	if (probe_intellimouse(exch, false) == EOK) {
 		ddf_msg(LVL_NOTE, "Enabled IntelliMouse extensions");
 		polling_f = polling_intellimouse;
-		if (probe_intellimouse(mouse->parent_sess, true) == EOK)
+		if (probe_intellimouse(exch, true) == EOK)
 			ddf_msg(LVL_NOTE, "Enabled 4th and 5th button.");
 	}
 	/* Enable mouse data reporting. */
 	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
-	ssize_t size = chardev_write(mouse->parent_sess, &report, 1);
+	ssize_t size = chardev_write(exch, &report, 1);
 	if (size != 1) {
 		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
+		async_exchange_end(exch);
 		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
 		mouse->mouse_fun->driver_data = NULL;
@@ -165,7 +167,8 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 		return EIO;
 	}
 
-	size = chardev_read(mouse->parent_sess, &report, 1);
+	size = chardev_read(exch, &report, 1);
+	async_exchange_end(exch);
 	if (size != 1 || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
@@ -199,11 +202,12 @@ int polling_ps2(void *arg)
 
 	assert(mouse->parent_sess);
 	bool buttons[PS2_BUTTON_COUNT] = {};
+	async_exch_t *parent_exch = async_exchange_begin(mouse->parent_sess);
 	while (1) {
 
 		uint8_t packet[PS2_BUFSIZE] = {};
 		const ssize_t size =
-		    chardev_read(mouse->parent_sess, packet, PS2_BUFSIZE);
+		    chardev_read(parent_exch, packet, PS2_BUFSIZE);
 
 		if (size != PS2_BUFSIZE) {
 			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
@@ -241,6 +245,7 @@ int polling_ps2(void *arg)
 		}
 		async_exchange_end(exch);
 	}
+	async_exchange_end(parent_exch);
 }
 
 /** Get data and parse ps2 protocol with IntelliMouse extension packets.
@@ -254,11 +259,14 @@ static int polling_intellimouse(void *arg)
 
 	assert(mouse->parent_sess);
 	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
+	async_exch_t *parent_exch = NULL;
 	while (1) {
+		if (!parent_exch)
+			parent_exch = async_exchange_begin(mouse->parent_sess);
 
 		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
 		const ssize_t size = chardev_read(
-		    mouse->parent_sess, packet, INTELLIMOUSE_BUFSIZE);
+		    parent_exch, packet, INTELLIMOUSE_BUFSIZE);
 
 		if (size != INTELLIMOUSE_BUFSIZE) {
 			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
@@ -315,36 +323,37 @@ static int polling_intellimouse(void *arg)
 		}
 		async_exchange_end(exch);
 	}
+	async_exchange_end(parent_exch);
 }
 
 /** Send magic sequence to initialize IntelliMouse extensions.
- * @param session IPC session to the parent device.
+ * @param exch IPC exchange to the parent device.
  * @param buttons True selects magic sequence for 4th and 5th button,
  * false selects wheel support magic sequence.
  * See http://www.computer-engineering.org/ps2mouse/ for details.
  */
-static int probe_intellimouse(async_sess_t *session, bool buttons)
+static int probe_intellimouse(async_exch_t *exch, bool buttons)
 {
-	assert(session);
+	assert(exch);
 
-	MOUSE_WRITE_BYTE(session, PS2_MOUSE_SET_SAMPLE_RATE);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(session, 200);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_SET_SAMPLE_RATE);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(exch, 200);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
 
-	MOUSE_WRITE_BYTE(session, PS2_MOUSE_SET_SAMPLE_RATE);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(session, buttons ? 200 : 100);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_SET_SAMPLE_RATE);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(exch, buttons ? 200 : 100);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
 
-	MOUSE_WRITE_BYTE(session, PS2_MOUSE_SET_SAMPLE_RATE);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(session, 80);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_SET_SAMPLE_RATE);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(exch, 80);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
 
-	MOUSE_WRITE_BYTE(session, PS2_MOUSE_GET_DEVICE_ID);
-	MOUSE_READ_BYTE_TEST(session, PS2_MOUSE_ACK);
-	MOUSE_READ_BYTE_TEST(session, buttons ? 4 : 3);
+	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_GET_DEVICE_ID);
+	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
+	MOUSE_READ_BYTE_TEST(exch, buttons ? 4 : 3);
 
 	return EOK;
 }

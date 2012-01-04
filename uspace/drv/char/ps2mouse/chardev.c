@@ -39,7 +39,7 @@ enum {
 	IPC_CHAR_WRITE,
 };
 
-static ssize_t chardev_read_int(async_exch_t *exch, void *data, size_t size)
+ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
 {
 	if (!exch)
 		return EBADMEM;
@@ -54,7 +54,7 @@ static ssize_t chardev_read_int(async_exch_t *exch, void *data, size_t size)
 	return ret;
 }
 
-static ssize_t chardev_write_int(async_exch_t *exch, const void *data, size_t size)
+ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
 {
 	if (!exch)
 		return EBADMEM;
@@ -65,21 +65,4 @@ static ssize_t chardev_write_int(async_exch_t *exch, const void *data, size_t si
 	memcpy(message, data, size);
 	return async_req_4_0(exch, IPC_CHAR_WRITE, size,
 	    message[0], message[1], message[2]);
-}
-
-
-ssize_t chardev_write(async_sess_t *sess, const void *data, size_t size)
-{
-	async_exch_t *exch = async_exchange_begin(sess);
-	const ssize_t ret = chardev_write_int(exch, data, size);
-	async_exchange_end(exch);
-	return ret;
-}
-
-ssize_t chardev_read(async_sess_t *sess, void *data, size_t size)
-{
-	async_exch_t *exch = async_exchange_begin(sess);
-	const ssize_t ret = chardev_read_int(exch, data, size);
-	async_exchange_end(exch);
-	return ret;
 }
