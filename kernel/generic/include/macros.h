@@ -76,6 +76,8 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 
 #endif /* __ASM__ */
 
+#define ispwr2(x)	(((x) & ((x) - 1)) == 0)
+
 #define isdigit(d)     (((d) >= '0') && ((d) <= '9'))
 #define islower(c)     (((c) >= 'a') && ((c) <= 'z'))
 #define isupper(c)     (((c) >= 'A') && ((c) <= 'Z'))

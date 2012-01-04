@@ -50,41 +50,70 @@
 
 #define MINCONF 1
 
-uintptr_t last_frame = 0;
+uintptr_t end_of_identity = -1ULL;
 
-void frame_arch_init(void)
+static void frame_common_arch_init(bool low)
 {
-	if (config.cpu_active == 1) {
-		unsigned int i;
-		for (i = 0; i < bootinfo->memmap_items; i++) {
-			if (bootinfo->memmap[i].type == MEMMAP_FREE_MEM) {
-				uint64_t base = bootinfo->memmap[i].base;
-				uint64_t size = bootinfo->memmap[i].size;
-				uint64_t abase = ALIGN_UP(base, FRAME_SIZE);
+	unsigned int i;
 
-				if (size > FRAME_SIZE)
-					size -= abase - base;
+	for (i = 0; i < bootinfo->memmap_items; i++) {
+		if (bootinfo->memmap[i].type != MEMMAP_FREE_MEM)
+			continue;
 
-				if (size > MIN_ZONE_SIZE) {
-					zone_create(abase >> FRAME_WIDTH,
-					    size >> FRAME_WIDTH,
-					    max(MINCONF, abase >> FRAME_WIDTH),
-					    0);
-				}
-				if (abase + size > last_frame)
-					last_frame = abase + size;
+		uintptr_t base = bootinfo->memmap[i].base;
+		size_t size = bootinfo->memmap[i].size;
+		uintptr_t abase = ALIGN_UP(base, FRAME_SIZE);
+
+		if (size > FRAME_SIZE)
+			size -= abase - base;
+
+		if (!frame_adjust_zone_bounds(low, &abase, &size))
+			continue;
+
+		if (size > MIN_ZONE_SIZE) {
+			pfn_t pfn = ADDR2PFN(abase);
+			size_t count = SIZE2FRAMES(size);
+
+			if (low) {
+				zone_create(pfn, count, max(MINCONF, pfn),
+				    ZONE_AVAILABLE | ZONE_LOWMEM);
+			} else {
+				pfn_t conf;
+
+				conf = zone_external_conf_alloc(count);
+				zone_create(pfn, count, conf,
+				    ZONE_AVAILABLE | ZONE_HIGHMEM);
 			}
 		}
-		
-		/*
-		 * Blacklist ROM regions.
-		 */
-		frame_mark_unavailable(ADDR2PFN(ROM_BASE),
-		    SIZE2FRAMES(ROM_SIZE));
+	}
+}
 
-		frame_mark_unavailable(ADDR2PFN(KERNEL_RESERVED_AREA_BASE),
-		    SIZE2FRAMES(KERNEL_RESERVED_AREA_SIZE));
-	}	
+void frame_low_arch_init(void)
+{
+	if (config.cpu_active > 1)
+		return;
+	
+	frame_common_arch_init(true);
+	
+	/*
+	 * Blacklist ROM regions.
+	 */
+	frame_mark_unavailable(ADDR2PFN(ROM_BASE),
+	    SIZE2FRAMES(ROM_SIZE));
+
+	frame_mark_unavailable(ADDR2PFN(KERNEL_RESERVED_AREA_BASE),
+	    SIZE2FRAMES(KERNEL_RESERVED_AREA_SIZE));
+
+	/* PA2KA will work only on low-memory. */
+	end_of_identity = PA2KA(config.physmem_end - FRAME_SIZE) + PAGE_SIZE;
+}
+
+void frame_high_arch_init(void)
+{
+	if (config.cpu_active > 1)
+		return;
+	
+	frame_common_arch_init(false);
 }
 
 /** @}

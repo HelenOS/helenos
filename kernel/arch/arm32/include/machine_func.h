@@ -49,7 +49,7 @@ struct arm_machine_ops {
 	void (*machine_init)(void);
 	void (*machine_timer_irq_start)(void);
 	void (*machine_cpu_halt)(void);
-	void (*machine_get_memory_extents)(uintptr_t *, uintptr_t *);
+	void (*machine_get_memory_extents)(uintptr_t *, size_t *);
 	void (*machine_irq_exception)(unsigned int, istate_t *);
 	void (*machine_frame_init)(void);
 	void (*machine_output_init)(void);
@@ -80,7 +80,7 @@ extern void machine_cpu_halt(void);
  * @param start		Place to store memory start address.
  * @param size		Place to store memory size.
  */
-extern void machine_get_memory_extents(uintptr_t *start, uintptr_t *size);
+extern void machine_get_memory_extents(uintptr_t *start, size_t *size);
 
 /** Interrupt exception handler.
  *

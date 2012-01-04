@@ -38,31 +38,50 @@
 #include <arch/machine_func.h>
 #include <config.h>
 #include <align.h>
+#include <macros.h>
 
-/** Address of the last frame in the memory. */
-uintptr_t last_frame = 0;
-
-/** Creates memory zones. */
-void frame_arch_init(void)
+static void frame_common_arch_init(bool low)
 {
-	uintptr_t mem_start, mem_size;
-	uintptr_t first_frame;
-	uintptr_t num_frames;
+	uintptr_t base;
+	size_t size;
 
-	machine_get_memory_extents(&mem_start, &mem_size);
-	first_frame = ALIGN_UP(mem_start, FRAME_SIZE);
-	last_frame = ALIGN_DOWN(mem_start + mem_size, FRAME_SIZE);
-	num_frames = (last_frame - first_frame) >> FRAME_WIDTH;
+	machine_get_memory_extents(&base, &size);
+	base = ALIGN_UP(base, FRAME_SIZE);
+	size = ALIGN_DOWN(size, FRAME_SIZE);
 	
-	/* All memory as one zone */
-	zone_create(first_frame >> FRAME_WIDTH, num_frames,
-	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
+	if (!frame_adjust_zone_bounds(low, &base, &size))
+		return;
+
+	if (low) {
+		zone_create(ADDR2PFN(base), SIZE2FRAMES(size),
+		    BOOT_PAGE_TABLE_START_FRAME +
+		    BOOT_PAGE_TABLE_SIZE_IN_FRAMES,
+		    ZONE_AVAILABLE | ZONE_LOWMEM);
+	} else {
+		pfn_t conf = zone_external_conf_alloc(SIZE2FRAMES(size));
+
+		zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
+		    ZONE_AVAILABLE | ZONE_HIGHMEM);
+	}
 	
+}
+
+/** Create low memory zones. */
+void frame_low_arch_init(void)
+{
+	frame_common_arch_init(true);
+
 	/* blacklist boot page table */
 	frame_mark_unavailable(BOOT_PAGE_TABLE_START_FRAME,
 	    BOOT_PAGE_TABLE_SIZE_IN_FRAMES);
 
 	machine_frame_init();
+}
+
+/** Create high memory zones. */
+void frame_high_arch_init(void)
+{
+	frame_common_arch_init(false);
 }
 
 /** Frees the boot page table. */

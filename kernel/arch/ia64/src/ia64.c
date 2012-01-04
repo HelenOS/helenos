@@ -44,12 +44,18 @@
 #include <sysinfo/sysinfo.h>
 #include <arch/drivers/it.h>
 #include <arch/drivers/kbd.h>
+#include <arch/legacyio.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/drivers/i8042/i8042.h>
 #include <genarch/drivers/ns16550/ns16550.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
+#include <mm/page.h>
+
+#ifdef MACHINE_ski
+#include <arch/drivers/ski.h>
+#endif
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
@@ -57,6 +63,7 @@
 bootinfo_t *bootinfo;
 
 static uint64_t iosapic_base = 0xfec00000;
+uintptr_t legacyio_virt_base = 0;
 
 /** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
@@ -79,7 +86,7 @@ void arch_pre_mm_init(void)
 
 static void iosapic_init(void)
 {
-	uint64_t IOSAPIC = PA2KA((sysarg_t)(iosapic_base)) | FW_OFFSET;
+	uintptr_t IOSAPIC = hw_map(iosapic_base, PAGE_SIZE);
 	int i;
 	
 	int myid, myeid;
@@ -106,14 +113,16 @@ static void iosapic_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Map the page with legacy I/O. */
+		legacyio_virt_base = hw_map(LEGACYIO_PHYS_BASE, LEGACYIO_SIZE);
+
 		iosapic_init();
 		irq_init(INR_COUNT, INR_COUNT);
 	}
 	it_init();	
 }
 
-void arch_post_cpu_init(void)
-{
+void arch_post_cpu_init(void){
 }
 
 void arch_pre_smp_init(void)
@@ -201,7 +210,7 @@ void arch_post_smp_init(void)
 
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
-	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
+	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, LEGACYIO_USER_BASE);
 }
 
 

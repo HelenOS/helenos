@@ -172,6 +172,25 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 #endif /* CONFIG_FPU_LAZY */
 #endif /* CONFIG_FPU */
 	
+	/*
+	 * Allocate the kernel stack from the low-memory to prevent an infinite
+	 * nesting of TLB-misses when accessing the stack from the part of the
+	 * TLB-miss handler written in C.
+	 *
+	 * Note that low-memory is safe to be used for the stack as it will be
+	 * covered by the kernel identity mapping, which guarantees not to
+	 * nest TLB-misses infinitely (either via some hardware mechanism or
+	 * by the construciton of the assembly-language part of the TLB-miss
+	 * handler).
+	 *
+	 * This restriction can be lifted once each architecture provides
+	 * a similar guarantee, for example by locking the kernel stack
+	 * in the TLB whenever it is allocated from the high-memory and the
+	 * thread is being scheduled to run.
+	 */
+	kmflags |= FRAME_LOWMEM;
+	kmflags &= ~FRAME_HIGHMEM;
+
 	thread->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
 	if (!thread->kstack) {
 #ifdef CONFIG_FPU

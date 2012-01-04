@@ -67,6 +67,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <genarch/mm/page_pt.h>
+#include <mm/km.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/slab.h>
@@ -85,9 +86,14 @@
 #include <ipc/event.h>
 #include <sysinfo/sysinfo.h>
 #include <sysinfo/stats.h>
+#include <lib/ra.h>
 
 /** Global configuration structure. */
-config_t config;
+config_t config = {
+	.identity_configured = false,
+	.non_identity_configured = false,
+	.physmem_end = 0
+};
 
 /** Initial user-space tasks */
 init_t init = {
@@ -204,15 +210,16 @@ void main_bsp_separated_stack(void)
 	 * Memory management subsystems initialization.
 	 */
 	arch_pre_mm_init();
+	km_identity_init();
 	frame_init();
-	
-	/* Initialize at least 1 memory segment big enough for slab to work. */
 	slab_cache_init();
+	ra_init();	
 	sysinfo_init();
 	btree_init();
 	as_init();
 	page_init();
 	tlb_init();
+	km_non_identity_init();
 	ddi_init();
 	arch_post_mm_init();
 	reserve_init();

@@ -56,6 +56,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/smp/smp.c \
 	arch/$(KARCH)/src/smp/ipi.c \
+	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
