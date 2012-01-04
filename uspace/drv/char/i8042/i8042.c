@@ -46,30 +46,14 @@
 
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
-#include <ops/char_dev.h>
 
 #include "i8042.h"
 
 #define NAME       "i8042"
 
-static int i8042_write_kbd(ddf_fun_t *, char *, size_t);
-static int i8042_read_kbd(ddf_fun_t *, char *, size_t);
-
-/** Primary port interface structure. */
-static char_dev_ops_t kbd_iface = {
-    .read = i8042_read_kbd,
-    .write = i8042_write_kbd,
-};
-
 void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
-/** Primary port function operations. */
-static ddf_dev_ops_t kbd_ops = {
-	.interfaces[CHAR_DEV_IFACE] = &kbd_iface,
-	.default_handler = default_handler,
-};
-
-/** Auxiliary port function operations. */
+/** Port function operations. */
 static ddf_dev_ops_t ops = {
 	.default_handler = default_handler,
 };
@@ -188,7 +172,7 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 		return ret;
 	}
 
-	dev->kbd_fun->ops = &kbd_ops;
+	dev->kbd_fun->ops = &ops;
 	dev->aux_fun->ops = &ops;
 	dev->kbd_fun->driver_data = dev;
 	dev->aux_fun->driver_data = dev;
@@ -282,47 +266,7 @@ if  (ret != EOK) { \
 	return EOK;
 }
 
-/** Write data to i8042 primary port.
- * @param fun DDF function.
- * @param buffer Data source.
- * @param size Data size.
- * @return Bytes written.
- */
-static int i8042_write_kbd(ddf_fun_t *fun, char *buffer, size_t size)
-{
-	assert(fun);
-	assert(fun->driver_data);
-	i8042_t *controller = fun->driver_data;
-	fibril_mutex_lock(&controller->write_guard);
-	for (size_t i = 0; i < size; ++i) {
-		wait_ready(controller);
-		pio_write_8(&controller->regs->data, buffer[i]);
-	}
-	fibril_mutex_unlock(&controller->write_guard);
-	return size;
-}
-
-/** Read data from i8042 primary port.
- * @param fun DDF function.
- * @param buffer Data place.
- * @param size Data place size.
- * @return Bytes read.
- */
-static int i8042_read_kbd(ddf_fun_t *fun, char *buffer, size_t size)
-{
-	assert(fun);
-	assert(fun->driver_data);
-	bzero(buffer, size);
-
-	i8042_t *controller = fun->driver_data;
-
-	for (size_t i = 0; i < size; ++i) {
-		*buffer++ = buffer_read(&controller->kbd_buffer);
-	}
-	return size;
-}
-
-// TODO use shared instead of own copy
+// TODO use shared instead this
 enum {
 	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
 	IPC_CHAR_WRITE,
@@ -371,6 +315,11 @@ static int i8042_read(ddf_fun_t *fun, char *data, size_t size)
 	return size;
 }
 
+/** Handle data requests.
+ * @param fun ddf_fun_t function.
+ * @param id callid
+ * @param call IPC request.
+ */
 void default_handler(ddf_fun_t *fun, ipc_callid_t id, ipc_call_t *call)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*call);

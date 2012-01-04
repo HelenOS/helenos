@@ -34,13 +34,13 @@
 
 #include <errno.h>
 #include <devman.h>
-#include <device/char_dev.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/console.h>
 #include <ipc/kbdev.h>
 #include <abi/ipc/methods.h>
 
+#include "chardev.h"
 #include "xtkbd.h"
 
 /** Scancode set 1 table. */
@@ -258,12 +258,16 @@ int polling(void *arg)
 	const xt_kbd_t *kbd = arg;
 
 	assert(kbd->parent_sess);
+	async_exch_t *parent_exch = async_exchange_begin(kbd->parent_sess);
 	while (1) {
+		if (!parent_exch)
+			parent_exch = async_exchange_begin(kbd->parent_sess);
+
 		const int *map = scanmap_simple;
 		size_t map_size = sizeof(scanmap_simple) / sizeof(int);
 
 		uint8_t code = 0;
-		ssize_t size = char_dev_read(kbd->parent_sess, &code, 1);
+		ssize_t size = chardev_read(parent_exch, &code, 1);
 
 		/** Ignore AT command reply */
 		if (code == KBD_ACK || code == KBD_RESEND) {
@@ -273,7 +277,7 @@ int polling(void *arg)
 		if (code == KBD_SCANCODE_SET_EXTENDED) {
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(int);
-			size = char_dev_read(kbd->parent_sess, &code, 1);
+			size = chardev_read(parent_exch, &code, 1);
 			// TODO handle print screen
 		}
 
@@ -333,8 +337,9 @@ void default_connection_handler(ddf_fun_t *fun,
 		    ((mods & KM_NUM_LOCK) ? LI_NUM : 0) |
 		    ((mods & KM_SCROLL_LOCK) ? LI_SCROLL : 0);
 		uint8_t cmds[] = { KBD_CMD_SET_LEDS, status };
-		const ssize_t size =
-		     char_dev_write(kbd->parent_sess, cmds, sizeof(cmds));
+		async_exch_t *exch = async_exchange_begin(kbd->parent_sess);
+		const ssize_t size = chardev_write(exch, cmds, sizeof(cmds));
+		async_exchange_end(exch);
 		async_answer_0(icallid, size < 0 ? size : EOK);
 		break;
 	}
