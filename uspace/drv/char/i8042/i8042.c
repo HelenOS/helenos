@@ -378,7 +378,7 @@ void default_handler(ddf_fun_t *fun, ipc_callid_t id, ipc_call_t *call)
 	switch (method) {
 	case IPC_CHAR_READ:
 		if (size <= 4 * sizeof(sysarg_t)) {
-			sysarg_t message[4] = { 0 };
+			sysarg_t message[4] = {};
 			i8042_read(fun, (char*)message, size);
 			async_answer_4(id, size, message[0], message[1],
 			    message[2], message[3]);
