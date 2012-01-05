@@ -23,5 +23,3 @@
 10 pci/ven=8086&dev=107c
 10 pci/ven=8086&dev=1096
 10 pci/ven=8086&dev=10b9
-10 pci/ven=8086&dev=1107
-10 pci/ven=8086&dev=1112

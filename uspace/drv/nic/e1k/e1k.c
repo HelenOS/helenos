@@ -1912,6 +1912,12 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	
 	e1000_board_t board;
 	switch (device_id) {
+	case 0x100e:
+	case 0x1015:
+	case 0x1016:
+	case 0x1017:
+		board = E1000_82540;
+		break;
 	case 0x1013:
 	case 0x1018:
 	case 0x1078:
@@ -1921,6 +1927,21 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	case 0x1077:
 	case 0x107c:
 		board = E1000_82541REV2;
+		break;
+	case 0x100f:
+	case 0x1011:
+	case 0x1026:
+	case 0x1027:
+	case 0x1028:
+		board = E1000_82545;
+		break;
+	case 0x1010:
+	case 0x1012:
+	case 0x101d:
+	case 0x1079:
+	case 0x107a:
+	case 0x107b:
+		board = E1000_82546;
 		break;
 	case 0x1019:
 	case 0x101a:
@@ -1940,8 +1961,11 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	}
 	
 	switch (board) {
+	case E1000_82540:
 	case E1000_82541:
 	case E1000_82541REV2:
+	case E1000_82545:
+	case E1000_82546:
 	case E1000_82572:
 		e1000->info.eerd_start = 0x01;
 		e1000->info.eerd_done = 0x10;
