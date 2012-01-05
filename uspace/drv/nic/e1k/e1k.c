@@ -43,6 +43,7 @@
 #include <ipc/ns.h>
 #include <libarch/ddi.h>
 #include <as.h>
+#include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <devman.h>
 #include <device/hw_res_parsed.h>
@@ -110,6 +111,9 @@
 
 /** E1000 device data */
 typedef struct {
+	/** Device configuration */
+	e1000_info_t info;
+	
 	/** Physical registers base address */
 	void *reg_base_phys;
 	/** Virtual registers base address */
@@ -142,9 +146,6 @@ typedef struct {
 	
 	/** Used milticast Receive addrress count */
 	unsigned int multicast_ra_count;
-	
-	/** PCI device ID */
-	uint16_t device_id;
 	
 	/** The irq assigned */
 	int irq;
@@ -1887,21 +1888,73 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 {
 	/* Allocate driver data for the device. */
 	e1000_t *e1000 = e1000_create_dev_data(dev);
-	if (e1000 == NULL)
+	if (e1000 == NULL) {
+		ddf_msg(LVL_ERROR, "Unable to allocate device softstate");
 		return ENOMEM;
+	}
 	
 	/* Obtain and fill hardware resources info */
 	int rc = e1000_get_resource_info(dev);
 	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Cannot obtain hardware resources");
 		e1000_dev_cleanup(dev);
 		return rc;
 	}
 	
+	uint16_t device_id;
 	rc = pci_config_space_read_16(dev->parent_sess, PCI_DEVICE_ID,
-	    &e1000->device_id);
+	    &device_id);
 	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Cannot access PCI configuration space");
 		e1000_dev_cleanup(dev);
 		return rc;
+	}
+	
+	e1000_board_t board;
+	switch (device_id) {
+	case 0x1013:
+	case 0x1018:
+	case 0x1078:
+		board = E1000_82541;
+		break;
+	case 0x1076:
+	case 0x1077:
+	case 0x107c:
+		board = E1000_82541REV2;
+		break;
+	case 0x1019:
+	case 0x101a:
+		board = E1000_82547;
+		break;
+	case 0x10b9:
+		board = E1000_82572;
+		break;
+	case 0x1096:
+		board = E1000_80003ES2;
+		break;
+	default:
+		ddf_msg(LVL_ERROR, "Device not supported (%#" PRIx16 ")",
+		    device_id);
+		e1000_dev_cleanup(dev);
+		return ENOTSUP;
+	}
+	
+	switch (board) {
+	case E1000_82541:
+	case E1000_82541REV2:
+	case E1000_82572:
+		e1000->info.eerd_start = 0x01;
+		e1000->info.eerd_done = 0x10;
+		e1000->info.eerd_address_offset = 8;
+		e1000->info.eerd_data_offset = 16;
+		break;
+	case E1000_82547:
+	case E1000_80003ES2:
+		e1000->info.eerd_start = 0x01;
+		e1000->info.eerd_done = 0x02;
+		e1000->info.eerd_address_offset = 2;
+		e1000->info.eerd_data_offset = 16;
+		break;
 	}
 	
 	return EOK;
@@ -2022,43 +2075,21 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
 {
 	fibril_mutex_lock(&e1000->eeprom_lock);
 	
-	uint32_t eerd_done;
-	uint32_t eerd_address_offset;
-	
-	switch (e1000->device_id) {
-	case 0x107c:
-	case 0x1013:
-	case 0x1018:
-	case 0x1019:
-	case 0x101A:
-	case 0x1076:
-	case 0x1077:
-	case 0x1078:
-	case 0x10b9:
-		/* 82541xx and 82547GI/EI */
-		eerd_done = EERD_DONE_82541XX_82547GI_EI;
-		eerd_address_offset = EERD_ADDRESS_OFFSET_82541XX_82547GI_EI;
-		break;
-	default:
-		eerd_done = EERD_DONE;
-		eerd_address_offset = EERD_ADDRESS_OFFSET;
-		break;
-	}
-	
 	/* Write address and START bit to EERD register */
-	uint32_t write_data = EERD_START |
-	    (((uint32_t) eeprom_address) << eerd_address_offset);
+	uint32_t write_data = e1000->info.eerd_start |
+	    (((uint32_t) eeprom_address) <<
+	    e1000->info.eerd_address_offset);
 	E1000_REG_WRITE(e1000, E1000_EERD, write_data);
 	
 	uint32_t eerd = E1000_REG_READ(e1000, E1000_EERD);
-	while ((eerd & eerd_done) == 0) {
+	while ((eerd & e1000->info.eerd_done) == 0) {
 		usleep(1);
 		eerd = E1000_REG_READ(e1000, E1000_EERD);
 	}
 	
 	fibril_mutex_unlock(&e1000->eeprom_lock);
 	
-	return (uint16_t) (eerd >> EERD_DATA_OFFSET);
+	return (uint16_t) (eerd >> e1000->info.eerd_data_offset);
 }
 
 /** Get MAC address of the E1000 adapter
@@ -2227,5 +2258,8 @@ int main(void)
 	
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
+	
+	ddf_log_init(NAME, LVL_ERROR);
+	ddf_msg(LVL_NOTE, "HelenOS E1000 driver started");
 	return ddf_driver_main(&e1000_driver);
 }
