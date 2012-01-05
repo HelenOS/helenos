@@ -869,7 +869,8 @@ pfn_t zone_external_conf_alloc(size_t count)
 	size_t size = zone_conf_size(count);
 	size_t order = ispwr2(size) ? fnzb(size) : (fnzb(size) + 1);
 
-	return ADDR2PFN((uintptr_t) frame_alloc(order - FRAME_WIDTH, FRAME_LOWMEM));
+	return ADDR2PFN((uintptr_t) frame_alloc(order - FRAME_WIDTH,
+	    FRAME_LOWMEM | FRAME_ATOMIC));
 }
 
 /** Create and add zone to system.

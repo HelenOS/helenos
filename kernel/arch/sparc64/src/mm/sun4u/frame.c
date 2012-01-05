@@ -78,11 +78,11 @@ static void frame_common_arch_init(bool low)
 			    ZONE_AVAILABLE | ZONE_LOWMEM);
 		} else {
 			confdata = zone_external_conf_alloc(count);
-			zone_create(pfn, count, confdata,
-			    ZONE_AVAILABLE | ZONE_HIGHMEM);
+			if (confdata != 0)
+				zone_create(pfn, count, confdata,
+				    ZONE_AVAILABLE | ZONE_HIGHMEM);
 		}
 	}
-		
 }
 
 void frame_low_arch_init(void)

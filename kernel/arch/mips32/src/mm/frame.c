@@ -155,11 +155,11 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame, bool low)
 		    ZONE_AVAILABLE | ZONE_LOWMEM);
 	} else {
 		conf_frame = zone_external_conf_alloc(count);
-		zone_create(first, count, conf_frame,
-		    ZONE_AVAILABLE | ZONE_HIGHMEM);
+		if (conf_frame != 0)
+			zone_create(first, count, conf_frame,
+			    ZONE_AVAILABLE | ZONE_HIGHMEM);
 	}
-		
-		
+	
 	if (phys_regions_count < MAX_REGIONS) {
 		phys_regions[phys_regions_count].start = first;
 		phys_regions[phys_regions_count].count = count;
