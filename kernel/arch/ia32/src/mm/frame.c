@@ -78,8 +78,9 @@ static void init_e820_memory(pfn_t minconf, bool low)
 				    ZONE_AVAILABLE | ZONE_LOWMEM);
 			} else {
 				conf = zone_external_conf_alloc(count);
-				zone_create(pfn, count, conf,
-				    ZONE_AVAILABLE | ZONE_HIGHMEM);
+				if (conf != 0)
+					zone_create(pfn, count, conf,
+					    ZONE_AVAILABLE | ZONE_HIGHMEM);
 			}
 		} else if ((e820table[i].type == MEMMAP_MEMORY_ACPI) ||
 		    (e820table[i].type == MEMMAP_MEMORY_NVS)) {
