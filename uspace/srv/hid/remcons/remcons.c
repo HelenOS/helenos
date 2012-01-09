@@ -66,6 +66,7 @@ typedef struct {
 	int id;
 	int socket;
 	service_id_t service_id;
+	char *service_name;
 	/** Producer-consumer of kbd_event_t. */
 	prodcons_t in_events;
 	link_t link;
@@ -74,8 +75,69 @@ typedef struct {
 	size_t socket_buffer_pos;
 } client_t;
 
+static FIBRIL_MUTEX_INITIALIZE(clients_guard);
 static LIST_INITIALIZE(clients);
-static int client_counter = 0;
+
+static client_t *client_create(int socket)
+{
+	static int client_counter = 0;
+
+	client_t *client = malloc(sizeof(client_t));
+	if (client == NULL) {
+		return NULL;
+	}
+
+	client->id = ++client_counter;
+
+	int rc = asprintf(&client->service_name, "%s/telnet%d", NAMESPACE, client->id);
+	if (rc < 0) {
+		free(client);
+		return NULL;
+	}
+
+	client->socket = socket;
+	client->service_id = (service_id_t) -1;
+	prodcons_initialize(&client->in_events);
+	link_initialize(&client->link);
+	client->socket_buffer_len = 0;
+	client->socket_buffer_pos = 0;
+
+
+	fibril_mutex_lock(&clients_guard);
+	list_append(&client->link, &clients);
+	fibril_mutex_unlock(&clients_guard);
+
+	return client;
+}
+
+static void client_destroy(client_t *client)
+{
+	assert(client);
+
+	fibril_mutex_lock(&clients_guard);
+	list_remove(&client->link);
+	fibril_mutex_unlock(&clients_guard);
+
+	free(client);
+}
+
+static client_t *client_find(service_id_t id)
+{
+	client_t *client = NULL;
+
+	fibril_mutex_lock(&clients_guard);
+	list_foreach(clients, link) {
+		client_t *tmp = list_get_instance(link, client_t, link);
+		if (tmp->service_id == id) {
+			client = tmp;
+			break;
+		}
+	}
+	fibril_mutex_unlock(&clients_guard);
+
+	return client;
+}
+
 
 
 static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
@@ -93,24 +155,14 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	service_id_t id = IPC_GET_ARG1(*icall);
-
 	/* Find the client. */
-	client_t *client = NULL;
-	list_foreach(clients, link) {
-		client_t *tmp = list_get_instance(link, client_t, link);
-		if (tmp->service_id == IPC_GET_ARG1(*icall)) {
-			client = tmp;
-			break;
-		}
-	}
-
+	client_t *client = client_find(IPC_GET_ARG1(*icall));
 	if (client == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
-	printf("New client for service %" PRIun ".\n", id);
+	printf("New client for service %s.\n", client->service_name);
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -255,24 +307,17 @@ static int network_client_fibril(void *arg)
 	int rc;
 	client_t *client = arg;
 
-	// FIXME: locking
-	list_append(&client->link, &clients);
-
-	char vc[LOC_NAME_MAXLEN + 1];
-	snprintf(vc, LOC_NAME_MAXLEN, "%s/rem%d", NAMESPACE, client->id);
-	if (loc_service_register(vc, &client->service_id) != EOK) {
-		fprintf(stderr, "%s: Unable to register device %s\n", NAME, vc);
+	rc = loc_service_register(client->service_name, &client->service_id);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Unable to register device %s\n", NAME,
+		    client->service_name);
 		return EOK;
 	}
-	printf("Service %s registered as %" PRIun "\n", vc, client->service_id);
-
-
-	prodcons_initialize(&client->in_events);
-	client->socket_buffer_len = 0;
-	client->socket_buffer_pos = 0;
+	printf("Service %s registered as %" PRIun "\n", client->service_name,
+	    client->service_id);
 
 	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", vc);
+	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", client->service_name);
 
 	task_id_t task;
 	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, term, "/app/bdsh", NULL);
@@ -288,6 +333,8 @@ static int network_client_fibril(void *arg)
 	printf("%s: getterm terminated: %d, %d\n", NAME, task_exit, task_retval);
 
 	closesocket(client->socket);
+
+	client_destroy(client);
 
 	return EOK;
 }
@@ -349,10 +396,8 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		client_t *client = malloc(sizeof(client_t));
+		client_t *client = client_create(conn_sd);
 		assert(client);
-		client->id = ++client_counter;
-		client->socket = conn_sd;
 
 		fid_t fid = fibril_create(network_client_fibril, client);
 		assert(fid);
