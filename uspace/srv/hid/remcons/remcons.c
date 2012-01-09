@@ -73,6 +73,11 @@ typedef struct {
 	char socket_buffer[BUFFER_SIZE];
 	size_t socket_buffer_len;
 	size_t socket_buffer_pos;
+
+	/* Destruction CV with guard. */
+	int refcount;
+	fibril_condvar_t refcount_cv;
+	fibril_mutex_t refcount_mutex;
 } client_t;
 
 static FIBRIL_MUTEX_INITIALIZE(clients_guard);
@@ -101,6 +106,10 @@ static client_t *client_create(int socket)
 	link_initialize(&client->link);
 	client->socket_buffer_len = 0;
 	client->socket_buffer_pos = 0;
+
+	fibril_condvar_initialize(&client->refcount_cv);
+	fibril_mutex_initialize(&client->refcount_mutex);
+	client->refcount = 0;
 
 
 	fibril_mutex_lock(&clients_guard);
@@ -153,28 +162,8 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	return event;
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void client_connection_message_loop(client_t *client)
 {
-	/* Find the client. */
-	client_t *client = client_find(IPC_GET_ARG1(*icall));
-	if (client == NULL) {
-		async_answer_0(iid, ENOENT);
-		return;
-	}
-
-	printf("New client for service %s.\n", client->service_name);
-
-	/* Accept the connection */
-	async_answer_0(iid, EOK);
-
-	/*
-	 * Force character mode.
-	 * IAC WILL ECHO IAC WILL SUPPRESS_GO_AHEAD IAC WONT LINEMODE
-	 * http://stackoverflow.com/questions/273261/force-telnet-client-into-character-mode
-	 */
-	const char force_char_mode[] = {255, 251, 1, 255, 251, 3, 255, 252, 34};
-	send(client->socket, (void *)force_char_mode, sizeof(force_char_mode), 0);
-
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
@@ -301,6 +290,40 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	/* Find the client. */
+	client_t *client = client_find(IPC_GET_ARG1(*icall));
+	if (client == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	printf("New client for service %s.\n", client->service_name);
+
+	/* Accept the connection, increment reference. */
+	async_answer_0(iid, EOK);
+	fibril_mutex_lock(&client->refcount_mutex);
+	client->refcount++;
+	fibril_mutex_unlock(&client->refcount_mutex);
+
+	/*
+	 * Force character mode.
+	 * IAC WILL ECHO IAC WILL SUPPRESS_GO_AHEAD IAC WONT LINEMODE
+	 * http://stackoverflow.com/questions/273261/force-telnet-client-into-character-mode
+	 */
+	const char force_char_mode[] = {255, 251, 1, 255, 251, 3, 255, 252, 34};
+	send(client->socket, (void *)force_char_mode, sizeof(force_char_mode), 0);
+
+	client_connection_message_loop(client);
+
+	/* Announce client disconnection. */
+	fibril_mutex_lock(&client->refcount_mutex);
+	client->refcount--;
+	fibril_condvar_signal(&client->refcount_cv);
+	fibril_mutex_unlock(&client->refcount_mutex);
+}
+
 
 static int network_client_fibril(void *arg)
 {
@@ -326,6 +349,9 @@ static int network_client_fibril(void *arg)
 		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
 		return EOK;
 	}
+	fibril_mutex_lock(&client->refcount_mutex);
+	client->refcount++;
+	fibril_mutex_unlock(&client->refcount_mutex);
 
 	task_exit_t task_exit;
 	int task_retval;
@@ -333,6 +359,19 @@ static int network_client_fibril(void *arg)
 	printf("%s: getterm terminated: %d, %d\n", NAME, task_exit, task_retval);
 
 	closesocket(client->socket);
+	rc = loc_service_unregister(client->service_id);
+	if (rc != EOK) {
+		fprintf(stderr, "Warning: failed to unregister %s: %s\n", client->service_name, str_error(rc));
+	}
+
+	/* Wait for all clients to exit. */
+	fibril_mutex_lock(&client->refcount_mutex);
+	/* Drop our reference. */
+	client->refcount--;
+	while (client->refcount > 0) {
+		fibril_condvar_wait(&client->refcount_cv, &client->refcount_mutex);
+	}
+	fibril_mutex_unlock(&client->refcount_mutex);
 
 	client_destroy(client);
 
