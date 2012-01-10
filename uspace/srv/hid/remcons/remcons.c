@@ -53,6 +53,7 @@
 #include <net/socket.h>
 #include <io/console.h>
 #include <inttypes.h>
+#include "telnet.h"
 
 
 #define APP_GETTERM  "/app/getterm"
@@ -82,6 +83,20 @@ typedef struct {
 
 static FIBRIL_MUTEX_INITIALIZE(clients_guard);
 static LIST_INITIALIZE(clients);
+
+/** Telnet commands to force character mode
+ * (redundant to be on the safe side).
+ * See
+ * http://stackoverflow.com/questions/273261/force-telnet-client-into-character-mode
+ * for discussion.
+ */
+static const telnet_cmd_t telnet_force_character_mode_command[] = {
+	TELNET_IAC, TELNET_WILL, TELNET_ECHO,
+	TELNET_IAC, TELNET_WILL, TELNET_SUPPRESS_GO_AHEAD,
+	TELNET_IAC, TELNET_WONT, TELNET_LINEMODE
+};
+static const size_t telnet_force_character_mode_command_count =
+    sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
 static client_t *client_create(int socket)
 {
@@ -307,13 +322,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	client->refcount++;
 	fibril_mutex_unlock(&client->refcount_mutex);
 
-	/*
-	 * Force character mode.
-	 * IAC WILL ECHO IAC WILL SUPPRESS_GO_AHEAD IAC WONT LINEMODE
-	 * http://stackoverflow.com/questions/273261/force-telnet-client-into-character-mode
-	 */
-	const char force_char_mode[] = {255, 251, 1, 255, 251, 3, 255, 252, 34};
-	send(client->socket, (void *)force_char_mode, sizeof(force_char_mode), 0);
+	/* Force character mode. */
+	send(client->socket, (void *)telnet_force_character_mode_command,
+	    telnet_force_character_mode_command_count, 0);
 
 	client_connection_message_loop(client);
 
