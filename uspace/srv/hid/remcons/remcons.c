@@ -335,6 +335,40 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	fibril_mutex_unlock(&client->refcount_mutex);
 }
 
+static int spawn_task_fibril(void *arg)
+{
+	client_t *client = arg;
+	int rc;
+
+	char term[LOC_NAME_MAXLEN];
+	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", client->service_name);
+
+	task_id_t task;
+	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, term, "/app/bdsh", NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
+		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
+		fibril_mutex_lock(&client->refcount_mutex);
+		client->refcount--;
+		fibril_condvar_signal(&client->refcount_cv);
+		fibril_mutex_unlock(&client->refcount_mutex);
+		return EOK;
+	}
+
+	task_exit_t task_exit;
+	int task_retval;
+	task_wait(task, &task_exit, &task_retval);
+	printf("%s: getterm terminated: %d, %d\n", NAME, task_exit, task_retval);
+
+	/* Announce destruction. */
+	fibril_mutex_lock(&client->refcount_mutex);
+	client->refcount--;
+	fibril_condvar_signal(&client->refcount_cv);
+	fibril_mutex_unlock(&client->refcount_mutex);
+
+	return EOK;
+}
+
 
 static int network_client_fibril(void *arg)
 {
@@ -350,24 +384,20 @@ static int network_client_fibril(void *arg)
 	printf("Service %s registered as %" PRIun "\n", client->service_name,
 	    client->service_id);
 
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", client->service_name);
-
-	task_id_t task;
-	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, term, "/app/bdsh", NULL);
-	if (rc != EOK) {
-		printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
-		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
-		return EOK;
-	}
 	fibril_mutex_lock(&client->refcount_mutex);
 	client->refcount++;
 	fibril_mutex_unlock(&client->refcount_mutex);
 
-	task_exit_t task_exit;
-	int task_retval;
-	task_wait(task, &task_exit, &task_retval);
-	printf("%s: getterm terminated: %d, %d\n", NAME, task_exit, task_retval);
+	fid_t spawn_fibril = fibril_create(spawn_task_fibril, client);
+	assert(spawn_fibril);
+	fibril_add_ready(spawn_fibril);
+
+	/* Wait for all clients to exit. */
+	fibril_mutex_lock(&client->refcount_mutex);
+	while (client->refcount > 0) {
+		fibril_condvar_wait(&client->refcount_cv, &client->refcount_mutex);
+	}
+	fibril_mutex_unlock(&client->refcount_mutex);
 
 	closesocket(client->socket);
 	rc = loc_service_unregister(client->service_id);
@@ -375,15 +405,7 @@ static int network_client_fibril(void *arg)
 		fprintf(stderr, "Warning: failed to unregister %s: %s\n", client->service_name, str_error(rc));
 	}
 
-	/* Wait for all clients to exit. */
-	fibril_mutex_lock(&client->refcount_mutex);
-	/* Drop our reference. */
-	client->refcount--;
-	while (client->refcount > 0) {
-		fibril_condvar_wait(&client->refcount_cv, &client->refcount_mutex);
-	}
-	fibril_mutex_unlock(&client->refcount_mutex);
-
+	printf("Destroying service %s.\n", client->service_name);
 	client_destroy(client);
 
 	return EOK;
