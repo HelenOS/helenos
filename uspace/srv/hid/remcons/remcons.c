@@ -75,10 +75,14 @@ typedef struct {
 	size_t socket_buffer_len;
 	size_t socket_buffer_pos;
 
-	/* Destruction CV with guard. */
-	int refcount;
+	task_id_t task_id;
+
+	/* Reference counting. */
 	fibril_condvar_t refcount_cv;
 	fibril_mutex_t refcount_mutex;
+	bool task_finished;
+	int locsrv_connection_count;
+	bool socket_closed;
 } client_t;
 
 static FIBRIL_MUTEX_INITIALIZE(clients_guard);
@@ -124,7 +128,9 @@ static client_t *client_create(int socket)
 
 	fibril_condvar_initialize(&client->refcount_cv);
 	fibril_mutex_initialize(&client->refcount_mutex);
-	client->refcount = 0;
+	client->task_finished = false;
+	client->socket_closed = false;
+	client->locsrv_connection_count = 0;
 
 
 	fibril_mutex_lock(&clients_guard);
@@ -145,7 +151,7 @@ static void client_destroy(client_t *client)
 	free(client);
 }
 
-static client_t *client_find(service_id_t id)
+static client_t *client_get_for_client_connection(service_id_t id)
 {
 	client_t *client = NULL;
 
@@ -157,6 +163,27 @@ static client_t *client_find(service_id_t id)
 			break;
 		}
 	}
+	if (client == NULL) {
+		fibril_mutex_unlock(&clients_guard);
+		return NULL;
+	}
+
+	client_t *tmp = client;
+	fibril_mutex_lock(&tmp->refcount_mutex);
+	client->locsrv_connection_count++;
+
+	/*
+	 * Refuse to return client whose task already finished or when
+	 * the socket is already closed().
+	 */
+	if (client->task_finished || client->socket_closed) {
+		client = NULL;
+		client->locsrv_connection_count--;
+	}
+
+	fibril_mutex_unlock(&tmp->refcount_mutex);
+
+
 	fibril_mutex_unlock(&clients_guard);
 
 	return client;
@@ -181,7 +208,21 @@ static void client_connection_message_loop(client_t *client)
 {
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		ipc_callid_t callid = 0;
+		while (callid == 0) {
+			callid = async_get_call_timeout(&call, 1000);
+
+			fibril_mutex_lock(&client->refcount_mutex);
+			bool bail_out = client->socket_closed || client->task_finished;
+			fibril_mutex_unlock(&client->refcount_mutex);
+
+			if (bail_out) {
+				if (callid != 0) {
+					async_answer_0(callid, EINTR);
+				}
+				return;
+			}
+		}
 		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Clean-up. */
@@ -200,13 +241,16 @@ static void client_connection_message_loop(client_t *client)
 				retry:
 				if (client->socket_buffer_len <= client->socket_buffer_pos) {
 					int recv_length = recv(client->socket, client->socket_buffer, BUFFER_SIZE, 0);
-					if (recv_length == 0) {
+					if ((recv_length == 0) || (recv_length == ENOTCONN)) {
+						fibril_mutex_lock(&client->refcount_mutex);
+						client->socket_closed = true;
+						fibril_mutex_unlock(&client->refcount_mutex);
 						async_answer_0(callid, ENOENT);
 						return;
 					}
 					if (recv_length < 0) {
 						async_answer_0(callid, EINVAL);
-						break;
+						return;
 					}
 					client->socket_buffer_len = recv_length;
 					client->socket_buffer_pos = 0;
@@ -308,7 +352,7 @@ static void client_connection_message_loop(client_t *client)
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Find the client. */
-	client_t *client = client_find(IPC_GET_ARG1(*icall));
+	client_t *client = client_get_for_client_connection(IPC_GET_ARG1(*icall));
 	if (client == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
@@ -318,9 +362,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	/* Accept the connection, increment reference. */
 	async_answer_0(iid, EOK);
-	fibril_mutex_lock(&client->refcount_mutex);
-	client->refcount++;
-	fibril_mutex_unlock(&client->refcount_mutex);
 
 	/* Force character mode. */
 	send(client->socket, (void *)telnet_force_character_mode_command,
@@ -330,7 +371,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	/* Announce client disconnection. */
 	fibril_mutex_lock(&client->refcount_mutex);
-	client->refcount--;
+	client->locsrv_connection_count--;
 	fibril_condvar_signal(&client->refcount_cv);
 	fibril_mutex_unlock(&client->refcount_mutex);
 }
@@ -349,11 +390,15 @@ static int spawn_task_fibril(void *arg)
 		printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
 		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
 		fibril_mutex_lock(&client->refcount_mutex);
-		client->refcount--;
+		client->task_finished = true;
 		fibril_condvar_signal(&client->refcount_cv);
 		fibril_mutex_unlock(&client->refcount_mutex);
 		return EOK;
 	}
+
+	fibril_mutex_lock(&client->refcount_mutex);
+	client->task_id = task;
+	fibril_mutex_unlock(&client->refcount_mutex);
 
 	task_exit_t task_exit;
 	int task_retval;
@@ -362,13 +407,18 @@ static int spawn_task_fibril(void *arg)
 
 	/* Announce destruction. */
 	fibril_mutex_lock(&client->refcount_mutex);
-	client->refcount--;
+	client->task_finished = true;
 	fibril_condvar_signal(&client->refcount_cv);
 	fibril_mutex_unlock(&client->refcount_mutex);
 
 	return EOK;
 }
 
+static bool client_can_be_destroyed_no_lock(client_t *client)
+{
+	return client->task_finished && client->socket_closed &&
+	    (client->locsrv_connection_count == 0);
+}
 
 static int network_client_fibril(void *arg)
 {
@@ -384,22 +434,26 @@ static int network_client_fibril(void *arg)
 	printf("Service %s registered as %" PRIun "\n", client->service_name,
 	    client->service_id);
 
-	fibril_mutex_lock(&client->refcount_mutex);
-	client->refcount++;
-	fibril_mutex_unlock(&client->refcount_mutex);
-
 	fid_t spawn_fibril = fibril_create(spawn_task_fibril, client);
 	assert(spawn_fibril);
 	fibril_add_ready(spawn_fibril);
 
 	/* Wait for all clients to exit. */
 	fibril_mutex_lock(&client->refcount_mutex);
-	while (client->refcount > 0) {
-		fibril_condvar_wait(&client->refcount_cv, &client->refcount_mutex);
+	while (!client_can_be_destroyed_no_lock(client)) {
+		if (client->task_finished) {
+			closesocket(client->socket);
+			client->socket_closed = true;
+			continue;
+		} else if (client->socket_closed) {
+			if (client->task_id != 0) {
+				task_kill(client->task_id);
+			}
+		}
+		fibril_condvar_wait_timeout(&client->refcount_cv, &client->refcount_mutex, 1000);
 	}
 	fibril_mutex_unlock(&client->refcount_mutex);
 
-	closesocket(client->socket);
 	rc = loc_service_unregister(client->service_id);
 	if (rc != EOK) {
 		fprintf(stderr, "Warning: failed to unregister %s: %s\n", client->service_name, str_error(rc));
