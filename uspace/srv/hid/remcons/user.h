@@ -41,11 +41,17 @@
 
 #define BUFFER_SIZE 1024
 
+/** Representation of a connected (human) user. */
 typedef struct {
+	/** Internal id, used for creating locfs entries. */
 	int id;
+	/** Associated socket. */
 	int socket;
+	/** Location service id assigned to the virtual terminal. */
 	service_id_t service_id;
+	/** Path name of the service. */
 	char *service_name;
+
 	/** Producer-consumer of kbd_event_t. */
 	prodcons_t in_events;
 	link_t link;
@@ -53,6 +59,7 @@ typedef struct {
 	size_t socket_buffer_len;
 	size_t socket_buffer_pos;
 
+	/** Task id of the launched application. */
 	task_id_t task_id;
 
 	/* Reference counting. */
@@ -68,9 +75,11 @@ void telnet_user_destroy(telnet_user_t *user);
 telnet_user_t *telnet_user_get_for_client_connection(service_id_t id);
 void telnet_user_notify_client_disconnected(telnet_user_t *user);
 
+/** Print informational message about connected user. */
 #define telnet_user_log(user, fmt, ...) \
 	printf(NAME " [console %d (%d)]: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
 
+/** Print error message associated with connected user. */
 #define telnet_user_error(user, fmt, ...) \
 	fprintf(stderr, NAME " [console %d (%d)]: ERROR: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
 

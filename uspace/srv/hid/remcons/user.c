@@ -58,7 +58,11 @@
 static FIBRIL_MUTEX_INITIALIZE(users_guard);
 static LIST_INITIALIZE(users);
 
-
+/** Create new telnet user.
+ *
+ * @param socket Socket the user communicates through.
+ * @return New telnet user or NULL when out of memory.
+ */
 telnet_user_t *telnet_user_create(int socket)
 {
 	static int telnet_user_id_counter = 0;
@@ -97,6 +101,10 @@ telnet_user_t *telnet_user_create(int socket)
 	return user;
 }
 
+/** Destroy telnet user structure.
+ *
+ * @param user User to be destroyed.
+ */
 void telnet_user_destroy(telnet_user_t *user)
 {
 	assert(user);
@@ -108,6 +116,10 @@ void telnet_user_destroy(telnet_user_t *user)
 	free(user);
 }
 
+/** Find user by service id and increments reference counter.
+ *
+ * @param id Location service id of the telnet user's terminal.
+ */
 telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 {
 	telnet_user_t *user = NULL;
@@ -146,6 +158,10 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 	return user;
 }
 
+/** Notify that client disconnected from the remote terminal.
+ *
+ * @param user To which user the client was connected.
+ */
 void telnet_user_notify_client_disconnected(telnet_user_t *user)
 {
 	fibril_mutex_lock(&user->refcount_mutex);

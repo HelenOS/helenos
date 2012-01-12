@@ -73,7 +73,11 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
-
+/** Creates new keyboard event from given char.
+ *
+ * @param type Event type (press / release).
+ * @param c Pressed character.
+ */
 static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	kbd_event_t *event = malloc(sizeof(kbd_event_t));
 	assert(event);
@@ -87,6 +91,10 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	return event;
 }
 
+/** Handling client requests (VFS and console interface).
+ *
+ * @param user Telnet user the requests belong to.
+ */
 static void client_connection_message_loop(telnet_user_t *user)
 {
 	while (true) {
@@ -231,6 +239,7 @@ static void client_connection_message_loop(telnet_user_t *user)
 	}
 }
 
+/** Callback when client connects to a telnet terminal. */
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Find the user. */
@@ -256,6 +265,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	telnet_user_log(user, "Client disconnected (%" PRIxn").", iid);
 }
 
+/** Fibril for spawning the task running after user connects.
+ *
+ * @param arg Corresponding @c telnet_user_t structure.
+ */
 static int spawn_task_fibril(void *arg)
 {
 	telnet_user_t *user = arg;
@@ -296,12 +309,20 @@ static int spawn_task_fibril(void *arg)
 	return EOK;
 }
 
+/** Tell whether given user can be destroyed (has no active clients).
+ *
+ * @param user The telnet user in question.
+ */
 static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
 {
 	return user->task_finished && user->socket_closed &&
 	    (user->locsrv_connection_count == 0);
 }
 
+/** Fibril for each accepted socket.
+ *
+ * @param arg Corresponding @c telnet_user_t structure.
+ */
 static int network_user_fibril(void *arg)
 {
 	int rc;
