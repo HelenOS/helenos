@@ -54,6 +54,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #include "user.h"
+#include "telnet.h"
 
 static FIBRIL_MUTEX_INITIALIZE(users_guard);
 static LIST_INITIALIZE(users);
@@ -227,18 +228,51 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	return event;
 }
 
+static void process_telnet_command(telnet_user_t *user,
+    telnet_cmd_t option_code, telnet_cmd_t cmd)
+{
+	if (option_code != 0) {
+		telnet_user_log(user, "Ignoring telnet command %u %u %u.",
+		    TELNET_IAC, option_code, cmd);
+	} else {
+		telnet_user_log(user, "Ignoring telnet command %u %u.",
+		    TELNET_IAC, cmd);
+	}
+}
+
 int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
 {
 	fibril_mutex_lock(&user->guard);
 	if (list_empty(&user->in_events.list)) {
 		char next_byte = 0;
+		bool inside_telnet_command = false;
+
+		telnet_cmd_t telnet_option_code = 0;
+
 		/* Skip zeros, bail-out on error. */
 		while (next_byte == 0) {
 			int rc = telnet_user_recv_next_byte_no_lock(user, &next_byte);
-			DEBUG("Got %d.\n", next_byte);
 			if (rc != EOK) {
 				fibril_mutex_unlock(&user->guard);
 				return rc;
+			}
+			uint8_t byte = (uint8_t) next_byte;
+
+			/* Skip telnet commands. */
+			if (inside_telnet_command) {
+				inside_telnet_command = false;
+				next_byte = 0;
+				if (TELNET_IS_OPTION_CODE(byte)) {
+					telnet_option_code = byte;
+					inside_telnet_command = true;
+				} else {
+					process_telnet_command(user,
+					    telnet_option_code, byte);
+				}
+			}
+			if (byte == TELNET_IAC) {
+				inside_telnet_command = true;
+				next_byte = 0;
 			}
 		}
 
