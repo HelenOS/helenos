@@ -57,7 +57,7 @@
 #include "user.h"
 
 #define APP_GETTERM  "/app/getterm"
-
+#define APP_SHELL "/app/bdsh"
 
 /** Telnet commands to force character mode
  * (redundant to be on the safe side).
@@ -224,10 +224,10 @@ static int spawn_task_fibril(void *arg)
 	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", user->service_name);
 
 	task_id_t task;
-	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, term, "/app/bdsh", NULL);
+	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, "-w", term, APP_SHELL, NULL);
 	if (rc != EOK) {
-		telnet_user_error(user, "Spawning %s %s %s failed: %s.",
-		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
+		telnet_user_error(user, "Spawning `%s -w %s %s' failed: %s.",
+		    APP_GETTERM, term, APP_SHELL, str_error(rc));
 		fibril_mutex_lock(&user->guard);
 		user->task_finished = true;
 		fibril_condvar_signal(&user->refcount_cv);
