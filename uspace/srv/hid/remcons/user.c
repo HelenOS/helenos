@@ -88,7 +88,7 @@ telnet_user_t *telnet_user_create(int socket)
 	user->socket_buffer_pos = 0;
 
 	fibril_condvar_initialize(&user->refcount_cv);
-	fibril_mutex_initialize(&user->refcount_mutex);
+	fibril_mutex_initialize(&user->guard);
 	user->task_finished = false;
 	user->socket_closed = false;
 	user->locsrv_connection_count = 0;
@@ -138,7 +138,7 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 	}
 
 	telnet_user_t *tmp = user;
-	fibril_mutex_lock(&tmp->refcount_mutex);
+	fibril_mutex_lock(&tmp->guard);
 	user->locsrv_connection_count++;
 
 	/*
@@ -150,7 +150,7 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 		user->locsrv_connection_count--;
 	}
 
-	fibril_mutex_unlock(&tmp->refcount_mutex);
+	fibril_mutex_unlock(&tmp->guard);
 
 
 	fibril_mutex_unlock(&users_guard);
@@ -164,11 +164,11 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
  */
 void telnet_user_notify_client_disconnected(telnet_user_t *user)
 {
-	fibril_mutex_lock(&user->refcount_mutex);
+	fibril_mutex_lock(&user->guard);
 	assert(user->locsrv_connection_count > 0);
 	user->locsrv_connection_count--;
 	fibril_condvar_signal(&user->refcount_cv);
-	fibril_mutex_unlock(&user->refcount_mutex);
+	fibril_mutex_unlock(&user->guard);
 }
 
 

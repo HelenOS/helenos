@@ -43,6 +43,9 @@
 
 /** Representation of a connected (human) user. */
 typedef struct {
+	/** Mutex guarding the whole structure. */
+	fibril_mutex_t guard;
+
 	/** Internal id, used for creating locfs entries. */
 	int id;
 	/** Associated socket. */
@@ -64,7 +67,6 @@ typedef struct {
 
 	/* Reference counting. */
 	fibril_condvar_t refcount_cv;
-	fibril_mutex_t refcount_mutex;
 	bool task_finished;
 	int locsrv_connection_count;
 	bool socket_closed;

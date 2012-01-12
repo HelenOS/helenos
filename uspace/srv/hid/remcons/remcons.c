@@ -103,9 +103,9 @@ static void client_connection_message_loop(telnet_user_t *user)
 		while (callid == 0) {
 			callid = async_get_call_timeout(&call, 1000);
 
-			fibril_mutex_lock(&user->refcount_mutex);
+			fibril_mutex_lock(&user->guard);
 			bool bail_out = user->socket_closed || user->task_finished;
-			fibril_mutex_unlock(&user->refcount_mutex);
+			fibril_mutex_unlock(&user->guard);
 
 			if (bail_out) {
 				if (callid != 0) {
@@ -133,9 +133,9 @@ static void client_connection_message_loop(telnet_user_t *user)
 				if (user->socket_buffer_len <= user->socket_buffer_pos) {
 					int recv_length = recv(user->socket, user->socket_buffer, BUFFER_SIZE, 0);
 					if ((recv_length == 0) || (recv_length == ENOTCONN)) {
-						fibril_mutex_lock(&user->refcount_mutex);
+						fibril_mutex_lock(&user->guard);
 						user->socket_closed = true;
-						fibril_mutex_unlock(&user->refcount_mutex);
+						fibril_mutex_unlock(&user->guard);
 						async_answer_0(callid, ENOENT);
 						return;
 					}
@@ -282,16 +282,16 @@ static int spawn_task_fibril(void *arg)
 	if (rc != EOK) {
 		telnet_user_error(user, "Spawning %s %s %s failed: %s.",
 		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
-		fibril_mutex_lock(&user->refcount_mutex);
+		fibril_mutex_lock(&user->guard);
 		user->task_finished = true;
 		fibril_condvar_signal(&user->refcount_cv);
-		fibril_mutex_unlock(&user->refcount_mutex);
+		fibril_mutex_unlock(&user->guard);
 		return EOK;
 	}
 
-	fibril_mutex_lock(&user->refcount_mutex);
+	fibril_mutex_lock(&user->guard);
 	user->task_id = task;
-	fibril_mutex_unlock(&user->refcount_mutex);
+	fibril_mutex_unlock(&user->guard);
 
 	task_exit_t task_exit;
 	int task_retval;
@@ -301,10 +301,10 @@ static int spawn_task_fibril(void *arg)
 	    task_retval);
 
 	/* Announce destruction. */
-	fibril_mutex_lock(&user->refcount_mutex);
+	fibril_mutex_lock(&user->guard);
 	user->task_finished = true;
 	fibril_condvar_signal(&user->refcount_cv);
-	fibril_mutex_unlock(&user->refcount_mutex);
+	fibril_mutex_unlock(&user->guard);
 
 	return EOK;
 }
@@ -343,7 +343,7 @@ static int network_user_fibril(void *arg)
 	fibril_add_ready(spawn_fibril);
 
 	/* Wait for all clients to exit. */
-	fibril_mutex_lock(&user->refcount_mutex);
+	fibril_mutex_lock(&user->guard);
 	while (!user_can_be_destroyed_no_lock(user)) {
 		if (user->task_finished) {
 			closesocket(user->socket);
@@ -354,9 +354,9 @@ static int network_user_fibril(void *arg)
 				task_kill(user->task_id);
 			}
 		}
-		fibril_condvar_wait_timeout(&user->refcount_cv, &user->refcount_mutex, 1000);
+		fibril_condvar_wait_timeout(&user->refcount_cv, &user->guard, 1000);
 	}
-	fibril_mutex_unlock(&user->refcount_mutex);
+	fibril_mutex_unlock(&user->guard);
 
 	rc = loc_service_unregister(user->service_id);
 	if (rc != EOK) {
