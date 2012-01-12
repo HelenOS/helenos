@@ -83,15 +83,15 @@ typedef struct {
 	bool task_finished;
 	int locsrv_connection_count;
 	bool socket_closed;
-} client_t;
+} telnet_user_t;
 
-static FIBRIL_MUTEX_INITIALIZE(clients_guard);
-static LIST_INITIALIZE(clients);
+static FIBRIL_MUTEX_INITIALIZE(users_guard);
+static LIST_INITIALIZE(users);
 
 /** Telnet commands to force character mode
  * (redundant to be on the safe side).
  * See
- * http://stackoverflow.com/questions/273261/force-telnet-client-into-character-mode
+ * http://stackoverflow.com/questions/273261/force-telnet-user-into-character-mode
  * for discussion.
  */
 static const telnet_cmd_t telnet_force_character_mode_command[] = {
@@ -102,91 +102,91 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
-static client_t *client_create(int socket)
+static telnet_user_t *telnet_user_create(int socket)
 {
-	static int client_counter = 0;
+	static int telnet_user_id_counter = 0;
 
-	client_t *client = malloc(sizeof(client_t));
-	if (client == NULL) {
+	telnet_user_t *user = malloc(sizeof(telnet_user_t));
+	if (user == NULL) {
 		return NULL;
 	}
 
-	client->id = ++client_counter;
+	user->id = ++telnet_user_id_counter;
 
-	int rc = asprintf(&client->service_name, "%s/telnet%d", NAMESPACE, client->id);
+	int rc = asprintf(&user->service_name, "%s/telnet%d", NAMESPACE, user->id);
 	if (rc < 0) {
-		free(client);
+		free(user);
 		return NULL;
 	}
 
-	client->socket = socket;
-	client->service_id = (service_id_t) -1;
-	prodcons_initialize(&client->in_events);
-	link_initialize(&client->link);
-	client->socket_buffer_len = 0;
-	client->socket_buffer_pos = 0;
+	user->socket = socket;
+	user->service_id = (service_id_t) -1;
+	prodcons_initialize(&user->in_events);
+	link_initialize(&user->link);
+	user->socket_buffer_len = 0;
+	user->socket_buffer_pos = 0;
 
-	fibril_condvar_initialize(&client->refcount_cv);
-	fibril_mutex_initialize(&client->refcount_mutex);
-	client->task_finished = false;
-	client->socket_closed = false;
-	client->locsrv_connection_count = 0;
+	fibril_condvar_initialize(&user->refcount_cv);
+	fibril_mutex_initialize(&user->refcount_mutex);
+	user->task_finished = false;
+	user->socket_closed = false;
+	user->locsrv_connection_count = 0;
 
 
-	fibril_mutex_lock(&clients_guard);
-	list_append(&client->link, &clients);
-	fibril_mutex_unlock(&clients_guard);
+	fibril_mutex_lock(&users_guard);
+	list_append(&user->link, &users);
+	fibril_mutex_unlock(&users_guard);
 
-	return client;
+	return user;
 }
 
-static void client_destroy(client_t *client)
+static void telnet_user_destroy(telnet_user_t *user)
 {
-	assert(client);
+	assert(user);
 
-	fibril_mutex_lock(&clients_guard);
-	list_remove(&client->link);
-	fibril_mutex_unlock(&clients_guard);
+	fibril_mutex_lock(&users_guard);
+	list_remove(&user->link);
+	fibril_mutex_unlock(&users_guard);
 
-	free(client);
+	free(user);
 }
 
-static client_t *client_get_for_client_connection(service_id_t id)
+static telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 {
-	client_t *client = NULL;
+	telnet_user_t *user = NULL;
 
-	fibril_mutex_lock(&clients_guard);
-	list_foreach(clients, link) {
-		client_t *tmp = list_get_instance(link, client_t, link);
+	fibril_mutex_lock(&users_guard);
+	list_foreach(users, link) {
+		telnet_user_t *tmp = list_get_instance(link, telnet_user_t, link);
 		if (tmp->service_id == id) {
-			client = tmp;
+			user = tmp;
 			break;
 		}
 	}
-	if (client == NULL) {
-		fibril_mutex_unlock(&clients_guard);
+	if (user == NULL) {
+		fibril_mutex_unlock(&users_guard);
 		return NULL;
 	}
 
-	client_t *tmp = client;
+	telnet_user_t *tmp = user;
 	fibril_mutex_lock(&tmp->refcount_mutex);
-	client->locsrv_connection_count++;
+	user->locsrv_connection_count++;
 
 	/*
-	 * Refuse to return client whose task already finished or when
+	 * Refuse to return user whose task already finished or when
 	 * the socket is already closed().
 	 */
-	if (client->task_finished || client->socket_closed) {
-		client = NULL;
-		client->locsrv_connection_count--;
+	if (user->task_finished || user->socket_closed) {
+		user = NULL;
+		user->locsrv_connection_count--;
 	}
 
 	fibril_mutex_unlock(&tmp->refcount_mutex);
 
 
-	fibril_mutex_unlock(&clients_guard);
+	fibril_mutex_unlock(&users_guard);
 
-	return client;
+	return user;
 }
 
 
@@ -204,7 +204,7 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	return event;
 }
 
-static void client_connection_message_loop(client_t *client)
+static void client_connection_message_loop(telnet_user_t *user)
 {
 	while (true) {
 		ipc_call_t call;
@@ -212,9 +212,9 @@ static void client_connection_message_loop(client_t *client)
 		while (callid == 0) {
 			callid = async_get_call_timeout(&call, 1000);
 
-			fibril_mutex_lock(&client->refcount_mutex);
-			bool bail_out = client->socket_closed || client->task_finished;
-			fibril_mutex_unlock(&client->refcount_mutex);
+			fibril_mutex_lock(&user->refcount_mutex);
+			bool bail_out = user->socket_closed || user->task_finished;
+			fibril_mutex_unlock(&user->refcount_mutex);
 
 			if (bail_out) {
 				if (callid != 0) {
@@ -237,14 +237,14 @@ static void client_connection_message_loop(client_t *client)
 			async_answer_2(callid, EOK, 0, 0);
 			break;
 		case CONSOLE_GET_EVENT: {
-			if (list_empty(&client->in_events.list)) {
+			if (list_empty(&user->in_events.list)) {
 				retry:
-				if (client->socket_buffer_len <= client->socket_buffer_pos) {
-					int recv_length = recv(client->socket, client->socket_buffer, BUFFER_SIZE, 0);
+				if (user->socket_buffer_len <= user->socket_buffer_pos) {
+					int recv_length = recv(user->socket, user->socket_buffer, BUFFER_SIZE, 0);
 					if ((recv_length == 0) || (recv_length == ENOTCONN)) {
-						fibril_mutex_lock(&client->refcount_mutex);
-						client->socket_closed = true;
-						fibril_mutex_unlock(&client->refcount_mutex);
+						fibril_mutex_lock(&user->refcount_mutex);
+						user->socket_closed = true;
+						fibril_mutex_unlock(&user->refcount_mutex);
 						async_answer_0(callid, ENOENT);
 						return;
 					}
@@ -252,10 +252,10 @@ static void client_connection_message_loop(client_t *client)
 						async_answer_0(callid, EINVAL);
 						return;
 					}
-					client->socket_buffer_len = recv_length;
-					client->socket_buffer_pos = 0;
+					user->socket_buffer_len = recv_length;
+					user->socket_buffer_pos = 0;
 				}
-				char data = client->socket_buffer[client->socket_buffer_pos++];
+				char data = user->socket_buffer[user->socket_buffer_pos++];
 				if (data == 13) {
 					data = 10;
 				}
@@ -266,12 +266,12 @@ static void client_connection_message_loop(client_t *client)
 				kbd_event_t *up = new_kbd_event(KEY_RELEASE, data);
 				assert(down);
 				assert(up);
-				prodcons_produce(&client->in_events, &down->link);
-				prodcons_produce(&client->in_events, &up->link);
+				prodcons_produce(&user->in_events, &down->link);
+				prodcons_produce(&user->in_events, &up->link);
 			}
 
 
-			link_t *link = prodcons_consume(&client->in_events);
+			link_t *link = prodcons_consume(&user->in_events);
 			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
 			async_answer_4(callid, EOK, event->type, event->key, event->mods, event->c);
 			free(event);
@@ -305,7 +305,7 @@ static void client_connection_message_loop(client_t *client)
 					buf_converted[buf_converted_size++] = buf[i];
 				}
 			}
-			rc = send(client->socket, buf_converted, buf_converted_size, 0);
+			rc = send(user->socket, buf_converted, buf_converted_size, 0);
 			free(buf);
 
 			if (rc != EOK) {
@@ -351,54 +351,54 @@ static void client_connection_message_loop(client_t *client)
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	/* Find the client. */
-	client_t *client = client_get_for_client_connection(IPC_GET_ARG1(*icall));
-	if (client == NULL) {
+	/* Find the user. */
+	telnet_user_t *user = telnet_user_get_for_client_connection(IPC_GET_ARG1(*icall));
+	if (user == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
-	printf("New client for service %s.\n", client->service_name);
+	printf("New user for service %s.\n", user->service_name);
 
 	/* Accept the connection, increment reference. */
 	async_answer_0(iid, EOK);
 
 	/* Force character mode. */
-	send(client->socket, (void *)telnet_force_character_mode_command,
+	send(user->socket, (void *)telnet_force_character_mode_command,
 	    telnet_force_character_mode_command_count, 0);
 
-	client_connection_message_loop(client);
+	client_connection_message_loop(user);
 
-	/* Announce client disconnection. */
-	fibril_mutex_lock(&client->refcount_mutex);
-	client->locsrv_connection_count--;
-	fibril_condvar_signal(&client->refcount_cv);
-	fibril_mutex_unlock(&client->refcount_mutex);
+	/* Announce user disconnection. */
+	fibril_mutex_lock(&user->refcount_mutex);
+	user->locsrv_connection_count--;
+	fibril_condvar_signal(&user->refcount_cv);
+	fibril_mutex_unlock(&user->refcount_mutex);
 }
 
 static int spawn_task_fibril(void *arg)
 {
-	client_t *client = arg;
+	telnet_user_t *user = arg;
 	int rc;
 
 	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", client->service_name);
+	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", user->service_name);
 
 	task_id_t task;
 	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, term, "/app/bdsh", NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
 		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
-		fibril_mutex_lock(&client->refcount_mutex);
-		client->task_finished = true;
-		fibril_condvar_signal(&client->refcount_cv);
-		fibril_mutex_unlock(&client->refcount_mutex);
+		fibril_mutex_lock(&user->refcount_mutex);
+		user->task_finished = true;
+		fibril_condvar_signal(&user->refcount_cv);
+		fibril_mutex_unlock(&user->refcount_mutex);
 		return EOK;
 	}
 
-	fibril_mutex_lock(&client->refcount_mutex);
-	client->task_id = task;
-	fibril_mutex_unlock(&client->refcount_mutex);
+	fibril_mutex_lock(&user->refcount_mutex);
+	user->task_id = task;
+	fibril_mutex_unlock(&user->refcount_mutex);
 
 	task_exit_t task_exit;
 	int task_retval;
@@ -406,61 +406,61 @@ static int spawn_task_fibril(void *arg)
 	printf("%s: getterm terminated: %d, %d\n", NAME, task_exit, task_retval);
 
 	/* Announce destruction. */
-	fibril_mutex_lock(&client->refcount_mutex);
-	client->task_finished = true;
-	fibril_condvar_signal(&client->refcount_cv);
-	fibril_mutex_unlock(&client->refcount_mutex);
+	fibril_mutex_lock(&user->refcount_mutex);
+	user->task_finished = true;
+	fibril_condvar_signal(&user->refcount_cv);
+	fibril_mutex_unlock(&user->refcount_mutex);
 
 	return EOK;
 }
 
-static bool client_can_be_destroyed_no_lock(client_t *client)
+static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
 {
-	return client->task_finished && client->socket_closed &&
-	    (client->locsrv_connection_count == 0);
+	return user->task_finished && user->socket_closed &&
+	    (user->locsrv_connection_count == 0);
 }
 
-static int network_client_fibril(void *arg)
+static int network_user_fibril(void *arg)
 {
 	int rc;
-	client_t *client = arg;
+	telnet_user_t *user = arg;
 
-	rc = loc_service_register(client->service_name, &client->service_id);
+	rc = loc_service_register(user->service_name, &user->service_id);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register device %s\n", NAME,
-		    client->service_name);
+		    user->service_name);
 		return EOK;
 	}
-	printf("Service %s registered as %" PRIun "\n", client->service_name,
-	    client->service_id);
+	printf("Service %s registered as %" PRIun "\n", user->service_name,
+	    user->service_id);
 
-	fid_t spawn_fibril = fibril_create(spawn_task_fibril, client);
+	fid_t spawn_fibril = fibril_create(spawn_task_fibril, user);
 	assert(spawn_fibril);
 	fibril_add_ready(spawn_fibril);
 
 	/* Wait for all clients to exit. */
-	fibril_mutex_lock(&client->refcount_mutex);
-	while (!client_can_be_destroyed_no_lock(client)) {
-		if (client->task_finished) {
-			closesocket(client->socket);
-			client->socket_closed = true;
+	fibril_mutex_lock(&user->refcount_mutex);
+	while (!user_can_be_destroyed_no_lock(user)) {
+		if (user->task_finished) {
+			closesocket(user->socket);
+			user->socket_closed = true;
 			continue;
-		} else if (client->socket_closed) {
-			if (client->task_id != 0) {
-				task_kill(client->task_id);
+		} else if (user->socket_closed) {
+			if (user->task_id != 0) {
+				task_kill(user->task_id);
 			}
 		}
-		fibril_condvar_wait_timeout(&client->refcount_cv, &client->refcount_mutex, 1000);
+		fibril_condvar_wait_timeout(&user->refcount_cv, &user->refcount_mutex, 1000);
 	}
-	fibril_mutex_unlock(&client->refcount_mutex);
+	fibril_mutex_unlock(&user->refcount_mutex);
 
-	rc = loc_service_unregister(client->service_id);
+	rc = loc_service_unregister(user->service_id);
 	if (rc != EOK) {
-		fprintf(stderr, "Warning: failed to unregister %s: %s\n", client->service_name, str_error(rc));
+		fprintf(stderr, "Warning: failed to unregister %s: %s\n", user->service_name, str_error(rc));
 	}
 
-	printf("Destroying service %s.\n", client->service_name);
-	client_destroy(client);
+	printf("Destroying service %s.\n", user->service_name);
+	telnet_user_destroy(user);
 
 	return EOK;
 }
@@ -522,10 +522,10 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		client_t *client = client_create(conn_sd);
-		assert(client);
+		telnet_user_t *user = telnet_user_create(conn_sd);
+		assert(user);
 
-		fid_t fid = fibril_create(network_client_fibril, client);
+		fid_t fid = fibril_create(network_user_fibril, user);
 		assert(fid);
 		fibril_add_ready(fid);
 	}
