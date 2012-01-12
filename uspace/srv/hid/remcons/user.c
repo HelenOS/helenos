@@ -223,7 +223,23 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	event->type = type;
 	event->c = c;
 	event->mods = 0;
-	event->key = (c == '\n' ? KC_ENTER : KC_A);
+
+	switch (c) {
+	case '\n':
+		event->key = KC_ENTER;
+		break;
+	case '\t':
+		event->key = KC_TAB;
+		break;
+	case '\b':
+	case 127: /* This is what Linux telnet sends. */
+		event->key = KC_BACKSPACE;
+		event->c = '\b';
+		break;
+	default:
+		event->key = KC_A;
+		break;
+	}
 
 	return event;
 }
