@@ -73,23 +73,6 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
-/** Creates new keyboard event from given char.
- *
- * @param type Event type (press / release).
- * @param c Pressed character.
- */
-static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
-	kbd_event_t *event = malloc(sizeof(kbd_event_t));
-	assert(event);
-
-	link_initialize(&event->link);
-	event->type = type;
-	event->c = c;
-	event->mods = 0;
-	event->key = (c == '\n' ? KC_ENTER : KC_A);
-
-	return event;
-}
 
 /** Handling client requests (VFS and console interface).
  *
@@ -100,14 +83,18 @@ static void client_connection_message_loop(telnet_user_t *user)
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = 0;
+
+		/*
+		 * The getterm task might terminate while we are here,
+		 * waiting for a call. Also, the socket might be closed
+		 * meanwhile.
+		 * We want to detect this situation early, so we use a
+		 * timeout variant of async_get_call().
+		 */
 		while (callid == 0) {
 			callid = async_get_call_timeout(&call, 1000);
 
-			fibril_mutex_lock(&user->guard);
-			bool bail_out = user->socket_closed || user->task_finished;
-			fibril_mutex_unlock(&user->guard);
-
-			if (bail_out) {
+			if (telnet_user_is_zombie(user)) {
 				if (callid != 0) {
 					async_answer_0(callid, EINTR);
 				}
@@ -116,7 +103,6 @@ static void client_connection_message_loop(telnet_user_t *user)
 		}
 		
 		if (!IPC_GET_IMETHOD(call)) {
-			/* Clean-up. */
 			return;
 		}
 
@@ -128,44 +114,14 @@ static void client_connection_message_loop(telnet_user_t *user)
 			async_answer_2(callid, EOK, 0, 0);
 			break;
 		case CONSOLE_GET_EVENT: {
-			if (list_empty(&user->in_events.list)) {
-				retry:
-				if (user->socket_buffer_len <= user->socket_buffer_pos) {
-					int recv_length = recv(user->socket, user->socket_buffer, BUFFER_SIZE, 0);
-					if ((recv_length == 0) || (recv_length == ENOTCONN)) {
-						fibril_mutex_lock(&user->guard);
-						user->socket_closed = true;
-						fibril_mutex_unlock(&user->guard);
-						async_answer_0(callid, ENOENT);
-						return;
-					}
-					if (recv_length < 0) {
-						async_answer_0(callid, EINVAL);
-						return;
-					}
-					user->socket_buffer_len = recv_length;
-					user->socket_buffer_pos = 0;
-				}
-				char data = user->socket_buffer[user->socket_buffer_pos++];
-				if (data == 13) {
-					data = 10;
-				}
-				if (data == 0)
-					goto retry;
-
-				kbd_event_t *down = new_kbd_event(KEY_PRESS, data);
-				kbd_event_t *up = new_kbd_event(KEY_RELEASE, data);
-				assert(down);
-				assert(up);
-				prodcons_produce(&user->in_events, &down->link);
-				prodcons_produce(&user->in_events, &up->link);
+			kbd_event_t event;
+			int rc = telnet_user_get_next_keyboard_event(user, &event);
+			if (rc != EOK) {
+				/* Silently ignore. */
+				async_answer_0(callid, EOK);
+				break;
 			}
-
-
-			link_t *link = prodcons_consume(&user->in_events);
-			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
-			async_answer_4(callid, EOK, event->type, event->key, event->mods, event->c);
-			free(event);
+			async_answer_4(callid, EOK, event.type, event.key, event.mods, event.c);
 			break;
 		}
 		case CONSOLE_GOTO:
@@ -184,7 +140,7 @@ static void client_connection_message_loop(telnet_user_t *user)
 				async_answer_0(callid, rc);
 				break;
 			}
-			buf_converted = malloc(2 * size);
+			buf_converted = malloc(2 * size + 1);
 			assert(buf_converted);
 			int buf_converted_size = 0;
 			/* Convert new-lines. */
@@ -196,7 +152,12 @@ static void client_connection_message_loop(telnet_user_t *user)
 					buf_converted[buf_converted_size++] = buf[i];
 				}
 			}
+			/* Add terminating zero for printing purposes. */
+			buf_converted[buf_converted_size] = 0;
+
+			fibril_mutex_lock(&user->guard);
 			rc = send(user->socket, buf_converted, buf_converted_size, 0);
+			fibril_mutex_unlock(&user->guard);
 			free(buf);
 
 			if (rc != EOK) {
@@ -205,7 +166,6 @@ static void client_connection_message_loop(telnet_user_t *user)
 			}
 
 			async_answer_1(callid, EOK, size);
-
 			break;
 		}
 		case VFS_OUT_SYNC:
@@ -248,19 +208,17 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
+	async_answer_0(iid, EOK);
 
 	telnet_user_log(user, "New client connected (%" PRIxn").", iid);
-
-	/* Accept the connection, increment reference. */
-	async_answer_0(iid, EOK);
 
 	/* Force character mode. */
 	send(user->socket, (void *)telnet_force_character_mode_command,
 	    telnet_force_character_mode_command_count, 0);
 
+	/* Handle messages. */
 	client_connection_message_loop(user);
 
-	/* Announce user disconnection. */
 	telnet_user_notify_client_disconnected(user);
 	telnet_user_log(user, "Client disconnected (%" PRIxn").", iid);
 }

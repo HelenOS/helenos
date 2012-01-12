@@ -39,7 +39,7 @@
 #include <inttypes.h>
 #include "remcons.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 32
 
 /** Representation of a connected (human) user. */
 typedef struct {
@@ -75,7 +75,9 @@ typedef struct {
 telnet_user_t *telnet_user_create(int socket);
 void telnet_user_destroy(telnet_user_t *user);
 telnet_user_t *telnet_user_get_for_client_connection(service_id_t id);
+bool telnet_user_is_zombie(telnet_user_t *user);
 void telnet_user_notify_client_disconnected(telnet_user_t *user);
+int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event);
 
 /** Print informational message about connected user. */
 #define telnet_user_log(user, fmt, ...) \
