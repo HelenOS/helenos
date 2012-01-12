@@ -70,6 +70,9 @@ typedef struct {
 	bool task_finished;
 	int locsrv_connection_count;
 	bool socket_closed;
+
+	/** X position of the cursor. */
+	int cursor_x;
 } telnet_user_t;
 
 telnet_user_t *telnet_user_create(int socket);
@@ -78,6 +81,8 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id);
 bool telnet_user_is_zombie(telnet_user_t *user);
 void telnet_user_notify_client_disconnected(telnet_user_t *user);
 int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event);
+int telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size);
+void telnet_user_update_cursor_x(telnet_user_t *user, int new_x);
 
 /** Print informational message about connected user. */
 #define telnet_user_log(user, fmt, ...) \

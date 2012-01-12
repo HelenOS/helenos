@@ -99,6 +99,8 @@ telnet_user_t *telnet_user_create(int socket)
 	list_append(&user->link, &users);
 	fibril_mutex_unlock(&users_guard);
 
+	user->cursor_x = 0;
+
 	return user;
 }
 
@@ -244,6 +246,12 @@ static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
 	return event;
 }
 
+/** Process telnet command (currently only print to screen).
+ *
+ * @param user Telnet user structure.
+ * @param option_code Command option code.
+ * @param cmd Telnet command.
+ */
 static void process_telnet_command(telnet_user_t *user,
     telnet_cmd_t option_code, telnet_cmd_t cmd)
 {
@@ -256,6 +264,12 @@ static void process_telnet_command(telnet_user_t *user,
 	}
 }
 
+/** Get next keyboard event.
+ *
+ * @param user Telnet user.
+ * @param event Where to store the keyboard event.
+ * @return Error code.
+ */
 int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
 {
 	fibril_mutex_lock(&user->guard);
@@ -315,6 +329,78 @@ int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
 	free(tmp);
 
 	return EOK;
+}
+
+/** Send data (convert them first) to the socket, no locking.
+ *
+ * @param user Telnet user.
+ * @param data Data buffer (not zero terminated).
+ * @param size Size of @p data buffer in bytes.
+ */
+static int telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, size_t size)
+{
+	uint8_t *converted = malloc(3 * size + 1);
+	assert(converted);
+	int converted_size = 0;
+
+	/* Convert new-lines. */
+	for (size_t i = 0; i < size; i++) {
+		if (data[i] == 10) {
+			converted[converted_size++] = 13;
+			converted[converted_size++] = 10;
+			user->cursor_x = 0;
+		} else {
+			converted[converted_size++] = data[i];
+			if (data[i] == '\b') {
+				user->cursor_x--;
+			} else {
+				user->cursor_x++;
+			}
+		}
+	}
+
+
+	int rc = send(user->socket, converted, converted_size, 0);
+	free(converted);
+
+	return rc;
+}
+
+/** Send data (convert them first) to the socket.
+ *
+ * @param user Telnet user.
+ * @param data Data buffer (not zero terminated).
+ * @param size Size of @p data buffer in bytes.
+ */
+int telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size)
+{
+	fibril_mutex_lock(&user->guard);
+
+	int rc = telnet_user_send_data_no_lock(user, data, size);
+
+	fibril_mutex_unlock(&user->guard);
+
+	return rc;
+}
+
+/** Update cursor X position.
+ *
+ * This call may result in sending control commands over socket.
+ *
+ * @param user Telnet user.
+ * @param new_x New cursor location.
+ */
+void telnet_user_update_cursor_x(telnet_user_t *user, int new_x)
+{
+	fibril_mutex_lock(&user->guard);
+	if (user->cursor_x - 1 == new_x) {
+		uint8_t data = '\b';
+		/* Ignore errors. */
+		telnet_user_send_data_no_lock(user, &data, 1);
+	}
+	user->cursor_x = new_x;
+	fibril_mutex_unlock(&user->guard);
+
 }
 
 /**

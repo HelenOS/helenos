@@ -111,7 +111,9 @@ static void client_connection_message_loop(telnet_user_t *user)
 			async_answer_2(callid, EOK, 100, 1);
 			break;
 		case CONSOLE_GET_POS:
-			async_answer_2(callid, EOK, 0, 0);
+			fibril_mutex_lock(&user->guard);
+			async_answer_2(callid, EOK, user->cursor_x, 0);
+			fibril_mutex_unlock(&user->guard);
 			break;
 		case CONSOLE_GET_EVENT: {
 			kbd_event_t event;
@@ -124,15 +126,17 @@ static void client_connection_message_loop(telnet_user_t *user)
 			async_answer_4(callid, EOK, event.type, event.key, event.mods, event.c);
 			break;
 		}
-		case CONSOLE_GOTO:
+		case CONSOLE_GOTO: {
+			int new_x = IPC_GET_ARG1(call);
+			telnet_user_update_cursor_x(user, new_x);
 			async_answer_0(callid, ENOTSUP);
 			break;
+		}
 		case VFS_OUT_READ:
 			async_answer_0(callid, ENOTSUP);
 			break;
 		case VFS_OUT_WRITE: {
-			char *buf;
-			char *buf_converted;
+			uint8_t *buf;
 			size_t size;
 			int rc = async_data_write_accept((void **)&buf, false, 0, 0, 0, &size);
 
@@ -140,24 +144,8 @@ static void client_connection_message_loop(telnet_user_t *user)
 				async_answer_0(callid, rc);
 				break;
 			}
-			buf_converted = malloc(2 * size + 1);
-			assert(buf_converted);
-			int buf_converted_size = 0;
-			/* Convert new-lines. */
-			for (size_t i = 0; i < size; i++) {
-				if (buf[i] == 10) {
-					buf_converted[buf_converted_size++] = 13;
-					buf_converted[buf_converted_size++] = 10;
-				} else {
-					buf_converted[buf_converted_size++] = buf[i];
-				}
-			}
-			/* Add terminating zero for printing purposes. */
-			buf_converted[buf_converted_size] = 0;
 
-			fibril_mutex_lock(&user->guard);
-			rc = send(user->socket, buf_converted, buf_converted_size, 0);
-			fibril_mutex_unlock(&user->guard);
+			rc = telnet_user_send_data(user, buf, size);
 			free(buf);
 
 			if (rc != EOK) {
