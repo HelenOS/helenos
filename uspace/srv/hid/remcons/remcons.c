@@ -192,7 +192,6 @@ static void client_connection_message_loop(telnet_user_t *user)
 			free(buf);
 
 			if (rc != EOK) {
-				printf("Problem sending data: %s\n", str_error(rc));
 				async_answer_0(callid, rc);
 				break;
 			}
@@ -241,7 +240,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	printf("New user for service %s.\n", user->service_name);
+	telnet_user_log(user, "New client connected (%" PRIxn").", iid);
 
 	/* Accept the connection, increment reference. */
 	async_answer_0(iid, EOK);
@@ -254,6 +253,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	/* Announce user disconnection. */
 	telnet_user_notify_client_disconnected(user);
+	telnet_user_log(user, "Client disconnected (%" PRIxn").", iid);
 }
 
 static int spawn_task_fibril(void *arg)
@@ -267,7 +267,7 @@ static int spawn_task_fibril(void *arg)
 	task_id_t task;
 	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, term, "/app/bdsh", NULL);
 	if (rc != EOK) {
-		printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
+		telnet_user_error(user, "Spawning %s %s %s failed: %s.",
 		    APP_GETTERM, term, "/app/bdsh", str_error(rc));
 		fibril_mutex_lock(&user->refcount_mutex);
 		user->task_finished = true;
@@ -283,7 +283,9 @@ static int spawn_task_fibril(void *arg)
 	task_exit_t task_exit;
 	int task_retval;
 	task_wait(task, &task_exit, &task_retval);
-	printf("%s: getterm terminated: %d, %d\n", NAME, task_exit, task_retval);
+	telnet_user_log(user, "%s terminated %s, exit code %d.", APP_GETTERM,
+	    task_exit == TASK_EXIT_NORMAL ? "normally" : "unexpectedly",
+	    task_retval);
 
 	/* Announce destruction. */
 	fibril_mutex_lock(&user->refcount_mutex);
@@ -307,12 +309,13 @@ static int network_user_fibril(void *arg)
 
 	rc = loc_service_register(user->service_name, &user->service_id);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to register device %s\n", NAME,
-		    user->service_name);
+		telnet_user_error(user, "Unable to register %s with loc: %s.",
+		    user->service_name, str_error(rc));
 		return EOK;
 	}
-	printf("Service %s registered as %" PRIun "\n", user->service_name,
-	    user->service_id);
+
+	telnet_user_log(user, "Service %s registerd with id %" PRIun ".",
+	    user->service_name, user->service_id);
 
 	fid_t spawn_fibril = fibril_create(spawn_task_fibril, user);
 	assert(spawn_fibril);
@@ -336,10 +339,12 @@ static int network_user_fibril(void *arg)
 
 	rc = loc_service_unregister(user->service_id);
 	if (rc != EOK) {
-		fprintf(stderr, "Warning: failed to unregister %s: %s\n", user->service_name, str_error(rc));
+		telnet_user_error(user,
+		    "Unable to unregister %s from loc: %s (ignored).",
+		    user->service_name, str_error(rc));
 	}
 
-	printf("Destroying service %s.\n", user->service_name);
+	telnet_user_log(user, "Destroying...");
 	telnet_user_destroy(user);
 
 	return EOK;
@@ -351,7 +356,7 @@ int main(int argc, char *argv[])
 	
 	int rc = loc_server_register(NAME, client_connection);
 	if (rc < 0) {
-		printf("%s: Unable to register server (%s).\n", NAME,
+		fprintf(stderr, NAME ": Unable to register server: %s.\n",
 		    str_error(rc));
 		return 1;
 	}
@@ -364,28 +369,28 @@ int main(int argc, char *argv[])
 	rc = inet_pton(AF_INET, "127.0.0.1", (void *)
 	    &addr.sin_addr.s_addr);
 	if (rc != EOK) {
-		fprintf(stderr, "Error parsing network address (%s)\n",
+		fprintf(stderr, "Error parsing network address: %s.\n",
 		    str_error(rc));
 		return 2;
 	}
 
 	int listen_sd = socket(PF_INET, SOCK_STREAM, 0);
 	if (listen_sd < 0) {
-		fprintf(stderr, "Error creating listening socket (%s)\n",
+		fprintf(stderr, "Error creating listening socket: %s.\n",
 		    str_error(listen_sd));
 		return 3;
 	}
 
 	rc = bind(listen_sd, (struct sockaddr *) &addr, sizeof(addr));
 	if (rc != EOK) {
-		fprintf(stderr, "Error binding socket (%s)\n",
+		fprintf(stderr, "Error binding socket: %s.\n",
 		    str_error(rc));
 		return 4;
 	}
 
 	rc = listen(listen_sd, BACKLOG_SIZE);
 	if (rc != EOK) {
-		fprintf(stderr, "listen() failed (%s)\n", str_error(rc));
+		fprintf(stderr, "listen() failed: %s.\n", str_error(rc));
 		return 5;
 	}
 
@@ -398,7 +403,8 @@ int main(int argc, char *argv[])
 		    &raddr_len);
 
 		if (conn_sd < 0) {
-			fprintf(stderr, "accept() failed (%s)\n", str_error(rc));
+			fprintf(stderr, "accept() failed: %s.\n",
+			    str_error(rc));
 			continue;
 		}
 

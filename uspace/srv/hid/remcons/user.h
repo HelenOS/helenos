@@ -68,6 +68,12 @@ void telnet_user_destroy(telnet_user_t *user);
 telnet_user_t *telnet_user_get_for_client_connection(service_id_t id);
 void telnet_user_notify_client_disconnected(telnet_user_t *user);
 
+#define telnet_user_log(user, fmt, ...) \
+	printf(NAME " [console %d (%d)]: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
+
+#define telnet_user_error(user, fmt, ...) \
+	fprintf(stderr, NAME " [console %d (%d)]: ERROR: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
+
 #endif
 
 /**

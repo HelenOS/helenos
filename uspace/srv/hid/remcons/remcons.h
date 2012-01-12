@@ -35,7 +35,7 @@
 #ifndef REMCONS_H_
 #define REMCONS_H_
 
-#define NAME       "remterm"
+#define NAME       "remcons"
 #define NAMESPACE  "term"
 #define BACKLOG_SIZE  5
 
