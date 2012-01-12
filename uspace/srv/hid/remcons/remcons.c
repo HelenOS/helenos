@@ -54,39 +54,10 @@
 #include <io/console.h>
 #include <inttypes.h>
 #include "telnet.h"
-
+#include "user.h"
 
 #define APP_GETTERM  "/app/getterm"
-#define NAME       "remterm"
-#define NAMESPACE  "term"
-#define BACKLOG_SIZE  5
 
-#define BUFFER_SIZE 1024
-
-typedef struct {
-	int id;
-	int socket;
-	service_id_t service_id;
-	char *service_name;
-	/** Producer-consumer of kbd_event_t. */
-	prodcons_t in_events;
-	link_t link;
-	char socket_buffer[BUFFER_SIZE];
-	size_t socket_buffer_len;
-	size_t socket_buffer_pos;
-
-	task_id_t task_id;
-
-	/* Reference counting. */
-	fibril_condvar_t refcount_cv;
-	fibril_mutex_t refcount_mutex;
-	bool task_finished;
-	int locsrv_connection_count;
-	bool socket_closed;
-} telnet_user_t;
-
-static FIBRIL_MUTEX_INITIALIZE(users_guard);
-static LIST_INITIALIZE(users);
 
 /** Telnet commands to force character mode
  * (redundant to be on the safe side).
@@ -101,94 +72,6 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 };
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
-
-static telnet_user_t *telnet_user_create(int socket)
-{
-	static int telnet_user_id_counter = 0;
-
-	telnet_user_t *user = malloc(sizeof(telnet_user_t));
-	if (user == NULL) {
-		return NULL;
-	}
-
-	user->id = ++telnet_user_id_counter;
-
-	int rc = asprintf(&user->service_name, "%s/telnet%d", NAMESPACE, user->id);
-	if (rc < 0) {
-		free(user);
-		return NULL;
-	}
-
-	user->socket = socket;
-	user->service_id = (service_id_t) -1;
-	prodcons_initialize(&user->in_events);
-	link_initialize(&user->link);
-	user->socket_buffer_len = 0;
-	user->socket_buffer_pos = 0;
-
-	fibril_condvar_initialize(&user->refcount_cv);
-	fibril_mutex_initialize(&user->refcount_mutex);
-	user->task_finished = false;
-	user->socket_closed = false;
-	user->locsrv_connection_count = 0;
-
-
-	fibril_mutex_lock(&users_guard);
-	list_append(&user->link, &users);
-	fibril_mutex_unlock(&users_guard);
-
-	return user;
-}
-
-static void telnet_user_destroy(telnet_user_t *user)
-{
-	assert(user);
-
-	fibril_mutex_lock(&users_guard);
-	list_remove(&user->link);
-	fibril_mutex_unlock(&users_guard);
-
-	free(user);
-}
-
-static telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
-{
-	telnet_user_t *user = NULL;
-
-	fibril_mutex_lock(&users_guard);
-	list_foreach(users, link) {
-		telnet_user_t *tmp = list_get_instance(link, telnet_user_t, link);
-		if (tmp->service_id == id) {
-			user = tmp;
-			break;
-		}
-	}
-	if (user == NULL) {
-		fibril_mutex_unlock(&users_guard);
-		return NULL;
-	}
-
-	telnet_user_t *tmp = user;
-	fibril_mutex_lock(&tmp->refcount_mutex);
-	user->locsrv_connection_count++;
-
-	/*
-	 * Refuse to return user whose task already finished or when
-	 * the socket is already closed().
-	 */
-	if (user->task_finished || user->socket_closed) {
-		user = NULL;
-		user->locsrv_connection_count--;
-	}
-
-	fibril_mutex_unlock(&tmp->refcount_mutex);
-
-
-	fibril_mutex_unlock(&users_guard);
-
-	return user;
-}
-
 
 
 static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {

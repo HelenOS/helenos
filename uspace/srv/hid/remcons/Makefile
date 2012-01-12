@@ -30,6 +30,7 @@ USPACE_PREFIX = ../../..
 BINARY = remcons
 
 SOURCES = \
-	remcons.c
+	remcons.c \
+	user.c
 
 include $(USPACE_PREFIX)/Makefile.common
