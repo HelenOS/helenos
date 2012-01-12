@@ -66,6 +66,7 @@ typedef struct {
 telnet_user_t *telnet_user_create(int socket);
 void telnet_user_destroy(telnet_user_t *user);
 telnet_user_t *telnet_user_get_for_client_connection(service_id_t id);
+void telnet_user_notify_client_disconnected(telnet_user_t *user);
 
 #endif
 

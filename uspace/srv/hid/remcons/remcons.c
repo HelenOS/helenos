@@ -253,10 +253,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	client_connection_message_loop(user);
 
 	/* Announce user disconnection. */
-	fibril_mutex_lock(&user->refcount_mutex);
-	user->locsrv_connection_count--;
-	fibril_condvar_signal(&user->refcount_cv);
-	fibril_mutex_unlock(&user->refcount_mutex);
+	telnet_user_notify_client_disconnected(user);
 }
 
 static int spawn_task_fibril(void *arg)

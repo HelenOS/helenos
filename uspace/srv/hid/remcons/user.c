@@ -52,6 +52,7 @@
 #include <net/socket.h>
 #include <io/console.h>
 #include <inttypes.h>
+#include <assert.h>
 #include "user.h"
 
 static FIBRIL_MUTEX_INITIALIZE(users_guard);
@@ -145,6 +146,14 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 	return user;
 }
 
+void telnet_user_notify_client_disconnected(telnet_user_t *user)
+{
+	fibril_mutex_lock(&user->refcount_mutex);
+	assert(user->locsrv_connection_count > 0);
+	user->locsrv_connection_count--;
+	fibril_condvar_signal(&user->refcount_cv);
+	fibril_mutex_unlock(&user->refcount_mutex);
+}
 
 
 /**
