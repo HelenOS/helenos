@@ -309,10 +309,11 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		if (entry->p_flags & PF_W) {
 			kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);
-			memcpy((void *) kpage, (void *) (base + i * FRAME_SIZE),
+			memcpy((void *) kpage, (void *) (base + i * PAGE_SIZE),
 			    PAGE_SIZE);
-			if (entry->p_flags & PF_X)
-				smc_coherence_block((void *) kpage, FRAME_SIZE);
+			if (entry->p_flags & PF_X) {
+				smc_coherence_block((void *) kpage, PAGE_SIZE);
+			}
 			km_temporary_page_put(kpage);
 			dirty = true;
 		} else {
