@@ -43,6 +43,7 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
+#include <mm/km.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
 #include <adt/btree.h>
@@ -154,6 +155,8 @@ void anon_destroy(as_area_t *area)
  */
 int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
+	uintptr_t upage = ALIGN_DOWN(addr, PAGE_SIZE);
+	uintptr_t kpage;
 	uintptr_t frame;
 
 	ASSERT(page_table_locked(AS));
@@ -174,7 +177,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		mutex_lock(&area->sh_info->lock);
 		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-		    ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
+		    upage - area->base, &leaf);
 		if (!frame) {
 			bool allocate = true;
 			unsigned int i;
@@ -184,24 +187,23 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			 * Just a small workaround.
 			 */
 			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] ==
-				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base) {
+				if (leaf->key[i] == upage - area->base) {
 					allocate = false;
 					break;
 				}
 			}
 			if (allocate) {
-				frame = (uintptr_t) frame_alloc_noreserve(
-				    ONE_FRAME, 0);
-				memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
+				kpage = km_temporary_page_get(&frame,
+				    FRAME_NO_RESERVE);
+				memsetb((void *) kpage, PAGE_SIZE, 0);
+				km_temporary_page_put(kpage);
 				
 				/*
 				 * Insert the address of the newly allocated
 				 * frame to the pagemap.
 				 */
 				btree_insert(&area->sh_info->pagemap,
-				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
-				    (void *) frame, leaf);
+				    upage - area->base, (void *) frame, leaf);
 			}
 		}
 		frame_reference_add(ADDR2PFN(frame));
@@ -222,17 +224,18 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   do not forget to distinguish between
 		 *   the different causes
 		 */
-		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
-		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
+		kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);
+		memsetb((void *) kpage, PAGE_SIZE, 0);
+		km_temporary_page_put(kpage);
 	}
 	
 	/*
-	 * Map 'page' to 'frame'.
+	 * Map 'upage' to 'frame'.
 	 * Note that TLB shootdown is not attempted as only new information is
 	 * being inserted into page tables.
 	 */
-	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
+	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
+	if (!used_space_insert(area, upage, 1))
 		panic("Cannot insert used space.");
 		
 	return AS_PF_OK;
