@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,70 +26,46 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup mouse_proto
- * @ingroup input
+/** @addtogroup kbd_port
+ * @ingroup  kbd
  * @{
  */
-/**
- * @file
- * @brief ADB protocol driver.
+/** @file
+ * @brief i8042 port driver.
  */
 
-#include <bool.h>
-#include <mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
+#ifndef i8042_H_
+#define i8042_H_
 
-static mouse_dev_t *mouse_dev;
-static bool b1_pressed;
-static bool b2_pressed;
+#include <sys/types.h>
+#include <fibril_synch.h>
+#include <ddf/driver.h>
 
-static int adb_proto_init(mouse_dev_t *mdev)
-{
-	mouse_dev = mdev;
-	b1_pressed = false;
-	b2_pressed = false;
-	
-	return 0;
-}
+#include "buffer.h"
 
-/** Process mouse data */
-static void adb_proto_parse(sysarg_t data)
-{
-	bool b1, b2;
-	uint16_t udx, udy;
-	int dx, dy;
-	
-	/* Extract fields. */
-	b1 = ((data >> 15) & 1) == 0;
-	udy = (data >> 8) & 0x7f;
-	b2 = ((data >> 7) & 1) == 0;
-	udx = data & 0x7f;
-	
-	/* Decode 7-bit two's complement signed values. */
-	dx = (udx & 0x40) ? (udx - 0x80) : udx;
-	dy = (udy & 0x40) ? (udy - 0x80) : udy;
-	
-	if (b1 != b1_pressed) {
-		mouse_push_event_button(mouse_dev, 1, b1);
-		b1_pressed = b1;
-	}
-	
-	if (b2 != b2_pressed) {
-		mouse_push_event_button(mouse_dev, 2, b2);
-		b1_pressed = b1;
-	}
-	
-	if (dx != 0 || dy != 0)
-		mouse_push_event_move(mouse_dev, dx, dy, 0);
-}
+#define BUFFER_SIZE 12
 
-mouse_proto_ops_t adb_proto = {
-	.parse = adb_proto_parse,
-	.init = adb_proto_init
-};
+/** i8042 HW I/O interface */
+typedef struct {
+	ioport8_t data;
+	uint8_t pad[3];
+	ioport8_t status;
+} __attribute__ ((packed)) i8042_regs_t;
 
+/** i8042 driver structure. */
+typedef struct i8042 {
+	i8042_regs_t *regs;    /**< I/O registers. */
+	ddf_fun_t *kbd_fun;    /**< Pirmary port device function. */
+	ddf_fun_t *aux_fun;  /**< Auxiliary port device function. */
+	buffer_t kbd_buffer;   /**< Primary port buffer. */
+	buffer_t aux_buffer;   /**< Aux. port buffer. */
+	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
+	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
+	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
+} i8042_t;
+
+int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
+#endif
 /**
  * @}
  */

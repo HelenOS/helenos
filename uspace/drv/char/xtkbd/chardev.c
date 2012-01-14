@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,69 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse_proto
- * @ingroup input
- * @{
- */
-/**
- * @file
- * @brief ADB protocol driver.
- */
+#include <errno.h>
+#include <mem.h>
+#include <ipc/dev_iface.h>
+#include <ddf/log.h>
 
-#include <bool.h>
-#include <mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
+#include "chardev.h"
 
-static mouse_dev_t *mouse_dev;
-static bool b1_pressed;
-static bool b2_pressed;
-
-static int adb_proto_init(mouse_dev_t *mdev)
-{
-	mouse_dev = mdev;
-	b1_pressed = false;
-	b2_pressed = false;
-	
-	return 0;
-}
-
-/** Process mouse data */
-static void adb_proto_parse(sysarg_t data)
-{
-	bool b1, b2;
-	uint16_t udx, udy;
-	int dx, dy;
-	
-	/* Extract fields. */
-	b1 = ((data >> 15) & 1) == 0;
-	udy = (data >> 8) & 0x7f;
-	b2 = ((data >> 7) & 1) == 0;
-	udx = data & 0x7f;
-	
-	/* Decode 7-bit two's complement signed values. */
-	dx = (udx & 0x40) ? (udx - 0x80) : udx;
-	dy = (udy & 0x40) ? (udy - 0x80) : udy;
-	
-	if (b1 != b1_pressed) {
-		mouse_push_event_button(mouse_dev, 1, b1);
-		b1_pressed = b1;
-	}
-	
-	if (b2 != b2_pressed) {
-		mouse_push_event_button(mouse_dev, 2, b2);
-		b1_pressed = b1;
-	}
-	
-	if (dx != 0 || dy != 0)
-		mouse_push_event_move(mouse_dev, dx, dy, 0);
-}
-
-mouse_proto_ops_t adb_proto = {
-	.parse = adb_proto_parse,
-	.init = adb_proto_init
+// TODO make this shared
+enum {
+	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
+	IPC_CHAR_WRITE,
 };
 
-/**
- * @}
- */
+ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 4 * sizeof(sysarg_t))
+		return ELIMIT;
+
+	sysarg_t message[4] = { 0 };
+	const ssize_t ret = async_req_1_4(exch, IPC_CHAR_READ, size,
+	    &message[0], &message[1], &message[2], &message[3]);
+	if (ret > 0 && (size_t)ret <= size)
+		memcpy(data, message, size);
+	return ret;
+}
+
+ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 3 * sizeof(sysarg_t))
+		return ELIMIT;
+
+	sysarg_t message[3] = { 0 };
+	memcpy(message, data, size);
+	return async_req_4_0(exch, IPC_CHAR_WRITE, size,
+	    message[0], message[1], message[2]);
+}

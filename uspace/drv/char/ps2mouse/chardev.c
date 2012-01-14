@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd_port
- * @ingroup  kbd
- * @{
- */
+#include <errno.h>
+#include <mem.h>
+#include <ipc/dev_iface.h>
+#include <ddf/log.h>
 
-/** @file
- * @brief i8042 port driver.
- */
+#include "chardev.h"
 
-#ifndef i8042_H_
-#define i8042_H_
+// TODO make this shared
+enum {
+	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
+	IPC_CHAR_WRITE,
+};
 
-#include <sys/types.h>
-#include <libarch/ddi.h>
-#include <async.h>
+ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 4 * sizeof(sysarg_t))
+		return ELIMIT;
 
-/** i8042 HW I/O interface */
-struct i8042 {
-	ioport8_t data;
-	uint8_t pad[3];
-	ioport8_t status;
-} __attribute__ ((packed));
-typedef struct i8042 i8042_t;
+	sysarg_t message[4] = { 0 };
+	const ssize_t ret = async_req_1_4(exch, IPC_CHAR_READ, size,
+	    &message[0], &message[1], &message[2], &message[3]);
+	if (ret > 0 && (size_t)ret <= size)
+		memcpy(data, message, size);
+	return ret;
+}
 
-/** Softstate structure, one for each serial port (primary and aux). */
-typedef struct {
-	service_id_t service_id;
-	async_sess_t *client_sess;
-} i8042_port_t;
+ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 3 * sizeof(sysarg_t))
+		return ELIMIT;
 
-#endif
-
-/**
- * @}
- */
+	sysarg_t message[3] = { 0 };
+	memcpy(message, data, size);
+	return async_req_4_0(exch, IPC_CHAR_WRITE, size,
+	    message[0], message[1], message[2]);
+}

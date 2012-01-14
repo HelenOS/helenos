@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,70 +25,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup mouse_proto
- * @ingroup input
+/** @addtogroup drvkbd
  * @{
  */
-/**
- * @file
- * @brief ADB protocol driver.
+/** @file
+ * @brief ps/2 mouse driver.
  */
 
-#include <bool.h>
-#include <mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
+#ifndef _CHARDEV_H_
+#define _CHARDEV_H_
 
-static mouse_dev_t *mouse_dev;
-static bool b1_pressed;
-static bool b2_pressed;
+#include <libarch/types.h>
+#include <async.h>
 
-static int adb_proto_init(mouse_dev_t *mdev)
-{
-	mouse_dev = mdev;
-	b1_pressed = false;
-	b2_pressed = false;
-	
-	return 0;
-}
+ssize_t chardev_read(async_exch_t *, void *, size_t);
+ssize_t chardev_write(async_exch_t *, const void *, size_t);
 
-/** Process mouse data */
-static void adb_proto_parse(sysarg_t data)
-{
-	bool b1, b2;
-	uint16_t udx, udy;
-	int dx, dy;
-	
-	/* Extract fields. */
-	b1 = ((data >> 15) & 1) == 0;
-	udy = (data >> 8) & 0x7f;
-	b2 = ((data >> 7) & 1) == 0;
-	udx = data & 0x7f;
-	
-	/* Decode 7-bit two's complement signed values. */
-	dx = (udx & 0x40) ? (udx - 0x80) : udx;
-	dy = (udy & 0x40) ? (udy - 0x80) : udy;
-	
-	if (b1 != b1_pressed) {
-		mouse_push_event_button(mouse_dev, 1, b1);
-		b1_pressed = b1;
-	}
-	
-	if (b2 != b2_pressed) {
-		mouse_push_event_button(mouse_dev, 2, b2);
-		b1_pressed = b1;
-	}
-	
-	if (dx != 0 || dy != 0)
-		mouse_push_event_move(mouse_dev, dx, dy, 0);
-}
-
-mouse_proto_ops_t adb_proto = {
-	.parse = adb_proto_parse,
-	.init = adb_proto_init
-};
-
+#endif
 /**
  * @}
  */
