@@ -648,7 +648,8 @@ int main(int argc, char **argv)
 	mouse_add_legacy_devs();
 	
 	/* Register driver */
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf("%s: Unable to register server (%d)\n", NAME, rc);
 		return -1;
