@@ -47,7 +47,7 @@
  * inject some adaptation layer between the DDF call and NICF implementation */
 
 extern int nic_get_address_impl(ddf_fun_t *dev_fun, nic_address_t *address);
-extern int nic_send_message_impl(ddf_fun_t *dev_fun, packet_id_t packet_id);
+extern int nic_send_frame_impl(ddf_fun_t *dev_fun, void *data, size_t size);
 extern int nic_connect_to_nil_impl(ddf_fun_t *dev_fun, services_t nil_service,
 	int device_id);
 extern int nic_get_state_impl(ddf_fun_t *dev_fun, nic_device_state_t *state);

@@ -66,6 +66,8 @@
 
 #define E1000_RECEIVE_ADDRESS  16
 
+/** Maximum sending packet size */
+#define E1000_MAX_SEND_FRAME_SIZE  2048
 /** Maximum receiving packet size */
 #define E1000_MAX_RECEIVE_PACKET_SIZE  2048
 
@@ -124,8 +126,10 @@ typedef struct {
 	/** Virtual tx ring address */
 	void *tx_ring_virt;
 	
-	/** Packets in tx ring  */
-	packet_t **tx_ring_packets;
+	/** Ring of TX frames, physical address */
+	void **tx_frame_phys;
+	/** Ring of TX frames, virtual address */
+	void **tx_frame_virt;
 	
 	/** Physical rx ring address */
 	void *rx_ring_phys;
@@ -222,7 +226,7 @@ static driver_t e1000_driver = {
 /* The default implementation callbacks */
 static int e1000_on_activating(nic_t *);
 static int e1000_on_stopping(nic_t *);
-static void e1000_write_packet(nic_t *, packet_t *);
+static void e1000_send_frame(nic_t *, void *, size_t);
 
 /** Commands to deal with interrupt
  *
@@ -1125,12 +1129,6 @@ static void e1000_clear_tx_descriptor(nic_t *nic, unsigned int offset)
 	e1000_tx_descriptor_t *tx_descriptor = (e1000_tx_descriptor_t *)
 	    (e1000->tx_ring_virt + offset * sizeof(e1000_tx_descriptor_t));
 	
-	if (tx_descriptor->length) {
-		packet_t *old_packet = *(e1000->tx_ring_packets + offset);
-		if (old_packet)
-			nic_release_packet(nic, old_packet);
-	}
-	
 	tx_descriptor->phys_addr = 0;
 	tx_descriptor->length = 0;
 	tx_descriptor->checksum_offset = 0;
@@ -1521,31 +1519,78 @@ static void e1000_initialize_tx_registers(e1000_t *e1000)
  */
 static int e1000_initialize_tx_structure(e1000_t *e1000)
 {
+	size_t i;
+	
 	fibril_mutex_lock(&e1000->tx_lock);
+	
+	e1000->tx_ring_phys = NULL;
+	e1000->tx_ring_virt = NULL;
+	e1000->tx_frame_phys = NULL;
+	e1000->tx_frame_virt = NULL;
 	
 	int rc = dmamem_map_anonymous(
 	    E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t),
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &e1000->tx_ring_phys,
 	    &e1000->tx_ring_virt);
 	if (rc != EOK)
-		return rc;
+		goto error;
 	
 	bzero(e1000->tx_ring_virt,
 	    E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t));
+	
+	e1000->tx_frame_phys = calloc(E1000_TX_PACKETS_COUNT, sizeof(void *));
+	e1000->tx_frame_virt = calloc(E1000_TX_PACKETS_COUNT, sizeof(void *));
+
+	if (e1000->tx_frame_phys == NULL || e1000->tx_frame_virt == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+	
+	for (i = 0; i < E1000_TX_PACKETS_COUNT; i++) {
+		rc = dmamem_map_anonymous(
+		    E1000_MAX_SEND_FRAME_SIZE, AS_AREA_READ | AS_AREA_WRITE,
+		    0, &e1000->tx_frame_phys[i], &e1000->tx_frame_virt[i]);
+		if (rc != EOK)
+			goto error;
+	}
 	
 	E1000_REG_WRITE(e1000, E1000_TDBAH,
 	    (uint32_t) (PTR_TO_U64(e1000->tx_ring_phys) >> 32));
 	E1000_REG_WRITE(e1000, E1000_TDBAL,
 	    (uint32_t) PTR_TO_U64(e1000->tx_ring_phys));
 	
-	e1000->tx_ring_packets =
-	    malloc(E1000_TX_PACKETS_COUNT * sizeof(packet_t *));
-	// FIXME: Check return value
-	
 	e1000_initialize_tx_registers(e1000);
 	
 	fibril_mutex_unlock(&e1000->tx_lock);
 	return EOK;
+	
+error:
+	if (e1000->tx_ring_virt != NULL) {
+		dmamem_unmap_anonymous(e1000->tx_ring_virt);
+		e1000->tx_ring_virt = NULL;
+	}
+	
+	if (e1000->tx_frame_phys != NULL && e1000->tx_frame_virt != NULL) {
+		for (i = 0; i < E1000_TX_PACKETS_COUNT; i++) {
+			if (e1000->tx_frame_virt[i] != NULL) {
+				dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
+				e1000->tx_frame_virt[i] = NULL;
+				e1000->tx_frame_phys[i] = NULL;
+			}
+		}
+	}
+	
+	if (e1000->tx_frame_phys != NULL) {
+		free(e1000->tx_frame_phys);
+		e1000->tx_frame_phys = NULL;
+	}
+	
+	if (e1000->tx_frame_virt != NULL) {
+		free(e1000->tx_frame_virt);
+		e1000->tx_frame_phys = NULL;
+	}
+	
+	return rc;
 }
 
 /** Uninitialize transmit structure
@@ -1555,7 +1600,23 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
  */
 static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 {
-	free(e1000->tx_ring_packets);
+	size_t i;
+	
+	for (i = 0; i < E1000_TX_PACKETS_COUNT; i++) {
+		dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
+		e1000->tx_frame_virt[i] = NULL;
+		e1000->tx_frame_phys[i] = NULL;
+	}
+	
+	if (e1000->tx_frame_phys != NULL) {
+		free(e1000->tx_frame_phys);
+		e1000->tx_frame_phys = NULL;
+	}
+	
+	if (e1000->tx_frame_virt != NULL) {
+		free(e1000->tx_frame_virt);
+		e1000->tx_frame_phys = NULL;
+	}
 	dmamem_unmap_anonymous(e1000->tx_ring_virt);
 }
 
@@ -1770,7 +1831,7 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 	bzero(e1000, sizeof(e1000_t));
 	
 	nic_set_specific(nic, e1000);
-	nic_set_write_packet_handler(nic, e1000_write_packet);
+	nic_set_send_frame_handler(nic, e1000_send_frame);
 	nic_set_state_change_handlers(nic, e1000_on_activating,
 	    e1000_on_down, e1000_on_stopping);
 	nic_set_filtering_change_handlers(nic,
@@ -2189,16 +2250,17 @@ static void e1000_eeprom_get_address(e1000_t *e1000,
 	*mac4_dest = e1000_eeprom_read(e1000, 2);
 }
 
-/** Send packet
+/** Send frame
  *
  * @param nic    NIC driver data structure
- * @param packet Packet to send
+ * @param data   Frame data
+ * @param size   Frame size in bytes
  *
  * @return EOK if succeed
  * @return Error code in the case of error
  *
  */
-static void e1000_write_packet(nic_t *nic, packet_t *packet)
+static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 {
 	assert(nic);
 	
@@ -2216,15 +2278,8 @@ static void e1000_write_packet(nic_t *nic, packet_t *packet)
 		descriptor_available = true;
 	
 	/* Descriptor done */
-	if (tx_descriptor_addr->status & TXDESCRIPTOR_STATUS_DD) {
+	if (tx_descriptor_addr->status & TXDESCRIPTOR_STATUS_DD)
 		descriptor_available = true;
-		packet_t *old_packet = *(e1000->tx_ring_packets + tdt);
-		if (old_packet) {
-			size_t old_packet_size = packet_get_data_length(old_packet);
-			nic_dma_unlock_packet(old_packet, old_packet_size);
-			nic_release_packet(nic, old_packet);
-		}
-	}
 	
 	if (!descriptor_available) {
 		/* Packet lost */
@@ -2232,20 +2287,10 @@ static void e1000_write_packet(nic_t *nic, packet_t *packet)
 		return;
 	}
 	
-	size_t packet_size = packet_get_data_length(packet);
+	memcpy(e1000->tx_frame_virt[tdt], data, size);
 	
-	void *phys;
-	int rc = nic_dma_lock_packet(packet, packet_size, &phys);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&e1000->tx_lock);
-		return;
-	}
-	
-	*(e1000->tx_ring_packets + tdt) = packet;
-	
-	tx_descriptor_addr->phys_addr =
-	    PTR_TO_U64(phys + packet->data_start);
-	tx_descriptor_addr->length = packet_size;
+	tx_descriptor_addr->phys_addr = PTR_TO_U64(e1000->tx_frame_phys[tdt]);
+	tx_descriptor_addr->length = size;
 	
 	/*
 	 * Report status to STATUS.DD (descriptor done),

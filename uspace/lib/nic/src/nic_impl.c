@@ -38,8 +38,6 @@
 #include <str_error.h>
 #include <ipc/services.h>
 #include <ns.h>
-#include <packet_client.h>
-#include <packet_remote.h>
 #include "nic_driver.h"
 #include "nic_impl.h"
 
@@ -158,48 +156,27 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 }
 
 /**
- * Default implementation of the send_message method.
+ * Default implementation of the send_frame method.
  * Send messages to the network.
  *
  * @param	fun
- * @param	packet_id	ID of the first packet in a queue of sent packets
+ * @param	data	Frame data
+ * @param 	size	Frame size in bytes
  *
  * @return EOK		If the message was sent
- * @return EBUSY	If the device is not in state when the packet can be set.
- * @return EINVAL	If the packet ID is invalid
+ * @return EBUSY	If the device is not in state when the frame can be sent.
  */
-int nic_send_message_impl(ddf_fun_t *fun, packet_id_t packet_id)
+int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
 {
 	nic_t *nic_data = (nic_t *) fun->driver_data;
-	packet_t *packet, *next;
 
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	if (nic_data->state != NIC_STATE_ACTIVE || nic_data->tx_busy) {
 		fibril_rwlock_read_unlock(&nic_data->main_lock);
-		pq_release_remote(nic_data->net_session, packet_id);
 		return EBUSY;
 	}
 
-	int rc = packet_translate_remote(nic_data->net_session, &packet, packet_id);
-
-	if (rc != EOK) {
-		fibril_rwlock_read_unlock(&nic_data->main_lock);
-		return EINVAL;
-	}
-
-	/*
-	 * Process the packet queue. Each sent packet must be detached from the
-	 * queue and destroyed. This is why the cycle differs from loopback's
-	 * cycle, where the packets are immediately used in upper layers and
-	 * therefore they must not be destroyed (released).
-	 */
-	assert(nic_data->write_packet != NULL);
-	do {
-		next = pq_detach(packet);
-		nic_data->write_packet(nic_data, packet);
-		packet = next;
-	} while (packet);
-	fibril_rwlock_read_unlock(&nic_data->main_lock);
+	nic_data->send_frame(nic_data, data, size);
 	return EOK;
 }
 
