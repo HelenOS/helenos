@@ -311,6 +311,7 @@ int main(int argc, char *argv[])
 	console("hid/input", "hid/fb0");
 	
 	spawn("/srv/clip");
+	spawn("/srv/remcons");
 	
 	/*
 	 * Start these synchronously so that mount_data() can be
