@@ -321,7 +321,8 @@ int main(int argc, char *argv[])
 {
 	int port = 2223;
 	
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc < 0) {
 		fprintf(stderr, NAME ": Unable to register server: %s.\n",
 		    str_error(rc));

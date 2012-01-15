@@ -801,13 +801,13 @@ static int eth_send_message(nic_device_id_t device_id, packet_t *packet,
 			    packet_get_id(next));
 			next = tmp;
 		} else {
+			nic_send_frame(device->sess, packet_get_data(next),
+			    packet_get_data_length(next));
 			next = pq_next(next);
 		}
 	} while (next);
 	
-	/* Send packet queue */
-	if (packet)
-		nic_send_message(device->sess, packet_get_id(packet));
+	pq_release_remote(eth_globals.net_sess, packet_get_id(packet));
 	
 	fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 	return EOK;

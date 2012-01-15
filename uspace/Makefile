@@ -93,7 +93,6 @@ DIRS = \
 	srv/hid/fb \
 	srv/hid/input \
 	srv/hid/remcons \
-	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
 	srv/net/il/arp \
 	srv/net/il/ip \
@@ -105,6 +104,9 @@ DIRS = \
 	srv/net/net \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/char/i8042 \
+	drv/char/ps2mouse \
+	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \

@@ -163,7 +163,8 @@ static int gpt_init(const char *dev_name)
 		return rc;
 
 	/* Register server with location service. */
-	rc = loc_server_register(NAME, gpt_connection);
+	async_set_client_connection(gpt_connection);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register server.\n");
 		return rc;

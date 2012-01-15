@@ -43,22 +43,33 @@
 #include <stdio.h>
 #include <ipc/services.h>
 
-/** Send a packet through the device
+/** Send frame from NIC
  *
  * @param[in] dev_sess
- * @param[in] packet_id Id of the sent packet
+ * @param[in] data     Frame data
+ * @param[in] size     Frame size in bytes
  *
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_send_message(async_sess_t *dev_sess, packet_id_t packet_id)
+int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
-	    NIC_SEND_MESSAGE, packet_id);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_SEND_MESSAGE, &answer);
+	sysarg_t retval = async_data_write_start(exch, data, size);
+	
 	async_exchange_end(exch);
 	
-	return rc;
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 /** Connect the driver to the NET and NIL services

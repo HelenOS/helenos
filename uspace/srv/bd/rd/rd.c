@@ -234,7 +234,8 @@ static bool rd_init(void)
 	printf("%s: Found RAM disk at %p, %" PRIun " bytes\n", NAME,
 	    (void *) addr_phys, size);
 	
-	ret = loc_server_register(NAME, rd_connection);
+	async_set_client_connection(rd_connection);
+	ret = loc_server_register(NAME);
 	if (ret < 0) {
 		printf("%s: Unable to register driver (%d)\n", NAME, ret);
 		return false;

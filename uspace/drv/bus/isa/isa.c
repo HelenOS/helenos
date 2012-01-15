@@ -51,6 +51,10 @@
 #include <malloc.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <ipc/irc.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
+#include <ns.h>
 #include <sys/stat.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
@@ -108,37 +112,37 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 
 	sysarg_t apic;
 	sysarg_t i8259;
-	
+
 	async_sess_t *irc_sess = NULL;
-	
+
 	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
 	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
 		irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
 		    SERVICE_IRC, 0, 0);
 	}
-	
+
 	if (!irc_sess)
 		return false;
-	
+
 	assert(isa_fun);
 	const hw_resource_list_t *res = &isa_fun->hw_resources;
 	assert(res);
 	for (size_t i = 0; i < res->count; ++i) {
 		if (res->resources[i].type == INTERRUPT) {
 			const int irq = res->resources[i].res.interrupt.irq;
-			
+
 			async_exch_t *exch = async_exchange_begin(irc_sess);
 			const int rc =
 			    async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
 			async_exchange_end(exch);
-			
+
 			if (rc != EOK) {
 				async_hangup(irc_sess);
 				return false;
 			}
 		}
 	}
-	
+
 	async_hangup(irc_sess);
 	return true;
 }
@@ -396,7 +400,7 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 	char *end = NULL;
 
 	val = skip_spaces(val);
-	irq = (int)strtol(val, &end, 0x10);
+	irq = (int)strtol(val, &end, 10);
 
 	if (val != end)
 		isa_fun_set_irq(fun, irq);

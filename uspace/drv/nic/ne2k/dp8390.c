@@ -403,10 +403,11 @@ static void ne2k_reset(ne2k_t *ne2k)
 /** Send a frame.
  *
  * @param[in,out] ne2k   Network interface structure.
- * @param[in]     packet Frame to be sent.
+ * @param[in]     data   Pointer to frame data
+ * @param[in]     size   Frame size in bytes
  *
  */
-void ne2k_send(nic_t *nic_data, packet_t *packet)
+void ne2k_send(nic_t *nic_data, void *data, size_t size)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
@@ -418,8 +419,6 @@ void ne2k_send(nic_t *nic_data, packet_t *packet)
 	while (ne2k->sq.dirty) {
 		fibril_condvar_wait(&ne2k->sq_cv, &ne2k->sq_mutex);
 	}
-	void *buf = packet_get_data(packet);
-	size_t size = packet_get_data_length(packet);
 	
 	if ((size < ETH_MIN_PACK_SIZE) || (size > ETH_MAX_PACK_SIZE_TAGGED)) {
 		fibril_mutex_unlock(&ne2k->sq_mutex);
@@ -427,7 +426,7 @@ void ne2k_send(nic_t *nic_data, packet_t *packet)
 	}
 
 	/* Upload the frame to the ethernet card */
-	ne2k_upload(ne2k, buf, ne2k->sq.page * DP_PAGE, size);
+	ne2k_upload(ne2k, data, ne2k->sq.page * DP_PAGE, size);
 	ne2k->sq.dirty = true;
 	ne2k->sq.size = size;
 
@@ -437,9 +436,6 @@ void ne2k_send(nic_t *nic_data, packet_t *packet)
 	pio_write_8(ne2k->port + DP_TBCR1, (size >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_CR, CR_TXP | CR_STA);
 	fibril_mutex_unlock(&ne2k->sq_mutex);
-
-	/* Relase packet */
-	nic_release_packet(nic_data, packet);
 }
 
 static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,

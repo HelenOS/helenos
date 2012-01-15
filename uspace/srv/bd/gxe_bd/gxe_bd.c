@@ -124,8 +124,9 @@ static int gxe_bd_init(void)
 	void *vaddr;
 	int rc, i;
 	char name[16];
-
-	rc = loc_server_register(NAME, gxe_bd_connection);
+	
+	async_set_client_connection(gxe_bd_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;

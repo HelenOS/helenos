@@ -113,8 +113,8 @@ void nic_driver_implement(driver_ops_t *driver_ops, ddf_dev_ops_t *dev_ops,
 			iface->get_state = nic_get_state_impl;
 		if (!iface->set_state)
 			iface->set_state = nic_set_state_impl;
-		if (!iface->send_message)
-			iface->send_message = nic_send_message_impl;
+		if (!iface->send_frame)
+			iface->send_frame = nic_send_frame_impl;
 		if (!iface->connect_to_nil)
 			iface->connect_to_nil = nic_connect_to_nil_impl;
 		if (!iface->get_address)
@@ -167,11 +167,11 @@ void nic_driver_implement(driver_ops_t *driver_ops, ddf_dev_ops_t *dev_ops,
  * be called anywhere else.
  *
  * @param nic_data
- * @param wpfunc		Function handling the write_packet request
+ * @param sffunc	Function handling the send_frame request
  */
-void nic_set_write_packet_handler(nic_t *nic_data, write_packet_handler wpfunc)
+void nic_set_send_frame_handler(nic_t *nic_data, send_frame_handler sffunc)
 {
-	nic_data->write_packet = wpfunc;
+	nic_data->send_frame = sffunc;
 }
 
 /**
@@ -764,7 +764,7 @@ static nic_t *nic_create(void)
 	nic_data->irc_session = NULL;
 	nic_data->poll_mode = NIC_POLL_IMMEDIATE;
 	nic_data->default_poll_mode = NIC_POLL_IMMEDIATE;
-	nic_data->write_packet = NULL;
+	nic_data->send_frame = NULL;
 	nic_data->on_activating = NULL;
 	nic_data->on_going_down = NULL;
 	nic_data->on_stopping = NULL;
