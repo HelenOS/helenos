@@ -244,8 +244,9 @@ static int ata_bd_init(void)
 {
 	void *vaddr;
 	int rc;
-
-	rc = loc_server_register(NAME, ata_bd_connection);
+	
+	async_set_client_connection(ata_bd_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;

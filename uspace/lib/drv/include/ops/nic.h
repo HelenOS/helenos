@@ -36,7 +36,6 @@
 #ifndef LIBDRV_OPS_NIC_H_
 #define LIBDRV_OPS_NIC_H_
 
-#include <net/packet.h>
 #include <ipc/services.h>
 #include <net/device.h>
 #include <sys/time.h>
@@ -45,7 +44,7 @@
 
 typedef struct nic_iface {
 	/** Mandatory methods */
-	int (*send_message)(ddf_fun_t *, packet_id_t);
+	int (*send_frame)(ddf_fun_t *, void *, size_t);
 	int (*connect_to_nil)(ddf_fun_t *, services_t, nic_device_id_t);
 	int (*get_state)(ddf_fun_t *, nic_device_state_t *);
 	int (*set_state)(ddf_fun_t *, nic_device_state_t);

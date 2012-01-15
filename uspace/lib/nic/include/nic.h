@@ -76,9 +76,10 @@ typedef list_t nic_frame_list_t;
  * silently fails (logging on debug level is suggested).
  *
  * @param nic_data
- * @param packet	Pointer to the packet to be sent
+ * @param data		Pointer to frame data
+ * @param size		Size of frame data in bytes
  */
-typedef void (*write_packet_handler)(nic_t *, packet_t *);
+typedef void (*send_frame_handler)(nic_t *, void *, size_t);
 /**
  * The handler for transitions between driver states.
  * If the handler returns negative error code, the transition between
@@ -205,7 +206,7 @@ extern int nic_connect_to_services(nic_t *);
 extern int nic_register_as_ddf_fun(nic_t *, ddf_dev_ops_t *);
 extern int nic_get_resources(nic_t *, hw_res_list_parsed_t *);
 extern void nic_set_specific(nic_t *, void *);
-extern void nic_set_write_packet_handler(nic_t *, write_packet_handler);
+extern void nic_set_send_frame_handler(nic_t *, send_frame_handler);
 extern void nic_set_state_change_handlers(nic_t *,
 	state_change_handler, state_change_handler, state_change_handler);
 extern void nic_set_filtering_change_handlers(nic_t *,

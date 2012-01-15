@@ -78,7 +78,8 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": S3C24xx on-chip UART driver\n");
 
-	rc = loc_server_register(NAME, s3c24xx_uart_connection);
+	async_set_client_connection(s3c24xx_uart_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register server.\n");
 		return -1;

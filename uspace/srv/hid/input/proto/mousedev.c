@@ -90,13 +90,14 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case MOUSEEV_MOVE_EVENT:
-			mouse_push_event_move(mousedev->mouse_dev, IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			mouse_push_event_move(mousedev->mouse_dev,
+			    IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+			    IPC_GET_ARG3(call));
 			retval = EOK;
 			break;
 		case MOUSEEV_BUTTON_EVENT:
-			mouse_push_event_button(mousedev->mouse_dev, IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			mouse_push_event_button(mousedev->mouse_dev,
+			    IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			retval = EOK;
 			break;
 		default:

@@ -84,8 +84,9 @@ int main(int argc, char *argv[])
 	int rc;
 
 	printf(NAME ": S3C24xx touchscreen driver\n");
-
-	rc = loc_server_register(NAME, s3c24xx_ts_connection);
+	
+	async_set_client_connection(s3c24xx_ts_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return -1;

@@ -84,7 +84,7 @@ typedef enum {
 	NIC_POLL_NOW
 } nic_funcs_t;
 
-extern int nic_send_message(async_sess_t *, packet_id_t);
+extern int nic_send_frame(async_sess_t *, void *, size_t);
 extern int nic_connect_to_nil(async_sess_t *, services_t, nic_device_id_t);
 extern int nic_get_state(async_sess_t *, nic_device_state_t *);
 extern int nic_set_state(async_sess_t *, nic_device_state_t);

@@ -342,7 +342,7 @@ static int ne2k_dev_add(ddf_dev_t *dev)
 	if (nic_data == NULL)
 		return ENOMEM;
 	
-	nic_set_write_packet_handler(nic_data, ne2k_send);
+	nic_set_send_frame_handler(nic_data, ne2k_send);
 	nic_set_state_change_handlers(nic_data,
 		ne2k_on_activating, NULL, ne2k_on_stopping);
 	nic_set_filtering_change_handlers(nic_data,

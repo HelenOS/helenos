@@ -388,7 +388,7 @@ static driver_t rtl8139_driver = {
 /* The default implementation callbacks */
 static int rtl8139_on_activated(nic_t *nic_data);
 static int rtl8139_on_stopped(nic_t *nic_data);
-static void rtl8139_write_packet(nic_t *nic_data, packet_t *packet);
+static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size);
 
 /** Check if the transmit buffer is busy */
 #define rtl8139_tbuf_busy(tsd) ((pio_read_32(tsd) & TSD_OWN) == 0)
@@ -398,32 +398,27 @@ static void rtl8139_write_packet(nic_t *nic_data, packet_t *packet);
  * note: the main_lock is locked when framework calls this function
  *
  * @param nic_data  The nic driver data structure
- * @param packet    The packet to send
+ * @param data      Frame data
+ * @param size      Frame size in bytes
  *
  * @return EOK if succeed, error code in the case of error
  */
-static void rtl8139_write_packet(nic_t *nic_data, packet_t *packet)
+static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 {
 	assert(nic_data);
 
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 	assert(rtl8139);
-	ddf_msg(LVL_DEBUG, "Sending packet");
+	ddf_msg(LVL_DEBUG, "Sending frame");
 
-	/* Get the packet data and check if it can be send */
-	size_t packet_length = packet_get_data_length(packet);
-	void *packet_data = packet_get_data(packet);
-
-	assert(packet_data);
-
-	if ((packet_length > RTL8139_PACKET_MAX_LENGTH) || !packet_data) {
-		ddf_msg(LVL_ERROR, "Write packet length error: data %p, length %z", 
-		    packet_data, packet_length);
+	if (size > RTL8139_PACKET_MAX_LENGTH) {
+		ddf_msg(LVL_ERROR, "Send frame: frame too long, %zu bytes",
+		    size);
 		nic_report_send_error(rtl8139->nic_data, NIC_SEC_OTHER, 1);
 		goto err_size;
 	}
 
-	assert((packet_length & TSD_SIZE_MASK) == packet_length);
+	assert((size & TSD_SIZE_MASK) == size);
 
 	/* Lock transmitter structure for obtaining next buffer */
 	fibril_mutex_lock(&rtl8139->tx_lock);
@@ -448,12 +443,12 @@ static void rtl8139_write_packet(nic_t *nic_data, packet_t *packet)
 	/* Wait until the buffer is free */
 	assert(!rtl8139_tbuf_busy(tsd));
 
-	/* Write packet data to the buffer, set the size to TSD and clear OWN bit */
-	memcpy(buf_addr, packet_data, packet_length);
+	/* Write frame data to the buffer, set the size to TSD and clear OWN bit */
+	memcpy(buf_addr, data, size);
 
 	/* Set size of the data to send */
 	uint32_t tsd_value = pio_read_32(tsd);
-	tsd_value = rtl8139_tsd_set_size(tsd_value, packet_length);
+	tsd_value = rtl8139_tsd_set_size(tsd_value, size);
 	pio_write_32(tsd, tsd_value);
 
 	/* barrier for HW to really see the current buffer data */
@@ -461,12 +456,10 @@ static void rtl8139_write_packet(nic_t *nic_data, packet_t *packet)
 
 	tsd_value &= ~(uint32_t)TSD_OWN;
 	pio_write_32(tsd, tsd_value);
-	nic_release_packet(nic_data, packet);
 	return;
 
 err_busy_no_inc:
 err_size:
-	nic_release_packet(nic_data, packet);
 	return;
 };
 
@@ -1021,7 +1014,7 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 
 	rtl8139->nic_data = nic_data;
 	nic_set_specific(nic_data, rtl8139);
-	nic_set_write_packet_handler(nic_data, rtl8139_write_packet);
+	nic_set_send_frame_handler(nic_data, rtl8139_send_frame);
 	nic_set_state_change_handlers(nic_data,
 		rtl8139_on_activated, NULL, rtl8139_on_stopped);
 	nic_set_filtering_change_handlers(nic_data,

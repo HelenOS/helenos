@@ -58,9 +58,20 @@ static nic_device_info_t lo_info = {
 	.serial_number = "N/A (virtual device)"
 };
 
-static void lo_write_packet(nic_t *nic_data, packet_t *packet)
+static void lo_send_frame(nic_t *nic_data, void *data, size_t size)
 {
-	nic_report_send_ok(nic_data, 1, packet_get_data_length(packet));
+	packet_t *packet;
+	int rc;
+
+	packet = nic_alloc_packet(nic_data, size);
+	if (packet == NULL)
+		return;
+
+	rc = packet_copy_data(packet, data, size);
+	if (rc != EOK)
+		return;
+
+	nic_report_send_ok(nic_data, 1, size);
 	nic_received_noneth_packet(nic_data, packet);
 }
 
@@ -87,7 +98,7 @@ static int lo_dev_add(ddf_dev_t *dev)
 	}
 	
 	dev->driver_data = nic_data;
-	nic_set_write_packet_handler(nic_data, lo_write_packet);
+	nic_set_send_frame_handler(nic_data, lo_send_frame);
 	
 	int rc = nic_connect_to_services(nic_data);
 	if (rc != EOK) {

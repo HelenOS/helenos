@@ -133,7 +133,7 @@ struct nic {
 	 * as send_message member of the nic_iface_t structure).
 	 * Called with the main_lock locked for reading.
 	 */
-	write_packet_handler write_packet;
+	send_frame_handler send_frame;
 	/**
 	 * Event handler called when device goes to the ACTIVE state.
 	 * The implementation is optional.

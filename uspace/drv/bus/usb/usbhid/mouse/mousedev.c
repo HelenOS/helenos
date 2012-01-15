@@ -51,9 +51,6 @@
 #include "mousedev.h"
 #include "../usbhid.h"
 
-/** Number of simulated arrow-key presses for singel wheel step. */
-#define ARROWS_PER_SINGLE_WHEEL 3
-
 #define NAME "mouse"
 
 /*----------------------------------------------------------------------------*/
@@ -68,9 +65,7 @@ const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 };
 
 const char *HID_MOUSE_FUN_NAME = "mouse";
-const char *HID_MOUSE_WHEEL_FUN_NAME = "mouse-wheel";
 const char *HID_MOUSE_CATEGORY = "mouse";
-const char *HID_MOUSE_WHEEL_CATEGORY = "keyboard";
 
 /** Default idle rate for mouses. */
 static const uint8_t IDLE_RATE = 0;
@@ -125,17 +120,14 @@ static void default_connection_handler(ddf_fun_t *fun,
 	}
 
 	usb_log_debug("%s: fun->name: %s\n", __FUNCTION__, fun->name);
-	usb_log_debug("%s: mouse_sess: %p, wheel_sess: %p\n",
-	    __FUNCTION__, mouse_dev->mouse_sess, mouse_dev->wheel_sess);
-
-	async_sess_t **sess_ptr = (fun == mouse_dev->mouse_fun) ?
-	    &mouse_dev->mouse_sess : &mouse_dev->wheel_sess;
+	usb_log_debug("%s: mouse_sess: %p\n",
+	    __FUNCTION__, mouse_dev->mouse_sess);
 
 	async_sess_t *sess =
 	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 	if (sess != NULL) {
-		if (*sess_ptr == NULL) {
-			*sess_ptr = sess;
+		if (mouse_dev->mouse_sess == NULL) {
+			mouse_dev->mouse_sess = sess;
 			usb_log_debug("Console session to %s set ok (%p).\n",
 			    fun->name, sess);
 			async_answer_0(icallid, EOK);
@@ -143,42 +135,14 @@ static void default_connection_handler(ddf_fun_t *fun,
 			usb_log_error("Console session to %s already set.\n",
 			    fun->name);
 			async_answer_0(icallid, ELIMIT);
+			async_hangup(sess);
 		}
 	} else {
 		usb_log_debug("%s: Invalid function.\n", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 	}
 }
-
 /*----------------------------------------------------------------------------*/
-
-static void usb_mouse_send_wheel(const usb_mouse_t *mouse_dev, int wheel)
-{
-	unsigned int key = (wheel > 0) ? KC_UP : KC_DOWN;
-
-	if (mouse_dev->wheel_sess == NULL) {
-		usb_log_warning(
-		    "Connection to console not ready, wheel roll discarded.\n");
-		return;
-	}
-
-	const unsigned count =
-	    ((wheel < 0) ? -wheel : wheel) * ARROWS_PER_SINGLE_WHEEL;
-	for (unsigned i = 0; i < count; i++) {
-		/* Send arrow press and release. */
-		usb_log_debug2("Sending key %d to the console\n", key);
-		
-		async_exch_t *exch = async_exchange_begin(mouse_dev->wheel_sess);
-		
-		async_msg_4(exch, KBDEV_EVENT, KEY_PRESS, key, 0, 0);
-		async_msg_4(exch, KBDEV_EVENT, KEY_RELEASE, key, 0, 0);
-		
-		async_exchange_end(exch);
-	}
-}
-
-/*----------------------------------------------------------------------------*/
-
 static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
     int32_t usage)
 {
@@ -202,7 +166,7 @@ static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
 
 	return result;
 }
-
+/*----------------------------------------------------------------------------*/
 static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
     usb_mouse_t *mouse_dev)
 {
@@ -220,17 +184,15 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	const int wheel = get_mouse_axis_move_value(hid_dev->report_id,
 	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	if ((shift_x != 0) || (shift_y != 0)) {
+	if (shift_x || shift_y || wheel) {
 		async_exch_t *exch =
 		    async_exchange_begin(mouse_dev->mouse_sess);
 		if (exch != NULL) {
-			async_req_2_0(exch, MOUSEEV_MOVE_EVENT, shift_x, shift_y);
+			async_msg_3(exch, MOUSEEV_MOVE_EVENT,
+			    shift_x, shift_y, wheel);
 			async_exchange_end(exch);
 		}
 	}
-
-	if (wheel != 0)
-		usb_mouse_send_wheel(mouse_dev, wheel);
 
 	/* Buttons */
 	usb_hid_report_path_t *path = usb_hid_report_path();
@@ -340,60 +302,9 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	}
 	mouse->mouse_fun = fun;
 
-	/*
-	 * Special function for acting as keyboard (wheel)
-	 */
-	usb_log_debug("Creating DDF function %s...\n",
-	              HID_MOUSE_WHEEL_FUN_NAME);
-	fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
-	    HID_MOUSE_WHEEL_FUN_NAME);
-	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node `%s'.\n",
-		    HID_MOUSE_WHEEL_FUN_NAME);
-		FUN_UNBIND_DESTROY(mouse->mouse_fun);
-		mouse->mouse_fun = NULL;
-		return ENOMEM;
-	}
-
-	/*
-	 * Store the initialized HID device and HID ops
-	 * to the DDF function.
-	 */
-	fun->ops = &mouse->ops;
-	fun->driver_data = mouse;
-
-	rc = ddf_fun_bind(fun);
-	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function `%s': %s.\n",
-		    fun->name, str_error(rc));
-		FUN_UNBIND_DESTROY(mouse->mouse_fun);
-		mouse->mouse_fun = NULL;
-
-		fun->driver_data = NULL;
-		ddf_fun_destroy(fun);
-		return rc;
-	}
-
-	usb_log_debug("Adding DDF function to category %s...\n", 
-	    HID_MOUSE_WHEEL_CATEGORY);
-	rc = ddf_fun_add_to_category(fun, HID_MOUSE_WHEEL_CATEGORY);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Could not add DDF function to category %s: %s.\n",
-		    HID_MOUSE_WHEEL_CATEGORY, str_error(rc));
-
-		FUN_UNBIND_DESTROY(mouse->mouse_fun);
-		mouse->mouse_fun = NULL;
-		FUN_UNBIND_DESTROY(fun);
-		return rc;
-	}
-	mouse->wheel_fun = fun;
-
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 /** Get highest index of a button mentioned in given report.
  *
  * @param report HID report.
@@ -515,15 +426,7 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
 	}
 
-	if (mouse_dev->wheel_sess != NULL) {
-		const int ret = async_hangup(mouse_dev->wheel_sess);
-		if (ret != EOK)
-			usb_log_warning("Failed to hang up wheel session: "
-			    "%p, %s.\n", mouse_dev->wheel_sess, str_error(ret));
-	}
-
 	FUN_UNBIND_DESTROY(mouse_dev->mouse_fun);
-	FUN_UNBIND_DESTROY(mouse_dev->wheel_fun);
 
 	free(mouse_dev->buttons);
 	free(mouse_dev);
