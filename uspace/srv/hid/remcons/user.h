@@ -85,8 +85,12 @@ int telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size);
 void telnet_user_update_cursor_x(telnet_user_t *user, int new_x);
 
 /** Print informational message about connected user. */
+#ifdef CONFIG_DEBUG
 #define telnet_user_log(user, fmt, ...) \
 	printf(NAME " [console %d (%d)]: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
+#else
+#define telnet_user_log(user, fmt, ...) (void)0
+#endif
 
 /** Print error message associated with connected user. */
 #define telnet_user_error(user, fmt, ...) \
