@@ -335,19 +335,14 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	async_connect_to_me(exch, 0, 0, 0, vfs_connection, NULL);
 	
 	/*
-	 * Allocate piece of address space for PLB.
+	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	reg.plb_ro = as_get_mappable_page(PLB_SIZE);
-	if (!reg.plb_ro) {
+	rc = async_share_in_start_0_0(exch, PLB_SIZE, (void *) &reg.plb_ro);
+	if (reg.plb_ro == (void *) -1) {
 		async_exchange_end(exch);
 		async_wait_for(req, NULL);
 		return ENOMEM;
 	}
-	
-	/*
-	 * Request sharing the Path Lookup Buffer with VFS.
-	 */
-	rc = async_share_in_start_0_0(exch, reg.plb_ro, PLB_SIZE);
 	
 	async_exchange_end(exch);
 	

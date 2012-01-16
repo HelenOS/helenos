@@ -82,12 +82,9 @@ int kchar_init(void)
 	if (rc != EOK)
 		return rc;
 	
-	kchar.addr = as_get_mappable_page(1);
-	if (kchar.addr == NULL)
-		return ENOMEM;
-	
-	rc = physmem_map((void *) paddr, kchar.addr,
-	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	rc = physmem_map((void *) paddr,
+	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kchar.addr);
 	if (rc != EOK)
 		return rc;
 	

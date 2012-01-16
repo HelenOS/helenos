@@ -31,7 +31,7 @@
  *  General functions and structures used in rtl8139 driver
  */
 
-#include "rtl8139_general.h"
+#include "general.h"
 
 #include <mem.h>
 #include <unistd.h>

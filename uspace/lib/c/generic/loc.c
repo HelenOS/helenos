@@ -241,7 +241,7 @@ void loc_exchange_end(async_exch_t *exch)
 }
 
 /** Register new driver with loc. */
-int loc_server_register(const char *name, async_client_conn_t conn)
+int loc_server_register(const char *name)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(LOC_PORT_SUPPLIER);
 	
@@ -255,8 +255,6 @@ int loc_server_register(const char *name, async_client_conn_t conn)
 		async_wait_for(req, NULL);
 		return retval;
 	}
-	
-	async_set_client_connection(conn);
 	
 	exch = loc_exchange_begin(LOC_PORT_SUPPLIER);
 	async_connect_to_me(exch, 0, 0, 0, NULL, NULL);

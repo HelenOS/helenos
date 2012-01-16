@@ -52,11 +52,7 @@ static int usbmid_device_add(usb_device_t *dev)
 {
 	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
 
-	usb_pipe_start_long_transfer(&dev->ctrl_pipe);
-
-	bool accept = usbmid_explore_device(dev);
-
-	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
+	const bool accept = usbmid_explore_device(dev);
 
 	if (!accept) {
 		return ENOTSUP;

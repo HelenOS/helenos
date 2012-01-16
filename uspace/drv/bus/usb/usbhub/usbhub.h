@@ -56,8 +56,6 @@ struct usb_hub_dev {
 	size_t port_count;
 	/** Port structures, one for each port */
 	usb_hub_port_t *ports;
-	/** Connection to hcd */
-	usb_hc_connection_t connection;
 	/** Generic usb device data*/
 	usb_device_t *usb_device;
 

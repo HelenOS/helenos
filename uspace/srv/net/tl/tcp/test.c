@@ -61,7 +61,7 @@ static void test_srv(void *arg)
 	fsock.port = 1024;
 	fsock.addr.ipv4 = 0x7f000001;
 	printf("S: User open...\n");
-	tcp_uc_open(&lsock, &fsock, ap_passive, &conn);
+	tcp_uc_open(&lsock, &fsock, ap_passive, 0, &conn);
 	conn->name = (char *) "S";
 
 	while (true) {
@@ -101,7 +101,7 @@ static void test_cli(void *arg)
 
 	async_usleep(1000*1000*3);
 	printf("C: User open...\n");
-	tcp_uc_open(&lsock, &fsock, ap_active, &conn);
+	tcp_uc_open(&lsock, &fsock, ap_active, 0, &conn);
 	conn->name = (char *) "C";
 
 	async_usleep(1000*1000*10);

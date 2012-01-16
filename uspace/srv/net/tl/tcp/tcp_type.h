@@ -151,9 +151,24 @@ typedef enum {
 	ap_passive
 } acpass_t;
 
-typedef struct tcp_conn {
+typedef enum {
+	tcp_open_nonblock = 1
+} tcp_open_flags_t;
+
+typedef struct tcp_conn tcp_conn_t;
+
+/** Connection state change callback function */
+typedef void (*tcp_cstate_cb_t)(tcp_conn_t *, void *);
+
+/** Connection */
+struct tcp_conn {
 	char *name;
 	link_t link;
+
+	/** Connection state change callback function */
+	tcp_cstate_cb_t cstate_cb;
+	/** Argument to @c cstate_cb */
+	void *cstate_cb_arg;
 
 	/** Connection identification (local and foreign socket) */
 	tcp_sockpair_t ident;
@@ -161,12 +176,17 @@ typedef struct tcp_conn {
 	/** Active or passive connection */
 	acpass_t ap;
 
+	/** Protects access to connection structure */
+	fibril_mutex_t lock;
+	/** Reference count */
+	atomic_t refcnt;
+
 	/** Connection state */
 	tcp_cstate_t cstate;
 	/** True if connection was reset */
 	bool reset;
-	/** Protects @c cstate */
-	fibril_mutex_t cstate_lock;
+	/** True if connection was deleted by user */
+	bool deleted;
 	/** Signalled when @c cstate changes */
 	fibril_condvar_t cstate_cv;
 
@@ -190,8 +210,6 @@ typedef struct tcp_conn {
 	size_t rcv_buf_used;
 	/** Receive buffer contains FIN */
 	bool rcv_buf_fin;
-	/** Receive buffer lock */
-	fibril_mutex_t rcv_buf_lock;
 	/** Receive buffer CV. Broadcast when new data is inserted */
 	fibril_condvar_t rcv_buf_cv;
 
@@ -203,6 +221,8 @@ typedef struct tcp_conn {
 	size_t snd_buf_used;
 	/** Send buffer contains FIN */
 	bool snd_buf_fin;
+	/** Send buffer CV. Broadcast when space is made available in buffer */
+	fibril_condvar_t snd_buf_cv;
 
 	/** Send unacknowledged */
 	uint32_t snd_una;
@@ -227,10 +247,12 @@ typedef struct tcp_conn {
 	uint32_t rcv_up;
 	/** Initial receive sequence number */
 	uint32_t irs;
-} tcp_conn_t;
+};
 
+/** Data returned by Status user call */
 typedef struct {
-	unsigned dummy;
+	/** Connection state */
+	tcp_cstate_t cstate;
 } tcp_conn_status_t;
 
 typedef struct {
@@ -308,14 +330,32 @@ typedef struct {
 	socket_cores_t sockets;
 } tcp_client_t;
 
-typedef struct {
+typedef struct tcp_sockdata {
+	/** Lock */
+	fibril_mutex_t lock;
+	/** Socket core */
+	socket_core_t *sock_core;
 	/** Client */
 	tcp_client_t *client;
 	/** Connection */
 	tcp_conn_t *conn;
 	/** Local address */
 	netaddr_t laddr;
+	/** Backlog size */
+	int backlog;
+	/** Array of listening connections, @c backlog elements */
+	struct tcp_sock_lconn **lconn;
+	/** List of connections (from lconn) that are ready to be accepted */
+	list_t ready;
 } tcp_sockdata_t;
+
+typedef struct tcp_sock_lconn {
+	tcp_conn_t *conn;
+	tcp_sockdata_t *socket;
+	int index;
+	link_t ready_list;
+} tcp_sock_lconn_t;
+
 
 #endif
 

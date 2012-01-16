@@ -35,7 +35,7 @@
 
 #include <ddf/driver.h>
 #include <devman.h>
-#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <str_error.h>
 
@@ -135,45 +135,33 @@ int hc_get_my_registers(
     const ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
 {
 	assert(dev);
-	
+
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
-	hw_resource_list_t hw_resources;
-	const int ret = hw_res_get_resource_list(parent_sess, &hw_resources);
+
+	hw_res_list_parsed_t hw_res;
+	hw_res_list_parsed_init(&hw_res);
+	const int ret =  hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	async_hangup(parent_sess);
 	if (ret != EOK) {
-		async_hangup(parent_sess);
 		return ret;
 	}
-	
-	uintptr_t io_address = 0;
-	size_t io_size = 0;
-	bool io_found = false;
-	
-	size_t i = 0;
-	for (; i < hw_resources.count; i++) {
-		hw_resource_t *res = &hw_resources.resources[i];
-		if (res->type == IO_RANGE) {
-			io_address = res->res.io_range.address;
-			io_size = res->res.io_range.size;
-			io_found = true;
-		}
-	
+
+	if (hw_res.io_ranges.count != 1) {
+		hw_res_list_parsed_clean(&hw_res);
+		return EINVAL;
 	}
-	async_hangup(parent_sess);
-	
-	if (!io_found)
-		return ENOENT;
-	
+
 	if (io_reg_address != NULL)
-		*io_reg_address = io_address;
-	
+		*io_reg_address = hw_res.io_ranges.ranges[0].address;
+
 	if (io_reg_size != NULL)
-		*io_reg_size = io_size;
-	
+		*io_reg_size = hw_res.io_ranges.ranges[0].size;
+
+	hw_res_list_parsed_clean(&hw_res);
 	return EOK;
 }
 

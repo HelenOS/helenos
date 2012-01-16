@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbdev
- * @{
- */
-/** @file
- * Library internal functions on USB pipes.
- */
-#ifndef LIBUSBDEV_PIPEPRIV_H_
-#define LIBUSBDEV_PIPEPRIV_H_
+#include <errno.h>
+#include <mem.h>
+#include <ipc/dev_iface.h>
+#include <ddf/log.h>
 
-#include <usb/dev/pipes.h>
-#include <bool.h>
+#include "chardev.h"
 
-void pipe_acquire(usb_pipe_t *);
-void pipe_release(usb_pipe_t *);
+// TODO make this shared
+enum {
+	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
+	IPC_CHAR_WRITE,
+};
 
-void pipe_start_transaction(usb_pipe_t *);
-void pipe_end_transaction(usb_pipe_t *);
+ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 4 * sizeof(sysarg_t))
+		return ELIMIT;
 
-int pipe_add_ref(usb_pipe_t *, bool);
-void pipe_drop_ref(usb_pipe_t *);
+	sysarg_t message[4] = { 0 };
+	const ssize_t ret = async_req_1_4(exch, IPC_CHAR_READ, size,
+	    &message[0], &message[1], &message[2], &message[3]);
+	if (ret > 0 && (size_t)ret <= size)
+		memcpy(data, message, size);
+	return ret;
+}
 
+ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 3 * sizeof(sysarg_t))
+		return ELIMIT;
 
-#endif
-/**
- * @}
- */
+	sysarg_t message[3] = { 0 };
+	memcpy(message, data, size);
+	return async_req_4_0(exch, IPC_CHAR_WRITE, size,
+	    message[0], message[1], message[2]);
+}

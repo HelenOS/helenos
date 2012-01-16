@@ -88,7 +88,7 @@ static int msim_port_init(kbd_dev_t *kdev)
 	
 	msim_cmds[0].addr = (void *) vaddr;
 	async_set_interrupt_received(msim_irq_handler);
-	register_irq(inr, device_assign_devno(), 0, &msim_kbd);
+	irq_register(inr, device_assign_devno(), 0, &msim_kbd);
 	
 	return 0;
 }

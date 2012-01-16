@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd_port
- * @ingroup  kbd
+/** @addtogroup isa
  * @{
  */
 
 /** @file
- * @brief i8042 port driver.
+ * @brief DMA memory management
  */
 
-#ifndef i8042_H_
-#define i8042_H_
+#ifndef DRV_BUS_ISA_I8237_H
+#define DRV_BUS_ISA_I8237_H
 
-#include <sys/types.h>
-#include <libarch/ddi.h>
-#include <async.h>
-
-/** i8042 HW I/O interface */
-struct i8042 {
-	ioport8_t data;
-	uint8_t pad[3];
-	ioport8_t status;
-} __attribute__ ((packed));
-typedef struct i8042 i8042_t;
-
-/** Softstate structure, one for each serial port (primary and aux). */
-typedef struct {
-	service_id_t service_id;
-	async_sess_t *client_sess;
-} i8042_port_t;
+extern int dma_setup_channel(unsigned int, uint32_t, uint16_t, uint8_t);
 
 #endif
 

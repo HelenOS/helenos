@@ -84,8 +84,9 @@ int main(int argc, char *argv[])
 	int rc;
 
 	printf(NAME ": S3C24xx touchscreen driver\n");
-
-	rc = loc_server_register(NAME, s3c24xx_ts_connection);
+	
+	async_set_client_connection(s3c24xx_ts_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return -1;
@@ -138,7 +139,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	    (void *) ts->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_ts_irq_handler);
-	register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
+	irq_register(inr, device_assign_devno(), 0, &ts_irq_code);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 

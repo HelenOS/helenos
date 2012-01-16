@@ -43,6 +43,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <usb/dev.h>
+
 /** DDF interface for USB device, implementation for typical hub. */
 usb_iface_t usb_iface_hub_impl = {
 	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
@@ -65,7 +67,7 @@ usb_iface_t usb_iface_hub_child_impl = {
 int usb_iface_get_hc_handle_device_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
-	return usb_hc_find(fun->handle, handle);
+	return usb_get_hc_by_handle(fun->handle, handle);
 }
 
 /** Get host controller handle, interface implementation for HC driver.
@@ -96,25 +98,7 @@ int usb_iface_get_my_address_forward_impl(ddf_fun_t *fun,
     usb_address_t *address)
 {
 	assert(fun);
-
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, fun->handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	if (!exch) {
-		async_hangup(parent_sess);
-		return ENOMEM;
-	}
-
-	const int ret = usb_get_my_address(exch, address);
-
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-
-	return ret;
+	return usb_get_address_by_handle(fun->handle, address);
 }
 
 /** Get USB device address, interface implementation for child of
@@ -133,7 +117,7 @@ int usb_iface_get_my_address_from_device_data(ddf_fun_t *fun,
 {
 	assert(fun);
 	assert(fun->driver_data);
-	usb_hub_attached_device_t *device = fun->driver_data;
+	const usb_hub_attached_device_t *device = fun->driver_data;
 	assert(device->fun == fun);
 	if (address)
 		*address = device->address;

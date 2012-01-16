@@ -78,10 +78,9 @@ screenbuffer_t *screenbuffer_create(sysarg_t cols, sysarg_t rows,
 	screenbuffer_t *scrbuf;
 	
 	if ((flags & SCREENBUFFER_FLAG_SHARED) == SCREENBUFFER_FLAG_SHARED) {
-		scrbuf = (screenbuffer_t *) as_get_mappable_page(size);
-		
-		if (as_area_create((void *) scrbuf, size, AS_AREA_READ |
-		    AS_AREA_WRITE | AS_AREA_CACHEABLE) != (void *) scrbuf)
+		scrbuf = (screenbuffer_t *) as_area_create((void *) -1, size,
+		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+		if (scrbuf == (void *) -1)
 			return NULL;
 	} else {
 		scrbuf = (screenbuffer_t *) malloc(size);

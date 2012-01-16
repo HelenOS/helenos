@@ -136,8 +136,6 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 		    str_error(ret));
 		return ret;
 	}
-	usb_device_manager_bind_address(&instance->generic.dev_manager,
-	    instance->rh.address, hub_fun->handle);
 
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -149,6 +147,7 @@ if (ret != EOK) { \
 	    &instance->generic.dev_manager, instance->rh.address); \
 	return ret; \
 } else (void)0
+
 	ret = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, instance->rh.address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
@@ -164,6 +163,12 @@ if (ret != EOK) { \
 	ret = ddf_fun_bind(hub_fun);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
+
+	ret = usb_device_manager_bind_address(&instance->generic.dev_manager,
+	    instance->rh.address, hub_fun->handle);
+	if (ret != EOK)
+		usb_log_warning("Failed to bind root hub address: %s.\n",
+		    str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_RELEASE

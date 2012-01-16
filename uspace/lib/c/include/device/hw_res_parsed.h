@@ -71,6 +71,15 @@ typedef struct irq_list {
 	int *irqs;
 } irq_list_t;
 
+/** List of ISA DMA channels */
+typedef struct dma_list {
+	/** Channel count */
+	size_t count;
+
+	/** Array of channels */
+	unsigned int *channels;
+} dma_list_t;
+
 /** List of memory areas */
 typedef struct addr_range_list {
 	/** Areas count */
@@ -90,6 +99,9 @@ typedef addr_range_list_t mem_range_list_t;
 typedef struct hw_resource_list_parsed {
 	/** List of IRQs */
 	irq_list_t irqs;
+	
+	/** List of DMA channels */
+	dma_list_t dma_channels;
 	
 	/** List of memory areas */
 	mem_range_list_t mem_ranges;
@@ -112,6 +124,7 @@ static inline void hw_res_list_parsed_clean(hw_res_list_parsed_t *list)
 	free(list->irqs.irqs);
 	free(list->io_ranges.ranges);
 	free(list->mem_ranges.ranges);
+	free(list->dma_channels.channels);
 	
 	bzero(list, sizeof(hw_res_list_parsed_t));
 }

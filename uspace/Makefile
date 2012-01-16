@@ -92,7 +92,7 @@ DIRS = \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
-	srv/hw/char/i8042 \
+	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	srv/net/il/arp \
 	srv/net/il/ip \
@@ -104,6 +104,9 @@ DIRS = \
 	srv/net/net \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/char/i8042 \
+	drv/char/ps2mouse \
+	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
@@ -119,7 +122,8 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/lo \
 	drv/nic/ne2k \
-	drv/nic/e1k
+	drv/nic/e1k \
+	drv/nic/rtl8139
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \

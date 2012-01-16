@@ -171,10 +171,19 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 }
 
 /** Mouse pointer has moved. */
-void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy)
+void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 {
 	async_exch_t *exch = async_exchange_begin(client_sess);
-	async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+	if (dx || dy)
+		async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+	if (dz) {
+		// TODO: Implement proper wheel support
+		keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
+		for (int i = 0; i < 3; ++i) {
+			async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
+		}
+		async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
+	}
 	async_exchange_end(exch);
 }
 
@@ -396,9 +405,6 @@ static void kbd_add_legacy_devs(void)
 	 * Need to add these drivers based on config unless we can probe
 	 * them automatically.
 	 */
-#if defined(UARCH_amd64)
-	kbd_add_dev(&chardev_port, &pc_ctl);
-#endif
 #if defined(UARCH_arm32) && defined(MACHINE_gta02)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
@@ -410,12 +416,6 @@ static void kbd_add_legacy_devs(void)
 #endif
 #if defined(UARCH_arm32) && defined(MACHINE_integratorcp)
 	kbd_add_dev(&pl050_port, &pc_ctl);
-#endif
-#if defined(UARCH_ia32)
-	kbd_add_dev(&chardev_port, &pc_ctl);
-#endif
-#if defined(MACHINE_i460GX)
-	kbd_add_dev(&chardev_port, &pc_ctl);
 #endif
 #if defined(MACHINE_ski)
 	kbd_add_dev(&ski_port, &stty_ctl);
@@ -449,15 +449,6 @@ static void mouse_add_legacy_devs(void)
 	 * Need to add these drivers based on config unless we can probe
 	 * them automatically.
 	 */
-#if defined(UARCH_amd64)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
-#if defined(UARCH_ia32)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
-#if defined(MACHINE_i460GX)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
 #if defined(UARCH_ppc32)
 	mouse_add_dev(&adb_mouse_port, &adb_proto);
 #endif
@@ -657,7 +648,8 @@ int main(int argc, char **argv)
 	mouse_add_legacy_devs();
 	
 	/* Register driver */
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf("%s: Unable to register server (%d)\n", NAME, rc);
 		return -1;

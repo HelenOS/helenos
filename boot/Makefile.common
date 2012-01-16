@@ -104,6 +104,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
+	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/net/nil/eth/eth \
 	$(USPACE_PATH)/srv/net/nil/nildummy/nildummy \
@@ -123,7 +124,8 @@ RD_DRVS = \
 	test/test3 \
 	nic/lo \
 	nic/ne2k \
-	nic/e1k
+	nic/e1k \
+	nic/rtl8139
 
 RD_DRV_CFG =
 

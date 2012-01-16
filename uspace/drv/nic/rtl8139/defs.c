@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rtl8139_defs.h"
+#include "defs.h"
 
 const char* model_names[RTL8139_VER_COUNT] = {
 	"RTL8139",

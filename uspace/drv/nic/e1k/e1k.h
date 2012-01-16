@@ -81,26 +81,46 @@ typedef struct {
 	uint16_t special;
 } e1000_tx_descriptor_t;
 
+/** E1000 boards */
+typedef enum {
+	E1000_82540,
+	E1000_82541,
+	E1000_82541REV2,
+	E1000_82545,
+	E1000_82546,
+	E1000_82547,
+	E1000_82572,
+	E1000_80003ES2
+} e1000_board_t;
+
+typedef struct {
+	uint32_t eerd_start;
+	uint32_t eerd_done;
+	
+	uint32_t eerd_address_offset;
+	uint32_t eerd_data_offset;
+} e1000_info_t;
+
 /** VLAN tag bits */
-enum e1000_vlantag {
+typedef enum {
 	VLANTAG_CFI = (1 << 12),  /**< Canonical Form Indicator */
-};
+} e1000_vlantag_t;
 
 /** Transmit descriptor COMMAND field bits */
-enum e1000_txdescriptor_command {
+typedef enum {
 	TXDESCRIPTOR_COMMAND_VLE = (1 << 6),   /**< VLAN Packet Enable */
 	TXDESCRIPTOR_COMMAND_RS = (1 << 3),    /**< Report Status */
 	TXDESCRIPTOR_COMMAND_IFCS = (1 << 1),  /**< Insert FCS */
 	TXDESCRIPTOR_COMMAND_EOP = (1 << 0)    /**< End Of Packet */
-};
+} e1000_txdescriptor_command_t;
 
 /** Transmit descriptor STATUS field bits */
-enum e1000_txdescriptor_status {
+typedef enum {
 	TXDESCRIPTOR_STATUS_DD = (1 << 0)  /**< Descriptor Done */
-};
+} e1000_txdescriptor_status_t;
 
 /** E1000 Registers */
-enum e1000_registers {
+typedef enum {
 	E1000_CTRL = 0x0,      /**< Device Control Register */
 	E1000_STATUS = 0x8,    /**< Device Status Register */
 	E1000_EERD = 0x14,     /**< EEPROM Read Register */
@@ -129,26 +149,10 @@ enum e1000_registers {
 	E1000_ITR = 0xC4,      /**< Interrupt Throttling Register */
 	E1000_IMS = 0xD0,      /**< Interrupt Mask Set/Read Register */
 	E1000_IMC = 0xD8       /**< Interrupt Mask Clear Register */
-};
-
-/** EEPROM Read Register fields */
-enum e1000_eerd {
-	/** Start Read */
-	EERD_START = (1 << 0),
-	/** Read Done */
-	EERD_DONE = (1 << 4),
-	/** Read Done for 82541xx and 82547GI/EI */
-	EERD_DONE_82541XX_82547GI_EI = (1 << 1),
-	/** Read Address offset */
-	EERD_ADDRESS_OFFSET = 8,
-	/** Read Address offset for 82541xx and 82547GI/EI */
-	EERD_ADDRESS_OFFSET_82541XX_82547GI_EI = 2,
-	/** Read Data */
-	EERD_DATA_OFFSET = 16
-};
+} e1000_registers_t;
 
 /** Device Control Register fields */
-enum e1000_ctrl {
+typedef enum {
 	CTRL_FD = (1 << 0),    /**< Full-Duplex */
 	CTRL_LRST = (1 << 3),  /**< Link Reset */
 	CTRL_ASDE = (1 << 5),  /**< Auto-Speed Detection Enable */
@@ -175,10 +179,10 @@ enum e1000_ctrl {
 	CTRL_RST = (1 << 26),      /**< Device Reset */
 	CTRL_VME = (1 << 30),      /**< VLAN Mode Enable */
 	CTRL_PHY_RST = (1 << 31)   /**< PHY Reset */
-};
+} e1000_ctrl_t;
 
 /** Device Status Register fields */
-enum e1000_status {
+typedef enum {
 	STATUS_FD = (1 << 0),  /**< Link Full Duplex configuration Indication */
 	STATUS_LU = (1 << 1),  /**< Link Up Indication */
 	
@@ -196,46 +200,46 @@ enum e1000_status {
 	STATUS_SPEED_1000A = 2,
 	/** Link speed setting 1000 Mb/s value variant B */
 	STATUS_SPEED_1000B = 3,
-};
+} e1000_status_t;
 
 /** Transmit IPG Register fields
  *
  * IPG = Inter Packet Gap
  *
  */
-enum e1000_tipg {
+typedef enum {
 	TIPG_IPGT_SHIFT = 0,    /**< IPG Transmit Time shift */
 	TIPG_IPGR1_SHIFT = 10,  /**< IPG Receive Time 1 */
 	TIPG_IPGR2_SHIFT = 20   /**< IPG Receive Time 2 */
-};
+} e1000_tipg_t;
 
 /** Transmit Control Register fields */
-enum e1000_tctl {
+typedef enum {
 	TCTL_EN = (1 << 1),    /**< Transmit Enable */
 	TCTL_PSP =  (1 << 3),  /**< Pad Short Packets */
 	TCTL_CT_SHIFT = 4,     /**< Collision Threshold shift */
 	TCTL_COLD_SHIFT = 12   /**< Collision Distance shift */
-};
+} e1000_tctl_t;
 
 /** ICR register fields */
-enum e1000_icr {
+typedef enum {
 	ICR_TXDW = (1 << 0),  /**< Transmit Descriptor Written Back */
 	ICR_RXT0 = (1 << 7)   /**< Receiver Timer Interrupt */
-};
+} e1000_icr_t;
 
 /** RAH register fields */
-enum e1000_rah {
+typedef enum {
 	RAH_AV = (1 << 31)   /**< Address Valid */
-};
+} e1000_rah_t;
 
 /** RCTL register fields */
-enum e1000_rctl {
+typedef enum {
 	RCTL_EN = (1 << 1),    /**< Receiver Enable */
 	RCTL_SBP = (1 << 2),   /**< Store Bad Packets */
 	RCTL_UPE = (1 << 3),   /**< Unicast Promiscuous Enabled */
 	RCTL_MPE = (1 << 4),   /**< Multicast Promiscuous Enabled */
 	RCTL_BAM = (1 << 15),  /**< Broadcast Accept Mode */
 	RCTL_VFE = (1 << 18)   /**< VLAN Filter Enable */
-};
+} e1000_rctl_t;
 
 #endif

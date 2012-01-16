@@ -45,271 +45,376 @@
 #include <net/inet.h>
 #include <net/socket.h>
 
+#include <arg_parse.h>
+#include <macros.h>
 #include <str.h>
+#include <str_error.h>
 
-#define PORT_NUMBER 8080
+#define NAME  "websrv"
 
-#define WEB_ROOT "/data/web"
+#define DEFAULT_PORT  8080
+#define BACKLOG_SIZE  3
+
+#define WEB_ROOT  "/data/web"
 
 /** Buffer for receiving the request. */
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE  1024
+
+static uint16_t port = DEFAULT_PORT;
+
 static char rbuf[BUFFER_SIZE];
-static size_t rbuf_out, rbuf_in;
+static size_t rbuf_out;
+static size_t rbuf_in;
 
 static char lbuf[BUFFER_SIZE + 1];
 static size_t lbuf_used;
 
 static char fbuf[BUFFER_SIZE];
 
-/** Response to send to client. */
-static const char *ok_msg =
+/** Responses to send to client. */
+
+static const char *msg_ok =
     "HTTP/1.0 200 OK\r\n"
     "\r\n";
+
+static const char *msg_bad_request =
+    "HTTP/1.0 400 Bad Request\r\n"
+    "\r\n"
+    "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n"
+    "<html><head>\r\n"
+    "<title>400 Bad Request</title>\r\n"
+    "</head>\r\n"
+    "<body>\r\n"
+    "<h1>Bad Request</h1>\r\n"
+    "<p>The requested URL has bad syntax.</p>\r\n"
+    "</body>\r\n"
+    "</html>\r\n";
+
+static const char *msg_not_found =
+    "HTTP/1.0 404 Not Found\r\n"
+    "\r\n"
+    "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n"
+    "<html><head>\r\n"
+    "<title>404 Not Found</title>\r\n"
+    "</head>\r\n"
+    "<body>\r\n"
+    "<h1>Not Found</h1>\r\n"
+    "<p>The requested URL was not found on this server.</p>\r\n"
+    "</body>\r\n"
+    "</html>\r\n";
+
+static const char *msg_not_implemented =
+    "HTTP/1.0 501 Not Implemented\r\n"
+    "\r\n"
+    "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n"
+    "<html><head>\r\n"
+    "<title>501 Not Implemented</title>\r\n"
+    "</head>\r\n"
+    "<body>\r\n"
+    "<h1>Not Implemented</h1>\r\n"
+    "<p>The requested method is not implemented on this server.</p>\r\n"
+    "</body>\r\n"
+    "</html>\r\n";
 
 /** Receive one character (with buffering) */
 static int recv_char(int fd, char *c)
 {
-	ssize_t rc;
-
 	if (rbuf_out == rbuf_in) {
 		rbuf_out = 0;
 		rbuf_in = 0;
-
-		rc = recv(fd, rbuf, BUFFER_SIZE, 0);
+		
+		ssize_t rc = recv(fd, rbuf, BUFFER_SIZE, 0);
 		if (rc <= 0) {
-			printf("recv() failed (%zd)\n", rc);
+			fprintf(stderr, "recv() failed (%zd)\n", rc);
 			return rc;
 		}
-
+		
 		rbuf_in = rc;
 	}
-
+	
 	*c = rbuf[rbuf_out++];
 	return EOK;
 }
 
-/** Receive one line with length limit. */
+/** Receive one line with length limit */
 static int recv_line(int fd)
 {
-	char c, prev;
-	int rc;
-	char *bp;
-
-	bp = lbuf; c = '\0';
+	char *bp = lbuf;
+	char c = '\0';
+	
 	while (bp < lbuf + BUFFER_SIZE) {
-		prev = c;
-		rc = recv_char(fd, &c);
+		char prev = c;
+		int rc = recv_char(fd, &c);
+		
 		if (rc != EOK)
 			return rc;
-
+		
 		*bp++ = c;
-		if (prev == '\r' && c == '\n')
+		if ((prev == '\r') && (c == '\n'))
 			break;
 	}
-
+	
 	lbuf_used = bp - lbuf;
 	*bp = '\0';
-
+	
 	if (bp == lbuf + BUFFER_SIZE)
 		return ELIMIT;
-
+	
 	return EOK;
 }
 
 static bool uri_is_valid(char *uri)
 {
-	char *cp;
-	char c;
-
 	if (uri[0] != '/')
 		return false;
+	
 	if (uri[1] == '.')
 		return false;
-
-	cp = uri + 1;
+	
+	char *cp = uri + 1;
+	
 	while (*cp != '\0') {
-		c = *cp++;
+		char c = *cp++;
 		if (c == '/')
 			return false;
 	}
-
+	
 	return true;
 }
 
 static int send_response(int conn_sd, const char *msg)
 {
-	size_t response_size;
-	ssize_t rc;
-
-	response_size = str_size(msg);
-
-	/* Send a canned response. */
-        printf("Send response...\n");
-	rc = send(conn_sd, (void *) msg, response_size, 0);
+	size_t response_size = str_size(msg);
+	
+	fprintf(stderr, "Sending response\n");
+	ssize_t rc = send(conn_sd, (void *) msg, response_size, 0);
 	if (rc < 0) {
-		printf("send() failed.\n");
+		fprintf(stderr, "send() failed\n");
 		return rc;
 	}
-
+	
 	return EOK;
 }
 
 static int uri_get(const char *uri, int conn_sd)
 {
-	int rc;
-	char *fname;
-	int fd;
-	ssize_t nr;
-
 	if (str_cmp(uri, "/") == 0)
 		uri = "/index.htm";
-
-	rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);
+	
+	char *fname;
+	int rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);
 	if (rc < 0)
 		return ENOMEM;
-
-	fd = open(fname, O_RDONLY);
+	
+	int fd = open(fname, O_RDONLY);
 	if (fd < 0) {
-		printf("File '%s' not found.\n", fname);
+		rc = send_response(conn_sd, msg_not_found);
 		free(fname);
-		return ENOENT;
+		return rc;
 	}
-
+	
 	free(fname);
-
-	rc = send_response(conn_sd, ok_msg);
+	
+	rc = send_response(conn_sd, msg_ok);
 	if (rc != EOK)
 		return rc;
-
+	
 	while (true) {
-		nr = read(fd, fbuf, BUFFER_SIZE);
+		ssize_t nr = read(fd, fbuf, BUFFER_SIZE);
 		if (nr == 0)
 			break;
-
+		
 		if (nr < 0) {
 			close(fd);
 			return EIO;
 		}
-
+		
 		rc = send(conn_sd, fbuf, nr, 0);
 		if (rc < 0) {
-			printf("send() failed\n");
+			fprintf(stderr, "send() failed\n");
 			close(fd);
 			return rc;
 		}
 	}
-
+	
 	close(fd);
-
+	
 	return EOK;
 }
 
 static int req_process(int conn_sd)
 {
-	int rc;
-	char *uri, *end_uri;
-
-	rc = recv_line(conn_sd);
+	int rc = recv_line(conn_sd);
 	if (rc != EOK) {
-		printf("recv_line() failed\n");
+		fprintf(stderr, "recv_line() failed\n");
 		return rc;
 	}
-
-	printf("%s", lbuf);
-
+	
+	fprintf(stderr, "Request: %s", lbuf);
+	
 	if (str_lcmp(lbuf, "GET ", 4) != 0) {
-		printf("Invalid HTTP method.\n");
-		return EINVAL;
+		rc = send_response(conn_sd, msg_not_implemented);
+		return rc;
 	}
-
-	uri = lbuf + 4;
-	end_uri = str_chr(uri, ' ');
+	
+	char *uri = lbuf + 4;
+	char *end_uri = str_chr(uri, ' ');
 	if (end_uri == NULL) {
 		end_uri = lbuf + lbuf_used - 2;
 		assert(*end_uri == '\r');
 	}
-
+	
 	*end_uri = '\0';
-	printf("Requested URI '%s'.\n", uri);
-
+	fprintf(stderr, "Requested URI: %s\n", uri);
+	
 	if (!uri_is_valid(uri)) {
-		printf("Invalid request URI.\n");
+		rc = send_response(conn_sd, msg_bad_request);
+		return rc;
+	}
+	
+	return uri_get(uri, conn_sd);
+}
+
+static void usage(void)
+{
+	printf("Skeletal server\n"
+	    "\n"
+	    "Usage: " NAME " [options]\n"
+	    "\n"
+	    "Where options are:\n"
+	    "-p port_number | --port=port_number\n"
+	    "\tListening port (default " STRING(DEFAULT_PORT) ").\n"
+	    "\n"
+	    "-h | --help\n"
+	    "\tShow this application help.\n");
+}
+
+static int parse_option(int argc, char *argv[], int *index)
+{
+	int value;
+	int rc;
+	
+	switch (argv[*index][1]) {
+	case 'h':
+		usage();
+		exit(0);
+		break;
+	case 'p':
+		rc = arg_parse_int(argc, argv, index, &value, 0);
+		if (rc != EOK)
+			return rc;
+		
+		port = (uint16_t) value;
+		break;
+	/* Long options with double dash */
+	case '-':
+		if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
+			usage();
+			exit(0);
+		} else if (str_lcmp(argv[*index] + 2, "port=", 5) == 0) {
+			rc = arg_parse_int(argc, argv, index, &value, 7);
+			if (rc != EOK)
+				return rc;
+			
+			port = (uint16_t) value;
+		} else {
+			usage();
+			return EINVAL;
+		}
+		break;
+	default:
+		usage();
 		return EINVAL;
 	}
-
-	return uri_get(uri, conn_sd);
+	
+	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
+	/* Parse command line arguments */
+	for (int i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			int rc = parse_option(argc, argv, &i);
+			if (rc != EOK)
+				return rc;
+		} else {
+			usage();
+			return EINVAL;
+		}
+	}
+	
 	struct sockaddr_in addr;
-	struct sockaddr_in raddr;
-
-	socklen_t raddr_len;
-
-	int listen_sd, conn_sd;
-	int rc;
-
-
+	
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(PORT_NUMBER);
-
-	rc = inet_pton(AF_INET, "127.0.0.1", (void *) &addr.sin_addr.s_addr);
+	addr.sin_port = htons(port);
+	
+	int rc = inet_pton(AF_INET, "127.0.0.1", (void *)
+	    &addr.sin_addr.s_addr);
 	if (rc != EOK) {
-		printf("Error parsing network address.\n");
+		fprintf(stderr, "Error parsing network address (%s)\n",
+		    str_error(rc));
 		return 1;
 	}
-
-	printf("Creating socket.\n");
-
-	listen_sd = socket(PF_INET, SOCK_STREAM, 0);
+	
+	fprintf(stderr, "Creating socket\n");
+	
+	int listen_sd = socket(PF_INET, SOCK_STREAM, 0);
 	if (listen_sd < 0) {
-		printf("Error creating listening socket.\n");
-		return 1;
+		fprintf(stderr, "Error creating listening socket (%s)\n",
+		    str_error(listen_sd));
+		return 2;
 	}
-
+	
 	rc = bind(listen_sd, (struct sockaddr *) &addr, sizeof(addr));
 	if (rc != EOK) {
-		printf("Error binding socket.\n");
-		return 1;
+		fprintf(stderr, "Error binding socket (%s)\n",
+		    str_error(rc));
+		return 3;
 	}
-
-	rc = listen(listen_sd, 1);
+	
+	rc = listen(listen_sd, BACKLOG_SIZE);
 	if (rc != EOK) {
-		printf("Error calling listen() (%d).\n", rc);
-		return 1;
+		fprintf(stderr, "listen() failed (%s)\n", str_error(rc));
+		return 4;
 	}
-
-	printf("Listening for connections at port number %u.\n", PORT_NUMBER);
+	
+	fprintf(stderr, "Listening for connections at port %" PRIu16 "\n",
+	    port);
 	while (true) {
-		raddr_len = sizeof(raddr);
-		conn_sd = accept(listen_sd, (struct sockaddr *) &raddr,
+		struct sockaddr_in raddr;
+		socklen_t raddr_len = sizeof(raddr);
+		int conn_sd = accept(listen_sd, (struct sockaddr *) &raddr,
 		    &raddr_len);
-
+		
 		if (conn_sd < 0) {
-			printf("accept() failed.\n");
+			fprintf(stderr, "accept() failed (%s)\n", str_error(rc));
 			continue;
 		}
-
-		printf("Accepted connection, sd=%d.\n", conn_sd);
-
-		printf("Wait for client request\n");
-		rbuf_out = rbuf_in = 0;
-
+		
+		fprintf(stderr, "Connection accepted (sd=%d), "
+		    "waiting for request\n", conn_sd);
+		
+		rbuf_out = 0;
+		rbuf_in = 0;
+		
 		rc = req_process(conn_sd);
-		if (rc != EOK) 
-			printf("Error processing request.\n");
-
+		if (rc != EOK)
+			fprintf(stderr, "Error processing request (%s)\n",
+			    str_error(rc));
+		
 		rc = closesocket(conn_sd);
 		if (rc != EOK) {
-			printf("Error closing connection socket: %d\n", rc);
-			return 1;
+			fprintf(stderr, "Error closing connection socket (%s)\n",
+			    str_error(rc));
+			closesocket(listen_sd);
+			return 5;
 		}
-
-		printf("Closed connection.\n");
+		
+		fprintf(stderr, "Connection closed\n");
 	}
-
-	/* Not reached. */
+	
+	/* Not reached */
 	return 0;
 }
 

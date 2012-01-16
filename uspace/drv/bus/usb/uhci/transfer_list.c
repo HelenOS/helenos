@@ -183,8 +183,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 		uhci_transfer_batch_t *batch =
 		    uhci_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
-		batch->usb_batch->error = EINTR;
-		uhci_transfer_batch_call_dispose(batch);
+		uhci_transfer_batch_abort(batch);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
