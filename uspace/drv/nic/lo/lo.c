@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <async.h>
 #include <nic.h>
-#include <packet_client.h>
 
 #define NAME  "lo"
 
@@ -60,19 +59,8 @@ static nic_device_info_t lo_info = {
 
 static void lo_send_frame(nic_t *nic_data, void *data, size_t size)
 {
-	packet_t *packet;
-	int rc;
-
-	packet = nic_alloc_packet(nic_data, size);
-	if (packet == NULL)
-		return;
-
-	rc = packet_copy_data(packet, data, size);
-	if (rc != EOK)
-		return;
-
 	nic_report_send_ok(nic_data, 1, size);
-	nic_received_noneth_packet(nic_data, packet);
+	nic_received_noneth_frame(nic_data, data, size);
 }
 
 static int lo_set_address(ddf_fun_t *fun, const nic_address_t *address)

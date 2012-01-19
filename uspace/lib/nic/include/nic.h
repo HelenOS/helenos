@@ -41,7 +41,6 @@
 #include <adt/list.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
-#include <net/packet.h>
 #include <ops/nic.h>
 
 struct nic;
@@ -71,8 +70,8 @@ typedef struct {
 typedef list_t nic_frame_list_t;
 
 /**
- * Handler for writing packet data to the NIC device.
- * The function is responsible for releasing the packet.
+ * Handler for writing frame data to the NIC device.
+ * The function is responsible for releasing the frame.
  * It does not return anything, if some error is detected the function just
  * silently fails (logging on debug level is suggested).
  *
@@ -158,7 +157,7 @@ typedef void (*vlan_mask_change_handler)(nic_t *, const nic_vlan_mask_t *);
  * 					filter is activated unless the emulate is set to 0.
  * @return ENOTSUP	If this filter cannot work on this NIC (e.g. the NIC
  * 					cannot run in promiscuous node or the limit of WOL
- * 					packets' specifications was reached).
+ * 					frames' specifications was reached).
  * @return ELIMIT	If this filter must implemented in HW but currently the
  * 					limit of these HW filters was reached.
  */
@@ -233,7 +232,7 @@ extern void nic_set_tx_busy(nic_t *, int);
 extern int nic_report_address(nic_t *, const nic_address_t *);
 extern int nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
 extern void nic_query_address(nic_t *, nic_address_t *);
-extern void nic_received_noneth_packet(nic_t *, packet_t *);
+extern void nic_received_noneth_frame(nic_t *, void *, size_t);
 extern void nic_received_frame(nic_t *, nic_frame_t *);
 extern void nic_received_frame_list(nic_t *, nic_frame_list_t *);
 extern void nic_disable_interrupt(nic_t *, int);
@@ -247,9 +246,7 @@ extern void nic_report_receive_error(nic_t *, nic_receive_error_cause_t,
     unsigned);
 extern void nic_report_collisions(nic_t *, unsigned);
 
-/* Packet / frame / frame list allocation and deallocation */
-extern packet_t *nic_alloc_packet(nic_t *, size_t);
-extern void nic_release_packet(nic_t *, packet_t *);
+/* Frame / frame list allocation and deallocation */
 extern nic_frame_t *nic_alloc_frame(nic_t *, size_t);
 extern nic_frame_list_t *nic_alloc_frame_list(void);
 extern void nic_frame_list_append(nic_frame_list_t *, nic_frame_t *);
@@ -273,10 +270,6 @@ extern uint64_t nic_query_mcast_hash(nic_t *);
 /* Software period functions */
 extern void nic_sw_period_start(nic_t *);
 extern void nic_sw_period_stop(nic_t *);
-
-/* Packet DMA lock */
-extern int nic_dma_lock_packet(packet_t *, size_t, void **);
-extern int nic_dma_unlock_packet(packet_t *, size_t);
 
 #endif // __NIC_H__
 
