@@ -391,16 +391,19 @@ int nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
  * Check if the frame passes through the receive control.
  *
  * @param rxc
- * @param packet	The probed frame
+ * @param frame	    The probed frame
  *
  * @return True if the frame passes, false if it does not
  */
-int nic_rxc_check(const nic_rxc_t *rxc, const packet_t *packet,
+int nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
 	nic_frame_type_t *frame_type)
 {
 	assert(frame_type != NULL);
-	uint8_t *dest_addr = (uint8_t *) packet + packet->data_start;
+	uint8_t *dest_addr = (uint8_t *) data;
 	uint8_t *src_addr = dest_addr + ETH_ADDR;
+
+	if (size < 2 * ETH_ADDR)
+		return false;
 
 	if (dest_addr[0] & 1) {
 		/* Multicast or broadcast */
@@ -447,7 +450,7 @@ int nic_rxc_check(const nic_rxc_t *rxc, const packet_t *packet,
 	/* VLAN filtering */
 	if (!rxc->vlan_exact && rxc->vlan_mask != NULL) {
 		vlan_header_t *vlan_header = (vlan_header_t *)
-			((uint8_t *) packet + packet->data_start + 2 * ETH_ADDR);
+			((uint8_t *) data + 2 * ETH_ADDR);
 		if (vlan_header->tpid_upper == VLAN_TPID_UPPER &&
 			vlan_header->tpid_lower == VLAN_TPID_LOWER) {
 			int index = ((int) (vlan_header->vid_upper & 0xF) << 5) |

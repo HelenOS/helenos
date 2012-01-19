@@ -119,7 +119,7 @@ extern int nic_rxc_clear(nic_rxc_t *rxc);
 extern int nic_rxc_set_addr(nic_rxc_t *rxc,
 	const nic_address_t *prev_addr, const nic_address_t *curr_addr);
 extern int nic_rxc_check(const nic_rxc_t *rxc,
-	const packet_t *packet, nic_frame_type_t *frame_type);
+	const void *data, size_t size, nic_frame_type_t *frame_type);
 extern void nic_rxc_hw_filtering(nic_rxc_t *rxc,
 	int unicast_exact, int multicast_exact, int vlan_exact);
 extern uint64_t nic_rxc_mcast_hash(const nic_address_t *list, size_t count);

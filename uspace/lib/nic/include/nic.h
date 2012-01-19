@@ -60,11 +60,12 @@ typedef struct nic_wol_virtue {
 } nic_wol_virtue_t;
 
 /**
- * Simple structure for sending the allocated frames (packets) in a list.
+ * Simple structure for sending lists of frames.
  */
 typedef struct {
 	link_t link;
-	packet_t *packet;
+	void *data;
+	size_t size;
 } nic_frame_t;
 
 typedef list_t nic_frame_list_t;
@@ -232,7 +233,6 @@ extern void nic_set_tx_busy(nic_t *, int);
 extern int nic_report_address(nic_t *, const nic_address_t *);
 extern int nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
 extern void nic_query_address(nic_t *, nic_address_t *);
-extern void nic_received_packet(nic_t *, packet_t *);
 extern void nic_received_noneth_packet(nic_t *, packet_t *);
 extern void nic_received_frame(nic_t *, nic_frame_t *);
 extern void nic_received_frame_list(nic_t *, nic_frame_list_t *);

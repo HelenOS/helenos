@@ -289,11 +289,10 @@ void nic_release_packet(nic_t *nic_data, packet_t *packet)
 /** Allocate frame and packet
  *
  *  @param nic_data 	The NIC driver data
- *  @param packet_size	Size of packet
- *  @param offload_size	Size of packet offload
+ *  @param size	        Frame size in bytes
  *  @return pointer to allocated frame if success, NULL otherwise
  */
-nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t packet_size)
+nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t size)
 {
 	nic_frame_t *frame;
 	fibril_mutex_lock(&nic_globals.lock);
@@ -312,13 +311,13 @@ nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t packet_size)
 		link_initialize(&frame->link);
 	}
 
-	packet_t *packet = nic_alloc_packet(nic_data, packet_size);
-	if (!packet) {
+	frame->data = malloc(size);
+	if (frame->data == NULL) {
 		free(frame);
 		return NULL;
 	}
 
-	frame->packet = packet;
+	frame->size = size;
 	return frame;
 }
 
@@ -331,9 +330,13 @@ void nic_release_frame(nic_t *nic_data, nic_frame_t *frame)
 {
 	if (!frame)
 		return;
-	if (frame->packet != NULL) {
-		nic_release_packet(nic_data, frame->packet);
+
+	if (frame->data != NULL) {
+		free(frame->data);
+		frame->data = NULL;
+		frame->size = 0;
 	}
+
 	fibril_mutex_lock(&nic_globals.lock);
 	if (nic_globals.frame_cache_size >= NIC_GLOBALS_MAX_CACHE_SIZE) {
 		fibril_mutex_unlock(&nic_globals.lock);
@@ -621,44 +624,28 @@ void nic_set_tx_busy(nic_t *nic_data, int busy)
 }
 
 /**
- * Provided for correct naming conventions.
- * The packet is checked by filters and then sent up to the NIL layer or
- * discarded, the frame is released.
+ * This is the function that the driver should call when it receives a frame.
+ * The frame is checked by filters and then sent up to the NIL layer or
+ * discarded. The frame is released.
  *
  * @param nic_data
- * @param frame		The frame containing received packet
+ * @param frame		The received frame
  */
 void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 {
-	nic_received_packet(nic_data, frame->packet);
-	frame->packet = NULL;
-	nic_release_frame(nic_data, frame);
-}
-
-/**
- * This is the function that the driver should call when it receives a packet.
- * The packet is checked by filters and then sent up to the NIL layer or
- * discarded.
- *
- * @param nic_data
- * @param packet		The received packet
- */
-void nic_received_packet(nic_t *nic_data, packet_t *packet)
-{
 	/* Note: this function must not lock main lock, because loopback driver
 	 * 		 calls it inside write_packet handler (with locked main lock) */
-	packet_id_t pid = packet_get_id(packet);
-	
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_frame_type_t frame_type;
-	int check = nic_rxc_check(&nic_data->rx_control, packet, &frame_type);
+	int check = nic_rxc_check(&nic_data->rx_control, frame->data,
+	    frame->size, &frame_type);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	/* Update statistics */
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
 	/* Both sending message up and releasing packet are atomic IPC calls */
 	if (nic_data->state == NIC_STATE_ACTIVE && check) {
 		nic_data->stats.receive_packets++;
-		nic_data->stats.receive_bytes += packet_get_data_length(packet);
+		nic_data->stats.receive_bytes += frame->size;
 		switch (frame_type) {
 		case NIC_FRAME_MULTICAST:
 			nic_data->stats.receive_multicast++;
@@ -670,7 +657,8 @@ void nic_received_packet(nic_t *nic_data, packet_t *packet)
 			break;
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
-		nil_received_msg(nic_data->nil_session, nic_data->device_id, pid);
+		nil_received_msg(nic_data->nil_session, nic_data->device_id,
+		    frame->data, frame->size);
 	} else {
 		switch (frame_type) {
 		case NIC_FRAME_UNICAST:
@@ -684,8 +672,8 @@ void nic_received_packet(nic_t *nic_data, packet_t *packet)
 			break;
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
-		nic_release_packet(nic_data, packet);
 	}
+	nic_release_frame(nic_data, frame);
 }
 
 /**
@@ -704,7 +692,7 @@ void nic_received_noneth_packet(nic_t *nic_data, packet_t *packet)
 	fibril_rwlock_write_unlock(&nic_data->stats_lock);
 	
 	nil_received_msg(nic_data->nil_session, nic_data->device_id,
-	    packet_get_id(packet));
+	    packet_get_data(packet), packet_get_data_length(packet));
 }
 
 /**
@@ -725,9 +713,7 @@ void nic_received_frame_list(nic_t *nic_data, nic_frame_list_t *frames)
 			list_get_instance(list_first(frames), nic_frame_t, link);
 
 		list_remove(&frame->link);
-		nic_received_packet(nic_data, frame->packet);
-		frame->packet = NULL;
-		nic_release_frame(nic_data, frame);
+		nic_received_frame(nic_data, frame);
 	}
 	nic_driver_release_frame_list(frames);
 }

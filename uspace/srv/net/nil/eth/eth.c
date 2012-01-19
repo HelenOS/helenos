@@ -813,6 +813,27 @@ static int eth_send_message(nic_device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
+static int eth_received(nic_device_id_t device_id)
+{
+	void *data;
+	size_t size;
+	int rc;
+	
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK)
+		return rc;
+	
+	packet_t *packet = packet_get_1_remote(eth_globals.net_sess, size);
+	if (packet == NULL)
+		return ENOMEM;
+	
+	void *pdata = packet_suffix(packet, size);
+	memcpy(pdata, data, size);
+	free(data);
+	
+	return nil_received_msg_local(device_id, packet);
+}
+
 static int eth_addr_changed(nic_device_id_t device_id)
 {
 	nic_address_t address;
@@ -925,11 +946,7 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		async_answer_0(callid, EOK);
 		return EOK;
 	case NET_NIL_RECEIVED:
-		rc = packet_translate_remote(eth_globals.net_sess, &packet,
-		    IPC_GET_ARG2(*call));
-		if (rc == EOK)
-			rc = nil_received_msg_local(IPC_GET_ARG1(*call), packet);
-		
+		rc = eth_received(IPC_GET_ARG1(*call));
 		async_answer_0(callid, (sysarg_t) rc);
 		return rc;
 	case NET_NIL_ADDR_CHANGED:

@@ -76,10 +76,24 @@ int nil_device_state_msg(async_sess_t *sess, nic_device_id_t device_id,
  *
  */
 int nil_received_msg(async_sess_t *sess, nic_device_id_t device_id,
-    packet_id_t packet_id)
+    void *data, size_t size)
 {
-	return generic_received_msg_remote(sess, NET_NIL_RECEIVED,
-	    device_id, packet_id, 0, 0);
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, NET_NIL_RECEIVED, (sysarg_t) device_id,
+	    &answer);
+	sysarg_t retval = async_data_write_start(exch, data, size);
+
+	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 /** Notify upper layers that device address has changed
