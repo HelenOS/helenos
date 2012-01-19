@@ -38,7 +38,6 @@
 #include <ddf/interrupt.h>
 #include <io/log.h>
 #include <nic.h>
-//#include <packet_client.h>
 #include <device/pci.h>
 
 #include <ipc/irc.h>
