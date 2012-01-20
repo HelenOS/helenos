@@ -201,7 +201,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 
 	asize = ALIGN_UP(size, PAGE_SIZE);
 	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
-	virtaddr = km_page_alloc(asize, align);
+	virtaddr = km_page_alloc(asize, max(PAGE_SIZE, align));
 
 	page_table_lock(AS_KERNEL, true);
 	for (i = 0; i < ADDR2PFN(asize); i++) {

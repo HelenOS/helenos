@@ -53,8 +53,21 @@ static void init_e820_memory(pfn_t minconf, bool low)
 	unsigned int i;
 	
 	for (i = 0; i < e820counter; i++) {
-		uintptr_t base = (uintptr_t) e820table[i].base_address;
-		size_t size = (size_t) e820table[i].size;
+		uint64_t base64 = e820table[i].base_address;
+		uint64_t size64 = e820table[i].size;
+
+#ifdef KARCH_ia32
+		/*
+		 * Restrict the e820 table entries to 32-bits.
+		 */
+		if (base64 >= 0x100000000ULL)
+			continue;
+		if (base64 + size64 > 0x100000000ULL)
+			size64 -= base64 + size64 - 0x100000000ULL;
+#endif
+
+		uintptr_t base = (uintptr_t) base64;
+		size_t size = (size_t) size64;
 		
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			continue;
