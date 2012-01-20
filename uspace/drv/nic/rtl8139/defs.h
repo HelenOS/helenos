@@ -427,7 +427,7 @@ enum rtl8139_frame_header {
 	RSR_ISE  = (1 << 5),   /**< Invalid symbol error, 100BASE-TX only */
 	RSR_RUNT = (1 << 4),   /**< Runt frame (< RTL8139_RUNT_MAX_SIZE bytes) */
 
-	RSR_LONG = (1 << 3),   /**< Long frmae (size > 4k bytes) */
+	RSR_LONG = (1 << 3),   /**< Long frame (size > 4k bytes) */
 	RSR_CRC  = (1 << 2),   /**< CRC error */
 	RSR_FAE  = (1 << 1),   /**< Frame alignment error */
 	RSR_ROK  = (1 << 0)    /**< Good frame received */

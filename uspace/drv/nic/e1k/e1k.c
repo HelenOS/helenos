@@ -65,7 +65,7 @@
 
 /** Maximum sending frame size */
 #define E1000_MAX_SEND_FRAME_SIZE  2048
-/** Maximum receiving frmae size */
+/** Maximum receiving frame size */
 #define E1000_MAX_RECEIVE_FRAME_SIZE  2048
 
 /** nic_driver_data_t* -> e1000_t* cast */
