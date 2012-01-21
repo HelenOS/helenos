@@ -282,6 +282,42 @@ int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 	return rc;
 }
 
+int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs, ext4_inode_ref_t **inode_ref)
+{
+	// TODO
+	return EOK;
+}
+
+int ext4_filesystem_init_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, int flags)
+{
+	ext4_inode_t *inode = inode_ref->inode;
+
+	if (flags & L_DIRECTORY) {
+		ext4_inode_set_mode(fs->superblock, inode, EXT4_INODE_MODE_DIRECTORY);
+		ext4_inode_set_links_count(inode, 1); // '.' entry
+	} else {
+		ext4_inode_set_mode(fs->superblock, inode, EXT4_INODE_MODE_FILE);
+		ext4_inode_set_links_count(inode, 0);
+	}
+
+	ext4_inode_set_uid(inode, 0);
+	ext4_inode_set_gid(inode, 0);
+	ext4_inode_set_size(inode, 0);
+	ext4_inode_set_access_time(inode, 0);
+	ext4_inode_set_change_inode_time(inode, 0);
+	ext4_inode_set_modification_time(inode, 0);
+	ext4_inode_set_deletion_time(inode, 0);
+	ext4_inode_set_blocks_count(fs->superblock, inode, 0);
+	ext4_inode_set_flags(inode, 0);
+	ext4_inode_set_generation(inode, 0);
+
+	for (uint32_t i = 0; i < EXT4_INODE_BLOCKS; i++) {
+		inode->blocks[i] = 0;
+	}
+
+	return EOK;
+}
+
 int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
 {
 	int rc;
