@@ -168,8 +168,6 @@ int ext4fs_global_fini(void)
 
 int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 {
-	ext4fs_instance_t *tmp;
-
 	fibril_mutex_lock(&instance_list_mutex);
 
 	if (list_empty(&instance_list)) {
@@ -177,6 +175,7 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 		return EINVAL;
 	}
 
+	ext4fs_instance_t *tmp;
 	list_foreach(instance_list, link) {
 		tmp = list_get_instance(link, ext4fs_instance_t, link);
 
@@ -200,18 +199,17 @@ int ext4fs_root_get(fs_node_t **rfn, service_id_t service_id)
 
 int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
-	ext4fs_node_t *eparent = EXT4FS_NODE(pfn);
-	ext4_filesystem_t *fs;
-	ext4_directory_iterator_t it;
 	int rc;
 
-	fs = eparent->instance->filesystem;
+	ext4fs_node_t *eparent = EXT4FS_NODE(pfn);
+	ext4_filesystem_t *fs = eparent->instance->filesystem;
 
 	if (!ext4_inode_is_type(fs->superblock, eparent->inode_ref->inode,
 	    EXT4_INODE_MODE_DIRECTORY)) {
 		return ENOTDIR;
 	}
 
+	ext4_directory_iterator_t it;
 	rc = ext4_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
@@ -238,9 +236,9 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 int ext4fs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
-	ext4fs_instance_t *inst = NULL;
 	int rc;
 
+	ext4fs_instance_t *inst;
 	rc = ext4fs_instance_get(service_id, &inst);
 	if (rc != EOK) {
 		return rc;
@@ -254,10 +252,6 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		fs_index_t index)
 {
 	int rc;
-	fs_node_t *node = NULL;
-	ext4fs_node_t *enode = NULL;
-
-	ext4_inode_ref_t *inode_ref = NULL;
 
 	fibril_mutex_lock(&open_nodes_lock);
 
@@ -266,8 +260,9 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		[OPEN_NODES_DEV_HANDLE_KEY] = inst->service_id,
 		[OPEN_NODES_INODE_KEY] = index,
 	};
-	link_t *already_open = hash_table_find(&open_nodes, key);
 
+	link_t *already_open = hash_table_find(&open_nodes, key);
+	ext4fs_node_t *enode = NULL;
 	if (already_open) {
 		enode = hash_table_get_instance(already_open, ext4fs_node_t, link);
 		*rfn = enode->fs_node;
@@ -283,18 +278,19 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		return ENOMEM;
 	}
 
-	node = malloc(sizeof(fs_node_t));
-	if (node == NULL) {
+	fs_node_t *fs_node = malloc(sizeof(fs_node_t));
+	if (fs_node == NULL) {
 		free(enode);
 		fibril_mutex_unlock(&open_nodes_lock);
 		return ENOMEM;
 	}
-	fs_node_initialize(node);
+	fs_node_initialize(fs_node);
 
+	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
 		free(enode);
-		free(node);
+		free(fs_node);
 		fibril_mutex_unlock(&open_nodes_lock);
 		return rc;
 	}
@@ -302,11 +298,11 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	enode->inode_ref = inode_ref;
 	enode->instance = inst;
 	enode->references = 1;
-	enode->fs_node = node;
+	enode->fs_node = fs_node;
 	link_initialize(&enode->link);
 
-	node->data = enode;
-	*rfn = node;
+	fs_node->data = enode;
+	*rfn = fs_node;
 
 	hash_table_insert(&open_nodes, key, &enode->link);
 	inst->open_nodes_count++;
@@ -350,10 +346,10 @@ int ext4fs_node_open(fs_node_t *fn)
 int ext4fs_node_put(fs_node_t *fn)
 {
 	int rc;
-	ext4fs_node_t *enode = EXT4FS_NODE(fn);
 
 	fibril_mutex_lock(&open_nodes_lock);
 
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
 	assert(enode->references > 0);
 	enode->references--;
 	if (enode->references == 0) {
@@ -410,7 +406,6 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	if (rev_level > 0) {
 		ext4_filesystem_delete_orphan(fs, inode_ref);
 	}
-
 
 	// TODO set real deletion time
 //	time_t now = time(NULL);
@@ -510,14 +505,10 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 {
-	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	ext4_directory_iterator_t it;
-	ext4_filesystem_t *fs;
 	int rc;
-	bool found = false;
-	size_t name_size;
 
-	fs = enode->instance->filesystem;
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	ext4_filesystem_t *fs = enode->instance->filesystem;
 
 	if (!ext4_inode_is_type(fs->superblock, enode->inode_ref->inode,
 	    EXT4_INODE_MODE_DIRECTORY)) {
@@ -525,15 +516,17 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 		return EOK;
 	}
 
+	ext4_directory_iterator_t it;
 	rc = ext4_directory_iterator_init(&it, fs, enode->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
 	}
 
 	/* Find a non-empty directory entry */
+	bool found = false;
 	while (it.current != NULL) {
 		if (it.current->inode != 0) {
-			name_size = ext4_directory_entry_ll_get_name_length(fs->superblock,
+			uint16_t name_size = ext4_directory_entry_ll_get_name_length(fs->superblock,
 				it.current);
 			if (!ext4fs_is_dots(it.current->name, name_size)) {
 				found = true;
@@ -569,9 +562,8 @@ fs_index_t ext4fs_index_get(fs_node_t *fn)
 aoff64_t ext4fs_size_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	aoff64_t size = ext4_inode_get_size(
-			enode->instance->filesystem->superblock, enode->inode_ref->inode);
-	return size;
+	ext4_superblock_t *sb = enode->instance->filesystem->superblock;
+	return ext4_inode_get_size(sb, enode->inode_ref->inode);
 }
 
 
@@ -596,18 +588,18 @@ unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 bool ext4fs_is_directory(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	bool is_dir = ext4_inode_is_type(enode->instance->filesystem->superblock,
-	    enode->inode_ref->inode, EXT4_INODE_MODE_DIRECTORY);
-	return is_dir;
+	ext4_superblock_t *sb = enode->instance->filesystem->superblock;
+	return ext4_inode_is_type(
+			sb, enode->inode_ref->inode, EXT4_INODE_MODE_DIRECTORY);
 }
 
 
 bool ext4fs_is_file(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	bool is_file = ext4_inode_is_type(enode->instance->filesystem->superblock,
-	    enode->inode_ref->inode, EXT4_INODE_MODE_FILE);
-	return is_file;
+	ext4_superblock_t *sb = enode->instance->filesystem->superblock;
+	return ext4_inode_is_type(
+			sb, enode->inode_ref->inode, EXT4_INODE_MODE_FILE);
 }
 
 
@@ -648,17 +640,16 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
 	int rc;
-	ext4_filesystem_t *fs;
-	ext4fs_instance_t *inst;
-	bool read_only;
 
 	/* Allocate libext4 filesystem structure */
+	ext4_filesystem_t *fs;
 	fs = (ext4_filesystem_t *) malloc(sizeof(ext4_filesystem_t));
 	if (fs == NULL) {
 		return ENOMEM;
 	}
 
 	/* Allocate instance structure */
+	ext4fs_instance_t *inst;
 	inst = (ext4fs_instance_t *) malloc(sizeof(ext4fs_instance_t));
 	if (inst == NULL) {
 		free(fs);
@@ -683,6 +674,7 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	}
 
 	/* Check flags */
+	bool read_only;
 	rc = ext4_filesystem_check_features(fs, &read_only);
 	if (rc != EOK) {
 		ext4_filesystem_fini(fs, false);
@@ -725,10 +717,9 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 static int ext4fs_unmounted(service_id_t service_id)
 {
 	int rc;
+
 	ext4fs_instance_t *inst;
-
 	rc = ext4fs_instance_get(service_id, &inst);
-
 	if (rc != EOK) {
 		return rc;
 	}
@@ -754,8 +745,6 @@ static int ext4fs_unmounted(service_id_t service_id)
 static int ext4fs_read(service_id_t service_id, fs_index_t index,
 		aoff64_t pos, size_t *rbytes)
 {
-	ext4fs_instance_t *inst;
-	ext4_inode_ref_t *inode_ref;
 	int rc;
 
 	/*
@@ -768,12 +757,14 @@ static int ext4fs_read(service_id_t service_id, fs_index_t index,
 		return EINVAL;
 	}
 
+	ext4fs_instance_t *inst;
 	rc = ext4fs_instance_get(service_id, &inst);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return rc;
 	}
 
+	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -815,13 +806,9 @@ bool ext4fs_is_dots(const uint8_t *name, size_t name_size)
 int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
-	ext4_directory_iterator_t it;
-	aoff64_t next;
-	uint8_t *buf;
-	size_t name_size;
 	int rc;
-	bool found = false;
 
+	ext4_directory_iterator_t it;
 	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -832,13 +819,14 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	 * We want to skip . and .. entries
 	 * as these are not used in HelenOS
 	 */
+	bool found = false;
 	while (it.current != NULL) {
 
 		if (it.current->inode == 0) {
 			goto skip;
 		}
 
-		name_size = ext4_directory_entry_ll_get_name_length(
+		uint16_t name_size = ext4_directory_entry_ll_get_name_length(
 		    inst->filesystem->superblock, it.current);
 
 		/* skip . and .. */
@@ -850,7 +838,7 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 		 * end of entry name, so we copy it to new buffer
 		 * and add the \0 at the end
 		 */
-		buf = malloc(name_size+1);
+		uint8_t *buf = malloc(name_size+1);
 		if (buf == NULL) {
 			ext4_directory_iterator_fini(&it);
 			async_answer_0(callid, ENOMEM);
@@ -872,6 +860,7 @@ skip:
 		}
 	}
 
+	uint64_t next;
 	if (found) {
 		rc = ext4_directory_iterator_next(&it);
 		if (rc != EOK) {
@@ -898,17 +887,9 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	int rc;
-	uint32_t block_size;
-	aoff64_t file_block;
-	uint64_t file_size;
-	uint32_t fs_block;
-	size_t offset_in_block;
-	size_t bytes;
-	block_t *block;
-	uint8_t *buffer;
 
-	file_size = ext4_inode_get_size(inst->filesystem->superblock,
-		inode_ref->inode);
+	ext4_superblock_t *sb = inst->filesystem->superblock;
+	uint64_t file_size = ext4_inode_get_size(sb, inode_ref->inode);
 
 	if (pos >= file_size) {
 		/* Read 0 bytes successfully */
@@ -918,10 +899,10 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	}
 
 	/* For now, we only read data from one block at a time */
-	block_size = ext4_superblock_get_block_size(inst->filesystem->superblock);
-	file_block = pos / block_size;
-	offset_in_block = pos % block_size;
-	bytes = min(block_size - offset_in_block, size);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	aoff64_t file_block = pos / block_size;
+	uint32_t offset_in_block = pos % block_size;
+	uint32_t bytes = min(block_size - offset_in_block, size);
 
 	/* Handle end of file */
 	if (pos + bytes > file_size) {
@@ -929,6 +910,7 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	}
 
 	/* Get the real block number */
+	uint32_t fs_block;
 	rc = ext4_filesystem_get_inode_data_block_index(inst->filesystem,
 		inode_ref->inode, file_block, &fs_block);
 	if (rc != EOK) {
@@ -941,6 +923,7 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	 * fs_block == 0, it means that the given block is not allocated for the
 	 * file and we need to return a buffer of zeros
 	 */
+	uint8_t *buffer;
 	if (fs_block == 0) {
 		buffer = malloc(bytes);
 		if (buffer == NULL) {
@@ -959,6 +942,7 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	}
 
 	/* Usual case - we need to read a block from device */
+	block_t *block;
 	rc = block_get(&block, inst->service_id, fs_block, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -981,23 +965,16 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		aoff64_t pos, size_t *wbytes, aoff64_t *nsize)
 {
 	int rc;
-	int flags = BLOCK_FLAGS_NONE;
-	fs_node_t *fn;
-	ext4fs_node_t *enode;
-	ext4_filesystem_t *fs;
-	ext4_inode_ref_t *inode_ref;
-	ipc_callid_t callid;
-	size_t len, bytes, block_size;
-	block_t *write_block;
-	uint32_t fblock, iblock;
-	uint32_t old_inode_size;
 
+	fs_node_t *fn;
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
 		EXT4FS_DBG("node get error");
 		return rc;
 	}
 
+	ipc_callid_t callid;
+	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
 		rc = EINVAL;
 		ext4fs_node_put(fn);
@@ -1007,21 +984,23 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	}
 
 
-	enode = EXT4FS_NODE(fn);
-	inode_ref = enode->inode_ref;
-	fs = enode->instance->filesystem;
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
+	ext4_filesystem_t *fs = enode->instance->filesystem;
 
-	block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	// Prevent writing to more than one block
-	bytes = min(len, block_size - (pos % block_size));
+	uint32_t bytes = min(len, block_size - (pos % block_size));
 
+	int flags = BLOCK_FLAGS_NONE;
 	if (bytes == block_size) {
 		flags = BLOCK_FLAGS_NOREAD;
 	}
 
-	iblock =  pos / block_size;
+	uint32_t iblock =  pos / block_size;
+	uint32_t fblock;
 
+	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
 	if (rc != EOK) {
 		// TODO error
@@ -1047,6 +1026,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		flags = BLOCK_FLAGS_NOREAD;
 	}
 
+	block_t *write_block;
 	rc = block_get(&write_block, service_id, fblock, flags);
 	if (rc != EOK) {
 		EXT4FS_DBG("error in loading block \%d", rc);
@@ -1074,7 +1054,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		return rc;
 	}
 
-	old_inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+	uint32_t old_inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	if (pos + bytes > old_inode_size) {
 		ext4_inode_set_size(inode_ref->inode, pos + bytes);
 		inode_ref->dirty = true;
@@ -1091,8 +1071,8 @@ static int ext4fs_truncate(service_id_t service_id, fs_index_t index,
 		aoff64_t new_size)
 {
 	int rc;
-	fs_node_t *fn;
 
+	fs_node_t *fn;
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
 		return rc;
@@ -1118,8 +1098,8 @@ static int ext4fs_close(service_id_t service_id, fs_index_t index)
 static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 {
 	int rc;
-	fs_node_t *fn;
 
+	fs_node_t *fn;
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
 		return rc;
@@ -1133,15 +1113,14 @@ static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 {
 	int rc;
-	fs_node_t *fn;
-	ext4fs_node_t *enode;
 
+	fs_node_t *fn;
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	enode = EXT4FS_NODE(fn);
+	ext4fs_node_t *enode = EXT4FS_NODE(fn);
 	enode->inode_ref->dirty = true;
 
 	return ext4fs_node_put(fn);
