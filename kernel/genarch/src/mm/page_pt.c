@@ -321,8 +321,9 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 #endif
 
 	ASSERT(ispwr2(ptl0step));
+	ASSERT(size > 0);
 
-	for (addr = ALIGN_DOWN(base, ptl0step); addr < base + size;
+	for (addr = ALIGN_DOWN(base, ptl0step); addr - 1 < base + size - 1;
 	    addr += ptl0step) {
 		uintptr_t l1;
 

@@ -64,17 +64,13 @@ void page_arch_init(void)
 	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
-	/* Create mapping for exception table at high offset */
 #ifdef HIGH_EXCEPTION_VECTORS
-	// XXX: fixme to use proper non-identity page
-	void *virtaddr = frame_alloc(ONE_FRAME, FRAME_KA);
-	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, KA2PA(virtaddr),
-	    flags);
+	/* Create mapping for exception table at high offset */
+	uintptr_t ev_frame = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_NONE);
+	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, ev_frame, flags);
 #else
 #error "Only high exception vector supported now"
 #endif
-	cur = ALIGN_DOWN(0x50008010, FRAME_SIZE);
-	page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 
 	page_table_unlock(AS_KERNEL, true);
 	

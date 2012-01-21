@@ -36,6 +36,7 @@
 #define KERN_KM_H_
 
 #include <typedefs.h>
+#include <mm/frame.h>
 
 extern void km_identity_init(void);
 extern void km_non_identity_init(void);
@@ -46,6 +47,9 @@ extern uintptr_t km_page_alloc(size_t, size_t);
 extern void km_page_free(uintptr_t, size_t);
 
 extern bool km_is_non_identity(uintptr_t);
+
+extern uintptr_t km_temporary_page_get(uintptr_t *, frame_flags_t);
+extern void km_temporary_page_put(uintptr_t);
 
 #endif
 

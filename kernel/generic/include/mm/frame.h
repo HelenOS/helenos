@@ -82,8 +82,9 @@ typedef uint8_t zone_flags_t;
 
 #define FRAME_TO_ZONE_FLAGS(ff)	\
 	((((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : \
-	    (((ff) & FRAME_HIGHMEM) ? ZONE_HIGHMEM : ZONE_NONE)) | \
-	    (ZONE_AVAILABLE | ZONE_LOWMEM /* | ZONE_HIGHMEM */)) 
+	    (((ff) & FRAME_HIGHMEM) ? ZONE_HIGHMEM : \
+	    ZONE_LOWMEM /* | ZONE_HIGHMEM */)) | \
+	    ZONE_AVAILABLE) 
 
 #define ZONE_FLAGS_MATCH(zf, f) \
 	(((((zf) & ZONE_EF_MASK)) == ((f) & ZONE_EF_MASK)) && \

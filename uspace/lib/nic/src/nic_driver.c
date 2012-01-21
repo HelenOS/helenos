@@ -50,9 +50,6 @@
 #include <ddf/interrupt.h>
 #include <net_interface.h>
 #include <ops/nic.h>
-#include <packet_client.h>
-#include <packet_remote.h>
-#include <net/packet_header.h>
 #include <errno.h>
 
 #include "nic_driver.h"
@@ -63,7 +60,7 @@
 nic_globals_t nic_globals;
 
 /**
- * Initializes libraries required for NIC framework - logger, packet manager
+ * Initializes libraries required for NIC framework - logger
  *
  * @param name	Name of the device/driver (used in logging)
  */
@@ -78,8 +75,7 @@ int nic_driver_init(const char *name)
 	char buffer[256];
 	snprintf(buffer, 256, "drv/" DEVICE_CATEGORY_NIC "/%s", name);
 	
-	/* Initialize packet manager */
-	return pm_init();
+	return EOK;
 }
 
 /**
@@ -161,7 +157,7 @@ void nic_driver_implement(driver_ops_t *driver_ops, ddf_dev_ops_t *dev_ops,
 }
 
 /**
- * Setup write packet handler. This MUST be called in the add_device handler
+ * Setup send frame handler. This MUST be called in the add_device handler
  * if the nic_send_message_impl function is used for sending messages (filled
  * as send_message member of the nic_iface_t structure). The function must not
  * be called anywhere else.
@@ -269,31 +265,13 @@ int nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
 	return hw_res_get_list_parsed(nic_data->dev->parent_sess, resources, 0);
 }
 
-/**
- * Just a wrapper over the packet_get_1_remote function
- */
-packet_t *nic_alloc_packet(nic_t *nic_data, size_t data_size)
-{
-	return packet_get_1_remote(nic_data->net_session, data_size);
-}
-
-
-/**
- * Just a wrapper over the pq_release_remote function
- */
-void nic_release_packet(nic_t *nic_data, packet_t *packet)
-{
-	pq_release_remote(nic_data->net_session, packet_get_id(packet));
-}
-
-/** Allocate frame and packet
+/** Allocate frame
  *
  *  @param nic_data 	The NIC driver data
- *  @param packet_size	Size of packet
- *  @param offload_size	Size of packet offload
+ *  @param size	        Frame size in bytes
  *  @return pointer to allocated frame if success, NULL otherwise
  */
-nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t packet_size)
+nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t size)
 {
 	nic_frame_t *frame;
 	fibril_mutex_lock(&nic_globals.lock);
@@ -312,13 +290,13 @@ nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t packet_size)
 		link_initialize(&frame->link);
 	}
 
-	packet_t *packet = nic_alloc_packet(nic_data, packet_size);
-	if (!packet) {
+	frame->data = malloc(size);
+	if (frame->data == NULL) {
 		free(frame);
 		return NULL;
 	}
 
-	frame->packet = packet;
+	frame->size = size;
 	return frame;
 }
 
@@ -331,9 +309,13 @@ void nic_release_frame(nic_t *nic_data, nic_frame_t *frame)
 {
 	if (!frame)
 		return;
-	if (frame->packet != NULL) {
-		nic_release_packet(nic_data, frame->packet);
+
+	if (frame->data != NULL) {
+		free(frame->data);
+		frame->data = NULL;
+		frame->size = 0;
 	}
+
 	fibril_mutex_lock(&nic_globals.lock);
 	if (nic_globals.frame_cache_size >= NIC_GLOBALS_MAX_CACHE_SIZE) {
 		fibril_mutex_unlock(&nic_globals.lock);
@@ -603,7 +585,7 @@ void nic_query_address(nic_t *nic_data, nic_address_t *addr) {
 };
 
 /**
- * The busy flag can be set to 1 only in the write_packet handler, to 0 it can
+ * The busy flag can be set to 1 only in the send_frame handler, to 0 it can
  * be set anywhere.
  *
  * @param nic_data
@@ -612,7 +594,7 @@ void nic_query_address(nic_t *nic_data, nic_address_t *addr) {
 void nic_set_tx_busy(nic_t *nic_data, int busy)
 {
 	/*
-	 * When the function is called in write_packet handler the main lock is
+	 * When the function is called in send_frame handler the main lock is
 	 * locked so no race can happen.
 	 * Otherwise, when it is unexpectedly set to 0 (even with main lock held
 	 * by other fibril) it cannot crash anything.
@@ -621,44 +603,28 @@ void nic_set_tx_busy(nic_t *nic_data, int busy)
 }
 
 /**
- * Provided for correct naming conventions.
- * The packet is checked by filters and then sent up to the NIL layer or
- * discarded, the frame is released.
+ * This is the function that the driver should call when it receives a frame.
+ * The frame is checked by filters and then sent up to the NIL layer or
+ * discarded. The frame is released.
  *
  * @param nic_data
- * @param frame		The frame containing received packet
+ * @param frame		The received frame
  */
 void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 {
-	nic_received_packet(nic_data, frame->packet);
-	frame->packet = NULL;
-	nic_release_frame(nic_data, frame);
-}
-
-/**
- * This is the function that the driver should call when it receives a packet.
- * The packet is checked by filters and then sent up to the NIL layer or
- * discarded.
- *
- * @param nic_data
- * @param packet		The received packet
- */
-void nic_received_packet(nic_t *nic_data, packet_t *packet)
-{
 	/* Note: this function must not lock main lock, because loopback driver
-	 * 		 calls it inside write_packet handler (with locked main lock) */
-	packet_id_t pid = packet_get_id(packet);
-	
+	 * 		 calls it inside send_frame handler (with locked main lock) */
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_frame_type_t frame_type;
-	int check = nic_rxc_check(&nic_data->rx_control, packet, &frame_type);
+	int check = nic_rxc_check(&nic_data->rx_control, frame->data,
+	    frame->size, &frame_type);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	/* Update statistics */
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
-	/* Both sending message up and releasing packet are atomic IPC calls */
+
 	if (nic_data->state == NIC_STATE_ACTIVE && check) {
 		nic_data->stats.receive_packets++;
-		nic_data->stats.receive_bytes += packet_get_data_length(packet);
+		nic_data->stats.receive_bytes += frame->size;
 		switch (frame_type) {
 		case NIC_FRAME_MULTICAST:
 			nic_data->stats.receive_multicast++;
@@ -670,7 +636,8 @@ void nic_received_packet(nic_t *nic_data, packet_t *packet)
 			break;
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
-		nil_received_msg(nic_data->nil_session, nic_data->device_id, pid);
+		nil_received_msg(nic_data->nil_session, nic_data->device_id,
+		    frame->data, frame->size);
 	} else {
 		switch (frame_type) {
 		case NIC_FRAME_UNICAST:
@@ -684,33 +651,34 @@ void nic_received_packet(nic_t *nic_data, packet_t *packet)
 			break;
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
-		nic_release_packet(nic_data, packet);
 	}
+	nic_release_frame(nic_data, frame);
 }
 
 /**
  * This function is to be used only in the loopback driver. It's workaround
- * for the situation when the packet does not contain ethernet address.
+ * for the situation when the frame does not contain ethernet address.
  * The filtering is therefore not applied here.
  *
  * @param nic_data
- * @param packet
+ * @param data		Frame data
+ * @param size		Frame size in bytes
  */
-void nic_received_noneth_packet(nic_t *nic_data, packet_t *packet)
+void nic_received_noneth_frame(nic_t *nic_data, void *data, size_t size)
 {
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
 	nic_data->stats.receive_packets++;
-	nic_data->stats.receive_bytes += packet_get_data_length(packet);
+	nic_data->stats.receive_bytes += size;
 	fibril_rwlock_write_unlock(&nic_data->stats_lock);
 	
 	nil_received_msg(nic_data->nil_session, nic_data->device_id,
-	    packet_get_id(packet));
+	    data, size);
 }
 
 /**
- * Some NICs can receive multiple packets during single interrupt. These can
+ * Some NICs can receive multiple frames during single interrupt. These can
  * send them in whole list of frames (actually nic_frame_t structures), then
- * the list is deallocated and each packet is passed to the
+ * the list is deallocated and each frame is passed to the
  * nic_received_packet function.
  *
  * @param nic_data
@@ -725,9 +693,7 @@ void nic_received_frame_list(nic_t *nic_data, nic_frame_list_t *frames)
 			list_get_instance(list_first(frames), nic_frame_t, link);
 
 		list_remove(&frame->link);
-		nic_received_packet(nic_data, frame->packet);
-		frame->packet = NULL;
-		nic_release_frame(nic_data, frame);
+		nic_received_frame(nic_data, frame);
 	}
 	nic_driver_release_frame_list(frames);
 }
@@ -842,43 +808,6 @@ void nic_unbind_and_destroy(ddf_dev_t *device){
 	nic_destroy((nic_t *) device->driver_data);
 	device->driver_data = NULL;
 	return;
-}
-
-/**
- * Creates an exposed DDF function for the device, named "port0".
- * Device options are set as this function's options. The function is bound
- * (see ddf_fun_bind) and then registered to the DEVICE_CATEGORY_NIC class.
- * Note: this function should be called only from add_device handler, therefore
- * we don't need to use locks.
- *
- * @param nic_data	The NIC structure
- * @param ops		Device options for the DDF function.
- */
-int nic_register_as_ddf_fun(nic_t *nic_data, ddf_dev_ops_t *ops)
-{
-	int rc;
-	assert(nic_data);
-
-	nic_data->fun = ddf_fun_create(nic_data->dev, fun_exposed, "port0");
-	if (nic_data->fun == NULL)
-		return ENOMEM;
-	
-	nic_data->fun->ops = ops;
-	nic_data->fun->driver_data = nic_data;
-
-	rc = ddf_fun_bind(nic_data->fun);
-	if (rc != EOK) {
-		ddf_fun_destroy(nic_data->fun);
-		return rc;
-	}
-
-	rc = ddf_fun_add_to_category(nic_data->fun, DEVICE_CATEGORY_NIC);
-	if (rc != EOK) {
-		ddf_fun_destroy(nic_data->fun);
-		return rc;
-	}
-	
-	return EOK;
 }
 
 /**
@@ -1096,6 +1025,15 @@ ddf_dev_t *nic_get_ddf_dev(nic_t *nic_data)
 ddf_fun_t *nic_get_ddf_fun(nic_t *nic_data)
 {
 	return nic_data->fun;
+}
+
+/**
+ * @param nic_data
+ * @param fun
+ */
+void nic_set_ddf_fun(nic_t *nic_data, ddf_fun_t *fun)
+{
+	nic_data->fun = fun;
 }
 
 /** 
@@ -1326,25 +1264,6 @@ void nic_sw_period_start(nic_t *nic_data)
 void nic_sw_period_stop(nic_t *nic_data)
 {
 	nic_data->sw_poll_info.running = 0;
-}
-
-/** Lock packet for DMA usage
- *
- * @param packet
- * @return physical address of packet
- */
-int nic_dma_lock_packet(packet_t *packet, size_t size, void **phys)
-{
-	return dmamem_map(packet, SIZE2PAGES(size), 0, 0, phys);
-}
-
-/** Unlock packet after DMA usage
- *
- * @param packet
- */
-int nic_dma_unlock_packet(packet_t *packet, size_t size)
-{
-	return dmamem_unmap(packet, size);
 }
 
 /** @}

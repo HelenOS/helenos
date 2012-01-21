@@ -369,6 +369,27 @@ static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
+static int nildummy_received(nic_device_id_t device_id)
+{
+	void *data;
+	size_t size;
+	int rc;
+
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK)
+		return rc;
+
+	packet_t *packet = packet_get_1_remote(nildummy_globals.net_sess, size);
+	if (packet == NULL)
+		return ENOMEM;
+
+	void *pdata = packet_suffix(packet, size);
+	memcpy(pdata, data, size);
+	free(pdata);
+
+	return nil_received_msg_local(device_id, packet);
+}
+
 int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
@@ -430,11 +451,7 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		return rc;
 	
 	case NET_NIL_RECEIVED:
-		rc = packet_translate_remote(nildummy_globals.net_sess, &packet,
-		    IPC_GET_ARG2(*call));
-		if (rc == EOK)
-			rc = nil_received_msg_local(IPC_GET_ARG1(*call), packet);
-		
+		rc = nildummy_received(IPC_GET_ARG1(*call));
 		async_answer_0(callid, (sysarg_t) rc);
 		return rc;
 	}

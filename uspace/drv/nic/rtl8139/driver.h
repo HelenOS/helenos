@@ -38,7 +38,7 @@
 #define NAME "rtl8139"
 /** Transmittion buffers count */
 #define TX_BUFF_COUNT 4
-/** Size of buffer for one packet
+/** Size of buffer for one frame
  *  - 2kB
  */
 #define TX_BUFF_SIZE (2 * 1024)
@@ -48,13 +48,13 @@
 /** Size of the CRC after the received frame in the receiver buffer */
 #define RTL8139_CRC_SIZE 4
 
-/** The default mode of accepting unicast packets */
+/** The default mode of accepting unicast frames */
 #define RTL8139_RCR_UCAST_DEFAULT RCR_ACCEPT_PHYS_MATCH
-/** The default mode of accepting multicast packets */
+/** The default mode of accepting multicast frames */
 #define RTL8139_RCR_MCAST_DEFAULT 0
-/** The default mode of accepting broadcast packets */
+/** The default mode of accepting broadcast frames */
 #define RTL8139_RCR_BCAST_DEFAULT RCR_ACCEPT_BROADCAST
-/** The default mode of accepting defect packets */
+/** The default mode of accepting defect frames */
 #define RTL8139_RCR_DEFECT_DEFAULT 0
 
 /** Mask for accepting all multicast */
@@ -111,7 +111,7 @@ typedef struct rtl8139_data {
 	 */
 	size_t tx_used;
 
-	/** Buffer for receiving packets */
+	/** Buffer for receiving frames */
 	void *rx_buff_phys;
 	void *rx_buff_virt;
 

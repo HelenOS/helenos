@@ -38,6 +38,7 @@
 #include <devman.h>
 #include <generic.h>
 #include <async.h>
+#include <sys/types.h>
 
 #define nil_bind_service(service, device_id, me, receiver) \
 	bind_service(service, device_id, me, 0, receiver)
@@ -60,7 +61,7 @@
 extern int nil_device_req(async_sess_t *, nic_device_id_t, devman_handle_t,
     size_t);
 extern int nil_device_state_msg(async_sess_t *, nic_device_id_t, sysarg_t);
-extern int nil_received_msg(async_sess_t *, nic_device_id_t, packet_id_t);
+extern int nil_received_msg(async_sess_t *, nic_device_id_t, void *, size_t);
 extern int nil_addr_changed_msg(async_sess_t *, nic_device_id_t,
     const nic_address_t *);
 

@@ -38,10 +38,14 @@
 #include <typedefs.h>
 
 #define KM_ARM32_IDENTITY_START		UINT32_C(0x80000000)
-#define KM_ARM32_IDENTITY_SIZE		UINT32_C(0x40000000)
+#define KM_ARM32_IDENTITY_SIZE		UINT32_C(0x70000000)
 
-#define KM_ARM32_NON_IDENTITY_START	UINT32_C(0xc0000000)
-#define KM_ARM32_NON_IDENTITY_SIZE	UINT32_C(0x40000000)
+#define KM_ARM32_NON_IDENTITY_START	UINT32_C(0xf0000000)
+/*
+ * The last virtual megabyte contains the high exception vectors (0xFFFF0000).
+ * Do not include this range into kernel non-identity.
+ */
+#define KM_ARM32_NON_IDENTITY_SIZE	UINT32_C(0x0ff00000)
 
 extern void km_identity_arch_init(void);
 extern void km_non_identity_arch_init(void);
