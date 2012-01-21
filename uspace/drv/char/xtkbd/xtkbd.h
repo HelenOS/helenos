@@ -42,7 +42,7 @@
 typedef struct {
 	ddf_fun_t *kbd_fun;        /**< Keyboard function. */
 	async_sess_t *parent_sess; /**< Connection to device providing data. */
-	async_sess_t *input_sess;  /**< Callback connection to consumer. */
+	async_sess_t *client_sess; /**< Callback connection to client. */
 	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
 } xt_kbd_t;
 

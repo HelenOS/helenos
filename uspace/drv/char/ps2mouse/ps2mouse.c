@@ -115,7 +115,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 {
 	assert(mouse);
 	assert(dev);
-	mouse->input_sess = NULL;
+	mouse->client_sess = NULL;
 	mouse->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
 	    dev->handle, IPC_FLAG_BLOCKING);
 	if (!mouse->parent_sess)
@@ -217,10 +217,10 @@ int polling_ps2(void *arg)
 		    packet[0], packet[1], packet[2]);
 
 		async_exch_t *exch =
-		    async_exchange_begin(mouse->input_sess);
+		    async_exchange_begin(mouse->client_sess);
 		if (!exch) {
 			ddf_msg(LVL_ERROR,
-			    "Failed to create input exchange.");
+			    "Failed creating exchange.");
 			continue;
 		}
 
@@ -276,10 +276,10 @@ static int polling_intellimouse(void *arg)
 		    packet[0], packet[1], packet[2], packet[3]);
 
 		async_exch_t *exch =
-		    async_exchange_begin(mouse->input_sess);
+		    async_exchange_begin(mouse->client_sess);
 		if (!exch) {
 			ddf_msg(LVL_ERROR,
-			    "Failed to create input exchange.");
+			    "Failed creating exchange.");
 			continue;
 		}
 
@@ -385,16 +385,16 @@ void default_connection_handler(ddf_fun_t *fun,
 		/* Probably ENOMEM error, try again. */
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
-			    "Failed to create start input session");
+			    "Failed creating client callback session");
 			async_answer_0(icallid, EAGAIN);
 			break;
 		}
-		if (mouse->input_sess == NULL) {
-			mouse->input_sess = sess;
-			ddf_msg(LVL_DEBUG, "Set input session");
+		if (mouse->client_sess == NULL) {
+			mouse->client_sess = sess;
+			ddf_msg(LVL_DEBUG, "Set client session");
 			async_answer_0(icallid, EOK);
 		} else {
-			ddf_msg(LVL_ERROR, "Input session already set");
+			ddf_msg(LVL_ERROR, "Client session already set");
 			async_answer_0(icallid, ELIMIT);
 		}
 		break;
