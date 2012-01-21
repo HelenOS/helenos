@@ -368,10 +368,75 @@ int ext4fs_node_put(fs_node_t *fn)
 
 int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
-	EXT4FS_DBG("not supported");
+	EXT4FS_DBG("");
+	int rc;
 
+	ext4fs_node_t *enode;
+	enode = malloc(sizeof(ext4fs_node_t));
+	if (enode == NULL) {
+		return ENOMEM;
+	}
+
+	fs_node_t *fs_node;
+	fs_node = malloc(sizeof(fs_node_t));
+	if (fs_node == NULL) {
+		free(enode);
+		return ENOMEM;
+	}
+
+	ext4fs_instance_t *inst;
+	rc = ext4fs_instance_get(service_id, &inst);
+	if (rc != EOK) {
+		free(enode);
+		free(fs_node);
+		return rc;
+	}
+
+	ext4_inode_ref_t *inode_ref;
+	rc = ext4_filesystem_alloc_inode(inst->filesystem, &inode_ref);
+	if (rc != EOK) {
+		free(enode);
+		free(fs_node);
+		return rc;
+	}
+
+	EXT4FS_DBG("inode allocated");
 	// TODO
 	return ENOTSUP;
+
+	rc = ext4_filesystem_init_inode(inst->filesystem, inode_ref, flags);
+	if (rc != EOK) {
+		free(enode);
+		free(fs_node);
+		ext4_filesystem_free_inode(inst->filesystem, inode_ref);
+		return rc;
+	}
+
+	enode->inode_ref = inode_ref;
+	enode->instance = inst;
+	enode->references = 1;
+
+	link_initialize(&enode->link);
+
+	unsigned long key[] = {
+		[OPEN_NODES_DEV_HANDLE_KEY] = inst->service_id,
+		[OPEN_NODES_INODE_KEY] = inode_ref->index,
+	};
+
+	fibril_mutex_lock(&open_nodes_lock);
+	hash_table_insert(&open_nodes, key, &enode->link);
+	fibril_mutex_unlock(&open_nodes_lock);
+	inst->open_nodes_count++;
+
+	enode->inode_ref->dirty = true;
+
+	fs_node_initialize(fs_node);
+	fs_node->data = enode;
+	enode->fs_node = fs_node;
+	*rfn = fs_node;
+
+	// TODO
+	return EOK;
 }
 
 
@@ -426,10 +491,54 @@ int ext4fs_destroy_node(fs_node_t *fn)
 
 int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-	EXT4FS_DBG("not supported");
+	int rc;
 
-	// TODO
-	return ENOTSUP;
+	// Check maximum name length
+	if (strlen(name) > EXT4_DIRECTORY_FILENAME_LEN) {
+		return ENAMETOOLONG;
+	}
+
+	ext4fs_node_t *parent = EXT4FS_NODE(pfn);
+	ext4fs_node_t *child = EXT4FS_NODE(cfn);
+	ext4_filesystem_t *fs = parent->instance->filesystem;
+
+	// Add entry to parent directory
+	rc = ext4_directory_add_entry(fs, parent->inode_ref, name, child->inode_ref->index);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	// Fill new dir -> add '.' and '..' entries
+	if (ext4_inode_is_type(fs->superblock, child->inode_ref->inode, EXT4_INODE_MODE_DIRECTORY)) {
+
+		rc = ext4_directory_add_entry(fs, child->inode_ref, ".", child->inode_ref->index);
+		if (rc != EOK) {
+			ext4_directory_remove_entry(fs, parent->inode_ref, name);
+			return rc;
+		}
+
+		rc = ext4_directory_add_entry(fs, child->inode_ref, "..", parent->inode_ref->index);
+		if (rc != EOK) {
+			ext4_directory_remove_entry(fs, parent->inode_ref, name);
+			ext4_directory_remove_entry(fs, child->inode_ref, ".");
+			return rc;
+		}
+
+		uint16_t parent_links = ext4_inode_get_links_count(parent->inode_ref->inode);
+		parent_links++;
+		ext4_inode_set_links_count(parent->inode_ref->inode, parent_links);
+
+		parent->inode_ref->dirty = true;
+
+	}
+
+	uint16_t child_links = ext4_inode_get_links_count(child->inode_ref->inode);
+	child_links++;
+	ext4_inode_set_links_count(child->inode_ref->inode, child_links);
+
+	child->inode_ref->dirty = true;
+
+	return EOK;
 }
 
 
