@@ -84,8 +84,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		return EOK;
 	}
 	if (state == NIC_STATE_ACTIVE) {
-		if (nic_data->nil_session == NULL || nic_data->net_session == NULL
-		    || nic_data->device_id < 0) {
+		if (nic_data->nil_session == NULL || nic_data->device_id < 0) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
 			return EINVAL;
 		}
