@@ -50,8 +50,6 @@
 #include "nic_rx_control.h"
 #include "nic_wol_virtues.h"
 
-#define DEVICE_CATEGORY_NIC "nic"
-
 struct sw_poll_info {
 	fid_t fibril;
 	volatile int run;

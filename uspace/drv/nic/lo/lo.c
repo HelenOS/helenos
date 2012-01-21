@@ -79,38 +79,61 @@ static int lo_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 
 static int lo_dev_add(ddf_dev_t *dev)
 {
-	nic_t *nic_data = nic_create_and_bind(dev);
-	if (nic_data == NULL) {
+	ddf_fun_t *fun = NULL;
+	bool bound = false;
+	
+	nic_t *nic = nic_create_and_bind(dev);
+	if (nic == NULL) {
 		printf("%s: Failed to initialize\n", NAME);
 		return ENOMEM;
 	}
 	
-	dev->driver_data = nic_data;
-	nic_set_send_frame_handler(nic_data, lo_send_frame);
+	dev->driver_data = nic;
+	nic_set_send_frame_handler(nic, lo_send_frame);
 	
-	int rc = nic_connect_to_services(nic_data);
+	int rc = nic_connect_to_services(nic);
 	if (rc != EOK) {
 		printf("%s: Failed to connect to services\n", NAME);
-		nic_unbind_and_destroy(dev);
-		return rc;
+		goto error;
 	}
 	
-	rc = nic_register_as_ddf_fun(nic_data, &lo_dev_ops);
-	if (rc != EOK) {
-		printf("%s: Failed to register as DDF function\n", NAME);
-		nic_unbind_and_destroy(dev);
-		return rc;
+	fun = ddf_fun_create(nic_get_ddf_dev(nic), fun_exposed, "port0");
+	if (fun == NULL) {
+		printf("%s: Failed creating function\n", NAME);
+		rc = ENOMEM;
+		goto error;
 	}
+	nic_set_ddf_fun(nic, fun);
+	fun->ops = &lo_dev_ops;
+	fun->driver_data = nic;
 	
-	rc = nic_report_address(nic_data, &lo_addr);
+	rc = nic_report_address(nic, &lo_addr);
 	if (rc != EOK) {
 		printf("%s: Failed to setup loopback address\n", NAME);
-		nic_unbind_and_destroy(dev);
-		return rc;
+		goto error;
 	}
+	
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf("%s: Failed binding function\n", NAME);
+		goto error;
+	}
+	bound = true;
+	
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK)
+		goto error;
 	
 	printf("%s: Adding loopback device '%s'\n", NAME, dev->name);
 	return EOK;
+error:
+	if (bound)
+		ddf_fun_unbind(fun);
+	if (fun != NULL)
+		ddf_fun_destroy(fun);
+	
+	nic_unbind_and_destroy(dev);
+	return rc;
 }
 
 static nic_iface_t lo_nic_iface;

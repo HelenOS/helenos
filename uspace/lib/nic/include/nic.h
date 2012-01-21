@@ -43,6 +43,8 @@
 #include <device/hw_res_parsed.h>
 #include <ops/nic.h>
 
+#define DEVICE_CATEGORY_NIC "nic"
+
 struct nic;
 typedef struct nic nic_t;
 
@@ -203,7 +205,6 @@ extern void nic_driver_implement(driver_ops_t *, ddf_dev_ops_t *,
 
 /* Functions called in add_device */
 extern int nic_connect_to_services(nic_t *);
-extern int nic_register_as_ddf_fun(nic_t *, ddf_dev_ops_t *);
 extern int nic_get_resources(nic_t *, hw_res_list_parsed_t *);
 extern void nic_set_specific(nic_t *, void *);
 extern void nic_set_send_frame_handler(nic_t *, send_frame_handler);
@@ -224,6 +225,7 @@ extern int nic_ready(nic_t *);
 /* General driver functions */
 extern ddf_dev_t *nic_get_ddf_dev(nic_t *);
 extern ddf_fun_t *nic_get_ddf_fun(nic_t *);
+extern void nic_set_ddf_fun(nic_t *, ddf_fun_t *);
 extern nic_t *nic_get_from_ddf_dev(ddf_dev_t *);
 extern nic_t *nic_get_from_ddf_fun(ddf_fun_t *);
 extern void *nic_get_specific(nic_t *);

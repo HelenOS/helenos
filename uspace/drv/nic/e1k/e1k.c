@@ -2096,6 +2096,7 @@ static int e1000_pio_enable(ddf_dev_t *dev)
  */
 int e1000_dev_add(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun;
 	assert(dev);
 	
 	/* Initialize device structure for E1000 */
@@ -2126,13 +2127,16 @@ int e1000_dev_add(ddf_dev_t *dev)
 	
 	e1000_initialize_vlan(e1000);
 	
-	rc = nic_register_as_ddf_fun(nic, &e1000_dev_ops);
-	if (rc != EOK)
+	fun = ddf_fun_create(nic_get_ddf_dev(nic), fun_exposed, "port0");
+	if (fun == NULL)
 		goto err_tx_structure;
+	nic_set_ddf_fun(nic, fun);
+	fun->ops = &e1000_dev_ops;
+	fun->driver_data = nic;
 	
 	rc = e1000_register_int_handler(nic);
 	if (rc != EOK)
-		goto err_tx_structure;
+		goto err_fun_create;
 	
 	rc = nic_connect_to_services(nic);
 	if (rc != EOK)
@@ -2155,12 +2159,26 @@ int e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_rx_structure;
 	
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK)
+		goto err_fun_bind;
+	
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK)
+		goto err_add_to_cat;
+	
 	return EOK;
 	
+err_add_to_cat:
+	ddf_fun_unbind(fun);
+err_fun_bind:
 err_rx_structure:
 	e1000_uninitialize_rx_structure(nic);
 err_irq:
 	unregister_interrupt_handler(dev, DRIVER_DATA_DEV(dev)->irq);
+err_fun_create:
+	ddf_fun_destroy(fun);
+	nic_set_ddf_fun(nic, NULL);
 err_tx_structure:
 	e1000_uninitialize_tx_structure(e1000);
 err_pio:

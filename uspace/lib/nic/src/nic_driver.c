@@ -811,43 +811,6 @@ void nic_unbind_and_destroy(ddf_dev_t *device){
 }
 
 /**
- * Creates an exposed DDF function for the device, named "port0".
- * Device options are set as this function's options. The function is bound
- * (see ddf_fun_bind) and then registered to the DEVICE_CATEGORY_NIC class.
- * Note: this function should be called only from add_device handler, therefore
- * we don't need to use locks.
- *
- * @param nic_data	The NIC structure
- * @param ops		Device options for the DDF function.
- */
-int nic_register_as_ddf_fun(nic_t *nic_data, ddf_dev_ops_t *ops)
-{
-	int rc;
-	assert(nic_data);
-
-	nic_data->fun = ddf_fun_create(nic_data->dev, fun_exposed, "port0");
-	if (nic_data->fun == NULL)
-		return ENOMEM;
-	
-	nic_data->fun->ops = ops;
-	nic_data->fun->driver_data = nic_data;
-
-	rc = ddf_fun_bind(nic_data->fun);
-	if (rc != EOK) {
-		ddf_fun_destroy(nic_data->fun);
-		return rc;
-	}
-
-	rc = ddf_fun_add_to_category(nic_data->fun, DEVICE_CATEGORY_NIC);
-	if (rc != EOK) {
-		ddf_fun_destroy(nic_data->fun);
-		return rc;
-	}
-	
-	return EOK;
-}
-
-/**
  * Set information about current HW filtering.
  *  1 ...	Only those frames we want to receive are passed through HW
  *  0 ...	The HW filtering is imperfect
@@ -1062,6 +1025,15 @@ ddf_dev_t *nic_get_ddf_dev(nic_t *nic_data)
 ddf_fun_t *nic_get_ddf_fun(nic_t *nic_data)
 {
 	return nic_data->fun;
+}
+
+/**
+ * @param nic_data
+ * @param fun
+ */
+void nic_set_ddf_fun(nic_t *nic_data, ddf_fun_t *fun)
+{
+	nic_data->fun = fun;
 }
 
 /** 

@@ -1279,6 +1279,8 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
  */
 int rtl8139_dev_add(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun;
+
 	assert(dev);
 	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %d)", dev->name, dev->handle);
 
@@ -1315,10 +1317,24 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 		goto err_irq;
 	}
 
-	rc = nic_register_as_ddf_fun(nic_data, &rtl8139_dev_ops);
+	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
+	if (fun == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating device function");
+		goto err_srv;
+	}
+	nic_set_ddf_fun(nic_data, fun);
+	fun->ops = &rtl8139_dev_ops;
+	fun->driver_data = nic_data;
+
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to register as DDF function - error %d", rc);
-		goto err_irq;
+		ddf_msg(LVL_ERROR, "Failed binding device function");
+		goto err_fun_create;
+	}
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to category");
+		goto err_fun_bind;
 	}
 
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
@@ -1326,6 +1342,12 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 
 	return EOK;
 
+err_fun_bind:
+	ddf_fun_unbind(fun);
+err_fun_create:
+	ddf_fun_destroy(fun);
+err_srv:
+	/* XXX Disconnect from services */
 err_irq:
 	unregister_interrupt_handler(dev, rtl8139->irq);
 err_pio:
