@@ -622,7 +622,6 @@ static loader_t *preload_task(const char *path, char **argv,
 	/* Error exit */
 error:
 	loader_abort(ldr);
-	free(ldr);
 	return NULL;
 }
 
