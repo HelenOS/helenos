@@ -238,6 +238,79 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
+int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
+		const char *entry_name, uint32_t child_inode)
+{
+	int rc;
+
+	// USE index if allowed
+
+	uint16_t name_len = strlen(entry_name);
+	uint16_t required_len = 8 + name_len + (4 - name_len % 4);
+
+	ext4_directory_iterator_t it;
+	rc = ext4_directory_iterator_init(&it, fs, inode_ref, 0);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	while (it.current != NULL) {
+		uint32_t entry_inode = ext4_directory_entry_ll_get_inode(it.current);
+		uint16_t rec_len = ext4_directory_entry_ll_get_entry_length(it.current);
+
+		if ((entry_inode == 0) && (rec_len >= required_len)) {
+
+			// Don't touch entry length
+			ext4_directory_entry_ll_set_inode(it.current, child_inode);
+			ext4_directory_entry_ll_set_name_length(fs->superblock, it.current, name_len);
+			it.current_block->dirty = true;
+			return ext4_directory_iterator_fini(&it);
+		}
+
+		if (entry_inode != 0) {
+
+			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
+					fs->superblock, it.current);
+			uint16_t free_space = rec_len - 8 - (used_name_len + (4- used_name_len % 4));
+
+			if (free_space >= required_len) {
+				uint16_t used_len = rec_len - free_space;
+
+				// Cut tail of current entry
+				ext4_directory_entry_ll_set_entry_length(it.current, used_len);
+
+				// Jump to newly created
+				rc = ext4_directory_iterator_next(&it);
+				if (rc != EOK) {
+					return rc;
+				}
+
+				// We are sure, that both entries are in the same data block
+				// dirtyness will be set now
+
+				ext4_directory_entry_ll_set_inode(it.current, child_inode);
+				ext4_directory_entry_ll_set_entry_length(it.current, free_space);
+				ext4_directory_entry_ll_set_name_length(
+						fs->superblock, it.current, name_len);
+				memcpy(it.current->name, entry_name, name_len);
+				it.current_block->dirty = true;
+				return ext4_directory_iterator_fini(&it);
+			}
+
+		}
+
+		rc = ext4_directory_iterator_next(&it);
+		if (rc != EOK) {
+			return rc;
+		}
+	}
+
+	// TODO - no free space found - alloc data block
+	// and fill the whole block with new entry
+
+	// TODO
+	return EOK;
+}
 
 int ext4_directory_find_entry(ext4_directory_iterator_t *it,
 		ext4_inode_ref_t *parent, const char *name)
