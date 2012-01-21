@@ -793,15 +793,13 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	switch(rc) {
 	case EOK:
 		dev->state = DEVICE_USABLE;
-		exch = async_exchange_begin(drv->sess);
-		async_msg_1(exch, DRIVER_DEV_ADDED, dev->handle);
-		async_exchange_end(exch);
 		break;
 	case ENOENT:
 		dev->state = DEVICE_NOT_PRESENT;
 		break;
 	default:
 		dev->state = DEVICE_INVALID;
+		break;
 	}
 	
 	dev->passed_to_driver = true;

@@ -33,6 +33,7 @@
 #ifndef __NET_NIL_REMOTE_H__
 #define __NET_NIL_REMOTE_H__
 
+#include <ipc/loc.h>
 #include <net/device.h>
 #include <net/packet.h>
 #include <devman.h>

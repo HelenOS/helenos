@@ -219,9 +219,6 @@ extern void nic_set_wol_virtue_change_handlers(nic_t *,
 extern void nic_set_poll_handlers(nic_t *,
 	poll_mode_change_handler, poll_request_handler);
 
-/* Functions called in device_added */
-extern int nic_ready(nic_t *);
-
 /* General driver functions */
 extern ddf_dev_t *nic_get_ddf_dev(nic_t *);
 extern ddf_fun_t *nic_get_ddf_fun(nic_t *);

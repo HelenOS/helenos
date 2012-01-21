@@ -30,7 +30,8 @@
 USPACE_PREFIX = ../../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBNIC_PREFIX)/include \
+    -I$(LIBDRV_PREFIX)/include
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config

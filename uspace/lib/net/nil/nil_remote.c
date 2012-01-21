@@ -35,6 +35,7 @@
  * @see nil_remote.h
  */
 
+#include <ipc/loc.h>
 #include <nil_remote.h>
 #include <generic.h>
 #include <net/device.h>
@@ -122,11 +123,11 @@ int nil_addr_changed_msg(async_sess_t *sess, nic_device_id_t device_id,
 }
 
 int nil_device_req(async_sess_t *sess, nic_device_id_t device_id,
-    devman_handle_t handle, size_t mtu)
+    service_id_t sid, size_t mtu)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	int rc = async_req_3_0(exch, NET_NIL_DEVICE, (sysarg_t) device_id,
-	    (sysarg_t) handle, (sysarg_t) mtu);
+	    (sysarg_t) sid, (sysarg_t) mtu);
 	async_exchange_end(exch);
 	return rc;
 }

@@ -48,7 +48,6 @@
 #include <as.h>
 #include <devman.h>
 #include <ddf/interrupt.h>
-#include <net_interface.h>
 #include <ops/nic.h>
 #include <errno.h>
 
@@ -88,11 +87,6 @@ int nic_driver_init(const char *name)
 void nic_driver_implement(driver_ops_t *driver_ops, ddf_dev_ops_t *dev_ops,
     nic_iface_t *iface)
 {
-	if (driver_ops) {
-		if (!driver_ops->device_added)
-			driver_ops->device_added = nic_device_added_impl;
-	}
-
 	if (dev_ops) {
 		if (!dev_ops->open)
 			dev_ops->open = nic_open_impl;
@@ -428,23 +422,17 @@ nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
 };
 
 /**
- * Connect to the NET and IRQ services. This function should be called only from
+ * Connect to IRC service. This function should be called only from
  * the add_device handler, thus no locking is required.
  *
  * @param nic_data
  *
  * @return EOK		If connection was successful.
  * @return EINVAL	If the IRC service cannot be determined.
- * @return EREFUSED	If NET or IRC service cannot be connected.
+ * @return EREFUSED	If IRC service cannot be connected.
  */
 int nic_connect_to_services(nic_t *nic_data)
 {
-	/* NET service */
-	nic_data->net_session = service_connect_blocking(EXCHANGE_SERIALIZE,
-		SERVICE_NETWORKING, 0, 0);
-	if (nic_data->net_session == NULL)
-		return errno;
-	
 	/* IRC service */
 	sysarg_t apic;
 	sysarg_t i8259;
@@ -461,28 +449,6 @@ int nic_connect_to_services(nic_t *nic_data)
 		return errno;
 	
 	return EOK;
-}
-
-/** Notify the NET service that the device is ready
- *
- * @param nic NICF structure
- *
- * @return EOK on success
- *
- */
-int nic_ready(nic_t *nic)
-{
-	fibril_rwlock_read_lock(&nic->main_lock);
-	
-	async_sess_t *session = nic->net_session;
-	devman_handle_t handle = nic->dev->handle;
-	
-	fibril_rwlock_read_unlock(&nic->main_lock);
-	
-	if (session == NULL)
-		return EINVAL;
-	
-	return net_driver_ready(session, handle);
 }
 
 /** Inform the NICF about poll mode
@@ -725,7 +691,6 @@ static nic_t *nic_create(void)
 	nic_data->fun = NULL;
 	nic_data->device_id = NIC_DEVICE_INVALID_ID;
 	nic_data->state = NIC_STATE_STOPPED;
-	nic_data->net_session = NULL;
 	nic_data->nil_session = NULL;
 	nic_data->irc_session = NULL;
 	nic_data->poll_mode = NIC_POLL_IMMEDIATE;
@@ -780,10 +745,6 @@ nic_t *nic_create_and_bind(ddf_dev_t *device)
  * @param data
  */
 static void nic_destroy(nic_t *nic_data) {
-	if (nic_data->net_session != NULL) {
-		async_hangup(nic_data->net_session);
-	}
-
 	if (nic_data->nil_session != NULL) {
 		async_hangup(nic_data->nil_session);
 	}

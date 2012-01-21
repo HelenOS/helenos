@@ -84,8 +84,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		return EOK;
 	}
 	if (state == NIC_STATE_ACTIVE) {
-		if (nic_data->nil_session == NULL || nic_data->net_session == NULL
-		    || nic_data->device_id < 0) {
+		if (nic_data->nil_session == NULL || nic_data->device_id < 0) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
 			return EINVAL;
 		}
@@ -802,18 +801,6 @@ int nic_poll_now_impl(ddf_fun_t *fun) {
 		fibril_rwlock_read_unlock(&nic_data->main_lock);
 		return ENOTSUP;
 	}
-}
-
-/** Default implementation of the device_added method
- *
- * Just calls nic_ready.
- *
- * @param dev
- *
- */
-void nic_device_added_impl(ddf_dev_t *dev)
-{
-	nic_ready((nic_t *) dev->driver_data);
 }
 
 /**

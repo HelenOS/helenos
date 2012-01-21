@@ -34,13 +34,13 @@
 #ifndef NET_NET_H_
 #define NET_NET_H_
 
+#include <ipc/loc.h>
 #include <net/device.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <net/packet.h>
-#include <devman.h>
 
 #define NAME  "net"
 
@@ -95,11 +95,13 @@ typedef struct {
 	measured_strings_t configuration;
 	
 	/** Serving network interface driver module index. */
-	devman_handle_t handle;  /**< Handle for devman */
+	service_id_t sid;  /**< Service ID */
 	async_sess_t *sess;      /**< Driver session. */
 	
 	module_t *nil;  /**< Serving link layer module index. */
 	module_t *il;   /**< Serving internet layer module index. */
+	
+	link_t netif_list;
 } netif_t;
 
 /** Present network interfaces.

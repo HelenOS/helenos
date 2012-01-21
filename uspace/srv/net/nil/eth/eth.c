@@ -47,6 +47,7 @@
 #include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
+#include <loc.h>
 #include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
@@ -225,7 +226,7 @@ out:
  * Determine the device local hardware address.
  *
  * @param[in] device_id New device identifier.
- * @param[in] handle    Device driver handle.
+ * @param[in] sid       NIC service ID.
  * @param[in] mtu       Device maximum transmission unit.
  *
  * @return EOK on success.
@@ -233,7 +234,7 @@ out:
  * @return ENOMEM if there is not enough memory left.
  *
  */
-static int eth_device_message(nic_device_id_t device_id, devman_handle_t handle,
+static int eth_device_message(nic_device_id_t device_id, service_id_t sid,
     size_t mtu)
 {
 	eth_device_t *device;
@@ -258,7 +259,7 @@ static int eth_device_message(nic_device_id_t device_id, devman_handle_t handle,
 	/* An existing device? */
 	device = eth_devices_find(&eth_globals.devices, device_id);
 	if (device) {
-		if (device->handle != handle) {
+		if (device->sid != sid) {
 			printf("Device %d already exists\n", device->device_id);
 			fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 			return EEXIST;
@@ -297,7 +298,7 @@ static int eth_device_message(nic_device_id_t device_id, devman_handle_t handle,
 		return ENOMEM;
 
 	device->device_id = device_id;
-	device->handle = handle;
+	device->sid = sid;
 	device->flags = 0;
 	if ((mtu > 0) && (mtu <= ETH_MAX_TAGGED_CONTENT(device->flags)))
 		device->mtu = mtu;
@@ -334,7 +335,7 @@ static int eth_device_message(nic_device_id_t device_id, devman_handle_t handle,
 	}
 	
 	/* Bind the device driver */
-	device->sess = devman_device_connect(EXCHANGE_SERIALIZE, handle,
+	device->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid,
 	    IPC_FLAG_BLOCKING);
 	if (device->sess == NULL) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
@@ -361,9 +362,9 @@ static int eth_device_message(nic_device_id_t device_id, devman_handle_t handle,
 		return index;
 	}
 	
-	printf("%s: Device registered (id: %d, handle: %zu: mtu: %zu, "
+	printf("%s: Device registered (id: %d, sid: %zu: mtu: %zu, "
 	    "mac: " PRIMAC ", flags: 0x%x)\n", NAME,
-	    device->device_id, device->handle, device->mtu,
+	    device->device_id, device->sid, device->mtu,
 	    ARGSMAC(device->addr.address), device->flags);
 
 	fibril_rwlock_write_unlock(&eth_globals.devices_lock);

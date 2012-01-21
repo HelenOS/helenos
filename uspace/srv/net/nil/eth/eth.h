@@ -40,10 +40,10 @@
 
 #include <async.h>
 #include <fibril_synch.h>
+#include <ipc/loc.h>
 #include <ipc/services.h>
 #include <net/device.h>
 #include <adt/measured_strings.h>
-#include <devman.h>
 
 /** Ethernet address length. */
 #define ETH_ADDR  6
@@ -223,7 +223,7 @@ struct eth_device {
 	/** Device identifier. */
 	nic_device_id_t device_id;
 	/** Device handle */
-	devman_handle_t handle;
+	service_id_t sid;
 	/** Driver session. */
 	async_sess_t *sess;
 	/** Maximal transmission unit. */

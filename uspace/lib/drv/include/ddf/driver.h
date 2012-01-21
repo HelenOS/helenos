@@ -144,15 +144,6 @@ typedef struct driver_ops {
 	int (*fun_online)(ddf_fun_t *);
 	/** Ask driver to offline a specific function */
 	int (*fun_offline)(ddf_fun_t *);
-
-	/**
-	 * Notification that the device was succesfully added.
-	 * The driver can do any blocking operation without
-	 * blocking the device manager.
-	 *
-	 * XXX REMOVE THIS
-	 */
-	void (*device_added)(ddf_dev_t *dev);
 } driver_ops_t;
 
 /** Driver structure */
