@@ -2,7 +2,7 @@
 
 NAME=e1k
 
-HWPATH=/hw/pci0/00:03.0/port0
+HWPATH=devices/\hw\pci0\00:03.0\port0
 NIL=eth
 IL=ip
 

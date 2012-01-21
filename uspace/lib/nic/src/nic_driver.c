@@ -88,11 +88,6 @@ int nic_driver_init(const char *name)
 void nic_driver_implement(driver_ops_t *driver_ops, ddf_dev_ops_t *dev_ops,
     nic_iface_t *iface)
 {
-	if (driver_ops) {
-		if (!driver_ops->device_added)
-			driver_ops->device_added = nic_device_added_impl;
-	}
-
 	if (dev_ops) {
 		if (!dev_ops->open)
 			dev_ops->open = nic_open_impl;
@@ -461,28 +456,6 @@ int nic_connect_to_services(nic_t *nic_data)
 		return errno;
 	
 	return EOK;
-}
-
-/** Notify the NET service that the device is ready
- *
- * @param nic NICF structure
- *
- * @return EOK on success
- *
- */
-int nic_ready(nic_t *nic)
-{
-	fibril_rwlock_read_lock(&nic->main_lock);
-	
-	async_sess_t *session = nic->net_session;
-	devman_handle_t handle = nic->dev->handle;
-	
-	fibril_rwlock_read_unlock(&nic->main_lock);
-	
-	if (session == NULL)
-		return EINVAL;
-	
-	return net_driver_ready(session, handle);
 }
 
 /** Inform the NICF about poll mode

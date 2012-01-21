@@ -804,18 +804,6 @@ int nic_poll_now_impl(ddf_fun_t *fun) {
 	}
 }
 
-/** Default implementation of the device_added method
- *
- * Just calls nic_ready.
- *
- * @param dev
- *
- */
-void nic_device_added_impl(ddf_dev_t *dev)
-{
-	nic_ready((nic_t *) dev->driver_data);
-}
-
 /**
  * Default handler for unknown methods (outside of the NIC interface).
  * Logs a warning message and returns ENOTSUP to the caller.

@@ -52,8 +52,8 @@
 #include <net/packet.h>
 #include <packet_remote.h>
 #include <packet_client.h>
-#include <devman.h>
 #include <device/nic.h>
+#include <loc.h>
 #include <nil_skel.h>
 #include "nildummy.h"
 
@@ -114,7 +114,7 @@ int nil_initialize(async_sess_t *sess)
  *
  */
 static int nildummy_device_message(nic_device_id_t device_id,
-    devman_handle_t handle, size_t mtu)
+    service_id_t sid, size_t mtu)
 {
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
 	
@@ -122,7 +122,7 @@ static int nildummy_device_message(nic_device_id_t device_id,
 	nildummy_device_t *device =
 	    nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (device) {
-		if (device->handle != handle) {
+		if (device->sid != sid) {
 			printf("Device %d exists, handles do not match\n",
 			    device->device_id);
 			fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
@@ -157,14 +157,14 @@ static int nildummy_device_message(nic_device_id_t device_id,
 		return ENOMEM;
 	
 	device->device_id = device_id;
-	device->handle = handle;
+	device->sid = sid;
 	if (mtu > 0)
 		device->mtu = mtu;
 	else
 		device->mtu = NET_DEFAULT_MTU;
 	
 	/* Bind the device driver */
-	device->sess = devman_device_connect(EXCHANGE_SERIALIZE, handle,
+	device->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid,
 	    IPC_FLAG_BLOCKING);
 	if (device->sess == NULL) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);

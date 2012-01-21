@@ -302,16 +302,6 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, res);
 }
 
-static void driver_dev_added(ipc_callid_t iid, ipc_call_t *icall)
-{
-	fibril_mutex_lock(&devices_mutex);
-	ddf_dev_t *dev = driver_get_device(IPC_GET_ARG1(*icall));
-	fibril_mutex_unlock(&devices_mutex);
-	
-	if (dev != NULL && driver->driver_ops->device_added != NULL)
-		driver->driver_ops->device_added(dev);
-}
-
 static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t devh;
@@ -459,10 +449,6 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case DRIVER_DEV_ADD:
 			driver_dev_add(callid, &call);
-			break;
-		case DRIVER_DEV_ADDED:
-			async_answer_0(callid, EOK);
-			driver_dev_added(callid, &call);
 			break;
 		case DRIVER_DEV_REMOVE:
 			driver_dev_remove(callid, &call);
