@@ -36,10 +36,8 @@
 #define LIBC_DEVICE_NIC_H_
 
 #include <async.h>
-#include <net/device.h>
-#include <net/packet.h>
+#include <nic/nic.h>
 #include <ipc/common.h>
-#include <ipc/services.h>
 
 typedef enum {
 	NIC_SEND_MESSAGE = 0,

@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <device/nic.h>
+#include <errno.h>
 #include "nic_ev.h"
 
 /** Device address changed. */

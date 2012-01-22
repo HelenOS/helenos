@@ -44,7 +44,7 @@
 
 #include <adt/hash_table.h>
 #include <fibril_synch.h>
-#include <net/device.h>
+#include <nic/nic.h>
 
 #include "nic_addr_db.h"
 

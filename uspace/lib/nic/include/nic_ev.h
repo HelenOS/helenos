@@ -39,8 +39,7 @@
 #define NIC_EV_H__
 
 #include <async.h>
-/* XXX for nic_device_id_t and nic_address_t */
-#include <net/device.h>
+#include <nic/nic.h>
 #include <sys/types.h>
 
 extern int nic_ev_addr_changed(async_sess_t *, nic_device_id_t,

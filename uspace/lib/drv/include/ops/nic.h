@@ -37,7 +37,7 @@
 #define LIBDRV_OPS_NIC_H_
 
 #include <ipc/services.h>
-#include <net/device.h>
+#include <nic/nic.h>
 #include <sys/time.h>
 
 #include "../ddf/driver.h"

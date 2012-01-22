@@ -39,9 +39,8 @@
 #define NIC_IMPL_H__
 
 #include <assert.h>
-#include <net/device.h>
+#include <nic/nic.h>
 #include <ddf/driver.h>
-#include <nil_remote.h>
 
 /* Inclusion of this file is not prohibited, because drivers could want to
  * inject some adaptation layer between the DDF call and NICF implementation */

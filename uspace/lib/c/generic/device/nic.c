@@ -344,7 +344,7 @@ int nic_set_operation_mode(async_sess_t *dev_sess, int speed,
  * The advertisement argument can only limit some modes,
  * it can never force the NIC to advertise unsupported modes.
  *
- * The allowed modes are defined in "net/eth_phys.h" in the C library.
+ * The allowed modes are defined in "nic/eth_phys.h" in the C library.
  *
  * @param[in] dev_sess
  * @param[in] advertisement Allowed advertised modes. Use 0 for all modes.
@@ -381,7 +381,7 @@ int nic_autoneg_disable(async_sess_t *dev_sess)
 
 /** Probe current state of auto-negotiation.
  *
- * Modes are defined in the "net/eth_phys.h" in the C library.
+ * Modes are defined in the "nic/eth_phys.h" in the C library.
  *
  * @param[in]  dev_sess
  * @param[out] our_advertisement   Modes advertised by this NIC.

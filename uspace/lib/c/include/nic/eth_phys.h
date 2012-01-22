@@ -27,8 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_NET_ETH_PHYS_H_
-#define LIBC_NET_ETH_PHYS_H_
+#ifndef LIBC_NIC_ETH_PHYS_H_
+#define LIBC_NIC_ETH_PHYS_H_
 
 #include <sys/types.h>
 
