@@ -42,7 +42,7 @@
 #error "This is internal libnic's header, please do not include it"
 #endif
 
-#include <net/device.h>
+#include <nic/nic.h>
 #include <adt/hash_table.h>
 #include "nic.h"
 

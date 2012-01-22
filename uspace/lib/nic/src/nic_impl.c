@@ -35,6 +35,7 @@
  * @brief Default DDF NIC interface methods implementations
  */
 
+#include <errno.h>
 #include <str_error.h>
 #include <ipc/services.h>
 #include <ns.h>

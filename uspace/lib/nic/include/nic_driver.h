@@ -43,7 +43,7 @@
 #endif
 
 #include <fibril_synch.h>
-#include <net/device.h>
+#include <nic/nic.h>
 #include <async.h>
 
 #include "nic.h"

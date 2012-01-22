@@ -66,7 +66,6 @@ extern uint32_t compute_checksum(uint32_t, uint8_t *, size_t);
 extern uint16_t compact_checksum(uint32_t);
 extern uint16_t flip_checksum(uint16_t);
 extern uint16_t ip_checksum(uint8_t *, size_t);
-extern uint64_t multicast_hash(const uint8_t addr[6]);
 
 #endif
 
