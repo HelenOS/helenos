@@ -28,9 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libnic
-#LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNET_PREFIX)/libnet.a
 EXTRA_CFLAGS += -DLIBNIC_INTERNAL -Iinclude -I$(LIBDRV_PREFIX)/include
-# -I$(LIBNET_PREFIX)/include
 
 SOURCES = \
 	src/nic_driver.c \
