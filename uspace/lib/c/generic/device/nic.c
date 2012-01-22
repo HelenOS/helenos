@@ -72,24 +72,34 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 	return retval;
 }
 
-/** Connect the driver to the NET and NIL services
+/** Create callback connection from NIC service
  *
  * @param[in] dev_sess
- * @param[in] nil_service Service identifier for the NIL service
  * @param[in] device_id
  *
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_connect_to_nil(async_sess_t *dev_sess, services_t nil_service,
-    nic_device_id_t device_id)
+int nic_callback_create(async_sess_t *dev_sess, nic_device_id_t device_id,
+    async_client_conn_t cfun, void *carg)
 {
+	ipc_call_t answer;
+	int rc;
+	sysarg_t retval;
+	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_3_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
-	    NIC_CONNECT_TO_NIL, nil_service, device_id);
+	aid_t req = async_send_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_CALLBACK_CREATE, device_id, &answer);
+	
+	rc = async_connect_to_me(exch, 0, 0, 0, cfun, carg);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
 	async_exchange_end(exch);
 	
-	return rc;
+	async_wait_for(req, &retval);
+	return (int) retval;
 }
 
 /** Get the current state of the device

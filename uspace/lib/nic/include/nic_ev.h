@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet
+/**
+ * @addtogroup libnic
  * @{
  */
-
-/** @file
- * Network interface layer interface implementation for remote modules.
- * @see nil_remote.h
+/**
+ * @file
+ * @brief Prototypes of default DDF NIC interface methods implementations
  */
 
-#include <ipc/loc.h>
-#include <nil_remote.h>
-#include <generic.h>
-#include <net/device.h>
-#include <net/packet.h>
-#include <packet_client.h>
-#include <ipc/nil.h>
+#ifndef NIC_EV_H__
+#define NIC_EV_H__
 
-int nil_device_req(async_sess_t *sess, nic_device_id_t device_id,
-    service_id_t sid, size_t mtu)
-{
-	async_exch_t *exch = async_exchange_begin(sess);
-	int rc = async_req_3_0(exch, NET_NIL_DEVICE, (sysarg_t) device_id,
-	    (sysarg_t) sid, (sysarg_t) mtu);
-	async_exchange_end(exch);
-	return rc;
-}
+#include <async.h>
+/* XXX for nic_device_id_t and nic_address_t */
+#include <net/device.h>
+#include <sys/types.h>
+
+extern int nic_ev_addr_changed(async_sess_t *, nic_device_id_t,
+    const nic_address_t *);
+extern int nic_ev_device_state(async_sess_t *, nic_device_id_t, sysarg_t);
+extern int nic_ev_received(async_sess_t *, nic_device_id_t, void *, size_t);
+
+#endif
 
 /** @}
  */

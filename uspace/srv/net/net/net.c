@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Radim Vansa
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -362,6 +363,7 @@ static int init_device(netif_t *netif, service_id_t sid)
 		
 		break;
 	default:
+		printf("%s: Unknown service\n", NAME);
 		return ENOENT;
 	}
 	

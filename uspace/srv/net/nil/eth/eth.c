@@ -169,7 +169,10 @@ eth_globals_t eth_globals;
 DEVICE_MAP_IMPLEMENT(eth_devices, eth_device_t);
 INT_MAP_IMPLEMENT(eth_protos, eth_proto_t);
 
-int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state)
+static void eth_nic_cb_connection(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
+
+static int eth_device_state(nic_device_id_t device_id, sysarg_t state)
 {
 	int index;
 	eth_proto_t *proto;
@@ -343,7 +346,14 @@ static int eth_device_message(nic_device_id_t device_id, service_id_t sid,
 		return ENOENT;
 	}
 	
-	nic_connect_to_nil(device->sess, SERVICE_ETHERNET, device_id);
+	rc = nic_callback_create(device->sess, device_id,
+	    eth_nic_cb_connection, NULL);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
+		async_hangup(device->sess);
+		free(device);
+		return EIO;
+	}
 	
 	/* Get hardware address */
 	rc = nic_get_address(device->sess, &device->addr);
@@ -821,8 +831,10 @@ static int eth_received(nic_device_id_t device_id)
 	int rc;
 	
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: data_write_accept() failed\n", NAME);
 		return rc;
+	}
 	
 	packet_t *packet = packet_get_1_remote(eth_globals.net_sess, size);
 	if (packet == NULL)
@@ -942,21 +954,42 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		*answer_count = 1;
 		
 		return EOK;
-	case NET_NIL_DEVICE_STATE:
-		nil_device_state_msg_local(IPC_GET_DEVICE(*call), IPC_GET_STATE(*call));
-		async_answer_0(callid, EOK);
-		return EOK;
-	case NET_NIL_RECEIVED:
-		rc = eth_received(IPC_GET_ARG1(*call));
-		async_answer_0(callid, (sysarg_t) rc);
-		return rc;
-	case NET_NIL_ADDR_CHANGED:
-		rc = eth_addr_changed(IPC_GET_DEVICE(*call));
-		async_answer_0(callid, (sysarg_t) rc);
-		return rc;
 	}
 	
 	return ENOTSUP;
+}
+
+static void eth_nic_cb_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	int rc;
+	
+	async_answer_0(iid, EOK);
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case NIC_EV_DEVICE_STATE:
+			rc = eth_device_state(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		case NIC_EV_RECEIVED:
+			rc = eth_received(IPC_GET_ARG1(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		case NIC_EV_ADDR_CHANGED:
+			rc = eth_addr_changed(IPC_GET_ARG1(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+		}
+	}
 }
 
 int main(int argc, char *argv[])
