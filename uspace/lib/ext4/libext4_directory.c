@@ -238,6 +238,31 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
+/**
+ * Fill data block with invalid directory entry.
+ */
+static int ext4_directory_init_block(ext4_filesystem_t *fs, uint32_t fblock)
+{
+	int rc;
+
+	block_t *block;
+	rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	ext4_directory_entry_ll_t *entry = block->data;
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+
+	ext4_directory_entry_ll_set_entry_length(entry, block_size);
+	ext4_directory_entry_ll_set_inode(entry, 0);
+	ext4_directory_entry_ll_set_name_length(fs->superblock, entry, 0);
+	entry->name[0] = 0;
+
+	block->dirty = true;
+	return block_put(block);
+}
+
 int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
 		const char *entry_name, uint32_t child_inode)
 {
@@ -305,11 +330,53 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 		}
 	}
 
-	// TODO - no free space found - alloc data block
-	// and fill the whole block with new entry
+	// Save position and destroy iterator
+	aoff64_t pos = it.current_offset;
+	ext4_directory_iterator_fini(&it);
 
-	// TODO
-	return EOK;
+	// Compute next block index and allocate data block
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t block_idx = pos / block_size;
+
+	uint32_t fblock;
+	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, block_idx, &fblock);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (fblock == 0) {
+		rc =  ext4_balloc_alloc_block(fs, inode_ref, &fblock);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		rc = ext4_filesystem_set_inode_data_block_index(fs, inode_ref, block_idx, fblock);
+		if (rc != EOK) {
+			ext4_balloc_free_block(fs, inode_ref, fblock);
+			return rc;
+		}
+
+		inode_ref->dirty = true;
+
+		rc = ext4_directory_init_block(fs, fblock);
+		if (rc != EOK) {
+			return rc;
+		}
+	}
+
+	rc = ext4_directory_iterator_init(&it, fs, inode_ref, pos);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	// Entry length is not affected
+	ext4_directory_entry_ll_set_inode(it.current, child_inode);
+	ext4_directory_entry_ll_set_name_length(fs->superblock, it.current, name_len);
+	memcpy(it.current->name, entry_name, name_len);
+
+	it.current_block->dirty = true;
+
+	return ext4_directory_iterator_fini(&it);
 }
 
 int ext4_directory_find_entry(ext4_directory_iterator_t *it,
