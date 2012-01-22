@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <bool.h>
+#include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
 #include <sysinfo.h>
@@ -81,6 +82,8 @@ static list_t mouse_devs;
 
 bool irc_service = false;
 async_sess_t *irc_sess = NULL;
+
+static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 
 void kbd_push_data(kbd_dev_t *kdev, sysarg_t data)
 {
@@ -592,14 +595,22 @@ static int dev_check_new(void)
 {
 	int rc;
 	
+	fibril_mutex_lock(&discovery_lock);
+	
 	rc = dev_check_new_kbdevs();
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
 		return rc;
+	}
 	
 	rc = dev_check_new_mousedevs();
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
 		return rc;
-
+	}
+	
+	fibril_mutex_unlock(&discovery_lock);
+	
 	return EOK;
 }
 

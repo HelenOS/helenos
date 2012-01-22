@@ -55,6 +55,7 @@
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
+#include <fibril_synch.h>
 #include <loc.h>
 #include <nic.h>
 #include <nil_remote.h>
@@ -75,6 +76,8 @@ net_globals_t net_globals;
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
 DEVICE_MAP_IMPLEMENT(netifs, netif_t);
 LIST_INITIALIZE(netif_list);
+
+static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 
 /** Add the configured setting to the configuration map.
  *
@@ -292,8 +295,6 @@ static void net_free_devices(measured_string_t *devices, size_t count)
 static int init_device(netif_t *netif, service_id_t sid)
 {
 	printf("%s: Initializing device '%s'\n", NAME, netif->name);
-	
-	link_initialize(&netif->netif_list);
 	
 	netif->sid = sid;
 	netif->sess = loc_service_connect(EXCHANGE_SERIALIZE, netif->sid,
@@ -534,6 +535,8 @@ static int nic_check_new(void)
 	bool already_known;
 	int rc;
 
+	fibril_mutex_lock(&discovery_lock);
+
 	rc = loc_category_get_id(DEVICE_CATEGORY_NIC, &nic_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category '%s'.\n", NAME,
@@ -568,6 +571,7 @@ static int nic_check_new(void)
 	}
 
 	free(svcs);
+	fibril_mutex_unlock(&discovery_lock);
 	return EOK;
 }
 
