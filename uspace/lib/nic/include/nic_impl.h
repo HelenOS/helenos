@@ -48,8 +48,7 @@
 
 extern int nic_get_address_impl(ddf_fun_t *dev_fun, nic_address_t *address);
 extern int nic_send_frame_impl(ddf_fun_t *dev_fun, void *data, size_t size);
-extern int nic_connect_to_nil_impl(ddf_fun_t *dev_fun, services_t nil_service,
-	int device_id);
+extern int nic_callback_create_impl(ddf_fun_t *dev_fun, int device_id);
 extern int nic_get_state_impl(ddf_fun_t *dev_fun, nic_device_state_t *state);
 extern int nic_set_state_impl(ddf_fun_t *dev_fun, nic_device_state_t state);
 extern int nic_get_stats_impl(ddf_fun_t *dev_fun, nic_device_stats_t *stats);

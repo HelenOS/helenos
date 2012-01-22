@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,75 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet
+/**
+ * @addtogroup libnic
  * @{
  */
-
-/** @file
- * Network interface layer interface implementation for remote modules.
- * @see nil_remote.h
+/**
+ * @file
+ * @brief
  */
 
-#include <ipc/loc.h>
-#include <nil_remote.h>
-#include <generic.h>
-#include <net/device.h>
-#include <net/packet.h>
-#include <packet_client.h>
-#include <ipc/nil.h>
+#include <async.h>
+#include <device/nic.h>
+#include "nic_ev.h"
 
-int nil_device_req(async_sess_t *sess, nic_device_id_t device_id,
-    service_id_t sid, size_t mtu)
+/** Device address changed. */
+int nic_ev_addr_changed(async_sess_t *sess, nic_device_id_t dev_id,
+    const nic_address_t *addr)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int rc = async_req_3_0(exch, NET_NIL_DEVICE, (sysarg_t) device_id,
-	    (sysarg_t) sid, (sysarg_t) mtu);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, NIC_EV_ADDR_CHANGED, (sysarg_t) dev_id,
+	    &answer);
+	sysarg_t retval = async_data_write_start(exch, addr,
+	    sizeof(nic_address_t));
+
 	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	return retval;
+}
+
+/** Device state changed. */
+extern int nic_ev_device_state(async_sess_t *sess, nic_device_id_t dev_id,
+    sysarg_t state)
+{
+	int rc;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	rc = async_req_2_0(exch, NIC_EV_DEVICE_STATE, dev_id, state);
+	async_exchange_end(exch);
+
 	return rc;
+}
+
+/** Frame received. */
+int nic_ev_received(async_sess_t *sess, nic_device_id_t dev_id, void *data,
+    size_t size)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, NIC_EV_RECEIVED, (sysarg_t) dev_id,
+	    &answer);
+	sysarg_t retval = async_data_write_start(exch, data, size);
+
+	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 /** @}

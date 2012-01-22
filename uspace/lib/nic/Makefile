@@ -33,6 +33,7 @@ EXTRA_CFLAGS += -DLIBNIC_INTERNAL -Iinclude -I$(LIBDRV_PREFIX)/include -I$(LIBNE
 
 SOURCES = \
 	src/nic_driver.c \
+	src/nic_ev.c \
 	src/nic_addr_db.c \
 	src/nic_rx_control.c \
 	src/nic_wol_virtues.c \

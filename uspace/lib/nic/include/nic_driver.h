@@ -79,8 +79,8 @@ struct nic {
 	nic_address_t mac;
 	/** Device's default MAC address (assigned the first time, used in STOP) */
 	nic_address_t default_mac;
-	/** Session to SERVICE_ETHERNET or SERVICE_NILDUMMY */
-	async_sess_t *nil_session;
+	/** Client callback session */
+	async_sess_t *client_session;
 	/** Phone to APIC or i8259 */
 	async_sess_t *irc_session;
 	/** Current polling mode of the NIC */

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Radim Vansa
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +69,10 @@ nildummy_globals_t nildummy_globals;
 
 DEVICE_MAP_IMPLEMENT(nildummy_devices, nildummy_device_t);
 
-int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state)
+static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
+
+static int nildummy_device_state(nic_device_id_t device_id, sysarg_t state)
 {
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 	if (nildummy_globals.proto.sess)
@@ -77,6 +81,11 @@ int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state)
 	fibril_rwlock_read_unlock(&nildummy_globals.protos_lock);
 	
 	return EOK;
+}
+
+static int nildummy_addr_changed(nic_device_id_t device_id)
+{
+	return ENOTSUP;
 }
 
 int nil_initialize(async_sess_t *sess)
@@ -172,10 +181,16 @@ static int nildummy_device_message(nic_device_id_t device_id,
 		return ENOENT;
 	}
 	
-	nic_connect_to_nil(device->sess, SERVICE_NILDUMMY, device_id);
+	int rc = nic_callback_create(device->sess, device_id,
+	    nildummy_nic_cb_conn, NULL);
+	if (rc != EOK) {
+		async_hangup(device->sess);
+		
+		return ENOENT;
+	}
 	
 	/* Get hardware address */
-	int rc = nic_get_address(device->sess, &device->addr);
+	rc = nic_get_address(device->sess, &device->addr);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		free(device);
@@ -444,20 +459,44 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		IPC_SET_ADDR(*answer, addrlen);
 		*answer_count = 1;
 		return rc;
-	case NET_NIL_DEVICE_STATE:
-		rc = nil_device_state_msg_local(IPC_GET_DEVICE(*call),
-		    IPC_GET_STATE(*call));
-		async_answer_0(callid, (sysarg_t) rc);
-		return rc;
-	
-	case NET_NIL_RECEIVED:
-		rc = nildummy_received(IPC_GET_ARG1(*call));
-		async_answer_0(callid, (sysarg_t) rc);
-		return rc;
 	}
 	
 	return ENOTSUP;
 }
+
+static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	int rc;
+	
+	async_answer_0(iid, EOK);
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case NIC_EV_DEVICE_STATE:
+			rc = nildummy_device_state(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		case NIC_EV_RECEIVED:
+			rc = nildummy_received(IPC_GET_ARG1(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		case NIC_EV_ADDR_CHANGED:
+			rc = nildummy_addr_changed(IPC_GET_ARG1(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+		}
+	}
+}
+
 
 int main(int argc, char *argv[])
 {
