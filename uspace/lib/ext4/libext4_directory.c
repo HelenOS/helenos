@@ -124,13 +124,7 @@ int ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos)
 {
 	int rc;
 
-	uint64_t size;
-	aoff64_t current_block_idx;
-	aoff64_t next_block_idx;
-	uint32_t next_block_phys_idx;
-	uint32_t block_size;
-
-	size = ext4_inode_get_size(it->fs->superblock, it->inode_ref->inode);
+	uint64_t size = ext4_inode_get_size(it->fs->superblock, it->inode_ref->inode);
 
 	/* The iterator is not valid until we seek to the desired position */
 	it->current = NULL;
@@ -149,9 +143,9 @@ int ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos)
 		return EOK;
 	}
 
-	block_size = ext4_superblock_get_block_size(it->fs->superblock);
-	current_block_idx = it->current_offset / block_size;
-	next_block_idx = pos / block_size;
+	uint32_t block_size = ext4_superblock_get_block_size(it->fs->superblock);
+	aoff64_t current_block_idx = it->current_offset / block_size;
+	aoff64_t next_block_idx = pos / block_size;
 
 	/* If we don't have a block or are moving accross block boundary,
 	 * we need to get another block
@@ -165,6 +159,7 @@ int ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos)
 			}
 		}
 
+		uint32_t next_block_phys_idx;
 		rc = ext4_filesystem_get_inode_data_block_index(it->fs,
 		    it->inode_ref->inode, next_block_idx, &next_block_phys_idx);
 		if (rc != EOK) {
@@ -187,9 +182,10 @@ int ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos)
 static int ext4_directory_iterator_set(ext4_directory_iterator_t *it,
     uint32_t block_size)
 {
-	uint32_t offset_in_block = it->current_offset % block_size;
 
 	it->current = NULL;
+
+	uint32_t offset_in_block = it->current_offset % block_size;
 
 	/* Ensure proper alignment */
 	if ((offset_in_block % 4) != 0) {
@@ -438,13 +434,13 @@ int ext4_directory_remove_entry(ext4_filesystem_t* fs,
 		ext4_inode_ref_t *parent, const char *name)
 {
 	int rc;
-	ext4_directory_iterator_t it;
 
 	if (!ext4_inode_is_type(fs->superblock, parent->inode,
 	    EXT4_INODE_MODE_DIRECTORY)) {
 		return ENOTDIR;
 	}
 
+	ext4_directory_iterator_t it;
 	rc = ext4_directory_iterator_init(&it, fs, parent, 0);
 	if (rc != EOK) {
 		return rc;

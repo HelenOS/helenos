@@ -58,9 +58,8 @@ static uint32_t ext4_ialloc_get_bgid_of_inode(ext4_superblock_t *sb,
 int ext4_ialloc_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
 {
 	int rc;
+
 	uint32_t block_group = ext4_ialloc_get_bgid_of_inode(
-			fs->superblock, inode_ref->index);
-	uint32_t index_in_group = ext4_ialloc_inode2index_in_group(
 			fs->superblock, inode_ref->index);
 
 	ext4_block_group_ref_t *bg_ref;
@@ -79,6 +78,8 @@ int ext4_ialloc_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
 		return rc;
 	}
 
+	uint32_t index_in_group = ext4_ialloc_inode2index_in_group(
+				fs->superblock, inode_ref->index);
 	ext4_bitmap_free_bit(bitmap_block->data, index_in_group);
 	bitmap_block->dirty = true;
 

@@ -436,10 +436,9 @@ bool ext4_superblock_has_feature_read_only(ext4_superblock_t *sb, uint32_t featu
 int ext4_superblock_read_direct(service_id_t service_id,
     ext4_superblock_t **superblock)
 {
-	void *data;
 	int rc;
 
-	data = malloc(EXT4_SUPERBLOCK_SIZE);
+	void *data = malloc(EXT4_SUPERBLOCK_SIZE);
 	if (data == NULL) {
 		return ENOMEM;
 	}
@@ -462,8 +461,6 @@ int ext4_superblock_write_direct(service_id_t service_id,
 {
 	int rc;
 	uint32_t phys_block_size;
-	uint64_t first_block;
-	uint32_t block_count;
 
 	rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK) {
@@ -471,8 +468,8 @@ int ext4_superblock_write_direct(service_id_t service_id,
 		return rc;
 	}
 
-	first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
-	block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
+	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
+	uint32_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
 
 	if (EXT4_SUPERBLOCK_SIZE % phys_block_size) {
 		block_count++;

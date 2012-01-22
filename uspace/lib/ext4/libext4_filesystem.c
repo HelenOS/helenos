@@ -43,10 +43,6 @@
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 {
 	int rc;
-	ext4_superblock_t *temp_superblock;
-	size_t block_size;
-	uint32_t block_ids_per_block;
-	int i;
 
 	fs->device = service_id;
 
@@ -57,6 +53,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	}
 
 	/* Read superblock from device */
+	ext4_superblock_t *temp_superblock;
 	rc = ext4_superblock_read_direct(fs->device, &temp_superblock);
 	if (rc != EOK) {
 		block_fini(fs->device);
@@ -64,7 +61,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	}
 
 	/* Read block size from superblock and check */
-	block_size = ext4_superblock_get_block_size(temp_superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(temp_superblock);
 	if (block_size > EXT4_MAX_BLOCK_SIZE) {
 		block_fini(fs->device);
 		return ENOTSUP;
@@ -77,10 +74,10 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 		return rc;
 	}
 
-	block_ids_per_block = block_size / sizeof(uint32_t);
+	uint32_t block_ids_per_block = block_size / sizeof(uint32_t);
 	fs->inode_block_limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
 	fs->inode_blocks_per_level[0] = 1;
-	for (i = 1; i < 4; i++) {
+	for (int i = 1; i < 4; i++) {
 		fs->inode_blocks_per_level[i] = fs->inode_blocks_per_level[i-1] *
 		    block_ids_per_block;
 		fs->inode_block_limits[i] = fs->inode_block_limits[i-1] +
@@ -96,6 +93,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 int ext4_filesystem_fini(ext4_filesystem_t *fs, bool write_sb)
 {
 	int rc = EOK;
+
 	if (write_sb) {
 		rc = ext4_superblock_write_direct(fs->device, fs->superblock);
 	}
@@ -148,25 +146,21 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {
 	int rc;
-	aoff64_t block_id;
-	uint32_t descriptors_per_block;
-	size_t offset;
-	ext4_block_group_ref_t *newref;
 
-	newref = malloc(sizeof(ext4_block_group_ref_t));
+	ext4_block_group_ref_t *newref = malloc(sizeof(ext4_block_group_ref_t));
 	if (newref == NULL) {
 		return ENOMEM;
 	}
 
-	descriptors_per_block = ext4_superblock_get_block_size(fs->superblock)
+	uint32_t descriptors_per_block = ext4_superblock_get_block_size(fs->superblock)
 	    / ext4_superblock_get_desc_size(fs->superblock);
 
 	/* Block group descriptor table starts at the next block after superblock */
-	block_id = ext4_superblock_get_first_data_block(fs->superblock) + 1;
+	aoff64_t block_id = ext4_superblock_get_first_data_block(fs->superblock) + 1;
 
 	/* Find the block containing the descriptor we are looking for */
 	block_id += bgid / descriptors_per_block;
-	offset = (bgid % descriptors_per_block) * ext4_superblock_get_desc_size(fs->superblock);
+	uint32_t offset = (bgid % descriptors_per_block) * ext4_superblock_get_desc_size(fs->superblock);
 
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
@@ -200,39 +194,30 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **ref)
 {
 	int rc;
-	aoff64_t block_id;
-	uint32_t block_group;
-	uint32_t offset_in_group;
-	uint32_t byte_offset_in_group;
-	size_t offset_in_block;
-	uint32_t inodes_per_group;
-	uint32_t inode_table_start;
-	uint16_t inode_size;
-	uint32_t block_size;
-	ext4_block_group_ref_t *bg_ref;
-	ext4_inode_ref_t *newref;
 
-	newref = malloc(sizeof(ext4_inode_ref_t));
+	ext4_inode_ref_t *newref = malloc(sizeof(ext4_inode_ref_t));
 	if (newref == NULL) {
 		return ENOMEM;
 	}
 
-	inodes_per_group = ext4_superblock_get_inodes_per_group(fs->superblock);
+	uint32_t inodes_per_group =
+			ext4_superblock_get_inodes_per_group(fs->superblock);
 
 	/* inode numbers are 1-based, but it is simpler to work with 0-based
 	 * when computing indices
 	 */
 	index -= 1;
-	block_group = index / inodes_per_group;
-	offset_in_group = index % inodes_per_group;
+	uint32_t block_group = index / inodes_per_group;
+	uint32_t offset_in_group = index % inodes_per_group;
 
+	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
 	}
 
-	inode_table_start = ext4_block_group_get_inode_table_first_block(
+	uint32_t inode_table_start = ext4_block_group_get_inode_table_first_block(
 	    bg_ref->block_group, fs->superblock);
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
@@ -241,20 +226,18 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 		return rc;
 	}
 
-	inode_size = ext4_superblock_get_inode_size(fs->superblock);
-	block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint16_t inode_size = ext4_superblock_get_inode_size(fs->superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t byte_offset_in_group = offset_in_group * inode_size;
 
-	byte_offset_in_group = offset_in_group * inode_size;
-
-	block_id = inode_table_start + (byte_offset_in_group / block_size);
-	offset_in_block = byte_offset_in_group % block_size;
-
+	aoff64_t block_id = inode_table_start + (byte_offset_in_group / block_size);
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
 	}
 
+	uint32_t offset_in_block = byte_offset_in_group % block_size;
 	newref->inode = newref->block->data + offset_in_block;
 	/* we decremented index above, but need to store the original value
 	 * in the reference
@@ -321,12 +304,11 @@ int ext4_filesystem_init_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
 {
 	int rc;
+
 	// release all indirect blocks
 
-	uint32_t fblock;
-
 	// 1) Single indirect
-	fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
+	uint32_t fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
 	if (fblock != 0) {
 		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
 		if (rc != EOK) {
@@ -436,26 +418,16 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, aoff64_t new_size)
 {
-	aoff64_t old_size;
-	aoff64_t size_diff;
-
 	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
 		// Unable to truncate
 		return EINVAL;
 	}
 
-	old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
-
+	aoff64_t old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	if (old_size == new_size) {
 		// Nothing to do
 		return EOK;
 	}
-
-	uint32_t block_size;
-	uint32_t blocks_count, total_blocks;
-	uint32_t i;
-
-	block_size  = ext4_superblock_get_block_size(fs->superblock);
 
 	if (old_size < new_size) {
 		// Currently not supported to expand the file
@@ -464,19 +436,20 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 		return EINVAL;
 	}
 
-	size_diff = old_size - new_size;
-	blocks_count = size_diff / block_size;
+	aoff64_t size_diff = old_size - new_size;
+	uint32_t block_size  = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t blocks_count = size_diff / block_size;
 	if (size_diff % block_size != 0) {
 		blocks_count++;
 	}
 
-	total_blocks = old_size / block_size;
+	uint32_t total_blocks = old_size / block_size;
 	if (old_size % block_size != 0) {
 		total_blocks++;
 	}
 
 	// starting from 1 because of logical blocks are numbered from 0
-	for (i = 1; i <= blocks_count; ++i) {
+	for (uint32_t i = 1; i <= blocks_count; ++i) {
 		// TODO check retval
 		ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
 	}
@@ -492,12 +465,9 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
     aoff64_t iblock, uint32_t* fblock)
 {
 	int rc;
-	uint32_t offset_in_block;
+
+
 	uint32_t current_block;
-	aoff64_t block_offset_in_level;
-	int i;
-	int level;
-	block_t *block;
 
 	/* Handle inode using extents */
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
@@ -516,8 +486,8 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	}
 
 	/* Determine the indirection level needed to get the desired block */
-	level = -1;
-	for (i = 1; i < 4; i++) {
+	int level = -1;
+	for (int i = 1; i < 4; i++) {
 		if (iblock < fs->inode_block_limits[i]) {
 			level = i;
 			break;
@@ -529,14 +499,16 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	}
 
 	/* Compute offsets for the topmost level */
-	block_offset_in_level = iblock - fs->inode_block_limits[level-1];
+	aoff64_t block_offset_in_level = iblock - fs->inode_block_limits[level-1];
 	current_block = ext4_inode_get_indirect_block(inode, level-1);
-	offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
+	uint32_t offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 
 	if (current_block == 0) {
 		*fblock = 0;
 		return EOK;
 	}
+
+	block_t *block;
 
 	/* Navigate through other levels, until we find the block number
 	 * or find null reference meaning we are dealing with sparse file
@@ -583,15 +555,8 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, aoff64_t iblock, uint32_t fblock)
 {
-
 	int rc;
-	uint32_t offset_in_block;
-	uint32_t current_block, new_block_addr;
-	uint32_t block_size;
-	aoff64_t block_offset_in_level;
-	int i;
-	int level;
-	block_t *block, *new_block;
+
 
 	/* Handle inode using extents */
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
@@ -608,8 +573,8 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 	}
 
 	/* Determine the indirection level needed to get the desired block */
-	level = -1;
-	for (i = 1; i < 4; i++) {
+	int level = -1;
+	for (int i = 1; i < 4; i++) {
 		if (iblock < fs->inode_block_limits[i]) {
 			level = i;
 			break;
@@ -620,12 +585,17 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		return EIO;
 	}
 
-	block_size = ext4_superblock_get_block_size(fs->superblock);
+
+
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	/* Compute offsets for the topmost level */
-	block_offset_in_level = iblock - fs->inode_block_limits[level-1];
-	current_block = ext4_inode_get_indirect_block(inode_ref->inode, level-1);
-	offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
+	aoff64_t block_offset_in_level = iblock - fs->inode_block_limits[level-1];
+	uint32_t current_block = ext4_inode_get_indirect_block(inode_ref->inode, level-1);
+	uint32_t offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
+
+	uint32_t new_block_addr;
+	block_t *block, *new_block;
 
 	if (current_block == 0) {
 		rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
@@ -633,7 +603,6 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 			// TODO error
 			EXT4FS_DBG("error in allocation");
 		}
-//		EXT4FS_DBG("AAA: new addr \%u, level = \%u", new_block_addr, level);
 
 		ext4_inode_set_indirect_block(inode_ref->inode, level - 1, new_block_addr);
 
@@ -676,7 +645,6 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 				// TODO error
 				EXT4FS_DBG("allocation error");
 			}
-//			EXT4FS_DBG("BBB: new addr \%u, offset = \%u, level = \%u", new_block_addr, offset_in_block, level);
 
 			rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 			if (rc != EOK) {
@@ -729,17 +697,13 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, uint32_t iblock)
 {
 	int rc;
-	uint32_t fblock;
-	int i;
-	int level;
-	aoff64_t block_offset_in_level;
-	uint32_t current_block;
-	uint32_t offset_in_block;
-	block_t *block;
-	ext4_inode_t *inode = inode_ref->inode;
+
 
 	/* TODO handle extents */
 
+
+	uint32_t fblock;
+	ext4_inode_t *inode = inode_ref->inode;
 
 	/* Handle simple case when we are dealing with direct reference */
 	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
@@ -755,8 +719,8 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 
 
 	/* Determine the indirection level needed to get the desired block */
-	level = -1;
-	for (i = 1; i < 4; i++) {
+	int level = -1;
+	for (int i = 1; i < 4; i++) {
 		if (iblock < fs->inode_block_limits[i]) {
 			level = i;
 			break;
@@ -768,13 +732,14 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 	}
 
 	/* Compute offsets for the topmost level */
-	block_offset_in_level = iblock - fs->inode_block_limits[level-1];
-	current_block = ext4_inode_get_indirect_block(inode, level-1);
-	offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
+	aoff64_t block_offset_in_level = iblock - fs->inode_block_limits[level-1];
+	uint32_t current_block = ext4_inode_get_indirect_block(inode, level-1);
+	uint32_t offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 
 	/* Navigate through other levels, until we find the block number
 	 * or find null reference meaning we are dealing with sparse file
 	 */
+	block_t *block;
 	while (level > 0) {
 		rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK) {
