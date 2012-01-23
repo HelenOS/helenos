@@ -794,41 +794,35 @@ static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
 static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
 {
-	service_id_t *ids;
-	size_t act_size;
-	size_t alloc_size;
-	int rc;
-
 	*data = NULL;
-	act_size = 0;	/* silence warning */
-
-	rc = loc_category_get_ids_once(method, arg1, NULL, 0,
+	*count = 0;
+	
+	size_t act_size = 0;
+	int rc = loc_category_get_ids_once(method, arg1, NULL, 0,
 	    &act_size);
 	if (rc != EOK)
 		return rc;
-
-	alloc_size = act_size;
-	ids = malloc(alloc_size);
+	
+	size_t alloc_size = act_size;
+	service_id_t *ids = malloc(alloc_size);
 	if (ids == NULL)
 		return ENOMEM;
-
+	
 	while (true) {
 		rc = loc_category_get_ids_once(method, arg1, ids, alloc_size,
 		    &act_size);
 		if (rc != EOK)
 			return rc;
-
-		if (act_size <= alloc_size)
+		
+		if (alloc_size <= act_size)
 			break;
-
-		alloc_size *= 2;
-		free(ids);
-
-		ids = malloc(alloc_size);
+		
+		alloc_size = act_size;
+		ids = realloc(ids, alloc_size);
 		if (ids == NULL)
 			return ENOMEM;
 	}
-
+	
 	*count = act_size / sizeof(category_id_t);
 	*data = ids;
 	return EOK;
