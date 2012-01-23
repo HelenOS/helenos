@@ -110,16 +110,16 @@ static int loc_callback_create(void)
 		
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_CALLBACK_CREATE, &answer);
-		async_connect_to_me(exch, 0, 0, 0, loc_cb_conn, NULL);
+		int rc = async_connect_to_me(exch, 0, 0, 0, loc_cb_conn, NULL);
 		loc_exchange_end(exch);
 		
 		if (rc != EOK)
 			return rc;
 		
-		if (retval != EOK) {
-			rc = retval;
-			goto done;
-		}
+		sysarg_t retval;
+		async_wait_for(req, &retval);
+		if (retval != EOK)
+			return retval;
 		
 		loc_callback_created = true;
 	}
