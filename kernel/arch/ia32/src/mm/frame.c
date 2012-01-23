@@ -45,6 +45,8 @@
 #include <macros.h>
 #include <print.h>
 
+#define PHYSMEM_LIMIT32  UINT64_C(0x100000000)
+
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
@@ -55,17 +57,18 @@ static void init_e820_memory(pfn_t minconf, bool low)
 	for (i = 0; i < e820counter; i++) {
 		uint64_t base64 = e820table[i].base_address;
 		uint64_t size64 = e820table[i].size;
-
+		
 #ifdef KARCH_ia32
 		/*
 		 * Restrict the e820 table entries to 32-bits.
 		 */
-		if (base64 >= 0x100000000ULL)
+		if (base64 >= PHYSMEM_LIMIT32)
 			continue;
-		if (base64 + size64 > 0x100000000ULL)
-			size64 -= base64 + size64 - 0x100000000ULL;
+		
+		if (base64 + size64 > PHYSMEM_LIMIT32)
+			size64 = PHYSMEM_LIMIT32 - base64;
 #endif
-
+		
 		uintptr_t base = (uintptr_t) base64;
 		size_t size = (size_t) size64;
 		
