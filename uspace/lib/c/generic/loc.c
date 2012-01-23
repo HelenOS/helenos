@@ -807,7 +807,7 @@ static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
 		if (rc != EOK)
 			return rc;
 		
-		if (alloc_size <= act_size)
+		if (act_size <= alloc_size)
 			break;
 		
 		alloc_size = act_size;
