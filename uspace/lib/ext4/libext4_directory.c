@@ -94,6 +94,31 @@ void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *sb,
 	}
 }
 
+uint8_t ext4_directory_entry_ll_get_inode_type(
+		ext4_superblock_t *sb, ext4_directory_entry_ll_t *de)
+{
+	if (ext4_superblock_get_rev_level(sb) == 0 &&
+		    ext4_superblock_get_minor_rev_level(sb) < 5) {
+
+			return de->inode_type;
+	}
+
+	return EXT4_DIRECTORY_FILETYPE_UNKNOWN;
+
+}
+
+void ext4_directory_entry_ll_set_inode_type(
+		ext4_superblock_t *sb, ext4_directory_entry_ll_t *de, uint8_t type)
+{
+	if (ext4_superblock_get_rev_level(sb) == 0 &&
+			ext4_superblock_get_minor_rev_level(sb) < 5) {
+
+		de->inode_type = type;
+	}
+
+	// else do nothing
+
+}
 
 int ext4_directory_iterator_init(ext4_directory_iterator_t *it,
     ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, aoff64_t pos)
@@ -260,8 +285,10 @@ static int ext4_directory_init_block(ext4_filesystem_t *fs, uint32_t fblock)
 }
 
 int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
-		const char *entry_name, uint32_t child_inode)
+		const char *entry_name, ext4_inode_ref_t *child)
 {
+	EXT4FS_DBG("adding dentry \%s to inode \%u", entry_name, child->index);
+
 	int rc;
 
 	// USE index if allowed
@@ -282,17 +309,18 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 		if ((entry_inode == 0) && (rec_len >= required_len)) {
 
 			// Don't touch entry length
-			ext4_directory_entry_ll_set_inode(it.current, child_inode);
+			ext4_directory_entry_ll_set_inode(it.current, child->index);
 			ext4_directory_entry_ll_set_name_length(fs->superblock, it.current, name_len);
 			it.current_block->dirty = true;
 			return ext4_directory_iterator_fini(&it);
 		}
 
 		if (entry_inode != 0) {
-
 			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
 					fs->superblock, it.current);
 			uint16_t free_space = rec_len - 8 - (used_name_len + (4- used_name_len % 4));
+
+			EXT4FS_DBG("rec_len = \%u, free_space == \%u, required_len = \%u", rec_len, free_space, required_len);
 
 			if (free_space >= required_len) {
 				uint16_t used_len = rec_len - free_space;
@@ -300,20 +328,27 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 				// Cut tail of current entry
 				ext4_directory_entry_ll_set_entry_length(it.current, used_len);
 
-				// Jump to newly created
-				rc = ext4_directory_iterator_next(&it);
-				if (rc != EOK) {
-					return rc;
-				}
+				// SEEK manually
+				it.current_offset += used_len;
+				ext4_directory_entry_ll_t *new_entry = it.current_block->data + it.current_offset;
 
 				// We are sure, that both entries are in the same data block
 				// dirtyness will be set now
 
-				ext4_directory_entry_ll_set_inode(it.current, child_inode);
-				ext4_directory_entry_ll_set_entry_length(it.current, free_space);
+				ext4_directory_entry_ll_set_inode(new_entry, child->index);
+				ext4_directory_entry_ll_set_entry_length(new_entry, free_space);
 				ext4_directory_entry_ll_set_name_length(
-						fs->superblock, it.current, name_len);
-				memcpy(it.current->name, entry_name, name_len);
+						fs->superblock, new_entry, name_len);
+
+				if (ext4_inode_is_type(fs->superblock, child->inode, EXT4_INODE_MODE_DIRECTORY)) {
+					ext4_directory_entry_ll_set_inode_type(
+							fs->superblock, new_entry, EXT4_DIRECTORY_FILETYPE_DIR);
+				} else {
+					ext4_directory_entry_ll_set_inode_type(
+							fs->superblock, new_entry, EXT4_DIRECTORY_FILETYPE_REG_FILE);
+				}
+
+				memcpy(new_entry->name, entry_name, name_len);
 				it.current_block->dirty = true;
 				return ext4_directory_iterator_fini(&it);
 			}
@@ -366,7 +401,7 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 	}
 
 	// Entry length is not affected
-	ext4_directory_entry_ll_set_inode(it.current, child_inode);
+	ext4_directory_entry_ll_set_inode(it.current, child->index);
 	ext4_directory_entry_ll_set_name_length(fs->superblock, it.current, name_len);
 	memcpy(it.current->name, entry_name, name_len);
 

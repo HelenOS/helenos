@@ -46,6 +46,13 @@ static uint32_t ext4_ialloc_inode2index_in_group(ext4_superblock_t *sb,
 	return (inode - 1) % inodes_per_group;
 }
 
+static uint32_t ext4_ialloc_index_in_group2inode(ext4_superblock_t *sb,
+		uint32_t index, uint32_t bgid)
+{
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
+	return bgid * inodes_per_group + (index + 1);
+}
+
 static uint32_t ext4_ialloc_get_bgid_of_inode(ext4_superblock_t *sb,
 		uint32_t inode)
 {
@@ -126,8 +133,12 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 
 	uint32_t bgid = 0;
 	uint32_t bg_count = ext4_superblock_get_block_group_count(sb);
+	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
+	uint32_t avg_free_inodes = sb_free_inodes / bg_count;
 
 	while (bgid < bg_count) {
+
+		EXT4FS_DBG("testing bg \%u", bgid);
 
 		ext4_block_group_ref_t *bg_ref;
 		rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
@@ -140,9 +151,9 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 		uint32_t free_inodes = ext4_block_group_get_free_inodes_count(bg, sb);
 		uint32_t used_dirs = ext4_block_group_get_used_dirs_count(bg, sb);
 
-		if ((free_inodes > 0) && (free_blocks > 0)) {
+		if ((free_inodes >= avg_free_inodes) && (free_blocks > 0)) {
 
-			uint32_t bitmap_block_addr =  ext4_block_group_get_block_bitmap(
+			uint32_t bitmap_block_addr =  ext4_block_group_get_inode_bitmap(
 					bg_ref->block_group, sb);
 
 			block_t *bitmap_block;
@@ -154,12 +165,14 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 
 			// Alloc bit
 			uint32_t inodes_in_group = ext4_superblock_get_inodes_in_group(sb, bgid);
-			rc = ext4_bitmap_find_free_bit_and_set(bitmap_block->data, 0, index, inodes_in_group);
-			if (rc == ENOSPC) {
-				block_put(bitmap_block);
-				ext4_filesystem_put_block_group_ref(bg_ref);
-				continue;
-			}
+			uint32_t index_in_group;
+			rc = ext4_bitmap_find_free_bit_and_set(
+					bitmap_block->data, 0, &index_in_group, inodes_in_group);
+//			if (rc == ENOSPC) {
+//				block_put(bitmap_block);
+//				ext4_filesystem_put_block_group_ref(bg_ref);
+//				continue;
+//			}
 
 			bitmap_block->dirty = true;
 
@@ -173,7 +186,7 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 			ext4_block_group_set_free_inodes_count(bg, sb, free_inodes);
 
 			if (is_dir) {
-				used_dirs--;
+				used_dirs++;
 				ext4_block_group_set_used_dirs_count(bg, sb, used_dirs);
 			}
 
@@ -182,19 +195,21 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 			rc = ext4_filesystem_put_block_group_ref(bg_ref);
 			if (rc != EOK) {
 				// TODO
+				EXT4FS_DBG("ERRRRR");
 			}
 
-			uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
 			sb_free_inodes--;
 			ext4_superblock_set_free_inodes_count(sb, sb_free_inodes);
 
+			*index = ext4_ialloc_index_in_group2inode(sb, index_in_group, bgid);
+
 			return EOK;
 
-		} else {
-			// Not modified
-			ext4_filesystem_put_block_group_ref(bg_ref);
 		}
 
+		// Not modified
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		++bgid;
 	}
 
 	return ENOSPC;

@@ -400,6 +400,8 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 		return rc;
 	}
 
+	EXT4FS_DBG("allocated");
+
 	enode->inode_ref = inode_ref;
 	enode->instance = inst;
 	enode->references = 1;
@@ -423,6 +425,8 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	enode->fs_node = fs_node;
 	*rfn = fs_node;
 
+	EXT4FS_DBG("finished");
+
 	// TODO
 	return EOK;
 }
@@ -430,6 +434,7 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 int ext4fs_destroy_node(fs_node_t *fn)
 {
+	EXT4FS_DBG("");
 	int rc;
 
 	bool has_children;
@@ -479,6 +484,8 @@ int ext4fs_destroy_node(fs_node_t *fn)
 
 int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
+	EXT4FS_DBG("");
+
 	int rc;
 
 	// Check maximum name length
@@ -486,31 +493,39 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return ENAMETOOLONG;
 	}
 
+	EXT4FS_DBG("name checked");
+
 	ext4fs_node_t *parent = EXT4FS_NODE(pfn);
 	ext4fs_node_t *child = EXT4FS_NODE(cfn);
 	ext4_filesystem_t *fs = parent->instance->filesystem;
 
 	// Add entry to parent directory
-	rc = ext4_directory_add_entry(fs, parent->inode_ref, name, child->inode_ref->index);
+	rc = ext4_directory_add_entry(fs, parent->inode_ref, name, child->inode_ref);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	EXT4FS_DBG("dentry added");
+
 	// Fill new dir -> add '.' and '..' entries
 	if (ext4_inode_is_type(fs->superblock, child->inode_ref->inode, EXT4_INODE_MODE_DIRECTORY)) {
 
-		rc = ext4_directory_add_entry(fs, child->inode_ref, ".", child->inode_ref->index);
+		rc = ext4_directory_add_entry(fs, child->inode_ref, ".", child->inode_ref);
 		if (rc != EOK) {
 			ext4_directory_remove_entry(fs, parent->inode_ref, name);
 			return rc;
 		}
 
-		rc = ext4_directory_add_entry(fs, child->inode_ref, "..", parent->inode_ref->index);
+		EXT4FS_DBG("added dot");
+
+		rc = ext4_directory_add_entry(fs, child->inode_ref, "..", parent->inode_ref);
 		if (rc != EOK) {
 			ext4_directory_remove_entry(fs, parent->inode_ref, name);
 			ext4_directory_remove_entry(fs, child->inode_ref, ".");
 			return rc;
 		}
+
+		EXT4FS_DBG("added dotdot");
 
 		uint16_t parent_links = ext4_inode_get_links_count(parent->inode_ref->inode);
 		parent_links++;

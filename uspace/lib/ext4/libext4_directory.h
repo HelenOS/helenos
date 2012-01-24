@@ -38,6 +38,15 @@
 
 #define EXT4_DIRECTORY_FILENAME_LEN	255
 
+#define EXT4_DIRECTORY_FILETYPE_UNKNOWN         0
+#define EXT4_DIRECTORY_FILETYPE_REG_FILE        1
+#define EXT4_DIRECTORY_FILETYPE_DIR             2
+#define EXT4_DIRECTORY_FILETYPE_CHRDEV          3
+#define EXT4_DIRECTORY_FILETYPE_BLKDEV          4
+#define EXT4_DIRECTORY_FILETYPE_FIFO            5
+#define EXT4_DIRECTORY_FILETYPE_SOCK            6
+#define EXT4_DIRECTORY_FILETYPE_SYMLINK         7
+
 /**
  * Linked list directory entry structure
  */
@@ -72,6 +81,10 @@ extern uint16_t	ext4_directory_entry_ll_get_name_length(
     ext4_superblock_t *, ext4_directory_entry_ll_t *);
 extern void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *,
 		ext4_directory_entry_ll_t *, uint16_t);
+extern uint8_t ext4_directory_entry_ll_get_inode_type(ext4_superblock_t *,
+		ext4_directory_entry_ll_t *);
+extern void ext4_directory_entry_ll_set_inode_type(ext4_superblock_t *,
+		ext4_directory_entry_ll_t *, uint8_t);
 
 extern int ext4_directory_iterator_init(ext4_directory_iterator_t *,
 		ext4_filesystem_t *, ext4_inode_ref_t *, aoff64_t);
@@ -80,7 +93,7 @@ extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t);
 extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
 
 extern int ext4_directory_add_entry(ext4_filesystem_t *, ext4_inode_ref_t *,
-		const char *, uint32_t);
+		const char *, ext4_inode_ref_t *);
 extern int ext4_directory_find_entry(ext4_directory_iterator_t *,
 		ext4_inode_ref_t *, const char *);
 extern int ext4_directory_remove_entry(ext4_filesystem_t* ,
