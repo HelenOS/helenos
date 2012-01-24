@@ -265,17 +265,34 @@ int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 	return rc;
 }
 
-int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs, ext4_inode_ref_t **inode_ref)
+int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
+		ext4_inode_ref_t **inode_ref, int flags)
 {
-	// TODO
-	return EOK;
-}
+	int rc;
 
-int ext4_filesystem_init_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, int flags)
-{
-	ext4_inode_t *inode = inode_ref->inode;
-
+	bool is_dir = false;
 	if (flags & L_DIRECTORY) {
+		is_dir = true;
+	}
+
+	// allocate inode
+	uint32_t index;
+	rc = ext4_ialloc_alloc_inode(fs, &index, is_dir);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	// TODO extents, dir_index etc...
+	rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
+	if (rc != EOK) {
+		ext4_ialloc_free_inode(fs, index, is_dir);
+		return rc;
+	}
+
+	// init inode
+	ext4_inode_t *inode = (*inode_ref)->inode;
+
+	if (is_dir) {
 		ext4_inode_set_mode(fs->superblock, inode, EXT4_INODE_MODE_DIRECTORY);
 		ext4_inode_set_links_count(inode, 1); // '.' entry
 	} else {
@@ -297,6 +314,8 @@ int ext4_filesystem_init_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 	for (uint32_t i = 0; i < EXT4_INODE_BLOCKS; i++) {
 		inode->blocks[i] = 0;
 	}
+
+	(*inode_ref)->dirty = true;
 
 	return EOK;
 }
@@ -407,7 +426,12 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 	inode_ref->dirty = true;
 
 	// Free inode
-	rc = ext4_ialloc_free_inode(fs, inode_ref);
+	if (ext4_inode_is_type(fs->superblock, inode_ref->inode,
+			EXT4_INODE_MODE_DIRECTORY)) {
+		rc = ext4_ialloc_free_inode(fs, inode_ref->index, true);
+	} else {
+		rc = ext4_ialloc_free_inode(fs, inode_ref->index, false);
+	}
 	if (rc != EOK) {
 		return rc;
 	}

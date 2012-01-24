@@ -393,22 +393,10 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	}
 
 	ext4_inode_ref_t *inode_ref;
-	rc = ext4_filesystem_alloc_inode(inst->filesystem, &inode_ref);
+	rc = ext4_filesystem_alloc_inode(inst->filesystem, &inode_ref, flags);
 	if (rc != EOK) {
 		free(enode);
 		free(fs_node);
-		return rc;
-	}
-
-	EXT4FS_DBG("inode allocated");
-	// TODO
-	return ENOTSUP;
-
-	rc = ext4_filesystem_init_inode(inst->filesystem, inode_ref, flags);
-	if (rc != EOK) {
-		free(enode);
-		free(fs_node);
-		ext4_filesystem_free_inode(inst->filesystem, inode_ref);
 		return rc;
 	}
 

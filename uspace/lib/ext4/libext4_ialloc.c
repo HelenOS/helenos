@@ -55,31 +55,29 @@ static uint32_t ext4_ialloc_get_bgid_of_inode(ext4_superblock_t *sb,
 }
 
 
-int ext4_ialloc_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
+int ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_dir)
 {
 	int rc;
 
-	uint32_t block_group = ext4_ialloc_get_bgid_of_inode(
-			fs->superblock, inode_ref->index);
+	ext4_superblock_t *sb = fs->superblock;
+
+	uint32_t block_group = ext4_ialloc_get_bgid_of_inode(sb, index);
 
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bg_ref \%d", rc);
 		return rc;
 	}
 
 	uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
-			bg_ref->block_group, fs->superblock);
+			bg_ref->block_group, sb);
 	block_t *bitmap_block;
-	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
+	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bitmap \%d", rc);
 		return rc;
 	}
 
-	uint32_t index_in_group = ext4_ialloc_inode2index_in_group(
-				fs->superblock, inode_ref->index);
+	uint32_t index_in_group = ext4_ialloc_inode2index_in_group(sb, index);
 	ext4_bitmap_free_bit(bitmap_block->data, index_in_group);
 	bitmap_block->dirty = true;
 
@@ -87,42 +85,120 @@ int ext4_ialloc_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
 	if (rc != EOK) {
 		// Error in saving bitmap
 		ext4_filesystem_put_block_group_ref(bg_ref);
-		EXT4FS_DBG("error in saving bitmap \%d", rc);
 		return rc;
 	}
 
-	// if inode is directory, decrement directories count
-	if (ext4_inode_is_type(fs->superblock, inode_ref->inode, EXT4_INODE_MODE_DIRECTORY)) {
+	// if inode is directory, decrement used directories count
+	if (is_dir) {
 		uint32_t bg_used_dirs = ext4_block_group_get_used_dirs_count(
-			bg_ref->block_group, fs->superblock);
+			bg_ref->block_group, sb);
 		bg_used_dirs--;
 		ext4_block_group_set_used_dirs_count(
-				bg_ref->block_group, fs->superblock, bg_used_dirs);
+				bg_ref->block_group, sb, bg_used_dirs);
 	}
-
-	// Update superblock free inodes count
-	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(fs->superblock);
-	sb_free_inodes++;
-	ext4_superblock_set_free_inodes_count(fs->superblock, sb_free_inodes);
 
 	// Update block group free inodes count
 	uint32_t free_inodes = ext4_block_group_get_free_inodes_count(
-			bg_ref->block_group, fs->superblock);
+			bg_ref->block_group, sb);
 	free_inodes++;
 	ext4_block_group_set_free_inodes_count(bg_ref->block_group,
-			fs->superblock, free_inodes);
+			sb, free_inodes);
 	bg_ref->dirty = true;
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in saving bg_ref \%d", rc);
-		// TODO error
 		return rc;
 	}
+
+	// Update superblock free inodes count
+	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
+	sb_free_inodes++;
+	ext4_superblock_set_free_inodes_count(sb, sb_free_inodes);
 
 	return EOK;
 }
 
+int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
+{
+	int rc;
+
+	ext4_superblock_t *sb = fs->superblock;
+
+	uint32_t bgid = 0;
+	uint32_t bg_count = ext4_superblock_get_block_group_count(sb);
+
+	while (bgid < bg_count) {
+
+		ext4_block_group_ref_t *bg_ref;
+		rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
+		if (rc != EOK) {
+			return rc;
+		}
+		ext4_block_group_t *bg = bg_ref->block_group;
+
+		uint32_t free_blocks = ext4_block_group_get_free_blocks_count(bg, sb);
+		uint32_t free_inodes = ext4_block_group_get_free_inodes_count(bg, sb);
+		uint32_t used_dirs = ext4_block_group_get_used_dirs_count(bg, sb);
+
+		if ((free_inodes > 0) && (free_blocks > 0)) {
+
+			uint32_t bitmap_block_addr =  ext4_block_group_get_block_bitmap(
+					bg_ref->block_group, sb);
+
+			block_t *bitmap_block;
+			rc = block_get(&bitmap_block, fs->device,
+					bitmap_block_addr, BLOCK_FLAGS_NONE);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			// Alloc bit
+			uint32_t inodes_in_group = ext4_superblock_get_inodes_in_group(sb, bgid);
+			rc = ext4_bitmap_find_free_bit_and_set(bitmap_block->data, 0, index, inodes_in_group);
+			if (rc == ENOSPC) {
+				block_put(bitmap_block);
+				ext4_filesystem_put_block_group_ref(bg_ref);
+				continue;
+			}
+
+			bitmap_block->dirty = true;
+
+			rc = block_put(bitmap_block);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			// Modify filesystem counters
+			free_inodes--;
+			ext4_block_group_set_free_inodes_count(bg, sb, free_inodes);
+
+			if (is_dir) {
+				used_dirs--;
+				ext4_block_group_set_used_dirs_count(bg, sb, used_dirs);
+			}
+
+			bg_ref->dirty = true;
+
+			rc = ext4_filesystem_put_block_group_ref(bg_ref);
+			if (rc != EOK) {
+				// TODO
+			}
+
+			uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
+			sb_free_inodes--;
+			ext4_superblock_set_free_inodes_count(sb, sb_free_inodes);
+
+			return EOK;
+
+		} else {
+			// Not modified
+			ext4_filesystem_put_block_group_ref(bg_ref);
+		}
+
+	}
+
+	return ENOSPC;
+}
 
 /**
  * @}
