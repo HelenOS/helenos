@@ -48,7 +48,6 @@
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
-#include <sysinfo/sysinfo.h>
 #include <memstr.h>
 
 char memcpy_from_uspace_failover_address;
