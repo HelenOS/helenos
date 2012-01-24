@@ -13,7 +13,6 @@ i8042:
 	irq 1
 	irq 12
 	io_range 060 5
-	
 
 ne2k:
 	match 100 isa/ne2k

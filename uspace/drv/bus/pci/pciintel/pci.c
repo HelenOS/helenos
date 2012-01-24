@@ -91,7 +91,7 @@ static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 
 static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 {
-	/* This is an old ugly way, copied from ne2000 driver */
+	/* This is an old ugly way */
 	assert(fnode);
 	pci_fun_t *dev_data = (pci_fun_t *) fnode->driver_data;
 	

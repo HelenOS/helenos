@@ -213,24 +213,10 @@ void arch_post_smp_init(void)
 			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
 		}
 	}
-	
-	/*
-	 * This is the necessary evil until the userspace driver is entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("i8042", NULL, true);
-	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
-	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
-	sysinfo_set_item_val("i8042.address.physical", NULL,
-	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("i8042.address.kernel", NULL,
-	    (uintptr_t) I8042_BASE);
 #endif
 	
 	if (irqs_info != NULL)
 		sysinfo_set_item_val(irqs_info, NULL, true);
-	
-	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
 }
 
 void calibrate_delay_loop(void)
