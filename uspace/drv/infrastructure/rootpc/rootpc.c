@@ -76,19 +76,29 @@ static driver_t rootpc_driver = {
 	.driver_ops = &rootpc_ops
 };
 
-static hw_resource_t pci_conf_regs = {
-	.type = IO_RANGE,
-	.res.io_range = {
-		.address = 0xCF8,
-		.size = 8,
-		.endianness = LITTLE_ENDIAN
+static hw_resource_t pci_conf_regs[] = {
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0xCF8,
+			.size = 4,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0xCFC,
+			.size = 4,
+			.endianness = LITTLE_ENDIAN
+		}
 	}
 };
 
 static rootpc_fun_t pci_data = {
 	.hw_resources = {
-		1,
-		&pci_conf_regs
+		sizeof(pci_conf_regs)/sizeof(pci_conf_regs[0]),
+		pci_conf_regs
 	}
 };
 

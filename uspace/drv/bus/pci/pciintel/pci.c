@@ -649,23 +649,36 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	}
 	got_res = true;
 	
+	
+	assert(hw_resources.count > 1);
+	assert(hw_resources.resources[0].type == IO_RANGE);
+	assert(hw_resources.resources[0].res.io_range.size >= 4);
+	
+	assert(hw_resources.resources[1].type == IO_RANGE);
+	assert(hw_resources.resources[1].res.io_range.size >= 4);
+	
 	ddf_msg(LVL_DEBUG, "conf_addr = %" PRIx64 ".",
 	    hw_resources.resources[0].res.io_range.address);
-	
-	assert(hw_resources.count > 0);
-	assert(hw_resources.resources[0].type == IO_RANGE);
-	assert(hw_resources.resources[0].res.io_range.size == 8);
+	ddf_msg(LVL_DEBUG, "data_addr = %" PRIx64 ".",
+	    hw_resources.resources[1].res.io_range.address);
 	
 	bus->conf_io_addr =
 	    (uint32_t) hw_resources.resources[0].res.io_range.address;
+	bus->conf_io_data =
+	    (uint32_t) hw_resources.resources[1].res.io_range.address;
 	
-	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 8,
+	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 4,
 	    &bus->conf_addr_port)) {
 		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
-	bus->conf_data_port = (char *) bus->conf_addr_port + 4;
+	if (pio_enable((void *)(uintptr_t)bus->conf_io_data, 4,
+	    &bus->conf_data_port)) {
+		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
+		rc = EADDRNOTAVAIL;
+		goto fail;
+	}
 	
 	/* Make the bus device more visible. It has no use yet. */
 	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");
