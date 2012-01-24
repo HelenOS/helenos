@@ -37,6 +37,7 @@
  */
 
 #include <assert.h>
+#include <byteorder.h>
 #include <stdio.h>
 #include <errno.h>
 #include <bool.h>
@@ -230,17 +231,18 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	void *addr = bus->conf_data_port + (reg & 3);
 	
-	pio_write_32(bus->conf_addr_port, conf_addr);
+	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
 	
 	switch (len) {
 	case 1:
+		/* No endianness change for 1 byte */
 		buf[0] = pio_read_8(addr);
 		break;
 	case 2:
-		((uint16_t *) buf)[0] = pio_read_16(addr);
+		((uint16_t *) buf)[0] = uint16_t_le2host(pio_read_16(addr));
 		break;
 	case 4:
-		((uint32_t *) buf)[0] = pio_read_32(addr);
+		((uint32_t *) buf)[0] = uint32_t_le2host(pio_read_32(addr));
 		break;
 	}
 	
@@ -253,21 +255,21 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 	
-	uint32_t conf_addr;
-	conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
+	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	void *addr = bus->conf_data_port + (reg & 3);
 	
-	pio_write_32(bus->conf_addr_port, conf_addr);
+	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
 	
 	switch (len) {
 	case 1:
+		/* No endianness change for 1 byte */
 		pio_write_8(addr, buf[0]);
 		break;
 	case 2:
-		pio_write_16(addr, ((uint16_t *) buf)[0]);
+		pio_write_16(addr, host2uint16_t_le(((uint16_t *) buf)[0]));
 		break;
 	case 4:
-		pio_write_32(addr, ((uint32_t *) buf)[0]);
+		pio_write_32(addr, host2uint32_t_le(((uint32_t *) buf)[0]));
 		break;
 	}
 	
