@@ -986,7 +986,8 @@ int main(int argc, char *argv[])
 	printf("%s: HelenOS framebuffer service\n", NAME);
 	
 	/* Register server */
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver (%d)\n", NAME, rc);
 		return 1;

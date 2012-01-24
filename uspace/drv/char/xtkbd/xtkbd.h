@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,39 +25,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup kbd_port
- * @ingroup  kbd
+/** @addtogroup drvkbd
  * @{
  */
-
 /** @file
- * @brief i8042 port driver.
+ * @brief XT keyboard driver
  */
 
-#ifndef i8042_H_
-#define i8042_H_
+#ifndef _XT_KBD_H_
+#define _XT_KBD_H_
 
-#include <sys/types.h>
-#include <libarch/ddi.h>
-#include <async.h>
+#include <ddf/driver.h>
+#include <fibril.h>
 
-/** i8042 HW I/O interface */
-struct i8042 {
-	ioport8_t data;
-	uint8_t pad[3];
-	ioport8_t status;
-} __attribute__ ((packed));
-typedef struct i8042 i8042_t;
-
-/** Softstate structure, one for each serial port (primary and aux). */
+/** PC/XT keyboard driver structure. */
 typedef struct {
-	service_id_t service_id;
-	async_sess_t *client_sess;
-} i8042_port_t;
+	ddf_fun_t *kbd_fun;        /**< Keyboard function. */
+	async_sess_t *parent_sess; /**< Connection to device providing data. */
+	async_sess_t *client_sess; /**< Callback connection to client. */
+	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
+} xt_kbd_t;
+
+int xt_kbd_init(xt_kbd_t *, ddf_dev_t *);
 
 #endif
-
 /**
  * @}
  */

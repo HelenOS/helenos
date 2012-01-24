@@ -187,7 +187,8 @@ void arch_post_smp_init(void)
 #endif
 	
 #ifdef CONFIG_I8042
-	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
+	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE,
+	    IRQ_KBD);
 	if (i8042_instance) {
 		kbrd_instance_t *kbrd_instance = kbrd_init();
 		if (kbrd_instance) {
@@ -196,18 +197,8 @@ void arch_post_smp_init(void)
 			i8042_wire(i8042_instance, kbrd);
 		}
 	}
-	
-	sysinfo_set_item_val("i8042", NULL, true);
-	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
-	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
-	sysinfo_set_item_val("i8042.address.physical", NULL,
-	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("i8042.address.kernel", NULL,
-	    (uintptr_t) I8042_BASE);
 #endif
-
-	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
-
+	
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, LEGACYIO_USER_BASE);

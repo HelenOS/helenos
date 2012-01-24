@@ -45,6 +45,8 @@
 #include <macros.h>
 #include <print.h>
 
+#define PHYSMEM_LIMIT32  UINT64_C(0x100000000)
+
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
@@ -53,8 +55,22 @@ static void init_e820_memory(pfn_t minconf, bool low)
 	unsigned int i;
 	
 	for (i = 0; i < e820counter; i++) {
-		uintptr_t base = (uintptr_t) e820table[i].base_address;
-		size_t size = (size_t) e820table[i].size;
+		uint64_t base64 = e820table[i].base_address;
+		uint64_t size64 = e820table[i].size;
+		
+#ifdef KARCH_ia32
+		/*
+		 * Restrict the e820 table entries to 32-bits.
+		 */
+		if (base64 >= PHYSMEM_LIMIT32)
+			continue;
+		
+		if (base64 + size64 > PHYSMEM_LIMIT32)
+			size64 = PHYSMEM_LIMIT32 - base64;
+#endif
+		
+		uintptr_t base = (uintptr_t) base64;
+		size_t size = (size_t) size64;
 		
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			continue;
@@ -78,8 +94,9 @@ static void init_e820_memory(pfn_t minconf, bool low)
 				    ZONE_AVAILABLE | ZONE_LOWMEM);
 			} else {
 				conf = zone_external_conf_alloc(count);
-				zone_create(pfn, count, conf,
-				    ZONE_AVAILABLE | ZONE_HIGHMEM);
+				if (conf != 0)
+					zone_create(pfn, count, conf,
+					    ZONE_AVAILABLE | ZONE_HIGHMEM);
 			}
 		} else if ((e820table[i].type == MEMMAP_MEMORY_ACPI) ||
 		    (e820table[i].type == MEMMAP_MEMORY_NVS)) {

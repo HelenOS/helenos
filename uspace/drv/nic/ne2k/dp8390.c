@@ -58,8 +58,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <libarch/ddi.h>
-#include <net/packet.h>
-#include <packet_client.h>
 #include "dp8390.h"
 
 /** Page size */
@@ -75,7 +73,7 @@ typedef struct {
 	/** Copy of RSR */
 	uint8_t status;
 	
-	/** Pointer to next packet */
+	/** Pointer to next frame */
 	uint8_t next;
 	
 	/** Receive Byte Count Low */
@@ -392,8 +390,8 @@ static void ne2k_reset(ne2k_t *ne2k)
 
 	/*
 	 * Reset the transmit ring. If we were transmitting a frame,
-	 * we pretend that the packet is processed. Higher layers will
-	 * retransmit if the packet wasn't actually sent.
+	 * we pretend that the frame is processed. Higher layers will
+	 * retransmit if the frame wasn't actually sent.
 	 */
 	ne2k->sq.dirty = false;
 
@@ -403,10 +401,11 @@ static void ne2k_reset(ne2k_t *ne2k)
 /** Send a frame.
  *
  * @param[in,out] ne2k   Network interface structure.
- * @param[in]     packet Frame to be sent.
+ * @param[in]     data   Pointer to frame data
+ * @param[in]     size   Frame size in bytes
  *
  */
-void ne2k_send(nic_t *nic_data, packet_t *packet)
+void ne2k_send(nic_t *nic_data, void *data, size_t size)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
@@ -418,8 +417,6 @@ void ne2k_send(nic_t *nic_data, packet_t *packet)
 	while (ne2k->sq.dirty) {
 		fibril_condvar_wait(&ne2k->sq_cv, &ne2k->sq_mutex);
 	}
-	void *buf = packet_get_data(packet);
-	size_t size = packet_get_data_length(packet);
 	
 	if ((size < ETH_MIN_PACK_SIZE) || (size > ETH_MAX_PACK_SIZE_TAGGED)) {
 		fibril_mutex_unlock(&ne2k->sq_mutex);
@@ -427,7 +424,7 @@ void ne2k_send(nic_t *nic_data, packet_t *packet)
 	}
 
 	/* Upload the frame to the ethernet card */
-	ne2k_upload(ne2k, buf, ne2k->sq.page * DP_PAGE, size);
+	ne2k_upload(ne2k, data, ne2k->sq.page * DP_PAGE, size);
 	ne2k->sq.dirty = true;
 	ne2k->sq.size = size;
 
@@ -437,9 +434,6 @@ void ne2k_send(nic_t *nic_data, packet_t *packet)
 	pio_write_8(ne2k->port + DP_TBCR1, (size >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_CR, CR_TXP | CR_STA);
 	fibril_mutex_unlock(&ne2k->sq_mutex);
-
-	/* Relase packet */
-	nic_release_packet(nic_data, packet);
 }
 
 static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,
@@ -451,19 +445,18 @@ static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,
 	if (frame == NULL)
 		return NULL;
 	
-	void *buf = packet_suffix(frame->packet, length);
-	bzero(buf, length);
+	bzero(frame->data, length);
 	uint8_t last = page + length / DP_PAGE;
 	
 	if (last >= ne2k->stop_page) {
 		size_t left = (ne2k->stop_page - page) * DP_PAGE
 		    - sizeof(recv_header_t);
-		ne2k_download(ne2k, buf, page * DP_PAGE + sizeof(recv_header_t),
+		ne2k_download(ne2k, frame->data, page * DP_PAGE + sizeof(recv_header_t),
 		    left);
-		ne2k_download(ne2k, buf + left, ne2k->start_page * DP_PAGE,
+		ne2k_download(ne2k, frame->data + left, ne2k->start_page * DP_PAGE,
 		    length - left);
 	} else {
-		ne2k_download(ne2k, buf, page * DP_PAGE + sizeof(recv_header_t),
+		ne2k_download(ne2k, frame->data, page * DP_PAGE + sizeof(recv_header_t),
 		    length);
 	}
 	return frame;
@@ -544,7 +537,7 @@ static void ne2k_receive(nic_t *nic_data)
 		/*
 		 * Update the boundary pointer
 		 * to the value of the page
-		 * prior to the next packet to
+		 * prior to the next frame to
 		 * be processed.
 		 */
 		if (next == ne2k->start_page)
@@ -587,7 +580,7 @@ void ne2k_interrupt(nic_t *nic_data, uint8_t isr, uint8_t tsr)
 
 		fibril_mutex_lock(&ne2k->sq_mutex);
 		if (ne2k->sq.dirty) {
-			/* Prepare the buffer for next packet */
+			/* Prepare the buffer for next frame */
 			ne2k->sq.dirty = false;
 			ne2k->sq.size = 0;
 			

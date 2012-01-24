@@ -38,12 +38,46 @@
 #include <mm/km.h>
 #include <arch/mm/km.h>
 #include <mm/page.h>
+#include <mm/frame.h>
+#include <mm/asid.h>
 #include <config.h>
 #include <typedefs.h>
 #include <lib/ra.h>
 #include <debug.h>
+#include <arch.h>
 
 static ra_arena_t *km_ni_arena;
+
+#define DEFERRED_PAGES_MAX	(PAGE_SIZE / sizeof(uintptr_t)) 
+
+/** Number of freed pages in the deferred buffer. */
+static volatile unsigned deferred_pages;
+/** Buffer of deferred freed pages. */
+static uintptr_t deferred_page[DEFERRED_PAGES_MAX];
+
+/** Flush the buffer of deferred freed pages.
+ *
+ * @return		Number of freed pages.
+ */
+static unsigned km_flush_deferred(void)
+{
+	unsigned i = 0;
+	ipl_t ipl;
+
+	ipl = tlb_shootdown_start(TLB_INVL_ASID, ASID_KERNEL, 0, 0);
+
+	for (i = 0; i < deferred_pages; i++) {
+		page_mapping_remove(AS_KERNEL, deferred_page[i]);
+		km_page_free(deferred_page[i], PAGE_SIZE);
+	}
+
+	tlb_invalidate_asid(ASID_KERNEL);
+
+	as_invalidate_translation_cache(AS_KERNEL, 0, -1);
+	tlb_shootdown_finalize(ipl);
+
+	return i;
+}
 
 /** Architecture dependent setup of identity-mapped kernel memory. */
 void km_identity_init(void)
@@ -86,6 +120,81 @@ void km_page_free(uintptr_t page, size_t size)
 	ra_free(km_ni_arena, page, size);
 }
 
+/** Unmap kernen non-identity page.
+ *
+ * @param[in] page	Non-identity page to be unmapped.
+ */
+static void km_unmap_deferred(uintptr_t page)
+{
+	page_table_lock(AS_KERNEL, true);
+
+	if (deferred_pages == DEFERRED_PAGES_MAX) {
+		(void) km_flush_deferred();
+		deferred_pages = 0;
+	}
+
+	deferred_page[deferred_pages++] = page;
+
+	page_table_unlock(AS_KERNEL, true);
+}
+
+/** Create a temporary page.
+ *
+ * The page is mapped read/write to a newly allocated frame of physical memory.
+ * The page must be returned back to the system by a call to
+ * km_temporary_page_put().
+ *
+ * @param[inout] framep	Pointer to a variable which will receive the physical
+ *			address of the allocated frame.
+ * @param[in] flags	Frame allocation flags. FRAME_NONE or FRAME_NO_RESERVE.
+ * @return		Virtual address of the allocated frame.
+ */
+uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
+{
+	uintptr_t frame;
+	uintptr_t page;
+
+	ASSERT(THREAD);
+	ASSERT(framep);
+	ASSERT(!(flags & ~FRAME_NO_RESERVE));
+
+	/*
+	 * Allocate a frame, preferably from high memory.
+	 */
+	frame = (uintptr_t) frame_alloc(ONE_FRAME,
+	    FRAME_HIGHMEM | FRAME_ATOMIC | flags); 
+	if (frame) {
+		page = km_page_alloc(PAGE_SIZE, PAGE_SIZE);
+		ASSERT(page);	// FIXME
+		page_table_lock(AS_KERNEL, true);
+		page_mapping_insert(AS_KERNEL, page, frame,
+		    PAGE_CACHEABLE | PAGE_READ | PAGE_WRITE);
+		page_table_unlock(AS_KERNEL, true);
+	} else {
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME,
+		    FRAME_LOWMEM);
+		page = PA2KA(frame);
+	}
+
+	*framep = frame;
+	return page;	
+}
+
+/** Destroy a temporary page.
+ *
+ * This function destroys a temporary page previously created by
+ * km_temporary_page_get(). The page destruction may be immediate or deferred.
+ * The frame mapped by the destroyed page is not freed.
+ *
+ * @param[in] page	Temporary page to be destroyed.
+ */
+void km_temporary_page_put(uintptr_t page)
+{
+	ASSERT(THREAD);
+
+	if (km_is_non_identity(page))
+		km_unmap_deferred(page);
+}
 
 /** @}
  */

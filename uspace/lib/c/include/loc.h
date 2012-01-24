@@ -45,7 +45,7 @@ extern async_exch_t *loc_exchange_begin_blocking(loc_interface_t);
 extern async_exch_t *loc_exchange_begin(loc_interface_t);
 extern void loc_exchange_end(async_exch_t *);
 
-extern int loc_server_register(const char *, async_client_conn_t);
+extern int loc_server_register(const char *);
 extern int loc_service_register(const char *, service_id_t *);
 extern int loc_service_register_with_iface(const char *, service_id_t *,
     sysarg_t);

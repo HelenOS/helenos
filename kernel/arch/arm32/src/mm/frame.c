@@ -59,9 +59,9 @@ static void frame_common_arch_init(bool low)
 		    ZONE_AVAILABLE | ZONE_LOWMEM);
 	} else {
 		pfn_t conf = zone_external_conf_alloc(SIZE2FRAMES(size));
-
-		zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
-		    ZONE_AVAILABLE | ZONE_HIGHMEM);
+		if (conf != 0)
+			zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
+			    ZONE_AVAILABLE | ZONE_HIGHMEM);
 	}
 	
 }

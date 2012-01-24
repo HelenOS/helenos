@@ -256,11 +256,13 @@ static async_client_data_dtor_t async_client_data_destroy =
 
 void async_set_client_data_constructor(async_client_data_ctor_t ctor)
 {
+	assert(async_client_data_create == default_client_data_constructor);
 	async_client_data_create = ctor;
 }
 
 void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 {
+	assert(async_client_data_destroy == default_client_data_destructor);
 	async_client_data_destroy = dtor;
 }
 
@@ -302,6 +304,7 @@ static async_interrupt_handler_t interrupt_received = default_interrupt_received
  */
 void async_set_client_connection(async_client_conn_t conn)
 {
+	assert(client_connection == default_client_connection);
 	client_connection = conn;
 }
 

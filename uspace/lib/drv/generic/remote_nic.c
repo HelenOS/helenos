@@ -38,32 +38,39 @@
 #include <async.h>
 #include <errno.h>
 #include <ipc/services.h>
-#include <adt/measured_strings.h>
 #include <sys/time.h>
 #include "ops/nic.h"
 
-static void remote_nic_send_message(ddf_fun_t *dev, void *iface,
+static void remote_nic_send_frame(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	assert(nic_iface->send_message);
+	assert(nic_iface->send_frame);
 	
-	packet_id_t packet_id = (packet_id_t) IPC_GET_ARG2(*call);
+	void *data;
+	size_t size;
+	int rc;
 	
-	int rc = nic_iface->send_message(dev, packet_id);
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK) {
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+	
+	rc = nic_iface->send_frame(dev, data, size);
 	async_answer_0(callid, rc);
+	free(data);
 }
 
-static void remote_nic_connect_to_nil(ddf_fun_t *dev, void *iface,
+static void remote_nic_callback_create(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	assert(nic_iface->connect_to_nil);
+	assert(nic_iface->callback_create);
 	
-	services_t nil_service = (services_t) IPC_GET_ARG2(*call);
-	nic_device_id_t device_id = (nic_device_id_t) IPC_GET_ARG3(*call);
+	nic_device_id_t device_id = (nic_device_id_t) IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->connect_to_nil(dev, nil_service, device_id);
+	int rc = nic_iface->callback_create(dev, device_id);
 	async_answer_0(callid, rc);
 }
 
@@ -1193,8 +1200,8 @@ static void remote_nic_poll_now(ddf_fun_t *dev, void *iface,
  *
  */
 static remote_iface_func_ptr_t remote_nic_iface_ops[] = {
-	&remote_nic_send_message,
-	&remote_nic_connect_to_nil,
+	&remote_nic_send_frame,
+	&remote_nic_callback_create,
 	&remote_nic_get_state,
 	&remote_nic_set_state,
 	&remote_nic_get_address,

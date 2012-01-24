@@ -53,9 +53,7 @@ typedef enum {
 	/** Return number of mastered devices */
 	NET_NET_GET_DEVICES_COUNT,
 	/** Return names and device IDs of all devices */
-	NET_NET_GET_DEVICES,
-	/** Notify the networking service about a ready device */
-	NET_NET_DRIVER_READY
+	NET_NET_GET_DEVICES
 } net_messages;
 
 #endif
