@@ -36,31 +36,31 @@
 
 #include <unistd.h>
 
-extern void* rtl8139_memcpy_wrapped(void *dest, const void *src_buf,
-    size_t src_offset, size_t src_size, size_t data_size);
-
+/** Number of microseconds in second */
+#define RTL8139_USEC_IN_SEC  1000000
 
 /** Structure for HW timer control */
-typedef struct rtl8139_timer_act {
+typedef struct {
 	/** Register value set in the last timer period */
 	uint32_t last_val;
+	
 	/** Register value set in the common timer period */
 	uint32_t full_val;
-
+	
 	/** Amount of full register periods in timer period */
 	size_t full_skips;
+	
 	/** Remaining full register periods to the next period end */
 	size_t full_skips_remains;
+	
 	/** Mark if there is a last run */
 	int last_run;
 } rtl8139_timer_act_t;
 
-/** Count of microseconds in second */
-#define RTL8139_USEC_IN_SEC 1000000
-
-extern int rtl8139_timer_act_init(rtl8139_timer_act_t *ta, uint32_t timer_freq,
-    const struct timeval *time);
-extern int rtl8139_timer_act_step(rtl8139_timer_act_t *ta, uint32_t *new_reg);
-
+extern void *rtl8139_memcpy_wrapped(void *, const void *, size_t, size_t,
+    size_t);
+extern int rtl8139_timer_act_init(rtl8139_timer_act_t *, uint32_t,
+    const struct timeval *);
+extern int rtl8139_timer_act_step(rtl8139_timer_act_t *, uint32_t *);
 
 #endif
