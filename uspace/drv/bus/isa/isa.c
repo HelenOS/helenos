@@ -400,7 +400,7 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 	char *end = NULL;
 
 	val = skip_spaces(val);
-	irq = (int)strtol(val, &end, 10);
+	irq = (int) strtol(val, &end, 10);
 
 	if (val != end)
 		isa_fun_set_irq(fun, irq);

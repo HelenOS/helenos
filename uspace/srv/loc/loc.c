@@ -812,12 +812,11 @@ recheck:
  *
  * On success, answer will contain EOK int retval.
  * On failure, error code will be sent in retval.
+ *
  */
 static void loc_callback_create(ipc_callid_t iid, ipc_call_t *icall)
 {
-	cb_sess_t *cb_sess;
-	
-	cb_sess = calloc(1, sizeof(cb_sess_t));
+	cb_sess_t *cb_sess = calloc(1, sizeof(cb_sess_t));
 	if (cb_sess == NULL) {
 		async_answer_0(iid, ENOMEM);
 		return;
