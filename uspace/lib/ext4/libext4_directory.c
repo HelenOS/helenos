@@ -259,35 +259,10 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
-/**
- * Fill data block with invalid directory entry.
- */
-static int ext4_directory_init_block(ext4_filesystem_t *fs, uint32_t fblock)
-{
-	int rc;
-
-	block_t *block;
-	rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	ext4_directory_entry_ll_t *entry = block->data;
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
-
-	ext4_directory_entry_ll_set_entry_length(entry, block_size);
-	ext4_directory_entry_ll_set_inode(entry, 0);
-	ext4_directory_entry_ll_set_name_length(fs->superblock, entry, 0);
-	entry->name[0] = 0;
-
-	block->dirty = true;
-	return block_put(block);
-}
-
 int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
 		const char *entry_name, ext4_inode_ref_t *child)
 {
-	EXT4FS_DBG("adding dentry \%s to inode \%u", entry_name, child->index);
+	EXT4FS_DBG("adding dentry \%s to child inode \%u to directory \%u", entry_name, child->index, inode_ref->index);
 
 	int rc;
 
@@ -306,6 +281,8 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 		uint32_t entry_inode = ext4_directory_entry_ll_get_inode(it.current);
 		uint16_t rec_len = ext4_directory_entry_ll_get_entry_length(it.current);
 
+		EXT4FS_DBG("inode = \%u, rec_len == \%u, required_len = \%u", entry_inode, rec_len, required_len);
+
 		if ((entry_inode == 0) && (rec_len >= required_len)) {
 
 			// Don't touch entry length
@@ -319,8 +296,6 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
 					fs->superblock, it.current);
 			uint16_t free_space = rec_len - 8 - (used_name_len + (4- used_name_len % 4));
-
-			EXT4FS_DBG("rec_len = \%u, free_space == \%u, required_len = \%u", rec_len, free_space, required_len);
 
 			if (free_space >= required_len) {
 				uint16_t used_len = rec_len - free_space;
@@ -387,27 +362,34 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 			return rc;
 		}
 
-		inode_ref->dirty = true;
+		uint64_t inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+		inode_size += block_size;
+		ext4_inode_set_size(inode_ref->inode, inode_size);
 
-		rc = ext4_directory_init_block(fs, fblock);
-		if (rc != EOK) {
-			return rc;
-		}
+		inode_ref->dirty = true;
 	}
 
-	rc = ext4_directory_iterator_init(&it, fs, inode_ref, pos);
+	// Load block
+	block_t *new_block;
+	rc = block_get(&new_block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	// Entry length is not affected
-	ext4_directory_entry_ll_set_inode(it.current, child->index);
-	ext4_directory_entry_ll_set_name_length(fs->superblock, it.current, name_len);
-	memcpy(it.current->name, entry_name, name_len);
+	ext4_directory_entry_ll_t *block_entry = new_block->data;
 
-	it.current_block->dirty = true;
+	ext4_directory_entry_ll_set_entry_length(block_entry, block_size);
+	ext4_directory_entry_ll_set_inode(block_entry, child->index);
+	ext4_directory_entry_ll_set_name_length(fs->superblock, block_entry, name_len);
+	memcpy(block_entry->name, entry_name, name_len);
 
-	return ext4_directory_iterator_fini(&it);
+	new_block->dirty = true;
+	rc = block_put(new_block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return EOK;
 }
 
 int ext4_directory_find_entry(ext4_directory_iterator_t *it,
