@@ -28,31 +28,35 @@
 
 /** @file rtl8139_defs.h
  *
- *  Registers, bit positions and masks definition of the RTL8139 network family 
- *  cards
+ * Registers, bit positions and masks definition
+ * of the RTL8139 network family cards
  */
 
-#ifndef RTL8139_DEFS_H_INCLUDED_
-#define RTL8139_DEFS_H_INCLUDED_
+#ifndef RTL8139_DEFS_H_
+#define RTL8139_DEFS_H_
+
 #include <sys/types.h>
 #include <libarch/ddi.h>
 
+/** Size of RTL8139 registers address space */
+#define RTL8139_IO_SIZE  256
 
-/** The size of RTL8139 registers address space */
-#define RTL8139_IO_SIZE 256
-
-/** The maximal transmitted frame length in bytes allowed according to RTL8139
- *  documentation (see SIZE part of TSD documentation)
+/** Maximal transmitted frame length
+ *
+ * Maximal transmitted frame length in bytes
+ * allowed according to the RTL8139 documentation
+ * (see SIZE part of TSD documentation).
+ *
  */
-#define RTL8139_FRAME_MAX_LENGTH 1792
-
+#define RTL8139_FRAME_MAX_LENGTH  1792
 
 /** HW version
  *
- *  as can be detected from HWVERID part of TCR
- *  (Transmit Configuration Register)
+ * As can be detected from HWVERID part of TCR
+ * (Transmit Configuration Register).
+ *
  */
-enum rtl8139_version_id {
+typedef enum {
 	RTL8139 = 0,          /**< RTL8139 */
 	RTL8139A,             /**< RTL8139A */
 	RTL8139A_G,           /**< RTL8139A-G */
@@ -65,16 +69,14 @@ enum rtl8139_version_id {
 	RTL8100B = RTL8139D,  /**< RTL8100B and RTL8139D, the same HWVERID in TCR */
 	RTL8101,              /**< RTL8101 */
 	RTL8139_VER_COUNT     /**< Count of known RTL versions, the last value */
-};
-
-extern const char* model_names[RTL8139_VER_COUNT];
+} rtl8139_version_id_t;
 
 /** Registers of RTL8139 family card offsets from the memory address base */
 enum rtl8139_registers {
 	IDR0  = 0x00,    /**< First MAC address bit, 6 1b registres sequence */
 	MAC0  = IDR0,    /**< Alias for IDR0 */
 
-	// 0x6 - 0x7 reserved
+	// 0x06 - 0x07 reserved
 
 	MAR0    = 0x08,  /**< Multicast mask registers 8 1b registers sequence */
 
@@ -212,6 +214,7 @@ static inline void rtl8139_regs_lock(void *io_base)
 {
 	pio_write_8(io_base + CR9346, RTL8139_REGS_LOCKED);
 }
+
 /** Allow to change Config0-4 and BMCR register  */
 static inline void rtl8139_regs_unlock(void *io_base)
 {
@@ -416,7 +419,7 @@ enum rtl8139_config4 {
 };
 
 /** Maximal runt frame size + 1 */
-#define RTL8139_RUNT_MAX_SIZE 64
+#define RTL8139_RUNT_MAX_SIZE  64
 
 /** Bits in frame header */
 enum rtl8139_frame_header {
@@ -469,21 +472,23 @@ enum rtl8139_tcr_bits {
     RTL8139_HWVERID_B(tcr))
 
 /** Mapping of HW version -> version ID */
-struct rtl8139_hwver_map { 
-	uint32_t hwverid;                /**< HW version value in the register */
-	enum rtl8139_version_id ver_id;  /**< appropriate version id */
+struct rtl8139_hwver_map {
+	uint32_t hwverid;             /**< HW version value in the register */
+	rtl8139_version_id_t ver_id;  /**< appropriate version id */
 };
 
 /** Mapping of HW version -> version ID */
 extern const struct rtl8139_hwver_map rtl8139_versions[RTL8139_VER_COUNT + 1];
+extern const char* model_names[RTL8139_VER_COUNT];
 
 /** Size in the frame header while copying from RxFIFO to Rx buffer */
-#define RTL8139_EARLY_SIZE UINT16_C(0xfff0)
+#define RTL8139_EARLY_SIZE  UINT16_C(0xfff0)
+
 /** The only supported pause frame time value */
-#define RTL8139_PAUSE_VAL UINT16_C(0xFFFF)
+#define RTL8139_PAUSE_VAL  UINT16_C(0xFFFF)
 
 /** Size of the frame header in front of the received frame */
-#define RTL_FRAME_HEADER_SIZE 4
+#define RTL_FRAME_HEADER_SIZE  4
 
 /** 8k buffer */
 #define RTL8139_RXFLAGS_SIZE_8  0
