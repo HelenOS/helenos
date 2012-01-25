@@ -70,7 +70,7 @@ void arch_pre_main(bootinfo_t *bootinfo)
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr = (uintptr_t) bootinfo->taskmap.tasks[i].addr;
+		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);

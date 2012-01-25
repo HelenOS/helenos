@@ -52,7 +52,7 @@
 #include <typedefs.h>
 
 typedef struct {
-	uintptr_t addr;
+	uintptr_t paddr;
 	size_t size;
 	char name[CONFIG_TASK_NAME_BUFLEN];
 } init_task_t;

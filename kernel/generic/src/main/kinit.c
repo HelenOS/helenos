@@ -56,6 +56,7 @@
 #include <arch/mm/page.h>
 #include <mm/as.h>
 #include <mm/frame.h>
+#include <mm/km.h>
 #include <print.h>
 #include <memstr.h>
 #include <console/console.h>
@@ -67,6 +68,7 @@
 #include <debug.h>
 #include <str.h>
 #include <sysinfo/stats.h>
+#include <align.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -177,7 +179,7 @@ void kinit(void *arg)
 	program_t programs[CONFIG_INIT_TASKS];
 	
 	for (i = 0; i < init.cnt; i++) {
-		if (init.tasks[i].addr % FRAME_SIZE) {
+		if (init.tasks[i].paddr % FRAME_SIZE) {
 			printf("init[%zu]: Address is not frame aligned\n", i);
 			programs[i].task = NULL;
 			continue;
@@ -198,9 +200,26 @@ void kinit(void *arg)
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
+
+		/*
+		 * Create virtual memory mappings for init task images.
+		 */
+		size_t size = ALIGN_UP(init.tasks[i].size, PAGE_SIZE);
+		size_t offs;
+		uintptr_t page = km_page_alloc(size, PAGE_SIZE);
+		uintptr_t frame = init.tasks[i].paddr;
+
+		page_table_lock(AS_KERNEL, true);
+		for (offs = 0; offs < size; offs += PAGE_SIZE) {
+			page_mapping_insert(AS_KERNEL, page + offs,
+			    frame + offs,
+			    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE |
+			    PAGE_PRESENT);
+		}
+		page_table_unlock(AS_KERNEL, true);
 		
-		int rc = program_create_from_image((void *) init.tasks[i].addr,
-		    namebuf, &programs[i]);
+		int rc = program_create_from_image((void *) page, namebuf,
+		    &programs[i]);
 		
 		if (rc == 0) {
 			if (programs[i].task != NULL) {
@@ -223,7 +242,7 @@ void kinit(void *arg)
 			/*
 			 * Assume the last task is the RAM disk.
 			 */
-			init_rd((void *) init.tasks[i].addr, init.tasks[i].size);
+			init_rd((void *) frame, init.tasks[i].size);
 		} else
 			printf("init[%zu]: Init binary load failed (error %d)\n", i, rc);
 	}

@@ -150,10 +150,17 @@ NO_TRACE void main_bsp(void)
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		if (PA_OVERLAPS(config.stack_base, config.stack_size,
-		    init.tasks[i].addr, init.tasks[i].size))
-			config.stack_base = ALIGN_UP(init.tasks[i].addr +
-			    init.tasks[i].size, config.stack_size);
+		if (overlaps(KA2PA(config.stack_base), config.stack_size,
+		    init.tasks[i].paddr, init.tasks[i].size)) {
+			/*
+			 * The init task overlaps with the memory behind the
+			 * kernel image so it must be in low memory and we can
+			 * use PA2KA on the init task's physical address.
+			 */
+			config.stack_base = ALIGN_UP(
+			    PA2KA(init.tasks[i].paddr) + init.tasks[i].size,
+			    config.stack_size);
+		}
 	}
 	
 	/* Avoid placing stack on top of boot allocations. */
