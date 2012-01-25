@@ -28,7 +28,7 @@
 
 /** @file
  *
- *  General functions and structures used in rtl8139 driver
+ * General functions and structures used in rtl8139 driver
  */
 
 #ifndef RTL8139_GENERAL_H_

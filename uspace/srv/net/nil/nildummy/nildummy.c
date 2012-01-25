@@ -359,8 +359,6 @@ static int nildummy_register_message(services_t service, async_sess_t *sess)
 static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
     services_t sender)
 {
-	packet_t *p;
-	
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
 	
 	nildummy_device_t *device =
@@ -370,7 +368,7 @@ static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
 		return ENOENT;
 	}
 	
-	p = packet;
+	packet_t *p = packet;
 	do {
 		nic_send_frame(device->sess, packet_get_data(p),
 		    packet_get_data_length(p));

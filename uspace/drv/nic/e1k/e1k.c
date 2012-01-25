@@ -1401,6 +1401,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return EOK;
+	
 error:
 	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
 		if (e1000->rx_frame_virt[i] != NULL) {
@@ -1409,14 +1410,17 @@ error:
 			e1000->rx_frame_phys[i] = NULL;
 		}
 	}
+	
 	if (e1000->rx_frame_phys != NULL) {
 		free(e1000->rx_frame_phys);
 		e1000->rx_frame_phys = NULL;
 	}
+	
 	if (e1000->rx_frame_virt != NULL) {
 		free(e1000->rx_frame_virt);
 		e1000->rx_frame_phys = NULL;
 	}
+	
 	return rc;
 }
 
@@ -1641,6 +1645,7 @@ static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 		free(e1000->tx_frame_virt);
 		e1000->tx_frame_phys = NULL;
 	}
+	
 	dmamem_unmap_anonymous(e1000->tx_ring_virt);
 }
 
