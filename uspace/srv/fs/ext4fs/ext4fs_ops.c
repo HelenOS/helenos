@@ -218,6 +218,10 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	rc = ext4_directory_find_entry(&it, eparent->inode_ref, component);
 	if (rc != EOK) {
 		ext4_directory_iterator_fini(&it);
+		if (rc == ENOENT) {
+			*rfn = NULL;
+			return EOK;
+		}
 		return rc;
 	}
 
