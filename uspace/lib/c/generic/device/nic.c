@@ -80,16 +80,16 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_callback_create(async_sess_t *dev_sess, nic_device_id_t device_id,
-    async_client_conn_t cfun, void *carg)
+int nic_callback_create(async_sess_t *dev_sess, async_client_conn_t cfun,
+    void *carg)
 {
 	ipc_call_t answer;
 	int rc;
 	sysarg_t retval;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	aid_t req = async_send_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
-	    NIC_CALLBACK_CREATE, device_id, &answer);
+	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_CALLBACK_CREATE, &answer);
 	
 	rc = async_connect_to_me(exch, 0, 0, 0, cfun, carg);
 	if (rc != EOK) {

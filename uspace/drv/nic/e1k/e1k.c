@@ -2056,13 +2056,13 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	case E1000_82541REV2:
 	case E1000_82545:
 	case E1000_82546:
-	case E1000_82572:
 		e1000->info.eerd_start = 0x01;
 		e1000->info.eerd_done = 0x10;
 		e1000->info.eerd_address_offset = 8;
 		e1000->info.eerd_data_offset = 16;
 		break;
 	case E1000_82547:
+	case E1000_82572:
 	case E1000_80003ES2:
 		e1000->info.eerd_start = 0x01;
 		e1000->info.eerd_done = 0x02;

@@ -68,9 +68,7 @@ static void remote_nic_callback_create(ddf_fun_t *dev, void *iface,
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->callback_create);
 	
-	nic_device_id_t device_id = (nic_device_id_t) IPC_GET_ARG2(*call);
-	
-	int rc = nic_iface->callback_create(dev, device_id);
+	int rc = nic_iface->callback_create(dev);
 	async_answer_0(callid, rc);
 }
 
