@@ -189,12 +189,9 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	frame = (uintptr_t) frame_alloc(ONE_FRAME,
 	    FRAME_HIGHMEM | FRAME_ATOMIC | flags); 
 	if (frame) {
-		page = km_page_alloc(PAGE_SIZE, PAGE_SIZE);
+		page = km_map(frame, PAGE_SIZE,
+		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		ASSERT(page);	// FIXME
-		page_table_lock(AS_KERNEL, true);
-		page_mapping_insert(AS_KERNEL, page, frame,
-		    PAGE_CACHEABLE | PAGE_READ | PAGE_WRITE);
-		page_table_unlock(AS_KERNEL, true);
 	} else {
 		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME,
 		    FRAME_LOWMEM);
