@@ -204,19 +204,10 @@ void kinit(void *arg)
 		/*
 		 * Create virtual memory mappings for init task images.
 		 */
-		size_t size = ALIGN_UP(init.tasks[i].size, PAGE_SIZE);
-		size_t offs;
-		uintptr_t page = km_page_alloc(size, PAGE_SIZE);
-		uintptr_t frame = init.tasks[i].paddr;
-
-		page_table_lock(AS_KERNEL, true);
-		for (offs = 0; offs < size; offs += PAGE_SIZE) {
-			page_mapping_insert(AS_KERNEL, page + offs,
-			    frame + offs,
-			    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE |
-			    PAGE_PRESENT);
-		}
-		page_table_unlock(AS_KERNEL, true);
+		uintptr_t page = km_map(init.tasks[i].paddr,
+		    init.tasks[i].size,
+		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
+		ASSERT(page);
 		
 		int rc = program_create_from_image((void *) page, namebuf,
 		    &programs[i]);
@@ -242,7 +233,7 @@ void kinit(void *arg)
 			/*
 			 * Assume the last task is the RAM disk.
 			 */
-			init_rd((void *) frame, init.tasks[i].size);
+			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
 		} else
 			printf("init[%zu]: Init binary load failed (error %d)\n", i, rc);
 	}
