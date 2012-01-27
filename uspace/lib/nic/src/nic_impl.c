@@ -86,7 +86,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		return EOK;
 	}
 	if (state == NIC_STATE_ACTIVE) {
-		if (nic_data->client_session == NULL || nic_data->device_id < 0) {
+		if (nic_data->client_session == NULL) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
 			return EINVAL;
 		}
@@ -117,7 +117,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 	if (state == NIC_STATE_STOPPED) {
 		/* Notify upper layers that we are reseting the MAC */
 		int rc = nic_ev_addr_changed(nic_data->client_session,
-			nic_data->device_id, &nic_data->default_mac);
+			&nic_data->default_mac);
 		nic_data->poll_mode = nic_data->default_poll_mode;
 		memcpy(&nic_data->poll_period, &nic_data->default_poll_period,
 			sizeof (struct timeval));
@@ -149,7 +149,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 
 	nic_data->state = state;
 
-	nic_ev_device_state(nic_data->client_session, nic_data->device_id, state);
+	nic_ev_device_state(nic_data->client_session, state);
 
 	fibril_rwlock_write_unlock(&nic_data->main_lock);
 
@@ -186,16 +186,13 @@ int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
  * Creates callback connection to the client.
  *
  * @param	fun
- * @param	device_id	ID of the device as used in higher layers
  *
  * @return EOK		On success, or negative error code.
  */
-int nic_callback_create_impl(ddf_fun_t *fun, nic_device_id_t device_id)
+int nic_callback_create_impl(ddf_fun_t *fun)
 {
 	nic_t *nic = (nic_t *) fun->driver_data;
 	fibril_rwlock_write_lock(&nic->main_lock);
-	
-	nic->device_id = device_id;
 	
 	nic->client_session = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (nic->client_session == NULL) {

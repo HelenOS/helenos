@@ -46,6 +46,12 @@
 /** Device identifier to generic type map implementation. */
 #define DEVICE_MAP_IMPLEMENT  INT_MAP_IMPLEMENT
 
+/** Device identifier type. */
+typedef int nic_device_id_t;
+
+/** Invalid device identifier. */
+#define NIC_DEVICE_INVALID_ID  (-1)
+
 #endif
 
 /** @}

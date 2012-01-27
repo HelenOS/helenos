@@ -69,8 +69,6 @@ struct nic {
 	 * (in nic_driver_register_as_ddf_function) and must not be changed.
 	 */
 	ddf_fun_t *fun;
-	/** Identifier for higher network stack layers */
-	nic_device_id_t device_id;
 	/** Current state of the device */
 	nic_device_state_t state;
 	/** Transmiter is busy - messages are dropped */

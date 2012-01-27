@@ -90,8 +90,7 @@ typedef enum {
 } nic_event_t;
 
 extern int nic_send_frame(async_sess_t *, void *, size_t);
-extern int nic_callback_create(async_sess_t *, nic_device_id_t,
-    async_client_conn_t, void *);
+extern int nic_callback_create(async_sess_t *, async_client_conn_t, void *);
 extern int nic_get_state(async_sess_t *, nic_device_state_t *);
 extern int nic_set_state(async_sess_t *, nic_device_state_t);
 extern int nic_get_address(async_sess_t *, nic_address_t *);
