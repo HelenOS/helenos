@@ -71,9 +71,12 @@ struct arm_machine_ops gxemul_machine_ops = {
 
 void gxemul_init(void)
 {
-	gxemul_kbd = (void *) hw_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE);
-	gxemul_rtc = (void *) hw_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE);
-	gxemul_irqc = (void *) hw_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE);
+	gxemul_kbd = (void *) km_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	gxemul_rtc = (void *) km_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	gxemul_irqc = (void *) km_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 }
 
 void gxemul_output_init(void)

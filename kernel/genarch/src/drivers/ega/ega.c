@@ -596,7 +596,8 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 	irq_spinlock_initialize(&instance->lock, "*ega.instance.lock");
 	
 	instance->base = base;
-	instance->addr = (uint8_t *) hw_map(addr, EGA_VRAM_SIZE);
+	instance->addr = (uint8_t *) km_map(addr, EGA_VRAM_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	if (!instance->addr) {
 		LOG("Unable to EGA video memory.");
 		free(instance);
