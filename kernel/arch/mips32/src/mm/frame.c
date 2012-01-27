@@ -122,7 +122,7 @@ static bool frame_safe(pfn_t frame)
 	size_t i;
 	for (i = 0; i < init.cnt; i++)
 		if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
-		    KA2PA(init.tasks[i].addr), init.tasks[i].size)) {
+		    init.tasks[i].paddr, init.tasks[i].size)) {
 			safe = false;
 			break;
 		}

@@ -64,7 +64,6 @@
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <mm/as.h>
-#include <mm/km.h>
 #include <mm/frame.h>
 #include <arch/barrier.h>
 #include <typedefs.h>
@@ -75,8 +74,6 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <align.h>
-#include <macros.h>
-#include <bitops.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -190,28 +187,6 @@ void page_mapping_make_global(uintptr_t base, size_t size)
 	ASSERT(page_mapping_operations->mapping_make_global);
 	
 	return page_mapping_operations->mapping_make_global(base, size);
-}
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	uintptr_t virtaddr;
-	size_t asize;
-	size_t align;
-	pfn_t i;
-
-	asize = ALIGN_UP(size, PAGE_SIZE);
-	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
-	virtaddr = km_page_alloc(asize, max(PAGE_SIZE, align));
-
-	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(asize); i++) {
-		uintptr_t addr = PFN2ADDR(i);
-		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
-		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	}
-	page_table_unlock(AS_KERNEL, true);
-	
-	return virtaddr;
 }
 
 int page_find_mapping(uintptr_t virt, void **phys)

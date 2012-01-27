@@ -53,7 +53,7 @@ static parea_t rd_parea;
  */
 void init_rd(void *data, size_t size)
 {
-	uintptr_t base = KA2PA((uintptr_t) data);
+	uintptr_t base = (uintptr_t) data;
 	ASSERT((base % FRAME_SIZE) == 0);
 	
 	rd_parea.pbase = base;
