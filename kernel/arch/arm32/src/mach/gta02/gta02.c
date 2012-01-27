@@ -37,6 +37,7 @@
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mm/page.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>

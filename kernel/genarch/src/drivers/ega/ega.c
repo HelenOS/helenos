@@ -36,10 +36,9 @@
 
 #include <genarch/drivers/ega/ega.h>
 #include <putchar.h>
-#include <mm/page.h>
+#include <mm/km.h>
 #include <mm/as.h>
 #include <mm/slab.h>
-#include <arch/mm/page.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>

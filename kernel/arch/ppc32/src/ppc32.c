@@ -45,6 +45,7 @@
 #include <genarch/ofw/pci.h>
 #include <userspace.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <abi/proc/uarg.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>

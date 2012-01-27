@@ -44,6 +44,7 @@
 #include <ddi/device.h>
 #include <mm/page.h>
 #include <mm/frame.h>
+#include <mm/km.h>
 #include <arch/mm/frame.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <genarch/fb/fb.h>

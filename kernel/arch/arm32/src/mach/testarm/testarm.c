@@ -36,6 +36,7 @@
 #include <arch/exception.h>
 #include <arch/mach/testarm/testarm.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>

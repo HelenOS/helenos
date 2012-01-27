@@ -39,6 +39,7 @@
 #include <ddi/irq.h>
 #include <mm/page.h>
 #include <arch/mm/page.h>
+#include <mm/km.h>
 #include <typedefs.h>
 #include <align.h>
 #include <str.h>

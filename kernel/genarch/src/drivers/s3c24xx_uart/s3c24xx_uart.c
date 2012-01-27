@@ -44,6 +44,7 @@
 #include <arch/asm.h>
 #include <mm/slab.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 

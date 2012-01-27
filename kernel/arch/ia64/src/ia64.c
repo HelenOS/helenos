@@ -52,6 +52,7 @@
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
 #include <mm/page.h>
+#include <mm/km.h>
 
 #ifdef MACHINE_ski
 #include <arch/drivers/ski.h>

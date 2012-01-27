@@ -45,6 +45,9 @@
 #include <lib/ra.h>
 #include <debug.h>
 #include <arch.h>
+#include <align.h>
+#include <macros.h>
+#include <bitops.h>
 
 static ra_arena_t *km_ni_arena;
 
@@ -119,6 +122,29 @@ void km_page_free(uintptr_t page, size_t size)
 {
 	ra_free(km_ni_arena, page, size);
 }
+
+uintptr_t hw_map(uintptr_t physaddr, size_t size)
+{
+	uintptr_t virtaddr;
+	size_t asize;
+	size_t align;
+	pfn_t i;
+
+	asize = ALIGN_UP(size, PAGE_SIZE);
+	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
+	virtaddr = km_page_alloc(asize, max(PAGE_SIZE, align));
+
+	page_table_lock(AS_KERNEL, true);
+	for (i = 0; i < ADDR2PFN(asize); i++) {
+		uintptr_t addr = PFN2ADDR(i);
+		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
+		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
+	}
+	page_table_unlock(AS_KERNEL, true);
+	
+	return virtaddr;
+}
+
 
 /** Unmap kernen non-identity page.
  *

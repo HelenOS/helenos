@@ -38,7 +38,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <genarch/ofw/upa.h>
 #include <arch/trap/interrupt.h>
-#include <mm/page.h>
+#include <mm/km.h>
 #include <mm/slab.h>
 #include <typedefs.h>
 #include <debug.h>

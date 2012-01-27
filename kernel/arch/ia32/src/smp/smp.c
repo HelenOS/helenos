@@ -46,8 +46,9 @@
 #include <panic.h>
 #include <debug.h>
 #include <arch/asm.h>
-#include <mm/frame.h>
 #include <mm/page.h>
+#include <mm/frame.h>
+#include <mm/km.h>
 #include <mm/slab.h>
 #include <mm/as.h>
 #include <print.h>
