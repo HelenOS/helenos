@@ -262,8 +262,6 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
 		const char *entry_name, ext4_inode_ref_t *child)
 {
-	EXT4FS_DBG("adding dentry \%s to child inode \%u to directory \%u", entry_name, child->index, inode_ref->index);
-
 	int rc;
 
 	// USE index if allowed
@@ -280,8 +278,6 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 	while (it.current != NULL) {
 		uint32_t entry_inode = ext4_directory_entry_ll_get_inode(it.current);
 		uint16_t rec_len = ext4_directory_entry_ll_get_entry_length(it.current);
-
-		EXT4FS_DBG("inode = \%u, rec_len == \%u, required_len = \%u", entry_inode, rec_len, required_len);
 
 		if ((entry_inode == 0) && (rec_len >= required_len)) {
 
@@ -375,6 +371,9 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 	if (rc != EOK) {
 		return rc;
 	}
+
+	// Fill block with zeroes
+	memset(new_block->data, 0, block_size);
 
 	ext4_directory_entry_ll_t *block_entry = new_block->data;
 

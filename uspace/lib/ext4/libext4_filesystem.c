@@ -283,6 +283,7 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	}
 
 	// TODO extents, dir_index etc...
+
 	rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
 	if (rc != EOK) {
 		ext4_ialloc_free_inode(fs, index, is_dir);
@@ -324,14 +325,14 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 {
 	int rc;
 
-	// release all indirect blocks
+	// release all indirect (no data) blocks
 
 	// 1) Single indirect
 	uint32_t fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
 	if (fblock != 0) {
 		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
 		if (rc != EOK) {
-			// TODO error
+			return rc;
 		}
 
 		ext4_inode_set_indirect_block(inode_ref->inode, 0, 0);
@@ -442,6 +443,8 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, aoff64_t new_size)
 {
+	int rc;
+
 	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
 		// Unable to truncate
 		return EINVAL;
@@ -453,29 +456,29 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 		return EOK;
 	}
 
+	// It's not suppported to make the larger file
 	if (old_size < new_size) {
-		// Currently not supported to expand the file
-		// TODO
-		EXT4FS_DBG("trying to expand the file");
 		return EINVAL;
 	}
 
 	aoff64_t size_diff = old_size - new_size;
 	uint32_t block_size  = ext4_superblock_get_block_size(fs->superblock);
-	uint32_t blocks_count = size_diff / block_size;
+	uint32_t diff_blocks_count = size_diff / block_size;
 	if (size_diff % block_size != 0) {
-		blocks_count++;
+		diff_blocks_count++;
 	}
 
-	uint32_t total_blocks = old_size / block_size;
+	uint32_t old_blocks_count = old_size / block_size;
 	if (old_size % block_size != 0) {
-		total_blocks++;
+		old_blocks_count++;
 	}
 
 	// starting from 1 because of logical blocks are numbered from 0
-	for (uint32_t i = 1; i <= blocks_count; ++i) {
-		// TODO check retval
-		ext4_filesystem_release_inode_block(fs, inode_ref, total_blocks - i);
+	for (uint32_t i = 1; i <= diff_blocks_count; ++i) {
+		rc = ext4_filesystem_release_inode_block(fs, inode_ref, old_blocks_count - i);
+		if (rc != EOK) {
+			return rc;
+		}
 	}
 
 	ext4_inode_set_size(inode_ref->inode, new_size);

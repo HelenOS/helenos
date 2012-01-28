@@ -372,7 +372,6 @@ int ext4fs_node_put(fs_node_t *fn)
 
 int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
-	EXT4FS_DBG("");
 	int rc;
 
 	ext4fs_node_t *enode;
@@ -404,8 +403,6 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 		return rc;
 	}
 
-	EXT4FS_DBG("allocated");
-
 	enode->inode_ref = inode_ref;
 	enode->instance = inst;
 	enode->references = 1;
@@ -429,16 +426,12 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	enode->fs_node = fs_node;
 	*rfn = fs_node;
 
-	EXT4FS_DBG("finished");
-
-	// TODO
 	return EOK;
 }
 
 
 int ext4fs_destroy_node(fs_node_t *fn)
 {
-	EXT4FS_DBG("");
 	int rc;
 
 	bool has_children;
@@ -449,7 +442,6 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	}
 
 	if (has_children) {
-		EXT4FS_DBG("destroying non-empty node");
 		ext4fs_node_put(fn);
 		return EINVAL;
 	}
@@ -488,17 +480,12 @@ int ext4fs_destroy_node(fs_node_t *fn)
 
 int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-	EXT4FS_DBG("");
-
 	int rc;
 
 	// Check maximum name length
 	if (strlen(name) > EXT4_DIRECTORY_FILENAME_LEN) {
 		return ENAMETOOLONG;
 	}
-
-	EXT4FS_DBG("name checked");
-
 	ext4fs_node_t *parent = EXT4FS_NODE(pfn);
 	ext4fs_node_t *child = EXT4FS_NODE(cfn);
 	ext4_filesystem_t *fs = parent->instance->filesystem;
@@ -509,8 +496,6 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return rc;
 	}
 
-	EXT4FS_DBG("dentry added");
-
 	// Fill new dir -> add '.' and '..' entries
 	if (ext4_inode_is_type(fs->superblock, child->inode_ref->inode, EXT4_INODE_MODE_DIRECTORY)) {
 
@@ -520,16 +505,12 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 			return rc;
 		}
 
-		EXT4FS_DBG("added dot");
-
 		rc = ext4_directory_add_entry(fs, child->inode_ref, "..", parent->inode_ref);
 		if (rc != EOK) {
 			ext4_directory_remove_entry(fs, parent->inode_ref, name);
 			ext4_directory_remove_entry(fs, child->inode_ref, ".");
 			return rc;
 		}
-
-		EXT4FS_DBG("added dotdot");
 
 		uint16_t parent_links = ext4_inode_get_links_count(parent->inode_ref->inode);
 		parent_links++;
@@ -551,14 +532,11 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
-//	EXT4FS_DBG("unlinking \%s", name);
-
 	int rc;
 
 	bool has_children;
 	rc = ext4fs_has_children(&has_children, cfn);
 	if (rc != EOK) {
-		EXT4FS_DBG("\%s error: \%u", name, rc);
 		return rc;
 	}
 
@@ -572,7 +550,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	ext4_filesystem_t *fs = EXT4FS_NODE(pfn)->instance->filesystem;
 	rc = ext4_directory_remove_entry(fs, parent, name);
 	if (rc != EOK) {
-		EXT4FS_DBG("\%s removing entry failed: \%u", name, rc);
 		return rc;
 	}
 
@@ -1085,7 +1062,6 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	fs_node_t *fn;
 	rc = ext4fs_node_get(&fn, service_id, index);
 	if (rc != EOK) {
-		EXT4FS_DBG("node get error");
 		return rc;
 	}
 
@@ -1095,7 +1071,6 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		rc = EINVAL;
 		ext4fs_node_put(fn);
 		async_answer_0(callid, rc);
-		EXT4FS_DBG("data write recv");
 		return rc;
 	}
 
@@ -1135,7 +1110,10 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 
 		rc = ext4_filesystem_set_inode_data_block_index(fs, inode_ref, iblock, fblock);
 		if (rc != EOK) {
-			EXT4FS_DBG("ERROR: setting index failed");
+			ext4_balloc_free_block(fs, inode_ref, fblock);
+			ext4fs_node_put(fn);
+			async_answer_0(callid, rc);
+			return rc;
 		}
 		inode_ref->dirty = true;
 
