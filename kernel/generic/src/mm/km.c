@@ -144,6 +144,14 @@ uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
 	return vaddr;
 }
 
+uintptr_t km_map_structure(uintptr_t paddr, size_t size, unsigned int flags)
+{
+	size_t offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE); 
+	uintptr_t page;
+
+	page = km_map(ALIGN_DOWN(paddr, FRAME_SIZE), size + offs, flags);
+	return page + offs;
+}
 
 /** Unmap kernen non-identity page.
  *
