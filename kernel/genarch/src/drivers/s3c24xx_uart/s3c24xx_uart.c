@@ -44,6 +44,7 @@
 #include <arch/asm.h>
 #include <mm/slab.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 
@@ -112,7 +113,8 @@ outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 	outdev_initialize("s3c24xx_uart_dev", uart_dev, &s3c24xx_uart_ops);
 	uart_dev->data = uart;
 
-	uart->io = (s3c24xx_uart_io_t *) hw_map(paddr, PAGE_SIZE);
+	uart->io = (s3c24xx_uart_io_t *) km_map(paddr, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	uart->indev = NULL;
 
 	/* Initialize IRQ structure. */

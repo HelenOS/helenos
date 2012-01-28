@@ -45,6 +45,9 @@
 #include <lib/ra.h>
 #include <debug.h>
 #include <arch.h>
+#include <align.h>
+#include <macros.h>
+#include <bitops.h>
 
 static ra_arena_t *km_ni_arena;
 
@@ -120,6 +123,28 @@ void km_page_free(uintptr_t page, size_t size)
 	ra_free(km_ni_arena, page, size);
 }
 
+uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
+{
+	uintptr_t vaddr;
+	size_t asize;
+	size_t align;
+	uintptr_t offs;
+
+	asize = ALIGN_UP(size, PAGE_SIZE);
+	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
+	vaddr = km_page_alloc(asize, max(PAGE_SIZE, align));
+
+	page_table_lock(AS_KERNEL, true);
+	for (offs = 0; offs < asize; offs += PAGE_SIZE) {
+		page_mapping_insert(AS_KERNEL, vaddr + offs, paddr + offs,
+		    flags);
+	}
+	page_table_unlock(AS_KERNEL, true);
+	
+	return vaddr;
+}
+
+
 /** Unmap kernen non-identity page.
  *
  * @param[in] page	Non-identity page to be unmapped.
@@ -164,12 +189,9 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	frame = (uintptr_t) frame_alloc(ONE_FRAME,
 	    FRAME_HIGHMEM | FRAME_ATOMIC | flags); 
 	if (frame) {
-		page = km_page_alloc(PAGE_SIZE, PAGE_SIZE);
+		page = km_map(frame, PAGE_SIZE,
+		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		ASSERT(page);	// FIXME
-		page_table_lock(AS_KERNEL, true);
-		page_mapping_insert(AS_KERNEL, page, frame,
-		    PAGE_CACHEABLE | PAGE_READ | PAGE_WRITE);
-		page_table_unlock(AS_KERNEL, true);
 	} else {
 		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME,
 		    FRAME_LOWMEM);

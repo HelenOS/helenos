@@ -44,7 +44,7 @@
 static void multiboot2_module(const multiboot2_module_t *module)
 {
 	if (init.cnt < CONFIG_INIT_TASKS) {
-		init.tasks[init.cnt].addr = PA2KA(module->start);
+		init.tasks[init.cnt].paddr = module->start;
 		init.tasks[init.cnt].size = module->end - module->start;
 		multiboot_extract_command(init.tasks[init.cnt].name,
 		    CONFIG_TASK_NAME_BUFLEN, module->string);

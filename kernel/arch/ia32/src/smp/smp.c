@@ -46,8 +46,9 @@
 #include <panic.h>
 #include <debug.h>
 #include <arch/asm.h>
-#include <mm/frame.h>
 #include <mm/page.h>
+#include <mm/frame.h>
+#include <mm/km.h>
 #include <mm/slab.h>
 #include <mm/as.h>
 #include <print.h>
@@ -71,8 +72,10 @@ void smp_init(void)
 	}
 	
 	if (config.cpu_count > 1) {
-		l_apic = (uint32_t *) hw_map((uintptr_t) l_apic, PAGE_SIZE);
-		io_apic = (uint32_t *) hw_map((uintptr_t) io_apic, PAGE_SIZE);
+		l_apic = (uint32_t *) km_map((uintptr_t) l_apic, PAGE_SIZE,
+		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+		io_apic = (uint32_t *) km_map((uintptr_t) io_apic, PAGE_SIZE,
+		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	}
 }
 
