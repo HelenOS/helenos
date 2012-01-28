@@ -63,18 +63,7 @@ typedef struct interrupt_context_list {
 	fibril_mutex_t mutex;
 } interrupt_context_list_t;
 
-extern interrupt_context_t *create_interrupt_context(void);
-extern void delete_interrupt_context(interrupt_context_t *);
-extern void init_interrupt_context_list(interrupt_context_list_t *);
-extern void add_interrupt_context(interrupt_context_list_t *,
-    interrupt_context_t *);
-extern void remove_interrupt_context(interrupt_context_list_t *,
-    interrupt_context_t *);
-extern interrupt_context_t *find_interrupt_context_by_id(
-    interrupt_context_list_t *, int);
-extern interrupt_context_t *find_interrupt_context(
-    interrupt_context_list_t *, ddf_dev_t *, int);
-
+extern void interrupt_init(void);
 extern int register_interrupt_handler(ddf_dev_t *, int, interrupt_handler_t *,
     irq_code_t *);
 extern int unregister_interrupt_handler(ddf_dev_t *, int);
