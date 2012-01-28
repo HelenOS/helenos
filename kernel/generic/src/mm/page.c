@@ -83,30 +83,6 @@ void page_init(void)
 	page_arch_init();
 }
 
-/** Map memory structure
- *
- * Identity-map memory structure
- * considering possible crossings
- * of page boundaries.
- *
- * @param addr Address of the structure.
- * @param size Size of the structure.
- *
- */
-void map_structure(uintptr_t addr, size_t size)
-{
-	size_t length = size + (addr - (addr & ~(PAGE_SIZE - 1)));
-	size_t cnt = length / PAGE_SIZE + (length % PAGE_SIZE > 0);
-	
-	size_t i;
-	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, addr + i * PAGE_SIZE,
-		    addr + i * PAGE_SIZE, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	
-	/* Repel prefetched accesses to the old mapping. */
-	memory_barrier();
-}
-
 /** Insert mapping of page to frame.
  *
  * Map virtual address page to physical address frame
