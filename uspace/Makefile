@@ -94,14 +94,6 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
-	srv/net/il/arp \
-	srv/net/il/ip \
-	srv/net/tl/icmp \
-	srv/net/tl/udp \
-	srv/net/tl/tcp \
-	srv/net/nil/eth \
-	srv/net/nil/nildummy \
-	srv/net/net \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/char/i8042 \
