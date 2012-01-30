@@ -47,12 +47,6 @@ typedef enum {
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_NETWORKING = FOURCC('n', 'e', 't', ' '),
-	SERVICE_ETHERNET   = FOURCC('e', 't', 'h', ' '),
-	SERVICE_NILDUMMY   = FOURCC('n', 'i', 'l', 'd'),
-	SERVICE_IP         = FOURCC('i', 'p', 'v', '4'),
-	SERVICE_ARP        = FOURCC('a', 'r', 'p', ' '),
-	SERVICE_ICMP       = FOURCC('i', 'c', 'm', 'p'),
 	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
 	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
 } services_t;

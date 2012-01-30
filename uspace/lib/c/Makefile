@@ -107,7 +107,6 @@ GENERIC_SOURCES = \
 	generic/adt/hash_table.c \
 	generic/adt/hash_set.c \
 	generic/adt/dynamic_fifo.c \
-	generic/adt/measured_strings.c \
 	generic/adt/char_map.c \
 	generic/adt/prodcons.c \
 	generic/time.c \
