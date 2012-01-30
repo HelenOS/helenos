@@ -39,7 +39,6 @@
 
 #include <ipc/services.h>
 #include <net/device.h>
-#include <net/packet.h>
 
 /** Return a value indicating whether the value is in the interval.
  *

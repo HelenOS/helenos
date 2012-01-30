@@ -44,8 +44,6 @@
 #include <sysinfo.h>
 #include <ipc/ns.h>
 
-#include <net_checksum.h>
-
 #include <str.h>
 
 #include "defs.h"
