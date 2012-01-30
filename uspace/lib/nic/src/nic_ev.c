@@ -62,7 +62,7 @@ int nic_ev_addr_changed(async_sess_t *sess, const nic_address_t *addr)
 }
 
 /** Device state changed. */
-extern int nic_ev_device_state(async_sess_t *sess, sysarg_t state)
+int nic_ev_device_state(async_sess_t *sess, sysarg_t state)
 {
 	int rc;
 
