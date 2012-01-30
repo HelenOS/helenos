@@ -97,8 +97,8 @@ void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *sb,
 uint8_t ext4_directory_entry_ll_get_inode_type(
 		ext4_superblock_t *sb, ext4_directory_entry_ll_t *de)
 {
-	if (ext4_superblock_get_rev_level(sb) == 0 &&
-		    ext4_superblock_get_minor_rev_level(sb) < 5) {
+	if (ext4_superblock_get_rev_level(sb) > 0 ||
+		    ext4_superblock_get_minor_rev_level(sb) >= 5) {
 
 			return de->inode_type;
 	}
@@ -110,8 +110,8 @@ uint8_t ext4_directory_entry_ll_get_inode_type(
 void ext4_directory_entry_ll_set_inode_type(
 		ext4_superblock_t *sb, ext4_directory_entry_ll_t *de, uint8_t type)
 {
-	if (ext4_superblock_get_rev_level(sb) == 0 &&
-			ext4_superblock_get_minor_rev_level(sb) < 5) {
+	if (ext4_superblock_get_rev_level(sb) > 0 ||
+			ext4_superblock_get_minor_rev_level(sb) >= 5) {
 
 		de->inode_type = type;
 	}
@@ -259,6 +259,24 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
+static void ext4_directory_write_entry(ext4_superblock_t *sb,
+		ext4_directory_entry_ll_t *entry, uint16_t entry_len,
+		ext4_inode_ref_t *child, const char *name, size_t name_len)
+{
+	ext4_directory_entry_ll_set_inode(entry, child->index);
+	ext4_directory_entry_ll_set_entry_length(entry, entry_len);
+	ext4_directory_entry_ll_set_name_length(sb, entry, name_len);
+
+	if (ext4_inode_is_type(sb, child->inode, EXT4_INODE_MODE_DIRECTORY)) {
+		ext4_directory_entry_ll_set_inode_type(
+				sb, entry, EXT4_DIRECTORY_FILETYPE_DIR);
+	} else {
+		ext4_directory_entry_ll_set_inode_type(
+				sb, entry, EXT4_DIRECTORY_FILETYPE_REG_FILE);
+	}
+	memcpy(entry->name, name, name_len);
+}
+
 int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
 		const char *entry_name, ext4_inode_ref_t *child)
 {
@@ -281,9 +299,9 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 
 		if ((entry_inode == 0) && (rec_len >= required_len)) {
 
-			// Don't touch entry length
-			ext4_directory_entry_ll_set_inode(it.current, child->index);
-			ext4_directory_entry_ll_set_name_length(fs->superblock, it.current, name_len);
+
+			ext4_directory_write_entry(fs->superblock, it.current, rec_len,
+					child, entry_name, name_len);
 			it.current_block->dirty = true;
 			return ext4_directory_iterator_fini(&it);
 		}
@@ -306,20 +324,8 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 				// We are sure, that both entries are in the same data block
 				// dirtyness will be set now
 
-				ext4_directory_entry_ll_set_inode(new_entry, child->index);
-				ext4_directory_entry_ll_set_entry_length(new_entry, free_space);
-				ext4_directory_entry_ll_set_name_length(
-						fs->superblock, new_entry, name_len);
-
-				if (ext4_inode_is_type(fs->superblock, child->inode, EXT4_INODE_MODE_DIRECTORY)) {
-					ext4_directory_entry_ll_set_inode_type(
-							fs->superblock, new_entry, EXT4_DIRECTORY_FILETYPE_DIR);
-				} else {
-					ext4_directory_entry_ll_set_inode_type(
-							fs->superblock, new_entry, EXT4_DIRECTORY_FILETYPE_REG_FILE);
-				}
-
-				memcpy(new_entry->name, entry_name, name_len);
+				ext4_directory_write_entry(fs->superblock, new_entry,
+						free_space, child, entry_name, name_len);
 				it.current_block->dirty = true;
 				return ext4_directory_iterator_fini(&it);
 			}
@@ -377,10 +383,8 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 
 	ext4_directory_entry_ll_t *block_entry = new_block->data;
 
-	ext4_directory_entry_ll_set_entry_length(block_entry, block_size);
-	ext4_directory_entry_ll_set_inode(block_entry, child->index);
-	ext4_directory_entry_ll_set_name_length(fs->superblock, block_entry, name_len);
-	memcpy(block_entry->name, entry_name, name_len);
+	ext4_directory_write_entry(fs->superblock, block_entry, block_size, 
+	child, entry_name, name_len);
 
 	new_block->dirty = true;
 	rc = block_put(new_block);

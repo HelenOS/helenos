@@ -138,8 +138,6 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 
 	while (bgid < bg_count) {
 
-		EXT4FS_DBG("testing bg \%u", bgid);
-
 		ext4_block_group_ref_t *bg_ref;
 		rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
 		if (rc != EOK) {
@@ -168,11 +166,13 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 			uint32_t index_in_group;
 			rc = ext4_bitmap_find_free_bit_and_set(
 					bitmap_block->data, 0, &index_in_group, inodes_in_group);
-//			if (rc == ENOSPC) {
-//				block_put(bitmap_block);
-//				ext4_filesystem_put_block_group_ref(bg_ref);
-//				continue;
-//			}
+
+			// TODO check
+			if (rc == ENOSPC) {
+				block_put(bitmap_block);
+				ext4_filesystem_put_block_group_ref(bg_ref);
+				continue;
+			}
 
 			bitmap_block->dirty = true;
 
