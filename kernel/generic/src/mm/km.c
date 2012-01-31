@@ -123,19 +123,21 @@ void km_page_free(uintptr_t page, size_t size)
 	ra_free(km_ni_arena, page, size);
 }
 
-uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
+static uintptr_t
+km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
 {
 	uintptr_t vaddr;
-	size_t asize;
 	size_t align;
 	uintptr_t offs;
 
-	asize = ALIGN_UP(size, PAGE_SIZE);
+	ASSERT(ALIGN_DOWN(paddr, FRAME_SIZE) == paddr);
+	ASSERT(ALIGN_UP(size, FRAME_SIZE) == size);
+
 	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
-	vaddr = km_page_alloc(asize, max(PAGE_SIZE, align));
+	vaddr = km_page_alloc(size, max(PAGE_SIZE, align));
 
 	page_table_lock(AS_KERNEL, true);
-	for (offs = 0; offs < asize; offs += PAGE_SIZE) {
+	for (offs = 0; offs < size; offs += PAGE_SIZE) {
 		page_mapping_insert(AS_KERNEL, vaddr + offs, paddr + offs,
 		    flags);
 	}
@@ -144,16 +146,66 @@ uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
 	return vaddr;
 }
 
-uintptr_t km_map_structure(uintptr_t paddr, size_t size, unsigned int flags)
+static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 {
-	size_t offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE); 
-	uintptr_t page;
+	uintptr_t offs;
+	ipl_t ipl;
 
-	page = km_map(ALIGN_DOWN(paddr, FRAME_SIZE), size + offs, flags);
+	ASSERT(ALIGN_DOWN(vaddr, PAGE_SIZE) == vaddr);
+	ASSERT(ALIGN_UP(size, PAGE_SIZE) == size);
+
+	page_table_lock(AS_KERNEL, true);
+
+	ipl = tlb_shootdown_start(TLB_INVL_ASID, ASID_KERNEL, 0, 0);
+
+	for (offs = 0; offs < size; offs += PAGE_SIZE)
+		page_mapping_remove(AS_KERNEL, vaddr + offs);
+
+	tlb_invalidate_asid(ASID_KERNEL);
+
+	as_invalidate_translation_cache(AS_KERNEL, 0, -1);
+	tlb_shootdown_finalize(ipl);
+	page_table_unlock(AS_KERNEL, true);
+
+	km_page_free(vaddr, size);
+}
+
+/** Map a piece of physical address space into the virtual address space.
+ *
+ * @param paddr		Physical address to be mapped. May be unaligned.
+ * @param size		Size of area starting at paddr to be mapped.
+ * @param flags		Protection flags to be used for the mapping.
+ *
+ * @return New virtual address mapped to paddr.
+ */
+uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
+{
+	uintptr_t page;
+	size_t offs; 
+
+	offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE); 
+	page = km_map_aligned(ALIGN_DOWN(paddr, FRAME_SIZE),
+	    ALIGN_UP(size + offs, FRAME_SIZE), flags);
+
 	return page + offs;
 }
 
-/** Unmap kernen non-identity page.
+/** Unmap a piece of virtual address space.
+ *
+ * @param vaddr		Virtual address to be unmapped. May be unaligned, but
+ *			it must a value previously returned by km_map().
+ * @param size		Size of area starting at vaddr to be unmapped.
+ */
+void km_unmap(uintptr_t vaddr, size_t size)
+{
+	size_t offs; 
+
+	offs = vaddr - ALIGN_DOWN(vaddr, PAGE_SIZE); 
+	km_unmap_aligned(ALIGN_DOWN(vaddr, PAGE_SIZE),
+	    ALIGN_UP(size + offs, PAGE_SIZE));
+}
+
+/** Unmap kernel non-identity page.
  *
  * @param[in] page	Non-identity page to be unmapped.
  */
