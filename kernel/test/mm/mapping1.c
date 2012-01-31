@@ -80,7 +80,9 @@ const char *test_mapping1(void)
 			return "Criss-cross read does not match the value written.";
 	}
 
-	// FIXME: do not leak frame, page0 and page1
+	km_unmap(page0, PAGE_SIZE);
+	km_unmap(page1, PAGE_SIZE);
+	frame_free(frame);
 	
 	return NULL;
 }
