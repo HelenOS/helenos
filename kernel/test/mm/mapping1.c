@@ -65,8 +65,12 @@ const char *test_mapping1(void)
 
 		v = *((uint32_t *) page1);
 	
-		if (v != TEST_MAGIC)
+		if (v != TEST_MAGIC) {
+			km_unmap(page0, PAGE_SIZE);
+			km_unmap(page1, PAGE_SIZE);
+			frame_free(frame);
 			return "Criss-cross read does not match the value written.";
+		}
 
 		TPRINTF("Writing zero using the second virtual address.\n");
 	
@@ -76,8 +80,12 @@ const char *test_mapping1(void)
 	
 		v = *((uint32_t *) page0);
 	
-		if (v != 0)
+		if (v != 0) {
+			km_unmap(page0, PAGE_SIZE);
+			km_unmap(page1, PAGE_SIZE);
+			frame_free(frame);
 			return "Criss-cross read does not match the value written.";
+		}
 	}
 
 	km_unmap(page0, PAGE_SIZE);
