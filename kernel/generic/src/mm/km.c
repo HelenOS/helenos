@@ -123,7 +123,8 @@ void km_page_free(uintptr_t page, size_t size)
 	ra_free(km_ni_arena, page, size);
 }
 
-uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
+static uintptr_t
+km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
 {
 	uintptr_t vaddr;
 	size_t asize;
@@ -144,12 +145,13 @@ uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
 	return vaddr;
 }
 
-uintptr_t km_map_structure(uintptr_t paddr, size_t size, unsigned int flags)
+uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
 {
 	size_t offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE); 
 	uintptr_t page;
 
-	page = km_map(ALIGN_DOWN(paddr, FRAME_SIZE), size + offs, flags);
+	page = km_map_aligned(ALIGN_DOWN(paddr, FRAME_SIZE), size + offs,
+	    flags);
 	return page + offs;
 }
 
