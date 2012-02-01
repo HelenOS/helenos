@@ -594,7 +594,7 @@ static void fun_del_ref(ddf_fun_t *fun)
 }
 
 /** Allocate driver-specific device data. */
-extern void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
+void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
 {
 	void *data;
 
@@ -656,7 +656,7 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 }
 
 /** Allocate driver-specific function data. */
-extern void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
+void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
 {
 	void *data;
 

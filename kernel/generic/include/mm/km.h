@@ -49,7 +49,7 @@ extern void km_page_free(uintptr_t, size_t);
 extern bool km_is_non_identity(uintptr_t);
 
 extern uintptr_t km_map(uintptr_t, size_t, unsigned int);
-extern uintptr_t km_map_structure(uintptr_t, size_t, unsigned int);
+extern void km_unmap(uintptr_t, size_t);
 
 extern uintptr_t km_temporary_page_get(uintptr_t *, frame_flags_t);
 extern void km_temporary_page_put(uintptr_t);

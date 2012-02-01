@@ -101,11 +101,11 @@ static struct acpi_sdt_header *map_sdt(struct acpi_sdt_header *psdt)
 	struct acpi_sdt_header *vsdt;
 
 	/* Start with mapping the header only. */
-	vhdr = (struct acpi_sdt_header *) km_map_structure((uintptr_t) psdt,
+	vhdr = (struct acpi_sdt_header *) km_map((uintptr_t) psdt,
 	    sizeof(struct acpi_sdt_header), PAGE_READ | PAGE_NOT_CACHEABLE); 
 
 	/* Now we can map the entire structure. */
-	vsdt = (struct acpi_sdt_header *) km_map_structure((uintptr_t) psdt,
+	vsdt = (struct acpi_sdt_header *) km_map((uintptr_t) psdt,
 	    vhdr->length, PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	
 	// TODO: do not leak vtmp
