@@ -64,7 +64,6 @@
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <mm/as.h>
-#include <mm/km.h>
 #include <mm/frame.h>
 #include <arch/barrier.h>
 #include <typedefs.h>
@@ -75,8 +74,6 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <align.h>
-#include <macros.h>
-#include <bitops.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -84,30 +81,6 @@ page_mapping_operations_t *page_mapping_operations = NULL;
 void page_init(void)
 {
 	page_arch_init();
-}
-
-/** Map memory structure
- *
- * Identity-map memory structure
- * considering possible crossings
- * of page boundaries.
- *
- * @param addr Address of the structure.
- * @param size Size of the structure.
- *
- */
-void map_structure(uintptr_t addr, size_t size)
-{
-	size_t length = size + (addr - (addr & ~(PAGE_SIZE - 1)));
-	size_t cnt = length / PAGE_SIZE + (length % PAGE_SIZE > 0);
-	
-	size_t i;
-	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, addr + i * PAGE_SIZE,
-		    addr + i * PAGE_SIZE, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	
-	/* Repel prefetched accesses to the old mapping. */
-	memory_barrier();
 }
 
 /** Insert mapping of page to frame.
@@ -190,28 +163,6 @@ void page_mapping_make_global(uintptr_t base, size_t size)
 	ASSERT(page_mapping_operations->mapping_make_global);
 	
 	return page_mapping_operations->mapping_make_global(base, size);
-}
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	uintptr_t virtaddr;
-	size_t asize;
-	size_t align;
-	pfn_t i;
-
-	asize = ALIGN_UP(size, PAGE_SIZE);
-	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
-	virtaddr = km_page_alloc(asize, max(PAGE_SIZE, align));
-
-	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(asize); i++) {
-		uintptr_t addr = PFN2ADDR(i);
-		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
-		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	}
-	page_table_unlock(AS_KERNEL, true);
-	
-	return virtaddr;
 }
 
 int page_find_mapping(uintptr_t virt, void **phys)

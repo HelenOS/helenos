@@ -306,12 +306,13 @@ static int i8042_write(ddf_fun_t *fun, char *buffer, size_t size)
 	fibril_mutex_lock(&controller->write_guard);
 	
 	for (size_t i = 0; i < size; ++i) {
-		wait_ready(controller);
-		
-		if (controller->aux_fun == fun)
+		if (controller->aux_fun == fun) {
+			wait_ready(controller);
 			pio_write_8(&controller->regs->status,
 			    i8042_CMD_WRITE_AUX);
+		}
 		
+		wait_ready(controller);
 		pio_write_8(&controller->regs->data, buffer[i]);
 	}
 	

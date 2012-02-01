@@ -40,7 +40,7 @@ ISOFS_B_IN = $(DISTROOT)/boot/isofs.b
 all: $(POST_OUTPUT)
 
 $(POST_OUTPUT): build_dist
-	mkisofs -f -G $(ISOFS_B_IN) -B ... -r -o $@ $(DISTROOT)/
+	$(GENISOIMAGE) -f -G $(ISOFS_B_IN) -B ... -r -o $@ $(DISTROOT)/
 
 build_dist: clean
 	mkdir -p $(DISTROOT)/boot

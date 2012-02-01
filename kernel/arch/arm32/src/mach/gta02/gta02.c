@@ -37,6 +37,7 @@
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mm/page.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
@@ -100,8 +101,10 @@ static void gta02_init(void)
 {
 	s3c24xx_irqc_regs_t *irqc_regs;
 
-	gta02_timer = (void *) hw_map(S3C24XX_TIMER_ADDRESS, PAGE_SIZE);
-	irqc_regs = (void *) hw_map(S3C24XX_IRQC_ADDRESS, PAGE_SIZE);
+	gta02_timer = (void *) km_map(S3C24XX_TIMER_ADDRESS, PAGE_SIZE,
+	    PAGE_NOT_CACHEABLE);
+	irqc_regs = (void *) km_map(S3C24XX_IRQC_ADDRESS, PAGE_SIZE,
+	    PAGE_NOT_CACHEABLE);
 
 	/* Initialize interrupt controller. */
 	s3c24xx_irqc_init(&gta02_irqc, irqc_regs);

@@ -496,7 +496,7 @@ int nic_report_address(nic_t *nic_data, const nic_address_t *address)
 	/* Notify NIL layer (and uppper) if bound - not in add_device */
 	if (nic_data->client_session != NULL) {
 		int rc = nic_ev_addr_changed(nic_data->client_session,
-		    nic_data->device_id, address);
+		    address);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
 			return rc;
@@ -603,8 +603,8 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 			break;
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
-		nic_ev_received(nic_data->client_session, nic_data->device_id,
-		    frame->data, frame->size);
+		nic_ev_received(nic_data->client_session, frame->data,
+		    frame->size);
 	} else {
 		switch (frame_type) {
 		case NIC_FRAME_UNICAST:
@@ -638,8 +638,7 @@ void nic_received_noneth_frame(nic_t *nic_data, void *data, size_t size)
 	nic_data->stats.receive_bytes += size;
 	fibril_rwlock_write_unlock(&nic_data->stats_lock);
 	
-	nic_ev_received(nic_data->client_session, nic_data->device_id,
-	    data, size);
+	nic_ev_received(nic_data->client_session, data, size);
 }
 
 /**
@@ -690,7 +689,6 @@ static nic_t *nic_create(void)
 	
 	nic_data->dev = NULL;
 	nic_data->fun = NULL;
-	nic_data->device_id = NIC_DEVICE_INVALID_ID;
 	nic_data->state = NIC_STATE_STOPPED;
 	nic_data->client_session = NULL;
 	nic_data->irc_session = NULL;

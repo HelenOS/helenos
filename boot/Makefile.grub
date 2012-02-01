@@ -51,10 +51,10 @@ all: $(BOOT_OUTPUT)
 
 $(BOOT_OUTPUT): build_dist
 ifeq ($(GRUB_ARCH),pc)
-	mkisofs -J -r -input-charset utf-8 -V "HelenOS boot ISO" -eltorito-boot $(ELTORITO) -no-emul-boot -boot-load-size 64 -boot-info-table -o $@ $(DISTROOT)/
+	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS boot ISO" -eltorito-boot $(ELTORITO) -no-emul-boot -boot-load-size 64 -boot-info-table -o $@ $(DISTROOT)/
 endif
 ifeq ($(GRUB_ARCH),efi)
-	mkisofs -J -r -input-charset utf-8 -V "HelenOS boot ISO" -efi-boot $(ELTORITO) -o $@ $(DISTROOT)/
+	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS boot ISO" -efi-boot $(ELTORITO) -o $@ $(DISTROOT)/
 endif
 
 build_dist: clean

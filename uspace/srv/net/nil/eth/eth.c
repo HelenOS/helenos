@@ -172,7 +172,7 @@ INT_MAP_IMPLEMENT(eth_protos, eth_proto_t);
 static void eth_nic_cb_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
-static int eth_device_state(nic_device_id_t device_id, sysarg_t state)
+static int eth_device_state(eth_device_t *device, sysarg_t state)
 {
 	int index;
 	eth_proto_t *proto;
@@ -182,8 +182,8 @@ static int eth_device_state(nic_device_id_t device_id, sysarg_t state)
 	    index--) {
 		proto = eth_protos_get_index(&eth_globals.protos, index);
 		if ((proto) && (proto->sess)) {
-			il_device_state_msg(proto->sess, device_id, state,
-			    proto->service);
+			il_device_state_msg(proto->sess, device->device_id,
+			    state, proto->service);
 		}
 	}
 	fibril_rwlock_read_unlock(&eth_globals.protos_lock);
@@ -346,8 +346,7 @@ static int eth_device_message(nic_device_id_t device_id, service_id_t sid,
 		return ENOENT;
 	}
 	
-	rc = nic_callback_create(device->sess, device_id,
-	    eth_nic_cb_connection, NULL);
+	rc = nic_callback_create(device->sess, eth_nic_cb_connection, device);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		async_hangup(device->sess);
@@ -824,7 +823,7 @@ static int eth_send_message(nic_device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
-static int eth_received(nic_device_id_t device_id)
+static int eth_received(eth_device_t *device)
 {
 	void *data;
 	size_t size;
@@ -844,10 +843,10 @@ static int eth_received(nic_device_id_t device_id)
 	memcpy(pdata, data, size);
 	free(data);
 	
-	return nil_received_msg_local(device_id, packet);
+	return nil_received_msg_local(device->device_id, packet);
 }
 
-static int eth_addr_changed(nic_device_id_t device_id)
+static int eth_addr_changed(eth_device_t *device)
 {
 	nic_address_t address;
 	size_t length;
@@ -865,30 +864,26 @@ static int eth_addr_changed(nic_device_id_t device_id)
 	}
 
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
-	/* An existing device? */
-	eth_device_t *device = eth_devices_find(&eth_globals.devices, device_id);
-	if (device) {
-		printf("Device %d changing address from " PRIMAC " to " PRIMAC "\n",
-			device_id, ARGSMAC(device->addr.address), ARGSMAC(address.address));
-		memcpy(&device->addr, &address, sizeof (nic_address_t));
-		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 
-		/* Notify all upper layer modules */
-		fibril_rwlock_read_lock(&eth_globals.protos_lock);
-		int index;
-		for (index = 0; index < eth_protos_count(&eth_globals.protos); index++) {
-			eth_proto_t *proto = eth_protos_get_index(&eth_globals.protos, index);
-			if (proto->sess != NULL) {
-				il_addr_changed_msg(proto->sess, device->device_id,
-						ETH_ADDR, address.address);
-			}
+	printf("Device %d changing address from " PRIMAC " to " PRIMAC "\n",
+		device->device_id, ARGSMAC(device->addr.address),
+		ARGSMAC(address.address));
+	memcpy(&device->addr, &address, sizeof (nic_address_t));
+	fibril_rwlock_write_unlock(&eth_globals.devices_lock);
+
+	/* Notify all upper layer modules */
+	fibril_rwlock_read_lock(&eth_globals.protos_lock);
+	int index;
+	for (index = 0; index < eth_protos_count(&eth_globals.protos); index++) {
+		eth_proto_t *proto = eth_protos_get_index(&eth_globals.protos, index);
+		if (proto->sess != NULL) {
+			il_addr_changed_msg(proto->sess, device->device_id,
+					ETH_ADDR, address.address);
 		}
-
-		fibril_rwlock_read_unlock(&eth_globals.protos_lock);
-		return EOK;
-	} else {
-		return ENOENT;
 	}
+
+	fibril_rwlock_read_unlock(&eth_globals.protos_lock);
+	return EOK;
 }
 
 int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
@@ -961,6 +956,7 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 
 static void eth_nic_cb_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	eth_device_t *device = (eth_device_t *)arg;
 	int rc;
 	
 	async_answer_0(iid, EOK);
@@ -974,16 +970,15 @@ static void eth_nic_cb_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case NIC_EV_DEVICE_STATE:
-			rc = eth_device_state(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			rc = eth_device_state(device, IPC_GET_ARG1(call));
 			async_answer_0(callid, (sysarg_t) rc);
 			break;
 		case NIC_EV_RECEIVED:
-			rc = eth_received(IPC_GET_ARG1(call));
+			rc = eth_received(device);
 			async_answer_0(callid, (sysarg_t) rc);
 			break;
 		case NIC_EV_ADDR_CHANGED:
-			rc = eth_addr_changed(IPC_GET_ARG1(call));
+			rc = eth_addr_changed(device);
 			async_answer_0(callid, (sysarg_t) rc);
 			break;
 		default:

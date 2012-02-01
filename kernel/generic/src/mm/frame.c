@@ -923,7 +923,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 				size_t i;
 				for (i = 0; i < init.cnt; i++)
 					if (overlaps(addr, PFN2ADDR(confcount),
-					    KA2PA(init.tasks[i].addr),
+					    init.tasks[i].paddr,
 					    init.tasks[i].size)) {
 						overlap = true;
 						break;
@@ -1250,7 +1250,7 @@ void frame_init(void)
 		
 		size_t i;
 		for (i = 0; i < init.cnt; i++) {
-			pfn_t pfn = ADDR2PFN(KA2PA(init.tasks[i].addr));
+			pfn_t pfn = ADDR2PFN(init.tasks[i].paddr);
 			frame_mark_unavailable(pfn,
 			    SIZE2FRAMES(init.tasks[i].size));
 		}

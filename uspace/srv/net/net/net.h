@@ -95,8 +95,8 @@ typedef struct {
 	measured_strings_t configuration;
 	
 	/** Serving network interface driver module index. */
-	service_id_t sid;  /**< Service ID */
-	async_sess_t *sess;      /**< Driver session. */
+	service_id_t sid;    /**< Service ID */
+	async_sess_t *sess;  /**< Driver session. */
 	
 	module_t *nil;  /**< Serving link layer module index. */
 	module_t *il;   /**< Serving internet layer module index. */

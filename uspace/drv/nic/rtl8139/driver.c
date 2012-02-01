@@ -54,23 +54,30 @@
 
 /** Global mutex for work with shared irq structure */
 FIBRIL_MUTEX_INITIALIZE(irq_reg_lock);
+
 /** Lock interrupt structure mutex */
-#define RTL8139_IRQ_STRUCT_LOCK() fibril_mutex_lock(&irq_reg_lock)
+#define RTL8139_IRQ_STRUCT_LOCK() \
+	fibril_mutex_lock(&irq_reg_lock)
+
 /** Unlock interrupt structure mutex */
-#define RTL8139_IRQ_STRUCT_UNLOCK() fibril_mutex_unlock(&irq_reg_lock)
+#define RTL8139_IRQ_STRUCT_UNLOCK() \
+	fibril_mutex_unlock(&irq_reg_lock)
 
 /** PCI clock frequency in kHz */
-#define RTL8139_PCI_FREQ_KHZ 33000
+#define RTL8139_PCI_FREQ_KHZ  33000
 
-#define RTL8139_AUTONEG_CAPS (ETH_AUTONEG_10BASE_T_HALF \
-    | ETH_AUTONEG_10BASE_T_FULL | ETH_AUTONEG_100BASE_TX_HALF \
-    | ETH_AUTONEG_100BASE_TX_FULL | ETH_AUTONEG_PAUSE_SYMETRIC)
+#define RTL8139_AUTONEG_CAPS (ETH_AUTONEG_10BASE_T_HALF | \
+	ETH_AUTONEG_10BASE_T_FULL | ETH_AUTONEG_100BASE_TX_HALF | \
+	ETH_AUTONEG_100BASE_TX_FULL | ETH_AUTONEG_PAUSE_SYMETRIC)
 
 /** Lock transmitter and receiver data
- *  This function shall be called whenever both transmitter and receiver locking
- *  to force safe lock ordering (deadlock prevention)
  *
- *  @param rtl8139  RTL8139 private data
+ * This function shall be called whenever
+ * both transmitter and receiver locking
+ * to force safe lock ordering (deadlock prevention)
+ *
+ * @param rtl8139 RTL8139 private data
+ *
  */
 inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
 {
@@ -81,7 +88,8 @@ inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
 
 /** Unlock transmitter and receiver data
  *
- *  @param rtl8139  RTL8139 private data
+ * @param rtl8139 RTL8139 private data
+ *
  */
 inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 {
@@ -456,7 +464,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 	tsd_value &= ~(uint32_t)TSD_OWN;
 	pio_write_32(tsd, tsd_value);
 	return;
-
+	
 err_busy_no_inc:
 err_size:
 	return;
@@ -512,6 +520,7 @@ static void rtl8139_soft_reset(rtl8139_t *rtl8139)
  * @param frame_size    The size of the frame data
  *
  * @return The frame list node (not connected)
+ *
  */
 static nic_frame_t *rtl8139_read_frame(nic_t *nic_data,
     void *rx_buffer, size_t rx_size, size_t frame_start, size_t frame_size)
@@ -1214,7 +1223,7 @@ static int rtl8139_device_initialize(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "The device is initialized");
 	return ret;
-
+	
 failed:
 	ddf_msg(LVL_ERROR, "The device initialization failed");
 	rtl8139_dev_cleanup(dev);
@@ -1341,7 +1350,7 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	    dev->name);
 
 	return EOK;
-
+	
 err_fun_bind:
 	ddf_fun_unbind(fun);
 err_fun_create:

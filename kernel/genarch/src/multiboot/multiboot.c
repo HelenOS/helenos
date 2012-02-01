@@ -76,7 +76,7 @@ static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 		if (init.cnt >= CONFIG_INIT_TASKS)
 			break;
 		
-		init.tasks[init.cnt].addr = PA2KA(mods[i].start);
+		init.tasks[init.cnt].paddr = mods[i].start;
 		init.tasks[init.cnt].size = mods[i].end - mods[i].start;
 		
 		/* Copy command line, if available. */

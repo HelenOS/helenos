@@ -72,18 +72,18 @@ DEVICE_MAP_IMPLEMENT(nildummy_devices, nildummy_device_t);
 static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
-static int nildummy_device_state(nic_device_id_t device_id, sysarg_t state)
+static int nildummy_device_state(nildummy_device_t *device, sysarg_t state)
 {
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 	if (nildummy_globals.proto.sess)
-		il_device_state_msg(nildummy_globals.proto.sess, device_id,
-		    state, nildummy_globals.proto.service);
+		il_device_state_msg(nildummy_globals.proto.sess,
+		    device->device_id, state, nildummy_globals.proto.service);
 	fibril_rwlock_read_unlock(&nildummy_globals.protos_lock);
 	
 	return EOK;
 }
 
-static int nildummy_addr_changed(nic_device_id_t device_id)
+static int nildummy_addr_changed(nildummy_device_t *device)
 {
 	return ENOTSUP;
 }
@@ -181,8 +181,8 @@ static int nildummy_device_message(nic_device_id_t device_id,
 		return ENOENT;
 	}
 	
-	int rc = nic_callback_create(device->sess, device_id,
-	    nildummy_nic_cb_conn, NULL);
+	int rc = nic_callback_create(device->sess, nildummy_nic_cb_conn,
+	    device);
 	if (rc != EOK) {
 		async_hangup(device->sess);
 		
@@ -359,8 +359,6 @@ static int nildummy_register_message(services_t service, async_sess_t *sess)
 static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
     services_t sender)
 {
-	packet_t *p;
-	
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
 	
 	nildummy_device_t *device =
@@ -370,7 +368,7 @@ static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
 		return ENOENT;
 	}
 	
-	p = packet;
+	packet_t *p = packet;
 	do {
 		nic_send_frame(device->sess, packet_get_data(p),
 		    packet_get_data_length(p));
@@ -384,7 +382,7 @@ static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
-static int nildummy_received(nic_device_id_t device_id)
+static int nildummy_received(nildummy_device_t *device)
 {
 	void *data;
 	size_t size;
@@ -402,7 +400,7 @@ static int nildummy_received(nic_device_id_t device_id)
 	memcpy(pdata, data, size);
 	free(pdata);
 
-	return nil_received_msg_local(device_id, packet);
+	return nil_received_msg_local(device->device_id, packet);
 }
 
 int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
@@ -466,6 +464,7 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 
 static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	nildummy_device_t *device = (nildummy_device_t *)arg;
 	int rc;
 	
 	async_answer_0(iid, EOK);
@@ -479,16 +478,15 @@ static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case NIC_EV_DEVICE_STATE:
-			rc = nildummy_device_state(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			rc = nildummy_device_state(device, IPC_GET_ARG1(call));
 			async_answer_0(callid, (sysarg_t) rc);
 			break;
 		case NIC_EV_RECEIVED:
-			rc = nildummy_received(IPC_GET_ARG1(call));
+			rc = nildummy_received(device);
 			async_answer_0(callid, (sysarg_t) rc);
 			break;
 		case NIC_EV_ADDR_CHANGED:
-			rc = nildummy_addr_changed(IPC_GET_ARG1(call));
+			rc = nildummy_addr_changed(device);
 			async_answer_0(callid, (sysarg_t) rc);
 			break;
 		default:

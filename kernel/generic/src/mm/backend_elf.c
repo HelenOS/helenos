@@ -317,7 +317,13 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			km_temporary_page_put(kpage);
 			dirty = true;
 		} else {
-			frame = KA2PA(base + i * FRAME_SIZE);
+			pte_t *pte = page_mapping_find(AS_KERNEL,
+			    base + i * FRAME_SIZE, true);
+
+			ASSERT(pte);
+			ASSERT(PTE_PRESENT(pte));
+
+			frame = PTE_GET_FRAME(pte);
 		}	
 	} else if (upage >= start_anon) {
 		/*

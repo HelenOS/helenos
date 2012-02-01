@@ -126,9 +126,11 @@ static int lo_dev_add(ddf_dev_t *dev)
 	
 	printf("%s: Adding loopback device '%s'\n", NAME, dev->name);
 	return EOK;
+	
 error:
 	if (bound)
 		ddf_fun_unbind(fun);
+	
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	

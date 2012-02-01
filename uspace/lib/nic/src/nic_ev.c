@@ -41,14 +41,12 @@
 #include "nic_ev.h"
 
 /** Device address changed. */
-int nic_ev_addr_changed(async_sess_t *sess, nic_device_id_t dev_id,
-    const nic_address_t *addr)
+int nic_ev_addr_changed(async_sess_t *sess, const nic_address_t *addr)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, NIC_EV_ADDR_CHANGED, (sysarg_t) dev_id,
-	    &answer);
+	aid_t req = async_send_0(exch, NIC_EV_ADDR_CHANGED, &answer);
 	sysarg_t retval = async_data_write_start(exch, addr,
 	    sizeof(nic_address_t));
 
@@ -64,27 +62,24 @@ int nic_ev_addr_changed(async_sess_t *sess, nic_device_id_t dev_id,
 }
 
 /** Device state changed. */
-extern int nic_ev_device_state(async_sess_t *sess, nic_device_id_t dev_id,
-    sysarg_t state)
+int nic_ev_device_state(async_sess_t *sess, sysarg_t state)
 {
 	int rc;
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_req_2_0(exch, NIC_EV_DEVICE_STATE, dev_id, state);
+	rc = async_req_1_0(exch, NIC_EV_DEVICE_STATE, state);
 	async_exchange_end(exch);
 
 	return rc;
 }
 
 /** Frame received. */
-int nic_ev_received(async_sess_t *sess, nic_device_id_t dev_id, void *data,
-    size_t size)
+int nic_ev_received(async_sess_t *sess, void *data, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, NIC_EV_RECEIVED, (sysarg_t) dev_id,
-	    &answer);
+	aid_t req = async_send_0(exch, NIC_EV_RECEIVED, &answer);
 	sysarg_t retval = async_data_write_start(exch, data, size);
 
 	async_exchange_end(exch);

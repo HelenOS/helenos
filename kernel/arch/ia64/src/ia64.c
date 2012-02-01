@@ -52,6 +52,7 @@
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
 #include <mm/page.h>
+#include <mm/km.h>
 
 #ifdef MACHINE_ski
 #include <arch/drivers/ski.h>
@@ -68,12 +69,13 @@ uintptr_t legacyio_virt_base = 0;
 /** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS,
+	    CONFIG_INIT_TASKS);
 	size_t i;
+
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr =
-		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |
-		    VRN_MASK;
+		init.tasks[i].paddr =
+		    (uintptr_t) bootinfo->taskmap.tasks[i].addr;
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
@@ -86,7 +88,8 @@ void arch_pre_mm_init(void)
 
 static void iosapic_init(void)
 {
-	uintptr_t IOSAPIC = hw_map(iosapic_base, PAGE_SIZE);
+	uintptr_t IOSAPIC = km_map(iosapic_base, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	int i;
 	
 	int myid, myeid;
@@ -114,7 +117,8 @@ void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		/* Map the page with legacy I/O. */
-		legacyio_virt_base = hw_map(LEGACYIO_PHYS_BASE, LEGACYIO_SIZE);
+		legacyio_virt_base = km_map(LEGACYIO_PHYS_BASE, LEGACYIO_SIZE,
+		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
 		iosapic_init();
 		irq_init(INR_COUNT, INR_COUNT);
@@ -122,7 +126,8 @@ void arch_post_mm_init(void)
 	it_init();	
 }
 
-void arch_post_cpu_init(void){
+void arch_post_cpu_init(void)
+{
 }
 
 void arch_pre_smp_init(void)

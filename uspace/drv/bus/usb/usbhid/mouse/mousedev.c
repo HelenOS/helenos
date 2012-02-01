@@ -169,7 +169,7 @@ static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
 
 	return result;
 }
-/*----------------------------------------------------------------------------*/
+
 static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
     usb_mouse_t *mouse_dev)
 {
@@ -296,7 +296,7 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 	mouse->mouse_fun = fun;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get highest index of a button mentioned in given report.
  *
  * @param report HID report.

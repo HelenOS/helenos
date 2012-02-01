@@ -62,9 +62,6 @@
 /** Max length of any hw nic address (currently only eth) */
 #define NIC_MAX_ADDRESS_LENGTH  16
 
-/** Invalid device identifier. */
-#define NIC_DEVICE_INVALID_ID  (-1)
-
 #define NIC_VENDOR_MAX_LENGTH         64
 #define NIC_MODEL_MAX_LENGTH          64
 #define NIC_PART_NUMBER_MAX_LENGTH    64
@@ -85,9 +82,6 @@
 #define NIC_VLAN_BITMAP_SIZE  512
 
 #define NIC_DEVICE_PRINT_FMT  "%x"
-
-/** Device identifier type. */
-typedef int nic_device_id_t;
 
 /**
  * Structure covering the MAC address.
