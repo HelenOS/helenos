@@ -86,6 +86,7 @@ GENERIC_SOURCES = \
 	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
+	generic/inet.c \
 	generic/io/asprintf.c \
 	generic/io/io.c \
 	generic/io/printf.c \

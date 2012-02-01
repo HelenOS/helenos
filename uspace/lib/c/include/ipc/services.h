@@ -51,6 +51,8 @@ typedef enum {
 	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
 } services_t;
 
+#define SERVICE_NAME_INET "net/inet"
+
 #endif
 
 /** @}

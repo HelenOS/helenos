@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Jiri Svoboda
+# Copyright (c) 2012 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,22 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
-BINARY = tcp
+BINARY = inet
 
 SOURCES = \
-	conn.c \
-	iqueue.c \
-	ncsim.c \
-	pdu.c \
-	rqueue.c \
-	segment.c \
-	seq_no.c \
-	sock.c \
-	tcp.c \
-	test.c \
-	tqueue.c \
-	ucall.c
+	inet.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
+/** @addtogroup libcipc
  * @{
  */
-/** @file Socket provider
+/** @file
  */
 
-#ifndef SOCK_H
-#define SOCK_H
+#ifndef LIBC_IPC_INET_H_
+#define LIBC_IPC_INET_H_
 
-#include <async.h>
+#include <ipc/common.h>
 
-extern int tcp_sock_init(void);
+typedef enum {
+	INET_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
+	INET_SEND,
+	INET_SET_PROTO
+} inet_request_t;
+
+typedef enum {
+	INET_EV_RECV = IPC_FIRST_USER_METHOD
+} inet_event_t;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

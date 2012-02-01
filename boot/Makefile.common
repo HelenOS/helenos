@@ -105,7 +105,9 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
+	$(USPACE_PATH)/srv/inet/inet \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
+	$(USPACE_PATH)/srv/tcp/tcp \
 	$(USPACE_PATH)/srv/devman/devman
 
 RD_DRVS = \

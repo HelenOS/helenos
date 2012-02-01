@@ -36,11 +36,8 @@
 #define TCP_H
 
 #include <async.h>
-#include <packet_remote.h>
 #include "tcp_type.h"
 
-extern async_sess_t *net_sess;
-extern async_sess_t *ip_sess;
 extern void tcp_transmit_pdu(tcp_pdu_t *);
 
 #endif

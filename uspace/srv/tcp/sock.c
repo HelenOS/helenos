@@ -37,11 +37,13 @@
 
 #include <async.h>
 #include <errno.h>
+#include <inet/inet.h>
 #include <io/log.h>
-#include <ip_client.h>
+#include <ipc/services.h>
 #include <ipc/socket.h>
 #include <net/modules.h>
 #include <net/socket.h>
+#include <ns.h>
 
 #include "sock.h"
 #include "std.h"
@@ -62,11 +64,22 @@
 static int last_used_port = TCP_FREE_PORTS_START - 1;
 static socket_ports_t gsock;
 
+static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void tcp_sock_cstate_cb(tcp_conn_t *conn, void *arg);
 
-void tcp_sock_init(void)
+int tcp_sock_init(void)
 {
+	int rc;
+
 	socket_ports_initialize(&gsock);
+
+	async_set_client_connection(tcp_sock_connection);
+
+	rc = service_register(SERVICE_TCP);
+	if (rc != EOK)
+		return EEXIST;
+
+	return EOK;
 }
 
 static void tcp_free_sock_data(socket_core_t *sock_core)
@@ -272,9 +285,6 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	tcp_error_t trc;
 	tcp_sock_t lsocket;
 	tcp_sock_t fsocket;
-	nic_device_id_t dev_id;
-	tcp_phdr_t *phdr;
-	size_t phdr_len;
 
 	log_msg(LVL_DEBUG, "tcp_sock_connect()");
 
@@ -308,20 +318,21 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	fibril_mutex_lock(&socket->lock);
 
 	if (socket->laddr.ipv4 == TCP_IPV4_ANY) {
-		/* Find route to determine local IP address. */
-		rc = ip_get_route_req(ip_sess, IPPROTO_TCP,
-		    (struct sockaddr *)addr, sizeof(*addr), &dev_id,
-		    (void **)&phdr, &phdr_len);
+		/* Determine local IP address */
+		inet_addr_t loc_addr, rem_addr;
+
+		rem_addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+		rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
-			log_msg(LVL_DEBUG, "tcp_transmit_connect: Failed to find route.");
+			log_msg(LVL_DEBUG, "tcp_sock_connect: Failed to "
+			    "determine local address.");
 			return;
 		}
 
-		socket->laddr.ipv4 = uint32_t_be2host(phdr->src_addr);
+		socket->laddr.ipv4 = loc_addr.ipv4;
 		log_msg(LVL_DEBUG, "Local IP address is %x", socket->laddr.ipv4);
-		free(phdr);
 	}
 
 	lsocket.addr.ipv4 = socket->laddr.ipv4;
@@ -712,7 +723,7 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 		tcp_uc_delete(socket->conn);
 	}
 
-	rc = socket_destroy(net_sess, socket_id, &client->sockets, &gsock,
+	rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
 	    tcp_free_sock_data);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->lock);
@@ -763,7 +774,7 @@ static void tcp_sock_cstate_cb(tcp_conn_t *conn, void *arg)
 	fibril_mutex_unlock(&socket->lock);
 }
 
-int tcp_sock_connection(async_sess_t *sess, ipc_callid_t iid, ipc_call_t icall)
+static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -772,7 +783,7 @@ int tcp_sock_connection(async_sess_t *sess, ipc_callid_t iid, ipc_call_t icall)
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
 
-	client.sess = sess;
+	client.sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	socket_cores_initialize(&client.sockets);
 
 	while (true) {
@@ -823,8 +834,6 @@ int tcp_sock_connection(async_sess_t *sess, ipc_callid_t iid, ipc_call_t icall)
 			break;
 		}
 	}
-
-	return EOK;
 }
 
 /**

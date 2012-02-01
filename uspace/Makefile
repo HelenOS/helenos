@@ -70,9 +70,11 @@ DIRS = \
 	srv/clip \
 	srv/loc \
 	srv/devman \
+	srv/inet \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \
+	srv/tcp \
 	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
