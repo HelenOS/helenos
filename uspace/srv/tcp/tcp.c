@@ -185,12 +185,16 @@ static int tcp_init(void)
 	if (0) tcp_test();
 
 	rc = inet_init(42, &tcp_inet_ev_ops);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed connecting to internet service.");
 		return ENOENT;
+	}
 
 	rc = tcp_sock_init();
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed initializing socket service.");
 		return ENOENT;
+	}
 
 	return EOK;
 }
@@ -207,7 +211,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	tcp_init();
+	rc = tcp_init();
+	if (rc != EOK)
+		return 1;
+
+	printf(NAME ": Accepting connections.\n");
 	task_retval(0);
 	async_manager();
 

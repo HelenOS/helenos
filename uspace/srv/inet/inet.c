@@ -43,6 +43,7 @@
 #include <ipc/services.h>
 #include <loc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 
 #define NAME "inet"
@@ -98,10 +99,47 @@ static void inet_callback_create(inet_client_t *client, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
+static void inet_get_srcaddr(inet_client_t *client, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	log_msg(LVL_DEBUG, "inet_get_srcaddr()");
+
+	async_answer_0(callid, ENOTSUP);
+}
+
 static void inet_send(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
+	uint32_t src_ipv4;
+	uint32_t dest_ipv4;
+	uint8_t tos;
+	uint8_t ttl;
+	int df;
+	void *data;
+	size_t size;
+	int rc;
+
 	log_msg(LVL_DEBUG, "inet_send()");
+
+	src_ipv4 = IPC_GET_ARG1(*call);
+	dest_ipv4 = IPC_GET_ARG2(*call);
+	tos = IPC_GET_ARG3(*call);
+	ttl = IPC_GET_ARG4(*call);
+	df = IPC_GET_ARG5(*call);
+
+	(void)src_ipv4;
+	(void)dest_ipv4;
+	(void)tos;
+	(void)ttl;
+	(void)df;
+
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	free(data);
 	async_answer_0(callid, ENOTSUP);
 }
 
@@ -167,6 +205,9 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case INET_CALLBACK_CREATE:
 			inet_callback_create(&client, callid, &call);
 			break;
+		case INET_GET_SRCADDR:
+			inet_get_srcaddr(&client, callid, &call);
+			break;
 		case INET_SEND:
 			inet_send(&client, callid, &call);
 			break;
@@ -196,6 +237,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		return 1;
 
+	printf(NAME ": Accepting connections.\n");
 	task_retval(0);
 	async_manager();
 

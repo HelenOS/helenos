@@ -39,6 +39,7 @@
 
 typedef enum {
 	INET_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
+	INET_GET_SRCADDR,
 	INET_SEND,
 	INET_SET_PROTO
 } inet_request_t;

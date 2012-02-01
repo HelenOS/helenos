@@ -74,13 +74,17 @@ static int inet_set_proto(uint8_t protocol)
 int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 {
 	service_id_t inet_svc;
+	int rc;
 
 	assert(inet_sess == NULL);
 	assert(inet_ev_ops == NULL);
 	assert(inet_protocol == 0);
 
-	inet_svc = loc_service_get_id(SERVICE_NAME_INET, &inet_svc,
+	rc = loc_service_get_id(SERVICE_NAME_INET, &inet_svc,
 	    IPC_FLAG_BLOCKING);
+	if (rc != EOK)
+		return ENOENT;
+
 	inet_sess = loc_service_connect(EXCHANGE_SERIALIZE, inet_svc,
 	    IPC_FLAG_BLOCKING);
 	if (inet_sess == NULL)
@@ -106,12 +110,41 @@ int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 
 int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 {
-	return ENOTSUP;
+	async_exch_t *exch = async_exchange_begin(inet_sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_5(exch, INET_SEND, dgram->src.ipv4,
+	    dgram->dest.ipv4, dgram->tos, ttl, df, &answer);
+	int rc = async_data_write_start(exch, dgram->data, dgram->size);
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
 }
 
 int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
-	return ENOTSUP;
+	sysarg_t local_addr;
+	async_exch_t *exch = async_exchange_begin(inet_sess);
+
+	int rc = async_req_1_1(exch, INET_GET_SRCADDR, remote->ipv4,
+	    &local_addr);
+	async_exchange_end(exch);
+
+	if (rc != EOK)
+		return rc;
+
+	local->ipv4 = local_addr;
+	return EOK;
 }
 
 static void inet_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
