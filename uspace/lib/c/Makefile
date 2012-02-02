@@ -97,6 +97,8 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
+	generic/iplink.c \
+	generic/iplink_srv.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
