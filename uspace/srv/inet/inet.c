@@ -46,14 +46,9 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#define NAME "inet"
+#include "inet.h"
 
-/** Inet Client */
-typedef struct {
-	async_sess_t *sess;
-	uint8_t protocol;
-	link_t client_list;
-} inet_client_t;
+#define NAME "inet"
 
 static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -110,36 +105,29 @@ static void inet_get_srcaddr(inet_client_t *client, ipc_callid_t callid,
 static void inet_send(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	uint32_t src_ipv4;
-	uint32_t dest_ipv4;
-	uint8_t tos;
+	inet_dgram_t dgram;
 	uint8_t ttl;
 	int df;
-	void *data;
-	size_t size;
 	int rc;
 
 	log_msg(LVL_DEBUG, "inet_send()");
 
-	src_ipv4 = IPC_GET_ARG1(*call);
-	dest_ipv4 = IPC_GET_ARG2(*call);
-	tos = IPC_GET_ARG3(*call);
+	dgram.src.ipv4 = IPC_GET_ARG1(*call);
+	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
+	dgram.tos = IPC_GET_ARG3(*call);
 	ttl = IPC_GET_ARG4(*call);
 	df = IPC_GET_ARG5(*call);
 
-	(void)src_ipv4;
-	(void)dest_ipv4;
-	(void)tos;
 	(void)ttl;
 	(void)df;
 
-	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
 
-	free(data);
+	free(dgram.data);
 	async_answer_0(callid, ENOTSUP);
 }
 
@@ -220,6 +208,29 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	inet_client_fini(&client);
+}
+
+int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
+{
+	async_exch_t *exch = async_exchange_begin(client->sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_3(exch, INET_EV_RECV, dgram->src.ipv4,
+	    dgram->dest.ipv4, dgram->tos, &answer);
+	int rc = async_data_write_start(exch, dgram->data, dgram->size);
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
 }
 
 int main(int argc, char *argv[])

@@ -53,6 +53,8 @@
 
 #define NAME       "tcp"
 
+#define IP_PROTO_TCP 6
+
 static int tcp_inet_ev_recv(inet_dgram_t *dgram);
 static void tcp_received_pdu(tcp_pdu_t *pdu);
 
@@ -184,7 +186,7 @@ static int tcp_init(void)
 
 	if (0) tcp_test();
 
-	rc = inet_init(42, &tcp_inet_ev_ops);
+	rc = inet_init(IP_PROTO_TCP, &tcp_inet_ev_ops);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed connecting to internet service.");
 		return ENOENT;

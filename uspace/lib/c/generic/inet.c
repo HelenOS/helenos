@@ -147,20 +147,39 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	return EOK;
 }
 
+static void inet_ev_recv(ipc_callid_t callid, ipc_call_t *call)
+{
+	int rc;
+	inet_dgram_t dgram;
+
+	dgram.src.ipv4 = IPC_GET_ARG1(*call);
+	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
+	dgram.tos = IPC_GET_ARG3(*call);
+
+	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	rc = inet_ev_ops->recv(&dgram);
+	async_answer_0(callid, rc);
+}
+
 static void inet_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;
 		}
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case INET_EV_RECV:
-			async_answer_0(callid, EOK);
+			inet_ev_recv(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
