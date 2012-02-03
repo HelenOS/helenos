@@ -98,6 +98,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACE_PATH)/srv/clip/clip \
+	$(USPACE_PATH)/srv/ethip/ethip \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/fs/mfs/mfs \

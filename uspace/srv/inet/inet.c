@@ -47,6 +47,7 @@
 #include <sys/types.h>
 
 #include "inet.h"
+#include "inet_link.h"
 
 #define NAME "inet"
 
@@ -75,6 +76,10 @@ static int inet_init(void)
 		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
+
+	rc = inet_link_discovery_start();
+	if (rc != EOK)
+		return EEXIST;
 
 	return EOK;
 }
@@ -237,10 +242,10 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
-	printf(NAME ": HelenOS Internet Protocol service");
+	printf(NAME ": HelenOS Internet Protocol service\n");
 
 	if (log_init(NAME, LVL_DEBUG) != EOK) {
-		printf(NAME ": Failed to initialize logging.");
+		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}
 

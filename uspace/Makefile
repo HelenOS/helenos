@@ -70,6 +70,7 @@ DIRS = \
 	srv/clip \
 	srv/loc \
 	srv/devman \
+	srv/ethip \
 	srv/inet \
 	srv/loader \
 	srv/ns \

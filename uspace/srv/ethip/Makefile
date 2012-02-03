@@ -27,10 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = inet
+BINARY = ethip
 
 SOURCES = \
-	inet.c \
-	inet_link.c
+	ethip.c
 
 include $(USPACE_PREFIX)/Makefile.common
