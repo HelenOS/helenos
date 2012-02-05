@@ -390,6 +390,7 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
+	// Hardcoded number 2 means maximum height of index tree !!!
 	ext4_directory_dx_block_t dx_blocks[2];
 	ext4_directory_dx_block_t *dx_block;
 	rc = ext4_directory_dx_get_leaf(&hinfo, fs, inode_ref->inode, root_block, &dx_block, dx_blocks);
@@ -448,6 +449,54 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 	return ENOENT;
 }
 
+int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *parent, size_t name_size, const char *name)
+{
+	// TODO delete this command
+	return EXT4_ERR_BAD_DX_DIR;
+
+	EXT4FS_DBG("NOT REACHED");
+
+	int rc;
+
+	// get direct block 0 (index root)
+	uint32_t root_block_addr;
+	rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, 0, &root_block_addr);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	block_t *root_block;
+	rc = block_get(&root_block, fs->device, root_block_addr, BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	ext4_hash_info_t hinfo;
+	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_size, name);
+	if (rc != EOK) {
+		block_put(root_block);
+		return EXT4_ERR_BAD_DX_DIR;
+	}
+
+	// Hardcoded number 2 means maximum height of index tree !!!
+	ext4_directory_dx_block_t dx_blocks[2];
+	ext4_directory_dx_block_t *dx_block;
+	rc = ext4_directory_dx_get_leaf(&hinfo, fs, parent->inode, root_block, &dx_block, dx_blocks);
+	if (rc != EOK) {
+		block_put(root_block);
+		return EXT4_ERR_BAD_DX_DIR;
+	}
+
+	// TODO
+	/*
+	 * 1) try to write entry
+	 * 2) split leaves if necessary
+	 * 3) return
+	 */
+
+
+}
 
 
 /**

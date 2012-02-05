@@ -277,21 +277,50 @@ static void ext4_directory_write_entry(ext4_superblock_t *sb,
 	memcpy(entry->name, name, name_len);
 }
 
-int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref,
+int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 		const char *entry_name, ext4_inode_ref_t *child)
 {
 	int rc;
 
-	// USE index if allowed
+	EXT4FS_DBG("adding entry to directory \%u [ino = \%u, name = \%s]", parent->index, child->index, entry_name);
 
 	uint16_t name_len = strlen(entry_name);
+
+	// Index adding (if allowed)
+	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
+			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
+
+		EXT4FS_DBG("trying INDEX");
+
+		rc = ext4_directory_dx_add_entry(fs, parent, name_len, entry_name);
+
+		// Check if index is not corrupted
+		if (rc != EXT4_ERR_BAD_DX_DIR) {
+
+			if (rc != EOK) {
+				return rc;
+			}
+
+			return EOK;
+		}
+
+		// Needed to clear dir index flag
+		ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
+		parent->dirty = true;
+
+		EXT4FS_DBG("index is corrupted - doing linear algorithm, index flag cleared");
+	}
+
+	// Linear algorithm
 	uint16_t required_len = 8 + name_len + (4 - name_len % 4);
 
 	ext4_directory_iterator_t it;
-	rc = ext4_directory_iterator_init(&it, fs, inode_ref, 0);
+	rc = ext4_directory_iterator_init(&it, fs, parent, 0);
 	if (rc != EOK) {
 		return rc;
 	}
+
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	while (it.current != NULL) {
 		uint32_t entry_inode = ext4_directory_entry_ll_get_inode(it.current);
@@ -309,7 +338,14 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 		if (entry_inode != 0) {
 			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
 					fs->superblock, it.current);
-			uint16_t free_space = rec_len - 8 - (used_name_len + (4- used_name_len % 4));
+
+			uint16_t used_space = 8 + used_name_len;
+			if ((used_name_len % 4) != 0) {
+				used_space += 4 - (used_name_len % 4);
+			}
+			uint16_t free_space = rec_len - used_space;
+
+			EXT4FS_DBG("rec_len = \%u, used_space = \%u, free space = \%u", rec_len, used_space, free_space);
 
 			if (free_space >= required_len) {
 				uint16_t used_len = rec_len - free_space;
@@ -318,8 +354,9 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 				ext4_directory_entry_ll_set_entry_length(it.current, used_len);
 
 				// SEEK manually
-				it.current_offset += used_len;
-				ext4_directory_entry_ll_t *new_entry = it.current_block->data + it.current_offset;
+				uint32_t local_offset = (it.current_offset % block_size);
+				local_offset += used_len;
+				ext4_directory_entry_ll_t *new_entry = it.current_block->data + local_offset;
 
 				// We are sure, that both entries are in the same data block
 				// dirtyness will be set now
@@ -343,32 +380,31 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * inode_ref
 	ext4_directory_iterator_fini(&it);
 
 	// Compute next block index and allocate data block
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t block_idx = pos / block_size;
 
 	uint32_t fblock;
-	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, block_idx, &fblock);
+	rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, block_idx, &fblock);
 	if (rc != EOK) {
 		return rc;
 	}
 
 	if (fblock == 0) {
-		rc =  ext4_balloc_alloc_block(fs, inode_ref, &fblock);
+		rc =  ext4_balloc_alloc_block(fs, parent, &fblock);
 		if (rc != EOK) {
 			return rc;
 		}
 
-		rc = ext4_filesystem_set_inode_data_block_index(fs, inode_ref, block_idx, fblock);
+		rc = ext4_filesystem_set_inode_data_block_index(fs, parent, block_idx, fblock);
 		if (rc != EOK) {
-			ext4_balloc_free_block(fs, inode_ref, fblock);
+			ext4_balloc_free_block(fs, parent, fblock);
 			return rc;
 		}
 
-		uint64_t inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+		uint64_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
 		inode_size += block_size;
-		ext4_inode_set_size(inode_ref->inode, inode_size);
+		ext4_inode_set_size(parent->inode, inode_size);
 
-		inode_ref->dirty = true;
+		parent->dirty = true;
 	}
 
 	// Load block
@@ -417,6 +453,11 @@ int ext4_directory_find_entry(ext4_directory_iterator_t *it,
 		}
 
 		EXT4FS_DBG("index is corrupted - doing linear search");
+
+		// TODO Needed to clear dir index flag
+		//ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
+		//parent->dirty = true;
+
 	}
 
 	bool found = false;
