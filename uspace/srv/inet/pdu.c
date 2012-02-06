@@ -26,57 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup inet
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_INET_IPLINK_SRV_H_
-#define LIBC_INET_IPLINK_SRV_H_
+#include <errno.h>
+#include <stdlib.h>
 
-#include <async.h>
-#include <sys/types.h>
+#include "inet.h"
+#include "pdu.h"
 
-struct iplink_ops;
-
-typedef struct {
-	struct iplink_ops *ops;
-	void *arg;
-} iplink_srv_t;
-
-typedef struct {
-	iplink_srv_t *srv;
-	async_sess_t *client_sess;
-} iplink_conn_t;
-
-typedef struct {
-	uint32_t ipv4;
-} iplink_srv_addr_t;
-
-/** IP link Service Data Unit */
-typedef struct {
-	/** Local source address */
-	iplink_srv_addr_t lsrc;
-	/** Local destination address */
-	iplink_srv_addr_t ldest;
-	/** Serialized IP packet */
+/** Encode Internet PDU.
+ *
+ * XXX We should be encoding from packet, not from datagram.
+ */
+int inet_pdu_encode(inet_dgram_t *dgram, void **rdata, size_t *rsize)
+{
 	void *data;
-	/** Size of @c data in bytes */
 	size_t size;
-} iplink_srv_sdu_t;
 
-typedef struct iplink_ops {
-	int (*open)(iplink_conn_t *);
-	int (*close)(iplink_conn_t *);
-	int (*send)(iplink_conn_t *, iplink_srv_sdu_t *);
-	int (*get_mtu)(iplink_conn_t *, size_t *);
-} iplink_ops_t;
+	size = 20;
+	data = calloc(size, 1);
+	if (data == NULL)
+		return ENOMEM;
 
-extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int iplink_ev_recv(iplink_conn_t *, iplink_srv_sdu_t *);
+	/* XXX Implement */
 
-#endif
+	*rdata = data;
+	*rsize = size;
+	return EOK;
+}
 
 /** @}
  */

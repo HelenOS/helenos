@@ -38,6 +38,8 @@
 #define INET_H_
 
 #include <adt/list.h>
+#include <inet/iplink.h>
+#include <ipc/loc.h>
 #include <sys/types.h>
 #include <async.h>
 
@@ -48,9 +50,18 @@ typedef struct {
 	link_t client_list;
 } inet_client_t;
 
+/** Host address */
 typedef struct {
 	uint32_t ipv4;
 } inet_addr_t;
+
+/** Network address */
+typedef struct {
+	/** Address */
+	uint32_t ipv4;
+	/** Number of valid bits in @c ipv4 */
+	int bits;
+} inet_naddr_t;
 
 typedef struct {
 	inet_addr_t src;
@@ -59,6 +70,20 @@ typedef struct {
 	void *data;
 	size_t size;
 } inet_dgram_t;
+
+typedef struct {
+	link_t link_list;
+	service_id_t svc_id;
+	char *svc_name;
+	async_sess_t *sess;
+	iplink_t *iplink;
+} inet_link_t;
+
+typedef struct {
+	link_t addr_list;
+	inet_naddr_t naddr;
+	inet_link_t *ilink;
+} inet_addrobj_t;
 
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
 

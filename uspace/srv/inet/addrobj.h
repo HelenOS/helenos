@@ -26,55 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup inet
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_INET_IPLINK_SRV_H_
-#define LIBC_INET_IPLINK_SRV_H_
+#ifndef INET_ADDROBJ_H_
+#define INET_ADDROBJ_H_
 
-#include <async.h>
-#include <sys/types.h>
+#include "inet.h"
 
-struct iplink_ops;
-
-typedef struct {
-	struct iplink_ops *ops;
-	void *arg;
-} iplink_srv_t;
-
-typedef struct {
-	iplink_srv_t *srv;
-	async_sess_t *client_sess;
-} iplink_conn_t;
-
-typedef struct {
-	uint32_t ipv4;
-} iplink_srv_addr_t;
-
-/** IP link Service Data Unit */
-typedef struct {
-	/** Local source address */
-	iplink_srv_addr_t lsrc;
-	/** Local destination address */
-	iplink_srv_addr_t ldest;
-	/** Serialized IP packet */
-	void *data;
-	/** Size of @c data in bytes */
-	size_t size;
-} iplink_srv_sdu_t;
-
-typedef struct iplink_ops {
-	int (*open)(iplink_conn_t *);
-	int (*close)(iplink_conn_t *);
-	int (*send)(iplink_conn_t *, iplink_srv_sdu_t *);
-	int (*get_mtu)(iplink_conn_t *, size_t *);
-} iplink_ops_t;
-
-extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int iplink_ev_recv(iplink_conn_t *, iplink_srv_sdu_t *);
+extern inet_addrobj_t *inet_addrobj_new(void);
+extern void inet_addrobj_delete(inet_addrobj_t *);
+extern void inet_addrobj_add(inet_addrobj_t *);
+extern void inet_addrobj_remove(inet_addrobj_t *);
+extern inet_addrobj_t *inet_addrobj_find(inet_addr_t *);
+extern int inet_addrobj_send_dgram(inet_addrobj_t *, inet_dgram_t *,
+    uint8_t ttl, int df);
 
 #endif
 

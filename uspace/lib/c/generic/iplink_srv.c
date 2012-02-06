@@ -56,8 +56,8 @@ static void iplink_send_srv(iplink_conn_t *conn, ipc_callid_t callid,
 	iplink_srv_sdu_t sdu;
 	int rc;
 
-	sdu.src.ipv4 = IPC_GET_ARG1(*call);
-	sdu.dest.ipv4 = IPC_GET_ARG2(*call);
+	sdu.lsrc.ipv4 = IPC_GET_ARG1(*call);
+	sdu.ldest.ipv4 = IPC_GET_ARG2(*call);
 
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
@@ -121,8 +121,8 @@ int iplink_ev_recv(iplink_conn_t *conn, iplink_srv_sdu_t *sdu)
 	async_exch_t *exch = async_exchange_begin(conn->client_sess);
 
 	ipc_call_t answer;
-	aid_t req = async_send_2(exch, IPLINK_EV_RECV, sdu->src.ipv4,
-	    sdu->dest.ipv4, &answer);
+	aid_t req = async_send_2(exch, IPLINK_EV_RECV, sdu->lsrc.ipv4,
+	    sdu->ldest.ipv4, &answer);
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
 	async_exchange_end(exch);
 

@@ -30,7 +30,9 @@ USPACE_PREFIX = ../..
 BINARY = inet
 
 SOURCES = \
+	addrobj.c \
 	inet.c \
-	inet_link.c
+	inet_link.c \
+	pdu.c
 
 include $(USPACE_PREFIX)/Makefile.common

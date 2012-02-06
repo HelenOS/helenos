@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
+#include "addrobj.h"
 #include "inet.h"
 #include "inet_link.h"
 
@@ -84,10 +85,10 @@ static int inet_init(void)
 	return EOK;
 }
 
-static void inet_callback_create(inet_client_t *client, ipc_callid_t callid,
+static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	log_msg(LVL_DEBUG, "inet_callback_create()");
+	log_msg(LVL_DEBUG, "inet_callback_create_srv()");
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL) {
@@ -99,15 +100,31 @@ static void inet_callback_create(inet_client_t *client, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void inet_get_srcaddr(inet_client_t *client, ipc_callid_t callid,
+static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
+    uint8_t ttl, int df)
+{
+	inet_addrobj_t *addr;
+
+	addr = inet_addrobj_find(&dgram->dest);
+	if (addr != NULL) {
+		/* Destination is directly accessible */
+		return inet_addrobj_send_dgram(addr, dgram, ttl, df);
+	}
+
+	/* TODO: Gateways */
+	log_msg(LVL_DEBUG, "inet_send: No route to destination.");
+	return ENOENT;
+}
+
+static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	log_msg(LVL_DEBUG, "inet_get_srcaddr()");
+	log_msg(LVL_DEBUG, "inet_get_srcaddr_srv()");
 
 	async_answer_0(callid, ENOTSUP);
 }
 
-static void inet_send(inet_client_t *client, ipc_callid_t callid,
+static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	inet_dgram_t dgram;
@@ -115,7 +132,7 @@ static void inet_send(inet_client_t *client, ipc_callid_t callid,
 	int df;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inet_send()");
+	log_msg(LVL_DEBUG, "inet_send_srv()");
 
 	dgram.src.ipv4 = IPC_GET_ARG1(*call);
 	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
@@ -123,26 +140,25 @@ static void inet_send(inet_client_t *client, ipc_callid_t callid,
 	ttl = IPC_GET_ARG4(*call);
 	df = IPC_GET_ARG5(*call);
 
-	(void)ttl;
-	(void)df;
-
 	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
 
+	rc = inet_send(client, &dgram, ttl, df);
+
 	free(dgram.data);
-	async_answer_0(callid, ENOTSUP);
+	async_answer_0(callid, rc);
 }
 
-static void inet_set_proto(inet_client_t *client, ipc_callid_t callid,
+static void inet_set_proto_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	sysarg_t proto;
 
 	proto = IPC_GET_ARG1(*call);
-	log_msg(LVL_DEBUG, "inet_set_proto(%lu)", (unsigned long) proto);
+	log_msg(LVL_DEBUG, "inet_set_proto_srv(%lu)", (unsigned long) proto);
 
 	if (proto > UINT8_MAX) {
 		async_answer_0(callid, EINVAL);
@@ -196,16 +212,16 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		switch (method) {
 		case INET_CALLBACK_CREATE:
-			inet_callback_create(&client, callid, &call);
+			inet_callback_create_srv(&client, callid, &call);
 			break;
 		case INET_GET_SRCADDR:
-			inet_get_srcaddr(&client, callid, &call);
+			inet_get_srcaddr_srv(&client, callid, &call);
 			break;
 		case INET_SEND:
-			inet_send(&client, callid, &call);
+			inet_send_srv(&client, callid, &call);
 			break;
 		case INET_SET_PROTO:
-			inet_set_proto(&client, callid, &call);
+			inet_set_proto_srv(&client, callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);

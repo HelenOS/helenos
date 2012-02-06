@@ -51,10 +51,10 @@ typedef struct {
 
 /** IP link Service Data Unit */
 typedef struct {
-	/** Source address */
-	iplink_addr_t src;
-	/** Destination address */
-	iplink_addr_t dest;
+	/** Local source address */
+	iplink_addr_t lsrc;
+	/** Local destination address */
+	iplink_addr_t ldest;
 	/** Serialized IP packet */
 	void *data;
 	/** Size of @c data in bytes */

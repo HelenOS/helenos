@@ -42,18 +42,13 @@
 #include <loc.h>
 #include <stdlib.h>
 
+#include "addrobj.h"
+#include "inet.h"
 #include "inet_link.h"
+#include "pdu.h"
 
 static int inet_link_open(service_id_t sid);
 static int inet_iplink_recv(iplink_t *ilink, iplink_sdu_t *sdu);
-
-typedef struct {
-	link_t link_list;
-	service_id_t svc_id;
-	char *svc_name;
-	async_sess_t *sess;
-	iplink_t *iplink;
-} inet_link_t;
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
 	.recv = inet_iplink_recv
@@ -171,6 +166,15 @@ static int inet_link_open(service_id_t sid)
 	log_msg(LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
 	list_append(&ilink->link_list, &inet_link_list);
 
+	inet_addrobj_t *addr;
+
+	/* XXX For testing: set static IP address 192.168.0.4/24 */
+	addr = inet_addrobj_new();
+	addr->naddr.ipv4 = (192 << 24) + (168 << 16) + (0 << 8) + 4;
+	addr->naddr.bits = 24;
+	addr->ilink = ilink;
+	inet_addrobj_add(addr);
+
 	return EOK;
 
 error:
@@ -196,6 +200,26 @@ int inet_link_discovery_start(void)
 
 	return inet_link_check_new();
 }
+
+/** Send datagram over Internet link */
+int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
+    inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t ttl, int df)
+{
+	iplink_sdu_t sdu;
+	int rc;
+
+	sdu.lsrc.ipv4 = lsrc->ipv4;
+	sdu.ldest.ipv4 = ldest->ipv4;
+	rc = inet_pdu_encode(dgram, &sdu.data, &sdu.size);
+	if (rc != EOK)
+		return rc;
+
+	rc = iplink_send(ilink->iplink, &sdu);
+	free(sdu.data);
+
+	return rc;
+}
+
 
 /** @}
  */
