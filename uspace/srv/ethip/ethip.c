@@ -105,6 +105,8 @@ int ethip_iplink_init(ethip_nic_t *nic)
 		goto error;
 	}
 
+	nic->iplink_sid = sid;
+
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed resolving category 'iplink'.");
@@ -127,8 +129,18 @@ error:
 
 static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	log_msg(LVL_DEBUG, "ethip_client_conn(%u)", (unsigned) IPC_GET_ARG1(*icall));
-	if (0) iplink_conn(iid, icall, NULL);
+	ethip_nic_t *nic;
+	service_id_t sid;
+
+	sid = (service_id_t)IPC_GET_ARG1(*icall);
+	log_msg(LVL_DEBUG, "ethip_client_conn(%u)", (unsigned)sid);
+	nic = ethip_nic_find_by_iplink_sid(sid);
+	if (nic == NULL) {
+		log_msg(LVL_WARN, "Uknown service ID.");
+		return;
+	}
+
+	iplink_conn(iid, icall, &nic->iplink);
 }
 
 static int ethip_open(iplink_conn_t *conn)

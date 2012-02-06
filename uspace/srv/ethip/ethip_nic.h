@@ -37,7 +37,10 @@
 #ifndef ETHIP_NIC_H_
 #define ETHIP_NIC_H_
 
+#include <ipc/loc.h>
+
 extern int ethip_nic_discovery_start(void);
+extern ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t);
 
 #endif
 

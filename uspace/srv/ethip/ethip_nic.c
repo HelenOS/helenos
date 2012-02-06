@@ -34,6 +34,7 @@
  * @brief
  */
 
+#include <adt/list.h>
 #include <async.h>
 #include <bool.h>
 #include <errno.h>
@@ -253,6 +254,26 @@ int ethip_nic_discovery_start(void)
 	}
 
 	return ethip_nic_check_new();
+}
+
+ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
+{
+	log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid(%u)",
+	    (unsigned) iplink_sid);
+
+	list_foreach(ethip_nic_list, link) {
+		log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - element");
+		ethip_nic_t *nic = list_get_instance(link, ethip_nic_t,
+		    nic_list);
+
+		if (nic->iplink_sid == iplink_sid) {
+			log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - found %p", nic);
+			return nic;
+		}
+	}
+
+	log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - not found");
+	return NULL;
 }
 
 /** @}

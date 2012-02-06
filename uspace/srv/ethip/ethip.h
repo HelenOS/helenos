@@ -44,6 +44,7 @@ typedef struct ethip_nic {
 	async_sess_t *sess;
 
 	iplink_srv_t iplink;
+	service_id_t iplink_sid;
 } ethip_nic_t;
 
 extern int ethip_iplink_init(ethip_nic_t *);
