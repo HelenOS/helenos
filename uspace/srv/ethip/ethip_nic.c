@@ -1,0 +1,259 @@
+/*
+ * Copyright (c) 2012 Jiri Svoboda
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup inet
+ * @{
+ */
+/**
+ * @file
+ * @brief
+ */
+
+#include <async.h>
+#include <bool.h>
+#include <errno.h>
+#include <fibril_synch.h>
+#include <inet/iplink_srv.h>
+#include <io/log.h>
+#include <loc.h>
+#include <device/nic.h>
+#include <stdlib.h>
+
+#include "ethip.h"
+#include "ethip_nic.h"
+
+static int ethip_nic_open(service_id_t sid);
+static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+
+static LIST_INITIALIZE(ethip_nic_list);
+static FIBRIL_MUTEX_INITIALIZE(ethip_discovery_lock);
+
+static int ethip_nic_check_new(void)
+{
+	bool already_known;
+	category_id_t iplink_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	int rc;
+
+	fibril_mutex_lock(&ethip_discovery_lock);
+
+	rc = loc_category_get_id("nic", &iplink_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed resolving category 'nic'.");
+		fibril_mutex_unlock(&ethip_discovery_lock);
+		return ENOENT;
+	}
+
+	rc = loc_category_get_svcs(iplink_cat, &svcs, &count);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed getting list of IP links.");
+		fibril_mutex_unlock(&ethip_discovery_lock);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+
+		list_foreach(ethip_nic_list, nic_link) {
+			ethip_nic_t *nic = list_get_instance(nic_link,
+			    ethip_nic_t, nic_list);
+			if (nic->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+
+		if (!already_known) {
+			log_msg(LVL_DEBUG, "Found NIC '%lu'",
+			    (unsigned long) svcs[i]);
+			rc = ethip_nic_open(svcs[i]);
+			if (rc != EOK)
+				log_msg(LVL_ERROR, "Could not open NIC.");
+		}
+	}
+
+	fibril_mutex_unlock(&ethip_discovery_lock);
+	return EOK;
+}
+
+static ethip_nic_t *ethip_nic_new(void)
+{
+	ethip_nic_t *nic = calloc(1, sizeof(ethip_nic_t));
+
+	if (nic == NULL) {
+		log_msg(LVL_ERROR, "Failed allocating NIC structure. "
+		    "Out of memory.");
+		return NULL;
+	}
+
+	link_initialize(&nic->nic_list);
+
+	return nic;
+}
+
+static void ethip_nic_delete(ethip_nic_t *nic)
+{
+	if (nic->svc_name != NULL)
+		free(nic->svc_name);
+	free(nic);
+}
+
+static int ethip_nic_open(service_id_t sid)
+{
+	ethip_nic_t *nic;
+	int rc;
+	bool in_list = false;
+
+	log_msg(LVL_DEBUG, "ethip_nic_open()");
+	nic = ethip_nic_new();
+	if (nic == NULL)
+		return ENOMEM;
+
+	rc = loc_service_get_name(sid, &nic->svc_name);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed getting service name.");
+		goto error;
+	}
+
+	nic->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
+	if (nic->sess == NULL) {
+		log_msg(LVL_ERROR, "Failed connecting '%s'", nic->svc_name);
+		goto error;
+	}
+
+	nic->svc_id = sid;
+
+	rc = nic_callback_create(nic->sess, ethip_nic_cb_conn, nic);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed creating callback connection "
+		    "from '%s'", nic->svc_name);
+		goto error;
+	}
+
+	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed activating NIC '%s'.",
+		    nic->svc_name);
+		goto error;
+	}
+
+	log_msg(LVL_DEBUG, "Opened NIC '%s'", nic->svc_name);
+	list_append(&nic->nic_list, &ethip_nic_list);
+	in_list = true;
+
+	rc = ethip_iplink_init(nic);
+	if (rc != EOK)
+		goto error;
+
+	log_msg(LVL_DEBUG, "Initialized IP link service.");
+
+	return EOK;
+
+error:
+	if (in_list)
+		list_remove(&nic->nic_list);
+	if (nic->sess != NULL)
+		async_hangup(nic->sess);
+	ethip_nic_delete(nic);
+	return rc;
+}
+
+static void ethip_nic_cat_change_cb(void)
+{
+	(void) ethip_nic_check_new();
+}
+
+static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	log_msg(LVL_DEBUG, "ethip_nic_addr_changed()");
+	async_answer_0(callid, ENOTSUP);
+}
+
+static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	log_msg(LVL_DEBUG, "ethip_nic_received()");
+	async_answer_0(callid, ENOTSUP);
+}
+
+static void ethip_nic_device_state(ethip_nic_t *nic, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	log_msg(LVL_DEBUG, "ethip_nic_device_state()");
+	async_answer_0(callid, ENOTSUP);
+}
+
+static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	ethip_nic_t *nic;
+
+	log_msg(LVL_DEBUG, "ethnip_nic_cb_conn()");
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+
+		if (!IPC_GET_IMETHOD(call)) {
+			/* TODO: Handle hangup */
+			return;
+		}
+
+		switch (IPC_GET_IMETHOD(call)) {
+		case NIC_EV_ADDR_CHANGED:
+			ethip_nic_addr_changed(nic, callid, &call);
+			break;
+		case NIC_EV_RECEIVED:
+			ethip_nic_received(nic, callid, &call);
+			break;
+		case NIC_EV_DEVICE_STATE:
+			ethip_nic_device_state(nic, callid, &call);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+		}
+	}
+}
+
+int ethip_nic_discovery_start(void)
+{
+	int rc;
+
+	rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed registering callback for NIC "
+		    "discovery (%d).", rc);
+		return rc;
+	}
+
+	return ethip_nic_check_new();
+}
+
+/** @}
+ */

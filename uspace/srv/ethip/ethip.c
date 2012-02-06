@@ -40,6 +40,10 @@
 #include <io/log.h>
 #include <loc.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include "ethip.h"
+#include "ethip_nic.h"
 
 #define NAME "eth"
 
@@ -57,16 +61,9 @@ static iplink_ops_t ethip_iplink_ops = {
 	.get_mtu = ethip_get_mtu
 };
 
-static iplink_srv_t test_srv;
-
 static int ethip_init(void)
 {
 	int rc;
-	service_id_t sid;
-	category_id_t iplink_cat;
-
-	test_srv.ops = &ethip_iplink_ops;
-	test_srv.arg = NULL;
 
 	async_set_client_connection(ethip_client_conn);
 
@@ -76,31 +73,62 @@ static int ethip_init(void)
 		return rc;
 	}
 
-	rc = loc_service_register("net/eth0", &sid);
-	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering service net/eth0.");
+	rc = ethip_nic_discovery_start();
+	if (rc != EOK)
 		return rc;
+
+	return EOK;
+}
+
+int ethip_iplink_init(ethip_nic_t *nic)
+{
+	int rc;
+	service_id_t sid;
+	category_id_t iplink_cat;
+	static unsigned link_num = 0;
+	char *svc_name = NULL;
+
+	log_msg(LVL_DEBUG, "ethip_iplink_init()");
+
+	nic->iplink.ops = &ethip_iplink_ops;
+	nic->iplink.arg = nic;
+
+	rc = asprintf(&svc_name, "net/eth%u", ++link_num);
+	if (rc < 0) {
+		log_msg(LVL_ERROR, "Out of memory.");
+		goto error;
+	}
+
+	rc = loc_service_register(svc_name, &sid);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed registering service %s.", svc_name);
+		goto error;
 	}
 
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed resolving category 'iplink'.");
-		return rc;
+		goto error;
 	}
 
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed adding net/eth0 to category.");
-		return rc;
+		log_msg(LVL_ERROR, "Failed adding %s to category.", svc_name);
+		goto error;
 	}
 
 	return EOK;
+
+error:
+	if (svc_name != NULL)
+		free(svc_name);
+	return rc;
 }
 
 static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	log_msg(LVL_DEBUG, "ethip_client_conn()");
-	iplink_conn(iid, icall, &test_srv);
+	log_msg(LVL_DEBUG, "ethip_client_conn(%u)", (unsigned) IPC_GET_ARG1(*icall));
+	if (0) iplink_conn(iid, icall, NULL);
 }
 
 static int ethip_open(iplink_conn_t *conn)

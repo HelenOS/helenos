@@ -30,6 +30,7 @@ USPACE_PREFIX = ../..
 BINARY = ethip
 
 SOURCES = \
-	ethip.c
+	ethip.c \
+	ethip_nic.c
 
 include $(USPACE_PREFIX)/Makefile.common
