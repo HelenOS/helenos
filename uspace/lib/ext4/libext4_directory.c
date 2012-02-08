@@ -312,7 +312,6 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	}
 
 	// Linear algorithm
-	uint16_t required_len = 8 + name_len + (4 - name_len % 4);
 
 	ext4_directory_iterator_t it;
 	rc = ext4_directory_iterator_init(&it, fs, parent, 0);
@@ -321,13 +320,13 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	}
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint16_t required_len = 8 + name_len + (4 - name_len % 4);
 
 	while (it.current != NULL) {
 		uint32_t entry_inode = ext4_directory_entry_ll_get_inode(it.current);
 		uint16_t rec_len = ext4_directory_entry_ll_get_entry_length(it.current);
 
 		if ((entry_inode == 0) && (rec_len >= required_len)) {
-
 
 			ext4_directory_write_entry(fs->superblock, it.current, rec_len,
 					child, entry_name, name_len);
@@ -348,14 +347,13 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 			EXT4FS_DBG("rec_len = \%u, used_space = \%u, free space = \%u", rec_len, used_space, free_space);
 
 			if (free_space >= required_len) {
-				uint16_t used_len = rec_len - free_space;
 
 				// Cut tail of current entry
-				ext4_directory_entry_ll_set_entry_length(it.current, used_len);
+				ext4_directory_entry_ll_set_entry_length(it.current, used_space);
 
 				// SEEK manually
 				uint32_t local_offset = (it.current_offset % block_size);
-				local_offset += used_len;
+				local_offset += used_space;
 				ext4_directory_entry_ll_t *new_entry = it.current_block->data + local_offset;
 
 				// We are sure, that both entries are in the same data block
@@ -374,6 +372,8 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 			return rc;
 		}
 	}
+
+	EXT4FS_DBG("NO FREE SPACE - needed to allocate block");
 
 	// Save position and destroy iterator
 	aoff64_t pos = it.current_offset;
