@@ -166,11 +166,15 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 	return EOK;
 }
 
-void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *alternate)
+/** Clean initialized structure.
+ * @param instance structure do deinitialize.
+ */
+void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *instance)
 {
-	if (!alternate)
+	if (!instance)
 		return;
-	free(alternate->alternatives);
+	free(instance->alternatives);
+	instance->alternatives = NULL;
 }
 /**
  * @}

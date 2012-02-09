@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Radim Vansa
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,8 +53,8 @@
 #include <net/packet.h>
 #include <packet_remote.h>
 #include <packet_client.h>
-#include <devman.h>
 #include <device/nic.h>
+#include <loc.h>
 #include <nil_skel.h>
 #include "nildummy.h"
 
@@ -68,15 +69,23 @@ nildummy_globals_t nildummy_globals;
 
 DEVICE_MAP_IMPLEMENT(nildummy_devices, nildummy_device_t);
 
-int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state)
+static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg);
+
+static int nildummy_device_state(nildummy_device_t *device, sysarg_t state)
 {
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 	if (nildummy_globals.proto.sess)
-		il_device_state_msg(nildummy_globals.proto.sess, device_id,
-		    state, nildummy_globals.proto.service);
+		il_device_state_msg(nildummy_globals.proto.sess,
+		    device->device_id, state, nildummy_globals.proto.service);
 	fibril_rwlock_read_unlock(&nildummy_globals.protos_lock);
 	
 	return EOK;
+}
+
+static int nildummy_addr_changed(nildummy_device_t *device)
+{
+	return ENOTSUP;
 }
 
 int nil_initialize(async_sess_t *sess)
@@ -114,7 +123,7 @@ int nil_initialize(async_sess_t *sess)
  *
  */
 static int nildummy_device_message(nic_device_id_t device_id,
-    devman_handle_t handle, size_t mtu)
+    service_id_t sid, size_t mtu)
 {
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
 	
@@ -122,7 +131,7 @@ static int nildummy_device_message(nic_device_id_t device_id,
 	nildummy_device_t *device =
 	    nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (device) {
-		if (device->handle != handle) {
+		if (device->sid != sid) {
 			printf("Device %d exists, handles do not match\n",
 			    device->device_id);
 			fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
@@ -157,14 +166,14 @@ static int nildummy_device_message(nic_device_id_t device_id,
 		return ENOMEM;
 	
 	device->device_id = device_id;
-	device->handle = handle;
+	device->sid = sid;
 	if (mtu > 0)
 		device->mtu = mtu;
 	else
 		device->mtu = NET_DEFAULT_MTU;
 	
 	/* Bind the device driver */
-	device->sess = devman_device_connect(EXCHANGE_SERIALIZE, handle,
+	device->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid,
 	    IPC_FLAG_BLOCKING);
 	if (device->sess == NULL) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
@@ -172,10 +181,16 @@ static int nildummy_device_message(nic_device_id_t device_id,
 		return ENOENT;
 	}
 	
-	nic_connect_to_nil(device->sess, SERVICE_NILDUMMY, device_id);
+	int rc = nic_callback_create(device->sess, nildummy_nic_cb_conn,
+	    device);
+	if (rc != EOK) {
+		async_hangup(device->sess);
+		
+		return ENOENT;
+	}
 	
 	/* Get hardware address */
-	int rc = nic_get_address(device->sess, &device->addr);
+	rc = nic_get_address(device->sess, &device->addr);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		free(device);
@@ -353,13 +368,39 @@ static int nildummy_send_message(nic_device_id_t device_id, packet_t *packet,
 		return ENOENT;
 	}
 	
-	/* Send packet queue */
-	if (packet)
-		nic_send_message(device->sess, packet_get_id(packet));
+	packet_t *p = packet;
+	do {
+		nic_send_frame(device->sess, packet_get_data(p),
+		    packet_get_data_length(p));
+		p = pq_next(p);
+	} while (p != NULL);
+	
+	pq_release_remote(nildummy_globals.net_sess, packet_get_id(packet));
 	
 	fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 	
 	return EOK;
+}
+
+static int nildummy_received(nildummy_device_t *device)
+{
+	void *data;
+	size_t size;
+	int rc;
+
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK)
+		return rc;
+
+	packet_t *packet = packet_get_1_remote(nildummy_globals.net_sess, size);
+	if (packet == NULL)
+		return ENOMEM;
+
+	void *pdata = packet_suffix(packet, size);
+	memcpy(pdata, data, size);
+	free(pdata);
+
+	return nil_received_msg_local(device->device_id, packet);
 }
 
 int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
@@ -416,24 +457,44 @@ int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
 		IPC_SET_ADDR(*answer, addrlen);
 		*answer_count = 1;
 		return rc;
-	case NET_NIL_DEVICE_STATE:
-		rc = nil_device_state_msg_local(IPC_GET_DEVICE(*call),
-		    IPC_GET_STATE(*call));
-		async_answer_0(callid, (sysarg_t) rc);
-		return rc;
-	
-	case NET_NIL_RECEIVED:
-		rc = packet_translate_remote(nildummy_globals.net_sess, &packet,
-		    IPC_GET_ARG2(*call));
-		if (rc == EOK)
-			rc = nil_received_msg_local(IPC_GET_ARG1(*call), packet);
-		
-		async_answer_0(callid, (sysarg_t) rc);
-		return rc;
 	}
 	
 	return ENOTSUP;
 }
+
+static void nildummy_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	nildummy_device_t *device = (nildummy_device_t *)arg;
+	int rc;
+	
+	async_answer_0(iid, EOK);
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case NIC_EV_DEVICE_STATE:
+			rc = nildummy_device_state(device, IPC_GET_ARG1(call));
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		case NIC_EV_RECEIVED:
+			rc = nildummy_received(device);
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		case NIC_EV_ADDR_CHANGED:
+			rc = nildummy_addr_changed(device);
+			async_answer_0(callid, (sysarg_t) rc);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+		}
+	}
+}
+
 
 int main(int argc, char *argv[])
 {

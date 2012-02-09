@@ -48,7 +48,6 @@
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
-#include <sysinfo/sysinfo.h>
 #include <memstr.h>
 
 char memcpy_from_uspace_failover_address;
@@ -85,7 +84,7 @@ void calibrate_delay_loop(void)
 {
 }
 
-sysarg_t sys_tls_set(sysarg_t addr)
+sysarg_t sys_tls_set(uintptr_t addr)
 {
 	return EOK;
 }

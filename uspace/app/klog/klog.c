@@ -204,15 +204,8 @@ int main(int argc, char *argv[])
 	size_t size = pages * PAGE_SIZE;
 	klog_length = size / sizeof(wchar_t);
 	
-	klog = (wchar_t *) as_get_mappable_page(size);
-	if (klog == NULL) {
-		fprintf(stderr, "%s: Unable to allocate virtual memory area\n",
-		    NAME);
-		return ENOMEM;
-	}
-	
-	rc = physmem_map((void *) faddr, (void *) klog, pages,
-	    AS_AREA_READ | AS_AREA_CACHEABLE);
+	rc = physmem_map((void *) faddr, pages,
+	    AS_AREA_READ | AS_AREA_CACHEABLE, (void *) &klog);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to map klog\n", NAME);
 		return rc;

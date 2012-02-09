@@ -153,7 +153,8 @@ int main(int argc, char *argv[])
 		adb_dev[i].service_id = 0;
 	}
 
-	rc = loc_server_register(NAME, cuda_connection);
+	async_set_client_connection(cuda_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register server.\n");
 		return rc;
@@ -274,7 +275,7 @@ static int cuda_init(void)
 
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_kernel)->ifr;
 	async_set_interrupt_received(cuda_irq_handler);
-	register_irq(10, device_assign_devno(), 0, &cuda_irq_code);
+	irq_register(10, device_assign_devno(), 0, &cuda_irq_code);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&dev->ier, TIP | TREQ);

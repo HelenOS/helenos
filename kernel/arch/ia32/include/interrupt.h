@@ -54,7 +54,6 @@
 #define IRQ_PIC1      2
 #define IRQ_PIC_SPUR  7
 #define IRQ_MOUSE     12
-#define IRQ_NE2000    5
 
 /* This one must have four least significant bits set to ones */
 #define VECTOR_APIC_SPUR  (IVT_ITEMS - 1)

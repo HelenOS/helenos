@@ -36,13 +36,12 @@
 #define LIBC_DEVICE_NIC_H_
 
 #include <async.h>
-#include <net/device.h>
-#include <net/packet.h>
-#include <ipc/services.h>
+#include <nic/nic.h>
+#include <ipc/common.h>
 
 typedef enum {
 	NIC_SEND_MESSAGE = 0,
-	NIC_CONNECT_TO_NIL,
+	NIC_CALLBACK_CREATE,
 	NIC_GET_STATE,
 	NIC_SET_STATE,
 	NIC_GET_ADDRESS,
@@ -84,8 +83,14 @@ typedef enum {
 	NIC_POLL_NOW
 } nic_funcs_t;
 
-extern int nic_send_message(async_sess_t *, packet_id_t);
-extern int nic_connect_to_nil(async_sess_t *, services_t, nic_device_id_t);
+typedef enum {
+	NIC_EV_ADDR_CHANGED = IPC_FIRST_USER_METHOD,
+	NIC_EV_RECEIVED,
+	NIC_EV_DEVICE_STATE
+} nic_event_t;
+
+extern int nic_send_frame(async_sess_t *, void *, size_t);
+extern int nic_callback_create(async_sess_t *, async_client_conn_t, void *);
 extern int nic_get_state(async_sess_t *, nic_device_state_t *);
 extern int nic_set_state(async_sess_t *, nic_device_state_t);
 extern int nic_get_address(async_sess_t *, nic_address_t *);
@@ -126,7 +131,7 @@ extern int nic_blocked_sources_set(async_sess_t *, const nic_address_t *,
 
 extern int nic_vlan_get_mask(async_sess_t *, nic_vlan_mask_t *);
 extern int nic_vlan_set_mask(async_sess_t *, const nic_vlan_mask_t *);
-extern int nic_vlan_set_tag(async_sess_t *, uint16_t, int, int);
+extern int nic_vlan_set_tag(async_sess_t *, uint16_t, bool, bool);
 
 extern int nic_wol_virtue_add(async_sess_t *, nic_wv_type_t, const void *,
     size_t, nic_wv_id_t *);

@@ -304,7 +304,7 @@
  * @param[in] call Message call structure
  *
  */
-#define IPC_GET_DEVICE_HANDLE(call) ((devman_handle_t) IPC_GET_ARG2(call))
+#define IPC_GET_DEVICE_HANDLE(call)  ((service_id_t) IPC_GET_ARG2(call))
 
 /** Return the device driver service message argument.
  *

@@ -37,6 +37,7 @@
 
 #include "nic_wol_virtues.h"
 #include <assert.h>
+#include <errno.h>
 
 #define NIC_WV_HASH_COUNT 32
 

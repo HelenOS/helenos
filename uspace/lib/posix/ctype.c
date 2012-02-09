@@ -111,7 +111,7 @@ int posix_ispunct(int c)
  * @param c Character to inspect.
  * @return Non-zero if character match the definition, zero otherwise.
  */
-extern int posix_isascii(int c)
+int posix_isascii(int c)
 {
 	return c >= 0 && c < 128;
 }
@@ -122,7 +122,7 @@ extern int posix_isascii(int c)
  * @param c Character to convert.
  * @return Coverted character.
  */
-extern int posix_toascii(int c)
+int posix_toascii(int c)
 {
 	return c & 0x7F;
 }

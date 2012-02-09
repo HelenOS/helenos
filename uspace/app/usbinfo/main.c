@@ -43,6 +43,7 @@
 #include <devman.h>
 #include <loc.h>
 #include <usb/hc.h>
+#include <usb/dev.h>
 #include <usb/dev/pipes.h>
 #include "usbinfo.h"
 

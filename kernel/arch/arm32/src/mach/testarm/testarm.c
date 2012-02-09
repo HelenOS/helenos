@@ -36,6 +36,7 @@
 #include <arch/exception.h>
 #include <arch/mach/testarm/testarm.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
@@ -70,9 +71,12 @@ struct arm_machine_ops gxemul_machine_ops = {
 
 void gxemul_init(void)
 {
-	gxemul_kbd = (void *) hw_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE);
-	gxemul_rtc = (void *) hw_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE);
-	gxemul_irqc = (void *) hw_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE);
+	gxemul_kbd = (void *) km_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	gxemul_rtc = (void *) km_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	gxemul_irqc = (void *) km_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 }
 
 void gxemul_output_init(void)
@@ -201,10 +205,10 @@ void gxemul_timer_irq_start(void)
  * @param start		Place to store memory start address.
  * @param size		Place to store memory size.
  */
-void gxemul_get_memory_extents(uintptr_t *start, uintptr_t *size)
+void gxemul_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	*start = 0;
-        *size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	*size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
 }
 
 /** Returns the mask of active interrupts. */

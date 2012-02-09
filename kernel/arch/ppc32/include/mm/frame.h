@@ -43,8 +43,6 @@
 #include <typedefs.h>
 #include <trace.h>
 
-extern uintptr_t last_frame;
-
 NO_TRACE static inline uint32_t physmem_top(void)
 {
 	uint32_t physmem;
@@ -57,7 +55,8 @@ NO_TRACE static inline uint32_t physmem_top(void)
 	return physmem;
 }
 
-extern void frame_arch_init(void);
+extern void frame_low_arch_init(void);
+extern void frame_high_arch_init(void);
 extern void physmem_print(void);
 
 #endif /* __ASM__ */

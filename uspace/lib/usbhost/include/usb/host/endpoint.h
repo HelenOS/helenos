@@ -94,11 +94,11 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle);
 
 /** list_get_instance wrapper.
  * @param item Pointer to link member.
- * @return Pointer to enpoint_t structure.
+ * @return Pointer to endpoint_t structure.
  */
 static inline endpoint_t * endpoint_get_instance(link_t *item)
 {
-	return list_get_instance(item, endpoint_t, link);
+	return item ? list_get_instance(item, endpoint_t, link) : NULL;
 }
 #endif
 /**

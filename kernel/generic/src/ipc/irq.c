@@ -41,8 +41,8 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - IMETHOD: interface and method as registered by the SYS_REGISTER_IRQ
- *            syscall
+ * - IMETHOD: interface and method as registered by
+ *            the SYS_IRQ_REGISTER syscall
  * - ARG1: payload modified by a 'top-half' handler
  * - ARG2: payload modified by a 'top-half' handler
  * - ARG3: payload modified by a 'top-half' handler
@@ -364,28 +364,17 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 	if (!code)
 		return IRQ_DECLINE;
 	
-#define CMD_MEM_READ(target) \
-do { \
-	void *va = code->cmds[i].addr; \
-	if (AS != irq->driver_as) \
-		as_switch(AS, irq->driver_as); \
-	memcpy_from_uspace(&target, va, (sizeof(target))); \
-	if (dstarg) \
-		scratch[dstarg] = target; \
-} while(0)
-
-#define CMD_MEM_WRITE(val) \
-do { \
-	void *va = code->cmds[i].addr; \
-	if (AS != irq->driver_as) \
-		as_switch(AS, irq->driver_as); \
-	memcpy_to_uspace(va, &val, sizeof(val)); \
-} while (0)
-
 	as_t *current_as = AS;
-	size_t i;
-	for (i = 0; i < code->cmdcount; i++) {
+	if (current_as != irq->driver_as)
+		as_switch(AS, irq->driver_as);
+	
+	for (size_t i = 0; i < code->cmdcount; i++) {
 		uint32_t dstval;
+		void *va;
+		uint8_t val8;
+		uint16_t val16;
+		uint32_t val32;
+		
 		uintptr_t srcarg = code->cmds[i].srcarg;
 		uintptr_t dstarg = code->cmds[i].dstarg;
 		
@@ -441,52 +430,58 @@ do { \
 				    (uint32_t) scratch[srcarg]);
 			}
 			break;
-		case CMD_MEM_READ_8: {
-			uint8_t val;
-			CMD_MEM_READ(val);
+		case CMD_MEM_READ_8:
+			va = code->cmds[i].addr;
+			memcpy_from_uspace(&val8, va, sizeof(val8));
+			if (dstarg)
+				scratch[dstarg] = val8;
 			break;
-			}
-		case CMD_MEM_READ_16: {
-			uint16_t val;
-			CMD_MEM_READ(val);
+		case CMD_MEM_READ_16:
+			va = code->cmds[i].addr;
+			memcpy_from_uspace(&val16, va, sizeof(val16));
+			if (dstarg)
+				scratch[dstarg] = val16;
 			break;
-			}
-		case CMD_MEM_READ_32: {
-			uint32_t val;
-			CMD_MEM_READ(val);
+		case CMD_MEM_READ_32:
+			va = code->cmds[i].addr;
+			memcpy_from_uspace(&val32, va, sizeof(val32));
+			if (dstarg)
+				scratch[dstarg] = val32;
 			break;
-			}
-		case CMD_MEM_WRITE_8: {
-			uint8_t val = code->cmds[i].value;
-			CMD_MEM_WRITE(val);
+		case CMD_MEM_WRITE_8:
+			val8 = code->cmds[i].value;
+			va = code->cmds[i].addr;
+			memcpy_to_uspace(va, &val8, sizeof(val8));
 			break;
-			}
-		case CMD_MEM_WRITE_16: {
-			uint16_t val = code->cmds[i].value;
-			CMD_MEM_WRITE(val);
+		case CMD_MEM_WRITE_16:
+			val16 = code->cmds[i].value;
+			va = code->cmds[i].addr;
+			memcpy_to_uspace(va, &val16, sizeof(val16));
 			break;
-			}
-		case CMD_MEM_WRITE_32: {
-			uint32_t val = code->cmds[i].value;
-			CMD_MEM_WRITE(val);
+		case CMD_MEM_WRITE_32:
+			val32 = code->cmds[i].value;
+			va = code->cmds[i].addr;
+			memcpy_to_uspace(va, &val32, sizeof(val32));
 			break;
-			}
 		case CMD_MEM_WRITE_A_8:
 			if (srcarg) {
-				uint8_t val = scratch[srcarg];
-				CMD_MEM_WRITE(val);
+				val8 = scratch[srcarg];
+				va = code->cmds[i].addr;
+				memcpy_to_uspace(va, &val8, sizeof(val8));
 			}
 			break;
 		case CMD_MEM_WRITE_A_16:
 			if (srcarg) {
-				uint16_t val = scratch[srcarg];
-				CMD_MEM_WRITE(val);
+				val16 = scratch[srcarg];
+				va = code->cmds[i].addr;
+				memcpy_to_uspace(va, &val16, sizeof(val16));
 			}
 			break;
 		case CMD_MEM_WRITE_A_32:
 			if (srcarg) {
-				uint32_t val = scratch[srcarg];
-				CMD_MEM_WRITE(val);
+				val32 = scratch[srcarg];
+				va = code->cmds[i].addr;
+				memcpy_to_uspace(va, &val32, sizeof(val32));
 			}
 			break;
 		case CMD_BTEST:
@@ -512,6 +507,7 @@ do { \
 			return IRQ_DECLINE;
 		}
 	}
+	
 	if (AS != current_as)
 		as_switch(AS, current_as);
 	

@@ -36,8 +36,7 @@ EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
 
 RD_SRVS_NON_ESSENTIAL +=
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042
+RD_SRVS_ESSENTIAL +=
 
 SOURCES = \
 	arch/$(BARCH)/src/boot.S \

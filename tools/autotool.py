@@ -183,6 +183,39 @@ def check_app(args, name, details):
 	
 	sys.stderr.write("ok\n")
 
+def check_app_alternatives(alts, args, name, details):
+	"Check whether an application can be executed (use several alternatives)"
+	
+	tried = []
+	found = None
+	
+	for alt in alts:
+		working = True
+		cmdline = [alt] + args
+		tried.append(" ".join(cmdline))
+		
+		try:
+			sys.stderr.write("Checking for %s ... " % alt)
+			subprocess.Popen(cmdline, stdout = subprocess.PIPE, stderr = subprocess.PIPE).wait()
+		except:
+			sys.stderr.write("failed\n")
+			working = False
+		
+		if (working):
+			sys.stderr.write("ok\n")
+			found = alt
+			break
+	
+	if (found is None):
+		print_error(["%s is missing." % name,
+		             "",
+		             "Please make sure that it is installed in your",
+		             "system (%s)." % details,
+		             "",
+		             "The following alternatives were tried:"] + tried)
+	
+	return found
+
 def check_gcc(path, prefix, common, details):
 	"Check for GCC"
 	
@@ -458,7 +491,10 @@ def create_makefile(mkname, common):
 	outmk.write('#########################################\n\n')
 	
 	for key, value in common.items():
-		outmk.write('%s = %s\n' % (key, value))
+		if (type(value) is list):
+			outmk.write('%s = %s\n' % (key, " ".join(value)))
+		else:
+			outmk.write('%s = %s\n' % (key, value))
 	
 	outmk.close()
 
@@ -623,7 +659,7 @@ def main():
 		
 		# Platform-specific utilities
 		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):
-			check_app(["mkisofs", "--version"], "ISO 9660 creation utility", "usually part of genisoimage")
+			common['GENISOIMAGE'] = check_app_alternatives(["mkisofs", "genisoimage"], ["--version"], "ISO 9660 creation utility", "usually part of genisoimage")
 		
 		probe = probe_compiler(common,
 			[

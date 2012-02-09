@@ -166,14 +166,5 @@ int net_get_devices_req(async_sess_t *sess, measured_string_t **devices,
 	return (int) result;
 }
 
-int net_driver_ready(async_sess_t *sess, devman_handle_t handle)
-{
-	async_exch_t *exch = async_exchange_begin(sess);
-	int rc = async_req_1_0(exch, NET_NET_DRIVER_READY, handle);
-	async_exchange_end(exch);
-	
-	return rc;
-}
-
 /** @}
  */

@@ -261,9 +261,8 @@ typedef struct {
 extern int ne2k_probe(ne2k_t *);
 extern int ne2k_up(ne2k_t *);
 extern void ne2k_down(ne2k_t *);
-extern void ne2k_send(nic_t *, packet_t *);
+extern void ne2k_send(nic_t *, void *, size_t);
 extern void ne2k_interrupt(nic_t *, uint8_t, uint8_t);
-extern packet_t *ne2k_alloc_packet(nic_t *, size_t);
 
 extern void ne2k_set_accept_mcast(ne2k_t *, int);
 extern void ne2k_set_accept_bcast(ne2k_t *, int);

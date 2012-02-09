@@ -31,7 +31,7 @@ LIBRARY = libusbhost
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include \
-	-Iinclude 
+	-Iinclude
 
 SOURCES = \
 	src/endpoint.c \
