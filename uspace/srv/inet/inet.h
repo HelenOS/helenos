@@ -86,6 +86,7 @@ typedef struct {
 } inet_addrobj_t;
 
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
+extern int inet_recv_packet(inet_dgram_t *, uint8_t ttl, int df);
 
 #endif
 

@@ -57,10 +57,19 @@ static iplink_ev_ops_t inet_iplink_ev_ops = {
 static LIST_INITIALIZE(inet_link_list);
 static FIBRIL_MUTEX_INITIALIZE(inet_discovery_lock);
 
-static int inet_iplink_recv(iplink_t *ilink, iplink_sdu_t *sdu)
+static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
 {
+	inet_dgram_t dgram;
+	uint8_t ttl;
+	int df;
+	int rc;
+
 	log_msg(LVL_DEBUG, "inet_iplink_recv()");
-	return EOK;
+	rc = inet_pdu_decode(sdu->data, sdu->size, &dgram, &ttl, &df);
+	if (rc != EOK)
+		return rc;
+
+	return inet_recv_packet(&dgram, ttl, df);
 }
 
 static int inet_link_check_new(void)
@@ -210,7 +219,7 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 
 	sdu.lsrc.ipv4 = lsrc->ipv4;
 	sdu.ldest.ipv4 = ldest->ipv4;
-	rc = inet_pdu_encode(dgram, &sdu.data, &sdu.size);
+	rc = inet_pdu_encode(dgram, ttl, df, &sdu.data, &sdu.size);
 	if (rc != EOK)
 		return rc;
 

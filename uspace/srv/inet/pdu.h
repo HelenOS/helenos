@@ -39,7 +39,8 @@
 
 #include "inet.h"
 
-extern int inet_pdu_encode(inet_dgram_t *, void **, size_t *);
+extern int inet_pdu_encode(inet_dgram_t *, uint8_t, int, void **, size_t *);
+extern int inet_pdu_decode(void *, size_t, inet_dgram_t *, uint8_t *, int *);
 
 #endif
 

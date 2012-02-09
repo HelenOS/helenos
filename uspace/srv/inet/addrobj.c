@@ -89,8 +89,13 @@ void inet_addrobj_remove(inet_addrobj_t *addr)
 	fibril_mutex_unlock(&addr_list_lock);
 }
 
-/** Find address object matching address @a addr */
-inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr)
+/** Find address object matching address @a addr.
+ *
+ * @param addr	Address
+ * @oaram find	iaf_net to find network (using mask),
+ *		iaf_addr to find local address (exact match)
+ */
+inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
 	uint32_t mask;
 

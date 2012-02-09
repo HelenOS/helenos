@@ -30,29 +30,64 @@
  * @{
  */
 /**
- * @file
- * @brief
+ * @file IP header definitions
+ *
  */
 
-#ifndef INET_ADDROBJ_H_
-#define INET_ADDROBJ_H_
+#ifndef INET_STD_H_
+#define INET_STD_H_
 
-#include "inet.h"
+#include <sys/types.h>
 
-typedef enum {
-	/* Find matching network address (using mask) */
-	iaf_net,
-	/* Find exact local address (not using mask) */
-	iaf_addr
-} inet_addrobj_find_t;
+/** Internet Datagram header (fixed part) */
+typedef struct {
+	/** Version, Internet Header Length */
+	uint8_t ver_ihl;
+	/* Type of Service */
+	uint8_t tos;
+	/** Total Length */
+	uint16_t tot_len;
+	/** Identification */
+	uint16_t id;
+	/** Flags, Fragment Offset */
+	uint16_t flags_foff;
+	/** Time to Live */
+	uint8_t ttl;
+	/** Protocol */
+	uint8_t proto;
+	/** Header Checksum */
+	uint16_t chksum;
+	/** Source Address */
+	uint32_t src_addr;
+	/** Destination Address */
+	uint32_t dest_addr;
+} ip_header_t;
 
-extern inet_addrobj_t *inet_addrobj_new(void);
-extern void inet_addrobj_delete(inet_addrobj_t *);
-extern void inet_addrobj_add(inet_addrobj_t *);
-extern void inet_addrobj_remove(inet_addrobj_t *);
-extern inet_addrobj_t *inet_addrobj_find(inet_addr_t *, inet_addrobj_find_t);
-extern int inet_addrobj_send_dgram(inet_addrobj_t *, inet_dgram_t *,
-    uint8_t ttl, int df);
+/** Bits in ip_header_t.ver_ihl */
+enum ver_ihl_bits {
+	/** Version, highest bit */
+	VI_VERSION_h = 7,
+	/** Version, lowest bit */
+	VI_VERSION_l = 4,
+	/** Internet Header Length, highest bit */
+	VI_IHL_h     = 3,
+	/** Internet Header Length, lowest bit */
+	VI_IHL_l     = 0
+};
+
+/** Bits in ip_header_t.flags_foff */
+enum flags_foff_bits {
+	/** Reserved, must be zero */
+	FF_FLAG_RSVD = 15,
+	/** Don't Fragment */
+	FF_FLAG_DF = 14,
+	/** More Fragments */
+	FF_FLAG_MF = 13,
+	/** Fragment Offset, highest bit */
+	FF_FRAGOFF_h = 12,
+	/** Fragment Offset, lowest bit */
+	FF_FRAGOFF_l = 0
+};
 
 #endif
 

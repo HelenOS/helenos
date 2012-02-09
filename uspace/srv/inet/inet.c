@@ -100,12 +100,11 @@ static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
-    uint8_t ttl, int df)
+static int inet_route_packet(inet_dgram_t *dgram, uint8_t ttl, int df)
 {
 	inet_addrobj_t *addr;
 
-	addr = inet_addrobj_find(&dgram->dest);
+	addr = inet_addrobj_find(&dgram->dest, iaf_net);
 	if (addr != NULL) {
 		/* Destination is directly accessible */
 		return inet_addrobj_send_dgram(addr, dgram, ttl, df);
@@ -114,6 +113,12 @@ static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
 	/* TODO: Gateways */
 	log_msg(LVL_DEBUG, "inet_send: No route to destination.");
 	return ENOENT;
+}
+
+static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
+    uint8_t ttl, int df)
+{
+	return inet_route_packet(dgram, ttl, df);
 }
 
 static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
@@ -252,6 +257,11 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 		return retval;
 
 	return EOK;
+}
+
+int inet_recv_packet(inet_dgram_t *dgram, uint8_t ttl, int df)
+{
+	return inet_route_packet(dgram, ttl, df);
 }
 
 int main(int argc, char *argv[])
