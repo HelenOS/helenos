@@ -150,7 +150,6 @@ km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
 static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 {
 	uintptr_t offs;
-	size_t align;
 	ipl_t ipl;
 
 	ASSERT(ALIGN_DOWN(vaddr, PAGE_SIZE) == vaddr);
@@ -169,12 +168,7 @@ static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 	tlb_shootdown_finalize(ipl);
 	page_table_unlock(AS_KERNEL, true);
 
-	/*
-	 * Match the size parameter with that of km_page_alloc() in
-	 * km_map_aligned().
-	 */
-	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
-	km_page_free(vaddr, max(PAGE_SIZE, align));
+	km_page_free(vaddr, size);
 }
 
 /** Map a piece of physical address space into the virtual address space.
