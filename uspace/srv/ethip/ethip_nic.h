@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup ethip
  * @{
  */
 /**
@@ -41,6 +41,8 @@
 
 extern int ethip_nic_discovery_start(void);
 extern ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t);
+extern int ethip_nic_send(ethip_nic_t *, void *, size_t);
+
 
 #endif
 

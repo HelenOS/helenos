@@ -30,52 +30,27 @@
  * @{
  */
 /**
- * @file
- * @brief
+ * @file Ethernet, IP/Ethernet standard definitions
+ *
  */
 
-#ifndef ETHIP_H_
-#define ETHIP_H_
+#ifndef ETHIP_STD_H_
+#define ETHIP_STD_H_
 
-#include <adt/list.h>
-#include <async.h>
-#include <inet/iplink_srv.h>
-#include <loc.h>
 #include <sys/types.h>
 
-typedef struct ethip_nic {
-	link_t nic_list;
-	service_id_t svc_id;
-	char *svc_name;
-	async_sess_t *sess;
-
-	iplink_srv_t iplink;
-	service_id_t iplink_sid;
-} ethip_nic_t;
-
-/** IEEE MAC-48 identifier */
-typedef struct {
-	/** MAC Address (in lowest 48 bits) */
-	uint64_t addr;
-} mac48_addr_t;
-
-/** Ethernet frame */
+/** Ethernet frame header */
 typedef struct {
 	/** Destination Address */
-	mac48_addr_t dest;
+	uint8_t dest[6];
 	/** Source Address */
-	mac48_addr_t src;
+	uint8_t src[6];
 	/** Ethertype or Length */
 	uint16_t etype_len;
-	/** Payload */
-	void *data;
-	/** Payload size */
-	size_t size;
-} eth_frame_t;
+} eth_header_t;
 
-extern int ethip_iplink_init(ethip_nic_t *);
-extern int ethip_received(iplink_srv_t *, void *, size_t);
-
+/** IP Ethertype */
+#define ETYPE_IP	0x0800
 
 #endif
 

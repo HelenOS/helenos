@@ -31,6 +31,7 @@ BINARY = ethip
 
 SOURCES = \
 	ethip.c \
-	ethip_nic.c
+	ethip_nic.c \
+	pdu.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup ethip
  * @{
  */
 /**
@@ -200,8 +200,22 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
 static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
     ipc_call_t *call)
 {
+	int rc;
+	void *data;
+	size_t size;
+
 	log_msg(LVL_DEBUG, "ethip_nic_received()");
-	async_answer_0(callid, ENOTSUP);
+
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK) {
+		log_msg(LVL_DEBUG, "data_write_accept() failed");
+		return;
+	}
+
+	rc = ethip_received(&nic->iplink, data, size);
+	free(data);
+
+	async_answer_0(callid, rc);
 }
 
 static void ethip_nic_device_state(ethip_nic_t *nic, ipc_callid_t callid,
@@ -274,6 +288,11 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 
 	log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - not found");
 	return NULL;
+}
+
+int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
+{
+	return nic_send_frame(nic->sess, data, size);
 }
 
 /** @}

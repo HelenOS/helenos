@@ -26,12 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup ethip
  * @{
  */
 /**
  * @file
  * @brief IP link provider for Ethernet
+ *
+ * Based on the IETF RFC 894 standard.
  */
 
 #include <async.h>
@@ -44,6 +46,8 @@
 
 #include "ethip.h"
 #include "ethip_nic.h"
+#include "pdu.h"
+#include "std.h"
 
 #define NAME "eth"
 
@@ -157,8 +161,47 @@ static int ethip_close(iplink_conn_t *conn)
 
 static int ethip_send(iplink_conn_t *conn, iplink_srv_sdu_t *sdu)
 {
+	ethip_nic_t *nic = (ethip_nic_t *)conn->srv->arg;
+	eth_frame_t frame;
+	void *data;
+	size_t size;
+	int rc;
+
 	log_msg(LVL_DEBUG, "ethip_send()");
-	return EOK;
+
+	frame.dest.addr = 0xdeeedeeedeee;
+	frame.src.addr =  0xaafeedfaceee;
+	frame.etype_len = ETYPE_IP;
+	frame.data = sdu->data;
+	frame.size = sdu->size;
+
+	rc = eth_pdu_encode(&frame, &data, &size);
+	if (rc != EOK)
+		return rc;
+
+	rc = ethip_nic_send(nic, data, size);
+	free(data);
+
+	return rc;
+}
+
+int ethip_received(iplink_srv_t *srv, void *data, size_t size)
+{
+	eth_frame_t frame;
+	iplink_srv_sdu_t sdu;
+	int rc;
+
+	rc = eth_pdu_decode(data, size, &frame);
+	if (rc != EOK)
+		return rc;
+
+	sdu.data = frame.data;
+	sdu.size = frame.size;
+	(void) sdu;
+	//rc = iplink_ev_recv(conn, &sdu);
+
+	free(frame.data);
+	return rc;
 }
 
 static int ethip_get_mtu(iplink_conn_t *conn, size_t *mtu)
