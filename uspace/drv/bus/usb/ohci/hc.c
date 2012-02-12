@@ -48,10 +48,10 @@
 
 static const irq_cmd_t ohci_irq_commands[] =
 {
-	{ .cmd = CMD_MEM_READ_32, .dstarg = 1, .addr = NULL /*filled later*/ },
+	{ .cmd = CMD_PIO_READ_32, .dstarg = 1, .addr = NULL /*filled later*/ },
 	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2, .value = OHCI_USED_INTERRUPTS },
 	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
-	{ .cmd = CMD_MEM_WRITE_A_32, .srcarg = 1, .addr = NULL /*filled later*/ },
+	{ .cmd = CMD_PIO_WRITE_A_32, .srcarg = 1, .addr = NULL /*filled later*/ },
 	{ .cmd = CMD_ACCEPT },
 };
 
