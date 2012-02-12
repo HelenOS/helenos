@@ -36,19 +36,19 @@
 #define LIBC_INET_IPLINK_SRV_H_
 
 #include <async.h>
+#include <fibril_synch.h>
+#include <bool.h>
 #include <sys/types.h>
 
 struct iplink_ops;
 
 typedef struct {
+	fibril_mutex_t lock;
+	bool connected;
 	struct iplink_ops *ops;
 	void *arg;
-} iplink_srv_t;
-
-typedef struct {
-	iplink_srv_t *srv;
 	async_sess_t *client_sess;
-} iplink_conn_t;
+} iplink_srv_t;
 
 typedef struct {
 	uint32_t ipv4;
@@ -67,14 +67,16 @@ typedef struct {
 } iplink_srv_sdu_t;
 
 typedef struct iplink_ops {
-	int (*open)(iplink_conn_t *);
-	int (*close)(iplink_conn_t *);
-	int (*send)(iplink_conn_t *, iplink_srv_sdu_t *);
-	int (*get_mtu)(iplink_conn_t *, size_t *);
+	int (*open)(iplink_srv_t *);
+	int (*close)(iplink_srv_t *);
+	int (*send)(iplink_srv_t *, iplink_srv_sdu_t *);
+	int (*get_mtu)(iplink_srv_t *, size_t *);
 } iplink_ops_t;
 
+extern void iplink_srv_init(iplink_srv_t *);
+
 extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int iplink_ev_recv(iplink_conn_t *, iplink_srv_sdu_t *);
+extern int iplink_ev_recv(iplink_srv_t *, iplink_srv_sdu_t *);
 
 #endif
 

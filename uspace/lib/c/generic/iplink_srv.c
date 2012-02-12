@@ -40,17 +40,17 @@
 
 #include <inet/iplink_srv.h>
 
-static void iplink_get_mtu_srv(iplink_conn_t *conn, ipc_callid_t callid,
+static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	int rc;
 	size_t mtu;
 
-	rc = conn->srv->ops->get_mtu(conn, &mtu);
+	rc = srv->ops->get_mtu(srv, &mtu);
 	async_answer_1(callid, rc, mtu);
 }
 
-static void iplink_send_srv(iplink_conn_t *conn, ipc_callid_t callid,
+static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	iplink_srv_sdu_t sdu;
@@ -65,16 +65,34 @@ static void iplink_send_srv(iplink_conn_t *conn, ipc_callid_t callid,
 		return;
 	}
 
-	rc = conn->srv->ops->send(conn, &sdu);
+	rc = srv->ops->send(srv, &sdu);
 	free(sdu.data);
 	async_answer_0(callid, rc);
+}
+
+void iplink_srv_init(iplink_srv_t *srv)
+{
+	fibril_mutex_initialize(&srv->lock);
+	srv->connected = false;
+	srv->ops = NULL;
+	srv->arg = NULL;
+	srv->client_sess = NULL;
 }
 
 int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	iplink_srv_t *srv = (iplink_srv_t *)arg;
-	iplink_conn_t conn;
 	int rc;
+
+	fibril_mutex_lock(&srv->lock);
+	if (srv->connected) {
+		fibril_mutex_unlock(&srv->lock);
+		async_answer_0(iid, EBUSY);
+		return EBUSY;
+	}
+
+	srv->connected = true;
+	fibril_mutex_unlock(&srv->lock);
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -83,10 +101,9 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	if (sess == NULL)
 		return ENOMEM;
 
-	conn.srv = srv;
-	conn.client_sess = sess;
+	srv->client_sess = sess;
 
-	rc = srv->ops->open(&conn);
+	rc = srv->ops->open(srv);
 	if (rc != EOK)
 		return rc;
 
@@ -103,22 +120,25 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		switch (method) {
 		case IPLINK_GET_MTU:
-			iplink_get_mtu_srv(&conn, callid, &call);
+			iplink_get_mtu_srv(srv, callid, &call);
 			break;
 		case IPLINK_SEND:
-			iplink_send_srv(&conn, callid, &call);
+			iplink_send_srv(srv, callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);
 		}
 	}
 
-	return srv->ops->close(&conn);
+	return srv->ops->close(srv);
 }
 
-int iplink_ev_recv(iplink_conn_t *conn, iplink_srv_sdu_t *sdu)
+int iplink_ev_recv(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 {
-	async_exch_t *exch = async_exchange_begin(conn->client_sess);
+	if (srv->client_sess == NULL)
+		return EIO;
+
+	async_exch_t *exch = async_exchange_begin(srv->client_sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, IPLINK_EV_RECV, sdu->lsrc.ipv4,

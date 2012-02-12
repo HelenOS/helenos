@@ -51,10 +51,10 @@
 
 #define NAME "eth"
 
-static int ethip_open(iplink_conn_t *conn);
-static int ethip_close(iplink_conn_t *conn);
-static int ethip_send(iplink_conn_t *conn, iplink_srv_sdu_t *sdu);
-static int ethip_get_mtu(iplink_conn_t *conn, size_t *mtu);
+static int ethip_open(iplink_srv_t *srv);
+static int ethip_close(iplink_srv_t *srv);
+static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
+static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
 
 static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -94,6 +94,7 @@ int ethip_iplink_init(ethip_nic_t *nic)
 
 	log_msg(LVL_DEBUG, "ethip_iplink_init()");
 
+	iplink_srv_init(&nic->iplink);
 	nic->iplink.ops = &ethip_iplink_ops;
 	nic->iplink.arg = nic;
 
@@ -147,21 +148,21 @@ static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	iplink_conn(iid, icall, &nic->iplink);
 }
 
-static int ethip_open(iplink_conn_t *conn)
+static int ethip_open(iplink_srv_t *srv)
 {
 	log_msg(LVL_DEBUG, "ethip_open()");
 	return EOK;
 }
 
-static int ethip_close(iplink_conn_t *conn)
+static int ethip_close(iplink_srv_t *srv)
 {
-	log_msg(LVL_DEBUG, "ethip_open()");
+	log_msg(LVL_DEBUG, "ethip_close()");
 	return EOK;
 }
 
-static int ethip_send(iplink_conn_t *conn, iplink_srv_sdu_t *sdu)
+static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 {
-	ethip_nic_t *nic = (ethip_nic_t *)conn->srv->arg;
+	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
 	eth_frame_t frame;
 	void *data;
 	size_t size;
@@ -187,24 +188,34 @@ static int ethip_send(iplink_conn_t *conn, iplink_srv_sdu_t *sdu)
 
 int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 {
+	log_msg(LVL_DEBUG, "ethip_received(): srv=%p", srv);
+	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
 	eth_frame_t frame;
 	iplink_srv_sdu_t sdu;
 	int rc;
 
-	rc = eth_pdu_decode(data, size, &frame);
-	if (rc != EOK)
-		return rc;
+	log_msg(LVL_DEBUG, "ethip_received()");
 
+	log_msg(LVL_DEBUG, " - eth_pdu_decode");
+	rc = eth_pdu_decode(data, size, &frame);
+	if (rc != EOK) {
+		log_msg(LVL_DEBUG, " - eth_pdu_decode failed");
+		return rc;
+	}
+
+	log_msg(LVL_DEBUG, " - construct SDU");
+	sdu.lsrc.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 1;
+	sdu.ldest.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 4;
 	sdu.data = frame.data;
 	sdu.size = frame.size;
-	(void) sdu;
-	//rc = iplink_ev_recv(conn, &sdu);
+	log_msg(LVL_DEBUG, " - call iplink_ev_recv");
+	rc = iplink_ev_recv(&nic->iplink, &sdu);
 
 	free(frame.data);
 	return rc;
 }
 
-static int ethip_get_mtu(iplink_conn_t *conn, size_t *mtu)
+static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 {
 	log_msg(LVL_DEBUG, "ethip_get_mtu()");
 	*mtu = 1500;

@@ -157,13 +157,6 @@ static int ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 
-	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
-	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed activating NIC '%s'.",
-		    nic->svc_name);
-		goto error;
-	}
-
 	log_msg(LVL_DEBUG, "Opened NIC '%s'", nic->svc_name);
 	list_append(&nic->nic_list, &ethip_nic_list);
 	in_list = true;
@@ -171,6 +164,13 @@ static int ethip_nic_open(service_id_t sid)
 	rc = ethip_iplink_init(nic);
 	if (rc != EOK)
 		goto error;
+
+	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed activating NIC '%s'.",
+		    nic->svc_name);
+		goto error;
+	}
 
 	log_msg(LVL_DEBUG, "Initialized IP link service.");
 
@@ -204,7 +204,7 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 	void *data;
 	size_t size;
 
-	log_msg(LVL_DEBUG, "ethip_nic_received()");
+	log_msg(LVL_DEBUG, "ethip_nic_received() nic=%p", nic);
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
@@ -212,7 +212,9 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 		return;
 	}
 
+	log_msg(LVL_DEBUG, "call ethip_received");
 	rc = ethip_received(&nic->iplink, data, size);
+	log_msg(LVL_DEBUG, "free data");
 	free(data);
 
 	async_answer_0(callid, rc);
@@ -227,7 +229,7 @@ static void ethip_nic_device_state(ethip_nic_t *nic, ipc_callid_t callid,
 
 static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	ethip_nic_t *nic;
+	ethip_nic_t *nic = (ethip_nic_t *)arg;
 
 	log_msg(LVL_DEBUG, "ethnip_nic_cb_conn()");
 
