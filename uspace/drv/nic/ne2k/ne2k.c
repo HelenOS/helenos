@@ -63,6 +63,13 @@
 #define DRIVER_DATA(dev) ((nic_t *) ((dev)->driver_data))
 #define NE2K(device) ((ne2k_t *) nic_get_specific(DRIVER_DATA(device)))
 
+static irq_pio_range_t ne2k_ranges_prototype[] = {
+	{
+		.base = 0,
+		.size = NE2K_IO_SIZE, 
+	}
+};
+
 /** NE2000 kernel interrupt command sequence.
  *
  */
@@ -121,17 +128,34 @@ static int ne2k_register_interrupt(nic_t *nic_data)
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
 	if (ne2k->code.cmdcount == 0) {
-		irq_cmd_t *ne2k_cmds = malloc(sizeof(ne2k_cmds_prototype));
-		if (ne2k_cmds == NULL) {
+		irq_pio_range_t *ne2k_ranges;
+		irq_cmd_t *ne2k_cmds;
+
+		ne2k_ranges = malloc(sizeof(ne2k_ranges_prototype));
+		if (!ne2k_ranges)
+			return ENOMEM;
+		memcpy(ne2k_ranges, ne2k_ranges_prototype,
+		    sizeof(ne2k_ranges_prototype));
+		ne2k_ranges[0].base = (uintptr_t) ne2k->base_port;
+
+		ne2k_cmds = malloc(sizeof(ne2k_cmds_prototype));
+		if (!ne2k_cmds) {
+			free(ne2k_ranges);
 			return ENOMEM;
 		}
-		memcpy(ne2k_cmds, ne2k_cmds_prototype, sizeof (ne2k_cmds_prototype));
-		ne2k_cmds[0].addr = ne2k->port + DP_ISR;
-		ne2k_cmds[3].addr = ne2k->port + DP_IMR;
+		memcpy(ne2k_cmds, ne2k_cmds_prototype,
+		    sizeof(ne2k_cmds_prototype));
+		ne2k_cmds[0].addr = ne2k->base_port + DP_ISR;
+		ne2k_cmds[3].addr = ne2k->base_port + DP_IMR;
 		ne2k_cmds[4].addr = ne2k_cmds[0].addr;
-		ne2k_cmds[5].addr = ne2k->port + DP_TSR;
+		ne2k_cmds[5].addr = ne2k->base_port + DP_TSR;
 
-		ne2k->code.cmdcount = sizeof(ne2k_cmds_prototype) / sizeof(irq_cmd_t);
+		ne2k->code.rangecount = sizeof(ne2k_ranges_prototype) /
+		    sizeof(irq_pio_range_t);
+		ne2k->code.ranges = ne2k_ranges;
+
+		ne2k->code.cmdcount = sizeof(ne2k_cmds_prototype) /
+		    sizeof(irq_cmd_t);
 		ne2k->code.cmds = ne2k_cmds;
 	}
 
@@ -147,6 +171,7 @@ static void ne2k_dev_cleanup(ddf_dev_t *dev)
 	if (dev->driver_data != NULL) {
 		ne2k_t *ne2k = NE2K(dev);
 		if (ne2k) {
+			free(ne2k->code.ranges);
 			free(ne2k->code.cmds);
 		}
 		nic_unbind_and_destroy(dev);
