@@ -430,60 +430,6 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 				    (uint32_t) scratch[srcarg]);
 			}
 			break;
-		case CMD_MEM_READ_8:
-			va = code->cmds[i].addr;
-			memcpy_from_uspace(&val8, va, sizeof(val8));
-			if (dstarg)
-				scratch[dstarg] = val8;
-			break;
-		case CMD_MEM_READ_16:
-			va = code->cmds[i].addr;
-			memcpy_from_uspace(&val16, va, sizeof(val16));
-			if (dstarg)
-				scratch[dstarg] = val16;
-			break;
-		case CMD_MEM_READ_32:
-			va = code->cmds[i].addr;
-			memcpy_from_uspace(&val32, va, sizeof(val32));
-			if (dstarg)
-				scratch[dstarg] = val32;
-			break;
-		case CMD_MEM_WRITE_8:
-			val8 = code->cmds[i].value;
-			va = code->cmds[i].addr;
-			memcpy_to_uspace(va, &val8, sizeof(val8));
-			break;
-		case CMD_MEM_WRITE_16:
-			val16 = code->cmds[i].value;
-			va = code->cmds[i].addr;
-			memcpy_to_uspace(va, &val16, sizeof(val16));
-			break;
-		case CMD_MEM_WRITE_32:
-			val32 = code->cmds[i].value;
-			va = code->cmds[i].addr;
-			memcpy_to_uspace(va, &val32, sizeof(val32));
-			break;
-		case CMD_MEM_WRITE_A_8:
-			if (srcarg) {
-				val8 = scratch[srcarg];
-				va = code->cmds[i].addr;
-				memcpy_to_uspace(va, &val8, sizeof(val8));
-			}
-			break;
-		case CMD_MEM_WRITE_A_16:
-			if (srcarg) {
-				val16 = scratch[srcarg];
-				va = code->cmds[i].addr;
-				memcpy_to_uspace(va, &val16, sizeof(val16));
-			}
-			break;
-		case CMD_MEM_WRITE_A_32:
-			if (srcarg) {
-				val32 = scratch[srcarg];
-				va = code->cmds[i].addr;
-				memcpy_to_uspace(va, &val32, sizeof(val32));
-			}
-			break;
 		case CMD_BTEST:
 			if ((srcarg) && (dstarg)) {
 				dstval = scratch[srcarg] & code->cmds[i].value;
