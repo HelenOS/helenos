@@ -55,7 +55,7 @@
  * @param uspace_src Source userspace address.
  * @param size Size of the data to be copied.
  *
- * @return 0 on success or error code from @ref errno.h.
+ * @return EOK on success or error code from @ref errno.h.
  */
 int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 {
@@ -93,7 +93,7 @@ int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 	THREAD->in_copy_from_uspace = false;
 
 	interrupts_restore(ipl);
-	return !rc ? EPERM : 0;
+	return !rc ? EPERM : EOK;
 }
 
 /** Copy data from kernel to userspace.

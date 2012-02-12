@@ -35,6 +35,11 @@
 #ifndef ABI_DDI_IRQ_H_
 #define ABI_DDI_IRQ_H_
 
+typedef struct {
+	uintptr_t base;
+	size_t size;
+} irq_pio_range_t;
+
 typedef enum {
 	/** Read 1 byte from the I/O space. */
 	CMD_PIO_READ_8 = 1,
@@ -96,6 +101,8 @@ typedef struct {
 } irq_cmd_t;
 
 typedef struct {
+	size_t rangecount;
+	irq_pio_range_t *ranges;
 	size_t cmdcount;
 	irq_cmd_t *cmds;
 } irq_code_t;

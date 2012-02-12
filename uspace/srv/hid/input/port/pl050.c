@@ -90,6 +90,8 @@ static irq_cmd_t pl050_cmds[] = {
 };
 
 static irq_code_t pl050_kbd = {
+	0,	// FIXME
+	NULL,	// FIXME
 	sizeof(pl050_cmds) / sizeof(irq_cmd_t),
 	pl050_cmds
 };

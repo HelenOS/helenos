@@ -68,6 +68,8 @@ static irq_cmd_t msim_cmds[] = {
 };
 
 static irq_code_t msim_kbd = {
+	0,	// FIXME
+	NULL,	// FIXME
 	sizeof(msim_cmds) / sizeof(irq_cmd_t),
 	msim_cmds
 };

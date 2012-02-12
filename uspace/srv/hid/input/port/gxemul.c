@@ -68,6 +68,8 @@ static irq_cmd_t gxemul_cmds[] = {
 };
 
 static irq_code_t gxemul_kbd = {
+	0,	// FIXME
+	NULL,	// FIXME
 	sizeof(gxemul_cmds) / sizeof(irq_cmd_t),
 	gxemul_cmds
 };

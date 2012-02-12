@@ -79,6 +79,8 @@ static irq_cmd_t default_cmds[] = {
 };
 
 static irq_code_t default_pseudocode = {
+	0,
+	NULL,
 	sizeof(default_cmds) / sizeof(irq_cmd_t),
 	default_cmds
 };

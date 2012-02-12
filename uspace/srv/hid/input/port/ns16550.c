@@ -97,6 +97,8 @@ static irq_cmd_t ns16550_cmds[] = {
 };
 
 irq_code_t ns16550_kbd = {
+	0,
+	NULL,
 	sizeof(ns16550_cmds) / sizeof(irq_cmd_t),
 	ns16550_cmds
 };
