@@ -173,7 +173,6 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
-	irq->driver_as = AS;
 	
 	/*
 	 * Enlist the IRQ structure in the uspace IRQ hash table and the
@@ -364,10 +363,6 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 	if (!code)
 		return IRQ_DECLINE;
 	
-	as_t *current_as = AS;
-	if (current_as != irq->driver_as)
-		as_switch(AS, irq->driver_as);
-	
 	for (size_t i = 0; i < code->cmdcount; i++) {
 		uint32_t dstval;
 		void *va;
@@ -453,9 +448,6 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			return IRQ_DECLINE;
 		}
 	}
-	
-	if (AS != current_as)
-		as_switch(AS, current_as);
 	
 	return IRQ_DECLINE;
 }
