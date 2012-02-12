@@ -74,6 +74,13 @@ static ddf_dev_ops_t ops = {
 #define i8042_AUX_DISABLE	0x20
 #define i8042_KBD_TRANSLATE	0x40 /* Use this to switch to XT scancodes */
 
+static const irq_pio_range_t i8042_ranges[] = {
+	{
+		.base = 0,
+		.size = sizeof(i8042_regs_t)
+	}
+};
+
 /** i8042 Interrupt pseudo-code. */
 static const irq_cmd_t i8042_cmds[] = {
 	{
@@ -227,13 +234,23 @@ if  (ret != EOK) { \
 	} \
 } else (void)0
 
+	const size_t range_count = sizeof(i8042_ranges) /
+	    sizeof(irq_pio_range_t);
 	const size_t cmd_count = sizeof(i8042_cmds) / sizeof(irq_cmd_t);
+	irq_pio_range_t ranges[range_count];
 	irq_cmd_t cmds[cmd_count];
+	memcpy(ranges, i8042_ranges, sizeof(i8042_ranges));
+	ranges[0].base = (uintptr_t) regs;
 	memcpy(cmds, i8042_cmds, sizeof(i8042_cmds));
 	cmds[0].addr = (void *) &dev->regs->status;
 	cmds[3].addr = (void *) &dev->regs->data;
 
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = cmds };
+	irq_code_t irq_code = {
+		.rangecount = range_count,
+		.ranges = ranges,
+		.cmdcount = cmd_count,
+		.cmds = cmds
+	};
 	ret = register_interrupt_handler(ddf_dev, irq_kbd, i8042_irq_handler,
 	    &irq_code);
 	CHECK_RET_UNBIND_DESTROY(ret,
