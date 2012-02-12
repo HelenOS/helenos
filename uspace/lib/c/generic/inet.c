@@ -136,8 +136,8 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	sysarg_t local_addr;
 	async_exch_t *exch = async_exchange_begin(inet_sess);
 
-	int rc = async_req_1_1(exch, INET_GET_SRCADDR, remote->ipv4,
-	    &local_addr);
+	int rc = async_req_2_1(exch, INET_GET_SRCADDR, remote->ipv4,
+	    tos, &local_addr);
 	async_exchange_end(exch);
 
 	if (rc != EOK)

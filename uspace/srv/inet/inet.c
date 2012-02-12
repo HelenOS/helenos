@@ -121,12 +121,37 @@ static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
 	return inet_route_packet(dgram, ttl, df);
 }
 
+static int inet_get_srcaddr(inet_client_t *client, inet_addr_t *remote,
+    uint8_t tos, inet_addr_t *local)
+{
+	inet_addrobj_t *addr;
+
+	addr = inet_addrobj_find(remote, iaf_net);
+	if (addr != NULL) {
+		/* Destination is directly accessible */
+		local->ipv4 = addr->naddr.ipv4;
+		return EOK;
+	}
+
+	return ENOENT;
+}
+
 static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
+	inet_addr_t remote;
+	uint8_t tos;
+	inet_addr_t local;
+	int rc;
+
 	log_msg(LVL_DEBUG, "inet_get_srcaddr_srv()");
 
-	async_answer_0(callid, ENOTSUP);
+	remote.ipv4 = IPC_GET_ARG1(*call);
+	tos = IPC_GET_ARG2(*call);
+	local.ipv4 = 0;
+
+	rc = inet_get_srcaddr(client, &remote, tos, &local);
+	async_answer_1(callid, rc, local.ipv4);
 }
 
 static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,

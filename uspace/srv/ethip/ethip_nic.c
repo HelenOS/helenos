@@ -302,6 +302,7 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 
 int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 {
+	log_msg(LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
 	return nic_send_frame(nic->sess, data, size);
 }
 
