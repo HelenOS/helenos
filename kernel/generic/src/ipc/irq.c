@@ -438,13 +438,9 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			}
 			break;
 		case CMD_ACCEPT:
-			if (AS != current_as)
-				as_switch(AS, current_as);
 			return IRQ_ACCEPT;
 		case CMD_DECLINE:
 		default:
-			if (AS != current_as)
-				as_switch(AS, current_as);
 			return IRQ_DECLINE;
 		}
 	}
