@@ -157,7 +157,17 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 
 			cmds[i].addr = (void *) addr;
 			break;
-		} 
+		}
+
+		if (j == rangecount) {
+			/*
+			 * The address used in this command is outside of all
+			 * defined ranges.
+			 */
+			ranges_unmap(ranges, rangecount);
+			free(pbase);
+			return EINVAL;
+		}
 	}
 
 	free(pbase);
