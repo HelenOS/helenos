@@ -261,6 +261,24 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	inet_client_fini(&client);
 }
 
+static inet_client_t *inet_client_find(uint8_t proto)
+{
+	fibril_mutex_lock(&client_list_lock);
+
+	list_foreach(client_list, link) {
+		inet_client_t *client = list_get_instance(link, inet_client_t,
+		    client_list);
+
+		if (client->protocol == proto) {
+			fibril_mutex_unlock(&client_list_lock);
+			return client;
+		}
+	}
+
+	fibril_mutex_unlock(&client_list_lock);
+	return NULL;
+}
+
 int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 {
 	async_exch_t *exch = async_exchange_begin(client->sess);
@@ -284,9 +302,42 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 	return EOK;
 }
 
-int inet_recv_packet(inet_dgram_t *dgram, uint8_t ttl, int df)
+static int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 {
-	return inet_route_packet(dgram, ttl, df);
+	inet_client_t *client;
+
+	log_msg(LVL_DEBUG, "inet_recv_dgram_local()");
+
+	client = inet_client_find(proto);
+	if (client == NULL) {
+		log_msg(LVL_DEBUG, "No client found for protocol 0x%" PRIx8,
+		    proto);
+		return ENOENT;
+	}
+
+	return inet_ev_recv(client, dgram);
+}
+
+int inet_recv_packet(inet_packet_t *packet)
+{
+	inet_addrobj_t *addr;
+	inet_dgram_t dgram;
+
+	addr = inet_addrobj_find(&packet->dest, iaf_addr);
+	if (addr != NULL) {
+		/* Destined for one of the local addresses */
+
+		/* XXX Reassemble packets */
+		dgram.src = packet->src;
+		dgram.dest = packet->dest;
+		dgram.tos = packet->tos;
+		dgram.data = packet->data;
+		dgram.size = packet->size;
+
+		return inet_recv_dgram_local(&dgram, packet->proto);
+	}
+
+	return ENOENT;
 }
 
 int main(int argc, char *argv[])

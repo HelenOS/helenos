@@ -47,11 +47,8 @@
 #include "pdu.h"
 
 /** Encode Internet PDU.
- *
- * XXX We should be encoding from packet, not from datagram.
  */
-int inet_pdu_encode(inet_dgram_t *dgram, uint8_t ttl, int df, void **rdata,
-    size_t *rsize)
+int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
 {
 	void *data;
 	size_t size;
@@ -60,7 +57,7 @@ int inet_pdu_encode(inet_dgram_t *dgram, uint8_t ttl, int df, void **rdata,
 	size_t data_offs;
 
 	hdr_size = sizeof(ip_header_t);
-	size = hdr_size + dgram->size;
+	size = hdr_size + packet->size;
 	data_offs = ROUND_UP(hdr_size, 4);
 
 	data = calloc(size, 1);
@@ -69,25 +66,25 @@ int inet_pdu_encode(inet_dgram_t *dgram, uint8_t ttl, int df, void **rdata,
 
 	hdr = (ip_header_t *)data;
 	hdr->ver_ihl = (4 << VI_VERSION_l) | (hdr_size / sizeof(uint32_t));
-	hdr->tos = dgram->tos;
+	hdr->tos = packet->tos;
 	hdr->tot_len = host2uint16_t_be(size);
 	hdr->id = host2uint16_t_be(42);
-	hdr->flags_foff = host2uint16_t_be(df ? BIT_V(uint16_t, FF_FLAG_DF) : 0);
-	hdr->ttl = ttl;
+	hdr->flags_foff = host2uint16_t_be(packet->df ?
+	    BIT_V(uint16_t, FF_FLAG_DF) : 0);
+	hdr->ttl = packet->ttl;
 	hdr->proto = 0;
 	hdr->chksum = 0;
-	hdr->src_addr = host2uint32_t_be(dgram->src.ipv4);
-	hdr->dest_addr = host2uint32_t_be(dgram->dest.ipv4);
+	hdr->src_addr = host2uint32_t_be(packet->src.ipv4);
+	hdr->dest_addr = host2uint32_t_be(packet->dest.ipv4);
 
-	memcpy((uint8_t *)data + data_offs, dgram->data, dgram->size);
+	memcpy((uint8_t *)data + data_offs, packet->data, packet->size);
 
 	*rdata = data;
 	*rsize = size;
 	return EOK;
 }
 
-int inet_pdu_decode(void *data, size_t size, inet_dgram_t *dgram, uint8_t *ttl,
-    int *df)
+int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 {
 	ip_header_t *hdr;
 	size_t tot_len;
@@ -130,25 +127,25 @@ int inet_pdu_decode(void *data, size_t size, inet_dgram_t *dgram, uint8_t *ttl,
 	/* XXX Protocol */
 	/* XXX Checksum */
 
-	dgram->src.ipv4 = uint32_t_be2host(hdr->src_addr);
-	dgram->dest.ipv4 = uint32_t_be2host(hdr->dest_addr);
-	dgram->tos = hdr->tos;
-	*ttl = hdr->ttl;
-	*df = (uint16_t_be2host(hdr->tos) & BIT_V(uint16_t, FF_FLAG_DF)) ?
-	    1 : 0;
+	packet->src.ipv4 = uint32_t_be2host(hdr->src_addr);
+	packet->dest.ipv4 = uint32_t_be2host(hdr->dest_addr);
+	packet->tos = hdr->tos;
+	packet->ttl = hdr->ttl;
+	packet->df = (uint16_t_be2host(hdr->tos) & BIT_V(uint16_t, FF_FLAG_DF))
+	    ? 1 : 0;
 
 	/* XXX IP options */
 	data_offs = sizeof(uint32_t) * BIT_RANGE_EXTRACT(uint8_t, VI_IHL_h,
 	    VI_IHL_l, hdr->ver_ihl);
 
-	dgram->size = tot_len - data_offs;
-	dgram->data = calloc(dgram->size, 1);
-	if (dgram->data == NULL) {
+	packet->size = tot_len - data_offs;
+	packet->data = calloc(packet->size, 1);
+	if (packet->data == NULL) {
 		log_msg(LVL_WARN, "Out of memory.");
 		return ENOMEM;
 	}
 
-	memcpy(dgram->data, (uint8_t *)data + data_offs, dgram->size);
+	memcpy(packet->data, (uint8_t *)data + data_offs, packet->size);
 
 	return EOK;
 }

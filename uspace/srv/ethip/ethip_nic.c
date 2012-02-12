@@ -225,6 +225,7 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 	log_msg(LVL_DEBUG, "free data");
 	free(data);
 
+	log_msg(LVL_DEBUG, "ethip_nic_received() done, rc=%d", rc);
 	async_answer_0(callid, rc);
 }
 
@@ -302,8 +303,18 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 
 int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 {
+	int rc;
 	log_msg(LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
-	return nic_send_frame(nic->sess, data, size);
+	rc = nic_send_frame(nic->sess, data, size);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	return rc;
 }
 
 /** @}

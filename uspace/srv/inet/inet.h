@@ -67,6 +67,17 @@ typedef struct {
 	inet_addr_t src;
 	inet_addr_t dest;
 	uint8_t tos;
+	uint8_t proto;
+	uint8_t ttl;
+	int df;
+	void *data;
+	size_t size;
+} inet_packet_t;
+
+typedef struct {
+	inet_addr_t src;
+	inet_addr_t dest;
+	uint8_t tos;
 	void *data;
 	size_t size;
 } inet_dgram_t;
@@ -86,7 +97,7 @@ typedef struct {
 } inet_addrobj_t;
 
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
-extern int inet_recv_packet(inet_dgram_t *, uint8_t ttl, int df);
+extern int inet_recv_packet(inet_packet_t *);
 
 #endif
 

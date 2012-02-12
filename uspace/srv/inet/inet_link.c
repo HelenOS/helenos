@@ -59,17 +59,21 @@ static FIBRIL_MUTEX_INITIALIZE(inet_discovery_lock);
 
 static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
 {
-	inet_dgram_t dgram;
-	uint8_t ttl;
-	int df;
+	inet_packet_t packet;
 	int rc;
 
 	log_msg(LVL_DEBUG, "inet_iplink_recv()");
-	rc = inet_pdu_decode(sdu->data, sdu->size, &dgram, &ttl, &df);
-	if (rc != EOK)
+	rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
+	if (rc != EOK) {
+		log_msg(LVL_DEBUG, "failed decoding PDU");
 		return rc;
+	}
 
-	return inet_recv_packet(&dgram, ttl, df);
+	log_msg(LVL_DEBUG, "call inet_recv_packet()");
+	rc = inet_recv_packet(&packet);
+	log_msg(LVL_DEBUG, "call inet_recv_packet -> %d", rc);
+
+	return rc;
 }
 
 static int inet_link_check_new(void)
@@ -215,11 +219,22 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
     inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t ttl, int df)
 {
 	iplink_sdu_t sdu;
+	inet_packet_t packet;
 	int rc;
+
+	/* XXX Fragment packet */
+	packet.src = dgram->src;
+	packet.dest = dgram->dest;
+	packet.tos = dgram->tos;
+	packet.proto = 42;
+	packet.ttl = ttl;
+	packet.df = df;
+	packet.data = dgram->data;
+	packet.size = dgram->size;
 
 	sdu.lsrc.ipv4 = lsrc->ipv4;
 	sdu.ldest.ipv4 = ldest->ipv4;
-	rc = inet_pdu_encode(dgram, ttl, df, &sdu.data, &sdu.size);
+	rc = inet_pdu_encode(&packet, &sdu.data, &sdu.size);
 	if (rc != EOK)
 		return rc;
 
