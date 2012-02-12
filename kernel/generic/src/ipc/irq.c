@@ -121,18 +121,24 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 	/* Rewrite the pseudocode addresses from physical to kernel virtual. */
 	for (i = 0; i < cmdcount; i++) {
 		uintptr_t addr;
+		size_t size;
 
 		/* Process only commands that use an address. */
 		switch (cmds[i].cmd) {
 		case CMD_PIO_READ_8:
-        	case CMD_PIO_READ_16:
-        	case CMD_PIO_READ_32:
         	case CMD_PIO_WRITE_8:
-        	case CMD_PIO_WRITE_16:
-        	case CMD_PIO_WRITE_32:
         	case CMD_PIO_WRITE_A_8:
+			size = 1;
+			break;
+        	case CMD_PIO_READ_16:
+        	case CMD_PIO_WRITE_16:
         	case CMD_PIO_WRITE_A_16:
+			size = 2;
+			break;
+        	case CMD_PIO_READ_32:
+        	case CMD_PIO_WRITE_32:
         	case CMD_PIO_WRITE_A_32:
+			size = 4;
 			break;
 		default:
 			/* Move onto the next command. */
@@ -141,14 +147,10 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 
 		addr = (uintptr_t) cmds[i].addr;
 		
-		/* Process only memory mapped PIO addresses. */
-		if ((void *) addr < IO_SPACE_BOUNDARY)
-			continue;
-
 		for (j = 0; j < rangecount; j++) {
 
 			/* Find the matching range. */
-			if (!iswithin(pbase[j], ranges[j].size, addr, 1))
+			if (!iswithin(pbase[j], ranges[j].size, addr, size))
 				continue;
 
 			/* Switch the command to a kernel virtual address. */
