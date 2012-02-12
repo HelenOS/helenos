@@ -236,14 +236,15 @@ if  (ret != EOK) { \
 
 	const size_t range_count = sizeof(i8042_ranges) /
 	    sizeof(irq_pio_range_t);
-	const size_t cmd_count = sizeof(i8042_cmds) / sizeof(irq_cmd_t);
 	irq_pio_range_t ranges[range_count];
-	irq_cmd_t cmds[cmd_count];
 	memcpy(ranges, i8042_ranges, sizeof(i8042_ranges));
 	ranges[0].base = (uintptr_t) regs;
+
+	const size_t cmd_count = sizeof(i8042_cmds) / sizeof(irq_cmd_t);
+	irq_cmd_t cmds[cmd_count];
 	memcpy(cmds, i8042_cmds, sizeof(i8042_cmds));
-	cmds[0].addr = (void *) &dev->regs->status;
-	cmds[3].addr = (void *) &dev->regs->data;
+	cmds[0].addr = (void *) &(((i8042_regs_t *) regs)->status);
+	cmds[3].addr = (void *) &(((i8042_regs_t *) regs)->data);
 
 	irq_code_t irq_code = {
 		.rangecount = range_count,
