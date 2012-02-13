@@ -124,7 +124,7 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 
 /** Send datagram to directly reachable destination */
 int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_dgram_t *dgram,
-    uint8_t ttl, int df)
+    uint8_t proto, uint8_t ttl, int df)
 {
 	inet_addr_t lsrc_addr;
 	inet_addr_t *ldest_addr;
@@ -133,7 +133,7 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_dgram_t *dgram,
 	ldest_addr = &dgram->dest;
 
 	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest_addr, dgram,
-	    ttl, df);
+	    proto, ttl, df);
 }
 
 /** @}

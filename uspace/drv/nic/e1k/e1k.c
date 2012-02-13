@@ -2308,7 +2308,6 @@ static void e1000_eeprom_get_address(e1000_t *e1000,
  */
 static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 {
-	printf("e1000_send_frame()\n");
 	assert(nic);
 	
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);

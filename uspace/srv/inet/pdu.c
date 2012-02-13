@@ -72,7 +72,7 @@ int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
 	hdr->flags_foff = host2uint16_t_be(packet->df ?
 	    BIT_V(uint16_t, FF_FLAG_DF) : 0);
 	hdr->ttl = packet->ttl;
-	hdr->proto = 0;
+	hdr->proto = packet->proto;
 	hdr->chksum = 0;
 	hdr->src_addr = host2uint32_t_be(packet->src.ipv4);
 	hdr->dest_addr = host2uint32_t_be(packet->dest.ipv4);
@@ -124,12 +124,12 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	(void)ident;
 	/* XXX Flags */
 	/* XXX Fragment offset */
-	/* XXX Protocol */
 	/* XXX Checksum */
 
 	packet->src.ipv4 = uint32_t_be2host(hdr->src_addr);
 	packet->dest.ipv4 = uint32_t_be2host(hdr->dest_addr);
 	packet->tos = hdr->tos;
+	packet->proto = hdr->proto;
 	packet->ttl = hdr->ttl;
 	packet->df = (uint16_t_be2host(hdr->tos) & BIT_V(uint16_t, FF_FLAG_DF))
 	    ? 1 : 0;

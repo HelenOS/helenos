@@ -216,7 +216,7 @@ int inet_link_discovery_start(void)
 
 /** Send datagram over Internet link */
 int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
-    inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t ttl, int df)
+    inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	iplink_sdu_t sdu;
 	inet_packet_t packet;
@@ -226,7 +226,7 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	packet.src = dgram->src;
 	packet.dest = dgram->dest;
 	packet.tos = dgram->tos;
-	packet.proto = 42;
+	packet.proto = proto;
 	packet.ttl = ttl;
 	packet.df = df;
 	packet.data = dgram->data;
