@@ -209,6 +209,7 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 
+
 	ext4_directory_iterator_t it;
 	rc = ext4_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
 	if (rc != EOK) {
@@ -1123,7 +1124,6 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	block_t *write_block;
 	rc = block_get(&write_block, service_id, fblock, flags);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading block \%d", rc);
 		ext4fs_node_put(fn);
 		async_answer_0(callid, rc);
 		return rc;
@@ -1135,15 +1135,14 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 
 	rc = async_data_write_finalize(callid, write_block->data + (pos % block_size), bytes);
 	if (rc != EOK) {
-		// TODO error
-		EXT4FS_DBG("error in write finalize \%d", rc);
+		ext4fs_node_put(fn);
+		return rc;
 	}
 
 	write_block->dirty = true;
 
 	rc = block_put(write_block);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in writing block \%d", rc);
 		ext4fs_node_put(fn);
 		return rc;
 	}

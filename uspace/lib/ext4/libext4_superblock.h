@@ -181,22 +181,13 @@ typedef struct ext4_superblock {
 #define EXT4_FEATURE_INCOMPAT_DIRDATA           0x1000 /* data in dirent */
 
 // TODO MODIFY features corresponding with implementation
-#define EXT4_FEATURE_COMPAT_SUPP EXT4_FEATURE_COMPAT_EXT_ATTR
+#define EXT4_FEATURE_COMPAT_SUPP		(EXT4_FEATURE_COMPAT_DIR_INDEX)
 
 #define EXT4_FEATURE_INCOMPAT_SUPP      (EXT4_FEATURE_INCOMPAT_FILETYPE| \
-                                         EXT4_FEATURE_INCOMPAT_RECOVER| \
-                                         EXT4_FEATURE_INCOMPAT_META_BG| \
                                          EXT4_FEATURE_INCOMPAT_EXTENTS| \
-                                         EXT4_FEATURE_INCOMPAT_64BIT| \
-                                         EXT4_FEATURE_INCOMPAT_FLEX_BG)
+                                         EXT4_FEATURE_INCOMPAT_64BIT)
 
-#define EXT4_FEATURE_RO_COMPAT_SUPP     (EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER| \
-                                         EXT4_FEATURE_RO_COMPAT_LARGE_FILE| \
-                                         EXT4_FEATURE_RO_COMPAT_GDT_CSUM| \
-                                         EXT4_FEATURE_RO_COMPAT_DIR_NLINK | \
-                                         EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE | \
-                                         EXT4_FEATURE_RO_COMPAT_BTREE_DIR |\
-                                         EXT4_FEATURE_RO_COMPAT_HUGE_FILE)
+#define EXT4_FEATURE_RO_COMPAT_SUPP     ()
 
 
 
