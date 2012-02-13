@@ -52,6 +52,8 @@ typedef struct {
 /** IP Ethertype */
 #define ETYPE_IP	0x0800
 
+#define ETH_FRAME_MIN_SIZE 60
+
 #endif
 
 /** @}

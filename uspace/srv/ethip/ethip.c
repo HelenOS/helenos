@@ -171,7 +171,7 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	log_msg(LVL_DEBUG, "ethip_send()");
 
 	frame.dest.addr = 0xdeeedeeedeee;
-	frame.src.addr =  0xaafeedfaceee;
+	frame.src.addr =  0xaadeadbeeffe;
 	frame.etype_len = ETYPE_IP;
 	frame.data = sdu->data;
 	frame.size = sdu->size;

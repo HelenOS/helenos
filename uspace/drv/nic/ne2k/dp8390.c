@@ -409,6 +409,7 @@ void ne2k_send(nic_t *nic_data, void *data, size_t size)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
+	printf("ne2k_send()\n");
 	assert(ne2k->probed);
 	assert(ne2k->up);
 
@@ -420,8 +421,16 @@ void ne2k_send(nic_t *nic_data, void *data, size_t size)
 	
 	if ((size < ETH_MIN_PACK_SIZE) || (size > ETH_MAX_PACK_SIZE_TAGGED)) {
 		fibril_mutex_unlock(&ne2k->sq_mutex);
+		printf("ne2k_send() - checks failed size=%zu (min %zu, max %zu)\n",
+		    size, ETH_MIN_PACK_SIZE, ETH_MAX_PACK_SIZE_TAGGED);
 		return;
 	}
+
+	printf("ne2k_send() - uploading\n");
+	size_t i;
+	for (i = 0; i < size; i++)
+		printf("%02x ", ((uint8_t *)data)[i]);
+	printf("\n");
 
 	/* Upload the frame to the ethernet card */
 	ne2k_upload(ne2k, data, ne2k->sq.page * DP_PAGE, size);

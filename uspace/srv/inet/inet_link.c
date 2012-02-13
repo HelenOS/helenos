@@ -181,9 +181,15 @@ static int inet_link_open(service_id_t sid)
 
 	inet_addrobj_t *addr;
 
+	static int first = 1;
 	/* XXX For testing: set static IP address 192.168.0.4/24 */
 	addr = inet_addrobj_new();
-	addr->naddr.ipv4 = (192 << 24) + (168 << 16) + (0 << 8) + 4;
+	if (first) {
+		addr->naddr.ipv4 = (127 << 24) + (0 << 16) + (0 << 8) + 1;
+		first = 0;
+	} else {
+		addr->naddr.ipv4 = (192 << 24) + (168 << 16) + (0 << 8) + 4;
+	}
 	addr->naddr.bits = 24;
 	addr->ilink = ilink;
 	inet_addrobj_add(addr);

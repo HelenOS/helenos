@@ -37,6 +37,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <io/log.h>
+#include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
 
@@ -56,7 +57,7 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 	size_t size;
 	eth_header_t *hdr;
 
-	size = sizeof(eth_header_t) + frame->size;
+	size = max(sizeof(eth_header_t) + frame->size, ETH_FRAME_MIN_SIZE);
 
 	data = calloc(size, 1);
 	if (data == NULL)
@@ -121,10 +122,8 @@ static void mac48_encode(mac48_addr_t *addr, void *buf)
 	int i;
 
 	val = addr->addr;
-	for (i = 0; i < MAC48_BYTES; i++) {
+	for (i = 0; i < MAC48_BYTES; i++)
 		bbuf[i] = (val >> (8 * (MAC48_BYTES - i - 1))) & 0xff;
-		val = val >> 8;
-	}
 }
 
 static void mac48_decode(void *data, mac48_addr_t *addr)
