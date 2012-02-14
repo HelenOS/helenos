@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 
-/** Ethernet CRC size after packet received in rx_descriptor */
+/** Ethernet CRC size after frame received in rx_descriptor */
 #define E1000_CRC_SIZE  4
 
 #define VET_VALUE  0x8100
@@ -108,7 +108,7 @@ typedef enum {
 
 /** Transmit descriptor COMMAND field bits */
 typedef enum {
-	TXDESCRIPTOR_COMMAND_VLE = (1 << 6),   /**< VLAN Packet Enable */
+	TXDESCRIPTOR_COMMAND_VLE = (1 << 6),   /**< VLAN frame Enable */
 	TXDESCRIPTOR_COMMAND_RS = (1 << 3),    /**< Report Status */
 	TXDESCRIPTOR_COMMAND_IFCS = (1 << 1),  /**< Insert FCS */
 	TXDESCRIPTOR_COMMAND_EOP = (1 << 0)    /**< End Of Packet */

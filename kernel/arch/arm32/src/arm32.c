@@ -37,7 +37,6 @@
 #include <config.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
-#include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <ddi/irq.h>
 #include <print.h>

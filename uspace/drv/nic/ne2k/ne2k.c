@@ -285,7 +285,7 @@ static int ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 	}
 	/* Note: some frame with previous physical address may slip to NIL here
 	 * (for a moment the filtering is not exact), but ethernet should be OK with
-	 * that. Some packet may also be lost, but this is not a problem.
+	 * that. Some frames may also be lost, but this is not a problem.
 	 */
 	ne2k_set_physical_address((ne2k_t *) nic_get_specific(nic_data), address);
 	return EOK;
@@ -362,6 +362,8 @@ static int ne2k_on_broadcast_mode_change(nic_t *nic_data,
 
 static int ne2k_dev_add(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun;
+	
 	/* Allocate driver data for the device. */
 	nic_t *nic_data = nic_create_and_bind(dev);
 	if (nic_data == NULL)
@@ -395,15 +397,32 @@ static int ne2k_dev_add(ddf_dev_t *dev)
 		return rc;
 	}
 	
-	rc = nic_register_as_ddf_fun(nic_data, &ne2k_dev_ops);
+	rc = nic_connect_to_services(nic_data);
 	if (rc != EOK) {
 		ne2k_dev_cleanup(dev);
 		return rc;
 	}
 	
-	rc = nic_connect_to_services(nic_data);
-	if (rc != EOK) {
+	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
+	if (fun == NULL) {
 		ne2k_dev_cleanup(dev);
+		return ENOMEM;
+	}
+	nic_set_ddf_fun(nic_data, fun);
+	fun->ops = &ne2k_dev_ops;
+	fun->driver_data = nic_data;
+	
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_fun_destroy(fun);
+		ne2k_dev_cleanup(dev);
+		return rc;
+	}
+	
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK) {
+		ddf_fun_unbind(fun);
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 	

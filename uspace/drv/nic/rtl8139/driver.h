@@ -29,38 +29,42 @@
 #ifndef RTL8139_DRIVER_H_
 #define RTL8139_DRIVER_H_
 
-#include "defs.h"
-#include "general.h"
 #include <sys/types.h>
 #include <stdint.h>
+#include "defs.h"
+#include "general.h"
 
 /** The driver name */
-#define NAME "rtl8139"
+#define NAME  "rtl8139"
+
 /** Transmittion buffers count */
-#define TX_BUFF_COUNT 4
-/** Size of buffer for one packet
- *  - 2kB
- */
-#define TX_BUFF_SIZE (2 * 1024)
-/** Count of pages to allocate for TxBuffers */
-#define TX_PAGES 2
+#define TX_BUFF_COUNT  4
+
+/** Size of buffer for one frame (2kB) */
+#define TX_BUFF_SIZE  (2 * 1024)
+
+/** Number of pages to allocate for TxBuffers */
+#define TX_PAGES  2
 
 /** Size of the CRC after the received frame in the receiver buffer */
-#define RTL8139_CRC_SIZE 4
+#define RTL8139_CRC_SIZE  4
 
-/** The default mode of accepting unicast packets */
-#define RTL8139_RCR_UCAST_DEFAULT RCR_ACCEPT_PHYS_MATCH
-/** The default mode of accepting multicast packets */
-#define RTL8139_RCR_MCAST_DEFAULT 0
-/** The default mode of accepting broadcast packets */
-#define RTL8139_RCR_BCAST_DEFAULT RCR_ACCEPT_BROADCAST
-/** The default mode of accepting defect packets */
-#define RTL8139_RCR_DEFECT_DEFAULT 0
+/** The default mode of accepting unicast frames */
+#define RTL8139_RCR_UCAST_DEFAULT  RCR_ACCEPT_PHYS_MATCH
+
+/** The default mode of accepting multicast frames */
+#define RTL8139_RCR_MCAST_DEFAULT  0
+
+/** The default mode of accepting broadcast frames */
+#define RTL8139_RCR_BCAST_DEFAULT  RCR_ACCEPT_BROADCAST
+
+/** The default mode of accepting defect frames */
+#define RTL8139_RCR_DEFECT_DEFAULT  0
 
 /** Mask for accepting all multicast */
-#define RTL8139_MCAST_MASK_PROMISC UINT64_MAX
+#define RTL8139_MCAST_MASK_PROMISC  UINT64_MAX
 
-/** Data  */
+/** Data */
 struct rtl8139_rcr_data {
 	/** Configuration part of RCR */
 	uint32_t rcr_base;
@@ -111,7 +115,7 @@ typedef struct rtl8139_data {
 	 */
 	size_t tx_used;
 
-	/** Buffer for receiving packets */
+	/** Buffer for receiving frames */
 	void *rx_buff_phys;
 	void *rx_buff_virt;
 
@@ -133,9 +137,8 @@ typedef struct rtl8139_data {
 	nic_t *nic_data;
 
 	/** Version of RT8139 controller */
-	enum rtl8139_version_id hw_version;
+	rtl8139_version_id_t hw_version;
 } rtl8139_t;
-
 
 /* ***** Pointers casting - for both amd64 and ia32 ***** */
 
@@ -160,8 +163,6 @@ typedef struct rtl8139_data {
  */
 #define IOADDR_TO_PTR(ioaddr) ((void*)((size_t)(ioaddr)))
 
-
-
 /* ***** Bit operation macros ***** */
 
 /** Set the bits specified by the given bit mask to the different values
@@ -176,7 +177,7 @@ typedef struct rtl8139_data {
  *
  * @return New value
  */
-#define bit_set_part_g( src, value, mask, type ) \
+#define bit_set_part_g(src, value, mask, type) \
 	((type)(((src) & ~((type)(mask))) | ((value) & (type)(mask))))
 
 /** Set the bits specified by the given bit mask to the different values
@@ -235,6 +236,5 @@ typedef struct rtl8139_data {
  */
 #define rtl8139_tsd_set_size(tsd_value, size) \
 	bit_set_part_32(tsd_value, (size) << TSD_SIZE_SHIFT, TSD_SIZE_MASK << TSD_SIZE_SHIFT)
-
 
 #endif

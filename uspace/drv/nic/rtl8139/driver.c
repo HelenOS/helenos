@@ -38,7 +38,6 @@
 #include <ddf/interrupt.h>
 #include <io/log.h>
 #include <nic.h>
-#include <packet_client.h>
 #include <device/pci.h>
 
 #include <ipc/irc.h>
@@ -55,23 +54,30 @@
 
 /** Global mutex for work with shared irq structure */
 FIBRIL_MUTEX_INITIALIZE(irq_reg_lock);
+
 /** Lock interrupt structure mutex */
-#define RTL8139_IRQ_STRUCT_LOCK() fibril_mutex_lock(&irq_reg_lock)
+#define RTL8139_IRQ_STRUCT_LOCK() \
+	fibril_mutex_lock(&irq_reg_lock)
+
 /** Unlock interrupt structure mutex */
-#define RTL8139_IRQ_STRUCT_UNLOCK() fibril_mutex_unlock(&irq_reg_lock)
+#define RTL8139_IRQ_STRUCT_UNLOCK() \
+	fibril_mutex_unlock(&irq_reg_lock)
 
 /** PCI clock frequency in kHz */
-#define RTL8139_PCI_FREQ_KHZ 33000
+#define RTL8139_PCI_FREQ_KHZ  33000
 
-#define RTL8139_AUTONEG_CAPS (ETH_AUTONEG_10BASE_T_HALF \
-    | ETH_AUTONEG_10BASE_T_FULL | ETH_AUTONEG_100BASE_TX_HALF \
-    | ETH_AUTONEG_100BASE_TX_FULL | ETH_AUTONEG_PAUSE_SYMETRIC)
+#define RTL8139_AUTONEG_CAPS (ETH_AUTONEG_10BASE_T_HALF | \
+	ETH_AUTONEG_10BASE_T_FULL | ETH_AUTONEG_100BASE_TX_HALF | \
+	ETH_AUTONEG_100BASE_TX_FULL | ETH_AUTONEG_PAUSE_SYMETRIC)
 
 /** Lock transmitter and receiver data
- *  This function shall be called whenever both transmitter and receiver locking
- *  to force safe lock ordering (deadlock prevention)
  *
- *  @param rtl8139  RTL8139 private data
+ * This function shall be called whenever
+ * both transmitter and receiver locking
+ * to force safe lock ordering (deadlock prevention)
+ *
+ * @param rtl8139 RTL8139 private data
+ *
  */
 inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
 {
@@ -82,7 +88,8 @@ inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
 
 /** Unlock transmitter and receiver data
  *
- *  @param rtl8139  RTL8139 private data
+ * @param rtl8139 RTL8139 private data
+ *
  */
 inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 {
@@ -151,7 +158,7 @@ inline static int rtl8139_hw_buffer_empty(rtl8139_t *rtl8139)
 	return pio_read_16(rtl8139->io_port + CR) & CR_BUFE;
 }
 
-/** Update the mask of accepted packets in the RCR register according to
+/** Update the mask of accepted frames in the RCR register according to
  * rcr_accept_mode value in rtl8139_t
  *
  * @param rtl8139  The rtl8139 private data
@@ -169,7 +176,7 @@ static void rtl8139_hw_update_rcr(rtl8139_t *rtl8139)
 	pio_write_32(rtl8139->io_port + RCR, rcr);
 }
 
-/** Fill the mask of accepted multicast packets in the card registers
+/** Fill the mask of accepted multicast frames in the card registers
  *
  *  @param rtl8139  The rtl8139 private data
  *  @param mask     The mask to set
@@ -393,7 +400,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size);
 /** Check if the transmit buffer is busy */
 #define rtl8139_tbuf_busy(tsd) ((pio_read_32(tsd) & TSD_OWN) == 0)
 
-/** Send packet with the hardware
+/** Send frame with the hardware
  *
  * note: the main_lock is locked when framework calls this function
  *
@@ -411,7 +418,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 	assert(rtl8139);
 	ddf_msg(LVL_DEBUG, "Sending frame");
 
-	if (size > RTL8139_PACKET_MAX_LENGTH) {
+	if (size > RTL8139_FRAME_MAX_LENGTH) {
 		ddf_msg(LVL_ERROR, "Send frame: frame too long, %zu bytes",
 		    size);
 		nic_report_send_error(rtl8139->nic_data, NIC_SEC_OTHER, 1);
@@ -436,7 +443,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	fibril_mutex_unlock(&rtl8139->tx_lock);
 
-	/* Get address of the buffer descriptor and packet data */
+	/* Get address of the buffer descriptor and frame data */
 	void *tsd = rtl8139->io_port + TSD0 + tx_curr * 4;
 	void *buf_addr = rtl8139->tx_buff[tx_curr];
 
@@ -457,7 +464,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 	tsd_value &= ~(uint32_t)TSD_OWN;
 	pio_write_32(tsd, tsd_value);
 	return;
-
+	
 err_busy_no_inc:
 err_size:
 	return;
@@ -504,34 +511,28 @@ static void rtl8139_soft_reset(rtl8139_t *rtl8139)
 	nic_set_tx_busy(rtl8139->nic_data, 0);
 }
 
-/** Create packet structure from the buffer data
+/** Create frame structure from the buffer data
  *
  * @param nic_data      NIC driver data
  * @param rx_buffer     The receiver buffer
  * @param rx_size       The buffer size
- * @param packet_start  The offset where packet data start
- * @param packet_size   The size of the packet data
+ * @param frame_start   The offset where packet data start
+ * @param frame_size    The size of the frame data
  *
- * @return The packet   list node (not connected)
+ * @return The frame list node (not connected)
+ *
  */
-static nic_frame_t *rtl8139_read_packet(nic_t *nic_data,
-    void *rx_buffer, size_t rx_size, size_t packet_start, size_t packet_size)
+static nic_frame_t *rtl8139_read_frame(nic_t *nic_data,
+    void *rx_buffer, size_t rx_size, size_t frame_start, size_t frame_size)
 {
-	nic_frame_t *frame = nic_alloc_frame(nic_data, packet_size);
+	nic_frame_t *frame = nic_alloc_frame(nic_data, frame_size);
 	if (! frame) {
-		ddf_msg(LVL_ERROR, "Can not allocate frame for received packet.");
+		ddf_msg(LVL_ERROR, "Can not allocate frame for received frame.");
 		return NULL;
 	}
 
-	void *packet_data = packet_suffix(frame->packet, packet_size);
-	if (!packet_data) {
-		ddf_msg(LVL_ERROR, "Can not get the packet suffix.");
-		nic_release_frame(nic_data, frame);
-		return NULL;
-	}
-
-	void *ret = rtl8139_memcpy_wrapped(packet_data, rx_buffer, packet_start,
-	    RxBUF_SIZE, packet_size);
+	void *ret = rtl8139_memcpy_wrapped(frame->data, rx_buffer, frame_start,
+	    RxBUF_SIZE, frame_size);
 	if (ret == NULL) {
 		nic_release_frame(nic_data, frame);
 		return NULL;
@@ -567,12 +568,12 @@ static void rtl8139_rx_reset(rtl8139_t *rtl8139)
 	nic_report_receive_error(rtl8139->nic_data, NIC_REC_OTHER, 1);
 }
 
-/** Receive all packets in queue
+/** Receive all frames in queue
  *
  *  @param nic_data  The controller data
- *  @return The linked list of packet_list_t nodes, each containing one packet
+ *  @return The linked list of nic_frame_list_t nodes, each containing one frame
  */
-static nic_frame_list_t *rtl8139_packet_receive(nic_t *nic_data)
+static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 	if (rtl8139_hw_buffer_empty(rtl8139))
@@ -580,7 +581,7 @@ static nic_frame_list_t *rtl8139_packet_receive(nic_t *nic_data)
 
 	nic_frame_list_t *frames = nic_alloc_frame_list();
 	if (!frames)
-		ddf_msg(LVL_ERROR, "Can not allocate frame list for received packets.");
+		ddf_msg(LVL_ERROR, "Can not allocate frame list for received frames.");
 
 	void *rx_buffer = rtl8139->rx_buff_virt;
 
@@ -604,22 +605,22 @@ static nic_frame_list_t *rtl8139_packet_receive(nic_t *nic_data)
 	memory_barrier();
 	while (!rtl8139_hw_buffer_empty(rtl8139)) {
 		void *rx_ptr = rx_buffer + rx_offset % RxBUF_SIZE;
-		uint32_t packet_header = uint32_t_le2host( *((uint32_t*)rx_ptr) );
-		uint16_t size = packet_header >> 16;
-		uint16_t packet_size = size - RTL8139_CRC_SIZE;
-		/* received packet flags in packet header */
-		uint16_t rcs = (uint16_t) packet_header;
+		uint32_t frame_header = uint32_t_le2host( *((uint32_t*)rx_ptr) );
+		uint16_t size = frame_header >> 16;
+		uint16_t frame_size = size - RTL8139_CRC_SIZE;
+		/* received frame flags in frame header */
+		uint16_t rcs = (uint16_t) frame_header;
 
 		if (size == RTL8139_EARLY_SIZE) {
-			/* The packet copying is still in progress, break receiving */
+			/* The frame copying is still in progress, break receiving */
 			ddf_msg(LVL_DEBUG, "Early threshold reached, not completely coppied");
 			break;
 		}
 
 		/* Check if the header is valid, otherwise we are lost in the buffer */
-		if (size == 0 || size > RTL8139_PACKET_MAX_LENGTH) {
+		if (size == 0 || size > RTL8139_FRAME_MAX_LENGTH) {
 			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4"PRIu16", "
-			    "header 0x%4"PRIx16". Offset: %zu)", size, packet_header, 
+			    "header 0x%4"PRIx16". Offset: %zu)", size, frame_header, 
 			    rx_offset);
 			goto rx_err;
 		}
@@ -628,22 +629,22 @@ static nic_frame_list_t *rtl8139_packet_receive(nic_t *nic_data)
 			goto rx_err;
 		}
 
-		cur_read += size + RTL_PACKET_HEADER_SIZE;
+		cur_read += size + RTL_FRAME_HEADER_SIZE;
 		if (cur_read > max_read)
 			break;
 
 		if (frames) {
-			nic_frame_t *frame = rtl8139_read_packet(nic_data, rx_buffer,
-			    RxBUF_SIZE, rx_offset + RTL_PACKET_HEADER_SIZE, packet_size);
+			nic_frame_t *frame = rtl8139_read_frame(nic_data, rx_buffer,
+			    RxBUF_SIZE, rx_offset + RTL_FRAME_HEADER_SIZE, frame_size);
 
 			if (frame)
 				nic_frame_list_append(frames, frame);
 		}
 
 		/* Update offset */
-		rx_offset = ALIGN_UP(rx_offset + size + RTL_PACKET_HEADER_SIZE, 4);
+		rx_offset = ALIGN_UP(rx_offset + size + RTL_FRAME_HEADER_SIZE, 4);
 
-		/* Write lesser value to prevent overflow into unread packet
+		/* Write lesser value to prevent overflow into unread frame
 		 * (the recomendation from the RealTech rtl8139 programming guide)
 		 */
 		uint16_t capr_val = rx_offset - 16;
@@ -734,7 +735,7 @@ static void rtl8139_tx_interrupt(nic_t *nic_data)
 
 		tx_used++;
 
-		/* If the packet was sent */
+		/* If the frame was sent */
 		if (tsd_value & TSD_TOK) {
 			size_t size = REG_GET_VAL(tsd_value, TSD_SIZE);
 			nic_report_send_ok(nic_data, 1, size);
@@ -764,11 +765,11 @@ static void rtl8139_tx_interrupt(nic_t *nic_data)
 	fibril_mutex_unlock(&rtl8139->tx_lock);
 }
 
-/** Receive all packets from the buffer
+/** Receive all frames from the buffer
  *
  *  @param rtl8139  driver private data
  */
-static void rtl8139_receive_packets(nic_t *nic_data)
+static void rtl8139_receive_frames(nic_t *nic_data)
 {
 	assert(nic_data);
 
@@ -776,7 +777,7 @@ static void rtl8139_receive_packets(nic_t *nic_data)
 	assert(rtl8139);
 
 	fibril_mutex_lock(&rtl8139->rx_lock);
-	nic_frame_list_t *frames = rtl8139_packet_receive(nic_data);
+	nic_frame_list_t *frames = rtl8139_frame_receive(nic_data);
 	fibril_mutex_unlock(&rtl8139->rx_lock);
 
 	if (frames)
@@ -832,14 +833,14 @@ static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 			return;
 	}
 
-	/* Check transmittion interrupts first to allow transmit next packets
+	/* Check transmittion interrupts first to allow transmit next frames
 	 * sooner
 	 */
 	if (isr & (INT_TOK | INT_TER)) {
 		rtl8139_tx_interrupt(nic_data);
 	}
 	if (isr & INT_ROK) {
-		rtl8139_receive_packets(nic_data);
+		rtl8139_receive_frames(nic_data);
 	}
 	if (isr & (INT_RER | INT_RXOVW | INT_FIFOOVW)) {
 		if (isr & INT_RER) {
@@ -941,7 +942,7 @@ inline static void rtl8139_card_up(rtl8139_t *rtl8139)
 	rtl8139_hw_update_rcr(rtl8139);
 }
 
-/** Activate the device to receive and transmit packets
+/** Activate the device to receive and transmit frames
  *
  *  @param nic_data  The nic driver data
  *
@@ -1221,17 +1222,17 @@ static int rtl8139_device_initialize(ddf_dev_t *dev)
 	if (ret != EOK)
 		goto failed;
 
-	/* Set default packet acceptance */
+	/* Set default frame acceptance */
 	rtl8139->rcr_data.ucast_mask = RTL8139_RCR_UCAST_DEFAULT;
 	rtl8139->rcr_data.mcast_mask = RTL8139_RCR_MCAST_DEFAULT;
 	rtl8139->rcr_data.bcast_mask = RTL8139_RCR_BCAST_DEFAULT;
 	rtl8139->rcr_data.defect_mask = RTL8139_RCR_DEFECT_DEFAULT;
-	/* Set receiver early treshold to 8/16 of packet length */
+	/* Set receiver early treshold to 8/16 of frame length */
 	rtl8139->rcr_data.rcr_base = (0x8 << RCR_ERTH_SHIFT);
 
 	ddf_msg(LVL_DEBUG, "The device is initialized");
 	return ret;
-
+	
 failed:
 	ddf_msg(LVL_ERROR, "The device initialization failed");
 	rtl8139_dev_cleanup(dev);
@@ -1296,6 +1297,8 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
  */
 int rtl8139_dev_add(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun;
+
 	assert(dev);
 	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %d)", dev->name, dev->handle);
 
@@ -1332,17 +1335,37 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 		goto err_irq;
 	}
 
-	rc = nic_register_as_ddf_fun(nic_data, &rtl8139_dev_ops);
+	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
+	if (fun == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating device function");
+		goto err_srv;
+	}
+	nic_set_ddf_fun(nic_data, fun);
+	fun->ops = &rtl8139_dev_ops;
+	fun->driver_data = nic_data;
+
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to register as DDF function - error %d", rc);
-		goto err_irq;
+		ddf_msg(LVL_ERROR, "Failed binding device function");
+		goto err_fun_create;
+	}
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to category");
+		goto err_fun_bind;
 	}
 
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
 	    dev->name);
 
 	return EOK;
-
+	
+err_fun_bind:
+	ddf_fun_unbind(fun);
+err_fun_create:
+	ddf_fun_destroy(fun);
+err_srv:
+	/* XXX Disconnect from services */
 err_irq:
 	unregister_interrupt_handler(dev, rtl8139->irq);
 err_pio:
@@ -1485,7 +1508,7 @@ enum access_mode {
 	VALUE_RW
 };
 
-/** Check if pause packet operations are valid in current situation 
+/** Check if pause frame operations are valid in current situation 
  *
  *  @param rtl8139  RTL8139 private structure
  *
@@ -1510,15 +1533,15 @@ static int rtl8139_pause_is_valid(rtl8139_t *rtl8139)
 	return VALUE_RW;
 }
 
-/** Get current pause packet configuration
+/** Get current pause frame configuration
  *
  *  Values are filled with NIC_RESULT_NOT_AVAILABLE if the value has no sense in
  *  the moment (half-duplex).
  *
  *  @param[in]  fun         The DDF structure of the RTL8139
- *  @param[out] we_send     Sign if local constroller sends pause packets
- *  @param[out] we_receive  Sign if local constroller receives pause packets
- *  @param[out] time        Time filled in pause packets. 0xFFFF in rtl8139
+ *  @param[out] we_send     Sign if local constroller sends pause frame
+ *  @param[out] we_receive  Sign if local constroller receives pause frame
+ *  @param[out] time        Time filled in pause frames. 0xFFFF in rtl8139
  *
  *  @return EOK if succeed
  */
@@ -1548,14 +1571,14 @@ static int rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
 	return EOK;
 };
 
-/** Set current pause packet configuration
+/** Set current pause frame configuration
  *
  *  @param fun            The DDF structure of the RTL8139
- *  @param allow_send     Sign if local constroller sends pause packets
- *  @param allow_receive  Sign if local constroller receives pause packets
+ *  @param allow_send     Sign if local constroller sends pause frame
+ *  @param allow_receive  Sign if local constroller receives pause frames
  *  @param time           Time to use, ignored (not supported by device)
  *
- *  @return EOK if succeed, INVAL if the pause packet has no sence
+ *  @return EOK if succeed, INVAL if the pause frame has no sence
  */
 static int rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
     uint16_t time)
@@ -1804,7 +1827,7 @@ inline static void rtl8139_rcx_promics_rem(nic_t *nic_data,
 	}
 }
 
-/** Set unicast packets acceptance mode
+/** Set unicast frames acceptance mode
  *
  *  @param nic_data  The nic device to update
  *  @param mode      The mode to set
@@ -1862,7 +1885,7 @@ static int rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
 	return EOK;
 }
 
-/** Set multicast packets acceptance mode
+/** Set multicast frames acceptance mode
  *
  *  @param nic_data  The nic device to update
  *  @param mode      The mode to set
@@ -1907,7 +1930,7 @@ static int rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
 	return EOK;
 }
 
-/** Set broadcast packets acceptance mode
+/** Set broadcast frames acceptance mode
  *
  *  @param nic_data  The nic device to update
  *  @param mode      The mode to set
@@ -1937,7 +1960,7 @@ static int rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 	return EOK;
 }
 
-/** Get state of acceptance of weird packets
+/** Get state of acceptance of weird frames
  *
  *  @param[in]  device  The device to check
  *  @param[out] mode    The current mode
@@ -1959,7 +1982,7 @@ static int rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 	return EOK;
 };
 
-/** Set acceptance of weird packets
+/** Set acceptance of weird frames
  *
  *  @param device  The device to update
  *  @param mode    The mode to set
@@ -2135,7 +2158,7 @@ static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 	return rc;
 }
 
-/** Force receiving all packets in the receive buffer
+/** Force receiving all frames in the receive buffer
  *
  *  @param device  The device to receive
  */

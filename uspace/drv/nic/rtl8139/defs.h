@@ -28,31 +28,35 @@
 
 /** @file rtl8139_defs.h
  *
- *  Registers, bit positions and masks definition of the RTL8139 network family 
- *  cards
+ * Registers, bit positions and masks definition
+ * of the RTL8139 network family cards
  */
 
-#ifndef RTL8139_DEFS_H_INCLUDED_
-#define RTL8139_DEFS_H_INCLUDED_
+#ifndef RTL8139_DEFS_H_
+#define RTL8139_DEFS_H_
+
 #include <sys/types.h>
 #include <libarch/ddi.h>
 
+/** Size of RTL8139 registers address space */
+#define RTL8139_IO_SIZE  256
 
-/** The size of RTL8139 registers address space */
-#define RTL8139_IO_SIZE 256
-
-/** The maximal transmitted packet length in bytes allowed according to RTL8139
- *  documentation (see SIZE part of TSD documentation)
+/** Maximal transmitted frame length
+ *
+ * Maximal transmitted frame length in bytes
+ * allowed according to the RTL8139 documentation
+ * (see SIZE part of TSD documentation).
+ *
  */
-#define RTL8139_PACKET_MAX_LENGTH 1792
-
+#define RTL8139_FRAME_MAX_LENGTH  1792
 
 /** HW version
  *
- *  as can be detected from HWVERID part of TCR
- *  (Transmit Configuration Register)
+ * As can be detected from HWVERID part of TCR
+ * (Transmit Configuration Register).
+ *
  */
-enum rtl8139_version_id {
+typedef enum {
 	RTL8139 = 0,          /**< RTL8139 */
 	RTL8139A,             /**< RTL8139A */
 	RTL8139A_G,           /**< RTL8139A-G */
@@ -65,16 +69,14 @@ enum rtl8139_version_id {
 	RTL8100B = RTL8139D,  /**< RTL8100B and RTL8139D, the same HWVERID in TCR */
 	RTL8101,              /**< RTL8101 */
 	RTL8139_VER_COUNT     /**< Count of known RTL versions, the last value */
-};
-
-extern const char* model_names[RTL8139_VER_COUNT];
+} rtl8139_version_id_t;
 
 /** Registers of RTL8139 family card offsets from the memory address base */
 enum rtl8139_registers {
 	IDR0  = 0x00,    /**< First MAC address bit, 6 1b registres sequence */
 	MAC0  = IDR0,    /**< Alias for IDR0 */
 
-	// 0x6 - 0x7 reserved
+	// 0x06 - 0x07 reserved
 
 	MAR0    = 0x08,  /**< Multicast mask registers 8 1b registers sequence */
 
@@ -93,7 +95,7 @@ enum rtl8139_registers {
 	ERSR    = 0x36,  /**< Early receive (Rx) status register, 1b */
 
 	CR      = 0x37,  /**< Command register, 1b */
-	CAPR    = 0x38,  /**< Current address of packet read, 2b */
+	CAPR    = 0x38,  /**< Current address of frame read, 2b */
 	CBA     = 0x3a,  /**< Current buffer address, 2b */
 
 	IMR     = 0x3c,  /**< Interrupt mask register, 2b */
@@ -212,6 +214,7 @@ static inline void rtl8139_regs_lock(void *io_base)
 {
 	pio_write_8(io_base + CR9346, RTL8139_REGS_LOCKED);
 }
+
 /** Allow to change Config0-4 and BMCR register  */
 static inline void rtl8139_regs_unlock(void *io_base)
 {
@@ -281,7 +284,7 @@ enum rtl8139_rcr {
 
 	RCR_MulERINT = 1 << 17,    /**< Multiple early interrupt select */
 
-	/** Minimal error packet length (1 = 8B, 0 = 64B). If AER/AR is set, RER8
+	/** Minimal error frame length (1 = 8B, 0 = 64B). If AER/AR is set, RER8
 	 * is "Don't care"
 	 */
 	RCR_RER8 = 1 << 16,
@@ -301,12 +304,12 @@ enum rtl8139_rcr {
 	RCR_MXDMA_SIZE  = 3,             /**< Max DMA Burst Size part size */
 
 	RCR_WRAP              = 1 << 7,  /**< Rx buffer wrapped */
-	RCR_ACCEPT_ERROR      = 1 << 5,  /**< Accept error packet */
-	RCR_ACCEPT_RUNT       = 1 << 4,  /**< Accept Runt (8-64 bytes) packets */
+	RCR_ACCEPT_ERROR      = 1 << 5,  /**< Accept error frame */
+	RCR_ACCEPT_RUNT       = 1 << 4,  /**< Accept Runt (8-64 bytes) frames */
 	RCR_ACCEPT_BROADCAST  = 1 << 3,  /**< Accept broadcast */
 	RCR_ACCEPT_MULTICAST  = 1 << 2,  /**< Accept multicast */
 	RCR_ACCEPT_PHYS_MATCH = 1 << 1,  /**< Accept device MAC address match */
-	RCR_ACCEPT_ALL_PHYS   = 1 << 0,  /**< Accept all packets with 
+	RCR_ACCEPT_ALL_PHYS   = 1 << 0,  /**< Accept all frames with 
 	                                  * phys. desticnation 
 									  */
 	RCR_ACCEPT_MASK = (1 << 6) - 1   /**< Mask of accept part */
@@ -361,7 +364,7 @@ enum rtl8139_anar {
 									 */
 	ANAR_ACK          = (1 << 14),  /**< Capability reception acknowledge */
 	ANAR_REMOTE_FAULT = (1 << 13),  /**< Remote fault detection capability */
-	ANAR_PAUSE        = (1 << 10),  /**< Symetric pause packet capability */
+	ANAR_PAUSE        = (1 << 10),  /**< Symetric pause frame capability */
 	ANAR_100T4        = (1 << 9),   /**< T4, not supported by the device */
 	ANAR_100TX_FD     = (1 << 8),   /**< 100BASE_TX full duplex */
 	ANAR_100TX_HD     = (1 << 7),   /**< 100BASE_TX half duplex */
@@ -398,7 +401,7 @@ enum rtl8139_config5 {
 enum rtl8139_config3 {
 	CONFIG3_GNT_SELECT = (1 << 7),  /**< Gnt select */
 	CONFIG3_PARM_EN    = (1 << 6),  /**< Parameter enabled (100MBit mode) */
-	CONFIG3_MAGIC      = (1 << 5),  /**< WoL Magic packet enable */
+	CONFIG3_MAGIC      = (1 << 5),  /**< WoL Magic frame enable */
 	CONFIG3_LINK_UP    = (1 << 4),  /**< Wakeup if link is reestablished */
 	CONFIG3_CLKRUN_EN  = (1 << 2),  /**< CLKRUN enabled */ /* TODO: check what does it mean */
 	CONFIG3_FBTBEN     = (1 << 0)   /**< Fast back to back enabled */
@@ -415,22 +418,22 @@ enum rtl8139_config4 {
 	CONFIG4_PBWakeup      = (1 << 0)   /**< Preboot wakeup */
 };
 
-/** Maximal runt packet size + 1 */
-#define RTL8139_RUNT_MAX_SIZE 64
+/** Maximal runt frame size + 1 */
+#define RTL8139_RUNT_MAX_SIZE  64
 
-/** Bits in packet header */
-enum rtl8139_packet_header {
+/** Bits in frame header */
+enum rtl8139_frame_header {
 	RSR_MAR  = (1 << 15),  /**< Multicast received */
 	RSR_PAM  = (1 << 14),  /**< Physical address match */
 	RSR_BAR  = (1 << 13),  /**< Broadcast match */
 
 	RSR_ISE  = (1 << 5),   /**< Invalid symbol error, 100BASE-TX only */
-	RSR_RUNT = (1 << 4),   /**< Runt packet (< RTL8139_RUNT_MAX_SIZE bytes) */
+	RSR_RUNT = (1 << 4),   /**< Runt frame (< RTL8139_RUNT_MAX_SIZE bytes) */
 
-	RSR_LONG = (1 << 3),   /**< Long packet (size > 4k bytes) */
+	RSR_LONG = (1 << 3),   /**< Long frame (size > 4k bytes) */
 	RSR_CRC  = (1 << 2),   /**< CRC error */
 	RSR_FAE  = (1 << 1),   /**< Frame alignment error */
-	RSR_ROK  = (1 << 0)    /**< Good packet received */
+	RSR_ROK  = (1 << 0)    /**< Good frame received */
 };
 
 enum rtl8139_tcr_bits {
@@ -450,7 +453,7 @@ enum rtl8139_tcr_bits {
 	                                  *  00 = normal, 11 = loopback 
 									  */
 
-	APPEND_CRC = 1 << 16,        /**< Append CRC at the end of a packet */
+	APPEND_CRC = 1 << 16,        /**< Append CRC at the end of a frame */
 
 	MXTxDMA_SHIFT = 8,  /**< Max. DMA Burst per TxDMA shift, burst = 16^value */
 	MXTxDMA_SIZE  = 3,  /**< Max. DMA Burst per TxDMA bit size */
@@ -458,7 +461,7 @@ enum rtl8139_tcr_bits {
 	TX_RETRY_COUNT_SHIFT = 4,            /**< Retries before aborting shift */
 	TX_RETRY_COUNT_SIZE  = 4,            /**< Retries before aborting size */
 
-	CLEAR_ABORT = 1 << 0    /**< Retransmit aborted packet at the last 
+	CLEAR_ABORT = 1 << 0    /**< Retransmit aborted frame at the last 
 	                          *  transmitted descriptor 
 							  */
 };
@@ -469,21 +472,23 @@ enum rtl8139_tcr_bits {
     RTL8139_HWVERID_B(tcr))
 
 /** Mapping of HW version -> version ID */
-struct rtl8139_hwver_map { 
-	uint32_t hwverid;                /**< HW version value in the register */
-	enum rtl8139_version_id ver_id;  /**< appropriate version id */
+struct rtl8139_hwver_map {
+	uint32_t hwverid;             /**< HW version value in the register */
+	rtl8139_version_id_t ver_id;  /**< appropriate version id */
 };
 
 /** Mapping of HW version -> version ID */
 extern const struct rtl8139_hwver_map rtl8139_versions[RTL8139_VER_COUNT + 1];
+extern const char* model_names[RTL8139_VER_COUNT];
 
-/** Size in the packet header while copying from RxFIFO to Rx buffer */
-#define RTL8139_EARLY_SIZE UINT16_C(0xfff0)
-/** The only supported pause packet time value */
-#define RTL8139_PAUSE_VAL UINT16_C(0xFFFF)
+/** Size in the frame header while copying from RxFIFO to Rx buffer */
+#define RTL8139_EARLY_SIZE  UINT16_C(0xfff0)
 
-/** Size of the packet header in front of the received frame */
-#define RTL_PACKET_HEADER_SIZE 4
+/** The only supported pause frame time value */
+#define RTL8139_PAUSE_VAL  UINT16_C(0xFFFF)
+
+/** Size of the frame header in front of the received frame */
+#define RTL_FRAME_HEADER_SIZE  4
 
 /** 8k buffer */
 #define RTL8139_RXFLAGS_SIZE_8  0

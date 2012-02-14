@@ -51,9 +51,6 @@
 #include <nic.h>
 #include <nil_remote.h>
 #include <ops/nic.h>
-#include <packet_client.h>
-#include <packet_remote.h>
-#include <net/packet_header.h>
 #include "e1k.h"
 
 #define NAME  "e1k"
@@ -61,15 +58,15 @@
 #define E1000_DEFAULT_INTERRUPT_INTERVAL_USEC  250
 
 /* Must be power of 8 */
-#define E1000_RX_PACKETS_COUNT  128
-#define E1000_TX_PACKETS_COUNT  128
+#define E1000_RX_FRAME_COUNT  128
+#define E1000_TX_FRAME_COUNT  128
 
 #define E1000_RECEIVE_ADDRESS  16
 
-/** Maximum sending packet size */
+/** Maximum sending frame size */
 #define E1000_MAX_SEND_FRAME_SIZE  2048
-/** Maximum receiving packet size */
-#define E1000_MAX_RECEIVE_PACKET_SIZE  2048
+/** Maximum receiving frame size */
+#define E1000_MAX_RECEIVE_FRAME_SIZE  2048
 
 /** nic_driver_data_t* -> e1000_t* cast */
 #define DRIVER_DATA_NIC(nic) \
@@ -136,13 +133,15 @@ typedef struct {
 	/** Virtual rx ring address */
 	void *rx_ring_virt;
 	
-	/** Packets in rx ring  */
-	packet_t **rx_ring_packets;
+	/** Ring of RX frames, physical address */
+	void **rx_frame_phys;
+	/** Ring of RX frames, virtual address */
+	void **rx_frame_virt;
 	
 	/** VLAN tag */
 	uint16_t vlan_tag;
 	
-	/** Add VLAN tag to packet */
+	/** Add VLAN tag to frame */
 	bool vlan_tag_add;
 	
 	/** Used unicast Receive Address count */
@@ -487,7 +486,7 @@ static int e1000_autoneg_restart(ddf_fun_t *dev)
 	return e1000_autoneg_enable(dev, 0);
 }
 
-/** Get state of acceptance of weird packets
+/** Get state of acceptance of weird frames
  *
  * @param      device Device to check
  * @param[out] mode   Current mode
@@ -505,7 +504,7 @@ static int e1000_defective_get_mode(ddf_fun_t *device, uint32_t *mode)
 	return EOK;
 };
 
-/** Set acceptance of weird packets
+/** Set acceptance of weird frames
  *
  * @param device Device to update
  * @param mode   Mode to set
@@ -689,7 +688,7 @@ static void e1000_add_multicast_receive_addresses(e1000_t *e1000,
 	}
 }
 
-/** Disable receiving packets for default address
+/** Disable receiving frames for default address
  *
  * @param e1000 E1000 data structure
  *
@@ -701,7 +700,7 @@ static void disable_ra0_address_filter(e1000_t *e1000)
 	E1000_REG_WRITE(e1000, E1000_RAH_ARRAY(0), rah0);
 }
 
-/** Enable receiving packets for default address
+/** Enable receiving frames for default address
  *
  * @param e1000 E1000 data structure
  *
@@ -761,7 +760,7 @@ static void e1000_enable_multicast_promisc(e1000_t *e1000)
 	E1000_REG_WRITE(e1000, E1000_RCTL, rctl);
 }
 
-/** Enable accepting of broadcast packets
+/** Enable accepting of broadcast frames
  *
  * @param e1000 E1000 data structure
  *
@@ -773,7 +772,7 @@ static void e1000_enable_broadcast_accept(e1000_t *e1000)
 	E1000_REG_WRITE(e1000, E1000_RCTL, rctl);
 }
 
-/** Disable accepting of broadcast packets
+/** Disable accepting of broadcast frames
  *
  * @param e1000 E1000 data structure
  *
@@ -809,7 +808,7 @@ static void e1000_disable_vlan_filter(e1000_t *e1000)
 	E1000_REG_WRITE(e1000, E1000_RCTL, rctl);
 }
 
-/** Set multicast packets acceptance mode
+/** Set multicast frames acceptance mode
  *
  * @param nic      NIC device to update
  * @param mode     Mode to set
@@ -863,7 +862,7 @@ static int e1000_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t mode,
 	return rc;
 }
 
-/** Set unicast packets acceptance mode
+/** Set unicast frames acceptance mode
  *
  * @param nic      NIC device to update
  * @param mode     Mode to set
@@ -921,7 +920,7 @@ static int e1000_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
 	return rc;
 }
 
-/** Set broadcast packets acceptance mode
+/** Set broadcast frames acceptance mode
  *
  * @param nic  NIC device to update
  * @param mode Mode to set
@@ -1006,7 +1005,7 @@ static void e1000_on_vlan_mask_change(nic_t *nic,
 	
 	if (vlan_mask) {
 		/*
-		 * Disable receiving, so that packet matching
+		 * Disable receiving, so that frame matching
 		 * partially written VLAN is not received.
 		 */
 		bool rx_enabled = e1000_is_rx_enabled(e1000);
@@ -1073,9 +1072,9 @@ static int e1000_vlan_set_tag(ddf_fun_t *device, uint16_t tag, bool add,
 	return EOK;
 }
 
-/** Fill receive descriptor with new empty packet
+/** Fill receive descriptor with new empty buffer
  *
- * Store packet in e1000->rx_ring_packets
+ * Store frame in e1000->rx_frame_phys
  *
  * @param nic    NIC data stricture
  * @param offset Receive descriptor offset
@@ -1084,24 +1083,11 @@ static int e1000_vlan_set_tag(ddf_fun_t *device, uint16_t tag, bool add,
 static void e1000_fill_new_rx_descriptor(nic_t *nic, size_t offset)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	packet_t *packet =
-	    nic_alloc_packet(nic, E1000_MAX_RECEIVE_PACKET_SIZE);
 	
-	assert(packet);
-	
-	*(e1000->rx_ring_packets + offset) = packet;
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
 	    (e1000->rx_ring_virt + offset * sizeof(e1000_rx_descriptor_t));
 	
-	void *phys;
-	int rc =
-	    nic_dma_lock_packet(packet, E1000_MAX_RECEIVE_PACKET_SIZE, &phys);
-	
-	if (rc == EOK)
-		rx_descriptor->phys_addr = PTR_TO_U64(phys + packet->data_start);
-	else
-		rx_descriptor->phys_addr = 0;
-	
+	rx_descriptor->phys_addr = PTR_TO_U64(e1000->rx_frame_phys[offset]);
 	rx_descriptor->length = 0;
 	rx_descriptor->checksum = 0;
 	rx_descriptor->status = 0;
@@ -1165,36 +1151,38 @@ static uint32_t e1000_inc_tail(uint32_t tail, uint32_t descriptors_count)
 		return tail + 1;
 }
 
-/** Receive packets
+/** Receive frames
  *
  * @param nic NIC data
  *
  */
-static void e1000_receive_packets(nic_t *nic)
+static void e1000_receive_frames(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
 	fibril_mutex_lock(&e1000->rx_lock);
 	
 	uint32_t *tail_addr = E1000_REG_ADDR(e1000, E1000_RDT);
-	uint32_t next_tail = e1000_inc_tail(*tail_addr, E1000_RX_PACKETS_COUNT);
+	uint32_t next_tail = e1000_inc_tail(*tail_addr, E1000_RX_FRAME_COUNT);
 	
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
 	    (e1000->rx_ring_virt + next_tail * sizeof(e1000_rx_descriptor_t));
 	
 	while (rx_descriptor->status & 0x01) {
-		uint32_t packet_size = rx_descriptor->length - E1000_CRC_SIZE;
+		uint32_t frame_size = rx_descriptor->length - E1000_CRC_SIZE;
 		
-		packet_t *packet = *(e1000->rx_ring_packets + next_tail);
-		packet_suffix(packet, packet_size);
-		
-		nic_dma_unlock_packet(packet, E1000_MAX_RECEIVE_PACKET_SIZE);
-		nic_received_packet(nic, packet);
+		nic_frame_t *frame = nic_alloc_frame(nic, frame_size);
+		if (frame != NULL) {
+			memcpy(frame->data, e1000->rx_frame_virt[next_tail], frame_size);
+			nic_received_frame(nic, frame);
+		} else {
+			ddf_msg(LVL_ERROR, "Memory allocation failed. Frame dropped.");
+		}
 		
 		e1000_fill_new_rx_descriptor(nic, next_tail);
 		
-		*tail_addr = e1000_inc_tail(*tail_addr, E1000_RX_PACKETS_COUNT);
-		next_tail = e1000_inc_tail(*tail_addr, E1000_RX_PACKETS_COUNT);
+		*tail_addr = e1000_inc_tail(*tail_addr, E1000_RX_FRAME_COUNT);
+		next_tail = e1000_inc_tail(*tail_addr, E1000_RX_FRAME_COUNT);
 		
 		rx_descriptor = (e1000_rx_descriptor_t *)
 		    (e1000->rx_ring_virt + next_tail * sizeof(e1000_rx_descriptor_t));
@@ -1235,7 +1223,7 @@ static void e1000_disable_interrupts(e1000_t *e1000)
 static void e1000_interrupt_handler_impl(nic_t *nic, uint32_t icr)
 {
 	if (icr & ICR_RXT0)
-		e1000_receive_packets(nic);
+		e1000_receive_frames(nic);
 }
 
 /** Handle device interrupt
@@ -1285,7 +1273,7 @@ inline static int e1000_register_int_handler(nic_t *nic)
 	return rc;
 }
 
-/** Force receiving all packets in the receive buffer
+/** Force receiving all frames in the receive buffer
  *
  * @param nic NIC data
  *
@@ -1358,11 +1346,11 @@ static int e1000_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
  */
 static void e1000_initialize_rx_registers(e1000_t *e1000)
 {
-	E1000_REG_WRITE(e1000, E1000_RDLEN, E1000_RX_PACKETS_COUNT * 16);
+	E1000_REG_WRITE(e1000, E1000_RDLEN, E1000_RX_FRAME_COUNT * 16);
 	E1000_REG_WRITE(e1000, E1000_RDH, 0);
 	
 	/* It is not posible to let HW use all descriptors */
-	E1000_REG_WRITE(e1000, E1000_RDT, E1000_RX_PACKETS_COUNT - 1);
+	E1000_REG_WRITE(e1000, E1000_RDT, E1000_RX_FRAME_COUNT - 1);
 	
 	/* Set Broadcast Enable Bit */
 	E1000_REG_WRITE(e1000, E1000_RCTL, RCTL_BAM);
@@ -1382,7 +1370,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	fibril_mutex_lock(&e1000->rx_lock);
 	
 	int rc = dmamem_map_anonymous(
-	    E1000_RX_PACKETS_COUNT * sizeof(e1000_rx_descriptor_t),
+	    E1000_RX_FRAME_COUNT * sizeof(e1000_rx_descriptor_t),
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &e1000->rx_ring_phys,
 	    &e1000->rx_ring_virt);
 	if (rc != EOK)
@@ -1393,20 +1381,59 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	E1000_REG_WRITE(e1000, E1000_RDBAL,
 	    (uint32_t) PTR_TO_U64(e1000->rx_ring_phys));
 	
-	e1000->rx_ring_packets =
-	    malloc(E1000_RX_PACKETS_COUNT * sizeof(packet_t *));
-	// FIXME: Check return value
+	e1000->rx_frame_phys =
+	    calloc(E1000_RX_FRAME_COUNT, sizeof(void *));
+	e1000->rx_frame_virt =
+	    calloc(E1000_RX_FRAME_COUNT, sizeof(void *));
+	if (e1000->rx_frame_phys == NULL || e1000->rx_frame_virt == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+	
+	size_t i;
+	void *frame_virt;
+	void *frame_phys;
+	
+	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+		rc = dmamem_map_anonymous(
+		    E1000_MAX_SEND_FRAME_SIZE, AS_AREA_READ | AS_AREA_WRITE,
+		    0, &frame_phys, &frame_virt);
+		if (rc != EOK)
+			goto error;
+		
+		e1000->rx_frame_virt[i] = frame_virt;
+		e1000->rx_frame_phys[i] = frame_phys;
+	}
 	
 	/* Write descriptor */
-	for (unsigned int offset = 0;
-	    offset < E1000_RX_PACKETS_COUNT;
-	    offset++)
-		e1000_fill_new_rx_descriptor(nic, offset);
+	for (i = 0; i < E1000_RX_FRAME_COUNT; i++)
+		e1000_fill_new_rx_descriptor(nic, i);
 	
 	e1000_initialize_rx_registers(e1000);
 	
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return EOK;
+	
+error:
+	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+		if (e1000->rx_frame_virt[i] != NULL) {
+			dmamem_unmap_anonymous(e1000->rx_frame_virt[i]);
+			e1000->rx_frame_virt[i] = NULL;
+			e1000->rx_frame_phys[i] = NULL;
+		}
+	}
+	
+	if (e1000->rx_frame_phys != NULL) {
+		free(e1000->rx_frame_phys);
+		e1000->rx_frame_phys = NULL;
+	}
+	
+	if (e1000->rx_frame_virt != NULL) {
+		free(e1000->rx_frame_virt);
+		e1000->rx_frame_phys = NULL;
+	}
+	
+	return rc;
 }
 
 /** Uninitialize receive structure
@@ -1419,15 +1446,16 @@ static void e1000_uninitialize_rx_structure(nic_t *nic)
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
 	/* Write descriptor */
-	for (unsigned int offset = 0;
-	    offset < E1000_RX_PACKETS_COUNT;
-	    offset++) {
-		packet_t *packet = *(e1000->rx_ring_packets + offset);
-		nic_dma_unlock_packet(packet, E1000_MAX_RECEIVE_PACKET_SIZE);
-		nic_release_packet(nic, packet);
+	for (unsigned int offset = 0; offset < E1000_RX_FRAME_COUNT; offset++) {
+		dmamem_unmap_anonymous(e1000->rx_frame_virt[offset]);
+		e1000->rx_frame_virt[offset] = NULL;
+		e1000->rx_frame_phys[offset] = NULL;
 	}
 	
-	free(e1000->rx_ring_packets);
+	free(e1000->rx_frame_virt);
+	free(e1000->rx_frame_phys);
+	e1000->rx_frame_virt = NULL;
+	e1000->rx_frame_phys = NULL;
 	dmamem_unmap_anonymous(e1000->rx_ring_virt);
 }
 
@@ -1440,7 +1468,7 @@ static void e1000_clear_rx_ring(e1000_t *e1000)
 {
 	/* Write descriptor */
 	for (unsigned int offset = 0;
-	    offset < E1000_RX_PACKETS_COUNT;
+	    offset < E1000_RX_FRAME_COUNT;
 	    offset++)
 		e1000_clear_rx_descriptor(e1000, offset);
 }
@@ -1509,7 +1537,7 @@ static void e1000_initialize_registers(e1000_t *e1000)
  */
 static void e1000_initialize_tx_registers(e1000_t *e1000)
 {
-	E1000_REG_WRITE(e1000, E1000_TDLEN, E1000_TX_PACKETS_COUNT * 16);
+	E1000_REG_WRITE(e1000, E1000_TDLEN, E1000_TX_FRAME_COUNT * 16);
 	E1000_REG_WRITE(e1000, E1000_TDH, 0);
 	E1000_REG_WRITE(e1000, E1000_TDT, 0);
 	
@@ -1541,24 +1569,24 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	e1000->tx_frame_virt = NULL;
 	
 	int rc = dmamem_map_anonymous(
-	    E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t),
+	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t),
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &e1000->tx_ring_phys,
 	    &e1000->tx_ring_virt);
 	if (rc != EOK)
 		goto error;
 	
 	bzero(e1000->tx_ring_virt,
-	    E1000_TX_PACKETS_COUNT * sizeof(e1000_tx_descriptor_t));
+	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t));
 	
-	e1000->tx_frame_phys = calloc(E1000_TX_PACKETS_COUNT, sizeof(void *));
-	e1000->tx_frame_virt = calloc(E1000_TX_PACKETS_COUNT, sizeof(void *));
+	e1000->tx_frame_phys = calloc(E1000_TX_FRAME_COUNT, sizeof(void *));
+	e1000->tx_frame_virt = calloc(E1000_TX_FRAME_COUNT, sizeof(void *));
 
 	if (e1000->tx_frame_phys == NULL || e1000->tx_frame_virt == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 	
-	for (i = 0; i < E1000_TX_PACKETS_COUNT; i++) {
+	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 		rc = dmamem_map_anonymous(
 		    E1000_MAX_SEND_FRAME_SIZE, AS_AREA_READ | AS_AREA_WRITE,
 		    0, &e1000->tx_frame_phys[i], &e1000->tx_frame_virt[i]);
@@ -1583,7 +1611,7 @@ error:
 	}
 	
 	if (e1000->tx_frame_phys != NULL && e1000->tx_frame_virt != NULL) {
-		for (i = 0; i < E1000_TX_PACKETS_COUNT; i++) {
+		for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 			if (e1000->tx_frame_virt[i] != NULL) {
 				dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
 				e1000->tx_frame_virt[i] = NULL;
@@ -1614,7 +1642,7 @@ static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 {
 	size_t i;
 	
-	for (i = 0; i < E1000_TX_PACKETS_COUNT; i++) {
+	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 		dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
 		e1000->tx_frame_virt[i] = NULL;
 		e1000->tx_frame_phys[i] = NULL;
@@ -1629,6 +1657,7 @@ static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 		free(e1000->tx_frame_virt);
 		e1000->tx_frame_phys = NULL;
 	}
+	
 	dmamem_unmap_anonymous(e1000->tx_ring_virt);
 }
 
@@ -1641,7 +1670,7 @@ static void e1000_clear_tx_ring(nic_t *nic)
 {
 	/* Write descriptor */
 	for (unsigned int offset = 0;
-	    offset < E1000_TX_PACKETS_COUNT;
+	    offset < E1000_TX_FRAME_COUNT;
 	    offset++)
 		e1000_clear_tx_descriptor(nic, offset);
 }
@@ -1698,7 +1727,7 @@ static int e1000_reset(nic_t *nic)
 	return EOK;
 }
 
-/** Activate the device to receive and transmit packets
+/** Activate the device to receive and transmit frames
  *
  * @param nic NIC driver data
  *
@@ -2039,13 +2068,13 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	case E1000_82541REV2:
 	case E1000_82545:
 	case E1000_82546:
-	case E1000_82572:
 		e1000->info.eerd_start = 0x01;
 		e1000->info.eerd_done = 0x10;
 		e1000->info.eerd_address_offset = 8;
 		e1000->info.eerd_data_offset = 16;
 		break;
 	case E1000_82547:
+	case E1000_82572:
 	case E1000_80003ES2:
 		e1000->info.eerd_start = 0x01;
 		e1000->info.eerd_done = 0x02;
@@ -2084,6 +2113,7 @@ static int e1000_pio_enable(ddf_dev_t *dev)
  */
 int e1000_dev_add(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun;
 	assert(dev);
 	
 	/* Initialize device structure for E1000 */
@@ -2114,13 +2144,16 @@ int e1000_dev_add(ddf_dev_t *dev)
 	
 	e1000_initialize_vlan(e1000);
 	
-	rc = nic_register_as_ddf_fun(nic, &e1000_dev_ops);
-	if (rc != EOK)
+	fun = ddf_fun_create(nic_get_ddf_dev(nic), fun_exposed, "port0");
+	if (fun == NULL)
 		goto err_tx_structure;
+	nic_set_ddf_fun(nic, fun);
+	fun->ops = &e1000_dev_ops;
+	fun->driver_data = nic;
 	
 	rc = e1000_register_int_handler(nic);
 	if (rc != EOK)
-		goto err_tx_structure;
+		goto err_fun_create;
 	
 	rc = nic_connect_to_services(nic);
 	if (rc != EOK)
@@ -2143,12 +2176,26 @@ int e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_rx_structure;
 	
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK)
+		goto err_fun_bind;
+	
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK)
+		goto err_add_to_cat;
+	
 	return EOK;
 	
+err_add_to_cat:
+	ddf_fun_unbind(fun);
+err_fun_bind:
 err_rx_structure:
 	e1000_uninitialize_rx_structure(nic);
 err_irq:
 	unregister_interrupt_handler(dev, DRIVER_DATA_DEV(dev)->irq);
+err_fun_create:
+	ddf_fun_destroy(fun);
+	nic_set_ddf_fun(nic, NULL);
 err_tx_structure:
 	e1000_uninitialize_tx_structure(e1000);
 err_pio:
@@ -2294,7 +2341,7 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 		descriptor_available = true;
 	
 	if (!descriptor_available) {
-		/* Packet lost */
+		/* Frame lost */
 		fibril_mutex_unlock(&e1000->tx_lock);
 		return;
 	}
@@ -2323,7 +2370,7 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 	tx_descriptor_addr->checksum_start_field = 0;
 	
 	tdt++;
-	if (tdt == E1000_TX_PACKETS_COUNT)
+	if (tdt == E1000_TX_FRAME_COUNT)
 		tdt = 0;
 	
 	E1000_REG_WRITE(e1000, E1000_TDT, tdt);

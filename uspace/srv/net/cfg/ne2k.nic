@@ -2,7 +2,7 @@
 
 NAME=ne2k
 
-HWPATH=/hw/pci0/00:01.0/ne2k/port0
+HWPATH=devices/\hw\pci0\00:01.0\ne2k\port0
 NIL=eth
 IL=ip
 

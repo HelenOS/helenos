@@ -51,7 +51,6 @@ extern int net_get_conf_req(async_sess_t *, measured_string_t **, size_t,
 extern void net_free_settings(measured_string_t *, uint8_t *);
 extern int net_get_devices_req(async_sess_t *, measured_string_t **, size_t *,
     uint8_t **);
-extern int net_driver_ready(async_sess_t *, devman_handle_t);
 extern async_sess_t *net_connect_module(void);
 
 /*@}*/

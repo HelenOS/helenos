@@ -40,8 +40,8 @@
 
 #include <async.h>
 #include <fibril_synch.h>
+#include <ipc/loc.h>
 #include <ipc/services.h>
-#include <ipc/devman.h>
 #include <net/device.h>
 
 /** Type definition of the dummy nil global data.
@@ -77,8 +77,8 @@ DEVICE_MAP_DECLARE(nildummy_devices, nildummy_device_t);
 struct nildummy_device {
 	/** Device identifier. */
 	nic_device_id_t device_id;
-	/** Device driver handle. */
-	devman_handle_t handle;
+	/** Device service ID. */
+	service_id_t sid;
 	/** Driver session. */
 	async_sess_t *sess;
 	

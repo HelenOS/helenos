@@ -44,9 +44,6 @@
 /** Little-endian encoding CRC divider. */
 #define CRC_DIVIDER_LE  0xedb88320
 
-/** Polynomial used in multicast address hashing */
-#define CRC_MCAST_POLYNOMIAL  0x04c11db6
-
 /** Compacts the computed checksum to the 16 bit number adding the carries.
  *
  * @param[in] sum	Computed checksum.
@@ -221,41 +218,6 @@ uint16_t ip_checksum(uint8_t *data, size_t length)
 	/* Compute, compact and flip the data checksum */
 	return flip_checksum(compact_checksum(compute_checksum(0, data,
 	    length)));
-}
-
-/** Compute the standard hash from MAC
- *
- * Hashing MAC into 64 possible values and using the value as index to
- * 64bit number.
- *
- * The code is copied from qemu-0.13's implementation of ne2000 and rt8139
- * drivers, but according to documentation there it originates in FreeBSD.
- *
- * @param[in] addr The 6-byte MAC address to be hashed
- *
- * @return 64-bit number with only single bit set to 1
- *
- */
-uint64_t multicast_hash(const uint8_t addr[6])
-{
-	uint32_t crc;
-    int carry, i, j;
-    uint8_t b;
-
-    crc = 0xffffffff;
-    for (i = 0; i < 6; i++) {
-        b = addr[i];
-        for (j = 0; j < 8; j++) {
-            carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
-            crc <<= 1;
-            b >>= 1;
-            if (carry)
-                crc = ((crc ^ CRC_MCAST_POLYNOMIAL) | carry);
-        }
-    }
-	
-    uint64_t one64 = 1;
-    return one64 << (crc >> 26);
 }
 
 /** @}

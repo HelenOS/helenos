@@ -205,7 +205,7 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 {
 	assert(kbd);
 	assert(dev);
-	kbd->input_sess = NULL;
+	kbd->client_sess = NULL;
 	kbd->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
 	    dev->handle, IPC_FLAG_BLOCKING);
 	if (!kbd->parent_sess)
@@ -295,10 +295,10 @@ int polling(void *arg)
 		const unsigned key = (code < map_size) ? map[code] : 0;
 		if (key != 0) {
 			async_exch_t *exch =
-			    async_exchange_begin(kbd->input_sess);
+			    async_exchange_begin(kbd->client_sess);
 			if (!exch) {
 				ddf_msg(LVL_ERROR,
-				    "Failed to create input exchange.");
+				    "Failed creating exchange.");
 				continue;
 			}
 			async_msg_4(exch, KBDEV_EVENT, type, key, 0, 0);
@@ -351,16 +351,16 @@ void default_connection_handler(ddf_fun_t *fun,
 		/* Probably ENOMEM error, try again. */
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
-			    "Failed to create start input session");
+			    "Failed creating callback session");
 			async_answer_0(icallid, EAGAIN);
 			break;
 		}
-		if (kbd->input_sess == NULL) {
-			kbd->input_sess = sess;
-			ddf_msg(LVL_DEBUG, "Set input session");
+		if (kbd->client_sess == NULL) {
+			kbd->client_sess = sess;
+			ddf_msg(LVL_DEBUG, "Set client session");
 			async_answer_0(icallid, EOK);
 		} else {
-			ddf_msg(LVL_ERROR, "Input session already set");
+			ddf_msg(LVL_ERROR, "Client session already set");
 			async_answer_0(icallid, ELIMIT);
 		}
 		break;

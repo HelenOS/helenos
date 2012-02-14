@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Radim Vansa
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +41,6 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
-#include <devman.h>
 #include <str_error.h>
 #include <ns.h>
 #include <ipc/services.h>
@@ -55,6 +55,9 @@
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
+#include <fibril_synch.h>
+#include <loc.h>
+#include <nic.h>
 #include <nil_remote.h>
 #include <net_interface.h>
 #include <ip_interface.h>
@@ -72,6 +75,9 @@ net_globals_t net_globals;
 
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
 DEVICE_MAP_IMPLEMENT(netifs, netif_t);
+LIST_INITIALIZE(netif_list);
+
+static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 
 /** Add the configured setting to the configuration map.
  *
@@ -286,12 +292,12 @@ static void net_free_devices(measured_string_t *devices, size_t count)
  *         registering function.
  *
  */
-static int init_device(netif_t *netif, devman_handle_t handle)
+static int init_device(netif_t *netif, service_id_t sid)
 {
 	printf("%s: Initializing device '%s'\n", NAME, netif->name);
 	
-	netif->handle = handle;
-	netif->sess = devman_device_connect(EXCHANGE_SERIALIZE, netif->handle,
+	netif->sid = sid;
+	netif->sess = loc_service_connect(EXCHANGE_SERIALIZE, netif->sid,
 	    IPC_FLAG_BLOCKING);
 	if (netif->sess == NULL) {
 		printf("%s: Unable to connect to device\n", NAME);
@@ -336,7 +342,7 @@ static int init_device(netif_t *netif, devman_handle_t handle)
 		int mtu = setting ?
 		    strtol((const char *) setting->value, NULL, 10) : 0;
 		rc = nil_device_req(netif->nil->sess, netif->id,
-		    netif->handle, mtu);
+		    netif->sid, mtu);
 		if (rc != EOK) {
 			printf("%s: Unable to start network interface layer\n",
 			    NAME);
@@ -358,30 +364,43 @@ static int init_device(netif_t *netif, devman_handle_t handle)
 		
 		break;
 	default:
+		printf("%s: Unknown service\n", NAME);
 		return ENOENT;
 	}
 	
 	printf("%s: Activating device '%s'\n", NAME, netif->name);
+	list_append(&netif->netif_list, &netif_list);
 	return nic_set_state(netif->sess, NIC_STATE_ACTIVE);
 }
 
-static int net_port_ready(devman_handle_t handle)
+static int net_nic_ready(service_id_t sid)
 {
-	char hwpath[MAX_PATH_LENGTH];
-	int rc = devman_fun_get_path(handle, hwpath, MAX_PATH_LENGTH);
-	if (rc != EOK)
+	int rc;
+	char *hwpath;
+	
+	rc = loc_service_get_name(sid, &hwpath);
+	if (rc != EOK) {
+		printf("%s: Failed getting name of service '%u'\n",
+		    NAME, (unsigned) sid);
 		return EINVAL;
+	}
 	
 	int index = char_map_find(&net_globals.netif_hwpaths,
 	    (uint8_t *) hwpath, 0);
-	if (index == CHAR_MAP_NULL)
+	
+	if (index == CHAR_MAP_NULL) {
+		printf("%s: Service '%s' not found in map.\n", NAME, hwpath);
+		free(hwpath);
 		return ENOENT;
+	}
+	
+	free(hwpath);
 	
 	netif_t *netif = netifs_get_index(&net_globals.netifs, index);
 	if (netif == NULL)
 		return ENOENT;
 	
-	rc = init_device(netif, handle);
+	rc = init_device(netif, sid);
 	if (rc != EOK)
 		return rc;
 	
@@ -390,23 +409,6 @@ static int net_port_ready(devman_handle_t handle)
 		netif->nil->usage++;
 	
 	netif->il->usage++;
-	
-	return EOK;
-}
-
-static int net_driver_ready_local(devman_handle_t handle)
-{
-	devman_handle_t *funs;
-	size_t count;
-	int rc = devman_dev_get_functions(handle, &funs, &count);
-	if (rc != EOK)
-		return rc;
-	
-	for (size_t i = 0; i < count; i++) {
-		rc = net_port_ready(funs[i]);
-		if (rc != EOK)
-			return rc;
-	}
 	
 	return EOK;
 }
@@ -478,10 +480,6 @@ static int net_message(ipc_callid_t callid, ipc_call_t *call,
 		rc = measured_strings_reply(strings, count);
 		net_free_devices(strings, count);
 		return rc;
-	case NET_NET_DRIVER_READY:
-		rc = net_driver_ready_local(IPC_GET_ARG1(*call));
-		*answer_count = 0;
-		return rc;
 	default:
 		return ENOTSUP;
 	}
@@ -529,6 +527,73 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall,
 	}
 }
 
+static int nic_check_new(void)
+{
+	category_id_t nic_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	bool already_known;
+	int rc;
+
+	fibril_mutex_lock(&discovery_lock);
+
+	rc = loc_category_get_id(DEVICE_CATEGORY_NIC, &nic_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category '%s'.\n", NAME,
+		    DEVICE_CATEGORY_NIC);
+		return ENOENT;
+	}
+
+	rc = loc_category_get_svcs(nic_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf("%s: Failed getting list of NIC devices.\n", NAME);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+
+		list_foreach(netif_list, link) {
+			netif_t *netif = list_get_instance(link, netif_t, netif_list);
+			if (netif->sid == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+
+		if (!already_known) {
+			rc = net_nic_ready(svcs[i]);
+			if (rc != EOK) {
+				printf("%s: Failed adding NIC device #%u.\n",
+				    NAME, (unsigned) svcs[i]);
+			}
+		}
+	}
+
+	free(svcs);
+	fibril_mutex_unlock(&discovery_lock);
+	return EOK;
+}
+
+static void cat_change_cb(void)
+{
+	(void) nic_check_new();
+}
+
+static int net_start_nic_discovery(void)
+{
+	int rc;
+
+	rc = loc_register_cat_change_cb(cat_change_cb);
+	if (rc != EOK) {
+		printf("%s: Failed registering callback for device discovery (%d).\n",
+		    NAME, rc);
+		return rc;
+	}
+
+	return nic_check_new();
+}
+
 int main(int argc, char *argv[])
 {
 	netifs_initialize(&net_globals.netifs);
@@ -572,7 +637,7 @@ int main(int argc, char *argv[])
 			if (!netif)
 				continue;
 			
-			netif->handle = -1;
+			netif->sid = -1;
 			netif->sess = NULL;
 			
 			netif->id = generate_new_device_id();
@@ -692,6 +757,13 @@ int main(int argc, char *argv[])
 	rc = service_register(SERVICE_NETWORKING);
 	if (rc != EOK) {
 		printf("%s: Error registering service\n", NAME);
+		pm_destroy();
+		return rc;
+	}
+	
+	rc = net_start_nic_discovery();
+	if (rc != EOK) {
+		printf("%s: Error starting NIC discovery\n", NAME);
 		pm_destroy();
 		return rc;
 	}

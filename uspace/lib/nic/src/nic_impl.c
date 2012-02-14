@@ -35,10 +35,12 @@
  * @brief Default DDF NIC interface methods implementations
  */
 
+#include <errno.h>
 #include <str_error.h>
 #include <ipc/services.h>
 #include <ns.h>
 #include "nic_driver.h"
+#include "nic_ev.h"
 #include "nic_impl.h"
 
 /**
@@ -84,8 +86,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		return EOK;
 	}
 	if (state == NIC_STATE_ACTIVE) {
-		if (nic_data->nil_session == NULL || nic_data->net_session == NULL
-		    || nic_data->device_id < 0) {
+		if (nic_data->client_session == NULL) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
 			return EINVAL;
 		}
@@ -115,8 +116,8 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 
 	if (state == NIC_STATE_STOPPED) {
 		/* Notify upper layers that we are reseting the MAC */
-		int rc = nil_addr_changed_msg(nic_data->nil_session,
-			nic_data->device_id, &nic_data->default_mac);
+		int rc = nic_ev_addr_changed(nic_data->client_session,
+			&nic_data->default_mac);
 		nic_data->poll_mode = nic_data->default_poll_mode;
 		memcpy(&nic_data->poll_period, &nic_data->default_poll_period,
 			sizeof (struct timeval));
@@ -148,7 +149,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 
 	nic_data->state = state;
 
-	nil_device_state_msg(nic_data->nil_session, nic_data->device_id, state);
+	nic_ev_device_state(nic_data->client_session, state);
 
 	fibril_rwlock_write_unlock(&nic_data->main_lock);
 
@@ -181,33 +182,26 @@ int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
 }
 
 /**
- * Default implementation of the connect_to_nil method.
- * Connects the driver to the NIL service.
+ * Default implementation of the connect_client method.
+ * Creates callback connection to the client.
  *
  * @param	fun
- * @param	nil_service	ID of the server implementing the NIL service
- * @param	device_id	ID of the device as used in higher layers
  *
- * @return EOK		If the services were bound
- * @return 			Negative error code from service_connect_blocking
+ * @return EOK		On success, or negative error code.
  */
-int nic_connect_to_nil_impl(ddf_fun_t *fun, services_t nil_service,
-    nic_device_id_t device_id)
+int nic_callback_create_impl(ddf_fun_t *fun)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
-	fibril_rwlock_write_lock(&nic_data->main_lock);
+	nic_t *nic = (nic_t *) fun->driver_data;
+	fibril_rwlock_write_lock(&nic->main_lock);
 	
-	nic_data->device_id = device_id;
-	
-	nic_data->nil_session = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    nil_service, 0, 0);
-	if (nic_data->nil_session != NULL) {
-		fibril_rwlock_write_unlock(&nic_data->main_lock);
-		return EOK;
+	nic->client_session = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (nic->client_session == NULL) {
+		fibril_rwlock_write_unlock(&nic->main_lock);
+		return ENOMEM;
 	}
 	
-	fibril_rwlock_write_unlock(&nic_data->main_lock);
-	return EHANGUP;
+	fibril_rwlock_write_unlock(&nic->main_lock);
+	return EOK;
 }
 
 /**
@@ -802,18 +796,6 @@ int nic_poll_now_impl(ddf_fun_t *fun) {
 		fibril_rwlock_read_unlock(&nic_data->main_lock);
 		return ENOTSUP;
 	}
-}
-
-/** Default implementation of the device_added method
- *
- * Just calls nic_ready.
- *
- * @param dev
- *
- */
-void nic_device_added_impl(ddf_dev_t *dev)
-{
-	nic_ready((nic_t *) dev->driver_data);
 }
 
 /**

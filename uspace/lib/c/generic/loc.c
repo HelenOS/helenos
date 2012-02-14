@@ -46,6 +46,7 @@ static FIBRIL_MUTEX_INITIALIZE(loc_consumer_mutex);
 
 static FIBRIL_MUTEX_INITIALIZE(loc_callback_mutex);
 static bool loc_callback_created = false;
+static loc_cat_change_cb_t cat_change_cb = NULL;
 
 static async_sess_t *loc_supp_block_sess = NULL;
 static async_sess_t *loc_cons_block_sess = NULL;
@@ -53,12 +54,8 @@ static async_sess_t *loc_cons_block_sess = NULL;
 static async_sess_t *loc_supplier_sess = NULL;
 static async_sess_t *loc_consumer_sess = NULL;
 
-static loc_cat_change_cb_t cat_change_cb = NULL;
-
 static void loc_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	loc_cat_change_cb_t cb_fun;
-	
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
@@ -68,23 +65,21 @@ static void loc_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			return;
 		}
 		
-		int retval;
-		
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_EVENT_CAT_CHANGE:
 			fibril_mutex_lock(&loc_callback_mutex);
-			cb_fun = cat_change_cb;
-			if (cb_fun != NULL) {
-				(*cb_fun)();
-			}
+			loc_cat_change_cb_t cb_fun = cat_change_cb;
 			fibril_mutex_unlock(&loc_callback_mutex);
-			retval = 0;
+			
+			async_answer_0(callid, EOK);
+			
+			if (cb_fun != NULL)
+				(*cb_fun)();
+			
 			break;
 		default:
-			retval = ENOTSUP;
+			async_answer_0(callid, ENOTSUP);
 		}
-		
-		async_answer_0(callid, retval);
 	}
 }
 
@@ -100,38 +95,36 @@ static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
 	fibril_mutex_unlock(mtx);
 }
 
+/** Create callback
+ *
+ * Must be called with loc_callback_mutex locked.
+ *
+ * @return EOK on success.
+ *
+ */
 static int loc_callback_create(void)
 {
-	async_exch_t *exch;
-	sysarg_t retval;
-	int rc = EOK;
-
-	fibril_mutex_lock(&loc_callback_mutex);
-	
 	if (!loc_callback_created) {
-		exch = loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
+		async_exch_t *exch =
+		    loc_exchange_begin_blocking(LOC_PORT_CONSUMER);
 		
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_CALLBACK_CREATE, &answer);
-		async_connect_to_me(exch, 0, 0, 0, loc_cb_conn, NULL);
+		int rc = async_connect_to_me(exch, 0, 0, 0, loc_cb_conn, NULL);
 		loc_exchange_end(exch);
 		
-		async_wait_for(req, &retval);
 		if (rc != EOK)
-			goto done;
+			return rc;
 		
-		if (retval != EOK) {
-			rc = retval;
-			goto done;
-		}
+		sysarg_t retval;
+		async_wait_for(req, &retval);
+		if (retval != EOK)
+			return retval;
 		
 		loc_callback_created = true;
 	}
 	
-	rc = EOK;
-done:
-	fibril_mutex_unlock(&loc_callback_mutex);
-	return rc;
+	return EOK;
 }
 
 /** Start an async exchange on the loc session (blocking).
@@ -794,41 +787,35 @@ static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
 static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
 {
-	service_id_t *ids;
-	size_t act_size;
-	size_t alloc_size;
-	int rc;
-
 	*data = NULL;
-	act_size = 0;	/* silence warning */
-
-	rc = loc_category_get_ids_once(method, arg1, NULL, 0,
+	*count = 0;
+	
+	size_t act_size = 0;
+	int rc = loc_category_get_ids_once(method, arg1, NULL, 0,
 	    &act_size);
 	if (rc != EOK)
 		return rc;
-
-	alloc_size = act_size;
-	ids = malloc(alloc_size);
+	
+	size_t alloc_size = act_size;
+	service_id_t *ids = malloc(alloc_size);
 	if (ids == NULL)
 		return ENOMEM;
-
+	
 	while (true) {
 		rc = loc_category_get_ids_once(method, arg1, ids, alloc_size,
 		    &act_size);
 		if (rc != EOK)
 			return rc;
-
+		
 		if (act_size <= alloc_size)
 			break;
-
-		alloc_size *= 2;
-		free(ids);
-
-		ids = malloc(alloc_size);
+		
+		alloc_size = act_size;
+		ids = realloc(ids, alloc_size);
 		if (ids == NULL)
 			return ENOMEM;
 	}
-
+	
 	*count = act_size / sizeof(category_id_t);
 	*data = ids;
 	return EOK;
@@ -866,9 +853,14 @@ int loc_get_categories(category_id_t **data, size_t *count)
 
 int loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun)
 {
-	if (loc_callback_create() != EOK)
+	fibril_mutex_lock(&loc_callback_mutex);
+	if (loc_callback_create() != EOK) {
+		fibril_mutex_unlock(&loc_callback_mutex);
 		return EIO;
-
+	}
+	
 	cat_change_cb = cb_fun;
+	fibril_mutex_unlock(&loc_callback_mutex);
+	
 	return EOK;
 }

@@ -26,10 +26,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
  */
+
 /** @file
  * @brief i8042 port driver.
  */
@@ -40,10 +42,11 @@
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <ddf/driver.h>
-
 #include "buffer.h"
 
-#define BUFFER_SIZE 12
+#define NAME  "i8042"
+
+#define BUFFER_SIZE  12
 
 /** i8042 HW I/O interface */
 typedef struct {
@@ -54,18 +57,20 @@ typedef struct {
 
 /** i8042 driver structure. */
 typedef struct i8042 {
-	i8042_regs_t *regs;    /**< I/O registers. */
-	ddf_fun_t *kbd_fun;    /**< Pirmary port device function. */
-	ddf_fun_t *aux_fun;  /**< Auxiliary port device function. */
-	buffer_t kbd_buffer;   /**< Primary port buffer. */
-	buffer_t aux_buffer;   /**< Aux. port buffer. */
+	i8042_regs_t *regs;             /**< I/O registers. */
+	ddf_fun_t *kbd_fun;             /**< Pirmary port device function. */
+	ddf_fun_t *aux_fun;             /**< Auxiliary port device function. */
+	buffer_t kbd_buffer;            /**< Primary port buffer. */
+	buffer_t aux_buffer;            /**< Aux. port buffer. */
 	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
 	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
 	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
 } i8042_t;
 
 int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
+
 #endif
+
 /**
  * @}
  */
