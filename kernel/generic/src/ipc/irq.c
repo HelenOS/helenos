@@ -89,7 +89,9 @@ static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 	size_t i;
 
 	for (i = 0; i < rangecount; i++) {
+#ifdef IO_SPACE_BOUNDARY
 		if ((void *) ranges[i].base >= IO_SPACE_BOUNDARY)
+#endif
 			km_unmap(ranges[i].base, ranges[i].size);
 	}
 }
@@ -107,8 +109,10 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 
 	/* Map the PIO ranges into the kernel virtual address space. */
 	for (i = 0; i < rangecount; i++) {
+#ifdef IO_SPACE_BOUNDARY
 		if ((void *) ranges[i].base < IO_SPACE_BOUNDARY)
 			continue;
+#endif
 		ranges[i].base = km_map(pbase[i], ranges[i].size,
 		    PAGE_READ | PAGE_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 		if (!ranges[i].base) {
