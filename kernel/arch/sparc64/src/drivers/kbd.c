@@ -132,8 +132,6 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
-	    (uintptr_t) ns16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL, pa);
 	sysinfo_set_item_val("kbd.type.ns16550", NULL, true);
 	
