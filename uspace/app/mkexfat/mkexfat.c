@@ -41,7 +41,50 @@
 
 #define NAME    "mkexfat"
 
+static void usage(void)
+{
+	printf("Usage: mkexfat <device>\n");
+}
+
 int main (int argc, char **argv)
 {
+	aoff64_t dev_nblocks;
+	char *dev_path;
+	service_id_t service_id;
+	size_t sector_size;
+	int rc;
+
+	if (argc < 2) {
+		printf(NAME ": Error, argument missing\n");
+		usage();
+		return 1;
+	}
+
+	/* TODO: Add parameters */
+
+	++argv;
+	dev_path = *argv;
+
+	printf(NAME ": Device = %s\n", dev_path);
+
+	rc = loc_service_get_id(dev_path, &service_id, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving device `%s'.\n");
+		return 2;
+	}
+
+	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
+	if (rc != EOK) {
+		printf(NAME ": Error initializing libblock.\n");
+		return 2;
+	}
+
+	rc = block_get_bsize(service_id, &sector_size);
+	if (rc != EOK) {
+		printf(NAME ": Error determining device block size.\n");
+		return 2;
+	}
+
+
 	return 0;
 }
