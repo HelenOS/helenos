@@ -60,7 +60,17 @@ kbd_port_ops_t pl050_port = {
 
 static kbd_dev_t *kbd_dev;
 
+#define PL050_STAT	4
+#define PL050_DATA	8
+
 #define PL050_STAT_RXFULL  (1 << 4)
+
+static irq_pio_range_t pl050_ranges[] = {
+	{
+		.base = 0,
+		.size = 9, 
+	}
+};
 
 static irq_cmd_t pl050_cmds[] = {
 	{
@@ -90,8 +100,8 @@ static irq_cmd_t pl050_cmds[] = {
 };
 
 static irq_code_t pl050_kbd = {
-	0,	// FIXME
-	NULL,	// FIXME
+	sizeof(pl050_ranges) / sizeof(irq_pio_range_t),
+	pl050_ranges,
 	sizeof(pl050_cmds) / sizeof(irq_cmd_t),
 	pl050_cmds
 };
@@ -103,15 +113,12 @@ static int pl050_port_init(kbd_dev_t *kdev)
 	kbd_dev = kdev;
 	
 	sysarg_t addr;
-	if (sysinfo_get_value("kbd.address.status", &addr) != EOK)
+	if (sysinfo_get_value("kbd.address.physical", &addr) != EOK)
 		return -1;
 	
-	pl050_kbd.cmds[0].addr = (void *) addr;
-	
-	if (sysinfo_get_value("kbd.address.data", &addr) != EOK)
-		return -1;
-	
-	pl050_kbd.cmds[3].addr = (void *) addr;
+	pl050_kbd.ranges[0].base = addr;
+	pl050_kbd.cmds[0].addr = (void *) addr + PL050_STAT;
+	pl050_kbd.cmds[3].addr = (void *) addr + PL050_DATA;
 	
 	sysarg_t inr;
 	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
