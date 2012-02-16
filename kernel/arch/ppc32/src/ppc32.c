@@ -231,8 +231,6 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		sysinfo_set_item_val("cuda", NULL, true);
 		sysinfo_set_item_val("cuda.inr", NULL, IRQ_CUDA);
 		sysinfo_set_item_val("cuda.address.physical", NULL, pa);
-		sysinfo_set_item_val("cuda.address.kernel", NULL,
-		    (uintptr_t) cuda);
 #endif
 	}
 	

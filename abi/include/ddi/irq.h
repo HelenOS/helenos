@@ -35,6 +35,11 @@
 #ifndef ABI_DDI_IRQ_H_
 #define ABI_DDI_IRQ_H_
 
+typedef struct {
+	uintptr_t base;
+	size_t size;
+} irq_pio_range_t;
+
 typedef enum {
 	/** Read 1 byte from the I/O space. */
 	CMD_PIO_READ_8 = 1,
@@ -66,27 +71,6 @@ typedef enum {
 	 */
 	CMD_PIO_WRITE_A_32,
 	
-	/** Read 1 byte from the memory space. */
-	CMD_MEM_READ_8,
-	/** Read 2 bytes from the memory space. */
-	CMD_MEM_READ_16,
-	/** Read 4 bytes from the memory space. */
-	CMD_MEM_READ_32,
-	
-	/** Write 1 byte to the memory space. */
-	CMD_MEM_WRITE_8,
-	/** Write 2 bytes to the memory space. */
-	CMD_MEM_WRITE_16,
-	/** Write 4 bytes to the memory space. */
-	CMD_MEM_WRITE_32,
-	
-	/** Write 1 byte from the source argument to the memory space. */
-	CMD_MEM_WRITE_A_8,
-	/** Write 2 bytes from the source argument to the memory space. */
-	CMD_MEM_WRITE_A_16,
-	/** Write 4 bytes from the source argument to the memory space. */
-	CMD_MEM_WRITE_A_32,
-	
 	/**
 	 * Perform a bit masking on the source argument
 	 * and store the result into the destination argument.
@@ -117,6 +101,8 @@ typedef struct {
 } irq_cmd_t;
 
 typedef struct {
+	size_t rangecount;
+	irq_pio_range_t *ranges;
 	size_t cmdcount;
 	irq_cmd_t *cmds;
 } irq_code_t;

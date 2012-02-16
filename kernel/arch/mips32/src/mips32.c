@@ -195,7 +195,8 @@ void arch_post_smp_init(void)
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, MSIM_KBD_ADDRESS);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    PA2KA(MSIM_KBD_ADDRESS));
 #endif
 }
 
