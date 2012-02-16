@@ -110,7 +110,6 @@ typedef struct {
 typedef struct {
 	cuda_t *cuda;
 	uintptr_t cuda_physical;
-	uintptr_t cuda_kernel;
 
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
 	uint8_t snd_buf[CUDA_RCV_BUF_SIZE];

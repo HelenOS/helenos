@@ -127,7 +127,8 @@ void gxemul_input_init(void)
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, GXEMUL_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (sysarg_t) gxemul_kbd);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    GXEMUL_KBD_ADDRESS);
 #endif
 }
 

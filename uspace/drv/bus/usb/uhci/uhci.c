@@ -197,14 +197,21 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
-	const size_t cmd_count = hc_irq_cmd_count();
-	irq_cmd_t irq_cmds[cmd_count];
-	ret =
-	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
 
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
         /* Register handler to avoid interrupt lockup */
         ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);

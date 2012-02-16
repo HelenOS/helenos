@@ -187,8 +187,6 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) NS16550_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
-	    (uintptr_t) NS16550_BASE);
 #endif
 	
 #ifdef CONFIG_I8042

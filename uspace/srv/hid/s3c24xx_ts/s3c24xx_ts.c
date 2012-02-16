@@ -61,6 +61,8 @@ static irq_cmd_t ts_irq_cmds[] = {
 };
 
 static irq_code_t ts_irq_code = {
+	0,
+	NULL,
 	sizeof(ts_irq_cmds) / sizeof(irq_cmd_t),
 	ts_irq_cmds
 };

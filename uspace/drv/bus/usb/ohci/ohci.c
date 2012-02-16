@@ -186,14 +186,21 @@ if (ret != EOK) { \
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	const size_t cmd_count = hc_irq_cmd_count();
-	irq_cmd_t irq_cmds[cmd_count];
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
-	ret =
-	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+	    "Failed to generate IRQ code: %s.\n", str_error(ret));
 
 
 	/* Register handler to avoid interrupt lockup */

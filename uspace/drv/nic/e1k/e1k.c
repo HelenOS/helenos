@@ -227,6 +227,14 @@ static int e1000_on_activating(nic_t *);
 static int e1000_on_stopping(nic_t *);
 static void e1000_send_frame(nic_t *, void *, size_t);
 
+/** PIO ranges used in the IRQ code. */
+irq_pio_range_t e1000_irq_pio_ranges[] = {
+	{
+		.base = 0,
+		.size =	PAGE_SIZE,	/* XXX */
+	}
+};
+
 /** Commands to deal with interrupt
  *
  */
@@ -255,6 +263,9 @@ irq_cmd_t e1000_irq_commands[] = {
 
 /** Interrupt code definition */
 irq_code_t e1000_irq_code = {
+	.rangecount = sizeof(e1000_irq_pio_ranges) /
+	    sizeof(irq_pio_range_t),
+	.ranges = e1000_irq_pio_ranges,
 	.cmdcount = sizeof(e1000_irq_commands) / sizeof(irq_cmd_t),
 	.cmds = e1000_irq_commands
 };
@@ -1251,8 +1262,9 @@ inline static int e1000_register_int_handler(nic_t *nic)
 	/* Lock the mutex in whole driver while working with global structure */
 	fibril_mutex_lock(&irq_reg_mutex);
 	
-	e1000_irq_code.cmds[0].addr = e1000->reg_base_virt + E1000_ICR;
-	e1000_irq_code.cmds[2].addr = e1000->reg_base_virt + E1000_IMC;
+	e1000_irq_code.ranges[0].base = (uintptr_t) e1000->reg_base_phys;
+	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
+	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
 	
 	int rc = register_interrupt_handler(nic_get_ddf_dev(nic),
 	    e1000->irq, e1000_interrupt_handler, &e1000_irq_code);

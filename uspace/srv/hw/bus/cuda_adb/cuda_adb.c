@@ -105,6 +105,13 @@ enum {
 	ADB_MAX_ADDR	= 16
 };
 
+static irq_pio_range_t cuda_ranges[] = {
+	{
+		.base = 0,
+		.size = sizeof(cuda_t) 
+	}
+};
+
 static irq_cmd_t cuda_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
@@ -129,6 +136,8 @@ static irq_cmd_t cuda_cmds[] = {
 
 
 static irq_code_t cuda_irq_code = {
+	sizeof(cuda_ranges) / sizeof(irq_pio_range_t),
+	cuda_ranges,
 	sizeof(cuda_cmds) / sizeof(irq_cmd_t),
 	cuda_cmds
 };
@@ -254,9 +263,6 @@ static int cuda_init(void)
 	if (sysinfo_get_value("cuda.address.physical", &(instance->cuda_physical)) != EOK)
 		return -1;
 	
-	if (sysinfo_get_value("cuda.address.kernel", &(instance->cuda_kernel)) != EOK)
-		return -1;
-	
 	void *vaddr;
 	if (pio_enable((void *) instance->cuda_physical, sizeof(cuda_t), &vaddr) != 0)
 		return -1;
@@ -273,7 +279,8 @@ static int cuda_init(void)
 	/* Disable all interrupts from CUDA. */
 	pio_write_8(&dev->ier, IER_CLR | ALL_INT);
 
-	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_kernel)->ifr;
+	cuda_irq_code.ranges[0].base = (uintptr_t) instance->cuda_physical;
+	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_physical)->ifr;
 	async_set_interrupt_received(cuda_irq_handler);
 	irq_register(10, device_assign_devno(), 0, &cuda_irq_code);
 

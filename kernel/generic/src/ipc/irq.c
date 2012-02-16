@@ -73,6 +73,8 @@
 
 #include <arch.h>
 #include <mm/slab.h>
+#include <mm/page.h>
+#include <mm/km.h>
 #include <errno.h>
 #include <ddi/irq.h>
 #include <ipc/ipc.h>
@@ -80,6 +82,103 @@
 #include <syscall/copy.h>
 #include <console/console.h>
 #include <print.h>
+#include <macros.h>
+
+static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
+{
+	size_t i;
+
+	for (i = 0; i < rangecount; i++) {
+#ifdef IO_SPACE_BOUNDARY
+		if ((void *) ranges[i].base >= IO_SPACE_BOUNDARY)
+#endif
+			km_unmap(ranges[i].base, ranges[i].size);
+	}
+}
+
+static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
+    irq_cmd_t *cmds, size_t cmdcount)
+{
+	uintptr_t *pbase;
+	size_t i, j;
+
+	/* Copy the physical base addresses aside. */
+	pbase = malloc(rangecount * sizeof(uintptr_t), 0);
+	for (i = 0; i < rangecount; i++)
+		pbase[i] = ranges[i].base;
+
+	/* Map the PIO ranges into the kernel virtual address space. */
+	for (i = 0; i < rangecount; i++) {
+#ifdef IO_SPACE_BOUNDARY
+		if ((void *) ranges[i].base < IO_SPACE_BOUNDARY)
+			continue;
+#endif
+		ranges[i].base = km_map(pbase[i], ranges[i].size,
+		    PAGE_READ | PAGE_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
+		if (!ranges[i].base) {
+			ranges_unmap(ranges, i);
+			free(pbase);
+			return ENOMEM;
+		}
+	}
+
+	/* Rewrite the pseudocode addresses from physical to kernel virtual. */
+	for (i = 0; i < cmdcount; i++) {
+		uintptr_t addr;
+		size_t size;
+
+		/* Process only commands that use an address. */
+		switch (cmds[i].cmd) {
+		case CMD_PIO_READ_8:
+        	case CMD_PIO_WRITE_8:
+        	case CMD_PIO_WRITE_A_8:
+			size = 1;
+			break;
+        	case CMD_PIO_READ_16:
+        	case CMD_PIO_WRITE_16:
+        	case CMD_PIO_WRITE_A_16:
+			size = 2;
+			break;
+        	case CMD_PIO_READ_32:
+        	case CMD_PIO_WRITE_32:
+        	case CMD_PIO_WRITE_A_32:
+			size = 4;
+			break;
+		default:
+			/* Move onto the next command. */
+			continue;
+		}
+
+		addr = (uintptr_t) cmds[i].addr;
+		
+		for (j = 0; j < rangecount; j++) {
+
+			/* Find the matching range. */
+			if (!iswithin(pbase[j], ranges[j].size, addr, size))
+				continue;
+
+			/* Switch the command to a kernel virtual address. */
+			addr -= pbase[j];
+			addr += ranges[j].base;
+
+			cmds[i].addr = (void *) addr;
+			break;
+		}
+
+		if (j == rangecount) {
+			/*
+			 * The address used in this command is outside of all
+			 * defined ranges.
+			 */
+			ranges_unmap(ranges, rangecount);
+			free(pbase);
+			return EINVAL;
+		}
+	}
+
+	free(pbase);
+	return EOK;
+}
 
 /** Free the top-half pseudocode.
  *
@@ -89,6 +188,8 @@
 static void code_free(irq_code_t *code)
 {
 	if (code) {
+		ranges_unmap(code->ranges, code->rangecount);
+		free(code->ranges);
 		free(code->cmds);
 		free(code);
 	}
@@ -103,29 +204,47 @@ static void code_free(irq_code_t *code)
  */
 static irq_code_t *code_from_uspace(irq_code_t *ucode)
 {
+	irq_pio_range_t *ranges = NULL;
+	irq_cmd_t *cmds = NULL;
+
 	irq_code_t *code = malloc(sizeof(*code), 0);
 	int rc = copy_from_uspace(code, ucode, sizeof(*code));
-	if (rc != 0) {
-		free(code);
-		return NULL;
-	}
+	if (rc != EOK)
+		goto error;
 	
-	if (code->cmdcount > IRQ_MAX_PROG_SIZE) {
-		free(code);
-		return NULL;
-	}
+	if ((code->rangecount > IRQ_MAX_RANGE_COUNT) ||
+	    (code->cmdcount > IRQ_MAX_PROG_SIZE))
+		goto error;
 	
-	irq_cmd_t *ucmds = code->cmds;
-	code->cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, 0);
-	rc = copy_from_uspace(code->cmds, ucmds,
+	ranges = malloc(sizeof(code->ranges[0]) * code->rangecount, 0);
+	rc = copy_from_uspace(ranges, code->ranges,
+	    sizeof(code->ranges[0]) * code->rangecount);
+	if (rc != EOK)
+		goto error;
+
+	cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, 0);
+	rc = copy_from_uspace(cmds, code->cmds,
 	    sizeof(code->cmds[0]) * code->cmdcount);
-	if (rc != 0) {
-		free(code->cmds);
-		free(code);
-		return NULL;
-	}
-	
+	if (rc != EOK)
+		goto error;
+
+	rc = ranges_map_and_apply(ranges, code->rangecount, cmds,
+	    code->cmdcount);
+	if (rc != EOK)
+		goto error;
+
+	code->ranges = ranges;
+	code->cmds = cmds;
+
 	return code;
+
+error:
+	if (cmds)
+		free(cmds);
+	if (ranges)
+		free(ranges);
+	free(code);
+	return NULL;
 }
 
 /** Register an answerbox as a receiving end for IRQ notifications.
@@ -173,7 +292,6 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
-	irq->driver_as = AS;
 	
 	/*
 	 * Enlist the IRQ structure in the uspace IRQ hash table and the
@@ -364,16 +482,8 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 	if (!code)
 		return IRQ_DECLINE;
 	
-	as_t *current_as = AS;
-	if (current_as != irq->driver_as)
-		as_switch(AS, irq->driver_as);
-	
 	for (size_t i = 0; i < code->cmdcount; i++) {
 		uint32_t dstval;
-		void *va;
-		uint8_t val8;
-		uint16_t val16;
-		uint32_t val32;
 		
 		uintptr_t srcarg = code->cmds[i].srcarg;
 		uintptr_t dstarg = code->cmds[i].dstarg;
@@ -430,60 +540,6 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 				    (uint32_t) scratch[srcarg]);
 			}
 			break;
-		case CMD_MEM_READ_8:
-			va = code->cmds[i].addr;
-			memcpy_from_uspace(&val8, va, sizeof(val8));
-			if (dstarg)
-				scratch[dstarg] = val8;
-			break;
-		case CMD_MEM_READ_16:
-			va = code->cmds[i].addr;
-			memcpy_from_uspace(&val16, va, sizeof(val16));
-			if (dstarg)
-				scratch[dstarg] = val16;
-			break;
-		case CMD_MEM_READ_32:
-			va = code->cmds[i].addr;
-			memcpy_from_uspace(&val32, va, sizeof(val32));
-			if (dstarg)
-				scratch[dstarg] = val32;
-			break;
-		case CMD_MEM_WRITE_8:
-			val8 = code->cmds[i].value;
-			va = code->cmds[i].addr;
-			memcpy_to_uspace(va, &val8, sizeof(val8));
-			break;
-		case CMD_MEM_WRITE_16:
-			val16 = code->cmds[i].value;
-			va = code->cmds[i].addr;
-			memcpy_to_uspace(va, &val16, sizeof(val16));
-			break;
-		case CMD_MEM_WRITE_32:
-			val32 = code->cmds[i].value;
-			va = code->cmds[i].addr;
-			memcpy_to_uspace(va, &val32, sizeof(val32));
-			break;
-		case CMD_MEM_WRITE_A_8:
-			if (srcarg) {
-				val8 = scratch[srcarg];
-				va = code->cmds[i].addr;
-				memcpy_to_uspace(va, &val8, sizeof(val8));
-			}
-			break;
-		case CMD_MEM_WRITE_A_16:
-			if (srcarg) {
-				val16 = scratch[srcarg];
-				va = code->cmds[i].addr;
-				memcpy_to_uspace(va, &val16, sizeof(val16));
-			}
-			break;
-		case CMD_MEM_WRITE_A_32:
-			if (srcarg) {
-				val32 = scratch[srcarg];
-				va = code->cmds[i].addr;
-				memcpy_to_uspace(va, &val32, sizeof(val32));
-			}
-			break;
 		case CMD_BTEST:
 			if ((srcarg) && (dstarg)) {
 				dstval = scratch[srcarg] & code->cmds[i].value;
@@ -497,19 +553,12 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			}
 			break;
 		case CMD_ACCEPT:
-			if (AS != current_as)
-				as_switch(AS, current_as);
 			return IRQ_ACCEPT;
 		case CMD_DECLINE:
 		default:
-			if (AS != current_as)
-				as_switch(AS, current_as);
 			return IRQ_DECLINE;
 		}
 	}
-	
-	if (AS != current_as)
-		as_switch(AS, current_as);
 	
 	return IRQ_DECLINE;
 }

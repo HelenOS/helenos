@@ -133,8 +133,6 @@ typedef struct irq {
 	
 	/** Notification configuration structure. */
 	ipc_notif_cfg_t notif_cfg; 
-	
-	as_t *driver_as;
 } irq_t;
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
