@@ -256,7 +256,7 @@ void main_bsp_separated_stack(void)
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
 			LOG("init[%zu].addr=%p, init[%zu].size=%zu",
-			    i, (void *) init.tasks[i].addr, i, init.tasks[i].size);
+			    i, (void *) init.tasks[i].paddr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
 	
