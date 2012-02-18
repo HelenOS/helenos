@@ -157,8 +157,11 @@ static int add_platform_fun(ddf_dev_t *dev)
 	/* Construct match ID. */
 	if (asprintf(&match_id, PLATFORM_FUN_MATCH_ID_FMT, platform) == -1) {
 		ddf_msg(LVL_ERROR, "Memory allocation failed.");
+		free(platform);
 		return ENOMEM;
 	}
+
+	free(platform);
 
 	/* Add function. */
 	ddf_msg(LVL_DEBUG, "Adding platform function. Function node is `%s' "
@@ -168,6 +171,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 	fun = ddf_fun_create(dev, fun_inner, name);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Error creating function %s", name);
+		free(match_id);
 		return ENOMEM;
 	}
 
@@ -175,6 +179,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    name);
+		free(match_id);
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -207,7 +212,7 @@ static int root_dev_add(ddf_dev_t *dev)
 	 * We ignore error occurrence because virtual devices shall not be
 	 * vital for the system.
 	 */
-	add_virtual_root_fun(dev);
+	(void) add_virtual_root_fun(dev);
 
 	/* Register root device's children. */
 	int res = add_platform_fun(dev);
