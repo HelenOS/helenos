@@ -36,8 +36,7 @@
 #define LIBC_TASK_H_
 
 #include <sys/types.h>
-
-typedef uint64_t task_id_t;
+#include <abi/proc/task.h>
 
 typedef enum {
 	TASK_EXIT_NORMAL,

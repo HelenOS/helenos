@@ -43,6 +43,10 @@ const char *test_print2(void)
 	TPRINTF("Expected output: [-1] [-02] [-03] [-004] [-005]\n");
 	TPRINTF("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", -1, -2, -3, -4, -5);
 	
+	TPRINTF("Testing printf(\"%%lld %%3.2lld %%-3.2lld %%2.3lld %%-2.3lld\", (long long) -1, (long long) -2, (long long) -3, (long long) -4, (long long) -5):\n");
+	TPRINTF("Expected output: [-1] [-02] [-03] [-004] [-005]\n");
+	TPRINTF("Real output:     [%lld] [%3.2lld] [%-3.2lld] [%2.3lld] [%-2.3lld]\n\n", (long long) -1, (long long) -2, (long long) -3, (long long) -4, (long long) -5);
+	
 	TPRINTF("Testing printf(\"%%#x %%5.3#x %%-5.3#x %%3.5#x %%-3.5#x\", 17, 18, 19, 20, 21):\n");
 	TPRINTF("Expected output: [0x11] [0x012] [0x013] [0x00014] [0x00015]\n");
 	TPRINTF("Real output:     [%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]\n\n", 17, 18, 19, 20, 21);

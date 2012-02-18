@@ -41,14 +41,14 @@
 #include <usb/hid/hidpath.h>
 #include <usb/hid/hidtypes.h>
 
-int usb_hid_parse_report_descriptor(usb_hid_report_t *report, 
+int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 		const uint8_t *data, size_t size);
-
-void usb_hid_free_report(usb_hid_report_t *report);
 
 void usb_hid_descriptor_print(usb_hid_report_t *report);
 
 int usb_hid_report_init(usb_hid_report_t *report);
+
+void usb_hid_report_deinit(usb_hid_report_t *report);
 
 int usb_hid_report_append_fields(usb_hid_report_t *report,
 		usb_hid_report_item_t *report_item);
@@ -76,8 +76,6 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
 void usb_hid_descriptor_print_list(list_t *list);
 
 void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item);
-
-void usb_hid_free_report_list(list_t *list);
 
 usb_hid_report_item_t *usb_hid_report_item_clone(
 		const usb_hid_report_item_t *item);

@@ -32,18 +32,18 @@
 	 */
 
 		/**
-		 * @defgroup netif Network interface drivers
+		 * @defgroup nic Network interface controllers
 		 * @ingroup net
 		 */
 
 			/**
-			 * @defgroup lo Loopback Service
-			 * @ingroup netif
+			 * @defgroup libnic Base NIC framework library
+			 * @ingroup nic
 			 */
 
 			/**
-			 * @defgroup ne2000 NE2000 network interface service
-			 * @ingroup netif
+			 * @defgroup nic_drivers Drivers using the NICF
+			 * @ingroup nic
 			 */
 
 		/**
@@ -268,12 +268,6 @@
 	 * @defgroup drvusbhid USB HID driver
 	 * @ingroup usb
 	 * @brief USB driver for HID devices.
-	 */
-
-	/**
-	 * @defgroup drvusbmouse USB mouse driver
-	 * @ingroup usb
-	 * @brief USB driver for mouse with boot protocol.
 	 */
 
 	/**

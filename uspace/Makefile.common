@@ -43,6 +43,8 @@
 #   EXTRA_OUTPUT       additional output targets
 #   EXTRA_CLEAN        additional cleanup targets
 #
+#   POSIX_COMPAT       set to 'y' to use POSIX compatibility layer
+#
 # Optionally, for a binary:
 #   STATIC_NEEDED      set to 'y' for init binaries, will build statically
 #                      linked version
@@ -103,9 +105,11 @@ LIBC_PREFIX = $(LIB_PREFIX)/c
 LIBSOFTFLOAT_PREFIX = $(LIB_PREFIX)/softfloat
 LIBSOFTINT_PREFIX = $(LIB_PREFIX)/softint
 
+LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
+
 LIBBLOCK_PREFIX = $(LIB_PREFIX)/block
 LIBFS_PREFIX = $(LIB_PREFIX)/fs
-LIBIMGMAP_PREFIX = $(LIB_PREFIX)/imgmap
+LIBFB_PREFIX = $(LIB_PREFIX)/fb
 LIBCLUI_PREFIX = $(LIB_PREFIX)/clui
 LIBFMTUTIL_PREFIX = $(LIB_PREFIX)/fmtutil
 
@@ -118,8 +122,9 @@ LIBUSBHID_PREFIX = $(LIB_PREFIX)/usbhid
 LIBUSBVIRT_PREFIX = $(LIB_PREFIX)/usbvirt
 
 LIBDRV_PREFIX = $(LIB_PREFIX)/drv
-LIBPACKET_PREFIX = $(LIB_PREFIX)/packet
 LIBNET_PREFIX = $(LIB_PREFIX)/net
+LIBNIC_PREFIX = $(LIB_PREFIX)/nic
+LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
 
 LIBSCSI_PREFIX = $(LIB_PREFIX)/scsi
 
@@ -214,23 +219,28 @@ endif
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
+ifeq ($(POSIX_COMPAT),y)
+	CFLAGS = -I$(LIBPOSIX_PREFIX)
+	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
+endif
+
 ifeq ($(COMPILER),gcc_cross)
-	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_native)
-	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),icc)
-	CFLAGS = $(ICC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(ICC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),clang)
-	CFLAGS = $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 

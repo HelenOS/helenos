@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,16 +39,30 @@
 
 #include "test1.h"
 
-static int test1_add_device(ddf_dev_t *dev);
+static int test1_dev_add(ddf_dev_t *dev);
+static int test1_dev_remove(ddf_dev_t *dev);
+static int test1_dev_gone(ddf_dev_t *dev);
+static int test1_fun_online(ddf_fun_t *fun);
+static int test1_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.add_device = &test1_add_device
+	.dev_add = &test1_dev_add,
+	.dev_remove = &test1_dev_remove,
+	.dev_gone = &test1_dev_gone,
+	.fun_online = &test1_fun_online,
+	.fun_offline = &test1_fun_offline
 };
 
 static driver_t test1_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
+
+typedef struct {
+	ddf_fun_t *fun_a;
+	ddf_fun_t *clone;
+	ddf_fun_t *child;
+} test1_t;
 
 /** Register child and inform user about it.
  *
@@ -59,7 +74,7 @@ static driver_t test1_driver = {
  */
 static int register_fun_verbose(ddf_dev_t *parent, const char *message,
     const char *name, const char *match_id, int match_score,
-    int expected_rc)
+    int expected_rc, ddf_fun_t **pfun)
 {
 	ddf_fun_t *fun = NULL;
 	int rc;
@@ -102,6 +117,9 @@ leave:
 		ddf_fun_destroy(fun);
 	}
 
+	if (pfun != NULL)
+		*pfun = fun;
+
 	return rc;
 }
 
@@ -122,13 +140,20 @@ leave:
  * @param dev New device.
  * @return Error code reporting success of the operation.
  */
-static int test1_add_device(ddf_dev_t *dev)
+static int test1_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
+	test1_t *test1;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)",
+	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
+
+	test1 = ddf_dev_data_alloc(dev, sizeof(test1_t));
+	if (test1 == NULL) {
+		ddf_msg(LVL_ERROR, "Failed allocating soft state.\n");
+		return ENOMEM;
+	}
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun_a == NULL) {
@@ -136,9 +161,12 @@ static int test1_add_device(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 
+	test1->fun_a = fun_a;
+
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
+		ddf_fun_destroy(fun_a);
 		return rc;
 	}
 
@@ -150,19 +178,123 @@ static int test1_add_device(ddf_dev_t *dev)
 	} else if (str_cmp(dev->name, "test1") == 0) {
 		(void) register_fun_verbose(dev,
 		    "cloning myself ;-)", "clone",
-		    "virtual&test1", 10, EOK);
+		    "virtual&test1", 10, EOK, &test1->clone);
 		(void) register_fun_verbose(dev,
 		    "cloning myself twice ;-)", "clone",
-		    "virtual&test1", 10, EEXISTS);
+		    "virtual&test1", 10, EEXISTS, NULL);
 	} else if (str_cmp(dev->name, "clone") == 0) {
 		(void) register_fun_verbose(dev,
 		    "run by the same task", "child",
-		    "virtual&test1&child", 10, EOK);
+		    "virtual&test1&child", 10, EOK, &test1->child);
 	}
 
 	ddf_msg(LVL_DEBUG, "Device `%s' accepted.", dev->name);
 
 	return EOK;
+}
+
+static int fun_remove(ddf_fun_t *fun, const char *name)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')", fun, name);
+	rc = ddf_fun_offline(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", name);
+		return rc;
+	}
+
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
+static int fun_unbind(ddf_fun_t *fun, const char *name)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_unbind(%p, '%s')", fun, name);
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
+static int test1_dev_remove(ddf_dev_t *dev)
+{
+	test1_t *test1 = (test1_t *)dev->driver_data;
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);
+
+	if (test1->fun_a != NULL) {
+		rc = fun_remove(test1->fun_a, "a");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test1->clone != NULL) {
+		rc = fun_remove(test1->clone, "clone");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test1->child != NULL) {
+		rc = fun_remove(test1->child, "child");
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+static int test1_dev_gone(ddf_dev_t *dev)
+{
+	test1_t *test1 = (test1_t *)dev->driver_data;
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);
+
+	if (test1->fun_a != NULL) {
+		rc = fun_unbind(test1->fun_a, "a");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test1->clone != NULL) {
+		rc = fun_unbind(test1->clone, "clone");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test1->child != NULL) {
+		rc = fun_unbind(test1->child, "child");
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+static int test1_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "test1_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int test1_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "test1_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

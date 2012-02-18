@@ -81,6 +81,14 @@ typedef struct {
 	 * intended recipient.
 	 */
 	uint8_t request_type;
+#define SETUP_REQUEST_TYPE_DEVICE_TO_HOST (1 << 7)
+#define SETUP_REQUEST_TYPE_GET_TYPE(rt) ((rt >> 5) & 0x3)
+#define SETUP_REQUEST_TYPE_GET_RECIPIENT(rec) (rec & 0x1f)
+#define SETUP_REQUEST_TO_HOST(type, recipient) \
+    (uint8_t)((1 << 7) | ((type & 0x3) << 5) | (recipient & 0x1f))
+#define SETUP_REQUEST_TO_DEVICE(type, recipient) \
+    (uint8_t)(((type & 0x3) << 5) | (recipient & 0x1f))
+
 	/** Request identification. */
 	uint8_t request;
 	/** Main parameter to the request. */
@@ -114,9 +122,8 @@ int usb_request_clear_feature(usb_pipe_t *, usb_request_type_t,
     usb_request_recipient_t, uint16_t, uint16_t);
 int usb_request_set_feature(usb_pipe_t *, usb_request_type_t,
     usb_request_recipient_t, uint16_t, uint16_t);
-int usb_request_set_address(usb_pipe_t *, usb_address_t);
 int usb_request_get_descriptor(usb_pipe_t *, usb_request_type_t,
-    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t, 
+    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t,
     size_t *);
 int usb_request_get_descriptor_alloc(usb_pipe_t *, usb_request_type_t,
     usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void **, size_t *);
@@ -130,6 +137,7 @@ int usb_request_get_full_configuration_descriptor_alloc(usb_pipe_t *,
     int, void **, size_t *);
 int usb_request_set_descriptor(usb_pipe_t *, usb_request_type_t,
     usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t);
+
 int usb_request_get_configuration(usb_pipe_t *, uint8_t *);
 int usb_request_set_configuration(usb_pipe_t *, uint8_t);
 int usb_request_get_interface(usb_pipe_t *, uint8_t, uint8_t *);

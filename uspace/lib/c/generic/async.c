@@ -117,6 +117,54 @@
 #define CLIENT_HASH_TABLE_BUCKETS  32
 #define CONN_HASH_TABLE_BUCKETS    32
 
+/** Session data */
+struct async_sess {
+	/** List of inactive exchanges */
+	list_t exch_list;
+	
+	/** Exchange management style */
+	exch_mgmt_t mgmt;
+	
+	/** Session identification */
+	int phone;
+	
+	/** First clone connection argument */
+	sysarg_t arg1;
+	
+	/** Second clone connection argument */
+	sysarg_t arg2;
+	
+	/** Third clone connection argument */
+	sysarg_t arg3;
+	
+	/** Exchange mutex */
+	fibril_mutex_t mutex;
+	
+	/** Number of opened exchanges */
+	atomic_t refcnt;
+	
+	/** Mutex for stateful connections */
+	fibril_mutex_t remote_state_mtx;
+	
+	/** Data for stateful connections */
+	void *remote_state_data;
+};
+
+/** Exchange data */
+struct async_exch {
+	/** Link into list of inactive exchanges */
+	link_t sess_link;
+	
+	/** Link into global list of inactive exchanges */
+	link_t global_link;
+	
+	/** Session pointer */
+	async_sess_t *sess;
+	
+	/** Exchange identification */
+	int phone;
+};
+
 /** Async framework global futex */
 atomic_t async_futex = FUTEX_INITIALIZER;
 
@@ -133,6 +181,19 @@ typedef struct {
 	ipc_callid_t callid;
 	ipc_call_t call;
 } msg_t;
+
+/** Message data */
+typedef struct {
+	awaiter_t wdata;
+	
+	/** If reply was received. */
+	bool done;
+	
+	/** Pointer to where the answer data is stored. */
+	ipc_call_t *dataptr;
+	
+	sysarg_t retval;
+} amsg_t;
 
 /* Client connection data */
 typedef struct {
@@ -195,11 +256,13 @@ static async_client_data_dtor_t async_client_data_destroy =
 
 void async_set_client_data_constructor(async_client_data_ctor_t ctor)
 {
+	assert(async_client_data_create == default_client_data_constructor);
 	async_client_data_create = ctor;
 }
 
 void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 {
+	assert(async_client_data_destroy == default_client_data_destructor);
 	async_client_data_destroy = dtor;
 }
 
@@ -241,6 +304,7 @@ static async_interrupt_handler_t interrupt_received = default_interrupt_received
  */
 void async_set_client_connection(async_client_conn_t conn)
 {
+	assert(client_connection == default_client_connection);
 	client_connection = conn;
 }
 
@@ -1776,14 +1840,31 @@ static int async_hangup_internal(int phone)
  */
 int async_hangup(async_sess_t *sess)
 {
+	async_exch_t *exch;
+	
 	assert(sess);
 	
 	if (atomic_get(&sess->refcnt) > 0)
 		return EBUSY;
 	
+	fibril_mutex_lock(&async_sess_mutex);
+	
 	int rc = async_hangup_internal(sess->phone);
-	if (rc == EOK)
-		free(sess);
+	
+	while (!list_empty(&sess->exch_list)) {
+		exch = (async_exch_t *)
+		    list_get_instance(list_first(&sess->exch_list),
+		    async_exch_t, sess_link);
+		
+		list_remove(&exch->sess_link);
+		list_remove(&exch->global_link);
+		async_hangup_internal(exch->phone);
+		free(exch);
+	}
+
+	free(sess);
+	
+	fibril_mutex_unlock(&async_sess_mutex);
 	
 	return rc;
 }
@@ -1919,27 +2000,29 @@ void async_exchange_end(async_exch_t *exch)
 /** Wrapper for IPC_M_SHARE_IN calls using the async framework.
  *
  * @param exch  Exchange for sending the message.
- * @param dst   Destination address space area base.
  * @param size  Size of the destination address space area.
  * @param arg   User defined argument.
  * @param flags Storage for the received flags. Can be NULL.
+ * @param dst   Destination address space area base. Cannot be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_share_in_start(async_exch_t *exch, void *dst, size_t size,
-    sysarg_t arg, unsigned int *flags)
+int async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
+    unsigned int *flags, void **dst)
 {
 	if (exch == NULL)
 		return ENOENT;
 	
-	sysarg_t tmp_flags;
-	int res = async_req_3_2(exch, IPC_M_SHARE_IN, (sysarg_t) dst,
-	    (sysarg_t) size, arg, NULL, &tmp_flags);
+	sysarg_t _flags = 0;
+	sysarg_t _dst = (sysarg_t) -1;
+	int res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
+	    arg, NULL, &_flags, NULL, &_dst);
 	
 	if (flags)
-		*flags = (unsigned int) tmp_flags;
+		*flags = (unsigned int) _flags;
 	
+	*dst = (void *) _dst;
 	return res;
 }
 
@@ -1968,13 +2051,13 @@ bool async_share_in_receive(ipc_callid_t *callid, size_t *size)
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
 		return false;
 	
-	*size = (size_t) IPC_GET_ARG2(data);
+	*size = (size_t) IPC_GET_ARG1(data);
 	return true;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_IN calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_IN
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
@@ -2052,7 +2135,7 @@ bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *f
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_share_out_finalize(ipc_callid_t callid, void *dst)
+int async_share_out_finalize(ipc_callid_t callid, void **dst)
 {
 	return ipc_share_out_finalize(callid, dst);
 }

@@ -34,29 +34,52 @@
 #include <usb/usb.h>
 #include "transfer_descriptor.h"
 
-static unsigned dp[3] =
-    { TD_STATUS_DP_IN, TD_STATUS_DP_OUT, TD_STATUS_DP_SETUP };
-static unsigned togg[2] = { TD_STATUS_T_0, TD_STATUS_T_1 };
+/** USB direction to OHCI TD values translation table */
+static const uint32_t dir[] = {
+	[USB_DIRECTION_IN] = TD_STATUS_DP_IN,
+	[USB_DIRECTION_OUT] = TD_STATUS_DP_OUT,
+	[USB_DIRECTION_BOTH] = TD_STATUS_DP_SETUP,
+};
 
-void td_init(
-    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle)
+/**
+ * Initialize OHCI TD.
+ * @param instance TD structure to initialize.
+ * @param next Next TD in ED list.
+ * @param direction Used to determine PID, BOTH means setup PID.
+ * @param buffer Pointer to the first byte of transferred data.
+ * @param size Size of the buffer.
+ * @param toggle Toggle bit value, use 0/1 to set explicitly,
+ *        any other value means that ED toggle will be used.
+ */
+void td_init(td_t *instance, const td_t *next,
+    usb_direction_t direction, const void *buffer, size_t size, int toggle)
 {
 	assert(instance);
 	bzero(instance, sizeof(td_t));
+	/* Set PID and Error code */
 	instance->status = 0
-	    | ((dp[dir] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
+	    | ((dir[direction] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
 	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT);
+
 	if (toggle == 0 || toggle == 1) {
-		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
+		/* Set explicit toggle bit */
+		instance->status |= TD_STATUS_T_USE_TD_FLAG;
+		instance->status |= toggle ? TD_STATUS_T_FLAG : 0;
 	}
+
+	/* Alow less data on input. */
 	if (dir == USB_DIRECTION_IN) {
 		instance->status |= TD_STATUS_ROUND_FLAG;
 	}
+
 	if (buffer != NULL) {
 		assert(size != 0);
 		instance->cbp = addr_to_phys(buffer);
 		instance->be = addr_to_phys(buffer + size - 1);
 	}
+
+	instance->next = addr_to_phys(next) & TD_NEXT_PTR_MASK;
+
 }
 /**
  * @}

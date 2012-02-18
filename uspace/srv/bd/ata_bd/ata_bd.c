@@ -118,6 +118,8 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
 static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size);
 static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size);
+static int ata_pcmd_read_toc(int dev_idx, uint8_t ses,
+    void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
 static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
@@ -242,8 +244,9 @@ static int ata_bd_init(void)
 {
 	void *vaddr;
 	int rc;
-
-	rc = loc_server_register(NAME, ata_bd_connection);
+	
+	async_set_client_connection(ata_bd_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
@@ -306,13 +309,11 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == (void *) -1) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (true) {
 		callid = async_get_call(&call);
@@ -352,6 +353,14 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
 			    UPPER32(disk[disk_id].blocks));
 			continue;
+		case BD_READ_TOC:
+			cnt = IPC_GET_ARG1(call);
+			if (disk[disk_id].dev_type == ata_pkt_dev)
+				retval = ata_pcmd_read_toc(disk_id, cnt, fs_va,
+				    disk[disk_id].block_size);
+			else
+				retval = EINVAL;
+			break;
 		default:
 			retval = EINVAL;
 			break;
@@ -806,6 +815,45 @@ static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
 	if (rc != EOK)
 		return rc;
 
+	return EOK;
+}
+
+/** Issue ATAPI read TOC command.
+ *
+ * Read TOC in 'multi-session' format (first and last session number
+ * with last session LBA).
+ *
+ * http://suif.stanford.edu/~csapuntz/specs/INF-8020.PDF page 171
+ *
+ * Output buffer must be large enough to hold the data, otherwise the
+ * function will fail.
+ *
+ * @param dev_idx	Device index (0 or 1)
+ * @param session	Starting session
+ * @param obuf		Buffer for storing inquiry data read from device
+ * @param obuf_size	Size of obuf in bytes
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_pcmd_read_toc(int dev_idx, uint8_t session, void *obuf,
+    size_t obuf_size)
+{
+	ata_pcmd_read_toc_t cp;
+	int rc;
+
+	memset(&cp, 0, sizeof(cp));
+
+	cp.opcode = PCMD_READ_TOC;
+	cp.msf = 0;
+	cp.format = 0x01; /* 0x01 = multi-session mode */
+	cp.start = session;
+	cp.size = host2uint16_t_be(obuf_size);
+	cp.oldformat = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
+	
+	rc = ata_cmd_packet(0, &cp, sizeof(cp), obuf, obuf_size);
+	if (rc != EOK)
+		return rc;
+	
 	return EOK;
 }
 

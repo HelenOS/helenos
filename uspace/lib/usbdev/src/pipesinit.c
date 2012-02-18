@@ -30,20 +30,17 @@
  * @{
  */
 /** @file
- * Initialization of endpoint pipes.
+ * Non trivial initialization of endpoint pipes.
  *
  */
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
-#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
 
-#define CTRL_PIPE_MIN_PACKET_SIZE 8
 #define DEV_DESCR_MAX_PACKET_SIZE_OFFSET 7
-
 
 #define NESTING(parentname, childname) \
 	{ \
@@ -53,7 +50,7 @@
 #define LAST_NESTING { -1, -1 }
 
 /** Nesting pairs of standard descriptors. */
-static usb_dp_descriptor_nesting_t descriptor_nesting[] = {
+static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 	NESTING(CONFIGURATION, INTERFACE),
 	NESTING(INTERFACE, ENDPOINT),
 	NESTING(INTERFACE, HUB),
@@ -67,7 +64,7 @@ static usb_dp_descriptor_nesting_t descriptor_nesting[] = {
  * @param descriptor Descriptor in question.
  * @return Whether the given descriptor is endpoint descriptor.
  */
-static inline bool is_endpoint_descriptor(uint8_t *descriptor)
+static inline bool is_endpoint_descriptor(const uint8_t *descriptor)
 {
 	return descriptor[1] == USB_DESCTYPE_ENDPOINT;
 }
@@ -79,7 +76,7 @@ static inline bool is_endpoint_descriptor(uint8_t *descriptor)
  * @return Whether the @p found descriptor fits the @p wanted descriptor.
  */
 static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
-    usb_endpoint_description_t *found)
+    const usb_endpoint_description_t *found)
 {
 #define _SAME(fieldname) ((wanted->fieldname) == (found->fieldname))
 
@@ -119,7 +116,7 @@ static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
  */
 static usb_endpoint_mapping_t *find_endpoint_mapping(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    usb_endpoint_description_t *found_endpoint,
+    const usb_endpoint_description_t *found_endpoint,
     int interface_number, int interface_setting)
 {
 	while (mapping_count > 0) {
@@ -159,27 +156,27 @@ static int process_endpoint(
     usb_standard_endpoint_descriptor_t *endpoint,
     usb_device_connection_t *wire)
 {
-	usb_endpoint_description_t description;
 
 	/*
 	 * Get endpoint characteristics.
 	 */
 
 	/* Actual endpoint number is in bits 0..3 */
-	usb_endpoint_t ep_no = endpoint->endpoint_address & 0x0F;
+	const usb_endpoint_t ep_no = endpoint->endpoint_address & 0x0F;
 
-	/* Endpoint direction is set by bit 7 */
-	description.direction = (endpoint->endpoint_address & 128)
-	    ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
-	/* Transfer type is in bits 0..2 and the enum values corresponds 1:1 */
-	description.transfer_type = endpoint->attributes & 3;
+	const usb_endpoint_description_t description = {
+		/* Endpoint direction is set by bit 7 */
+		.direction = (endpoint->endpoint_address & 128)
+		    ? USB_DIRECTION_IN : USB_DIRECTION_OUT,
+		/* Transfer type is in bits 0..2 and
+		 * the enum values corresponds 1:1 */
+		.transfer_type = endpoint->attributes & 3,
 
-	/*
-	 * Get interface characteristics.
-	 */
-	description.interface_class = interface->interface_class;
-	description.interface_subclass = interface->interface_subclass;
-	description.interface_protocol = interface->interface_protocol;
+		/* Get interface characteristics. */
+		.interface_class = interface->interface_class,
+		.interface_subclass = interface->interface_subclass,
+		.interface_protocol = interface->interface_protocol,
+	};
 
 	/*
 	 * Find the most fitting mapping and initialize the pipe.
@@ -191,14 +188,11 @@ static int process_endpoint(
 		return ENOENT;
 	}
 
-	if (ep_mapping->pipe == NULL) {
-		return EBADMEM;
-	}
 	if (ep_mapping->present) {
 		return EEXISTS;
 	}
 
-	int rc = usb_pipe_initialize(ep_mapping->pipe, wire,
+	int rc = usb_pipe_initialize(&ep_mapping->pipe, wire,
 	    ep_no, description.transfer_type, endpoint->max_packet_size,
 	    description.direction);
 	if (rc != EOK) {
@@ -223,10 +217,10 @@ static int process_endpoint(
  */
 static int process_interface(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    usb_dp_parser_t *parser, usb_dp_parser_data_t *parser_data,
-    uint8_t *interface_descriptor)
+    const usb_dp_parser_t *parser, const usb_dp_parser_data_t *parser_data,
+    const uint8_t *interface_descriptor)
 {
-	uint8_t *descriptor = usb_dp_get_nested_descriptor(parser,
+	const uint8_t *descriptor = usb_dp_get_nested_descriptor(parser,
 	    parser_data, interface_descriptor);
 
 	if (descriptor == NULL) {
@@ -253,7 +247,7 @@ static int process_interface(
 /** Initialize endpoint pipes from configuration descriptor.
  *
  * The mapping array is expected to conform to following rules:
- * - @c pipe must point to already allocated structure with uninitialized pipe
+ * - @c pipe must be uninitialized pipe
  * - @c description must point to prepared endpoint description
  * - @c descriptor does not need to be initialized (will be overwritten)
  * - @c interface does not need to be initialized (will be overwritten)
@@ -283,113 +277,52 @@ static int process_interface(
  */
 int usb_pipe_initialize_from_configuration(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    uint8_t *configuration_descriptor, size_t configuration_descriptor_size,
+    const uint8_t *config_descriptor, size_t config_descriptor_size,
     usb_device_connection_t *connection)
 {
 	assert(connection);
 
-	if (configuration_descriptor == NULL) {
+	if (config_descriptor == NULL) {
 		return EBADMEM;
 	}
-	if (configuration_descriptor_size
+	if (config_descriptor_size
 	    < sizeof(usb_standard_configuration_descriptor_t)) {
 		return ERANGE;
 	}
 
-	/*
-	 * Go through the mapping and set all endpoints to not present.
-	 */
-	size_t i;
-	for (i = 0; i < mapping_count; i++) {
+	/* Go through the mapping and set all endpoints to not present. */
+	for (size_t i = 0; i < mapping_count; i++) {
 		mapping[i].present = false;
 		mapping[i].descriptor = NULL;
 		mapping[i].interface = NULL;
 	}
 
-	/*
-	 * Prepare the descriptor parser.
-	 */
-	usb_dp_parser_t dp_parser = {
+	/* Prepare the descriptor parser. */
+	const usb_dp_parser_t dp_parser = {
 		.nesting = descriptor_nesting
 	};
-	usb_dp_parser_data_t dp_data = {
-		.data = configuration_descriptor,
-		.size = configuration_descriptor_size,
+	const usb_dp_parser_data_t dp_data = {
+		.data = config_descriptor,
+		.size = config_descriptor_size,
 		.arg = connection
 	};
 
 	/*
 	 * Iterate through all interfaces.
 	 */
-	uint8_t *interface = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, configuration_descriptor);
+	const uint8_t *interface = usb_dp_get_nested_descriptor(&dp_parser,
+	    &dp_data, config_descriptor);
 	if (interface == NULL) {
 		return ENOENT;
 	}
 	do {
 		(void) process_interface(mapping, mapping_count,
-		    &dp_parser, &dp_data,
-		    interface);
+		    &dp_parser, &dp_data, interface);
 		interface = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    configuration_descriptor, interface);
+		    config_descriptor, interface);
 	} while (interface != NULL);
 
 	return EOK;
-}
-
-/** Initialize USB endpoint pipe.
- *
- * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
- * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
- * @param transfer_type Transfer type (e.g. interrupt or bulk).
- * @param max_packet_size Maximum packet size in bytes.
- * @param direction Endpoint direction (in/out).
- * @return Error code.
- */
-int usb_pipe_initialize(usb_pipe_t *pipe,
-    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
-    usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_direction_t direction)
-{
-	assert(pipe);
-	assert(connection);
-
-	fibril_mutex_initialize(&pipe->guard);
-	pipe->wire = connection;
-	pipe->hc_sess = NULL;
-	fibril_mutex_initialize(&pipe->hc_sess_mutex);
-	pipe->endpoint_no = endpoint_no;
-	pipe->transfer_type = transfer_type;
-	pipe->max_packet_size = max_packet_size;
-	pipe->direction = direction;
-	pipe->refcount = 0;
-	pipe->refcount_soft = 0;
-	pipe->auto_reset_halt = false;
-
-	return EOK;
-}
-
-
-/** Initialize USB endpoint pipe as the default zero control pipe.
- *
- * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
- * @return Error code.
- */
-int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
-    usb_device_connection_t *connection)
-{
-	assert(pipe);
-	assert(connection);
-
-	int rc = usb_pipe_initialize(pipe, connection,
-	    0, USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE,
-	    USB_DIRECTION_BOTH);
-
-	pipe->auto_reset_halt = true;
-
-	return rc;
 }
 
 /** Probe default control pipe for max packet size.
@@ -413,17 +346,13 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 		return EINVAL;
 	}
 
-#define TRY_LOOP(attempt_var) \
-	for (attempt_var = 0; attempt_var < 3; attempt_var++)
-
-	size_t failed_attempts;
-	int rc;
 
 	usb_pipe_start_long_transfer(pipe);
 
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;
-	TRY_LOOP(failed_attempts) {
+	int rc;
+	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
 		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
 		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
 		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
@@ -445,85 +374,6 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	    = dev_descr_start[DEV_DESCR_MAX_PACKET_SIZE_OFFSET];
 
 	return EOK;
-}
-
-/** Register endpoint with the host controller.
- *
- * @param pipe Pipe to be registered.
- * @param interval Polling interval.
- * @param hc_connection Connection to the host controller (must be opened).
- * @return Error code.
- */
-int usb_pipe_register(usb_pipe_t *pipe,
-    unsigned int interval,
-    usb_hc_connection_t *hc_connection)
-{
-	return usb_pipe_register_with_speed(pipe, USB_SPEED_MAX + 1,
-	    interval, hc_connection);
-}
-
-/** Register endpoint with a speed at the host controller.
- *
- * You will rarely need to use this function because it is needed only
- * if the registered endpoint is of address 0 and there is no other way
- * to tell speed of the device at address 0.
- *
- * @param pipe Pipe to be registered.
- * @param speed Speed of the device
- *	(invalid speed means use previously specified one).
- * @param interval Polling interval.
- * @param hc_connection Connection to the host controller (must be opened).
- * @return Error code.
- */
-int usb_pipe_register_with_speed(usb_pipe_t *pipe, usb_speed_t speed,
-    unsigned int interval,
-    usb_hc_connection_t *hc_connection)
-{
-	assert(pipe);
-	assert(hc_connection);
-	
-	if (!usb_hc_connection_is_opened(hc_connection))
-		return EBADF;
-	
-#define _PACK2(high, low) (((high) << 16) + (low))
-#define _PACK3(high, middle, low) (((((high) << 8) + (middle)) << 8) + (low))
-	
-	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REGISTER_ENDPOINT,
-	    _PACK2(pipe->wire->address, pipe->endpoint_no),
-	    _PACK3(speed, pipe->transfer_type, pipe->direction),
-	    _PACK2(pipe->max_packet_size, interval));
-	async_exchange_end(exch);
-	
-#undef _PACK2
-#undef _PACK3
-	
-	return rc;
-}
-
-/** Revert endpoint registration with the host controller.
- *
- * @param pipe Pipe to be unregistered.
- * @param hc_connection Connection to the host controller (must be opened).
- * @return Error code.
- */
-int usb_pipe_unregister(usb_pipe_t *pipe,
-    usb_hc_connection_t *hc_connection)
-{
-	assert(pipe);
-	assert(hc_connection);
-	
-	if (!usb_hc_connection_is_opened(hc_connection))
-		return EBADF;
-	
-	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_UNREGISTER_ENDPOINT,
-	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
-	async_exchange_end(exch);
-	
-	return rc;
 }
 
 /**

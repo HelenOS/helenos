@@ -45,8 +45,8 @@
 
 #include <typedefs.h>
 
-extern uintptr_t last_frame;
-extern void frame_arch_init(void);
+extern void frame_low_arch_init(void);
+extern void frame_high_arch_init(void);
 #define physmem_print()
 
 #endif

@@ -98,6 +98,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/pm.c \
 	arch/$(KARCH)/src/userspace.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
@@ -105,8 +106,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/i8254.c \
 	arch/$(KARCH)/src/drivers/i8259.c \
-	arch/$(KARCH)/src/drivers/vesa.c \
-	arch/$(KARCH)/src/boot/boot.S \
+	arch/$(KARCH)/src/boot/multiboot.S \
+	arch/$(KARCH)/src/boot/multiboot2.S \
 	arch/$(KARCH)/src/boot/memmap.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/debugger.c \

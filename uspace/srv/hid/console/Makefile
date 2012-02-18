@@ -28,22 +28,22 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBIMGMAP_PREFIX)/libimgmap.a
-EXTRA_CFLAGS += -I$(LIBIMGMAP_PREFIX)
+LIBS = $(LIBFB_PREFIX)/libfb.a
+EXTRA_CFLAGS += -I$(LIBFB_PREFIX)
 BINARY = console
 
 SOURCES = \
 	console.c \
-	keybuffer.c \
-	images.c \
-	gcons.c
+	images.c
 
 IMAGES = \
 	gfx/helenos.tga \
 	gfx/nameic.tga \
-	gfx/cons_selected.tga \
+	gfx/cons_data.tga \
+	gfx/cons_dis.tga \
+	gfx/cons_dis_sel.tga \
 	gfx/cons_idle.tga \
-	gfx/cons_has_data.tga \
+	gfx/cons_sel.tga \
 	gfx/cons_kernel.tga \
 	gfx/anim_1.tga \
 	gfx/anim_2.tga \

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Softfloat API.
  */
 
 #ifndef __SOFTFLOAT_H__
@@ -155,6 +156,7 @@ extern int __getf2(long double, long double);
 extern int __ltsf2(float, float);
 extern int __ltdf2(double, double);
 extern int __lttf2(long double, long double);
+
 extern int __lesf2(float, float);
 extern int __ledf2(double, double);
 extern int __letf2(long double, long double);
@@ -165,6 +167,46 @@ extern int __gttf2(long double, long double);
 
 /* Not implemented yet */
 extern float __powisf2(float, int);
+extern double __powidf2 (double, int);
+extern long double __powitf2 (long double, int);
+extern long double __powixf2 (long double, int);
+
+
+
+/* SPARC quadruple-precision wrappers */
+
+extern void _Qp_add(long double *, long double *, long double *);
+extern void _Qp_sub(long double *, long double *, long double *);
+extern void _Qp_mul(long double *, long double *, long double *);
+extern void _Qp_div(long double *, long double *, long double *);
+extern void _Qp_neg(long double *, long double *);
+
+extern void _Qp_stoq(long double *, float);
+extern void _Qp_dtoq(long double *, double);
+extern float _Qp_qtos(long double *);
+extern double _Qp_qtod(long double *);
+
+extern int _Qp_qtoi(long double *);
+extern unsigned int _Qp_qtoui(long double *);
+extern long _Qp_qtox(long double *);
+extern unsigned long _Qp_qtoux(long double *);
+
+extern void _Qp_itoq(long double *, int);
+extern void _Qp_uitoq(long double *, unsigned int);
+extern void _Qp_xtoq(long double *, long);
+extern void _Qp_uxtoq(long double *, unsigned long);
+
+extern int _Qp_cmp(long double *, long double *);
+extern int _Qp_cmpe(long double *, long double *);
+extern int _Qp_feq(long double *, long double *);
+extern int _Qp_fge(long double *, long double *);
+extern int _Qp_fgt(long double *, long double *);
+extern int _Qp_fle(long double*, long double *);
+extern int _Qp_flt(long double *, long double *);
+extern int _Qp_fne(long double *, long double *);
+
+/* Not implemented yet */
+extern void _Qp_sqrt(long double *, long double *);
 
 #endif
 

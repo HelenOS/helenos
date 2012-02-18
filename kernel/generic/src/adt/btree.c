@@ -37,11 +37,11 @@
  * This file implements B+tree type and operations.
  *
  * The B+tree has the following properties:
- * @li it is a ballanced 3-4-5 tree (i.e. BTREE_M = 5)
+ * @li it is a balanced 3-4-5 tree (i.e. BTREE_M = 5)
  * @li values (i.e. pointers to values) are stored only in leaves
  * @li leaves are linked in a list
  *
- * Be carefull when using these trees. They need to allocate
+ * Be careful when using these trees. They need to allocate
  * and deallocate memory for their index nodes and as such
  * can sleep.
  */
@@ -145,7 +145,7 @@ void btree_destroy(btree_t *t)
  * number of keys is BTREE_MAX_KEYS + 1. Insert by left rotation
  * also makes use of this feature.
  *
- * @param node     B-tree node into wich the new key is to be inserted.
+ * @param node     B-tree node into which the new key is to be inserted.
  * @param key      The key to be inserted.
  * @param value    Pointer to value to be inserted.
  * @param rsubtree Pointer to the right subtree.
@@ -269,7 +269,7 @@ NO_TRACE static void node_remove_key_and_rsubtree(btree_node_t *node,
  * It is actually possible to have more keys than BTREE_MAX_KEYS.
  * This feature is used during insert by right rotation.
  *
- * @param node     B-tree node into wich the new key is to be inserted.
+ * @param node     B-tree node into which the new key is to be inserted.
  * @param key      The key to be inserted.
  * @param value    Pointer to value to be inserted.
  * @param lsubtree Pointer to the left subtree.
@@ -462,7 +462,7 @@ NO_TRACE static bool try_insert_by_rotation_to_right(btree_node_t *node,
 	rnode = node->parent->subtree[idx + 1];
 	if (rnode->keys < BTREE_MAX_KEYS) {
 		/*
-		 * The rotaion can be done. The right sibling has free space.
+		 * The rotation can be done. The right sibling has free space.
 		 */
 		node_insert_key_and_rsubtree(node, inskey, insvalue, rsubtree);
 		rotate_from_left(node, rnode, idx);
@@ -483,7 +483,7 @@ NO_TRACE static bool try_insert_by_rotation_to_right(btree_node_t *node,
  * included in the new node. If the node is a leaf node,
  * the median will be copied there.
  *
- * @param node     B-tree node wich is going to be split.
+ * @param node     B-tree node which is going to be split.
  * @param key      The key to be inserted.
  * @param value    Pointer to the value to be inserted.
  * @param rsubtree Pointer to the right subtree of the key being added.
@@ -561,7 +561,7 @@ NO_TRACE static void _btree_insert(btree_t *t, btree_key_t key, void *value,
 {
 	if (node->keys < BTREE_MAX_KEYS) {
 		/*
-		 * Node conatins enough space, the key can be stored immediately.
+		 * Node contains enough space, the key can be stored immediately.
 		 */
 		node_insert_key_and_rsubtree(node, key, value, rsubtree);
 	} else if (try_insert_by_rotation_to_left(node, key, value, rsubtree)) {
@@ -805,7 +805,7 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 		size_t i;
 		
 		/*
-		 * The key can be immediatelly removed.
+		 * The key can be immediately removed.
 		 *
 		 * Note that the right subtree is removed because when
 		 * combining two nodes, the left-side sibling is preserved

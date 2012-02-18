@@ -1,0 +1,10 @@
+cc -D__PCC__ -I/inc/c -E -o screen.i screen.c
+cc -D__PCC__ -I/inc/c -E -o top.i top.c
+
+cc -S -o screen.s screen.i
+cc -S -o top.s top.i
+
+as -o screen.o screen.s
+as -o top.o top.s
+
+ld -T /inc/_link.ld -o top_ screen.o top.o /lib/libc.a /lib/libsoftint.a

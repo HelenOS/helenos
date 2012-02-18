@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,7 @@
  * @addtogroup usb
  * @{
  */
+
 /** @file
  * @brief USB host controller interface definition.
  */
@@ -41,200 +43,45 @@
 #include <usb/usb.h>
 #include <bool.h>
 
-
-/** IPC methods for communication with HC through DDF interface.
- *
- * Notes for async methods:
- *
- * Methods for sending data to device (OUT transactions)
- * - e.g. IPC_M_USBHC_INTERRUPT_OUT -
- * always use the same semantics:
- * - first, IPC call with given method is made
- *   - argument #1 is target address
- *   - argument #2 is target endpoint
- *   - argument #3 is max packet size of the endpoint
- * - this call is immediately followed by IPC data write (from caller)
- * - the initial call (and the whole transaction) is answer after the
- *   transaction is scheduled by the HC and acknowledged by the device
- *   or immediately after error is detected
- * - the answer carries only the error code
- *
- * Methods for retrieving data from device (IN transactions)
- * - e.g. IPC_M_USBHC_INTERRUPT_IN -
- * also use the same semantics:
- * - first, IPC call with given method is made
- *   - argument #1 is target address
- *   - argument #2 is target endpoint
- * - this call is immediately followed by IPC data read (async version)
- * - the call is not answered until the device returns some data (or until
- *   error occurs)
- *
- * Some special methods (NO-DATA transactions) do not send any data. These
- * might behave as both OUT or IN transactions because communication parts
- * where actual buffers are exchanged are omitted.
- **
- * For all these methods, wrap functions exists. Important rule: functions
- * for IN transactions have (as parameters) buffers where retrieved data
- * will be stored. These buffers must be already allocated and shall not be
- * touch until the transaction is completed
- * (e.g. not before calling usb_wait_for() with appropriate handle).
- * OUT transactions buffers can be freed immediately after call is dispatched
- * (i.e. after return from wrapping function).
- *
- */
-typedef enum {
-	/** Asks for address assignment by host controller.
-	 * Answer:
-	 * - ELIMIT - host controller run out of address
-	 * - EOK - address assigned
-	 * Answer arguments:
-	 * - assigned address
-	 *
-	 * The address must be released by via IPC_M_USBHC_RELEASE_ADDRESS.
-	 */
-	IPC_M_USBHC_REQUEST_ADDRESS,
-
-	/** Bind USB address with devman handle.
-	 * Parameters:
-	 * - USB address
-	 * - devman handle
-	 * Answer:
-	 * - EOK - address binded
-	 * - ENOENT - address is not in use
-	 */
-	IPC_M_USBHC_BIND_ADDRESS,
-
-	/** Get handle binded with given USB address.
-	 * Parameters
-	 * - USB address
-	 * Answer:
-	 * - EOK - address binded, first parameter is the devman handle
-	 * - ENOENT - address is not in use at the moment
-	 */
-	IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
-
-	/** Release address in use.
-	 * Arguments:
-	 * - address to be released
-	 * Answer:
-	 * - ENOENT - address not in use
-	 * - EPERM - trying to release default USB address
-	 */
-	IPC_M_USBHC_RELEASE_ADDRESS,
-
-
-	/** Send interrupt data to device.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_INTERRUPT_OUT,
-
-	/** Get interrupt data from device.
-	 * See explanation at usb_iface_funcs_t (IN transaction).
-	 */
-	IPC_M_USBHC_INTERRUPT_IN,
-
-	/** Send bulk data to device.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_BULK_OUT,
-
-	/** Get bulk data from device.
-	 * See explanation at usb_iface_funcs_t (IN transaction).
-	 */
-	IPC_M_USBHC_BULK_IN,
-
-	/** Issue control WRITE transfer.
-	 * See explanation at usb_iface_funcs_t (OUT transaction) for
-	 * call parameters.
-	 * This call is immediately followed by two IPC data writes
-	 * from the caller (setup packet and actual data).
-	 */
-	IPC_M_USBHC_CONTROL_WRITE,
-
-	/** Issue control READ transfer.
-	 * See explanation at usb_iface_funcs_t (IN transaction) for
-	 * call parameters.
-	 * This call is immediately followed by IPC data write from the caller
-	 * (setup packet) and IPC data read (buffer that was read).
-	 */
-	IPC_M_USBHC_CONTROL_READ,
-
-	/** Register endpoint attributes at host controller.
-	 * This is used to reserve portion of USB bandwidth.
-	 * When speed is invalid, speed of the device is used.
-	 * Parameters:
-	 * - USB address + endpoint number
-	 *   - packed as ADDR << 16 + EP
-	 * - speed + transfer type + direction
-	 *   - packed as ( SPEED << 8 + TYPE ) << 8 + DIR
-	 * - maximum packet size + interval (in milliseconds)
-	 *   - packed as MPS << 16 + INT
-	 * Answer:
-	 * - EOK - reservation successful
-	 * - ELIMIT - not enough bandwidth to satisfy the request
-	 */
-	IPC_M_USBHC_REGISTER_ENDPOINT,
-
-	/** Revert endpoint registration.
-	 * Parameters:
-	 * - USB address
-	 * - endpoint number
-	 * - data direction
-	 * Answer:
-	 * - EOK - endpoint unregistered
-	 * - ENOENT - unknown endpoint
-	 */
-	IPC_M_USBHC_UNREGISTER_ENDPOINT
-} usbhc_iface_funcs_t;
+int usbhc_request_address(async_exch_t *, usb_address_t *, bool, usb_speed_t);
+int usbhc_bind_address(async_exch_t *, usb_address_t, devman_handle_t);
+int usbhc_get_handle(async_exch_t *, usb_address_t, devman_handle_t *);
+int usbhc_release_address(async_exch_t *, usb_address_t);
+int usbhc_register_endpoint(async_exch_t *, usb_address_t, usb_endpoint_t,
+    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
+int usbhc_unregister_endpoint(async_exch_t *, usb_address_t, usb_endpoint_t,
+    usb_direction_t);
+int usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,
+    uint64_t, void *, size_t, size_t *);
+int usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
+    uint64_t, const void *, size_t);
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *,
-    int, void *);
+typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *, int, void *);
 
 /** Callback for incoming transfer. */
 typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
     int, size_t, void *);
 
-
-/** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t,
-    void *, size_t,
-    usbhc_iface_transfer_out_callback_t, void *);
-
-/** Setup transfer processing function prototype. @deprecated */
-typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
-
-/** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t,
-    void *, size_t,
-    usbhc_iface_transfer_in_callback_t, void *);
-
 /** USB host controller communication interface. */
 typedef struct {
-	int (*request_address)(ddf_fun_t *, usb_speed_t, usb_address_t *);
+	int (*request_address)(ddf_fun_t *, usb_address_t *, bool, usb_speed_t);
 	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
-	int (*find_by_address)(ddf_fun_t *, usb_address_t, devman_handle_t *);
+	int (*get_handle)(ddf_fun_t *, usb_address_t,
+	    devman_handle_t *);
 	int (*release_address)(ddf_fun_t *, usb_address_t);
 
 	int (*register_endpoint)(ddf_fun_t *,
-	    usb_address_t, usb_speed_t, usb_endpoint_t,
+	    usb_address_t, usb_endpoint_t,
 	    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
 	    usb_direction_t);
 
-	usbhc_iface_transfer_out_t interrupt_out;
-	usbhc_iface_transfer_in_t interrupt_in;
-
-	usbhc_iface_transfer_out_t bulk_out;
-	usbhc_iface_transfer_in_t bulk_in;
-
-	int (*control_write)(ddf_fun_t *, usb_target_t,
-	    void *, size_t, void *, size_t,
-	    usbhc_iface_transfer_out_callback_t, void *);
-
-	int (*control_read)(ddf_fun_t *, usb_target_t,
-	    void *, size_t, void *, size_t,
+	int (*read)(ddf_fun_t *, usb_target_t, uint64_t, uint8_t *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
+
+	int (*write)(ddf_fun_t *, usb_target_t, uint64_t, const uint8_t *,
+	    size_t, usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 
 

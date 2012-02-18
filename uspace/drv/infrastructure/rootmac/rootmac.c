@@ -124,7 +124,7 @@ failure:
  * @return Zero on success, negative error number otherwise.
  *
  */
-static int rootmac_add_device(ddf_dev_t *dev)
+static int rootmac_dev_add(ddf_dev_t *dev)
 {
 	/* Register functions */
 	if (!rootmac_add_fun(dev, "pci0", "pangea_pci", &pci_data))
@@ -135,7 +135,7 @@ static int rootmac_add_device(ddf_dev_t *dev)
 
 /** The root device driver's standard operations. */
 static driver_ops_t rootmac_ops = {
-	.add_device = &rootmac_add_device
+	.dev_add = &rootmac_dev_add
 };
 
 /** The root device driver structure. */
@@ -160,8 +160,8 @@ static bool rootmac_enable_interrupt(ddf_fun_t *fun)
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	&rootmac_get_resources,
-	&rootmac_enable_interrupt
+   	.get_resource_list = &rootmac_get_resources,
+	.enable_interrupt = &rootmac_enable_interrupt
 };
 
 int main(int argc, char *argv[])

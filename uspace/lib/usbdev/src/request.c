@@ -142,18 +142,17 @@ int usb_control_request_get(usb_pipe_t *pipe,
 	 * within ranges.
 	 */
 
-	usb_device_request_setup_packet_t setup_packet;
-	setup_packet.request_type = 128 | (request_type << 5) | recipient;
-	setup_packet.request = request;
-	setup_packet.value = value;
-	setup_packet.index = index;
-	setup_packet.length = (uint16_t) data_size;
+	const usb_device_request_setup_packet_t setup_packet = {
+		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
+		    | (request_type << 5) | recipient,
+		.request = request,
+		.value = value,
+		.index = index,
+		.length = (uint16_t) data_size,
+	};
 
-	int rc = usb_pipe_control_read(pipe,
-	    &setup_packet, sizeof(setup_packet),
+	return usb_pipe_control_read(pipe, &setup_packet, sizeof(setup_packet),
 	    data, data_size, actual_data_size);
-
-	return rc;
 }
 
 /** Retrieve status of a USB device.
@@ -249,40 +248,6 @@ int usb_request_set_feature(usb_pipe_t *pipe,
 	return rc;
 }
 
-/** Change address of connected device.
- * This function automatically updates the backing connection to point to
- * the new address.
- *
- * @param pipe Control endpoint pipe (session must be already started).
- * @param new_address New USB address to be set (in native endianness).
- * @return Error code.
- */
-int usb_request_set_address(usb_pipe_t *pipe,
-    usb_address_t new_address)
-{
-	if ((new_address < 0) || (new_address >= USB11_ADDRESS_MAX)) {
-		return EINVAL;
-	}
-
-	uint16_t addr = uint16_host2usb((uint16_t)new_address);
-
-	int rc = usb_control_request_set(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DEVREQ_SET_ADDRESS,
-	    addr, 0,
-	    NULL, 0);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	assert(pipe->wire != NULL);
-	/* TODO: prevent other from accessing wire now. */
-	pipe->wire->address = new_address;
-
-	return EOK;
-}
-
 /** Retrieve USB descriptor of a USB device.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
@@ -309,7 +274,7 @@ int usb_request_get_descriptor(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	uint16_t wValue = descriptor_index | (descriptor_type << 8);
+	const uint16_t wValue = descriptor_index | (descriptor_type << 8);
 
 	return usb_control_request_get(pipe,
 	    request_type, recipient,
@@ -424,8 +389,7 @@ int usb_request_get_device_descriptor(usb_pipe_t *pipe,
 	}
 
 	/* Everything is okay, copy the descriptor. */
-	memcpy(descriptor, &descriptor_tmp,
-	    sizeof(descriptor_tmp));
+	memcpy(descriptor, &descriptor_tmp, sizeof(descriptor_tmp));
 
 	return EOK;
 }
@@ -469,8 +433,7 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
 	}
 
 	/* Everything is okay, copy the descriptor. */
-	memcpy(descriptor, &descriptor_tmp,
-	    sizeof(descriptor_tmp));
+	memcpy(descriptor, &descriptor_tmp, sizeof(descriptor_tmp));
 
 	return EOK;
 }

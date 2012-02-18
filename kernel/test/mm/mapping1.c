@@ -30,78 +30,67 @@
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <mm/as.h>
 #include <arch/mm/page.h>
+#include <mm/km.h>
 #include <typedefs.h>
 #include <debug.h>
 #include <arch.h>
 
-#define PAGE0  0x10000000
-#define PAGE1  (PAGE0 + PAGE_SIZE)
-
-#define VALUE0  UINT32_C(0x01234567)
-#define VALUE1  UINT32_C(0x89abcdef)
+#define TEST_MAGIC  UINT32_C(0x01234567)
 
 const char *test_mapping1(void)
 {
-	uintptr_t frame0, frame1;
-	uint32_t v0, v1;
+	uintptr_t page0, page1;
+	uintptr_t frame;
+	uint32_t v;
+	int i;
 	
-	frame0 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
-	frame1 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
-	
-	TPRINTF("Writing %#" PRIx32 " to physical address %p.\n",
-	    (uint32_t) VALUE0, (void *) KA2PA(frame0));
-	*((uint32_t *) frame0) = VALUE0;
-	
-	TPRINTF("Writing %#" PRIx32 " to physical address %p.\n",
-	    (uint32_t) VALUE1, (void *) KA2PA(frame1));
-	*((uint32_t *) frame1) = VALUE1;
-	
-	page_table_lock(AS, true);
+	frame = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_NONE);
 
-	TPRINTF("Mapping virtual address %p to physical address %p.\n",
-	    (void *) PAGE0, (void *) KA2PA(frame0));
-	page_mapping_insert(AS_KERNEL, PAGE0, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE);
+	page0 = km_map(frame, FRAME_SIZE,
+	    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
+	TPRINTF("Virtual address %p mapped to physical address %p.\n",
+	    (void *) page0, (void *) frame);
+	page1 = km_map(frame, FRAME_SIZE,
+	    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
+	TPRINTF("Virtual address %p mapped to physical address %p.\n",
+	    (void *) page1, (void *) frame);
 	
-	TPRINTF("Mapping virtual address %p to physical address %p.\n",
-	    (void *) PAGE1, (void *) KA2PA(frame1));
-	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE);
+	for (i = 0; i < 2; i++) {
+		TPRINTF("Writing magic using the first virtual address.\n");
 
-	page_table_unlock(AS, true);
+		*((uint32_t *) page0) = TEST_MAGIC;
+
+		TPRINTF("Reading magic using the second virtual address.\n");
+
+		v = *((uint32_t *) page1);
 	
-	v0 = *((uint32_t *) PAGE0);
-	v1 = *((uint32_t *) PAGE1);
-	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
-	    (void *) PAGE0, v0);
-	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
-	    (void *) PAGE1, v1);
+		if (v != TEST_MAGIC) {
+			km_unmap(page0, PAGE_SIZE);
+			km_unmap(page1, PAGE_SIZE);
+			frame_free(frame);
+			return "Criss-cross read does not match the value written.";
+		}
+
+		TPRINTF("Writing zero using the second virtual address.\n");
 	
-	if (v0 != VALUE0)
-		return "Value at v0 not equal to VALUE0";
-	if (v1 != VALUE1)
-		return "Value at v1 not equal to VALUE1";
+		*((uint32_t *) page1) = 0;
+
+		TPRINTF("Reading zero using the first virtual address.\n");
 	
-	TPRINTF("Writing %#" PRIx32 " to virtual address %p.\n",
-	    (uint32_t) 0, (void *) PAGE0);
-	*((uint32_t *) PAGE0) = 0;
+		v = *((uint32_t *) page0);
 	
-	TPRINTF("Writing %#" PRIx32 " to virtual address %p.\n",
-	    (uint32_t) 0, (void *) PAGE1);
-	*((uint32_t *) PAGE1) = 0;
-	
-	v0 = *((uint32_t *) PAGE0);
-	v1 = *((uint32_t *) PAGE1);
-	
-	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
-	    (void *) PAGE0, *((uint32_t *) PAGE0));
-	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
-	    (void *) PAGE1, *((uint32_t *) PAGE1));
-	
-	if (v0 != 0)
-		return "Value at v0 not equal to 0";
-	if (v1 != 0)
-		return "Value at v1 not equal to 0";
+		if (v != 0) {
+			km_unmap(page0, PAGE_SIZE);
+			km_unmap(page1, PAGE_SIZE);
+			frame_free(frame);
+			return "Criss-cross read does not match the value written.";
+		}
+	}
+
+	km_unmap(page0, PAGE_SIZE);
+	km_unmap(page1, PAGE_SIZE);
+	frame_free(frame);
 	
 	return NULL;
 }

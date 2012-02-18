@@ -51,11 +51,21 @@
 
 vfs_info_t ext2fs_vfs_info = {
 	.name = NAME,
+	.instance = 0,
 };
 
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS EXT2 file system server\n");
+
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			ext2fs_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			return -1;
+		}
+	}
 	
 	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
 	    SERVICE_VFS, 0, 0);

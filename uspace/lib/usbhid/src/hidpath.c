@@ -75,9 +75,10 @@
 int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
                                     int32_t usage_page, int32_t usage)
 {	
-	usb_hid_report_usage_path_t *item;
+	usb_hid_report_usage_path_t *item
+		= malloc(sizeof(usb_hid_report_usage_path_t));
 
-	if(!(item=malloc(sizeof(usb_hid_report_usage_path_t)))) {
+	if (item == NULL) {
 		return ENOMEM;
 	}
 	link_initialize(&item->rpath_items_link);
@@ -383,6 +384,8 @@ usb_hid_report_path_t *usb_hid_report_path(void)
  */
 void usb_hid_report_path_free(usb_hid_report_path_t *path)
 {
+	if (path == NULL)
+		return;
 	while(!list_empty(&path->items)){
 		usb_hid_report_remove_last_item(path);
 	}

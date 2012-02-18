@@ -70,6 +70,25 @@
  */
 #define PRINT_NUMBER_BUFFER_SIZE  (64 + 5)
 
+/** Get signed or unsigned integer argument */
+#define PRINTF_GET_INT_ARGUMENT(type, ap, flags) \
+	({ \
+		unsigned type res; \
+		\
+		if ((flags) & __PRINTF_FLAG_SIGNED) { \
+			signed type arg = va_arg((ap), signed type); \
+			\
+			if (arg < 0) { \
+				res = -arg; \
+				(flags) |= __PRINTF_FLAG_NEGATIVE; \
+			} else \
+				res = arg; \
+		} else \
+			res = va_arg((ap), unsigned type); \
+		\
+		res; \
+	})
+
 /** Enumeration of possible arguments types.
  */
 typedef enum {
@@ -170,7 +189,7 @@ static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *p
 			counter++;
 	}
 	
-	return (int) (counter + 1);
+	return (int) (counter);
 }
 
 /** Print string.
@@ -697,26 +716,27 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			/* Print integers */
 			size_t size;
 			uint64_t number;
+			
 			switch (qualifier) {
 			case PrintfQualifierByte:
 				size = sizeof(unsigned char);
-				number = (uint64_t) va_arg(ap, unsigned int);
+				number = PRINTF_GET_INT_ARGUMENT(int, ap, flags);
 				break;
 			case PrintfQualifierShort:
 				size = sizeof(unsigned short);
-				number = (uint64_t) va_arg(ap, unsigned int);
+				number = PRINTF_GET_INT_ARGUMENT(int, ap, flags);
 				break;
 			case PrintfQualifierInt:
 				size = sizeof(unsigned int);
-				number = (uint64_t) va_arg(ap, unsigned int);
+				number = PRINTF_GET_INT_ARGUMENT(int, ap, flags);
 				break;
 			case PrintfQualifierLong:
 				size = sizeof(unsigned long);
-				number = (uint64_t) va_arg(ap, unsigned long);
+				number = PRINTF_GET_INT_ARGUMENT(long, ap, flags);
 				break;
 			case PrintfQualifierLongLong:
 				size = sizeof(unsigned long long);
-				number = (uint64_t) va_arg(ap, unsigned long long);
+				number = PRINTF_GET_INT_ARGUMENT(long long, ap, flags);
 				break;
 			case PrintfQualifierPointer:
 				size = sizeof(void *);
@@ -731,22 +751,6 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				/* Unknown qualifier */
 				counter = -counter;
 				goto out;
-			}
-			
-			if (flags & __PRINTF_FLAG_SIGNED) {
-				if (number & (0x1 << (size * 8 - 1))) {
-					flags |= __PRINTF_FLAG_NEGATIVE;
-					
-					if (size == sizeof(uint64_t)) {
-						number = -((int64_t) number);
-					} else {
-						number = ~number;
-						number &=
-						    ~(0xFFFFFFFFFFFFFFFFll <<
-						    (size * 8));
-						number++;
-					}
-				}
 			}
 			
 			if ((retval = print_number(number, width, precision,

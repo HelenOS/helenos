@@ -417,7 +417,7 @@ static bool locfs_is_file(fs_node_t *fn)
 	return (node->type == LOC_OBJECT_SERVICE);
 }
 
-static service_id_t locfs_device_get(fs_node_t *fn)
+static service_id_t locfs_service_get(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
@@ -444,7 +444,7 @@ libfs_ops_t locfs_libfs_ops = {
 	.lnkcnt_get = locfs_lnkcnt_get,
 	.is_directory = locfs_is_directory,
 	.is_file = locfs_is_file,
-	.device_get = locfs_device_get
+	.service_get = locfs_service_get
 };
 
 bool locfs_init(void)
@@ -592,6 +592,10 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
+
+		/* Do not propagate EHANGUP back to VFS. */
+		if ((int) rc == EHANGUP)
+			rc = ENOTSUP;
 		
 		*rbytes = IPC_GET_ARG1(answer);
 		return rc;
@@ -654,6 +658,10 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Wait for reply from the driver. */
 		sysarg_t rc;
 		async_wait_for(msg, &rc);
+
+		/* Do not propagate EHANGUP back to VFS. */
+		if ((int) rc == EHANGUP)
+			rc = ENOTSUP;
 		
 		*wbytes = IPC_GET_ARG1(answer);
 		*nsize = 0;

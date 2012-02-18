@@ -89,24 +89,30 @@ typedef struct {
 static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 {
 	compl_t *cs = NULL;
-	size_t pref_size;
 	char *stext = NULL;
 	char *prefix = NULL;
 	char *dirname = NULL;
+	int retval;
+	
+	token_t *tokens = calloc(WORD_MAX, sizeof(token_t));
+	if (tokens == NULL) {
+		retval = ENOMEM;
+		goto error;
+	}
+	
+	size_t pref_size;
 	char *rpath_sep;
 	static const char *dirlist_arg[] = { ".", NULL };
-	int retval;
 	tokenizer_t tok;
-	token_t tokens[WORD_MAX];
-	int current_token;
+	ssize_t current_token;
 	size_t tokens_length;
-
+	
 	cs = calloc(1, sizeof(compl_t));
 	if (!cs) {
 		retval = ENOMEM;
 		goto error;
 	}
-
+	
 	/* Convert text buffer to string */
 	stext = wstr_to_astr(text);
 	if (stext == NULL) {
@@ -126,27 +132,30 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	}
 	
 	/* Find the current token */
-	for (current_token = 0; current_token < (int) tokens_length;
+	for (current_token = 0; current_token < (ssize_t) tokens_length;
 	    current_token++) {
 		token_t *t = &tokens[current_token];
 		size_t end = t->char_start + t->char_length;
-		/* Check if the caret lies inside the token or immediately
+		
+		/*
+		 * Check if the caret lies inside the token or immediately
 		 * after it
 		 */
 		if (t->char_start <= pos && pos <= end) {
 			break;
 		}
 	}
-	if (tokens_length == 0) current_token = -1;
 	
-	if (current_token >= 0 && tokens[current_token].type != TOKTYPE_SPACE) {
+	if (tokens_length == 0)
+		current_token = -1;
+	
+	if ((current_token >= 0) && (tokens[current_token].type != TOKTYPE_SPACE))
 		*cstart = tokens[current_token].char_start;
-	}
-	else {
+	else
 		*cstart = pos;
-	}
 	
-	/* Extract the prefix being completed
+	/*
+	 * Extract the prefix being completed
 	 * XXX: handle strings, etc.
 	 */
 	pref_size = str_lsize(stext, pos - *cstart);
@@ -169,16 +178,15 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 	 */
 
 	/* Skip any whitespace before current token */
-	int prev_token = current_token - 1;
-	if (prev_token >= 0 && tokens[prev_token].type == TOKTYPE_SPACE) {
+	ssize_t prev_token = current_token - 1;
+	if ((prev_token >= 0) && (tokens[prev_token].type == TOKTYPE_SPACE))
 		prev_token--;
-	}
-
+	
 	/*
 	 * It is a command if it is the first token or if it immediately
 	 * follows a pipe token.
 	 */
-	if (prev_token < 0 || tokens[prev_token].type == TOKTYPE_SPACE)
+	if ((prev_token < 0) || (tokens[prev_token].type == TOKTYPE_SPACE))
 		cs->is_command = true;
 	else
 		cs->is_command = false;
@@ -253,6 +261,8 @@ error:
 		free(stext);
 	if (cs != NULL)
 		free(cs);
+	if (tokens != NULL)
+		free(tokens);
 
 	return retval;
 }

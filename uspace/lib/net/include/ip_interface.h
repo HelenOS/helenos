@@ -45,7 +45,6 @@
 #define ip_received_error_msg  ip_received_error_msg_remote
 #define ip_set_gateway_req     ip_set_gateway_req_remote
 #define ip_packet_size_req     ip_packet_size_req_remote
-#define ip_device_req          ip_device_req_remote
 #define ip_add_route_req       ip_add_route_req_remote
 #define ip_send_msg            ip_send_msg_remote
 #define ip_get_route_req       ip_get_route_req_remote
@@ -68,7 +67,7 @@
  * @return EOK on success.
  *
  */
-typedef int (*tl_received_msg_t)(device_id_t device_id, packet_t *packet,
+typedef int (*tl_received_msg_t)(nic_device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error);
 
 extern async_sess_t *ip_bind_service(services_t, int, services_t, async_client_conn_t);

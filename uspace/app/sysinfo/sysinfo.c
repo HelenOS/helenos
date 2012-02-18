@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	char *ipath;
-	sysinfo_item_tag_t tag;
+	sysinfo_item_val_type_t tag;
 
 	if (argc != 2) {
 		print_syntax();
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
 	ipath = argv[1];
 
-	tag = sysinfo_get_tag(ipath);
+	tag = sysinfo_get_val_type(ipath);
 
 	/* Silence warning */
 	rc = EOK;
@@ -74,6 +74,11 @@ int main(int argc, char *argv[])
 		break;
 	case SYSINFO_VAL_DATA:
 		rc = print_item_data(ipath);
+		break;
+	default:
+		printf("Error: Sysinfo item '%s' with unknown value type.\n",
+		    ipath);
+		rc = 2;
 		break;
 	}
 

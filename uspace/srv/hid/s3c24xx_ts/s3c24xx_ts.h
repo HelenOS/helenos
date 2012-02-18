@@ -38,6 +38,7 @@
 #define S3C24XX_TS_H_
 
 #include <sys/types.h>
+#include <async.h>
 
 /** S3C24xx ADC and touch-screen I/O */
 typedef struct {
@@ -120,8 +121,8 @@ typedef struct {
 	/** Device I/O structure */
 	s3c24xx_adc_io_t *io;
 
-	/** Callback phone to the client */
-	int client_phone;
+	/** Callback session to the client */
+	async_sess_t *client_sess;
 
 	/** Service ID */
 	service_id_t service_id;

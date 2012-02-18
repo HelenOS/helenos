@@ -43,7 +43,6 @@
 #include <vfs/vfs.h>
 #include <ipc/mouseev.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,11 +51,8 @@
 #include <inttypes.h>
 #include "s3c24xx_ts.h"
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
-
-#define NAME "s3c24ser"
-#define NAMESPACE "hid"
+#define NAME       "s3c24ser"
+#define NAMESPACE  "hid"
 
 static irq_cmd_t ts_irq_cmds[] = {
 	{
@@ -65,6 +61,8 @@ static irq_cmd_t ts_irq_cmds[] = {
 };
 
 static irq_code_t ts_irq_code = {
+	0,
+	NULL,
 	sizeof(ts_irq_cmds) / sizeof(irq_cmd_t),
 	ts_irq_cmds
 };
@@ -88,8 +86,9 @@ int main(int argc, char *argv[])
 	int rc;
 
 	printf(NAME ": S3C24xx touchscreen driver\n");
-
-	rc = loc_server_register(NAME, s3c24xx_ts_connection);
+	
+	async_set_client_connection(s3c24xx_ts_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return -1;
@@ -133,7 +132,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 		return -1;
 
 	ts->io = vaddr;
-	ts->client_phone = -1;
+	ts->client_sess = NULL;
 	ts->state = ts_wait_pendown;
 	ts->last_x = 0;
 	ts->last_y = 0;
@@ -142,7 +141,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	    (void *) ts->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_ts_irq_handler);
-	register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
+	irq_register(inr, device_assign_devno(), 0, &ts_irq_code);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 
@@ -283,7 +282,10 @@ static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts)
 
 	button = 1;
 	press = 0;
-	async_obsolete_msg_2(ts->client_phone, MOUSEEV_BUTTON_EVENT, button, press);
+	
+	async_exch_t *exch = async_exchange_begin(ts->client_sess);
+	async_msg_2(exch, MOUSEEV_BUTTON_EVENT, button, press);
+	async_exchange_end(exch);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 }
@@ -324,8 +326,10 @@ static void s3c24xx_ts_eoc(s3c24xx_ts_t *ts)
 	press = 1;
 
 	/* Send notifications to client. */
-	async_obsolete_msg_2(ts->client_phone, MOUSEEV_MOVE_EVENT, dx, dy);
-	async_obsolete_msg_2(ts->client_phone, MOUSEEV_BUTTON_EVENT, button, press);
+	async_exch_t *exch = async_exchange_begin(ts->client_sess);
+	async_msg_2(exch, MOUSEEV_MOVE_EVENT, dx, dy);
+	async_msg_2(exch, MOUSEEV_BUTTON_EVENT, button, press);
+	async_exchange_end(exch);
 
 	ts->last_x = x_pos;
 	ts->last_y = y_pos;
@@ -376,38 +380,32 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1)
 static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-
 	async_answer_0(iid, EOK);
-
-	while (1) {
-		callid = async_get_call(&call);
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
 		
 		if (!IPC_GET_IMETHOD(call)) {
-			if (ts->client_phone != -1) {
-				async_obsolete_hangup(ts->client_phone);
-				ts->client_phone = -1;
+			if (ts->client_sess != NULL) {
+				async_hangup(ts->client_sess);
+				ts->client_sess = NULL;
 			}
-
+			
 			async_answer_0(callid, EOK);
 			return;
 		}
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_CONNECT_TO_ME:
-			if (ts->client_phone != -1) {
-				retval = ELIMIT;
-				break;
-			}
-			ts->client_phone = IPC_GET_ARG5(call);
-			retval = 0;
-			break;
-		default:
-			retval = EINVAL;
-		}
-		async_answer_0(callid, retval);
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
+		if (sess != NULL) {
+			if (ts->client_sess == NULL) {
+				ts->client_sess = sess;
+				async_answer_0(callid, EOK);
+			} else
+				async_answer_0(callid, ELIMIT);
+		} else
+			async_answer_0(callid, EINVAL);
 	}
 }
 

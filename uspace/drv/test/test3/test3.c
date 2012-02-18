@@ -38,10 +38,18 @@
 
 #define NAME "test3"
 
-static int test3_add_device(ddf_dev_t *dev);
+#define NUM_FUNCS 20
+
+static int test3_dev_add(ddf_dev_t *dev);
+static int test3_dev_remove(ddf_dev_t *dev);
+static int test3_fun_online(ddf_fun_t *fun);
+static int test3_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.add_device = &test3_add_device
+	.dev_add = &test3_dev_add,
+	.dev_remove = &test3_dev_remove,
+	.fun_online = &test3_fun_online,
+	.fun_offline = &test3_fun_offline,
 };
 
 static driver_t test3_driver = {
@@ -49,8 +57,14 @@ static driver_t test3_driver = {
 	.driver_ops = &driver_ops
 };
 
+typedef struct {
+	ddf_dev_t *dev;
+	ddf_fun_t *fun[NUM_FUNCS];
+} test3_t;
+
 static int register_fun_and_add_to_category(ddf_dev_t *parent,
-     const char *base_name, size_t index, const char *class_name)
+    const char *base_name, size_t index, const char *class_name,
+    ddf_fun_t **pfun)
 {
 	ddf_fun_t *fun = NULL;
 	int rc;
@@ -87,20 +101,49 @@ leave:
 		ddf_fun_destroy(fun);
 	}
 	
+	*pfun = fun;
 	return rc;
 }
 
-static int test3_add_device(ddf_dev_t *dev)
+static int fun_remove(ddf_fun_t *fun, const char *name)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')", fun, name);
+	rc = ddf_fun_offline(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", name);
+		return rc;
+	}
+
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
+static int test3_dev_add(ddf_dev_t *dev)
 {
 	int rc = EOK;
+	test3_t *test3;
 
-	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)",
+	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
+	test3 = ddf_dev_data_alloc(dev, sizeof(test3_t));
+	if (test3 == NULL) {
+		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
+		return ENOMEM;
+	}
+
 	size_t i;
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < NUM_FUNCS; i++) {
 		rc = register_fun_and_add_to_category(dev,
-		    "test3_", i, "test3");
+		    "test3_", i, "test3", &test3->fun[i]);
 		if (rc != EOK) {
 			break;
 		}
@@ -108,6 +151,43 @@ static int test3_add_device(ddf_dev_t *dev)
 	
 	return rc;
 }
+
+static int test3_dev_remove(ddf_dev_t *dev)
+{
+	test3_t *test3 = (test3_t *)dev->driver_data;
+	char *fun_name;
+	int rc;
+	size_t i;
+
+	for (i = 0; i < NUM_FUNCS; i++) {
+		rc = asprintf(&fun_name, "test3_%zu", i);
+		if (rc < 0) {
+			ddf_msg(LVL_ERROR, "Failed to format string: %s", str_error(rc));
+			return ENOMEM;
+		}
+
+		rc = fun_remove(test3->fun[i], fun_name);
+		if (rc != EOK)
+			return rc;
+
+		free(fun_name);
+	}
+
+	return EOK;
+}
+
+static int test3_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "test3_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int test3_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "test3_fun_offline()");
+	return ddf_fun_offline(fun);
+}
+
 
 int main(int argc, char *argv[])
 {

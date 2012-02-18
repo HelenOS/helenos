@@ -37,8 +37,16 @@
 
 #define BS_BLOCK		0
 #define BS_SIZE			512
-
 #define DIRENT_SIZE		32
+
+#define FAT12_CLST_MAX    4085
+#define FAT16_CLST_MAX    65525
+
+#define FAT12	12
+#define FAT16	16
+#define FAT32	32
+
+#define FAT_CLUSTER_DOUBLE_SIZE(a) ((a) / 4)
 
 typedef struct fat_bs {
 	uint8_t		ji[3];		/**< Jump instruction. */

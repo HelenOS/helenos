@@ -3,7 +3,7 @@ interface vfs extends service {
 		sysarg_t register(in_copy string name);
 		
 		/* Mount filesystem */
-		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in_copy string point, in_copy string opts, in_copy string fs);
+		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in sysarg_t instance, in_copy string point, in_copy string opts, in_copy string fs);
 		
 		/* Open file */
 		sysarg_t open(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, in_copy string path, out sysarg_t fd);
@@ -55,7 +55,7 @@ interface fs extends service {
 		sysarg_t mounted(in sysarg_t dev_handle, in_copy string opts);
 		
 		/* Mount filesystem */
-		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in_copy string point, in_copy string opts, ...);
+		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in sysarg_t instance, in_copy string point, in_copy string opts, ...);
 		
 		/* Open file by node */
 		sysarg_t open_node(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, ...);

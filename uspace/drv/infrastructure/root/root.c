@@ -65,11 +65,15 @@
 #define VIRTUAL_FUN_MATCH_ID "rootvirt"
 #define VIRTUAL_FUN_MATCH_SCORE 100
 
-static int root_add_device(ddf_dev_t *dev);
+static int root_dev_add(ddf_dev_t *dev);
+static int root_fun_online(ddf_fun_t *fun);
+static int root_fun_offline(ddf_fun_t *fun);
 
 /** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
-	.add_device = &root_add_device
+	.dev_add = &root_dev_add,
+	.fun_online = &root_fun_online,
+	.fun_offline = &root_fun_offline
 };
 
 /** The root device driver structure. */
@@ -153,8 +157,11 @@ static int add_platform_fun(ddf_dev_t *dev)
 	/* Construct match ID. */
 	if (asprintf(&match_id, PLATFORM_FUN_MATCH_ID_FMT, platform) == -1) {
 		ddf_msg(LVL_ERROR, "Memory allocation failed.");
+		free(platform);
 		return ENOMEM;
 	}
+
+	free(platform);
 
 	/* Add function. */
 	ddf_msg(LVL_DEBUG, "Adding platform function. Function node is `%s' "
@@ -164,6 +171,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 	fun = ddf_fun_create(dev, fun_inner, name);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Error creating function %s", name);
+		free(match_id);
 		return ENOMEM;
 	}
 
@@ -171,6 +179,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    name);
+		free(match_id);
 		ddf_fun_destroy(fun);
 		return rc;
 	}
@@ -193,9 +202,9 @@ static int add_platform_fun(ddf_dev_t *dev)
  * @param dev		The device which is root of the whole device tree (both
  *			of HW and pseudo devices).
  */
-static int root_add_device(ddf_dev_t *dev)
+static int root_dev_add(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "root_add_device, device handle=%" PRIun,
+	ddf_msg(LVL_DEBUG, "root_dev_add, device handle=%" PRIun,
 	    dev->handle);
 
 	/*
@@ -203,7 +212,7 @@ static int root_add_device(ddf_dev_t *dev)
 	 * We ignore error occurrence because virtual devices shall not be
 	 * vital for the system.
 	 */
-	add_virtual_root_fun(dev);
+	(void) add_virtual_root_fun(dev);
 
 	/* Register root device's children. */
 	int res = add_platform_fun(dev);
@@ -211,6 +220,18 @@ static int root_add_device(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed adding child device for platform.");
 
 	return res;
+}
+
+static int root_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "root_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int root_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "root_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

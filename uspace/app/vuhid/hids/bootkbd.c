@@ -92,36 +92,13 @@ static uint8_t in_data[] = {
 	1 << 2, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	     0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
-static size_t in_data_count = sizeof(in_data)/INPUT_SIZE;
-// FIXME - locking
-static size_t in_data_position = 0;
-
-static int on_data_in(vuhid_interface_t *iface,
-    void *buffer, size_t buffer_size, size_t *act_buffer_size)
-{
-	static size_t last_pos = (size_t) -1;
-	size_t pos = in_data_position;
-	if (pos >= in_data_count) {
-		return EBADCHECKSUM;
-	}
-
-	if (last_pos == pos) {
-		return ENAK;
-	}
-
-	if (buffer_size > INPUT_SIZE) {
-		buffer_size = INPUT_SIZE;
-	}
-
-	if (act_buffer_size != NULL) {
-		*act_buffer_size = buffer_size;
-	}
-
-	memcpy(buffer, in_data + pos * INPUT_SIZE, buffer_size);
-	last_pos = pos;
-
-	return EOK;
-}
+static vuhid_interface_life_t boot_life = {
+	.data_in = in_data,
+	.data_in_count = sizeof(in_data)/INPUT_SIZE,
+	.data_in_pos_change_delay = 500,
+	.msg_born = "Boot keyboard comes to life...",
+	.msg_die = "Boot keyboard died."
+};
 
 static int on_data_out(vuhid_interface_t *iface,
     void *buffer, size_t buffer_size)
@@ -140,19 +117,6 @@ static int on_data_out(vuhid_interface_t *iface,
 	return EOK;
 }
 
-
-static void live(vuhid_interface_t *iface)
-{
-	async_usleep(1000 * 1000 * 5);
-	usb_log_debug("Boot keyboard comes to life...\n");
-	while (in_data_position < in_data_count) {
-		async_usleep(1000 * 500);
-		in_data_position++;
-	}
-	usb_log_debug("Boot keyboard died.\n");
-}
-
-
 vuhid_interface_t vuhid_interface_bootkbd = {
 	.id = "boot",
 	.name = "boot keyboard",
@@ -163,13 +127,14 @@ vuhid_interface_t vuhid_interface_bootkbd = {
 	.report_descriptor_size = sizeof(report_descriptor),
 
 	.in_data_size = INPUT_SIZE,
-	.on_data_in = on_data_in,
+	.on_data_in = interface_live_on_data_in,
 
 	.out_data_size = 1,
 	.on_data_out = on_data_out,
 
-	.live = live,
+	.live = interface_life_live,
 
+	.interface_data = &boot_life,
 	.vuhid_data = NULL
 };
 

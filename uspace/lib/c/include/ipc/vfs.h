@@ -41,6 +41,7 @@
 
 #define FS_NAME_MAXLEN  20
 #define MAX_PATH_LEN    (64 * 1024)
+#define MAX_MNTOPTS_LEN 256
 #define PLB_SIZE        (2 * MAX_PATH_LEN)
 
 /* Basic types. */
@@ -55,6 +56,7 @@ typedef uint32_t fs_index_t;
 typedef struct {
 	/** Unique identifier of the fs. */
 	char name[FS_NAME_MAXLEN + 1];
+	unsigned int instance;
 	bool concurrent_read_write;
 	bool write_retains_size;
 } vfs_info_t;
@@ -78,6 +80,7 @@ typedef enum {
 	VFS_IN_STAT,
 	VFS_IN_DUP,
 	VFS_IN_WAIT_HANDLE,
+	VFS_IN_MTAB_GET,
 } vfs_in_request_t;
 
 typedef enum {

@@ -37,9 +37,9 @@
 
 #include <ipc/services.h>
 #include <ipc/net_net.h>
-
 #include <malloc.h>
-
+#include <async.h>
+#include <devman.h>
 #include <generic.h>
 #include <net/modules.h>
 #include <net/device.h>
@@ -97,7 +97,7 @@ void net_free_settings(measured_string_t *settings, uint8_t *data)
 int net_get_conf_req(async_sess_t *sess, measured_string_t **configuration,
     size_t count, uint8_t **data)
 {
-	return generic_translate_req(sess, NET_NET_GET_DEVICE_CONF, 0, 0,
+	return generic_translate_req(sess, NET_NET_GET_CONF, 0, 0,
 	    *configuration, count, configuration, data);
 }
 
@@ -123,11 +123,47 @@ int net_get_conf_req(async_sess_t *sess, measured_string_t **configuration,
  *         generic_translate_req() function.
  *
  */
-int net_get_device_conf_req(async_sess_t *sess, device_id_t device_id,
+int net_get_device_conf_req(async_sess_t *sess, nic_device_id_t device_id,
     measured_string_t **configuration, size_t count, uint8_t **data)
 {
 	return generic_translate_req(sess, NET_NET_GET_DEVICE_CONF,
 	    device_id, 0, *configuration, count, configuration, data);
+}
+
+int net_get_devices_req(async_sess_t *sess, measured_string_t **devices,
+    size_t *count, uint8_t **data)
+{
+	if ((!devices) || (!count))
+		return EBADMEM;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	int rc = async_req_0_1(exch, NET_NET_GET_DEVICES_COUNT, count);
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		return rc;
+	}
+	
+	if (*count == 0) {
+		async_exchange_end(exch);
+		*data = NULL;
+		return EOK;
+	}
+	
+	aid_t message_id = async_send_0(exch, NET_NET_GET_DEVICES, NULL);
+	rc = measured_strings_return(exch, devices, data, *count);
+	
+	async_exchange_end(exch);
+	
+	sysarg_t result;
+	async_wait_for(message_id, &result);
+	
+	if ((rc == EOK) && (result != EOK)) {
+		free(*devices);
+		free(*data);
+	}
+	
+	return (int) result;
 }
 
 /** @}

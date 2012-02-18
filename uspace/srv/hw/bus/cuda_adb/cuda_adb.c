@@ -47,14 +47,10 @@
 #include <errno.h>
 #include <ipc/adb.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <assert.h>
 #include "cuda_adb.h"
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
-
-#define NAME "cuda_adb"
+#define NAME  "cuda_adb"
 
 static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int cuda_init(void);
@@ -109,6 +105,13 @@ enum {
 	ADB_MAX_ADDR	= 16
 };
 
+static irq_pio_range_t cuda_ranges[] = {
+	{
+		.base = 0,
+		.size = sizeof(cuda_t) 
+	}
+};
+
 static irq_cmd_t cuda_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
@@ -133,6 +136,8 @@ static irq_cmd_t cuda_cmds[] = {
 
 
 static irq_code_t cuda_irq_code = {
+	sizeof(cuda_ranges) / sizeof(irq_pio_range_t),
+	cuda_ranges,
 	sizeof(cuda_cmds) / sizeof(irq_cmd_t),
 	cuda_cmds
 };
@@ -153,11 +158,12 @@ int main(int argc, char *argv[])
 	printf(NAME ": VIA-CUDA Apple Desktop Bus driver\n");
 
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
-		adb_dev[i].client_phone = -1;
+		adb_dev[i].client_sess = NULL;
 		adb_dev[i].service_id = 0;
 	}
 
-	rc = loc_server_register(NAME, cuda_connection);
+	async_set_client_connection(cuda_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register server.\n");
 		return rc;
@@ -198,7 +204,6 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_call_t call;
 	sysarg_t method;
 	service_id_t dsid;
-	int retval;
 	int dev_addr, i;
 
 	/* Get the device handle. */
@@ -219,7 +224,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	async_answer_0(iid, EOK);
 
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
 		
@@ -229,29 +234,26 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			return;
 		}
 		
-		switch (method) {
-		case IPC_M_CONNECT_TO_ME:
-			if (adb_dev[dev_addr].client_phone != -1) {
-				retval = ELIMIT;
-				break;
-			}
-			adb_dev[dev_addr].client_phone = IPC_GET_ARG5(call);
-			/*
-			 * A hack so that we send the data to the phone
-			 * regardless of which address the device is on.
-			 */
-			for (i = 0; i < ADB_MAX_ADDR; ++i) {
-				if (adb_dev[i].service_id == dsid) {
-					adb_dev[i].client_phone = IPC_GET_ARG5(call);
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
+		if (sess != NULL) {
+			if (adb_dev[dev_addr].client_sess == NULL) {
+				adb_dev[dev_addr].client_sess = sess;
+				
+				/*
+				 * A hack so that we send the data to the session
+				 * regardless of which address the device is on.
+				 */
+				for (i = 0; i < ADB_MAX_ADDR; ++i) {
+					if (adb_dev[i].service_id == dsid)
+						adb_dev[i].client_sess = sess;
 				}
-			}
-			retval = 0;
-			break;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
+				
+				async_answer_0(callid, EOK);
+			} else
+				async_answer_0(callid, ELIMIT);
+		} else
+			async_answer_0(callid, EINVAL);
 	}
 }
 
@@ -259,9 +261,6 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 static int cuda_init(void)
 {
 	if (sysinfo_get_value("cuda.address.physical", &(instance->cuda_physical)) != EOK)
-		return -1;
-	
-	if (sysinfo_get_value("cuda.address.kernel", &(instance->cuda_kernel)) != EOK)
 		return -1;
 	
 	void *vaddr;
@@ -280,9 +279,10 @@ static int cuda_init(void)
 	/* Disable all interrupts from CUDA. */
 	pio_write_8(&dev->ier, IER_CLR | ALL_INT);
 
-	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_kernel)->ifr;
+	cuda_irq_code.ranges[0].base = (uintptr_t) instance->cuda_physical;
+	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_physical)->ifr;
 	async_set_interrupt_received(cuda_irq_handler);
-	register_irq(10, device_assign_devno(), 0, &cuda_irq_code);
+	irq_register(10, device_assign_devno(), 0, &cuda_irq_code);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&dev->ier, TIP | TREQ);
@@ -482,10 +482,13 @@ static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
 
 	reg_val = ((uint16_t) data[1] << 8) | (uint16_t) data[2];
 
-	if (adb_dev[dev_addr].client_phone == -1)
+	if (adb_dev[dev_addr].client_sess == NULL)
 		return;
 
-	async_obsolete_msg_1(adb_dev[dev_addr].client_phone, ADB_REG_NOTIF, reg_val);
+	async_exch_t *exch =
+	    async_exchange_begin(adb_dev[dev_addr].client_sess);
+	async_msg_1(exch, ADB_REG_NOTIF, reg_val);
+	async_exchange_end(exch);
 }
 
 static void cuda_autopoll_set(bool enable)

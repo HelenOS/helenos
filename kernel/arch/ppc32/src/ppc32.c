@@ -45,6 +45,7 @@
 #include <genarch/ofw/pci.h>
 #include <userspace.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <abi/proc/uarg.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
@@ -70,7 +71,7 @@ void arch_pre_main(bootinfo_t *bootinfo)
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr = (uintptr_t) bootinfo->taskmap.tasks[i].addr;
+		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
@@ -207,8 +208,8 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		size_t offset = pa - aligned_addr;
 		size_t size = 2 * PAGE_SIZE;
 		
-		cuda_t *cuda = (cuda_t *)
-		    (hw_map(aligned_addr, offset + size) + offset);
+		cuda_t *cuda = (cuda_t *) (km_map(aligned_addr, offset + size,
+		    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
 		
 		/* Initialize I/O controller */
 		cuda_instance_t *cuda_instance =
@@ -230,8 +231,6 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		sysinfo_set_item_val("cuda", NULL, true);
 		sysinfo_set_item_val("cuda.inr", NULL, IRQ_CUDA);
 		sysinfo_set_item_val("cuda.address.physical", NULL, pa);
-		sysinfo_set_item_val("cuda.address.kernel", NULL,
-		    (uintptr_t) cuda);
 #endif
 	}
 	

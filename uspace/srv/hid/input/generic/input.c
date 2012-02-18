@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <bool.h>
+#include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
 #include <sysinfo.h>
@@ -46,9 +47,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ns.h>
-#include <ns_obsolete.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <errno.h>
 #include <adt/fifo.h>
 #include <io/console.h>
@@ -62,9 +61,6 @@
 #include <layout.h>
 #include <mouse.h>
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
-
 #define NUM_LAYOUTS  3
 
 static layout_ops_t *layout[NUM_LAYOUTS] = {
@@ -76,7 +72,7 @@ static layout_ops_t *layout[NUM_LAYOUTS] = {
 static void kbd_devs_yield(void);
 static void kbd_devs_reclaim(void);
 
-int client_phone = -1;
+async_sess_t *client_sess = NULL;
 
 /** List of keyboard devices */
 static list_t kbd_devs;
@@ -85,7 +81,9 @@ static list_t kbd_devs;
 static list_t mouse_devs;
 
 bool irc_service = false;
-int irc_phone = -1;
+async_sess_t *irc_sess = NULL;
+
+static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 
 void kbd_push_data(kbd_dev_t *kdev, sysarg_t data)
 {
@@ -169,65 +167,77 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	ev.mods = kdev->mods;
 	
 	ev.c = layout_parse_ev(kdev->active_layout, &ev);
-	async_obsolete_msg_4(client_phone, INPUT_EVENT_KEY, ev.type, ev.key,
-	    ev.mods, ev.c);
+	
+	async_exch_t *exch = async_exchange_begin(client_sess);
+	async_msg_4(exch, INPUT_EVENT_KEY, ev.type, ev.key, ev.mods, ev.c);
+	async_exchange_end(exch);
 }
 
 /** Mouse pointer has moved. */
-void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy)
+void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 {
-	async_obsolete_msg_2(client_phone, INPUT_EVENT_MOVE, dx, dy);
+	async_exch_t *exch = async_exchange_begin(client_sess);
+	if (dx || dy)
+		async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+	if (dz) {
+		// TODO: Implement proper wheel support
+		keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
+		for (int i = 0; i < 3; ++i) {
+			async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
+		}
+		async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
+	}
+	async_exchange_end(exch);
 }
 
 /** Mouse button has been pressed. */
 void mouse_push_event_button(mouse_dev_t *mdev, int bnum, int press)
 {
-	async_obsolete_msg_2(client_phone, INPUT_EVENT_BUTTON, bnum, press);
+	async_exch_t *exch = async_exchange_begin(client_sess);
+	async_msg_2(exch, INPUT_EVENT_BUTTON, bnum, press);
+	async_exchange_end(exch);
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-	
 	async_answer_0(iid, EOK);
 	
 	while (true) {
-		callid = async_get_call(&call);
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
 		
 		if (!IPC_GET_IMETHOD(call)) {
-			if (client_phone != -1) {
-				async_obsolete_hangup(client_phone);
-				client_phone = -1;
+			if (client_sess != NULL) {
+				async_hangup(client_sess);
+				client_sess = NULL;
 			}
 			
 			async_answer_0(callid, EOK);
 			return;
 		}
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_CONNECT_TO_ME:
-			if (client_phone != -1) {
-				retval = ELIMIT;
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
+		if (sess != NULL) {
+			if (client_sess == NULL) {
+				client_sess = sess;
+				async_answer_0(callid, EOK);
+			} else
+				async_answer_0(callid, ELIMIT);
+		} else {
+			switch (IPC_GET_IMETHOD(call)) {
+			case INPUT_YIELD:
+				kbd_devs_yield();
+				async_answer_0(callid, EOK);
 				break;
+			case INPUT_RECLAIM:
+				kbd_devs_reclaim();
+				async_answer_0(callid, EOK);
+				break;
+			default:
+				async_answer_0(callid, EINVAL);
 			}
-			client_phone = IPC_GET_ARG5(call);
-			retval = 0;
-			break;
-		case INPUT_YIELD:
-			kbd_devs_yield();
-			retval = 0;
-			break;
-		case INPUT_RECLAIM:
-			kbd_devs_reclaim();
-			retval = 0;
-			break;
-		default:
-			retval = EINVAL;
 		}
-		
-		async_answer_0(callid, retval);
 	}
 }
 
@@ -398,9 +408,6 @@ static void kbd_add_legacy_devs(void)
 	 * Need to add these drivers based on config unless we can probe
 	 * them automatically.
 	 */
-#if defined(UARCH_amd64)
-	kbd_add_dev(&chardev_port, &pc_ctl);
-#endif
 #if defined(UARCH_arm32) && defined(MACHINE_gta02)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
@@ -412,12 +419,6 @@ static void kbd_add_legacy_devs(void)
 #endif
 #if defined(UARCH_arm32) && defined(MACHINE_integratorcp)
 	kbd_add_dev(&pl050_port, &pc_ctl);
-#endif
-#if defined(UARCH_ia32)
-	kbd_add_dev(&chardev_port, &pc_ctl);
-#endif
-#if defined(MACHINE_i460GX)
-	kbd_add_dev(&chardev_port, &pc_ctl);
 #endif
 #if defined(MACHINE_ski)
 	kbd_add_dev(&ski_port, &stty_ctl);
@@ -451,15 +452,6 @@ static void mouse_add_legacy_devs(void)
 	 * Need to add these drivers based on config unless we can probe
 	 * them automatically.
 	 */
-#if defined(UARCH_amd64)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
-#if defined(UARCH_ia32)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
-#if defined(MACHINE_i460GX)
-	mouse_add_dev(&chardev_mouse_port, &ps2_proto);
-#endif
 #if defined(UARCH_ppc32)
 	mouse_add_dev(&adb_mouse_port, &adb_proto);
 #endif
@@ -603,14 +595,22 @@ static int dev_check_new(void)
 {
 	int rc;
 	
+	fibril_mutex_lock(&discovery_lock);
+	
 	rc = dev_check_new_kbdevs();
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
 		return rc;
+	}
 	
 	rc = dev_check_new_mousedevs();
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
 		return rc;
-
+	}
+	
+	fibril_mutex_unlock(&discovery_lock);
+	
 	return EOK;
 }
 
@@ -647,8 +647,9 @@ int main(int argc, char **argv)
 		irc_service = true;
 	
 	if (irc_service) {
-		while (irc_phone < 0)
-			irc_phone = service_obsolete_connect_blocking(SERVICE_IRC, 0, 0);
+		while (irc_sess == NULL)
+			irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+			    SERVICE_IRC, 0, 0);
 	}
 	
 	/* Add legacy keyboard devices. */
@@ -658,7 +659,8 @@ int main(int argc, char **argv)
 	mouse_add_legacy_devs();
 	
 	/* Register driver */
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf("%s: Unable to register server (%d)\n", NAME, rc);
 		return -1;

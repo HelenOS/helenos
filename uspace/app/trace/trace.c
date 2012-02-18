@@ -85,7 +85,6 @@ static kbd_event_t cev;
 
 void thread_trace_start(uintptr_t thread_hash);
 
-static proto_t *proto_console;
 static task_id_t task_id;
 static loader_t *task_ldr;
 static bool task_wait_for;
@@ -623,7 +622,6 @@ static loader_t *preload_task(const char *path, char **argv,
 	/* Error exit */
 error:
 	loader_abort(ldr);
-	free(ldr);
 	return NULL;
 }
 
@@ -657,12 +655,6 @@ static void trace_task(task_id_t task_id)
 	int rc;
 
 	ipcp_init();
-
-	/* 
-	 * User apps now typically have console on phone 3.
-	 * (Phones 1 and 2 are used by the loader).
-	 */
-	ipcp_connection_set(3, 0, proto_console);
 
 	rc = get_thread_list();
 	if (rc < 0) {
@@ -713,6 +705,8 @@ static void trace_task(task_id_t task_id)
 			fibril_condvar_broadcast(&state_cv);
 			fibril_mutex_unlock(&state_lock);
 			printf("Resume...\n");
+			break;
+		default:
 			break;
 		}
 	}
@@ -789,44 +783,6 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_STAT, o);
 
 	proto_register(SERVICE_VFS, p);
-
-#if 0
-	p = proto_new("console");
-
-	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
-	proto_add_oper(p, VFS_IN_WRITE, o);
-
-	resp_def[0] = V_INTEGER; resp_def[1] = V_INTEGER;
-	resp_def[2] = V_INTEGER; resp_def[3] = V_CHAR;
-	o = oper_new("getkey", 0, arg_def, V_ERRNO, 4, resp_def);
-
-	arg_def[0] = V_CHAR;
-	o = oper_new("clear", 0, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_CLEAR, o);
-
-	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
-	o = oper_new("goto", 2, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_GOTO, o);
-
-	resp_def[0] = V_INTEGER; resp_def[1] = V_INTEGER;
-	o = oper_new("getsize", 0, arg_def, V_INTEGER, 2, resp_def);
-	proto_add_oper(p, CONSOLE_GET_SIZE, o);
-
-	arg_def[0] = V_INTEGER;
-	o = oper_new("set_style", 1, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_SET_STYLE, o);
-	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER; arg_def[2] = V_INTEGER;
-	o = oper_new("set_color", 3, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_SET_COLOR, o);
-	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
-	o = oper_new("set_rgb_color", 2, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_SET_RGB_COLOR, o);
-	o = oper_new("cursor_visibility", 1, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_CURSOR_VISIBILITY, o);
-
-	proto_console = p;
-	proto_register(SERVICE_CONSOLE, p);
-#endif
 }
 
 static void print_syntax()

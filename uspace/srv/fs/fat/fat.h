@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
 
-#define min(a, b)		((a) < (b) ? (a) : (b))
+#define min(a, b)	((a) < (b) ? (a) : (b))
 
 /*
  * Convenience macros for accessing some frequently used boot sector members.
@@ -54,14 +55,19 @@
 #define SPC(bs)		(bs)->spc
 #define RSCNT(bs)	uint16_t_le2host((bs)->rscnt)
 #define FATCNT(bs)	(bs)->fatcnt
-#define SF(bs)		uint16_t_le2host((bs)->sec_per_fat)
-#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
-#define TS(bs)		(uint16_t_le2host((bs)->totsec16) != 0 ? \
-			uint16_t_le2host((bs)->totsec16) : \
-			uint32_t_le2host(bs->totsec32))
 
-#define BS_BLOCK		0
-#define BS_SIZE			512
+#define SF(bs)		(uint16_t_le2host((bs)->sec_per_fat) ? \
+    uint16_t_le2host((bs)->sec_per_fat) : \
+    uint32_t_le2host(bs->fat32.sectors_per_fat))
+
+#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
+
+#define TS(bs)		(uint16_t_le2host((bs)->totsec16) ? \
+    uint16_t_le2host((bs)->totsec16) : \
+    uint32_t_le2host(bs->totsec32))
+
+#define BS_BLOCK	0
+#define BS_SIZE		512
 
 typedef struct fat_bs {
 	uint8_t		ji[3];		/**< Jump instruction. */
@@ -133,6 +139,20 @@ typedef struct fat_bs {
 		} fat32 __attribute__ ((packed));
 	};
 } __attribute__ ((packed)) fat_bs_t;
+
+#define FAT32_FSINFO_SIG1	"RRaA"
+#define FAT32_FSINFO_SIG2	"rrAa"
+#define FAT32_FSINFO_SIG3	"\x00\x00\x55\xaa"
+
+typedef struct {
+	uint8_t	sig1[4];
+	uint8_t res1[480];
+	uint8_t sig2[4];
+	uint32_t free_clusters;
+	uint32_t last_allocated_cluster;
+	uint8_t res2[12];
+	uint8_t sig3[4];
+} __attribute__ ((packed)) fat32_fsinfo_t;
 
 typedef enum {
 	FAT_INVALID,
@@ -222,6 +242,10 @@ typedef struct fat_node {
 	aoff64_t	currc_cached_bn;
 	fat_cluster_t	currc_cached_value;
 } fat_node_t;
+
+typedef struct {
+	bool lfn_enabled;
+} fat_instance_t;
 
 extern vfs_out_ops_t fat_ops;
 extern libfs_ops_t fat_libfs_ops;

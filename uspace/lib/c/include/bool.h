@@ -36,11 +36,10 @@
 #define LIBC_BOOL_H_
 
 #include <libarch/types.h>
+#include <abi/bool.h>
 
 #define false  0
 #define true   1
-
-typedef uint8_t bool;
 
 #endif
 

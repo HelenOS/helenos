@@ -133,11 +133,14 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	if (rc != EOK) {
 		printf("%s: Failed waiting for command (%s)\n", progname,
 		    str_error(rc));
+		return 1;
 	} else if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Command failed (unexpectedly terminated)\n", progname);
+		return 1;
 	} else if (retval != 0) {
 		printf("%s: Command failed (exit code %d)\n",
 		    progname, retval);
+		return 1;
 	}
 
 	return 0;

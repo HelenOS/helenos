@@ -36,15 +36,16 @@
 #define LIBC_IO_CONSOLE_H_
 
 #include <sys/time.h>
+#include <io/keycode.h>
 #include <async.h>
 #include <bool.h>
 #include <stdio.h>
 
 typedef enum {
-	CONSOLE_CCAP_NONE = 0,
-	CONSOLE_CCAP_STYLE,
-	CONSOLE_CCAP_INDEXED,
-	CONSOLE_CCAP_RGB
+	CONSOLE_CAP_NONE = 0,
+	CONSOLE_CAP_STYLE = 1,
+	CONSOLE_CAP_INDEXED = 2,
+	CONSOLE_CAP_RGB = 4
 } console_caps_t;
 
 /** Console control structure. */
@@ -75,14 +76,17 @@ typedef enum {
 
 /** Console event structure. */
 typedef struct {
+	/** List handle */
+	link_t link;
+	
 	/** Press or release event. */
 	kbd_event_type_t type;
 	
 	/** Keycode of the key that was pressed or released. */
-	unsigned int key;
+	keycode_t key;
 	
 	/** Bitmask of modifiers held. */
-	unsigned int mods;
+	keymod_t mods;
 	
 	/** The character that was generated or '\0' for none. */
 	wchar_t c;

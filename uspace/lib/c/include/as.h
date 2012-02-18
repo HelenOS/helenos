@@ -58,8 +58,7 @@ extern int as_area_resize(void *, size_t, unsigned int);
 extern int as_area_change_flags(void *, unsigned int);
 extern int as_area_destroy(void *);
 extern void *set_maxheapsize(size_t);
-extern void *as_get_mappable_page(size_t);
-extern int as_get_physical_mapping(void *, uintptr_t *);
+extern int as_get_physical_mapping(const void *, uintptr_t *);
 
 #endif
 

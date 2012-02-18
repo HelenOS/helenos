@@ -85,6 +85,7 @@ typedef struct {
 
 extern bool hash_table_create(hash_table_t *, hash_count_t, hash_count_t,
     hash_table_operations_t *);
+extern void hash_table_clear(hash_table_t *);
 extern void hash_table_insert(hash_table_t *, unsigned long [], link_t *);
 extern link_t *hash_table_find(hash_table_t *, unsigned long []);
 extern void hash_table_remove(hash_table_t *, unsigned long [], hash_count_t);

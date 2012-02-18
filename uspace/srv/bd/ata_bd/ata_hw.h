@@ -243,7 +243,8 @@ enum ata_cs1 {
 /** ATA packet command codes. */
 enum ata_pkt_command {
 	PCMD_INQUIRY		= 0x12,
-	PCMD_READ_12		= 0xa8
+	PCMD_READ_12		= 0xa8,
+	PCMD_READ_TOC		= 0x43
 };
 
 /** ATAPI Inquiry command */
@@ -268,6 +269,21 @@ typedef struct {
 	uint8_t _res1;
 	uint8_t _res2;
 } __attribute__ ((packed)) ata_pcmd_read_12_t;
+
+/** ATAPI Read TOC command */
+typedef struct {
+	uint8_t opcode;		/**< Operation code (PCMD_READ_TOC) */
+	uint8_t msf;            /**< 0x2 = MSF bit set */
+	uint8_t format;         /**< low 3 bits */
+	uint8_t _res0;
+	uint8_t _res1;
+	uint8_t _res2;
+	uint8_t start;          /**< starting track/session number */
+	uint16_t size;		/**< Allocation length */
+	uint8_t oldformat;         /**< high 2 bits */
+	uint8_t _res3;
+	uint8_t _res4;
+} __attribute__ ((packed)) ata_pcmd_read_toc_t;
 
 /** Data returned from Inquiry command (mandatory part) */
 typedef struct {

@@ -1,0 +1,4 @@
+cc -E -o hello.i hello.c
+cc -S -o hello.s hello.i
+as -o hello.o hello.s
+ld -T /inc/_link.ld -o hello hello.o /lib/libc.a /lib/libsoftint.a

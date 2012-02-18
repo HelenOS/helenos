@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Common helper operations.
  */
 
 #ifndef __COMMON_H__
@@ -38,13 +39,36 @@
 #include <sftypes.h>
 
 extern float64 finishFloat64(int32_t, uint64_t, char);
+extern float128 finishFloat128(int32_t, uint64_t, uint64_t, char, uint64_t);
 
-extern int countZeroes64(uint64_t);
-extern int countZeroes32(uint32_t);
 extern int countZeroes8(uint8_t);
+extern int countZeroes32(uint32_t);
+extern int countZeroes64(uint64_t);
 
 extern void roundFloat32(int32_t *, uint32_t *);
 extern void roundFloat64(int32_t *, uint64_t *);
+extern void roundFloat128(int32_t *, uint64_t *, uint64_t *);
+
+extern void lshift128(uint64_t, uint64_t, int, uint64_t *, uint64_t *);
+extern void rshift128(uint64_t, uint64_t, int, uint64_t *, uint64_t *);
+
+extern void and128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void or128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void xor128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void not128(uint64_t, uint64_t, uint64_t *, uint64_t *);
+
+extern int eq128(uint64_t, uint64_t, uint64_t, uint64_t);
+extern int le128(uint64_t, uint64_t, uint64_t, uint64_t);
+extern int lt128(uint64_t, uint64_t, uint64_t, uint64_t);
+
+extern void add128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void sub128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+
+extern void mul64(uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void mul128(uint64_t, uint64_t, uint64_t, uint64_t,
+    uint64_t *, uint64_t *, uint64_t *, uint64_t *);
+
+extern uint64_t div128est(uint64_t, uint64_t, uint64_t);
 
 #endif
 

@@ -120,7 +120,7 @@ static bool mount_root(const char *fstype)
 		opts = "restore";
 	
 	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
-	    IPC_FLAG_BLOCKING);
+	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
 	    ROOT_DEVICE, rc);
 }
@@ -137,7 +137,7 @@ static bool mount_root(const char *fstype)
 static bool mount_locfs(void)
 {
 	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
-	    IPC_FLAG_BLOCKING);
+	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
 }
@@ -195,23 +195,31 @@ static void srv_start(const char *fname)
 	}
 }
 
-static void console(const char *svc)
+static void console(const char *isvc, const char *fbsvc)
 {
-	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, svc);
+	printf("%s: Spawning %s %s %s\n", NAME, SRV_CONSOLE, isvc, fbsvc);
 	
 	/* Wait for the input service to be ready */
 	service_id_t service_id;
-	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
+	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, svc,
+		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
 		    str_error(rc));
 		return;
 	}
 	
-	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, svc, NULL);
+	/* Wait for the framebuffer service to be ready */
+	rc = loc_service_get_id(fbsvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
-		    svc, str_error(rc));
+		printf("%s: Error waiting on %s (%s)\n", NAME, fbsvc,
+		    str_error(rc));
+		return;
+	}
+	
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, isvc, fbsvc, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s %s %s (%s)\n", NAME, SRV_CONSOLE,
+		    isvc, fbsvc, str_error(rc));
 	}
 }
 
@@ -252,14 +260,14 @@ static void getterm(const char *svc, const char *app, bool wmsg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0);
+	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 
 static bool mount_data(void)
 {
-	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0);
+	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0, 0);
 	return mount_report("Data filesystem", DATA_MOUNT_POINT, DATA_FS_TYPE,
 	    DATA_DEVICE, rc);
 }
@@ -293,15 +301,17 @@ int main(int argc, char *argv[])
 	spawn("/srv/i8259");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
-	srv_start("/srv/i8042");
 	srv_start("/srv/s3c24ser");
 	srv_start("/srv/s3c24ts");
 	
+	spawn("/srv/net");
+	
 	spawn("/srv/fb");
 	spawn("/srv/input");
-	console("hid/input");
+	console("hid/input", "hid/fb0");
 	
 	spawn("/srv/clip");
+	spawn("/srv/remcons");
 	
 	/*
 	 * Start these synchronously so that mount_data() can be

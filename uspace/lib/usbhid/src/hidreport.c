@@ -68,7 +68,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	/*
 	 * First nested descriptor of the configuration descriptor.
 	 */
-	uint8_t *d = 
+	const uint8_t *d = 
 	    usb_dp_get_nested_descriptor(&parser, &parser_data, 
 	    dev->descriptors.configuration);
 	
@@ -91,7 +91,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	/*
 	 * First nested descriptor of the interface descriptor.
 	 */
-	uint8_t *iface_desc = d;
+	const uint8_t *iface_desc = d;
 	d = usb_dp_get_nested_descriptor(&parser, &parser_data, iface_desc);
 	
 	/*

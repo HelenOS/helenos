@@ -46,16 +46,12 @@
 
 #include <errno.h>
 #include <async.h>
-#include <async_obsolete.h>
 #include <str_error.h>
 
 #include <ipc/kbdev.h>
 #include <io/console.h>
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
-
-#define NAME "multimedia-keys"
+#define NAME  "multimedia-keys"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -67,18 +63,18 @@ typedef struct usb_multimedia_t {
 	/** Currently pressed keys (not translated to key codes). */
 	//int32_t *keys;
 	/** Count of stored keys (i.e. number of keys in the report). */
-	//size_t key_count;	
-	/** IPC phone to the console device (for sending key events). */
-	int console_phone;
+	//size_t key_count;
+	/** IPC session to the console device (for sending key events). */
+	async_sess_t *console_sess;
 } usb_multimedia_t;
 
 
 /*----------------------------------------------------------------------------*/
-/** 
+/**
  * Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
- * assumes the caller is the console and thus it stores IPC phone to it for 
+ * assumes the caller is the console and thus it stores IPC session to it for
  * later use by the driver to notify about key events.
  *
  * @param fun Device function handling the call.
@@ -89,39 +85,30 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	usb_log_debug(NAME " default_connection_handler()\n");
-	
-	sysarg_t method = IPC_GET_IMETHOD(*icall);
-	
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)fun->driver_data;
-	
-	if (multim_dev == NULL) {
+	if (fun == NULL || fun->driver_data == NULL) {
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
 
-	if (method == IPC_M_CONNECT_TO_ME) {
-		int callback = IPC_GET_ARG5(*icall);
+	usb_multimedia_t *multim_dev = fun->driver_data;
 
-		if (multim_dev->console_phone != -1) {
+	async_sess_t *sess =
+	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	if (sess != NULL) {
+		if (multim_dev->console_sess == NULL) {
+			multim_dev->console_sess = sess;
+			usb_log_debug(NAME " Saved session to console: %p\n",
+			    sess);
+			async_answer_0(icallid, EOK);
+		} else
 			async_answer_0(icallid, ELIMIT);
-			return;
-		}
-
-		multim_dev->console_phone = callback;
-		usb_log_debug(NAME " Saved phone to console: %d\n", callback);
-		async_answer_0(icallid, EOK);
-		return;
-	}
-	
-	async_answer_0(icallid, EINVAL);
+	} else
+		async_answer_0(icallid, EINVAL);
 }
-
 /*----------------------------------------------------------------------------*/
-
 static ddf_dev_ops_t multimedia_ops = {
 	.default_handler = default_connection_handler
 };
-
 /*----------------------------------------------------------------------------*/
 /**
  * Processes key events.
@@ -133,191 +120,177 @@ static ddf_dev_ops_t multimedia_ops = {
  *       in the driver. It may, however, be required later that the driver
  *       sends also these keys to application (otherwise it cannot use those
  *       keys at all).
- * 
- * @param hid_dev 
- * @param lgtch_dev 
- * @param type Type of the event (press / release). Recognized values: 
+ *
+ * @param hid_dev
+ * @param multim_dev
+ * @param type Type of the event (press / release). Recognized values:
  *             KEY_PRESS, KEY_RELEASE
  * @param key Key code of the key according to HID Usage Tables.
  */
-static void usb_multimedia_push_ev(usb_hid_dev_t *hid_dev, 
+static void usb_multimedia_push_ev(
     usb_multimedia_t *multim_dev, int type, unsigned int key)
 {
-	assert(hid_dev != NULL);
 	assert(multim_dev != NULL);
-	
-	kbd_event_t ev;
-	
-	ev.type = type;
-	ev.key = key;
-	ev.mods = 0;
-	ev.c = 0;
+
+	const kbd_event_t ev = {
+		.type = type,
+		.key = key,
+		.mods = 0,
+		.c = 0,
+	};
 
 	usb_log_debug2(NAME " Sending key %d to the console\n", ev.key);
-	if (multim_dev->console_phone < 0) {
+	if (multim_dev->console_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
-	
-	async_obsolete_msg_4(multim_dev->console_phone, KBDEV_EVENT, ev.type, ev.key, 
-	    ev.mods, ev.c);
-}
 
-/*----------------------------------------------------------------------------*/
-
-static void usb_multimedia_free(usb_multimedia_t **multim_dev)
-{
-	if (multim_dev == NULL || *multim_dev == NULL) {
-		return;
+	async_exch_t *exch = async_exchange_begin(multim_dev->console_sess);
+	if (exch != NULL) {
+		async_msg_4(exch, KBDEV_EVENT, ev.type, ev.key, ev.mods, ev.c);
+		async_exchange_end(exch);
+	} else {
+		usb_log_warning("Failed to send multimedia key.\n");
 	}
-	
-	// hangup phone to the console
-	async_obsolete_hangup((*multim_dev)->console_phone);
-
-	free(*multim_dev);
-	*multim_dev = NULL;
 }
-
 /*----------------------------------------------------------------------------*/
-
-static int usb_multimedia_create_function(usb_hid_dev_t *hid_dev, 
-    usb_multimedia_t *multim_dev)
+int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 {
+	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
+		return EINVAL;
+	}
+
+	usb_log_debug(NAME " Initializing HID/multimedia structure...\n");
+
 	/* Create the exposed function. */
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
-	    NAME);
+	ddf_fun_t *fun = ddf_fun_create(
+	    hid_dev->usb_dev->ddf_dev, fun_exposed, NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
-	
+
 	fun->ops = &multimedia_ops;
-	fun->driver_data = multim_dev;   // TODO: maybe change to hid_dev->data
-	
+
+	usb_multimedia_t *multim_dev =
+	    ddf_fun_data_alloc(fun, sizeof(usb_multimedia_t));
+	if (multim_dev == NULL) {
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+
+	multim_dev->console_sess = NULL;
+
+	//todo Autorepeat?
+
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
-	usb_log_debug("%s function created (handle: %" PRIun ").\n",
-	    NAME, fun->handle);
-	
+
+	usb_log_debug(NAME " function created (handle: %" PRIun ").\n",
+	    fun->handle);
+
 	rc = ddf_fun_add_to_category(fun, "keyboard");
 	if (rc != EOK) {
 		usb_log_error(
 		    "Could not add DDF function to category 'keyboard': %s.\n",
 		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(fun);
+		if (ddf_fun_unbind(fun) != EOK) {
+			usb_log_error("Failed to unbind %s, won't destroy.\n",
+			    fun->name);
+		} else {
+			ddf_fun_destroy(fun);
+		}
 		return rc;
 	}
-	
-	return EOK;
-}
 
-/*----------------------------------------------------------------------------*/
+	/* Save the KBD device structure into the HID device structure. */
+	*data = fun;
 
-int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
-{
-	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
-		return EINVAL; /*! @todo Other return code? */
-	}
-	
-	usb_log_debug(NAME " Initializing HID/multimedia structure...\n");
-	
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)malloc(
-	    sizeof(usb_multimedia_t));
-	if (multim_dev == NULL) {
-		return ENOMEM;
-	}
-	
-	multim_dev->console_phone = -1;
-	
-	/*! @todo Autorepeat */
-	
-	// save the KBD device structure into the HID device structure
-	*data = multim_dev;
-	
-	usb_log_debug(NAME " HID/multimedia device structure initialized.\n");
-	
-	int rc = usb_multimedia_create_function(hid_dev, multim_dev);
-	if (rc != EOK) {
-		usb_multimedia_free(&multim_dev);
-		return rc;
-	}
-	
 	usb_log_debug(NAME " HID/multimedia structure initialized.\n");
-	
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-
 void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 {
-	if (hid_dev == NULL) {
-		return;
-	}
-	
-	if (data != NULL) {
-		usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
-		usb_multimedia_free(&multim_dev);
+	ddf_fun_t *fun = data;
+	if (fun != NULL && fun->driver_data != NULL) {
+		usb_multimedia_t *multim_dev = fun->driver_data;
+		/* Hangup session to the console */
+		if (multim_dev->console_sess)
+			async_hangup(multim_dev->console_sess);
+		if (ddf_fun_unbind(fun) != EOK) {
+			usb_log_error("Failed to unbind %s, won't destroy.\n",
+			    fun->name);
+		} else {
+			usb_log_debug2("%s unbound.\n", fun->name);
+			/* This frees multim_dev too as it was stored in
+			 * fun->data */
+			ddf_fun_destroy(fun);
+		}
+	} else {
+		usb_log_error(
+		    "Failed to deinit multimedia subdriver, data missing.\n");
 	}
 }
-
 /*----------------------------------------------------------------------------*/
-
 bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 {
 	// TODO: checks
-	if (hid_dev == NULL || data == NULL) {
+	ddf_fun_t *fun = data;
+	if (hid_dev == NULL || fun == NULL || fun->driver_data == NULL) {
 		return false;
 	}
 
-	usb_multimedia_t *multim_dev = (usb_multimedia_t *)data;
-	
+	usb_multimedia_t *multim_dev = fun->driver_data;
+
 	usb_hid_report_path_t *path = usb_hid_report_path();
-	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+	if (path == NULL)
+		return true; /* This might be a temporary failure. */
+
+	int ret =
+	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+	if (ret != EOK) {
+		usb_hid_report_path_free(path);
+		return true; /* This might be a temporary failure. */
+	}
 
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    &hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
+	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_INPUT);
 
-	/*! @todo Is this iterating OK if done multiple times? 
-	 *  @todo The parsing is not OK
-	 */
+	//FIXME Is this iterating OK if done multiple times?
+	//FIXME The parsing is not OK. (what's wrong?)
 	while (field != NULL) {
-		if(field->value != 0) {
-			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", 
+		if (field->value != 0) {
+			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n",
 			    field->value, field->usage);
-			unsigned int key = 
+			const unsigned key =
 			    usb_multimedia_map_usage(field->usage);
-			const char *key_str = 
+			const char *key_str =
 			    usbhid_multimedia_usage_to_str(field->usage);
 			usb_log_info("Pressed key: %s\n", key_str);
-			usb_multimedia_push_ev(hid_dev, multim_dev, KEY_PRESS, 
-			                       key);
+			usb_multimedia_push_ev(multim_dev, KEY_PRESS, key);
 		}
-		
+
 		field = usb_hid_report_get_sibling(
-		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
-	}	
+	}
 
 	usb_hid_report_path_free(path);
-	
+
 	return true;
 }
-
 /**
  * @}
  */

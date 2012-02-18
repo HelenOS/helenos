@@ -37,7 +37,6 @@
 #include <config.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
-#include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <ddi/irq.h>
 #include <print.h>
@@ -57,7 +56,7 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr = (uintptr_t) bootinfo->tasks[i].addr;
+		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);

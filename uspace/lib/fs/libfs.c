@@ -335,19 +335,14 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	async_connect_to_me(exch, 0, 0, 0, vfs_connection, NULL);
 	
 	/*
-	 * Allocate piece of address space for PLB.
+	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	reg.plb_ro = as_get_mappable_page(PLB_SIZE);
-	if (!reg.plb_ro) {
+	rc = async_share_in_start_0_0(exch, PLB_SIZE, (void *) &reg.plb_ro);
+	if (reg.plb_ro == (void *) -1) {
 		async_exchange_end(exch);
 		async_wait_for(req, NULL);
 		return ENOMEM;
 	}
-	
-	/*
-	 * Request sharing the Path Lookup Buffer with VFS.
-	 */
-	rc = async_share_in_start_0_0(exch, reg.plb_ro, PLB_SIZE);
 	
 	async_exchange_end(exch);
 	
@@ -836,7 +831,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	stat.is_file = ops->is_file(fn);
 	stat.is_directory = ops->is_directory(fn);
 	stat.size = ops->size_get(fn);
-	stat.service = ops->device_get(fn);
+	stat.service = ops->service_get(fn);
 	
 	ops->node_put(fn);
 	
@@ -874,6 +869,84 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);
+}
+
+static FIBRIL_MUTEX_INITIALIZE(instances_mutex);
+static LIST_INITIALIZE(instances_list);
+
+typedef struct {
+	service_id_t service_id;
+	link_t link;
+	void *data;
+} fs_instance_t;
+
+int fs_instance_create(service_id_t service_id, void *data)
+{
+	fs_instance_t *inst = malloc(sizeof(fs_instance_t));
+	if (!inst)
+		return ENOMEM;
+
+	link_initialize(&inst->link);
+	inst->service_id = service_id;
+	inst->data = data;
+
+	fibril_mutex_lock(&instances_mutex);
+	list_foreach(instances_list, link) {
+		fs_instance_t *cur = list_get_instance(link, fs_instance_t,
+		    link);
+
+		if (cur->service_id == service_id) {
+			fibril_mutex_unlock(&instances_mutex);
+			free(inst);
+			return EEXIST;
+		}
+
+		/* keep the list sorted */
+		if (cur->service_id < service_id) {
+			list_insert_before(&inst->link, &cur->link);
+			fibril_mutex_unlock(&instances_mutex);
+			return EOK;
+		}
+	}
+	list_append(&inst->link, &instances_list);
+	fibril_mutex_unlock(&instances_mutex);
+
+	return EOK;
+}
+
+int fs_instance_get(service_id_t service_id, void **idp)
+{
+	fibril_mutex_lock(&instances_mutex);
+	list_foreach(instances_list, link) {
+		fs_instance_t *inst = list_get_instance(link, fs_instance_t,
+		    link);
+
+		if (inst->service_id == service_id) {
+			*idp = inst->data;
+			fibril_mutex_unlock(&instances_mutex);
+			return EOK;
+		}
+	}
+	fibril_mutex_unlock(&instances_mutex);
+	return ENOENT;
+}
+
+int fs_instance_destroy(service_id_t service_id)
+{
+	fibril_mutex_lock(&instances_mutex);
+	list_foreach(instances_list, link) {
+		fs_instance_t *inst = list_get_instance(link, fs_instance_t,
+		    link);
+
+		if (inst->service_id == service_id) {
+			list_remove(&inst->link);
+			fibril_mutex_unlock(&instances_mutex);
+			free(inst);
+			return EOK;
+		}
+	}
+	fibril_mutex_unlock(&instances_mutex);
+	return ENOENT;
 }
 
 /** @}

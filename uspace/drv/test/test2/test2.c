@@ -39,16 +39,34 @@
 
 #define NAME "test2"
 
-static int test2_add_device(ddf_dev_t *dev);
+static int test2_dev_add(ddf_dev_t *dev);
+static int test2_dev_remove(ddf_dev_t *dev);
+static int test2_dev_gone(ddf_dev_t *dev);
+static int test2_fun_online(ddf_fun_t *fun);
+static int test2_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.add_device = &test2_add_device
+	.dev_add = &test2_dev_add,
+	.dev_remove = &test2_dev_remove,
+	.dev_gone = &test2_dev_gone,
+	.fun_online = &test2_fun_online,
+	.fun_offline = &test2_fun_offline
 };
 
 static driver_t test2_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
+
+/* Device soft state */
+typedef struct {
+	ddf_dev_t *dev;
+
+	ddf_fun_t *fun_a;
+	ddf_fun_t *fun_err;
+	ddf_fun_t *child;
+	ddf_fun_t *test1;
+} test2_t;
 
 /** Register child and inform user about it.
  *
@@ -59,7 +77,7 @@ static driver_t test2_driver = {
  * @param score Device match score.
  */
 static int register_fun_verbose(ddf_dev_t *parent, const char *message,
-    const char *name, const char *match_id, int match_score)
+    const char *name, const char *match_id, int match_score, ddf_fun_t **pfun)
 {
 	ddf_fun_t *fun;
 	int rc;
@@ -88,29 +106,31 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 		return rc;
 	}
 
+	*pfun = fun;
+
 	ddf_msg(LVL_NOTE, "Registered child device `%s'", name);
 	return EOK;
 }
 
-/** Add child devices after some sleep.
+/** Simulate plugging and surprise unplugging.
  *
  * @param arg Parent device structure (ddf_dev_t *).
  * @return Always EOK.
  */
-static int postponed_birth(void *arg)
+static int plug_unplug(void *arg)
 {
-	ddf_dev_t *dev = (ddf_dev_t *) arg;
+	test2_t *test2 = (test2_t *) arg;
 	ddf_fun_t *fun_a;
 	int rc;
 
 	async_usleep(1000);
 
-	(void) register_fun_verbose(dev, "child driven by the same task",
-	    "child", "virtual&test2", 10);
-	(void) register_fun_verbose(dev, "child driven by test1",
-	    "test1", "virtual&test1", 10);
+	(void) register_fun_verbose(test2->dev, "child driven by the same task",
+	    "child", "virtual&test2", 10, &test2->child);
+	(void) register_fun_verbose(test2->dev, "child driven by test1",
+	    "test1", "virtual&test1", 10, &test2->test1);
 
-	fun_a = ddf_fun_create(dev, fun_exposed, "a");
+	fun_a = ddf_fun_create(test2->dev, fun_exposed, "a");
 	if (fun_a == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
 		return ENOMEM;
@@ -123,17 +143,72 @@ static int postponed_birth(void *arg)
 	}
 
 	ddf_fun_add_to_category(fun_a, "virtual");
+	test2->fun_a = fun_a;
+
+	async_usleep(10000000);
+
+	ddf_msg(LVL_NOTE, "Unbinding function test1.");
+	ddf_fun_unbind(test2->test1);
+	async_usleep(1000000);
+	ddf_msg(LVL_NOTE, "Unbinding function child.");
+	ddf_fun_unbind(test2->child);
 
 	return EOK;
 }
 
-static int test2_add_device(ddf_dev_t *dev)
+static int fun_remove(ddf_fun_t *fun, const char *name)
 {
-	ddf_msg(LVL_DEBUG, "test2_add_device(name=\"%s\", handle=%d)",
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')", fun, name);
+	rc = ddf_fun_offline(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", name);
+		return rc;
+	}
+
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
+static int fun_unbind(ddf_fun_t *fun, const char *name)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "fun_unbind(%p, '%s')", fun, name);
+	rc = ddf_fun_unbind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", name);
+		return rc;
+	}
+
+	ddf_fun_destroy(fun);
+	return EOK;
+}
+
+static int test2_dev_add(ddf_dev_t *dev)
+{
+	test2_t *test2;
+
+	ddf_msg(LVL_DEBUG, "test2_dev_add(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
+	test2 = ddf_dev_data_alloc(dev, sizeof(test2_t));
+	if (test2 == NULL) {
+		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
+		return ENOMEM;
+	}
+
+	test2->dev = dev;
+
 	if (str_cmp(dev->name, "child") != 0) {
-		fid_t postpone = fibril_create(postponed_birth, dev);
+		fid_t postpone = fibril_create(plug_unplug, test2);
 		if (postpone == 0) {
 			ddf_msg(LVL_ERROR, "fibril_create() failed.");
 			return ENOMEM;
@@ -141,16 +216,97 @@ static int test2_add_device(ddf_dev_t *dev)
 		fibril_add_ready(postpone);
 	} else {
 		(void) register_fun_verbose(dev, "child without available driver",
-		    "ERROR", "non-existent.match.id", 10);
+		    "ERROR", "non-existent.match.id", 10, &test2->fun_err);
 	}
 
 	return EOK;
 }
 
+static int test2_dev_remove(ddf_dev_t *dev)
+{
+	test2_t *test2 = (test2_t *)dev->driver_data;
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "test2_dev_remove(%p)", dev);
+
+	if (test2->fun_a != NULL) {
+		rc = fun_remove(test2->fun_a, "a");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->fun_err != NULL) {
+		rc = fun_remove(test2->fun_err, "ERROR");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->child != NULL) {
+		rc = fun_remove(test2->child, "child");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->test1 != NULL) {
+		rc = fun_remove(test2->test1, "test1");
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+static int test2_dev_gone(ddf_dev_t *dev)
+{
+	test2_t *test2 = (test2_t *)dev->driver_data;
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "test2_dev_gone(%p)", dev);
+
+	if (test2->fun_a != NULL) {
+		rc = fun_unbind(test2->fun_a, "a");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->fun_err != NULL) {
+		rc = fun_unbind(test2->fun_err, "ERROR");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->child != NULL) {
+		rc = fun_unbind(test2->child, "child");
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (test2->test1 != NULL) {
+		rc = fun_unbind(test2->test1, "test1");
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+
+static int test2_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "test2_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int test2_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "test2_fun_offline()");
+	return ddf_fun_offline(fun);
+}
+
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME, LVL_NOTE);
 	return ddf_driver_main(&test2_driver);
 }
 

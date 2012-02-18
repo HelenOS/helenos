@@ -37,6 +37,7 @@
 #include <mm/mm.h>
 #include <mm/frame.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <mm/tlb.h>
 #include <mm/asid.h>
 #include <interrupt.h>
@@ -49,20 +50,18 @@ uintptr_t *ras_page = NULL;
 
 void ras_init(void)
 {
-	ras_page = frame_alloc(ONE_FRAME, FRAME_KA);
-	memsetb(ras_page, FRAME_SIZE, 0); 
+	uintptr_t frame;
+
+	frame = (uintptr_t) frame_alloc(ONE_FRAME,
+	    FRAME_ATOMIC | FRAME_HIGHMEM);
+	if (!frame)
+		frame = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_LOWMEM);
+	ras_page = (uintptr_t *) km_map(frame,
+	    PAGE_SIZE, PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
+
+	memsetb(ras_page, PAGE_SIZE, 0); 
 	ras_page[RAS_START] = 0;
 	ras_page[RAS_END] = 0xffffffff;
-	/*
-	 * Userspace needs to be able to write to this page. The page is 
-	 * cached in TLB as PAGE_KERNEL. Purge it from TLB and map it
-	 * read/write PAGE_USER.
-	 */
-	tlb_invalidate_pages(ASID_KERNEL, (uintptr_t)ras_page, 1);
-	page_table_lock(AS, true);
-	page_mapping_insert(AS, (uintptr_t)ras_page, (uintptr_t)KA2PA(ras_page),
-	    PAGE_READ | PAGE_WRITE | PAGE_USER);
-	page_table_unlock(AS, true);
 }
 
 void ras_check(unsigned int n, istate_t *istate)
@@ -85,3 +84,5 @@ void ras_check(unsigned int n, istate_t *istate)
 	istate->pc = rewrite_pc;
 }
 
+/** @}
+ */

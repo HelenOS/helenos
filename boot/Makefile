@@ -39,10 +39,7 @@ endif
 build_comps: $(COMPONENTS) $(LINK).in
 	$(PACK) $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) arch/$(KARCH) $(COMPONENTS)
 
-$(INITRD).img: $(INITRD).fs
-	$(MKHORD) $(PAGE_SIZE) $< $@
-
-$(INITRD).fs: build_dist
+$(INITRD).img: build_dist
 ifeq ($(RDFMT),tmpfs)
 	$(MKTMPFS) $(DIST_PATH) $@
 endif
@@ -60,6 +57,11 @@ build_dist: clean_dist
 	for file in $(RD_LIBS) ; do \
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
+ifeq ($(CONFIG_DEVEL_FILES), y)
+	mkdir "$(DIST_PATH)/inc/c/"
+	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"
+	cat "$(USPACE_PATH)/lib/c/arch/$(UARCH)/_link.ld" | sed 's/^STARTUP(.*)$$//g' > "$(DIST_PATH)/inc/_link.ld"
+endif
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
@@ -89,9 +91,10 @@ endif
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 
 clean_dist:
-	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
+	rm -f $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
 	rm -f $(USPACE_PATH)/dist/lib/*
+	rm -rf $(USPACE_PATH)/dist/inc/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

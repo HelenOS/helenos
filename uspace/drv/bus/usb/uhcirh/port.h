@@ -38,6 +38,7 @@
 #include <fibril.h>
 #include <ddf/driver.h>
 #include <usb/hc.h> /* usb_hc_connection_t */
+#include <usb/dev/hub.h>
 
 typedef uint16_t port_status_t;
 #define STATUS_CONNECTED         (1 << 0)
@@ -61,7 +62,7 @@ typedef struct uhci_port {
 	unsigned wait_period_usec;
 	usb_hc_connection_t hc_connection;
 	ddf_dev_t *rh;
-	devman_handle_t attached_device;
+	usb_hub_attached_device_t attached_device;
 	fid_t checker;
 } uhci_port_t;
 

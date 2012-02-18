@@ -41,7 +41,7 @@ void *mmap(void *start, size_t length, int prot, int flags, int fd,
     aoff64_t offset)
 {
 	if (!start)
-		start = as_get_mappable_page(length);
+		start = (void *) -1;
 	
 //	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
 //		return MAP_FAILED;

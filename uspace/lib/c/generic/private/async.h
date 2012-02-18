@@ -42,54 +42,6 @@
 #include <sys/time.h>
 #include <bool.h>
 
-/** Session data */
-struct _async_sess {
-	/** List of inactive exchanges */
-	list_t exch_list;
-	
-	/** Exchange management style */
-	exch_mgmt_t mgmt;
-	
-	/** Session identification */
-	int phone;
-	
-	/** First clone connection argument */
-	sysarg_t arg1;
-	
-	/** Second clone connection argument */
-	sysarg_t arg2;
-	
-	/** Third clone connection argument */
-	sysarg_t arg3;
-	
-	/** Exchange mutex */
-	fibril_mutex_t mutex;
-	
-	/** Number of opened exchanges */
-	atomic_t refcnt;
-	
-	/** Mutex for stateful connections */
-	fibril_mutex_t remote_state_mtx;
-	
-	/** Data for stateful connections */
-	void *remote_state_data;
-};
-
-/** Exchange data */
-struct _async_exch {
-	/** Link into list of inactive exchanges */
-	link_t sess_link;
-	
-	/** Link into global list of inactive exchanges */
-	link_t global_link;
-	
-	/** Session pointer */
-	async_sess_t *sess;
-	
-	/** Exchange identification */
-	int phone;
-};
-
 /** Structures of this type are used to track the timeout events. */
 typedef struct {
 	/** If true, this struct is in the timeout list. */
@@ -127,19 +79,6 @@ typedef struct {
 	/** Wakeup wait data. */
 	wu_event_t wu_event;
 } awaiter_t;
-
-/** Message data */
-typedef struct {
-	awaiter_t wdata;
-	
-	/** If reply was received. */
-	bool done;
-	
-	/** Pointer to where the answer data is stored. */
-	ipc_call_t *dataptr;
-	
-	sysarg_t retval;
-} amsg_t;
 
 extern void __async_init(void);
 extern void async_insert_timeout(awaiter_t *);

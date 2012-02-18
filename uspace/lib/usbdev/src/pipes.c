@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,208 +26,315 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup libusbdev
  * @{
  */
 /** @file
- * USB endpoint pipes miscellaneous functions.
+ * USB endpoint pipes functions.
  */
-#include <usb/usb.h>
 #include <usb/dev/pipes.h>
-#include <usb/debug.h>
-#include <usb/hc.h>
-#include <usbhc_iface.h>
-#include <usb_iface.h>
-#include <devman.h>
+#include <usb/dev/request.h>
 #include <errno.h>
 #include <assert.h>
-#include "pipepriv.h"
-
-#define IPC_AGAIN_DELAY (1000 * 2) /* 2ms */
-
-/** Tell USB address assigned to given device.
- *
- * @param sess Session to parent device.
- * @param dev Device in question.
- * @return USB address or error code.
- */
-static usb_address_t get_my_address(async_sess_t *sess, ddf_dev_t *dev)
-{
-	async_exch_t *exch = async_exchange_begin(sess);
-	
-	/*
-	 * We are sending special value as a handle - zero - to get
-	 * handle of the parent function (that handle was used
-	 * when registering our device @p dev.
-	 */
-	sysarg_t address;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_ADDRESS, 0, &address);
-	
-	async_exchange_end(exch);
-	
-	if (rc != EOK)
-		return rc;
-	
-	return (usb_address_t) address;
-}
-
-/** Tell USB interface assigned to given device.
- *
- * @param device Device in question.
- * @return Interface number (negative code means any).
- */
-int usb_device_get_assigned_interface(ddf_dev_t *device)
-{
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, device->handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return -1;
-	
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	
-	sysarg_t iface_no;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_INTERFACE, device->handle, &iface_no);
-	
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-	
-	if (rc != EOK)
-		return -1;
-	
-	return (int) iface_no;
-}
-
-/** Initialize connection to USB device.
- *
- * @param connection Connection structure to be initialized.
- * @param dev Generic device backing the USB device.
- * @return Error code.
- */
-int usb_device_connection_initialize_from_device(
-    usb_device_connection_t *connection, ddf_dev_t *dev)
-{
-	assert(connection);
-	assert(dev);
-	
-	int rc;
-	devman_handle_t hc_handle;
-	usb_address_t my_address;
-	
-	rc = usb_hc_find(dev->handle, &hc_handle);
-	if (rc != EOK)
-		return rc;
-	
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, dev->handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-	
-	/*
-	 * Asking for "my" address may require several attempts.
-	 * That is because following scenario may happen:
-	 *  - parent driver (i.e. driver of parent device) announces new device
-	 *    and devman launches current driver
-	 *  - parent driver is preempted and thus does not send address-handle
-	 *    binding to HC driver
-	 *  - this driver gets here and wants the binding
-	 *  - the HC does not know the binding yet and thus it answers ENOENT
-	 *  So, we need to wait for the HC to learn the binding.
-	 */
-	
-	do {
-		my_address = get_my_address(parent_sess, dev);
-		
-		if (my_address == ENOENT) {
-			/* Be nice, let other fibrils run and try again. */
-			async_usleep(IPC_AGAIN_DELAY);
-		} else if (my_address < 0) {
-			/* Some other problem, no sense trying again. */
-			rc = my_address;
-			goto leave;
-		}
-	
-	} while (my_address < 0);
-	
-	rc = usb_device_connection_initialize(connection,
-	    hc_handle, my_address);
-	
-leave:
-	async_hangup(parent_sess);
-	return rc;
-}
-
-/** Initialize connection to USB device.
- *
- * @param connection Connection structure to be initialized.
- * @param host_controller_handle Devman handle of host controller device is
- * 	connected to.
- * @param device_address Device USB address.
- * @return Error code.
- */
-int usb_device_connection_initialize(usb_device_connection_t *connection,
-    devman_handle_t host_controller_handle, usb_address_t device_address)
-{
-	assert(connection);
-
-	if ((device_address < 0) || (device_address >= USB11_ADDRESS_MAX)) {
-		return EINVAL;
-	}
-
-	connection->hc_handle = host_controller_handle;
-	connection->address = device_address;
-
-	return EOK;
-}
-
-/** Initialize connection to USB device on default address.
- *
- * @param dev_connection Device connection structure to be initialized.
- * @param hc_connection Initialized connection to host controller.
- * @return Error code.
- */
-int usb_device_connection_initialize_on_default_address(
-    usb_device_connection_t *dev_connection,
-    usb_hc_connection_t *hc_connection)
-{
-	assert(dev_connection);
-
-	if (hc_connection == NULL) {
-		return EBADMEM;
-	}
-
-	return usb_device_connection_initialize(dev_connection,
-	    hc_connection->hc_handle, (usb_address_t) 0);
-}
 
 /** Prepare pipe for a long transfer.
  *
- * By a long transfer is mean transfer consisting of several
- * requests to the HC.
- * Calling such function is optional and it has positive effect of
+ * Long transfer is transfer consisting of several requests to the HC.
+ * Calling this function is optional and it has positive effect of
  * improved performance because IPC session is initiated only once.
  *
  * @param pipe Pipe over which the transfer will happen.
  * @return Error code.
  */
-void usb_pipe_start_long_transfer(usb_pipe_t *pipe)
+int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
 {
-	(void) pipe_add_ref(pipe, true);
+	assert(pipe);
+	assert(pipe->wire);
+	assert(pipe->wire->hc_connection);
+	return usb_hc_connection_open(pipe->wire->hc_connection);
 }
-
+/*----------------------------------------------------------------------------*/
 /** Terminate a long transfer on a pipe.
- *
- * @see usb_pipe_start_long_transfer
- *
  * @param pipe Pipe where to end the long transfer.
+ * @return Error code.
+ * @see usb_pipe_start_long_transfer
  */
-void usb_pipe_end_long_transfer(usb_pipe_t *pipe)
+int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
 {
-	pipe_drop_ref(pipe);
+	assert(pipe);
+	assert(pipe->wire);
+	assert(pipe->wire->hc_connection);
+	return usb_hc_connection_close(pipe->wire->hc_connection);
+}
+/*----------------------------------------------------------------------------*/
+/** Try to clear endpoint halt of default control pipe.
+ *
+ * @param pipe Pipe for control endpoint zero.
+ */
+static void clear_self_endpoint_halt(usb_pipe_t *pipe)
+{
+	assert(pipe != NULL);
+
+	if (!pipe->auto_reset_halt || (pipe->endpoint_no != 0)) {
+		return;
+	}
+
+	/* Prevent infinite recursion. */
+	pipe->auto_reset_halt = false;
+	usb_request_clear_endpoint_halt(pipe, 0);
+	pipe->auto_reset_halt = true;
+}
+/*----------------------------------------------------------------------------*/
+/** Request a control read transfer on an endpoint pipe.
+ *
+ * This function encapsulates all three stages of a control transfer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[out] data_buffer Buffer for incoming data.
+ * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
+ * @param[out] data_transfered_size Number of bytes that were actually
+ *                                  transfered during the DATA stage.
+ * @return Error code.
+ */
+int usb_pipe_control_read(usb_pipe_t *pipe,
+    const void *setup_buffer, size_t setup_buffer_size,
+    void *buffer, size_t buffer_size, size_t *transfered_size)
+{
+	assert(pipe);
+
+	if ((setup_buffer == NULL) || (setup_buffer_size != 8)) {
+		return EINVAL;
+	}
+
+	if ((buffer == NULL) || (buffer_size == 0)) {
+		return EINVAL;
+	}
+
+	if ((pipe->direction != USB_DIRECTION_BOTH)
+	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
+		return EBADF;
+	}
+
+	uint64_t setup_packet;
+	memcpy(&setup_packet, setup_buffer, 8);
+
+	size_t act_size = 0;
+	const int rc = usb_device_control_read(pipe->wire,
+	    pipe->endpoint_no, setup_packet, buffer, buffer_size, &act_size);
+
+	if (rc == ESTALL) {
+		clear_self_endpoint_halt(pipe);
+	}
+
+	if (rc == EOK && transfered_size != NULL) {
+		*transfered_size = act_size;
+	}
+
+	return rc;
+}
+/*----------------------------------------------------------------------------*/
+/** Request a control write transfer on an endpoint pipe.
+ *
+ * This function encapsulates all three stages of a control transfer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[in] data_buffer Buffer with data to be sent.
+ * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
+ * @return Error code.
+ */
+int usb_pipe_control_write(usb_pipe_t *pipe,
+    const void *setup_buffer, size_t setup_buffer_size,
+    const void *buffer, size_t buffer_size)
+{
+	assert(pipe);
+
+	if ((setup_buffer == NULL) || (setup_buffer_size != 8)) {
+		return EINVAL;
+	}
+
+	if ((buffer == NULL) && (buffer_size > 0)) {
+		return EINVAL;
+	}
+
+	if ((buffer != NULL) && (buffer_size == 0)) {
+		return EINVAL;
+	}
+
+	if ((pipe->direction != USB_DIRECTION_BOTH)
+	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
+		return EBADF;
+	}
+
+	uint64_t setup_packet;
+	memcpy(&setup_packet, setup_buffer, 8);
+
+	const int rc = usb_device_control_write(pipe->wire,
+	    pipe->endpoint_no, setup_packet, buffer, buffer_size);
+
+	if (rc == ESTALL) {
+		clear_self_endpoint_halt(pipe);
+	}
+
+	return rc;
+}
+/*----------------------------------------------------------------------------*/
+/** Request a read (in) transfer on an endpoint pipe.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[out] buffer Buffer where to store the data.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] size_transfered Number of bytes that were actually transfered.
+ * @return Error code.
+ */
+int usb_pipe_read(usb_pipe_t *pipe,
+    void *buffer, size_t size, size_t *size_transfered)
+{
+	assert(pipe);
+
+	if (buffer == NULL) {
+		return EINVAL;
+	}
+
+	if (size == 0) {
+		return EINVAL;
+	}
+
+	if (pipe->direction != USB_DIRECTION_IN) {
+		return EBADF;
+	}
+
+	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+		return EBADF;
+	}
+
+	/* Isochronous transfer are not supported (yet) */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    return ENOTSUP;
+
+	size_t act_size = 0;
+	const int rc = usb_device_read(pipe->wire,
+	    pipe->endpoint_no, buffer, size, &act_size);
+
+	if (rc == EOK && size_transfered != NULL) {
+		*size_transfered = act_size;
+	}
+
+	return rc;
+}
+/*----------------------------------------------------------------------------*/
+/** Request a write (out) transfer on an endpoint pipe.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer with data to transfer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @return Error code.
+ */
+int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
+{
+	assert(pipe);
+
+	if (buffer == NULL || size == 0) {
+		return EINVAL;
+	}
+
+	if (pipe->direction != USB_DIRECTION_OUT) {
+		return EBADF;
+	}
+
+	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+		return EBADF;
+	}
+
+	/* Isochronous transfer are not supported (yet) */
+	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->transfer_type != USB_TRANSFER_BULK)
+	    return ENOTSUP;
+
+	return usb_device_write(pipe->wire,
+	    pipe->endpoint_no, buffer, size);
+}
+/*----------------------------------------------------------------------------*/
+/** Initialize USB endpoint pipe.
+ *
+ * @param pipe Endpoint pipe to be initialized.
+ * @param connection Connection to the USB device backing this pipe (the wire).
+ * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
+ * @param transfer_type Transfer type (e.g. interrupt or bulk).
+ * @param max_packet_size Maximum packet size in bytes.
+ * @param direction Endpoint direction (in/out).
+ * @return Error code.
+ */
+int usb_pipe_initialize(usb_pipe_t *pipe,
+    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
+    usb_transfer_type_t transfer_type, size_t max_packet_size,
+    usb_direction_t direction)
+{
+	assert(pipe);
+	assert(connection);
+
+	pipe->wire = connection;
+	pipe->endpoint_no = endpoint_no;
+	pipe->transfer_type = transfer_type;
+	pipe->max_packet_size = max_packet_size;
+	pipe->direction = direction;
+	pipe->auto_reset_halt = false;
+
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** Initialize USB endpoint pipe as the default zero control pipe.
+ *
+ * @param pipe Endpoint pipe to be initialized.
+ * @param connection Connection to the USB device backing this pipe (the wire).
+ * @return Error code.
+ */
+int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
+    usb_device_connection_t *connection)
+{
+	assert(pipe);
+	assert(connection);
+
+	int rc = usb_pipe_initialize(pipe, connection, 0, USB_TRANSFER_CONTROL,
+	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH);
+
+	pipe->auto_reset_halt = true;
+
+	return rc;
+}
+/*----------------------------------------------------------------------------*/
+/** Register endpoint with the host controller.
+ *
+ * @param pipe Pipe to be registered.
+ * @param interval Polling interval.
+ * @return Error code.
+ */
+int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
+{
+	assert(pipe);
+	assert(pipe->wire);
+
+	return usb_device_register_endpoint(pipe->wire,
+	   pipe->endpoint_no, pipe->transfer_type,
+	   pipe->direction, pipe->max_packet_size, interval);
+}
+/*----------------------------------------------------------------------------*/
+/** Revert endpoint registration with the host controller.
+ *
+ * @param pipe Pipe to be unregistered.
+ * @return Error code.
+ */
+int usb_pipe_unregister(usb_pipe_t *pipe)
+{
+	assert(pipe);
+	assert(pipe->wire);
+
+	return usb_device_unregister_endpoint(pipe->wire,
+	    pipe->endpoint_no, pipe->direction);
 }
 
 /**

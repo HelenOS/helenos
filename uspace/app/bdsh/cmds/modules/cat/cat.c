@@ -102,7 +102,7 @@ void help_cmd_cat(unsigned int level)
 static void waitprompt()
 {
 	console_set_pos(console, 0, console_rows-1);
-	console_set_color(console, COLOR_BLUE, COLOR_WHITE, 0);
+	console_set_color(console, COLOR_WHITE, COLOR_BLUE, 0);
 	
 	printf("ENTER/SPACE/PAGE DOWN - next page, "
 	       "ESC/Q - quit, C - continue unpaged");

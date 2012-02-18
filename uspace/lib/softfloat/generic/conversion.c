@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,13 +30,13 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Conversion of precision and conversion between integers and floats.
  */
 
-#include "sftypes.h"
-#include "conversion.h"
-#include "comparison.h"
-#include "common.h"
+#include <sftypes.h>
+#include <conversion.h>
+#include <comparison.h>
+#include <common.h>
 
 float64 convertFloat32ToFloat64(float32 a) 
 {
@@ -47,33 +48,132 @@ float64 convertFloat32ToFloat64(float32 a)
 	result.parts.fraction <<= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE);
 	
 	if ((isFloat32Infinity(a)) || (isFloat32NaN(a))) {
-		result.parts.exp = 0x7FF;
+		result.parts.exp = FLOAT64_MAX_EXPONENT;
 		/* TODO; check if its correct for SigNaNs*/
 		return result;
-	};
+	}
 	
 	result.parts.exp = a.parts.exp + ((int) FLOAT64_BIAS - FLOAT32_BIAS);
 	if (a.parts.exp == 0) {
 		/* normalize denormalized numbers */
 
-		if (result.parts.fraction == 0ll) { /* fix zero */
-			result.parts.exp = 0ll;
+		if (result.parts.fraction == 0) { /* fix zero */
+			result.parts.exp = 0;
 			return result;
 		}
 			
 		frac = result.parts.fraction;
 		
-		while (!(frac & (0x10000000000000ll))) {
+		while (!(frac & FLOAT64_HIDDEN_BIT_MASK)) {
 			frac <<= 1;
 			--result.parts.exp;
-		};
+		}
 		
 		++result.parts.exp;
 		result.parts.fraction = frac;
-	};
+	}
 	
 	return result;
-	
+}
+
+float128 convertFloat32ToFloat128(float32 a)
+{
+	float128 result;
+	uint64_t frac_hi, frac_lo;
+	uint64_t tmp_hi, tmp_lo;
+
+	result.parts.sign = a.parts.sign;
+	result.parts.frac_hi = 0;
+	result.parts.frac_lo = a.parts.fraction;
+	lshift128(result.parts.frac_hi, result.parts.frac_lo,
+	    (FLOAT128_FRACTION_SIZE - FLOAT32_FRACTION_SIZE),
+	    &frac_hi, &frac_lo);
+	result.parts.frac_hi = frac_hi;
+	result.parts.frac_lo = frac_lo;
+
+	if ((isFloat32Infinity(a)) || (isFloat32NaN(a))) {
+		result.parts.exp = FLOAT128_MAX_EXPONENT;
+		/* TODO; check if its correct for SigNaNs*/
+		return result;
+	}
+
+	result.parts.exp = a.parts.exp + ((int) FLOAT128_BIAS - FLOAT32_BIAS);
+	if (a.parts.exp == 0) {
+		/* normalize denormalized numbers */
+
+		if (eq128(result.parts.frac_hi,
+		    result.parts.frac_lo, 0x0ll, 0x0ll)) { /* fix zero */
+			result.parts.exp = 0;
+			return result;
+		}
+
+		frac_hi = result.parts.frac_hi;
+		frac_lo = result.parts.frac_lo;
+
+		and128(frac_hi, frac_lo,
+		    FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
+		    &tmp_hi, &tmp_lo);
+		while (!lt128(0x0ll, 0x0ll, tmp_hi, tmp_lo)) {
+			lshift128(frac_hi, frac_lo, 1, &frac_hi, &frac_lo);
+			--result.parts.exp;
+		}
+
+		++result.parts.exp;
+		result.parts.frac_hi = frac_hi;
+		result.parts.frac_lo = frac_lo;
+	}
+
+	return result;
+}
+
+float128 convertFloat64ToFloat128(float64 a)
+{
+	float128 result;
+	uint64_t frac_hi, frac_lo;
+	uint64_t tmp_hi, tmp_lo;
+
+	result.parts.sign = a.parts.sign;
+	result.parts.frac_hi = 0;
+	result.parts.frac_lo = a.parts.fraction;
+	lshift128(result.parts.frac_hi, result.parts.frac_lo,
+	    (FLOAT128_FRACTION_SIZE - FLOAT64_FRACTION_SIZE),
+	    &frac_hi, &frac_lo);
+	result.parts.frac_hi = frac_hi;
+	result.parts.frac_lo = frac_lo;
+
+	if ((isFloat64Infinity(a)) || (isFloat64NaN(a))) {
+		result.parts.exp = FLOAT128_MAX_EXPONENT;
+		/* TODO; check if its correct for SigNaNs*/
+		return result;
+	}
+
+	result.parts.exp = a.parts.exp + ((int) FLOAT128_BIAS - FLOAT64_BIAS);
+	if (a.parts.exp == 0) {
+		/* normalize denormalized numbers */
+
+		if (eq128(result.parts.frac_hi,
+		    result.parts.frac_lo, 0x0ll, 0x0ll)) { /* fix zero */
+			result.parts.exp = 0;
+			return result;
+		}
+
+		frac_hi = result.parts.frac_hi;
+		frac_lo = result.parts.frac_lo;
+
+		and128(frac_hi, frac_lo,
+		    FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
+		    &tmp_hi, &tmp_lo);
+		while (!lt128(0x0ll, 0x0ll, tmp_hi, tmp_lo)) {
+			lshift128(frac_hi, frac_lo, 1, &frac_hi, &frac_lo);
+			--result.parts.exp;
+		}
+
+		++result.parts.exp;
+		result.parts.frac_hi = frac_hi;
+		result.parts.frac_lo = frac_lo;
+	}
+
+	return result;
 }
 
 float32 convertFloat64ToFloat32(float64 a) 
@@ -85,77 +185,236 @@ float32 convertFloat64ToFloat32(float64 a)
 	result.parts.sign = a.parts.sign;
 	
 	if (isFloat64NaN(a)) {
-		
-		result.parts.exp = 0xFF;
+		result.parts.exp = FLOAT32_MAX_EXPONENT;
 		
 		if (isFloat64SigNaN(a)) {
-			result.parts.fraction = 0x400000; /* set first bit of fraction nonzero */
+			/* set first bit of fraction nonzero */
+			result.parts.fraction = FLOAT32_HIDDEN_BIT_MASK >> 1;
 			return result;
 		}
-	
-		result.parts.fraction = 0x1; /* fraction nonzero but its first bit is zero */
+
+		/* fraction nonzero but its first bit is zero */
+		result.parts.fraction = 0x1;
 		return result;
-	};
+	}
 
 	if (isFloat64Infinity(a)) {
 		result.parts.fraction = 0;
-		result.parts.exp = 0xFF;
+		result.parts.exp = FLOAT32_MAX_EXPONENT;
 		return result;
-	};
+	}
 
-	exp = (int)a.parts.exp - FLOAT64_BIAS + FLOAT32_BIAS;
+	exp = (int) a.parts.exp - FLOAT64_BIAS + FLOAT32_BIAS;
 	
-	if (exp >= 0xFF) {
-		/*FIXME: overflow*/
+	if (exp >= FLOAT32_MAX_EXPONENT) {
+		/* FIXME: overflow */
 		result.parts.fraction = 0;
-		result.parts.exp = 0xFF;
+		result.parts.exp = FLOAT32_MAX_EXPONENT;
 		return result;
-		
-	} else if (exp <= 0 ) {
-		
+	} else if (exp <= 0) {
 		/* underflow or denormalized */
 		
 		result.parts.exp = 0;
 		
 		exp *= -1;	
-		if (exp > FLOAT32_FRACTION_SIZE ) {
+		if (exp > FLOAT32_FRACTION_SIZE) {
 			/* FIXME: underflow */
 			result.parts.fraction = 0;
 			return result;
-		};
+		}
 		
 		/* denormalized */
 		
 		frac = a.parts.fraction; 
-		frac |= 0x10000000000000ll; /* denormalize and set hidden bit */
+		frac |= FLOAT64_HIDDEN_BIT_MASK; /* denormalize and set hidden bit */
 		
 		frac >>= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE + 1);
 		
 		while (exp > 0) {
 			--exp;
 			frac >>= 1;
-		};
+		}
 		result.parts.fraction = frac;
 		
 		return result;
-	};
+	}
 
 	result.parts.exp = exp;
-	result.parts.fraction = a.parts.fraction >> (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE);
+	result.parts.fraction =
+	    a.parts.fraction >> (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE);
+	return result;
+}
+
+float32 convertFloat128ToFloat32(float128 a)
+{
+	float32 result;
+	int32_t exp;
+	uint64_t frac_hi, frac_lo;
+
+	result.parts.sign = a.parts.sign;
+
+	if (isFloat128NaN(a)) {
+		result.parts.exp = FLOAT32_MAX_EXPONENT;
+
+		if (isFloat128SigNaN(a)) {
+			/* set first bit of fraction nonzero */
+			result.parts.fraction = FLOAT32_HIDDEN_BIT_MASK >> 1;
+			return result;
+		}
+
+		/* fraction nonzero but its first bit is zero */
+		result.parts.fraction = 0x1;
+		return result;
+	}
+
+	if (isFloat128Infinity(a)) {
+		result.parts.fraction = 0;
+		result.parts.exp = FLOAT32_MAX_EXPONENT;
+		return result;
+	}
+
+	exp = (int) a.parts.exp - FLOAT128_BIAS + FLOAT32_BIAS;
+
+	if (exp >= FLOAT32_MAX_EXPONENT) {
+		/* FIXME: overflow */
+		result.parts.fraction = 0;
+		result.parts.exp = FLOAT32_MAX_EXPONENT;
+		return result;
+	} else if (exp <= 0) {
+		/* underflow or denormalized */
+
+		result.parts.exp = 0;
+
+		exp *= -1;
+		if (exp > FLOAT32_FRACTION_SIZE) {
+			/* FIXME: underflow */
+			result.parts.fraction = 0;
+			return result;
+		}
+
+		/* denormalized */
+
+		frac_hi = a.parts.frac_hi;
+		frac_lo = a.parts.frac_lo;
+
+		/* denormalize and set hidden bit */
+		frac_hi |= FLOAT128_HIDDEN_BIT_MASK_HI;
+
+		rshift128(frac_hi, frac_lo,
+		    (FLOAT128_FRACTION_SIZE - FLOAT32_FRACTION_SIZE + 1),
+		    &frac_hi, &frac_lo);
+
+		while (exp > 0) {
+			--exp;
+			rshift128(frac_hi, frac_lo, 1, &frac_hi, &frac_lo);
+		}
+		result.parts.fraction = frac_lo;
+
+		return result;
+	}
+
+	result.parts.exp = exp;
+	frac_hi = a.parts.frac_hi;
+	frac_lo = a.parts.frac_lo;
+	rshift128(frac_hi, frac_lo,
+	    (FLOAT128_FRACTION_SIZE - FLOAT32_FRACTION_SIZE + 1),
+	    &frac_hi, &frac_lo);
+	result.parts.fraction = frac_lo;
+	return result;
+}
+
+float64 convertFloat128ToFloat64(float128 a)
+{
+	float64 result;
+	int32_t exp;
+	uint64_t frac_hi, frac_lo;
+
+	result.parts.sign = a.parts.sign;
+
+	if (isFloat128NaN(a)) {
+		result.parts.exp = FLOAT64_MAX_EXPONENT;
+
+		if (isFloat128SigNaN(a)) {
+			/* set first bit of fraction nonzero */
+			result.parts.fraction = FLOAT64_HIDDEN_BIT_MASK >> 1;
+			return result;
+		}
+
+		/* fraction nonzero but its first bit is zero */
+		result.parts.fraction = 0x1;
+		return result;
+	}
+
+	if (isFloat128Infinity(a)) {
+		result.parts.fraction = 0;
+		result.parts.exp = FLOAT64_MAX_EXPONENT;
+		return result;
+	}
+
+	exp = (int) a.parts.exp - FLOAT128_BIAS + FLOAT64_BIAS;
+
+	if (exp >= FLOAT64_MAX_EXPONENT) {
+		/* FIXME: overflow */
+		result.parts.fraction = 0;
+		result.parts.exp = FLOAT64_MAX_EXPONENT;
+		return result;
+	} else if (exp <= 0) {
+		/* underflow or denormalized */
+
+		result.parts.exp = 0;
+
+		exp *= -1;
+		if (exp > FLOAT64_FRACTION_SIZE) {
+			/* FIXME: underflow */
+			result.parts.fraction = 0;
+			return result;
+		}
+
+		/* denormalized */
+
+		frac_hi = a.parts.frac_hi;
+		frac_lo = a.parts.frac_lo;
+
+		/* denormalize and set hidden bit */
+		frac_hi |= FLOAT128_HIDDEN_BIT_MASK_HI;
+
+		rshift128(frac_hi, frac_lo,
+		    (FLOAT128_FRACTION_SIZE - FLOAT64_FRACTION_SIZE + 1),
+		    &frac_hi, &frac_lo);
+
+		while (exp > 0) {
+			--exp;
+			rshift128(frac_hi, frac_lo, 1, &frac_hi, &frac_lo);
+		}
+		result.parts.fraction = frac_lo;
+
+		return result;
+	}
+
+	result.parts.exp = exp;
+	frac_hi = a.parts.frac_hi;
+	frac_lo = a.parts.frac_lo;
+	rshift128(frac_hi, frac_lo,
+	    (FLOAT128_FRACTION_SIZE - FLOAT64_FRACTION_SIZE + 1),
+	    &frac_hi, &frac_lo);
+	result.parts.fraction = frac_lo;
 	return result;
 }
 
 
-/** Helping procedure for converting float32 to uint32
- * @param a floating point number in normalized form (no NaNs or Inf are checked )
- * @return unsigned integer
+/** 
+ * Helping procedure for converting float32 to uint32.
+ *
+ * @param a Floating point number in normalized form
+ *     (NaNs or Inf are not checked).
+ * @return Converted unsigned integer.
  */
 static uint32_t _float32_to_uint32_helper(float32 a)
 {
 	uint32_t frac;
 	
 	if (a.parts.exp < FLOAT32_BIAS) {
-		/*TODO: rounding*/
+		/* TODO: rounding */
 		return 0;
 	}
 	
@@ -174,7 +433,7 @@ static uint32_t _float32_to_uint32_helper(float32 a)
 	return frac;
 }
 
-/* Convert float to unsigned int32
+/* 
  * FIXME: Im not sure what to return if overflow/underflow happens 
  * 	- now its the biggest or the smallest int
  */ 
@@ -193,7 +452,7 @@ uint32_t float32_to_uint32(float32 a)
 	return _float32_to_uint32_helper(a);
 }
 
-/* Convert float to signed int32
+/* 
  * FIXME: Im not sure what to return if overflow/underflow happens 
  * 	- now its the biggest or the smallest int
  */ 
@@ -213,35 +472,148 @@ int32_t float32_to_int32(float32 a)
 }
 
 
-/** Helping procedure for converting float64 to uint64
- * @param a floating point number in normalized form (no NaNs or Inf are checked )
- * @return unsigned integer
+/**
+ * Helping procedure for converting float32 to uint64.
+ *
+ * @param a Floating point number in normalized form
+ *     (NaNs or Inf are not checked).
+ * @return Converted unsigned integer.
+ */
+static uint64_t _float32_to_uint64_helper(float32 a)
+{
+	uint64_t frac;
+
+	if (a.parts.exp < FLOAT32_BIAS) {
+		/*TODO: rounding*/
+		return 0;
+	}
+
+	frac = a.parts.fraction;
+
+	frac |= FLOAT32_HIDDEN_BIT_MASK;
+	/* shift fraction to left so hidden bit will be the most significant bit */
+	frac <<= 64 - FLOAT32_FRACTION_SIZE - 1;
+
+	frac >>= 64 - (a.parts.exp - FLOAT32_BIAS) - 1;
+	if ((a.parts.sign == 1) && (frac != 0)) {
+		frac = ~frac;
+		++frac;
+	}
+
+	return frac;
+}
+
+/* 
+ * FIXME: Im not sure what to return if overflow/underflow happens
+ * 	- now its the biggest or the smallest int
+ */
+uint64_t float32_to_uint64(float32 a)
+{
+	if (isFloat32NaN(a))
+		return UINT64_MAX;
+
+
+	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS))) {
+		if (a.parts.sign)
+			return UINT64_MIN;
+
+		return UINT64_MAX;
+	}
+
+	return _float32_to_uint64_helper(a);
+}
+
+/* 
+ * FIXME: Im not sure what to return if overflow/underflow happens
+ * 	- now its the biggest or the smallest int
+ */
+int64_t float32_to_int64(float32 a)
+{
+	if (isFloat32NaN(a))
+		return INT64_MAX;
+
+	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS))) {
+		if (a.parts.sign)
+			return INT64_MIN;
+
+		return INT64_MAX;
+	}
+
+	return _float32_to_uint64_helper(a);
+}
+
+
+/**
+ * Helping procedure for converting float64 to uint64.
+ *
+ * @param a Floating point number in normalized form
+ *     (NaNs or Inf are not checked).
+ * @return Converted unsigned integer.
  */
 static uint64_t _float64_to_uint64_helper(float64 a)
 {
 	uint64_t frac;
-	
+
 	if (a.parts.exp < FLOAT64_BIAS) {
 		/*TODO: rounding*/
 		return 0;
 	}
-	
+
 	frac = a.parts.fraction;
-	
+
 	frac |= FLOAT64_HIDDEN_BIT_MASK;
 	/* shift fraction to left so hidden bit will be the most significant bit */
-	frac <<= 64 - FLOAT64_FRACTION_SIZE - 1; 
+	frac <<= 64 - FLOAT64_FRACTION_SIZE - 1;
 
 	frac >>= 64 - (a.parts.exp - FLOAT64_BIAS) - 1;
 	if ((a.parts.sign == 1) && (frac != 0)) {
 		frac = ~frac;
 		++frac;
 	}
-	
+
 	return frac;
 }
 
-/* Convert float to unsigned int64
+/*
+ * FIXME: Im not sure what to return if overflow/underflow happens
+ * 	- now its the biggest or the smallest int
+ */
+uint32_t float64_to_uint32(float64 a)
+{
+	if (isFloat64NaN(a))
+		return UINT32_MAX;
+
+	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS))) {
+		if (a.parts.sign)
+			return UINT32_MIN;
+
+		return UINT32_MAX;
+	}
+
+	return (uint32_t) _float64_to_uint64_helper(a);
+}
+
+/*
+ * FIXME: Im not sure what to return if overflow/underflow happens
+ * 	- now its the biggest or the smallest int
+ */
+int32_t float64_to_int32(float64 a)
+{
+	if (isFloat64NaN(a))
+		return INT32_MAX;
+
+	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS))) {
+		if (a.parts.sign)
+			return INT32_MIN;
+
+		return INT32_MAX;
+	}
+
+	return (int32_t) _float64_to_uint64_helper(a);
+}
+
+
+/* 
  * FIXME: Im not sure what to return if overflow/underflow happens 
  * 	- now its the biggest or the smallest int
  */ 
@@ -250,7 +622,6 @@ uint64_t float64_to_uint64(float64 a)
 	if (isFloat64NaN(a))
 		return UINT64_MAX;
 	
-	
 	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS))) {
 		if (a.parts.sign)
 			return UINT64_MIN;
@@ -261,7 +632,7 @@ uint64_t float64_to_uint64(float64 a)
 	return _float64_to_uint64_helper(a);
 }
 
-/* Convert float to signed int64
+/* 
  * FIXME: Im not sure what to return if overflow/underflow happens 
  * 	- now its the biggest or the smallest int
  */ 
@@ -270,7 +641,6 @@ int64_t float64_to_int64(float64 a)
 	if (isFloat64NaN(a))
 		return INT64_MAX;
 	
-	
 	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS))) {
 		if (a.parts.sign)
 			return INT64_MIN;
@@ -282,121 +652,118 @@ int64_t float64_to_int64(float64 a)
 }
 
 
-
-
-
-/** Helping procedure for converting float32 to uint64
- * @param a floating point number in normalized form (no NaNs or Inf are checked )
- * @return unsigned integer
+/**
+ * Helping procedure for converting float128 to uint64.
+ *
+ * @param a Floating point number in normalized form
+ *     (NaNs or Inf are not checked).
+ * @return Converted unsigned integer.
  */
-static uint64_t _float32_to_uint64_helper(float32 a)
+static uint64_t _float128_to_uint64_helper(float128 a)
 {
-	uint64_t frac;
-	
-	if (a.parts.exp < FLOAT32_BIAS) {
+	uint64_t frac_hi, frac_lo;
+
+	if (a.parts.exp < FLOAT128_BIAS) {
 		/*TODO: rounding*/
 		return 0;
 	}
-	
-	frac = a.parts.fraction;
-	
-	frac |= FLOAT32_HIDDEN_BIT_MASK;
+
+	frac_hi = a.parts.frac_hi;
+	frac_lo = a.parts.frac_lo;
+
+	frac_hi |= FLOAT128_HIDDEN_BIT_MASK_HI;
 	/* shift fraction to left so hidden bit will be the most significant bit */
-	frac <<= 64 - FLOAT32_FRACTION_SIZE - 1; 
+	lshift128(frac_hi, frac_lo,
+	    (128 - FLOAT128_FRACTION_SIZE - 1), &frac_hi, &frac_lo);
 
-	frac >>= 64 - (a.parts.exp - FLOAT32_BIAS) - 1;
-	if ((a.parts.sign == 1) && (frac != 0)) {
-		frac = ~frac;
-		++frac;
+	rshift128(frac_hi, frac_lo,
+	    (128 - (a.parts.exp - FLOAT128_BIAS) - 1), &frac_hi, &frac_lo);
+	if ((a.parts.sign == 1) && !eq128(frac_hi, frac_lo, 0x0ll, 0x0ll)) {
+		not128(frac_hi, frac_lo, &frac_hi, &frac_lo);
+		add128(frac_hi, frac_lo, 0x0ll, 0x1ll, &frac_hi, &frac_lo);
 	}
-	
-	return frac;
+
+	return frac_lo;
 }
 
-/* Convert float to unsigned int64
- * FIXME: Im not sure what to return if overflow/underflow happens 
+/*
+ * FIXME: Im not sure what to return if overflow/underflow happens
  * 	- now its the biggest or the smallest int
- */ 
-uint64_t float32_to_uint64(float32 a)
+ */
+uint32_t float128_to_uint32(float128 a)
 {
-	if (isFloat32NaN(a))
-		return UINT64_MAX;
-	
-	
-	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS))) {
-		if (a.parts.sign)
-			return UINT64_MIN;
-		
-		return UINT64_MAX;
-	}
-	
-	return _float32_to_uint64_helper(a);
-}
-
-/* Convert float to signed int64
- * FIXME: Im not sure what to return if overflow/underflow happens 
- * 	- now its the biggest or the smallest int
- */ 
-int64_t float32_to_int64(float32 a)
-{
-	if (isFloat32NaN(a))
-		return INT64_MAX;
-	
-	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS))) {
-		if (a.parts.sign)
-			return INT64_MIN;
-		
-		return INT64_MAX;
-	}
-	
-	return _float32_to_uint64_helper(a);
-}
-
-
-/* Convert float64 to unsigned int32
- * FIXME: Im not sure what to return if overflow/underflow happens 
- * 	- now its the biggest or the smallest int
- */ 
-uint32_t float64_to_uint32(float64 a)
-{
-	if (isFloat64NaN(a))
+	if (isFloat128NaN(a))
 		return UINT32_MAX;
-	
-	
-	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS))) {
+
+	if (isFloat128Infinity(a) || (a.parts.exp >= (32 + FLOAT128_BIAS))) {
 		if (a.parts.sign)
 			return UINT32_MIN;
-		
+
 		return UINT32_MAX;
 	}
-	
-	return (uint32_t) _float64_to_uint64_helper(a);
+
+	return (uint32_t) _float128_to_uint64_helper(a);
 }
 
-/* Convert float64 to signed int32
- * FIXME: Im not sure what to return if overflow/underflow happens 
+/*
+ * FIXME: Im not sure what to return if overflow/underflow happens
  * 	- now its the biggest or the smallest int
- */ 
-int32_t float64_to_int32(float64 a)
+ */
+int32_t float128_to_int32(float128 a)
 {
-	if (isFloat64NaN(a))
+	if (isFloat128NaN(a))
 		return INT32_MAX;
-	
-	
-	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS))) {
+
+	if (isFloat128Infinity(a) || (a.parts.exp >= (32 + FLOAT128_BIAS))) {
 		if (a.parts.sign)
 			return INT32_MIN;
-		
+
 		return INT32_MAX;
 	}
-	
-	return (int32_t) _float64_to_uint64_helper(a);
+
+	return (int32_t) _float128_to_uint64_helper(a);
 }
 
-/** Convert unsigned integer to float32
- *
- *
+
+/*
+ * FIXME: Im not sure what to return if overflow/underflow happens
+ * 	- now its the biggest or the smallest int
  */
+uint64_t float128_to_uint64(float128 a)
+{
+	if (isFloat128NaN(a))
+		return UINT64_MAX;
+
+	if (isFloat128Infinity(a) || (a.parts.exp >= (64 + FLOAT128_BIAS))) {
+		if (a.parts.sign)
+			return UINT64_MIN;
+
+		return UINT64_MAX;
+	}
+
+	return _float128_to_uint64_helper(a);
+}
+
+/*
+ * FIXME: Im not sure what to return if overflow/underflow happens
+ * 	- now its the biggest or the smallest int
+ */
+int64_t float128_to_int64(float128 a)
+{
+	if (isFloat128NaN(a))
+		return INT64_MAX;
+
+	if (isFloat128Infinity(a) || (a.parts.exp >= (64 + FLOAT128_BIAS))) {
+		if (a.parts.sign)
+			return INT64_MIN;
+
+		return INT64_MAX;
+	}
+
+	return _float128_to_uint64_helper(a);
+}
+
+
 float32 uint32_to_float32(uint32_t i)
 {
 	int counter;
@@ -423,7 +790,7 @@ float32 uint32_to_float32(uint32_t i)
 
 	roundFloat32(&exp, &i);
 
-	result.parts.fraction = i >> 7;
+	result.parts.fraction = i >> (32 - FLOAT32_FRACTION_SIZE - 2);
 	result.parts.exp = exp;
 
 	return result;
@@ -434,9 +801,9 @@ float32 int32_to_float32(int32_t i)
 	float32 result;
 
 	if (i < 0) {
-		result = uint32_to_float32((uint32_t)(-i));
+		result = uint32_to_float32((uint32_t) (-i));
 	} else {
-		result = uint32_to_float32((uint32_t)i);
+		result = uint32_to_float32((uint32_t) i);
 	}
 	
 	result.parts.sign = i < 0;
@@ -464,17 +831,17 @@ float32 uint64_to_float32(uint64_t i)
 		return result;
 	}
 	
-	/* Shift all to the first 31 bits (31. will be hidden 1)*/
+	/* Shift all to the first 31 bits (31st will be hidden 1) */
 	if (counter > 33) {
 		i <<= counter - 1 - 32;
 	} else {
 		i >>= 1 + 32 - counter;
 	}
 	
-	j = (uint32_t)i;
+	j = (uint32_t) i;
 	roundFloat32(&exp, &j);
 
-	result.parts.fraction = j >> 7;
+	result.parts.fraction = j >> (32 - FLOAT32_FRACTION_SIZE - 2);
 	result.parts.exp = exp;
 	return result;
 }
@@ -484,9 +851,9 @@ float32 int64_to_float32(int64_t i)
 	float32 result;
 
 	if (i < 0) {
-		result = uint64_to_float32((uint64_t)(-i));
+		result = uint64_to_float32((uint64_t) (-i));
 	} else {
-		result = uint64_to_float32((uint64_t)i);
+		result = uint64_to_float32((uint64_t) i);
 	}
 	
 	result.parts.sign = i < 0;
@@ -494,10 +861,6 @@ float32 int64_to_float32(int64_t i)
  	return result;
 }
 
-/** Convert unsigned integer to float64
- *
- *
- */
 float64 uint32_to_float64(uint32_t i)
 {
 	int counter;
@@ -522,7 +885,7 @@ float64 uint32_to_float64(uint32_t i)
 
 	roundFloat64(&exp, &frac);
 
-	result.parts.fraction = frac >> 10;
+	result.parts.fraction = frac >> (64 - FLOAT64_FRACTION_SIZE - 2);
 	result.parts.exp = exp;
 
 	return result;
@@ -533,9 +896,9 @@ float64 int32_to_float64(int32_t i)
 	float64 result;
 
 	if (i < 0) {
-		result = uint32_to_float64((uint32_t)(-i));
+		result = uint32_to_float64((uint32_t) (-i));
 	} else {
-		result = uint32_to_float64((uint32_t)i);
+		result = uint32_to_float64((uint32_t) i);
 	}
 	
 	result.parts.sign = i < 0;
@@ -570,7 +933,7 @@ float64 uint64_to_float64(uint64_t i)
 
 	roundFloat64(&exp, &i);
 
-	result.parts.fraction = i >> 10;
+	result.parts.fraction = i >> (64 - FLOAT64_FRACTION_SIZE - 2);
 	result.parts.exp = exp;
 	return result;
 }
@@ -580,11 +943,115 @@ float64 int64_to_float64(int64_t i)
 	float64 result;
 
 	if (i < 0) {
-		result = uint64_to_float64((uint64_t)(-i));
+		result = uint64_to_float64((uint64_t) (-i));
 	} else {
-		result = uint64_to_float64((uint64_t)i);
+		result = uint64_to_float64((uint64_t) i);
 	}
 	
+	result.parts.sign = i < 0;
+
+ 	return result;
+}
+
+
+float128 uint32_to_float128(uint32_t i)
+{
+	int counter;
+	int32_t exp;
+	float128 result;
+	uint64_t frac_hi, frac_lo;
+
+	result.parts.sign = 0;
+	result.parts.frac_hi = 0;
+	result.parts.frac_lo = 0;
+
+	counter = countZeroes32(i);
+
+	exp = FLOAT128_BIAS + 32 - counter - 1;
+
+	if (counter == 32) {
+		result.binary.hi = 0;
+		result.binary.lo = 0;
+		return result;
+	}
+
+	frac_hi = 0;
+	frac_lo = i;
+	lshift128(frac_hi, frac_lo, (counter + 96 - 1), &frac_hi, &frac_lo);
+
+	roundFloat128(&exp, &frac_hi, &frac_lo);
+
+	rshift128(frac_hi, frac_lo,
+	    (128 - FLOAT128_FRACTION_SIZE - 2), &frac_hi, &frac_lo);
+	result.parts.frac_hi = frac_hi;
+	result.parts.frac_lo = frac_lo;
+	result.parts.exp = exp;
+
+	return result;
+}
+
+float128 int32_to_float128(int32_t i)
+{
+	float128 result;
+
+	if (i < 0) {
+		result = uint32_to_float128((uint32_t) (-i));
+	} else {
+		result = uint32_to_float128((uint32_t) i);
+	}
+
+	result.parts.sign = i < 0;
+
+ 	return result;
+}
+
+
+float128 uint64_to_float128(uint64_t i)
+{
+	int counter;
+	int32_t exp;
+	float128 result;
+	uint64_t frac_hi, frac_lo;
+
+	result.parts.sign = 0;
+	result.parts.frac_hi = 0;
+	result.parts.frac_lo = 0;
+
+	counter = countZeroes64(i);
+
+	exp = FLOAT128_BIAS + 64 - counter - 1;
+
+	if (counter == 64) {
+		result.binary.hi = 0;
+		result.binary.lo = 0;
+		return result;
+	}
+
+	frac_hi = 0;
+	frac_lo = i;
+	lshift128(frac_hi, frac_lo, (counter + 64 - 1), &frac_hi, &frac_lo);
+
+	roundFloat128(&exp, &frac_hi, &frac_lo);
+
+	rshift128(frac_hi, frac_lo,
+	    (128 - FLOAT128_FRACTION_SIZE - 2), &frac_hi, &frac_lo);
+	result.parts.frac_hi = frac_hi;
+	result.parts.frac_lo = frac_lo;
+	result.parts.exp = exp;
+
+	return result;
+}
+
+float128 int64_to_float128(int64_t i)
+{
+	float128 result;
+
+	if (i < 0) {
+		result = uint64_to_float128((uint64_t) (-i));
+	} else {
+		result = uint64_to_float128((uint64_t) i);
+	}
+
 	result.parts.sign = i < 0;
 
  	return result;

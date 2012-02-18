@@ -86,7 +86,7 @@ void console_flush(console_ctrl_t *ctrl)
 void console_clear(console_ctrl_t *ctrl)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_msg_0(exch, CONSOLE_CLEAR);
+	async_req_0_0(exch, CONSOLE_CLEAR);
 	async_exchange_end(exch);
 }
 
@@ -102,30 +102,30 @@ int console_get_size(console_ctrl_t *ctrl, sysarg_t *cols, sysarg_t *rows)
 void console_set_style(console_ctrl_t *ctrl, uint8_t style)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_msg_1(exch, CONSOLE_SET_STYLE, style);
+	async_req_1_0(exch, CONSOLE_SET_STYLE, style);
 	async_exchange_end(exch);
 }
 
-void console_set_color(console_ctrl_t *ctrl, uint8_t fg_color, uint8_t bg_color,
+void console_set_color(console_ctrl_t *ctrl, uint8_t bgcolor, uint8_t fgcolor,
     uint8_t flags)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_msg_3(exch, CONSOLE_SET_COLOR, fg_color, bg_color, flags);
+	async_req_3_0(exch, CONSOLE_SET_COLOR, bgcolor, fgcolor, flags);
 	async_exchange_end(exch);
 }
 
-void console_set_rgb_color(console_ctrl_t *ctrl, uint32_t fg_color,
-    uint32_t bg_color)
+void console_set_rgb_color(console_ctrl_t *ctrl, uint32_t bgcolor,
+    uint32_t fgcolor)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_msg_2(exch, CONSOLE_SET_RGB_COLOR, fg_color, bg_color);
+	async_req_2_0(exch, CONSOLE_SET_RGB_COLOR, bgcolor, fgcolor);
 	async_exchange_end(exch);
 }
 
 void console_cursor_visibility(console_ctrl_t *ctrl, bool show)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_msg_1(exch, CONSOLE_CURSOR_VISIBILITY, (show != false));
+	async_req_1_0(exch, CONSOLE_CURSOR_VISIBILITY, (show != false));
 	async_exchange_end(exch);
 }
 
@@ -150,7 +150,7 @@ int console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
 void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_msg_2(exch, CONSOLE_GOTO, col, row);
+	async_req_2_0(exch, CONSOLE_GOTO, col, row);
 	async_exchange_end(exch);
 }
 

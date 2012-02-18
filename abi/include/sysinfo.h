@@ -36,6 +36,9 @@
 #ifndef ABI_SYSINFO_H_
 #define ABI_SYSINFO_H_
 
+#include <abi/proc/task.h>
+#include <abi/proc/thread.h>
+
 /** Number of load components */
 #define LOAD_STEPS  3
 
@@ -43,23 +46,16 @@
 #define TASK_NAME_BUFLEN  20
 #define EXC_NAME_BUFLEN   20
 
-/** Thread states */
+/** Item value type
+ *
+ */
 typedef enum {
-	/** It is an error, if thread is found in this state. */
-	Invalid,
-	/** State of a thread that is currently executing on some CPU. */
-	Running,
-	/** Thread in this state is waiting for an event. */
-	Sleeping,
-	/** State of threads in a run queue. */
-	Ready,
-	/** Threads are in this state before they are first readied. */
-	Entering,
-	/** After a thread calls thread_exit(), it is put into Exiting state. */
-	Exiting,
-	/** Threads that were not detached but exited are Lingering. */
-	Lingering
-} state_t;
+	SYSINFO_VAL_UNDEFINED = 0,     /**< Undefined value */
+	SYSINFO_VAL_VAL = 1,           /**< Constant numeric value */
+	SYSINFO_VAL_DATA = 2,          /**< Constant binary data */
+	SYSINFO_VAL_FUNCTION_VAL = 3,  /**< Generated numeric value */
+	SYSINFO_VAL_FUNCTION_DATA = 4  /**< Generated binary data */
+} sysinfo_item_val_type_t;
 
 /** Statistics about a single CPU
  *

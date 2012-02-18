@@ -80,6 +80,8 @@ struct ddf_dev {
 	 * device manager).
 	 */
 	devman_handle_t handle;
+	/** Reference count */
+	atomic_t refcnt;
 	
 	/**
 	 * Session to the parent device driver (if it is different from this
@@ -103,6 +105,8 @@ struct ddf_fun {
 	bool bound;
 	/** Function indentifier (asigned by device manager) */
 	devman_handle_t handle;
+	/** Reference count */
+	atomic_t refcnt;
 	
 	/** Device which this function belogs to */
 	ddf_dev_t *dev;
@@ -131,8 +135,15 @@ struct ddf_fun {
 /** Generic device driver operations */
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
-	int (*add_device)(ddf_dev_t *dev);
-	/* TODO: add other generic driver operations */
+	int (*dev_add)(ddf_dev_t *);
+	/** Ask driver to remove a device */
+	int (*dev_remove)(ddf_dev_t *);
+	/** Inform driver a device disappeared */
+	int (*dev_gone)(ddf_dev_t *);
+	/** Ask driver to online a specific function */
+	int (*fun_online)(ddf_fun_t *);
+	/** Ask driver to offline a specific function */
+	int (*fun_offline)(ddf_fun_t *);
 } driver_ops_t;
 
 /** Driver structure */
@@ -145,10 +156,14 @@ typedef struct driver {
 
 extern int ddf_driver_main(driver_t *);
 
+extern void *ddf_dev_data_alloc(ddf_dev_t *, size_t);
 extern ddf_fun_t *ddf_fun_create(ddf_dev_t *, fun_type_t, const char *);
 extern void ddf_fun_destroy(ddf_fun_t *);
+extern void *ddf_fun_data_alloc(ddf_fun_t *, size_t);
 extern int ddf_fun_bind(ddf_fun_t *);
 extern int ddf_fun_unbind(ddf_fun_t *);
+extern int ddf_fun_online(ddf_fun_t *);
+extern int ddf_fun_offline(ddf_fun_t *);
 extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 
 extern int ddf_fun_add_to_category(ddf_fun_t *, const char *);

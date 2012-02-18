@@ -38,7 +38,7 @@
 #include <usb/debug.h>
 #include <usbvirt/device.h>
 #include <usb/host/usb_endpoint_manager.h>
-#include <usb/host/device_keeper.h>
+#include <usb/host/usb_device_manager.h>
 #include <usbhc_iface.h>
 #include <async.h>
 
@@ -59,7 +59,7 @@ typedef struct {
 	list_t devices;
 	fibril_mutex_t guard;
 	usb_endpoint_manager_t ep_manager;
-	usb_device_keeper_t dev_keeper;
+	usb_device_manager_t dev_manager;
 	usbvirt_device_t *hub;
 	ddf_fun_t *hc_fun;
 } vhc_data_t;

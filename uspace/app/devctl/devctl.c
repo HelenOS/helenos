@@ -36,13 +36,14 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <sys/typefmt.h>
 
 #define NAME "devctl"
 
 #define MAX_NAME_LENGTH 1024
 
-static int fun_tree_print(devman_handle_t funh, int lvl)
+static int fun_subtree_print(devman_handle_t funh, int lvl)
 {
 	char name[MAX_NAME_LENGTH];
 	devman_handle_t devh;
@@ -83,13 +84,13 @@ static int fun_tree_print(devman_handle_t funh, int lvl)
 	}
 
 	for (i = 0; i < count; i++)
-		fun_tree_print(cfuns[i], lvl + 1);
+		fun_subtree_print(cfuns[i], lvl + 1);
 
 	free(cfuns);
 	return EOK;
 }
 
-int main(int argc, char *argv[])
+static int fun_tree_print(void)
 {
 	devman_handle_t root_fun;
 	int rc;
@@ -97,12 +98,98 @@ int main(int argc, char *argv[])
 	rc = devman_fun_get_handle("/", &root_fun, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving root function.\n");
-		return 1;
+		return EIO;
 	}
 
-	rc = fun_tree_print(root_fun, 0);
+	rc = fun_subtree_print(root_fun, 0);
 	if (rc != EOK)
+		return EIO;
+
+	return EOK;
+}
+
+static int fun_online(const char *path)
+{
+	devman_handle_t funh;
+	int rc;
+
+	rc = devman_fun_get_handle(path, &funh, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving device function '%s' (%s)\n",
+		    path, str_error(rc));
+		return rc;
+	}
+
+	rc = devman_fun_online(funh);
+	if (rc != EOK) {
+		printf(NAME ": Failed to online function '%s'.\n", path);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int fun_offline(const char *path)
+{
+	devman_handle_t funh;
+	int rc;
+
+	rc = devman_fun_get_handle(path, &funh, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving device function '%s' (%s)\n",
+		    path, str_error(rc));
+		return rc;
+	}
+
+	rc = devman_fun_offline(funh);
+	if (rc != EOK) {
+		printf(NAME ": Failed to offline function '%s'.\n", path);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static void print_syntax(void)
+{
+	printf("syntax: devctl [(online|offline) <function>]\n");
+}
+
+int main(int argc, char *argv[])
+{
+	int rc;
+
+	if (argc == 1) {
+		rc = fun_tree_print();
+		if (rc != EOK)
+			return 2;
+	} else if (str_cmp(argv[1], "online") == 0) {
+		if (argc < 3) {
+			printf(NAME ": Argument missing.\n");
+			print_syntax();
+			return 1;
+		}
+
+		rc = fun_online(argv[2]);
+		if (rc != EOK) {
+			return 2;
+		}
+	} else if (str_cmp(argv[1], "offline") == 0) {
+		if (argc < 3) {
+			printf(NAME ": Argument missing.\n");
+			print_syntax();
+			return 1;
+		}
+
+		rc = fun_offline(argv[2]);
+		if (rc != EOK) {
+			return 2;
+		}
+	} else {
+		printf(NAME ": Invalid argument '%s'.\n", argv[1]);
+		print_syntax();
 		return 1;
+	}
 
 	return 0;
 }

@@ -179,8 +179,6 @@ static unsigned int _slab_initialized = 0;
 NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
     unsigned int flags)
 {
-	
-	
 	size_t zone = 0;
 	
 	void *data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);

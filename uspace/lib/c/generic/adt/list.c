@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Functions completing doubly linked circular list implementaion.
+ * @brief	Functions completing doubly linked circular list implementation.
  *
  * This file contains some of the functions implementing doubly linked circular lists.
  * However, this ADT is mostly implemented in @ref list.h.
@@ -49,7 +49,7 @@
  * @param link	Item to look for.
  * @param list	List to look in.
  *
- * @return true if link is contained in head, false otherwise.
+ * @return true if link is contained in list, false otherwise.
  *
  */
 int list_member(const link_t *link, const list_t *list)

@@ -111,7 +111,7 @@ static aoff64_t ext2fs_size_get(fs_node_t *);
 static unsigned ext2fs_lnkcnt_get(fs_node_t *);
 static bool ext2fs_is_directory(fs_node_t *);
 static bool ext2fs_is_file(fs_node_t *node);
-static service_id_t ext2fs_device_get(fs_node_t *node);
+static service_id_t ext2fs_service_get(fs_node_t *node);
 
 /*
  * Static variables
@@ -556,7 +556,7 @@ bool ext2fs_is_file(fs_node_t *fn)
 	return is_file;
 }
 
-service_id_t ext2fs_device_get(fs_node_t *fn)
+service_id_t ext2fs_service_get(fs_node_t *fn)
 {
 	EXT2FS_DBG("");
 	ext2fs_node_t *enode = EXT2FS_NODE(fn);
@@ -580,7 +580,7 @@ libfs_ops_t ext2fs_libfs_ops = {
 	.lnkcnt_get = ext2fs_lnkcnt_get,
 	.is_directory = ext2fs_is_directory,
 	.is_file = ext2fs_is_file,
-	.device_get = ext2fs_device_get
+	.service_get = ext2fs_service_get
 };
 
 /*

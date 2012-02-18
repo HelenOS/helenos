@@ -26,10 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-PAGE_SIZE = 4096
-
 RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
 	$(USPACE_PATH)/srv/hw/irc/apic/apic \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
@@ -40,7 +37,10 @@ RD_DRVS += \
 	infrastructure/rootpc \
 	bus/pci/pciintel \
 	bus/isa \
+	char/i8042 \
 	char/ns8250 \
+	char/ps2mouse \
+	char/xtkbd \
 	bus/usb/ehci\
 	bus/usb/ohci \
 	bus/usb/uhci \
@@ -50,7 +50,6 @@ RD_DRVS += \
 	bus/usb/usbhid \
 	bus/usb/usbmast \
 	bus/usb/usbmid \
-	bus/usb/usbmouse \
 	bus/usb/vhc
 
 RD_DRV_CFG += \

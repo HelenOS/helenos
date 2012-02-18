@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +30,7 @@
 /** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Floating point types and constants.
  */
 
 #ifndef __SFTYPES_H__
@@ -76,13 +77,39 @@ typedef union {
 	} parts __attribute__ ((packed));
 } float64;
 
-#define FLOAT32_MAX  0x7f800000
-#define FLOAT32_MIN  0xff800000
-#define FLOAT64_MAX
-#define FLOAT64_MIN
+typedef union {
+	long double ld;
+	struct {
+#if defined(__BE__)
+		uint64_t hi;
+		uint64_t lo;
+#elif defined(__LE__)
+		uint64_t lo;
+		uint64_t hi;
+#else
+	#error Unknown endianess
+#endif
+	} binary;
+
+	struct {
+#if defined(__BE__)
+		uint64_t sign : 1;
+		uint64_t exp : 15;
+		uint64_t frac_hi : 48;
+		uint64_t frac_lo : 64;
+#elif defined(__LE__)
+		uint64_t frac_lo : 64;
+		uint64_t frac_hi : 48;
+		uint64_t exp : 15;
+		uint64_t sign : 1;
+#else
+	#error Unknown endianess
+#endif
+	} parts __attribute__ ((packed));
+} float128;
 
 /*
- * For recognizing NaNs or infinity use isFloat32NaN and is Float32Inf,
+ * For recognizing NaNs or infinity use specialized comparison functions,
  * comparing with these constants is not sufficient.
  */
 
@@ -94,18 +121,32 @@ typedef union {
 #define FLOAT64_SIGNAN  0x7FF0000000000001ll
 #define FLOAT64_INF     0x7FF0000000000000ll
 
-#define FLOAT32_FRACTION_SIZE  23
-#define FLOAT64_FRACTION_SIZE  52
+#define FLOAT128_NAN_HI     0x7FFF800000000000ll
+#define FLOAT128_NAN_LO     0x0000000000000001ll
+#define FLOAT128_SIGNAN_HI  0x7FFF000000000000ll
+#define FLOAT128_SIGNAN_LO  0x0000000000000001ll
+#define FLOAT128_INF_HI     0x7FFF000000000000ll
+#define FLOAT128_INF_LO     0x0000000000000000ll
 
-#define FLOAT32_HIDDEN_BIT_MASK  0x800000
-#define FLOAT64_HIDDEN_BIT_MASK  0x10000000000000ll
+#define FLOAT32_FRACTION_SIZE   23
+#define FLOAT64_FRACTION_SIZE   52
+#define FLOAT128_FRACTION_SIZE 112
+#define FLOAT128_FRAC_HI_SIZE   48
+#define FLOAT128_FRAC_LO_SIZE   64
+
+#define FLOAT32_HIDDEN_BIT_MASK      0x800000
+#define FLOAT64_HIDDEN_BIT_MASK      0x10000000000000ll
+#define FLOAT128_HIDDEN_BIT_MASK_HI  0x1000000000000ll
+#define FLOAT128_HIDDEN_BIT_MASK_LO  0x0000000000000000ll
 
 #define FLOAT32_MAX_EXPONENT  0xFF
 #define FLOAT64_MAX_EXPONENT  0x7FF
+#define FLOAT128_MAX_EXPONENT 0x7FFF
 
 #define FLOAT32_BIAS  0x7F
 #define FLOAT64_BIAS  0x3FF
 #define FLOAT80_BIAS  0x3FFF
+#define FLOAT128_BIAS 0x3FFF
 
 #endif
 

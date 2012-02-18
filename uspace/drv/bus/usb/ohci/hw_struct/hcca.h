@@ -35,6 +35,7 @@
 #define DRV_OHCI_HW_STRUCT_HCCA_H
 
 #include <stdint.h>
+#include <malloc.h>
 
 /** Host controller communication area.
  * Shared memory used for communication between the controller and the driver.
@@ -47,6 +48,11 @@ typedef struct hcca {
 	uint32_t reserved[29];
 } __attribute__((packed, aligned)) hcca_t;
 
+static inline void * hcca_get(void)
+{
+	assert(sizeof(hcca_t) == 256);
+	return memalign(256, sizeof(hcca_t));
+}
 #endif
 /**
  * @}

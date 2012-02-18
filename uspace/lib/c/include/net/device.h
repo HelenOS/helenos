@@ -31,104 +31,26 @@
  */
 
 /** @file
- * Device identifier, state and usage statistics.
+ * Network device.
  */
 
-#ifndef LIBC_DEVICE_ID_TYPE_H_
-#define LIBC_DEVICE_ID_TYPE_H_
+#ifndef LIBC_NET_DEVICE_H_
+#define LIBC_NET_DEVICE_H_
 
 #include <adt/int_map.h>
+#include <nic/nic.h>
 
 /** Device identifier to generic type map declaration. */
-#define DEVICE_MAP_DECLARE	INT_MAP_DECLARE
+#define DEVICE_MAP_DECLARE  INT_MAP_DECLARE
 
 /** Device identifier to generic type map implementation. */
-#define DEVICE_MAP_IMPLEMENT	INT_MAP_IMPLEMENT
-
-/** Invalid device identifier. */
-#define DEVICE_INVALID_ID	(-1)
+#define DEVICE_MAP_IMPLEMENT  INT_MAP_IMPLEMENT
 
 /** Device identifier type. */
-typedef int device_id_t;
+typedef int nic_device_id_t;
 
-/** Device state type. */
-typedef enum device_state device_state_t;
-
-/** Type definition of the device usage statistics.
- * @see device_stats
- */
-typedef struct device_stats device_stats_t;
-
-/** Device state. */
-enum device_state {
-	/** Device not present or not initialized. */
-	NETIF_NULL = 0,
-	/** Device present and stopped. */
-	NETIF_STOPPED,
-	/** Device present and active. */
-	NETIF_ACTIVE,
-	/** Device present but unable to transmit. */
-	NETIF_CARRIER_LOST
-};
-
-/** Device usage statistics. */
-struct device_stats {
-	/** Total packets received. */
-	unsigned long receive_packets;
-	/** Total packets transmitted. */
-	unsigned long send_packets;
-	/** Total bytes received. */
-	unsigned long receive_bytes;
-	/** Total bytes transmitted. */
-	unsigned long send_bytes;
-	/** Bad packets received counter. */
-	unsigned long receive_errors;
-	/** Packet transmition problems counter. */
-	unsigned long send_errors;
-	/** No space in buffers counter. */
-	unsigned long receive_dropped;
-	/** No space available counter. */
-	unsigned long send_dropped;
-	/** Total multicast packets received. */
-	unsigned long multicast;
-	/** The number of collisions due to congestion on the medium. */
-	unsigned long collisions;
-
-	/* detailed receive_errors */
-
-	/** Received packet length error counter. */
-	unsigned long receive_length_errors;
-	/** Receiver buffer overflow counter. */
-	unsigned long receive_over_errors;
-	/** Received packet with crc error counter. */
-	unsigned long receive_crc_errors;
-	/** Received frame alignment error counter. */
-	unsigned long receive_frame_errors;
-	/** Receiver fifo overrun counter. */
-	unsigned long receive_fifo_errors;
-	/** Receiver missed packet counter. */
-	unsigned long receive_missed_errors;
-
-	/* detailed send_errors */
-
-	/** Transmitter aborted counter. */
-	unsigned long send_aborted_errors;
-	/** Transmitter carrier errors counter. */
-	unsigned long send_carrier_errors;
-	/** Transmitter fifo overrun counter. */
-	unsigned long send_fifo_errors;
-	/** Transmitter carrier errors counter. */
-	unsigned long send_heartbeat_errors;
-	/** Transmitter window errors counter. */
-	unsigned long send_window_errors;
-
-	/* for cslip etc */
-	
-	/** Total compressed packets received. */
-	unsigned long receive_compressed;
-	/** Total compressed packet transmitted. */
-	unsigned long send_compressed;
-};
+/** Invalid device identifier. */
+#define NIC_DEVICE_INVALID_ID  (-1)
 
 #endif
 

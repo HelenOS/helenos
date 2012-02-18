@@ -66,10 +66,11 @@ static void print_pipe_usage(void);
  * the handler */
 int process_input(cliuser_t *usr)
 {
-	char *cmd[WORD_MAX];
 	token_t *tokens = calloc(WORD_MAX, sizeof(token_t));
 	if (tokens == NULL)
 		return ENOMEM;
+	
+	char *cmd[WORD_MAX];
 	int rc = 0;
 	tokenizer_t tok;
 	unsigned int i, pipe_count, processed_pipes;
@@ -77,7 +78,7 @@ int process_input(cliuser_t *usr)
 	char *redir_from = NULL;
 	char *redir_to = NULL;
 
-	if (NULL == usr->line) {
+	if (usr->line == NULL) {
 		free(tokens);
 		return CL_EFAIL;
 	}
@@ -194,7 +195,7 @@ int process_input(cliuser_t *usr)
 		}
 		new_iostate.stdout = to;
 	}
-	
+
 	rc = run_command(cmd, usr, &new_iostate);
 	
 finit_with_files:

@@ -1,0 +1,13 @@
+# loopback configuration
+
+NAME=lo
+
+HWPATH=devices/\virt\lo\port0
+NIL=nildummy
+IL=ip
+
+IP_CONFIG=static
+IP_ADDR=127.0.0.1
+IP_NETMASK=255.0.0.0
+
+MTU=15535

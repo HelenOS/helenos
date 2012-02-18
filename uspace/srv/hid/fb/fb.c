@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2008 Martin Decky
- * Copyright (c) 2006 Jakub Vana
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,1791 +26,983 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup fb Graphical framebuffer
- * @brief HelenOS graphical framebuffer.
- * @ingroup fbs
- * @{
- */
-
-/** @file
- */
-
-#include <stdlib.h>
-#include <unistd.h>
-#include <str.h>
-#include <ddi.h>
-#include <sysinfo.h>
-#include <align.h>
-#include <as.h>
-#include <ipc/fb.h>
-#include <ipc/ns.h>
-#include <ipc/services.h>
-#include <errno.h>
-#include <abi/fb/visuals.h>
-#include <io/color.h>
-#include <io/style.h>
-#include <async.h>
-#include <fibril.h>
+#include <sys/types.h>
 #include <bool.h>
+#include <loc.h>
+#include <errno.h>
 #include <stdio.h>
-#include <byteorder.h>
-#include <io/screenbuffer.h>
-#include <imgmap.h>
-#include "font-8x16.h"
+#include <malloc.h>
+#include <inttypes.h>
+#include <as.h>
+#include <fb.h>
+#include <screenbuffer.h>
+#include "port/ega.h"
+#include "port/kchar.h"
+#include "port/kfb.h"
+#include "port/niagara.h"
+#include "port/ski.h"
 #include "fb.h"
-#include "main.h"
-#include "pointer.xbm"
-#include "pointer_mask.xbm"
 
-// FIXME: remove this header
-#include <abi/ipc/methods.h>
+#define NAME       "fb"
+#define NAMESPACE  "hid"
 
-#define DEFAULT_BGCOLOR  0xf0f0f0
-#define DEFAULT_FGCOLOR  0x000000
+#define TICK_INTERVAL  250000
 
-#define GLYPH_UNAVAIL  '?'
+static LIST_INITIALIZE(fbdevs);
 
-#define MAX_ANIM_LEN    8
-#define MAX_ANIMATIONS  4
-#define MAX_IMGMAPS     256  /**< Maximum number of saved image maps */
-#define MAX_VIEWPORTS   128  /**< Viewport is a rectangular area on the screen */
-
-/** Function to render a pixel from a RGB value. */
-typedef void (*rgb_conv_t)(void *, uint32_t);
-
-/** Function to render a bit mask. */
-typedef void (*mask_conv_t)(void *, bool);
-
-/** Function to draw a glyph. */
-typedef void (*dg_t)(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
-
-struct {
-	uint8_t *fb_addr;
+fbdev_t *fbdev_register(fbdev_ops_t *ops, void *data)
+{
+	sysarg_t index = 0;
 	
-	unsigned int xres;
-	unsigned int yres;
+	if (!list_empty(&fbdevs)) {
+		list_foreach(fbdevs, link) {
+			fbdev_t *dev = list_get_instance(link, fbdev_t, link);
+			if (index <= dev->index)
+				index = dev->index + 1;
+		}
+	}
 	
-	unsigned int scanline;
-	unsigned int glyphscanline;
+	fbdev_t *dev = (fbdev_t *) malloc(sizeof(fbdev_t));
+	if (dev == NULL)
+		return NULL;
 	
-	unsigned int pixelbytes;
-	unsigned int glyphbytes;
+	link_initialize(&dev->link);
+	atomic_set(&dev->refcnt, 0);
+	dev->claimed = false;
+	dev->index = index;
+	list_initialize(&dev->vps);
+	list_initialize(&dev->frontbufs);
+	list_initialize(&dev->imagemaps);
+	list_initialize(&dev->sequences);
 	
-	/** Pre-rendered mask for rendering glyphs. Specific for the visual. */
-	uint8_t *glyphs;
+	dev->ops = *ops;
+	dev->data = data;
 	
-	rgb_conv_t rgb_conv;
-	mask_conv_t mask_conv;
-} screen;
-
-/** Backbuffer character cell. */
-typedef struct {
-	uint32_t glyph;
-	uint32_t fg_color;
-	uint32_t bg_color;
-} bb_cell_t;
-
-typedef struct {
-	bool initialized;
-	unsigned int x;
-	unsigned int y;
-	unsigned int width;
-	unsigned int height;
+	char node[LOC_NAME_MAXLEN + 1];
+	snprintf(node, LOC_NAME_MAXLEN, "%s/%s%" PRIun, NAMESPACE, NAME,
+	    index);
 	
-	/* Text support in window */
-	unsigned int cols;
-	unsigned int rows;
+	if (loc_service_register(node, &dev->dsid) != EOK) {
+		printf("%s: Unable to register device %s\n", NAME, node);
+		free(dev);
+		return NULL;
+	}
 	
-	/*
-	 * Style and glyphs for text printing
-	 */
+	list_append(&dev->link, &fbdevs);
+	return dev;
+}
+
+static void fbsrv_yield(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.yield);
 	
-	/** Current attributes. */
-	attr_rgb_t attr;
+	if (dev->claimed) {
+		int rc = dev->ops.yield(dev);
+		if (rc == EOK)
+			dev->claimed = false;
+		
+		async_answer_0(iid, rc);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_claim(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.claim);
 	
-	uint8_t *bgpixel;
+	if (!dev->claimed) {
+		int rc = dev->ops.claim(dev);
+		if (rc == EOK)
+			dev->claimed = true;
+		
+		async_answer_0(iid, rc);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_get_resolution(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.get_resolution);
 	
-	/**
-	 * Glyph drawing function for this viewport.  Different viewports
-	 * might use different drawing functions depending on whether their
-	 * scanlines are aligned on a word boundary.
-	 */
-	dg_t dglyph;
+	sysarg_t width;
+	sysarg_t height;
+	int rc = dev->ops.get_resolution(dev, &width, &height);
 	
-	/* Auto-cursor position */
-	bool cursor_active;
-	unsigned int cur_col;
-	unsigned int cur_row;
-	bool cursor_shown;
+	async_answer_2(iid, rc, width, height);
+}
+
+static void fbsrv_pointer_update(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	if ((dev->claimed) && (dev->ops.pointer_update)) {
+		dev->ops.pointer_update(dev, IPC_GET_ARG1(*icall),
+		    IPC_GET_ARG2(*icall), IPC_GET_ARG3(*icall));
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOTSUP);
+}
+
+static fbvp_t *resolve_vp(fbdev_t *dev, sysarg_t handle, ipc_callid_t iid)
+{
+	fbvp_t *vp = NULL;
+	list_foreach(dev->vps, link) {
+		fbvp_t *cur = list_get_instance(link, fbvp_t, link);
+		if (cur == (fbvp_t *) handle) {
+			vp = cur;
+			break;
+		}
+	}
 	
-	/* Back buffer */
-	bb_cell_t *backbuf;
-	unsigned int bbsize;
-} viewport_t;
-
-typedef struct {
-	bool initialized;
-	bool enabled;
-	unsigned int vp;
+	if (vp == NULL) {
+		async_answer_0(iid, ENOENT);
+		return NULL;
+	}
 	
-	unsigned int pos;
-	unsigned int animlen;
-	unsigned int imgmaps[MAX_ANIM_LEN];
-} animation_t;
+	return vp;
+}
 
-static animation_t animations[MAX_ANIMATIONS];
-static bool anims_enabled;
-
-static imgmap_t *imgmaps[MAX_IMGMAPS];
-static viewport_t viewports[128];
-
-static bool client_connected = false;  /**< Allow only 1 connection */
-
-static uint32_t color_table[16] = {
-	[COLOR_BLACK]       = 0x000000,
-	[COLOR_BLUE]        = 0x0000f0,
-	[COLOR_GREEN]       = 0x00f000,
-	[COLOR_CYAN]        = 0x00f0f0,
-	[COLOR_RED]         = 0xf00000,
-	[COLOR_MAGENTA]     = 0xf000f0,
-	[COLOR_YELLOW]      = 0xf0f000,
-	[COLOR_WHITE]       = 0xf0f0f0,
+static frontbuf_t *resolve_frontbuf(fbdev_t *dev, sysarg_t handle, ipc_callid_t iid)
+{
+	frontbuf_t *frontbuf = NULL;
+	list_foreach(dev->frontbufs, link) {
+		frontbuf_t *cur = list_get_instance(link, frontbuf_t, link);
+		if (cur == (frontbuf_t *) handle) {
+			frontbuf = cur;
+			break;
+		}
+	}
 	
-	[8 + COLOR_BLACK]   = 0x000000,
-	[8 + COLOR_BLUE]    = 0x0000ff,
-	[8 + COLOR_GREEN]   = 0x00ff00,
-	[8 + COLOR_CYAN]    = 0x00ffff,
-	[8 + COLOR_RED]     = 0xff0000,
-	[8 + COLOR_MAGENTA] = 0xff00ff,
-	[8 + COLOR_YELLOW]  = 0xffff00,
-	[8 + COLOR_WHITE]   = 0xffffff,
-};
-
-static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a);
-static int rgb_from_style(attr_rgb_t *rgb, int style);
-static int rgb_from_idx(attr_rgb_t *rgb, sysarg_t fg_color,
-    sysarg_t bg_color, sysarg_t flags);
-
-static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
-    sysarg_t bg_color, sysarg_t attr);
-
-static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
-static void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
-
-static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
-    unsigned int row);
-
-#define RED(x, bits)                 (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
-#define GREEN(x, bits)               (((x) >> (8 + 8 - (bits))) & ((1 << (bits)) - 1))
-#define BLUE(x, bits)                (((x) >> (8 - (bits))) & ((1 << (bits)) - 1))
-
-#define COL2X(col)                   ((col) * FONT_WIDTH)
-#define ROW2Y(row)                   ((row) * FONT_SCANLINES)
-
-#define X2COL(x)                     ((x) / FONT_WIDTH)
-#define Y2ROW(y)                     ((y) / FONT_SCANLINES)
-
-#define FB_POS(x, y)                 ((y) * screen.scanline + (x) * screen.pixelbytes)
-#define BB_POS(vport, col, row)      ((row) * vport->cols + (col))
-#define GLYPH_POS(glyph, y, cursor)  (((glyph) + (cursor) * FONT_GLYPHS) * screen.glyphbytes + (y) * screen.glyphscanline)
-
-/*
- * RGB conversion and mask functions.
- *
- * These functions write an RGB value to some memory in some predefined format.
- * The naming convention corresponds to the format created by these functions.
- * The functions use the so called network order (i.e. big endian) with respect
- * to their names.
- */
-
-static void rgb_0888(void *dst, uint32_t rgb)
-{
-	*((uint32_t *) dst) = host2uint32_t_be((0 << 24) |
-	    (RED(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | (BLUE(rgb, 8)));
-}
-
-static void bgr_0888(void *dst, uint32_t rgb)
-{
-	*((uint32_t *) dst) = host2uint32_t_be((0 << 24) |
-	    (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | (RED(rgb, 8)));
-}
-
-static void mask_0888(void *dst, bool mask)
-{
-	bgr_0888(dst, mask ? 0xffffff : 0);
-}
-
-static void rgb_8880(void *dst, uint32_t rgb)
-{
-	*((uint32_t *) dst) = host2uint32_t_be((RED(rgb, 8) << 24) |
-	    (GREEN(rgb,	8) << 16) | (BLUE(rgb, 8) << 8) | 0);
-}
-
-static void bgr_8880(void *dst, uint32_t rgb)
-{
-	*((uint32_t *) dst) = host2uint32_t_be((BLUE(rgb, 8) << 24) |
-	    (GREEN(rgb,	8) << 16) | (RED(rgb, 8) << 8) | 0);
-}
-
-static void mask_8880(void *dst, bool mask)
-{
-	bgr_8880(dst, mask ? 0xffffff : 0);
-}
-
-static void rgb_888(void *dst, uint32_t rgb)
-{
-	((uint8_t *) dst)[0] = RED(rgb, 8);
-	((uint8_t *) dst)[1] = GREEN(rgb, 8);
-	((uint8_t *) dst)[2] = BLUE(rgb, 8);
-}
-
-static void bgr_888(void *dst, uint32_t rgb)
-{
-	((uint8_t *) dst)[0] = BLUE(rgb, 8);
-	((uint8_t *) dst)[1] = GREEN(rgb, 8);
-	((uint8_t *) dst)[2] = RED(rgb, 8);
-}
-
-static void mask_888(void *dst, bool mask)
-{
-	bgr_888(dst, mask ? 0xffffff : 0);
-}
-
-static void rgb_555_be(void *dst, uint32_t rgb)
-{
-	*((uint16_t *) dst) = host2uint16_t_be(RED(rgb, 5) << 10 |
-	    GREEN(rgb, 5) << 5 | BLUE(rgb, 5));
-}
-
-static void rgb_555_le(void *dst, uint32_t rgb)
-{
-	*((uint16_t *) dst) = host2uint16_t_le(RED(rgb, 5) << 10 |
-	    GREEN(rgb, 5) << 5 | BLUE(rgb, 5));
-}
-
-static void rgb_565_be(void *dst, uint32_t rgb)
-{
-	*((uint16_t *) dst) = host2uint16_t_be(RED(rgb, 5) << 11 |
-	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
-}
-
-static void rgb_565_le(void *dst, uint32_t rgb)
-{
-	*((uint16_t *) dst) = host2uint16_t_le(RED(rgb, 5) << 11 |
-	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
-}
-
-static void mask_555(void *dst, bool mask)
-{
-	rgb_555_be(dst, mask ? 0xffffff : 0);
-}
-
-static void mask_565(void *dst, bool mask)
-{
-	rgb_565_be(dst, mask ? 0xffffff : 0);
-}
-
-static void bgr_323(void *dst, uint32_t rgb)
-{
-	*((uint8_t *) dst)
-	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
-}
-
-static void mask_323(void *dst, bool mask)
-{
-	bgr_323(dst, mask ? 0x0 : ~0x0);
-}
-
-/** Draw a filled rectangle.
- *
- * @note Need real implementation that does not access VRAM twice.
- *
- */
-static void draw_filled_rect(unsigned int x0, unsigned int y0, unsigned int x1,
-    unsigned int y1, uint32_t color)
-{
-	unsigned int x;
-	unsigned int y;
-	unsigned int copy_bytes;
+	if (frontbuf == NULL) {
+		async_answer_0(iid, ENOENT);
+		return NULL;
+	}
 	
-	uint8_t *sp;
-	uint8_t *dp;
-	uint8_t cbuf[4];
+	return frontbuf;
+}
+
+static imagemap_t *resolve_imagemap(fbdev_t *dev, sysarg_t handle, ipc_callid_t iid)
+{
+	imagemap_t *imagemap = NULL;
+	list_foreach(dev->imagemaps, link) {
+		imagemap_t *cur = list_get_instance(link, imagemap_t, link);
+		if (cur == (imagemap_t *) handle) {
+			imagemap = cur;
+			break;
+		}
+	}
 	
-	if ((y0 >= y1) || (x0 >= x1))
+	if (imagemap == NULL) {
+		async_answer_0(iid, ENOENT);
+		return NULL;
+	}
+	
+	return imagemap;
+}
+
+static sequence_t *resolve_sequence(fbdev_t *dev, sysarg_t handle, ipc_callid_t iid)
+{
+	sequence_t *sequence = NULL;
+	list_foreach(dev->sequences, link) {
+		sequence_t *cur = list_get_instance(link, sequence_t, link);
+		if (cur == (sequence_t *) handle) {
+			sequence = cur;
+			break;
+		}
+	}
+	
+	if (sequence == NULL) {
+		async_answer_0(iid, ENOENT);
+		return NULL;
+	}
+	
+	return sequence;
+}
+
+static void fbsrv_vp_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.font_metrics);
+	assert(dev->ops.vp_create);
+	
+	fbvp_t *vp = (fbvp_t *) malloc(sizeof(fbvp_t));
+	if (vp == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	link_initialize(&vp->link);
+	
+	vp->x = IPC_GET_ARG1(*icall);
+	vp->y = IPC_GET_ARG2(*icall);
+	vp->width = IPC_GET_ARG3(*icall);
+	vp->height = IPC_GET_ARG4(*icall);
+	
+	dev->ops.font_metrics(dev, vp->width, vp->height, &vp->cols, &vp->rows);
+	
+	vp->cursor_active = false;
+	vp->cursor_flash = false;
+	
+	list_initialize(&vp->sequences);
+	
+	vp->backbuf = screenbuffer_create(vp->cols, vp->rows,
+	    SCREENBUFFER_FLAG_NONE);
+	if (vp->backbuf == NULL) {
+		free(vp);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	vp->top_row = 0;
+	
+	int rc = dev->ops.vp_create(dev, vp);
+	if (rc != EOK) {
+		free(vp);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	list_append(&vp->link, &dev->vps);
+	async_answer_1(iid, EOK, (sysarg_t) vp);
+}
+
+static void fbsrv_vp_destroy(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.vp_destroy);
+	
+	fbvp_t *vp = resolve_vp(dev, IPC_GET_ARG1(*icall), iid);
+	if (vp == NULL)
 		return;
 	
-	screen.rgb_conv(cbuf, color);
-	
-	sp = &screen.fb_addr[FB_POS(x0, y0)];
-	dp = sp;
-	
-	/* Draw the first line. */
-	for (x = x0; x < x1; x++) {
-		memcpy(dp, cbuf, screen.pixelbytes);
-		dp += screen.pixelbytes;
+	if (dev->active_vp == vp) {
+		async_answer_0(iid, EPERM);
+		return;
 	}
 	
-	dp = sp + screen.scanline;
-	copy_bytes = (x1 - x0) * screen.pixelbytes;
+	dev->ops.vp_destroy(dev, vp);
 	
-	/* Draw the remaining lines by copying. */
-	for (y = y0 + 1; y < y1; y++) {
-		memcpy(dp, sp, copy_bytes);
-		dp += screen.scanline;
-	}
+	list_remove(&vp->link);
+	free(vp->backbuf);
+	free(vp);
+	
+	async_answer_0(iid, EOK);
 }
 
-/** Redraw viewport.
- *
- * @param vport Viewport to redraw
- *
- */
-static void vport_redraw(viewport_t *vport)
+static void fbsrv_frontbuf_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	unsigned int col;
-	unsigned int row;
-	
-	for (row = 0; row < vport->rows; row++) {
-		for (col = 0; col < vport->cols; col++) {
-			draw_vp_glyph(vport, false, col, row);
-		}
+	frontbuf_t *frontbuf = (frontbuf_t *) malloc(sizeof(frontbuf_t));
+	if (frontbuf == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
 	}
 	
-	if (COL2X(vport->cols) < vport->width) {
-		draw_filled_rect(
-		    vport->x + COL2X(vport->cols), vport->y,
-		    vport->x + vport->width, vport->y + vport->height,
-		    vport->attr.bg_color);
+	link_initialize(&frontbuf->link);
+	
+	ipc_callid_t callid;
+	if (!async_share_out_receive(&callid, &frontbuf->size,
+	    &frontbuf->flags)) {
+		free(frontbuf);
+		async_answer_0(iid, EINVAL);
+		return;
 	}
 	
-	if (ROW2Y(vport->rows) < vport->height) {
-		draw_filled_rect(
-		    vport->x, vport->y + ROW2Y(vport->rows),
-		    vport->x + vport->width, vport->y + vport->height,
-		    vport->attr.bg_color);
+	int rc = async_share_out_finalize(callid, &frontbuf->data);
+	if ((rc != EOK) || (frontbuf->data == (void *) -1)) {
+		free(frontbuf);
+		async_answer_0(iid, ENOMEM);
+		return;
 	}
+	
+	list_append(&frontbuf->link, &dev->frontbufs);
+	async_answer_1(iid, EOK, (sysarg_t) frontbuf);
 }
 
-static void backbuf_clear(bb_cell_t *backbuf, size_t len, uint32_t fg_color,
-    uint32_t bg_color)
+static void fbsrv_frontbuf_destroy(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	size_t i;
+	frontbuf_t *frontbuf = resolve_frontbuf(dev, IPC_GET_ARG1(*icall), iid);
+	if (frontbuf == NULL)
+		return;
 	
-	for (i = 0; i < len; i++) {
-		backbuf[i].glyph = 0;
-		backbuf[i].fg_color = fg_color;
-		backbuf[i].bg_color = bg_color;
-	}
+	list_remove(&frontbuf->link);
+	as_area_destroy(frontbuf->data);
+	free(frontbuf);
+	
+	async_answer_0(iid, EOK);
 }
 
-/** Clear viewport.
- *
- * @param vport Viewport to clear
- *
- */
-static void vport_clear(viewport_t *vport)
+static void fbsrv_imagemap_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	backbuf_clear(vport->backbuf, vport->cols * vport->rows,
-	    vport->attr.fg_color, vport->attr.bg_color);
-	vport_redraw(vport);
-}
-
-/** Scroll viewport by the specified number of lines.
- *
- * @param vport Viewport to scroll
- * @param lines Number of lines to scroll
- *
- */
-static void vport_scroll(viewport_t *vport, int lines)
-{
-	unsigned int col;
-	unsigned int row;
-	unsigned int x;
-	unsigned int y;
-	uint32_t glyph;
-	uint32_t fg_color;
-	uint32_t bg_color;
-	bb_cell_t *bbp;
-	bb_cell_t *xbp;
-	
-	/*
-	 * Redraw.
-	 */
-	
-	y = vport->y;
-	for (row = 0; row < vport->rows; row++) {
-		x = vport->x;
-		for (col = 0; col < vport->cols; col++) {
-			if (((int) row + lines >= 0) &&
-			    ((int) row + lines < (int) vport->rows)) {
-				xbp = &vport->backbuf[BB_POS(vport, col, row + lines)];
-				bbp = &vport->backbuf[BB_POS(vport, col, row)];
-				
-				glyph = xbp->glyph;
-				fg_color = xbp->fg_color;
-				bg_color = xbp->bg_color;
-				
-				if ((bbp->glyph == glyph)
-				   && (bbp->fg_color == xbp->fg_color)
-				   && (bbp->bg_color == xbp->bg_color)) {
-					x += FONT_WIDTH;
-					continue;
-				}
-			} else {
-				glyph = 0;
-				fg_color = vport->attr.fg_color;
-				bg_color = vport->attr.bg_color;
-			}
-			
-			(*vport->dglyph)(x, y, false, screen.glyphs, glyph,
-			    fg_color, bg_color);
-			x += FONT_WIDTH;
-		}
-		y += FONT_SCANLINES;
+	imagemap_t *imagemap = (imagemap_t *) malloc(sizeof(imagemap_t));
+	if (imagemap == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
 	}
 	
-	/*
-	 * Scroll backbuffer.
-	 */
+	link_initialize(&imagemap->link);
+	link_initialize(&imagemap->seq_link);
 	
-	if (lines > 0) {
-		memmove(vport->backbuf, vport->backbuf + vport->cols * lines,
-		    vport->cols * (vport->rows - lines) * sizeof(bb_cell_t));
-		backbuf_clear(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)],
-		    vport->cols * lines, vport->attr.fg_color, vport->attr.bg_color);
-	} else {
-		memmove(vport->backbuf - vport->cols * lines, vport->backbuf,
-		    vport->cols * (vport->rows + lines) * sizeof(bb_cell_t));
-		backbuf_clear(vport->backbuf, - vport->cols * lines,
-		    vport->attr.fg_color, vport->attr.bg_color);
+	ipc_callid_t callid;
+	if (!async_share_out_receive(&callid, &imagemap->size,
+	    &imagemap->flags)) {
+		free(imagemap);
+		async_answer_0(iid, EINVAL);
+		return;
 	}
+	
+	int rc = async_share_out_finalize(callid, &imagemap->data);
+	if ((rc != EOK) || (imagemap->data == (void *) -1)) {
+		free(imagemap);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	list_append(&imagemap->link, &dev->imagemaps);
+	async_answer_1(iid, EOK, (sysarg_t) imagemap);
 }
 
-/** Render glyphs
- *
- * Convert glyphs from device independent font
- * description to current visual representation.
- *
- */
-static void render_glyphs(void)
+static void fbsrv_imagemap_destroy(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	unsigned int glyph;
+	imagemap_t *imagemap = resolve_imagemap(dev, IPC_GET_ARG1(*icall), iid);
+	if (imagemap == NULL)
+		return;
 	
-	for (glyph = 0; glyph < FONT_GLYPHS; glyph++) {
-		unsigned int y;
+	list_remove(&imagemap->link);
+	list_remove(&imagemap->seq_link);
+	as_area_destroy(imagemap->data);
+	free(imagemap);
+	
+	async_answer_0(iid, EOK);
+}
+
+static void fbsrv_sequence_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	sequence_t *sequence = (sequence_t *) malloc(sizeof(sequence_t));
+	if (sequence == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	link_initialize(&sequence->link);
+	list_initialize(&sequence->imagemaps);
+	sequence->count = 0;
+	
+	list_append(&sequence->link, &dev->sequences);
+	async_answer_1(iid, EOK, (sysarg_t) sequence);
+}
+
+static void fbsrv_sequence_destroy(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	sequence_t *sequence = resolve_sequence(dev, IPC_GET_ARG1(*icall), iid);
+	if (sequence == NULL)
+		return;
+	
+	list_remove(&sequence->link);
+	free(sequence);
+	
+	async_answer_0(iid, EOK);
+}
+
+static void fbsrv_sequence_add_imagemap(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	sequence_t *sequence = resolve_sequence(dev, IPC_GET_ARG1(*icall), iid);
+	if (sequence == NULL)
+		return;
+	
+	imagemap_t *imagemap = resolve_imagemap(dev, IPC_GET_ARG2(*icall), iid);
+	if (imagemap == NULL)
+		return;
+	
+	if (list_member(&imagemap->seq_link, &sequence->imagemaps)) {
+		async_answer_0(iid, EEXISTS);
+		return;
+	}
+	
+	list_append(&imagemap->seq_link, &sequence->imagemaps);
+	sequence->count++;
+	
+	async_answer_0(iid, EOK);
+}
+
+static void fbsrv_vp_focus(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	fbvp_t *vp = resolve_vp(dev, IPC_GET_ARG1(*icall), iid);
+	if (vp == NULL)
+		return;
+	
+	if (dev->active_vp != vp)
+		dev->active_vp = vp;
+	
+	async_answer_0(iid, EOK);
+}
+
+static void fbsrv_vp_clear(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.vp_clear);
+	
+	if ((dev->claimed) && (dev->active_vp)) {
+		screenbuffer_set_cursor_visibility(dev->active_vp->backbuf, false);
+		dev->ops.vp_clear(dev, dev->active_vp);
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_get_dimensions(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	if (dev->active_vp)
+		async_answer_2(iid, EOK, dev->active_vp->cols, dev->active_vp->rows);
+	else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_get_caps(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.vp_get_caps);
+	
+	if (dev->active_vp)
+		async_answer_1(iid, EOK,
+		    (sysarg_t) dev->ops.vp_get_caps(dev, dev->active_vp));
+	else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_cursor_update(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.vp_cursor_update);
+	
+	frontbuf_t *frontbuf = resolve_frontbuf(dev, IPC_GET_ARG1(*icall), iid);
+	if (frontbuf == NULL)
+		return;
+	
+	if ((dev->claimed) && (dev->active_vp)) {
+		screenbuffer_t *screenbuf = (screenbuffer_t *) frontbuf->data;
 		
-		for (y = 0; y < FONT_SCANLINES; y++) {
-			unsigned int x;
+		sysarg_t prev_col;
+		sysarg_t prev_row;
+		sysarg_t col;
+		sysarg_t row;
+		
+		screenbuffer_get_cursor(dev->active_vp->backbuf,
+		    &prev_col, &prev_row);
+		screenbuffer_get_cursor(screenbuf, &col, &row);
+		screenbuffer_set_cursor(dev->active_vp->backbuf, col, row);
+		
+		bool visible = screenbuffer_get_cursor_visibility(screenbuf);
+		screenbuffer_set_cursor_visibility(dev->active_vp->backbuf, visible);
+		
+		if (visible)
+			dev->active_vp->cursor_active = true;
+		
+		dev->ops.vp_cursor_update(dev, dev->active_vp, prev_col, prev_row,
+		    col, row, visible);
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_cursor_flash(fbdev_t *dev)
+{
+	if ((dev->claimed) && (dev->ops.vp_cursor_flash)) {
+		list_foreach (dev->vps, link) {
+			fbvp_t *vp = list_get_instance(link, fbvp_t, link);
 			
-			for (x = 0; x < FONT_WIDTH; x++) {
-				screen.mask_conv(&screen.glyphs[GLYPH_POS(glyph, y, false) + x * screen.pixelbytes],
-				    (fb_font[glyph][y] & (1 << (7 - x))) ? true : false);
+			if (vp->cursor_active) {
+				sysarg_t col;
+				sysarg_t row;
 				
-				screen.mask_conv(&screen.glyphs[GLYPH_POS(glyph, y, true) + x * screen.pixelbytes],
-				    (fb_font[glyph][y] & (1 << (7 - x))) ? false : true);
+				screenbuffer_get_cursor(vp->backbuf, &col, &row);
+				vp->cursor_flash = !vp->cursor_flash;
+				dev->ops.vp_cursor_flash(dev, vp, col, row);
 			}
 		}
 	}
 }
 
-/** Create new viewport
- *
- * @param x      Origin of the viewport (x).
- * @param y      Origin of the viewport (y).
- * @param width  Width of the viewport.
- * @param height Height of the viewport.
- *
- * @return New viewport number.
- *
- */
-static int vport_create(unsigned int x, unsigned int y,
-    unsigned int width, unsigned int height)
+static void fbsrv_sequences_update(fbdev_t *dev)
 {
-	unsigned int i;
-	
-	for (i = 0; i < MAX_VIEWPORTS; i++) {
-		if (!viewports[i].initialized)
-			break;
+	if ((dev->claimed) && (dev->ops.vp_imgmap_damage)) {
+		list_foreach (dev->vps, vp_link) {
+			fbvp_t *vp = list_get_instance(vp_link, fbvp_t, link);
+			
+			list_foreach (vp->sequences, seq_vp_link) {
+				sequence_vp_t *seq_vp =
+				    list_get_instance(seq_vp_link, sequence_vp_t, link);
+				
+				seq_vp->current++;
+				if (seq_vp->current >= seq_vp->seq->count)
+					seq_vp->current = 0;
+				
+				link_t *link =
+				    list_nth(&seq_vp->seq->imagemaps, seq_vp->current);
+				if (link != NULL) {
+					imagemap_t *imagemap =
+					    list_get_instance(link, imagemap_t, seq_link);
+					
+					imgmap_t *imgmap = (imgmap_t *) imagemap->data;
+					sysarg_t width;
+					sysarg_t height;
+					
+					imgmap_get_resolution(imgmap, &width, &height);
+					dev->ops.vp_imgmap_damage(dev, vp, imgmap,
+					    0, 0, width, height);
+				}
+			}
+		}
 	}
-	
-	if (i == MAX_VIEWPORTS)
-		return ELIMIT;
-	
-	unsigned int cols = width / FONT_WIDTH;
-	unsigned int rows = height / FONT_SCANLINES;
-	unsigned int bbsize = cols * rows * sizeof(bb_cell_t);
-	unsigned int word_size = sizeof(unsigned long);
-	
-	bb_cell_t *backbuf = (bb_cell_t *) malloc(bbsize);
-	if (!backbuf)
-		return ENOMEM;
-	
-	uint8_t *bgpixel = (uint8_t *) malloc(screen.pixelbytes);
-	if (!bgpixel) {
-		free(backbuf);
-		return ENOMEM;
-	}
-	
-	backbuf_clear(backbuf, cols * rows, DEFAULT_FGCOLOR, DEFAULT_BGCOLOR);
-	memset(bgpixel, 0, screen.pixelbytes);
-	
-	viewports[i].x = x;
-	viewports[i].y = y;
-	viewports[i].width = width;
-	viewports[i].height = height;
-	
-	viewports[i].cols = cols;
-	viewports[i].rows = rows;
-	
-	viewports[i].attr.bg_color = DEFAULT_BGCOLOR;
-	viewports[i].attr.fg_color = DEFAULT_FGCOLOR;
-	
-	viewports[i].bgpixel = bgpixel;
-	
-	/*
-	 * Conditions necessary to select aligned version:
-	 *  - word size is divisible by pixelbytes
-	 *  - cell scanline size is divisible by word size
-	 *  - cell scanlines are word-aligned
-	 *
-	 */
-	if (((word_size % screen.pixelbytes) == 0)
-	    && ((FONT_WIDTH * screen.pixelbytes) % word_size == 0)
-	    && ((x * screen.pixelbytes) % word_size == 0)
-	    && (screen.scanline % word_size == 0)) {
-		viewports[i].dglyph = draw_glyph_aligned;
-	} else {
-		viewports[i].dglyph = draw_glyph_fallback;
-	}
-	
-	viewports[i].cur_col = 0;
-	viewports[i].cur_row = 0;
-	viewports[i].cursor_active = false;
-	viewports[i].cursor_shown = false;
-	
-	viewports[i].bbsize = bbsize;
-	viewports[i].backbuf = backbuf;
-	
-	viewports[i].initialized = true;
-	
-	screen.rgb_conv(viewports[i].bgpixel, viewports[i].attr.bg_color);
-	
-	return i;
 }
 
-
-/** Initialize framebuffer as a chardev output device
- *
- * @param addr   Address of the framebuffer
- * @param xres   Screen width in pixels
- * @param yres   Screen height in pixels
- * @param visual Bits per pixel (8, 16, 24, 32)
- * @param scan   Bytes per one scanline
- *
- */
-static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
-    unsigned int scan, unsigned int visual)
+static void fbsrv_vp_set_style(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	switch (visual) {
-	case VISUAL_INDIRECT_8:
-		screen.rgb_conv = bgr_323;
-		screen.mask_conv = mask_323;
-		screen.pixelbytes = 1;
-		break;
-	case VISUAL_RGB_5_5_5_LE:
-		screen.rgb_conv = rgb_555_le;
-		screen.mask_conv = mask_555;
-		screen.pixelbytes = 2;
-		break;
-	case VISUAL_RGB_5_5_5_BE:
-		screen.rgb_conv = rgb_555_be;
-		screen.mask_conv = mask_555;
-		screen.pixelbytes = 2;
-		break;
-	case VISUAL_RGB_5_6_5_LE:
-		screen.rgb_conv = rgb_565_le;
-		screen.mask_conv = mask_565;
-		screen.pixelbytes = 2;
-		break;
-	case VISUAL_RGB_5_6_5_BE:
-		screen.rgb_conv = rgb_565_be;
-		screen.mask_conv = mask_565;
-		screen.pixelbytes = 2;
-		break;
-	case VISUAL_RGB_8_8_8:
-		screen.rgb_conv = rgb_888;
-		screen.mask_conv = mask_888;
-		screen.pixelbytes = 3;
-		break;
-	case VISUAL_BGR_8_8_8:
-		screen.rgb_conv = bgr_888;
-		screen.mask_conv = mask_888;
-		screen.pixelbytes = 3;
-		break;
-	case VISUAL_RGB_8_8_8_0:
-		screen.rgb_conv = rgb_8880;
-		screen.mask_conv = mask_8880;
-		screen.pixelbytes = 4;
-		break;
-	case VISUAL_RGB_0_8_8_8:
-		screen.rgb_conv = rgb_0888;
-		screen.mask_conv = mask_0888;
-		screen.pixelbytes = 4;
-		break;
-	case VISUAL_BGR_0_8_8_8:
-		screen.rgb_conv = bgr_0888;
-		screen.mask_conv = mask_0888;
-		screen.pixelbytes = 4;
-		break;
-	case VISUAL_BGR_8_8_8_0:
-		screen.rgb_conv = bgr_8880;
-		screen.mask_conv = mask_8880;
-		screen.pixelbytes = 4;
-		break;
-	default:
+	if (dev->active_vp) {
+		dev->active_vp->attrs.type = CHAR_ATTR_STYLE;
+		dev->active_vp->attrs.val.style =
+		    (console_style_t) IPC_GET_ARG1(*icall);
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_set_color(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	if (dev->active_vp) {
+		dev->active_vp->attrs.type = CHAR_ATTR_INDEX;
+		dev->active_vp->attrs.val.index.bgcolor =
+		    (console_color_t) IPC_GET_ARG1(*icall);
+		dev->active_vp->attrs.val.index.fgcolor =
+		    (console_color_t) IPC_GET_ARG2(*icall);
+		dev->active_vp->attrs.val.index.attr =
+		    (console_color_attr_t) IPC_GET_ARG3(*icall);
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_set_rgb_color(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	if (dev->active_vp) {
+		dev->active_vp->attrs.type = CHAR_ATTR_RGB;
+		dev->active_vp->attrs.val.rgb.bgcolor = IPC_GET_ARG1(*icall);
+		dev->active_vp->attrs.val.rgb.fgcolor = IPC_GET_ARG2(*icall);
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_putchar(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	assert(dev->ops.vp_char_update);
+	
+	if ((dev->claimed) && (dev->active_vp)) {
+		charfield_t *field = screenbuffer_field_at(dev->active_vp->backbuf,
+		    IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
+		
+		field->ch = IPC_GET_ARG3(*icall);
+		
+		dev->ops.vp_char_update(dev, dev->active_vp, IPC_GET_ARG1(*icall),
+		    IPC_GET_ARG2(*icall));
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static bool fbsrv_vp_update_scroll(fbdev_t *dev, fbvp_t *vp,
+    screenbuffer_t *frontbuf)
+{
+	assert(dev->ops.vp_char_update);
+	
+	sysarg_t top_row = screenbuffer_get_top_row(frontbuf);
+	
+	if (vp->top_row == top_row)
 		return false;
+	
+	vp->top_row = top_row;
+	
+	for (sysarg_t y = 0; y < vp->rows; y++) {
+		for (sysarg_t x = 0; x < vp->cols; x++) {
+			charfield_t *front_field =
+			    screenbuffer_field_at(frontbuf, x, y);
+			charfield_t *back_field =
+			    screenbuffer_field_at(vp->backbuf, x, y);
+			bool update = false;
+			
+			if (front_field->ch != back_field->ch) {
+				back_field->ch = front_field->ch;
+				update = true;
+			}
+			
+			if (!attrs_same(front_field->attrs, back_field->attrs)) {
+				back_field->attrs = front_field->attrs;
+				update = true;
+			}
+			
+			front_field->flags &= ~CHAR_FLAG_DIRTY;
+			
+			if (update)
+				dev->ops.vp_char_update(dev, vp, x, y);
+		}
 	}
-	
-	screen.fb_addr = (unsigned char *) addr;
-	screen.xres = xres;
-	screen.yres = yres;
-	screen.scanline = scan;
-	
-	screen.glyphscanline = FONT_WIDTH * screen.pixelbytes;
-	screen.glyphbytes = screen.glyphscanline * FONT_SCANLINES;
-	
-	size_t glyphsize = 2 * FONT_GLYPHS * screen.glyphbytes;
-	uint8_t *glyphs = (uint8_t *) malloc(glyphsize);
-	if (!glyphs)
-		return false;
-	
-	memset(glyphs, 0, glyphsize);
-	screen.glyphs = glyphs;
-	
-	render_glyphs();
-	
-	/* Create first viewport */
-	vport_create(0, 0, xres, yres);
 	
 	return true;
 }
 
-
-/** Draw a glyph, takes advantage of alignment.
- *
- * This version can only be used if the following conditions are met:
- *
- *   - word size is divisible by pixelbytes
- *   - cell scanline size is divisible by word size
- *   - cell scanlines are word-aligned
- *
- * It makes use of the pre-rendered mask to process (possibly) several
- * pixels at once (word size / pixelbytes pixels at a time are processed)
- * making it very fast. Most notably this version is not applicable at 24 bits
- * per pixel.
- *
- * @param x        x coordinate of top-left corner on screen.
- * @param y        y coordinate of top-left corner on screen.
- * @param cursor   Draw glyph with cursor
- * @param glyphs   Pointer to font bitmap.
- * @param glyph    Code of the glyph to draw.
- * @param fg_color Foreground color.
- * @param bg_color Backgroudn color.
- *
- */
-static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color)
+static void fbsrv_vp_update(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	unsigned int i;
-	unsigned int yd;
-	unsigned long fg_buf;
-	unsigned long bg_buf;
-	unsigned long mask;
+	assert(dev->ops.vp_char_update);
 	
-	/*
-	 * Prepare a pair of words, one filled with foreground-color
-	 * pattern and the other filled with background-color pattern.
-	 */
-	for (i = 0; i < sizeof(unsigned long) / screen.pixelbytes; i++) {
-		screen.rgb_conv(&((uint8_t *) &fg_buf)[i * screen.pixelbytes],
-		    fg_color);
-		screen.rgb_conv(&((uint8_t *) &bg_buf)[i * screen.pixelbytes],
-		    bg_color);
-	}
-	
-	/* Pointer to the current position in the mask. */
-	unsigned long *maskp = (unsigned long *) &glyphs[GLYPH_POS(glyph, 0, cursor)];
-	
-	/* Pointer to the current position on the screen. */
-	unsigned long *dp = (unsigned long *) &screen.fb_addr[FB_POS(x, y)];
-	
-	/* Width of the character cell in words. */
-	unsigned int ww = FONT_WIDTH * screen.pixelbytes / sizeof(unsigned long);
-	
-	/* Offset to add when moving to another screen scanline. */
-	unsigned int d_add = screen.scanline - FONT_WIDTH * screen.pixelbytes;
-	
-	for (yd = 0; yd < FONT_SCANLINES; yd++) {
-		/*
-		 * Now process the cell scanline, combining foreground
-		 * and background color patters using the pre-rendered mask.
-		 */
-		for (i = 0; i < ww; i++) {
-			mask = *maskp++;
-			*dp++ = (fg_buf & mask) | (bg_buf & ~mask);
-		}
-		
-		/* Move to the beginning of the next scanline of the cell. */
-		dp = (unsigned long *) ((uint8_t *) dp + d_add);
-	}
-}
-
-/** Draw a glyph, fallback version.
- *
- * This version does not make use of the pre-rendered mask, it uses
- * the font bitmap directly. It works always, but it is slower.
- *
- * @param x        x coordinate of top-left corner on screen.
- * @param y        y coordinate of top-left corner on screen.
- * @param cursor   Draw glyph with cursor
- * @param glyphs   Pointer to font bitmap.
- * @param glyph    Code of the glyph to draw.
- * @param fg_color Foreground color.
- * @param bg_color Backgroudn color.
- *
- */
-void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color)
-{
-	unsigned int i;
-	unsigned int j;
-	unsigned int yd;
-	uint8_t fg_buf[4];
-	uint8_t bg_buf[4];
-	uint8_t *sp;
-	uint8_t b;
-	
-	/* Pre-render 1x the foreground and background color pixels. */
-	if (cursor) {
-		screen.rgb_conv(fg_buf, bg_color);
-		screen.rgb_conv(bg_buf, fg_color);
-	} else {
-		screen.rgb_conv(fg_buf, fg_color);
-		screen.rgb_conv(bg_buf, bg_color);
-	}
-	
-	/* Pointer to the current position on the screen. */
-	uint8_t *dp = (uint8_t *) &screen.fb_addr[FB_POS(x, y)];
-	
-	/* Offset to add when moving to another screen scanline. */
-	unsigned int d_add = screen.scanline - FONT_WIDTH * screen.pixelbytes;
-	
-	for (yd = 0; yd < FONT_SCANLINES; yd++) {
-		/* Byte containing bits of the glyph scanline. */
-		b = fb_font[glyph][yd];
-		
-		for (i = 0; i < FONT_WIDTH; i++) {
-			/* Choose color based on the current bit. */
-			sp = (b & 0x80) ? fg_buf : bg_buf;
-			
-			/* Copy the pixel. */
-			for (j = 0; j < screen.pixelbytes; j++) {
-				*dp++ = *sp++;
-			}
-			
-			/* Move to the next bit. */
-			b = b << 1;
-		}
-		
-		/* Move to the beginning of the next scanline of the cell. */
-		dp += d_add;
-	}
-}
-
-/** Draw glyph at specified position in viewport.
- *
- * @param vport  Viewport identification
- * @param cursor Draw glyph with cursor
- * @param col    Screen position relative to viewport
- * @param row    Screen position relative to viewport
- *
- */
-static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
-    unsigned int row)
-{
-	unsigned int x = vport->x + COL2X(col);
-	unsigned int y = vport->y + ROW2Y(row);
-	
-	uint32_t glyph = vport->backbuf[BB_POS(vport, col, row)].glyph;
-	uint32_t fg_color = vport->backbuf[BB_POS(vport, col, row)].fg_color;
-	uint32_t bg_color = vport->backbuf[BB_POS(vport, col, row)].bg_color;
-	
-	(*vport->dglyph)(x, y, cursor, screen.glyphs, glyph,
-	    fg_color, bg_color);
-}
-
-/** Hide cursor if it is shown
- *
- */
-static void cursor_hide(viewport_t *vport)
-{
-	if ((vport->cursor_active) && (vport->cursor_shown)) {
-		draw_vp_glyph(vport, false, vport->cur_col, vport->cur_row);
-		vport->cursor_shown = false;
-	}
-}
-
-/** Show cursor if cursor showing is enabled
- *
- */
-static void cursor_show(viewport_t *vport)
-{
-	/* Do not check for cursor_shown */
-	if (vport->cursor_active) {
-		draw_vp_glyph(vport, true, vport->cur_col, vport->cur_row);
-		vport->cursor_shown = true;
-	}
-}
-
-/** Invert cursor, if it is enabled
- *
- */
-static void cursor_blink(viewport_t *vport)
-{
-	if (vport->cursor_shown)
-		cursor_hide(vport);
-	else
-		cursor_show(vport);
-}
-
-/** Draw character at given position relative to viewport
- *
- * @param vport  Viewport identification
- * @param c      Character to draw
- * @param col    Screen position relative to viewport
- * @param row    Screen position relative to viewport
- *
- */
-static void draw_char(viewport_t *vport, wchar_t c, unsigned int col, unsigned int row)
-{
-	bb_cell_t *bbp;
-	
-	/* Do not hide cursor if we are going to overwrite it */
-	if ((vport->cursor_active) && (vport->cursor_shown) &&
-	    ((vport->cur_col != col) || (vport->cur_row != row)))
-		cursor_hide(vport);
-	
-	bbp = &vport->backbuf[BB_POS(vport, col, row)];
-	bbp->glyph = fb_font_glyph(c);
-	bbp->fg_color = vport->attr.fg_color;
-	bbp->bg_color = vport->attr.bg_color;
-	
-	draw_vp_glyph(vport, false, col, row);
-	
-	vport->cur_col = col;
-	vport->cur_row = row;
-	
-	vport->cur_col++;
-	if (vport->cur_col >= vport->cols) {
-		vport->cur_col = 0;
-		vport->cur_row++;
-		if (vport->cur_row >= vport->rows)
-			vport->cur_row--;
-	}
-	
-	cursor_show(vport);
-}
-
-/** Draw text data to viewport.
- *
- * @param vport Viewport id
- * @param data  Text data.
- * @param x     Leftmost column of the area.
- * @param y     Topmost row of the area.
- * @param w     Number of rows.
- * @param h     Number of columns.
- *
- */
-static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
-    unsigned int y, unsigned int w, unsigned int h)
-{
-	unsigned int i;
-	unsigned int j;
-	bb_cell_t *bbp;
-	attrs_t *a;
-	
-	for (j = 0; j < h; j++) {
-		for (i = 0; i < w; i++) {
-			unsigned int col = x + i;
-			unsigned int row = y + j;
-			
-			bbp = &vport->backbuf[BB_POS(vport, col, row)];
-			
-			a = &data[j * w + i].attrs;
-			
-			attr_rgb_t rgb;
-			rgb.fg_color = 0;
-			rgb.bg_color = 0;
-			rgb_from_attr(&rgb, a);
-			
-			bbp->glyph = fb_font_glyph(data[j * w + i].character);
-			bbp->fg_color = rgb.fg_color;
-			bbp->bg_color = rgb.bg_color;
-			
-			draw_vp_glyph(vport, false, col, row);
-		}
-	}
-	cursor_show(vport);
-}
-
-static void putpixel(viewport_t *vport, unsigned int x, unsigned int y,
-    uint32_t color)
-{
-	unsigned int dx = vport->x + x;
-	unsigned int dy = vport->y + y;
-	
-	screen.rgb_conv(&screen.fb_addr[FB_POS(dx, dy)], color);
-}
-
-/** Draw image map
- *
- * @param[in] img       Image map.
- * @param[in] sx        Coordinate of upper left corner.
- * @param[in] sy        Coordinate of upper left corner.
- * @param[in] maxwidth  Maximum allowed width for picture.
- * @param[in] maxheight Maximum allowed height for picture.
- * @param[in] vport     Viewport.
- *
- * @return EOK on success.
- *
- */
-static int imgmap_draw(imgmap_t *img, unsigned int sx, unsigned int sy,
-    unsigned int maxwidth, unsigned int maxheight, void *vport)
-{
-	if (img->visual != VISUAL_BGR_8_8_8)
-		return EINVAL;
-	
-	uint8_t *data = (uint8_t *) img->data;
-	
-	for (sysarg_t y = 0; y < img->height; y++) {
-		for (sysarg_t x = 0; x < img->width; x++) {
-			if ((x > maxwidth) || (y > maxheight)) {
-				data += 3;
-				continue;
-			}
-			
-			uint32_t color = (data[2] << 16) + (data[1] << 8) + data[0];
-			
-			putpixel(vport, sx + x, sy + y, color);
-			data += 3;
-		}
-	}
-	
-	return EOK;
-}
-
-/** Return first free image map
- *
- */
-static int find_free_imgmap(void)
-{
-	unsigned int i;
-	
-	for (i = 0; i < MAX_IMGMAPS; i++)
-		if (!imgmaps[i])
-			return i;
-	
-	return -1;
-}
-
-/** Create a new image map and return appropriate ID
- *
- */
-static int shm2imgmap(imgmap_t *shm, size_t size)
-{
-	int im = find_free_imgmap();
-	if (im == -1)
-		return ELIMIT;
-	
-	imgmap_t *imap = malloc(size);
-	if (!imap)
-		return ENOMEM;
-	
-	memcpy(imap, shm, size);
-	imgmaps[im] = imap;
-	return im;
-}
-
-/** Handle shared memory communication calls
- *
- * Protocol for drawing image maps:
- * - FB_PREPARE_SHM(client shm identification)
- * - IPC_M_AS_AREA_SEND
- * - FB_DRAW_IMGMAP(startx, starty)
- * - FB_DROP_SHM
- *
- * Protocol for text drawing
- * - IPC_M_AS_AREA_SEND
- * - FB_DRAW_TEXT_DATA
- *
- * @param callid Callid of the current call
- * @param call   Current call data
- * @param vp     Active viewport
- *
- * @return false if the call was not handled byt this function, true otherwise
- *
- * Note: this function is not thread-safe, you would have
- * to redefine static variables with fibril_local.
- *
- */
-static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
-{
-	static keyfield_t *interbuffer = NULL;
-	static size_t intersize = 0;
-	
-	static imgmap_t *shm = NULL;
-	static sysarg_t shm_id = 0;
-	static size_t shm_size;
-	
-	bool handled = true;
-	int retval = EOK;
-	viewport_t *vport = &viewports[vp];
-	unsigned int x;
-	unsigned int y;
-	unsigned int w;
-	unsigned int h;
-	
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_SHARE_OUT:
-		/* We accept one area for data interchange */
-		if (IPC_GET_ARG1(*call) == shm_id) {
-			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
-			shm_size = IPC_GET_ARG2(*call);
-			if (async_answer_1(callid, EOK, (sysarg_t) dest)) {
-				shm_id = 0;
-				return false;
-			}
-			
-			shm = dest;
-			return true;
-		} else {
-			intersize = IPC_GET_ARG2(*call);
-			receive_comm_area(callid, call, (void *) &interbuffer);
-		}
-		return true;
-	case FB_PREPARE_SHM:
-		if (shm_id)
-			retval = EBUSY;
-		else
-			shm_id = IPC_GET_ARG1(*call);
-		break;
-	case FB_DROP_SHM:
-		if (shm) {
-			as_area_destroy(shm);
-			shm = NULL;
-		}
-		shm_id = 0;
-		break;
-	case FB_SHM2IMGMAP:
-		if (!shm) {
-			retval = EINVAL;
-			break;
-		}
-		retval = shm2imgmap(shm, shm_size);
-		break;
-	case FB_DRAW_IMGMAP:
-		if (!shm) {
-			retval = EINVAL;
-			break;
-		}
-		
-		x = IPC_GET_ARG1(*call);
-		y = IPC_GET_ARG2(*call);
-		
-		if ((x > vport->width) || (y > vport->height)) {
-			retval = EINVAL;
-			break;
-		}
-		
-		imgmap_draw(shm, IPC_GET_ARG1(*call), IPC_GET_ARG2(*call),
-		    vport->width - x, vport->height - y, vport);
-		break;
-	case FB_DRAW_TEXT_DATA:
-		x = IPC_GET_ARG1(*call);
-		y = IPC_GET_ARG2(*call);
-		w = IPC_GET_ARG3(*call);
-		h = IPC_GET_ARG4(*call);
-		if (!interbuffer) {
-			retval = EINVAL;
-			break;
-		}
-		if (x + w > vport->cols || y + h > vport->rows) {
-			retval = EINVAL;
-			break;
-		}
-		if (intersize < w * h * sizeof(*interbuffer)) {
-			retval = EINVAL;
-			break;
-		}
-		draw_text_data(vport, interbuffer, x, y, w, h);
-		break;
-	default:
-		handled = false;
-	}
-	
-	if (handled)
-		async_answer_0(callid, retval);
-	
-	return handled;
-}
-
-static void copy_vp_to_imgmap(viewport_t *vport, imgmap_t *imap)
-{
-	unsigned int width = vport->width;
-	unsigned int height = vport->height;
-	
-	if (width + vport->x > screen.xres)
-		width = screen.xres - vport->x;
-	
-	if (height + vport->y > screen.yres)
-		height = screen.yres - vport->y;
-	
-	unsigned int realwidth = imap->width <= width ? imap->width : width;
-	unsigned int realheight = imap->height <= height ? imap->height : height;
-	
-	unsigned int srcrowsize = vport->width * screen.pixelbytes;
-	unsigned int realrowsize = realwidth * screen.pixelbytes;
-	
-	unsigned int y;
-	for (y = 0; y < realheight; y++) {
-		unsigned int tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
-		memcpy(imap->data + srcrowsize * y, screen.fb_addr + tmp, realrowsize);
-	}
-}
-
-/** Save viewport to image map
- *
- */
-static int save_vp_to_imgmap(viewport_t *vport)
-{
-	int im = find_free_imgmap();
-	if (im == -1)
-		return ELIMIT;
-	
-	size_t size = screen.pixelbytes * vport->width * vport->height;
-	imgmap_t *imap = malloc(sizeof(imgmap_t) + size);
-	if (!imap)
-		return ENOMEM;
-	
-	imap->size = sizeof(imgmap_t) + size;
-	imap->width = vport->width;
-	imap->height = vport->height;
-	imap->visual = (visual_t) -1;
-	
-	copy_vp_to_imgmap(vport, imap);
-	imgmaps[im] = imap;
-	return im;
-}
-
-/** Draw image map to screen
- *
- * @param vp Viewport to draw to
- * @param im Image map identifier
- *
- */
-static int draw_imgmap(int vp, int im)
-{
-	imgmap_t *imap = imgmaps[im];
-	if (!imap)
-		return EINVAL;
-	
-	viewport_t *vport = &viewports[vp];
-	
-	unsigned int width = vport->width;
-	unsigned int height = vport->height;
-	
-	if (width + vport->x > screen.xres)
-		width = screen.xres - vport->x;
-	
-	if (height + vport->y > screen.yres)
-		height = screen.yres - vport->y;
-	
-	unsigned int realwidth = imap->width <= width ? imap->width : width;
-	unsigned int realheight = imap->height <= height ? imap->height : height;
-	
-	if (imap->visual == (visual_t) -1) {
-		unsigned int srcrowsize = vport->width * screen.pixelbytes;
-		unsigned int realrowsize = realwidth * screen.pixelbytes;
-		
-		unsigned int y;
-		for (y = 0; y < realheight; y++) {
-			unsigned int tmp = (vport->y + y) * screen.scanline + vport->x * screen.pixelbytes;
-			memcpy(screen.fb_addr + tmp, imap->data + y * srcrowsize, realrowsize);
-		}
-	} else
-		imgmap_draw(imap, 0, 0, realwidth, realheight, vport);
-	
-	return EOK;
-}
-
-/** Tick animation one step forward
- *
- */
-static void anims_tick(void)
-{
-	unsigned int i;
-	static int counts = 0;
-	
-	/* Limit redrawing */
-	counts = (counts + 1) % 8;
-	if (counts)
+	frontbuf_t *frontbuf = resolve_frontbuf(dev, IPC_GET_ARG1(*icall), iid);
+	if (frontbuf == NULL)
 		return;
 	
-	for (i = 0; i < MAX_ANIMATIONS; i++) {
-		if ((!animations[i].animlen) || (!animations[i].initialized) ||
-		    (!animations[i].enabled))
-			continue;
+	if ((dev->claimed) && (dev->active_vp)) {
+		fbvp_t *vp = dev->active_vp;
+		screenbuffer_t *screenbuf = (screenbuffer_t *) frontbuf->data;
 		
-		draw_imgmap(animations[i].vp, animations[i].imgmaps[animations[i].pos]);
-		animations[i].pos = (animations[i].pos + 1) % animations[i].animlen;
-	}
-}
-
-
-static unsigned int pointer_x;
-static unsigned int pointer_y;
-static bool pointer_shown, pointer_enabled;
-static int pointer_vport = -1;
-static int pointer_imgmap = -1;
-
-
-static void mouse_show(void)
-{
-	int i, j;
-	int visibility;
-	int color;
-	int bytepos;
-	
-	if ((pointer_shown) || (!pointer_enabled))
-		return;
-	
-	/* Save image under the pointer. */
-	if (pointer_vport == -1) {
-		pointer_vport = vport_create(pointer_x, pointer_y, pointer_width, pointer_height);
-		if (pointer_vport < 0)
+		if (fbsrv_vp_update_scroll(dev, vp, screenbuf)) {
+			async_answer_0(iid, EOK);
 			return;
-	} else {
-		viewports[pointer_vport].x = pointer_x;
-		viewports[pointer_vport].y = pointer_y;
-	}
-	
-	if (pointer_imgmap == -1)
-		pointer_imgmap = save_vp_to_imgmap(&viewports[pointer_vport]);
-	else
-		copy_vp_to_imgmap(&viewports[pointer_vport], imgmaps[pointer_imgmap]);
-	
-	/* Draw mouse pointer. */
-	for (i = 0; i < pointer_height; i++)
-		for (j = 0; j < pointer_width; j++) {
-			bytepos = i * ((pointer_width - 1) / 8 + 1) + j / 8;
-			visibility = pointer_mask_bits[bytepos] &
-			    (1 << (j % 8));
-			if (visibility) {
-				color = pointer_bits[bytepos] &
-				    (1 << (j % 8)) ? 0 : 0xffffff;
-				if (pointer_x + j < screen.xres && pointer_y +
-				    i < screen.yres)
-					putpixel(&viewports[0], pointer_x + j,
-					    pointer_y + i, color);
+		}
+		
+		for (sysarg_t y = 0; y < vp->rows; y++) {
+			for (sysarg_t x = 0; x < vp->cols; x++) {
+				charfield_t *front_field =
+				    screenbuffer_field_at(screenbuf, x, y);
+				charfield_t *back_field =
+				    screenbuffer_field_at(vp->backbuf, x, y);
+				bool update = false;
+				
+				if ((front_field->flags & CHAR_FLAG_DIRTY) == CHAR_FLAG_DIRTY) {
+					if (front_field->ch != back_field->ch) {
+						back_field->ch = front_field->ch;
+						update = true;
+					}
+					
+					if (!attrs_same(front_field->attrs, back_field->attrs)) {
+						back_field->attrs = front_field->attrs;
+						update = true;
+					}
+					
+					front_field->flags &= ~CHAR_FLAG_DIRTY;
+				}
+				
+				if (update)
+					dev->ops.vp_char_update(dev, vp, x, y);
 			}
 		}
-	pointer_shown = 1;
+		
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
 }
 
-
-static void mouse_hide(void)
+static void fbsrv_vp_damage(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	/* Restore image under the pointer. */
-	if (pointer_shown) {
-		draw_imgmap(pointer_vport, pointer_imgmap);
-		pointer_shown = 0;
-	}
-}
-
-
-static void mouse_move(unsigned int x, unsigned int y)
-{
-	mouse_hide();
-	pointer_x = x % screen.xres;
-	pointer_y = y % screen.yres;
-	mouse_show();
-}
-
-
-static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
-{
-	bool handled = true;
-	int retval = EOK;
-	int i, nvp;
-	int newval;
+	assert(dev->ops.vp_char_update);
 	
-	switch (IPC_GET_IMETHOD(*call)) {
-	case FB_ANIM_CREATE:
-		nvp = IPC_GET_ARG1(*call);
-		if (nvp == -1)
-			nvp = vp;
-		if (nvp >= MAX_VIEWPORTS || nvp < 0 ||
-			!viewports[nvp].initialized) {
-			retval = EINVAL;
-			break;
+	frontbuf_t *frontbuf = resolve_frontbuf(dev, IPC_GET_ARG1(*icall), iid);
+	if (frontbuf == NULL)
+		return;
+	
+	if ((dev->claimed) && (dev->active_vp)) {
+		fbvp_t *vp = dev->active_vp;
+		screenbuffer_t *screenbuf = (screenbuffer_t *) frontbuf->data;
+		
+		if (fbsrv_vp_update_scroll(dev, vp, screenbuf)) {
+			async_answer_0(iid, EOK);
+			return;
 		}
-		for (i = 0; i < MAX_ANIMATIONS; i++) {
-			if (!animations[i].initialized)
-				break;
+		
+		sysarg_t col = IPC_GET_ARG2(*icall);
+		sysarg_t row = IPC_GET_ARG3(*icall);
+		
+		sysarg_t cols = IPC_GET_ARG4(*icall);
+		sysarg_t rows = IPC_GET_ARG5(*icall);
+		
+		for (sysarg_t y = 0; y < rows; y++) {
+			for (sysarg_t x = 0; x < cols; x++) {
+				charfield_t *front_field =
+				    screenbuffer_field_at(screenbuf, col + x, row + y);
+				charfield_t *back_field =
+				    screenbuffer_field_at(vp->backbuf, col + x, row + y);
+				bool update = false;
+				
+				if (front_field->ch != back_field->ch) {
+					back_field->ch = front_field->ch;
+					update = true;
+				}
+				
+				if (!attrs_same(front_field->attrs, back_field->attrs)) {
+					back_field->attrs = front_field->attrs;
+					update = true;
+				}
+				
+				front_field->flags &= ~CHAR_FLAG_DIRTY;
+				
+				if (update)
+					dev->ops.vp_char_update(dev, vp, col + x, row + y);
+			}
 		}
-		if (i == MAX_ANIMATIONS) {
-			retval = ELIMIT;
-			break;
-		}
-		animations[i].initialized = 1;
-		animations[i].animlen = 0;
-		animations[i].pos = 0;
-		animations[i].enabled = 0;
-		animations[i].vp = nvp;
-		retval = i;
-		break;
-	case FB_ANIM_DROP:
-		i = IPC_GET_ARG1(*call);
-		if (i >= MAX_ANIMATIONS || i < 0) {
-			retval = EINVAL;
-			break;
-		}
-		animations[i].initialized = 0;
-		break;
-	case FB_ANIM_ADDIMGMAP:
-		i = IPC_GET_ARG1(*call);
-		if (i >= MAX_ANIMATIONS || i < 0 ||
-			!animations[i].initialized) {
-			retval = EINVAL;
-			break;
-		}
-		if (animations[i].animlen == MAX_ANIM_LEN) {
-			retval = ELIMIT;
-			break;
-		}
-		newval = IPC_GET_ARG2(*call);
-		if (newval < 0 || newval > MAX_IMGMAPS ||
-			!imgmaps[newval]) {
-			retval = EINVAL;
-			break;
-		}
-		animations[i].imgmaps[animations[i].animlen++] = newval;
-		break;
-	case FB_ANIM_CHGVP:
-		i = IPC_GET_ARG1(*call);
-		if (i >= MAX_ANIMATIONS || i < 0) {
-			retval = EINVAL;
-			break;
-		}
-		nvp = IPC_GET_ARG2(*call);
-		if (nvp == -1)
-			nvp = vp;
-		if (nvp >= MAX_VIEWPORTS || nvp < 0 ||
-			!viewports[nvp].initialized) {
-			retval = EINVAL;
-			break;
-		}
-		animations[i].vp = nvp;
-		break;
-	case FB_ANIM_START:
-	case FB_ANIM_STOP:
-		i = IPC_GET_ARG1(*call);
-		if (i >= MAX_ANIMATIONS || i < 0) {
-			retval = EINVAL;
-			break;
-		}
-		newval = (IPC_GET_IMETHOD(*call) == FB_ANIM_START);
-		if (newval ^ animations[i].enabled) {
-			animations[i].enabled = newval;
-			anims_enabled += newval ? 1 : -1;
-		}
-		break;
-	default:
-		handled = 0;
-	}
-	if (handled)
-		async_answer_0(callid, retval);
-	return handled;
+		
+		async_answer_0(iid, EOK);
+	} else
+		async_answer_0(iid, ENOENT);
 }
 
-/** Handler for messages concerning image map handling
- *
- */
-static int imgmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
+static void fbsrv_vp_imagemap_damage(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	bool handled = true;
-	int retval = EOK;
-	int i, nvp;
+	imagemap_t *imagemap = resolve_imagemap(dev, IPC_GET_ARG1(*icall), iid);
+	if (imagemap == NULL)
+		return;
 	
-	switch (IPC_GET_IMETHOD(*call)) {
-	case FB_VP_DRAW_IMGMAP:
-		nvp = IPC_GET_ARG1(*call);
-		if (nvp == -1)
-			nvp = vp;
+	if ((dev->claimed) && (dev->ops.vp_imgmap_damage)) {
+		if (dev->active_vp) {
+			dev->ops.vp_imgmap_damage(dev, dev->active_vp,
+			    (imgmap_t *) imagemap->data,
+			    IPC_GET_ARG2(*icall), IPC_GET_ARG3(*icall),
+			    IPC_GET_ARG4(*icall), IPC_GET_ARG5(*icall));
+			async_answer_0(iid, EOK);
+		} else
+			async_answer_0(iid, ENOENT);
+	} else
+		async_answer_0(iid, ENOTSUP);
+}
+
+static void fbsrv_vp_sequence_start(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	sequence_t *sequence = resolve_sequence(dev, IPC_GET_ARG1(*icall), iid);
+	if (sequence == NULL)
+		return;
+	
+	if (dev->active_vp) {
+		/* Check if the sequence is not already started */
+		list_foreach(dev->active_vp->sequences, link) {
+			sequence_vp_t *seq_vp =
+			    list_get_instance(link, sequence_vp_t, link);
+			
+			if (seq_vp->seq == sequence) {
+				async_answer_0(iid, EEXISTS);
+				return;
+			}
+		}
 		
-		if (nvp < 0 || nvp >= MAX_VIEWPORTS ||
-		    !viewports[nvp].initialized) {
-			retval = EINVAL;
+		sequence_vp_t *seq_vp =
+		    (sequence_vp_t *) malloc(sizeof(sequence_vp_t));
+		
+		if (seq_vp != NULL) {
+			link_initialize(&seq_vp->link);
+			seq_vp->seq = sequence;
+			seq_vp->current = 0;
+			
+			list_append(&seq_vp->link, &dev->active_vp->sequences);
+			async_answer_0(iid, EOK);
+		} else
+			async_answer_0(iid, ENOMEM);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void fbsrv_vp_sequence_stop(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	sequence_t *sequence = resolve_sequence(dev, IPC_GET_ARG1(*icall), iid);
+	if (sequence == NULL)
+		return;
+	
+	if (dev->active_vp) {
+		list_foreach(dev->active_vp->sequences, link) {
+			sequence_vp_t *seq_vp =
+			    list_get_instance(link, sequence_vp_t, link);
+			
+			if (seq_vp->seq == sequence) {
+				list_remove(&seq_vp->link);
+				free(seq_vp);
+				
+				async_answer_0(iid, EOK);
+				return;
+			}
+		}
+		
+		async_answer_0(iid, ENOENT);
+	} else
+		async_answer_0(iid, ENOENT);
+}
+
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	fbdev_t *dev = NULL;
+	service_id_t dsid = (service_id_t) IPC_GET_ARG1(*icall);
+	
+	list_foreach(fbdevs, link) {
+		fbdev_t *fbdev = list_get_instance(link, fbdev_t, link);
+		if (fbdev->dsid == dsid) {
+			dev = fbdev;
 			break;
 		}
-		
-		i = IPC_GET_ARG2(*call);
-		retval = draw_imgmap(nvp, i);
-		break;
-	case FB_VP2IMGMAP:
-		nvp = IPC_GET_ARG1(*call);
-		if (nvp == -1)
-			nvp = vp;
-		
-		if (nvp < 0 || nvp >= MAX_VIEWPORTS ||
-		    !viewports[nvp].initialized) {
-			retval = EINVAL;
-			break;
-		}
-		
-		retval = save_vp_to_imgmap(&viewports[nvp]);
-		break;
-	case FB_DROP_IMGMAP:
-		i = IPC_GET_ARG1(*call);
-		if (i >= MAX_IMGMAPS) {
-			retval = EINVAL;
-			break;
-		}
-		
-		if (imgmaps[i]) {
-			free(imgmaps[i]);
-			imgmaps[i] = NULL;
-		}
-		
-		break;
-	default:
-		handled = 0;
 	}
 	
-	if (handled)
-		async_answer_0(callid, retval);
-	return handled;
-	
-}
-
-static int rgb_from_style(attr_rgb_t *rgb, int style)
-{
-	switch (style) {
-	case STYLE_NORMAL:
-		rgb->fg_color = color_table[COLOR_BLACK];
-		rgb->bg_color = color_table[COLOR_WHITE];
-		break;
-	case STYLE_EMPHASIS:
-		rgb->fg_color = color_table[COLOR_RED];
-		rgb->bg_color = color_table[COLOR_WHITE];
-		break;
-	case STYLE_INVERTED:
-		rgb->fg_color = color_table[COLOR_WHITE];
-		rgb->bg_color = color_table[COLOR_BLACK];
-		break;
-	case STYLE_SELECTED:
-		rgb->fg_color = color_table[COLOR_WHITE];
-		rgb->bg_color = color_table[COLOR_RED];
-		break;
-	default:
-		return EINVAL;
+	if (dev == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
 	}
 	
-	return EOK;
-}
-
-static int rgb_from_idx(attr_rgb_t *rgb, sysarg_t fg_color,
-    sysarg_t bg_color, sysarg_t flags)
-{
-	fg_color = (fg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
-	bg_color = (bg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
-
-	rgb->fg_color = color_table[fg_color];
-	rgb->bg_color = color_table[bg_color];
-
-	return EOK;
-}
-
-static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a)
-{
-	int rc;
-
-	switch (a->t) {
-	case at_style:
-		rc = rgb_from_style(rgb, a->a.s.style);
-		break;
-	case at_idx:
-		rc = rgb_from_idx(rgb, a->a.i.fg_color,
-		    a->a.i.bg_color, a->a.i.flags);
-		break;
-	case at_rgb:
-		*rgb = a->a.r;
-		rc = EOK;
-		break;
-	}
-
-	return rc;
-}
-
-static int fb_set_style(viewport_t *vport, sysarg_t style)
-{
-	return rgb_from_style(&vport->attr, (int) style);
-}
-
-static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
-    sysarg_t bg_color, sysarg_t flags)
-{
-	return rgb_from_idx(&vport->attr, fg_color, bg_color, flags);
-}
-
-/** Function for handling connections to FB
- *
- */
-static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall,
-    void *arg)
-{
-	unsigned int vp = 0;
-	viewport_t *vport = &viewports[vp];
-	
-	if (client_connected) {
+	if (atomic_get(&dev->refcnt) > 0) {
 		async_answer_0(iid, ELIMIT);
 		return;
 	}
 	
-	/* Accept connection */
-	client_connected = true;
+	/*
+	 * Accept the connection
+	 */
+	
+	atomic_inc(&dev->refcnt);
+	dev->claimed = true;
 	async_answer_0(iid, EOK);
 	
 	while (true) {
-		ipc_callid_t callid;
 		ipc_call_t call;
-		int retval;
-		unsigned int i;
-		int scroll;
-		wchar_t ch;
-		unsigned int col, row;
+		ipc_callid_t callid =
+		    async_get_call_timeout(&call, TICK_INTERVAL);
 		
-		if ((vport->cursor_active) || (anims_enabled))
-			callid = async_get_call_timeout(&call, 250000);
-		else
-			callid = async_get_call(&call);
-		
-		mouse_hide();
 		if (!callid) {
-			cursor_blink(vport);
-			anims_tick();
-			mouse_show();
+			fbsrv_vp_cursor_flash(dev);
+			fbsrv_sequences_update(dev);
 			continue;
 		}
 		
-		if (shm_handle(callid, &call, vp))
-			continue;
-		
-		if (imgmap_handle(callid, &call, vp))
-			continue;
-		
-		if (anim_handle(callid, &call, vp))
-			continue;
-		
 		if (!IPC_GET_IMETHOD(call)) {
-			client_connected = false;
-			
-			/* Cleanup other viewports */
-			for (i = 1; i < MAX_VIEWPORTS; i++)
-				vport->initialized = false;
-			
-			/* Exit thread */
-			return;
+			dev->claimed = false;
+			atomic_dec(&dev->refcnt);
+			async_answer_0(callid, EOK);
+			break;
 		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
-		case FB_PUTCHAR:
-			ch = IPC_GET_ARG1(call);
-			col = IPC_GET_ARG2(call);
-			row = IPC_GET_ARG3(call);
 			
-			if ((col >= vport->cols) || (row >= vport->rows)) {
-				retval = EINVAL;
-				break;
-			}
-			async_answer_0(callid, EOK);
+			/* Screen methods */
 			
-			draw_char(vport, ch, col, row);
+			case FB_GET_RESOLUTION:
+				fbsrv_get_resolution(dev, callid, &call);
+				break;
+			case FB_YIELD:
+				fbsrv_yield(dev, callid, &call);
+				break;
+			case FB_CLAIM:
+				fbsrv_claim(dev, callid, &call);
+				break;
+			case FB_POINTER_UPDATE:
+				fbsrv_pointer_update(dev, callid, &call);
+				break;
 			
-			/* Message already answered */
-			continue;
-		case FB_CLEAR:
-			vport_clear(vport);
-			cursor_show(vport);
-			retval = EOK;
-			break;
-		case FB_CURSOR_GOTO:
-			col = IPC_GET_ARG1(call);
-			row = IPC_GET_ARG2(call);
+			/* Object methods */
 			
-			if ((col >= vport->cols) || (row >= vport->rows)) {
-				retval = EINVAL;
+			case FB_VP_CREATE:
+				fbsrv_vp_create(dev, callid, &call);
 				break;
-			}
-			retval = EOK;
+			case FB_VP_DESTROY:
+				fbsrv_vp_destroy(dev, callid, &call);
+				break;
+			case FB_FRONTBUF_CREATE:
+				fbsrv_frontbuf_create(dev, callid, &call);
+				break;
+			case FB_FRONTBUF_DESTROY:
+				fbsrv_frontbuf_destroy(dev, callid, &call);
+				break;
+			case FB_IMAGEMAP_CREATE:
+				fbsrv_imagemap_create(dev, callid, &call);
+				break;
+			case FB_IMAGEMAP_DESTROY:
+				fbsrv_imagemap_destroy(dev, callid, &call);
+				break;
+			case FB_SEQUENCE_CREATE:
+				fbsrv_sequence_create(dev, callid, &call);
+				break;
+			case FB_SEQUENCE_DESTROY:
+				fbsrv_sequence_destroy(dev, callid, &call);
+				break;
+			case FB_SEQUENCE_ADD_IMAGEMAP:
+				fbsrv_sequence_add_imagemap(dev, callid, &call);
+				break;
 			
-			cursor_hide(vport);
-			vport->cur_col = col;
-			vport->cur_row = row;
-			cursor_show(vport);
-			break;
-		case FB_CURSOR_VISIBILITY:
-			cursor_hide(vport);
-			vport->cursor_active = IPC_GET_ARG1(call);
-			cursor_show(vport);
-			retval = EOK;
-			break;
-		case FB_GET_CSIZE:
-			async_answer_2(callid, EOK, vport->cols, vport->rows);
-			continue;
-		case FB_GET_COLOR_CAP:
-			async_answer_1(callid, EOK, FB_CCAP_RGB);
-			continue;
-		case FB_SCROLL:
-			scroll = IPC_GET_ARG1(call);
-			if ((scroll > (int) vport->rows) || (scroll < (-(int) vport->rows))) {
-				retval = EINVAL;
+			/* Viewport stateful methods */
+			
+			case FB_VP_FOCUS:
+				fbsrv_vp_focus(dev, callid, &call);
 				break;
-			}
-			cursor_hide(vport);
-			vport_scroll(vport, scroll);
-			cursor_show(vport);
-			retval = EOK;
-			break;
-		case FB_VIEWPORT_SWITCH:
-			i = IPC_GET_ARG1(call);
-			if (i >= MAX_VIEWPORTS) {
-				retval = EINVAL;
+			case FB_VP_CLEAR:
+				fbsrv_vp_clear(dev, callid, &call);
 				break;
-			}
-			if (!viewports[i].initialized) {
-				retval = EADDRNOTAVAIL;
+			case FB_VP_GET_DIMENSIONS:
+				fbsrv_vp_get_dimensions(dev, callid, &call);
 				break;
-			}
-			cursor_hide(vport);
-			vp = i;
-			vport = &viewports[vp];
-			cursor_show(vport);
-			retval = EOK;
-			break;
-		case FB_VIEWPORT_CREATE:
-			retval = vport_create(IPC_GET_ARG1(call) >> 16,
-			    IPC_GET_ARG1(call) & 0xffff,
-			    IPC_GET_ARG2(call) >> 16,
-			    IPC_GET_ARG2(call) & 0xffff);
-			break;
-		case FB_VIEWPORT_DELETE:
-			i = IPC_GET_ARG1(call);
-			if (i >= MAX_VIEWPORTS) {
-				retval = EINVAL;
+			case FB_VP_GET_CAPS:
+				fbsrv_vp_get_caps(dev, callid, &call);
 				break;
-			}
-			if (!viewports[i].initialized) {
-				retval = EADDRNOTAVAIL;
+			
+			/* Style methods (viewport specific) */
+			
+			case FB_VP_CURSOR_UPDATE:
+				fbsrv_vp_cursor_update(dev, callid, &call);
 				break;
-			}
-			viewports[i].initialized = false;
-			if (viewports[i].bgpixel)
-				free(viewports[i].bgpixel);
-			if (viewports[i].backbuf)
-				free(viewports[i].backbuf);
-			retval = EOK;
-			break;
-		case FB_SET_STYLE:
-			retval = fb_set_style(vport, IPC_GET_ARG1(call));
-			break;
-		case FB_SET_COLOR:
-			retval = fb_set_color(vport, IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call), IPC_GET_ARG3(call));
-			break;
-		case FB_SET_RGB_COLOR:
-			vport->attr.fg_color = IPC_GET_ARG1(call);
-			vport->attr.bg_color = IPC_GET_ARG2(call);
-			retval = EOK;
-			break;
-		case FB_GET_RESOLUTION:
-			async_answer_2(callid, EOK, screen.xres, screen.yres);
-			continue;
-		case FB_POINTER_MOVE:
-			pointer_enabled = true;
-			mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			retval = EOK;
-			break;
-		case FB_SCREEN_YIELD:
-		case FB_SCREEN_RECLAIM:
-			retval = EOK;
-			break;
-		default:
-			retval = ENOENT;
+			case FB_VP_SET_STYLE:
+				fbsrv_vp_set_style(dev, callid, &call);
+				break;
+			case FB_VP_SET_COLOR:
+				fbsrv_vp_set_color(dev, callid, &call);
+				break;
+			case FB_VP_SET_RGB_COLOR:
+				fbsrv_vp_set_rgb_color(dev, callid, &call);
+				break;
+			
+			/* Text output methods (viewport specific) */
+			
+			case FB_VP_PUTCHAR:
+				fbsrv_vp_putchar(dev, callid, &call);
+				break;
+			case FB_VP_UPDATE:
+				fbsrv_vp_update(dev, callid, &call);
+				break;
+			case FB_VP_DAMAGE:
+				fbsrv_vp_damage(dev, callid, &call);
+				break;
+			
+			/* Image map methods (viewport specific) */
+			
+			case FB_VP_IMAGEMAP_DAMAGE:
+				fbsrv_vp_imagemap_damage(dev, callid, &call);
+				break;
+			
+			/* Sequence methods (viewport specific) */
+			
+			case FB_VP_SEQUENCE_START:
+				fbsrv_vp_sequence_start(dev, callid, &call);
+				break;
+			case FB_VP_SEQUENCE_STOP:
+				fbsrv_vp_sequence_stop(dev, callid, &call);
+				break;
+			
+			default:
+				async_answer_0(callid, EINVAL);
 		}
-		async_answer_0(callid, retval);
 	}
 }
 
-/** Initialization of framebuffer
- *
- */
-int fb_init(void)
+int main(int argc, char *argv[])
 {
-	async_set_client_connection(fb_client_connection);
+	printf("%s: HelenOS framebuffer service\n", NAME);
 	
-	sysarg_t fb_ph_addr;
-	if (sysinfo_get_value("fb.address.physical", &fb_ph_addr) != EOK)
-		return -1;
+	/* Register server */
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver (%d)\n", NAME, rc);
+		return 1;
+	}
 	
-	sysarg_t fb_offset;
-	if (sysinfo_get_value("fb.offset", &fb_offset) != EOK)
-		fb_offset = 0;
+	ega_init();
+	kchar_init();
+	kfb_init();
+	niagara_init();
+	ski_init();
 	
-	sysarg_t fb_width;
-	if (sysinfo_get_value("fb.width", &fb_width) != EOK)
-		return -1;
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
+	async_manager();
 	
-	sysarg_t fb_height;
-	if (sysinfo_get_value("fb.height", &fb_height) != EOK)
-		return -1;
-	
-	sysarg_t fb_scanline;
-	if (sysinfo_get_value("fb.scanline", &fb_scanline) != EOK)
-		return -1;
-	
-	sysarg_t fb_visual;
-	if (sysinfo_get_value("fb.visual", &fb_visual) != EOK)
-		return -1;
-	
-	sysarg_t fbsize = fb_scanline * fb_height;
-	void *fb_addr = as_get_mappable_page(fbsize);
-	
-	if (physmem_map((void *) fb_ph_addr + fb_offset, fb_addr,
-	    ALIGN_UP(fbsize, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
-		return -1;
-	
-	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual))
-		return 0;
-	
-	return -1;
+	/* Never reached */
+	return 0;
 }
-
-/**
- * @}
- */

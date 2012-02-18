@@ -1,1 +1,1 @@
-9 	pci/ven=8086&dev=7000
+9 pci/class=06&subclass=01

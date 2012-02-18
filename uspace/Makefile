@@ -47,8 +47,10 @@ DIRS = \
 	app/locinfo \
 	app/lsusb \
 	app/mkfat \
+	app/mkmfs \
 	app/redir \
 	app/sbi \
+	app/sportdmp \
 	app/stats \
 	app/taskdump \
 	app/tester \
@@ -61,6 +63,7 @@ DIRS = \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
+	app/nettest3 \
 	app/ping \
 	app/websrv \
 	app/sysinfo \
@@ -78,26 +81,32 @@ DIRS = \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
+	srv/fs/exfat \
 	srv/fs/fat \
+	srv/fs/cdfs \
 	srv/fs/tmpfs \
+	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
-	srv/hw/char/i8042 \
+	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
-	srv/hw/netif/ne2000 \
-	srv/net/netif/lo \
 	srv/net/il/arp \
 	srv/net/il/ip \
 	srv/net/tl/icmp \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy \
 	srv/net/net \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/char/i8042 \
+	drv/char/ps2mouse \
+	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
@@ -110,15 +119,24 @@ DIRS = \
 	drv/bus/usb/usbhub \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
-	drv/bus/usb/usbmouse \
-	drv/bus/usb/vhc
+	drv/bus/usb/vhc \
+	drv/nic/lo \
+	drv/nic/ne2k \
+	drv/nic/e1k \
+	drv/nic/rtl8139
 
-## Networking
-#
-
+ifeq ($(CONFIG_PCC),y)
 DIRS += \
-	srv/net/nil/eth \
-	srv/net/nil/nildummy
+	app/cc \
+	app/ccom \
+	app/ccom/mkext \
+	app/cpp
+endif
+
+ifeq ($(CONFIG_BINUTILS),y)
+DIRS += \
+	app/binutils
+endif
 
 ## Platform-specific hardware support
 #
@@ -167,15 +185,16 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/packet \
-	lib/imgmap \
+	lib/fb \
 	lib/net \
+	lib/nic \
 	lib/ext2 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
-	lib/usbvirt
+	lib/usbvirt \
+	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

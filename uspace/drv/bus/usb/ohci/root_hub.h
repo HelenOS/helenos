@@ -36,9 +36,9 @@
 
 #include <usb/usb.h>
 #include <usb/dev/driver.h>
+#include <usb/host/usb_transfer_batch.h>
 
 #include "ohci_regs.h"
-#include "batch.h"
 
 #define HUB_DESCRIPTOR_MAX_SIZE (7 + 2 + 2)
 
@@ -46,6 +46,7 @@
  * ohci root hub representation
  */
 typedef struct rh {
+	fibril_mutex_t guard;
 	/** pointer to ohci driver registers */
 	ohci_regs_t *registers;
 	/** usb address of the root hub */
@@ -65,7 +66,6 @@ typedef struct rh {
 	} __attribute__ ((packed)) descriptors;
 	/** size of hub descriptor */
 	size_t hub_descriptor_size;
-
 } rh_t;
 
 void rh_init(rh_t *instance, ohci_regs_t *regs);

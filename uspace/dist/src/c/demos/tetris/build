@@ -1,0 +1,16 @@
+cc -D__PCC__ -I/inc/c -E -o scores.i scores.c
+cc -D__PCC__ -I/inc/c -E -o screen.i screen.c
+cc -D__PCC__ -I/inc/c -E -o shapes.i shapes.c
+cc -D__PCC__ -I/inc/c -E -o tetris.i tetris.c
+
+cc -S -o scores.s scores.i
+cc -S -o screen.s screen.i
+cc -S -o shapes.s shapes.i
+cc -S -o tetris.s tetris.i
+
+as -o scores.o scores.s
+as -o screen.o screen.s
+as -o shapes.o shapes.s
+as -o tetris.o tetris.s
+
+ld -T /inc/_link.ld -o tetris_ scores.o screen.o shapes.o tetris.o /lib/libc.a /lib/libsoftint.a

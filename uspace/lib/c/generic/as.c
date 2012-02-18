@@ -44,17 +44,20 @@
 
 /** Create address space area.
  *
- * @param address Virtual address where to place new address space area.
- * @param size    Size of the area.
- * @param flags   Flags describing type of the area.
+ * @param base  Starting virtual address of the area.
+ *              If set to (void *) -1, the kernel finds
+ *              a mappable area.
+ * @param size  Size of the area.
+ * @param flags Flags describing type of the area.
  *
- * @return address on success, (void *) -1 otherwise.
+ * @return Starting virtual address of the created area on success.
+ * @return (void *) -1 otherwise.
  *
  */
-void *as_area_create(void *address, size_t size, unsigned int flags)
+void *as_area_create(void *base, size_t size, unsigned int flags)
 {
-	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t) address,
-	    (sysarg_t) size, (sysarg_t) flags);
+	return (void *) __SYSCALL4(SYS_AS_AREA_CREATE, (sysarg_t) base,
+	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) __entry);
 }
 
 /** Resize address space area.
@@ -101,43 +104,19 @@ int as_area_change_flags(void *address, unsigned int flags)
 	    (sysarg_t) flags);
 }
 
-/** Return pointer to unmapped address space area
- *
- * @param size Requested size of the allocation.
- *
- * @return Pointer to the beginning of unmapped address space area.
- *
- */
-void *as_get_mappable_page(size_t size)
-{
-	return (void *) __SYSCALL2(SYS_AS_GET_UNMAPPED_AREA,
-	    (sysarg_t) __entry, (sysarg_t) size);
-}
-
 /** Find mapping to physical address.
  *
- * @param address Virtual address in question (virtual).
- * @param[out] frame Frame address (physical).
- * @return Error code.
- * @retval EOK No error, @p frame holds the translation.
- * @retval ENOENT Mapping not found.
+ * @param      virt Virtual address to find mapping for.
+ * @param[out] phys Physical adress.
+ *
+ * @return EOK on no error.
+ * @retval ENOENT if no mapping was found.
+ *
  */
-int as_get_physical_mapping(void *address, uintptr_t *frame)
+int as_get_physical_mapping(const void *virt, uintptr_t *phys)
 {
-	uintptr_t tmp_frame;
-	uintptr_t virt = (uintptr_t) address;
-	
-	int rc = (int) __SYSCALL2(SYS_PAGE_FIND_MAPPING,
-	    (sysarg_t) virt, (sysarg_t) &tmp_frame);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	if (frame != NULL) {
-		*frame = tmp_frame;
-	}
-	
-	return EOK;
+	return (int) __SYSCALL2(SYS_PAGE_FIND_MAPPING, (sysarg_t) virt,
+	    (sysarg_t) phys);
 }
 
 /** @}

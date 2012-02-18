@@ -40,7 +40,6 @@
 #include <usb/debug.h>
 
 #include "uhci.h"
-#include "iface.h"
 #include "pci.h"
 
 #include "hc.h"
@@ -86,32 +85,8 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 /*----------------------------------------------------------------------------*/
 /** Operations supported by the HC driver */
 static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
+	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
 };
-/*----------------------------------------------------------------------------*/
-/** Get address of the device identified by handle.
- *
- * @param[in] fun DDF instance of the function to use.
- * @param[in] handle DDF handle of the driver seeking its USB address.
- * @param[out] address Found address.
- */
-static int usb_iface_get_address(
-    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
-{
-	assert(fun);
-	usb_device_keeper_t *manager = &dev_to_uhci(fun->dev)->hc.manager;
-	usb_address_t addr = usb_device_keeper_find(manager, handle);
-
-	if (addr < 0) {
-		return addr;
-	}
-
-	if (address != NULL) {
-		*address = addr;
-	}
-
-	return EOK;
-}
 /*----------------------------------------------------------------------------*/
 /** Gets handle of the respective hc.
  *
@@ -133,7 +108,6 @@ static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 /** USB interface implementation used by RH */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
-	.get_address = usb_iface_get_address
 };
 /*----------------------------------------------------------------------------*/
 /** Get root hub hw resources (I/O registers).
@@ -173,8 +147,10 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_uhci(ddf_dev_t *device)
 {
-	assert(device);
-	uhci_t *instance = malloc(sizeof(uhci_t));
+	if (!device)
+		return EBADMEM;
+
+	uhci_t *instance = ddf_dev_data_alloc(device, sizeof(uhci_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
@@ -183,16 +159,12 @@ int device_setup_uhci(ddf_dev_t *device)
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) \
-		instance->hc_fun->ops = NULL; \
 		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	if (instance->rh_fun) {\
-		instance->rh_fun->ops = NULL; \
 		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
-	free(instance); \
-	device->driver_data = NULL; \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -202,7 +174,7 @@ if (ret != EOK) { \
 	int ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI HC function.\n");
 	instance->hc_fun->ops = &hc_ops;
-	instance->hc_fun->driver_data = &instance->hc;
+	instance->hc_fun->driver_data = &instance->hc.generic;
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci_rh");
 	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
@@ -225,14 +197,21 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
-	const size_t cmd_count = hc_irq_cmd_count();
-	irq_cmd_t irq_cmds[cmd_count];
-	ret =
-	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
 
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
         /* Register handler to avoid interrupt lockup */
         ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
@@ -252,8 +231,6 @@ if (ret != EOK) { \
 	ret = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
-
-	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \

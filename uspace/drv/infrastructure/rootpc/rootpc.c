@@ -62,12 +62,12 @@ typedef struct rootpc_fun {
 	hw_resource_list_t hw_resources;
 } rootpc_fun_t;
 
-static int rootpc_add_device(ddf_dev_t *dev);
+static int rootpc_dev_add(ddf_dev_t *dev);
 static void root_pc_init(void);
 
 /** The root device driver's standard operations. */
 static driver_ops_t rootpc_ops = {
-	.add_device = &rootpc_add_device
+	.dev_add = &rootpc_dev_add
 };
 
 /** The root device driver structure. */
@@ -108,8 +108,8 @@ static bool rootpc_enable_interrupt(ddf_fun_t *fun)
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	&rootpc_get_resources,
-	&rootpc_enable_interrupt
+	.get_resource_list = &rootpc_get_resources,
+	.enable_interrupt = &rootpc_enable_interrupt,
 };
 
 /* Initialized in root_pc_init() function. */
@@ -174,9 +174,9 @@ static bool rootpc_add_functions(ddf_dev_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, negative error number otherwise.
  */
-static int rootpc_add_device(ddf_dev_t *dev)
+static int rootpc_dev_add(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "rootpc_add_device, device handle = %d",
+	ddf_msg(LVL_DEBUG, "rootpc_dev_add, device handle = %d",
 	    (int)dev->handle);
 	
 	/* Register functions. */

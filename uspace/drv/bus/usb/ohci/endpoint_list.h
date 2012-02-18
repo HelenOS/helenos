@@ -36,7 +36,7 @@
 
 #include <fibril_synch.h>
 
-#include "hcd_endpoint.h"
+#include "ohci_endpoint.h"
 #include "hw_struct/endpoint_descriptor.h"
 #include "utils/malloc32.h"
 
@@ -67,9 +67,10 @@ static inline void endpoint_list_fini(endpoint_list_t *instance)
 }
 
 int endpoint_list_init(endpoint_list_t *instance, const char *name);
-void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
-void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
-void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
+void endpoint_list_set_next(
+    const endpoint_list_t *instance, const endpoint_list_t *next);
+void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep);
+void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep);
 #endif
 /**
  * @}

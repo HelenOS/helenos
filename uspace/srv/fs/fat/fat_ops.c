@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +29,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	fat_ops.c
@@ -38,6 +39,7 @@
 #include "fat.h"
 #include "fat_dentry.h"
 #include "fat_fat.h"
+#include "fat_directory.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
@@ -55,6 +57,7 @@
 #include <sys/mman.h>
 #include <align.h>
 #include <malloc.h>
+#include <str.h>
 
 #define FAT_NODE(node)	((node) ? (fat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
@@ -86,7 +89,7 @@ static aoff64_t fat_size_get(fs_node_t *);
 static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
-static service_id_t fat_device_get(fs_node_t *node);
+static service_id_t fat_service_get(fs_node_t *node);
 
 /*
  * Helper functions.
@@ -103,10 +106,10 @@ static void fat_node_initialize(fat_node_t *node)
 	node->refcnt = 0;
 	node->dirty = false;
 	node->lastc_cached_valid = false;
-	node->lastc_cached_value = FAT_CLST_LAST1;
+	node->lastc_cached_value = 0;
 	node->currc_cached_valid = false;
 	node->currc_cached_bn = 0;
-	node->currc_cached_value = FAT_CLST_LAST1;
+	node->currc_cached_value = 0;
 }
 
 static int fat_node_sync(fat_node_t *node)
@@ -115,11 +118,11 @@ static int fat_node_sync(fat_node_t *node)
 	fat_bs_t *bs;
 	fat_dentry_t *d;
 	int rc;
-	
+
 	assert(node->dirty);
 
 	bs = block_bb_get(node->idx->service_id);
-	
+
 	/* Read the block that contains the dentry of interest. */
 	rc = _fat_block_get(&b, bs, node->idx->service_id, node->idx->pfc,
 	    NULL, (node->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
@@ -135,9 +138,9 @@ static int fat_node_sync(fat_node_t *node)
 	} else if (node->type == FAT_DIRECTORY) {
 		d->attr = FAT_ATTR_SUBDIR;
 	}
-	
+
 	/* TODO: update other fields? (e.g time fields) */
-	
+
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
 	return rc;
@@ -254,7 +257,7 @@ skip_cache:
 	fs_node_initialize(fn);
 	fn->data = nodep;
 	nodep->bp = fn;
-	
+
 	*nodepp = nodep;
 	return EOK;
 }
@@ -290,7 +293,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	/*
 	 * We must instantiate the node from the file system.
 	 */
-	
+
 	assert(idxp->pfc);
 
 	rc = fat_node_get_new(&nodep);
@@ -308,21 +311,28 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	}
 
 	d = ((fat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
+	if (FAT_IS_FAT32(bs)) {
+		nodep->firstc = uint16_t_le2host(d->firstc_lo) | 
+		    (uint16_t_le2host(d->firstc_hi) << 16);
+	} else
+		nodep->firstc = uint16_t_le2host(d->firstc);
+
 	if (d->attr & FAT_ATTR_SUBDIR) {
-		/* 
+		/*
 		 * The only directory which does not have this bit set is the
 		 * root directory itself. The root directory node is handled
 		 * and initialized elsewhere.
 		 */
 		nodep->type = FAT_DIRECTORY;
+
 		/*
 		 * Unfortunately, the 'size' field of the FAT dentry is not
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
 		 */
-		uint16_t clusters;
+		uint32_t clusters;
 		rc = fat_clusters_get(&clusters, bs, idxp->service_id,
-		    uint16_t_le2host(d->firstc));
+		    nodep->firstc);
 		if (rc != EOK) {
 			(void) block_put(b);
 			(void) fat_node_put(FS_NODE(nodep));
@@ -333,7 +343,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		nodep->type = FAT_FILE;
 		nodep->size = uint32_t_le2host(d->size);
 	}
-	nodep->firstc = uint16_t_le2host(d->firstc);
+
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
 
@@ -362,73 +372,55 @@ int fat_root_get(fs_node_t **rfn, service_id_t service_id)
 
 int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
-	fat_bs_t *bs;
 	fat_node_t *parentp = FAT_NODE(pfn);
-	char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
-	unsigned i, j;
-	unsigned blocks;
+	char name[FAT_LFN_NAME_SIZE];
 	fat_dentry_t *d;
 	service_id_t service_id;
-	block_t *b;
 	int rc;
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	service_id = parentp->idx->service_id;
 	fibril_mutex_unlock(&parentp->idx->lock);
+	
+	fat_directory_t di;
+	rc = fat_directory_open(parentp, &di);
+	if (rc != EOK)
+		return rc;
 
-	bs = block_bb_get(service_id);
-	blocks = parentp->size / BPS(bs);
-	for (i = 0; i < blocks; i++) {
-		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		if (rc != EOK)
-			return rc;
-		for (j = 0; j < DPS(bs); j++) { 
-			d = ((fat_dentry_t *)b->data) + j;
-			switch (fat_classify_dentry(d)) {
-			case FAT_DENTRY_SKIP:
-			case FAT_DENTRY_FREE:
-				continue;
-			case FAT_DENTRY_LAST:
-				/* miss */
-				rc = block_put(b);
-				*rfn = NULL;
+	while (fat_directory_read(&di, name, &d) == EOK) {
+		if (fat_dentry_namecmp(name, component) == 0) {
+			/* hit */
+			fat_node_t *nodep;
+			aoff64_t o = di.pos %
+			    (BPS(di.bs) / sizeof(fat_dentry_t));
+			fat_idx_t *idx = fat_idx_get_by_pos(service_id,
+			    parentp->firstc, di.bnum * DPS(di.bs) + o);
+			if (!idx) {
+				/*
+				 * Can happen if memory is low or if we
+				 * run out of 32-bit indices.
+				 */
+				rc = fat_directory_close(&di);
+				return (rc == EOK) ? ENOMEM : rc;
+			}
+			rc = fat_node_get_core(&nodep, idx);
+			fibril_mutex_unlock(&idx->lock);
+			if (rc != EOK) {
+				(void) fat_directory_close(&di);
 				return rc;
-			default:
-			case FAT_DENTRY_VALID:
-				fat_dentry_name_get(d, name);
+			}
+			*rfn = FS_NODE(nodep);
+			rc = fat_directory_close(&di);
+			if (rc != EOK)
+				(void) fat_node_put(*rfn);
+			return rc;
+		} else {
+			rc = fat_directory_next(&di);
+			if (rc != EOK)
 				break;
-			}
-			if (fat_dentry_namecmp(name, component) == 0) {
-				/* hit */
-				fat_node_t *nodep;
-				fat_idx_t *idx = fat_idx_get_by_pos(service_id,
-				    parentp->firstc, i * DPS(bs) + j);
-				if (!idx) {
-					/*
-					 * Can happen if memory is low or if we
-					 * run out of 32-bit indices.
-					 */
-					rc = block_put(b);
-					return (rc == EOK) ? ENOMEM : rc;
-				}
-				rc = fat_node_get_core(&nodep, idx);
-				fibril_mutex_unlock(&idx->lock);
-				if (rc != EOK) {
-					(void) block_put(b);
-					return rc;
-				}
-				*rfn = FS_NODE(nodep);
-				rc = block_put(b);
-				if (rc != EOK)
-					(void) fat_node_put(*rfn);
-				return rc;
-			}
 		}
-		rc = block_put(b);
-		if (rc != EOK)
-			return rc;
 	}
-
+	(void) fat_directory_close(&di);
 	*rfn = NULL;
 	return EOK;
 }
@@ -590,9 +582,8 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fat_dentry_t *d;
 	fat_bs_t *bs;
 	block_t *b;
-	unsigned i, j;
-	unsigned blocks;
-	fat_cluster_t mcl, lcl;
+	fat_directory_t di;
+	fat_dentry_t de;
 	int rc;
 
 	fibril_mutex_lock(&childp->lock);
@@ -606,101 +597,41 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	assert(childp->lnkcnt == 0);
 	fibril_mutex_unlock(&childp->lock);
 
-	if (!fat_dentry_name_verify(name)) {
-		/*
-		 * Attempt to create unsupported name.
-		 */
+	if (!fat_valid_name(name))
 		return ENOTSUP;
-	}
 
-	/*
-	 * Get us an unused parent node's dentry or grow the parent and allocate
-	 * a new one.
-	 */
-	
 	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->service_id);
+	rc = fat_directory_open(parentp, &di);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 
-	blocks = parentp->size / BPS(bs);
-
-	for (i = 0; i < blocks; i++) {
-		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&parentp->idx->lock);
-			return rc;
-		}
-		for (j = 0; j < DPS(bs); j++) {
-			d = ((fat_dentry_t *)b->data) + j;
-			switch (fat_classify_dentry(d)) {
-			case FAT_DENTRY_SKIP:
-			case FAT_DENTRY_VALID:
-				/* skipping used and meta entries */
-				continue;
-			case FAT_DENTRY_FREE:
-			case FAT_DENTRY_LAST:
-				/* found an empty slot */
-				goto hit;
-			}
-		}
-		rc = block_put(b);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&parentp->idx->lock);
-			return rc;
-		}
-	}
-	j = 0;
-	
-	/*
-	 * We need to grow the parent in order to create a new unused dentry.
-	 */
-	if (parentp->firstc == FAT_CLST_ROOT) {
-		/* Can't grow the root directory. */
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return ENOSPC;
-	}
-	rc = fat_alloc_clusters(bs, parentp->idx->service_id, 1, &mcl, &lcl);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	rc = fat_zero_cluster(bs, parentp->idx->service_id, mcl);
-	if (rc != EOK) {
-		(void) fat_free_clusters(bs, parentp->idx->service_id, mcl);
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	rc = fat_append_clusters(bs, parentp, mcl, lcl);
-	if (rc != EOK) {
-		(void) fat_free_clusters(bs, parentp->idx->service_id, mcl);
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	parentp->size += BPS(bs) * SPC(bs);
-	parentp->dirty = true;		/* need to sync node */
-	rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&parentp->idx->lock);
-		return rc;
-	}
-	d = (fat_dentry_t *)b->data;
-
-hit:
 	/*
 	 * At this point we only establish the link between the parent and the
 	 * child.  The dentry, except of the name and the extension, will remain
 	 * uninitialized until the corresponding node is synced. Thus the valid
 	 * dentry data is kept in the child node structure.
 	 */
-	memset(d, 0, sizeof(fat_dentry_t));
-	fat_dentry_name_set(d, name);
-	b->dirty = true;		/* need to sync block */
-	rc = block_put(b);
-	fibril_mutex_unlock(&parentp->idx->lock);
-	if (rc != EOK) 
+	memset(&de, 0, sizeof(fat_dentry_t));
+
+	rc = fat_directory_write(&di, name, &de);
+	if (rc != EOK) {
+		(void) fat_directory_close(&di);
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
+	}
+	rc = fat_directory_close(&di);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
+
+	fibril_mutex_unlock(&parentp->idx->lock);
 
 	fibril_mutex_lock(&childp->idx->lock);
-	
+
 	if (childp->type == FAT_DIRECTORY) {
 		/*
 		 * If possible, create the Sub-directory Identifier Entry and
@@ -719,7 +650,7 @@ hit:
 		}
 		d = (fat_dentry_t *) b->data;
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
-		    (str_cmp((char *) d->name, FAT_NAME_DOT)) == 0) {
+		    (bcmp(d->name, FAT_NAME_DOT, FAT_NAME_LEN)) == 0) {
 			memset(d, 0, sizeof(fat_dentry_t));
 			memcpy(d->name, FAT_NAME_DOT, FAT_NAME_LEN);
 			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
@@ -729,13 +660,13 @@ hit:
 		}
 		d++;
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
-		    (str_cmp((char *) d->name, FAT_NAME_DOT_DOT) == 0)) {
+		    (bcmp(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN) == 0)) {
 			memset(d, 0, sizeof(fat_dentry_t));
 			memcpy(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN);
 			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
-			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
-			    host2uint16_t_le(FAT_CLST_RES0) :
+			d->firstc = (parentp->firstc == FAT_ROOT_CLST(bs)) ?
+			    host2uint16_t_le(FAT_CLST_ROOTPAR) :
 			    host2uint16_t_le(parentp->firstc);
 			/* TODO: initialize also the date/time members. */
 		}
@@ -749,7 +680,7 @@ hit:
 skip_dots:
 
 	childp->idx->pfc = parentp->firstc;
-	childp->idx->pdi = i * DPS(bs) + j;
+	childp->idx->pdi = di.pos;	/* di.pos holds absolute position of SFN entry */
 	fibril_mutex_unlock(&childp->idx->lock);
 
 	fibril_mutex_lock(&childp->lock);
@@ -769,15 +700,12 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	fat_node_t *parentp = FAT_NODE(pfn);
 	fat_node_t *childp = FAT_NODE(cfn);
-	fat_bs_t *bs;
-	fat_dentry_t *d;
-	block_t *b;
 	bool has_children;
 	int rc;
 
 	if (!parentp)
 		return EBUSY;
-	
+
 	rc = fat_has_children(&has_children, cfn);
 	if (rc != EOK)
 		return rc;
@@ -788,19 +716,18 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_lock(&childp->lock);
 	assert(childp->lnkcnt == 1);
 	fibril_mutex_lock(&childp->idx->lock);
-	bs = block_bb_get(childp->idx->service_id);
-
-	rc = _fat_block_get(&b, bs, childp->idx->service_id, childp->idx->pfc,
-	    NULL, (childp->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
-	    BLOCK_FLAGS_NONE);
-	if (rc != EOK) 
+	
+	fat_directory_t di;
+	rc = fat_directory_open(parentp, &di);
+	if (rc != EOK)
 		goto error;
-	d = (fat_dentry_t *)b->data +
-	    (childp->idx->pdi % (BPS(bs) / sizeof(fat_dentry_t)));
-	/* mark the dentry as not-currently-used */
-	d->name[0] = FAT_DENTRY_ERASED;
-	b->dirty = true;		/* need to sync block */
-	rc = block_put(b);
+	rc = fat_directory_seek(&di, childp->idx->pdi);
+	if (rc != EOK)
+		goto error;
+	rc = fat_directory_erase(&di);
+	if (rc != EOK)
+		goto error;
+	rc = fat_directory_close(&di);
 	if (rc != EOK)
 		goto error;
 
@@ -819,9 +746,10 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	return EOK;
 
 error:
-	fibril_mutex_unlock(&parentp->idx->lock);
-	fibril_mutex_unlock(&childp->lock);
+	(void) fat_directory_close(&di);
 	fibril_mutex_unlock(&childp->idx->lock);
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&parentp->lock);
 	return rc;
 }
 
@@ -838,7 +766,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 		*has_children = false;
 		return EOK;
 	}
-	
+
 	fibril_mutex_lock(&nodep->idx->lock);
 	bs = block_bb_get(nodep->idx->service_id);
 
@@ -846,7 +774,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 
 	for (i = 0; i < blocks; i++) {
 		fat_dentry_t *d;
-	
+
 		rc = fat_block_get(&b, bs, nodep, i, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&nodep->idx->lock);
@@ -874,7 +802,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 		rc = block_put(b);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&nodep->idx->lock);
-			return rc;	
+			return rc;
 		}
 	}
 
@@ -909,7 +837,7 @@ bool fat_is_file(fs_node_t *fn)
 	return FAT_NODE(fn)->type == FAT_FILE;
 }
 
-service_id_t fat_device_get(fs_node_t *node)
+service_id_t fat_service_get(fs_node_t *node)
 {
 	return 0;
 }
@@ -931,7 +859,7 @@ libfs_ops_t fat_libfs_ops = {
 	.lnkcnt_get = fat_lnkcnt_get,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
-	.device_get = fat_device_get
+	.service_get = fat_service_get
 };
 
 /*
@@ -942,24 +870,39 @@ static int
 fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
 {
-	enum cache_mode cmode;
+	enum cache_mode cmode = CACHE_MODE_WB;
 	fat_bs_t *bs;
+	fat_instance_t *instance;
 	int rc;
-	
-	/* Check for option enabling write through. */
-	if (str_cmp(opts, "wtcache") == 0)
-		cmode = CACHE_MODE_WT;
-	else
-		cmode = CACHE_MODE_WB;
+
+	instance = malloc(sizeof(fat_instance_t));
+	if (!instance)
+		return ENOMEM;
+	instance->lfn_enabled = true;
+
+	/* Parse mount options. */
+	char *mntopts = (char *) opts;
+	char *saveptr;
+	char *opt;
+	while ((opt = strtok_r(mntopts, " ,", &saveptr)) != NULL) {
+		if (str_cmp(opt, "wtcache") == 0)
+			cmode = CACHE_MODE_WT;
+		else if (str_cmp(opt, "nolfn") == 0)
+			instance->lfn_enabled = false;
+		mntopts = NULL;
+	}
 
 	/* initialize libblock */
 	rc = block_init(EXCHANGE_SERIALIZE, service_id, BS_SIZE);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(instance);
 		return rc;
+	}
 
 	/* prepare the boot block */
 	rc = block_bb_read(service_id, BS_BLOCK);
 	if (rc != EOK) {
+		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
@@ -968,6 +911,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	bs = block_bb_get(service_id);
 	
 	if (BPS(bs) != BS_SIZE) {
+		free(instance);
 		block_fini(service_id);
 		return ENOTSUP;
 	}
@@ -975,6 +919,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Initialize the block cache */
 	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
+		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
@@ -982,6 +927,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, service_id);
 	if (rc != EOK) {
+		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
@@ -989,6 +935,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	rc = fat_idx_init_by_service_id(service_id);
 	if (rc != EOK) {
+		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
@@ -997,14 +944,17 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Initialize the root node. */
 	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
 	if (!rfn) {
+		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		fat_idx_fini_by_service_id(service_id);
 		return ENOMEM;
 	}
+
 	fs_node_initialize(rfn);
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
+		free(instance);
 		free(rfn);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
@@ -1015,6 +965,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	fat_idx_t *ridxp = fat_idx_get_by_pos(service_id, FAT_CLST_ROOTPAR, 0);
 	if (!ridxp) {
+		free(instance);
 		free(rfn);
 		free(rootp);
 		(void) block_cache_fini(service_id);
@@ -1026,15 +977,44 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* ridxp->lock held */
 
 	rootp->type = FAT_DIRECTORY;
-	rootp->firstc = FAT_CLST_ROOT;
+	rootp->firstc = FAT_ROOT_CLST(bs);
 	rootp->refcnt = 1;
 	rootp->lnkcnt = 0;	/* FS root is not linked */
-	rootp->size = RDE(bs) * sizeof(fat_dentry_t);
+
+	if (FAT_IS_FAT32(bs)) {
+		uint32_t clusters;
+		rc = fat_clusters_get(&clusters, bs, service_id, rootp->firstc);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&ridxp->lock);
+			free(instance);
+			free(rfn);
+			free(rootp);
+			(void) block_cache_fini(service_id);
+			block_fini(service_id);
+			fat_idx_fini_by_service_id(service_id);
+			return ENOTSUP;
+		}
+		rootp->size = BPS(bs) * SPC(bs) * clusters;
+	} else
+		rootp->size = RDE(bs) * sizeof(fat_dentry_t);
+
+	rc = fs_instance_create(service_id, instance);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&ridxp->lock);
+		free(instance);
+		free(rfn);
+		free(rootp);
+		(void) block_cache_fini(service_id);
+		block_fini(service_id);
+		fat_idx_fini_by_service_id(service_id);
+		return rc;
+	}
+
 	rootp->idx = ridxp;
 	ridxp->nodep = rootp;
 	rootp->bp = rfn;
 	rfn->data = rootp;
-	
+
 	fibril_mutex_unlock(&ridxp->lock);
 
 	*index = ridxp->index;
@@ -1044,11 +1024,45 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	return EOK;
 }
 
+static int fat_update_fat32_fsinfo(service_id_t service_id)
+{
+	fat_bs_t *bs;
+	fat32_fsinfo_t *info;
+	block_t *b;
+	int rc;
+
+	bs = block_bb_get(service_id);
+	assert(FAT_IS_FAT32(bs));
+
+	rc = block_get(&b, service_id, uint16_t_le2host(bs->fat32.fsinfo_sec),
+	    BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+
+	info = (fat32_fsinfo_t *) b->data;
+
+	if (bcmp(info->sig1, FAT32_FSINFO_SIG1, sizeof(info->sig1)) ||
+	    bcmp(info->sig2, FAT32_FSINFO_SIG2, sizeof(info->sig2)) ||
+	    bcmp(info->sig3, FAT32_FSINFO_SIG3, sizeof(info->sig3))) {
+		(void) block_put(b);
+		return EINVAL;
+	}
+
+	/* For now, invalidate the counter. */
+	info->free_clusters = host2uint16_t_le(-1);
+
+	b->dirty = true;
+	return block_put(b);
+}
+
 static int fat_unmounted(service_id_t service_id)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
+	fat_bs_t *bs;
 	int rc;
+
+	bs = block_bb_get(service_id);
 
 	rc = fat_root_get(&fn, service_id);
 	if (rc != EOK)
@@ -1063,7 +1077,14 @@ static int fat_unmounted(service_id_t service_id)
 		(void) fat_node_put(fn);
 		return EBUSY;
 	}
-	
+
+	if (FAT_IS_FAT32(bs)) {
+		/*
+		 * Attempt to update the FAT32 FS info.
+		 */
+		(void) fat_update_fat32_fsinfo(service_id);
+	}
+
 	/*
 	 * Put the root node and force it to the FAT free node list.
 	 */
@@ -1079,6 +1100,12 @@ static int fat_unmounted(service_id_t service_id)
 	fat_idx_fini_by_service_id(service_id);
 	(void) block_cache_fini(service_id);
 	block_fini(service_id);
+
+	void *data;
+	if (fs_instance_get(service_id, &data) == EOK) {
+		fs_instance_destroy(service_id);
+		free(data);
+	}
 
 	return EOK;
 }
@@ -1140,69 +1167,51 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			}
 		}
 	} else {
-		unsigned bnum;
 		aoff64_t spos = pos;
-		char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
+		char name[FAT_LFN_NAME_SIZE];
 		fat_dentry_t *d;
 
 		assert(nodep->type == FAT_DIRECTORY);
 		assert(nodep->size % BPS(bs) == 0);
 		assert(BPS(bs) % sizeof(fat_dentry_t) == 0);
 
-		/*
-		 * Our strategy for readdir() is to use the position pointer as
-		 * an index into the array of all dentries. On entry, it points
-		 * to the first unread dentry. If we skip any dentries, we bump
-		 * the position pointer accordingly.
-		 */
-		bnum = (pos * sizeof(fat_dentry_t)) / BPS(bs);
-		while (bnum < nodep->size / BPS(bs)) {
-			aoff64_t o;
-
-			rc = fat_block_get(&b, bs, nodep, bnum,
-			    BLOCK_FLAGS_NONE);
-			if (rc != EOK)
-				goto err;
-			for (o = pos % (BPS(bs) / sizeof(fat_dentry_t));
-			    o < BPS(bs) / sizeof(fat_dentry_t);
-			    o++, pos++) {
-				d = ((fat_dentry_t *)b->data) + o;
-				switch (fat_classify_dentry(d)) {
-				case FAT_DENTRY_SKIP:
-				case FAT_DENTRY_FREE:
-					continue;
-				case FAT_DENTRY_LAST:
-					rc = block_put(b);
-					if (rc != EOK)
-						goto err;
-					goto miss;
-				default:
-				case FAT_DENTRY_VALID:
-					fat_dentry_name_get(d, name);
-					rc = block_put(b);
-					if (rc != EOK)
-						goto err;
-					goto hit;
-				}
-			}
-			rc = block_put(b);
-			if (rc != EOK)
-				goto err;
-			bnum++;
+		fat_directory_t di;
+		rc = fat_directory_open(nodep, &di);
+		if (rc != EOK)
+			goto err;
+		rc = fat_directory_seek(&di, pos);
+		if (rc != EOK) {
+			(void) fat_directory_close(&di);
+			goto err;
 		}
-miss:
-		rc = fat_node_put(fn);
-		async_answer_0(callid, rc != EOK ? rc : ENOENT);
-		*rbytes = 0;
-		return rc != EOK ? rc : ENOENT;
+
+		rc = fat_directory_read(&di, name, &d);
+		if (rc == EOK)
+			goto hit;
+		if (rc == ENOENT)
+			goto miss;
 
 err:
 		(void) fat_node_put(fn);
 		async_answer_0(callid, rc);
 		return rc;
 
+miss:
+		rc = fat_directory_close(&di);
+		if (rc != EOK)
+			goto err;
+		rc = fat_node_put(fn);
+		async_answer_0(callid, rc != EOK ? rc : ENOENT);
+		*rbytes = 0;
+		return rc != EOK ? rc : ENOENT;
+
 hit:
-		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
+		pos = di.pos;
+		rc = fat_directory_close(&di);
+		if (rc != EOK)
+			goto err;
+		(void) async_data_read_finalize(callid, name,
+		    str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
 
@@ -1230,7 +1239,7 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (!fn)
 		return ENOENT;
 	nodep = FAT_NODE(fn);
-	
+
 	ipc_callid_t callid;
 	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
@@ -1246,12 +1255,12 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	 * of data at maximum. There might be some more efficient approaches,
 	 * but this one greatly simplifies fat_write(). Note that we can afford
 	 * to do this because the client must be ready to handle the return
-	 * value signalizing a smaller number of bytes written. 
-	 */ 
+	 * value signalizing a smaller number of bytes written.
+	 */
 	bytes = min(len, BPS(bs) - pos % BPS(bs));
 	if (bytes == BPS(bs))
 		flags |= BLOCK_FLAGS_NOREAD;
-	
+
 	boundary = ROUND_UP(nodep->size, BPC(bs));
 	if (pos < boundary) {
 		/*
@@ -1294,8 +1303,8 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		 * clusters for the node and zero them out.
 		 */
 		unsigned nclsts;
-		fat_cluster_t mcl, lcl; 
- 
+		fat_cluster_t mcl, lcl;
+
 		nclsts = (ROUND_UP(pos + bytes, BPC(bs)) - boundary) / BPC(bs);
 		/* create an independent chain of nclsts clusters in all FATs */
 		rc = fat_alloc_clusters(bs, service_id, nclsts, &mcl, &lcl);
@@ -1379,7 +1388,7 @@ fat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 		 */
 		nodep->size = size;
 		nodep->dirty = true;		/* need to sync node */
-		rc = EOK;	
+		rc = EOK;
 	} else {
 		/*
 		 * The node will be shrunk, clusters will be deallocated.
@@ -1400,7 +1409,7 @@ fat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 		}
 		nodep->size = size;
 		nodep->dirty = true;		/* need to sync node */
-		rc = EOK;	
+		rc = EOK;
 	}
 out:
 	fat_node_put(fn);
@@ -1443,12 +1452,12 @@ static int fat_sync(service_id_t service_id, fs_index_t index)
 		return rc;
 	if (!fn)
 		return ENOENT;
-	
+
 	fat_node_t *nodep = FAT_NODE(fn);
-	
+
 	nodep->dirty = true;
 	rc = fat_node_sync(nodep);
-	
+
 	fat_node_put(fn);
 	return rc;
 }

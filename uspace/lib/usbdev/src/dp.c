@@ -56,7 +56,7 @@
 #define LAST_NESTING { -1, -1 }
 
 /** Nesting of standard USB descriptors. */
-usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[] = {
+const usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[] = {
 	NESTING(CONFIGURATION, INTERFACE),
 	NESTING(INTERFACE, ENDPOINT),
 	NESTING(INTERFACE, HUB),
@@ -74,8 +74,8 @@ usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[] = {
  * @param ptr Pointer to be verified.
  * @return Whether @p ptr points inside <code>data->data</code> field.
  */
-static bool is_valid_descriptor_pointer(usb_dp_parser_data_t *data,
-    uint8_t *ptr)
+static bool is_valid_descriptor_pointer(const usb_dp_parser_data_t *data,
+    const uint8_t *ptr)
 {
 	if (ptr == NULL) {
 		return false;
@@ -99,13 +99,13 @@ static bool is_valid_descriptor_pointer(usb_dp_parser_data_t *data,
  * @return Pointer to start of next descriptor.
  * @retval NULL Invalid input or no next descriptor.
  */
-static uint8_t *get_next_descriptor(usb_dp_parser_data_t *data,
-    uint8_t *current)
+static const uint8_t *get_next_descriptor(const usb_dp_parser_data_t *data,
+    const uint8_t *current)
 {
 	assert(is_valid_descriptor_pointer(data, current));
 
-	uint8_t current_length = *current;
-	uint8_t *next = current + current_length;
+	const uint8_t current_length = *current;
+	const uint8_t *next = current + current_length;
 
 	if (!is_valid_descriptor_pointer(data, next)) {
 		return NULL;
@@ -123,7 +123,7 @@ static uint8_t *get_next_descriptor(usb_dp_parser_data_t *data,
  * @return Descriptor type.
  * @retval -1 Invalid input.
  */
-static int get_descriptor_type(usb_dp_parser_data_t *data, uint8_t *start)
+static int get_descriptor_type(const usb_dp_parser_data_t *data, const uint8_t *start)
 {
 	if (start == NULL) {
 		return -1;
@@ -144,10 +144,10 @@ static int get_descriptor_type(usb_dp_parser_data_t *data, uint8_t *start)
  * @param parent Parent descriptor type.
  * @return Whether @p child could be child of @p parent.
  */
-static bool is_nested_descriptor_type(usb_dp_parser_t *parser,
+static bool is_nested_descriptor_type(const usb_dp_parser_t *parser,
     int child, int parent)
 {
-	usb_dp_descriptor_nesting_t *nesting = parser->nesting;
+	const usb_dp_descriptor_nesting_t *nesting = parser->nesting;
 	while ((nesting->child > 0) && (nesting->parent > 0)) {
 		if ((nesting->child == child) && (nesting->parent == parent)) {
 			return true;
@@ -165,8 +165,8 @@ static bool is_nested_descriptor_type(usb_dp_parser_t *parser,
  * @param parent Pointer to parent descriptor.
  * @return Whether @p child could be child of @p parent.
  */
-static bool is_nested_descriptor(usb_dp_parser_t *parser,
-    usb_dp_parser_data_t *data, uint8_t *child, uint8_t *parent)
+static bool is_nested_descriptor(const usb_dp_parser_t *parser,
+    const usb_dp_parser_data_t *data, const uint8_t *child, const uint8_t *parent)
 {
 	return is_nested_descriptor_type(parser,
 	    get_descriptor_type(data, child),
@@ -182,14 +182,14 @@ static bool is_nested_descriptor(usb_dp_parser_t *parser,
  * @retval NULL No child descriptor found.
  * @retval NULL Invalid input.
  */
-uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *parser,
-    usb_dp_parser_data_t *data, uint8_t *parent)
+const uint8_t *usb_dp_get_nested_descriptor(const usb_dp_parser_t *parser,
+    const usb_dp_parser_data_t *data, const uint8_t *parent)
 {
 	if (!is_valid_descriptor_pointer(data, parent)) {
 		return NULL;
 	}
 
-	uint8_t *next = get_next_descriptor(data, parent);
+	const uint8_t *next = get_next_descriptor(data, parent);
 	if (next == NULL) {
 		return NULL;
 	}
@@ -210,14 +210,16 @@ uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *parser,
  * @retval NULL No next descriptor.
  * @retval NULL Invalid input.
  */
-static uint8_t *skip_nested_descriptors(usb_dp_parser_t *parser,
-    usb_dp_parser_data_t *data, uint8_t *parent)
+static const uint8_t *skip_nested_descriptors(const usb_dp_parser_t *parser,
+    const usb_dp_parser_data_t *data, const uint8_t *parent)
 {
-	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, parent);
+	const uint8_t *child =
+	    usb_dp_get_nested_descriptor(parser, data, parent);
 	if (child == NULL) {
 		return get_next_descriptor(data, parent);
 	}
-	uint8_t *next_child = skip_nested_descriptors(parser, data, child);
+	const uint8_t *next_child =
+	    skip_nested_descriptors(parser, data, child);
 	while (is_nested_descriptor(parser, data, next_child, parent)) {
 		next_child = skip_nested_descriptors(parser, data, next_child);
 	}
@@ -235,15 +237,17 @@ static uint8_t *skip_nested_descriptors(usb_dp_parser_t *parser,
  * @retval NULL No sibling exist.
  * @retval NULL Invalid input.
  */
-uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *parser,
-    usb_dp_parser_data_t *data, uint8_t *parent, uint8_t *sibling)
+const uint8_t *usb_dp_get_sibling_descriptor(
+    const usb_dp_parser_t *parser, const usb_dp_parser_data_t *data,
+    const uint8_t *parent, const uint8_t *sibling)
 {
 	if (!is_valid_descriptor_pointer(data, parent)
 	    || !is_valid_descriptor_pointer(data, sibling)) {
 		return NULL;
 	}
 
-	uint8_t *possible_sibling = skip_nested_descriptors(parser, data, sibling);
+	const uint8_t *possible_sibling =
+	    skip_nested_descriptors(parser, data, sibling);
 	if (possible_sibling == NULL) {
 		return NULL;
 	}
@@ -268,15 +272,15 @@ uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *parser,
  * @param callback Callback for each found descriptor.
  * @param arg Custom (user) argument.
  */
-static void usb_dp_browse_simple_internal(usb_dp_parser_t *parser,
-    usb_dp_parser_data_t *data, uint8_t *root, size_t depth,
-    void (*callback)(uint8_t *, size_t, void *), void *arg)
+static void usb_dp_browse_simple_internal(const usb_dp_parser_t *parser,
+    const usb_dp_parser_data_t *data, const uint8_t *root, size_t depth,
+    void (*callback)(const uint8_t *, size_t, void *), void *arg)
 {
 	if (root == NULL) {
 		return;
 	}
 	callback(root, depth, arg);
-	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	const uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
 	do {
 		usb_dp_browse_simple_internal(parser, data, child, depth + 1,
 		    callback, arg);
@@ -300,21 +304,21 @@ static void usb_dp_browse_simple_internal(usb_dp_parser_t *parser,
  * @param arg Custom (user) argument.
  */
 void usb_dp_walk_simple(uint8_t *descriptors, size_t descriptors_size,
-    usb_dp_descriptor_nesting_t *descriptor_nesting,
-    void (*callback)(uint8_t *, size_t, void *), void *arg)
+    const usb_dp_descriptor_nesting_t *descriptor_nesting,
+    walk_callback_t callback, void *arg)
 {
 	if ((descriptors == NULL) || (descriptors_size == 0)
 	    || (descriptor_nesting == NULL) || (callback == NULL)) {
 		return;
 	}
 
-	usb_dp_parser_data_t data = {
+	const usb_dp_parser_data_t data = {
 		.data = descriptors,
 		.size = descriptors_size,
 		.arg = NULL
 	};
 
-	usb_dp_parser_t parser = {
+	const usb_dp_parser_t parser = {
 		.nesting = descriptor_nesting
 	};
 

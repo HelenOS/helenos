@@ -1,0 +1,11 @@
+rm edit_
+
+rm edit.o
+rm sheet.o
+
+rm edit.s
+rm sheet.s
+
+rm edit.i
+rm sheet.i
+

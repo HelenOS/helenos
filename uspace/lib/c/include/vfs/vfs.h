@@ -38,8 +38,10 @@
 #include <sys/types.h>
 #include <ipc/vfs.h>
 #include <ipc/loc.h>
+#include <adt/list.h>
 #include <stdio.h>
 #include <async.h>
+#include "vfs_mtab.h"
 
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE
@@ -48,12 +50,13 @@ enum vfs_change_state_type {
 extern char *absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int);
+    unsigned int, unsigned int);
 extern int unmount(const char *);
 
 extern int fhandle(FILE *, int *);
 
 extern int fd_wait(void);
+extern int get_mtab_list(list_t *mtab_list);
 
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);

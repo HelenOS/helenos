@@ -52,12 +52,13 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.21"
-GCC_VERSION="4.6.1"
-GDB_VERSION="7.2"
+BINUTILS_VERSION="2.21.1"
+BINUTILS_RELEASE="a"
+GCC_VERSION="4.6.2"
+GDB_VERSION="7.3.1"
 
 BASEDIR="`pwd`"
-BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
+BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
 GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
 GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
@@ -272,11 +273,11 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "c84c5acc9d266f1a7044b51c85a823f5"
-	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "0c0e7e35d2215e19de9c97efba507553"
-	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "cbf0d4b701827922cf37ba6a4ace0079"
-	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "0d75ca7ca35b1e7f252223f9d23a6ad1"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "64260e6c56979ee750a01055f16091a5"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "bde820eac53fa3a8d8696667418557ad"
+	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "780f614ab18c7a9066dec6387d7490b2"
+	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "94043cc0d08394eddebed73f30ecad89"
+	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "87ecd60431e41096419dd8a10f76e46b"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "b89a5fac359c618dda97b88645ceab47"
 }
 
 build_target() {

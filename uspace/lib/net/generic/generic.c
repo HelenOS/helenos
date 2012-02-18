@@ -53,7 +53,7 @@
  *
  */
 int generic_device_state_msg_remote(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, sysarg_t state, services_t target)
+    nic_device_id_t device_id, sysarg_t state, services_t target)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	async_msg_3(exch, message, (sysarg_t) device_id, state, target);
@@ -67,7 +67,6 @@ int generic_device_state_msg_remote(async_sess_t *sess, sysarg_t message,
  * @param[in] sess      Service module session.
  * @param[in] message   Service specific message.
  * @param[in] device_id Device identifier.
- * @param[in] arg2      Second argument of the message.
  * @param[in] service   Device module service.
  *
  * @return EOK on success.
@@ -76,11 +75,11 @@ int generic_device_state_msg_remote(async_sess_t *sess, sysarg_t message,
  *
  */
 int generic_device_req_remote(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, sysarg_t arg2, services_t service)
+    nic_device_id_t device_id, services_t service)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int rc = async_req_3_0(exch, message, (sysarg_t) device_id,
-	    arg2, (sysarg_t) service);
+	int rc = async_req_3_0(exch, message, (sysarg_t) device_id, 0,
+	    (sysarg_t) service);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -102,29 +101,32 @@ int generic_device_req_remote(async_sess_t *sess, sysarg_t message,
  *
  */
 int generic_get_addr_req(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, measured_string_t **address, uint8_t **data)
+    nic_device_id_t device_id, uint8_t *address, size_t max_len)
 {
-	if ((!address) || (!data))
-		return EBADMEM;
+	aid_t aid;
+	ipc_call_t result;
+	
+	assert(address != NULL);
 	
 	/* Request the address */
 	async_exch_t *exch = async_exchange_begin(sess);
-	aid_t message_id = async_send_1(exch, message, (sysarg_t) device_id,
-	    NULL);
-	int rc = measured_strings_return(exch, address, data, 1);
+	aid = async_send_1(exch, message, (sysarg_t) device_id, &result);
+	
+	sysarg_t ipcrc;
+	int rc = async_data_read_start(exch, address, max_len);
 	async_exchange_end(exch);
 	
-	sysarg_t result;
-	async_wait_for(message_id, &result);
-	
-	/* If not successful */
-	if ((rc == EOK) && (result != EOK)) {
-		/* Clear the data */
-		free(*address);
-		free(*data);
+	if (rc != EOK) {
+		async_wait_for(aid, &ipcrc);
+		return rc;
 	}
 	
-	return (int) result;
+	async_wait_for(aid, &ipcrc);
+	if (ipcrc == EOK) {
+		return IPC_GET_ARG1(result);
+	} else {
+		return (int) ipcrc;
+	}
 }
 
 /** Return the device packet dimension for sending.
@@ -141,7 +143,7 @@ int generic_get_addr_req(async_sess_t *sess, sysarg_t message,
  *
  */
 int generic_packet_size_req_remote(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, packet_dimension_t *packet_dimension)
+    nic_device_id_t device_id, packet_dimension_t *packet_dimension)
 {
 	if (!packet_dimension)
 		return EBADMEM;
@@ -178,7 +180,7 @@ int generic_packet_size_req_remote(async_sess_t *sess, sysarg_t message,
  *
  */
 int generic_received_msg_remote(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, packet_id_t packet_id, services_t target,
+    nic_device_id_t device_id, packet_id_t packet_id, services_t target,
     services_t error)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -209,7 +211,7 @@ int generic_received_msg_remote(async_sess_t *sess, sysarg_t message,
  *
  */
 int generic_send_msg_remote(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, packet_id_t packet_id, services_t sender,
+    nic_device_id_t device_id, packet_id_t packet_id, services_t sender,
     services_t error)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -250,7 +252,7 @@ int generic_send_msg_remote(async_sess_t *sess, sysarg_t message,
  *
  */
 int generic_translate_req(async_sess_t *sess, sysarg_t message,
-    device_id_t device_id, services_t service,
+    nic_device_id_t device_id, services_t service,
     measured_string_t *configuration, size_t count,
     measured_string_t **translation, uint8_t **data)
 {

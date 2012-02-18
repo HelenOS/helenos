@@ -77,6 +77,26 @@ bool hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys,
 	return true;
 }
 
+/** Remove all elements from the hash table
+ *
+ * @param h Hash table to be cleared
+ */
+void hash_table_clear(hash_table_t *h)
+{
+	for (hash_count_t chain = 0; chain < h->entries; ++chain) {
+		link_t *cur;
+		link_t *next;
+		
+		for (cur = h->entry[chain].head.next;
+		    cur != &h->entry[chain].head;
+		    cur = next) {
+			next = cur->next;
+			list_remove(cur);
+			h->op->remove_callback(cur);
+		}
+	}
+}
+
 /** Destroy a hash table instance.
  *
  * @param h Hash table to be destroyed.
@@ -151,14 +171,12 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	assert(keys <= h->max_keys);
 	
 	if (keys == h->max_keys) {
-		link_t *cur;
-		
 		/*
 		 * All keys are known, hash_table_find() can be used to find the
 		 * entry.
 		 */
 		
-		cur = hash_table_find(h, key);
+		link_t *cur = hash_table_find(h, key);
 		if (cur) {
 			list_remove(cur);
 			h->op->remove_callback(cur);
@@ -173,9 +191,8 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	 */
 	hash_index_t chain;
 	for (chain = 0; chain < h->entries; chain++) {
-		link_t *cur;
-		
-		for (cur = h->entry[chain].head.next; cur != &h->entry[chain].head;
+		for (link_t *cur = h->entry[chain].head.next;
+		    cur != &h->entry[chain].head;
 		    cur = cur->next) {
 			if (h->op->compare(key, keys, cur)) {
 				link_t *hlp;
@@ -192,7 +209,7 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	}
 }
 
-/** Apply fucntion to all items in hash table.
+/** Apply function to all items in hash table.
  *
  * @param h   Hash table.
  * @param f   Function to be applied.
@@ -200,11 +217,19 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
  *
  */
 void hash_table_apply(hash_table_t *h, void (*f)(link_t *, void *), void *arg)
-{
-	hash_index_t bucket;
-	
-	for (bucket = 0; bucket < h->entries; bucket++) {
-		list_foreach(h->entry[bucket], cur) {
+{	
+	for (hash_index_t bucket = 0; bucket < h->entries; bucket++) {
+		link_t *cur;
+		link_t *next;
+
+		for (cur = h->entry[bucket].head.next; cur != &h->entry[bucket].head;
+		    cur = next) {
+			/*
+			 * The next pointer must be stored prior to the functor
+			 * call to allow using destructor as the functor (the
+			 * free function could overwrite the cur->next pointer).
+			 */
+			next = cur->next;
 			f(cur, arg);
 		}
 	}

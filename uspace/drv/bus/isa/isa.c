@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +37,7 @@
 /** @file
  */
 
+#include <adt/list.h>
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -49,7 +51,15 @@
 #include <malloc.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <ipc/irc.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
+#include <ns.h>
 #include <sys/stat.h>
+#include <ipc/irc.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
+#include <ns.h>
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
@@ -59,17 +69,31 @@
 #include <ipc/devman.h>
 #include <device/hw_res.h>
 
+#include "i8237.h"
+
 #define NAME "isa"
 #define CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
 
-/** Obtain soft-state pointer from function node pointer */
-#define ISA_FUN(fnode) ((isa_fun_t *) ((fnode)->driver_data))
+/** Obtain soft-state from device node */
+#define ISA_BUS(dev) ((isa_bus_t *) ((dev)->driver_data))
 
-#define ISA_MAX_HW_RES 4
+/** Obtain soft-state from function node */
+#define ISA_FUN(fun) ((isa_fun_t *) ((fun)->driver_data))
+
+#define ISA_MAX_HW_RES 5
+
+typedef struct {
+	fibril_mutex_t mutex;
+	ddf_dev_t *dev;
+	ddf_fun_t *fctl;
+	list_t functions;
+} isa_bus_t;
 
 typedef struct isa_fun {
+	fibril_mutex_t mutex;
 	ddf_fun_t *fnode;
 	hw_resource_list_t hw_resources;
+	link_t bus_link;
 } isa_fun_t;
 
 static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
@@ -82,23 +106,87 @@ static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
 
 static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 {
-	/* TODO */
+	/* This is an old ugly way, copied from pci driver */
+	assert(fnode);
+	isa_fun_t *isa_fun = fnode->driver_data;
 
-	return false;
+	sysarg_t apic;
+	sysarg_t i8259;
+
+	async_sess_t *irc_sess = NULL;
+
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
+		irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_IRC, 0, 0);
+	}
+
+	if (!irc_sess)
+		return false;
+
+	assert(isa_fun);
+	const hw_resource_list_t *res = &isa_fun->hw_resources;
+	assert(res);
+	for (size_t i = 0; i < res->count; ++i) {
+		if (res->resources[i].type == INTERRUPT) {
+			const int irq = res->resources[i].res.interrupt.irq;
+
+			async_exch_t *exch = async_exchange_begin(irc_sess);
+			const int rc =
+			    async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
+			async_exchange_end(exch);
+
+			if (rc != EOK) {
+				async_hangup(irc_sess);
+				return false;
+			}
+		}
+	}
+
+	async_hangup(irc_sess);
+	return true;
+}
+
+static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
+    unsigned int channel, uint32_t pa, uint16_t size, uint8_t mode)
+{
+	assert(fnode);
+	isa_fun_t *isa_fun = fnode->driver_data;
+	const hw_resource_list_t *res = &isa_fun->hw_resources;
+	assert(res);
+	
+	const unsigned int ch = channel;
+	for (size_t i = 0; i < res->count; ++i) {
+		if (((res->resources[i].type == DMA_CHANNEL_16) &&
+		    (res->resources[i].res.dma_channel.dma16 == ch)) ||
+		    ((res->resources[i].type == DMA_CHANNEL_8) &&
+		    (res->resources[i].res.dma_channel.dma8 == ch))) {
+			return dma_setup_channel(channel, pa, size, mode);
+		}
+	}
+	
+	return EINVAL;
 }
 
 static hw_res_ops_t isa_fun_hw_res_ops = {
-	&isa_get_fun_resources,
-	&isa_enable_fun_interrupt
+	.get_resource_list = isa_get_fun_resources,
+	.enable_interrupt = isa_enable_fun_interrupt,
+	.dma_channel_setup = isa_dma_channel_fun_setup,
 };
 
 static ddf_dev_ops_t isa_fun_ops;
 
-static int isa_add_device(ddf_dev_t *dev);
+static int isa_dev_add(ddf_dev_t *dev);
+static int isa_dev_remove(ddf_dev_t *dev);
+static int isa_fun_online(ddf_fun_t *fun);
+static int isa_fun_offline(ddf_fun_t *fun);
 
 /** The isa device driver's standard operations */
 static driver_ops_t isa_ops = {
-	.add_device = &isa_add_device
+	.dev_add = &isa_dev_add,
+	.dev_remove = &isa_dev_remove,
+	.fun_online = &isa_fun_online,
+	.fun_offline = &isa_fun_offline
 };
 
 /** The isa device driver structure. */
@@ -107,20 +195,18 @@ static driver_t isa_driver = {
 	.driver_ops = &isa_ops
 };
 
-static isa_fun_t *isa_fun_create(ddf_dev_t *dev, const char *name)
+static isa_fun_t *isa_fun_create(isa_bus_t *isa, const char *name)
 {
-	isa_fun_t *fun = calloc(1, sizeof(isa_fun_t));
+	ddf_fun_t *fnode = ddf_fun_create(isa->dev, fun_inner, name);
+	if (fnode == NULL)
+		return NULL;
+
+	isa_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(isa_fun_t));
 	if (fun == NULL)
 		return NULL;
 
-	ddf_fun_t *fnode = ddf_fun_create(dev, fun_inner, name);
-	if (fnode == NULL) {
-		free(fun);
-		return NULL;
-	}
-
+	fibril_mutex_initialize(&fun->mutex);
 	fun->fnode = fnode;
-	fnode->driver_data = fun;
 	return fun;
 }
 
@@ -256,6 +342,39 @@ static void isa_fun_set_irq(isa_fun_t *fun, int irq)
 	}
 }
 
+static void isa_fun_set_dma(isa_fun_t *fun, int dma)
+{
+	size_t count = fun->hw_resources.count;
+	hw_resource_t *resources = fun->hw_resources.resources;
+	
+	if (count < ISA_MAX_HW_RES) {
+		if ((dma > 0) && (dma < 4)) {
+			resources[count].type = DMA_CHANNEL_8;
+			resources[count].res.dma_channel.dma8 = dma;
+			
+			fun->hw_resources.count++;
+			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
+			    fun->fnode->name);
+			
+			return;
+		}
+
+		if ((dma > 4) && (dma < 8)) {
+			resources[count].type = DMA_CHANNEL_16;
+			resources[count].res.dma_channel.dma16 = dma;
+			
+			fun->hw_resources.count++;
+			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
+			    fun->fnode->name);
+			
+			return;
+		}
+		
+		ddf_msg(LVL_WARN, "Skipped dma 0x%x for function %s", dma,
+		    fun->fnode->name);
+	}
+}
+
 static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
 {
 	size_t count = fun->hw_resources.count;
@@ -281,10 +400,22 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 	char *end = NULL;
 
 	val = skip_spaces(val);
-	irq = (int)strtol(val, &end, 0x10);
+	irq = (int) strtol(val, &end, 10);
 
 	if (val != end)
 		isa_fun_set_irq(fun, irq);
+}
+
+static void fun_parse_dma(isa_fun_t *fun, char *val)
+{
+	unsigned int dma = 0;
+	char *end = NULL;
+	
+	val = skip_spaces(val);
+	dma = (unsigned int) strtol(val, &end, 10);
+	
+	if (val != end)
+		isa_fun_set_dma(fun, dma);
 }
 
 static void fun_parse_io_range(isa_fun_t *fun, char *val)
@@ -378,6 +509,7 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 
 	if (!prop_parse(fun, line, "io_range", &fun_parse_io_range) &&
 	    !prop_parse(fun, line, "irq", &fun_parse_irq) &&
+	    !prop_parse(fun, line, "dma", &fun_parse_dma) &&
 	    !prop_parse(fun, line, "match", &fun_parse_match_id)) {
 
 		ddf_msg(LVL_ERROR, "Undefined device property at line '%s'",
@@ -387,11 +519,17 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 
 static void fun_hw_res_alloc(isa_fun_t *fun)
 {
-	fun->hw_resources.resources = 
-	    (hw_resource_t *)malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
+	fun->hw_resources.resources =
+	    (hw_resource_t *) malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
 }
 
-static char *isa_fun_read_info(char *fun_conf, ddf_dev_t *dev)
+static void fun_hw_res_free(isa_fun_t *fun)
+{
+	free(fun->hw_resources.resources);
+	fun->hw_resources.resources = NULL;
+}
+
+static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 {
 	char *line;
 	char *fun_name = NULL;
@@ -414,7 +552,7 @@ static char *isa_fun_read_info(char *fun_conf, ddf_dev_t *dev)
 	if (fun_name == NULL)
 		return NULL;
 
-	isa_fun_t *fun = isa_fun_create(dev, fun_name);
+	isa_fun_t *fun = isa_fun_create(isa, fun_name);
 	if (fun == NULL) {
 		free(fun_name);
 		return NULL;
@@ -447,54 +585,126 @@ static char *isa_fun_read_info(char *fun_conf, ddf_dev_t *dev)
 	/* XXX Handle error */
 	(void) ddf_fun_bind(fun->fnode);
 
+	list_append(&fun->bus_link, &isa->functions);
+
 	return fun_conf;
 }
 
-static void fun_conf_parse(char *conf, ddf_dev_t *dev)
+static void fun_conf_parse(char *conf, isa_bus_t *isa)
 {
 	while (conf != NULL && *conf != '\0') {
-		conf = isa_fun_read_info(conf, dev);
+		conf = isa_fun_read_info(conf, isa);
 	}
 }
 
-static void isa_functions_add(ddf_dev_t *dev)
+static void isa_functions_add(isa_bus_t *isa)
 {
 	char *fun_conf;
 
 	fun_conf = fun_conf_read(CHILD_FUN_CONF_PATH);
 	if (fun_conf != NULL) {
-		fun_conf_parse(fun_conf, dev);
+		fun_conf_parse(fun_conf, isa);
 		free(fun_conf);
 	}
 }
 
-static int isa_add_device(ddf_dev_t *dev)
+static int isa_dev_add(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "isa_add_device, device handle = %d",
+	isa_bus_t *isa;
+
+	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) dev->handle);
+
+	isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));
+	if (isa == NULL)
+		return ENOMEM;
+
+	fibril_mutex_initialize(&isa->mutex);
+	isa->dev = dev;
+	list_initialize(&isa->functions);
 
 	/* Make the bus device more visible. Does not do anything. */
 	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");
 
-	ddf_fun_t *ctl = ddf_fun_create(dev, fun_exposed, "ctl");
-	if (ctl == NULL) {
+	fibril_mutex_lock(&isa->mutex);
+
+	isa->fctl = ddf_fun_create(dev, fun_exposed, "ctl");
+	if (isa->fctl == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating control function.");
 		return EXDEV;
 	}
 
-	if (ddf_fun_bind(ctl) != EOK) {
+	if (ddf_fun_bind(isa->fctl) != EOK) {
+		ddf_fun_destroy(isa->fctl);
 		ddf_msg(LVL_ERROR, "Failed binding control function.");
 		return EXDEV;
 	}
 
 	/* Add functions as specified in the configuration file. */
-	isa_functions_add(dev);
+	isa_functions_add(isa);
 	ddf_msg(LVL_NOTE, "Finished enumerating legacy functions");
+
+	fibril_mutex_unlock(&isa->mutex);
 
 	return EOK;
 }
 
-static void isa_init() 
+static int isa_dev_remove(ddf_dev_t *dev)
+{
+	isa_bus_t *isa = ISA_BUS(dev);
+	int rc;
+
+	fibril_mutex_lock(&isa->mutex);
+
+	while (!list_empty(&isa->functions)) {
+		isa_fun_t *fun = list_get_instance(list_first(&isa->functions),
+		    isa_fun_t, bus_link);
+
+		rc = ddf_fun_offline(fun->fnode);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&isa->mutex);
+			ddf_msg(LVL_ERROR, "Failed offlining %s", fun->fnode->name);
+			return rc;
+		}
+
+		rc = ddf_fun_unbind(fun->fnode);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&isa->mutex);
+			ddf_msg(LVL_ERROR, "Failed unbinding %s", fun->fnode->name);
+			return rc;
+		}
+
+		list_remove(&fun->bus_link);
+
+		fun_hw_res_free(fun);
+		ddf_fun_destroy(fun->fnode);
+	}
+
+	if (ddf_fun_unbind(isa->fctl) != EOK) {
+		fibril_mutex_unlock(&isa->mutex);
+		ddf_msg(LVL_ERROR, "Failed unbinding control function.");
+		return EXDEV;
+	}
+
+	fibril_mutex_unlock(&isa->mutex);
+
+	return EOK;
+}
+
+static int isa_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "isa_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int isa_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "isa_fun_offline()");
+	return ddf_fun_offline(fun);
+}
+
+
+static void isa_init()
 {
 	ddf_log_init(NAME, LVL_ERROR);
 	isa_fun_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;

@@ -36,11 +36,11 @@
 #include <errno.h>
 #include <usb/debug.h>
 #include <libarch/barrier.h>
+
 #include "transfer_list.h"
-#include "batch.h"
 
 static void transfer_list_remove_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch);
+    transfer_list_t *instance, uhci_transfer_batch_t *uhci_batch);
 /*----------------------------------------------------------------------------*/
 /** Initialize transfer list structures.
  *
@@ -105,43 +105,42 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
  * The batch is added to the end of the list and queue.
  */
 void transfer_list_add_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch)
+    transfer_list_t *instance, uhci_transfer_batch_t *uhci_batch)
 {
 	assert(instance);
-	assert(batch);
-	usb_log_debug2("Queue %s: Adding batch(%p).\n", instance->name, batch);
+	assert(uhci_batch);
+	usb_log_debug2("Queue %s: Adding batch(%p).\n", instance->name,
+	    uhci_batch->usb_batch);
 
 	fibril_mutex_lock(&instance->guard);
 
-	qh_t *last_qh = NULL;
-	/* Add to the hardware queue. */
-	if (list_empty(&instance->batch_list)) {
-		/* There is nothing scheduled */
-		last_qh = instance->queue_head;
-	} else {
-		/* There is something scheduled */
-		usb_transfer_batch_t *last = usb_transfer_batch_from_link(
-		    list_last(&instance->batch_list));
-		last_qh = batch_qh(last);
+	/* Assume there is nothing scheduled */
+	qh_t *last_qh = instance->queue_head;
+	/* There is something scheduled */
+	if (!list_empty(&instance->batch_list)) {
+		last_qh = uhci_transfer_batch_from_link(
+		    list_last(&instance->batch_list))->qh;
 	}
-	const uint32_t pa = addr_to_phys(batch_qh(batch));
+	/* Add to the hardware queue. */
+	const uint32_t pa = addr_to_phys(uhci_batch->qh);
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
 
 	/* Make sure all data in the batch are written */
 	write_barrier();
 
 	/* keep link */
-	batch_qh(batch)->next = last_qh->next;
-	qh_set_next_qh(last_qh, batch_qh(batch));
+	uhci_batch->qh->next = last_qh->next;
+	qh_set_next_qh(last_qh, uhci_batch->qh);
 
 	/* Make sure the pointer is updated */
 	write_barrier();
 
 	/* Add to the driver's list */
-	list_append(&batch->link, &instance->batch_list);
+	list_append(&uhci_batch->link, &instance->batch_list);
 
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " scheduled in queue %s.\n",
-	    batch, USB_TRANSFER_BATCH_ARGS(*batch), instance->name);
+	    uhci_batch, USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch),
+	    instance->name);
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
@@ -156,13 +155,13 @@ void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
 	assert(done);
 
 	fibril_mutex_lock(&instance->guard);
-	link_t *current = instance->batch_list.head.next;
-	while (current != &instance->batch_list.head) {
+	link_t *current = list_first(&instance->batch_list);
+	while (current && current != &instance->batch_list.head) {
 		link_t * const next = current->next;
-		usb_transfer_batch_t *batch =
-		    usb_transfer_batch_from_link(current);
+		uhci_transfer_batch_t *batch =
+		    uhci_transfer_batch_from_link(current);
 
-		if (batch_is_complete(batch)) {
+		if (uhci_transfer_batch_is_complete(batch)) {
 			/* Save for processing */
 			transfer_list_remove_batch(instance, batch);
 			list_append(current, done);
@@ -181,10 +180,10 @@ void transfer_list_abort_all(transfer_list_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	while (!list_empty(&instance->batch_list)) {
 		link_t * const current = list_first(&instance->batch_list);
-		usb_transfer_batch_t *batch =
-		    usb_transfer_batch_from_link(current);
+		uhci_transfer_batch_t *batch =
+		    uhci_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
-		usb_transfer_batch_finish_error(batch, EINTR);
+		uhci_transfer_batch_abort(batch);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -197,44 +196,40 @@ void transfer_list_abort_all(transfer_list_t *instance)
  * Does not lock the transfer list, caller is responsible for that.
  */
 void transfer_list_remove_batch(
-    transfer_list_t *instance, usb_transfer_batch_t *batch)
+    transfer_list_t *instance, uhci_transfer_batch_t *uhci_batch)
 {
 	assert(instance);
 	assert(instance->queue_head);
-	assert(batch);
-	assert(batch_qh(batch));
+	assert(uhci_batch);
+	assert(uhci_batch->qh);
 	assert(fibril_mutex_is_locked(&instance->guard));
 
-	usb_log_debug2(
-	    "Queue %s: removing batch(%p).\n", instance->name, batch);
+	usb_log_debug2("Queue %s: removing batch(%p).\n",
+	    instance->name, uhci_batch->usb_batch);
 
-	const char *qpos = NULL;
-	qh_t *prev_qh = NULL;
+	/* Assume I'm the first */
+	const char *qpos = "FIRST";
+	qh_t *prev_qh = instance->queue_head;
 	/* Remove from the hardware queue */
-	if (list_first(&instance->batch_list) == &batch->link) {
-		/* I'm the first one here */
-		prev_qh = instance->queue_head;
-		qpos = "FIRST";
-	} else {
-		/* The thing before me is a batch too */
-		usb_transfer_batch_t *prev =
-		    usb_transfer_batch_from_link(batch->link.prev);
-		prev_qh = batch_qh(prev);
+	if (list_first(&instance->batch_list) != &uhci_batch->link) {
+		/* There is a batch in front of me */
+		prev_qh =
+		    uhci_transfer_batch_from_link(uhci_batch->link.prev)->qh;
 		qpos = "NOT FIRST";
 	}
 	assert((prev_qh->next & LINK_POINTER_ADDRESS_MASK)
-	    == addr_to_phys(batch_qh(batch)));
-	prev_qh->next = batch_qh(batch)->next;
+	    == addr_to_phys(uhci_batch->qh));
+	prev_qh->next = uhci_batch->qh->next;
 
 	/* Make sure the pointer is updated */
 	write_barrier();
 
 	/* Remove from the batch list */
-	list_remove(&batch->link);
+	list_remove(&uhci_batch->link);
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " removed (%s) "
 	    "from %s, next: %x.\n",
-	    batch, USB_TRANSFER_BATCH_ARGS(*batch),
-	    qpos, instance->name, batch_qh(batch)->next);
+	    uhci_batch, USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch),
+	    qpos, instance->name, uhci_batch->qh->next);
 }
 /**
  * @}

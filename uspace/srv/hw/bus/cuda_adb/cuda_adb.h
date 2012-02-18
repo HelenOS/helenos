@@ -37,7 +37,7 @@
 #define CUDA_ADB_H_
 
 #include <sys/types.h>
-#include <ipc/loc.h>
+#include <async.h>
 #include <fibril_synch.h>
 
 typedef struct {
@@ -104,13 +104,12 @@ enum cuda_xfer_state {
 
 typedef struct {
 	service_id_t service_id;
-	int client_phone;
+	async_sess_t *client_sess;
 } adb_dev_t;
 
 typedef struct {
 	cuda_t *cuda;
 	uintptr_t cuda_physical;
-	uintptr_t cuda_kernel;
 
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
 	uint8_t snd_buf[CUDA_RCV_BUF_SIZE];

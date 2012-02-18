@@ -37,24 +37,26 @@
 
 #include <config.h>
 #include <typedefs.h>
-#include <typedefs.h>
 #include <arch/register.h>
+#include <arch/legacyio.h>
 #include <trace.h>
-
-#define IA64_IOSPACE_ADDRESS  0xE001000000000000ULL
 
 #define IO_SPACE_BOUNDARY       ((void *) (64 * 1024))
 
+/** Map the I/O port address to a legacy I/O address. */
+NO_TRACE static inline uintptr_t p2a(volatile void *p)
+{
+	uintptr_t prt = (uintptr_t) p;
+
+	return legacyio_virt_base + (((prt >> 2) << 12) | (prt & 0xfff));
+}
+	
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
-	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
-		uintptr_t prt = (uintptr_t) port;
-	
-		*((ioport8_t *) (IA64_IOSPACE_ADDRESS +
-		    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
-	} else {
+	if (port < (ioport8_t *) IO_SPACE_BOUNDARY)
+		*((ioport8_t *) p2a(port)) = v;
+	else
 		*port = v;
-	}
 	
 	asm volatile (
 		"mf\n"
@@ -64,14 +66,10 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 
 NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
-	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
-		uintptr_t prt = (uintptr_t) port;
-	
-		*((ioport16_t *) (IA64_IOSPACE_ADDRESS +
-		    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
-	} else {
+	if (port < (ioport16_t *) IO_SPACE_BOUNDARY)
+		*((ioport16_t *) p2a(port)) = v;
+	else
 		*port = v;
-	}
 	
 	asm volatile (
 		"mf\n"
@@ -81,14 +79,10 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 
 NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
-	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
-		uintptr_t prt = (uintptr_t) port;
-	
-		*((ioport32_t *) (IA64_IOSPACE_ADDRESS +
-		    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
-	} else {
+	if (port < (ioport32_t *) IO_SPACE_BOUNDARY)
+		*((ioport32_t *) p2a(port)) = v;
+	else
 		*port = v;
-	}
 	
 	asm volatile (
 		"mf\n"
@@ -105,14 +99,10 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 		::: "memory"
 	);
 
-	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
-		uintptr_t prt = (uintptr_t) port;
-
-		v = *((ioport8_t *) (IA64_IOSPACE_ADDRESS +
-		    ((prt & 0xfff) | ((prt >> 2) << 12))));
-	} else {
+	if (port < (ioport8_t *) IO_SPACE_BOUNDARY)
+		v = *((ioport8_t *) p2a(port));
+	else
 		v = *port;
-	}
 	
 	return v;
 }
@@ -126,14 +116,10 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 		::: "memory"
 	);
 
-	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
-		uintptr_t prt = (uintptr_t) port;
-
-		v = *((ioport16_t *) (IA64_IOSPACE_ADDRESS +
-		    ((prt & 0xfff) | ((prt >> 2) << 12))));
-	} else {
+	if (port < (ioport16_t *) IO_SPACE_BOUNDARY)
+		v = *((ioport16_t *) p2a(port));
+	else
 		v = *port;
-	}
 	
 	return v;
 }
@@ -147,14 +133,10 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 		::: "memory"
 	);
 	
-	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
-		uintptr_t prt = (uintptr_t) port;
-		
-		v = *((ioport32_t *) (IA64_IOSPACE_ADDRESS +
-		    ((prt & 0xfff) | ((prt >> 2) << 12))));
-	} else {
+	if (port < (ioport32_t *) IO_SPACE_BOUNDARY)
+		v = *((ioport32_t *) p2a(port));
+	else
 		v = *port;
-	}
 
 	return v;
 }

@@ -40,11 +40,9 @@
 #include <ddi.h>
 
 #include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/usb_endpoint_manager.h>
-#include <usbhc_iface.h>
+#include <usb/host/hcd.h>
 
-#include "batch.h"
+#include "ohci_batch.h"
 #include "ohci_regs.h"
 #include "root_hub.h"
 #include "endpoint_list.h"
@@ -52,10 +50,8 @@
 
 /** Main OHCI driver structure */
 typedef struct hc {
-	/** USB bus driver, devices and addresses */
-	usb_device_keeper_t manager;
-	/** USB bus driver, endpoints */
-	usb_endpoint_manager_t ep_manager;
+	/** Generic USB hc driver */
+	hcd_t generic;
 
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
@@ -77,37 +73,23 @@ typedef struct hc {
 	rh_t rh;
 } hc_t;
 
+size_t hc_irq_pio_range_count(void);
 size_t hc_irq_cmd_count(void);
-int hc_get_irq_commands(
-    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size);
-int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
+int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t, uintptr_t,
+    size_t);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
+int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
 
 /** Safely dispose host controller internal structures
  *
  * @param[in] instance Host controller structure to use.
  */
-static inline void hc_fini(hc_t *instance)
-	{ /* TODO: implement*/ };
+static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
 
-int hc_add_endpoint(hc_t *instance, usb_address_t address, usb_endpoint_t ep,
-    usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
-    size_t max_packet_size, size_t size, unsigned interval);
-int hc_remove_endpoint(hc_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction);
-endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw);
+void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
+void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
 
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return fun->driver_data; }
 #endif
 /**
  * @}

@@ -54,12 +54,23 @@ static vfs_info_t locfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
 	.write_retains_size = false,
+	.instance = 0,
 };
 
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Device Filesystem\n", NAME);
 	
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			locfs_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf(NAME " Unrecognized parameters");
+			return -1;
+		}
+	}
+
+
 	if (!locfs_init()) {
 		printf("%s: failed to initialize locfs\n", NAME);
 		return -1;

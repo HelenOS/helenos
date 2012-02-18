@@ -58,7 +58,10 @@
 #include <ops/char_dev.h>
 
 #include <devman.h>
+#include <ns.h>
 #include <ipc/devman.h>
+#include <ipc/services.h>
+#include <ipc/irc.h>
 #include <device/hw_res.h>
 #include <ipc/serial_ctl.h>
 
@@ -110,33 +113,9 @@ typedef struct ns8250 {
 	cyclic_buffer_t input_buffer;
 	/** The fibril mutex for synchronizing the access to the device. */
 	fibril_mutex_t mutex;
+	/** True if device is removed. */
+	bool removed;
 } ns8250_t;
-
-/** Create per-device soft-state structure.
- *
- * @return	Pointer to soft-state structure.
- */
-static ns8250_t *ns8250_new(void)
-{
-	ns8250_t *ns;
-	
-	ns = (ns8250_t *) calloc(1, sizeof(ns8250_t));
-	if (ns == NULL)
-		return NULL;
-	
-	fibril_mutex_initialize(&ns->mutex);
-	return ns;
-}
-
-/** Delete soft-state structure.
- *
- * @param ns	The driver data structure.
- */
-static void ns8250_delete(ns8250_t *ns)
-{
-	assert(ns != NULL);
-	free(ns);
-}
 
 /** Find out if there is some incomming data available on the serial port.
  *
@@ -243,11 +222,13 @@ static char_dev_ops_t ns8250_char_dev_ops = {
 	.write = &ns8250_write
 };
 
-static int ns8250_add_device(ddf_dev_t *dev);
+static int ns8250_dev_add(ddf_dev_t *dev);
+static int ns8250_dev_remove(ddf_dev_t *dev);
 
 /** The serial port device driver's standard operations. */
 static driver_ops_t ns8250_ops = {
-	.add_device = &ns8250_add_device
+	.dev_add = &ns8250_dev_add,
+	.dev_remove = &ns8250_dev_remove
 };
 
 /** The serial port device driver structure. */
@@ -430,6 +411,24 @@ static inline void ns8250_port_interrupts_disable(ioport8_t *port)
  */
 static int ns8250_interrupt_enable(ns8250_t *ns)
 {
+	/*
+	 * Enable interrupt using IRC service.
+	 * TODO: This is a temporary solution until the device framework
+	 * takes care of this itself.
+	 */
+	async_sess_t *irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_IRC, 0, 0);
+	if (!irc_sess) {
+		return EIO;
+	}
+
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	if (!exch) {
+		return EIO;
+	}
+	async_msg_1(exch, IRC_ENABLE_INTERRUPT, ns->irq);
+	async_exchange_end(exch);
+
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(ns->port);
 	
@@ -637,6 +636,20 @@ static void ns8250_initialize_port(ns8250_t *ns)
 	pio_write_8(port + 4, 0x0B);
 }
 
+/** Deinitialize the serial port device.
+ *
+ * @param ns		Serial port device
+ */
+static void ns8250_port_cleanup(ns8250_t *ns)
+{
+	/* Disable FIFO */
+	pio_write_8(ns->port + 2, 0x00);
+	/* Disable DTR, RTS, OUT1, OUT2 (int. enable) */
+	pio_write_8(ns->port + 4, 0x00);
+	/* Disable all interrupts from the port */
+	ns8250_port_interrupts_disable(ns->port);
+}
+
 /** Read the data from the serial port device and store them to the input
  * buffer.
  *
@@ -703,31 +716,31 @@ static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
 	return unregister_interrupt_handler(ns->dev, ns->irq);
 }
 
-/** The add_device callback method of the serial port driver.
+/** The dev_add callback method of the serial port driver.
  *
  * Probe and initialize the newly added device.
  *
  * @param dev		The serial port device.
  */
-static int ns8250_add_device(ddf_dev_t *dev)
+static int ns8250_dev_add(ddf_dev_t *dev)
 {
 	ns8250_t *ns = NULL;
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
 	int rc;
 	
-	ddf_msg(LVL_DEBUG, "ns8250_add_device %s (handle = %d)",
+	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
 	    dev->name, (int) dev->handle);
 	
 	/* Allocate soft-state for the device */
-	ns = ns8250_new();
+	ns = ddf_dev_data_alloc(dev, sizeof(ns8250_t));
 	if (ns == NULL) {
 		rc = ENOMEM;
 		goto fail;
 	}
 	
+	fibril_mutex_initialize(&ns->mutex);
 	ns->dev = dev;
-	dev->driver_data = ns;
 	
 	rc = ns8250_dev_initialize(ns);
 	if (rc != EOK)
@@ -791,9 +804,34 @@ fail:
 		ddf_fun_destroy(fun);
 	if (need_cleanup)
 		ns8250_dev_cleanup(ns);
-	if (ns != NULL)
-		ns8250_delete(ns);
 	return rc;
+}
+
+static int ns8250_dev_remove(ddf_dev_t *dev)
+{
+	ns8250_t *ns = NS8250_FROM_DEV(dev);
+	int rc;
+	
+	fibril_mutex_lock(&ns->mutex);
+	if (ns->client_connected) {
+		fibril_mutex_unlock(&ns->mutex);
+		return EBUSY;
+	}
+	ns->removed = true;
+	fibril_mutex_unlock(&ns->mutex);
+	
+	rc = ddf_fun_unbind(ns->fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to unbind function.");
+		return rc;
+	}
+	
+	ddf_fun_destroy(ns->fun);
+	
+	ns8250_port_cleanup(ns);
+	ns8250_unregister_interrupt_handler(ns);
+	ns8250_dev_cleanup(ns);
+	return EOK;
 }
 
 /** Open the device.
@@ -805,17 +843,19 @@ fail:
  */
 static int ns8250_open(ddf_fun_t *fun)
 {
-	ns8250_t *data = (ns8250_t *) fun->dev->driver_data;
+	ns8250_t *ns = NS8250(fun);
 	int res;
 	
-	fibril_mutex_lock(&data->mutex);
-	if (data->client_connected) {
+	fibril_mutex_lock(&ns->mutex);
+	if (ns->client_connected) {
 		res = ELIMIT;
+	} else if (ns->removed) {
+		res = ENXIO;
 	} else {
 		res = EOK;
-		data->client_connected = true;
+		ns->client_connected = true;
 	}
-	fibril_mutex_unlock(&data->mutex);
+	fibril_mutex_unlock(&ns->mutex);
 	
 	return res;
 }

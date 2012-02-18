@@ -37,64 +37,62 @@
  * This structure shall simplify the management.
  */
 #ifndef LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
-#define LIBUSBHOST_HOST_YSB_ENDPOINT_MANAGER_H
+#define LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 
-#include <stdlib.h>
-#include <adt/hash_table.h>
+#include <adt/list.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
+
 #include <usb/host/endpoint.h>
 
-#define BANDWIDTH_TOTAL_USB11 12000000
+/** Bytes per second in FULL SPEED */
+#define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
+/** 90% of total bandwidth is available for periodic transfers */
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
+/** 16 addresses per list */
+#define ENDPOINT_LIST_COUNT 8
 
+/** Endpoint management structure */
 typedef struct usb_endpoint_manager {
-	hash_table_t ep_table;
+	/** Store endpoint_t instances */
+	list_t endpoint_lists[ENDPOINT_LIST_COUNT];
+	/** Prevents races accessing lists */
 	fibril_mutex_t guard;
-	fibril_condvar_t change;
+	/** Size of the bandwidth pool */
 	size_t free_bw;
+	/** Use this function to count bw required by EP */
+	size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 } usb_endpoint_manager_t;
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth);
+    size_t available_bandwidth,
+    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
 
-void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
+void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
+    usb_target_t target, const uint8_t data[8]);
 
-int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    endpoint_t *ep, size_t data_size);
-
-int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
+int usb_endpoint_manager_register_ep(
+    usb_endpoint_manager_t *instance, endpoint_t *ep, size_t data_size);
+int usb_endpoint_manager_unregister_ep(
+    usb_endpoint_manager_t *instance, endpoint_t *ep);
+endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
-endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
-    size_t *bw);
-
-void usb_endpoint_manager_reset_if_need(
-    usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
-
-static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
+int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
-    size_t data_size)
-{
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, type, speed, max_packet_size);
-	if (!ep)
-		return ENOMEM;
+    size_t data_size, int (*callback)(endpoint_t *, void *), void *arg);
 
-	const int ret =
-	    usb_endpoint_manager_register_ep(instance, ep, data_size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
-}
+int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    void (*callback)(endpoint_t *, void *), void *arg);
+
+void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
+    usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg);
 #endif
 /**
  * @}
  */
-

@@ -41,7 +41,7 @@
 #include <devman.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 
 #include <usb/debug.h>
 #include <pci_dev_iface.h>
@@ -60,63 +60,36 @@ int pci_get_my_registers(ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
 	assert(dev);
-	assert(mem_reg_address);
-	assert(mem_reg_size);
-	assert(irq_no);
 
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
-	
-	hw_resource_list_t hw_resources;
-	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
-	if (rc != EOK) {
-		async_hangup(parent_sess);
-		return rc;
-	}
-	
-	uintptr_t mem_address = 0;
-	size_t mem_size = 0;
-	bool mem_found = false;
-	
-	int irq = 0;
-	bool irq_found = false;
-	
-	size_t i;
-	for (i = 0; i < hw_resources.count; i++) {
-		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-		case INTERRUPT:
-			irq = res->res.interrupt.irq;
-			irq_found = true;
-			usb_log_debug2("Found interrupt: %d.\n", irq);
-			break;
-		case MEM_RANGE:
-			if (res->res.mem_range.address != 0
-			    && res->res.mem_range.size != 0 ) {
-				mem_address = res->res.mem_range.address;
-				mem_size = res->res.mem_range.size;
-				usb_log_debug2("Found mem: %p %zu.\n",
-				    (void *) mem_address, mem_size);
-				mem_found = true;
-			}
-		default:
-			break;
-		}
-	}
-	
-	if (mem_found && irq_found) {
-		*mem_reg_address = mem_address;
-		*mem_reg_size = mem_size;
-		*irq_no = irq;
-		rc = EOK;
-	} else
-		rc = ENOENT;
-	
+
+	hw_res_list_parsed_t hw_res;
+	hw_res_list_parsed_init(&hw_res);
+	const int ret =  hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	async_hangup(parent_sess);
-	return rc;
+	if (ret != EOK) {
+		return ret;
+	}
+
+	/* We want one irq and one mem range. */
+	if (hw_res.irqs.count != 1 || hw_res.mem_ranges.count != 1) {
+		hw_res_list_parsed_clean(&hw_res);
+		return EINVAL;
+	}
+
+	if (mem_reg_address)
+		*mem_reg_address = hw_res.mem_ranges.ranges[0].address;
+	if (mem_reg_size)
+		*mem_reg_size = hw_res.mem_ranges.ranges[0].size;
+	if (irq_no)
+		*irq_no = hw_res.irqs.irqs[0];
+
+	hw_res_list_parsed_clean(&hw_res);
+	return EOK;
 }
 
 /** Call the PCI driver with a request to enable interrupts

@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <arch/common.h>
 #include <arch/types.h>
+#include <abi/bool.h>
 
 #define NULL  ((void *) 0)
 
@@ -60,9 +61,6 @@ typedef struct {
 
 typedef void (* function)();
 
-typedef uint8_t bool;
-typedef uint64_t thread_id_t;
-typedef uint64_t task_id_t;
 typedef uint32_t container_id_t;
 
 typedef int32_t inr_t;

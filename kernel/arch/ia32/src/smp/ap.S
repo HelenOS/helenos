@@ -27,9 +27,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#
-# Init code for application processors.
-#
+/*
+ * Init code for application processors.
+ */
 
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
@@ -45,9 +45,11 @@
 KTEXT=8
 KDATA=16
 
-# This piece of code is real-mode and is meant to be aligned at 4K boundary.
-# The requirement for such an alignment comes from MP Specification's STARTUP IPI
-# requirements.
+/* 
+ * This piece of code is real-mode and is meant to be aligned at 4K boundary.
+ * The requirement for such an alignment comes from MP Specification's
+ * STARTUP IPI requirements.
+ */
 
 .align 4096
 unmapped_ap_boot:
@@ -56,11 +58,13 @@ unmapped_ap_boot:
 	xorw %ax, %ax
 	movw %ax, %ds
 
-	lgdtl ap_gdtr		# initialize Global Descriptor Table register
+	/* initialize Global Descriptor Table register */
+	lgdtl ap_gdtr
 	
+	/* switch to protected mode */
 	movl %cr0, %eax
 	orl $1, %eax
-	movl %eax, %cr0				# switch to protected mode
+	movl %eax, %cr0
 	jmpl $KTEXT, $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 	
 jump_to_kernel:
@@ -69,15 +73,20 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movl $KA2PA(ctx), %eax			# KA2PA((uintptr_t) &ctx)
+	movl $KA2PA(ctx), %eax  /* KA2PA((uintptr_t) &ctx) */
 	movl (%eax), %esp
-	subl $0x80000000, %esp			# KA2PA(ctx.sp)
+	subl $0x80000000, %esp  /* KA2PA(ctx.sp) */
 
-	call map_kernel					# map kernel and turn paging on
+	/*
+	 * Map kernel and turn paging on.
+	 * We assume that when using SMP, PSE is always available
+	 */
+	call map_kernel_pse
 	
-	addl $0x80000000, %esp			# PA2KA(ctx.sp)
+	addl $0x80000000, %esp  /*  PA2KA(ctx.sp) */
 	
-	pushl $0				# create the first stack frame
+	/* create the first stack frame */
+	pushl $0
 	movl %esp, %ebp
 
 	jmpl $KTEXT, $main_ap

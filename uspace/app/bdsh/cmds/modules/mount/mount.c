@@ -26,11 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
+#include <adt/list.h>
 #include <errno.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -42,6 +45,7 @@ static const char *cmdname = "mount";
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
+	{ "instance", required_argument, 0, 'i' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -60,6 +64,48 @@ void help_cmd_mount(unsigned int level)
 	return;
 }
 
+static void print_mtab_list(void)
+{
+	LIST_INITIALIZE(mtab_list);
+	mtab_ent_t *old_ent = NULL;
+	char *svc_name;
+	int rc;
+
+	get_mtab_list(&mtab_list);
+
+	list_foreach(mtab_list, cur) {
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
+		    link);
+
+		if (old_ent)
+			free(old_ent);
+
+		old_ent = mtab_ent;
+
+		printf("%s", mtab_ent->fs_name);
+		if (mtab_ent->instance)
+			printf("/%d", mtab_ent->instance);
+
+		printf(" %s", mtab_ent->mp);
+
+		rc = loc_service_get_name(mtab_ent->service_id, &svc_name);
+		if (rc == EOK) {
+			printf(" %s", svc_name);
+			free(svc_name);
+		} else {
+			printf(" (%" PRIun ")", mtab_ent->service_id);
+		}
+
+		if (str_size(mtab_ent->opts) > 0)
+			printf(" (%s)", mtab_ent->opts);
+
+		putchar('\n');
+	}
+
+	if (old_ent)
+		free(old_ent);
+}
+
 /* Main entry point for mount, accepts an array of arguments */
 int cmd_mount(char **argv)
 {
@@ -67,32 +113,49 @@ int cmd_mount(char **argv)
 	const char *mopts = "";
 	const char *dev = "";
 	int rc, c, opt_ind;
+	unsigned int instance = 0;
+	bool instance_set = false;
+	char **t_argv;
 
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "h", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "i:h", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mount(HELP_LONG);
 			return CMD_SUCCESS;
+		case 'i':
+			instance = (unsigned int) strtol(optarg, NULL, 10);
+			instance_set = true;
+			break;
 		}
 	}
 
-	if ((argc < 3) || (argc > 5)) {
+	if (instance_set) {
+		argc -= 2;
+		t_argv = &argv[2];
+	} else
+		t_argv = &argv[0];
+
+	if ((argc == 2) || (argc > 5)) {
 		printf("%s: invalid number of arguments. Try `mount --help'\n",
 		    cmdname);
 		return CMD_FAILURE;
 	}
+	if (argc == 1) {
+		print_mtab_list();
+		return CMD_SUCCESS;
+	}
 	if (argc > 3)
-		dev = argv[3];
+		dev = t_argv[3];
 	if (argc == 5)
-		mopts = argv[4];
+		mopts = t_argv[4];
 
-	rc = mount(argv[1], argv[2], dev, mopts, 0);
+	rc = mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
 	if (rc != EOK) {
 		printf("Unable to mount %s filesystem to %s on %s (rc=%d)\n",
-		    argv[1], argv[2], argv[3], rc);
+		    t_argv[1], t_argv[2], t_argv[3], rc);
 		return CMD_FAILURE;
 	}
 

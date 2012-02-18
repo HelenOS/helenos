@@ -51,9 +51,9 @@
 DEVICE_MAP_DECLARE(packet_dimensions, packet_dimension_t);
 
 extern int tl_get_ip_packet_dimension(async_sess_t *, packet_dimensions_t *,
-    device_id_t, packet_dimension_t **);
+    nic_device_id_t, packet_dimension_t **);
 extern int tl_get_address_port(const struct sockaddr *, int, uint16_t *);
-extern int tl_update_ip_packet_dimension(packet_dimensions_t *, device_id_t,
+extern int tl_update_ip_packet_dimension(packet_dimensions_t *, nic_device_id_t,
     size_t);
 extern int tl_set_address_port(struct sockaddr *, int, uint16_t);
 extern int tl_prepare_icmp_packet(async_sess_t *, async_sess_t *, packet_t *,

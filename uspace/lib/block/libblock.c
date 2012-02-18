@@ -890,6 +890,43 @@ int block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
 	return EOK;
 }
 
+/** Get TOC from device.
+ *
+ * @param service_id Service ID of the block device.
+ * @param session    Starting session.
+ *
+ * @return Allocated TOC structure.
+ * @return NULL on failure.
+ *
+ */
+toc_block_t *block_get_toc(service_id_t service_id, uint8_t session)
+{
+	devcon_t *devcon = devcon_search(service_id);
+	assert(devcon);
+	
+	toc_block_t *toc = NULL;
+	
+	fibril_mutex_lock(&devcon->comm_area_lock);
+	
+	async_exch_t *exch = async_exchange_begin(devcon->sess);
+	int rc = async_req_1_0(exch, BD_READ_TOC, session);
+	async_exchange_end(exch);
+	
+	if (rc == EOK) {
+		toc = (toc_block_t *) malloc(sizeof(toc_block_t));
+		if (toc != NULL) {
+			memset(toc, 0, sizeof(toc_block_t));
+			memcpy(toc, devcon->comm_area,
+			    min(devcon->pblock_size, sizeof(toc_block_t)));
+		}
+	}
+	
+	
+	fibril_mutex_unlock(&devcon->comm_area_lock);
+	
+	return toc;
+}
+
 /** Read blocks from block device.
  *
  * @param devcon	Device connection.

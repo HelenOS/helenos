@@ -1,0 +1,9 @@
+The binary files of GRUB boot loader in this directory have been created
+by compiling GRUB for the 'i386-pc' target and then using the grub-mkrescue
+script to create the El Torito boot image.
+
+For licensing terms of GRUB boot loader see the file COPYING contained
+in this directory. Full version of GRUB, including its source code,
+can be downloaded from GRUB's project page:
+
+http://www.gnu.org/software/grub/

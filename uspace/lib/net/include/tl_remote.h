@@ -50,8 +50,8 @@
  */
 /*@{*/
 
-extern int tl_received_msg(async_sess_t *, device_id_t, packet_t *, services_t,
-    services_t);
+extern int tl_received_msg(async_sess_t *, nic_device_id_t, packet_t *,
+    services_t, services_t);
 
 /*@}*/
 
