@@ -133,7 +133,7 @@ static inline uint32_t pio_read_32(ioport32_t *port)
 
 	asm volatile ("mf\n" ::: "memory");
 
-	if (port < (ioport32_t *) port) {
+	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
 		uintptr_t prt = (uintptr_t) port;
 
 		v = *((ioport32_t *)(IA64_IOSPACE_ADDRESS +
