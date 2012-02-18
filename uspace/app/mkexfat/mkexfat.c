@@ -38,6 +38,12 @@
 
 #include <stdio.h>
 #include <libblock.h>
+#include <assert.h>
+#include <errno.h>
+#include <byteorder.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
+#include "exfat.h"
 
 #define NAME    "mkexfat"
 
@@ -47,15 +53,21 @@
 /** Divide and round up. */
 #define div_round_up(a, b) (((a) + (b) - 1) / (b))
 
+/** The default size of each cluster is 4096 byte */
+#define DEFAULT_CLUSTER_SIZE 4096
+
+static unsigned log2(unsigned n);
+
 typedef struct exfat_cfg {
-	uint64_t volume_start;
-	uint64_t volume_count;
+	aoff64_t volume_start;
+	aoff64_t volume_count;
 	uint32_t fat_sector_count;
 	uint32_t data_start_sector;
 	uint32_t data_cluster;
 	uint32_t rootdir_cluster;
-	unsigned bytes_per_sector;
-	unsigned sec_per_cluster;
+	size_t   sector_size;
+	size_t   cluster_size;
+	unsigned long total_clusters;
 } exfat_cfg_t;
 
 static void usage(void)
@@ -70,6 +82,23 @@ static void usage(void)
 static void
 cfg_params_initialize(exfat_cfg_t *cfg)
 {
+	aoff64_t const volume_bytes = cfg->volume_count * cfg->sector_size;
+
+	/** Number of clusters required to index the entire device, it must
+	 * be less then UINT32_MAX.
+	 */
+	aoff64_t n_req_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
+	cfg->cluster_size = DEFAULT_CLUSTER_SIZE;
+
+	/* Compute the required cluster size to index
+	 * the entire storage device.
+	 */
+	while (n_req_clusters > UINT32_MAX &&
+	    (cfg->cluster_size < 32 * 1024 * 1024)) {
+
+		cfg->cluster_size <<= 1;
+		n_req_clusters = volume_bytes / cfg->cluster_size;
+	}
 }
 
 /** Initialize the Volume Boot Record fields.
@@ -98,21 +127,37 @@ vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
 	vbr->version.major = 1;
 	vbr->version.minor = 0;
 	vbr->volume_flags = host2uint16_t_le(0);
-	vbr->bytes_per_sector = cfg->bytes_per_sectors;
-	vbr->sec_per_cluster = cfg->sec_per_cluster;
+	vbr->bytes_per_sector = log2(cfg->sector_size);
+	vbr->sec_per_cluster = log2(cfg->cluster_size / cfg->sector_size);
+
+	/* Maximum cluster size is 32 Mb */
+	assert((vbr->bytes_per_sector + vbr->sec_per_cluster) <= 25);
+
 	vbr->fat_count = 1;
 	vbr->drive_no = 0x80;
 	vbr->allocated_percent = 0;
 	vbr->signature = host2uint16_t_le(0xAA55);
 }
 
+/** Given a power-of-two number (n), returns the result of log2(n).
+ *
+ * It works only if n is a power of two.
+ */
+static unsigned log2(unsigned n)
+{
+	unsigned r;
+
+	for (r = 0;n >> r != 1; ++r);
+
+	return r;
+}
+
 int main (int argc, char **argv)
 {
 	exfat_cfg_t cfg;
-	aoff64_t dev_nblocks;
+	exfat_bs_t  vbr;
 	char *dev_path;
 	service_id_t service_id;
-	size_t sector_size;
 	int rc;
 
 	if (argc < 2) {
@@ -133,7 +178,7 @@ int main (int argc, char **argv)
 
 	rc = loc_service_get_id(dev_path, &service_id, 0);
 	if (rc != EOK) {
-		printf(NAME ": Error resolving device `%s'.\n");
+		printf(NAME ": Error resolving device `%s'.\n", dev_path);
 		return 2;
 	}
 
@@ -143,25 +188,30 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_get_bsize(service_id, &sector_size);
+	rc = block_get_bsize(service_id, &cfg.sector_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(service_id, &dev_nblocks);
+	if (cfg.sector_size > 4096) {
+		printf(NAME ":Error, sector size can't be greater" \
+		    " than 4096 bytes.\n");
+		return 2;
+	}
+
+	rc = block_get_nblocks(service_id, &cfg.volume_count);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain device block size.\n");
 		/* FIXME: the user should specify the filesystem size */
 		return 1;
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
-		    dev_nblocks);
-
-		cfg.volume_count = dev_nblocks;
+		    cfg.volume_count);
 	}
 
 	cfg_params_initialize(&cfg);
+	vbr_initialize(&vbr, &cfg);
 
 
 	return 0;
