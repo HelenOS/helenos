@@ -37,6 +37,7 @@
 
 #include <byteorder.h>
 #include <errno.h>
+#include <string.h>
 #include "libext4.h"
 
 
@@ -450,13 +451,9 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 }
 
 int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *parent, size_t name_size, const char *name)
+		ext4_inode_ref_t *parent, ext4_inode_ref_t *child,
+		size_t name_size, const char *name)
 {
-	// TODO delete this command
-	return EXT4_ERR_BAD_DX_DIR;
-
-	EXT4FS_DBG("NOT REACHED");
-
 	int rc;
 
 	// get direct block 0 (index root)
@@ -488,13 +485,113 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
-	// TODO
-	/*
-	 * 1) try to write entry
-	 * 2) split leaves if necessary
-	 * 3) return
-	 */
 
+	// Try to insert to existing data block
+	uint32_t leaf_block_idx = ext4_directory_dx_entry_get_block(dx_block->position);
+	uint32_t leaf_block_addr;
+   	rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, leaf_block_idx, &leaf_block_addr);
+   	if (rc != EOK) {
+   		return EXT4_ERR_BAD_DX_DIR;
+   	}
+
+
+   	block_t *target;
+   	rc = block_get(&target, fs->device, leaf_block_addr, BLOCK_FLAGS_NONE);
+   	if (rc != EOK) {
+   		return EXT4_ERR_BAD_DX_DIR;
+   	}
+
+   	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+   	uint16_t required_len = 8 + name_size + (4 - name_size % 4);
+
+   	ext4_directory_entry_ll_t *de = target->data;
+   	ext4_directory_entry_ll_t *stop = target->data + block_size;
+
+   	EXT4FS_DBG("before while de = \%u, stop = \%u", (uint32_t)de, (uint32_t)stop);
+
+   	while (de < stop) {
+
+   		EXT4FS_DBG("before while de = \%u", (uint32_t)de);
+
+   		uint32_t de_inode = ext4_directory_entry_ll_get_inode(de);
+   		uint16_t de_rec_len = ext4_directory_entry_ll_get_entry_length(de);
+
+   		if ((de_inode == 0) && (de_rec_len >= required_len)) {
+   			ext4_directory_write_entry(fs->superblock, de, de_rec_len,
+   				child, name, name_size);
+   				target->dirty = true;
+   				rc = block_put(target);
+   				if (rc != EOK) {
+   					return EXT4_ERR_BAD_DX_DIR;
+   				}
+   				return EOK;
+   		}
+
+   		if (de_inode != 0) {
+   			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
+   					fs->superblock, de);
+
+   			uint16_t used_space = 8 + used_name_len;
+   			if ((used_name_len % 4) != 0) {
+   				used_space += 4 - (used_name_len % 4);
+   			}
+   			uint16_t free_space = de_rec_len - used_space;
+
+   			if (free_space >= required_len) {
+
+   				EXT4FS_DBG("rec_len = \%u, used_space = \%u, free space = \%u", de_rec_len, used_space, free_space);
+
+   				// Cut tail of current entry
+   				ext4_directory_entry_ll_set_entry_length(de, used_space);
+   				ext4_directory_entry_ll_t *new_entry = (void *)de + used_space;
+   				ext4_directory_write_entry(fs->superblock, new_entry,
+   					free_space, child, name, name_size);
+   				target->dirty = true;
+   				rc = block_put(target);
+				if (rc != EOK) {
+					return EXT4_ERR_BAD_DX_DIR;
+				}
+				return EOK;
+
+   			}
+
+   		}
+
+   		de = (void *)de + de_rec_len;
+   	}
+
+
+   	EXT4FS_DBG("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+   	return EXT4_ERR_BAD_DX_DIR;
+
+	// if ENOSPC in block -> next code
+
+	ext4_directory_dx_entry_t *entries = ((ext4_directory_dx_node_t *) dx_block->block->data)->entries;
+	uint16_t limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
+	uint16_t count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)entries);
+
+	ext4_directory_dx_entry_t *root_entries = ((ext4_directory_dx_node_t *) dx_blocks[0].block->data)->entries;
+
+	if (limit == count) {
+		EXT4FS_DBG("need to split index block !!!");
+
+		unsigned int levels = dx_block - dx_blocks;
+
+		uint16_t root_limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)root_entries);
+		uint16_t root_count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)root_entries);
+
+		if ((levels > 0) && (root_limit == root_count)) {
+			EXT4FS_DBG("Directory index is full");
+
+			// ENOSPC - cleanup !!!
+			return ENOSPC;
+		}
+
+
+	}
+
+	// TODO
+	return EOK;
 
 }
 

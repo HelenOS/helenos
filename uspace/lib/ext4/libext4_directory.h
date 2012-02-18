@@ -92,6 +92,9 @@ extern int ext4_directory_iterator_next(ext4_directory_iterator_t *);
 extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t);
 extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
 
+extern void ext4_directory_write_entry(ext4_superblock_t *,
+		ext4_directory_entry_ll_t *, uint16_t, ext4_inode_ref_t *,
+		const char *, size_t);
 extern int ext4_directory_add_entry(ext4_filesystem_t *, ext4_inode_ref_t *,
 		const char *, ext4_inode_ref_t *);
 extern int ext4_directory_find_entry(ext4_directory_iterator_t *,

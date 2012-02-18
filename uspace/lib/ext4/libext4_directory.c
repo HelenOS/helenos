@@ -259,7 +259,7 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
-static void ext4_directory_write_entry(ext4_superblock_t *sb,
+void ext4_directory_write_entry(ext4_superblock_t *sb,
 		ext4_directory_entry_ll_t *entry, uint16_t entry_len,
 		ext4_inode_ref_t *child, const char *name, size_t name_len)
 {
@@ -292,7 +292,7 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 
 		EXT4FS_DBG("trying INDEX");
 
-		rc = ext4_directory_dx_add_entry(fs, parent, name_len, entry_name);
+		rc = ext4_directory_dx_add_entry(fs, parent, child, name_len, entry_name);
 
 		// Check if index is not corrupted
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
@@ -512,8 +512,6 @@ int ext4_directory_remove_entry(ext4_filesystem_t* fs,
 		ext4_directory_iterator_fini(&it);
 		return rc;
 	}
-
-	// TODO modify HTREE index if exists
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t pos = it.current_offset % block_size;

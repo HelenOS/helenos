@@ -187,7 +187,8 @@ typedef struct ext4_superblock {
                                          EXT4_FEATURE_INCOMPAT_EXTENTS| \
                                          EXT4_FEATURE_INCOMPAT_64BIT)
 
-#define EXT4_FEATURE_RO_COMPAT_SUPP     ()
+#define EXT4_FEATURE_RO_COMPAT_SUPP     (EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER | \
+										 EXT4_FEATURE_RO_COMPAT_DIR_NLINK)
 
 
 
