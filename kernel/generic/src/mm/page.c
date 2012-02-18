@@ -167,18 +167,18 @@ void page_mapping_make_global(uintptr_t base, size_t size)
 
 int page_find_mapping(uintptr_t virt, void **phys)
 {
-	mutex_lock(&AS->lock);
+	page_table_lock(AS, true);
 	
 	pte_t *pte = page_mapping_find(AS, virt, false);
 	if ((!PTE_VALID(pte)) || (!PTE_PRESENT(pte))) {
-		mutex_unlock(&AS->lock);
+		page_table_unlock(AS, true);
 		return ENOENT;
 	}
 	
 	*phys = (void *) PTE_GET_FRAME(pte) +
 	    (virt - ALIGN_DOWN(virt, PAGE_SIZE));
 	
-	mutex_unlock(&AS->lock);
+	page_table_unlock(AS, true);
 	
 	return EOK;
 }
