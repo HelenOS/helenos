@@ -67,7 +67,7 @@ typedef struct exfat_cfg {
 	uint32_t rootdir_cluster;
 	size_t   sector_size;
 	size_t   cluster_size;
-	unsigned long total_clusters;
+	uint32_t total_clusters;
 } exfat_cfg_t;
 
 static void usage(void)
@@ -82,7 +82,9 @@ static void usage(void)
 static void
 cfg_params_initialize(exfat_cfg_t *cfg)
 {
-	aoff64_t const volume_bytes = cfg->volume_count * cfg->sector_size;
+	unsigned long fat_bytes;
+	aoff64_t const volume_bytes = (cfg->volume_count - FAT_SECTOR_START) *
+	    cfg->sector_size;
 
 	/** Number of clusters required to index the entire device, it must
 	 * be less then UINT32_MAX.
@@ -99,6 +101,12 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 		cfg->cluster_size <<= 1;
 		n_req_clusters = volume_bytes / cfg->cluster_size;
 	}
+
+	cfg->total_clusters = n_req_clusters;
+
+	/* Compute the FAT size in sectors */
+	fat_bytes = (cfg->total_clusters + 1) * 4;
+	cfg->fat_sector_count = div_round_up(fat_bytes, cfg->sector_size);
 }
 
 /** Initialize the Volume Boot Record fields.
@@ -202,8 +210,9 @@ int main (int argc, char **argv)
 
 	rc = block_get_nblocks(service_id, &cfg.volume_count);
 	if (rc != EOK) {
-		printf(NAME ": Warning, failed to obtain device block size.\n");
-		/* FIXME: the user should specify the filesystem size */
+		printf(NAME ": Warning, failed to obtain" \
+		    " device block size.\n");
+		/* FIXME: the user should be able to specify the filesystem size */
 		return 1;
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
