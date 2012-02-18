@@ -107,6 +107,9 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	/* Compute the FAT size in sectors */
 	fat_bytes = (cfg->total_clusters + 1) * 4;
 	cfg->fat_sector_count = div_round_up(fat_bytes, cfg->sector_size);
+
+	/* The first sector of the partition is zero */
+	cfg->volume_start = 0;
 }
 
 /** Initialize the Volume Boot Record fields.
@@ -173,9 +176,6 @@ int main (int argc, char **argv)
 		usage();
 		return 1;
 	}
-
-	/* The fist sector of the partition is zero */
-	cfg.volume_start = 0;
 
 	/* TODO: Add parameters */
 
