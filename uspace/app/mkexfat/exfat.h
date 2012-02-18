@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
- * Copyright (c) 2012 Maurizio Lombardi
+ * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
