@@ -660,6 +660,12 @@ rx_err:
 };
 
 
+irq_pio_range_t rtl8139_irq_pio_ranges[] = {
+	{
+		.base = 0,
+		.size = RTL8139_IO_SIZE
+	}
+};
 
 /** Commands to deal with interrupt
  *
@@ -669,37 +675,39 @@ rx_err:
  *  be filled to the ISR port address
  */
 irq_cmd_t rtl8139_irq_commands[] = {
-		{
-				/* Get the interrupt status */
-				.cmd = CMD_PIO_READ_16,
-				.addr = NULL,
-				.dstarg = 2
-		},
-		{
-				.cmd = CMD_PREDICATE,
-				.value = 3,
-				.srcarg = 2
-		},
-		{
-				/* Mark interrupts as solved */
-				.cmd = CMD_PIO_WRITE_16,
-				.addr = NULL,
-				.value = 0xFFFF
-		},
-		{
-				/* Disable interrupts until interrupt routine is finished */
-				.cmd = CMD_PIO_WRITE_16,
-				.addr = NULL,
-				.value = 0x0000
-		},
-		{
-				.cmd = CMD_ACCEPT
-		}
+	{
+		/* Get the interrupt status */
+		.cmd = CMD_PIO_READ_16,
+		.addr = NULL,
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 3,
+		.srcarg = 2
+	},
+	{
+		/* Mark interrupts as solved */
+		.cmd = CMD_PIO_WRITE_16,
+		.addr = NULL,
+		.value = 0xFFFF
+	},
+	{
+		/* Disable interrupts until interrupt routine is finished */
+		.cmd = CMD_PIO_WRITE_16,
+		.addr = NULL,
+		.value = 0x0000
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 /** Interrupt code definition */
 irq_code_t rtl8139_irq_code = {
-	.cmdcount = sizeof(rtl8139_irq_commands)/sizeof(irq_cmd_t),
+	.rangecount = sizeof(rtl8139_irq_pio_ranges) / sizeof(irq_pio_range_t),
+	.ranges = rtl8139_irq_pio_ranges,
+	.cmdcount = sizeof(rtl8139_irq_commands) / sizeof(irq_cmd_t),
 	.cmds = rtl8139_irq_commands
 };
 
@@ -889,11 +897,12 @@ inline static int rtl8139_register_int_handler(nic_t *nic_data)
 	/* Lock the mutex in whole driver while working with global structure */
 	RTL8139_IRQ_STRUCT_LOCK();
 
-	rtl8139_irq_code.cmds[0].addr = rtl8139->io_port + ISR;
-	rtl8139_irq_code.cmds[2].addr = rtl8139->io_port + ISR;
-	rtl8139_irq_code.cmds[3].addr = rtl8139->io_port + IMR;
+	rtl8139_irq_code.ranges[0].base = (uintptr_t) rtl8139->io_addr;
+	rtl8139_irq_code.cmds[0].addr = rtl8139->io_addr + ISR;
+	rtl8139_irq_code.cmds[2].addr = rtl8139->io_addr + ISR;
+	rtl8139_irq_code.cmds[3].addr = rtl8139->io_addr + IMR;
 	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-		rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code);
+	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code);
 
 	RTL8139_IRQ_STRUCT_UNLOCK();
 

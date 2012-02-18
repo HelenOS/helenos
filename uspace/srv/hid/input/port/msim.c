@@ -56,6 +56,13 @@ kbd_port_ops_t msim_port = {
 
 static kbd_dev_t *kbd_dev;
 
+static irq_pio_range_t msim_ranges[] = {
+	{
+		.base = 0,
+		.size = 1
+	}
+};
+
 static irq_cmd_t msim_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
@@ -68,6 +75,8 @@ static irq_cmd_t msim_cmds[] = {
 };
 
 static irq_code_t msim_kbd = {
+	sizeof(msim_ranges) / sizeof(irq_pio_range_t),
+	msim_ranges,
 	sizeof(msim_cmds) / sizeof(irq_cmd_t),
 	msim_cmds
 };
@@ -78,15 +87,16 @@ static int msim_port_init(kbd_dev_t *kdev)
 {
 	kbd_dev = kdev;
 
-	sysarg_t vaddr;
-	if (sysinfo_get_value("kbd.address.virtual", &vaddr) != EOK)
+	sysarg_t paddr;
+	if (sysinfo_get_value("kbd.address.physical", &paddr) != EOK)
 		return -1;
 	
 	sysarg_t inr;
 	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
 		return -1;
 	
-	msim_cmds[0].addr = (void *) vaddr;
+	msim_ranges[0].base = paddr;
+	msim_cmds[0].addr = (void *) paddr;
 	async_set_interrupt_received(msim_irq_handler);
 	irq_register(inr, device_assign_devno(), 0, &msim_kbd);
 	

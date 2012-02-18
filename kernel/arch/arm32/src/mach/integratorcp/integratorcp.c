@@ -331,10 +331,8 @@ void icp_input_init(void)
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, ICP_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.status", NULL,
-	    (uintptr_t) icp_hw_map.kbd_stat);
-	sysinfo_set_item_val("kbd.address.data", NULL,
-	    (uintptr_t) icp_hw_map.kbd_data);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    ICP_KBD);
 
 }
 

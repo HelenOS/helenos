@@ -56,6 +56,13 @@ kbd_port_ops_t gxemul_port = {
 
 static kbd_dev_t *kbd_dev;
 
+static irq_pio_range_t gxemul_ranges[] = {
+	{
+		.base = 0,
+		.size = 1
+	}
+};
+
 static irq_cmd_t gxemul_cmds[] = {
 	{ 
 		.cmd = CMD_PIO_READ_8, 
@@ -68,6 +75,8 @@ static irq_cmd_t gxemul_cmds[] = {
 };
 
 static irq_code_t gxemul_kbd = {
+	sizeof(gxemul_ranges) / sizeof(irq_pio_range_t),
+	gxemul_ranges,
 	sizeof(gxemul_cmds) / sizeof(irq_cmd_t),
 	gxemul_cmds
 };
@@ -80,7 +89,7 @@ static int gxemul_port_init(kbd_dev_t *kdev)
 	kbd_dev = kdev;
 	
 	sysarg_t addr;
-	if (sysinfo_get_value("kbd.address.virtual", &addr) != EOK)
+	if (sysinfo_get_value("kbd.address.physical", &addr) != EOK)
 		return -1;
 	
 	sysarg_t inr;
@@ -88,6 +97,7 @@ static int gxemul_port_init(kbd_dev_t *kdev)
 		return -1;
 	
 	async_set_interrupt_received(gxemul_irq_handler);
+	gxemul_ranges[0].base = addr;
 	gxemul_cmds[0].addr = (void *) addr;
 	irq_register(inr, device_assign_devno(), 0, &gxemul_kbd);
 	return 0;
