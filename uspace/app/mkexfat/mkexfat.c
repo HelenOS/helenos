@@ -231,7 +231,7 @@ int main (int argc, char **argv)
 	}
 
 	if (cfg.sector_size > 4096) {
-		printf(NAME ":Error, sector size can't be greater" \
+		printf(NAME ": Error, sector size can't be greater" \
 		    " than 4096 bytes.\n");
 		return 2;
 	}
@@ -251,6 +251,20 @@ int main (int argc, char **argv)
 	cfg_print_info(&cfg);
 	vbr_initialize(&vbr, &cfg);
 
+	/* Write the VBR on disk */
+	rc = block_write_direct(service_id, 0, 1, &vbr);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the VBR on disk\n");
+		return 2;
+	}
+
+	/* Write the VBR backup on disk */
+	rc = block_write_direct(service_id, 1, 1, &vbr);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the VBR" \
+		    " backup on disk\n");
+		return 2;
+	}
 
 	return 0;
 }
