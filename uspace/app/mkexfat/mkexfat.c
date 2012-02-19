@@ -203,8 +203,9 @@ fat_write(service_id_t service_id, exfat_cfg_t *cfg)
 
 	pfat[0] = pfat[1] = 0x00000000;
 
-	for (i = FAT_SECTOR_START + 1; i < cfg->fat_sector_count; ++i) {
-		rc = block_write_direct(service_id, i, 1, pfat);
+	for (i = 0; i < cfg->fat_sector_count; ++i) {
+		rc = block_write_direct(service_id,
+		    FAT_SECTOR_START + i + 1, 1, pfat);
 		if (rc != EOK)
 			goto error;
 	}
