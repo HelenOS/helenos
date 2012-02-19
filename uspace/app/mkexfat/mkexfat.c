@@ -40,6 +40,7 @@
 #include <libblock.h>
 #include <assert.h>
 #include <errno.h>
+#include <malloc.h>
 #include <byteorder.h>
 #include <align.h>
 #include <sys/types.h>
@@ -177,6 +178,42 @@ vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
 	vbr->signature = host2uint16_t_le(0xAA55);
 }
 
+/** Writes the FAT on disk.
+ *
+ * @param cfg Pointer to the exfat_cfg structure.
+ * @return EOK on success or a negative error code.
+ */
+static int
+fat_write(service_id_t service_id, exfat_cfg_t *cfg)
+{
+	unsigned long i;
+	uint32_t *pfat;
+	int rc;
+
+	pfat = calloc(cfg->fat_sector_count, cfg->sector_size);
+	if (!pfat)
+		return ENOMEM;
+
+	pfat[0] = host2uint32_t_le(0xFFFFFFF8);
+	pfat[1] = host2uint32_t_le(0xFFFFFFFF);
+
+	rc = block_write_direct(service_id, FAT_SECTOR_START, 1, pfat);
+	if (rc != EOK)
+		goto error;
+
+	pfat[0] = pfat[1] = 0x00000000;
+
+	for (i = FAT_SECTOR_START + 1; i < cfg->fat_sector_count; ++i) {
+		rc = block_write_direct(service_id, i, 1, pfat);
+		if (rc != EOK)
+			goto error;
+	}
+
+error:
+	free(pfat);
+	return rc;
+}
+
 /** Given a power-of-two number (n), returns the result of log2(n).
  *
  * It works only if n is a power of two.
@@ -259,10 +296,16 @@ int main (int argc, char **argv)
 	}
 
 	/* Write the VBR backup on disk */
-	rc = block_write_direct(service_id, 1, 1, &vbr);
+	rc = block_write_direct(service_id, 12, 1, &vbr);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the VBR" \
 		    " backup on disk\n");
+		return 2;
+	}
+
+	rc = fat_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the FAT on disk\n");
 		return 2;
 	}
 
