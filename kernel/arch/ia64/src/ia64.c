@@ -143,7 +143,7 @@ void arch_post_smp_init(void)
 	platform = "ski";
 #endif
 #ifdef MACHINE_i460GX
-	platform = "i460GX";
+	platform = "pc";
 #endif
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
