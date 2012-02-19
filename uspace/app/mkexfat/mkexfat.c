@@ -41,6 +41,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <byteorder.h>
+#include <align.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include "exfat.h"
@@ -61,13 +62,12 @@ static unsigned log2(unsigned n);
 typedef struct exfat_cfg {
 	aoff64_t volume_start;
 	aoff64_t volume_count;
-	uint32_t fat_sector_count;
-	uint32_t data_start_sector;
-	uint32_t data_cluster;
-	uint32_t rootdir_cluster;
+	unsigned long fat_sector_count;
+	unsigned long data_start_sector;
+	unsigned long rootdir_cluster;
+	unsigned long total_clusters;
 	size_t   sector_size;
 	size_t   cluster_size;
-	uint32_t total_clusters;
 } exfat_cfg_t;
 
 static void usage(void)
@@ -95,21 +95,41 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	/* Compute the required cluster size to index
 	 * the entire storage device.
 	 */
-	while (n_req_clusters > UINT32_MAX &&
+	while (n_req_clusters > 4000000 &&
 	    (cfg->cluster_size < 32 * 1024 * 1024)) {
 
 		cfg->cluster_size <<= 1;
 		n_req_clusters = volume_bytes / cfg->cluster_size;
 	}
 
-	cfg->total_clusters = n_req_clusters;
+	cfg->total_clusters = n_req_clusters + 2;
 
 	/* Compute the FAT size in sectors */
 	fat_bytes = (cfg->total_clusters + 1) * 4;
 	cfg->fat_sector_count = div_round_up(fat_bytes, cfg->sector_size);
 
+	/* Compute the number of the first data sector */
+	cfg->data_start_sector = ROUND_UP(FAT_SECTOR_START +
+	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
+
+	cfg->rootdir_cluster = 0;
+
 	/* The first sector of the partition is zero */
 	cfg->volume_start = 0;
+}
+
+/** Prints the exFAT structure values
+ *
+ * @param cfg Pointer to the exfat_cfg_t structure.
+ */
+static void
+cfg_print_info(exfat_cfg_t *cfg)
+{
+	printf(NAME ": Sector size:           %lu\n", cfg->sector_size);
+	printf(NAME ": Cluster size:          %lu\n", cfg->cluster_size);
+	printf(NAME ": FAT size in sectors:   %lu\n", cfg->fat_sector_count);
+	printf(NAME ": Data start sector:     %lu\n", cfg->data_start_sector);
+	printf(NAME ": Total num of clusters: %lu\n", cfg->total_clusters);
 }
 
 /** Initialize the Volume Boot Record fields.
@@ -135,6 +155,13 @@ vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
 	vbr->volume_count = host2uint64_t_le(cfg->volume_count);
 	vbr->fat_sector_start = host2uint32_t_le(FAT_SECTOR_START);
 	vbr->fat_sector_count = host2uint32_t_le(cfg->fat_sector_count);
+	vbr->data_start_sector = host2uint32_t_le(cfg->data_start_sector);
+
+	vbr->data_clusters = host2uint32_t_le(cfg->total_clusters - 
+	    div_round_up(cfg->data_start_sector, cfg->cluster_size));
+
+	vbr->rootdir_cluster = 0;
+	vbr->volume_serial = 0;
 	vbr->version.major = 1;
 	vbr->version.minor = 0;
 	vbr->volume_flags = host2uint16_t_le(0);
@@ -154,7 +181,8 @@ vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
  *
  * It works only if n is a power of two.
  */
-static unsigned log2(unsigned n)
+static unsigned
+log2(unsigned n)
 {
 	unsigned r;
 
@@ -220,6 +248,7 @@ int main (int argc, char **argv)
 	}
 
 	cfg_params_initialize(&cfg);
+	cfg_print_info(&cfg);
 	vbr_initialize(&vbr, &cfg);
 
 
