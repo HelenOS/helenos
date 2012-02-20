@@ -37,6 +37,8 @@
 
 #include <byteorder.h>
 #include <errno.h>
+#include <malloc.h>
+#include <sort.h>
 #include <string.h>
 #include "libext4.h"
 
@@ -450,6 +452,89 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 	return ENOENT;
 }
 
+typedef struct ext4_dx_sort_entry {
+	uint32_t hash;
+	ext4_directory_entry_ll_t *dentry;
+} ext4_dx_sort_entry_t;
+
+static int dx_entry_comparator(void *arg1, void *arg2, void *dummy)
+{
+	ext4_dx_sort_entry_t *entry1 = arg1;
+	ext4_dx_sort_entry_t *entry2 = arg2;
+
+	if (entry1->hash == entry2->hash) {
+		return 0;
+	}
+
+	if (entry1->hash < entry2->hash) {
+		return -1;
+	} else {
+		return 1;
+	}
+
+}
+
+static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, ext4_hash_info_t *hinfo,
+		block_t *data_block, ext4_directory_dx_block_t *index_block)
+{
+	int rc;
+
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	void *entry_buffer = malloc(block_size);
+	if (entry_buffer == NULL) {
+		return ENOMEM;
+	}
+
+	// Copy data to buffer
+	memcpy(entry_buffer, index_block->block->data, block_size);
+
+	ext4_directory_dx_countlimit_t *countlimit =
+			(ext4_directory_dx_countlimit_t *)index_block->entries;
+	uint32_t entry_count = ext4_directory_dx_countlimit_get_count(countlimit);
+	ext4_dx_sort_entry_t *sort_array = malloc(entry_count);
+	if (sort_array == NULL) {
+		free(entry_buffer);
+		return ENOMEM;
+	}
+
+	ext4_directory_entry_ll_t *dentry = data_block->data;
+
+	int idx = 0;
+	while ((void *)dentry < data_block->data + block_size) {
+		char *name = (char *)dentry->name;
+		uint8_t len = ext4_directory_entry_ll_get_name_length(fs->superblock, dentry);
+		uint32_t hash = ext4_hash_string(hinfo, len, name);
+
+		sort_array[idx].dentry = dentry;
+		sort_array[idx].hash = hash;
+
+		idx++;
+		dentry = (void *)dentry + ext4_directory_entry_ll_get_entry_length(dentry);
+	}
+
+	qsort(sort_array, entry_count, sizeof(ext4_dx_sort_entry_t), dx_entry_comparator, NULL);
+
+	// TODO split to two groups (by size, NOT by count)
+
+	uint32_t new_fblock;
+	rc = ext4_directory_append_block(fs, inode_ref, &new_fblock);
+	if (rc != EOK) {
+		free(sort_array);
+		free(entry_buffer);
+		return rc;
+	}
+
+	// TODO load new_block
+
+	// TODO write splitted entries to two blocks
+
+	// TODO add new entry to index block
+
+	return EOK;
+}
+
+
 int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *parent, ext4_inode_ref_t *child,
 		size_t name_size, const char *name)
@@ -600,6 +685,12 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 			EXT4FS_DBG("create second level");
 		}
 	}
+
+	rc = ext4_directory_dx_split_data(fs, parent, &hinfo, target, dx_block);
+	if (rc != EOK) {
+		// TODO error
+	}
+
 
 	// TODO
 	return EOK;
