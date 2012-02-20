@@ -259,6 +259,37 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
+int ext4_directory_append_block(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, uint32_t *fblock)
+{
+	int rc;
+
+	// Compute next block index and allocate data block
+	uint64_t inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t new_block_idx = inode_size / block_size;
+
+	uint32_t phys_block;
+	rc =  ext4_balloc_alloc_block(fs, inode_ref, &phys_block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = ext4_filesystem_set_inode_data_block_index(fs, inode_ref, new_block_idx, phys_block);
+	if (rc != EOK) {
+		ext4_balloc_free_block(fs, inode_ref, phys_block);
+		return rc;
+	}
+
+	inode_size += block_size;
+	ext4_inode_set_size(inode_ref->inode, inode_size);
+
+	inode_ref->dirty = true;
+
+	*fblock = phys_block;
+	return EOK;
+}
+
 void ext4_directory_write_entry(ext4_superblock_t *sb,
 		ext4_directory_entry_ll_t *entry, uint16_t entry_len,
 		ext4_inode_ref_t *child, const char *name, size_t name_len)
@@ -373,38 +404,15 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 		}
 	}
 
-	EXT4FS_DBG("NO FREE SPACE - needed to allocate block");
-
-	// Save position and destroy iterator
-	aoff64_t pos = it.current_offset;
+	// Destroy iterator
 	ext4_directory_iterator_fini(&it);
 
-	// Compute next block index and allocate data block
-	uint32_t block_idx = pos / block_size;
+	EXT4FS_DBG("NO FREE SPACE - needed to allocate block");
 
 	uint32_t fblock;
-	rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, block_idx, &fblock);
+	rc = ext4_directory_append_block(fs, parent, &fblock);
 	if (rc != EOK) {
 		return rc;
-	}
-
-	if (fblock == 0) {
-		rc =  ext4_balloc_alloc_block(fs, parent, &fblock);
-		if (rc != EOK) {
-			return rc;
-		}
-
-		rc = ext4_filesystem_set_inode_data_block_index(fs, parent, block_idx, fblock);
-		if (rc != EOK) {
-			ext4_balloc_free_block(fs, parent, fblock);
-			return rc;
-		}
-
-		uint64_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
-		inode_size += block_size;
-		ext4_inode_set_size(parent->inode, inode_size);
-
-		parent->dirty = true;
 	}
 
 	// Load block

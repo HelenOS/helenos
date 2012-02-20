@@ -579,32 +579,10 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 			return ENOSPC;
 		}
 
-		// Compute next block index and allocate data block
-		uint64_t parent_size = ext4_inode_get_size(fs->superblock, parent->inode);
-		uint32_t new_block_idx = parent_size / block_size;
-
 		uint32_t fblock;
-		rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, new_block_idx, &fblock);
+		rc =  ext4_directory_append_block(fs, parent, &fblock);
 		if (rc != EOK) {
-			return rc;
-		}
-
-		if (fblock == 0) {
-			rc =  ext4_balloc_alloc_block(fs, parent, &fblock);
-			if (rc != EOK) {
-				return rc;
-			}
-
-			rc = ext4_filesystem_set_inode_data_block_index(fs, parent, new_block_idx, fblock);
-			if (rc != EOK) {
-				ext4_balloc_free_block(fs, parent, fblock);
-				return rc;
-			}
-
-			parent_size += block_size;
-			ext4_inode_set_size(parent->inode, parent_size);
-
-			parent->dirty = true;
+			// TODO error
 		}
 
 		// New block allocated
