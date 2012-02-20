@@ -507,11 +507,7 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    	ext4_directory_entry_ll_t *de = target->data;
    	ext4_directory_entry_ll_t *stop = target->data + block_size;
 
-   	EXT4FS_DBG("before while de = \%u, stop = \%u", (uint32_t)de, (uint32_t)stop);
-
    	while (de < stop) {
-
-   		EXT4FS_DBG("before while de = \%u", (uint32_t)de);
 
    		uint32_t de_inode = ext4_directory_entry_ll_get_inode(de);
    		uint16_t de_rec_len = ext4_directory_entry_ll_get_entry_length(de);
@@ -560,19 +556,15 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    		de = (void *)de + de_rec_len;
    	}
 
-
-   	EXT4FS_DBG("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
-   	return EXT4_ERR_BAD_DX_DIR;
-
-	// if ENOSPC in block -> next code
+    EXT4FS_DBG("no free space found");
 
 	ext4_directory_dx_entry_t *entries = ((ext4_directory_dx_node_t *) dx_block->block->data)->entries;
-	uint16_t limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
-	uint16_t count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)entries);
+	uint16_t leaf_limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
+	uint16_t leaf_count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)entries);
 
 	ext4_directory_dx_entry_t *root_entries = ((ext4_directory_dx_node_t *) dx_blocks[0].block->data)->entries;
 
-	if (limit == count) {
+	if (leaf_limit == leaf_count) {
 		EXT4FS_DBG("need to split index block !!!");
 
 		unsigned int levels = dx_block - dx_blocks;
@@ -587,7 +579,48 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 			return ENOSPC;
 		}
 
+		// Compute next block index and allocate data block
+		uint64_t parent_size = ext4_inode_get_size(fs->superblock, parent->inode);
+		uint32_t new_block_idx = parent_size / block_size;
 
+		uint32_t fblock;
+		rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, new_block_idx, &fblock);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		if (fblock == 0) {
+			rc =  ext4_balloc_alloc_block(fs, parent, &fblock);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			rc = ext4_filesystem_set_inode_data_block_index(fs, parent, new_block_idx, fblock);
+			if (rc != EOK) {
+				ext4_balloc_free_block(fs, parent, fblock);
+				return rc;
+			}
+
+			parent_size += block_size;
+			ext4_inode_set_size(parent->inode, parent_size);
+
+			parent->dirty = true;
+		}
+
+		// New block allocated
+		block_t * new_block;
+		rc = block_get(&new_block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		memset(new_block->data, 0, block_size);
+
+		if (levels > 0) {
+			EXT4FS_DBG("split index");
+		} else {
+			EXT4FS_DBG("create second level");
+		}
 	}
 
 	// TODO
