@@ -52,6 +52,12 @@
 /** First sector of the FAT */
 #define FAT_SECTOR_START 128
 
+/** First sector of the Main Extended Boot Region */
+#define EBS_SECTOR_START 1
+
+/** Size of the Main Extended Boot Region */
+#define EBS_SIZE 8
+
 /** Divide and round up. */
 #define div_round_up(a, b) (((a) + (b) - 1) / (b))
 
@@ -175,6 +181,36 @@ vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
 	vbr->drive_no = 0x80;
 	vbr->allocated_percent = 0;
 	vbr->signature = host2uint16_t_le(0xAA55);
+}
+
+/** Write the Main Extended Boot Sector to disk
+ *
+ * @param service_id  The service id.
+ * @param cfg  Pointer to the exFAT configuration structure.
+ * @return  EOK on success or a negative error code.
+ */
+static int
+ebs_write(service_id_t service_id, exfat_cfg_t *cfg)
+{
+	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
+	int i, rc;
+
+	if (!ebs)
+		return ENOMEM;
+
+	ebs[cfg->sector_size / 4 - 1] = host2uint32_t_le(0xAA550000);
+
+	for (i = 0; i < EBS_SIZE; ++i) {
+		rc = block_write_direct(service_id, i + EBS_SECTOR_START,
+		    1, ebs);
+
+		if (rc != EOK)
+			goto exit;
+	}
+
+exit:
+	free(ebs);
+	return rc;
 }
 
 /** Writes the FAT on disk.
@@ -303,9 +339,16 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
+	rc = ebs_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the Main Extended Boot" \
+		    " Sector to disk\n");
+		return 2;
+	}
+
 	rc = fat_write(service_id, &cfg);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the FAT on disk\n");
+		printf(NAME ": Error, failed to write the FAT to disk\n");
 		return 2;
 	}
 
