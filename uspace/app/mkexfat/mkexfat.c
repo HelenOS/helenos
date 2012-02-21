@@ -55,6 +55,15 @@
 /** First sector of the Main Extended Boot Region */
 #define EBS_SECTOR_START 1
 
+/** First sector of the Main Extended Boot Region Backup */
+#define EBS_BACKUP_SECTOR_START 13
+
+/** First sector of the VBR */
+#define VBR_SECTOR 0
+
+/** First sector if the VBR Backup */
+#define VBR_BACKUP_SECTOR 12
+
 /** Size of the Main Extended Boot Region */
 #define EBS_SIZE 8
 
@@ -63,8 +72,6 @@
 
 /** The default size of each cluster is 4096 byte */
 #define DEFAULT_CLUSTER_SIZE 4096
-
-static unsigned log2(unsigned n);
 
 typedef struct exfat_cfg {
 	aoff64_t volume_start;
@@ -76,6 +83,19 @@ typedef struct exfat_cfg {
 	size_t   sector_size;
 	size_t   cluster_size;
 } exfat_cfg_t;
+
+
+static unsigned log2(unsigned n);
+
+static uint32_t
+vbr_checksum_start(void const *octets, size_t nbytes);
+
+static void
+vbr_checksum_update(void const *octets, size_t nbytes, uint32_t *checksum);
+
+static int
+ebs_write(service_id_t service_id, exfat_cfg_t *cfg,
+    int base, uint32_t *chksum);
 
 static void usage(void)
 {
@@ -142,8 +162,9 @@ cfg_print_info(exfat_cfg_t *cfg)
  *
  * @param vbr Pointer to the Volume Boot Record structure.
  * @param cfg Pointer to the exFAT configuration structure.
+ * @return    Initial checksum value.
  */
-static void
+static uint32_t
 vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
 {
 	/* Fill the structure with zeroes */
@@ -181,19 +202,54 @@ vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
 	vbr->drive_no = 0x80;
 	vbr->allocated_percent = 0;
 	vbr->signature = host2uint16_t_le(0xAA55);
+
+	return vbr_checksum_start(vbr, sizeof(exfat_bs_t));
+}
+
+static int
+bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
+{
+	exfat_bs_t vbr;
+	uint32_t vbr_checksum;
+	uint32_t initial_checksum;
+	int rc;
+
+	vbr_checksum = vbr_initialize(&vbr, cfg);
+	initial_checksum = vbr_checksum;
+
+	/* Write the VBR on disk */
+	rc = block_write_direct(service_id, VBR_SECTOR, 1, &vbr);
+	if (rc != EOK)
+		return rc;
+
+	/* Write the VBR backup on disk */
+	rc = block_write_direct(service_id, VBR_BACKUP_SECTOR, 1, &vbr);
+	if (rc != EOK)
+		return rc;
+
+	rc = ebs_write(service_id, cfg, EBS_SECTOR_START, &vbr_checksum);
+	if (rc != EOK)
+		return rc;
+
+	/* Restore the checksum to its initial value */
+	vbr_checksum = initial_checksum;
+
+	return ebs_write(service_id, cfg, EBS_BACKUP_SECTOR_START, &vbr_checksum);
 }
 
 /** Write the Main Extended Boot Sector to disk
  *
  * @param service_id  The service id.
  * @param cfg  Pointer to the exFAT configuration structure.
+ * @param base Base sector of the EBS.
  * @return  EOK on success or a negative error code.
  */
 static int
-ebs_write(service_id_t service_id, exfat_cfg_t *cfg)
+ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base, uint32_t *chksum)
 {
 	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
 	int i, rc;
+	unsigned idx;
 
 	if (!ebs)
 		return ENOMEM;
@@ -201,12 +257,38 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg)
 	ebs[cfg->sector_size / 4 - 1] = host2uint32_t_le(0xAA550000);
 
 	for (i = 0; i < EBS_SIZE; ++i) {
-		rc = block_write_direct(service_id, i + EBS_SECTOR_START,
-		    1, ebs);
+		vbr_checksum_update(ebs, cfg->sector_size, chksum);
+
+		rc = block_write_direct(service_id,
+		    i + EBS_SECTOR_START + base, 1, ebs);
 
 		if (rc != EOK)
 			goto exit;
 	}
+
+	/* The OEM record is not yet used
+	 * by the official exFAT implementation, we'll fill
+	 * it with zeroes.
+	 */
+
+	memset(ebs, 0, cfg->sector_size);
+	vbr_checksum_update(ebs, cfg->sector_size, chksum);
+
+	rc = block_write_direct(service_id, i++ + base, 1, ebs);
+	if (rc != EOK)
+		goto exit;
+
+	/* The next sector is reserved, fill it with zeroes too */
+	vbr_checksum_update(ebs, cfg->sector_size, chksum);
+	rc = block_write_direct(service_id, i++ + base, 1, ebs);
+	if (rc != EOK)
+		goto exit;
+
+	/* Write the checksum sector */
+	for (idx = 0; idx < cfg->sector_size / sizeof(uint32_t); ++idx)
+		ebs[idx] = host2uint32_t_le(*chksum);
+
+	rc = block_write_direct(service_id, i + base, 1, ebs);
 
 exit:
 	free(ebs);
@@ -250,7 +332,7 @@ error:
 	return rc;
 }
 
-/** Given a power-of-two number (n), returns the result of log2(n).
+/** Given a number (n), returns the result of log2(n).
  *
  * It works only if n is a power of two.
  */
@@ -264,10 +346,40 @@ log2(unsigned n)
 	return r;
 }
 
+/** Initialize the VBR checksum calculation */
+static uint32_t
+vbr_checksum_start(void const *data, size_t nbytes)
+{
+	uint32_t checksum = 0;
+	size_t index;
+	uint8_t const *octets = (uint8_t *) data;
+
+	for (index = 0; index < nbytes; ++index) {
+		if (index == 106 || index == 107 || index == 112) {
+			/* Skip volume_flags and allocated_percent fields */
+			continue;
+		}
+
+		checksum = ((checksum << 31) | (checksum >> 1)) + octets[index];
+	}
+
+	return checksum;
+}
+
+/** Update the VBR checksum */
+static void
+vbr_checksum_update(void const *data, size_t nbytes, uint32_t *checksum)
+{
+	size_t index;
+	uint8_t const *octets = (uint8_t *) data;
+
+	for (index = 0; index < nbytes; ++index)
+		*checksum = ((*checksum << 31) | (*checksum >> 1)) + octets[index];
+}
+
 int main (int argc, char **argv)
 {
 	exfat_cfg_t cfg;
-	exfat_bs_t  vbr;
 	char *dev_path;
 	service_id_t service_id;
 	int rc;
@@ -322,27 +434,10 @@ int main (int argc, char **argv)
 
 	cfg_params_initialize(&cfg);
 	cfg_print_info(&cfg);
-	vbr_initialize(&vbr, &cfg);
 
-	/* Write the VBR on disk */
-	rc = block_write_direct(service_id, 0, 1, &vbr);
+	rc = bootsec_write(service_id, &cfg);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the VBR on disk\n");
-		return 2;
-	}
-
-	/* Write the VBR backup on disk */
-	rc = block_write_direct(service_id, 12, 1, &vbr);
-	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the VBR" \
-		    " backup on disk\n");
-		return 2;
-	}
-
-	rc = ebs_write(service_id, &cfg);
-	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the Main Extended Boot" \
-		    " Sector to disk\n");
+		printf(NAME ": Error, failed to write the VBR to disk\n");
 		return 2;
 	}
 
