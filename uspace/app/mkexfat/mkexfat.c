@@ -234,7 +234,8 @@ bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
 	/* Restore the checksum to its initial value */
 	vbr_checksum = initial_checksum;
 
-	return ebs_write(service_id, cfg, EBS_BACKUP_SECTOR_START, &vbr_checksum);
+	return ebs_write(service_id, cfg,
+	    EBS_BACKUP_SECTOR_START, &vbr_checksum);
 }
 
 /** Write the Main Extended Boot Sector to disk
