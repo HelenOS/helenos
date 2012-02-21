@@ -87,22 +87,21 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	aoff64_t const volume_bytes = (cfg->volume_count - FAT_SECTOR_START) *
 	    cfg->sector_size;
 
-	/** Number of clusters required to index the entire device, it must
-	 * be less then UINT32_MAX.
-	 */
 	aoff64_t n_req_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
 	cfg->cluster_size = DEFAULT_CLUSTER_SIZE;
 
 	/* Compute the required cluster size to index
-	 * the entire storage device.
+	 * the entire storage device and to keep the FAT
+	 * size less or equal to 64 Mb.
 	 */
-	while (n_req_clusters > 4000000 &&
+	while (n_req_clusters > 16000000ULL &&
 	    (cfg->cluster_size < 32 * 1024 * 1024)) {
 
 		cfg->cluster_size <<= 1;
 		n_req_clusters = volume_bytes / cfg->cluster_size;
 	}
 
+	/* The first two clusters are reserved */
 	cfg->total_clusters = n_req_clusters + 2;
 
 	/* Compute the FAT size in sectors */
