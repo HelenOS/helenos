@@ -80,6 +80,8 @@ typedef struct exfat_cfg {
 	unsigned long data_start_sector;
 	unsigned long rootdir_cluster;
 	unsigned long total_clusters;
+	unsigned long allocated_clusters;
+	size_t   bitmap_size;
 	size_t   sector_size;
 	size_t   cluster_size;
 } exfat_cfg_t;
@@ -96,6 +98,9 @@ vbr_checksum_update(void const *octets, size_t nbytes, uint32_t *checksum);
 static int
 ebs_write(service_id_t service_id, exfat_cfg_t *cfg,
     int base, uint32_t *chksum);
+
+static int
+bitmap_write(service_id_t service_id, exfat_cfg_t *cfg);
 
 static void usage(void)
 {
@@ -138,6 +143,17 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	cfg->data_start_sector = ROUND_UP(FAT_SECTOR_START +
 	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
 
+	/* Compute the bitmap size */
+	cfg->bitmap_size = n_req_clusters / 8;
+
+	cfg->allocated_clusters = div_round_up(cfg->bitmap_size,
+	    cfg->cluster_size);
+
+	/* This account for the root directory */
+	cfg->allocated_clusters++;
+	/* FIXME: add upcase table clusters to allocated_clusters */
+
+	/* FIXME: set the real rootdir cluster */
 	cfg->rootdir_cluster = 0;
 
 	/* The first sector of the partition is zero */
@@ -311,7 +327,7 @@ fat_write(service_id_t service_id, exfat_cfg_t *cfg)
 	uint32_t *pfat;
 	int rc;
 
-	pfat = calloc(cfg->fat_sector_count, cfg->sector_size);
+	pfat = calloc(cfg->sector_size, 1);
 	if (!pfat)
 		return ENOMEM;
 
@@ -331,7 +347,7 @@ fat_write(service_id_t service_id, exfat_cfg_t *cfg)
 
 	memset(pfat, 0, 5 * sizeof(uint32_t));
 
-	for (i = 1; i < cfg->fat_sector_count + 1; ++i) {
+	for (i = 1; i < cfg->fat_sector_count; ++i) {
 		rc = block_write_direct(service_id,
 		    FAT_SECTOR_START + i, 1, pfat);
 		if (rc != EOK)
@@ -340,6 +356,54 @@ fat_write(service_id_t service_id, exfat_cfg_t *cfg)
 
 error:
 	free(pfat);
+	return rc;
+}
+
+/** Initialize the allocation bitmap.
+ *
+ * @param service_id   The service id.
+ * @param cfg  Pointer to the exfat configuration structure.
+ * @return  EOK on success or a negative error code.
+ */
+static int
+bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
+{
+	unsigned long i, sec;
+	unsigned long allocated_cls;
+	int rc = EOK;
+
+	/* Bitmap size in sectors */
+	size_t const bss = div_round_up(cfg->bitmap_size, cfg->sector_size);
+
+	uint8_t *bitmap = malloc(cfg->sector_size);
+	if (!bitmap)
+		return ENOMEM;
+
+	allocated_cls = cfg->allocated_clusters;
+
+	for (sec = 0; sec < bss; ++sec) {
+		memset(bitmap, 0, cfg->sector_size);
+		if (allocated_cls > 0) {
+			for (i = 0; i < allocated_cls; ++i) {
+				unsigned byte_idx = i / 8;
+				unsigned bit_idx = i % 8;
+
+				if (byte_idx == cfg->sector_size)
+					break;
+				bitmap[byte_idx] |= 1 << bit_idx;
+			}
+
+			allocated_cls -= i * 8;
+		}
+
+		rc = block_write_direct(service_id,
+		    cfg->data_start_sector + sec, 1, bitmap);
+		if (rc != EOK)
+			goto exit;
+	}
+
+exit:
+	free(bitmap);
 	return rc;
 }
 
@@ -455,6 +519,13 @@ int main (int argc, char **argv)
 	rc = fat_write(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the FAT to disk\n");
+		return 2;
+	}
+
+	rc = bitmap_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the allocation" \
+		    " bitmap to disk.\n");
 		return 2;
 	}
 
