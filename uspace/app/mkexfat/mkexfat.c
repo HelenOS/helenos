@@ -58,11 +58,11 @@
 /** First sector of the Main Extended Boot Region Backup */
 #define EBS_BACKUP_SECTOR_START 13
 
-/** First sector of the VBR */
-#define VBR_SECTOR 0
+/** First sector of the Main Boot Sector */
+#define MBS_SECTOR 0
 
-/** First sector if the VBR Backup */
-#define VBR_BACKUP_SECTOR 12
+/** First sector of the Main Boot Sector Backup */
+#define MBS_BACKUP_SECTOR 12
 
 /** Size of the Main Extended Boot Region */
 #define EBS_SIZE 8
@@ -158,82 +158,84 @@ cfg_print_info(exfat_cfg_t *cfg)
 	printf(NAME ": Total num of clusters: %lu\n", cfg->total_clusters);
 }
 
-/** Initialize the Volume Boot Record fields.
+/** Initialize the Main Boot Sector fields.
  *
- * @param vbr Pointer to the Volume Boot Record structure.
+ * @param mbs Pointer to the Main Boot Sector structure.
  * @param cfg Pointer to the exFAT configuration structure.
  * @return    Initial checksum value.
  */
 static uint32_t
-vbr_initialize(exfat_bs_t *vbr, exfat_cfg_t *cfg)
+vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 {
 	/* Fill the structure with zeroes */
-	memset(vbr, 0, sizeof(exfat_bs_t));
+	memset(mbs, 0, sizeof(exfat_bs_t));
 
 	/* Init Jump Boot section */
-	vbr->jump[0] = 0xEB;
-	vbr->jump[1] = 0x76;
-	vbr->jump[2] = 0x90;
+	mbs->jump[0] = 0xEB;
+	mbs->jump[1] = 0x76;
+	mbs->jump[2] = 0x90;
 
 	/* Set the filesystem name */
-	memcpy(vbr->oem_name, "EXFAT   ", sizeof(vbr->oem_name));
+	memcpy(mbs->oem_name, "EXFAT   ", sizeof(mbs->oem_name));
 
-	vbr->volume_start = host2uint64_t_le(cfg->volume_start);
-	vbr->volume_count = host2uint64_t_le(cfg->volume_count);
-	vbr->fat_sector_start = host2uint32_t_le(FAT_SECTOR_START);
-	vbr->fat_sector_count = host2uint32_t_le(cfg->fat_sector_count);
-	vbr->data_start_sector = host2uint32_t_le(cfg->data_start_sector);
+	mbs->volume_start = host2uint64_t_le(cfg->volume_start);
+	mbs->volume_count = host2uint64_t_le(cfg->volume_count);
+	mbs->fat_sector_start = host2uint32_t_le(FAT_SECTOR_START);
+	mbs->fat_sector_count = host2uint32_t_le(cfg->fat_sector_count);
+	mbs->data_start_sector = host2uint32_t_le(cfg->data_start_sector);
 
-	vbr->data_clusters = host2uint32_t_le(cfg->total_clusters - 
+	mbs->data_clusters = host2uint32_t_le(cfg->total_clusters - 
 	    div_round_up(cfg->data_start_sector, cfg->cluster_size));
 
-	vbr->rootdir_cluster = 0;
-	vbr->volume_serial = 0;
-	vbr->version.major = 1;
-	vbr->version.minor = 0;
-	vbr->volume_flags = host2uint16_t_le(0);
-	vbr->bytes_per_sector = log2(cfg->sector_size);
-	vbr->sec_per_cluster = log2(cfg->cluster_size / cfg->sector_size);
+	mbs->rootdir_cluster = 0;
+	mbs->volume_serial = 0;
+	mbs->version.major = 1;
+	mbs->version.minor = 0;
+	mbs->volume_flags = host2uint16_t_le(0);
+	mbs->bytes_per_sector = log2(cfg->sector_size);
+	mbs->sec_per_cluster = log2(cfg->cluster_size / cfg->sector_size);
 
 	/* Maximum cluster size is 32 Mb */
-	assert((vbr->bytes_per_sector + vbr->sec_per_cluster) <= 25);
+	assert((mbs->bytes_per_sector + mbs->sec_per_cluster) <= 25);
 
-	vbr->fat_count = 1;
-	vbr->drive_no = 0x80;
-	vbr->allocated_percent = 0;
-	vbr->signature = host2uint16_t_le(0xAA55);
+	mbs->fat_count = 1;
+	mbs->drive_no = 0x80;
+	mbs->allocated_percent = 0;
+	mbs->signature = host2uint16_t_le(0xAA55);
 
-	return vbr_checksum_start(vbr, sizeof(exfat_bs_t));
+	return vbr_checksum_start(mbs, sizeof(exfat_bs_t));
 }
 
 static int
 bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
-	exfat_bs_t vbr;
+	exfat_bs_t mbs;
 	uint32_t vbr_checksum;
 	uint32_t initial_checksum;
 	int rc;
 
-	vbr_checksum = vbr_initialize(&vbr, cfg);
+	vbr_checksum = vbr_initialize(&mbs, cfg);
 	initial_checksum = vbr_checksum;
 
-	/* Write the VBR on disk */
-	rc = block_write_direct(service_id, VBR_SECTOR, 1, &vbr);
+	/* Write the Main Boot Sector to disk */
+	rc = block_write_direct(service_id, MBS_SECTOR, 1, &mbs);
 	if (rc != EOK)
 		return rc;
 
-	/* Write the VBR backup on disk */
-	rc = block_write_direct(service_id, VBR_BACKUP_SECTOR, 1, &vbr);
-	if (rc != EOK)
-		return rc;
-
+	/* Write the Main extended boot sectors to disk */
 	rc = ebs_write(service_id, cfg, EBS_SECTOR_START, &vbr_checksum);
+	if (rc != EOK)
+		return rc;
+
+	/* Write the Main Boot Sector backup to disk */
+	rc = block_write_direct(service_id, MBS_BACKUP_SECTOR, 1, &mbs);
 	if (rc != EOK)
 		return rc;
 
 	/* Restore the checksum to its initial value */
 	vbr_checksum = initial_checksum;
 
+	/* Write the Main extended boot sectors backup to disk */ 
 	return ebs_write(service_id, cfg,
 	    EBS_BACKUP_SECTOR_START, &vbr_checksum);
 }
@@ -298,6 +300,7 @@ exit:
 
 /** Writes the FAT on disk.
  *
+ * @param service_id  The service id.
  * @param cfg Pointer to the exfat_cfg structure.
  * @return EOK on success or a negative error code.
  */
