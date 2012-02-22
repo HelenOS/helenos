@@ -46,6 +46,7 @@
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include "exfat.h"
+#include "upcase.h"
 
 #define NAME    "mkexfat"
 
