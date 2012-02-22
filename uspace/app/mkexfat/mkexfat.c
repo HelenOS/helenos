@@ -318,15 +318,22 @@ fat_write(service_id_t service_id, exfat_cfg_t *cfg)
 	pfat[0] = host2uint32_t_le(0xFFFFFFF8);
 	pfat[1] = host2uint32_t_le(0xFFFFFFFF);
 
+	/* Allocate clusters for the bitmap, upcase table
+	 * and the root directory.
+	 */
+	pfat[2] = host2uint32_t_le(0xFFFFFFFF);
+	pfat[3] = host2uint32_t_le(0xFFFFFFFF);
+	pfat[4] = host2uint32_t_le(0xFFFFFFFF);
+
 	rc = block_write_direct(service_id, FAT_SECTOR_START, 1, pfat);
 	if (rc != EOK)
 		goto error;
 
-	pfat[0] = pfat[1] = 0x00000000;
+	memset(pfat, 0, 5 * sizeof(uint32_t));
 
-	for (i = 1; i < cfg->fat_sector_count; ++i) {
+	for (i = 1; i < cfg->fat_sector_count + 1; ++i) {
 		rc = block_write_direct(service_id,
-		    FAT_SECTOR_START + i + 1, 1, pfat);
+		    FAT_SECTOR_START + i, 1, pfat);
 		if (rc != EOK)
 			goto error;
 	}
