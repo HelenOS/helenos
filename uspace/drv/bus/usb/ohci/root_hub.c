@@ -153,8 +153,8 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	assert(regs);
 
 	instance->registers = regs;
-	instance->port_count = RHDA_NDS(instance->registers->rh_desc_a);
-	usb_log_debug("rh_desc_a: %x.\n", instance->registers->rh_desc_a);
+	instance->port_count = OHCI_RD(regs->rh_desc_a) & RHDA_NDS_MASK;
+	usb_log_debug2("rh_desc_a: %x.\n", OHCI_RD(regs->rh_desc_a));
 	if (instance->port_count > 15) {
 		usb_log_warning("OHCI specification does not allow more than 15"
 		    " ports. Max 15 ports will be used");
@@ -166,36 +166,41 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->unfinished_interrupt_transfer = NULL;
 
 #if defined OHCI_POWER_SWITCH_no
+	usb_log_debug("OHCI rh: Set power mode to no power switching.\n");
 	/* Set port power mode to no power-switching. (always on) */
-	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
+	OHCI_SET(regs->rh_desc_a, RHDA_NPS_FLAG);
 
 	/* Set to no over-current reporting */
-	instance->registers->rh_desc_a |= RHDA_NOCP_FLAG;
+	OHCI_SET(regs->rh_desc_a, RHDA_NOCP_FLAG);
 
 #elif defined OHCI_POWER_SWITCH_ganged
-	/* Set port power mode to no ganged power-switching. */
-	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
-	instance->registers->rh_desc_a &= ~RHDA_PSM_FLAG;
-	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+	usb_log_debug("OHCI rh: Set power mode to ganged power switching.\n");
+	/* Set port power mode to ganged power-switching. */
+	OHCI_CLEAR(regs->rh_desc_a, RHDA_NPS_FLAG);
+	OHCI_CLEAR(regs->rh_desc_a, RHDA_PSM_FLAG);
+
+	/* Turn off power (hub driver will turn this back on)*/
+	OHCI_WR(regs->rh_status, RHS_CLEAR_GLOBAL_POWER);
 
 	/* Set to global over-current */
-	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
-	instance->registers->rh_desc_a &= ~RHDA_OCPM_FLAG;
+	OHCI_CLEAR(regs->rh_desc_a, RHDA_NOCP_FLAG);
+	OHCI_CLEAR(regs->rh_desc_a, RHDA_OCPM_FLAG);
 #else
-	/* Set port power mode to no per port power-switching. */
-	instance->registers->rh_desc_a &= ~RHDA_NPS_FLAG;
-	instance->registers->rh_desc_a |= RHDA_PSM_FLAG;
+	usb_log_debug("OHCI rh: Set power mode to per-port power switching.\n");
+	/* Set port power mode to per port power-switching. */
+	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
+	OHCI_SET(regs->rh_desc_a, RHDA_PSM_FLAG);
 
 	/* Control all ports by global switch and turn them off */
-	instance->registers->rh_desc_b &= ~RHDB_PCC_WRITE(~0);
-	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+	OHCI_CLR(regs->rh_desc_b, RHDB_PCC_MASK << RHDB_PCC_SHIFT);
+	OHCI_WR(regs->rh_status, RHS_CLEAR_GLOBAL_POWER);
 
 	/* Return control to per port state */
-	instance->registers->rh_desc_b |= RHDB_PCC_WRITE(~0);
+	OHCI_SET(regs->rh_desc_b, RHDB_PCC_MASK << RHDB_PCC_SHIFT);
 
 	/* Set per port over-current */
-	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
-	instance->registers->rh_desc_a |= RHDA_OCPM_FLAG;
+	OHCI_CLR(regs->rh_desc_a, RHDA_NOCP_FLAG);
+	OHCI_SET(regs->rh_desc_a, RHDA_OCPM_FLAG);
 #endif
 
 	fibril_mutex_initialize(&instance->guard);
@@ -284,8 +289,8 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	assert(size <= HUB_DESCRIPTOR_MAX_SIZE);
 	instance->hub_descriptor_size = size;
 
-	const uint32_t hub_desc = instance->registers->rh_desc_a;
-	const uint32_t port_desc = instance->registers->rh_desc_b;
+	const uint32_t hub_desc = OHCI_RD(instance->registers->rh_desc_a);
+	const uint32_t port_desc = OHCI_RD(instance->registers->rh_desc_b);
 
 	/* bDescLength */
 	instance->descriptors.hub[0] = size;
@@ -307,15 +312,16 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	/* Reserved */
 	instance->descriptors.hub[4] = 0;
 	/* bPwrOn2PwrGood */
-	instance->descriptors.hub[5] = RHDA_POTPGT(hub_desc);
+	instance->descriptors.hub[5] = hub_desc >> RHDA_POTPGT_SHIFT;
 	/* bHubContrCurrent, root hubs don't need no power. */
 	instance->descriptors.hub[6] = 0;
 
 	/* Device Removable and some legacy 1.0 stuff*/
-	instance->descriptors.hub[7] = RHDB_DR_READ(port_desc) & 0xff;
+	instance->descriptors.hub[7] = (port_desc >> RHDB_DR_SHIFT) & 0xff;
 	instance->descriptors.hub[8] = 0xff;
 	if (instance->interrupt_mask_size == 2) {
-		instance->descriptors.hub[8] = RHDB_DR_READ(port_desc) >> 8;
+		instance->descriptors.hub[8] =
+		    (port_desc >> RHDB_DR_SHIFT) >> 8;
 		instance->descriptors.hub[9]  = 0xff;
 		instance->descriptors.hub[10] = 0xff;
 	}
@@ -363,14 +369,14 @@ uint16_t create_interrupt_mask(const rh_t *instance)
 	uint16_t mask = 0;
 
 	/* Only local power source change and over-current change can happen */
-	if (instance->registers->rh_status & (RHS_LPSC_FLAG | RHS_OCIC_FLAG)) {
+	if (OHCI_RD(instance->registers->rh_status)
+	    & (RHS_LPSC_FLAG | RHS_OCIC_FLAG)) {
 		mask |= 1;
 	}
 	for (size_t port = 1; port <= instance->port_count; ++port) {
 		/* Write-clean bits are those that indicate change */
-		if (RHPS_CHANGE_WC_MASK
-		    & instance->registers->rh_port_status[port - 1]) {
-
+		if (OHCI_RD(instance->registers->rh_port_status[port - 1])
+		    & RHPS_CHANGE_WC_MASK) {
 			mask |= (1 << port);
 		}
 	}
@@ -396,6 +402,8 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 	usb_device_request_setup_packet_t *request_packet =
 	    (usb_device_request_setup_packet_t*)request->setup_buffer;
 
+	const uint16_t index = uint16_usb2host(request_packet->index);
+
 	switch (request_packet->request_type)
 	{
 	case USB_HUB_REQ_TYPE_GET_HUB_STATUS:
@@ -405,9 +413,10 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    "status request.\n", request->buffer_size);
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
-			uint32_t data = instance->registers->rh_status &
-			    (RHS_LPS_FLAG | RHS_LPSC_FLAG
-			        | RHS_OCI_FLAG | RHS_OCIC_FLAG);
+			const uint32_t data =
+			    OHCI_RD(instance->registers->rh_status) &
+			        (RHS_LPS_FLAG | RHS_LPSC_FLAG
+			            | RHS_OCI_FLAG | RHS_OCIC_FLAG);
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
 
@@ -419,12 +428,13 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    "status request.\n", request->buffer_size);
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
-			unsigned port = request_packet->index;
+			const unsigned port = index;
 			if (port < 1 || port > instance->port_count)
 				TRANSFER_END(request, EINVAL);
-
-			uint32_t data =
-			    instance->registers->rh_port_status[port - 1];
+			/* Register format matches the format of port status
+			 * field */
+			const uint32_t data = uint32_usb2host(OHCI_RD(
+			    instance->registers->rh_port_status[port - 1]));
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
 	case SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE):
@@ -440,12 +450,12 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 
 	case SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE):
 		/* Hubs are allowed to have only one interface */
-		if (request_packet->index != 0)
+		if (index != 0)
 			TRANSFER_END(request, EINVAL);
 		/* Fall through, as the answer will be the same: 0x0000 */
 	case SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_ENDPOINT):
 		/* Endpoint 0 (default control) and 1 (interrupt) */
-		if (request_packet->index >= 2)
+		if (index >= 2)
 			TRANSFER_END(request, EINVAL);
 
 		if (request->buffer_size < 2) {
@@ -454,7 +464,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
 			/* Endpoints are OK. (We don't halt) */
-			uint16_t data = 0;
+			const uint16_t data = 0;
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
 
@@ -555,23 +565,28 @@ int set_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 
 	switch (feature)
 	{
-	case USB_HUB_FEATURE_PORT_POWER:   //8
-		/* No power switching */
-		if (instance->registers->rh_desc_a & RHDA_NPS_FLAG)
-			return EOK;
-		/* Ganged power switching */
-		if (!(instance->registers->rh_desc_a & RHDA_PSM_FLAG)) {
-			instance->registers->rh_status = RHS_SET_GLOBAL_POWER;
-			return EOK;
+	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
+		{
+			const uint32_t rhda =
+			    OHCI_RD(instance->registers->rh_desc_a);
+			/* No power switching */
+			if (rhda & RHDA_NPS_FLAG)
+				return EOK;
+			/* Ganged power switching, one port powers all */
+			if (!(rhda & RHDA_PSM_FLAG)) {
+				OHCI_WR(instance->registers->rh_status,
+				    RHS_SET_GLOBAL_POWER);
+				return EOK;
+			}
 		}
-	case USB_HUB_FEATURE_PORT_ENABLE:  //1
-	case USB_HUB_FEATURE_PORT_SUSPEND: //2
-	case USB_HUB_FEATURE_PORT_RESET:   //4
-		usb_log_debug2(
-		    "Setting port ENABLE, SUSPEND or RESET on port %zu.\n",
-		    port);
-		instance->registers->rh_port_status[port - 1] =
-		    RHPS_FEATURE_BIT(feature);
+			/* Fall through */
+	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
+	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
+	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
+		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
+		    "on port %zu.\n", port);
+		OHCI_WR(instance->registers->rh_port_status[port - 1],
+		    1 << feature);
 		return EOK;
 	default:
 		return ENOTSUP;
@@ -597,39 +612,44 @@ int clear_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 	/* Enabled features to clear: see page 269 of USB specs */
 	switch (feature)
 	{
-	case USB_HUB_FEATURE_PORT_POWER:          //8
-		/* No power switching */
-		if (instance->registers->rh_desc_a & RHDA_NPS_FLAG)
-			return ENOTSUP;
-		/* Ganged power switching */
-		if (!(instance->registers->rh_desc_a & RHDA_PSM_FLAG)) {
-			instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
+	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
+		{
+			const uint32_t rhda =
+			    OHCI_RD(instance->registers->rh_desc_a);
+			/* No power switching */
+			if (rhda & RHDA_NPS_FLAG)
+				return ENOTSUP;
+			/* Ganged power switching, one port powers all */
+			if (!(rhda & RHDA_PSM_FLAG)) {
+				OHCI_WR(instance->registers->rh_status,
+				    RHS_CLEAR_GLOBAL_POWER);
+				return EOK;
+			}
+			OHCI_WR(instance->registers->rh_port_status[port - 1],
+			    RHPS_CLEAR_PORT_POWER);
 			return EOK;
 		}
-		instance->registers->rh_port_status[port - 1] =
-			RHPS_CLEAR_PORT_POWER;
+
+	case USB_HUB_FEATURE_PORT_ENABLE:         /*1*/
+		OHCI_WR(instance->registers->rh_port_status[port - 1],
+		    RHPS_CLEAR_PORT_ENABLE);
 		return EOK;
 
-	case USB_HUB_FEATURE_PORT_ENABLE:         //1
-		instance->registers->rh_port_status[port - 1] =
-			RHPS_CLEAR_PORT_ENABLE;
+	case USB_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+		OHCI_WR(instance->registers->rh_port_status[port - 1],
+		    RHPS_CLEAR_PORT_SUSPEND);
 		return EOK;
 
-	case USB_HUB_FEATURE_PORT_SUSPEND:        //2
-		instance->registers->rh_port_status[port - 1] =
-			RHPS_CLEAR_PORT_SUSPEND;
-		return EOK;
-
-	case USB_HUB_FEATURE_C_PORT_CONNECTION:   //16
-	case USB_HUB_FEATURE_C_PORT_ENABLE:       //17
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:      //18
-	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: //19
-	case USB_HUB_FEATURE_C_PORT_RESET:        //20
+	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
+	case USB_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
+	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
+	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
-		    "C_SUSPEND or C_RESET on port %zu.\n",
-		    port);
-		instance->registers->rh_port_status[port - 1] =
-		    RHPS_FEATURE_BIT(feature);
+		    "C_SUSPEND, C_OC or C_RESET on port %zu.\n", port);
+		/* Bit offsets correspond to the feature number */
+		OHCI_WR(instance->registers->rh_port_status[port - 1],
+		    1 << feature);
 		return EOK;
 
 	default:
@@ -657,7 +677,7 @@ void set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_HUB_REQ_TYPE_SET_PORT_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-		int ret = set_feature_port(instance,
+		const int ret = set_feature_port(instance,
 		    setup_request->value, setup_request->index);
 		TRANSFER_END(request, ret);
 
@@ -696,7 +716,7 @@ void clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 	{
 	case USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE:
 		usb_log_debug("USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE\n");
-		int ret = clear_feature_port(instance,
+		const int ret = clear_feature_port(instance,
 		    setup_request->value, setup_request->index);
 		TRANSFER_END(request, ret);
 
@@ -709,8 +729,9 @@ void clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 		 * C_HUB_LOCAL_POWER is not supported
 		 * as root hubs do not support local power status feature.
 		 * (OHCI pg. 127) */
-		if (setup_request->value == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
-			instance->registers->rh_status = RHS_OCIC_FLAG;
+		if (uint16_usb2host(setup_request->value)
+		    == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
+			OHCI_WR(instance->registers->rh_status, RHS_OCIC_FLAG);
 			TRANSFER_END(request, EOK);
 		}
 	//TODO: Consider standard USB requests: REMOTE WAKEUP, ENDPOINT STALL
@@ -774,7 +795,7 @@ void control_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug("USB_DEVREQ_GET_CONFIGURATION\n");
 		if (request->buffer_size == 0)
 			TRANSFER_END(request, EOVERFLOW);
-		uint8_t config = 1;
+		const uint8_t config = 1;
 		TRANSFER_END_DATA(request, &config, sizeof(config));
 
 	case USB_DEVREQ_CLEAR_FEATURE:
@@ -793,7 +814,7 @@ void control_request(rh_t *instance, usb_transfer_batch_t *request)
 		if (uint16_usb2host(setup_request->value) > 127)
 			TRANSFER_END(request, EINVAL);
 
-		instance->address = setup_request->value;
+		instance->address = uint16_usb2host(setup_request->value);
 		TRANSFER_END(request, EOK);
 
 	case USB_DEVREQ_SET_CONFIGURATION:
