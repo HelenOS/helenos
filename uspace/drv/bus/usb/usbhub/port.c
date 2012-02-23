@@ -352,7 +352,7 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
 		.request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS,
 		.request = USB_HUB_REQUEST_GET_STATUS,
 		.value = 0,
-		.index = port->port_number,
+		.index = uint16_host2usb(port->port_number),
 		.length = sizeof(usb_port_status_t),
 	};
 	size_t recv_size;
