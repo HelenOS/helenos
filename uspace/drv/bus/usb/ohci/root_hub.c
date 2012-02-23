@@ -32,19 +32,21 @@
  * @brief OHCI driver
  */
 #include <assert.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <str_error.h>
 #include <fibril_synch.h>
 
+#include <usb/usb.h>
 #include <usb/debug.h>
 #include <usb/dev/request.h>
 #include <usb/classes/hub.h>
 
-#include "root_hub.h"
 #include <usb/classes/classes.h>
 #include <usb/classes/hub.h>
 #include <usb/dev/driver.h>
 #include "ohci_regs.h"
+#include "root_hub.h"
 
 /**
  * standart device descriptor for ohci root hub
@@ -121,6 +123,8 @@ static inline void interrupt_request(
     usb_transfer_batch_t *request, uint16_t mask, size_t size)
 {
 	assert(request);
+	usb_log_debug("Sending interrupt vector(%zu) %hhx:%hhx.\n",
+	    size, ((uint8_t*)&mask)[0], ((uint8_t*)&mask)[1]);
 	usb_transfer_batch_finish_error(request, &mask, size, EOK);
 	usb_transfer_batch_destroy(request);
 }
@@ -149,8 +153,8 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	assert(regs);
 
 	instance->registers = regs;
-	instance->port_count =
-	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
+	instance->port_count = RHDA_NDS(instance->registers->rh_desc_a);
+	usb_log_debug("rh_desc_a: %x.\n", instance->registers->rh_desc_a);
 	if (instance->port_count > 15) {
 		usb_log_warning("OHCI specification does not allow more than 15"
 		    " ports. Max 15 ports will be used");
@@ -183,12 +187,11 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->registers->rh_desc_a |= RHDA_PSM_FLAG;
 
 	/* Control all ports by global switch and turn them off */
-	instance->registers->rh_desc_b &= (RHDB_PCC_MASK << RHDB_PCC_SHIFT);
+	instance->registers->rh_desc_b &= ~RHDB_PCC_WRITE(~0);
 	instance->registers->rh_status = RHS_CLEAR_GLOBAL_POWER;
 
 	/* Return control to per port state */
-	instance->registers->rh_desc_b |=
-		((1 << (instance->port_count + 1)) - 1) << RHDB_PCC_SHIFT;
+	instance->registers->rh_desc_b |= RHDB_PCC_WRITE(~0);
 
 	/* Set per port over-current */
 	instance->registers->rh_desc_a &= ~RHDA_NOCP_FLAG;
@@ -225,9 +228,9 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 		usb_log_debug("Root hub got INTERRUPT packet\n");
 		fibril_mutex_lock(&instance->guard);
 		assert(instance->unfinished_interrupt_transfer == NULL);
-		uint16_t mask = create_interrupt_mask(instance);
+		const uint16_t mask = create_interrupt_mask(instance);
 		if (mask == 0) {
-			usb_log_debug("No changes...\n");
+			usb_log_debug("No changes(%hx)...\n", mask);
 			instance->unfinished_interrupt_transfer = request;
 		} else {
 			usb_log_debug("Processing changes...\n");
@@ -256,7 +259,7 @@ void rh_interrupt(rh_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	if (instance->unfinished_interrupt_transfer) {
 		usb_log_debug("Finalizing interrupt transfer\n");
-		uint16_t mask = create_interrupt_mask(instance);
+		const uint16_t mask = create_interrupt_mask(instance);
 		interrupt_request(instance->unfinished_interrupt_transfer,
 		    mask, instance->interrupt_mask_size);
 		instance->unfinished_interrupt_transfer = NULL;
@@ -281,8 +284,8 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	assert(size <= HUB_DESCRIPTOR_MAX_SIZE);
 	instance->hub_descriptor_size = size;
 
-	uint32_t hub_desc = instance->registers->rh_desc_a;
-	uint32_t port_desc = instance->registers->rh_desc_b;
+	const uint32_t hub_desc = instance->registers->rh_desc_a;
+	const uint32_t port_desc = instance->registers->rh_desc_b;
 
 	/* bDescLength */
 	instance->descriptors.hub[0] = size;
@@ -304,18 +307,15 @@ void create_serialized_hub_descriptor(rh_t *instance)
 	/* Reserved */
 	instance->descriptors.hub[4] = 0;
 	/* bPwrOn2PwrGood */
-	instance->descriptors.hub[5] =
-	    (hub_desc >> RHDA_POTPGT_SHIFT) & RHDA_POTPGT_MASK;
+	instance->descriptors.hub[5] = RHDA_POTPGT(hub_desc);
 	/* bHubContrCurrent, root hubs don't need no power. */
 	instance->descriptors.hub[6] = 0;
 
 	/* Device Removable and some legacy 1.0 stuff*/
-	instance->descriptors.hub[7] =
-	    (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK & 0xff;
+	instance->descriptors.hub[7] = RHDB_DR_READ(port_desc) & 0xff;
 	instance->descriptors.hub[8] = 0xff;
 	if (instance->interrupt_mask_size == 2) {
-		instance->descriptors.hub[8] =
-		    (port_desc >> RHDB_DR_SHIFT) & RHDB_DR_MASK >> 8;
+		instance->descriptors.hub[8] = RHDB_DR_READ(port_desc) >> 8;
 		instance->descriptors.hub[9]  = 0xff;
 		instance->descriptors.hub[10] = 0xff;
 	}
@@ -374,8 +374,8 @@ uint16_t create_interrupt_mask(const rh_t *instance)
 			mask |= (1 << port);
 		}
 	}
-	/* USB is little endian */
-	return host2uint32_t_le(mask);
+	usb_log_debug2("OHCI root hub interrupt mask: %hx.\n", mask);
+	return uint16_host2usb(mask);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -433,7 +433,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 			    "get status request.\n", request->buffer_size);
 			TRANSFER_END(request, EOVERFLOW);
 		} else {
-			uint16_t data =
+			const uint16_t data =
 			    uint16_host2usb(USB_DEVICE_STATUS_SELF_POWERED);
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
@@ -481,7 +481,7 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 
 	usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
-	uint16_t setup_request_value = setup_request->value_high;
+	const int setup_request_value = uint16_usb2host(setup_request->value);
 	switch (setup_request_value)
 	{
 	case USB_DESCTYPE_HUB:
@@ -567,9 +567,11 @@ int set_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 	case USB_HUB_FEATURE_PORT_ENABLE:  //1
 	case USB_HUB_FEATURE_PORT_SUSPEND: //2
 	case USB_HUB_FEATURE_PORT_RESET:   //4
-		/* Nice thing is that these shifts correspond to the position
-		 * of control bits in register */
-		instance->registers->rh_port_status[port - 1] = (1 << feature);
+		usb_log_debug2(
+		    "Setting port ENABLE, SUSPEND or RESET on port %zu.\n",
+		    port);
+		instance->registers->rh_port_status[port - 1] =
+		    RHPS_FEATURE_BIT(feature);
 		return EOK;
 	default:
 		return ENOTSUP;
@@ -623,9 +625,11 @@ int clear_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:      //18
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: //19
 	case USB_HUB_FEATURE_C_PORT_RESET:        //20
-		/* Nice thing is that these shifts correspond to the position
-		 * of control bits in register */
-		instance->registers->rh_port_status[port - 1] = (1 << feature);
+		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
+		    "C_SUSPEND or C_RESET on port %zu.\n",
+		    port);
+		instance->registers->rh_port_status[port - 1] =
+		    RHPS_FEATURE_BIT(feature);
 		return EOK;
 
 	default:
@@ -794,7 +798,7 @@ void control_request(rh_t *instance, usb_transfer_batch_t *request)
 
 	case USB_DEVREQ_SET_CONFIGURATION:
 		usb_log_debug("USB_DEVREQ_SET_CONFIGURATION: %u\n",
-		    setup_request->value);
+		    uint16_usb2host(setup_request->value));
 		/* We have only one configuration, it's number is 1 */
 		if (uint16_usb2host(setup_request->value) != 1)
 			TRANSFER_END(request, EINVAL);

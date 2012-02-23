@@ -49,7 +49,7 @@
 static const irq_cmd_t ohci_irq_commands[] =
 {
 	{ .cmd = CMD_MEM_READ_32, .dstarg = 1, .addr = NULL /*filled later*/ },
-	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2, .value = OHCI_USED_INTERRUPTS },
+	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2, .value = 0 /*filled later*/},
 	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
 	{ .cmd = CMD_MEM_WRITE_A_32, .srcarg = 1, .addr = NULL /*filled later*/ },
 	{ .cmd = CMD_ACCEPT },
@@ -111,6 +111,7 @@ int hc_get_irq_commands(
 
 	void *address = (void*)&registers->interrupt_status;
 	cmds[0].addr = address;
+	cmds[1].value = OHCI_USED_INTERRUPTS;
 	cmds[3].addr = address;
 	return EOK;
 }
@@ -307,6 +308,7 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	/* Check for root hub communication */
 	if (batch->ep->address == instance->rh.address) {
+		usb_log_debug("OHCI root hub request.\n");
 		rh_request(&instance->rh, batch);
 		return EOK;
 	}
@@ -510,9 +512,9 @@ void hc_start(hc_t *instance)
 	    instance->lists[USB_TRANSFER_CONTROL].list_head_pa);
 
 	/* Enable queues */
-	instance->registers->control |= (C_PLE | C_IE | C_CLE | C_BLE);
-	usb_log_debug2("All queues enabled(%x).\n",
-	    instance->registers->control);
+//	instance->registers->control |= (C_PLE | C_IE | C_CLE | C_BLE);
+//	usb_log_debug2("All queues enabled(%x).\n",
+//	    instance->registers->control);
 
 	/* Enable interrupts */
 	instance->registers->interrupt_enable = OHCI_USED_INTERRUPTS;
@@ -521,11 +523,11 @@ void hc_start(hc_t *instance)
 	instance->registers->interrupt_enable = I_MI;
 
 	/* Set periodic start to 90% */
-	uint32_t frame_length = ((fm_interval >> FMI_FI_SHIFT) & FMI_FI_MASK);
-	instance->registers->periodic_start = (frame_length / 10) * 9;
+	const uint32_t frame_length = FMI_FL_GET(fm_interval);
+	PS_SET(instance->registers->periodic_start, (frame_length / 10) * 9);
 	usb_log_debug2("All periodic start set to: %x(%u - 90%% of %d).\n",
-	    instance->registers->periodic_start,
-	    instance->registers->periodic_start, frame_length);
+	    PS_GET(instance->registers->periodic_start),
+	    PS_GET(instance->registers->periodic_start), frame_length);
 
 	C_HCFS_SET(instance->registers->control, C_HCFS_OPERATIONAL);
 	usb_log_debug("OHCI HC up and running (ctl_reg=0x%x).\n",

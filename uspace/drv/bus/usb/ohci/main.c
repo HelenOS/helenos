@@ -82,7 +82,8 @@ static driver_t ohci_driver = {
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	sleep(5);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG2, NAME);
 	return ddf_driver_main(&ohci_driver);
 }
 /**
