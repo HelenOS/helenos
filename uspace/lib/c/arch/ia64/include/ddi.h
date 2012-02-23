@@ -61,6 +61,7 @@ static inline void pio_write_8(ioport8_t *port, uint8_t v)
 	}
 
 	asm volatile ("mf\n" ::: "memory");
+	asm volatile ("mf.a\n" ::: "memory");
 }
 
 static inline void pio_write_16(ioport16_t *port, uint16_t v)
@@ -75,6 +76,7 @@ static inline void pio_write_16(ioport16_t *port, uint16_t v)
 	}
 
 	asm volatile ("mf\n" ::: "memory");
+	asm volatile ("mf.a\n" ::: "memory");
 }
 
 static inline void pio_write_32(ioport32_t *port, uint32_t v)
@@ -89,6 +91,7 @@ static inline void pio_write_32(ioport32_t *port, uint32_t v)
 	}
 
 	asm volatile ("mf\n" ::: "memory");
+	asm volatile ("mf.a\n" ::: "memory");
 }
 
 static inline uint8_t pio_read_8(ioport8_t *port)
@@ -105,6 +108,8 @@ static inline uint8_t pio_read_8(ioport8_t *port)
 	} else {
 		v = *port;
 	}
+
+	asm volatile ("mf.a\n" ::: "memory");
 
 	return v;
 }
@@ -124,6 +129,8 @@ static inline uint16_t pio_read_16(ioport16_t *port)
 		v = *port;
 	}
 
+	asm volatile ("mf.a\n" ::: "memory");
+
 	return v;
 }
 
@@ -141,6 +148,8 @@ static inline uint32_t pio_read_32(ioport32_t *port)
 	} else {
 		v = *port;
 	}
+
+	asm volatile ("mf.a\n" ::: "memory");
 
 	return v;
 }
