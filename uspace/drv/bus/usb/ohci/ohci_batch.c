@@ -198,22 +198,23 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 		    ohci_batch->tds[i]->status, ohci_batch->tds[i]->cbp,
 		    ohci_batch->tds[i]->next, ohci_batch->tds[i]->be);
 
-		/* If the TD got all its data through, it will report 0 bytes
-		 * remain, the sole exception is INPUT with data rounding flag
-		 * (short), i.e. every INPUT. Nice thing is that short packets
-		 * will correctly report remaining data, thus making
-		 * this computation correct (short packets need to be produced
-		 * by the last TD)
-		 * NOTE: This also works for CONTROL transfer as
-		 * the first TD will return 0 remain.
-		 * NOTE: Short packets don't break the assumption that
-		 * we leave the very last(unused) TD behind.
-		 */
-		ohci_batch->usb_batch->transfered_size
-		    -= td_remain_size(ohci_batch->tds[i]);
-
 		ohci_batch->usb_batch->error = td_error(ohci_batch->tds[i]);
-		if (ohci_batch->usb_batch->error != EOK) {
+		if (ohci_batch->usb_batch->error == EOK) {
+			/* If the TD got all its data through, it will report
+			 * 0 bytes remain, the sole exception is INPUT with
+			 * data rounding flag (short), i.e. every INPUT.
+			 * Nice thing is that short packets will correctly
+			 * report remaining data, thus making this computation
+			 * correct (short packets need to be produced by the
+			 * last TD)
+			 * NOTE: This also works for CONTROL transfer as
+			 * the first TD will return 0 remain.
+			 * NOTE: Short packets don't break the assumption that
+			 * we leave the very last(unused) TD behind.
+			 */
+			ohci_batch->usb_batch->transfered_size
+			    -= td_remain_size(ohci_batch->tds[i]);
+		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.\n",
 			    ohci_batch->usb_batch, i,
 			    ohci_batch->tds[i]->status);
