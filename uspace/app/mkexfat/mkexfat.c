@@ -83,6 +83,7 @@ typedef struct exfat_cfg {
 	unsigned long fat_sector_count;
 	unsigned long data_start_sector;
 	unsigned long rootdir_cluster;
+	unsigned long upcase_table_cluster;
 	unsigned long total_clusters;
 	unsigned long allocated_clusters;
 	size_t   bitmap_size;
@@ -215,7 +216,7 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	mbs->data_clusters = host2uint32_t_le(cfg->total_clusters - 
 	    div_round_up(cfg->data_start_sector, cfg->cluster_size));
 
-	mbs->rootdir_cluster = 0;
+	mbs->rootdir_cluster = host2uint32_t_le(cfg->rootdir_cluster);
 	mbs->volume_serial = 0;
 	mbs->version.major = 1;
 	mbs->version.minor = 0;
@@ -572,22 +573,9 @@ int main (int argc, char **argv)
 	cfg_params_initialize(&cfg);
 	cfg_print_info(&cfg);
 
-	rc = bootsec_write(service_id, &cfg);
-	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the VBR to disk\n");
-		return 2;
-	}
-
 	rc = fat_initialize(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the FAT to disk\n");
-		return 2;
-	}
-
-	rc = bitmap_write(service_id, &cfg);
-	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the allocation" \
-		    " bitmap to disk.\n");
 		return 2;
 	}
 
@@ -601,6 +589,7 @@ int main (int argc, char **argv)
 
 	next_cls = FIRST_FREE_CLUSTER +
 	    div_round_up(cfg.bitmap_size, cfg.cluster_size);
+	cfg.upcase_table_cluster = next_cls;
 
 	/* Allocate clusters for the upcase table */
 	rc = fat_allocate_clusters(service_id, &cfg, next_cls,
@@ -617,6 +606,19 @@ int main (int argc, char **argv)
 	rc = fat_allocate_clusters(service_id, &cfg, next_cls, 1);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to allocate cluster for the root dentry.\n");
+		return 2;
+	}
+
+	rc = bitmap_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the allocation" \
+		    " bitmap to disk.\n");
+		return 2;
+	}
+
+	rc = bootsec_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the VBR to disk\n");
 		return 2;
 	}
 
