@@ -46,7 +46,7 @@ extern const usb_endpoint_description_t
 const char *HID_GENERIC_FUN_NAME;
 const char *HID_GENERIC_CLASS_NAME;
 
-/*----------------------------------------------------------------------------*/
+
 
 int usb_generic_hid_init(struct usb_hid_dev *hid_dev, void **data);
 

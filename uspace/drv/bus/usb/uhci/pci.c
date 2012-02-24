@@ -90,7 +90,7 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	hw_res_list_parsed_clean(&hw_res);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Call the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
@@ -109,7 +109,7 @@ int pci_enable_interrupts(const ddf_dev_t *device)
 
 	return enabled ? EOK : EIO;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Call the PCI driver with a request to clear legacy support register
  *
  * @param[in] device Device asking to disable interrupts

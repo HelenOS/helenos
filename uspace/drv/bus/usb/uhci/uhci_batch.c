@@ -57,7 +57,7 @@ static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 		free(uhci_batch);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Finishes usb_transfer_batch and destroys the structure.
  *
  * @param[in] uhci_batch Instance to finish and destroy.
@@ -70,10 +70,10 @@ void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch)
 	    uhci_transfer_batch_data_buffer(uhci_batch));
 	uhci_transfer_batch_dispose(uhci_batch);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Transfer batch setup table. */
 static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t);
-/*----------------------------------------------------------------------------*/
+
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] usb_batch Pointer to generic USB batch structure.
@@ -142,7 +142,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 
 	return uhci_batch;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Check batch TDs for activity.
  *
  * @param[in] uhci_batch Batch structure to use.
@@ -195,13 +195,13 @@ substract_ret:
 	    -= uhci_batch->usb_batch->setup_size;
 	return true;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Direction to pid conversion table */
 static const usb_packet_id direction_pids[] = {
 	[USB_DIRECTION_IN] = USB_PID_IN,
 	[USB_DIRECTION_OUT] = USB_PID_OUT,
 };
-/*----------------------------------------------------------------------------*/
+
 /** Prepare generic data transfer
  *
  * @param[in] uhci_batch Batch structure to use.
@@ -258,7 +258,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir)
 	    usb_str_direction(uhci_batch->usb_batch->ep->direction),
 	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch));
 }
-/*----------------------------------------------------------------------------*/
+
 /** Prepare generic control transfer
  *
  * @param[in] uhci_batch Batch structure to use.
@@ -330,7 +330,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir
 	usb_log_debug2("Control last TD status: %x.\n",
 	    uhci_batch->tds[td].status);
 }
-/*----------------------------------------------------------------------------*/
+
 static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t) =
 {
 	[USB_TRANSFER_CONTROL] = batch_control,

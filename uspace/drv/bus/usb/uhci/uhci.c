@@ -64,7 +64,7 @@ static inline uhci_t * dev_to_uhci(const ddf_dev_t *dev)
 	assert(dev);
 	return dev->driver_data;
 }
-/*----------------------------------------------------------------------------*/
+
 /** IRQ handling callback, forward status from call to diver structure.
  *
  * @param[in] dev DDF instance of the device to use.
@@ -82,12 +82,12 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(&uhci->hc, status);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Operations supported by the HC driver */
 static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
 };
-/*----------------------------------------------------------------------------*/
+
 /** Gets handle of the respective hc.
  *
  * @param[in] fun DDF function of uhci device.
@@ -104,12 +104,12 @@ static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 		*handle = hc_fun->handle;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** USB interface implementation used by RH */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
 };
-/*----------------------------------------------------------------------------*/
+
 /** Get root hub hw resources (I/O registers).
  *
  * @param[in] fun Root hub function.
@@ -122,19 +122,19 @@ static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
 	assert(rh);
 	return &rh->resource_list;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Interface to provide the root hub driver with hw info */
 static hw_res_ops_t hw_res_iface = {
 	.get_resource_list = get_resource_list,
 	.enable_interrupt = NULL,
 };
-/*----------------------------------------------------------------------------*/
+
 /** RH function support for uhci_rhd */
 static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize hc and rh DDF structures and their respective drivers.
  *
  * @param[in] device DDF instance of the device to use.

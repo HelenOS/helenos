@@ -63,7 +63,7 @@ static inline port_status_t uhci_port_read_status(uhci_port_t *port)
 	assert(port);
 	return pio_read_16(port->address);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Register writing helper function.
  *
  * @param[in] port Structure to use.
@@ -75,7 +75,7 @@ static inline void uhci_port_write_status(uhci_port_t *port, port_status_t val)
 	assert(port);
 	pio_write_16(port->address, val);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
@@ -127,7 +127,7 @@ int uhci_port_init(uhci_port_t *port,
 	    port->id_string, port->checker);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Cleanup UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
@@ -141,7 +141,7 @@ void uhci_port_fini(uhci_port_t *port)
 	// TODO: Kill fibril here
 	return;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Periodically checks port status and reports new devices.
  *
  * @param[in] port Port structure to use.
@@ -210,7 +210,7 @@ int uhci_port_check(void *port)
 	}
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback for enabling port during adding a new device.
  *
  * @param portno Port number (unused).
@@ -247,7 +247,7 @@ int uhci_port_reset_enable(void *arg)
 	uhci_port_set_enabled(port, true);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize and report connected device.
  *
  * @param[in] port Port structure to use.
@@ -282,7 +282,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	    port->attached_device.fun->handle);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Remove device.
  *
  * @param[in] port Port instance to use.
@@ -324,7 +324,7 @@ int uhci_port_remove_device(uhci_port_t *port)
 	usb_log_info("%s: Removed attached device.\n", port->id_string);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Enable or disable root hub port.
  *
  * @param[in] port Port structure to use.
@@ -358,7 +358,7 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 		port->id_string, enabled ? "En" : "Dis");
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Print the port status value in a human friendly way
  *
  * @param[in] port Port structure to use.

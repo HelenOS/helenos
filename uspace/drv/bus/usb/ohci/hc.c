@@ -67,7 +67,7 @@ static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
 static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
-/*----------------------------------------------------------------------------*/
+
 /** Get number of PIO ranges used in IRQ code.
  * @return Number of ranges.
  */
@@ -75,8 +75,8 @@ size_t hc_irq_pio_range_count(void)
 {
 	return sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t);
 }
-/*----------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+
+
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
  */
@@ -84,7 +84,7 @@ size_t hc_irq_cmd_count(void)
 {
 	return sizeof(ohci_irq_commands) / sizeof(irq_cmd_t);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
  * @param[in] ranges_size Size of the ranges buffer (bytes).
@@ -115,7 +115,7 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Announce OHCI root hub to the DDF
  *
  * @param[in] instance OHCI driver intance
@@ -174,7 +174,7 @@ if (ret != EOK) { \
 	return EOK;
 #undef CHECK_RET_RELEASE
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
@@ -227,7 +227,7 @@ if (ret != EOK) { \
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
 	assert(instance);
@@ -260,7 +260,7 @@ void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 		break;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
 	assert(instance);
@@ -295,7 +295,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 		break;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Add USB transfer to the schedule.
  *
  * @param[in] instance OHCI hc driver structure.
@@ -337,7 +337,7 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Interrupt handling routine
  *
  * @param[in] instance OHCI hc driver structure.
@@ -383,7 +383,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	}
 
 }
-/*----------------------------------------------------------------------------*/
+
 /** Check status register regularly
  *
  * @param[in] instance OHCI hc driver structure.
@@ -401,7 +401,7 @@ int interrupt_emulator(hc_t *instance)
 	}
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Turn off any (BIOS)driver that might be in control of the device.
  *
  * This function implements routines described in chapter 5.1.1.3 of the OHCI
@@ -464,7 +464,7 @@ void hc_gain_control(hc_t *instance)
 	usb_log_debug("Host controller found in reset state.\n");
 	async_usleep(50000);
 }
-/*----------------------------------------------------------------------------*/
+
 /** OHCI hw initialization routine.
  *
  * @param[in] instance OHCI hc driver structure.
@@ -536,7 +536,7 @@ void hc_start(hc_t *instance)
 	usb_log_debug("OHCI HC up and running (ctl_reg=0x%x).\n",
 	    OHCI_RD(instance->registers->control));
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize schedule queues
  *
  * @param[in] instance OHCI hc driver structure
@@ -570,7 +570,7 @@ do { \
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize memory structures used by the OHCI hcd.
  *
  * @param[in] instance OHCI hc driver structure.

@@ -39,14 +39,14 @@
 #include "usbhid.h"
 #include "kbd/kbddev.h"
 
-/*----------------------------------------------------------------------------*/
+
 
 typedef struct usb_hid_subdriver_usage {
 	int usage_page;
 	int usage;
 } usb_hid_subdriver_usage_t;
 
-/*----------------------------------------------------------------------------*/
+
 
 /** Structure representing the mapping between device requirements and the 
  *  subdriver supposed to handle this device.
@@ -80,12 +80,12 @@ typedef struct usb_hid_subdriver_mapping {
 	const usb_hid_subdriver_t subdriver;
 } usb_hid_subdriver_mapping_t;
 
-/*----------------------------------------------------------------------------*/
+
 
 extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
 extern const size_t USB_HID_MAX_SUBDRIVERS;
 
-/*----------------------------------------------------------------------------*/
+
 
 #endif /* USB_HID_SUBDRIVERS_H_ */
 

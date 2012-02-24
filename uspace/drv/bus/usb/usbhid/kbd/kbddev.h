@@ -49,7 +49,7 @@
 
 struct usb_hid_dev;
 
-/*----------------------------------------------------------------------------*/
+
 /**
  * USB/HID keyboard device type.
  *
@@ -112,14 +112,14 @@ typedef struct usb_kbd_t {
 	ddf_fun_t *fun;
 } usb_kbd_t;
 
-/*----------------------------------------------------------------------------*/
+
 
 extern const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 
 const char *HID_KBD_FUN_NAME;
 const char *HID_KBD_CLASS_NAME;
 
-/*----------------------------------------------------------------------------*/
+
 
 int usb_kbd_init(struct usb_hid_dev *hid_dev, void **data);
 

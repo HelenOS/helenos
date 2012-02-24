@@ -61,7 +61,7 @@ static inline uintptr_t addr_to_phys(const void *addr)
 	
 	return result;
 }
-/*----------------------------------------------------------------------------*/
+
 /** DMA malloc simulator
  *
  * @param[in] size Size of the required memory space
@@ -83,14 +83,14 @@ static inline void * malloc32(size_t size)
 		alignment *= 2;
 	return memalign(alignment, size);
 }
-/*----------------------------------------------------------------------------*/
+
 /** DMA malloc simulator
  *
  * @param[in] addr Address of the place allocated by malloc32
  */
 static inline void free32(void *addr)
 	{ free(addr); }
-/*----------------------------------------------------------------------------*/
+
 /** Create 4KB page mapping
  *
  * @return Address of the mapped page, NULL on failure.
@@ -104,7 +104,7 @@ static inline void * get_page(void)
 	
 	return address;
 }
-/*----------------------------------------------------------------------------*/
+
 static inline void return_page(void *page)
 {
 	if (page)

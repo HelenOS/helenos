@@ -61,7 +61,7 @@ static inline uintptr_t addr_to_phys(const void *addr)
 	
 	return result;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Physical mallocator simulator
  *
  * @param[in] size Size of the required memory space
@@ -69,7 +69,7 @@ static inline uintptr_t addr_to_phys(const void *addr)
  */
 static inline void * malloc32(size_t size)
 	{ return memalign(OHCI_ALIGN, size); }
-/*----------------------------------------------------------------------------*/
+
 /** Physical mallocator simulator
  *
  * @param[in] addr Address of the place allocated by malloc32

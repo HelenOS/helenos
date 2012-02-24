@@ -70,7 +70,7 @@ int usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub)
 		return usb_hub_port_device_gone(port, hub);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Clear feature on hub port.
  *
@@ -92,7 +92,7 @@ int usb_hub_port_clear_feature(
 	return usb_pipe_control_write(port->control_pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Set feature on hub port.
  *
@@ -114,7 +114,7 @@ int usb_hub_port_set_feature(
 	return usb_pipe_control_write(port->control_pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Mark reset process as failed due to external reasons
  *
@@ -129,7 +129,7 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port)
 	fibril_condvar_broadcast(&port->reset_cv);
 	fibril_mutex_unlock(&port->mutex);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process interrupts on given port
  *
@@ -245,7 +245,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	usb_log_debug("Port %zu status 0x%08" PRIx32 "\n",
 	    port->port_number, status);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * routine called when a device on port has been removed
  *
@@ -299,7 +299,7 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	usb_log_info("Removed device on port %zu.\n", port->port_number);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process port reset change
  *
@@ -335,7 +335,7 @@ void usb_hub_port_reset_completed(usb_hub_port_t *port,
 		    port->port_number, str_error(rc));
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Retrieve port status.
  *
  * @param[in] port Port structure
@@ -375,7 +375,7 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback for enabling a specific port.
  *
  * We wait on a CV until port is reseted.
@@ -407,7 +407,7 @@ static int enable_port_callback(void *arg)
 
 	return port->reset_okay ? EOK : ESTALL;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Fibril for adding a new device.
  *
  * Separate fibril is needed because the port reset completion is announced
@@ -454,7 +454,7 @@ int add_device_phase1_worker_fibril(void *arg)
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Start device adding when connection change is detected.
  *
  * This fires a new fibril to complete the device addition.

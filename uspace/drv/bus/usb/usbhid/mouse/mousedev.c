@@ -57,7 +57,7 @@ static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 static ddf_dev_ops_t ops = { .default_handler = default_connection_handler };
 
-/*----------------------------------------------------------------------------*/
+
 const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
@@ -73,7 +73,7 @@ const char *HID_MOUSE_CATEGORY = "mouse";
 /** Default idle rate for mouses. */
 static const uint8_t IDLE_RATE = 0;
 
-/*----------------------------------------------------------------------------*/
+
 static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 	0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
 	0x09, 0x02,                    // USAGE (Mouse)
@@ -103,7 +103,7 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 	0xc0                           // END_COLLECTION
 };
 
-/*----------------------------------------------------------------------------*/
+
 
 /** Default handler for IPC methods not handled by DDF.
  *
@@ -145,7 +145,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 		async_answer_0(icallid, EINVAL);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
     int32_t usage)
 {
@@ -244,7 +244,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 
 	return true;
 }
-/*----------------------------------------------------------------------------*/
+
 #define FUN_UNBIND_DESTROY(fun) \
 if (fun) { \
 	if (ddf_fun_unbind((fun)) == EOK) { \
@@ -255,7 +255,7 @@ if (fun) { \
 		    "will not be destroyed.\n", (fun)->name); \
 	} \
 } else (void)0
-/*----------------------------------------------------------------------------*/
+
 static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 {
 	assert(hid_dev != NULL);
@@ -336,7 +336,7 @@ static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t rep
 
 	return highest_button;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
@@ -386,7 +386,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (hid_dev == NULL || data == NULL) {
@@ -399,7 +399,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 
 	return usb_mouse_process_report(hid_dev, mouse_dev);
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data == NULL)
@@ -420,7 +420,7 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 	free(mouse_dev->buttons);
 	free(mouse_dev);
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
 	int rc = usb_hid_parse_report_descriptor(

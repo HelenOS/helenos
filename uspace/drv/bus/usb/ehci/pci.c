@@ -218,7 +218,7 @@ int pci_get_my_registers(const ddf_dev_t *dev,
 	async_hangup(parent_sess);
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Calls the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
@@ -237,7 +237,7 @@ int pci_enable_interrupts(const ddf_dev_t *device)
 	
 	return enabled ? EOK : EIO;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Implements BIOS handoff routine as decribed in EHCI spec
  *
  * @param[in] device Device asking for interrupts

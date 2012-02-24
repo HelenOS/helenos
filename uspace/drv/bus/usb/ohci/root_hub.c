@@ -209,7 +209,7 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	usb_log_info("Root hub (%zu ports) initialized.\n",
 	    instance->port_count);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process root hub request.
  *
@@ -250,7 +250,7 @@ void rh_request(rh_t *instance, usb_transfer_batch_t *request)
 		TRANSFER_END(request, ENOTSUP);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process interrupt on a hub device.
  *
@@ -271,7 +271,7 @@ void rh_interrupt(rh_t *instance)
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Create hub descriptor.
  *
@@ -326,7 +326,7 @@ void create_serialized_hub_descriptor(rh_t *instance)
 		instance->descriptors.hub[10] = 0xff;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize hub descriptors.
  *
  * A full configuration descriptor is assembled. The configuration and endpoint
@@ -352,7 +352,7 @@ void rh_init_descriptors(rh_t *instance)
 	    sizeof(usb_standard_interface_descriptor_t) +
 	    instance->hub_descriptor_size);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Create bitmap of changes to answer status interrupt.
  *
@@ -383,7 +383,7 @@ uint16_t create_interrupt_mask(const rh_t *instance)
 	usb_log_debug2("OHCI root hub interrupt mask: %hx.\n", mask);
 	return uint16_host2usb(mask);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Create answer to status request.
  *
@@ -474,7 +474,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 	}
 
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Create answer to a descriptor request.
  *
@@ -548,7 +548,7 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 
 	TRANSFER_END(request, ENOTSUP);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * process feature-enabling request on hub
  *
@@ -594,7 +594,7 @@ int set_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 		return ENOTSUP;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process feature clear request.
  *
@@ -658,7 +658,7 @@ int clear_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 		return ENOTSUP;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * process one of requests that do not request nor carry additional data
  *
@@ -696,7 +696,7 @@ void set_feature(const rh_t *instance, usb_transfer_batch_t *request)
 		TRANSFER_END(request, ENOTSUP);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * process one of requests that do not request nor carry additional data
  *
@@ -743,7 +743,7 @@ void clear_feature(const rh_t *instance, usb_transfer_batch_t *request)
 		TRANSFER_END(request, ENOTSUP);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process hub control request.
  *
