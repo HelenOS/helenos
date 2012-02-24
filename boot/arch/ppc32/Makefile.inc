@@ -43,7 +43,14 @@ RD_SRVS_ESSENTIAL += \
 
 RD_DRVS += \
 	infrastructure/rootmac \
-	bus/pci/pciintel
+	bus/pci/pciintel \
+	bus/usb/ohci \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid \
+	bus/usb/vhc
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
