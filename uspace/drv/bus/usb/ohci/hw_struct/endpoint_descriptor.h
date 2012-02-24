@@ -176,6 +176,12 @@ static inline void ed_append_ed(ed_t *instance, const ed_t *next)
 	OHCI_WR(instance->next, pa);
 }
 
+static inline uint32_t ed_next(const ed_t *instance)
+{
+	assert(instance);
+	return OHCI_RD(instance->next) & ED_NEXT_PTR_MASK;
+}
+
 /**
  * Get toggle bit value stored in this ED
  * @param instance ED

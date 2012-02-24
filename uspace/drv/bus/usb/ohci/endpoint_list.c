@@ -161,7 +161,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 		prev_ed = prev->ed;
 		qpos = "NOT FIRST";
 	}
-	assert((prev_ed->next & ED_NEXT_PTR_MASK) == addr_to_phys(ep->ed));
+	assert(ed_next(prev_ed) == addr_to_phys(ep->ed));
 	prev_ed->next = ep->ed->next;
 	/* Make sure ED is updated */
 	write_barrier();
