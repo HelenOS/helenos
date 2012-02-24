@@ -44,7 +44,7 @@
 #define OHCI_WR(reg, val) reg = host2uint32_t_le(val)
 #define OHCI_RD(reg) uint32_t_le2host(reg)
 #define OHCI_SET(reg, val) reg |= host2uint32_t_le(val)
-#define OHCI_CLR(reg, val) reg &= host2uint32_t_le(val)
+#define OHCI_CLR(reg, val) reg &= host2uint32_t_le(~val)
 
 
 #define LEGACY_REGS_OFFSET 0x100
