@@ -399,23 +399,24 @@ loop:
 	assert(fat[cur_cls] == 0);
 	assert(ncls > 0);
 
-	if (ncls == 1) {
-		fat[cur_cls] = host2uint32_t_le(0xFFFFFFFF);
-		rc = block_write_direct(service_id, fat_sec, 1, fat);
-		goto exit;
-	}
-
 	for (; cur_cls < fat_entries && ncls > 1; ++cur_cls, --ncls)
 		fat[cur_cls] = host2uint32_t_le(cur_cls + 1);
 
 	if (cur_cls == fat_entries) {
+		/* This sector is full, there are no more free entries,
+		 * read the next sector and restart the search.
+		 */
 		rc = block_write_direct(service_id, fat_sec++, 1, fat);
 		if (rc != EOK)
 			goto exit;
 		cur_cls = 0;
 		goto loop;
-	} else if (ncls == 1)
+	} else if (ncls == 1) {
+		/* This is the last cluster of this chain, mark it
+		 * with EOK.
+		 */
 		fat[cur_cls] = host2uint32_t_le(0xFFFFFFFF);
+	}
 
 	rc = block_write_direct(service_id, fat_sec, 1, fat);
 
@@ -491,10 +492,12 @@ upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 	if (!buf)
 		return ENOENT;
 
+	/* Compute the start sector of the upcase table */
 	start_sec = cfg->data_start_sector;
 	start_sec += ((cfg->upcase_table_cluster - 2) * cfg->cluster_size) /
 	    cfg->sector_size;
 
+	/* Compute the number of sectors needed to store the table on disk */
 	nsecs = div_round_up(sizeof(upcase_table), cfg->sector_size);
 	table_ptr = (uint8_t *) upcase_table;
 
@@ -502,8 +505,12 @@ upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 	    table_ptr += min(table_size, cfg->sector_size),
 	    table_size -= cfg->sector_size) {
 
-		if (table_size < cfg->sector_size)
+		if (table_size < cfg->sector_size) {
+			/* Reset the content of the unused part
+			 * of the last sector.
+			 */
 			memset(buf, 0, cfg->sector_size);
+		}
 		memcpy(buf, table_ptr, min(table_size, cfg->sector_size));
 
 		rc = block_write_direct(service_id,
@@ -620,6 +627,7 @@ int main (int argc, char **argv)
 	cfg_params_initialize(&cfg);
 	cfg_print_info(&cfg);
 
+	/* Initialize the FAT table */
 	rc = fat_initialize(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the FAT to disk\n");
@@ -656,6 +664,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
+	/* Write the allocation bitmap to disk */
 	rc = bitmap_write(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the allocation" \
@@ -663,6 +672,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
+	/* Write the upcase table to disk */
 	rc = upcase_table_write(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the upcase table to disk.\n");
