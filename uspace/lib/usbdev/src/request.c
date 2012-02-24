@@ -434,7 +434,6 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
 
 	/* Everything is okay, copy the descriptor. */
 	memcpy(descriptor, &descriptor_tmp, sizeof(descriptor_tmp));
-	descriptor->total_length = uint16_usb2host(descriptor_tmp.total_length);
 	return EOK;
 }
 
@@ -494,24 +493,26 @@ int usb_request_get_full_configuration_descriptor_alloc(
 	if (bare_config.descriptor_type != USB_DESCTYPE_CONFIGURATION) {
 		return ENOENT;
 	}
-	if (bare_config.total_length < sizeof(bare_config)) {
+
+	const size_t total_length = uint16_usb2host(bare_config.total_length);
+	if (total_length < sizeof(bare_config)) {
 		return ELIMIT;
 	}
 
-	void *buffer = malloc(bare_config.total_length);
+	void *buffer = malloc(total_length);
 	if (buffer == NULL) {
 		return ENOMEM;
 	}
 
 	size_t transferred = 0;
 	rc = usb_request_get_full_configuration_descriptor(pipe, index,
-	    buffer, bare_config.total_length, &transferred);
+	    buffer, total_length, &transferred);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
 	}
 
-	if (transferred != bare_config.total_length) {
+	if (transferred != total_length) {
 		free(buffer);
 		return ELIMIT;
 	}
@@ -521,7 +522,7 @@ int usb_request_get_full_configuration_descriptor_alloc(
 	*descriptor_ptr = buffer;
 
 	if (descriptor_size != NULL) {
-		*descriptor_size = bare_config.total_length;
+		*descriptor_size = total_length;
 	}
 
 	return EOK;
