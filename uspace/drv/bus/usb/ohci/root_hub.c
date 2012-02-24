@@ -346,11 +346,11 @@ void rh_init_descriptors(rh_t *instance)
 	instance->descriptors.endpoint.max_packet_size =
 	    instance->interrupt_mask_size;
 
-	instance->descriptors.configuration.total_length =
+	instance->descriptors.configuration.total_length = uint16_host2usb(
 	    sizeof(usb_standard_configuration_descriptor_t) +
 	    sizeof(usb_standard_endpoint_descriptor_t) +
 	    sizeof(usb_standard_interface_descriptor_t) +
-	    instance->hub_descriptor_size;
+	    instance->hub_descriptor_size);
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -491,8 +491,10 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 
 	usb_device_request_setup_packet_t *setup_request =
 	    (usb_device_request_setup_packet_t *) request->setup_buffer;
-	const int setup_request_value = uint16_usb2host(setup_request->value);
-	switch (setup_request_value)
+	/* "The wValue field specifies the descriptor type in the high byte
+	 * and the descriptor index in the low byte (refer to Table 9-5)." */
+	const int desc_type = uint16_usb2host(setup_request->value) >> 8;
+	switch (desc_type)
 	{
 	case USB_DESCTYPE_HUB:
 		usb_log_debug2("USB_DESCTYPE_HUB\n");
@@ -539,7 +541,7 @@ void get_descriptor(const rh_t *instance, usb_transfer_batch_t *request)
 		    "%d\n\tindex %d\n\tlen %d\n ",
 		    setup_request->value,
 		    setup_request->request_type, setup_request->request,
-		    setup_request_value, setup_request->index,
+		    desc_type, setup_request->index,
 		    setup_request->length);
 		TRANSFER_END(request, EINVAL);
 	}

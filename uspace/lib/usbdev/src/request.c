@@ -113,7 +113,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
   * @param data_size Size of the @p data buffer
   * 	(in native endianness).
   * @param actual_data_size Actual size of transfered data
-  * 	(in native endianness).
+  *        (in native endianness).
   * @return Error code.
   * @retval EBADMEM @p pipe is NULL.
   * @retval EBADMEM @p data is NULL and @p data_size is not zero.
@@ -146,9 +146,9 @@ int usb_control_request_get(usb_pipe_t *pipe,
 		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
 		    | (request_type << 5) | recipient,
 		.request = request,
-		.value = value,
-		.index = index,
-		.length = (uint16_t) data_size,
+		.value = uint16_host2usb(value),
+		.index = uint16_host2usb(index),
+		.length = uint16_host2usb(data_size),
 	};
 
 	return usb_pipe_control_read(pipe, &setup_packet, sizeof(setup_packet),
@@ -374,7 +374,7 @@ int usb_request_get_device_descriptor(usb_pipe_t *pipe,
 	size_t actually_transferred = 0;
 	usb_standard_device_descriptor_t descriptor_tmp;
 	int rc = usb_request_get_descriptor(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE, 
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_DEVICE, 0, 0,
 	    &descriptor_tmp, sizeof(descriptor_tmp),
 	    &actually_transferred);
@@ -434,7 +434,7 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
 
 	/* Everything is okay, copy the descriptor. */
 	memcpy(descriptor, &descriptor_tmp, sizeof(descriptor_tmp));
-
+	descriptor->total_length = uint16_usb2host(descriptor_tmp.total_length);
 	return EOK;
 }
 
