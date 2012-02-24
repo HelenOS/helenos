@@ -74,6 +74,9 @@
 /** The default size of each cluster is 4096 byte */
 #define DEFAULT_CLUSTER_SIZE 4096
 
+/** Index of the first free cluster on the device */
+#define FIRST_FREE_CLUSTER   2
+
 typedef struct exfat_cfg {
 	aoff64_t volume_start;
 	aoff64_t volume_count;
@@ -347,7 +350,7 @@ fat_initialize(service_id_t service_id, exfat_cfg_t *cfg)
 	if (rc != EOK)
 		goto error;
 
-	memset(pfat, 0, 2 * sizeof(uint32_t));
+	pfat[0] = pfat[1] = 0;
 
 	for (i = 1; i < cfg->fat_sector_count; ++i) {
 		rc = block_write_direct(service_id,
@@ -358,6 +361,62 @@ fat_initialize(service_id_t service_id, exfat_cfg_t *cfg)
 
 error:
 	free(pfat);
+	return rc;
+}
+
+/** Allocate a given number of clusters and create a cluster chain.
+ *
+ * @param service_id  The service id.
+ * @param cfg  Pointer to the exfat configuration number.
+ * @param cur_cls  Cluster index from where to start the allocation.
+ * @param ncls  Number of clusters to allocate.
+ * @return EOK on success or a negative error code.
+ */
+static int
+fat_allocate_clusters(service_id_t service_id, exfat_cfg_t *cfg,
+    uint32_t cur_cls, unsigned long ncls)
+{
+	int rc;
+	aoff64_t fat_sec = cur_cls / sizeof(uint32_t) + FAT_SECTOR_START;
+	unsigned const fat_entries = cfg->sector_size / sizeof(uint32_t);
+	uint32_t *fat;
+
+	cur_cls %= fat_entries;
+
+	fat = malloc(cfg->sector_size);
+	if (!fat)
+		return ENOMEM;
+
+loop:
+	rc = block_read_direct(service_id, fat_sec, 1, fat);
+	if (rc != EOK)
+		goto exit;
+
+	assert(fat[cur_cls] == 0);
+	assert(ncls > 0);
+
+	if (ncls == 1) {
+		fat[cur_cls] = host2uint32_t_le(0xFFFFFFFF);
+		rc = block_write_direct(service_id, fat_sec, 1, fat);
+		goto exit;
+	}
+
+	for (; cur_cls < fat_entries && ncls > 1; ++cur_cls, --ncls)
+		fat[cur_cls] = host2uint32_t_le(cur_cls + 1);
+
+	if (cur_cls == fat_entries) {
+		rc = block_write_direct(service_id, fat_sec++, 1, fat);
+		if (rc != EOK)
+			goto exit;
+		cur_cls = 0;
+		goto loop;
+	} else if (ncls == 1)
+		fat[cur_cls] = host2uint32_t_le(0xFFFFFFFF);
+
+	rc = block_write_direct(service_id, fat_sec, 1, fat);
+
+exit:
+	free(fat);
 	return rc;
 }
 
@@ -457,6 +516,7 @@ vbr_checksum_update(void const *data, size_t nbytes, uint32_t *checksum)
 int main (int argc, char **argv)
 {
 	exfat_cfg_t cfg;
+	uint32_t next_cls;
 	char *dev_path;
 	service_id_t service_id;
 	int rc;
@@ -528,6 +588,25 @@ int main (int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the allocation" \
 		    " bitmap to disk.\n");
+		return 2;
+	}
+
+	/* Allocate clusters for the bitmap */
+	rc = fat_allocate_clusters(service_id, &cfg, FIRST_FREE_CLUSTER,
+	    div_round_up(cfg.bitmap_size, cfg.cluster_size));
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to allocate clusters for bitmap.\n");
+		return 2;
+	}
+
+	next_cls = FIRST_FREE_CLUSTER +
+	    div_round_up(cfg.bitmap_size, cfg.cluster_size);
+
+	/* Allocate clusters for the upcase table */
+	rc = fat_allocate_clusters(service_id, &cfg, next_cls,
+	    div_round_up(sizeof(upcase_table), cfg.cluster_size));
+	if (rc != EOK) {
+		printf(NAME ":Error, failed to allocate clusters foe the upcase table.\n");
 		return 2;
 	}
 
