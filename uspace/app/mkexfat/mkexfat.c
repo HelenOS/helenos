@@ -394,7 +394,7 @@ bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
 				bitmap[byte_idx] |= 1 << bit_idx;
 			}
 
-			allocated_cls -= i * 8;
+			allocated_cls -= i;
 		}
 
 		rc = block_write_direct(service_id,
