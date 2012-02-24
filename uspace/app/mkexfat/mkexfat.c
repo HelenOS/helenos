@@ -177,6 +177,10 @@ cfg_print_info(exfat_cfg_t *cfg)
 	printf(NAME ": FAT size in sectors:   %lu\n", cfg->fat_sector_count);
 	printf(NAME ": Data start sector:     %lu\n", cfg->data_start_sector);
 	printf(NAME ": Total num of clusters: %lu\n", cfg->total_clusters);
+	printf(NAME ": Bitmap size:           %lu\n",
+	    div_round_up(cfg->bitmap_size, cfg->cluster_size));
+	printf(NAME ": Upcase table size:     %lu\n",
+	    div_round_up(sizeof(upcase_table), cfg->cluster_size));
 }
 
 /** Initialize the Main Boot Sector fields.
@@ -319,14 +323,14 @@ exit:
 	return rc;
 }
 
-/** Writes the FAT on disk.
+/** Initialize the FAT table.
  *
  * @param service_id  The service id.
  * @param cfg Pointer to the exfat_cfg structure.
  * @return EOK on success or a negative error code.
  */
 static int
-fat_write(service_id_t service_id, exfat_cfg_t *cfg)
+fat_initialize(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	unsigned long i;
 	uint32_t *pfat;
@@ -339,18 +343,11 @@ fat_write(service_id_t service_id, exfat_cfg_t *cfg)
 	pfat[0] = host2uint32_t_le(0xFFFFFFF8);
 	pfat[1] = host2uint32_t_le(0xFFFFFFFF);
 
-	/* Allocate clusters for the bitmap, upcase table
-	 * and the root directory.
-	 */
-	pfat[2] = host2uint32_t_le(0xFFFFFFFF);
-	pfat[3] = host2uint32_t_le(0xFFFFFFFF);
-	pfat[4] = host2uint32_t_le(0xFFFFFFFF);
-
 	rc = block_write_direct(service_id, FAT_SECTOR_START, 1, pfat);
 	if (rc != EOK)
 		goto error;
 
-	memset(pfat, 0, 5 * sizeof(uint32_t));
+	memset(pfat, 0, 2 * sizeof(uint32_t));
 
 	for (i = 1; i < cfg->fat_sector_count; ++i) {
 		rc = block_write_direct(service_id,
@@ -521,7 +518,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	rc = fat_write(service_id, &cfg);
+	rc = fat_initialize(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the FAT to disk\n");
 		return 2;
