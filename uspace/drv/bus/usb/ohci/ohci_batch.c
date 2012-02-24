@@ -230,16 +230,15 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 			leave_td = i + 1;
 
 			/* Check TD assumption */
-			const uint32_t pa =
-			    addr_to_phys(ohci_batch->tds[leave_td]);
-			assert((ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK)
-			    == pa);
+			assert(ed_head_td(ohci_batch->ed) ==
+			    addr_to_phys(ohci_batch->tds[leave_td]));
 
+			/* Set tail to the same TD */
 			ed_set_tail_td(ohci_batch->ed,
 			    ohci_batch->tds[leave_td]);
 
 			/* Clear possible ED HALT */
-			ohci_batch->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+			ed_clear_halt(ohci_batch->ed);
 			break;
 		}
 	}
@@ -252,9 +251,11 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 	ohci_ep->td = ohci_batch->tds[leave_td];
 
 	/* Make sure that we are leaving the right TD behind */
-	const uint32_t pa = addr_to_phys(ohci_ep->td);
-	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
-	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
+	assert(addr_to_phys(ohci_ep->td) == ed_head_td(ohci_batch->ed));
+	assert(addr_to_phys(ohci_ep->td) == ed_tail_td(ohci_batch->ed));
+//	const uint32_t pa = addr_to_phys(ohci_ep->td);
+//	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
+//	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
 
 	return true;
 }

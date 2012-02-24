@@ -514,9 +514,9 @@ void hc_start(hc_t *instance)
 	    instance->lists[USB_TRANSFER_CONTROL].list_head_pa);
 
 	/* Enable queues */
-//	OHCI_SET(instance->registers->control, (C_PLE | C_IE | C_CLE | C_BLE));
-//	usb_log_debug("Queues enabled(%x).\n",
-//	    OHCI_RD(instance->registers->control));
+	OHCI_SET(instance->registers->control, (C_PLE | C_IE | C_CLE | C_BLE));
+	usb_log_debug("Queues enabled(%x).\n",
+	    OHCI_RD(instance->registers->control));
 
 	/* Enable interrupts */
 	OHCI_WR(instance->registers->interrupt_enable, OHCI_USED_INTERRUPTS);
@@ -595,8 +595,8 @@ int hc_init_memory(hc_t *instance)
 	usb_log_debug2("OHCI HCCA initialized at %p.\n", instance->hcca);
 
 	for (unsigned i = 0; i < 32; ++i) {
-		instance->hcca->int_ep[i] =
-		    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa;
+		OHCI_WR(instance->hcca->int_ep[i],
+		    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
 	}
 	usb_log_debug2("Interrupt HEADs set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
