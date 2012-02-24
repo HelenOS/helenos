@@ -45,6 +45,7 @@
 #include <align.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
+#include <bool.h>
 #include "exfat.h"
 #include "upcase.h"
 
@@ -435,6 +436,7 @@ bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
 	unsigned long i, sec;
 	unsigned long allocated_cls;
 	int rc = EOK;
+	bool need_reset = true;
 
 	/* Bitmap size in sectors */
 	size_t const bss = div_round_up(cfg->bitmap_size, cfg->sector_size);
@@ -446,7 +448,10 @@ bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
 	allocated_cls = cfg->allocated_clusters;
 
 	for (sec = 0; sec < bss; ++sec) {
-		memset(bitmap, 0, cfg->sector_size);
+		if (need_reset) {
+			need_reset = false;
+			memset(bitmap, 0, cfg->sector_size);
+		}
 		if (allocated_cls > 0) {
 			for (i = 0; i < allocated_cls; ++i) {
 				unsigned byte_idx = i / 8;
@@ -458,6 +463,7 @@ bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
 			}
 
 			allocated_cls -= i;
+			need_reset = true;
 		}
 
 		rc = block_write_direct(service_id,
