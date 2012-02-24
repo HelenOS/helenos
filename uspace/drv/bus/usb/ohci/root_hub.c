@@ -176,15 +176,15 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 #elif defined OHCI_POWER_SWITCH_ganged
 	usb_log_debug("OHCI rh: Set power mode to ganged power switching.\n");
 	/* Set port power mode to ganged power-switching. */
-	OHCI_CLEAR(regs->rh_desc_a, RHDA_NPS_FLAG);
-	OHCI_CLEAR(regs->rh_desc_a, RHDA_PSM_FLAG);
+	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
+	OHCI_CLR(regs->rh_desc_a, RHDA_PSM_FLAG);
 
 	/* Turn off power (hub driver will turn this back on)*/
 	OHCI_WR(regs->rh_status, RHS_CLEAR_GLOBAL_POWER);
 
 	/* Set to global over-current */
-	OHCI_CLEAR(regs->rh_desc_a, RHDA_NOCP_FLAG);
-	OHCI_CLEAR(regs->rh_desc_a, RHDA_OCPM_FLAG);
+	OHCI_CLR(regs->rh_desc_a, RHDA_NOCP_FLAG);
+	OHCI_CLR(regs->rh_desc_a, RHDA_OCPM_FLAG);
 #else
 	usb_log_debug("OHCI rh: Set power mode to per-port power switching.\n");
 	/* Set port power mode to per port power-switching. */
