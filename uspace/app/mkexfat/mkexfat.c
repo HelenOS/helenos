@@ -162,7 +162,7 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	cfg->allocated_clusters += div_round_up(sizeof(upcase_table),
 	    cfg->cluster_size);
 
-	/* FIXME: set the real rootdir cluster */
+	/* Will be set later */
 	cfg->rootdir_cluster = 0;
 
 	/* The first sector of the partition is zero */
@@ -469,6 +469,31 @@ exit:
 	return rc;
 }
 
+/** Write the upcase table to disk. */
+static int
+upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
+{
+	int rc;
+	aoff64_t start_sec, nsecs, i;
+	uint8_t *table_ptr;
+
+	start_sec = cfg->data_start_sector;
+	start_sec += (cfg->upcase_table_cluster * cfg->cluster_size) /
+	    cfg->sector_size;
+
+	nsecs = div_round_up(sizeof(upcase_table), cfg->sector_size);
+	table_ptr = (uint8_t *) upcase_table;
+
+	for (i = 0; i < nsecs; ++i, table_ptr += cfg->sector_size) {
+		rc = block_write_direct(service_id,
+		    start_sec + i, 1, table_ptr);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
 /** Given a number (n), returns the result of log2(n).
  *
  * It works only if n is a power of two.
@@ -613,6 +638,12 @@ int main (int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the allocation" \
 		    " bitmap to disk.\n");
+		return 2;
+	}
+
+	rc = upcase_table_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the upcase table to disk.\n");
 		return 2;
 	}
 
