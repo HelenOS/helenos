@@ -77,6 +77,8 @@
 /** Index of the first free cluster on the device */
 #define FIRST_FREE_CLUSTER   2
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+
 typedef struct exfat_cfg {
 	aoff64_t volume_start;
 	aoff64_t volume_count;
@@ -473,25 +475,39 @@ exit:
 static int
 upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
-	int rc;
+	int rc = EOK;
 	aoff64_t start_sec, nsecs, i;
 	uint8_t *table_ptr;
+	uint8_t *buf;
+	size_t table_size = sizeof(upcase_table);
+
+	buf = malloc(cfg->sector_size);
+	if (!buf)
+		return ENOENT;
 
 	start_sec = cfg->data_start_sector;
-	start_sec += (cfg->upcase_table_cluster * cfg->cluster_size) /
+	start_sec += ((cfg->upcase_table_cluster - 2) * cfg->cluster_size) /
 	    cfg->sector_size;
 
 	nsecs = div_round_up(sizeof(upcase_table), cfg->sector_size);
 	table_ptr = (uint8_t *) upcase_table;
 
-	for (i = 0; i < nsecs; ++i, table_ptr += cfg->sector_size) {
+	for (i = 0; i < nsecs; ++i,
+	    table_ptr += min(table_size, cfg->sector_size),
+	    table_size -= cfg->sector_size) {
+
+		if (table_size < cfg->sector_size)
+			memset(buf, 0, cfg->sector_size);
+		memcpy(buf, table_ptr, min(table_size, cfg->sector_size));
+
 		rc = block_write_direct(service_id,
-		    start_sec + i, 1, table_ptr);
+		    start_sec + i, 1, buf);
 		if (rc != EOK)
-			return rc;
+			break;
 	}
 
-	return EOK;
+	free(buf);
+	return rc;
 }
 
 /** Given a number (n), returns the result of log2(n).
