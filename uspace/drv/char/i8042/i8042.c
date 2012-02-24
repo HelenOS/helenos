@@ -104,6 +104,13 @@ static ddf_dev_ops_t ops = {
 	.default_handler = default_handler,
 };
 
+static const irq_pio_range_t i8042_ranges[] = {
+	{
+		.base = 0,
+		.size = sizeof(i8042_regs_t)
+	}
+};
+
 /** i8042 Interrupt pseudo-code. */
 static const irq_cmd_t i8042_cmds[] = {
 	{
@@ -238,14 +245,22 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	/* Flush all current IO */
 	while (pio_read_8(&dev->regs->status) & i8042_OUTPUT_FULL)
 		(void) pio_read_8(&dev->regs->data);
-	
+
+	const size_t range_count = sizeof(i8042_ranges) /
+	    sizeof(irq_pio_range_t);
+	irq_pio_range_t ranges[range_count];
+	memcpy(ranges, i8042_ranges, sizeof(i8042_ranges));
+	ranges[0].base = (uintptr_t) regs;
+
 	const size_t cmd_count = sizeof(i8042_cmds) / sizeof(irq_cmd_t);
 	irq_cmd_t cmds[cmd_count];
 	memcpy(cmds, i8042_cmds, sizeof(i8042_cmds));
-	cmds[0].addr = (void *) &dev->regs->status;
-	cmds[3].addr = (void *) &dev->regs->data;
-	
+	cmds[0].addr = (void *) &(((i8042_regs_t *) regs)->status);
+	cmds[3].addr = (void *) &(((i8042_regs_t *) regs)->data);
+
 	irq_code_t irq_code = {
+		.rangecount = range_count,
+		.ranges = ranges,
 		.cmdcount = cmd_count,
 		.cmds = cmds
 	};

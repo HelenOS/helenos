@@ -59,6 +59,8 @@ static irq_cmd_t uart_irq_cmds[] = {
 };
 
 static irq_code_t uart_irq_code = {
+	0,
+	NULL,
 	sizeof(uart_irq_cmds) / sizeof(irq_cmd_t),
 	uart_irq_cmds
 };

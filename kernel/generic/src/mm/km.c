@@ -133,6 +133,7 @@ km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
 	ASSERT(ALIGN_DOWN(paddr, FRAME_SIZE) == paddr);
 	ASSERT(ALIGN_UP(size, FRAME_SIZE) == size);
 
+	/* Enforce natural or at least PAGE_SIZE alignment. */
 	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
 	vaddr = km_page_alloc(size, max(PAGE_SIZE, align));
 

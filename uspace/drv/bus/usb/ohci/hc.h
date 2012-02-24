@@ -73,9 +73,10 @@ typedef struct hc {
 	rh_t rh;
 } hc_t;
 
+size_t hc_irq_pio_range_count(void);
 size_t hc_irq_cmd_count(void);
-int hc_get_irq_commands(
-    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size);
+int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t, uintptr_t,
+    size_t);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts);
 

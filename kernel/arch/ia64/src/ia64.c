@@ -143,7 +143,7 @@ void arch_post_smp_init(void)
 	platform = "ski";
 #endif
 #ifdef MACHINE_i460GX
-	platform = "i460GX";
+	platform = "pc";
 #endif
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
@@ -186,8 +186,6 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("kbd.inr", NULL, NS16550_IRQ);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
-	    (uintptr_t) NS16550_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
 	    (uintptr_t) NS16550_BASE);
 #endif
 	
