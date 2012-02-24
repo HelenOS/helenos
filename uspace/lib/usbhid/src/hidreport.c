@@ -49,7 +49,7 @@
 
 #include <usb/hid/hidreport.h>
 
-static int usb_hid_get_report_descriptor(usb_device_t *dev, 
+static int usb_hid_get_report_descriptor(usb_device_t *dev,
     uint8_t **report_desc, size_t *size)
 {
 	assert(report_desc != NULL);
@@ -68,8 +68,8 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	/*
 	 * First nested descriptor of the configuration descriptor.
 	 */
-	const uint8_t *d = 
-	    usb_dp_get_nested_descriptor(&parser, &parser_data, 
+	const uint8_t *d =
+	    usb_dp_get_nested_descriptor(&parser, &parser_data,
 	    dev->descriptors.configuration);
 	
 	/*
@@ -77,7 +77,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	 */
 	int i = 0;
 	while (d != NULL && i < dev->interface_no) {
-		d = usb_dp_get_sibling_descriptor(&parser, &parser_data, 
+		d = usb_dp_get_sibling_descriptor(&parser, &parser_data,
 		    dev->descriptors.configuration, d);
 		++i;
 	}
@@ -98,7 +98,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	 * Search through siblings until the HID descriptor is found.
 	 */
 	while (d != NULL && *(d + 1) != USB_DESCTYPE_HID) {
-		d = usb_dp_get_sibling_descriptor(&parser, &parser_data, 
+		d = usb_dp_get_sibling_descriptor(&parser, &parser_data,
 		    iface_desc, d);
 	}
 	
@@ -113,10 +113,10 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 		return EINVAL;
 	}
 	
-	usb_standard_hid_descriptor_t *hid_desc = 
+	usb_standard_hid_descriptor_t *hid_desc =
 	    (usb_standard_hid_descriptor_t *)d;
 	
-	uint16_t length =  hid_desc->report_desc_info.length;
+	uint16_t length = uint16_usb2host(hid_desc->report_desc_info.length);
 	size_t actual_size = 0;
 
 	/*
