@@ -58,7 +58,7 @@ static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
 	fibril_mutex_unlock(&connection->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hc_connection_del_ref(usb_hc_connection_t *connection)
 {
 	assert(connection);
@@ -124,7 +124,7 @@ int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_hc_connection_deinitialize(usb_hc_connection_t *connection)
 {
 	assert(connection);
@@ -139,7 +139,7 @@ void usb_hc_connection_deinitialize(usb_hc_connection_t *connection)
 	}
 	fibril_mutex_unlock(&connection->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Open connection to host controller.
  *
  * @param connection Connection to the host controller.
@@ -149,7 +149,7 @@ int usb_hc_connection_open(usb_hc_connection_t *connection)
 {
 	return usb_hc_connection_add_ref(connection);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Close connection to the host controller.
  *
  * @param connection Connection to the host controller.
@@ -159,7 +159,7 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 {
 	return usb_hc_connection_del_ref(connection);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Ask host controller for free address assignment.
  *
  * @param connection Opened connection to host controller.
@@ -181,7 +181,7 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
 	EXCH_FINI(connection, exch);
 	return ret == EOK ? address : ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hc_bind_address(usb_hc_connection_t * connection,
     usb_address_t address, devman_handle_t handle)
 {
@@ -193,7 +193,7 @@ int usb_hc_bind_address(usb_hc_connection_t * connection,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get handle of USB device with given address.
  *
  * @param[in] connection Opened connection to host controller.
@@ -212,7 +212,7 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hc_release_address(usb_hc_connection_t *connection,
     usb_address_t address)
 {
@@ -224,7 +224,7 @@ int usb_hc_release_address(usb_hc_connection_t *connection,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hc_register_endpoint(usb_hc_connection_t *connection,
     usb_address_t address, usb_endpoint_t endpoint, usb_transfer_type_t type,
     usb_direction_t direction, size_t packet_size, unsigned interval)
@@ -238,7 +238,7 @@ int usb_hc_register_endpoint(usb_hc_connection_t *connection,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hc_unregister_endpoint(usb_hc_connection_t *connection,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
@@ -251,7 +251,7 @@ int usb_hc_unregister_endpoint(usb_hc_connection_t *connection,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hc_read(usb_hc_connection_t *connection, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *real_size)
@@ -265,7 +265,7 @@ int usb_hc_read(usb_hc_connection_t *connection, usb_address_t address,
 	EXCH_FINI(connection, exch);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hc_write(usb_hc_connection_t *connection, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
 {

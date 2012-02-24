@@ -172,7 +172,7 @@ int usbhc_request_address(async_exch_t *exch, usb_address_t *address,
 		*address = (usb_address_t)new_address;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_bind_address(async_exch_t *exch, usb_address_t address,
     devman_handle_t handle)
 {
@@ -181,7 +181,7 @@ int usbhc_bind_address(async_exch_t *exch, usb_address_t address,
 	return async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_BIND_ADDRESS, address, handle);
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
     devman_handle_t *handle)
 {
@@ -194,7 +194,7 @@ int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
 		*handle = (devman_handle_t)h;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_release_address(async_exch_t *exch, usb_address_t address)
 {
 	if (!exch)
@@ -202,7 +202,7 @@ int usbhc_release_address(async_exch_t *exch, usb_address_t address)
 	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_register_endpoint(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, usb_transfer_type_t type,
     usb_direction_t direction, size_t mps, unsigned interval)
@@ -219,7 +219,7 @@ int usbhc_register_endpoint(async_exch_t *exch, usb_address_t address,
 
 #undef _PACK2
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_unregister_endpoint(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
@@ -228,7 +228,7 @@ int usbhc_unregister_endpoint(async_exch_t *exch, usb_address_t address,
 	return async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_UNREGISTER_ENDPOINT, address, endpoint, direction);
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_read(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *rec_size)
@@ -284,7 +284,7 @@ int usbhc_read(async_exch_t *exch, usb_address_t address,
 	*rec_size = IPC_GET_ARG2(data_request_call);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int usbhc_write(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
 {
@@ -320,7 +320,7 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 
 	return (int) opening_request_rc;
 }
-/*----------------------------------------------------------------------------*/
+
 
 static void remote_usbhc_request_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_bind_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -385,7 +385,7 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 
 	return trans;
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usbhc_request_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -407,7 +407,7 @@ void remote_usbhc_request_address(ddf_fun_t *fun, void *iface,
 		async_answer_1(callid, EOK, (sysarg_t) address);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usbhc_bind_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -424,7 +424,7 @@ void remote_usbhc_bind_address(ddf_fun_t *fun, void *iface,
 	const int ret = usb_iface->bind_address(fun, address, handle);
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usbhc_get_handle(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -445,7 +445,7 @@ void remote_usbhc_get_handle(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, ret);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -461,7 +461,7 @@ void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,
 	const int ret = usb_iface->release_address(fun, address);
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 static void callback_out(ddf_fun_t *fun,
     int outcome, void *arg)
 {
@@ -471,7 +471,7 @@ static void callback_out(ddf_fun_t *fun,
 
 	async_transaction_destroy(trans);
 }
-/*----------------------------------------------------------------------------*/
+
 static void callback_in(ddf_fun_t *fun,
     int outcome, size_t actual_size, void *arg)
 {
@@ -495,7 +495,7 @@ static void callback_in(ddf_fun_t *fun,
 
 	async_transaction_destroy(trans);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -595,7 +595,7 @@ void remote_usbhc_read(
 		async_transaction_destroy(trans);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usbhc_write(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {

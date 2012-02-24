@@ -114,7 +114,7 @@ void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 
 void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
     const void* data, size_t size, int error);
-/*----------------------------------------------------------------------------*/
+
 /** Finish batch using stored error value and transferred size.
  *
  * @param[in] instance Batch structure to use.
@@ -127,7 +127,7 @@ static inline void usb_transfer_batch_finish(
 	usb_transfer_batch_finish_error(
 	    instance, data, instance->transfered_size, instance->error);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Determine batch direction based on the callbacks present
  * @param[in] instance Batch structure to use, non-null.
  * @return USB_DIRECTION_IN, or USB_DIRECTION_OUT.

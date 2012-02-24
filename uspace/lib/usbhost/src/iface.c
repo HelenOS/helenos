@@ -97,7 +97,7 @@ static inline int send_batch(
 
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Calls ep_add_hook upon endpoint registration.
  * @param ep Endpoint to be registered.
  * @param arg hcd_t in disguise.
@@ -112,7 +112,7 @@ static int register_helper(endpoint_t *ep, void *arg)
 		return hcd->ep_add_hook(hcd, ep);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Calls ep_remove_hook upon endpoint removal.
  * @param ep Endpoint to be unregistered.
  * @param arg hcd_t in disguise.
@@ -125,7 +125,7 @@ static void unregister_helper(endpoint_t *ep, void *arg)
 	if (hcd->ep_remove_hook)
 		hcd->ep_remove_hook(hcd, ep);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Calls ep_remove_hook upon endpoint removal. Prints warning.
  * @param ep Endpoint to be unregistered.
  * @param arg hcd_t in disguise.
@@ -140,7 +140,7 @@ static void unregister_helper_warn(endpoint_t *ep, void *arg)
 	if (hcd->ep_remove_hook)
 		hcd->ep_remove_hook(hcd, ep);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Request address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -163,7 +163,7 @@ static int request_address(
 	return usb_device_manager_request_address(
 	    &hcd->dev_manager, address, strict, speed);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Bind address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -182,7 +182,7 @@ static int bind_address(
 	return usb_device_manager_bind_address(
 	    &hcd->dev_manager, address, handle);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Find device handle by address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -199,7 +199,7 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 	return usb_device_manager_get_info_by_address(
 	    &hcd->dev_manager, address, handle, NULL);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Release address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -217,7 +217,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	    unregister_helper_warn, hcd);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Register endpoint interface function.
  * @param fun DDF function.
  * @param address USB address of the device.
@@ -253,7 +253,7 @@ static int register_endpoint(
 	    direction, transfer_type, speed, max_packet_size, size,
 	    register_helper, hcd);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Unregister endpoint interface function.
  * @param fun DDF function.
  * @param address USB address of the endpoint.
@@ -273,7 +273,7 @@ static int unregister_endpoint(
 	return usb_endpoint_manager_remove_ep(&hcd->ep_manager, address,
 	    endpoint, direction, unregister_helper, hcd);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Inbound communication interface function.
  * @param fun DDF function.
  * @param target Communication target.
@@ -291,7 +291,7 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 	return send_batch(fun, target, USB_DIRECTION_IN, data, size,
 	    setup_data, callback, NULL, arg, "READ");
 }
-/*----------------------------------------------------------------------------*/
+
 /** Outbound communication interface function.
  * @param fun DDF function.
  * @param target Communication target.
@@ -309,7 +309,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 	return send_batch(fun, target, USB_DIRECTION_OUT, (uint8_t*)data, size,
 	    setup_data, NULL, callback, arg, "WRITE");
 }
-/*----------------------------------------------------------------------------*/
+
 /** usbhc Interface implementation using hcd_t from libusbhost library. */
 usbhc_iface_t hcd_iface = {
 	.request_address = request_address,
