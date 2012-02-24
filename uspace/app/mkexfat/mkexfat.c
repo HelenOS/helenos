@@ -377,8 +377,8 @@ fat_allocate_clusters(service_id_t service_id, exfat_cfg_t *cfg,
     uint32_t cur_cls, unsigned long ncls)
 {
 	int rc;
-	aoff64_t fat_sec = cur_cls / sizeof(uint32_t) + FAT_SECTOR_START;
 	unsigned const fat_entries = cfg->sector_size / sizeof(uint32_t);
+	aoff64_t fat_sec = cur_cls / fat_entries + FAT_SECTOR_START;
 	uint32_t *fat;
 
 	cur_cls %= fat_entries;
@@ -607,6 +607,16 @@ int main (int argc, char **argv)
 	    div_round_up(sizeof(upcase_table), cfg.cluster_size));
 	if (rc != EOK) {
 		printf(NAME ":Error, failed to allocate clusters foe the upcase table.\n");
+		return 2;
+	}
+
+	next_cls += div_round_up(sizeof(upcase_table), cfg.cluster_size);
+	cfg.rootdir_cluster = next_cls;
+
+	/* Allocate a cluster for the root directory entry */
+	rc = fat_allocate_clusters(service_id, &cfg, next_cls, 1);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to allocate cluster for the root dentry.\n");
 		return 2;
 	}
 
