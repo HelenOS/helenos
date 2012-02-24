@@ -147,12 +147,16 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	/* Compute the bitmap size */
 	cfg->bitmap_size = n_req_clusters / 8;
 
+	/* Compute the number of clusters reserved to the bitmap */
 	cfg->allocated_clusters = div_round_up(cfg->bitmap_size,
 	    cfg->cluster_size);
 
 	/* This account for the root directory */
 	cfg->allocated_clusters++;
-	/* FIXME: add upcase table clusters to allocated_clusters */
+
+	/* Compute the number of clusters reserved to the upcase table */
+	cfg->allocated_clusters += div_round_up(sizeof(upcase_table),
+	    cfg->cluster_size);
 
 	/* FIXME: set the real rootdir cluster */
 	cfg->rootdir_cluster = 0;
