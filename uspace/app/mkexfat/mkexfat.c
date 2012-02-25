@@ -46,6 +46,7 @@
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <bool.h>
+#include <str.h>
 #include "exfat.h"
 #include "upcase.h"
 
@@ -87,6 +88,7 @@ typedef struct exfat_cfg {
 	unsigned long data_start_sector;
 	unsigned long rootdir_cluster;
 	unsigned long upcase_table_cluster;
+	unsigned long bitmap_cluster;
 	unsigned long total_clusters;
 	unsigned long allocated_clusters;
 	size_t   bitmap_size;
@@ -109,6 +111,9 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg,
 
 static int
 bitmap_write(service_id_t service_id, exfat_cfg_t *cfg);
+
+static uint32_t
+upcase_table_checksum(void const *data, size_t nbytes);
 
 static void usage(void)
 {
@@ -167,6 +172,9 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 
 	/* Will be set later */
 	cfg->rootdir_cluster = 0;
+
+	/* Bitmap always starts at the first free cluster */
+	cfg->bitmap_cluster = FIRST_FREE_CLUSTER;
 
 	/* The first sector of the partition is zero */
 	cfg->volume_start = 0;
@@ -523,6 +531,60 @@ upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 	return rc;
 }
 
+/** Initialize and write the root directory entries to disk.
+ *
+ * @param service_id   The service id.
+ * @param cfg   Pointer to the exFAT configuration structure.
+ * @return   EOK on success or a negative error code.
+ */
+static int
+root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
+{
+	exfat_dentry_t *d;
+	aoff64_t rootdir_sec;
+	int rc;
+	uint8_t *data;
+
+	data = calloc(cfg->sector_size, 1);
+	if (!data)
+		return ENOMEM;
+
+	d = (exfat_dentry_t *) data;
+
+	/* Initialize the volume label dentry */
+	d->type = EXFAT_TYPE_VOLLABEL;
+	str_to_utf16(d->vollabel.label, 7, "HELENOS");
+	d->vollabel.size = 7;
+
+	d++;
+
+	/* Initialize the allocation bitmap dentry */
+	d->type = EXFAT_TYPE_BITMAP;
+	d->bitmap.flags = 0; /* First FAT */
+	d->bitmap.firstc = host2uint32_t_le(cfg->bitmap_cluster);
+	d->bitmap.size = host2uint64_t_le(cfg->bitmap_size);
+
+	d++;
+
+	/* Initialize the upcase table dentry */
+	d->type = EXFAT_TYPE_UCTABLE;
+	d->uctable.checksum = host2uint32_t_le(upcase_table_checksum(
+	    upcase_table, sizeof(upcase_table)));
+	d->uctable.firstc = host2uint32_t_le(cfg->upcase_table_cluster);
+	d->uctable.size = host2uint64_t_le(sizeof(upcase_table));
+
+	/* Compute the number of the sector where the rootdir resides */
+
+	rootdir_sec = cfg->data_start_sector;
+	rootdir_sec += ((cfg->rootdir_cluster - 2) * cfg->cluster_size) /
+	    cfg->sector_size;
+
+	rc = block_write_direct(service_id, rootdir_sec, 1, data);
+
+	free(data);
+	return rc;
+}
+
 /** Given a number (n), returns the result of log2(n).
  *
  * It works only if n is a power of two.
@@ -654,14 +716,14 @@ int main (int argc, char **argv)
 	}
 
 	/* Allocate clusters for the bitmap */
-	rc = fat_allocate_clusters(service_id, &cfg, FIRST_FREE_CLUSTER,
+	rc = fat_allocate_clusters(service_id, &cfg, cfg.bitmap_cluster,
 	    div_round_up(cfg.bitmap_size, cfg.cluster_size));
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to allocate clusters for bitmap.\n");
 		return 2;
 	}
 
-	next_cls = FIRST_FREE_CLUSTER +
+	next_cls = cfg.bitmap_cluster +
 	    div_round_up(cfg.bitmap_size, cfg.cluster_size);
 	cfg.upcase_table_cluster = next_cls;
 
@@ -695,6 +757,13 @@ int main (int argc, char **argv)
 	rc = upcase_table_write(service_id, &cfg);
 	if (rc != EOK) {
 		printf(NAME ": Error, failed to write the upcase table to disk.\n");
+		return 2;
+	}
+
+	rc = root_dentries_write(service_id, &cfg);
+	if (rc != EOK) {
+		printf(NAME ": Error, failed to write the root directory" \
+		    " entries to disk.\n");
 		return 2;
 	}
 
