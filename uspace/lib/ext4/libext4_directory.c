@@ -260,7 +260,7 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 }
 
 int ext4_directory_append_block(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, uint32_t *fblock)
+		ext4_inode_ref_t *inode_ref, uint32_t *fblock, uint32_t *iblock)
 {
 	int rc;
 
@@ -287,6 +287,7 @@ int ext4_directory_append_block(ext4_filesystem_t *fs,
 	inode_ref->dirty = true;
 
 	*fblock = phys_block;
+	*iblock = new_block_idx;
 	return EOK;
 }
 
@@ -410,7 +411,8 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	EXT4FS_DBG("NO FREE SPACE - needed to allocate block");
 
 	uint32_t fblock;
-	rc = ext4_directory_append_block(fs, parent, &fblock);
+	uint32_t iblock;
+	rc = ext4_directory_append_block(fs, parent, &fblock, &iblock);
 	if (rc != EOK) {
 		return rc;
 	}
