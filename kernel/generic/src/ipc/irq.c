@@ -357,9 +357,6 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 	
 	ASSERT(irq->notif_cfg.answerbox == box);
 	
-	/* Free up the pseudo code and associated structures. */
-	code_free(irq->notif_cfg.code);
-	
 	/* Remove the IRQ from the answerbox's list. */
 	list_remove(&irq->notif_cfg.link);
 	
@@ -377,6 +374,9 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 	
 	irq_spinlock_unlock(&box->irq_lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+	
+	/* Free up the pseudo code and associated structures. */
+	code_free(irq->notif_cfg.code);
 	
 	/* Free up the IRQ structure. */
 	free(irq);
@@ -424,9 +424,6 @@ loop:
 		/* Unlist from the answerbox. */
 		list_remove(&irq->notif_cfg.link);
 		
-		/* Free up the pseudo code and associated structures. */
-		code_free(irq->notif_cfg.code);
-		
 		/*
 		 * We need to drop the IRQ lock now because hash_table_remove()
 		 * will try to reacquire it. That basically violates the natural
@@ -438,8 +435,19 @@ loop:
 		
 		/* Remove from the hash table. */
 		hash_table_remove(&irq_uspace_hash_table, key, 2);
-		
+
+		/*
+		 * Release both locks so that we can free the pseudo code.
+		 */
+		irq_spinlock_unlock(&box->irq_lock, false);
+		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+
+		code_free(irq->notif_cfg.code);
 		free(irq);
+		
+		/* Reacquire both locks before taking another round. */
+		irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
+		irq_spinlock_lock(&box->irq_lock, false);
 	}
 	
 	irq_spinlock_unlock(&box->irq_lock, false);
