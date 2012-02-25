@@ -568,6 +568,25 @@ vbr_checksum_update(void const *data, size_t nbytes, uint32_t *checksum)
 		*checksum = ((*checksum << 31) | (*checksum >> 1)) + octets[index];
 }
 
+/** Compute the checksum of the upcase table.
+ *
+ * @param data   Pointer to the upcase table.
+ * @param nbytes size of the upcase table in bytes.
+ * @return   Checksum value.
+ */
+static uint32_t
+upcase_table_checksum(void const *data, size_t nbytes)
+{
+	size_t index;
+	uint32_t chksum = 0;
+	uint8_t const *octets = (uint8_t *) data;
+
+	for (index = 0; index < nbytes; ++index)
+		chksum = ((chksum << 31) | (chksum >> 1)) + octets[index];
+
+	return chksum;
+}
+
 int main (int argc, char **argv)
 {
 	exfat_cfg_t cfg;
