@@ -215,8 +215,7 @@ if (ret != EOK) { \
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling\n", str_error(ret));
 		/* We don't need that handler */
-		// FIXME enable when panic is issue is solved
-//		unregister_interrupt_handler(device, irq);
+		unregister_interrupt_handler(device, irq);
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
