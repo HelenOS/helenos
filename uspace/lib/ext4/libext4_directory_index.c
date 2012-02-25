@@ -294,7 +294,7 @@ static int ext4_directory_dx_find_dir_entry(block_t *block,
 		uint16_t dentry_len = ext4_directory_entry_ll_get_entry_length(dentry);
 
         if (dentry_len == 0) {
-        	// TODO error
+        	// Error
         	return -1;
         }
 
@@ -454,6 +454,7 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 
 typedef struct ext4_dx_sort_entry {
 	uint32_t hash;
+	uint32_t rec_len;
 	ext4_directory_entry_ll_t *dentry;
 } ext4_dx_sort_entry_t;
 
@@ -476,7 +477,7 @@ static int dx_entry_comparator(void *arg1, void *arg2, void *dummy)
 
 static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, ext4_hash_info_t *hinfo,
-		block_t *data_block, ext4_directory_dx_block_t *index_block)
+		block_t *old_data_block, ext4_directory_dx_block_t *index_block, block_t **new_data_block)
 {
 	int rc;
 
@@ -487,7 +488,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	}
 
 	// Copy data to buffer
-	memcpy(entry_buffer, index_block->block->data, block_size);
+	memcpy(entry_buffer, old_data_block->data, block_size);
 
 	ext4_directory_dx_countlimit_t *countlimit =
 			(ext4_directory_dx_countlimit_t *)index_block->entries;
@@ -498,24 +499,36 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		return ENOMEM;
 	}
 
-	ext4_directory_entry_ll_t *dentry = data_block->data;
+	ext4_directory_entry_ll_t *dentry = old_data_block->data;
 
 	int idx = 0;
-	while ((void *)dentry < data_block->data + block_size) {
+	uint32_t real_size = 0;
+	void *entry_buffer_ptr = entry_buffer;
+	while ((void *)dentry < old_data_block->data + block_size) {
 		char *name = (char *)dentry->name;
 		uint8_t len = ext4_directory_entry_ll_get_name_length(fs->superblock, dentry);
 		uint32_t hash = ext4_hash_string(hinfo, len, name);
 
-		sort_array[idx].dentry = dentry;
+		uint32_t rec_len = 8 + len;
+
+		if ((rec_len % 4) != 0) {
+			rec_len += 4 - (rec_len % 4);
+		}
+
+		memcpy(entry_buffer_ptr, dentry, rec_len);
+
+		sort_array[idx].dentry = entry_buffer_ptr;
+		sort_array[idx].rec_len = rec_len;
 		sort_array[idx].hash = hash;
+
+		entry_buffer_ptr += rec_len;
+		real_size += rec_len;
 
 		idx++;
 		dentry = (void *)dentry + ext4_directory_entry_ll_get_entry_length(dentry);
 	}
 
 	qsort(sort_array, entry_count, sizeof(ext4_dx_sort_entry_t), dx_entry_comparator, NULL);
-
-	// TODO split to two groups (by size, NOT by count)
 
 	uint32_t new_fblock;
 	rc = ext4_directory_append_block(fs, inode_ref, &new_fblock);
@@ -525,11 +538,79 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		return rc;
 	}
 
-	// TODO load new_block
+	// Load new block
+	block_t *new_data_block_tmp;
+	rc = block_get(&new_data_block_tmp, fs->device, new_fblock, BLOCK_FLAGS_NOREAD);
+	if (rc != EOK) {
+		free(sort_array);
+		free(entry_buffer);
+		return rc;
+	}
 
-	// TODO write splitted entries to two blocks
+	// Distribute entries to splitted blocks (by size)
+
+	uint32_t new_hash = 0;
+	uint32_t current_size = 0;
+	int mid = 0;
+	for (int i = 0; i < idx; ++i) {
+		if (current_size > real_size / 2) {
+			new_hash = sort_array[i].hash;
+			mid = i;
+			break;
+		}
+
+		current_size += sort_array[i].rec_len;
+	}
+
+	uint32_t offset = 0;
+	void *ptr;
+
+	// First part - to the old block
+	for (int i = 0; i < mid; ++i) {
+		ptr = old_data_block->data + offset;
+		memcpy(ptr, sort_array[i].dentry, sort_array[i].rec_len);
+
+		ext4_directory_entry_ll_t *tmp = ptr;
+		if (i < (mid - 1)) {
+			ext4_directory_entry_ll_set_entry_length(tmp, sort_array[i].rec_len);
+		} else {
+			ext4_directory_entry_ll_set_entry_length(tmp, block_size - offset);
+		}
+
+		offset += sort_array[i].rec_len;
+	}
+
+	// Second part - to the new block
+	offset = 0;
+	for (int i = mid; i < idx; ++i) {
+		ptr = new_data_block_tmp->data + offset;
+		memcpy(ptr, sort_array[i].dentry, sort_array[i].rec_len);
+
+		ext4_directory_entry_ll_t *tmp = ptr;
+		if (i < (idx - 1)) {
+			ext4_directory_entry_ll_set_entry_length(tmp, sort_array[i].rec_len);
+		} else {
+			ext4_directory_entry_ll_set_entry_length(tmp, block_size - offset);
+		}
+
+		offset += sort_array[i].rec_len;
+	}
+
+	old_data_block->dirty = true;
+	new_data_block_tmp->dirty = true;
+
+	free(sort_array);
+	free(entry_buffer);
 
 	// TODO add new entry to index block
+	index_block->position++;
+
+	ext4_directory_dx_entry_set_block(index_block->position, new_fblock);
+	ext4_directory_dx_entry_set_hash(index_block->position, new_hash);
+
+	index_block->block->dirty = true;
+
+	*new_data_block = new_data_block_tmp;
 
 	return EOK;
 }
@@ -580,8 +661,8 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    	}
 
 
-   	block_t *target;
-   	rc = block_get(&target, fs->device, leaf_block_addr, BLOCK_FLAGS_NONE);
+   	block_t *target_block;
+   	rc = block_get(&target_block, fs->device, leaf_block_addr, BLOCK_FLAGS_NONE);
    	if (rc != EOK) {
    		return EXT4_ERR_BAD_DX_DIR;
    	}
@@ -589,8 +670,8 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
    	uint16_t required_len = 8 + name_size + (4 - name_size % 4);
 
-   	ext4_directory_entry_ll_t *de = target->data;
-   	ext4_directory_entry_ll_t *stop = target->data + block_size;
+   	ext4_directory_entry_ll_t *de = target_block->data;
+   	ext4_directory_entry_ll_t *stop = target_block->data + block_size;
 
    	while (de < stop) {
 
@@ -600,8 +681,8 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    		if ((de_inode == 0) && (de_rec_len >= required_len)) {
    			ext4_directory_write_entry(fs->superblock, de, de_rec_len,
    				child, name, name_size);
-   				target->dirty = true;
-   				rc = block_put(target);
+   				target_block->dirty = true;
+   				rc = block_put(target_block);
    				if (rc != EOK) {
    					return EXT4_ERR_BAD_DX_DIR;
    				}
@@ -627,8 +708,8 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    				ext4_directory_entry_ll_t *new_entry = (void *)de + used_space;
    				ext4_directory_write_entry(fs->superblock, new_entry,
    					free_space, child, name, name_size);
-   				target->dirty = true;
-   				rc = block_put(target);
+   				target_block->dirty = true;
+   				rc = block_put(target_block);
 				if (rc != EOK) {
 					return EXT4_ERR_BAD_DX_DIR;
 				}
@@ -686,10 +767,13 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		}
 	}
 
-	rc = ext4_directory_dx_split_data(fs, parent, &hinfo, target, dx_block);
+	block_t *new_block;
+	rc = ext4_directory_dx_split_data(fs, parent, &hinfo, target_block, dx_block, &new_block);
 	if (rc != EOK) {
 		// TODO error
 	}
+
+	// TODO Where to save new entry
 
 
 	// TODO
