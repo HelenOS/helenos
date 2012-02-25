@@ -413,7 +413,7 @@ loop:
 		goto loop;
 	} else if (ncls == 1) {
 		/* This is the last cluster of this chain, mark it
-		 * with EOK.
+		 * with EOF.
 		 */
 		fat[cur_cls] = host2uint32_t_le(0xFFFFFFFF);
 	}
