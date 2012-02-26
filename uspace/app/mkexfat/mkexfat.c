@@ -303,7 +303,7 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base, uint32_t *chksum)
 		vbr_checksum_update(ebs, cfg->sector_size, chksum);
 
 		rc = block_write_direct(service_id,
-		    i + EBS_SECTOR_START + base, 1, ebs);
+		    i + base, 1, ebs);
 
 		if (rc != EOK)
 			goto exit;
@@ -323,6 +323,7 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base, uint32_t *chksum)
 
 	/* The next sector is reserved, fill it with zeroes too */
 	vbr_checksum_update(ebs, cfg->sector_size, chksum);
+
 	rc = block_write_direct(service_id, i++ + base, 1, ebs);
 	if (rc != EOK)
 		goto exit;
