@@ -131,8 +131,8 @@ static struct option const long_options[] = {
 static void usage(void)
 {
 	printf("Usage: mkexfat [options] <device>\n"
-	    "-c, --cluster-size ## Specify the cluster size\n"
-	    "-s, --fs-size ##      Specify the filesystem size\n");
+	    "-c, --cluster-size ## Specify the cluster size (Kb)\n"
+	    "-s, --fs-size ##      Specify the filesystem size (byte)\n");
 }
 
 /** Initialize the exFAT params structure.
@@ -738,7 +738,7 @@ int main (int argc, char **argv)
 			break;
 
 		case 'c':
-			cfg.cluster_size = strtol(optarg, NULL, 10);
+			cfg.cluster_size = strtol(optarg, NULL, 10) * 1024;
 			if (cfg.cluster_size < 4096) {
 				printf(NAME ": Error, cluster size can't"
 				    " be less than 4096 byte.\n");
