@@ -322,8 +322,6 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
 			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
 
-		EXT4FS_DBG("trying INDEX");
-
 		rc = ext4_directory_dx_add_entry(fs, parent, child, name_len, entry_name);
 
 		// Check if index is not corrupted
@@ -463,10 +461,6 @@ int ext4_directory_find_entry(ext4_directory_iterator_t *it,
 		}
 
 		EXT4FS_DBG("index is corrupted - doing linear search");
-
-		// TODO Needed to clear dir index flag
-		//ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
-		//parent->dirty = true;
 
 	}
 

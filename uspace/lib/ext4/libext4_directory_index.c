@@ -490,31 +490,29 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	// Copy data to buffer
 	memcpy(entry_buffer, old_data_block->data, block_size);
 
-	// dot entry has the smalest size available
-	uint32_t entry_count =  block_size / sizeof(ext4_directory_dx_dot_entry_t);
+	// dot entry has the smallest size available
+	uint32_t max_entry_count =  block_size / sizeof(ext4_directory_dx_dot_entry_t);
 
-	ext4_dx_sort_entry_t *sort_array = malloc(entry_count * sizeof(ext4_dx_sort_entry_t));
+	ext4_dx_sort_entry_t *sort_array = malloc(max_entry_count * sizeof(ext4_dx_sort_entry_t));
 	if (sort_array == NULL) {
 		free(entry_buffer);
 		return ENOMEM;
 	}
 
-	EXT4FS_DBG("sort_array allocated addr = \%u, size = \%u", (uint32_t)sort_array, entry_count * sizeof(ext4_dx_sort_entry_t));
-
 	ext4_directory_entry_ll_t *dentry = old_data_block->data;
 
-	// TODO tady nekde je chyba
-
-	EXT4FS_DBG("entry_buffer = \%u", (uint32_t)entry_buffer);
-
-	int idx = 0;
+	uint32_t idx = 0;
 	uint32_t real_size = 0;
 	void *entry_buffer_ptr = entry_buffer;
+
+	ext4_hash_info_t tmp_hinfo;
+	memcpy(&tmp_hinfo, hinfo, sizeof(ext4_hash_info_t));
+
 	while ((void *)dentry < old_data_block->data + block_size) {
 		char *name = (char *)dentry->name;
 
 		uint8_t len = ext4_directory_entry_ll_get_name_length(fs->superblock, dentry);
-		uint32_t hash = ext4_hash_string(hinfo, len, name);
+		ext4_hash_string(&tmp_hinfo, len, name);
 
 		uint32_t rec_len = 8 + len;
 
@@ -526,7 +524,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 
 		sort_array[idx].dentry = entry_buffer_ptr;
 		sort_array[idx].rec_len = rec_len;
-		sort_array[idx].hash = hash;
+		sort_array[idx].hash = tmp_hinfo.hash;
 
 		entry_buffer_ptr += rec_len;
 		real_size += rec_len;
@@ -535,7 +533,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		dentry = (void *)dentry + ext4_directory_entry_ll_get_entry_length(dentry);
 	}
 
-	qsort(sort_array, entry_count, sizeof(ext4_dx_sort_entry_t), dx_entry_comparator, NULL);
+	qsort(sort_array, idx, sizeof(ext4_dx_sort_entry_t), dx_entry_comparator, NULL);
 
 	uint32_t new_fblock;
 	uint32_t new_iblock;
@@ -546,7 +544,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		return rc;
 	}
 
-	EXT4FS_DBG("new block appended (iblock = \%u)", new_iblock);
+//	EXT4FS_DBG("new block appended (iblock = \%u, fblock = \%u)", new_iblock, new_fblock);
 
 	// Load new block
 	block_t *new_data_block_tmp;
@@ -561,9 +559,9 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 
 	uint32_t new_hash = 0;
 	uint32_t current_size = 0;
-	int mid = 0;
-	for (int i = 0; i < idx; ++i) {
-		if (current_size > real_size / 2) {
+	uint32_t mid = 0;
+	for (uint32_t i = 0; i < idx; ++i) {
+		if ((current_size + sort_array[i].rec_len) > (real_size / 2)) {
 			new_hash = sort_array[i].hash;
 			mid = i;
 			break;
@@ -576,7 +574,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	void *ptr;
 
 	// First part - to the old block
-	for (int i = 0; i < mid; ++i) {
+	for (uint32_t i = 0; i < mid; ++i) {
 		ptr = old_data_block->data + offset;
 		memcpy(ptr, sort_array[i].dentry, sort_array[i].rec_len);
 
@@ -592,7 +590,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 
 	// Second part - to the new block
 	offset = 0;
-	for (int i = mid; i < idx; ++i) {
+	for (uint32_t i = mid; i < idx; ++i) {
 		ptr = new_data_block_tmp->data + offset;
 		memcpy(ptr, sort_array[i].dentry, sort_array[i].rec_len);
 
@@ -612,16 +610,22 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	free(sort_array);
 	free(entry_buffer);
 
+	ext4_directory_dx_entry_t *old_index_entry = index_block->position;
+	ext4_directory_dx_entry_t *new_index_entry = old_index_entry + 1;
+
 	ext4_directory_dx_countlimit_t *countlimit =
 			(ext4_directory_dx_countlimit_t *)index_block->entries;
 	uint32_t count = ext4_directory_dx_countlimit_get_count(countlimit);
-	count++;
-	ext4_directory_dx_countlimit_set_count(countlimit, count);
 
-	index_block->position++;
+	ext4_directory_dx_entry_t *start_index = index_block->entries;
+	size_t bytes = (void *)(start_index + count) - (void *)(new_index_entry);
 
-	ext4_directory_dx_entry_set_block(index_block->position, new_iblock);
-	ext4_directory_dx_entry_set_hash(index_block->position, new_hash);
+	memmove(new_index_entry + 1, new_index_entry, bytes);
+
+	ext4_directory_dx_entry_set_block(new_index_entry, new_iblock);
+	ext4_directory_dx_entry_set_hash(new_index_entry, new_hash);
+
+	ext4_directory_dx_countlimit_set_count(countlimit, count + 1);
 
 	index_block->block->dirty = true;
 
@@ -791,8 +795,7 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 	}
 
 	// TODO Where to save new entry
-	// Position in dx_block is set to NEW block entry
-	uint32_t new_block_hash = ext4_directory_dx_entry_get_hash(dx_block->position);
+	uint32_t new_block_hash = ext4_directory_dx_entry_get_hash(dx_block->position + 1);
 	if (hinfo.hash >= new_block_hash) {
 		de = new_block->data;
 		stop = new_block->data + block_size;
@@ -823,8 +826,6 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    			uint16_t free_space = de_rec_len - used_space;
 
    			if (free_space >= required_len) {
-
-   				EXT4FS_DBG("rec_len = \%u, used_space = \%u, free space = \%u", de_rec_len, used_space, free_space);
 
    				// Cut tail of current entry
    				ext4_directory_entry_ll_set_entry_length(de, used_space);
