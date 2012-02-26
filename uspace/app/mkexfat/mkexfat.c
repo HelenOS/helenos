@@ -251,10 +251,11 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	mbs->data_start_sector = host2uint32_t_le(cfg->data_start_sector);
 
 	mbs->data_clusters = host2uint32_t_le(cfg->total_clusters - 
-	    div_round_up(cfg->data_start_sector, cfg->cluster_size));
+	    div_round_up(cfg->data_start_sector * cfg->sector_size,
+	    cfg->cluster_size));
 
 	mbs->rootdir_cluster = host2uint32_t_le(cfg->rootdir_cluster);
-	mbs->volume_serial = 0;
+	mbs->volume_serial = host2uint32_t_le(0xe1028172);
 	mbs->version.major = 1;
 	mbs->version.minor = 0;
 	mbs->volume_flags = host2uint16_t_le(0);
@@ -596,8 +597,8 @@ root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 
 	/* Initialize the volume label dentry */
 	d->type = EXFAT_TYPE_VOLLABEL;
-	str_to_utf16(d->vollabel.label, 7, "HELENOS");
-	d->vollabel.size = 7;
+	str_to_utf16(d->vollabel.label, 8, "HELENOS ");
+	d->vollabel.size = 8;
 
 	d++;
 
