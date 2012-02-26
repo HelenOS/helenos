@@ -315,7 +315,8 @@ exit:
  * @return  EOK on success or a negative error code.
  */
 static int
-ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base, uint32_t *chksum)
+ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
+    uint32_t *chksum)
 {
 	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
 	int i, rc;
@@ -635,7 +636,8 @@ vbr_checksum_start(void const *data, size_t nbytes)
 			continue;
 		}
 
-		checksum = ((checksum << 31) | (checksum >> 1)) + octets[index];
+		checksum = ((checksum << 31) | (checksum >> 1)) +
+		    octets[index];
 	}
 
 	return checksum;
@@ -648,8 +650,10 @@ vbr_checksum_update(void const *data, size_t nbytes, uint32_t *checksum)
 	size_t index;
 	uint8_t const *octets = (uint8_t *) data;
 
-	for (index = 0; index < nbytes; ++index)
-		*checksum = ((*checksum << 31) | (*checksum >> 1)) + octets[index];
+	for (index = 0; index < nbytes; ++index) {
+		*checksum = ((*checksum << 31) | (*checksum >> 1)) +
+		    octets[index];
+	}
 }
 
 /** Compute the checksum of the upcase table.
@@ -741,7 +745,8 @@ int main (int argc, char **argv)
 	rc = fat_allocate_clusters(service_id, &cfg, cfg.bitmap_cluster,
 	    div_round_up(cfg.bitmap_size, cfg.cluster_size));
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to allocate clusters for bitmap.\n");
+		printf(NAME ": Error, failed to allocate" \
+		    " clusters for bitmap.\n");
 		return 2;
 	}
 
@@ -753,7 +758,8 @@ int main (int argc, char **argv)
 	rc = fat_allocate_clusters(service_id, &cfg, next_cls,
 	    div_round_up(sizeof(upcase_table), cfg.cluster_size));
 	if (rc != EOK) {
-		printf(NAME ":Error, failed to allocate clusters foe the upcase table.\n");
+		printf(NAME ":Error, failed to allocate clusters" \
+		    " for the upcase table.\n");
 		return 2;
 	}
 
@@ -763,7 +769,8 @@ int main (int argc, char **argv)
 	/* Allocate a cluster for the root directory entry */
 	rc = fat_allocate_clusters(service_id, &cfg, next_cls, 1);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to allocate cluster for the root dentry.\n");
+		printf(NAME ": Error, failed to allocate cluster" \
+		    " for the root dentry.\n");
 		return 2;
 	}
 
@@ -778,7 +785,8 @@ int main (int argc, char **argv)
 	/* Write the upcase table to disk */
 	rc = upcase_table_write(service_id, &cfg);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the upcase table to disk.\n");
+		printf(NAME ": Error, failed to write the" \
+		    " upcase table to disk.\n");
 		return 2;
 	}
 
