@@ -193,14 +193,16 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 static void
 cfg_print_info(exfat_cfg_t *cfg)
 {
-	printf(NAME ": Sector size:           %lu\n", cfg->sector_size);
-	printf(NAME ": Cluster size:          %lu\n", cfg->cluster_size);
+	printf(NAME ": Sector size:           %lu\n",
+	    (unsigned long) cfg->sector_size);
+	printf(NAME ": Cluster size:          %lu\n",
+	    (unsigned long) cfg->cluster_size);
 	printf(NAME ": FAT size in sectors:   %lu\n", cfg->fat_sector_count);
 	printf(NAME ": Data start sector:     %lu\n", cfg->data_start_sector);
 	printf(NAME ": Total num of clusters: %lu\n", cfg->total_clusters);
-	printf(NAME ": Bitmap size:           %lu\n",
+	printf(NAME ": Bitmap size:           %lu\n", (unsigned long)
 	    div_round_up(cfg->bitmap_size, cfg->cluster_size));
-	printf(NAME ": Upcase table size:     %lu\n",
+	printf(NAME ": Upcase table size:     %lu\n", (unsigned long)
 	    div_round_up(sizeof(upcase_table), cfg->cluster_size));
 }
 
