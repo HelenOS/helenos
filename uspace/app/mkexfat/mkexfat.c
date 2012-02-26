@@ -47,6 +47,7 @@
 #include <sys/typefmt.h>
 #include <bool.h>
 #include <str.h>
+#include <getopt.h>
 #include "exfat.h"
 #include "upcase.h"
 
@@ -121,9 +122,17 @@ bitmap_write(service_id_t service_id, exfat_cfg_t *cfg);
 static uint32_t
 upcase_table_checksum(void const *data, size_t nbytes);
 
+static struct option const long_options[] = {
+	{"help", no_argument, 0, 'h'},
+	{"cluster-size", required_argument, 0, 'c'},
+	{"fs-size", required_argument, 0, 's'},
+};
+
 static void usage(void)
 {
-	printf("Usage: mkexfat <device>\n");
+	printf("Usage: mkexfat [options] <device>\n"
+	    "-c, --cluster-size ## Specify the cluster size\n"
+	    "-s, --fs-size ##      Specify the filesystem size\n");
 }
 
 /** Initialize the exFAT params structure.
@@ -136,8 +145,15 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	unsigned long fat_bytes;
 	aoff64_t const volume_bytes = (cfg->volume_count - FAT_SECTOR_START) *
 	    cfg->sector_size;
+	aoff64_t n_req_clusters;
 
-	aoff64_t n_req_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
+	if (cfg->cluster_size != 0) {
+		/* The user already choose the cluster size he wants */
+		n_req_clusters = volume_bytes / cfg->cluster_size;
+		goto skip_cluster_size_set;
+	}
+
+	n_req_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
 	cfg->cluster_size = DEFAULT_CLUSTER_SIZE;
 
 	/* Compute the required cluster size to index
@@ -148,8 +164,10 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	    (cfg->cluster_size < 32 * 1024 * 1024)) {
 
 		cfg->cluster_size <<= 1;
-		n_req_clusters = volume_bytes / cfg->cluster_size;
+		n_req_clusters = div_round_up(volume_bytes, cfg->cluster_size);
 	}
+
+skip_cluster_size_set:
 
 	/* The first two clusters are reserved */
 	cfg->total_clusters = n_req_clusters + 2;
@@ -163,7 +181,7 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
 
 	/* Compute the bitmap size */
-	cfg->bitmap_size = n_req_clusters / 8;
+	cfg->bitmap_size = div_round_up(n_req_clusters, 8);
 
 	/* Compute the number of clusters reserved to the bitmap */
 	cfg->allocated_clusters = div_round_up(cfg->bitmap_size,
@@ -677,13 +695,23 @@ upcase_table_checksum(void const *data, size_t nbytes)
 	return chksum;
 }
 
+static bool
+is_power_of_two(unsigned long n)
+{
+	if (n == 0)
+		return false;
+
+	return (n & (n - 1)) == 0;
+}
+
 int main (int argc, char **argv)
 {
 	exfat_cfg_t cfg;
 	uint32_t next_cls;
 	char *dev_path;
 	service_id_t service_id;
-	int rc;
+	int rc, c, opt_ind;
+	aoff64_t user_fs_size = 0;
 
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing\n");
@@ -691,9 +719,46 @@ int main (int argc, char **argv)
 		return 1;
 	}
 
-	/* TODO: Add parameters */
+	cfg.cluster_size = 0;
 
-	++argv;
+	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+		c = getopt_long(argc, argv, "hs:c:",
+		    long_options, &opt_ind);
+		switch (c) {
+		case 'h':
+			usage();
+			return 0;
+		case 's':
+			user_fs_size = (aoff64_t) strtol(optarg, NULL, 10);
+			if (user_fs_size < 1024 * 1024) {
+				printf(NAME ": Error, fs size can't be less"
+				    " than 1 Mb.\n");
+				return 1;
+			}
+			break;
+
+		case 'c':
+			cfg.cluster_size = strtol(optarg, NULL, 10);
+			if (cfg.cluster_size < 4096) {
+				printf(NAME ": Error, cluster size can't"
+				    " be less than 4096 byte.\n");
+				return 1;
+			} else if (cfg.cluster_size > 32 * 1024 * 1024) {
+				printf(NAME ": Error, cluster size can't"
+				    " be greater than 32 Mb");
+				return 1;
+			}
+
+			if (!is_power_of_two(cfg.cluster_size)) {
+				printf(NAME ": Error, the size of the cluster"
+				    " must be a power of two.\n");
+				return 1;
+			}
+			break;
+		}
+	}
+
+	argv += optind;
 	dev_path = *argv;
 
 	printf(NAME ": Device = %s\n", dev_path);
@@ -726,11 +791,21 @@ int main (int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain" \
 		    " device block size.\n");
-		/* FIXME: the user should be able to specify the filesystem size */
 		return 1;
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
 		    cfg.volume_count);
+	}
+
+	if (user_fs_size != 0) {
+		if (user_fs_size > cfg.volume_count * cfg.sector_size) {
+			printf(NAME ": Error, the device is not big enough"
+			    " to create the filesystem a filesystem of"
+			    " the specified size.\n");
+			return 1;
+		}
+
+		cfg.volume_count = user_fs_size / cfg.sector_size;
 	}
 
 	cfg_params_initialize(&cfg);
