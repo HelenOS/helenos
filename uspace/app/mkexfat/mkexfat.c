@@ -421,7 +421,7 @@ error:
 /** Allocate a given number of clusters and create a cluster chain.
  *
  * @param service_id  The service id.
- * @param cfg  Pointer to the exfat configuration number.
+ * @param cfg  Pointer to the exfat configuration structure.
  * @param cur_cls  Cluster index from where to start the allocation.
  * @param ncls  Number of clusters to allocate.
  * @return EOK on success or a negative error code.
@@ -695,6 +695,11 @@ upcase_table_checksum(void const *data, size_t nbytes)
 	return chksum;
 }
 
+/** Check if a given number is a power of two.
+ *
+ * @param n   The number to check.
+ * @return    true if n is a power of two, false otherwise.
+ */
 static bool
 is_power_of_two(unsigned long n)
 {
