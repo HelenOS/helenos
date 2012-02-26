@@ -267,6 +267,10 @@ int ext4_directory_append_block(ext4_filesystem_t *fs,
 	// Compute next block index and allocate data block
 	uint64_t inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+
+	assert(inode_size % block_size == 0);
+
+	// Logical blocks are numbered from 0
 	uint32_t new_block_idx = inode_size / block_size;
 
 	uint32_t phys_block;
@@ -281,8 +285,7 @@ int ext4_directory_append_block(ext4_filesystem_t *fs,
 		return rc;
 	}
 
-	inode_size += block_size;
-	ext4_inode_set_size(inode_ref->inode, inode_size);
+	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
 
 	inode_ref->dirty = true;
 
