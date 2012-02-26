@@ -67,6 +67,12 @@
 /** First sector of the Main Boot Sector Backup */
 #define MBS_BACKUP_SECTOR 12
 
+/** VBR Checksum sector */
+#define VBR_CHECKSUM_SECTOR 11
+
+/** VBR Backup Checksum sector */
+#define VBR_BACKUP_CHECKSUM_SECTOR 23
+
 /** Size of the Main Extended Boot Region */
 #define EBS_SIZE 8
 
@@ -251,33 +257,54 @@ bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	exfat_bs_t mbs;
 	uint32_t vbr_checksum;
-	uint32_t initial_checksum;
+	uint32_t *chksum_sector;
 	int rc;
+	unsigned idx;
+
+	chksum_sector = calloc(cfg->sector_size, sizeof(uint8_t));
+	if (!chksum_sector)
+		return ENOMEM;
 
 	vbr_checksum = vbr_initialize(&mbs, cfg);
-	initial_checksum = vbr_checksum;
 
 	/* Write the Main Boot Sector to disk */
 	rc = block_write_direct(service_id, MBS_SECTOR, 1, &mbs);
 	if (rc != EOK)
-		return rc;
+		goto exit;
 
 	/* Write the Main extended boot sectors to disk */
 	rc = ebs_write(service_id, cfg, EBS_SECTOR_START, &vbr_checksum);
 	if (rc != EOK)
-		return rc;
+		goto exit;
 
 	/* Write the Main Boot Sector backup to disk */
 	rc = block_write_direct(service_id, MBS_BACKUP_SECTOR, 1, &mbs);
 	if (rc != EOK)
-		return rc;
+		goto exit;
 
-	/* Restore the checksum to its initial value */
-	vbr_checksum = initial_checksum;
+	/* Initialize the checksum sectors */
+	for (idx = 0; idx < cfg->sector_size / sizeof(uint32_t); ++idx)
+		chksum_sector[idx] = host2uint32_t_le(vbr_checksum);
+
+	/* Write the main checksum sector to disk */
+	rc = block_write_direct(service_id,
+	    VBR_CHECKSUM_SECTOR, 1, chksum_sector);
+	if (rc != EOK)
+		goto exit;
+
+	/* Write the backup checksum sector to disk */
+	rc = block_write_direct(service_id,
+	    VBR_BACKUP_CHECKSUM_SECTOR, 1, chksum_sector);
+	if (rc != EOK)
+		goto exit;
 
 	/* Write the Main extended boot sectors backup to disk */ 
-	return ebs_write(service_id, cfg,
+	rc = ebs_write(service_id, cfg,
 	    EBS_BACKUP_SECTOR_START, &vbr_checksum);
+
+exit:
+	free(chksum_sector);
+	return rc;
 }
 
 /** Write the Main Extended Boot Sector to disk
@@ -292,7 +319,6 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base, uint32_t *chksum)
 {
 	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
 	int i, rc;
-	unsigned idx;
 
 	if (!ebs)
 		return ENOMEM;
@@ -327,12 +353,6 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base, uint32_t *chksum)
 	rc = block_write_direct(service_id, i++ + base, 1, ebs);
 	if (rc != EOK)
 		goto exit;
-
-	/* Write the checksum sector */
-	for (idx = 0; idx < cfg->sector_size / sizeof(uint32_t); ++idx)
-		ebs[idx] = host2uint32_t_le(*chksum);
-
-	rc = block_write_direct(service_id, i + base, 1, ebs);
 
 exit:
 	free(ebs);
@@ -525,9 +545,10 @@ upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 		rc = block_write_direct(service_id,
 		    start_sec + i, 1, buf);
 		if (rc != EOK)
-			break;
+			goto exit;
 	}
 
+exit:
 	free(buf);
 	return rc;
 }
