@@ -34,15 +34,13 @@
  * @brief
  */
 
-#ifndef ETH_PDU_H_
-#define ETH_PDU_H_
+#ifndef ARP_H_
+#define ARP_H_
 
+#include <inet/iplink_srv.h>
 #include "ethip.h"
 
-extern int eth_pdu_encode(eth_frame_t *, void **, size_t *);
-extern int eth_pdu_decode(void *, size_t, eth_frame_t *);
-extern int arp_pdu_encode(arp_eth_packet_t *, void **, size_t *);
-extern int arp_pdu_decode(void *, size_t, arp_eth_packet_t *);
+extern void arp_received(ethip_nic_t *, eth_frame_t *);
 
 #endif
 

@@ -139,5 +139,107 @@ static void mac48_decode(void *data, mac48_addr_t *addr)
 	addr->addr = val;
 }
 
+/** Encode ARP PDU. */
+int arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
+{
+	void *data;
+	size_t size;
+	arp_eth_packet_fmt_t *pfmt;
+	uint16_t fopcode;
+
+	log_msg(LVL_DEBUG, "arp_pdu_encode()");
+
+	size = sizeof(arp_eth_packet_fmt_t);
+
+	data = calloc(size, 1);
+	if (data == NULL)
+		return ENOMEM;
+
+	pfmt = (arp_eth_packet_fmt_t *)data;
+
+	switch (packet->opcode) {
+	case aop_request: fopcode = AOP_REQUEST; break;
+	case aop_reply: fopcode = AOP_REPLY; break;
+	default:
+		assert(false);
+		fopcode = 0;
+	}
+
+	pfmt->hw_addr_space = host2uint16_t_be(AHRD_ETHERNET);
+	pfmt->proto_addr_space = host2uint16_t_be(ETYPE_IP);
+	pfmt->hw_addr_size = ETH_ADDR_SIZE;
+	pfmt->proto_addr_size = IPV4_ADDR_SIZE;
+	pfmt->opcode = host2uint16_t_be(fopcode);
+	mac48_encode(&packet->sender_hw_addr, pfmt->sender_hw_addr);
+	pfmt->sender_proto_addr =
+	    host2uint32_t_be(packet->sender_proto_addr.ipv4);
+	mac48_encode(&packet->target_hw_addr, pfmt->target_hw_addr);
+	pfmt->target_proto_addr =
+	    host2uint32_t_be(packet->target_proto_addr.ipv4);
+
+	*rdata = data;
+	*rsize = size;
+	return EOK;
+}
+
+/** Decode ARP PDU. */
+int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
+{
+	arp_eth_packet_fmt_t *pfmt;
+
+	log_msg(LVL_DEBUG, "arp_pdu_decode()");
+
+	if (size < sizeof(arp_eth_packet_fmt_t)) {
+		log_msg(LVL_DEBUG, "ARP PDU too short (%zu)", size);
+		return EINVAL;
+	}
+
+	pfmt = (arp_eth_packet_fmt_t *)data;
+
+	if (uint16_t_be2host(pfmt->hw_addr_space) != AHRD_ETHERNET) {
+		log_msg(LVL_DEBUG, "HW address space != %u (%" PRIu16 ")",
+		    AHRD_ETHERNET, uint16_t_be2host(pfmt->hw_addr_space));
+		return EINVAL;
+	}
+
+	if (uint16_t_be2host(pfmt->proto_addr_space) != ETYPE_IP) {
+		log_msg(LVL_DEBUG, "Proto address space != %u (%" PRIu16 ")",
+		    ETYPE_IP, uint16_t_be2host(pfmt->proto_addr_space));
+		return EINVAL;
+	}
+
+	if (pfmt->hw_addr_size != ETH_ADDR_SIZE) {
+		log_msg(LVL_DEBUG, "HW address size != %zu (%zu)",
+		    (size_t)ETH_ADDR_SIZE, (size_t)pfmt->hw_addr_size);
+		return EINVAL;
+	}
+
+	if (pfmt->proto_addr_size != IPV4_ADDR_SIZE) {
+		log_msg(LVL_DEBUG, "Proto address size != %zu (%zu)",
+		    (size_t)IPV4_ADDR_SIZE, (size_t)pfmt->proto_addr_size);
+		return EINVAL;
+	}
+
+	switch (uint16_t_be2host(pfmt->opcode)) {
+	case AOP_REQUEST: packet->opcode = aop_request; break;
+	case AOP_REPLY: packet->opcode = aop_reply; break;
+	default:
+		log_msg(LVL_DEBUG, "Invalid ARP opcode (%" PRIu16 ")",
+		    uint16_t_be2host(pfmt->opcode));
+		return EINVAL;
+	}
+
+	mac48_decode(pfmt->sender_hw_addr, &packet->sender_hw_addr);
+	packet->sender_proto_addr.ipv4 =
+	    uint32_t_be2host(pfmt->sender_proto_addr);
+	mac48_decode(pfmt->target_hw_addr, &packet->target_hw_addr);
+	packet->target_proto_addr.ipv4 =
+	    uint32_t_be2host(pfmt->target_proto_addr);
+	log_msg(LVL_DEBUG, "packet->tpa = %x\n", pfmt->target_proto_addr);
+
+	return EOK;
+}
+
+
 /** @}
  */

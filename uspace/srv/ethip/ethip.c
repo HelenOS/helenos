@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "arp.h"
 #include "ethip.h"
 #include "ethip_nic.h"
 #include "pdu.h"
@@ -203,13 +204,23 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		return rc;
 	}
 
-	log_msg(LVL_DEBUG, " - construct SDU");
-	sdu.lsrc.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 1;
-	sdu.ldest.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 4;
-	sdu.data = frame.data;
-	sdu.size = frame.size;
-	log_msg(LVL_DEBUG, " - call iplink_ev_recv");
-	rc = iplink_ev_recv(&nic->iplink, &sdu);
+	switch (frame.etype_len) {
+	case ETYPE_ARP:
+		arp_received(nic, &frame);
+		break;
+	case ETYPE_IP:
+		log_msg(LVL_DEBUG, " - construct SDU");
+		sdu.lsrc.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 1;
+		sdu.ldest.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 4;
+		sdu.data = frame.data;
+		sdu.size = frame.size;
+		log_msg(LVL_DEBUG, " - call iplink_ev_recv");
+		rc = iplink_ev_recv(&nic->iplink, &sdu);
+		break;
+	default:
+		log_msg(LVL_DEBUG, "Unknown ethertype %" PRIu16,
+		    frame.etype_len);
+	}
 
 	free(frame.data);
 	return rc;

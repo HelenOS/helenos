@@ -30,6 +30,7 @@ USPACE_PREFIX = ../..
 BINARY = ethip
 
 SOURCES = \
+	arp.c \
 	ethip.c \
 	ethip_nic.c \
 	pdu.c

@@ -39,20 +39,57 @@
 
 #include <sys/types.h>
 
+#define ETH_ADDR_SIZE 6
+#define IPV4_ADDR_SIZE 4
+#define ETH_FRAME_MIN_SIZE 60
+
 /** Ethernet frame header */
 typedef struct {
 	/** Destination Address */
-	uint8_t dest[6];
+	uint8_t dest[ETH_ADDR_SIZE];
 	/** Source Address */
-	uint8_t src[6];
+	uint8_t src[ETH_ADDR_SIZE];
 	/** Ethertype or Length */
 	uint16_t etype_len;
 } eth_header_t;
 
-/** IP Ethertype */
-#define ETYPE_IP	0x0800
+/** ARP packet format (for 48-bit MAC addresses and IPv4) */
+typedef struct {
+	/** Hardware address space */
+	uint16_t hw_addr_space;
+	/** Protocol address space */
+	uint16_t proto_addr_space;
+	/** Hardware address size */
+	uint8_t hw_addr_size;
+	/** Protocol address size */
+	uint8_t proto_addr_size;
+	/** Opcode */
+	uint16_t opcode;
+	/** Sender hardware address */
+	uint8_t sender_hw_addr[ETH_ADDR_SIZE];
+	/** Sender protocol address */
+	uint32_t sender_proto_addr;
+	/** Target hardware address */
+	uint8_t target_hw_addr[ETH_ADDR_SIZE];
+	/** Target protocol address */
+	uint32_t target_proto_addr;
+} __attribute__((packed)) arp_eth_packet_fmt_t;
 
-#define ETH_FRAME_MIN_SIZE 60
+enum arp_opcode_fmt {
+	AOP_REQUEST = 1,
+	AOP_REPLY   = 2
+};
+
+enum arp_hw_addr_space {
+	AHRD_ETHERNET = 1
+};
+
+/** IP Ethertype */
+enum ether_type {
+	ETYPE_ARP = 0x0806,
+	ETYPE_IP  = 0x0800
+};
+
 
 #endif
 

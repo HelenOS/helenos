@@ -73,9 +73,33 @@ typedef struct {
 	size_t size;
 } eth_frame_t;
 
+/** ARP opcode */
+typedef enum {
+	/** Request */
+	aop_request,
+	/** Reply */
+	aop_reply
+} arp_opcode_t;
+
+/** ARP packet (for 48-bit MAC addresses and IPv4)
+ *
+ * Internal representation
+ */
+typedef struct {
+	/** Opcode */
+	arp_opcode_t opcode;
+	/** Sender hardware address */
+	mac48_addr_t sender_hw_addr;
+	/** Sender protocol address */
+	iplink_srv_addr_t sender_proto_addr;
+	/** Target hardware address */
+	mac48_addr_t target_hw_addr;
+	/** Target protocol address */
+	iplink_srv_addr_t target_proto_addr;
+} arp_eth_packet_t;
+
 extern int ethip_iplink_init(ethip_nic_t *);
 extern int ethip_received(iplink_srv_t *, void *, size_t);
-
 
 #endif
 
