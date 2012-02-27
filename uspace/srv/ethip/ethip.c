@@ -222,7 +222,7 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		rc = iplink_ev_recv(&nic->iplink, &sdu);
 		break;
 	default:
-		log_msg(LVL_DEBUG, "Unknown ethertype %" PRIu16,
+		log_msg(LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
 		    frame.etype_len);
 	}
 

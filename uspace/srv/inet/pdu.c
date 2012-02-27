@@ -38,6 +38,7 @@
 #include <bitops.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
@@ -45,6 +46,47 @@
 #include "inet.h"
 #include "inet_std.h"
 #include "pdu.h"
+
+static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
+static uint16_t ip_ident = 0;
+
+#define INET_CHECKSUM_INIT 0xffff
+
+/** One's complement addition.
+ *
+ * Result is a + b + carry.
+ */
+static uint16_t inet_ocadd16(uint16_t a, uint16_t b)
+{
+	uint32_t s;
+
+	s = (uint32_t)a + (uint32_t)b;
+	return (s & 0xffff) + (s >> 16);
+}
+
+static uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
+{
+	uint16_t sum;
+	uint16_t w;
+	size_t words, i;
+	uint8_t *bdata;
+
+	sum = ~ivalue;
+	words = size / 2;
+	bdata = (uint8_t *)data;
+
+	for (i = 0; i < words; i++) {
+		w = ((uint16_t)bdata[2*i] << 8) | bdata[2*i + 1];
+		sum = inet_ocadd16(sum, w);
+	}
+
+	if (size % 2 != 0) {
+		w = ((uint16_t)bdata[2*words] << 8);
+		sum = inet_ocadd16(sum, w);
+	}
+
+	return ~sum;
+}
 
 /** Encode Internet PDU.
  */
@@ -55,6 +97,12 @@ int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
 	ip_header_t *hdr;
 	size_t hdr_size;
 	size_t data_offs;
+	uint16_t chksum;
+	uint16_t ident;
+
+	fibril_mutex_lock(&ip_ident_lock);
+	ident = ++ip_ident;
+	fibril_mutex_unlock(&ip_ident_lock);
 
 	hdr_size = sizeof(ip_header_t);
 	size = hdr_size + packet->size;
@@ -68,7 +116,7 @@ int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
 	hdr->ver_ihl = (4 << VI_VERSION_l) | (hdr_size / sizeof(uint32_t));
 	hdr->tos = packet->tos;
 	hdr->tot_len = host2uint16_t_be(size);
-	hdr->id = host2uint16_t_be(42);
+	hdr->id = host2uint16_t_be(ident);
 	hdr->flags_foff = host2uint16_t_be(packet->df ?
 	    BIT_V(uint16_t, FF_FLAG_DF) : 0);
 	hdr->ttl = packet->ttl;
@@ -76,6 +124,9 @@ int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
 	hdr->chksum = 0;
 	hdr->src_addr = host2uint32_t_be(packet->src.ipv4);
 	hdr->dest_addr = host2uint32_t_be(packet->dest.ipv4);
+
+	chksum = inet_checksum_calc(INET_CHECKSUM_INIT, (void *)hdr, hdr_size);
+	hdr->chksum = host2uint16_t_be(chksum);
 
 	memcpy((uint8_t *)data + data_offs, packet->data, packet->size);
 

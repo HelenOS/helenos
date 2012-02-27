@@ -48,6 +48,7 @@
 #define MAC48_BYTES 6
 
 /** Encode Ethernet PDU. */
+#include <stdio.h>
 int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 {
 	void *data;
@@ -67,6 +68,16 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 
 	memcpy((uint8_t *)data + sizeof(eth_header_t), frame->data,
 	    frame->size);
+
+	log_msg(LVL_DEBUG, "Encoding Ethernet frame src=%llx dest=%llx etype=%x",
+	    frame->src, frame->dest, frame->etype_len);
+	log_msg(LVL_DEBUG, "Encoded Ethernet frame (%zu bytes)", size);
+	size_t i;
+	for (i = 0; i < size; i++) {
+		printf("%02x ", ((uint8_t *)(data))[sizeof(eth_header_t) + i]);
+	}
+	printf("\n");
+
 
 	*rdata = data;
 	*rsize = size;
@@ -100,9 +111,9 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	memcpy(frame->data, (uint8_t *)data + sizeof(eth_header_t),
 	    frame->size);
 
-	log_msg(LVL_DEBUG, "Ethernet frame src=%llx dest=%llx etype=%x",
+	log_msg(LVL_DEBUG, "Decoding Ethernet frame src=%llx dest=%llx etype=%x",
 	    frame->src, frame->dest, frame->etype_len);
-	log_msg(LVL_DEBUG, "Ethernet frame payload (%zu bytes)", frame->size);
+	log_msg(LVL_DEBUG, "Decoded Ethernet frame payload (%zu bytes)", frame->size);
 	size_t i;
 	for (i = 0; i < frame->size; i++) {
 		printf("%02x ", ((uint8_t *)(frame->data))[i]);
@@ -199,7 +210,7 @@ int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 		return EINVAL;
 	}
 
-	if (uint16_t_be2host(pfmt->proto_addr_space) != ETYPE_IP) {
+	if (uint16_t_be2host(pfmt->proto_addr_space) != 0x0800) {
 		log_msg(LVL_DEBUG, "Proto address space != %u (%" PRIu16 ")",
 		    ETYPE_IP, uint16_t_be2host(pfmt->proto_addr_space));
 		return EINVAL;
