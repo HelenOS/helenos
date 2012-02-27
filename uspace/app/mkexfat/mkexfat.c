@@ -145,35 +145,32 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	unsigned long fat_bytes;
 	aoff64_t const volume_bytes = (cfg->volume_count - FAT_SECTOR_START) *
 	    cfg->sector_size;
-	aoff64_t n_req_clusters;
 
 	if (cfg->cluster_size != 0) {
 		/* The user already choose the cluster size he wants */
-		n_req_clusters = volume_bytes / cfg->cluster_size;
+		cfg->total_clusters = volume_bytes / cfg->cluster_size;
 		goto skip_cluster_size_set;
 	}
 
-	n_req_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
+	cfg->total_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
 	cfg->cluster_size = DEFAULT_CLUSTER_SIZE;
 
 	/* Compute the required cluster size to index
 	 * the entire storage device and to keep the FAT
 	 * size less or equal to 64 Mb.
 	 */
-	while (n_req_clusters > 16000000ULL &&
+	while (cfg->total_clusters > 16000000ULL &&
 	    (cfg->cluster_size < 32 * 1024 * 1024)) {
 
 		cfg->cluster_size <<= 1;
-		n_req_clusters = div_round_up(volume_bytes, cfg->cluster_size);
+		cfg->total_clusters = div_round_up(volume_bytes,
+		    cfg->cluster_size);
 	}
 
 skip_cluster_size_set:
 
-	/* The first two clusters are reserved */
-	cfg->total_clusters = n_req_clusters + 2;
-
 	/* Compute the FAT size in sectors */
-	fat_bytes = (cfg->total_clusters + 1) * 4;
+	fat_bytes = (cfg->total_clusters + 3) * sizeof(uint32_t);
 	cfg->fat_sector_count = div_round_up(fat_bytes, cfg->sector_size);
 
 	/* Compute the number of the first data sector */
@@ -181,7 +178,7 @@ skip_cluster_size_set:
 	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
 
 	/* Compute the bitmap size */
-	cfg->bitmap_size = div_round_up(n_req_clusters, 8);
+	cfg->bitmap_size = div_round_up(cfg->total_clusters, 8);
 
 	/* Compute the number of clusters reserved to the bitmap */
 	cfg->allocated_clusters = div_round_up(cfg->bitmap_size,
@@ -193,6 +190,12 @@ skip_cluster_size_set:
 	/* Compute the number of clusters reserved to the upcase table */
 	cfg->allocated_clusters += div_round_up(sizeof(upcase_table),
 	    cfg->cluster_size);
+
+	/* Subtract the FAT and bootsector space from the total
+	 * number of available clusters.
+	 */
+	cfg->total_clusters -= div_round_up(cfg->data_start_sector *
+	    cfg->sector_size, cfg->cluster_size);
 
 	/* Will be set later */
 	cfg->rootdir_cluster = 0;
@@ -218,6 +221,7 @@ cfg_print_info(exfat_cfg_t *cfg)
 	printf(NAME ": FAT size in sectors:   %lu\n", cfg->fat_sector_count);
 	printf(NAME ": Data start sector:     %lu\n", cfg->data_start_sector);
 	printf(NAME ": Total num of clusters: %lu\n", cfg->total_clusters);
+	printf(NAME ": Total used clusters:   %lu\n", cfg->allocated_clusters);
 	printf(NAME ": Bitmap size:           %lu\n", (unsigned long)
 	    div_round_up(cfg->bitmap_size, cfg->cluster_size));
 	printf(NAME ": Upcase table size:     %lu\n", (unsigned long)
@@ -250,9 +254,7 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	mbs->fat_sector_count = host2uint32_t_le(cfg->fat_sector_count);
 	mbs->data_start_sector = host2uint32_t_le(cfg->data_start_sector);
 
-	mbs->data_clusters = host2uint32_t_le(cfg->total_clusters - 
-	    div_round_up(cfg->data_start_sector * cfg->sector_size,
-	    cfg->cluster_size));
+	mbs->data_clusters = host2uint32_t_le(cfg->total_clusters);
 
 	mbs->rootdir_cluster = host2uint32_t_le(cfg->rootdir_cluster);
 	mbs->volume_serial = host2uint32_t_le(0xe1028172);
@@ -816,6 +818,11 @@ int main (int argc, char **argv)
 
 	cfg_params_initialize(&cfg);
 	cfg_print_info(&cfg);
+
+	if ((cfg.total_clusters - cfg.allocated_clusters) <= 2) {
+		printf(NAME ": Error, insufficient disk space on device.\n");
+		return 2;
+	}
 
 	printf(NAME ": Writing the allocation table.\n");
 
