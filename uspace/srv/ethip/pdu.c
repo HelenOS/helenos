@@ -45,9 +45,6 @@
 #include "std.h"
 #include "pdu.h"
 
-static void mac48_encode(mac48_addr_t *addr, void *buf);
-static void mac48_decode(void *data, mac48_addr_t *addr);
-
 #define MAC48_BYTES 6
 
 /** Encode Ethernet PDU. */
@@ -115,7 +112,7 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	return EOK;
 }
 
-static void mac48_encode(mac48_addr_t *addr, void *buf)
+void mac48_encode(mac48_addr_t *addr, void *buf)
 {
 	uint64_t val;
 	uint8_t *bbuf = (uint8_t *)buf;
@@ -126,7 +123,7 @@ static void mac48_encode(mac48_addr_t *addr, void *buf)
 		bbuf[i] = (val >> (8 * (MAC48_BYTES - i - 1))) & 0xff;
 }
 
-static void mac48_decode(void *data, mac48_addr_t *addr)
+void mac48_decode(void *data, mac48_addr_t *addr)
 {
 	uint64_t val;
 	uint8_t *bdata = (uint8_t *)data;

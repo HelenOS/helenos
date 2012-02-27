@@ -45,8 +45,6 @@
 #include "pdu.h"
 #include "std.h"
 
-#define MY_ETH_ADDR 0xaafeedfaceee
-
 static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet);
 
 void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
@@ -72,7 +70,7 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 			log_msg(LVL_DEBUG, "Request on my address");
 
 			reply.opcode = aop_reply;
-			reply.sender_hw_addr.addr = MY_ETH_ADDR;
+			reply.sender_hw_addr = nic->mac_addr;
 			reply.sender_proto_addr = laddr->addr;
 			reply.target_hw_addr = packet.sender_hw_addr;
 			reply.target_proto_addr = packet.sender_proto_addr;

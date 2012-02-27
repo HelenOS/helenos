@@ -43,19 +43,6 @@
 #include <loc.h>
 #include <sys/types.h>
 
-typedef struct ethip_nic {
-	link_t nic_list;
-	service_id_t svc_id;
-	char *svc_name;
-	async_sess_t *sess;
-
-	iplink_srv_t iplink;
-	service_id_t iplink_sid;
-
-	/** List of IP addresses configured on this link */
-	list_t addr_list; /* of ethip_link_addr_t */
-} ethip_nic_t;
-
 typedef struct {
 	link_t addr_list;
 	iplink_srv_addr_t addr;
@@ -66,6 +53,21 @@ typedef struct {
 	/** MAC Address (in lowest 48 bits) */
 	uint64_t addr;
 } mac48_addr_t;
+
+typedef struct ethip_nic {
+	link_t nic_list;
+	service_id_t svc_id;
+	char *svc_name;
+	async_sess_t *sess;
+
+	iplink_srv_t iplink;
+	service_id_t iplink_sid;
+
+	/** MAC address */
+	mac48_addr_t mac_addr;
+	/** List of IP addresses configured on this link */
+	list_t addr_list; /* of ethip_link_addr_t */
+} ethip_nic_t;
 
 /** Ethernet frame */
 typedef struct {

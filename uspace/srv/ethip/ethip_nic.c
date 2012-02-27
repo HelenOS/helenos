@@ -47,6 +47,7 @@
 
 #include "ethip.h"
 #include "ethip_nic.h"
+#include "pdu.h"
 
 static int ethip_nic_open(service_id_t sid);
 static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
@@ -151,6 +152,7 @@ static int ethip_nic_open(service_id_t sid)
 	ethip_nic_t *nic;
 	int rc;
 	bool in_list = false;
+	nic_address_t nic_address;
 
 	log_msg(LVL_DEBUG, "ethip_nic_open()");
 	nic = ethip_nic_new();
@@ -186,14 +188,24 @@ static int ethip_nic_open(service_id_t sid)
 	if (rc != EOK)
 		goto error;
 
-	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
+	rc = nic_get_address(nic->sess, &nic_address);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed activating NIC '%s'.",
+		log_msg(LVL_ERROR, "Error getting MAC address of NIC '%s'.",
 		    nic->svc_name);
 		goto error;
 	}
 
-	log_msg(LVL_DEBUG, "Initialized IP link service.");
+	mac48_decode(nic_address.address, &nic->mac_addr);
+
+	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Error activating NIC '%s'.",
+		    nic->svc_name);
+		goto error;
+	}
+
+	log_msg(LVL_DEBUG, "Initialized IP link service, MAC = 0x%" PRIx64,
+	    nic->mac_addr.addr);
 
 	return EOK;
 

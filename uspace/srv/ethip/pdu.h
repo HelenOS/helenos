@@ -41,8 +41,11 @@
 
 extern int eth_pdu_encode(eth_frame_t *, void **, size_t *);
 extern int eth_pdu_decode(void *, size_t, eth_frame_t *);
+extern void mac48_encode(mac48_addr_t *, void *);
+extern void mac48_decode(void *, mac48_addr_t *);
 extern int arp_pdu_encode(arp_eth_packet_t *, void **, size_t *);
 extern int arp_pdu_decode(void *, size_t, arp_eth_packet_t *);
+
 
 #endif
 
