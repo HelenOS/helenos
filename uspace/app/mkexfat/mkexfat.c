@@ -806,7 +806,7 @@ int main (int argc, char **argv)
 	if (user_fs_size != 0) {
 		if (user_fs_size > cfg.volume_count * cfg.sector_size) {
 			printf(NAME ": Error, the device is not big enough"
-			    " to create the filesystem a filesystem of"
+			    " to create a filesystem of"
 			    " the specified size.\n");
 			return 1;
 		}
