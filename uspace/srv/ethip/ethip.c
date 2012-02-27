@@ -45,6 +45,7 @@
 #include <stdlib.h>
 
 #include "arp.h"
+#include "atrans.h"
 #include "ethip.h"
 #include "ethip_nic.h"
 #include "pdu.h"
@@ -171,11 +172,19 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	eth_frame_t frame;
 	void *data;
 	size_t size;
+	mac48_addr_t dest_mac_addr;
 	int rc;
 
 	log_msg(LVL_DEBUG, "ethip_send()");
 
-	frame.dest.addr = 0xdeeedeeedeee;
+	rc = atrans_lookup(&sdu->ldest, &dest_mac_addr);
+	if (rc != EOK) {
+		log_msg(LVL_WARN, "Failed to look up IP address 0x%" PRIx32,
+		    sdu->ldest.ipv4);
+		return rc;
+	}
+
+	frame.dest      = dest_mac_addr;
 	frame.src       = nic->mac_addr;
 	frame.etype_len = ETYPE_IP;
 	frame.data = sdu->data;

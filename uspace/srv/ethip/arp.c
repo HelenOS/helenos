@@ -40,6 +40,7 @@
 #include <stdlib.h>
 
 #include "arp.h"
+#include "atrans.h"
 #include "ethip.h"
 #include "ethip_nic.h"
 #include "pdu.h"
@@ -68,6 +69,9 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 		laddr = ethip_nic_addr_find(nic, &packet.target_proto_addr);
 		if (laddr != NULL) {
 			log_msg(LVL_DEBUG, "Request on my address");
+
+			(void) atrans_add(&packet.sender_proto_addr,
+			    &packet.sender_hw_addr);
 
 			reply.opcode = aop_reply;
 			reply.sender_hw_addr = nic->mac_addr;

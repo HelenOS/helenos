@@ -31,6 +31,7 @@ BINARY = ethip
 
 SOURCES = \
 	arp.c \
+	atrans.c \
 	ethip.c \
 	ethip_nic.c \
 	pdu.c

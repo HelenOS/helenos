@@ -108,6 +108,13 @@ typedef struct {
 	iplink_srv_addr_t target_proto_addr;
 } arp_eth_packet_t;
 
+/** Address translation table element */
+typedef struct {
+	link_t atrans_list;
+	iplink_srv_addr_t ip_addr;
+	mac48_addr_t mac_addr;
+} ethip_atrans_t;
+
 extern int ethip_iplink_init(ethip_nic_t *);
 extern int ethip_received(iplink_srv_t *, void *, size_t);
 
