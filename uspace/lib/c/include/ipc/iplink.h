@@ -39,7 +39,9 @@
 
 typedef enum {
 	IPLINK_GET_MTU = IPC_FIRST_USER_METHOD,
-	IPLINK_SEND
+	IPLINK_SEND,
+	IPLINK_ADDR_ADD,
+	IPLINK_ADDR_REMOVE
 } iplink_request_t;
 
 typedef enum {

@@ -150,6 +150,7 @@ static void inet_link_delete(inet_link_t *ilink)
 static int inet_link_open(service_id_t sid)
 {
 	inet_link_t *ilink;
+	iplink_addr_t iaddr;
 	int rc;
 
 	log_msg(LVL_DEBUG, "inet_link_open()");
@@ -193,6 +194,14 @@ static int inet_link_open(service_id_t sid)
 	addr->naddr.bits = 24;
 	addr->ilink = ilink;
 	inet_addrobj_add(addr);
+
+	iaddr.ipv4 = addr->naddr.ipv4;
+	rc = iplink_addr_add(ilink->iplink, &iaddr);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		/* XXX Roll back */
+		return rc;
+	}
 
 	return EOK;
 

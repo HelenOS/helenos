@@ -68,6 +68,8 @@ typedef struct iplink_ev_ops {
 extern int iplink_open(async_sess_t *, iplink_ev_ops_t *, iplink_t **);
 extern void iplink_close(iplink_t *);
 extern int iplink_send(iplink_t *, iplink_sdu_t *);
+extern int iplink_addr_add(iplink_t *, iplink_addr_t *);
+extern int iplink_addr_remove(iplink_t *, iplink_addr_t *);
 extern int iplink_get_mtu(iplink_t *, size_t *);
 
 #endif

@@ -50,6 +50,30 @@ static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, rc, mtu);
 }
 
+static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	int rc;
+	iplink_srv_addr_t addr;
+
+	addr.ipv4 = IPC_GET_ARG1(*call);
+
+	rc = srv->ops->addr_add(srv, &addr);
+	async_answer_0(callid, rc);
+}
+
+static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	int rc;
+	iplink_srv_addr_t addr;
+
+	addr.ipv4 = IPC_GET_ARG1(*call);
+
+	rc = srv->ops->addr_remove(srv, &addr);
+	async_answer_0(callid, rc);
+}
+
 static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
@@ -124,6 +148,12 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case IPLINK_SEND:
 			iplink_send_srv(srv, callid, &call);
+			break;
+		case IPLINK_ADDR_ADD:
+			iplink_addr_add_srv(srv, callid, &call);
+			break;
+		case IPLINK_ADDR_REMOVE:
+			iplink_addr_remove_srv(srv, callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);

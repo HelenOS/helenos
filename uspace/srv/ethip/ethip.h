@@ -51,7 +51,15 @@ typedef struct ethip_nic {
 
 	iplink_srv_t iplink;
 	service_id_t iplink_sid;
+
+	/** List of IP addresses configured on this link */
+	list_t addr_list; /* of ethip_link_addr_t */
 } ethip_nic_t;
+
+typedef struct {
+	link_t addr_list;
+	iplink_srv_addr_t addr;
+} ethip_link_addr_t;
 
 /** IEEE MAC-48 identifier */
 typedef struct {

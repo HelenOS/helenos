@@ -56,6 +56,8 @@ static int ethip_open(iplink_srv_t *srv);
 static int ethip_close(iplink_srv_t *srv);
 static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
 static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
+static int ethip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr);
+static int ethip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr);
 
 static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -63,7 +65,9 @@ static iplink_ops_t ethip_iplink_ops = {
 	.open = ethip_open,
 	.close = ethip_close,
 	.send = ethip_send,
-	.get_mtu = ethip_get_mtu
+	.get_mtu = ethip_get_mtu,
+	.addr_add = ethip_addr_add,
+	.addr_remove = ethip_addr_remove
 };
 
 static int ethip_init(void)
@@ -231,6 +235,22 @@ static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	log_msg(LVL_DEBUG, "ethip_get_mtu()");
 	*mtu = 1500;
 	return EOK;
+}
+
+static int ethip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+{
+	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
+
+	log_msg(LVL_DEBUG, "ethip_addr_add(0x%" PRIx32 ")", addr->ipv4);
+	return ethip_nic_addr_add(nic, addr);
+}
+
+static int ethip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+{
+	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
+
+	log_msg(LVL_DEBUG, "ethip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
+	return ethip_nic_addr_add(nic, addr);
 }
 
 int main(int argc, char *argv[])

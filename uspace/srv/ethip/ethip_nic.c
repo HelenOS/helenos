@@ -114,8 +114,24 @@ static ethip_nic_t *ethip_nic_new(void)
 	}
 
 	link_initialize(&nic->nic_list);
+	list_initialize(&nic->addr_list);
 
 	return nic;
+}
+
+static ethip_link_addr_t *ethip_nic_addr_new(iplink_srv_addr_t *addr)
+{
+	ethip_link_addr_t *laddr = calloc(1, sizeof(ethip_link_addr_t));
+
+	if (laddr == NULL) {
+		log_msg(LVL_ERROR, "Failed allocating NIC address structure. "
+		    "Out of memory.");
+		return NULL;
+	}
+
+	link_initialize(&laddr->addr_list);
+	laddr->addr.ipv4 = addr->ipv4;
+	return laddr;
 }
 
 static void ethip_nic_delete(ethip_nic_t *nic)
@@ -123,6 +139,11 @@ static void ethip_nic_delete(ethip_nic_t *nic)
 	if (nic->svc_name != NULL)
 		free(nic->svc_name);
 	free(nic);
+}
+
+static void ethip_link_addr_delete(ethip_link_addr_t *laddr)
+{
+	free(laddr);
 }
 
 static int ethip_nic_open(service_id_t sid)
@@ -307,14 +328,51 @@ int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 	log_msg(LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
 	rc = nic_send_frame(nic->sess, data, size);
 	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
 	return rc;
+}
+
+int ethip_nic_addr_add(ethip_nic_t *nic, iplink_srv_addr_t *addr)
+{
+	ethip_link_addr_t *laddr;
+
+	log_msg(LVL_DEBUG, "ethip_nic_addr_add()");
+	laddr = ethip_nic_addr_new(addr);
+	if (laddr == NULL)
+		return ENOMEM;
+
+	list_append(&laddr->addr_list, &nic->addr_list);
+	return EOK;
+}
+
+int ethip_nic_addr_remove(ethip_nic_t *nic, iplink_srv_addr_t *addr)
+{
+	ethip_link_addr_t *laddr;
+
+	log_msg(LVL_DEBUG, "ethip_nic_addr_remove()");
+
+	laddr = ethip_nic_addr_find(nic, addr);
+	if (laddr == NULL)
+		return ENOENT;
+
+	list_remove(&laddr->addr_list);
+	ethip_link_addr_delete(laddr);
+	return EOK;
+}
+
+ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
+    iplink_srv_addr_t *addr)
+{
+	log_msg(LVL_DEBUG, "ethip_nic_addr_find()");
+
+	list_foreach(nic->addr_list, link) {
+		ethip_link_addr_t *laddr = list_get_instance(link,
+		    ethip_link_addr_t, addr_list);
+
+		if (addr->ipv4 == laddr->addr.ipv4)
+			return laddr;
+	}
+
+	return NULL;
 }
 
 /** @}

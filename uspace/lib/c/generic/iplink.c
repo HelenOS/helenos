@@ -120,6 +120,26 @@ int iplink_get_mtu(iplink_t *iplink, size_t *rmtu)
 	return EOK;
 }
 
+int iplink_addr_add(iplink_t *iplink, iplink_addr_t *addr)
+{
+	async_exch_t *exch = async_exchange_begin(iplink->sess);
+
+	int rc = async_req_1_0(exch, IPLINK_ADDR_ADD, (sysarg_t)addr->ipv4);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+int iplink_addr_remove(iplink_t *iplink, iplink_addr_t *addr)
+{
+	async_exch_t *exch = async_exchange_begin(iplink->sess);
+
+	int rc = async_req_1_0(exch, IPLINK_ADDR_REMOVE, (sysarg_t)addr->ipv4);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t callid,
     ipc_call_t *call)
 {

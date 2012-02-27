@@ -45,7 +45,6 @@
 #include "pdu.h"
 #include "std.h"
 
-#define MY_IPV4_ADDR ( (192 << 24) | (168 << 16) | (0 << 8) | 4U )
 #define MY_ETH_ADDR 0xaafeedfaceee
 
 static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet);
@@ -55,6 +54,7 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 	int rc;
 	arp_eth_packet_t packet;
 	arp_eth_packet_t reply;
+	ethip_link_addr_t *laddr;
 
 	log_msg(LVL_DEBUG, "arp_received()");
 
@@ -64,17 +64,21 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 
 	log_msg(LVL_DEBUG, "ARP PDU decoded, opcode=%d, tpa=%x",
 	    packet.opcode, packet.target_proto_addr.ipv4);
-	if (packet.opcode == aop_request &&
-	    packet.target_proto_addr.ipv4 == MY_IPV4_ADDR) {
-		log_msg(LVL_DEBUG, "Request on my address");
+	if (packet.opcode == aop_request) {
+		log_msg(LVL_DEBUG, "ARP request");
 
-		reply.opcode = aop_reply;
-		reply.sender_hw_addr.addr = MY_ETH_ADDR;
-		reply.sender_proto_addr.ipv4 = MY_IPV4_ADDR;
-		reply.target_hw_addr = packet.sender_hw_addr;
-		reply.target_proto_addr = packet.sender_proto_addr;
+		laddr = ethip_nic_addr_find(nic, &packet.target_proto_addr);
+		if (laddr != NULL) {
+			log_msg(LVL_DEBUG, "Request on my address");
 
-		arp_send_packet(nic, &reply);
+			reply.opcode = aop_reply;
+			reply.sender_hw_addr.addr = MY_ETH_ADDR;
+			reply.sender_proto_addr = laddr->addr;
+			reply.target_hw_addr = packet.sender_hw_addr;
+			reply.target_proto_addr = packet.sender_proto_addr;
+
+			arp_send_packet(nic, &reply);
+		}
 	}
 }
 
