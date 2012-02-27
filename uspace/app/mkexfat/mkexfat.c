@@ -817,6 +817,8 @@ int main (int argc, char **argv)
 	cfg_params_initialize(&cfg);
 	cfg_print_info(&cfg);
 
+	printf(NAME ": Writing the allocation table.\n");
+
 	/* Initialize the FAT table */
 	rc = fat_initialize(service_id, &cfg);
 	if (rc != EOK) {
@@ -857,6 +859,8 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
+	printf(NAME ": Writing the allocation bitmap.\n");
+
 	/* Write the allocation bitmap to disk */
 	rc = bitmap_write(service_id, &cfg);
 	if (rc != EOK) {
@@ -865,6 +869,8 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
+	printf(NAME ": Writing the upcase table.\n");
+
 	/* Write the upcase table to disk */
 	rc = upcase_table_write(service_id, &cfg);
 	if (rc != EOK) {
@@ -872,6 +878,8 @@ int main (int argc, char **argv)
 		    " upcase table to disk.\n");
 		return 2;
 	}
+
+	printf(NAME ": Writing the root directory.\n");
 
 	rc = root_dentries_write(service_id, &cfg);
 	if (rc != EOK) {
@@ -885,6 +893,8 @@ int main (int argc, char **argv)
 		printf(NAME ": Error, failed to write the VBR to disk\n");
 		return 2;
 	}
+
+	printf("Success.\n");
 
 	return 0;
 }
