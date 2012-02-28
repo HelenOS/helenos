@@ -163,8 +163,7 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	    (cfg->cluster_size < 32 * 1024 * 1024)) {
 
 		cfg->cluster_size <<= 1;
-		cfg->total_clusters = div_round_up(volume_bytes,
-		    cfg->cluster_size);
+		cfg->total_clusters = volume_bytes / cfg->cluster_size;
 	}
 
 skip_cluster_size_set:
@@ -176,6 +175,13 @@ skip_cluster_size_set:
 	/* Compute the number of the first data sector */
 	cfg->data_start_sector = ROUND_UP(FAT_SECTOR_START +
 	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
+
+	/* Subtract the FAT and bootsector space from the total
+	 * number of available clusters.
+	 */
+	cfg->total_clusters -= div_round_up((cfg->data_start_sector -
+	    FAT_SECTOR_START) * cfg->sector_size,
+	    cfg->cluster_size);
 
 	/* Compute the bitmap size */
 	cfg->bitmap_size = div_round_up(cfg->total_clusters, 8);
@@ -190,12 +196,6 @@ skip_cluster_size_set:
 	/* Compute the number of clusters reserved to the upcase table */
 	cfg->allocated_clusters += div_round_up(sizeof(upcase_table),
 	    cfg->cluster_size);
-
-	/* Subtract the FAT and bootsector space from the total
-	 * number of available clusters.
-	 */
-	cfg->total_clusters -= div_round_up(cfg->data_start_sector *
-	    cfg->sector_size, cfg->cluster_size);
 
 	/* Will be set later */
 	cfg->rootdir_cluster = 0;
