@@ -143,6 +143,7 @@ static void
 cfg_params_initialize(exfat_cfg_t *cfg)
 {
 	unsigned long fat_bytes;
+	unsigned long fat_cls;
 	aoff64_t const volume_bytes = (cfg->volume_count - FAT_SECTOR_START) *
 	    cfg->sector_size;
 
@@ -179,9 +180,15 @@ skip_cluster_size_set:
 	/* Subtract the FAT space from the total
 	 * number of available clusters.
 	 */
-	cfg->total_clusters -= div_round_up((cfg->data_start_sector -
+	fat_cls = div_round_up((cfg->data_start_sector -
 	    FAT_SECTOR_START) * cfg->sector_size,
 	    cfg->cluster_size);
+	if (fat_cls >= cfg->total_clusters) {
+		/* Insufficient disk space on device */
+		cfg->total_clusters = 0;
+		return;
+	}
+	cfg->total_clusters -= fat_cls;
 
 	/* Compute the bitmap size */
 	cfg->bitmap_size = div_round_up(cfg->total_clusters, 8);
@@ -820,7 +827,7 @@ int main (int argc, char **argv)
 	cfg_params_initialize(&cfg);
 	cfg_print_info(&cfg);
 
-	if ((cfg.total_clusters - cfg.allocated_clusters) <= 2) {
+	if (cfg.total_clusters <= cfg.allocated_clusters + 2) {
 		printf(NAME ": Error, insufficient disk space on device.\n");
 		return 2;
 	}
@@ -895,6 +902,8 @@ int main (int argc, char **argv)
 		    " entries to disk.\n");
 		return 2;
 	}
+
+	printf(NAME ": Writing the boot sectors.\n");
 
 	rc = bootsec_write(service_id, &cfg);
 	if (rc != EOK) {
