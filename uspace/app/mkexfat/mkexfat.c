@@ -176,7 +176,7 @@ skip_cluster_size_set:
 	cfg->data_start_sector = ROUND_UP(FAT_SECTOR_START +
 	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
 
-	/* Subtract the FAT and bootsector space from the total
+	/* Subtract the FAT space from the total
 	 * number of available clusters.
 	 */
 	cfg->total_clusters -= div_round_up((cfg->data_start_sector -
