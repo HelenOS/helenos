@@ -374,7 +374,7 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
 	/* The next sector is reserved, fill it with zeroes too */
 	vbr_checksum_update(ebs, cfg->sector_size, chksum);
 
-	rc = block_write_direct(service_id, i++ + base, 1, ebs);
+	rc = block_write_direct(service_id, i + base, 1, ebs);
 	if (rc != EOK)
 		goto exit;
 
@@ -457,7 +457,8 @@ loop:
 
 	if (cur_cls == fat_entries) {
 		/* This sector is full, there are no more free entries,
-		 * read the next sector and restart the search.
+		 * commit the changes to disk and restart from the next
+		 * sector.
 		 */
 		rc = block_write_direct(service_id, fat_sec++, 1, fat);
 		if (rc != EOK)
