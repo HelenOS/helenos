@@ -509,27 +509,31 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	memcpy(&tmp_hinfo, hinfo, sizeof(ext4_hash_info_t));
 
 	while ((void *)dentry < old_data_block->data + block_size) {
-		char *name = (char *)dentry->name;
 
-		uint8_t len = ext4_directory_entry_ll_get_name_length(fs->superblock, dentry);
-		ext4_hash_string(&tmp_hinfo, len, name);
+		// Read only valid entries
+		if (ext4_directory_entry_ll_get_inode(dentry) != 0) {
+			char *name = (char *)dentry->name;
 
-		uint32_t rec_len = 8 + len;
+			uint8_t len = ext4_directory_entry_ll_get_name_length(fs->superblock, dentry);
+			ext4_hash_string(&tmp_hinfo, len, name);
 
-		if ((rec_len % 4) != 0) {
-			rec_len += 4 - (rec_len % 4);
+			uint32_t rec_len = 8 + len;
+
+			if ((rec_len % 4) != 0) {
+				rec_len += 4 - (rec_len % 4);
+			}
+
+			memcpy(entry_buffer_ptr, dentry, rec_len);
+
+			sort_array[idx].dentry = entry_buffer_ptr;
+			sort_array[idx].rec_len = rec_len;
+			sort_array[idx].hash = tmp_hinfo.hash;
+
+			entry_buffer_ptr += rec_len;
+			real_size += rec_len;
+			idx++;
 		}
 
-		memcpy(entry_buffer_ptr, dentry, rec_len);
-
-		sort_array[idx].dentry = entry_buffer_ptr;
-		sort_array[idx].rec_len = rec_len;
-		sort_array[idx].hash = tmp_hinfo.hash;
-
-		entry_buffer_ptr += rec_len;
-		real_size += rec_len;
-
-		idx++;
 		dentry = (void *)dentry + ext4_directory_entry_ll_get_entry_length(dentry);
 	}
 
@@ -568,6 +572,11 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		}
 
 		current_size += sort_array[i].rec_len;
+	}
+
+	uint32_t continued = 0;
+	if (new_hash == sort_array[mid-1].hash) {
+		continued = 1;
 	}
 
 	uint32_t offset = 0;
@@ -623,7 +632,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	memmove(new_index_entry + 1, new_index_entry, bytes);
 
 	ext4_directory_dx_entry_set_block(new_index_entry, new_iblock);
-	ext4_directory_dx_entry_set_hash(new_index_entry, new_hash);
+	ext4_directory_dx_entry_set_hash(new_index_entry, new_hash + continued);
 
 	ext4_directory_dx_countlimit_set_count(countlimit, count + 1);
 
@@ -843,13 +852,22 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 
 success:
 
-	block_put(target_block);
-	block_put(new_block);
+	rc = block_put(target_block);
+	if (rc != EOK) {
+		EXT4FS_DBG("error writing target block");
+	}
+	rc = block_put(new_block);
+	if (rc != EOK) {
+		EXT4FS_DBG("error writing new block");
+	}
 
 	ext4_directory_dx_block_t *dx_it = dx_blocks;
 
 	while (dx_it <= dx_block) {
-		block_put(dx_it->block);
+		rc = block_put(dx_it->block);
+		if (rc != EOK) {
+			EXT4FS_DBG("error writing index block \%u", (uint32_t)dx_it->block->pba);
+		}
 		dx_it++;
 	}
 

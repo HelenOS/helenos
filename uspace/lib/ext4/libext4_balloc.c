@@ -241,7 +241,8 @@ static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *i
 	return goal;
 }
 
-int ext4_balloc_alloc_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, uint32_t *fblock)
+int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 {
 	int rc;
 	uint32_t allocated_block = 0;
@@ -461,6 +462,7 @@ success:
 	ext4_superblock_set_free_blocks_count(fs->superblock, sb_free_blocks);
 
 	// Update inode blocks (different block size!) count
+
 	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
 	ino_blocks += block_size / EXT4_INODE_BLOCK_SIZE;
 	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
