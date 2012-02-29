@@ -798,14 +798,14 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		// Initialize block
 		memset(new_block->data, 0, block_size);
 
+		ext4_directory_dx_node_t *new_node = new_block->data;
+		ext4_directory_dx_entry_t *new_entries = new_node->entries;
+
 		if (levels > 0) {
 			EXT4FS_DBG("split index");
 			uint32_t count_left = leaf_count / 2;
 			uint32_t count_right = leaf_count - count_left;
 			uint32_t hash_right = ext4_directory_dx_entry_get_hash(entries);
-
-			ext4_directory_dx_node_t *new_node = new_block->data;
-			ext4_directory_dx_entry_t *new_entries = new_node->entries;
 
 			memcpy((void *) new_entries, (void *) (entries + count_left),
 					count_right * sizeof(ext4_directory_dx_entry_t));
@@ -818,7 +818,6 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 
 	        uint32_t entry_space = block_size - sizeof(ext4_fake_directory_entry_t);
 	        uint32_t node_limit = entry_space / sizeof(ext4_directory_dx_entry_t);
-
 	        ext4_directory_dx_countlimit_set_limit(right_countlimit, node_limit);
 
 	        // Which index block is target for new entry
@@ -838,6 +837,32 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 
 		} else {
 			EXT4FS_DBG("create second level");
+
+			memcpy((void *) new_entries, (void *) entries,
+					leaf_count * sizeof(ext4_directory_dx_entry_t));
+
+			ext4_directory_dx_countlimit_t *new_countlimit =
+					(ext4_directory_dx_countlimit_t *)new_entries;
+
+	        uint32_t entry_space = block_size - sizeof(ext4_fake_directory_entry_t);
+	        uint32_t node_limit = entry_space / sizeof(ext4_directory_dx_entry_t);
+	        ext4_directory_dx_countlimit_set_limit(new_countlimit, node_limit);
+
+            // Set values in root node
+	        ext4_directory_dx_countlimit_t *new_root_countlimit =
+	        		(ext4_directory_dx_countlimit_t *)entries;
+
+	        ext4_directory_dx_countlimit_set_limit(new_root_countlimit, 1);
+	        ext4_directory_dx_entry_set_block(entries, new_iblock);
+
+	        ((ext4_directory_dx_root_t *)dx_blocks[0].block->data)->info.indirect_levels = 1;
+
+            /* Add new access path frame */
+	        dx_block = dx_blocks + 1;
+	        dx_block->position = dx_block->position - entries + new_entries;
+	        dx_block->entries = new_entries;
+	        entries = dx_block->entries;
+            dx_block->block = new_block;
 		}
 	}
 
