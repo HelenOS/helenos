@@ -598,6 +598,7 @@ root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 	aoff64_t rootdir_sec;
 	int rc;
 	uint8_t *data;
+	unsigned long i;
 
 	data = calloc(cfg->sector_size, 1);
 	if (!data)
@@ -634,7 +635,20 @@ root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 	    cfg->sector_size;
 
 	rc = block_write_direct(service_id, rootdir_sec, 1, data);
+	if (rc != EOK)
+		goto exit;
 
+	/* Fill the content of the sectors not used by the
+	 * root directory with zeroes.
+	 */
+	memset(data, 0, cfg->sector_size);
+	for (i = 1; i < cfg->cluster_size / cfg->sector_size; ++i) {
+		rc = block_write_direct(service_id, rootdir_sec + i, 1, data);
+		if (rc != EOK)
+			goto exit;
+	}
+
+exit:
 	free(data);
 	return rc;
 }
