@@ -802,12 +802,12 @@ int main (int argc, char **argv)
 
 	rc = block_get_bsize(service_id, &cfg.sector_size);
 	if (rc != EOK) {
-		printf(NAME ": Error determining device block size.\n");
+		printf(NAME ": Error determining device sector size.\n");
 		return 2;
 	}
 
 	user_fs_size *= cfg.sector_size;
-	if (user_fs_size < 1024 * 1024) {
+	if (user_fs_size > 0 && user_fs_size < 1024 * 1024) {
 		printf(NAME ": Error, fs size can't be less"
 		    " than 1 Mb.\n");
 		return 1;
@@ -823,8 +823,13 @@ int main (int argc, char **argv)
 	rc = block_get_nblocks(service_id, &cfg.volume_count);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain" \
-		    " device block size.\n");
-		return 1;
+		    " block device size.\n");
+
+		if (user_fs_size == 0) {
+			printf(NAME ": You must specify the" \
+			    " filesystem size.\n");
+			return 1;
+		}
 	} else {
 		printf("Block device has %" PRIuOFF64 " blocks.\n",
 		    cfg.volume_count);
