@@ -786,6 +786,13 @@ int main (int argc, char **argv)
 	argv += optind;
 	dev_path = *argv;
 
+	if (!dev_path) {
+		printf(NAME ": Error, you must specify a valid block"
+		    " device.\n");
+		usage();
+		return 1;
+	}
+
 	printf("Device = %s\n", dev_path);
 
 	rc = loc_service_get_id(dev_path, &service_id, 0);
