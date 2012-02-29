@@ -132,7 +132,7 @@ static void usage(void)
 {
 	printf("Usage: mkexfat [options] <device>\n"
 	    "-c, --cluster-size ## Specify the cluster size (Kb)\n"
-	    "-s, --fs-size ##      Specify the filesystem size (byte)\n");
+	    "-s, --fs-size ##      Specify the filesystem size (sectors)\n");
 }
 
 /** Initialize the exFAT params structure.
@@ -760,11 +760,6 @@ int main (int argc, char **argv)
 			return 0;
 		case 's':
 			user_fs_size = (aoff64_t) strtol(optarg, NULL, 10);
-			if (user_fs_size < 1024 * 1024) {
-				printf(NAME ": Error, fs size can't be less"
-				    " than 1 Mb.\n");
-				return 1;
-			}
 			break;
 
 		case 'c':
@@ -810,6 +805,14 @@ int main (int argc, char **argv)
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
+
+	user_fs_size *= cfg.sector_size;
+	if (user_fs_size < 1024 * 1024) {
+		printf(NAME ": Error, fs size can't be less"
+		    " than 1 Mb.\n");
+		return 1;
+	}
+
 
 	if (cfg.sector_size > 4096) {
 		printf(NAME ": Error, sector size can't be greater" \
