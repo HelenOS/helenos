@@ -221,17 +221,17 @@ skip_cluster_size_set:
 static void
 cfg_print_info(exfat_cfg_t *cfg)
 {
-	printf(NAME ": Sector size:           %lu\n",
+	printf("Sector size:           %lu\n",
 	    (unsigned long) cfg->sector_size);
-	printf(NAME ": Cluster size:          %lu\n",
+	printf("Cluster size:          %lu\n",
 	    (unsigned long) cfg->cluster_size);
-	printf(NAME ": FAT size in sectors:   %lu\n", cfg->fat_sector_count);
-	printf(NAME ": Data start sector:     %lu\n", cfg->data_start_sector);
-	printf(NAME ": Total num of clusters: %lu\n", cfg->total_clusters);
-	printf(NAME ": Total used clusters:   %lu\n", cfg->allocated_clusters);
-	printf(NAME ": Bitmap size:           %lu\n", (unsigned long)
+	printf("FAT size in sectors:   %lu\n", cfg->fat_sector_count);
+	printf("Data start sector:     %lu\n", cfg->data_start_sector);
+	printf("Total num of clusters: %lu\n", cfg->total_clusters);
+	printf("Total used clusters:   %lu\n", cfg->allocated_clusters);
+	printf("Bitmap size:           %lu\n", (unsigned long)
 	    div_round_up(cfg->bitmap_size, cfg->cluster_size));
-	printf(NAME ": Upcase table size:     %lu\n", (unsigned long)
+	printf("Upcase table size:     %lu\n", (unsigned long)
 	    div_round_up(sizeof(upcase_table), cfg->cluster_size));
 }
 
@@ -791,7 +791,7 @@ int main (int argc, char **argv)
 	argv += optind;
 	dev_path = *argv;
 
-	printf(NAME ": Device = %s\n", dev_path);
+	printf("Device = %s\n", dev_path);
 
 	rc = loc_service_get_id(dev_path, &service_id, 0);
 	if (rc != EOK) {
@@ -823,7 +823,7 @@ int main (int argc, char **argv)
 		    " device block size.\n");
 		return 1;
 	} else {
-		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
+		printf("Block device has %" PRIuOFF64 " blocks.\n",
 		    cfg.volume_count);
 	}
 
@@ -846,7 +846,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Writing the allocation table.\n");
+	printf("Writing the allocation table.\n");
 
 	/* Initialize the FAT table */
 	rc = fat_initialize(service_id, &cfg);
@@ -888,7 +888,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Writing the allocation bitmap.\n");
+	printf("Writing the allocation bitmap.\n");
 
 	/* Write the allocation bitmap to disk */
 	rc = bitmap_write(service_id, &cfg);
@@ -898,7 +898,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Writing the upcase table.\n");
+	printf("Writing the upcase table.\n");
 
 	/* Write the upcase table to disk */
 	rc = upcase_table_write(service_id, &cfg);
@@ -908,7 +908,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Writing the root directory.\n");
+	printf("Writing the root directory.\n");
 
 	rc = root_dentries_write(service_id, &cfg);
 	if (rc != EOK) {
@@ -917,7 +917,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Writing the boot sectors.\n");
+	printf("Writing the boot sectors.\n");
 
 	rc = bootsec_write(service_id, &cfg);
 	if (rc != EOK) {
