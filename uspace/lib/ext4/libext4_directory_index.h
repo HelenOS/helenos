@@ -67,13 +67,15 @@ typedef struct ext4_directory_dx_root {
 		ext4_directory_dx_entry_t entries[0];
 } ext4_directory_dx_root_t;
 
+typedef struct ext4_fake_directory_entry {
+	uint32_t inode;
+	uint16_t entry_length;
+	uint8_t name_length;
+	uint8_t inode_type;
+} ext4_fake_directory_entry_t;
+
 typedef struct ext4_directory_dx_node {
-	struct fake_directory_entry {
-		uint32_t inode;
-		uint16_t entry_length;
-	    uint8_t name_length;
-	    uint8_t inode_type;
-	} fake;
+	ext4_fake_directory_entry_t fake;
 	ext4_directory_dx_entry_t entries[0];
 } ext4_directory_dx_node_t;
 

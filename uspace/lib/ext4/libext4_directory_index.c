@@ -475,6 +475,29 @@ static int dx_entry_comparator(void *arg1, void *arg2, void *dummy)
 
 }
 
+static void ext4_directory_dx_insert_entry(
+		ext4_directory_dx_block_t *index_block, uint32_t hash, uint32_t iblock)
+{
+	ext4_directory_dx_entry_t *old_index_entry = index_block->position;
+	ext4_directory_dx_entry_t *new_index_entry = old_index_entry + 1;
+
+	ext4_directory_dx_countlimit_t *countlimit =
+			(ext4_directory_dx_countlimit_t *)index_block->entries;
+	uint32_t count = ext4_directory_dx_countlimit_get_count(countlimit);
+
+	ext4_directory_dx_entry_t *start_index = index_block->entries;
+	size_t bytes = (void *)(start_index + count) - (void *)(new_index_entry);
+
+	memmove(new_index_entry + 1, new_index_entry, bytes);
+
+	ext4_directory_dx_entry_set_block(new_index_entry, iblock);
+	ext4_directory_dx_entry_set_hash(new_index_entry, hash);
+
+	ext4_directory_dx_countlimit_set_count(countlimit, count + 1);
+
+	index_block->block->dirty = true;
+}
+
 static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, ext4_hash_info_t *hinfo,
 		block_t *old_data_block, ext4_directory_dx_block_t *index_block, block_t **new_data_block)
@@ -619,24 +642,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	free(sort_array);
 	free(entry_buffer);
 
-	ext4_directory_dx_entry_t *old_index_entry = index_block->position;
-	ext4_directory_dx_entry_t *new_index_entry = old_index_entry + 1;
-
-	ext4_directory_dx_countlimit_t *countlimit =
-			(ext4_directory_dx_countlimit_t *)index_block->entries;
-	uint32_t count = ext4_directory_dx_countlimit_get_count(countlimit);
-
-	ext4_directory_dx_entry_t *start_index = index_block->entries;
-	size_t bytes = (void *)(start_index + count) - (void *)(new_index_entry);
-
-	memmove(new_index_entry + 1, new_index_entry, bytes);
-
-	ext4_directory_dx_entry_set_block(new_index_entry, new_iblock);
-	ext4_directory_dx_entry_set_hash(new_index_entry, new_hash + continued);
-
-	ext4_directory_dx_countlimit_set_count(countlimit, count + 1);
-
-	index_block->block->dirty = true;
+	ext4_directory_dx_insert_entry(index_block, new_hash + continued, new_iblock);
 
 	*new_data_block = new_data_block_tmp;
 
@@ -758,43 +764,81 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 	uint16_t leaf_limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
 	uint16_t leaf_count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)entries);
 
-//	ext4_directory_dx_entry_t *root_entries = ((ext4_directory_dx_node_t *) dx_blocks[0].block->data)->entries;
+	ext4_directory_dx_entry_t *root_entries = ((ext4_directory_dx_node_t *) dx_blocks[0].block->data)->entries;
 
 	if (leaf_limit == leaf_count) {
 		EXT4FS_DBG("need to split index block !!!");
 
-//		unsigned int levels = dx_block - dx_blocks;
-//
-//		uint16_t root_limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)root_entries);
-//		uint16_t root_count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)root_entries);
-//
-//		if ((levels > 0) && (root_limit == root_count)) {
-//			EXT4FS_DBG("Directory index is full");
-//
-//			// ENOSPC - cleanup !!!
-//			return ENOSPC;
-//		}
-//
-//		uint32_t fblock;
-//		rc =  ext4_directory_append_block(fs, parent, &fblock);
-//		if (rc != EOK) {
-//			// TODO error
-//		}
-//
-//		// New block allocated
-//		block_t * new_block;
-//		rc = block_get(&new_block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
-//		if (rc != EOK) {
-//			// TODO error
-//		}
-//
-//		memset(new_block->data, 0, block_size);
-//
-//		if (levels > 0) {
-//			EXT4FS_DBG("split index");
-//		} else {
-//			EXT4FS_DBG("create second level");
-//		}
+		unsigned int levels = dx_block - dx_blocks;
+
+		uint16_t root_limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)root_entries);
+		uint16_t root_count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)root_entries);
+
+		if ((levels > 0) && (root_limit == root_count)) {
+			EXT4FS_DBG("Directory index is full");
+
+			// ENOSPC - cleanup !!!
+			return ENOSPC;
+		}
+
+		uint32_t new_fblock;
+		uint32_t new_iblock;
+		rc =  ext4_directory_append_block(fs, parent, &new_fblock, &new_iblock);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		// New block allocated
+		block_t * new_block;
+		rc = block_get(&new_block, fs->device, new_fblock, BLOCK_FLAGS_NOREAD);
+		if (rc != EOK) {
+			// TODO error
+		}
+
+		// Initialize block
+		memset(new_block->data, 0, block_size);
+
+		if (levels > 0) {
+			EXT4FS_DBG("split index");
+			uint32_t count_left = leaf_count / 2;
+			uint32_t count_right = leaf_count - count_left;
+			uint32_t hash_right = ext4_directory_dx_entry_get_hash(entries);
+
+			ext4_directory_dx_node_t *new_node = new_block->data;
+			ext4_directory_dx_entry_t *new_entries = new_node->entries;
+
+			memcpy((void *) new_entries, (void *) (entries + count_left),
+					count_right * sizeof(ext4_directory_dx_entry_t));
+
+			ext4_directory_dx_countlimit_t *left_countlimit = (ext4_directory_dx_countlimit_t *)entries;
+			ext4_directory_dx_countlimit_t *right_countlimit = (ext4_directory_dx_countlimit_t *)new_entries;
+
+			ext4_directory_dx_countlimit_set_count(left_countlimit, count_left);
+			ext4_directory_dx_countlimit_set_count(right_countlimit, count_right);
+
+	        uint32_t entry_space = block_size - sizeof(ext4_fake_directory_entry_t);
+	        uint32_t node_limit = entry_space / sizeof(ext4_directory_dx_entry_t);
+
+	        ext4_directory_dx_countlimit_set_limit(right_countlimit, node_limit);
+
+	        // Which index block is target for new entry
+	        uint32_t position_index = (dx_block->position - dx_block->entries);
+	        if (position_index >= count_left) {
+	        	dx_block->position = new_entries + position_index - count_left;
+	        	dx_block->entries = new_entries;
+	        	entries = dx_block->entries;
+
+	        	dx_block->block->dirty = true;
+	        	block_put(dx_block->block);
+	        	dx_block->block = new_block;
+	        }
+
+	    	ext4_directory_dx_insert_entry(dx_blocks, hash_right, new_iblock);
+
+
+		} else {
+			EXT4FS_DBG("create second level");
+		}
 	}
 
 	block_t *new_block = NULL;
