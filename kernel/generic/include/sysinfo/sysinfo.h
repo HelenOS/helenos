@@ -72,9 +72,9 @@ typedef struct {
  */
 typedef union {
 	sysarg_t val;               /**< Constant numberic value */
+	sysinfo_data_t data;        /**< Constant binary data */
 	sysinfo_fn_val_t fn_val;    /**< Generated numeric value function */
 	sysinfo_fn_data_t fn_data;  /**< Generated binary data function */
-	sysinfo_data_t data;        /**< Constant binary data */
 } sysinfo_item_val_t;
 
 /** Sysinfo return holder
@@ -94,14 +94,22 @@ typedef struct {
 } sysinfo_return_t;
 
 /** Generated subtree function */
-typedef sysinfo_return_t (*sysinfo_fn_subtree_t)(const char *, bool);
+typedef sysinfo_return_t (*sysinfo_fn_subtree_t)(const char *, bool, void *);
+
+/** Sysinfo generated subtree data
+ *
+ */
+typedef struct {
+	sysinfo_fn_subtree_t fn;  /**< Generated subtree function */
+	void *data;               /**< Private data */
+} sysinfo_fn_subtree_data_t;
 
 /** Sysinfo subtree (union)
  *
  */
 typedef union {
-	struct sysinfo_item *table;     /**< Fixed subtree (list of subitems) */
-	sysinfo_fn_subtree_t get_data;  /**< Generated subtree function */
+	struct sysinfo_item *table;           /**< Fixed subtree (list of subitems) */
+	sysinfo_fn_subtree_data_t generator;  /**< Generated subtree */
 } sysinfo_subtree_t;
 
 /** Sysinfo item
@@ -129,7 +137,7 @@ extern void sysinfo_set_item_fn_data(const char *, sysinfo_item_t **,
 extern void sysinfo_set_item_undefined(const char *, sysinfo_item_t **);
 
 extern void sysinfo_set_subtree_fn(const char *, sysinfo_item_t **,
-    sysinfo_fn_subtree_t);
+    sysinfo_fn_subtree_t, void *);
 
 extern void sysinfo_init(void);
 extern void sysinfo_dump(sysinfo_item_t *);

@@ -450,6 +450,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
  *
  * @param name    Task ID (string-encoded number).
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Sysinfo return holder. The type of the returned
  *         data is either SYSINFO_VAL_UNDEFINED (unknown
@@ -459,7 +460,8 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
  *         sysinfo request context).
  *
  */
-static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
+static sysinfo_return_t get_stats_task(const char *name, bool dry_run,
+    void *data)
 {
 	/* Initially no return value */
 	sysinfo_return_t ret;
@@ -519,6 +521,7 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
  *
  * @param name    Thread ID (string-encoded number).
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Sysinfo return holder. The type of the returned
  *         data is either SYSINFO_VAL_UNDEFINED (unknown
@@ -528,7 +531,8 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
  *         sysinfo request context).
  *
  */
-static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
+static sysinfo_return_t get_stats_thread(const char *name, bool dry_run,
+    void *data)
 {
 	/* Initially no return value */
 	sysinfo_return_t ret;
@@ -633,6 +637,7 @@ static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
  *
  * @param name    Exception number (string-encoded number).
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Sysinfo return holder. The type of the returned
  *         data is either SYSINFO_VAL_UNDEFINED (unknown
@@ -642,7 +647,8 @@ static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
  *         sysinfo request context).
  *
  */
-static sysinfo_return_t get_stats_exception(const char *name, bool dry_run)
+static sysinfo_return_t get_stats_exception(const char *name, bool dry_run,
+    void *data)
 {
 	/* Initially no return value */
 	sysinfo_return_t ret;
@@ -816,9 +822,9 @@ void stats_init(void)
 	sysinfo_set_item_fn_data("system.tasks", NULL, get_stats_tasks);
 	sysinfo_set_item_fn_data("system.threads", NULL, get_stats_threads);
 	sysinfo_set_item_fn_data("system.exceptions", NULL, get_stats_exceptions);
-	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task);
-	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread);
-	sysinfo_set_subtree_fn("system.exceptions", NULL, get_stats_exception);
+	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task, NULL);
+	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread, NULL);
+	sysinfo_set_subtree_fn("system.exceptions", NULL, get_stats_exception, NULL);
 }
 
 /** @}

@@ -150,7 +150,8 @@ NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
 				    cur->subtree.table, ret, dry_run);
 			case SYSINFO_SUBTREE_FUNCTION:
 				/* Get generated data */
-				**ret = cur->subtree.get_data(name + i + 1, dry_run);
+				**ret = cur->subtree.generator.fn(name + i + 1, dry_run,
+				    cur->subtree.generator.data);
 				return NULL;
 			default:
 				/* Not found, no data generated */
@@ -430,10 +431,11 @@ void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
  * @param root Pointer to the root item or where to store
  *             a new root item (NULL for global sysinfo root).
  * @param fn   Subtree generator function.
+ * @param data Private data to be passed to the generator.
  *
  */
 void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
-    sysinfo_fn_subtree_t fn)
+    sysinfo_fn_subtree_t fn, void *data)
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
@@ -447,7 +449,8 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 	   a fixed subtree */
 	if ((item != NULL) && (item->subtree_type != SYSINFO_SUBTREE_TABLE)) {
 		item->subtree_type = SYSINFO_SUBTREE_FUNCTION;
-		item->subtree.get_data = fn;
+		item->subtree.generator.fn = fn;
+		item->subtree.generator.data = data;
 	}
 	
 	mutex_unlock(&sysinfo_lock);
