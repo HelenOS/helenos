@@ -444,6 +444,7 @@ fat_allocate_clusters(service_id_t service_id, exfat_cfg_t *cfg,
 	unsigned const fat_entries = cfg->sector_size / sizeof(uint32_t);
 	aoff64_t fat_sec = cur_cls / fat_entries + FAT_SECTOR_START;
 	uint32_t *fat;
+	uint32_t next_cls = cur_cls;
 
 	cur_cls %= fat_entries;
 
@@ -460,7 +461,7 @@ loop:
 	assert(ncls > 0);
 
 	for (; cur_cls < fat_entries && ncls > 1; ++cur_cls, --ncls)
-		fat[cur_cls] = host2uint32_t_le(cur_cls + 1);
+		fat[cur_cls] = host2uint32_t_le(++next_cls);
 
 	if (cur_cls == fat_entries) {
 		/* This sector is full, there are no more free entries,
