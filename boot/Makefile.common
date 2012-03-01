@@ -168,6 +168,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
