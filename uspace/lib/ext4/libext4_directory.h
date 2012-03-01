@@ -105,6 +105,8 @@ extern int ext4_directory_find_entry(ext4_directory_iterator_t *,
 extern int ext4_directory_remove_entry(ext4_filesystem_t* ,
 		ext4_inode_ref_t *, const char *);
 
+extern int ext4_directory_try_insert_entry(ext4_superblock_t *,
+		block_t *, ext4_inode_ref_t *, const char *, uint32_t);
 #endif
 
 /**

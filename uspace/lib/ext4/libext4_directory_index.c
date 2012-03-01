@@ -502,7 +502,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *inode_ref, ext4_hash_info_t *hinfo,
 		block_t *old_data_block, ext4_directory_dx_block_t *index_block, block_t **new_data_block)
 {
-	int rc;
+	int rc = EOK;
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	void *entry_buffer = malloc(block_size);
@@ -651,10 +651,10 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 
 
 int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *parent, ext4_inode_ref_t *child,
-		size_t name_size, const char *name)
+		ext4_inode_ref_t *parent, ext4_inode_ref_t *child, const char *name)
 {
-	int rc;
+	int rc = EOK;
+	int rc2;
 
 	// get direct block 0 (index root)
 	uint32_t root_block_addr;
@@ -669,8 +669,9 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		return rc;
 	}
 
+	uint32_t name_len = strlen(name);
 	ext4_hash_info_t hinfo;
-	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_size, name);
+	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_len, name);
 	if (rc != EOK) {
 		block_put(root_block);
 		return EXT4_ERR_BAD_DX_DIR;
@@ -701,64 +702,15 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
    		return EXT4_ERR_BAD_DX_DIR;
    	}
 
-   	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
-   	uint16_t required_len = 8 + name_size + (4 - name_size % 4);
+   	rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
+   	if (rc == EOK) {
+   		goto cleanup;
 
-   	ext4_directory_entry_ll_t *de = target_block->data;
-   	ext4_directory_entry_ll_t *stop = target_block->data + block_size;
-
-   	while (de < stop) {
-
-   		uint32_t de_inode = ext4_directory_entry_ll_get_inode(de);
-   		uint16_t de_rec_len = ext4_directory_entry_ll_get_entry_length(de);
-
-   		if ((de_inode == 0) && (de_rec_len >= required_len)) {
-   			ext4_directory_write_entry(fs->superblock, de, de_rec_len,
-   				child, name, name_size);
-
-   				// TODO cleanup
-   				target_block->dirty = true;
-   				rc = block_put(target_block);
-   				if (rc != EOK) {
-   					return EXT4_ERR_BAD_DX_DIR;
-   				}
-   				return EOK;
-   		}
-
-   		if (de_inode != 0) {
-   			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
-   					fs->superblock, de);
-
-   			uint16_t used_space = 8 + used_name_len;
-   			if ((used_name_len % 4) != 0) {
-   				used_space += 4 - (used_name_len % 4);
-   			}
-   			uint16_t free_space = de_rec_len - used_space;
-
-   			if (free_space >= required_len) {
-
-   				// Cut tail of current entry
-   				ext4_directory_entry_ll_set_entry_length(de, used_space);
-   				ext4_directory_entry_ll_t *new_entry = (void *)de + used_space;
-   				ext4_directory_write_entry(fs->superblock, new_entry,
-   					free_space, child, name, name_size);
-
-   				// TODO cleanup
-   				target_block->dirty = true;
-   				rc = block_put(target_block);
-				if (rc != EOK) {
-					return EXT4_ERR_BAD_DX_DIR;
-				}
-				return EOK;
-
-   			}
-
-   		}
-
-   		de = (void *)de + de_rec_len;
    	}
 
     EXT4FS_DBG("no free space found");
+
+    uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	ext4_directory_dx_entry_t *entries = ((ext4_directory_dx_node_t *) dx_block->block->data)->entries;
 	uint16_t leaf_limit = ext4_directory_dx_countlimit_get_limit((ext4_directory_dx_countlimit_t *)entries);
@@ -785,14 +737,14 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		uint32_t new_iblock;
 		rc =  ext4_directory_append_block(fs, parent, &new_fblock, &new_iblock);
 		if (rc != EOK) {
-			// TODO error
+			goto cleanup;
 		}
 
 		// New block allocated
 		block_t * new_block;
 		rc = block_get(&new_block, fs->device, new_fblock, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
-			// TODO error
+			goto cleanup;
 		}
 
 		// Initialize block
@@ -872,62 +824,33 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		// TODO error
 	}
 
-	// TODO Where to save new entry
+	// Where to save new entry
 	uint32_t new_block_hash = ext4_directory_dx_entry_get_hash(dx_block->position + 1);
 	if (hinfo.hash >= new_block_hash) {
-		de = new_block->data;
-		stop = new_block->data + block_size;
+		rc = ext4_directory_try_insert_entry(fs->superblock, new_block, child, name, name_len);
 	} else {
-		de = target_block->data;
-		stop = target_block->data + block_size;
+		rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
 	}
 
-   	while (de < stop) {
-
-   		uint32_t de_inode = ext4_directory_entry_ll_get_inode(de);
-   		uint16_t de_rec_len = ext4_directory_entry_ll_get_entry_length(de);
-
-   		if ((de_inode == 0) && (de_rec_len >= required_len)) {
-   			ext4_directory_write_entry(fs->superblock, de, de_rec_len,
-   				child, name, name_size);
-   				goto success;
-   		}
-
-   		if (de_inode != 0) {
-   			uint16_t used_name_len = ext4_directory_entry_ll_get_name_length(
-   					fs->superblock, de);
-
-   			uint16_t used_space = 8 + used_name_len;
-   			if ((used_name_len % 4) != 0) {
-   				used_space += 4 - (used_name_len % 4);
-   			}
-   			uint16_t free_space = de_rec_len - used_space;
-
-   			if (free_space >= required_len) {
-
-   				// Cut tail of current entry
-   				ext4_directory_entry_ll_set_entry_length(de, used_space);
-   				ext4_directory_entry_ll_t *new_entry = (void *)de + used_space;
-   				ext4_directory_write_entry(fs->superblock, new_entry,
-   					free_space, child, name, name_size);
-
-   				goto success;
-   			}
-
-   		}
-
-   		de = (void *)de + de_rec_len;
-   	}
-
-success:
-
-	rc = block_put(target_block);
 	if (rc != EOK) {
-		EXT4FS_DBG("error writing target block");
+		goto terminate;
 	}
+
+
+terminate:
 	rc = block_put(new_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error writing new block");
+	}
+
+
+cleanup:
+
+	rc2 = rc;
+
+	rc = block_put(target_block);
+	if (rc != EOK) {
+		return rc;
 	}
 
 	ext4_directory_dx_block_t *dx_it = dx_blocks;
@@ -935,12 +858,12 @@ success:
 	while (dx_it <= dx_block) {
 		rc = block_put(dx_it->block);
 		if (rc != EOK) {
-			EXT4FS_DBG("error writing index block \%u", (uint32_t)dx_it->block->pba);
+			return rc;
 		}
 		dx_it++;
 	}
 
-	return EOK;
+	return rc2;
 }
 
 
