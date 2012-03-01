@@ -404,13 +404,13 @@ int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep,
 	bs = block_bb_get(service_id);
 
 	if (!nodep->fragmented) {
-		rc = bitmap_append_clusters(bs, nodep, clusters);
+		rc = exfat_bitmap_append_clusters(bs, nodep, clusters);
 		if (rc != ENOSPC)
 			return rc;
 		if (rc == ENOSPC) {
 			nodep->fragmented = true;
 			nodep->dirty = true;		/* need to sync node */
-			rc = bitmap_replicate_clusters(bs, nodep);
+			rc = exfat_bitmap_replicate_clusters(bs, nodep);
 			if (rc != EOK)
 				return rc;
 		}
@@ -456,7 +456,7 @@ static int exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep,
 		assert(new_clsts < prev_clsts);
 
 		clsts = prev_clsts - new_clsts;
-		rc = bitmap_free_clusters(bs, nodep, clsts);
+		rc = exfat_bitmap_free_clusters(bs, nodep, clsts);
 		if (rc != EOK)
 			return rc;
 	} else {
@@ -703,7 +703,7 @@ int exfat_destroy_node(fs_node_t *fn)
 			rc = exfat_free_clusters(bs, nodep->idx->service_id,
 				nodep->firstc);
 		else
-			rc = bitmap_free_clusters(bs, nodep, 
+			rc = exfat_bitmap_free_clusters(bs, nodep, 
 			    ROUND_UP(nodep->size, BPC(bs)) / BPC(bs));
 	} 
 
@@ -757,11 +757,7 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
-	if (rc != EOK)
-		return rc;
-
 	fibril_mutex_lock(&childp->idx->lock);
-
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->parent_fragmented = parentp->fragmented;
@@ -1462,7 +1458,10 @@ exfat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 		rc = exfat_node_shrink(service_id, nodep, size);
 	}
 
-	(void) exfat_node_put(fn);
+	int rc2 = exfat_node_put(fn);
+	if (rc == EOK && rc2 != EOK)
+		rc = rc2;
+
 	return rc;
 }
 

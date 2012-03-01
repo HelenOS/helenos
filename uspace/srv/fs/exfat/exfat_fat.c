@@ -313,7 +313,7 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	for (clst = EXFAT_CLST_FIRST; clst < DATA_CNT(bs) + 2 && found < nclsts;
 	    clst++) {
 		/* Need to rewrite because of multiple exfat_bitmap_get calls */
-		if (bitmap_is_free(bs, service_id, clst) == EOK) {
+		if (exfat_bitmap_is_free(bs, service_id, clst) == EOK) {
 			/*
 			 * The cluster is free. Put it into our stack
 			 * of found clusters and mark it as non-free.
@@ -324,7 +324,7 @@ exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 			if (rc != EOK)
 				goto exit_error;
 			found++;
-			rc = bitmap_set_cluster(bs, service_id, clst);
+			rc = exfat_bitmap_set_cluster(bs, service_id, clst);
 			if (rc != EOK)
 				goto exit_error;
 
@@ -345,7 +345,7 @@ exit_error:
 
 	/* If something wrong - free the clusters */
 	while (found--) {
-		(void) bitmap_clear_cluster(bs, service_id, lifo[found]);
+		(void) exfat_bitmap_clear_cluster(bs, service_id, lifo[found]);
 		(void) exfat_set_cluster(bs, service_id, lifo[found], 0);
 	}
 
@@ -377,7 +377,7 @@ exfat_free_clusters(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t fir
 		rc = exfat_set_cluster(bs, service_id, firstc, 0);
 		if (rc != EOK)
 			return rc;
-		rc = bitmap_clear_cluster(bs, service_id, firstc);
+		rc = exfat_bitmap_clear_cluster(bs, service_id, firstc);
 		if (rc != EOK)
 			return rc;
 		firstc = nextc;

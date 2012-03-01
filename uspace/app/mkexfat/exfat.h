@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
@@ -28,11 +29,9 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
-#ifndef EXFAT_EXFAT_DENTRY_H_
-#define EXFAT_EXFAT_DENTRY_H_
-
+#include <sys/types.h>
 #include <stdint.h>
 #include <bool.h>
 
@@ -148,21 +147,32 @@ typedef enum {
 } exfat_dentry_clsf_t;
 
 
-extern exfat_dentry_clsf_t exfat_classify_dentry(const exfat_dentry_t *);
-
-extern uint16_t exfat_name_hash(const uint16_t *, const uint16_t *, size_t);
-
-extern void exfat_dentry_get_name(const exfat_name_dentry_t *, size_t,
-    uint16_t *, size_t *);
-
-
-extern bool exfat_valid_char(wchar_t);
-extern bool exfat_valid_name(const char *);
-
-extern size_t exfat_utf16_length(const uint16_t *);
-
-
-#endif
+typedef struct exfat_bs {
+	uint8_t jump[3];            /* 0x00 jmp and nop instructions */
+	uint8_t oem_name[8];        /* 0x03 "EXFAT   " */
+	uint8_t	__reserved[53];     /* 0x0B always 0 */
+	uint64_t volume_start;      /* 0x40 partition first sector */
+	uint64_t volume_count;      /* 0x48 partition sectors count */
+	uint32_t fat_sector_start;  /* 0x50 FAT first sector */
+	uint32_t fat_sector_count;  /* 0x54 FAT sectors count */
+	uint32_t data_start_sector; /* 0x58 Data region first cluster sector */
+	uint32_t data_clusters;     /* 0x5C total clusters count */
+	uint32_t rootdir_cluster;   /* 0x60 first cluster of the root dir */
+	uint32_t volume_serial;     /* 0x64 volume serial number */
+	struct {                    /* 0x68 FS version */
+		uint8_t minor;
+		uint8_t major;
+	} __attribute__ ((packed)) version;
+	uint16_t volume_flags;     /* 0x6A volume state flags */
+	uint8_t bytes_per_sector;  /* 0x6C sector size as (1 << n) */
+	uint8_t sec_per_cluster;   /* 0x6D sectors per cluster as (1 << n) */
+	uint8_t fat_count;         /* 0x6E always 1 */
+	uint8_t drive_no;          /* 0x6F always 0x80 */
+	uint8_t allocated_percent; /* 0x70 percentage of allocated space */
+	uint8_t _reserved2[7];     /* 0x71 reserved */
+	uint8_t bootcode[390];     /* Boot code */
+	uint16_t signature;        /* the value of 0xAA55 */
+} __attribute__((__packed__)) exfat_bs_t;
 
 /**
  * @}
