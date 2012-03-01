@@ -98,7 +98,7 @@ void sysinfo_init(void)
 	sysinfo_item_slab = slab_cache_create("sysinfo_item_slab",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
-
+	
 	mutex_initialize(&sysinfo_lock, MUTEX_ACTIVE);
 }
 
@@ -634,8 +634,8 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 	char *path = (char *) malloc(size + 1, 0);
 	ASSERT(path);
 	
-	if ((copy_from_uspace(path, ptr, size + 1) == 0)
-	    && (path[size] == 0)) {
+	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
+	    (path[size] == 0)) {
 		/*
 		 * Prevent other functions from messing with sysinfo while we
 		 * are reading it.
@@ -644,6 +644,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 		ret = sysinfo_get_item(path, NULL, dry_run);
 		mutex_unlock(&sysinfo_lock);
 	}
+	
 	free(path);
 	return ret;
 }
@@ -671,8 +672,8 @@ sysarg_t sys_sysinfo_get_val_type(void *path_ptr, size_t path_size)
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
 	/*
-	 * Map generated value types to constant types (user space does not care
-	 * whether the value is constant or generated).
+	 * Map generated value types to constant types (user space does
+	 * not care whether the value is constant or generated).
 	 */
 	if (ret.tag == SYSINFO_VAL_FUNCTION_VAL)
 		ret.tag = SYSINFO_VAL_VAL;
@@ -700,12 +701,12 @@ sysarg_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
 	int rc;
-
+	
 	/*
 	 * Get the item.
 	 *
-	 * N.B.: There is no need to free any potential generated binary data
-	 * since we request a dry run.
+	 * N.B.: There is no need to free any potential generated binary
+	 * data since we request a dry run.
 	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
@@ -740,8 +741,8 @@ sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	/*
 	 * Get the item.
 	 *
-	 * N.B.: There is no need to free any potential generated binary data
-	 * since we request a dry run.
+	 * N.B.: There is no need to free any potential generated binary
+	 * data since we request a dry run.
 	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
