@@ -319,42 +319,6 @@ void ofw_tree_walk_by_device_type(const char *dtype, ofw_tree_walker_t walker,
 	(void) ofw_tree_walk_by_device_type_internal(ofw_root, dtype, walker, arg);
 }
 
-/** Print OpenFirmware device subtree rooted in a node.
- *
- * Child nodes are processed recursively and peer nodes are processed
- * iteratively in order to avoid stack overflow.
- *
- * @param node Root of the subtree.
- * @param path Current path, NULL for the very root of the entire tree.
- *
- */
-static void ofw_tree_node_print(ofw_tree_node_t *node, const char *path)
-{
-	char *cur_path = (char *) malloc(PATH_MAX_LEN, 0);
-	ofw_tree_node_t *cur;
-	
-	for (cur = node; cur; cur = cur->peer) {
-		if ((cur->parent) && (path)) {
-			snprintf(cur_path, PATH_MAX_LEN, "%s/%s", path, cur->da_name);
-			printf("%s\n", cur_path);
-		} else {
-			snprintf(cur_path, PATH_MAX_LEN, "%s", cur->da_name);
-			printf("/\n");
-		}
-		
-		if (cur->child)
-			ofw_tree_node_print(cur->child, cur_path);
-	}
-	
-	free(cur_path);
-}
-
-/** Print the structure of the OpenFirmware device tree. */
-void ofw_tree_print(void)
-{
-	ofw_tree_node_print(ofw_root, NULL);
-}
-
 /** Map OpenFirmware device subtree rooted in a node into sysinfo.
  *
  * Child nodes are processed recursively and peer nodes are processed
