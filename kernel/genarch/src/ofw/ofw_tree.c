@@ -319,6 +319,59 @@ void ofw_tree_walk_by_device_type(const char *dtype, ofw_tree_walker_t walker,
 	(void) ofw_tree_walk_by_device_type_internal(ofw_root, dtype, walker, arg);
 }
 
+/** Get OpenFirmware node properties.
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ * @param data    OpenFirmware node.
+ *
+ * @return Data containing a serialized dump of all node
+ *         properties. If the return value is not NULL, it
+ *         should be freed in the context of the sysinfo request.
+ *
+ */
+static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
+    bool dry_run, void *data)
+{
+	ofw_tree_node_t *node = (ofw_tree_node_t *) data;
+	
+	/* Compute serialized data size */
+	*size = 0;
+	for (size_t i = 0; i < node->properties; i++)
+		*size += str_size(node->property[i].name) + 1 +
+		    sizeof(node->property[i].size) + node->property[i].size;
+	
+	if (dry_run)
+		return NULL;
+	
+	void *dump = malloc(*size, FRAME_ATOMIC);
+	if (dump == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Serialize the data */
+	size_t pos = 0;
+	for (size_t i = 0; i < node->properties; i++) {
+		/* Property name */
+		str_cpy(dump + pos, *size - pos, node->property[i].name);
+		pos += str_size(node->property[i].name) + 1;
+		
+		/* Value size */
+		memcpy(dump + pos, &node->property[i].size,
+		    sizeof(node->property[i].size));
+		pos += sizeof(node->property[i].size);
+		
+		/* Value */
+		memcpy(dump + pos, node->property[i].value,
+		    node->property[i].size);
+		pos += node->property[i].size;
+	}
+	
+	return ((void *) dump);
+}
+
 /** Map OpenFirmware device subtree rooted in a node into sysinfo.
  *
  * Child nodes are processed recursively and peer nodes are processed
@@ -338,7 +391,8 @@ static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 		else
 			snprintf(cur_path, PATH_MAX_LEN, "firmware.%s", cur->da_name);
 		
-		sysinfo_set_item_undefined(cur_path, NULL);
+		sysinfo_set_item_gen_data(cur_path, NULL, ofw_sysinfo_properties,
+		    (void *) cur);
 		
 		if (cur->child)
 			ofw_tree_node_sysinfo(cur->child, cur_path);
