@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Vana
+ * Copyright (c) 2012 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -357,10 +358,11 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
  * @param root Pointer to the root item or where to store
  *             a new root item (NULL for global sysinfo root).
  * @param fn   Numeric value generator function.
+ * @param data Private data.
  *
  */
-void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
-    sysinfo_fn_val_t fn)
+void sysinfo_set_item_gen_val(const char *name, sysinfo_item_t **root,
+    sysinfo_fn_val_t fn, void *data)
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
@@ -371,7 +373,8 @@ void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_FUNCTION_VAL;
-		item->val.fn_val = fn;
+		item->val.gen_val.fn = fn;
+		item->val.gen_val.data = data;
 	}
 	
 	mutex_unlock(&sysinfo_lock);
@@ -388,10 +391,11 @@ void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
  * @param root Pointer to the root item or where to store
  *             a new root item (NULL for global sysinfo root).
  * @param fn   Binary data generator function.
+ * @param data Private data.
  *
  */
-void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
-    sysinfo_fn_data_t fn)
+void sysinfo_set_item_gen_data(const char *name, sysinfo_item_t **root,
+    sysinfo_fn_data_t fn, void *data)
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
@@ -402,7 +406,8 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_FUNCTION_DATA;
-		item->val.fn_data = fn;
+		item->val.gen_data.fn = fn;
+		item->val.gen_data.data = data;
 	}
 	
 	mutex_unlock(&sysinfo_lock);
@@ -511,13 +516,14 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 			printf(" (%zu bytes)\n", cur->val.data.size);
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
-			val = cur->val.fn_val(cur);
+			val = cur->val.gen_val.fn(cur, cur->val.gen_val.data);
 			printf(" -> %" PRIun" (%#" PRIxn ") [generated]\n", val,
 			    val);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
 			/* N.B.: No data was actually returned (only a dry run) */
-			(void) cur->val.fn_data(cur, &size, true);
+			(void) cur->val.gen_data.fn(cur, &size, true,
+			    cur->val.gen_data.data);
 			printf(" (%zu bytes) [generated]\n", size);
 			break;
 		default:
@@ -603,11 +609,11 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
 			ret.data = item->val.data;
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
-			ret.val = item->val.fn_val(item);
+			ret.val = item->val.gen_val.fn(item, item->val.gen_val.data);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
-			ret.data.data = item->val.fn_data(item, &ret.data.size,
-			    dry_run);
+			ret.data.data = item->val.gen_data.fn(item, &ret.data.size,
+			    dry_run, item->val.gen_data.data);
 			break;
 		}
 	} else {

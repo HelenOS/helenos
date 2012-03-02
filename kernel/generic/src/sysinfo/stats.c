@@ -82,11 +82,12 @@ static mutex_t load_lock;
 /** Get system uptime
  *
  * @param item Sysinfo item (unused).
+ * @param data Unused.
  *
  * @return System uptime (in secords).
  *
  */
-static sysarg_t get_stats_uptime(struct sysinfo_item *item)
+static sysarg_t get_stats_uptime(struct sysinfo_item *item, void *data)
 {
 	/* This doesn't have to be very accurate */
 	return uptime->seconds1;
@@ -97,13 +98,14 @@ static sysarg_t get_stats_uptime(struct sysinfo_item *item)
  * @param item    Sysinfo item (unused).
  * @param size    Size of the returned data.
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Data containing several stats_cpu_t structures.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
 static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
+    bool dry_run, void *data)
 {
 	*size = sizeof(stats_cpu_t) * config.cpu_count;
 	if (dry_run)
@@ -292,13 +294,14 @@ static bool task_serialize_walker(avltree_node_t *node, void *arg)
  * @param item    Sysinfo item (unused).
  * @param size    Size of the returned data.
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Data containing several stats_task_t structures.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
 static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
+    bool dry_run, void *data)
 {
 	/* Messing with task structures, avoid deadlock */
 	irq_spinlock_lock(&tasks_lock, true);
@@ -397,13 +400,14 @@ static bool thread_serialize_walker(avltree_node_t *node, void *arg)
  * @param item    Sysinfo item (unused).
  * @param size    Size of the returned data.
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Data containing several stats_task_t structures.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
 static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
+    bool dry_run, void *data)
 {
 	/* Messing with threads structures, avoid deadlock */
 	irq_spinlock_lock(&threads_lock, true);
@@ -589,13 +593,14 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run,
  * @param item    Sysinfo item (unused).
  * @param size    Size of the returned data.
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Data containing several stats_exc_t structures.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
 static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
+    bool dry_run, void *data)
 {
 	*size = sizeof(stats_exc_t) * IVT_ITEMS;
 	
@@ -710,13 +715,14 @@ static sysinfo_return_t get_stats_exception(const char *name, bool dry_run,
  * @param item    Sysinfo item (unused).
  * @param size    Size of the returned data.
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Data containing stats_physmem_t.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
 static void *get_stats_physmem(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
+    bool dry_run, void *data)
 {
 	*size = sizeof(stats_physmem_t);
 	if (dry_run)
@@ -740,13 +746,14 @@ static void *get_stats_physmem(struct sysinfo_item *item, size_t *size,
  * @param item    Sysinfo item (unused).
  * @param size    Size of the returned data.
  * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
  *
  * @return Data several load_t values.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
 static void *get_stats_load(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
+    bool dry_run, void *data)
 {
 	*size = sizeof(load_t) * LOAD_STEPS;
 	if (dry_run)
@@ -815,13 +822,13 @@ void stats_init(void)
 {
 	mutex_initialize(&load_lock, MUTEX_PASSIVE);
 	
-	sysinfo_set_item_fn_val("system.uptime", NULL, get_stats_uptime);
-	sysinfo_set_item_fn_data("system.cpus", NULL, get_stats_cpus);
-	sysinfo_set_item_fn_data("system.physmem", NULL, get_stats_physmem);
-	sysinfo_set_item_fn_data("system.load", NULL, get_stats_load);
-	sysinfo_set_item_fn_data("system.tasks", NULL, get_stats_tasks);
-	sysinfo_set_item_fn_data("system.threads", NULL, get_stats_threads);
-	sysinfo_set_item_fn_data("system.exceptions", NULL, get_stats_exceptions);
+	sysinfo_set_item_gen_val("system.uptime", NULL, get_stats_uptime, NULL);
+	sysinfo_set_item_gen_data("system.cpus", NULL, get_stats_cpus, NULL);
+	sysinfo_set_item_gen_data("system.physmem", NULL, get_stats_physmem, NULL);
+	sysinfo_set_item_gen_data("system.load", NULL, get_stats_load, NULL);
+	sysinfo_set_item_gen_data("system.tasks", NULL, get_stats_tasks, NULL);
+	sysinfo_set_item_gen_data("system.threads", NULL, get_stats_threads, NULL);
+	sysinfo_set_item_gen_data("system.exceptions", NULL, get_stats_exceptions, NULL);
 	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task, NULL);
 	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread, NULL);
 	sysinfo_set_subtree_fn("system.exceptions", NULL, get_stats_exception, NULL);

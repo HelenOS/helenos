@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Vana
+ * Copyright (c) 2012 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,11 +54,28 @@ typedef enum {
 
 struct sysinfo_item;
 
-/** Gerated numeric value function */
-typedef sysarg_t (*sysinfo_fn_val_t)(struct sysinfo_item *);
+/** Generated numeric value function */
+typedef sysarg_t (*sysinfo_fn_val_t)(struct sysinfo_item *, void *);
+
+/** Sysinfo generated numberic value data
+ *
+ */
+typedef struct {
+	sysinfo_fn_val_t fn;  /**< Generated value function */
+	void *data;           /**< Private data */
+} sysinfo_gen_val_data_t;
 
 /** Generated binary data function */
-typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *, bool);
+typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *, bool,
+    void *);
+
+/** Sysinfo generated binary data data
+ *
+ */
+typedef struct {
+	sysinfo_fn_data_t fn;  /**< Generated binary data function */
+	void *data;            /**< Private data */
+} sysinfo_gen_data_data_t;
 
 /** Sysinfo item binary data
  *
@@ -71,10 +89,10 @@ typedef struct {
  *
  */
 typedef union {
-	sysarg_t val;               /**< Constant numberic value */
-	sysinfo_data_t data;        /**< Constant binary data */
-	sysinfo_fn_val_t fn_val;    /**< Generated numeric value function */
-	sysinfo_fn_data_t fn_data;  /**< Generated binary data function */
+	sysarg_t val;                      /**< Constant numberic value */
+	sysinfo_data_t data;               /**< Constant binary data */
+	sysinfo_gen_val_data_t gen_val;    /**< Generated numeric value function */
+	sysinfo_gen_data_data_t gen_data;  /**< Generated binary data function */
 } sysinfo_item_val_t;
 
 /** Sysinfo return holder
@@ -102,14 +120,14 @@ typedef sysinfo_return_t (*sysinfo_fn_subtree_t)(const char *, bool, void *);
 typedef struct {
 	sysinfo_fn_subtree_t fn;  /**< Generated subtree function */
 	void *data;               /**< Private data */
-} sysinfo_fn_subtree_data_t;
+} sysinfo_gen_subtree_data_t;
 
 /** Sysinfo subtree (union)
  *
  */
 typedef union {
-	struct sysinfo_item *table;           /**< Fixed subtree (list of subitems) */
-	sysinfo_fn_subtree_data_t generator;  /**< Generated subtree */
+	struct sysinfo_item *table;            /**< Fixed subtree (list of subitems) */
+	sysinfo_gen_subtree_data_t generator;  /**< Generated subtree */
 } sysinfo_subtree_t;
 
 /** Sysinfo item
@@ -130,10 +148,10 @@ typedef struct sysinfo_item {
 extern void sysinfo_set_item_val(const char *, sysinfo_item_t **, sysarg_t);
 extern void sysinfo_set_item_data(const char *, sysinfo_item_t **, void *,
     size_t);
-extern void sysinfo_set_item_fn_val(const char *, sysinfo_item_t **,
-    sysinfo_fn_val_t);
-extern void sysinfo_set_item_fn_data(const char *, sysinfo_item_t **,
-    sysinfo_fn_data_t);
+extern void sysinfo_set_item_gen_val(const char *, sysinfo_item_t **,
+    sysinfo_fn_val_t, void *);
+extern void sysinfo_set_item_gen_data(const char *, sysinfo_item_t **,
+    sysinfo_fn_data_t, void *);
 extern void sysinfo_set_item_undefined(const char *, sysinfo_item_t **);
 
 extern void sysinfo_set_subtree_fn(const char *, sysinfo_item_t **,
