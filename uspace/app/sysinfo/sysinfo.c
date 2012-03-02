@@ -91,7 +91,13 @@ static int print_item_data(char *ipath)
 	return EOK;
 }
 
-static void print_keys(const char *path)
+static void print_spaces(size_t spaces)
+{
+	for (size_t i = 0; i < spaces; i++)
+		printf(" ");
+}
+
+static void print_keys(const char *path, size_t spaces)
 {
 	size_t size;
 	char *keys = sysinfo_get_keys(path, &size);
@@ -102,18 +108,30 @@ static void print_keys(const char *path)
 	while (pos < size) {
 		/* Process each key with sanity checks */
 		size_t cur_size = str_nsize(keys + pos, size - pos);
+		if (keys[pos + cur_size] != 0)
+			break;
+		
 		size_t path_size = str_size(path) + cur_size + 2;
 		char *cur_path = (char *) malloc(path_size);
 		if (cur_path == NULL)
 			break;
 		
-		if (path[0] != 0)
-			snprintf(cur_path, path_size, "%s.%s", path, keys + pos);
-		else
-			snprintf(cur_path, path_size, "%s", keys + pos);
+		size_t length;
 		
-		printf("%s\n", cur_path);
-		print_keys(cur_path);
+		if (path[0] != 0) {
+			print_spaces(spaces);
+			printf(".%s\n", keys + pos);
+			length = str_length(keys + pos) + 1;
+			
+			snprintf(cur_path, path_size, "%s.%s", path, keys + pos);
+		} else {
+			printf("%s\n", keys + pos);
+			length = str_length(keys + pos);
+			
+			snprintf(cur_path, path_size, "%s", keys + pos);
+		}
+		
+		print_keys(cur_path, spaces + length);
 		
 		free(cur_path);
 		pos += cur_size + 1;
@@ -126,7 +144,7 @@ int main(int argc, char *argv[])
 {
 	if (argc != 2) {
 		/* Print keys */
-		print_keys("");
+		print_keys("", 0);
 		return 0;
 	}
 	

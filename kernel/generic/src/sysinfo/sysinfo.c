@@ -463,31 +463,37 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 
 /** Sysinfo dump indentation helper routine
  *
- * @param depth Number of indentation characters to print.
+ * @param depth Number of spaces to print.
  *
  */
-NO_TRACE static void sysinfo_indent(unsigned int depth)
+NO_TRACE static void sysinfo_indent(size_t spaces)
 {
-	unsigned int i;
-	for (i = 0; i < depth; i++)
-		printf("  ");
+	for (size_t i = 0; i < spaces; i++)
+		printf(" ");
 }
 
 /** Dump the structure of sysinfo tree
  *
  * Should be called with sysinfo_lock held.
  *
- * @param root  Root item of the current (sub)tree.
- * @param depth Current depth in the sysinfo tree.
+ * @param root   Root item of the current (sub)tree.
+ * @param spaces Current indentation level.
  *
  */
-NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
+NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 {
-	sysinfo_item_t *cur = root;
-	
 	/* Walk all siblings */
-	while (cur != NULL) {
-		sysinfo_indent(depth);
+	for (sysinfo_item_t *cur = root; cur; cur = cur->next) {
+		size_t length;
+		
+		if (spaces == 0) {
+			printf("%s", cur->name);
+			length = str_length(cur->name);
+		} else {
+			sysinfo_indent(spaces);
+			printf(".%s", cur->name);
+			length = str_length(cur->name) + 1;
+		}
 		
 		sysarg_t val;
 		size_t size;
@@ -495,26 +501,24 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int de
 		/* Display node value and type */
 		switch (cur->val_type) {
 		case SYSINFO_VAL_UNDEFINED:
-			printf("+ %s\n", cur->name);
+			printf(" [undefined]\n");
 			break;
 		case SYSINFO_VAL_VAL:
-			printf("+ %s -> %" PRIun" (%#" PRIxn ")\n", cur->name,
-			    cur->val.val, cur->val.val);
+			printf(" -> %" PRIun" (%#" PRIxn ")\n", cur->val.val,
+			    cur->val.val);
 			break;
 		case SYSINFO_VAL_DATA:
-			printf("+ %s (%zu bytes)\n", cur->name,
-			    cur->val.data.size);
+			printf(" (%zu bytes)\n", cur->val.data.size);
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
 			val = cur->val.fn_val(cur);
-			printf("+ %s -> %" PRIun" (%#" PRIxn ") [generated]\n",
-			    cur->name, val, val);
+			printf(" -> %" PRIun" (%#" PRIxn ") [generated]\n", val,
+			    val);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
 			/* N.B.: No data was actually returned (only a dry run) */
 			(void) cur->val.fn_data(cur, &size, true);
-			printf("+ %s (%zu bytes) [generated]\n", cur->name,
-			    size);
+			printf(" (%zu bytes) [generated]\n", size);
 			break;
 		default:
 			printf("+ %s [unknown]\n", cur->name);
@@ -525,18 +529,16 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int de
 		case SYSINFO_SUBTREE_NONE:
 			break;
 		case SYSINFO_SUBTREE_TABLE:
-			sysinfo_dump_internal(cur->subtree.table, depth + 1);
+			sysinfo_dump_internal(cur->subtree.table, spaces + length);
 			break;
 		case SYSINFO_SUBTREE_FUNCTION:
-			sysinfo_indent(depth + 1);
-			printf("+ [generated subtree]\n");
+			sysinfo_indent(spaces + length);
+			printf("<generated subtree>\n");
 			break;
 		default:
-			sysinfo_indent(depth + 1);
-			printf("+ [unknown subtree]\n");
+			sysinfo_indent(spaces + length);
+			printf("<unknown subtree>\n");
 		}
-		
-		cur = cur->next;
 	}
 }
 
