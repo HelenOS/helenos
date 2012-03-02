@@ -677,24 +677,30 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 	if (root == NULL)
 		root = &global_root;
 	
-	/* Try to find the item */
-	sysinfo_item_t *item = sysinfo_find_item(name, *root, NULL,
-	    dry_run);
+	sysinfo_item_t *subtree = NULL;
+	
+	if (name[0] != 0) {
+		/* Try to find the item */
+		sysinfo_item_t *item =
+		    sysinfo_find_item(name, *root, NULL, dry_run);
+		if ((item != NULL) &&
+		    (item->subtree_type == SYSINFO_SUBTREE_TABLE))
+			subtree = item->subtree.table;
+	} else
+		subtree = *root;
 	
 	sysinfo_return_t ret;
 	
-	if ((item != NULL) && (item->subtree_type == SYSINFO_SUBTREE_TABLE)) {
+	if (subtree != NULL) {
 		/*
-		 * Subtree found in the fixed sysinfo tree.
 		 * Calculate the size of subkeys.
 		 */
 		size_t size = 0;
-		for (sysinfo_item_t *cur = item->subtree.table; cur;
-		    cur = cur->next)
+		for (sysinfo_item_t *cur = subtree; cur; cur = cur->next)
 			size += str_size(cur->name) + 1;
 		
 		if (dry_run) {
-			ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+			ret.tag = SYSINFO_VAL_DATA;
 			ret.data.data = NULL;
 			ret.data.size = size;
 		} else {
@@ -704,14 +710,13 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 				return ret;
 			
 			size_t pos = 0;
-			for (sysinfo_item_t *cur = item->subtree.table; cur;
-			    cur = cur->next) {
+			for (sysinfo_item_t *cur = subtree; cur; cur = cur->next) {
 				str_cpy(names + pos, size - pos, cur->name);
 				pos += str_size(cur->name) + 1;
 			}
 			
 			/* Correct return value */
-			ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+			ret.tag = SYSINFO_VAL_DATA;
 			ret.data.data = (void *) names;
 			ret.data.size = size;
 		}

@@ -39,6 +39,70 @@
 #include <malloc.h>
 #include <bool.h>
 
+/** Get sysinfo keys size
+ *
+ * @param path  Sysinfo path.
+ * @param value Pointer to store the keys size.
+ *
+ * @return EOK if the keys were successfully read.
+ *
+ */
+static int sysinfo_get_keys_size(const char *path, size_t *size)
+{
+	return (int) __SYSCALL3(SYS_SYSINFO_GET_KEYS_SIZE, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) size);
+}
+
+/** Get sysinfo keys
+ *
+ * @param path  Sysinfo path.
+ * @param value Pointer to store the keys size.
+ *
+ * @return Keys read from sysinfo or NULL if the
+ *         sysinfo item has no subkeys.
+ *         The returned non-NULL pointer should be
+ *         freed by free().
+ *
+ */
+char *sysinfo_get_keys(const char *path, size_t *size)
+{
+	/*
+	 * The size of the keys might change during time.
+	 * Unfortunatelly we cannot allocate the buffer
+	 * and transfer the keys as a single atomic operation.
+	 */
+	
+	/* Get the keys size */
+	int ret = sysinfo_get_keys_size(path, size);
+	if ((ret != EOK) || (size == 0)) {
+		/*
+		 * Item with no subkeys.
+		 */
+		*size = 0;
+		return NULL;
+	}
+	
+	char *data = malloc(*size);
+	if (data == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Get the data */
+	size_t sz;
+	ret = __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
+	    (sysarg_t) &sz);
+	if (ret == EOK) {
+		*size = sz;
+		return data;
+	}
+	
+	free(data);
+	*size = 0;
+	return NULL;
+}
+
 /** Get sysinfo item type
  *
  * @param path Sysinfo path.

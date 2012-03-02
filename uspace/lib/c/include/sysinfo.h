@@ -39,6 +39,7 @@
 #include <bool.h>
 #include <abi/sysinfo.h>
 
+extern char *sysinfo_get_keys(const char *, size_t *);
 extern sysinfo_item_val_type_t sysinfo_get_val_type(const char *);
 extern int sysinfo_get_value(const char *, sysarg_t *);
 extern void *sysinfo_get_data(const char *, size_t *);
