@@ -260,6 +260,43 @@ size_t str_lsize(const char *str, size_t max_len)
 	return offset;
 }
 
+/** Get size of string with size limit.
+ *
+ * Get the number of bytes which are used by the string @a str
+ * (excluding the NULL-terminator), but no more than @max_size bytes.
+ *
+ * @param str      String to consider.
+ * @param max_size Maximum number of bytes to measure.
+ *
+ * @return Number of bytes used by the string
+ *
+ */
+size_t str_nsize(const char *str, size_t max_size)
+{
+	size_t size = 0;
+	
+	while ((*str++ != 0) && (size < max_size))
+		size++;
+	
+	return size;
+}
+
+/** Get size of wide string with size limit.
+ *
+ * Get the number of bytes which are used by the wide string @a str
+ * (excluding the NULL-terminator), but no more than @max_size bytes.
+ *
+ * @param str      Wide string to consider.
+ * @param max_size Maximum number of bytes to measure.
+ *
+ * @return Number of bytes used by the wide string
+ *
+ */
+size_t wstr_nsize(const wchar_t *str, size_t max_size)
+{
+	return (wstr_nlength(str, max_size) * sizeof(wchar_t));
+}
+
 /** Get size of wide string with length limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
