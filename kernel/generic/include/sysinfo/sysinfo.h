@@ -142,6 +142,8 @@ extern void sysinfo_set_subtree_fn(const char *, sysinfo_item_t **,
 extern void sysinfo_init(void);
 extern void sysinfo_dump(sysinfo_item_t *);
 
+extern sysarg_t sys_sysinfo_get_keys_size(void *, size_t, void *);
+extern sysarg_t sys_sysinfo_get_keys(void *, size_t, void *, size_t, size_t *);
 extern sysarg_t sys_sysinfo_get_val_type(void *, size_t);
 extern sysarg_t sys_sysinfo_get_value(void *, size_t, void *);
 extern sysarg_t sys_sysinfo_get_data_size(void *, size_t, void *);
