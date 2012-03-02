@@ -93,6 +93,9 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Map OFW information into sysinfo */
+		ofw_sysinfo_map();
+		
 		/*
 		 * We have 2^11 different interrupt vectors.
 		 * But we only create 128 buckets.

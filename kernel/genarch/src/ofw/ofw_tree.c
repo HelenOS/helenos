@@ -37,6 +37,7 @@
 
 #include <genarch/ofw/ofw_tree.h>
 #include <mm/slab.h>
+#include <sysinfo/sysinfo.h>
 #include <memstr.h>
 #include <str.h>
 #include <panic.h>
@@ -352,6 +353,40 @@ static void ofw_tree_node_print(ofw_tree_node_t *node, const char *path)
 void ofw_tree_print(void)
 {
 	ofw_tree_node_print(ofw_root, NULL);
+}
+
+/** Map OpenFirmware device subtree rooted in a node into sysinfo.
+ *
+ * Child nodes are processed recursively and peer nodes are processed
+ * iteratively in order to avoid stack overflow.
+ *
+ * @param node Root of the subtree.
+ * @param path Current path, NULL for the very root of the entire tree.
+ *
+ */
+static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
+{
+	char *cur_path = (char *) malloc(PATH_MAX_LEN, 0);
+	
+	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
+		if ((cur->parent) && (path))
+			snprintf(cur_path, PATH_MAX_LEN, "%s.%s", path, cur->da_name);
+		else
+			snprintf(cur_path, PATH_MAX_LEN, "firmware.%s", cur->da_name);
+		
+		sysinfo_set_item_undefined(cur_path, NULL);
+		
+		if (cur->child)
+			ofw_tree_node_sysinfo(cur->child, cur_path);
+	}
+	
+	free(cur_path);
+}
+
+/** Map the OpenFirmware device tree into sysinfo. */
+void ofw_sysinfo_map(void)
+{
+	ofw_tree_node_sysinfo(ofw_root, NULL);
 }
 
 /** @}
