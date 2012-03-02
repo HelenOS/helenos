@@ -91,6 +91,25 @@ static int print_item_data(char *ipath)
 	return EOK;
 }
 
+static int print_item_property(char *ipath, char *iprop)
+{
+	size_t size;
+	void *data = sysinfo_get_property(ipath, iprop, &size);
+	if (data == NULL) {
+		printf("Error reading property '%s' of item '%s'.\n", iprop,
+		    ipath);
+		return -1;
+	}
+	
+	printf("%s property %s -> ", ipath, iprop);
+	dump_bytes_hex(data, size);
+	fputs(" ('", stdout);
+	dump_bytes_text(data, size);
+	fputs("')\n", stdout);
+	
+	return EOK;
+}
+
 static void print_spaces(size_t spaces)
 {
 	for (size_t i = 0; i < spaces; i++)
@@ -142,36 +161,42 @@ static void print_keys(const char *path, size_t spaces)
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2) {
+	int rc = 0;
+	
+	if (argc < 2) {
 		/* Print keys */
 		print_keys("", 0);
-		return 0;
+		return rc;
 	}
 	
 	char *ipath = argv[1];
-	sysinfo_item_val_type_t tag = sysinfo_get_val_type(ipath);
 	
-	/* Silence warning */
-	int rc = 0;
-	
-	switch (tag) {
-	case SYSINFO_VAL_UNDEFINED:
-		printf("Error: Sysinfo item '%s' not defined.\n", ipath);
-		rc = 2;
-		break;
-	case SYSINFO_VAL_VAL:
-		rc = print_item_val(ipath);
-		break;
-	case SYSINFO_VAL_DATA:
-		rc = print_item_data(ipath);
-		break;
-	default:
-		printf("Error: Sysinfo item '%s' with unknown value type.\n",
-		    ipath);
-		rc = 2;
-		break;
+	if (argc < 3) {
+		sysinfo_item_val_type_t tag = sysinfo_get_val_type(ipath);
+		
+		switch (tag) {
+		case SYSINFO_VAL_UNDEFINED:
+			printf("Error: Sysinfo item '%s' not defined.\n", ipath);
+			rc = 2;
+			break;
+		case SYSINFO_VAL_VAL:
+			rc = print_item_val(ipath);
+			break;
+		case SYSINFO_VAL_DATA:
+			rc = print_item_data(ipath);
+			break;
+		default:
+			printf("Error: Sysinfo item '%s' with unknown value type.\n",
+			    ipath);
+			rc = 2;
+			break;
+		}
+		
+		return rc;
 	}
 	
+	char *iprop = argv[2];
+	rc = print_item_property(ipath, iprop);
 	return rc;
 }
 
