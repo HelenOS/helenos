@@ -64,9 +64,7 @@ void ofw_tree_init(ofw_tree_node_t *root)
 ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node,
     const char *name)
 {
-	size_t i;
-	
-	for (i = 0; i < node->properties; i++) {
+	for (size_t i = 0; i < node->properties; i++) {
 		if (str_cmp(node->property[i].name, name) == 0)
 			return &node->property[i];
 	}
@@ -103,12 +101,10 @@ const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
     const char *name)
 {
-	ofw_tree_node_t *cur;
-	
 	/*
 	 * Try to find the disambigued name.
 	 */
-	for (cur = node->child; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		if (str_cmp(cur->da_name, name) == 0)
 			return cur;
 	}
@@ -120,7 +116,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
 	 * We need to do this because paths stored in "/aliases"
 	 * are not always fully-qualified.
 	 */
-	for (cur = node->child; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		if (str_cmp(ofw_tree_node_name(cur), name) == 0)
 			return cur;
 	}
@@ -140,9 +136,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
 ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node,
     const char *dtype)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node->child; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
 		
@@ -171,15 +165,13 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node,
 ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
     phandle handle)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = root; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = root; cur; cur = cur->peer) {
 		if (cur->node_handle == handle)
 			return cur;
 		
 		if (cur->child) {
-			ofw_tree_node_t *node
-			    = ofw_tree_find_node_by_handle(cur->child, handle);
+			ofw_tree_node_t *node =
+			    ofw_tree_find_node_by_handle(cur->child, handle);
 			if (node)
 				return node;
 		}
@@ -200,9 +192,7 @@ ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
 ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node,
     const char *dtype)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node->peer; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->peer; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
 		
@@ -228,11 +218,9 @@ ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node,
 ofw_tree_node_t *ofw_tree_find_peer_by_name(ofw_tree_node_t *node,
     const char *name)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node->peer; cur; cur = cur->peer) {
-		ofw_tree_property_t *prop
-		    = ofw_tree_getprop(cur, "name");
+	for (ofw_tree_node_t *cur = node->peer; cur; cur = cur->peer) {
+		ofw_tree_property_t *prop =
+		    ofw_tree_getprop(cur, "name");
 		
 		if ((!prop) || (!prop->value))
 			continue;
@@ -258,10 +246,9 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 		return NULL;
 	
 	ofw_tree_node_t *node = ofw_root;
-	size_t i;
 	size_t j;
 	
-	for (i = 1; (i < str_size(path)) && (node); i = j + 1) {
+	for (size_t i = 1; (i < str_size(path)) && (node); i = j + 1) {
 		for (j = i; (j < str_size(path)) && (path[j] != '/'); j++);
 		
 		/* Skip extra slashes */
@@ -293,9 +280,7 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 static bool ofw_tree_walk_by_device_type_internal(ofw_tree_node_t *node,
     const char *dtype, ofw_tree_walker_t walker, void *arg)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
 		
