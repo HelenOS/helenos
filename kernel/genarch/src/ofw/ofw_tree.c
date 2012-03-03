@@ -37,6 +37,7 @@
 
 #include <genarch/ofw/ofw_tree.h>
 #include <mm/slab.h>
+#include <sysinfo/sysinfo.h>
 #include <memstr.h>
 #include <str.h>
 #include <panic.h>
@@ -64,9 +65,7 @@ void ofw_tree_init(ofw_tree_node_t *root)
 ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node,
     const char *name)
 {
-	size_t i;
-	
-	for (i = 0; i < node->properties; i++) {
+	for (size_t i = 0; i < node->properties; i++) {
 		if (str_cmp(node->property[i].name, name) == 0)
 			return &node->property[i];
 	}
@@ -103,12 +102,10 @@ const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
     const char *name)
 {
-	ofw_tree_node_t *cur;
-	
 	/*
 	 * Try to find the disambigued name.
 	 */
-	for (cur = node->child; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		if (str_cmp(cur->da_name, name) == 0)
 			return cur;
 	}
@@ -120,7 +117,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
 	 * We need to do this because paths stored in "/aliases"
 	 * are not always fully-qualified.
 	 */
-	for (cur = node->child; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		if (str_cmp(ofw_tree_node_name(cur), name) == 0)
 			return cur;
 	}
@@ -140,9 +137,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
 ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node,
     const char *dtype)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node->child; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
 		
@@ -171,15 +166,13 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node,
 ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
     phandle handle)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = root; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = root; cur; cur = cur->peer) {
 		if (cur->node_handle == handle)
 			return cur;
 		
 		if (cur->child) {
-			ofw_tree_node_t *node
-			    = ofw_tree_find_node_by_handle(cur->child, handle);
+			ofw_tree_node_t *node =
+			    ofw_tree_find_node_by_handle(cur->child, handle);
 			if (node)
 				return node;
 		}
@@ -200,9 +193,7 @@ ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
 ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node,
     const char *dtype)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node->peer; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node->peer; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
 		
@@ -228,11 +219,9 @@ ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node,
 ofw_tree_node_t *ofw_tree_find_peer_by_name(ofw_tree_node_t *node,
     const char *name)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node->peer; cur; cur = cur->peer) {
-		ofw_tree_property_t *prop
-		    = ofw_tree_getprop(cur, "name");
+	for (ofw_tree_node_t *cur = node->peer; cur; cur = cur->peer) {
+		ofw_tree_property_t *prop =
+		    ofw_tree_getprop(cur, "name");
 		
 		if ((!prop) || (!prop->value))
 			continue;
@@ -258,10 +247,9 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 		return NULL;
 	
 	ofw_tree_node_t *node = ofw_root;
-	size_t i;
 	size_t j;
 	
-	for (i = 1; (i < str_size(path)) && (node); i = j + 1) {
+	for (size_t i = 1; (i < str_size(path)) && (node); i = j + 1) {
 		for (j = i; (j < str_size(path)) && (path[j] != '/'); j++);
 		
 		/* Skip extra slashes */
@@ -293,9 +281,7 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 static bool ofw_tree_walk_by_device_type_internal(ofw_tree_node_t *node,
     const char *dtype, ofw_tree_walker_t walker, void *arg)
 {
-	ofw_tree_node_t *cur;
-	
-	for (cur = node; cur; cur = cur->peer) {
+	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
 		
@@ -333,7 +319,60 @@ void ofw_tree_walk_by_device_type(const char *dtype, ofw_tree_walker_t walker,
 	(void) ofw_tree_walk_by_device_type_internal(ofw_root, dtype, walker, arg);
 }
 
-/** Print OpenFirmware device subtree rooted in a node.
+/** Get OpenFirmware node properties.
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ * @param data    OpenFirmware node.
+ *
+ * @return Data containing a serialized dump of all node
+ *         properties. If the return value is not NULL, it
+ *         should be freed in the context of the sysinfo request.
+ *
+ */
+static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
+    bool dry_run, void *data)
+{
+	ofw_tree_node_t *node = (ofw_tree_node_t *) data;
+	
+	/* Compute serialized data size */
+	*size = 0;
+	for (size_t i = 0; i < node->properties; i++)
+		*size += str_size(node->property[i].name) + 1 +
+		    sizeof(node->property[i].size) + node->property[i].size;
+	
+	if (dry_run)
+		return NULL;
+	
+	void *dump = malloc(*size, FRAME_ATOMIC);
+	if (dump == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Serialize the data */
+	size_t pos = 0;
+	for (size_t i = 0; i < node->properties; i++) {
+		/* Property name */
+		str_cpy(dump + pos, *size - pos, node->property[i].name);
+		pos += str_size(node->property[i].name) + 1;
+		
+		/* Value size */
+		memcpy(dump + pos, &node->property[i].size,
+		    sizeof(node->property[i].size));
+		pos += sizeof(node->property[i].size);
+		
+		/* Value */
+		memcpy(dump + pos, node->property[i].value,
+		    node->property[i].size);
+		pos += node->property[i].size;
+	}
+	
+	return ((void *) dump);
+}
+
+/** Map OpenFirmware device subtree rooted in a node into sysinfo.
  *
  * Child nodes are processed recursively and peer nodes are processed
  * iteratively in order to avoid stack overflow.
@@ -342,31 +381,30 @@ void ofw_tree_walk_by_device_type(const char *dtype, ofw_tree_walker_t walker,
  * @param path Current path, NULL for the very root of the entire tree.
  *
  */
-static void ofw_tree_node_print(ofw_tree_node_t *node, const char *path)
+static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 {
 	char *cur_path = (char *) malloc(PATH_MAX_LEN, 0);
-	ofw_tree_node_t *cur;
 	
-	for (cur = node; cur; cur = cur->peer) {
-		if ((cur->parent) && (path)) {
-			snprintf(cur_path, PATH_MAX_LEN, "%s/%s", path, cur->da_name);
-			printf("%s\n", cur_path);
-		} else {
-			snprintf(cur_path, PATH_MAX_LEN, "%s", cur->da_name);
-			printf("/\n");
-		}
+	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
+		if ((cur->parent) && (path))
+			snprintf(cur_path, PATH_MAX_LEN, "%s.%s", path, cur->da_name);
+		else
+			snprintf(cur_path, PATH_MAX_LEN, "firmware.%s", cur->da_name);
+		
+		sysinfo_set_item_gen_data(cur_path, NULL, ofw_sysinfo_properties,
+		    (void *) cur);
 		
 		if (cur->child)
-			ofw_tree_node_print(cur->child, cur_path);
+			ofw_tree_node_sysinfo(cur->child, cur_path);
 	}
 	
 	free(cur_path);
 }
 
-/** Print the structure of the OpenFirmware device tree. */
-void ofw_tree_print(void)
+/** Map the OpenFirmware device tree into sysinfo. */
+void ofw_sysinfo_map(void)
 {
-	ofw_tree_node_print(ofw_root, NULL);
+	ofw_tree_node_sysinfo(ofw_root, NULL);
 }
 
 /** @}
