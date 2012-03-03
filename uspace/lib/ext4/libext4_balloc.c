@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_balloc.c
- * @brief	Block allocator.
+ * @brief	Physical block allocator.
  */
 
 #include <errno.h>
@@ -369,6 +369,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 		goto success;
 	}
 
+	// No free block found yet
 	block_put(bitmap_block);
 	ext4_filesystem_put_block_group_ref(bg_ref);
 

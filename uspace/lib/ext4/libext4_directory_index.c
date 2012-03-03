@@ -352,7 +352,7 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 
 	// Hardcoded number 2 means maximum height of index tree !!!
 	ext4_directory_dx_block_t dx_blocks[2];
-	ext4_directory_dx_block_t *dx_block;
+	ext4_directory_dx_block_t *dx_block, *tmp;
 	rc = ext4_directory_dx_get_leaf(&hinfo, fs, inode_ref->inode, root_block, &dx_block, dx_blocks);
 	if (rc != EOK) {
 		block_put(root_block);
@@ -366,18 +366,17 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 		uint32_t leaf_block_addr;
     	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, leaf_block_idx, &leaf_block_addr);
     	if (rc != EOK) {
-    		return EXT4_ERR_BAD_DX_DIR;
+    		goto cleanup;
     	}
 
     	block_t *leaf_block;
 		rc = block_get(&leaf_block, fs->device, leaf_block_addr, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
-			return EXT4_ERR_BAD_DX_DIR;
+			goto cleanup;
 		}
 
 		ext4_directory_entry_ll_t *res_dentry;
 		rc = ext4_directory_find_in_block(leaf_block, fs->superblock, name_len, name, &res_dentry);
-
 
 		// Found => return it
 		if (rc == EOK) {
@@ -386,23 +385,30 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 			return EOK;
 		}
 
+		// Not found, leave untouched
 		block_put(leaf_block);
 
-		// ERROR - corrupted index
-		if (rc == -1) {
-			// TODO cleanup
-			return EXT4_ERR_BAD_DX_DIR;
+		if (rc != ENOENT) {
+			goto cleanup;
 		}
 
 		rc = ext4_directory_dx_next_block(fs, inode_ref->inode, hinfo.hash, dx_block, &dx_blocks[0]);
 		if (rc < 0) {
-			// TODO cleanup
-			return EXT4_ERR_BAD_DX_DIR;
+			goto cleanup;
 		}
 
 	} while (rc == 1);
 
 	return ENOENT;
+
+cleanup:
+
+	tmp = dx_blocks;
+	while (tmp <= dx_block) {
+		block_put(tmp->block);
+		++tmp;
+	}
+	return rc;
 }
 
 typedef struct ext4_dx_sort_entry {
@@ -604,7 +610,7 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		ext4_inode_ref_t *parent, ext4_inode_ref_t *child, const char *name)
 {
 	int rc = EOK;
-	int rc2;
+	int rc2 = EOK;
 
 	// get direct block 0 (index root)
 	uint32_t root_block_addr;
@@ -629,11 +635,11 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 
 	// Hardcoded number 2 means maximum height of index tree !!!
 	ext4_directory_dx_block_t dx_blocks[2];
-	ext4_directory_dx_block_t *dx_block;
+	ext4_directory_dx_block_t *dx_block, *dx_it;
 	rc = ext4_directory_dx_get_leaf(&hinfo, fs, parent->inode, root_block, &dx_block, dx_blocks);
 	if (rc != EOK) {
-		block_put(root_block);
-		return EXT4_ERR_BAD_DX_DIR;
+		rc = EXT4_ERR_BAD_DX_DIR;
+		goto release_index;
 	}
 
 
@@ -642,20 +648,19 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 	uint32_t leaf_block_addr;
    	rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, leaf_block_idx, &leaf_block_addr);
    	if (rc != EOK) {
-   		return EXT4_ERR_BAD_DX_DIR;
+   		goto release_index;
    	}
 
 
    	block_t *target_block;
    	rc = block_get(&target_block, fs->device, leaf_block_addr, BLOCK_FLAGS_NONE);
    	if (rc != EOK) {
-   		return EXT4_ERR_BAD_DX_DIR;
+   		goto release_index;
    	}
 
    	rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
    	if (rc == EOK) {
-   		goto cleanup;
-
+   		goto release_target_index;
    	}
 
     EXT4FS_DBG("no free space found");
@@ -678,23 +683,22 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 
 		if ((levels > 0) && (root_limit == root_count)) {
 			EXT4FS_DBG("Directory index is full");
-
-			// ENOSPC - cleanup !!!
-			return ENOSPC;
+			rc = ENOSPC;
+			goto release_target_index;
 		}
 
 		uint32_t new_fblock;
 		uint32_t new_iblock;
 		rc =  ext4_directory_append_block(fs, parent, &new_fblock, &new_iblock);
 		if (rc != EOK) {
-			goto cleanup;
+			goto release_target_index;
 		}
 
 		// New block allocated
 		block_t * new_block;
 		rc = block_get(&new_block, fs->device, new_fblock, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
-			goto cleanup;
+			goto release_target_index;
 		}
 
 		// Initialize block
@@ -771,7 +775,8 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 	block_t *new_block = NULL;
 	rc = ext4_directory_dx_split_data(fs, parent, &hinfo, target_block, dx_block, &new_block);
 	if (rc != EOK) {
-		// TODO error
+		rc2 = rc;
+		goto release_target_index;
 	}
 
 	// Where to save new entry
@@ -787,6 +792,7 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 	}
 
 
+// TODO check rc handling
 terminate:
 	rc = block_put(new_block);
 	if (rc != EOK) {
@@ -794,7 +800,7 @@ terminate:
 	}
 
 
-cleanup:
+release_target_index:
 
 	rc2 = rc;
 
@@ -803,7 +809,8 @@ cleanup:
 		return rc;
 	}
 
-	ext4_directory_dx_block_t *dx_it = dx_blocks;
+release_index:
+	dx_it = dx_blocks;
 
 	while (dx_it <= dx_block) {
 		rc = block_put(dx_it->block);

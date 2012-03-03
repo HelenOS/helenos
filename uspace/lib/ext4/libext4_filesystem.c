@@ -32,7 +32,7 @@
 
 /**
  * @file	libext4_filesystem.c
- * @brief	TODO
+ * @brief	More complex filesystem operations.
  */
 
 #include <byteorder.h>
@@ -347,7 +347,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 	if (fblock != 0) {
 		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
-			// TODO error
+			return rc;
 		}
 
 		uint32_t ind_block;
@@ -357,7 +357,8 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 			if (ind_block != 0) {
 				rc = ext4_balloc_free_block(fs, inode_ref, ind_block);
 				if (rc != EOK) {
-					// TODO error
+					block_put(block);
+					return rc;
 				}
 			}
 		}
@@ -365,7 +366,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 		block_put(block);
 		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
 		if (rc != EOK) {
-			// TODO error
+			return rc;
 		}
 
 		ext4_inode_set_indirect_block(inode_ref->inode, 1, 0);
@@ -378,7 +379,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 	if (fblock != 0) {
 		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
-			// TODO error
+			return rc;
 		}
 
 		uint32_t ind_block;
@@ -388,7 +389,8 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 			if (ind_block != 0) {
 				rc = block_get(&subblock, fs->device, ind_block, BLOCK_FLAGS_NONE);
 				if (rc != EOK) {
-					// TODO error
+					block_put(block);
+					return rc;
 				}
 
 				uint32_t ind_subblock;
@@ -398,7 +400,9 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 					if (ind_subblock != 0) {
 						rc = ext4_balloc_free_block(fs, inode_ref, ind_subblock);
 						if (rc != EOK) {
-							// TODO error
+							block_put(subblock);
+							block_put(block);
+							return rc;
 						}
 					}
 
@@ -409,7 +413,8 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 
 			rc = ext4_balloc_free_block(fs, inode_ref, ind_block);
 			if (rc != EOK) {
-				// TODO error
+				block_put(block);
+				return rc;
 			}
 
 
@@ -418,7 +423,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 		block_put(block);
 		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
 		if (rc != EOK) {
-			// TODO error
+			return rc;
 		}
 
 		ext4_inode_set_indirect_block(inode_ref->inode, 2, 0);
@@ -612,8 +617,6 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		return EIO;
 	}
 
-
-
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
 	/* Compute offsets for the topmost level */
@@ -627,8 +630,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 	if (current_block == 0) {
 		rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
 		if (rc != EOK) {
-			// TODO error
-			EXT4FS_DBG("error in allocation");
+			return rc;
 		}
 
 		ext4_inode_set_indirect_block(inode_ref->inode, level - 1, new_block_addr);
@@ -637,8 +639,8 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 
 		rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
-			EXT4FS_DBG("block load error");
-			// TODO error
+			ext4_balloc_free_block(fs, inode_ref, new_block_addr);
+			return rc;
 		}
 
 		memset(new_block->data, 0, block_size);
@@ -646,10 +648,8 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 
 		rc = block_put(new_block);
 		if (rc != EOK) {
-			EXT4FS_DBG("block put error");
+			return rc;
 		}
-
-//		EXT4FS_DBG("allocated indirect block for level \%u, during setting iblock \%u", level, (uint32_t)iblock);
 
 		current_block = new_block_addr;
 	}
@@ -669,23 +669,23 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		if ((level > 1) && (current_block == 0)) {
 			rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
 			if (rc != EOK) {
-				// TODO error
-				EXT4FS_DBG("allocation error");
+				block_put(block);
+				return rc;
 			}
 
 			rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 			if (rc != EOK) {
-				// TODO error
-
-				EXT4FS_DBG("BBB: error block loading");
-
+				block_put(block);
+				return rc;
 			}
+
 			memset(new_block->data, 0, block_size);
 			new_block->dirty = true;
 
 			rc = block_put(new_block);
 			if (rc != EOK) {
-				EXT4FS_DBG("BBB: error indirect block saving");
+				block_put(block);
+				return rc;
 			}
 
 			((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(new_block_addr);

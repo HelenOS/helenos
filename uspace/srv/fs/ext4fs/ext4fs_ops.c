@@ -1091,9 +1091,8 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
 	if (rc != EOK) {
-		// TODO error
 		ext4fs_node_put(fn);
-		EXT4FS_DBG("error loading block addr");
+		async_answer_0(callid, rc);
 		return rc;
 	}
 
