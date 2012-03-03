@@ -122,7 +122,7 @@ void ext4_directory_dx_entry_set_block(ext4_directory_dx_entry_t *, uint32_t);
 
 /*********************************************************************************/
 
-extern int ext4_directory_dx_find_entry(ext4_directory_iterator_t *,
+extern int ext4_directory_dx_find_entry(ext4_directory_search_result_t *,
 		ext4_filesystem_t *, ext4_inode_ref_t *, size_t, const char *);
 extern int ext4_directory_dx_add_entry(ext4_filesystem_t *,
 		ext4_inode_ref_t *, ext4_inode_ref_t *, const char *);

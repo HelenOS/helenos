@@ -344,8 +344,6 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 
 	// Linear algorithm
 
-	EXT4FS_DBG("Linear algorithm");
-
 	uint32_t iblock, fblock;
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
@@ -353,6 +351,7 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 
 	uint32_t name_len = strlen(name);
 
+	// Find block, where is space for new entry
 	bool success = false;
 	for (iblock = 0; iblock < total_blocks; ++iblock) {
 
@@ -382,15 +381,14 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 		}
 	}
 
-
-	EXT4FS_DBG("NO FREE SPACE - needed to allocate block");
+	// No free block found - needed to allocate next block
 
 	rc = ext4_directory_append_block(fs, parent, &fblock, &iblock);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	// Load block
+	// Load new block
 	block_t *new_block;
 	rc = block_get(&new_block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
 	if (rc != EOK) {
@@ -402,6 +400,7 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	ext4_directory_entry_ll_t *block_entry = new_block->data;
 	ext4_directory_write_entry(fs->superblock, block_entry, block_size, child, name, name_len);
 
+	// Save new block
 	new_block->dirty = true;
 	rc = block_put(new_block);
 	if (rc != EOK) {
@@ -411,17 +410,18 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	return EOK;
 }
 
-int ext4_directory_find_entry(ext4_directory_iterator_t *it,
-		ext4_inode_ref_t *parent, const char *name)
+int ext4_directory_find_entry(ext4_filesystem_t *fs,
+		ext4_directory_search_result_t *result, ext4_inode_ref_t *parent,
+		const char *name)
 {
 	int rc;
-	uint32_t name_size = strlen(name);
+	uint32_t name_len = strlen(name);
 
 	// Index search
-	if (ext4_superblock_has_feature_compatible(it->fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
+	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
 			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
 
-		rc = ext4_directory_dx_find_entry(it, it->fs, parent, name_size, name);
+		rc = ext4_directory_dx_find_entry(result, fs, parent, name_len, name);
 
 		// Check if index is not corrupted
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
@@ -433,37 +433,45 @@ int ext4_directory_find_entry(ext4_directory_iterator_t *it,
 		}
 
 		EXT4FS_DBG("index is corrupted - doing linear search");
-
 	}
 
-	bool found = false;
-	// Linear search
-	while (it->current != NULL) {
-		uint32_t inode = ext4_directory_entry_ll_get_inode(it->current);
+	uint32_t iblock, fblock;
+	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
+	uint32_t total_blocks = inode_size / block_size;
 
-		/* ignore empty directory entries */
-		if (inode != 0) {
-			uint16_t entry_name_size = ext4_directory_entry_ll_get_name_length(
-					it->fs->superblock, it->current);
+	for (iblock = 0; iblock < total_blocks; ++iblock) {
 
-			if (entry_name_size == name_size && bcmp(name, it->current->name,
-				    name_size) == 0) {
-				found = true;
-				break;
-			}
+		rc = ext4_filesystem_get_inode_data_block_index(fs, parent->inode, iblock, &fblock);
+		if (rc != EOK) {
+			return rc;
 		}
 
-		rc = ext4_directory_iterator_next(it);
+		block_t *block;
+		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		// find block entry
+		ext4_directory_entry_ll_t *res_entry;
+		rc = ext4_directory_find_in_block(block, fs->superblock, name_len, name, &res_entry);
+		if (rc == EOK) {
+			result->block = block;
+			result->dentry = res_entry;
+			return EOK;
+		}
+
+		rc = block_put(block);
 		if (rc != EOK) {
 			return rc;
 		}
 	}
 
-	if (!found) {
-		return ENOENT;
-	}
+	result->block = NULL;
+	result->dentry =  NULL;
 
-	return EOK;
+	return ENOENT;
 }
 
 
@@ -477,33 +485,26 @@ int ext4_directory_remove_entry(ext4_filesystem_t* fs,
 		return ENOTDIR;
 	}
 
-	ext4_directory_iterator_t it;
-	rc = ext4_directory_iterator_init(&it, fs, parent, 0);
+	ext4_directory_search_result_t result;
+	rc  = ext4_directory_find_entry(fs, &result, parent, name);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	rc = ext4_directory_find_entry(&it, parent, name);
-	if (rc != EOK) {
-		ext4_directory_iterator_fini(&it);
-		return rc;
-	}
+	ext4_directory_entry_ll_set_inode(result.dentry, 0);
 
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
-	uint32_t pos = it.current_offset % block_size;
+	uint32_t pos = (void *)result.dentry - result.block->data;
 
-	ext4_directory_entry_ll_set_inode(it.current, 0);
-
+	uint32_t offset = 0;
 	if (pos != 0) {
-		uint32_t offset = 0;
 
-		ext4_directory_entry_ll_t *tmp_dentry = it.current_block->data;
+		ext4_directory_entry_ll_t *tmp_dentry = result.block->data;
 		uint16_t tmp_dentry_length =
 				ext4_directory_entry_ll_get_entry_length(tmp_dentry);
 
 		while ((offset + tmp_dentry_length) < pos) {
 			offset += ext4_directory_entry_ll_get_entry_length(tmp_dentry);
-			tmp_dentry = it.current_block->data + offset;
+			tmp_dentry = result.block->data + offset;
 			tmp_dentry_length =
 					ext4_directory_entry_ll_get_entry_length(tmp_dentry);
 		}
@@ -511,18 +512,17 @@ int ext4_directory_remove_entry(ext4_filesystem_t* fs,
 		assert(tmp_dentry_length + offset == pos);
 
 		uint16_t del_entry_length =
-				ext4_directory_entry_ll_get_entry_length(it.current);
+				ext4_directory_entry_ll_get_entry_length(result.dentry);
 		ext4_directory_entry_ll_set_entry_length(tmp_dentry,
 				tmp_dentry_length + del_entry_length);
 
 	}
 
+	result.block->dirty = true;
 
-	it.current_block->dirty = true;
-
-	ext4_directory_iterator_fini(&it);
-	return EOK;
+	return ext4_directory_destroy_result(&result);
 }
+
 
 int ext4_directory_try_insert_entry(ext4_superblock_t *sb,
 		block_t *target_block, ext4_inode_ref_t *child,
@@ -579,7 +579,52 @@ int ext4_directory_try_insert_entry(ext4_superblock_t *sb,
    	return ENOSPC;
 }
 
+int ext4_directory_find_in_block(block_t *block,
+		ext4_superblock_t *sb, size_t name_len, const char *name,
+		ext4_directory_entry_ll_t **res_entry)
+{
+
+	ext4_directory_entry_ll_t *dentry = (ext4_directory_entry_ll_t *)block->data;
+	uint8_t *addr_limit = block->data + ext4_superblock_get_block_size(sb);
+
+	while ((uint8_t *)dentry < addr_limit) {
+
+		if ((uint8_t*) dentry + name_len > addr_limit) {
+			break;
+		}
+
+		if (dentry->inode != 0) {
+			if (name_len == ext4_directory_entry_ll_get_name_length(sb, dentry)) {
+				// Compare names
+				if (bcmp((uint8_t *)name, dentry->name, name_len) == 0) {
+					*res_entry = dentry;
+					return EOK;
+				}
+			}
+		}
+
+		// Goto next entry
+		uint16_t dentry_len = ext4_directory_entry_ll_get_entry_length(dentry);
+
+		if (dentry_len == 0) {
+			return EINVAL;
+		}
+
+		dentry = (ext4_directory_entry_ll_t *)((uint8_t *)dentry + dentry_len);
+	}
+
+	return ENOENT;
+}
+
+int ext4_directory_destroy_result(ext4_directory_search_result_t *result)
+{
+	if (result->block) {
+		return block_put(result->block);
+	}
+
+	return EOK;
+}
 
 /**
  * @}
- */ 
+ */

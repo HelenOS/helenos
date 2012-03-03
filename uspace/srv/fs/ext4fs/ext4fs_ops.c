@@ -209,16 +209,9 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 
-
-	ext4_directory_iterator_t it;
-	rc = ext4_directory_iterator_init(&it, fs, eparent->inode_ref, 0);
+	ext4_directory_search_result_t result;
+	rc = ext4_directory_find_entry(fs, &result, eparent->inode_ref, component);
 	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = ext4_directory_find_entry(&it, eparent->inode_ref, component);
-	if (rc != EOK) {
-		ext4_directory_iterator_fini(&it);
 		if (rc == ENOENT) {
 			*rfn = NULL;
 			return EOK;
@@ -226,15 +219,18 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return rc;
 	}
 
-	uint32_t inode = ext4_directory_entry_ll_get_inode(it.current);
+	uint32_t inode = ext4_directory_entry_ll_get_inode(result.dentry);
 
 	rc = ext4fs_node_get_core(rfn, eparent->instance, inode);
 	if (rc != EOK) {
-		ext4_directory_iterator_fini(&it);
 		return rc;
 	}
 
-	ext4_directory_iterator_fini(&it);
+	rc = ext4_directory_destroy_result(&result);
+	if (rc != EOK) {
+		return rc;
+	}
+
 	return EOK;
 }
 

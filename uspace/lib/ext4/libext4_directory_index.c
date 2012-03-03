@@ -263,48 +263,6 @@ static int ext4_directory_dx_get_leaf(ext4_hash_info_t *hinfo,
 }
 
 
-static int ext4_directory_dx_find_dir_entry(block_t *block,
-		ext4_superblock_t *sb, size_t name_len, const char *name,
-		ext4_directory_entry_ll_t **res_entry, aoff64_t *block_offset)
-{
-
-	aoff64_t offset = 0;
-	ext4_directory_entry_ll_t *dentry = (ext4_directory_entry_ll_t *)block->data;
-	uint8_t *addr_limit = block->data + ext4_superblock_get_block_size(sb);
-
-	while ((uint8_t *)dentry < addr_limit) {
-
-		if ((uint8_t*) dentry + name_len > addr_limit) {
-			break;
-		}
-
-		if (dentry->inode != 0) {
-			if (name_len == ext4_directory_entry_ll_get_name_length(sb, dentry)) {
-				// Compare names
-				if (bcmp((uint8_t *)name, dentry->name, name_len) == 0) {
-					*block_offset = offset;
-					*res_entry = dentry;
-					return 1;
-				}
-			}
-		}
-
-
-		// Goto next entry
-		uint16_t dentry_len = ext4_directory_entry_ll_get_entry_length(dentry);
-
-        if (dentry_len == 0) {
-        	// Error
-        	return -1;
-        }
-
-		offset += dentry_len;
-		dentry = (ext4_directory_entry_ll_t *)((uint8_t *)dentry + dentry_len);
-	}
-
-	return 0;
-}
-
 static int ext4_directory_dx_next_block(ext4_filesystem_t *fs, ext4_inode_t *inode, uint32_t hash,
 		ext4_directory_dx_block_t *handle, ext4_directory_dx_block_t *handles)
 {
@@ -367,8 +325,8 @@ static int ext4_directory_dx_next_block(ext4_filesystem_t *fs, ext4_inode_t *ino
 
 }
 
-int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
-		ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, size_t len, const char *name)
+int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
+		ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, size_t name_len, const char *name)
 {
 	int rc;
 
@@ -382,12 +340,11 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 	block_t *root_block;
 	rc = block_get(&root_block, fs->device, root_block_addr, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
-		it->current_block = NULL;
 		return rc;
 	}
 
 	ext4_hash_info_t hinfo;
-	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, len, name);
+	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_len, name);
 	if (rc != EOK) {
 		block_put(root_block);
 		return EXT4_ERR_BAD_DX_DIR;
@@ -418,18 +375,14 @@ int ext4_directory_dx_find_entry(ext4_directory_iterator_t *it,
 			return EXT4_ERR_BAD_DX_DIR;
 		}
 
-		aoff64_t block_offset;
 		ext4_directory_entry_ll_t *res_dentry;
-		rc = ext4_directory_dx_find_dir_entry(leaf_block, fs->superblock, len, name,
-				&res_dentry, &block_offset);
+		rc = ext4_directory_find_in_block(leaf_block, fs->superblock, name_len, name, &res_dentry);
+
 
 		// Found => return it
-		if (rc == 1) {
-			it->fs = fs;
-			it->inode_ref = inode_ref;
-			it->current_block = leaf_block;
-			it->current_offset = block_offset;
-			it->current = res_dentry;
+		if (rc == EOK) {
+			result->block = leaf_block;
+			result->dentry = res_dentry;
 			return EOK;
 		}
 
@@ -571,8 +524,6 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		return rc;
 	}
 
-//	EXT4FS_DBG("new block appended (iblock = \%u, fblock = \%u)", new_iblock, new_fblock);
-
 	// Load new block
 	block_t *new_data_block_tmp;
 	rc = block_get(&new_data_block_tmp, fs->device, new_fblock, BLOCK_FLAGS_NOREAD);
@@ -583,7 +534,6 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 	}
 
 	// Distribute entries to splitted blocks (by size)
-
 	uint32_t new_hash = 0;
 	uint32_t current_size = 0;
 	uint32_t mid = 0;
