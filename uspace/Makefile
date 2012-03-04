@@ -47,6 +47,7 @@ DIRS = \
 	app/locinfo \
 	app/lsusb \
 	app/mkfat \
+	app/mkexfat \
 	app/mkmfs \
 	app/redir \
 	app/sbi \

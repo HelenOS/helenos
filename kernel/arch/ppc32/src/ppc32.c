@@ -172,6 +172,8 @@ void arch_post_mm_init(void)
 #ifdef CONFIG_FB
 		ofw_tree_walk_by_device_type("display", display_register, NULL);
 #endif
+		/* Map OFW information into sysinfo */
+		ofw_sysinfo_map();
 		
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);

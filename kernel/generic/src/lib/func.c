@@ -52,7 +52,7 @@ atomic_t haltstate = {0}; /**< Halt flag */
  */
 void halt()
 {
-#ifdef CONFIG_DEBUG
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
 	bool rundebugger = false;
 	
 	if (!atomic_get(&haltstate)) {
