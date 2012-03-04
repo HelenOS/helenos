@@ -40,6 +40,8 @@
 #define AMDM37x_IRC_BASE_ADDRESS 0x4820000
 #define AMDM37x_IRC_SIZE 4096
 
+#define AMDM37x_IRC_IRQ_COUNT 96
+
 #include <typedefs.h>
 
 typedef struct {
@@ -103,16 +105,62 @@ typedef struct {
 
 } amdm37x_irc_regs_t;
 
-#endif
 
 static inline void amdm37x_irc_init(amdm37x_irc_regs_t *regs)
 {
-	/* AMDM37x TRM */
-	//program sysconfig
-	//program idle
-	//program ilr[m] assign priority, decide fiq
-	//program mir[n] enable interrupts (mir_set)
+	/* AMDM37x TRM sec 12.5.1 p. 2425 */
+
+	/* Program system config register */
+	//TODO enable this when you know the meaning
+	//regs->sysconfig |= AMDM37x_IRC_SYSCONFIG_AUTOIDLE_FLAG;
+
+	/* Program idle register */
+	//TODO enable this when you know the meaning
+	//regs->sysconfig |= AMDM37x_IRC_IDLE_TURBO_FLAG;
+
+	/* Program ilr[m] assign priority, decide fiq */
+	for (unsigned i = 0; i < AMDM37x_IRC_IRQ_COUNT; ++i) {
+		regs->ilr[i] = 0; /* highest prio(default) route to irq */
+	}
+
+	/* Disable all interrupts */
+	regs->interrupts[0].mir_clear = 0xffffffff;
+	regs->interrupts[1].mir_clear = 0xffffffff;
+	regs->interrupts[2].mir_clear = 0xffffffff;
 }
+
+static inline unsigned amdm37x_irc_inum_get(amdm37x_irc_regs_t *regs)
+{
+	return regs->sir_irq & AMDM37x_IRC_SIR_IRQ_ACTIVEIRQ_MASK;
+}
+
+static inline void amdm37x_irc_irq_ack(amdm37x_irc_regs_t *regs)
+{
+	regs->control = AMDM37x_IRC_CONTROL_NEWIRQAGR_FLAG;
+}
+
+static inline void amdm37x_irc_fiq_ack(amdm37x_irc_regs_t *regs)
+{
+	regs->control = AMDM37x_IRC_CONTROL_NEWFIQAGR_FLAG;
+}
+
+static inline void amdm37x_irc_enable(amdm37x_irc_regs_t *regs, unsigned inum)
+{
+	ASSERT(inum < AMDM37x_IRC_IRQ_COUNT);
+	const unsigned set = inum / 32;
+	const unsigned pos = inum % 32;
+	regs->interrupts[set].mir_set = (1 << pos);
+}
+
+static inline void amdm37x_irc_disable(amdm37x_irc_regs_t *regs, unsigned inum)
+{
+	ASSERT(inum < AMDM37x_IRC_IRQ_COUNT);
+	const unsigned set = inum / 32;
+	const unsigned pos = inum % 32;
+	regs->interrupts[set].mir_clear = (1 << pos);
+}
+
+#endif
 
 /**
  * @}
