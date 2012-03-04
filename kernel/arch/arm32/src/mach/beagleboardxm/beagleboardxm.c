@@ -29,12 +29,15 @@
  * @{
  */
 /** @file
- *  @brief BeagleBoard platform driver.
+ *  @brief BeagleBoard-xM platform driver.
  */
 
 #include <arch/exception.h>
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
+#include <genarch/drivers/amdm37x_irc/amdm37x_irc.h>
+#include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
 #include <interrupt.h>
+#include <mm/km.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
 
@@ -49,6 +52,11 @@ static void bbxm_input_init(void);
 static size_t bbxm_get_irq_count(void);
 static const char *bbxm_get_platform_name(void);
 
+static struct beagleboard {
+	amdm37x_irc_regs_t *irc_addr;
+	amdm37x_uart_t uart;
+} beagleboard;
+
 struct arm_machine_ops bbxm_machine_ops = {
 	bbxm_init,
 	bbxm_timer_irq_start,
@@ -62,12 +70,44 @@ struct arm_machine_ops bbxm_machine_ops = {
 	bbxm_get_platform_name
 };
 
+static irq_ownership_t bb_timer_irq_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void bb_timer_irq_handler(irq_t *irq)
+{
+        /*
+         * We are holding a lock which prevents preemption.
+         * Release the lock, call clock() and reacquire the lock again.
+         */
+        spinlock_unlock(&irq->lock);
+        clock();
+        spinlock_lock(&irq->lock);
+}
+
 static void bbxm_init(void)
 {
+	/* Initialize interrupt controller */
+	beagleboard.irc_addr =
+	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
+	    PAGE_NOT_CACHEABLE);
+	amdm37x_irc_init(beagleboard.irc_addr);
+
+	//initialize timer here
 }
 
 static void bbxm_timer_irq_start(void)
 {
+	/* Initialize timer IRQ */
+	static irq_t timer_irq;
+	irq_initialize(&timer_irq);
+	timer_irq.devno = device_assign_devno();
+	timer_irq.inr = 0;//BB_TIMER_IRQ;
+	timer_irq.claim = bb_timer_irq_claim;
+	timer_irq.handler = bb_timer_irq_handler;
+	irq_register(&timer_irq);
+	// start timer here
 }
 
 static void bbxm_cpu_halt(void)
@@ -81,10 +121,26 @@ static void bbxm_cpu_halt(void)
  */
 static void bbxm_get_memory_extents(uintptr_t *start, size_t *size)
 {
+	// FIXME: This is just a guess...
+	*start = 0;
+	*size = 256 * 1024 * 1024;
 }
 
 static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 {
+	const unsigned inum = amdm37x_irc_inum_get(beagleboard.irc_addr);
+	amdm37x_irc_irq_ack(beagleboard.irc_addr);
+
+	irq_t *irq = irq_dispatch_and_lock(inum);
+	if (irq) {
+		/* The IRQ handler was found. */
+		irq->handler(irq);
+		spinlock_unlock(&irq->lock);
+	} else {
+		/* Spurious interrupt.*/
+		printf("cpu%d: spurious interrupt (inum=%d)\n",
+		    CPU->id, inum);
+	}
 }
 
 static void bbxm_frame_init(void)
@@ -93,6 +149,16 @@ static void bbxm_frame_init(void)
 
 static void bbxm_output_init(void)
 {
+#ifdef CONFIG_FB
+#error "Frame buffer is not yet supported!"
+#endif
+
+	/* UART3 is wired to external RS232 connector */
+	const bool ok = amdm37x_uart_init(&beagleboard.uart,
+	    AMDM37x_UART3_IRQ, AMDM37x_UART3_BASE_ADDRESS, AMDM37x_UART3_SIZE);
+	if (ok) {
+		stdout_wire(&beagleboard.uart.outdev);
+	}
 }
 
 static void bbxm_input_init(void)
@@ -101,7 +167,7 @@ static void bbxm_input_init(void)
 
 size_t bbxm_get_irq_count(void)
 {
-	return 0;
+	return AMDM37x_IRC_IRQ_COUNT;
 }
 
 const char *bbxm_get_platform_name(void)
