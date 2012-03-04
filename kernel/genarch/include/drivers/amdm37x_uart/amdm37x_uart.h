@@ -447,7 +447,7 @@ typedef struct {
 } amdm37x_uart_t;
 
 
-int amdm37x_uart_init(amdm37x_uart_t *, inr_t, uintptr_t, size_t);
+bool amdm37x_uart_init(amdm37x_uart_t *, inr_t, uintptr_t, size_t);
 void amdm37x_uart_input_wire(amdm37x_uart_t *, indev_t *);
 
 #endif
