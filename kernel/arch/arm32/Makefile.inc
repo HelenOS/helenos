@@ -72,6 +72,10 @@ ifeq ($(MACHINE),integratorcp)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
 endif
 
+ifeq ($(MACHINE),beagleboardxm)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/beagleboardxm/beagleboardxm.c
+endif
+
 ifeq ($(CONFIG_PL050),y)
 	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
 endif

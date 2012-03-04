@@ -41,6 +41,7 @@
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <arch/mach/testarm/testarm.h>
+#include <arch/mach/beagleboardxm/beagleboardxm.h>
 
 /** Pointer to machine_ops structure being used. */
 struct arm_machine_ops *machine_ops;
@@ -54,6 +55,8 @@ void machine_ops_init(void)
 	machine_ops = &gxemul_machine_ops;
 #elif defined(MACHINE_integratorcp)
 	machine_ops = &icp_machine_ops;
+#elif defined(MACHINE_beagleboardxm)
+	machine_ops = &bbxm_machine_ops;
 #else
 #error Machine type not defined.
 #endif
