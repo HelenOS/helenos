@@ -254,9 +254,6 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 	/* Make sure that we are leaving the right TD behind */
 	assert(addr_to_phys(ohci_ep->td) == ed_head_td(ohci_batch->ed));
 	assert(addr_to_phys(ohci_ep->td) == ed_tail_td(ohci_batch->ed));
-//	const uint32_t pa = addr_to_phys(ohci_ep->td);
-//	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
-//	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
 
 	return true;
 }
