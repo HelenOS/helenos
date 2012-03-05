@@ -807,7 +807,6 @@ release_index:
 	dx_it = dx_blocks;
 
 	while (dx_it <= dx_block) {
-		EXT4FS_DBG("dirty = \%s, refcount = \%u", dx_it->block->dirty ? "true" : "false", dx_it->block->refcnt);
 		rc = block_put(dx_it->block);
 		if (rc != EOK) {
 			EXT4FS_DBG("error writing index block");
