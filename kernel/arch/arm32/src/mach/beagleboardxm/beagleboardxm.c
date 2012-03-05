@@ -52,6 +52,9 @@ static void bbxm_input_init(void);
 static size_t bbxm_get_irq_count(void);
 static const char *bbxm_get_platform_name(void);
 
+#define BBXM_MEMORY_START	0x80000000	/* physical */
+#define BBXM_MEMORY_SIZE	0x10000000	/* 256 MB, first chunk */
+
 static struct beagleboard {
 	amdm37x_irc_regs_t *irc_addr;
 	amdm37x_uart_t uart;
@@ -122,8 +125,8 @@ static void bbxm_cpu_halt(void)
 static void bbxm_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	// FIXME: This is just a guess...
-	*start = 0;
-	*size = 256 * 1024 * 1024;
+	*start = BBXM_MEMORY_START;
+	*size = BBXM_MEMORY_SIZE;
 }
 
 static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)

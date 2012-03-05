@@ -8,6 +8,8 @@
 
 #ifdef MACHINE_gta02
 #define KERNEL_LOAD_ADDRESS 0xb0a08000
+#elif defined MACHINE_beagleboardxm
+#define KERNEL_LOAD_ADDRESS 0x80a00000
 #else
 #define KERNEL_LOAD_ADDRESS 0x80a00000
 #endif
