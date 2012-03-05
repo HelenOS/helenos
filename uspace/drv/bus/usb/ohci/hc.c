@@ -591,11 +591,10 @@ int hc_init_memory(hc_t *instance)
 	instance->hcca = hcca_get();
 	if (instance->hcca == NULL)
 		return ENOMEM;
-	bzero(instance->hcca, sizeof(hcca_t));
 	usb_log_debug2("OHCI HCCA initialized at %p.\n", instance->hcca);
 
-	for (unsigned i = 0; i < 32; ++i) {
-		OHCI_WR(instance->hcca->int_ep[i],
+	for (unsigned i = 0; i < HCCA_INT_EP_COUNT; ++i) {
+		hcca_set_int_ep(instance->hcca, i,
 		    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
 	}
 	usb_log_debug2("Interrupt HEADs set to: %p (%#" PRIx32 ").\n",

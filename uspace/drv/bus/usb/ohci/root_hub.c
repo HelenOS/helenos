@@ -433,7 +433,7 @@ void get_status(const rh_t *instance, usb_transfer_batch_t *request)
 				TRANSFER_END(request, EINVAL);
 			/* Register format matches the format of port status
 			 * field */
-			const uint32_t data = uint32_usb2host(OHCI_RD(
+			const uint32_t data = uint32_host2usb(OHCI_RD(
 			    instance->registers->rh_port_status[port - 1]));
 			TRANSFER_END_DATA(request, &data, sizeof(data));
 		}
