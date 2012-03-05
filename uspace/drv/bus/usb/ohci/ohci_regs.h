@@ -36,11 +36,6 @@
 #include <sys/types.h>
 #include <byteorder.h>
 
-
-/* assume OHCI regs are le */
-#define host2ohci_reg(value) host2uint32_t_le(value)
-#define ohci_reg2host(value) uint32_t_le2host(value)
-
 #define OHCI_WR(reg, val) reg = host2uint32_t_le(val)
 #define OHCI_RD(reg) uint32_t_le2host(reg)
 #define OHCI_SET(reg, val) reg |= host2uint32_t_le(val)

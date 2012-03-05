@@ -345,7 +345,7 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
  */
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
-	status = ohci_reg2host(status);
+	status = OHCI_RD(status);
 	assert(instance);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
