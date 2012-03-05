@@ -382,7 +382,7 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 		if (rc == EOK) {
 			result->block = leaf_block;
 			result->dentry = res_dentry;
-			return EOK;
+			goto cleanup;
 		}
 
 		// Not found, leave untouched
@@ -399,7 +399,7 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 
 	} while (rc == 1);
 
-	return ENOENT;
+	rc = ENOENT;
 
 cleanup:
 
@@ -463,41 +463,40 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 {
 	int rc = EOK;
 
+	// Allocate buffer for directory entries
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	void *entry_buffer = malloc(block_size);
 	if (entry_buffer == NULL) {
 		return ENOMEM;
 	}
 
-	// Copy data to buffer
-	memcpy(entry_buffer, old_data_block->data, block_size);
-
 	// dot entry has the smallest size available
 	uint32_t max_entry_count =  block_size / sizeof(ext4_directory_dx_dot_entry_t);
 
+	// Allocate sort entry
 	ext4_dx_sort_entry_t *sort_array = malloc(max_entry_count * sizeof(ext4_dx_sort_entry_t));
 	if (sort_array == NULL) {
 		free(entry_buffer);
 		return ENOMEM;
 	}
 
-	ext4_directory_entry_ll_t *dentry = old_data_block->data;
-
 	uint32_t idx = 0;
 	uint32_t real_size = 0;
-	void *entry_buffer_ptr = entry_buffer;
 
+	// Initialize hinfo
 	ext4_hash_info_t tmp_hinfo;
 	memcpy(&tmp_hinfo, hinfo, sizeof(ext4_hash_info_t));
 
+	// Load all valid entries to the buffer
+	ext4_directory_entry_ll_t *dentry = old_data_block->data;
+	void *entry_buffer_ptr = entry_buffer;
 	while ((void *)dentry < old_data_block->data + block_size) {
 
 		// Read only valid entries
 		if (ext4_directory_entry_ll_get_inode(dentry) != 0) {
-			char *name = (char *)dentry->name;
 
 			uint8_t len = ext4_directory_entry_ll_get_name_length(fs->superblock, dentry);
-			ext4_hash_string(&tmp_hinfo, len, name);
+			ext4_hash_string(&tmp_hinfo, len, (char *)dentry->name);
 
 			uint32_t rec_len = 8 + len;
 
@@ -787,13 +786,7 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
 	}
 
-	if (rc != EOK) {
-		goto terminate;
-	}
-
-
 // TODO check rc handling
-terminate:
 	rc = block_put(new_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error writing new block");
@@ -806,16 +799,19 @@ release_target_index:
 
 	rc = block_put(target_block);
 	if (rc != EOK) {
-		return rc;
+		EXT4FS_DBG("error writing target block");
+//		return rc;
 	}
 
 release_index:
 	dx_it = dx_blocks;
 
 	while (dx_it <= dx_block) {
+		EXT4FS_DBG("dirty = \%s, refcount = \%u", dx_it->block->dirty ? "true" : "false", dx_it->block->refcnt);
 		rc = block_put(dx_it->block);
 		if (rc != EOK) {
-			return rc;
+			EXT4FS_DBG("error writing index block");
+//			return rc;
 		}
 		dx_it++;
 	}
