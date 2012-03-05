@@ -37,7 +37,7 @@
 #include <bool.h>
 #include <stdint.h>
 
-#include "../ohci_regs.h"
+#include "mem_access.h"
 #include "completion_codes.h"
 
 /* OHCI TDs can handle up to 8KB buffers, however, it can use max 2 pages.
@@ -99,7 +99,7 @@ void td_init(td_t *instance, const td_t *next,
 inline static bool td_is_finished(const td_t *instance)
 {
 	assert(instance);
-	const int cc =(OHCI_RD(instance->status)
+	const int cc =(OHCI_MEM32_RD(instance->status)
 	    >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
 	/* This value is changed on transfer completion,
 	 * either to CC_NOERROR or and error code.
@@ -118,7 +118,7 @@ inline static bool td_is_finished(const td_t *instance)
 static inline int td_error(const td_t *instance)
 {
 	assert(instance);
-	const int cc = (OHCI_RD(instance->status)
+	const int cc = (OHCI_MEM32_RD(instance->status)
 	    >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
 	return cc_to_rc(cc);
 }
@@ -135,7 +135,7 @@ static inline size_t td_remain_size(td_t *instance)
 	if (instance->cbp == 0)
 		return 0;
 	/* Buffer end points to the last byte of transfer buffer, so add 1 */
-	return OHCI_RD(instance->be) - OHCI_RD(instance->cbp) + 1;
+	return OHCI_MEM32_RD(instance->be) - OHCI_MEM32_RD(instance->cbp) + 1;
 }
 #endif
 /**

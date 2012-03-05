@@ -59,28 +59,28 @@ void td_init(td_t *instance, const td_t *next,
 	assert(instance);
 	bzero(instance, sizeof(td_t));
 	/* Set PID and Error code */
-	OHCI_WR(instance->status,
+	OHCI_MEM32_WR(instance->status,
 	    ((dir[direction] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
 	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT));
 
 	if (toggle == 0 || toggle == 1) {
 		/* Set explicit toggle bit */
-		OHCI_SET(instance->status, TD_STATUS_T_USE_TD_FLAG);
-		OHCI_SET(instance->status, toggle ? TD_STATUS_T_FLAG : 0);
+		OHCI_MEM32_SET(instance->status, TD_STATUS_T_USE_TD_FLAG);
+		OHCI_MEM32_SET(instance->status, toggle ? TD_STATUS_T_FLAG : 0);
 	}
 
 	/* Alow less data on input. */
 	if (dir == USB_DIRECTION_IN) {
-		OHCI_SET(instance->status, TD_STATUS_ROUND_FLAG);
+		OHCI_MEM32_SET(instance->status, TD_STATUS_ROUND_FLAG);
 	}
 
 	if (buffer != NULL) {
 		assert(size != 0);
-		OHCI_WR(instance->cbp, addr_to_phys(buffer));
-		OHCI_WR(instance->be, addr_to_phys(buffer + size - 1));
+		OHCI_MEM32_WR(instance->cbp, addr_to_phys(buffer));
+		OHCI_MEM32_WR(instance->be, addr_to_phys(buffer + size - 1));
 	}
 
-	OHCI_WR(instance->next, addr_to_phys(next) & TD_NEXT_PTR_MASK);
+	OHCI_MEM32_WR(instance->next, addr_to_phys(next) & TD_NEXT_PTR_MASK);
 
 }
 /**

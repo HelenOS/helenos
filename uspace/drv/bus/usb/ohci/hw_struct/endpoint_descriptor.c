@@ -57,14 +57,14 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 	if (ep == NULL) {
 		/* Mark as dead, used for dummy EDs at the beginning of
 		 * endpoint lists. */
-		OHCI_WR(instance->status, ED_STATUS_K_FLAG);
+		OHCI_MEM32_WR(instance->status, ED_STATUS_K_FLAG);
 		return;
 	}
 	/* Non-dummy ED must have TD assigned */
 	assert(td);
 
 	/* Status: address, endpoint nr, direction mask and max packet size. */
-	OHCI_WR(instance->status,
+	OHCI_MEM32_WR(instance->status,
 	    ((ep->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT)
 	    | ((ep->endpoint & ED_STATUS_EN_MASK) << ED_STATUS_EN_SHIFT)
 	    | ((dir[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT)
@@ -73,20 +73,20 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 
 	/* Low speed flag */
 	if (ep->speed == USB_SPEED_LOW)
-		OHCI_SET(instance->status, ED_STATUS_S_FLAG);
+		OHCI_MEM32_SET(instance->status, ED_STATUS_S_FLAG);
 
 	/* Isochronous format flag */
 	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
-		OHCI_SET(instance->status, ED_STATUS_F_FLAG);
+		OHCI_MEM32_SET(instance->status, ED_STATUS_F_FLAG);
 
 	/* Set TD to the list */
 	const uintptr_t pa = addr_to_phys(td);
-	OHCI_WR(instance->td_head, pa & ED_TDHEAD_PTR_MASK);
-	OHCI_WR(instance->td_tail, pa & ED_TDTAIL_PTR_MASK);
+	OHCI_MEM32_WR(instance->td_head, pa & ED_TDHEAD_PTR_MASK);
+	OHCI_MEM32_WR(instance->td_tail, pa & ED_TDTAIL_PTR_MASK);
 
 	/* Set toggle bit */
 	if (ep->toggle)
-		OHCI_SET(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
+		OHCI_MEM32_SET(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
 
 }
 /**

@@ -39,11 +39,11 @@
 
 #include <usb/host/endpoint.h>
 
-#include "../ohci_regs.h"
 #include "../utils/malloc32.h"
 #include "transfer_descriptor.h"
 
 #include "completion_codes.h"
+#include "mem_access.h"
 
 /**
  * OHCI Endpoint Descriptor representation.
@@ -116,14 +116,14 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 static inline bool ed_inactive(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_RD(instance->td_head) & ED_TDHEAD_HALTED_FLAG)
-	    || (OHCI_RD(instance->status) & ED_STATUS_K_FLAG);
+	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_HALTED_FLAG)
+	    || (OHCI_MEM32_RD(instance->status) & ED_STATUS_K_FLAG);
 }
 
 static inline void ed_clear_halt(ed_t *instance)
 {
 	assert(instance);
-	OHCI_CLR(instance->td_head, ED_TDHEAD_HALTED_FLAG);
+	OHCI_MEM32_CLR(instance->td_head, ED_TDHEAD_HALTED_FLAG);
 }
 
 /**
@@ -134,8 +134,8 @@ static inline void ed_clear_halt(ed_t *instance)
 static inline bool ed_transfer_pending(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_RD(instance->td_head) & ED_TDHEAD_PTR_MASK)
-	    != (OHCI_RD(instance->td_tail) & ED_TDTAIL_PTR_MASK);
+	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_PTR_MASK)
+	    != (OHCI_MEM32_RD(instance->td_tail) & ED_TDTAIL_PTR_MASK);
 }
 
 /**
@@ -147,19 +147,19 @@ static inline void ed_set_tail_td(ed_t *instance, const td_t *td)
 {
 	assert(instance);
 	const uintptr_t pa = addr_to_phys(td);
-	OHCI_WR(instance->td_tail, pa & ED_TDTAIL_PTR_MASK);
+	OHCI_MEM32_WR(instance->td_tail, pa & ED_TDTAIL_PTR_MASK);
 }
 
 static inline uint32_t ed_tail_td(const ed_t *instance)
 {
 	assert(instance);
-	return OHCI_RD(instance->td_tail) & ED_TDTAIL_PTR_MASK;
+	return OHCI_MEM32_RD(instance->td_tail) & ED_TDTAIL_PTR_MASK;
 }
 
 static inline uint32_t ed_head_td(const ed_t *instance)
 {
 	assert(instance);
-	return OHCI_RD(instance->td_head) & ED_TDHEAD_PTR_MASK;
+	return OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_PTR_MASK;
 }
 
 /**
@@ -173,13 +173,13 @@ static inline void ed_append_ed(ed_t *instance, const ed_t *next)
 	assert(next);
 	const uint32_t pa = addr_to_phys(next);
 	assert((pa & ED_NEXT_PTR_MASK) << ED_NEXT_PTR_SHIFT == pa);
-	OHCI_WR(instance->next, pa);
+	OHCI_MEM32_WR(instance->next, pa);
 }
 
 static inline uint32_t ed_next(const ed_t *instance)
 {
 	assert(instance);
-	return OHCI_RD(instance->next) & ED_NEXT_PTR_MASK;
+	return OHCI_MEM32_RD(instance->next) & ED_NEXT_PTR_MASK;
 }
 
 /**
@@ -190,7 +190,7 @@ static inline uint32_t ed_next(const ed_t *instance)
 static inline int ed_toggle_get(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_RD(instance->td_head) & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
+	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
 }
 
 /**
@@ -202,11 +202,11 @@ static inline void ed_toggle_set(ed_t *instance, bool toggle)
 {
 	assert(instance);
 	if (toggle) {
-		OHCI_SET(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
+		OHCI_MEM32_SET(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
 	} else {
 		/* Clear halted flag when reseting toggle TODO: Why? */
-		OHCI_CLR(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
-		OHCI_CLR(instance->td_head, ED_TDHEAD_HALTED_FLAG);
+		OHCI_MEM32_CLR(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
+		OHCI_MEM32_CLR(instance->td_head, ED_TDHEAD_HALTED_FLAG);
 	}
 }
 #endif
