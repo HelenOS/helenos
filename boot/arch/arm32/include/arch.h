@@ -41,16 +41,24 @@
  */
 #ifdef MACHINE_gta02
 #define BOOT_BASE	0x30008000
+#elif defined MACHINE_beagleboardxm
+#define BOOT_BASE	0x80000000
 #else
 #define BOOT_BASE	0x00000000
 #endif
 
 #define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
 
+#ifdef MACHINE_beagleboardxm
+	#define PA2KA(addr)  (addr)
+#else
+
 #ifndef __ASM__
 	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
 #else
 	#define PA2KA(addr)  ((addr) + 0x80000000)
+#endif
+
 #endif
 
 #endif

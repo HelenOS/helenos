@@ -66,8 +66,14 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 /** Initialize page table used while booting the kernel. */
 static void init_boot_pt(void)
 {
-	pfn_t split_page = 0x800;
-	
+/* BeagleBoard-xM (MD37x) memory starts at 2GB border,
+ * thus mapping only lower 2GB is not not enough.
+ * Map entire AS 1:1 instead and hope it works. */
+#ifdef MACHINE_beagleboardxm
+	const pfn_t split_page = PTL0_ENTRIES;
+#else
+	const pfn_t split_page = 0x800;
+#endif
 	/* Create 1:1 virtual-physical mapping (in lower 2 GB). */
 	pfn_t page;
 	for (page = 0; page < split_page; page++)

@@ -39,6 +39,18 @@
 
 /** Address where characters to be printed are expected. */
 
+
+/** BeagleBoard-xM UART register address
+ *
+ * This is UART3 of AM/DM37x CPU
+ */
+#define BBXM_SCONS_THR          0x49020000
+#define BBXM_SCONS_SSR          0x49020044
+
+/* Check this bit before writing (tx fifo full) */
+#define BBXM_THR_FULL           0x00000001
+
+
 /** GTA02 serial console UART register addresses.
  *
  * This is UART channel 2 of the S3C24xx CPU
