@@ -502,7 +502,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 	uint32_t current_block;
 
 	/* Handle inode using extents */
-	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode, EXT4_INODE_FLAG_EXTENTS)) {
 		current_block = ext4_inode_get_extent_block(inode, iblock, fs->device);
 		*fblock = current_block;
