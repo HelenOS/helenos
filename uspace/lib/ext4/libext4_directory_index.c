@@ -786,12 +786,14 @@ int ext4_directory_dx_add_entry(ext4_filesystem_t *fs,
 		rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
 	}
 
-// TODO check rc handling
+
+
+
 	rc = block_put(new_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error writing new block");
+		return rc;
 	}
-
 
 release_target_index:
 
@@ -800,17 +802,22 @@ release_target_index:
 	rc = block_put(target_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error writing target block");
-//		return rc;
+		return rc;
 	}
 
 release_index:
+
+	if (rc != EOK) {
+		rc2 = rc;
+	}
+
 	dx_it = dx_blocks;
 
 	while (dx_it <= dx_block) {
 		rc = block_put(dx_it->block);
 		if (rc != EOK) {
 			EXT4FS_DBG("error writing index block");
-//			return rc;
+			return rc;
 		}
 		dx_it++;
 	}
