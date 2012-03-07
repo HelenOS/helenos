@@ -36,7 +36,9 @@
  */
 
 #include <byteorder.h>
-#include "libext4_extent.h"
+#include <errno.h>
+#include <malloc.h>
+#include "libext4.h"
 
 uint32_t ext4_extent_get_first_block(ext4_extent_t *extent)
 {
@@ -144,6 +146,124 @@ void ext4_extent_header_set_generation(ext4_extent_header_t *header,
 		uint32_t generation)
 {
 	header->generation = host2uint32_t_le(generation);
+}
+
+static void ext4_extent_binsearch_idx(ext4_extent_path_t *path, uint32_t iblock)
+{
+	ext4_extent_header_t *header = path->header;
+	ext4_extent_index_t *r, *l, *m;
+
+	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
+	l = EXT4_EXTENT_FIRST_INDEX(header) + 1;
+	r = l + entries_count - 1;
+
+	while (l <= r) {
+		m = l + (r - l) / 2;
+		uint32_t block = ext4_extent_index_get_first_block(m);
+		if (iblock < block) {
+				r = m - 1;
+		} else {
+				l = m + 1;
+		}
+	}
+
+	path->index = l - 1;
+}
+
+static void ext4_extent_binsearch(ext4_extent_path_t *path, uint32_t iblock)
+{
+	ext4_extent_header_t *header = path->header;
+	ext4_extent_t *r, *l, *m;
+
+	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
+
+	if (entries_count == 0) {
+		// this leaf is empty
+		return;
+	}
+
+	l = EXT4_EXTENT_FIRST(header) + 1;
+	r = l + entries_count - 1;
+
+	while (l <= r) {
+		m = l + (r - l) / 2;
+		uint32_t block = ext4_extent_get_first_block(m);
+		if (iblock < block) {
+				r = m - 1;
+		} else {
+				l = m + 1;
+		}
+	}
+
+	path->extent = l - 1;
+
+}
+
+int ext4_extent_find_block(ext4_filesystem_t *fs, ext4_extent_path_t **path,
+		ext4_extent_header_t *header, uint32_t iblock)
+{
+	int rc;
+
+	uint16_t depth = ext4_extent_header_get_depth(header);
+
+	ext4_extent_header_t *eh = header;
+
+	ext4_extent_path_t *tmp_path;
+
+	// Added 2 for possible tree growing
+	tmp_path = malloc(sizeof(ext4_extent_path_t) * (depth + 2));
+	if (tmp_path == NULL) {
+		*path = NULL;
+		return ENOMEM;
+	}
+
+	tmp_path[0].block = NULL;
+	tmp_path[0].header = eh;
+
+	uint16_t pos = 0, idx = depth;
+	while (idx > 0) {
+
+		ext4_extent_binsearch_idx(tmp_path + pos, iblock);
+
+		tmp_path[pos].depth = idx;
+		tmp_path[pos].extent = NULL;
+
+		uint64_t fblock = ext4_extent_index_get_leaf(tmp_path[pos].index);
+		block_t *block;
+		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			// TODO cleanup
+		}
+
+		eh = (ext4_extent_header_t *)tmp_path[pos].block->data;
+		pos++;
+
+		tmp_path[pos].block = block;
+		tmp_path[pos].header = eh;
+
+		idx--;
+
+	}
+
+	tmp_path[pos].depth = idx;
+	tmp_path[pos].extent = NULL;
+	tmp_path[pos].index = NULL;
+
+    /* find extent */
+	ext4_extent_binsearch(tmp_path + pos, iblock);
+
+	/* if not an empty leaf */
+	if (tmp_path[pos].extent) {
+		uint64_t fblock = ext4_extent_get_start(tmp_path[pos].extent);
+		block_t *block;
+		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			// TODO cleanup
+		}
+		tmp_path[pos].block = block;
+	}
+
+	return EOK;
 }
 
 /**

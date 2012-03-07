@@ -484,6 +484,14 @@ typedef struct ext4_extent_header {
 	uint32_t generation; // generation of the tree
 } ext4_extent_header_t;
 
+typedef struct ext4_extent_path {
+	block_t *block;
+	uint16_t depth;
+	ext4_extent_header_t *header;
+	ext4_extent_index_t *index;
+	ext4_extent_t *extent;
+} ext4_extent_path_t;
+
 #define EXT4_EXTENT_MAGIC	0xF30A
 #define	EXT4_EXTENT_FIRST(header)	\
 		((ext4_extent_t *) (((void *) (header)) + sizeof(ext4_extent_header_t)))
