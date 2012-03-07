@@ -109,7 +109,8 @@ bool amdm37x_uart_init(
 	/* Setup outdev */
 	outdev_initialize("amdm37x_uart_dev", &uart->outdev, &amdm37x_uart_ops);
 	uart->outdev.data = uart;
-	return false;
+
+	return true;
 }
 
 void amdm37x_uart_input_wire(amdm37x_uart_t *uart, indev_t *indev)
