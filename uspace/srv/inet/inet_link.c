@@ -158,6 +158,8 @@ static int inet_link_open(service_id_t sid)
 	if (ilink == NULL)
 		return ENOMEM;
 
+	ilink->svc_id = sid;
+
 	rc = loc_service_get_name(sid, &ilink->svc_name);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed getting service name.");
@@ -259,6 +261,23 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	return rc;
 }
 
+inet_link_t *inet_link_get_by_id(sysarg_t link_id)
+{
+	fibril_mutex_lock(&inet_discovery_lock);
+
+	list_foreach(inet_link_list, elem) {
+		inet_link_t *ilink = list_get_instance(elem, inet_link_t,
+		    link_list);
+
+		if (ilink->svc_id == link_id) {
+			fibril_mutex_unlock(&inet_discovery_lock);
+			return ilink;
+		}
+	}
+
+	fibril_mutex_unlock(&inet_discovery_lock);
+	return NULL;
+}
 
 /** @}
  */

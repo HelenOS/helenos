@@ -58,7 +58,7 @@ typedef struct {
 } inet_link_info_t;
 
 extern int inetcfg_init(void);
-extern int inetcfg_addr_create_static(const char *, inet_naddr_t *, sysarg_t *);
+extern int inetcfg_addr_create_static(const char *, inet_naddr_t *, sysarg_t, sysarg_t *);
 extern int inetcfg_addr_delete(sysarg_t);
 extern int inetcfg_addr_get(sysarg_t, inet_addr_info_t *);
 extern int inetcfg_get_addr_list(sysarg_t **, size_t *);

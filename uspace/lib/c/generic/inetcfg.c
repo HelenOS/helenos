@@ -132,12 +132,12 @@ int inetcfg_init(void)
 }
 
 int inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
-    sysarg_t *addr_id)
+    sysarg_t link_id, sysarg_t *addr_id)
 {
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
 
-	int rc = async_req_2_1(exch, INETCFG_ADDR_CREATE_STATIC, naddr->ipv4,
-	    naddr->bits, addr_id);
+	int rc = async_req_3_1(exch, INETCFG_ADDR_CREATE_STATIC, naddr->ipv4,
+	    naddr->bits, link_id, addr_id);
 	async_exchange_end(exch);
 
 	return rc;

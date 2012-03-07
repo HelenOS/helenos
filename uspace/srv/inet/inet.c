@@ -275,10 +275,6 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	sysarg_t port;
 
-	log_msg(LVL_DEBUG, "inet_client_conn(%d, %d, %d)",
-	(int)IPC_GET_ARG1(*icall), (int)IPC_GET_ARG2(*icall),
-	(int)IPC_GET_ARG3(*icall));
-
 	port = IPC_GET_ARG1(*icall);
 
 	switch (port) {

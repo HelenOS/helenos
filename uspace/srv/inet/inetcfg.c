@@ -34,25 +34,50 @@
  * @brief
  */
 
-#include <adt/list.h>
 #include <async.h>
 #include <errno.h>
 #include <macros.h>
-#include <fibril_synch.h>
 #include <io/log.h>
 #include <ipc/inet.h>
-#include <ipc/services.h>
 #include <loc.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
+#include "addrobj.h"
 #include "inet.h"
+#include "inet_link.h"
 #include "inetcfg.h"
 
-static int inetcfg_addr_create_static(inet_naddr_t *naddr, sysarg_t *addr_id)
+static int inetcfg_addr_create_static(inet_naddr_t *naddr, sysarg_t link_id,
+    sysarg_t *addr_id)
 {
-	return ENOTSUP;
+	inet_link_t *ilink;
+	inet_addrobj_t *addr;
+	iplink_addr_t iaddr;
+	int rc;
+
+	ilink = inet_link_get_by_id(link_id);
+	if (ilink == NULL) {
+		log_msg(LVL_DEBUG, "Link %lu not found.",
+		    (unsigned long) link_id);
+		return ENOENT;
+	}
+
+	addr = inet_addrobj_new();
+	addr->naddr = *naddr;
+	addr->ilink = ilink;
+	inet_addrobj_add(addr);
+
+	iaddr.ipv4 = addr->naddr.ipv4;
+	rc = iplink_addr_add(ilink->iplink, &iaddr);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		inet_addrobj_remove(addr);
+		inet_addrobj_delete(addr);
+		return rc;
+	}
+
+	return EOK;
 }
 
 static int inetcfg_addr_delete(sysarg_t addr_id)
@@ -84,6 +109,7 @@ static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
     ipc_call_t *call)
 {
 	inet_naddr_t naddr;
+	sysarg_t link_id;
 	sysarg_t addr_id;
 	int rc;
 
@@ -91,9 +117,10 @@ static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
 
 	naddr.ipv4 = IPC_GET_ARG1(*call);
 	naddr.bits = IPC_GET_ARG2(*call);
+	link_id    = IPC_GET_ARG3(*call);
 
 	addr_id = 0;
-	rc = inetcfg_addr_create_static(&naddr, &addr_id);
+	rc = inetcfg_addr_create_static(&naddr, link_id, &addr_id);
 	async_answer_1(callid, rc, addr_id);
 }
 

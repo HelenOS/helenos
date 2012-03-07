@@ -37,11 +37,13 @@
 #ifndef INET_LINK_H_
 #define INET_LINK_H_
 
+#include <sys/types.h>
 #include "inet.h"
 
 extern int inet_link_discovery_start(void);
 extern int inet_link_send_dgram(inet_link_t *, inet_addr_t *,
     inet_addr_t *, inet_dgram_t *, uint8_t, uint8_t, int);
+extern inet_link_t *inet_link_get_by_id(sysarg_t);
 
 #endif
 

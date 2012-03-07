@@ -37,6 +37,7 @@
 #include <async.h>
 #include <errno.h>
 #include <inet/inetcfg.h>
+#include <loc.h>
 #include <stdio.h>
 #include <str_error.h>
 #include <sys/types.h>
@@ -45,22 +46,103 @@
 
 static void print_syntax(void)
 {
-	printf("syntax: " NAME " xxx\n");
+	printf("syntax: " NAME " create <addr>/<width> <link-name> <addr-name>\n");
+}
+
+static int naddr_parse(const char *text, inet_naddr_t *naddr)
+{
+	unsigned long a[4], bits;
+	char *cp = (char *)text;
+	int i;
+
+	for (i = 0; i < 3; i++) {
+		a[i] = strtoul(cp, &cp, 10);
+		if (*cp != '.')
+			return EINVAL;
+		++cp;
+	}
+
+	a[3] = strtoul(cp, &cp, 10);
+	if (*cp != '/')
+		return EINVAL;
+	++cp;
+
+	bits = strtoul(cp, &cp, 10);
+	if (*cp != '\0')
+		return EINVAL;
+
+	naddr->ipv4 = 0;
+	for (i = 0; i < 4; i++) {
+		if (a[i] > 255)
+			return EINVAL;
+		naddr->ipv4 = (naddr->ipv4 << 8) | a[i];
+	}
+
+	if (bits < 1 || bits > 31)
+		return EINVAL;
+
+	naddr->bits = bits;
+	return EOK;
+}
+
+static int addr_create_static(int argc, char *argv[])
+{
+	char *aobj_name;
+	char *addr_spec;
+	char *link_name;
+
+	inet_naddr_t naddr;
+	sysarg_t link_id;
+	sysarg_t addr_id;
+	int rc;
+
+	if (argc < 3) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 3) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	addr_spec = argv[0];
+	link_name = argv[1];
+	aobj_name = argv[2];
+
+	rc = loc_service_get_id(link_name, &link_id, 0);
+	if (rc != EOK) {
+		printf(NAME ": Service '%s' not found (%d).\n", link_name, rc);
+		return ENOENT;
+	}
+
+	rc = naddr_parse(addr_spec, &naddr);
+	if (rc != EOK) {
+		printf(NAME ": Invalid address format '%s'.\n", addr_spec);
+		return EINVAL;
+	}
+
+	rc = inetcfg_addr_create_static(aobj_name, &naddr, link_id, &addr_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed creating static address '%s' (%d)\n",
+		    "v4s", rc);
+		return 1;
+	}
+
+	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
 	int rc;
-	inet_naddr_t naddr;
-	sysarg_t addr_id;
 
-	if (argc > 1) {
-		printf(NAME ": Invalid argument '%s'.\n", argv[1]);
+	if (argc < 2) {
+		printf(NAME ": Missing argument.\n");
 		print_syntax();
 		return 1;
 	}
-
-	printf("initialize\n");
 
 	rc = inetcfg_init();
 	if (rc != EOK) {
@@ -69,18 +151,16 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("sleep\n");
-	async_usleep(10*1000*1000);
-	printf("create static addr\n");
-
-	rc = inetcfg_addr_create_static("v4s", &naddr, &addr_id);
-	if (rc != EOK) {
-		printf(NAME ": Failed creating static address '%s' (%d)\n",
-		    "v4s", rc);
+	if (str_cmp(argv[1], "create") == 0) {
+		rc = addr_create_static(argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else {
+		printf(NAME ": Unknown command '%s'.\n", argv[1]);
+		print_syntax();
 		return 1;
 	}
 
-	printf("Success!\n");
 	return 0;
 }
 
