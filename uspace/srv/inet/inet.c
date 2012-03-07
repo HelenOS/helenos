@@ -285,7 +285,6 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		inet_cfg_conn(iid, icall, arg);
 		break;
 	default:
-		printf("uknown port number %d\n", port);
 		async_answer_0(iid, ENOTSUP);
 		break;
 	}
