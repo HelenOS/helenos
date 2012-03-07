@@ -34,21 +34,7 @@
 #define LIBEXT4_LIBEXT4_FILESYSTEM_H_
 
 #include <libblock.h>
-#include "libext4_block_group.h"
-#include "libext4_inode.h"
-#include "libext4_superblock.h"
-
-typedef struct ext4_filesystem {
-	service_id_t device;
-	ext4_superblock_t *	superblock;
-	aoff64_t inode_block_limits[4];
-	aoff64_t inode_blocks_per_level[4];
-} ext4_filesystem_t;
-
-#define EXT4_MIN_BLOCK_SIZE		1024  //1 KiB
-#define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
-#define EXT4_REV0_INODE_SIZE	128
-
+#include "libext4_types.h"
 
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
 extern int ext4_filesystem_fini(ext4_filesystem_t *fs, bool);

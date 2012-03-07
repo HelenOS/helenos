@@ -34,20 +34,7 @@
 #define LIBEXT4_LIBEXT4_HASH_H_
 
 #include <sys/types.h>
-
-#define EXT4_HASH_VERSION_LEGACY			0
-#define EXT4_HASH_VERSION_HALF_MD4			1
-#define EXT4_HASH_VERSION_TEA				2
-#define EXT4_HASH_VERSION_LEGACY_UNSIGNED	3
-#define EXT4_HASH_VERSION_HALF_MD4_UNSIGNED	4
-#define EXT4_HASH_VERSION_TEA_UNSIGNED		5
-
-typedef struct ext4_hash_info {
-	uint32_t hash;
-	uint32_t minor_hash;
-	uint32_t hash_version;
-	uint32_t *seed;
-} ext4_hash_info_t;
+#include "libext4_types.h"
 
 extern int ext4_hash_string(ext4_hash_info_t *, int, const char *);
 

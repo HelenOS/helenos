@@ -33,64 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_DIRECTORY_INDEX_H_
 #define LIBEXT4_LIBEXT4_DIRECTORY_INDEX_H_
 
-/* Structures for indexed directory */
-
-typedef struct ext4_directory_dx_countlimit {
-	uint16_t limit;
-    uint16_t count;
-} ext4_directory_dx_countlimit_t;
-
-typedef struct ext4_directory_dx_dot_entry {
-	uint32_t inode;
-	uint16_t entry_length;
-    uint8_t name_length;
-    uint8_t inode_type;
-    uint8_t name[4];
-} ext4_directory_dx_dot_entry_t;
-
-typedef struct ext4_directory_dx_root_info {
-	uint32_t reserved_zero;
-	uint8_t hash_version;
-	uint8_t info_length;
-	uint8_t indirect_levels;
-	uint8_t unused_flags;
-} ext4_directory_dx_root_info_t;
-
-typedef struct ext4_directory_dx_entry {
-	uint32_t hash;
-	uint32_t block;
-} ext4_directory_dx_entry_t;
-
-typedef struct ext4_directory_dx_root {
-		ext4_directory_dx_dot_entry_t dots[2];
-		ext4_directory_dx_root_info_t info;
-		ext4_directory_dx_entry_t entries[0];
-} ext4_directory_dx_root_t;
-
-typedef struct ext4_fake_directory_entry {
-	uint32_t inode;
-	uint16_t entry_length;
-	uint8_t name_length;
-	uint8_t inode_type;
-} ext4_fake_directory_entry_t;
-
-typedef struct ext4_directory_dx_node {
-	ext4_fake_directory_entry_t fake;
-	ext4_directory_dx_entry_t entries[0];
-} ext4_directory_dx_node_t;
-
-
-typedef struct ext4_directory_dx_block {
-	block_t *block;
-	ext4_directory_dx_entry_t *entries;
-	ext4_directory_dx_entry_t *position;
-} ext4_directory_dx_block_t;
-
-
-
-#define EXT4_ERR_BAD_DX_DIR			(-75000)
-#define EXT4_DIRECTORY_HTREE_EOF	(uint32_t)0x7fffffff
-
+#include "libext4_types.h"
 
 extern uint8_t ext4_directory_dx_root_info_get_hash_version(
 		ext4_directory_dx_root_info_t *);

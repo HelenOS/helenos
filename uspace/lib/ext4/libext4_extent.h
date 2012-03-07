@@ -33,45 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_EXTENT_H_
 #define LIBEXT4_LIBEXT4_EXTENT_H_
 
-/*
- * This is the extent on-disk structure.
- * It's used at the bottom of the tree.
- */
-typedef struct ext4_extent {
-	uint32_t first_block; // First logical block extent covers
-	uint16_t block_count; // Number of blocks covered by extent
-	uint16_t start_hi;    // High 16 bits of physical block
-	uint32_t start_lo;    // Low 32 bits of physical block
-} ext4_extent_t;
-
-/*
- * This is index on-disk structure.
- * It's used at all the levels except the bottom.
- */
-typedef struct ext4_extent_index {
-	uint32_t first_block; // Index covers logical blocks from 'block'
-	uint32_t leaf_lo; /* Pointer to the physical block of the next
-	 	 	 	 	   * level. leaf or next index could be there */
-	uint16_t leaf_hi;     /* high 16 bits of physical block */
-	uint16_t padding;
-} ext4_extent_index_t;
-
-/*
- * Each block (leaves and indexes), even inode-stored has header.
- */
-typedef struct ext4_extent_header {
-	uint16_t magic;
-	uint16_t entries_count; // Number of valid entries
-	uint16_t max_entries_count; // Capacity of store in entries
-	uint16_t depth; // Has tree real underlying blocks?
-	uint32_t generation; // generation of the tree
-} ext4_extent_header_t;
-
-#define EXT4_EXTENT_MAGIC	0xF30A
-#define	EXT4_EXTENT_FIRST(header)	\
-		((ext4_extent_t *) (((void *) (header)) + sizeof(ext4_extent_header_t)))
-#define	EXT4_EXTENT_FIRST_INDEX(header)	\
-		((ext4_extent_index_t *) (((void *) (header)) + sizeof(ext4_extent_header_t)))
+#include "libext4_types.h"
 
 extern uint32_t ext4_extent_get_first_block(ext4_extent_t *);
 extern void ext4_extent_set_first_block(ext4_extent_t *, uint32_t);
