@@ -36,6 +36,7 @@
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
 #include <genarch/drivers/amdm37x_irc/amdm37x_irc.h>
 #include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
+#include <genarch/drivers/amdm37x_gpt/amdm37x_gpt.h>
 #include <interrupt.h>
 #include <mm/km.h>
 #include <ddi/ddi.h>
@@ -58,19 +59,20 @@ static const char *bbxm_get_platform_name(void);
 static struct beagleboard {
 	amdm37x_irc_regs_t *irc_addr;
 	amdm37x_uart_t uart;
+	amdm37x_gpt_t timer;
 } beagleboard;
 
 struct arm_machine_ops bbxm_machine_ops = {
-	bbxm_init,
-	bbxm_timer_irq_start,
-	bbxm_cpu_halt,
-	bbxm_get_memory_extents,
-	bbxm_irq_exception,
-	bbxm_frame_init,
-	bbxm_output_init,
-	bbxm_input_init,
-	bbxm_get_irq_count,
-	bbxm_get_platform_name
+	.machine_init = bbxm_init,
+	.machine_timer_irq_start = bbxm_timer_irq_start,
+	.machine_cpu_halt = bbxm_cpu_halt,
+	.machine_get_memory_extents = bbxm_get_memory_extents,
+	.machine_irq_exception = bbxm_irq_exception,
+	.machine_frame_init = bbxm_frame_init,
+	.machine_output_init = bbxm_output_init,
+	.machine_input_init = bbxm_input_init,
+	.machine_get_irq_count = bbxm_get_irq_count,
+	.machine_get_platform_name = bbxm_get_platform_name
 };
 
 static irq_ownership_t bb_timer_irq_claim(irq_t *irq)
@@ -97,7 +99,12 @@ static void bbxm_init(void)
 	    PAGE_NOT_CACHEABLE);
 	amdm37x_irc_init(beagleboard.irc_addr);
 
-	//initialize timer here
+	// TODO: setup 32kHz clock source for timer1
+
+	/* Initialize timer, pick timer1, beacues it is in always power domain
+	 * and has special capabilities for regular ticks */
+	amdm37x_gpt_timer_ticks_init(&beagleboard.timer,
+	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, 100);
 }
 
 static void bbxm_timer_irq_start(void)
@@ -106,15 +113,18 @@ static void bbxm_timer_irq_start(void)
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
 	timer_irq.devno = device_assign_devno();
-	timer_irq.inr = 0;//BB_TIMER_IRQ;
+	timer_irq.inr = AMDM37x_GPT1_IRQ;
 	timer_irq.claim = bb_timer_irq_claim;
 	timer_irq.handler = bb_timer_irq_handler;
 	irq_register(&timer_irq);
-	// start timer here
+
+	/* Start timer here */
+	amdm37x_gpt_timer_ticks_start(&beagleboard.timer);
 }
 
 static void bbxm_cpu_halt(void)
 {
+	while (1);
 }
 
 /** Get extents of available memory.
@@ -124,7 +134,6 @@ static void bbxm_cpu_halt(void)
  */
 static void bbxm_get_memory_extents(uintptr_t *start, size_t *size)
 {
-	// FIXME: This is just a guess...
 	*start = BBXM_MEMORY_START;
 	*size = BBXM_MEMORY_SIZE;
 }
@@ -155,7 +164,6 @@ static void bbxm_output_init(void)
 #ifdef CONFIG_FB
 #error "Frame buffer is not yet supported!"
 #endif
-
 	/* UART3 is wired to external RS232 connector */
 	const bool ok = amdm37x_uart_init(&beagleboard.uart,
 	    AMDM37x_UART3_IRQ, AMDM37x_UART3_BASE_ADDRESS, AMDM37x_UART3_SIZE);
