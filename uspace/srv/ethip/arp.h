@@ -41,6 +41,8 @@
 #include "ethip.h"
 
 extern void arp_received(ethip_nic_t *, eth_frame_t *);
+extern int arp_translate(ethip_nic_t *, iplink_srv_addr_t *,
+    iplink_srv_addr_t *, mac48_addr_t *);
 
 #endif
 

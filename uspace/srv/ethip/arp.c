@@ -46,6 +46,9 @@
 #include "pdu.h"
 #include "std.h"
 
+/** Time to wait for ARP reply in microseconds */
+#define ARP_REQUEST_TIMEOUT (3 * 1000 * 1000)
+
 static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet);
 
 void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
@@ -63,18 +66,17 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 
 	log_msg(LVL_DEBUG, "ARP PDU decoded, opcode=%d, tpa=%x",
 	    packet.opcode, packet.target_proto_addr.ipv4);
-	if (packet.opcode == aop_request) {
-		log_msg(LVL_DEBUG, "ARP request");
 
-		laddr = ethip_nic_addr_find(nic, &packet.target_proto_addr);
-		if (laddr != NULL) {
-			log_msg(LVL_DEBUG, "Request on my address");
+	laddr = ethip_nic_addr_find(nic, &packet.target_proto_addr);
+	if (laddr != NULL) {
+		log_msg(LVL_DEBUG, "Request/reply to my address");
 
-			(void) atrans_add(&packet.sender_proto_addr,
-			    &packet.sender_hw_addr);
+		(void) atrans_add(&packet.sender_proto_addr,
+		    &packet.sender_hw_addr);
 
-			reply.opcode = aop_reply;
-			reply.sender_hw_addr = nic->mac_addr;
+		if (packet.opcode == aop_request) {
+        		reply.opcode = aop_reply;
+        		reply.sender_hw_addr = nic->mac_addr;
 			reply.sender_proto_addr = laddr->addr;
 			reply.target_hw_addr = packet.sender_hw_addr;
 			reply.target_proto_addr = packet.sender_proto_addr;
@@ -82,6 +84,31 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 			arp_send_packet(nic, &reply);
 		}
 	}
+}
+
+int arp_translate(ethip_nic_t *nic, iplink_srv_addr_t *src_addr,
+    iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
+{
+	int rc;
+	arp_eth_packet_t packet;
+
+	rc = atrans_lookup(ip_addr, mac_addr);
+	if (rc == EOK)
+		return EOK;
+
+	packet.opcode = aop_request;
+	packet.sender_hw_addr = nic->mac_addr;
+	packet.sender_proto_addr = *src_addr;
+	packet.target_hw_addr.addr = MAC48_BROADCAST;
+	packet.target_proto_addr = *ip_addr;
+
+	rc = arp_send_packet(nic, &packet);
+	if (rc != EOK)
+		return rc;
+
+	(void) atrans_wait_timeout(ARP_REQUEST_TIMEOUT);
+
+	return atrans_lookup(ip_addr, mac_addr);
 }
 
 static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet)

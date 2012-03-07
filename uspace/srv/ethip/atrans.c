@@ -46,6 +46,7 @@
 /** Address translation list (of ethip_atrans_t) */
 static FIBRIL_MUTEX_INITIALIZE(atrans_list_lock);
 static LIST_INITIALIZE(atrans_list);
+static FIBRIL_CONDVAR_INITIALIZE(atrans_cv);
 
 static ethip_atrans_t *atrans_find(iplink_srv_addr_t *ip_addr)
 {
@@ -81,6 +82,7 @@ int atrans_add(iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
 
 	list_append(&atrans->atrans_list, &atrans_list);
 	fibril_mutex_unlock(&atrans_list_lock);
+	fibril_condvar_broadcast(&atrans_cv);
 
 	return EOK;
 }
@@ -117,6 +119,18 @@ int atrans_lookup(iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
 	fibril_mutex_unlock(&atrans_list_lock);
 	*mac_addr = atrans->mac_addr;
 	return EOK;
+}
+
+int atrans_wait_timeout(suseconds_t timeout)
+{
+	int rc;
+
+	fibril_mutex_lock(&atrans_list_lock);
+	rc = fibril_condvar_wait_timeout(&atrans_cv, &atrans_list_lock,
+	    timeout);
+	fibril_mutex_unlock(&atrans_list_lock);
+
+	return rc;
 }
 
 /** @}

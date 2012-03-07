@@ -45,7 +45,6 @@
 #include <stdlib.h>
 
 #include "arp.h"
-#include "atrans.h"
 #include "ethip.h"
 #include "ethip_nic.h"
 #include "pdu.h"
@@ -177,7 +176,7 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 
 	log_msg(LVL_DEBUG, "ethip_send()");
 
-	rc = atrans_lookup(&sdu->ldest, &dest_mac_addr);
+	rc = arp_translate(nic, &sdu->lsrc, &sdu->ldest, &dest_mac_addr);
 	if (rc != EOK) {
 		log_msg(LVL_WARN, "Failed to look up IP address 0x%" PRIx32,
 		    sdu->ldest.ipv4);

@@ -43,6 +43,8 @@
 #include <loc.h>
 #include <sys/types.h>
 
+#define MAC48_BROADCAST 0xffffffffffff
+
 typedef struct {
 	link_t addr_list;
 	iplink_srv_addr_t addr;
