@@ -36,31 +36,44 @@
 #ifndef KERN_AMDM37x_GPT_H_
 #define KERN_AMDM37x_GPT_H_
 
-/* AMDM37x TRM p. 2740 */
-#define AMDM37x_GPT1_BASE_ADDRESS 0x48318000
-#define AMDM37x_GPT1_SIZE 4096
-#define AMDM37x_GPT2_BASE_ADDRESS 0x49032000
-#define AMDM37x_GPT2_SIZE 4096
-#define AMDM37x_GPT3_BASE_ADDRESS 0x49034000
-#define AMDM37x_GPT3_SIZE 4096
-#define AMDM37x_GPT4_BASE_ADDRESS 0x49036000
-#define AMDM37x_GPT4_SIZE 4096
-#define AMDM37x_GPT5_BASE_ADDRESS 0x49038000
-#define AMDM37x_GPT5_SIZE 4096
-#define AMDM37x_GPT6_BASE_ADDRESS 0x4903a000
-#define AMDM37x_GPT6_SIZE 4096
-#define AMDM37x_GPT7_BASE_ADDRESS 0x4903c000
-#define AMDM37x_GPT7_SIZE 4096
-#define AMDM37x_GPT8_BASE_ADDRESS 0x4903e000
-#define AMDM37x_GPT8_SIZE 4096
-#define AMDM37x_GPT9_BASE_ADDRESS 0x49040000
-#define AMDM37x_GPT9_SIZE 4096
-#define AMDM37x_GPT10_BASE_ADDRESS 0x48086000
-#define AMDM37x_GPT10_SIZE 4096
-#define AMDM37x_GPT11_BASE_ADDRESS 0x48088000
-#define AMDM37x_GPT11_SIZE 4096
-
 #include <typedefs.h>
+#include <mm/km.h>
+
+/* AMDM37x TRM p. 2740 */
+#define AMDM37x_GPT1_BASE_ADDRESS  0x48318000
+#define AMDM37x_GPT1_SIZE  4096
+#define AMDM37x_GPT1_IRQ  37
+#define AMDM37x_GPT2_BASE_ADDRESS  0x49032000
+#define AMDM37x_GPT2_SIZE  4096
+#define AMDM37x_GPT2_IRQ  38
+#define AMDM37x_GPT3_BASE_ADDRESS  0x49034000
+#define AMDM37x_GPT3_SIZE  4096
+#define AMDM37x_GPT3_IRQ  39
+#define AMDM37x_GPT4_BASE_ADDRESS  0x49036000
+#define AMDM37x_GPT4_SIZE  4096
+#define AMDM37x_GPT4_IRQ  40
+#define AMDM37x_GPT5_BASE_ADDRESS  0x49038000
+#define AMDM37x_GPT5_SIZE  4096
+#define AMDM37x_GPT5_IRQ  41
+#define AMDM37x_GPT6_BASE_ADDRESS  0x4903a000
+#define AMDM37x_GPT6_SIZE  4096
+#define AMDM37x_GPT6_IRQ  42
+#define AMDM37x_GPT7_BASE_ADDRESS  0x4903c000
+#define AMDM37x_GPT7_SIZE  4096
+#define AMDM37x_GPT7_IRQ  43
+#define AMDM37x_GPT8_BASE_ADDRESS  0x4903e000
+#define AMDM37x_GPT8_SIZE  4096
+#define AMDM37x_GPT8_IRQ  44
+#define AMDM37x_GPT9_BASE_ADDRESS  0x49040000
+#define AMDM37x_GPT9_SIZE  4096
+#define AMDM37x_GPT9_IRQ  45
+#define AMDM37x_GPT10_BASE_ADDRESS  0x48086000
+#define AMDM37x_GPT10_SIZE  4096
+#define AMDM37x_GPT10_IRQ  46
+#define AMDM37x_GPT11_BASE_ADDRESS  0x48088000
+#define AMDM37x_GPT11_SIZE  4096
+#define AMDM37x_GPT11_IRQ  47
+
 
 /** GPT register map AMDM37x TRM p. 2740 */
 typedef struct {
@@ -175,6 +188,42 @@ typedef struct {
 	/** Number of masked overflow interrupts */
 	ioport32_t towr;
 } amdm37x_gpt_regs_t;
+
+typedef struct {
+	amdm37x_gpt_regs_t *regs;
+	bool special_available;
+} amdm37x_gpt_t;
+
+static inline void amdm37x_gpt_timer_ticks_init(
+    amdm37x_gpt_t* timer, uintptr_t ioregs, size_t iosize, unsigned hz)
+{
+	ASSERT(timer);
+	/* Map control register */
+	timer->regs = (void*) km_map(ioregs, iosize, PAGE_NOT_CACHEABLE);
+
+	/* Set tldr and tccr */
+	timer->regs->tldr = 0xffffffff - 32768 / hz;
+	timer->regs->tccr = 0xffffffff - 32768 / hz;
+
+	/* Set autoreload */
+	timer->regs->tclr = AMDM37x_GPT_TCLR_AR_FLAG;
+
+	timer->special_available = (
+	    (ioregs == AMDM37x_GPT1_BASE_ADDRESS) ||
+	    (ioregs == AMDM37x_GPT2_BASE_ADDRESS) ||
+	    (ioregs == AMDM37x_GPT10_BASE_ADDRESS));
+
+}
+
+static inline void amdm37x_gpt_timer_ticks_start(amdm37x_gpt_t* timer)
+{
+	ASSERT(timer);
+	ASSERT(timer->regs);
+	/* Enable overflow interrupt */
+	timer->regs->tier |= AMDM37x_GPT_TIER_OVF_IRQ_FLAG;
+	/* Start timer */
+	timer->regs->tclr |= AMDM37x_GPT_TCLR_ST_FLAG;
+}
 
 #endif
 
