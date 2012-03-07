@@ -48,6 +48,7 @@
 
 #include "addrobj.h"
 #include "inet.h"
+#include "inetcfg.h"
 #include "inet_link.h"
 
 #define NAME "inet"
@@ -72,7 +73,15 @@ static int inet_init(void)
 		return EEXIST;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_INET, &sid);
+	rc = loc_service_register_with_iface(SERVICE_NAME_INET, &sid,
+	    INET_PORT_DEFAULT);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
+		return EEXIST;
+	}
+
+	rc = loc_service_register_with_iface(SERVICE_NAME_INETCFG, &sid,
+	    INET_PORT_CFG);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
@@ -219,11 +228,11 @@ static void inet_client_fini(inet_client_t *client)
 	fibril_mutex_unlock(&client_list_lock);
 }
 
-static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void inet_default_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	inet_client_t client;
 
-	log_msg(LVL_DEBUG, "inet_client_conn()");
+	log_msg(LVL_DEBUG, "inet_default_conn()");
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -260,6 +269,30 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	inet_client_fini(&client);
+}
+
+static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	sysarg_t port;
+
+	log_msg(LVL_DEBUG, "inet_client_conn(%d, %d, %d)",
+	(int)IPC_GET_ARG1(*icall), (int)IPC_GET_ARG2(*icall),
+	(int)IPC_GET_ARG3(*icall));
+
+	port = IPC_GET_ARG1(*icall);
+
+	switch (port) {
+	case INET_PORT_DEFAULT:
+		inet_default_conn(iid, icall, arg);
+		break;
+	case INET_PORT_CFG:
+		inet_cfg_conn(iid, icall, arg);
+		break;
+	default:
+		printf("uknown port number %d\n", port);
+		async_answer_0(iid, ENOTSUP);
+		break;
+	}
 }
 
 static inet_client_t *inet_client_find(uint8_t proto)

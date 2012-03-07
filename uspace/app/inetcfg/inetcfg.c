@@ -26,91 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup inetcfg
  * @{
  */
-/**
- * @file
- * @brief
+/** @file Internet configuration utility.
+ *
+ * Controls the internet service (@c inet).
  */
 
-#ifndef INET_H_
-#define INET_H_
-
-#include <adt/list.h>
-#include <inet/iplink.h>
-#include <ipc/loc.h>
-#include <sys/types.h>
 #include <async.h>
+#include <errno.h>
+#include <inet/inetcfg.h>
+#include <stdio.h>
+#include <str_error.h>
+#include <sys/types.h>
 
-/** Inet Client */
-typedef struct {
-	async_sess_t *sess;
-	uint8_t protocol;
-	link_t client_list;
-} inet_client_t;
+#define NAME "inetcfg"
 
-/** Host address */
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
+static void print_syntax(void)
+{
+	printf("syntax: " NAME " xxx\n");
+}
 
-/** Network address */
-typedef struct {
-	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
-} inet_naddr_t;
-
-/** Address object info */
-typedef struct {
-	/** Network address */
+int main(int argc, char *argv[])
+{
+	int rc;
 	inet_naddr_t naddr;
-} inet_addr_info_t;
+	sysarg_t addr_id;
 
-/** IP link info */
-typedef struct {
-	int dummy;
-} inet_link_info_t;
+	if (argc > 1) {
+		printf(NAME ": Invalid argument '%s'.\n", argv[1]);
+		print_syntax();
+		return 1;
+	}
 
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	uint8_t proto;
-	uint8_t ttl;
-	int df;
-	void *data;
-	size_t size;
-} inet_packet_t;
+	printf("initialize\n");
 
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	void *data;
-	size_t size;
-} inet_dgram_t;
+	rc = inetcfg_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to internet service (%d).\n",
+		    rc);
+		return 1;
+	}
 
-typedef struct {
-	link_t link_list;
-	service_id_t svc_id;
-	char *svc_name;
-	async_sess_t *sess;
-	iplink_t *iplink;
-} inet_link_t;
+	printf("sleep\n");
+	async_usleep(10*1000*1000);
+	printf("create static addr\n");
 
-typedef struct {
-	link_t addr_list;
-	inet_naddr_t naddr;
-	inet_link_t *ilink;
-} inet_addrobj_t;
+	rc = inetcfg_addr_create_static("v4s", &naddr, &addr_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed creating static address '%s' (%d)\n",
+		    "v4s", rc);
+		return 1;
+	}
 
-extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
-extern int inet_recv_packet(inet_packet_t *);
-
-#endif
+	printf("Success!\n");
+	return 0;
+}
 
 /** @}
  */

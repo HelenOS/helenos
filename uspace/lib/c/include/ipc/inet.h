@@ -37,6 +37,15 @@
 
 #include <ipc/common.h>
 
+/** Inet ports */
+typedef enum {
+	/** Default port */
+	INET_PORT_DEFAULT = 1,
+	/** Configuration port */
+	INET_PORT_CFG
+} inet_port_t;
+
+/** Requests on Inet default port */
 typedef enum {
 	INET_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
 	INET_GET_SRCADDR,
@@ -44,9 +53,20 @@ typedef enum {
 	INET_SET_PROTO
 } inet_request_t;
 
+/** Events on Inet default port */
 typedef enum {
 	INET_EV_RECV = IPC_FIRST_USER_METHOD
 } inet_event_t;
+
+/** Requests on Inet configuration port */
+typedef enum {
+	INETCFG_ADDR_CREATE_STATIC = IPC_FIRST_USER_METHOD,
+	INETCFG_ADDR_DELETE,
+	INETCFG_ADDR_GET,
+	INETCFG_GET_ADDR_LIST,
+	INETCFG_GET_LINK_LIST,
+	INETCFG_LINK_GET,
+} inetcfg_request_t;
 
 #endif
 

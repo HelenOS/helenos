@@ -27,13 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = inet
+BINARY = inetcfg
 
 SOURCES = \
-	addrobj.c \
-	inet.c \
-	inet_link.c \
-	inetcfg.c \
-	pdu.c
+	inetcfg.c
 
 include $(USPACE_PREFIX)/Makefile.common

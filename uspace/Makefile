@@ -41,6 +41,7 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
+	app/inetcfg \
 	app/kill \
 	app/killall \
 	app/klog \

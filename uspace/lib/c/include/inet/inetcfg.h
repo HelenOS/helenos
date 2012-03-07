@@ -26,34 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef INET_H_
-#define INET_H_
+#ifndef LIBC_INET_INETCFG_H_
+#define LIBC_INET_INETCFG_H_
 
-#include <adt/list.h>
-#include <inet/iplink.h>
-#include <ipc/loc.h>
+#include <inet/inet.h>
 #include <sys/types.h>
-#include <async.h>
-
-/** Inet Client */
-typedef struct {
-	async_sess_t *sess;
-	uint8_t protocol;
-	link_t client_list;
-} inet_client_t;
-
-/** Host address */
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
 
 /** Network address */
 typedef struct {
@@ -74,41 +57,13 @@ typedef struct {
 	int dummy;
 } inet_link_info_t;
 
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	uint8_t proto;
-	uint8_t ttl;
-	int df;
-	void *data;
-	size_t size;
-} inet_packet_t;
-
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	void *data;
-	size_t size;
-} inet_dgram_t;
-
-typedef struct {
-	link_t link_list;
-	service_id_t svc_id;
-	char *svc_name;
-	async_sess_t *sess;
-	iplink_t *iplink;
-} inet_link_t;
-
-typedef struct {
-	link_t addr_list;
-	inet_naddr_t naddr;
-	inet_link_t *ilink;
-} inet_addrobj_t;
-
-extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
-extern int inet_recv_packet(inet_packet_t *);
+extern int inetcfg_init(void);
+extern int inetcfg_addr_create_static(const char *, inet_naddr_t *, sysarg_t *);
+extern int inetcfg_addr_delete(sysarg_t);
+extern int inetcfg_addr_get(sysarg_t, inet_addr_info_t *);
+extern int inetcfg_get_addr_list(sysarg_t **, size_t *);
+extern int inetcfg_get_link_list(sysarg_t **, size_t *);
+extern int inetcfg_link_get(sysarg_t, inet_link_info_t *);
 
 #endif
 
