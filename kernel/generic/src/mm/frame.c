@@ -1281,7 +1281,10 @@ void frame_init(void)
  */
 bool frame_adjust_zone_bounds(bool low, uintptr_t *basep, size_t *sizep)
 {
-	uintptr_t limit = config.identity_size;
+	// FIXME: This might lead to overflow if the identity_size is too big
+	// but it is necessary if the PA identity_base > identity_size
+	const uintptr_t limit =
+	    KA2PA(config.identity_base) + config.identity_size;
 
 	if (low) {
 		if (*basep > limit)
