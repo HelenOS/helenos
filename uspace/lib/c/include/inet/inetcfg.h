@@ -50,11 +50,16 @@ typedef struct {
 typedef struct {
 	/** Network address */
 	inet_naddr_t naddr;
+	/** Link service ID */
+	sysarg_t ilink;
+	/** Address object name */
+	char *name;
 } inet_addr_info_t;
 
 /** IP link info */
 typedef struct {
-	int dummy;
+	/** Link service name */
+	char *name;
 } inet_link_info_t;
 
 extern int inetcfg_init(void);

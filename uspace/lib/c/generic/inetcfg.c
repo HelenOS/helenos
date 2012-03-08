@@ -34,6 +34,7 @@
 #include <ipc/services.h>
 #include <loc.h>
 #include <stdlib.h>
+#include <str.h>
 
 static async_sess_t *inetcfg_sess = NULL;
 
@@ -155,18 +156,40 @@ int inetcfg_addr_delete(sysarg_t addr_id)
 
 int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 {
-	sysarg_t ipv4, bits;
+	ipc_call_t dreply;
+	sysarg_t dretval;
+	size_t act_size;
+	char name_buf[LOC_NAME_MAXLEN + 1];
+
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
 
-	int rc = async_req_1_2(exch, INETCFG_ADDR_GET, addr_id,
-	    &ipv4, &bits);
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, INETCFG_ADDR_GET, addr_id, &answer);
+	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
+	async_wait_for(dreq, &dretval);
+
 	async_exchange_end(exch);
 
-	if (rc != EOK)
-		return rc;
+	if (dretval != EOK) {
+		async_wait_for(req, NULL);
+		return dretval;
+	}
 
-	ainfo->naddr.ipv4 = ipv4;
-	ainfo->naddr.bits = bits;
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK)
+		return retval;
+
+	act_size = IPC_GET_ARG2(dreply);
+	assert(act_size <= LOC_NAME_MAXLEN);
+	name_buf[act_size] = '\0';
+
+	ainfo->naddr.ipv4 = IPC_GET_ARG1(answer);
+	ainfo->naddr.bits = IPC_GET_ARG2(answer);
+	ainfo->ilink = IPC_GET_ARG3(answer);
+	ainfo->name = str_dup(name_buf);
+
 	return EOK;
 }
 
@@ -184,15 +207,37 @@ int inetcfg_get_link_list(sysarg_t **links, size_t *count)
 
 int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
+	ipc_call_t dreply;
+	sysarg_t dretval;
+	size_t act_size;
+	char name_buf[LOC_NAME_MAXLEN + 1];
+
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
 
-	int rc = async_req_1_0(exch, INETCFG_LINK_GET, link_id);
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, INETCFG_LINK_GET, link_id, &answer);
+	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
+	async_wait_for(dreq, &dretval);
+
 	async_exchange_end(exch);
 
-	if (rc != EOK)
-		return rc;
+	if (dretval != EOK) {
+		async_wait_for(req, NULL);
+		return dretval;
+	}
 
-	linfo->dummy = 0;
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK)
+		return retval;
+
+	act_size = IPC_GET_ARG2(dreply);
+	assert(act_size <= LOC_NAME_MAXLEN);
+	name_buf[act_size] = '\0';
+
+	linfo->name = str_dup(name_buf);
+
 	return EOK;
 }
 

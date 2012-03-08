@@ -39,6 +39,7 @@
 #include <inet/inetcfg.h>
 #include <loc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
 #include <sys/types.h>
 
@@ -85,6 +86,20 @@ static int naddr_parse(const char *text, inet_naddr_t *naddr)
 	return EOK;
 }
 
+static int naddr_format(inet_naddr_t *naddr, char **bufp)
+{
+	int rc;
+
+	rc = asprintf(bufp, "%d.%d.%d.%d/%d", naddr->ipv4 >> 24,
+	    (naddr->ipv4 >> 16) & 0xff, (naddr->ipv4 >> 8) & 0xff,
+	    naddr->ipv4 & 0xff, naddr->bits);
+
+	if (rc < 0)
+		return ENOMEM;
+
+	return EOK;
+}
+
 static int addr_create_static(int argc, char *argv[])
 {
 	char *aobj_name;
@@ -128,8 +143,59 @@ static int addr_create_static(int argc, char *argv[])
 	if (rc != EOK) {
 		printf(NAME ": Failed creating static address '%s' (%d)\n",
 		    "v4s", rc);
-		return 1;
+		return EIO;
 	}
+
+	return EOK;
+}
+
+static int addr_list(void)
+{
+	sysarg_t *addr_list;
+	inet_addr_info_t ainfo;
+	inet_link_info_t linfo;
+
+	size_t count;
+	size_t i;
+	int rc;
+	char *astr;
+
+	rc = inetcfg_get_addr_list(&addr_list, &count);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting address list.\n");
+		return rc;
+	}
+
+	for (i = 0; i < count; i++) {
+		rc = inetcfg_addr_get(addr_list[i], &ainfo);
+		if (rc != EOK) {
+			printf("Failed getting properties of address %zu.\n",
+			    (size_t)addr_list[i]);
+			continue;
+		}
+
+		rc = inetcfg_link_get(ainfo.ilink, &linfo);
+		if (rc != EOK) {
+			printf("Failed getting properties of link %zu.\n",
+			    (size_t)ainfo.ilink);
+			continue;
+		}
+
+		rc = naddr_format(&ainfo.naddr, &astr);
+		if (rc != EOK) {
+			printf("Memory allocation failed.\n");
+			goto out;
+		}
+
+		printf("%s %s %s\n", astr, linfo.name,
+		    ainfo.name);
+
+		free(astr);
+		free(ainfo.name);
+		free(linfo.name);
+	}
+out:
+	free(addr_list);
 
 	return EOK;
 }
@@ -138,17 +204,18 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
-	if (argc < 2) {
-		printf(NAME ": Missing argument.\n");
-		print_syntax();
-		return 1;
-	}
-
 	rc = inetcfg_init();
 	if (rc != EOK) {
 		printf(NAME ": Failed connecting to internet service (%d).\n",
 		    rc);
 		return 1;
+	}
+
+	if (argc < 2) {
+		rc = addr_list();
+		if (rc != EOK)
+			return 1;
+		return 0;
 	}
 
 	if (str_cmp(argv[1], "create") == 0) {

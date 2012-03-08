@@ -67,11 +67,16 @@ typedef struct {
 typedef struct {
 	/** Network address */
 	inet_naddr_t naddr;
+	/** Link service ID */
+	sysarg_t ilink;
+	/** Address object name */
+	char *name;
 } inet_addr_info_t;
 
 /** IP link info */
 typedef struct {
-	int dummy;
+	/** Link service name */
+	char *name;
 } inet_link_info_t;
 
 typedef struct {
@@ -103,8 +108,10 @@ typedef struct {
 
 typedef struct {
 	link_t addr_list;
+	sysarg_t id;
 	inet_naddr_t naddr;
 	inet_link_t *ilink;
+	char *name;
 } inet_addrobj_t;
 
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);

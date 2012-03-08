@@ -41,6 +41,7 @@
 #include <io/log.h>
 #include <loc.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include "addrobj.h"
 #include "inet.h"
@@ -195,6 +196,7 @@ static int inet_link_open(service_id_t sid)
 	}
 	addr->naddr.bits = 24;
 	addr->ilink = ilink;
+	addr->name = str_dup("v4a");
 	inet_addrobj_add(addr);
 
 	iaddr.ipv4 = addr->naddr.ipv4;

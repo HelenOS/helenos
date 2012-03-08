@@ -37,6 +37,7 @@
 #ifndef INET_ADDROBJ_H_
 #define INET_ADDROBJ_H_
 
+#include <sys/types.h>
 #include "inet.h"
 
 typedef enum {
@@ -51,8 +52,11 @@ extern void inet_addrobj_delete(inet_addrobj_t *);
 extern void inet_addrobj_add(inet_addrobj_t *);
 extern void inet_addrobj_remove(inet_addrobj_t *);
 extern inet_addrobj_t *inet_addrobj_find(inet_addr_t *, inet_addrobj_find_t);
+extern inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t);
 extern int inet_addrobj_send_dgram(inet_addrobj_t *, inet_dgram_t *,
     uint8_t, uint8_t, int);
+extern int inet_addrobj_get_id_list(sysarg_t **, size_t *);
+
 
 #endif
 

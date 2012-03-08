@@ -41,6 +41,7 @@
 #include <ipc/inet.h>
 #include <loc.h>
 #include <stdlib.h>
+#include <str.h>
 #include <sys/types.h>
 
 #include "addrobj.h"
@@ -66,6 +67,7 @@ static int inetcfg_addr_create_static(inet_naddr_t *naddr, sysarg_t link_id,
 	addr = inet_addrobj_new();
 	addr->naddr = *naddr;
 	addr->ilink = ilink;
+	addr->name = str_dup("foo");
 	inet_addrobj_add(addr);
 
 	iaddr.ipv4 = addr->naddr.ipv4;
@@ -87,12 +89,22 @@ static int inetcfg_addr_delete(sysarg_t addr_id)
 
 static int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 {
-	return ENOTSUP;
+	inet_addrobj_t *addr;
+
+	addr = inet_addrobj_get_by_id(addr_id);
+	if (addr == NULL)
+		return ENOENT;
+
+	ainfo->naddr = addr->naddr;
+	ainfo->ilink = addr->ilink->svc_id;
+	ainfo->name = str_dup(addr->name);
+
+	return EOK;
 }
 
 static int inetcfg_get_addr_list(sysarg_t **addrs, size_t *count)
 {
-	return ENOTSUP;
+	return inet_addrobj_get_id_list(addrs, count);
 }
 
 static int inetcfg_get_link_list(sysarg_t **addrs, size_t *count)
@@ -100,9 +112,17 @@ static int inetcfg_get_link_list(sysarg_t **addrs, size_t *count)
 	return ENOTSUP;
 }
 
-static int inetcfg_link_get(sysarg_t addr_id, inet_link_info_t *ainfo)
+static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
-	return ENOTSUP;
+	inet_link_t *ilink;
+
+	ilink = inet_link_get_by_id(link_id);
+	if (ilink == NULL) {
+		return ENOENT;
+	}
+
+	linfo->name = str_dup(ilink->svc_name);
+	return EOK;
 }
 
 static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
@@ -139,6 +159,9 @@ static void inetcfg_addr_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 
 static void inetcfg_addr_get_srv(ipc_callid_t callid, ipc_call_t *call)
 {
+	ipc_callid_t rcallid;
+	size_t max_size;
+
 	sysarg_t addr_id;
 	inet_addr_info_t ainfo;
 	int rc;
@@ -146,14 +169,36 @@ static void inetcfg_addr_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	addr_id = IPC_GET_ARG1(*call);
 	log_msg(LVL_DEBUG, "inetcfg_addr_get_srv()");
 
+	ainfo.naddr.ipv4 = 0;
+	ainfo.naddr.bits = 0;
+	ainfo.ilink = 0;
+	ainfo.name = NULL;
+
+	if (!async_data_read_receive(&rcallid, &max_size)) {
+		async_answer_0(rcallid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
+		return;
+	}
+
 	rc = inetcfg_addr_get(addr_id, &ainfo);
-	async_answer_2(callid, rc, ainfo.naddr.ipv4, ainfo.naddr.bits);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	sysarg_t retval = async_data_read_finalize(rcallid, ainfo.name,
+	    min(max_size, str_size(ainfo.name)));
+	free(ainfo.name);
+
+	async_answer_3(callid, retval, ainfo.naddr.ipv4, ainfo.naddr.bits,
+	    ainfo.ilink);
 }
 
 
 static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_callid_t rcallid;
+	size_t count;
 	size_t max_size;
 	size_t act_size;
 	size_t size;
@@ -168,13 +213,14 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = inetcfg_get_addr_list(&id_buf, &act_size);
+	rc = inetcfg_get_addr_list(&id_buf, &count);
 	if (rc != EOK) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
 		return;
 	}
 
+	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
 	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
@@ -185,6 +231,9 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 
 static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 {
+	ipc_callid_t rcallid;
+	size_t max_size;
+
 	sysarg_t link_id;
 	inet_link_info_t linfo;
 	int rc;
@@ -192,8 +241,26 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	link_id = IPC_GET_ARG1(*call);
 	log_msg(LVL_DEBUG, "inetcfg_link_get_srv()");
 
+	linfo.name = NULL;
+
+	if (!async_data_read_receive(&rcallid, &max_size)) {
+		async_answer_0(rcallid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
+		return;
+	}
+
 	rc = inetcfg_link_get(link_id, &linfo);
-	async_answer_0(callid, rc);
+	if (rc != EOK) {
+		async_answer_0(rcallid, rc);
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	sysarg_t retval = async_data_read_finalize(rcallid, linfo.name,
+	    min(max_size, str_size(linfo.name)));
+	free(linfo.name);
+
+	async_answer_0(callid, retval);
 }
 
 static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)

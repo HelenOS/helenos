@@ -35,6 +35,7 @@
  */
 
 #include <bitops.h>
+#include <errno.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <ipc/loc.h>
@@ -46,6 +47,7 @@
 
 static FIBRIL_MUTEX_INITIALIZE(addr_list_lock);
 static LIST_INITIALIZE(addr_list);
+static sysarg_t addr_id = 0;
 
 static uint32_t inet_netmask(int bits)
 {
@@ -66,12 +68,17 @@ inet_addrobj_t *inet_addrobj_new(void)
 	}
 
 	link_initialize(&addr->addr_list);
+	fibril_mutex_lock(&addr_list_lock);
+	addr->id = ++addr_id;
+	fibril_mutex_unlock(&addr_list_lock);
 
 	return addr;
 }
 
 void inet_addrobj_delete(inet_addrobj_t *addr)
 {
+	if (addr->name != NULL)
+		free(addr->name);
 	free(addr);
 }
 
@@ -122,6 +129,32 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 	return NULL;
 }
 
+/** Find address object matching address @a addr.
+ *
+ * @param id	Address object ID
+ * @return	Address object
+ */
+inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
+{
+	log_msg(LVL_DEBUG, "inet_addrobj_get_by_id(%zu)", (size_t)id);
+
+	fibril_mutex_lock(&addr_list_lock);
+
+	list_foreach(addr_list, link) {
+		inet_addrobj_t *naddr = list_get_instance(link,
+		    inet_addrobj_t, addr_list);
+
+		if (naddr->id == id) {
+			fibril_mutex_unlock(&addr_list_lock);
+			return naddr;
+		}
+	}
+
+	fibril_mutex_unlock(&addr_list_lock);
+
+	return NULL;
+}
+
 /** Send datagram to directly reachable destination */
 int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_dgram_t *dgram,
     uint8_t proto, uint8_t ttl, int df)
@@ -134,6 +167,37 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_dgram_t *dgram,
 
 	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest_addr, dgram,
 	    proto, ttl, df);
+}
+
+/** Get IDs of all address objects. */
+int inet_addrobj_get_id_list(sysarg_t **rid_list, size_t *rcount)
+{
+	sysarg_t *id_list;
+	size_t count, i;
+
+	fibril_mutex_lock(&addr_list_lock);
+	count = list_count(&addr_list);
+
+	id_list = calloc(count, sizeof(sysarg_t));
+	if (id_list == NULL) {
+		fibril_mutex_unlock(&addr_list_lock);
+		return ENOMEM;
+	}
+
+	i = 0;
+	list_foreach(addr_list, link) {
+		inet_addrobj_t *addr = list_get_instance(link,
+		    inet_addrobj_t, addr_list);
+
+		id_list[i++] = addr->id;
+	}
+
+	fibril_mutex_unlock(&addr_list_lock);
+
+	*rid_list = id_list;
+	*rcount = count;
+
+	return EOK;
 }
 
 /** @}
