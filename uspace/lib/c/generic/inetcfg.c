@@ -137,11 +137,22 @@ int inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
 {
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
 
-	int rc = async_req_3_1(exch, INETCFG_ADDR_CREATE_STATIC, naddr->ipv4,
-	    naddr->bits, link_id, addr_id);
+	ipc_call_t answer;
+	aid_t req = async_send_3(exch, INETCFG_ADDR_CREATE_STATIC, naddr->ipv4,
+	    naddr->bits, link_id, &answer);
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+
 	async_exchange_end(exch);
 
-	return rc;
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	*addr_id = IPC_GET_ARG1(answer);
+
+	return retval;
 }
 
 int inetcfg_addr_delete(sysarg_t addr_id)

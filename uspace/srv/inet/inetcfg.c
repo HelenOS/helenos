@@ -49,8 +49,8 @@
 #include "inet_link.h"
 #include "inetcfg.h"
 
-static int inetcfg_addr_create_static(inet_naddr_t *naddr, sysarg_t link_id,
-    sysarg_t *addr_id)
+static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
+    sysarg_t link_id, sysarg_t *addr_id)
 {
 	inet_link_t *ilink;
 	inet_addrobj_t *addr;
@@ -67,7 +67,7 @@ static int inetcfg_addr_create_static(inet_naddr_t *naddr, sysarg_t link_id,
 	addr = inet_addrobj_new();
 	addr->naddr = *naddr;
 	addr->ilink = ilink;
-	addr->name = str_dup("foo");
+	addr->name = str_dup(name);
 	inet_addrobj_add(addr);
 
 	iaddr.ipv4 = addr->naddr.ipv4;
@@ -128,6 +128,7 @@ static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
     ipc_call_t *call)
 {
+	char *name;
 	inet_naddr_t naddr;
 	sysarg_t link_id;
 	sysarg_t addr_id;
@@ -135,12 +136,20 @@ static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
 
 	log_msg(LVL_DEBUG, "inetcfg_addr_create_static_srv()");
 
+	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
 	naddr.ipv4 = IPC_GET_ARG1(*call);
 	naddr.bits = IPC_GET_ARG2(*call);
 	link_id    = IPC_GET_ARG3(*call);
 
 	addr_id = 0;
-	rc = inetcfg_addr_create_static(&naddr, link_id, &addr_id);
+	rc = inetcfg_addr_create_static(name, &naddr, link_id, &addr_id);
+	free(name);
 	async_answer_1(callid, rc, addr_id);
 }
 
