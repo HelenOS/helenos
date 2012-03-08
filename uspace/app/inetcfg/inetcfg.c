@@ -47,7 +47,9 @@
 
 static void print_syntax(void)
 {
-	printf("syntax: " NAME " create <addr>/<width> <link-name> <addr-name>\n");
+	printf("syntax:\n");
+	printf("\t" NAME " create <addr>/<width> <link-name> <addr-name>\n");
+	printf("\t" NAME " delete <link-name> <addr-name>\n");
 }
 
 static int naddr_parse(const char *text, inet_naddr_t *naddr)
@@ -142,7 +144,52 @@ static int addr_create_static(int argc, char *argv[])
 	rc = inetcfg_addr_create_static(aobj_name, &naddr, link_id, &addr_id);
 	if (rc != EOK) {
 		printf(NAME ": Failed creating static address '%s' (%d)\n",
-		    "v4s", rc);
+		    aobj_name, rc);
+		return EIO;
+	}
+
+	return EOK;
+}
+
+static int addr_delete(int argc, char *argv[])
+{
+	char *aobj_name;
+	char *link_name;
+	sysarg_t link_id;
+	sysarg_t addr_id;
+	int rc;
+
+	if (argc < 2) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 2) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	link_name = argv[0];
+	aobj_name = argv[1];
+
+	rc = loc_service_get_id(link_name, &link_id, 0);
+	if (rc != EOK) {
+		printf(NAME ": Service '%s' not found (%d).\n", link_name, rc);
+		return ENOENT;
+	}
+
+	rc = inetcfg_addr_get_id(aobj_name, link_id, &addr_id);
+	if (rc != EOK) {
+		printf(NAME ": Address '%s' not found (%d).\n", aobj_name, rc);
+		return ENOENT;
+	}
+
+	rc = inetcfg_addr_delete(addr_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed deleting address '%s' (%d)\n", aobj_name,
+		    rc);
 		return EIO;
 	}
 
@@ -220,6 +267,10 @@ int main(int argc, char *argv[])
 
 	if (str_cmp(argv[1], "create") == 0) {
 		rc = addr_create_static(argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "delete") == 0) {
+		rc = addr_delete(argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
 	} else {

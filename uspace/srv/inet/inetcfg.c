@@ -84,7 +84,16 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 
 static int inetcfg_addr_delete(sysarg_t addr_id)
 {
-	return ENOTSUP;
+	inet_addrobj_t *addr;
+
+	addr = inet_addrobj_get_by_id(addr_id);
+	if (addr == NULL)
+		return ENOENT;
+
+	inet_addrobj_remove(addr);
+	inet_addrobj_delete(addr);
+
+	return EOK;
 }
 
 static int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
@@ -99,6 +108,27 @@ static int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	ainfo->ilink = addr->ilink->svc_id;
 	ainfo->name = str_dup(addr->name);
 
+	return EOK;
+}
+
+static int inetcfg_addr_get_id(char *name, sysarg_t link_id, sysarg_t *addr_id)
+{
+	inet_link_t *ilink;
+	inet_addrobj_t *addr;
+
+	ilink = inet_link_get_by_id(link_id);
+	if (ilink == NULL) {
+		log_msg(LVL_DEBUG, "Link %zu not found.", (size_t) link_id);
+		return ENOENT;
+	}
+
+	addr = inet_addrobj_find_by_name(name, ilink);
+	if (addr == NULL) {
+		log_msg(LVL_DEBUG, "Address '%s' not found.", name);
+		return ENOENT;
+	}
+
+	*addr_id = addr->id;
 	return EOK;
 }
 
@@ -201,6 +231,30 @@ static void inetcfg_addr_get_srv(ipc_callid_t callid, ipc_call_t *call)
 
 	async_answer_3(callid, retval, ainfo.naddr.ipv4, ainfo.naddr.bits,
 	    ainfo.ilink);
+}
+
+static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	char *name;
+	sysarg_t link_id;
+	sysarg_t addr_id;
+	int rc;
+
+	log_msg(LVL_DEBUG, "inetcfg_addr_get_id_srv()");
+
+	link_id = IPC_GET_ARG1(*call);
+
+	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	addr_id = 0;
+	rc = inetcfg_addr_get_id(name, link_id, &addr_id);
+	free(name);
+	async_answer_1(callid, rc, addr_id);
 }
 
 
@@ -331,6 +385,9 @@ void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case INETCFG_ADDR_GET:
 			inetcfg_addr_get_srv(callid, &call);
+			break;
+		case INETCFG_ADDR_GET_ID:
+			inetcfg_addr_get_id_srv(callid, &call);
 			break;
 		case INETCFG_GET_ADDR_LIST:
 			inetcfg_get_addr_list_srv(callid, &call);

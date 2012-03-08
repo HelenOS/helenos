@@ -204,6 +204,27 @@ int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	return EOK;
 }
 
+int inetcfg_addr_get_id(const char *name, sysarg_t link_id, sysarg_t *addr_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, INETCFG_ADDR_GET_ID, link_id, &answer);
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+
+	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	*addr_id = IPC_GET_ARG1(answer);
+
+	return retval;
+}
+
 int inetcfg_get_addr_list(sysarg_t **addrs, size_t *count)
 {
 	return inetcfg_get_ids_internal(INETCFG_GET_ADDR_LIST,

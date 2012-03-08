@@ -40,6 +40,7 @@
 #include <io/log.h>
 #include <ipc/loc.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include "addrobj.h"
 #include "inet.h"
@@ -118,12 +119,43 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 		if ((naddr->naddr.ipv4 & mask) == (addr->ipv4 & mask)) {
 			fibril_mutex_unlock(&addr_list_lock);
 			log_msg(LVL_DEBUG, "inet_addrobj_find: found %p",
-			    addr);
+			    naddr);
 			return naddr;
 		}
 	}
 
 	log_msg(LVL_DEBUG, "inet_addrobj_find: Not found");
+	fibril_mutex_unlock(&addr_list_lock);
+
+	return NULL;
+}
+
+/** Find address object on a link, with a specific name.
+ *
+ * @param name	Address object name
+ * @param ilink	Inet link
+ * @return	Address object
+ */
+inet_addrobj_t *inet_addrobj_find_by_name(const char *name, inet_link_t *ilink)
+{
+	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name('%s', '%s')",
+	    name, ilink->svc_name);
+
+	fibril_mutex_lock(&addr_list_lock);
+
+	list_foreach(addr_list, link) {
+		inet_addrobj_t *naddr = list_get_instance(link,
+		    inet_addrobj_t, addr_list);
+
+		if (naddr->ilink == ilink && str_cmp(naddr->name, name) == 0) {
+			fibril_mutex_unlock(&addr_list_lock);
+			log_msg(LVL_DEBUG, "inet_addrobj_find_by_name: found %p",
+			    naddr);
+			return naddr;
+		}
+	}
+
+	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name: Not found");
 	fibril_mutex_unlock(&addr_list_lock);
 
 	return NULL;
