@@ -156,6 +156,7 @@ static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t callid,
 	}
 
 	rc = iplink->ev_ops->recv(iplink, &sdu);
+	free(sdu.data);
 	async_answer_0(callid, rc);
 }
 
