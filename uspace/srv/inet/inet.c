@@ -47,6 +47,8 @@
 #include <sys/types.h>
 
 #include "addrobj.h"
+#include "icmp.h"
+#include "icmp_std.h"
 #include "inet.h"
 #include "inetcfg.h"
 #include "inet_link.h"
@@ -109,7 +111,7 @@ static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
+int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
     int df)
 {
 	inet_addrobj_t *addr;
@@ -336,6 +338,10 @@ static int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 	inet_client_t *client;
 
 	log_msg(LVL_DEBUG, "inet_recv_dgram_local()");
+
+	/* ICMP messages are handled internally */
+	if (proto == IP_PROTO_ICMP)
+		return icmp_recv(dgram);
 
 	client = inet_client_find(proto);
 	if (client == NULL) {

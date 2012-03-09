@@ -31,6 +31,7 @@ BINARY = inet
 
 SOURCES = \
 	addrobj.c \
+	icmp.c \
 	inet.c \
 	inet_link.c \
 	inetcfg.c \

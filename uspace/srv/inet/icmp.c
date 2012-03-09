@@ -34,91 +34,84 @@
  * @brief
  */
 
-#ifndef INET_H_
-#define INET_H_
+#include <byteorder.h>
+#include <errno.h>
+#include <io/log.h>
+#include <mem.h>
+#include <stdlib.h>
 
-#include <adt/list.h>
-#include <inet/iplink.h>
-#include <ipc/loc.h>
-#include <sys/types.h>
-#include <async.h>
+#include "icmp.h"
+#include "icmp_std.h"
+#include "inet.h"
+#include "pdu.h"
 
-/** Inet Client */
-typedef struct {
-	async_sess_t *sess;
-	uint8_t protocol;
-	link_t client_list;
-} inet_client_t;
+/* XXX */
+#define INET_TTL_MAX 255
 
-/** Host address */
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
+static int icmp_echo_request(inet_dgram_t *);
 
-/** Network address */
-typedef struct {
-	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
-} inet_naddr_t;
+int icmp_recv(inet_dgram_t *dgram)
+{
+	uint8_t type;
 
-/** Address object info */
-typedef struct {
-	/** Network address */
-	inet_naddr_t naddr;
-	/** Link service ID */
-	sysarg_t ilink;
-	/** Address object name */
-	char *name;
-} inet_addr_info_t;
+	log_msg(LVL_DEBUG, "icmp_recv()");
 
-/** IP link info */
-typedef struct {
-	/** Link service name */
-	char *name;
-} inet_link_info_t;
+	if (dgram->size < 1)
+		return EINVAL;
 
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	uint8_t proto;
-	uint8_t ttl;
-	int df;
-	void *data;
+	type = *(uint8_t *)dgram->data;
+
+	switch (type) {
+	case ICMP_ECHO_REQUEST:
+		return icmp_echo_request(dgram);
+	default:
+		break;
+	}
+
+	return EINVAL;
+}
+
+static int icmp_echo_request(inet_dgram_t *dgram)
+{
+	icmp_echo_t *request, *reply;
+	uint16_t checksum;
 	size_t size;
-} inet_packet_t;
+	inet_dgram_t rdgram;
+	int rc;
 
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	void *data;
-	size_t size;
-} inet_dgram_t;
+	log_msg(LVL_DEBUG, "icmp_echo_request()");
 
-typedef struct {
-	link_t link_list;
-	service_id_t svc_id;
-	char *svc_name;
-	async_sess_t *sess;
-	iplink_t *iplink;
-} inet_link_t;
+	if (dgram->size < sizeof(icmp_echo_t))
+		return EINVAL;
 
-typedef struct {
-	link_t addr_list;
-	sysarg_t id;
-	inet_naddr_t naddr;
-	inet_link_t *ilink;
-	char *name;
-} inet_addrobj_t;
+	request = (icmp_echo_t *)dgram->data;
+	size = dgram->size;
 
-extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
-extern int inet_recv_packet(inet_packet_t *);
-extern int inet_route_packet(inet_dgram_t *, uint8_t, uint8_t, int);
+	reply = calloc(size, 1);
+	if (reply == NULL)
+		return ENOMEM;
 
-#endif
+	memcpy(reply, request, size);
+
+	reply->type = ICMP_ECHO_REPLY;
+	reply->code = 0;
+	reply->checksum = 0;
+
+	checksum = inet_checksum_calc(INET_CHECKSUM_INIT, reply, size);
+	reply->checksum = host2uint16_t_be(checksum);
+
+	rdgram.src = dgram->dest;
+	rdgram.dest = dgram->src;
+	rdgram.tos = 0;
+	rdgram.data = reply;
+	rdgram.size = size;
+
+	rc = inet_route_packet(&rdgram, IP_PROTO_ICMP, INET_TTL_MAX, 0);
+
+	free(reply);
+
+	return rc;
+}
 
 /** @}
  */

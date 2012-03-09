@@ -50,8 +50,6 @@
 static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
-#define INET_CHECKSUM_INIT 0xffff
-
 /** One's complement addition.
  *
  * Result is a + b + carry.
@@ -64,7 +62,7 @@ static uint16_t inet_ocadd16(uint16_t a, uint16_t b)
 	return (s & 0xffff) + (s >> 16);
 }
 
-static uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
+uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
 {
 	uint16_t sum;
 	uint16_t w;

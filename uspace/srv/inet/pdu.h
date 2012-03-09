@@ -37,7 +37,12 @@
 #ifndef INET_PDU_H_
 #define INET_PDU_H_
 
+#include <sys/types.h>
 #include "inet.h"
+
+#define INET_CHECKSUM_INIT 0xffff
+
+extern uint16_t inet_checksum_calc(uint16_t, void *, size_t);
 
 extern int inet_pdu_encode(inet_packet_t *, void **, size_t *);
 extern int inet_pdu_decode(void *, size_t, inet_packet_t *);
