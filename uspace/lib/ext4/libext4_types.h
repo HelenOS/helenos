@@ -182,12 +182,14 @@ typedef struct ext4_superblock {
 // TODO MODIFY features corresponding with implementation
 #define EXT4_FEATURE_COMPAT_SUPP		(EXT4_FEATURE_COMPAT_DIR_INDEX)
 
-#define EXT4_FEATURE_INCOMPAT_SUPP      (EXT4_FEATURE_INCOMPAT_FILETYPE| \
-                                         EXT4_FEATURE_INCOMPAT_EXTENTS| \
-                                         EXT4_FEATURE_INCOMPAT_64BIT)
+#define EXT4_FEATURE_INCOMPAT_SUPP      (EXT4_FEATURE_INCOMPAT_FILETYPE | \
+                                         EXT4_FEATURE_INCOMPAT_EXTENTS | \
+                                         EXT4_FEATURE_INCOMPAT_64BIT | \
+                                         EXT4_FEATURE_INCOMPAT_FLEX_BG)
 
 #define EXT4_FEATURE_RO_COMPAT_SUPP     (EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER | \
-										 EXT4_FEATURE_RO_COMPAT_DIR_NLINK)
+										 EXT4_FEATURE_RO_COMPAT_DIR_NLINK | \
+										 EXT4_FEATURE_RO_COMPAT_HUGE_FILE)
 
 
 /*****************************************************************************/
