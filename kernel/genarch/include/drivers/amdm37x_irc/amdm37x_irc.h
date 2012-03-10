@@ -37,7 +37,7 @@
 #define KERN_AMDM37x_IRQC_H_
 
 /* AMDM37x TRM p. 1079 */
-#define AMDM37x_IRC_BASE_ADDRESS 0x4820000
+#define AMDM37x_IRC_BASE_ADDRESS 0x48200000
 #define AMDM37x_IRC_SIZE 4096
 
 #define AMDM37x_IRC_IRQ_COUNT 96
@@ -45,21 +45,25 @@
 #include <typedefs.h>
 
 typedef struct {
-	ioport32_t revision; /**< Revision */
+	const ioport32_t revision; /**< Revision */
 #define AMDM37x_IRC_REV_MASK (0xff)
+
+	uint8_t padd0_[12];
 
 	ioport32_t sysconfig; /**< SYS config */
 #define AMDM37x_IRC_SYSCONFIG_AUTOIDLE_FLAG (1 << 0)
 #define AMDM37x_IRC_SYSCONFIG_SOFTRESET_FLAG (1 << 1)
 
-	ioport32_t sysstatus; /**< SYS status */
+	const ioport32_t sysstatus; /**< SYS status */
 #define AMDM37x_IRC_SYSSTATUS_RESET_DONE_FLAG (1 << 0)
 
-	ioport32_t sir_irq;   /**< Currently active irq number */
+	uint8_t padd1_[40];
+
+	const ioport32_t sir_irq;   /**< Currently active irq number */
 #define AMDM37x_IRC_SIR_IRQ_ACTIVEIRQ_MASK (0x7f)
 #define AMDM37x_IRC_SIR_IRQ_SPURIOUSIRQFLAG_MASK (0xfffffff8)
 
-	ioport32_t sir_fiq;
+	const ioport32_t sir_fiq;
 #define AMDM37x_IRC_SIR_FIQ_ACTIVEIRQ_MASK (0x7f)
 #define AMDM37x_IRC_SIR_FIQ_SPURIOUSIRQFLAG_MASK (0xfffffff8)
 
@@ -74,6 +78,8 @@ typedef struct {
 #define AMDM37x_IRC_IDLE_FUNCIDLE_FLAG (1 << 0)
 #define AMDM37x_IRC_IDLE_TURBO_FLAG (1 << 1)
 
+	uint8_t padd2_[12];
+
 	ioport32_t irq_priority; /**< Active IRQ priority */
 #define AMDM37x_IRC_IRQ_PRIORITY_IRQPRIORITY_MASK (0x7f)
 #define AMDM37x_IRC_IRQ_PRIORITY_SPURIOUSIRQFLAG_MASK (0xfffffff8)
@@ -87,17 +93,21 @@ typedef struct {
 #define AMDM37x_IRC_THRESHOLD_PRIORITYTHRESHOLD_ENABLED (0x00)
 #define AMDM37x_IRC_THRESHOLD_PRIORITYTHRESHOLD_DISABLED (0xff)
 
-	ioport32_t dummy_[5];
+	uint8_t padd3__[20];
+
 	struct {
-		ioport32_t itr;   /**< Interrupt input status before masking */
+		const ioport32_t itr;   /**< Interrupt input status before masking */
 		ioport32_t mir;   /**< Interrupt mask */
 		ioport32_t mir_clear; /**< Clear mir mask bits */
 		ioport32_t mir_set;   /**< Set mir mask bits */
 		ioport32_t isr_set;   /**< Set software interrupt bits */
 		ioport32_t isr_clear; /**< Clear software interrupt bits */
-		ioport32_t pending_irq; /**< IRQ status after masking */
-		ioport32_t pending_fiq; /**< FIQ status after masking */
+		const ioport32_t pending_irq; /**< IRQ status after masking */
+		const ioport32_t pending_fiq; /**< FIQ status after masking */
 	} interrupts[3];
+
+	uint8_t padd4_[32];
+
 	ioport32_t ilr[96];   /**< FIQ/IRQ steering */
 #define AMDM37x_IRC_ILR_FIQNIRQ (1 << 0)
 #define AMDM37x_IRC_ILR_PRIORITY_MASK (0x3f)
@@ -105,11 +115,41 @@ typedef struct {
 
 } amdm37x_irc_regs_t;
 
+static inline void amdm37x_irc_dump(amdm37x_irc_regs_t *regs)
+{
+#define DUMP_REG(name) \
+	printf("%s %p(%x).\n", #name, &regs->name, regs->name);
+
+	DUMP_REG(revision);
+	DUMP_REG(sysconfig);
+	DUMP_REG(sysstatus);
+	DUMP_REG(sir_irq);
+	DUMP_REG(sir_fiq);
+	DUMP_REG(control);
+	DUMP_REG(protection);
+	DUMP_REG(idle);
+	DUMP_REG(irq_priority);
+	DUMP_REG(fiq_priority);
+	DUMP_REG(threshold);
+
+	for (int i = 0; i < 3; ++i) {
+		DUMP_REG(interrupts[i].itr);
+		DUMP_REG(interrupts[i].mir);
+		DUMP_REG(interrupts[i].isr_set);
+		DUMP_REG(interrupts[i].pending_irq);
+		DUMP_REG(interrupts[i].pending_fiq);
+	}
+	for (int i = 0; i < AMDM37x_IRC_IRQ_COUNT; ++i) {
+		DUMP_REG(ilr[i]);
+	}
+
+#undef DUMP_REG
+}
+
 
 static inline void amdm37x_irc_init(amdm37x_irc_regs_t *regs)
 {
 	/* AMDM37x TRM sec 12.5.1 p. 2425 */
-
 	/* Program system config register */
 	//TODO enable this when you know the meaning
 	//regs->sysconfig |= AMDM37x_IRC_SYSCONFIG_AUTOIDLE_FLAG;
