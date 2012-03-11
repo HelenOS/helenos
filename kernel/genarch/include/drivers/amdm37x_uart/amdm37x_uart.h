@@ -38,6 +38,7 @@
 
 #include <typedefs.h>
 #include <console/chardev.h>
+#include <ddi/irq.h>
 
 /* AMDM37x TRM p. 2950 */
 #define AMDM37x_UART1_BASE_ADDRESS   0x4806a000
@@ -430,8 +431,8 @@ typedef struct {
 
 	/** RX/TX empty status */
 	ioport32_t isr2;
-#define AMDM37x_UART_IER2_RX_FIFO_EMPTY_FLAG  (1 << 0)
-#define AMDM37x_UART_IER2_TX_FIFO_EMPTY_FLAG  (1 << 1)
+#define AMDM37x_UART_ISR2_RX_FIFO_EMPTY_FLAG  (1 << 0)
+#define AMDM37x_UART_ISR2_TX_FIFO_EMPTY_FLAG  (1 << 1)
 
 	uint32_t padd2_[3];
 
@@ -444,6 +445,7 @@ typedef struct {
 	amdm37x_uart_regs_t *regs;
 	indev_t *indev;
 	outdev_t outdev;
+	irq_t irq;
 } amdm37x_uart_t;
 
 

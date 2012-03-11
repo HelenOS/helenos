@@ -34,6 +34,7 @@
  */
 
 #include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
+#include <ddi/device.h>
 #include <str.h>
 #include <mm/km.h>
 
@@ -62,14 +63,32 @@ static outdev_operations_t amdm37x_uart_ops = {
 	.write = amdm37x_uart_putchar,
 };
 
+static irq_ownership_t amdm37x_uart_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void amdm37x_uart_handler(irq_t *irq)
+{
+	amdm37x_uart_t *uart = irq->instance;
+//TODO enable while checking when RX FIFO is used instead of single char.
+//	while (!(uart->regs->isr2 & AMDM37x_UART_ISR2_RX_FIFO_EMPTY_FLAG)) {
+		const uint8_t val = uart->regs->rhr;
+		if (uart->indev)
+			indev_push_character(uart->indev, val);
+//	}
+}
+
 bool amdm37x_uart_init(
     amdm37x_uart_t *uart, inr_t interrupt, uintptr_t addr, size_t size)
 {
 	ASSERT(uart);
 	uart->regs = (void *)km_map(addr, size, PAGE_NOT_CACHEABLE);
 
-	/* See TI OMAP35X TRM ch 17.5.1.1 p. 2732 for startup routine */
+	ASSERT(uart->regs);
 
+	/* See TI OMAP35X TRM ch 17.5.1.1 p. 2732 for startup routine */
+#if 0
 	/* Soft reset the port */
 	uart->regs->sysc = AMDM37x_UART_SYSC_SOFTRESET_FLAG;
 	while (uart->regs->syss & AMDM37x_UART_SYSS_RESETDONE_FLAG) ;
@@ -105,20 +124,33 @@ bool amdm37x_uart_init(
 
 	/* Disable interrupts */
 	uart->regs->ier = 0;
-
+#endif
 	/* Setup outdev */
 	outdev_initialize("amdm37x_uart_dev", &uart->outdev, &amdm37x_uart_ops);
 	uart->outdev.data = uart;
+
+	/* Initialize IRQ */
+	irq_initialize(&uart->irq);
+	uart->irq.devno = device_assign_devno();
+	uart->irq.inr = interrupt;
+	uart->irq.claim = amdm37x_uart_claim;
+	uart->irq.handler = amdm37x_uart_handler;
+	uart->irq.instance = uart;
+	irq_register(&uart->irq);
 
 	return true;
 }
 
 void amdm37x_uart_input_wire(amdm37x_uart_t *uart, indev_t *indev)
 {
-	// TODO implement
-	// register interrupt
-	// set rx fifo
-	// set rx fifo threshold to 1
+	ASSERT(uart);
+	/* Set indev */
+	uart->indev = indev;
+	/* Enable interrupt on receive */
+	uart->regs->ier |= AMDM37x_UART_IER_RHR_IRQ_FLAG;
+
+	// TODO set rx fifo
+	// TODO set rx fifo threshold to 1
 }
 
 /**
