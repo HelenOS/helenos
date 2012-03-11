@@ -119,20 +119,34 @@ void install_exception_handlers(void)
 /** Activates use of high exception vectors addresses. */
 static void high_vectors(void)
 {
-	uint32_t control_reg;
+	register uint32_t control_reg = 0;
 	
+#if defined(PROCESSOR_armv7)
+	asm volatile (
+		"mrc p15, 0, %[control_reg], c1, c0"
+		: [control_reg] "=r" (control_reg)
+	);
+#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c1"
 		: [control_reg] "=r" (control_reg)
 	);
+#endif
 	
 	/* switch on the high vectors bit */
 	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
 	
+#if defined(PROCESSOR_armv7)
 	asm volatile (
-		"mcr p15, 0, %[control_reg], c1, c1"
+		"mcr p15, 0, %[control_reg], c1, c0"
 		:: [control_reg] "r" (control_reg)
 	);
+#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
+	asm volatile (
+		"mcr p15, 0, %[control_reg], c1, c0"
+		:: [control_reg] "r" (control_reg)
+	);
+#endif
 }
 #endif
 
