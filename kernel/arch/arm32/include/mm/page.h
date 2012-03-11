@@ -44,12 +44,22 @@
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
+#ifdef MACHINE_beagleboardxm
+#ifndef __ASM__
+#	define KA2PA(x)	((uintptr_t) (x))
+#	define PA2KA(x)	((uintptr_t) (x))
+#else
+#	define KA2PA(x)	(x)
+#	define PA2KA(x)	(x)
+#endif
+#else
 #ifndef __ASM__
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
 #	define KA2PA(x)	((x) - 0x80000000)
 #	define PA2KA(x)	((x) + 0x80000000)
+#endif
 #endif
 
 /* Number of entries in each level. */
