@@ -42,9 +42,17 @@
 #include <arch/interrupt.h>
 #include <trace.h>
 
-/** No such instruction on ARM to sleep CPU. */
+/** No such instruction on ARM to sleep CPU.
+ *
+ * ARMv7 introduced wait for event and wait for interrupt.
+ */
 NO_TRACE static inline void cpu_sleep(void)
 {
+#ifdef PROCESSOR_armv7
+	asm volatile (
+		"wfe"::
+	);
+#endif
 }
 
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
