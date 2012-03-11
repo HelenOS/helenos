@@ -26,21 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef ICMP_H_
-#define ICMP_H_
+#ifndef LIBC_INET_INETPING_H_
+#define LIBC_INET_INETPING_H_
 
-#include "inet.h"
+#include <inet/inet.h>
+#include <sys/types.h>
 
-extern int icmp_recv(inet_dgram_t *);
-extern int icmp_ping_send(uint16_t, inetping_sdu_t *);
+typedef struct {
+	inet_addr_t src;
+	inet_addr_t dest;
+	uint16_t seq_no;
+	void *data;
+	size_t size;
+} inetping_sdu_t;
+
+typedef struct inetping_ev_ops {
+	int (*recv)(inetping_sdu_t *);
+} inetping_ev_ops_t;
+
+extern int inetping_init(inetping_ev_ops_t *);
+extern int inetping_send(inetping_sdu_t *);
+extern int inetping_get_srcaddr(inet_addr_t *, inet_addr_t *);
+
 
 #endif
 

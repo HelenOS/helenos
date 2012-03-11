@@ -65,6 +65,7 @@ DIRS = \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
+	app/ping \
 	app/websrv \
 	app/sysinfo \
 	app/mkbd \

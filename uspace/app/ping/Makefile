@@ -27,15 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = inet
+BINARY = ping
 
 SOURCES = \
-	addrobj.c \
-	icmp.c \
-	inet.c \
-	inet_link.c \
-	inetcfg.c \
-	inetping.c \
-	pdu.c
+	ping.c
 
 include $(USPACE_PREFIX)/Makefile.common

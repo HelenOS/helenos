@@ -51,6 +51,7 @@
 #include "icmp_std.h"
 #include "inet.h"
 #include "inetcfg.h"
+#include "inetping.h"
 #include "inet_link.h"
 
 #define NAME "inet"
@@ -84,6 +85,13 @@ static int inet_init(void)
 
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETCFG, &sid,
 	    INET_PORT_CFG);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
+		return EEXIST;
+	}
+
+	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING, &sid,
+	    INET_PORT_PING);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
@@ -133,8 +141,7 @@ static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
 	return inet_route_packet(dgram, proto, ttl, df);
 }
 
-static int inet_get_srcaddr(inet_client_t *client, inet_addr_t *remote,
-    uint8_t tos, inet_addr_t *local)
+int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
 	inet_addrobj_t *addr;
 
@@ -162,7 +169,7 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
 	tos = IPC_GET_ARG2(*call);
 	local.ipv4 = 0;
 
-	rc = inet_get_srcaddr(client, &remote, tos, &local);
+	rc = inet_get_srcaddr(&remote, tos, &local);
 	async_answer_1(callid, rc, local.ipv4);
 }
 
@@ -285,6 +292,9 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		break;
 	case INET_PORT_CFG:
 		inet_cfg_conn(iid, icall, arg);
+		break;
+	case INET_PORT_PING:
+		inetping_conn(iid, icall, arg);
 		break;
 	default:
 		async_answer_0(iid, ENOTSUP);

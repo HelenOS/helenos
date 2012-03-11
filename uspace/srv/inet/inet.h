@@ -50,6 +50,16 @@ typedef struct {
 	link_t client_list;
 } inet_client_t;
 
+/** Inetping Client */
+typedef struct {
+	/** Callback session */
+	async_sess_t *sess;
+	/** Session identifier */
+	uint16_t ident;
+	/** Link to client list */
+	link_t client_list;
+} inetping_client_t;
+
 /** Host address */
 typedef struct {
 	uint32_t ipv4;
@@ -114,9 +124,19 @@ typedef struct {
 	char *name;
 } inet_addrobj_t;
 
+typedef struct {
+	inet_addr_t src;
+	inet_addr_t dest;
+	uint16_t seq_no;
+	void *data;
+	size_t size;
+} inetping_sdu_t;
+
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
 extern int inet_recv_packet(inet_packet_t *);
 extern int inet_route_packet(inet_dgram_t *, uint8_t, uint8_t, int);
+extern int inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
+
 
 #endif
 

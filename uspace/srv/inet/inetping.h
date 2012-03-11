@@ -34,13 +34,11 @@
  * @brief
  */
 
-#ifndef ICMP_H_
-#define ICMP_H_
+#ifndef INETPING_H_
+#define INETPING_H_
 
-#include "inet.h"
-
-extern int icmp_recv(inet_dgram_t *);
-extern int icmp_ping_send(uint16_t, inetping_sdu_t *);
+extern void inetping_conn(ipc_callid_t, ipc_call_t *, void *);
+extern int inetping_recv(uint16_t, inetping_sdu_t *);
 
 #endif
 

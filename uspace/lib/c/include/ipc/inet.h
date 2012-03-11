@@ -42,7 +42,9 @@ typedef enum {
 	/** Default port */
 	INET_PORT_DEFAULT = 1,
 	/** Configuration port */
-	INET_PORT_CFG
+	INET_PORT_CFG,
+	/** Ping service port */
+	INET_PORT_PING
 } inet_port_t;
 
 /** Requests on Inet default port */
@@ -68,6 +70,17 @@ typedef enum {
 	INETCFG_GET_LINK_LIST,
 	INETCFG_LINK_GET,
 } inetcfg_request_t;
+
+/** Events on Inet ping port */
+typedef enum {
+	INETPING_EV_RECV = IPC_FIRST_USER_METHOD
+} inetping_event_t;
+
+/** Requests on Inet ping port */
+typedef enum {
+	INETPING_SEND = IPC_FIRST_USER_METHOD,
+	INETPING_GET_SRCADDR
+} inetping_request_t;
 
 #endif
 

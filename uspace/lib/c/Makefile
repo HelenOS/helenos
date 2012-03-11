@@ -88,6 +88,7 @@ GENERIC_SOURCES = \
 	generic/futex.c \
 	generic/inet.c \
 	generic/inetcfg.c \
+	generic/inetping.c \
 	generic/io/asprintf.c \
 	generic/io/io.c \
 	generic/io/printf.c \

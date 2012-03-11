@@ -43,12 +43,14 @@
 #include "icmp.h"
 #include "icmp_std.h"
 #include "inet.h"
+#include "inetping.h"
 #include "pdu.h"
 
 /* XXX */
 #define INET_TTL_MAX 255
 
-static int icmp_echo_request(inet_dgram_t *);
+static int icmp_recv_echo_request(inet_dgram_t *);
+static int icmp_recv_echo_reply(inet_dgram_t *);
 
 int icmp_recv(inet_dgram_t *dgram)
 {
@@ -63,7 +65,9 @@ int icmp_recv(inet_dgram_t *dgram)
 
 	switch (type) {
 	case ICMP_ECHO_REQUEST:
-		return icmp_echo_request(dgram);
+		return icmp_recv_echo_request(dgram);
+	case ICMP_ECHO_REPLY:
+		return icmp_recv_echo_reply(dgram);
 	default:
 		break;
 	}
@@ -71,7 +75,7 @@ int icmp_recv(inet_dgram_t *dgram)
 	return EINVAL;
 }
 
-static int icmp_echo_request(inet_dgram_t *dgram)
+static int icmp_recv_echo_request(inet_dgram_t *dgram)
 {
 	icmp_echo_t *request, *reply;
 	uint16_t checksum;
@@ -79,7 +83,7 @@ static int icmp_echo_request(inet_dgram_t *dgram)
 	inet_dgram_t rdgram;
 	int rc;
 
-	log_msg(LVL_DEBUG, "icmp_echo_request()");
+	log_msg(LVL_DEBUG, "icmp_recv_echo_request()");
 
 	if (dgram->size < sizeof(icmp_echo_t))
 		return EINVAL;
@@ -102,7 +106,7 @@ static int icmp_echo_request(inet_dgram_t *dgram)
 
 	rdgram.src = dgram->dest;
 	rdgram.dest = dgram->src;
-	rdgram.tos = 0;
+	rdgram.tos = ICMP_TOS;
 	rdgram.data = reply;
 	rdgram.size = size;
 
@@ -110,6 +114,68 @@ static int icmp_echo_request(inet_dgram_t *dgram)
 
 	free(reply);
 
+	return rc;
+}
+
+static int icmp_recv_echo_reply(inet_dgram_t *dgram)
+{
+	icmp_echo_t *reply;
+	inetping_sdu_t sdu;
+	uint16_t ident;
+
+	log_msg(LVL_DEBUG, "icmp_recv_echo_reply()");
+
+	if (dgram->size < sizeof(icmp_echo_t))
+		return EINVAL;
+
+	reply = (icmp_echo_t *)dgram->data;
+
+	sdu.src = dgram->src;
+	sdu.dest = dgram->dest;
+	sdu.seq_no = uint16_t_be2host(reply->seq_no);
+	sdu.data = reply + sizeof(icmp_echo_t);
+	sdu.size = dgram->size - sizeof(icmp_echo_t);
+	ident = uint16_t_be2host(reply->ident);
+
+	return inetping_recv(ident, &sdu);
+}
+
+int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
+{
+	inet_dgram_t dgram;
+	icmp_echo_t *request;
+	void *rdata;
+	size_t rsize;
+	uint16_t checksum;
+	int rc;
+
+	rsize = sizeof(icmp_echo_t) + sdu->size;
+	rdata = calloc(rsize, 1);
+	if (rdata == NULL)
+		return ENOMEM;
+
+	request = (icmp_echo_t *)rdata;
+
+	request->type = ICMP_ECHO_REQUEST;
+	request->code = 0;
+	request->checksum = 0;
+	request->ident = host2uint16_t_be(ident);
+	request->seq_no = host2uint16_t_be(sdu->seq_no);
+
+	memcpy(rdata + sizeof(icmp_echo_t), sdu->data, sdu->size);
+
+	checksum = inet_checksum_calc(INET_CHECKSUM_INIT, rdata, rsize);
+	request->checksum = host2uint16_t_be(checksum);
+
+	dgram.src = sdu->src;
+	dgram.dest = sdu->dest;
+	dgram.tos = ICMP_TOS;
+	dgram.data = rdata;
+	dgram.size = rsize;
+
+	rc = inet_route_packet(&dgram, IP_PROTO_ICMP, INET_TTL_MAX, 0);
+
+	free(rdata);
 	return rc;
 }
 
