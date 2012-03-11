@@ -37,6 +37,7 @@
 #include <genarch/drivers/amdm37x_irc/amdm37x_irc.h>
 #include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
 #include <genarch/drivers/amdm37x_gpt/amdm37x_gpt.h>
+#include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <mm/km.h>
 #include <ddi/ddi.h>
@@ -54,7 +55,7 @@ static size_t bbxm_get_irq_count(void);
 static const char *bbxm_get_platform_name(void);
 
 #define BBXM_MEMORY_START	0x80000000	/* physical */
-#define BBXM_MEMORY_SIZE	0x10000000	/* 256 MB, first chunk */
+#define BBXM_MEMORY_SIZE	0x20000000	/* 512 MB */
 
 static struct beagleboard {
 	amdm37x_irc_regs_t *irc_addr;
@@ -86,9 +87,9 @@ static void bb_timer_irq_handler(irq_t *irq)
          * We are holding a lock which prevents preemption.
          * Release the lock, call clock() and reacquire the lock again.
          */
-        spinlock_unlock(&irq->lock);
-        clock();
-        spinlock_lock(&irq->lock);
+	spinlock_unlock(&irq->lock);
+	clock();
+	spinlock_lock(&irq->lock);
 }
 
 static void bbxm_init(void)
@@ -99,12 +100,15 @@ static void bbxm_init(void)
 	    PAGE_NOT_CACHEABLE);
 	amdm37x_irc_init(beagleboard.irc_addr);
 
-	// TODO: setup 32kHz clock source for timer1
+	// TODO find a nicer way to setup 32kHz clock source for timer1
+	ioport32_t *clksel = (void*) km_map(0x48004C40, 4, PAGE_NOT_CACHEABLE);
+	*clksel &= ~1;
+	km_unmap((uintptr_t)clksel, 4);
 
-	/* Initialize timer, pick timer1, beacues it is in always power domain
+	/* Initialize timer, pick timer1, because it is in always-power domain
 	 * and has special capabilities for regular ticks */
 	amdm37x_gpt_timer_ticks_init(&beagleboard.timer,
-	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, 100);
+	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, 100); /* 100 Hz */
 }
 
 static void bbxm_timer_irq_start(void)
@@ -174,6 +178,12 @@ static void bbxm_output_init(void)
 
 static void bbxm_input_init(void)
 {
+	srln_instance_t *srln_instance = srln_init();
+	if (srln_instance) {
+		indev_t *sink = stdin_wire();
+		indev_t *srln = srln_wire(srln_instance, sink);
+		amdm37x_uart_input_wire(&beagleboard.uart, srln);
+	}
 }
 
 size_t bbxm_get_irq_count(void)
