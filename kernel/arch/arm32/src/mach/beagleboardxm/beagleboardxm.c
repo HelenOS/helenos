@@ -108,7 +108,7 @@ static void bbxm_init(void)
 	/* Initialize timer, pick timer1, because it is in always-power domain
 	 * and has special capabilities for regular ticks */
 	amdm37x_gpt_timer_ticks_init(&beagleboard.timer,
-	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, 100); /* 100 Hz */
+	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, HZ);
 }
 
 static void bbxm_timer_irq_start(void)
