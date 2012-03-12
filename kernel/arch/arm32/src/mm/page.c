@@ -51,7 +51,7 @@
  */
 void page_arch_init(void)
 {
-	int flags = PAGE_CACHEABLE;
+	int flags = PAGE_CACHEABLE | PAGE_EXEC;
 	page_mapping_operations = &pt_mapping_operations;
 
 	page_table_lock(AS_KERNEL, true);
