@@ -32,19 +32,27 @@
 /** @file ICMP echo utility.
  */
 
+#include <async.h>
+#include <bool.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/inetping.h>
+#include <io/console.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
 #define NAME "ping"
 
+/** Delay between subsequent ping requests in microseconds */
+#define PING_DELAY (1000 * 1000)
+
 /** Ping request timeout in microseconds */
 #define PING_TIMEOUT (1000 * 1000)
 
 static int ping_ev_recv(inetping_sdu_t *);
+
+static bool done = false;
 static FIBRIL_CONDVAR_INITIALIZE(done_cv);
 static FIBRIL_MUTEX_INITIALIZE(done_lock);
 
@@ -52,9 +60,14 @@ static inetping_ev_ops_t ev_ops = {
 	.recv = ping_ev_recv
 };
 
+static inet_addr_t src_addr;
+static inet_addr_t dest_addr;
+
+static bool ping_repeat = false;
+
 static void print_syntax(void)
 {
-	printf("syntax: " NAME " <addr>\n");
+	printf("syntax: " NAME " [-r] <addr>\n");
 }
 
 static int addr_parse(const char *text, inet_addr_t *addr)
@@ -98,6 +111,14 @@ static int addr_format(inet_addr_t *addr, char **bufp)
 	return EOK;
 }
 
+static void ping_signal_done(void)
+{
+	fibril_mutex_lock(&done_lock);
+	done = true;
+	fibril_mutex_unlock(&done_lock);
+	fibril_condvar_broadcast(&done_cv);
+}
+
 static int ping_ev_recv(inetping_sdu_t *sdu)
 {
 	char *asrc, *adest;
@@ -115,17 +136,83 @@ static int ping_ev_recv(inetping_sdu_t *sdu)
 	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
 	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
 
-	fibril_condvar_broadcast(&done_cv);
+	if (!ping_repeat) {
+		ping_signal_done();
+	}
 
 	free(asrc);
 	free(adest);
 	return EOK;
 }
 
+static int ping_send(uint16_t seq_no)
+{
+	inetping_sdu_t sdu;
+	int rc;
+
+	sdu.src = src_addr;
+	sdu.dest = dest_addr;
+	sdu.seq_no = seq_no;
+	sdu.data = (void *) "foo";
+	sdu.size = 3;
+
+	rc = inetping_send(&sdu);
+	if (rc != EOK) {
+		printf(NAME ": Failed sending echo request (%d).\n", rc);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int transmit_fibril(void *arg)
+{
+	uint16_t seq_no = 0;
+
+	while (true) {
+		fibril_mutex_lock(&done_lock);
+		if (done) {
+			fibril_mutex_unlock(&done_lock);
+			return 0;
+		}
+		fibril_mutex_unlock(&done_lock);
+
+		(void) ping_send(++seq_no);
+		async_usleep(PING_DELAY);
+	}
+
+	return 0;
+}
+
+static int input_fibril(void *arg)
+{
+	console_ctrl_t *con;
+	kbd_event_t ev;
+
+	con = console_init(stdin, stdout);
+	printf("[Press Ctrl-Q to quit]\n");
+
+	while (true) {
+		if (!console_get_kbd_event(con, &ev))
+			break;
+
+		if (ev.type == KEY_PRESS && (ev.mods & (KM_ALT | KM_SHIFT)) ==
+		    0 && (ev.mods & KM_CTRL) != 0) {
+			/* Ctrl+key */
+			if (ev.key == KC_Q) {
+				ping_signal_done();
+				return 0;
+			}
+		}
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int rc;
-	inetping_sdu_t sdu;
+	int argi;
 
 	rc = inetping_init(&ev_ops);
 	if (rc != EOK) {
@@ -134,38 +221,62 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (argc != 2) {
+	argi = 1;
+	if (argi < argc && str_cmp(argv[argi], "-r") == 0) {
+		ping_repeat = true;
+		++argi;
+	} else {
+		ping_repeat = false;
+	}
+
+	if (argc - argi != 1) {
 		print_syntax();
 		return 1;
 	}
 
 	/* Parse destination address */
-	rc = addr_parse(argv[1], &sdu.dest);
+	rc = addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
 		printf(NAME ": Invalid address format.\n");
 		print_syntax();
 		return 1;
 	}
 
-	sdu.seq_no = 1;
-	sdu.data = (void *) "foo";
-	sdu.size = 3;
-
 	/* Determine source address */
-	rc = inetping_get_srcaddr(&sdu.dest, &sdu.src);
+	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
 	if (rc != EOK) {
 		printf(NAME ": Failed determining source address.\n");
 		return 1;
 	}
 
-	rc = inetping_send(&sdu);
-	if (rc != EOK) {
-		printf(NAME ": Failed sending echo request (%d).\n", rc);
-		return 1;
+	fid_t fid;
+
+	if (ping_repeat) {
+		fid = fibril_create(transmit_fibril, NULL);
+		if (fid == 0) {
+			printf(NAME ": Failed creating transmit fibril.\n");
+			return 1;
+		}
+
+		fibril_add_ready(fid);
+
+		fid = fibril_create(input_fibril, NULL);
+		if (fid == 0) {
+			printf(NAME ": Failed creating input fibril.\n");
+			return 1;
+		}
+
+		fibril_add_ready(fid);
+	} else {
+		ping_send(1);
 	}
 
 	fibril_mutex_lock(&done_lock);
-	rc = fibril_condvar_wait_timeout(&done_cv, &done_lock, PING_TIMEOUT);
+	rc = EOK;
+	while (!done && rc != ETIMEOUT) {
+		rc = fibril_condvar_wait_timeout(&done_cv, &done_lock,
+			ping_repeat ? 0 : PING_TIMEOUT);
+	}
 	fibril_mutex_unlock(&done_lock);
 
 	if (rc == ETIMEOUT) {
