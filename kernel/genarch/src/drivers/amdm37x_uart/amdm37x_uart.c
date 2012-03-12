@@ -74,8 +74,9 @@ static void amdm37x_uart_handler(irq_t *irq)
 //TODO enable while checking when RX FIFO is used instead of single char.
 //	while (!(uart->regs->isr2 & AMDM37x_UART_ISR2_RX_FIFO_EMPTY_FLAG)) {
 		const uint8_t val = uart->regs->rhr;
-		if (uart->indev)
+		if (uart->indev && val) {
 			indev_push_character(uart->indev, val);
+		}
 //	}
 }
 
