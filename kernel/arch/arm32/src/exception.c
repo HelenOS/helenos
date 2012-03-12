@@ -143,7 +143,7 @@ static void high_vectors(void)
 	);
 #elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 	asm volatile (
-		"mcr p15, 0, %[control_reg], c1, c0"
+		"mcr p15, 0, %[control_reg], c1, c1"
 		:: [control_reg] "r" (control_reg)
 	);
 #endif
