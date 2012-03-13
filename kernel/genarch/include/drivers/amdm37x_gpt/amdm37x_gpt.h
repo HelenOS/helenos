@@ -201,9 +201,6 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	/* Map control register */
 	timer->regs = (void*) km_map(ioregs, iosize, PAGE_NOT_CACHEABLE);
 
-	/* Set tldr and tccr */
-	timer->regs->tldr = 0xffffffff - 32768 / hz;
-	timer->regs->tccr = 0xffffffff - 32768 / hz;
 
 	/* Set autoreload */
 	timer->regs->tclr = AMDM37x_GPT_TCLR_AR_FLAG;
@@ -212,6 +209,16 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	    (ioregs == AMDM37x_GPT1_BASE_ADDRESS) ||
 	    (ioregs == AMDM37x_GPT2_BASE_ADDRESS) ||
 	    (ioregs == AMDM37x_GPT10_BASE_ADDRESS));
+	timer->regs->tldr = 0xffffffff - (32768 / hz) + 1;
+	if (timer->special_available) {
+		/* Set values for according to formula (manual p. 2733) */
+		const uint32_t tpir =
+		    ((32768 / hz + 1) * 1000000) - (32768000L * (1000 / hz));
+		const uint32_t tnir =
+		    ((32768 / hz) * 1000000) - (32768000 * (1000 / hz));
+		timer->regs->tpir = tpir;
+		timer->regs->tnir = tnir;
+	}
 
 }
 
