@@ -46,8 +46,8 @@ context_save:
 context_restore:
 	CONTEXT_RESTORE_ARCH_CORE $a0
 	
-	# Just for the jump into first function, but one instruction
-	# should not bother us
+	# Just for the jump into first function,
+	# but one instruction should not bother us
 	move $t9, $ra
 	
 	# context_restore returns 0
