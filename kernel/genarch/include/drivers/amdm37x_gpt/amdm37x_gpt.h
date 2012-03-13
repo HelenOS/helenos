@@ -197,6 +197,13 @@ typedef struct {
 static inline void amdm37x_gpt_timer_ticks_init(
     amdm37x_gpt_t* timer, uintptr_t ioregs, size_t iosize, unsigned hz)
 {
+	/* Set 32768 Hz clock as source */
+	// TODO find a nicer way to setup 32kHz clock source for timer1
+	// reg 0x48004C40 is CM_CLKSEL_WKUP see page 485 of the manual
+	ioport32_t *clksel = (void*) km_map(0x48004C40, 4, PAGE_NOT_CACHEABLE);
+	*clksel &= ~1;
+	km_unmap((uintptr_t)clksel, 4);
+
 	ASSERT(timer);
 	/* Map control register */
 	timer->regs = (void*) km_map(ioregs, iosize, PAGE_NOT_CACHEABLE);
@@ -212,6 +219,7 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	timer->regs->tldr = 0xffffffff - (32768 / hz) + 1;
 	if (timer->special_available) {
 		/* Set values for according to formula (manual p. 2733) */
+		/* Use temporary variables for easier debugging */
 		const uint32_t tpir =
 		    ((32768 / hz + 1) * 1000000) - (32768000L * (1000 / hz));
 		const uint32_t tnir =

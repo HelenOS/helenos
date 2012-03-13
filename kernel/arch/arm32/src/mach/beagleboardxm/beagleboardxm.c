@@ -100,11 +100,6 @@ static void bbxm_init(void)
 	    PAGE_NOT_CACHEABLE);
 	amdm37x_irc_init(beagleboard.irc_addr);
 
-	// TODO find a nicer way to setup 32kHz clock source for timer1
-	ioport32_t *clksel = (void*) km_map(0x48004C40, 4, PAGE_NOT_CACHEABLE);
-	*clksel &= ~1;
-	km_unmap((uintptr_t)clksel, 4);
-
 	/* Initialize timer, pick timer1, because it is in always-power domain
 	 * and has special capabilities for regular ticks */
 	amdm37x_gpt_timer_ticks_init(&beagleboard.timer,
