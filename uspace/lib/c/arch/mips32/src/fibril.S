@@ -32,24 +32,24 @@
 .set noreorder
 
 #include <libarch/context_offset.h>
-	
+
 .global context_save
 .global context_restore
-	
+
 context_save:
 	CONTEXT_SAVE_ARCH_CORE $a0
-
+	
 	# context_save returns 1
 	j $ra
-	li $v0, 1	
-	
+	li $v0, 1
+
 context_restore:
 	CONTEXT_RESTORE_ARCH_CORE $a0
-
+	
 	# Just for the jump into first function, but one instruction
 	# should not bother us
-	move $t9, $ra	
+	move $t9, $ra
+	
 	# context_restore returns 0
 	j $ra
-	xor $v0, $v0	
-
+	xor $v0, $v0
