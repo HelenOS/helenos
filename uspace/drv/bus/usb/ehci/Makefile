@@ -42,6 +42,6 @@ BINARY = ehci
 
 SOURCES = \
 	main.c \
-	pci.c
+	res.c
 
 include $(USPACE_PREFIX)/Makefile.common
