@@ -87,6 +87,7 @@ static void bb_timer_irq_handler(irq_t *irq)
          * We are holding a lock which prevents preemption.
          * Release the lock, call clock() and reacquire the lock again.
          */
+	amdm37x_gpt_irq_ack(&beagleboard.timer);
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);
@@ -99,6 +100,7 @@ static void bbxm_init(void)
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
 	    PAGE_NOT_CACHEABLE);
 	amdm37x_irc_init(beagleboard.irc_addr);
+
 
 	/* Initialize timer, pick timer1, because it is in always-power domain
 	 * and has special capabilities for regular ticks */
@@ -116,6 +118,9 @@ static void bbxm_timer_irq_start(void)
 	timer_irq.claim = bb_timer_irq_claim;
 	timer_irq.handler = bb_timer_irq_handler;
 	irq_register(&timer_irq);
+
+	/* Enable timer interrupt */
+	amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_GPT1_IRQ);
 
 	/* Start timer here */
 	amdm37x_gpt_timer_ticks_start(&beagleboard.timer);
