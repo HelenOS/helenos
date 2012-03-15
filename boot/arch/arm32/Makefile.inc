@@ -61,7 +61,14 @@ RD_SRVS_NON_ESSENTIAL += \
 endif
 
 RD_DRVS += \
-	infrastructure/rootamdm37x
+	infrastructure/rootamdm37x \
+	bus/usb/ehci \
+	bus/usb/ohci \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
