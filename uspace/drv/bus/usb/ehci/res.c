@@ -46,8 +46,6 @@
 
 #include "res.h"
 
-#define PAGE_SIZE_MASK 0xfffff000
-
 #define HCC_PARAMS_OFFSET 0x8
 #define HCC_PARAMS_EECP_MASK 0xff
 #define HCC_PARAMS_EECP_OFFSET 8
