@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Jan Vesely
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,28 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
+#include <libarch/stack.h>
 
-LIBS = \
-	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+.text
+.section .text
+.global entry_point_jmp
+.set noreorder
 
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBHOST_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
-
-BINARY = ehci
-
-SOURCES = \
-	main.c \
-	res.c
-
-include $(USPACE_PREFIX)/Makefile.common
+## void entry_point_jmp(void *entry_point, void *pcb);
+#
+# $a0 (=$4) contains entry_point
+# $a1 (=$5) contains pcb
+#
+# Jump to program entry point
+.ent entry_point_jmp
+entry_point_jmp:
+	# tmp := entry_point
+	move $t9, $a0
+	
+	# Pass pcb to the entry point in $a0
+	move $a0, $a1
+	
+	jr $t9
+	addiu $sp, -ABI_STACK_FRAME
+	addiu $sp, ABI_STACK_FRAME
+.end entry_point_jmp

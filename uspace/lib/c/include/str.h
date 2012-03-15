@@ -60,6 +60,9 @@ extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
 
+extern size_t str_nsize(const char *str, size_t max_size);
+extern size_t wstr_nsize(const wchar_t *str, size_t max_size);
+
 extern size_t str_lsize(const char *str, size_t max_len);
 extern size_t wstr_lsize(const wchar_t *str, size_t max_len);
 

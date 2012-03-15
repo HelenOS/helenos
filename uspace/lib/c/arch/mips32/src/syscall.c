@@ -56,8 +56,11 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 		  "r" (__mips_reg_t0),
 		  "r" (__mips_reg_t1),
 		  "r" (__mips_reg_v0)
-		: "%ra" /* We are a function call, although C does not 
-			 * know it */
+		/*
+		 * We are a function call, although C
+		 * does not know it.
+		 */
+		: "%ra"
 	);
 	
 	return __mips_reg_v0;

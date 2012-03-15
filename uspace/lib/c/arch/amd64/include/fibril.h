@@ -37,11 +37,12 @@
 
 #include <sys/types.h>
 
-/* According to ABI the stack MUST be aligned on 
+/*
+ * According to ABI the stack MUST be aligned on
  * 16-byte boundary. If it is not, the va_arg calling will
  * panic sooner or later
  */
-#define SP_DELTA     16
+#define SP_DELTA  16
 
 #define context_set(c, _pc, stack, size, ptls) \
 	do { \

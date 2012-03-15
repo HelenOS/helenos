@@ -129,7 +129,7 @@ bool exfat_valid_name(const char *name)
 	return true;
 }
 
-size_t utf16_length(const uint16_t *wstr)
+size_t exfat_utf16_length(const uint16_t *wstr)
 {
 	size_t len = 0;
 	
