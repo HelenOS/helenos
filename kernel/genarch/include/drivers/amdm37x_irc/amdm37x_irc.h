@@ -164,9 +164,9 @@ static inline void amdm37x_irc_init(amdm37x_irc_regs_t *regs)
 	}
 
 	/* Disable all interrupts */
-	regs->interrupts[0].mir_clear = 0xffffffff;
-	regs->interrupts[1].mir_clear = 0xffffffff;
-	regs->interrupts[2].mir_clear = 0xffffffff;
+	regs->interrupts[0].mir_set = 0xffffffff;
+	regs->interrupts[1].mir_set = 0xffffffff;
+	regs->interrupts[2].mir_set = 0xffffffff;
 }
 
 static inline unsigned amdm37x_irc_inum_get(amdm37x_irc_regs_t *regs)
@@ -189,7 +189,7 @@ static inline void amdm37x_irc_enable(amdm37x_irc_regs_t *regs, unsigned inum)
 	ASSERT(inum < AMDM37x_IRC_IRQ_COUNT);
 	const unsigned set = inum / 32;
 	const unsigned pos = inum % 32;
-	regs->interrupts[set].mir_set = (1 << pos);
+	regs->interrupts[set].mir_clear = (1 << pos);
 }
 
 static inline void amdm37x_irc_disable(amdm37x_irc_regs_t *regs, unsigned inum)
@@ -197,7 +197,7 @@ static inline void amdm37x_irc_disable(amdm37x_irc_regs_t *regs, unsigned inum)
 	ASSERT(inum < AMDM37x_IRC_IRQ_COUNT);
 	const unsigned set = inum / 32;
 	const unsigned pos = inum % 32;
-	regs->interrupts[set].mir_clear = (1 << pos);
+	regs->interrupts[set].mir_set = (1 << pos);
 }
 
 #endif
