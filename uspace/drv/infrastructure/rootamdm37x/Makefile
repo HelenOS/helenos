@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2012 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE), gta02)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x30008000
-	SADDR = 0x30008000
-	POSTBUILD = Makefile.uboot
-endif
-
-ifeq ($(MACHINE), beagleboardxm)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x80000000
-	SADDR = 0x80000000
-	POSTBUILD = Makefile.uboot
-endif
-
-BFD_NAME = elf32-littlearm
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = arm
-
-BITS = 32
-ENDIANESS = LE
-
-ifeq ($(MACHINE), gta02)
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24ts \
-	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
-endif
-
-ifeq ($(MACHINE), gxemul)
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
-endif
-
-RD_DRVS += \
-	infrastructure/rootamdm37x
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = rootamdm37x
 
 SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/mm.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/division.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+	rootamdm37x.c
+
+include $(USPACE_PREFIX)/Makefile.common
