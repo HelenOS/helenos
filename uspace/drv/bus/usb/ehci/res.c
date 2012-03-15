@@ -38,16 +38,13 @@
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>
-#include <as.h>
 #include <devman.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
-#include <device/hw_res.h>
-
 #include <usb/debug.h>
-#include <pci_dev_iface.h>
+#include <device/hw_res_parsed.h>
+#include <device/pci.h>
 
-#include "pci.h"
+#include "res.h"
 
 #define PAGE_SIZE_MASK 0xfffff000
 
@@ -71,84 +68,6 @@
 #define DEFAULT_WAIT 1000
 #define WAIT_STEP 10
 
-#define PCI_READ(size) \
-do { \
-	async_sess_t *parent_sess = \
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle, \
-	    IPC_FLAG_BLOCKING); \
-	if (!parent_sess) \
-		return ENOMEM; \
-	\
-	sysarg_t add = (sysarg_t) address; \
-	sysarg_t val; \
-	\
-	async_exch_t *exch = async_exchange_begin(parent_sess); \
-	\
-	const int ret = \
-	    async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE), \
-	        IPC_M_CONFIG_SPACE_READ_##size, add, &val); \
-	\
-	async_exchange_end(exch); \
-	async_hangup(parent_sess); \
-	\
-	assert(value); \
-	\
-	*value = val; \
-	return ret; \
-} while (0)
-
-static int pci_read32(const ddf_dev_t *dev, int address, uint32_t *value)
-{
-	PCI_READ(32);
-}
-
-static int pci_read16(const ddf_dev_t *dev, int address, uint16_t *value)
-{
-	PCI_READ(16);
-}
-
-static int pci_read8(const ddf_dev_t *dev, int address, uint8_t *value)
-{
-	PCI_READ(8);
-}
-
-#define PCI_WRITE(size) \
-do { \
-	async_sess_t *parent_sess = \
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle, \
-	    IPC_FLAG_BLOCKING); \
-	if (!parent_sess) \
-		return ENOMEM; \
-	\
-	sysarg_t add = (sysarg_t) address; \
-	sysarg_t val = value; \
-	\
-	async_exch_t *exch = async_exchange_begin(parent_sess); \
-	\
-	const int ret = \
-	    async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE), \
-	        IPC_M_CONFIG_SPACE_WRITE_##size, add, val); \
-	\
-	async_exchange_end(exch); \
-	async_hangup(parent_sess); \
-	\
-	return ret; \
-} while(0)
-
-static int pci_write32(const ddf_dev_t *dev, int address, uint32_t value)
-{
-	PCI_WRITE(32);
-}
-
-static int pci_write16(const ddf_dev_t *dev, int address, uint16_t value)
-{
-	PCI_WRITE(16);
-}
-
-static int pci_write8(const ddf_dev_t *dev, int address, uint8_t value)
-{
-	PCI_WRITE(8);
-}
 
 /** Get address of registers and IRQ for given device.
  *
@@ -158,65 +77,38 @@ static int pci_write8(const ddf_dev_t *dev, int address, uint8_t value)
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int pci_get_my_registers(const ddf_dev_t *dev,
+int get_my_registers(const ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
-	assert(dev != NULL);
+	assert(dev);
 	
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
-	    IPC_FLAG_BLOCKING);
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    EXCHANGE_SERIALIZE, dev->handle, IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	
-	hw_resource_list_t hw_resources;
-	int rc = hw_res_get_resource_list(parent_sess, &hw_resources);
-	if (rc != EOK) {
-		async_hangup(parent_sess);
-		return rc;
-	}
-	
-	uintptr_t mem_address = 0;
-	size_t mem_size = 0;
-	bool mem_found = false;
-	
-	int irq = 0;
-	bool irq_found = false;
-	
-	size_t i;
-	for (i = 0; i < hw_resources.count; i++) {
-		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-		case INTERRUPT:
-			irq = res->res.interrupt.irq;
-			irq_found = true;
-			usb_log_debug2("Found interrupt: %d.\n", irq);
-			break;
-		case MEM_RANGE:
-			if (res->res.mem_range.address != 0
-			    && res->res.mem_range.size != 0 ) {
-				mem_address = res->res.mem_range.address;
-				mem_size = res->res.mem_range.size;
-				usb_log_debug2("Found mem: %" PRIxn" %zu.\n",
-				    mem_address, mem_size);
-				mem_found = true;
-			}
-		default:
-			break;
-		}
-	}
-	
-	if (mem_found && irq_found) {
-		*mem_reg_address = mem_address;
-		*mem_reg_size = mem_size;
-		*irq_no = irq;
-		rc = EOK;
-	} else {
-		rc = ENOENT;
-	}
-	
+	hw_res_list_parsed_t hw_res;
+	hw_res_list_parsed_init(&hw_res);
+	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	async_hangup(parent_sess);
-	return rc;
+	if (ret != EOK) {
+		return ret;
+	}
+
+	if (hw_res.irqs.count != 1 || hw_res.mem_ranges.count != 1) {
+		hw_res_list_parsed_clean(&hw_res);
+		return ENOENT;
+	}
+
+	if (mem_reg_address)
+		*mem_reg_address = hw_res.mem_ranges.ranges[0].address;
+	if (mem_reg_size)
+		*mem_reg_size = hw_res.mem_ranges.ranges[0].size;
+	if (irq_no)
+		*irq_no = hw_res.irqs.irqs[0];
+
+	hw_res_list_parsed_clean(&hw_res);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Calls the PCI driver with a request to enable interrupts
@@ -224,11 +116,10 @@ int pci_get_my_registers(const ddf_dev_t *dev,
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_enable_interrupts(const ddf_dev_t *device)
+int enable_interrupts(const ddf_dev_t *device)
 {
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
-	    IPC_FLAG_BLOCKING);
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    EXCHANGE_SERIALIZE, device->handle, IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	
@@ -243,17 +134,18 @@ int pci_enable_interrupts(const ddf_dev_t *device)
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_disable_legacy(
-    const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size, int irq)
+int disable_legacy(const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 {
 	assert(device);
-	(void) pci_read16;
-	(void) pci_read8;
-	(void) pci_write16;
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    EXCHANGE_SERIALIZE, device->handle, IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
 
 #define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
+		async_hangup(parent_sess); \
 		return ret; \
 	} else (void)0
 
@@ -275,23 +167,27 @@ int pci_disable_legacy(
 
 	/* Read the first EEC. i.e. Legacy Support register */
 	uint32_t usblegsup;
-	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	ret = pci_config_space_read_32(parent_sess,
+	    eecp + USBLEGSUP_OFFSET, &usblegsup);
 	CHECK_RET_RETURN(ret, "Failed to read USBLEGSUP: %s.\n", str_error(ret));
 	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 
 	/* Request control from firmware/BIOS, by writing 1 to highest byte.
 	 * (OS Control semaphore)*/
 	usb_log_debug("Requesting OS control.\n");
-	ret = pci_write8(device, eecp + USBLEGSUP_OFFSET + 3, 1);
+	ret = pci_config_space_write_8(parent_sess,
+	    eecp + USBLEGSUP_OFFSET + 3, 1);
 	CHECK_RET_RETURN(ret, "Failed to request OS EHCI control: %s.\n",
 	    str_error(ret));
 
 	size_t wait = 0;
 	/* Wait for BIOS to release control. */
-	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	ret = pci_config_space_read_32(parent_sess,
+	    eecp + USBLEGSUP_OFFSET, &usblegsup);
 	while ((wait < DEFAULT_WAIT) && (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
-		ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+		ret = pci_config_space_read_32(parent_sess,
+		    eecp + USBLEGSUP_OFFSET, &usblegsup);
 		wait += WAIT_STEP;
 	}
 
@@ -302,8 +198,8 @@ int pci_disable_legacy(
 		/* BIOS failed to hand over control, this should not happen. */
 		usb_log_warning( "BIOS failed to release control after "
 		    "%zu usecs, force it.\n", wait);
-		ret = pci_write32(device, eecp + USBLEGSUP_OFFSET,
-		    USBLEGSUP_OS_CONTROL);
+		ret = pci_config_space_write_32(parent_sess,
+		    eecp + USBLEGSUP_OFFSET, USBLEGSUP_OS_CONTROL);
 		CHECK_RET_RETURN(ret, "Failed to force OS control: %s.\n",
 		    str_error(ret));
 		/* Check capability type here, A value of 01h
@@ -316,21 +212,22 @@ int pci_disable_legacy(
 			/* Read the second EEC
 			 * Legacy Support and Control register */
 			uint32_t usblegctlsts;
-			ret = pci_read32(
-			    device, eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
+			ret = pci_config_space_read_32(parent_sess,
+			    eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
 			CHECK_RET_RETURN(ret,
 			    "Failed to get USBLEGCTLSTS: %s.\n", str_error(ret));
 			usb_log_debug("USBLEGCTLSTS: %" PRIx32 ".\n",
 			    usblegctlsts);
 			/* Zero SMI enables in legacy control register.
-			 * It should prevent pre-OS code from interfering. */
-			ret = pci_write32(device, eecp + USBLEGCTLSTS_OFFSET,
-			    0xe0000000); /* three upper bits are WC */
+			 * It should prevent pre-OS code from interfering.
+			 * Three upper bits are WC */
+			ret = pci_config_space_write_32(parent_sess,
+			    eecp + USBLEGCTLSTS_OFFSET, 0xe0000000);
 			CHECK_RET_RETURN(ret,
 			    "Failed(%d) zero USBLEGCTLSTS.\n", ret);
 			udelay(10);
-			ret = pci_read32(
-			    device, eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
+			ret = pci_config_space_read_32(parent_sess,
+			    eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
 			CHECK_RET_RETURN(ret,
 			    "Failed to get USBLEGCTLSTS 2: %s.\n",
 			    str_error(ret));
@@ -341,12 +238,16 @@ int pci_disable_legacy(
 
 
 	/* Read again Legacy Support register */
-	ret = pci_read32(device, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	ret = pci_config_space_read_32(parent_sess,
+	    eecp + USBLEGSUP_OFFSET, &usblegsup);
 	CHECK_RET_RETURN(ret, "Failed to read USBLEGSUP: %s.\n", str_error(ret));
 	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 
+	async_hangup(parent_sess);
+#undef CHECK_RET_RETURN
+
 	/*
-	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT
+	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT IF NEEDED
 	 */
 
 	/* Get size of capability registers in memory space. */
@@ -383,7 +284,6 @@ int pci_disable_legacy(
 	    *usbcmd, *usbsts, *usbint, *usbconf);
 
 	return ret;
-#undef CHECK_RET_RETURN
 }
 
 /**
