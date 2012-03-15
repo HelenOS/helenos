@@ -184,6 +184,7 @@ static void bbxm_input_init(void)
 		indev_t *srln = srln_wire(srln_instance, sink);
 		amdm37x_uart_input_wire(&beagleboard.uart, srln);
 	}
+	amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
 }
 
 size_t bbxm_get_irq_count(void)
