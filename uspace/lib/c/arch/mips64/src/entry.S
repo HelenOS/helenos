@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008 Jiri Svoboda
+# Copyright (c) 2005 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,40 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
-.section .text
-.global entry_point_jmp
-.set noreorder
+#include <libarch/stack.h>
 
-## void entry_point_jmp(void *entry_point, void *pcb);
+.text
+.section .init, "ax"
+
+.global __entry
+
+.set noreorder
+.option pic2
+
+## User-space task entry point
 #
-# $a0 (=$4) contains entry_point
-# $a1 (=$5) contains pcb
+# $a0 ($4) contains the PCB pointer
 #
-# Jump to program entry point
-.ent entry_point_jmp
-entry_point_jmp:
-	# tmp := entry_point
-	move $25, $a0
+.ent __entry
+__entry:
+	.frame $sp, ABI_STACK_FRAME, $ra
+	.cpload $t9
 	
-	# Pass pcb to the entry point in $a0
-	move $a0, $a1
-	jr $25
+	# Allocate the stack frame.
+	addiu $sp, -ABI_STACK_FRAME
+	
+	# Allow PIC code
+	.cprestore 16
+	
+	# Pass pcb_ptr to __main() as the first argument. It is already
+	# in $a0. As the first argument is passed in $a0, no operation
+	# is needed.
+	
+	jal __main
 	nop
-.end
+	
+	#
+	# Not reached.
+	#
+	addiu $sp, ABI_STACK_FRAME
+.end __entry

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,28 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <libarch/stack.h>
+
 .text
-
-.set noat
+.section .text
+.global entry_point_jmp
 .set noreorder
-.option pic2
 
-.globl __thread_entry
-
-## User-space thread entry point for all but the first threads.
+## void entry_point_jmp(void *entry_point, void *pcb);
 #
+# $a0 (=$4) contains entry_point
+# $a1 (=$5) contains pcb
 #
-.ent __thread_entry
-__thread_entry:
-	.frame $sp, 32, $31
-	.cpload $25
+# Jump to program entry point
+.ent entry_point_jmp
+entry_point_jmp:
+	# tmp := entry_point
+	move $t9, $a0
 	
-	#
-	# v0 contains address of uarg.
-	#
-	add $4, $2, 0
+	# Pass pcb to the entry point in $a0
+	move $a0, $a1
 	
-	addiu $sp, -32
-	.cprestore 16
-	
-	jal __thread_main
-	nop
-	
-	#
-	# Not reached.
-	#
-.end __thread_entry
+	jr $t9
+	addiu $sp, -ABI_STACK_FRAME
+	addiu $sp, ABI_STACK_FRAME
+.end entry_point_jmp

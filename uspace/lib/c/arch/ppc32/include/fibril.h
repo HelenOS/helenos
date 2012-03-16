@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32	
+/** @addtogroup libcppc32
  * @{
  */
 /** @file
@@ -37,17 +37,20 @@
 
 #include <sys/types.h>
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
+#define SP_DELTA  16
+
+/*
+ * We define our own context_set, because we need to set
+ * the TLS pointer to the tcb + 0x7000
  *
  * See tls_set in thread.h
  */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
-
-#define SP_DELTA	16
+#define context_set(c, _pc, stack, size, ptls) \
+	do { \
+		(c)->pc = (sysarg_t) (_pc); \
+		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+		(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t); \
+	} while (0)
 
 typedef struct {
 	uint32_t sp;

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32	
+/** @addtogroup libcarm32
  * @{
  */
 /** @file 
@@ -41,16 +41,16 @@
 #include <thread.h>
 
 /** Size of a stack item */
-#define STACK_ITEM_SIZE		4
+#define STACK_ITEM_SIZE  4
 
 /** Stack alignment - see <a href="http://www.arm.com/support/faqdev/14269.html">ABI</a> for details */
-#define STACK_ALIGNMENT		8
+#define STACK_ALIGNMENT  8
 
-#define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
+#define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 
-/** Sets data to the context. 
- *  
+/** Sets data to the context.
+ *
  *  @param c     Context (#context_t).
  *  @param _pc   Program counter.
  *  @param stack Stack address.
@@ -61,11 +61,11 @@
 	do { \
 		(c)->pc = (sysarg_t) (_pc); \
 		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
- 		(c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET; \
+		(c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET; \
 		(c)->fp = 0; \
 	} while (0)
 
-/** Fibril context. 
+/** Fibril context.
  *
  *  Only registers preserved accross function calls are included. r9 is used 
  *  to store a TLS address. -ffixed-r9 gcc forces gcc not to use this
@@ -89,7 +89,6 @@ static inline uintptr_t context_get_fp(context_t *ctx)
 {
 	return ctx->fp;
 }
-
 
 #endif
 

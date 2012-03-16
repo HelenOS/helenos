@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,40 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <libarch/stack.h>
+
 .text
-.section .init, "ax"
 
-.global __entry
-
+.set noat
 .set noreorder
 .option pic2
 
-## User-space task entry point
+.globl __thread_entry
+
+## User-space thread entry point for all but the first threads.
 #
-# $a0 ($4) contains the PCB pointer
 #
-.ent __entry
-__entry:
-	.frame $sp, 32, $31
-	.cpload $25
-
-	# Mips o32 may store its arguments on stack, make space (16 bytes),
-	# so that it could work with -O0
-	# Make space additional 16 bytes for the stack frame
-
-	addiu $sp, -32
-	.cprestore 16   # Allow PIC code
-
-	# Pass pcb_ptr to __main() as the first argument. pcb_ptr is already
-	# in $a0. As the first argument is passed in $a0, no operation
-	# is needed.
-
-	jal __main
+.ent __thread_entry
+__thread_entry:
+	.frame $sp, ABI_STACK_FRAME, $ra
+	.cpload $t9
+	
+	#
+	# v0 contains address of uarg.
+	#
+	add $a0, $v0, 0
+	
+	# Allocate the stack frame.
+	addiu $sp, -ABI_STACK_FRAME
+	
+	# Allow PIC code
+	.cprestore 16
+	
+	jal __thread_main
 	nop
-.end
+	
+	#
+	# Not reached.
+	#
+	addiu $sp, ABI_STACK_FRAME
+.end __thread_entry
