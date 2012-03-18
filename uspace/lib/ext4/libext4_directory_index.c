@@ -42,6 +42,12 @@
 #include <string.h>
 #include "libext4.h"
 
+typedef struct ext4_dx_sort_entry {
+	uint32_t hash;
+	uint32_t rec_len;
+	void *dentry;
+} ext4_dx_sort_entry_t;
+
 
 uint8_t ext4_directory_dx_root_info_get_hash_version(
 		ext4_directory_dx_root_info_t *root_info)
@@ -411,13 +417,7 @@ cleanup:
 	return rc;
 }
 
-typedef struct ext4_dx_sort_entry {
-	uint32_t hash;
-	uint32_t rec_len;
-	void *dentry;
-} ext4_dx_sort_entry_t;
-
-static int dx_entry_comparator(void *arg1, void *arg2, void *dummy)
+static int ext4_directory_dx_entry_comparator(void *arg1, void *arg2, void *dummy)
 {
 	ext4_dx_sort_entry_t *entry1 = arg1;
 	ext4_dx_sort_entry_t *entry2 = arg2;
@@ -518,7 +518,7 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		dentry = (void *)dentry + ext4_directory_entry_ll_get_entry_length(dentry);
 	}
 
-	qsort(sort_array, idx, sizeof(ext4_dx_sort_entry_t), dx_entry_comparator, NULL);
+	qsort(sort_array, idx, sizeof(ext4_dx_sort_entry_t), ext4_directory_dx_entry_comparator, NULL);
 
 	uint32_t new_fblock;
 	uint32_t new_iblock;
