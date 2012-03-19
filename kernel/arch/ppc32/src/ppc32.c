@@ -129,8 +129,11 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 		case 8:
 			visual = VISUAL_INDIRECT_8;
 			break;
-		case 16:
+		case 15:
 			visual = VISUAL_RGB_5_5_5_BE;
+			break;
+		case 16:
+			visual = VISUAL_RGB_5_6_5_BE;
 			break;
 		case 24:
 			visual = VISUAL_BGR_8_8_8;
