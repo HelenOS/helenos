@@ -192,7 +192,7 @@ static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *i
 
 	if (inode_block_count > 0) {
 		// TODO check retval
-		ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, inode_block_count - 1, &goal);
+		ext4_filesystem_get_inode_data_block_index(fs, inode_ref, inode_block_count - 1, &goal);
 
 		// TODO
 		// If goal == 0 -> SPARSE file !!!

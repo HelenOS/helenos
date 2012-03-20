@@ -1002,7 +1002,7 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	/* Get the real block number */
 	uint32_t fs_block;
 	rc = ext4_filesystem_get_inode_data_block_index(inst->filesystem,
-		inode_ref->inode, file_block, &fs_block);
+		inode_ref, file_block, &fs_block);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return rc;
@@ -1089,7 +1089,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	uint32_t fblock;
 
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
-	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref->inode, iblock, &fblock);
+	rc = ext4_filesystem_get_inode_data_block_index(fs, inode_ref, iblock, &fblock);
 	if (rc != EOK) {
 		ext4fs_node_put(fn);
 		async_answer_0(callid, rc);

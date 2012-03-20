@@ -79,7 +79,6 @@ extern uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint32_t);
 extern void ext4_inode_set_direct_block(ext4_inode_t *, uint32_t, uint32_t);
 extern uint32_t ext4_inode_get_indirect_block(ext4_inode_t *, uint32_t);
 extern void ext4_inode_set_indirect_block(ext4_inode_t *, uint32_t, uint32_t);
-extern uint32_t ext4_inode_get_extent_block(ext4_inode_t *, uint64_t, service_id_t);
 extern ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *);
 extern bool ext4_inode_is_type(ext4_superblock_t *, ext4_inode_t *, uint32_t);
 extern bool ext4_inode_has_flag(ext4_inode_t *, uint32_t);

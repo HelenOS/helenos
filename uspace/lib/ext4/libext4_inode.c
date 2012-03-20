@@ -277,65 +277,6 @@ void ext4_inode_set_indirect_block(ext4_inode_t *inode, uint32_t idx, uint32_t f
 	inode->blocks[idx + EXT4_INODE_INDIRECT_BLOCK] = host2uint32_t_le(fblock);
 }
 
-
-uint32_t ext4_inode_get_extent_block(ext4_inode_t *inode, uint64_t idx, service_id_t service_id)
-{
-	int rc;
-
-	block_t* block = NULL;
-
-	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode);
-	while (ext4_extent_header_get_depth(header) != 0) {
-
-		ext4_extent_index_t *extent_index = EXT4_EXTENT_FIRST_INDEX(header);
-
-		for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
-			if (idx >= ext4_extent_index_get_first_block(extent_index)) {
-
-				uint64_t child = ext4_extent_index_get_leaf(extent_index);
-
-				if (block != NULL) {
-					block_put(block);
-				}
-
-				rc = block_get(&block, service_id, child, BLOCK_FLAGS_NONE);
-				if (rc != EOK) {
-					return 0;
-				}
-
-				header = (ext4_extent_header_t *)block->data;
-				break;
-			}
-		}
-	}
-
-	ext4_extent_t *extent = EXT4_EXTENT_FIRST(header);
-	uint64_t phys_block = 0;
-
-	for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
-
-		uint32_t first_block = ext4_extent_get_first_block(extent);
-		uint16_t block_count = ext4_extent_get_block_count(extent);
-
-		if ((idx >= first_block) && (idx < first_block + block_count)) {
-			 phys_block = ext4_extent_get_start(extent) + idx;
-			 phys_block -= ext4_extent_get_first_block(extent);
-
-			 // Memory leak prevention
-			 if (block != NULL) {
-				 block_put(block);
-			 }
-			 return phys_block;
-		}
-		// Go to the next extent
-		++extent;
-	}
-
-
-	EXT4FS_DBG("ERROR - reached function end");
-	return phys_block;
-}
-
 bool ext4_inode_is_type(ext4_superblock_t *sb, ext4_inode_t *inode, uint32_t type)
 {
 	uint32_t mode = ext4_inode_get_mode(sb, inode);

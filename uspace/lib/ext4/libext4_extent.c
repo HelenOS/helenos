@@ -148,122 +148,215 @@ void ext4_extent_header_set_generation(ext4_extent_header_t *header,
 	header->generation = host2uint32_t_le(generation);
 }
 
-static void ext4_extent_binsearch_idx(ext4_extent_path_t *path, uint32_t iblock)
-{
-	ext4_extent_header_t *header = path->header;
-	ext4_extent_index_t *r, *l, *m;
+//static void ext4_extent_binsearch_idx(ext4_extent_path_t *path, uint32_t iblock)
+//{
+//	ext4_extent_header_t *header = path->header;
+//	ext4_extent_index_t *r, *l, *m;
+//
+//	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
+//	l = EXT4_EXTENT_FIRST_INDEX(header) + 1;
+//	r = l + entries_count - 1;
+//
+//	while (l <= r) {
+//		m = l + (r - l) / 2;
+//		uint32_t block = ext4_extent_index_get_first_block(m);
+//		if (iblock < block) {
+//				r = m - 1;
+//		} else {
+//				l = m + 1;
+//		}
+//	}
+//
+//	path->index = l - 1;
+//}
+//
+//static void ext4_extent_binsearch(ext4_extent_path_t *path, uint32_t iblock)
+//{
+//	ext4_extent_header_t *header = path->header;
+//	ext4_extent_t *r, *l, *m;
+//
+//	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
+//
+//	if (entries_count == 0) {
+//		// this leaf is empty
+//		return;
+//	}
+//
+//	l = EXT4_EXTENT_FIRST(header) + 1;
+//	r = l + entries_count - 1;
+//
+//	while (l <= r) {
+//		m = l + (r - l) / 2;
+//		uint32_t block = ext4_extent_get_first_block(m);
+//		if (iblock < block) {
+//				r = m - 1;
+//		} else {
+//				l = m + 1;
+//		}
+//	}
+//
+//	path->extent = l - 1;
+//
+//}
 
-	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
-	l = EXT4_EXTENT_FIRST_INDEX(header) + 1;
-	r = l + entries_count - 1;
-
-	while (l <= r) {
-		m = l + (r - l) / 2;
-		uint32_t block = ext4_extent_index_get_first_block(m);
-		if (iblock < block) {
-				r = m - 1;
-		} else {
-				l = m + 1;
-		}
-	}
-
-	path->index = l - 1;
-}
-
-static void ext4_extent_binsearch(ext4_extent_path_t *path, uint32_t iblock)
-{
-	ext4_extent_header_t *header = path->header;
-	ext4_extent_t *r, *l, *m;
-
-	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
-
-	if (entries_count == 0) {
-		// this leaf is empty
-		return;
-	}
-
-	l = EXT4_EXTENT_FIRST(header) + 1;
-	r = l + entries_count - 1;
-
-	while (l <= r) {
-		m = l + (r - l) / 2;
-		uint32_t block = ext4_extent_get_first_block(m);
-		if (iblock < block) {
-				r = m - 1;
-		} else {
-				l = m + 1;
-		}
-	}
-
-	path->extent = l - 1;
-
-}
-
-int ext4_extent_find_block(ext4_filesystem_t *fs, ext4_extent_path_t **path,
-		ext4_extent_header_t *header, uint32_t iblock)
+static int ext4_extent_find_extent(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, uint32_t iblock, ext4_extent_t **ret_extent)
 {
 	int rc;
 
-	uint16_t depth = ext4_extent_header_get_depth(header);
+	block_t* block = NULL;
 
-	ext4_extent_header_t *eh = header;
+	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode_ref->inode);
+	while (ext4_extent_header_get_depth(header) != 0) {
 
-	ext4_extent_path_t *tmp_path;
+		ext4_extent_index_t *extent_index = EXT4_EXTENT_FIRST_INDEX(header);
 
-	// Added 2 for possible tree growing
-	tmp_path = malloc(sizeof(ext4_extent_path_t) * (depth + 2));
-	if (tmp_path == NULL) {
-		*path = NULL;
-		return ENOMEM;
-	}
+		for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
+			if (iblock >= ext4_extent_index_get_first_block(extent_index)) {
 
-	tmp_path[0].block = NULL;
-	tmp_path[0].header = eh;
+				uint64_t child = ext4_extent_index_get_leaf(extent_index);
 
-	uint16_t pos = 0, idx = depth;
-	while (idx > 0) {
+				if (block != NULL) {
+					block_put(block);
+				}
 
-		ext4_extent_binsearch_idx(tmp_path + pos, iblock);
+				rc = block_get(&block, fs->device, child, BLOCK_FLAGS_NONE);
+				if (rc != EOK) {
+					return rc;
+				}
 
-		tmp_path[pos].depth = idx;
-		tmp_path[pos].extent = NULL;
-
-		uint64_t fblock = ext4_extent_index_get_leaf(tmp_path[pos].index);
-		block_t *block;
-		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
-		if (rc != EOK) {
-			// TODO cleanup
+				header = (ext4_extent_header_t *)block->data;
+				break;
+			}
 		}
-
-		eh = (ext4_extent_header_t *)tmp_path[pos].block->data;
-		pos++;
-
-		tmp_path[pos].block = block;
-		tmp_path[pos].header = eh;
-
-		idx--;
-
 	}
 
-	tmp_path[pos].depth = idx;
-	tmp_path[pos].extent = NULL;
-	tmp_path[pos].index = NULL;
+	ext4_extent_t *extent = EXT4_EXTENT_FIRST(header);
+//	uint64_t phys_block = 0;
 
-    /* find extent */
-	ext4_extent_binsearch(tmp_path + pos, iblock);
+	for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
 
-	/* if not an empty leaf */
-	if (tmp_path[pos].extent) {
-		uint64_t fblock = ext4_extent_get_start(tmp_path[pos].extent);
-		block_t *block;
-		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
-		if (rc != EOK) {
-			// TODO cleanup
+		uint32_t first_block = ext4_extent_get_first_block(extent);
+		uint16_t block_count = ext4_extent_get_block_count(extent);
+
+		if ((iblock >= first_block) && (iblock < first_block + block_count)) {
+			break;
 		}
-		tmp_path[pos].block = block;
+		// Go to the next extent
+		++extent;
 	}
+
+	*ret_extent = extent;
 
 	return EOK;
+}
+
+int ext4_extent_find_block(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_t *fblock)
+{
+	int rc;
+
+	ext4_extent_t *extent = NULL;
+	rc = ext4_extent_find_extent(fs, inode_ref, iblock, &extent);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	uint32_t phys_block;
+	phys_block = ext4_extent_get_start(extent) + iblock;
+	phys_block -= ext4_extent_get_first_block(extent);
+
+
+	*fblock = phys_block;
+
+	return EOK;
+
+
+//	ext4_extent_header_t *eh =
+//			ext4_inode_get_extent_header(inode_ref->inode);
+//
+//	uint16_t depth = ext4_extent_header_get_depth(eh);
+//
+//	ext4_extent_path_t *tmp_path;
+//
+//	// Added 2 for possible tree growing
+//	tmp_path = malloc(sizeof(ext4_extent_path_t) * (depth + 2));
+//	if (tmp_path == NULL) {
+//		*path = NULL;
+//		return ENOMEM;
+//	}
+//
+//	tmp_path[0].block = inode_ref->block;
+//	tmp_path[0].header = eh;
+//
+//	uint16_t pos = 0;
+//	while (ext4_extent_header_get_depth(eh) != 0) {
+//
+//		EXT4FS_DBG("count == \%u", ext4_extent_header_get_entries_count(eh));
+//
+//		ext4_extent_binsearch_idx(tmp_path + pos, iblock);
+//
+//		uint32_t offset = (void *)tmp_path[pos].index - (void *)EXT4_EXTENT_FIRST_INDEX(eh);
+//
+//		EXT4FS_DBG("offset = \%u", offset);
+//
+//		EXT4FS_DBG("first block = \%u, leaf = \%u",
+//				ext4_extent_index_get_first_block(tmp_path[pos].index),
+//				(uint32_t)ext4_extent_index_get_leaf(tmp_path[pos].index));
+//
+//		tmp_path[pos].depth = depth;
+//		tmp_path[pos].extent = NULL;
+//
+//		assert(tmp_path[pos].index != NULL);
+//
+//		uint64_t fblock = ext4_extent_index_get_leaf(tmp_path[pos].index);
+//
+//		EXT4FS_DBG("fblock = \%u", (uint32_t)fblock);
+//
+//		block_t *block;
+//		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+//		if (rc != EOK) {
+//			// TODO cleanup
+//			EXT4FS_DBG("ERRRR");
+//			return rc;
+//		}
+//
+//		EXT4FS_DBG("block loaded");
+//
+//		pos++;
+//
+//		eh = (ext4_extent_header_t *)block->data;
+//		tmp_path[pos].block = block;
+//		tmp_path[pos].header = eh;
+//
+//	}
+//
+//	tmp_path[pos].depth = 0;
+//	tmp_path[pos].extent = NULL;
+//	tmp_path[pos].index = NULL;
+//
+//	EXT4FS_DBG("pos = \%u", pos);
+//
+//    /* find extent */
+//	ext4_extent_binsearch(tmp_path + pos, iblock);
+//
+//	EXT4FS_DBG("after binsearch in extent");
+//
+//	/* if not an empty leaf */
+//	if (tmp_path[pos].extent) {
+//		EXT4FS_DBG("nonempty leaf");
+//
+////		uint64_t fblock = ext4_extent_get_start(tmp_path[pos].extent);
+////		block_t *block;
+////		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+////		if (rc != EOK) {
+////			// TODO cleanup
+////		}
+////		tmp_path[pos].block = block;
+//	}
+//
+//	*path = tmp_path;
+//
+//	return EOK;
 }
 
 /**

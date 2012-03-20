@@ -493,8 +493,8 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 	return EOK;
 }
 
-int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode_t* inode,
-    aoff64_t iblock, uint32_t* fblock)
+int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs,
+		ext4_inode_ref_t *inode_ref, aoff64_t iblock, uint32_t* fblock)
 {
 	int rc;
 
@@ -503,12 +503,19 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs, ext4_inode
 
 	/* Handle inode using extents */
 	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
-			ext4_inode_has_flag(inode, EXT4_INODE_FLAG_EXTENTS)) {
-		current_block = ext4_inode_get_extent_block(inode, iblock, fs->device);
+			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+		rc = ext4_extent_find_block(fs, inode_ref, iblock, &current_block);
+
+		if (rc != EOK) {
+			return rc;
+		}
+
 		*fblock = current_block;
 		return EOK;
 
 	}
+
+	ext4_inode_t *inode = inode_ref->inode;
 
 	/* Handle simple case when we are dealing with direct reference */
 	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
