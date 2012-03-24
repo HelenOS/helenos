@@ -105,7 +105,7 @@ extern char *str_ndup(const char *, size_t max_size);
 extern int str_uint8_t(const char *, char **, unsigned int, bool, uint8_t *);
 extern int str_uint16_t(const char *, char **, unsigned int, bool, uint16_t *);
 extern int str_uint32_t(const char *, char **, unsigned int, bool, uint32_t *);
-extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
+extern int str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
 extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);

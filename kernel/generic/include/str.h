@@ -96,7 +96,7 @@ extern char *str_chr(const char *str, wchar_t ch);
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
-extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
+extern int str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);

@@ -4,4 +4,3 @@
 	&cmd_touch,
 	&help_cmd_touch,
 },
-
