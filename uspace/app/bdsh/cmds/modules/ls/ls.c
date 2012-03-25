@@ -41,34 +41,39 @@
 #include <str.h>
 #include <sort.h>
 
+#include "ls.h"
 #include "errors.h"
 #include "config.h"
 #include "util.h"
 #include "entry.h"
 #include "cmds.h"
 
-/* Various values that can be returned by ls_scope() */
-#define LS_BOGUS 0
-#define LS_FILE  1
-#define LS_DIR   2
-
-/** Structure to represent a directory entry.
- *
- * Useful to keep together important information
- * for sorting directory entries.
- */
-struct dir_elem_t {
-	char *name;
-	struct stat s;
-};
-
 static const char *cmdname = "ls";
+
+static ls_job_t ls;
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "unsort", no_argument, 0, 'u' },
+	{ "recursive", no_argument, 0, 'R' },
 	{ 0, 0, 0, 0 }
 };
+
+/* Prototypes for the ls command, excluding entry points. */
+static unsigned int ls_start(ls_job_t *);
+static void ls_print(struct dir_elem_t *);
+static int ls_cmp(void *, void *, void *);
+static signed int ls_scan_dir(const char *, DIR *, struct dir_elem_t **);
+static unsigned int ls_recursive(const char *, DIR *);
+static unsigned int ls_scope(const char *, struct dir_elem_t *);
+
+static unsigned int ls_start(ls_job_t *ls)
+{
+	ls->recursive = 0;
+	ls->sort = 1;
+
+	return 1;
+}
 
 /** Print an entry.
  *
@@ -90,7 +95,6 @@ static void ls_print(struct dir_elem_t *de)
 	else
 		printf("%-40s\n", de->name);
 }
-
 
 /** Compare 2 directory elements.
  *
@@ -126,7 +130,8 @@ static int ls_cmp(void *a, void *b, void *arg)
  * @param sort	1 if the output must be sorted,
  *				0 otherwise.
  */
-static void ls_scan_dir(const char *d, DIR *dirp, int sort)
+static signed int ls_scan_dir(const char *d, DIR *dirp, 
+    struct dir_elem_t **dir_list_ptr)
 {
 	int alloc_blocks = 20;
 	int i;
@@ -139,19 +144,19 @@ static void ls_scan_dir(const char *d, DIR *dirp, int sort)
 	struct dirent *dp;
 	
 	if (!dirp)
-		return;
+		return -1;
 
 	buff = (char *) malloc(PATH_MAX);
 	if (!buff) {
 		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
-		return;
+		return -1;
 	}
 	
 	tosort = (struct dir_elem_t *) malloc(alloc_blocks * sizeof(*tosort));
 	if (!tosort) {
 		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 		free(buff);
-		return;
+		return -1;
 	}
 	
 	while ((dp = readdir(dirp))) {
@@ -186,7 +191,7 @@ static void ls_scan_dir(const char *d, DIR *dirp, int sort)
 		}
 	}
 	
-	if (sort) {
+	if (ls.sort) {
 		if (!qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t),
 		    ls_cmp, NULL)) {
 			printf("Sorting error.\n");
@@ -195,12 +200,130 @@ static void ls_scan_dir(const char *d, DIR *dirp, int sort)
 	
 	for (i = 0; i < nbdirs; i++)
 		ls_print(&tosort[i]);
+
+	/* Populate the directory list. */
+	if (ls.recursive) {
+		tmp = (struct dir_elem_t *) realloc(*dir_list_ptr, 
+		    nbdirs * sizeof(struct dir_elem_t));
+		if (!tmp) {
+			cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+			goto out;
+		} 
+		*dir_list_ptr = tmp;
+
+		for (i = 0; i < nbdirs; i++) {
+			(*dir_list_ptr)[i].name = str_dup(tosort[i].name);
+			if (!(*dir_list_ptr)[i].name) {
+				cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+				goto out;
+			}
+		}
+	}
 	
 out:
 	for(i = 0; i < nbdirs; i++)
 		free(tosort[i].name);
 	free(tosort);
 	free(buff);
+
+	return nbdirs;
+}
+
+/** Visit a directory recursively.
+ *
+ * ls_recursive visits all the subdirectories recursively and
+ * prints the files and directories in them.
+ *
+ * @param path	Path the current directory being visited.
+ * @param dirp	Directory stream.
+ */
+static unsigned int ls_recursive(const char *path, DIR *dirp)
+{
+	int i, nbdirs, ret;
+	unsigned int scope;
+	char *subdir_path;
+	DIR *subdirp;
+	struct dir_elem_t *dir_list;
+	
+	const char * const trailing_slash = "/";
+
+	nbdirs = 0;
+	dir_list = (struct dir_elem_t *) malloc(sizeof(struct dir_elem_t));
+
+	printf("\n%s:\n", path);
+
+	subdir_path = (char *) malloc(PATH_MAX);
+	if (!subdir_path) {
+		ret = CMD_FAILURE;
+		goto out;
+	}
+
+	nbdirs = ls_scan_dir(path, dirp, &dir_list); 
+	if (nbdirs == -1) {
+		ret = CMD_FAILURE;
+		goto out;
+	}
+
+	for (i = 0; i < nbdirs; ++i) {
+		memset(subdir_path, 0, PATH_MAX);
+
+		if (str_size(subdir_path) + str_size(path) + 1 <= PATH_MAX)
+			str_append(subdir_path, PATH_MAX, path);
+		if (path[str_size(path)-1] != '/' &&
+		    str_size(subdir_path) + str_size(trailing_slash) + 1 <= PATH_MAX)
+			str_append(subdir_path, PATH_MAX, trailing_slash);
+		if (str_size(subdir_path) +
+		    str_size(dir_list[i].name) + 1 <= PATH_MAX)
+			str_append(subdir_path, PATH_MAX, dir_list[i].name);
+
+		scope = ls_scope(subdir_path, &dir_list[i]);
+		switch (scope) {
+		case LS_FILE:
+			break;
+		case LS_DIR:
+			subdirp = opendir(subdir_path);
+			if (!subdirp) {
+				/* May have been deleted between scoping it and opening it */
+				cli_error(CL_EFAIL, "Could not stat %s", dir_list[i].name);
+				ret = CMD_FAILURE;
+				goto out;
+			}
+
+			ret = ls_recursive(subdir_path, subdirp);
+			closedir(subdirp);
+			if (ret == CMD_FAILURE)
+				goto out;
+			break;
+		case LS_BOGUS:
+			ret = CMD_FAILURE;
+			goto out;
+		}	
+	}
+   
+	ret = CMD_SUCCESS; 
+
+out:
+	for (i = 0; i < nbdirs; i++)
+		free(dir_list[i].name);
+	free(dir_list);
+	free(subdir_path);
+
+	return ret;
+}
+
+static unsigned int ls_scope(const char *path, struct dir_elem_t *de)
+{
+	if (stat(path, &de->s)) {
+		cli_error(CL_ENOENT, path);
+		return LS_BOGUS;
+	}
+
+	if (de->s.is_file)
+		return LS_FILE;
+	else if (de->s.is_directory)
+		return LS_DIR;
+
+	return LS_BOGUS;
 }
 
 void help_cmd_ls(unsigned int level)
@@ -214,7 +337,8 @@ void help_cmd_ls(unsigned int level)
 		"If not path is given, the current working directory is used.\n"
 		"Options:\n"
 		"  -h, --help       A short option summary\n"
-		"  -u, --unsort     Do not sort directory entries\n",
+		"  -u, --unsort     Do not sort directory entries\n"
+		"  -R, --recursive  List subdirectories recursively\n",
 		cmdname);
 	}
 
@@ -227,18 +351,27 @@ int cmd_ls(char **argv)
 	struct dir_elem_t de;
 	DIR *dirp;
 	int c, opt_ind;
-	int sort = 1;
+	int ret = 0;
+	unsigned int scope;
+
+	if (!ls_start(&ls)) {
+		cli_error(CL_EFAIL, "%s: Could not initialize", cmdname);
+		return CMD_FAILURE;
+	}
 
 	argc = cli_count_args(argv);
 	
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "hu", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "huR", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_ls(HELP_LONG);
 			return CMD_SUCCESS;
 		case 'u':
-			sort = 0;
+			ls.sort = 0;
+			break;
+		case 'R':
+			ls.recursive = 1;
 			break;
 		}
 	}
@@ -250,22 +383,19 @@ int cmd_ls(char **argv)
 		cli_error(CL_ENOMEM, "%s: ", cmdname);
 		return CMD_FAILURE;
 	}
-	memset(de.name, 0, sizeof(PATH_MAX));
+	memset(de.name, 0, PATH_MAX);
 	
 	if (argc == 0)
 		getcwd(de.name, PATH_MAX);
 	else
 		str_cpy(de.name, PATH_MAX, argv[optind]);
-	
-	if (stat(de.name, &de.s)) {
-		cli_error(CL_ENOENT, de.name);
-		free(de.name);
-		return CMD_FAILURE;
-	}
 
-	if (de.s.is_file) {
+	scope = ls_scope(de.name, &de);
+	switch (scope) {
+	case LS_FILE:
 		ls_print(&de);
-	} else {
+		break;
+	case LS_DIR:
 		dirp = opendir(de.name);
 		if (!dirp) {
 			/* May have been deleted between scoping it and opening it */
@@ -273,12 +403,22 @@ int cmd_ls(char **argv)
 			free(de.name);
 			return CMD_FAILURE;
 		}
-		ls_scan_dir(de.name, dirp, sort);
+		if (ls.recursive)
+			ret = ls_recursive(de.name, dirp);
+		else  
+			ret = ls_scan_dir(de.name, dirp, NULL);
+
 		closedir(dirp);
+		break;
+	case LS_BOGUS:
+		return CMD_FAILURE;
 	}
 
 	free(de.name);
 
-	return CMD_SUCCESS;
+	if (ret == -1 || ret == CMD_FAILURE)
+		return CMD_FAILURE;
+	else
+		return CMD_SUCCESS;
 }
 
