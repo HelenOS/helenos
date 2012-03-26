@@ -148,9 +148,9 @@ void ext4_extent_header_set_generation(ext4_extent_header_t *header,
 	header->generation = host2uint32_t_le(generation);
 }
 
-//static void ext4_extent_binsearch_idx(ext4_extent_path_t *path, uint32_t iblock)
+//static void ext4_extent_binsearch_idx(ext4_extent_header_t *header,
+//	ext4_extent_index_t **index, uint32_t iblock)
 //{
-//	ext4_extent_header_t *header = path->header;
 //	ext4_extent_index_t *r, *l, *m;
 //
 //	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
@@ -167,12 +167,12 @@ void ext4_extent_header_set_generation(ext4_extent_header_t *header,
 //		}
 //	}
 //
-//	path->index = l - 1;
+//	*index = l - 1;
 //}
 //
-static void ext4_extent_binsearch(ext4_extent_path_t *path, uint32_t iblock)
+static void ext4_extent_binsearch(ext4_extent_header_t *header,
+		ext4_extent_t **extent, uint32_t iblock)
 {
-	ext4_extent_header_t *header = path->header;
 	ext4_extent_t *r, *l, *m;
 
 	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
@@ -195,7 +195,7 @@ static void ext4_extent_binsearch(ext4_extent_path_t *path, uint32_t iblock)
 		}
 	}
 
-	path->extent = l - 1;
+	*extent = l - 1;
 
 }
 
@@ -209,9 +209,28 @@ static int ext4_extent_find_extent(ext4_filesystem_t *fs,
 	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode_ref->inode);
 	while (ext4_extent_header_get_depth(header) != 0) {
 
+//		ext4_extent_path_t path2;
+//		path2.header = header;
+//		path2.index = NULL;
+//		ext4_extent_binsearch_idx(header, &path2.index, iblock);
+//
+//		uint64_t child = ext4_extent_index_get_leaf(path2.index);
+//		if (block != NULL) {
+//			block_put(block);
+//		}
+//
+//		rc = block_get(&block, fs->device, child, BLOCK_FLAGS_NONE);
+//		if (rc != EOK) {
+//			return rc;
+//		}
+//
+//		header = block->data;
+//		break;
+
+
 		ext4_extent_index_t *extent_index = EXT4_EXTENT_FIRST_INDEX(header);
 
-		for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
+		for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, extent_index++) {
 			if (iblock >= ext4_extent_index_get_first_block(extent_index)) {
 
 				uint64_t child = ext4_extent_index_get_leaf(extent_index);
@@ -237,23 +256,9 @@ static int ext4_extent_find_extent(ext4_filesystem_t *fs,
 	path.header = header;
 	path.extent = NULL;
 
-	ext4_extent_binsearch(&path, iblock);
+	ext4_extent_binsearch(path.header, &path.extent, iblock);
 
 	*ret_extent = path.extent;
-
-//	for (uint16_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i) {
-//
-//		uint32_t first_block = ext4_extent_get_first_block(extent);
-//		uint16_t block_count = ext4_extent_get_block_count(extent);
-//
-//		if ((iblock >= first_block) && (iblock < first_block + block_count)) {
-//			break;
-//		}
-//		// Go to the next extent
-//		++extent;
-//	}
-//
-//	*ret_extent = extent;
 
 	return EOK;
 }
