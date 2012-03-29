@@ -46,8 +46,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 
 	fs->device = service_id;
 
-	// TODO what does constant 2048 mean?
-	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -732,11 +731,35 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 {
 	int rc;
 
-
-	/* TODO handle extents */
-
-
 	uint32_t fblock;
+
+	/* TODO Handle extents */
+//	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+//			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+////		rc = ext4_extent_find_block(fs, inode_ref, iblock, &current_block);
+////
+////		if (rc != EOK) {
+////			return rc;
+////		}
+////
+////		*fblock = current_block;
+//
+//		// TODO release block from extents (and return fblock)
+//
+//		fblock = 0;
+//
+//		if (fblock == 0) {
+//			return EOK;
+//		}
+//
+//		return ext4_balloc_free_block(fs, inode_ref, fblock);
+//
+//		return EOK;
+//
+//	}
+
+
+
 	ext4_inode_t *inode = inode_ref->inode;
 
 	/* Handle simple case when we are dealing with direct reference */
