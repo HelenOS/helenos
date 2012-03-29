@@ -167,49 +167,108 @@ DOTDOT_DIR_ENTRY = """little:
 	uint32_t size              /* file size */
 """
 
-def mangle_fname(name):
-	# FIXME: filter illegal characters
-	parts = name.split('.')
-	
-	if len(parts) > 0:
-		fname = parts[0]
-	else:
-		fname = ''
-	
-	if len(fname) > 8:
-		sys.stdout.write("mkfat.py: error: Directory entry " + name +
-		    " base name is longer than 8 characters\n")
-		sys.exit(1);
-	
-	return (fname + '          ').upper()[0:8]
+LFN_ENTRY = """little:
+	uint8_t pos
+	uint16_t name1[5]
+	uint8_t attr
+	uint8_t type
+	uint8_t csum
+	uint16_t name2[6]
+	uint16_t fc
+	uint16_t name3[2]
+"""
 
-def mangle_ext(name):
+# Global variable to hold the file names in 8.3 format. Needed to 
+# keep track of "number" when creating a short fname from a LFN.
+name83_list = []
+
+def name83(fname):
+	"Create a 8.3 name for the given fname"
+
 	# FIXME: filter illegal characters
-	parts = name.split('.')
+	parts = fname.split('.')
 	
-	if len(parts) > 1:
-		ext = parts[1]
-	else:
-		ext = ''
+	name = ''
+	ext = ''
+	lfn = False
+
+	if len(fname) > 11 :
+		lfn = True
+
+	if len(parts) > 0:
+		name = parts[0]
+		if len(name) > 8 :
+			lfn = True
+
+	if len(parts) > 1 :
+		ext = parts[-1]
+		if len(ext) > 3 :
+			lfn = True
+
+	if len(parts) > 2 :
+		lfn = True
+
+	if (lfn == False) :
+		return (name.ljust(8)[0:8], ext.ljust(3)[0:3], False)
+
+	# For filenames with multiple extensions, we treat the last one
+	# as the actual extension. The rest of the filename is stripped
+	# of dots and concatenated to form the short name
+	for _name in parts[1:-1]:
+		name = name + _name		
+
+	global name83_list
+	for number in range(1, 10000) :
+		number_str = '~' + str(number)
+
+		if len(name) + len(number_str) > 8 :
+			name = name[0:8 - len(number_str)]
+
+		name = name + number_str;
+
+		if (name + ext) not in name83_list :
+			break
+			
+	name83_list.append(name + ext)	
+
+	return (name.ljust(8)[0:8], ext.ljust(3)[0:3], True)
+
+def get_utf16(name, l) :
+	"Create a int array out of a string which we can store in uint16_t arrays"
+
+	bs = [0xFFFF for i in range(l)]
+
+	for i in range(len(name)) :
+		bs[i] = ord(name[i])
 	
-	if len(parts) > 2:
-		sys.stdout.write("mkfat.py: error: Directory entry " + name +
-		    " has more than one extension\n")
-		sys.exit(1);
+	if (len(name) < l) :
+		bs[len(name)] = 0;
 	
-	if len(ext) > 3:
-		sys.stdout.write("mkfat.py: error: Directory entry " + name +
-		    " extension is longer than 3 characters\n")
-		sys.exit(1);
-	
-	return (ext + '   ').upper()[0:3]
+	return bs
+
+def create_lfn_entry((name, index)) :
+	entry = xstruct.create(LFN_ENTRY)
+
+	entry.name1 = get_utf16(name[0:5], 5)
+	entry.name2 = get_utf16(name[5:11], 6)
+	entry.name3 = get_utf16(name[11:13], 2)
+	entry.pos = index
+
+	entry.attr = 0xF
+	entry.fc = 0
+	entry.type = 0
+
+	return entry
 
 def create_dirent(name, directory, cluster, size):
+	
 	dir_entry = xstruct.create(DIR_ENTRY)
 	
-	dir_entry.name = mangle_fname(name).encode('ascii')
-	dir_entry.ext = mangle_ext(name).encode('ascii')
-	
+	dir_entry.name, dir_entry.ext, lfn = name83(name)
+
+	dir_entry.name = dir_entry.name.upper().encode('ascii')
+	dir_entry.ext = dir_entry.ext.upper().encode('ascii')
+
 	if (directory):
 		dir_entry.attr = 0x30
 	else:
@@ -229,7 +288,29 @@ def create_dirent(name, directory, cluster, size):
 	else:
 		dir_entry.size = size
 	
-	return dir_entry
+
+	if not lfn:
+		return [dir_entry]
+
+	n = len(name) / 13 + 1
+	names = [(name[i * 13: (i + 1) * 13 + 1], i + 1) for i in range(n)]
+
+	entries = sorted(map (create_lfn_entry, names), reverse = True, key = lambda e : e.pos)
+	entries[0].pos |= 0x40
+
+	fname11 = dir_entry.name + dir_entry.ext
+
+	csum = 0
+	for i in range(0, 11) :
+		csum = ((csum & 1) << 7) + (csum  >> 1) + ord(fname11[i])
+		csum = csum & 0xFF
+	
+	for e in entries :
+		e.csum = csum;
+	
+	entries.append(dir_entry)
+
+	return entries
 
 def create_dot_dirent(empty_cluster):
 	dir_entry = xstruct.create(DOT_DIR_ENTRY)
@@ -287,10 +368,10 @@ def recursion(head, root, outf, cluster_size, root_start, data_start, fat, reser
 	for item in listdir_items(root):		
 		if item.is_file:
 			rv = write_file(item, outf, cluster_size, data_start, fat, reserved_clusters)
-			directory.append(create_dirent(item.name, False, rv[0], rv[1]))
+			directory.extend(create_dirent(item.name, False, rv[0], rv[1]))
 		elif item.is_dir:
 			rv = recursion(False, item.path, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
-			directory.append(create_dirent(item.name, True, rv[0], rv[1]))
+			directory.extend(create_dirent(item.name, True, rv[0], rv[1]))
 	
 	if (head):
 		outf.seek(root_start)
