@@ -78,6 +78,7 @@ DIRS = \
 	srv/ns \
 	srv/taskmon \
 	srv/tcp \
+	srv/udp \
 	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \

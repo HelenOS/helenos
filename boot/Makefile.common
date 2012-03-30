@@ -109,6 +109,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/inet/inet \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/tcp/tcp \
+	$(USPACE_PATH)/srv/udp/udp \
 	$(USPACE_PATH)/srv/devman/devman
 
 RD_DRVS = \

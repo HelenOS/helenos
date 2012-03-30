@@ -254,7 +254,7 @@ static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
 	hdr->checksum = host2uint16_t_be(checksum);
 }
 
-/** Encode outgoing PDU */
+/** Decode incoming PDU */
 int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
 {
 	tcp_segment_t *nseg;
@@ -278,7 +278,7 @@ int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
 	return EOK;
 }
 
-/** Decode incoming PDU */
+/** Encode outgoing PDU */
 int tcp_pdu_encode(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 {
 	tcp_pdu_t *npdu;
