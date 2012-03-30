@@ -65,7 +65,7 @@ echo $PROFILES
 for P in $PROFILES;
 do
 	echo -n ">>>> Building $P... "
-	( make distclean && make PROFILE=$P HANDS_OFF=y $1 ) >>/dev/null 2>>/dev/null
+	( make distclean && make PROFILE=$P HANDS_OFF=y "$@" ) >>/dev/null 2>>/dev/null
 	if [ $? -ne 0 ];
 	then
 		FAILED="$FAILED $P"
