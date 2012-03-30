@@ -41,6 +41,7 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ops/clock.h>
+#include <fibril_synch.h>
 
 #define NAME "RTC"
 
@@ -79,6 +80,8 @@ typedef struct rtc {
 	ddf_dev_t *dev;
 	/** DDF function node */
 	ddf_fun_t *fun;
+	/** The fibril mutex for synchronizing the access to the device */
+	fibril_mutex_t mutex;
 } rtc_t;
 
 
@@ -116,6 +119,18 @@ rtc_time_set(ddf_fun_t *fun, time_t t)
 static int
 rtc_dev_add(ddf_dev_t *dev)
 {
+	rtc_t *rtc;
+
+	ddf_msg(LVL_DEBUG, "rtc_dev_add %s (handle = %d)",
+	    dev->name, (int) dev->handle);
+
+	rtc = ddf_dev_data_alloc(dev, sizeof(rtc_t));
+	if (!rtc)
+		return ENOMEM;
+
+	rtc->dev = dev;
+	fibril_mutex_initialize(&rtc->mutex);
+
 	return EOK;
 }
 
