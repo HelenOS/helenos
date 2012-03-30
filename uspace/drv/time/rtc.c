@@ -38,6 +38,7 @@
 #include <ddi.h>
 #include <stdio.h>
 #include <ddf/driver.h>
+#include <ddf/log.h>
 
 #define NAME "RTC"
 
@@ -45,7 +46,7 @@ static ddf_dev_ops_t rtc_dev_ops;
 
 static driver_t rtc_driver = {
 	.name = NAME,
-	.driver_ops = NULL;
+	.driver_ops = NULL,
 };
 
 typedef struct rtc {

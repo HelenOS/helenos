@@ -124,7 +124,8 @@ DIRS = \
 	drv/nic/lo \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139
+	drv/nic/rtl8139 \
+	drv/time
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
