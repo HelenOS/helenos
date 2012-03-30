@@ -34,8 +34,10 @@ SOURCES = \
 	icmp.c \
 	inet.c \
 	inet_link.c \
+	inet_util.c \
 	inetcfg.c \
 	inetping.c \
-	pdu.c
+	pdu.c \
+	sroute.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -26,69 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup inet
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_IPC_INET_H_
-#define LIBC_IPC_INET_H_
+#ifndef INET_SROUTE_H_
+#define INET_SROUTE_H_
 
-#include <ipc/common.h>
+#include <sys/types.h>
+#include "inet.h"
 
-/** Inet ports */
-typedef enum {
-	/** Default port */
-	INET_PORT_DEFAULT = 1,
-	/** Configuration port */
-	INET_PORT_CFG,
-	/** Ping service port */
-	INET_PORT_PING
-} inet_port_t;
+extern inet_sroute_t *inet_sroute_new(void);
+extern void inet_sroute_delete(inet_sroute_t *);
+extern void inet_sroute_add(inet_sroute_t *);
+extern void inet_sroute_remove(inet_sroute_t *);
+extern inet_sroute_t *inet_sroute_find(inet_addr_t *);
+extern inet_sroute_t *inet_sroute_find_by_name(const char *);
+extern inet_sroute_t *inet_sroute_get_by_id(sysarg_t);
+extern int inet_sroute_send_dgram(inet_sroute_t *, inet_addr_t *,
+    inet_dgram_t *, uint8_t, uint8_t, int);
+extern int inet_sroute_get_id_list(sysarg_t **, size_t *);
 
-/** Requests on Inet default port */
-typedef enum {
-	INET_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	INET_GET_SRCADDR,
-	INET_SEND,
-	INET_SET_PROTO
-} inet_request_t;
-
-/** Events on Inet default port */
-typedef enum {
-	INET_EV_RECV = IPC_FIRST_USER_METHOD
-} inet_event_t;
-
-/** Requests on Inet configuration port */
-typedef enum {
-	INETCFG_ADDR_CREATE_STATIC = IPC_FIRST_USER_METHOD,
-	INETCFG_ADDR_DELETE,
-	INETCFG_ADDR_GET,
-	INETCFG_ADDR_GET_ID,
-	INETCFG_GET_ADDR_LIST,
-	INETCFG_GET_LINK_LIST,
-	INETCFG_GET_SROUTE_LIST,
-	INETCFG_LINK_GET,
-	INETCFG_SROUTE_CREATE,
-	INETCFG_SROUTE_DELETE,
-	INETCFG_SROUTE_GET,
-	INETCFG_SROUTE_GET_ID
-} inetcfg_request_t;
-
-/** Events on Inet ping port */
-typedef enum {
-	INETPING_EV_RECV = IPC_FIRST_USER_METHOD
-} inetping_event_t;
-
-/** Requests on Inet ping port */
-typedef enum {
-	INETPING_SEND = IPC_FIRST_USER_METHOD,
-	INETPING_GET_SRCADDR
-} inetping_request_t;
 
 #endif
 
-/**
- * @}
+/** @}
  */

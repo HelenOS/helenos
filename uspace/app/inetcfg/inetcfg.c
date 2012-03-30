@@ -50,6 +50,8 @@ static void print_syntax(void)
 	printf("syntax:\n");
 	printf("\t" NAME " create <addr>/<width> <link-name> <addr-name>\n");
 	printf("\t" NAME " delete <link-name> <addr-name>\n");
+	printf("\t" NAME " add-sr <dest-addr>/<width> <router-addr> <route-name>\n");
+	printf("\t" NAME " del-sr <route-name>\n");
 }
 
 static int naddr_parse(const char *text, inet_naddr_t *naddr)
@@ -81,10 +83,37 @@ static int naddr_parse(const char *text, inet_naddr_t *naddr)
 		naddr->ipv4 = (naddr->ipv4 << 8) | a[i];
 	}
 
-	if (bits < 1 || bits > 31)
+	if (bits > 31)
 		return EINVAL;
 
 	naddr->bits = bits;
+	return EOK;
+}
+
+static int addr_parse(const char *text, inet_addr_t *addr)
+{
+	unsigned long a[4];
+	char *cp = (char *)text;
+	int i;
+
+	for (i = 0; i < 3; i++) {
+		a[i] = strtoul(cp, &cp, 10);
+		if (*cp != '.')
+			return EINVAL;
+		++cp;
+	}
+
+	a[3] = strtoul(cp, &cp, 10);
+	if (*cp != '\0')
+		return EINVAL;
+
+	addr->ipv4 = 0;
+	for (i = 0; i < 4; i++) {
+		if (a[i] > 255)
+			return EINVAL;
+		addr->ipv4 = (addr->ipv4 << 8) | a[i];
+	}
+
 	return EOK;
 }
 
@@ -95,6 +124,20 @@ static int naddr_format(inet_naddr_t *naddr, char **bufp)
 	rc = asprintf(bufp, "%d.%d.%d.%d/%d", naddr->ipv4 >> 24,
 	    (naddr->ipv4 >> 16) & 0xff, (naddr->ipv4 >> 8) & 0xff,
 	    naddr->ipv4 & 0xff, naddr->bits);
+
+	if (rc < 0)
+		return ENOMEM;
+
+	return EOK;
+}
+
+static int addr_format(inet_addr_t *addr, char **bufp)
+{
+	int rc;
+
+	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
+	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
+	    addr->ipv4 & 0xff);
 
 	if (rc < 0)
 		return ENOMEM;
@@ -137,7 +180,8 @@ static int addr_create_static(int argc, char *argv[])
 
 	rc = naddr_parse(addr_spec, &naddr);
 	if (rc != EOK) {
-		printf(NAME ": Invalid address format '%s'.\n", addr_spec);
+		printf(NAME ": Invalid network address format '%s'.\n",
+		    addr_spec);
 		return EINVAL;
 	}
 
@@ -196,6 +240,93 @@ static int addr_delete(int argc, char *argv[])
 	return EOK;
 }
 
+static int sroute_create(int argc, char *argv[])
+{
+	char *dest_str;
+	char *router_str;
+	char *route_name;
+
+	inet_naddr_t dest;
+	inet_addr_t router;
+	sysarg_t sroute_id;
+	int rc;
+
+	if (argc < 3) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 3) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	dest_str   = argv[0];
+	router_str = argv[1];
+	route_name = argv[2];
+
+	rc = naddr_parse(dest_str, &dest);
+	if (rc != EOK) {
+		printf(NAME ": Invalid network address format '%s'.\n",
+		    dest_str);
+		return EINVAL;
+	}
+
+	rc = addr_parse(router_str, &router);
+	if (rc != EOK) {
+		printf(NAME ": Invalid address format '%s'.\n", router_str);
+		return EINVAL;
+	}
+
+	rc = inetcfg_sroute_create(route_name, &dest, &router, &sroute_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed creating static route '%s' (%d)\n",
+		    route_name, rc);
+		return EIO;
+	}
+
+	return EOK;
+}
+
+static int sroute_delete(int argc, char *argv[])
+{
+	char *route_name;
+	sysarg_t sroute_id;
+	int rc;
+
+	if (argc < 1) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 1) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	route_name = argv[0];
+
+	rc = inetcfg_sroute_get_id(route_name, &sroute_id);
+	if (rc != EOK) {
+		printf(NAME ": Static route '%s' not found (%d).\n",
+		    route_name, rc);
+		return ENOENT;
+	}
+
+	rc = inetcfg_sroute_delete(sroute_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed deleting static route '%s' (%d)\n",
+		    route_name, rc);
+		return EIO;
+	}
+
+	return EOK;
+}
+
 static int addr_list(void)
 {
 	sysarg_t *addr_list;
@@ -213,11 +344,16 @@ static int addr_list(void)
 		return rc;
 	}
 
+	printf("Configured addresses:\n");
+
+	ainfo.name = linfo.name = astr = NULL;
+
 	for (i = 0; i < count; i++) {
 		rc = inetcfg_addr_get(addr_list[i], &ainfo);
 		if (rc != EOK) {
 			printf("Failed getting properties of address %zu.\n",
 			    (size_t)addr_list[i]);
+			ainfo.name = NULL;
 			continue;
 		}
 
@@ -225,24 +361,106 @@ static int addr_list(void)
 		if (rc != EOK) {
 			printf("Failed getting properties of link %zu.\n",
 			    (size_t)ainfo.ilink);
+			linfo.name = NULL;
 			continue;
 		}
 
 		rc = naddr_format(&ainfo.naddr, &astr);
 		if (rc != EOK) {
 			printf("Memory allocation failed.\n");
+			astr = NULL;
 			goto out;
 		}
 
-		printf("%s %s %s\n", astr, linfo.name,
+		printf("    %s %s %s\n", astr, linfo.name,
 		    ainfo.name);
 
-		free(astr);
 		free(ainfo.name);
 		free(linfo.name);
+		free(astr);
+
+		ainfo.name = linfo.name = astr = NULL;
 	}
+
+	if (count == 0)
+		printf("    None\n");
 out:
+	if (ainfo.name != NULL)
+		free(ainfo.name);
+	if (linfo.name != NULL)
+		free(linfo.name);
+	if (astr != NULL)
+		free(astr);
+
 	free(addr_list);
+
+	return EOK;
+}
+
+static int sroute_list(void)
+{
+	sysarg_t *sroute_list;
+	inet_sroute_info_t srinfo;
+
+	size_t count;
+	size_t i;
+	int rc;
+	char *dest_str;
+	char *router_str;
+
+	rc = inetcfg_get_sroute_list(&sroute_list, &count);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting address list.\n");
+		return rc;
+	}
+
+	printf("Static routes:\n");
+
+	srinfo.name = dest_str = router_str = NULL;
+
+	for (i = 0; i < count; i++) {
+		rc = inetcfg_sroute_get(sroute_list[i], &srinfo);
+		if (rc != EOK) {
+			printf("Failed getting properties of static route %zu.\n",
+			    (size_t)sroute_list[i]);
+			srinfo.name = NULL;
+			continue;
+		}
+
+		rc = naddr_format(&srinfo.dest, &dest_str);
+		if (rc != EOK) {
+			printf("Memory allocation failed.\n");
+			dest_str = NULL;
+			goto out;
+		}
+
+		rc = addr_format(&srinfo.router, &router_str);
+		if (rc != EOK) {
+			printf("Memory allocation failed.\n");
+			router_str = NULL;
+			goto out;
+		}
+
+		printf("    %s %s %s\n", dest_str, router_str, srinfo.name);
+
+		free(srinfo.name);
+		free(dest_str);
+		free(router_str);
+
+		router_str = srinfo.name = dest_str = NULL;
+	}
+
+	if (count == 0)
+		printf("    None\n");
+out:
+	if (srinfo.name != NULL)
+		free(srinfo.name);
+	if (dest_str != NULL)
+		free(dest_str);
+	if (router_str != NULL)
+		free(router_str);
+
+	free(sroute_list);
 
 	return EOK;
 }
@@ -262,6 +480,9 @@ int main(int argc, char *argv[])
 		rc = addr_list();
 		if (rc != EOK)
 			return 1;
+		rc = sroute_list();
+		if (rc != EOK)
+			return 1;
 		return 0;
 	}
 
@@ -271,6 +492,14 @@ int main(int argc, char *argv[])
 			return 1;
 	} else if (str_cmp(argv[1], "delete") == 0) {
 		rc = addr_delete(argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "add-sr") == 0) {
+		rc = sroute_create(argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "del-sr") == 0) {
+		rc = sroute_delete(argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
 	} else {

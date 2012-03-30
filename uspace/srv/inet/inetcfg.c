@@ -48,6 +48,7 @@
 #include "inet.h"
 #include "inet_link.h"
 #include "inetcfg.h"
+#include "sroute.h"
 
 static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
     sysarg_t link_id, sysarg_t *addr_id)
@@ -65,6 +66,11 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 	}
 
 	addr = inet_addrobj_new();
+	if (addr == NULL) {
+		*addr_id = 0;
+		return ENOMEM;
+	}
+
 	addr->naddr = *naddr;
 	addr->ilink = ilink;
 	addr->name = str_dup(name);
@@ -142,6 +148,11 @@ static int inetcfg_get_link_list(sysarg_t **addrs, size_t *count)
 	return ENOTSUP;
 }
 
+static int inetcfg_get_sroute_list(sysarg_t **sroutes, size_t *count)
+{
+	return inet_sroute_get_id_list(sroutes, count);
+}
+
 static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
 	inet_link_t *ilink;
@@ -152,6 +163,69 @@ static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	}
 
 	linfo->name = str_dup(ilink->svc_name);
+	return EOK;
+}
+
+static int inetcfg_sroute_create(char *name, inet_naddr_t *dest,
+    inet_addr_t *router, sysarg_t *sroute_id)
+{
+	inet_sroute_t *sroute;
+
+	sroute = inet_sroute_new();
+	if (sroute == NULL) {
+		*sroute_id = 0;
+		return ENOMEM;
+	}
+
+	sroute->dest = *dest;
+	sroute->router = *router;
+	sroute->name = str_dup(name);
+	inet_sroute_add(sroute);
+
+	*sroute_id = sroute->id;
+	return EOK;
+}
+
+static int inetcfg_sroute_delete(sysarg_t sroute_id)
+{
+	inet_sroute_t *sroute;
+
+	sroute = inet_sroute_get_by_id(sroute_id);
+	if (sroute == NULL)
+		return ENOENT;
+
+	inet_sroute_remove(sroute);
+	inet_sroute_delete(sroute);
+
+	return EOK;
+}
+
+static int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
+{
+	inet_sroute_t *sroute;
+
+	sroute = inet_sroute_get_by_id(sroute_id);
+	if (sroute == NULL)
+		return ENOENT;
+
+	srinfo->dest = sroute->dest;
+	srinfo->router = sroute->router;
+	srinfo->name = str_dup(sroute->name);
+
+	return EOK;
+}
+
+static int inetcfg_sroute_get_id(char *name, sysarg_t *sroute_id)
+{
+	inet_sroute_t *sroute;
+
+	sroute = inet_sroute_find_by_name(name);
+	if (sroute == NULL) {
+		log_msg(LVL_DEBUG, "Static route '%s' not found.", name);
+		return ENOENT;
+	}
+
+	*sroute_id = sroute->id;
 	return EOK;
 }
 
@@ -257,7 +331,6 @@ static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, rc, addr_id);
 }
 
-
 static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_callid_t rcallid;
@@ -277,6 +350,73 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	}
 
 	rc = inetcfg_get_addr_list(&id_buf, &count);
+	if (rc != EOK) {
+		async_answer_0(rcallid, rc);
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	act_size = count * sizeof(sysarg_t);
+	size = min(act_size, max_size);
+
+	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	free(id_buf);
+
+	async_answer_1(callid, retval, act_size);
+}
+
+
+static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	ipc_callid_t rcallid;
+	size_t max_size;
+	size_t act_size;
+	size_t size;
+	sysarg_t *id_buf;
+	int rc;
+
+	log_msg(LVL_DEBUG, "inetcfg_get_link_list_srv()");
+
+	if (!async_data_read_receive(&rcallid, &max_size)) {
+		async_answer_0(rcallid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
+		return;
+	}
+
+	rc = inetcfg_get_link_list(&id_buf, &act_size);
+	if (rc != EOK) {
+		async_answer_0(rcallid, rc);
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	size = min(act_size, max_size);
+
+	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	free(id_buf);
+
+	async_answer_1(callid, retval, act_size);
+}
+
+static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	ipc_callid_t rcallid;
+	size_t count;
+	size_t max_size;
+	size_t act_size;
+	size_t size;
+	sysarg_t *id_buf;
+	int rc;
+
+	log_msg(LVL_DEBUG, "inetcfg_get_sroute_list_srv()");
+
+	if (!async_data_read_receive(&rcallid, &max_size)) {
+		async_answer_0(rcallid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
+		return;
+	}
+
+	rc = inetcfg_get_sroute_list(&id_buf, &count);
 	if (rc != EOK) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
@@ -326,16 +466,63 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, retval);
 }
 
-static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_sroute_create_srv(ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	char *name;
+	inet_naddr_t dest;
+	inet_addr_t router;
+	sysarg_t sroute_id;
+	int rc;
+
+	log_msg(LVL_DEBUG, "inetcfg_sroute_create_srv()");
+
+	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	dest.ipv4   = IPC_GET_ARG1(*call);
+	dest.bits   = IPC_GET_ARG2(*call);
+	router.ipv4 = IPC_GET_ARG3(*call);
+
+	sroute_id = 0;
+	rc = inetcfg_sroute_create(name, &dest, &router, &sroute_id);
+	free(name);
+	async_answer_1(callid, rc, sroute_id);
+}
+
+static void inetcfg_sroute_delete_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	sysarg_t sroute_id;
+	int rc;
+
+	log_msg(LVL_DEBUG, "inetcfg_sroute_delete_srv()");
+
+	sroute_id = IPC_GET_ARG1(*call);
+
+	rc = inetcfg_sroute_delete(sroute_id);
+	async_answer_0(callid, rc);
+}
+
+static void inetcfg_sroute_get_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_callid_t rcallid;
 	size_t max_size;
-	size_t act_size;
-	size_t size;
-	sysarg_t *id_buf;
+
+	sysarg_t sroute_id;
+	inet_sroute_info_t srinfo;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_get_link_list_srv()");
+	sroute_id = IPC_GET_ARG1(*call);
+	log_msg(LVL_DEBUG, "inetcfg_sroute_get_srv()");
+
+	srinfo.dest.ipv4 = 0;
+	srinfo.dest.bits = 0;
+	srinfo.router.ipv4 = 0;
+	srinfo.name = NULL;
 
 	if (!async_data_read_receive(&rcallid, &max_size)) {
 		async_answer_0(rcallid, EREFUSED);
@@ -343,19 +530,39 @@ static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = inetcfg_get_link_list(&id_buf, &act_size);
+	rc = inetcfg_sroute_get(sroute_id, &srinfo);
 	if (rc != EOK) {
-		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
 		return;
 	}
 
-	size = min(act_size, max_size);
+	sysarg_t retval = async_data_read_finalize(rcallid, srinfo.name,
+	    min(max_size, str_size(srinfo.name)));
+	free(srinfo.name);
 
-	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
-	free(id_buf);
+	async_answer_3(callid, retval, srinfo.dest.ipv4, srinfo.dest.bits,
+	    srinfo.router.ipv4);
+}
 
-	async_answer_1(callid, retval, act_size);
+static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	char *name;
+	sysarg_t sroute_id;
+	int rc;
+
+	log_msg(LVL_DEBUG, "inetcfg_sroute_get_id_srv()");
+
+	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	sroute_id = 0;
+	rc = inetcfg_sroute_get_id(name, &sroute_id);
+	free(name);
+	async_answer_1(callid, rc, sroute_id);
 }
 
 void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -395,8 +602,23 @@ void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case INETCFG_GET_LINK_LIST:
 			inetcfg_get_link_list_srv(callid, &call);
 			break;
+		case INETCFG_GET_SROUTE_LIST:
+			inetcfg_get_sroute_list_srv(callid, &call);
+			break;
 		case INETCFG_LINK_GET:
 			inetcfg_link_get_srv(callid, &call);
+			break;
+		case INETCFG_SROUTE_CREATE:
+			inetcfg_sroute_create_srv(callid, &call);
+			break;
+		case INETCFG_SROUTE_DELETE:
+			inetcfg_sroute_delete_srv(callid, &call);
+			break;
+		case INETCFG_SROUTE_GET:
+			inetcfg_sroute_get_srv(callid, &call);
+			break;
+		case INETCFG_SROUTE_GET_ID:
+			inetcfg_sroute_get_id_srv(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);

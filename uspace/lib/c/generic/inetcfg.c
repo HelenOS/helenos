@@ -237,6 +237,12 @@ int inetcfg_get_link_list(sysarg_t **links, size_t *count)
 	    0, links, count);
 }
 
+int inetcfg_get_sroute_list(sysarg_t **sroutes, size_t *count)
+{
+	return inetcfg_get_ids_internal(INETCFG_GET_SROUTE_LIST,
+	    0, sroutes, count);
+}
+
 int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
 	ipc_call_t dreply;
@@ -271,6 +277,99 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	linfo->name = str_dup(name_buf);
 
 	return EOK;
+}
+
+int inetcfg_sroute_create(const char *name, inet_naddr_t *dest,
+    inet_addr_t *router, sysarg_t *sroute_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_3(exch, INETCFG_SROUTE_CREATE,
+	    dest->ipv4, dest->bits, router->ipv4, &answer);
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+
+	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	*sroute_id = IPC_GET_ARG1(answer);
+
+	return retval;
+}
+
+int inetcfg_sroute_delete(sysarg_t sroute_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	int rc = async_req_1_0(exch, INETCFG_SROUTE_DELETE, sroute_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
+{
+	ipc_call_t dreply;
+	sysarg_t dretval;
+	size_t act_size;
+	char name_buf[LOC_NAME_MAXLEN + 1];
+
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, INETCFG_SROUTE_GET, sroute_id, &answer);
+	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
+	async_wait_for(dreq, &dretval);
+
+	async_exchange_end(exch);
+
+	if (dretval != EOK) {
+		async_wait_for(req, NULL);
+		return dretval;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK)
+		return retval;
+
+	act_size = IPC_GET_ARG2(dreply);
+	assert(act_size <= LOC_NAME_MAXLEN);
+	name_buf[act_size] = '\0';
+
+	srinfo->dest.ipv4 = IPC_GET_ARG1(answer);
+	srinfo->dest.bits = IPC_GET_ARG2(answer);
+	srinfo->router.ipv4 = IPC_GET_ARG3(answer);
+	srinfo->name = str_dup(name_buf);
+
+	return EOK;
+}
+
+int inetcfg_sroute_get_id(const char *name, sysarg_t *sroute_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, INETCFG_SROUTE_GET_ID, &answer);
+	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+
+	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	*sroute_id = IPC_GET_ARG1(answer);
+
+	return retval;
 }
 
 /** @}

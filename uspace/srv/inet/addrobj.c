@@ -45,18 +45,11 @@
 #include "addrobj.h"
 #include "inet.h"
 #include "inet_link.h"
+#include "inet_util.h"
 
 static FIBRIL_MUTEX_INITIALIZE(addr_list_lock);
 static LIST_INITIALIZE(addr_list);
 static sysarg_t addr_id = 0;
-
-static uint32_t inet_netmask(int bits)
-{
-	assert(bits >= 1);
-	assert(bits < 32);
-
-	return BIT_RANGE(uint32_t, 31, 31 - (bits - 1));
-}
 
 inet_addrobj_t *inet_addrobj_new(void)
 {
@@ -161,7 +154,7 @@ inet_addrobj_t *inet_addrobj_find_by_name(const char *name, inet_link_t *ilink)
 	return NULL;
 }
 
-/** Find address object matching address @a addr.
+/** Find address object with the given ID.
  *
  * @param id	Address object ID
  * @return	Address object
@@ -187,9 +180,9 @@ inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
 	return NULL;
 }
 
-/** Send datagram to directly reachable destination */
-int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_dgram_t *dgram,
-    uint8_t proto, uint8_t ttl, int df)
+/** Send datagram from address object */
+int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
+    inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	inet_addr_t lsrc_addr;
 	inet_addr_t *ldest_addr;

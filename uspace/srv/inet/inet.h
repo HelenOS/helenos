@@ -89,6 +89,16 @@ typedef struct {
 	char *name;
 } inet_link_info_t;
 
+/** Static route info */
+typedef struct {
+	/** Destination network address */
+	inet_naddr_t dest;
+	/** Router address */
+	inet_addr_t router;
+	/** Static route name */
+	char *name;
+} inet_sroute_info_t;
+
 typedef struct {
 	inet_addr_t src;
 	inet_addr_t dest;
@@ -123,6 +133,36 @@ typedef struct {
 	inet_link_t *ilink;
 	char *name;
 } inet_addrobj_t;
+
+/** Static route configuration */
+typedef struct {
+	link_t sroute_list;
+	sysarg_t id;
+	/** Destination network */
+	inet_naddr_t dest;
+	/** Router via which to route packets */
+	inet_addr_t router;
+	char *name;
+} inet_sroute_t;
+
+typedef enum {
+	/** Destination is on this network node */
+	dt_local,
+	/** Destination is directly reachable */
+	dt_direct,
+	/** Destination is behind a router */
+	dt_router
+} inet_dir_type_t;
+
+/** Direction (next hop) to a destination */
+typedef struct {
+	/** Route type */
+	inet_dir_type_t dtype;
+	/** Address object (direction) */
+	inet_addrobj_t *aobj;
+	/** Local destination address */
+	inet_addr_t ldest;
+} inet_dir_t;
 
 typedef struct {
 	inet_addr_t src;

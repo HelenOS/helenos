@@ -53,6 +53,7 @@
 #include "inetcfg.h"
 #include "inetping.h"
 #include "inet_link.h"
+#include "sroute.h"
 
 #define NAME "inet"
 
@@ -119,20 +120,48 @@ static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
+static int inet_find_dir(inet_addr_t *src, inet_addr_t *dest, uint8_t tos,
+    inet_dir_t *dir)
+{
+	inet_sroute_t *sr;
+
+	/* XXX Handle case where source address is specified */
+	(void) src;
+
+	dir->aobj = inet_addrobj_find(dest, iaf_net);
+	if (dir->aobj != NULL) {
+		dir->ldest = *dest;
+		dir->dtype = dt_direct;
+	} else {
+		/* No direct path, try using a static route */
+		sr = inet_sroute_find(dest);
+		if (sr != NULL) {
+			dir->aobj = inet_addrobj_find(&sr->router, iaf_net);
+			dir->ldest = sr->router;
+			dir->dtype = dt_router;
+		}
+	}
+
+	if (dir->aobj == NULL) {
+		log_msg(LVL_DEBUG, "inet_send: No route to destination.");
+		return ENOENT;
+	}
+
+	return EOK;
+}
+
 int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
     int df)
 {
-	inet_addrobj_t *addr;
+	inet_dir_t dir;
+	int rc;
 
-	addr = inet_addrobj_find(&dgram->dest, iaf_net);
-	if (addr != NULL) {
-		/* Destination is directly accessible */
-		return inet_addrobj_send_dgram(addr, dgram, proto, ttl, df);
-	}
+	rc = inet_find_dir(&dgram->src, &dgram->dest, dgram->tos, &dir);
+	if (rc != EOK)
+		return rc;
 
-	/* TODO: Gateways */
-	log_msg(LVL_DEBUG, "inet_send: No route to destination.");
-	return ENOENT;
+	return inet_addrobj_send_dgram(dir.aobj, &dir.ldest, dgram,
+	    proto, ttl, df);
 }
 
 static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
@@ -143,16 +172,18 @@ static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
 
 int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
-	inet_addrobj_t *addr;
+	inet_dir_t dir;
+	int rc;
 
-	addr = inet_addrobj_find(remote, iaf_net);
-	if (addr != NULL) {
-		/* Destination is directly accessible */
-		local->ipv4 = addr->naddr.ipv4;
-		return EOK;
-	}
+	rc = inet_find_dir(NULL, remote, tos, &dir);
+	if (rc != EOK)
+		return rc;
 
-	return ENOENT;
+	/* XXX dt_local? */
+
+	/* Take source address from the address object */
+	local->ipv4 = dir.aobj->naddr.ipv4;
+	return EOK;
 }
 
 static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
