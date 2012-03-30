@@ -42,8 +42,20 @@
 #include <ddf/log.h>
 #include <ops/clock.h>
 #include <fibril_synch.h>
+#include <device/hw_res.h>
+#include <devman.h>
 
 #define NAME "RTC"
+
+typedef struct rtc {
+	/** DDF device node */
+	ddf_dev_t *dev;
+	/** DDF function node */
+	ddf_fun_t *fun;
+	/** The fibril mutex for synchronizing the access to the device */
+	fibril_mutex_t mutex;
+} rtc_t;
+
 
 static int
 rtc_time_get(ddf_fun_t *fun, time_t *t);
@@ -53,6 +65,9 @@ rtc_time_set(ddf_fun_t *fun, time_t t);
 
 static int
 rtc_dev_add(ddf_dev_t *dev);
+
+static int
+rtc_dev_initialize(rtc_t *rtc);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -75,16 +90,6 @@ static clock_dev_ops_t rtc_clock_dev_ops = {
 	.time_set = rtc_time_set,
 };
 
-typedef struct rtc {
-	/** DDF device node */
-	ddf_dev_t *dev;
-	/** DDF function node */
-	ddf_fun_t *fun;
-	/** The fibril mutex for synchronizing the access to the device */
-	fibril_mutex_t mutex;
-} rtc_t;
-
-
 /** Initialize the RTC driver */
 static void
 rtc_init(void)
@@ -96,6 +101,43 @@ rtc_init(void)
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
 	rtc_dev_ops.default_handler = NULL;
+}
+
+/** Initialize the RTC device
+ *
+ * @param rtc  Pointer to the RTC device
+ *
+ * @return  EOK on success or a negative error code
+ */ 
+static int
+rtc_dev_initialize(rtc_t *rtc)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", rtc->dev->name);
+
+	hw_resource_list_t hw_resources;
+	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
+
+	/* Connect to the parent's driver */
+
+	rtc->dev->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    rtc->dev->handle, IPC_FLAG_BLOCKING);
+	if (!rtc->dev->parent_sess) {
+		ddf_msg(LVL_ERROR, "Failed to connect to parent driver\
+		    of device %s.", rtc->dev->name);
+		return ENOENT;
+	}
+
+	/* Get the HW resources */
+	rc = hw_res_get_resource_list(rtc->dev->parent_sess, &hw_resources);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to get HW resources\
+		    for device %s", rtc->dev->name);
+		return rc;
+	}
+
+	return EOK;
 }
 
 /** Read the current time from the CMOS
@@ -134,6 +176,7 @@ static int
 rtc_dev_add(ddf_dev_t *dev)
 {
 	rtc_t *rtc;
+	int rc;
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_add %s (handle = %d)",
 	    dev->name, (int) dev->handle);
@@ -145,7 +188,11 @@ rtc_dev_add(ddf_dev_t *dev)
 	rtc->dev = dev;
 	fibril_mutex_initialize(&rtc->mutex);
 
-	return EOK;
+	rc = rtc_dev_initialize(rtc);
+	if (rc != EOK)
+		return rc;
+
+	return rc;
 }
 
 int
