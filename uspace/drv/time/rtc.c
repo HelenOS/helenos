@@ -35,18 +35,32 @@
 /** @file
  */
 
+#include <errno.h>
 #include <ddi.h>
 #include <stdio.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <ops/clock.h>
 
 #define NAME "RTC"
+
+static int
+rtc_time_get(ddf_fun_t *fun, time_t *t);
+
+static int
+rtc_time_set(ddf_fun_t *fun, time_t t);
+
 
 static ddf_dev_ops_t rtc_dev_ops;
 
 static driver_t rtc_driver = {
 	.name = NAME,
 	.driver_ops = NULL,
+};
+
+static clock_dev_ops_t rtc_clock_dev_ops = {
+	.time_get = rtc_time_get,
+	.time_set = rtc_time_set,
 };
 
 typedef struct rtc {
@@ -56,6 +70,8 @@ typedef struct rtc {
 	ddf_fun_t *fun;
 } rtc_t;
 
+
+/** Initialize the RTC driver */
 static void
 rtc_init(void)
 {
@@ -63,6 +79,21 @@ rtc_init(void)
 
 	rtc_dev_ops.open = NULL;
 	rtc_dev_ops.close = NULL;
+
+	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
+	rtc_dev_ops.default_handler = NULL;
+}
+
+static int
+rtc_time_get(ddf_fun_t *fun, time_t *t)
+{
+	return EOK;
+}
+
+static int
+rtc_time_set(ddf_fun_t *fun, time_t t)
+{
+	return EOK;
 }
 
 int
