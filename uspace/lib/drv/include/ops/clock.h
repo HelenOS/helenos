@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBDRV_OPS_RTC_DEV_H_
-#define LIBDRV_OPS_RTC_DEV_H_
+#ifndef LIBDRV_OPS_CLOCK_DEV_H_
+#define LIBDRV_OPS_CLOCK_DEV_H_
 
 #include <time.h>
 #include "../ddf/driver.h"
@@ -41,7 +41,7 @@
 typedef struct {
 	int (*time_set)(ddf_fun_t *, time_t);
 	int (*time_get)(ddf_fun_t *, time_t *);
-} rtc_dev_ops_t;
+} clock_dev_ops_t;
 
 #endif
 
