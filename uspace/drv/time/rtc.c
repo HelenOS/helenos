@@ -98,12 +98,26 @@ rtc_init(void)
 	rtc_dev_ops.default_handler = NULL;
 }
 
+/** Read the current time from the CMOS
+ *
+ * @param fun  The RTC function
+ * @param t    Pointer to the time variable
+ *
+ * @return  EOK on success or a negative error code
+ */
 static int
 rtc_time_get(ddf_fun_t *fun, time_t *t)
 {
 	return EOK;
 }
 
+/** Set the time in the RTC
+ *
+ * @param fun  The RTC function
+ * @param t    The time value to set
+ *
+ * @return  EOK or a negative error code
+ */
 static int
 rtc_time_set(ddf_fun_t *fun, time_t t)
 {
