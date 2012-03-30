@@ -50,14 +50,25 @@ rtc_time_get(ddf_fun_t *fun, time_t *t);
 static int
 rtc_time_set(ddf_fun_t *fun, time_t t);
 
+static int
+rtc_dev_add(ddf_dev_t *dev);
+
 
 static ddf_dev_ops_t rtc_dev_ops;
 
-static driver_t rtc_driver = {
-	.name = NAME,
-	.driver_ops = NULL,
+/** The RTC device driver's standard operations */
+static driver_ops_t rtc_ops = {
+	.dev_add = rtc_dev_add,
+	.dev_remove = NULL,
 };
 
+/** The RTC device driver structure */
+static driver_t rtc_driver = {
+	.name = NAME,
+	.driver_ops = &rtc_ops,
+};
+
+/** Clock interface */
 static clock_dev_ops_t rtc_clock_dev_ops = {
 	.time_get = rtc_time_get,
 	.time_set = rtc_time_set,
@@ -92,6 +103,18 @@ rtc_time_get(ddf_fun_t *fun, time_t *t)
 
 static int
 rtc_time_set(ddf_fun_t *fun, time_t t)
+{
+	return EOK;
+}
+
+/** The dev_add callback of the rtc driver
+ *
+ * @param dev  The RTC device
+ *
+ * @return  EOK on success or a negative error code
+ */
+static int
+rtc_dev_add(ddf_dev_t *dev)
 {
 	return EOK;
 }
