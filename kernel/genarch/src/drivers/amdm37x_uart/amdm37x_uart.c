@@ -71,7 +71,7 @@ static irq_ownership_t amdm37x_uart_claim(irq_t *irq)
 static void amdm37x_uart_handler(irq_t *irq)
 {
 	amdm37x_uart_t *uart = irq->instance;
-	while (!(uart->regs->isr2 & AMDM37x_UART_ISR2_RX_FIFO_EMPTY_FLAG)) {
+	while ((uart->regs->rx_fifo_lvl)) {
 		const uint8_t val = uart->regs->rhr;
 		if (uart->indev && val) {
 			indev_push_character(uart->indev, val);
