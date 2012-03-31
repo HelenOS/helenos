@@ -45,7 +45,7 @@
 #include <device/hw_res.h>
 #include <devman.h>
 
-#define NAME "RTC"
+#define NAME "cmos-rtc"
 
 typedef struct rtc {
 	/** DDF device node */
