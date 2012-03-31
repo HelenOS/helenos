@@ -471,7 +471,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 	} else {
 		/* It's a number - convert it */
 		uint64_t value;
-		int rc = str_uint64(text, NULL, 0, true, &value);
+		int rc = str_uint64_t(text, NULL, 0, true, &value);
 		switch (rc) {
 		case EINVAL:
 			printf("Invalid number.\n");

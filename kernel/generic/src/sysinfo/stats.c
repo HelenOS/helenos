@@ -473,7 +473,7 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run,
 	
 	/* Parse the task ID */
 	task_id_t task_id;
-	if (str_uint64(name, NULL, 0, true, &task_id) != EOK)
+	if (str_uint64_t(name, NULL, 0, true, &task_id) != EOK)
 		return ret;
 	
 	/* Messing with task structures, avoid deadlock */
@@ -544,7 +544,7 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run,
 	
 	/* Parse the thread ID */
 	thread_id_t thread_id;
-	if (str_uint64(name, NULL, 0, true, &thread_id) != EOK)
+	if (str_uint64_t(name, NULL, 0, true, &thread_id) != EOK)
 		return ret;
 	
 	/* Messing with threads structures, avoid deadlock */
@@ -661,7 +661,7 @@ static sysinfo_return_t get_stats_exception(const char *name, bool dry_run,
 	
 	/* Parse the exception number */
 	uint64_t excn;
-	if (str_uint64(name, NULL, 0, true, &excn) != EOK)
+	if (str_uint64_t(name, NULL, 0, true, &excn) != EOK)
 		return ret;
 	
 #if (IVT_FIRST > 0)

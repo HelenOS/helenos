@@ -892,7 +892,7 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64(const char *nptr, char **endptr, unsigned int base,
+int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	ASSERT(result != NULL);
