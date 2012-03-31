@@ -36,10 +36,8 @@
 #include <sys/types.h>
 #include "libext4_types.h"
 
-extern int ext4_balloc_free_block(ext4_filesystem_t *,
-		ext4_inode_ref_t *, uint32_t);
-extern int ext4_balloc_alloc_block(ext4_filesystem_t *,
-		ext4_inode_ref_t *, uint32_t *);
+extern int ext4_balloc_free_block(ext4_inode_ref_t *, uint32_t);
+extern int ext4_balloc_alloc_block(ext4_inode_ref_t *, uint32_t *);
 
 #endif
 

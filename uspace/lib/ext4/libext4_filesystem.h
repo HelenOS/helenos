@@ -48,19 +48,19 @@ extern int ext4_filesystem_get_inode_ref(ext4_filesystem_t *, uint32_t,
 extern int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *);
 extern int ext4_filesystem_alloc_inode(ext4_filesystem_t *,
 		ext4_inode_ref_t **, int);
-extern int ext4_filesystem_free_inode(ext4_filesystem_t *, ext4_inode_ref_t *);
-extern int ext4_filesystem_truncate_inode(ext4_filesystem_t *,
-		ext4_inode_ref_t *, aoff64_t);
-extern int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *,
-	ext4_inode_ref_t *, aoff64_t iblock, uint32_t *);
-extern int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *,
-		ext4_inode_ref_t *, aoff64_t, uint32_t);
-extern int ext4_filesystem_release_inode_block(ext4_filesystem_t *,
+extern int ext4_filesystem_free_inode(ext4_inode_ref_t *);
+extern int ext4_filesystem_truncate_inode(ext4_inode_ref_t *, aoff64_t);
+extern int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *,
+		aoff64_t iblock, uint32_t *);
+extern int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *,
+		aoff64_t, uint32_t);
+extern int ext4_filesystem_release_inode_block(
 		ext4_inode_ref_t *, uint32_t);
-extern int ext4_filesystem_add_orphan(ext4_filesystem_t *,
-		ext4_inode_ref_t *);
-extern int ext4_filesystem_delete_orphan(ext4_filesystem_t *,
-		ext4_inode_ref_t *);
+extern int ext4_filesystem_add_orphan(ext4_inode_ref_t *);
+extern int ext4_filesystem_delete_orphan(ext4_inode_ref_t *);
+
+extern uint16_t ext4_group_desc_csum(ext4_superblock_t *, uint32_t,
+		ext4_block_group_t *);
 #endif
 
 /**

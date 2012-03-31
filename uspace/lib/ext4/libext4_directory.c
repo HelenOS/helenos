@@ -185,8 +185,8 @@ int ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos)
 		}
 
 		uint32_t next_block_phys_idx;
-		rc = ext4_filesystem_get_inode_data_block_index(it->fs,
-		    it->inode_ref, next_block_idx, &next_block_phys_idx);
+		rc = ext4_filesystem_get_inode_data_block_index(it->inode_ref,
+				next_block_idx, &next_block_phys_idx);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -259,14 +259,16 @@ int ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 	return EOK;
 }
 
-int ext4_directory_append_block(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, uint32_t *fblock, uint32_t *iblock)
+int ext4_directory_append_block(ext4_inode_ref_t *inode_ref,
+		uint32_t *fblock, uint32_t *iblock)
 {
 	int rc;
 
+	ext4_superblock_t *sb = inode_ref->fs->superblock;
+
 	// Compute next block index and allocate data block
-	uint64_t inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
 
 	assert(inode_size % block_size == 0);
 
@@ -274,14 +276,14 @@ int ext4_directory_append_block(ext4_filesystem_t *fs,
 	uint32_t new_block_idx = inode_size / block_size;
 
 	uint32_t phys_block;
-	rc =  ext4_balloc_alloc_block(fs, inode_ref, &phys_block);
+	rc =  ext4_balloc_alloc_block(inode_ref, &phys_block);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	rc = ext4_filesystem_set_inode_data_block_index(fs, inode_ref, new_block_idx, phys_block);
+	rc = ext4_filesystem_set_inode_data_block_index(inode_ref, new_block_idx, phys_block);
 	if (rc != EOK) {
-		ext4_balloc_free_block(fs, inode_ref, phys_block);
+		ext4_balloc_free_block(inode_ref, phys_block);
 		return rc;
 	}
 
@@ -312,18 +314,20 @@ void ext4_directory_write_entry(ext4_superblock_t *sb,
 	memcpy(entry->name, name, name_len);
 }
 
-int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
+int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 		const char *name, ext4_inode_ref_t *child)
 {
 	int rc;
 
 	EXT4FS_DBG("adding entry to directory \%u [ino = \%u, name = \%s]", parent->index, child->index, name);
 
+	ext4_filesystem_t *fs = parent->fs;
+
 	// Index adding (if allowed)
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
 			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
 
-		rc = ext4_directory_dx_add_entry(fs, parent, child, name);
+		rc = ext4_directory_dx_add_entry(parent, child, name);
 
 		// Check if index is not corrupted
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
@@ -355,7 +359,7 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	bool success = false;
 	for (iblock = 0; iblock < total_blocks; ++iblock) {
 
-		rc = ext4_filesystem_get_inode_data_block_index(fs, parent, iblock, &fblock);
+		rc = ext4_filesystem_get_inode_data_block_index(parent, iblock, &fblock);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -383,7 +387,7 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 
 	// No free block found - needed to allocate next block
 
-	rc = ext4_directory_append_block(fs, parent, &fblock, &iblock);
+	rc = ext4_directory_append_block(parent, &fblock, &iblock);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -410,18 +414,19 @@ int ext4_directory_add_entry(ext4_filesystem_t *fs, ext4_inode_ref_t * parent,
 	return EOK;
 }
 
-int ext4_directory_find_entry(ext4_filesystem_t *fs,
-		ext4_directory_search_result_t *result, ext4_inode_ref_t *parent,
-		const char *name)
+int ext4_directory_find_entry(ext4_directory_search_result_t *result,
+		ext4_inode_ref_t *parent, const char *name)
 {
 	int rc;
 	uint32_t name_len = strlen(name);
 
+	ext4_superblock_t *sb = parent->fs->superblock;
+
 	// Index search
-	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
+	if (ext4_superblock_has_feature_compatible(sb, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
 			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
 
-		rc = ext4_directory_dx_find_entry(result, fs, parent, name_len, name);
+		rc = ext4_directory_dx_find_entry(result, parent, name_len, name);
 
 		// Check if index is not corrupted
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
@@ -436,26 +441,26 @@ int ext4_directory_find_entry(ext4_filesystem_t *fs,
 	}
 
 	uint32_t iblock, fblock;
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
-	uint32_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	uint32_t inode_size = ext4_inode_get_size(sb, parent->inode);
 	uint32_t total_blocks = inode_size / block_size;
 
 	for (iblock = 0; iblock < total_blocks; ++iblock) {
 
-		rc = ext4_filesystem_get_inode_data_block_index(fs, parent, iblock, &fblock);
+		rc = ext4_filesystem_get_inode_data_block_index(parent, iblock, &fblock);
 		if (rc != EOK) {
 			return rc;
 		}
 
 		block_t *block;
-		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		rc = block_get(&block, parent->fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
 			return rc;
 		}
 
 		// find block entry
 		ext4_directory_entry_ll_t *res_entry;
-		rc = ext4_directory_find_in_block(block, fs->superblock, name_len, name, &res_entry);
+		rc = ext4_directory_find_in_block(block, sb, name_len, name, &res_entry);
 		if (rc == EOK) {
 			result->block = block;
 			result->dentry = res_entry;
@@ -475,18 +480,17 @@ int ext4_directory_find_entry(ext4_filesystem_t *fs,
 }
 
 
-int ext4_directory_remove_entry(ext4_filesystem_t* fs,
-		ext4_inode_ref_t *parent, const char *name)
+int ext4_directory_remove_entry(ext4_inode_ref_t *parent, const char *name)
 {
 	int rc;
 
-	if (!ext4_inode_is_type(fs->superblock, parent->inode,
+	if (!ext4_inode_is_type(parent->fs->superblock, parent->inode,
 	    EXT4_INODE_MODE_DIRECTORY)) {
 		return ENOTDIR;
 	}
 
 	ext4_directory_search_result_t result;
-	rc  = ext4_directory_find_entry(fs, &result, parent, name);
+	rc  = ext4_directory_find_entry(&result, parent, name);
 	if (rc != EOK) {
 		return rc;
 	}

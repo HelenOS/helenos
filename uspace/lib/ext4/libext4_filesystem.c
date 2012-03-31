@@ -168,6 +168,8 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	}
 
 	newref->block_group = newref->block->data + offset;
+	newref->fs = fs;
+	newref->index = bgid;
 	newref->dirty = false;
 
 	*ref = newref;
@@ -175,11 +177,49 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	return EOK;
 }
 
+static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid,
+                            ext4_block_group_t *bg)
+{
+	uint16_t crc = 0;
+
+	if (ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_GDT_CSUM)) {
+
+		void *base = bg;
+		void *checksum = &bg->checksum;
+
+		uint32_t offset = (uint32_t)(checksum - base);
+
+		uint32_t le_group = host2uint32_t_le(bgid);
+
+		crc = crc16(~0, sb->uuid, sizeof(sb->uuid));
+		crc = crc16(crc, (uint8_t *)&le_group, sizeof(le_group));
+		crc = crc16(crc, (uint8_t *)bg, offset);
+
+		offset += sizeof(bg->checksum); /* skip checksum */
+
+		/* for checksum of struct ext4_group_desc do the rest...*/
+		if ((ext4_superblock_has_feature_incompatible(sb, EXT4_FEATURE_INCOMPAT_64BIT)) &&
+			offset < ext4_superblock_get_desc_size(sb)) {
+
+			crc = crc16(crc, ((uint8_t *)bg) + offset, ext4_superblock_get_desc_size(sb) - offset);
+		}
+	}
+
+	return crc;
+
+}
+
+
 int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 {
 	int rc;
 
 	if (ref->dirty) {
+		 uint16_t checksum = ext4_filesystem_bg_checksum(
+				ref->fs->superblock, ref->index, ref->block_group);
+
+		 ext4_block_group_set_checksum(ref->block_group, checksum);
+
 		ref->block->dirty = true;
 	}
 
@@ -241,7 +281,8 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	/* we decremented index above, but need to store the original value
 	 * in the reference
 	 */
-	newref->index = index+1;
+	newref->index = index + 1;
+	newref->fs = fs;
 	newref->dirty = false;
 
 	*ref = newref;
@@ -320,7 +361,7 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	return EOK;
 }
 
-int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
+int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
 
@@ -329,13 +370,15 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 	// 1) Single indirect
 	uint32_t fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
 	if (fblock != 0) {
-		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
+		rc = ext4_balloc_free_block(inode_ref, fblock);
 		if (rc != EOK) {
 			return rc;
 		}
 
 		ext4_inode_set_indirect_block(inode_ref->inode, 0, 0);
 	}
+
+	ext4_filesystem_t *fs = inode_ref->fs;
 
 	block_t *block;
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
@@ -354,7 +397,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 			ind_block = uint32_t_le2host(((uint32_t*)block->data)[offset]);
 
 			if (ind_block != 0) {
-				rc = ext4_balloc_free_block(fs, inode_ref, ind_block);
+				rc = ext4_balloc_free_block(inode_ref, ind_block);
 				if (rc != EOK) {
 					block_put(block);
 					return rc;
@@ -363,7 +406,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 		}
 
 		block_put(block);
-		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
+		rc = ext4_balloc_free_block(inode_ref, fblock);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -397,7 +440,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 					ind_subblock = uint32_t_le2host(((uint32_t*)subblock->data)[suboffset]);
 
 					if (ind_subblock != 0) {
-						rc = ext4_balloc_free_block(fs, inode_ref, ind_subblock);
+						rc = ext4_balloc_free_block(inode_ref, ind_subblock);
 						if (rc != EOK) {
 							block_put(subblock);
 							block_put(block);
@@ -410,7 +453,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 
 			}
 
-			rc = ext4_balloc_free_block(fs, inode_ref, ind_block);
+			rc = ext4_balloc_free_block(inode_ref, ind_block);
 			if (rc != EOK) {
 				block_put(block);
 				return rc;
@@ -420,7 +463,7 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 		}
 
 		block_put(block);
-		rc = ext4_balloc_free_block(fs, inode_ref, fblock);
+		rc = ext4_balloc_free_block(inode_ref, fblock);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -444,17 +487,19 @@ int ext4_filesystem_free_inode(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_re
 	return EOK;
 }
 
-int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
+int ext4_filesystem_truncate_inode(
 		ext4_inode_ref_t *inode_ref, aoff64_t new_size)
 {
 	int rc;
 
-	if (! ext4_inode_can_truncate(fs->superblock, inode_ref->inode)) {
+	ext4_superblock_t *sb = inode_ref->fs->superblock;
+
+	if (! ext4_inode_can_truncate(sb, inode_ref->inode)) {
 		// Unable to truncate
 		return EINVAL;
 	}
 
-	aoff64_t old_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
+	aoff64_t old_size = ext4_inode_get_size(sb, inode_ref->inode);
 	if (old_size == new_size) {
 		// Nothing to do
 		return EOK;
@@ -466,7 +511,7 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 	}
 
 	aoff64_t size_diff = old_size - new_size;
-	uint32_t block_size  = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t block_size  = ext4_superblock_get_block_size(sb);
 	uint32_t diff_blocks_count = size_diff / block_size;
 	if (size_diff % block_size != 0) {
 		diff_blocks_count++;
@@ -479,7 +524,7 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 
 	// starting from 1 because of logical blocks are numbered from 0
 	for (uint32_t i = 1; i <= diff_blocks_count; ++i) {
-		rc = ext4_filesystem_release_inode_block(fs, inode_ref, old_blocks_count - i);
+		rc = ext4_filesystem_release_inode_block(inode_ref, old_blocks_count - i);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -492,18 +537,19 @@ int ext4_filesystem_truncate_inode(ext4_filesystem_t *fs,
 	return EOK;
 }
 
-int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, aoff64_t iblock, uint32_t* fblock)
+int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
+		aoff64_t iblock, uint32_t* fblock)
 {
 	int rc;
 
+	ext4_filesystem_t *fs = inode_ref->fs;
 
 	uint32_t current_block;
 
 	/* Handle inode using extents */
 	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
-		rc = ext4_extent_find_block(fs, inode_ref, iblock, &current_block);
+		rc = ext4_extent_find_block(inode_ref, iblock, &current_block);
 
 		if (rc != EOK) {
 			return rc;
@@ -590,11 +636,12 @@ int ext4_filesystem_get_inode_data_block_index(ext4_filesystem_t *fs,
 }
 
 
-int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, aoff64_t iblock, uint32_t fblock)
+int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
+		aoff64_t iblock, uint32_t fblock)
 {
 	int rc;
 
+	ext4_filesystem_t *fs = inode_ref->fs;
 
 	/* Handle inode using extents */
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
@@ -634,7 +681,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 	block_t *block, *new_block;
 
 	if (current_block == 0) {
-		rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
+		rc = ext4_balloc_alloc_block(inode_ref, &new_block_addr);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -645,7 +692,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 
 		rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
-			ext4_balloc_free_block(fs, inode_ref, new_block_addr);
+			ext4_balloc_free_block(inode_ref, new_block_addr);
 			return rc;
 		}
 
@@ -673,7 +720,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 
 		if ((level > 1) && (current_block == 0)) {
-			rc = ext4_balloc_alloc_block(fs, inode_ref, &new_block_addr);
+			rc = ext4_balloc_alloc_block(inode_ref, &new_block_addr);
 			if (rc != EOK) {
 				block_put(block);
 				return rc;
@@ -726,12 +773,14 @@ int ext4_filesystem_set_inode_data_block_index(ext4_filesystem_t *fs,
 	return EOK;
 }
 
-int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
+int ext4_filesystem_release_inode_block(
 		ext4_inode_ref_t *inode_ref, uint32_t iblock)
 {
 	int rc;
 
 	uint32_t fblock;
+
+	ext4_filesystem_t *fs = inode_ref->fs;
 
 	/* TODO Handle extents */
 //	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
@@ -771,7 +820,7 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		}
 
 		ext4_inode_set_direct_block(inode, iblock, 0);
-		return ext4_balloc_free_block(fs, inode_ref, fblock);
+		return ext4_balloc_free_block(inode_ref, fblock);
 	}
 
 
@@ -836,40 +885,41 @@ int ext4_filesystem_release_inode_block(ext4_filesystem_t *fs,
 		return EOK;
 	}
 
-	return ext4_balloc_free_block(fs, inode_ref, fblock);
+	return ext4_balloc_free_block(inode_ref, fblock);
 
 }
 
-int ext4_filesystem_add_orphan(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref)
+int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 {
-	uint32_t next_orphan = ext4_superblock_get_last_orphan(fs->superblock);
+	uint32_t next_orphan = ext4_superblock_get_last_orphan(
+			inode_ref->fs->superblock);
 	ext4_inode_set_deletion_time(inode_ref->inode, next_orphan);
-	ext4_superblock_set_last_orphan(fs->superblock, inode_ref->index);
+	ext4_superblock_set_last_orphan(
+			inode_ref->fs->superblock, inode_ref->index);
 	inode_ref->dirty = true;
 
 	return EOK;
 }
 
-int ext4_filesystem_delete_orphan(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref)
+int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
 
-	uint32_t last_orphan = ext4_superblock_get_last_orphan(fs->superblock);
+	uint32_t last_orphan = ext4_superblock_get_last_orphan(
+			inode_ref->fs->superblock);
 	assert(last_orphan > 0);
 
 	uint32_t next_orphan = ext4_inode_get_deletion_time(inode_ref->inode);
 
 	if (last_orphan == inode_ref->index) {
-		ext4_superblock_set_last_orphan(fs->superblock, next_orphan);
+		ext4_superblock_set_last_orphan(inode_ref->fs->superblock, next_orphan);
 		ext4_inode_set_deletion_time(inode_ref->inode, 0);
 		inode_ref->dirty = true;
 		return EOK;
 	}
 
 	ext4_inode_ref_t *current;
-	rc = ext4_filesystem_get_inode_ref(fs, last_orphan, &current);
+	rc = ext4_filesystem_get_inode_ref(inode_ref->fs, last_orphan, &current);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -888,7 +938,7 @@ int ext4_filesystem_delete_orphan(ext4_filesystem_t *fs,
 
 		ext4_filesystem_put_inode_ref(current);
 
-		rc = ext4_filesystem_get_inode_ref(fs, next_orphan, &current);
+		rc = ext4_filesystem_get_inode_ref(inode_ref->fs, next_orphan, &current);
 		if (rc != EOK) {
 			return rc;
 		}

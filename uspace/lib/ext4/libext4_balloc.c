@@ -81,12 +81,15 @@ static uint32_t ext4_balloc_get_bgid_of_block(ext4_superblock_t *sb,
 }
 
 
-int ext4_balloc_free_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, uint32_t block_addr)
+int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 {
 	int rc;
 
-	uint32_t block_group = ext4_balloc_get_bgid_of_block(fs->superblock, block_addr);
-	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(fs->superblock, block_addr);
+	ext4_filesystem_t *fs = inode_ref->fs;
+	ext4_superblock_t *sb = fs->superblock;
+
+	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, block_addr);
+	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(sb, block_addr);
 
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
@@ -96,7 +99,7 @@ int ext4_balloc_free_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, u
 	}
 
 	uint32_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
-			bg_ref->block_group, fs->superblock);
+			bg_ref->block_group, sb);
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
 	if (rc != EOK) {
@@ -115,25 +118,25 @@ int ext4_balloc_free_block(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref, u
 		return rc;
 	}
 
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
 
 	// Update superblock free blocks count
-	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(fs->superblock);
+	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
 	sb_free_blocks--;
-	ext4_superblock_set_free_blocks_count(fs->superblock, sb_free_blocks);
+	ext4_superblock_set_free_blocks_count(sb, sb_free_blocks);
 
 	// Update inode blocks count
-	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
+	uint64_t ino_blocks = ext4_inode_get_blocks_count(sb, inode_ref->inode);
 	ino_blocks -= block_size / EXT4_INODE_BLOCK_SIZE;
-	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
+	ext4_inode_set_blocks_count(sb, inode_ref->inode, ino_blocks);
 	inode_ref->dirty = true;
 
 	// Update block group free blocks count
 	uint32_t free_blocks = ext4_block_group_get_free_blocks_count(
-			bg_ref->block_group, fs->superblock);
+			bg_ref->block_group, sb);
 	free_blocks++;
 	ext4_block_group_set_free_blocks_count(bg_ref->block_group,
-			fs->superblock, free_blocks);
+			sb, free_blocks);
 	bg_ref->dirty = true;
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
@@ -177,13 +180,15 @@ static uint32_t ext4_balloc_get_first_data_block_in_group(
 }
 
 
-static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *inode_ref)
+static uint32_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
 	uint32_t goal = 0;
 
-	uint64_t inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	ext4_superblock_t *sb = inode_ref->fs->superblock;
+
+	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	uint32_t inode_block_count = inode_size / block_size;
 
 	if (inode_size % block_size != 0) {
@@ -192,7 +197,7 @@ static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *i
 
 	if (inode_block_count > 0) {
 		// TODO check retval
-		ext4_filesystem_get_inode_data_block_index(fs, inode_ref, inode_block_count - 1, &goal);
+		ext4_filesystem_get_inode_data_block_index(inode_ref, inode_block_count - 1, &goal);
 
 		// TODO
 		// If goal == 0 -> SPARSE file !!!
@@ -202,27 +207,27 @@ static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *i
 	}
 
 	// Identify block group of inode
-	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(fs->superblock);
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
 	uint32_t block_group = (inode_ref->index - 1) / inodes_per_group;
-	block_size = ext4_superblock_get_block_size(fs->superblock);
+	block_size = ext4_superblock_get_block_size(sb);
 
 	ext4_block_group_ref_t *bg_ref;
-	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	rc = ext4_filesystem_get_block_group_ref(inode_ref->fs, block_group, &bg_ref);
 	if (rc != EOK) {
 		return 0;
 	}
 
-	uint32_t block_group_count = ext4_superblock_get_block_group_count(fs->superblock);
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
 	uint32_t inode_table_first_block = ext4_block_group_get_inode_table_first_block(
-			bg_ref->block_group, fs->superblock);
-	uint16_t inode_table_item_size = ext4_superblock_get_inode_size(fs->superblock);
+			bg_ref->block_group, sb);
+	uint16_t inode_table_item_size = ext4_superblock_get_inode_size(sb);
 	uint32_t inode_table_bytes;
 
 	if (block_group < block_group_count - 1) {
 		inode_table_bytes = inodes_per_group * inode_table_item_size;
 	} else {
 		// last block group could be smaller
-		uint32_t inodes_count_total = ext4_superblock_get_inodes_count(fs->superblock);
+		uint32_t inodes_count_total = ext4_superblock_get_inodes_count(sb);
 		inode_table_bytes =
 				(inodes_count_total - ((block_group_count - 1) * inodes_per_group))
 				* inode_table_item_size;
@@ -241,7 +246,7 @@ static uint32_t ext4_balloc_find_goal(ext4_filesystem_t *fs, ext4_inode_ref_t *i
 	return goal;
 }
 
-int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
+int ext4_balloc_alloc_block(
 		ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 {
 	int rc;
@@ -252,31 +257,33 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 	uint32_t rel_block_idx = 0;
 
 	// Find GOAL
-	uint32_t goal = ext4_balloc_find_goal(fs, inode_ref);
+	uint32_t goal = ext4_balloc_find_goal(inode_ref);
 	if (goal == 0) {
 		// TODO
 		EXT4FS_DBG("ERRORR (goal == 0)");
 		return ENOSPC;
 	}
 
+	ext4_superblock_t *sb = inode_ref->fs->superblock;
+
 	// Load block group number for goal and relative index
-	uint32_t block_group = ext4_balloc_get_bgid_of_block(fs->superblock, goal);
-	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(fs->superblock, goal);
+	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, goal);
+	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(sb, goal);
 
 
 	ext4_block_group_ref_t *bg_ref;
-	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	rc = ext4_filesystem_get_block_group_ref(inode_ref->fs, block_group, &bg_ref);
 	if (rc != EOK) {
 		EXT4FS_DBG("initial BG ref not loaded");
 		return rc;
 	}
 
 	uint32_t first_in_group =
-			ext4_balloc_get_first_data_block_in_group(fs->superblock,
+			ext4_balloc_get_first_data_block_in_group(sb,
 					bg_ref->block_group, block_group);
 
 	uint32_t first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
-			fs->superblock, first_in_group);
+			sb, first_in_group);
 
 	if (index_in_group < first_in_group_index) {
 		index_in_group = first_in_group_index;
@@ -284,9 +291,9 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 
 	// Load bitmap
 	bitmap_block_addr = ext4_block_group_get_block_bitmap(bg_ref->block_group,
-			fs->superblock);
+			sb);
 
-	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
+	rc = block_get(&bitmap_block, inode_ref->fs->device, bitmap_block_addr, 0);
 	if (rc != EOK) {
 		ext4_filesystem_put_block_group_ref(bg_ref);
 		EXT4FS_DBG("initial bitmap not loaded");
@@ -310,7 +317,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 
 	}
 
-	uint32_t blocks_in_group = ext4_superblock_get_blocks_in_group(fs->superblock, block_group);
+	uint32_t blocks_in_group = ext4_superblock_get_blocks_in_group(sb, block_group);
 
 	uint32_t end_idx = (index_in_group + 63) & ~63;
 	if (end_idx > blocks_in_group) {
@@ -330,7 +337,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 			}
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
-					fs->superblock, tmp_idx, block_group);
+					sb, tmp_idx, block_group);
 
 			goto success;
 		}
@@ -348,7 +355,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 		}
 
 		allocated_block = ext4_balloc_index_in_group2blockaddr(
-				fs->superblock, rel_block_idx, block_group);
+				sb, rel_block_idx, block_group);
 
 		goto success;
 	}
@@ -364,7 +371,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 		}
 
 		allocated_block = ext4_balloc_index_in_group2blockaddr(
-				fs->superblock, rel_block_idx, block_group);
+				sb, rel_block_idx, block_group);
 
 		goto success;
 	}
@@ -374,13 +381,13 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 	ext4_filesystem_put_block_group_ref(bg_ref);
 
 	// Try other block groups
-	uint32_t block_group_count = ext4_superblock_get_block_group_count(fs->superblock);
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
 
 	uint32_t bgid = (block_group + 1) % block_group_count;
 	uint32_t count = block_group_count;
 
 	while (count > 0) {
-		rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
+		rc = ext4_filesystem_get_block_group_ref(inode_ref->fs, bgid, &bg_ref);
 		if (rc != EOK) {
 			EXT4FS_DBG("errrrrrrrrrrr");
 			return rc;
@@ -388,9 +395,9 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 
 		// Load bitmap
 		bitmap_block_addr = ext4_block_group_get_block_bitmap(
-				bg_ref->block_group, fs->superblock);
+				bg_ref->block_group, sb);
 
-		rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
+		rc = block_get(&bitmap_block, inode_ref->fs->device, bitmap_block_addr, 0);
 		if (rc != EOK) {
 			ext4_filesystem_put_block_group_ref(bg_ref);
 			EXT4FS_DBG("errrrrrrrrrr");
@@ -398,13 +405,13 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 		}
 
 		first_in_group = ext4_balloc_get_first_data_block_in_group(
-				fs->superblock, bg_ref->block_group, bgid);
-		index_in_group = ext4_balloc_blockaddr2_index_in_group(fs->superblock,
+				sb, bg_ref->block_group, bgid);
+		index_in_group = ext4_balloc_blockaddr2_index_in_group(sb,
 						first_in_group);
-		blocks_in_group = ext4_superblock_get_blocks_in_group(fs->superblock, bgid);
+		blocks_in_group = ext4_superblock_get_blocks_in_group(sb, bgid);
 
 		first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
-			fs->superblock, first_in_group);
+			sb, first_in_group);
 
 		if (index_in_group < first_in_group_index) {
 			index_in_group = first_in_group_index;
@@ -421,7 +428,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 			}
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
-					fs->superblock, rel_block_idx, bgid);
+					sb, rel_block_idx, bgid);
 
 			goto success;
 		}
@@ -437,7 +444,7 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 			}
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
-					fs->superblock, rel_block_idx, bgid);
+					sb, rel_block_idx, bgid);
 
 			goto success;
 		}
@@ -455,26 +462,25 @@ int ext4_balloc_alloc_block(ext4_filesystem_t *fs,
 success:
 	; 	// Empty command - because of syntax
 	
-	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
 
 	// Update superblock free blocks count
-	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(fs->superblock);
+	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
 	sb_free_blocks--;
-	ext4_superblock_set_free_blocks_count(fs->superblock, sb_free_blocks);
+	ext4_superblock_set_free_blocks_count(sb, sb_free_blocks);
 
 	// Update inode blocks (different block size!) count
 
-	uint64_t ino_blocks = ext4_inode_get_blocks_count(fs->superblock, inode_ref->inode);
+	uint64_t ino_blocks = ext4_inode_get_blocks_count(sb, inode_ref->inode);
 	ino_blocks += block_size / EXT4_INODE_BLOCK_SIZE;
-	ext4_inode_set_blocks_count(fs->superblock, inode_ref->inode, ino_blocks);
+	ext4_inode_set_blocks_count(sb, inode_ref->inode, ino_blocks);
 	inode_ref->dirty = true;
 
 	// Update block group free blocks count
 	uint32_t bg_free_blocks = ext4_block_group_get_free_blocks_count(
-			bg_ref->block_group, fs->superblock);
+			bg_ref->block_group, sb);
 	bg_free_blocks--;
-	ext4_block_group_set_free_blocks_count(bg_ref->block_group,
-			fs->superblock, bg_free_blocks);
+	ext4_block_group_set_free_blocks_count(bg_ref->block_group, sb, bg_free_blocks);
 	bg_ref->dirty = true;
 
 	ext4_filesystem_put_block_group_ref(bg_ref);

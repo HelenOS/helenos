@@ -217,119 +217,37 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
 	*extent = l - 1;
 }
 
-// Reading routine without saving blocks to path
-//static int ext4_extent_find_extent(ext4_filesystem_t *fs,
-//		ext4_inode_ref_t *inode_ref, uint32_t iblock, ext4_extent_t *extent)
-//{
-//	int rc;
-//
-//	block_t* block = NULL;
-//
-//	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode_ref->inode);
-//	while (ext4_extent_header_get_depth(header) != 0) {
-//
-//		ext4_extent_index_t *index;
-//		ext4_extent_binsearch_idx(header, &index, iblock);
-//
-//		uint64_t child = ext4_extent_index_get_leaf(index);
-//
-//		if (block != NULL) {
-//			block_put(block);
-//		}
-//
-//		rc = block_get(&block, fs->device, child, BLOCK_FLAGS_NONE);
-//		if (rc != EOK) {
-//			return rc;
-//		}
-//
-//		header = (ext4_extent_header_t *)block->data;
-//	}
-//
-//
-//	ext4_extent_t* tmp_extent;
-//	ext4_extent_binsearch(header, &tmp_extent, iblock);
-//
-//	memcpy(extent, tmp_extent, sizeof(ext4_extent_t));
-//
-//	return EOK;
-//}
-
-static int ext4_extent_find_extent(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, uint32_t iblock, ext4_extent_path_t **ret_path)
+// Reading routine without saving blocks to path - for saving memory during finding block
+int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_t *fblock)
 {
 	int rc;
 
-	ext4_extent_header_t *eh =
-			ext4_inode_get_extent_header(inode_ref->inode);
+	block_t* block = NULL;
 
-	uint16_t depth = ext4_extent_header_get_depth(eh);
+	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode_ref->inode);
+	while (ext4_extent_header_get_depth(header) != 0) {
 
-	ext4_extent_path_t *tmp_path;
+		ext4_extent_index_t *index;
+		ext4_extent_binsearch_idx(header, &index, iblock);
 
-	// Added 2 for possible tree growing
-	tmp_path = malloc(sizeof(ext4_extent_path_t) * (depth + 2));
-	if (tmp_path == NULL) {
-		return ENOMEM;
-	}
+		uint64_t child = ext4_extent_index_get_leaf(index);
 
-	tmp_path[0].block = inode_ref->block;
-	tmp_path[0].header = eh;
+		if (block != NULL) {
+			block_put(block);
+		}
 
-	uint16_t pos = 0;
-	while (ext4_extent_header_get_depth(eh) != 0) {
-
-		ext4_extent_binsearch_idx(tmp_path[pos].header, &tmp_path[pos].index, iblock);
-
-		tmp_path[pos].depth = depth;
-		tmp_path[pos].extent = NULL;
-
-		assert(tmp_path[pos].index != NULL);
-
-		uint64_t fblock = ext4_extent_index_get_leaf(tmp_path[pos].index);
-
-		block_t *block;
-		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		rc = block_get(&block, inode_ref->fs->device, child, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
-			// TODO cleanup
-			EXT4FS_DBG("ERRRR");
 			return rc;
 		}
 
-		pos++;
-
-		eh = (ext4_extent_header_t *)block->data;
-		tmp_path[pos].block = block;
-		tmp_path[pos].header = eh;
-
+		header = (ext4_extent_header_t *)block->data;
 	}
 
-	tmp_path[pos].depth = 0;
-	tmp_path[pos].extent = NULL;
-	tmp_path[pos].index = NULL;
 
-    /* find extent */
-	ext4_extent_binsearch(tmp_path[pos].header, &tmp_path[pos].extent, iblock);
+	ext4_extent_t* extent;
+	ext4_extent_binsearch(header, &extent, iblock);
 
-	*ret_path = tmp_path;
-
-	return EOK;
-}
-
-
-int ext4_extent_find_block(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_t *fblock)
-{
-	int rc;
-
-	ext4_extent_path_t *path;
-	rc = ext4_extent_find_extent(fs, inode_ref, iblock, &path);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	uint16_t depth = path->depth;
-
-	ext4_extent_t *extent = path[depth].extent;
 
 	uint32_t phys_block;
 	phys_block = ext4_extent_get_start(extent) + iblock;
@@ -337,20 +255,111 @@ int ext4_extent_find_block(ext4_filesystem_t *fs,
 
 	*fblock = phys_block;
 
-	// Put loaded blocks
-	// From 1 -> 0 is a block with inode data
-	for (uint16_t i = 1; i < depth; ++i) {
-		if (path[i].block) {
-			block_put(path[i].block);
-		}
+	if (block != NULL) {
+		block_put(block);
 	}
 
-	// Destroy temporary data structure
-	free(path);
 
 	return EOK;
-
 }
+
+//static int ext4_extent_find_extent(ext4_filesystem_t *fs,
+//		ext4_inode_ref_t *inode_ref, uint32_t iblock, ext4_extent_path_t **ret_path)
+//{
+//	int rc;
+//
+//	ext4_extent_header_t *eh =
+//			ext4_inode_get_extent_header(inode_ref->inode);
+//
+//	uint16_t depth = ext4_extent_header_get_depth(eh);
+//
+//	ext4_extent_path_t *tmp_path;
+//
+//	// Added 2 for possible tree growing
+//	tmp_path = malloc(sizeof(ext4_extent_path_t) * (depth + 2));
+//	if (tmp_path == NULL) {
+//		return ENOMEM;
+//	}
+//
+//	tmp_path[0].block = inode_ref->block;
+//	tmp_path[0].header = eh;
+//
+//	uint16_t pos = 0;
+//	while (ext4_extent_header_get_depth(eh) != 0) {
+//
+//		ext4_extent_binsearch_idx(tmp_path[pos].header, &tmp_path[pos].index, iblock);
+//
+//		tmp_path[pos].depth = depth;
+//		tmp_path[pos].extent = NULL;
+//
+//		assert(tmp_path[pos].index != NULL);
+//
+//		uint64_t fblock = ext4_extent_index_get_leaf(tmp_path[pos].index);
+//
+//		block_t *block;
+//		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+//		if (rc != EOK) {
+//			// TODO cleanup
+//			EXT4FS_DBG("ERRRR");
+//			return rc;
+//		}
+//
+//		pos++;
+//
+//		eh = (ext4_extent_header_t *)block->data;
+//		tmp_path[pos].block = block;
+//		tmp_path[pos].header = eh;
+//
+//	}
+//
+//	tmp_path[pos].depth = 0;
+//	tmp_path[pos].extent = NULL;
+//	tmp_path[pos].index = NULL;
+//
+//    /* find extent */
+//	ext4_extent_binsearch(tmp_path[pos].header, &tmp_path[pos].extent, iblock);
+//
+//	*ret_path = tmp_path;
+//
+//	return EOK;
+//}
+
+
+//int ext4_extent_find_block(ext4_filesystem_t *fs,
+//		ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_t *fblock)
+//{
+//	int rc;
+//
+//	ext4_extent_path_t *path;
+//	rc = ext4_extent_find_extent(fs, inode_ref, iblock, &path);
+//	if (rc != EOK) {
+//		return rc;
+//	}
+//
+//	uint16_t depth = path->depth;
+//
+//	ext4_extent_t *extent = path[depth].extent;
+//
+//	uint32_t phys_block;
+//	phys_block = ext4_extent_get_start(extent) + iblock;
+//	phys_block -= ext4_extent_get_first_block(extent);
+//
+//	*fblock = phys_block;
+//
+//	// Put loaded blocks
+//	// From 1 -> 0 is a block with inode data
+//	for (uint16_t i = 1; i < depth; ++i) {
+//		if (path[i].block) {
+//			block_put(path[i].block);
+//		}
+//	}
+//
+//	// Destroy temporary data structure
+//	free(path);
+//
+//	return EOK;
+//
+//}
 
 /**
  * @}

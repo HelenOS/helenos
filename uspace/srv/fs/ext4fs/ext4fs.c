@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 		if (!str_cmp(argv[1], "--instance"))
 			ext4fs_vfs_info.instance = strtol(argv[2], NULL, 10);
 		else {
-			printf(NAME " Unrecognized parameters");
+			printf(NAME " Unrecognized parameters\n");
 			return -1;
 		}
 	}

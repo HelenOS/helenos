@@ -193,6 +193,18 @@ typedef struct ext4_superblock {
 
 
 /*****************************************************************************/
+
+typedef struct ext4_filesystem {
+	service_id_t device;
+	ext4_superblock_t *	superblock;
+	aoff64_t inode_block_limits[4];
+	aoff64_t inode_blocks_per_level[4];
+} ext4_filesystem_t;
+
+
+/*****************************************************************************/
+
+
 /*
  * Structure of a blocks group descriptor
  */
@@ -221,6 +233,8 @@ typedef struct ext4_block_group {
 typedef struct ext4_block_group_ref {
 	block_t *block; // Reference to a block containing this block group descr
 	ext4_block_group_t *block_group;
+	ext4_filesystem_t *fs;
+	uint32_t index;
 	bool dirty;
 } ext4_block_group_ref_t;
 
@@ -228,22 +242,12 @@ typedef struct ext4_block_group_ref {
 #define EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE 32
 #define EXT4_BLOCK_MAX_GROUP_DESCRIPTOR_SIZE 64
 
-
 /*****************************************************************************/
 
-typedef struct ext4_filesystem {
-	service_id_t device;
-	ext4_superblock_t *	superblock;
-	aoff64_t inode_block_limits[4];
-	aoff64_t inode_blocks_per_level[4];
-} ext4_filesystem_t;
 
 #define EXT4_MIN_BLOCK_SIZE		1024  //1 KiB
 #define EXT4_MAX_BLOCK_SIZE 	65536 //64 KiB
 #define EXT4_REV0_INODE_SIZE	128
-
-/*****************************************************************************/
-
 
 #define EXT4_INODE_BLOCK_SIZE				512
 
@@ -345,6 +349,7 @@ typedef struct ext4_inode {
 typedef struct ext4_inode_ref {
 	block_t *block; // Reference to a block containing this inode
 	ext4_inode_t *inode;
+	ext4_filesystem_t *fs;
 	uint32_t index; // Index number of this inode
 	bool dirty;
 } ext4_inode_ref_t;

@@ -35,6 +35,7 @@ SOURCES = \
 	libext4_balloc.c \
 	libext4_bitmap.c \
 	libext4_block_group.c \
+	libext4_crc.c \
 	libext4_directory.c \
 	libext4_directory_index.c \
 	libext4_extent.c \
