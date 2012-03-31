@@ -54,6 +54,8 @@ typedef struct rtc {
 	ddf_fun_t *fun;
 	/** The fibril mutex for synchronizing the access to the device */
 	fibril_mutex_t mutex;
+	/** The base I/O address of the device registers */
+	uint32_t io_addr;
 } rtc_t;
 
 
@@ -75,7 +77,7 @@ static ddf_dev_ops_t rtc_dev_ops;
 /** The RTC device driver's standard operations */
 static driver_ops_t rtc_ops = {
 	.dev_add = rtc_dev_add,
-	.dev_remove = NULL,
+	.dev_remove = NULL, /* XXX */
 };
 
 /** The RTC device driver structure */
@@ -96,11 +98,11 @@ rtc_init(void)
 {
 	ddf_log_init(NAME, LVL_ERROR);
 
-	rtc_dev_ops.open = NULL;
-	rtc_dev_ops.close = NULL;
+	rtc_dev_ops.open = NULL; /* XXX */
+	rtc_dev_ops.close = NULL; /* XXX */
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
-	rtc_dev_ops.default_handler = NULL;
+	rtc_dev_ops.default_handler = NULL; /* XXX */
 }
 
 /** Initialize the RTC device
@@ -112,7 +114,11 @@ rtc_init(void)
 static int
 rtc_dev_initialize(rtc_t *rtc)
 {
+	/* XXX Do cleanup in case of failure */
 	int rc;
+	size_t i;
+	hw_resource_t *res;
+	bool ioport = false;
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", rtc->dev->name);
 
@@ -136,6 +142,26 @@ rtc_dev_initialize(rtc_t *rtc)
 		    for device %s", rtc->dev->name);
 		return rc;
 	}
+
+	for (i = 0; i < hw_resources.count; ++i) {
+		res = &hw_resources.resources[i];
+
+		if (res->type == IO_RANGE) {
+			rtc->io_addr = res->res.io_range.address;
+			ioport = true;
+			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address \
+			    0x%x", rtc->dev->name, rtc->io_addr);
+		}
+	}
+
+	if (!ioport) {
+		/* No I/O address assigned to this device */
+		ddf_msg(LVL_ERROR, "Missing HW resource for device %s",
+		    rtc->dev->name);
+		return ENOENT;
+	}
+
+	hw_res_clean_resource_list(&hw_resources);
 
 	return EOK;
 }
