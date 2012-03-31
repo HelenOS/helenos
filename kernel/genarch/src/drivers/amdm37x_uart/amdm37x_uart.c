@@ -71,13 +71,12 @@ static irq_ownership_t amdm37x_uart_claim(irq_t *irq)
 static void amdm37x_uart_handler(irq_t *irq)
 {
 	amdm37x_uart_t *uart = irq->instance;
-//TODO enable while checking when RX FIFO is used instead of single char.
-//	while (!(uart->regs->isr2 & AMDM37x_UART_ISR2_RX_FIFO_EMPTY_FLAG)) {
+	while (!(uart->regs->isr2 & AMDM37x_UART_ISR2_RX_FIFO_EMPTY_FLAG)) {
 		const uint8_t val = uart->regs->rhr;
 		if (uart->indev && val) {
 			indev_push_character(uart->indev, val);
 		}
-//	}
+	}
 }
 
 bool amdm37x_uart_init(
@@ -92,7 +91,8 @@ bool amdm37x_uart_init(
 #if 0
 	/* Soft reset the port */
 	uart->regs->sysc = AMDM37x_UART_SYSC_SOFTRESET_FLAG;
-	while (uart->regs->syss & AMDM37x_UART_SYSS_RESETDONE_FLAG) ;
+	while (!(uart->regs->syss & AMDM37x_UART_SYSS_RESETDONE_FLAG)) ;
+#endif
 
 	/* Enable access to EFR register */
 	const uint8_t lcr = uart->regs->lcr; /* Save old value */
@@ -105,27 +105,33 @@ bool amdm37x_uart_init(
 
 	/* Set default (val 0) triggers, disable DMA enable FIFOs */
 	const bool tcl_tlr = uart->regs->mcr & AMDM37x_UART_MCR_TCR_TLR_FLAG;
+	/* Enable access to tcr and tlr registers */
+	uart->regs->mcr |= AMDM37x_UART_MCR_TCR_TLR_FLAG;
+
+	/* Enable FIFOs */
 	uart->regs->fcr = AMDM37x_UART_FCR_FIFO_EN_FLAG;
 
-	/* Enable fine granularity for rx trigger */
+	/* Eneble fine granularity for RX FIFO and set trigger level to 1,
+	 * TX FIFO, trigger level is irelevant*/
 	uart->regs->lcr = 0xbf;              /* Sets config mode B */
 	uart->regs->scr = AMDM37x_UART_SCR_RX_TRIG_GRANU1_FLAG;
+	uart->regs->tlr = 1 << AMDM37x_UART_TLR_RX_FIFO_TRIG_SHIFT;
 
 	/* Restore enhanced */
 	if (!enhanced)
 		uart->regs->efr &= ~AMDM37x_UART_EFR_ENH_FLAG;
 
 	uart->regs->lcr = 0x80;              /* Config mode A */
-	/* Restore tcl_lcr */
+	/* Restore tcl_lcr access flag*/
 	if (!tcl_tlr)
 		uart->regs->mcr &= ~AMDM37x_UART_MCR_TCR_TLR_FLAG;
 
-	/* Restore tcl_lcr */
+	/* Restore lcr */
 	uart->regs->lcr = lcr;
 
 	/* Disable interrupts */
 	uart->regs->ier = 0;
-#endif
+
 	/* Setup outdev */
 	outdev_initialize("amdm37x_uart_dev", &uart->outdev, &amdm37x_uart_ops);
 	uart->outdev.data = uart;
@@ -137,7 +143,6 @@ bool amdm37x_uart_init(
 	uart->irq.claim = amdm37x_uart_claim;
 	uart->irq.handler = amdm37x_uart_handler;
 	uart->irq.instance = uart;
-	irq_register(&uart->irq);
 
 	return true;
 }
@@ -147,11 +152,10 @@ void amdm37x_uart_input_wire(amdm37x_uart_t *uart, indev_t *indev)
 	ASSERT(uart);
 	/* Set indev */
 	uart->indev = indev;
+	/* Register interrupt. */
+	irq_register(&uart->irq);
 	/* Enable interrupt on receive */
 	uart->regs->ier |= AMDM37x_UART_IER_RHR_IRQ_FLAG;
-
-	// TODO set rx fifo
-	// TODO set rx fifo threshold to 1
 }
 
 /**
