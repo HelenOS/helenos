@@ -47,6 +47,8 @@
 
 #define NAME "cmos-rtc"
 
+#define REG_COUNT 2
+
 typedef struct rtc {
 	/** DDF device node */
 	ddf_dev_t *dev;
@@ -56,6 +58,8 @@ typedef struct rtc {
 	fibril_mutex_t mutex;
 	/** The base I/O address of the device registers */
 	uint32_t io_addr;
+	/** The I/O port used to access the CMOS registers */
+	ioport8_t *port;
 } rtc_t;
 
 
@@ -70,6 +74,9 @@ rtc_dev_add(ddf_dev_t *dev);
 
 static int
 rtc_dev_initialize(rtc_t *rtc);
+
+static bool
+rtc_pio_enable(rtc_t *rtc);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -103,6 +110,26 @@ rtc_init(void)
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
 	rtc_dev_ops.default_handler = NULL; /* XXX */
+}
+
+/** Enable the I/O ports of the device
+ *
+ * @param rtc  The real time clock device
+ *
+ * @return  true in case of success, false otherwise
+ */
+static bool
+rtc_pio_enable(rtc_t *rtc)
+{
+	if (pio_enable((void *)(uintptr_t) rtc->io_addr, REG_COUNT,
+	    (void **) &rtc->port)) {
+
+		ddf_msg(LVL_ERROR, "Cannot map the port %#" PRIx32
+		    " for device %s", rtc->io_addr, rtc->dev->name);
+		return false;
+	}
+
+	return true;
 }
 
 /** Initialize the RTC device
@@ -202,6 +229,7 @@ static int
 rtc_dev_add(ddf_dev_t *dev)
 {
 	rtc_t *rtc;
+	ddf_fun_t *fun;
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_add %s (handle = %d)",
@@ -217,6 +245,30 @@ rtc_dev_add(ddf_dev_t *dev)
 	rc = rtc_dev_initialize(rtc);
 	if (rc != EOK)
 		return rc;
+
+	/* XXX Need cleanup */
+	if (!rtc_pio_enable(rtc))
+		return EADDRNOTAVAIL;
+
+	fun = ddf_fun_create(dev, fun_exposed, "a");
+	if (!fun) {
+		ddf_msg(LVL_ERROR, "Failed creating function");
+		return ENOENT;
+	}
+
+	fun->ops = &rtc_dev_ops;
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding function");
+		return rc;
+	}
+
+	rtc->fun = fun;
+
+	ddf_fun_add_to_category(fun, "clock");
+
+	ddf_msg(LVL_NOTE, "Device %s successfully initialized",
+	    dev->name);
 
 	return rc;
 }
