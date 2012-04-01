@@ -50,16 +50,17 @@
 #define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
 
 #ifdef MACHINE_beagleboardxm
-	#define PA2KA(addr)  (addr)
+	#define PA_OFFSET 0
 #else
+	#define PA_OFFSET 0x80000000
+#endif
 
 #ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
+	#define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
 #else
-	#define PA2KA(addr)  ((addr) + 0x80000000)
+	#define PA2KA(addr)  ((addr) + PA_OFFSET)
 #endif
 
-#endif
 
 #endif
 
