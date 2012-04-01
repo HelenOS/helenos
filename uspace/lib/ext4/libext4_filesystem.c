@@ -782,32 +782,11 @@ int ext4_filesystem_release_inode_block(
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
-	/* TODO Handle extents */
-//	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
-//			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
-////		rc = ext4_extent_find_block(fs, inode_ref, iblock, &current_block);
-////
-////		if (rc != EOK) {
-////			return rc;
-////		}
-////
-////		*fblock = current_block;
-//
-//		// TODO release block from extents (and return fblock)
-//
-//		fblock = 0;
-//
-//		if (fblock == 0) {
-//			return EOK;
-//		}
-//
-//		return ext4_balloc_free_block(fs, inode_ref, fblock);
-//
-//		return EOK;
-//
-//	}
+	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 
-
+		return ext4_extent_release_block(inode_ref, iblock);
+	}
 
 	ext4_inode_t *inode = inode_ref->inode;
 
