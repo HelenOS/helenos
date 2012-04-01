@@ -36,7 +36,7 @@ import os
 import os.path
 
 if len(sys.argv) < 3:
-	print 'Usage: filldir <parent-dir> <count>'
+	print('Usage: filldir <parent-dir> <count>')
 	exit(2)
 
 parent = sys.argv[1]
