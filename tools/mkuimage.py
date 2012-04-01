@@ -119,7 +119,7 @@ def mkuimage(inf_name, outf_name, image_name, load_addr, start_addr):
 	header.load_addr = load_addr	# Address where to load image
 	header.start_addr = start_addr	# Address of entry point
 	header.data_crc = data_crc
-	header.os = 5			# Linux
+	header.os = 2			# NetBSD
 	header.arch = 2			# ARM
 	header.img_type = 2		# Kernel
 	header.compression = 0		# None
