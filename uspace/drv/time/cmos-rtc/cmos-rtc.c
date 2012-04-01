@@ -78,6 +78,9 @@ rtc_dev_initialize(rtc_t *rtc);
 static bool
 rtc_pio_enable(rtc_t *rtc);
 
+static void
+rtc_dev_cleanup(rtc_t *rtc);
+
 
 static ddf_dev_ops_t rtc_dev_ops;
 
@@ -112,6 +115,19 @@ rtc_init(void)
 	rtc_dev_ops.default_handler = NULL; /* XXX */
 }
 
+/** Clean up the RTC soft state
+ *
+ * @param rtc  The RTC device
+ */
+static void
+rtc_dev_cleanup(rtc_t *rtc)
+{
+	if (rtc->dev->parent_sess) {
+		async_hangup(rtc->dev->parent_sess);
+		rtc->dev->parent_sess = NULL;
+	}
+}
+
 /** Enable the I/O ports of the device
  *
  * @param rtc  The real time clock device
@@ -141,7 +157,6 @@ rtc_pio_enable(rtc_t *rtc)
 static int
 rtc_dev_initialize(rtc_t *rtc)
 {
-	/* XXX Do cleanup in case of failure */
 	int rc;
 	size_t i;
 	hw_resource_t *res;
@@ -159,7 +174,8 @@ rtc_dev_initialize(rtc_t *rtc)
 	if (!rtc->dev->parent_sess) {
 		ddf_msg(LVL_ERROR, "Failed to connect to parent driver\
 		    of device %s.", rtc->dev->name);
-		return ENOENT;
+		rc = ENOENT;
+		goto error;
 	}
 
 	/* Get the HW resources */
@@ -167,7 +183,7 @@ rtc_dev_initialize(rtc_t *rtc)
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to get HW resources\
 		    for device %s", rtc->dev->name);
-		return rc;
+		goto error;
 	}
 
 	for (i = 0; i < hw_resources.count; ++i) {
@@ -185,12 +201,19 @@ rtc_dev_initialize(rtc_t *rtc)
 		/* No I/O address assigned to this device */
 		ddf_msg(LVL_ERROR, "Missing HW resource for device %s",
 		    rtc->dev->name);
-		return ENOENT;
+		rc = ENOENT;
+		goto error;
 	}
 
 	hw_res_clean_resource_list(&hw_resources);
 
 	return EOK;
+
+error:
+	rtc_dev_cleanup(rtc);
+	hw_res_clean_resource_list(&hw_resources);
+
+	return rc;
 }
 
 /** Read the current time from the CMOS
@@ -229,8 +252,9 @@ static int
 rtc_dev_add(ddf_dev_t *dev)
 {
 	rtc_t *rtc;
-	ddf_fun_t *fun;
+	ddf_fun_t *fun = NULL;
 	int rc;
+	bool need_cleanup = false;
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_add %s (handle = %d)",
 	    dev->name, (int) dev->handle);
@@ -244,23 +268,27 @@ rtc_dev_add(ddf_dev_t *dev)
 
 	rc = rtc_dev_initialize(rtc);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	/* XXX Need cleanup */
-	if (!rtc_pio_enable(rtc))
-		return EADDRNOTAVAIL;
+	need_cleanup = true;
+
+	if (!rtc_pio_enable(rtc)) {
+		rc = EADDRNOTAVAIL;
+		goto error;
+	}
 
 	fun = ddf_fun_create(dev, fun_exposed, "a");
 	if (!fun) {
 		ddf_msg(LVL_ERROR, "Failed creating function");
-		return ENOENT;
+		rc = ENOENT;
+		goto error;
 	}
 
 	fun->ops = &rtc_dev_ops;
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function");
-		return rc;
+		goto error;
 	}
 
 	rtc->fun = fun;
@@ -270,6 +298,13 @@ rtc_dev_add(ddf_dev_t *dev)
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized",
 	    dev->name);
 
+	return rc;
+
+error:
+	if (fun)
+		ddf_fun_destroy(fun);
+	if (need_cleanup)
+		rtc_dev_cleanup(rtc);
 	return rc;
 }
 
