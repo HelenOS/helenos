@@ -58,7 +58,7 @@ void help_cmd_printf(unsigned int level)
 }
 
 
-static void print_arg(wchar_t ch, const char* arg)
+static int print_arg(wchar_t ch, const char* arg)
 {
 	switch(ch) {
 	case 'd':
@@ -71,23 +71,33 @@ static void print_arg(wchar_t ch, const char* arg)
 		printf("%s", arg);
 		break;
 	default:
-		return;
+		return CMD_FAILURE;
 	}
+	return CMD_SUCCESS;
 }
 
-static void process_esc(wchar_t ch)
+static int process_esc(wchar_t ch)
 {
 	switch(ch) {
 	case 'n':
 		printf("\n");
 		break;
 	default:
-		return;
+		return CMD_FAILURE;
 	}
+	return CMD_SUCCESS;
 }
 
 
-/* Main entry point for printf, accepts an array of arguments */
+/* Prints formatted data. 
+ * Accepted format flags:
+ * %d - print an integer
+ * %u - print an unsigned integer
+ * %s - print a null terminated string
+ *****
+ * Accepted output controls:
+ * \n - new line
+ */
 int cmd_printf(char **argv)
 {
 	unsigned int argc;
@@ -95,7 +105,7 @@ int cmd_printf(char **argv)
 	size_t pos, fmt_sz;
 	wchar_t ch;
 	bool esc_flag = false;
-	unsigned int carg;
+	unsigned int carg;     // Current argument
 
 	/* Count the arguments */
 	for (argc = 0; argv[argc] != NULL; argc ++);
@@ -126,6 +136,10 @@ int cmd_printf(char **argv)
 			if (!ch) { 
 				putchar('%');
 				break;
+			}
+			if (carg == argc) {
+				printf("\nBad parameter number. Aborted.\n");
+				return CMD_FAILURE;
 			}
 			print_arg(ch, argv[carg]);
 			++carg;
