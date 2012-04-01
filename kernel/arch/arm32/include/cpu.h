@@ -40,7 +40,7 @@
 #include <arch/asm.h>
 
 
-/** Struct representing ARM CPU identifiaction. */
+/** Struct representing ARM CPU identification. */
 typedef struct {
 	/** Implementator (vendor) number. */
 	uint32_t imp_num;

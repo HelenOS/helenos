@@ -43,16 +43,19 @@
 
 /** Implementators (vendor) names */
 static const char *imp_data[] = {
-	"?",					/* IMP_DATA_START_OFFSET */
-	"ARM Ltd",				/* 0x41 */
-	"",					/* 0x42 */
-	"",                             	/* 0x43 */
-	"Digital Equipment Corporation",	/* 0x44 */
-	"", "", "", "", "", "", "", "", "", "",	/* 0x45 - 0x4e */
-	"", "", "", "", "", "", "", "", "", "", /* 0x4f - 0x58 */
-	"", "", "", "", "", "", "", "", "", "", /* 0x59 - 0x62 */
-	"", "", "", "", "", "",			/* 0x63 - 0x68 */
-	"Intel Corporation"			/* 0x69 */
+	"?",                                     /* IMP_DATA_START_OFFSET */
+	"ARM Limited",                           /* 0x41 */
+	"", "",                                  /* 0x42 - 0x43 */
+	"Digital Equipment Corporation",         /* 0x44 */
+	"", "", "", "", "", "", "", "",          /* 0x45 - 0x4c */
+	"Motorola, Freescale Semicondutor Inc.", /* 0x4d */
+	"", "", "",                              /* 0x4e - 0x50 */
+	"Qualcomm Inc.",                         /* 0x51 */
+	"", "", "", "",                          /* 0x52 - 0x55 */
+	"Marvell Semiconductor",                 /* 0x56 */
+	"", "", "", "", "", "", "", "", "", "",  /* 0x57 - 0x60 */
+	"", "", "", "", "", "", "", "",          /* 0x61 - 0x68 */
+	"Intel Corporation"                      /* 0x69 */
 };
 
 /** Length of the #imp_data array */
@@ -111,13 +114,14 @@ void cpu_print_report(cpu_t *m)
 	const char *architecture = arch_data[0];
 	cpu_arch_t * cpu_arch = &m->arch;
 
-	if ((cpu_arch->imp_num) > 0 &&
-	    (cpu_arch->imp_num < (imp_data_length + IMP_DATA_START_OFFSET))) {
+	const unsigned imp_offset = cpu_arch->imp_num - IMP_DATA_START_OFFSET;
+
+	if (imp_offset < imp_data_length) {
 		vendor = imp_data[cpu_arch->imp_num - IMP_DATA_START_OFFSET];
 	}
 
-	if ((cpu_arch->arch_num) > 0 &&
-	    (cpu_arch->arch_num < arch_data_length)) {
+	// TODO CPUs with arch_num == 0xf use CPUID scheme for identification
+	if (cpu_arch->arch_num < arch_data_length) {
 		architecture = arch_data[cpu_arch->arch_num];
 	}
 
