@@ -190,6 +190,12 @@ rtc_dev_initialize(rtc_t *rtc)
 		res = &hw_resources.resources[i];
 
 		if (res->type == IO_RANGE) {
+			if (res->res.io_range.size < REG_COUNT) {
+				ddf_msg(LVL_ERROR, "I/O range assigned to \
+				    device %s is too small", rtc->dev->name);
+				rc = ELIMIT;
+				goto error;
+			}
 			rtc->io_addr = res->res.io_range.address;
 			ioport = true;
 			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address \
