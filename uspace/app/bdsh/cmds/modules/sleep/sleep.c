@@ -26,8 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -40,31 +42,42 @@ static const char *cmdname = "sleep";
 /* Dispays help for sleep in various levels */
 void help_cmd_sleep(unsigned int level)
 {
-	printf("This is the %s help for '%s'.\n",
-		level ? EXT_HELP : SHORT_HELP, cmdname);
+	if (level == HELP_SHORT) {
+		printf("`%s' pauses for a given time interval\n", cmdname);
+	} else {
+		help_cmd_sleep(HELP_SHORT);
+		printf(
+		"Usage:  %s <duration>\n"
+		"The duration is an integer number of seconds.\n",
+		cmdname);
+	}
+
 	return;
 }
 
 /* Main entry point for sleep, accepts an array of arguments */
 int cmd_sleep(char **argv)
 {
+	int ret;
 	unsigned int argc;
-	unsigned int i;
+	uint32_t duration;
 
 	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
-	printf("%s %s\n", TEST_ANNOUNCE, cmdname);
-	printf("%d arguments passed to %s", argc - 1, cmdname);
-
-	if (argc < 2) {
-		printf("\n");
-		return CMD_SUCCESS;
+	if (argc != 2) {
+		printf("%s - incorrect number of arguments. Try `help %s'\n",
+			cmdname, cmdname);
+		return CMD_FAILURE;
 	}
 
-	printf(":\n");
-	for (i = 1; i < argc; i++)
-		printf("[%d] -> %s\n", i, argv[i]);
+	ret = str_uint32_t(argv[1], NULL, 10, true, &duration);
+	if (ret != EOK) {
+		printf("%s - invalid duration.\n", cmdname);
+		return CMD_FAILURE;
+	}
+
+	(void) usleep((useconds_t)duration * 1000000);
 
 	return CMD_SUCCESS;
 }
