@@ -40,7 +40,22 @@
 #define STATUS_REG_IRQ_DISABLED_BIT  (1 << 7)
 #define STATUS_REG_MODE_MASK         0x1f
 
+#define CP15_R1_MMU_ENABLE_BIT       (1 << 0)
+#define CP15_R1_ALIGNMENT_ENABLE_BIT (1 << 1)
+#define CP15_R1_CACHE_ENABLE_BIT     (1 << 2)
+#define CP15_R1_BRANCH_PREDICT_BIT   (1 << 11)
+#define CP15_R1_INST_CACHE_BIT       (1 << 12)
 #define CP15_R1_HIGH_VECTORS_BIT     (1 << 13)
+#define CP15_R1_ROUND_ROBIN_BIT      (1 << 14)
+#define CP15_R1_HA_ENABLE_BIT        (1 << 17)
+#define CP15_R1_WXN_BIT              (1 << 19) /* Only if virt. supported */
+#define CP15_R1_UWXN_BIT             (1 << 20) /* Only if virt. supported */
+#define CP15_R1_FI_BIT               (1 << 21)
+#define CP15_R1_VE_BIT               (1 << 24)
+#define CP15_R1_EE_BIT               (1 << 25)
+#define CP15_R1_NMFI_BIT             (1 << 27)
+#define CP15_R1_TRE_BIT              (1 << 28)
+#define CP15_R1_AFE_BIT              (1 << 29)
 
 /* ARM Processor Operation Modes */
 #define USER_MODE        0x10
