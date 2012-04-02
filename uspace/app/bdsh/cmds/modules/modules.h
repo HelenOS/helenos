@@ -85,6 +85,7 @@ module_t modules[] = {
 #include "kcon/kcon_def.h"
 #include "printf/printf_def.h"
 #include "echo/echo_def.h"
+
 	{NULL, NULL, NULL, NULL}
 };
 
