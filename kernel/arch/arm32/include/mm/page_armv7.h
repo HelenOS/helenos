@@ -311,6 +311,11 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		p->access_permission_0 = PTE_AP0_USER_FULL_KERNEL_FULL;
 		if (!(flags & PAGE_WRITE))
 			p->access_permission_1 = PTE_AP1_RO;
+		if (!(flags & PAGE_CACHEABLE)) {
+			p->tex = 0x2;
+			p->bufferable = 0;
+			p->cacheable = 0;
+		}
 	}
 }
 
