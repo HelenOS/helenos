@@ -263,6 +263,7 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 		p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
 		p->should_be_zero_0 = 0;
 		p->should_be_zero_1 = 0;
+		p->domain = 0;
 	}
 }
 
@@ -291,7 +292,17 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 			p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE_NX;
 	}
 	
-	p->cacheable = p->bufferable = (flags & PAGE_CACHEABLE) != 0;
+	p->cacheable = (flags & PAGE_CACHEABLE);
+	
+	/* even devices can use bufferable */
+	p->bufferable = 1;
+	p->tex = 0;
+	
+	/* Shareable is ignored for devices (non-cacheable),
+	 * turn it on for normal memory. */
+	p->shareable = 1;
+	
+	p->non_global = !(flags & PAGE_GLOBAL);
 	
 	/* default access permission: kernel only*/
 	p->access_permission_0 = PTE_AP0_USER_NO_KERNEL_FULL;
