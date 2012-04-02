@@ -99,6 +99,25 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 /** Does nothing on ARM. */
 void cpu_arch_init(void)
 {
+#if defined(PROCESSOR_armv7)
+	uint32_t control_reg = 0;
+	asm volatile (
+		"mrc p15, 0, %[control_reg], c1, c0"
+		: [control_reg] "=r" (control_reg)
+	);
+	
+	/* Turn off tex remap */
+	control_reg &= ~CP15_R1_TRE_BIT;
+	/* Turn off accessed flag */
+	control_reg &= ~(CP15_R1_AFE_BIT | CP15_R1_HA_ENABLE_BIT);
+	/* Enable caching */
+	control_reg |= CP15_R1_CACHE_ENABLE_BIT;
+	
+	asm volatile (
+		"mcr p15, 0, %[control_reg], c1, c0"
+		:: [control_reg] "r" (control_reg)
+	);
+#endif
 }
 
 /** Retrieves processor identification and stores it to #CPU.arch */
