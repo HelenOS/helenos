@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,24 +29,18 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file Boolean type and values.
+/** @file Command line argument parsing.
  */
+#define LIBPOSIX_INTERNAL
 
-#ifndef POSIX_STDBOOL_H_
-#define POSIX_STDBOOL_H_
+#include "internal/common.h"
+#include "libc/getopt.h"
+#include "getopt.h"
 
-#ifdef LIBC_BOOL_H_
-#	ifndef POSIX_STDIO_H_
-#		ifndef POSIX_STDLIB_H_
-#			error "You can't include bool.h and stdbool.h at the same time."
-#		endif
-#	endif
-#endif
-#define LIBC_BOOL_H_
 
-#define bool _Bool
-#define true 1
-#define false 0
-#define __bool_true_false_are_defined 1
+int posix_getopt_long(int argc, char * const argv[],
+    const char *opt_string, const struct option *long_opts, int *long_index)
+{
+	return getopt_long(argc, argv, opt_string, long_opts, long_index);
+}
 
-#endif /* POSIX_STDBOOL_H_ */

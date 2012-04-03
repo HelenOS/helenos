@@ -42,8 +42,7 @@
 /* Process Termination */
 #define _exit exit
 
-/* Option Arguments */
-extern char *optarg;
+extern char *posix_optarg;
 extern int optind, opterr, optopt;
 extern int getopt(int, char * const [], const char *);
 
@@ -143,6 +142,8 @@ extern int posix_execvp(const char *file, char *const argv[]);
 extern int posix_pipe(int fildes[2]);
 
 #ifndef LIBPOSIX_INTERNAL
+	#define optarg posix_optarg
+
 	#define environ posix_environ
 
 	#define getlogin posix_getlogin

@@ -48,6 +48,7 @@
 
 /* Array of environment variable strings (NAME=VALUE). */
 char **posix_environ = NULL;
+char *posix_optarg;
 
 /**
  * Get current user name.
