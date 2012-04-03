@@ -32,6 +32,7 @@
 #include <device/clock_dev.h>
 #include <errno.h>
 #include <loc.h>
+#include <time.h>
 
 #define NAME   "date"
 
@@ -44,6 +45,8 @@ main(int argc, char **argv)
 	service_id_t  *svc_ids = NULL;
 	char *svc_name = NULL;
 	char *devpath;
+	devman_handle_t devh;
+	struct tm t;
 
 	/* Get the id of the clock category */
 	rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
@@ -86,6 +89,35 @@ main(int argc, char **argv)
 	devpath++;
 
 	printf("Found device %s\n", devpath);
+
+	/* Get the device's handle */
+	rc = devman_fun_get_handle("/hw/pci0/00:01.0/cmos-rtc/a", &devh, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf(NAME ": Cannot open the device\n");
+		goto exit;
+	}
+
+	printf("OPEN!\n");
+
+	/* Now connect to the device */
+	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE,
+	    devh, IPC_FLAG_BLOCKING);
+	if (!sess) {
+		printf(NAME ": Cannot connect to the device\n");
+		goto exit;
+	}
+
+	printf("CONNECTED!\n");
+
+	/* Read the current date */
+	rc = clock_dev_time_get(sess, &t);
+	if (rc != EOK) {
+		printf(NAME ": Cannot read the current time\n");
+		goto exit;
+	}
+
+	printf("SUCCESS!\n");
+	fflush(stdout);
 
 exit:
 	free(svc_name);
