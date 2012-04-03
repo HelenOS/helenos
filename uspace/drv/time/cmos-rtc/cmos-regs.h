@@ -36,8 +36,10 @@
 #define RTC_MON         0x08
 #define RTC_YEAR        0x09
 
-#define RTC_UPDATE      0x0A
+#define RTC_STATUS_B    0x0B
+#define RTC_MASK_BCD    0x04
 
+#define RTC_UPDATE      0x0A
 #define RTC_MASK_UPDATE 0x08
 
 #endif
