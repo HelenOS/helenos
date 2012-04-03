@@ -284,9 +284,9 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		 t->tm_year != rtc_register_read(rtc, RTC_YEAR));
 
 	/* Check if the RTC is working in BCD mode */
-	bcd_mode = rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD;
+	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
 
-	if (1 || bcd_mode) {
+	if (bcd_mode) {
 		t->tm_sec  = bcd2dec(t->tm_sec);
 		t->tm_min  = bcd2dec(t->tm_min);
 		t->tm_hour = bcd2dec(t->tm_hour);
@@ -297,6 +297,13 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	/* Count the months starting from 0, not from 1 */
 	t->tm_mon--;
+
+	if (t->tm_year < 100) {
+		/* tm_year is the number of years since 1900, it is not
+		 * possible it is < 100.
+		 */
+		t->tm_year += 100;
+	}
 
 	fibril_mutex_unlock(&rtc->mutex);
 	return EOK;
