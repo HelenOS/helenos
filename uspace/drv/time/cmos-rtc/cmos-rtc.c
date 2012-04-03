@@ -37,6 +37,7 @@
 
 #include <errno.h>
 #include <ddi.h>
+#include <libarch/ddi.h>
 #include <stdio.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
@@ -44,6 +45,8 @@
 #include <fibril_synch.h>
 #include <device/hw_res.h>
 #include <devman.h>
+
+#include "cmos-regs.h"
 
 #define NAME "cmos-rtc"
 
@@ -75,6 +78,7 @@ static bool rtc_pio_enable(rtc_t *rtc);
 static void rtc_dev_cleanup(rtc_t *rtc);
 static int  rtc_open(ddf_fun_t *fun);
 static void rtc_close(ddf_fun_t *fun);
+static bool rtc_update_in_progress(rtc_t *rtc);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -217,6 +221,19 @@ error:
 	return rc;
 }
 
+/** Check if an update is in progress
+ *
+ * @param rtc  The rtc device
+ *
+ * @return  true if an update is in progress, false otherwise
+ */
+static bool
+rtc_update_in_progress(rtc_t *rtc)
+{
+	pio_write_8(rtc->port, RTC_UPDATE);
+	return pio_read_8(rtc->port + 1) & RTC_MASK_UPDATE;
+}
+
 /** Read the current time from the CMOS
  *
  * @param fun  The RTC function
@@ -227,6 +244,13 @@ error:
 static int
 rtc_time_get(ddf_fun_t *fun, struct tm *t)
 {
+	rtc_t *rtc = RTC_FROM_FNODE(fun);
+
+	fibril_mutex_lock(&rtc->mutex);
+
+	while (rtc_update_in_progress(rtc));
+
+	fibril_mutex_unlock(&rtc->mutex);
 	return EOK;
 }
 
