@@ -67,26 +67,14 @@ typedef struct rtc {
 } rtc_t;
 
 
-static int
-rtc_time_get(ddf_fun_t *fun, struct tm *t);
-
-static int
-rtc_time_set(ddf_fun_t *fun, struct tm *t);
-
-static int
-rtc_dev_add(ddf_dev_t *dev);
-
-static int
-rtc_dev_initialize(rtc_t *rtc);
-
-static bool
-rtc_pio_enable(rtc_t *rtc);
-
-static void
-rtc_dev_cleanup(rtc_t *rtc);
-
-static int
-rtc_open(ddf_fun_t *fun);
+static int  rtc_time_get(ddf_fun_t *fun, struct tm *t);
+static int  rtc_time_set(ddf_fun_t *fun, struct tm *t);
+static int  rtc_dev_add(ddf_dev_t *dev);
+static int  rtc_dev_initialize(rtc_t *rtc);
+static bool rtc_pio_enable(rtc_t *rtc);
+static void rtc_dev_cleanup(rtc_t *rtc);
+static int  rtc_open(ddf_fun_t *fun);
+static void rtc_close(ddf_fun_t *fun);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -116,7 +104,7 @@ rtc_init(void)
 	ddf_log_init(NAME, LVL_ERROR);
 
 	rtc_dev_ops.open = rtc_open;
-	rtc_dev_ops.close = NULL; /* XXX */
+	rtc_dev_ops.close = rtc_close;
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
 	rtc_dev_ops.default_handler = NULL; /* XXX */
@@ -346,6 +334,23 @@ rtc_open(ddf_fun_t *fun)
 
 	fibril_mutex_unlock(&rtc->mutex);
 	return rc;
+}
+
+/** Close the device
+ *
+ * @param fun  The function node
+ */
+static void
+rtc_close(ddf_fun_t *fun)
+{
+	rtc_t *rtc = RTC_FROM_FNODE(fun);
+
+	fibril_mutex_lock(&rtc->mutex);
+
+	assert(rtc->client_connected);
+	rtc->client_connected = false;
+
+	fibril_mutex_unlock(&rtc->mutex);
 }
 
 int
