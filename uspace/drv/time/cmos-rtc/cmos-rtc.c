@@ -49,6 +49,8 @@
 
 #define REG_COUNT 2
 
+#define RTC_FROM_FNODE(fnode)  ((rtc_t *) ((fnode)->dev->driver_data))
+
 typedef struct rtc {
 	/** DDF device node */
 	ddf_dev_t *dev;
@@ -60,6 +62,8 @@ typedef struct rtc {
 	uint32_t io_addr;
 	/** The I/O port used to access the CMOS registers */
 	ioport8_t *port;
+	/** true if a client is connected to the device */
+	bool client_connected;
 } rtc_t;
 
 
@@ -80,6 +84,9 @@ rtc_pio_enable(rtc_t *rtc);
 
 static void
 rtc_dev_cleanup(rtc_t *rtc);
+
+static int
+rtc_open(ddf_fun_t *fun);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -108,7 +115,7 @@ rtc_init(void)
 {
 	ddf_log_init(NAME, LVL_ERROR);
 
-	rtc_dev_ops.open = NULL; /* XXX */
+	rtc_dev_ops.open = rtc_open;
 	rtc_dev_ops.close = NULL; /* XXX */
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
@@ -301,6 +308,8 @@ rtc_dev_add(ddf_dev_t *dev)
 
 	ddf_fun_add_to_category(fun, "clock");
 
+	rtc->client_connected = false;
+
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized",
 	    dev->name);
 
@@ -311,6 +320,31 @@ error:
 		ddf_fun_destroy(fun);
 	if (need_cleanup)
 		rtc_dev_cleanup(rtc);
+	return rc;
+}
+
+/** Open the device
+ *
+ * @param fun   The function node
+ *
+ * @return  EOK on success or a negative error code
+ */
+static int
+rtc_open(ddf_fun_t *fun)
+{
+	int rc;
+	rtc_t *rtc = RTC_FROM_FNODE(fun);
+
+	fibril_mutex_lock(&rtc->mutex);
+
+	if (rtc->client_connected)
+		rc = EBUSY;
+	else {
+		rc = EOK;
+		rtc->client_connected = true;
+	}
+
+	fibril_mutex_unlock(&rtc->mutex);
 	return rc;
 }
 
