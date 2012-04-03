@@ -35,12 +35,25 @@
 #ifndef UDP_TYPE_H
 #define UDP_TYPE_H
 
+#include <fibril_synch.h>
 #include <socket_core.h>
 #include <sys/types.h>
+
+typedef enum {
+	UDP_EOK
+} udp_error_t;
+
+typedef enum {
+	XF_DUMMY	= 0x1
+} xflags_t;
 
 typedef struct {
 	uint32_t ipv4;
 } netaddr_t;
+
+enum netaddr {
+	UDP_IPV4_ANY = 0
+};
 
 typedef struct {
 	netaddr_t addr;
@@ -72,6 +85,32 @@ typedef struct {
 	/** Encoded PDU data size */
 	size_t data_size;
 } udp_pdu_t;
+
+typedef struct {
+	async_sess_t *sess;
+	socket_cores_t sockets;
+} udp_client_t;
+
+typedef struct {
+	char *name;
+	udp_sockpair_t ident;
+} udp_assoc_t;
+
+typedef struct {
+} udp_assoc_status_t;
+
+typedef struct udp_sockdata {
+	/** Lock */
+	fibril_mutex_t lock;
+	/** Socket core */
+	socket_core_t *sock_core;
+	/** Client */
+	udp_client_t *client;
+	/** Connection */
+	udp_assoc_t *assoc;
+	/** Local address */
+	netaddr_t laddr;
+} udp_sockdata_t;
 
 #endif
 

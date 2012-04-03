@@ -35,6 +35,7 @@ SOURCES = \
 	msg.c \
 	sock.c \
 	pdu.c \
+	ucall.c \
 	udp.c \
 	udp_inet.c
 
