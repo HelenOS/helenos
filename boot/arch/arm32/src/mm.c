@@ -104,13 +104,31 @@ static void enable_paging()
 	asm volatile (
 		/* Behave as a client of domains */
 		"ldr r0, =0x55555555\n"
-		"mcr p15, 0, r0, c3, c0, 0\n" 
+		"mcr p15, 0, r0, c3, c0, 0\n"
 		
+#ifdef PROCESSOR_armv7
+		/* Clean L2 cache */
+		"mov r12, #0x1\n"   //set up to invalidate L2
+		"smc #0\n"  //Call SMI monitor
+		
+		/* Read Auxiliary control register */
+		"mrc p15, 0, r0, c1, c0, 1\n"
+		/* Mask to enable L2 cache */
+		"ldr r1, =0x00000002\n"
+		"orr r0, r0, r1\n"
+		/* Store Auxiliary control register */
+		"mrc p15, 0, r0, c1, c0, 1\n"
+#endif
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
+#ifdef PROCESSOR_armv7
 		/* Mask to enable paging, alignment and caching */
 		"ldr r1, =0x00000007\n"
+#else
+		/* Mask to enable paging */
+		"ldr r1, =0x00000001\n"
+#endif
 		"orr r0, r0, r1\n"
 		
 		/* Store settings */
