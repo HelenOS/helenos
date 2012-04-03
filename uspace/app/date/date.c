@@ -119,6 +119,8 @@ main(int argc, char **argv)
 	printf("SUCCESS!\n");
 	fflush(stdout);
 
+	printf("%d:%d:%d\n", t.tm_hour, t.tm_min, t.tm_sec);
+
 exit:
 	free(svc_name);
 	free(svc_ids);
