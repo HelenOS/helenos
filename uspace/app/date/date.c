@@ -91,7 +91,8 @@ main(int argc, char **argv)
 	printf("Found device %s\n", devpath);
 
 	/* Get the device's handle */
-	rc = devman_fun_get_handle("/hw/pci0/00:01.0/cmos-rtc/a", &devh, IPC_FLAG_BLOCKING);
+	rc = devman_fun_get_handle("/hw/pci0/00:01.0/cmos-rtc/a", &devh,
+	    IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf(NAME ": Cannot open the device\n");
 		goto exit;
