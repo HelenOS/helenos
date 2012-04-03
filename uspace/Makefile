@@ -69,6 +69,7 @@ DIRS = \
 	app/websrv \
 	app/sysinfo \
 	app/mkbd \
+	app/date \
 	srv/clip \
 	srv/loc \
 	srv/devman \
