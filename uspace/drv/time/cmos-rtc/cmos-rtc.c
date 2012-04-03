@@ -295,6 +295,9 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		t->tm_year = bcd2dec(t->tm_year);
 	}
 
+	/* Count the months starting from 0, not from 1 */
+	t->tm_mon--;
+
 	fibril_mutex_unlock(&rtc->mutex);
 	return EOK;
 }
