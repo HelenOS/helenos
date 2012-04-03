@@ -68,6 +68,7 @@ GENERIC_SOURCES = \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
 	generic/device/char_dev.c \
+	generic/device/clock_dev.c \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/elf/elf_load.c \
