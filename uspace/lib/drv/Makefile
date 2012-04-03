@@ -43,6 +43,7 @@ SOURCES = \
 	generic/remote_usb.c \
 	generic/remote_pci.c \
 	generic/remote_usbhc.c \
-	generic/remote_usbhid.c
+	generic/remote_usbhid.c \
+	generic/remote_clock_dev.c
 
 include $(USPACE_PREFIX)/Makefile.common
