@@ -64,10 +64,10 @@ typedef struct rtc {
 
 
 static int
-rtc_time_get(ddf_fun_t *fun, time_t *t);
+rtc_time_get(ddf_fun_t *fun, struct tm *t);
 
 static int
-rtc_time_set(ddf_fun_t *fun, time_t t);
+rtc_time_set(ddf_fun_t *fun, struct tm *t);
 
 static int
 rtc_dev_add(ddf_dev_t *dev);
@@ -230,7 +230,7 @@ error:
  * @return  EOK on success or a negative error code
  */
 static int
-rtc_time_get(ddf_fun_t *fun, time_t *t)
+rtc_time_get(ddf_fun_t *fun, struct tm *t)
 {
 	return EOK;
 }
@@ -243,7 +243,7 @@ rtc_time_get(ddf_fun_t *fun, time_t *t)
  * @return  EOK or a negative error code
  */
 static int
-rtc_time_set(ddf_fun_t *fun, time_t t)
+rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
 	return EOK;
 }

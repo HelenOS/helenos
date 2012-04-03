@@ -39,8 +39,8 @@
 #include "../ddf/driver.h"
 
 typedef struct {
-	int (*time_set)(ddf_fun_t *, time_t);
-	int (*time_get)(ddf_fun_t *, time_t *);
+	int (*time_set)(ddf_fun_t *, struct tm *);
+	int (*time_get)(ddf_fun_t *, struct tm *);
 } clock_dev_ops_t;
 
 #endif
