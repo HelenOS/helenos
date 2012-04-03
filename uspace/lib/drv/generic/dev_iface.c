@@ -40,6 +40,7 @@
 #include "dev_iface.h"
 #include "remote_hw_res.h"
 #include "remote_char_dev.h"
+#include "remote_clock_dev.h"
 #include "remote_nic.h"
 #include "remote_usb.h"
 #include "remote_usbhc.h"
@@ -54,7 +55,8 @@ static iface_dipatch_table_t remote_ifaces = {
 		&remote_pci_iface,
 		&remote_usb_iface,
 		&remote_usbhc_iface,
-		&remote_usbhid_iface
+		&remote_usbhid_iface,
+		&remote_clock_dev_iface,
 	}
 };
 
