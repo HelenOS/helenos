@@ -186,7 +186,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
-	$(USPACE_PATH)/app/websrv/websrv
+	$(USPACE_PATH)/app/websrv/websrv \
+	$(USPACE_PATH)/app/date/date
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \
