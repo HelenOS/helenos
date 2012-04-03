@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
-#include <ops/clock.h>
+#include <ops/clock_dev.h>
 #include <fibril_synch.h>
 #include <device/hw_res.h>
 #include <devman.h>
