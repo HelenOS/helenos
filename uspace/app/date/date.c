@@ -74,9 +74,16 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	const char delim[] = {"/\0"};
-	strtok(svc_name, delim);
-	devpath = strtok(svc_name, delim);
+	const char delim = '/';
+	devpath = str_chr(svc_name, delim);
+
+	if (!devpath) {
+		printf(NAME ": Device name format not recognized\n");
+		goto exit;
+	}
+
+	/* Skip the delimiter */
+	devpath++;
 
 	printf("Found device %s\n", devpath);
 
