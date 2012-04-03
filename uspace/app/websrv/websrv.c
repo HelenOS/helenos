@@ -35,6 +35,7 @@
 
 #include <bool.h>
 #include <errno.h>
+#include <assert.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -35,6 +35,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <task.h>
 #include <stats.h>
 #include <str_error.h>

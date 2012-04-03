@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <byteorder.h>
 #include <assert.h>
+#include <unistd.h>
 
 /** Compare path component with the name read from the dentry.
  *
