@@ -28,10 +28,61 @@
 
 
 #include <stdio.h>
+#include <devman.h>
+#include <device/clock_dev.h>
+#include <errno.h>
+#include <loc.h>
+
+#define NAME   "date"
 
 int
 main(int argc, char **argv)
 {
-	return 0;
+	int rc;
+	category_id_t cat_id;
+	size_t svc_cnt;
+	service_id_t  *svc_ids = NULL;
+	char *svc_name = NULL;
+	char *devpath;
+
+	/* Get the id of the clock category */
+	rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf(NAME ": Cannot get clock category id\n");
+		goto exit;
+	}
+
+	/* Get the list of available services in the clock category */
+	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
+	if (rc != EOK) {
+		printf(NAME ": Cannot get the list of services in category \
+		    clock\n");
+		goto exit;
+	}
+
+	/* Check if the are available services in the clock category */
+	if (svc_cnt == 0) {
+		printf(NAME ": No available service found in \
+		    the clock category\n");
+		goto exit;
+	}
+
+	/* Get the name of the clock service */
+	rc = loc_service_get_name(svc_ids[0], &svc_name);
+	if (rc != EOK) {
+		printf(NAME ": Cannot get the name of the service\n");
+		goto exit;
+	}
+
+	const char delim[] = {"/\0"};
+	strtok(svc_name, delim);
+	devpath = strtok(svc_name, delim);
+
+	printf("Found device %s\n", devpath);
+
+exit:
+	free(svc_name);
+	free(svc_ids);
+	return rc;
 }
 
