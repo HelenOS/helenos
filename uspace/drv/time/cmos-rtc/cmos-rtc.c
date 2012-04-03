@@ -79,7 +79,8 @@ static void rtc_dev_cleanup(rtc_t *rtc);
 static int  rtc_open(ddf_fun_t *fun);
 static void rtc_close(ddf_fun_t *fun);
 static bool rtc_update_in_progress(rtc_t *rtc);
-static int  rtc_register_read(ioport8_t *port, int reg);
+static int  rtc_register_read(rtc_t *rtc, int reg);
+static int  bcd2dec(int bcd);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -230,10 +231,10 @@ error:
  * @return       The value of the register
  */
 static int
-rtc_register_read(ioport8_t *port, int reg)
+rtc_register_read(rtc_t *rtc, int reg)
 {
-	pio_write_8(port, reg);
-	return pio_read_8(port + 1);
+	pio_write_8(rtc->port, reg);
+	return pio_read_8(rtc->port + 1);
 }
 
 /** Check if an update is in progress
@@ -245,7 +246,7 @@ rtc_register_read(ioport8_t *port, int reg)
 static bool
 rtc_update_in_progress(rtc_t *rtc)
 {
-	return rtc_register_read(rtc->port, RTC_UPDATE) & RTC_MASK_UPDATE;
+	return rtc_register_read(rtc, RTC_UPDATE) & RTC_MASK_UPDATE;
 }
 
 /** Read the current time from the CMOS
@@ -258,11 +259,41 @@ rtc_update_in_progress(rtc_t *rtc)
 static int
 rtc_time_get(ddf_fun_t *fun, struct tm *t)
 {
+	bool bcd_mode;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
 	fibril_mutex_lock(&rtc->mutex);
 
-	while (rtc_update_in_progress(rtc));
+	/* now read the registers */
+	do {
+		/* Suspend until the update process has finished */
+		while (rtc_update_in_progress(rtc));
+
+		t->tm_sec  = rtc_register_read(rtc, RTC_SEC);
+		t->tm_min  = rtc_register_read(rtc, RTC_MIN);
+		t->tm_hour = rtc_register_read(rtc, RTC_HOUR);
+		t->tm_mday = rtc_register_read(rtc, RTC_DAY);
+		t->tm_mon  = rtc_register_read(rtc, RTC_MON);
+		t->tm_year = rtc_register_read(rtc, RTC_YEAR);
+
+		/* Now check if it is stable */
+	} while( t->tm_sec  != rtc_register_read(rtc, RTC_SEC) ||
+		 t->tm_min  != rtc_register_read(rtc, RTC_MIN) ||
+		 t->tm_mday != rtc_register_read(rtc, RTC_DAY) ||
+		 t->tm_mon  != rtc_register_read(rtc, RTC_MON) ||
+		 t->tm_year != rtc_register_read(rtc, RTC_YEAR));
+
+	/* Check if the RTC is working in BCD mode */
+	bcd_mode = rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD;
+
+	if (bcd_mode) {
+		t->tm_sec  = bcd2dec(t->tm_sec);
+		t->tm_min  = bcd2dec(t->tm_min);
+		t->tm_hour = bcd2dec(t->tm_hour);
+		t->tm_mday = bcd2dec(t->tm_mday);
+		t->tm_mon  = bcd2dec(t->tm_mon);
+		t->tm_year = bcd2dec(t->tm_year);
+	}
 
 	fibril_mutex_unlock(&rtc->mutex);
 	return EOK;
@@ -389,6 +420,18 @@ rtc_close(ddf_fun_t *fun)
 	rtc->client_connected = false;
 
 	fibril_mutex_unlock(&rtc->mutex);
+}
+
+/** Convert from BCD mode to binary mode
+ *
+ * @param bcd   The number in BCD format to convert
+ *
+ * @return      The converted value
+ */
+static int
+bcd2dec(int bcd)
+{
+	return ((bcd & 0xF0) >> 1) + ((bcd & 0xF0) >> 3) + (bcd & 0xf);
 }
 
 int
