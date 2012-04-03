@@ -202,6 +202,11 @@ RD_APPS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/binutils/bin/ld
 endif
 
+ifeq ($(CONFIG_MSIM),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/msim/msim
+endif
+
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
