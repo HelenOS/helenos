@@ -274,11 +274,6 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 
 	uint16_t depth = ext4_extent_header_get_depth(eh);
 
-//	EXT4FS_DBG("depth = \%u", depth);
-//	EXT4FS_DBG("header = \%u", (uint32_t)eh);
-//	EXT4FS_DBG("entries_count = \%u", ext4_extent_header_get_entries_count(eh));
-//	EXT4FS_DBG("max entries_count = \%u", ext4_extent_header_get_max_entries_count(eh));
-
 	ext4_extent_path_t *tmp_path;
 
 	// Added 2 for possible tree growing
@@ -325,8 +320,6 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
     /* find extent */
 	ext4_extent_binsearch(tmp_path[pos].header, &tmp_path[pos].extent, iblock);
 
-	EXT4FS_DBG("extent = \%u", (uint32_t)tmp_path[pos].extent);
-
 	*ret_path = tmp_path;
 
 	return EOK;
@@ -361,19 +354,48 @@ int ext4_extent_release_block(ext4_inode_ref_t *inode_ref, uint32_t iblock)
 	block_count--;
 	ext4_extent_set_block_count(path_ptr->extent, block_count);
 
+	path_ptr->block->dirty = true;
+
+	bool check_tree = false;
+
 	if (block_count == 0) {
 		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
 		entries--;
 		ext4_extent_header_set_entries_count(path_ptr->header, entries);
 
-		// TODO if empty leaf, release it
-
+		// If empty leaf, will be released and the whole tree must be checked
+		check_tree = true;
 	}
 
-	path_ptr->block->dirty = true;
+	while (check_tree) {
+
+		if (path_ptr > path) {
+			// TODO
+
+			// zahodit fblock
+			rc = ext4_balloc_free_block(inode_ref, path_ptr->block->pba);
+			if (rc != EOK) {
+				EXT4FS_DBG("ERROR");
+				// TODO
+			}
+		} else {
+			check_tree = false;
+		}
+
+		path_ptr--;
+
+		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+		entries--;
+		ext4_extent_header_set_entries_count(path_ptr->header, entries);
+
+		if (entries > 0) {
+			check_tree = false;
+		}
+	}
 
 	rc = ext4_balloc_free_block(inode_ref, fblock);
 	if (rc != EOK) {
+		EXT4FS_DBG("ERROR");
 		// TODO handle error
 	}
 
