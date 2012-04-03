@@ -112,7 +112,8 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	printf("%d:%d:%d\n", t.tm_hour, t.tm_min, t.tm_sec);
+	printf("%02d/%02d/%d ", t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year);
+	printf("%02d:%02d:%02d\n", t.tm_hour, t.tm_min, t.tm_sec);
 
 exit:
 	free(svc_name);
