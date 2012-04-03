@@ -79,6 +79,7 @@ static void rtc_dev_cleanup(rtc_t *rtc);
 static int  rtc_open(ddf_fun_t *fun);
 static void rtc_close(ddf_fun_t *fun);
 static bool rtc_update_in_progress(rtc_t *rtc);
+static int  rtc_register_read(ioport8_t *port, int reg);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -221,6 +222,20 @@ error:
 	return rc;
 }
 
+/** Read a register from the CMOS memory
+ *
+ * @param port   The I/O port assigned to the device
+ * @param reg    The index of the register to read
+ *
+ * @return       The value of the register
+ */
+static int
+rtc_register_read(ioport8_t *port, int reg)
+{
+	pio_write_8(port, reg);
+	return pio_read_8(port + 1);
+}
+
 /** Check if an update is in progress
  *
  * @param rtc  The rtc device
@@ -230,8 +245,7 @@ error:
 static bool
 rtc_update_in_progress(rtc_t *rtc)
 {
-	pio_write_8(rtc->port, RTC_UPDATE);
-	return pio_read_8(rtc->port + 1) & RTC_MASK_UPDATE;
+	return rtc_register_read(rtc->port, RTC_UPDATE) & RTC_MASK_UPDATE;
 }
 
 /** Read the current time from the CMOS
