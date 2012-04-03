@@ -97,8 +97,6 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	printf("OPEN!\n");
-
 	/* Now connect to the device */
 	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE,
 	    devh, IPC_FLAG_BLOCKING);
@@ -107,17 +105,12 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	printf("CONNECTED!\n");
-
 	/* Read the current date */
 	rc = clock_dev_time_get(sess, &t);
 	if (rc != EOK) {
 		printf(NAME ": Cannot read the current time\n");
 		goto exit;
 	}
-
-	printf("SUCCESS!\n");
-	fflush(stdout);
 
 	printf("%d:%d:%d\n", t.tm_hour, t.tm_min, t.tm_sec);
 
