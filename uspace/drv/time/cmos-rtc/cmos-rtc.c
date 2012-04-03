@@ -286,7 +286,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	/* Check if the RTC is working in BCD mode */
 	bcd_mode = rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD;
 
-	if (bcd_mode) {
+	if (1 || bcd_mode) {
 		t->tm_sec  = bcd2dec(t->tm_sec);
 		t->tm_min  = bcd2dec(t->tm_min);
 		t->tm_hour = bcd2dec(t->tm_hour);
