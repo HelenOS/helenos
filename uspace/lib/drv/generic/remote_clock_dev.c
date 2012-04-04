@@ -41,15 +41,13 @@
 
 static void remote_clock_time_get(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
-/*
 static void remote_clock_time_set(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
-*/
 
 /** Remote clock interface operations */
 static remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
 	&remote_clock_time_get,
-	/* XXX &remote_clock_time_set, */
+	&remote_clock_time_set,
 };
 
 /** Remote clock interface structure
@@ -104,7 +102,44 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 	async_answer_1(callid, EOK, rc);
 }
 
-/* TODO: remote_clock_time_set() */
+/** Process the write request from the remote client
+ *
+ * @param fun   The function to which the data are written
+ * @param ops   The local ops structure
+ */
+static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
+	int          rc;
+	struct tm    t;
+	ipc_callid_t cid;
+	size_t       len;
+
+	if (!async_data_write_receive(&cid, &len)) {
+		/* TODO: Handle protocol error */
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+
+	if (!clock_dev_ops->time_set) {
+		/* The driver does not support the time_set() functionality */
+		async_data_write_finalize(cid, NULL, 0);
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	async_data_write_finalize(cid, &t, sizeof(struct tm));
+
+	rc = (*clock_dev_ops->time_set)(fun, &t);
+	if (rc < 0) {
+		/* Some error occurred */
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	async_answer_1(callid, EOK, rc);
+}
 
 /**
  * @}
