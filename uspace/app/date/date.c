@@ -43,9 +43,8 @@ main(int argc, char **argv)
 	category_id_t cat_id;
 	size_t svc_cnt;
 	service_id_t  *svc_ids = NULL;
+	service_id_t svc_id;
 	char *svc_name = NULL;
-	char *devpath;
-	devman_handle_t devh;
 	struct tm t;
 
 	/* Get the id of the clock category */
@@ -77,36 +76,23 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	const char delim = '/';
-	devpath = str_chr(svc_name, delim);
-
-	if (!devpath) {
-		printf(NAME ": Device name format not recognized\n");
-		goto exit;
-	}
-
-	/* Skip the delimiter */
-	devpath++;
-
-	printf("Found device %s\n", devpath);
-
-	/* Get the device's handle */
-	rc = devman_fun_get_handle("/hw/pci0/00:01.0/cmos-rtc/a", &devh,
-	    IPC_FLAG_BLOCKING);
+	/* Get the service id for the device */
+	rc = loc_service_get_id(svc_name, &svc_id, 0);
 	if (rc != EOK) {
-		printf(NAME ": Cannot open the device\n");
+		printf(NAME ": Cannot get the service id for device %s",
+		    svc_name);
 		goto exit;
 	}
 
-	/* Now connect to the device */
-	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE,
-	    devh, IPC_FLAG_BLOCKING);
+	/* Connect to the device */
+	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
+	    svc_id, 0);
 	if (!sess) {
 		printf(NAME ": Cannot connect to the device\n");
 		goto exit;
 	}
 
-	/* Read the current date */
+	/* Read the current date/time */
 	rc = clock_dev_time_get(sess, &t);
 	if (rc != EOK) {
 		printf(NAME ": Cannot read the current time\n");
