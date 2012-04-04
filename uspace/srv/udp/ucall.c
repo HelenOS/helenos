@@ -36,41 +36,60 @@
 
 #include <io/log.h>
 
-//#include "conn.h"
+#include "assoc.h"
 #include "udp_type.h"
 #include "ucall.h"
 
 udp_error_t udp_uc_create(udp_assoc_t **assoc)
 {
-//	udo_assoc_t *nassoc;
+	udp_assoc_t *nassoc;
 
 	log_msg(LVL_DEBUG, "udp_uc_create()");
+	nassoc = udp_assoc_new(NULL, NULL);
+	if (nassoc == NULL)
+		return UDP_ENORES;
 
+	udp_assoc_add(nassoc);
+	*assoc = nassoc;
 	return UDP_EOK;
 }
 
 udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 {
-//	udo_assoc_t *nconn;
-
 	log_msg(LVL_DEBUG, "udp_uc_set_foreign(%p, %p)", assoc, fsock);
 
+	udp_assoc_set_foreign(assoc, fsock);
 	return UDP_EOK;
 }
 
 udp_error_t udp_uc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
 {
-//	udo_assoc_t *nconn;
-
 	log_msg(LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, lsock);
 
+	udp_assoc_set_local(assoc, lsock);
 	return UDP_EOK;
 }
 
 udp_error_t udp_uc_send(udp_assoc_t *assoc, udp_sock_t *fsock, void *data,
     size_t size, xflags_t flags)
 {
+	int rc;
+	udp_msg_t msg;
+
 	log_msg(LVL_DEBUG, "%s: udp_uc_send()", assoc->name);
+
+	msg.data = data;
+	msg.data_size = size;
+
+	rc = udp_assoc_send(assoc, fsock, &msg);
+	switch (rc) {
+	case ENOMEM:
+		return UDP_ENORES;
+	case EINVAL:
+		return UDP_EUNSPEC;
+	case EIO:
+		return UDP_ENOROUTE;
+	}
 	return UDP_EOK;
 }
 
@@ -91,8 +110,9 @@ void udp_uc_status(udp_assoc_t *assoc, udp_assoc_status_t *astatus)
 
 void udp_uc_destroy(udp_assoc_t *assoc)
 {
-	log_msg(LVL_DEBUG, "udp_uc_delete()");
-//	udp_assoc_destroy(assoc);
+	log_msg(LVL_DEBUG, "udp_uc_destroy()");
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
 }
 
 /**

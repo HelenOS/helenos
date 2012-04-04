@@ -42,12 +42,9 @@
 #include <stdio.h>
 #include <task.h>
 
-/*
-#include "pdu.h"
-#include "rqueue.h"
-*/
 #include "std.h"
 #include "udp_inet.h"
+#include "udp_type.h"
 
 static int udp_inet_ev_recv(inet_dgram_t *dgram);
 //static void tcp_received_pdu(tcp_pdu_t *pdu);
@@ -122,35 +119,24 @@ static int udp_inet_ev_recv(inet_dgram_t *dgram)
 }
 
 /** Transmit PDU over network layer. */
-/*void tcp_transmit_pdu(tcp_pdu_t *pdu)
+int udp_transmit_pdu(udp_pdu_t *pdu)
 {
 	int rc;
-	uint8_t *pdu_raw;
-	size_t pdu_raw_size;
 	inet_dgram_t dgram;
 
-	pdu_raw_size = pdu->header_size + pdu->text_size;
-	pdu_raw = malloc(pdu_raw_size);
-	if (pdu_raw == NULL) {
-		log_msg(LVL_ERROR, "Failed to transmit PDU. Out of memory.");
-		return;
-	}
-
-	memcpy(pdu_raw, pdu->header, pdu->header_size);
-	memcpy(pdu_raw + pdu->header_size, pdu->text,
-	    pdu->text_size);
-
-	dgram.src.ipv4 = pdu->src_addr.ipv4;
-	dgram.dest.ipv4 = pdu->dest_addr.ipv4;
+	dgram.src.ipv4 = pdu->src.ipv4;
+	dgram.dest.ipv4 = pdu->dest.ipv4;
 	dgram.tos = 0;
-	dgram.data = pdu_raw;
-	dgram.size = pdu_raw_size;
+	dgram.data = pdu->data;
+	dgram.size = pdu->data_size;
 
 	rc = inet_send(&dgram, INET_TTL_MAX, 0);
 	if (rc != EOK)
 		log_msg(LVL_ERROR, "Failed to transmit PDU.");
+
+	return rc;
 }
-*/
+
 /** Process received PDU. */
 /*
 static void tcp_received_pdu(tcp_pdu_t *pdu)

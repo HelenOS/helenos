@@ -32,6 +32,7 @@ EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = udp
 
 SOURCES = \
+	assoc.c \
 	msg.c \
 	sock.c \
 	pdu.c \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,24 @@
 /** @addtogroup udp
  * @{
  */
-/** @file
+/** @file UDP associations
  */
 
-#ifndef UDP_INET_H
-#define UDP_INET_H
+#ifndef ASSOC_H
+#define ASSOC_H
 
+#include <sys/types.h>
 #include "udp_type.h"
 
-extern int udp_inet_init(void);
-extern int udp_transmit_pdu(udp_pdu_t *);
+extern udp_assoc_t *udp_assoc_new(udp_sock_t *, udp_sock_t *);
+extern void udp_assoc_delete(udp_assoc_t *);
+extern void udp_assoc_add(udp_assoc_t *);
+extern void udp_assoc_remove(udp_assoc_t *);
+extern void udp_assoc_addref(udp_assoc_t *);
+extern void udp_assoc_delref(udp_assoc_t *);
+extern void udp_assoc_set_foreign(udp_assoc_t *, udp_sock_t *);
+extern void udp_assoc_set_local(udp_assoc_t *, udp_sock_t *);
+extern int udp_assoc_send(udp_assoc_t *, udp_sock_t *, udp_msg_t *);
 
 #endif
 

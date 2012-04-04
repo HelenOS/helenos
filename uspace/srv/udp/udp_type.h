@@ -40,7 +40,13 @@
 #include <sys/types.h>
 
 typedef enum {
-	UDP_EOK
+	UDP_EOK,
+	/* Insufficient resources */
+	UDP_ENORES,
+	/* Foreign socket unspecified */
+	UDP_EUNSPEC,
+	/* No route to destination */
+	UDP_ENOROUTE
 } udp_error_t;
 
 typedef enum {
@@ -91,9 +97,31 @@ typedef struct {
 	socket_cores_t sockets;
 } udp_client_t;
 
+/** UDP association
+ *
+ * This is a rough equivalent of a TCP connection endpoint. It allows
+ * sending and receiving UDP datagrams and it is uniquely identified
+ * by a socket pair.
+ */
 typedef struct {
 	char *name;
+	link_t link;
+
+	/** Association identification (local and foreign socket) */
 	udp_sockpair_t ident;
+
+	/** True if association was deleted by user */
+	bool deleted;
+
+	/** Protects access to association structure */
+	fibril_mutex_t lock;
+	/** Reference count */
+	atomic_t refcnt;
+
+	/** Receive queue */
+	list_t rcv_queue;
+	/** Receive queue CV. Broadcast when new datagram is inserted */
+	fibril_condvar_t rcv_queue_cv;
 } udp_assoc_t;
 
 typedef struct {
