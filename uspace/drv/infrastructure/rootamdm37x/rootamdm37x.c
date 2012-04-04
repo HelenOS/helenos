@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <ops/hw_res.h>
 #include <stdio.h>
+#include <ddi.h>
 
 #define NAME  "rootamdm37x"
 
@@ -159,6 +160,21 @@ failure:
  */
 static int rootamdm37x_dev_add(ddf_dev_t *dev)
 {
+	{
+	/* Enable USB host clocks */
+	uint32_t *reg = NULL;
+	const int ret = pio_enable((void*)0x48005400, 8192, (void**)&reg);
+	assert(ret == EOK);
+	assert(reg);
+	/* offset 0x10 (0x4 int32)[0] enables fclk,
+	 * offset 0x00 (0x0 int32)[0 and 1] enables iclk,
+	 * offset 0x30 (0xc int32)[0] enables autoidle
+	 */
+	reg[0x4] = 0x1;
+	reg[0x0] = 0x3;
+	reg[0xc] = 0x1;
+	}
+
 	/* Register functions */
 	if (!rootamdm37x_add_fun(dev, "ohci", "usb/host=ohci", &ohci))
 		ddf_msg(LVL_ERROR, "Failed to add OHCI function for "
