@@ -70,6 +70,10 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 		remaining--;
 	}
 
+	if (remaining == 0) {
+		return;
+	}
+
 	assert((idx % 8) == 0);
 
 	byte_index = idx / 8;
