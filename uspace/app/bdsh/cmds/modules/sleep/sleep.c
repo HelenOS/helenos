@@ -47,9 +47,9 @@ void help_cmd_sleep(unsigned int level)
 	} else {
 		help_cmd_sleep(HELP_SHORT);
 		printf(
-		"Usage:  %s <duration>\n"
-		"The duration is a decimal number of seconds.\n",
-		cmdname);
+		    "Usage:  %s <duration>\n"
+		    "The duration is a decimal number of seconds.\n",
+		    cmdname);
 	}
 
 	return;
@@ -61,7 +61,7 @@ void help_cmd_sleep(unsigned int level)
  * @param result Result of the conversion.
  * @return EOK if conversion was successful.
  */
-static int str_useconds_t(const char *nptr, useconds_t *result)
+static int decimal_to_useconds(const char *nptr, useconds_t *result)
 {
 	int ret;
 	uint64_t whole_seconds;
@@ -124,7 +124,7 @@ int cmd_sleep(char **argv)
 		return CMD_FAILURE;
 	}
 
-	ret = str_useconds_t(argv[1], &duration);
+	ret = decimal_to_useconds(argv[1], &duration);
 	if (ret != EOK) {
 		printf("%s - invalid duration.\n", cmdname);
 		return CMD_FAILURE;
