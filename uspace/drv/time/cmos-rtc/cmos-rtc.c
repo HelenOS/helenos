@@ -277,11 +277,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		t->tm_year = rtc_register_read(rtc, RTC_YEAR);
 
 		/* Now check if it is stable */
-	} while( t->tm_sec  != rtc_register_read(rtc, RTC_SEC) ||
-		 t->tm_min  != rtc_register_read(rtc, RTC_MIN) ||
-		 t->tm_mday != rtc_register_read(rtc, RTC_DAY) ||
-		 t->tm_mon  != rtc_register_read(rtc, RTC_MON) ||
-		 t->tm_year != rtc_register_read(rtc, RTC_YEAR));
+	} while(t->tm_sec  != rtc_register_read(rtc, RTC_SEC));
 
 	/* Check if the RTC is working in BCD mode */
 	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
