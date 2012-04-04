@@ -45,6 +45,7 @@
 #include <fibril_synch.h>
 #include <device/hw_res.h>
 #include <devman.h>
+#include <ipc/clock_ctl.h>
 
 #include "cmos-regs.h"
 
@@ -81,6 +82,8 @@ static void rtc_close(ddf_fun_t *fun);
 static bool rtc_update_in_progress(rtc_t *rtc);
 static int  rtc_register_read(rtc_t *rtc, int reg);
 static int  bcd2dec(int bcd);
+static void rtc_default_handler(ddf_fun_t *fun,
+    ipc_callid_t callid, ipc_call_t *call);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -113,7 +116,7 @@ rtc_init(void)
 	rtc_dev_ops.close = rtc_close;
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
-	rtc_dev_ops.default_handler = NULL; /* XXX */
+	rtc_dev_ops.default_handler = &rtc_default_handler;
 }
 
 /** Clean up the RTC soft state
@@ -384,6 +387,27 @@ error:
 	if (need_cleanup)
 		rtc_dev_cleanup(rtc);
 	return rc;
+}
+
+/** Default handler for client requests not handled
+ *  by the standard interface
+ */
+static void
+rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
+{
+	sysarg_t method = IPC_GET_IMETHOD(*call);
+	rtc_t *rtc = RTC_FROM_FNODE(fun);
+	bool batt_ok;
+
+	switch (method) {
+	case CLOCK_GET_BATTERY_STATUS:
+		batt_ok = !(rtc_register_read(rtc, RTC_STATUS_D) &
+		    RTC_BATTERY_OK);
+		async_answer_1(callid, EOK, batt_ok);
+		break;
+	default:
+		async_answer_0(callid, ENOTSUP);
+	}
 }
 
 /** Open the device

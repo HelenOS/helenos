@@ -26,24 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CMOS_RTC_H_
-#define _CMOS_RTC_H_
+#ifndef LIBC_IPC_CLOCK_CTL_H_
+#define LIBC_IPC_CLOCK_CTL_H_
 
-#define RTC_SEC         0x00
-#define RTC_MIN         0x02
-#define RTC_HOUR        0x04
-#define RTC_DAY         0x07
-#define RTC_MON         0x08
-#define RTC_YEAR        0x09
+#include <ipc/dev_iface.h>
 
-#define RTC_STATUS_B    0x0B
-#define RTC_MASK_BCD    0x04
-
-#define RTC_STATUS_D    0x0D
-#define RTC_BATTERY_OK  0x80
-
-#define RTC_UPDATE      0x0A
-#define RTC_MASK_UPDATE 0x08
+typedef enum {
+	CLOCK_GET_BATTERY_STATUS = DEV_FIRST_CUSTOM_METHOD,
+} clock_ctl_t;
 
 #endif
 
