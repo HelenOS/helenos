@@ -28,11 +28,11 @@
 
 
 #include <stdio.h>
-#include <devman.h>
 #include <device/clock_dev.h>
 #include <errno.h>
 #include <loc.h>
 #include <time.h>
+#include <malloc.h>
 
 #define NAME   "date"
 
