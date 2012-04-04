@@ -50,6 +50,55 @@ void ext4_bitmap_free_bit(uint8_t *bitmap, uint32_t index)
 	*target &= ~ (1 << bit_index);
 }
 
+void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
+{
+	uint8_t *target;
+	uint32_t idx = index;
+	uint32_t remaining = count;
+	uint32_t byte_index;
+
+	while (((idx % 8) != 0) && (remaining > 0)) {
+
+		byte_index = idx / 8;
+		uint32_t bit_index = idx % 8;
+
+		target = bitmap + byte_index;
+
+		*target &= ~ (1 << bit_index);
+
+		idx++;
+		remaining--;
+	}
+
+	assert((idx % 8) == 0);
+
+	byte_index = idx / 8;
+	target = bitmap + byte_index;
+
+	while (remaining >= 8) {
+		*target = 0;
+
+		idx += 8;
+		remaining -= 8;
+		target++;
+	}
+
+	assert(remaining < 8);
+
+	while (remaining != 0) {
+
+		byte_index = idx / 8;
+		uint32_t bit_index = idx % 8;
+
+		target = bitmap + byte_index;
+
+		*target &= ~ (1 << bit_index);
+
+		idx++;
+		remaining--;
+	}
+}
+
 void ext4_bitmap_set_bit(uint8_t *bitmap, uint32_t index)
 {
 	uint32_t byte_index = index / 8;
