@@ -215,10 +215,10 @@ int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 	int rc;
 
 	if (ref->dirty) {
-		 uint16_t checksum = ext4_filesystem_bg_checksum(
+		uint16_t checksum = ext4_filesystem_bg_checksum(
 				ref->fs->superblock, ref->index, ref->block_group);
 
-		 ext4_block_group_set_checksum(ref->block_group, checksum);
+		ext4_block_group_set_checksum(ref->block_group, checksum);
 
 		ref->block->dirty = true;
 	}
@@ -522,11 +522,21 @@ int ext4_filesystem_truncate_inode(
 		old_blocks_count++;
 	}
 
-	// starting from 1 because of logical blocks are numbered from 0
-	for (uint32_t i = 1; i <= diff_blocks_count; ++i) {
-		rc = ext4_filesystem_release_inode_block(inode_ref, old_blocks_count - i);
+	if (ext4_superblock_has_feature_incompatible(
+			inode_ref->fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+				ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+
+		rc = ext4_extent_release_blocks_from(inode_ref, old_blocks_count - diff_blocks_count);
 		if (rc != EOK) {
 			return rc;
+		}
+	} else {
+		// starting from 1 because of logical blocks are numbered from 0
+		for (uint32_t i = 1; i <= diff_blocks_count; ++i) {
+			rc = ext4_filesystem_release_inode_block(inode_ref, old_blocks_count - i);
+			if (rc != EOK) {
+				return rc;
+			}
 		}
 	}
 
@@ -782,11 +792,10 @@ int ext4_filesystem_release_inode_block(
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
-	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
-			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
-
-		return ext4_extent_release_block(inode_ref, iblock);
-	}
+	// EXTENTS are handled
+	assert(! (ext4_superblock_has_feature_incompatible(fs->superblock,
+			EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)));
 
 	ext4_inode_t *inode = inode_ref->inode;
 

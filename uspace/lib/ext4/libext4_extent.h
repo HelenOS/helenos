@@ -61,7 +61,7 @@ extern uint32_t ext4_extent_header_get_generation(ext4_extent_header_t *);
 extern void ext4_extent_header_set_generation(ext4_extent_header_t *, uint32_t);
 
 extern int ext4_extent_find_block(ext4_inode_ref_t *, uint32_t, uint32_t *);
-extern int ext4_extent_release_block(ext4_inode_ref_t *, uint32_t);
+extern int ext4_extent_release_blocks_from(ext4_inode_ref_t *, uint32_t);
 
 #endif
 

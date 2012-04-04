@@ -325,38 +325,114 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-int ext4_extent_release_block(ext4_inode_ref_t *inode_ref, uint32_t iblock)
+static int ext4_extent_release(ext4_inode_ref_t *inode_ref, ext4_extent_t* extent)
 {
 	int rc;
 
+	uint64_t start = ext4_extent_get_start(extent);
+	uint16_t block_count = ext4_extent_get_block_count(extent);
+
+	rc = ext4_balloc_free_blocks(inode_ref, start, block_count);
+	if (rc != EOK) {
+		EXT4FS_DBG("ERROR");
+		return rc;
+	}
+
+	return EOK;
+}
+
+// Recursive release
+static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
+		ext4_extent_index_t *index)
+{
+	int rc;
+
+	block_t* block;
+
+	uint32_t fblock = ext4_extent_index_get_leaf(index);
+
+	EXT4FS_DBG("fblock = \%u", fblock);
+
+	rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NOREAD);
+	if (rc != EOK) {
+		EXT4FS_DBG("ERROR get_block");
+		return rc;
+	}
+
+	ext4_extent_header_t *header = block->data;
+
+	if (ext4_extent_header_get_depth(header)) {
+
+		ext4_extent_index_t *idx = EXT4_EXTENT_FIRST_INDEX(header);
+
+		for (uint32_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, ++idx) {
+			rc = ext4_extent_release_branch(inode_ref, idx);
+			if (rc != EOK) {
+				EXT4FS_DBG("error recursion");
+				return rc;
+			}
+		}
+	} else {
+		ext4_extent_t *ext = EXT4_EXTENT_FIRST(header);
+
+		for (uint32_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, ++ext) {
+			rc = ext4_extent_release(inode_ref, ext);
+			if (rc != EOK) {
+				EXT4FS_DBG("error recursion");
+				return rc;
+			}
+		}
+	}
+
+	rc = block_put(block);
+	if (rc != EOK) {
+		EXT4FS_DBG("ERROR put_block");
+		return rc;
+	}
+
+	ext4_balloc_free_block(inode_ref, fblock);
+
+	return EOK;
+}
+
+int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref, uint32_t iblock_from)
+{
+	int rc;
+
+	// 1) Delete iblock and successors in the same extent
+
 	ext4_extent_path_t *path;
-	rc = ext4_extent_find_extent(inode_ref, iblock, &path);
+	rc = ext4_extent_find_extent(inode_ref, iblock_from, &path);
 	if (rc != EOK) {
 		return rc;
 	}
 
 	ext4_extent_path_t *path_ptr = path;
 	while (path_ptr->depth != 0) {
-		EXT4FS_DBG("depth = \%u", path_ptr->depth);
 		path_ptr++;
 	}
 
 	assert(path_ptr->extent != NULL);
 
-	uint32_t fblock;
-	fblock = ext4_extent_get_start(path_ptr->extent) + iblock;
-	fblock -= ext4_extent_get_first_block(path_ptr->extent);
+	uint32_t first_fblock;
+	first_fblock = ext4_extent_get_start(path_ptr->extent) + iblock_from;
+	first_fblock -= ext4_extent_get_first_block(path_ptr->extent);
 
 	uint16_t block_count = ext4_extent_get_block_count(path_ptr->extent);
 
-	assert((ext4_extent_get_first_block(path_ptr->extent) + block_count - 1) == iblock);
+	uint16_t delete_count = block_count - first_fblock +
+			ext4_extent_get_start(path_ptr->extent);
 
-	block_count--;
+	rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
+
+	block_count -= delete_count;
 	ext4_extent_set_block_count(path_ptr->extent, block_count);
 
 	path_ptr->block->dirty = true;
 
 	bool check_tree = false;
+
+	uint16_t old_root_entries = ext4_extent_header_get_entries_count(path->header);
 
 	if (block_count == 0) {
 		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
@@ -364,39 +440,101 @@ int ext4_extent_release_block(ext4_inode_ref_t *inode_ref, uint32_t iblock)
 		ext4_extent_header_set_entries_count(path_ptr->header, entries);
 
 		// If empty leaf, will be released and the whole tree must be checked
-		check_tree = true;
-	}
-
-	while (check_tree) {
-
-		if (path_ptr > path) {
-			// TODO
-
-			// zahodit fblock
+		if (path_ptr != path) {
 			rc = ext4_balloc_free_block(inode_ref, path_ptr->block->pba);
 			if (rc != EOK) {
 				EXT4FS_DBG("ERROR");
 				// TODO
 			}
-		} else {
-			check_tree = false;
-		}
-
-		path_ptr--;
-
-		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
-		entries--;
-		ext4_extent_header_set_entries_count(path_ptr->header, entries);
-
-		if (entries > 0) {
-			check_tree = false;
+			check_tree = true;
 		}
 	}
 
-	rc = ext4_balloc_free_block(inode_ref, fblock);
-	if (rc != EOK) {
-		EXT4FS_DBG("ERROR");
-		// TODO handle error
+	--path_ptr;
+
+	while ((path_ptr >= path) && check_tree) {
+
+		if (path_ptr > path) {
+
+			EXT4FS_DBG("not root");
+			uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+			entries--;
+			ext4_extent_header_set_entries_count(path_ptr->header, entries);
+
+			if (entries == 0) {
+				rc = ext4_balloc_free_block(inode_ref, path_ptr->block->pba);
+				if (rc != EOK) {
+					EXT4FS_DBG("ERROR");
+					// TODO
+				}
+			} else {
+				break;
+			}
+
+		} else {
+			EXT4FS_DBG("root");
+
+			// TODO tady je BUG asi
+
+			uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+			entries--;
+			ext4_extent_header_set_entries_count(path_ptr->header, entries);
+
+			break;
+		}
+
+		path_ptr--;
+	}
+
+	ext4_extent_header_t *header = path->header;
+
+	// 2) delete or successors first level extents/indexes
+	if (ext4_extent_header_get_depth(header)) {
+
+		ext4_extent_index_t *index = path->index + 1;
+		ext4_extent_index_t *stop = EXT4_EXTENT_FIRST_INDEX(header) +
+				old_root_entries;
+
+		if (index < stop) {
+			inode_ref->dirty = true;
+		}
+
+		while (index < stop) {
+			rc = ext4_extent_release_branch(inode_ref, index);
+			if (rc != EOK) {
+				EXT4FS_DBG("ERR");
+				// TODO error
+			}
+			++index;
+
+			uint16_t entries = ext4_extent_header_get_entries_count(header);
+			entries--;
+			ext4_extent_header_set_entries_count(header, entries);
+
+		}
+
+	} else {
+
+		ext4_extent_t *extent = path->extent + 1;
+		ext4_extent_t *stop = EXT4_EXTENT_FIRST(header) +
+				old_root_entries;
+
+		if (extent != stop) {
+			inode_ref->dirty = true;
+		}
+
+		while (extent < stop) {
+			rc = ext4_extent_release(inode_ref, extent);
+			if (rc != EOK) {
+				EXT4FS_DBG("ERR");
+				// TODO error
+			}
+			++extent;
+
+			uint16_t entries = ext4_extent_header_get_entries_count(header);
+			entries--;
+			ext4_extent_header_set_entries_count(header, entries);
+		}
 	}
 
 	uint16_t depth = path->depth;
@@ -411,7 +549,6 @@ int ext4_extent_release_block(ext4_inode_ref_t *inode_ref, uint32_t iblock)
 
 	// Destroy temporary data structure
 	free(path);
-
 
 	return EOK;
 }
