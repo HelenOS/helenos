@@ -41,8 +41,7 @@
 #include <sys/types.h>
 #include <async.h>
 #include <ipc/services.h>
-#include <ipc/devman.h>
-#include <devman.h>
+#include <loc.h>
 #include <device/char_dev.h>
 #include <str.h>
 #include <ipc/serial_ctl.h>
@@ -70,21 +69,21 @@ const char *test_serial1(void)
 			return "Unexpected argument error";
 		}
 	
-	devman_handle_t handle;
-	int res = devman_fun_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
-	    IPC_FLAG_BLOCKING);
+	service_id_t svc_id;
+	int res = loc_service_get_id("devices/\\hw\\pci0\\00:01.0\\com1\\a",
+	    &svc_id, IPC_FLAG_BLOCKING);
 	if (res != EOK)
-		return "Could not get serial device handle";
+		return "Failed getting serial port service ID";
 	
-	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE, handle,
+	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess)
-		return "Unable to connect to serial device";
+		return "Failed connecting to serial device";
 	
 	char *buf = (char *) malloc(cnt + 1);
 	if (buf == NULL) {
 		async_hangup(sess);
-		return "Failed to allocate input buffer";
+		return "Failed allocating input buffer";
 	}
 	
 	sysarg_t old_baud;
@@ -111,11 +110,11 @@ const char *test_serial1(void)
 	if (EOK != res) {
 		free(buf);
 		async_hangup(sess);
-		return "Failed to set serial communication parameters";
+		return "Failed setting serial communication parameters";
 	}
 	
-	TPRINTF("Trying to read %zu characters from serial device "
-	    "(handle=%" PRIun ")\n", cnt, handle);
+	TPRINTF("Trying reading %zu characters from serial device "
+	    "(svc_id=%" PRIun ")\n", cnt, svc_id);
 	
 	size_t total = 0;
 	while (total < cnt) {
@@ -129,7 +128,7 @@ const char *test_serial1(void)
 			
 			free(buf);
 			async_hangup(sess);
-			return "Failed read from serial device";
+			return "Failed reading from serial device";
 		}
 		
 		if ((size_t) read > cnt - total) {
@@ -164,7 +163,7 @@ const char *test_serial1(void)
 				
 				free(buf);
 				async_hangup(sess);
-				return "Failed write to serial device";
+				return "Failed writing to serial device";
 			}
 			
 			if (written != read) {
