@@ -119,7 +119,7 @@ void install_exception_handlers(void)
 /** Activates use of high exception vectors addresses. */
 static void high_vectors(void)
 {
-	register uint32_t control_reg = 0;
+	uint32_t control_reg = 0;
 	
 #if defined(PROCESSOR_armv7)
 	asm volatile (
