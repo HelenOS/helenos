@@ -33,6 +33,7 @@
 #include <loc.h>
 #include <time.h>
 #include <malloc.h>
+#include <ipc/clock_ctl.h>
 
 #define NAME   "date"
 
@@ -45,6 +46,8 @@ main(int argc, char **argv)
 	service_id_t  *svc_ids = NULL;
 	service_id_t svc_id;
 	char *svc_name = NULL;
+
+	sysarg_t battery_ok;
 	struct tm t;
 
 	/* Get the id of the clock category */
@@ -91,6 +94,13 @@ main(int argc, char **argv)
 		printf(NAME ": Cannot connect to the device\n");
 		goto exit;
 	}
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	rc = async_req_0_1(exch, CLOCK_GET_BATTERY_STATUS, &battery_ok);
+	async_exchange_end(exch);
+
+	if (rc == EOK && !battery_ok)
+		printf(NAME ": Warning! RTC battery dead\n");
 
 	/* Read the current date/time */
 	rc = clock_dev_time_get(sess, &t);
