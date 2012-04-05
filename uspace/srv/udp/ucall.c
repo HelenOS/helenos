@@ -38,6 +38,7 @@
 #include <macros.h>
 
 #include "assoc.h"
+#include "msg.h"
 #include "udp_type.h"
 #include "ucall.h"
 
@@ -109,6 +110,7 @@ udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
 	xfer_size = min(size, msg->data_size);
 	memcpy(buf, msg->data, xfer_size);
 	*rcvd = xfer_size;
+	udp_msg_delete(msg);
 
 	return UDP_EOK;
 }

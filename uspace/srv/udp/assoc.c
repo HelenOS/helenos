@@ -276,6 +276,7 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
 
 	*msg = rqe->msg;
 	*fsock = rqe->sp.foreign;
+	free(rqe);
 
 	return EOK;
 }
