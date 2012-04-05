@@ -365,6 +365,16 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
 
+	ext4_filesystem_t *fs = inode_ref->fs;
+
+	if (ext4_superblock_has_feature_incompatible(
+			fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+				ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+
+		// Data structures are released during truncate operation...
+		goto finish;
+	}
+
 	// release all indirect (no data) blocks
 
 	// 1) Single indirect
@@ -377,8 +387,6 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 
 		ext4_inode_set_indirect_block(inode_ref->inode, 0, 0);
 	}
-
-	ext4_filesystem_t *fs = inode_ref->fs;
 
 	block_t *block;
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
@@ -471,6 +479,7 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 		ext4_inode_set_indirect_block(inode_ref->inode, 2, 0);
 	}
 
+finish:
 	inode_ref->dirty = true;
 
 	// Free inode

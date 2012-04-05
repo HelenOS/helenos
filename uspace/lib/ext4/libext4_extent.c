@@ -399,14 +399,14 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref, uint32_t iblock
 {
 	int rc;
 
-	// 1) Delete iblock and successors in the same extent
-
+	// Find the first extent to modify
 	ext4_extent_path_t *path;
 	rc = ext4_extent_find_extent(inode_ref, iblock_from, &path);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	// Jump to last item of the path (extent)
 	ext4_extent_path_t *path_ptr = path;
 	while (path_ptr->depth != 0) {
 		path_ptr++;
@@ -414,6 +414,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref, uint32_t iblock
 
 	assert(path_ptr->extent != NULL);
 
+	// First extent maybe released partially
 	uint32_t first_fblock;
 	first_fblock = ext4_extent_get_start(path_ptr->extent) + iblock_from;
 	first_fblock -= ext4_extent_get_first_block(path_ptr->extent);
@@ -424,119 +425,103 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref, uint32_t iblock
 			ext4_extent_get_start(path_ptr->extent);
 
 	rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
+	if (rc != EOK) {
+		// TODO goto cleanup
+		EXT4FS_DBG("ERROR");
+		return rc;
+	}
 
 	block_count -= delete_count;
 	ext4_extent_set_block_count(path_ptr->extent, block_count);
 
-	path_ptr->block->dirty = true;
+	uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+	ext4_extent_t *tmp_ext = path_ptr->extent + 1;
+	ext4_extent_t *stop_ext = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
 
-	bool check_tree = false;
-
-	uint16_t old_root_entries = ext4_extent_header_get_entries_count(path->header);
-
+	// If first extent empty, release it
 	if (block_count == 0) {
-		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+		entries--;
+		ext4_extent_header_set_entries_count(path_ptr->header, entries);
+	}
+
+	// Release all successors of the first extent in the same node
+	while (tmp_ext < stop_ext) {
+		first_fblock = ext4_extent_get_start(tmp_ext);
+		delete_count = ext4_extent_get_block_count(tmp_ext);
+
+		rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
+		if (rc != EOK) {
+			// TODO goto cleanup
+			EXT4FS_DBG("ERROR");
+			return rc;
+		}
+
 		entries--;
 		ext4_extent_header_set_entries_count(path_ptr->header, entries);
 
-		// If empty leaf, will be released and the whole tree must be checked
-		if (path_ptr != path) {
-			rc = ext4_balloc_free_block(inode_ref, path_ptr->block->pba);
-			if (rc != EOK) {
-				EXT4FS_DBG("ERROR");
-				// TODO
-			}
-			check_tree = true;
-		}
+		tmp_ext++;
 	}
 
+	// If leaf node is empty, the whole tree must be checked and the node will be released
+	bool check_tree = false;
+
+	// Don't release root block (including inode data) !!!
+	if ((path_ptr != path) && (entries == 0)) {
+		rc = ext4_balloc_free_block(inode_ref, path_ptr->block->lba);
+		if (rc != EOK) {
+			EXT4FS_DBG("ERROR");
+			// TODO goto cleanup
+			return rc;
+		}
+		check_tree = true;
+	}
+
+	// Jump to the parent
 	--path_ptr;
 
-	while ((path_ptr >= path) && check_tree) {
+	// release all successors in all levels
+	while(path_ptr >= path) {
+		entries = ext4_extent_header_get_entries_count(path_ptr->header);
+		ext4_extent_index_t *index = path_ptr->index + 1;
+		ext4_extent_index_t *stop =
+				EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
 
-		if (path_ptr > path) {
-
-			EXT4FS_DBG("not root");
-			uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+		if (check_tree) {
 			entries--;
 			ext4_extent_header_set_entries_count(path_ptr->header, entries);
-
-			if (entries == 0) {
-				rc = ext4_balloc_free_block(inode_ref, path_ptr->block->pba);
-				if (rc != EOK) {
-					EXT4FS_DBG("ERROR");
-					// TODO
-				}
-			} else {
-				break;
-			}
-
-		} else {
-			EXT4FS_DBG("root");
-
-			// TODO tady je BUG asi
-
-			uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
-			entries--;
-			ext4_extent_header_set_entries_count(path_ptr->header, entries);
-
-			break;
-		}
-
-		path_ptr--;
-	}
-
-	ext4_extent_header_t *header = path->header;
-
-	// 2) delete or successors first level extents/indexes
-	if (ext4_extent_header_get_depth(header)) {
-
-		ext4_extent_index_t *index = path->index + 1;
-		ext4_extent_index_t *stop = EXT4_EXTENT_FIRST_INDEX(header) +
-				old_root_entries;
-
-		if (index < stop) {
-			inode_ref->dirty = true;
 		}
 
 		while (index < stop) {
 			rc = ext4_extent_release_branch(inode_ref, index);
 			if (rc != EOK) {
 				EXT4FS_DBG("ERR");
-				// TODO error
+				// TODO goto cleanup
+				return rc;
 			}
 			++index;
-
-			uint16_t entries = ext4_extent_header_get_entries_count(header);
-			entries--;
-			ext4_extent_header_set_entries_count(header, entries);
-
+			--entries;
+			ext4_extent_header_set_entries_count(path_ptr->header, entries);
 		}
 
-	} else {
+		path_ptr->block->dirty = true;
 
-		ext4_extent_t *extent = path->extent + 1;
-		ext4_extent_t *stop = EXT4_EXTENT_FIRST(header) +
-				old_root_entries;
-
-		if (extent != stop) {
-			inode_ref->dirty = true;
-		}
-
-		while (extent < stop) {
-			rc = ext4_extent_release(inode_ref, extent);
+		if ((entries == 0) && (path_ptr != path)) {
+			rc = ext4_balloc_free_block(inode_ref, path_ptr->block->lba);
 			if (rc != EOK) {
-				EXT4FS_DBG("ERR");
-				// TODO error
+				EXT4FS_DBG("ERROR");
+				// TODO goto cleanup
+				return rc;
 			}
-			++extent;
-
-			uint16_t entries = ext4_extent_header_get_entries_count(header);
-			entries--;
-			ext4_extent_header_set_entries_count(header, entries);
+			check_tree = true;
+		} else {
+			check_tree = false;
 		}
+
+		--path_ptr;
 	}
 
+
+	// Finish
 	uint16_t depth = path->depth;
 
 	// Put loaded blocks
