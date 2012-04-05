@@ -61,6 +61,10 @@ enum netaddr {
 	UDP_IPV4_ANY = 0
 };
 
+enum tcp_port {
+	UDP_PORT_ANY = 0
+};
+
 typedef struct {
 	netaddr_t addr;
 	uint16_t port;
@@ -136,9 +140,16 @@ typedef struct udp_sockdata {
 	udp_client_t *client;
 	/** Connection */
 	udp_assoc_t *assoc;
-	/** Local address */
-	netaddr_t laddr;
 } udp_sockdata_t;
+
+typedef struct {
+	/** Link to receive queue */
+	link_t link;
+	/** Socket pair */
+	udp_sockpair_t sp;
+	/** Message */
+	udp_msg_t *msg;
+} udp_rcv_queue_entry_t;
 
 #endif
 

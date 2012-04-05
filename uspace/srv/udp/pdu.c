@@ -92,7 +92,7 @@ static void udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr)
 	phdr->udp_length = host2uint16_t_be(pdu->data_size);
 }
 
-static udp_pdu_t *udp_pdu_new(void)
+udp_pdu_t *udp_pdu_new(void)
 {
 	return calloc(1, sizeof(udp_pdu_t));
 }

@@ -50,6 +50,11 @@
 LIST_INITIALIZE(assoc_list);
 FIBRIL_MUTEX_INITIALIZE(assoc_list_lock);
 
+static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *);
+static int udp_assoc_queue_msg(udp_assoc_t *, udp_sockpair_t *, udp_msg_t *);
+static bool udp_socket_match(udp_sock_t *, udp_sock_t *);
+static bool udp_sockpair_match(udp_sockpair_t *, udp_sockpair_t *);
+
 /** Create new association structure.
  *
  * @param lsock		Local socket (will be deeply copied)
@@ -60,7 +65,7 @@ udp_assoc_t *udp_assoc_new(udp_sock_t *lsock, udp_sock_t *fsock)
 {
 	udp_assoc_t *assoc = NULL;
 
-	/* Allocate connection structure */
+	/* Allocate association structure */
 	assoc = calloc(1, sizeof(udp_assoc_t));
 	if (assoc == NULL)
 		goto error;
@@ -94,7 +99,7 @@ error:
  * This happens when @a assoc->refcnt is zero as we count (1)
  * as an extra reference.
  *
- * @param conn		Connection
+ * @param assoc		Association
  */
 static void udp_assoc_free(udp_assoc_t *assoc)
 {
@@ -102,8 +107,12 @@ static void udp_assoc_free(udp_assoc_t *assoc)
 
 	while (!list_empty(&assoc->rcv_queue)) {
 		link_t *link = list_first(&assoc->rcv_queue);
-//		....;
+		udp_rcv_queue_entry_t *rqe = list_get_instance(link,
+		    udp_rcv_queue_entry_t, link);
 		list_remove(link);
+
+		udp_msg_delete(rqe->msg);
+		free(rqe);
 	}
 
 	free(assoc);
@@ -218,6 +227,9 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
 	udp_sockpair_t sp;
 	int rc;
 
+	log_msg(LVL_DEBUG, "udp_assoc_send(%p, %p, %p)",
+	    assoc, fsock, msg);
+
 	/* @a fsock can be used to override the foreign socket */
 	sp = assoc->ident;
 	if (fsock != NULL)
@@ -238,6 +250,160 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
 
 	return EOK;
 }
+
+/** Get a received message.
+ *
+ * Pull one message from the association's receive queue.
+ */
+int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
+{
+	link_t *link;
+	udp_rcv_queue_entry_t *rqe;
+
+	log_msg(LVL_DEBUG, "udp_assoc_recv()");
+
+	fibril_mutex_lock(&assoc->lock);
+	while (list_empty(&assoc->rcv_queue)) {
+		log_msg(LVL_DEBUG, "udp_assoc_recv() - waiting");
+		fibril_condvar_wait(&assoc->rcv_queue_cv, &assoc->lock);
+	}
+
+	log_msg(LVL_DEBUG, "udp_assoc_recv() - got a message");
+	link = list_first(&assoc->rcv_queue);
+	rqe = list_get_instance(link, udp_rcv_queue_entry_t, link);
+	list_remove(link);
+	fibril_mutex_unlock(&assoc->lock);
+
+	*msg = rqe->msg;
+	*fsock = rqe->sp.foreign;
+
+	return EOK;
+}
+
+/** Message received.
+ *
+ * Find the association to which the message belongs and queue it.
+ */
+void udp_assoc_received(udp_sockpair_t *rsp, udp_msg_t *msg)
+{
+	udp_assoc_t *assoc;
+	int rc;
+
+	log_msg(LVL_DEBUG, "udp_assoc_received(%p, %p)", rsp, msg);
+
+	assoc = udp_assoc_find_ref(rsp);
+	if (assoc == NULL) {
+		log_msg(LVL_DEBUG, "No association found. Message dropped.");
+		/* XXX Generate ICMP error. */
+		/* XXX Might propagate error directly by error return. */
+		return;
+	}
+
+	rc = udp_assoc_queue_msg(assoc, rsp, msg);
+	if (rc != EOK) {
+		log_msg(LVL_DEBUG, "Out of memory. Message dropped.");
+		/* XXX Generate ICMP error? */
+	}
+}
+
+static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,
+    udp_msg_t *msg)
+{
+	udp_rcv_queue_entry_t *rqe;
+
+	log_msg(LVL_DEBUG, "udp_assoc_queue_msg(%p, %p, %p)",
+	    assoc, sp, msg);
+
+	rqe = calloc(1, sizeof(udp_rcv_queue_entry_t));
+	if (rqe == NULL)
+		return ENOMEM;
+
+	link_initialize(&rqe->link);
+	rqe->sp = *sp;
+	rqe->msg = msg;
+
+	fibril_mutex_lock(&assoc->lock);
+	list_append(&rqe->link, &assoc->rcv_queue);
+	fibril_mutex_unlock(&assoc->lock);
+
+	fibril_condvar_broadcast(&assoc->rcv_queue_cv);
+
+	return EOK;
+}
+
+/** Match socket with pattern. */
+static bool udp_socket_match(udp_sock_t *sock, udp_sock_t *patt)
+{
+	log_msg(LVL_DEBUG, "udp_socket_match(sock=(%x,%u), pat=(%x,%u))",
+	    sock->addr.ipv4, sock->port, patt->addr.ipv4, patt->port);
+
+	if (patt->addr.ipv4 != UDP_IPV4_ANY &&
+	    patt->addr.ipv4 != sock->addr.ipv4)
+		return false;
+
+	if (patt->port != UDP_PORT_ANY &&
+	    patt->port != sock->port)
+		return false;
+
+	log_msg(LVL_DEBUG, " -> match");
+
+	return true;
+}
+
+/** Match socket pair with pattern. */
+static bool udp_sockpair_match(udp_sockpair_t *sp, udp_sockpair_t *pattern)
+{
+	log_msg(LVL_DEBUG, "udp_sockpair_match(%p, %p)", sp, pattern);
+
+	if (!udp_socket_match(&sp->local, &pattern->local))
+		return false;
+
+	if (!udp_socket_match(&sp->foreign, &pattern->foreign))
+		return false;
+
+	log_msg(LVL_DEBUG, "Socket pair matched.");
+	return true;
+}
+
+
+/** Find association structure for specified socket pair.
+ *
+ * An association is uniquely identified by a socket pair. Look up our
+ * association map and return association structure based on socket pair.
+ * The association reference count is bumped by one.
+ *
+ * @param sp	Socket pair
+ * @return	Association structure or NULL if not found.
+ */
+static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
+{
+	log_msg(LVL_DEBUG, "udp_assoc_find_ref(%p)", sp);
+
+	fibril_mutex_lock(&assoc_list_lock);
+
+	list_foreach(assoc_list, link) {
+		udp_assoc_t *assoc = list_get_instance(link, udp_assoc_t, link);
+		udp_sockpair_t *asp = &assoc->ident;
+		log_msg(LVL_DEBUG, "compare with assoc (f:(%x,%u), l:(%x,%u))",
+		    asp->foreign.addr.ipv4, asp->foreign.port,
+		    asp->local.addr.ipv4, asp->local.port);
+
+		/* Skip unbound associations */
+		if (asp->local.port == UDP_PORT_ANY)
+			continue;
+
+		if (udp_sockpair_match(sp, asp)) {
+			log_msg(LVL_DEBUG, "Returning assoc %p", assoc);
+			udp_assoc_addref(assoc);
+			fibril_mutex_unlock(&assoc_list_lock);
+			return assoc;
+		}
+	}
+
+	fibril_mutex_unlock(&assoc_list_lock);
+	return NULL;
+}
+
 
 /**
  * @}

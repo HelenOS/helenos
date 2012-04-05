@@ -308,11 +308,7 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	conn->fin_is_acked = false;
 }
 
-/** Compare two sockets.
- *
- * Two sockets are equal if the address is equal and the port number
- * is equal.
- */
+/** Match socket with pattern. */
 static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 {
 	log_msg(LVL_DEBUG, "tcp_socket_match(sock=(%x,%u), pat=(%x,%u))",
@@ -331,7 +327,7 @@ static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 	return true;
 }
 
-/** Match socket with pattern. */
+/** Match socket pair with pattern. */
 static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 {
 	log_msg(LVL_DEBUG, "tcp_sockpair_match(%p, %p)", sp, pattern);
@@ -356,7 +352,7 @@ static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
  */
 tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_find(%p)", sp);
+	log_msg(LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
 
 	fibril_mutex_lock(&conn_list_lock);
 

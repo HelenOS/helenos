@@ -35,6 +35,7 @@
  */
 
 #include <io/log.h>
+#include <macros.h>
 
 #include "assoc.h"
 #include "udp_type.h"
@@ -96,9 +97,19 @@ udp_error_t udp_uc_send(udp_assoc_t *assoc, udp_sock_t *fsock, void *data,
 udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
     size_t *rcvd, xflags_t *xflags, udp_sock_t *fsock)
 {
-//	size_t xfer_size;
+	size_t xfer_size;
+	udp_msg_t *msg;
+	int rc;
 
 	log_msg(LVL_DEBUG, "%s: udp_uc_receive()", assoc->name);
+	rc = udp_assoc_recv(assoc, &msg, fsock);
+	switch (rc) {
+	}
+
+	xfer_size = min(size, msg->data_size);
+	memcpy(buf, msg->data, xfer_size);
+	*rcvd = xfer_size;
+
 	return UDP_EOK;
 }
 

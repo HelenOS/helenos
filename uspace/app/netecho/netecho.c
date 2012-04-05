@@ -372,6 +372,7 @@ int main(int argc, char *argv[])
 	case PF_INET:
 		address_in.sin_family = AF_INET;
 		address_in.sin_port = htons(port);
+		address_in.sin_addr.s_addr = INADDR_ANY;
 		address = (struct sockaddr *) &address_in;
 		addrlen = sizeof(address_in);
 		break;

@@ -113,7 +113,6 @@ static void udp_sock_socket(udp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	fibril_mutex_initialize(&sock->lock);
 	sock->client = client;
-	sock->laddr.ipv4 = UDP_IPV4_ANY;
 
 	rc = udp_uc_create(&sock->assoc);
 	if (rc != EOK) {
@@ -188,7 +187,7 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
 
 	fsock.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
-	fsock.port = uint16_t_be2host(sock_core->port);
+	fsock.port = sock_core->port;
 	urc = udp_uc_set_local(socket->assoc, &fsock);
 
 	switch (urc) {
@@ -207,6 +206,8 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	default:
 		assert(false);
 	}
+
+	udp_sock_notify_data(sock_core);
 
 	log_msg(LVL_DEBUG, " - success");
 	async_answer_0(callid, rc);
@@ -285,7 +286,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	}
 
 	if (sock_core->port == 0) {
-		/* Implicitly bind socket */
+		/* Implicitly bind socket to port */
 		rc = socket_bind(&client->sockets, &gsock, SOCKET_GET_SOCKET_ID(call),
 		    addr, addr_size, UDP_FREE_PORTS_START, UDP_FREE_PORTS_END,
 		    last_used_port);
@@ -293,10 +294,34 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			async_answer_0(callid, rc);
 			goto out;
 		}
+
+		udp_sock_notify_data(sock_core);
 	}
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
+
+	if (socket->assoc->ident.local.addr.ipv4 == UDP_IPV4_ANY) {
+		/* Determine local IP address */
+		inet_addr_t loc_addr, rem_addr;
+
+		rem_addr.ipv4 = fsockp ? fsock.addr.ipv4 :
+		    socket->assoc->ident.foreign.addr.ipv4;
+
+		rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&socket->lock);
+			async_answer_0(callid, rc);
+			log_msg(LVL_DEBUG, "udp_sock_sendto: Failed to "
+			    "determine local address.");
+			return;
+		}
+
+		socket->assoc->ident.local.addr.ipv4 = loc_addr.ipv4;
+		log_msg(LVL_DEBUG, "Local IP address is %x",
+		    socket->assoc->ident.local.addr.ipv4);
+	}
+
 
 	assert(socket->assoc != NULL);
 
@@ -393,7 +418,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	urc = udp_uc_receive(socket->assoc, buffer, FRAGMENT_SIZE, &data_len,
 	    &xflags, &rsock);
-	log_msg(LVL_DEBUG, "**** udp_uc_receive done");
+	log_msg(LVL_DEBUG, "**** udp_uc_receive done, data_len=%zu", data_len);
 
 	switch (urc) {
 	case UDP_EOK:
@@ -458,8 +483,10 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	if (length < data_len && rc == EOK)
 		rc = EOVERFLOW;
 
+	log_msg(LVL_DEBUG, "read_data_length <- %zu", length);
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
-	answer_call(callid, EOK, &answer, 1);
+	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(addr));
+	answer_call(callid, EOK, &answer, 3);
 
 	/* Push one fragment notification to client's queue */
 	udp_sock_notify_data(sock_core);
@@ -525,11 +552,12 @@ static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	socket_cores_initialize(&client.sockets);
 
 	while (true) {
+		log_msg(LVL_DEBUG, "udp_sock_connection: wait");
 		callid = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
-		log_msg(LVL_DEBUG, "udp_sock_connection: METHOD=%d\n",
+		log_msg(LVL_DEBUG, "udp_sock_connection: METHOD=%d",
 		    (int)IPC_GET_IMETHOD(call));
 
 		switch (IPC_GET_IMETHOD(call)) {
