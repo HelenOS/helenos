@@ -34,7 +34,6 @@
 
 #include <libarch/inttypes.h>
 #include <ddf/driver.h>
-#include <devman.h>
 #include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <str_error.h>

@@ -34,7 +34,6 @@
  */
 
 #include <bool.h>
-#include <devman.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
