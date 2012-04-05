@@ -405,8 +405,8 @@ rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 
 	switch (method) {
 	case CLOCK_GET_BATTERY_STATUS:
-		batt_ok = !(rtc_register_read(rtc, RTC_STATUS_D) &
-		    RTC_BATTERY_OK);
+		batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
+		    RTC_BATTERY_OK;
 		async_answer_1(callid, EOK, batt_ok);
 		break;
 	default:
