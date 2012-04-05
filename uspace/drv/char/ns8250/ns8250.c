@@ -211,7 +211,7 @@ static int ns8250_write(ddf_fun_t *fun, char *buf, size_t count)
 	for (idx = 0; idx < count; idx++)
 		ns8250_putchar(ns, (uint8_t) buf[idx]);
 	
-	return 0;
+	return count;
 }
 
 static ddf_dev_ops_t ns8250_dev_ops;
