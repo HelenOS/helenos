@@ -44,6 +44,8 @@
 
 #include "uhh.h"
 #include "usbtll.h"
+#include "core_cm.h"
+#include "usbhost_cm.h"
 
 #define NAME  "rootamdm37x"
 
@@ -121,43 +123,61 @@ static ddf_dev_ops_t rootamdm37x_fun_ops =
 
 static int usb_clocks(bool on)
 {
-	uint32_t *usb_host_cm = NULL;
-	uint32_t *l4_core_cm = NULL;
+	usbhost_cm_regs_t *usb_host_cm = NULL;
+	core_cm_regs_t *l4_core_cm = NULL;
 
-	int ret = pio_enable((void*)0x48005400, 8192, (void**)&usb_host_cm);
+	int ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
+	    (void**)&usb_host_cm);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)0x48004a00, 8192, (void**)&l4_core_cm);
+	ret = pio_enable((void*)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
+	    (void**)&l4_core_cm);
 	if (ret != EOK)
 		return ret;
 
 	assert(l4_core_cm);
 	assert(usb_host_cm);
 	if (on) {
-		l4_core_cm[0xe] |= 0x4;  /* iclk */
-		l4_core_cm[0x3] |= 0x4;  /* fclk */
-
-		/* offset 0x10 (0x4 int32)[0] enables fclk,
-		 * offset 0x00 (0x0 int32)[0 and 1] enables iclk,
-		 * offset 0x30 (0xc int32)[0] enables autoidle
-		 */
-		usb_host_cm[0x4] = 0x1;
-		usb_host_cm[0x0] = 0x3;
-		usb_host_cm[0xc] = 0x1;
+		l4_core_cm->iclken3 |= CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
+		l4_core_cm->fclken3 |= CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
+		usb_host_cm->iclken |= USBHOST_CM_ICLKEN_EN_USBHOST;
+		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
+		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
 	} else {
-		usb_host_cm[0xc] = 0;
-		usb_host_cm[0x0] = 0;
-		usb_host_cm[0x4] = 0;
-		l4_core_cm[0xe] &= ~0x4;
-		l4_core_cm[0x3] &= ~0x4;
+		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
+		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
+		usb_host_cm->iclken &= ~USBHOST_CM_ICLKEN_EN_USBHOST;
+		l4_core_cm->fclken3 &= ~CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
+		l4_core_cm->iclken3 &= ~CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
 	}
+
+	//TODO Unmap those registers.
 
 	return ret;
 }
 
 static int usb_tll_init()
 {
+	tll_regs_t *usb_tll = NULL;
+	uhh_regs_t *uhh_conf = NULL;
+
+	int ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
+	    AMDM37x_USBTLL_SIZE, (void**)&usb_tll);
+	if (ret != EOK)
+		return ret;
+
+	ret = pio_enable((void*)AMDM37x_UHH_BASE_ADDRESS,
+	    AMDM37x_UHH_SIZE, (void**)&uhh_conf);
+	if (ret != EOK)
+		return ret;
+
+	/* Reset USB tll */
+	usb_tll->sysconfig |= TLL_SYSCONFIG_SOFTRESET_FLAG;
+	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
+	while (!(usb_tll->sysstatus & TLL_SYSSTATUS_RESET_DONE_FLAG));
+	ddf_msg(LVL_DEBUG, "USB TLL Reset done.");
+
 	return EOK;
 }
 
