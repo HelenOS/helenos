@@ -46,30 +46,46 @@ CP = /bin/cp -f
 
 all: $(BINARY)
 
-# FIXME - better parallelization
+.PHONY: all clean unpack-tarball
 
-$(BINARY):
-# Download it
-	wget "$(MSIM_MIRROR)$(MSIM_TARBALL)" -O $(MSIM_TARBALL)
-# Unpack it
-	tar xjf $(MSIM_TARBALL)
-# Extract sources
+clean:
+	rm -rf msim Makefile.depend* *.map *.disasm $(MSIM_TARBALL) $(MSIM_DIST)
+
+$(BINARY): $(MSIM_DIST)/src/msim
+	$(CP) $< $@
+
+# Run make in MSIM src directory
+$(MSIM_DIST)/src/msim: $(MSIM_PATCHED_FILES) $(MSIM_DIST)/src/Makefile.sources Makefile 
+	cd $(MSIM_DIST)/src; make -f $(MSIM_HELENOS_MAKEFILE) USPACE_PREFIX=../../$(USPACE_PREFIX)
+	
+# Copy HelenOS specific files
+$(MSIM_DIST)/config.h: config.h.msim | unpack-tarball
+	$(CP) $< $@
+
+$(MSIM_DIST)/src/helenos.c: helenos.c | unpack-tarball
+	$(CP) $< $@
+
+$(MSIM_DIST)/src/helenos_input.c: helenos_input.c | unpack-tarball
+	$(CP) $< $@
+
+$(MSIM_DIST)/src/$(MSIM_HELENOS_MAKEFILE): $(MSIM_HELENOS_MAKEFILE) | unpack-tarball
+	$(CP) $< $@
+
+# Extract list of sources, remove POSIX/Linux specific
+$(MSIM_DIST)/src/Makefile.sources: | unpack-tarball
 	cd $(MSIM_DIST)/src; ( \
 		echo 'all__:'; \
 		echo -e '\t@echo SOURCES = $$(SOURCES)'; cat Makefile.in \
 	) | make -f - | grep 'SOURCES' >Makefile.sources
-# Patch it
 	sed \
 		-e 's:io/input.c:$(MSIM_HELENOS_PLATFORM_FILES):' \
 		-e 's:debug/gdb.c::' \
 		-e 's:arch/posix/stdin.c::' \
 		-i $(MSIM_DIST)/src/Makefile.sources
-	$(CP) config.h.msim $(MSIM_DIST)/config.h
-	$(CP) $(MSIM_HELENOS_MAKEFILE) $(MSIM_HELENOS_PLATFORM_FILES) $(MSIM_DIST)/src/
-# Build it
-	cd $(MSIM_DIST)/src; make -f $(MSIM_HELENOS_MAKEFILE) USPACE_PREFIX=../../$(USPACE_PREFIX)
-	$(CP) $(MSIM_DIST)/src/msim $@
 
-clean:
-	rm -rf msim Makefile.depend* *.map *.disasm $(MSIM_TARBALL) $(MSIM_DIST)
+# Download tarball
+$(MSIM_TARBALL):
+	wget "$(MSIM_MIRROR)$(MSIM_TARBALL)" -O $(MSIM_TARBALL)
 
+unpack-tarball: $(MSIM_TARBALL)
+	tar xjf $(MSIM_TARBALL)
