@@ -168,10 +168,8 @@ extern int __gttf2(long double, long double);
 /* Not implemented yet */
 extern float __powisf2(float, int);
 extern double __powidf2 (double, int);
-extern long double __powitf2 (long double, int);
-extern long double __powixf2 (long double, int);
-
-
+extern long double __powitf2(long double, int);
+extern long double __powixf2(long double, int);
 
 /* SPARC quadruple-precision wrappers */
 
