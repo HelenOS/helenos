@@ -40,6 +40,7 @@ ENDIANESS = LE
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
 	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/eabi.S \
 	arch/$(KARCH)/src/exc_handler.S \
 	arch/$(KARCH)/src/arm32.c \
 	arch/$(KARCH)/src/machine_func.c \

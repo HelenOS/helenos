@@ -28,20 +28,18 @@
 
 /** @addtogroup genarch
  * @{
- */ 
+ */
 /**
  * @file
  */
 
-#ifndef __SOFTINT_MULTIPLICATION_H__
-#define __SOFTINT_MULTIPLICATION_H__
+#ifndef KERN_MULTIPLICATION_H_
+#define KERN_MULTIPLICATION_H_
 
 /* 64 bit multiplication */
-long long __muldi3(long long a, long long b);
+extern long long __muldi3(long long, long long);
 
 #endif
 
 /** @}
  */
-
-

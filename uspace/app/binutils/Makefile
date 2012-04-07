@@ -111,7 +111,7 @@ ifeq ($(PLATFORM),amd64)
 TARGET = amd64-linux-gnu
 endif
 ifeq ($(PLATFORM),arm32)
-TARGET = arm-linux-gnu
+TARGET = arm-linux-gnueabi
 endif
 ifeq ($(PLATFORM),ia32)
 TARGET = i686-pc-linux-gnu
