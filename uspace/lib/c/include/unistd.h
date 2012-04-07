@@ -57,7 +57,7 @@
 
 #define getpagesize()  (PAGE_SIZE)
 
-extern int dup2(int oldfd, int newfd);
+extern int dup2(int, int);
 
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);
@@ -72,7 +72,7 @@ extern int close(int);
 extern int fsync(int);
 extern int unlink(const char *);
 
-extern char *getcwd(char *buf, size_t);
+extern char *getcwd(char *, size_t);
 extern char *getprevwd(char *, size_t);
 extern int rmdir(const char *);
 extern int chdir(const char *);
