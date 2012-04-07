@@ -62,6 +62,15 @@ int cmd_cd(char **argv, cliuser_t *usr)
 
 	argc = cli_count_args(argv);
 
+	/* Handle cd -- -. Override to switch to a directory named '-' */
+	bool hyphen_override = false;
+	if (argc == 3) {
+		if(!str_cmp(argv[1], "--")) {
+			hyphen_override = true;
+			argc--;
+		}
+	}
+
 	/* We don't yet play nice with whitespace, a getopt implementation should
 	 * protect "quoted\ destination" as a single argument. Its not our job to
 	 * look for && || or redirection as the tokenizer should have done that
@@ -78,10 +87,34 @@ int cmd_cd(char **argv, cliuser_t *usr)
 		return CMD_FAILURE;
 	}
 
-	/* We have the correct # of arguments
-     * TODO: handle tidle (~) expansion? */
+	/* We have the correct # of arguments */
+	// TODO: handle tidle (~) expansion? */
 
-	rc = chdir(argv[1]);
+	/* Handle 'cd -' first. */
+	if (!str_cmp(argv[1], "-") && !hyphen_override) {
+		char *buffer = (char *) malloc(PATH_MAX);
+		if (!buffer) {
+			cli_error(CL_ENOMEM, "Cannot switch to previous directory");
+			return CMD_FAILURE;
+		}
+		memset(buffer, 0, PATH_MAX);
+		getprevwd(buffer, PATH_MAX);
+		if (*buffer == '\0') {
+			cli_error(CL_EFAIL, "No previous directory to switch to");
+			free(buffer);
+			return CMD_FAILURE;
+		} else {
+			rc = chdir(buffer);
+			free(buffer);
+		}
+	} else if (hyphen_override) {
+		/* Handles 'cd -- <dirname>'.
+		 * Override for directory named '-'.
+		 */
+		rc = chdir(argv[2]);
+	} else {
+		rc = chdir(argv[1]);
+	}
 
 	if (rc == 0) {
 		cli_set_prompt(usr);

@@ -73,6 +73,7 @@ extern int fsync(int);
 extern int unlink(const char *);
 
 extern char *getcwd(char *buf, size_t);
+extern char *getprevwd(char *, size_t);
 extern int rmdir(const char *);
 extern int chdir(const char *);
 
