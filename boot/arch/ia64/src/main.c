@@ -188,10 +188,22 @@ void bootstrap(void)
 	
 	printf("\nInflating components ... ");
 	
+	/*
+	 * We will use the next available address for a copy of each component to
+	 * make sure that inflate() works with disjunctive memory regions.
+	 */
+	top = ALIGN_UP(top, PAGE_SIZE);
+
 	for (i = cnt; i > 0; i--) {
 		printf("%s ", components[i - 1].name);
 		
-		int err = inflate(components[i - 1].start, components[i - 1].size,
+		/*
+		 * Copy the component to a location which is guaranteed not to
+		 * overlap with the destination for inflate().
+		 */
+		memmove((void *) top, components[i - 1].start, components[i - 1].size);
+		
+		int err = inflate((void *) top, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
 		
 		if (err != EOK) {

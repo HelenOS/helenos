@@ -52,8 +52,6 @@
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
-#include <devman.h>
-#include <ipc/devman.h>
 
 #define NAME "root"
 

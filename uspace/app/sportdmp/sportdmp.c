@@ -26,22 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <devman.h>
-#include <ipc/devman.h>
 #include <device/char_dev.h>
+#include <errno.h>
 #include <ipc/serial_ctl.h>
+#include <loc.h>
+#include <stdio.h>
 
 #define BUF_SIZE 1
 
-static void syntax_print() {
-	fprintf(stderr, "Usage: sportdmp <baud> <device_path>\n");
+static void syntax_print(void)
+{
+	fprintf(stderr, "Usage: sportdmp <baud> <device_service>\n");
 }
 
 int main(int argc, char **argv)
 {
-	const char* devpath = "/hw/pci0/00:01.0/com1/a";
+	const char* svc_path = "devices/\\hw\\pci0\\00:01.0\\com1\\a";
 	sysarg_t baud = 9600;
 	
 	if (argc > 1) {
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	}
 	
 	if (argc > 2) {
-		devpath = argv[2];
+		svc_path = argv[2];
 	}
 	
 	if (argc > 3) {
@@ -63,17 +63,17 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	devman_handle_t device;
-	int rc = devman_fun_get_handle(devpath, &device, IPC_FLAG_BLOCKING);
+	service_id_t svc_id;
+	int rc = loc_service_get_id(svc_path, &svc_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		fprintf(stderr, "Cannot open device %s\n", devpath);
+		fprintf(stderr, "Cannot find device service %s\n", svc_path);
 		return 1;
 	}
 	
-	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE, device,
+	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
-		fprintf(stderr, "Cannot connect device\n");
+		fprintf(stderr, "Failed connecting to service %s\n", svc_path);
 	}
 	
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -82,13 +82,13 @@ int main(int argc, char **argv)
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
-		fprintf(stderr, "Cannot set serial properties\n");
+		fprintf(stderr, "Failed setting serial properties\n");
 		return 2;
 	}
 	
 	uint8_t *buf = (uint8_t *) malloc(BUF_SIZE);
 	if (buf == NULL) {
-		fprintf(stderr, "Cannot allocate buffer\n");
+		fprintf(stderr, "Failed allocating buffer\n");
 		return 3;
 	}
 	

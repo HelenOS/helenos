@@ -37,7 +37,7 @@
 #include <macros.h>
 
 static const char *project = "SPARTAN kernel";
-static const char *copyright = "Copyright (c) 2001-2011 HelenOS project";
+static const char *copyright = STRING(COPYRIGHT);
 static const char *release = STRING(RELEASE);
 static const char *name = STRING(NAME);
 static const char *arch = STRING(KARCH);

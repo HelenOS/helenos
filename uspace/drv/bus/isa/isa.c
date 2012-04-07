@@ -65,8 +65,6 @@
 #include <ddf/log.h>
 #include <ops/hw_res.h>
 
-#include <devman.h>
-#include <ipc/devman.h>
 #include <device/hw_res.h>
 
 #include "i8237.h"
